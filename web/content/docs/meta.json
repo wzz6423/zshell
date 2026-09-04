@@ -1,0 +1,22 @@
+{
+  "title": "Docs",
+  "pages": [
+    "---Getting started---",
+    "index",
+    "installation",
+    "quick-start",
+    "---Using Zshell---",
+    "projects",
+    "panes",
+    "terminal",
+    "browser",
+    "git",
+    "files",
+    "session-info",
+    "automation",
+    "---Reference---",
+    "shortcuts",
+    "configuration",
+    "faq"
+  ]
+}

@@ -1,0 +1,46 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # bun.lock lives at the root: web/ is a workspace member, not its own install.
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:15"
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 3
+    groups:
+      bun-dependencies:
+        patterns:
+          - "*"
+
+  # The Alacritty backend's bridge. The Xcode build phase passes --locked, so a
+  # bump has to land in Cargo.lock to take effect.
+  - package-ecosystem: cargo
+    directory: /Vendor/alacritty-bridge
+    schedule:
+      interval: monthly
+      time: "04:30"
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 2
+    groups:
+      cargo-dependencies:
+        patterns:
+          - "*"
+
+# No swift entry: Sparkle, STTextView-Plugin-Neon, PierreDiffsSwift and FuzzyMatch
+# are SwiftPM dependencies declared inside zshell.xcodeproj, and Dependabot only
+# reads a Package.swift. Bump those from Xcode's Packages list by hand.

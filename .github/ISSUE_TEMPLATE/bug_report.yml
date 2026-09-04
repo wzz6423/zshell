@@ -1,0 +1,88 @@
+name: Bug report
+description: Report a reproducible problem to help us investigate and fix it.
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report. Search existing Issues first to avoid duplicates.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Pick the area this issue belongs to. It decides the `area:*` label.
+      options:
+        - Feature Development
+        - Bug Fix
+        - CI & Build
+        - Documentation
+        - Community & Discussion
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: zshell version
+      description: Enter the app version or commit SHA.
+      placeholder: e.g. v0.1.1 or abc1234
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version and device
+      description: Enter the macOS version and chip model.
+      placeholder: e.g. macOS 15.5, Apple M3 Pro
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation method
+      options:
+        - Released app
+        - Run from source
+        - Self-built app
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Give the smallest reproduction starting from app launch.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: You may attach screenshots, recordings, or errors; remove passwords, tokens, and personal data first.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Optional. Do not paste credentials or private data.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched existing Issues and confirmed that this is not a duplicate.
+          required: true
+        - label: I removed sensitive information from logs and screenshots.
+          required: true

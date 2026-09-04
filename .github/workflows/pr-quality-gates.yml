@@ -1,0 +1,63 @@
+name: PR Quality Gates
+
+on:
+  pull_request:
+    branches:
+      - main
+      - "publish-v*"
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Skip Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      skip: ${{ steps.gate.outputs.skip }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: gate
+        uses: ./.github/actions/ci-skip-gate
+        with:
+          workflow-name: PR Quality Gates
+          github-token: ${{ github.token }}
+
+  validate:
+    name: PR Quality
+    needs: gate
+    if: github.event.pull_request.user.login != 'dependabot[bot]' && needs.gate.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate title and body
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$PR_TITLE" > "$RUNNER_TEMP/pr-title.txt"
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          ruby .github/scripts/pr-metadata.rb validate \
+            --title-file "$RUNNER_TEMP/pr-title.txt" \
+            --body-file "$RUNNER_TEMP/pr-body.md"
+
+      - name: Remove pull request metadata files
+        if: always()
+        run: rm -f "$RUNNER_TEMP/pr-title.txt" "$RUNNER_TEMP/pr-body.md"

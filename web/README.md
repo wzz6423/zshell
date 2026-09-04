@@ -1,0 +1,113 @@
+# Zshell — website
+
+Landing page and documentation for **Zshell**, the native terminal workspace for
+macOS.
+
+## Stack
+
+- [TanStack Start](https://tanstack.com/start) (React 19 + Vite 8)
+- [Tailwind CSS v4](https://tailwindcss.com)
+- [shadcn/ui](https://ui.shadcn.com) with **Base UI** primitives (`@base-ui/react`)
+- [Fumadocs](https://fumadocs.dev) for `/docs`
+- Prerendered to static files and deployed to
+  [GitHub Pages](https://docs.github.com/pages)
+
+## Develop
+
+```sh
+bun install
+bun run dev        # http://localhost:3000
+bun run typecheck  # tsc --noEmit
+```
+
+## Deploy (GitHub Pages)
+
+Pushing to `main` deploys — [`.github/workflows/web-pages.yml`](../.github/workflows/web-pages.yml)
+builds the site and uploads it. There is nothing to deploy by hand.
+
+The site answers on the apex domain **[zshell.sh](https://zshell.sh)**, which is
+what [`public/CNAME`](public/CNAME) declares. Vite copies `public/` into
+`dist/client` verbatim, so every deploy re-declares it — a build that loses the
+file sends the site back to `wzz6423.github.io/zshell` and 404s the domain, hence
+the assertion in both web workflows. The repository's *Settings → Pages* custom
+domain has to name the same host, and DNS needs the apex pointed at Pages: four A
+records to `185.199.108.153`, `.109.153`, `.110.153` and `.111.153`, or an
+ALIAS/ANAME to `wzz6423.github.io`
+([GitHub's list](https://docs.github.com/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site)
+is authoritative, and covers IPv6). `releases.zshell.sh` is not part of this: it
+is the Cloudflare R2 bucket that serves the DMGs and the appcast.
+
+[`public/.nojekyll`](public/.nojekyll) is there because the build emits asset
+chunks whose names start with `_`, which Jekyll hides. Artifact deploys do not
+run Jekyll, so this is belt-and-braces against ever serving the site another way.
+
+`bun run build` writes two directories. `dist/client` is the site: every URL as a
+static file, and the only thing Pages serves. `dist/server` is the bundle that
+prerendering renders those files against — a build artifact, never deployed.
+`bun run preview` serves the result locally.
+
+Nothing runs at request time, so a new URL has to be listed in
+[`vite.config.ts`](vite.config.ts) to exist at all.
+
+Three of those URLs answer with JSON instead of a document, and are how a page
+reached by client-side navigation gets what a server would otherwise have
+computed for it: `/api/search` is the docs search index, `/api/release` is the
+release the download buttons point at, and `/api/docs/<lang>` is the sidebar tree
+and page titles for one language. Each is read straight from the source while
+prerendering and fetched from the static file afterwards — see
+[`src/lib/docs-loader.ts`](src/lib/docs-loader.ts) for the `createIsomorphicFn`
+split that keeps the build-time half out of the browser bundle.
+
+## Languages
+
+English is the default and stays unprefixed (`/`, `/docs/git`); every other
+language sits under its own prefix (`/zh`, `/zh/docs/git`). The supported list
+is [`src/lib/i18n.ts`](src/lib/i18n.ts).
+
+**Landing page.** One [`HomePage`](src/components/home-page.tsx) rendered from
+per-language strings in [`src/lib/home-copy.ts`](src/lib/home-copy.ts), with a
+route per language: [`routes/index.tsx`](src/routes/index.tsx) and
+[`routes/zh/index.tsx`](src/routes/zh/index.tsx). Spelling the routes out is
+deliberate — a landing page under `/$lang` shares a chunk with `/$lang/docs`,
+and once it also shares `HomePage` with `/`, the bundler folds the ~190 kB
+Fumadocs bundle into the entry chunk that every page loads. Adding a language
+means a route file plus an entry in `home-copy.ts` and in `HOME_ROUTES`
+([`src/components/site-links.tsx`](src/components/site-links.tsx)).
+
+**Docs.** MDX under [`content/docs`](content/docs), served by Fumadocs from a
+single `/$lang/docs` route. A translation is the same filename with the
+language inserted — `git.mdx` → `git.zh.mdx` — and a page with no translation
+falls back to English instead of 404ing. Sidebar order and section headings
+come from `meta.json` (`meta.zh.json` for the translated labels). A new
+language also needs a UI language pack in
+[`src/components/docs-shell.tsx`](src/components/docs-shell.tsx) and a tokenizer
+in *both* halves of search: [`src/routes/api/search.ts`](src/routes/api/search.ts)
+tokenizes the index, and [`src/components/docs-search.tsx`](src/components/docs-search.tsx)
+tokenizes the query. A tokenizer is a function, so it cannot travel inside the
+exported index — the two have to agree by hand, and a language that only has the
+first will find nothing.
+
+Docs pages are written for people using the app; see
+[CONTRIBUTING.md](../CONTRIBUTING.md). Every docs URL is prerendered —
+[`vite.config.ts`](vite.config.ts) derives the list from the filenames, so a new
+page needs no config change.
+
+## Notes
+
+- The theme lives in [`src/styles/app.css`](src/styles/app.css) — a GitHub-dark
+  palette that mirrors the macOS app (`zshell/Theme.swift`). Fumadocs reads the
+  same variables through `fumadocs-ui/css/shadcn.css`, so the docs inherit it.
+- Add more components with `bunx shadcn@latest add <name>` — the project is
+  already configured for Base UI (`components.json` → `"style": "base-nova"`).
+- Landing pages read the newest release from the Sparkle appcast through
+  [`src/lib/release.ts`](src/lib/release.ts), while they are prerendered — the
+  appcast is on another origin and sends no CORS headers, so a browser could not
+  read it anyway. A release therefore only reaches the site once it is rebuilt,
+  which `scripts/release.ts` triggers for us (see
+  [RELEASING.md](../RELEASING.md)). Keep the fallback release in that file
+  current: it is what a build advertises when the appcast is unreachable.
+- [`public/zshell-icon.png`](public/zshell-icon.png) is the shared Logo,
+  favicon, and Apple touch icon. It is used by the root route and the site,
+  docs, and landing-page navigation.
+- The site has no hero product shot yet. Add one under `public/` and reference
+  it from `src/components/home-page.tsx` when it is ready.

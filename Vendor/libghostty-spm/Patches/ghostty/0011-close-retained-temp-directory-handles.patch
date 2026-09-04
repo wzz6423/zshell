@@ -1,0 +1,151 @@
+diff --git a/src/Surface.zig b/src/Surface.zig
+index 2c4edc497..2a2258cbd 100644
+--- a/src/Surface.zig
++++ b/src/Surface.zig
+@@ -5655,7 +5655,8 @@ fn writeScreenFile(
+ ) !void {
+     // Create a temporary directory to store our scrollback.
+     var tmp_dir = try internal_os.TempDir.init();
+-    errdefer tmp_dir.deinit();
++    var retain_tmp_dir = false;
++    defer if (retain_tmp_dir) tmp_dir.close(.retain) else tmp_dir.deinit();
+ 
+     var filename_buf: [std.fs.max_path_bytes]u8 = undefined;
+     const filename = try std.fmt.bufPrint(
+@@ -5724,7 +5725,6 @@ fn writeScreenFile(
+ 
+         const sel = sel_ orelse {
+             // If we have no selection we have no data so we do nothing.
+-            tmp_dir.deinit();
+             return;
+         };
+ 
+@@ -5774,6 +5774,9 @@ fn writeScreenFile(
+             path,
+         ), .unlocked),
+     }
++
++    // The action accepted the path, so retain the file for its consumer.
++    retain_tmp_dir = true;
+ }
+ 
+ /// Call this to complete a clipboard request sent to apprt. This should
+diff --git a/src/os/TempDir.zig b/src/os/TempDir.zig
+index c3d344d9d..1db85cefc 100644
+--- a/src/os/TempDir.zig
++++ b/src/os/TempDir.zig
+@@ -2,6 +2,7 @@
+ //! store temporary data and is destroyed on deinit.
+ const TempDir = @This();
+ 
++const builtin = @import("builtin");
+ const std = @import("std");
+ const Dir = std.fs.Dir;
+ const file = @import("file.zig");
+@@ -60,25 +61,94 @@ pub fn name(self: *TempDir) []const u8 {
+ /// Finish with the temporary directory. This deletes all contents in the
+ /// directory.
+ pub fn deinit(self: *TempDir) void {
++    self.close(.delete);
++}
++
++pub const CloseMode = enum { delete, retain };
++
++/// Close the directory handles, optionally retaining the temporary directory
++/// and its contents on disk.
++pub fn close(self: *TempDir, mode: CloseMode) void {
+     self.dir.close();
+-    self.parent.deleteTree(self.name()) catch |err|
+-        log.err("error deleting temp dir err={}", .{err});
++    switch (mode) {
++        .delete => self.parent.deleteTree(self.name()) catch |err|
++            log.err("error deleting temp dir err={}", .{err}),
++        .retain => {},
++    }
++    self.parent.close();
+ }
+ 
+ test {
+     const testing = std.testing;
+ 
+-    var td = try init();
+-    errdefer td.deinit();
++    var path_buf: [std.fs.max_path_bytes]u8 = undefined;
++    var path_len: usize = undefined;
++    var dir_handle: Dir.Handle = undefined;
++    var parent_handle: Dir.Handle = undefined;
++    {
++        var td = try init();
++        errdefer td.deinit();
+ 
+-    const nameval = td.name();
+-    try testing.expect(nameval.len > 0);
++        const nameval = td.name();
++        try testing.expect(nameval.len > 0);
+ 
+-    // Can open a new handle to it proves it exists.
+-    var dir = try td.parent.openDir(nameval, .{});
+-    dir.close();
++        // Can open a new handle to it proves it exists.
++        var dir = try td.parent.openDir(nameval, .{});
++        dir.close();
++
++        path_len = (try td.dir.realpath(".", &path_buf)).len;
++        dir_handle = td.dir.fd;
++        parent_handle = td.parent.fd;
+ 
+-    // Should be deleted after we deinit
+-    td.deinit();
+-    try testing.expectError(error.FileNotFound, td.parent.openDir(nameval, .{}));
++        // Should be deleted after we deinit.
++        td.deinit();
++    }
++
++    switch (builtin.os.tag) {
++        .freebsd, .ios, .linux, .macos => {
++            for ([_]Dir.Handle{ dir_handle, parent_handle }) |handle| {
++                const result = std.posix.system.fcntl(handle, std.posix.F.GETFD, @as(u32, 0));
++                try testing.expectEqual(std.posix.E.BADF, std.posix.errno(result));
++            }
++        },
++
++        else => {},
++    }
++    try testing.expectError(
++        error.FileNotFound,
++        std.fs.openDirAbsolute(path_buf[0..path_len], .{}),
++    );
++}
++
++test "close retains temporary directory" {
++    const testing = std.testing;
++
++    var path_buf: [std.fs.max_path_bytes]u8 = undefined;
++    var path_len: usize = undefined;
++    var dir_handle: Dir.Handle = undefined;
++    var parent_handle: Dir.Handle = undefined;
++    {
++        var td = try init();
++        errdefer td.deinit();
++
++        path_len = (try td.dir.realpath(".", &path_buf)).len;
++        dir_handle = td.dir.fd;
++        parent_handle = td.parent.fd;
++
++        td.close(.retain);
++    }
++    defer std.fs.deleteDirAbsolute(path_buf[0..path_len]) catch {};
++
++    switch (builtin.os.tag) {
++        .freebsd, .ios, .linux, .macos => {
++            for ([_]Dir.Handle{ dir_handle, parent_handle }) |handle| {
++                const result = std.posix.system.fcntl(handle, std.posix.F.GETFD, @as(u32, 0));
++                try testing.expectEqual(std.posix.E.BADF, std.posix.errno(result));
++            }
++        },
++
++        else => {},
++    }
++    var dir = try std.fs.openDirAbsolute(path_buf[0..path_len], .{});
++    dir.close();
+ }

@@ -1,0 +1,54 @@
+name: Feature request
+description: Propose a feature that solves a clear user problem.
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing Issues and Discussions first to avoid duplicate proposals.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Pick the area this issue belongs to. It decides the `area:*` label.
+      options:
+        - Feature Development
+        - Bug Fix
+        - CI & Build
+        - Documentation
+        - Community & Discussion
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the use case and the specific difficulty you have today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the expected interaction or behavior, not only a feature name.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Explain why the current options do not meet the need.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Optional. Attach screenshots, prototypes, or other context.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched existing Issues and Discussions.
+          required: true

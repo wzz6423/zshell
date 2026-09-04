@@ -1,0 +1,157 @@
+name: Web CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - "publish-v*"
+  push:
+    branches:
+      - main
+      - "publish-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Skip Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      skip: ${{ steps.gate.outputs.skip }}
+      relevant: ${{ steps.gate.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: gate
+        uses: ./.github/actions/ci-skip-gate
+        with:
+          workflow-name: Web CI
+          github-token: ${{ github.token }}
+
+  build:
+    name: Web Build & Test
+    needs: gate
+    if: needs.gate.outputs.skip != 'true' && needs.gate.outputs.relevant != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: latest
+
+      # web/ is a workspace member, so the install has to happen at the root
+      # where bun.lock lives.
+      - name: Install workspace dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        working-directory: web
+        run: bun run typecheck
+
+      - name: Build
+        working-directory: web
+        run: bun run build
+
+      # bun audit has no --omit=dev, and everything here is a build-time
+      # dependency: the prerendered site ships no runtime dependency of its own,
+      # so an advisory is something to read rather than a gate — newly introduced
+      # ones are gated by Dependency Review instead. The registry's bulk advisory
+      # endpoint also drops connections often enough to need the retries.
+      - name: Audit dependencies
+        continue-on-error: true
+        run: |
+          for attempt in 1 2 3; do
+            if audit_output="$(timeout 120s bun audit --audit-level=high 2>&1)"; then
+              printf '%s\n' "$audit_output"
+              exit 0
+            fi
+            printf '%s\n' "$audit_output"
+            case "$audit_output" in
+              *ConnectionClosed* | *ECONNRESET* | *ETIMEDOUT* | *ENOTFOUND* | *EAI_AGAIN* | *503*)
+                echo "Registry unreachable on attempt $attempt/3; retrying in 5s." >&2
+                sleep 5
+                ;;
+              *)
+                echo "::warning::bun audit reported high-severity advisories; see the step log." >&2
+                exit 1
+                ;;
+            esac
+          done
+          echo "::warning::bun audit could not reach the registry after 3 attempts." >&2
+          exit 1
+
+      # The site is what Pages will serve: dist/client, one file per URL. Assert
+      # the pages that are easy to lose — a landing page dropped from
+      # vite.config.ts's `pages` still builds, it just stops existing. CNAME and
+      # the (empty, hence -f) .nojekyll come from public/: without them Pages
+      # drops the custom domain and hides the `_`-prefixed asset chunks.
+      - name: Verify build artifacts
+        working-directory: web
+        run: |
+          test -s dist/client/index.html
+          test -s dist/client/zh/index.html
+          test -s dist/client/docs/index.html
+          test -s dist/client/changelog/index.html
+          test -s dist/client/api/search
+          test -s dist/client/api/release
+          test -s dist/client/api/docs/en
+          test -s dist/client/api/docs/zh
+          test -s dist/client/CNAME
+          test -f dist/client/.nojekyll
+          test -n "$(ls -A dist/client/assets)"
+          echo "Prerendered $(find dist/client -name '*.html' | wc -l | tr -d ' ') page(s)"
+
+      # Lets a reviewer open the built site without running the build. Hidden
+      # files are excluded by default, which would drop .nojekyll.
+      - name: Upload the prerendered site
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: Web-Build
+          path: web/dist/client/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Clean up build artifacts
+        if: always()
+        run: rm -rf web/dist web/.source node_modules web/node_modules
+
+  codeql:
+    name: CodeQL (JavaScript)
+    needs: gate
+    if: needs.gate.outputs.skip != 'true' && needs.gate.outputs.relevant != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          languages: javascript-typescript
+          build-mode: none
+          queries: security-and-quality
+
+      - uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          category: /language:javascript-typescript

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zshell Automation"
+  short_description: "Coordinate agents across Zshell panes"
+  default_prompt: "Use $zshell-automation to delegate this task or coordinate with another Zshell agent, then return the verified result."

@@ -1,0 +1,49 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ \"$ZSHELL_AUTOMATION\" = \"1\" ] || exit 0; command -v zshell >/dev/null 2>&1 || exit 0; exec zshell +agent _integration grok working # ZSHELL_INTEGRATION_ID=grok",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ \"$ZSHELL_AUTOMATION\" = \"1\" ] || exit 0; command -v zshell >/dev/null 2>&1 || exit 0; exec zshell +agent _integration grok idle --genuine-stop # ZSHELL_INTEGRATION_ID=grok",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ \"$ZSHELL_AUTOMATION\" = \"1\" ] || exit 0; command -v zshell >/dev/null 2>&1 || exit 0; exec zshell +agent _integration grok blocked # ZSHELL_INTEGRATION_ID=grok",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "agent_error",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ \"$ZSHELL_AUTOMATION\" = \"1\" ] || exit 0; command -v zshell >/dev/null 2>&1 || exit 0; exec zshell +agent _integration grok blocked # ZSHELL_INTEGRATION_ID=grok",
+            "timeout": 2
+          }
+        ]
+      }
+    ]
+  }
+}

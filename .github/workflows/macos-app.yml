@@ -1,0 +1,166 @@
+name: macOS App
+
+on:
+  pull_request:
+    branches:
+      - main
+      - "publish-v*"
+  push:
+    branches:
+      - main
+      - "publish-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Skip Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      skip: ${{ steps.gate.outputs.skip }}
+      relevant: ${{ steps.gate.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: gate
+        uses: ./.github/actions/ci-skip-gate
+        with:
+          workflow-name: macOS App
+          github-token: ${{ github.token }}
+
+  bridge:
+    name: Alacritty Bridge
+    needs: gate
+    if: needs.gate.outputs.skip != 'true' && needs.gate.outputs.relevant != 'false'
+    runs-on: macos-26
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: Vendor/alacritty-bridge
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - run: cargo --version && rustc --version
+
+      # --locked matches the Xcode build phase, so a stale Cargo.lock fails here
+      # rather than during an app build.
+      - name: Run bridge tests
+        run: cargo test --locked
+
+      # The app links the release archive, and `panic = "abort"` only applies to
+      # that profile, so the release build is the one worth proving.
+      - name: Build the static library
+        run: cargo build --locked --release
+
+      - name: Remove build artifacts
+        if: always()
+        run: rm -rf target
+
+  app-smoke:
+    name: App Build Smoke Test
+    needs: gate
+    if: needs.gate.outputs.skip != 'true' && needs.gate.outputs.relevant != 'false'
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # libghostty-spm is a submodule and the Ghostty backend will not build
+          # without it.
+          submodules: recursive
+
+      - name: Install the Rust target for this runner
+        run: rustup target add "$(uname -m)-apple-darwin"
+
+      - name: Build the Debug app
+        env:
+          DERIVED_DATA: ${{ runner.temp }}/derived-data
+        run: |
+          xcodebuild \
+            -project zshell.xcodeproj \
+            -scheme zshell \
+            -configuration Debug \
+            -destination "platform=macOS,arch=$(uname -m)" \
+            -derivedDataPath "$DERIVED_DATA" \
+            -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      # WRAPPER_NAME renames the Debug bundle so it can sit beside a release
+      # install, which is why this is not zshell.app.
+      - name: Verify app bundle structure
+        env:
+          DERIVED_DATA: ${{ runner.temp }}/derived-data
+        run: |
+          APP_PATH="$DERIVED_DATA/Build/Products/Debug/Zshell Debug.app"
+          test -d "$APP_PATH" || { echo "Zshell Debug.app not found"; exit 1; }
+          test -x "$APP_PATH/Contents/MacOS/zshell" || { echo "zshell binary missing or not executable"; exit 1; }
+          /usr/bin/plutil -lint "$APP_PATH/Contents/Info.plist"
+          /usr/bin/otool -L "$APP_PATH/Contents/MacOS/zshell" > /dev/null
+
+      - name: Remove build artifacts
+        if: always()
+        run: rm -rf "${{ runner.temp }}/derived-data"
+
+  codeql:
+    name: CodeQL (swift)
+    needs: gate
+    if: needs.gate.outputs.skip != 'true' && needs.gate.outputs.relevant != 'false'
+    runs-on: macos-26
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Install the Rust target for this runner
+        run: rustup target add "$(uname -m)-apple-darwin"
+
+      - uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          languages: swift
+          build-mode: manual
+          queries: security-and-quality
+
+      - name: Build for analysis
+        env:
+          DERIVED_DATA: ${{ runner.temp }}/codeql-derived-data
+        run: |
+          xcodebuild \
+            -project zshell.xcodeproj \
+            -scheme zshell \
+            -configuration Debug \
+            -destination "platform=macOS,arch=$(uname -m)" \
+            -derivedDataPath "$DERIVED_DATA" \
+            -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          category: /language:swift
+
+      - name: Remove build artifacts
+        if: always()
+        run: rm -rf "${{ runner.temp }}/codeql-derived-data"

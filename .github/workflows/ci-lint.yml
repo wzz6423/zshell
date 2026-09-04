@@ -1,0 +1,151 @@
+name: CI Lint
+
+on:
+  pull_request:
+    branches:
+      - main
+      - "publish-v*"
+  push:
+    branches:
+      - main
+      - "publish-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Skip Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      skip: ${{ steps.gate.outputs.skip }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: gate
+        uses: ./.github/actions/ci-skip-gate
+        with:
+          workflow-name: CI Lint
+          github-token: ${{ github.token }}
+
+  actionlint:
+    name: Lint Workflows
+    needs: gate
+    if: needs.gate.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run actionlint
+        env:
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+          ACTIONLINT_VERSION: 1.7.12
+        run: |
+          archive="$RUNNER_TEMP/actionlint.tar.gz"
+          curl --fail --location --retry 3 --retry-all-errors \
+            --output "$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          printf '%s  %s\n' "$ACTIONLINT_SHA256" "$archive" | sha256sum --check -
+          tar -xzf "$archive" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" \
+            -color \
+            -verbose
+      - name: Remove actionlint artifacts
+        if: always()
+        run: rm -f "$RUNNER_TEMP/actionlint" "$RUNNER_TEMP/actionlint.tar.gz"
+
+  security:
+    name: Audit Workflow Security
+    needs: gate
+    if: needs.gate.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@70fb788f84895a7701f5643d103d587e460b5c99 # v0.6.3
+        with:
+          advanced-security: false
+          annotations: true
+          collect: workflows
+          color: false
+          version: 1.29.0
+
+  scripts:
+    name: Test CI Scripts
+    needs: gate
+    if: needs.gate.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Syntax check automation scripts
+        run: |
+          for script in .github/scripts/*.rb; do
+            ruby -c "$script"
+          done
+
+      - name: Verify the CI skip manifest
+        run: ruby .github/scripts/ci-skip-directives.rb verify-manifest
+
+      - name: Test CI skip directives
+        run: ruby .github/scripts/ci-skip-directives-test.rb
+
+      - name: Test pull request metadata
+        run: ruby .github/scripts/pr-metadata-test.rb
+
+      - name: Verify the issue automation contract
+        run: ruby .github/scripts/issue-metadata.rb verify-manifest
+
+      - name: Test issue metadata
+        run: ruby .github/scripts/issue-metadata-test.rb
+
+      - name: Verify the project name is declared once
+        run: |
+          set -euo pipefail
+
+          # The PR body contract knows the project by name, the board automation by
+          # title. Nothing else links the two files, so a rename in one of them
+          # would silently stop placing pull requests on the board.
+          contract="$(jq -r '.project.name' .github/pr-automation.json)"
+          board="$(jq -r '.project.title' .github/project-automation.json)"
+          if [ "$contract" != "$board" ]; then
+            echo "::error::pr-automation.json project name $contract does not match project-automation.json title $board."
+            exit 1
+          fi
+          echo "Both contracts declare the project $contract."
+
+      - name: Verify every type label has a board column
+        run: |
+          set -euo pipefail
+
+          # A type label without a labelStatus rule falls back to defaultStatus,
+          # so the pull request stays in the triage column for its whole life
+          # instead of moving to the column its type belongs to.
+          missing="$(jq -r --slurpfile board .github/project-automation.json \
+            '[.types[].label] - [$board[0].labelStatus[].label] | join(", ")' \
+            .github/pr-automation.json)"
+          if [ -n "$missing" ]; then
+            echo "::error::Type label(s) $missing have no project-automation.json labelStatus rule."
+            exit 1
+          fi
+          echo "Every type label maps to a board column."
