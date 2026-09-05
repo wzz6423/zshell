@@ -81,17 +81,20 @@ cd mac && bun run release        # 等价于 bun scripts/release.ts
 
 ## 发布后验证
 
+release 发布后 `Release Feeds` 工作流自动跑，轮询到位为止：`v<version>` release 上有 DMG、
+`updates` release 上有 appcast、ZIP 与发布说明，feed 里构建号最高的条目就是本次版本
+（没递增 `CURRENT_PROJECT_VERSION` 就是发布了却没人收到），每个 URL 都落在 `updates`
+前缀下，ZIP 带 EdDSA 签名，发布说明链接指向本次版本，最后用匿名请求确认站点给出的 DMG
+链接真能下载。失败在 Actions 里逐条列出，本地跑同一套检查：
+
 ```sh
-curl --fail --location --head "https://github.com/wzz6423/zshell/releases/download/v<version>/zshell-<version>.dmg"
-curl --fail --location --silent --show-error "https://github.com/wzz6423/zshell/releases/download/updates/appcast.xml"
+ruby .github/scripts/appcast-feeds.rb verify --tag "v<version>"
 ```
 
-将 `<version>` 替换为本次版本。验证 feed 的 XML、版本、构建号、ZIP URL、长度和 EdDSA
-签名字段，并确认它引用的 ZIP 可下载；签名字段存在并不等于已验证安装验签。
-在走 Sparkle 的**旧版本**测试安装中实际运行 **Check for Updates…**，确认验签、安装和重启。
-Homebrew 路径另验 cask 更新。Debug 构建不启动 Sparkle，不能替代更新验收。
-然后确认 cask 的 `version` 与 `sha256` 已更新，站点下载按钮指向新版本——站点在预渲染时把
-版本烤进页面，只有 `Web Pages` 跑完才会变。
+工作流覆盖不到的仍要手工验收：签名字段存在不等于安装时验签通过，必须在走 Sparkle 的
+**旧版本**测试安装中实际运行 **Check for Updates…**，确认验签、安装和重启；Homebrew 路径
+另验 cask 的 `version` 与 `sha256` 已更新；确认站点下载按钮指向新版本——站点在预渲染时把
+版本烤进页面，只有 `Web Pages` 跑完才会变。Debug 构建不启动 Sparkle，不能替代更新验收。
 
 ## 失败恢复
 

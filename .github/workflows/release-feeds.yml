@@ -1,0 +1,137 @@
+name: Release Feeds
+
+# A release is only real once an installed copy can reach it. Sparkle resolves the whole feed
+# against one URL prefix, the website reads that same feed to write its download button, and
+# release.ts publishes the DMG before the archives it advertises — so a release can look
+# complete on the Release page while every update check 404s or offers the previous version.
+# This workflow is the witness for that gap.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Version tag the feed must offer, for example v0.2.0.
+        required: true
+        type: string
+      attempts:
+        description: How many times to poll the release and the feed before failing.
+        required: false
+        default: 1
+        type: number
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.tag || github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  feeds:
+    name: Verify Update Feed
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Resolve the tag
+        id: target
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+
+          tag="${INPUT_TAG:-${RELEASE_TAG:-}}"
+          if [ -z "$tag" ]; then
+            echo "::error::No release tag to verify."
+            exit 1
+          fi
+
+          # The updates release holds the feed and carries no version of its own, so there is
+          # nothing to compare it against. Publishing a version is what verifies it.
+          if [ "$tag" = "updates" ]; then
+            echo "::notice::$tag is the permanent feed release; each version's publish verifies it."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # A path prefixed tag such as release/v1.2.3 moves the download URLs the appcast was
+          # signed against, which no later upload can repair.
+          case "$tag" in
+            v[0-9]*) ;;
+            *)
+              echo "::error::Release tags must look like vX.Y.Z; $tag carries no version the feed can offer."
+              exit 1
+              ;;
+          esac
+
+          {
+            echo "skip=false"
+            echo "tag=$tag"
+            echo "version=${tag#v}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Verifying the update feed against $tag."
+
+      - name: Verify the release assets and the live feed
+        if: steps.target.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.target.outputs.tag }}
+          VERSION: ${{ steps.target.outputs.version }}
+          ATTEMPTS: ${{ inputs.attempts || 10 }}
+          INTERVAL: "60"
+        run: |
+          set -euo pipefail
+
+          version_names="$RUNNER_TEMP/version-release-assets.txt"
+          updates_names="$RUNNER_TEMP/updates-release-assets.txt"
+          dmg="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/$TAG/zshell-$VERSION.dmg"
+
+          # release.ts publishes the DMG first and uploads the archives, notes and appcast to the
+          # updates release afterwards, so the first attempt is expected to fail; the poll is what
+          # makes the gate usable rather than a race the release operator learns to ignore.
+          verify() {
+            gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+              --jq '.assets[].name' > "$version_names" || return 1
+            ruby .github/scripts/appcast-feeds.rb verify-assets \
+              --tag "$TAG" --layout version < "$version_names" || return 1
+
+            gh release view updates --repo "$GITHUB_REPOSITORY" --json assets \
+              --jq '.assets[].name' > "$updates_names" || return 1
+            ruby .github/scripts/appcast-feeds.rb verify-assets \
+              --tag "$TAG" --layout updates < "$updates_names" || return 1
+
+            ruby .github/scripts/appcast-feeds.rb verify --tag "$TAG" || return 1
+
+            # The listing above proves the asset exists for an authenticated API call. Only an
+            # anonymous request proves the link the website hands visitors actually downloads.
+            curl --fail --location --silent --show-error --head --max-time 30 --output /dev/null "$dmg"
+          }
+
+          attempt=1
+          while [ "$attempt" -le "$ATTEMPTS" ]; do
+            echo "--- attempt $attempt of $ATTEMPTS"
+            if verify; then
+              printf 'The update feed offers %s and %s downloads.\n' "$TAG" "$dmg" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            attempt=$((attempt + 1))
+            if [ "$attempt" -le "$ATTEMPTS" ]; then
+              sleep "$INTERVAL"
+            fi
+          done
+
+          echo "::error::$TAG is published but the update feed still does not offer it after $ATTEMPTS attempts. Until this is fixed nobody is offered the update and the website keeps linking the previous version."
+          printf 'The update feed does not offer %s; see the log for each failing check.\n' \
+            "$TAG" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+      - name: Remove the downloaded asset listings
+        if: always()
+        run: rm -f "$RUNNER_TEMP/version-release-assets.txt" "$RUNNER_TEMP/updates-release-assets.txt"
