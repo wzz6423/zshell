@@ -79,9 +79,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          # libghostty-spm is a submodule and the Ghostty backend will not build
-          # without it.
-          submodules: recursive
 
       - name: Install the Rust target for this runner
         run: |
@@ -137,7 +134,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          submodules: recursive
 
       # CodeQL traces xcodebuild through an x86_64 helper, so the traced build
       # is offered an x86_64 destination even on this arm64 runner, and pinning

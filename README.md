@@ -33,7 +33,7 @@ A full Xcode installation and the development dependencies described in
 [CONTRIBUTING.md](CONTRIBUTING.md) are required.
 
 ```sh
-git clone --recurse-submodules https://github.com/wzz6423/zshell.git
+git clone https://github.com/wzz6423/zshell.git
 cd zshell
 cp mac/Config/Local.example.xcconfig mac/Config/Local.xcconfig
 # Set DEVELOPMENT_TEAM in mac/Config/Local.xcconfig for your Apple Development certificate.

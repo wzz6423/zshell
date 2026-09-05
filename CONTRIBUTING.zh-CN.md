@@ -20,11 +20,10 @@
 ## 开发环境
 
 ```bash
-git clone --recurse-submodules https://github.com/wzz6423/zshell.git
+git clone https://github.com/wzz6423/zshell.git
 ```
 
-已经克隆过了？执行 `git submodule update --init --recursive`。构建应用需要完整安装
-Xcode。`web/` 和 `mac/scripts/` 还需要 Bun。
+构建应用需要完整安装 Xcode。`web/` 和 `mac/scripts/` 还需要 Bun。
 
 需要 Rust 工具链（[rustup](https://rustup.rs)）：Alacritty 后端的桥接层位于
 `mac/Vendor/alacritty-bridge`，是一个由 Xcode 构建阶段编译的 Rust 静态库。为第二种
