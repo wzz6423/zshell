@@ -18,7 +18,7 @@ Zshell requires macOS 15.6 or later.
 
 ## Get started
 
-Download the latest release from [zshell.sh](https://zshell.sh), or install it
+Download the latest release from [the Zshell website](https://wzz6423.github.io/zshell/), or install it
 with Homebrew:
 
 ```sh
@@ -55,7 +55,7 @@ Install Bun dependencies separately in `mac/` and `web/`; each has its own lockf
 
 | Document | Purpose |
 | --- | --- |
-| [User documentation](https://zshell.sh/docs) | Learn the app's workflows and settings. |
+| [User documentation](https://wzz6423.github.io/zshell/docs) | Learn the app's workflows and settings. |
 | [Contributing guide](CONTRIBUTING.md) | Set up the app, configure local signing, build, verify, and open a pull request. |
 | [Release guide](mac/RELEASING.md) | Maintainer-only Developer ID, notarization, Sparkle, and R2 release process. |
 | [Security policy](SECURITY.md) | Supported versions and private vulnerability reporting. |

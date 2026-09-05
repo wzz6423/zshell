@@ -2,6 +2,7 @@ import { notFound } from '@tanstack/react-router'
 import { createIsomorphicFn } from '@tanstack/react-start'
 import type { SerializedPageTree } from 'fumadocs-core/source/client'
 import { buildDocsIndex, type DocsIndex } from '@/lib/docs-index'
+import { withBase } from '@/lib/utils'
 
 /** What a docs route hands its component. */
 export type DocsPageData = {
@@ -20,7 +21,7 @@ const inFlight = new Map<string, Promise<DocsIndex>>()
 function fetchDocsIndex(lang: string): Promise<DocsIndex> {
   let pending = inFlight.get(lang)
   if (!pending) {
-    pending = fetch(`/api/docs/${lang}`).then((res) => {
+    pending = fetch(withBase(`/api/docs/${lang}`)).then((res) => {
       if (!res.ok) throw notFound()
       return res.json() as Promise<DocsIndex>
     })

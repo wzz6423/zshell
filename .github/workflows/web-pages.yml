@@ -51,10 +51,12 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: bun run build
 
-      # Prerendering writes the deployable site to dist/client. dist/server is the
-      # bundle it renders against and is deliberately left behind. CNAME and the
-      # (empty, hence -f) .nojekyll come from public/: without them Pages drops the
-      # custom domain and hides the `_`-prefixed asset chunks.
+      # Prerendering writes the deployable site to dist/client, laid out for the
+      # /zshell/ subpath Pages serves it from: vite's `base` prefixes the links
+      # inside each file, not the paths the files sit at. dist/server is the
+      # bundle it renders against and is deliberately left behind. The (empty,
+      # hence -f) .nojekyll comes from public/: without it Pages hides the
+      # `_`-prefixed asset chunks.
       - name: Verify build artifacts
         working-directory: web
         run: |
@@ -66,8 +68,8 @@ jobs:
           test -s dist/client/api/release
           test -s dist/client/api/docs/en
           test -s dist/client/api/docs/zh
-          test -s dist/client/CNAME
           test -f dist/client/.nojekyll
+          grep -q '"/zshell/assets/' dist/client/index.html
           test -n "$(ls -A dist/client/assets)"
 
       - name: Configure Pages

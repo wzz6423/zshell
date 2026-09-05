@@ -26,6 +26,10 @@ function docsPages() {
 }
 
 export default defineConfig({
+  // The site is a GitHub Pages project site, so it is served from the repository
+  // name and not the domain root. `src/router.tsx` reads this back out of
+  // `import.meta.env.BASE_URL` so there is only one place to change it.
+  base: '/zshell/',
   server: { port: 3000 },
   resolve: { tsconfigPaths: true },
   plugins: [

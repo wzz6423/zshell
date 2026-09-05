@@ -97,9 +97,11 @@ jobs:
 
       # The site is what Pages will serve: dist/client, one file per URL. Assert
       # the pages that are easy to lose — a landing page dropped from
-      # vite.config.ts's `pages` still builds, it just stops existing. CNAME and
-      # the (empty, hence -f) .nojekyll come from public/: without them Pages
-      # drops the custom domain and hides the `_`-prefixed asset chunks.
+      # vite.config.ts's `pages` still builds, it just stops existing. The
+      # (empty, hence -f) .nojekyll comes from public/: without it Pages hides
+      # the `_`-prefixed asset chunks. Pages serves this repository under
+      # /zshell/, so a build whose links lost that prefix would deploy a site
+      # that renders nothing.
       - name: Verify build artifacts
         working-directory: web
         run: |
@@ -111,8 +113,8 @@ jobs:
           test -s dist/client/api/release
           test -s dist/client/api/docs/en
           test -s dist/client/api/docs/zh
-          test -s dist/client/CNAME
           test -f dist/client/.nojekyll
+          grep -q '"/zshell/assets/' dist/client/index.html
           test -n "$(ls -A dist/client/assets)"
           echo "Prerendered $(find dist/client -name '*.html' | wc -l | tr -d ' ') page(s)"
 

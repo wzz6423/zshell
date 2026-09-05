@@ -1,5 +1,6 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
 import { DEFAULT_LANGUAGE } from '@/lib/i18n'
+import { withBase } from '@/lib/utils'
 
 const GITHUB_URL = 'https://github.com/wzz6423/zshell'
 
@@ -24,7 +25,7 @@ export function docsLayoutOptions(lang: string): BaseLayoutProps {
       title: (
         <span className="inline-flex items-center gap-2">
           <img
-            src="/zshell-icon.png"
+            src={withBase('/zshell-icon.png')}
             alt=""
             width={1024}
             height={1024}
