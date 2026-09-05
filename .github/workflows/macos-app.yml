@@ -139,20 +139,14 @@ jobs:
           persist-credentials: false
           submodules: recursive
 
-      # CodeQL traces the build through an x86_64 helper, so `uname -m` inside
-      # the build step reports x86_64 on this arm64 runner — and the bridge
-      # would then be asked for a Rust target nothing installed. Resolve the
-      # architecture here, before tracing starts, and have the build reuse it so
-      # the two cannot disagree.
-      - name: Install the Rust target for this runner
-        run: |
-          case "$(uname -m)" in
-            arm64) rust_arch=aarch64 ;;
-            x86_64) rust_arch=x86_64 ;;
-            *) echo "Unsupported runner architecture: $(uname -m)" >&2; exit 1 ;;
-          esac
-          rustup target add "${rust_arch}-apple-darwin"
-          echo "BUILD_ARCH=$(uname -m)" >> "$GITHUB_ENV"
+      # CodeQL traces xcodebuild through an x86_64 helper, so the traced build
+      # is offered an x86_64 destination even on this arm64 runner, and pinning
+      # the runner's own architecture asks for a destination that does not exist
+      # inside the trace. Analysis does not care which architecture the app is
+      # built for, so install both Rust targets and let xcodebuild resolve the
+      # destination itself, whichever one the tracer ends up exposing.
+      - name: Install the Rust targets the traced build may resolve
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
       - uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
@@ -168,7 +162,7 @@ jobs:
             -project mac/zshell.xcodeproj \
             -scheme zshell \
             -configuration Debug \
-            -destination "platform=macOS,arch=${BUILD_ARCH}" \
+            -destination "platform=macOS" \
             -derivedDataPath "$DERIVED_DATA" \
             -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO \
