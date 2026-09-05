@@ -27,4 +27,8 @@ xcuserdata/
 timeline.xctimeline
 playground.xcworkspace
 
-.claude/worktrees
+# Coding-agent state and per-tool instruction files. Repository-level guidance
+# for agents is AGENTS.md, which every tool reads; a tool-specific file next to
+# it would be a second copy to keep in sync. Symlink one here if a tool needs it.
+.claude/
+CLAUDE.md
