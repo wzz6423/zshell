@@ -65,6 +65,10 @@ make run
 请通过 [GitHub 安全公告](https://github.com/wzz6423/zshell/security/advisories/new)
 私下报告，不要开公开 Issue。
 
+[gitee.com/wzz6423/zshell](https://gitee.com/wzz6423/zshell) 镜像了本仓库的所有分支，
+方便在访问 GitHub 较慢的网络下克隆。它只接收已经合入 GitHub 的内容，因此 Issue 和
+Pull Request 请在 GitHub 提交。
+
 参与本项目即表示你同意遵守[行为准则](CODE_OF_CONDUCT.zh-CN.md)。
 
 ## 许可证

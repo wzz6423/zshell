@@ -71,6 +71,11 @@ Issues and pull requests are welcome. Read the
 privately through [GitHub Security Advisories](https://github.com/wzz6423/zshell/security/advisories/new),
 not a public issue.
 
+[gitee.com/wzz6423/zshell](https://gitee.com/wzz6423/zshell) mirrors every
+branch of this repository, for cloning from networks where GitHub is slow. It
+only ever receives what has already landed here, so issues and pull requests
+belong on GitHub.
+
 Participation in this project is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
