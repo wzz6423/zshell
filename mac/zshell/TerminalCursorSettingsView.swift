@@ -4,9 +4,8 @@
 //
 
 import AppKit
-import SwiftUI
 
-/// AppKit-owned cursor shape row for the legacy SwiftUI Settings mount point.
+/// Cursor shape row: label on the left, popup on the right.
 @MainActor
 final class TerminalCursorShapeSettingsView: NSView {
     private let titleLabel = NSTextField(
@@ -134,40 +133,5 @@ final class TerminalCursorBlinkingSettingsView: NSView {
             width: NSView.noIntrinsicMetric,
             height: ceil(max(titleLabel.fittingSize.height, toggle.fittingSize.height))
         )
-    }
-}
-
-/// SwiftUI only mounts the native rows inside the pre-existing Settings form.
-struct TerminalCursorShapeSettingsRow: NSViewRepresentable {
-    let shape: TerminalCursorShape
-    let onChange: (TerminalCursorShape) -> Void
-
-    func makeNSView(context: Context) -> TerminalCursorShapeSettingsView {
-        let view = TerminalCursorShapeSettingsView(frame: .zero)
-        view.changeHandler = onChange
-        view.apply(shape: shape)
-        return view
-    }
-
-    func updateNSView(_ view: TerminalCursorShapeSettingsView, context: Context) {
-        view.changeHandler = onChange
-        view.apply(shape: shape)
-    }
-}
-
-struct TerminalCursorBlinkingSettingsRow: NSViewRepresentable {
-    let isBlinking: Bool
-    let onChange: (Bool) -> Void
-
-    func makeNSView(context: Context) -> TerminalCursorBlinkingSettingsView {
-        let view = TerminalCursorBlinkingSettingsView(frame: .zero)
-        view.changeHandler = onChange
-        view.apply(isBlinking: isBlinking)
-        return view
-    }
-
-    func updateNSView(_ view: TerminalCursorBlinkingSettingsView, context: Context) {
-        view.changeHandler = onChange
-        view.apply(isBlinking: isBlinking)
     }
 }

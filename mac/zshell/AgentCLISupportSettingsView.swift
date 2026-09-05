@@ -4,10 +4,8 @@
 //
 
 import AppKit
-import SwiftUI
 
-/// AppKit-owned Settings row for Zshell's agent coordination integrations.
-/// The existing Settings screen remains the legacy SwiftUI mount point only.
+/// Settings row for Zshell's agent coordination integrations.
 @MainActor
 final class AgentCLISupportSettingsView: NSView {
     private let titleLabel = NSTextField(labelWithString: String(localized: "AI"))
@@ -95,23 +93,5 @@ final class AgentCLISupportSettingsView: NSView {
             width: NSView.noIntrinsicMetric,
             height: ceil(max(textStack.fittingSize.height, toggle.fittingSize.height))
         )
-    }
-}
-
-/// SwiftUI only mounts the native row inside the pre-existing Settings form.
-struct AgentCLISupportSettingsRow: NSViewRepresentable {
-    let isEnabled: Bool
-    let onChange: (Bool) throws -> Void
-
-    func makeNSView(context: Context) -> AgentCLISupportSettingsView {
-        let view = AgentCLISupportSettingsView(frame: .zero)
-        view.changeHandler = onChange
-        view.apply(isEnabled: isEnabled)
-        return view
-    }
-
-    func updateNSView(_ view: AgentCLISupportSettingsView, context: Context) {
-        view.changeHandler = onChange
-        view.apply(isEnabled: isEnabled)
     }
 }

@@ -13,7 +13,6 @@ struct SidebarView: View {
     let bottomBarHeight: CGFloat
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var themeChanges = Theme.changes
-    @Environment(\.openSettings) private var openSettings
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("leftSidebarWidth") private var width: Double = 220
     @State private var draggedProjectID: UUID?
@@ -87,7 +86,7 @@ struct SidebarView: View {
                     systemImage: "gearshape",
                     tooltip: "Settings (⌘,)",
                     tooltipAlignment: .trailing
-                ) { openSettings() }
+                ) { SettingsWindowController.shared.show() }
             }
             .padding(.horizontal, 8)
             .frame(height: bottomBarHeight)

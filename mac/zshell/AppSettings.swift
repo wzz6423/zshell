@@ -337,6 +337,30 @@ final class AppSettings: nonisolated ObservableObject {
         fontThicken = false
     }
 
+    /// Whether every setting ``resetToDefaults()`` touches already holds its
+    /// default, so Settings can disable the reset button.
+    var isAtDefaults: Bool {
+        fontFamily.isEmpty
+            && fontSize == Self.defaultFontSize
+            && sidebarFontSize == Self.defaultSidebarFontSize
+            && !fontThicken
+            && language == .system
+            && theme == .system
+            && themeDark == Theme.defaultDarkThemeName
+            && themeLight == Theme.defaultLightThemeName
+            && toolbarVisibility == Self.defaultToolbarVisibility
+            && cursorShape == .block
+            && cursorBlinking
+            && !macosOptionAsAlt
+            && !wrapLines
+            && !restoreTerminalHistory
+            && quickTerminalSize == Self.defaultQuickTerminalSize
+            && quickTerminalOpacity == Self.defaultQuickTerminalOpacity
+            && quickTerminalShortcut == Self.defaultQuickTerminalShortcut
+            && !aiEnabled
+            && terminalBackend == .fallback
+    }
+
     func resetToDefaults() {
         resetFont()
         language = .system

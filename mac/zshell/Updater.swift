@@ -31,8 +31,10 @@ final class Updater: ObservableObject {
 
     var isHomebrewInstallation: Bool { brewExecutable != nil }
 
-    var updateActionTitle: LocalizedStringKey {
-        isHomebrewInstallation ? "Update with Homebrew…" : "Check for Updates…"
+    var updateActionTitle: String {
+        isHomebrewInstallation
+            ? String(localized: "Update with Homebrew…")
+            : String(localized: "Check for Updates…")
     }
 
     /// Whether Sparkle checks for updates on its own schedule. Sparkle owns the

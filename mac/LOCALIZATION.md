@@ -2,7 +2,7 @@
 
 Zshell follows the macOS language selected by the user, including the per-app
 language in System Settings. Users can also choose a language from
-**Zshell → Settings → Appearance → Language**; Zshell asks to relaunch so native
+**Zshell → Settings → General → Language**; Zshell asks to relaunch so native
 menus, dialogs, and SwiftUI views all change together. English is the
 development language. The currently maintained localizations are:
 

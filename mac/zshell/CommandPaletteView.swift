@@ -122,7 +122,6 @@ struct CommandPaletteView: View {
 
     @ObservedObject var manager: TerminalManager
     @ObservedObject private var themeChanges = Theme.changes
-    @Environment(\.openSettings) private var openSettings
 
     @State private var query = ""
     @State private var selection = 0
@@ -301,7 +300,7 @@ struct CommandPaletteView: View {
 
         items.append(
             PaletteCommand(id: "settings", title: "Settings…", systemImage: "gearshape", shortcut: "⌘,") {
-                openSettings()
+                SettingsWindowController.shared.show()
             }
         )
         return items
