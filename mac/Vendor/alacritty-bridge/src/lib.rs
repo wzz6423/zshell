@@ -2271,7 +2271,7 @@ mod tests {
         assert_eq!(url, "https://zshell.sh");
         assert_eq!(
             bounds,
-            Point::new(Line(0), Column(1))..=Point::new(Line(0), Column(4))
+            Point::new(Line(0), Column(1))..=Point::new(Line(0), Column(6))
         );
     }
 

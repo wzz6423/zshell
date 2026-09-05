@@ -18,6 +18,12 @@ report_violation() {
 # arrive as Swift packages. Add a prefix here if that ever changes.
 is_allowed_binary_path() {
   case "$1" in
+    # These are fixed-version vendor payloads documented in mac/Vendor/DEPENDENCIES.md,
+    # not outputs produced by this repository's build.
+    mac/Vendor/Sparkle/* | \
+      mac/Vendor/libghostty-spm/GhosttyKit.xcframework/*)
+      return 0
+      ;;
     *)
       return 1
       ;;
