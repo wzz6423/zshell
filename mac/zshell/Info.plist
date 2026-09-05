@@ -66,9 +66,10 @@
 	<string>A program running within Zshell would like to use your microphone.</string>
 
 	<!-- Sparkle auto-update configuration.
-	     Appcast feed hosted on Cloudflare R2 (releases.zshell.sh); see RELEASING.md. -->
+	     The feed is an asset on the repository's permanent `updates` release, so
+	     shipping needs no server of its own; see RELEASING.md. -->
 	<key>SUFeedURL</key>
-	<string>https://releases.zshell.sh/appcast.xml</string>
+	<string>https://github.com/wzz6423/zshell/releases/download/updates/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>94CIcriCuNHELX8l1CQPW2XUsrBcqp0mr++vw9tXB0Q=</string>
 </dict>

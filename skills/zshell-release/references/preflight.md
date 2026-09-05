@@ -6,14 +6,15 @@
 ## 1. 工具链
 
 ```sh
-for t in xcodebuild xcrun ditto plutil bun create-dmg rclone gh codesign git security; do
+for t in xcodebuild xcrun ditto plutil bun create-dmg gh codesign git security; do
   printf '%-12s %s\n' "$t" "$(command -v "$t" || echo MISSING)"
 done
 ```
 
-`create-dmg` 与 `rclone` 来自 Homebrew（`brew install create-dmg rclone`）。
-`--local` 跳过公证和上传，不需要配置 rclone、gh 或公证凭据。
-正式发布按当前开关检查工具：`NO_TAP=1` 可跳过 tap 所需 git，`NO_SITE=1` 可跳过 gh。
+`create-dmg` 与 `gh` 来自 Homebrew（`brew install create-dmg gh`）。
+`--local` 跳过公证和发布，不需要 gh 登录或公证凭据。
+正式发布必须有 git 和已登录的 gh：发布本身要靠 gh 建 release，`NO_TAP=1` / `NO_SITE=1`
+只跳过 cask bump 与站点重建。
 
 Sparkle 的 `generate_appcast` 按 `SPARKLE_BIN` → `PATH` →
 `~/Library/Developer/Xcode/DerivedData/*/artifacts/*/Sparkle/bin/` 的顺序查找：
@@ -41,16 +42,16 @@ xcrun notarytool history --keychain-profile NOTARY | head -5   # 联网
 - `notarytool history` 报 profile 不存在，说明还没 `xcrun notarytool store-credentials NOTARY`，
   按 `mac/RELEASING.md` 做一次性设置，不要在发布命令里现编凭据。
 
-## 3. R2 与 tap 访问
+## 3. 发布与 tap 访问
 
 ```sh
-rclone lsf r2:zshell-releases --s3-no-check-bucket | tail -5        # 联网
 gh auth status                                                      # 联网
+gh release view updates --repo wzz6423/zshell --json assets --jq '.assets[].name' | tail -5   # 联网
 git ls-remote --heads git@github.com:wzz6423/homebrew-tap.git refs/heads/main   # 联网
 ```
 
-`rclone` 远端名默认 `r2`、bucket 默认 `zshell-releases`；bucket 作用域的 token 建不了 bucket，
-所以远端配置里要有 `no_check_bucket = true`，脚本也一律传 `--s3-no-check-bucket`。
+发布仓库默认 `wzz6423/zshell`（`RELEASE_REPO`），归档与 feed 所在的常驻 release 默认
+tag `updates`（`UPDATES_TAG`）。第二条在首次发布前会报 release 不存在，属正常。
 
 ## 4. 版本与 release notes
 
@@ -70,7 +71,7 @@ grep -n '^## ' CHANGELOG.md | head -3
 3. 该版本尚未发布过：
 
 ```sh
-rclone lsf r2:zshell-releases --s3-no-check-bucket | grep -x 'zshell-<version>.zip'   # 联网
+gh release view updates --repo wzz6423/zshell --json assets --jq '.assets[].name' | grep -x 'zshell-<version>.zip'   # 联网
 ```
 
 有输出说明已发布，需要用户明确同意才可 `FORCE=1` 覆盖。
@@ -83,5 +84,6 @@ plutil -extract SUPublicEDKey raw mac/zshell/Info.plist
 git -C . diff --stat -- mac/zshell/Info.plist
 ```
 
-feed 应为 `https://releases.zshell.sh/appcast.xml`。`SUPublicEDKey` 有未提交改动就先停下问用户：
-它必须与签 appcast 的私钥配对，改错会让现有用户装不上更新。
+feed 应为 `https://github.com/wzz6423/zshell/releases/download/updates/appcast.xml`。
+`SUPublicEDKey` 有未提交改动就先停下问用户：它必须与签 appcast 的私钥配对，
+改错会让现有用户装不上更新。
