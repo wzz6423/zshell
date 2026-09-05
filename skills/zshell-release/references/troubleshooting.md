@@ -6,7 +6,8 @@
 
 | 现象 | 原因与处理 |
 | --- | --- |
-| `error: missing required tool: create-dmg` / `rclone` / `gh` | `brew install create-dmg rclone gh`；`gh` 只有在没设 `NO_SITE=1` 时才需要 |
+| `error: missing required tool: create-dmg` / `gh` | `brew install create-dmg gh` |
+| `error: gh is not authenticated` | `gh auth login`，需要 repo scope；发布 release 靠它，不能跳过 |
 | `error: export options not found: scripts/ExportOptions.plist` | 脚本会先 `chdir` 到 `mac/`，路径相对 `mac/`；文件应在 `mac/scripts/ExportOptions.plist` |
 | `error: HISTORY_COUNT must be …` / `BUILD_JOBS must be …` | 传了非法值，改回整数 |
 
@@ -34,9 +35,9 @@
 
 | 现象 | 原因与处理 |
 | --- | --- |
-| `zshell-<v>.zip already exists in R2 — bump the version, or set FORCE=1.` | 该版本已发布。正常做法是 bump 版本；确实要覆盖必须先得到用户同意，再 `FORCE=1`，并确认覆盖的是同一份构建 |
-| 本次没有生成增量 | 没拉到历史归档：设了 `NO_HISTORY=1`、bucket 里还没有旧 zip，或 `HISTORY_COUNT=0`。首次发布本来就没有增量 |
-| 用户看不到新版本 | `CURRENT_PROJECT_VERSION` 没递增（Sparkle 只比这个）；或 appcast 还在缓存窗口内（上传时用 `max-age=300, must-revalidate`），等一会儿再试 |
+| `zshell-<v>.zip is already published — bump the version, or set FORCE=1.` | 该版本已发布。正常做法是 bump 版本；确实要覆盖必须先得到用户同意，再 `FORCE=1`，并确认覆盖的是同一份构建 |
+| 本次没有生成增量 | 没拉到历史归档：设了 `NO_HISTORY=1`、`updates` release 里还没有旧 zip，或 `HISTORY_COUNT=0`。首次发布本来就没有增量 |
+| 用户看不到新版本 | `CURRENT_PROJECT_VERSION` 没递增（Sparkle 只比这个）；或 appcast 还在 GitHub 的 CDN 缓存窗口内，等一会儿再试 |
 | 更新能看到但装不上，报签名校验失败 | `mac/zshell/Info.plist` 的 `SUPublicEDKey` 与签 appcast 的私钥不匹配。不要改公钥去凑，先确认用的是哪个 keychain 账户（默认 `zshell-update-ed25519`） |
 | 发布了但没有 release notes | 根 `CHANGELOG.md` 里没有与 `MARKETING_VERSION` 完全一致的 `## [x.y]` 小节。补上小节后重跑发布（需 `FORCE=1`），或只补 notes 文件与 appcast 后重新上传 |
 
@@ -46,17 +47,18 @@
 | --- | --- |
 | `generate_appcast not found` | 设 `SPARKLE_BIN=/path/to/Sparkle/bin`，或把它放进 `PATH`；也可从 Xcode DerivedData 里的 Sparkle artifacts 取 |
 | `generate_appcast` 报找不到私钥 | keychain 里没有 `SPARKLE_KEY_ACCOUNT`（默认 `zshell-update-ed25519`）对应的项；在这台机器上用 `generate_keys -f` 导入备份，不要重新生成 |
-| 只想重做 appcast | `cd mac && bun run appcast build/updates`，然后单独把 `appcast.xml` 上传回 R2 |
+| 只想重做 appcast | `cd mac && bun run appcast build/updates`，然后单独把 `appcast.xml` 传回 `updates` release：`gh release upload updates --repo wzz6423/zshell build/updates/appcast.xml --clobber` |
 
-## 上传
+## 发布到 GitHub Releases
 
 | 现象 | 原因与处理 |
 | --- | --- |
-| rclone 报 bucket 相关权限错误 | token 是 bucket 作用域，建不了 bucket；确认远端配置有 `no_check_bucket = true`，脚本已传 `--s3-no-check-bucket` |
-| `directory not found` / 远端为空 | 远端名或 bucket 名不对，核对 `R2_REMOTE`（默认 `r2`）与 `R2_BUCKET`（默认 `zshell-releases`） |
-| 上传中断 | 归档与 DMG 是不可变对象，重跑上传是幂等的；zip 已上传后整条重跑需要 `FORCE=1` |
+| `HTTP 403` / 没有权限建 release | `gh` 登录的账号对 `RELEASE_REPO`（默认 `wzz6423/zshell`）没有写权限，或 token 缺 repo scope；`gh auth refresh -s repo` |
+| release 不存在 | 首次发布时脚本会自己按当前 commit 建 `v<version>` 与 `updates`（后者是 prerelease，不抢 “Latest release” 徽章），不用手工建 |
+| 上传中断 | 上传都带 `--clobber`，重跑是幂等的；zip 已发布后整条重跑需要 `FORCE=1` |
+| 归档传到了错的 release | 归档、增量、notes 与 `appcast.xml` 必须都在 `UPDATES_TAG` 那一个常驻 release 上——Sparkle 用单个前缀解析 feed 里所有条目，散到各版本 tag 下旧版本就下载不到 |
 
-## cask 与站点（上传之后，失败只是告警）
+## cask 与站点（发布之后，失败只是告警）
 
 | 现象 | 原因与处理 |
 | --- | --- |
@@ -69,5 +71,5 @@
 
 ## 收尾
 
-发布中断在任何一步之后，先判断"是否已经上传 zip / appcast"：已上传就意味着用户可能已经拿到更新，
+发布中断在任何一步之后，先判断"zip / appcast 是否已经在 `updates` release 上"：已发布就意味着用户可能已经拿到更新，
 后续动作要按线上已生效处理，不要静默覆盖。恢复完成后清理本次测试和临时产物，保留用户要求交付的安装包；不要删除其他任务的构建目录。

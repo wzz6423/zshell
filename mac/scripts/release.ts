@@ -2,14 +2,15 @@
 //
 // Automated zshell release:
 //   archive → Developer ID export → notarize → staple → package →
-//   sign & (re)generate the Sparkle appcast → upload to Cloudflare R2.
+//   sign & (re)generate the Sparkle appcast → publish to GitHub Releases.
 //
-// Download origin: https://releases.zshell.sh  (R2 bucket + custom domain).
+// Download origin: this repository's own releases — the DMG on `v<version>`, the
+// update archives and appcast.xml on the permanent `updates` release (see lib.ts).
 //
 // One-time setup (see RELEASING.md):
 //   • Sparkle EdDSA keys in your keychain   — `generate_keys`
 //   • Developer ID cert + notary profile    — `xcrun notarytool store-credentials`
-//   • rclone remote for R2                   — `rclone config`  (S3-compatible)
+//   • gh authenticated with repo scope      — `gh auth login`
 //   • Fill in scripts/ExportOptions.plist (teamID)
 //   • Push access to the Homebrew tap over SSH (for the cask bump)
 //
@@ -28,10 +29,19 @@
 // (CFBundleVersion) in the project before running — Sparkle compares the build
 // number to decide what's newer.
 import { $ } from "bun";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { cpus } from "node:os";
 import { join } from "node:path";
-import { die, need, say } from "./lib";
+import {
+  APPCAST_URL,
+  RELEASE_REPO,
+  UPDATES_TAG,
+  UPDATE_URL_PREFIX,
+  die,
+  dmgUrl,
+  need,
+  say,
+} from "./lib";
 import { generateAppcast } from "./generate-appcast";
 import { extractReleaseNotes } from "./changelog";
 import { bumpCask, checkMinimumSystemVersion } from "./bump-cask";
@@ -57,10 +67,6 @@ const NOTARY_PROFILE = process.env.NOTARY_PROFILE ?? "NOTARY";
 // Codesigning identity for the .dmg itself. A partial name matches when there's
 // a single Developer ID Application cert; override with the full name/SHA-1.
 const SIGN_IDENTITY = process.env.SIGN_IDENTITY ?? "Developer ID Application";
-const DOWNLOAD_URL_PREFIX = process.env.DOWNLOAD_URL_PREFIX ?? "https://releases.zshell.sh/";
-const R2_REMOTE = process.env.R2_REMOTE ?? "r2";
-const R2_BUCKET = process.env.R2_BUCKET ?? "zshell-releases";
-const R2_DEST = `${R2_REMOTE}:${R2_BUCKET}`;
 // The GitHub Pages workflow that rebuilds the website, and the branch it deploys.
 const SITE_WORKFLOW = process.env.SITE_WORKFLOW ?? "Web Pages";
 const SITE_BRANCH = process.env.SITE_BRANCH ?? "main";
@@ -80,26 +86,48 @@ if (!Number.isSafeInteger(BUILD_JOBS) || BUILD_JOBS < 1) {
 // When set, archive under utility QoS so interactive work keeps priority.
 const BUILD_NICE = process.env.BUILD_NICE === "1";
 
-// A bucket-scoped R2 API token (Object Read & Write) can't create buckets, and
-// rclone otherwise tries to check/create the bucket before uploading. The
-// bucket already exists, so skip that on every call.
-const RCLONE_FLAGS = ["--s3-no-check-bucket"];
-
 process.env.DEVELOPER_DIR ??= "/Applications/Xcode-beta.app/Contents/Developer";
 
 need("xcodebuild");
 need("ditto");
 if (!localBuild) need("xcrun");
 need("plutil");
-if (!localBuild) need("rclone");
-// Checked up front: the cask bump and the site redeploy run after publishing,
-// too late to be useful as a prerequisite failure.
-if (!localBuild && process.env.NO_TAP !== "1") need("git");
-if (!localBuild && process.env.NO_SITE !== "1") need("gh");
+// Checked up front: publishing, the cask bump and the site redeploy all run
+// after the build, too late to be useful as a prerequisite failure.
+if (!localBuild) {
+  need("git"); // tags the release, and pushes the cask bump
+  need("gh");
+  // A token that cannot create releases must not surface only after a
+  // 20-minute notarized build.
+  if ((await $`gh auth status`.nothrow().quiet()).exitCode !== 0) {
+    die("gh is not authenticated — run `gh auth login` (needs repo scope).");
+  }
+}
 need("create-dmg"); // brew install create-dmg
 if (BUILD_NICE) need("taskpolicy");
 if (!existsSync(EXPORT_OPTIONS)) {
   die(`export options not found: ${EXPORT_OPTIONS} (see RELEASING.md)`);
+}
+
+// ---- release helpers -----------------------------------------------------
+/** Asset names on a release; empty when that release does not exist yet. */
+async function releaseAssets(tag: string): Promise<string[]> {
+  const out = await $`gh release view ${tag} --repo ${RELEASE_REPO} --json assets --jq ${".assets[].name"}`
+    .nothrow()
+    .quiet();
+  return out.exitCode === 0 ? out.text().split("\n").filter(Boolean) : [];
+}
+
+/** Create `tag`'s release at the current commit unless it already exists. */
+async function ensureRelease(
+  tag: string,
+  title: string,
+  extra: string[],
+): Promise<void> {
+  const view = await $`gh release view ${tag} --repo ${RELEASE_REPO}`.nothrow().quiet();
+  if (view.exitCode === 0) return;
+  const sha = (await $`git rev-parse HEAD`.text()).trim();
+  await $`gh release create ${tag} --repo ${RELEASE_REPO} --target ${sha} --title ${title} ${extra}`;
 }
 
 // ---- 1. archive ----------------------------------------------------------
@@ -146,14 +174,8 @@ say(`Releasing zshell ${version} (build ${build})`);
 
 // Don't clobber an already-published version unless forced.
 if (!localBuild && process.env.FORCE !== "1") {
-  let existing = "";
-  try {
-    existing = await $`rclone lsf ${R2_DEST} ${RCLONE_FLAGS}`.text();
-  } catch {
-    existing = ""; // empty/unreachable bucket — let later steps surface it
-  }
-  if (existing.split("\n").includes(zipName)) {
-    die(`${zipName} already exists in R2 — bump the version, or set FORCE=1.`);
+  if ((await releaseAssets(UPDATES_TAG)).includes(zipName)) {
+    die(`${zipName} is already published — bump the version, or set FORCE=1.`);
   }
 }
 
@@ -203,37 +225,25 @@ await $`xcrun stapler staple ${app}`;
 rmSync(UPDATES_DIR, { recursive: true, force: true });
 mkdirSync(UPDATES_DIR, { recursive: true });
 if (process.env.NO_HISTORY !== "1") {
-  say(`Selecting the ${HISTORY_COUNT} most recent archives from R2 (for deltas)…`);
-  type RemoteFile = { Name: string; IsDir: boolean };
-  const remoteFiles = JSON.parse(
-    await $`rclone lsjson ${R2_DEST} ${RCLONE_FLAGS} --files-only --include ${"*.zip"} --include ${"appcast.xml"}`.text(),
-  ) as RemoteFile[];
+  say(
+    `Selecting the ${HISTORY_COUNT} most recent archives from the ${UPDATES_TAG} release (for deltas)…`,
+  );
+  const published = await releaseAssets(UPDATES_TAG);
   const archiveVersion = (name: string) =>
     name.slice("zshell-".length, -".zip".length);
   const versionOrder = new Intl.Collator("en", { numeric: true });
-  const recentArchives = remoteFiles
-    .filter(
-      ({ Name, IsDir }) =>
-        !IsDir && /^zshell-.+\.zip$/.test(Name) && Name !== zipName,
-    )
-    .sort((a, b) =>
-      versionOrder.compare(archiveVersion(b.Name), archiveVersion(a.Name)),
-    )
-    .slice(0, HISTORY_COUNT)
-    .map(({ Name }) => Name);
+  const recentArchives = published
+    .filter((name) => /^zshell-.+\.zip$/.test(name) && name !== zipName)
+    .sort((a, b) => versionOrder.compare(archiveVersion(b), archiveVersion(a)))
+    .slice(0, HISTORY_COUNT);
   const historyFiles = [
-    ...(remoteFiles.some(({ Name }) => Name === "appcast.xml")
-      ? ["appcast.xml"]
-      : []),
+    ...(published.includes("appcast.xml") ? ["appcast.xml"] : []),
     ...recentArchives,
   ];
 
   if (historyFiles.length > 0) {
-    const includeFlags = historyFiles.flatMap((name) => [
-      "--include",
-      `/${name}`,
-    ]);
-    await $`rclone copy ${R2_DEST} ${UPDATES_DIR} ${RCLONE_FLAGS} ${includeFlags}`;
+    const patterns = historyFiles.flatMap((name) => ["--pattern", name]);
+    await $`gh release download ${UPDATES_TAG} --repo ${RELEASE_REPO} ${patterns} --dir ${UPDATES_DIR} --clobber`;
   }
   say(
     recentArchives.length > 0
@@ -248,10 +258,11 @@ await $`ditto -c -k --keepParent ${app} ${join(UPDATES_DIR, zipName)}`;
 // archive (as zshell-<version>.md). generate_appcast then attaches it as the
 // update's <sparkle:releaseNotesLink>, which Sparkle renders in the prompt.
 const changelog = join("..", "CHANGELOG.md");
+const notesPath = join(UPDATES_DIR, `zshell-${version}.md`);
 if (existsSync(changelog)) {
   const notes = extractReleaseNotes(await Bun.file(changelog).text(), version);
   if (notes) {
-    await Bun.write(join(UPDATES_DIR, `zshell-${version}.md`), `${notes}\n`);
+    await Bun.write(notesPath, `${notes}\n`);
     say(`Attached release notes for ${version}`);
   } else {
     say(`No "${version}" section in ${changelog} — releasing without notes`);
@@ -262,17 +273,38 @@ if (existsSync(changelog)) {
 
 // ---- 7. sign + (re)generate the appcast ----------------------------------
 say("Generating appcast…");
-await generateAppcast(UPDATES_DIR, DOWNLOAD_URL_PREFIX);
+await generateAppcast(UPDATES_DIR, UPDATE_URL_PREFIX);
 
-// ---- 8. upload to R2 -----------------------------------------------------
-// Archives and the DMG are immutable → cache forever. appcast.xml changes every
-// release → keep it fresh so update checks aren't served stale.
-say(`Uploading the DMG to ${R2_DEST}…`);
-await $`rclone copyto ${dmgPath} ${`${R2_DEST}/${dmgName}`} ${RCLONE_FLAGS} --header-upload ${"Cache-Control: public, max-age=31536000, immutable"} --progress`;
-say(`Uploading update archives to ${R2_DEST}…`);
-await $`rclone copy ${UPDATES_DIR} ${R2_DEST} ${RCLONE_FLAGS} --exclude ${"appcast.xml"} --exclude ${"old_updates/**"} --header-upload ${"Cache-Control: public, max-age=31536000, immutable"} --progress`;
-say("Uploading appcast.xml…");
-await $`rclone copyto ${join(UPDATES_DIR, "appcast.xml")} ${`${R2_DEST}/appcast.xml`} ${RCLONE_FLAGS} --header-upload ${"Cache-Control: public, max-age=300, must-revalidate"}`;
+// ---- 8. publish to GitHub Releases ---------------------------------------
+// The versioned release is what people download; the updates release is the flat
+// store Sparkle resolves the appcast against. Only files that are not published
+// yet get uploaded — the history pulled above already is — except appcast.xml,
+// which every release rewrites.
+say(`Publishing ${dmgName} on the v${version} release…`);
+await ensureRelease(
+  `v${version}`,
+  `zshell ${version}`,
+  existsSync(notesPath) ? ["--notes-file", notesPath] : ["--generate-notes"],
+);
+await $`gh release upload ${`v${version}`} --repo ${RELEASE_REPO} ${dmgPath} --clobber`;
+
+say(`Uploading update archives to the ${UPDATES_TAG} release…`);
+// Marked as a prerelease so this permanent feed holder never takes the "Latest
+// release" badge away from an actual version.
+await ensureRelease(UPDATES_TAG, "Sparkle update feed", [
+  "--prerelease",
+  "--notes",
+  "Sparkle appcast and update archives. Downloads live on each version's own release.",
+]);
+const published = new Set(await releaseAssets(UPDATES_TAG));
+const uploads = readdirSync(UPDATES_DIR, { withFileTypes: true })
+  .filter(
+    (entry) =>
+      entry.isFile() &&
+      (entry.name === "appcast.xml" || !published.has(entry.name)),
+  )
+  .map((entry) => join(UPDATES_DIR, entry.name));
+await $`gh release upload ${UPDATES_TAG} --repo ${RELEASE_REPO} ${uploads} --clobber`;
 
 // ---- 9. bump the Homebrew cask -------------------------------------------
 // Last, because the cask's sha256 covers a DMG that must already be fetchable.
@@ -309,6 +341,6 @@ if (process.env.NO_SITE !== "1") {
 }
 
 say(`Done. zshell ${version} is live:`);
-console.log(`     download : ${DOWNLOAD_URL_PREFIX}${dmgName}`);
-console.log(`     update   : ${DOWNLOAD_URL_PREFIX}${zipName}`);
-console.log(`     feed     : ${DOWNLOAD_URL_PREFIX}appcast.xml`);
+console.log(`     download : ${dmgUrl(version)}`);
+console.log(`     update   : ${UPDATE_URL_PREFIX}${zipName}`);
+console.log(`     feed     : ${APPCAST_URL}`);

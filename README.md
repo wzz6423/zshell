@@ -59,7 +59,7 @@ Install Bun dependencies separately in `mac/` and `web/`; each has its own lockf
 | --- | --- |
 | [User documentation](https://wzz6423.github.io/zshell/docs) | Learn the app's workflows and settings. |
 | [Contributing guide](CONTRIBUTING.md) | Set up the app, configure local signing, build, verify, and open a pull request. |
-| [Release guide](mac/RELEASING.md) | Maintainer-only Developer ID, notarization, Sparkle, and R2 release process. |
+| [Release guide](mac/RELEASING.md) | Maintainer-only Developer ID, notarization, Sparkle, and GitHub Releases process. |
 | [Security policy](SECURITY.md) | Supported versions and private vulnerability reporting. |
 | [Localization guide](mac/LOCALIZATION.md) | Translate and test app text. |
 | [Website guide](web/README.md) | Build and maintain the static site and its user documentation. |

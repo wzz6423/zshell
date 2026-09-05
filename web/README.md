@@ -47,8 +47,8 @@ The prefix lives *inside* the built files, not in the paths they sit at:
 prerendering writes `/docs` to `dist/client/docs/index.html`, and Pages serves
 that whole directory at `/zshell/`. So `dist/client` is uploaded as-is.
 
-`releases.zshell.sh` is not part of this: it is the Cloudflare R2 bucket that
-serves the DMGs and the appcast.
+Downloads are not part of this: the DMGs and the appcast are GitHub Release
+assets, and the site only links them (see [`src/lib/release.ts`](src/lib/release.ts)).
 
 [`public/.nojekyll`](public/.nojekyll) is there because the build emits asset
 chunks whose names start with `_`, which Jekyll hides. Artifact deploys do not

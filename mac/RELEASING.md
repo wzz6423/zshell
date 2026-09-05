@@ -1,11 +1,18 @@
 # Releasing zshell
 
-zshell auto-updates with [Sparkle](https://sparkle-project.org). Releases live in a
-**Cloudflare R2** bucket served at **`https://releases.zshell.sh`**. New users
-download a notarized **`.dmg`**; existing users get smaller in-app delta updates
-via Sparkle, which reads the appcast at `https://releases.zshell.sh/appcast.xml`,
+zshell auto-updates with [Sparkle](https://sparkle-project.org). Releases are
+**GitHub Release assets** of this repository, so shipping needs no domain and no
+object store: each version's notarized **`.dmg`** hangs off its own `v<version>`
+release, while the update archives and `appcast.xml` sit on one permanent
+**`updates`** release. New users download the DMG; existing users get smaller
+in-app delta updates via Sparkle, which reads the appcast at
+`https://github.com/wzz6423/zshell/releases/download/updates/appcast.xml`,
 verifies each build's EdDSA signature, and installs it. One release command
 produces both.
+
+That split is what keeps update URLs stable: Sparkle resolves every enclosure in
+the feed — including the items describing older versions — against a single
+prefix, so every archive has to stay under one tag that never moves.
 
 Run release commands from `mac/`. Once set up, cutting a release is one command:
 
@@ -75,40 +82,20 @@ project).
   # (paste an app-specific password, or use --key for an App Store Connect API key)
   ```
 
-### 3. Cloudflare R2 bucket + domain
+### 3. GitHub CLI
 
-1. Create an R2 bucket (default name the script expects: `zshell-releases` — or set
-   `R2_BUCKET`).
-2. Attach the custom domain **`releases.zshell.sh`** to the bucket
-   (R2 → your bucket → Settings → Custom Domains). This serves objects publicly
-   at `https://releases.zshell.sh/<file>`.
-3. Create an **R2 API token** (R2 → Manage API Tokens → Object Read & Write).
-   It only needs access to this one bucket — the script passes
-   `--s3-no-check-bucket`, so no bucket-creation permission is required.
+Publishing goes through [`gh`](https://cli.github.com) (`brew install gh`), so
+log in once as an account that can create releases in this repository:
 
-### 4. rclone remote for R2
-
-The script uses [rclone](https://rclone.org) to sync the bucket
-(`brew install rclone`). Add an R2 remote named `r2` — either run
-`rclone config` (type **S3**, provider **Cloudflare**), or drop this into
-`~/.config/rclone/rclone.conf`:
-
-```ini
-[r2]
-type = s3
-provider = Cloudflare
-access_key_id = <R2 access key id>
-secret_access_key = <R2 secret access key>
-endpoint = https://<ACCOUNT_ID>.r2.cloudflarestorage.com
-region = auto
-no_check_bucket = true
+```sh
+gh auth status        # already logged in?
+gh auth login         # if not
 ```
 
-`no_check_bucket = true` stops rclone from trying to create the (already
-existing) bucket — needed for bucket-scoped tokens. The script also passes
-`--s3-no-check-bucket`, so this line is belt-and-suspenders.
+The release script verifies this before it starts building — a token that cannot
+create releases must not surface only after a 20-minute notarized build.
 
-Verify with `rclone lsf r2:zshell-releases --s3-no-check-bucket`.
+Verify with `gh release list --repo wzz6423/zshell`.
 
 ---
 
@@ -128,12 +115,13 @@ Verify with `rclone lsf r2:zshell-releases --s3-no-check-bucket`.
 That's it. The script archives → exports a Developer ID app → builds a
 notarized, stapled **`.dmg`** → staples the app and zips it for Sparkle →
 attaches the matching `CHANGELOG.md` section as release notes → pulls the 15
-most recent archives from R2 by default (so Sparkle can build deltas) →
-regenerates `appcast.xml` → uploads the DMG and the update archives to R2. When
-it finishes:
+most recent archives from the `updates` release by default (so Sparkle can build
+deltas) → regenerates `appcast.xml` → publishes the DMG on the `v<version>`
+release and the archives on `updates`. When it finishes:
 
-- **Download link** (for the website): `https://releases.zshell.sh/zshell-<version>.dmg`
-- **In-app updates**: served from the same origin via the appcast.
+- **Download link** (for the website):
+  `https://github.com/wzz6423/zshell/releases/download/v<version>/zshell-<version>.dmg`
+- **In-app updates**: the appcast on the `updates` release.
 
 Notarizing the DMG also notarizes the app's code, so the script staples both from
 a single submission — the DMG for direct downloads, the app for the Sparkle zip.
@@ -148,12 +136,12 @@ Test by running an **older** build and choosing **Check for Updates…**.
 | Env | Default | Purpose |
 | --- | --- | --- |
 | `SPARKLE_KEY_ACCOUNT` | `zshell-update-ed25519` | keychain account holding the private EdDSA key |
-| `R2_BUCKET` | `zshell-releases` | R2 bucket name |
-| `R2_REMOTE` | `r2` | rclone remote name |
+| `RELEASE_REPO` | `wzz6423/zshell` | repository the releases are published to |
+| `UPDATES_TAG` | `updates` | permanent release holding the appcast and archives |
 | `NOTARY_PROFILE` | `NOTARY` | `notarytool` keychain profile |
 | `SIGN_IDENTITY` | `Developer ID Application` | codesigning identity for the DMG |
 | `EXPORT_OPTIONS` | `scripts/ExportOptions.plist` | export config |
-| `DOWNLOAD_URL_PREFIX` | `https://releases.zshell.sh/` | base URL in the appcast |
+| `DOWNLOAD_URL_PREFIX` | the `updates` release's download URL | base URL in the appcast |
 | `HISTORY_COUNT` | `15` | number of recent archives to pull for delta generation |
 | `BUILD_JOBS` | half of logical CPUs (min 1) | max concurrent `xcodebuild` tasks during archive (limits parallel `swift-frontend` work) |
 | `BUILD_NICE=1` | — | archive under utility QoS (`taskpolicy`) so interactive work keeps priority |
@@ -180,8 +168,8 @@ cask at [`wzz6423/homebrew-tap`](https://github.com/wzz6423/homebrew-tap)
 (`Casks/zshell.rb`). The tap is shared with other projects, so the release script
 refreshes the repository's default branch and changes only this cask. If the file
 does not exist yet, the first release creates it without touching the other
-recipes. The cask downloads the same `.dmg` from R2, so it needs the new version
-and its `sha256` after every release.
+recipes. The cask downloads the same `.dmg` from that version's release, so it
+needs the new version and its `sha256` after every release.
 
 `scripts/release.ts` does that for you as its last step
 ([`scripts/bump-cask.ts`](scripts/bump-cask.ts)): it hashes the DMG it just
@@ -235,9 +223,12 @@ the repository.
 
 - **Two artifacts per release:** a notarized `.dmg` (what people download) and a
   `.zip` (what Sparkle installs, with binary deltas). Only the `.zip` goes in the
-  appcast; point your website's download button at
-  `https://releases.zshell.sh/zshell-<version>.dmg`. Want a stable URL? Add a
-  Cloudflare redirect from e.g. `/download` to the newest `.dmg`.
+  appcast; the website's download button points at
+  `https://github.com/wzz6423/zshell/releases/download/v<version>/zshell-<version>.dmg`,
+  which [`web/src/lib/release.ts`](../web/src/lib/release.ts) builds from the
+  version it read out of the feed. Need a URL that never changes?
+  `https://github.com/wzz6423/zshell/releases/latest` always resolves to the
+  newest version's release page.
 - **Automatic checks:** by default Sparkle asks the user once whether to allow
   automatic update checks. To opt in by default (no prompt), add to
   [`zshell/Info.plist`](zshell/Info.plist):
@@ -250,10 +241,11 @@ the repository.
   publishes the matching version section as `zshell-<version>.md` next to the
   archive, and `generate_appcast` links it as the update's release notes
   (Sparkle 2.9+ renders Markdown). No matching section → the release just ships
-  without notes. Notes for older versions stay in R2, so they keep showing.
+  without notes. Notes for older versions stay on the `updates` release, so they
+  keep showing.
 - `SUPublicEDKey` must match the private key used to sign the appcast. A mismatch
   lets the app check the feed but makes update installation fail signature verification.
 - zshell isn't sandboxed, so no Sparkle XPC services need bundling.
-- Old archives stay in R2 so users far behind can still download them. Only the
-  recent archives needed for new deltas are staged under `build/`, which is
-  git-ignored.
+- Old archives stay on the `updates` release so users far behind can still
+  download them. Only the recent archives needed for new deltas are staged under
+  `build/`, which is git-ignored.

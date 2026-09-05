@@ -3,13 +3,14 @@
 // Bump the Homebrew cask in the tap to a released version.
 //
 // The cask (https://github.com/wzz6423/homebrew-tap, Casks/zshell.rb) points at the
-// DMG in R2, so it needs the new version + its sha256 after every release.
+// DMG on that version's GitHub release, so it needs the new version + its
+// sha256 after every release.
 // `scripts/release.ts` calls this at the end; it's also runnable on its own to
 // retry a failed push or to backfill a version released before this existed:
 //
 //   bun scripts/bump-cask.ts            # version from build/export/zshell.app
 //   bun scripts/bump-cask.ts 0.1.25     # explicit version (downloads the DMG
-//                                       # from R2 if it isn't in build/)
+//                                       # from the release if not in build/)
 //
 // Env (NO_TAP=1 skips the bump, but that's release.ts's flag — running this
 // script directly is already an explicit request to bump):
@@ -19,24 +20,23 @@
 import { $ } from "bun";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { die, say } from "./lib";
+import { APPCAST_URL, RELEASE_REPO, die, dmgUrl, releasePrefix, say } from "./lib";
 
 const TAP_REPO = process.env.TAP_REPO ?? "wzz6423/homebrew-tap";
 const TAP_CASK = process.env.TAP_CASK ?? "Casks/zshell.rb";
 const TAP_DIR = process.env.TAP_DIR ?? join(process.env.BUILD_DIR ?? "build", "homebrew-tap");
-const DOWNLOAD_URL_PREFIX = process.env.DOWNLOAD_URL_PREFIX ?? "https://releases.zshell.sh/";
 const DEFAULT_CASK = `cask "zshell" do
   version "{{VERSION}}"
   sha256 "{{SHA256}}"
 
-  url "${DOWNLOAD_URL_PREFIX}zshell-#{version}.dmg",
-      verified: "releases.zshell.sh/"
+  url "${releasePrefix("v#{version}")}zshell-#{version}.dmg",
+      verified: "github.com/${RELEASE_REPO}/"
   name "Zshell"
   desc "Native macOS terminal workspace for developers"
   homepage "https://wzz6423.github.io/zshell/"
 
   livecheck do
-    url "https://releases.zshell.sh/appcast.xml"
+    url "${APPCAST_URL}"
     strategy :sparkle
   end
 
@@ -75,7 +75,7 @@ export async function bumpCask(version: string, dmgPath?: string): Promise<boole
   if (dmgPath && existsSync(dmgPath)) {
     dmg = await Bun.file(dmgPath).arrayBuffer();
   } else {
-    const url = `${DOWNLOAD_URL_PREFIX}zshell-${version}.dmg`;
+    const url = dmgUrl(version);
     say(`Downloading ${url} to hash it…`);
     const res = await fetch(url);
     if (!res.ok) throw new Error(`could not download ${url} (HTTP ${res.status})`);

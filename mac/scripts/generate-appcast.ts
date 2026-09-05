@@ -12,12 +12,12 @@
 // Env overrides:
 //   SPARKLE_BIN          dir containing the Sparkle tools (generate_appcast)
 //   SPARKLE_KEY_ACCOUNT  keychain account for the private EdDSA key
-//   DOWNLOAD_URL_PREFIX  base URL for <enclosure> links (default releases.zshell.sh)
+//   DOWNLOAD_URL_PREFIX  base URL for <enclosure> links (default: the updates release)
 import { $ } from "bun";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { die } from "./lib";
+import { die, UPDATE_URL_PREFIX } from "./lib";
 
 const SPARKLE_KEY_ACCOUNT = process.env.SPARKLE_KEY_ACCOUNT ?? "zshell-update-ed25519";
 
@@ -69,6 +69,5 @@ export async function generateAppcast(
 if (import.meta.main) {
   const updatesDir = process.argv[2];
   if (!updatesDir) die("usage: bun scripts/generate-appcast.ts <updates-dir>");
-  const prefix = process.env.DOWNLOAD_URL_PREFIX ?? "https://releases.zshell.sh/";
-  await generateAppcast(updatesDir, prefix);
+  await generateAppcast(updatesDir, UPDATE_URL_PREFIX);
 }

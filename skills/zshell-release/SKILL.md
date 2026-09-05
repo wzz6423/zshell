@@ -1,14 +1,16 @@
 ---
 name: zshell-release
-description: Zshell 的 macOS 发布与 Sparkle 自动更新工作流。在打本地签名包、切正式版本、核对发布前置条件，或排查公证、appcast、Cloudflare R2、Homebrew cask、站点重建失败时使用。单通道单 bucket，每版两个产物；正式发布必须先有用户明确授权。
+description: Zshell 的 macOS 发布与 Sparkle 自动更新工作流。在打本地签名包、切正式版本、核对发布前置条件，或排查公证、appcast、GitHub Releases、Homebrew cask、站点重建失败时使用。单通道，每版两个产物；正式发布必须先有用户明确授权。
 ---
 
 # Zshell 发布
 
 一条命令走完：archive → Developer ID 导出 → 公证并 staple → DMG 与 Sparkle zip →
-签名并重写 appcast → 上传 Cloudflare R2 → bump Homebrew cask → 触发站点重建。
-分发源是 `https://releases.zshell.sh`，feed 是同源的 `appcast.xml`。
-单个 Sparkle feed、单 bucket；下载用 `.dmg`，Sparkle 更新用 `.zip`，有历史归档时另生成增量。
+签名并重写 appcast → 发布到 GitHub Releases → bump Homebrew cask → 触发站点重建。
+分发源就是本仓库的 Releases：DMG 挂在各自的 `v<version>` release，更新归档和 `appcast.xml`
+挂在常驻的 `updates` release——Sparkle 用一个前缀解析 feed 里所有条目（含旧版本），
+所以归档必须待在一个不会变的 tag 下。
+单个 Sparkle feed；下载用 `.dmg`，Sparkle 更新用 `.zip`，有历史归档时另生成增量。
 当前 `Updater.swift` 检测到 Homebrew 的 `Caskroom/zshell` 和可执行 `brew` 时，正式版改用
 `brew upgrade --cask zshell`；核对更新行为时先确认走的是 Homebrew 还是 Sparkle。
 
@@ -28,7 +30,7 @@ make build-package
 ```
 
 委派到 `mac/scripts/release.ts --local`：archive、导出 Developer ID 应用、造 DMG 并用
-Developer ID 签名，然后停下——**不公证、不上传、不动 cask 与站点**。产物在
+Developer ID 签名，然后停下——**不公证、不发布、不动 cask 与站点**。产物在
 `mac/build/export/zshell.app` 与 `mac/build/zshell-<version>.dmg`。
 用它验证签名与打包，不能用它验证更新流程。
 
@@ -38,7 +40,7 @@ Developer ID 签名，然后停下——**不公证、不上传、不动 cask �
 cd mac && bun run release        # 等价于 bun scripts/release.ts
 ```
 
-默认会公证、上传 R2、bump `wzz6423/homebrew-tap` 的 `Casks/zshell.rb`、
+默认会公证、发布到 GitHub Releases、bump `wzz6423/homebrew-tap` 的 `Casks/zshell.rb`、
 `gh workflow run "Web Pages" --ref main`。
 
 ### 发布前
@@ -54,33 +56,34 @@ cd mac && bun run release        # 等价于 bun scripts/release.ts
 
 | 开关 | 用途 |
 | --- | --- |
-| `FORCE=1` | 重发已存在的版本；默认会因 R2 已有同名 zip 而中止 |
+| `FORCE=1` | 重发已存在的版本；默认会因 `updates` release 已有同名 zip 而中止 |
 | `NO_TAP=1` | 跳过 Homebrew cask bump |
 | `NO_SITE=1` | 跳过站点重建 |
 | `NO_HISTORY=1` | 不拉历史归档，本次不生成增量，用户下整包 |
 | `HISTORY_COUNT=<n>` | 参与增量的历史归档数，默认 15 |
 | `BUILD_JOBS=2`、`BUILD_NICE=1` | 限制 archive 并发 / 降到 utility QoS，保持机器可用 |
 
-完整环境变量表和一次性设置（Sparkle 密钥、公证 profile、R2 与 rclone、tap SSH）
+完整环境变量表和一次性设置（Sparkle 密钥、公证 profile、`gh` 登录、tap SSH）
 在 `mac/RELEASING.md`，不要在这里重复维护。
 
 ### 脚本实际做的事
 
 按序：校验所需命令与 `mac/scripts/ExportOptions.plist` 存在 → archive（`-jobs`，
 可选 `taskpolicy -c utility`）→ `-exportArchive` 出 Developer ID 应用 → 从产物 `Info.plist`
-读 `CFBundleShortVersionString` / `CFBundleVersion` → 查 R2 是否已有同名 zip →
+读 `CFBundleShortVersionString` / `CFBundleVersion` → 查 `updates` release 是否已有同名 zip →
 造 DMG 并签名（`--local` 到此结束）→ 公证 DMG，再 staple DMG 和 app（一次提交覆盖两者）→
 拉最近历史归档、打 `zshell-<version>.zip`、从根 `CHANGELOG.md` 切出 `zshell-<version>.md` →
-用 keychain 私钥签名并重写 `appcast.xml` → 上传（归档与 DMG 长缓存 immutable，
-appcast 短缓存 must-revalidate）→ bump cask → 触发 `Web Pages`。
+用 keychain 私钥签名并重写 `appcast.xml` → 发布（DMG 上传到 `v<version>`，归档与 appcast
+上传到 `updates`，只传尚未发布过的文件加上每次都会重写的 `appcast.xml`）→ bump cask →
+触发 `Web Pages`。
 
 `create-dmg` 会因 Finder 脚本的无害抖动返回非零，脚本因此只判断文件是否生成，不看退出码。
 
 ## 发布后验证
 
 ```sh
-curl --fail --head "https://releases.zshell.sh/zshell-<version>.dmg"
-curl --fail --silent --show-error "https://releases.zshell.sh/appcast.xml"
+curl --fail --location --head "https://github.com/wzz6423/zshell/releases/download/v<version>/zshell-<version>.dmg"
+curl --fail --location --silent --show-error "https://github.com/wzz6423/zshell/releases/download/updates/appcast.xml"
 ```
 
 将 `<version>` 替换为本次版本。验证 feed 的 XML、版本、构建号、ZIP URL、长度和 EdDSA
@@ -92,7 +95,7 @@ Homebrew 路径另验 cask 更新。Debug 构建不启动 Sparkle，不能替代
 
 ## 失败恢复
 
-cask bump 与站点重建都在上传之后，脚本把它们的失败降级为告警：发布本身已经生效，
+cask bump 与站点重建都在发布之后，脚本把它们的失败降级为告警：发布本身已经生效，
 只补这一步即可。
 
 ```sh
@@ -100,7 +103,7 @@ cask bump 与站点重建都在上传之后，脚本把它们的失败降级为�
 gh workflow run "Web Pages" --ref main
 ```
 
-archive、DMG、公证这些步骤可以整条重跑。**一旦 zip 已经上传 R2，重跑需要 `FORCE=1`**，
+archive、DMG、公证这些步骤可以整条重跑。**一旦 zip 已经发布到 `updates` release，重跑需要 `FORCE=1`**，
 执行前先确认要覆盖的是同一份构建，否则同一版本号会对应两份不同二进制。
 其余症状按 [references/troubleshooting.md](references/troubleshooting.md) 对症处理。
 

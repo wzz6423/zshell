@@ -3,10 +3,13 @@ import { withBase } from '@/lib/utils'
 
 export type Release = { version: string; minSystem: string; dmg: string }
 
-const RELEASES_ORIGIN = 'https://releases.zshell.sh'
-const APPCAST_URL = `${RELEASES_ORIGIN}/appcast.xml`
-
 export const GITHUB_URL = 'https://github.com/wzz6423/zshell'
+
+// Releases are GitHub Release assets: the feed and the update archives sit on
+// the permanent `updates` release, each version's DMG on its own `v<version>`.
+const APPCAST_URL = `${GITHUB_URL}/releases/download/updates/appcast.xml`
+const dmgUrl = (version: string) =>
+  `${GITHUB_URL}/releases/download/v${version}/zshell-${version}.dmg`
 
 // Cask lives in wzz6423/homebrew-tap, so the tap has to be named explicitly.
 // `--cask` is optional — brew falls back to casks, and the tap has no `zshell` formula.
@@ -17,7 +20,7 @@ export const BREW_COMMAND = 'brew install wzz6423/tap/zshell'
 const FALLBACK: Release = {
   version: '0.0.1',
   minSystem: '15.6',
-  dmg: `${RELEASES_ORIGIN}/zshell-0.0.1.dmg`,
+  dmg: dmgUrl('0.0.1'),
 }
 
 /**
@@ -46,7 +49,7 @@ function parseLatestRelease(xml: string): Release | null {
   return {
     version: best.version,
     minSystem: best.minSystem,
-    dmg: `${RELEASES_ORIGIN}/zshell-${best.version}.dmg`,
+    dmg: dmgUrl(best.version),
   }
 }
 
