@@ -3,7 +3,7 @@
 ## Supported Versions
 
 Security fixes are prioritized for the latest Zshell release. Older releases
-are not maintained; update through the in-app updater or [zshell.sh](https://zshell.sh).
+are not maintained; update through the in-app updater or [the Zshell website](https://wzz6423.github.io/zshell/).
 
 | Version | Supported |
 | --- | --- |

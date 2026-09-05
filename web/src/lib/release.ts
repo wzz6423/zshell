@@ -1,4 +1,5 @@
 import { createIsomorphicFn } from '@tanstack/react-start'
+import { withBase } from '@/lib/utils'
 
 export type Release = { version: string; minSystem: string; dmg: string }
 
@@ -72,7 +73,7 @@ let cached: Promise<Release> | undefined
 export const loadRelease = createIsomorphicFn()
   .server(() => fetchLatestRelease())
   .client(() => {
-    cached ??= fetch('/api/release')
+    cached ??= fetch(withBase('/api/release'))
       .then((res) => res.json() as Promise<Release>)
       .catch(() => {
         cached = undefined

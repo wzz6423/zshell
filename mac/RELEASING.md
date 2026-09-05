@@ -210,7 +210,7 @@ deployment target, edit that stanza in the tap by hand.
 
 ## The website
 
-[zshell.sh](https://zshell.sh) is a static site on GitHub Pages, prerendered by
+[The website](https://wzz6423.github.io/zshell/) is a static site on GitHub Pages, prerendered by
 the `Web Pages` workflow. Its download buttons read the version, the minimum
 system, and the DMG URL out of the appcast **while it is being prerendered** —
 there is no server to ask at request time, so the site keeps advertising the

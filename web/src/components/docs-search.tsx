@@ -14,6 +14,7 @@ import {
   SearchDialogList,
   SearchDialogOverlay,
 } from 'fumadocs-ui/components/dialog/search'
+import { withBase } from '@/lib/utils'
 
 /**
  * Rebuilds the database the index is loaded into. Fumadocs' own static dialog
@@ -39,7 +40,7 @@ function initOrama(locale?: string) {
  */
 export default function DocsSearchDialog(props: SharedProps) {
   const { locale } = useI18n()
-  const client = oramaStaticClient({ locale, initOrama })
+  const client = oramaStaticClient({ locale, initOrama, from: withBase('/api/search') })
   const { search, setSearch, query } = useDocsSearch({ client })
 
   return (

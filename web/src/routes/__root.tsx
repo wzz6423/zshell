@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import appCss from "@/styles/app.css?url";
 import { DEFAULT_LANGUAGE, isLanguage } from "@/lib/i18n";
+import { withBase } from "@/lib/utils";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -24,8 +25,8 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/png", href: "/zshell-icon.png" },
-      { rel: "apple-touch-icon", href: "/zshell-icon.png" },
+      { rel: "icon", type: "image/png", href: withBase("/zshell-icon.png") },
+      { rel: "apple-touch-icon", href: withBase("/zshell-icon.png") },
     ],
   }),
   component: RootComponent,

@@ -33,7 +33,7 @@ const DEFAULT_CASK = `cask "zshell" do
       verified: "releases.zshell.sh/"
   name "Zshell"
   desc "Native macOS terminal workspace for developers"
-  homepage "https://zshell.sh"
+  homepage "https://wzz6423.github.io/zshell/"
 
   livecheck do
     url "https://releases.zshell.sh/appcast.xml"

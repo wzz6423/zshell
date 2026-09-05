@@ -27,17 +27,28 @@ bun run typecheck  # tsc --noEmit
 Pushing to `main` deploys — [`.github/workflows/web-pages.yml`](../.github/workflows/web-pages.yml)
 builds the site and uploads it. There is nothing to deploy by hand.
 
-The site answers on the apex domain **[zshell.sh](https://zshell.sh)**, which is
-what [`public/CNAME`](public/CNAME) declares. Vite copies `public/` into
-`dist/client` verbatim, so every deploy re-declares it — a build that loses the
-file sends the site back to `wzz6423.github.io/zshell` and 404s the domain, hence
-the assertion in both web workflows. The repository's *Settings → Pages* custom
-domain has to name the same host, and DNS needs the apex pointed at Pages: four A
-records to `185.199.108.153`, `.109.153`, `.110.153` and `.111.153`, or an
-ALIAS/ANAME to `wzz6423.github.io`
-([GitHub's list](https://docs.github.com/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site)
-is authoritative, and covers IPv6). `releases.zshell.sh` is not part of this: it
-is the Cloudflare R2 bucket that serves the DMGs and the appcast.
+The site answers on **<https://wzz6423.github.io/zshell/>**. A Pages project site
+is served from the repository name rather than the domain root, so every URL the
+site emits needs that prefix: [`vite.config.ts`](vite.config.ts) sets
+`base: '/zshell/'`, and [`src/router.tsx`](src/router.tsx) hands the same value
+to `basepath` by reading it back out of `import.meta.env.BASE_URL` — one place to
+change, and changing it is all a move to another path or a custom domain takes
+(plus a `public/CNAME` naming the host, and the domain in *Settings → Pages*).
+
+Vite rewrites what it can see, which is the imports and the router's links. A
+literal path is opaque to it, so anything else — a file in `public/`, or one of
+the JSON endpoints below fetched by hand — goes through `withBase()`
+([`src/lib/utils.ts`](src/lib/utils.ts)); without it the URL resolves against the
+domain root and 404s. Both web workflows assert the built `index.html` still
+carries the prefix, because a site that loses it deploys and then renders
+nothing.
+
+The prefix lives *inside* the built files, not in the paths they sit at:
+prerendering writes `/docs` to `dist/client/docs/index.html`, and Pages serves
+that whole directory at `/zshell/`. So `dist/client` is uploaded as-is.
+
+`releases.zshell.sh` is not part of this: it is the Cloudflare R2 bucket that
+serves the DMGs and the appcast.
 
 [`public/.nojekyll`](public/.nojekyll) is there because the build emits asset
 chunks whose names start with `_`, which Jekyll hides. Artifact deploys do not
@@ -111,6 +122,7 @@ page needs no config change.
   current: it is what a build advertises when the appcast is unreachable.
 - [`public/zshell-icon.png`](public/zshell-icon.png) is the shared Logo,
   favicon, and Apple touch icon. It is used by the root route and the site,
-  docs, and landing-page navigation.
+  docs, and landing-page navigation — through `withBase()`, like every other
+  file in `public/`.
 - The site has no hero product shot yet. Add one under `public/` and reference
   it from `src/components/home-page.tsx` when it is ready.

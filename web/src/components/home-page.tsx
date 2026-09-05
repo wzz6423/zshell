@@ -4,7 +4,7 @@ import { DocsLink, HomeLink } from '@/components/site-links'
 import { formatCopy, homeCopy, type HomeCopy, type Row } from '@/lib/home-copy'
 import { DEFAULT_LANGUAGE, i18n } from '@/lib/i18n'
 import { BREW_COMMAND, GITHUB_URL, type Release } from '@/lib/release'
-import { cn } from '@/lib/utils'
+import { cn, withBase } from '@/lib/utils'
 
 /** The landing page, rendered once per language from `homeCopy`. */
 export function HomePage({ lang, release }: { lang: string; release: Release }) {
@@ -129,7 +129,7 @@ function Header({ lang, copy, release }: { lang: string; copy: HomeCopy; release
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-6">
         <HomeLink lang={lang} className="flex items-center gap-2.5 font-bold tracking-tight">
           <img
-            src="/zshell-icon.png"
+            src={withBase('/zshell-icon.png')}
             alt=""
             width={1024}
             height={1024}
@@ -620,7 +620,7 @@ function Footer({ lang, copy }: { lang: string; copy: HomeCopy }) {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <HomeLink lang={lang} className="flex items-center gap-2.5 font-bold tracking-tight">
             <img
-              src="/zshell-icon.png"
+              src={withBase('/zshell-icon.png')}
               alt=""
               width={1024}
               height={1024}

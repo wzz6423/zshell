@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { SiteFooter } from '@/components/site-footer'
 import { HomeLink } from '@/components/site-links'
 import { DEFAULT_LANGUAGE } from '@/lib/i18n'
+import { withBase } from '@/lib/utils'
 
 export function SiteLayout({
   children,
@@ -18,7 +19,7 @@ export function SiteLayout({
         <h1 className="text-2xl font-bold tracking-[0.02em]">
           <HomeLink lang={lang} className="flex items-center gap-2.5">
             <img
-              src="/zshell-icon.png"
+              src={withBase('/zshell-icon.png')}
               alt=""
               width={1024}
               height={1024}

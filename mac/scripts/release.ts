@@ -61,7 +61,7 @@ const DOWNLOAD_URL_PREFIX = process.env.DOWNLOAD_URL_PREFIX ?? "https://releases
 const R2_REMOTE = process.env.R2_REMOTE ?? "r2";
 const R2_BUCKET = process.env.R2_BUCKET ?? "zshell-releases";
 const R2_DEST = `${R2_REMOTE}:${R2_BUCKET}`;
-// The GitHub Pages workflow that rebuilds zshell.sh, and the branch it deploys.
+// The GitHub Pages workflow that rebuilds the website, and the branch it deploys.
 const SITE_WORKFLOW = process.env.SITE_WORKFLOW ?? "Web Pages";
 const SITE_BRANCH = process.env.SITE_BRANCH ?? "main";
 // Keep a broader recent window available for delta generation. Override to
