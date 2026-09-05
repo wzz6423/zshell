@@ -13,10 +13,11 @@ updates:
         patterns:
           - "*"
 
+  # Only /web: Dependabot's bun updater reads bun.lock up to lockfileVersion 1,
+  # and mac/bun.lock is version 2, so including /mac fails the whole run. The two
+  # release scripts there pin @types/bun and typescript by hand until it catches up.
   - package-ecosystem: bun
-    directories:
-      - /mac
-      - /web
+    directory: /web
     schedule:
       interval: weekly
       day: monday

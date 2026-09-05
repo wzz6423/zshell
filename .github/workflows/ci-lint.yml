@@ -83,6 +83,7 @@ jobs:
         with:
           advanced-security: false
           annotations: true
+          inputs: .github/workflows
           collect: workflows
           color: false
           version: 1.29.0

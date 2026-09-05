@@ -58,13 +58,15 @@ jobs:
         working-directory: web
         run: bun install --frozen-lockfile
 
-      - name: Type check
-        working-directory: web
-        run: bun run typecheck
-
+      # The build is what writes src/routeTree.gen.ts, and every route module
+      # imports it, so a fresh checkout only type checks after the build has run.
       - name: Build
         working-directory: web
         run: bun run build
+
+      - name: Type check
+        working-directory: web
+        run: bun run typecheck
 
       # bun audit has no --omit=dev, and everything here is a build-time
       # dependency: the prerendered site ships no runtime dependency of its own,
