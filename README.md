@@ -1,5 +1,7 @@
 # Zshell
 
+**English** | [简体中文](README.zh-CN.md)
+
 Zshell is a native macOS terminal workspace for developers who keep shells,
 projects, source code, and AI coding agents moving at the same time. It keeps
 the terminal primary while making files, diffs, repository state, and project
@@ -68,6 +70,8 @@ Issues and pull requests are welcome. Read the
 [contributing guide](CONTRIBUTING.md) first. Report security vulnerabilities
 privately through [GitHub Security Advisories](https://github.com/wzz6423/zshell/security/advisories/new),
 not a public issue.
+
+Participation in this project is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
