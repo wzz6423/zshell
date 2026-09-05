@@ -129,6 +129,18 @@ a single submission — the DMG for direct downloads, the app for the Sparkle zi
 Finally it bumps the **Homebrew cask** and redeploys the **website** (both
 below).
 
+A **Release Feeds** run starts the moment the release is published and polls until the
+release and the feed agree: the DMG on `v<version>`, the appcast, archive and notes on
+`updates`, every URL in the feed under the `updates` prefix, a signed enclosure, and the
+newest item in the feed being *this* version — a `CURRENT_PROJECT_VERSION` that did not
+move publishes a release nobody is ever offered and leaves the website on the old one.
+It then downloads the DMG link anonymously, the way a visitor does. The same checks run
+locally:
+
+```sh
+ruby ../.github/scripts/appcast-feeds.rb verify --tag v<version>
+```
+
 Test by running an **older** build and choosing **Check for Updates…**.
 
 ### Options
