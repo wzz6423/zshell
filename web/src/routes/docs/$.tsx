@@ -3,7 +3,7 @@ import { DocsShell, docsClientLoader } from '@/components/docs-shell'
 import { DEFAULT_LANGUAGE } from '@/lib/i18n'
 import { loadDocsPage } from '@/lib/docs-loader'
 
-/** English docs. Other languages live under `/$lang/docs` — see `src/lib/i18n.ts`. */
+/** The default Chinese docs. Other languages live under `/$lang/docs` — see `src/lib/i18n.ts`. */
 export const Route = createFileRoute('/docs/$')({
   component: Page,
   loader: async ({ params }) => {

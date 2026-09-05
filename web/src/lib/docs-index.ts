@@ -24,8 +24,8 @@ export type DocsIndex = {
  * browser as the prerendered JSON at `/api/docs/<lang>`.
  *
  * The URLs come from the default language, the same assumption `docsPages()`
- * in `vite.config.ts` makes: a translation is a variant of an English page, so
- * a page missing one falls back rather than disappearing.
+ * in `vite.config.ts` makes: a translation is a locale variant, so a page
+ * missing one falls back rather than disappearing.
  */
 export async function buildDocsIndex(lang: string): Promise<DocsIndex> {
   const pages: Record<string, DocsIndexEntry> = {}

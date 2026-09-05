@@ -6,8 +6,6 @@ on:
       - main
     paths:
       - "web/**"
-      - "package.json"
-      - "bun.lock"
       - ".github/workflows/web-pages.yml"
   workflow_dispatch:
 
@@ -41,8 +39,8 @@ jobs:
         with:
           bun-version: latest
 
-      # bun.lock lives at the root: web/ is a workspace member, not its own install.
-      - name: Install workspace dependencies
+      - name: Install website dependencies
+        working-directory: web
         run: bun install --frozen-lockfile
 
       # The site renders at build time, so the changelog's contributor count is
@@ -86,4 +84,4 @@ jobs:
 
       - name: Clean up build artifacts
         if: always()
-        run: rm -rf web/dist web/.source node_modules web/node_modules
+        run: rm -rf web/dist web/.source web/node_modules

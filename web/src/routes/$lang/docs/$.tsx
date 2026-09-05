@@ -3,11 +3,11 @@ import { DocsShell, docsClientLoader } from '@/components/docs-shell'
 import { DEFAULT_LANGUAGE } from '@/lib/i18n'
 import { loadDocsPage } from '@/lib/docs-loader'
 
-/** Translated docs, e.g. `/zh/docs/git`. English is unprefixed — see `/docs/$`. */
+/** Non-default docs, e.g. `/en/docs/git`. Chinese is unprefixed — see `/docs/$`. */
 export const Route = createFileRoute('/$lang/docs/$')({
   component: Page,
   beforeLoad: ({ params }) => {
-    // English is served without a prefix, so `/en/docs/…` would otherwise be a
+    // Chinese is served without a prefix, so `/zh/docs/…` would otherwise be a
     // second URL for a page that already lives at `/docs/…`.
     if (params.lang === DEFAULT_LANGUAGE) {
       throw redirect({

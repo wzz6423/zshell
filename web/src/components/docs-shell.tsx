@@ -64,8 +64,8 @@ export function DocsShell({
       search={{ SearchDialog: DocsSearchDialog }}
       i18n={{
         ...i18nProvider(translations, lang),
-        // The default handler assumes every locale is a URL prefix, but English
-        // is unprefixed here (`hideLocale: 'default-locale'`).
+        // The default handler assumes every locale is a URL prefix, but the
+        // default Chinese locale is unprefixed here (`hideLocale: 'default-locale'`).
         onLocaleChange: (next) =>
           next === DEFAULT_LANGUAGE
             ? navigate({ to: '/docs/$', params: { _splat: slug } })

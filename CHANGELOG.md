@@ -1,7 +1,7 @@
 # Changelog
 
 All notable changes to zshell. This file is the **source of truth for the release
-notes shown in the in-app updater**: [`scripts/release.ts`](scripts/release.ts)
+notes shown in the in-app updater**: [`mac/scripts/release.ts`](mac/scripts/release.ts)
 extracts the section whose heading matches the version being released
 (`MARKETING_VERSION`) and publishes it next to the update, so Sparkle shows it in
 the update prompt.

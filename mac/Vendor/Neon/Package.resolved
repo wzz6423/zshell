@@ -1,0 +1,23 @@
+{
+  "pins" : [
+    {
+      "identity" : "rearrange",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ChimeHQ/Rearrange",
+      "state" : {
+        "revision" : "0fb658e721c68495f6340c211cc6d4719e6b52d8",
+        "version" : "1.6.0"
+      }
+    },
+    {
+      "identity" : "swifttreesitter",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ChimeHQ/SwiftTreeSitter",
+      "state" : {
+        "revision" : "2599e95310b3159641469d8a21baf2d3d200e61f",
+        "version" : "0.8.0"
+      }
+    }
+  ],
+  "version" : 2
+}

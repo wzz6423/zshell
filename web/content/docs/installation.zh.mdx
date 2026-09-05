@@ -19,21 +19,23 @@ brew install wzz6423/tap/zshell
 cask 放在 `wzz6423/homebrew-tap`，所以要写完整的 tap 名。升级方式和别的软件一样：
 
 ```bash
-brew upgrade --cask zshell
+brew upgrade --cask --greedy-auto-updates zshell
 ```
 
 ## 更新
 
-Zshell 通过 [Sparkle](https://sparkle-project.org) 自动更新：后台检查、静默下载，等你下次退出时安装——真正应用之前，你会先看到更新说明。
+Zshell 会检测安装来源并使用对应的更新方式。直接下载的版本通过
+[Sparkle](https://sparkle-project.org) 后台检查、静默下载，等你下次退出时安装；通过
+Homebrew 安装的版本则交给 Homebrew 更新。
 
 想改这个行为，用 <kbd>Cmd</kbd>+<kbd>,</kbd> 打开 **设置 → Updates**：
 
-- **Automatically check for updates**——彻底关掉后台检查。
-- **Check for Updates…**——立刻检查一次。
+- **Automatically check for updates**——控制直接下载版本的 Sparkle 后台检查。
+- **Check for Updates…**——直接下载版本检查 Sparkle，Homebrew 版本运行 Homebrew 更新。
 
 <Callout title="用 Homebrew 装的？">
-两条更新路径都能用。如果你更希望由 Homebrew 管理版本，就关掉自动检查，自己按节奏跑
-`brew upgrade --cask zshell`。
+「Updates」区域会标明 Homebrew 安装来源，更新按钮会运行
+`brew upgrade --cask --greedy-auto-updates zshell`。你也可以在终端手动执行这条命令。
 </Callout>
 
 ## 从 Finder 打开文件夹
@@ -47,7 +49,7 @@ Zshell 注册了一个名为 **New Zshell Project Here** 的 macOS 服务。在 
 
 如果打开了 **设置 → Automation → AI**，请先关掉再删除应用，让 Zshell 移除它安装的 agent 支持。
 
-从「应用程序」里删掉 `Zshell.app`，如果想彻底清干净，再删掉它的配置：
+从「应用程序」里删掉 `zshell.app`，如果想彻底清干净，再删掉它的配置：
 
 ```bash
 rm -rf ~/.config/zshell

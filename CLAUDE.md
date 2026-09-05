@@ -5,7 +5,15 @@ an editor, and a diff viewer. Existing SwiftUI code is legacy; AppKit is the UI 
 
 - [PRODUCT.md](PRODUCT.md) — who Zshell is for; product and design calls follow from it.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — build, verify, and what a PR must say. Read before opening one.
-- [RELEASING.md](RELEASING.md) — maintainer-only. Never bump the version in a PR.
+- [mac/RELEASING.md](mac/RELEASING.md) — maintainer-only. Never bump the version in a PR.
+
+## Repository layout and skills
+
+- `mac/` — the macOS app, Xcode project, vendored packages, build scripts, and release tooling.
+- `web/` — the website and user documentation, with its own Bun package and lockfile.
+- `skills/` — repository development and release workflows; app-bundled automation stays in `mac/zshell/Skills/`.
+- For development, read [skills/zshell-app-development/SKILL.md](skills/zshell-app-development/SKILL.md).
+- For release preparation or publishing, read [skills/zshell-release/SKILL.md](skills/zshell-release/SKILL.md).
 
 ## Verify
 

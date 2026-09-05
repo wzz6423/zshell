@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { DocsLink, HomeLink } from '@/components/site-links'
 import { homeCopy } from '@/lib/home-copy'
 import { DEFAULT_LANGUAGE, i18n } from '@/lib/i18n'
-import { GITHUB_URL, X_URL } from '@/lib/release'
+import { GITHUB_URL } from '@/lib/release'
 
 const AUTHOR = 'zshell'
 const LINK = 'text-foreground transition-colors hover:text-brand'

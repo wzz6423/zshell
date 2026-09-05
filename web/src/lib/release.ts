@@ -6,7 +6,6 @@ const RELEASES_ORIGIN = 'https://releases.zshell.sh'
 const APPCAST_URL = `${RELEASES_ORIGIN}/appcast.xml`
 
 export const GITHUB_URL = 'https://github.com/wzz6423/zshell'
-export const X_URL = 'https://x.com/localhost_4173'
 
 // Cask lives in wzz6423/homebrew-tap, so the tap has to be named explicitly.
 // `--cask` is optional — brew falls back to casks, and the tap has no `zshell` formula.

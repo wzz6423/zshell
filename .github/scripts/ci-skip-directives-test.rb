@@ -325,10 +325,17 @@ class CiSkipDirectivesTest < Minitest::Test
     platform = ['macOS App', 'Release Scripts', 'Web CI']
 
     {
-      'zshell/ContentView.swift' => 'macOS App',
-      'zshell.xcodeproj/project.pbxproj' => 'macOS App',
-      'Vendor/alacritty-bridge/src/lib.rs' => 'macOS App',
-      'scripts/release.ts' => 'Release Scripts',
+      'mac/zshell/ContentView.swift' => 'macOS App',
+      'mac/zshell.xcodeproj/project.pbxproj' => 'macOS App',
+      'mac/Vendor/alacritty-bridge/src/lib.rs' => 'macOS App',
+      'mac/scripts/release.ts' => 'Release Scripts',
+      'mac/Makefile' => 'macOS App',
+      'Makefile' => 'macOS App',
+      'mac/package.json' => 'Release Scripts',
+      'mac/bun.lock' => 'Release Scripts',
+      'mac/tsconfig.json' => 'Release Scripts',
+      'web/package.json' => 'Web CI',
+      'web/bun.lock' => 'Web CI',
       'web/src/main.ts' => 'Web CI',
       # Prefix matching folds case, so a differently spelled site directory
       # still keeps its own workflow relevant.
@@ -337,10 +344,10 @@ class CiSkipDirectivesTest < Minitest::Test
       assert_equal [owner], platform.select { |name| manifest.relevant?(name, [file]) }, file
     end
 
-    # The bridge build script is an Xcode build phase living under scripts/, so
+    # The bridge build script is an Xcode build phase living under mac/scripts/, so
     # it is deliberately owned by both workflows.
     assert_equal ['macOS App', 'Release Scripts'],
-                 platform.select { |name| manifest.relevant?(name, ['scripts/build-alacritty-bridge.sh']) }
+                 platform.select { |name| manifest.relevant?(name, ['mac/scripts/build-alacritty-bridge.sh']) }
 
     # A documentation change runs none of them, and a CI change runs all of them.
     assert_empty platform.select { |name| manifest.relevant?(name, ['README.md', 'docs/notes/plan.md']) }

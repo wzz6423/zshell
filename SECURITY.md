@@ -29,7 +29,7 @@ Include the Zshell version shown in **Zshell → About Zshell** when applicable.
 
 ## Scope
 
-Zshell embeds libghostty (vendored in `Vendor/libghostty-spm`) for
+Zshell embeds libghostty (vendored in `mac/Vendor/libghostty-spm`) for
 terminal emulation. In scope here: Zshell's configuration and host
 integration of it — clipboard access, escape-sequence handling that
 crosses a trust boundary, the update chain, and anything that lets

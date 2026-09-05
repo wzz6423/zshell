@@ -24,15 +24,15 @@ git clone --recurse-submodules https://github.com/wzz6423/zshell.git
 
 Already cloned? `git submodule update --init --recursive`. A full Xcode
 installation is required to build the app. Bun is also needed for `web/` and
-`scripts/`.
+`mac/scripts/`.
 
 A Rust toolchain ([rustup](https://rustup.rs)) is required: the Alacritty
-backend's bridge in `Vendor/alacritty-bridge` is a Rust static library, built
+backend's bridge in `mac/Vendor/alacritty-bridge` is a Rust static library, built
 from an Xcode build phase. Building for a second architecture needs its target
 installed too — `rustup target add x86_64-apple-darwin`.
 
-`Vendor/STTextView` is a fork of STTextView with five `// zshell patch` sites
-across three files, and `zshell.xcodeproj` references it as a *root package* — a
+`mac/Vendor/STTextView` is a fork of STTextView with five `// zshell patch` sites
+across three files, and `mac/zshell.xcodeproj` references it as a *root package* — a
 folder in the project's top-level group — rather than through Xcode's **Add
 Package Dependency… > Add Local…**. That distinction is load-bearing:
 `STTextView-Plugin-Neon` depends on `krzyzanowskim/STTextView`, SwiftPM derives
@@ -50,10 +50,10 @@ Create the ignored local configuration from the tracked template, then replace
 only its placeholder Team ID:
 
 ```bash
-cp Config/Local.example.xcconfig Config/Local.xcconfig
+cp mac/Config/Local.example.xcconfig mac/Config/Local.xcconfig
 ```
 
-`Config/Local.xcconfig` is ignored and must never be committed. Keep
+`mac/Config/Local.xcconfig` is ignored and must never be committed. Keep
 `CODE_SIGN_IDENTITY = Apple Development`. Confirm that an Apple Development
 identity is available, then set `DEVELOPMENT_TEAM` to the `OU` value in that
 certificate's subject:
@@ -65,15 +65,15 @@ security find-certificate -c "Apple Development" -p | openssl x509 -noout -subje
 
 Developer ID certificates, notarization credentials, and Sparkle private keys
 are release-only materials. Configure them only as described in
-[RELEASING.md](RELEASING.md); do not put them in `Local.xcconfig` or the
+[RELEASING.md](mac/RELEASING.md); do not put them in `Local.xcconfig` or the
 repository.
 
 ### Build and verify
 
-Open `zshell.xcodeproj` and run the `zshell` scheme, or:
+Open `mac/zshell.xcodeproj` and run the `zshell` scheme, or:
 
 ```bash
-xcodebuild -project zshell.xcodeproj -scheme zshell -configuration Debug -destination 'platform=macOS,arch=arm64' build
+xcodebuild -project mac/zshell.xcodeproj -scheme zshell -configuration Debug -destination 'platform=macOS,arch=arm64' build
 ```
 
 Add `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` if you only have Xcode beta.
@@ -83,18 +83,23 @@ restarts a running one. Verify the resulting bundle with:
 
 ```bash
 make run
-codesign --verify --deep --strict --verbose=2 'build/debug/Build/Products/Debug/Zshell Debug.app'
+codesign --verify --deep --strict --verbose=2 'mac/build/debug/Build/Products/Debug/zshell Debug.app'
 ```
 
 `make build-package` produces a local Developer ID-signed Release app and DMG
 without notarizing or publishing it. `make clean` stops the Debug app and
-removes build and website artifacts. All of these write to `build/` or other
+removes build and website artifacts. All of these write to `mac/build/` or other
 ignored output directories; remove them before committing.
 
 A Debug build is `sh.zshell.dev` and keeps its own state, so it can run beside an
 installed Zshell without clobbering it: settings go to
 `~/.config/zshell-dev/config.toml`, and the session snapshot, sidebar widths, and
 Sparkle preferences live under the separate bundle id.
+
+Repository skills live in [`skills/`](skills/). Use
+[app development](skills/zshell-app-development/SKILL.md) for implementation and validation,
+and [release](skills/zshell-release/SKILL.md) for release preparation or publishing.
+The app-bundled `zshell-automation` skill remains in `mac/zshell/Skills/`.
 
 ## Website and docs
 
@@ -108,7 +113,7 @@ and documentation URLs.
 
 Zshell’s development language is English, with Simplified Chinese and Japanese
 translations maintained in Xcode String Catalogs. See
-[LOCALIZATION.md](LOCALIZATION.md) for translating existing text, adding a
+[LOCALIZATION.md](mac/LOCALIZATION.md) for translating existing text, adding a
 language, testing a localization, and writing localizable Swift.
 
 Translation-only pull requests are welcome. Xcode’s catalog editor and XLIFF
@@ -168,10 +173,10 @@ Thank you for opening a pull request. Check these requirements while it is await
   ```
 
 - The `PR Quality` check validates this format; a pull request cannot be merged while the check is failing. `PR Automation` then applies the labels and assigns the pull request.
-- There is no unit test target: app changes are proven by building and running Zshell and exercising the change, so say in `Validation` what you did and attach screenshots or a recording for UI work. Run `cargo test --locked` in `Vendor/alacritty-bridge` for bridge changes, `bun run typecheck && bun run build` in `web/` for site changes, and `bunx tsc --noEmit` for anything under `scripts/`.
+- There is no unit test target: app changes are proven by building and running Zshell and exercising the change, so say in `Validation` what you did and attach screenshots or a recording for UI work. Run `cargo test --locked` in `mac/Vendor/alacritty-bridge` for bridge changes, `bun run typecheck && bun run build` in `web/` for site changes, and `bunx tsc --noEmit` in `mac/` for anything under `mac/scripts/`. Install dependencies with `bun install --frozen-lockfile` in each package before running Bun checks.
 - Build all new UI in AppKit. SwiftUI is legacy and must not be introduced or expanded; materially changing an existing SwiftUI view means migrating the affected UI to AppKit.
 - Update the relevant documentation when changing user-visible behavior, build instructions, or the release process. [CHANGELOG.md](CHANGELOG.md) is written for end users, so it records the shipped outcome rather than the fixes and refactors on the way there, and the version is bumped only by a release, never by a pull request.
-- Do not commit `build/`, `Vendor/alacritty-bridge/target`, `node_modules`, `dist`, downloaded files, logs, tokens, signing materials, or personal data. `Repository Hygiene` fails on them.
+- Do not commit `mac/build/`, `mac/Vendor/alacritty-bridge/target`, `node_modules`, `dist`, downloaded files, logs, tokens, signing materials, or personal data. `Repository Hygiene` fails on them.
 - `main` and `publish-v*` are protected and can only be updated through a reviewed pull request that passes its checks.
 
 ## Skipping CI
@@ -200,12 +205,12 @@ A platform workflow only runs when the pull request touches the files it builds,
 
 | Workflow | Runs when the pull request touches |
 | --- | --- |
-| `macOS App` | `zshell/**`, `zshell.xcodeproj/**`, `Vendor/**`, `Config/**`, `Makefile`, `scripts/build-alacritty-bridge.sh`, `.github/**` |
-| `Release Scripts` | `scripts/**`, `package.json`, `bun.lock`, `tsconfig.json`, `.github/**` |
-| `Web CI` | `web/**`, `package.json`, `bun.lock`, `.github/**` |
+| `macOS App` | `mac/zshell/**`, `mac/zshell.xcodeproj/**`, `mac/Vendor/**`, `mac/Config/**`, `mac/Makefile`, `Makefile`, `mac/scripts/build-alacritty-bridge.sh`, `.github/**` |
+| `Release Scripts` | `mac/scripts/**`, `mac/package.json`, `mac/bun.lock`, `mac/tsconfig.json`, `.github/**` |
+| `Web CI` | `web/**`, `.github/**` |
 
 - The `paths` field of `.github/ci-skip.json` owns the scopes, and a workflow that declares none always runs. `CI Lint`, `Repository Hygiene`, `PR Quality Gates`, `CodeQL` and `Dependency Review` therefore run on every pull request.
-- `scripts/build-alacritty-bridge.sh` is deliberately owned by two workflows: it lives under `scripts/`, but it is also the Xcode build phase that produces the Alacritty backend's static library.
+- `mac/scripts/build-alacritty-bridge.sh` is deliberately owned by two workflows: it lives under `mac/scripts/`, but it is also the Xcode build phase that produces the Alacritty backend's static library.
 - Any change under `.github/` runs everything, because a change to CI must be proven against every platform.
 - The jobs are skipped by a job condition instead of a workflow `paths:` filter, so a required check reports success rather than staying pending forever.
 - A renamed file is matched under both its old and its new path, and the comparison ignores case.

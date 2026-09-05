@@ -22,23 +22,24 @@ The cask lives in `wzz6423/homebrew-tap`, which is why the tap is named in full.
 Upgrade the same way you upgrade anything else:
 
 ```bash
-brew upgrade --cask zshell
+brew upgrade --cask --greedy-auto-updates zshell
 ```
 
 ## Updates
 
-Zshell updates itself with [Sparkle](https://sparkle-project.org). It checks in the
-background, downloads the new version quietly, and installs it the next time you
-quit — you'll see the release notes before anything is applied.
+Zshell detects how it was installed and uses the matching updater. A direct
+download uses [Sparkle](https://sparkle-project.org): it checks in the background,
+downloads quietly, and installs the new version the next time you quit. A
+Homebrew installation updates through Homebrew instead.
 
 To change this, open **Settings → Updates** (<kbd>Cmd</kbd>+<kbd>,</kbd>):
 
-- **Automatically check for updates** — turn background checks off entirely.
-- **Check for Updates…** — ask right now.
+- **Automatically check for updates** — controls Sparkle checks for direct downloads.
+- **Check for Updates…** — ask Sparkle to check, or run Homebrew for a cask install.
 
 <Callout title="Installed with Homebrew?">
-Both update paths work. If you'd rather let Homebrew own the version, turn off
-automatic checks and run `brew upgrade --cask zshell` on your own schedule.
+The Updates section identifies the Homebrew installation and its update button
+runs `brew upgrade --cask --greedy-auto-updates zshell`. You can also run that command in Terminal.
 </Callout>
 
 ## Open a folder from Finder
@@ -56,7 +57,7 @@ service after the app has been launched once.
 If **Settings → Automation → AI** is enabled, turn it off before deleting the
 app so Zshell can remove the agent support it installed.
 
-Delete `Zshell.app` from Applications, then remove its settings if you want a
+Delete `zshell.app` from Applications, then remove its settings if you want a
 clean slate:
 
 ```bash

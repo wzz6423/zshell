@@ -2,18 +2,18 @@ import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { DEFAULT_LANGUAGE } from '@/lib/i18n'
 
-type LinkProps = { lang: string; className?: string; children: ReactNode }
+type LinkProps = { lang: string; className?: string; children: ReactNode; onClick?: () => void }
 
 /**
  * Landing pages are spelled-out routes rather than one `/$lang` route — see
  * `routes/zh/index.tsx` for why — so each language maps to its own. Add a
  * language here when you add its route.
  */
-const HOME_ROUTES: Record<string, '/' | '/zh'> = { en: '/', zh: '/zh' }
+const HOME_ROUTES: Record<string, '/' | '/en' | '/zh'> = { zh: '/', en: '/en' }
 
-export function HomeLink({ lang, className, children }: LinkProps) {
+export function HomeLink({ lang, className, children, onClick }: LinkProps) {
   return (
-    <Link to={HOME_ROUTES[lang] ?? '/'} className={className}>
+    <Link to={HOME_ROUTES[lang] ?? '/'} className={className} onClick={onClick}>
       {children}
     </Link>
   )

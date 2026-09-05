@@ -33,8 +33,8 @@ A full Xcode installation and the development dependencies described in
 ```sh
 git clone --recurse-submodules https://github.com/wzz6423/zshell.git
 cd zshell
-cp Config/Local.example.xcconfig Config/Local.xcconfig
-# Set DEVELOPMENT_TEAM in Config/Local.xcconfig for your Apple Development certificate.
+cp mac/Config/Local.example.xcconfig mac/Config/Local.xcconfig
+# Set DEVELOPMENT_TEAM in mac/Config/Local.xcconfig for your Apple Development certificate.
 make run
 ```
 
@@ -42,15 +42,24 @@ make run
 [local signing instructions](CONTRIBUTING.md#local-development-signing) before
 sharing a build or diagnosing a signing failure.
 
+## Repository layout
+
+- [`mac/`](mac/) — macOS app, Xcode project, dependencies, and build/release scripts.
+- [`web/`](web/README.md) — website and user documentation.
+- [`skills/`](skills/) — [app development](skills/zshell-app-development/SKILL.md) and [release](skills/zshell-release/SKILL.md) workflows for coding agents.
+
+The root `Makefile` provides `run`, `update`, `stop`, `build-package`, and `clean`.
+Install Bun dependencies separately in `mac/` and `web/`; each has its own lockfile.
+
 ## Documentation
 
 | Document | Purpose |
 | --- | --- |
 | [User documentation](https://zshell.sh/docs) | Learn the app's workflows and settings. |
 | [Contributing guide](CONTRIBUTING.md) | Set up the app, configure local signing, build, verify, and open a pull request. |
-| [Release guide](RELEASING.md) | Maintainer-only Developer ID, notarization, Sparkle, and R2 release process. |
+| [Release guide](mac/RELEASING.md) | Maintainer-only Developer ID, notarization, Sparkle, and R2 release process. |
 | [Security policy](SECURITY.md) | Supported versions and private vulnerability reporting. |
-| [Localization guide](LOCALIZATION.md) | Translate and test app text. |
+| [Localization guide](mac/LOCALIZATION.md) | Translate and test app text. |
 | [Website guide](web/README.md) | Build and maintain the static site and its user documentation. |
 
 ## Contributing

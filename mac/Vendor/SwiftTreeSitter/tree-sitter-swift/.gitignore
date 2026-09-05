@@ -1,0 +1,21 @@
+node_modules
+/src/*
+!/src/scanner.c
+*.swp
+/build
+/test
+Cargo.lock
+/target/*
+*.a
+*.dylib
+*.so
+*.o
+bindings/c/*.h
+bindings/c/tree-sitter-*.pc
+.vscode/
+.build/
+Package.resolved
+
+# Vendored snapshot: the generated parser sources are what TestTreeSitterSwift
+# builds against, so they have to stay in the repo.
+!/src/*

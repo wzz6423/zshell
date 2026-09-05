@@ -54,7 +54,7 @@ jobs:
       # which bash rejects. The shebang decides which parser gets the file.
       - name: Syntax check release and build scripts
         run: |
-          for script in scripts/*.sh; do
+          for script in mac/scripts/*.sh; do
             case "$(head -n 1 "$script")" in
               "#!/bin/zsh") zsh -n "$script" ;;
               "#!/usr/bin/env bash") bash -n "$script" ;;
@@ -63,11 +63,11 @@ jobs:
           done
 
       - name: Check the dev icon generator
-        run: python3 -m py_compile scripts/make-dev-icon.py
+        run: python3 -m py_compile mac/scripts/make-dev-icon.py
 
       - name: Remove compile artifacts
         if: always()
-        run: rm -rf scripts/__pycache__
+        run: rm -rf mac/scripts/__pycache__
 
   typecheck:
     name: Typecheck Release Scripts
@@ -84,14 +84,14 @@ jobs:
         with:
           bun-version: latest
 
-      # The root package is a workspace, so this installs web/ too — which is
-      # where the TypeScript compiler the root tsconfig.json needs comes from.
-      - name: Install workspace dependencies
+      - name: Install release script dependencies
+        working-directory: mac
         run: bun install --frozen-lockfile
 
-      - name: Typecheck scripts/
+      - name: Typecheck mac/scripts/
+        working-directory: mac
         run: bunx tsc --noEmit
 
       - name: Remove installed dependencies
         if: always()
-        run: rm -rf node_modules web/node_modules
+        run: rm -rf mac/node_modules

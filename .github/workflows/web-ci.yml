@@ -54,9 +54,8 @@ jobs:
         with:
           bun-version: latest
 
-      # web/ is a workspace member, so the install has to happen at the root
-      # where bun.lock lives.
-      - name: Install workspace dependencies
+      - name: Install website dependencies
+        working-directory: web
         run: bun install --frozen-lockfile
 
       - name: Type check
@@ -73,6 +72,7 @@ jobs:
       # ones are gated by Dependency Review instead. The registry's bulk advisory
       # endpoint also drops connections often enough to need the retries.
       - name: Audit dependencies
+        working-directory: web
         continue-on-error: true
         run: |
           for attempt in 1 2 3; do
@@ -129,7 +129,7 @@ jobs:
 
       - name: Clean up build artifacts
         if: always()
-        run: rm -rf web/dist web/.source node_modules web/node_modules
+        run: rm -rf web/dist web/.source web/node_modules
 
   codeql:
     name: CodeQL (JavaScript)

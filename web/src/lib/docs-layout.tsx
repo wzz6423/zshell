@@ -2,7 +2,6 @@ import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
 import { DEFAULT_LANGUAGE } from '@/lib/i18n'
 
 const GITHUB_URL = 'https://github.com/wzz6423/zshell'
-const X_URL = 'https://x.com/localhost_4173'
 
 /** The changelog is generated from CHANGELOG.md, so it has no translation. */
 const NAV_LABELS = {
@@ -39,17 +38,6 @@ export function docsLayoutOptions(lang: string): BaseLayoutProps {
       { text: labels.home, url: home, active: 'url' },
       { text: labels.changelog, url: '/changelog', active: 'url' },
       { type: 'button', text: labels.download, url: home, active: 'none' },
-      // Sits beside the GitHub icon `githubUrl` renders.
-      {
-        type: 'icon',
-        label: 'X',
-        text: 'X',
-        url: X_URL,
-        external: true,
-        // Explicit size: the icon is a masked span, not the `<svg>` Fumadocs
-        // sizes for you, so `size-full` would collapse it to nothing.
-        icon: <span className="i-mingcute-social-x-fill size-4" />,
-      },
     ],
   }
 }

@@ -14,8 +14,10 @@ macOS.
 
 ## Develop
 
+Run these commands from `web/`; dependencies are locked by `web/bun.lock`.
+
 ```sh
-bun install
+bun install --frozen-lockfile
 bun run dev        # http://localhost:3000
 bun run typecheck  # tsc --noEmit
 ```
@@ -60,13 +62,14 @@ split that keeps the build-time half out of the browser bundle.
 
 ## Languages
 
-English is the default and stays unprefixed (`/`, `/docs/git`); every other
-language sits under its own prefix (`/zh`, `/zh/docs/git`). The supported list
+Chinese is the default and stays unprefixed (`/`, `/docs/git`); English sits
+under its own prefix (`/en`, `/en/docs/git`). The supported list
 is [`src/lib/i18n.ts`](src/lib/i18n.ts).
 
 **Landing page.** One [`HomePage`](src/components/home-page.tsx) rendered from
 per-language strings in [`src/lib/home-copy.ts`](src/lib/home-copy.ts), with a
-route per language: [`routes/index.tsx`](src/routes/index.tsx) and
+route per language: [`routes/index.tsx`](src/routes/index.tsx),
+[`routes/en/index.tsx`](src/routes/en/index.tsx), and
 [`routes/zh/index.tsx`](src/routes/zh/index.tsx). Spelling the routes out is
 deliberate — a landing page under `/$lang` shares a chunk with `/$lang/docs`,
 and once it also shares `HomePage` with `/`, the bundler folds the ~190 kB
@@ -95,7 +98,7 @@ page needs no config change.
 ## Notes
 
 - The theme lives in [`src/styles/app.css`](src/styles/app.css) — a GitHub-dark
-  palette that mirrors the macOS app (`zshell/Theme.swift`). Fumadocs reads the
+  palette that mirrors the macOS app (`mac/zshell/Theme.swift`). Fumadocs reads the
   same variables through `fumadocs-ui/css/shadcn.css`, so the docs inherit it.
 - Add more components with `bunx shadcn@latest add <name>` — the project is
   already configured for Base UI (`components.json` → `"style": "base-nova"`).
@@ -103,8 +106,8 @@ page needs no config change.
   [`src/lib/release.ts`](src/lib/release.ts), while they are prerendered — the
   appcast is on another origin and sends no CORS headers, so a browser could not
   read it anyway. A release therefore only reaches the site once it is rebuilt,
-  which `scripts/release.ts` triggers for us (see
-  [RELEASING.md](../RELEASING.md)). Keep the fallback release in that file
+  which `mac/scripts/release.ts` triggers for us (see
+  [RELEASING.md](../mac/RELEASING.md)). Keep the fallback release in that file
   current: it is what a build advertises when the appcast is unreachable.
 - [`public/zshell-icon.png`](public/zshell-icon.png) is the shared Logo,
   favicon, and Apple touch icon. It is used by the root route and the site,

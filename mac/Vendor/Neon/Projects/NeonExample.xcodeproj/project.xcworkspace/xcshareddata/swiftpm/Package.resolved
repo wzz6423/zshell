@@ -1,0 +1,32 @@
+{
+  "pins" : [
+    {
+      "identity" : "rearrange",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ChimeHQ/Rearrange",
+      "state" : {
+        "revision" : "8f97f721d8a08c6e01ab9f7460e53819bef72dfa",
+        "version" : "1.5.3"
+      }
+    },
+    {
+      "identity" : "swifttreesitter",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ChimeHQ/SwiftTreeSitter",
+      "state" : {
+        "revision" : "df25a52f72ebc5b50ae20d26d1363793408bb28b",
+        "version" : "0.7.1"
+      }
+    },
+    {
+      "identity" : "tree-sitter-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/alex-pinkus/tree-sitter-swift/",
+      "state" : {
+        "branch" : "with-generated-files",
+        "revision" : "041f27c244292cacedf00d6ab85377e27c21bbbb"
+      }
+    }
+  ],
+  "version" : 2
+}

@@ -197,6 +197,16 @@ function Header({ lang, copy, release }: { lang: string; copy: HomeCopy; release
           >
             {copy.nav.docs}
           </DocsLink>
+          {others.map((code) => (
+            <HomeLink
+              key={code}
+              lang={code}
+              onClick={() => setOpen(false)}
+              className="rounded-md px-2 py-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              {homeCopy(code).languageName}
+            </HomeLink>
+          ))}
           <a
             href={release.dmg}
             download

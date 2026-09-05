@@ -4,7 +4,7 @@ import { homeCopy } from '@/lib/home-copy'
 import { DEFAULT_LANGUAGE } from '@/lib/i18n'
 import { loadRelease } from '@/lib/release'
 
-/** English landing page. Other languages live at `/$lang`. */
+/** The default Chinese landing page. Other languages live at `/$lang`. */
 export const Route = createFileRoute('/')({
   component: Home,
   // Baked in at build time, so the site is redeployed after a release — see

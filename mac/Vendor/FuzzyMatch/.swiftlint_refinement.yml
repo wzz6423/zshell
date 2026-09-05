@@ -1,0 +1,20 @@
+# https://realm.github.io/SwiftLint/rule-directory.html
+excluded:
+  - Benchmarks/.build
+
+disabled_rules:
+  - attributes
+  - file_length
+  - function_body_length
+  - cyclomatic_complexity
+  - function_parameter_count
+  - type_body_length
+  - for_where
+  - pattern_matching_keywords
+  - large_tuple
+  - file_name
+  - discouraged_none_name
+  - extension_access_modifier
+
+identifier_name:
+  excluded: [id, i, j, k, a, b, c, d, f, p, q, r, sw, ed, qi, ci, wi, q0, q1, q2, hg, lg]

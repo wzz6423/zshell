@@ -13,9 +13,10 @@ updates:
         patterns:
           - "*"
 
-  # bun.lock lives at the root: web/ is a workspace member, not its own install.
   - package-ecosystem: bun
-    directory: /
+    directories:
+      - /mac
+      - /web
     schedule:
       interval: weekly
       day: monday
@@ -30,7 +31,7 @@ updates:
   # The Alacritty backend's bridge. The Xcode build phase passes --locked, so a
   # bump has to land in Cargo.lock to take effect.
   - package-ecosystem: cargo
-    directory: /Vendor/alacritty-bridge
+    directory: /mac/Vendor/alacritty-bridge
     schedule:
       interval: monthly
       time: "04:30"
@@ -42,5 +43,5 @@ updates:
           - "*"
 
 # No swift entry: Sparkle, STTextView-Plugin-Neon, PierreDiffsSwift and FuzzyMatch
-# are SwiftPM dependencies declared inside zshell.xcodeproj, and Dependabot only
+# are SwiftPM dependencies declared inside mac/zshell.xcodeproj, and Dependabot only
 # reads a Package.swift. Bump those from Xcode's Packages list by hand.

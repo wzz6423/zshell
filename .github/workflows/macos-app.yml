@@ -47,7 +47,7 @@ jobs:
     timeout-minutes: 30
     defaults:
       run:
-        working-directory: Vendor/alacritty-bridge
+        working-directory: mac/Vendor/alacritty-bridge
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -91,7 +91,7 @@ jobs:
           DERIVED_DATA: ${{ runner.temp }}/derived-data
         run: |
           xcodebuild \
-            -project zshell.xcodeproj \
+            -project mac/zshell.xcodeproj \
             -scheme zshell \
             -configuration Debug \
             -destination "platform=macOS,arch=$(uname -m)" \
@@ -107,8 +107,8 @@ jobs:
         env:
           DERIVED_DATA: ${{ runner.temp }}/derived-data
         run: |
-          APP_PATH="$DERIVED_DATA/Build/Products/Debug/Zshell Debug.app"
-          test -d "$APP_PATH" || { echo "Zshell Debug.app not found"; exit 1; }
+          APP_PATH="$DERIVED_DATA/Build/Products/Debug/zshell Debug.app"
+          test -d "$APP_PATH" || { echo "zshell Debug.app not found"; exit 1; }
           test -x "$APP_PATH/Contents/MacOS/zshell" || { echo "zshell binary missing or not executable"; exit 1; }
           /usr/bin/plutil -lint "$APP_PATH/Contents/Info.plist"
           /usr/bin/otool -L "$APP_PATH/Contents/MacOS/zshell" > /dev/null
@@ -147,7 +147,7 @@ jobs:
           DERIVED_DATA: ${{ runner.temp }}/codeql-derived-data
         run: |
           xcodebuild \
-            -project zshell.xcodeproj \
+            -project mac/zshell.xcodeproj \
             -scheme zshell \
             -configuration Debug \
             -destination "platform=macOS,arch=$(uname -m)" \

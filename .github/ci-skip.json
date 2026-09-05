@@ -12,12 +12,13 @@
       "file": "macos-app.yml",
       "aliases": ["mac", "app", "xcode", "swift"],
       "paths": [
-        "zshell/**",
-        "zshell.xcodeproj/**",
-        "Vendor/**",
-        "Config/**",
+        "mac/zshell/**",
+        "mac/zshell.xcodeproj/**",
+        "mac/Vendor/**",
+        "mac/Config/**",
+        "mac/Makefile",
         "Makefile",
-        "scripts/build-alacritty-bridge.sh",
+        "mac/scripts/build-alacritty-bridge.sh",
         ".github/**"
       ],
       "checks": ["Alacritty Bridge", "App Build Smoke Test", "CodeQL (swift)"]
@@ -26,14 +27,14 @@
       "name": "Release Scripts",
       "file": "release-scripts.yml",
       "aliases": ["scripts", "release"],
-      "paths": ["scripts/**", "package.json", "bun.lock", "tsconfig.json", ".github/**"],
+      "paths": ["mac/scripts/**", "mac/package.json", "mac/bun.lock", "mac/tsconfig.json", ".github/**"],
       "checks": ["Check Shell Scripts", "Typecheck Release Scripts"]
     },
     {
       "name": "Web CI",
       "file": "web-ci.yml",
       "aliases": ["web"],
-      "paths": ["web/**", "package.json", "bun.lock", ".github/**"],
+      "paths": ["web/**", ".github/**"],
       "checks": ["Web Build & Test", "CodeQL (JavaScript)"]
     },
     {

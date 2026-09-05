@@ -1,0 +1,197 @@
+AAPL	symbol	exact_symbol	_SKIP_
+MSFT	symbol	exact_symbol	_SKIP_
+BVB	symbol	exact_symbol	_SKIP_
+NAS	symbol	exact_symbol	_SKIP_
+VWCE	symbol	exact_symbol	_SKIP_
+DNO	symbol	exact_symbol	_SKIP_
+MUV2	symbol	exact_symbol	_SKIP_
+OMXC20	symbol	exact_symbol	_SKIP_
+HYDRA	symbol	exact_symbol	_SKIP_
+HEIN	symbol	exact_symbol	_SKIP_
+HEIA	symbol	exact_symbol	_SKIP_
+AZN	symbol	exact_symbol	_SKIP_
+SHEL	symbol	exact_symbol	_SKIP_
+HSBC	symbol	exact_symbol	_SKIP_
+GSK	symbol	exact_symbol	_SKIP_
+RIO	symbol	exact_symbol	_SKIP_
+RELX	symbol	exact_symbol	_SKIP_
+JPM	symbol	exact_symbol	_SKIP_
+GS	symbol	exact_symbol	_SKIP_
+BA	symbol	exact_symbol	_SKIP_
+DIS	symbol	exact_symbol	_SKIP_
+KO	symbol	exact_symbol	_SKIP_
+JNJ	symbol	exact_symbol	_SKIP_
+XOM	symbol	exact_symbol	_SKIP_
+GE	symbol	exact_symbol	_SKIP_
+CAT	symbol	exact_symbol	_SKIP_
+Munich Re	name	exact_name	Munich Re
+Borussia Dortmund	name	exact_name	Borussia Dortmund
+Blackstone	name	exact_name	Blackstone
+AstraZeneca	name	exact_name	AstraZeneca
+Goldman Sachs	name	exact_name	Goldman Sachs
+Coca-Cola	name	exact_name	Coca-Cola
+Berkshire Hathaway	name	exact_name	Berkshire Hathaway
+Boeing	name	exact_name	Boeing
+Nike	name	exact_name	Nike
+Shell	name	exact_name	Shell
+Walt Disney	name	exact_name	Walt Disney
+Exxon Mobil	name	exact_name	Exxon Mobil
+Morgan Stanley	name	exact_name	Morgan Stanley
+National Grid	name	exact_name	National Grid
+HSBC Holdings	name	exact_name	HSBC Holdings
+QUALCOMM	name	exact_name	QUALCOMM
+Rio Tinto	name	exact_name	Rio Tinto
+Lockheed Martin	name	exact_name	Lockheed Martin
+Chevron	name	exact_name	Chevron
+Oracle	name	exact_name	Oracle
+Caterpillar	name	exact_name	Caterpillar
+Mastercard	name	exact_name	Mastercard
+Horizon Kinetics	name	exact_name	Horizon Kinetics
+Palfinger	name	exact_name	Palfinger
+Ford	name	exact_name	Ford
+Pfizer	name	exact_name	Pfizer
+Barclays	name	exact_name	Barclays
+UnitedHealth	name	exact_name	UnitedHealth
+Unilever	name	exact_name	Unilever
+apple	name	exact_name	Apple
+goldman sachs	name	exact_name	Goldman Sachs
+astrazeneca	name	exact_name	AstraZeneca
+berkshire hathaway	name	exact_name	Berkshire Hathaway
+procter gamble	name	exact_name	Procter & Gamble
+johnson johnson	name	exact_name	Johnson & Johnson
+US0378331005	isin	exact_isin	Apple
+IE00BK5BQT80	isin	exact_isin	Vanguard
+DE0005493092	isin	exact_isin	Borussia Dortmund
+DE000SHL1006	isin	exact_isin	Siemens Health
+US59491	isin	exact_isin	Microsoft
+DK006058	isin	exact_isin	NNIT
+AA	symbol	prefix	_SKIP_
+MS	symbol	prefix	_SKIP_
+JP	symbol	prefix	_SKIP_
+HS	symbol	prefix	_SKIP_
+gol	name	prefix	Goldman Sachs
+gold	name	prefix	Goldman Sachs
+berks	name	prefix	Berkshire
+berksh	name	prefix	Berkshire
+ishare	name	prefix	iShares
+appl	name	prefix	Apple
+boei	name	prefix	Boeing
+exxo	name	prefix	Exxon
+astra	name	prefix	AstraZeneca
+vangu	name	prefix	Vanguard
+coca	name	prefix	Coca-Cola
+lock	name	prefix	Lockheed
+chev	name	prefix	Chevron
+morg	name	prefix	Morgan Stanley
+walt	name	prefix	Walt Disney
+nik	name	prefix	Nike
+she	name	prefix	Shell
+pfiz	name	prefix	Pfizer
+gold sac	name	prefix	Goldman Sachs
+ishares core	name	prefix	iShares Core
+unit	name	prefix	United
+A	symbol	prefix	_SKIP_
+G	symbol	prefix	_SKIP_
+M	symbol	prefix	_SKIP_
+B	name	prefix	_SKIP_
+S	name	prefix	_SKIP_
+V	name	prefix	_SKIP_
+J	symbol	prefix	_SKIP_
+X	symbol	prefix	_SKIP_
+Goldamn Sachs	name	typo	Goldman Sachs
+Berkhsire Hathaway	name	typo	Berkshire Hathaway
+UntiedHealth	name	typo	UnitedHealth
+Exxon Moibl	name	typo	Exxon Mobil
+Coca-Cloa	name	typo	Coca-Cola
+Barcalys	name	typo	Barclays
+Boieng	name	typo	Boeing
+Oralce	name	typo	Oracle
+Caterpilalr	name	typo	Caterpillar
+Rio Titno	name	typo	Rio Tinto
+Johsnon Johnson	name	typo	Johnson & Johnson
+Walt Diseny	name	typo	Walt Disney
+isahres	name	typo	iShares
+vanugard	name	typo	Vanguard
+HSBC Holdigns	name	typo	HSBC Holdings
+Vangrad	name	typo	Vanguard
+Govenrment	name	typo	Government
+Eqiuty	name	typo	Equity
+Mnich Re	name	typo	Munich Re
+blakstone	name	typo	Blackstone
+qualcom	name	typo	QUALCOMM
+norwgian air	name	typo	Norwegian Air
+Natioal Grid	name	typo	National Grid
+Mastecard	name	typo	Mastercard
+Proctre Gamble	name	typo	Procter & Gamble
+Lockhead Martin	name	typo	Lockheed Martin
+Voeing	name	typo	Boeing
+Gokdman Sachs	name	typo	Goldman Sachs
+Gooldman Sachs	name	typo	Goldman Sachs
+UDS	symbol	typo	USD
+EUP	name	typo	Eur
+JPT	name	typo	_SKIP_
+USR	name	typo	_SKIP_
+EUUR	name	typo	Eur
+USSD	name	typo	USD
+JPPY	name	typo	JPY
+APPL	symbol	typo	Apple
+MFST	symbol	typo	_SKIP_
+SHLE	symbol	typo	Shell
+HBSC	symbol	typo	HSBC
+VWEC	symbol	typo	Vanguard
+Fodr	name	typo	Ford
+Nkie	name	typo	Nike
+Boeeing	name	typo	Boeing
+DAX	name	substring	DAX
+MSCI	name	substring	MSCI
+ESG	name	substring	ESG
+ETF	name	substring	ETF
+SRI	name	substring	SRI
+Bond	name	substring	Bond
+EUR	name	substring	EUR
+USD	name	substring	USD
+JPY	name	substring	JPY
+Asia	name	substring	Asia
+Oil	name	substring	Oil
+ADR	name	substring	ADR
+iShares	name	substring	iShares
+Vanguard	name	substring	Vanguard
+Amundi	name	substring	Amundi
+UCITS ETF	name	substring	UCITS ETF
+High Yield	name	substring	High Yield
+Treasury Bond	name	substring	Treasury Bond
+Government	name	substring	Government
+Equity	name	substring	Equity
+Sustainable	name	substring	Sustainable
+BetaBuilders	name	substring	BetaBuilders
+ishares usd treasury	name	multi_word	iShares USD Treasury
+vanguard ftse europe	name	multi_word	Vanguard FTSE
+amundi high yield	name	multi_word	Amundi
+xtrackers msci usa	name	multi_word	Xtrackers MSCI USA
+ubs factor msci	name	multi_word	UBS
+spdr bloomberg	name	multi_word	SPDR Bloomberg
+wisdomtree sustain	name	multi_word	WisdomTree
+invesco govt bond	name	multi_word	Invesco
+bnp paribas msci	name	multi_word	BNP Paribas
+jpmorgan beta	name	multi_word	JPMorgan Beta
+iShares iBonds 2029	name	multi_word	iShares iBonds
+iShares Core DAX	name	multi_word	iShares Core DAX
+Vanguard FTSE	name	multi_word	Vanguard FTSE
+Amundi MSCI	name	multi_word	Amundi MSCI
+jp morgan chase	name	multi_word	JP Morgan Chase
+AP7 X6	symbol	symbol_spaces	_SKIP_
+WKL U6 28	symbol	symbol_spaces	_SKIP_
+RC1 L6 38	symbol	symbol_spaces	_SKIP_
+PSX U6 8200	symbol	symbol_spaces	_SKIP_
+icag	name	abbreviation	International Consolidated Airlines
+bms	name	abbreviation	Bristol-Myers Squibb
+jnj	name	abbreviation	Johnson & Johnson
+uhg	name	abbreviation	UnitedHealth
+bnym	name	abbreviation	BNY Mellon
+gmc	name	abbreviation	General Motors
+gdc	name	abbreviation	General Dynamics
+tfs	name	abbreviation	Thermo Fisher
+bsc	name	abbreviation	Boston Scientific
+pmi	name	abbreviation	Philip Morris
+ssc	name	abbreviation	State Street
+csc	name	abbreviation	Columbia Sportswear

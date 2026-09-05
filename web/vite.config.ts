@@ -40,6 +40,7 @@ export default defineConfig({
       pages: [
         // The landing pages, so the whole site ships as static files.
         { path: '/' },
+        { path: '/en' },
         { path: '/zh' },
         { path: '/changelog' },
         // Not pages: the search index, the release the download buttons point

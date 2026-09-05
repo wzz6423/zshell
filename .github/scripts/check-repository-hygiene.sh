@@ -38,11 +38,11 @@ while IFS= read -r -d '' entry; do
       report_violation ".impeccable path" "$path"
       continue
       ;;
-    build | build/*)
+    build | build/* | mac/build | mac/build/*)
       report_violation "release build output" "$path"
       continue
       ;;
-    Vendor/alacritty-bridge/target | Vendor/alacritty-bridge/target/*)
+    mac/Vendor/alacritty-bridge/target | mac/Vendor/alacritty-bridge/target/*)
       report_violation "Rust build output" "$path"
       continue
       ;;
