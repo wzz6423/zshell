@@ -21,12 +21,11 @@ Thank you for opening an issue. Search existing Issues and Discussions first so 
 ## Development setup
 
 ```bash
-git clone --recurse-submodules https://github.com/wzz6423/zshell.git
+git clone https://github.com/wzz6423/zshell.git
 ```
 
-Already cloned? `git submodule update --init --recursive`. A full Xcode
-installation is required to build the app. Bun is also needed for `web/` and
-`mac/scripts/`.
+A full Xcode installation is required to build the app. Bun is also needed for
+`web/` and `mac/scripts/`.
 
 A Rust toolchain ([rustup](https://rustup.rs)) is required: the Alacritty
 backend's bridge in `mac/Vendor/alacritty-bridge` is a Rust static library, built

@@ -29,7 +29,7 @@ brew install wzz6423/tap/zshell
 需要完整安装 Xcode，以及 [CONTRIBUTING.zh-CN.md](CONTRIBUTING.zh-CN.md) 中说明的开发依赖。
 
 ```sh
-git clone --recurse-submodules https://github.com/wzz6423/zshell.git
+git clone https://github.com/wzz6423/zshell.git
 cd zshell
 cp mac/Config/Local.example.xcconfig mac/Config/Local.xcconfig
 # 在 mac/Config/Local.xcconfig 中把 DEVELOPMENT_TEAM 设为你的 Apple Development 证书对应的团队 ID。
