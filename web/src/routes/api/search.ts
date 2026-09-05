@@ -1,16 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { createFromSource } from 'fumadocs-core/search/server'
-import { createTokenizer } from '@orama/tokenizers/mandarin'
 import { source } from '@/lib/source'
 
-// Chinese has no spaces to split on, so it needs its own tokenizer for the
-// search index to contain anything but whole paragraphs.
-const server = createFromSource(source, {
-  localeMap: {
-    en: 'english',
-    zh: { tokenizer: createTokenizer() },
-  },
-})
+// The default tokenizer is multilingual, so Chinese — which has no spaces to
+// split on — is indexed word by word without any per-language configuration.
+const server = createFromSource(source)
 
 // `staticGET` serves the whole index instead of answering one query, so the site
 // stays a pile of static files: it is prerendered to `api/search` at build time

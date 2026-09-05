@@ -94,12 +94,11 @@ language inserted — `git.mdx` → `git.zh.mdx` — and a page with no translat
 falls back to English instead of 404ing. Sidebar order and section headings
 come from `meta.json` (`meta.zh.json` for the translated labels). A new
 language also needs a UI language pack in
-[`src/components/docs-shell.tsx`](src/components/docs-shell.tsx) and a tokenizer
-in *both* halves of search: [`src/routes/api/search.ts`](src/routes/api/search.ts)
-tokenizes the index, and [`src/components/docs-search.tsx`](src/components/docs-search.tsx)
-tokenizes the query. A tokenizer is a function, so it cannot travel inside the
-exported index — the two have to agree by hand, and a language that only has the
-first will find nothing.
+[`src/components/docs-shell.tsx`](src/components/docs-shell.tsx). Search needs
+nothing: the engine's tokenizer is multilingual by default, so
+[`src/routes/api/search.ts`](src/routes/api/search.ts) splits the index and
+[`src/components/docs-search.tsx`](src/components/docs-search.tsx) splits the
+query the same way, in any language, without either side being configured.
 
 Docs pages are written for people using the app; see
 [CONTRIBUTING.md](../CONTRIBUTING.md). Every docs URL is prerendered —
