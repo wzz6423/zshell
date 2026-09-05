@@ -193,6 +193,55 @@ jobs:
             echo "::notice::Reported $check as successful"
           done < <(jq -r '.checks[]' "$RUNNER_TEMP/decision.json")
 
+      # Clearing a directive has to undo the reported success, or the required
+      # check stays satisfied by a check run that stands for nothing. GitHub
+      # resolves a check name to its newest run, so re-running the workflow is
+      # what actually restores it; the reported success only expires on its own
+      # when a push moves the head SHA.
+      - name: Restore the checks a cleared directive gave back
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.resolve.outputs.head-sha }}
+        run: |
+          set -euo pipefail
+
+          gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100" \
+            | jq '[.[].check_runs[]]' > "$RUNNER_TEMP/check-runs.json"
+
+          # Only this workflow writes a check run titled "CI skipped", so one
+          # naming a check the decision no longer skips is a leftover.
+          jq -r --slurpfile decision "$RUNNER_TEMP/decision.json" '
+            ($decision[0].checks) as $skipped
+            | [.[] | select(.output.title == "CI skipped"
+                and (.name | IN($skipped[]) | not)) | .name]
+            | unique | .[]' "$RUNNER_TEMP/check-runs.json" \
+            > "$RUNNER_TEMP/restored-checks.txt"
+
+          : > "$RUNNER_TEMP/restored-workflows.txt"
+          while IFS= read -r check; do
+            [ -n "$check" ] || continue
+            CHECK_NAME="$check" jq -r \
+              '.workflows[] | select(.checks | index(env.CHECK_NAME)) | .file' \
+              .github/ci-skip.json >> "$RUNNER_TEMP/restored-workflows.txt"
+          done < "$RUNNER_TEMP/restored-checks.txt"
+
+          while IFS= read -r workflow; do
+            [ -n "$workflow" ] || continue
+            # An unfinished run publishes its own check runs, and re-running one
+            # is refused anyway, so only a completed run needs replacing.
+            run_id="$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/runs?head_sha=$HEAD_SHA&per_page=100" \
+              --jq '[.workflow_runs[] | select(.status == "completed")] | first | .id // empty')"
+            if [ -z "$run_id" ]; then
+              echo "::notice::No completed run of $workflow to restore at $HEAD_SHA"
+              continue
+            fi
+            echo "::notice::Re-running run $run_id of $workflow"
+            gh api --method POST \
+              "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/rerun" >/dev/null
+          done < <(sort -u "$RUNNER_TEMP/restored-workflows.txt")
+
       - name: Comment the applied decision
         env:
           GH_TOKEN: ${{ github.token }}
@@ -263,5 +312,6 @@ jobs:
           rm -f "$RUNNER_TEMP/pull-request.json" "$RUNNER_TEMP/comments-raw.json" \
             "$RUNNER_TEMP/comments.json" "$RUNNER_TEMP/reviewers.json" \
             "$RUNNER_TEMP/decision.json" "$RUNNER_TEMP/runs.json" \
-            "$RUNNER_TEMP/cancelled-runs.txt" "$RUNNER_TEMP/summary.md" \
-            "$RUNNER_TEMP/comment.json"
+            "$RUNNER_TEMP/cancelled-runs.txt" "$RUNNER_TEMP/check-runs.json" \
+            "$RUNNER_TEMP/restored-checks.txt" "$RUNNER_TEMP/restored-workflows.txt" \
+            "$RUNNER_TEMP/summary.md" "$RUNNER_TEMP/comment.json"
