@@ -199,6 +199,7 @@ macOS runner：
 | `macOS App` | `mac/zshell/**`、`mac/zshell.xcodeproj/**`、`mac/Vendor/**`、`mac/Config/**`、`mac/Makefile`、`Makefile`、`mac/scripts/build-alacritty-bridge.sh`、`.github/**` |
 | `Release Scripts` | `mac/scripts/**`、`mac/package.json`、`mac/bun.lock`、`mac/tsconfig.json`、`.github/**` |
 | `Web CI` | `web/**`、`.github/**` |
+| `Skill CI` | `skills/**`、`mac/zshell/Skills/**`、`.github/**` |
 
 - 范围由 `.github/ci-skip.json` 的 `paths` 字段决定，没有声明 paths 的工作流总是运行。因此 `CI Lint`、`Repository Hygiene`、`PR Quality Gates`、`CodeQL` 和 `Dependency Review` 在每个 Pull Request 上都会跑。
 - `mac/scripts/build-alacritty-bridge.sh` 被两个工作流同时认领是刻意的：它位于 `mac/scripts/` 下，同时也是产出 Alacritty 后端静态库的那个 Xcode 构建阶段。

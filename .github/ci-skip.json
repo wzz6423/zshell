@@ -38,6 +38,13 @@
       "checks": ["Web Build & Test", "CodeQL (JavaScript)"]
     },
     {
+      "name": "Skill CI",
+      "file": "skill-ci.yml",
+      "aliases": ["skills", "skill"],
+      "paths": ["skills/**", "mac/zshell/Skills/**", ".github/**"],
+      "checks": ["Validate Skills"]
+    },
+    {
       "name": "Repository Hygiene",
       "file": "repository-hygiene.yml",
       "aliases": ["hygiene"],

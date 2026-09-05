@@ -20,6 +20,7 @@
 | `mac/scripts/**` | `cd mac && bunx tsc --noEmit` | 无类型错误（`mac/tsconfig.json` 的 `include` 就是 `scripts`） |
 | `mac/scripts/make-dev-icon.py` | `python3 -m py_compile mac/scripts/make-dev-icon.py` 后删掉 `__pycache__` | 可编译 |
 | `web/**` | `cd web && bun run typecheck && bun run build` | 类型与静态构建都通过 |
+| `skills/**`、`mac/zshell/Skills/**` | `ruby .github/scripts/validate-skills.rb` | 每个 `SKILL.md` 都通过；名字必须与目录同名，本地引用不能越出 skill 目录 |
 | 签名 / entitlements / bundle id | `codesign --verify --deep --strict --verbose=2 'mac/build/debug/Build/Products/Debug/zshell Debug.app'` | 校验通过，且 Debug 与已安装正式版仍能并存 |
 | 自动化 CLI | 在 Zshell 面板内跑 `zshell +pane list`、`zshell +agent list` | 命令返回 JSON，跨项目目标仍被拒绝 |
 
@@ -50,6 +51,7 @@ CI 另外加 `-skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED
 | `macOS App` | `mac/zshell/**`、`mac/zshell.xcodeproj/**`、`mac/Vendor/**`、`mac/Config/**`、`mac/Makefile`、`Makefile`、`mac/scripts/build-alacritty-bridge.sh`、`.github/**` | 桥的 `cargo test`/release 构建、Debug app 冒烟构建与 bundle 结构检查、Swift CodeQL |
 | `Release Scripts` | `mac/scripts/**`、`mac/package.json`、`mac/bun.lock`、`mac/tsconfig.json`、`.github/**` | `bunx tsc --noEmit`、Python 脚本可编译 |
 | `Web CI` | `web/**`、`.github/**` | `bun run typecheck`、`bun run build` |
+| `Skill CI` | `skills/**`、`mac/zshell/Skills/**`、`.github/**` | 每个 `SKILL.md` 的 frontmatter、本地引用与 release URL |
 | `CI Lint`、`Repository Hygiene`、`PR Quality Gates`、`CodeQL`、`Dependency Review` | 无作用域 | 每个 PR 都跑 |
 
 作用域由 `.github/ci-skip.json` 的 `paths` 拥有；改工作流文件必须同步这个清单，
