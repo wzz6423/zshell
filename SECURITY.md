@@ -1,5 +1,7 @@
 # Security Policy
 
+**English** | [简体中文](SECURITY.zh-CN.md)
+
 ## Supported Versions
 
 Security fixes are prioritized for the latest Zshell release. Older releases

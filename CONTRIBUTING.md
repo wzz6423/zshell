@@ -1,5 +1,7 @@
 # Contributing to Zshell
 
+**English** | [简体中文](CONTRIBUTING.zh-CN.md)
+
 For anything larger than a fix, open an issue first —
 Zshell says no to features that fit some other tool better, and it's kinder to find
 that out before the work.
