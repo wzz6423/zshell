@@ -278,7 +278,9 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         if canEditPromptSelection {
             // Ghostty has placed the cursor at the drag origin by the time
             // mouseDown returns; mark that caret before the drag moves.
-            sendText("\u{1f}")
+            // sendText follows Ghostty's paste path, which quotes control bytes
+            // when bracketed paste is enabled. These must reach ZLE as keys.
+            performBindingAction("text:\\x1f")
             promptSelectionMarkerArmed = true
         }
     }
@@ -288,7 +290,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         if canEditPromptSelection, !inputSelectionDragActive {
             // Keep a fallback for platforms that do not position the cursor
             // during mouseDown.
-            if !promptSelectionMarkerArmed { sendText("\u{1f}") }
+            if !promptSelectionMarkerArmed { performBindingAction("text:\\x1f") }
             inputSelectionDragActive = true
         }
         super.mouseDragged(with: event)
@@ -300,13 +302,13 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         if pointerSelectionDragged, !isMouseCaptured {
             copySelectedTextToPasteboard()
         }
-        if hadInputSelection {
+        if hadInputSelection, canEditPromptSelection {
             // Cursor movement deactivates ZLE's region; reactivate the mark
             // after Ghostty has finished moving to the drag endpoint.
-            sendText("\u{1e}")
+            performBindingAction("text:\\x1e")
             pendingPromptSelectionActivation = true
-        } else if promptSelectionMarkerArmed {
-            sendText("\u{1b}[27;2;27~")
+        } else if promptSelectionMarkerArmed, canEditPromptSelection {
+            performBindingAction("text:\\x1b[27;2;27~")
         }
         inputSelectionDragActive = false
         promptSelectionMarkerArmed = false
@@ -337,7 +339,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
             return
         }
         pendingPromptSelectionActivation = false
-        sendText("\u{1e}")
+        if canEditPromptSelection { performBindingAction("text:\\x1e") }
     }
 
     private func focusForInteraction() {
@@ -349,7 +351,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     private var canEditPromptSelection: Bool {
-        guard supportsInputSelection, !isMouseCaptured,
+        guard supportsInputSelection, events?.terminalPromptSelectionIsReady == true,
+              !isMouseCaptured,
               lastScroll?.position ?? 1 >= 1,
               let foregroundPid else { return false }
         var name = [CChar](repeating: 0, count: 256)

@@ -65,6 +65,10 @@ typing replaces the selection, while Backspace or Delete removes it. Double- or
 triple-clicking still select terminal text; programs that enable terminal mouse
 reporting, such as full-screen TUIs, keep receiving their own mouse events.
 
+If a nested or replacement shell has not loaded Zshell’s prompt editing support,
+dragging still selects terminal text for copying but does not edit the input.
+Input selection editing resumes when you exit back to the original prompt.
+
 ## Paths and URLs
 
 Zshell recognizes web URLs and existing local paths printed by terminal

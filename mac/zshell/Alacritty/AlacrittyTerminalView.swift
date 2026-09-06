@@ -1323,7 +1323,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             return
         }
         pendingPromptSelectionActivation = false
-        sendText("\u{1e}")
+        if events?.terminalPromptSelectionIsReady == true { sendText("\u{1e}") }
     }
 
     private func writeControl(_ bytes: [UInt8]) {
@@ -1545,7 +1545,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
                 sendText("\u{1e}")
                 pendingPromptSelectionActivation = true
             }
-        } else if inputSelectionAnchor != nil, selectionAnchor != nil, !selectionWasDragged {
+        } else if inputSelectionAnchor != nil, selectionAnchor != nil, !selectionWasDragged,
+                  events?.terminalPromptSelectionIsReady == true {
             moveCursorToClick(endpoint)
             writeControl(Array("\u{1b}[27;2;27~".utf8))
         }
@@ -1889,6 +1890,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // stdin — would receive them as its own input.
         guard let handle,
               supportsInputSelection,
+              events?.terminalPromptSelectionIsReady == true,
               isShellInputActive,
               !mode.contains(.mouseReporting),
               !mode.contains(.alternateScreen),

@@ -462,6 +462,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             withIntermediateDirectories: false,
             attributes: [.posixPermissions: 0o700]
         )
+        let selectionStatePath = shellQuote(directory.appendingPathComponent("prompt-selection.pid").path)
         let files = [
             ".zshenv": """
             [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\"
@@ -552,18 +553,31 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             zle -N _zshell_begin_selection
             zle -N _zshell_activate_selection
             zle -N _zshell_cancel_selection
-            for _zshell_keymap in emacs viins vicmd; do
-              bindkey -M "$_zshell_keymap" $'\\x1f' _zshell_begin_selection
-              bindkey -M "$_zshell_keymap" $'\\x1e' _zshell_activate_selection
-              bindkey -M "$_zshell_keymap" $'\\e[27;2;27~' _zshell_cancel_selection
-            done
+            # Config reloads may rebuild the keymaps. Reinstall our private bindings
+            # before advertising readiness; a nested or exec'd zsh has no such widgets.
+            _zshell_selection_ready() {
+              _zshell_selection_finished
+              local _zshell_keymap
+              for _zshell_keymap in emacs viins vicmd "$KEYMAP"; do
+                bindkey -M "$_zshell_keymap" $'\\x1f' _zshell_begin_selection || return
+                bindkey -M "$_zshell_keymap" $'\\x1e' _zshell_activate_selection || return
+                bindkey -M "$_zshell_keymap" $'\\e[27;2;27~' _zshell_cancel_selection || return
+              done
+              builtin print -r -- "$$" >| \(selectionStatePath)
+            }
+            _zshell_selection_finished() {
+              builtin print -rn -- '' >| \(selectionStatePath)
+            }
             add-zsh-hook precmd _zshell_prompt_marker
             _zshell_line_init() {
               _zshell_selection_active=0
               REGION_ACTIVE=0
+              _zshell_selection_ready
               builtin print -n $'\\e]133;P;k=i\\a\\e]133;B\\a'
             }
             add-zle-hook-widget line-init _zshell_line_init
+            add-zle-hook-widget line-finish _zshell_selection_finished
+            add-zle-hook-widget keymap-select _zshell_selection_ready
             _zshell_insert_newline() { LBUFFER+=$'\\n'; }
             zle -N _zshell_insert_newline
             for _zshell_keymap in emacs viins; do
@@ -613,6 +627,17 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
 // MARK: - Terminal surface callbacks
 
 extension TerminalSession: TerminalBackendEvents {
+    var terminalPromptSelectionIsReady: Bool {
+        guard !hasExited, let launchDirectoryURL, let foregroundPID = surface.foregroundPid,
+              let value = try? String(
+                contentsOf: launchDirectoryURL.appendingPathComponent("prompt-selection.pid"),
+                encoding: .utf8
+              ),
+              let readyPID = pid_t(value.trimmingCharacters(in: .whitespacesAndNewlines))
+        else { return false }
+        return readyPID > 0 && readyPID == foregroundPID
+    }
+
     func terminalDidChangeTitle(_ title: String) {
         guard !title.isEmpty else { return }
         self.title = title
