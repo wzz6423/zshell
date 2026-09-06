@@ -261,6 +261,10 @@ protocol TerminalBackendSurface: NSView {
 /// names an emulator's types.
 @MainActor
 protocol TerminalBackendEvents: AnyObject {
+    /// Private editing bytes are safe only while the foreground shell's ZLE
+    /// has installed their widgets; a process named zsh alone is not enough.
+    var terminalPromptSelectionIsReady: Bool { get }
+
     func terminalDidChangeTitle(_ title: String)
     func terminalDidChangeWorkingDirectory(_ path: String)
     func terminalDidChangeCellSize(_ size: CGSize)
