@@ -62,7 +62,8 @@ Sparkle 更新包仍使用 EdDSA 私钥签名，发布后再单独更新 tap 并
 2. 仓库根 `CHANGELOG.md` 顶部加 `## [<MARKETING_VERSION>]` 小节，标题里的版本必须与
    `MARKETING_VERSION` 完全一致；不一致就会静默地"发布但没有 release notes"。
 3. 用 [references/preflight.md](references/preflight.md) 逐项核对工具链与凭据，全是只读命令。
-   缺任何一项就停下报告，不要临时改默认值绕开。
+   按本次签名模式核对：ad-hoc 模式不需要 Developer ID、公证凭据；使用私钥文件时不需要 keychain 账户。
+   其余必需项缺失就停下报告，不要临时改默认值绕开。
 
 ### 常用开关
 

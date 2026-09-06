@@ -25,8 +25,8 @@ const FALLBACK: Release = {
 
 /**
  * Pick the newest release out of the Sparkle appcast — the item with the highest
- * build number (`sparkle:version`). The site links the notarized `.dmg`, which
- * sits beside the `.zip` update enclosure at `zshell-<version>.dmg`.
+ * build number (`sparkle:version`). The site links the `.dmg` on the version's
+ * release; the `.zip` update enclosure stays on the permanent `updates` release.
  */
 function parseLatestRelease(xml: string): Release | null {
   let best: { build: number; version: string; minSystem: string } | null = null

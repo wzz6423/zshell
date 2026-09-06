@@ -2,7 +2,7 @@
 
 zshell auto-updates with [Sparkle](https://sparkle-project.org). Releases are
 **GitHub Release assets** of this repository, so shipping needs no domain and no
-object store: each version's notarized **`.dmg`** hangs off its own `v<version>`
+object store: each version's **`.dmg`** hangs off its own `v<version>`
 release, while the update archives and `appcast.xml` sit on one permanent
 **`updates`** release. New users download the DMG; existing users get smaller
 in-app delta updates via Sparkle, which reads the appcast at
@@ -66,9 +66,9 @@ Put the Sparkle `bin/` on your `PATH`, or point the release at it with
 
 ### 2. Developer ID signing + notarization
 
-Sparkle needs the app signed with your **Developer ID** and **notarized**
-(Gatekeeper blocks un-notarized apps; Hardened Runtime is already enabled in the
-project).
+For notarized distribution, sign the app with your **Developer ID**.
+For Zisla-style ad-hoc distribution, skip this section and follow
+[Free ad-hoc distribution](#free-ad-hoc-distribution) below.
 
 - Install your **Developer ID Application** certificate in the login keychain.
   The script signs the `.dmg` with it too; if you have more than one such cert,
@@ -125,21 +125,23 @@ release and the archives on `updates`. When it finishes:
 
 ### Free ad-hoc distribution
 
-When a Developer ID certificate is unavailable, follow Zisla's free distribution path:
+To use Zisla's free distribution path:
 
 ```sh
 CODE_SIGN_IDENTITY=- \
-SPARKLE_ED_KEY_FILE="/安全位置/zshell-sparkle-ed25519-private-key.txt" \
+SPARKLE_ED_KEY_FILE="/path/to/zshell-sparkle-ed25519-private-key.txt" \
 NO_TAP=1 NO_SITE=1 bun scripts/release.ts
 ```
 
 This signs the complete app and DMG ad-hoc, skips notarization and stapling, and may require **Open Anyway** on first launch. The Sparkle appcast is still signed with the EdDSA key file. Update the Homebrew cask and rebuild the website separately after the release is live.
 
-Notarizing the DMG also notarizes the app's code, so the script staples both from
+In Developer ID mode, notarizing the DMG also notarizes the app's code, so the script staples both from
 a single submission — the DMG for direct downloads, the app for the Sparkle zip.
 
-Finally it bumps the **Homebrew cask** and redeploys the **website** (both
-below).
+Without `NO_TAP=1` and `NO_SITE=1`, it also bumps the **Homebrew cask** and
+redeploys the **website** (both below). When those changes need review, keep
+both flags set, submit the cask and website changes as pull requests, and let
+the website deploy after merge.
 
 A **Release Feeds** run starts the moment the release is published and polls until the
 release and the feed agree: the DMG on `v<version>`, the appcast, archive and notes on
@@ -160,6 +162,8 @@ Test by running an **older** build and choosing **Check for Updates…**.
 | Env | Default | Purpose |
 | --- | --- | --- |
 | `SPARKLE_KEY_ACCOUNT` | `zshell-update-ed25519` | keychain account holding the private EdDSA key |
+| `SPARKLE_ED_KEY_FILE` | — | private EdDSA key file, used instead of the keychain account |
+| `CODE_SIGN_IDENTITY=-` or `SIGNING_MODE=adhoc` | — | ad-hoc signing; skip Developer ID export, notarization and stapling |
 | `RELEASE_REPO` | `wzz6423/zshell` | repository the releases are published to |
 | `UPDATES_TAG` | `updates` | permanent release holding the appcast and archives |
 | `NOTARY_PROFILE` | `NOTARY` | `notarytool` keychain profile |

@@ -299,7 +299,7 @@ const en: HomeCopy = {
   download: {
     eyebrow: 'Download',
     title: 'Start in one window.',
-    copy: 'Free for macOS {minSystem} and later. Install the cask, or grab the notarized dmg.',
+    copy: 'Free for macOS {minSystem} and later. Install with Homebrew, or download the dmg.',
     dmg: 'Download the dmg',
     changelog: 'Changelog',
     notes: {
@@ -546,7 +546,7 @@ const zh: HomeCopy = {
   download: {
     eyebrow: '下载',
     title: '从一个窗口开始。',
-    copy: '免费，需要 macOS {minSystem} 或更高版本。用 Homebrew 安装，或直接下载公证过的 dmg。',
+    copy: '免费，需要 macOS {minSystem} 或更高版本。用 Homebrew 安装，或直接下载 dmg。',
     dmg: '下载 dmg',
     changelog: '更新日志',
     notes: {
