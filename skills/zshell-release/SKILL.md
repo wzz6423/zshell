@@ -43,6 +43,18 @@ cd mac && bun run release        # 等价于 bun scripts/release.ts
 默认会公证、发布到 GitHub Releases、bump `wzz6423/homebrew-tap` 的 `Casks/zshell.rb`、
 `gh workflow run "Web Pages" --ref main`。
 
+参考 Zisla 的免费分发路径，也可以显式使用 ad-hoc 签名发布：
+
+```sh
+cd mac
+CODE_SIGN_IDENTITY=- \
+SPARKLE_ED_KEY_FILE="/安全位置/zshell-sparkle-ed25519-private-key.txt" \
+NO_TAP=1 NO_SITE=1 bun scripts/release.ts
+```
+
+此模式不需要 Developer ID 证书、公证或 stapling；首次打开可能需要在系统设置中选择“仍要打开”。
+Sparkle 更新包仍使用 EdDSA 私钥签名，发布后再单独更新 tap 并触发官网重建。
+
 ### 发布前
 
 1. 版本号在 `mac/zshell.xcodeproj` 的 `zshell` target：`MARKETING_VERSION`（用户可见）

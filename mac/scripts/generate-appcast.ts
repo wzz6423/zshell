@@ -12,6 +12,7 @@
 // Env overrides:
 //   SPARKLE_BIN          dir containing the Sparkle tools (generate_appcast)
 //   SPARKLE_KEY_ACCOUNT  keychain account for the private EdDSA key
+//   SPARKLE_ED_KEY_FILE  private EdDSA key file for non-interactive/ad-hoc releases
 //   DOWNLOAD_URL_PREFIX  base URL for <enclosure> links (default: the updates release)
 import { $ } from "bun";
 import { existsSync } from "node:fs";
@@ -20,6 +21,7 @@ import { join } from "node:path";
 import { die, UPDATE_URL_PREFIX } from "./lib";
 
 const SPARKLE_KEY_ACCOUNT = process.env.SPARKLE_KEY_ACCOUNT ?? "zshell-update-ed25519";
+const SPARKLE_ED_KEY_FILE = process.env.SPARKLE_ED_KEY_FILE;
 
 /** Locate Sparkle's `generate_appcast`: SPARKLE_BIN, then PATH, then the copy
  *  Swift Package Manager caches under DerivedData. */
@@ -62,7 +64,10 @@ export async function generateAppcast(
   // Same prefix for both: archives and the zshell-<version>.md release notes are
   // served from the same origin. The notes prefix makes generate_appcast emit
   // <sparkle:releaseNotesLink> for any notes file matching an archive name.
-  await $`${gen} --account ${SPARKLE_KEY_ACCOUNT} --download-url-prefix ${downloadUrlPrefix} --release-notes-url-prefix ${downloadUrlPrefix} ${updatesDir}`;
+  const keyArguments = SPARKLE_ED_KEY_FILE
+    ? ["--ed-key-file", SPARKLE_ED_KEY_FILE]
+    : ["--account", SPARKLE_KEY_ACCOUNT];
+  await $`${gen} ${keyArguments} --download-url-prefix ${downloadUrlPrefix} --release-notes-url-prefix ${downloadUrlPrefix} ${updatesDir}`;
   console.log(`Wrote ${join(updatesDir, "appcast.xml")}`);
 }
 

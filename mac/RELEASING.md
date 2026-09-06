@@ -123,6 +123,18 @@ release and the archives on `updates`. When it finishes:
   `https://github.com/wzz6423/zshell/releases/download/v<version>/zshell-<version>.dmg`
 - **In-app updates**: the appcast on the `updates` release.
 
+### Free ad-hoc distribution
+
+When a Developer ID certificate is unavailable, follow Zisla's free distribution path:
+
+```sh
+CODE_SIGN_IDENTITY=- \
+SPARKLE_ED_KEY_FILE="/安全位置/zshell-sparkle-ed25519-private-key.txt" \
+NO_TAP=1 NO_SITE=1 bun scripts/release.ts
+```
+
+This signs the complete app and DMG ad-hoc, skips notarization and stapling, and may require **Open Anyway** on first launch. The Sparkle appcast is still signed with the EdDSA key file. Update the Homebrew cask and rebuild the website separately after the release is live.
+
 Notarizing the DMG also notarizes the app's code, so the script staples both from
 a single submission — the DMG for direct downloads, the app for the Sparkle zip.
 

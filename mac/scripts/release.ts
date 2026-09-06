@@ -66,7 +66,8 @@ const EXPORT_OPTIONS = process.env.EXPORT_OPTIONS ?? "scripts/ExportOptions.plis
 const NOTARY_PROFILE = process.env.NOTARY_PROFILE ?? "NOTARY";
 // Codesigning identity for the .dmg itself. A partial name matches when there's
 // a single Developer ID Application cert; override with the full name/SHA-1.
-const SIGN_IDENTITY = process.env.SIGN_IDENTITY ?? "Developer ID Application";
+const ADHOC = process.env.CODE_SIGN_IDENTITY === "-" || process.env.SIGNING_MODE === "adhoc";
+const SIGN_IDENTITY = process.env.SIGN_IDENTITY ?? (ADHOC ? "-" : "Developer ID Application");
 // The GitHub Pages workflow that rebuilds the website, and the branch it deploys.
 const SITE_WORKFLOW = process.env.SITE_WORKFLOW ?? "Web Pages";
 const SITE_BRANCH = process.env.SITE_BRANCH ?? "main";
@@ -87,10 +88,15 @@ if (!Number.isSafeInteger(BUILD_JOBS) || BUILD_JOBS < 1) {
 const BUILD_NICE = process.env.BUILD_NICE === "1";
 
 process.env.DEVELOPER_DIR ??= "/Applications/Xcode-beta.app/Contents/Developer";
+if (ADHOC) {
+  // Build unsigned, then sign the complete exported bundle like Zisla's ad-hoc path.
+  process.env.CODE_SIGNING_ALLOWED = "NO";
+  process.env.CODE_SIGNING_REQUIRED = "NO";
+}
 
 need("xcodebuild");
 need("ditto");
-if (!localBuild) need("xcrun");
+if (!localBuild && !ADHOC) need("xcrun");
 need("plutil");
 // Checked up front: publishing, the cask bump and the site redeploy all run
 // after the build, too late to be useful as a prerequisite failure.
@@ -156,11 +162,21 @@ if (BUILD_NICE) {
   await $`xcodebuild ${archiveArgs}`;
 }
 
-// ---- 2. export a Developer ID-signed app ---------------------------------
-say("Exporting Developer ID app…");
-await $`xcodebuild -exportArchive -archivePath ${ARCHIVE_PATH} -exportOptionsPlist ${EXPORT_OPTIONS} -exportPath ${EXPORT_DIR}`;
-
+// ---- 2. export or ad-hoc sign the app -------------------------------------
 const app = join(EXPORT_DIR, "zshell.app");
+if (ADHOC) {
+  say("Preparing ad-hoc app…");
+  const archivedApp = join(ARCHIVE_PATH, "Products/Applications/zshell.app");
+  if (!existsSync(archivedApp)) die(`archived app not found at ${archivedApp}`);
+  rmSync(EXPORT_DIR, { recursive: true, force: true });
+  mkdirSync(EXPORT_DIR, { recursive: true });
+  await $`ditto ${archivedApp} ${app}`;
+  await $`codesign --force --deep --sign - ${app}`;
+} else {
+  say("Exporting Developer ID app…");
+  await $`xcodebuild -exportArchive -archivePath ${ARCHIVE_PATH} -exportOptionsPlist ${EXPORT_OPTIONS} -exportPath ${EXPORT_DIR}`;
+}
+
 if (!existsSync(app)) die(`exported app not found at ${app}`);
 const appPlist = join(app, "Contents/Info.plist");
 
@@ -210,13 +226,16 @@ if (localBuild) {
 }
 
 // ---- 5. notarize + staple ------------------------------------------------
-// Notarizing the DMG also notarizes the app's code hash, so we can staple both
-// the DMG (for downloads) and the app (for the Sparkle zip) from one submission.
-say(`Notarizing (profile: ${NOTARY_PROFILE})…`);
-await $`xcrun notarytool submit ${dmgPath} --keychain-profile ${NOTARY_PROFILE} --wait`;
-say("Stapling tickets…");
-await $`xcrun stapler staple ${dmgPath}`;
-await $`xcrun stapler staple ${app}`;
+// Ad-hoc packages follow Zisla's free distribution path and cannot be notarized.
+if (!ADHOC) {
+  // Notarizing the DMG also notarizes the app's code hash, so we can staple both
+  // the DMG (for downloads) and the app (for the Sparkle zip) from one submission.
+  say(`Notarizing (profile: ${NOTARY_PROFILE})…`);
+  await $`xcrun notarytool submit ${dmgPath} --keychain-profile ${NOTARY_PROFILE} --wait`;
+  say("Stapling tickets…");
+  await $`xcrun stapler staple ${dmgPath}`;
+  await $`xcrun stapler staple ${app}`;
+}
 
 // ---- 6. package the Sparkle update (pull history first for deltas) --------
 // The DMG is the download; Sparkle updates from this zip so it can build small

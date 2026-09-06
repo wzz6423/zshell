@@ -18,9 +18,9 @@ export const BREW_COMMAND = 'brew install wzz6423/tap/zshell'
 // What a build advertises when the appcast can't be reached. Keep it on the
 // newest release: `minSystem` mirrors the app's MACOSX_DEPLOYMENT_TARGET.
 const FALLBACK: Release = {
-  version: '0.0.1',
+  version: '0.1.0',
   minSystem: '15.6',
-  dmg: dmgUrl('0.0.1'),
+  dmg: dmgUrl('0.1.0'),
 }
 
 /**
