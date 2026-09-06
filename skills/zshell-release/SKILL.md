@@ -5,7 +5,7 @@ description: Zshell 正式 macOS 发布工作流：固定自签名证书、Spark
 
 # Zshell 正式发布
 
-以 [mac/RELEASING.md](../../mac/RELEASING.md) 为命令、资产命名和凭据的权威说明。
+以仓库中的 `mac/RELEASING.md` 为命令、资产命名和凭据的权威说明。
 当前流程发布 macOS Release 的三种架构，不提供 Preview、Windows 或 Linux 发版。
 
 ## 授权与密钥
