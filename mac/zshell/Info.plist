@@ -65,11 +65,16 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>A program running within Zshell would like to use your microphone.</string>
 
-	<!-- Sparkle auto-update configuration.
-	     The feed is an asset on the repository's permanent `updates` release, so
-	     shipping needs no server of its own; see RELEASING.md. -->
+	<!-- Each check starts on Gitee and can retry GitHub once; both feeds and ZIPs
+	     must be signed by the same release key. -->
 	<key>SUFeedURL</key>
-	<string>https://github.com/wzz6423/zshell/releases/download/updates/appcast.xml</string>
+	<string>https://gitee.com/wzz6423/zshell/releases/download/update-release/appcast.xml</string>
+	<key>ZshellReleaseFallbackAppcastURL</key>
+	<string>https://github.com/wzz6423/zshell/releases/latest/download/appcast.xml</string>
+	<key>SURequireSignedFeed</key>
+	<true/>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
 	<key>SUPublicEDKey</key>
 	<string>94CIcriCuNHELX8l1CQPW2XUsrBcqp0mr++vw9tXB0Q=</string>
 	<!-- Declared so background checks are on out of the box. Without the key
