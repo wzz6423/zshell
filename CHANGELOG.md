@@ -14,6 +14,14 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
+## [0.1.1]
+
+### Fixed
+
+- Clicking the terminal no longer inserts selection control sequences into the
+  command line, including after keymap changes and in nested or replacement
+  shells.
+
 ## [0.1.0]
 
 ### Changed

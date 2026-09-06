@@ -51,9 +51,8 @@ are consumed privately; do not echo them to test authentication.
 
 ## Prepare and build
 
-The next aligned 0.1.0 rebuild is pending the maintainer's separate bug-fix merge.
-Prepare and review the release PR first; do not rebuild or publish before that
-prerequisite is satisfied.
+The 0.1.1 release is the first release built from this aligned workflow after the
+0.1.0 bug-fix merge. Prepare and review the release source before publishing.
 
 1. Read [the release preflight](../skills/zshell-release/references/preflight.md).
 2. Set the maintainer's intended `MARKETING_VERSION` and increment
@@ -168,11 +167,11 @@ Link issues and PRs to GitHub; Gitee is the release mirror. If including product
 screenshots, upload them as versioned release assets and verify that the URLs in
 each host's release body return the expected PNG bytes.
 
-The original 0.1.0 ad-hoc build 2 retains its legacy download names. The planned aligned
-0.1.0 build 3 will use the canonical architecture names and a higher Sparkle build
-number; preserve the existing Ed25519 trust key and legacy downloads during this
-migration. The old `updates` feed belongs to those existing installations and
-must remain usable until their migration has been verified.
+The original 0.1.0 ad-hoc build 2 retains its legacy download names. Release 0.1.1
+uses the canonical architecture names and a higher Sparkle build number; preserve
+the existing Ed25519 trust key and legacy downloads during this migration. The old
+`updates` feed belongs to those existing installations and must remain usable until
+their migration has been verified.
 
 Only after verification and recovery are complete, remove this run's archive,
 derived data, staging directories, test installations, downloads, and temporary
