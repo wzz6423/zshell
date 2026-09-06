@@ -41,6 +41,15 @@ if ! command -v rustc > /dev/null 2>&1; then
   exit 1
 fi
 
+if command -v rustup > /dev/null 2>&1; then
+  # Keep cargo and rustc on the same rustup toolchain; Homebrew can expose a
+  # standalone compiler whose sysroot does not contain rustup's targets.
+  rustup_cargo="$(rustup which cargo 2>/dev/null || true)"
+  if [[ -x "${rustup_cargo}" ]]; then
+    export PATH="$(dirname "${rustup_cargo}"):${PATH}"
+  fi
+fi
+
 rust_target_is_installed() {
   local target="$1"
 
