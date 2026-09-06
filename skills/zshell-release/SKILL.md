@@ -1,134 +1,72 @@
 ---
 name: zshell-release
-description: Zshell 的 macOS 发布与 Sparkle 自动更新工作流。在打本地签名包、切正式版本、核对发布前置条件，或排查公证、appcast、GitHub Releases、Homebrew cask、站点重建失败时使用。单通道，每版两个产物；正式发布必须先有用户明确授权。
+description: Zshell 正式 macOS 发布工作流：固定自签名证书、Sparkle Ed25519、arm64/x86_64/Universal 三套包、GitHub 和 Gitee 双端发布与验证。正式发布需要用户明确授权。
 ---
 
-# Zshell 发布
+# Zshell 正式发布
 
-一条命令走完：archive → Developer ID 导出 → 公证并 staple → DMG 与 Sparkle zip →
-签名并重写 appcast → 发布到 GitHub Releases → bump Homebrew cask → 触发站点重建。
-分发源就是本仓库的 Releases：DMG 挂在各自的 `v<version>` release，更新归档和 `appcast.xml`
-挂在常驻的 `updates` release——Sparkle 用一个前缀解析 feed 里所有条目（含旧版本），
-所以归档必须待在一个不会变的 tag 下。
-单个 Sparkle feed；下载用 `.dmg`，Sparkle 更新用 `.zip`，有历史归档时另生成增量。
-当前 `Updater.swift` 检测到 Homebrew 的 `Caskroom/zshell` 和可执行 `brew` 时，正式版改用
-`brew upgrade --cask zshell`；核对更新行为时先确认走的是 Homebrew 还是 Sparkle。
+以 [mac/RELEASING.md](../../mac/RELEASING.md) 为命令、资产命名和凭据的权威说明。
+当前流程发布 macOS Release 的三种架构，不提供 Preview、Windows 或 Linux 发版。
 
-## 授权边界（先看）
+## 授权与密钥
 
-- **正式发布必须有用户明确授权。** 只写 skill、只读脚本、只核对前置条件时，
-  绝不执行发布、绝不改版本号、绝不生成或轮换任何密钥。
-- 用户已授权本次发布后，不要为同一次发布反复索要授权。
-- 除非用户明确要求迁移更新配置或签名，否则不改 `mac/zshell/Info.plist` 的 `SUFeedURL` / `SUPublicEDKey`，不重新生成 Sparkle 私钥，
-  不动 keychain 凭据。公钥与私钥一旦不匹配，现有用户能看到更新但装不上（签名校验失败）。
-- 版本号只由发布流程推进，任何 PR 都不许 bump。`mac/RELEASING.md` 是 maintainer-only 流程。
+- 用户明确要求发版后，完成构建、双端上传和验证；同一次发版不重复索要授权。
+- 默认使用固定 **zshell Release Signing** 自签名证书，未经 Apple 公证，不再用 ad-hoc 正式签名。
+- 代码签名身份独立于 Sparkle Ed25519 更新密钥。沿用现有 Zshell 更新私钥，校验它与
+  `SUPublicEDKey` 匹配；禁止复用 Zisla 私钥或为绕过失败而更换公钥。
+- 一次性代码签名初始化只在已有发版/签名授权内执行。使用用户指定的私有目录备份加密 PEM
+  私钥、PEM 证书、P12，权限 `600`。已有身份要恢复和复用，不能默默重建。
+- 私钥、令牌、Keychain 密码和用户私人绝对路径不能出现在终端日志、PR 或 Release 正文中。
+- 构建号每次正式发版递增，普通功能 PR 不改版本；已发布资产不可静默换成另一份构建。
+- tap 和官网修改提 PR 交用户合并；发布脚本不直接推 tap 主分支、不自动部署官网。
 
-## 本地打包（不发布）
+## 执行
 
-```sh
-make build-package
-```
+1. 先读 [preflight](references/preflight.md)，核对工具、已有签名身份、版本、双端权限。
+2. 使用同一已提交源码生成 `arm64`、`x86_64`、`universal` 三套 DMG/ZIP，分别写 SHA-256。
+3. 各架构 app 的全部 Mach-O 都须符合目标架构，嵌套代码签名完整，三个包使用同一稳定
+   designated requirement，包含 Sparkle installer 和正式版白底图标。
+4. 为 GitHub 和 Gitee 各生成三份完整签名 appcast。每份恰好一个条目，ZIP 链接属于本站、
+   本版本、本架构，并有 enclosure Ed25519 签名。`SURequireSignedFeed` 必须启用。
+5. 两端版本 Release 各上传 15 份必需资产；Gitee 永久 `update-release` 仅放三份 appcast。
+   先上传和验证两端包，再切 feed；Gitee 永久 feed 必须早于实际版本 Release 创建。
+6. 验证双端资产哈希和六份匿名 feed；官网提供 Universal 主下载、Apple Silicon、Intel 和镜像入口。
+7. 更新 tap 的本机架构 ZIP URL、两个 SHA-256、最低系统版本，并与官网一起交 PR。
 
-委派到 `mac/scripts/release.ts --local`：archive、导出 Developer ID 应用、造 DMG 并用
-Developer ID 签名，然后停下——**不公证、不发布、不动 cask 与站点**。产物在
-`mac/build/export/zshell.app` 与 `mac/build/zshell-<version>.dmg`。
-用它验证签名与打包，不能用它验证更新流程。
-
-## 正式发布
-
-```sh
-cd mac && bun run release        # 等价于 bun scripts/release.ts
-```
-
-默认会公证、发布到 GitHub Releases、bump `wzz6423/homebrew-tap` 的 `Casks/zshell.rb`、
-`gh workflow run "Web Pages" --ref main`。
-
-参考 Zisla 的免费分发路径，也可以显式使用 ad-hoc 签名发布：
+从 `mac/` 执行：
 
 ```sh
-cd mac
-CODE_SIGN_IDENTITY=- \
-SPARKLE_ED_KEY_FILE="/安全位置/zshell-sparkle-ed25519-private-key.txt" \
-NO_TAP=1 NO_SITE=1 bun scripts/release.ts
+SPARKLE_ED_KEY_FILE=/path/to/zshell-update-key bun scripts/release.ts --local
+# 同源 archive 恢复打包：
+SPARKLE_ED_KEY_FILE=/path/to/zshell-update-key bun scripts/release.ts --local --package-only
+# 发布/复核已验证的本地包：
+bun scripts/publish-release.ts --publish build/release-v<version> <version> <source-commit>
+bun scripts/publish-release.ts --verify build/release-v<version> <version> <source-commit>
 ```
 
-此模式不需要 Developer ID 证书、公证或 stapling；首次打开可能需要在系统设置中选择“仍要打开”。
-Sparkle 更新包仍使用 EdDSA 私钥签名，发布后再单独更新 tap 并触发官网重建。
+`--local` 也生成完整 ZIP 和签名 feed，仅跳过联网发布。去掉 `--local` 即构建后双端发布。
+`--package-only` 只接受当前源码 commit 的 archive。可设置 `BUILD_JOBS=2` 与
+`RELEASE_OUTPUT_DIRECTORY`；不要继续使用旧流程的 `FORCE`、`NO_TAP`、`NO_SITE` 等开关。
 
-### 发布前
+## 更新验收
 
-1. 版本号在 `mac/zshell.xcodeproj` 的 `zshell` target：`MARKETING_VERSION`（用户可见）
-   与 `CURRENT_PROJECT_VERSION`（构建号，**每次发布必须递增**，Sparkle 靠它判断新旧）。
-2. 仓库根 `CHANGELOG.md` 顶部加 `## [<MARKETING_VERSION>]` 小节，标题里的版本必须与
-   `MARKETING_VERSION` 完全一致；不一致就会静默地"发布但没有 release notes"。
-3. 用 [references/preflight.md](references/preflight.md) 逐项核对工具链与凭据，全是只读命令。
-   按本次签名模式核对：ad-hoc 模式不需要 Developer ID、公证凭据；使用私钥文件时不需要 keychain 账户。
-   其余必需项缺失就停下报告，不要临时改默认值绕开。
+- Gitee 主 feed：`releases/download/update-release/appcast.xml`。
+- GitHub fallback：`releases/latest/download/appcast.xml`。
+- 单架构 feed 为 `appcast-arm64.xml` / `appcast-x86_64.xml`，Universal 为 `appcast.xml`。
+- 直接安装和 Homebrew 安装均由 Sparkle 更新。Homebrew 仅保留显式命令或落后版本兜底。
+- 旧版正式测试实例必须走真实签名 feed、下载、验签、替换、重启；主 feed 或下载失败仅重试
+  GitHub 一次。测试 thin 保留架构、Universal 保留双架构、Rosetta Intel 迁移 arm64。
+- 签名字段存在、单元测试通过、Debug 能运行都不能替代真实升级验收。没有旧版测试机时如实
+  标注未验证范围，不宣称全部对齐验收完成。
+- 此次 0.1.0 从旧 ad-hoc build 2 迁移到固定自签名 build 3；保留旧下载名、原更新私钥和旧
+  `updates` feed 的可用性，不破坏已安装版本。
 
-### 常用开关
+## 验证与清理
 
-| 开关 | 用途 |
-| --- | --- |
-| `FORCE=1` | 重发已存在的版本；默认会因 `updates` release 已有同名 zip 而中止 |
-| `NO_TAP=1` | 跳过 Homebrew cask bump |
-| `NO_SITE=1` | 跳过站点重建 |
-| `NO_HISTORY=1` | 不拉历史归档，本次不生成增量，用户下整包 |
-| `HISTORY_COUNT=<n>` | 参与增量的历史归档数，默认 15 |
-| `BUILD_JOBS=2`、`BUILD_NICE=1` | 限制 archive 并发 / 降到 utility QoS，保持机器可用 |
+按实际改动运行脚本测试、客户端验证与官网 build/typecheck。Release 正文写清签名、公证、
+架构、实测系统范围和首次打开步骤；反馈入口指向 GitHub，Gitee 作为发版镜像。
+正文截图若存在，必须为本次 tag 的稳定附件 URL，逐一核对 HTTP 200 与真实 PNG 字节。
 
-完整环境变量表和一次性设置（Sparkle 密钥、公证 profile、`gh` 登录、tap SSH）
-在 `mac/RELEASING.md`，不要在这里重复维护。
-
-### 脚本实际做的事
-
-按序：校验所需命令与 `mac/scripts/ExportOptions.plist` 存在 → archive（`-jobs`，
-可选 `taskpolicy -c utility`）→ `-exportArchive` 出 Developer ID 应用 → 从产物 `Info.plist`
-读 `CFBundleShortVersionString` / `CFBundleVersion` → 查 `updates` release 是否已有同名 zip →
-造 DMG 并签名（`--local` 到此结束）→ 公证 DMG，再 staple DMG 和 app（一次提交覆盖两者）→
-拉最近历史归档、打 `zshell-<version>.zip`、从根 `CHANGELOG.md` 切出 `zshell-<version>.md` →
-用 keychain 私钥签名并重写 `appcast.xml` → 发布（DMG 上传到 `v<version>`，归档与 appcast
-上传到 `updates`，只传尚未发布过的文件加上每次都会重写的 `appcast.xml`）→ bump cask →
-触发 `Web Pages`。
-
-`create-dmg` 会因 Finder 脚本的无害抖动返回非零，脚本因此只判断文件是否生成，不看退出码。
-
-## 发布后验证
-
-release 发布后 `Release Feeds` 工作流自动跑，轮询到位为止：`v<version>` release 上有 DMG、
-`updates` release 上有 appcast、ZIP 与发布说明，feed 里构建号最高的条目就是本次版本
-（没递增 `CURRENT_PROJECT_VERSION` 就是发布了却没人收到），每个 URL 都落在 `updates`
-前缀下，ZIP 带 EdDSA 签名，发布说明链接指向本次版本，最后用匿名请求确认站点给出的 DMG
-链接真能下载。失败在 Actions 里逐条列出，本地跑同一套检查：
-
-```sh
-ruby .github/scripts/appcast-feeds.rb verify --tag "v<version>"
-```
-
-工作流覆盖不到的仍要手工验收：签名字段存在不等于安装时验签通过，必须在走 Sparkle 的
-**旧版本**测试安装中实际运行 **Check for Updates…**，确认验签、安装和重启；Homebrew 路径
-另验 cask 的 `version` 与 `sha256` 已更新；确认站点下载按钮指向新版本——站点在预渲染时把
-版本烤进页面，只有 `Web Pages` 跑完才会变。Debug 构建不启动 Sparkle，不能替代更新验收。
-
-## 失败恢复
-
-cask bump 与站点重建都在发布之后，脚本把它们的失败降级为告警：发布本身已经生效，
-只补这一步即可。
-
-```sh
-(cd mac && bun scripts/bump-cask.ts "<version>")     # build/ 里没有 DMG 就下载已发布的再算 sha
-gh workflow run "Web Pages" --ref main
-```
-
-archive、DMG、公证这些步骤可以整条重跑。**一旦 zip 已经发布到 `updates` release，重跑需要 `FORCE=1`**，
-执行前先确认要覆盖的是同一份构建，否则同一版本号会对应两份不同二进制。
-其余症状按 [references/troubleshooting.md](references/troubleshooting.md) 对症处理。
-
-`depends_on macos:` 与 app 的 `LSMinimumSystemVersion` 漂移时脚本只告警，
-需要手工改 tap 里那条 stanza；bump 脚本不会碰它。
-
-## 清理
-
-确认本次发布完成且无需失败恢复后，仅删除本次在 `mac/build/` 生成的 `zshell.xcarchive`、`export/`、`dmg/`、`updates/`、
-`homebrew-tap/` 与 `zshell-*.dmg`。保留用户指定交付的安装包；测试包必须清理。
-`make clean` 还会停止 Debug 应用并删除共享产物，只在用户要求整体清理或确认没有其他任务使用时运行。
-导出的 Sparkle 私钥、签名材料、下载下来的旧归档一律不许进仓库。
+失败先按 [troubleshooting](references/troubleshooting.md) 确认线上已生效步骤，从同一份本地产物
+恢复，不能盲目重新打包覆盖。完成后只清本次构建、binary、挂载、测试实例和临时下载，保留
+用户指定交付文件、签名备份与其他任务的 Debug 产物。

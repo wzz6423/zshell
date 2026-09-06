@@ -69,6 +69,7 @@ export type HomeCopy = {
     /** `{minSystem}` is replaced with the release's minimum macOS version. */
     copy: string
     dmg: string
+    mirror: string
     changelog: string
     notes: { version: string; system: string; license: string; licenseValue: string }
   }
@@ -300,7 +301,8 @@ const en: HomeCopy = {
     eyebrow: 'Download',
     title: 'Start in one window.',
     copy: 'Free for macOS {minSystem} and later. Install with Homebrew, or download the dmg.',
-    dmg: 'Download the dmg',
+    dmg: 'Download Universal DMG',
+    mirror: 'Gitee mirror',
     changelog: 'Changelog',
     notes: {
       version: 'Latest version',
@@ -547,7 +549,8 @@ const zh: HomeCopy = {
     eyebrow: '下载',
     title: '从一个窗口开始。',
     copy: '免费，需要 macOS {minSystem} 或更高版本。用 Homebrew 安装，或直接下载 dmg。',
-    dmg: '下载 dmg',
+    dmg: '下载 Universal DMG',
+    mirror: 'Gitee 镜像',
     changelog: '更新日志',
     notes: {
       version: '最新版本',

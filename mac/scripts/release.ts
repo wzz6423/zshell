@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { $ } from "bun";
 import { createHash, createPrivateKey, createPublicKey } from "node:crypto";
-import { chmodSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { chmodSync, closeSync, constants, existsSync, fstatSync, lstatSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { homedir, userInfo } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { extractReleaseNotes } from "./changelog";
@@ -20,8 +20,14 @@ export function validateRelease(version: string, build: string, identity: string
 }
 
 export function verifyKeyPair(keyPath: string, publicKey: string): void {
-  if ((lstatSync(keyPath).mode & 0o077) !== 0) throw new Error("Sparkle private key permissions must be 600");
-  const key = Buffer.from(readFileSync(keyPath, "utf8").trim(), "base64");
+  const descriptor = openSync(keyPath, constants.O_RDONLY | constants.O_NOFOLLOW);
+  let encoded: string;
+  try {
+    const metadata = fstatSync(descriptor);
+    if (!metadata.isFile() || (metadata.mode & 0o077) !== 0) throw new Error("Sparkle private key permissions must be 600 on a regular file");
+    encoded = readFileSync(descriptor, "utf8");
+  } finally { closeSync(descriptor); }
+  const key = Buffer.from(encoded.trim(), "base64");
   if (key.length !== 32 && key.length !== 64) throw new Error("Invalid Sparkle private key format");
   const privateKey = createPrivateKey({ key: Buffer.concat([
     Buffer.from("302e020100300506032b657004220420", "hex"), key.subarray(0, 32),
@@ -120,7 +126,7 @@ async function main(): Promise<void> {
     }
     await $`codesign --force --deep --sign ${identity} --keychain ${keychain} ${app}`;
     await $`codesign --verify --deep --strict --all-architectures ${app}`;
-    const requirement = (await $`codesign -d -r- ${app}`.quiet()).stderr.toString().split("designated => ")[1]?.trim();
+    const requirement = (await $`codesign -d -r- ${app}`.quiet().text()).split("designated => ")[1]?.trim();
     if (!requirement?.includes("certificate") || requirement.includes("cdhash")) die("Release signing did not produce a stable certificate requirement");
     requirements.push(requirement);
     await verifyArchitecture(app, arch);

@@ -3,12 +3,14 @@ title: 安装
 description: 下载 Zshell、用 Homebrew 安装、保持更新，以及干净地卸载。
 ---
 
-Zshell 使用 ad-hoc 签名，未经 Apple 公证。当前版本需要的最低
+Zshell 未经 Apple 公证。当前版本需要的最低
 macOS 版本，标在[首页](/)的下载按钮旁边。
 
 ## 下载
 
-从[首页](/)下载 `.dmg`，打开后把 **Zshell** 拖进「应用程序」文件夹。
+从[首页](/)下载 `.dmg`。当前 0.1.0 提供 **Universal** 包，同时支持 Apple Silicon 和 Intel。
+分架构安装包和 Gitee 镜像发布后，首页会显示对应的下载选项。
+打开磁盘映像后，把 **Zshell** 拖进「应用程序」文件夹。
 
 首次打开时，macOS 可能会拦截应用。尝试打开后，前往
 **系统设置 → 隐私与安全性 → 仍要打开**，确认打开 Zshell。
@@ -20,7 +22,8 @@ macOS 版本，标在[首页](/)的下载按钮旁边。
 brew install wzz6423/tap/zshell
 ```
 
-cask 放在 `wzz6423/homebrew-tap`，所以要写完整的 tap 名。升级方式和别的软件一样：
+cask 放在 `wzz6423/homebrew-tap`。后续分架构版本会按本机处理器安装 ZIP 包，安装后由 Sparkle 更新。
+需要显式通过 Homebrew 更新，或补齐落后的已安装版本时，可以运行：
 
 ```bash
 brew upgrade --cask --greedy-auto-updates zshell
@@ -28,19 +31,17 @@ brew upgrade --cask --greedy-auto-updates zshell
 
 ## 更新
 
-Zshell 会检测安装来源并使用对应的更新方式。直接下载的版本通过
-[Sparkle](https://sparkle-project.org) 后台检查、静默下载，等你下次退出时安装；通过
-Homebrew 安装的版本则交给 Homebrew 更新。
+最初发布的 0.1.0 下载包仍使用原 GitHub 更新源，Homebrew 安装交给 Homebrew 更新。
+下面的更新方式将在下一次重新发版后提供，尚未包含在原下载包中。
 
-想改这个行为，用 <kbd>Cmd</kbd>+<kbd>,</kbd> 打开 **设置 → Updates**：
+重新发版后，直接下载和 Homebrew 安装都通过 [Sparkle](https://sparkle-project.org) 更新。
+Zshell 优先访问 Gitee 更新源；feed 或下载失败时，自动重试 GitHub 一次。
+安装前会验证 feed 和更新包的签名，并保留安装包的架构；在 Rosetta 下运行的 Intel 版
+会迁移到 Apple Silicon 版。
 
-- **Automatically check for updates**——控制直接下载版本的 Sparkle 后台检查。
-- **Check for Updates…**——直接下载版本检查 Sparkle，Homebrew 版本运行 Homebrew 更新。
-
-<Callout title="用 Homebrew 装的？">
-「Updates」区域会标明 Homebrew 安装来源，更新按钮会运行
-`brew upgrade --cask --greedy-auto-updates zshell`。你也可以在终端手动执行这条命令。
-</Callout>
+用 <kbd>Cmd</kbd>+<kbd>,</kbd> 打开 **设置 → Updates**，可控制自动检查，
+或选择 **Check for Updates…** 立即检查。下载完成后，在退出或重启 Zshell 时安装。
+需要显式更新或补齐落后的已安装版本时，使用上面的 Homebrew 命令。
 
 ## 从 Finder 打开文件夹
 

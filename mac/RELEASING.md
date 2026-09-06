@@ -1,279 +1,181 @@
 # Releasing zshell
 
-zshell auto-updates with [Sparkle](https://sparkle-project.org). Releases are
-**GitHub Release assets** of this repository, so shipping needs no domain and no
-object store: each version's **`.dmg`** hangs off its own `v<version>`
-release, while the update archives and `appcast.xml` sit on one permanent
-**`updates`** release. New users download the DMG; existing users get smaller
-in-app delta updates via Sparkle, which reads the appcast at
-`https://github.com/wzz6423/zshell/releases/download/updates/appcast.xml`,
-verifies each build's EdDSA signature, and installs it. One release command
-produces both.
+The stable macOS release is published to **GitHub and Gitee**. Each host receives
+Apple Silicon (`arm64`), Intel (`x86_64`), and Universal packages built from the
+same Release archive. This workflow supports stable releases; it does not publish
+Preview, Windows, or Linux builds.
 
-That split is what keeps update URLs stable: Sparkle resolves every enclosure in
-the feed — including the items describing older versions — against a single
-prefix, so every archive has to stay under one tag that never moves.
+Run commands from `mac/`. Publishing requires the maintainer's authorization.
+Once that authorization is given, complete this release without asking again.
+Homebrew and website changes are submitted as pull requests for the maintainer to
+merge; the release command does not push the tap or deploy the website.
 
-Run release commands from `mac/`. Once set up, cutting a release is one command:
+## Signing and credentials
 
-```sh
-bun scripts/release.ts        # or: bun run release
-```
+Two independent signing identities protect the release:
 
-- Updater code: [`zshell/Updater.swift`](zshell/Updater.swift) — **Check for Updates…**
-  (app menu) and the **Updates** section in Settings.
-- Feed URL + public key: [`zshell/Info.plist`](zshell/Info.plist)
-  (`SUFeedURL`, `SUPublicEDKey`).
-- Release automation (Bun + TypeScript): [`scripts/release.ts`](scripts/release.ts),
-  [`scripts/generate-appcast.ts`](scripts/generate-appcast.ts),
-  [`scripts/ExportOptions.plist`](scripts/ExportOptions.plist).
+- The fixed **`zshell Release Signing`** self-signed certificate signs the app,
+  nested code, and DMG. Preserve the identity across releases so the app has a
+  stable designated requirement. This is not ad-hoc signing or Apple
+  notarization. First launch may require **System Settings → Privacy & Security
+  → Open Anyway**.
+- The existing Zshell **Sparkle Ed25519 key** signs both ZIP enclosures and the
+  complete appcasts. Its public key ships as `SUPublicEDKey`; signed feeds are
+  required by `SURequireSignedFeed`. Never replace this key to repair a failed
+  signing check, and never reuse another application's private key.
 
----
-
-## One-time setup
-
-The release script runs on [Bun](https://bun.sh) (`brew install bun`) and builds
-the disk image with [`create-dmg`](https://github.com/create-dmg/create-dmg)
-(`brew install create-dmg`). Optionally run `bun install` once for editor
-type-checking of the scripts — it isn't needed to run them.
-
-### 1. Sparkle signing keys
-
-Every update is signed with an ed25519 key. The **private** key stays in your
-login keychain under the `zshell-update-ed25519` account; the **public** key ships
-in the app.
-
-Download the Sparkle tools (`Sparkle-<version>.tar.xz` from the
-[releases page](https://github.com/sparkle-project/Sparkle/releases)), unpack,
-then:
+Create the code-signing identity only once, using an existing private backup
+directory approved by the maintainer:
 
 ```sh
-./bin/generate_keys --account zshell-update-ed25519
+python3 scripts/setup-release-signing.py --backup-directory /path/to/private-backups
 ```
 
-Copy the printed public key into [`zshell/Info.plist`](zshell/Info.plist), replacing
-the existing `SUPublicEDKey` value. Back the private key up somewhere safe:
+This creates `~/Library/Keychains/zshell-release-signing.keychain-db`. Its
+password is stored in the login Keychain as the generic password service
+`sh.zshell.release-signing-keychain`. The script backs up the encrypted private
+key (PEM), certificate (PEM), and identity (P12), with mode `600`, and refuses to
+overwrite an existing identity or backup. Preserve both the backups and their
+password in private storage. Never print credentials or include private keys,
+passwords, personal paths, or certificate serial numbers in logs, PRs, or releases.
+
+Set `SPARKLE_ED_KEY_FILE` to the existing Zshell update key file (mode `600`).
+The release script checks that it matches the app's public key before building.
+Set `SPARKLE_BIN` if Sparkle's `generate_appcast` and `sign_update` tools cannot be
+found in the existing Xcode artifacts.
+
+GitHub uses `gh auth login`, `GH_TOKEN`, or `GITHUB_TOKEN`. Gitee uses
+`GITEE_RELEASE_TOKEN` or an existing private Keychain credential. Both credentials
+must have release write access to the public `wzz6423/zshell` repository. Tokens
+are consumed privately; do not echo them to test authentication.
+
+## Prepare and build
+
+The next aligned 0.1.0 rebuild is pending the maintainer's separate bug-fix merge.
+Prepare and review the release PR first; do not rebuild or publish before that
+prerequisite is satisfied.
+
+1. Read [the release preflight](../skills/zshell-release/references/preflight.md).
+2. Set the maintainer's intended `MARKETING_VERSION` and increment
+   `CURRENT_PROJECT_VERSION` in `zshell.xcodeproj/project.pbxproj`. Sparkle uses
+   the build number to decide which version is newer. Ordinary feature PRs must
+   not change release versions.
+3. Ensure the matching version section in the root `CHANGELOG.md` describes the
+   final user-visible release. Commit the release source and make the same commit
+   available to both hosts before publishing.
+4. Build and validate locally:
 
 ```sh
-./bin/generate_keys --account zshell-update-ed25519 -x sparkle_private_key.txt   # export → password manager
-./bin/generate_keys --account zshell-update-ed25519 -f sparkle_private_key.txt   # import on another machine / CI
+SPARKLE_ED_KEY_FILE=/path/to/zshell-update-key \
+BUILD_JOBS=2 bun scripts/release.ts --local
 ```
 
-> ⚠️ Lose the private key and you can't ship updates to existing users. Keep it.
+`--local` performs the complete archive, three-architecture packaging, app and
+DMG signing, SHA-256 generation, ZIP signing, and six signed appcast generation.
+It does not contact the release APIs or publish anything. The output is
+`build/release-v<version>/`; `RELEASE_OUTPUT_DIRECTORY` can select another location.
+The architecture check covers every nested Mach-O binary, not only the launcher.
 
-Put the Sparkle `bin/` on your `PATH`, or point the release at it with
-`SPARKLE_BIN=/path/to/Sparkle/bin`.
-
-### 2. Developer ID signing + notarization
-
-For notarized distribution, sign the app with your **Developer ID**.
-For Zisla-style ad-hoc distribution, skip this section and follow
-[Free ad-hoc distribution](#free-ad-hoc-distribution) below.
-
-- Install your **Developer ID Application** certificate in the login keychain.
-  The script signs the `.dmg` with it too; if you have more than one such cert,
-  set `SIGN_IDENTITY` to the exact name or SHA-1.
-- Set `teamID` in [`scripts/ExportOptions.plist`](scripts/ExportOptions.plist)
-  (find it with `xcrun security find-identity -v -p codesigning`).
-- Store notarization credentials once as a keychain profile named `NOTARY`:
-  ```sh
-  xcrun notarytool store-credentials NOTARY \
-    --apple-id you@example.com --team-id XXXXXXXXXX
-  # (paste an app-specific password, or use --key for an App Store Connect API key)
-  ```
-
-### 3. GitHub CLI
-
-Publishing goes through [`gh`](https://cli.github.com) (`brew install gh`), so
-log in once as an account that can create releases in this repository:
+To resume packaging from an archive recorded against the same source commit:
 
 ```sh
-gh auth status        # already logged in?
-gh auth login         # if not
+SPARKLE_ED_KEY_FILE=/path/to/zshell-update-key \
+bun scripts/release.ts --local --package-only
 ```
 
-The release script verifies this before it starts building — a token that cannot
-create releases must not surface only after a 20-minute notarized build.
+Use a fresh output directory after a source change. Never silently reuse an
+archive from another commit or replace published binaries with a different
+build under the same asset names.
 
-Verify with `gh release list --repo wzz6423/zshell`.
+## Publish and verify
 
----
-
-## Cutting a release
-
-1. **Bump the version** in the `zshell` target's build settings:
-   - `MARKETING_VERSION` — user-visible, e.g. `1.1` (`CFBundleShortVersionString`).
-   - `CURRENT_PROJECT_VERSION` — build number, e.g. `2` (`CFBundleVersion`).
-     **Must increase every release** — Sparkle compares it to decide what's newer.
-2. **Write the release notes** — add a `## [1.1]` section at the top of
-   [`CHANGELOG.md`](../CHANGELOG.md) (the heading must match `MARKETING_VERSION`).
-3. **Run it:**
-   ```sh
-   bun scripts/release.ts        # or: bun run release
-   ```
-
-That's it. The script archives → exports a Developer ID app → builds a
-notarized, stapled **`.dmg`** → staples the app and zips it for Sparkle →
-attaches the matching `CHANGELOG.md` section as release notes → pulls the 15
-most recent archives from the `updates` release by default (so Sparkle can build
-deltas) → regenerates `appcast.xml` → publishes the DMG on the `v<version>`
-release and the archives on `updates`. When it finishes:
-
-- **Download link** (for the website):
-  `https://github.com/wzz6423/zshell/releases/download/v<version>/zshell-<version>.dmg`
-- **In-app updates**: the appcast on the `updates` release.
-
-### Free ad-hoc distribution
-
-To use Zisla's free distribution path:
+Omitting `--local` builds and then publishes to both hosts. To publish already
+validated local output without rebuilding:
 
 ```sh
-CODE_SIGN_IDENTITY=- \
-SPARKLE_ED_KEY_FILE="/path/to/zshell-sparkle-ed25519-private-key.txt" \
-NO_TAP=1 NO_SITE=1 bun scripts/release.ts
+bun scripts/publish-release.ts --publish build/release-v<version> <version> <source-commit>
+bun scripts/publish-release.ts --verify build/release-v<version> <version> <source-commit>
 ```
 
-This signs the complete app and DMG ad-hoc, skips notarization and stapling, and may require **Open Anyway** on first launch. The Sparkle appcast is still signed with the EdDSA key file. Update the Homebrew cask and rebuild the website separately after the release is live.
+Each `v<version>` release must contain **15 required assets**:
 
-In Developer ID mode, notarizing the DMG also notarizes the app's code, so the script staples both from
-a single submission — the DMG for direct downloads, the app for the Sparkle zip.
-
-Without `NO_TAP=1` and `NO_SITE=1`, it also bumps the **Homebrew cask** and
-redeploys the **website** (both below). When those changes need review, keep
-both flags set, submit the cask and website changes as pull requests, and let
-the website deploy after merge.
-
-A **Release Feeds** run starts the moment the release is published and polls until the
-release and the feed agree: the DMG on `v<version>`, the appcast, archive and notes on
-`updates`, every URL in the feed under the `updates` prefix, a signed enclosure, and the
-newest item in the feed being *this* version — a `CURRENT_PROJECT_VERSION` that did not
-move publishes a release nobody is ever offered and leaves the website on the old one.
-It then downloads the DMG link anonymously, the way a visitor does. The same checks run
-locally:
-
-```sh
-ruby ../.github/scripts/appcast-feeds.rb verify --tag v<version>
-```
-
-Test by running an **older** build and choosing **Check for Updates…**.
-
-### Options
-
-| Env | Default | Purpose |
+| Architecture | Packages and checksum files | Signed feed |
 | --- | --- | --- |
-| `SPARKLE_KEY_ACCOUNT` | `zshell-update-ed25519` | keychain account holding the private EdDSA key |
-| `SPARKLE_ED_KEY_FILE` | — | private EdDSA key file, used instead of the keychain account |
-| `CODE_SIGN_IDENTITY=-` or `SIGNING_MODE=adhoc` | — | ad-hoc signing; skip Developer ID export, notarization and stapling |
-| `RELEASE_REPO` | `wzz6423/zshell` | repository the releases are published to |
-| `UPDATES_TAG` | `updates` | permanent release holding the appcast and archives |
-| `NOTARY_PROFILE` | `NOTARY` | `notarytool` keychain profile |
-| `SIGN_IDENTITY` | `Developer ID Application` | codesigning identity for the DMG |
-| `EXPORT_OPTIONS` | `scripts/ExportOptions.plist` | export config |
-| `DOWNLOAD_URL_PREFIX` | the `updates` release's download URL | base URL in the appcast |
-| `HISTORY_COUNT` | `15` | number of recent archives to pull for delta generation |
-| `BUILD_JOBS` | half of logical CPUs (min 1) | max concurrent `xcodebuild` tasks during archive (limits parallel `swift-frontend` work) |
-| `BUILD_NICE=1` | — | archive under utility QoS (`taskpolicy`) so interactive work keeps priority |
-| `TAP_REPO` | `wzz6423/homebrew-tap` | tap holding the Homebrew cask |
-| `TAP_CASK` | `Casks/zshell.rb` | cask path within the tap |
-| `TAP_DIR` | `build/homebrew-tap` | local checkout of the tap |
-| `FORCE=1` | — | re-release a version that already exists |
-| `NO_TAP=1` | — | skip bumping the Homebrew cask |
-| `SITE_WORKFLOW` | `Web Pages` | workflow that rebuilds the website |
-| `SITE_BRANCH` | `main` | branch that workflow deploys |
-| `NO_SITE=1` | — | skip redeploying the website |
-| `NO_HISTORY=1` | — | skip pulling old archives (full updates, no deltas) |
+| `arm64` | `zshell-v<version>-macOS-arm64.{dmg,zip}` and each `.sha256` | `appcast-arm64.xml` |
+| `x86_64` | `zshell-v<version>-macOS-x86_64.{dmg,zip}` and each `.sha256` | `appcast-x86_64.xml` |
+| `universal` | `zshell-v<version>-macOS-universal.{dmg,zip}` and each `.sha256` | `appcast.xml` |
 
-Release builds use whole-module Swift optimization, so a single `swift-frontend`
-can still use multiple cores even with a low `BUILD_JOBS`. Use `BUILD_JOBS=2`
-(and optionally `BUILD_NICE=1`) if the archive step makes the machine lag.
+Checksums use the bare package filename. Every appcast has exactly one item,
+references the matching architecture's ZIP under that host's version tag, and
+carries both an enclosure signature and a whole-feed signature. GitHub feeds
+reference GitHub ZIPs; Gitee feeds reference Gitee ZIPs.
 
----
+The app checks these permanent URLs, with the architecture suffix above:
 
-## The Homebrew cask
+- Primary: `https://gitee.com/wzz6423/zshell/releases/download/update-release/appcast.xml`
+- Fallback: `https://github.com/wzz6423/zshell/releases/latest/download/appcast.xml`
 
-zshell is also installable with `brew install wzz6423/tap/zshell`, from the
-cask at [`wzz6423/homebrew-tap`](https://github.com/wzz6423/homebrew-tap)
-(`Casks/zshell.rb`). The tap is shared with other projects, so the release script
-refreshes the repository's default branch and changes only this cask. If the file
-does not exist yet, the first release creates it without touching the other
-recipes. The cask downloads the same `.dmg` from that version's release, so it
-needs the new version and its `sha256` after every release.
+Gitee's `update-release` contains only the three signed feeds and must be created
+before the version release: Gitee assigns its latest badge by release creation
+order. The publisher uploads and verifies packages on both hosts before changing
+current feeds. GitHub's new release remains a draft until its asset set is ready.
+An existing release is updated without creating a duplicate tag.
 
-`scripts/release.ts` does that for you as its last step
-([`scripts/bump-cask.ts`](scripts/bump-cask.ts)): it hashes the DMG it just
-built, clones/refreshes the tap under `build/homebrew-tap`, rewrites the
-`version` and `sha256` stanzas, and pushes a `zshell <version>` commit. It needs
-**push access to the tap over SSH** — nothing else.
+The publisher verifies local checksums and Ed25519 signatures, remote asset
+hashes, and all six public feed responses against the local signed files. Also
+verify anonymous package downloads and mount each DMG to check `zshell.app` and
+the Applications symlink. Do not treat a signature field's presence as a
+successful installation test.
 
-The bump runs *after* the upload, so the hash always covers a DMG that's already
-fetchable, and a failure there is a warning rather than a failed release — the
-release is live either way. Retry it on its own:
+Test an older Release installation through **Check for Updates…** to verify
+feed signature, archive signature, replacement, and restart. Verify Gitee first,
+then one GitHub retry when the primary feed or package download fails. Thin
+installs retain their architecture, Universal retains both slices, and an Intel
+app running under Rosetta migrates to Apple Silicon. Debug does not initialize
+Sparkle and cannot substitute for this test. Record any unavailable test machine
+or incomplete installation test explicitly.
 
-```sh
-bun scripts/bump-cask.ts 1.1     # downloads the published DMG if it's not in build/
+## Homebrew and website PRs
+
+After both releases verify, update `Casks/zshell.rb` in `wzz6423/homebrew-tap`
+through a PR. The cask selects the native architecture's **ZIP**, uses its exact
+SHA-256, and preserves `#{version}` and `#{arch}` URL interpolation. Keep
+`auto_updates true` and the app's minimum macOS requirement. Run cask syntax and
+Homebrew validation before submitting; do not push the tap's default branch.
+
+Direct and Homebrew installations both use Sparkle. A manual
+`brew upgrade --cask --greedy-auto-updates zshell` remains available for an
+explicit Homebrew upgrade or a lagging installation.
+
+The website reads the Gitee feed with GitHub fallback during prerendering.
+It advertises three DMGs plus Gitee mirror links only after the current feed
+references a canonical architecture package. Until then, the existing Universal
+download remains the fallback. The canonical package URL is:
+
+```text
+https://<github|gitee>.com/wzz6423/zshell/releases/download/v<version>/zshell-v<version>-macOS-<architecture>.dmg
 ```
 
-Re-running when the cask already names that version is a no-op. Set `NO_TAP=1`
-to skip the bump entirely.
+Update the fallback version and installation documentation in the website PR.
+Run `bun run build` and `bun run typecheck` from `web/`. The website deploys after
+the maintainer merges the PR; do not deploy unmerged website changes.
 
-The cask marks `auto_updates true`; the app therefore invokes
-`brew upgrade --cask --greedy-auto-updates zshell` for Homebrew installs. Its
-`depends_on macos:` mirrors the app's `LSMinimumSystemVersion`, which
-the bump doesn't touch — it only warns when the two drift apart. If you raise the
-deployment target, edit that stanza in the tap by hand.
+## Release notes, compatibility, and cleanup
 
----
+State that this is a stable macOS release, its signing and notarization status,
+first-launch steps, supported architectures, and actually tested macOS versions.
+Link issues and PRs to GitHub; Gitee is the release mirror. If including product
+screenshots, upload them as versioned release assets and verify that the URLs in
+each host's release body return the expected PNG bytes.
 
-## The website
+The original 0.1.0 ad-hoc build 2 retains its legacy download names. The planned aligned
+0.1.0 build 3 will use the canonical architecture names and a higher Sparkle build
+number; preserve the existing Ed25519 trust key and legacy downloads during this
+migration. The old `updates` feed belongs to those existing installations and
+must remain usable until their migration has been verified.
 
-[The website](https://wzz6423.github.io/zshell/) is a static site on GitHub Pages, prerendered by
-the `Web Pages` workflow. Its download buttons read the version, the minimum
-system, and the DMG URL out of the appcast **while it is being prerendered** —
-there is no server to ask at request time, so the site keeps advertising the
-release it was last built against.
-
-`scripts/release.ts` therefore dispatches that workflow as its final step, after
-the appcast is up:
-
-```sh
-gh workflow run "Web Pages" --ref main
-```
-
-It needs the `gh` CLI, logged in with access to this repository. Like the cask
-bump this runs after the release is live, so a failure is a warning with that
-command to retry, and `NO_SITE=1` skips it. A push to `main` that touches `web/`
-deploys the site too — the dispatch exists for releases, which change nothing in
-the repository.
-
----
-
-## Notes
-
-- **Two artifacts per release:** a notarized `.dmg` (what people download) and a
-  `.zip` (what Sparkle installs, with binary deltas). Only the `.zip` goes in the
-  appcast; the website's download button points at
-  `https://github.com/wzz6423/zshell/releases/download/v<version>/zshell-<version>.dmg`,
-  which [`web/src/lib/release.ts`](../web/src/lib/release.ts) builds from the
-  version it read out of the feed. Need a URL that never changes?
-  `https://github.com/wzz6423/zshell/releases/latest` always resolves to the
-  newest version's release page.
-- **Automatic checks:** by default Sparkle asks the user once whether to allow
-  automatic update checks. To opt in by default (no prompt), add to
-  [`zshell/Info.plist`](zshell/Info.plist):
-  ```xml
-  <key>SUEnableAutomaticChecks</key>
-  <true/>
-  ```
-  The **Updates** settings toggle lets users change it either way.
-- **Release notes** live in [`CHANGELOG.md`](../CHANGELOG.md). The release script
-  publishes the matching version section as `zshell-<version>.md` next to the
-  archive, and `generate_appcast` links it as the update's release notes
-  (Sparkle 2.9+ renders Markdown). No matching section → the release just ships
-  without notes. Notes for older versions stay on the `updates` release, so they
-  keep showing.
-- `SUPublicEDKey` must match the private key used to sign the appcast. A mismatch
-  lets the app check the feed but makes update installation fail signature verification.
-- zshell isn't sandboxed, so no Sparkle XPC services need bundling.
-- Old archives stay on the `updates` release so users far behind can still
-  download them. Only the recent archives needed for new deltas are staged under
-  `build/`, which is git-ignored.
+Only after verification and recovery are complete, remove this run's archive,
+derived data, staging directories, test installations, downloads, and temporary
+files. Retain requested deliverables and private signing backups. Do not run a
+broad `make clean` that stops or deletes another task's Debug build. Recovery
+procedures are in [troubleshooting](../skills/zshell-release/references/troubleshooting.md).

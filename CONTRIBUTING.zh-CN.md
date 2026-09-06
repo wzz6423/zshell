@@ -79,8 +79,8 @@ make run
 codesign --verify --deep --strict --verbose=2 'mac/build/debug/Build/Products/Debug/zshell Debug.app'
 ```
 
-`make build-package` 在本地产出经 Developer ID 签名的 Release 应用和 DMG，不做公证也不
-发布。`make clean` 会停止 Debug 应用并清除构建产物和网站产物。这些命令都写入
+`make build-package` 在本地产出固定证书签名的 arm64、x86_64、Universal DMG/ZIP 和签名更新源，不发布。
+发布身份和 Sparkle 密钥按 [RELEASING.md](mac/RELEASING.md) 配置。`make clean` 会停止 Debug 应用并清除构建产物和网站产物。这些命令都写入
 `mac/build/` 或其他被忽略的输出目录；提交前请清理掉。
 
 Debug 构建的 bundle id 是 `sh.zshell.dev`，状态独立保存，因此可以和已安装的 Zshell

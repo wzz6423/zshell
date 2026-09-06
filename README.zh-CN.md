@@ -54,7 +54,7 @@ make run
 | --- | --- |
 | [用户文档](https://wzz6423.github.io/zshell/docs) | 了解应用的工作流和设置。 |
 | [贡献指南](CONTRIBUTING.zh-CN.md) | 搭建环境、配置本地签名、构建、验证并提交 Pull Request。 |
-| [发布指南](mac/RELEASING.md) | 仅维护者：Developer ID、公证、Sparkle 和 GitHub Releases 发布流程。 |
+| [发布指南](mac/RELEASING.md) | 仅维护者：固定签名、Sparkle 和 GitHub/Gitee 双端发布流程。 |
 | [安全策略](SECURITY.zh-CN.md) | 支持的版本范围和私密漏洞报告方式。 |
 | [本地化指南](mac/LOCALIZATION.md) | 翻译并测试应用文案。 |
 | [官网指南](web/README.md) | 构建和维护静态站点及其用户文档。 |

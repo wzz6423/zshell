@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createPrivateKey, createPublicKey, randomBytes } from "node:crypto";
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { architectures, feedName, packageName, validateRelease, verifyKeyPair } from "./release";
@@ -26,6 +26,9 @@ describe("stable release preflight", () => {
       writeFileSync(path, seed.toString("base64"), { mode: 0o600 });
       expect(() => verifyKeyPair(path, publicKey)).not.toThrow();
       expect(() => verifyKeyPair(path, randomBytes(32).toString("base64"))).toThrow("does not match");
+      const link = join(dir, "linked-key");
+      symlinkSync(path, link);
+      expect(() => verifyKeyPair(link, publicKey)).toThrow();
       chmodSync(path, 0o644);
       expect(() => verifyKeyPair(path, publicKey)).toThrow("permissions");
     } finally { rmSync(dir, { recursive: true }); }

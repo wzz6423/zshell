@@ -1,49 +1,46 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# Verifies that a published release is one an installed copy of Zshell can actually reach:
-# the notarized DMG the website links, the update archive and notes Sparkle downloads, and
-# the appcast that has to offer this version as the newest one. Parses the feed as text so
-# CI needs no XML toolchain, and takes an injectable fetcher so the tests stay offline.
-
-require 'optparse'
+# CI verifies public assets and signed canonical feeds. The publishing tool additionally
+# downloads both hosts' binaries and verifies their hashes and ZIP Ed25519 signatures.
+require 'base64'
 require 'net/http'
+require 'openssl'
+require 'optparse'
+require 'rexml/document'
 require 'uri'
 
 module AppcastFeeds
   class VerificationError < StandardError; end
 
   REPOSITORY = 'wzz6423/zshell'
-  # Sparkle resolves the whole feed against one prefix, so every archive it may ever offer
-  # has to stay under one tag that never moves. That tag is the permanent `updates` release;
-  # each version's DMG lives on its own `v<version>` release instead.
-  UPDATES_TAG = 'updates'
-  DOWNLOAD_ROOT = "https://github.com/#{REPOSITORY}/releases/download"
-  UPDATES_PREFIX = "#{DOWNLOAD_ROOT}/#{UPDATES_TAG}/"
-  FEED_URL = "#{UPDATES_PREFIX}appcast.xml"
-
-  # release.ts creates the versioned release as v<CFBundleShortVersionString>, so the tag is
-  # the version with a v in front and every asset name carries the bare version.
-  TAG_PATTERN = /\Av(\d+(?:\.\d+)*(?:[-.+][0-9A-Za-z.-]+)?)\z/
-
-  ITEM_PATTERN = %r{<item>(.*?)</item>}m
-  ENCLOSURE_PATTERN = /<enclosure\b[^>]*>/
-  URL_ATTRIBUTE = /\burl="([^"]*)"/
-  SIGNATURE_ATTRIBUTE = /\bsparkle:edSignature="([^"]*)"/
-  # generate_appcast writes the version fields as elements, which is also how the website
-  # reads them (web/src/lib/release.ts). Both parsers have to agree on the same feed.
-  BUILD_PATTERN = %r{<sparkle:version>([^<]*)</sparkle:version>}
-  SHORT_VERSION_PATTERN = %r{<sparkle:shortVersionString>([^<]*)</sparkle:shortVersionString>}
-  NOTES_LINK_PATTERN = %r{<sparkle:releaseNotesLink>([^<]*)</sparkle:releaseNotesLink>}
+  SPARKLE_NAMESPACE = 'http://www.andymatuschak.org/xml-namespaces/sparkle'
+  ARCHIVES = {
+    'appcast.xml' => 'universal',
+    'appcast-arm64.xml' => 'arm64',
+    'appcast-x86_64.xml' => 'x86_64'
+  }.freeze
+  FEED_ROOTS = {
+    'gitee' => "https://gitee.com/#{REPOSITORY}/releases/download/update-release",
+    'github' => "https://github.com/#{REPOSITORY}/releases/latest/download"
+  }.freeze
 
   def self.version_for(tag)
-    match = TAG_PATTERN.match(tag.to_s)
-    raise VerificationError, "#{tag} is not a v<version> release tag" if match.nil?
+    match = /\Av(\d+\.\d+\.\d+)\z/.match(tag.to_s)
+    raise VerificationError, "#{tag} is not a stable vX.Y.Z release tag" unless match
 
     match[1]
   end
 
-  # Downloads the feed and reports either its body or why it could not be read.
+  def self.public_key
+    plist = File.read(File.expand_path('../../mac/zshell/Info.plist', __dir__))
+    encoded = plist[%r{<key>SUPublicEDKey</key>\s*<string>([^<]+)</string>}, 1]
+    bytes = Base64.strict_decode64(encoded.to_s)
+    raise VerificationError, 'SUPublicEDKey must contain 32 bytes' unless bytes.bytesize == 32
+
+    OpenSSL::PKey.read(['302a300506032b6570032100'].pack('H*') + bytes)
+  end
+
   class HTTPFetcher
     def initialize(redirect_limit: 5, timeout: 20)
       @redirect_limit = redirect_limit
@@ -51,175 +48,159 @@ module AppcastFeeds
     end
 
     def call(url)
-      remaining = @redirect_limit
-      current = url
-      while remaining.positive?
-        response = get(current)
+      current = URI.parse(url)
+      @redirect_limit.times do
+        raise VerificationError, 'only HTTPS downloads are accepted' unless current.scheme == 'https'
+
+        response = Net::HTTP.start(current.host, current.port, use_ssl: true,
+                                  open_timeout: @timeout, read_timeout: @timeout) do |http|
+          http.request(Net::HTTP::Get.new(current))
+        end
         return [response.code.to_i, response.body.to_s] unless response.is_a?(Net::HTTPRedirection)
 
-        current = response['location']
-        remaining -= 1
+        current = URI.join(current.to_s, response.fetch('location'))
       end
       [0, "exceeded #{@redirect_limit} redirects starting at #{url}"]
     rescue StandardError => error
-      # A release asset store that refuses the connection has to read as a verification
-      # failure with a reason, not as a Ruby backtrace the release operator then decodes.
       [0, "#{error.class}: #{error.message}"]
-    end
-
-    private
-
-    # Every request carries its own deadline so one hung endpoint cannot stall the run.
-    def get(url)
-      uri = URI.parse(url)
-      Net::HTTP.start(
-        uri.host, uri.port,
-        use_ssl: uri.scheme == 'https', open_timeout: @timeout, read_timeout: @timeout
-      ) { |http| http.request(Net::HTTP::Get.new(uri)) }
     end
   end
 
   class Verifier
-    def initialize(tag:, fetcher:, feed_url: FEED_URL)
+    def initialize(tag:, fetcher:, hosts: FEED_ROOTS.keys, public_key: AppcastFeeds.public_key)
       @tag = tag
+      @version = AppcastFeeds.version_for(tag)
       @fetcher = fetcher
-      @feed_url = feed_url
+      @hosts = hosts
+      @public_key = public_key
     end
 
     def run
-      version = AppcastFeeds.version_for(@tag)
-      status, body = @fetcher.call(@feed_url)
-      return ["#{@feed_url} could not be read: #{body}"] if status.zero?
-      return ["#{@feed_url} returned HTTP #{status}"] if status != 200
+      unknown = @hosts - FEED_ROOTS.keys
+      raise VerificationError, "unknown hosts #{unknown.join(', ')}" unless unknown.empty?
+      raise VerificationError, 'at least one host is required' if @hosts.empty?
 
-      items = body.scan(ITEM_PATTERN).flatten
-      return ["#{@feed_url} carries no <item> elements"] if items.empty?
-
-      errors = verify_prefix(body)
-      errors.concat(verify_newest(items, version))
-      errors.concat(verify_item(items, version))
+      @hosts.flat_map do |host|
+        ARCHIVES.flat_map { |name, architecture| verify_feed(host, name, architecture) }
+      end
     end
 
     private
 
-    # One prefix covers every entry in the feed, including the ones for older versions, so a
-    # prefix pointing anywhere but the permanent release breaks installs this release never
-    # touched.
-    def verify_prefix(body)
-      urls = body.scan(ENCLOSURE_PATTERN).filter_map { |tag| tag[URL_ATTRIBUTE, 1] }
-      urls.concat(body.scan(NOTES_LINK_PATTERN).flatten)
-      urls.reject { |url| url.start_with?(UPDATES_PREFIX) }
-          .map { |url| "#{@feed_url} serves #{url} from outside #{UPDATES_PREFIX}" }
+    def verify_feed(host, name, architecture)
+      url = "#{FEED_ROOTS.fetch(host)}/#{name}"
+      status, body = @fetcher.call(url)
+      return ["#{url} could not be read: #{body}"] if status.zero?
+      return ["#{url} returned HTTP #{status}"] if status != 200
+
+      content = signed_content(body)
+      document = REXML::Document.new(content)
+      namespaces = { 'sparkle' => SPARKLE_NAMESPACE }
+      items = REXML::XPath.match(document, '/rss/channel/item')
+      raise VerificationError, "carries #{items.length} release items instead of 1" unless items.length == 1
+
+      item = items.first
+      short_version = REXML::XPath.first(item, 'sparkle:shortVersionString', namespaces)&.text
+      raise VerificationError, "offers #{short_version.inspect} instead of #{@version}" unless short_version == @version
+
+      build = REXML::XPath.first(item, 'sparkle:version', namespaces)&.text.to_s
+      raise VerificationError, 'carries no positive sparkle:version build number' unless /\A[1-9]\d*\z/.match?(build)
+
+      enclosures = REXML::XPath.match(document, '//enclosure')
+      raise VerificationError, "carries #{enclosures.length} enclosures instead of 1" unless enclosures.length == 1 && enclosures.first.parent == item
+
+      enclosure = enclosures.first
+      expected = "https://#{host}.com/#{REPOSITORY}/releases/download/#{@tag}/zshell-#{@tag}-macOS-#{architecture}.zip"
+      raise VerificationError, "points at #{enclosure.attributes['url'].inspect} instead of #{expected}" unless enclosure.attributes['url'] == expected
+      raise VerificationError, 'carries no positive ZIP byte length' unless /\A[1-9]\d*\z/.match?(enclosure.attributes['length'].to_s)
+
+      signature = enclosure.attributes.get_attribute_ns(SPARKLE_NAMESPACE, 'edSignature')&.value.to_s
+      raise VerificationError, 'carries no valid 64-byte ZIP Ed25519 signature' unless decode_signature(signature)&.bytesize == 64
+
+      # Gitee serves the canonical feed from a separate permanent release. Its version
+      # release must carry those exact signed bytes, not an older or edited appcast.
+      if host == 'gitee'
+        version_url = "https://gitee.com/#{REPOSITORY}/releases/download/#{@tag}/#{name}"
+        version_status, version_body = @fetcher.call(version_url)
+        raise VerificationError, "version appcast #{version_url} differs or is unavailable (HTTP #{version_status})" unless version_status == 200 && version_body.b == body.b
+      end
+      []
+    rescue VerificationError, REXML::ParseException, OpenSSL::PKey::PKeyError => error
+      ["#{url}: #{error.message}"]
     end
 
-    # Sparkle offers the item with the highest build number, and the website reads that same
-    # item to write its download link. A release whose build number did not move is published
-    # but invisible: nobody is ever offered it.
-    def verify_newest(items, version)
-      newest = items.max_by { |item| item[BUILD_PATTERN, 1].to_i }
-      offered = newest[SHORT_VERSION_PATTERN, 1].to_s.strip
-      return [] if offered == version
+    def signed_content(body)
+      bytes = body.b
+      signing = /<!-- sparkle-signatures:\nedSignature: ([A-Za-z0-9+\/=]+)\nlength: (\d+)\n-->\n?\z/.match(bytes)
+      raise VerificationError, 'carries no outer sparkle-signatures XML signature' unless signing
 
-      ["#{@feed_url} offers #{offered.empty? ? 'an item with no version' : offered} " \
-       "as the newest update instead of #{version}"]
+      length = signing[2].to_i
+      raise VerificationError, 'XML signature length does not match signed content' unless length == signing.begin(0)
+
+      content = bytes.byteslice(0, length)
+      signature = decode_signature(signing[1])
+      raise VerificationError, 'XML Ed25519 signature is invalid' unless signature&.bytesize == 64 && @public_key.verify(nil, signature, content)
+      raise VerificationError, 'XML entity declarations are forbidden' if /<!DOCTYPE|<!ENTITY/i.match?(content)
+
+      content
     end
 
-    def verify_item(items, version)
-      item = items.find { |candidate| candidate[SHORT_VERSION_PATTERN, 1].to_s.strip == version }
-      return ["#{@feed_url} carries no item for #{version}"] if item.nil?
-
-      errors = []
-      errors << "#{@feed_url} carries no sparkle:version for #{version}" if item[BUILD_PATTERN, 1].to_s.strip.empty?
-      errors.concat(verify_enclosure(item, version))
-      errors.concat(verify_notes(item, version))
-      errors
-    end
-
-    # The update has to be the archive published beside the appcast, signed with the key the
-    # installed app pins. An unsigned enclosure downloads and then refuses to install.
-    def verify_enclosure(item, version)
-      expected = "#{UPDATES_PREFIX}zshell-#{version}.zip"
-      enclosure = item.scan(ENCLOSURE_PATTERN).find { |tag| tag[URL_ATTRIBUTE, 1] == expected }
-      return ["#{@feed_url} offers #{version} from somewhere other than #{expected}"] if enclosure.nil?
-      return [] unless enclosure[SIGNATURE_ATTRIBUTE, 1].to_s.empty?
-
-      ["#{@feed_url} carries no sparkle:edSignature for #{expected}"]
-    end
-
-    # generate_appcast only writes the link when the notes file sits beside the archive, so a
-    # missing link means the version had no CHANGELOG.md section and shipped without notes.
-    def verify_notes(item, version)
-      expected = "#{UPDATES_PREFIX}zshell-#{version}.md"
-      found = item[NOTES_LINK_PATTERN, 1]
-      return ["#{@feed_url} carries no sparkle:releaseNotesLink for #{version}"] if found.nil?
-      return [] if found == expected
-
-      ["#{@feed_url} links the notes for #{version} at #{found} instead of #{expected}"]
+    def decode_signature(value)
+      Base64.strict_decode64(value)
+    rescue ArgumentError
+      nil
     end
   end
 
-  # What each release has to carry. An asset that never got uploaded is invisible on the
-  # Release page yet 404s every download or update of it, so the list is checked as a set.
   def self.required_assets(tag:, layout:)
-    version = version_for(tag)
-    case layout
-    when 'version' then ["zshell-#{version}.dmg"]
-    when 'updates' then ['appcast.xml', "zshell-#{version}.zip", "zshell-#{version}.md"]
-    else raise VerificationError, "unknown layout #{layout}"
+    return ARCHIVES.keys if layout == 'feed'
+    raise VerificationError, "unknown layout #{layout}" unless layout == 'version'
+
+    version_for(tag)
+    ARCHIVES.keys + ARCHIVES.values.flat_map do |architecture|
+      %w[dmg dmg.sha256 zip zip.sha256].map { |extension| "zshell-#{tag}-macOS-#{architecture}.#{extension}" }
     end
   end
 
-  # Deltas, older archives and the source archives GitHub attaches are extra, never missing.
   def self.missing_assets(tag:, layout:, names:)
     required_assets(tag: tag, layout: layout) - names.map(&:strip).reject(&:empty?)
   end
 
   def self.main(argv)
-    options = { layout: 'version' }
+    options = { hosts: FEED_ROOTS.keys, layout: 'version' }
     parser = OptionParser.new do |opts|
       opts.banner = <<~USAGE
-        usage: appcast-feeds.rb verify --tag vX.Y.Z
-               appcast-feeds.rb verify-assets --tag vX.Y.Z [--layout version|updates] < asset-names
+        usage: appcast-feeds.rb verify --tag vX.Y.Z [--hosts gitee,github]
+               appcast-feeds.rb verify-assets --tag vX.Y.Z [--layout version|feed] < asset-names
       USAGE
-      opts.on('--tag TAG', 'release tag the feed must offer') { |value| options[:tag] = value }
-      opts.on('--layout LAYOUT', 'version for the DMG release, updates for the feed release') do |value|
-        options[:layout] = value
-      end
+      opts.on('--tag TAG') { |value| options[:tag] = value }
+      opts.on('--hosts LIST') { |value| options[:hosts] = value.split(',').map(&:strip).reject(&:empty?) }
+      opts.on('--layout LAYOUT') { |value| options[:layout] = value }
     end
     parser.parse!(argv)
     command = argv.shift
     raise VerificationError, parser.banner unless %w[verify verify-assets].include?(command)
     raise VerificationError, 'a --tag is required' if options[:tag].to_s.empty?
 
-    command == 'verify' ? verify_feed(options) : verify_assets(options)
-  end
-
-  def self.verify_feed(options)
-    errors = Verifier.new(tag: options[:tag], fetcher: HTTPFetcher.new).run
-    return report(errors) unless errors.empty?
-
-    puts "#{FEED_URL} offers #{options[:tag]} as the newest update"
-    0
-  end
-
-  def self.verify_assets(options)
-    missing = missing_assets(tag: options[:tag], layout: options[:layout], names: $stdin.read.lines)
-    return report(missing.map { |name| "the #{options[:layout]} release carries no #{name}" }) unless missing.empty?
-
-    puts "the #{options[:layout]} release carries every asset #{options[:tag]} needs"
-    0
-  end
-
-  def self.report(errors)
+    if command == 'verify'
+      errors = Verifier.new(tag: options[:tag], hosts: options[:hosts], fetcher: HTTPFetcher.new).run
+    else
+      names = $stdin.read.lines.map(&:strip).reject(&:empty?)
+      required = required_assets(tag: options[:tag], layout: options[:layout])
+      errors = (required - names).map { |name| "the #{options[:layout]} release carries no #{name}" }
+      errors.concat((names - required).map { |name| "unexpected permanent feed asset #{name}" }) if options[:layout] == 'feed'
+      errors.concat(required.select { |name| names.count(name) > 1 }.map { |name| "duplicate asset #{name}" })
+    end
     errors.each { |error| warn "error: #{error}" }
-    1
+    puts "Verified #{options[:tag]} #{command} on #{options[:hosts].join(', ')}" if errors.empty?
+    errors.empty? ? 0 : 1
   end
 end
 
 if $PROGRAM_NAME == __FILE__
   begin
     exit AppcastFeeds.main(ARGV)
-  rescue AppcastFeeds::VerificationError => error
+  rescue AppcastFeeds::VerificationError, OptionParser::ParseError => error
     warn error.message
     exit 1
   end
