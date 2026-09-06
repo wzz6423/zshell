@@ -43,7 +43,7 @@ jobs:
     name: Check Shell Scripts
     needs: gate
     if: needs.gate.outputs.skip != 'true' && needs.gate.outputs.relevant != 'false'
-    runs-on: macos-latest
+    runs-on: macos-26
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -65,6 +65,10 @@ jobs:
       - name: Check the dev icon generator
         run: python3 -m py_compile mac/scripts/make-dev-icon.py
 
+      - name: Test updater architecture and fallback behavior
+        working-directory: mac
+        run: python3 scripts/test-updater.py
+
       - name: Remove compile artifacts
         if: always()
         run: rm -rf mac/scripts/__pycache__
@@ -73,7 +77,7 @@ jobs:
     name: Typecheck Release Scripts
     needs: gate
     if: needs.gate.outputs.skip != 'true' && needs.gate.outputs.relevant != 'false'
-    runs-on: ubuntu-latest
+    runs-on: macos-26
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -91,6 +95,10 @@ jobs:
       - name: Typecheck mac/scripts/
         working-directory: mac
         run: bunx tsc --noEmit
+
+      - name: Test release validation and dual-host publishing
+        working-directory: mac
+        run: bun test scripts/*.test.ts
 
       - name: Remove installed dependencies
         if: always()

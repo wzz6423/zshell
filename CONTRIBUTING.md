@@ -87,8 +87,9 @@ make run
 codesign --verify --deep --strict --verbose=2 'mac/build/debug/Build/Products/Debug/zshell Debug.app'
 ```
 
-`make build-package` produces a local Developer ID-signed Release app and DMG
-without notarizing or publishing it. `make clean` stops the Debug app and
+`make build-package` produces locally signed arm64, x86_64, and Universal DMG/ZIP
+packages and signed feeds without publishing. Configure the stable release identity
+and Sparkle key as described in [RELEASING.md](mac/RELEASING.md). `make clean` stops the Debug app and
 removes build and website artifacts. All of these write to `mac/build/` or other
 ignored output directories; remove them before committing.
 

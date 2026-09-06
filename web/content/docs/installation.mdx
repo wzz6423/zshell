@@ -3,14 +3,20 @@ title: Installation
 description: Download Zshell, install it with Homebrew, keep it updated, and remove it cleanly.
 ---
 
-Every build is signed and notarized by Apple, so it opens without a Gatekeeper
-warning. [The home page](/en) shows the minimum macOS version the current
+Zshell is not notarized by Apple. [The home page](/en)
+shows the minimum macOS version the current
 release needs, next to the download.
 
 ## Download
 
-Grab the `.dmg` from [the home page](/en), open it, and drag **Zshell** into
-your Applications folder.
+Download the `.dmg` from [the home page](/en). The current 0.1.0 download is
+**Universal**, which runs on Apple Silicon and Intel. When architecture-specific
+packages and the Gitee mirror are published, the home page will show those
+additional choices. Open the disk image and drag **Zshell** into Applications.
+
+On first launch, macOS may block the app. After trying to open it, go to
+**System Settings → Privacy & Security → Open Anyway**, then confirm opening
+Zshell. This also applies to Homebrew installations.
 
 ## Homebrew
 
@@ -18,8 +24,10 @@ your Applications folder.
 brew install wzz6423/tap/zshell
 ```
 
-The cask lives in `wzz6423/homebrew-tap`, which is why the tap is named in full.
-Upgrade the same way you upgrade anything else:
+The cask lives in `wzz6423/homebrew-tap`. The upcoming architecture release will
+install the ZIP for your Mac's processor and use Sparkle after installation.
+To explicitly update through Homebrew, or catch up when the installed version
+is behind:
 
 ```bash
 brew upgrade --cask --greedy-auto-updates zshell
@@ -27,20 +35,20 @@ brew upgrade --cask --greedy-auto-updates zshell
 
 ## Updates
 
-Zshell detects how it was installed and uses the matching updater. A direct
-download uses [Sparkle](https://sparkle-project.org): it checks in the background,
-downloads quietly, and installs the new version the next time you quit. A
-Homebrew installation updates through Homebrew instead.
+The original 0.1.0 download uses the existing GitHub update feed; Homebrew
+installations use Homebrew. The following update behavior is prepared for the
+next release rebuild and is not yet available in that original download.
 
-To change this, open **Settings → Updates** (<kbd>Cmd</kbd>+<kbd>,</kbd>):
+After that rebuild, both direct downloads and Homebrew installations use
+[Sparkle](https://sparkle-project.org). Zshell checks the Gitee update source
+first and retries GitHub once if the feed or download fails. It verifies the
+signed feed and update package before installation and keeps the installed
+architecture; Intel apps running under Rosetta migrate to Apple Silicon.
 
-- **Automatically check for updates** — controls Sparkle checks for direct downloads.
-- **Check for Updates…** — ask Sparkle to check, or run Homebrew for a cask install.
-
-<Callout title="Installed with Homebrew?">
-The Updates section identifies the Homebrew installation and its update button
-runs `brew upgrade --cask --greedy-auto-updates zshell`. You can also run that command in Terminal.
-</Callout>
+Open **Settings → Updates** (<kbd>Cmd</kbd>+<kbd>,</kbd>) to control automatic
+checks, or choose **Check for Updates…** to check now. Downloaded
+updates install when you quit or restart Zshell. Use the Homebrew command above for an explicit update or when the installed
+version is behind.
 
 ## Open a folder from Finder
 

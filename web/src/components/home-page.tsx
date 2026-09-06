@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { DocsLink, HomeLink } from '@/components/site-links'
 import { formatCopy, homeCopy, type HomeCopy, type Row } from '@/lib/home-copy'
 import { DEFAULT_LANGUAGE, i18n } from '@/lib/i18n'
-import { BREW_COMMAND, GITHUB_URL, type Release } from '@/lib/release'
+import { BREW_COMMAND, GITHUB_URL, RELEASE_ARCHITECTURES, dmgUrl, type Release } from '@/lib/release'
 import { cn, withBase } from '@/lib/utils'
 
 /** The landing page, rendered once per language from `homeCopy`. */
@@ -551,6 +551,22 @@ function Download({ copy, release }: { copy: HomeCopy; release: Release }) {
                 </a>
                 <CopyCommand command={BREW_COMMAND} label={copy.copy} copiedLabel={copy.copied} aria={copy.copyAria(BREW_COMMAND)} />
               </div>
+              {release.architecturePackages && <div className="mt-4 space-y-2 font-mono text-[12px] text-muted-foreground">
+                {(['github', 'gitee'] as const).map((host) => (
+                  <div key={host} className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <span>{host === 'github' ? 'GitHub' : copy.download.mirror}</span>
+                    {RELEASE_ARCHITECTURES.filter((arch) => host === 'gitee' || arch !== 'universal').map((arch) => (
+                      <a
+                        key={arch}
+                        href={dmgUrl(release.version, arch, host)}
+                        className="text-brand transition-opacity hover:opacity-75"
+                      >
+                        {arch === 'arm64' ? 'Apple Silicon' : arch === 'x86_64' ? 'Intel' : 'Universal'}
+                      </a>
+                    ))}
+                  </div>
+                ))}
+              </div>}
             </div>
           </Reveal>
           <Reveal delay={120}>

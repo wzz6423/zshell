@@ -37,7 +37,7 @@ stop:
 	@sleep 1
 	@osascript -l JavaScript -e 'ObjC.import("AppKit"); const apps = $$.NSRunningApplication.runningApplicationsWithBundleIdentifier("$(DEBUG_BUNDLE_ID)"); for (let i = 0; i < apps.count; i += 1) { void apps.objectAtIndex(i).forceTerminate; }'
 
-# `--local` keeps release packaging local: it neither notarizes nor publishes artifacts.
+# `--local` builds all three signed architecture packages and feeds without publishing.
 build-package:
 	@bun scripts/release.ts --local
 
