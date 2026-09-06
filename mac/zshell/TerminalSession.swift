@@ -470,6 +470,16 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zprofile\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zprofile\"
             """,
             ".zshrc": """
+            # /etc/zshrc and the user's own config both derive paths from ZDOTDIR --
+            # HISTFILE, compinit's dump, plugin caches -- and ours points at a
+            # per-session temp directory that is deleted with the session. Restore
+            # the real one before any of that is read, and correct what /etc/zshrc
+            # has already derived from it: otherwise every pane opens on an empty
+            # history, saves none of its own, and rebuilds .zcompdump from scratch.
+            if [[ -n \"$ZSHELL_ORIGINAL_ZDOTDIR\" ]]; then
+              [[ \"$HISTFILE\" == \"$ZDOTDIR\"/* ]] && HISTFILE=\"$ZSHELL_ORIGINAL_ZDOTDIR/.zsh_history\"
+              export ZDOTDIR=\"$ZSHELL_ORIGINAL_ZDOTDIR\"
+            fi
             [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshrc\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshrc\"
             autoload -Uz add-zsh-hook add-zle-hook-widget
             _zshell_prompt_marker() {

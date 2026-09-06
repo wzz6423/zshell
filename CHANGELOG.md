@@ -15,3 +15,11 @@ history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
 ## [unreleased]
+
+### Changed
+
+- Settings is now a sidebar of categories — General, Appearance, Terminal,
+  Editor, Automation, and Updates — in a taller, resizable window that
+  remembers its size and position.
+- Editor line wrapping, AI agent coordination, and automatic update checks
+  start out enabled.

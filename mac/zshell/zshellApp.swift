@@ -59,11 +59,15 @@ struct zshellApp: App {
             CommandGroup(after: .appInfo) {
                 CheckForUpdatesView(updater: updater)
             }
+            // The settings window is AppKit, so it replaces SwiftUI's Settings
+            // scene along with the menu item that scene would have supplied.
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") {
+                    SettingsWindowController.shared.show()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
             ZshellCommands()
-        }
-
-        Settings {
-            SettingsView()
         }
     }
 }

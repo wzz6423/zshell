@@ -696,7 +696,20 @@
       }
     },
     "Automation" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オートメーション"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动化"
+          }
+        }
+      }
     },
     "Automatically check for updates" : {
       "localizations" : {
@@ -776,6 +789,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "后端"
+          }
+        }
+      }
+    },
+    "Behavior" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動作"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行为"
           }
         }
       }
@@ -2042,6 +2071,22 @@
         }
       }
     },
+    "Cursor" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カーソル"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "光标"
+          }
+        }
+      }
+    },
     "Cursor shape" : {
       "localizations" : {
         "ja" : {
@@ -2467,6 +2512,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "编辑"
+          }
+        }
+      }
+    },
+    "Editor" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エディタ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑器"
           }
         }
       }
@@ -3132,6 +3193,22 @@
         }
       }
     },
+    "General" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一般"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通用"
+          }
+        }
+      }
+    },
     "Git" : {
       "localizations" : {
         "ja" : {
@@ -3344,6 +3421,22 @@
         }
       }
     },
+    "Homebrew manages updates for this installation." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このインストールのアップデートはHomebrewが管理します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此安装的更新由 Homebrew 管理。"
+          }
+        }
+      }
+    },
     "Ignored" : {
       "localizations" : {
         "ja" : {
@@ -3478,6 +3571,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在终端中插入绝对路径"
+          }
+        }
+      }
+    },
+    "Installed with Homebrew" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrewでインストール済み"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过 Homebrew 安装"
           }
         }
       }
@@ -7527,6 +7636,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "向上"
+          }
+        }
+      }
+    },
+    "Update with Homebrew…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrewで更新…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Homebrew 更新…"
           }
         }
       }

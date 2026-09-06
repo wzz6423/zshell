@@ -283,7 +283,7 @@ final class AppSettings: nonisolated ObservableObject {
         ) ?? .block
         cursorBlinking = toml["terminal.cursor-blinking"]?.bool ?? true
         macosOptionAsAlt = toml["terminal.macos-option-as-alt"]?.bool ?? false
-        wrapLines = toml["editor.wrap-lines"]?.bool ?? false
+        wrapLines = toml["editor.wrap-lines"]?.bool ?? true
         restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? false
         let quickTerminalSize = toml["quick-terminal.size"]?.double
             ?? Self.defaultQuickTerminalSize
@@ -298,7 +298,7 @@ final class AppSettings: nonisolated ObservableObject {
         quickTerminalShortcut = QuickTerminalShortcut(
             persistedValue: toml["quick-terminal.shortcut"]?.string
         ) ?? Self.defaultQuickTerminalShortcut
-        aiEnabled = toml["ai.enabled"]?.bool ?? false
+        aiEnabled = toml["ai.enabled"]?.bool ?? true
         terminalBackend = TerminalBackend(persisted: toml["terminal.backend"]?.string)
         applyAppearance()
         reloadThemeSelection()
@@ -337,6 +337,30 @@ final class AppSettings: nonisolated ObservableObject {
         fontThicken = false
     }
 
+    /// Whether every setting ``resetToDefaults()`` touches already holds its
+    /// default, so Settings can disable the reset button.
+    var isAtDefaults: Bool {
+        fontFamily.isEmpty
+            && fontSize == Self.defaultFontSize
+            && sidebarFontSize == Self.defaultSidebarFontSize
+            && !fontThicken
+            && language == .system
+            && theme == .system
+            && themeDark == Theme.defaultDarkThemeName
+            && themeLight == Theme.defaultLightThemeName
+            && toolbarVisibility == Self.defaultToolbarVisibility
+            && cursorShape == .block
+            && cursorBlinking
+            && !macosOptionAsAlt
+            && wrapLines
+            && !restoreTerminalHistory
+            && quickTerminalSize == Self.defaultQuickTerminalSize
+            && quickTerminalOpacity == Self.defaultQuickTerminalOpacity
+            && quickTerminalShortcut == Self.defaultQuickTerminalShortcut
+            && aiEnabled
+            && terminalBackend == .fallback
+    }
+
     func resetToDefaults() {
         resetFont()
         language = .system
@@ -347,17 +371,17 @@ final class AppSettings: nonisolated ObservableObject {
         cursorShape = .block
         cursorBlinking = true
         macosOptionAsAlt = false
-        wrapLines = false
+        wrapLines = true
         restoreTerminalHistory = false
         quickTerminalSize = Self.defaultQuickTerminalSize
         quickTerminalOpacity = Self.defaultQuickTerminalOpacity
         quickTerminalShortcut = Self.defaultQuickTerminalShortcut
         GlobalTerminalOverlay.shared.reloadHotkey()
-        if aiEnabled {
+        if !aiEnabled {
             do {
-                try setAIEnabled(false)
+                try setAIEnabled(true)
             } catch {
-                NSLog("zshell: failed to disable AI support: \(error)")
+                NSLog("zshell: failed to enable AI support: \(error)")
             }
         }
         terminalBackend = .fallback
@@ -435,8 +459,8 @@ final class AppSettings: nonisolated ObservableObject {
         if macosOptionAsAlt {
             lines.append("terminal.macos-option-as-alt = true")
         }
-        if wrapLines {
-            lines.append("editor.wrap-lines = true")
+        if !wrapLines {
+            lines.append("editor.wrap-lines = false")
         }
         if restoreTerminalHistory {
             lines.append("terminal.restore-history = true")
@@ -450,8 +474,8 @@ final class AppSettings: nonisolated ObservableObject {
         if quickTerminalShortcut != Self.defaultQuickTerminalShortcut {
             lines.append("quick-terminal.shortcut = \(TOML.quote(quickTerminalShortcut.persistedValue))")
         }
-        if aiEnabled {
-            lines.append("ai.enabled = true")
+        if !aiEnabled {
+            lines.append("ai.enabled = false")
         }
         if terminalBackend != .fallback {
             lines.append("terminal.backend = \(TOML.quote(terminalBackend.rawValue))")
