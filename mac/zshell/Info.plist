@@ -72,5 +72,9 @@
 	<string>https://github.com/wzz6423/zshell/releases/download/updates/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>94CIcriCuNHELX8l1CQPW2XUsrBcqp0mr++vw9tXB0Q=</string>
+	<!-- Declared so background checks are on out of the box. Without the key
+	     Sparkle asks on first launch instead, and answers no until asked. -->
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 </dict>
 </plist>
