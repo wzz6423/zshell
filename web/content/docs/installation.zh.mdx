@@ -8,8 +8,8 @@ macOS 版本，标在[首页](/)的下载按钮旁边。
 
 ## 下载
 
-从[首页](/)下载 `.dmg`。当前 0.1.0 提供 **Universal** 包，同时支持 Apple Silicon 和 Intel。
-分架构安装包和 Gitee 镜像发布后，首页会显示对应的下载选项。
+从[首页](/)下载 `.dmg`。当前 0.1.1 提供 **Universal**、Apple Silicon 和 Intel
+安装包，Gitee 同时提供镜像下载。
 打开磁盘映像后，把 **Zshell** 拖进「应用程序」文件夹。
 
 首次打开时，macOS 可能会拦截应用。尝试打开后，前往
@@ -22,7 +22,7 @@ macOS 版本，标在[首页](/)的下载按钮旁边。
 brew install wzz6423/tap/zshell
 ```
 
-cask 放在 `wzz6423/homebrew-tap`。后续分架构版本会按本机处理器安装 ZIP 包，安装后由 Sparkle 更新。
+cask 放在 `wzz6423/homebrew-tap`，会按本机处理器安装 ZIP 包，安装后由 Sparkle 更新。
 需要显式通过 Homebrew 更新，或补齐落后的已安装版本时，可以运行：
 
 ```bash
@@ -31,10 +31,7 @@ brew upgrade --cask --greedy-auto-updates zshell
 
 ## 更新
 
-最初发布的 0.1.0 下载包仍使用原 GitHub 更新源，Homebrew 安装交给 Homebrew 更新。
-下面的更新方式将在下一次重新发版后提供，尚未包含在原下载包中。
-
-重新发版后，直接下载和 Homebrew 安装都通过 [Sparkle](https://sparkle-project.org) 更新。
+直接下载和 Homebrew 安装都通过 [Sparkle](https://sparkle-project.org) 更新。
 Zshell 优先访问 Gitee 更新源；feed 或下载失败时，自动重试 GitHub 一次。
 安装前会验证 feed 和更新包的签名，并保留安装包的架构；在 Rosetta 下运行的 Intel 版
 会迁移到 Apple Silicon 版。
