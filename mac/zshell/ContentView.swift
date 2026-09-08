@@ -947,7 +947,7 @@ private struct MainHeaderView: View {
 
     /// Keep an always-available grab target beside the trailing controls,
     /// even when the session strip is full.
-    private let minimumWindowDragWidth: CGFloat = 100
+    private let minimumWindowDragWidth: CGFloat = 40
 
     /// With the left sidebar hidden the header slides under the window's
     /// traffic-light buttons, so inset its content to clear them.
@@ -963,7 +963,7 @@ private struct MainHeaderView: View {
 
     var body: some View {
         GeometryReader { geo in
-            HStack(spacing: 8) {
+            HStack(spacing: 0) {
                 if !manager.isLeftSidebarVisible {
                     ChromeIconButton(
                         systemImage: "sidebar.left",
@@ -972,54 +972,53 @@ private struct MainHeaderView: View {
                     ) {
                         manager.toggleLeftSidebar()
                     }
+                    .padding(.trailing, 8)
                 }
                 if let project = manager.selectedProject {
-                    // Everything in the header that isn't the scrollable tab
-                    // strip: leading inset, an optional left-sidebar control,
-                    // trailing padding (8), HStack spacings (16), right-sidebar
-                    // toggle (24), "+" and spacing (26), the minimum drag
-                    // target (100), and the exit-zoom button (24 + 8 spacing)
-                    // while shown.
+                    // Reserve the trailing controls so the session strip's
+                    // inline new-session button stays clear of them.
                     SessionTabsView(
                         project: project,
                         tabSplitDrag: tabSplitDrag,
                         maxStripWidth: max(
                             0,
                             geo.size.width - leadingInset - hiddenLeftSidebarControlWidth
-                                - 74 - minimumWindowDragWidth
-                                - (manager.isPaneZoomed ? 32 : 0)
+                                - 66 - (manager.isPaneZoomed ? 32 : 0)
                         )
                     )
                 }
                 WindowDragArea()
-                    .frame(minWidth: minimumWindowDragWidth, maxWidth: .infinity)
-                // Zoom indicator: only visible while the selected tab has a
-                // zoomed pane. Styled like the sidebar toggle next to it, with
-                // the accent tint marking the active state. Click restores the
-                // layout.
-                if manager.isPaneZoomed {
-                    Button {
-                        manager.togglePaneZoom()
-                    } label: {
-                        Image(systemName: "arrow.down.forward.and.arrow.up.backward")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Color(nsColor: Theme.accent))
-                            .frame(width: 24, height: 24)
-                            .contentShape(RoundedRectangle(cornerRadius: 6))
+                    .frame(maxWidth: .infinity)
+                HStack(spacing: 8) {
+                    // Zoom indicator: only visible while the selected tab has a
+                    // zoomed pane. Styled like the sidebar toggle next to it, with
+                    // the accent tint marking the active state. Click restores the
+                    // layout.
+                    if manager.isPaneZoomed {
+                        Button {
+                            manager.togglePaneZoom()
+                        } label: {
+                            Image(systemName: "arrow.down.forward.and.arrow.up.backward")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Color(nsColor: Theme.accent))
+                                .frame(width: 24, height: 24)
+                                .contentShape(RoundedRectangle(cornerRadius: 6))
+                        }
+                        .buttonStyle(.plain)
+                        .tooltip("Exit Pane Zoom (⇧⌘↩)", edge: .below, alignment: .trailing)
                     }
-                    .buttonStyle(.plain)
-                    .tooltip("Exit Pane Zoom (⇧⌘↩)", edge: .below, alignment: .trailing)
-                }
-                // No project means the sidebar has nothing to show, so drop
-                // its toggle too — matching the panel collapsing itself.
-                if manager.selectedProject != nil {
-                    ChromeIconButton(
-                        systemImage: "sidebar.right",
-                        tooltip: "Toggle Right Sidebar (⇧⌘B)"
-                    ) {
-                        manager.toggleSidebar()
+                    // No project means the sidebar has nothing to show, so drop
+                    // its toggle too — matching the panel collapsing itself.
+                    if manager.selectedProject != nil {
+                        ChromeIconButton(
+                            systemImage: "sidebar.right",
+                            tooltip: "Toggle Right Sidebar (⇧⌘B)"
+                        ) {
+                            manager.toggleSidebar()
+                        }
                     }
                 }
+                .padding(.leading, 8)
             }
             .padding(.leading, leadingInset)
             .padding(.trailing, 8)
