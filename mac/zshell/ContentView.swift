@@ -947,7 +947,7 @@ private struct MainHeaderView: View {
 
     /// Keep an always-available grab target beside the trailing controls,
     /// even when the session strip is full.
-    private let minimumWindowDragWidth: CGFloat = 100
+    private let minimumWindowDragWidth: CGFloat = 40
 
     /// With the left sidebar hidden the header slides under the window's
     /// traffic-light buttons, so inset its content to clear them.
@@ -978,7 +978,7 @@ private struct MainHeaderView: View {
                     // strip: leading inset, an optional left-sidebar control,
                     // trailing padding (8), HStack spacings (16), right-sidebar
                     // toggle (24), "+" and spacing (26), the minimum drag
-                    // target (100), and the exit-zoom button (24 + 8 spacing)
+                    // target (40), and the exit-zoom button (24 + 8 spacing)
                     // while shown.
                     SessionTabsView(
                         project: project,
@@ -992,7 +992,7 @@ private struct MainHeaderView: View {
                     )
                 }
                 WindowDragArea()
-                    .frame(minWidth: minimumWindowDragWidth, maxWidth: .infinity)
+                    .frame(width: minimumWindowDragWidth)
                 // Zoom indicator: only visible while the selected tab has a
                 // zoomed pane. Styled like the sidebar toggle next to it, with
                 // the accent tint marking the active state. Click restores the
