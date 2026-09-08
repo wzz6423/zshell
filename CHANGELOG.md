@@ -14,6 +14,15 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
+## [0.1.2]
+
+### Fixed
+
+- Git status refreshes reliably when the same path appears more than once in a
+  repository status result.
+- The session strip keeps clear space for the trailing controls without losing
+  the header's window-drag area.
+
 ## [0.1.0]
 
 ### Changed
