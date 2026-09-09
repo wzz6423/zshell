@@ -162,12 +162,23 @@ test("API failures do not expose server error bodies or credentials", async () =
   await expect(api.getRelease("v0.1.0")).rejects.toThrow("gitee GET /repos/wzz6423/zshell/releases/tags/v0.1.0: HTTP 401");
 });
 
+test("GitHub finds an authenticated draft omitted by the tag endpoint", async () => {
+  const draft = { id: 42, tag_name: "v0.1.0", draft: true };
+  const api = new ReleaseAPI("github", "stub", async (input) => {
+    const url = new URL(input);
+    if (url.pathname.endsWith("/releases/tags/v0.1.0")) return new Response(null, { status: 404 });
+    if (url.pathname.endsWith("/releases") && url.searchParams.get("page") === "1") return Response.json([draft]);
+    throw new Error(`Unexpected request: ${url}`);
+  });
+  await expect(api.getRelease("v0.1.0")).resolves.toEqual(draft);
+});
+
 test("publishing creates Gitee feed first, uploads both binary sets before feeds, and preserves legacy assets", async () => {
   const options = await fixture();
   const events: string[] = [];
   type FakeAsset = { id: number; name: string; digest: string; content: Buffer };
   type FakeRelease = { id: number; tag_name: string; draft: boolean; assets: FakeAsset[] };
-  const releases: Record<string, FakeRelease[]> = { github: [{ id: 1, tag_name: "v0.1.0", draft: false, assets: [{ id: 10, name: "zshell-0.1.0.zip", digest: "sha256:old", content: Buffer.from("old Sparkle download") }] }], gitee: [] };
+  const releases: Record<string, FakeRelease[]> = { github: [{ id: 1, tag_name: "v0.0.9", draft: false, assets: [{ id: 10, name: "zshell-0.1.0.zip", digest: "sha256:old", content: Buffer.from("old Sparkle download") }] }], gitee: [] };
   let nextID = 100;
   await publishRelease({ ...options, notes: "release notes", credentials: { github: "stub", gitee: "stub" }, request: async (input, init) => {
     const url = new URL(input);
@@ -180,8 +191,10 @@ test("publishing creates Gitee feed first, uploads both binary sets before feeds
     const tag = url.pathname.match(/\/releases\/tags\/([^/]+)$/)?.[1];
     if (tag) {
       const release = releases[host]!.find(value => value.tag_name === tag);
+      if (host === "github" && release?.draft) return new Response(null, { status: 404 });
       return release ? Response.json(release) : new Response(null, { status: 404 });
     }
+    if (url.pathname.endsWith("/releases") && method === "GET") return Response.json(releases[host]);
     if (url.pathname.endsWith("/releases") && method === "POST") {
       events.push(`${host}:create:${body.tag_name}`);
       const release = { id: nextID++, tag_name: body.tag_name, draft: body.draft ?? false, assets: [] };
@@ -217,9 +230,10 @@ test("publishing creates Gitee feed first, uploads both binary sets before feeds
   expect(events.indexOf("gitee:create:update-release")).toBeLessThan(events.indexOf("gitee:create:v0.1.0"));
   const firstFeed = events.findIndex(value => value.includes(":upload:") && value.endsWith(".xml"));
   expect(events.slice(0, firstFeed).filter(value => value.includes(":upload:"))).toHaveLength(24);
-  expect(releases.github![0]!.assets).toHaveLength(16);
-  expect(releases.github![0]!.assets.some(value => value.name === "zshell-0.1.0.zip")).toBe(true);
+  expect(releases.github!.find(value => value.tag_name === "v0.1.0")!.assets).toHaveLength(15);
+  expect(releases.github!.find(value => value.tag_name === "v0.0.9")!.assets.some(value => value.name === "zshell-0.1.0.zip")).toBe(true);
   expect(releases.gitee!.find(value => value.tag_name === "v0.1.0")!.assets).toHaveLength(15);
   expect(releases.gitee!.find(value => value.tag_name === "update-release")!.assets).toHaveLength(3);
+  expect(events.filter(value => value === "github:create:v0.1.0")).toHaveLength(1);
   expect(events.at(-1)).toBe("github:patch:v0.1.0:true");
 });

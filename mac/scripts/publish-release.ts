@@ -126,8 +126,17 @@ export class ReleaseAPI {
     return { login: identity.login, repository: repository.full_name };
   }
 
-  getRelease(tag: string): Promise<RemoteRelease | null> {
-    return this.call(this.path(`/releases/tags/${encodeURIComponent(tag)}`), "GET", undefined, true);
+  async getRelease(tag: string): Promise<RemoteRelease | null> {
+    const direct = await this.call(this.path(`/releases/tags/${encodeURIComponent(tag)}`), "GET", undefined, true);
+    if (direct || this.host !== "github") return direct;
+    // GitHub omits drafts from the tag endpoint, even for the authenticated creator.
+    for (let page = 1; ; page++) {
+      const releases = await this.call(this.path(`/releases?per_page=100&page=${page}`));
+      if (!Array.isArray(releases)) throw new Error("github invalid release listing");
+      const draft = releases.find((release: RemoteRelease) => release.tag_name === tag);
+      if (draft) return draft;
+      if (releases.length < 100) return null;
+    }
   }
 
   async ensureRelease(tag: string, commit: string, notes: string, permanent = false, stage = false): Promise<RemoteRelease> {
