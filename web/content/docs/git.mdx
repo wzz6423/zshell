@@ -86,6 +86,17 @@ Message** in their context menus.
 The branch name in the header is a menu: pick another branch to switch to it, or
 choose **Create New Branch…** to start one from where you are.
 
+## Worktrees
+
+The Git panel lists every worktree belonging to the repository, together with its
+branch and checkout path. The active checkout is marked **Current**. Click a
+worktree to open a new terminal tab in that directory, so each checkout keeps its
+own shell context while remaining part of the same project.
+
+Detached HEAD worktrees show **Detached HEAD** instead of a branch name. Bare
+repositories are listed for completeness, but they do not have a working
+directory and cannot be opened in a terminal tab.
+
 ## Remotes
 
 The **⋯** menu holds everything that talks to a remote:
