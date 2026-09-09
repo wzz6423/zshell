@@ -107,6 +107,16 @@ final class GitStatusModel: nonisolated ObservableObject {
         }
     }
 
+    nonisolated struct Worktree: Identifiable, Equatable, Sendable {
+        let path: String
+        let headOID: String?
+        let branch: String?
+        let isBare: Bool
+        let isCurrent: Bool
+
+        var id: String { path }
+    }
+
     nonisolated struct Operation: Identifiable, Equatable, Sendable {
         enum State: Equatable, Sendable {
             case running
@@ -159,6 +169,7 @@ final class GitStatusModel: nonisolated ObservableObject {
     @Published private(set) var changedEntries: [Entry] = []
     @Published private(set) var branches: [String] = []
     @Published private(set) var defaultBranch: String?
+    @Published private(set) var worktrees: [Worktree] = []
     @Published private(set) var remotes: [String] = []
     @Published private(set) var recentCommits: [RecentCommit] = []
     @Published private(set) var hasMoreRecentCommits = false
@@ -1003,6 +1014,7 @@ final class GitStatusModel: nonisolated ObservableObject {
         ignoredPaths = []
         branches = []
         defaultBranch = nil
+        worktrees = []
         remotes = []
         recentCommits = []
         hasMoreRecentCommits = false
@@ -1068,6 +1080,7 @@ final class GitStatusModel: nonisolated ObservableObject {
         if result.loadedDetails {
             branches = result.branches
             defaultBranch = result.defaultBranch
+            worktrees = result.worktrees
             remotes = result.remotes
             recentCommits = result.recentCommits
             hasMoreRecentCommits = result.hasMoreRecentCommits
@@ -1117,6 +1130,7 @@ final class GitStatusModel: nonisolated ObservableObject {
         var ignoredPaths: Set<String> = []
         var branches: [String] = []
         var defaultBranch: String?
+        var worktrees: [Worktree] = []
         var remotes: [String] = []
         var recentCommits: [RecentCommit] = []
         var hasMoreRecentCommits = false
@@ -1308,6 +1322,11 @@ final class GitStatusModel: nonisolated ObservableObject {
             result.branches = refs.stdout.split(separator: "\n").map(String.init).sorted()
         }
 
+        let worktreeRun = statusGit(["worktree", "list", "--porcelain"], in: repoRoot)
+        if worktreeRun.status == 0 {
+            result.worktrees = parseWorktrees(worktreeRun.stdout, currentRoot: repoRoot)
+        }
+
         let remoteRun = statusGit(["remote"], in: repoRoot)
         if remoteRun.status == 0 {
             result.remotes = remoteRun.stdout.split(separator: "\n").map(String.init).sorted()
@@ -1480,6 +1499,59 @@ final class GitStatusModel: nonisolated ObservableObject {
             index += 1
         }
         return result
+    }
+
+    nonisolated static func parseWorktrees(
+        _ output: String, currentRoot: String
+    ) -> [Worktree] {
+        let normalizedCurrentRoot = URL(
+            fileURLWithPath: currentRoot, isDirectory: true
+        ).standardizedFileURL.path
+        var worktrees: [Worktree] = []
+        var path: String?
+        var headOID: String?
+        var branch: String?
+        var isBare = false
+
+        func appendWorktree() {
+            guard let path, !path.isEmpty else { return }
+            let normalizedPath = URL(
+                fileURLWithPath: path, isDirectory: true
+            ).standardizedFileURL.path
+            worktrees.append(
+                Worktree(
+                    path: normalizedPath,
+                    headOID: headOID,
+                    branch: branch,
+                    isBare: isBare,
+                    isCurrent: normalizedPath == normalizedCurrentRoot
+                )
+            )
+        }
+
+        for rawLine in output.components(separatedBy: "\n") {
+            let line = rawLine.hasSuffix("\r") ? String(rawLine.dropLast()) : rawLine
+            if line.isEmpty {
+                appendWorktree()
+                path = nil
+                headOID = nil
+                branch = nil
+                isBare = false
+            } else if line.hasPrefix("worktree ") {
+                path = String(line.dropFirst("worktree ".count))
+            } else if line.hasPrefix("HEAD ") {
+                headOID = String(line.dropFirst("HEAD ".count))
+            } else if line.hasPrefix("branch ") {
+                let ref = String(line.dropFirst("branch ".count))
+                branch = ref.hasPrefix("refs/heads/")
+                    ? String(ref.dropFirst("refs/heads/".count))
+                    : ref
+            } else if line == "bare" {
+                isBare = true
+            }
+        }
+        appendWorktree()
+        return worktrees
     }
 
     /// Adds the numeric columns from `git diff --numstat`. Binary-file rows

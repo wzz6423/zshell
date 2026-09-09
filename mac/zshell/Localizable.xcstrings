@@ -793,6 +793,38 @@
         }
       }
     },
+    "Bare repositories cannot be opened in a terminal tab" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ベアリポジトリはターミナルタブで開けません"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "裸仓库无法在终端标签页中打开"
+          }
+        }
+      }
+    },
+    "Bare repositories do not have a working directory" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ベアリポジトリには作業ディレクトリがありません"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "裸仓库没有工作目录"
+          }
+        }
+      }
+    },
     "Behavior" : {
       "localizations" : {
         "ja" : {
@@ -2051,6 +2083,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "当前分支：%@"
+          }
+        }
+      }
+    },
+    "Current" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前"
           }
         }
       }
@@ -4717,6 +4765,22 @@
         }
       }
     },
+    "Open Worktree in New Tab" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ワークツリーを新しいタブで開く"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在新标签页中打开工作树"
+          }
+        }
+      }
+    },
     "Opens changes" : {
       "localizations" : {
         "ja" : {
@@ -4745,6 +4809,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开冲突更改"
+          }
+        }
+      }
+    },
+    "Opens a new terminal tab in this worktree" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このワークツリーを新しいターミナルタブで開きます"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在此工作树中打开新的终端标签页"
           }
         }
       }
@@ -7816,6 +7896,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "工作区干净，尚有同步待完成"
+          }
+        }
+      }
+    },
+    "WORKTREES" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ワークツリー"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作树"
           }
         }
       }

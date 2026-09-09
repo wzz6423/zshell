@@ -424,12 +424,16 @@ final class TerminalManager: nonisolated ObservableObject {
     // MARK: - Sessions
 
     /// New session in the current project; creates a project if none exist.
-    func newSession() {
+    func newSession(directory: String? = nil) {
         guard let project = selectedProject else {
-            newProject()
+            if let directory {
+                newProject(directory: directory)
+            } else {
+                newProject()
+            }
             return
         }
-        project.newSession()
+        project.newSession(directory: directory)
     }
 
     /// Opens a browser tab in the current project. Zshell remains
