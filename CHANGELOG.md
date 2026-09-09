@@ -14,6 +14,13 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
+## [0.1.3]
+
+### Added
+
+- Browse every Git worktree with its branch and checkout path in the Git panel,
+  then open a selected checkout in a new terminal tab.
+
 ## [0.1.2]
 
 ### Fixed
