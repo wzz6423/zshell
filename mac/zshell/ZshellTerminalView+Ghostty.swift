@@ -115,6 +115,10 @@ extension ZshellTerminalView {
             ] {
                 builder.withCustom("keybind", keybind)
             }
+            if settings.shiftEnterNewline {
+                builder.withCustom("keybind", "shift+enter=text:\\x0a")
+                builder.withCustom("keybind", "shift+numpad_enter=text:\\x0a")
+            }
             builder.withCustom("command", "shell:\(command)")
             builder.withCustom("term", "xterm-256color")
             // The launch command is a `/bin/sh -c` shim, so `detect` would

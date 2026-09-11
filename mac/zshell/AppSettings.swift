@@ -210,6 +210,12 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    /// Send Shift-Return as LF so coding agents can insert a line without
+    /// changing plain Return's submit behavior.
+    @Published var shiftEnterNewline: Bool {
+        didSet { save() }
+    }
+
     /// Soft-wrap file editor lines to the viewport width. Off by default so
     /// long lines scroll horizontally.
     @Published var wrapLines: Bool {
@@ -294,6 +300,7 @@ final class AppSettings: nonisolated ObservableObject {
         cursorBlinking = toml["terminal.cursor-blinking"]?.bool ?? true
         macosOptionAsAlt = toml["terminal.macos-option-as-alt"]?.bool ?? false
         terminalBell = toml["terminal.bell"]?.bool ?? true
+        shiftEnterNewline = toml["terminal.shift-enter-newline"]?.bool ?? true
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
         externalEditor = ExternalEditor.persisted(
             toml["editor.external-editor"]?.string
@@ -367,6 +374,7 @@ final class AppSettings: nonisolated ObservableObject {
             && cursorBlinking
             && !macosOptionAsAlt
             && terminalBell
+            && shiftEnterNewline
             && wrapLines
             && externalEditor == .systemDefault
             && !restoreTerminalHistory
@@ -388,6 +396,7 @@ final class AppSettings: nonisolated ObservableObject {
         cursorBlinking = true
         macosOptionAsAlt = false
         terminalBell = true
+        shiftEnterNewline = true
         wrapLines = true
         externalEditor = .systemDefault
         restoreTerminalHistory = false
@@ -479,6 +488,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if !terminalBell {
             lines.append("terminal.bell = false")
+        }
+        if !shiftEnterNewline {
+            lines.append("terminal.shift-enter-newline = false")
         }
         if !wrapLines {
             lines.append("editor.wrap-lines = false")
