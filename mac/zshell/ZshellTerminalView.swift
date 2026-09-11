@@ -35,6 +35,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var promptSelectionMarkerArmed = false
     private var pendingPromptSelectionActivation = false
     private var pointerSelectionDragged = false
+    private var reportingRightMouseButton = false
     /// Latest scroll report, so a scrollbar drag can be mapped back onto a row.
     var lastScroll: TerminalScrollPosition?
     /// Ghostty reports the recognized link under the pointer as hover state.
@@ -362,10 +363,16 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     // MARK: - Context menu
 
-    /// Zshell consistently reserves right-click for its terminal/pane menu. This
-    /// matches Zshell's existing UI, including focusing before Paste.
+    /// A mouse-aware terminal application owns right-click unless Shift asks
+    /// Zshell to bypass capture, matching the selection override for other input.
     override func rightMouseDown(with event: NSEvent) {
         focusForInteraction()
+        if isMouseCaptured, !event.modifierFlags.contains(.shift) {
+            reportingRightMouseButton = true
+            super.rightMouseDown(with: event)
+            return
+        }
+        reportingRightMouseButton = false
         NSMenu.popUpContextMenu(
             contextMenu(linkTarget: linkTarget(for: event)),
             with: event,
@@ -373,7 +380,17 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         )
     }
 
-    override func rightMouseUp(with event: NSEvent) {}
+    override func rightMouseDragged(with event: NSEvent) {
+        if reportingRightMouseButton {
+            super.rightMouseDragged(with: event)
+        }
+    }
+
+    override func rightMouseUp(with event: NSEvent) {
+        guard reportingRightMouseButton else { return }
+        reportingRightMouseButton = false
+        super.rightMouseUp(with: event)
+    }
 
     override func menu(for event: NSEvent) -> NSMenu? {
         focusForInteraction()

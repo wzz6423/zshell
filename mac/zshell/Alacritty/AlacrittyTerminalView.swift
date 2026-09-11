@@ -2112,15 +2112,33 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     // MARK: - Context menu
 
-    /// Zshell reserves right-click for its terminal/pane menu, matching the
-    /// Ghostty backend rather than AppKit's default text menu.
+    /// A mouse-aware terminal application owns right-click unless Shift asks
+    /// Zshell to bypass capture, matching the selection override for other input.
     override func rightMouseDown(with event: NSEvent) {
         focusForInteraction()
+        if shouldReportMouse(event) {
+            reportingMouseButton = true
+            sendMouse(code: 2, event: event, released: false)
+            return
+        }
         NSMenu.popUpContextMenu(
             contextMenu(linkTarget: linkTarget(for: event)),
             with: event,
             for: self
         )
+    }
+
+    override func rightMouseDragged(with event: NSEvent) {
+        guard reportingMouseButton else { return }
+        if terminalMode.contains(.mouseDrag) || terminalMode.contains(.mouseMotion) {
+            sendMouse(code: 34, event: event, released: false)
+        }
+    }
+
+    override func rightMouseUp(with event: NSEvent) {
+        guard reportingMouseButton else { return }
+        reportingMouseButton = false
+        sendMouse(code: 2, event: event, released: true)
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
