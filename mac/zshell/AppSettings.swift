@@ -113,6 +113,10 @@ final class AppSettings: nonisolated ObservableObject {
 
     static let defaultFontSize: Double = 13
     static let fontSizeRange: ClosedRange<Double> = 8...32
+    static let defaultFontThickenStrength = 255
+    static let fontThickenStrengthRange: ClosedRange<Double> = 0...255
+    static let defaultTerminalLineHeight: Double = 1
+    static let terminalLineHeightRange: ClosedRange<Double> = 0.75...2
     static let defaultSidebarFontSize: Double = 14
     static let sidebarFontSizeRange: ClosedRange<Double> = 9...18
     static let defaultToolbarVisibility: ToolbarVisibility = .hide
@@ -165,6 +169,12 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    /// Ordered CJK fallback family for terminal glyphs the primary face lacks.
+    /// Empty string leaves fallback selection to each backend and macOS.
+    @Published var fontFallbackFamily: String {
+        didSet { save() }
+    }
+
     @Published var fontSize: Double {
         didSet { save() }
     }
@@ -186,6 +196,17 @@ final class AppSettings: nonisolated ObservableObject {
     /// Persisted as `terminal.font-thicken`; off by default so Zshell's text
     /// matches a stock Ghostty install.
     @Published var fontThicken: Bool {
+        didSet { save() }
+    }
+
+    /// Backend-specific thickening intensity normalized to Ghostty's 0...255
+    /// range. It is ignored while `fontThicken` is off.
+    @Published var fontThickenStrength: Int {
+        didSet { save() }
+    }
+
+    /// Terminal cell height multiplier. One uses each font's native metrics.
+    @Published var terminalLineHeight: Double {
         didSet { save() }
     }
 
@@ -265,6 +286,7 @@ final class AppSettings: nonisolated ObservableObject {
             fallback: Theme.defaultLightThemeName
         )
         fontFamily = toml["font-family"]?.string ?? ""
+        fontFallbackFamily = toml["terminal.font-fallback-family"]?.string ?? ""
         let size = toml["font-size"]?.double ?? Self.defaultFontSize
         fontSize = Self.fontSizeRange.contains(size) ? size : Self.defaultFontSize
         let sidebarSize = toml["sidebar.font-size"]?.double
@@ -278,6 +300,16 @@ final class AppSettings: nonisolated ObservableObject {
         fontThicken = toml["terminal.font-thicken"]?.bool
             ?? toml["font-thicken"]?.bool
             ?? false
+        let thickenStrength = toml["terminal.font-thicken-strength"]?.double
+            ?? Double(Self.defaultFontThickenStrength)
+        fontThickenStrength = Self.fontThickenStrengthRange.contains(thickenStrength)
+            ? Int(thickenStrength.rounded())
+            : Self.defaultFontThickenStrength
+        let lineHeight = toml["terminal.line-height"]?.double
+            ?? Self.defaultTerminalLineHeight
+        terminalLineHeight = Self.terminalLineHeightRange.contains(lineHeight)
+            ? lineHeight
+            : Self.defaultTerminalLineHeight
         cursorShape = TerminalCursorShape(
             rawValue: toml["terminal.cursor-shape"]?.string ?? ""
         ) ?? .block
@@ -332,18 +364,24 @@ final class AppSettings: nonisolated ObservableObject {
 
     func resetFont() {
         fontFamily = ""
+        fontFallbackFamily = ""
         fontSize = Self.defaultFontSize
         sidebarFontSize = Self.defaultSidebarFontSize
         fontThicken = false
+        fontThickenStrength = Self.defaultFontThickenStrength
+        terminalLineHeight = Self.defaultTerminalLineHeight
     }
 
     /// Whether every setting ``resetToDefaults()`` touches already holds its
     /// default, so Settings can disable the reset button.
     var isAtDefaults: Bool {
         fontFamily.isEmpty
+            && fontFallbackFamily.isEmpty
             && fontSize == Self.defaultFontSize
             && sidebarFontSize == Self.defaultSidebarFontSize
             && !fontThicken
+            && fontThickenStrength == Self.defaultFontThickenStrength
+            && terminalLineHeight == Self.defaultTerminalLineHeight
             && language == .system
             && theme == .system
             && themeDark == Theme.defaultDarkThemeName
@@ -440,6 +478,9 @@ final class AppSettings: nonisolated ObservableObject {
         if !fontFamily.isEmpty {
             lines.append("font-family = \(TOML.quote(fontFamily))")
         }
+        if !fontFallbackFamily.isEmpty {
+            lines.append("terminal.font-fallback-family = \(TOML.quote(fontFallbackFamily))")
+        }
         lines.append("font-size = \(TOML.number(fontSize))")
         if sidebarFontSize != Self.defaultSidebarFontSize {
             lines.append("sidebar.font-size = \(TOML.number(sidebarFontSize))")
@@ -449,6 +490,12 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if fontThicken {
             lines.append("terminal.font-thicken = true")
+        }
+        if fontThickenStrength != Self.defaultFontThickenStrength {
+            lines.append("terminal.font-thicken-strength = \(fontThickenStrength)")
+        }
+        if terminalLineHeight != Self.defaultTerminalLineHeight {
+            lines.append("terminal.line-height = \(TOML.number(terminalLineHeight))")
         }
         if cursorShape != .block {
             lines.append("terminal.cursor-shape = \(TOML.quote(cursorShape.rawValue))")

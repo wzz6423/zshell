@@ -22,9 +22,21 @@ struct AlacrittyMetrics {
     /// Baseline measured down from the top of the cell.
     let baseline: CGFloat
     let fontThicken: Bool
+    let fontThickenStrength: Int
 
-    init(family: String, size: CGFloat, fontThicken: Bool) {
-        let regular = TerminalFont.resolve(family: family, size: size)
+    init(
+        family: String,
+        fallbackFamily: String,
+        size: CGFloat,
+        fontThicken: Bool,
+        fontThickenStrength: Int,
+        lineHeight: CGFloat
+    ) {
+        let regular = TerminalFont.resolve(
+            family: family,
+            fallbackFamily: fallbackFamily,
+            size: size
+        )
         let manager = NSFontManager.shared
         self.regular = regular
         bold = manager.convert(regular, toHaveTrait: .boldFontMask)
@@ -41,9 +53,11 @@ struct AlacrittyMetrics {
         let ascent = regular.ascender
         let descent = -regular.descender
         let leading = regular.leading
-        cellHeight = max(1, (ascent + descent + leading).rounded())
-        baseline = (ascent + leading / 2).rounded()
+        let naturalHeight = ascent + descent + leading
+        cellHeight = max(1, (naturalHeight * lineHeight).rounded())
+        baseline = ((cellHeight - naturalHeight) / 2 + ascent + leading / 2).rounded()
         self.fontThicken = fontThicken
+        self.fontThickenStrength = fontThickenStrength
     }
 
     private static func advance(of font: NSFont) -> CGFloat {

@@ -55,11 +55,18 @@ Zshell 大多数持久化设置都在一个文件里：
 
 字符串——默认 `""`，表示内置的 JetBrains Mono
 
-终端、编辑器和 diff 共用这个字族。请写字族名，不要写具体字重：`"IBM Plex Mono"`，而不是
-`"IBM Plex Mono Regular"`。不存在或非等宽的字族会回退到内置默认值。
+终端、编辑器和 diff 共用这个拉丁字族。请写字族名，不要写具体字重：`"IBM Plex Mono"`，
+而不是 `"IBM Plex Mono Regular"`。不存在或非等宽的字族会回退到内置默认值。
 
-Zshell 还会附加 Symbols Nerd Font 作为后备，所以即使选中的字族不是打过补丁的 Nerd Font，
-Powerline 分隔符和图标字形也能正常显示。
+终端的后备顺序是：拉丁字族、下面可选的 CJK 后备字族、内置 Symbols Nerd Font，最后是
+后端的系统后备字体。编辑器和 diff 继续使用 macOS/WebKit 的正常后备机制。
+
+### `terminal.font-fallback-family`
+
+字符串——默认 `""`，表示交给后端和系统选择
+
+在终端的有序后备链中加入一个已安装的 CJK 字族。设置列表会显示包含代表性中文、日文或
+韩文字形的字族；它们不必严格等宽，因为只负责拉丁主字体缺少的字形。
 
 ### `font-size`
 
@@ -78,6 +85,25 @@ Powerline 分隔符和图标字形也能正常显示。
 布尔值——默认 `false`
 
 用稍粗的笔画渲染终端文字，效果类似经典 macOS 字体平滑。两个终端后端都支持，设置窗口里的预览也会反映效果。旧的 `font-thicken` 仍能读取，但保存后会改写成现在的点号键。
+
+### `terminal.font-thicken-strength`
+
+整数，0–255——默认 `255`
+
+控制 `terminal.font-thicken` 打开时的粗化强度。零表示最轻的可用粗化，而不是关闭。Ghostty
+使用其原生 macOS 强度；Alacritty 把同一范围映射到 CoreText 描边，所以方向和端点一致，
+但光栅化像素可能不同。
+
+### `terminal.line-height`
+
+数字，0.75–2——默认 `1`
+
+按比例调整各终端后端的自然单元格高度，同时让字形保持垂直居中。它只改变终端行，不改变
+编辑器或 diff 的行距。
+
+Zshell 不提供基础字重控件。Ghostty 使用具名字形样式或可变轴，而 Alacritty/CoreText 按
+trait 解析 regular 与 bold 字体；单个共享数值无法在静态字体和可变字体之间一致地保留
+regular/bold 区分及后备字体字重。
 
 ### `editor.wrap-lines`
 
@@ -130,7 +156,10 @@ font-family = "IBM Plex Mono"
 font-size = 14
 sidebar.font-size = 13
 toolbar.visibility = "auto"
+terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
+terminal.font-thicken-strength = 180
+terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.backend = "alacritty"
 terminal.restore-history = true

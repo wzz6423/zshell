@@ -176,6 +176,8 @@ final class SettingsSliderRow: NSView {
         case points
         /// A 0…1 fraction as a percentage, "75%".
         case percent
+        /// An arbitrary numeric range displayed as a whole number.
+        case integer
     }
 
     private let slider = NSSlider()
@@ -264,11 +266,12 @@ final class SettingsSliderRow: NSView {
         switch format {
         case .points: String(localized: "\(Int(value)) pt", comment: "Font size in points")
         case .percent: "\(Int((value * 100).rounded()))%"
+        case .integer: String(Int(value.rounded()))
         }
     }
 
     @objc private func sliderChanged() {
-        let value = format == .points ? slider.doubleValue.rounded() : slider.doubleValue
+        let value = format == .percent ? slider.doubleValue : slider.doubleValue.rounded()
         valueLabel.stringValue = readout(for: value)
         stepper?.doubleValue = value
         onChange(value)

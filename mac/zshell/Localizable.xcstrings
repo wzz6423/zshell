@@ -1183,6 +1183,22 @@
         }
       }
     },
+    "CJK fallback" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CJKフォールバック"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CJK 后备字体"
+          }
+        }
+      }
+    },
     "Clear Filter" : {
       "localizations" : {
         "ja" : {
@@ -3739,6 +3755,22 @@
         }
       }
     },
+    "Latin family" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ラテン文字フォント"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拉丁字体"
+          }
+        }
+      }
+    },
     "Left" : {
       "localizations" : {
         "ja" : {
@@ -3784,6 +3816,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "浅色主题"
+          }
+        }
+      }
+    },
+    "Line height" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行の高さ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行高"
           }
         }
       }
@@ -6734,6 +6782,22 @@
         }
       }
     },
+    "Stroke strength" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "線の太さ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "笔画强度"
+          }
+        }
+      }
+    },
     "Switch Branch" : {
       "localizations" : {
         "ja" : {
@@ -7748,6 +7812,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "更新"
+          }
+        }
+      }
+    },
+    "Used after the Latin family and before the bundled symbol font" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ラテン文字フォントの後、同梱の記号フォントの前に使用します"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于拉丁字体之后、内置符号字体之前"
           }
         }
       }

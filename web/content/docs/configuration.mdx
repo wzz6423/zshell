@@ -72,12 +72,22 @@ See [The Git toolbar](/docs/git#the-git-toolbar) for what it shows.
 
 string — default `""`, meaning the bundled JetBrains Mono
 
-The terminal, editor, and diff viewer share this family. Give a family name,
-not a face: `"IBM Plex Mono"`, not `"IBM Plex Mono Regular"`. Unknown or
+The terminal, editor, and diff viewer share this Latin family. Give a family
+name, not a face: `"IBM Plex Mono"`, not `"IBM Plex Mono Regular"`. Unknown or
 non-monospace families fall back to the bundled default.
 
-Zshell also attaches Symbols Nerd Font as a fallback, so Powerline separators
-and icon glyphs work even when the chosen family is not a patched Nerd Font.
+Terminal fallback order is the Latin family, the optional CJK fallback below,
+the bundled Symbols Nerd Font, then the backend's system fallback. The editor
+and diff viewer continue to use their normal macOS/WebKit fallback.
+
+### `terminal.font-fallback-family`
+
+string — default `""`, meaning backend/system fallback
+
+Adds one installed CJK family to the terminal's ordered fallback chain. The
+Settings picker includes families containing representative Chinese, Japanese,
+or Korean glyphs; it does not require them to be strictly monospace because
+they only supply glyphs missing from the primary Latin face.
 
 ### `font-size`
 
@@ -101,6 +111,27 @@ Renders terminal glyphs with slightly heavier strokes, similar to classic
 macOS font smoothing. Both backends honor it, and the Settings preview shows
 the result. Older `font-thicken` configs are still read, then rewritten using
 the current dotted key.
+
+### `terminal.font-thicken-strength`
+
+integer, 0–255 — default `255`
+
+Controls thickening while `terminal.font-thicken` is true. Zero is the lightest
+available thickening, not off. Ghostty uses its native macOS strength; Alacritty
+maps the same range to a CoreText stroke, so the direction and endpoints match
+but rasterized pixels can differ.
+
+### `terminal.line-height`
+
+number, 0.75–2 — default `1`
+
+Multiplies each terminal backend's natural cell height while keeping glyphs
+vertically centered. It changes terminal rows only, not editor or diff spacing.
+
+Zshell does not expose a base font-weight control. Ghostty selects named styles
+or variation axes while Alacritty/CoreText resolves regular and bold faces by
+traits; a single shared value would not preserve regular/bold distinction or
+fallback weights consistently across static and variable fonts.
 
 ### `editor.wrap-lines`
 
@@ -169,7 +200,10 @@ font-family = "IBM Plex Mono"
 font-size = 14
 sidebar.font-size = 13
 toolbar.visibility = "auto"
+terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
+terminal.font-thicken-strength = 180
+terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.backend = "alacritty"
 terminal.restore-history = true
