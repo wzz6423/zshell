@@ -71,6 +71,7 @@ final class TerminalSurfaceCoordinator {
     var onPostRender: (() -> Void)?
 
     private var lastMetrics: TerminalViewportMetrics?
+    private var requestedGeometryGate = TerminalRequestedGeometryGate()
     private var isDisplayVisible = true
     private var isApplicationActive = true
     private var isSurfaceFocused = false
@@ -198,8 +199,15 @@ final class TerminalSurfaceCoordinator {
             "sync view=\(String(format: "%.2f", size.width))x\(String(format: "%.2f", size.height)) scale=\(String(format: "%.2f", scale)) pixels=\(pixelWidth)x\(pixelHeight)"
         )
 
-        surface.setContentScale(x: scale, y: scale)
-        surface.setSize(width: pixelWidth, height: pixelHeight)
+        let requestedGeometry = TerminalRequestedGeometry(
+            scale: scale,
+            pixelWidth: pixelWidth,
+            pixelHeight: pixelHeight
+        )
+        if requestedGeometryGate.shouldApply(requestedGeometry) {
+            surface.setContentScale(x: scale, y: scale)
+            surface.setSize(width: pixelWidth, height: pixelHeight)
+        }
 
         guard let surfaceSize = surface.size(),
               surfaceSize.columns > 0, surfaceSize.rows > 0
@@ -365,6 +373,7 @@ final class TerminalSurfaceCoordinator {
         surface?.free()
         surface = nil
         lastMetrics = nil
+        requestedGeometryGate.reset()
         pendingImmediateTick = true
         lastTickTimestamp = 0
         controller?.remove(bridge)
