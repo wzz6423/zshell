@@ -95,7 +95,7 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
         TerminalManager.openDirectories(directories)
     }
 
-    private static func directories(from pasteboard: NSPasteboard) -> [String] {
+    static func directories(from pasteboard: NSPasteboard) -> [String] {
         let filenamesType = NSPasteboard.PasteboardType("NSFilenamesPboardType")
         var candidates = pasteboard.propertyList(forType: filenamesType) as? [String] ?? []
 
@@ -111,28 +111,31 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
             candidates = text.split(whereSeparator: \.isNewline).map(String.init)
         }
 
-        let fileManager = FileManager.default
         var seen = Set<String>()
         return candidates.compactMap { candidate in
-            let path: String
-            if let url = URL(string: candidate), url.isFileURL {
-                path = url.path
-            } else {
-                path = (candidate as NSString).expandingTildeInPath
-            }
-
-            let standardized = URL(
-                fileURLWithPath: path,
-                isDirectory: true
-            ).standardizedFileURL.path
-            var isDirectory: ObjCBool = false
-            guard fileManager.fileExists(
-                atPath: standardized,
-                isDirectory: &isDirectory
-            ), isDirectory.boolValue, seen.insert(standardized).inserted else {
-                return nil
-            }
-            return standardized
+            guard let directory = normalizedDirectory(candidate),
+                  seen.insert(directory).inserted else { return nil }
+            return directory
         }
+    }
+
+    static func normalizedDirectory(_ candidate: String) -> String? {
+        let path: String
+        if let url = URL(string: candidate), url.isFileURL {
+            path = url.path
+        } else {
+            path = (candidate as NSString).expandingTildeInPath
+        }
+
+        let standardized = URL(
+            fileURLWithPath: path,
+            isDirectory: true
+        ).standardizedFileURL.path
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(
+            atPath: standardized,
+            isDirectory: &isDirectory
+        ), isDirectory.boolValue else { return nil }
+        return standardized
     }
 }

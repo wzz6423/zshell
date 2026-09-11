@@ -685,6 +685,22 @@
         }
       }
     },
+    "Added folder as a project.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォルダをプロジェクトとして追加しました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已将文件夹添加为项目。"
+          }
+        }
+      }
+    },
     "Adds frosted material behind translucent terminal backgrounds": {
       "localizations": {
         "ja": {
@@ -5488,6 +5504,22 @@
         }
       }
     },
+    "Only folders can be added as projects.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロジェクトとして追加できるのはフォルダだけです。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只能将文件夹添加为项目。"
+          }
+        }
+      }
+    },
     "Opacity": {
       "localizations": {
         "ja": {
@@ -6159,6 +6191,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "项目终端环境…"
+          }
+        }
+      }
+    },
+    "Project already open. Focused it in the sidebar.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロジェクトはすでに開いています。サイドバーでそのプロジェクトに移動しました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "项目已打开，已在侧边栏中聚焦。"
           }
         }
       }

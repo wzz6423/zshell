@@ -75,6 +75,9 @@ struct SidebarView: View {
                 .padding(.horizontal, 8)
                 .padding(.top, 8)
             }
+            .background {
+                SidebarFolderDropView(manager: manager)
+            }
 
             HStack(spacing: 2) {
                 SidebarFooterButton(
@@ -155,6 +158,117 @@ struct SidebarView: View {
     private func endProjectDrag() {
         draggedProjectID = nil
         NSCursor.arrow.set()
+    }
+}
+
+private struct SidebarFolderDropView: NSViewRepresentable {
+    let manager: TerminalManager
+
+    func makeNSView(context: Context) -> SidebarFolderDropDestinationView {
+        let view = SidebarFolderDropDestinationView()
+        view.manager = manager
+        return view
+    }
+
+    func updateNSView(_ view: SidebarFolderDropDestinationView, context: Context) {
+        view.manager = manager
+    }
+}
+
+@MainActor
+private final class SidebarFolderDropDestinationView: NSView {
+    weak var manager: TerminalManager?
+    private var isDropTarget = false {
+        didSet {
+            guard isDropTarget != oldValue else { return }
+            needsDisplay = true
+        }
+    }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        registerForDraggedTypes([.fileURL])
+        setAccessibilityElement(false)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override func draw(_ dirtyRect: NSRect) {
+        guard isDropTarget else { return }
+        let path = NSBezierPath(
+            roundedRect: bounds.insetBy(dx: 4, dy: 4),
+            xRadius: 8,
+            yRadius: 8
+        )
+        NSColor.controlAccentColor.withAlphaComponent(0.12).setFill()
+        path.fill()
+        NSColor.controlAccentColor.withAlphaComponent(0.7).setStroke()
+        path.lineWidth = 2
+        path.setLineDash([5, 4], count: 2, phase: 0)
+        path.stroke()
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        updateDropState(sender)
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        updateDropState(sender)
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        isDropTarget = false
+    }
+
+    override func draggingEnded(_ sender: NSDraggingInfo) {
+        isDropTarget = false
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        isDropTarget = false
+        guard let directories = directories(from: sender), !directories.isEmpty,
+              let manager else {
+            NSSound.beep()
+            announce(String(localized: "Only folders can be added as projects."))
+            return false
+        }
+
+        let createdCount = manager.openOrFocusDirectories(directories)
+        let message = createdCount == 0
+            ? String(localized: "Project already open. Focused it in the sidebar.")
+            : String(localized: "Added folder as a project.")
+        announce(message)
+        return true
+    }
+
+    private func updateDropState(_ sender: NSDraggingInfo) -> NSDragOperation {
+        let acceptsDrop = directories(from: sender)?.isEmpty == false
+        isDropTarget = acceptsDrop
+        return acceptsDrop ? .copy : []
+    }
+
+    private func directories(from sender: NSDraggingInfo) -> [String]? {
+        let pasteboard = sender.draggingPasteboard
+        guard pasteboard.canReadObject(
+            forClasses: [NSURL.self],
+            options: [.urlReadingFileURLsOnly: true]
+        ) else { return nil }
+        return ZshellApplicationDelegate.directories(from: pasteboard)
+    }
+
+    private func announce(_ message: String) {
+        NSAccessibility.post(
+            element: NSApp as Any,
+            notification: .announcementRequested,
+            userInfo: [
+                .announcement: message,
+                .priority: NSAccessibilityPriorityLevel.medium.rawValue,
+            ]
+        )
     }
 }
 

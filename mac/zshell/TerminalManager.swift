@@ -210,7 +210,7 @@ final class TerminalManager: nonisolated ObservableObject {
             startupProjectID = newProject().id
         }
         for directory in queuedDirectories {
-            newProject(directory: directory)
+            openOrFocusDirectories([directory])
         }
         // Reconfigure live sessions only when font, appearance, theme, or
         // terminal input settings change. Delivery is scheduled onto the main
@@ -369,6 +369,25 @@ final class TerminalManager: nonisolated ObservableObject {
             ?? registry.last { $0.window != nil }
     }
 
+    /// Opens or focuses projects rooted at `directories` in this window.
+    /// Returns the number of projects created; existing paths only move focus.
+    @discardableResult
+    func openOrFocusDirectories(_ directories: [String]) -> Int {
+        var createdCount = 0
+        for directory in directories {
+            if let project = projects.first(where: {
+                $0.customDirectory.flatMap(ZshellApplicationDelegate.normalizedDirectory)
+                    == directory
+            }) {
+                selectedProjectID = project.id
+            } else {
+                newProject(directory: directory)
+                createdCount += 1
+            }
+        }
+        return createdCount
+    }
+
     /// Routes folders from the Finder service into the active Zshell window.
     /// If no window exists yet, the next WindowGroup manager claims them.
     static func openDirectories(_ directories: [String]) {
@@ -379,9 +398,7 @@ final class TerminalManager: nonisolated ObservableObject {
             return
         }
 
-        for directory in directories {
-            manager.newProject(directory: directory)
-        }
+        manager.openOrFocusDirectories(directories)
         manager.window?.makeKeyAndOrderFront(nil)
     }
 
@@ -411,9 +428,7 @@ final class TerminalManager: nonisolated ObservableObject {
             remove(startupProject)
         }
         startupProjectID = nil
-        for directory in directories {
-            newProject(directory: directory)
-        }
+        openOrFocusDirectories(directories)
         if !directories.isEmpty {
             window.makeKeyAndOrderFront(nil)
         }
