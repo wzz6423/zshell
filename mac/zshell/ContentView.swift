@@ -1074,7 +1074,9 @@ private struct SessionTabsView: View {
                             close: { project.close(tab) },
                             renamingTabID: $renamingTabID
                         )
-                        .contextMenu { tabContextMenu(for: tab) }
+                        .background {
+                            AppKitContextMenuMonitor(items: tabContextMenuItems(for: tab))
+                        }
                         .background {
                             GeometryReader { proxy in
                                 Color.clear.preference(
@@ -1265,47 +1267,62 @@ private struct SessionTabsView: View {
         NSCursor.arrow.set()
     }
 
-    @ViewBuilder
-    private func tabContextMenu(for tab: PaneTab) -> some View {
-        Button("Rename…") { renamingTabID = tab.id }
+    private func tabContextMenuItems(for tab: PaneTab) -> [AppKitContextMenuItem] {
+        var items: [AppKitContextMenuItem] = [
+            .action(title: String(localized: tab.isPinned ? "Unpin Tab" : "Pin Tab")) {
+                project.setPinned(!tab.isPinned, for: tab)
+            },
+            .separator,
+            .action(title: String(localized: "Rename…")) { renamingTabID = tab.id },
+        ]
         if tab.customName != nil {
-            Button("Use Automatic Title") { tab.customName = nil }
+            items.append(.action(title: String(localized: "Use Automatic Title")) {
+                tab.customName = nil
+            })
         }
-        Divider()
+        items.append(.separator)
         if case .file(let file) = tab.focusedContent {
-            Button("Reveal in Finder") {
+            items.append(.action(title: String(localized: "Reveal in Finder")) {
                 NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: file.path)])
-            }
-            Button("Copy Absolute Path") {
+            })
+            items.append(.action(title: String(localized: "Copy Absolute Path")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(file.path, forType: .string)
-            }
-            Divider()
+            })
+            items.append(.separator)
         }
-        if case .browser(let browser) = tab.focusedContent,
-           !browser.urlString.isEmpty {
-            Button("Open in Default Browser") {
-                browser.openInDefaultBrowser()
-            }
-            .disabled(browser.shareURL == nil)
-            Button("Copy Address") {
+        if case .browser(let browser) = tab.focusedContent, !browser.urlString.isEmpty {
+            items.append(.action(
+                title: String(localized: "Open in Default Browser"),
+                enabled: browser.shareURL != nil
+            ) { browser.openInDefaultBrowser() })
+            items.append(.action(title: String(localized: "Copy Address")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(browser.urlString, forType: .string)
-            }
-            Divider()
+            })
+            items.append(.separator)
         }
-        Button("Close") { project.close(tab) }
-        Button("Close Others") { project.closeOthers(tab) }
-            .disabled(project.tabs.count <= 1)
-        Button("Close Tabs to the Right") { project.closeToRight(of: tab) }
-            .disabled(project.tabs.last?.id == tab.id)
-        Divider()
-        Button("Close Files") { project.closeFiles() }
-            .disabled(!project.hasFiles)
-        Button("Close Diffs") { project.closeDiffs() }
-            .disabled(!project.hasDiffs)
-        Divider()
-        Button("Close All") { project.closeAll() }
+        items.append(.action(title: String(localized: "Close")) { project.close(tab) })
+        items.append(.action(
+            title: String(localized: "Close Others"),
+            enabled: project.tabs.count > 1
+        ) { project.closeOthers(tab) })
+        items.append(.action(
+            title: String(localized: "Close Tabs to the Right"),
+            enabled: project.tabs.last?.id != tab.id
+        ) { project.closeToRight(of: tab) })
+        items.append(.separator)
+        items.append(.action(
+            title: String(localized: "Close Files"),
+            enabled: project.hasFiles
+        ) { project.closeFiles() })
+        items.append(.action(
+            title: String(localized: "Close Diffs"),
+            enabled: project.hasDiffs
+        ) { project.closeDiffs() })
+        items.append(.separator)
+        items.append(.action(title: String(localized: "Close All")) { project.closeAll() })
+        return items
     }
 }
 

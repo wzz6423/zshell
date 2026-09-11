@@ -390,6 +390,7 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
             if customName != nil { pinFilePreview() }
         }
     }
+    @Published var isPinned: Bool
     @Published var layout: PaneNode
     @Published var focusedPaneID: UUID
     /// Whether the focused pane is zoomed to fill the tab. Presentation-only:
@@ -412,15 +413,17 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
     private var filePreviewDirtyObservation: AnyCancellable?
 
     /// A fresh single-pane tab wrapping one piece of content.
-    init(content: PaneContent, filePreview: Bool = false) {
+    init(content: PaneContent, isPinned: Bool = false, filePreview: Bool = false) {
         let pane = Pane(content: content)
+        self.isPinned = isPinned
         layout = .pane(pane)
         focusedPaneID = pane.id
         if filePreview { startFilePreviewing() }
     }
 
     /// Restores a saved layout.
-    init(layout: PaneNode, focusedPaneID: UUID) {
+    init(layout: PaneNode, focusedPaneID: UUID, isPinned: Bool = false) {
+        self.isPinned = isPinned
         self.layout = layout
         self.focusedPaneID = focusedPaneID
     }

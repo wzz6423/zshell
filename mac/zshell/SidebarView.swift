@@ -47,6 +47,7 @@ struct SidebarView: View {
                             index: index,
                             isSelected: project.id == manager.selectedProjectID,
                             select: { manager.selectedProjectID = project.id },
+                            setPinned: { manager.setPinned($0, for: project) },
                             close: { manager.close(project) },
                             isDragging: draggedProjectID == project.id,
                             onDrag: { updateProjectDrag(source: project.id, location: $0) },
@@ -233,6 +234,7 @@ private struct SidebarProjectRow: View {
     let index: Int
     let isSelected: Bool
     let select: () -> Void
+    let setPinned: (Bool) -> Void
     let close: () -> Void
     let isDragging: Bool
     let onDrag: (CGPoint) -> Void
@@ -266,29 +268,34 @@ private struct SidebarProjectRow: View {
                 .fill(isSelected ? Color.primary.opacity(0.09) : (isHovering ? Color.primary.opacity(0.04) : .clear))
         )
         .onHover { isHovering = $0 }
-        .contextMenu {
-            Button("Rename…") {
-                beginRename()
-            }
-            if project.customName != nil {
-                Button("Use Automatic Title") {
-                    project.customName = nil
-                }
-            }
-            Divider()
-            Button("Set Project Directory…") {
-                pickProjectDirectory()
-            }
-            if project.customDirectory != nil {
-                Button("Use Automatic Directory") {
-                    project.customDirectory = nil
-                }
-            }
-            Divider()
-            Button("Close Project") {
-                close()
-            }
+        .background {
+            AppKitContextMenuMonitor(items: projectContextMenuItems)
         }
+    }
+
+    private var projectContextMenuItems: [AppKitContextMenuItem] {
+        var items: [AppKitContextMenuItem] = [
+            .action(title: String(localized: project.isPinned ? "Unpin Project" : "Pin Project")) {
+                setPinned(!project.isPinned)
+            },
+            .separator,
+            .action(title: String(localized: "Rename…"), handler: beginRename),
+        ]
+        if project.customName != nil {
+            items.append(.action(title: String(localized: "Use Automatic Title")) {
+                project.customName = nil
+            })
+        }
+        items.append(.separator)
+        items.append(.action(title: String(localized: "Set Project Directory…"), handler: pickProjectDirectory))
+        if project.customDirectory != nil {
+            items.append(.action(title: String(localized: "Use Automatic Directory")) {
+                project.customDirectory = nil
+            })
+        }
+        items.append(.separator)
+        items.append(.action(title: String(localized: "Close Project"), handler: close))
+        return items
     }
 
     /// Lets the user pin the project's directory — the root the file tree

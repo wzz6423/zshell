@@ -243,13 +243,15 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     private func insert(_ project: Project) {
-        // Open the new project next to the current one rather than at the end.
-        // Falls back to appending when nothing is selected yet.
+        // New projects are unpinned. Keep the existing adjacent insertion within
+        // that section; a pinned selection starts the regular section instead.
         if let selectedProjectID,
-           let index = projects.firstIndex(where: { $0.id == selectedProjectID }) {
+           let index = projects.firstIndex(where: { $0.id == selectedProjectID }),
+           !projects[index].isPinned {
             projects.insert(project, at: index + 1)
         } else {
-            projects.append(project)
+            let destination = projects.firstIndex(where: { !$0.isPinned }) ?? projects.endIndex
+            projects.insert(project, at: destination)
         }
         selectedProjectID = project.id
     }
@@ -356,10 +358,14 @@ final class TerminalManager: nonisolated ObservableObject {
         }
     }
 
-    private func makeProject(createInitialSession: Bool = true) -> Project {
+    private func makeProject(
+        isPinned: Bool = false,
+        createInitialSession: Bool = true
+    ) -> Project {
         projectCounter += 1
         let project = Project(
             fallbackName: "Project \(projectCounter)",
+            isPinned: isPinned,
             createInitialSession: createInitialSession
         )
         projectObservations[project.id] = project.objectWillChange.sink { [weak self] _ in
@@ -389,12 +395,24 @@ final class TerminalManager: nonisolated ObservableObject {
         }
     }
 
-    /// Moves a dragged project across `targetID`: after it when moving down,
-    /// or before it when moving up. Selection continues to follow its project ID.
+    func setPinned(_ pinned: Bool, for project: Project) {
+        guard project.isPinned != pinned,
+              let index = projects.firstIndex(where: { $0.id == project.id })
+        else { return }
+
+        projects.remove(at: index)
+        project.isPinned = pinned
+        let destination = projects.firstIndex(where: { !$0.isPinned }) ?? projects.endIndex
+        projects.insert(project, at: destination)
+    }
+
+    /// Moves a dragged project across `targetID` within its pinned or unpinned
+    /// section. Selection continues to follow its project ID.
     func moveProject(_ draggedID: UUID, to targetID: UUID) {
         guard draggedID != targetID,
               let draggedIndex = projects.firstIndex(where: { $0.id == draggedID }),
-              let targetIndex = projects.firstIndex(where: { $0.id == targetID })
+              let targetIndex = projects.firstIndex(where: { $0.id == targetID }),
+              projects[draggedIndex].isPinned == projects[targetIndex].isPinned
         else { return }
 
         var reorderedProjects = projects
@@ -944,8 +962,10 @@ final class TerminalManager: nonisolated ObservableObject {
                         $0.id == tab.focusedPaneID
                     } ?? 0
                     return ProjectSnapshot.TabSnapshot(
-                        layout: layout, focusedPaneIndex: focusedPaneIndex,
+                        layout: layout,
+                        focusedPaneIndex: focusedPaneIndex,
                         customName: tab.customName,
+                        isPinned: tab.isPinned,
                         contextSessionIndex: tab.contextSession.flatMap { context in
                             projectSessions.firstIndex { $0.id == context.id }
                         }
@@ -953,6 +973,7 @@ final class TerminalManager: nonisolated ObservableObject {
                 }
                 return ProjectSnapshot(
                     customName: project.customName,
+                    isPinned: project.isPinned,
                     customDirectory: project.customDirectory,
                     tabs: tabs,
                     selectedTabIndex: project.tabs.firstIndex { $0.id == project.selectedTabID }
@@ -1042,7 +1063,10 @@ final class TerminalManager: nonisolated ObservableObject {
         if let visible = snapshot.isRightPanelVisible { isPanelVisible = visible }
         if let tab = snapshot.rightPanelTab { panelTab = tab }
         for saved in snapshot.projects where !saved.tabs.isEmpty {
-            let project = makeProject(createInitialSession: false)
+            let project = makeProject(
+                isPinned: saved.isPinned,
+                createInitialSession: false
+            )
             project.customName = Project.normalizedCustomName(saved.customName)
             project.customDirectory = saved.customDirectory
             var restoredContexts: [(tab: PaneTab, sessionIndex: Int)] = []
