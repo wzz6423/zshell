@@ -267,6 +267,7 @@ final class RecentCommitsNSView: NSView {
 @MainActor
 private struct CommitGraphMetrics {
     let scale: CGFloat
+    let growthScale: CGFloat
     let commitHeight: CGFloat
     let fileHeight: CGFloat
     let subjectFont: NSFont
@@ -276,21 +277,31 @@ private struct CommitGraphMetrics {
     let statusFont: NSFont
 
     init(fontScale: CGFloat) {
-        scale = fontScale
-        commitHeight = max(22, (26 * fontScale).rounded(.up))
-        fileHeight = max(20, (23 * fontScale).rounded(.up))
-        subjectFont = .systemFont(ofSize: 11.5 * fontScale, weight: .regular)
-        metadataFont = .systemFont(ofSize: 9.5 * fontScale, weight: .medium)
-        fileFont = .systemFont(ofSize: 11 * fontScale, weight: .regular)
-        pathFont = .systemFont(ofSize: 9.5 * fontScale, weight: .regular)
-        statusFont = .monospacedSystemFont(ofSize: 9.5 * fontScale, weight: .semibold)
+        let layout = SidebarLayoutMetrics(fontScale: fontScale)
+        scale = layout.fontScale
+        growthScale = layout.growthScale
+        commitHeight = max(22, (26 * layout.growthScale).rounded(.up))
+        fileHeight = max(20, (23 * layout.growthScale).rounded(.up))
+        subjectFont = .systemFont(ofSize: 11.5 * layout.fontScale, weight: .regular)
+        metadataFont = .systemFont(ofSize: 9.5 * layout.fontScale, weight: .medium)
+        fileFont = .systemFont(ofSize: 11 * layout.fontScale, weight: .regular)
+        pathFont = .systemFont(ofSize: 9.5 * layout.fontScale, weight: .regular)
+        statusFont = .monospacedSystemFont(
+            ofSize: 9.5 * layout.fontScale,
+            weight: .semibold
+        )
     }
 
-    var graphX: CGFloat { 14 }
-    var contentX: CGFloat { 27 }
-    var nestedRailX: CGFloat { 35 }
-    var fileIconX: CGFloat { 45 }
-    var fileContentX: CGFloat { 61 }
+    var graphX: CGFloat { 14 * growthScale }
+    var contentX: CGFloat { 27 * growthScale }
+    var nestedRailX: CGFloat { 35 * growthScale }
+    var fileIconX: CGFloat { 45 * growthScale }
+    var fileIconSize: CGFloat { 12 * growthScale }
+    var fileContentX: CGFloat { fileIconX + fileIconSize + 4 * growthScale }
+    var statusWidth: CGFloat { 18 * growthScale }
+    var trailingInset: CGFloat { 6 * growthScale }
+    var referenceHorizontalPadding: CGFloat { 7 * growthScale }
+    var maximumReferenceWidth: CGFloat { 104 * growthScale }
 }
 
 @MainActor
@@ -445,7 +456,6 @@ private final class CommitGraphRowView: NSView {
     private func drawSummary() {
         let reference = primaryReference
         let badgeWidth = reference.map(referenceBadgeWidth) ?? 0
-        let trailingInset: CGFloat = 6
         if let reference {
             drawReferenceBadge(reference, width: badgeWidth)
         }
@@ -469,7 +479,10 @@ private final class CommitGraphRowView: NSView {
             with: NSRect(
                 x: metrics.contentX,
                 y: (bounds.height - height) / 2,
-                width: max(0, bounds.width - metrics.contentX - badgeWidth - trailingInset),
+                width: max(
+                    0,
+                    bounds.width - metrics.contentX - badgeWidth - metrics.trailingInset
+                ),
                 height: height
             ),
             options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
@@ -486,13 +499,20 @@ private final class CommitGraphRowView: NSView {
     }
 
     private func referenceBadgeWidth(_ reference: String) -> CGFloat {
-        min(104, ceil((reference as NSString).size(withAttributes: [.font: metrics.metadataFont]).width) + 14)
+        min(
+            metrics.maximumReferenceWidth,
+            ceil(
+                (reference as NSString)
+                    .size(withAttributes: [.font: metrics.metadataFont])
+                    .width
+            ) + metrics.referenceHorizontalPadding * 2
+        )
     }
 
     private func drawReferenceBadge(_ reference: String, width: CGFloat) {
-        let height = max(16, ceil(metrics.metadataFont.pointSize + 6))
+        let height = max(16 * metrics.growthScale, ceil(metrics.metadataFont.pointSize + 6))
         let rect = NSRect(
-            x: bounds.width - width - 4,
+            x: bounds.width - width - 4 * metrics.growthScale,
             y: (bounds.height - height) / 2,
             width: width,
             height: height
@@ -500,7 +520,10 @@ private final class CommitGraphRowView: NSView {
         Theme.accent.setFill()
         NSBezierPath(roundedRect: rect, xRadius: height / 2, yRadius: height / 2).fill()
         (reference as NSString).draw(
-            with: rect.insetBy(dx: 7, dy: (height - metrics.metadataFont.pointSize * 1.35) / 2),
+            with: rect.insetBy(
+                dx: metrics.referenceHorizontalPadding,
+                dy: (height - metrics.metadataFont.pointSize * 1.35) / 2
+            ),
             options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
             attributes: [
                 .font: metrics.metadataFont,
@@ -663,12 +686,11 @@ private final class CommitFileRowView: NSView {
     }
 
     private func drawFile(_ change: GitStatusModel.RecentCommit.FileChange) {
-        let statusWidth: CGFloat = 18
         let symbolRect = NSRect(
             x: metrics.fileIconX,
-            y: (bounds.height - 12) / 2,
-            width: 12,
-            height: 12
+            y: (bounds.height - metrics.fileIconSize) / 2,
+            width: metrics.fileIconSize,
+            height: metrics.fileIconSize
         )
         MaterialFileIcon.image(forPath: change.path, appearance: effectiveAppearance).draw(
             in: symbolRect,
@@ -699,7 +721,13 @@ private final class CommitFileRowView: NSView {
             with: NSRect(
                 x: metrics.fileContentX,
                 y: (bounds.height - height) / 2,
-                width: max(0, bounds.width - metrics.fileContentX - statusWidth - 5),
+                width: max(
+                    0,
+                    bounds.width
+                        - metrics.fileContentX
+                        - metrics.statusWidth
+                        - metrics.trailingInset
+                ),
                 height: height
             ),
             options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
@@ -708,9 +736,9 @@ private final class CommitFileRowView: NSView {
 
         (String(change.status) as NSString).draw(
             with: NSRect(
-                x: bounds.width - statusWidth - 3,
+                x: bounds.width - metrics.statusWidth - 3 * metrics.growthScale,
                 y: (bounds.height - height) / 2,
-                width: statusWidth,
+                width: metrics.statusWidth,
                 height: height
             ),
             options: [.usesLineFragmentOrigin],
@@ -729,7 +757,7 @@ private final class CommitFileRowView: NSView {
             in: NSRect(
                 x: metrics.fileContentX,
                 y: (bounds.height - height) / 2,
-                width: max(0, bounds.width - metrics.fileContentX - 5),
+                width: max(0, bounds.width - metrics.fileContentX - metrics.trailingInset),
                 height: height
             ),
             withAttributes: [

@@ -114,7 +114,7 @@ final class AppSettings: nonisolated ObservableObject {
     static let defaultFontSize: Double = 13
     static let fontSizeRange: ClosedRange<Double> = 8...32
     static let defaultSidebarFontSize: Double = 14
-    static let sidebarFontSizeRange: ClosedRange<Double> = 9...18
+    static let sidebarFontSizeRange: ClosedRange<Double> = 9...24
     static let defaultToolbarVisibility: ToolbarVisibility = .hide
     static let defaultQuickTerminalSize: Double = 0.75
     static let quickTerminalSizeRange: ClosedRange<Double> = 0.35...0.95
