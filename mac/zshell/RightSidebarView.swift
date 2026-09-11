@@ -472,7 +472,9 @@ private struct FileTreeRow: View {
 
     private var rowButton: some View {
         Button {
-            if item.isDirectory {
+            if !item.isDirectory && isCommandClick {
+                NSWorkspace.shared.open(URL(fileURLWithPath: item.path))
+            } else if item.isDirectory {
                 model.toggle(item)
             } else {
                 openFile(item.path)
@@ -505,6 +507,11 @@ private struct FileTreeRow: View {
         .onDrag {
             NSItemProvider(object: URL(fileURLWithPath: item.path) as NSURL)
         }
+    }
+
+    private var isCommandClick: Bool {
+        guard let event = NSApp.currentEvent, event.type == .leftMouseUp else { return false }
+        return event.modifierFlags.contains(.command)
     }
 
     private var fileNameColor: Color {
