@@ -262,6 +262,16 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    /// Full executable path and argument text used by terminals opened after a
+    /// settings change. An empty program keeps the account login shell.
+    @Published var terminalStartupProgram: String {
+        didSet { save() }
+    }
+
+    @Published var terminalStartupArguments: String {
+        didSet { save() }
+    }
+
     private init() {
         let savedLanguage = AppLanguage.saved
         activeLanguage = savedLanguage
@@ -321,6 +331,8 @@ final class AppSettings: nonisolated ObservableObject {
         ) ?? Self.defaultQuickTerminalShortcut
         aiEnabled = toml["ai.enabled"]?.bool ?? true
         terminalBackend = TerminalBackend(persisted: toml["terminal.backend"]?.string)
+        terminalStartupProgram = toml["terminal.startup-program"]?.string ?? ""
+        terminalStartupArguments = toml["terminal.startup-arguments"]?.string ?? ""
         applyAppearance()
         reloadThemeSelection()
         if existing == nil { save() }
@@ -383,6 +395,8 @@ final class AppSettings: nonisolated ObservableObject {
             && quickTerminalShortcut == Self.defaultQuickTerminalShortcut
             && aiEnabled
             && terminalBackend == .fallback
+            && terminalStartupProgram.isEmpty
+            && terminalStartupArguments.isEmpty
     }
 
     func resetToDefaults() {
@@ -412,6 +426,8 @@ final class AppSettings: nonisolated ObservableObject {
             }
         }
         terminalBackend = .fallback
+        terminalStartupProgram = ""
+        terminalStartupArguments = ""
     }
 
     /// Persist the setting only after every requested destination operation
@@ -515,6 +531,12 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if terminalBackend != .fallback {
             lines.append("terminal.backend = \(TOML.quote(terminalBackend.rawValue))")
+        }
+        if !terminalStartupProgram.isEmpty {
+            lines.append("terminal.startup-program = \(TOML.quote(terminalStartupProgram))")
+        }
+        if !terminalStartupArguments.isEmpty {
+            lines.append("terminal.startup-arguments = \(TOML.quote(terminalStartupArguments))")
         }
         let dir = Self.configURL.deletingLastPathComponent()
         do {

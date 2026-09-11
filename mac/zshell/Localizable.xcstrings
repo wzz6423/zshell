@@ -8028,6 +8028,246 @@
           }
         }
       }
+    },
+    "Arguments" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "引数"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参数"
+          }
+        }
+      }
+    },
+    "Arguments are parsed without a shell. Quotes and backslashes preserve argument boundaries." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "引数はシェルを介さずに解析されます。引用符とバックスラッシュで引数の区切りを保持できます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参数不经 Shell 解析。引号和反斜杠用于保留参数边界。"
+          }
+        }
+      }
+    },
+    "Arguments, for example --no-config" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "引数（例：--no-config）"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参数，例如 --no-config"
+          }
+        }
+      }
+    },
+    "Close every quote and do not end arguments with a backslash. New terminals use your login shell until the arguments are valid." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての引用符を閉じ、引数の末尾にバックスラッシュを置かないでください。引数が有効になるまで、新しいターミナルはログインシェルを使用します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请闭合所有引号，且不要以反斜杠结束参数。在参数有效前，新终端将使用登录 Shell。"
+          }
+        }
+      }
+    },
+    "Custom program" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カスタムプログラム"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定义程序"
+          }
+        }
+      }
+    },
+    "Enter the full path to an executable file. New terminals use your login shell until the path is valid." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "実行可能ファイルのフルパスを入力してください。パスが有効になるまで、新しいターミナルはログインシェルを使用します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入可执行文件的完整路径。在路径有效前，新终端将使用登录 Shell。"
+          }
+        }
+      }
+    },
+    "Full executable path, for example /opt/homebrew/bin/fish" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "実行可能ファイルのフルパス（例：/opt/homebrew/bin/fish）"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可执行文件的完整路径，例如 /opt/homebrew/bin/fish"
+          }
+        }
+      }
+    },
+    "Login shell" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインシェル"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录 Shell"
+          }
+        }
+      }
+    },
+    "Program" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プログラム"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "程序"
+          }
+        }
+      }
+    },
+    "Startup" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "起動"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动"
+          }
+        }
+      }
+    },
+    "Startup arguments" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "起動時の引数"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动参数"
+          }
+        }
+      }
+    },
+    "Startup program" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "起動プログラム"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动程序"
+          }
+        }
+      }
+    },
+    "Terminal startup mode" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ターミナルの起動モード"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "终端启动模式"
+          }
+        }
+      }
+    },
+    "Uses your account login shell with its login startup files." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントのログインシェルを、ログイン時の起動ファイルとともに使用します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用账户登录 Shell 及其登录启动文件。"
+          }
+        }
+      }
+    },
+    "Changes apply only to new terminals. Open terminals keep their current process." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変更は新しいターミナルにのみ適用されます。開いているターミナルは現在のプロセスを維持します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更改仅应用于新终端。已打开的终端保持当前进程。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

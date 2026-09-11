@@ -61,6 +61,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     ) {
         let sessionID = UUID()
         let directCommand = commandArguments.flatMap { $0.isEmpty ? nil : $0 }
+            ?? Self.configuredStartupCommand()
         let shellPath = directCommand?.first ?? Self.loginShell()
         let directory = Self.validWorkingDirectory(initialDirectory)
         let backend = AppSettings.shared.terminalBackend
@@ -613,6 +614,21 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             return requested
         }
         return NSHomeDirectory()
+    }
+
+    /// The configured argv is read once when a pane is created. CLI launches
+    /// bypass this helper, so an explicit CLI argv still wins for its terminal.
+    private static func configuredStartupCommand() -> [String]? {
+        let settings = AppSettings.shared
+        switch TerminalStartupCommand.resolve(
+            program: settings.terminalStartupProgram,
+            arguments: settings.terminalStartupArguments
+        ) {
+        case .success(let command):
+            return command?.argv
+        case .failure:
+            return nil
+        }
     }
 
     private static func loginShell() -> String {
