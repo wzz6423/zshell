@@ -8,6 +8,9 @@ import SwiftUI
 
 enum AppKitContextMenuItem {
     case action(title: String, enabled: Bool = true, handler: () -> Void)
+    /// A nested menu (e.g. "Move Tab to Project"); its items resolve lazily
+    /// through the same handler registry as top-level actions.
+    case submenu(title: String, enabled: Bool = true, items: [AppKitContextMenuItem])
     case separator
 }
 
@@ -38,6 +41,7 @@ final class AppKitContextMenuMonitorView: NSView {
     var items: [AppKitContextMenuItem] = []
     private var eventMonitor: Any?
     private var activeHandlers: [Int: () -> Void] = [:]
+    private var nextHandlerTag = 0
 
     override func hitTest(_ point: NSPoint) -> NSView? {
         nil
@@ -59,32 +63,44 @@ final class AppKitContextMenuMonitorView: NSView {
                       self.visibleRect.contains(self.convert(event.locationInWindow, from: nil))
                 else { return input }
 
-                let menu = NSMenu()
-                menu.autoenablesItems = false
                 self.activeHandlers = [:]
-                for (index, item) in self.items.enumerated() {
-                    switch item {
-                    case .separator:
-                        menu.addItem(.separator())
-                    case .action(let title, let enabled, let handler):
-                        let menuItem = NSMenuItem(
-                            title: title,
-                            action: #selector(self.performMenuAction(_:)),
-                            keyEquivalent: ""
-                        )
-                        menuItem.target = self
-                        menuItem.tag = index
-                        menuItem.isEnabled = enabled
-                        self.activeHandlers[index] = handler
-                        menu.addItem(menuItem)
-                    }
-                }
+                self.nextHandlerTag = 0
+                let menu = self.makeMenu(items: self.items)
                 _ = menu.popUp(positioning: nil, at: self.convert(event.locationInWindow, from: nil), in: self)
                 self.activeHandlers = [:]
                 return AppKitContextMenuEvent(nil)
             }
             return output.value
         }
+    }
+
+    private func makeMenu(items: [AppKitContextMenuItem]) -> NSMenu {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        for item in items {
+            switch item {
+            case .separator:
+                menu.addItem(.separator())
+            case .action(let title, let enabled, let handler):
+                let menuItem = NSMenuItem(
+                    title: title,
+                    action: #selector(performMenuAction(_:)),
+                    keyEquivalent: ""
+                )
+                menuItem.target = self
+                menuItem.tag = nextHandlerTag
+                nextHandlerTag += 1
+                menuItem.isEnabled = enabled
+                activeHandlers[menuItem.tag] = handler
+                menu.addItem(menuItem)
+            case .submenu(let title, let enabled, let subItems):
+                let menuItem = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+                menuItem.isEnabled = enabled
+                menuItem.submenu = makeMenu(items: subItems)
+                menu.addItem(menuItem)
+            }
+        }
+        return menu
     }
 
     @objc private func performMenuAction(_ sender: NSMenuItem) {

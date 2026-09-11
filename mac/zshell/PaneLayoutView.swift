@@ -10,6 +10,7 @@ import SwiftUI
 /// rectangle that was split, so nested horizontal and vertical layouts can be
 /// combined freely. Only the selected tab's layout is ever mounted.
 struct PaneLayoutView: View {
+    let manager: TerminalManager
     @ObservedObject var tab: PaneTab
     @ObservedObject var tabSplitDrag: TabSplitDragCoordinator
     @ObservedObject private var themeChanges = Theme.changes
@@ -70,6 +71,7 @@ struct PaneLayoutView: View {
                 // like an unselected tab's layout; the focus ring stays as the
                 // hint that a split layout is hiding underneath.
                 PaneView(
+                    manager: manager,
                     tab: tab,
                     pane: pane,
                     showFocusRing: true,
@@ -120,6 +122,7 @@ struct PaneLayoutView: View {
             ZStack(alignment: .topLeading) {
                 ForEach(geometry.panes) { placement in
                     PaneView(
+                        manager: manager,
                         tab: tab,
                         pane: placement.pane,
                         showFocusRing: tab.hasMultiplePanes,
@@ -413,6 +416,7 @@ private struct ResizableDivider: View {
 /// draws an accent focus ring, its own title/actions header you can grab to
 /// move the pane onto another, and a highlight while it's the drop target.
 private struct PaneView: View {
+    let manager: TerminalManager
     @ObservedObject var tab: PaneTab
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var themeChanges = Theme.changes
@@ -518,6 +522,7 @@ private struct PaneView: View {
         case .session(let session):
             TerminalHostView(
                 session: session,
+                manager: manager,
                 isFocused: isFocused,
                 onFocused: focus,
                 onSplit: splitFromMenu,
@@ -544,6 +549,7 @@ private struct PaneView: View {
                 .background(Color(nsColor: Theme.background))
         case .browser(let browser):
             BrowserView(
+                manager: manager,
                 browser: browser,
                 isFocused: isFocused,
                 onFocused: focus,

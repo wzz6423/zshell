@@ -81,6 +81,43 @@ final class TerminalManager: nonisolated ObservableObject {
     /// Projects publish their own changes (session list, session selection);
     /// re-publish them so views observing the manager stay current.
     private var projectObservations: [UUID: AnyCancellable] = [:]
+    /// Stable menu payload for a transfer target. Actions resolve these IDs
+    /// again when invoked so a menu cannot move a tab into a closed project.
+    struct TabMoveDestination: Identifiable {
+        let managerID: ObjectIdentifier
+        let projectID: UUID
+        let title: String
+        let windowTitle: String?
+        let isEnabled: Bool
+
+        var id: String { "\(managerID)-\(projectID.uuidString)" }
+    }
+
+    enum TabMoveFailure {
+        case unavailable
+        case containsDiff
+        case agentAliasConflict(String)
+
+        var message: String {
+            switch self {
+            case .unavailable:
+                return String(localized: "The tab or destination project is no longer available.")
+            case .containsDiff:
+                return String(localized: "Tabs containing diffs can’t be moved between projects.")
+            case .agentAliasConflict(let alias):
+                return String(
+                    localized: "The destination project already has an agent named “\(alias)”.",
+                    comment: "Tab move failure. The placeholder is an agent alias."
+                )
+            }
+        }
+    }
+
+    struct TabMoveResult {
+        let failure: TabMoveFailure?
+        var succeeded: Bool { failure == nil }
+    }
+
     /// Projects whose diff stacks have already been mounted in this window.
     /// Unvisited restored projects stay lazy so launch does not instantiate all
     /// of their WKWebViews at once.
@@ -432,6 +469,7 @@ final class TerminalManager: nonisolated ObservableObject {
         projectCounter += 1
         let project = Project(
             fallbackName: "Project \(projectCounter)",
+            manager: self,
             isPinned: isPinned,
             createInitialSession: createInitialSession
         )
@@ -586,6 +624,70 @@ final class TerminalManager: nonisolated ObservableObject {
             initialURL: initialURL,
             initialFocus: initialURL == nil ? .addressBar : .webContent
         )
+    }
+
+    /// Current transfer targets for a native tab menu. Every project in every
+    /// other live manager is eligible unless moving would violate the two
+    /// content-scope constraints checked again by `moveTab`.
+    func tabMoveDestinations(for tabID: UUID, in sourceProjectID: UUID) -> [TabMoveDestination] {
+        guard let source = projects.first(where: { $0.id == sourceProjectID }),
+              let tab = source.tabs.first(where: { $0.id == tabID })
+        else { return [] }
+
+        let aliases = Set(tab.sessions.compactMap { $0.agentStatus?.alias })
+        return Self.registry.flatMap { manager in
+            manager.projects.compactMap { project in
+                guard manager !== self || project.id != sourceProjectID else { return nil }
+                let destinationAliases = Set(project.sessions.compactMap { $0.agentStatus?.alias })
+                return TabMoveDestination(
+                    managerID: ObjectIdentifier(manager),
+                    projectID: project.id,
+                    title: project.name,
+                    windowTitle: manager === self ? nil : manager.window?.title,
+                    isEnabled: tab.diffs.isEmpty && aliases.isDisjoint(with: destinationAliases)
+                )
+            }
+        }
+    }
+
+    /// Moves one live tab across project and window ownership as a synchronous
+    /// main-actor transaction. No close/terminate path runs, so the complete
+    /// pane tree and each long-lived content object survive intact.
+    @discardableResult
+    func moveTab(
+        id tabID: UUID,
+        from sourceProjectID: UUID,
+        to destinationProjectID: UUID,
+        in destinationManagerID: ObjectIdentifier
+    ) -> TabMoveResult {
+        guard let source = projects.first(where: { $0.id == sourceProjectID }),
+              let tab = source.tabs.first(where: { $0.id == tabID }),
+              let destinationManager = Self.registry.first(where: {
+                  ObjectIdentifier($0) == destinationManagerID
+              }),
+              let destination = destinationManager.projects.first(where: {
+                  $0.id == destinationProjectID
+              }),
+              source !== destination
+        else { return TabMoveResult(failure: .unavailable) }
+
+        guard tab.diffs.isEmpty else {
+            return TabMoveResult(failure: .containsDiff)
+        }
+        let destinationAliases = Set(destination.sessions.compactMap { $0.agentStatus?.alias })
+        if let conflict = tab.sessions.compactMap({ $0.agentStatus?.alias })
+            .first(where: destinationAliases.contains) {
+            return TabMoveResult(failure: .agentAliasConflict(conflict))
+        }
+
+        guard let moved = source.detachTabForTransfer(id: tabID) else {
+            return TabMoveResult(failure: .unavailable)
+        }
+        destination.adoptTransferredTab(moved, manager: destinationManager)
+        destinationManager.selectedProjectID = destination.id
+        destinationManager.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate()
+        return TabMoveResult(failure: nil)
     }
 
     /// Brings `session` to the foreground: selects its project and tab, then

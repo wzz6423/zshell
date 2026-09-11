@@ -11,6 +11,7 @@ import SwiftUI
 /// overlay scrollbar to the container's true trailing edge.
 struct TerminalHostView: NSViewRepresentable {
     let session: TerminalSession
+    let manager: TerminalManager
     /// Whether this terminal's pane is the focused one in its tab.
     var isFocused: Bool = true
     /// Called when the terminal takes focus itself (e.g. a click), so the
@@ -27,6 +28,7 @@ struct TerminalHostView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSView {
         let container = TerminalContainerView()
+        guard session.belongs(to: manager) else { return container }
         let terminal = session.surface
         container.terminal = terminal
         container.focusOnAppear = isFocused
@@ -36,37 +38,19 @@ struct TerminalHostView: NSViewRepresentable {
         terminal.splitTarget.onNewBrowserPane = onNewBrowserPane
         terminal.splitTarget.onNewFileTab = onNewFileTab
         terminal.splitTarget.onNewFilePane = onNewFilePane
-        let scrollbar = session.overlayScrollbar
-        // Zshell's visual insets live inside the backend as window padding (see
-        // ZshellTerminalView+Ghostty), so that a padding-color of `extend` can
-        // flood them with the content's background and padding balance keeps
-        // the prompt near the pane's bottom edge. The surface keeps a hairline
-        // inset of pane background so a full-screen TUI's fill stops just
-        // short of the pane edges.
-        let frameInset: CGFloat = 2
-        terminal.translatesAutoresizingMaskIntoConstraints = false
-        scrollbar.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(terminal)
-        container.addSubview(scrollbar, positioned: .above, relativeTo: terminal)
-        NSLayoutConstraint.activate([
-            terminal.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: frameInset),
-            terminal.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -frameInset),
-            terminal.topAnchor.constraint(equalTo: container.topAnchor, constant: frameInset),
-            terminal.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -frameInset),
-            scrollbar.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            scrollbar.topAnchor.constraint(equalTo: container.topAnchor),
-            scrollbar.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            scrollbar.widthAnchor.constraint(equalToConstant: OverlayScrollbarView.stripWidth),
-        ])
-        // A parked Metal surface has discarded its drawable pool. Activate it
-        // only after Auto Layout has assigned the real pane geometry, so its
-        // first replacement drawable is created at the correct size.
-        container.activateSurfaceAfterLayout()
         context.coordinator.isFocused = isFocused
         return container
     }
 
     func updateNSView(_ view: NSView, context: Context) {
+        guard session.belongs(to: manager) else {
+            (view as? TerminalContainerView)?.releaseTerminal(session.surface)
+            return
+        }
+        if let container = view as? TerminalContainerView,
+           container.terminal !== session.surface {
+            container.mount(session.surface, scrollbar: session.overlayScrollbar)
+        }
         session.surface.onBecomeFirstResponder = onFocused
         session.surface.splitTarget.onSplit = onSplit
         session.surface.splitTarget.onNewBrowserTab = onNewBrowserTab
@@ -90,18 +74,24 @@ struct TerminalHostView: NSViewRepresentable {
         guard let container = view as? TerminalContainerView,
               let terminal = container.terminal as? any TerminalBackendSurface
         else { return }
-        // These closures originate on PaneView and therefore capture its
+        // The closures below originate on PaneView and therefore capture its
         // PaneContent, including the same TerminalSession that owns `terminal`.
         // Clear them whenever SwiftUI removes this host so a closed tab cannot
         // leave the session and its renderer in a retain cycle. A parked
-        // session gets fresh callbacks when its host is recreated.
+        // session gets fresh callbacks when its host is recreated. A transferred
+        // terminal, however, may already carry fresh destination callbacks, so
+        // only the host that still owns the surface may clear them.
+        guard terminal.superview === container else {
+            container.releaseTerminal(terminal)
+            return
+        }
         terminal.onBecomeFirstResponder = nil
         terminal.splitTarget.onSplit = nil
         terminal.splitTarget.onNewBrowserTab = nil
         terminal.splitTarget.onNewBrowserPane = nil
         terminal.splitTarget.onNewFileTab = nil
         terminal.splitTarget.onNewFilePane = nil
-        container.terminal = nil
+        container.releaseTerminal(terminal)
     }
 
     final class Coordinator {
@@ -116,13 +106,14 @@ struct TerminalHostView: NSViewRepresentable {
 /// into the visible layout.
 struct TerminalParkingView: NSViewRepresentable {
     let sessions: [TerminalSession]
+    let manager: TerminalManager
 
     func makeNSView(context: Context) -> TerminalParkingContainerView {
         TerminalParkingContainerView(frame: .zero)
     }
 
     func updateNSView(_ view: TerminalParkingContainerView, context: Context) {
-        view.mount(sessions)
+        view.mount(sessions.filter { $0.belongs(to: manager) })
     }
 
     static func dismantleNSView(
@@ -181,7 +172,9 @@ final class TerminalParkingContainerView: NSView {
     }
 
     func unmountAll() {
-        for subview in subviews { subview.removeFromSuperview() }
+        for subview in subviews where subview.superview === self {
+            subview.removeFromSuperview()
+        }
     }
 }
 
@@ -198,6 +191,41 @@ private final class TerminalContainerView: NSView {
     }
     private var pendingFocusRequest = false
     private var needsSurfaceActivation = false
+    private var surfaceConstraints: [NSLayoutConstraint] = []
+
+    func mount(_ terminal: NSView, scrollbar: NSView) {
+        NSLayoutConstraint.deactivate(surfaceConstraints)
+        surfaceConstraints.removeAll()
+        self.terminal = terminal
+        terminal.translatesAutoresizingMaskIntoConstraints = false
+        scrollbar.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(terminal)
+        addSubview(scrollbar, positioned: .above, relativeTo: terminal)
+        // Zshell's visual insets live inside the backend as window padding. The
+        // surface keeps only a hairline pane-background inset, while the overlay
+        // scrollbar stays pinned to the container's true trailing edge.
+        surfaceConstraints = [
+            terminal.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
+            terminal.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
+            terminal.topAnchor.constraint(equalTo: topAnchor, constant: 2),
+            terminal.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -2),
+            scrollbar.trailingAnchor.constraint(equalTo: trailingAnchor),
+            scrollbar.topAnchor.constraint(equalTo: topAnchor),
+            scrollbar.bottomAnchor.constraint(equalTo: bottomAnchor),
+            scrollbar.widthAnchor.constraint(equalToConstant: OverlayScrollbarView.stripWidth),
+        ]
+        NSLayoutConstraint.activate(surfaceConstraints)
+        // A parked Metal surface has discarded its drawable pool. Activate it
+        // only after Auto Layout assigns the real pane geometry.
+        activateSurfaceAfterLayout()
+    }
+
+    func releaseTerminal(_ requested: NSView) {
+        guard terminal === requested else { return }
+        NSLayoutConstraint.deactivate(surfaceConstraints)
+        surfaceConstraints.removeAll()
+        terminal = nil
+    }
 
     deinit {
         NotificationCenter.default.removeObserver(self)

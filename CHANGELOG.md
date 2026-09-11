@@ -14,6 +14,14 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
+## [Unreleased]
+
+### Added
+
+- Move a tab to another project — including a project in another Zshell window —
+  from the tab's context menu. The tab keeps its running shells, split layout,
+  and focus while it moves.
+
 ## [0.1.3]
 
 ### Added

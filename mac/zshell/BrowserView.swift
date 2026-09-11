@@ -170,6 +170,9 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     @Published private(set) var focusAddressRequest: UInt = 0
 
     let webView: BrowserWebView
+    /// Identity of the manager currently allowed to host this web view. Moving
+    /// a tab updates it before SwiftUI can reconcile either window.
+    private(set) var hostManagerID: ObjectIdentifier?
 
     private var pageTitle: String?
     private var observations: Set<AnyCancellable> = []
@@ -252,6 +255,14 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
 
     deinit {
         faviconTask?.cancel()
+    }
+
+    func transferHost(to manager: TerminalManager) {
+        hostManagerID = ObjectIdentifier(manager)
+    }
+
+    func belongs(to manager: TerminalManager) -> Bool {
+        hostManagerID == ObjectIdentifier(manager)
     }
 
     var snapshotURL: String? {
@@ -739,6 +750,7 @@ struct BrowserFaviconView: View {
 /// Browser content and native navigation chrome. The toolbar stays in SwiftUI
 /// so it follows Zshell's appearance while the page remains a real WKWebView.
 struct BrowserView: View {
+    let manager: TerminalManager
     @ObservedObject var browser: BrowserTab
     let isFocused: Bool
     let onFocused: () -> Void
@@ -756,6 +768,7 @@ struct BrowserView: View {
             toolbar
             ZStack {
                 BrowserWebViewRepresentable(
+                    manager: manager,
                     browser: browser,
                     onFocused: onFocused,
                     onNewBrowserTab: onNewBrowserTab,
@@ -1180,6 +1193,7 @@ private struct BrowserAddressField: NSViewRepresentable {
 }
 
 private struct BrowserWebViewRepresentable: NSViewRepresentable {
+    let manager: TerminalManager
     @ObservedObject var browser: BrowserTab
     let onFocused: () -> Void
     let onNewBrowserTab: (String?) -> Void
@@ -1187,58 +1201,98 @@ private struct BrowserWebViewRepresentable: NSViewRepresentable {
     let focusRequest: UInt
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(handledFocusRequest: focusRequest)
+        Coordinator(
+            manager: manager,
+            browser: browser,
+            handledFocusRequest: focusRequest
+        )
     }
 
-    func makeNSView(context: Context) -> BrowserWebView {
-        browser.webView.onFocused = onFocused
-        browser.webView.onNewBrowserTab = onNewBrowserTab
-        browser.webView.onNewBrowserPane = onNewBrowserPane
-        return browser.webView
+    func makeNSView(context: Context) -> BrowserWebViewContainer {
+        let container = BrowserWebViewContainer()
+        guard browser.belongs(to: manager) else { return container }
+        container.mount(browser.webView)
+        updateCallbacks()
+        return container
     }
 
-    func updateNSView(_ webView: BrowserWebView, context: Context) {
-        webView.onFocused = onFocused
-        webView.onNewBrowserTab = onNewBrowserTab
-        webView.onNewBrowserPane = onNewBrowserPane
+    func updateNSView(_ container: BrowserWebViewContainer, context: Context) {
+        guard browser.belongs(to: manager) else {
+            container.releaseWebView(browser.webView)
+            return
+        }
+        if container.webView !== browser.webView {
+            container.mount(browser.webView)
+        }
+        updateCallbacks()
         guard focusRequest != context.coordinator.handledFocusRequest else {
             return
         }
         context.coordinator.handledFocusRequest = focusRequest
-        context.coordinator.focus(webView)
+        context.coordinator.focus(browser.webView, in: container)
+    }
+
+    private func updateCallbacks() {
+        browser.webView.onFocused = onFocused
+        browser.webView.onNewBrowserTab = onNewBrowserTab
+        browser.webView.onNewBrowserPane = onNewBrowserPane
     }
 
     static func dismantleNSView(
-        _ webView: BrowserWebView,
+        _ container: BrowserWebViewContainer,
         coordinator: Coordinator
     ) {
+        guard let webView = container.webView,
+              webView.superview === container else {
+            if let webView = container.webView {
+                container.releaseWebView(webView)
+            }
+            return
+        }
         webView.onFocused = nil
         webView.onNewBrowserTab = nil
         webView.onNewBrowserPane = nil
+        container.releaseWebView(webView)
     }
 
     final class Coordinator {
+        weak var manager: TerminalManager?
+        weak var browser: BrowserTab?
         var handledFocusRequest: UInt?
 
-        init(handledFocusRequest: UInt) {
+        init(
+            manager: TerminalManager,
+            browser: BrowserTab,
+            handledFocusRequest: UInt
+        ) {
+            self.manager = manager
+            self.browser = browser
             // Preserve a request issued before the representable was mounted.
             self.handledFocusRequest = handledFocusRequest == 0
                 ? 0
                 : nil
         }
 
-        func focus(_ webView: BrowserWebView) {
+        func focus(_ webView: BrowserWebView, in container: BrowserWebViewContainer) {
             // Split insertion can race the AppKit attachment just like the
             // address field; retry only until WebKit accepts first responder.
-            focus(webView, attemptsRemaining: 6)
+            focus(webView, in: container, attemptsRemaining: 6)
         }
 
         private func focus(
             _ webView: BrowserWebView,
+            in container: BrowserWebViewContainer,
             attemptsRemaining: Int
         ) {
-            DispatchQueue.main.async { [weak self, weak webView] in
-                guard let self, let webView else { return }
+            DispatchQueue.main.async { [weak self, weak webView, weak container] in
+                guard let self,
+                      let manager = self.manager,
+                      let browser = self.browser,
+                      let webView,
+                      let container,
+                      browser.belongs(to: manager),
+                      container.webView === webView,
+                      webView.superview === container else { return }
                 if let window = webView.window,
                    window.makeFirstResponder(webView) {
                     return
@@ -1247,10 +1301,39 @@ private struct BrowserWebViewRepresentable: NSViewRepresentable {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                     self.focus(
                         webView,
+                        in: container,
                         attemptsRemaining: attemptsRemaining - 1
                     )
                 }
             }
         }
+    }
+}
+
+@MainActor
+private final class BrowserWebViewContainer: NSView {
+    weak var webView: BrowserWebView?
+    private var webViewConstraints: [NSLayoutConstraint] = []
+
+    func mount(_ webView: BrowserWebView) {
+        NSLayoutConstraint.deactivate(webViewConstraints)
+        webViewConstraints.removeAll()
+        self.webView = webView
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(webView)
+        webViewConstraints = [
+            webView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            webView.topAnchor.constraint(equalTo: topAnchor),
+            webView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ]
+        NSLayoutConstraint.activate(webViewConstraints)
+    }
+
+    func releaseWebView(_ requested: BrowserWebView) {
+        guard webView === requested else { return }
+        NSLayoutConstraint.deactivate(webViewConstraints)
+        webViewConstraints.removeAll()
+        webView = nil
     }
 }

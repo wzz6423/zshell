@@ -213,10 +213,18 @@ enum ZshellAutomationRouter {
         _ request: ZshellAutomationRequest,
         caller: PaneContext
     ) async -> ZshellAutomationResponse {
+        guard let callerSessionID = caller.session?.id else {
+            return failure(
+                request, "caller_closed",
+                "The terminal that owned this capability is no longer open."
+            )
+        }
         guard let target = targetPane(request, caller: caller),
               let session = target.session else {
             return failure(request, "terminal_required", "The target pane is not a terminal.")
         }
+        let targetPaneID = target.pane.id
+        let targetSessionID = session.id
         let lines = min(max(request.params["lines"]?.intValue ?? 80, 1), 500)
         let columns = min(max(request.params["columns"]?.intValue ?? 400, 1), 2_000)
         do {
@@ -226,8 +234,22 @@ enum ZshellAutomationRouter {
                 requireIdleAgentForHistory:
                     request.params["require_idle_agent"]?.boolValue == true
             )
+            guard let currentCaller = context(forSession: callerSessionID) else {
+                return failure(
+                    request, "caller_closed",
+                    "The terminal that owned this capability is no longer open."
+                )
+            }
+            guard let currentTarget = targetPane(request, caller: currentCaller),
+                  currentTarget.pane.id == targetPaneID,
+                  currentTarget.session?.id == targetSessionID else {
+                return failure(
+                    request, "pane_not_found",
+                    "No matching pane exists in this project."
+                )
+            }
             return success(request, .object([
-                "pane": paneSnapshot(target, caller: caller),
+                "pane": paneSnapshot(currentTarget, caller: currentCaller),
                 "text": .string(text),
                 "lines": .number(Double(lines)),
                 "columns": .number(Double(columns)),

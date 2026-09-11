@@ -41,6 +41,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     private var recentTabIDs: [UUID] = []
 
     private let fallbackName: String
+    private weak var manager: TerminalManager?
     /// Sessions publish their own changes (title, directory); re-publish them
     /// so the project name and views observing the project stay current.
     private var sessionObservations: [UUID: AnyCancellable] = [:]
@@ -64,10 +65,12 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// the caller then rebuilds the tabs itself.
     init(
         fallbackName: String,
+        manager: TerminalManager,
         isPinned: Bool = false,
         createInitialSession: Bool = true
     ) {
         self.fallbackName = fallbackName
+        self.manager = manager
         self.isPinned = isPinned
         if createInitialSession {
             newSession()
@@ -283,13 +286,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             commandArguments: commandArguments,
             environmentPath: environmentPath
         )
-        session.onExited = { [weak self] session in
-            // Already dead — just drop its pane, no second terminate.
-            self?.closeContent(.session(session), terminate: false)
-        }
-        sessionObservations[session.id] = session.objectWillChange.sink { [weak self] _ in
-            self?.objectWillChange.send()
-        }
+        register(session)
+        manager.map { session.transferHost(to: $0) }
         return session
     }
 
@@ -494,9 +492,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             initialURL: initialURL,
             initialFocus: initialFocus
         )
-        browserObservations[browser.id] = browser.objectWillChange.sink { [weak self] _ in
-            self?.objectWillChange.send()
-        }
+        manager.map { browser.transferHost(to: $0) }
+        register(browser)
         return browser
     }
 
@@ -782,8 +779,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         tabs.insert(tab, at: destination)
     }
 
-    /// Moves a dragged tab across `targetID` within its pinned or unpinned
-    /// section. Selection continues to follow its tab ID.
+    /// Reorders a tab within its pinned or unpinned section. Cross-project
+    /// moves go through `TerminalManager.moveTab` so ownership changes as one
+    /// transaction; selection continues to follow the dragged tab's ID.
     func moveTab(_ draggedID: UUID, to targetID: UUID) {
         guard draggedID != targetID,
               let draggedIndex = tabs.firstIndex(where: { $0.id == draggedID }),
@@ -835,6 +833,70 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         tabs.remove(at: draggedIndex)
         selectedTabID = targetTabID
         return true
+    }
+
+    /// Detaches a tab without closing its contents. Only the manager-level
+    /// transfer path may call this, because sessions have to be adopted by the
+    /// destination before the main actor yields.
+    func detachTabForTransfer(id: UUID) -> PaneTab? {
+        guard let index = tabs.firstIndex(where: { $0.id == id }) else { return nil }
+        let tab = tabs[index]
+        unregisterTransferOwnership(of: tab)
+        recentTabIDs.removeAll { $0 == id }
+        tabs.remove(at: index)
+        if selectedTabID == id {
+            let neighbor = min(index, tabs.count - 1)
+            selectedTabID = neighbor >= 0 ? tabs[neighbor].id : nil
+        }
+        return tab
+    }
+
+    /// Adopts the same long-lived tab and its content objects, preserving pane
+    /// IDs, split geometry, terminal surfaces, browser state, and focus.
+    func adoptTransferredTab(_ tab: PaneTab, manager: TerminalManager) {
+        self.manager = manager
+        let movedSessionIDs = Set(tab.sessions.map(\.id))
+        if let context = tab.contextSession, !movedSessionIDs.contains(context.id) {
+            tab.contextSession = nil
+        }
+        tab.sessions.forEach { $0.transferHost(to: manager) }
+        tab.browsers.forEach { $0.transferHost(to: manager) }
+        registerTransferOwnership(of: tab)
+        tabs.append(tab)
+        selectedTabID = tab.id
+    }
+
+    private func registerTransferOwnership(of tab: PaneTab) {
+        register(tab)
+        tab.sessions.forEach(register)
+        tab.browsers.forEach(register)
+    }
+
+    private func unregisterTransferOwnership(of tab: PaneTab) {
+        tabObservations[tab.id] = nil
+        for session in tab.sessions {
+            session.onExited = nil
+            sessionObservations[session.id] = nil
+        }
+        for browser in tab.browsers {
+            browserObservations[browser.id] = nil
+        }
+    }
+
+    private func register(_ session: TerminalSession) {
+        session.onExited = { [weak self] session in
+            // Already dead — just drop its pane, no second terminate.
+            self?.closeContent(.session(session), terminate: false)
+        }
+        sessionObservations[session.id] = session.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+    }
+
+    private func register(_ browser: BrowserTab) {
+        browserObservations[browser.id] = browser.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
     }
 
     func select(index: Int) {
