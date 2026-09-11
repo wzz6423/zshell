@@ -600,6 +600,10 @@ private func run() throws {
         printHelp()
         return
     }
+    if arguments.first == "+pty-mux" {
+        try PTYMuxCommandLine.run(arguments: Array(arguments.dropFirst()))
+        return
+    }
     if arguments.first == "+pane" || arguments.first == "+agent" {
         try ZshellAutomationCommandLine.run(
             namespace: arguments[0],
