@@ -9,6 +9,14 @@ import MetalKit
 import QuartzCore
 import simd
 
+/// IME preedit captured separately from the snapshot cursor, which may be
+/// hidden or restyled before the frame is submitted.
+struct TerminalMarkedText {
+    let text: String
+    let line: Int
+    let column: Int
+}
+
 /// GPU renderer for a terminal grid.
 ///
 /// One instanced draw call covers a frame: every cell background, glyph,
@@ -110,6 +118,7 @@ final class TerminalMetalRenderer {
     @discardableResult
     func render(
         snapshot: ZshellSnapshot,
+        markedText: TerminalMarkedText?,
         kittyPlacements: [AlacrittyKittyPlacement],
         metrics: AlacrittyMetrics,
         padding: CGPoint,
@@ -131,7 +140,8 @@ final class TerminalMetalRenderer {
 
         let atlasGenerationBeforeBuild = atlas.generation
         build(
-            snapshot: snapshot, metrics: metrics, padding: padding,
+            snapshot: snapshot, markedText: markedText,
+            metrics: metrics, padding: padding,
             atlas: atlas,
             backgroundOpacity: backgroundOpacity,
             dirtyRows: resetAtlas ? nil : dirtyRows,
@@ -142,7 +152,8 @@ final class TerminalMetalRenderer {
             // frame. Its old UVs are invalid, including those in cached clean
             // rows, so rebuild the complete grid once against the new atlas.
             build(
-                snapshot: snapshot, metrics: metrics, padding: padding,
+                snapshot: snapshot, markedText: markedText,
+                metrics: metrics, padding: padding,
                 atlas: atlas,
                 backgroundOpacity: backgroundOpacity,
                 dirtyRows: nil,
@@ -312,6 +323,7 @@ final class TerminalMetalRenderer {
 
     private func build(
         snapshot: ZshellSnapshot,
+        markedText: TerminalMarkedText?,
         metrics: AlacrittyMetrics,
         padding: CGPoint,
         atlas: TerminalGlyphAtlas,
@@ -339,7 +351,8 @@ final class TerminalMetalRenderer {
         }
 
         // nil means rebuild everything — a full-damage frame, or a host-side
-        // change the emulator never saw.
+        // change the emulator never saw. An empty array preserves all retained
+        // rows while transient preedit instances are appended below.
         let rowsToBuild: [Int]
         if geometryChanged {
             rowsToBuild = Array(0..<rows)
@@ -370,6 +383,75 @@ final class TerminalMetalRenderer {
             padding: padding,
             blockInsertionIndex: blockCursorInsertionIndex(snapshot: snapshot)
         )
+        appendMarkedText(
+            markedText,
+            snapshot: snapshot,
+            metrics: metrics,
+            padding: padding,
+            atlas: atlas
+        )
+    }
+
+    /// Preedit changes without emulator damage, so it deliberately sits outside
+    /// the retained row cache and is appended from the current frame's state.
+    private func appendMarkedText(
+        _ markedText: TerminalMarkedText?,
+        snapshot: ZshellSnapshot,
+        metrics: AlacrittyMetrics,
+        padding: CGPoint,
+        atlas: TerminalGlyphAtlas
+    ) {
+        guard let markedText,
+              let cells = snapshot.cells,
+              markedText.line >= 0,
+              markedText.column >= 0,
+              markedText.line < snapshot.rows,
+              markedText.column < snapshot.columns
+        else { return }
+
+        let cellWidth = Float(metrics.cellWidth)
+        let cellHeight = Float(metrics.cellHeight)
+        let anchorCell = cells[markedText.line * snapshot.columns + markedText.column]
+        let color = Self.color(
+            AlacrittyRenderer.foreground(of: anchorCell, default: snapshot.background)
+        )
+        let top = Float(padding.y) + Float(markedText.line) * cellHeight
+        let baseline = top + Float(metrics.baseline)
+        var column = Float(markedText.column)
+
+        for character in markedText.text {
+            guard column < Float(snapshot.columns) else { break }
+            let left = Float(padding.x) + column * cellWidth
+            var advance: Float = 1
+            let key = TerminalGlyphAtlas.Key(
+                content: .cluster(Data(String(character).utf8)),
+                bold: false,
+                italic: false
+            )
+            if let entry = atlas.entry(for: key) {
+                if entry.size.x > cellWidth * 1.5 { advance = 2 }
+                instances.append(Instance(
+                    origin: SIMD2(
+                        left + entry.bearing.x,
+                        baseline - entry.bearing.y - entry.size.y
+                    ),
+                    size: entry.size,
+                    color: color,
+                    uvOrigin: entry.uvOrigin,
+                    uvSize: entry.uvSize,
+                    kind: entry.isColor ? 2 : 1
+                ))
+            }
+            instances.append(Instance(
+                origin: SIMD2(left, baseline + cellHeight * 0.12),
+                size: SIMD2(advance * cellWidth, 1),
+                color: color,
+                uvOrigin: .zero,
+                uvSize: .zero,
+                kind: 0
+            ))
+            column += advance
+        }
     }
 
     private func buildRow(

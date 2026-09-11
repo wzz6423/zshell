@@ -48,7 +48,6 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         columns: 0, rows: 0, cellWidth: 0, cellHeight: 0
     )
     private var markedText = ""
-    private let markedTextField = NSTextField(labelWithString: "")
     private var isSurfaceVisible = false
     /// Covers Metal while a parked surface is moving back into a real pane.
     /// The cover lives above the drawable so the GPU can acquire and present
@@ -151,6 +150,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     private let metalDevice = AlacrittyTerminalView.sharedDevice
     private var renderScheduled = false
+    /// IME callbacks change only transient Metal instances, not emulator rows.
+    private var preeditChanged = false
     /// Forces the next frame regardless of emulator damage. Set for changes
     /// the emulator knows nothing about — a resize, a new theme or font, a
     /// selection drag, focus — since those move pixels without touching a cell.
@@ -165,11 +166,6 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         wantsLayer = true
         layerContentsRedrawPolicy = .onSetNeedsDisplay
         registerForDraggedTypes([.fileURL])
-        markedTextField.isHidden = true
-        markedTextField.isBezeled = false
-        markedTextField.drawsBackground = true
-        markedTextField.lineBreakMode = .byClipping
-        addSubview(markedTextField)
         addSubview(progressBar)
         AlacrittyRegistry.shared.register(self, for: token)
         NotificationCenter.default.addObserver(
@@ -683,15 +679,23 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // change — resize, theme, selection, focus — that the emulator never
         // saw and so never reported as damage.
         var dirtyRows: [Int]?
+        let isPreeditOnlyFrame = preeditChanged && !needsUnconditionalRedraw
+            && damage.kind == ZSHELL_DAMAGE_NONE
         if needsUnconditionalRedraw || damage.kind == ZSHELL_DAMAGE_FULL {
             dirtyRows = nil
         } else if damage.kind == ZSHELL_DAMAGE_PARTIAL, let rows = damage.rows {
             dirtyRows = (0..<damage.rows_len).map { Int(rows[$0]) }
+        } else if isPreeditOnlyFrame {
+            dirtyRows = []
         } else {
             AlacrittyRenderStats.shared.skipped()
             return true
         }
-        needsUnconditionalRedraw = false
+        // A successful submission consumes the host-only invalidation. Keep it
+        // pending if drawable acquisition or command encoding fails so the next
+        // scheduled frame can still present the latest composition state.
+        let consumesUnconditionalRedraw = needsUnconditionalRedraw
+        let consumesPreeditChange = preeditChanged
         let renderStart = CFAbsoluteTimeGetCurrent()
         defer { AlacrittyRenderStats.shared.frame(seconds: CFAbsoluteTimeGetCurrent() - renderStart) }
 
@@ -712,9 +716,21 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         zshell_alacritty_snapshot(handle, &snapshot)
         applyHoveredURLUnderline(to: &snapshot)
         updateKittyGraphics(handle: handle)
-        updateMarkedTextOverlay(snapshot: snapshot)
+        // Capture the anchor before cursor blink and focus styling rewrite the
+        // snapshot; marked text is independent of whether the cursor is drawn.
+        let preedit: TerminalMarkedText? =
+            !markedText.isEmpty && snapshot.cursor_line >= 0 && snapshot.cursor_column >= 0
+                ? TerminalMarkedText(
+                    text: markedText,
+                    line: Int(snapshot.cursor_line),
+                    column: Int(snapshot.cursor_column)
+                )
+                : nil
         updateCursorBlinking(snapshot.cursor_blinking)
-        if cursorBlinking, !cursorVisible {
+        if preedit != nil {
+            snapshot.cursor_line = -1
+            snapshot.cursor_column = -1
+        } else if cursorBlinking, !cursorVisible {
             snapshot.cursor_line = -1
             snapshot.cursor_column = -1
         } else if !(cursorHasFocus ?? hasEffectiveTerminalFocus),
@@ -745,6 +761,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         }
         let submitted = renderer.render(
             snapshot: snapshot,
+            markedText: preedit,
             kittyPlacements: kittyPlacements,
             metrics: metrics,
             padding: Self.padding,
@@ -757,6 +774,12 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             waitUntilCompleted: waitUntilCompleted
         )
         if submitted {
+            if consumesUnconditionalRedraw {
+                needsUnconditionalRedraw = false
+            }
+            if consumesPreeditChange {
+                preeditChanged = false
+            }
             lastPresentedSurface = drawableSurface
         }
         if submitted, waitUntilCompleted {
@@ -765,7 +788,9 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             isAwaitingVisibleFrame = false
             setPresentationCoverVisible(false)
         }
-        AlacrittyRenderStats.shared.rebuilt(rows: dirtyRows?.count ?? snapshot.rows)
+        AlacrittyRenderStats.shared.rebuilt(
+            rows: isPreeditOnlyFrame ? 0 : dirtyRows?.count ?? snapshot.rows
+        )
         return submitted
     }
 
@@ -872,48 +897,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         CATransaction.commit()
     }
 
-    private func updateMarkedTextOverlay() {
-        guard !markedText.isEmpty, let handle else {
-            markedTextField.isHidden = true
-            return
-        }
-        var snapshot = ZshellSnapshot()
-        zshell_alacritty_snapshot(handle, &snapshot)
-        updateMarkedTextOverlay(snapshot: snapshot)
-    }
-
-    private func updateMarkedTextOverlay(snapshot: ZshellSnapshot) {
-        guard !markedText.isEmpty,
-              let frame = imeCaretRect(snapshot: snapshot)
-        else {
-            markedTextField.isHidden = true
-            return
-        }
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: metrics.regular,
-            .foregroundColor: Theme.terminal(
-                dark: NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            ).foregroundNSColor,
-            .underlineStyle: NSUnderlineStyle.single.rawValue,
-        ]
-        let attributed = NSAttributedString(string: markedText, attributes: attributes)
-        markedTextField.attributedStringValue = attributed
-        markedTextField.backgroundColor = Theme.terminal(
-            dark: NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        ).backgroundNSColor
-        let width = max(
-            attributed.size().width.rounded(.up) + 2,
-            metrics.cellWidth
-        )
-        markedTextField.frame = NSRect(
-            x: frame.minX,
-            y: frame.minY,
-            width: width,
-            height: frame.height
-        )
-        markedTextField.isHidden = false
-    }
-
+    /// IME candidate-window anchor derived from the emulator's logical input
+    /// cursor, independent of whether the terminal cursor itself is drawn.
     private func imeCaretRect(snapshot: ZshellSnapshot) -> NSRect? {
         guard snapshot.ime_cursor_line >= 0,
               snapshot.ime_cursor_column >= 0
@@ -2388,7 +2373,7 @@ extension AlacrittyTerminalView: NSTextInputClient {
     func insertText(_ string: Any, replacementRange: NSRange) {
         activatePendingPromptSelection()
         markedText = ""
-        updateMarkedTextOverlay()
+        preeditChanged = true
         pendingPromptCaret = nil
         clearActivePromptSelection()
         let text = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""
@@ -2399,12 +2384,14 @@ extension AlacrittyTerminalView: NSTextInputClient {
 
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
         markedText = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""
-        updateMarkedTextOverlay()
+        preeditChanged = true
+        scheduleRender()
     }
 
     func unmarkText() {
         markedText = ""
-        updateMarkedTextOverlay()
+        preeditChanged = true
+        scheduleRender()
     }
 
     func selectedRange() -> NSRange {
