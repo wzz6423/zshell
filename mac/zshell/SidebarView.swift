@@ -399,6 +399,11 @@ private struct SidebarProjectRow: View {
             RoundedRectangle(cornerRadius: 6)
                 .fill(isSelected ? Color.primary.opacity(0.09) : (isHovering ? Color.primary.opacity(0.04) : .clear))
         )
+        .overlay {
+            if !isRenaming {
+                MiddleClickCatcher(action: close)
+            }
+        }
         .onHover { isHovering = $0 }
         .background {
             AppKitContextMenuMonitor(items: projectContextMenuItems)
