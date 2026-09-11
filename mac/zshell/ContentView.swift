@@ -231,9 +231,8 @@ struct ContentView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    // Opaque so the pane gaps hide the unselected diffs behind,
-                    // except while a diff tab is up — then stay clear so its
-                    // web view shows through from the stack below.
+                    // Opaque so the pane gaps hide unselected diffs behind,
+                    // except while a diff tab or translucent terminal is up.
                     .background(paneLayerIsOpaque ? AnyShapeStyle(Color(nsColor: Theme.background)) : AnyShapeStyle(Color.clear))
                     .zIndex(2)
                 }
@@ -250,7 +249,11 @@ struct ContentView: View {
                     )
                 }
             }
-            .background(Color(nsColor: Theme.background))
+            .background(
+                settings.isTerminalBackgroundTranslucent
+                    ? Color.clear
+                    : Color(nsColor: Theme.background)
+            )
 
             // Dropping the hidden sidebar also drops its expanded file tree
             // and process snapshot. Git stays window-owned because the toolbar
@@ -313,12 +316,15 @@ struct ContentView: View {
             .filter { !visibleIDs.contains($0.id) }
     }
 
-    /// The pane layer paints an opaque background to hide unselected diffs in
-    /// its gaps — but a diff tab's own pane must stay clear so its web view
-    /// (mounted in the stack behind) shows through.
+    /// Pane gaps hide retained diff views unless a diff or an all-terminal tab
+    /// needs the window behind this layer to remain visible.
     private var paneLayerIsOpaque: Bool {
         guard let tab = manager.selectedProject?.selectedTab else { return true }
-        return tab.diffs.isEmpty
+        if !tab.diffs.isEmpty { return false }
+        guard !tab.sessions.isEmpty,
+              tab.sessions.count == tab.allPanes.count
+        else { return true }
+        return !settings.isTerminalBackgroundTranslucent
     }
 
     private func syncGit() {
@@ -1025,6 +1031,7 @@ private struct MainHeaderView: View {
             .frame(height: geo.size.height)
         }
         .frame(height: 38)
+        .background(Color(nsColor: Theme.background))
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(Color(nsColor: Theme.divider))

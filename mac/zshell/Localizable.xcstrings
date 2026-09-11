@@ -527,6 +527,22 @@
         }
       }
     },
+    "Adds frosted material behind translucent terminal backgrounds" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "半透明のターミナル背景の背後にすりガラス風の素材を追加します"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在半透明终端背景后添加磨砂材质"
+          }
+        }
+      }
+    },
     "Added" : {
       "localizations" : {
         "ja" : {
@@ -777,6 +793,22 @@
         }
       }
     },
+    "Background" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "背景"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "背景"
+          }
+        }
+      }
+    },
     "Backend" : {
       "localizations" : {
         "ja" : {
@@ -885,6 +917,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "光标闪烁"
+          }
+        }
+      }
+    },
+    "Blur behind window" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウ背面をぼかす"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模糊窗口后方"
           }
         }
       }
@@ -6989,6 +7037,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "终端"
+          }
+        }
+      }
+    },
+    "Terminal background opacity" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ターミナル背景の不透明度"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "终端背景不透明度"
           }
         }
       }

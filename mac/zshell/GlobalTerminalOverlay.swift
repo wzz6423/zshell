@@ -257,7 +257,9 @@ final class GlobalTerminalOverlay: NSObject {
             : frontmostApplication
 
         terminalWindow.prepareForPresentation(on: screen)
-        terminalSession.applyTheme()
+        terminalSession.applyTheme(
+            backgroundOpacity: terminalWindow.backgroundOpacity
+        )
         terminalWindow.orderFrontRegardless()
         terminalWindow.makeKey()
         terminalWindow.revealTerminal()
@@ -360,6 +362,7 @@ private final class GlobalTerminalOverlayWindow: NSPanel {
     private var resizeStartMouse: NSPoint?
     private var settingsPopover: NSPopover?
     private(set) var isPinned = false
+    var backgroundOpacity: CGFloat { content.backgroundOpacity }
     private var hasConfiguredFrame = false
 
     init(

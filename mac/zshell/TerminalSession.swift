@@ -134,9 +134,14 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         }
     }
 
-    /// Reconfigures the surface in place when either appearance or terminal
-    /// font settings change.
-    func applyTheme() {
+    /// Reconfigures the surface in place when appearance or terminal settings
+    /// change. A caller may supply an override for surfaces, such as the quick
+    /// terminal, whose alpha is not owned by the main-window setting.
+    func applyTheme(backgroundOpacity: CGFloat? = nil) {
+        surface.setBackgroundOpacity(
+            backgroundOpacity
+                ?? CGFloat(AppSettings.shared.effectiveTerminalBackgroundOpacity)
+        )
         surface.applyAppearance()
     }
 

@@ -66,6 +66,8 @@ final class TerminalManager: nonisolated ObservableObject {
     private var retainedDiffProjectIDs: Set<UUID> = []
     private var projectCounter = 0
     private var settingsObservation: AnyCancellable?
+    private var translucencyObservation: AnyCancellable?
+    private var accessibilityDisplayObserver: NSObjectProtocol?
     private var autosaveObservation: AnyCancellable?
     private var terminationObservation: AnyCancellable?
     /// The stable terminal/editor responder displaced by the command palette's
@@ -167,6 +169,24 @@ final class TerminalManager: nonisolated ObservableObject {
             .sink { [weak self] _ in
                 self?.refreshAppearance()
             }
+        translucencyObservation = Publishers.CombineLatest(
+            AppSettings.shared.$terminalBackgroundOpacity.removeDuplicates(),
+            AppSettings.shared.$terminalBackgroundBlur.removeDuplicates()
+        )
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.refreshTranslucency()
+            }
+        accessibilityDisplayObserver =
+            NSWorkspace.shared.notificationCenter.addObserver(
+                forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                let manager = self
+                assumeMainActor { manager?.refreshTranslucency() }
+            }
         // Every project/tab/selection change re-publishes through the manager,
         // so a debounced sink snapshots layout after mutations settle without
         // reading live terminal contents.
@@ -184,6 +204,14 @@ final class TerminalManager: nonisolated ObservableObject {
                 TerminalManager.isQuitting = true
                 TerminalManager.saveAll(captureTerminalHistory: true)
             }
+    }
+
+    deinit {
+        if let accessibilityDisplayObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(
+                accessibilityDisplayObserver
+            )
+        }
     }
 
     var selectedProject: Project? {
@@ -274,6 +302,7 @@ final class TerminalManager: nonisolated ObservableObject {
     /// launch-time Finder request may have been queued before that happened.
     func attach(to window: NSWindow) {
         self.window = window
+        refreshTranslucency()
         Self.isOpeningWindow = false
         let directories = Self.takePendingDirectories()
         if !directories.isEmpty, let startupProjectID,
@@ -809,6 +838,22 @@ final class TerminalManager: nonisolated ObservableObject {
             panelTab = panel
             isPanelVisible = true
         }
+    }
+
+    /// Applies the effective background alpha to every backend and makes the
+    /// host window transparent only while terminal translucency is usable.
+    private func refreshTranslucency() {
+        let settings = AppSettings.shared
+        window?.isOpaque = !settings.isTerminalBackgroundTranslucent
+        window?.backgroundColor = settings.isTerminalBackgroundTranslucent
+            ? .clear
+            : .windowBackgroundColor
+        for project in projects {
+            for session in project.sessions {
+                session.applyTheme()
+            }
+        }
+        objectWillChange.send()
     }
 
     /// Re-themes every session after a light/dark appearance change.

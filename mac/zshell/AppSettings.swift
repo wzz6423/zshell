@@ -116,6 +116,9 @@ final class AppSettings: nonisolated ObservableObject {
     static let defaultSidebarFontSize: Double = 14
     static let sidebarFontSizeRange: ClosedRange<Double> = 9...18
     static let defaultToolbarVisibility: ToolbarVisibility = .hide
+    static let defaultTerminalBackgroundOpacity: Double = 1
+    static let terminalBackgroundOpacityRange: ClosedRange<Double> = 0.2...1
+    static let defaultTerminalBackgroundBlur = false
     static let defaultQuickTerminalSize: Double = 0.75
     static let quickTerminalSizeRange: ClosedRange<Double> = 0.35...0.95
     static let defaultQuickTerminalOpacity: Double = 0.5
@@ -217,6 +220,30 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    /// Alpha of terminal backgrounds in main windows. Text, cursor, selection,
+    /// and explicit cell backgrounds remain fully opaque in each backend.
+    @Published var terminalBackgroundOpacity: Double {
+        didSet { save() }
+    }
+
+    @Published var terminalBackgroundBlur: Bool {
+        didSet { save() }
+    }
+
+    var effectiveTerminalBackgroundOpacity: Double {
+        NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
+            ? Self.defaultTerminalBackgroundOpacity
+            : terminalBackgroundOpacity
+    }
+
+    var isTerminalBackgroundTranslucent: Bool {
+        effectiveTerminalBackgroundOpacity < Self.defaultTerminalBackgroundOpacity
+    }
+
+    var isTerminalBackgroundBlurActive: Bool {
+        isTerminalBackgroundTranslucent && terminalBackgroundBlur
+    }
+
     /// Initial area and translucency for the global quick terminal. Per-use
     /// adjustments stay with the overlay rather than changing these defaults.
     @Published var quickTerminalSize: Double {
@@ -285,6 +312,13 @@ final class AppSettings: nonisolated ObservableObject {
         macosOptionAsAlt = toml["terminal.macos-option-as-alt"]?.bool ?? false
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
         restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? false
+        let terminalBackgroundOpacity = toml["terminal.background-opacity"]?.double
+            ?? Self.defaultTerminalBackgroundOpacity
+        self.terminalBackgroundOpacity = Self.terminalBackgroundOpacityRange.contains(
+            terminalBackgroundOpacity
+        ) ? terminalBackgroundOpacity : Self.defaultTerminalBackgroundOpacity
+        terminalBackgroundBlur = toml["terminal.background-blur"]?.bool
+            ?? Self.defaultTerminalBackgroundBlur
         let quickTerminalSize = toml["quick-terminal.size"]?.double
             ?? Self.defaultQuickTerminalSize
         self.quickTerminalSize = Self.quickTerminalSizeRange.contains(quickTerminalSize)
@@ -354,6 +388,8 @@ final class AppSettings: nonisolated ObservableObject {
             && !macosOptionAsAlt
             && wrapLines
             && !restoreTerminalHistory
+            && terminalBackgroundOpacity == Self.defaultTerminalBackgroundOpacity
+            && terminalBackgroundBlur == Self.defaultTerminalBackgroundBlur
             && quickTerminalSize == Self.defaultQuickTerminalSize
             && quickTerminalOpacity == Self.defaultQuickTerminalOpacity
             && quickTerminalShortcut == Self.defaultQuickTerminalShortcut
@@ -373,6 +409,8 @@ final class AppSettings: nonisolated ObservableObject {
         macosOptionAsAlt = false
         wrapLines = true
         restoreTerminalHistory = false
+        terminalBackgroundOpacity = Self.defaultTerminalBackgroundOpacity
+        terminalBackgroundBlur = Self.defaultTerminalBackgroundBlur
         quickTerminalSize = Self.defaultQuickTerminalSize
         quickTerminalOpacity = Self.defaultQuickTerminalOpacity
         quickTerminalShortcut = Self.defaultQuickTerminalShortcut
@@ -464,6 +502,14 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if restoreTerminalHistory {
             lines.append("terminal.restore-history = true")
+        }
+        if terminalBackgroundOpacity != Self.defaultTerminalBackgroundOpacity {
+            lines.append(
+                "terminal.background-opacity = \(TOML.number(terminalBackgroundOpacity))"
+            )
+        }
+        if terminalBackgroundBlur != Self.defaultTerminalBackgroundBlur {
+            lines.append("terminal.background-blur = true")
         }
         if quickTerminalSize != Self.defaultQuickTerminalSize {
             lines.append("quick-terminal.size = \(TOML.number(quickTerminalSize))")
