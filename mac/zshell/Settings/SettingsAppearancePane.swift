@@ -86,6 +86,20 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         onChange: { AppSettings.shared.terminalLineHeight = $0 }
     )
 
+    private let paneFocusRingSwitch = SettingsSwitch {
+        AppSettings.shared.showPaneFocusRing = $0
+    }
+
+    private let paneFocusRingOpacityRow = SettingsSliderRow(
+        title: String(localized: "Opacity"),
+        range: AppSettings.paneFocusRingOpacityRange,
+        format: .percent,
+        step: 0.05,
+        showsStepper: false,
+        accessibilityLabel: String(localized: "Pane focus ring opacity"),
+        onChange: { AppSettings.shared.paneFocusRingOpacity = $0 }
+    )
+
     private let preview = FontThickenPreviewView(frame: .zero)
 
     override func makeGroups() -> [NSView] {
@@ -122,6 +136,16 @@ final class SettingsAppearancePane: SettingsPaneViewController {
             SettingsGroup(header: String(localized: "Sidebar"), rows: [
                 sidebarFontSizeRow,
             ]),
+            SettingsGroup(header: String(localized: "Panes"), rows: [
+                SettingsRow(
+                    title: String(localized: "Show focus ring on active pane"),
+                    description: String(
+                        localized: "Draws an accent outline around the focused pane when a tab is split"
+                    ),
+                    control: paneFocusRingSwitch
+                ),
+                paneFocusRingOpacityRow,
+            ]),
         ]
     }
 
@@ -140,6 +164,9 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         thickenSwitch.isOn = settings.fontThicken
         thickenStrengthRow.setValue(Double(settings.fontThickenStrength))
         lineHeightRow.setValue(settings.terminalLineHeight)
+        paneFocusRingSwitch.isOn = settings.showPaneFocusRing
+        paneFocusRingOpacityRow.setValue(settings.paneFocusRingOpacity)
+        paneFocusRingOpacityRow.setEnabled(settings.showPaneFocusRing)
         preview.configure(
             font: TerminalFont.resolve(
                 family: settings.fontFamily,

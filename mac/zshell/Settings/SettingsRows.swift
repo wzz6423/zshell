@@ -262,6 +262,13 @@ final class SettingsSliderRow: NSView {
         valueLabel.stringValue = readout(for: value)
     }
 
+    /// Enables or disables the slider and keeps assistive technologies in sync.
+    func setEnabled(_ enabled: Bool) {
+        slider.isEnabled = enabled
+        stepper?.isEnabled = enabled
+        valueLabel.textColor = enabled ? .secondaryLabelColor : .tertiaryLabelColor
+    }
+
     private func readout(for value: Double) -> String {
         switch format {
         case .points: String(localized: "\(Int(value)) pt", comment: "Font size in points")
