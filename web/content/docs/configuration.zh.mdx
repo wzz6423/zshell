@@ -74,6 +74,12 @@ Zshell 大多数持久化设置都在一个文件里：
 
 终端、编辑器和 diff 共用的字号，单位是磅。这是唯一一个即使等于默认值，Zshell 也会写进文件的键。
 
+### `interface.scale`
+
+数字，0.9–1.5——默认 `1`
+
+缩放标签页、图标、按钮、侧边栏和应用界面的其他部分。终端、编辑器和 diff 内容仍使用上方单独配置的字号。
+
 ### `sidebar.font-size`
 
 数字，9–24——默认 `14`
@@ -172,6 +178,7 @@ theme-dark = "Catppuccin Mocha"
 theme-light = "Catppuccin Latte"
 font-family = "IBM Plex Mono"
 font-size = 14
+interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"

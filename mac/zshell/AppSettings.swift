@@ -119,6 +119,8 @@ final class AppSettings: nonisolated ObservableObject {
     static let terminalLineHeightRange: ClosedRange<Double> = 0.75...2
     static let defaultSidebarFontSize: Double = 14
     static let sidebarFontSizeRange: ClosedRange<Double> = 9...24
+    static let defaultInterfaceScale: Double = 1
+    static let interfaceScaleRange: ClosedRange<Double> = 0.9...1.5
     static let defaultToolbarVisibility: ToolbarVisibility = .hide
     static let defaultTerminalBackgroundOpacity: Double = 1
     static let terminalBackgroundOpacityRange: ClosedRange<Double> = 0.2...1
@@ -195,6 +197,12 @@ final class AppSettings: nonisolated ObservableObject {
     /// Base text size for both sidebars. Each panel preserves its relative
     /// hierarchy for section labels, content, metadata, and controls.
     @Published var sidebarFontSize: Double {
+        didSet { save() }
+    }
+
+    /// Scale applied to application chrome while terminal and editor content
+    /// keep their separately configured font size.
+    @Published var interfaceScale: Double {
         didSet { save() }
     }
 
@@ -376,6 +384,11 @@ final class AppSettings: nonisolated ObservableObject {
         sidebarFontSize = Self.sidebarFontSizeRange.contains(sidebarSize)
             ? sidebarSize
             : Self.defaultSidebarFontSize
+        let interfaceScale = toml["interface.scale"]?.double
+            ?? Self.defaultInterfaceScale
+        self.interfaceScale = Self.interfaceScaleRange.contains(interfaceScale)
+            ? interfaceScale
+            : Self.defaultInterfaceScale
         toolbarVisibility = ToolbarVisibility(
             rawValue: toml["toolbar.visibility"]?.string ?? ""
         ) ?? Self.defaultToolbarVisibility
@@ -479,6 +492,7 @@ final class AppSettings: nonisolated ObservableObject {
         fontFallbackFamily = ""
         fontSize = Self.defaultFontSize
         sidebarFontSize = Self.defaultSidebarFontSize
+        interfaceScale = Self.defaultInterfaceScale
         fontThicken = false
         fontThickenStrength = Self.defaultFontThickenStrength
         terminalLineHeight = Self.defaultTerminalLineHeight
@@ -491,6 +505,7 @@ final class AppSettings: nonisolated ObservableObject {
             && fontFallbackFamily.isEmpty
             && fontSize == Self.defaultFontSize
             && sidebarFontSize == Self.defaultSidebarFontSize
+            && interfaceScale == Self.defaultInterfaceScale
             && !fontThicken
             && fontThickenStrength == Self.defaultFontThickenStrength
             && terminalLineHeight == Self.defaultTerminalLineHeight
@@ -683,6 +698,9 @@ final class AppSettings: nonisolated ObservableObject {
         lines.append("font-size = \(TOML.number(fontSize))")
         if sidebarFontSize != Self.defaultSidebarFontSize {
             lines.append("sidebar.font-size = \(TOML.number(sidebarFontSize))")
+        }
+        if interfaceScale != Self.defaultInterfaceScale {
+            lines.append("interface.scale = \(TOML.number(interfaceScale))")
         }
         if toolbarVisibility != Self.defaultToolbarVisibility {
             lines.append("toolbar.visibility = \(TOML.quote(toolbarVisibility.rawValue))")

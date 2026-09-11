@@ -138,13 +138,17 @@ final class TabSplitDragCoordinator: ObservableObject {
 enum BottomToolbarLayout {
     static let idealHeight: CGFloat = 32
 
-    static func height(for session: TerminalSession?) -> CGFloat {
+    static func height(
+        for session: TerminalSession?,
+        interfaceScale: CGFloat = 1
+    ) -> CGFloat {
+        let scaledIdealHeight = idealHeight * interfaceScale
         guard session?.backend == .libghostty,
               let cellHeight = session?.terminalCellSize?.height,
               cellHeight.isFinite, cellHeight > 0 else {
-            return idealHeight
+            return scaledIdealHeight
         }
-        let rowCount = max(1, (idealHeight / cellHeight).rounded())
+        let rowCount = max(1, (scaledIdealHeight / cellHeight).rounded())
         return rowCount * cellHeight
     }
 }
@@ -169,7 +173,10 @@ struct ContentView: View {
     }
 
     private var bottomToolbarHeight: CGFloat {
-        BottomToolbarLayout.height(for: manager.selectedSession)
+        BottomToolbarLayout.height(
+            for: manager.selectedSession,
+            interfaceScale: CGFloat(settings.interfaceScale)
+        )
     }
 
     var body: some View {
@@ -288,7 +295,9 @@ struct ContentView: View {
             TabSwitcherEventMonitor(manager: manager, controller: tabSwitcher)
                 .frame(width: 0, height: 0)
         }
-        .background(WindowChromeAccessor { manager.attach(to: $0) })
+        .background(WindowChromeAccessor {
+            manager.attach(to: $0)
+        })
         .onAppear { syncGit() }
         .onReceive(NotificationCenter.default.publisher(
             for: NSApplication.didBecomeActiveNotification
@@ -383,10 +392,13 @@ struct ContentView: View {
 /// terminal content remains the center of gravity below the tab strip.
 private struct BottomToolbarView: View {
     @ObservedObject var model: GitStatusModel
+    @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var themeChanges = Theme.changes
     let height: CGFloat
     let toggleGitPanel: () -> Void
     let hideToolbar: () -> Void
+
+    private var scale: CGFloat { CGFloat(settings.interfaceScale) }
 
     @State private var isShowingBranches = false
     @State private var branchFilter = ""
@@ -426,7 +438,7 @@ private struct BottomToolbarView: View {
 
             Spacer(minLength: 0)
         }
-        .font(.system(size: 11))
+        .font(.system(size: 11 * scale))
         .padding(.horizontal, 10)
         .frame(height: height)
         .contentShape(Rectangle())
@@ -450,7 +462,7 @@ private struct BottomToolbarView: View {
                 Text("No Git Repository")
             }
             .padding(.horizontal, 6)
-            .frame(height: 24)
+            .frame(height: 24 * scale)
             .background {
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
                     .fill(
@@ -478,7 +490,7 @@ private struct BottomToolbarView: View {
                     .truncationMode(.middle)
             }
             .padding(.horizontal, 6)
-            .frame(height: 24)
+            .frame(height: 24 * scale)
             .background {
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
                     .fill(isBranchButtonHovered ? Color.primary.opacity(0.08) : .clear)
@@ -528,7 +540,7 @@ private struct BottomToolbarView: View {
                 }
             }
             .padding(.horizontal, 6)
-            .frame(height: 24)
+            .frame(height: 24 * scale)
             .background {
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
                     .fill(isChangesButtonHovered ? Color.primary.opacity(0.08) : .clear)
@@ -953,7 +965,10 @@ private struct InstantPopoverPresenter<PopoverContent: View>: NSViewRepresentabl
 private struct MainHeaderView: View {
     @ObservedObject var manager: TerminalManager
     @ObservedObject var tabSplitDrag: TabSplitDragCoordinator
+    @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var themeChanges = Theme.changes
+
+    private var scale: CGFloat { CGFloat(settings.interfaceScale) }
 
     /// Keep an always-available grab target beside the trailing controls,
     /// even when the session strip is full.
@@ -1010,9 +1025,9 @@ private struct MainHeaderView: View {
                             manager.togglePaneZoom()
                         } label: {
                             Image(systemName: "arrow.down.forward.and.arrow.up.backward")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.system(size: 12 * scale, weight: .medium))
                                 .foregroundStyle(Color(nsColor: Theme.accent))
-                                .frame(width: 24, height: 24)
+                                .frame(width: 24 * scale, height: 24 * scale)
                                 .contentShape(RoundedRectangle(cornerRadius: 6))
                         }
                         .buttonStyle(.plain)
@@ -1054,6 +1069,7 @@ private struct SessionTabsView: View {
     @ObservedObject var manager: TerminalManager
     @ObservedObject var project: Project
     @ObservedObject var tabSplitDrag: TabSplitDragCoordinator
+    @ObservedObject private var settings = AppSettings.shared
     let maxStripWidth: CGFloat
     @State private var overflow = StripOverflow()
     @State private var scrollGeometry = StripScrollGeometry()
@@ -1061,6 +1077,8 @@ private struct SessionTabsView: View {
     @State private var tabSizes: [UUID: CGSize] = [:]
     /// Tab currently showing the inline rename field, if any.
     @State private var renamingTabID: UUID?
+
+    private var scale: CGFloat { CGFloat(settings.interfaceScale) }
 
     /// Which edges have off-screen tabs, i.e. where to show a fade hint.
     private struct StripOverflow: Equatable {
@@ -1185,8 +1203,8 @@ private struct SessionTabsView: View {
             ChromeIconButton(
                 systemImage: "plus",
                 tooltip: "New Session (⌘T)",
-                font: .system(size: 10, weight: .semibold),
-                iconSize: 14,
+                font: .system(size: 10 * scale, weight: .semibold),
+                iconSize: 14 * scale,
                 tooltipAlignment: .leading
             ) {
                 project.newSession()
@@ -1657,6 +1675,7 @@ private struct DiffTabLabel: View {
 }
 
 private struct TabItemChrome: View {
+    @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var themeChanges = Theme.changes
     let systemImage: String
     var browserIcon: BrowserTab? = nil
@@ -1672,6 +1691,8 @@ private struct TabItemChrome: View {
 
     @State private var isHovering = false
 
+    private var scale: CGFloat { CGFloat(settings.interfaceScale) }
+
     var body: some View {
         Button(action: select) {
             HStack(spacing: 5) {
@@ -1682,8 +1703,8 @@ private struct TabItemChrome: View {
                         .accessibilityHidden(true)
                 }
                 if let browserIcon {
-                    BrowserFaviconView(browser: browserIcon, size: 11)
-                        .font(.system(size: 9, weight: .medium))
+                    BrowserFaviconView(browser: browserIcon, size: 11 * scale)
+                        .font(.system(size: 9 * scale, weight: .medium))
                         .foregroundStyle(
                             isSelected
                                 ? AnyShapeStyle(Color(nsColor: Theme.accent))
@@ -1693,12 +1714,12 @@ private struct TabItemChrome: View {
                 } else if let fileIconPath {
                     MaterialFileIconView(
                         path: fileIconPath,
-                        size: 12,
+                        size: 12 * scale,
                         opacity: isSelected ? 1 : 0.82
                     )
                 } else {
                     Image(systemName: systemImage)
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: 9 * scale, weight: .medium))
                         .foregroundStyle(
                             isSelected
                                 ? AnyShapeStyle(Color(nsColor: Theme.accent))
@@ -1706,15 +1727,15 @@ private struct TabItemChrome: View {
                         )
                 }
                 Text(verbatim: title)
-                    .font(.system(size: 11.5))
+                    .font(.system(size: 11.5 * scale))
                     .foregroundStyle(isSelected ? .primary : .secondary)
                     .lineLimit(1)
                 if paneCount > 1 {
                     HStack(spacing: 2) {
                         Image(systemName: "square.split.2x1")
-                            .font(.system(size: 7.5, weight: .semibold))
+                            .font(.system(size: 7.5 * scale, weight: .semibold))
                         Text(verbatim: "\(paneCount)")
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(.system(size: 9 * scale, weight: .semibold))
                     }
                     .foregroundStyle(.tertiary)
                 }
@@ -1725,20 +1746,20 @@ private struct TabItemChrome: View {
                 if isHovering {
                     Button(action: close) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 8, weight: .bold))
+                            .font(.system(size: 8 * scale, weight: .bold))
                             .foregroundStyle(.secondary)
-                            .frame(width: 14, height: 14)
+                            .frame(width: 14 * scale, height: 14 * scale)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 } else if isDirty {
                     Circle()
                         .fill(.secondary)
-                        .frame(width: 5, height: 5)
-                        .frame(width: 14, height: 14)
+                        .frame(width: 5 * scale, height: 5 * scale)
+                        .frame(width: 14 * scale, height: 14 * scale)
                 } else {
                     Spacer()
-                        .frame(width: 14)
+                        .frame(width: 14 * scale)
                 }
             }
             .padding(.leading, 9)

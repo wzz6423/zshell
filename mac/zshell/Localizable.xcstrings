@@ -557,13 +557,118 @@
         }
       }
     },
-    "Agent finished": {},
-    "Agent idle": {},
-    "Agent needs attention": {},
-    "Agent starting": {},
-    "Agent state unknown": {},
-    "Agent working": {},
-    "Agents": {},
+    "Agent finished": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エージェントが完了"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agent 已完成"
+          }
+        }
+      }
+    },
+    "Agent idle": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エージェントは待機中"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agent 空闲"
+          }
+        }
+      }
+    },
+    "Agent needs attention": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エージェントに対応が必要"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agent 需要关注"
+          }
+        }
+      }
+    },
+    "Agent starting": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エージェントを起動中"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agent 正在启动"
+          }
+        }
+      }
+    },
+    "Agent state unknown": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エージェントの状態は不明"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agent 状态未知"
+          }
+        }
+      }
+    },
+    "Agent working": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エージェントが作業中"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agent 正在工作"
+          }
+        }
+      }
+    },
+    "Agents": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エージェント"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agent"
+          }
+        }
+      }
+    },
     "Allow": {
       "localizations": {
         "ja": {
@@ -3952,6 +4057,38 @@
         }
       }
     },
+    "Interface": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インターフェース"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "界面"
+          }
+        }
+      }
+    },
+    "Interface size": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インターフェースサイズ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "界面大小"
+          }
+        }
+      }
+    },
     "It could not be written to disk.": {
       "localizations": {
         "ja": {
@@ -4733,7 +4870,22 @@
         }
       }
     },
-    "Next Agent Needing Attention": {},
+    "Next Agent Needing Attention": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応が必要な次のエージェント"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一个需要关注的 Agent"
+          }
+        }
+      }
+    },
     "Next Project": {
       "localizations": {
         "ja": {

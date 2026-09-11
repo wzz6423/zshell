@@ -18,6 +18,14 @@ struct SidebarView: View {
     @State private var draggedProjectID: UUID?
     @State private var projectFrames: [UUID: CGRect] = [:]
 
+    private var sidebarWidthRange: ClosedRange<Double> {
+        (160 * settings.interfaceScale)...(400 * settings.interfaceScale)
+    }
+
+    private var defaultSidebarWidth: Double {
+        220 * settings.interfaceScale
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header-height strip housing the traffic-light buttons and the
@@ -52,7 +60,7 @@ struct SidebarView: View {
                             isDragging: draggedProjectID == project.id,
                             onDrag: { updateProjectDrag(source: project.id, location: $0) },
                             onDragEnded: endProjectDrag,
-                            fontSize: settings.sidebarFontSize
+                            fontSize: settings.sidebarFontSize * settings.interfaceScale
                         )
                         .background {
                             GeometryReader { proxy in
@@ -125,8 +133,8 @@ struct SidebarView: View {
             SidebarResizeHandle(
                 edge: .trailing,
                 width: $width,
-                range: 160...400,
-                defaultWidth: 220,
+                range: sidebarWidthRange,
+                defaultWidth: defaultSidebarWidth,
                 fontSize: settings.sidebarFontSize
             )
         }
@@ -151,22 +159,27 @@ struct SidebarView: View {
 }
 
 struct ChromeIconButton: View {
+    @ObservedObject private var settings = AppSettings.shared
     let systemImage: String
     let tooltip: LocalizedStringKey
-    var font: Font = .system(size: 12, weight: .medium)
-    var iconSize: CGFloat = 16
+    /// `nil` follows the interface scale from Appearance settings; explicit
+    /// values are sized by the call site.
+    var font: Font? = nil
+    var iconSize: CGFloat? = nil
     var tooltipEdge: TooltipEdge = .below
     var tooltipAlignment: HorizontalAlignment = .trailing
     let action: () -> Void
 
     @State private var isHovering = false
 
+    private var scale: CGFloat { CGFloat(settings.interfaceScale) }
+
     var body: some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(font)
+                .font(font ?? .system(size: 12 * scale, weight: .medium))
                 .foregroundStyle(isHovering ? .primary : .secondary)
-                .frame(width: iconSize, height: iconSize)
+                .frame(width: iconSize ?? 16 * scale, height: iconSize ?? 16 * scale)
                 .padding(4)
                 .background {
                     RoundedRectangle(cornerRadius: 6)

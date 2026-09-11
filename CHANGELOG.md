@@ -49,3 +49,7 @@ the original feature bullet instead of adding separate entries for them.
   start out enabled.
 
 ## [unreleased]
+
+### Added
+
+- Scale tabs, icons, controls, and sidebars from Appearance settings while keeping terminal content at its configured font size.
