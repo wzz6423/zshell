@@ -220,7 +220,7 @@ struct ContentView: View {
                                     manager.newBrowserPane(initialURL: $0)
                                 },
                                 onNewFileTab: {
-                                    manager.openFile($0)
+                                    manager.openFileInNewPinnedTab($0)
                                 },
                                 onNewFilePane: {
                                     manager.openFileToSide($0)

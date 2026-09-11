@@ -695,9 +695,19 @@ final class TerminalManager: nonisolated ObservableObject {
 
     // MARK: - Files
 
-    /// Opens `path` as a file tab in the current project.
+    /// Opens `path` as a pinned file tab in the current project.
     func openFile(_ path: String) {
         selectedProject?.openFile(path)
+    }
+
+    /// Opens `path` using the file tree's replaceable preview tab.
+    func previewFile(_ path: String) {
+        selectedProject?.openFile(path, behavior: .preview)
+    }
+
+    /// Opens `path` in a fresh pinned tab even when that path is already open.
+    func openFileInNewPinnedTab(_ path: String) {
+        selectedProject?.openFile(path, behavior: .newPinned)
     }
 
     /// Opens `path` as a pane beside the focused one in the current tab.

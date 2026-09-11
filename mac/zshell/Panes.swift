@@ -7,6 +7,12 @@ import AppKit
 import Combine
 import Foundation
 
+enum FileOpenBehavior: Equatable {
+    case preview
+    case pinned
+    case newPinned
+}
+
 /// The leaf content of a pane: a terminal session, an open file, a browser, or
 /// a git diff. A project tab used to *be* one of these; now a tab is a recursive
 /// split layout, and this is what sits at each leaf.
@@ -379,7 +385,11 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// User-assigned tab name; when nil the tab title follows the focused
     /// pane's content (terminal title, file name, diff title) — the same
     /// override scheme as `Project.customName`.
-    @Published var customName: String?
+    @Published var customName: String? {
+        didSet {
+            if customName != nil { pinFilePreview() }
+        }
+    }
     @Published var layout: PaneNode
     @Published var focusedPaneID: UUID
     /// Whether the focused pane is zoomed to fill the tab. Presentation-only:
@@ -398,11 +408,15 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// shell simply drops the association.
     weak var contextSession: TerminalSession?
 
+    private var isFilePreview = false
+    private var filePreviewDirtyObservation: AnyCancellable?
+
     /// A fresh single-pane tab wrapping one piece of content.
-    init(content: PaneContent) {
+    init(content: PaneContent, filePreview: Bool = false) {
         let pane = Pane(content: content)
         layout = .pane(pane)
         focusedPaneID = pane.id
+        if filePreview { startFilePreviewing() }
     }
 
     /// Restores a saved layout.
@@ -442,6 +456,46 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
     }
 
     var hasMultiplePanes: Bool { allPanes.count > 1 }
+
+    var canReplaceFilePreview: Bool {
+        guard isFilePreview, customName == nil, allPanes.count == 1,
+              case .file(let file) = allPanes[0].content else { return false }
+        return !file.isDirty
+    }
+
+    func pinFilePreview() {
+        guard isFilePreview else { return }
+        filePreviewDirtyObservation?.cancel()
+        filePreviewDirtyObservation = nil
+        isFilePreview = false
+    }
+
+    @discardableResult
+    func replaceFilePreview(with file: FileTab) -> Bool {
+        guard canReplaceFilePreview else { return false }
+        filePreviewDirtyObservation?.cancel()
+        filePreviewDirtyObservation = nil
+        let pane = Pane(content: .file(file))
+        layout = .pane(pane)
+        focusedPaneID = pane.id
+        startFilePreviewing()
+        return true
+    }
+
+    private func startFilePreviewing() {
+        filePreviewDirtyObservation?.cancel()
+        filePreviewDirtyObservation = nil
+        guard customName == nil, allPanes.count == 1,
+              case .file(let file) = allPanes[0].content, !file.isDirty else {
+            isFilePreview = false
+            return
+        }
+        isFilePreview = true
+        filePreviewDirtyObservation = file.$isDirty
+            .filter { $0 }
+            .prefix(1)
+            .sink { [weak self] _ in self?.pinFilePreview() }
+    }
 
     /// Splitting is disallowed while a diff is focused: diffs stay in their own
     /// single-pane tab so their always-mounted web view keeps filling the tab.
@@ -579,6 +633,7 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
         beside requestedTarget: UUID,
         focusInserted: Bool
     ) {
+        pinFilePreview()
         unzoom()
         let target = layout.contains(requestedTarget)
             ? requestedTarget : layout.allPanes[0].id
@@ -595,6 +650,7 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
         beside target: UUID
     ) {
         guard layout.contains(target), insertedLayout.contains(insertedFocus) else { return }
+        pinFilePreview()
         unzoom()
         layout = layout.inserting(insertedLayout, toward: edge, beside: target)
         focusedPaneID = insertedFocus
