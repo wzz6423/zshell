@@ -36,6 +36,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var pendingPromptSelectionActivation = false
     private var pointerSelectionDragged = false
     private var isForwardingRightMouseButton = false
+    private var selectionAutoscrollTimer: Timer?
+    private var selectionAutoscrollModifierFlags: NSEvent.ModifierFlags = []
     /// Latest scroll report, so a scrollbar drag can be mapped back onto a row.
     var lastScroll: TerminalScrollPosition?
     /// Ghostty reports the recognized link under the pointer as hover state.
@@ -62,9 +64,14 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         start(launch: launch)
     }
 
+    deinit {
+        selectionAutoscrollTimer?.invalidate()
+    }
+
     // MARK: - TerminalBackendSurface
 
     override func setSurfaceVisible(_ visible: Bool) {
+        if !visible { stopSelectionAutoscroll() }
         isSurfaceVisible = visible
         super.setSurfaceVisible(visible)
     }
@@ -255,12 +262,14 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func resignFirstResponder() -> Bool {
+        stopSelectionAutoscroll()
         inputSelectionDragActive = false
         pendingPromptSelectionActivation = false
         return super.resignFirstResponder()
     }
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {
+        stopSelectionAutoscroll()
         // This view is long-lived and reparented as panes split. Resign while
         // the old window still owns us so Ghostty receives FocusOut and draws
         // an inactive cursor instead of retaining stale focus state.
@@ -271,6 +280,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func mouseDown(with event: NSEvent) {
+        stopSelectionAutoscroll()
+        selectionAutoscrollModifierFlags = []
         inputSelectionDragActive = false
         promptSelectionMarkerArmed = false
         pointerSelectionDragged = false
@@ -288,6 +299,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     override func mouseDragged(with event: NSEvent) {
         pointerSelectionDragged = true
+        selectionAutoscrollModifierFlags = event.modifierFlags
         if canEditPromptSelection, !inputSelectionDragActive {
             // Keep a fallback for platforms that do not position the cursor
             // during mouseDown.
@@ -295,9 +307,15 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
             inputSelectionDragActive = true
         }
         super.mouseDragged(with: event)
+        if isMouseCaptured {
+            stopSelectionAutoscroll()
+        } else {
+            updateSelectionAutoscroll(at: convert(event.locationInWindow, from: nil))
+        }
     }
 
     override func mouseUp(with event: NSEvent) {
+        stopSelectionAutoscroll()
         let hadInputSelection = inputSelectionDragActive
         super.mouseUp(with: event)
         if pointerSelectionDragged, !isMouseCaptured {
@@ -314,6 +332,84 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         inputSelectionDragActive = false
         promptSelectionMarkerArmed = false
         pointerSelectionDragged = false
+    }
+
+    private func updateSelectionAutoscroll(at location: NSPoint) {
+        guard TerminalSelectionAutoscrollDirection(
+            locationY: location.y, bounds: bounds
+        ) != nil else {
+            stopSelectionAutoscroll()
+            return
+        }
+        guard selectionAutoscrollTimer == nil else { return }
+
+        // Common modes keep the timer firing while AppKit tracks a mouse drag.
+        let timer = Timer(timeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.autoscrollSelection() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        selectionAutoscrollTimer = timer
+    }
+
+    private func autoscrollSelection() {
+        guard pointerSelectionDragged,
+              isSurfaceVisible,
+              !isMouseCaptured,
+              let window,
+              window.isKeyWindow,
+              window.firstResponder === self,
+              let lastScroll
+        else {
+            stopSelectionAutoscroll()
+            return
+        }
+        let location = convert(window.mouseLocationOutsideOfEventStream, from: nil)
+        guard let direction = TerminalSelectionAutoscrollDirection(
+            locationY: location.y, bounds: bounds
+        ) else {
+            stopSelectionAutoscroll()
+            return
+        }
+
+        let lastTopRow = lastScroll.totalRows > lastScroll.viewportRows
+            ? lastScroll.totalRows - lastScroll.viewportRows : 0
+        let targetRow: UInt64
+        switch direction {
+        case .towardTop:
+            guard lastScroll.topRow > 0 else {
+                stopSelectionAutoscroll()
+                return
+            }
+            targetRow = lastScroll.topRow - 1
+        case .towardBottom:
+            guard lastScroll.topRow < lastTopRow else {
+                stopSelectionAutoscroll()
+                return
+            }
+            targetRow = lastScroll.topRow + 1
+        }
+        guard scrollToRow(UInt(clamping: targetRow)),
+              let dragEvent = NSEvent.mouseEvent(
+                with: .leftMouseDragged,
+                location: window.mouseLocationOutsideOfEventStream,
+                modifierFlags: selectionAutoscrollModifierFlags,
+                timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: window.windowNumber,
+                context: nil,
+                eventNumber: 0,
+                clickCount: 1,
+                pressure: 0
+              )
+        else {
+            stopSelectionAutoscroll()
+            return
+        }
+        super.mouseDragged(with: dragEvent)
+    }
+
+    func stopSelectionAutoscroll() {
+        selectionAutoscrollTimer?.invalidate()
+        selectionAutoscrollTimer = nil
     }
 
     override func keyDown(with event: NSEvent) {
