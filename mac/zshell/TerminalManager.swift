@@ -999,6 +999,14 @@ final class TerminalManager: nonisolated ObservableObject {
         selectedProject?.openFile(path, behavior: .newPinned)
     }
 
+    /// Opens `path` in its indexed project. A stale result is a no-op if the
+    /// project was closed while the palette remained open.
+    func openFile(_ path: String, inProject projectID: UUID) {
+        guard let project = projects.first(where: { $0.id == projectID }) else { return }
+        selectedProjectID = project.id
+        project.openFile(path)
+    }
+
     /// Opens `path` as a pane beside the focused one in the current tab.
     func openFileToSide(_ path: String) {
         selectedProject?.openFileToSide(path)
