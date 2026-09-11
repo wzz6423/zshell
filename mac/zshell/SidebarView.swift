@@ -10,18 +10,16 @@ import SwiftUI
 /// its sessions show as horizontal tabs in the main header.
 struct SidebarView: View {
     @ObservedObject var manager: TerminalManager
-    let bottomBarHeight: CGFloat
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var themeChanges = Theme.changes
     @Environment(\.colorScheme) private var colorScheme
-    @AppStorage("leftSidebarWidth") private var width: Double = 220
     @State private var draggedProjectID: UUID?
     @State private var projectFrames: [UUID: CGRect] = [:]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header-height strip housing the traffic-light buttons and the
-            // control for collapsing this sidebar.
+            // Header-height strip provides window drag space and the control
+            // for collapsing this sidebar.
             HStack(spacing: 0) {
                 WindowDragArea()
                     .frame(maxWidth: .infinity)
@@ -30,8 +28,8 @@ struct SidebarView: View {
                         .padding(.trailing, 8)
                 }
                 ChromeIconButton(
-                    systemImage: "sidebar.left",
-                    tooltip: "Toggle Left Sidebar (⌘B)"
+                    systemImage: "sidebar.right",
+                    tooltip: "Toggle Project Sidebar (⌘B)"
                 ) {
                     manager.toggleLeftSidebar()
                 }
@@ -89,14 +87,13 @@ struct SidebarView: View {
                 ) { SettingsWindowController.shared.show() }
             }
             .padding(.horizontal, 8)
-            .frame(height: bottomBarHeight)
+            .frame(height: BottomToolbarLayout.height(for: manager.selectedSession))
             .overlay(alignment: .top) {
                 Rectangle()
                     .fill(Color(nsColor: Theme.divider))
                     .frame(height: 1)
             }
         }
-        .frame(width: width)
         .background {
             // Zshell's built-in Default themes keep the native translucent
             // sidebar material; every other theme — including the GitHub
@@ -112,21 +109,13 @@ struct SidebarView: View {
         // same background, so the boundary needs its own line. The built-in
         // Defaults keep their material fill, whose contrast already draws
         // the edge.
-        .overlay(alignment: .trailing) {
+        .overlay(alignment: .leading) {
             if !Theme.isDefault(dark: colorScheme == .dark) {
                 Rectangle()
                     .fill(Color(nsColor: Theme.divider))
                     .frame(width: 1)
                     .allowsHitTesting(false)
             }
-        }
-        .overlay(alignment: .trailing) {
-            SidebarResizeHandle(
-                edge: .trailing,
-                width: $width,
-                range: 160...400,
-                defaultWidth: 220
-            )
         }
         .onPreferenceChange(ProjectFramePreferenceKey.self) { projectFrames = $0 }
     }

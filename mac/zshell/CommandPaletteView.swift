@@ -241,10 +241,10 @@ struct CommandPaletteView: View {
             PaletteCommand(id: "save-file", title: "Save File", systemImage: "square.and.arrow.down", shortcut: "⌘S") {
                 manager.saveSelectedFile()
             },
-            PaletteCommand(id: "toggle-left-sidebar", title: "Toggle Left Sidebar", systemImage: "sidebar.left", shortcut: "⌘B") {
+            PaletteCommand(id: "toggle-project-sidebar", title: "Toggle Project Sidebar", systemImage: "sidebar.right", shortcut: "⌘B") {
                 manager.toggleLeftSidebar()
             },
-            PaletteCommand(id: "toggle-sidebar", title: "Toggle Right Sidebar", systemImage: "sidebar.right", shortcut: "⇧⌘B") {
+            PaletteCommand(id: "toggle-files-git-info-panel", title: "Toggle Files, Git & Info Panel", systemImage: "sidebar.left", shortcut: "⇧⌘B") {
                 manager.toggleSidebar()
             },
             PaletteCommand(id: "toggle-files", title: "Toggle Files Panel", systemImage: "doc.text", shortcut: "⇧⌘E") {

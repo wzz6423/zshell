@@ -7252,34 +7252,34 @@
         }
       }
     },
-    "Toggle Left Sidebar" : {
+    "Toggle Files, Git & Info Panel" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "左サイドバーの表示を切り替え"
+            "value" : "ファイル／Git／情報パネルの表示を切り替え"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "显示/隐藏左侧边栏"
+            "value" : "显示/隐藏“文件、Git 与信息”面板"
           }
         }
       }
     },
-    "Toggle Left Sidebar (⌘B)" : {
+    "Toggle Files, Git & Info Panel (⇧⌘B)" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "左サイドバーの表示を切り替え（⌘B）"
+            "value" : "ファイル／Git／情報パネルの表示を切り替え（⇧⌘B）"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "显示/隐藏左侧边栏（⌘B）"
+            "value" : "显示/隐藏“文件、Git 与信息”面板（⇧⌘B）"
           }
         }
       }
@@ -7300,34 +7300,34 @@
         }
       }
     },
-    "Toggle Right Sidebar" : {
+    "Toggle Project Sidebar" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "右サイドバーの表示を切り替え"
+            "value" : "プロジェクトサイドバーの表示を切り替え"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "显示/隐藏右侧边栏"
+            "value" : "显示/隐藏项目侧栏"
           }
         }
       }
     },
-    "Toggle Right Sidebar (⇧⌘B)" : {
+    "Toggle Project Sidebar (⌘B)" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "右サイドバーの表示を切り替え（⇧⌘B）"
+            "value" : "プロジェクトサイドバーの表示を切り替え（⌘B）"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "显示/隐藏右侧边栏（⇧⌘B）"
+            "value" : "显示/隐藏项目侧栏（⌘B）"
           }
         }
       }

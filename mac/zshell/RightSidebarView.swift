@@ -6,8 +6,10 @@
 import AppKit
 import SwiftUI
 
-/// Right sidebar: hidden by default, toggled from the terminal's corner
-/// button or ⇧⌘B. Files/Git switch via tabs along its top, otty-style.
+/// Files/Git/Info panel: hidden by default, toggled from the terminal's
+/// corner button or ⇧⌘B. It is the window's leftmost column, with the
+/// project sidebar on the right; Files/Git switch via tabs along its top,
+/// otty-style.
 struct RightSidebarView: View {
     @ObservedObject var manager: TerminalManager
     @ObservedObject var git: GitStatusModel
@@ -18,7 +20,6 @@ struct RightSidebarView: View {
     @State private var applicationIsActive = NSApp.isActive
     /// Which rule produced the current panel root; drives the Files badge.
     @State private var rootSource = Project.PanelRootSource.shell
-    @AppStorage("rightSidebarWidth") private var width: Double = 240
 
     private var pollsSelectedPanel: Bool {
         manager.isPanelVisible
@@ -47,72 +48,72 @@ struct RightSidebarView: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
+        VStack(spacing: 0) {
             if manager.isPanelVisible {
-                Rectangle()
-                    .fill(Color(nsColor: Theme.divider))
-                    .frame(width: 1)
+                // Window chrome: the panel is the window's leftmost column,
+                // so the traffic-light buttons and the drag surface live in
+                // this strip, aligned with the app's 38pt header row.
+                WindowDragArea()
+                    .frame(height: 38)
 
-                VStack(spacing: 0) {
-                    tabBar
-                    switch manager.panelTab {
-                    case .files:
-                        FileTreePanel(
-                            model: fileTree,
-                            git: git,
-                            session: manager.selectedSession,
-                            rootBadge: rootBadge,
-                            currentFilePath: openFilePath,
-                            openFile: { manager.openFile($0) },
-                            openToSide: { manager.openFileToSide($0) },
-                            onRename: { manager.fileRenamed(from: $0, to: $1) },
-                            refreshGitStatus: { git.refresh() }
-                        )
-                    case .git:
-                        GitPanel(
-                            model: git,
-                            session: manager.selectedSession,
-                            openFile: { manager.openFile($0) },
-                            openToSide: { manager.openFileToSide($0) },
-                            openDiff: { entry, staged in
-                                manager.openDiff(
-                                    repoRoot: git.repoRoot,
-                                    path: entry.path,
-                                    staged: staged,
-                                    untracked: entry.isUntracked,
-                                    origPath: entry.origPath
-                                )
-                            },
-                            openCommitDiff: { commit, file in
-                                manager.openCommitDiff(
-                                    repoRoot: git.repoRoot,
-                                    path: file.path,
-                                    commitHash: commit.hash,
-                                    parentHash: commit.parentHash,
-                                    status: file.status,
-                                    origPath: file.originalPath
-                                )
-                            },
-                            openWorktree: { manager.newSession(directory: $0) }
-                        )
-                    case .info:
-                        InfoPanel(model: info, session: manager.selectedSession)
+                HStack(spacing: 0) {
+                    VStack(spacing: 0) {
+                        tabBar
+                        switch manager.panelTab {
+                        case .files:
+                            FileTreePanel(
+                                model: fileTree,
+                                git: git,
+                                session: manager.selectedSession,
+                                rootBadge: rootBadge,
+                                currentFilePath: openFilePath,
+                                openFile: { manager.openFile($0) },
+                                openToSide: { manager.openFileToSide($0) },
+                                onRename: { manager.fileRenamed(from: $0, to: $1) },
+                                refreshGitStatus: { git.refresh() }
+                            )
+                        case .git:
+                            GitPanel(
+                                model: git,
+                                session: manager.selectedSession,
+                                openFile: { manager.openFile($0) },
+                                openToSide: { manager.openFileToSide($0) },
+                                openDiff: { entry, staged in
+                                    manager.openDiff(
+                                        repoRoot: git.repoRoot,
+                                        path: entry.path,
+                                        staged: staged,
+                                        untracked: entry.isUntracked,
+                                        origPath: entry.origPath
+                                    )
+                                },
+                                openCommitDiff: { commit, file in
+                                    manager.openCommitDiff(
+                                        repoRoot: git.repoRoot,
+                                        path: file.path,
+                                        commitHash: commit.hash,
+                                        parentHash: commit.parentHash,
+                                        status: file.status,
+                                        origPath: file.originalPath
+                                    )
+                                },
+                                openWorktree: { manager.newSession(directory: $0) }
+                            )
+                        case .info:
+                            InfoPanel(model: info, session: manager.selectedSession)
+                        }
                     }
+
+                    // Hairline between the panel and the workspace column:
+                    // themes fill both with the same background, so the
+                    // boundary needs its own line.
+                    Rectangle()
+                        .fill(Color(nsColor: Theme.divider))
+                        .frame(width: 1)
                 }
-                .frame(width: width)
-                .background(Color(nsColor: Theme.sidebar))
             }
         }
-        .overlay(alignment: .leading) {
-            if manager.isPanelVisible {
-                SidebarResizeHandle(
-                    edge: .leading,
-                    width: $width,
-                    range: 180...500,
-                    defaultWidth: 240
-                )
-            }
-        }
+        .background(Color(nsColor: Theme.sidebar))
         .onAppear { syncModels() }
         // Files and process information remain live while visible. Git is
         // event-driven: terminal/Git command completion and app activation
@@ -182,7 +183,7 @@ struct RightSidebarView: View {
             )
         }
         .padding(.horizontal, 8)
-        .padding(.top, 12)
+        .padding(.top, 8)
         .padding(.bottom, 4)
     }
 

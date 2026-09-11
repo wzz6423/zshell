@@ -208,13 +208,13 @@ private struct ZshellCommands: Commands {
 
             Divider()
 
-            Button("Toggle Left Sidebar") {
+            Button("Toggle Project Sidebar") {
                 manager?.toggleLeftSidebar()
             }
             .keyboardShortcut("b", modifiers: .command)
             .disabled(manager == nil)
 
-            Button("Toggle Right Sidebar") {
+            Button("Toggle Files, Git & Info Panel") {
                 manager?.toggleSidebar()
             }
             .keyboardShortcut("b", modifiers: [.command, .shift])

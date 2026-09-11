@@ -151,8 +151,6 @@ enum BottomToolbarLayout {
 
 struct ContentView: View {
     @ObservedObject var manager: TerminalManager
-    @ObservedObject private var settings = AppSettings.shared
-    @ObservedObject private var themeChanges = Theme.changes
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var tabSwitcher = TabSwitcherController()
     @StateObject private var git = GitStatusModel()
@@ -168,97 +166,12 @@ struct ContentView: View {
         )
     }
 
-    private var bottomToolbarHeight: CGFloat {
-        BottomToolbarLayout.height(for: manager.selectedSession)
-    }
-
     var body: some View {
-        HStack(spacing: 0) {
-            if manager.isLeftSidebarVisible {
-                SidebarView(
-                    manager: manager,
-                    bottomBarHeight: bottomToolbarHeight
-                )
-            }
-
-            VStack(spacing: 0) {
-                // Above the pane stack so header tooltips, which hang down
-                // into the terminal area, aren't covered by it.
-                MainHeaderView(manager: manager, tabSplitDrag: tabSplitDrag)
-                    .zIndex(1)
-
-                ZStack {
-                    // Diff panes stay mounted after their project has been
-                    // visited: removing a project's stack pulls every
-                    // NSHostingView out of the window at once, making project
-                    // switching block while WebKit tears down and reattaches
-                    // the rendered diffs. Unvisited restored projects remain
-                    // lazy; inactive stacks sit beneath the active opaque pane.
-                    ForEach(manager.projectsWithMountedDiffs) { project in
-                        ForEach(project.diffPlacements, id: \.diff.id) { placement in
-                            let isSelected = manager.selectedProjectID == project.id
-                                && project.selectedTabID == placement.tabID
-                            DiffViewerView(
-                                diff: placement.diff,
-                                isSelected: isSelected
-                            )
-                            .background(Color(nsColor: Theme.background))
-                            .allowsHitTesting(isSelected)
-                            .zIndex(isSelected ? 1 : 0)
-                        }
-                    }
-                    Group {
-                        if let tab = manager.selectedProject?.selectedTab {
-                            PaneLayoutView(
-                                tab: tab,
-                                tabSplitDrag: tabSplitDrag,
-                                onSplit: { manager.split(toward: $0) },
-                                onNewBrowserTab: {
-                                    manager.newBrowserTab(initialURL: $0)
-                                },
-                                onNewBrowserPane: {
-                                    manager.newBrowserPane(initialURL: $0)
-                                },
-                                onNewFileTab: {
-                                    manager.openFile($0)
-                                },
-                                onNewFilePane: {
-                                    manager.openFileToSide($0)
-                                }
-                            )
-                        } else {
-                            emptyState
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    // Opaque so the pane gaps hide the unselected diffs behind,
-                    // except while a diff tab is up — then stay clear so its
-                    // web view shows through from the stack below.
-                    .background(paneLayerIsOpaque ? AnyShapeStyle(Color(nsColor: Theme.background)) : AnyShapeStyle(Color.clear))
-                    .zIndex(2)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                if manager.selectedProject != nil
-                    && settings.toolbarVisibility != .hide
-                    && (git.isRepo || settings.toolbarVisibility == .always) {
-                    BottomToolbarView(
-                        model: git,
-                        height: bottomToolbarHeight,
-                        toggleGitPanel: { manager.togglePanel(.git) },
-                        hideToolbar: { settings.toolbarVisibility = .hide }
-                    )
-                }
-            }
-            .background(Color(nsColor: Theme.background))
-
-            // Dropping the hidden sidebar also drops its expanded file tree
-            // and process snapshot. Git stays window-owned because the toolbar
-            // remains visible while this panel is closed.
-            if manager.isPanelVisible {
-                RightSidebarView(manager: manager, git: git)
-            }
-        }
+        WorkspaceSplitViewRepresentable(
+            manager: manager,
+            git: git,
+            tabSplitDrag: tabSplitDrag
+        )
         .ignoresSafeArea()
         .overlay(alignment: .topLeading) {
             TerminalParkingView(sessions: parkedTerminalSessions)
@@ -313,14 +226,6 @@ struct ContentView: View {
             .filter { !visibleIDs.contains($0.id) }
     }
 
-    /// The pane layer paints an opaque background to hide unselected diffs in
-    /// its gaps — but a diff tab's own pane must stay clear so its web view
-    /// (mounted in the stack behind) shows through.
-    private var paneLayerIsOpaque: Bool {
-        guard let tab = manager.selectedProject?.selectedTab else { return true }
-        return tab.diffs.isEmpty
-    }
-
     private func syncGit() {
         guard let project = manager.selectedProject,
               let session = project.selectedSession else {
@@ -333,6 +238,85 @@ struct ContentView: View {
         ).root
         git.sync(root: root)
     }
+}
+
+struct MainWorkspaceView: View {
+    @ObservedObject var manager: TerminalManager
+    @ObservedObject var git: GitStatusModel
+    @ObservedObject var tabSplitDrag: TabSplitDragCoordinator
+    @ObservedObject private var settings = AppSettings.shared
+
+    private var bottomToolbarHeight: CGFloat {
+        BottomToolbarLayout.height(for: manager.selectedSession)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Above the pane stack so header tooltips, which hang down
+            // into the terminal area, aren't covered by it.
+            MainHeaderView(manager: manager, tabSplitDrag: tabSplitDrag)
+                .zIndex(1)
+
+            ZStack {
+                // Diff panes stay mounted after their project has been
+                // visited: removing a project's stack pulls every
+                // NSHostingView out of the window at once, making project
+                // switching block while WebKit tears down and reattaches
+                // the rendered diffs. Unvisited restored projects remain
+                // lazy; inactive stacks sit beneath the active opaque pane.
+                ForEach(manager.projectsWithMountedDiffs) { project in
+                    ForEach(project.diffPlacements, id: \.diff.id) { placement in
+                        let isSelected = manager.selectedProjectID == project.id
+                            && project.selectedTabID == placement.tabID
+                        DiffViewerView(diff: placement.diff, isSelected: isSelected)
+                            .background(Color(nsColor: Theme.background))
+                            .allowsHitTesting(isSelected)
+                            .zIndex(isSelected ? 1 : 0)
+                    }
+                }
+                Group {
+                    if let tab = manager.selectedProject?.selectedTab {
+                        PaneLayoutView(
+                            tab: tab,
+                            tabSplitDrag: tabSplitDrag,
+                            onSplit: { manager.split(toward: $0) },
+                            onNewBrowserTab: { manager.newBrowserTab(initialURL: $0) },
+                            onNewBrowserPane: { manager.newBrowserPane(initialURL: $0) },
+                            onNewFileTab: { manager.openFile($0) },
+                            onNewFilePane: { manager.openFileToSide($0) }
+                        )
+                    } else {
+                        emptyState
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(
+                    paneLayerIsOpaque
+                        ? AnyShapeStyle(Color(nsColor: Theme.background))
+                        : AnyShapeStyle(Color.clear)
+                )
+                .zIndex(2)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            if manager.selectedProject != nil
+                && settings.toolbarVisibility != .hide
+                && (git.isRepo || settings.toolbarVisibility == .always) {
+                BottomToolbarView(
+                    model: git,
+                    height: bottomToolbarHeight,
+                    toggleGitPanel: { manager.togglePanel(.git) },
+                    hideToolbar: { settings.toolbarVisibility = .hide }
+                )
+            }
+        }
+        .background(Color(nsColor: Theme.background))
+    }
+
+    private var paneLayerIsOpaque: Bool {
+        guard let tab = manager.selectedProject?.selectedTab else { return true }
+        return tab.diffs.isEmpty
+    }
 
     @ViewBuilder
     private var emptyState: some View {
@@ -343,8 +327,6 @@ struct ContentView: View {
                 action: { manager.newProject() }
             )
         } else {
-            // A project whose tabs were all closed stays open; offer to reopen
-            // a session rather than showing the no-projects prompt.
             emptyStatePrompt(
                 title: "No open sessions",
                 buttonTitle: "New Session  ⌘T",
@@ -949,14 +931,14 @@ private struct MainHeaderView: View {
     /// even when the session strip is full.
     private let minimumWindowDragWidth: CGFloat = 40
 
-    /// With the left sidebar hidden the header slides under the window's
+    /// With the project sidebar hidden the header slides under the window's
     /// traffic-light buttons, so inset its content to clear them.
     private var leadingInset: CGFloat {
         manager.isLeftSidebarVisible ? 8 : 78
     }
 
-    /// A hidden sidebar moves its toggle into this header. Reserve the
-    /// button and its following HStack spacing before sizing the tab strip.
+    /// A hidden project sidebar moves its toggle into this header. Reserve
+    /// the button and its following HStack spacing before sizing the tab strip.
     private var hiddenLeftSidebarControlWidth: CGFloat {
         manager.isLeftSidebarVisible ? 0 : 32
     }
@@ -966,8 +948,8 @@ private struct MainHeaderView: View {
             HStack(spacing: 0) {
                 if !manager.isLeftSidebarVisible {
                     ChromeIconButton(
-                        systemImage: "sidebar.left",
-                        tooltip: "Toggle Left Sidebar (⌘B)",
+                        systemImage: "sidebar.right",
+                        tooltip: "Toggle Project Sidebar (⌘B)",
                         tooltipAlignment: .leading
                     ) {
                         manager.toggleLeftSidebar()
@@ -1007,12 +989,12 @@ private struct MainHeaderView: View {
                         .buttonStyle(.plain)
                         .tooltip("Exit Pane Zoom (⇧⌘↩)", edge: .below, alignment: .trailing)
                     }
-                    // No project means the sidebar has nothing to show, so drop
+                    // No project means the panel has nothing to show, so drop
                     // its toggle too — matching the panel collapsing itself.
                     if manager.selectedProject != nil {
                         ChromeIconButton(
-                            systemImage: "sidebar.right",
-                            tooltip: "Toggle Right Sidebar (⇧⌘B)"
+                            systemImage: "sidebar.left",
+                            tooltip: "Toggle Files, Git & Info Panel (⇧⌘B)"
                         ) {
                             manager.toggleSidebar()
                         }
