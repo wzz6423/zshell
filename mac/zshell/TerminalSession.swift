@@ -247,6 +247,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         surface.sendText(text)
     }
 
+    func sendEnter() {
+        surface.sendEnter()
+    }
+
     /// Clears the emulator's visible screen and scrollback, then asks the
     /// foreground shell to repaint its prompt at the top.
     func clear() {
