@@ -355,8 +355,10 @@ private nonisolated enum CodexUsageReader {
             executable: executable,
             arguments: ["app-server", "--listen", "stdio://"],
             initialInput: initialize,
+            initializedInput: Data("{\"method\":\"initialized\",\"params\":{}}".utf8),
             secondInput: limits,
             waitForResponseID: 1,
+            secondResponseID: 2,
             timeout: 8
         )
         if command.timedOut { return .failure(.timedOut) }
@@ -448,11 +450,15 @@ private nonisolated enum ProcessRunner {
         private let lock = NSLock()
         private var storage = Data()
         private var sawResponse = false
+        private var sawSecondResponse = false
         private let responseID: Int?
+        private let secondResponseID: Int?
         let responseReady = DispatchSemaphore(value: 0)
+        let secondResponseReady = DispatchSemaphore(value: 0)
 
-        init(responseID: Int? = nil) {
+        init(responseID: Int? = nil, secondResponseID: Int? = nil) {
             self.responseID = responseID
+            self.secondResponseID = secondResponseID
         }
 
         func append(_ data: Data) {
@@ -466,12 +472,20 @@ private nonisolated enum ProcessRunner {
                 sawResponse = true
                 responseReady.signal()
             }
+            if !sawSecondResponse, let secondResponseID,
+               storage.split(separator: 0x0A).contains(where: {
+                   (try? JSONDecoder().decode(ResponseEnvelope.self, from: $0))?.id == secondResponseID
+               }) {
+                sawSecondResponse = true
+                secondResponseReady.signal()
+            }
             lock.unlock()
         }
 
         func finish() {
             lock.lock()
             if !sawResponse { responseReady.signal() }
+            if !sawSecondResponse { secondResponseReady.signal() }
             lock.unlock()
         }
 
@@ -488,8 +502,10 @@ private nonisolated enum ProcessRunner {
         executable: URL,
         arguments: [String],
         initialInput: Data,
+        initializedInput: Data,
         secondInput: Data,
         waitForResponseID: Int,
+        secondResponseID: Int,
         timeout: TimeInterval
     ) -> ProcessCommandResult {
         let process = Process()
@@ -510,7 +526,10 @@ private nonisolated enum ProcessRunner {
             return ProcessCommandResult(stdout: Data(), status: -1, timedOut: false)
         }
 
-        let stdoutData = PipeData(responseID: waitForResponseID)
+        let stdoutData = PipeData(
+            responseID: waitForResponseID,
+            secondResponseID: secondResponseID
+        )
         let stderrData = PipeData()
         let readers = DispatchGroup()
         readers.enter()
@@ -543,9 +562,16 @@ private nonisolated enum ProcessRunner {
             if stdoutData.responseReady.wait(timeout: .now() + wait) == .timedOut {
                 timedOut = true
             } else if stdoutData.didSeeResponse {
+                var initialized = initializedInput
+                initialized.append(0x0A)
+                try stdin.fileHandleForWriting.write(contentsOf: initialized)
                 var second = secondInput
                 second.append(0x0A)
                 try stdin.fileHandleForWriting.write(contentsOf: second)
+                let wait = max(deadline.timeIntervalSinceNow, 0)
+                if stdoutData.secondResponseReady.wait(timeout: .now() + wait) == .timedOut {
+                    timedOut = true
+                }
             }
             try stdin.fileHandleForWriting.close()
         } catch {
