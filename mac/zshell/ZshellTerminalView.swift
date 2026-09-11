@@ -391,6 +391,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         menu.addItem(contextItem(String(localized: "Paste"), #selector(NSText.paste(_:))))
         menu.addItem(.separator())
         menu.addItem(contextItem(String(localized: "Select All"), #selector(selectAll(_:))))
+        menu.addItem(.separator())
+        menu.addItem(splitTarget.quickCommandMenuItem())
         if let linkTarget {
             menu.addItem(.separator())
             switch linkTarget {
@@ -631,6 +633,7 @@ final class SplitMenuTarget: NSObject {
     var onNewBrowserPane: ((String?) -> Void)?
     var onNewFileTab: ((String) -> Void)?
     var onNewFilePane: ((String) -> Void)?
+    private let quickCommandTarget = QuickCommandMenuTarget()
 
     func browserMenuItems(initialURL: String) -> [NSMenuItem] {
         let tabItem = item(
@@ -658,6 +661,18 @@ final class SplitMenuTarget: NSObject {
         )
         paneItem.representedObject = path
         return [tabItem, paneItem]
+    }
+
+    func quickCommandMenuItem() -> NSMenuItem {
+        let parent = NSMenuItem(
+            title: String(localized: "Quick Commands"),
+            action: nil,
+            keyEquivalent: ""
+        )
+        let menu = NSMenu(title: parent.title)
+        quickCommandTarget.menuItems().forEach(menu.addItem)
+        parent.submenu = menu
+        return parent
     }
 
     func menuItems() -> [NSMenuItem] {

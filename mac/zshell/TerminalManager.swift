@@ -554,6 +554,37 @@ final class TerminalManager: nonisolated ObservableObject {
         }
     }
 
+    /// Context-menu actions resolve their manager at click time so commands
+    /// cannot leak into a terminal owned by another window.
+    private static var activeWindowManager: TerminalManager? {
+        guard let keyWindow = NSApp.keyWindow else { return nil }
+        return registry.first { $0.window === keyWindow }
+    }
+
+    static func insertQuickCommand(_ preset: QuickCommandPreset) {
+        activeWindowManager?.sendQuickCommand(preset, appendingReturn: false)
+    }
+
+    static func runQuickCommand(_ preset: QuickCommandPreset) {
+        activeWindowManager?.sendQuickCommand(preset, appendingReturn: true)
+    }
+
+    static func manageQuickCommands() {
+        guard let manager = activeWindowManager else { return }
+        QuickCommandEditor.show(relativeTo: manager.window)
+    }
+
+    /// Routes only to the focused terminal pane. Return is appended solely by
+    /// the separately named run action.
+    private func sendQuickCommand(
+        _ preset: QuickCommandPreset,
+        appendingReturn: Bool
+    ) {
+        guard case .session(let session)? = selectedProject?.focusedContent else { return }
+        session.sendCommand(preset.command)
+        if appendingReturn { session.sendCommand("\r") }
+    }
+
     /// Whether ⌘K has a terminal on screen to act on right now.
     var canClearActiveTerminal: Bool {
         if case .session? = selectedProject?.focusedContent { return true }

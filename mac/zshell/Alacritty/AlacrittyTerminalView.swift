@@ -2140,6 +2140,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         menu.addItem(contextItem(String(localized: "Paste"), #selector(paste(_:))))
         menu.addItem(.separator())
         menu.addItem(contextItem(String(localized: "Select All"), #selector(selectAll(_:))))
+        menu.addItem(.separator())
+        menu.addItem(splitTarget.quickCommandMenuItem())
         if let linkTarget {
             menu.addItem(.separator())
             switch linkTarget {
