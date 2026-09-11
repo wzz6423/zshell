@@ -1288,6 +1288,14 @@ private struct SessionTabsView: View {
             })
         }
         items.append(.separator)
+        items.append(.action(title: String(localized: "Set Color Marker…")) {
+            ProjectTabColorPanelController.shared.present(tab: tab)
+        })
+        if tab.markerColor != nil {
+            items.append(.action(title: String(localized: "Remove Color Marker")) {
+                tab.markerColor = nil
+            })
+        }
         if case .file(let file) = tab.focusedContent {
             items.append(.action(title: String(localized: "Reveal in Finder")) {
                 NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: file.path)])
@@ -1371,15 +1379,16 @@ private struct PaneTabItem: View {
         } else {
             switch tab.focusedContent {
             case .session(let session):
-                SessionTabLabel(session: session, customTitle: tab.customName, paneCount: paneCount, agentRollup: tab.agentRollup, isSelected: isSelected, select: select, close: close)
+                SessionTabLabel(session: session, customTitle: tab.customName, markerColor: tab.markerColor, paneCount: paneCount, agentRollup: tab.agentRollup, isSelected: isSelected, select: select, close: close)
             case .file(let file):
-                FileTabLabel(file: file, customTitle: tab.customName, paneCount: paneCount, agentRollup: tab.agentRollup, isSelected: isSelected, select: select, close: close)
+                FileTabLabel(file: file, customTitle: tab.customName, markerColor: tab.markerColor, paneCount: paneCount, agentRollup: tab.agentRollup, isSelected: isSelected, select: select, close: close)
             case .browser(let browser):
-                BrowserTabLabel(browser: browser, customTitle: tab.customName, paneCount: paneCount, agentRollup: tab.agentRollup, isSelected: isSelected, select: select, close: close)
+                BrowserTabLabel(browser: browser, customTitle: tab.customName, markerColor: tab.markerColor, paneCount: paneCount, agentRollup: tab.agentRollup, isSelected: isSelected, select: select, close: close)
             case .diff(let diff):
                 DiffTabLabel(
                     diff: diff,
                     customTitle: tab.customName,
+                    markerColor: tab.markerColor,
                     paneCount: paneCount,
                     agentRollup: tab.agentRollup,
                     isSelected: isSelected,
@@ -1486,6 +1495,7 @@ private struct SessionTabLabel: View {
     @ObservedObject var session: TerminalSession
     /// User-assigned tab name overriding the live terminal title.
     var customTitle: String?
+    let markerColor: ProjectTabMarkerColor?
     let paneCount: Int
     let agentRollup: ZshellAgentRollup?
     let isSelected: Bool
@@ -1496,6 +1506,7 @@ private struct SessionTabLabel: View {
         TabItemChrome(
             systemImage: "terminal",
             title: customTitle ?? session.title,
+            markerColor: markerColor,
             paneCount: paneCount,
             agentRollup: agentRollup,
             isSelected: isSelected,
@@ -1509,6 +1520,7 @@ private struct FileTabLabel: View {
     @ObservedObject var file: FileTab
     /// User-assigned tab name overriding the file name.
     var customTitle: String?
+    let markerColor: ProjectTabMarkerColor?
     let paneCount: Int
     let agentRollup: ZshellAgentRollup?
     let isSelected: Bool
@@ -1520,6 +1532,7 @@ private struct FileTabLabel: View {
             systemImage: "doc.text",
             fileIconPath: file.path,
             title: customTitle ?? file.name,
+            markerColor: markerColor,
             paneCount: paneCount,
             agentRollup: agentRollup,
             isSelected: isSelected,
@@ -1535,6 +1548,7 @@ private struct BrowserTabLabel: View {
     @ObservedObject var browser: BrowserTab
     /// User-assigned tab name overriding the webpage title.
     var customTitle: String?
+    let markerColor: ProjectTabMarkerColor?
     let paneCount: Int
     let agentRollup: ZshellAgentRollup?
     let isSelected: Bool
@@ -1546,6 +1560,7 @@ private struct BrowserTabLabel: View {
             systemImage: "globe",
             browserIcon: browser,
             title: customTitle ?? browser.title,
+            markerColor: markerColor,
             paneCount: paneCount,
             agentRollup: agentRollup,
             isSelected: isSelected,
@@ -1559,6 +1574,7 @@ private struct BrowserTabLabel: View {
 private struct DiffTabLabel: View {
     @ObservedObject var diff: DiffTab
     var customTitle: String?
+    let markerColor: ProjectTabMarkerColor?
     let paneCount: Int
     let agentRollup: ZshellAgentRollup?
     let isSelected: Bool
@@ -1570,6 +1586,7 @@ private struct DiffTabLabel: View {
             systemImage: "plus.forwardslash.minus",
             fileIconPath: diff.path,
             title: customTitle ?? diff.title,
+            markerColor: markerColor,
             paneCount: paneCount,
             agentRollup: agentRollup,
             isSelected: isSelected,
@@ -1587,6 +1604,7 @@ private struct TabItemChrome: View {
     var browserIcon: BrowserTab? = nil
     var fileIconPath: String? = nil
     let title: String
+    var markerColor: ProjectTabMarkerColor? = nil
     var paneCount: Int = 1
     var agentRollup: ZshellAgentRollup? = nil
     let isSelected: Bool
@@ -1599,6 +1617,12 @@ private struct TabItemChrome: View {
     var body: some View {
         Button(action: select) {
             HStack(spacing: 5) {
+                if let markerColor {
+                    Image(systemName: "tag.fill")
+                        .font(.system(size: 7.5, weight: .semibold))
+                        .foregroundStyle(Color(nsColor: markerColor.nsColor))
+                        .accessibilityHidden(true)
+                }
                 if let browserIcon {
                     BrowserFaviconView(browser: browserIcon, size: 11)
                         .font(.system(size: 9, weight: .medium))
@@ -1673,5 +1697,14 @@ private struct TabItemChrome: View {
                 .fill(isSelected ? Color.primary.opacity(0.09) : (isHovering ? Color.primary.opacity(0.04) : .clear))
         )
         .onHover { isHovering = $0 }
+        .accessibilityValue(markerAccessibilityValue)
+    }
+
+    private var markerAccessibilityValue: String {
+        guard let markerColor else { return String(localized: "No color marker") }
+        return String(
+            localized: "Color marker \(markerColor.displayValue)",
+            comment: "Accessibility value for a project or tab color marker. The placeholder is an sRGB hex color."
+        )
     }
 }

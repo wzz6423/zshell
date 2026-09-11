@@ -391,6 +391,7 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
         }
     }
     @Published var isPinned: Bool
+    @Published var markerColor: ProjectTabMarkerColor?
     @Published var layout: PaneNode
     @Published var focusedPaneID: UUID
     /// Whether the focused pane is zoomed to fill the tab. Presentation-only:

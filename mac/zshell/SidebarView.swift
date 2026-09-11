@@ -288,6 +288,15 @@ private struct SidebarProjectRow: View {
             })
         }
         items.append(.separator)
+        items.append(.action(title: String(localized: "Set Color Marker…")) {
+            ProjectTabColorPanelController.shared.present(project: project)
+        })
+        if project.markerColor != nil {
+            items.append(.action(title: String(localized: "Remove Color Marker")) {
+                project.markerColor = nil
+            })
+        }
+        items.append(.separator)
         items.append(.action(title: String(localized: "Set Project Directory…"), handler: pickProjectDirectory))
         if project.customDirectory != nil {
             items.append(.action(title: String(localized: "Use Automatic Directory")) {
@@ -332,6 +341,13 @@ private struct SidebarProjectRow: View {
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(isSelected ? Color(nsColor: Theme.accent) : .secondary)
                 .frame(width: max(14, fontSize), alignment: .center)
+
+            if let markerColor = project.markerColor {
+                Image(systemName: "tag.fill")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(Color(nsColor: markerColor.nsColor))
+                    .accessibilityHidden(true)
+            }
 
             VStack(alignment: .leading, spacing: 1) {
                 if isRenaming {
@@ -393,6 +409,17 @@ private struct SidebarProjectRow: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .contentShape(RoundedRectangle(cornerRadius: 6))
+        .accessibilityValue(markerAccessibilityValue)
+    }
+
+    private var markerAccessibilityValue: String {
+        guard let markerColor = project.markerColor else {
+            return String(localized: "No color marker")
+        }
+        return String(
+            localized: "Color marker \(markerColor.displayValue)",
+            comment: "Accessibility value for a project or tab color marker. The placeholder is an sRGB hex color."
+        )
     }
 
     private func beginRename() {

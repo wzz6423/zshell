@@ -1121,6 +1121,7 @@ final class TerminalManager: nonisolated ObservableObject {
                         focusedPaneIndex: focusedPaneIndex,
                         customName: tab.customName,
                         isPinned: tab.isPinned,
+                        markerColorHex: tab.markerColor?.hex,
                         contextSessionIndex: tab.contextSession.flatMap { context in
                             projectSessions.firstIndex { $0.id == context.id }
                         }
@@ -1129,6 +1130,7 @@ final class TerminalManager: nonisolated ObservableObject {
                 return ProjectSnapshot(
                     customName: project.customName,
                     isPinned: project.isPinned,
+                    markerColorHex: project.markerColor?.hex,
                     customDirectory: project.customDirectory,
                     tabs: tabs,
                     selectedTabIndex: project.tabs.firstIndex { $0.id == project.selectedTabID }
@@ -1223,6 +1225,7 @@ final class TerminalManager: nonisolated ObservableObject {
                 createInitialSession: false
             )
             project.customName = Project.normalizedCustomName(saved.customName)
+            project.markerColor = saved.markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:))
             project.customDirectory = saved.customDirectory
             var restoredContexts: [(tab: PaneTab, sessionIndex: Int)] = []
             for savedTab in saved.tabs {
