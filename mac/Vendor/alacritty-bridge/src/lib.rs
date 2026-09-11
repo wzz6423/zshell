@@ -134,6 +134,27 @@ pub struct ZshellTheme {
     pub cursor: u32,
 }
 
+struct SnapshotCursorPositions {
+    draw: (isize, isize),
+    ime: (isize, isize),
+}
+
+fn snapshot_cursor_positions(
+    draw_point: Point,
+    ime_point: Point,
+    shape: CursorShape,
+    show_cursor: bool,
+    display_offset: usize,
+) -> SnapshotCursorPositions {
+    let draw = if !show_cursor || matches!(shape, CursorShape::Hidden) || display_offset != 0 {
+        (-1, -1)
+    } else {
+        (draw_point.line.0 as isize, draw_point.column.0 as isize)
+    };
+    let ime = (ime_point.line.0 as isize, ime_point.column.0 as isize);
+    SnapshotCursorPositions { draw, ime }
+}
+
 #[repr(C)]
 pub struct ZshellSnapshot {
     /// `columns * rows` cells in row-major order, owned by the handle and
@@ -144,6 +165,9 @@ pub struct ZshellSnapshot {
     /// Viewport-relative cursor, or -1 when it should not be drawn.
     pub cursor_line: isize,
     pub cursor_column: isize,
+    /// Logical input cursor, independent of terminal cursor visibility.
+    pub ime_cursor_line: isize,
+    pub ime_cursor_column: isize,
     pub cursor_shape: u32,
     pub cursor_color: u32,
     pub background: u32,
@@ -2414,6 +2438,27 @@ mod tests {
         assert!(output.is_empty());
         assert!(events.is_empty());
     }
+
+    #[test]
+    fn non_drawable_cursor_keeps_ime_anchor() {
+        let draw_point = Point::new(Line(1), Column(7));
+        let ime_point = Point::new(Line(2), Column(11));
+        for (shape, show_cursor, display_offset) in [
+            (CursorShape::Hidden, true, 0),
+            (CursorShape::Block, false, 0),
+            (CursorShape::Block, true, 3),
+        ] {
+            let positions = snapshot_cursor_positions(
+                draw_point,
+                ime_point,
+                shape,
+                show_cursor,
+                display_offset,
+            );
+            assert_eq!(positions.draw, (-1, -1));
+            assert_eq!(positions.ime, (2, 11));
+        }
+    }
 }
 
 /// Which viewport rows changed since the last call, resetting the emulator's
@@ -2594,21 +2639,22 @@ pub unsafe extern "C" fn zshell_alacritty_snapshot(
     }
 
     let cursor = content.cursor;
-    let hidden = !term.mode().contains(TermMode::SHOW_CURSOR)
-        || matches!(cursor.shape, CursorShape::Hidden)
-        || content.display_offset != 0;
-    let (cursor_line, cursor_column) = if hidden {
-        (-1, -1)
-    } else {
-        (cursor.point.line.0 as isize, cursor.point.column.0 as isize)
-    };
+    let cursor_positions = snapshot_cursor_positions(
+        cursor.point,
+        term.grid().cursor.point,
+        cursor.shape,
+        term.mode().contains(TermMode::SHOW_CURSOR),
+        content.display_offset,
+    );
 
     *out = ZshellSnapshot {
         cells: terminal.cells.as_ptr(),
         columns,
         rows: screen_lines,
-        cursor_line,
-        cursor_column,
+        cursor_line: cursor_positions.draw.0,
+        cursor_column: cursor_positions.draw.1,
+        ime_cursor_line: cursor_positions.ime.0,
+        ime_cursor_column: cursor_positions.ime.1,
         cursor_shape: match cursor.shape {
             CursorShape::Block => 0,
             CursorShape::Underline => 1,

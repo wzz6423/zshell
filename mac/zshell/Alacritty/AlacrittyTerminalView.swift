@@ -499,6 +499,9 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             x: 0, y: bounds.height - height,
             width: bounds.width, height: height
         )
+        if hasMarkedText() {
+            inputContext?.invalidateCharacterCoordinates()
+        }
     }
 
     private func gridSize(for size: CGSize) -> (columns: Int, rows: Int) {
@@ -522,7 +525,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         synchronizeGridSize()
         // Padding remainder changes even when the number of rows/columns does
         // not, so a sub-cell resize still needs one host-side frame.
-        if changed { scheduleRender(force: true) }
+        if changed {
+            inputContext?.invalidateCharacterCoordinates()
+            scheduleRender(force: true)
+        }
     }
 
     /// Pushes the current geometry down to the emulator, which resizes the
@@ -611,6 +617,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // every rasterized glyph.
         guard let scale = window?.backingScaleFactor else { return }
         (self.layer as? CAMetalLayer)?.contentsScale = scale
+        inputContext?.invalidateCharacterCoordinates()
         scheduleRender(force: true)
     }
 
@@ -840,8 +847,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     private func updateMarkedTextOverlay(snapshot: ZshellSnapshot) {
         guard !markedText.isEmpty,
-              snapshot.cursor_line >= 0,
-              snapshot.cursor_column >= 0
+              let frame = imeCaretRect(snapshot: snapshot)
         else {
             markedTextField.isHidden = true
             return
@@ -863,13 +869,25 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             metrics.cellWidth
         )
         markedTextField.frame = NSRect(
-            x: Self.padding.x + CGFloat(snapshot.cursor_column) * metrics.cellWidth,
-            y: bounds.height - Self.padding.y
-                - CGFloat(snapshot.cursor_line + 1) * metrics.cellHeight,
+            x: frame.minX,
+            y: frame.minY,
             width: width,
-            height: metrics.cellHeight
+            height: frame.height
         )
         markedTextField.isHidden = false
+    }
+
+    private func imeCaretRect(snapshot: ZshellSnapshot) -> NSRect? {
+        guard snapshot.ime_cursor_line >= 0,
+              snapshot.ime_cursor_column >= 0
+        else { return nil }
+        return NSRect(
+            x: Self.padding.x + CGFloat(snapshot.ime_cursor_column) * metrics.cellWidth,
+            y: bounds.maxY - Self.padding.y
+                - CGFloat(snapshot.ime_cursor_line + 1) * metrics.cellHeight,
+            width: metrics.cellWidth,
+            height: metrics.cellHeight
+        )
     }
 
     private func updateCursorBlinking(_ blinking: Bool) {
@@ -962,6 +980,11 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             }
             // Output must not restart the host cursor timer. Animated TUIs can
             // wake the PTY many times per second even while the user is idle.
+            // Output can move the logical input cursor while an IME keeps the
+            // candidate window open without sending another key event.
+            if hasMarkedText() {
+                inputContext?.invalidateCharacterCoordinates()
+            }
             if isSurfaceVisible {
                 scheduleRender()
                 reportScroll()
@@ -2330,19 +2353,14 @@ extension AlacrittyTerminalView: NSTextInputClient {
 
     func validAttributesForMarkedText() -> [NSAttributedString.Key] { [] }
 
-    /// Places the IME candidate window under the cursor.
+    /// Places the IME candidate window under the logical input cursor, even
+    /// when a TUI has hidden the drawable terminal cursor.
     func firstRect(forCharacterRange range: NSRange, actualRange: NSRangePointer?) -> NSRect {
-        guard let handle, let window else { return .zero }
+        guard let handle else { return .zero }
         var snapshot = ZshellSnapshot()
         zshell_alacritty_snapshot(handle, &snapshot)
-        let column = CGFloat(max(snapshot.cursor_column, 0))
-        let line = CGFloat(max(snapshot.cursor_line, 0))
-        let local = NSRect(
-            x: Self.padding.x + column * metrics.cellWidth,
-            y: bounds.maxY - Self.padding.y - (line + 1) * metrics.cellHeight,
-            width: metrics.cellWidth,
-            height: metrics.cellHeight
-        )
+        guard let local = imeCaretRect(snapshot: snapshot) else { return .zero }
+        guard let window else { return local }
         return window.convertToScreen(convert(local, to: nil))
     }
 

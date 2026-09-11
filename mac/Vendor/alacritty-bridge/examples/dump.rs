@@ -97,6 +97,8 @@ fn main() {
         rows: 0,
         cursor_line: 0,
         cursor_column: 0,
+        ime_cursor_line: 0,
+        ime_cursor_column: 0,
         cursor_shape: 0,
         cursor_color: 0,
         background: 0,
