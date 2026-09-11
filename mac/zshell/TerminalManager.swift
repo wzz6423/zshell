@@ -91,6 +91,8 @@ final class TerminalManager: nonisolated ObservableObject {
     private var accessibilityDisplayObserver: NSObjectProtocol?
     private var autosaveObservation: AnyCancellable?
     private var terminationObservation: AnyCancellable?
+    private let agentPalette = AgentPaletteController()
+    private var agentPaletteKeyMonitor: Any?
     /// The stable terminal/editor responder displaced by the command palette's
     /// search field. AppKit field editors are deliberately excluded because a
     /// SwiftUI TextField can reuse the same responder for the palette itself.
@@ -346,6 +348,19 @@ final class TerminalManager: nonisolated ObservableObject {
     func attach(to window: NSWindow) {
         self.window = window
         refreshTranslucency()
+        if agentPaletteKeyMonitor == nil {
+            agentPaletteKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) {
+                [weak self, weak window] event in
+                guard let self, let window,
+                      event.window === window,
+                      event.charactersIgnoringModifiers?.lowercased() == "a",
+                      event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+                        == [.command, .option]
+                else { return event }
+                self.toggleAgentPalette()
+                return nil
+            }
+        }
         Self.isOpeningWindow = false
         let directories = Self.takePendingDirectories()
         if !directories.isEmpty, let startupProjectID,
@@ -651,6 +666,12 @@ final class TerminalManager: nonisolated ObservableObject {
         }
     }
 
+    func toggleAgentPalette() {
+        guard let window else { return }
+        if isCommandPaletteVisible { dismissCommandPalette() }
+        agentPalette.present(for: self, in: window)
+    }
+
     /// Cycles blocked agents first, then unseen completions, preserving project,
     /// tab, and split-tree order within each state. Only an explicit focus
     /// action acknowledges `done`; automation reads never call this path.
@@ -935,7 +956,7 @@ final class TerminalManager: nonisolated ObservableObject {
         } else {
             commandPaletteWindow = NSApp.keyWindow
             if let responder = commandPaletteWindow?.firstResponder,
-               isStableWorkspaceResponder(responder) {
+               Self.isStableWorkspaceResponder(responder) {
                 commandPalettePreviousResponder = responder
             } else {
                 commandPalettePreviousResponder = nil
@@ -965,7 +986,7 @@ final class TerminalManager: nonisolated ObservableObject {
             // editor. Never let restoration race that newer focus and win.
             if let current = window.firstResponder,
                current !== responder,
-               self.isStableWorkspaceResponder(current) {
+               Self.isStableWorkspaceResponder(current) {
                 return
             }
             window.makeFirstResponder(responder)
@@ -976,7 +997,7 @@ final class TerminalManager: nonisolated ObservableObject {
     /// makes a private descendant of WKWebView first responder, so walk its
     /// AppKit ancestry before deciding whether palette dismissal can restore
     /// the page's keyboard focus.
-    private func isStableWorkspaceResponder(_ responder: NSResponder) -> Bool {
+    static func isStableWorkspaceResponder(_ responder: NSResponder) -> Bool {
         if responder is any TerminalBackendSurface || responder is FocusReportingTextView {
             return true
         }
@@ -1058,6 +1079,11 @@ final class TerminalManager: nonisolated ObservableObject {
     /// kill its shells.
     func windowClosed() {
         guard !Self.isQuitting else { return }
+        agentPalette.dismiss(restoreFocus: false)
+        if let agentPaletteKeyMonitor {
+            NSEvent.removeMonitor(agentPaletteKeyMonitor)
+            self.agentPaletteKeyMonitor = nil
+        }
         Self.registry.removeAll { $0 === self }
         if Self.registry.isEmpty {
             // These shells are about to be destroyed, so this is their final
