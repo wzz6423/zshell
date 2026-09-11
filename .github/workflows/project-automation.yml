@@ -46,8 +46,7 @@ jobs:
           event="$GITHUB_EVENT_PATH"
 
           content_id="$(jq -r '.issue.node_id // .pull_request.node_id // empty' "$event")"
-          state="$(jq -r '.issue.state // .pull_request.state // empty' "$event")"
-          labels_json="$(jq -c '(.issue.labels // .pull_request.labels // []) | map(.name)' "$event")"
+          desired_status="$(ruby .github/scripts/project-status.rb resolve --event-file "$event")"
 
           if [ -z "$content_id" ]; then
             echo "::error::The event did not contain an Issue or pull request node id."
@@ -58,18 +57,6 @@ jobs:
           project_number="$(jq -r '.project.number' "$config")"
           expected_title="$(jq -r '.project.title' "$config")"
           status_field_name="$(jq -r '.statusField' "$config")"
-          desired_status="$(jq -r \
-            --arg state "$state" \
-            --argjson labels "$labels_json" \
-            'if $state == "closed" then
-               .closedStatus
-             else
-               (first(
-                 .labelStatus[] as $rule
-                 | select(($labels | index($rule.label)) != null)
-                 | $rule.status
-               ) // .defaultStatus)
-             end' "$config")"
 
           # shellcheck disable=SC2016 # The GraphQL variables must stay literal.
           project_query='
