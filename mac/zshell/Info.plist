@@ -32,28 +32,6 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
-
-	<!-- Alternate Dock icons offered in Settings > Appearance > App Icon.
-	     NSApplication.setAlternateIconName swaps these .icns resources inside
-	     the installed bundle; the names must match its arguments. -->
-	<key>CFBundleAlternateIcons</key>
-	<dict>
-		<key>AppIconLight</key>
-		<dict>
-			<key>CFBundleIconFiles</key>
-			<array>
-				<string>AppIconLight</string>
-			</array>
-		</dict>
-		<key>AppIconDark</key>
-		<dict>
-			<key>CFBundleIconFiles</key>
-			<array>
-				<string>AppIconDark</string>
-			</array>
-		</dict>
-	</dict>
-
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 

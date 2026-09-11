@@ -108,15 +108,29 @@ enum ApplicationIcon: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Name passed to `NSApplication.setAlternateIconName`, matching the
-    /// .icns resources declared under `CFBundleAlternateIcons` in Info.plist.
-    /// `nil` restores the icon compiled for this build configuration.
-    var alternateIconName: String? {
+    /// Name of the bundled `.icns` resource for this choice. `nil` restores
+    /// the icon compiled for this build configuration.
+    var resourceName: String? {
         switch self {
         case .defaultIcon: nil
         case .light: "AppIconLight"
         case .dark: "AppIconDark"
         }
+    }
+
+    /// Loads an icon resource whether Xcode copied it at the bundle root or
+    /// preserved the source `Icons` directory in the resource bundle.
+    func bundledImage() -> NSImage? {
+        guard let resourceName else { return nil }
+        let urls = [
+            Bundle.main.url(forResource: resourceName, withExtension: "icns"),
+            Bundle.main.url(
+                forResource: resourceName,
+                withExtension: "icns",
+                subdirectory: "Icons"
+            ),
+        ]
+        return urls.compactMap { $0 }.compactMap(NSImage.init(contentsOf:)).first
     }
 }
 
@@ -518,21 +532,19 @@ final class AppSettings: nonisolated ObservableObject {
         NSApp?.appearance = theme.nsAppearance
     }
 
-    /// Applies only to the running process. Passing nil restores the app icon
-    /// compiled for this build, preserving the separate Debug identity. macOS
-    /// swaps the icon inside the installed bundle, so the system asks for
-    /// confirmation before the Dock icon changes; declining keeps the current
-    /// one and the error is only logged. Skipped when the bundle already
-    /// carries the requested icon, so restoring at launch never re-prompts.
+    /// Applies only to the running process. Assigning nil restores the app
+    /// icon compiled for this build, preserving the separate Debug identity.
     func applyApplicationIcon() {
-        guard NSApp != nil else { return }
-        let name = applicationIcon.alternateIconName
-        guard NSApp?.alternateIconName != name else { return }
-        NSApp?.setAlternateIconName(name) { error in
-            if let error {
-                NSLog("zshell: failed to set alternate icon: \(error)")
-            }
+        guard let application = NSApp else { return }
+        guard let resourceName = applicationIcon.resourceName else {
+            application.applicationIconImage = nil
+            return
         }
+        guard let image = applicationIcon.bundledImage() else {
+            NSLog("zshell: missing application icon resource \(resourceName).icns")
+            return
+        }
+        application.applicationIconImage = image
     }
 
     func resetFont() {

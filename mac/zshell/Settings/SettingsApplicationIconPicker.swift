@@ -50,12 +50,12 @@ private final class ApplicationIconOptionCard: SettingsCardButton {
     init(applicationIcon: ApplicationIcon, action: @escaping () -> Void) {
         self.applicationIcon = applicationIcon
 
-        image = NSImageView(image: Self.preview(for: applicationIcon))
-        image.imageScaling = .scaleProportionallyUpOrDown
-        image.translatesAutoresizingMaskIntoConstraints = false
+        previewImage = NSImageView(image: Self.preview(for: applicationIcon))
+        previewImage.imageScaling = .scaleProportionallyUpOrDown
+        previewImage.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            image.widthAnchor.constraint(equalToConstant: 56),
-            image.heightAnchor.constraint(equalToConstant: 56),
+            previewImage.widthAnchor.constraint(equalToConstant: 56),
+            previewImage.heightAnchor.constraint(equalToConstant: 56),
         ])
 
         label = NSTextField(labelWithString: applicationIcon.title)
@@ -63,7 +63,7 @@ private final class ApplicationIconOptionCard: SettingsCardButton {
         label.textColor = .secondaryLabelColor
         label.maximumNumberOfLines = 1
 
-        let content = NSStackView(views: [image, label])
+        let content = NSStackView(views: [previewImage, label])
         content.orientation = .vertical
         content.alignment = .centerX
         content.spacing = 4
@@ -77,7 +77,7 @@ private final class ApplicationIconOptionCard: SettingsCardButton {
         )
     }
 
-    private let image: NSImageView
+    private let previewImage: NSImageView
 
     /// The card previews the art each choice actually shows. The default is
     /// the icon compiled into this bundle — the Debug build ships its own —
@@ -99,13 +99,24 @@ private final class ApplicationIconOptionCard: SettingsCardButton {
             resource = "AppIconDark"
         }
         guard let resource,
-              let url = Bundle.main.url(forResource: resource, withExtension: "icns"),
-              let image = NSImage(contentsOf: url)
+              let image = Self.bundledImage(named: resource)
         else {
             return NSApplication.shared.applicationIconImage
                 ?? NSImage(systemSymbolName: "questionmark.app", accessibilityDescription: nil)!
         }
         return image
+    }
+
+    private static func bundledImage(named resource: String) -> NSImage? {
+        let urls = [
+            Bundle.main.url(forResource: resource, withExtension: "icns"),
+            Bundle.main.url(
+                forResource: resource,
+                withExtension: "icns",
+                subdirectory: "Icons"
+            ),
+        ]
+        return urls.compactMap { $0 }.compactMap(NSImage.init(contentsOf:)).first
     }
 
     override func didChangeSelection() {
