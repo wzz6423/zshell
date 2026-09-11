@@ -23,9 +23,28 @@ final class GitStatusModel: nonisolated ObservableObject {
         var isConflict = false
         /// Previous path for renames/copies (porcelain "2" entries).
         var origPath: String?
+        /// Content identity for the staged layer (HEAD → index).
+        var stagedReviewFingerprint: String?
+        /// Content identity for the worktree layer (index → worktree).
+        var worktreeReviewFingerprint: String?
         /// Canonical repo that produced this snapshot. Mutations reject stale
         /// rows after the active terminal moves to another repository.
         var repositoryRoot = ""
+
+        func reviewSnapshot(staged: Bool) -> DiffReviewSnapshot? {
+            let fingerprint = staged
+                ? stagedReviewFingerprint
+                : worktreeReviewFingerprint
+            guard let fingerprint else { return nil }
+            return DiffReviewSnapshot(
+                key: DiffReviewKey(
+                    repositoryRoot: repositoryRoot,
+                    path: path,
+                    layer: staged ? .staged : .worktree
+                ),
+                fingerprint: fingerprint
+            )
+        }
 
         var fileName: String { (path as NSString).lastPathComponent }
         var directory: String {
@@ -1091,6 +1110,10 @@ final class GitStatusModel: nonisolated ObservableObject {
         let entries = result.entries.map { entry in
             var entry = entry
             entry.repositoryRoot = result.topLevel
+            if let fingerprints = result.reviewFingerprints[entry.path] {
+                entry.stagedReviewFingerprint = fingerprints.staged
+                entry.worktreeReviewFingerprint = fingerprints.worktree
+            }
             return entry
         }
         // parseStatus already guarantees entries are unique per path, but a
@@ -1108,12 +1131,24 @@ final class GitStatusModel: nonisolated ObservableObject {
         changedEntries = entries.filter {
             !$0.isConflict && $0.unstaged != "."
         }
+        DiffReviewStore.shared.replaceCurrentSnapshots(
+            entries.flatMap { entry in
+                [entry.reviewSnapshot(staged: true), entry.reviewSnapshot(staged: false)]
+                    .compactMap { $0 }
+            },
+            repositoryRoot: result.topLevel
+        )
     }
 
     nonisolated enum StatusLoadResult: Equatable, Sendable {
         case repository(StatusResult)
         case notRepository
         case failed(String)
+    }
+
+    nonisolated struct ReviewFingerprints: Equatable, Sendable {
+        var staged: String?
+        var worktree: String?
     }
 
     nonisolated struct StatusResult: Equatable, Sendable {
@@ -1127,6 +1162,7 @@ final class GitStatusModel: nonisolated ObservableObject {
         var lineDeletions = 0
         var topLevel = ""
         var entries: [Entry] = []
+        var reviewFingerprints: [String: ReviewFingerprints] = [:]
         var ignoredPaths: Set<String> = []
         var branches: [String] = []
         var defaultBranch: String?
@@ -1281,6 +1317,12 @@ final class GitStatusModel: nonisolated ObservableObject {
         }
         var result = parseStatus(status.stdout)
         result.topLevel = resolvedRoot
+        result.reviewFingerprints = reviewFingerprints(
+            for: result.entries,
+            hasHead: result.hasHead,
+            in: resolvedRoot,
+            runGit: statusGit
+        )
 
         let diff = statusGit(
             result.hasHead
@@ -1376,6 +1418,47 @@ final class GitStatusModel: nonisolated ObservableObject {
             result.repositoryOperation = detectRepositoryOperation(gitDirectory: path)
         }
         return .repository(result)
+    }
+
+    /// Hashes each reviewable staged/worktree layer independently. Git's binary
+    /// patch output captures exact content and metadata without loading files here.
+    private nonisolated static func reviewFingerprints(
+        for entries: [Entry],
+        hasHead: Bool,
+        in root: String,
+        runGit: DiffReviewFingerprint.GitRunner
+    ) -> [String: ReviewFingerprints] {
+        var fingerprints: [String: ReviewFingerprints] = [:]
+        let stagedEntries = entries.filter {
+            !$0.isConflict && $0.staged != "." && $0.staged != "?"
+        }
+        let worktreeEntries = entries.filter {
+            !$0.isConflict && $0.unstaged != "."
+        }
+
+        func load(_ entries: [Entry], layer: DiffReviewLayer) {
+            for entry in entries {
+                guard let digest = DiffReviewFingerprint.load(
+                    path: entry.path,
+                    originalPath: entry.origPath,
+                    layer: layer,
+                    hasHead: hasHead,
+                    untracked: entry.isUntracked,
+                    in: root,
+                    runGit: runGit
+                ) else { continue }
+                var value = fingerprints[entry.path] ?? ReviewFingerprints()
+                switch layer {
+                case .staged: value.staged = digest
+                case .worktree: value.worktree = digest
+                }
+                fingerprints[entry.path] = value
+            }
+        }
+
+        load(stagedEntries, layer: .staged)
+        load(worktreeEntries, layer: .worktree)
+        return fingerprints
     }
 
     private nonisolated static func resolveRepositoryRoot(in root: String) -> String? {

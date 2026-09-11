@@ -110,6 +110,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     @Published private(set) var isUnmerged = false
     @Published private(set) var isEditable = false
     @Published private(set) var isDirty = false
+    @Published private(set) var reviewSnapshot: DiffReviewSnapshot?
     @Published var saveError: String?
 
     let web = DiffWebModel()
@@ -188,6 +189,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         let generation = reloadGeneration
         isLoading = true
         error = nil
+        reviewSnapshot = nil
         let root = repoRoot
         let path = path
         let oldPath = origPath ?? path
@@ -233,9 +235,33 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
                 }
                 let editable = commitHash == nil && !staged
                     && Self.isEditableWorktreeFile(root: root, path: path)
+                let reviewKey = DiffReviewKey(
+                    repositoryRoot: root,
+                    path: path,
+                    layer: staged ? .staged : .worktree
+                )
+                let fingerprint: String?
+                if commitHash == nil {
+                    let head = GitStatusModel.runGit(
+                        ["rev-parse", "--verify", "HEAD"], in: root
+                    )
+                    fingerprint = DiffReviewFingerprint.load(
+                        path: path,
+                        originalPath: oldPath,
+                        layer: staged ? .staged : .worktree,
+                        hasHead: head.status == 0,
+                        untracked: untracked,
+                        in: root,
+                        runGit: { GitStatusModel.runGit($0, in: $1) }
+                    )
+                } else {
+                    fingerprint = nil
+                }
                 return (
                     old: old,
                     new: new,
+                    reviewKey: reviewKey,
+                    fingerprint: fingerprint,
                     failure: failureVar,
                     unmerged: unmerged,
                     editable: editable
@@ -253,6 +279,23 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             self.editedNewContent = result.new
             self.isDirty = false
             self.saveError = nil
+            if self.commitHash == nil, result.failure == nil,
+               result.old != result.new, let fingerprint = result.fingerprint {
+                let snapshot = DiffReviewSnapshot(
+                    key: result.reviewKey,
+                    fingerprint: fingerprint
+                )
+                if DiffReviewStore.shared.register(snapshot) {
+                    self.reviewSnapshot = snapshot
+                } else {
+                    self.reviewSnapshot = nil
+                }
+            } else {
+                self.reviewSnapshot = nil
+                if self.commitHash == nil {
+                    DiffReviewStore.shared.invalidate(result.reviewKey)
+                }
+            }
         }
     }
 
@@ -786,6 +829,7 @@ struct DiffViewerView: View {
                 get: { diff.isEditable && preferences.prefersEditing },
                 set: { diff.setEditing($0) }
             ),
+            reviewSnapshot: diff.reviewSnapshot,
             canEdit: diff.isEditable
         )
         .frame(height: DiffViewerLayout.controlsHeight)
@@ -797,7 +841,8 @@ struct DiffViewerView: View {
     private var initialLoadingSkeleton: some View {
         VStack(spacing: 0) {
             DiffControlsSkeletonBar(
-                showsModePlaceholder: diff.commitHash == nil && !diff.staged
+                showsModePlaceholder: diff.commitHash == nil && !diff.staged,
+                showsReviewPlaceholder: diff.commitHash == nil
             )
             .frame(height: DiffViewerLayout.controlsHeight)
             DiffSkeletonView()
@@ -843,6 +888,8 @@ private enum DiffViewerLayout {
 private struct DiffControlsBar: NSViewRepresentable {
     @Binding var diffStyle: DiffStyle
     @Binding var isEditing: Bool
+    @ObservedObject private var reviews = DiffReviewStore.shared
+    let reviewSnapshot: DiffReviewSnapshot?
     let canEdit: Bool
 
     func makeNSView(context: Context) -> DiffControlsNSView {
@@ -850,12 +897,20 @@ private struct DiffControlsBar: NSViewRepresentable {
     }
 
     func updateNSView(_ view: DiffControlsNSView, context: Context) {
+        _ = reviews.revision
+        let reviewed = reviewSnapshot.map(reviews.isReviewed) ?? false
         view.update(
             diffStyle: diffStyle,
             isEditing: isEditing,
             canEdit: canEdit,
+            reviewAvailable: reviewSnapshot != nil,
+            reviewed: reviewed,
             onDiffStyleChange: { diffStyle = $0 },
-            onEditingChange: { isEditing = $0 }
+            onEditingChange: { isEditing = $0 },
+            onReviewChange: { reviewed in
+                guard let reviewSnapshot else { return }
+                reviews.setReviewed(reviewed, for: reviewSnapshot)
+            }
         )
     }
 }
@@ -865,17 +920,22 @@ private struct DiffControlsBar: NSViewRepresentable {
 /// behavior as the toolbar that replaces it.
 private struct DiffControlsSkeletonBar: NSViewRepresentable {
     let showsModePlaceholder: Bool
+    let showsReviewPlaceholder: Bool
 
     func makeNSView(context: Context) -> DiffControlsSkeletonNSView {
         DiffControlsSkeletonNSView()
     }
 
     func updateNSView(_ view: DiffControlsSkeletonNSView, context: Context) {
-        view.update(showsModePlaceholder: showsModePlaceholder)
+        view.update(
+            showsModePlaceholder: showsModePlaceholder,
+            showsReviewPlaceholder: showsReviewPlaceholder
+        )
     }
 }
 
 private final class DiffControlsSkeletonNSView: NSView {
+    private let reviewPlaceholder = NSView()
     private let modePlaceholder = NSView()
     private let layoutPlaceholder = NSView()
     private let divider = NSView()
@@ -885,7 +945,7 @@ private final class DiffControlsSkeletonNSView: NSView {
         wantsLayer = true
         setAccessibilityElement(false)
 
-        for placeholder in [modePlaceholder, layoutPlaceholder] {
+        for placeholder in [reviewPlaceholder, modePlaceholder, layoutPlaceholder] {
             placeholder.wantsLayer = true
             placeholder.layer?.cornerRadius = 5
             placeholder.translatesAutoresizingMaskIntoConstraints = false
@@ -901,6 +961,10 @@ private final class DiffControlsSkeletonNSView: NSView {
             layoutPlaceholder.centerYAnchor.constraint(equalTo: centerYAnchor),
             layoutPlaceholder.widthAnchor.constraint(equalToConstant: 111),
             layoutPlaceholder.heightAnchor.constraint(equalToConstant: 20),
+            reviewPlaceholder.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            reviewPlaceholder.centerYAnchor.constraint(equalTo: centerYAnchor),
+            reviewPlaceholder.widthAnchor.constraint(equalToConstant: 108),
+            reviewPlaceholder.heightAnchor.constraint(equalToConstant: 20),
             modePlaceholder.trailingAnchor.constraint(
                 equalTo: layoutPlaceholder.leadingAnchor, constant: -8
             ),
@@ -919,9 +983,10 @@ private final class DiffControlsSkeletonNSView: NSView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func update(showsModePlaceholder: Bool) {
+    func update(showsModePlaceholder: Bool, showsReviewPlaceholder: Bool) {
         updateAppearanceColors()
         modePlaceholder.isHidden = !showsModePlaceholder
+        reviewPlaceholder.isHidden = !showsReviewPlaceholder
     }
 
     override func viewDidMoveToWindow() {
@@ -939,6 +1004,7 @@ private final class DiffControlsSkeletonNSView: NSView {
             layer?.backgroundColor = Theme.background.cgColor
             divider.layer?.backgroundColor = Theme.divider.cgColor
             let fill = NSColor.labelColor.withAlphaComponent(0.05).cgColor
+            reviewPlaceholder.layer?.backgroundColor = fill
             modePlaceholder.layer?.backgroundColor = fill
             layoutPlaceholder.layer?.backgroundColor = fill
         }
@@ -946,6 +1012,7 @@ private final class DiffControlsSkeletonNSView: NSView {
 }
 
 private final class DiffControlsNSView: NSView {
+    private let reviewButton = DiffReviewButton()
     private let modeControl = NSSegmentedControl(
         labels: [
             String(localized: "Review", comment: "Read-only mode for a diff."),
@@ -967,10 +1034,15 @@ private final class DiffControlsNSView: NSView {
     private let divider = NSView()
     private var onDiffStyleChange: ((DiffStyle) -> Void)?
     private var onEditingChange: ((Bool) -> Void)?
+    private var onReviewChange: ((Bool) -> Void)?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
+
+        reviewButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(reviewButton)
+        reviewButton.onToggle = { [weak self] in self?.onReviewChange?($0) }
 
         for control in [modeControl, layoutControl] {
             control.controlSize = .small
@@ -989,6 +1061,8 @@ private final class DiffControlsNSView: NSView {
         addSubview(divider)
 
         NSLayoutConstraint.activate([
+            reviewButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            reviewButton.centerYAnchor.constraint(equalTo: centerYAnchor),
             layoutControl.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
             layoutControl.centerYAnchor.constraint(equalTo: centerYAnchor),
             modeControl.trailingAnchor.constraint(equalTo: layoutControl.leadingAnchor, constant: -8),
@@ -1009,12 +1083,17 @@ private final class DiffControlsNSView: NSView {
         diffStyle: DiffStyle,
         isEditing: Bool,
         canEdit: Bool,
+        reviewAvailable: Bool,
+        reviewed: Bool,
         onDiffStyleChange: @escaping (DiffStyle) -> Void,
-        onEditingChange: @escaping (Bool) -> Void
+        onEditingChange: @escaping (Bool) -> Void,
+        onReviewChange: @escaping (Bool) -> Void
     ) {
         self.onDiffStyleChange = onDiffStyleChange
         self.onEditingChange = onEditingChange
+        self.onReviewChange = onReviewChange
         updateAppearanceColors()
+        reviewButton.update(reviewed: reviewed, available: reviewAvailable)
 
         layoutControl.selectedSegment = diffStyle == .split ? 1 : 0
         modeControl.isHidden = !canEdit

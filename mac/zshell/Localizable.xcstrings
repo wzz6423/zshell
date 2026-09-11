@@ -708,6 +708,22 @@
     "Agent state unknown": {},
     "Agent working": {},
     "Agents": {},
+    "All %lld changes reviewed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld件の変更をすべてレビュー済み"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全 %lld 项变更已审阅"
+          }
+        }
+      }
+    },
     "Allow": {
       "localizations": {
         "ja": {
@@ -3261,6 +3277,22 @@
         }
       }
     },
+    "File review status": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルのレビュー状態"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件审阅状态"
+          }
+        }
+      }
+    },
     "Files": {
       "comment": "Command palette section title.",
       "localizations": {
@@ -4520,6 +4552,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "标记为已解决（暂存）"
+          }
+        }
+      }
+    },
+    "Mark Reviewed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "レビュー済みにする"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标记为已审阅"
+          }
+        }
+      }
+    },
+    "Mark these exact changes as reviewed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この変更内容をレビュー済みにする"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将这些具体变更标记为已审阅"
+          }
+        }
+      }
+    },
+    "Mark this file as unreviewed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このファイルを未レビューに戻す"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将此文件标记为未审阅"
           }
         }
       }
@@ -7147,6 +7227,54 @@
         }
       }
     },
+    "Review status is unavailable for this diff": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この差分ではレビュー状態を使用できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此差异无法使用审阅状态"
+          }
+        }
+      }
+    },
+    "Reviewed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "レビュー済み"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已审阅"
+          }
+        }
+      }
+    },
+    "Reviewed %lld of %lld changes": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$lld件中%1$lld件の変更をレビュー済み"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已审阅 %1$lld/%2$lld 项变更"
+          }
+        }
+      }
+    },
     "Right": {
       "localizations": {
         "ja": {
@@ -9286,6 +9414,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "未解决的合并冲突"
+          }
+        }
+      }
+    },
+    "Unreviewed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未レビュー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未审阅"
           }
         }
       }

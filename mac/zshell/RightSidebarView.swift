@@ -683,6 +683,7 @@ private extension GitStatusModel.FileDecoration {
 
 private struct GitPanel: View {
     @ObservedObject private var themeChanges = Theme.changes
+    @ObservedObject private var reviews = DiffReviewStore.shared
 
     private enum EntryOperation: Equatable {
         case stage
@@ -763,6 +764,7 @@ private struct GitPanel: View {
                 worktreesSection
                 repositoryOperationBanner
                 commitBox
+                reviewSummary
                 filterBar
                 changeList
             }
@@ -1197,6 +1199,28 @@ private struct GitPanel: View {
 
     // MARK: Commit box
 
+    private var reviewSnapshots: [DiffReviewSnapshot] {
+        model.mergeEntries.compactMap { $0.reviewSnapshot(staged: false) }
+            + model.stagedEntries.compactMap { $0.reviewSnapshot(staged: true) }
+            + model.changedEntries.compactMap { $0.reviewSnapshot(staged: false) }
+    }
+
+    @ViewBuilder
+    private var reviewSummary: some View {
+        let snapshots = reviewSnapshots
+        if !snapshots.isEmpty {
+            let _ = reviews.revision
+            DiffReviewSummaryView(
+                reviewedCount: reviews.reviewedCount(in: snapshots),
+                totalCount: snapshots.count,
+                fontScale: sidebarFontScale
+            )
+            .frame(height: 25)
+            .padding(.horizontal, 10)
+            .padding(.bottom, 4)
+        }
+    }
+
     private var commitBox: some View {
         VStack(spacing: 6) {
             TextField(
@@ -1607,10 +1631,19 @@ private struct GitPanel: View {
         let stageTrigger = OperationTrigger.entry(path: entry.path, operation: .stage)
         let unstageTrigger = OperationTrigger.entry(path: entry.path, operation: .unstage)
         let discardTrigger = OperationTrigger.entry(path: entry.path, operation: .discard)
+        let reviewSnapshot = entry.reviewSnapshot(staged: kind == .staged)
+        let _ = reviews.revision
         return GitEntryRow(
             entry: entry,
             status: status,
             kind: kind,
+            reviewState: reviewSnapshot.map {
+                reviews.isReviewed($0) ? .reviewed : .unreviewed
+            },
+            toggleReview: {
+                guard let reviewSnapshot else { return }
+                reviews.setReviewed(!reviews.isReviewed(reviewSnapshot), for: reviewSnapshot)
+            },
             disabled: model.isBusy,
             isStageLoading: operationIsLoading(stageTrigger),
             isUnstageLoading: operationIsLoading(unstageTrigger),
@@ -2108,6 +2141,8 @@ private struct GitEntryRow: View {
     let entry: GitStatusModel.Entry
     let status: Character
     let kind: Kind
+    let reviewState: DiffReviewState?
+    let toggleReview: () -> Void
     let disabled: Bool
     let isStageLoading: Bool
     let isUnstageLoading: Bool
@@ -2152,6 +2187,13 @@ private struct GitEntryRow: View {
                             .truncationMode(.head)
                     }
                     Spacer(minLength: 0)
+                    if let reviewState {
+                        DiffReviewIndicatorView(
+                            state: reviewState,
+                            onToggle: toggleReview
+                        )
+                        .frame(width: 16, height: 16)
+                    }
                 }
                 .frame(maxWidth: .infinity, minHeight: 16, alignment: .leading)
                 .contentShape(Rectangle())
