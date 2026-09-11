@@ -1,0 +1,118 @@
+//
+//  SettingsApplicationIconPicker.swift
+//  zshell
+//
+
+import AppKit
+
+/// Chooses the icon shown for the running app in the Dock and app switcher.
+final class SettingsApplicationIconPicker: NSView {
+    private var options: [ApplicationIconOptionCard] = []
+
+    init(onChange: @escaping (ApplicationIcon) -> Void) {
+        super.init(frame: .zero)
+
+        options = ApplicationIcon.allCases.map { icon in
+            ApplicationIconOptionCard(applicationIcon: icon) { onChange(icon) }
+        }
+
+        let stack = NSStackView(views: options)
+        stack.orientation = .horizontal
+        stack.alignment = .top
+        stack.spacing = 4
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor),
+            stack.topAnchor.constraint(equalTo: topAnchor),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func select(_ applicationIcon: ApplicationIcon) {
+        for option in options {
+            option.isSelectedCard = option.applicationIcon == applicationIcon
+        }
+    }
+}
+
+private final class ApplicationIconOptionCard: SettingsCardButton {
+    let applicationIcon: ApplicationIcon
+
+    private let label: NSTextField
+
+    init(applicationIcon: ApplicationIcon, action: @escaping () -> Void) {
+        self.applicationIcon = applicationIcon
+
+        image = NSImageView(image: Self.preview(for: applicationIcon))
+        image.imageScaling = .scaleProportionallyUpOrDown
+        image.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            image.widthAnchor.constraint(equalToConstant: 56),
+            image.heightAnchor.constraint(equalToConstant: 56),
+        ])
+
+        label = NSTextField(labelWithString: applicationIcon.title)
+        label.font = .systemFont(ofSize: NSFont.systemFontSize)
+        label.textColor = .secondaryLabelColor
+        label.maximumNumberOfLines = 1
+
+        let content = NSStackView(views: [image, label])
+        content.orientation = .vertical
+        content.alignment = .centerX
+        content.spacing = 4
+
+        super.init(
+            content: content,
+            insets: NSEdgeInsets(top: 5, left: 5, bottom: 5, right: 5),
+            unselectedBorder: nil,
+            accessibilityLabel: applicationIcon.title,
+            action: action
+        )
+    }
+
+    private let image: NSImageView
+
+    /// The card previews the art each choice actually shows. The default is
+    /// the icon compiled into this bundle — the Debug build ships its own —
+    /// and the variants are the alternate .icns resources in that bundle.
+    private static func preview(for applicationIcon: ApplicationIcon) -> NSImage {
+        let resource: String?
+        switch applicationIcon {
+        case .defaultIcon:
+            // Must mirror ASSETCATALOG_COMPILER_APPICON_NAME, which differs
+            // per configuration to keep the Debug identity apart.
+            #if DEBUG
+            resource = "AppIconDebug"
+            #else
+            resource = "AppIcon"
+            #endif
+        case .light:
+            resource = "AppIconLight"
+        case .dark:
+            resource = "AppIconDark"
+        }
+        guard let resource,
+              let url = Bundle.main.url(forResource: resource, withExtension: "icns"),
+              let image = NSImage(contentsOf: url)
+        else {
+            return NSApplication.shared.applicationIconImage
+                ?? NSImage(systemSymbolName: "questionmark.app", accessibilityDescription: nil)!
+        }
+        return image
+    }
+
+    override func didChangeSelection() {
+        label.font = .systemFont(
+            ofSize: NSFont.systemFontSize,
+            weight: isSelectedCard ? .semibold : .regular
+        )
+        label.textColor = isSelectedCard ? .labelColor : .secondaryLabelColor
+    }
+}

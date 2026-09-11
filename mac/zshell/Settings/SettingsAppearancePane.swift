@@ -15,6 +15,10 @@ final class SettingsAppearancePane: SettingsPaneViewController {
 
     private let themePicker = SettingsThemePicker { AppSettings.shared.theme = $0 }
 
+    private let iconPicker = SettingsApplicationIconPicker {
+        AppSettings.shared.applicationIcon = $0
+    }
+
     private let darkThemePopUp = SettingsPopUpButton<String>(
         items: Theme.commonDarkThemes.map { .value($0.name, $0.name) },
         onChange: { AppSettings.shared.themeDark = $0 }
@@ -107,6 +111,9 @@ final class SettingsAppearancePane: SettingsPaneViewController {
             SettingsGroup(rows: [
                 SettingsRow(title: String(localized: "Theme"), control: themePicker),
             ]),
+            SettingsGroup(header: String(localized: "App Icon"), rows: [
+                SettingsRow(title: String(localized: "Dock icon"), control: iconPicker),
+            ]),
             SettingsGroup(header: String(localized: "Colors"), rows: [
                 SettingsRow(title: String(localized: "Dark theme"), control: darkThemePopUp),
                 SettingsRow(title: String(localized: "Light theme"), control: lightThemePopUp),
@@ -154,6 +161,7 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         // The previews paint the resolved palettes, which follow the theme
         // names rather than the light/dark selection.
         themePicker.refreshPreviews()
+        iconPicker.select(settings.applicationIcon)
         darkThemePopUp.select(settings.themeDark)
         lightThemePopUp.select(settings.themeLight)
         terminalThemeOnlySwitch.isOn = settings.terminalThemeOnly
