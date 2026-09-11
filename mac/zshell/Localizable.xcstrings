@@ -4877,6 +4877,22 @@
         }
       }
     },
+    "Plays the alert sound and uses macOS visual alerts when terminal programs ring the bell" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ターミナルプログラムがベルを鳴らしたときに警告音を再生し、macOSの視覚通知を使用します"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "终端程序触发铃声时播放提示音，并使用 macOS 视觉提醒"
+          }
+        }
+      }
+    },
     "Pop stash" : {
       "localizations" : {
         "ja" : {

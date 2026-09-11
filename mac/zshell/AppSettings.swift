@@ -204,6 +204,12 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    /// Whether a terminal bell may make sound or request visual attention.
+    /// Accessibility announcements remain semantic output, not an alert style.
+    @Published var terminalBell: Bool {
+        didSet { save() }
+    }
+
     /// Soft-wrap file editor lines to the viewport width. Off by default so
     /// long lines scroll horizontally.
     @Published var wrapLines: Bool {
@@ -283,6 +289,7 @@ final class AppSettings: nonisolated ObservableObject {
         ) ?? .block
         cursorBlinking = toml["terminal.cursor-blinking"]?.bool ?? true
         macosOptionAsAlt = toml["terminal.macos-option-as-alt"]?.bool ?? false
+        terminalBell = toml["terminal.bell"]?.bool ?? true
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
         restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? false
         let quickTerminalSize = toml["quick-terminal.size"]?.double
@@ -352,6 +359,7 @@ final class AppSettings: nonisolated ObservableObject {
             && cursorShape == .block
             && cursorBlinking
             && !macosOptionAsAlt
+            && terminalBell
             && wrapLines
             && !restoreTerminalHistory
             && quickTerminalSize == Self.defaultQuickTerminalSize
@@ -371,6 +379,7 @@ final class AppSettings: nonisolated ObservableObject {
         cursorShape = .block
         cursorBlinking = true
         macosOptionAsAlt = false
+        terminalBell = true
         wrapLines = true
         restoreTerminalHistory = false
         quickTerminalSize = Self.defaultQuickTerminalSize
@@ -458,6 +467,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if macosOptionAsAlt {
             lines.append("terminal.macos-option-as-alt = true")
+        }
+        if !terminalBell {
+            lines.append("terminal.bell = false")
         }
         if !wrapLines {
             lines.append("editor.wrap-lines = false")

@@ -14,6 +14,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     private let cursorBlinkingView = TerminalCursorBlinkingSettingsView(frame: .zero)
 
     private let optionAsAltSwitch = SettingsSwitch { AppSettings.shared.macosOptionAsAlt = $0 }
+    private let terminalBellSwitch = SettingsSwitch { AppSettings.shared.terminalBell = $0 }
     private let restoreHistorySwitch = SettingsSwitch { AppSettings.shared.restoreTerminalHistory = $0 }
 
     private let shortcutRecorder = QuickTerminalShortcutRecorder(frame: .zero)
@@ -75,6 +76,11 @@ final class SettingsTerminalPane: SettingsPaneViewController {
                 control: optionAsAltSwitch
             ),
             SettingsRow(
+                title: String(localized: "Terminal bell"),
+                description: String(localized: "Plays the alert sound and uses macOS visual alerts when terminal programs ring the bell"),
+                control: terminalBellSwitch
+            ),
+            SettingsRow(
                 title: String(localized: "Restore session history on relaunch"),
                 description: String(localized: "Reopened terminals show their previous scrollback above a fresh shell"),
                 control: restoreHistorySwitch
@@ -95,6 +101,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         cursorShapeView.apply(shape: settings.cursorShape)
         cursorBlinkingView.apply(isBlinking: settings.cursorBlinking)
         optionAsAltSwitch.isOn = settings.macosOptionAsAlt
+        terminalBellSwitch.isOn = settings.terminalBell
         restoreHistorySwitch.isOn = settings.restoreTerminalHistory
         shortcutRecorder.setShortcut(settings.quickTerminalShortcut)
         quickTerminalSizeRow.setValue(settings.quickTerminalSize)

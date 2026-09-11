@@ -656,10 +656,21 @@ extension TerminalSession: TerminalBackendEvents {
     }
 
     func terminalDidRingBell() {
+        let announcement = String(localized: "Terminal bell")
+        NSAccessibility.post(
+            element: NSApp as Any,
+            notification: .announcementRequested,
+            userInfo: [
+                .announcement: announcement,
+                .priority: NSAccessibilityPriorityLevel.low.rawValue,
+            ]
+        )
+
+        guard AppSettings.shared.terminalBell else { return }
         NSSound.beep()
         guard !surface.hasEffectiveTerminalFocus else { return }
         TerminalNotificationService.shared.post(
-            message: String(localized: "Terminal bell"),
+            message: announcement,
             sessionID: id
         )
         if !NSApp.isActive {
