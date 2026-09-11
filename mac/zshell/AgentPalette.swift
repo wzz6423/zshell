@@ -62,7 +62,11 @@ final class AgentPaletteController: NSObject {
         configureViews()
     }
 
-    func present(for manager: TerminalManager, in window: NSWindow) {
+    func present(
+        for manager: TerminalManager,
+        in window: NSWindow,
+        restoring responder: NSResponder? = nil
+    ) {
         if isPresented {
             dismiss(restoreFocus: true)
             return
@@ -71,7 +75,10 @@ final class AgentPaletteController: NSObject {
 
         self.manager = manager
         self.window = window
-        if let responder = window.firstResponder, TerminalManager.isStableWorkspaceResponder(responder) {
+        if let responder {
+            previousResponder = responder
+        } else if let responder = window.firstResponder,
+                  TerminalManager.isStableWorkspaceResponder(responder) {
             previousResponder = responder
         }
 
@@ -298,6 +305,29 @@ final class AgentPaletteController: NSObject {
 extension AgentPaletteController: NSSearchFieldDelegate {
     func controlTextDidChange(_ notification: Notification) {
         refresh()
+    }
+
+    func control(
+        _ control: NSControl,
+        textView: NSTextView,
+        doCommandBy selector: Selector
+    ) -> Bool {
+        switch NSStringFromSelector(selector) {
+        case "moveDown:":
+            moveSelection(1)
+            return true
+        case "moveUp:":
+            moveSelection(-1)
+            return true
+        case "insertNewline:", "insertLineBreak:":
+            revealSelection()
+            return true
+        case "cancelOperation:":
+            handleEscape()
+            return true
+        default:
+            return false
+        }
     }
 }
 

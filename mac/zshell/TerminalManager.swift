@@ -668,7 +668,16 @@ final class TerminalManager: nonisolated ObservableObject {
 
     func toggleAgentPalette() {
         guard let window else { return }
-        if isCommandPaletteVisible { dismissCommandPalette() }
+        if isCommandPaletteVisible {
+            let displacedResponder = commandPalettePreviousResponder
+            dismissCommandPalette()
+            agentPalette.present(
+                for: self,
+                in: window,
+                restoring: displacedResponder
+            )
+            return
+        }
         agentPalette.present(for: self, in: window)
     }
 
@@ -951,6 +960,9 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     func toggleCommandPalette() {
+        if agentPalette.isPresented {
+            agentPalette.dismiss(restoreFocus: false)
+        }
         if isCommandPaletteVisible {
             dismissCommandPalette()
         } else {
@@ -973,6 +985,15 @@ final class TerminalManager: nonisolated ObservableObject {
     /// Called by the palette after SwiftUI has actually removed its focused
     /// search field from the window.
     func restoreFocusAfterCommandPalette() {
+        // The AppKit agent palette may have taken over while SwiftUI was
+        // dismantling this view. Its controller owns the displaced responder
+        // in that handoff, so restoring here would steal focus back from its
+        // search field.
+        guard !agentPalette.isPresented else {
+            commandPaletteWindow = nil
+            commandPalettePreviousResponder = nil
+            return
+        }
         let window = commandPaletteWindow
         let responder = commandPalettePreviousResponder
         commandPaletteWindow = nil
