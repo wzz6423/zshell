@@ -3597,6 +3597,22 @@
         }
       }
     },
+    "Keep the window, sidebars, and editor on Zshell’s default colors" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウ、サイドバー、エディタにはZshellのデフォルトカラーを使用します"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "窗口、侧边栏和编辑器使用 Zshell 的默认配色"
+          }
+        }
+      }
+    },
     "Lets agents delegate work and coordinate across Zshell panes" : {
       "localizations" : {
         "zh-Hans" : {
@@ -7105,6 +7121,22 @@
         }
       }
     },
+    "Terminal theme only" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ターミナルにのみテーマを適用"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主题仅用于终端"
+          }
+        }
+      }
+    },
     "There are no changes to stash" : {
       "localizations" : {
         "ja" : {
@@ -7769,8 +7801,21 @@
         }
       }
     },
-    "Usage:\n  zshell\n  zshell <command> [arguments...]\n  zshell +themes [--dark | --light]\n  zshell +themes --list [--dark | --light]\n  zshell +pane <command> [options]\n  zshell +agent <command> [options]\n  zshell +help\n\nWith no arguments, zshell creates a project with a normal login shell.\nAn argv creates a project whose first terminal runs it directly.\n\n+themes browses Zshell's themes in the terminal. Moving through the list\npreviews the theme across the whole app; Return saves it and Esc\nrestores the previous theme.\n\n+pane provides project-scoped terminal layout, input, viewport reads,\nand output waits. +agent adds recognized-agent start, guarded prompts,\nlifecycle waits, result reads, and an installable, auto-updating\nskill for compatible coding agents. Run either command with --help for\nits complete contract." : {
-
+    "Usage:\n  zshell\n  zshell <command> [arguments...]\n  zshell +themes [--dark | --light]\n  zshell +themes --list [--dark | --light]\n  zshell +pane <command> [options]\n  zshell +agent <command> [options]\n  zshell +help\n\nWith no arguments, zshell creates a project with a normal login shell.\nAn argv creates a project whose first terminal runs it directly.\n\n+themes browses Zshell's themes in the terminal. Moving through the list\npreviews the theme on the terminal — and across the whole app unless\n“Terminal theme only” is on; Return saves it and Esc restores the\nprevious theme.\n\n+pane provides project-scoped terminal layout, input, viewport reads,\nand output waits. +agent adds recognized-agent start, guarded prompts,\nlifecycle waits, result reads, and an installable, auto-updating\nskill for compatible coding agents. Run either command with --help for\nits complete contract." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使い方:\n  zshell\n  zshell <コマンド> [引数...]\n  zshell +themes [--dark | --light]\n  zshell +themes --list [--dark | --light]\n  zshell +pane <コマンド> [オプション...]\n  zshell +agent <コマンド> [オプション...]\n  zshell +help\n\n引数なしの場合、zshellは通常のログインシェルでプロジェクトを作成します。\n引数を指定すると、最初のターミナルでそのコマンドを直接実行するプロジェクトを作成します。\n\n+themesではターミナル内でZshellのテーマを閲覧できます。リストを移動すると\nターミナルでテーマをプレビューし、「ターミナルにのみテーマを適用」がオフの\n場合はアプリ全体にもプレビューします。Returnで保存、Escで以前のテーマに戻します。\n\n+paneはプロジェクト単位のターミナルレイアウト、入力、ビューポートの読み取り、\n出力待ちを提供します。+agentは対応するコーディングエージェント向けに、認識済み\nエージェントの起動、保護されたプロンプト、ライフサイクル待ち、結果の読み取り、\nインストールして自動更新できるスキルを提供します。\nいずれのコマンドも --help を付けて実行すると完全な仕様を確認できます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用法：\n  zshell\n  zshell <命令> [参数...]\n  zshell +themes [--dark | --light]\n  zshell +themes --list [--dark | --light]\n  zshell +pane <命令> [选项...]\n  zshell +agent <命令> [选项...]\n  zshell +help\n\n不带参数时，zshell 会创建一个使用普通登录 Shell 的项目。\n若提供命令参数，则创建项目并在第一个终端中直接运行该命令。\n\n+themes 可在终端中浏览 Zshell 主题。在列表中移动时，会在终端中\n预览主题；若未开启“主题仅用于终端”，也会在整个应用中预览。\n按 Return 保存，按 Esc 恢复之前的主题。\n\n+pane 提供项目级终端布局、输入、视口读取和输出等待。+agent 为\n兼容的编码代理提供可识别代理的启动、受控提示、生命周期等待、\n结果读取，以及可安装、自动更新的技能。运行任一命令并附加\n--help 可查看其完整用法。"
+          }
+        }
+      }
     },
     "Use Automatic Directory" : {
       "localizations" : {

@@ -198,6 +198,11 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     // MARK: - Lifecycle
 
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applyAppearance()
+    }
+
     private func start(launch: TerminalLaunch) {
         supportsInputSelection = launch.usesZsh
         let size = gridSize(for: bounds.size)
@@ -741,7 +746,12 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     private var terminalBackgroundColor: CGColor {
-        Theme.background.withAlphaComponent(backgroundOpacity).cgColor
+        let isDark = effectiveAppearance.bestMatch(
+            from: [.darkAqua, .aqua]
+        ) == .darkAqua
+        return Theme.terminal(dark: isDark).backgroundNSColor
+            .withAlphaComponent(backgroundOpacity)
+            .cgColor
     }
 
     /// Snapshot cells are rebuilt by the bridge for every frame, so adding the

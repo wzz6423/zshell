@@ -142,9 +142,8 @@ final class AppSettings: nonisolated ObservableObject {
         }
     }
 
-    /// Color theme names, one per appearance; the terminal, window chrome,
-    /// and editor all derive from them. `Theme` keeps the resolved
-    /// definitions (zshell built-ins plus the ghostty catalog).
+    /// Color theme names, one per appearance. `Theme` keeps the resolved
+    /// definitions (Zshell built-ins plus the Ghostty catalog).
     @Published var themeDark: String {
         didSet {
             reloadThemeSelection()
@@ -153,6 +152,15 @@ final class AppSettings: nonisolated ObservableObject {
     }
 
     @Published var themeLight: String {
+        didSet {
+            reloadThemeSelection()
+            save()
+        }
+    }
+
+    /// Keep the selected palettes on terminal surfaces while the rest of the
+    /// app uses Zshell's built-in light and dark palettes.
+    @Published var terminalThemeOnly: Bool {
         didSet {
             reloadThemeSelection()
             save()
@@ -264,6 +272,7 @@ final class AppSettings: nonisolated ObservableObject {
             dark: false,
             fallback: Theme.defaultLightThemeName
         )
+        terminalThemeOnly = toml["terminal.theme-only"]?.bool ?? false
         fontFamily = toml["font-family"]?.string ?? ""
         let size = toml["font-size"]?.double ?? Self.defaultFontSize
         fontSize = Self.fontSizeRange.contains(size) ? size : Self.defaultFontSize
@@ -308,7 +317,11 @@ final class AppSettings: nonisolated ObservableObject {
     /// Pushes the current names into `Theme`, which resolves and caches the
     /// definitions. Called from `init` because `didSet` doesn't run there.
     private func reloadThemeSelection() {
-        Theme.reloadSelection(light: themeLight, dark: themeDark)
+        Theme.reloadSelection(
+            light: themeLight,
+            dark: themeDark,
+            terminalOnly: terminalThemeOnly
+        )
     }
 
     /// A saved shared-theme name, or `fallback` when it is absent or no longer
@@ -348,6 +361,7 @@ final class AppSettings: nonisolated ObservableObject {
             && theme == .system
             && themeDark == Theme.defaultDarkThemeName
             && themeLight == Theme.defaultLightThemeName
+            && !terminalThemeOnly
             && toolbarVisibility == Self.defaultToolbarVisibility
             && cursorShape == .block
             && cursorBlinking
@@ -367,6 +381,7 @@ final class AppSettings: nonisolated ObservableObject {
         theme = .system
         themeDark = Theme.defaultDarkThemeName
         themeLight = Theme.defaultLightThemeName
+        terminalThemeOnly = false
         toolbarVisibility = Self.defaultToolbarVisibility
         cursorShape = .block
         cursorBlinking = true
@@ -429,13 +444,14 @@ final class AppSettings: nonisolated ObservableObject {
         if theme != .system {
             lines.append("theme = \(TOML.quote(theme.rawValue))")
         }
-        // Top-level like `theme`: the color theme drives the whole window,
-        // not just the terminal.
         if themeDark != Theme.defaultDarkThemeName {
             lines.append("theme-dark = \(TOML.quote(themeDark))")
         }
         if themeLight != Theme.defaultLightThemeName {
             lines.append("theme-light = \(TOML.quote(themeLight))")
+        }
+        if terminalThemeOnly {
+            lines.append("terminal.theme-only = true")
         }
         if !fontFamily.isEmpty {
             lines.append("font-family = \(TOML.quote(fontFamily))")
