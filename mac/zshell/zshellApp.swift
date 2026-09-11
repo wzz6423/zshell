@@ -237,6 +237,14 @@ private struct ZshellCommands: Commands {
             }
             .keyboardShortcut("i", modifiers: [.command, .shift])
             .disabled(manager?.selectedProject == nil)
+
+            Divider()
+
+            Button("Toggle Markdown Preview") {
+                manager?.toggleMarkdownPreview()
+            }
+            .keyboardShortcut("v", modifiers: [.command, .shift])
+            .disabled(manager?.canToggleMarkdownPreview != true)
         }
 
         CommandMenu("Projects") {
