@@ -35,6 +35,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var promptSelectionMarkerArmed = false
     private var pendingPromptSelectionActivation = false
     private var pointerSelectionDragged = false
+    private var isForwardingRightMouseButton = false
     /// Latest scroll report, so a scrollbar drag can be mapped back onto a row.
     var lastScroll: TerminalScrollPosition?
     /// Ghostty reports the recognized link under the pointer as hover state.
@@ -362,10 +363,17 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     // MARK: - Context menu
 
-    /// Zshell consistently reserves right-click for its terminal/pane menu. This
-    /// matches Zshell's existing UI, including focusing before Paste.
+    /// Mouse-reporting applications own an unmodified right-click. Shift keeps
+    /// Zshell's menu reachable for selection, and Command preserves its link and
+    /// pane actions.
     override func rightMouseDown(with event: NSEvent) {
         focusForInteraction()
+        if shouldForwardRightMouse(event) {
+            isForwardingRightMouseButton = true
+            super.rightMouseDown(with: event)
+            return
+        }
+        isForwardingRightMouseButton = false
         NSMenu.popUpContextMenu(
             contextMenu(linkTarget: linkTarget(for: event)),
             with: event,
@@ -373,11 +381,26 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         )
     }
 
-    override func rightMouseUp(with event: NSEvent) {}
+    override func rightMouseUp(with event: NSEvent) {
+        guard isForwardingRightMouseButton else { return }
+        isForwardingRightMouseButton = false
+        super.rightMouseUp(with: event)
+    }
+
+    override func rightMouseDragged(with event: NSEvent) {
+        guard isForwardingRightMouseButton else { return }
+        super.rightMouseDragged(with: event)
+    }
 
     override func menu(for event: NSEvent) -> NSMenu? {
+        guard !shouldForwardRightMouse(event) else { return nil }
         focusForInteraction()
         return contextMenu(linkTarget: linkTarget(for: event))
+    }
+
+    private func shouldForwardRightMouse(_ event: NSEvent) -> Bool {
+        isMouseCaptured
+            && event.modifierFlags.intersection([.shift, .command]).isEmpty
     }
 
     private func linkTarget(for event: NSEvent) -> TerminalLinkTarget? {
