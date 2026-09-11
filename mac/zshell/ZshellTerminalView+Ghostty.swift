@@ -137,6 +137,7 @@ extension ZshellTerminalView {
                 settings.macosOptionAsAlt ? "true" : "false"
             )
             builder.withCustom("scrollbar", "never")
+            builder.withMinimumContrast(TerminalContrast.minimumRatio)
             builder.withBackgroundOpacity(backgroundOpacity)
             // Terminal-program clipboard access via OSC 52, matching the
             // Ghostty app defaults: reads prompt the user per request

@@ -328,7 +328,8 @@ struct AlacrittyRenderer {
         if cell.flags & UInt16(ZSHELL_CELL_SELECTED) != 0 {
             color = selectionColors().foreground
         }
-        return color
+        let resolvedBackground = Self.background(of: cell, default: background)
+        return contrastedColor(color, against: resolvedBackground)
     }
 
     static func background(of cell: ZshellCell, default background: UInt32) -> UInt32 {
@@ -351,12 +352,36 @@ struct AlacrittyRenderer {
         return (foreground, background)
     }
 
+    private static func contrastedColor(_ foreground: UInt32, against background: UInt32) -> UInt32 {
+        guard contrastRatio(foreground, background) < TerminalContrast.minimumRatio else {
+            return foreground
+        }
+        return contrastingColor(for: background)
+    }
+
+    private static func contrastRatio(_ first: UInt32, _ second: UInt32) -> Double {
+        let firstLuminance = relativeLuminance(first)
+        let secondLuminance = relativeLuminance(second)
+        return (Swift.max(firstLuminance, secondLuminance) + 0.05)
+            / (Swift.min(firstLuminance, secondLuminance) + 0.05)
+    }
+
+    private static func relativeLuminance(_ color: UInt32) -> Double {
+        func linearize(_ channel: UInt32) -> Double {
+            let value = Double(channel) / 255
+            return value <= 0.04045
+                ? value / 12.92
+                : pow((value + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * linearize((color >> 16) & 0xff)
+            + 0.7152 * linearize((color >> 8) & 0xff)
+            + 0.0722 * linearize(color & 0xff)
+    }
+
     private static func contrastingColor(for background: UInt32) -> UInt32 {
-        let red = Double((background >> 16) & 0xff) / 255
-        let green = Double((background >> 8) & 0xff) / 255
-        let blue = Double(background & 0xff) / 255
-        let luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue
-        return luminance > 0.55 ? 0x000000 : 0xffffff
+        contrastRatio(0xffffff, background) > contrastRatio(0x000000, background)
+            ? 0xffffff
+            : 0x000000
     }
 
     private static func packed(hex: String?) -> UInt32? {
