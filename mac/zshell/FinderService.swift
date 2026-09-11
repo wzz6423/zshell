@@ -18,10 +18,12 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.servicesProvider = self
+        WindowScreenConstraint.shared.start()
         GlobalTerminalOverlay.shared.start()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        WindowScreenConstraint.shared.stop()
         GlobalTerminalOverlay.shared.stop()
     }
 
