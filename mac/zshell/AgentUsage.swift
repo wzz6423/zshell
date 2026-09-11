@@ -262,7 +262,7 @@ private nonisolated enum ClaudeUsageStore {
     }
 }
 
-enum AgentUsagePaths {
+nonisolated enum AgentUsagePaths {
     static let applicationSupportDirectory: URL = {
         #if DEBUG
         let directory = "zshell-dev"
