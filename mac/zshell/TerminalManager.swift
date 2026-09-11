@@ -321,6 +321,55 @@ final class TerminalManager: nonisolated ObservableObject {
         return project
     }
 
+    func promptForSSHProject() {
+        SSHProjectController.shared.present(for: self)
+    }
+
+    func newSSHProject(
+        endpoint: SSHEndpoint,
+        remoteDirectory: String?
+    ) {
+        let location = ProjectLocation.ssh(
+            endpoint: endpoint,
+            remoteDirectory: remoteDirectory
+        )
+        let project = makeProject(location: location)
+        project.customName = endpoint.destination
+        insert(project)
+        probeRemoteConnection(project, endpoint: endpoint)
+    }
+
+    /// Verifies key-based connectivity once at creation so the Info panel can
+    /// state the truth instead of assuming. The project's terminal is the
+    /// primary connection path; this only reports its reachability.
+    private func probeRemoteConnection(_ project: Project, endpoint: SSHEndpoint) {
+        Task.detached(priority: .utility) {
+            let transport = OpenSSHTransport(timeout: 8)
+            let state: RemoteConnectionState
+            do {
+                _ = try transport.run(endpoint: endpoint, command: [":"])
+                state = .connected
+            } catch let error as OpenSSHTransport.TransportError {
+                switch error {
+                case .failed(_, let output):
+                    // The remote's own refusal ("Permission denied", DNS
+                    // failures) says more than the generic status message.
+                    let detail = [output.stderr, output.stdout]
+                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        .first { !$0.isEmpty }
+                    state = .failed(detail ?? error.localizedDescription)
+                case .timedOut:
+                    state = .failed(error.localizedDescription)
+                }
+            } catch {
+                state = .failed(error.localizedDescription)
+            }
+            await MainActor.run {
+                project.finishRemoteConnectionProbe(state)
+            }
+        }
+    }
+
     /// Creates a project rooted at `directory`, with its first terminal
     /// launched there. Used by Zshell's Finder service.
     private func newProject(directory: String) {
@@ -483,6 +532,7 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     private func makeProject(
+        location: ProjectLocation = .local,
         isPinned: Bool = false,
         createInitialSession: Bool = true
     ) -> Project {
@@ -490,6 +540,7 @@ final class TerminalManager: nonisolated ObservableObject {
         let project = Project(
             fallbackName: "Project \(projectCounter)",
             manager: self,
+            location: location,
             isPinned: isPinned,
             createInitialSession: createInitialSession
         )
@@ -1296,6 +1347,7 @@ final class TerminalManager: nonisolated ObservableObject {
                     markerColorHex: project.markerColor?.hex,
                     customDirectory: project.customDirectory,
                     launchSettings: project.launchSettings,
+                    location: project.location,
                     tabs: tabs,
                     selectedTabIndex: project.tabs.firstIndex { $0.id == project.selectedTabID }
                 )
@@ -1385,6 +1437,7 @@ final class TerminalManager: nonisolated ObservableObject {
         if let tab = snapshot.rightPanelTab { panelTab = tab }
         for saved in snapshot.projects where !saved.tabs.isEmpty {
             let project = makeProject(
+                location: saved.location ?? .local,
                 isPinned: saved.isPinned,
                 createInitialSession: false
             )

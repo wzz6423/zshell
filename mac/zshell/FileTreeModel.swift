@@ -44,8 +44,93 @@ final class FileTreeModel: nonisolated ObservableObject {
         expanded.contains(item.path)
     }
 
+    // MARK: - Remote projects
+
+    /// When set, listings are read by running `ls` over SSH on the remote
+    /// host instead of the local filesystem, and mutating operations are
+    /// disabled: there is no local file behind any row.
+    private var remoteEndpoint: SSHEndpoint?
+    /// Entries per remote directory, keyed by absolute remote path. Built
+    /// lazily like the local tree expands directories.
+    private var remoteListings: [String: [SSHEndpoint.DirectoryEntry]] = [:]
+    private var remoteInFlight: Set<String> = []
+    /// Invalidates in-flight listings after the endpoint or root changes.
+    private var remoteGeneration = 0
+    @Published private(set) var remoteError: String?
+    @Published private(set) var isRemoteLoading = false
+
+    var isRemote: Bool { remoteEndpoint != nil }
+
+    /// Panel header subtitle. Remote paths carry the endpoint so the header
+    /// states which host the tree shows.
+    var rootSubtitle: String {
+        guard let endpoint = remoteEndpoint else { return rootPath }
+        return endpoint.destination + ":" + rootPath
+    }
+
+    func configureRemote(_ endpoint: SSHEndpoint?) {
+        guard endpoint != remoteEndpoint else { return }
+        remoteEndpoint = endpoint
+        remoteGeneration &+= 1
+        remoteListings = [:]
+        remoteInFlight = []
+        remoteError = nil
+        isRemoteLoading = false
+        expanded = []
+        renamingPath = nil
+        draft = nil
+        items = []
+    }
+
+    /// Retries the root listing after a failure surfaced in the panel.
+    func retryRemoteRoot() {
+        remoteError = nil
+        loadRemoteListing(rootPath)
+    }
+
+    private func loadRemoteListing(_ directory: String) {
+        guard let endpoint = remoteEndpoint,
+              remoteListings[directory] == nil,
+              !remoteInFlight.contains(directory),
+              !directory.isEmpty else { return }
+        remoteInFlight.insert(directory)
+        isRemoteLoading = true
+        let generation = remoteGeneration
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let transport = OpenSSHTransport()
+            let listing = Result {
+                try transport.listDirectory(endpoint: endpoint, directory: directory)
+            }
+            await MainActor.run { [weak self] in
+                self?.finishRemoteListing(directory, listing, generation: generation)
+            }
+        }
+    }
+
+    private func finishRemoteListing(
+        _ directory: String,
+        _ result: Result<[SSHEndpoint.DirectoryEntry], Error>,
+        generation: Int
+    ) {
+        guard generation == remoteGeneration else { return }
+        remoteInFlight.remove(directory)
+        isRemoteLoading = !remoteInFlight.isEmpty
+        switch result {
+        case .success(let entries):
+            remoteError = nil
+            remoteListings[directory] = entries.sorted { a, b in
+                if a.isDirectory != b.isDirectory { return a.isDirectory }
+                return a.name.localizedStandardCompare(b.name) == .orderedAscending
+            }
+        case .failure(let error):
+            remoteError = error.localizedDescription
+        }
+        rebuild()
+    }
+
     /// Points the tree at `root` (collapsing everything if it moved) and
-    /// re-reads visible directories. Cheap when nothing changed.
+    /// re-reads visible directories. Cheap when nothing changed. Remote
+    /// trees fetch their listings over SSH instead.
     func sync(root: String) {
         if root != rootPath {
             rootPath = root
@@ -53,6 +138,23 @@ final class FileTreeModel: nonisolated ObservableObject {
             // Any in-progress inline edit belonged to the old tree.
             renamingPath = nil
             draft = nil
+            if root.isEmpty, !items.isEmpty { items = [] }
+            if remoteEndpoint != nil {
+                remoteGeneration &+= 1
+                remoteListings = [:]
+                remoteInFlight = []
+                remoteError = nil
+                isRemoteLoading = false
+            }
+        }
+        guard remoteEndpoint == nil else {
+            guard !rootPath.isEmpty else {
+                items = []
+                return
+            }
+            rebuild()
+            loadRemoteListing(rootPath)
+            return
         }
         rebuild()
     }
@@ -61,6 +163,9 @@ final class FileTreeModel: nonisolated ObservableObject {
         guard item.isDirectory else { return }
         if !expanded.insert(item.path).inserted {
             expanded.remove(item.path)
+        }
+        if remoteEndpoint != nil {
+            loadRemoteListing(item.path)
         }
         rebuild()
     }
@@ -231,9 +336,33 @@ final class FileTreeModel: nonisolated ObservableObject {
     private func rebuild() {
         guard !rootPath.isEmpty else { return }
         var out: [Item] = []
-        appendChildren(of: rootPath, depth: 0, into: &out)
+        if remoteEndpoint != nil {
+            appendRemoteChildren(of: rootPath, depth: 0, into: &out)
+        } else {
+            appendChildren(of: rootPath, depth: 0, into: &out)
+        }
         if out != items {
             items = out
+        }
+    }
+
+    /// Builds the visible rows from cached remote listings. A directory
+    /// without a listing yet renders as an empty, expandable row; its
+    /// contents arrive when `loadRemoteListing` completes.
+    private func appendRemoteChildren(of dir: String, depth: Int, into out: inout [Item]) {
+        // Guard against runaway recursion through symlink cycles.
+        guard depth < 32 else { return }
+        guard let listing = remoteListings[dir] else { return }
+        for entry in listing {
+            let path = (dir as NSString).appendingPathComponent(entry.name)
+            let item = Item(
+                name: entry.name, path: path,
+                isDirectory: entry.isDirectory, depth: depth
+            )
+            out.append(item)
+            if item.isDirectory, expanded.contains(item.path) {
+                appendRemoteChildren(of: item.path, depth: depth + 1, into: &out)
+            }
         }
     }
 

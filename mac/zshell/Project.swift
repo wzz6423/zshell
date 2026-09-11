@@ -16,6 +16,8 @@ import Foundation
 final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     nonisolated let id = UUID()
 
+    let location: ProjectLocation
+
     /// User-assigned name; when nil the project title follows the
     /// selected session's terminal title.
     @Published var customName: String?
@@ -70,15 +72,43 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     init(
         fallbackName: String,
         manager: TerminalManager,
+        location: ProjectLocation = .local,
         isPinned: Bool = false,
         createInitialSession: Bool = true
     ) {
         self.fallbackName = fallbackName
         self.manager = manager
+        self.location = location
         self.isPinned = isPinned
+        if case .ssh = location {
+            remoteConnectionState = .checking
+        }
         if createInitialSession {
             newSession()
         }
+    }
+
+    var isRemote: Bool { location.isRemote }
+
+    /// The declared endpoint for SSH projects, nil for local projects.
+    var remoteEndpoint: SSHEndpoint? {
+        if case .ssh(let endpoint, _) = location { return endpoint }
+        return nil
+    }
+
+    /// The directory sessions start in on the remote host, nil when unset.
+    var remoteDirectory: String? {
+        if case .ssh(_, let directory) = location { return directory }
+        return nil
+    }
+
+    /// Result of the creation-time connectivity probe. Meaningful only for
+    /// SSH projects; local projects default to `.connected`.
+    @Published private(set) var remoteConnectionState: RemoteConnectionState = .connected
+
+    /// Records the connectivity probe result (see `TerminalManager`).
+    func finishRemoteConnectionProbe(_ state: RemoteConnectionState) {
+        remoteConnectionState = state
     }
 
     var name: String {
@@ -284,12 +314,23 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         environmentPath: String? = nil,
         launchSettings: TerminalLaunchSettings? = nil
     ) -> TerminalSession {
-        let session = TerminalSession(
-            initialDirectory: directory
+        let initialDirectory: String?
+        let launchArguments: [String]?
+        switch location {
+        case .local:
+            initialDirectory = directory
                 ?? customDirectory
-                ?? selectedSession?.currentDirectoryPath,
+                ?? selectedSession?.currentDirectoryPath
+            launchArguments = commandArguments
+        case .ssh(let endpoint, let remoteDirectory):
+            initialDirectory = nil
+            launchArguments = ["/usr/bin/ssh"]
+                + endpoint.terminalArguments(remoteDirectory: remoteDirectory)
+        }
+        let session = TerminalSession(
+            initialDirectory: initialDirectory,
             restoredHistory: restoredHistory,
-            commandArguments: commandArguments,
+            commandArguments: launchArguments,
             environmentPath: environmentPath,
             launchSettings: launchSettings ?? self.launchSettings
         )
