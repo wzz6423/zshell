@@ -22,6 +22,10 @@ enum ZshellAutomationCommandLine {
             runAgentIntegration(Array(arguments.dropFirst()))
             return
         }
+        if namespace == "+agent", arguments.first == "_usage-statusline" {
+            runAgentUsageStatusLine(Array(arguments.dropFirst()))
+            return
+        }
         if namespace == "+agent", arguments.first == "skill" {
             try runAgentSkill(Array(arguments.dropFirst()))
             return
@@ -253,6 +257,37 @@ enum ZshellAutomationCommandLine {
                 "state": .string(phase.rawValue),
                 "reason": .string("Grok lifecycle hook"),
             ],
+            timeout: 1
+        )
+    }
+
+    /// Private Claude Code status-line adapter. It forwards only provider-owned
+    /// percentages and reset epochs; the rest of the session payload is dropped.
+    private static func runAgentUsageStatusLine(_ arguments: [String]) {
+        let payload = FileHandle.standardInput.readDataToEndOfFile()
+        guard arguments.isEmpty, payload.count <= 1_048_576,
+              let input = try? JSONDecoder().decode(ZshellJSONValue.self, from: payload),
+              let rateLimits = input.objectValue?["rate_limits"]?.objectValue
+        else { return }
+
+        var windows: [String: ZshellJSONValue] = [:]
+        for key in ["five_hour", "seven_day", "spend_limit"] {
+            guard let source = rateLimits[key]?.objectValue,
+                  case .number(let percent)? = source["used_percentage"],
+                  percent.isFinite, percent >= 0
+            else { continue }
+            var window: [String: ZshellJSONValue] = [
+                "used_percentage": .number(percent),
+            ]
+            if case .number(let epoch)? = source["resets_at"], epoch.isFinite {
+                window["resets_at"] = .number(epoch)
+            }
+            windows[key] = .object(window)
+        }
+        guard !windows.isEmpty, let connection = try? AppConnection() else { return }
+        _ = try? connection.automationRequest(
+            method: "agent.usage.report",
+            params: ["usage": .object(["windows": .object(windows)])],
             timeout: 1
         )
     }

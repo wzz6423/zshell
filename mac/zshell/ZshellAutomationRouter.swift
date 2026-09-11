@@ -97,6 +97,28 @@ enum ZshellAutomationRouter {
         case "agent.report":
             return reportAgent(request, caller: caller)
 
+        case "agent.usage.report":
+            // Usage reporting is a private hook installed by Zshell, so it must
+            // originate from a real terminal pane the same way `agent.report` does.
+            // A non-pane caller has no business writing the global usage snapshot.
+            guard caller.session != nil else {
+                return failure(
+                    request,
+                    "terminal_required",
+                    "The caller is not a terminal pane."
+                )
+            }
+            guard let usage = request.params["usage"],
+                  AgentUsageModel.shared.acceptClaudeStatusLine(usage)
+            else {
+                return failure(
+                    request,
+                    "invalid_usage",
+                    "usage must contain at least one current Claude Code rate-limit window."
+                )
+            }
+            return success(request, .object(["accepted": .bool(true)]))
+
         default:
             return failure(
                 request, "method_not_found",
