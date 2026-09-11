@@ -62,7 +62,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         initialDirectory: String? = nil,
         restoredHistory: String? = nil,
         commandArguments: [String]? = nil,
-        environmentPath: String? = nil
+        environmentPath: String? = nil,
+        launchSettings: TerminalLaunchSettings = .init()
     ) {
         let sessionID = UUID()
         let directCommand = commandArguments.flatMap { $0.isEmpty ? nil : $0 }
@@ -79,6 +80,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             backend: backend,
             shellPath: shellPath,
             commandArguments: directCommand,
+            initializationCommand: directCommand == nil
+                ? launchSettings.initializationCommand : nil,
             pidFileURL: artifacts.pidFileURL,
             replayFileURL: artifacts.replayFileURL,
             shellIntegrationDirectoryURL: artifacts.shellIntegrationDirectoryURL
@@ -91,6 +94,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             workingDirectory: directory,
             environment: Self.surfaceEnvironment(
                 pathOverride: environmentPath,
+                configuredEnvironment: launchSettings.environment,
                 sessionID: sessionID
             )
         )
@@ -328,6 +332,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
 
     private static func surfaceEnvironment(
         pathOverride: String?,
+        configuredEnvironment: [String: String],
         sessionID: UUID
     ) -> [String: String] {
         var environment = [
@@ -337,6 +342,12 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         environment.merge(
             ZshellCLIService.shared.terminalEnvironment(for: sessionID),
             uniquingKeysWith: { _, cliValue in cliValue }
+        )
+        environment.merge(
+            configuredEnvironment.filter {
+                !TerminalLaunchSettings.isProtectedEnvironmentVariable($0.key)
+            },
+            uniquingKeysWith: { _, configuredValue in configuredValue }
         )
         if let pathOverride, !pathOverride.isEmpty {
             environment["PATH"] = pathOverride
@@ -411,6 +422,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         backend: TerminalBackend,
         shellPath: String,
         commandArguments: [String]?,
+        initializationCommand: String?,
         pidFileURL: URL?,
         replayFileURL: URL?,
         shellIntegrationDirectoryURL: URL?
@@ -450,13 +462,23 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             // expanded by the launch shim.
             commands.append("exec /usr/bin/env -- \(argv)")
         } else {
+            let initialization = initializationCommand?.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            let command = initialization.flatMap { $0.isEmpty ? nil : $0 }
             if let shellIntegrationDirectoryURL {
                 let path = shellQuote(shellIntegrationDirectoryURL.path)
                 commands.append(
                     "ZSHELL_ORIGINAL_ZDOTDIR=\"${ZDOTDIR:-$HOME}\"; "
                         + "export ZSHELL_ORIGINAL_ZDOTDIR; "
                         + "export ZDOTDIR=\(path); "
+                        + "export ZSHELL_INIT_COMMAND=\(shellQuote(command ?? "")); "
                         + "exec \(shellQuote(shellPath)) -l"
+                )
+            } else if let command {
+                commands.append(
+                    "exec \(shellQuote(shellPath)) -l -c "
+                        + shellQuote(initializationScript(command: command, shellPath: shellPath))
                 )
             } else {
                 commands.append("exec \(shellQuote(shellPath)) -l")
@@ -614,6 +636,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             """,
             ".zlogin": """
             [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zlogin\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zlogin\"
+            if [[ -n \"$ZSHELL_INIT_COMMAND\" ]]; then
+              eval -- \"$ZSHELL_INIT_COMMAND\" || builtin print -u2 -- \"zshell: initialization command failed ($?)\"
+              unset ZSHELL_INIT_COMMAND
+            fi
             """,
         ]
         for (name, contents) in files {
@@ -624,6 +650,12 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             )
         }
         return integrationDirectory
+    }
+
+    private static func initializationScript(command: String, shellPath: String) -> String {
+        let quotedShell = shellQuote(shellPath)
+        return "\(command) || printf 'zshell: initialization command failed (%s)\\n' \"$?\" >&2; "
+            + "exec \(quotedShell) -l"
     }
 
     private static func shellQuote(_ value: String) -> String {
