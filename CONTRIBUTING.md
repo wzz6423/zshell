@@ -98,6 +98,34 @@ installed Zshell without clobbering it: settings go to
 `~/.config/zshell-dev/config.toml`, and the session snapshot, sidebar widths, and
 Sparkle preferences live under the separate bundle id.
 
+### Memory soak checks
+
+Use the PID-scoped sampler for long-running lifecycle or terminal memory checks:
+
+```bash
+python3 mac/scripts/memory-soak.py --pid <zshell-pid> --output /tmp/zshell-soak \
+  --warmup 60 --duration 1800 --interval 5 --label alacritty-lifecycle \
+  --heap --leaks
+```
+
+The sampler only observes the supplied process; it never launches or stops Zshell.
+It writes the raw `footprint` JSON, sample CSV, summary JSON, and requested
+`heap`/`leaks` snapshots into a new or empty output directory. A `leaks` result
+of `findings` is preserved in the summary and output rather than treated as a
+sampler failure. Keep the workload and window geometry fixed, allow the warmup
+to finish, then repeat a realistic operation throughout sampling—for example,
+create a terminal, generate bounded output, split it, close both panes, and pause
+briefly. Run the same sequence for both terminal backends; changing the backend
+only affects terminals created after the setting changes.
+
+Compare `net_growth_mib` and `linear_slope_mib_per_hour` across repeated runs, not
+just `peak_footprint_mib`: Metal drawable pools and caches may grow and later be
+reclaimed. A positive slope is a signal to investigate, not proof of a leak. Use
+Instruments **Allocations** with **Record reference counts** for still-reachable
+objects, and **Leaks** for unreachable allocations; archive the trace alongside
+the JSON results. `--max-growth-mib` is available for a scenario-specific failure
+threshold once a stable baseline has been measured—it intentionally has no default.
+
 Repository skills live in [`skills/`](skills/). Use
 [app development](skills/zshell-app-development/SKILL.md) for implementation and validation,
 and [release](skills/zshell-release/SKILL.md) for release preparation or publishing.
