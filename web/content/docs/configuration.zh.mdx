@@ -88,6 +88,18 @@ Powerline 分隔符和图标字形也能正常显示。
 
 ## 终端
 
+### `terminal.startup-program` / `terminal.startup-arguments`
+
+字符串——默认未设置
+
+选择之后新建终端使用的可执行程序与参数向量。未设置 `terminal.startup-program` 时，Zshell
+继续以 `-l` 启动账户登录 Shell。程序必须是可执行文件的绝对路径；路径不存在或不可执行时会
+回退到登录 Shell，而不是打开一个立即关闭的空窗格。
+
+`terminal.startup-arguments` 不经 Shell 直接拆分为参数。引号和反斜杠用于保留参数边界，
+包括含空格和空字符串的参数，但不会展开变量、通配符或命令替换。引号不完整时也会回退到
+登录 Shell。Zshell CLI 为单个终端显式传入的 argv 仍然优先。
+
 ### `terminal.backend`
 
 `"libghostty"` · `"alacritty"`——默认 `"libghostty"`
@@ -139,6 +151,8 @@ toolbar.visibility = "auto"
 terminal.font-thicken = true
 terminal.macos-option-as-alt = false
 terminal.bell = false
+terminal.startup-program = "/opt/homebrew/bin/fish"
+terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true

@@ -8,6 +8,10 @@ import AppKit
 /// Everything that shapes a terminal pane: which emulator draws it, how the
 /// cursor looks, how keys and history behave, and the global quick terminal.
 final class SettingsTerminalPane: SettingsPaneViewController {
+    private let startupView = TerminalStartupSettingsView { program, arguments in
+        AppSettings.shared.terminalStartupProgram = program
+        AppSettings.shared.terminalStartupArguments = arguments
+    }
     private let backendPicker = SettingsBackendPicker { AppSettings.shared.terminalBackend = $0 }
 
     private let cursorShapeView = TerminalCursorShapeSettingsView(frame: .zero)
@@ -50,7 +54,15 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     }
 
     override func makeGroups() -> [NSView] {
-        var groups: [NSView] = []
+        var groups: [NSView] = [
+            SettingsGroup(rows: [
+                SettingsRow(
+                    title: String(localized: "Startup"),
+                    description: String(localized: "Changes apply only to new terminals. Open terminals keep their current process."),
+                    control: startupView
+                ),
+            ]),
+        ]
 
         // Only offer this once there is a real choice. `selectable` omits
         // backends this build cannot create, so every card here takes effect
@@ -103,6 +115,10 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     }
 
     override func syncFromSettings() {
+        startupView.apply(
+            program: settings.terminalStartupProgram,
+            arguments: settings.terminalStartupArguments
+        )
         backendPicker.select(settings.terminalBackend)
         cursorShapeView.apply(shape: settings.cursorShape)
         cursorBlinkingView.apply(isBlinking: settings.cursorBlinking)

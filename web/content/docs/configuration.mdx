@@ -112,6 +112,22 @@ terminal or diff.
 
 ## Terminal
 
+### `terminal.startup-program` / `terminal.startup-arguments`
+
+strings — default unset
+
+Choose the executable and argument vector used by terminals created from then
+on. When `terminal.startup-program` is absent, Zshell keeps using the account
+login shell with `-l`. The program must be an executable absolute path; a
+missing or non-executable path falls back to the login shell instead of opening
+a dead pane.
+
+`terminal.startup-arguments` is split into arguments without invoking a shell.
+Quotes and backslashes preserve boundaries, including spaces and empty
+arguments, but variables, globs, and command substitutions are not expanded.
+Invalid quoting also falls back to the login shell. An explicit argv supplied by
+the Zshell CLI still takes precedence for that terminal.
+
 ### `terminal.backend`
 
 `"libghostty"` · `"alacritty"` — default `"libghostty"`
@@ -182,6 +198,8 @@ toolbar.visibility = "auto"
 terminal.font-thicken = true
 terminal.macos-option-as-alt = false
 terminal.bell = false
+terminal.startup-program = "/opt/homebrew/bin/fish"
+terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
