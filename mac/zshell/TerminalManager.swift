@@ -861,6 +861,21 @@ final class TerminalManager: nonisolated ObservableObject {
         return false
     }
 
+    /// Toggles the focused session's prompt queue bar. Terminal-scoped like
+    /// clearActiveTerminal, so ⌘⇧M never opens a bar over a file, browser, or
+    /// diff pane.
+    func togglePromptQueue() {
+        if case .session(let session)? = selectedProject?.focusedContent {
+            session.promptQueue.togglePresentation()
+        }
+    }
+
+    /// Whether ⌘⇧M has a terminal pane to act on right now.
+    var canTogglePromptQueue: Bool {
+        if case .session? = selectedProject?.focusedContent { return true }
+        return false
+    }
+
     /// Routes a Find menu command to the focused pane. Driven off the focused
     /// pane rather than the first responder, so ⌘F and ⌘G keep working while
     /// the find bar's own field holds keyboard focus.

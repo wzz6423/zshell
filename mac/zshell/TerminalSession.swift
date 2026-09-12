@@ -57,6 +57,15 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// from text the user has scrolled back to inspect.
     var terminalIsAtLiveBottom = true
     let agentObservation = ZshellAgentObservationState()
+    /// Typed-ahead prompts for this session (the ⌘⇧M pane-bottom bar).
+    /// In-memory by design — see ``TerminalPromptQueue``.
+    let promptQueue = TerminalPromptQueue()
+    /// The queue's bar, session-owned like `overlayScrollbar` so its open
+    /// state and contents survive a pane being parked and remounted.
+    let promptQueueBar = PromptQueueBarView()
+    /// Scheduled auto-dispatch for `promptQueue`. Scheduling and the
+    /// readiness gate live in TerminalPromptQueue.swift.
+    var promptQueueDispatchTask: Task<Void, Never>?
 
     init(
         initialDirectory: String? = nil,
@@ -116,6 +125,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
 
         surface.events = self
         installOverlayScrollbar()
+        promptQueueBar.attach(queue: promptQueue, session: self)
         applyTheme()
         AgentAutomationMonitor.shared.register(self)
     }
@@ -834,6 +844,8 @@ extension TerminalSession: TerminalBackendEvents {
         switch event {
         case .promptStart:
             lifecycle.phase = .prompt
+            // The Alacritty path: the zsh shim marks every redrawn prompt.
+            promptQueueDidObservePromptReturn()
         case .commandStart:
             lifecycle.phase = .input
         case .commandExecuting:
@@ -849,6 +861,9 @@ extension TerminalSession: TerminalBackendEvents {
             lifecycle.lastDurationNanos = reportedDuration ?? measuredDuration
             lifecycle.completionSequence &+= 1
             commandExecutionStartedAtNanos = nil
+            // The libghostty path: the shell integration's completed-command
+            // report is the one "back at the prompt" event it exposes.
+            promptQueueDidObservePromptReturn()
         }
         commandLifecycle = lifecycle
     }

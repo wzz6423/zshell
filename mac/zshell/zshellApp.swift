@@ -128,6 +128,12 @@ private struct ZshellCommands: Commands {
             .keyboardShortcut("t", modifiers: [.command, .shift])
             .disabled(manager?.canReopenClosedSession != true)
 
+            Button("Toggle Prompt Queue") {
+                manager?.togglePromptQueue()
+            }
+            .keyboardShortcut("m", modifiers: [.command, .shift])
+            .disabled(manager?.canTogglePromptQueue != true)
+
             Button("New Browser Tab") {
                 manager?.newBrowserTab()
             }
