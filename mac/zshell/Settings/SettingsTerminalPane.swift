@@ -15,6 +15,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
 
     private let optionAsAltSwitch = SettingsSwitch { AppSettings.shared.macosOptionAsAlt = $0 }
     private let terminalBellSwitch = SettingsSwitch { AppSettings.shared.terminalBell = $0 }
+    private let shiftEnterNewlineSwitch = SettingsSwitch { AppSettings.shared.shiftEnterNewline = $0 }
     private let restoreHistorySwitch = SettingsSwitch { AppSettings.shared.restoreTerminalHistory = $0 }
 
     private let shortcutRecorder = QuickTerminalShortcutRecorder(frame: .zero)
@@ -81,6 +82,11 @@ final class SettingsTerminalPane: SettingsPaneViewController {
                 control: terminalBellSwitch
             ),
             SettingsRow(
+                title: String(localized: "Shift+Enter inserts a newline"),
+                description: String(localized: "Lets coding agents insert a new line with Shift+Enter while Enter still submits the prompt"),
+                control: shiftEnterNewlineSwitch
+            ),
+            SettingsRow(
                 title: String(localized: "Restore session history on relaunch"),
                 description: String(localized: "Reopened terminals show their previous scrollback above a fresh shell"),
                 control: restoreHistorySwitch
@@ -102,6 +108,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         cursorBlinkingView.apply(isBlinking: settings.cursorBlinking)
         optionAsAltSwitch.isOn = settings.macosOptionAsAlt
         terminalBellSwitch.isOn = settings.terminalBell
+        shiftEnterNewlineSwitch.isOn = settings.shiftEnterNewline
         restoreHistorySwitch.isOn = settings.restoreTerminalHistory
         shortcutRecorder.setShortcut(settings.quickTerminalShortcut)
         quickTerminalSizeRow.setValue(settings.quickTerminalSize)

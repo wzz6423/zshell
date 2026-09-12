@@ -156,7 +156,10 @@ final class TerminalManager: nonisolated ObservableObject {
                 AppSettings.shared.$themeDark.removeDuplicates(),
                 AppSettings.shared.$themeLight.removeDuplicates()
             ),
-            AppSettings.shared.$macosOptionAsAlt.removeDuplicates(),
+            Publishers.CombineLatest(
+                AppSettings.shared.$macosOptionAsAlt.removeDuplicates(),
+                AppSettings.shared.$shiftEnterNewline.removeDuplicates()
+            ),
             Publishers.CombineLatest(
                 AppSettings.shared.$cursorShape.removeDuplicates(),
                 AppSettings.shared.$cursorBlinking.removeDuplicates()

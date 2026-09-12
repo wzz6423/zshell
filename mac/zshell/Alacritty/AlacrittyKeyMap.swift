@@ -36,7 +36,8 @@ enum AlacrittyKeyMap {
     static func bytes(
         for event: NSEvent,
         mode: AlacrittyTerminalMode,
-        optionAsAlt: Bool
+        optionAsAlt: Bool,
+        shiftEnterNewline: Bool
     ) -> [UInt8]? {
         let flags = event.modifierFlags
         if flags.contains(.command) {
@@ -63,7 +64,8 @@ enum AlacrittyKeyMap {
             shift: shift,
             control: control,
             alt: alt,
-            option: option
+            option: option,
+            shiftEnterNewline: shiftEnterNewline
         ) {
             return special
         }
@@ -132,7 +134,8 @@ enum AlacrittyKeyMap {
         shift: Bool,
         control: Bool,
         alt: Bool,
-        option: Bool
+        option: Bool,
+        shiftEnterNewline: Bool
     ) -> [UInt8]? {
         // The CSI parameter xterm uses to carry modifiers: 1 + a bitmask of
         // shift/alt/control. Only emitted when something is actually held.
@@ -169,6 +172,13 @@ enum AlacrittyKeyMap {
             Array("\u{1b}[27;\(modifier);\(codepoint)~".utf8)
         }
 
+        // Application-keypad mode normally handles keypad Enter first. Keep the
+        // configurable Shift-Enter LF mapping identical for both Enter keys.
+        if shiftEnterNewline, shift, !control, !option,
+           [36, 76].contains(Int(event.keyCode)) {
+            return [0x0a]
+        }
+
         if mode.contains(.applicationKeypad),
            let suffix = applicationKeypadSuffix(keyCode: Int(event.keyCode)) {
             return modified
@@ -178,9 +188,6 @@ enum AlacrittyKeyMap {
 
         switch Int(event.keyCode) {
         case 36, 76: // Return, keypad Enter
-            // Ghostty distinguishes modified Return with xterm's
-            // modifyOtherKeys encoding. TUIs such as Claude use this to make
-            // Shift-Return insert a newline without changing plain Return.
             return modified ? modifyOtherKeys(13) : [0x0d]
         case 48: // Tab
             if shift, !control, !alt { return Array("\u{1b}[Z".utf8) }
