@@ -5599,6 +5599,22 @@
         }
       }
     },
+    "Reopen Closed Session" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じたセッションを再び開く"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新打开已关闭的会话"
+          }
+        }
+      }
+    },
     "Reopened terminals show their previous scrollback above a fresh shell" : {
       "localizations" : {
         "ja" : {

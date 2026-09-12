@@ -51,6 +51,14 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// working directory.
     private var browserObservations: [UUID: AnyCancellable] = [:]
 
+    /// Set by the owning `TerminalManager`. Invoked when a user action closes
+    /// a terminal session — ⌘W, a tab close, Close Others / to the Right /
+    /// All — so the manager can offer "Reopen Closed Session". Paths that
+    /// tear down a whole project or the app (`TerminalManager.close(_:)`,
+    /// window close, quit) terminate sessions without this: there is no
+    /// single closed session there for the command to undo.
+    var onSessionClosed: ((ClosedSessionRecord) -> Void)?
+
     /// Pass `createInitialSession: false` when restoring a saved project;
     /// the caller then rebuilds the tabs itself.
     init(fallbackName: String, createInitialSession: Bool = true) {
@@ -235,7 +243,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     func newSession(
         directory: String? = nil,
         commandArguments: [String]? = nil,
-        environmentPath: String? = nil
+        environmentPath: String? = nil,
+        tabTitle: String? = nil
     ) -> TerminalSession {
         let session = makeSession(
             directory: directory,
@@ -243,6 +252,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             environmentPath: environmentPath
         )
         let tab = makeTab(content: .session(session))
+        // Only a reopened session carries a title — the user-assigned name
+        // of the tab it was closed in; a plain new session has none.
+        tab.customName = Project.normalizedCustomName(tabTitle)
         insertNextToSelected(tab)
         selectedTabID = tab.id
         return session
@@ -561,7 +573,14 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     func closeContent(_ content: PaneContent, terminate: Bool = true) {
         switch content {
         case .session(let session):
-            if terminate { session.terminate() }
+            if terminate {
+                // Capture while the shell is still alive. Only closes the
+                // user initiated reach the reopen stack; a shell that exits
+                // on its own (`terminate: false`) is not an action the
+                // command is meant to undo.
+                onSessionClosed?(closedSessionRecord(for: session))
+                session.terminate()
+            }
             removePaneWithContent(content.id)
         case .file(let file):
             guard file.isDirty else {
@@ -623,9 +642,25 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         closeBatch(tabs.flatMap(\.allContents).filter { $0.isDiff })
     }
 
-    /// Closes every tab, leaving the project open but empty.
+    /// Closes every tab, leaving the project open but empty. Close All still
+    /// records every closed session for reopen — to the user it is a close
+    /// like any other — but the reopen stack's cap means a large project is
+    /// not guaranteed to come back in full; partial recovery beats none, and
+    /// recording is nearly free.
     func closeAll() {
         closeBatch(tabs.flatMap(\.allContents))
+    }
+
+    /// The reopen snapshot for one user-closed session, taken while the
+    /// shell is still alive. Batch closes record every session they tear
+    /// down, so the stack holds individual panes rather than whole tabs.
+    private func closedSessionRecord(for session: TerminalSession) -> ClosedSessionRecord {
+        ClosedSessionRecord(
+            projectID: id,
+            customTitle: tabs.first { $0.paneID(forContent: session.id) != nil }?.customName,
+            workingDirectory: session.currentDirectoryPath,
+            closedAt: Date()
+        )
     }
 
     /// Asks whether to save before discarding an edited file, matching the

@@ -116,6 +116,14 @@ private struct ZshellCommands: Commands {
             .keyboardShortcut("t", modifiers: .command)
             .disabled(manager == nil)
 
+            // The browser "reopen closed tab" convention. History is scoped
+            // to the window: ⇧⌘T walks back through what this window closed.
+            Button("Reopen Closed Session") {
+                manager?.reopenClosedSession()
+            }
+            .keyboardShortcut("t", modifiers: [.command, .shift])
+            .disabled(manager?.canReopenClosedSession != true)
+
             Button("New Browser Tab") {
                 manager?.newBrowserTab()
             }
