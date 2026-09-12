@@ -54,10 +54,10 @@ struct WindowChromeAccessor: NSViewRepresentable {
             guard self.window !== window else { return }
             self.window = window
             onAttach(window)
-            // Interactive controls occupy the title-bar region. Disable the
-            // server-side title-bar drag entirely; WindowDragArea is the only
-            // surface that opts into moving the window.
-            window.isMovable = false
+            // WindowDragArea still limits pointer-driven moves to empty header
+            // surfaces; AppKit needs the window itself movable to offer system
+            // display destinations such as Sidecar.
+            window.isMovable = true
             reposition()
             // The initial system layout can land after us; catch up.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.reposition() }
@@ -85,7 +85,7 @@ struct WindowChromeAccessor: NSViewRepresentable {
 
         private func reposition() {
             guard let window else { return }
-            window.isMovable = false
+            window.isMovable = true
             guard !window.styleMask.contains(.fullScreen) else { return }
             let types: [NSWindow.ButtonType] = [.closeButton, .miniaturizeButton, .zoomButton]
             for (index, type) in types.enumerated() {
