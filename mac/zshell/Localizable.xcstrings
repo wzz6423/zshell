@@ -386,6 +386,22 @@
         }
       }
     },
+    "%llds": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld秒"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 秒"
+          }
+        }
+      }
+    },
     "(all themes)": {
       "localizations": {
         "ja": {
@@ -1623,6 +1639,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "命令"
+          }
+        }
+      }
+    },
+    "Command Notifications": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コマンド通知"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "命令通知"
           }
         }
       }
@@ -2924,6 +2956,22 @@
         }
       }
     },
+    "Failed commands": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "失敗したコマンド"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "失败的命令"
+          }
+        }
+      }
+    },
     "Family": {
       "localizations": {
         "ja": {
@@ -4155,6 +4203,22 @@
         }
       }
     },
+    "Long-running commands": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "長時間実行のコマンド"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "长时间运行的命令"
+          }
+        }
+      }
+    },
     "Lower memory footprint": {
       "localizations": {
         "ja": {
@@ -5023,6 +5087,38 @@
         }
       }
     },
+    "Notify when a command exits with a failure, no matter how briefly it ran. Changes apply to zsh terminals opened afterwards.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行時間に関係なく、コマンドが失敗して終了したときに通知します。変更は後で開くzshターミナルにのみ適用されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "命令以失败状态退出时发送通知，无论运行时间长短。更改仅对之后打开的 zsh 终端生效。"
+          }
+        }
+      }
+    },
+    "Notify when a command runs at least this long and then finishes. Changes apply to zsh terminals opened afterwards.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コマンドがこの時間以上実行されて終了したときに通知します。変更は後で開くzshターミナルにのみ適用されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "命令运行至少这么长时间后完成时发送通知。更改仅对之后打开的 zsh 终端生效。"
+          }
+        }
+      }
+    },
     "OK": {
       "localizations": {
         "ja": {
@@ -5035,6 +5131,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "好"
+          }
+        }
+      }
+    },
+    "Off": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭"
           }
         }
       }
