@@ -668,12 +668,16 @@ extension TerminalSession: TerminalBackendEvents {
 
         guard AppSettings.shared.terminalBell else { return }
         NSSound.beep()
-        guard !surface.hasEffectiveTerminalFocus else { return }
+        // A miniaturized key window keeps its first responder, so the focus
+        // check alone still reads "focused" while the user cannot see the
+        // surface at all — minimized terminals need the notification too.
+        let windowMiniaturized = surface.window?.isMiniaturized == true
+        guard !surface.hasEffectiveTerminalFocus || windowMiniaturized else { return }
         TerminalNotificationService.shared.post(
             message: announcement,
             sessionID: id
         )
-        if !NSApp.isActive {
+        if !NSApp.isActive || windowMiniaturized {
             NSApp.requestUserAttention(.informationalRequest)
         }
     }
