@@ -132,6 +132,16 @@ When true, Option-key combinations are sent to terminal programs as Alt/Meta
 shortcuts. The default leaves Option with the active macOS input source so
 layouts such as Polish Pro can type their composed characters.
 
+### `terminal.bell`
+
+boolean — default `true`
+
+Controls the alert sound and macOS visual attention when a terminal program
+rings the bell. When false, Zshell does not play the sound, post a terminal bell
+notification, or request attention in the Dock. Accessibility technologies
+still receive the bell as a semantic announcement. Both terminal backends honor
+this setting.
+
 ### `terminal.restore-history`
 
 boolean — default `false`
@@ -171,6 +181,7 @@ sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-thicken = true
 terminal.macos-option-as-alt = false
+terminal.bell = false
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true

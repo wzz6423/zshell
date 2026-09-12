@@ -102,6 +102,12 @@ Powerline 分隔符和图标字形也能正常显示。
 
 打开后，Option 组合键会作为 Alt/Meta 快捷键发送给终端程序。默认关闭，让 Option 继续交给当前 macOS 输入源，因此 Polish Pro 之类的键盘布局仍能输入组合字符。
 
+### `terminal.bell`
+
+布尔值——默认 `true`
+
+控制终端程序触发铃声时的提示音和 macOS 视觉提醒。关闭后，Zshell 不会播放提示音、发送终端铃声通知或请求 Dock 提醒；辅助技术仍会收到铃声的语义公告。两个终端后端都遵循此设置。
+
 ### `terminal.restore-history`
 
 布尔值——默认 `false`
@@ -132,6 +138,7 @@ sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-thicken = true
 terminal.macos-option-as-alt = false
+terminal.bell = false
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
