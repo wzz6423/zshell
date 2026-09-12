@@ -33,11 +33,20 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     /// cursor key per character would cost more than the click saves.
     private static let maxPromptCursorSteps = 4096
 
+    private struct GridGeometry: Equatable {
+        let columns: Int
+        let rows: Int
+        let cellWidth: UInt16
+        let cellHeight: UInt16
+    }
+
     private var handle: OpaquePointer?
     private let token = AlacrittyRegistry.shared.nextToken()
     private var metrics: AlacrittyMetrics
     private var backgroundOpacity: CGFloat = 1
-    private var gridSize = (columns: 0, rows: 0)
+    private var gridGeometry = GridGeometry(
+        columns: 0, rows: 0, cellWidth: 0, cellHeight: 0
+    )
     private var markedText = ""
     private let markedTextField = NSTextField(labelWithString: "")
     private var isSurfaceVisible = false
@@ -201,15 +210,15 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     private func start(launch: TerminalLaunch) {
         supportsInputSelection = launch.usesZsh
-        let size = gridSize(for: bounds.size)
-        gridSize = size
+        let geometry = gridGeometry(for: bounds.size)
+        gridGeometry = geometry
         var theme = AlacrittyTheme.current()
 
         handle = launch.withCConfig(
-            columns: UInt16(size.columns),
-            rows: UInt16(size.rows),
-            cellWidth: UInt16(metrics.cellWidth.rounded()),
-            cellHeight: UInt16(metrics.cellHeight.rounded()),
+            columns: UInt16(geometry.columns),
+            rows: UInt16(geometry.rows),
+            cellWidth: geometry.cellWidth,
+            cellHeight: geometry.cellHeight,
             scrollbackLines: Self.scrollbackLines,
             cursorShape: AppSettings.shared.cursorShape.alacrittyValue,
             cursorBlinking: AppSettings.shared.cursorBlinking
@@ -502,12 +511,14 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         )
     }
 
-    private func gridSize(for size: CGSize) -> (columns: Int, rows: Int) {
+    private func gridGeometry(for size: CGSize) -> GridGeometry {
         let usableWidth = size.width - Self.padding.x * 2
         let usableHeight = size.height - Self.padding.y * 2
-        return (
+        return GridGeometry(
             columns: max(1, Int(usableWidth / metrics.cellWidth)),
-            rows: max(1, Int(usableHeight / metrics.cellHeight))
+            rows: max(1, Int(usableHeight / metrics.cellHeight)),
+            cellWidth: UInt16(metrics.cellWidth.rounded()),
+            cellHeight: UInt16(metrics.cellHeight.rounded())
         )
     }
 
@@ -531,13 +542,13 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     /// does not disturb a running TUI.
     private func synchronizeGridSize() {
         guard let handle else { return }
-        let size = gridSize(for: bounds.size)
-        guard size != gridSize else { return }
-        gridSize = size
+        let geometry = gridGeometry(for: bounds.size)
+        guard geometry != gridGeometry else { return }
+        gridGeometry = geometry
         zshell_alacritty_resize(
             handle,
-            UInt16(size.columns), UInt16(size.rows),
-            UInt16(metrics.cellWidth.rounded()), UInt16(metrics.cellHeight.rounded())
+            UInt16(geometry.columns), UInt16(geometry.rows),
+            geometry.cellWidth, geometry.cellHeight
         )
         scheduleRender(force: true)
     }
@@ -1145,8 +1156,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         let mode = terminalMode
         if mode.contains(.mouseReporting) {
             let code = lines > 0 ? 64 : 65
-            let column = max(gridSize.columns / 2, 0)
-            let row = max(gridSize.rows / 2, 0)
+            let column = max(gridGeometry.columns / 2, 0)
+            let row = max(gridGeometry.rows / 2, 0)
             for _ in 0..<min(abs(lines), 50) {
                 sendMouse(
                     code: code,
@@ -1450,7 +1461,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
                 reportScroll()
                 return
             case 116, 121: // Command-Page Up / Page Down
-                let delta = Int32(max(gridSize.rows, 1)) * (event.keyCode == 116 ? 1 : -1)
+                let delta = Int32(max(gridGeometry.rows, 1)) * (event.keyCode == 116 ? 1 : -1)
                 zshell_alacritty_scroll(handle, delta)
                 scheduleRender(force: true)
                 reportScroll()
@@ -1811,8 +1822,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // The view is unflipped, so row 0 is at the top of the content box.
         let y = bounds.maxY - Self.padding.y - local.y
         let exactColumn = x / metrics.cellWidth
-        let column = min(max(Int(exactColumn.rounded(.down)), 0), max(gridSize.columns - 1, 0))
-        let line = min(max(Int((y / metrics.cellHeight).rounded(.down)), 0), max(gridSize.rows - 1, 0))
+        let column = min(max(Int(exactColumn.rounded(.down)), 0), max(gridGeometry.columns - 1, 0))
+        let line = min(max(Int((y / metrics.cellHeight).rounded(.down)), 0), max(gridGeometry.rows - 1, 0))
         return (line, column, exactColumn - CGFloat(column) > 0.5)
     }
 
@@ -1922,7 +1933,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         guard snapshot.display_offset == 0,
               snapshot.cursor_line >= 0,
               snapshot.cursor_column >= 0,
-              point.line >= 0, point.line < gridSize.rows
+              point.line >= 0, point.line < gridGeometry.rows
         else { return false }
         // Earlier command output is not part of the edited buffer: measuring a
         // distance through it counts characters ZLE never had, so the cursor
