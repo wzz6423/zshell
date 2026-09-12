@@ -62,6 +62,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     /// with OSC 22, matching the `.text` default of Zshell's Ghostty panes.
     private var mouseShapeCursor: NSCursor = .iBeam
     private var reportingMouseButton = false
+    private var reportingRightMouseButton = false
     private var lastReportedFocus: Bool?
     private var cursorTimer: Timer?
     private var cursorBlinking = false
@@ -1973,7 +1974,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     private func shouldReportMouse(_ event: NSEvent) -> Bool {
         terminalMode.contains(.mouseReporting)
-            && !event.modifierFlags.contains(.shift)
+            && event.modifierFlags.intersection([.shift, .command]).isEmpty
     }
 
     private func sendMouse(code: Int, event: NSEvent, released: Bool) {
@@ -2112,10 +2113,17 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     // MARK: - Context menu
 
-    /// Zshell reserves right-click for its terminal/pane menu, matching the
-    /// Ghostty backend rather than AppKit's default text menu.
+    /// Mouse-reporting applications own an unmodified right-click. Shift keeps
+    /// Zshell's menu reachable for selection, and Command preserves its link and
+    /// pane actions.
     override func rightMouseDown(with event: NSEvent) {
         focusForInteraction()
+        if shouldReportMouse(event) {
+            reportingRightMouseButton = true
+            sendMouse(code: 2, event: event, released: false)
+            return
+        }
+        reportingRightMouseButton = false
         NSMenu.popUpContextMenu(
             contextMenu(linkTarget: linkTarget(for: event)),
             with: event,
@@ -2123,7 +2131,21 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         )
     }
 
+    override func rightMouseUp(with event: NSEvent) {
+        guard reportingRightMouseButton else { return }
+        reportingRightMouseButton = false
+        sendMouse(code: 2, event: event, released: true)
+    }
+
+    override func rightMouseDragged(with event: NSEvent) {
+        guard reportingRightMouseButton,
+              terminalMode.contains(.mouseDrag) || terminalMode.contains(.mouseMotion)
+        else { return }
+        sendMouse(code: 34, event: event, released: false)
+    }
+
     override func menu(for event: NSEvent) -> NSMenu? {
+        guard !shouldReportMouse(event) else { return nil }
         focusForInteraction()
         return contextMenu(linkTarget: linkTarget(for: event))
     }
