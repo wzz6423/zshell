@@ -1370,6 +1370,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {
+        stopSelectionAutoscroll()
         if newWindow == nil, let window, window.firstResponder === self {
             window.makeFirstResponder(nil)
         }
@@ -1533,6 +1534,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func mouseUp(with event: NSEvent) {
+        stopSelectionAutoscroll()
         if reportingMouseButton {
             reportingMouseButton = false
             sendMouse(code: 0, event: event, released: true)
@@ -1551,7 +1553,6 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             moveCursorToClick(endpoint)
             writeControl(Array("\u{1b}[27;2;27~".utf8))
         }
-        stopSelectionAutoscroll()
         selectionAnchor = nil
         selectionWasDragged = false
         inputSelectionAnchor = nil
@@ -1746,15 +1747,22 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     private func selectionAutoscrollDelta(at location: NSPoint) -> Int32 {
-        if location.y < bounds.minY { return -1 }
-        if location.y > bounds.maxY { return 1 }
-        return 0
+        switch TerminalSelectionAutoscrollDirection(locationY: location.y, bounds: bounds) {
+        case .towardTop: 1
+        case .towardBottom: -1
+        case nil: 0
+        }
     }
 
     private func autoscrollSelection() {
         guard let handle,
               selectionAnchor != nil,
-              let window
+              selectionWasDragged,
+              !reportingMouseButton,
+              isSurfaceVisible,
+              let window,
+              window.isKeyWindow,
+              window.firstResponder === self
         else {
             stopSelectionAutoscroll()
             return

@@ -55,6 +55,7 @@ extension ZshellTerminalView {
     /// Releases the surface. The view itself stays in the layout so teardown
     /// never pulls a pane out from under SwiftUI mid-frame.
     func detach() {
+        stopSelectionAutoscroll()
         controller = nil
         ghosttyController = nil
     }
