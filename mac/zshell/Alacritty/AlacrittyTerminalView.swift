@@ -839,6 +839,16 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         CATransaction.commit()
     }
 
+    private func updateMarkedTextOverlay() {
+        guard !markedText.isEmpty, let handle else {
+            markedTextField.isHidden = true
+            return
+        }
+        var snapshot = ZshellSnapshot()
+        zshell_alacritty_snapshot(handle, &snapshot)
+        updateMarkedTextOverlay(snapshot: snapshot)
+    }
+
     private func updateMarkedTextOverlay(snapshot: ZshellSnapshot) {
         guard !markedText.isEmpty,
               snapshot.cursor_line >= 0,
@@ -2323,6 +2333,7 @@ extension AlacrittyTerminalView: NSTextInputClient {
     func insertText(_ string: Any, replacementRange: NSRange) {
         activatePendingPromptSelection()
         markedText = ""
+        updateMarkedTextOverlay()
         pendingPromptCaret = nil
         clearActivePromptSelection()
         let text = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""
@@ -2333,12 +2344,12 @@ extension AlacrittyTerminalView: NSTextInputClient {
 
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
         markedText = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""
-        scheduleRender(force: true)
+        updateMarkedTextOverlay()
     }
 
     func unmarkText() {
         markedText = ""
-        scheduleRender(force: true)
+        updateMarkedTextOverlay()
     }
 
     func selectedRange() -> NSRange {
