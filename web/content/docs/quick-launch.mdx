@@ -1,0 +1,41 @@
+---
+title: Quick Launch
+description: Save the commands and SSH connections you start over and over, and launch any of them with one keystroke.
+---
+
+<kbd>Cmd</kbd>+<kbd>O</kbd> opens **Quick Launch**: a searchable list of launch
+entries that each open a new terminal session in the current project. A saved
+entry is either a **command** — anything you type often, like `npm run dev` or
+`make watch` — or an **SSH connection**.
+
+## Launching
+
+Type to fuzzy-filter the list, pick a row, and press <kbd>Return</kbd> (or
+double-click it). The entry runs in a fresh session of the selected project —
+the same flow as any other new terminal, with its own tab and directory.
+
+When the command finishes or the connection closes, the pane drops back to a
+normal shell prompt instead of disappearing. Nothing you launched can quietly
+close itself.
+
+## Managing entries
+
+- <kbd>Cmd</kbd>+<kbd>N</kbd> — new entry
+- <kbd>Cmd</kbd>+<kbd>E</kbd> — edit the selected entry
+- <kbd>Cmd</kbd>+<kbd>Delete</kbd> — delete the selected entry
+
+A command entry can pin a **working directory** it always starts in; without
+one it follows the project like a normal session. An SSH entry takes the host,
+an optional user and port, and free-form extra `ssh` options such as `-L
+8080:localhost:80`.
+
+## Where entries live
+
+Entries are saved to `~/.config/zshell/quick-launch.json` and are shared by
+every window. They are plain user data — edit the file, or back it up, freely.
+
+<Callout type="info">
+Commands run through your login shell, so they see your profile environment.
+The pane itself is a regular session afterwards, with your aliases and prompt
+intact.
+</Callout>

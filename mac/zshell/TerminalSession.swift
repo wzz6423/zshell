@@ -743,7 +743,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             + "exec \(quotedShell) -l"
     }
 
-    private static func shellQuote(_ value: String) -> String {
+    /// Single-quote shell escaping. Internal because Quick Launch embeds
+    /// user-host strings inside its own launch script.
+    static func shellQuote(_ value: String) -> String {
         "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
@@ -772,7 +774,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         }
     }
 
-    private static func loginShell() -> String {
+    /// Internal so Quick Launch entries build their launch argv around the
+    /// same shell a plain session would get.
+    static func loginShell() -> String {
         if let pw = getpwuid(getuid()), let shell = pw.pointee.pw_shell {
             let path = String(cString: shell)
             if !path.isEmpty { return path }

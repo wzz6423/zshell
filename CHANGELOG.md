@@ -53,3 +53,7 @@ the original feature bullet instead of adding separate entries for them.
 ### Added
 
 - Scale tabs, icons, controls, and sidebars from Appearance settings while keeping terminal content at its configured font size.
+- Quick Launch (⌘O): save the commands and SSH connections you start over and
+  over, then fuzzy-search and launch any of them into a fresh terminal session.
+  Entries are managed right in the launcher and stored per user, and a finished
+  command or closed connection leaves a normal shell prompt in the pane.
