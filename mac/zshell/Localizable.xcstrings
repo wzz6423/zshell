@@ -2580,6 +2580,22 @@
         }
       }
     },
+    "External editor" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外部エディタ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外部编辑器"
+          }
+        }
+      }
+    },
     "Enter a branch name" : {
       "localizations" : {
         "ja" : {

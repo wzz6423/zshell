@@ -62,6 +62,7 @@ struct RightSidebarView: View {
                             git: git,
                             session: manager.selectedSession,
                             rootBadge: rootBadge,
+                            externalEditor: settings.externalEditor,
                             currentFilePath: openFilePath,
                             openFile: { manager.openFile($0) },
                             openToSide: { manager.openFileToSide($0) },
@@ -96,7 +97,11 @@ struct RightSidebarView: View {
                             openWorktree: { manager.newSession(directory: $0) }
                         )
                     case .info:
-                        InfoPanel(model: info, session: manager.selectedSession)
+                        InfoPanel(
+                            model: info,
+                            session: manager.selectedSession,
+                            externalEditor: settings.externalEditor
+                        )
                     }
                 }
                 .frame(width: width)
@@ -299,6 +304,7 @@ private struct FileTreePanel: View {
     /// Set while the tree follows the terminal's foreground job into another
     /// checkout, so the header says why the root moved.
     let rootBadge: (text: String, description: String)?
+    let externalEditor: ExternalEditor
     let currentFilePath: String?
     let openFile: (String) -> Void
     let openToSide: (String) -> Void
@@ -340,6 +346,7 @@ private struct FileTreePanel: View {
                     ForEach(model.items) { item in
                         FileTreeRow(
                             model: model, git: git, item: item, session: session,
+                            externalEditor: externalEditor,
                             currentFilePath: currentFilePath,
                             openFile: openFile, openToSide: openToSide, onRename: onRename,
                             refreshGitStatus: refreshGitStatus
@@ -359,6 +366,7 @@ private struct FileTreeRow: View {
     @ObservedObject private var themeChanges = Theme.changes
     let item: FileTreeModel.Item
     let session: TerminalSession?
+    let externalEditor: ExternalEditor
     let currentFilePath: String?
     let openFile: (String) -> Void
     let openToSide: (String) -> Void
@@ -407,9 +415,10 @@ private struct FileTreeRow: View {
                 openToSide(item.path)
             }
         }
-        Button("Open in Default App") {
-            NSWorkspace.shared.open(URL(fileURLWithPath: item.path))
+        Button(externalEditor.openTitle) {
+            externalEditor.open(URL(fileURLWithPath: item.path))
         }
+        .disabled(!externalEditor.isAvailable)
         Button("Reveal in Finder") {
             NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: item.path)])
         }
@@ -2291,14 +2300,12 @@ private struct InfoPanel: View {
     @ObservedObject var model: SessionInfoModel
     @ObservedObject private var themeChanges = Theme.changes
     let session: TerminalSession?
+    let externalEditor: ExternalEditor
 
     @State private var currentDirectoryCollapsed = false
     @State private var projectDirectoryCollapsed = false
     @State private var processesCollapsed = false
     @State private var portsCollapsed = false
-
-    private static let vsCodeURL = NSWorkspace.shared
-        .urlForApplication(withBundleIdentifier: "com.microsoft.VSCode")
 
     var body: some View {
         VStack(spacing: 0) {
@@ -2392,7 +2399,7 @@ private struct InfoPanel: View {
         }
     }
 
-    /// Path line plus Finder / VS Code / Copy actions, shared by both
+    /// Path line plus Finder / selected editor / Copy actions, shared by both
     /// directory sections.
     private func directoryGroup(path: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -2413,14 +2420,12 @@ private struct InfoPanel: View {
                         [URL(fileURLWithPath: path)]
                     )
                 }
-                if let vsCode = Self.vsCodeURL {
-                    actionButton("VS Code", systemImage: "chevron.left.forwardslash.chevron.right") {
-                        NSWorkspace.shared.open(
-                            [URL(fileURLWithPath: path)],
-                            withApplicationAt: vsCode,
-                            configuration: NSWorkspace.OpenConfiguration()
-                        )
-                    }
+                actionButton(
+                    externalEditor.title,
+                    systemImage: "chevron.left.forwardslash.chevron.right",
+                    isEnabled: externalEditor.isAvailable
+                ) {
+                    externalEditor.open(URL(fileURLWithPath: path))
                 }
                 actionButton(String(localized: "Copy"), systemImage: "doc.on.doc") {
                     copyPath(path)
@@ -2438,7 +2443,10 @@ private struct InfoPanel: View {
     }
 
     private func actionButton(
-        _ title: String, systemImage: String, action: @escaping () -> Void
+        _ title: String,
+        systemImage: String,
+        isEnabled: Bool = true,
+        action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             HStack(spacing: 4) {
@@ -2457,6 +2465,7 @@ private struct InfoPanel: View {
             .contentShape(RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
+        .disabled(!isEnabled)
         .help(systemImage == "doc.on.doc"
             ? String(localized: "Copy Path")
             : String(localized: "Open in \(title)"))

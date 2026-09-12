@@ -216,6 +216,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var externalEditor: ExternalEditor {
+        didSet { save() }
+    }
+
     /// Restore each terminal's previous scrollback (as static, styled text)
     /// when the app relaunches, above the freshly started shell. Off by
     /// default: opt-in, and it writes captured output to disk.
@@ -291,6 +295,9 @@ final class AppSettings: nonisolated ObservableObject {
         macosOptionAsAlt = toml["terminal.macos-option-as-alt"]?.bool ?? false
         terminalBell = toml["terminal.bell"]?.bool ?? true
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
+        externalEditor = ExternalEditor.persisted(
+            toml["editor.external-editor"]?.string
+        )
         restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? false
         let quickTerminalSize = toml["quick-terminal.size"]?.double
             ?? Self.defaultQuickTerminalSize
@@ -361,6 +368,7 @@ final class AppSettings: nonisolated ObservableObject {
             && !macosOptionAsAlt
             && terminalBell
             && wrapLines
+            && externalEditor == .systemDefault
             && !restoreTerminalHistory
             && quickTerminalSize == Self.defaultQuickTerminalSize
             && quickTerminalOpacity == Self.defaultQuickTerminalOpacity
@@ -381,6 +389,7 @@ final class AppSettings: nonisolated ObservableObject {
         macosOptionAsAlt = false
         terminalBell = true
         wrapLines = true
+        externalEditor = .systemDefault
         restoreTerminalHistory = false
         quickTerminalSize = Self.defaultQuickTerminalSize
         quickTerminalOpacity = Self.defaultQuickTerminalOpacity
@@ -473,6 +482,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if !wrapLines {
             lines.append("editor.wrap-lines = false")
+        }
+        if externalEditor != .systemDefault {
+            lines.append("editor.external-editor = \(TOML.quote(externalEditor.rawValue))")
         }
         if restoreTerminalHistory {
             lines.append("terminal.restore-history = true")
