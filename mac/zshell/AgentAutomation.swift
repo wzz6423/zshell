@@ -204,13 +204,20 @@ final class ZshellAgentObservationState {
 final class AgentAutomationMonitor {
     static let shared = AgentAutomationMonitor()
 
+    /// Bound synchronous foreground-process probes on the common run loop so
+    /// many parked tabs cannot monopolize one menu/input turn.
+    private static let sessionsPerTick = 4
+
     private let sessions = NSHashTable<TerminalSession>.weakObjects()
+    private var pendingSessionIDs: [UUID] = []
     private var timer: Timer?
 
     private init() {}
 
     func register(_ session: TerminalSession) {
         sessions.add(session)
+        guard !pendingSessionIDs.contains(session.id) else { return }
+        pendingSessionIDs.append(session.id)
         guard timer == nil else { return }
         let timer = Timer(timeInterval: 0.75, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.refresh() }
@@ -221,14 +228,37 @@ final class AgentAutomationMonitor {
 
     private func refresh() {
         let liveSessions = sessions.allObjects.filter { !$0.hasExited }
-        for session in liveSessions {
-            session.refreshAutomationAgentState(
-                isFocused: TerminalManager.automationIsSessionFocused(session.id)
-            )
-        }
-        if liveSessions.isEmpty {
+        guard !liveSessions.isEmpty else {
+            pendingSessionIDs.removeAll()
             timer?.invalidate()
             timer = nil
+            return
+        }
+
+        let sessionsByID = Dictionary(uniqueKeysWithValues: liveSessions.map { ($0.id, $0) })
+        var seenPendingSessionIDs = Set<UUID>()
+        pendingSessionIDs.removeAll {
+            sessionsByID[$0] == nil || !seenPendingSessionIDs.insert($0).inserted
+        }
+        for session in liveSessions where !seenPendingSessionIDs.contains(session.id) {
+            pendingSessionIDs.append(session.id)
+        }
+
+        let focusedSessionID = TerminalManager.automationFocusedSessionID
+        var refreshBatch: [TerminalSession] = []
+        if let focusedSessionID, let session = sessionsByID[focusedSessionID] {
+            refreshBatch.append(session)
+            pendingSessionIDs.removeAll { $0 == focusedSessionID }
+        }
+        while refreshBatch.count < Self.sessionsPerTick, !pendingSessionIDs.isEmpty {
+            let sessionID = pendingSessionIDs.removeFirst()
+            if let session = sessionsByID[sessionID] {
+                refreshBatch.append(session)
+            }
+        }
+
+        for session in refreshBatch {
+            session.refreshAutomationAgentState(isFocused: session.id == focusedSessionID)
         }
     }
 }

@@ -497,17 +497,21 @@ final class TerminalManager: nonisolated ObservableObject {
     /// "Seen" is a model focus decision, not an API read. A background CLI can
     /// inspect output repeatedly without clearing a finished badge; selecting
     /// the pane through any UI path clears it on the next monitor tick.
-    static func automationIsSessionFocused(_ id: UUID) -> Bool {
-        guard NSApp.isActive else { return false }
+    static var automationFocusedSessionID: UUID? {
+        guard NSApp.isActive else { return nil }
         for manager in registry where manager.window?.isKeyWindow == true {
             guard let project = manager.selectedProject,
                   let tab = project.selectedTab,
                   let pane = tab.focusedPane,
                   case .session(let session) = pane.content
             else { continue }
-            if session.id == id { return true }
+            return session.id
         }
-        return false
+        return nil
+    }
+
+    static func automationIsSessionFocused(_ id: UUID) -> Bool {
+        automationFocusedSessionID == id
     }
 
     var hasAgentAttention: Bool {
