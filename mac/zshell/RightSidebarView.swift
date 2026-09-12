@@ -64,6 +64,7 @@ struct RightSidebarView: View {
                             rootBadge: rootBadge,
                             externalEditor: settings.externalEditor,
                             currentFilePath: openFilePath,
+                            previewFile: { manager.previewFile($0) },
                             openFile: { manager.openFile($0) },
                             openToSide: { manager.openFileToSide($0) },
                             onRename: { manager.fileRenamed(from: $0, to: $1) },
@@ -306,6 +307,7 @@ private struct FileTreePanel: View {
     let rootBadge: (text: String, description: String)?
     let externalEditor: ExternalEditor
     let currentFilePath: String?
+    let previewFile: (String) -> Void
     let openFile: (String) -> Void
     let openToSide: (String) -> Void
     let onRename: (_ oldPath: String, _ newPath: String) -> Void
@@ -348,7 +350,8 @@ private struct FileTreePanel: View {
                             model: model, git: git, item: item, session: session,
                             externalEditor: externalEditor,
                             currentFilePath: currentFilePath,
-                            openFile: openFile, openToSide: openToSide, onRename: onRename,
+                            previewFile: previewFile, openFile: openFile,
+                            openToSide: openToSide, onRename: onRename,
                             refreshGitStatus: refreshGitStatus
                         )
                     }
@@ -368,6 +371,7 @@ private struct FileTreeRow: View {
     let session: TerminalSession?
     let externalEditor: ExternalEditor
     let currentFilePath: String?
+    let previewFile: (String) -> Void
     let openFile: (String) -> Void
     let openToSide: (String) -> Void
     let onRename: (_ oldPath: String, _ newPath: String) -> Void
@@ -484,7 +488,7 @@ private struct FileTreeRow: View {
             if item.isDirectory {
                 model.toggle(item)
             } else {
-                openFile(item.path)
+                previewFile(item.path)
             }
         } label: {
             HStack(spacing: 5) {
