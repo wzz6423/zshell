@@ -14,6 +14,7 @@
 		AA20000000000000000000A2 /* STTextView-Plugin-Neon in Frameworks */ = {isa = PBXBuildFile; productRef = AA20000000000000000000A1 /* STTextView-Plugin-Neon */; };
 		AA30000000000000000000A2 /* TreeSitterTSX in Frameworks */ = {isa = PBXBuildFile; productRef = AA30000000000000000000A1 /* TreeSitterTSX */; };
 		AA60000000000000000000A2 /* FuzzyMatch in Frameworks */ = {isa = PBXBuildFile; productRef = AA60000000000000000000A1 /* FuzzyMatch */; };
+		AA70000000000000000000A2 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = AA70000000000000000000A1 /* Markdown */; };
 		FF519F43300BBE2100D8B982 /* PierreDiffsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = AA10000000000000000000D1 /* PierreDiffsSwift */; };
 /* End PBXBuildFile section */
 
@@ -57,6 +58,7 @@
 				AA20000000000000000000A2 /* STTextView-Plugin-Neon in Frameworks */,
 				AA30000000000000000000A2 /* TreeSitterTSX in Frameworks */,
 				AA60000000000000000000A2 /* FuzzyMatch in Frameworks */,
+				AA70000000000000000000A2 /* Markdown in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -116,6 +118,7 @@
 				AA20000000000000000000A1 /* STTextView-Plugin-Neon */,
 				AA30000000000000000000A1 /* TreeSitterTSX */,
 				AA60000000000000000000A1 /* FuzzyMatch */,
+				AA70000000000000000000A1 /* Markdown */,
 			);
 			productName = zshell;
 			productReference = FF3FDD73300B6A7400112486 /* zshell Debug.app */;
@@ -154,6 +157,7 @@
 				AA10000000000000000000E0 /* XCLocalSwiftPackageReference "Vendor/Sparkle" */,
 				AA20000000000000000000A0 /* XCLocalSwiftPackageReference "Vendor/STTextView-Plugin-Neon" */,
 				AA60000000000000000000A0 /* XCLocalSwiftPackageReference "Vendor/FuzzyMatch" */,
+				AA70000000000000000000A0 /* XCRemoteSwiftPackageReference "swift-markdown" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FF3FDD74300B6A7400112486 /* Products */;
@@ -467,6 +471,17 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		AA70000000000000000000A0 /* XCRemoteSwiftPackageReference "swift-markdown" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/swiftlang/swift-markdown";
+			requirement = {
+				kind = revision;
+				revision = 27b7fc1a19068bcea3d2072db0ce86360d1400ed;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		AA10000000000000000000B1 /* GhosttyTerminal */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -499,6 +514,11 @@
 		AA60000000000000000000A1 /* FuzzyMatch */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FuzzyMatch;
+		};
+		AA70000000000000000000A1 /* Markdown */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA70000000000000000000A0 /* XCRemoteSwiftPackageReference "swift-markdown" */;
+			productName = Markdown;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

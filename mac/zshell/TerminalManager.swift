@@ -575,6 +575,18 @@ final class TerminalManager: nonisolated ObservableObject {
         }
     }
 
+    /// Swaps the focused markdown file between its rendered form and its
+    /// source. The choice is global, like the diff viewer's review/edit mode.
+    func toggleMarkdownPreview() {
+        guard canToggleMarkdownPreview else { return }
+        MarkdownViewPreferences.shared.showsSource.toggle()
+    }
+
+    var canToggleMarkdownPreview: Bool {
+        guard case .file(let file)? = selectedProject?.focusedContent else { return false }
+        return FileViewerContainerView.isMarkdown(file.path)
+    }
+
     /// Whether the Find menu has something searchable on screen right now.
     /// Diffs render their own views rather than a searchable text view.
     var canFind: Bool {
@@ -585,10 +597,11 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     /// Whether Find and Replace has an editable pane to act on: terminal
-    /// output and diffs are read-only, so replace is only offered for a file.
+    /// output and diffs are read-only, so replace is only offered for a file —
+    /// and not for rendered markdown.
     var canReplace: Bool {
-        if case .file? = selectedProject?.focusedContent { return true }
-        return false
+        guard case .file(let file)? = selectedProject?.focusedContent else { return false }
+        return !file.showsRenderedMarkdown
     }
 
     /// Closes the focused pane (⌘W). When it's the last pane in its tab the
