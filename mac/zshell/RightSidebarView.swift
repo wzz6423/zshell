@@ -1372,20 +1372,27 @@ private struct GitPanel: View {
     @ViewBuilder
     private var worktreesSection: some View {
         if !model.worktrees.isEmpty {
-            GitSectionHeader(
-                title: String(localized: "WORKTREES"),
-                count: model.worktrees.count,
-                isCollapsed: $worktreesCollapsed,
-                actions: [],
-                actionsDisabled: model.isBusy
-            )
-            if !worktreesCollapsed {
-                ForEach(model.worktrees) { worktree in
-                    WorktreeRow(worktree: worktree) {
-                        openWorktree(worktree.path)
+            VStack(spacing: 0) {
+                GitSectionHeader(
+                    title: String(localized: "WORKTREES"),
+                    count: model.worktrees.count,
+                    isCollapsed: $worktreesCollapsed,
+                    actions: [],
+                    actionsDisabled: model.isBusy
+                )
+                if !worktreesCollapsed {
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(model.worktrees) { worktree in
+                                WorktreeRow(worktree: worktree) {
+                                    openWorktree(worktree.path)
+                                }
+                            }
+                        }
                     }
                 }
             }
+            .frame(maxHeight: worktreesCollapsed ? nil : 160)
         }
     }
 
