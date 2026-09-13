@@ -249,8 +249,13 @@ struct RightSidebarView: View {
               let session = project.selectedSession
         else { return }
         guard !project.isRemote else {
-            fileTree.sync(root: "")
-            git.sync(root: "")
+            // Remote projects: the file tree runs `ls` over SSH against the
+            // declared endpoint, rooted at the project's remote directory.
+            // Git is driven solely by ContentView.syncGit, which already
+            // configured the endpoint and remote root — syncing git here
+            // with a local root would clobber that.
+            fileTree.configureRemote(project.remoteEndpoint)
+            fileTree.sync(root: project.remoteDirectory ?? "~")
             info.sync(
                 root: "", projectRoot: "",
                 projectRootSource: .shell,
