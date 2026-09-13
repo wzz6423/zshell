@@ -12,6 +12,7 @@ import {
   terminateWorkerPoolSingleton,
 } from '@pierre/diffs/worker';
 import workerSource from './generated/worker-source.js';
+import { diffContentVersions } from './content-version.js';
 
 // Global state
 let currentDiffInstance = null;
@@ -483,6 +484,12 @@ function createCodeViewItem(file) {
   const oldName = file.oldName || file.name;
   const oldContents = file.oldContents || '';
   const newContents = file.newContents || '';
+  const versions = diffContentVersions(
+    oldName,
+    oldContents,
+    newContents,
+    file.isEditable === true
+  );
   // Both sides need a cache key for the parsed diff to carry one, and the
   // worker pool caches highlighting under that key — so it has to follow the
   // contents, not just the path.
@@ -491,25 +498,20 @@ function createCodeViewItem(file) {
       name: oldName,
       contents: oldContents,
       lang: file.lang || detectLanguage(oldName),
-      cacheKey: `${id}~old~${contentVersion(oldContents)}`,
+      cacheKey: `${id}~old~${versions.oldVersion}`,
     },
     {
       name: file.name,
       contents: newContents,
       lang: file.lang || detectLanguage(file.name),
-      cacheKey: `${id}~new~${contentVersion(newContents)}`,
+      cacheKey: `${id}~new~${versions.newVersion}`,
     }
   );
 
   return {
     id,
     type: 'diff',
-    version: contentVersion(
-      oldName,
-      oldContents,
-      newContents,
-      file.isEditable ? 'edit' : 'review'
-    ),
+    version: versions.itemVersion,
     edit: file.isEditable === true,
     fileDiff,
   };

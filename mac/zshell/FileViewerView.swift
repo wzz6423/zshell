@@ -22,7 +22,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         case unavailable(String)
     }
 
-    private(set) var content: Content
+    @Published private(set) var content: Content
     /// Current editor text, written back by the editor on every edit. Not
     /// published: the editor owns display, this is only read back for saves.
     var text: String
@@ -53,23 +53,32 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     private nonisolated static let imageExtensions: Set<String> = [
         "png", "jpg", "jpeg", "gif", "heic", "webp", "tiff", "bmp", "icns",
     ]
-    private var imageFingerprint: Int?
+    /// Exact image bytes, kept so a reload can compare the new data against the
+    /// old without a lossy hash (a hash here could collide and show a stale
+    /// image for a different file).
+    private var imageData: Data?
     private var reloadGeneration: UInt = 0
     private var reloadTask: Task<Void, Never>?
+
+    private nonisolated enum ReadResult {
+        case data(Data)
+        case tooLarge
+        case unavailable
+    }
 
     private struct LoadedContent {
         let content: Content
         let text: String
-        let imageFingerprint: Int?
+        let imageData: Data?
     }
 
     init(path: String) {
         self.path = path
-        let loaded = Self.load(path: path)
-        content = loaded.content
-        text = loaded.text
-        savedText = loaded.text
-        imageFingerprint = loaded.imageFingerprint
+        content = .unavailable("")
+        text = ""
+        savedText = ""
+        imageData = nil
+        reloadFromDiskIfClean()
     }
 
     var name: String {
@@ -121,30 +130,43 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// Re-read a clean preview when it returns on screen. Disk I/O happens off
     /// the main actor; generation/path/dirty guards keep an older read from
     /// winning over a rename, save, or edit performed while it was in flight.
+    ///
+    /// `init` already kicks off one load, and `.onAppear` fires immediately
+    /// after the view mounts — without de-duplication the second call would
+    /// cancel the first and re-read the same bytes. If a load for the current
+    /// path is already in flight, this call is a no-op: the in-flight read will
+    /// publish when it finishes.
     func reloadFromDiskIfClean() {
         guard !isDirty else { return }
+        if let task = reloadTask, !task.isCancelled {
+            return
+        }
         reloadTask?.cancel()
         reloadGeneration &+= 1
         let generation = reloadGeneration
         let expectedPath = path
 
         reloadTask = Task { [weak self] in
-            let data = await Task.detached(priority: .userInitiated) {
+            let result = await Task.detached(priority: .userInitiated) {
                 Self.readData(path: expectedPath)
             }.value
+            guard let self else { return }
+            // Clear the task handle once this generation settles so a later
+            // re-check (returning from an external editor, a tab switch) starts
+            // a fresh load instead of being blocked by the completed one.
+            defer { if self.reloadGeneration == generation { self.reloadTask = nil } }
             guard !Task.isCancelled,
-                  let self,
                   self.reloadGeneration == generation,
                   self.path == expectedPath,
                   !self.isDirty
             else { return }
 
-            let loaded = Self.loadedContent(path: expectedPath, data: data)
+            let loaded = Self.loadedContent(path: expectedPath, result: result)
             guard !self.matches(loaded) else { return }
             self.content = loaded.content
             self.text = loaded.text
             self.savedText = loaded.text
-            self.imageFingerprint = loaded.imageFingerprint
+            self.imageData = loaded.imageData
             self.saveError = nil
             self.reloadRevision &+= 1
         }
@@ -161,7 +183,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         case (.text, .text):
             return savedText == loaded.text
         case (.image, .image):
-            return imageFingerprint == loaded.imageFingerprint
+            return imageData == loaded.imageData
         case (.unavailable(let current), .unavailable(let new)):
             return current == new
         default:
@@ -169,21 +191,63 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         }
     }
 
-    private static func load(path: String) -> LoadedContent {
-        loadedContent(path: path, data: readData(path: path))
-    }
-
-    private nonisolated static func readData(path: String) -> Data? {
-        try? Data(contentsOf: URL(fileURLWithPath: path))
-    }
-
-    private static func loadedContent(path: String, data: Data?) -> LoadedContent {
+    private nonisolated static func readData(path: String) -> ReadResult {
         let url = URL(fileURLWithPath: path)
-        guard let data else {
+        guard !imageExtensions.contains(url.pathExtension.lowercased()) else {
+            return (try? Data(contentsOf: url)).map(ReadResult.data) ?? .unavailable
+        }
+
+        let handle: FileHandle
+        do {
+            handle = try FileHandle(forReadingFrom: url)
+        } catch {
+            return .unavailable
+        }
+        defer { try? handle.close() }
+
+        do {
+            let initialSize = try handle.seekToEnd()
+            guard initialSize <= UInt64(maxTextBytes) else {
+                return .tooLarge
+            }
+            try handle.seek(toOffset: 0)
+
+            var data = Data()
+            data.reserveCapacity(Int(initialSize))
+            while data.count <= maxTextBytes {
+                let remaining = maxTextBytes + 1 - data.count
+                guard let chunk = try handle.read(upToCount: remaining), !chunk.isEmpty else {
+                    break
+                }
+                data.append(chunk)
+            }
+            guard data.count <= maxTextBytes,
+                  try handle.seekToEnd() <= UInt64(maxTextBytes) else {
+                return .tooLarge
+            }
+            return .data(data)
+        } catch {
+            return .unavailable
+        }
+    }
+
+    private static func loadedContent(path: String, result: ReadResult) -> LoadedContent {
+        let url = URL(fileURLWithPath: path)
+        let data: Data
+        switch result {
+        case .data(let loadedData):
+            data = loadedData
+        case .tooLarge:
+            return LoadedContent(
+                content: .unavailable(String(localized: "File is too large to open")),
+                text: "",
+                imageData: nil
+            )
+        case .unavailable:
             return LoadedContent(
                 content: .unavailable(String(localized: "Could not read file")),
                 text: "",
-                imageFingerprint: nil
+                imageData: nil
             )
         }
         if imageExtensions.contains(url.pathExtension.lowercased()),
@@ -191,24 +255,24 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
             return LoadedContent(
                 content: .image(image),
                 text: "",
-                imageFingerprint: data.hashValue
+                imageData: data
             )
         }
         guard data.count <= maxTextBytes else {
             return LoadedContent(
                 content: .unavailable(String(localized: "File is too large to open")),
                 text: "",
-                imageFingerprint: nil
+                imageData: nil
             )
         }
         guard let string = String(data: data, encoding: .utf8) else {
             return LoadedContent(
                 content: .unavailable(String(localized: "Binary file")),
                 text: "",
-                imageFingerprint: nil
+                imageData: nil
             )
         }
-        return LoadedContent(content: .text, text: string, imageFingerprint: nil)
+        return LoadedContent(content: .text, text: string, imageData: nil)
     }
 }
 
@@ -552,6 +616,21 @@ final class FileViewerContainerView: NSView {
         palette: EditorPalette
     ) -> NSView {
         let container = NSView()
+        // An empty reason means the initial async load is still in flight —
+        // show a spinner instead of an icon with no explanation.
+        guard !reason.isEmpty else {
+            let spinner = NSProgressIndicator()
+            spinner.isIndeterminate = true
+            spinner.controlSize = .small
+            spinner.startAnimation(nil)
+            spinner.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview(spinner)
+            NSLayoutConstraint.activate([
+                spinner.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+                spinner.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            ])
+            return container
+        }
         let icon = NSImageView()
         icon.image = MaterialFileIcon.image(forPath: path)
         icon.alphaValue = 0.72

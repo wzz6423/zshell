@@ -2026,7 +2026,6 @@
       }
     },
     "Command": {
-      "comment": "Quick Launch entry type: a shell command.",
       "localizations": {
         "ja": {
           "stringUnit": {
@@ -4502,7 +4501,6 @@
       }
     },
     "Host": {
-      "comment": "Quick Launch editor label for the SSH host.",
       "localizations": {
         "ja": {
           "stringUnit": {
@@ -6773,7 +6771,6 @@
       }
     },
     "Port": {
-      "comment": "Quick Launch editor label for the SSH port.",
       "localizations": {
         "ja": {
           "stringUnit": {
@@ -10973,12 +10970,11 @@
       }
     },
     "User": {
-      "comment": "Quick Launch editor label for the SSH user.",
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ユーザ"
+            "value": "ユーザー"
           }
         },
         "zh-Hans": {

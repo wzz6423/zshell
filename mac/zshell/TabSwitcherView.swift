@@ -751,14 +751,19 @@ private struct TabPaneThumbnail: View {
                 .scaledToFit()
                 .padding(5)
         case .unavailable(let reason):
-            VStack(spacing: 4) {
-                MaterialFileIconView(path: file.path, size: 18, opacity: 0.82)
-                Text(reason)
-                    .font(.system(size: 7))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
+            if reason.isEmpty {
+                ProgressView()
+                    .controlSize(.mini)
+            } else {
+                VStack(spacing: 4) {
+                    MaterialFileIconView(path: file.path, size: 18, opacity: 0.82)
+                    Text(reason)
+                        .font(.system(size: 7))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                .padding(6)
             }
-            .padding(6)
         }
     }
 

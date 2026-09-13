@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "node bundle.js",
-    "watch": "node bundle.js --watch"
+    "watch": "node bundle.js --watch",
+    "test": "node --test test/*.test.js",
+    "benchmark": "node benchmark/content-version.js"
   },
   "dependencies": {
     "@pierre/diffs": "1.3.1",
