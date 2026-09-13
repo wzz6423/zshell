@@ -386,6 +386,86 @@
         }
       }
     },
+    "%lld% used": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld% 使用済み"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已用 %lld%"
+          }
+        }
+      }
+    },
+    "%lld-day limit": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld日間の上限"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 天上限"
+          }
+        }
+      }
+    },
+    "%lld-hour limit": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld時間の上限"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 小时上限"
+          }
+        }
+      }
+    },
+    "%lld-minute limit": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld分の上限"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 分钟上限"
+          }
+        }
+      }
+    },
+    "%lld-week limit": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld週間の上限"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 周上限"
+          }
+        }
+      }
+    },
     "%llds": {
       "localizations": {
         "ja": {
@@ -424,6 +504,38 @@
           "stringUnit": {
             "state": "new",
             "value": "+%1$lld, −%2$lld"
+          }
+        }
+      }
+    },
+    "5-hour limit": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5時間の上限"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 小时上限"
+          }
+        }
+      }
+    },
+    "7-day limit": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "7日間の上限"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "7 天上限"
           }
         }
       }
@@ -473,6 +585,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "关于 %@"
+          }
+        }
+      }
+    },
+    "Account Usage": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アカウントの使用状況"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "账户用量"
           }
         }
       }
@@ -573,118 +701,13 @@
         }
       }
     },
-    "Agent finished": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "エージェントが完了"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Agent 已完成"
-          }
-        }
-      }
-    },
-    "Agent idle": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "エージェントは待機中"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Agent 空闲"
-          }
-        }
-      }
-    },
-    "Agent needs attention": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "エージェントに対応が必要"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Agent 需要关注"
-          }
-        }
-      }
-    },
-    "Agent starting": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "エージェントを起動中"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Agent 正在启动"
-          }
-        }
-      }
-    },
-    "Agent state unknown": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "エージェントの状態は不明"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Agent 状态未知"
-          }
-        }
-      }
-    },
-    "Agent working": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "エージェントが作業中"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Agent 正在工作"
-          }
-        }
-      }
-    },
-    "Agents": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "エージェント"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Agent"
-          }
-        }
-      }
-    },
+    "Agent finished": {},
+    "Agent idle": {},
+    "Agent needs attention": {},
+    "Agent starting": {},
+    "Agent state unknown": {},
+    "Agent working": {},
+    "Agents": {},
     "Allow": {
       "localizations": {
         "ja": {
@@ -1695,6 +1718,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "关闭查找栏"
+          }
+        }
+      }
+    },
+    "Codex is installed, but its local app server is not signed in.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Codex はインストールされていますが、ローカルアプリサーバーにサインインしていません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Codex 已安装，但其本地应用服务器未登录。"
+          }
+        }
+      }
+    },
+    "Codex is not available on Zshell's app PATH.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Codex は Zshell のアプリ PATH にありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Codex 不在 Zshell 的应用 PATH 中。"
           }
         }
       }
@@ -4983,22 +5038,7 @@
         }
       }
     },
-    "Next Agent Needing Attention": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "対応が必要な次のエージェント"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下一个需要关注的 Agent"
-          }
-        }
-      }
-    },
+    "Next Agent Needing Attention": {},
     "Next Project": {
       "localizations": {
         "ja": {
@@ -5220,6 +5260,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "没有已打开的会话"
+          }
+        }
+      }
+    },
+    "No rate-limit snapshot from an active Claude Code session yet.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アクティブな Claude Code セッションからのレート制限スナップショットはまだありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚无来自活动 Claude Code 会话的速率限制快照。"
           }
         }
       }
@@ -5963,6 +6019,22 @@
         }
       }
     },
+    "Primary limit": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一次上限"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "主要上限"
+          }
+        }
+      }
+    },
     "Program": {
       "localizations": {
         "ja": {
@@ -6315,6 +6387,22 @@
         }
       }
     },
+    "Refresh Usage": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用状況を更新"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新用量"
+          }
+        }
+      }
+    },
     "Refreshing Git status": {
       "localizations": {
         "ja": {
@@ -6327,6 +6415,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "正在刷新 Git 状态"
+          }
+        }
+      }
+    },
+    "Refreshing…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新中…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新中…"
           }
         }
       }
@@ -6713,6 +6817,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "恢复默认设置"
+          }
+        }
+      }
+    },
+    "Resets %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リセット %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重置于 %@"
           }
         }
       }
@@ -7188,6 +7308,22 @@
         }
       }
     },
+    "Secondary limit": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "二次上限"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次要上限"
+          }
+        }
+      }
+    },
     "Select All": {
       "localizations": {
         "ja": {
@@ -7495,6 +7631,22 @@
         }
       }
     },
+    "Showing the last local snapshot. %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最後のローカルスナップショットを表示中。%@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在显示上一次本地快照。%@"
+          }
+        }
+      }
+    },
     "Shows files changed in this commit": {},
     "Shows the toolbar in every project": {
       "localizations": {
@@ -7572,6 +7724,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "大小"
+          }
+        }
+      }
+    },
+    "Source: Claude Code status line from an active Zshell session": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取得元：アクティブな Zshell セッションの Claude Code ステータスライン"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源：来自活动 Zshell 会话的 Claude Code 状态行"
+          }
+        }
+      }
+    },
+    "Source: local Codex app server": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取得元：ローカルの Codex アプリサーバー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源：本地 Codex 应用服务器"
+          }
+        }
+      }
+    },
+    "Spend limit": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "利用上限額"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支出上限"
           }
         }
       }
@@ -7813,6 +8013,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "提交前请先暂存更改"
+          }
+        }
+      }
+    },
+    "Stale": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "期限切れ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已过期"
           }
         }
       }
@@ -8409,6 +8625,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "目标项目已存在名为“%@”的编码代理。"
+          }
+        }
+      }
+    },
+    "The local usage source could not be read.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ローカルの使用状況取得元を読み取れませんでした。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取本地用量来源。"
+          }
+        }
+      }
+    },
+    "The local usage source did not respond in time.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ローカルの使用状況取得元が時間内に応答しませんでした。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地用量来源未及时响应。"
+          }
+        }
+      }
+    },
+    "The local usage source returned an unsupported response.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ローカルの使用状況取得元がサポートされていない応答を返しました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地用量来源返回了不支持的响应。"
           }
         }
       }
@@ -9154,6 +9418,22 @@
         }
       }
     },
+    "Updated %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新 %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新于 %@"
+          }
+        }
+      }
+    },
     "Updates": {
       "localizations": {
         "ja": {
@@ -9360,6 +9640,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "工作树"
+          }
+        }
+      }
+    },
+    "Waiting for refresh": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新待ち"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待刷新"
           }
         }
       }
