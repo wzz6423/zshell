@@ -747,6 +747,76 @@ final class AppSettings: nonisolated ObservableObject {
         return result
     }
 
+    /// Replaces the settings with values parsed from an imported config,
+    /// reading the same keys with the same fallbacks `init` does, then
+    /// persists them through the published properties' `didSet` saves.
+    /// Assigning the published properties also refreshes the settings window
+    /// through the panes' existing `objectWillChange` observation, so no
+    /// separate notification is needed. Keys the file omits fall back to
+    /// their defaults, and `language` is deliberately untouched: it lives in
+    /// `UserDefaults` (`AppleLanguages`), not config.toml, so it is neither
+    /// exported nor imported.
+    func applyImported(_ toml: [String: TOML.Value]) {
+        theme = toml["theme"]?.string.flatMap(AppTheme.init(rawValue:)) ?? .system
+        themeDark = Self.knownTheme(
+            toml["theme-dark"]?.string,
+            dark: true,
+            fallback: Theme.defaultDarkThemeName
+        )
+        themeLight = Self.knownTheme(
+            toml["theme-light"]?.string,
+            dark: false,
+            fallback: Theme.defaultLightThemeName
+        )
+        fontFamily = toml["font-family"]?.string ?? ""
+        let size = toml["font-size"]?.double ?? Self.defaultFontSize
+        fontSize = Self.fontSizeRange.contains(size) ? size : Self.defaultFontSize
+        let sidebarSize = toml["sidebar.font-size"]?.double
+            ?? Self.defaultSidebarFontSize
+        sidebarFontSize = Self.sidebarFontSizeRange.contains(sidebarSize)
+            ? sidebarSize
+            : Self.defaultSidebarFontSize
+        toolbarVisibility = ToolbarVisibility(
+            rawValue: toml["toolbar.visibility"]?.string ?? ""
+        ) ?? Self.defaultToolbarVisibility
+        fontThicken = toml["terminal.font-thicken"]?.bool
+            ?? toml["font-thicken"]?.bool
+            ?? false
+        cursorShape = TerminalCursorShape(
+            rawValue: toml["terminal.cursor-shape"]?.string ?? ""
+        ) ?? .block
+        cursorBlinking = toml["terminal.cursor-blinking"]?.bool ?? true
+        macosOptionAsAlt = toml["terminal.macos-option-as-alt"]?.bool ?? false
+        wrapLines = toml["editor.wrap-lines"]?.bool ?? true
+        restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? false
+        let quickTerminalSize = toml["quick-terminal.size"]?.double
+            ?? Self.defaultQuickTerminalSize
+        self.quickTerminalSize = Self.quickTerminalSizeRange.contains(quickTerminalSize)
+            ? quickTerminalSize
+            : Self.defaultQuickTerminalSize
+        let quickTerminalOpacity = toml["quick-terminal.opacity"]?.double
+            ?? Self.defaultQuickTerminalOpacity
+        self.quickTerminalOpacity = Self.quickTerminalOpacityRange.contains(quickTerminalOpacity)
+            ? quickTerminalOpacity
+            : Self.defaultQuickTerminalOpacity
+        quickTerminalShortcut = QuickTerminalShortcut(
+            persistedValue: toml["quick-terminal.shortcut"]?.string
+        ) ?? Self.defaultQuickTerminalShortcut
+        if let enabled = toml["ai.enabled"]?.bool, enabled != aiEnabled {
+            do {
+                try setAIEnabled(enabled)
+            } catch {
+                // Match resetToDefaults: the install steps are best effort,
+                // and the rest of the imported settings still apply.
+                NSLog("zshell: failed to apply imported AI support setting: \(error)")
+            }
+        }
+        terminalBackend = TerminalBackend(persisted: toml["terminal.backend"]?.string)
+        // The shortcut applies to the registered hotkey only through this
+        // reload, the same as resetToDefaults.
+        GlobalTerminalOverlay.shared.reloadHotkey()
+    }
+
     /// Persist the setting only after every requested destination operation
     /// returns successfully.
     func setAIEnabled(_ enabled: Bool) throws {
@@ -785,6 +855,23 @@ final class AppSettings: nonisolated ObservableObject {
     }
 
     private func save() {
+        let dir = Self.configURL.deletingLastPathComponent()
+        do {
+            try FileManager.default.createDirectory(
+                at: dir, withIntermediateDirectories: true)
+            try serializedConfig().write(
+                to: Self.configURL, atomically: true, encoding: .utf8)
+        } catch {
+            NSLog("zshell: failed to write \(Self.configURL.path): \(error)")
+        }
+    }
+
+    /// The config.toml representation of the current settings, from the same
+    /// writer that persists `config.toml`, so an exported file is byte for
+    /// byte what the app would have saved. Like `save()`, only values that
+    /// differ from their default are emitted — an absent key means "keep the
+    /// default", which is the contract the reader applies at launch.
+    func serializedConfig() -> String {
         var lines: [String] = []
         // Top-level like `theme`: the icon covers the whole app.
         if applicationIcon != .defaultIcon {
@@ -897,15 +984,7 @@ final class AppSettings: nonisolated ObservableObject {
         if !terminalStartupArguments.isEmpty {
             lines.append("terminal.startup-arguments = \(TOML.quote(terminalStartupArguments))")
         }
-        let dir = Self.configURL.deletingLastPathComponent()
-        do {
-            try FileManager.default.createDirectory(
-                at: dir, withIntermediateDirectories: true)
-            try (lines.joined(separator: "\n") + "\n")
-                .write(to: Self.configURL, atomically: true, encoding: .utf8)
-        } catch {
-            NSLog("zshell: failed to write \(Self.configURL.path): \(error)")
-        }
+        return lines.joined(separator: "\n") + "\n"
     }
 
     /// Settings from releases that stored config in UserDefaults.
@@ -948,13 +1027,43 @@ enum TOML {
         }
     }
 
+    /// A line the reader could not turn into a key/value pair.
+    struct MalformedLine {
+        /// 1-based position of the line in the file.
+        let number: Int
+        /// The line as written, for surfacing in an error message.
+        let text: String
+    }
+
     static func parse(at url: URL) -> [String: Value]? {
+        read(at: url, reportingMalformed: false)?.values
+    }
+
+    /// Parses like `parse(at:)` but, instead of silently skipping a line that
+    /// yields no key or no value, reports the first such line. The lenient
+    /// reader keeps a hand-edited config from ever blocking launch; importing
+    /// a file is explicit, so a mistake there should be surfaced rather than
+    /// quietly dropped. Values are only meaningful when `malformed` is nil.
+    static func parseStrictly(
+        at url: URL
+    ) -> (values: [String: Value], malformed: MalformedLine?)? {
+        read(at: url, reportingMalformed: true)
+    }
+
+    /// Both entry points share one grammar so import validation accepts
+    /// exactly what the launch-time reader accepts. Empty lines are kept in
+    /// the split so line numbers stay true to the file.
+    private static func read(
+        at url: URL, reportingMalformed: Bool
+    ) -> (values: [String: Value], malformed: MalformedLine?)? {
         guard let text = try? String(contentsOf: url, encoding: .utf8) else {
             return nil
         }
         var table = ""
         var result: [String: Value] = [:]
-        for rawLine in text.split(separator: "\n", omittingEmptySubsequences: true) {
+        for (index, rawLine) in text.split(
+            separator: "\n", omittingEmptySubsequences: false
+        ).enumerated() {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             if line.isEmpty || line.hasPrefix("#") { continue }
             if line.hasPrefix("["), line.hasSuffix("]") {
@@ -962,14 +1071,24 @@ enum TOML {
                     .trimmingCharacters(in: .whitespaces)
                 continue
             }
-            guard let eq = line.firstIndex(of: "=") else { continue }
+            guard let eq = line.firstIndex(of: "=") else {
+                if reportingMalformed {
+                    return (result, MalformedLine(number: index + 1, text: line))
+                }
+                continue
+            }
             let key = line[..<eq].trimmingCharacters(in: .whitespaces)
             let rawValue = line[line.index(after: eq)...]
                 .trimmingCharacters(in: .whitespaces)
-            guard !key.isEmpty, let value = parseValue(rawValue) else { continue }
+            guard !key.isEmpty, let value = parseValue(rawValue) else {
+                if reportingMalformed {
+                    return (result, MalformedLine(number: index + 1, text: line))
+                }
+                continue
+            }
             result[table.isEmpty ? key : "\(table).\(key)"] = value
         }
-        return result
+        return (result, nil)
     }
 
     private static func parseValue(_ raw: String) -> Value? {
@@ -995,7 +1114,12 @@ enum TOML {
             return nil
         }
         // Unquoted: strip a trailing comment, then try bool/number.
-        let bare = raw.split(separator: "#", maxSplits: 1)[0]
+        // `omittingEmptySubsequences: false` keeps index 0 alive for an empty
+        // value ("key =") — with it omitted, the subscript below crashed on
+        // such a line, taking the launch-time reader down with it.
+        let bare = raw.split(
+            separator: "#", maxSplits: 1, omittingEmptySubsequences: false
+        )[0]
             .trimmingCharacters(in: .whitespaces)
         switch bare {
         case "true": return .bool(true)

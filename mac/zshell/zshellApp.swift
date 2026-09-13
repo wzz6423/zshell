@@ -66,6 +66,16 @@ struct zshellApp: App {
                     SettingsWindowController.shared.show()
                 }
                 .keyboardShortcut(",", modifiers: .command)
+
+                Divider()
+
+                Button("Export Settings…") {
+                    SettingsImportExport.exportSettings()
+                }
+
+                Button("Import Settings…") {
+                    SettingsImportExport.importSettings()
+                }
             }
             ZshellCommands()
         }
