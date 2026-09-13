@@ -67,15 +67,26 @@ extension ZshellTerminalView {
         let family = settings.fontFamily.isEmpty
             ? TerminalFont.bundledFamily : settings.fontFamily
         return TerminalConfiguration { builder in
+            builder.withCustom("font-family", "")
             builder.withFontFamily(family)
-            // Keep Zshell's bundled icon font as a fallback after the selected
-            // primary face. Repeated font-family entries form Ghostty's list.
+            if !settings.fontFallbackFamily.isEmpty,
+               settings.fontFallbackFamily != family {
+                builder.withFontFamily(settings.fontFallbackFamily)
+            }
+            // Keep Zshell's bundled icon font last in the explicit fallback
+            // chain. The leading reset prevents the wrapper base config from
+            // contributing an implicit family before the user's ordered list.
             builder.withCustom("font-family", "Symbols Nerd Font Mono")
             builder.withFontSize(Float(settings.fontSize))
             // Always set explicitly: the wrapper's ConfigSource.none base
             // config injects the package default `font-thicken = true`, and
             // only a later entry in the rendered config overrides it.
             builder.withFontThicken(settings.fontThicken)
+            builder.withFontThickenStrength(settings.fontThickenStrength)
+            let lineHeightAdjustment = Int(
+                ((settings.terminalLineHeight - 1) * 100).rounded()
+            )
+            builder.withCustom("adjust-cell-height", "\(lineHeightAdjustment)%")
             builder.withCursorStyle(settings.cursorShape.ghosttyValue)
             builder.withCursorStyleBlink(settings.cursorBlinking)
             // Zshell's insets around the grid live inside ghostty as

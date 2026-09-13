@@ -11,6 +11,7 @@ import GhosttyTheme
 final class SettingsAppearancePane: SettingsPaneViewController {
     /// Installed fixed-pitch families (bundled default first).
     private let families = TerminalFont.selectableFamilies()
+    private let fallbackFamilies = TerminalFont.selectableCJKFallbackFamilies()
 
     private let themePicker = SettingsThemePicker { AppSettings.shared.theme = $0 }
 
@@ -38,6 +39,14 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         onChange: { AppSettings.shared.fontFamily = $0 }
     )
 
+    private lazy var fallbackFamilyPopUp = SettingsPopUpButton<String>(
+        items: [
+            .value(String(localized: "System Default"), ""),
+            .separator,
+        ] + fallbackFamilies.map { .value($0, $0) },
+        onChange: { AppSettings.shared.fontFallbackFamily = $0 }
+    )
+
     private let fontSizeRow = SettingsSliderRow(
         title: String(localized: "Size"),
         range: AppSettings.fontSizeRange,
@@ -59,6 +68,24 @@ final class SettingsAppearancePane: SettingsPaneViewController {
 
     private let thickenSwitch = SettingsSwitch { AppSettings.shared.fontThicken = $0 }
 
+    private let thickenStrengthRow = SettingsSliderRow(
+        title: String(localized: "Stroke strength"),
+        range: AppSettings.fontThickenStrengthRange,
+        format: .integer,
+        step: 1,
+        showsStepper: false,
+        onChange: { AppSettings.shared.fontThickenStrength = Int($0) }
+    )
+
+    private let lineHeightRow = SettingsSliderRow(
+        title: String(localized: "Line height"),
+        range: AppSettings.terminalLineHeightRange,
+        format: .percent,
+        step: 0.05,
+        showsStepper: true,
+        onChange: { AppSettings.shared.terminalLineHeight = $0 }
+    )
+
     private let preview = FontThickenPreviewView(frame: .zero)
 
     override func makeGroups() -> [NSView] {
@@ -76,13 +103,20 @@ final class SettingsAppearancePane: SettingsPaneViewController {
                 ),
             ]),
             SettingsGroup(header: String(localized: "Font"), rows: [
-                SettingsRow(title: String(localized: "Family"), control: familyPopUp),
+                SettingsRow(title: String(localized: "Latin family"), control: familyPopUp),
+                SettingsRow(
+                    title: String(localized: "CJK fallback"),
+                    description: String(localized: "Used after the Latin family and before the bundled symbol font"),
+                    control: fallbackFamilyPopUp
+                ),
                 fontSizeRow,
+                lineHeightRow,
                 SettingsRow(
                     title: String(localized: "Thicken font strokes"),
                     description: String(localized: "Renders terminal text with slightly heavier strokes, like classic macOS font smoothing"),
                     control: thickenSwitch
                 ),
+                thickenStrengthRow,
                 SettingsCustomRow(preview),
             ]),
             SettingsGroup(header: String(localized: "Sidebar"), rows: [
@@ -100,15 +134,21 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         lightThemePopUp.select(settings.themeLight)
         terminalThemeOnlySwitch.isOn = settings.terminalThemeOnly
         familyPopUp.select(settings.fontFamily)
+        fallbackFamilyPopUp.select(settings.fontFallbackFamily)
         fontSizeRow.setValue(settings.fontSize)
         sidebarFontSizeRow.setValue(settings.sidebarFontSize)
         thickenSwitch.isOn = settings.fontThicken
+        thickenStrengthRow.setValue(Double(settings.fontThickenStrength))
+        lineHeightRow.setValue(settings.terminalLineHeight)
         preview.configure(
             font: TerminalFont.resolve(
                 family: settings.fontFamily,
+                fallbackFamily: settings.fontFallbackFamily,
                 size: CGFloat(settings.fontSize)
             ),
-            thicken: settings.fontThicken
+            thicken: settings.fontThicken,
+            thickenStrength: settings.fontThickenStrength,
+            lineHeight: CGFloat(settings.terminalLineHeight)
         )
     }
 }

@@ -5,18 +5,19 @@
 
 import AppKit
 
-/// Font preview that honors `font-thicken`. Ghostty thickens by enabling
-/// CoreText font smoothing when rasterizing glyphs, which no ordinary text
-/// control does — so the sample is drawn by hand with `shouldSmoothFonts`
-/// matching the setting.
+/// Terminal font preview shared by the family, line-height, and thickening
+/// controls. It uses CoreText's smoothing flag plus the same normalized stroke
+/// mapping as the Alacritty backend; Ghostty's native raster can differ slightly.
 final class FontThickenPreviewView: NSView {
     var previewFont: NSFont = .monospacedSystemFont(ofSize: 13, weight: .regular)
     var thicken = false
+    var thickenStrength = AppSettings.defaultFontThickenStrength
+    var lineHeight: CGFloat = 1
 
     /// Regular, icon, and bold samples: the glyphs whose weight the setting
     /// visibly changes.
     private let lines: [(text: String, bold: Bool)] = [
-        ("zshell ❯ echo \"the quick brown fox\" 0O 1lI", false),
+        ("zshell ❯ printf \"中文 日本語 한국어\" 0O 1lI", false),
         ("\u{E0A0} main \u{E0B0} ~/dev/zshell \u{E711} \u{F024B} \u{F0A7D}", false),
         ("bold — permission denied (os error 13)", true),
     ]
@@ -42,18 +43,29 @@ final class FontThickenPreviewView: NSView {
 
     /// The sample's height follows the font, so both settings arrive together
     /// and the layout is invalidated with the drawing.
-    func configure(font: NSFont, thicken: Bool) {
-        guard previewFont != font || self.thicken != thicken else { return }
+    func configure(
+        font: NSFont,
+        thicken: Bool,
+        thickenStrength: Int,
+        lineHeight: CGFloat
+    ) {
+        guard previewFont != font
+            || self.thicken != thicken
+            || self.thickenStrength != thickenStrength
+            || self.lineHeight != lineHeight
+        else { return }
         previewFont = font
         self.thicken = thicken
+        self.thickenStrength = thickenStrength
+        self.lineHeight = lineHeight
         invalidateIntrinsicContentSize()
         needsDisplay = true
     }
 
     override var intrinsicContentSize: NSSize {
-        let lineHeight = ceil(previewFont.boundingRectForFont.height)
+        let rowHeight = ceil(previewFont.boundingRectForFont.height * lineHeight)
         let height = verticalPadding * 2
-            + CGFloat(lines.count) * lineHeight
+            + CGFloat(lines.count) * rowHeight
             + CGFloat(max(0, lines.count - 1)) * lineSpacing
         return NSSize(width: NSView.noIntrinsicMetric, height: height)
     }
@@ -73,17 +85,22 @@ final class FontThickenPreviewView: NSView {
 
         let color = NSColor.labelColor
         var y = verticalPadding
-        let lineHeight = ceil(previewFont.boundingRectForFont.height)
+        let rowHeight = ceil(previewFont.boundingRectForFont.height * lineHeight)
         for (text, bold) in lines {
             let font = bold
                 ? NSFontManager.shared.convert(previewFont, toHaveTrait: .boldFontMask)
                 : previewFont
-            let attrs: [NSAttributedString.Key: Any] = [
+            var attrs: [NSAttributedString.Key: Any] = [
                 .font: font,
                 .foregroundColor: color,
             ]
+            if thicken {
+                let strength = min(max(thickenStrength, 0), 255)
+                attrs[.strokeColor] = color
+                attrs[.strokeWidth] = -(0.5 + CGFloat(strength) / 255 * 1.5)
+            }
             (text as NSString).draw(at: NSPoint(x: 0, y: y), withAttributes: attrs)
-            y += lineHeight + lineSpacing
+            y += rowHeight + lineSpacing
         }
     }
 }

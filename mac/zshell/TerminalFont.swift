@@ -35,24 +35,64 @@ enum TerminalFont {
     /// Resolves a family name to a terminal-ready font. Empty family means
     /// the bundled default; an unknown family falls back to it too.
     ///
-    /// The bundled Symbols Nerd Font is attached as a CoreText cascade
-    /// entry so PUA icon glyphs (file-type symbols, git glyphs, nf-md-*)
-    /// render without a user-installed patched font. JetBrains Mono covers
-    /// Powerline separators itself, so those never hit the fallback.
-    static func resolve(family: String, size: CGFloat) -> NSFont {
+    /// The optional user fallback precedes the bundled Symbols Nerd Font in
+    /// the CoreText cascade. The symbols face still supplies PUA icon glyphs;
+    /// JetBrains Mono covers Powerline separators itself.
+    static func resolve(
+        family: String,
+        fallbackFamily: String = "",
+        size: CGFloat
+    ) -> NSFont {
         let base: NSFont
         if !family.isEmpty, family != bundledFamily,
-           let chosen = NSFontManager.shared.font(withFamily: family, traits: [], weight: 5, size: size) {
+           let chosen = font(family: family, size: size) {
             base = chosen
         } else if let bundled = NSFont(name: "JetBrainsMono-Regular", size: size) {
             base = bundled
         } else {
             return .monospacedSystemFont(ofSize: size, weight: .regular)
         }
-        let descriptor = base.fontDescriptor.addingAttributes([
-            .cascadeList: [NSFontDescriptor(name: symbolsFontName, size: size)]
-        ])
+        var cascade: [NSFontDescriptor] = []
+        if !fallbackFamily.isEmpty,
+           fallbackFamily != family,
+           let fallback = font(family: fallbackFamily, size: size) {
+            cascade.append(fallback.fontDescriptor)
+        }
+        cascade.append(NSFontDescriptor(name: symbolsFontName, size: size))
+        let descriptor = base.fontDescriptor.addingAttributes([.cascadeList: cascade])
         return NSFont(descriptor: descriptor, size: size) ?? base
+    }
+
+    private static func font(family: String, size: CGFloat) -> NSFont? {
+        NSFontManager.shared.font(
+            withFamily: family, traits: [], weight: 5, size: size
+        )
+    }
+
+    /// Families with representative Chinese, Japanese, or Korean glyphs.
+    /// Unlike the primary picker, these may be proportional: CoreText uses
+    /// their glyph advances only when the Latin face has no matching glyph.
+    static func selectableCJKFallbackFamilies() -> [String] {
+        let manager = NSFontManager.shared
+        let sample: [UniChar] = [0x4E2D, 0x65E5, 0xD55C]
+        return manager.availableFontFamilies
+            .filter { family in
+                guard family != bundledFamily,
+                      !family.hasPrefix("Symbols Nerd Font"),
+                      !family.hasPrefix("."),
+                      let font = manager.font(
+                          withFamily: family, traits: [], weight: 5, size: 13
+                      )
+                else { return false }
+                return sample.contains { character in
+                    var codeUnit = character
+                    var glyph = CGGlyph()
+                    return CTFontGetGlyphsForCharacters(
+                        font as CTFont, &codeUnit, &glyph, 1
+                    ) && glyph != 0
+                }
+            }
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
     /// Some CJK terminal fonts use double-width ideographs and therefore do

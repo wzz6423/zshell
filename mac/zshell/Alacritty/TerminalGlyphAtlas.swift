@@ -99,6 +99,7 @@ final class TerminalGlyphAtlas {
             || metrics.cellHeight != self.metrics.cellHeight
             || metrics.regular != self.metrics.regular
             || metrics.fontThicken != self.metrics.fontThicken
+            || metrics.fontThickenStrength != self.metrics.fontThickenStrength
             || scale != self.scale
         else { return }
         self.metrics = metrics
@@ -137,12 +138,13 @@ final class TerminalGlyphAtlas {
         var line = CTLineCreateWithAttributedString(attributed)
         let isColor = containsColorGlyphs(line)
         if metrics.fontThicken, !isColor {
-            // CoreText's negative stroke width fills and expands the glyph.
-            // Two percent is close to Ghostty's subtle one-pixel thickening
-            // without changing the grid advance. Color emoji keep their
-            // original artwork rather than receiving a white outline.
+            // CoreText uses negative percentages for inner stroke expansion.
+            // Map Ghostty's 0...255 range to a subtle 0.5...2% pass while
+            // keeping the existing full-strength Alacritty appearance.
+            let strength = min(max(metrics.fontThickenStrength, 0), 255)
+            let strokeWidth = -(0.5 + CGFloat(strength) / 255 * 1.5)
             attributes[.strokeColor] = NSColor.white
-            attributes[.strokeWidth] = -2
+            attributes[.strokeWidth] = strokeWidth
             attributed = NSAttributedString(string: text, attributes: attributes)
             line = CTLineCreateWithAttributedString(attributed)
         }

@@ -136,6 +136,19 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     /// Shared across every pane: one device and one shader library is enough,
     /// and a per-pane device would duplicate the glyph atlas too.
     private static let sharedDevice = MTLCreateSystemDefaultDevice()
+
+    private static func currentMetrics() -> AlacrittyMetrics {
+        let settings = AppSettings.shared
+        return AlacrittyMetrics(
+            family: settings.fontFamily,
+            fallbackFamily: settings.fontFallbackFamily,
+            size: CGFloat(settings.fontSize),
+            fontThicken: settings.fontThicken,
+            fontThickenStrength: settings.fontThickenStrength,
+            lineHeight: CGFloat(settings.terminalLineHeight)
+        )
+    }
+
     private let metalDevice = AlacrittyTerminalView.sharedDevice
     private var renderScheduled = false
     /// Forces the next frame regardless of emulator damage. Set for changes
@@ -147,11 +160,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     private var kittyImageData: [AlacrittyKittyImageKey: Data] = [:]
 
     override init(frame frameRect: NSRect) {
-        metrics = AlacrittyMetrics(
-            family: AppSettings.shared.fontFamily,
-            size: CGFloat(AppSettings.shared.fontSize),
-            fontThicken: AppSettings.shared.fontThicken
-        )
+        metrics = Self.currentMetrics()
         super.init(frame: frameRect)
         wantsLayer = true
         layerContentsRedrawPolicy = .onSetNeedsDisplay
@@ -468,11 +477,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     func applyAppearance() {
-        metrics = AlacrittyMetrics(
-            family: AppSettings.shared.fontFamily,
-            size: CGFloat(AppSettings.shared.fontSize),
-            fontThicken: AppSettings.shared.fontThicken
-        )
+        metrics = Self.currentMetrics()
         presentationCoverLayer.backgroundColor = terminalBackgroundColor
         var theme = AlacrittyTheme.current()
         if let handle {

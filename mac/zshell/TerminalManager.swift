@@ -148,10 +148,17 @@ final class TerminalManager: nonisolated ObservableObject {
         // pushed the theme onto NSApp (and the selection into `Theme`), so
         // `refreshAppearance` reads the new state.
         settingsObservation = Publishers.CombineLatest4(
-            Publishers.CombineLatest4(
-                AppSettings.shared.$fontFamily.removeDuplicates(),
-                AppSettings.shared.$fontSize.removeDuplicates(),
-                AppSettings.shared.$fontThicken.removeDuplicates(),
+            Publishers.CombineLatest3(
+                Publishers.CombineLatest4(
+                    AppSettings.shared.$fontFamily.removeDuplicates(),
+                    AppSettings.shared.$fontFallbackFamily.removeDuplicates(),
+                    AppSettings.shared.$fontSize.removeDuplicates(),
+                    AppSettings.shared.$fontThicken.removeDuplicates()
+                ),
+                Publishers.CombineLatest(
+                    AppSettings.shared.$fontThickenStrength.removeDuplicates(),
+                    AppSettings.shared.$terminalLineHeight.removeDuplicates()
+                ),
                 AppSettings.shared.$theme.removeDuplicates()
             ),
             Publishers.CombineLatest(
