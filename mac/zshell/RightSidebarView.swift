@@ -82,6 +82,7 @@ struct RightSidebarView: View {
                         GitPanel(
                             model: git,
                             session: manager.selectedSession,
+                            isRemote: manager.selectedProject?.isRemote == true,
                             openFile: { manager.openFile($0) },
                             openToSide: { manager.openFileToSide($0) },
                             openDiff: { entry, staged in
@@ -106,11 +107,15 @@ struct RightSidebarView: View {
                             openWorktree: { manager.newSession(directory: $0) }
                         )
                     case .info:
-                        InfoPanel(
-                            model: info,
-                            session: manager.selectedSession,
-                            externalEditor: settings.externalEditor
-                        )
+                        if let project = manager.selectedProject, project.isRemote {
+                            RemoteProjectInfoView(project: project)
+                        } else {
+                            InfoPanel(
+                                model: info,
+                                session: manager.selectedSession,
+                                externalEditor: settings.externalEditor
+                            )
+                        }
                     }
                 }
                 .frame(width: width)
@@ -230,11 +235,34 @@ struct RightSidebarView: View {
         .accessibilityValue(isActive ? "Selected" : "Not selected")
     }
 
+    private func panelTitle(_ panel: RightPanel) -> String {
+        switch panel {
+        case .files: String(localized: "Files")
+        case .git: String(localized: "Git")
+        case .info: String(localized: "Info")
+        }
+    }
+
     private func syncModels() {
         guard manager.isPanelVisible,
               let project = manager.selectedProject,
               let session = project.selectedSession
         else { return }
+        guard !project.isRemote else {
+            // Remote projects: the file tree runs `ls` over SSH against the
+            // declared endpoint, rooted at the project's remote directory.
+            // Git is driven solely by ContentView.syncGit, which already
+            // configured the endpoint and remote root — syncing git here
+            // with a local root would clobber that.
+            fileTree.configureRemote(project.remoteEndpoint)
+            fileTree.sync(root: project.remoteDirectory ?? "~")
+            info.sync(
+                root: "", projectRoot: "",
+                projectRootSource: .shell,
+                shellName: "", shellPid: nil
+            )
+            return
+        }
         let cwd = session.currentDirectoryPath
         // Files and Git anchor to the project directory — pinned when the
         // user set one, else the repository the session is working in — so
@@ -328,7 +356,7 @@ private struct FileTreePanel: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                PanelHeader(title: model.rootName, subtitle: model.rootPath)
+                PanelHeader(title: model.rootName, subtitle: model.rootSubtitle)
                 if let rootBadge {
                     Text(verbatim: rootBadge.text)
                         .font(.system(size: 9, weight: .medium))
@@ -341,22 +369,36 @@ private struct FileTreePanel: View {
                         )
                         .accessibilityLabel(rootBadge.description)
                 }
-                Button {
-                    NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: model.rootPath)])
-                } label: {
-                    Image(systemName: "arrow.up.forward.app")
-                        .sidebarFont(size: 11)
-                        .foregroundStyle(.secondary)
+                if !model.isRemote {
+                    Button {
+                        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: model.rootPath)])
+                    } label: {
+                        Image(systemName: "arrow.up.forward.app")
+                            .sidebarFont(size: 11)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Reveal in Finder")
                 }
-                .buttonStyle(.plain)
-                .help("Reveal in Finder")
             }
             .padding(.horizontal, 12)
             .padding(.top, 8)
             .padding(.bottom, 8)
 
+            if model.isRemote, let remoteError = model.remoteError {
+                remoteErrorBanner(remoteError)
+            }
+
             ScrollView {
                 LazyVStack(spacing: 1) {
+                    if model.isRemote, model.isRemoteLoading, model.items.isEmpty {
+                        Text(String(localized: "Loading remote directory…"))
+                            .sidebarFont(size: 11)
+                            .foregroundStyle(.tertiary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 6)
+                            .padding(.top, 4)
+                    }
                     ForEach(model.items) { item in
                         FileTreeRow(
                             model: model, git: git, item: item, session: session,
@@ -372,6 +414,30 @@ private struct FileTreePanel: View {
                 .padding(.bottom, 8)
             }
         }
+    }
+
+    /// Why a remote listing is missing or stale: SSH failed, the directory
+    /// doesn't exist, or the host is unreachable. Offers a retry for the root.
+    private func remoteErrorBanner(_ message: String) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .sidebarFont(size: 10)
+                .foregroundStyle(.secondary)
+                .padding(.top, 2)
+            Text(verbatim: message)
+                .sidebarFont(size: 10.5)
+                .foregroundStyle(.secondary)
+                .lineLimit(4)
+            Button(String(localized: "Retry")) {
+                model.retryRemoteRoot()
+            }
+            .buttonStyle(.plain)
+            .sidebarFont(size: 10.5, weight: .medium)
+            .foregroundStyle(Color(nsColor: Theme.accent))
+        }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -423,44 +489,61 @@ private struct FileTreeRow: View {
 
     @ViewBuilder
     private var rowMenu: some View {
-        if !item.isDirectory {
-            Button("Open") {
-                openFile(item.path)
+        if model.isRemote {
+            // No local file backs a remote row: only navigation and the path
+            // itself make sense. Editing comes in a later slice.
+            if item.isDirectory {
+                Button("cd Here") {
+                    session?.sendCommand("cd " + shellQuote(item.path) + "\n")
+                }
             }
-            Button("Open to the Side") {
-                openToSide(item.path)
+            Button("Copy Path") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(item.path, forType: .string)
             }
-        }
-        Button(externalEditor.openTitle) {
-            externalEditor.open(URL(fileURLWithPath: item.path))
-        }
-        .disabled(!externalEditor.isAvailable)
-        Button("Reveal in Finder") {
-            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: item.path)])
-        }
-        Button("Copy Path") {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(item.path, forType: .string)
-        }
-        if item.isDirectory {
-            Button("cd Here") {
-                session?.sendCommand("cd " + shellQuote(item.path) + "\n")
+        } else {
+            if !item.isDirectory {
+                Button("Open") {
+                    openFile(item.path)
+                }
+                Button("Open to the Side") {
+                    openToSide(item.path)
+                }
+            }
+            Button(externalEditor.openTitle) {
+                externalEditor.open(URL(fileURLWithPath: item.path))
+            }
+            .disabled(!externalEditor.isAvailable)
+            Button("Open in Default App") {
+                NSWorkspace.shared.open(URL(fileURLWithPath: item.path))
+            }
+            Button("Reveal in Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: item.path)])
+            }
+            Button("Copy Path") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(item.path, forType: .string)
+            }
+            if item.isDirectory {
+                Button("cd Here") {
+                    session?.sendCommand("cd " + shellQuote(item.path) + "\n")
+                }
+                Divider()
+                Button("New File…") {
+                    model.beginNewFile(in: item.path)
+                }
+                Button("New Folder…") {
+                    model.beginNewFolder(in: item.path)
+                }
             }
             Divider()
-            Button("New File…") {
-                model.beginNewFile(in: item.path)
+            Button("Rename") {
+                model.beginRename(item)
             }
-            Button("New Folder…") {
-                model.beginNewFolder(in: item.path)
+            Button("Move to Trash", role: .destructive) {
+                model.moveToTrash(item)
+                refreshGitStatus()
             }
-        }
-        Divider()
-        Button("Rename") {
-            model.beginRename(item)
-        }
-        Button("Move to Trash", role: .destructive) {
-            model.moveToTrash(item)
-            refreshGitStatus()
         }
     }
 
@@ -495,7 +578,28 @@ private struct FileTreeRow: View {
         }
     }
 
+    @ViewBuilder
     private var rowButton: some View {
+        // Remote rows have no local file URL to drag out.
+        if model.isRemote {
+            rowLabel
+                .buttonStyle(.plain)
+                .accessibilityLabel(fileAccessibilityLabel)
+        } else {
+            rowLabel
+                .buttonStyle(.plain)
+                .accessibilityLabel(fileAccessibilityLabel)
+                // Drag a row out as a file URL: onto the terminal (which
+                // inserts its path) or into Finder and other apps. A click
+                // still opens/toggles; the drag only begins once the pointer
+                // moves.
+                .onDrag {
+                    NSItemProvider(object: URL(fileURLWithPath: item.path) as NSURL)
+                }
+        }
+    }
+
+    private var rowLabel: some View {
         Button {
             if !item.isDirectory && isCommandClick {
                 NSWorkspace.shared.open(URL(fileURLWithPath: item.path))
@@ -523,14 +627,6 @@ private struct FileTreeRow: View {
             .padding(.trailing, 6)
             .padding(.vertical, 3)
             .contentShape(RoundedRectangle(cornerRadius: 4))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(fileAccessibilityLabel)
-        // Drag a row out as a file URL: onto the terminal (which inserts its
-        // path) or into Finder and other apps. A click still opens/toggles;
-        // the drag only begins once the pointer moves.
-        .onDrag {
-            NSItemProvider(object: URL(fileURLWithPath: item.path) as NSURL)
         }
     }
 
@@ -763,7 +859,9 @@ private struct GitPanel: View {
                 trackingBar
                 worktreesSection
                 repositoryOperationBanner
-                commitBox
+                if !isRemote {
+                    commitBox
+                }
                 reviewSummary
                 filterBar
                 changeList
@@ -838,7 +936,11 @@ private struct GitPanel: View {
     private var header: some View {
         HStack(spacing: 6) {
             if model.isRepo {
-                branchMenu
+                if isRemote {
+                    remoteBranchHeader
+                } else {
+                    branchMenu
+                }
             } else {
                 Image(systemName: "arrow.triangle.branch")
                     .sidebarFont(size: 11, weight: .medium)
@@ -870,12 +972,28 @@ private struct GitPanel: View {
                 ) {
                     model.refresh()
                 }
-                moreMenu
+                if !isRemote {
+                    moreMenu
+                }
             }
         }
         .padding(.horizontal, 12)
         .padding(.top, 8)
         .padding(.bottom, 8)
+    }
+
+    /// Remote repositories cannot switch branches from here; the header
+    /// stays informative instead of interactive.
+    private var remoteBranchHeader: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "arrow.triangle.branch")
+                .sidebarFont(size: 11, weight: .medium)
+                .foregroundStyle(Color(nsColor: Theme.accent))
+            PanelHeader(
+                title: model.branch ?? String(localized: "Detached HEAD"),
+                subtitle: model.rootPath
+            )
+        }
     }
 
     private var branchMenu: some View {
@@ -1522,15 +1640,15 @@ private struct GitPanel: View {
                         title: String(localized: "STAGED CHANGES"),
                         count: filteredStagedEntries.count,
                         isCollapsed: $stagedCollapsed,
-                        actions: filterText.isEmpty ? [
-                            .init(
-                                systemImage: "minus",
-                                help: String(localized: "Unstage All Changes"),
-                                isLoading: operationIsLoading(.unstageAll)
-                            ) {
-                                performOperation(.unstageAll, model.unstageAll)
-                            }
-                        ] : [],
+                    actions: filterText.isEmpty && !isRemote ? [
+                        .init(
+                            systemImage: "minus",
+                            help: String(localized: "Unstage All Changes"),
+                            isLoading: operationIsLoading(.unstageAll)
+                        ) {
+                            performOperation(.unstageAll, model.unstageAll)
+                        }
+                    ] : [],
                         actionsDisabled: model.isBusy
                     )
                     if !stagedCollapsed {
@@ -1644,11 +1762,13 @@ private struct GitPanel: View {
                 guard let reviewSnapshot else { return }
                 reviews.setReviewed(!reviews.isReviewed(reviewSnapshot), for: reviewSnapshot)
             },
-            disabled: model.isBusy,
+            disabled: model.isBusy || isRemote,
             isStageLoading: operationIsLoading(stageTrigger),
             isUnstageLoading: operationIsLoading(unstageTrigger),
             isDiscardLoading: operationIsLoading(discardTrigger),
             openDiff: {
+                // Remote paths cannot be diffed locally.
+                guard !isRemote else { return }
                 guard model.isCurrent(entry) else { return }
                 var diffEntry = entry
                 if kind == .unstaged && (entry.staged == "R" || entry.staged == "C") {

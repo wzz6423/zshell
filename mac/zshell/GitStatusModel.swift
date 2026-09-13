@@ -290,6 +290,24 @@ final class GitStatusModel: nonisolated ObservableObject {
             .max { $0.directoryPriority < $1.directoryPriority }
     }
 
+    // MARK: - Remote projects
+
+    /// When set, repository state is read by running Git over SSH on the
+    /// project's remote host. Mutating operations stay local-only and are
+    /// rejected while this is set.
+    private var remoteEndpoint: SSHEndpoint?
+
+    /// Switches the model between the local and remote data sources. Called
+    /// whenever the selected project changes; a no-op when unchanged.
+    func configureRemote(_ endpoint: SSHEndpoint?) {
+        guard endpoint != remoteEndpoint else { return }
+        remoteEndpoint = endpoint
+        contextGeneration &+= 1
+        invalidateStatusRefresh()
+        cachedStatusByRoot.removeAll()
+        clearRepositoryState()
+    }
+
     func sync(root: String) {
         if root != rootPath {
             contextGeneration &+= 1
@@ -323,9 +341,12 @@ final class GitStatusModel: nonisolated ObservableObject {
         // This is deliberately independent of the worker. Even filesystem
         // metadata calls can become uninterruptible on a disconnected volume;
         // the sidebar must still leave its initial loading state and offer a
-        // retry while the stale worker winds down in the background.
+        // retry while the stale worker winds down in the background. The
+        // remote probe runs up to three sequential SSH commands, so its
+        // budget is correspondingly wider.
+        let watchdogSeconds: UInt64 = remoteEndpoint == nil ? 12 : 30
         Task { [weak self] in
-            try? await Task.sleep(for: .seconds(12))
+            try? await Task.sleep(for: .seconds(watchdogSeconds))
             guard let self,
                   self.isRefreshing,
                   self.contextGeneration == generation,
@@ -340,8 +361,15 @@ final class GitStatusModel: nonisolated ObservableObject {
         }
 
         Task { [weak self] in
+            let endpoint = self?.remoteEndpoint
             let result = await Task.detached(priority: .utility) {
-                Self.runGitStatus(in: root, recentCommitLimit: commitLimit)
+                if let endpoint {
+                    Self.runRemoteGitStatus(
+                        endpoint: endpoint, in: root, recentCommitLimit: commitLimit
+                    )
+                } else {
+                    Self.runGitStatus(in: root, recentCommitLimit: commitLimit)
+                }
             }.value
             guard let self, self.contextGeneration == generation,
                   self.statusRequestID == requestID,
@@ -877,6 +905,12 @@ final class GitStatusModel: nonisolated ObservableObject {
 
     private func trash(paths: [String], label: String, completedBefore: String? = nil) {
         guard !paths.isEmpty, !isBusy else { return }
+        guard remoteEndpoint == nil else {
+            failImmediately(
+                String(localized: "Git actions on SSH projects aren’t supported yet.")
+            )
+            return
+        }
         let base = URL(fileURLWithPath: repoRoot, isDirectory: true)
         let expectedRepositoryRoot = repoRoot
         let expectedHeadOID = headOID
@@ -1261,6 +1295,65 @@ final class GitStatusModel: nonisolated ObservableObject {
             output,
             errorOutput
         )
+    }
+
+    /// Runs Git over SSH for an SSH project. Three bounded commands replace
+    /// the local probe: resolve the repository, read porcelain status, and
+    /// total the pending diff. Details that would need more round trips
+    /// (branches, worktrees, history) stay empty until a later slice.
+    private nonisolated static func runRemoteGitStatus(
+        endpoint: SSHEndpoint, in root: String, recentCommitLimit: Int
+    ) -> StatusLoadResult {
+        let transport = OpenSSHTransport()
+        do {
+            let top = try transport.run(
+                endpoint: endpoint,
+                command: ["/usr/bin/git", "-C", root, "rev-parse", "--show-toplevel"]
+            )
+            let resolvedRoot = strippingTrailingLineEnding(top.stdout)
+            guard !resolvedRoot.isEmpty else {
+                return .failed(String(localized: "Git returned an empty repository path."))
+            }
+            let status = try transport.run(
+                endpoint: endpoint,
+                command: [
+                    "/usr/bin/git", "-C", resolvedRoot,
+                    "status", "--porcelain=v2", "--branch", "-z", "--untracked-files=all",
+                ]
+            )
+            var result = parseStatus(status.stdout)
+            result.topLevel = resolvedRoot
+            let diff = try transport.run(
+                endpoint: endpoint,
+                command: [
+                    "/usr/bin/git", "-C", resolvedRoot, "diff", "--numstat",
+                    result.hasHead ? "HEAD" : "--cached", "--",
+                ]
+            )
+            if !diff.stdout.isEmpty {
+                let totals = parseNumstat(diff.stdout)
+                result.lineAdditions = totals.additions
+                result.lineDeletions = totals.deletions
+            }
+            return .repository(result)
+        } catch let error as OpenSSHTransport.TransportError {
+            switch error {
+            case .failed(let status, let output):
+                let text = [output.stderr, output.stdout]
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .first { !$0.isEmpty }
+                if status == 128,
+                   let text,
+                   text.localizedCaseInsensitiveContains("not a git repository") {
+                    return .notRepository
+                }
+                return .failed(text ?? error.localizedDescription)
+            case .timedOut:
+                return .failed(error.localizedDescription)
+            }
+        } catch {
+            return .failed(error.localizedDescription)
+        }
     }
 
     /// Resolves the active repository and distinguishes a normal non-repo

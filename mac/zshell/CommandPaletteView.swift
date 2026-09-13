@@ -220,6 +220,9 @@ struct CommandPaletteView: View {
             PaletteCommand(id: "new-project", title: "New Project", systemImage: "folder.badge.plus", shortcut: "⌘N") {
                 manager.newProject()
             },
+            PaletteCommand(id: "new-ssh-project", title: "New SSH Project…", systemImage: "network") {
+                manager.promptForSSHProject()
+            },
             PaletteCommand(id: "close-tab", title: "Close Tab", systemImage: "xmark.square", shortcut: "⌘W") {
                 manager.closeSelectedTab()
             },
@@ -343,13 +346,16 @@ struct CommandPaletteView: View {
         guard !query.trimmingCharacters(in: .whitespaces).isEmpty else { return [] }
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let roots = manager.projects.compactMap { project -> ProjectFileSearchRoot? in
+            // Remote (SSH) projects have no local file index to search.
+            guard !project.isRemote else { return nil }
             let root: String?
             if let session = project.selectedSession {
                 root = project.panelRoot(
                     followingSessionAt: session.currentDirectoryPath,
                     foregroundAt: session.foregroundDirectoryPath
                 ).root
-            } else if let pinned = project.customDirectory {
+            } else if let pinned = project.customDirectory,
+                      FileManager.default.fileExists(atPath: pinned) {
                 root = pinned
             } else {
                 root = nil

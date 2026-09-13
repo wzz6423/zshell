@@ -240,11 +240,14 @@ struct SessionSnapshot: Codable {
         /// Project values inherited by newly created terminals. Empty settings
         /// are omitted while decoding still accepts snapshots that lack them.
         var launchSettings = TerminalLaunchSettings()
+        /// Local by default so snapshots written before remote projects existed
+        /// continue to restore without custom decoding.
+        var location: ProjectLocation?
         var tabs: [TabSnapshot]
         var selectedTabIndex: Int?
 
         enum CodingKeys: String, CodingKey {
-            case customName, isPinned, markerColorHex, customDirectory, launchSettings, tabs, selectedTabIndex
+            case customName, isPinned, markerColorHex, customDirectory, launchSettings, location, tabs, selectedTabIndex
         }
 
         init(
@@ -253,6 +256,7 @@ struct SessionSnapshot: Codable {
             markerColorHex: String? = nil,
             customDirectory: String?,
             launchSettings: TerminalLaunchSettings = .init(),
+            location: ProjectLocation? = nil,
             tabs: [TabSnapshot],
             selectedTabIndex: Int?
         ) {
@@ -261,6 +265,7 @@ struct SessionSnapshot: Codable {
             self.markerColorHex = markerColorHex
             self.customDirectory = customDirectory
             self.launchSettings = launchSettings
+            self.location = location
             self.tabs = tabs
             self.selectedTabIndex = selectedTabIndex
         }
@@ -276,6 +281,9 @@ struct SessionSnapshot: Codable {
             launchSettings = try container.decodeIfPresent(
                 TerminalLaunchSettings.self, forKey: .launchSettings
             ) ?? .init()
+            location = try container.decodeIfPresent(
+                ProjectLocation.self, forKey: .location
+            )
             tabs = try container.decode([TabSnapshot].self, forKey: .tabs)
             selectedTabIndex = try container.decodeIfPresent(
                 Int.self, forKey: .selectedTabIndex
@@ -293,6 +301,7 @@ struct SessionSnapshot: Codable {
             if launchSettings != .init() {
                 try container.encode(launchSettings, forKey: .launchSettings)
             }
+            try container.encodeIfPresent(location, forKey: .location)
             try container.encode(tabs, forKey: .tabs)
             try container.encodeIfPresent(selectedTabIndex, forKey: .selectedTabIndex)
         }

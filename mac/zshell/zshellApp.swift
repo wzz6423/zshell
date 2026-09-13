@@ -114,6 +114,11 @@ private struct ZshellCommands: Commands {
             .keyboardShortcut(settings.keyboardShortcut(for: .newProject))
             .disabled(manager == nil)
 
+            Button("New SSH Project…") {
+                manager?.promptForSSHProject()
+            }
+            .disabled(manager == nil)
+
             Button("New Session") {
                 manager?.newSession()
             }

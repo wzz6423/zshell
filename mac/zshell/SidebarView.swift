@@ -84,6 +84,10 @@ struct SidebarView: View {
                     systemImage: "plus",
                     tooltip: "New Project (⌘N)"
                 ) { manager.newProject() }
+                SidebarFooterButton(
+                    systemImage: "network",
+                    tooltip: "New SSH Project"
+                ) { manager.promptForSSHProject() }
                 Spacer()
                 SidebarFooterButton(
                     systemImage: "exclamationmark.bubble",

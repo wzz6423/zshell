@@ -343,9 +343,16 @@ struct ContentView: View {
     private func syncGit() {
         guard let project = manager.selectedProject,
               let session = project.selectedSession else {
+            git.configureRemote(nil)
             git.sync(root: "")
             return
         }
+        if let endpoint = project.remoteEndpoint {
+            git.configureRemote(endpoint)
+            git.sync(root: project.remoteDirectory ?? "~")
+            return
+        }
+        git.configureRemote(nil)
         let root = project.panelRoot(
             followingSessionAt: session.currentDirectoryPath,
             foregroundAt: session.foregroundDirectoryPath

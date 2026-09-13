@@ -2047,6 +2047,86 @@
         }
       }
     },
+    "Connect": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接"
+          }
+        }
+      }
+    },
+    "Connect with the system OpenSSH client. Password prompts are disabled.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システムのOpenSSHクライアントで接続します。パスワード入力は無効です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通过系统 OpenSSH 客户端连接。已禁用密码提示。"
+          }
+        }
+      }
+    },
+    "Connected": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続済み"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已连接"
+          }
+        }
+      }
+    },
+    "Connecting…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続中…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在连接…"
+          }
+        }
+      }
+    },
+    "Connection failed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続失敗"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接失败"
+          }
+        }
+      }
+    },
     "Copied": {
       "localizations": {
         "ja": {
@@ -2363,6 +2443,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "无法重新启动 Zshell"
+          }
+        }
+      }
+    },
+    "Couldn’t create the SSH project.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSHプロジェクトを作成できません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法创建 SSH 项目。"
           }
         }
       }
@@ -3084,7 +3180,39 @@
         }
       }
     },
+    "Enter a host.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ホストを入力してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入主机。"
+          }
+        }
+      }
+    },
     "Enter a name for the new branch.": {},
+    "Enter a port from 1 to 65535.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1〜65535のポートを入力してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入 1 到 65535 之间的端口。"
+          }
+        }
+      }
+    },
     "Enter the full path to an executable file. New terminals use your login shell until the path is valid.": {
       "localizations": {
         "ja": {
@@ -3919,6 +4047,22 @@
         }
       }
     },
+    "Git actions on SSH projects aren’t supported yet.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSHプロジェクトに対するGit操作はまだサポートされていません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂不支持对 SSH 项目执行 Git 操作。"
+          }
+        }
+      }
+    },
     "Git command failed": {
       "localizations": {
         "ja": {
@@ -4045,6 +4189,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "此安装的更新由 Homebrew 管理。"
+          }
+        }
+      }
+    },
+    "Host": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ホスト"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "主机"
           }
         }
       }
@@ -4472,6 +4632,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "行高"
+          }
+        }
+      }
+    },
+    "Loading remote directory…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リモートディレクトリを読み込み中…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在加载远程目录…"
           }
         }
       }
@@ -5033,6 +5209,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "新建快速命令"
+          }
+        }
+      }
+    },
+    "New SSH Project": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新規SSHプロジェクト"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建 SSH 项目"
+          }
+        }
+      }
+    },
+    "New SSH Project…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新規SSHプロジェクト…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建 SSH 项目…"
           }
         }
       }
@@ -6051,6 +6259,22 @@
         }
       }
     },
+    "Port": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ポート"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端口"
+          }
+        }
+      }
+    },
     "Press shortcut": {
       "localizations": {
         "ja": {
@@ -6623,6 +6847,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "重新载入页面（⌘R）"
+          }
+        }
+      }
+    },
+    "Remote Directory": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リモートディレクトリ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "远程目录"
           }
         }
       }
@@ -8289,6 +8529,22 @@
         }
       }
     },
+    "Status": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "状態"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "状态"
+          }
+        }
+      }
+    },
     "Stop": {
       "localizations": {
         "ja": {
@@ -8788,6 +9044,38 @@
         }
       }
     },
+    "The SSH command failed.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSHコマンドが失敗しました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH 命令失败。"
+          }
+        }
+      }
+    },
+    "The SSH command timed out.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSHコマンドがタイムアウトしました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH 命令超时。"
+          }
+        }
+      }
+    },
     "The destination project already has an agent named “%@”.": {
       "comment": "Tab move failure. The placeholder is an agent alias.",
       "localizations": {
@@ -8801,6 +9089,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "目标项目已存在名为“%@”的编码代理。"
+          }
+        }
+      }
+    },
+    "The host can’t begin with “-” or contain whitespace.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ホストは「-」で始めたり、空白を含めたりできません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "主机不能以“-”开头，也不能包含空白字符。"
           }
         }
       }
@@ -8881,6 +9185,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "标签页或目标项目已不可用。"
+          }
+        }
+      }
+    },
+    "The user can’t contain “@” or whitespace.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ユーザー名に「@」や空白は含められません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用户名不能包含“@”或空白字符。"
           }
         }
       }
@@ -9756,6 +10076,22 @@
         }
       }
     },
+    "User": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ユーザー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用户"
+          }
+        }
+      }
+    },
     "Uses your account login shell with its login startup files.": {
       "localizations": {
         "ja": {
@@ -10041,6 +10377,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "分离 HEAD"
+          }
+        }
+      }
+    },
+    "example.com": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "example.com"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "example.com"
           }
         }
       }
