@@ -36,7 +36,27 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         onChange: { AppSettings.shared.terminalBackgroundOpacity = $0 }
     )
 
+    private let notifyOnErrorSwitch = SettingsSwitch { AppSettings.shared.notifyOnError = $0 }
+    private let notifyFinishPopup = SettingsPopUpButton<Int>(
+        items: SettingsTerminalPane.notifyFinishItems,
+        onChange: { AppSettings.shared.notifyFinishSeconds = $0 }
+    )
+
     private let shortcutRecorder = QuickTerminalShortcutRecorder(frame: .zero)
+
+    /// Popup entries for `terminal.notify-finish-seconds`: off, then the
+    /// offered minimum runtimes. One interpolated format covers every step,
+    /// the way the font-size readout does.
+    private static var notifyFinishItems: [SettingsPopUpItem<Int>] {
+        AppSettings.notifyFinishSecondChoices.map { seconds in
+            .value(
+                seconds == 0
+                    ? String(localized: "Off")
+                    : String(localized: "\(seconds)s", comment: "A runtime threshold, in seconds, for command-finish notifications; the placeholder is that number."),
+                seconds
+            )
+        }
+    }
 
     private let quickTerminalSizeRow = SettingsSliderRow(
         title: String(localized: "Size"),
@@ -135,6 +155,19 @@ final class SettingsTerminalPane: SettingsPaneViewController {
             ),
         ]))
 
+        groups.append(SettingsGroup(header: String(localized: "Command Notifications"), rows: [
+            SettingsRow(
+                title: String(localized: "Long-running commands"),
+                description: String(localized: "Notify when a command runs at least this long and then finishes. Changes apply to zsh terminals opened afterwards."),
+                control: notifyFinishPopup
+            ),
+            SettingsRow(
+                title: String(localized: "Failed commands"),
+                description: String(localized: "Notify when a command exits with a failure, no matter how briefly it ran. Changes apply to zsh terminals opened afterwards."),
+                control: notifyOnErrorSwitch
+            ),
+        ]))
+
         groups.append(SettingsGroup(header: String(localized: "Quick Terminal"), rows: [
             SettingsRow(title: String(localized: "Shortcut"), control: shortcutRecorder),
             quickTerminalSizeRow,
@@ -160,6 +193,8 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         terminalBackgroundBlurSwitch.isOn = settings.terminalBackgroundBlur
         terminalBackgroundBlurSwitch.isEnabled = settings.terminalBackgroundOpacity < 1
             && !NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
+        notifyFinishPopup.select(settings.notifyFinishSeconds)
+        notifyOnErrorSwitch.isOn = settings.notifyOnError
         shortcutRecorder.setShortcut(settings.quickTerminalShortcut)
         quickTerminalSizeRow.setValue(settings.quickTerminalSize)
         quickTerminalOpacityRow.setValue(settings.quickTerminalOpacity)

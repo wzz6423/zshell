@@ -510,7 +510,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             attributes: [.posixPermissions: 0o700]
         )
         let selectionStatePath = shellQuote(directory.appendingPathComponent("prompt-selection.pid").path)
-        let files = [
+        var files = [
             ".zshenv": """
             [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\"
             """,
@@ -642,6 +642,81 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             fi
             """,
         ]
+        // Command-completion notifications ride the same zsh-only shim: bash
+        // and fish never see ZDOTDIR, so this script is the only place the
+        // app can hear a command's start and exit. Both opt-in settings are
+        // baked into the text here; a running shell never re-reads them, so
+        // changes reach terminals opened afterwards.
+        if AppSettings.shared.notifyFinishSeconds > 0 || AppSettings.shared.notifyOnError {
+            files[".zshrc"]? += """
+
+
+            # Command-completion notifications. The shim only ever reaches
+            # Zshell's own zsh panes -- other shells get no shim, and a nested
+            # zsh reads the user's own config -- so the OSC 777 printed here
+            # is consumed by the app that injected this script and never
+            # reaches a third-party terminal. The threshold and error switch
+            # are baked in above. zsh/datetime supplies the wall-clock start
+            # stamp; on a zsh too old to provide one the feature silently
+            # stays off.
+            _zshell_notify_seconds=\(AppSettings.shared.notifyFinishSeconds)
+            _zshell_notify_on_error=\(AppSettings.shared.notifyOnError ? 1 : 0)
+            _zshell_notify_stamp=0
+            _zshell_notify_word=''
+            zmodload -i zsh/datetime 2>/dev/null
+            if (( $+EPOCHSECONDS )); then
+              _zshell_notify_preexec() {
+                local _zshell_notify_prev=$?
+                _zshell_notify_stamp=$EPOCHSECONDS
+                _zshell_notify_word=${${=1}[1]}
+                return $_zshell_notify_prev
+              }
+              # Runs ahead of every other precmd hook: prompt frameworks
+              # install their own precmd work -- git status, kubectl context
+              # -- whose commands would overwrite `$?` before a hook appended
+              # after theirs could read it, so the command's own exit status
+              # must be captured first. Returning it keeps `$?` for the hooks
+              # behind exactly as if this hook were absent.
+              _zshell_notify_precmd() {
+                local _zshell_notify_status=$?
+                if (( _zshell_notify_stamp )); then
+                  local _zshell_notify_elapsed=$(( EPOCHSECONDS - _zshell_notify_stamp ))
+                  _zshell_notify_stamp=0
+                  local _zshell_notify_fire=0
+                  if (( _zshell_notify_seconds > 0 && _zshell_notify_elapsed >= _zshell_notify_seconds )); then
+                    _zshell_notify_fire=1
+                  fi
+                  if (( _zshell_notify_on_error && _zshell_notify_status != 0 )); then
+                    _zshell_notify_fire=1
+                  fi
+                  if (( _zshell_notify_fire )); then
+                    # The command name becomes notification text: strip
+                    # control characters, which the notification parsers
+                    # reject the whole message over, and `;`, which would
+                    # forge the title/body field split; cap the rest so one
+                    # pathological word cannot flood a banner. Nothing
+                    # presentable left means nothing to announce.
+                    local _zshell_notify_name=${_zshell_notify_word//[[:cntrl:];]/}
+                    _zshell_notify_name=${_zshell_notify_name[1,64]}
+                    if [[ -n $_zshell_notify_name ]]; then
+                      local _zshell_notify_outcome=finished
+                      (( _zshell_notify_status != 0 )) && _zshell_notify_outcome=failed
+                      printf '\\e]777;notify;%s;%s\\e\\\\' "$_zshell_notify_name $_zshell_notify_outcome" "$_zshell_notify_name $_zshell_notify_outcome — ${_zshell_notify_elapsed}s, exit $_zshell_notify_status"
+                    fi
+                  fi
+                fi
+                return $_zshell_notify_status
+              }
+              add-zsh-hook preexec _zshell_notify_preexec
+              # add-zsh-hook only appends, and the last precmd hook sees
+              # whatever the ones before it left in `$?` -- that ordering is
+              # the whole reason this hook is prepended by hand.
+              if [[ -z "${precmd_functions[(r)_zshell_notify_precmd]}" ]]; then
+                precmd_functions=(_zshell_notify_precmd "${precmd_functions[@]}")
+              fi
+            fi
+            """
+        }
         for (name, contents) in files {
             let file = integrationDirectory.appendingPathComponent(name)
             try Data((contents + "\n").utf8).write(to: file, options: .atomic)

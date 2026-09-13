@@ -178,6 +178,12 @@ final class AppSettings: nonisolated ObservableObject {
     static let defaultPaneFocusRingOpacity: Double = 0.85
     static let paneFocusRingOpacityRange: ClosedRange<Double> = 0.05...1
 
+    /// The minimum runtimes, in seconds, that Settings offers for
+    /// `terminal.notify-finish-seconds`. A hand-edited config value outside
+    /// this set reads as off — the alternative is a popup displaying a number
+    /// the pane's shell integration would not have been built with.
+    static let notifyFinishSecondChoices = [0, 5, 10, 30, 60]
+
     /// The language this process launched with, kept separate from the pending
     /// selection so Settings can explain when a relaunch is required.
     let activeLanguage: AppLanguage
@@ -353,6 +359,25 @@ final class AppSettings: nonisolated ObservableObject {
         isTerminalBackgroundTranslucent && terminalBackgroundBlur
     }
 
+    /// Minimum runtime, in seconds, a command must reach before its pane's zsh
+    /// shell integration asks Zshell to post a completion notification. Zero
+    /// disables it. Persisted as `terminal.notify-finish-seconds`; the shell
+    /// integration shim is written when a pane is created, so changes reach
+    /// terminals opened afterwards.
+    @Published var notifyFinishSeconds: Int {
+        didSet { save() }
+    }
+
+    /// Notify when a command exits with a failure, regardless of runtime.
+    /// Persisted as `terminal.notify-on-error`; off by default so a stream of
+    /// expected failures cannot surprise the user with banners. Shares the
+    /// shim plumbing and the new-terminals-only caveat with
+    /// ``notifyFinishSeconds``.
+    @Published var notifyOnError: Bool {
+        didSet { save() }
+    }
+
+
     /// Initial area and translucency for the global quick terminal. Per-use
     /// adjustments stay with the overlay rather than changing these defaults.
     @Published var quickTerminalSize: Double {
@@ -481,6 +506,11 @@ final class AppSettings: nonisolated ObservableObject {
         ) ? terminalBackgroundOpacity : Self.defaultTerminalBackgroundOpacity
         terminalBackgroundBlur = toml["terminal.background-blur"]?.bool
             ?? Self.defaultTerminalBackgroundBlur
+        let notifySeconds = toml["terminal.notify-finish-seconds"]?.double ?? 0
+        let notifyChoice = notifySeconds.isFinite ? Int(notifySeconds) : 0
+        notifyFinishSeconds = Self.notifyFinishSecondChoices.contains(notifyChoice)
+            ? notifyChoice : 0
+        notifyOnError = toml["terminal.notify-on-error"]?.bool ?? false
         let quickTerminalSize = toml["quick-terminal.size"]?.double
             ?? Self.defaultQuickTerminalSize
         self.quickTerminalSize = Self.quickTerminalSizeRange.contains(quickTerminalSize)
@@ -599,6 +629,8 @@ final class AppSettings: nonisolated ObservableObject {
             && !restoreTerminalHistory
             && terminalBackgroundOpacity == Self.defaultTerminalBackgroundOpacity
             && terminalBackgroundBlur == Self.defaultTerminalBackgroundBlur
+            && notifyFinishSeconds == 0
+            && !notifyOnError
             && quickTerminalSize == Self.defaultQuickTerminalSize
             && quickTerminalOpacity == Self.defaultQuickTerminalOpacity
             && quickTerminalShortcut == Self.defaultQuickTerminalShortcut
@@ -629,6 +661,8 @@ final class AppSettings: nonisolated ObservableObject {
         restoreTerminalHistory = false
         terminalBackgroundOpacity = Self.defaultTerminalBackgroundOpacity
         terminalBackgroundBlur = Self.defaultTerminalBackgroundBlur
+        notifyFinishSeconds = 0
+        notifyOnError = false
         quickTerminalSize = Self.defaultQuickTerminalSize
         quickTerminalOpacity = Self.defaultQuickTerminalOpacity
         quickTerminalShortcut = Self.defaultQuickTerminalShortcut
@@ -824,6 +858,12 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if terminalBackgroundBlur != Self.defaultTerminalBackgroundBlur {
             lines.append("terminal.background-blur = true")
+        }
+        if notifyFinishSeconds > 0 {
+            lines.append("terminal.notify-finish-seconds = \(TOML.number(Double(notifyFinishSeconds)))")
+        }
+        if notifyOnError {
+            lines.append("terminal.notify-on-error = true")
         }
         if quickTerminalSize != Self.defaultQuickTerminalSize {
             lines.append("quick-terminal.size = \(TOML.number(quickTerminalSize))")
