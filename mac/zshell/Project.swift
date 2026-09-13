@@ -19,6 +19,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// User-assigned name; when nil the project title follows the
     /// selected session's terminal title.
     @Published var customName: String?
+    @Published var isPinned: Bool
     /// User-pinned project directory ("Set Project Directory…" on the
     /// project row). When set, the file tree and git panels always anchor
     /// here. Nil means automatic: the closest git repository containing the
@@ -53,8 +54,13 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     /// Pass `createInitialSession: false` when restoring a saved project;
     /// the caller then rebuilds the tabs itself.
-    init(fallbackName: String, createInitialSession: Bool = true) {
+    init(
+        fallbackName: String,
+        isPinned: Bool = false,
+        createInitialSession: Bool = true
+    ) {
         self.fallbackName = fallbackName
+        self.isPinned = isPinned
         if createInitialSession {
             newSession()
         }
@@ -730,12 +736,24 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     // MARK: - Tab selection
 
-    /// Moves a dragged tab across `targetID`: after it when moving right, or
-    /// before it when moving left. Selection continues to follow its tab ID.
+    func setPinned(_ pinned: Bool, for tab: PaneTab) {
+        guard tab.isPinned != pinned,
+              let index = tabs.firstIndex(where: { $0.id == tab.id })
+        else { return }
+
+        tabs.remove(at: index)
+        tab.isPinned = pinned
+        let destination = tabs.firstIndex(where: { !$0.isPinned }) ?? tabs.endIndex
+        tabs.insert(tab, at: destination)
+    }
+
+    /// Moves a dragged tab across `targetID` within its pinned or unpinned
+    /// section. Selection continues to follow its tab ID.
     func moveTab(_ draggedID: UUID, to targetID: UUID) {
         guard draggedID != targetID,
               let draggedIndex = tabs.firstIndex(where: { $0.id == draggedID }),
-              let targetIndex = tabs.firstIndex(where: { $0.id == targetID })
+              let targetIndex = tabs.firstIndex(where: { $0.id == targetID }),
+              tabs[draggedIndex].isPinned == tabs[targetIndex].isPinned
         else { return }
 
         var reorderedTabs = tabs
@@ -759,6 +777,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
               let draggedIndex = tabs.firstIndex(where: { $0.id == draggedID }),
               let draggedTab = tabs.first(where: { $0.id == draggedID }),
               let targetTab = tabs.first(where: { $0.id == targetTabID }),
+              draggedTab.isPinned == targetTab.isPinned,
               !draggedTab.allContents.contains(where: \.isDiff),
               let targetPane = targetTab.allPanes.first(where: { $0.id == targetPaneID }),
               !targetPane.content.isDiff
@@ -835,7 +854,11 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         let panes = layout.allPanes
         guard !panes.isEmpty else { return nil }
         let focusedIndex = min(max(0, snap.focusedPaneIndex), panes.count - 1)
-        let tab = PaneTab(layout: layout, focusedPaneID: panes[focusedIndex].id)
+        let tab = PaneTab(
+            layout: layout,
+            focusedPaneID: panes[focusedIndex].id,
+            isPinned: snap.isPinned
+        )
         tab.customName = snap.customName
         append(tab)
         return tab
@@ -895,16 +918,16 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         }
     }
 
-    /// Inserts a newly created tab immediately after the current selection so
-    /// new tabs open next to the current one instead of at the end of the
-    /// strip. Appends when there's no selection — the first tab, or while
-    /// restoring, where selection tracks the last tab added.
+    /// Inserts a newly created unpinned tab next to the current unpinned
+    /// selection. When the current tab is pinned, starts the unpinned section.
     private func insertNextToSelected(_ tab: PaneTab) {
         if let selectedTabID,
-           let index = tabs.firstIndex(where: { $0.id == selectedTabID }) {
+           let index = tabs.firstIndex(where: { $0.id == selectedTabID }),
+           !tabs[index].isPinned {
             tabs.insert(tab, at: index + 1)
         } else {
-            tabs.append(tab)
+            let destination = tabs.firstIndex(where: { !$0.isPinned }) ?? tabs.endIndex
+            tabs.insert(tab, at: destination)
         }
     }
 

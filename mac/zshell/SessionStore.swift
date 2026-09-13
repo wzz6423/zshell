@@ -67,23 +67,30 @@ struct SessionSnapshot: Codable {
             /// User-assigned tab name; nil when the title is automatic.
             /// Optional so older snapshots still decode.
             var customName: String?
+            /// Fixed tabs stay before regular tabs. Defaults to false when
+            /// loading snapshots written before tab pinning was available.
+            var isPinned: Bool
             /// Position of the terminal this non-terminal tab was opened
             /// from in the project's flattened session list. Optional so
             /// snapshots written before context persistence still decode.
             var contextSessionIndex: Int?
 
             init(
-                layout: LayoutSnapshot, focusedPaneIndex: Int,
-                customName: String? = nil, contextSessionIndex: Int? = nil
+                layout: LayoutSnapshot,
+                focusedPaneIndex: Int,
+                customName: String? = nil,
+                isPinned: Bool = false,
+                contextSessionIndex: Int? = nil
             ) {
                 self.layout = layout
                 self.focusedPaneIndex = focusedPaneIndex
                 self.customName = customName
+                self.isPinned = isPinned
                 self.contextSessionIndex = contextSessionIndex
             }
 
             enum CodingKeys: String, CodingKey {
-                case layout, focusedPaneIndex, customName, contextSessionIndex
+                case layout, focusedPaneIndex, customName, isPinned, contextSessionIndex
                 case columns, focusedColumn, focusedRow
             }
 
@@ -94,6 +101,7 @@ struct SessionSnapshot: Codable {
                     focusedPaneIndex =
                         (try? container.decode(Int.self, forKey: .focusedPaneIndex)) ?? 0
                     customName = try? container.decode(String.self, forKey: .customName)
+                    isPinned = (try? container.decode(Bool.self, forKey: .isPinned)) ?? false
                     contextSessionIndex = try? container.decode(
                         Int.self, forKey: .contextSessionIndex
                     )
@@ -124,6 +132,7 @@ struct SessionSnapshot: Codable {
                             max(0, columns[clampedColumn].panes.count - 1)
                         )
                     customName = try? container.decode(String.self, forKey: .customName)
+                    isPinned = false
                     contextSessionIndex = nil
                     return
                 }
@@ -133,6 +142,7 @@ struct SessionSnapshot: Codable {
                 layout = .pane(PaneSnapshot(content: content, weight: 1))
                 focusedPaneIndex = 0
                 customName = nil
+                isPinned = false
                 contextSessionIndex = nil
             }
 
@@ -141,6 +151,9 @@ struct SessionSnapshot: Codable {
                 try container.encode(layout, forKey: .layout)
                 try container.encode(focusedPaneIndex, forKey: .focusedPaneIndex)
                 try container.encodeIfPresent(customName, forKey: .customName)
+                if isPinned {
+                    try container.encode(true, forKey: .isPinned)
+                }
                 try container.encodeIfPresent(
                     contextSessionIndex, forKey: .contextSessionIndex
                 )
@@ -188,12 +201,42 @@ struct SessionSnapshot: Codable {
         }
 
         var customName: String?
+        /// Fixed projects stay before regular projects. Older snapshots omit
+        /// this field and decode as unpinned.
+        var isPinned = false
         /// User-pinned project directory; nil when the directory is
         /// automatic (the closest git repository, never persisted).
         /// Optional so older snapshots still decode.
         var customDirectory: String?
         var tabs: [TabSnapshot]
         var selectedTabIndex: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case customName, isPinned, customDirectory, tabs, selectedTabIndex
+        }
+
+        init(
+            customName: String?,
+            isPinned: Bool = false,
+            customDirectory: String?,
+            tabs: [TabSnapshot],
+            selectedTabIndex: Int?
+        ) {
+            self.customName = customName
+            self.isPinned = isPinned
+            self.customDirectory = customDirectory
+            self.tabs = tabs
+            self.selectedTabIndex = selectedTabIndex
+        }
+
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            customName = try container.decodeIfPresent(String.self, forKey: .customName)
+            isPinned = try container.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
+            customDirectory = try container.decodeIfPresent(String.self, forKey: .customDirectory)
+            tabs = try container.decode([TabSnapshot].self, forKey: .tabs)
+            selectedTabIndex = try container.decodeIfPresent(Int.self, forKey: .selectedTabIndex)
+        }
     }
 
     var projects: [ProjectSnapshot]

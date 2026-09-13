@@ -5149,6 +5149,38 @@
         }
       }
     },
+    "Pin Project" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プロジェクトをピン留め"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定项目"
+          }
+        }
+      }
+    },
+    "Pin Tab" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タブをピン留め"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定标签页"
+          }
+        }
+      }
+    },
     "Projects" : {
       "localizations" : {
         "ja" : {
@@ -7456,6 +7488,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "输入以筛选："
+          }
+        }
+      }
+    },
+    "Unpin Project" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プロジェクトのピン留めを解除"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消固定项目"
+          }
+        }
+      }
+    },
+    "Unpin Tab" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タブのピン留めを解除"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消固定标签页"
           }
         }
       }
