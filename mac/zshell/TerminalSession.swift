@@ -38,6 +38,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     let find: TerminalFind
     var onExited: ((TerminalSession) -> Void)?
 
+    /// Identity of the manager currently allowed to host this surface. Moving a
+    /// tab updates it synchronously so stale parking/visible hosts in the source
+    /// window cannot reparent the terminal after destination adoption.
+    private(set) var hostManagerID: ObjectIdentifier?
+
     private static let persistedHistoryLineLimit = 500
 
     private let shellPath: String
@@ -133,6 +138,16 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         overlayScrollbar.onScroll = { [weak self] position in
             self?.surface.scroll(toFraction: position)
         }
+    }
+
+    /// Changes which window may host this session without restarting or
+    /// replacing its backend surface.
+    func transferHost(to manager: TerminalManager) {
+        hostManagerID = ObjectIdentifier(manager)
+    }
+
+    func belongs(to manager: TerminalManager) -> Bool {
+        hostManagerID == ObjectIdentifier(manager)
     }
 
     /// Reconfigures the surface in place when appearance or terminal settings

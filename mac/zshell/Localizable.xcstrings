@@ -208,6 +208,23 @@
         }
       }
     },
+    "%@ — %@" : {
+      "comment" : "Destination project and its window title in the Move Tab menu.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ — %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ — %2$@"
+          }
+        }
+      }
+    },
     "%@, %@" : {
       "localizations" : {
         "ja" : {
@@ -2284,6 +2301,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法将“%@”移到废纸篓。"
+          }
+        }
+      }
+    },
+    "Couldn’t Move Tab" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タブを移動できませんでした"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法移动标签页"
           }
         }
       }
@@ -4373,6 +4406,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "将 %@ 移到废纸篓"
+          }
+        }
+      }
+    },
+    "Move Tab to Project" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タブをプロジェクトへ移動"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将标签页移到项目"
           }
         }
       }
@@ -7531,6 +7580,22 @@
         }
       }
     },
+    "Tabs containing diffs can’t be moved between projects." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "差分を含むタブはプロジェクト間で移動できません。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "包含差异的标签页无法在项目之间移动。"
+          }
+        }
+      }
+    },
     "Temporary terminal opacity" : {
       "localizations" : {
         "ja" : {
@@ -7659,6 +7724,23 @@
         }
       }
     },
+    "The destination project already has an agent named “%@”." : {
+      "comment" : "Tab move failure. The placeholder is an agent alias.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移動先のプロジェクトには「%@」という名前のエージェントがすでに存在します。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目标项目已存在名为“%@”的编码代理。"
+          }
+        }
+      }
+    },
     "The selected Git remote is no longer available" : {
       "localizations" : {
         "ja" : {
@@ -7671,6 +7753,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所选的 Git 远程仓库已不存在"
+          }
+        }
+      }
+    },
+    "The tab or destination project is no longer available." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タブまたは移動先のプロジェクトが利用できなくなりました。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标签页或目标项目已不可用。"
           }
         }
       }

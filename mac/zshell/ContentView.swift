@@ -210,6 +210,7 @@ struct ContentView: View {
                     Group {
                         if let tab = manager.selectedProject?.selectedTab {
                             PaneLayoutView(
+                                manager: manager,
                                 tab: tab,
                                 tabSplitDrag: tabSplitDrag,
                                 onSplit: { manager.split(toward: $0) },
@@ -264,7 +265,10 @@ struct ContentView: View {
         }
         .ignoresSafeArea()
         .overlay(alignment: .topLeading) {
-            TerminalParkingView(sessions: parkedTerminalSessions)
+            TerminalParkingView(
+                sessions: parkedTerminalSessions,
+                manager: manager
+            )
                 .frame(width: 1, height: 1)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
@@ -984,6 +988,7 @@ private struct MainHeaderView: View {
                     // Reserve the trailing controls so the session strip's
                     // inline new-session button stays clear of them.
                     SessionTabsView(
+                        manager: manager,
                         project: project,
                         tabSplitDrag: tabSplitDrag,
                         maxStripWidth: max(
@@ -1046,6 +1051,7 @@ private struct SessionTabsView: View {
     private let fadeWidth: CGFloat = 20
     private let tabSpacing: CGFloat = 3
 
+    @ObservedObject var manager: TerminalManager
     @ObservedObject var project: Project
     @ObservedObject var tabSplitDrag: TabSplitDragCoordinator
     let maxStripWidth: CGFloat
@@ -1317,6 +1323,10 @@ private struct SessionTabsView: View {
             })
             items.append(.separator)
         }
+        if let moveItem = moveTabMenuItem(for: tab) {
+            items.append(moveItem)
+            items.append(.separator)
+        }
         items.append(.action(title: String(localized: "Close")) { project.close(tab) })
         items.append(.action(
             title: String(localized: "Close Others"),
@@ -1338,6 +1348,54 @@ private struct SessionTabsView: View {
         items.append(.separator)
         items.append(.action(title: String(localized: "Close All")) { project.closeAll() })
         return items
+    }
+
+    /// Builds the cross-project "Move Tab to Project" submenu from the live
+    /// destination list. Hidden entirely when no other project can host the
+    /// tab, so single-project windows keep a clean menu.
+    private func moveTabMenuItem(for tab: PaneTab) -> AppKitContextMenuItem? {
+        let destinations = manager.tabMoveDestinations(for: tab.id, in: project.id)
+        guard !destinations.isEmpty else { return nil }
+
+        let targets: [AppKitContextMenuItem] = destinations.map { destination in
+            let title: String
+            if let windowTitle = destination.windowTitle, !windowTitle.isEmpty {
+                title = String(
+                    localized: "\(destination.title) — \(windowTitle)",
+                    comment: "Destination project and its window title in the Move Tab menu."
+                )
+            } else {
+                title = destination.title
+            }
+            return .action(title: title, enabled: destination.isEnabled) {
+                moveTab(to: destination, tabID: tab.id, from: project.id)
+            }
+        }
+        return .submenu(title: String(localized: "Move Tab to Project"), items: targets)
+    }
+
+    private func moveTab(
+        to destination: TerminalManager.TabMoveDestination,
+        tabID: UUID,
+        from sourceProjectID: UUID
+    ) {
+        let result = manager.moveTab(
+            id: tabID,
+            from: sourceProjectID,
+            to: destination.projectID,
+            in: destination.managerID
+        )
+        guard let failure = result.failure else { return }
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = String(localized: "Couldn’t Move Tab")
+        alert.informativeText = failure.message
+        alert.addButton(withTitle: String(localized: "OK"))
+        if let window = NSApp.keyWindow ?? NSApp.mainWindow {
+            alert.beginSheetModal(for: window)
+        } else {
+            alert.runModal()
+        }
     }
 }
 
