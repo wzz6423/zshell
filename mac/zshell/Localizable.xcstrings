@@ -4106,6 +4106,38 @@
         }
       }
     },
+    "Interface": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インターフェース"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "界面"
+          }
+        }
+      }
+    },
+    "Interface size": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インターフェースサイズ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "界面大小"
+          }
+        }
+      }
+    },
     "It could not be written to disk.": {
       "localizations": {
         "ja": {

@@ -70,6 +70,16 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         onChange: { AppSettings.shared.sidebarFontSize = $0 }
     )
 
+    private let interfaceScaleRow = SettingsSliderRow(
+        title: String(localized: "Interface size"),
+        range: AppSettings.interfaceScaleRange,
+        format: .percent,
+        step: 0.05,
+        showsStepper: true,
+        accessibilityLabel: String(localized: "Interface size"),
+        onChange: { AppSettings.shared.interfaceScale = $0 }
+    )
+
     private let thickenSwitch = SettingsSwitch { AppSettings.shared.fontThicken = $0 }
 
     private let thickenStrengthRow = SettingsSliderRow(
@@ -140,7 +150,8 @@ final class SettingsAppearancePane: SettingsPaneViewController {
                 thickenStrengthRow,
                 SettingsCustomRow(preview),
             ]),
-            SettingsGroup(header: String(localized: "Sidebar"), rows: [
+            SettingsGroup(header: String(localized: "Interface"), rows: [
+                interfaceScaleRow,
                 sidebarFontSizeRow,
             ]),
             SettingsGroup(header: String(localized: "Panes"), rows: [
@@ -169,6 +180,7 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         fallbackFamilyPopUp.select(settings.fontFallbackFamily)
         fontSizeRow.setValue(settings.fontSize)
         sidebarFontSizeRow.setValue(settings.sidebarFontSize)
+        interfaceScaleRow.setValue(settings.interfaceScale)
         thickenSwitch.isOn = settings.fontThicken
         thickenStrengthRow.setValue(Double(settings.fontThickenStrength))
         lineHeightRow.setValue(settings.terminalLineHeight)

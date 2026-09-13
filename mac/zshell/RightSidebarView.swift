@@ -20,6 +20,14 @@ struct RightSidebarView: View {
     @State private var rootSource = Project.PanelRootSource.shell
     @AppStorage("rightSidebarWidth") private var width: Double = 240
 
+    private var sidebarWidthRange: ClosedRange<Double> {
+        (180 * settings.interfaceScale)...(500 * settings.interfaceScale)
+    }
+
+    private var defaultSidebarWidth: Double {
+        240 * settings.interfaceScale
+    }
+
     private var pollsSelectedPanel: Bool {
         manager.isPanelVisible
             && applicationIsActive
@@ -114,8 +122,8 @@ struct RightSidebarView: View {
                 SidebarResizeHandle(
                     edge: .leading,
                     width: $width,
-                    range: 180...500,
-                    defaultWidth: 240,
+                    range: sidebarWidthRange,
+                    defaultWidth: defaultSidebarWidth,
                     fontSize: settings.sidebarFontSize
                 )
             }
@@ -160,11 +168,14 @@ struct RightSidebarView: View {
         .onChange(of: manager.selectedProject?.customDirectory) { syncModels() }
         .environment(
             \.sidebarFontScale,
-            CGFloat(settings.sidebarFontSize / AppSettings.defaultSidebarFontSize)
+            CGFloat(
+                settings.sidebarFontSize / AppSettings.defaultSidebarFontSize
+                    * settings.interfaceScale
+            )
         )
         // Native button and control labels without a designed hierarchy use
         // the configured base size directly.
-        .environment(\.font, .system(size: CGFloat(settings.sidebarFontSize)))
+        .environment(\.font, .system(size: CGFloat(settings.sidebarFontSize * settings.interfaceScale)))
     }
 
     private var tabBar: some View {
