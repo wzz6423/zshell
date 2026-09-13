@@ -96,6 +96,10 @@ private struct WindowRootView: View {
 /// Menu commands routed to the focused window's manager.
 private struct ZshellCommands: Commands {
     @FocusedObject private var manager: TerminalManager?
+    // Observing AppSettings here re-renders the affected menu items whenever a
+    // shortcut is remapped in Settings, so the new binding — and its key
+    // equivalent in the menu bar — takes effect immediately.
+    @ObservedObject private var settings = AppSettings.shared
     @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
@@ -107,13 +111,13 @@ private struct ZshellCommands: Commands {
             Button("New Project") {
                 manager?.newProject()
             }
-            .keyboardShortcut("n", modifiers: .command)
+            .keyboardShortcut(settings.keyboardShortcut(for: .newProject))
             .disabled(manager == nil)
 
             Button("New Session") {
                 manager?.newSession()
             }
-            .keyboardShortcut("t", modifiers: .command)
+            .keyboardShortcut(settings.keyboardShortcut(for: .newSession))
             .disabled(manager == nil)
 
             Button("New Browser Tab") {
@@ -124,7 +128,7 @@ private struct ZshellCommands: Commands {
             Button("New Window") {
                 openWindow(id: "main")
             }
-            .keyboardShortcut("n", modifiers: [.command, .shift])
+            .keyboardShortcut(settings.keyboardShortcut(for: .newWindow))
 
             Button("Close Pane") {
                 // Cmd-W is app-wide: close a pane only when a main window with
@@ -138,7 +142,7 @@ private struct ZshellCommands: Commands {
                     NSApp.keyWindow?.performClose(nil)
                 }
             }
-            .keyboardShortcut("w", modifiers: .command)
+            .keyboardShortcut(settings.keyboardShortcut(for: .closePane))
         }
 
         CommandGroup(replacing: .saveItem) {
@@ -192,7 +196,7 @@ private struct ZshellCommands: Commands {
             Button("Clear Terminal") {
                 manager?.clearActiveTerminal()
             }
-            .keyboardShortcut("k", modifiers: .command)
+            .keyboardShortcut(settings.keyboardShortcut(for: .clearTerminal))
             .disabled(manager?.canClearActiveTerminal != true)
         }
 
@@ -203,7 +207,7 @@ private struct ZshellCommands: Commands {
             Button("Command Palette…") {
                 manager?.toggleCommandPalette()
             }
-            .keyboardShortcut("p", modifiers: .command)
+            .keyboardShortcut(settings.keyboardShortcut(for: .commandPalette))
             .disabled(manager == nil)
 
             Divider()
@@ -211,25 +215,25 @@ private struct ZshellCommands: Commands {
             Button("Toggle Left Sidebar") {
                 manager?.toggleLeftSidebar()
             }
-            .keyboardShortcut("b", modifiers: .command)
+            .keyboardShortcut(settings.keyboardShortcut(for: .toggleLeftSidebar))
             .disabled(manager == nil)
 
             Button("Toggle Right Sidebar") {
                 manager?.toggleSidebar()
             }
-            .keyboardShortcut("b", modifiers: [.command, .shift])
+            .keyboardShortcut(settings.keyboardShortcut(for: .toggleRightSidebar))
             .disabled(manager?.selectedProject == nil)
 
             Button("Toggle Files Panel") {
                 manager?.togglePanel(.files)
             }
-            .keyboardShortcut("e", modifiers: [.command, .shift])
+            .keyboardShortcut(settings.keyboardShortcut(for: .toggleFilesPanel))
             .disabled(manager?.selectedProject == nil)
 
             Button("Toggle Git Panel") {
                 manager?.togglePanel(.git)
             }
-            .keyboardShortcut("g", modifiers: [.command, .shift])
+            .keyboardShortcut(settings.keyboardShortcut(for: .toggleGitPanel))
             .disabled(manager?.selectedProject == nil)
 
             Button("Toggle Info Panel") {
@@ -251,13 +255,13 @@ private struct ZshellCommands: Commands {
             Button("Next Project") {
                 manager?.selectNextProject()
             }
-            .keyboardShortcut("]", modifiers: [.command, .option])
+            .keyboardShortcut(settings.keyboardShortcut(for: .nextProject))
             .disabled(manager == nil)
 
             Button("Previous Project") {
                 manager?.selectPreviousProject()
             }
-            .keyboardShortcut("[", modifiers: [.command, .option])
+            .keyboardShortcut(settings.keyboardShortcut(for: .previousProject))
             .disabled(manager == nil)
 
             Divider()
@@ -428,5 +432,19 @@ private struct ZshellCommands: Commands {
                 .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .control)
             }
         }
+    }
+}
+
+extension AppSettings {
+    /// The SwiftUI keyboard shortcut for a command's current binding, so the
+    /// menu bar shows and matches whatever Settings recorded.
+    func keyboardShortcut(for command: AppCommand) -> KeyboardShortcut {
+        let shortcut = commandShortcut(for: command)
+        var modifiers: EventModifiers = []
+        if shortcut.modifiers.contains(.command) { modifiers.insert(.command) }
+        if shortcut.modifiers.contains(.option) { modifiers.insert(.option) }
+        if shortcut.modifiers.contains(.control) { modifiers.insert(.control) }
+        if shortcut.modifiers.contains(.shift) { modifiers.insert(.shift) }
+        return KeyboardShortcut(KeyEquivalent(shortcut.character), modifiers: modifiers)
     }
 }

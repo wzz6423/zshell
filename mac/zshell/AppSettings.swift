@@ -282,6 +282,14 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    /// Remapped menu shortcuts for the core commands in ``AppCommand``. Only
+    /// bindings that differ from the command's default are stored, so the
+    /// dictionary doubles as the "not at defaults" signal; menus read the
+    /// effective binding through ``commandShortcut(for:)``.
+    @Published var commandShortcuts: [AppCommand: CommandShortcut] {
+        didSet { save() }
+    }
+
     /// Link Zshell's shared coordination skill plus the native lifecycle
     /// integrations whose provider APIs provide semantic turn events. Other
     /// agents retain process recognition without inferred progress state.
@@ -372,6 +380,7 @@ final class AppSettings: nonisolated ObservableObject {
         quickTerminalShortcut = QuickTerminalShortcut(
             persistedValue: toml["quick-terminal.shortcut"]?.string
         ) ?? Self.defaultQuickTerminalShortcut
+        commandShortcuts = Self.parseCommandShortcuts(toml)
         aiEnabled = toml["ai.enabled"]?.bool ?? true
         terminalBackend = TerminalBackend(persisted: toml["terminal.backend"]?.string)
         terminalStartupProgram = toml["terminal.startup-program"]?.string ?? ""
@@ -470,6 +479,7 @@ final class AppSettings: nonisolated ObservableObject {
         quickTerminalSize = Self.defaultQuickTerminalSize
         quickTerminalOpacity = Self.defaultQuickTerminalOpacity
         quickTerminalShortcut = Self.defaultQuickTerminalShortcut
+        resetCommandShortcuts()
         GlobalTerminalOverlay.shared.reloadHotkey()
         if !aiEnabled {
             do {
@@ -481,6 +491,71 @@ final class AppSettings: nonisolated ObservableObject {
         terminalBackend = .fallback
         terminalStartupProgram = ""
         terminalStartupArguments = ""
+    }
+
+    /// The effective shortcut for a command: its recorded binding, or the
+    /// shipped default when the user hasn't remapped it.
+    func commandShortcut(for command: AppCommand) -> CommandShortcut {
+        commandShortcuts[command] ?? command.defaultShortcut
+    }
+
+    /// Why a recorded shortcut can't be applied. A chord bound to another core
+    /// command is refused, and so is one matching the Quick Terminal's global
+    /// hotkey — that hotkey is registered system-wide and would swallow the
+    /// menu chord before Zshell ever saw it.
+    enum CommandShortcutConflict: Equatable {
+        case command(AppCommand)
+        case quickTerminal
+    }
+
+    /// Applies a recorded shortcut to a command, returning the conflict when
+    /// the chord is already taken (the caller keeps the old binding).
+    /// Restoring a command's default simply removes its override.
+    @discardableResult
+    func setCommandShortcut(
+        _ shortcut: CommandShortcut, for command: AppCommand
+    ) -> CommandShortcutConflict? {
+        // The Quick Terminal's hotkey is registered system-wide, so a menu
+        // chord matching it would never reach the menu bar. Key codes are
+        // only comparable when the chord's character maps to one.
+        if let keyCode = shortcut.ansiKeyCode,
+           keyCode == quickTerminalShortcut.keyCode,
+           shortcut.carbonModifiers == quickTerminalShortcut.modifiers {
+            return .quickTerminal
+        }
+        if let other = AppCommand.allCases.first(where: {
+            $0 != command && commandShortcut(for: $0) == shortcut
+        }) {
+            return .command(other)
+        }
+        if shortcut == command.defaultShortcut {
+            commandShortcuts[command] = nil
+        } else {
+            commandShortcuts[command] = shortcut
+        }
+        return nil
+    }
+
+    /// Clears every override, restoring all menu shortcuts to their shipped
+    /// bindings.
+    func resetCommandShortcuts() {
+        commandShortcuts = [:]
+    }
+
+    /// Overrides from the `shortcuts.<command>` keys; unrecognized commands or
+    /// values (a hand-edited config) fall back to the shipped default.
+    private static func parseCommandShortcuts(
+        _ toml: [String: TOML.Value]
+    ) -> [AppCommand: CommandShortcut] {
+        var result: [AppCommand: CommandShortcut] = [:]
+        for (key, value) in toml {
+            guard key.hasPrefix("shortcuts.") else { continue }
+            guard let command = AppCommand(rawValue: String(key.dropFirst("shortcuts.".count))),
+                  let shortcut = CommandShortcut(persistedValue: value.string)
+            else { continue }
+            result[command] = shortcut
+        }
+        return result
     }
 
     /// Persist the setting only after every requested destination operation
@@ -587,6 +662,11 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if quickTerminalShortcut != Self.defaultQuickTerminalShortcut {
             lines.append("quick-terminal.shortcut = \(TOML.quote(quickTerminalShortcut.persistedValue))")
+        }
+        for command in AppCommand.allCases.sorted(by: { $0.rawValue < $1.rawValue }) {
+            if let shortcut = commandShortcuts[command] {
+                lines.append("shortcuts.\(command.rawValue) = \(TOML.quote(shortcut.persistedValue))")
+            }
         }
         if !aiEnabled {
             lines.append("ai.enabled = false")

@@ -9,6 +9,7 @@ import AppKit
 /// it acts, rather than by scrolling one long form.
 enum SettingsCategory: String, CaseIterable {
     case general
+    case shortcuts
     case appearance
     case terminal
     case editor
@@ -18,6 +19,7 @@ enum SettingsCategory: String, CaseIterable {
     var title: String {
         switch self {
         case .general: String(localized: "General")
+        case .shortcuts: String(localized: "Shortcuts")
         case .appearance: String(localized: "Appearance")
         case .terminal: String(localized: "Terminal")
         case .editor: String(localized: "Editor")
@@ -29,6 +31,7 @@ enum SettingsCategory: String, CaseIterable {
     var symbolName: String {
         switch self {
         case .general: "gearshape.fill"
+        case .shortcuts: "keyboard"
         case .appearance: "paintpalette.fill"
         case .terminal: "terminal.fill"
         case .editor: "curlybraces"
@@ -40,6 +43,7 @@ enum SettingsCategory: String, CaseIterable {
     func makePane() -> SettingsPaneViewController {
         switch self {
         case .general: SettingsGeneralPane()
+        case .shortcuts: SettingsShortcutsPane()
         case .appearance: SettingsAppearancePane()
         case .terminal: SettingsTerminalPane()
         case .editor: SettingsEditorPane()
