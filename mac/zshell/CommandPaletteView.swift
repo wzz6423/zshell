@@ -169,6 +169,9 @@ struct CommandPaletteView: View {
             PaletteCommand(id: "clear-terminal", title: "Clear Terminal", systemImage: "eraser", shortcut: "⌘K") {
                 manager.clearActiveTerminal()
             },
+            PaletteCommand(id: "toggle-prompt-queue", title: "Toggle Prompt Queue", systemImage: "list.bullet.rectangle", shortcut: "⇧⌘M") {
+                manager.togglePromptQueue()
+            },
             PaletteCommand(id: "split-right", title: "Split Right", systemImage: "rectangle.split.2x1", shortcut: "⌘D") {
                 manager.splitRight()
             },

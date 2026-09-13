@@ -49,7 +49,13 @@ struct TerminalHostView: NSViewRepresentable {
         }
         if let container = view as? TerminalContainerView,
            container.terminal !== session.surface {
-            container.mount(session.surface, scrollbar: session.overlayScrollbar)
+            container.mount(session.surface, scrollbar: session.overlayScrollbar,
+                            queueBar: session.promptQueueBar)
+            // Height changes come from the bar's own model subscriptions; route
+            // them into an immediate pane re-layout instead of waiting a frame.
+            session.promptQueueBar.onLayoutChange = { [weak container] in
+                container?.layoutSubtreeIfNeeded()
+            }
         }
         session.surface.onBecomeFirstResponder = onFocused
         session.surface.splitTarget.onSplit = onSplit
@@ -91,6 +97,11 @@ struct TerminalHostView: NSViewRepresentable {
         terminal.splitTarget.onNewBrowserPane = nil
         terminal.splitTarget.onNewFileTab = nil
         terminal.splitTarget.onNewFilePane = nil
+        // The queue bar is session-owned; drop the container callback so a
+        // dismantled pane cannot be addressed by a later queue update.
+        for case let bar as PromptQueueBarView in view.subviews {
+            bar.onLayoutChange = nil
+        }
         container.releaseTerminal(terminal)
     }
 
@@ -193,7 +204,7 @@ private final class TerminalContainerView: NSView {
     private var needsSurfaceActivation = false
     private var surfaceConstraints: [NSLayoutConstraint] = []
 
-    func mount(_ terminal: NSView, scrollbar: NSView) {
+    func mount(_ terminal: NSView, scrollbar: NSView, queueBar: NSView? = nil) {
         NSLayoutConstraint.deactivate(surfaceConstraints)
         surfaceConstraints.removeAll()
         self.terminal = terminal
@@ -204,16 +215,39 @@ private final class TerminalContainerView: NSView {
         // Zshell's visual insets live inside the backend as window padding. The
         // surface keeps only a hairline pane-background inset, while the overlay
         // scrollbar stays pinned to the container's true trailing edge.
-        surfaceConstraints = [
-            terminal.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
-            terminal.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
-            terminal.topAnchor.constraint(equalTo: topAnchor, constant: 2),
-            terminal.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -2),
-            scrollbar.trailingAnchor.constraint(equalTo: trailingAnchor),
-            scrollbar.topAnchor.constraint(equalTo: topAnchor),
-            scrollbar.bottomAnchor.constraint(equalTo: bottomAnchor),
-            scrollbar.widthAnchor.constraint(equalToConstant: OverlayScrollbarView.stripWidth),
-        ]
+        if let queueBar {
+            // The prompt queue bar docks: the terminal's bottom edge rides the
+            // bar's top edge, so an open bar claims height from the grid instead
+            // of covering the prompt the way a floating overlay would. At the
+            // bar's zero closed height this chain is identical to pinning the
+            // terminal to the container's bottom edge.
+            queueBar.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(queueBar, positioned: .above, relativeTo: scrollbar)
+            surfaceConstraints = [
+                terminal.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
+                terminal.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
+                terminal.topAnchor.constraint(equalTo: topAnchor, constant: 2),
+                terminal.bottomAnchor.constraint(equalTo: queueBar.topAnchor, constant: -2),
+                queueBar.leadingAnchor.constraint(equalTo: leadingAnchor),
+                queueBar.trailingAnchor.constraint(equalTo: trailingAnchor),
+                queueBar.bottomAnchor.constraint(equalTo: bottomAnchor),
+                scrollbar.trailingAnchor.constraint(equalTo: trailingAnchor),
+                scrollbar.topAnchor.constraint(equalTo: topAnchor),
+                scrollbar.bottomAnchor.constraint(equalTo: bottomAnchor),
+                scrollbar.widthAnchor.constraint(equalToConstant: OverlayScrollbarView.stripWidth),
+            ]
+        } else {
+            surfaceConstraints = [
+                terminal.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
+                terminal.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
+                terminal.topAnchor.constraint(equalTo: topAnchor, constant: 2),
+                terminal.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -2),
+                scrollbar.trailingAnchor.constraint(equalTo: trailingAnchor),
+                scrollbar.topAnchor.constraint(equalTo: topAnchor),
+                scrollbar.bottomAnchor.constraint(equalTo: bottomAnchor),
+                scrollbar.widthAnchor.constraint(equalToConstant: OverlayScrollbarView.stripWidth),
+            ]
+        }
         NSLayoutConstraint.activate(surfaceConstraints)
         // A parked Metal surface has discarded its drawable pool. Activate it
         // only after Auto Layout assigns the real pane geometry.
