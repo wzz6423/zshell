@@ -1460,13 +1460,16 @@ private struct PaneTabItem: View {
                 end: { renamingTabID = nil }
             )
         } else {
+            // Double-click on any tab kind opens the inline rename field,
+            // mirroring the context menu's "Rename…" entry.
+            let startRename = { renamingTabID = tab.id }
             switch tab.focusedContent {
             case .session(let session):
-                SessionTabLabel(session: session, customTitle: tab.customName, markerColor: tab.markerColor, paneCount: paneCount, agentRollup: tab.agentRollup, isSelected: isSelected, select: select, close: close)
+                SessionTabLabel(session: session, customTitle: tab.customName, markerColor: tab.markerColor, paneCount: paneCount, agentRollup: tab.agentRollup, isSelected: isSelected, select: select, close: close, onDoubleClick: startRename)
             case .file(let file):
-                FileTabLabel(file: file, customTitle: tab.customName, markerColor: tab.markerColor, paneCount: paneCount, agentRollup: tab.agentRollup, isSelected: isSelected, select: select, close: close)
+                FileTabLabel(file: file, customTitle: tab.customName, markerColor: tab.markerColor, paneCount: paneCount, agentRollup: tab.agentRollup, isSelected: isSelected, select: select, close: close, onDoubleClick: startRename)
             case .browser(let browser):
-                BrowserTabLabel(browser: browser, customTitle: tab.customName, markerColor: tab.markerColor, paneCount: paneCount, agentRollup: tab.agentRollup, isSelected: isSelected, select: select, close: close)
+                BrowserTabLabel(browser: browser, customTitle: tab.customName, markerColor: tab.markerColor, paneCount: paneCount, agentRollup: tab.agentRollup, isSelected: isSelected, select: select, close: close, onDoubleClick: startRename)
             case .diff(let diff):
                 DiffTabLabel(
                     diff: diff,
@@ -1476,7 +1479,8 @@ private struct PaneTabItem: View {
                     agentRollup: tab.agentRollup,
                     isSelected: isSelected,
                     select: select,
-                    close: close
+                    close: close,
+                    onDoubleClick: startRename
                 )
             case nil:
                 EmptyView()
@@ -1584,6 +1588,7 @@ private struct SessionTabLabel: View {
     let isSelected: Bool
     let select: () -> Void
     let close: () -> Void
+    var onDoubleClick: (() -> Void)? = nil
 
     var body: some View {
         TabItemChrome(
@@ -1594,7 +1599,8 @@ private struct SessionTabLabel: View {
             agentRollup: agentRollup,
             isSelected: isSelected,
             select: select,
-            close: close
+            close: close,
+            onDoubleClick: onDoubleClick
         )
     }
 }
@@ -1609,6 +1615,7 @@ private struct FileTabLabel: View {
     let isSelected: Bool
     let select: () -> Void
     let close: () -> Void
+    var onDoubleClick: (() -> Void)? = nil
 
     var body: some View {
         TabItemChrome(
@@ -1621,7 +1628,8 @@ private struct FileTabLabel: View {
             isSelected: isSelected,
             isDirty: file.isDirty,
             select: select,
-            close: close
+            close: close,
+            onDoubleClick: onDoubleClick
         )
         .help(file.path)
     }
@@ -1637,6 +1645,7 @@ private struct BrowserTabLabel: View {
     let isSelected: Bool
     let select: () -> Void
     let close: () -> Void
+    var onDoubleClick: (() -> Void)? = nil
 
     var body: some View {
         TabItemChrome(
@@ -1648,7 +1657,8 @@ private struct BrowserTabLabel: View {
             agentRollup: agentRollup,
             isSelected: isSelected,
             select: select,
-            close: close
+            close: close,
+            onDoubleClick: onDoubleClick
         )
         .help(browser.urlString)
     }
@@ -1663,6 +1673,7 @@ private struct DiffTabLabel: View {
     let isSelected: Bool
     let select: () -> Void
     let close: () -> Void
+    var onDoubleClick: (() -> Void)? = nil
 
     var body: some View {
         TabItemChrome(
@@ -1675,7 +1686,8 @@ private struct DiffTabLabel: View {
             isSelected: isSelected,
             isDirty: diff.isDirty,
             select: select,
-            close: close
+            close: close,
+            onDoubleClick: onDoubleClick
         )
         .help(diff.path)
     }
@@ -1695,6 +1707,7 @@ private struct TabItemChrome: View {
     var isDirty = false
     let select: () -> Void
     let close: () -> Void
+    var onDoubleClick: (() -> Void)? = nil
 
     @State private var isHovering = false
 
@@ -1775,6 +1788,11 @@ private struct TabItemChrome: View {
             .contentShape(RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
+        // Attached to the button itself: a button consumes clicks before
+        // gestures on enclosing views see them, so a double-tap on an
+        // ancestor would never fire. The single click still selects — the
+        // rename just piggybacks on the second click, like Safari tabs.
+        .onTapGesture(count: 2) { onDoubleClick?() }
         // Cap tab width so a long title truncates instead of stretching the
         // tab; short titles still shrink to fit (maxWidth is an upper bound).
         .frame(maxWidth: 220)
@@ -1782,6 +1800,7 @@ private struct TabItemChrome: View {
             RoundedRectangle(cornerRadius: 6)
                 .fill(isSelected ? Color.primary.opacity(0.09) : (isHovering ? Color.primary.opacity(0.04) : .clear))
         )
+        .overlay { MiddleClickCatcher(action: close) }
         .onHover { isHovering = $0 }
         .accessibilityValue(markerAccessibilityValue)
     }
