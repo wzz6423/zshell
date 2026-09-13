@@ -457,14 +457,23 @@ enum ScanEvent {
 
 const SYNCHRONIZED_UPDATE_TIMEOUT: Duration = Duration::from_millis(150);
 
-/// Alacritty's default URL hint plus local file paths containing a slash.
-/// Requiring a slash avoids turning ordinary dotted words into links while
-/// still covering absolute, home-relative, explicit-relative, and project-
-/// relative paths.
+/// Alacritty's default URL hint plus local file paths containing a slash,
+/// plus bare web addresses (`www.baidu.com`, `baidu.com/docs`,
+/// `localhost:3000`). Requiring a slash for paths avoids turning ordinary
+/// dotted words into links; bare hosts need a known TLD, a `www.` prefix, or
+/// the `localhost` name for the same reason, so file names like `main.swift`
+/// and version strings like `1.2.3` still stay plain text. Full-width CJK
+/// punctuation is excluded so a URL followed by Chinese or Japanese prose
+/// without spaces ends where the sentence resumes.
 #[rustfmt::skip]
 const LINK_REGEX: &str = "((ipfs:|ipns:|magnet:|mailto:|gemini://|gopher://|https://|http://|news:|file:|git://|ssh:|ftp://)|\
                           (/|~/|\\./|\\.\\./|[A-Za-z0-9._@%+~-]+/))\
-                         [^\u{0000}-\u{001F}\u{007F}-\u{009F}<>\"\\s{-}\\^⟨⟩`\\\\]+";
+                         [^\u{0000}-\u{001F}\u{007F}-\u{009F}<>\"\\s{-}\\^⟨⟩`\\\\。，、；：？！）]+\
+                         |(?:www\\.)?[A-Za-z0-9][A-Za-z0-9-]*(?:\\.[A-Za-z0-9-]+)*\\.\
+                         (?:com|net|org|edu|gov|mil|int|info|xyz|top|site|online|cloud|vip|app|dev|io|ai|me|cc|tv|fm|gg|sh|so|co|\
+                         cn|jp|de|uk|ru|fr|kr|us|nl|se|no|fi|dk|es|it|pt|pl|cz|at|ch|be|au|br|mx|in|hk|tw|sg|my|id|ca|ie|nz|za)\
+                         (?::\\d{1,5})?(?:/[^\u{0000}-\u{001F}\u{007F}-\u{009F}<>\"\\s{-}\\^⟨⟩`\\\\。，、；：？！）]*)?\
+                         |localhost(?::\\d{1,5})?(?:/[^\u{0000}-\u{001F}\u{007F}-\u{009F}<>\"\\s{-}\\^⟨⟩`\\\\。，、；：？！）]*)?";
 
 /// Avoid walking an effectively unbounded soft-wrapped logical line on hover.
 const MAX_URL_SEARCH_LINES: i32 = 100;
@@ -1889,7 +1898,13 @@ fn post_process_url_match<T: EventListener>(term: &Term<T>, regex_match: &Match)
 
     let start = *regex_match.start();
     while iter.point() != start {
-        if !matches!(c, '.' | ',' | ':' | ';' | '?' | '!' | '(' | '[' | '\'') {
+        // Full-width CJK sentence punctuation ends a URL in Chinese and
+        // Japanese prose the same way ASCII punctuation does in English.
+        if !matches!(
+            c,
+            '.' | ',' | ':' | ';' | '?' | '!' | '(' | '[' | '\''
+                | '。' | '，' | '、' | '；' | '：' | '？' | '！' | '）'
+        ) {
             break;
         }
 
@@ -2263,6 +2278,45 @@ mod tests {
         let term = parse(path.as_bytes());
 
         assert_eq!(url_in(&term, ascii_point(path, "main")), None);
+    }
+
+    #[test]
+    fn plain_url_lookup_matches_bare_web_addresses() {
+        for (text, needle, expected) in [
+            ("clone from www.baidu.com today", "www.baidu", "www.baidu.com"),
+            ("visit baidu.com/s?wd=zshell today", "baidu", "baidu.com/s?wd=zshell"),
+            ("dev server on localhost:3000/health", "localhost", "localhost:3000/health"),
+            ("mirror at mirror.example.com:8080 ok", "mirror.example", "mirror.example.com:8080"),
+        ] {
+            let term = parse(text.as_bytes());
+            assert_eq!(
+                url_in(&term, ascii_point(text, needle)),
+                Some(expected.to_owned()),
+                "{text}"
+            );
+        }
+    }
+
+    #[test]
+    fn plain_url_lookup_trims_cjk_sentence_punctuation() {
+        // The URL starts the line so ASCII `ascii_point` math stays valid
+        // despite the wide CJK cells that follow it.
+        let text = "https://baidu.com。详情见下";
+        let term = parse(text.as_bytes());
+
+        assert_eq!(
+            url_in(&term, ascii_point(text, "https")),
+            Some("https://baidu.com".to_owned())
+        );
+    }
+
+    #[test]
+    fn plain_url_lookup_does_not_match_dotted_non_urls() {
+        for (text, needle) in [("config.yaml loads", "config"), ("version 1.2.3 released", "1")] {
+            let term = parse(text.as_bytes());
+
+            assert_eq!(url_in(&term, ascii_point(text, needle)), None, "{text}");
+        }
     }
 
     #[test]
