@@ -87,6 +87,11 @@ struct PaletteCommand: Identifiable {
     }
 }
 
+private struct FileSearchID: Hashable {
+    let query: String
+    let files: [ProjectFileSearchItem]
+}
+
 @MainActor
 private final class PalettePointerSelectionController: ObservableObject {
     private(set) var acceptsPointerSelection = false
@@ -104,35 +109,17 @@ private final class PalettePointerSelectionController: ObservableObject {
 /// move the selection, Return runs it, and Escape clears a query before
 /// dismissing an already-empty palette.
 struct CommandPaletteView: View {
-    private struct ScoredProjectFile {
-        let file: ProjectFile
-        let score: Double
-    }
-
-    private struct ProjectFile: Sendable {
-        let name: String
-        let relativePath: String
-        let absolutePath: String
-
-        var parentPath: String? {
-            let parent = (relativePath as NSString).deletingLastPathComponent
-            return parent.isEmpty ? nil : parent
-        }
-    }
-
     @ObservedObject var manager: TerminalManager
     @ObservedObject private var themeChanges = Theme.changes
 
     @State private var query = ""
     @State private var selection = 0
-    @State private var projectFiles: [ProjectFile] = []
+    @State private var projectFiles: [ProjectFileSearchItem] = []
+    @State private var fileResults: [ProjectFileSearchResult] = []
     @StateObject private var pointerSelectionController = PalettePointerSelectionController()
     @FocusState private var searchFocused: Bool
 
-    /// Smith-Waterman uses fzf/nucleo-style boundary and gap scoring while
-    /// remaining fast enough to scan a large project on every keystroke.
-    private static let fuzzyMatcher = FuzzyMatcher(config: .smithWaterman)
-    private static let maxFileResults = 50
+    private static let fuzzyMatcher = ProjectFileSearch.matcher
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -152,19 +139,17 @@ struct CommandPaletteView: View {
         )
         .onExitCommand { handleEscapeFromKeyboard() }
         .onDisappear { manager.restoreFocusAfterCommandPalette() }
-        .task(id: fileIndexRoot) {
+        .task(id: fileIndexRoots) {
             projectFiles = []
-            guard let root = fileIndexRoot else { return }
-            let indexingTask = Task.detached(priority: .userInitiated) {
-                Self.loadProjectFiles(in: root)
-            }
-            let files = await withTaskCancellationHandler {
-                await indexingTask.value
-            } onCancel: {
-                indexingTask.cancel()
-            }
-            guard !Task.isCancelled, root == fileIndexRoot else { return }
+            fileResults = []
+            let roots = fileIndexRoots
+            guard !roots.isEmpty else { return }
+            let files = await ProjectFileSearch.index(roots: roots)
+            guard !Task.isCancelled, roots == fileIndexRoots else { return }
             projectFiles = files
+        }
+        .task(id: fileSearchID) {
+            fileResults = await ProjectFileSearch.search(query, in: projectFiles)
         }
     }
 
@@ -352,30 +337,36 @@ struct CommandPaletteView: View {
         return path
     }
 
-    /// The current project's pinned/automatic panel root. Indexing starts only
-    /// after the user types, so opening ⌘P for a command stays filesystem-free.
+    /// Snapshot every open project's current panel root after the user types.
     /// Home is excluded because it is an account boundary, not a project root.
-    private var fileIndexRoot: String? {
-        guard !query.trimmingCharacters(in: .whitespaces).isEmpty,
-              let project = manager.selectedProject
-        else { return nil }
-        let root: String?
-        if let session = project.selectedSession {
-            root = project.panelRoot(
-                followingSessionAt: session.currentDirectoryPath,
-                foregroundAt: session.foregroundDirectoryPath
-            ).root
-        } else if let pinned = project.customDirectory,
-                  FileManager.default.fileExists(atPath: pinned) {
-            root = pinned
-        } else {
-            root = nil
+    private var fileIndexRoots: [ProjectFileSearchRoot] {
+        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else { return [] }
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let roots = manager.projects.compactMap { project -> ProjectFileSearchRoot? in
+            let root: String?
+            if let session = project.selectedSession {
+                root = project.panelRoot(
+                    followingSessionAt: session.currentDirectoryPath,
+                    foregroundAt: session.foregroundDirectoryPath
+                ).root
+            } else if let pinned = project.customDirectory {
+                root = pinned
+            } else {
+                root = nil
+            }
+            guard let root else { return nil }
+            return ProjectFileSearchRoot(
+                projectID: project.id,
+                projectName: project.name,
+                root: root,
+                homeDirectory: home
+            )
         }
-        guard let root else { return nil }
+        return ProjectFileSearch.canonicalRoots(roots)
+    }
 
-        let standardizedRoot = URL(fileURLWithPath: root).standardizedFileURL
-        let home = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL
-        return standardizedRoot == home ? nil : root
+    private var fileSearchID: FileSearchID {
+        FileSearchID(query: query, files: projectFiles)
     }
 
     private var filtered: [PaletteCommand] {
@@ -384,7 +375,7 @@ struct CommandPaletteView: View {
         let fuzzyQuery = Self.fuzzyMatcher.prepare(pattern)
         var buffer = Self.fuzzyMatcher.makeBuffer()
         var items = matching(commands, fuzzyQuery, buffer: &buffer)
-        items.append(contentsOf: matchingFiles(fuzzyQuery, buffer: &buffer))
+        items.append(contentsOf: matchingFiles)
         items.append(contentsOf: matching(sessionCommands, fuzzyQuery, buffer: &buffer))
         return items
     }
@@ -413,81 +404,24 @@ struct CommandPaletteView: View {
         return matches.map(\.command)
     }
 
-    /// Search every indexed file but materialize only the strongest rows. This
-    /// keeps a broad query responsive even in a large project.
-    private func matchingFiles(
-        _ query: FuzzyQuery,
-        buffer: inout ScoringBuffer
-    ) -> [PaletteCommand] {
-        var best: [ScoredProjectFile] = []
-        best.reserveCapacity(Self.maxFileResults)
-        for file in projectFiles {
-            guard let score = fileScore(file, query, buffer: &buffer) else {
-                continue
-            }
-            let match = ScoredProjectFile(file: file, score: score)
-            if best.count == Self.maxFileResults,
-               let weakest = best.last,
-               !ranksBefore(match, weakest) {
-                continue
-            }
-            let index = insertionIndex(for: match, in: best)
-            best.insert(match, at: index)
-            if best.count > Self.maxFileResults {
-                best.removeLast()
-            }
-        }
-        return best.map { match in
+    private var matchingFiles: [PaletteCommand] {
+        fileResults.map { match in
             let file = match.file
+            let subtitle = [file.projectName, file.parentPath]
+                .compactMap { $0 }
+                .joined(separator: " — ")
             return PaletteCommand(
-                id: "file-\(file.absolutePath)",
+                id: "file-\(file.projectID)-\(file.canonicalAbsolutePath)",
                 verbatimTitle: file.name,
                 systemImage: "doc",
                 fileIconPath: file.absolutePath,
-                subtitle: file.parentPath,
+                subtitle: subtitle,
                 section: .file,
                 searchText: file.relativePath
             ) {
-                manager.openFile(file.absolutePath)
+                manager.openFile(file.absolutePath, inProject: file.projectID)
             }
         }
-    }
-
-    /// Like editor file pickers, a basename match always outranks a match found
-    /// only in the directory. Directory-qualified queries still fall back to
-    /// scoring the complete project-relative path.
-    private func fileScore(
-        _ file: ProjectFile,
-        _ query: FuzzyQuery,
-        buffer: inout ScoringBuffer
-    ) -> Double? {
-        if let basenameScore = fuzzyScore(file.name, query, buffer: &buffer) {
-            return 1 + basenameScore
-        }
-        return fuzzyScore(file.relativePath, query, buffer: &buffer)
-    }
-
-    private func insertionIndex(
-        for match: ScoredProjectFile,
-        in matches: [ScoredProjectFile]
-    ) -> Int {
-        var lowerBound = 0
-        var upperBound = matches.count
-        while lowerBound < upperBound {
-            let middle = (lowerBound + upperBound) / 2
-            if ranksBefore(match, matches[middle]) {
-                upperBound = middle
-            } else {
-                lowerBound = middle + 1
-            }
-        }
-        return lowerBound
-    }
-
-    private func ranksBefore(_ lhs: ScoredProjectFile, _ rhs: ScoredProjectFile) -> Bool {
-        if lhs.score != rhs.score { return lhs.score > rhs.score }
-        return lhs.file.relativePath.localizedStandardCompare(rhs.file.relativePath)
-            == .orderedAscending
     }
 
     /// Score via the library's prepared-query, reusable-buffer UTF-8 API. This
@@ -787,99 +721,6 @@ struct CommandPaletteView: View {
         DispatchQueue.main.async { dismiss() }
     }
 
-    // MARK: - Project file index
-
-    /// Git provides a fast, ignore-aware index for repositories. A normal
-    /// directory falls back to recursive enumeration, still excluding VCS
-    /// metadata to match the Files panel.
-    private nonisolated static func loadProjectFiles(in root: String) -> [ProjectFile] {
-        if let paths = gitProjectFilePaths(in: root) {
-            return projectFiles(for: paths, in: root)
-        }
-        return enumeratedProjectFiles(in: root)
-    }
-
-    private nonisolated static func gitProjectFilePaths(in root: String) -> Set<String>? {
-        var tracked = GitStatusModel.runGit(
-            ["ls-files", "--cached", "--recurse-submodules", "-z"],
-            in: root
-        )
-        // A missing or broken submodule should not disable search for the rest
-        // of the repository.
-        if tracked.status != 0 {
-            tracked = GitStatusModel.runGit(["ls-files", "--cached", "-z"], in: root)
-        }
-        let untracked = GitStatusModel.runGit(
-            ["ls-files", "--others", "--exclude-standard", "-z"],
-            in: root
-        )
-        guard tracked.status == 0, untracked.status == 0 else { return nil }
-        return Set(nulSeparatedPaths(tracked.stdout) + nulSeparatedPaths(untracked.stdout))
-    }
-
-    private nonisolated static func nulSeparatedPaths(_ output: String) -> [String] {
-        output.split(separator: "\0").map(String.init)
-    }
-
-    private nonisolated static func projectFiles(
-        for relativePaths: Set<String>,
-        in root: String
-    ) -> [ProjectFile] {
-        let fileManager = FileManager.default
-        return relativePaths.compactMap { relativePath in
-            guard !Task.isCancelled else { return nil }
-            let absolutePath = (root as NSString).appendingPathComponent(relativePath)
-            var isDirectory: ObjCBool = false
-            guard fileManager.fileExists(atPath: absolutePath, isDirectory: &isDirectory),
-                  !isDirectory.boolValue
-            else { return nil }
-            return ProjectFile(
-                name: (relativePath as NSString).lastPathComponent,
-                relativePath: relativePath,
-                absolutePath: absolutePath
-            )
-        }
-        .sorted {
-            $0.relativePath.localizedStandardCompare($1.relativePath) == .orderedAscending
-        }
-    }
-
-    private nonisolated static func enumeratedProjectFiles(in root: String) -> [ProjectFile] {
-        let rootURL = URL(fileURLWithPath: root, isDirectory: true).standardizedFileURL
-        let keys: [URLResourceKey] = [.isDirectoryKey, .isRegularFileKey]
-        let keySet = Set(keys)
-        let rootPrefix = rootURL.path == "/" ? "/" : rootURL.path + "/"
-        guard let enumerator = FileManager.default.enumerator(
-            at: rootURL,
-            includingPropertiesForKeys: keys,
-            errorHandler: { _, _ in true }
-        ) else { return [] }
-
-        var files: [ProjectFile] = []
-        while let url = enumerator.nextObject() as? URL {
-            if Task.isCancelled { break }
-            if url.lastPathComponent == ".git" {
-                enumerator.skipDescendants()
-                continue
-            }
-            guard let values = try? url.resourceValues(forKeys: keySet),
-                  values.isDirectory != true,
-                  values.isRegularFile == true
-            else { continue }
-            guard url.path.hasPrefix(rootPrefix) else { continue }
-            let relativePath = String(url.path.dropFirst(rootPrefix.count))
-            files.append(
-                ProjectFile(
-                    name: url.lastPathComponent,
-                    relativePath: relativePath,
-                    absolutePath: url.path
-                )
-            )
-        }
-        return files.sorted {
-            $0.relativePath.localizedStandardCompare($1.relativePath) == .orderedAscending
-        }
-    }
 }
 
 private struct PalettePointerEventMonitor: NSViewRepresentable {
