@@ -470,6 +470,70 @@
         }
       }
     },
+    "Draws an accent outline around the focused pane when a tab is split" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タブを分割したとき、フォーカス中のペインをアクセントカラーの輪郭で示します"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拆分标签页时，在聚焦的面板周围绘制强调色轮廓"
+          }
+        }
+      }
+    },
+    "Pane focus ring opacity" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペインのフォーカスリングの不透明度"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "面板焦点环不透明度"
+          }
+        }
+      }
+    },
+    "Panes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペイン"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "面板"
+          }
+        }
+      }
+    },
+    "Show focus ring on active pane" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクティブなペインにフォーカスリングを表示"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在活动面板上显示焦点环"
+          }
+        }
+      }
+    },
     "`zshell +themes` needs an interactive terminal. Use `zshell +themes --list` to print theme names." : {
       "localizations" : {
         "ja" : {

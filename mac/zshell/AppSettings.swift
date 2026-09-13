@@ -128,6 +128,8 @@ final class AppSettings: nonisolated ObservableObject {
     static let defaultQuickTerminalOpacity: Double = 0.5
     static let quickTerminalOpacityRange: ClosedRange<Double> = 0.05...1
     static let defaultQuickTerminalShortcut = QuickTerminalShortcut.defaultValue
+    static let defaultPaneFocusRingOpacity: Double = 0.85
+    static let paneFocusRingOpacityRange: ClosedRange<Double> = 0.05...1
 
     /// The language this process launched with, kept separate from the pending
     /// selection so Settings can explain when a relaunch is required.
@@ -311,6 +313,16 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    /// Keep the active pane visible in split and zoomed layouts without changing
+    /// any terminal surface's own focus or rendering behavior.
+    @Published var showPaneFocusRing: Bool {
+        didSet { save() }
+    }
+
+    @Published var paneFocusRingOpacity: Double {
+        didSet { save() }
+    }
+
     /// Link Zshell's shared coordination skill plus the native lifecycle
     /// integrations whose provider APIs provide semantic turn events. Other
     /// agents retain process recognition without inferred progress state.
@@ -413,6 +425,12 @@ final class AppSettings: nonisolated ObservableObject {
             persistedValue: toml["quick-terminal.shortcut"]?.string
         ) ?? Self.defaultQuickTerminalShortcut
         commandShortcuts = Self.parseCommandShortcuts(toml)
+        showPaneFocusRing = toml["panes.show-focus-ring"]?.bool ?? true
+        let paneFocusRingOpacity = toml["panes.focus-ring-opacity"]?.double
+            ?? Self.defaultPaneFocusRingOpacity
+        self.paneFocusRingOpacity = Self.paneFocusRingOpacityRange.contains(
+            paneFocusRingOpacity
+        ) ? paneFocusRingOpacity : Self.defaultPaneFocusRingOpacity
         aiEnabled = toml["ai.enabled"]?.bool ?? true
         terminalBackend = TerminalBackend(persisted: toml["terminal.backend"]?.string)
         terminalStartupProgram = toml["terminal.startup-program"]?.string ?? ""
@@ -420,6 +438,11 @@ final class AppSettings: nonisolated ObservableObject {
         applyAppearance()
         reloadThemeSelection()
         if existing == nil { save() }
+    }
+
+    static func paneFocusRingOpacityMatchesDefault(_ value: Double) -> Bool {
+        Int((value * 100).rounded())
+            == Int((defaultPaneFocusRingOpacity * 100).rounded())
     }
 
     /// Pushes the current names into `Theme`, which resolves and caches the
@@ -490,6 +513,8 @@ final class AppSettings: nonisolated ObservableObject {
             && quickTerminalSize == Self.defaultQuickTerminalSize
             && quickTerminalOpacity == Self.defaultQuickTerminalOpacity
             && quickTerminalShortcut == Self.defaultQuickTerminalShortcut
+            && showPaneFocusRing
+            && Self.paneFocusRingOpacityMatchesDefault(paneFocusRingOpacity)
             && aiEnabled
             && terminalBackend == .fallback
             && terminalStartupProgram.isEmpty
@@ -518,6 +543,8 @@ final class AppSettings: nonisolated ObservableObject {
         quickTerminalOpacity = Self.defaultQuickTerminalOpacity
         quickTerminalShortcut = Self.defaultQuickTerminalShortcut
         resetCommandShortcuts()
+        showPaneFocusRing = true
+        paneFocusRingOpacity = Self.defaultPaneFocusRingOpacity
         GlobalTerminalOverlay.shared.reloadHotkey()
         if !aiEnabled {
             do {
@@ -714,6 +741,12 @@ final class AppSettings: nonisolated ObservableObject {
             if let shortcut = commandShortcuts[command] {
                 lines.append("shortcuts.\(command.rawValue) = \(TOML.quote(shortcut.persistedValue))")
             }
+        }
+        if !showPaneFocusRing {
+            lines.append("panes.show-focus-ring = false")
+        }
+        if !Self.paneFocusRingOpacityMatchesDefault(paneFocusRingOpacity) {
+            lines.append("panes.focus-ring-opacity = \(TOML.number(paneFocusRingOpacity))")
         }
         if !aiEnabled {
             lines.append("ai.enabled = false")
