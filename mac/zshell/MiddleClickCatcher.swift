@@ -26,13 +26,12 @@ final class MiddleClickNSView: NSView {
     var onMiddleClick: (() -> Void)?
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        guard let event = NSApp.currentEvent else { return nil }
-        switch event.type {
-        case .otherMouseDown, .otherMouseUp, .otherMouseDragged:
-            return self
-        default:
-            return nil
-        }
+        // Claim only the middle button's down event. Every other event —
+        // left clicks in particular — must fall through to the SwiftUI
+        // controls underneath, or gestures like double-click-to-rename
+        // sitting on those controls would stop firing.
+        guard let event = NSApp.currentEvent, event.type == .otherMouseDown else { return nil }
+        return self
     }
 
     override func otherMouseDown(with event: NSEvent) {

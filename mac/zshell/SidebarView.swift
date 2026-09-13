@@ -387,6 +387,12 @@ private struct SidebarProjectRow: View {
                     rowContent
                 }
                 .buttonStyle(.plain)
+                // Double-click starts the inline rename, the same
+                // affordance the tab strip and the context menu's
+                // "Rename…" entry offer. Attached to the button itself
+                // because a button consumes clicks before gestures on
+                // enclosing views get a chance to recognize them.
+                .onTapGesture(count: 2) { beginRename() }
                 .highPriorityGesture(
                     DragGesture(minimumDistance: 4, coordinateSpace: .global)
                         .onChanged { onDrag($0.location) }
