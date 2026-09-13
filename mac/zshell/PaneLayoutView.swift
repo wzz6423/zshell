@@ -414,6 +414,7 @@ private struct ResizableDivider: View {
 /// move the pane onto another, and a highlight while it's the drop target.
 private struct PaneView: View {
     @ObservedObject var tab: PaneTab
+    @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var themeChanges = Theme.changes
     let pane: Pane
     let showFocusRing: Bool
@@ -525,7 +526,11 @@ private struct PaneView: View {
                 onNewFileTab: newFileTabFromMenu,
                 onNewFilePane: newFilePaneFromMenu
             )
-                .background(Color(nsColor: Theme.background))
+                .background(
+                    settings.isTerminalBackgroundTranslucent
+                        ? Color.clear
+                        : Color(nsColor: Theme.background)
+                )
                 .overlay(alignment: .topTrailing) {
                     TerminalFindOverlay(find: session.find)
                 }

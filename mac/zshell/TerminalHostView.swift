@@ -27,9 +27,9 @@ struct TerminalHostView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSView {
         let container = TerminalContainerView()
-        container.terminal = session.surface
-        container.focusOnAppear = isFocused
         let terminal = session.surface
+        container.terminal = terminal
+        container.focusOnAppear = isFocused
         terminal.onBecomeFirstResponder = onFocused
         terminal.splitTarget.onSplit = onSplit
         terminal.splitTarget.onNewBrowserTab = onNewBrowserTab
@@ -74,6 +74,7 @@ struct TerminalHostView: NSViewRepresentable {
         session.surface.splitTarget.onNewFileTab = onNewFileTab
         session.surface.splitTarget.onNewFilePane = onNewFilePane
         let container = view as? TerminalContainerView
+        container?.setMaterialActive(AppSettings.shared.isTerminalBackgroundBlurActive)
         container?.activateSurfaceAfterLayout()
         container?.focusOnAppear = isFocused
         // Take focus only on the unfocused→focused edge (keyboard navigation,
@@ -189,6 +190,7 @@ final class TerminalParkingContainerView: NSView {
 /// this only performs the makeFirstResponder.
 private final class TerminalContainerView: NSView {
     weak var terminal: NSView?
+    private var materialBackground: NSVisualEffectView?
     var focusOnAppear = true {
         didSet {
             if !focusOnAppear { pendingFocusRequest = false }
@@ -203,6 +205,7 @@ private final class TerminalContainerView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        updateMaterialState()
         NotificationCenter.default.removeObserver(
             self,
             name: NSWindow.didBecomeKeyNotification,
@@ -221,6 +224,33 @@ private final class TerminalContainerView: NSView {
         }
         guard focusOnAppear else { return }
         requestTerminalFocus()
+    }
+
+    func setMaterialActive(_ active: Bool) {
+        guard active != (materialBackground != nil) else { return }
+        if active {
+            guard let terminal, terminal.superview === self else { return }
+            let material = NSVisualEffectView()
+            material.material = .underWindowBackground
+            material.blendingMode = .behindWindow
+            material.state = .followsWindowActiveState
+            material.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(material, positioned: .below, relativeTo: terminal)
+            NSLayoutConstraint.activate([
+                material.leadingAnchor.constraint(equalTo: leadingAnchor),
+                material.trailingAnchor.constraint(equalTo: trailingAnchor),
+                material.topAnchor.constraint(equalTo: topAnchor),
+                material.bottomAnchor.constraint(equalTo: bottomAnchor),
+            ])
+            materialBackground = material
+        } else {
+            materialBackground?.removeFromSuperview()
+            materialBackground = nil
+        }
+    }
+
+    private func updateMaterialState() {
+        setMaterialActive(AppSettings.shared.isTerminalBackgroundBlurActive)
     }
 
     func activateSurfaceAfterLayout() {

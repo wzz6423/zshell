@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import Combine
 
 /// Everything that shapes a terminal pane: which emulator draws it, how the
 /// cursor looks, how keys and history behave, and the global quick terminal.
@@ -21,6 +22,19 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     private let terminalBellSwitch = SettingsSwitch { AppSettings.shared.terminalBell = $0 }
     private let shiftEnterNewlineSwitch = SettingsSwitch { AppSettings.shared.shiftEnterNewline = $0 }
     private let restoreHistorySwitch = SettingsSwitch { AppSettings.shared.restoreTerminalHistory = $0 }
+    private let terminalBackgroundBlurSwitch = SettingsSwitch {
+        AppSettings.shared.terminalBackgroundBlur = $0
+    }
+
+    private let terminalBackgroundOpacityRow = SettingsSliderRow(
+        title: String(localized: "Opacity"),
+        range: AppSettings.terminalBackgroundOpacityRange,
+        format: .percent,
+        step: 0.05,
+        showsStepper: false,
+        accessibilityLabel: String(localized: "Terminal background opacity"),
+        onChange: { AppSettings.shared.terminalBackgroundOpacity = $0 }
+    )
 
     private let shortcutRecorder = QuickTerminalShortcutRecorder(frame: .zero)
 
@@ -51,6 +65,13 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         // The overlay owns the live hotkey registration and rejects a shortcut
         // it cannot claim, so the recorder keeps the old one on false.
         shortcutRecorder.onShortcutChanged = { GlobalTerminalOverlay.shared.setHotkey($0) }
+        observe(
+            NSWorkspace.shared.notificationCenter.publisher(
+                for: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification
+            )
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.syncFromSettings() }
+        )
     }
 
     override func makeGroups() -> [NSView] {
@@ -80,6 +101,15 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         groups.append(SettingsGroup(header: String(localized: "Cursor"), rows: [
             SettingsCustomRow(cursorShapeView),
             SettingsCustomRow(cursorBlinkingView),
+        ]))
+
+        groups.append(SettingsGroup(header: String(localized: "Background"), rows: [
+            terminalBackgroundOpacityRow,
+            SettingsRow(
+                title: String(localized: "Blur behind window"),
+                description: String(localized: "Adds frosted material behind translucent terminal backgrounds"),
+                control: terminalBackgroundBlurSwitch
+            ),
         ]))
 
         groups.append(SettingsGroup(header: String(localized: "Behavior"), rows: [
@@ -126,6 +156,10 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         terminalBellSwitch.isOn = settings.terminalBell
         shiftEnterNewlineSwitch.isOn = settings.shiftEnterNewline
         restoreHistorySwitch.isOn = settings.restoreTerminalHistory
+        terminalBackgroundOpacityRow.setValue(settings.terminalBackgroundOpacity)
+        terminalBackgroundBlurSwitch.isOn = settings.terminalBackgroundBlur
+        terminalBackgroundBlurSwitch.isEnabled = settings.terminalBackgroundOpacity < 1
+            && !NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
         shortcutRecorder.setShortcut(settings.quickTerminalShortcut)
         quickTerminalSizeRow.setValue(settings.quickTerminalSize)
         quickTerminalOpacityRow.setValue(settings.quickTerminalOpacity)
