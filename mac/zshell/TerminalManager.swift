@@ -641,16 +641,37 @@ final class TerminalManager: nonisolated ObservableObject {
     // MARK: - Sessions
 
     /// New session in the current project; creates a project if none exist.
-    func newSession(directory: String? = nil) {
+    /// `commandArguments` execs an explicit argv instead of the login shell —
+    /// Quick Launch uses it to start a session straight into a command or an
+    /// SSH connection.
+    func newSession(directory: String? = nil, commandArguments: [String]? = nil) {
         guard let project = selectedProject else {
-            if let directory {
+            if let commandArguments {
+                let project = makeProject(createInitialSession: false)
+                project.newSession(directory: directory, commandArguments: commandArguments)
+                insert(project)
+            } else if let directory {
                 newProject(directory: directory)
             } else {
                 newProject()
             }
             return
         }
-        project.newSession(directory: directory)
+        project.newSession(directory: directory, commandArguments: commandArguments)
+    }
+
+    /// Runs a Quick Launch entry: a new session in the selected project execs
+    /// the entry's argv — its command or SSH connection — like any other new
+    /// terminal, so the pane follows the normal project and tab flow.
+    func runQuickLaunchEntry(_ entry: QuickLaunchEntry) {
+        let arguments = entry.launchArguments(loginShellPath: TerminalSession.loginShell())
+        let directory: String?
+        if case .command(_, let pinned) = entry.kind {
+            directory = pinned
+        } else {
+            directory = nil
+        }
+        newSession(directory: directory, commandArguments: arguments)
     }
 
     /// Whether "Reopen Closed Session" (⇧⌘T) has history to act on.
@@ -1176,6 +1197,14 @@ final class TerminalManager: nonisolated ObservableObject {
     func dismissCommandPalette() {
         guard isCommandPaletteVisible else { return }
         isCommandPaletteVisible = false
+    }
+
+    /// Opens the Quick Launch overlay for this window, or closes it when it's
+    /// already up. The overlay is a plain AppKit panel, so unlike the command
+    /// palette no responder save-and-restore dance is needed: the main window
+    /// keeps its first responder and regains key status when the panel closes.
+    func toggleQuickLaunch() {
+        QuickLaunchPanelController.shared.toggle(manager: self)
     }
 
     /// Called by the palette after SwiftUI has actually removed its focused

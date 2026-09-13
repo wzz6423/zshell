@@ -239,6 +239,12 @@ private struct ZshellCommands: Commands {
             .keyboardShortcut(settings.keyboardShortcut(for: .commandPalette))
             .disabled(manager == nil)
 
+            Button("Quick Launch…") {
+                manager?.toggleQuickLaunch()
+            }
+            .keyboardShortcut("o", modifiers: .command)
+            .disabled(manager == nil)
+
             Divider()
 
             Button("Toggle Left Sidebar") {

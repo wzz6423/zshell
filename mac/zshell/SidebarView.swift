@@ -88,6 +88,10 @@ struct SidebarView: View {
                     systemImage: "network",
                     tooltip: "New SSH Project"
                 ) { manager.promptForSSHProject() }
+                SidebarFooterButton(
+                    systemImage: "bolt",
+                    tooltip: "Quick Launch (⌘O)"
+                ) { manager.toggleQuickLaunch() }
                 Spacer()
                 SidebarFooterButton(
                     systemImage: "exclamationmark.bubble",

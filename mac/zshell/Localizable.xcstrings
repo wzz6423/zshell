@@ -540,6 +540,40 @@
         }
       }
     },
+    "A command is required.": {
+      "comment": "Quick Launch editor validation for an empty command.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コマンドを入力してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要填写命令。"
+          }
+        }
+      }
+    },
+    "A host is required.": {
+      "comment": "Quick Launch editor validation for an empty SSH host.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ホストを入力してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要填写主机。"
+          }
+        }
+      }
+    },
     "A name can’t contain “/” or be “.” or “..”.": {
       "localizations": {
         "ja": {
@@ -912,6 +946,51 @@
           "stringUnit": {
             "state": "translated",
             "value": "外观"
+          }
+        }
+      }
+    },
+    "Apply": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "適用"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用"
+          }
+        }
+      }
+    },
+    "Apply the settings in “%@”?": {
+      "comment": "Confirmation before importing. The placeholder is the chosen file's path.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply the settings in “%@”?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」の設定を適用しますか？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用“%@”中的设置？"
           }
         }
       }
@@ -1303,6 +1382,23 @@
         }
       }
     },
+    "Browse…": {
+      "comment": "Button opening a directory picker.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "参照…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "浏览…"
+          }
+        }
+      }
+    },
     "CHANGES": {
       "localizations": {
         "ja": {
@@ -1481,6 +1577,29 @@
         }
       }
     },
+    "Choose a settings file to import.": {
+      "comment": "Message in the settings import open panel.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a settings file to import."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み込む設定ファイルを選択してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择要导入的设置文件。"
+          }
+        }
+      }
+    },
     "Choose only one of --dark and --light.": {
       "localizations": {
         "ja": {
@@ -1510,6 +1629,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "请选择“%@”的目录。"
+          }
+        }
+      }
+    },
+    "Choose where to save the exported settings.": {
+      "comment": "Message in the settings export save panel.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose where to save the exported settings."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "書き出した設定の保存先を選択してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择导出设置的保存位置。"
           }
         }
       }
@@ -1884,6 +2026,7 @@
       }
     },
     "Command": {
+      "comment": "Quick Launch entry type: a shell command.",
       "localizations": {
         "ja": {
           "stringUnit": {
@@ -2463,6 +2606,50 @@
         }
       }
     },
+    "Couldn’t Export Settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t Export Settings"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定を書き出せませんでした"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法导出设置"
+          }
+        }
+      }
+    },
+    "Couldn’t Import Settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t Import Settings"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定を読み込めませんでした"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法导入设置"
+          }
+        }
+      }
+    },
     "Couldn’t Move Tab": {
       "localizations": {
         "ja": {
@@ -2787,6 +2974,23 @@
         }
       }
     },
+    "Delete": {
+      "comment": "Button in the Quick Launch deletion confirmation.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除"
+          }
+        }
+      }
+    },
     "Delete %@? Its contents will move to the Trash.": {
       "comment": "Discard confirmation. The placeholder is an untracked file name.",
       "localizations": {
@@ -2800,6 +3004,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "要删除 %@ 吗？其内容将移到废纸篓。"
+          }
+        }
+      }
+    },
+    "Delete “%@”?": {
+      "comment": "Quick Launch entry deletion confirmation. The placeholder is an entry name.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”を削除しますか？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除“%@”？"
           }
         }
       }
@@ -3180,6 +3401,23 @@
         }
       }
     },
+    "Edit Quick Launch Entry": {
+      "comment": "Title of the Quick Launch entry editor for an existing entry.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クイック起動エントリを編集"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑快速启动条目"
+          }
+        }
+      }
+    },
     "Editor": {
       "localizations": {
         "ja": {
@@ -3353,6 +3591,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "已展开"
+          }
+        }
+      }
+    },
+    "Export Settings…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export Settings…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定を書き出す…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出设置…"
           }
         }
       }
@@ -4242,6 +4502,7 @@
       }
     },
     "Host": {
+      "comment": "Quick Launch editor label for the SSH host.",
       "localizations": {
         "ja": {
           "stringUnit": {
@@ -4285,6 +4546,51 @@
           "stringUnit": {
             "state": "translated",
             "value": "图像渲染"
+          }
+        }
+      }
+    },
+    "Import": {
+      "comment": "Button in the settings import open panel.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み込む"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导入"
+          }
+        }
+      }
+    },
+    "Import Settings…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import Settings…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定を読み込む…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导入设置…"
           }
         }
       }
@@ -4593,6 +4899,23 @@
         }
       }
     },
+    "Launch": {
+      "comment": "Quick Launch footer hint: Return launches the selected entry.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "起動"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动"
+          }
+        }
+      }
+    },
     "Left": {
       "localizations": {
         "ja": {
@@ -4664,6 +4987,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "浅色主题"
+          }
+        }
+      }
+    },
+    "Line %lld could not be read: %@": {
+      "comment": "Import error for a malformed line. The first placeholder is the 1-based line number; the second is the line's text as written in the file.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Line %lld could not be read: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 行目を読み込めませんでした：%@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %lld 行无法读取：%@"
           }
         }
       }
@@ -5101,6 +5447,23 @@
         }
       }
     },
+    "New": {
+      "comment": "Quick Launch footer hint: ⌘N creates an entry.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新規"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建"
+          }
+        }
+      }
+    },
     "New Browser Pane": {
       "localizations": {
         "ja": {
@@ -5257,6 +5620,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "新建快速命令"
+          }
+        }
+      }
+    },
+    "New Quick Launch Entry": {
+      "comment": "Title of the Quick Launch entry editor for a new entry.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新規クイック起動エントリ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建快速启动条目"
           }
         }
       }
@@ -5471,6 +5851,23 @@
         }
       }
     },
+    "No Matches": {
+      "comment": "Empty state when a filter matches nothing.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一致する項目がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无匹配结果"
+          }
+        }
+      }
+    },
     "No Quick Commands": {
       "localizations": {
         "ja": {
@@ -5483,6 +5880,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "没有快速命令"
+          }
+        }
+      }
+    },
+    "No Quick Launch Entries": {
+      "comment": "Empty state of the Quick Launch panel with no saved entries.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クイック起動エントリがありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无快速启动条目"
           }
         }
       }
@@ -6051,6 +6465,57 @@
         }
       }
     },
+    "Optional": {
+      "comment": "Marks a Quick Launch editor field as optional.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任意"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可选"
+          }
+        }
+      }
+    },
+    "Optional, e.g. -L 8080:localhost:80": {
+      "comment": "Placeholder of the Quick Launch SSH options field.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任意（例: -L 8080:localhost:80）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可选，例如 -L 8080:localhost:80"
+          }
+        }
+      }
+    },
+    "Options": {
+      "comment": "Quick Launch editor label for extra SSH arguments.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オプション"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选项"
+          }
+        }
+      }
+    },
     "PORTS": {
       "localizations": {
         "ja": {
@@ -6308,6 +6773,7 @@
       }
     },
     "Port": {
+      "comment": "Quick Launch editor label for the SSH port.",
       "localizations": {
         "ja": {
           "stringUnit": {
@@ -6335,6 +6801,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "按下快捷键"
+          }
+        }
+      }
+    },
+    "Press ⌘N to add your first entry.": {
+      "comment": "Hint in the empty Quick Launch panel.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌘N で最初のエントリを追加します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按 ⌘N 添加第一个条目。"
           }
         }
       }
@@ -6671,6 +7154,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "快速命令"
+          }
+        }
+      }
+    },
+    "Quick Launch (⌘O)": {
+      "comment": "Tooltip of the sidebar Quick Launch button.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クイック起動 (⌘O)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速启动 (⌘O)"
+          }
+        }
+      }
+    },
+    "Quick Launch entries": {
+      "comment": "Accessibility label of the Quick Launch entry list.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クイック起動エントリ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速启动条目"
+          }
+        }
+      }
+    },
+    "Quick Launch…": {
+      "comment": "Menu item opening the Quick Launch overlay.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クイック起動…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速启动…"
           }
         }
       }
@@ -7691,6 +8225,23 @@
         }
       }
     },
+    "SSH Connection": {
+      "comment": "Quick Launch entry type: an SSH connection.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH 接続"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH 连接"
+          }
+        }
+      }
+    },
     "STAGED CHANGES": {
       "localizations": {
         "ja": {
@@ -7800,6 +8351,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "搜索或输入网站名称"
+          }
+        }
+      }
+    },
+    "Search quick launch entries…": {
+      "comment": "Placeholder of the Quick Launch search field.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クイック起動エントリを検索…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索快速启动条目…"
           }
         }
       }
@@ -8026,6 +8594,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "设置（⌘,）"
+          }
+        }
+      }
+    },
+    "Settings Exported": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings Exported"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定を書き出しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置已导出"
           }
         }
       }
@@ -9172,6 +9762,86 @@
         }
       }
     },
+    "The command runs in a new terminal session using your login shell.": {
+      "comment": "Explains what a Quick Launch command entry does.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コマンドはログインシェルで新しいターミナルセッションとして実行されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "命令将使用你的登录 shell 在新的终端会话中运行。"
+          }
+        }
+      }
+    },
+    "The connection opens with ssh in a new terminal session.": {
+      "comment": "Explains what a Quick Launch SSH entry does.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続は ssh で新しいターミナルセッションとして開きます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接将在新的终端会话中通过 ssh 打开。"
+          }
+        }
+      }
+    },
+    "The current settings were written to “%@”.": {
+      "comment": "The placeholder is the chosen export file's path.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The current settings were written to “%@”."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の設定を「%@」に書き出しました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前设置已写入“%@”。"
+          }
+        }
+      }
+    },
+    "The current settings will be replaced.": {
+      "comment": "Explains what confirming an import does.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The current settings will be replaced."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の設定は置き換えられます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前设置将被替换。"
+          }
+        }
+      }
+    },
     "The destination project already has an agent named “%@”.": {
       "comment": "Tab move failure. The placeholder is an agent alias.",
       "localizations": {
@@ -9185,6 +9855,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "目标项目已存在名为“%@”的编码代理。"
+          }
+        }
+      }
+    },
+    "The entry is removed from Quick Launch. Terminals it launched stay open.": {
+      "comment": "Explanation in the Quick Launch deletion confirmation.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エントリはクイック起動から削除されます。起動されたターミナルは開いたままです。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该条目将从快速启动中移除，它启动的终端保持打开。"
+          }
+        }
+      }
+    },
+    "The file “%@” could not be read.": {
+      "comment": "The placeholder is the chosen import file's path.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The file “%@” could not be read."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」を読み込めませんでした。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取“%@”。"
           }
         }
       }
@@ -9253,6 +9963,23 @@
         }
       }
     },
+    "The port must be a number between 1 and 65535.": {
+      "comment": "Quick Launch editor validation for a bad SSH port.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ポートは 1〜65535 の数値で指定してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端口必须是 1 到 65535 之间的数字。"
+          }
+        }
+      }
+    },
     "The selected Git remote is no longer available": {
       "localizations": {
         "ja": {
@@ -9265,6 +9992,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "所选的 Git 远程仓库已不存在"
+          }
+        }
+      }
+    },
+    "The settings could not be written to “%@”.": {
+      "comment": "The placeholder is the chosen export file's path.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The settings could not be written to “%@”."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定を「%@」に書き込めませんでした。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置无法写入“%@”。"
           }
         }
       }
@@ -9313,6 +10063,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "网页已停止响应。"
+          }
+        }
+      }
+    },
+    "The working directory must be an existing folder.": {
+      "comment": "Quick Launch editor validation for a bad directory.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作業ディレクトリには実在するフォルダを指定してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工作目录必须是已存在的文件夹。"
           }
         }
       }
@@ -9618,6 +10385,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "重试"
+          }
+        }
+      }
+    },
+    "Type": {
+      "comment": "Quick Launch editor label for the entry type.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "種類"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "类型"
           }
         }
       }
@@ -10189,11 +10973,12 @@
       }
     },
     "User": {
+      "comment": "Quick Launch editor label for the SSH user.",
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ユーザー"
+            "value": "ユーザ"
           }
         },
         "zh-Hans": {
@@ -10328,6 +11113,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "网页"
+          }
+        }
+      }
+    },
+    "Working Directory": {
+      "comment": "Quick Launch editor label for the command's starting directory.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作業ディレクトリ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工作目录"
           }
         }
       }
@@ -10590,345 +11392,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "↑↓ 浏览 · Return 保存 · Esc 取消 · Tab 明暗切换"
-          }
-        }
-      }
-    },
-    "Apply" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apply"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "適用"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "应用"
-          }
-        }
-      }
-    },
-    "Apply the settings in “%@”?" : {
-      "comment" : "Confirmation before importing. The placeholder is the chosen file's path.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apply the settings in “%@”?"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "「%@」の設定を適用しますか？"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "应用“%@”中的设置？"
-          }
-        }
-      }
-    },
-    "Choose a settings file to import." : {
-      "comment" : "Message in the settings import open panel.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose a settings file to import."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "読み込む設定ファイルを選択してください。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选择要导入的设置文件。"
-          }
-        }
-      }
-    },
-    "Choose where to save the exported settings." : {
-      "comment" : "Message in the settings export save panel.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose where to save the exported settings."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "書き出した設定の保存先を選択してください。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选择导出设置的保存位置。"
-          }
-        }
-      }
-    },
-    "Couldn’t Export Settings" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn’t Export Settings"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "設定を書き出せませんでした"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法导出设置"
-          }
-        }
-      }
-    },
-    "Couldn’t Import Settings" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn’t Import Settings"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "設定を読み込めませんでした"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法导入设置"
-          }
-        }
-      }
-    },
-    "Export Settings…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Export Settings…"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "設定を書き出す…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "导出设置…"
-          }
-        }
-      }
-    },
-    "Import" : {
-      "comment" : "Button in the settings import open panel.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "読み込む"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "导入"
-          }
-        }
-      }
-    },
-    "Import Settings…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import Settings…"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "設定を読み込む…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "导入设置…"
-          }
-        }
-      }
-    },
-    "Line %lld could not be read: %@" : {
-      "comment" : "Import error for a malformed line. The first placeholder is the 1-based line number; the second is the line's text as written in the file.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Line %lld could not be read: %@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 行目を読み込めませんでした：%@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "第 %lld 行无法读取：%@"
-          }
-        }
-      }
-    },
-    "Settings Exported" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Settings Exported"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "設定を書き出しました"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "设置已导出"
-          }
-        }
-      }
-    },
-    "The current settings were written to “%@”." : {
-      "comment" : "The placeholder is the chosen export file's path.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The current settings were written to “%@”."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "現在の設定を「%@」に書き出しました。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "当前设置已写入“%@”。"
-          }
-        }
-      }
-    },
-    "The current settings will be replaced." : {
-      "comment" : "Explains what confirming an import does.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The current settings will be replaced."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "現在の設定は置き換えられます。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "当前设置将被替换。"
-          }
-        }
-      }
-    },
-    "The file “%@” could not be read." : {
-      "comment" : "The placeholder is the chosen import file's path.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The file “%@” could not be read."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "「%@」を読み込めませんでした。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法读取“%@”。"
-          }
-        }
-      }
-    },
-    "The settings could not be written to “%@”." : {
-      "comment" : "The placeholder is the chosen export file's path.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The settings could not be written to “%@”."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "設定を「%@」に書き込めませんでした。"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "设置无法写入“%@”。"
           }
         }
       }
