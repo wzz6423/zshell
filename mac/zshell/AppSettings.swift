@@ -89,6 +89,51 @@ enum ToolbarVisibility: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// The icon shown for the running app in the Dock and app switcher.
+enum ApplicationIcon: String, CaseIterable, Identifiable {
+    case defaultIcon = "default"
+    case light
+    case dark
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .defaultIcon:
+            String(localized: "Default", comment: "Use the app's bundled icon.")
+        case .light:
+            String(localized: "Light", comment: "Light application icon.")
+        case .dark:
+            String(localized: "Dark", comment: "Dark application icon.")
+        }
+    }
+
+    /// Name of the bundled `.icns` resource for this choice. `nil` restores
+    /// the icon compiled for this build configuration.
+    var resourceName: String? {
+        switch self {
+        case .defaultIcon: nil
+        case .light: "AppIconLight"
+        case .dark: "AppIconDark"
+        }
+    }
+
+    /// Loads an icon resource whether Xcode copied it at the bundle root or
+    /// preserved the source `Icons` directory in the resource bundle.
+    func bundledImage() -> NSImage? {
+        guard let resourceName else { return nil }
+        let urls = [
+            Bundle.main.url(forResource: resourceName, withExtension: "icns"),
+            Bundle.main.url(
+                forResource: resourceName,
+                withExtension: "icns",
+                subdirectory: "Icons"
+            ),
+        ]
+        return urls.compactMap { $0 }.compactMap(NSImage.init(contentsOf:)).first
+    }
+}
+
 /// User-configurable settings, persisted to `$HOME/.config/zshell/config.toml`.
 /// Views observe this directly; `TerminalManager` re-themes live sessions on
 /// any change.
@@ -141,6 +186,15 @@ final class AppSettings: nonisolated ObservableObject {
 
     var languageRequiresRelaunch: Bool {
         language != activeLanguage
+    }
+
+    /// Icon shown for the running app; `defaultIcon` restores the icon compiled
+    /// for this build configuration.
+    @Published var applicationIcon: ApplicationIcon {
+        didSet {
+            applyApplicationIcon()
+            save()
+        }
     }
 
     /// Light/dark appearance override; `system` follows macOS.
@@ -355,6 +409,9 @@ final class AppSettings: nonisolated ObservableObject {
 
         let existing = TOML.parse(at: Self.configURL)
         let toml = existing ?? Self.legacyDefaults()
+        applicationIcon = ApplicationIcon(
+            rawValue: toml["app-icon"]?.string ?? ""
+        ) ?? .defaultIcon
         theme = toml["theme"]?.string.flatMap(AppTheme.init(rawValue:)) ?? .system
         themeDark = Self.knownTheme(
             toml["theme-dark"]?.string,
@@ -436,6 +493,7 @@ final class AppSettings: nonisolated ObservableObject {
         terminalStartupProgram = toml["terminal.startup-program"]?.string ?? ""
         terminalStartupArguments = toml["terminal.startup-arguments"]?.string ?? ""
         applyAppearance()
+        applyApplicationIcon()
         reloadThemeSelection()
         if existing == nil { save() }
     }
@@ -474,6 +532,21 @@ final class AppSettings: nonisolated ObservableObject {
         NSApp?.appearance = theme.nsAppearance
     }
 
+    /// Applies only to the running process. Assigning nil restores the app
+    /// icon compiled for this build, preserving the separate Debug identity.
+    func applyApplicationIcon() {
+        guard let application = NSApp else { return }
+        guard let resourceName = applicationIcon.resourceName else {
+            application.applicationIconImage = nil
+            return
+        }
+        guard let image = applicationIcon.bundledImage() else {
+            NSLog("zshell: missing application icon resource \(resourceName).icns")
+            return
+        }
+        application.applicationIconImage = image
+    }
+
     func resetFont() {
         fontFamily = ""
         fontFallbackFamily = ""
@@ -487,7 +560,8 @@ final class AppSettings: nonisolated ObservableObject {
     /// Whether every setting ``resetToDefaults()`` touches already holds its
     /// default, so Settings can disable the reset button.
     var isAtDefaults: Bool {
-        fontFamily.isEmpty
+        applicationIcon == .defaultIcon
+            && fontFamily.isEmpty
             && fontFallbackFamily.isEmpty
             && fontSize == Self.defaultFontSize
             && sidebarFontSize == Self.defaultSidebarFontSize
@@ -522,6 +596,7 @@ final class AppSettings: nonisolated ObservableObject {
     }
 
     func resetToDefaults() {
+        applicationIcon = .defaultIcon
         resetFont()
         language = .system
         theme = .system
@@ -662,6 +737,10 @@ final class AppSettings: nonisolated ObservableObject {
 
     private func save() {
         var lines: [String] = []
+        // Top-level like `theme`: the icon covers the whole app.
+        if applicationIcon != .defaultIcon {
+            lines.append("app-icon = \(TOML.quote(applicationIcon.rawValue))")
+        }
         if theme != .system {
             lines.append("theme = \(TOML.quote(theme.rawValue))")
         }

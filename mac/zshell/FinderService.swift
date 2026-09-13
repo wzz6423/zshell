@@ -11,9 +11,10 @@ import AppKit
 final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     func applicationWillFinishLaunching(_ notification: Notification) {
         // AppSettings is first initialized from SwiftUI's App.init(), where
-        // NSApp may not exist yet. Reapply the saved override once AppKit is
+        // NSApp may not exist yet. Reapply the saved overrides once AppKit is
         // ready, before SwiftUI creates the first window.
         AppSettings.shared.applyAppearance()
+        AppSettings.shared.applyApplicationIcon()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
