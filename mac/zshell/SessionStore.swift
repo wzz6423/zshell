@@ -70,6 +70,9 @@ struct SessionSnapshot: Codable {
             /// Fixed tabs stay before regular tabs. Defaults to false when
             /// loading snapshots written before tab pinning was available.
             var isPinned: Bool
+            /// Opaque sRGB marker color. Stored as a string so unknown future
+            /// values do not invalidate the containing session snapshot.
+            var markerColorHex: String?
             /// Position of the terminal this non-terminal tab was opened
             /// from in the project's flattened session list. Optional so
             /// snapshots written before context persistence still decode.
@@ -80,17 +83,19 @@ struct SessionSnapshot: Codable {
                 focusedPaneIndex: Int,
                 customName: String? = nil,
                 isPinned: Bool = false,
+                markerColorHex: String? = nil,
                 contextSessionIndex: Int? = nil
             ) {
                 self.layout = layout
                 self.focusedPaneIndex = focusedPaneIndex
                 self.customName = customName
                 self.isPinned = isPinned
+                self.markerColorHex = markerColorHex
                 self.contextSessionIndex = contextSessionIndex
             }
 
             enum CodingKeys: String, CodingKey {
-                case layout, focusedPaneIndex, customName, isPinned, contextSessionIndex
+                case layout, focusedPaneIndex, customName, isPinned, markerColorHex, contextSessionIndex
                 case columns, focusedColumn, focusedRow
             }
 
@@ -102,6 +107,7 @@ struct SessionSnapshot: Codable {
                         (try? container.decode(Int.self, forKey: .focusedPaneIndex)) ?? 0
                     customName = try? container.decode(String.self, forKey: .customName)
                     isPinned = (try? container.decode(Bool.self, forKey: .isPinned)) ?? false
+                    markerColorHex = try? container.decode(String.self, forKey: .markerColorHex)
                     contextSessionIndex = try? container.decode(
                         Int.self, forKey: .contextSessionIndex
                     )
@@ -133,6 +139,7 @@ struct SessionSnapshot: Codable {
                         )
                     customName = try? container.decode(String.self, forKey: .customName)
                     isPinned = false
+                    markerColorHex = try? container.decode(String.self, forKey: .markerColorHex)
                     contextSessionIndex = nil
                     return
                 }
@@ -143,6 +150,7 @@ struct SessionSnapshot: Codable {
                 focusedPaneIndex = 0
                 customName = nil
                 isPinned = false
+                markerColorHex = nil
                 contextSessionIndex = nil
             }
 
@@ -154,6 +162,7 @@ struct SessionSnapshot: Codable {
                 if isPinned {
                     try container.encode(true, forKey: .isPinned)
                 }
+                try container.encodeIfPresent(markerColorHex, forKey: .markerColorHex)
                 try container.encodeIfPresent(
                     contextSessionIndex, forKey: .contextSessionIndex
                 )
@@ -204,6 +213,8 @@ struct SessionSnapshot: Codable {
         /// Fixed projects stay before regular projects. Older snapshots omit
         /// this field and decode as unpinned.
         var isPinned = false
+        /// Opaque sRGB marker color; optional for pre-color snapshots.
+        var markerColorHex: String?
         /// User-pinned project directory; nil when the directory is
         /// automatic (the closest git repository, never persisted).
         /// Optional so older snapshots still decode.
@@ -212,18 +223,20 @@ struct SessionSnapshot: Codable {
         var selectedTabIndex: Int?
 
         enum CodingKeys: String, CodingKey {
-            case customName, isPinned, customDirectory, tabs, selectedTabIndex
+            case customName, isPinned, markerColorHex, customDirectory, tabs, selectedTabIndex
         }
 
         init(
             customName: String?,
             isPinned: Bool = false,
+            markerColorHex: String? = nil,
             customDirectory: String?,
             tabs: [TabSnapshot],
             selectedTabIndex: Int?
         ) {
             self.customName = customName
             self.isPinned = isPinned
+            self.markerColorHex = markerColorHex
             self.customDirectory = customDirectory
             self.tabs = tabs
             self.selectedTabIndex = selectedTabIndex
@@ -233,6 +246,7 @@ struct SessionSnapshot: Codable {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             customName = try container.decodeIfPresent(String.self, forKey: .customName)
             isPinned = try container.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
+            markerColorHex = try container.decodeIfPresent(String.self, forKey: .markerColorHex)
             customDirectory = try container.decodeIfPresent(String.self, forKey: .customDirectory)
             tabs = try container.decode([TabSnapshot].self, forKey: .tabs)
             selectedTabIndex = try container.decodeIfPresent(Int.self, forKey: .selectedTabIndex)

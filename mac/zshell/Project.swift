@@ -20,6 +20,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// selected session's terminal title.
     @Published var customName: String?
     @Published var isPinned: Bool
+    @Published var markerColor: ProjectTabMarkerColor?
     /// User-pinned project directory ("Set Project Directory…" on the
     /// project row). When set, the file tree and git panels always anchor
     /// here. Nil means automatic: the closest git repository containing the
@@ -895,6 +896,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             isPinned: snap.isPinned
         )
         tab.customName = snap.customName
+        tab.markerColor = snap.markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:))
         append(tab)
         return tab
     }
