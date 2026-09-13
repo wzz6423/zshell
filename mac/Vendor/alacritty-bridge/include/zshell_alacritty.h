@@ -104,6 +104,9 @@ typedef struct {
   /// Viewport-relative cursor, or -1 when it should not be drawn.
   intptr_t cursor_line;
   intptr_t cursor_column;
+  /// Logical input cursor, independent of terminal cursor visibility.
+  intptr_t ime_cursor_line;
+  intptr_t ime_cursor_column;
   /// 0 block, 1 underline, 2 beam, 3 hollow block.
   uint32_t cursor_shape;
   uint32_t cursor_color;
