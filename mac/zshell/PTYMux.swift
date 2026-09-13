@@ -646,6 +646,9 @@ private final class PTYMuxDaemon {
             try PTYMuxWire.configureSocket(listener)
             try bindListener()
         } catch {
+            // No worker can be blocked in `accept` yet, but shutting the
+            // listener down before closing keeps every close site uniform.
+            _ = shutdown(listener, SHUT_RDWR)
             Darwin.close(listener)
             Darwin.close(lifetimeLock)
             unlink(PTYMuxPaths.socketPath)
@@ -654,6 +657,12 @@ private final class PTYMuxDaemon {
     }
 
     deinit {
+        // `close` alone does not wake a thread blocked in `accept` on the same
+        // descriptor; `shutdown` invalidates the pending accept so the run
+        // loop returns an error and exits instead of hanging forever. A -1
+        // return (e.g. EBADF when the descriptor is already closed) is fine
+        // and must not skip the `close` below.
+        _ = shutdown(listener, SHUT_RDWR)
         Darwin.close(listener)
         Darwin.close(lifetimeLock)
         unlink(PTYMuxPaths.socketPath)
@@ -728,6 +737,12 @@ private final class PTYMuxDaemon {
             let shouldStop = shuttingDown
             shutdownLock.unlock()
             if shouldStop {
+                // The main thread is blocked in `accept` on the listener, and
+                // `close` alone does not wake it — the worker would hang the
+                // daemon forever. `shutdown` first aborts the pending accept
+                // with an error so the run loop can exit cleanly; a -1 return
+                // (e.g. EBADF) is harmless and must not skip the `close`.
+                _ = shutdown(listener, SHUT_RDWR)
                 Darwin.close(listener)
                 unlink(PTYMuxPaths.socketPath)
             }
