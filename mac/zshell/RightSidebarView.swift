@@ -67,6 +67,7 @@ struct RightSidebarView: View {
                     case .files:
                         FileTreePanel(
                             model: fileTree,
+                            search: manager.fileContentSearch,
                             git: git,
                             session: manager.selectedSession,
                             rootBadge: rootBadge,
@@ -76,7 +77,8 @@ struct RightSidebarView: View {
                             openFile: { manager.openFile($0) },
                             openToSide: { manager.openFileToSide($0) },
                             onRename: { manager.fileRenamed(from: $0, to: $1) },
-                            refreshGitStatus: { git.refresh() }
+                            refreshGitStatus: { git.refresh() },
+                            openSearchResult: { openSearchResult($0) }
                         )
                     case .git:
                         GitPanel(
@@ -274,6 +276,10 @@ struct RightSidebarView: View {
             followingSessionAt: cwd, foregroundAt: session.foregroundDirectoryPath
         )
         if rootSource != source { rootSource = source }
+        // The content search anchors to the same panel root as the tree; a
+        // root change cancels a running grep and drops results that belong
+        // to the old root.
+        manager.fileContentSearch.sync(root: root)
         switch manager.panelTab {
         case .files:
             fileTree.sync(root: root)
@@ -311,6 +317,32 @@ struct RightSidebarView: View {
             String(localized: "Following the terminal job’s directory")
         )
     }
+
+    /// Opens a search hit through the same `Project.openFile` path the file
+    /// tree uses, revealing the matched line: the grep line number maps to a
+    /// caret offset off the main thread first. A hit whose line can't be
+    /// mapped (unreadable or oversized file) still opens the file.
+    private func openSearchResult(_ match: FileContentSearchModel.Match) {
+        guard let project = manager.selectedProject,
+              !manager.fileContentSearch.rootPath.isEmpty
+        else { return }
+        let root = manager.fileContentSearch.rootPath
+        let path = (root as NSString).appendingPathComponent(match.path)
+        Task { @MainActor in
+            let location = await FileContentSearchModel.lineStartLocation(
+                line: match.line, filePath: path
+            )
+            if let location {
+                var state = EditorState()
+                state.selectionLocation = location
+                state.selectionLength = 0
+                state.revealSelection = true
+                project.openFile(path, editorState: state)
+            } else {
+                project.openFile(path)
+            }
+        }
+    }
 }
 
 // MARK: - Shared panel chrome
@@ -340,6 +372,9 @@ private struct PanelHeader: View {
 
 private struct FileTreePanel: View {
     @ObservedObject var model: FileTreeModel
+    /// Owns the file-content search state and outlives this panel; the tree
+    /// is hidden while a search row is active.
+    @ObservedObject var search: FileContentSearchModel
     @ObservedObject var git: GitStatusModel
     let session: TerminalSession?
     /// Set while the tree follows the terminal's foreground job into another
@@ -352,6 +387,9 @@ private struct FileTreePanel: View {
     let openToSide: (String) -> Void
     let onRename: (_ oldPath: String, _ newPath: String) -> Void
     let refreshGitStatus: () -> Void
+    let openSearchResult: (FileContentSearchModel.Match) -> Void
+
+    @Environment(\.sidebarFontScale) private var fontScale
 
     var body: some View {
         VStack(spacing: 0) {
@@ -371,6 +409,16 @@ private struct FileTreePanel: View {
                 }
                 if !model.isRemote {
                     Button {
+                        search.toggle()
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                            .sidebarFont(size: 11)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(String(localized: "Search File Contents"))
+                    .accessibilityLabel(String(localized: "Search File Contents"))
+                    Button {
                         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: model.rootPath)])
                     } label: {
                         Image(systemName: "arrow.up.forward.app")
@@ -385,33 +433,41 @@ private struct FileTreePanel: View {
             .padding(.top, 8)
             .padding(.bottom, 8)
 
-            if model.isRemote, let remoteError = model.remoteError {
-                remoteErrorBanner(remoteError)
-            }
-
-            ScrollView {
-                LazyVStack(spacing: 1) {
-                    if model.isRemote, model.isRemoteLoading, model.items.isEmpty {
-                        Text(String(localized: "Loading remote directory…"))
-                            .sidebarFont(size: 11)
-                            .foregroundStyle(.tertiary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.leading, 6)
-                            .padding(.top, 4)
-                    }
-                    ForEach(model.items) { item in
-                        FileTreeRow(
-                            model: model, git: git, item: item, session: session,
-                            externalEditor: externalEditor,
-                            currentFilePath: currentFilePath,
-                            previewFile: previewFile, openFile: openFile,
-                            openToSide: openToSide, onRename: onRename,
-                            refreshGitStatus: refreshGitStatus
-                        )
-                    }
+            if search.isActive {
+                FileContentSearchPanelView(
+                    model: search,
+                    fontScale: fontScale,
+                    openResult: openSearchResult
+                )
+            } else {
+                if model.isRemote, let remoteError = model.remoteError {
+                    remoteErrorBanner(remoteError)
                 }
-                .padding(.horizontal, 6)
-                .padding(.bottom, 8)
+
+                ScrollView {
+                    LazyVStack(spacing: 1) {
+                        if model.isRemote, model.isRemoteLoading, model.items.isEmpty {
+                            Text(String(localized: "Loading remote directory…"))
+                                .sidebarFont(size: 11)
+                                .foregroundStyle(.tertiary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.leading, 6)
+                                .padding(.top, 4)
+                        }
+                        ForEach(model.items) { item in
+                            FileTreeRow(
+                                model: model, git: git, item: item, session: session,
+                                externalEditor: externalEditor,
+                                currentFilePath: currentFilePath,
+                                previewFile: previewFile, openFile: openFile,
+                                openToSide: openToSide, onRename: onRename,
+                                refreshGitStatus: refreshGitStatus
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.bottom, 8)
+                }
             }
         }
     }

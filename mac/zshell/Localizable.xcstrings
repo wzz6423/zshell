@@ -302,6 +302,41 @@
         }
       }
     },
+    "%lld matches": {
+      "comment": "File-content search status. The placeholder is the number of matched lines.",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld match"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld matches"
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld件の一致"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个匹配"
+          }
+        }
+      }
+    },
     "%lld outgoing commits": {
       "localizations": {
         "en": {
@@ -1880,6 +1915,22 @@
         }
       }
     },
+    "Close Search": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索を閉じる"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭搜索"
+          }
+        }
+      }
+    },
     "Close Tab": {
       "localizations": {
         "ja": {
@@ -2026,7 +2077,6 @@
       }
     },
     "Command": {
-      "comment": "Quick Launch entry type: a shell command.",
       "localizations": {
         "ja": {
           "stringUnit": {
@@ -4502,7 +4552,6 @@
       }
     },
     "Host": {
-      "comment": "Quick Launch editor label for the SSH host.",
       "localizations": {
         "ja": {
           "stringUnit": {
@@ -5186,6 +5235,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "将此文件标记为未审阅"
+          }
+        }
+      }
+    },
+    "Match Case": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大文字と小文字を区別"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "区分大小写"
           }
         }
       }
@@ -6773,7 +6838,6 @@
       }
     },
     "Port": {
-      "comment": "Quick Launch editor label for the SSH port.",
       "localizations": {
         "ja": {
           "stringUnit": {
@@ -8048,6 +8112,41 @@
         }
       }
     },
+    "Results are truncated — showing the first %lld matches": {
+      "comment": "File-content search status. The placeholder is the number of matches shown.",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Results are truncated — showing the first %lld match"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Results are truncated — showing the first %lld matches"
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結果は切り詰められました — 最初の%lld件のみ表示"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结果已截断 — 仅显示前 %lld 个匹配"
+          }
+        }
+      }
+    },
     "Retry": {
       "localizations": {
         "ja": {
@@ -8306,6 +8405,22 @@
         }
       }
     },
+    "Search File Contents": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイル内容を検索"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索文件内容"
+          }
+        }
+      }
+    },
     "Search agents…": {
       "comment": "Placeholder in the running agent palette search field.",
       "localizations": {
@@ -8339,6 +8454,22 @@
         }
       }
     },
+    "Search failed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索に失敗しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索失败"
+          }
+        }
+      }
+    },
     "Search or enter website name": {
       "localizations": {
         "ja": {
@@ -8368,6 +8499,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "搜索快速启动条目…"
+          }
+        }
+      }
+    },
+    "Searching…": {
+      "comment": "File-content search status.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索中…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在搜索…"
           }
         }
       }
@@ -9259,6 +9407,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "停止载入"
+          }
+        }
+      }
+    },
+    "Stop Search": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索を停止"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止搜索"
+          }
+        }
+      }
+    },
+    "Stopped — %lld matches": {
+      "comment": "File-content search status after pressing stop. The placeholder is the number of matches found so far.",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Stopped — %lld match"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Stopped — %lld matches"
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止 — %lld件の一致"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已停止 — %lld 个匹配"
           }
         }
       }
@@ -10973,12 +11172,11 @@
       }
     },
     "User": {
-      "comment": "Quick Launch editor label for the SSH user.",
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ユーザ"
+            "value": "ユーザー"
           }
         },
         "zh-Hans": {

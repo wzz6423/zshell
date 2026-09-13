@@ -17,6 +17,10 @@ struct EditorState: Codable, Equatable {
     var selectionLength: Int?
     var scrollX: Double?
     var scrollY: Double?
+    /// When set, the editor scrolls `selectionLocation` into view on mount
+    /// instead of restoring `scrollX`/`scrollY` — how opening a file from a
+    /// search hit reaches its matched line. Consumed once applied.
+    var revealSelection: Bool?
 }
 
 /// Editor colors derived from the application palette (`Theme.background` is
@@ -137,8 +141,18 @@ final class SourceEditorController: NSObject, STTextViewDelegate {
         // the frame is finally known but before the first paint — so the file
         // opens already at its saved position. Doing this asynchronously (after
         // the initial paint at the top) makes the editor visibly scroll into
-        // place and flashes the auto-hiding scroller.
-        if state.scrollX != nil || state.scrollY != nil {
+        // place and flashes the auto-hiding scroller. A pending reveal takes
+        // its place instead: the caret was just placed on the line a search
+        // hit asked for, and that line is scrolled into view the same way.
+        if state.revealSelection == true, let location = state.selectionLocation {
+            scrollView.restoreOnFirstLayout = { [weak scrollView, weak textView, weak file] in
+                guard let scrollView, let textView else { return }
+                textView.scrollRangeToVisible(NSRange(location: location, length: 0))
+                // Consume the request so later tab switches restore the
+                // offset the user actually scrolled to.
+                file?.editorState.revealSelection = nil
+            }
+        } else if state.scrollX != nil || state.scrollY != nil {
             scrollView.restoreOnFirstLayout = { [weak scrollView, weak textView] in
                 guard let scrollView, let textView else { return }
                 let clipView = scrollView.contentView
@@ -518,5 +532,32 @@ private final class RestorableScrollView: NSScrollView {
             }
             self.reflectScrolledClipView(clipView)
         }
+    }
+}
+
+// MARK: - Revealing a search hit
+
+extension FileTab {
+    /// Lands the caret on `location` (a UTF-16 offset into the file text) and
+    /// scrolls it into view — how opening a file-content search hit reaches
+    /// its matched line. A mounted editor is moved right away; an unmounted
+    /// one (its tab is not selected) carries the request in `editorState` and
+    /// applies it the next time it mounts.
+    func revealSelection(at location: Int) {
+        if let scrollView = editorView as? NSScrollView,
+           let textView = scrollView.documentView as? STTextView {
+            Self.reveal(location: location, in: textView)
+            return
+        }
+        editorState.selectionLocation = location
+        editorState.selectionLength = 0
+        editorState.revealSelection = true
+    }
+
+    private static func reveal(location: Int, in textView: STTextView) {
+        let limit = (textView.text ?? "").utf16.count
+        let range = NSRange(location: min(max(0, location), limit), length: 0)
+        textView.textSelection = range
+        textView.scrollRangeToVisible(range)
     }
 }

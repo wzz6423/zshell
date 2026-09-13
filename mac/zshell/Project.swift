@@ -420,7 +420,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     // MARK: - Files
 
     /// Opens `path` according to the caller's file-tab intent.
-    /// `editorState` seeds scroll/cursor state when restoring.
+    /// `editorState` seeds scroll/cursor state when restoring; a
+    /// `revealSelection` request in it also lands on its line when the file
+    /// was already open (see `FileTab.revealSelection(at:)`).
     func openFile(
         _ path: String,
         behavior: FileOpenBehavior = .pinned,
@@ -433,6 +435,11 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             if behavior == .pinned { tab.pinFilePreview() }
             selectedTabID = tab.id
             tab.focusedPaneID = paneID
+            if let location = editorState?.selectionLocation,
+               let pane = tab.allPanes.first(where: { $0.id == paneID }),
+               case .file(let file) = pane.content {
+                file.revealSelection(at: location)
+            }
             return
         }
 

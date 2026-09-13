@@ -247,6 +247,9 @@ struct CommandPaletteView: View {
             PaletteCommand(id: "toggle-info", title: "Toggle Info Panel", systemImage: "info.circle", shortcut: "⇧⌘I") {
                 manager.togglePanel(.info)
             },
+            PaletteCommand(id: "search-file-contents", title: "Search File Contents", systemImage: "magnifyingglass") {
+                manager.showFileContentSearch()
+            },
             PaletteCommand(
                 id: "toggle-markdown-preview",
                 title: MarkdownViewPreferences.shared.showsSource
