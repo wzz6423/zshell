@@ -29,6 +29,27 @@ enum FindAction {
     case useSelection
 }
 
+/// One closed terminal session, kept so "Reopen Closed Session" (⇧⌘T) can
+/// recreate it as a fresh shell in the same project and directory. Only the
+/// identity needed for that is captured — the owning project, the
+/// user-assigned tab title, and the working directory at close time.
+/// Scrollback and pane layout are deliberately not recorded: a reopened
+/// session is an ordinary new session, not a restored one.
+struct ClosedSessionRecord: Equatable {
+    /// Project the session was closed in. Every session lives in a project
+    /// today, so this is always set; optional so the reopen lookup degrades
+    /// to the fallback chain if that ever stops holding.
+    let projectID: UUID?
+    /// User-assigned tab title (`PaneTab.customName`) at close time, if any.
+    /// The automatic terminal title is not captured — a fresh shell grows a
+    /// fresh one.
+    let customTitle: String?
+    /// The shell's working directory when the session was closed.
+    let workingDirectory: String
+    /// When the session was closed.
+    let closedAt: Date
+}
+
 /// Owns the list of projects and the current selection. Each project holds
 /// its own terminal sessions; the "selected session" is the selected
 /// project's selected session.
@@ -82,6 +103,16 @@ final class TerminalManager: nonisolated ObservableObject {
     /// request arriving during launch replaces it instead of leaving an extra
     /// home-directory project beside the requested folder.
     private var startupProjectID: UUID?
+
+    /// Newest-last stack of sessions the user closed in this window, for
+    /// "Reopen Closed Session" (⇧⌘T). In memory only and scoped to the
+    /// window: the undo belongs to the window that closed the session, and
+    /// persisting it would blur into the restart-restore snapshot, whose
+    /// semantics are "restore what the user left open" — not resurrect
+    /// things they closed.
+    private var closedSessionRecords: [ClosedSessionRecord] = []
+    /// FIFO cap for the reopen stack; the oldest entry falls off first.
+    private static let closedSessionRecordLimit = 10
 
     /// Live managers in window-creation order; the persisted snapshot is
     /// one entry per registered manager.
@@ -404,6 +435,11 @@ final class TerminalManager: nonisolated ObservableObject {
             isPinned: isPinned,
             createInitialSession: createInitialSession
         )
+        // Close instrumentation flows from the project (where every close
+        // path converges) into this window's reopen stack.
+        project.onSessionClosed = { [weak self] record in
+            self?.recordClosedSession(record)
+        }
         projectObservations[project.id] = project.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
@@ -491,6 +527,42 @@ final class TerminalManager: nonisolated ObservableObject {
             return
         }
         project.newSession(directory: directory)
+    }
+
+    /// Whether "Reopen Closed Session" (⇧⌘T) has history to act on.
+    var canReopenClosedSession: Bool {
+        !closedSessionRecords.isEmpty
+    }
+
+    /// Reopens the most recently closed session as a fresh shell: in its
+    /// original project while that project is still open here, else in the
+    /// focused project, else in a new project — the same fallback a plain
+    /// new session follows. One call pops one entry, so repeating the
+    /// command walks back through the close history.
+    func reopenClosedSession() {
+        guard let record = closedSessionRecords.popLast() else { return }
+        if let project = record.projectID.flatMap({ projectID in
+            projects.first { $0.id == projectID }
+        }) ?? selectedProject {
+            project.newSession(
+                directory: record.workingDirectory,
+                tabTitle: record.customTitle
+            )
+        } else {
+            // No project left in this window: start one anchored at the
+            // recorded directory. The tab title is only carried when a
+            // project already exists to open the tab in.
+            newSession(directory: record.workingDirectory)
+        }
+    }
+
+    private func recordClosedSession(_ record: ClosedSessionRecord) {
+        closedSessionRecords.append(record)
+        // Appends happen one at a time, so at most one entry sits past the
+        // cap; the oldest is evicted first.
+        if closedSessionRecords.count > Self.closedSessionRecordLimit {
+            closedSessionRecords.removeFirst()
+        }
     }
 
     /// Opens a browser tab in the current project. Zshell remains
