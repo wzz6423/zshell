@@ -19,9 +19,9 @@ struct EditorState: Codable, Equatable {
     var scrollY: Double?
 }
 
-/// Editor colors derived from the selected ghostty theme (`Theme.background`
-/// is the same color, so the editor blends into the window). Selection color
-/// is not included: STTextView always uses the system selection color.
+/// Editor colors derived from the application palette (`Theme.background` is
+/// the same color, so the editor blends into the window). Selection color is
+/// not included: STTextView always uses the system selection color.
 struct EditorPalette: Equatable {
     var text: NSColor
     var background: NSColor
@@ -30,7 +30,7 @@ struct EditorPalette: Equatable {
     var gutterText: NSColor
 
     static func theme(dark: Bool) -> EditorPalette {
-        let theme = Theme.terminal(dark: dark)
+        let theme = Theme.application(dark: dark)
         return EditorPalette(
             text: theme.foregroundNSColor,
             background: theme.backgroundNSColor,

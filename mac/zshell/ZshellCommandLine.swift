@@ -581,8 +581,9 @@ private func printHelp() {
         An argv creates a project whose first terminal runs it directly.
 
         +themes browses Zshell's themes in the terminal. Moving through the list
-        previews the theme across the whole app; Return saves it and Esc
-        restores the previous theme.
+        previews the theme on the terminal — and across the whole app unless
+        “Terminal theme only” is on; Return saves it and Esc restores the
+        previous theme.
 
         +pane provides project-scoped terminal layout, input, viewport reads,
         and output waits. +agent adds recognized-agent start, guarded prompts,

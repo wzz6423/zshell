@@ -36,15 +36,13 @@ enum AppTheme: String, CaseIterable, Identifiable {
     }
 }
 
-/// Publishes when the selected terminal themes change, so views painting with
-/// `Theme` colors repaint without waiting for an appearance flip.
+/// Publishes when the selected terminal themes or their application scope
+/// change, so views painting with `Theme` colors repaint immediately.
 final class ThemeChanges: nonisolated ObservableObject {}
 
-/// App colors, sourced from the ghostty themes the user selected in Settings
-/// (one per appearance; GitHub Dark/Light Default out of the box). Terminal
-/// sessions consume the definitions directly via `terminal(dark:)`; the
-/// `NSColor` properties derive window chrome from the same palette and adapt
-/// to the system appearance.
+/// Terminal colors come from the Ghostty themes selected in Settings. App
+/// chrome uses the same palettes by default, or Zshell's built-in light and
+/// dark palettes when the user limits those themes to terminal surfaces.
 enum Theme {
     nonisolated static let defaultDarkThemeName = "Default Dark"
     nonisolated static let defaultLightThemeName = "Default Light"
@@ -146,10 +144,14 @@ enum Theme {
         return themes.contains { $0.name == name }
     }
 
-    /// The selected definitions, mirrored out of `AppSettings` because the
-    /// dynamic color providers below may resolve outside the main actor.
+    /// The selected definitions and application scope, mirrored out of
+    /// `AppSettings` because dynamic color providers may resolve off-main.
     private nonisolated static let selection = OSAllocatedUnfairLock(
-        initialState: (light: defaultLightDefinition, dark: defaultDarkDefinition)
+        initialState: (
+            light: defaultLightDefinition,
+            dark: defaultDarkDefinition,
+            terminalOnly: false
+        )
     )
 
     /// A zshell built-in or catalog theme by name.
@@ -159,14 +161,14 @@ enum Theme {
         return GhosttyThemeCatalog.theme(named: name)
     }
 
-    /// Re-resolves the selected themes by name. Called by `AppSettings` on
-    /// startup and whenever either terminal theme setting changes; unknown
+    /// Re-resolves the selected themes and their application scope. Unknown
     /// names keep the defaults.
     @MainActor
-    static func reloadSelection(light: String, dark: String) {
+    static func reloadSelection(light: String, dark: String, terminalOnly: Bool) {
         let resolved = (
             light: definition(named: light) ?? defaultLightDefinition,
-            dark: definition(named: dark) ?? defaultDarkDefinition
+            dark: definition(named: dark) ?? defaultDarkDefinition,
+            terminalOnly: terminalOnly
         )
         selection.withLock { $0 = resolved }
         changes.objectWillChange.send()
@@ -193,15 +195,25 @@ enum Theme {
         return true
     }
 
-    /// The selected ghostty theme for one appearance.
+    /// The selected Ghostty theme for one terminal appearance.
     nonisolated static func terminal(dark: Bool) -> GhosttyThemeDefinition {
         selection.withLock { dark ? $0.dark : $0.light }
     }
 
-    /// Whether the selected theme for one appearance is a zshell built-in
+    /// The palette for app chrome and editors in one appearance.
+    nonisolated static func application(dark: Bool) -> GhosttyThemeDefinition {
+        selection.withLock { selection in
+            guard selection.terminalOnly else {
+                return dark ? selection.dark : selection.light
+            }
+            return dark ? defaultDarkDefinition : defaultLightDefinition
+        }
+    }
+
+    /// Whether the application palette for one appearance is a Zshell built-in
     /// Default theme, which keeps the sidebar's translucent material.
     nonisolated static func isDefault(dark: Bool) -> Bool {
-        terminal(dark: dark).isZshellDefault
+        application(dark: dark).isZshellDefault
     }
 
     /// A copy of a catalog theme under a zshell-owned name.
@@ -242,7 +254,7 @@ enum Theme {
     /// draw light and dark side by side, so they can't use the dynamic
     /// `sidebar` — it would resolve both halves to the ambient appearance.
     static func sidebarFill(dark: Bool) -> NSColor {
-        terminal(dark: dark).sidebarNSColor
+        application(dark: dark).sidebarNSColor
     }
 
     /// A fresh dynamic color per access: cached instances keep resolving the
@@ -253,7 +265,7 @@ enum Theme {
     ) -> NSColor {
         NSColor(name: nil) { appearance in
             let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            return resolve(terminal(dark: isDark))
+            return resolve(application(dark: isDark))
         }
     }
 

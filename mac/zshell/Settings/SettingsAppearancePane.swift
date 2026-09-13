@@ -24,6 +24,10 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         onChange: { AppSettings.shared.themeLight = $0 }
     )
 
+    private let terminalThemeOnlySwitch = SettingsSwitch {
+        AppSettings.shared.terminalThemeOnly = $0
+    }
+
     private lazy var familyPopUp = SettingsPopUpButton<String>(
         items: [
             // The empty tag is the bundled family: a config naming no family
@@ -65,6 +69,11 @@ final class SettingsAppearancePane: SettingsPaneViewController {
             SettingsGroup(header: String(localized: "Colors"), rows: [
                 SettingsRow(title: String(localized: "Dark theme"), control: darkThemePopUp),
                 SettingsRow(title: String(localized: "Light theme"), control: lightThemePopUp),
+                SettingsRow(
+                    title: String(localized: "Terminal theme only"),
+                    description: String(localized: "Keep the window, sidebars, and editor on Zshell’s default colors"),
+                    control: terminalThemeOnlySwitch
+                ),
             ]),
             SettingsGroup(header: String(localized: "Font"), rows: [
                 SettingsRow(title: String(localized: "Family"), control: familyPopUp),
@@ -89,6 +98,7 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         themePicker.refreshPreviews()
         darkThemePopUp.select(settings.themeDark)
         lightThemePopUp.select(settings.themeLight)
+        terminalThemeOnlySwitch.isOn = settings.terminalThemeOnly
         familyPopUp.select(settings.fontFamily)
         fontSizeRow.setValue(settings.fontSize)
         sidebarFontSizeRow.setValue(settings.sidebarFontSize)

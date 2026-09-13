@@ -70,6 +70,11 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     // MARK: - TerminalBackendSurface
 
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applyAppearance()
+    }
+
     override func setSurfaceVisible(_ visible: Bool) {
         if !visible { stopSelectionAutoscroll() }
         isSurfaceVisible = visible

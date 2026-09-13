@@ -258,7 +258,11 @@ final class ZshellCLIService {
     private func restoreSavedSelection() {
         clearActivePreview()
         let settings = AppSettings.shared
-        Theme.reloadSelection(light: settings.themeLight, dark: settings.themeDark)
+        Theme.reloadSelection(
+            light: settings.themeLight,
+            dark: settings.themeDark,
+            terminalOnly: settings.terminalThemeOnly
+        )
         settings.applyAppearance()
         TerminalManager.refreshAllAppearances()
         writeState()

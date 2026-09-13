@@ -702,7 +702,7 @@ private struct TabPaneThumbnail: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(nsColor: Theme.background))
+        .background(Color(nsColor: paneBackground))
         .clipped()
     }
 
@@ -740,7 +740,7 @@ private struct TabPaneThumbnail: View {
         case .text:
             Text(textExcerpt(file.text, aroundUTF16: file.editorState.selectionLocation))
                 .font(.system(size: 5.2, design: .monospaced))
-                .foregroundStyle(Color(nsColor: terminalForeground))
+                .foregroundStyle(Color(nsColor: applicationForeground))
                 .lineSpacing(0)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -784,6 +784,23 @@ private struct TabPaneThumbnail: View {
 
     private var terminalForeground: NSColor {
         Theme.terminal(dark: colorScheme == .dark).foregroundNSColor
+    }
+
+    private var applicationForeground: NSColor {
+        Theme.application(dark: colorScheme == .dark).foregroundNSColor
+    }
+
+    /// Terminal thumbnails keep the live terminal's own background so the
+    /// preview matches the session even when "Terminal theme only" scopes
+    /// the theme away from app chrome; the other thumbnails paint the app
+    /// palette.
+    private var paneBackground: NSColor {
+        switch content {
+        case .session:
+            Theme.terminal(dark: colorScheme == .dark).backgroundNSColor
+        case .file, .browser, .diff:
+            Theme.background
+        }
     }
 
     /// Bound the sampled UTF-16 range before splitting it into lines so a
