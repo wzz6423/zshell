@@ -34,6 +34,12 @@ struct RightSidebarView: View {
             && manager.panelTab != .git
     }
 
+    /// Whether the selected project lives on a remote host; panels use it to
+    /// hide repository-mutation and local-disk affordances.
+    private var isProjectRemote: Bool {
+        manager.selectedProject?.isRemote == true
+    }
+
     /// Every terminal in the selected project can change the same repository.
     /// Watching only these counters avoids reacting to prompt/input lifecycle
     /// updates while still catching commands completed in an unfocused pane.
@@ -54,6 +60,84 @@ struct RightSidebarView: View {
         return nil
     }
 
+    /// The panel matching the selected tab. Split out of `body` so the type
+    /// checker handles three small expressions instead of one ViewBuilder
+    /// holding every panel's full argument list.
+    @ViewBuilder
+    private var activePanel: some View {
+        switch manager.panelTab {
+        case .files:
+            filesPanel
+        case .git:
+            gitPanel
+        case .info:
+            infoPanel
+        }
+    }
+
+    private var filesPanel: some View {
+        FileTreePanel(
+            model: fileTree,
+            search: manager.fileContentSearch,
+            git: git,
+            session: manager.selectedSession,
+            isRemote: isProjectRemote,
+            rootBadge: rootBadge,
+            externalEditor: settings.externalEditor,
+            currentFilePath: openFilePath,
+            previewFile: { manager.previewFile($0) },
+            openFile: { manager.openFile($0) },
+            openToSide: { manager.openFileToSide($0) },
+            onRename: { manager.fileRenamed(from: $0, to: $1) },
+            refreshGitStatus: { git.refresh() },
+            openSearchResult: { openSearchResult($0) }
+        )
+    }
+
+    private var gitPanel: some View {
+        GitPanel(
+            model: git,
+            session: manager.selectedSession,
+            isRemote: isProjectRemote,
+            openFile: { manager.openFile($0) },
+            openToSide: { manager.openFileToSide($0) },
+            openDiff: { entry, staged in
+                manager.openDiff(
+                    repoRoot: git.repoRoot,
+                    path: entry.path,
+                    staged: staged,
+                    untracked: entry.isUntracked,
+                    origPath: entry.origPath
+                )
+            },
+            openCommitDiff: { commit, file in
+                manager.openCommitDiff(
+                    repoRoot: git.repoRoot,
+                    path: file.path,
+                    commitHash: commit.hash,
+                    parentHash: commit.parentHash,
+                    status: file.status,
+                    origPath: file.originalPath
+                )
+            },
+            openWorktree: { manager.newSession(directory: $0) }
+        )
+    }
+
+    @ViewBuilder
+    private var infoPanel: some View {
+        if let project = manager.selectedProject, project.isRemote {
+            RemoteProjectInfoView(project: project)
+        } else {
+            InfoPanel(
+                model: info,
+                session: manager.selectedSession,
+                isRemote: isProjectRemote,
+                externalEditor: settings.externalEditor
+            )
+        }
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             if manager.isPanelVisible {
@@ -63,62 +147,7 @@ struct RightSidebarView: View {
 
                 VStack(spacing: 0) {
                     tabBar
-                    switch manager.panelTab {
-                    case .files:
-                        FileTreePanel(
-                            model: fileTree,
-                            search: manager.fileContentSearch,
-                            git: git,
-                            session: manager.selectedSession,
-                            rootBadge: rootBadge,
-                            externalEditor: settings.externalEditor,
-                            currentFilePath: openFilePath,
-                            previewFile: { manager.previewFile($0) },
-                            openFile: { manager.openFile($0) },
-                            openToSide: { manager.openFileToSide($0) },
-                            onRename: { manager.fileRenamed(from: $0, to: $1) },
-                            refreshGitStatus: { git.refresh() },
-                            openSearchResult: { openSearchResult($0) }
-                        )
-                    case .git:
-                        GitPanel(
-                            model: git,
-                            session: manager.selectedSession,
-                            isRemote: manager.selectedProject?.isRemote == true,
-                            openFile: { manager.openFile($0) },
-                            openToSide: { manager.openFileToSide($0) },
-                            openDiff: { entry, staged in
-                                manager.openDiff(
-                                    repoRoot: git.repoRoot,
-                                    path: entry.path,
-                                    staged: staged,
-                                    untracked: entry.isUntracked,
-                                    origPath: entry.origPath
-                                )
-                            },
-                            openCommitDiff: { commit, file in
-                                manager.openCommitDiff(
-                                    repoRoot: git.repoRoot,
-                                    path: file.path,
-                                    commitHash: commit.hash,
-                                    parentHash: commit.parentHash,
-                                    status: file.status,
-                                    origPath: file.originalPath
-                                )
-                            },
-                            openWorktree: { manager.newSession(directory: $0) }
-                        )
-                    case .info:
-                        if let project = manager.selectedProject, project.isRemote {
-                            RemoteProjectInfoView(project: project)
-                        } else {
-                            InfoPanel(
-                                model: info,
-                                session: manager.selectedSession,
-                                externalEditor: settings.externalEditor
-                            )
-                        }
-                    }
+                    activePanel
                 }
                 .frame(width: width)
                 .background(Color(nsColor: Theme.sidebar))
@@ -377,6 +406,7 @@ private struct FileTreePanel: View {
     @ObservedObject var search: FileContentSearchModel
     @ObservedObject var git: GitStatusModel
     let session: TerminalSession?
+    let isRemote: Bool
     /// Set while the tree follows the terminal's foreground job into another
     /// checkout, so the header says why the root moved.
     let rootBadge: (text: String, description: String)?
@@ -457,6 +487,7 @@ private struct FileTreePanel: View {
                         ForEach(model.items) { item in
                             FileTreeRow(
                                 model: model, git: git, item: item, session: session,
+                                isRemote: isRemote,
                                 externalEditor: externalEditor,
                                 currentFilePath: currentFilePath,
                                 previewFile: previewFile, openFile: openFile,
@@ -503,6 +534,7 @@ private struct FileTreeRow: View {
     @ObservedObject private var themeChanges = Theme.changes
     let item: FileTreeModel.Item
     let session: TerminalSession?
+    let isRemote: Bool
     let externalEditor: ExternalEditor
     let currentFilePath: String?
     let previewFile: (String) -> Void
@@ -873,6 +905,7 @@ private struct GitPanel: View {
 
     @ObservedObject var model: GitStatusModel
     let session: TerminalSession?
+    let isRemote: Bool
     let openFile: (String) -> Void
     let openToSide: (String) -> Void
     let openDiff: (_ entry: GitStatusModel.Entry, _ staged: Bool) -> Void
@@ -897,7 +930,6 @@ private struct GitPanel: View {
     @State private var operationExpanded = false
     @State private var operationTrigger: OperationTrigger?
     @Environment(\.sidebarFontScale) private var sidebarFontScale
-
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -2543,6 +2575,7 @@ private struct InfoPanel: View {
     @ObservedObject var model: SessionInfoModel
     @ObservedObject private var themeChanges = Theme.changes
     let session: TerminalSession?
+    let isRemote: Bool
     let externalEditor: ExternalEditor
 
     @State private var currentDirectoryCollapsed = false

@@ -22,7 +22,7 @@ struct RemoteProjectInfoView: NSViewRepresentable {
 }
 
 @MainActor
-private final class RemoteProjectInfoNSView: NSView {
+final class RemoteProjectInfoNSView: NSView {
     private let statusValue = NSTextField(labelWithString: "")
     private let statusDetail = NSTextField(wrappingLabelWithString: "")
     private let hostValue = NSTextField(labelWithString: "")

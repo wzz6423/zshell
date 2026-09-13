@@ -157,7 +157,7 @@
 				AA10000000000000000000E0 /* XCLocalSwiftPackageReference "Vendor/Sparkle" */,
 				AA20000000000000000000A0 /* XCLocalSwiftPackageReference "Vendor/STTextView-Plugin-Neon" */,
 				AA60000000000000000000A0 /* XCLocalSwiftPackageReference "Vendor/FuzzyMatch" */,
-				AA70000000000000000000A0 /* XCRemoteSwiftPackageReference "swift-markdown" */,
+				AA70000000000000000000A0 /* XCLocalSwiftPackageReference "Vendor/swift-markdown" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FF3FDD74300B6A7400112486 /* Products */;
@@ -469,18 +469,11 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Vendor/FuzzyMatch;
 		};
-/* End XCLocalSwiftPackageReference section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		AA70000000000000000000A0 /* XCRemoteSwiftPackageReference "swift-markdown" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/swiftlang/swift-markdown";
-			requirement = {
-				kind = revision;
-				revision = 27b7fc1a19068bcea3d2072db0ce86360d1400ed;
-			};
+		AA70000000000000000000A0 /* XCLocalSwiftPackageReference "Vendor/swift-markdown" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "Vendor/swift-markdown";
 		};
-/* End XCRemoteSwiftPackageReference section */
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		AA10000000000000000000B1 /* GhosttyTerminal */ = {
@@ -517,7 +510,7 @@
 		};
 		AA70000000000000000000A1 /* Markdown */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = AA70000000000000000000A0 /* XCRemoteSwiftPackageReference "swift-markdown" */;
+			package = AA70000000000000000000A0 /* XCLocalSwiftPackageReference "Vendor/swift-markdown" */;
 			productName = Markdown;
 		};
 /* End XCSwiftPackageProductDependency section */

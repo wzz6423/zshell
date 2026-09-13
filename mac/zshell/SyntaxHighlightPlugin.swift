@@ -133,6 +133,9 @@ final class SyntaxHighlightCoordinator {
     /// Range reported by the matching `willChangeContent` — the coordinates the
     /// incremental line-index update must be expressed in.
     private var pendingChangeRange: NSRange?
+    /// UTF-16 line-start offsets mirroring the document text; rebuilt from the
+    /// post-edit snapshot whenever an incremental update desyncs.
+    private var lineIndex = UTF16LineIndex("")
 
     init(
         textView: STTextView,
@@ -198,7 +201,7 @@ final class SyntaxHighlightCoordinator {
             in: documentRange,
             delta: textView.textContentManager.length,
             limit: textView.textContentManager.length,
-            readHandler: Parser.readFunction(for: snapshot),
+            readHandler: Parser.readFunction(for: stableTextSnapshot(for: textView)),
             completionHandler: {}
         )
 

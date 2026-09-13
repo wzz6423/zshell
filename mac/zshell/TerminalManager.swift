@@ -917,13 +917,9 @@ final class TerminalManager: nonisolated ObservableObject {
         }
     }
 
-    /// Context-menu actions resolve their manager at click time so commands
-    /// cannot leak into a terminal owned by another window.
-    private static var activeWindowManager: TerminalManager? {
-        guard let keyWindow = NSApp.keyWindow else { return nil }
-        return registry.first { $0.window === keyWindow }
-    }
-
+    // Context-menu actions resolve their manager at click time via the shared
+    // activeWindowManager resolver above, so commands cannot leak into a
+    // terminal owned by another window.
     static func insertQuickCommand(_ preset: QuickCommandPreset) {
         activeWindowManager?.sendQuickCommand(preset, appendingReturn: false)
     }
