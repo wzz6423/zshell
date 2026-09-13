@@ -22,6 +22,13 @@ the original feature bullet instead of adding separate entries for them.
   from the tab's context menu. The tab keeps its running shells, split layout,
   and focus while it moves.
 
+### Fixed
+
+- Terminal links now recognize web addresses without a scheme —
+  `www.baidu.com`, `baidu.com/docs`, `localhost:3000` — so ⌘-click and the
+  context menu open them like `https://` links. Ordinary dotted words such as
+  file names still stay plain text.
+
 ## [0.1.3]
 
 ### Added

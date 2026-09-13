@@ -897,17 +897,59 @@ extension TerminalSession: TerminalBackendEvents {
     }
 
     /// Classifies a detected terminal link only after proving a local path
-    /// exists or a non-file URL has a scheme. Context menus and Command-click
-    /// use this same answer, so neither offers an action it cannot perform.
+    /// exists, a non-file URL has a scheme, or a scheme-less value is a bare
+    /// web address. Context menus and Command-click use this same answer, so
+    /// neither offers an action it cannot perform.
     func terminalLinkTarget(for value: String) -> TerminalLinkTarget? {
         if let fileURL = existingFileURL(from: value) {
             return .file(fileURL)
         }
-        guard let url = URL(string: value),
-              url.scheme != nil,
-              !url.isFileURL
+        if let url = URL(string: value),
+           url.scheme != nil,
+           !url.isFileURL
+        {
+            return .url(url)
+        }
+        return Self.bareWebURL(from: value).map { .url($0) }
+    }
+
+    /// Characters that end a sentence around a pasted or printed URL. The
+    /// Alacritty bridge trims these before the link arrives; the same trim
+    /// here keeps Ghostty-sourced values honest too.
+    private static let trailingSentencePunctuation = Set("。，、；：？！）.,;:?!")
+
+    /// Scheme-less pattern for `www.baidu.com`, `baidu.com/docs`,
+    /// `baidu.com:8080`, and `localhost:3000`. The TLD allowlist mirrors
+    /// `LINK_REGEX` in the Alacritty bridge, so ordinary dotted words (file
+    /// names, version strings) never become links and both backends agree on
+    /// what is clickable.
+    private static let bareWebAddressPattern: NSRegularExpression? = {
+        let tlds = "com|net|org|edu|gov|mil|int|info|xyz|top|site|online|cloud|vip|app|dev|io|ai|me|cc|tv|fm|gg|sh|so|co"
+            + "|cn|jp|de|uk|ru|fr|kr|us|nl|se|no|fi|dk|es|it|pt|pl|cz|at|ch|be|au|br|mx|in|hk|tw|sg|my|id|ca|ie|nz|za"
+        let host = "(?:www\\.)?[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*\\.(?:\(tlds))"
+        let tail = "(?::\\d{1,5})?(?:[/?#]\\S*)?"
+        return try? NSRegularExpression(
+            pattern: "^\(host)\(tail)$|^localhost\(tail)$",
+            options: .caseInsensitive
+        )
+    }()
+
+    /// Builds an openable URL from a scheme-less web address: `https` for
+    /// real domains, `http` for `localhost`, where dev servers rarely serve
+    /// a TLS handshake. Returns nil for anything the allowlist does not
+    /// recognize as a bare web address.
+    private static func bareWebURL(from value: String) -> URL? {
+        var candidate = value
+        while let last = candidate.last, trailingSentencePunctuation.contains(last) {
+            candidate.removeLast()
+        }
+        guard let pattern = bareWebAddressPattern,
+              let match = pattern.firstMatch(in: candidate, range: NSRange(candidate.startIndex..., in: candidate)),
+              match.range.length == candidate.utf16.count,
+              !candidate.isEmpty
         else { return nil }
-        return .url(url)
+        let scheme = candidate.lowercased().hasPrefix("localhost") ? "http" : "https"
+        return URL(string: "\(scheme)://\(candidate)")
     }
 
     /// Resolves terminal links the way the shell would: `file:` URLs are
