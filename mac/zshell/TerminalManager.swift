@@ -78,6 +78,12 @@ final class TerminalManager: nonisolated ObservableObject {
     @Published var isFPSCounterVisible = false
     @Published private(set) var isCommandPaletteVisible = false
 
+    /// File-content search for the Files panel, anchored to the selected
+    /// project's panel root (see `RightSidebarView.syncModels`). Not
+    /// published through the manager: the search view and the Files panel
+    /// observe the model directly.
+    let fileContentSearch = FileContentSearchModel()
+
     /// Projects publish their own changes (session list, session selection);
     /// re-publish them so views observing the manager stay current.
     private var projectObservations: [UUID: AnyCancellable] = [:]
@@ -1117,6 +1123,14 @@ final class TerminalManager: nonisolated ObservableObject {
     /// Opens `path` as a pane beside the focused one in the current tab.
     func openFileToSide(_ path: String) {
         selectedProject?.openFileToSide(path)
+    }
+
+    /// Shows the Files panel with its content-search row active — the
+    /// "Search File Contents" command palette command.
+    func showFileContentSearch() {
+        panelTab = .files
+        isPanelVisible = true
+        fileContentSearch.activate()
     }
 
     /// Opens a git diff tab in the current project.
