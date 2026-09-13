@@ -34,7 +34,7 @@ endif
 
 # A stable DerivedData path lets `open` address the Debug bundle directly.
 run:
-	@$(XCODEBUILD) -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration "$(CONFIGURATION)" -destination 'platform=macOS,arch=$(ARCH)' $(XCODEBUILD_NESTED_SANDBOX_FLAGS)
+	@$(XCODEBUILD) -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration "$(CONFIGURATION)" -destination 'platform=macOS,arch=$(ARCH)' -derivedDataPath "$(DERIVED_DATA)" build $(XCODEBUILD_NESTED_SANDBOX_FLAGS)
 	# Zshell-hosted shells export these for the in-app CLI; inheriting them makes
 	# the Debug bundle immediately act as that CLI instead of launching its UI.
 	@/usr/bin/env -u ZSHELL_CLI_STATE -u ZSHELL_CLI_TOKEN /usr/bin/open -n "$(DEBUG_APP)"
