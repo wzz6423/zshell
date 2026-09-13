@@ -27,6 +27,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// selected session's working directory, re-derived as the session
     /// moves (see `panelRoot(followingSessionAt:)`).
     @Published var customDirectory: String?
+    /// Launch configuration inherited by terminals created after it changes.
+    /// Existing PTYs intentionally keep the environment they started with.
+    @Published var launchSettings = TerminalLaunchSettings()
     @Published var tabs: [PaneTab] = []
     @Published var selectedTabID: UUID? {
         didSet {
@@ -259,7 +262,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         let session = makeSession(
             directory: directory,
             commandArguments: commandArguments,
-            environmentPath: environmentPath
+            environmentPath: environmentPath,
+            launchSettings: launchSettings
         )
         let tab = makeTab(content: .session(session))
         // Only a reopened session carries a title — the user-assigned name
@@ -277,7 +281,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         directory: String? = nil,
         restoredHistory: String? = nil,
         commandArguments: [String]? = nil,
-        environmentPath: String? = nil
+        environmentPath: String? = nil,
+        launchSettings: TerminalLaunchSettings? = nil
     ) -> TerminalSession {
         let session = TerminalSession(
             initialDirectory: directory
@@ -285,7 +290,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 ?? selectedSession?.currentDirectoryPath,
             restoredHistory: restoredHistory,
             commandArguments: commandArguments,
-            environmentPath: environmentPath
+            environmentPath: environmentPath,
+            launchSettings: launchSettings ?? self.launchSettings
         )
         register(session)
         manager.map { session.transferHost(to: $0) }
@@ -309,7 +315,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// No-op while a diff is focused.
     func split(toward edge: PaneDropEdge) {
         guard let tab = selectedTab, tab.canSplit else { return }
-        let session = makeSession()
+        let session = makeSession(
+            launchSettings: launchSettings.applying(tab.launchSettingsOverride)
+        )
         tab.split(Pane(content: .session(session)), toward: edge)
     }
 
@@ -332,7 +340,10 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         default: tab.sessions.first?.currentDirectoryPath
             ?? tab.contextSession?.currentDirectoryPath
         }
-        let session = makeSession(directory: directory ?? contextDirectory)
+        let session = makeSession(
+            directory: directory ?? contextDirectory,
+            launchSettings: launchSettings.applying(tab.launchSettingsOverride)
+        )
         let pane = Pane(content: .session(session))
         tab.split(
             pane,
@@ -948,7 +959,12 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         from snap: SessionSnapshot.ProjectSnapshot.TabSnapshot,
         histories: [String: String] = [:]
     ) -> PaneTab? {
-        let layout = restoreLayout(from: snap.layout, histories: histories)
+        let effectiveSettings = launchSettings.applying(snap.launchSettingsOverride)
+        let layout = restoreLayout(
+            from: snap.layout,
+            histories: histories,
+            launchSettings: effectiveSettings
+        )
         let panes = layout.allPanes
         guard !panes.isEmpty else { return nil }
         let focusedIndex = min(max(0, snap.focusedPaneIndex), panes.count - 1)
@@ -959,37 +975,54 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         )
         tab.customName = snap.customName
         tab.markerColor = snap.markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:))
+        tab.launchSettingsOverride = snap.launchSettingsOverride
         append(tab)
         return tab
     }
 
     private func restoreLayout(
         from snap: SessionSnapshot.ProjectSnapshot.LayoutSnapshot,
-        histories: [String: String]
+        histories: [String: String],
+        launchSettings: TerminalLaunchSettings
     ) -> PaneNode {
         switch snap {
         case .pane(let pane):
             let restoredHistory = pane.historyKey.flatMap { histories[$0] }
             return .pane(Pane(content: makeContent(
-                from: pane.content, restoredHistory: restoredHistory
+                from: pane.content,
+                restoredHistory: restoredHistory,
+                launchSettings: launchSettings
             )))
         case .split(let axis, let fraction, let first, let second):
             return .split(PaneSplit(
                 axis: axis,
                 fraction: CGFloat(fraction),
-                first: restoreLayout(from: first, histories: histories),
-                second: restoreLayout(from: second, histories: histories)
+                first: restoreLayout(
+                    from: first,
+                    histories: histories,
+                    launchSettings: launchSettings
+                ),
+                second: restoreLayout(
+                    from: second,
+                    histories: histories,
+                    launchSettings: launchSettings
+                )
             ))
         }
     }
 
     private func makeContent(
         from snap: SessionSnapshot.ProjectSnapshot.PaneContentSnapshot,
-        restoredHistory: String? = nil
+        restoredHistory: String? = nil,
+        launchSettings: TerminalLaunchSettings
     ) -> PaneContent {
         switch snap {
         case .session(let workingDirectory):
-            return .session(makeSession(directory: workingDirectory, restoredHistory: restoredHistory))
+            return .session(makeSession(
+                directory: workingDirectory,
+                restoredHistory: restoredHistory,
+                launchSettings: launchSettings
+            ))
         case .file(let path, let editorState):
             let file = FileTab(path: path)
             if let editorState { file.editorState = editorState }

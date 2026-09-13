@@ -361,14 +361,19 @@ final class TerminalManager: nonisolated ObservableObject {
         selectedProjectID = project.id
     }
 
+    /// The manager hosted by the active Zshell window. AppKit menu commands use
+    /// this instead of depending on SwiftUI's focused-value routing.
+    static var activeWindowManager: TerminalManager? {
+        registry.first { $0.window === NSApp.keyWindow }
+            ?? registry.first { $0.window === NSApp.mainWindow }
+            ?? registry.last { $0.window != nil }
+    }
+
     /// Routes folders from the Finder service into the active Zshell window.
     /// If no window exists yet, the next WindowGroup manager claims them.
     static func openDirectories(_ directories: [String]) {
         guard !directories.isEmpty else { return }
-        let manager = registry.first { $0.window === NSApp.keyWindow }
-            ?? registry.first { $0.window === NSApp.mainWindow }
-            ?? registry.last { $0.window != nil }
-        guard let manager else {
+        guard let manager = activeWindowManager else {
             pendingDirectories.append(contentsOf: directories)
             requestWindowForPendingDirectories()
             return
@@ -1271,6 +1276,7 @@ final class TerminalManager: nonisolated ObservableObject {
                         customName: tab.customName,
                         isPinned: tab.isPinned,
                         markerColorHex: tab.markerColor?.hex,
+                        launchSettingsOverride: tab.launchSettingsOverride,
                         contextSessionIndex: tab.contextSession.flatMap { context in
                             projectSessions.firstIndex { $0.id == context.id }
                         }
@@ -1281,6 +1287,7 @@ final class TerminalManager: nonisolated ObservableObject {
                     isPinned: project.isPinned,
                     markerColorHex: project.markerColor?.hex,
                     customDirectory: project.customDirectory,
+                    launchSettings: project.launchSettings,
                     tabs: tabs,
                     selectedTabIndex: project.tabs.firstIndex { $0.id == project.selectedTabID }
                 )
@@ -1376,6 +1383,7 @@ final class TerminalManager: nonisolated ObservableObject {
             project.customName = Project.normalizedCustomName(saved.customName)
             project.markerColor = saved.markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:))
             project.customDirectory = saved.customDirectory
+            project.launchSettings = saved.launchSettings
             var restoredContexts: [(tab: PaneTab, sessionIndex: Int)] = []
             for savedTab in saved.tabs {
                 guard let tab = project.restoreTab(

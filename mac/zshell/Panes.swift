@@ -392,6 +392,9 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
     }
     @Published var isPinned: Bool
     @Published var markerColor: ProjectTabMarkerColor?
+    /// Overrides applied only when this tab creates a later terminal. Existing
+    /// terminal panes keep the process environment they were launched with.
+    @Published var launchSettingsOverride = TerminalLaunchSettingsOverride()
     @Published var layout: PaneNode
     @Published var focusedPaneID: UUID
     /// Whether the focused pane is zoomed to fill the tab. Presentation-only:

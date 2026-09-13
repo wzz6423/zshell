@@ -8,7 +8,7 @@ import AppKit
 /// Provides Zshell's Finder service. The advertised menu item lives in
 /// Info.plist; AppKit forwards matching service requests to this object.
 @MainActor
-final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate {
+final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     func applicationWillFinishLaunching(_ notification: Notification) {
         // AppSettings is first initialized from SwiftUI's App.init(), where
         // NSApp may not exist yet. Reapply the saved override once AppKit is
@@ -19,7 +19,57 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.servicesProvider = self
         WindowScreenConstraint.shared.start()
+        installTerminalEnvironmentMenu()
         GlobalTerminalOverlay.shared.start()
+    }
+
+    private func installTerminalEnvironmentMenu() {
+        guard let mainMenu = NSApp.mainMenu else { return }
+        let title = String(localized: "Terminal")
+        let submenu = NSMenu(title: title)
+        submenu.addItem(NSMenuItem(
+            title: String(localized: "Project Terminal Environment…"),
+            action: #selector(editProjectTerminalEnvironment),
+            keyEquivalent: ""
+        ))
+        submenu.addItem(NSMenuItem(
+            title: String(localized: "Tab Terminal Environment…"),
+            action: #selector(editTabTerminalEnvironment),
+            keyEquivalent: ""
+        ))
+        submenu.items.forEach { $0.target = self }
+
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.submenu = submenu
+        mainMenu.addItem(item)
+    }
+
+    @objc private func editProjectTerminalEnvironment() {
+        guard let project = TerminalManager.activeWindowManager?.selectedProject else {
+            NSSound.beep()
+            return
+        }
+        TerminalEnvironmentEditorController.show(project: project)
+    }
+
+    @objc private func editTabTerminalEnvironment() {
+        guard let project = TerminalManager.activeWindowManager?.selectedProject,
+              let tab = project.selectedTab else {
+            NSSound.beep()
+            return
+        }
+        TerminalEnvironmentEditorController.show(project: project, tab: tab)
+    }
+
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        switch menuItem.action {
+        case #selector(editProjectTerminalEnvironment):
+            TerminalManager.activeWindowManager?.selectedProject != nil
+        case #selector(editTabTerminalEnvironment):
+            TerminalManager.activeWindowManager?.selectedProject?.selectedTab != nil
+        default:
+            true
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
