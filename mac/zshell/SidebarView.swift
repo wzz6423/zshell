@@ -126,7 +126,8 @@ struct SidebarView: View {
                 edge: .trailing,
                 width: $width,
                 range: 160...400,
-                defaultWidth: 220
+                defaultWidth: 220,
+                fontSize: settings.sidebarFontSize
             )
         }
         .onPreferenceChange(ProjectFramePreferenceKey.self) { projectFrames = $0 }
@@ -381,7 +382,13 @@ private struct SidebarProjectRow: View {
                         .foregroundStyle(.tertiary)
                 }
             }
-            .frame(width: 24, height: 16, alignment: .trailing)
+            // Grows with the sidebar font so the shortcut hint and close
+            // button keep their slot instead of crowding the title.
+            .frame(
+                width: 24 * max(1, sidebarFontScale),
+                height: 16 * max(1, sidebarFontScale),
+                alignment: .trailing
+            )
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)

@@ -115,7 +115,8 @@ struct RightSidebarView: View {
                     edge: .leading,
                     width: $width,
                     range: 180...500,
-                    defaultWidth: 240
+                    defaultWidth: 240,
+                    fontSize: settings.sidebarFontSize
                 )
             }
         }
@@ -1030,7 +1031,9 @@ private struct GitPanel: View {
                     )
                 }
             }
-            .frame(height: 17)
+            // Grows with the sidebar font so the tracking readout never
+            // overflows its strip at the largest sizes.
+            .frame(height: 17 * max(1, sidebarFontScale))
             .padding(.horizontal, 12)
             .padding(.bottom, 6)
             .accessibilityElement(children: .combine)

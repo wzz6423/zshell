@@ -118,7 +118,7 @@ final class AppSettings: nonisolated ObservableObject {
     static let defaultTerminalLineHeight: Double = 1
     static let terminalLineHeightRange: ClosedRange<Double> = 0.75...2
     static let defaultSidebarFontSize: Double = 14
-    static let sidebarFontSizeRange: ClosedRange<Double> = 9...18
+    static let sidebarFontSizeRange: ClosedRange<Double> = 9...24
     static let defaultToolbarVisibility: ToolbarVisibility = .hide
     static let defaultTerminalBackgroundOpacity: Double = 1
     static let terminalBackgroundOpacityRange: ClosedRange<Double> = 0.2...1
