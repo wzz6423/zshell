@@ -56,13 +56,11 @@ struct SyntaxHighlightPlugin: STPlugin {
             coordinator.willChangeContent(in: range)
         }
 
-        context.events.onDidChangeText { [weak textView = context.textView] affectedRange, replacementString in
+        context.events.onDidChangeText { [weak textView = context.textView] _, replacementString in
             guard let textView, let replacementString else { return }
-            let range = NSRange(affectedRange, in: textView.textContentManager)
             coordinator.didChangeContent(
-                textView.textContentManager,
-                in: range,
-                delta: replacementString.utf16.count - range.length,
+                replacementString: replacementString,
+                snapshot: stableTextSnapshot(for: textView),
                 limit: textView.textContentManager.length
             )
         }
@@ -132,6 +130,9 @@ final class SyntaxHighlightCoordinator {
     /// thread right now, so the token provider kicks off each compile only once.
     private var pendingInjectionCompiles: Set<SyntaxLanguage> = []
     private var prevViewportRange: NSTextRange?
+    /// Range reported by the matching `willChangeContent` — the coordinates the
+    /// incremental line-index update must be expressed in.
+    private var pendingChangeRange: NSRange?
 
     init(
         textView: STTextView,
@@ -197,7 +198,7 @@ final class SyntaxHighlightCoordinator {
             in: documentRange,
             delta: textView.textContentManager.length,
             limit: textView.textContentManager.length,
-            readHandler: Parser.readFunction(for: textView.textContentManager.attributedString(in: nil)?.string ?? ""),
+            readHandler: Parser.readFunction(for: snapshot),
             completionHandler: {}
         )
 
@@ -432,18 +433,116 @@ final class SyntaxHighlightCoordinator {
     }
 
     func willChangeContent(in range: NSRange) {
+        pendingChangeRange = range
         tsClient.willChangeContent(in: range)
     }
 
-    func didChangeContent(_ textContentManager: NSTextContentManager, in range: NSRange, delta: Int, limit: Int) {
-        guard let string = textContentManager.attributedString(in: nil)?.string else { return }
+    /// Feeds the post-edit document to the parser without asking TextKit to
+    /// copy it out: `snapshot` was already produced by the plugin event (from
+    /// the view's granular text snapshot), so `didChangeContent(to:)` hands
+    /// tree-sitter that string directly instead of re-reading
+    /// `attributedString(in: nil)` — which styles and copies the whole
+    /// document on every keystroke.
+    func didChangeContent(replacementString: String, snapshot: String, limit: Int) {
+        guard let range = pendingChangeRange else {
+            assertionFailure("Missing pre-edit range")
+            return
+        }
+        pendingChangeRange = nil
+
+        let delta = replacementString.utf16.count - range.length
+        if !lineIndex.applyChange(in: range, replacementString: replacementString)
+            || lineIndex.length != limit
+        {
+            lineIndex.rebuild(snapshot)
+        }
         tsClient.didChangeContent(
+            to: snapshot,
             in: range,
             delta: delta,
-            limit: limit,
-            readHandler: Parser.readFunction(for: string),
-            completionHandler: {}
+            limit: limit
         )
+    }
+}
+
+/// The document text behind the parser reads. `stableTextSnapshot` returns the
+/// view's incrementally-maintained snapshot when it is in sync with TextKit's
+/// length (the common case — every accepted edit updates it); otherwise it
+/// falls back to one full TextKit read and re-seeds the snapshot from it.
+private func stableTextSnapshot(for textView: STTextView) -> String {
+    let length = textView.textContentManager.length
+    if let editor = textView as? FocusReportingTextView,
+       editor.isTextSnapshotValid,
+       editor.textSnapshotUTF16Length == length
+    {
+        return editor.textSnapshot
+    }
+
+    let snapshot = textView.textContentManager.attributedString(in: nil)?.string ?? ""
+    (textView as? FocusReportingTextView)?.setTextSnapshot(snapshot, utf16Length: length)
+    return snapshot
+}
+
+/// UTF-16 line-start offsets over the document text. Replaces the per-query
+/// TextKit geometry walk: `point(at:)` is a binary search, and edits shift
+/// only the affected suffix instead of re-scanning the document.
+private final class UTF16LineIndex {
+    private(set) var length = 0
+    private var lineStarts: [Int] = [0]
+
+    init(_ text: String) {
+        rebuild(text)
+    }
+
+    func rebuild(_ text: String) {
+        lineStarts = [0]
+        length = 0
+        for codeUnit in text.utf16 {
+            length += 1
+            if codeUnit == 0x000A {
+                lineStarts.append(length)
+            }
+        }
+    }
+
+    func point(at location: Int) -> Point {
+        guard location >= 0, location <= length else { return .zero }
+        let row = firstLineStart(after: location) - 1
+        return Point(row: row, column: (location - lineStarts[row]) * 2)
+    }
+
+    func applyChange(in range: NSRange, replacementString: String) -> Bool {
+        guard range.location >= 0, range.max <= length else { return false }
+        let replacementLength = replacementString.utf16.count
+        let delta = replacementLength - range.length
+        let removeStart = firstLineStart(after: range.location)
+        let removeEnd = firstLineStart(after: range.max)
+        lineStarts.removeSubrange(removeStart..<removeEnd)
+        for index in removeStart..<lineStarts.count {
+            lineStarts[index] += delta
+        }
+
+        var insertedStarts: [Int] = []
+        for (offset, codeUnit) in replacementString.utf16.enumerated() where codeUnit == 0x000A {
+            insertedStarts.append(range.location + offset + 1)
+        }
+        lineStarts.insert(contentsOf: insertedStarts, at: removeStart)
+        length += delta
+        return true
+    }
+
+    private func firstLineStart(after location: Int) -> Int {
+        var lowerBound = 0
+        var upperBound = lineStarts.count
+        while lowerBound < upperBound {
+            let middle = (lowerBound + upperBound) / 2
+            if lineStarts[middle] <= location {
+                lowerBound = middle + 1
+            } else {
+                upperBound = middle
+            }
+        }
+        return lowerBound
     }
 }
 

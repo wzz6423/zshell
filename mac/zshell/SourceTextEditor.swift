@@ -62,6 +62,11 @@ final class SourceEditorController: NSObject, STTextViewDelegate {
     private let file: FileTab
     private weak var textView: STTextView?
     private var scrollObserver: (any NSObjectProtocol)?
+    /// The in-flight edit from `willChangeTextIn`, replayed onto the text
+    /// snapshot in `didChangeTextIn` so `file.text` updates without TextKit
+    /// copying the whole document back out.
+    private var pendingTextChange: (range: NSRange, replacement: String)?
+    private var appliedGranularChange = false
     /// Last-applied focus state, so `update` acts only on the unfocused→focused
     /// edge rather than stealing the caret on every settings change.
     private var wasFocused = false
@@ -113,6 +118,10 @@ final class SourceEditorController: NSObject, STTextViewDelegate {
         // STTextView.
         textView.isIncrementalSearchingEnabled = true
         apply(font: font, palette: palette, wrapLines: wrapLines)
+        // Seed the snapshot the highlighting plugin and the granular write-back
+        // below read from, so the document is never copied wholesale out of
+        // TextKit just to observe it.
+        textView.setTextSnapshot(file.text)
         textView.text = file.text
 
         // Tree-sitter syntax highlighting (STPluginNeon), for file types with
@@ -251,9 +260,70 @@ final class SourceEditorController: NSObject, STTextViewDelegate {
         }
     }
 
+    func textView(
+        _ textView: STTextView,
+        willChangeTextIn affectedCharRange: NSTextRange,
+        replacementString: String
+    ) {
+        appliedGranularChange = false
+        let range = NSRange(affectedCharRange, in: textView.textContentManager)
+        guard range.location != NSNotFound else {
+            pendingTextChange = nil
+            (textView as? FocusReportingTextView)?.invalidateTextSnapshot()
+            return
+        }
+        pendingTextChange = (range, replacementString)
+    }
+
+    func textView(
+        _ textView: STTextView,
+        didChangeTextIn affectedCharRange: NSTextRange,
+        replacementString: String
+    ) {
+        defer { pendingTextChange = nil }
+        guard let editor = textView as? FocusReportingTextView,
+              editor.isTextSnapshotValid,
+              let pendingTextChange,
+              pendingTextChange.replacement == replacementString,
+              pendingTextChange.range.location >= 0,
+              pendingTextChange.range.location + pendingTextChange.range.length
+                  <= editor.textSnapshotUTF16Length
+        else {
+            (textView as? FocusReportingTextView)?.invalidateTextSnapshot()
+            return
+        }
+
+        let oldLength = editor.textSnapshotUTF16Length
+        let newLength = oldLength - pendingTextChange.range.length + replacementString.utf16.count
+        var snapshot = editor.textSnapshot
+        let mutableSnapshot = NSMutableString(string: snapshot)
+        mutableSnapshot.replaceCharacters(in: pendingTextChange.range, with: replacementString)
+        snapshot = mutableSnapshot as String
+        guard newLength == textView.textContentManager.length else {
+            editor.invalidateTextSnapshot()
+            return
+        }
+        editor.setTextSnapshot(snapshot, utf16Length: newLength)
+        file.text = snapshot
+        appliedGranularChange = true
+    }
+
     func textViewDidChangeText(_ notification: Notification) {
         guard let textView else { return }
+        // The granular path above already wrote `file.text` from the snapshot;
+        // re-reading `textView.text` here would copy the whole document on
+        // every keystroke — the cost this whole mechanism exists to avoid.
+        if appliedGranularChange {
+            appliedGranularChange = false
+            file.refreshDirtyState()
+            return
+        }
+
         let newText = textView.text ?? ""
+        (textView as? FocusReportingTextView)?.setTextSnapshot(
+            newText,
+            utf16Length: textView.textContentManager.length
+        )
         guard newText != file.text else { return }
         file.text = newText
         file.refreshDirtyState()
@@ -271,6 +341,17 @@ final class SourceEditorController: NSObject, STTextViewDelegate {
 /// programmatic focus), so the owning pane can mark itself focused in the model,
 /// and appends pane-split items to its context menu.
 final class FocusReportingTextView: STTextView {
+    /// Plain-text mirror of the document, kept in step by the editor
+    /// controller's granular will/did-change callbacks. Reading the document
+    /// through TextKit (`attributedString(in: nil)`) styles and copies the
+    /// whole text on every call — what tree-sitter's read handlers did per
+    /// keystroke — so readers take this snapshot instead; an out-of-step
+    /// update invalidates it and the next read falls back to (and re-seeds
+    /// from) TextKit.
+    private(set) var textSnapshot = ""
+    private(set) var textSnapshotUTF16Length = 0
+    private(set) var isTextSnapshotValid = true
+
     private struct SelectionState {
         var ranges: [NSRange]
         let affinity: NSTextSelection.Affinity
@@ -444,6 +525,16 @@ final class FocusReportingTextView: STTextView {
         }
         guard selections.count == states.count else { return }
         textLayoutManager.textSelections = selections
+    }
+
+    func setTextSnapshot(_ text: String, utf16Length: Int? = nil) {
+        textSnapshot = text
+        textSnapshotUTF16Length = utf16Length ?? text.utf16.count
+        isTextSnapshotValid = true
+    }
+
+    func invalidateTextSnapshot() {
+        isTextSnapshotValid = false
     }
 
     override func becomeFirstResponder() -> Bool {
