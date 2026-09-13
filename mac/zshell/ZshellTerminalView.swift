@@ -86,6 +86,10 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         applyAppearance()
     }
 
+    func sendEnter() {
+        performBindingAction("text:\\x0d")
+    }
+
     func clearScreen() {
         performBindingAction("clear_screen")
         // Ask the foreground shell to repaint its prompt at the top.

@@ -182,7 +182,8 @@ enum ZshellAutomationRouter {
             )
         }
         let command = argv.map(shellQuote).joined(separator: " ")
-        session.sendCommand(command + "\r")
+        session.sendCommand(command)
+        session.sendEnter()
         return success(request, paneSnapshot(target, caller: caller))
     }
 
@@ -203,7 +204,7 @@ enum ZshellAutomationRouter {
         }
         session.sendCommand(text)
         if request.params["enter"]?.boolValue == true {
-            session.sendCommand("\r")
+            session.sendEnter()
         }
         return success(request, paneSnapshot(target, caller: caller))
     }
@@ -302,7 +303,8 @@ enum ZshellAutomationRouter {
 
         session.declareAutomationAgent(alias: alias, kind: kind)
         let command = ([kind.executable] + extra).map(shellQuote).joined(separator: " ")
-        session.sendCommand(command + "\r")
+        session.sendCommand(command)
+        session.sendEnter()
         if request.params["focus"]?.boolValue == true {
             TerminalManager.revealSession(id: session.id)
         }
@@ -350,7 +352,7 @@ enum ZshellAutomationRouter {
         } else {
             session.sendCommand(normalized)
         }
-        session.sendCommand("\r")
+        session.sendEnter()
         session.markAutomationAgentPrompted()
         return success(request, paneSnapshot(target, caller: caller))
     }
