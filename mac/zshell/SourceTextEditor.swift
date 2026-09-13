@@ -5,6 +5,7 @@
 
 import AppKit
 import STPluginNeon
+import STTextKitPlus
 import STTextView
 
 /// Scroll offset and cursor position of a file tab's editor, kept on the
@@ -256,10 +257,180 @@ final class SourceEditorController: NSObject, STTextViewDelegate {
 /// programmatic focus), so the owning pane can mark itself focused in the model,
 /// and appends pane-split items to its context menu.
 final class FocusReportingTextView: STTextView {
+    private struct SelectionState {
+        var ranges: [NSRange]
+        let affinity: NSTextSelection.Affinity
+        let granularity: NSTextSelection.Granularity
+        let anchorPositionOffset: CGFloat
+        let isLogical: Bool
+        let typingAttributes: [NSAttributedString.Key: Any]?
+    }
+
+    private struct NewlineEdit {
+        let range: NSRange
+        let textRange: NSTextRange
+        let replacement: String
+        let selectionIndex: Int
+        let rangeIndex: Int
+    }
+
+    private enum SelectionUndoAction {
+        case restoreBeforeEdit
+        case restoreAfterEdit
+    }
+
     var onBecomeFirstResponder: (() -> Void)?
     /// Owns the split context-menu items, kept off the text view so its own
     /// menu validation doesn't disable them.
     let splitTarget = SplitMenuTarget()
+
+    override func insertNewline(_ sender: Any?) {
+        guard !hasMarkedText(), let source = text as NSString? else {
+            super.insertNewline(sender)
+            return
+        }
+        let states = selectionStates()
+        guard let edits = newlineEdits(for: states, in: source), !edits.isEmpty else {
+            super.insertNewline(sender)
+            return
+        }
+
+        let replacements = Set(edits.map(\.replacement))
+        if edits.count == 1, let replacement = replacements.first {
+            guard replacement != "\n" else {
+                super.insertNewline(sender)
+                return
+            }
+            breakUndoCoalescing()
+            insertText(replacement, replacementRange: .notFound)
+            breakUndoCoalescing()
+            return
+        }
+
+        guard edits.allSatisfy({ shouldChangeText(in: $0.textRange, replacementString: $0.replacement) }) else {
+            return
+        }
+        applyNewlineEdits(edits, selectionStates: states)
+    }
+
+    private func selectionStates() -> [SelectionState] {
+        textLayoutManager.textSelections.map { selection in
+            SelectionState(
+                ranges: selection.textRanges.map { NSRange($0, in: textContentManager) },
+                affinity: selection.affinity,
+                granularity: selection.granularity,
+                anchorPositionOffset: selection.anchorPositionOffset,
+                isLogical: selection.isLogical,
+                typingAttributes: selection.typingAttributes
+            )
+        }
+    }
+
+    private func newlineEdits(for states: [SelectionState], in source: NSString) -> [NewlineEdit]? {
+        var edits: [NewlineEdit] = []
+        for (selectionIndex, state) in states.enumerated() {
+            for (rangeIndex, range) in state.ranges.enumerated() {
+                guard range.location <= source.length,
+                      range.length <= source.length - range.location,
+                      let textRange = NSTextRange(range, in: textContentManager)
+                else {
+                    return nil
+                }
+                edits.append(NewlineEdit(
+                    range: range,
+                    textRange: textRange,
+                    replacement: "\n" + indentation(at: range.location, in: source),
+                    selectionIndex: selectionIndex,
+                    rangeIndex: rangeIndex
+                ))
+            }
+        }
+        return edits
+    }
+
+    private func indentation(at location: Int, in source: NSString) -> String {
+        var lineStart = 0
+        source.getLineStart(&lineStart, end: nil, contentsEnd: nil, for: NSRange(location: location, length: 0))
+        var end = lineStart
+        while end < location {
+            let character = source.character(at: end)
+            guard character == 0x20 || character == 0x09 else { break }
+            end += 1
+        }
+        return source.substring(with: NSRange(location: lineStart, length: end - lineStart))
+    }
+
+    private func applyNewlineEdits(_ edits: [NewlineEdit], selectionStates states: [SelectionState]) {
+        var updatedStates = states
+        breakUndoCoalescing()
+        let shouldGroupUndo = allowsUndo && undoManager?.isUndoRegistrationEnabled == true
+        if shouldGroupUndo {
+            undoManager?.beginUndoGrouping()
+        }
+        defer {
+            if shouldGroupUndo {
+                undoManager?.endUndoGrouping()
+            }
+            breakUndoCoalescing()
+        }
+
+        for edit in edits.sorted(by: { $0.range.location > $1.range.location }) {
+            replaceCharacters(in: edit.textRange, with: edit.replacement)
+            updateSelectionStates(&updatedStates, after: edit)
+        }
+        registerSelectionUndo(.restoreBeforeEdit, before: states, after: updatedStates)
+        restoreSelections(updatedStates)
+    }
+
+    private func updateSelectionStates(_ states: inout [SelectionState], after edit: NewlineEdit) {
+        let delta = edit.replacement.utf16.count - edit.range.length
+        for stateIndex in states.indices {
+            for rangeIndex in states[stateIndex].ranges.indices {
+                var range = states[stateIndex].ranges[rangeIndex]
+                if stateIndex == edit.selectionIndex, rangeIndex == edit.rangeIndex {
+                    range = NSRange(location: edit.range.location + edit.replacement.utf16.count, length: 0)
+                } else if range.location >= edit.range.location + edit.range.length {
+                    range.location += delta
+                }
+                states[stateIndex].ranges[rangeIndex] = range
+            }
+        }
+    }
+
+    /// Registers the selection half of the newline undo, so multi-cursor
+    /// selections round-trip: undo lands on the pre-edit selections, redo on
+    /// the post-edit ones. Registered inside the edit's undo group and after
+    /// the text handlers, so undo/redo apply text first and the restored
+    /// ranges map onto the reverted or re-applied text.
+    private func registerSelectionUndo(_ action: SelectionUndoAction, before: [SelectionState], after: [SelectionState]) {
+        guard allowsUndo, let undoManager, undoManager.isUndoRegistrationEnabled else { return }
+        switch action {
+        case .restoreBeforeEdit:
+            undoManager.registerUndo(withTarget: self) { textView in
+                textView.restoreSelections(before)
+                textView.registerSelectionUndo(.restoreAfterEdit, before: before, after: after)
+            }
+        case .restoreAfterEdit:
+            undoManager.registerUndo(withTarget: self) { textView in
+                textView.restoreSelections(after)
+                textView.registerSelectionUndo(.restoreBeforeEdit, before: before, after: after)
+            }
+        }
+    }
+
+    private func restoreSelections(_ states: [SelectionState]) {
+        let selections = states.compactMap { state -> NSTextSelection? in
+            let ranges = state.ranges.compactMap { NSTextRange($0, in: textContentManager) }
+            guard ranges.count == state.ranges.count else { return nil }
+            let selection = NSTextSelection(ranges, affinity: state.affinity, granularity: state.granularity)
+            selection.anchorPositionOffset = state.anchorPositionOffset
+            selection.isLogical = state.isLogical
+            selection.typingAttributes = state.typingAttributes ?? [:]
+            return selection
+        }
+        guard selections.count == states.count else { return }
+        textLayoutManager.textSelections = selections
+    }
 
     override func becomeFirstResponder() -> Bool {
         let became = super.becomeFirstResponder()
