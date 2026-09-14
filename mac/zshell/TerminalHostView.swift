@@ -47,8 +47,16 @@ struct TerminalHostView: NSViewRepresentable {
             (view as? TerminalContainerView)?.releaseTerminal(session.surface)
             return
         }
+        // Mount whenever this container is not already hosting the surface.
+        // Testing the weak `container.terminal` reference instead would skip
+        // the first update: `makeNSView` primes that reference without adding
+        // the surface to the hierarchy (mounting owns addSubview), so an
+        // `!==` check passes forever and the pane renders blank while the
+        // parking host's brief attachment keeps the shell alive. A superview
+        // check also self-heals transfers: a surface arriving from another
+        // window, a split reparent, or the parking host always remounts.
         if let container = view as? TerminalContainerView,
-           container.terminal !== session.surface {
+           session.surface.superview !== container {
             container.mount(session.surface, scrollbar: session.overlayScrollbar,
                             queueBar: session.promptQueueBar)
             // Height changes come from the bar's own model subscriptions; route
