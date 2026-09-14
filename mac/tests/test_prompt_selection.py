@@ -29,7 +29,15 @@ class PromptSelectionTests(unittest.TestCase):
         readiness = source[source.index("    var terminalPromptSelectionIsReady: Bool {"):
                            source.index("    func terminalDidChangeTitle(")]
         helper = Path(cls.build.name) / "main.swift"
-        helper.write_text("import Foundation\nstruct Surface { var foregroundPid: pid_t? }\n"
+        helper.write_text("import Foundation\n"
+                          # #76 bakes the notification settings into the shim
+                          # text; stub them off so the generated script stays
+                          # byte-identical to the pre-#76 baseline.
+                          "struct AppSettings {\n"
+                          "static var shared = AppSettings()\n"
+                          "var notifyFinishSeconds = 0\n"
+                          "var notifyOnError = false\n}\n"
+                          "struct Surface { var foregroundPid: pid_t? }\n"
                           "struct Session {\nvar hasExited = false\n"
                           "var launchDirectoryURL: URL?\nvar surface: Surface\n"
                           + generator.replace("private static func", "static func")
