@@ -509,8 +509,12 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     private func linkTarget(for event: NSEvent) -> TerminalLinkTarget? {
-        guard event.modifierFlags.contains(.command), let hoveredLink else { return nil }
-        return events?.terminalLinkTarget(for: hoveredLink)
+        guard event.modifierFlags.contains(.command) else { return nil }
+        let text = contextText(for: event)
+        if let hoveredLink, let target = events?.terminalLinkTarget(for: hoveredLink) {
+            return target
+        }
+        return text.flatMap { events?.terminalLinkTarget(for: $0) }
     }
 
     private func contextMenu(linkTarget: TerminalLinkTarget?) -> NSMenu {

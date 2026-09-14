@@ -149,17 +149,11 @@ final class SyntaxHighlightCoordinator {
         self.injectionsData = injectionsData
         tsLanguage = Language(language: language.parser)
 
-        // Weak throughout: this coordinator is reachable from the text view
-        // (view → plugins → events → coordinator), so any strong capture of
-        // the view here closes a retain cycle. See `SyntaxHighlightPlugin.setUp`.
-        tsClient = try! TreeSitterClient(language: tsLanguage) { [weak textView] codePointIndex in
-            guard let textView,
-                  let location = textView.textContentManager.location(at: codePointIndex),
-                  let position = textView.textContentManager.position(location)
-            else {
-                return .zero
-            }
-            return Point(row: position.row, column: position.column)
+        let snapshot = stableTextSnapshot(for: textView)
+        let lineIndex = UTF16LineIndex(snapshot)
+        self.lineIndex = lineIndex
+        tsClient = try! TreeSitterClient(language: tsLanguage) { codePointIndex in
+            lineIndex.point(at: codePointIndex)
         }
 
         tsClient.invalidationHandler = { [weak self] indexSet in
@@ -201,7 +195,7 @@ final class SyntaxHighlightCoordinator {
             in: documentRange,
             delta: textView.textContentManager.length,
             limit: textView.textContentManager.length,
-            readHandler: Parser.readFunction(for: stableTextSnapshot(for: textView)),
+            readHandler: Parser.readFunction(for: snapshot),
             completionHandler: {}
         )
 

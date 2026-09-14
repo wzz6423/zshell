@@ -136,6 +136,7 @@ final class FileContentSearchModel: ObservableObject {
         // in the fresh state nor surface as a failure.
         runID += 1
         stopProcess()
+        buffer = nil
         isRunning = false
         matches = []
         isTruncated = false
@@ -165,7 +166,7 @@ final class FileContentSearchModel: ObservableObject {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/grep")
         // -F keeps the query literal; -I skips binary files, which the
         // editor could not show a hit in anyway.
-        var arguments = ["-r", "-n", "-I", "-F"]
+        var arguments = ["-r", "-n", "-I", "-F", "-H", "--null"]
         if !isCaseSensitive { arguments.append("-i") }
         for directory in Self.excludedDirectories {
             arguments.append("--exclude-dir=\(directory)")
@@ -178,6 +179,19 @@ final class FileContentSearchModel: ObservableObject {
         process.standardOutput = stdout
         let stderr = Pipe()
         process.standardError = stderr
+        let readers = DispatchGroup()
+        readers.enter()
+        readers.enter()
+        process.terminationHandler = { [weak self] process in
+            let terminationStatus = process.terminationStatus
+            // Process exit can arrive before the pipes deliver their last chunk.
+            readers.notify(queue: .main) { [weak self] in
+                guard let model = self else { return }
+                assumeMainActor {
+                    model.processDidTerminate(exitStatus: terminationStatus, ofRun: runID)
+                }
+            }
+        }
 
         do {
             try process.run()
@@ -189,39 +203,30 @@ final class FileContentSearchModel: ObservableObject {
         }
         self.process = process
 
-        stdout.fileHandleForReading.readabilityHandler = { [weak self] handle in
-            let chunk = handle.availableData
-            if chunk.isEmpty {
-                handle.readabilityHandler = nil
-                return
-            }
-            buffer.ingest(chunk)
-            self?.requestFlush()
-            if buffer.hasReachedLimit() {
-                self?.stopAtLimitFromHandler()
-            }
-        }
-        // Drained so a chatty grep (unreadable paths, and so on) cannot fill
-        // the pipe and stall; kept only to explain a failed search.
-        stderr.fileHandleForReading.readabilityHandler = { handle in
-            let chunk = handle.availableData
-            if chunk.isEmpty {
-                handle.readabilityHandler = nil
-                return
-            }
-            buffer.appendError(chunk)
-        }
-
-        process.terminationHandler = { [weak self] process in
-            let terminationStatus = process.terminationStatus
-            DispatchQueue.main.async { [weak self] in
-                assumeMainActor {
-                    self?.processDidTerminate(
-                        exitStatus: terminationStatus, ofRun: runID
-                    )
+        let stdoutReader = Thread { [weak self] in
+            defer { readers.leave() }
+            let handle = stdout.fileHandleForReading
+            while let chunk = try? handle.read(upToCount: 16_384), !chunk.isEmpty {
+                buffer.ingest(chunk)
+                self?.requestFlush(ofRun: runID)
+                if buffer.hasReachedLimit() {
+                    self?.stopAtLimitFromHandler(ofRun: runID)
                 }
             }
         }
+        stdoutReader.qualityOfService = .userInitiated
+        stdoutReader.start()
+        // Drained so a chatty grep (unreadable paths, and so on) cannot fill
+        // the pipe and stall; kept only to explain a failed search.
+        let stderrReader = Thread {
+            defer { readers.leave() }
+            let handle = stderr.fileHandleForReading
+            while let chunk = try? handle.read(upToCount: 8_192), !chunk.isEmpty {
+                buffer.appendError(chunk)
+            }
+        }
+        stderrReader.qualityOfService = .utility
+        stderrReader.start()
     }
 
     /// Terminates the running grep, if any. Its termination handler still
@@ -229,9 +234,6 @@ final class FileContentSearchModel: ObservableObject {
     private func stopProcess() {
         guard let process else { return }
         self.process = nil
-        // The stdout handler holds its own buffer reference, so a few chunks
-        // still in flight land in an orphaned buffer and are dropped with it.
-        buffer = nil
         if process.isRunning {
             process.terminate()
         }
@@ -251,15 +253,19 @@ final class FileContentSearchModel: ObservableObject {
             failureMessage = detail.map(String.init)
                 ?? String(localized: "Search failed")
         }
+        buffer = nil
     }
 
     // MARK: - Throttled flush
 
     /// Called from grep's stdout handler; coalesces into ~200 ms main-actor
     /// batches so a fast stream never floods the UI.
-    private nonisolated func requestFlush() {
+    private nonisolated func requestFlush(ofRun runID: Int) {
         DispatchQueue.main.async {
-            assumeMainActor { self.scheduleFlush() }
+            assumeMainActor {
+                guard runID == self.runID else { return }
+                self.scheduleFlush()
+            }
         }
     }
 
@@ -300,9 +306,12 @@ final class FileContentSearchModel: ObservableObject {
     }
 
     /// Called from grep's stdout handler once the buffer reports the cap.
-    private nonisolated func stopAtLimitFromHandler() {
+    private nonisolated func stopAtLimitFromHandler(ofRun runID: Int) {
         DispatchQueue.main.async {
-            assumeMainActor { self.finishAtLimit() }
+            assumeMainActor {
+                guard runID == self.runID else { return }
+                self.finishAtLimit()
+            }
         }
     }
 
@@ -345,9 +354,10 @@ final class FileContentSearchModel: ObservableObject {
 /// Accumulates grep's output between throttled UI flushes. All state is
 /// lock-guarded: it is written from grep's pipe handler queues and read on
 /// the main actor.
-private nonisolated final class MatchBuffer {
+private nonisolated final class MatchBuffer: @unchecked Sendable {
     private let lock = NSLock()
     private var fragment: [UInt8] = []
+    private var hasPathSeparator = false
     private var pending: [FileContentSearchModel.Match] = []
     private var deliveredCount = 0
     private var nextID = 0
@@ -384,14 +394,16 @@ private nonisolated final class MatchBuffer {
         lock.lock()
         defer { lock.unlock() }
         for byte in chunk {
-            if byte == 0x0A {
+            if byte == 0x0A, hasPathSeparator {
                 appendLine(fragment)
                 fragment.removeAll(keepingCapacity: true)
+                hasPathSeparator = false
             } else if fragment.count < Self.maxLineBytes {
                 // The path and line number sit at the front of the line, so
                 // dropping the tail of an oversized line still yields a
                 // usable (byte-capped) content preview.
                 fragment.append(byte)
+                if byte == 0 { hasPathSeparator = true }
             }
         }
         if !reachedLimit, deliveredCount + pending.count >= maxMatches {
@@ -406,6 +418,7 @@ private nonisolated final class MatchBuffer {
         guard !fragment.isEmpty else { return }
         appendLine(fragment)
         fragment.removeAll(keepingCapacity: true)
+        hasPathSeparator = false
     }
 
     /// Moves up to `max` buffered matches out, in order. Called on the main
@@ -440,21 +453,18 @@ private nonisolated final class MatchBuffer {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Parses one `path:line:content` line as BSD grep prints it for
-    /// `grep -r -n`. The path field may itself contain colons, so the split
-    /// at the first two colons only counts when the second field is a plain
-    /// number; anything else is skipped rather than shown garbled.
+    /// `--null` keeps colons and newlines in file names distinct from the
+    /// line number and content delimiters.
     private func appendLine(_ bytes: [UInt8]) {
         guard !reachedLimit else { return }
-        let line = String(decoding: bytes, as: UTF8.self)
-        guard let firstColon = line.firstIndex(of: ":") else { return }
-        let afterFirst = line.index(after: firstColon)
-        guard let secondColon = line[afterFirst...].firstIndex(of: ":") else { return }
-        guard let lineNumber = Int(line[afterFirst..<secondColon]) else { return }
+        guard let separator = bytes.firstIndex(of: 0),
+              let colon = bytes[(separator + 1)...].firstIndex(of: 0x3A),
+              let lineNumber = Int(String(decoding: bytes[(separator + 1)..<colon], as: UTF8.self))
+        else { return }
 
         // grep receives an absolute root, so paths come back absolute; the
         // UI shows them relative to the root the search was anchored to.
-        var path = String(line[..<firstColon])
+        var path = String(decoding: bytes[..<separator], as: UTF8.self)
         if path.hasPrefix(root) {
             path.removeFirst(root.count)
             if path.hasPrefix("/") {
@@ -462,7 +472,7 @@ private nonisolated final class MatchBuffer {
             }
         }
 
-        var content = String(line[line.index(after: secondColon)...])
+        var content = String(decoding: bytes[(colon + 1)...], as: UTF8.self)
         if content.count > maxContentLength {
             content = String(content.prefix(maxContentLength))
         }

@@ -73,6 +73,7 @@ struct SessionSnapshot: Codable {
             /// Opaque sRGB marker color. Stored as a string so unknown future
             /// values do not invalidate the containing session snapshot.
             var markerColorHex: String?
+            var tabGroupID: UUID?
             /// Per-tab settings applied when this restored tab creates shells.
             /// Optional decoding preserves every older tab snapshot format.
             var launchSettingsOverride = TerminalLaunchSettingsOverride()
@@ -87,6 +88,7 @@ struct SessionSnapshot: Codable {
                 customName: String? = nil,
                 isPinned: Bool = false,
                 markerColorHex: String? = nil,
+                tabGroupID: UUID? = nil,
                 launchSettingsOverride: TerminalLaunchSettingsOverride = .init(),
                 contextSessionIndex: Int? = nil
             ) {
@@ -95,12 +97,13 @@ struct SessionSnapshot: Codable {
                 self.customName = customName
                 self.isPinned = isPinned
                 self.markerColorHex = markerColorHex
+                self.tabGroupID = tabGroupID
                 self.launchSettingsOverride = launchSettingsOverride
                 self.contextSessionIndex = contextSessionIndex
             }
 
             enum CodingKeys: String, CodingKey {
-                case layout, focusedPaneIndex, customName, isPinned, markerColorHex
+                case layout, focusedPaneIndex, customName, isPinned, markerColorHex, tabGroupID
                 case launchSettingsOverride
                 case contextSessionIndex, columns, focusedColumn, focusedRow
             }
@@ -114,6 +117,7 @@ struct SessionSnapshot: Codable {
                     customName = try? container.decode(String.self, forKey: .customName)
                     isPinned = (try? container.decode(Bool.self, forKey: .isPinned)) ?? false
                     markerColorHex = try? container.decode(String.self, forKey: .markerColorHex)
+                    tabGroupID = try? container.decode(UUID.self, forKey: .tabGroupID)
                     launchSettingsOverride =
                         (try? container.decode(
                             TerminalLaunchSettingsOverride.self,
@@ -151,6 +155,7 @@ struct SessionSnapshot: Codable {
                     customName = try? container.decode(String.self, forKey: .customName)
                     isPinned = false
                     markerColorHex = try? container.decode(String.self, forKey: .markerColorHex)
+                    tabGroupID = nil
                     launchSettingsOverride = .init()
                     contextSessionIndex = nil
                     return
@@ -163,6 +168,7 @@ struct SessionSnapshot: Codable {
                 customName = nil
                 isPinned = false
                 markerColorHex = nil
+                tabGroupID = nil
                 launchSettingsOverride = .init()
                 contextSessionIndex = nil
             }
@@ -176,6 +182,7 @@ struct SessionSnapshot: Codable {
                     try container.encode(true, forKey: .isPinned)
                 }
                 try container.encodeIfPresent(markerColorHex, forKey: .markerColorHex)
+                try container.encodeIfPresent(tabGroupID, forKey: .tabGroupID)
                 if launchSettingsOverride != .init() {
                     try container.encode(
                         launchSettingsOverride, forKey: .launchSettingsOverride
@@ -241,6 +248,7 @@ struct SessionSnapshot: Codable {
         /// ungrouped. Optional so snapshots written before grouping existed
         /// still decode.
         var groupID: UUID?
+        var tabGroups: [SessionTabGroup] = []
         /// Project values inherited by newly created terminals. Empty settings
         /// are omitted while decoding still accepts snapshots that lack them.
         var launchSettings = TerminalLaunchSettings()
@@ -251,7 +259,7 @@ struct SessionSnapshot: Codable {
         var selectedTabIndex: Int?
 
         enum CodingKeys: String, CodingKey {
-            case customName, isPinned, markerColorHex, customDirectory, groupID, launchSettings, location, tabs, selectedTabIndex
+            case customName, isPinned, markerColorHex, customDirectory, groupID, tabGroups, launchSettings, location, tabs, selectedTabIndex
         }
 
         init(
@@ -260,6 +268,7 @@ struct SessionSnapshot: Codable {
             markerColorHex: String? = nil,
             customDirectory: String?,
             groupID: UUID? = nil,
+            tabGroups: [SessionTabGroup] = [],
             launchSettings: TerminalLaunchSettings = .init(),
             location: ProjectLocation? = nil,
             tabs: [TabSnapshot],
@@ -270,6 +279,7 @@ struct SessionSnapshot: Codable {
             self.markerColorHex = markerColorHex
             self.customDirectory = customDirectory
             self.groupID = groupID
+            self.tabGroups = tabGroups
             self.launchSettings = launchSettings
             self.location = location
             self.tabs = tabs
@@ -285,6 +295,7 @@ struct SessionSnapshot: Codable {
                 String.self, forKey: .customDirectory
             )
             groupID = try container.decodeIfPresent(UUID.self, forKey: .groupID)
+            tabGroups = try container.decodeIfPresent([SessionTabGroup].self, forKey: .tabGroups) ?? []
             launchSettings = try container.decodeIfPresent(
                 TerminalLaunchSettings.self, forKey: .launchSettings
             ) ?? .init()
@@ -306,6 +317,7 @@ struct SessionSnapshot: Codable {
             try container.encodeIfPresent(markerColorHex, forKey: .markerColorHex)
             try container.encodeIfPresent(customDirectory, forKey: .customDirectory)
             try container.encodeIfPresent(groupID, forKey: .groupID)
+            if !tabGroups.isEmpty { try container.encode(tabGroups, forKey: .tabGroups) }
             if launchSettings != .init() {
                 try container.encode(launchSettings, forKey: .launchSettings)
             }

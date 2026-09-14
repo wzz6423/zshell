@@ -99,6 +99,15 @@ final class ProjectGroupStore: ObservableObject {
         save()
     }
 
+    func move(_ groupID: UUID, to targetID: UUID) {
+        guard groupID != targetID,
+              let source = groups.firstIndex(where: { $0.id == groupID }),
+              let target = groups.firstIndex(where: { $0.id == targetID }) else { return }
+        let group = groups.remove(at: source)
+        groups.insert(group, at: target)
+        save()
+    }
+
     func remove(_ group: ProjectGroup) {
         groups.removeAll { $0.id == group.id }
         save()
@@ -128,5 +137,19 @@ final class ProjectGroupStore: ObservableObject {
             NSLog("zshell: failed to read \(fileURL.path): \(error)")
             return []
         }
+    }
+}
+
+/// Tab groups belong to one project; their identifiers must never follow a
+/// transferred tab into another project's independent group namespace.
+struct SessionTabGroup: Identifiable, Codable, Equatable {
+    let id: UUID
+    var name: String
+    var isCollapsed: Bool
+
+    init(id: UUID = UUID(), name: String, isCollapsed: Bool = false) {
+        self.id = id
+        self.name = name
+        self.isCollapsed = isCollapsed
     }
 }

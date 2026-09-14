@@ -63,15 +63,25 @@ final class AppKitContextMenuMonitorView: NSView {
                       self.visibleRect.contains(self.convert(event.locationInWindow, from: nil))
                 else { return input }
 
-                self.activeHandlers = [:]
-                self.nextHandlerTag = 0
-                let menu = self.makeMenu(items: self.items)
-                _ = menu.popUp(positioning: nil, at: self.convert(event.locationInWindow, from: nil), in: self)
-                self.activeHandlers = [:]
+                self.popUp(
+                    items: self.items,
+                    at: self.convert(event.locationInWindow, from: nil),
+                    in: self
+                )
                 return AppKitContextMenuEvent(nil)
             }
             return output.value
         }
+    }
+
+    /// Native callers share the menu registry without installing a monitor
+    /// on every row; an unattached presenter owns handlers only while open.
+    func popUp(items: [AppKitContextMenuItem], at point: NSPoint, in view: NSView) {
+        activeHandlers = [:]
+        nextHandlerTag = 0
+        let menu = makeMenu(items: items)
+        _ = menu.popUp(positioning: nil, at: point, in: view)
+        activeHandlers = [:]
     }
 
     private func makeMenu(items: [AppKitContextMenuItem]) -> NSMenu {

@@ -18,8 +18,10 @@ final class SettingsShortcutsPane: SettingsPaneViewController {
     private lazy var resetRow = SettingsButtonRow(
         title: String(localized: "Restore Default Shortcuts")
     ) { [weak self] in
-        self?.settings.resetCommandShortcuts()
-        self?.conflictLabel.stringValue = ""
+        guard let self else { return }
+        settings.resetCommandShortcuts()
+        conflictLabel.stringValue = ""
+        shortcutsGroup?.setRowHidden(true, at: conflictRowIndex)
     }
 
     override func makeGroups() -> [NSView] {

@@ -113,12 +113,10 @@ extension TerminalSession {
     /// fresh prompt. Returns whether the head was sent.
     private func sendPromptQueueHeadIfShellIsReady() -> Bool {
         guard !promptQueue.commands.isEmpty,
-              terminalPromptSelectionIsReady
+              terminalPromptQueueIsReady
         else { return false }
         // The gate above already proves the root shell is the foreground
-        // process — nothing else can be interrupted by this send — and that
-        // ZLE just initialized a line the user has not typed into yet, so
-        // the fill lands on an empty command line.
+        // process and its last redraw had no draft input to append to.
         guard let head = promptQueue.commands.first else { return false }
         promptQueue.remove(at: 0)
         sendQueuedPrompt(head)
@@ -131,6 +129,6 @@ extension TerminalSession {
     /// automation router. No backend is ever addressed privately.
     func sendQueuedPrompt(_ command: String) {
         sendCommand(command)
-        sendCommand("\r")
+        sendEnter()
     }
 }

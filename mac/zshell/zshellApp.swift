@@ -301,7 +301,7 @@ private struct ZshellCommands: Commands {
 
             Divider()
 
-            ForEach(Array((manager?.projects ?? []).prefix(9).enumerated()), id: \.element.id) { index, project in
+            ForEach(Array((manager?.visibleSidebarProjects ?? []).prefix(9).enumerated()), id: \.element.id) { index, project in
                 Button(project.name) {
                     manager?.selectProject(index: index)
                 }

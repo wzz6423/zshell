@@ -106,19 +106,7 @@ struct CommandShortcut: Equatable {
     /// codes can't be derived for every character, so `nil` just means the
     /// Quick Terminal overlap check doesn't apply.
     var ansiKeyCode: UInt16? {
-        guard character.unicodeScalars.count == 1,
-              let scalar = character.unicodeScalars.first else { return nil }
-        switch scalar.value {
-        case UInt32(UInt8(ascii: "a"))...UInt32(UInt8(ascii: "z")):
-            return UInt16(kVK_ANSI_A) + UInt16(scalar.value - UInt32(UInt8(ascii: "a")))
-        case UInt32(UInt8(ascii: "1"))...UInt32(UInt8(ascii: "9")):
-            return UInt16(kVK_ANSI_1) + UInt16(scalar.value - UInt32(UInt8(ascii: "1")))
-        case UInt32(UInt8(ascii: "0")):
-            return UInt16(kVK_ANSI_0)
-        case UInt32(UInt8(ascii: "[")): return UInt16(kVK_ANSI_LeftBracket)
-        case UInt32(UInt8(ascii: "]")): return UInt16(kVK_ANSI_RightBracket)
-        default: return nil
-        }
+        QuickTerminalShortcut.keyCode(for: character).map(UInt16.init)
     }
 
     /// Menus can't carry bare whitespace, and function keys arrive as

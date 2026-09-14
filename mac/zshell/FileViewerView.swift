@@ -672,7 +672,7 @@ private final class FileSaveErrorBar: NSView {
         super.init(frame: frameRect)
         wantsLayer = true
         isHidden = true
-        layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.04).cgColor
+        updateAppearanceColors()
 
         let icon = NSImageView()
         icon.image = NSImage(
@@ -702,5 +702,21 @@ private final class FileSaveErrorBar: NSView {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateAppearanceColors()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearanceColors()
+    }
+
+    private func updateAppearanceColors() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.04).cgColor
+        }
     }
 }

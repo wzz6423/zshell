@@ -183,6 +183,7 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         interfaceScaleRow.setValue(settings.interfaceScale)
         thickenSwitch.isOn = settings.fontThicken
         thickenStrengthRow.setValue(Double(settings.fontThickenStrength))
+        thickenStrengthRow.setEnabled(settings.fontThicken)
         lineHeightRow.setValue(settings.terminalLineHeight)
         paneFocusRingSwitch.isOn = settings.showPaneFocusRing
         paneFocusRingOpacityRow.setValue(settings.paneFocusRingOpacity)

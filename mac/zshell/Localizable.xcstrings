@@ -2059,6 +2059,22 @@
         }
       }
     },
+    "Collapse Group": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループを折りたたむ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "折叠分组"
+          }
+        }
+      }
+    },
     "Collapsed": {
       "localizations": {
         "ja": {
@@ -3673,6 +3689,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "退出窗格最大化（⇧⌘↩）"
+          }
+        }
+      }
+    },
+    "Expand Group": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループを展開"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展开分组"
           }
         }
       }
@@ -5496,6 +5528,22 @@
         }
       }
     },
+    "Move this tab to a project with the same local or SSH location, or create a new project from it.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このタブを同じローカルまたは SSH 接続先のプロジェクトに移動するか、このタブから新しいプロジェクトを作成してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请将此标签页移到相同本地或 SSH 位置的项目，或从此标签页新建项目。"
+          }
+        }
+      }
+    },
     "Move to Group": {
       "localizations": {
         "zh-Hans": {
@@ -5914,6 +5962,22 @@
         }
       }
     },
+    "New Session in Group": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループ内に新しいセッションを作成"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在分组中新建会话"
+          }
+        }
+      }
+    },
     "New Tab": {
       "localizations": {
         "ja": {
@@ -5926,6 +5990,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "新建标签页"
+          }
+        }
+      }
+    },
+    "New Tab Group": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいタブグループ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建标签页分组"
+          }
+        }
+      }
+    },
+    "New Ungrouped Project": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未分類のプロジェクトを作成"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建未分组项目"
           }
         }
       }
@@ -8641,6 +8737,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "已保存的 SSH 项目"
+          }
+        }
+      }
+    },
+    "Scroll Tabs Left": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タブを左にスクロール"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "向左滚动标签页"
+          }
+        }
+      }
+    },
+    "Scroll Tabs Right": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タブを右にスクロール"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "向右滚动标签页"
           }
         }
       }

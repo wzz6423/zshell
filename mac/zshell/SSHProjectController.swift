@@ -207,7 +207,7 @@ final class SSHProjectController: NSObject {
 
     private var selectedEntry: SSHProjectEntry? {
         let row = tableView.selectedRow
-        guard row >= 0, case .entry(let entry) = displayRows[row] else { return nil }
+        guard displayRows.indices.contains(row), case .entry(let entry) = displayRows[row] else { return nil }
         return entry
     }
 
@@ -280,7 +280,6 @@ final class SSHProjectController: NSObject {
         // One click on a row connects — the dialog's primary "one-click
         // invoke"; the row's trailing buttons handle edit and delete.
         tableView.action = #selector(rowClicked)
-        tableView.doubleAction = #selector(rowClicked)
         tableView.setAccessibilityLabel(String(
             localized: "Saved SSH Projects",
             comment: "Accessibility label of the saved SSH project list."
@@ -427,11 +426,11 @@ final class SSHProjectController: NSObject {
     private func reloadList() {
         let entries = SSHProjectStore.shared.entries
         var rows: [DisplayRow] = []
-        if entries.contains(where: { !$0.displayGroup.isEmpty }) {
+        if entries.contains(where: { !$0.groupKey.isEmpty }) {
             var seenGroups: [String] = []
             var entriesByGroup: [String: [SSHProjectEntry]] = [:]
             for entry in entries {
-                let group = entry.displayGroup
+                let group = entry.groupKey
                 if entriesByGroup[group] == nil {
                     seenGroups.append(group)
                     entriesByGroup[group] = []
@@ -439,7 +438,9 @@ final class SSHProjectController: NSObject {
                 entriesByGroup[group]?.append(entry)
             }
             for group in seenGroups {
-                rows.append(.header(group))
+                rows.append(.header(group.isEmpty
+                    ? String(localized: "Ungrouped", comment: "Section title for SSH projects without a group.")
+                    : group))
                 rows.append(
                     contentsOf: entriesByGroup[group, default: []].map { DisplayRow.entry($0) }
                 )
@@ -498,18 +499,24 @@ final class SSHProjectController: NSObject {
     /// Builds an entry from the form. Throws `SSHEndpoint.ValidationError` for
     /// bad connection fields; an empty host reports "Enter a host."
     private func entryFromForm(name: String) throws -> (SSHProjectEntry, SSHEndpoint) {
+        let portText = portField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let port = Int(portText)
+        if !portText.isEmpty, port == nil {
+            throw SSHEndpoint.ValidationError.invalidPort
+        }
         let endpoint = try SSHEndpoint(
             host: hostField.stringValue,
             user: userField.stringValue.isEmpty ? nil : userField.stringValue,
-            port: portField.stringValue.isEmpty ? nil : portField.integerValue
+            port: port
         )
         let directory = directoryField.stringValue
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let group = groupField.stringValue
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        let existingEntry = SSHProjectStore.shared.entries.first { $0.id == editingEntryID }
         let entry = SSHProjectEntry(
             id: editingEntryID ?? UUID(),
-            name: name,
+            name: existingEntry?.name ?? name,
             user: endpoint.user,
             host: endpoint.host,
             port: endpoint.port,
@@ -526,7 +533,7 @@ final class SSHProjectController: NSObject {
         // programmatic action dispatch (and is harmless otherwise, since
         // the two agree for a normal click).
         let row = tableView.clickedRow >= 0 ? tableView.clickedRow : tableView.selectedRow
-        guard row >= 0, case .entry(let entry) = displayRows[row] else { return }
+        guard displayRows.indices.contains(row), case .entry(let entry) = displayRows[row] else { return }
         // RowButtonTableView hands the rows' buttons their own mouse-downs,
         // so this action only fires for plain row clicks; the button check
         // remains as a guard for drifted presses.
@@ -594,7 +601,7 @@ final class SSHProjectController: NSObject {
     }
 
     private func connect(_ entry: SSHProjectEntry, endpoint: SSHEndpoint? = nil) {
-        guard let manager else { return }
+        guard window?.isVisible == true, let manager else { return }
         do {
             let endpoint = try endpoint ?? SSHEndpoint(
                 host: entry.host, user: entry.user, port: entry.port
@@ -693,10 +700,12 @@ private final class SSHGroupHeaderView: NSView {
         super.init(frame: .zero)
         label.font = .systemFont(ofSize: 11, weight: .semibold)
         label.textColor = .secondaryLabelColor
+        label.lineBreakMode = .byTruncatingTail
         label.translatesAutoresizingMaskIntoConstraints = false
         addSubview(label)
         NSLayoutConstraint.activate([
             label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 9),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -9),
             label.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
     }
@@ -708,6 +717,7 @@ private final class SSHGroupHeaderView: NSView {
 
     func configure(title: String) {
         label.stringValue = title
+        toolTip = title
         setAccessibilityLabel(title)
     }
 }
@@ -729,7 +739,7 @@ private final class SSHProjectRowView: NSView {
         iconView.setContentHuggingPriority(.defaultHigh, for: .horizontal)
         titleLabel.font = .systemFont(ofSize: 12.5)
         titleLabel.lineBreakMode = .byTruncatingTail
-        titleLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+        titleLabel.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
         detailLabel.font = .systemFont(ofSize: 11)
         detailLabel.textColor = .tertiaryLabelColor
         detailLabel.lineBreakMode = .byTruncatingMiddle
@@ -818,6 +828,7 @@ private final class SSHProjectRowView: NSView {
             detail += "  ·  \(directory)"
         }
         detailLabel.stringValue = detail
+        toolTip = [entry.displayName, detail].joined(separator: "\n")
         setAccessibilityLabel(
             [entry.displayName, entry.destination]
                 .joined(separator: ", ")
@@ -827,6 +838,8 @@ private final class SSHProjectRowView: NSView {
 
 /// A 1pt hairline box border drawn around the list area.
 private final class HairlineBox: NSView {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
     override func draw(_ dirtyRect: NSRect) {
         let path = NSBezierPath(roundedRect: bounds, xRadius: 4, yRadius: 4)
         path.lineWidth = 1
@@ -841,12 +854,8 @@ private final class HairlineBox: NSView {
 }
 
 private extension SSHProjectEntry {
-    /// The section title an entry sorts under; ungrouped entries share one
-    /// bucket rendered with the app's "Ungrouped" label.
-    var displayGroup: String {
-        let trimmed = group?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return trimmed.isEmpty
-            ? String(localized: "Ungrouped", comment: "Section title for SSH projects without a group.")
-            : trimmed
+    /// Keep the empty group distinct from a group named "Ungrouped".
+    var groupKey: String {
+        group?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 }

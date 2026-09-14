@@ -63,6 +63,7 @@ final class QuickLaunchPanelController: NSObject {
 
     private let searchField = NSTextField()
     private let clearButton = NSButton()
+    private var selectionButtons: [NSButton] = []
     // A table subclass: without it the table claims every mouse-down
     // (including ones on the rows' buttons), so the row's edit/delete
     // buttons could never receive a click.
@@ -87,7 +88,7 @@ final class QuickLaunchPanelController: NSObject {
     private var query = "" {
         didSet {
             guard query != oldValue else { return }
-            refilterAndReload()
+            refilterAndReload(preservingSelection: false)
         }
     }
 
@@ -146,7 +147,8 @@ final class QuickLaunchPanelController: NSObject {
 
         searchField.stringValue = ""
         query = ""
-        refilterAndReload()
+        updateClearButton()
+        refilterAndReload(preservingSelection: false)
         applyTheme()
         position(panel: panel)
         panel.makeKeyAndOrderFront(nil)
@@ -296,6 +298,7 @@ final class QuickLaunchPanelController: NSObject {
             .init(pointSize: 11, weight: .medium)
         )
         closeButton.isBordered = false
+        closeButton.keyEquivalent = "\u{1b}"
         closeButton.contentTintColor = .secondaryLabelColor
         closeButton.setAccessibilityLabel(String(
             localized: "Close",
@@ -358,10 +361,8 @@ final class QuickLaunchPanelController: NSObject {
         tableView.dataSource = self
         tableView.delegate = self
         tableView.target = self
-        // One click launches — the launcher's "one-click invoke". Row-trailing
-        // edit/delete buttons take their own clicks; double-clicking a row
-        // would fire the action again after the panel closed, so there is
-        // deliberately no doubleAction.
+        // Row buttons handle their own clicks; the launch action ignores
+        // events arriving after the panel closes, including a second click.
         tableView.action = #selector(tableViewClicked)
         tableView.setAccessibilityLabel(String(
             localized: "Quick Launch entries",
@@ -441,6 +442,12 @@ final class QuickLaunchPanelController: NSObject {
             button.isBordered = false
             button.font = .systemFont(ofSize: 11)
             button.contentTintColor = .secondaryLabelColor
+            if hint.action != #selector(newClicked) {
+                selectionButtons.append(button)
+            }
+            if hint.action == #selector(launchClicked) {
+                button.keyEquivalent = "\r"
+            }
             views.append(button)
         }
         let footer = NSStackView(views: views)
@@ -471,24 +478,28 @@ final class QuickLaunchPanelController: NSObject {
 
     private func applyTheme() {
         guard let content = panel?.contentView, let layer = content.layer else { return }
-        // Theme colors are dynamic; resolving into CG colors snapshots the
-        // current appearance, so this runs on every theme and appearance edge.
-        layer.backgroundColor = Theme.background.usingColorSpace(.sRGB)?.cgColor
-        layer.borderColor = Theme.divider.usingColorSpace(.sRGB)?
-            .withAlphaComponent(0.5)
-            .cgColor
+        // Publishers can fire outside drawing, where the current appearance
+        // differs from the panel's. Resolve layer colors in the panel's scope.
+        content.effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer.backgroundColor = Theme.background.usingColorSpace(.sRGB)?.cgColor
+            layer.borderColor = Theme.divider.usingColorSpace(.sRGB)?
+                .withAlphaComponent(0.5)
+                .cgColor
+        }
         layer.borderWidth = 1
     }
 
     // MARK: - List updates
 
-    private func refilterAndReload() {
+    private func refilterAndReload(preservingSelection: Bool = true) {
+        let selectedID = preservingSelection ? selectedEntry?.id : nil
         refilter()
-        reload()
+        reload(selectedID: selectedID)
     }
 
     private func refilter() {
         let entries = QuickLaunchStore.shared.entries
+        displayRows.removeAll(keepingCapacity: true)
         let pattern = query.trimmingCharacters(in: .whitespaces)
         guard pattern.isEmpty else {
             displayRows = fuzzyRanked(entries: entries, pattern: pattern)
@@ -498,11 +509,11 @@ final class QuickLaunchPanelController: NSObject {
         // No filter: group the saved order into sections, keeping each
         // group's first appearance position. Entries without a group share
         // one "Ungrouped" section, which only exists next to real groups.
-        if entries.contains(where: { !$0.displayGroup.isEmpty }) {
+        if entries.contains(where: { !$0.groupKey.isEmpty }) {
             var groupOrder: [String] = []
             var entriesByGroup: [String: [QuickLaunchEntry]] = [:]
             for entry in entries {
-                let group = entry.displayGroup
+                let group = entry.groupKey
                 if entriesByGroup[group] == nil {
                     groupOrder.append(group)
                     entriesByGroup[group] = []
@@ -510,7 +521,9 @@ final class QuickLaunchPanelController: NSObject {
                 entriesByGroup[group]?.append(entry)
             }
             for group in groupOrder {
-                displayRows.append(.header(group))
+                displayRows.append(.header(group.isEmpty
+                    ? String(localized: "Ungrouped", comment: "Section title for Quick Launch entries without a group.")
+                    : group))
                 displayRows.append(
                     contentsOf: entriesByGroup[group, default: []].map { DisplayRow.entry($0) }
                 )
@@ -530,7 +543,7 @@ final class QuickLaunchPanelController: NSObject {
         var buffer = Self.fuzzyMatcher.makeBuffer()
         var matches: [(entry: QuickLaunchEntry, score: Double, order: Int)] = []
         for (order, entry) in entries.enumerated() {
-            var candidate = [entry.name, entry.detail]
+            var candidate = [entry.name, entry.detail, entry.group]
                 .compactMap { $0 }
                 .joined(separator: " ")
             guard let score = candidate.withUTF8({ bytes in
@@ -545,13 +558,15 @@ final class QuickLaunchPanelController: NSObject {
         return matches
     }
 
-    private func reload() {
+    private func reload(selectedID: UUID?) {
         guard let panel else { return }
         tableView.reloadData()
 
         let size = contentSize()
         listHeightConstraint?.constant = size.height - Self.searchBarHeight - Self.footerHeight - 2
+        let top = panel.frame.maxY
         panel.setContentSize(size)
+        panel.setFrameOrigin(NSPoint(x: panel.frame.minX, y: top - panel.frame.height))
         tableView.sizeLastColumnToFit()
 
         if displayRows.isEmpty {
@@ -576,12 +591,21 @@ final class QuickLaunchPanelController: NSObject {
         } else {
             emptyStateView.isHidden = true
             scrollView.isHidden = false
-            // Select the first entry row; group headers are not selectable.
-            if let firstEntry = displayRows.firstIndex(where: \.isEntry) {
-                tableView.selectRowIndexes(IndexSet(integer: firstEntry), byExtendingSelection: false)
-                tableView.scrollRowToVisible(firstEntry)
+            let selectedRow = selectedID.flatMap { id in
+                displayRows.indices.first { entry(atRow: $0)?.id == id }
+            }
+                ?? displayRows.firstIndex(where: \.isEntry)
+            if let selectedRow {
+                tableView.selectRowIndexes(IndexSet(integer: selectedRow), byExtendingSelection: false)
+                tableView.scrollRowToVisible(selectedRow)
             }
         }
+        updateSelectionButtons()
+    }
+
+    private func updateSelectionButtons() {
+        let hasSelection = selectedEntry != nil
+        for button in selectionButtons { button.isEnabled = hasSelection }
     }
 
     // MARK: - Actions
@@ -605,12 +629,13 @@ final class QuickLaunchPanelController: NSObject {
     }
 
     private func launchSelection() {
-        guard let entry = selectedEntry, let manager else { return }
+        guard panel?.isVisible == true, let entry = selectedEntry, let manager else { return }
         close()
         manager.runQuickLaunchEntry(entry)
     }
 
     @objc private func tableViewClicked() {
+        guard panel?.isVisible == true else { return }
         // NSTableView fires this action for any click that selects a row.
         // With RowButtonTableView the row's buttons now receive their own
         // mouse-downs, so this normally only sees plain row clicks; the
@@ -708,19 +733,19 @@ final class QuickLaunchPanelController: NSObject {
 }
 
 private extension QuickLaunchEntry {
-    /// The section title an entry sorts under; ungrouped entries share one
-    /// bucket that only renders next to real groups.
-    var displayGroup: String {
-        let trimmed = group?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return trimmed.isEmpty
-            ? String(localized: "Ungrouped", comment: "Section title for Quick Launch entries without a group.")
-            : trimmed
+    /// Keep the empty group distinct from a group named "Ungrouped".
+    var groupKey: String {
+        group?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 }
 
 // MARK: - Table data
 
 extension QuickLaunchPanelController: NSTableViewDataSource, NSTableViewDelegate {
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        updateSelectionButtons()
+    }
+
     func numberOfRows(in tableView: NSTableView) -> Int {
         displayRows.count
     }
@@ -769,10 +794,12 @@ private final class QuickLaunchHeaderView: NSView {
         super.init(frame: .zero)
         label.font = .systemFont(ofSize: 11, weight: .semibold)
         label.textColor = .secondaryLabelColor
+        label.lineBreakMode = .byTruncatingTail
         label.translatesAutoresizingMaskIntoConstraints = false
         addSubview(label)
         NSLayoutConstraint.activate([
             label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 9),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -9),
             label.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
     }
@@ -784,6 +811,7 @@ private final class QuickLaunchHeaderView: NSView {
 
     func configure(title: String) {
         label.stringValue = title
+        toolTip = title
         setAccessibilityLabel(title)
     }
 }
@@ -880,6 +908,7 @@ private final class QuickLaunchRowView: NSView {
         let detail = entry.detail ?? ""
         detailLabel.stringValue = detail
         detailLabel.isHidden = detail.isEmpty
+        toolTip = [entry.name, detail].filter { !$0.isEmpty }.joined(separator: "\n")
         setAccessibilityLabel(
             [entry.name, detail.isEmpty ? nil : detail]
                 .compactMap { $0 }
