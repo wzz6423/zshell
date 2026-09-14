@@ -53,6 +53,7 @@ final class QuickLaunchPanelController: NSObject {
     private static let searchBarHeight: CGFloat = 44
     private static let footerHeight: CGFloat = 28
     private static let rowHeight: CGFloat = 30
+    private static let headerHeight: CGFloat = 26
     private static let maxListHeight: CGFloat = 260
     private static let emptyListHeight: CGFloat = 74
     private static let topOffset: CGFloat = 110
@@ -69,9 +70,10 @@ final class QuickLaunchPanelController: NSObject {
     private var listHeightConstraint: NSLayoutConstraint?
     private var lifetime: [AnyCancellable] = []
 
-    /// Entries as they appear in the list — the saved order, or the fuzzy
-    /// filter's ranking once the user types.
-    private var visibleEntries: [QuickLaunchEntry] = []
+    /// Rows as they appear in the list — grouped sections in the saved order
+    /// when no filter is active, or the fuzzy filter's flat ranking once the
+    /// user types.
+    private var displayRows: [DisplayRow] = []
     private var query = "" {
         didSet {
             guard query != oldValue else { return }
@@ -79,10 +81,25 @@ final class QuickLaunchPanelController: NSObject {
         }
     }
 
+    private enum DisplayRow {
+        case header(String)
+        case entry(QuickLaunchEntry)
+
+        var isEntry: Bool {
+            if case .entry = self { return true }
+            return false
+        }
+    }
+
+    /// The entry shown at a table row, or nil for a group header.
+    private func entry(atRow row: Int) -> QuickLaunchEntry? {
+        guard displayRows.indices.contains(row),
+              case .entry(let entry) = displayRows[row] else { return nil }
+        return entry
+    }
+
     private var selectedEntry: QuickLaunchEntry? {
-        let row = tableView.selectedRow
-        guard visibleEntries.indices.contains(row) else { return nil }
-        return visibleEntries[row]
+        entry(atRow: tableView.selectedRow)
     }
 
     /// Smith-Waterman scoring, identical to the command palette so both
@@ -161,9 +178,14 @@ final class QuickLaunchPanelController: NSObject {
     }
 
     private func contentSize() -> NSSize {
-        let listHeight = visibleEntries.isEmpty
+        let listHeight = displayRows.isEmpty
             ? Self.emptyListHeight
-            : min(CGFloat(visibleEntries.count) * Self.rowHeight + 12, Self.maxListHeight)
+            : min(
+                displayRows.reduce(0) { partial, row in
+                    partial + (row.isEntry ? Self.rowHeight : Self.headerHeight)
+                } + 12,
+                Self.maxListHeight
+            )
         let height = Self.searchBarHeight + 1 + listHeight + 1 + Self.footerHeight
         return NSSize(width: Self.panelWidth, height: height)
     }
@@ -224,11 +246,29 @@ final class QuickLaunchPanelController: NSObject {
             comment: "Accessibility label of the Quick Launch search field."
         ))
 
-        let bar = NSStackView(views: [icon, searchField])
+        // A visible close affordance: the borderless panel has no title bar,
+        // so before this button Escape was the only way out.
+        let closeButton = NSButton(
+            image: NSImage(
+                systemSymbolName: "xmark.circle.fill",
+                accessibilityDescription: nil
+            ) ?? NSImage(),
+            target: self,
+            action: #selector(closeClicked)
+        )
+        closeButton.isBordered = false
+        closeButton.contentTintColor = .tertiaryLabelColor
+        closeButton.setAccessibilityLabel(String(
+            localized: "Close",
+            comment: "Accessibility label of the Quick Launch panel's close button."
+        ))
+
+        let bar = NSStackView(views: [icon, searchField, closeButton])
         bar.orientation = .horizontal
         bar.alignment = .centerY
         bar.spacing = 8
-        bar.edgeInsets = NSEdgeInsets(top: 0, left: 14, bottom: 0, right: 14)
+        bar.setCustomSpacing(4, after: searchField)
+        bar.edgeInsets = NSEdgeInsets(top: 0, left: 14, bottom: 0, right: 12)
         bar.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(bar)
 
@@ -241,10 +281,15 @@ final class QuickLaunchPanelController: NSObject {
             bar.leadingAnchor.constraint(equalTo: content.leadingAnchor),
             bar.trailingAnchor.constraint(equalTo: content.trailingAnchor),
             bar.heightAnchor.constraint(equalToConstant: Self.searchBarHeight),
+            closeButton.widthAnchor.constraint(equalToConstant: 18),
             separator.topAnchor.constraint(equalTo: bar.bottomAnchor),
             separator.leadingAnchor.constraint(equalTo: content.leadingAnchor),
             separator.trailingAnchor.constraint(equalTo: content.trailingAnchor),
         ])
+    }
+
+    @objc private func closeClicked() {
+        close()
     }
 
     private func buildList(in content: NSView) {
@@ -256,7 +301,11 @@ final class QuickLaunchPanelController: NSObject {
         tableView.dataSource = self
         tableView.delegate = self
         tableView.target = self
-        tableView.doubleAction = #selector(tableViewDoubleClicked)
+        // One click launches — the launcher's "one-click invoke". Row-trailing
+        // edit/delete buttons take their own clicks; double-clicking a row
+        // would fire the action again after the panel closed, so there is
+        // deliberately no doubleAction.
+        tableView.action = #selector(tableViewClicked)
         tableView.setAccessibilityLabel(String(
             localized: "Quick Launch entries",
             comment: "Accessibility label of the Quick Launch entry list."
@@ -317,30 +366,34 @@ final class QuickLaunchPanelController: NSObject {
     }
 
     private func buildFooter(in content: NSView) {
-        let hints: [(key: String, label: String)] = [
-            ("↩", String(localized: "Launch", comment: "Quick Launch footer hint: Return launches the selected entry.")),
-            ("⌘N", String(localized: "New", comment: "Quick Launch footer hint: ⌘N creates an entry.")),
-            ("⌘E", String(localized: "Edit", comment: "Quick Launch footer hint: ⌘E edits the selected entry.")),
-            ("⌘⌫", String(localized: "Delete", comment: "Quick Launch footer hint: ⌘⌫ deletes the selected entry.")),
+        // The old footer was static key hints; they are buttons now so every
+        // action also has a visible, clickable affordance.
+        let hints: [(key: String, label: String, action: Selector)] = [
+            ("↩", String(localized: "Launch", comment: "Quick Launch footer hint: Return launches the selected entry."), #selector(launchClicked)),
+            ("⌘N", String(localized: "New", comment: "Quick Launch footer hint: ⌘N creates an entry."), #selector(newClicked)),
+            ("⌘E", String(localized: "Edit", comment: "Quick Launch footer hint: ⌘E edits the selected entry."), #selector(editClicked)),
+            ("⌘⌫", String(localized: "Delete", comment: "Quick Launch footer hint: ⌘⌫ deletes the selected entry."), #selector(deleteClicked)),
         ]
         var views: [NSView] = []
         for hint in hints {
-            let key = NSTextField(labelWithString: hint.key)
-            key.font = .systemFont(ofSize: 11)
-            key.textColor = .tertiaryLabelColor
-            let label = NSTextField(labelWithString: hint.label)
-            label.font = .systemFont(ofSize: 11)
-            label.textColor = .secondaryLabelColor
-            views.append(contentsOf: [key, label])
+            let button = NSButton(
+                title: "\(hint.key)  \(hint.label)",
+                target: self,
+                action: hint.action
+            )
+            button.isBordered = false
+            button.font = .systemFont(ofSize: 11)
+            button.contentTintColor = .secondaryLabelColor
+            views.append(button)
         }
         let footer = NSStackView(views: views)
         footer.orientation = .horizontal
         footer.alignment = .centerY
         footer.spacing = 4
+        footer.setCustomSpacing(14, after: views[0])
         footer.setCustomSpacing(14, after: views[1])
-        footer.setCustomSpacing(14, after: views[3])
-        footer.setCustomSpacing(14, after: views[5])
-        footer.edgeInsets = NSEdgeInsets(top: 0, left: 14, bottom: 0, right: 14)
+        footer.setCustomSpacing(14, after: views[2])
+        footer.edgeInsets = NSEdgeInsets(top: 0, left: 8, bottom: 0, right: 8)
         footer.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(footer)
 
@@ -380,10 +433,42 @@ final class QuickLaunchPanelController: NSObject {
     private func refilter() {
         let entries = QuickLaunchStore.shared.entries
         let pattern = query.trimmingCharacters(in: .whitespaces)
-        guard !pattern.isEmpty else {
-            visibleEntries = entries
+        guard pattern.isEmpty else {
+            displayRows = fuzzyRanked(entries: entries, pattern: pattern)
+                .map { DisplayRow.entry($0.entry) }
             return
         }
+        // No filter: group the saved order into sections, keeping each
+        // group's first appearance position. Entries without a group share
+        // one "Ungrouped" section, which only exists next to real groups.
+        if entries.contains(where: { !$0.displayGroup.isEmpty }) {
+            var groupOrder: [String] = []
+            var entriesByGroup: [String: [QuickLaunchEntry]] = [:]
+            for entry in entries {
+                let group = entry.displayGroup
+                if entriesByGroup[group] == nil {
+                    groupOrder.append(group)
+                    entriesByGroup[group] = []
+                }
+                entriesByGroup[group]?.append(entry)
+            }
+            for group in groupOrder {
+                displayRows.append(.header(group))
+                displayRows.append(
+                    contentsOf: entriesByGroup[group, default: []].map { DisplayRow.entry($0) }
+                )
+            }
+        } else {
+            displayRows = entries.map(DisplayRow.entry)
+        }
+    }
+
+    /// Smith-Waterman scoring, identical to the command palette so both
+    /// overlays rank the same way.
+    private func fuzzyRanked(
+        entries: [QuickLaunchEntry],
+        pattern: String
+    ) -> [(entry: QuickLaunchEntry, score: Double, order: Int)] {
         let fuzzyQuery = Self.fuzzyMatcher.prepare(pattern)
         var buffer = Self.fuzzyMatcher.makeBuffer()
         var matches: [(entry: QuickLaunchEntry, score: Double, order: Int)] = []
@@ -400,7 +485,7 @@ final class QuickLaunchPanelController: NSObject {
             if $0.score != $1.score { return $0.score > $1.score }
             return $0.order < $1.order
         }
-        visibleEntries = matches.map(\.entry)
+        return matches
     }
 
     private func reload() {
@@ -412,7 +497,7 @@ final class QuickLaunchPanelController: NSObject {
         panel.setContentSize(size)
         tableView.sizeLastColumnToFit()
 
-        if visibleEntries.isEmpty {
+        if displayRows.isEmpty {
             emptyStateView.isHidden = false
             scrollView.isHidden = true
             if query.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -434,18 +519,30 @@ final class QuickLaunchPanelController: NSObject {
         } else {
             emptyStateView.isHidden = true
             scrollView.isHidden = false
-            tableView.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
-            tableView.scrollRowToVisible(0)
+            // Select the first entry row; group headers are not selectable.
+            if let firstEntry = displayRows.firstIndex(where: \.isEntry) {
+                tableView.selectRowIndexes(IndexSet(integer: firstEntry), byExtendingSelection: false)
+                tableView.scrollRowToVisible(firstEntry)
+            }
         }
     }
 
     // MARK: - Actions
 
+    /// Moves the selection to the next/previous entry row, stepping over
+    /// group headers.
     private func moveSelection(_ delta: Int) {
-        guard !visibleEntries.isEmpty else { return }
-        let count = visibleEntries.count
-        let current = max(0, tableView.selectedRow)
-        let next = (current + delta + count) % count
+        let entryRows = displayRows.indices.filter { displayRows[$0].isEntry }
+        guard let first = entryRows.first, let last = entryRows.last else { return }
+        var next = tableView.selectedRow + delta
+        // Wrap around within the entry rows only.
+        if next < first { next = last }
+        if next > last { next = first }
+        while !displayRows.indices.contains(next) || !displayRows[next].isEntry {
+            next += delta > 0 ? 1 : -1
+            if next < first { next = last }
+            if next > last { next = first }
+        }
         tableView.selectRowIndexes(IndexSet(integer: next), byExtendingSelection: false)
         tableView.scrollRowToVisible(next)
     }
@@ -456,17 +553,50 @@ final class QuickLaunchPanelController: NSObject {
         manager.runQuickLaunchEntry(entry)
     }
 
+    @objc private func tableViewClicked() {
+        // A click on a row's edit/delete button never reaches here — the
+        // button consumes the mouse-down — so this is the plain
+        // "one-click invoke" path.
+        let row = tableView.clickedRow
+        guard row >= 0 else { return }
+        if let entry = entry(atRow: row) {
+            close()
+            manager?.runQuickLaunchEntry(entry)
+        }
+    }
+
+    @objc private func launchClicked() {
+        launchSelection()
+    }
+
     func addEntry() {
         presentEditor(editing: nil)
     }
 
+    @objc private func newClicked() {
+        addEntry()
+    }
+
     func editSelectedEntry() {
         guard let entry = selectedEntry else { return }
+        editSelectedEntry(entry)
+    }
+
+    private func editSelectedEntry(_ entry: QuickLaunchEntry) {
         presentEditor(editing: entry)
     }
 
+    @objc private func editClicked() {
+        editSelectedEntry()
+    }
+
     func deleteSelectedEntry() {
-        guard let entry = selectedEntry, let panel else { return }
+        guard let entry = selectedEntry else { return }
+        deleteEntry(entry)
+    }
+
+    private func deleteEntry(_ entry: QuickLaunchEntry) {
+        guard let panel else { return }
         let alert = NSAlert()
         alert.alertStyle = .warning
         alert.messageText = String(
@@ -487,12 +617,23 @@ final class QuickLaunchPanelController: NSObject {
         }
     }
 
+    @objc private func deleteClicked() {
+        deleteSelectedEntry()
+    }
+
     private func presentEditor(editing entry: QuickLaunchEntry?) {
         QuickLaunchEditorController.present(editing: entry, relativeTo: panel)
     }
+}
 
-    @objc private func tableViewDoubleClicked() {
-        launchSelection()
+private extension QuickLaunchEntry {
+    /// The section title an entry sorts under; ungrouped entries share one
+    /// bucket that only renders next to real groups.
+    var displayGroup: String {
+        let trimmed = group?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty
+            ? String(localized: "Ungrouped", comment: "Section title for Quick Launch entries without a group.")
+            : trimmed
     }
 }
 
@@ -500,7 +641,15 @@ final class QuickLaunchPanelController: NSObject {
 
 extension QuickLaunchPanelController: NSTableViewDataSource, NSTableViewDelegate {
     func numberOfRows(in tableView: NSTableView) -> Int {
-        visibleEntries.count
+        displayRows.count
+    }
+
+    func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
+        displayRows[row].isEntry ? Self.rowHeight : Self.headerHeight
+    }
+
+    func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
+        displayRows[row].isEntry
     }
 
     func tableView(
@@ -508,23 +657,65 @@ extension QuickLaunchPanelController: NSTableViewDataSource, NSTableViewDelegate
         viewFor tableColumn: NSTableColumn?,
         row: Int
     ) -> NSView? {
-        let entry = visibleEntries[row]
-        let cell = (tableView.makeView(
-            withIdentifier: NSUserInterfaceItemIdentifier("quickLaunchRow"),
-            owner: nil
-        ) as? QuickLaunchRowView) ?? QuickLaunchRowView()
-        cell.identifier = NSUserInterfaceItemIdentifier("quickLaunchRow")
-        cell.configure(entry: entry)
-        return cell
+        switch displayRows[row] {
+        case .header(let title):
+            let cell = (tableView.makeView(
+                withIdentifier: NSUserInterfaceItemIdentifier("quickLaunchHeader"),
+                owner: nil
+            ) as? QuickLaunchHeaderView) ?? QuickLaunchHeaderView()
+            cell.identifier = NSUserInterfaceItemIdentifier("quickLaunchHeader")
+            cell.configure(title: title)
+            return cell
+        case .entry(let entry):
+            let cell = (tableView.makeView(
+                withIdentifier: NSUserInterfaceItemIdentifier("quickLaunchRow"),
+                owner: nil
+            ) as? QuickLaunchRowView) ?? QuickLaunchRowView()
+            cell.identifier = NSUserInterfaceItemIdentifier("quickLaunchRow")
+            cell.configure(entry: entry)
+            cell.onEdit = { [weak self] in self?.editSelectedEntry(entry) }
+            cell.onDelete = { [weak self] in self?.deleteEntry(entry) }
+            return cell
+        }
+    }
+}
+
+/// A group section header row.
+private final class QuickLaunchHeaderView: NSView {
+    private let label = NSTextField(labelWithString: "")
+
+    init() {
+        super.init(frame: .zero)
+        label.font = .systemFont(ofSize: 11, weight: .semibold)
+        label.textColor = .secondaryLabelColor
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 9),
+            label.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func configure(title: String) {
+        label.stringValue = title
+        setAccessibilityLabel(title)
     }
 }
 
 /// One list row: kind symbol, entry name, and the command or `user@host` it
-/// runs, mirroring the command palette's row layout.
+/// runs, mirroring the command palette's row layout. Trailing edit/delete
+/// buttons take their own clicks without launching the entry.
 private final class QuickLaunchRowView: NSView {
     private let iconView = NSImageView()
     private let titleLabel = NSTextField(labelWithString: "")
     private let detailLabel = NSTextField(labelWithString: "")
+    var onEdit: (() -> Void)?
+    var onDelete: (() -> Void)?
 
     init() {
         super.init(frame: .zero)
@@ -538,10 +729,40 @@ private final class QuickLaunchRowView: NSView {
         detailLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
         detailLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        let stack = NSStackView(views: [iconView, titleLabel, detailLabel])
+        let editButton = NSButton(
+            image: NSImage(
+                systemSymbolName: "pencil",
+                accessibilityDescription: nil
+            ) ?? NSImage(),
+            target: self,
+            action: #selector(editClicked)
+        )
+        editButton.isBordered = false
+        editButton.contentTintColor = .tertiaryLabelColor
+        editButton.setAccessibilityLabel(String(
+            localized: "Edit",
+            comment: "Accessibility label of a Quick Launch row's edit button."
+        ))
+        let deleteButton = NSButton(
+            image: NSImage(
+                systemSymbolName: "trash",
+                accessibilityDescription: nil
+            ) ?? NSImage(),
+            target: self,
+            action: #selector(deleteClicked)
+        )
+        deleteButton.isBordered = false
+        deleteButton.contentTintColor = .tertiaryLabelColor
+        deleteButton.setAccessibilityLabel(String(
+            localized: "Delete",
+            comment: "Accessibility label of a Quick Launch row's delete button."
+        ))
+
+        let stack = NSStackView(views: [iconView, titleLabel, detailLabel, editButton, deleteButton])
         stack.orientation = .horizontal
         stack.alignment = .centerY
         stack.spacing = 9
+        stack.setCustomSpacing(2, after: detailLabel)
         stack.edgeInsets = NSEdgeInsets(top: 0, left: 9, bottom: 0, right: 9)
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
@@ -552,6 +773,8 @@ private final class QuickLaunchRowView: NSView {
             stack.topAnchor.constraint(equalTo: topAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
             iconView.widthAnchor.constraint(equalToConstant: 16),
+            editButton.widthAnchor.constraint(equalToConstant: 18),
+            deleteButton.widthAnchor.constraint(equalToConstant: 18),
         ])
     }
 
@@ -559,6 +782,9 @@ private final class QuickLaunchRowView: NSView {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+
+    @objc private func editClicked() { onEdit?() }
+    @objc private func deleteClicked() { onDelete?() }
 
     func configure(entry: QuickLaunchEntry) {
         iconView.image = NSImage(
