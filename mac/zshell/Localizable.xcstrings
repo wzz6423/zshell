@@ -1515,6 +1515,22 @@
         }
       }
     },
+    "Change Folder…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更改文件夹…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォルダを変更…"
+          }
+        }
+      }
+    },
     "Changed": {
       "localizations": {
         "ja": {
@@ -4197,6 +4213,22 @@
         }
       }
     },
+    "Folder Group…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件夹分组…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォルダグループ…"
+          }
+        }
+      }
+    },
     "Folder name": {
       "localizations": {
         "ja": {
@@ -5464,6 +5496,22 @@
         }
       }
     },
+    "Move to Group": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移到分组"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループへ移動"
+          }
+        }
+      }
+    },
     "Move to Trash": {
       "localizations": {
         "ja": {
@@ -5673,6 +5721,22 @@
         }
       }
     },
+    "New Group": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建分组"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新規グループ"
+          }
+        }
+      }
+    },
     "New Project": {
       "localizations": {
         "ja": {
@@ -5717,6 +5781,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "新建项目（⌘N）"
+          }
+        }
+      }
+    },
+    "New Project in Group": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在分组中新建项目"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループ内で新規プロジェクト"
           }
         }
       }
@@ -6869,6 +6949,22 @@
         }
       }
     },
+    "Plain Group": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "纯分组"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シンプルグループ"
+          }
+        }
+      }
+    },
     "Plays the alert sound and uses macOS visual alerts when terminal programs ring the bell": {
       "localizations": {
         "ja": {
@@ -7673,6 +7769,22 @@
         }
       }
     },
+    "Remove Group": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除分组"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループを削除"
+          }
+        }
+      }
+    },
     "Remove Quick Command": {
       "localizations": {
         "ja": {
@@ -7701,6 +7813,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "移除变量"
+          }
+        }
+      }
+    },
+    "Remove from Group": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从分组移除"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループから削除"
           }
         }
       }

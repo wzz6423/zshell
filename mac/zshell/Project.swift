@@ -29,6 +29,11 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// selected session's working directory, re-derived as the session
     /// moves (see `panelRoot(followingSessionAt:)`).
     @Published var customDirectory: String?
+    /// The sidebar group this project sits under, nil when ungrouped. The
+    /// group's kind decides where new terminals of the project start: a
+    /// folder group starts them in its folder (the group's directory sits
+    /// behind an explicit project directory in the chain below).
+    @Published var groupID: UUID?
     /// Launch configuration inherited by terminals created after it changes.
     /// Existing PTYs intentionally keep the environment they started with.
     @Published var launchSettings = TerminalLaunchSettings()
@@ -89,6 +94,13 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     }
 
     var isRemote: Bool { location.isRemote }
+
+    /// The directory the project's sidebar group hands to new terminals
+    /// (home for a plain group, its folder for a folder group); nil when the
+    /// project is ungrouped or belongs to a group that no longer exists.
+    private var groupSessionDirectory: String? {
+        manager?.projectGroup(id: groupID)?.sessionDirectory
+    }
 
     /// The declared endpoint for SSH projects, nil for local projects.
     var remoteEndpoint: SSHEndpoint? {
@@ -320,6 +332,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         case .local:
             initialDirectory = directory
                 ?? customDirectory
+                ?? groupSessionDirectory
                 ?? selectedSession?.currentDirectoryPath
             launchArguments = commandArguments
         case .ssh(let endpoint, let remoteDirectory):
