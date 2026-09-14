@@ -159,6 +159,11 @@ final class SSHProjectController: NSObject {
     private static let listHeight: CGFloat = 210
     private static let rowHeight: CGFloat = 34
     private static let headerHeight: CGFloat = 26
+    /// Content height: list box + gap + form stack (header + 5-row grid +
+    /// buttons) + insets. An exact fit matters — every extra point the outer
+    /// stack cannot spend on spacing is dumped into the grid as a stretched,
+    /// blank band after its first row.
+    private static let formHeight: CGFloat = 256
 
     private weak var manager: TerminalManager?
     private var window: NSWindow?
@@ -225,7 +230,7 @@ final class SSHProjectController: NSObject {
             contentRect: NSRect(
                 x: 0, y: 0,
                 width: Self.windowWidth,
-                height: Self.listHeight + 300
+                height: Self.listHeight + Self.formHeight
             ),
             styleMask: [.titled, .closable],
             backing: .buffered,
