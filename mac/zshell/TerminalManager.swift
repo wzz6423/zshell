@@ -327,6 +327,38 @@ final class TerminalManager: nonisolated ObservableObject {
         return project
     }
 
+    /// The sidebar group with `id`, if it still exists.
+    func projectGroup(id: UUID?) -> ProjectGroup? {
+        ProjectGroupStore.shared.group(id: id)
+    }
+
+    /// Creates a project inside `group` and selects it. The group decides
+    /// where the first terminal starts: a plain group opens in the home
+    /// directory, a folder group in its folder (which also pins the
+    /// project's directory, anchoring the file tree and git panels).
+    @discardableResult
+    func newProject(in group: ProjectGroup) -> Project {
+        let project = makeProject(createInitialSession: false)
+        project.groupID = group.id
+        if case .folder(let path) = group.kind {
+            project.customDirectory = path
+        }
+        project.newSession(directory: group.sessionDirectory)
+        insert(project)
+        return project
+    }
+
+    /// Moves `project` into `group` (nil = out of any group). Moving into a
+    /// folder group pins the project's directory to the group's folder, so
+    /// the file tree, git panels, and new terminals follow the group; moving
+    /// out keeps whatever directory the project already had.
+    func moveProject(_ project: Project, to group: ProjectGroup?) {
+        project.groupID = group?.id
+        if let folder = group?.folderPath {
+            project.customDirectory = folder
+        }
+    }
+
     func promptForSSHProject() {
         SSHProjectController.shared.present(for: self)
     }
@@ -1415,6 +1447,7 @@ final class TerminalManager: nonisolated ObservableObject {
                     isPinned: project.isPinned,
                     markerColorHex: project.markerColor?.hex,
                     customDirectory: project.customDirectory,
+                    groupID: project.groupID,
                     launchSettings: project.launchSettings,
                     location: project.location,
                     tabs: tabs,
@@ -1513,6 +1546,7 @@ final class TerminalManager: nonisolated ObservableObject {
             project.customName = Project.normalizedCustomName(saved.customName)
             project.markerColor = saved.markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:))
             project.customDirectory = saved.customDirectory
+            project.groupID = saved.groupID
             project.launchSettings = saved.launchSettings
             var restoredContexts: [(tab: PaneTab, sessionIndex: Int)] = []
             for savedTab in saved.tabs {

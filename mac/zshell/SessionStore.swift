@@ -237,6 +237,10 @@ struct SessionSnapshot: Codable {
         /// automatic (the closest git repository, never persisted).
         /// Optional so older snapshots still decode.
         var customDirectory: String?
+        /// The sidebar project group this project belongs to; nil when
+        /// ungrouped. Optional so snapshots written before grouping existed
+        /// still decode.
+        var groupID: UUID?
         /// Project values inherited by newly created terminals. Empty settings
         /// are omitted while decoding still accepts snapshots that lack them.
         var launchSettings = TerminalLaunchSettings()
@@ -247,7 +251,7 @@ struct SessionSnapshot: Codable {
         var selectedTabIndex: Int?
 
         enum CodingKeys: String, CodingKey {
-            case customName, isPinned, markerColorHex, customDirectory, launchSettings, location, tabs, selectedTabIndex
+            case customName, isPinned, markerColorHex, customDirectory, groupID, launchSettings, location, tabs, selectedTabIndex
         }
 
         init(
@@ -255,6 +259,7 @@ struct SessionSnapshot: Codable {
             isPinned: Bool = false,
             markerColorHex: String? = nil,
             customDirectory: String?,
+            groupID: UUID? = nil,
             launchSettings: TerminalLaunchSettings = .init(),
             location: ProjectLocation? = nil,
             tabs: [TabSnapshot],
@@ -264,6 +269,7 @@ struct SessionSnapshot: Codable {
             self.isPinned = isPinned
             self.markerColorHex = markerColorHex
             self.customDirectory = customDirectory
+            self.groupID = groupID
             self.launchSettings = launchSettings
             self.location = location
             self.tabs = tabs
@@ -278,6 +284,7 @@ struct SessionSnapshot: Codable {
             customDirectory = try container.decodeIfPresent(
                 String.self, forKey: .customDirectory
             )
+            groupID = try container.decodeIfPresent(UUID.self, forKey: .groupID)
             launchSettings = try container.decodeIfPresent(
                 TerminalLaunchSettings.self, forKey: .launchSettings
             ) ?? .init()
@@ -298,6 +305,7 @@ struct SessionSnapshot: Codable {
             }
             try container.encodeIfPresent(markerColorHex, forKey: .markerColorHex)
             try container.encodeIfPresent(customDirectory, forKey: .customDirectory)
+            try container.encodeIfPresent(groupID, forKey: .groupID)
             if launchSettings != .init() {
                 try container.encode(launchSettings, forKey: .launchSettings)
             }
