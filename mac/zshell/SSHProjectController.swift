@@ -187,6 +187,12 @@ final class SSHProjectController: NSObject {
     /// button; saving replaces it instead of appending.
     private var editingEntryID: UUID?
 
+    /// Window-base location of the last mouse-down, recorded by a local
+    /// monitor so the row's connect action can tell the row's edit/delete
+    /// button clicks from plain row clicks.
+    private var lastMouseDownLocation: NSPoint?
+    private var mouseDownMonitor: Any?
+
     private enum DisplayRow {
         case header(String)
         case entry(SSHProjectEntry)
@@ -244,6 +250,17 @@ final class SSHProjectController: NSObject {
 
         buildList(in: content)
         buildForm(in: content)
+
+        if mouseDownMonitor == nil {
+            mouseDownMonitor = NSEvent.addLocalMonitorForEvents(
+                matching: .leftMouseDown
+            ) { [weak self] event in
+                if event.window === self?.window {
+                    self?.lastMouseDownLocation = event.locationInWindow
+                }
+                return event
+            }
+        }
 
         return window
     }
@@ -502,9 +519,38 @@ final class SSHProjectController: NSObject {
     // MARK: - Actions
 
     @objc private func rowClicked() {
-        let row = tableView.clickedRow
+        // Clicks always fill clickedRow; the selectedRow fallback covers
+        // programmatic action dispatch (and is harmless otherwise, since
+        // the two agree for a normal click).
+        let row = tableView.clickedRow >= 0 ? tableView.clickedRow : tableView.selectedRow
         guard row >= 0, case .entry(let entry) = displayRows[row] else { return }
+        // Clicking the row's edit/delete buttons also selects the row and
+        // sends this action — NSTableView fires it for any click that
+        // selects, whatever the hit view. The buttons' own actions own
+        // those clicks, so the row must not connect on top of them.
+        if clickLandedOnRowButton() { return }
         connect(entry)
+    }
+
+    /// True when the click that fired `tableView.action` landed on a button
+    /// inside the table; that button's action handles the click instead.
+    /// Prefers the live mouse-up event and falls back to the mouse-down
+    /// location recorded by the local monitor.
+    private func clickLandedOnRowButton() -> Bool {
+        let location: NSPoint?
+        if let event = NSApp.currentEvent, event.type == .leftMouseUp {
+            location = event.locationInWindow
+        } else {
+            location = lastMouseDownLocation
+        }
+        guard let location else { return false }
+        let tableLocation = tableView.convert(location, from: nil)
+        var view = tableView.hitTest(tableLocation)
+        while let current = view, current !== tableView {
+            if current is NSButton { return true }
+            view = current.superview
+        }
+        return false
     }
 
     @objc private func clearFormClicked() {

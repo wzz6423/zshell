@@ -1755,6 +1755,22 @@
         }
       }
     },
+    "Clear Search": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索を消去"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空搜索"
+          }
+        }
+      }
+    },
     "Clear Terminal": {
       "localizations": {
         "ja": {
