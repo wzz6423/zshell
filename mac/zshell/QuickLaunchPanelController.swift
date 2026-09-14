@@ -62,6 +62,7 @@ final class QuickLaunchPanelController: NSObject {
     private weak var manager: TerminalManager?
 
     private let searchField = NSTextField()
+    private let clearButton = NSButton()
     private let tableView = NSTableView()
     private let scrollView = NSScrollView()
     private let emptyStateView = NSView()
@@ -69,6 +70,12 @@ final class QuickLaunchPanelController: NSObject {
     private let emptyHintLabel = NSTextField(labelWithString: "")
     private var listHeightConstraint: NSLayoutConstraint?
     private var lifetime: [AnyCancellable] = []
+
+    /// Window-base location of the last mouse-down, recorded by a local
+    /// monitor so the row's launch action can tell the row's edit/delete
+    /// button clicks from plain row clicks.
+    private var lastMouseDownLocation: NSPoint?
+    private var mouseDownMonitor: Any?
 
     /// Rows as they appear in the list — grouped sections in the saved order
     /// when no filter is active, or the fuzzy filter's flat ranking once the
@@ -221,6 +228,16 @@ final class QuickLaunchPanelController: NSObject {
         buildFooter(in: content)
 
         self.panel = panel
+        if mouseDownMonitor == nil {
+            mouseDownMonitor = NSEvent.addLocalMonitorForEvents(
+                matching: .leftMouseDown
+            ) { [weak self] event in
+                if event.window === self?.panel {
+                    self?.lastMouseDownLocation = event.locationInWindow
+                }
+                return event
+            }
+        }
         applyTheme()
         return panel
     }
@@ -246,29 +263,49 @@ final class QuickLaunchPanelController: NSObject {
             comment: "Accessibility label of the Quick Launch search field."
         ))
 
-        // A visible close affordance: the borderless panel has no title bar,
-        // so before this button Escape was the only way out.
+        // Two distinct affordances at the bar's right: the clear glyph is
+        // the native search-field "erase" style and only appears while the
+        // field has text; the close button is a bare ✕ at the bar's edge —
+        // the borderless panel has no title bar, so before it Escape was
+        // the only way out.
+        clearButton.image = NSImage(
+            systemSymbolName: "xmark.circle.fill",
+            accessibilityDescription: nil
+        )
+        clearButton.isBordered = false
+        clearButton.contentTintColor = .tertiaryLabelColor
+        clearButton.target = self
+        clearButton.action = #selector(clearClicked)
+        clearButton.setAccessibilityLabel(String(
+            localized: "Clear Search",
+            comment: "Accessibility label of the Quick Launch search clear button."
+        ))
+
         let closeButton = NSButton(
             image: NSImage(
-                systemSymbolName: "xmark.circle.fill",
+                systemSymbolName: "xmark",
                 accessibilityDescription: nil
             ) ?? NSImage(),
             target: self,
             action: #selector(closeClicked)
         )
+        closeButton.image = closeButton.image?.withSymbolConfiguration(
+            .init(pointSize: 11, weight: .medium)
+        )
         closeButton.isBordered = false
-        closeButton.contentTintColor = .tertiaryLabelColor
+        closeButton.contentTintColor = .secondaryLabelColor
         closeButton.setAccessibilityLabel(String(
             localized: "Close",
             comment: "Accessibility label of the Quick Launch panel's close button."
         ))
 
-        let bar = NSStackView(views: [icon, searchField, closeButton])
+        let bar = NSStackView(views: [icon, searchField, clearButton, closeButton])
         bar.orientation = .horizontal
         bar.alignment = .centerY
         bar.spacing = 8
-        bar.setCustomSpacing(4, after: searchField)
-        bar.edgeInsets = NSEdgeInsets(top: 0, left: 14, bottom: 0, right: 12)
+        bar.setCustomSpacing(2, after: searchField)
+        bar.setCustomSpacing(10, after: clearButton)
+        bar.edgeInsets = NSEdgeInsets(top: 0, left: 14, bottom: 0, right: 14)
         bar.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(bar)
 
@@ -281,15 +318,28 @@ final class QuickLaunchPanelController: NSObject {
             bar.leadingAnchor.constraint(equalTo: content.leadingAnchor),
             bar.trailingAnchor.constraint(equalTo: content.trailingAnchor),
             bar.heightAnchor.constraint(equalToConstant: Self.searchBarHeight),
+            clearButton.widthAnchor.constraint(equalToConstant: 15),
             closeButton.widthAnchor.constraint(equalToConstant: 18),
             separator.topAnchor.constraint(equalTo: bar.bottomAnchor),
             separator.leadingAnchor.constraint(equalTo: content.leadingAnchor),
             separator.trailingAnchor.constraint(equalTo: content.trailingAnchor),
         ])
+        updateClearButton()
     }
 
     @objc private func closeClicked() {
         close()
+    }
+
+    @objc private func clearClicked() {
+        searchField.stringValue = ""
+        query = ""
+        panel?.makeFirstResponder(searchField)
+        updateClearButton()
+    }
+
+    private func updateClearButton() {
+        clearButton.isHidden = searchField.stringValue.isEmpty
     }
 
     private func buildList(in content: NSView) {
@@ -554,15 +604,40 @@ final class QuickLaunchPanelController: NSObject {
     }
 
     @objc private func tableViewClicked() {
-        // A click on a row's edit/delete button never reaches here — the
-        // button consumes the mouse-down — so this is the plain
-        // "one-click invoke" path.
-        let row = tableView.clickedRow
-        guard row >= 0 else { return }
+        // NSTableView fires this action for any click that selects a row,
+        // including clicks on the row's trailing edit/delete buttons — the
+        // button does not consume the mouse-down. Skip so the button's own
+        // action handles those clicks instead of launching.
+        // Clicks always fill clickedRow; the selectedRow fallback covers
+        // programmatic action dispatch (and is harmless otherwise, since
+        // the two agree for a normal click).
+        let row = tableView.clickedRow >= 0 ? tableView.clickedRow : tableView.selectedRow
+        guard row >= 0, !clickLandedOnRowButton() else { return }
         if let entry = entry(atRow: row) {
             close()
             manager?.runQuickLaunchEntry(entry)
         }
+    }
+
+    /// True when the click that fired `tableView.action` landed on a button
+    /// inside the table; that button's action handles the click instead.
+    /// Prefers the live mouse-up event and falls back to the mouse-down
+    /// location recorded by the local monitor.
+    private func clickLandedOnRowButton() -> Bool {
+        let location: NSPoint?
+        if let event = NSApp.currentEvent, event.type == .leftMouseUp {
+            location = event.locationInWindow
+        } else {
+            location = lastMouseDownLocation
+        }
+        guard let location else { return false }
+        let tableLocation = tableView.convert(location, from: nil)
+        var view = tableView.hitTest(tableLocation)
+        while let current = view, current !== tableView {
+            if current is NSButton { return true }
+            view = current.superview
+        }
+        return false
     }
 
     @objc private func launchClicked() {
@@ -837,6 +912,7 @@ extension QuickLaunchPanelController: NSTextFieldDelegate {
     func controlTextDidChange(_ notification: Notification) {
         guard (notification.object as? NSTextField) === searchField else { return }
         query = searchField.stringValue
+        updateClearButton()
     }
 
     /// Keyboard routing while the search field holds focus: arrows move the
