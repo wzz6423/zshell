@@ -23,6 +23,7 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
     private let window: NSWindow
 
     private let nameField = NSTextField()
+    private let groupField = NSTextField()
     private let typePopUp = NSPopUpButton(frame: .zero, pullsDown: false)
     private let commandField = NSTextField()
     private let directoryField = NSTextField()
@@ -106,6 +107,10 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
             localized: "npm run dev",
             comment: "Placeholder of the Quick Launch command field."
         )
+        groupField.placeholderString = String(
+            localized: "Optional, e.g. Work",
+            comment: "Placeholder of the Quick Launch group field."
+        )
         userField.placeholderString = String(
             localized: "Optional",
             comment: "Marks a Quick Launch editor field as optional."
@@ -181,6 +186,13 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
         ])
         grid.addRow(with: [
             formLabel(String(
+                localized: "Group",
+                comment: "Quick Launch editor label for the entry's group."
+            )),
+            groupField,
+        ])
+        grid.addRow(with: [
+            formLabel(String(
                 localized: "Type",
                 comment: "Quick Launch editor label for the entry type."
             )),
@@ -228,9 +240,9 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
             )),
             optionsField,
         ])
-        // Rows 0-1 are the shared name/type rows; 2-3 describe a command,
-        // 4-7 an SSH connection. One grid keeps the label column aligned
-        // while hiding rows switches between the two forms.
+        // Rows 0-2 are the shared name/group/type rows; 3-4 describe a
+        // command, 5-8 an SSH connection. One grid keeps the label column
+        // aligned while hiding rows switches between the two forms.
         grid.translatesAutoresizingMaskIntoConstraints = false
         self.grid = grid
 
@@ -276,6 +288,7 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
             return
         }
         nameField.stringValue = entry.name
+        groupField.stringValue = entry.group ?? ""
         switch entry.kind {
         case .command(let command, let directory):
             commandField.stringValue = command
@@ -295,8 +308,8 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
         guard let grid else { return }
         let hideCommand = selectedKind != .command
         let hideSSH = selectedKind != .ssh
-        for row in 2..<grid.numberOfRows {
-            grid.row(at: row).isHidden = row >= 4 ? hideSSH : hideCommand
+        for row in 3..<grid.numberOfRows {
+            grid.row(at: row).isHidden = row >= 5 ? hideSSH : hideCommand
         }
         kindDescription.stringValue = selectedKind == .command
             ? String(
@@ -351,13 +364,25 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
         do {
             let kind = try readKind()
             let name = nameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            let group = groupField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
             let resolvedName = name.isEmpty ? Self.defaultName(for: kind) : name
             if let editingEntry {
                 QuickLaunchStore.shared.update(
-                    QuickLaunchEntry(id: editingEntry.id, name: resolvedName, kind: kind)
+                    QuickLaunchEntry(
+                        id: editingEntry.id,
+                        name: resolvedName,
+                        kind: kind,
+                        group: group.isEmpty ? nil : group
+                    )
                 )
             } else {
-                QuickLaunchStore.shared.add(QuickLaunchEntry(name: resolvedName, kind: kind))
+                QuickLaunchStore.shared.add(
+                    QuickLaunchEntry(
+                        name: resolvedName,
+                        kind: kind,
+                        group: group.isEmpty ? nil : group
+                    )
+                )
             }
             close()
         } catch let error as ValidationError {

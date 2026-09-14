@@ -2352,6 +2352,22 @@
         }
       }
     },
+    "Connection": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続情報"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接信息"
+          }
+        }
+      }
+    },
     "Connection failed": {
       "localizations": {
         "ja": {
@@ -4486,6 +4502,22 @@
         }
       }
     },
+    "Group": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分组"
+          }
+        }
+      }
+    },
     "Hide": {
       "localizations": {
         "ja": {
@@ -6143,6 +6175,22 @@
         }
       }
     },
+    "No saved projects yet. Fill in the form below and click Save.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存されたプロジェクトはまだありません。下のフォームに入力して「保存」をクリックしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无保存的项目。在下方填写后点击“保存”。"
+          }
+        }
+      }
+    },
     "No themes match “%@”.": {
       "localizations": {
         "ja": {
@@ -6560,6 +6608,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "可选，例如 -L 8080:localhost:80"
+          }
+        }
+      }
+    },
+    "Optional, e.g. Production": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任意、例：本番環境"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可选，例如“生产环境”"
+          }
+        }
+      }
+    },
+    "Optional, e.g. Work": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任意、例：仕事"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可选，例如“工作”"
           }
         }
       }
@@ -8405,6 +8485,22 @@
         }
       }
     },
+    "Saved SSH Projects": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存済みSSHプロジェクト"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已保存的 SSH 项目"
+          }
+        }
+      }
+    },
     "Search File Contents": {
       "localizations": {
         "ja": {
@@ -10179,6 +10275,22 @@
         }
       }
     },
+    "The project is removed from the saved list. Open terminals stay open.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロジェクトは保存リストから削除されます。開いているターミナルはそのまま残ります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "项目将从保存列表中移除，已打开的终端保持不变。"
+          }
+        }
+      }
+    },
     "The selected Git remote is no longer available": {
       "localizations": {
         "ja": {
@@ -10768,6 +10880,22 @@
         }
       }
     },
+    "Ungrouped": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未分组"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未分组"
+          }
+        }
+      }
+    },
     "Unified": {
       "comment": "A single-column diff layout.",
       "localizations": {
@@ -11005,6 +11133,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "向上"
+          }
+        }
+      }
+    },
+    "Update": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新"
           }
         }
       }

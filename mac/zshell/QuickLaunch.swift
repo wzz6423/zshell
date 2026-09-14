@@ -25,17 +25,22 @@ struct QuickLaunchEntry: Identifiable, Equatable {
 
     let id: UUID
     var name: String
+    /// Free-form section label; entries sharing one label are grouped in the
+    /// launcher list. nil keeps the entry ungrouped.
+    var group: String?
     var kind: Kind
 
-    init(name: String, kind: Kind) {
+    init(name: String, kind: Kind, group: String? = nil) {
         self.id = UUID()
         self.name = name
+        self.group = group
         self.kind = kind
     }
 
-    init(id: UUID, name: String, kind: Kind) {
+    init(id: UUID, name: String, kind: Kind, group: String? = nil) {
         self.id = id
         self.name = name
+        self.group = group
         self.kind = kind
     }
 
@@ -92,18 +97,26 @@ struct QuickLaunchEntry: Identifiable, Equatable {
 
 extension QuickLaunchEntry: Codable {
     private enum CodingKeys: String, CodingKey {
-        case id, name, kind
+        case id, name, kind, group
         case command, directory
         case user, host, port, extraArguments
     }
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
-        name = try container.decode(String.self, forKey: .name)
+        // `group` is optional for files written before grouping existed.
+        try self.init(
+            id: try container.decode(UUID.self, forKey: .id),
+            name: try container.decode(String.self, forKey: .name),
+            kind: try Self.decodeKind(from: container),
+            group: try container.decodeIfPresent(String.self, forKey: .group)
+        )
+    }
+
+    private static func decodeKind(from container: KeyedDecodingContainer<CodingKeys>) throws -> Kind {
         switch try container.decode(String.self, forKey: .kind) {
         case "ssh":
-            kind = .ssh(
+            return .ssh(
                 user: try container.decodeIfPresent(String.self, forKey: .user),
                 host: try container.decode(String.self, forKey: .host),
                 port: try container.decodeIfPresent(Int.self, forKey: .port),
@@ -112,7 +125,7 @@ extension QuickLaunchEntry: Codable {
                 )
             )
         default:
-            kind = .command(
+            return .command(
                 command: try container.decode(String.self, forKey: .command),
                 directory: try container.decodeIfPresent(String.self, forKey: .directory)
             )
@@ -123,6 +136,7 @@ extension QuickLaunchEntry: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(group, forKey: .group)
         switch kind {
         case .command(let command, let directory):
             try container.encode("command", forKey: .kind)
