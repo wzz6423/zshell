@@ -469,11 +469,17 @@ final class FocusReportingTextView: STTextView {
             breakUndoCoalescing()
         }
 
-        for edit in edits.sorted(by: { $0.range.location > $1.range.location }) {
-            replaceCharacters(in: edit.textRange, with: edit.replacement)
+        let orderedEdits = edits.sorted(by: { $0.range.location > $1.range.location })
+        for edit in orderedEdits {
             updateSelectionStates(&updatedStates, after: edit)
         }
         registerSelectionUndo(.restoreBeforeEdit, before: states, after: updatedStates)
+        for edit in orderedEdits {
+            replaceCharacters(in: edit.textRange, with: edit.replacement)
+        }
+        registerSelectionUndo(
+            .restoreBeforeEdit, before: states, after: updatedStates, restoresSelection: false
+        )
         restoreSelections(updatedStates)
     }
 
@@ -492,23 +498,30 @@ final class FocusReportingTextView: STTextView {
         }
     }
 
-    /// Registers the selection half of the newline undo, so multi-cursor
-    /// selections round-trip: undo lands on the pre-edit selections, redo on
-    /// the post-edit ones. Registered inside the edit's undo group and after
-    /// the text handlers, so undo/redo apply text first and the restored
-    /// ranges map onto the reverted or re-applied text.
-    private func registerSelectionUndo(_ action: SelectionUndoAction, before: [SelectionState], after: [SelectionState]) {
+    /// Paired around the text edits so both undo and redo restore selections
+    /// after restoring the text their ranges belong to. The other half only
+    /// registers the inverse at the far end of the next undo group.
+    private func registerSelectionUndo(
+        _ action: SelectionUndoAction,
+        before: [SelectionState],
+        after: [SelectionState],
+        restoresSelection: Bool = true
+    ) {
         guard allowsUndo, let undoManager, undoManager.isUndoRegistrationEnabled else { return }
         switch action {
         case .restoreBeforeEdit:
             undoManager.registerUndo(withTarget: self) { textView in
-                textView.restoreSelections(before)
-                textView.registerSelectionUndo(.restoreAfterEdit, before: before, after: after)
+                if restoresSelection { textView.restoreSelections(before) }
+                textView.registerSelectionUndo(
+                    .restoreAfterEdit, before: before, after: after, restoresSelection: !restoresSelection
+                )
             }
         case .restoreAfterEdit:
             undoManager.registerUndo(withTarget: self) { textView in
-                textView.restoreSelections(after)
-                textView.registerSelectionUndo(.restoreBeforeEdit, before: before, after: after)
+                if restoresSelection { textView.restoreSelections(after) }
+                textView.registerSelectionUndo(
+                    .restoreBeforeEdit, before: before, after: after, restoresSelection: !restoresSelection
+                )
             }
         }
     }

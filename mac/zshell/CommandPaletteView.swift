@@ -111,6 +111,7 @@ private final class PalettePointerSelectionController: ObservableObject {
 struct CommandPaletteView: View {
     @ObservedObject var manager: TerminalManager
     @ObservedObject private var themeChanges = Theme.changes
+    @ObservedObject private var settings = AppSettings.shared
 
     @State private var query = ""
     @State private var selection = 0
@@ -157,7 +158,7 @@ struct CommandPaletteView: View {
 
     private var commands: [PaletteCommand] {
         var items: [PaletteCommand] = [
-            PaletteCommand(id: "new-session", title: "New Session", systemImage: "terminal", shortcut: "⌘T") {
+            PaletteCommand(id: "new-session", title: "New Session", systemImage: "terminal", shortcut: settings.commandShortcut(for: .newSession).displayString) {
                 manager.newSession()
             },
             PaletteCommand(id: "new-browser-tab", title: "New Browser Tab", systemImage: "globe") {
@@ -166,7 +167,7 @@ struct CommandPaletteView: View {
             PaletteCommand(id: "new-browser-pane", title: "New Browser Pane", systemImage: "globe") {
                 manager.newBrowserPane()
             },
-            PaletteCommand(id: "clear-terminal", title: "Clear Terminal", systemImage: "eraser", shortcut: "⌘K") {
+            PaletteCommand(id: "clear-terminal", title: "Clear Terminal", systemImage: "eraser", shortcut: settings.commandShortcut(for: .clearTerminal).displayString) {
                 manager.clearActiveTerminal()
             },
             PaletteCommand(id: "toggle-prompt-queue", title: "Toggle Prompt Queue", systemImage: "list.bullet.rectangle", shortcut: "⇧⌘M") {
@@ -220,28 +221,28 @@ struct CommandPaletteView: View {
             PaletteCommand(id: "resize-pane-right", title: "Resize Pane Right", systemImage: "arrow.right.to.line", shortcut: "⌃⌘→") {
                 manager.resizePaneRight()
             },
-            PaletteCommand(id: "new-project", title: "New Project", systemImage: "folder.badge.plus", shortcut: "⌘N") {
+            PaletteCommand(id: "new-project", title: "New Project", systemImage: "folder.badge.plus", shortcut: settings.commandShortcut(for: .newProject).displayString) {
                 manager.newProject()
             },
             PaletteCommand(id: "new-ssh-project", title: "New SSH Project…", systemImage: "network") {
                 manager.promptForSSHProject()
             },
-            PaletteCommand(id: "close-tab", title: "Close Tab", systemImage: "xmark.square", shortcut: "⌘W") {
+            PaletteCommand(id: "close-tab", title: "Close Tab", systemImage: "xmark.square", shortcut: settings.commandShortcut(for: .closePane).displayString) {
                 manager.closeSelectedTab()
             },
             PaletteCommand(id: "save-file", title: "Save File", systemImage: "square.and.arrow.down", shortcut: "⌘S") {
                 manager.saveSelectedFile()
             },
-            PaletteCommand(id: "toggle-left-sidebar", title: "Toggle Left Sidebar", systemImage: "sidebar.left", shortcut: "⌘B") {
+            PaletteCommand(id: "toggle-left-sidebar", title: "Toggle Left Sidebar", systemImage: "sidebar.left", shortcut: settings.commandShortcut(for: .toggleLeftSidebar).displayString) {
                 manager.toggleLeftSidebar()
             },
-            PaletteCommand(id: "toggle-sidebar", title: "Toggle Right Sidebar", systemImage: "sidebar.right", shortcut: "⇧⌘B") {
+            PaletteCommand(id: "toggle-sidebar", title: "Toggle Right Sidebar", systemImage: "sidebar.right", shortcut: settings.commandShortcut(for: .toggleRightSidebar).displayString) {
                 manager.toggleSidebar()
             },
-            PaletteCommand(id: "toggle-files", title: "Toggle Files Panel", systemImage: "doc.text", shortcut: "⇧⌘E") {
+            PaletteCommand(id: "toggle-files", title: "Toggle Files Panel", systemImage: "doc.text", shortcut: settings.commandShortcut(for: .toggleFilesPanel).displayString) {
                 manager.togglePanel(.files)
             },
-            PaletteCommand(id: "toggle-git", title: "Toggle Git Panel", systemImage: "arrow.triangle.branch", shortcut: "⇧⌘G") {
+            PaletteCommand(id: "toggle-git", title: "Toggle Git Panel", systemImage: "arrow.triangle.branch", shortcut: settings.commandShortcut(for: .toggleGitPanel).displayString) {
                 manager.togglePanel(.git)
             },
             PaletteCommand(id: "toggle-info", title: "Toggle Info Panel", systemImage: "info.circle", shortcut: "⇧⌘I") {
@@ -273,10 +274,10 @@ struct CommandPaletteView: View {
             PaletteCommand(id: "prev-tab", title: "Previous Tab", systemImage: "arrow.left", shortcut: "⇧⌘[") {
                 manager.selectPreviousTab()
             },
-            PaletteCommand(id: "next-project", title: "Next Project", systemImage: "arrow.right.square", shortcut: "⌥⌘]") {
+            PaletteCommand(id: "next-project", title: "Next Project", systemImage: "arrow.right.square", shortcut: settings.commandShortcut(for: .nextProject).displayString) {
                 manager.selectNextProject()
             },
-            PaletteCommand(id: "prev-project", title: "Previous Project", systemImage: "arrow.left.square", shortcut: "⌥⌘[") {
+            PaletteCommand(id: "prev-project", title: "Previous Project", systemImage: "arrow.left.square", shortcut: settings.commandShortcut(for: .previousProject).displayString) {
                 manager.selectPreviousProject()
             },
         ]
@@ -289,15 +290,17 @@ struct CommandPaletteView: View {
             )
         }
 
-        for (index, project) in manager.projects.enumerated() where project.id != manager.selectedProjectID {
+        let visibleProjects = manager.visibleSidebarProjects
+        for project in manager.projects where project.id != manager.selectedProjectID {
+            let index = visibleProjects.firstIndex { $0.id == project.id }
             items.append(
                 PaletteCommand(
                     id: "switch-project-\(project.id)",
                     title: "Switch to Project: \(project.name)",
                     systemImage: "folder",
-                    shortcut: index < 9 ? "⌘\(index + 1)" : nil
+                    shortcut: index.flatMap { $0 < 9 ? "⌘\($0 + 1)" : nil }
                 ) {
-                    manager.selectProject(index: index)
+                    manager.selectedProjectID = project.id
                 }
             )
         }

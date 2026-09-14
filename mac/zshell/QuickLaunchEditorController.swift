@@ -35,9 +35,6 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
     private let errorLabel = NSTextField(wrappingLabelWithString: "")
     private let saveButton = NSButton(title: "", target: nil, action: nil)
     private var grid: NSGridView?
-    /// The fitting size changes when the type popup switches forms; the panel
-    /// remembers the top edge so the window grows downward, like a sheet.
-    private var anchoredTop: CGFloat?
 
     private init(entry: QuickLaunchEntry?) {
         editingEntry = entry
@@ -266,6 +263,7 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
             stack.bottomAnchor.constraint(
                 equalTo: window.contentView!.bottomAnchor, constant: -16
             ),
+            stack.widthAnchor.constraint(equalToConstant: 440),
             grid.widthAnchor.constraint(equalTo: stack.widthAnchor),
             kindDescription.widthAnchor.constraint(equalTo: stack.widthAnchor),
             buttonRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
@@ -306,6 +304,7 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
 
     @objc private func kindChanged() {
         guard let grid else { return }
+        errorLabel.isHidden = true
         let hideCommand = selectedKind != .command
         let hideSSH = selectedKind != .ssh
         for row in 3..<grid.numberOfRows {
@@ -328,14 +327,13 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
         contentView.layoutSubtreeIfNeeded()
         let size = contentView.fittingSize
         guard size.width > 0, size.height > 0 else { return }
-        let oldTop = anchoredTop ?? window.frame.maxY
-        anchoredTop = oldTop
+        let oldFrame = window.frame
         window.setContentSize(size)
         // setContentSize keeps the bottom-left corner fixed; re-anchor the
         // top edge and re-center horizontally so the form grows downward.
         window.setFrameOrigin(NSPoint(
-            x: window.frame.midX - size.width / 2,
-            y: oldTop - window.frame.height
+            x: oldFrame.midX - window.frame.width / 2,
+            y: oldFrame.maxY - window.frame.height
         ))
     }
 
@@ -448,10 +446,11 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
                 port = value
             }
             let options = optionsField.stringValue.trimmingCharacters(in: .whitespaces)
+            let endpoint = try SSHEndpoint(host: host, user: user, port: port)
             return .ssh(
-                user: user.isEmpty ? nil : user,
-                host: host,
-                port: port,
+                user: endpoint.user,
+                host: endpoint.host,
+                port: endpoint.port,
                 extraArguments: options.isEmpty ? nil : options
             )
         }

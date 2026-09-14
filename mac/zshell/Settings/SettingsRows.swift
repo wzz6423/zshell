@@ -244,10 +244,8 @@ final class SettingsSliderRow: NSView {
             valueLabel.widthAnchor.constraint(equalToConstant: SettingsMetrics.sliderValueWidth),
         ])
 
-        if let accessibilityLabel {
-            slider.setAccessibilityLabel(accessibilityLabel)
-            stepper?.setAccessibilityLabel(accessibilityLabel)
-        }
+        slider.setAccessibilityLabel(accessibilityLabel ?? title)
+        stepper?.setAccessibilityLabel(accessibilityLabel ?? title)
     }
 
     @available(*, unavailable)

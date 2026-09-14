@@ -7,10 +7,8 @@ import AppKit
 import Carbon.HIToolbox
 
 /// Records an in-app command shortcut: click to arm, then press the chord.
-/// Unlike the Quick Terminal recorder there is no live hotkey to suspend, but
-/// the flow is the same — Escape cancels, an unusable chord beeps and keeps
-/// recording, and a chord the settings layer refuses (a conflict) leaves the
-/// old binding in place.
+/// Escape cancels, an unusable chord beeps and keeps recording, and a chord
+/// the settings layer refuses (a conflict) leaves the old binding in place.
 final class CommandShortcutRecorder: NSButton {
     /// Called with the recorded chord; return `false` to reject it, which
     /// beeps and keeps the recorder armed.
@@ -41,6 +39,8 @@ final class CommandShortcutRecorder: NSButton {
         guard !isRecording else { return true }
         isRecording = true
         title = String(localized: "Press shortcut")
+        // A conflicting global chord must reach the recorder for validation.
+        GlobalTerminalOverlay.shared.beginHotkeyRecording()
         return true
     }
 
@@ -48,6 +48,7 @@ final class CommandShortcutRecorder: NSButton {
         guard super.resignFirstResponder() else { return false }
         guard isRecording else { return true }
         isRecording = false
+        GlobalTerminalOverlay.shared.endHotkeyRecording()
         updateTitle()
         return true
     }

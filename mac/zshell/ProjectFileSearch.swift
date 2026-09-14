@@ -201,13 +201,15 @@ nonisolated enum ProjectFileSearch {
                 enumerator.skipDescendants()
                 continue
             }
+            // Enumeration can expand /var to /private/var; compare the same path form.
+            let absolutePath = url.standardizedFileURL.path
             guard let values = try? url.resourceValues(forKeys: keySet),
                   values.isDirectory != true,
                   values.isRegularFile == true,
-                  url.path.hasPrefix(rootPrefix)
+                  absolutePath.hasPrefix(rootPrefix)
             else { continue }
-            let relativePath = String(url.path.dropFirst(rootPrefix.count))
-            files.append(makeFile(relativePath: relativePath, absolutePath: url.path, root: root))
+            let relativePath = String(absolutePath.dropFirst(rootPrefix.count))
+            files.append(makeFile(relativePath: relativePath, absolutePath: absolutePath, root: root))
         }
         return files.sorted(by: fileOrder)
     }

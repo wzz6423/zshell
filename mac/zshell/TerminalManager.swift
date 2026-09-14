@@ -48,6 +48,7 @@ struct ClosedSessionRecord: Equatable {
     let workingDirectory: String
     /// When the session was closed.
     let closedAt: Date
+    var tabGroupID: UUID? = nil
 }
 
 /// Owns the list of projects and the current selection. Each project holds
@@ -56,6 +57,7 @@ struct ClosedSessionRecord: Equatable {
 @MainActor
 final class TerminalManager: nonisolated ObservableObject {
     @Published var projects: [Project] = []
+    private var isRestoringProjects = false
     @Published var selectedProjectID: UUID? {
         willSet {
             // Diff hosts are expensive WebKit trees. Once a project has put
@@ -66,6 +68,12 @@ final class TerminalManager: nonisolated ObservableObject {
             if let selectedProjectID, selectedProjectID != newValue {
                 retainedDiffProjectIDs.insert(selectedProjectID)
             }
+        }
+        didSet {
+            guard !isRestoringProjects, let project = selectedProject,
+                  var group = projectGroup(id: project.groupID), group.isCollapsed else { return }
+            group.isCollapsed = false
+            ProjectGroupStore.shared.update(group)
         }
     }
     @Published var isPanelVisible = false
@@ -102,6 +110,7 @@ final class TerminalManager: nonisolated ObservableObject {
     enum TabMoveFailure {
         case unavailable
         case containsDiff
+        case incompatibleLocation
         case agentAliasConflict(String)
 
         var message: String {
@@ -110,6 +119,8 @@ final class TerminalManager: nonisolated ObservableObject {
                 return String(localized: "The tab or destination project is no longer available.")
             case .containsDiff:
                 return String(localized: "Tabs containing diffs can’t be moved between projects.")
+            case .incompatibleLocation:
+                return String(localized: "Move this tab to a project with the same local or SSH location, or create a new project from it.")
             case .agentAliasConflict(let alias):
                 return String(
                     localized: "The destination project already has an agent named “\(alias)”.",
@@ -133,6 +144,7 @@ final class TerminalManager: nonisolated ObservableObject {
     private var translucencyObservation: AnyCancellable?
     private var accessibilityDisplayObserver: NSObjectProtocol?
     private var autosaveObservation: AnyCancellable?
+    private var groupObservation: AnyCancellable?
     private var terminationObservation: AnyCancellable?
     private let agentPalette = AgentPaletteController()
     private var agentPaletteKeyMonitor: Any?
@@ -273,6 +285,9 @@ final class TerminalManager: nonisolated ObservableObject {
                 let manager = self
                 assumeMainActor { manager?.refreshTranslucency() }
             }
+        groupObservation = ProjectGroupStore.shared.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }
         // Every project/tab/selection change re-publishes through the manager,
         // so a debounced sink snapshots layout after mutations settle without
         // reading live terminal contents.
@@ -334,29 +349,42 @@ final class TerminalManager: nonisolated ObservableObject {
 
     /// Creates a project inside `group` and selects it. The group decides
     /// where the first terminal starts: a plain group opens in the home
-    /// directory, a folder group in its folder (which also pins the
-    /// project's directory, anchoring the file tree and git panels).
+    /// directory and a folder group opens in its folder. Group membership is
+    /// deliberately separate from a user-pinned project directory, so moving
+    /// the project later never leaves a hidden directory override behind.
     @discardableResult
     func newProject(in group: ProjectGroup) -> Project {
         let project = makeProject(createInitialSession: false)
         project.groupID = group.id
-        if case .folder(let path) = group.kind {
-            project.customDirectory = path
-        }
         project.newSession(directory: group.sessionDirectory)
         insert(project)
         return project
     }
 
-    /// Moves `project` into `group` (nil = out of any group). Moving into a
-    /// folder group pins the project's directory to the group's folder, so
-    /// the file tree, git panels, and new terminals follow the group; moving
-    /// out keeps whatever directory the project already had.
+    /// Moves `project` into `group` (nil = out of any group). Existing tabs,
+    /// working directories, and an explicit project directory are untouched;
+    /// the destination group only supplies the default for future sessions.
     func moveProject(_ project: Project, to group: ProjectGroup?) {
+        guard projects.contains(where: { $0 === project }),
+              group == nil || projectGroup(id: group?.id) != nil else { return }
         project.groupID = group?.id
-        if let folder = group?.folderPath {
-            project.customDirectory = folder
+        if var group, group.isCollapsed {
+            group.isCollapsed = false
+            ProjectGroupStore.shared.update(group)
         }
+    }
+
+    /// Deletes a global group without closing its projects. Groups are shared
+    /// by every Zshell window, so clear membership in every live manager before
+    /// removing the saved definition; otherwise projects in another window
+    /// retain a stale id and disappear from both grouped and ungrouped lists.
+    func deleteProjectGroup(_ group: ProjectGroup) {
+        for manager in Self.registry {
+            for project in manager.projects where project.groupID == group.id {
+                project.groupID = nil
+            }
+        }
+        ProjectGroupStore.shared.remove(group)
     }
 
     func promptForSSHProject() {
@@ -655,9 +683,24 @@ final class TerminalManager: nonisolated ObservableObject {
         projects = reorderedProjects
     }
 
+    /// Matches the displayed sidebar sequence, including group placement.
+    /// Collapsed members stay available to the palette and next/previous
+    /// navigation, while number shortcuts describe only the visible rows.
+    var sidebarOrderedProjects: [Project] {
+        let groups = ProjectGroupStore.shared.groups
+        let groupIDs = Set(groups.map(\.id))
+        return projects.filter { $0.groupID.map { !groupIDs.contains($0) } ?? true }
+            + groups.flatMap { group in projects.filter { $0.groupID == group.id } }
+    }
+
+    var visibleSidebarProjects: [Project] {
+        sidebarOrderedProjects.filter { projectGroup(id: $0.groupID)?.isCollapsed != true }
+    }
+
     func selectProject(index: Int) {
-        guard projects.indices.contains(index) else { return }
-        selectedProjectID = projects[index].id
+        let visible = visibleSidebarProjects
+        guard visible.indices.contains(index) else { return }
+        selectedProjectID = visible[index].id
     }
 
     func selectNextProject() {
@@ -669,11 +712,12 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     private func shiftProjectSelection(by offset: Int) {
-        guard !projects.isEmpty,
-              let current = projects.firstIndex(where: { $0.id == selectedProjectID })
+        let ordered = sidebarOrderedProjects
+        guard !ordered.isEmpty,
+              let current = ordered.firstIndex(where: { $0.id == selectedProjectID })
         else { return }
-        let next = (current + offset + projects.count) % projects.count
-        selectedProjectID = projects[next].id
+        let next = (current + offset + ordered.count) % ordered.count
+        selectedProjectID = ordered[next].id
     }
 
     // MARK: - Sessions
@@ -727,10 +771,14 @@ final class TerminalManager: nonisolated ObservableObject {
         if let project = record.projectID.flatMap({ projectID in
             projects.first { $0.id == projectID }
         }) ?? selectedProject {
+            selectedProjectID = project.id
             project.newSession(
                 directory: record.workingDirectory,
                 tabTitle: record.customTitle
             )
+            if let tab = project.selectedTab {
+                project.moveTab(tab.id, toGroup: project.tabGroup(id: record.tabGroupID)?.id)
+            }
         } else {
             // No project left in this window: start one anchored at the
             // recorded directory. The tab title is only carried when a
@@ -789,7 +837,8 @@ final class TerminalManager: nonisolated ObservableObject {
                     projectID: project.id,
                     title: project.name,
                     windowTitle: manager === self ? nil : manager.window?.title,
-                    isEnabled: tab.diffs.isEmpty && aliases.isDisjoint(with: destinationAliases)
+                    isEnabled: tab.diffs.isEmpty && source.location == project.location
+                        && aliases.isDisjoint(with: destinationAliases)
                 )
             }
         }
@@ -819,6 +868,9 @@ final class TerminalManager: nonisolated ObservableObject {
         guard tab.diffs.isEmpty else {
             return TabMoveResult(failure: .containsDiff)
         }
+        guard source.location == destination.location else {
+            return TabMoveResult(failure: .incompatibleLocation)
+        }
         let destinationAliases = Set(destination.sessions.compactMap { $0.agentStatus?.alias })
         if let conflict = tab.sessions.compactMap({ $0.agentStatus?.alias })
             .first(where: destinationAliases.contains) {
@@ -832,6 +884,38 @@ final class TerminalManager: nonisolated ObservableObject {
         destinationManager.selectedProjectID = destination.id
         destinationManager.window?.makeKeyAndOrderFront(nil)
         NSApp.activate()
+        return TabMoveResult(failure: nil)
+    }
+
+    /// Pulls a live tab out into a newly created project. Passing a group puts
+    /// that project under its sidebar section; nil creates an ungrouped
+    /// project. The tab is adopted without recreating its PTYs or pane tree.
+    /// If validation fails, no placeholder project is left behind.
+    @discardableResult
+    func moveTabToNewProject(
+        id tabID: UUID,
+        from sourceProjectID: UUID,
+        in group: ProjectGroup?
+    ) -> TabMoveResult {
+        guard let source = projects.first(where: { $0.id == sourceProjectID }),
+              let tab = source.tabs.first(where: { $0.id == tabID })
+        else { return TabMoveResult(failure: .unavailable) }
+
+        guard tab.diffs.isEmpty else {
+            return TabMoveResult(failure: .containsDiff)
+        }
+
+        let destination = makeProject(location: source.location, createInitialSession: false)
+        destination.launchSettings = source.launchSettings
+        destination.customDirectory = source.customDirectory
+        destination.finishRemoteConnectionProbe(source.remoteConnectionState)
+        destination.groupID = group?.id
+        insert(destination)
+        guard let moved = source.detachTabForTransfer(id: tabID) else {
+            remove(destination)
+            return TabMoveResult(failure: .unavailable)
+        }
+        destination.adoptTransferredTab(moved, manager: self)
         return TabMoveResult(failure: nil)
     }
 
@@ -973,7 +1057,7 @@ final class TerminalManager: nonisolated ObservableObject {
     ) {
         guard case .session(let session)? = selectedProject?.focusedContent else { return }
         session.sendCommand(preset.command)
-        if appendingReturn { session.sendCommand("\r") }
+        if appendingReturn { session.sendEnter() }
     }
 
     /// Whether ⌘K has a terminal on screen to act on right now.
@@ -1418,8 +1502,7 @@ final class TerminalManager: nonisolated ObservableObject {
         typealias ProjectSnapshot = SessionSnapshot.ProjectSnapshot
         var histories: [String: String] = [:]
         let snapshot = SessionSnapshot(
-            projects: projects.compactMap { project in
-                guard !project.tabs.isEmpty else { return nil }
+            projects: projects.map { project in
                 let projectSessions = project.sessions
                 let tabs = project.tabs.map { tab -> ProjectSnapshot.TabSnapshot in
                     let layout = Self.layoutSnapshot(
@@ -1436,6 +1519,7 @@ final class TerminalManager: nonisolated ObservableObject {
                         customName: tab.customName,
                         isPinned: tab.isPinned,
                         markerColorHex: tab.markerColor?.hex,
+                        tabGroupID: tab.tabGroupID,
                         launchSettingsOverride: tab.launchSettingsOverride,
                         contextSessionIndex: tab.contextSession.flatMap { context in
                             projectSessions.firstIndex { $0.id == context.id }
@@ -1448,6 +1532,7 @@ final class TerminalManager: nonisolated ObservableObject {
                     markerColorHex: project.markerColor?.hex,
                     customDirectory: project.customDirectory,
                     groupID: project.groupID,
+                    tabGroups: project.tabGroups,
                     launchSettings: project.launchSettings,
                     location: project.location,
                     tabs: tabs,
@@ -1534,10 +1619,13 @@ final class TerminalManager: nonisolated ObservableObject {
     /// false when the snapshot holds nothing restorable. Sidebar state is
     /// applied even then — the window claimed this snapshot's layout.
     private func restore(from snapshot: SessionSnapshot) -> Bool {
+        // A restored selection must not undo the saved collapsed sidebar state.
+        isRestoringProjects = true
+        defer { isRestoringProjects = false }
         if let visible = snapshot.isLeftSidebarVisible { isLeftSidebarVisible = visible }
         if let visible = snapshot.isRightPanelVisible { isPanelVisible = visible }
         if let tab = snapshot.rightPanelTab { panelTab = tab }
-        for saved in snapshot.projects where !saved.tabs.isEmpty {
+        for saved in snapshot.projects {
             let project = makeProject(
                 location: saved.location ?? .local,
                 isPinned: saved.isPinned,
@@ -1546,8 +1634,14 @@ final class TerminalManager: nonisolated ObservableObject {
             project.customName = Project.normalizedCustomName(saved.customName)
             project.markerColor = saved.markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:))
             project.customDirectory = saved.customDirectory
-            project.groupID = saved.groupID
+            // A group may have been deleted while this window was closed or
+            // by another live window. Treat an orphaned id as ungrouped so the
+            // restored project never disappears from the sidebar.
+            project.groupID = ProjectGroupStore.shared.group(id: saved.groupID) == nil
+                ? nil
+                : saved.groupID
             project.launchSettings = saved.launchSettings
+            project.beginRestoringTabGroups(saved.tabGroups)
             var restoredContexts: [(tab: PaneTab, sessionIndex: Int)] = []
             for savedTab in saved.tabs {
                 guard let tab = project.restoreTab(
@@ -1562,13 +1656,10 @@ final class TerminalManager: nonisolated ObservableObject {
             where restoredSessions.indices.contains(context.sessionIndex) {
                 context.tab.contextSession = restoredSessions[context.sessionIndex]
             }
-            guard !project.tabs.isEmpty else {
-                projectObservations[project.id] = nil
-                continue
-            }
             if let index = saved.selectedTabIndex, project.tabs.indices.contains(index) {
                 project.selectedTabID = project.tabs[index].id
             }
+            project.finishRestoringTabGroups()
             project.resetRecency()
             projects.append(project)
         }

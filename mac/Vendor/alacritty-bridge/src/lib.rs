@@ -466,14 +466,14 @@ const SYNCHRONIZED_UPDATE_TIMEOUT: Duration = Duration::from_millis(150);
 /// punctuation is excluded so a URL followed by Chinese or Japanese prose
 /// without spaces ends where the sentence resumes.
 #[rustfmt::skip]
-const LINK_REGEX: &str = "((ipfs:|ipns:|magnet:|mailto:|gemini://|gopher://|https://|http://|news:|file:|git://|ssh:|ftp://)|\
+const LINK_REGEX: &str = "(?i)((ipfs:|ipns:|magnet:|mailto:|gemini://|gopher://|https://|http://|news:|file:|git://|ssh:|ftp://)|\
                           (/|~/|\\./|\\.\\./|[A-Za-z0-9._@%+~-]+/))\
                          [^\u{0000}-\u{001F}\u{007F}-\u{009F}<>\"\\s{-}\\^⟨⟩`\\\\。，、；：？！）]+\
                          |(?:www\\.)?[A-Za-z0-9][A-Za-z0-9-]*(?:\\.[A-Za-z0-9-]+)*\\.\
                          (?:com|net|org|edu|gov|mil|int|info|xyz|top|site|online|cloud|vip|app|dev|io|ai|me|cc|tv|fm|gg|sh|so|co|\
                          cn|jp|de|uk|ru|fr|kr|us|nl|se|no|fi|dk|es|it|pt|pl|cz|at|ch|be|au|br|mx|in|hk|tw|sg|my|id|ca|ie|nz|za)\
-                         (?::\\d{1,5})?(?:/[^\u{0000}-\u{001F}\u{007F}-\u{009F}<>\"\\s{-}\\^⟨⟩`\\\\。，、；：？！）]*)?\
-                         |localhost(?::\\d{1,5})?(?:/[^\u{0000}-\u{001F}\u{007F}-\u{009F}<>\"\\s{-}\\^⟨⟩`\\\\。，、；：？！）]*)?";
+                         (?::\\d{1,5})?(?:[/?#][^\u{0000}-\u{001F}\u{007F}-\u{009F}<>\"\\s{-}\\^⟨⟩`\\\\。，、；：？！）]*)?\
+                         |localhost(?::\\d{1,5})?(?:[/?#][^\u{0000}-\u{001F}\u{007F}-\u{009F}<>\"\\s{-}\\^⟨⟩`\\\\。，、；：？！）]*)?";
 
 /// Avoid walking an effectively unbounded soft-wrapped logical line on hover.
 const MAX_URL_SEARCH_LINES: i32 = 100;
@@ -1917,6 +1917,43 @@ fn post_process_url_match<T: EventListener>(term: &Term<T>, regex_match: &Match)
     (start <= iter.point()).then(|| start..=iter.point())
 }
 
+// A known TLD must end the hostname, not merely prefix a longer word or
+// dotted filename. Keep sentence punctuation outside the returned link.
+fn plain_url_has_token_boundaries<T: EventListener>(term: &Term<T>, bounds: &Match) -> bool {
+    let continues_word = |c: char| c.is_ascii_alphanumeric() || matches!(c, '-' | '_');
+    let mut before = term.grid().iter_from(*bounds.start());
+    if let Some(previous) = before.prev() {
+        if (previous.point.line == bounds.start().line
+            || previous.cell.flags.contains(Flags::WRAPLINE))
+            && (continues_word(previous.cell.c) || previous.cell.c == '.')
+        {
+            return false;
+        }
+    }
+    let mut after = term.grid().iter_from(*bounds.end());
+    if let Some(next) = after.next() {
+        if next.point.line != bounds.end().line
+            && !term.grid()[*bounds.end()].flags.contains(Flags::WRAPLINE)
+        {
+            return true;
+        }
+        if continues_word(next.cell.c) {
+            return false;
+        }
+        if next.cell.c == '.' {
+            if let Some(after_dot) = after.next() {
+                if (after_dot.point.line == next.point.line
+                    || next.cell.flags.contains(Flags::WRAPLINE))
+                    && continues_word(after_dot.cell.c)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    true
+}
+
 /// Finds Alacritty's default plain-text URL hint under a grid point.
 fn plain_url_at<T: EventListener>(
     term: &Term<T>,
@@ -1941,6 +1978,9 @@ fn plain_url_at<T: EventListener>(
         if processed.as_ref().is_some_and(|rm| rm.contains(&point)) {
             let bounds = processed.unwrap();
             let url = term.bounds_to_string(*bounds.start(), *bounds.end());
+            if !plain_url_has_token_boundaries(term, &bounds) {
+                return None;
+            }
             return Some((url, bounds));
         }
 
@@ -2219,6 +2259,81 @@ mod tests {
     fn ascii_point(content: &str, needle: &str) -> Point {
         let offset = content.find(needle).unwrap();
         Point::new(Line((offset / 40) as i32), Column(offset % 40))
+    }
+
+    #[test]
+    fn plain_url_lookup_preserves_query_fragment_and_case() {
+        for content in [
+            "HTTPS://EXAMPLE.COM",
+            "EXAMPLE.COM",
+            "example.com?q=hello",
+            "example.com#section",
+            "LOCALHOST:3000?q=test#result",
+        ] {
+            let term = parse(content.as_bytes());
+            assert_eq!(
+                url_in(&term, ascii_point(content, content)),
+                Some(content.to_owned()),
+                "{content}"
+            );
+        }
+    }
+
+    #[test]
+    fn plain_url_lookup_rejects_partial_hosts_and_filenames() {
+        for content in [
+            "foo.completion",
+            "foo.com.ts",
+            "localhosted",
+            "my-localhost",
+            "www.example.completion",
+        ] {
+            let term = parse(content.as_bytes());
+            for column in 0..content.len() {
+                assert_eq!(
+                    url_in(&term, Point::new(Line(0), Column(column))),
+                    None,
+                    "{content}:{column}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn plain_url_lookup_checks_boundaries_across_soft_wraps() {
+        for content in [
+            format!("{}foo.completion", " ".repeat(33)),
+            format!("{}foo.com.ts", " ".repeat(33)),
+            format!("{}localhost", "a".repeat(40)),
+        ] {
+            let term = parse(content.as_bytes());
+            let point = ascii_point(
+                &content,
+                if content.contains("foo") {
+                    "foo"
+                } else {
+                    "localhost"
+                },
+            );
+            assert_eq!(url_in(&term, point), None, "{content}");
+        }
+    }
+
+    #[test]
+    fn plain_url_lookup_keeps_sentence_punctuation_outside_hosts() {
+        for content in [
+            "example.com.",
+            "example.com...",
+            "(example.com).",
+            "example.com, next",
+        ] {
+            let term = parse(content.as_bytes());
+            assert_eq!(
+                url_in(&term, ascii_point(content, "example")),
+                Some("example.com".to_owned()),
+                "{content}"
+            );
+        }
     }
 
     #[test]

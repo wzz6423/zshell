@@ -520,6 +520,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             attributes: [.posixPermissions: 0o700]
         )
         let selectionStatePath = shellQuote(directory.appendingPathComponent("prompt-selection.pid").path)
+        let promptQueueStatePath = shellQuote(directory.appendingPathComponent("prompt-queue.pid").path)
         var files = [
             ".zshenv": """
             [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\"
@@ -546,6 +547,17 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
               builtin print -n $'\\e]133;A;cl=line\\a'
             }
             _zshell_selection_active=0
+            _zshell_prompt_queue_empty=0
+            _zshell_prompt_queue_ready() {
+              local _zshell_queue_now_empty=$(( ${#BUFFER} == 0 ))
+              (( _zshell_queue_now_empty == _zshell_prompt_queue_empty )) && return
+              _zshell_prompt_queue_empty=$_zshell_queue_now_empty
+              if (( _zshell_queue_now_empty )); then
+                builtin print -r -- "$$" >| \(promptQueueStatePath)
+              else
+                builtin print -rn -- '' >| \(promptQueueStatePath)
+              fi
+            }
             _zshell_begin_selection() {
               MARK=$CURSOR
               REGION_ACTIVE=1
@@ -624,17 +636,21 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             }
             _zshell_selection_finished() {
               builtin print -rn -- '' >| \(selectionStatePath)
+              builtin print -rn -- '' >| \(promptQueueStatePath)
+              _zshell_prompt_queue_empty=0
             }
             add-zsh-hook precmd _zshell_prompt_marker
             _zshell_line_init() {
               _zshell_selection_active=0
               REGION_ACTIVE=0
               _zshell_selection_ready
+              _zshell_prompt_queue_ready
               builtin print -n $'\\e]133;P;k=i\\a\\e]133;B\\a'
             }
             add-zle-hook-widget line-init _zshell_line_init
             add-zle-hook-widget line-finish _zshell_selection_finished
             add-zle-hook-widget keymap-select _zshell_selection_ready
+            add-zle-hook-widget line-pre-redraw _zshell_prompt_queue_ready
             _zshell_insert_newline() { LBUFFER+=$'\\n'; }
             zle -N _zshell_insert_newline
             for _zshell_keymap in emacs viins; do
@@ -799,6 +815,17 @@ extension TerminalSession: TerminalBackendEvents {
         return readyPID > 0 && readyPID == foregroundPID
     }
 
+    var terminalPromptQueueIsReady: Bool {
+        guard terminalPromptSelectionIsReady,
+              let launchDirectoryURL, let foregroundPID = surface.foregroundPid,
+              let value = try? String(
+                contentsOf: launchDirectoryURL.appendingPathComponent("prompt-queue.pid"),
+                encoding: .utf8
+              )
+        else { return false }
+        return value.trimmingCharacters(in: .whitespacesAndNewlines) == String(foregroundPID)
+    }
+
     func terminalDidChangeTitle(_ title: String) {
         guard !title.isEmpty else { return }
         self.title = title
@@ -904,13 +931,17 @@ extension TerminalSession: TerminalBackendEvents {
         if let fileURL = existingFileURL(from: value) {
             return .file(fileURL)
         }
+        // URL treats a bare host followed by a port as a custom scheme.
+        if let url = Self.bareWebURL(from: value) {
+            return .url(url)
+        }
         if let url = URL(string: value),
            url.scheme != nil,
            !url.isFileURL
         {
             return .url(url)
         }
-        return Self.bareWebURL(from: value).map { .url($0) }
+        return nil
     }
 
     /// Characters that end a sentence around a pasted or printed URL. The
@@ -948,8 +979,9 @@ extension TerminalSession: TerminalBackendEvents {
               match.range.length == candidate.utf16.count,
               !candidate.isEmpty
         else { return nil }
-        let scheme = candidate.lowercased().hasPrefix("localhost") ? "http" : "https"
-        return URL(string: "\(scheme)://\(candidate)")
+        guard var components = URLComponents(string: "https://\(candidate)") else { return nil }
+        if components.host?.lowercased() == "localhost" { components.scheme = "http" }
+        return components.url
     }
 
     /// Resolves terminal links the way the shell would: `file:` URLs are
@@ -959,8 +991,7 @@ extension TerminalSession: TerminalBackendEvents {
     /// numeric locations off.
     private func existingFileURL(from value: String) -> URL? {
         let candidate: URL
-        if let url = URL(string: value), url.scheme != nil {
-            guard url.isFileURL else { return nil }
+        if let url = URL(string: value), url.isFileURL {
             candidate = url
         } else {
             let decoded = value.removingPercentEncoding ?? value

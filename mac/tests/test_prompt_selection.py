@@ -45,6 +45,8 @@ class PromptSelectionTests(unittest.TestCase):
                           'let directory = URL(fileURLWithPath: CommandLine.arguments[2])\n'
                           'if CommandLine.arguments[1] == "generate" {\n'
                           'print(try Session.makeShellIntegrationArtifacts(in: directory, shellPath: "/bin/zsh")!.path)\n'
+                          '} else if CommandLine.arguments[1] == "queue" {\n'
+                          'print(Session(launchDirectoryURL: directory, surface: Surface(foregroundPid: pid_t(CommandLine.arguments[3]))).terminalPromptQueueIsReady)\n'
                           '} else {\n'
                           'print(Session(launchDirectoryURL: directory, surface: Surface(foregroundPid: pid_t(CommandLine.arguments[3]))).terminalPromptSelectionIsReady)\n}\n')
         cls.helper = Path(cls.build.name) / "integration"
@@ -110,6 +112,11 @@ class PromptSelectionTests(unittest.TestCase):
             [str(self.helper), "ready", str(self.root), str(pid or self.pid)],
             text=True).strip() == "true"
 
+    def queue_ready(self):
+        return subprocess.check_output(
+            [str(self.helper), "queue", str(self.root), str(self.pid)],
+            text=True).strip() == "true"
+
     def buffer(self, keys):
         self.buffer_file.unlink(missing_ok=True)
         os.write(self.fd, keys + b"\x14")
@@ -122,6 +129,22 @@ class PromptSelectionTests(unittest.TestCase):
 
     def test_repeated_click_preserves_text(self):
         self.assertEqual(self.buffer("abc中文".encode() + CLICK * 10), "abc中文")
+
+    def test_prompt_queue_does_not_append_to_a_draft(self):
+        self.assertTrue(self.queue_ready())
+        self.assertEqual(self.buffer(b"echo unfinished-draft"), "echo unfinished-draft")
+        self.assertTrue(self.ready())
+        self.assertFalse(self.queue_ready())
+        self.assertEqual(self.buffer(b"\x15"), "")
+        self.assertTrue(self.queue_ready())
+
+    def test_prompt_queue_rejects_a_foreground_command(self):
+        os.write(self.fd, b"read -r answer\r")
+        self.drain()
+        self.assertFalse(self.queue_ready())
+        os.write(self.fd, b"answer\r")
+        self.wait_prompt()
+        self.assertTrue(self.queue_ready())
 
     def test_selection_replace_and_delete(self):
         # Place the mark at end, select the last two characters, then replace.

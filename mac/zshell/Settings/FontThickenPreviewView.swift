@@ -41,6 +41,11 @@ final class FontThickenPreviewView: NSView {
 
     override var isFlipped: Bool { true }
 
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
     /// The sample's height follows the font, so both settings arrive together
     /// and the layout is invalidated with the drawing.
     func configure(

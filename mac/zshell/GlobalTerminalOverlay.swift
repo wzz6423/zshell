@@ -43,6 +43,10 @@ struct QuickTerminalShortcut: Equatable {
 
     var persistedValue: String { "\(keyCode):\(modifiers)" }
 
+    static func keyCode(for character: Character) -> UInt32? {
+        keyLabels.first { $0.value == character.uppercased() }?.key
+    }
+
     var displayString: String {
         var result = ""
         if modifiers & UInt32(controlKey) != 0 { result += "⌃" }
@@ -78,6 +82,12 @@ struct QuickTerminalShortcut: Equatable {
         UInt32(kVK_ANSI_4): "4", UInt32(kVK_ANSI_5): "5",
         UInt32(kVK_ANSI_6): "6", UInt32(kVK_ANSI_7): "7",
         UInt32(kVK_ANSI_8): "8", UInt32(kVK_ANSI_9): "9",
+        UInt32(kVK_ANSI_LeftBracket): "[", UInt32(kVK_ANSI_RightBracket): "]",
+        UInt32(kVK_ANSI_Minus): "-", UInt32(kVK_ANSI_Equal): "=",
+        UInt32(kVK_ANSI_Semicolon): ";", UInt32(kVK_ANSI_Quote): "'",
+        UInt32(kVK_ANSI_Comma): ",", UInt32(kVK_ANSI_Period): ".",
+        UInt32(kVK_ANSI_Slash): "/", UInt32(kVK_ANSI_Backslash): "\\",
+        UInt32(kVK_ANSI_Grave): "`",
         UInt32(kVK_Space): "Space", UInt32(kVK_Return): "Return",
         UInt32(kVK_Tab): "Tab", UInt32(kVK_Delete): "Delete",
         UInt32(kVK_LeftArrow): "←", UInt32(kVK_RightArrow): "→",
@@ -618,7 +628,7 @@ private final class GlobalTerminalContentView: NSView {
         layer?.cornerCurve = .continuous
         layer?.masksToBounds = true
         layer?.borderWidth = 1
-        layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.25).cgColor
+        updateAppearanceColors()
 
         materialBackground.material = .hudWindow
         materialBackground.blendingMode = .behindWindow
@@ -656,6 +666,22 @@ private final class GlobalTerminalContentView: NSView {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateAppearanceColors()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearanceColors()
+    }
+
+    private func updateAppearanceColors() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.25).cgColor
+        }
     }
 
     func setPinState(_ pinned: Bool) {

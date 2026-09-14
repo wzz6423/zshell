@@ -10,8 +10,9 @@ entry is either a **command** — anything you type often, like `npm run dev` or
 
 ## Launching
 
-Type to fuzzy-filter the list, pick a row, and press <kbd>Return</kbd> (or
-double-click it). The entry runs in a fresh session of the selected project —
+Type a name, command, connection target, or group to fuzzy-filter the list.
+Click a row, or select it with the arrow keys and press <kbd>Return</kbd>.
+The entry runs in a fresh session of the selected project —
 the same flow as any other new terminal, with its own tab and directory.
 
 When the command finishes or the connection closes, the pane drops back to a
@@ -23,6 +24,9 @@ close itself.
 - <kbd>Cmd</kbd>+<kbd>N</kbd> — new entry
 - <kbd>Cmd</kbd>+<kbd>E</kbd> — edit the selected entry
 - <kbd>Cmd</kbd>+<kbd>Delete</kbd> — delete the selected entry
+
+Use the optional **Group** field to organize entries into named sections.
+The edit and delete buttons act on their entry without launching it.
 
 A command entry can pin a **working directory** it always starts in; without
 one it follows the project like a normal session. An SSH entry takes the host,

@@ -24,10 +24,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     @Published var isPinned: Bool
     @Published var markerColor: ProjectTabMarkerColor?
     /// User-pinned project directory ("Set Project Directory…" on the
-    /// project row). When set, the file tree and git panels always anchor
-    /// here. Nil means automatic: the closest git repository containing the
-    /// selected session's working directory, re-derived as the session
-    /// moves (see `panelRoot(followingSessionAt:)`).
+    /// project row). While it exists, the file tree and git panels anchor
+    /// here. Nil means automatic, following the terminal's foreground
+    /// repository and working directory (see `panelRoot(followingSessionAt:)`).
     @Published var customDirectory: String?
     /// The sidebar group this project sits under, nil when ungrouped. The
     /// group's kind decides where new terminals of the project start: a
@@ -38,8 +37,11 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// Existing PTYs intentionally keep the environment they started with.
     @Published var launchSettings = TerminalLaunchSettings()
     @Published var tabs: [PaneTab] = []
+    @Published private(set) var tabGroups: [SessionTabGroup] = []
+    private var isRestoringTabs = false
     @Published var selectedTabID: UUID? {
         didSet {
+            if !isRestoringTabs { revealSelectedTabGroup() }
             guard selectedTabID != oldValue, let selectedTabID else { return }
             recentTabIDs.removeAll { $0 == selectedTabID }
             recentTabIDs.insert(selectedTabID, at: 0)
@@ -290,10 +292,10 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     // MARK: - Sessions
 
-    /// When no directory is given, the new session starts in the pinned
-    /// project directory, then the current session's working directory
-    /// (home when neither is known). A manual project directory is an
-    /// explicit choice, so it also becomes the default for future terminals.
+    /// When no directory is given, a local session starts in the pinned
+    /// project directory, then the group's default, then the current
+    /// session's working directory (home when none is known). A manual
+    /// project directory is an explicit choice for future terminals.
     @discardableResult
     func newSession(
         directory: String? = nil,
@@ -765,7 +767,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             projectID: id,
             customTitle: tabs.first { $0.paneID(forContent: session.id) != nil }?.customName,
             workingDirectory: session.currentDirectoryPath,
-            closedAt: Date()
+            closedAt: Date(),
+            tabGroupID: tabs.first { $0.paneID(forContent: session.id) != nil }?.tabGroupID
         )
     }
 
@@ -839,6 +842,121 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         }
     }
 
+    // MARK: - Tab groups
+
+    func tabGroup(id: UUID?) -> SessionTabGroup? {
+        guard let id else { return nil }
+        return tabGroups.first { $0.id == id }
+    }
+
+    var visibleTabs: [PaneTab] {
+        tabs.filter { tabGroup(id: $0.tabGroupID)?.isCollapsed != true }
+    }
+
+    @discardableResult
+    func createTabGroup(containing tab: PaneTab? = nil) -> SessionTabGroup {
+        let group = SessionTabGroup(name: String(localized: "New Tab Group"))
+        tabGroups.append(group)
+        if let tab { moveTab(tab.id, toGroup: group.id) }
+        return group
+    }
+
+    func renameTabGroup(_ id: UUID, to name: String) {
+        guard let name = Self.normalizedCustomName(name),
+              let index = tabGroups.firstIndex(where: { $0.id == id }) else { return }
+        tabGroups[index].name = name
+    }
+
+    func setTabGroupCollapsed(_ collapsed: Bool, id: UUID) {
+        guard let index = tabGroups.firstIndex(where: { $0.id == id }),
+              tabGroups[index].isCollapsed != collapsed else { return }
+        tabGroups[index].isCollapsed = collapsed
+    }
+
+    func removeTabGroup(_ id: UUID) {
+        for tab in tabs where tab.tabGroupID == id { tab.tabGroupID = nil }
+        tabGroups.removeAll { $0.id == id }
+        normalizeTabOrder()
+    }
+
+    func moveTabGroup(_ id: UUID, to targetID: UUID) {
+        guard id != targetID,
+              let source = tabGroups.firstIndex(where: { $0.id == id }),
+              let target = tabGroups.firstIndex(where: { $0.id == targetID }) else { return }
+        let group = tabGroups.remove(at: source)
+        tabGroups.insert(group, at: target)
+        normalizeTabOrder()
+    }
+
+    func moveTab(_ id: UUID, toGroup groupID: UUID?) {
+        guard let index = tabs.firstIndex(where: { $0.id == id }),
+              groupID == nil || tabGroup(id: groupID) != nil else { return }
+        let tab = tabs[index]
+        if tab.tabGroupID != groupID || (groupID != nil && tab.isPinned) {
+            tabs.remove(at: index)
+            if groupID != nil { tab.isPinned = false }
+            tab.tabGroupID = groupID
+            // A group-header drop appends after its existing members. Using
+            // the source's old global position would unexpectedly insert it
+            // before tabs already organized in the destination.
+            tabs.append(tab)
+            normalizeTabOrder()
+        }
+        if let groupID { setTabGroupCollapsed(false, id: groupID) }
+    }
+
+    @discardableResult
+    func newSession(inTabGroup groupID: UUID) -> TerminalSession? {
+        guard tabGroup(id: groupID) != nil else { return nil }
+        let session = newSession()
+        if let tab = selectedTab { moveTab(tab.id, toGroup: groupID) }
+        return session
+    }
+
+    func beginRestoringTabGroups(_ groups: [SessionTabGroup]) {
+        isRestoringTabs = true
+        var seen = Set<UUID>()
+        tabGroups = groups.compactMap { group in
+            guard seen.insert(group.id).inserted else { return nil }
+            var group = group
+            group.name = Self.normalizedCustomName(group.name)
+                ?? String(localized: "New Tab Group")
+            return group
+        }
+    }
+
+    func finishRestoringTabGroups() {
+        // The saved active tab can belong to a group the user left collapsed.
+        normalizeTabOrder()
+        isRestoringTabs = false
+    }
+
+    private func revealSelectedTabGroup() {
+        guard let groupID = selectedTab?.tabGroupID else { return }
+        setTabGroupCollapsed(false, id: groupID)
+    }
+
+    /// Keep each group contiguous so visual order, keyboard navigation and
+    /// "Close Tabs to the Right" all describe the same sequence. Fixed tabs
+    /// occupy their own section and leave a group when pinned.
+    private func normalizeTabOrder() {
+        let positions = Dictionary(uniqueKeysWithValues: tabGroups.enumerated().map {
+            ($0.element.id, $0.offset)
+        })
+        for tab in tabs where tab.isPinned || tab.tabGroupID.map({ positions[$0] == nil }) == true {
+            if tab.tabGroupID != nil { tab.tabGroupID = nil }
+        }
+        func section(_ tab: PaneTab) -> Int {
+            if tab.isPinned { return -2 }
+            return tab.tabGroupID.flatMap { positions[$0] } ?? -1
+        }
+        let ordered = tabs.enumerated().sorted {
+            let first = section($0.element), second = section($1.element)
+            return first == second ? $0.offset < $1.offset : first < second
+        }.map(\.element)
+        if ordered.map(\.id) != tabs.map(\.id) { tabs = ordered }
+    }
+
     // MARK: - Tab selection
 
     func setPinned(_ pinned: Bool, for tab: PaneTab) {
@@ -848,8 +966,10 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
         tabs.remove(at: index)
         tab.isPinned = pinned
+        if pinned { tab.tabGroupID = nil }
         let destination = tabs.firstIndex(where: { !$0.isPinned }) ?? tabs.endIndex
         tabs.insert(tab, at: destination)
+        normalizeTabOrder()
     }
 
     /// Reorders a tab within its pinned or unpinned section. Cross-project
@@ -864,8 +984,11 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
         var reorderedTabs = tabs
         let draggedTab = reorderedTabs.remove(at: draggedIndex)
+        draggedTab.tabGroupID = tabs[targetIndex].tabGroupID
         reorderedTabs.insert(draggedTab, at: targetIndex)
         tabs = reorderedTabs
+        normalizeTabOrder()
+        revealSelectedTabGroup()
     }
 
     /// Moves a tab into another tab's pane tree at the indicated drop edge.
@@ -914,6 +1037,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     func detachTabForTransfer(id: UUID) -> PaneTab? {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return nil }
         let tab = tabs[index]
+        tab.tabGroupID = nil
         unregisterTransferOwnership(of: tab)
         recentTabIDs.removeAll { $0 == id }
         tabs.remove(at: index)
@@ -934,8 +1058,10 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         }
         tab.sessions.forEach { $0.transferHost(to: manager) }
         tab.browsers.forEach { $0.transferHost(to: manager) }
+        tab.tabGroupID = nil
         registerTransferOwnership(of: tab)
         tabs.append(tab)
+        normalizeTabOrder()
         selectedTabID = tab.id
     }
 
@@ -1035,6 +1161,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             isPinned: snap.isPinned
         )
         tab.customName = snap.customName
+        tab.tabGroupID = tabGroup(id: snap.tabGroupID)?.id
         tab.markerColor = snap.markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:))
         tab.launchSettingsOverride = snap.launchSettingsOverride
         append(tab)
@@ -1117,6 +1244,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         if let selectedTabID,
            let index = tabs.firstIndex(where: { $0.id == selectedTabID }),
            !tabs[index].isPinned {
+            tab.tabGroupID = tabs[index].tabGroupID
             tabs.insert(tab, at: index + 1)
         } else {
             let destination = tabs.firstIndex(where: { !$0.isPinned }) ?? tabs.endIndex

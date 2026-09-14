@@ -6,17 +6,27 @@
 import Combine
 import SwiftUI
 
-/// Coordinates the direct tab-strip drag with the mounted pane layout. A
-/// reference object keeps the latest global pointer location and pane frames
-/// available synchronously when the strip receives its drag-ended callback.
+/// A sidebar destination for a live tab drag. Dropping on an existing project
+/// transfers the tab into it; dropping on a group header or the explicit
+/// ungrouped target pulls the tab out into a new project.
+enum TabSidebarDropTarget: Equatable {
+    case project(UUID)
+    case newProject(groupID: UUID?)
+}
+
+/// Coordinates a direct tab-strip drag across the mounted pane layout and the
+/// project sidebar. A reference object keeps the latest global pointer location
+/// and destination frames available synchronously when mouse-up arrives.
 @MainActor
 final class TabSplitDragCoordinator: ObservableObject {
     struct Drag {
         let sourceTabID: UUID
+        let sourceProjectID: UUID
         let location: CGPoint
         let targetTabID: UUID?
         let targetPaneID: UUID?
         let edge: PaneDropEdge?
+        let sidebarTarget: TabSidebarDropTarget?
         let title: String
         let systemImage: String
         let fileIconPath: String?
@@ -26,14 +36,46 @@ final class TabSplitDragCoordinator: ObservableObject {
     @Published private(set) var drag: Drag?
 
     private weak var project: Project?
+    private weak var manager: TerminalManager?
     private var renderedTabID: UUID?
     private var paneFrames: [UUID: CGRect] = [:]
+    private var sidebarProjectFrames: [UUID: CGRect] = [:]
+    private var sidebarGroupFrames: [UUID: CGRect] = [:]
+    private var sidebarUngroupedFrame: CGRect?
 
-    func update(sourceTabID: UUID, location: CGPoint, in project: Project) {
+    func update(
+        sourceTabID: UUID,
+        location: CGPoint,
+        in project: Project,
+        manager: TerminalManager
+    ) {
         self.project = project
+        self.manager = manager
         drag = resolvedDrag(
             sourceTabID: sourceTabID,
             location: location,
+            in: project
+        )
+    }
+
+    /// Sidebar geometry is reported independently from the tab strip. Re-resolve
+    /// an active drag whenever grouping, collapse, scrolling, or resizing moves
+    /// one of the destinations under a stationary pointer.
+    func updateSidebarFrames(
+        projects: [UUID: CGRect],
+        groups: [UUID: CGRect],
+        ungrouped: CGRect?
+    ) {
+        let changed = sidebarProjectFrames != projects
+            || sidebarGroupFrames != groups
+            || sidebarUngroupedFrame != ungrouped
+        sidebarProjectFrames = projects
+        sidebarGroupFrames = groups
+        sidebarUngroupedFrame = ungrouped
+        guard changed, let drag, let project else { return }
+        self.drag = resolvedDrag(
+            sourceTabID: drag.sourceTabID,
+            location: drag.location,
             in: project
         )
     }
@@ -60,7 +102,7 @@ final class TabSplitDragCoordinator: ObservableObject {
     }
 
     func commit() {
-        guard let drag, let project else {
+        guard let drag, let project, let manager else {
             cancel()
             return
         }
@@ -71,15 +113,36 @@ final class TabSplitDragCoordinator: ObservableObject {
             location: drag.location,
             in: project
         )
-        if let targetTabID = resolved.targetTabID,
-           let targetPaneID = resolved.targetPaneID,
-           let edge = resolved.edge {
-            project.moveTab(
-                resolved.sourceTabID,
-                into: targetTabID,
-                toward: edge,
-                beside: targetPaneID
+        let result: TerminalManager.TabMoveResult?
+        switch resolved.sidebarTarget {
+        case .project(let destinationProjectID):
+            result = manager.moveTab(
+                id: resolved.sourceTabID,
+                from: resolved.sourceProjectID,
+                to: destinationProjectID,
+                in: ObjectIdentifier(manager)
             )
+        case .newProject(let groupID):
+            result = manager.moveTabToNewProject(
+                id: resolved.sourceTabID,
+                from: resolved.sourceProjectID,
+                in: ProjectGroupStore.shared.group(id: groupID)
+            )
+        case nil:
+            result = nil
+            if let targetTabID = resolved.targetTabID,
+               let targetPaneID = resolved.targetPaneID,
+               let edge = resolved.edge {
+                project.moveTab(
+                    resolved.sourceTabID,
+                    into: targetTabID,
+                    toward: edge,
+                    beside: targetPaneID
+                )
+            }
+        }
+        if let failure = result?.failure {
+            presentMoveFailure(failure)
         }
         cancel()
     }
@@ -87,6 +150,7 @@ final class TabSplitDragCoordinator: ObservableObject {
     func cancel() {
         drag = nil
         project = nil
+        manager = nil
     }
 
     private func resolvedDrag(
@@ -105,6 +169,7 @@ final class TabSplitDragCoordinator: ObservableObject {
            targetTabID != sourceTabID,
            renderedTabID == targetTabID,
            let targetTab = project.selectedTab,
+           source.isPinned == targetTab.isPinned,
            let hit = paneFrames.first(where: { $0.value.contains(location) }),
            let targetPane = targetTab.allPanes.first(where: { $0.id == hit.key }),
            !targetPane.content.isDiff {
@@ -112,17 +177,47 @@ final class TabSplitDragCoordinator: ObservableObject {
             edge = dropEdge(at: location, in: hit.value)
         }
 
+        let sidebarTarget: TabSidebarDropTarget?
+        if let destination = sidebarProjectFrames.first(where: {
+            $0.key != project.id && $0.value.contains(location)
+        })?.key {
+            sidebarTarget = .project(destination)
+        } else if let groupID = sidebarGroupFrames.first(where: {
+            $0.value.contains(location)
+        })?.key {
+            sidebarTarget = .newProject(groupID: groupID)
+        } else if sidebarUngroupedFrame?.contains(location) == true {
+            sidebarTarget = .newProject(groupID: nil)
+        } else {
+            sidebarTarget = nil
+        }
+
         return Drag(
             sourceTabID: sourceTabID,
+            sourceProjectID: project.id,
             location: location,
-            targetTabID: targetPaneID == nil ? nil : targetTabID,
-            targetPaneID: targetPaneID,
-            edge: edge,
+            targetTabID: sidebarTarget == nil && targetPaneID != nil ? targetTabID : nil,
+            targetPaneID: sidebarTarget == nil ? targetPaneID : nil,
+            edge: sidebarTarget == nil ? edge : nil,
+            sidebarTarget: sidebarTarget,
             title: source?.displayTitle ?? sourceContent?.title ?? String(localized: "Tab"),
             systemImage: sourceContent?.systemImage ?? "terminal",
             fileIconPath: sourceContent?.fileIconPath,
             paneCount: source?.allPanes.count ?? 1
         )
+    }
+
+    func presentMoveFailure(_ failure: TerminalManager.TabMoveFailure) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = String(localized: "Couldn’t Move Tab")
+        alert.informativeText = failure.message
+        alert.addButton(withTitle: String(localized: "OK"))
+        if let window = NSApp.keyWindow ?? NSApp.mainWindow {
+            alert.beginSheetModal(for: window)
+        } else {
+            alert.runModal()
+        }
     }
 
     private func dropEdge(at location: CGPoint, in frame: CGRect) -> PaneDropEdge {
@@ -184,6 +279,7 @@ struct ContentView: View {
             if manager.isLeftSidebarVisible {
                 SidebarView(
                     manager: manager,
+                    tabDrag: tabSplitDrag,
                     bottomBarHeight: bottomToolbarHeight
                 )
             }
@@ -963,853 +1059,5 @@ private struct InstantPopoverPresenter<PopoverContent: View>: NSViewRepresentabl
 
     static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
         coordinator.dismantle()
-    }
-}
-
-/// Slim bar above the terminal: the selected project's sessions as
-/// horizontal tabs, with sidebar controls at the outer edges. Doubles as
-/// window-drag space.
-private struct MainHeaderView: View {
-    @ObservedObject var manager: TerminalManager
-    @ObservedObject var tabSplitDrag: TabSplitDragCoordinator
-    @ObservedObject private var settings = AppSettings.shared
-    @ObservedObject private var themeChanges = Theme.changes
-
-    private var scale: CGFloat { CGFloat(settings.interfaceScale) }
-
-    /// Keep an always-available grab target beside the trailing controls,
-    /// even when the session strip is full.
-    private let minimumWindowDragWidth: CGFloat = 40
-
-    /// With the left sidebar hidden the header slides under the window's
-    /// traffic-light buttons, so inset its content to clear them.
-    private var leadingInset: CGFloat {
-        manager.isLeftSidebarVisible ? 8 : 78
-    }
-
-    /// A hidden sidebar moves its toggle into this header. Reserve the
-    /// button and its following HStack spacing before sizing the tab strip.
-    private var hiddenLeftSidebarControlWidth: CGFloat {
-        manager.isLeftSidebarVisible ? 0 : 32
-    }
-
-    var body: some View {
-        GeometryReader { geo in
-            HStack(spacing: 0) {
-                if !manager.isLeftSidebarVisible {
-                    ChromeIconButton(
-                        systemImage: "sidebar.left",
-                        tooltip: "Toggle Left Sidebar (⌘B)",
-                        tooltipAlignment: .leading
-                    ) {
-                        manager.toggleLeftSidebar()
-                    }
-                    .padding(.trailing, 8)
-                }
-                if let project = manager.selectedProject {
-                    // Reserve the trailing controls so the session strip's
-                    // inline new-session button stays clear of them.
-                    SessionTabsView(
-                        manager: manager,
-                        project: project,
-                        tabSplitDrag: tabSplitDrag,
-                        maxStripWidth: max(
-                            0,
-                            geo.size.width - leadingInset - hiddenLeftSidebarControlWidth
-                                - 66 - (manager.isPaneZoomed ? 32 : 0)
-                        )
-                    )
-                }
-                WindowDragArea()
-                    .frame(maxWidth: .infinity)
-                HStack(spacing: 8) {
-                    // Zoom indicator: only visible while the selected tab has a
-                    // zoomed pane. Styled like the sidebar toggle next to it, with
-                    // the accent tint marking the active state. Click restores the
-                    // layout.
-                    if manager.isPaneZoomed {
-                        Button {
-                            manager.togglePaneZoom()
-                        } label: {
-                            Image(systemName: "arrow.down.forward.and.arrow.up.backward")
-                                .font(.system(size: 12 * scale, weight: .medium))
-                                .foregroundStyle(Color(nsColor: Theme.accent))
-                                .frame(width: 24 * scale, height: 24 * scale)
-                                .contentShape(RoundedRectangle(cornerRadius: 6))
-                        }
-                        .buttonStyle(.plain)
-                        .tooltip("Exit Pane Zoom (⇧⌘↩)", edge: .below, alignment: .trailing)
-                    }
-                    // No project means the sidebar has nothing to show, so drop
-                    // its toggle too — matching the panel collapsing itself.
-                    if manager.selectedProject != nil {
-                        ChromeIconButton(
-                            systemImage: "sidebar.right",
-                            tooltip: "Toggle Right Sidebar (⇧⌘B)"
-                        ) {
-                            manager.toggleSidebar()
-                        }
-                    }
-                }
-                .padding(.leading, 8)
-            }
-            .padding(.leading, leadingInset)
-            .padding(.trailing, 8)
-            .frame(height: geo.size.height)
-        }
-        .frame(height: 38)
-        .background(Color(nsColor: Theme.background))
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color(nsColor: Theme.divider))
-                .frame(height: 1)
-        }
-    }
-}
-
-/// Horizontal tabs for one project — terminal sessions and open files —
-/// plus a "+" button.
-private struct SessionTabsView: View {
-    private let fadeWidth: CGFloat = 20
-    private let tabSpacing: CGFloat = 3
-
-    @ObservedObject var manager: TerminalManager
-    @ObservedObject var project: Project
-    @ObservedObject var tabSplitDrag: TabSplitDragCoordinator
-    @ObservedObject private var settings = AppSettings.shared
-    let maxStripWidth: CGFloat
-    @State private var overflow = StripOverflow()
-    @State private var scrollGeometry = StripScrollGeometry()
-    @State private var tabFrames: [UUID: CGRect] = [:]
-    @State private var tabSizes: [UUID: CGSize] = [:]
-    /// Tab currently showing the inline rename field, if any.
-    @State private var renamingTabID: UUID?
-
-    private var scale: CGFloat { CGFloat(settings.interfaceScale) }
-
-    /// Which edges have off-screen tabs, i.e. where to show a fade hint.
-    private struct StripOverflow: Equatable {
-        var left = false
-        var right = false
-    }
-
-    private struct StripScrollGeometry: Equatable {
-        var contentOffsetX: CGFloat = 0
-        var containerWidth: CGFloat = 0
-        var contentWidth: CGFloat = 0
-    }
-
-    var body: some View {
-        HStack(spacing: 4) {
-            ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: tabSpacing) {
-                    ForEach(project.tabs) { tab in
-                        PaneTabItem(
-                            tab: tab,
-                            isSelected: tab.id == project.selectedTabID,
-                            select: { project.selectedTabID = tab.id },
-                            close: { project.close(tab) },
-                            renamingTabID: $renamingTabID
-                        )
-                        .background {
-                            AppKitContextMenuMonitor(items: tabContextMenuItems(for: tab))
-                        }
-                        .background {
-                            GeometryReader { proxy in
-                                Color.clear.preference(
-                                    key: TabFramePreferenceKey.self,
-                                    value: [tab.id: proxy.frame(in: .global)]
-                                )
-                            }
-                        }
-                        .opacity(tabSplitDrag.drag?.sourceTabID == tab.id ? 0.65 : 1)
-                        // Masked to .subviews while renaming so dragging in the
-                        // text field selects text instead of reordering the tab.
-                        .highPriorityGesture(
-                            DragGesture(minimumDistance: 4, coordinateSpace: .global)
-                                .onChanged { value in
-                                    updateTabDrag(source: tab.id, location: value.location)
-                                }
-                                .onEnded { _ in endTabDrag() },
-                            including: renamingTabID == tab.id ? .subviews : .all
-                        )
-                    }
-                }
-            }
-            .onScrollGeometryChange(for: StripScrollGeometry.self) { geo in
-                StripScrollGeometry(
-                    contentOffsetX: geo.contentOffset.x,
-                    containerWidth: geo.containerSize.width,
-                    contentWidth: geo.contentSize.width
-                )
-            } action: { _, new in
-                scrollGeometry = new
-                overflow = StripOverflow(
-                    left: new.contentOffsetX > 0.5,
-                    right: new.contentOffsetX + new.containerWidth < new.contentWidth - 0.5
-                )
-            }
-            // Keep the active tab visible: scrolls the minimum distance to
-            // reveal it beyond the fade rather than merely inside the viewport.
-            .onChange(of: project.selectedTabID) { _, id in
-                guard let id else { return }
-                // Preserve ScrollViewReader's reliable minimum reveal first,
-                // then refine it once SwiftUI has advanced the scroll layout.
-                performScroll(to: id, anchor: nil, using: proxy, animated: true)
-                DispatchQueue.main.async {
-                    scrollToSelectedTab(using: proxy, animated: true)
-                }
-            }
-            // Selection is not the only thing that can hide the active tab.
-            // Keep it visible when the window/sidebar changes the viewport,
-            // tabs are inserted or reordered, or a live title/rename changes
-            // the width of content before it.
-            .onChange(of: maxStripWidth) {
-                scrollToSelectedTab(using: proxy)
-            }
-            .onChange(of: scrollGeometry.containerWidth) {
-                // Defer until the tab sizes have settled against the resized
-                // viewport before deciding whether the active tab needs help.
-                DispatchQueue.main.async {
-                    scrollToSelectedTab(using: proxy)
-                }
-            }
-            .onChange(of: project.tabs.map(\.id)) {
-                scrollToSelectedTab(using: proxy)
-            }
-            .onChange(of: tabSizes) {
-                scrollToSelectedTab(using: proxy)
-            }
-            .onAppear {
-                // Restored sessions may open with an off-screen active tab.
-                DispatchQueue.main.async {
-                    scrollToSelectedTab(using: proxy)
-                }
-            }
-            .mask {
-                HStack(spacing: 0) {
-                    LinearGradient(
-                        colors: [overflow.left ? .clear : .black, .black],
-                        startPoint: .leading, endPoint: .trailing
-                    )
-                    .frame(width: fadeWidth)
-                    Color.black
-                    LinearGradient(
-                        colors: [.black, overflow.right ? .clear : .black],
-                        startPoint: .leading, endPoint: .trailing
-                    )
-                    .frame(width: fadeWidth)
-                }
-            }
-            .animation(.easeInOut(duration: 0.15), value: overflow)
-            .frame(maxWidth: maxStripWidth, alignment: .leading)
-            .fixedSize(horizontal: true, vertical: false)
-            }
-
-            ChromeIconButton(
-                systemImage: "plus",
-                tooltip: "New Session (⌘T)",
-                font: .system(size: 10 * scale, weight: .semibold),
-                iconSize: 14 * scale,
-                tooltipAlignment: .leading
-            ) {
-                project.newSession()
-            }
-        }
-        .onPreferenceChange(TabFramePreferenceKey.self) { frames in
-            tabFrames = frames
-            let sizes = frames.mapValues(\.size)
-            if sizes != tabSizes {
-                tabSizes = sizes
-            }
-        }
-    }
-
-    /// Moves only when the selected tab overlaps an active edge fade. The
-    /// custom anchor places that tab just beyond the fade instead of at the
-    /// viewport edge, where `scrollTo` would leave it partially obscured.
-    private func scrollToSelectedTab(using proxy: ScrollViewProxy, animated: Bool = false) {
-        guard let id = project.selectedTabID,
-              let selectedIndex = project.tabs.firstIndex(where: { $0.id == id }) else { return }
-
-        guard scrollGeometry.containerWidth > 0,
-              let selectedSize = tabSizes[id] else {
-            performScroll(to: id, anchor: nil, using: proxy, animated: animated)
-            return
-        }
-
-        var tabMinX = CGFloat(selectedIndex) * tabSpacing
-        for tab in project.tabs[..<selectedIndex] {
-            guard let size = tabSizes[tab.id] else {
-                performScroll(to: id, anchor: nil, using: proxy, animated: animated)
-                return
-            }
-            tabMinX += size.width
-        }
-
-        let tabMaxX = tabMinX + selectedSize.width
-        let safeMinX = scrollGeometry.contentOffsetX + (overflow.left ? fadeWidth : 0)
-        let safeMaxX = scrollGeometry.contentOffsetX + scrollGeometry.containerWidth
-            - (overflow.right ? fadeWidth : 0)
-        let anchor: UnitPoint
-        let availableSpace = max(1, scrollGeometry.containerWidth - selectedSize.width)
-
-        if tabMinX < safeMinX - 0.5 {
-            anchor = UnitPoint(x: min(1, fadeWidth / availableSpace), y: 0.5)
-        } else if tabMaxX > safeMaxX + 0.5 {
-            anchor = UnitPoint(x: max(0, 1 - fadeWidth / availableSpace), y: 0.5)
-        } else {
-            return
-        }
-
-        performScroll(to: id, anchor: anchor, using: proxy, animated: animated)
-    }
-
-    private func performScroll(
-        to id: UUID,
-        anchor: UnitPoint?,
-        using proxy: ScrollViewProxy,
-        animated: Bool
-    ) {
-        let reveal = {
-            if let anchor {
-                proxy.scrollTo(id, anchor: anchor)
-            } else {
-                proxy.scrollTo(id)
-            }
-        }
-        if animated {
-            withAnimation(.easeInOut(duration: 0.2), reveal)
-        } else {
-            reveal()
-        }
-    }
-
-    /// Reorders immediately as the pointer crosses another tab. This direct
-    /// gesture deliberately avoids a pasteboard drag session, which the
-    /// hidden title bar can otherwise claim as a window move first.
-    private func updateTabDrag(source: UUID, location: CGPoint) {
-        tabSplitDrag.update(sourceTabID: source, location: location, in: project)
-        NSCursor.closedHand.set()
-        guard let target = tabFrames.first(where: {
-            $0.key != source && $0.value.contains(location)
-        })?.key else { return }
-        withAnimation(.easeInOut(duration: 0.12)) {
-            project.moveTab(source, to: target)
-        }
-    }
-
-    private func endTabDrag() {
-        tabSplitDrag.commit()
-        NSCursor.arrow.set()
-    }
-
-    private func tabContextMenuItems(for tab: PaneTab) -> [AppKitContextMenuItem] {
-        var items: [AppKitContextMenuItem] = [
-            .action(title: String(localized: tab.isPinned ? "Unpin Tab" : "Pin Tab")) {
-                project.setPinned(!tab.isPinned, for: tab)
-            },
-            .separator,
-            .action(title: String(localized: "Rename…")) { renamingTabID = tab.id },
-        ]
-        if tab.customName != nil {
-            items.append(.action(title: String(localized: "Use Automatic Title")) {
-                tab.customName = nil
-            })
-        }
-        items.append(.separator)
-        items.append(.action(title: String(localized: "Set Color Marker…")) {
-            ProjectTabColorPanelController.shared.present(tab: tab)
-        })
-        if tab.markerColor != nil {
-            items.append(.action(title: String(localized: "Remove Color Marker")) {
-                tab.markerColor = nil
-            })
-        }
-        if case .file(let file) = tab.focusedContent {
-            items.append(.action(title: String(localized: "Reveal in Finder")) {
-                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: file.path)])
-            })
-            items.append(.action(title: String(localized: "Copy Absolute Path")) {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(file.path, forType: .string)
-            })
-            items.append(.separator)
-        }
-        if case .browser(let browser) = tab.focusedContent, !browser.urlString.isEmpty {
-            items.append(.action(
-                title: String(localized: "Open in Default Browser"),
-                enabled: browser.shareURL != nil
-            ) { browser.openInDefaultBrowser() })
-            items.append(.action(title: String(localized: "Copy Address")) {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(browser.urlString, forType: .string)
-            })
-            items.append(.separator)
-        }
-        if let moveItem = moveTabMenuItem(for: tab) {
-            items.append(moveItem)
-            items.append(.separator)
-        }
-        items.append(.action(title: String(localized: "Close")) { project.close(tab) })
-        items.append(.action(
-            title: String(localized: "Close Others"),
-            enabled: project.tabs.count > 1
-        ) { project.closeOthers(tab) })
-        items.append(.action(
-            title: String(localized: "Close Tabs to the Right"),
-            enabled: project.tabs.last?.id != tab.id
-        ) { project.closeToRight(of: tab) })
-        items.append(.separator)
-        items.append(.action(
-            title: String(localized: "Close Files"),
-            enabled: project.hasFiles
-        ) { project.closeFiles() })
-        items.append(.action(
-            title: String(localized: "Close Diffs"),
-            enabled: project.hasDiffs
-        ) { project.closeDiffs() })
-        items.append(.separator)
-        items.append(.action(title: String(localized: "Close All")) { project.closeAll() })
-        return items
-    }
-
-    /// Builds the cross-project "Move Tab to Project" submenu from the live
-    /// destination list. Hidden entirely when no other project can host the
-    /// tab, so single-project windows keep a clean menu.
-    private func moveTabMenuItem(for tab: PaneTab) -> AppKitContextMenuItem? {
-        let destinations = manager.tabMoveDestinations(for: tab.id, in: project.id)
-        guard !destinations.isEmpty else { return nil }
-
-        let targets: [AppKitContextMenuItem] = destinations.map { destination in
-            let title: String
-            if let windowTitle = destination.windowTitle, !windowTitle.isEmpty {
-                title = String(
-                    localized: "\(destination.title) — \(windowTitle)",
-                    comment: "Destination project and its window title in the Move Tab menu."
-                )
-            } else {
-                title = destination.title
-            }
-            return .action(title: title, enabled: destination.isEnabled) {
-                moveTab(to: destination, tabID: tab.id, from: project.id)
-            }
-        }
-        return .submenu(title: String(localized: "Move Tab to Project"), items: targets)
-    }
-
-    private func moveTab(
-        to destination: TerminalManager.TabMoveDestination,
-        tabID: UUID,
-        from sourceProjectID: UUID
-    ) {
-        let result = manager.moveTab(
-            id: tabID,
-            from: sourceProjectID,
-            to: destination.projectID,
-            in: destination.managerID
-        )
-        guard let failure = result.failure else { return }
-        let alert = NSAlert()
-        alert.alertStyle = .warning
-        alert.messageText = String(localized: "Couldn’t Move Tab")
-        alert.informativeText = failure.message
-        alert.addButton(withTitle: String(localized: "OK"))
-        if let window = NSApp.keyWindow ?? NSApp.mainWindow {
-            alert.beginSheetModal(for: window)
-        } else {
-            alert.runModal()
-        }
-    }
-}
-
-/// Collects each tab's global frame so a direct drag gesture can hit-test the
-/// pointer even while the horizontal strip is moving under it.
-private struct TabFramePreferenceKey: PreferenceKey {
-    static let defaultValue: [UUID: CGRect] = [:]
-
-    static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
-        value.merge(nextValue()) { $1 }
-    }
-}
-
-/// A tab in the strip. Shows the focused pane's title/icon, with a small
-/// counter when the tab holds more than one pane. Observes the tab so focus
-/// and layout changes refresh it; the focused content is observed by the
-/// per-kind label below so its live title/dirty state shows.
-private struct PaneTabItem: View {
-    @ObservedObject var tab: PaneTab
-    let isSelected: Bool
-    let select: () -> Void
-    let close: () -> Void
-    @Binding var renamingTabID: UUID?
-
-    var body: some View {
-        let paneCount = tab.allPanes.count
-        if renamingTabID == tab.id {
-            TabRenameChrome(
-                systemImage: tab.focusedContent?.systemImage ?? "terminal",
-                browserIcon: focusedBrowser,
-                fileIconPath: focusedFileIconPath,
-                initialValue: tab.displayTitle ?? "",
-                commit: { name in
-                    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                    tab.customName = trimmed.isEmpty ? nil : trimmed
-                },
-                end: { renamingTabID = nil }
-            )
-        } else {
-            // Double-click on any tab kind opens the inline rename field,
-            // mirroring the context menu's "Rename…" entry.
-            let startRename = { renamingTabID = tab.id }
-            switch tab.focusedContent {
-            case .session(let session):
-                SessionTabLabel(session: session, customTitle: tab.customName, markerColor: tab.markerColor, paneCount: paneCount, agentRollup: tab.agentRollup, isSelected: isSelected, select: select, close: close, onDoubleClick: startRename)
-            case .file(let file):
-                FileTabLabel(file: file, customTitle: tab.customName, markerColor: tab.markerColor, paneCount: paneCount, agentRollup: tab.agentRollup, isSelected: isSelected, select: select, close: close, onDoubleClick: startRename)
-            case .browser(let browser):
-                BrowserTabLabel(browser: browser, customTitle: tab.customName, markerColor: tab.markerColor, paneCount: paneCount, agentRollup: tab.agentRollup, isSelected: isSelected, select: select, close: close, onDoubleClick: startRename)
-            case .diff(let diff):
-                DiffTabLabel(
-                    diff: diff,
-                    customTitle: tab.customName,
-                    markerColor: tab.markerColor,
-                    paneCount: paneCount,
-                    agentRollup: tab.agentRollup,
-                    isSelected: isSelected,
-                    select: select,
-                    close: close,
-                    onDoubleClick: startRename
-                )
-            case nil:
-                EmptyView()
-            }
-        }
-    }
-
-    private var focusedBrowser: BrowserTab? {
-        if case .browser(let browser) = tab.focusedContent {
-            browser
-        } else {
-            nil
-        }
-    }
-
-    private var focusedFileIconPath: String? {
-        tab.focusedContent?.fileIconPath
-    }
-}
-
-/// Inline editor shown in place of a tab while it's renamed — the same
-/// affordance as the project row's rename. Commits on Return or focus loss,
-/// cancels on Escape; an empty name returns the tab to its automatic title.
-private struct TabRenameChrome: View {
-    @ObservedObject private var themeChanges = Theme.changes
-    let systemImage: String
-    let browserIcon: BrowserTab?
-    let fileIconPath: String?
-    let commit: (String) -> Void
-    let end: () -> Void
-
-    @State private var draft: String
-    /// Set by the first commit/cancel so the focus-loss handler that fires
-    /// while the field is being torn down doesn't commit a second time.
-    @State private var finished = false
-    @FocusState private var focused: Bool
-
-    init(
-        systemImage: String,
-        browserIcon: BrowserTab?,
-        fileIconPath: String?,
-        initialValue: String,
-        commit: @escaping (String) -> Void,
-        end: @escaping () -> Void
-    ) {
-        self.systemImage = systemImage
-        self.browserIcon = browserIcon
-        self.fileIconPath = fileIconPath
-        self.commit = commit
-        self.end = end
-        _draft = State(initialValue: initialValue)
-    }
-
-    var body: some View {
-        HStack(spacing: 5) {
-            if let browserIcon {
-                BrowserFaviconView(browser: browserIcon, size: 11)
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(Color(nsColor: Theme.accent))
-            } else if let fileIconPath {
-                MaterialFileIconView(path: fileIconPath, size: 12)
-            } else {
-                Image(systemName: systemImage)
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(Color(nsColor: Theme.accent))
-            }
-            TextField("", text: $draft)
-                .textFieldStyle(.plain)
-                .font(.system(size: 11.5))
-                .frame(width: 110)
-                .focused($focused)
-                .onSubmit { finish(apply: true) }
-                .onExitCommand { finish(apply: false) }
-                .onChange(of: focused) {
-                    if !focused { finish(apply: true) }
-                }
-        }
-        .padding(.leading, 9)
-        .padding(.trailing, 5)
-        .padding(.vertical, 4)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(Color.primary.opacity(0.09))
-        )
-        .onAppear {
-            DispatchQueue.main.async { focused = true }
-        }
-    }
-
-    private func finish(apply: Bool) {
-        guard !finished else { return }
-        finished = true
-        if apply { commit(draft) }
-        end()
-    }
-}
-
-private struct SessionTabLabel: View {
-    @ObservedObject var session: TerminalSession
-    /// User-assigned tab name overriding the live terminal title.
-    var customTitle: String?
-    let markerColor: ProjectTabMarkerColor?
-    let paneCount: Int
-    let agentRollup: ZshellAgentRollup?
-    let isSelected: Bool
-    let select: () -> Void
-    let close: () -> Void
-    var onDoubleClick: (() -> Void)? = nil
-
-    var body: some View {
-        TabItemChrome(
-            systemImage: "terminal",
-            title: customTitle ?? session.title,
-            markerColor: markerColor,
-            paneCount: paneCount,
-            agentRollup: agentRollup,
-            isSelected: isSelected,
-            select: select,
-            close: close,
-            onDoubleClick: onDoubleClick
-        )
-    }
-}
-
-private struct FileTabLabel: View {
-    @ObservedObject var file: FileTab
-    /// User-assigned tab name overriding the file name.
-    var customTitle: String?
-    let markerColor: ProjectTabMarkerColor?
-    let paneCount: Int
-    let agentRollup: ZshellAgentRollup?
-    let isSelected: Bool
-    let select: () -> Void
-    let close: () -> Void
-    var onDoubleClick: (() -> Void)? = nil
-
-    var body: some View {
-        TabItemChrome(
-            systemImage: "doc.text",
-            fileIconPath: file.path,
-            title: customTitle ?? file.name,
-            markerColor: markerColor,
-            paneCount: paneCount,
-            agentRollup: agentRollup,
-            isSelected: isSelected,
-            isDirty: file.isDirty,
-            select: select,
-            close: close,
-            onDoubleClick: onDoubleClick
-        )
-        .help(file.path)
-    }
-}
-
-private struct BrowserTabLabel: View {
-    @ObservedObject var browser: BrowserTab
-    /// User-assigned tab name overriding the webpage title.
-    var customTitle: String?
-    let markerColor: ProjectTabMarkerColor?
-    let paneCount: Int
-    let agentRollup: ZshellAgentRollup?
-    let isSelected: Bool
-    let select: () -> Void
-    let close: () -> Void
-    var onDoubleClick: (() -> Void)? = nil
-
-    var body: some View {
-        TabItemChrome(
-            systemImage: "globe",
-            browserIcon: browser,
-            title: customTitle ?? browser.title,
-            markerColor: markerColor,
-            paneCount: paneCount,
-            agentRollup: agentRollup,
-            isSelected: isSelected,
-            select: select,
-            close: close,
-            onDoubleClick: onDoubleClick
-        )
-        .help(browser.urlString)
-    }
-}
-
-private struct DiffTabLabel: View {
-    @ObservedObject var diff: DiffTab
-    var customTitle: String?
-    let markerColor: ProjectTabMarkerColor?
-    let paneCount: Int
-    let agentRollup: ZshellAgentRollup?
-    let isSelected: Bool
-    let select: () -> Void
-    let close: () -> Void
-    var onDoubleClick: (() -> Void)? = nil
-
-    var body: some View {
-        TabItemChrome(
-            systemImage: "plus.forwardslash.minus",
-            fileIconPath: diff.path,
-            title: customTitle ?? diff.title,
-            markerColor: markerColor,
-            paneCount: paneCount,
-            agentRollup: agentRollup,
-            isSelected: isSelected,
-            isDirty: diff.isDirty,
-            select: select,
-            close: close,
-            onDoubleClick: onDoubleClick
-        )
-        .help(diff.path)
-    }
-}
-
-private struct TabItemChrome: View {
-    @ObservedObject private var settings = AppSettings.shared
-    @ObservedObject private var themeChanges = Theme.changes
-    let systemImage: String
-    var browserIcon: BrowserTab? = nil
-    var fileIconPath: String? = nil
-    let title: String
-    var markerColor: ProjectTabMarkerColor? = nil
-    var paneCount: Int = 1
-    var agentRollup: ZshellAgentRollup? = nil
-    let isSelected: Bool
-    var isDirty = false
-    let select: () -> Void
-    let close: () -> Void
-    var onDoubleClick: (() -> Void)? = nil
-
-    @State private var isHovering = false
-
-    private var scale: CGFloat { CGFloat(settings.interfaceScale) }
-
-    var body: some View {
-        Button(action: select) {
-            HStack(spacing: 5) {
-                if let markerColor {
-                    Image(systemName: "tag.fill")
-                        .font(.system(size: 7.5, weight: .semibold))
-                        .foregroundStyle(Color(nsColor: markerColor.nsColor))
-                        .accessibilityHidden(true)
-                }
-                if let browserIcon {
-                    BrowserFaviconView(browser: browserIcon, size: 11 * scale)
-                        .font(.system(size: 9 * scale, weight: .medium))
-                        .foregroundStyle(
-                            isSelected
-                                ? AnyShapeStyle(Color(nsColor: Theme.accent))
-                                : AnyShapeStyle(.tertiary)
-                        )
-                        .opacity(isSelected ? 1 : 0.78)
-                } else if let fileIconPath {
-                    MaterialFileIconView(
-                        path: fileIconPath,
-                        size: 12 * scale,
-                        opacity: isSelected ? 1 : 0.82
-                    )
-                } else {
-                    Image(systemName: systemImage)
-                        .font(.system(size: 9 * scale, weight: .medium))
-                        .foregroundStyle(
-                            isSelected
-                                ? AnyShapeStyle(Color(nsColor: Theme.accent))
-                                : AnyShapeStyle(.tertiary)
-                        )
-                }
-                Text(verbatim: title)
-                    .font(.system(size: 11.5 * scale))
-                    .foregroundStyle(isSelected ? .primary : .secondary)
-                    .lineLimit(1)
-                if paneCount > 1 {
-                    HStack(spacing: 2) {
-                        Image(systemName: "square.split.2x1")
-                            .font(.system(size: 7.5 * scale, weight: .semibold))
-                        Text(verbatim: "\(paneCount)")
-                            .font(.system(size: 9 * scale, weight: .semibold))
-                    }
-                    .foregroundStyle(.tertiary)
-                }
-                if let agentRollup {
-                    AgentStatusBadgeRepresentable(rollup: agentRollup)
-                        .fixedSize()
-                }
-                if isHovering {
-                    Button(action: close) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 8 * scale, weight: .bold))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 14 * scale, height: 14 * scale)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                } else if isDirty {
-                    Circle()
-                        .fill(.secondary)
-                        .frame(width: 5 * scale, height: 5 * scale)
-                        .frame(width: 14 * scale, height: 14 * scale)
-                } else {
-                    Spacer()
-                        .frame(width: 14 * scale)
-                }
-            }
-            .padding(.leading, 9)
-            .padding(.trailing, 5)
-            .padding(.vertical, 4)
-            .contentShape(RoundedRectangle(cornerRadius: 6))
-        }
-        .buttonStyle(.plain)
-        // Attached to the button itself: a button consumes clicks before
-        // gestures on enclosing views see them, so a double-tap on an
-        // ancestor would never fire. The single click still selects — the
-        // rename just piggybacks on the second click, like Safari tabs.
-        .onTapGesture(count: 2) { onDoubleClick?() }
-        // Cap tab width so a long title truncates instead of stretching the
-        // tab; short titles still shrink to fit (maxWidth is an upper bound).
-        .frame(maxWidth: 220)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(isSelected ? Color.primary.opacity(0.09) : (isHovering ? Color.primary.opacity(0.04) : .clear))
-        )
-        .overlay { MiddleClickCatcher(action: close) }
-        .onHover { isHovering = $0 }
-        .accessibilityValue(markerAccessibilityValue)
-    }
-
-    private var markerAccessibilityValue: String {
-        guard let markerColor else { return String(localized: "No color marker") }
-        return String(
-            localized: "Color marker \(markerColor.displayValue)",
-            comment: "Accessibility value for a project or tab color marker. The placeholder is an sRGB hex color."
-        )
     }
 }

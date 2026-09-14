@@ -62,11 +62,8 @@ enum ZshellJSONValue: Codable, Equatable, Sendable {
     }
 
     var intValue: Int? {
-        guard case .number(let value) = self,
-              value.rounded() == value,
-              value >= Double(Int.min), value <= Double(Int.max)
-        else { return nil }
-        return Int(value)
+        guard case .number(let value) = self else { return nil }
+        return Int(exactly: value)
     }
 
     var arrayValue: [ZshellJSONValue]? {

@@ -33,6 +33,24 @@ same way a tab title does. Right-click it in the sidebar for **Rename…** (and
 Project**. Closing a project ends its sessions; it doesn't touch anything on
 disk.
 
+### Sidebar groups
+
+Use **New Group** at the bottom of the sidebar to create a **Plain Group** or a
+**Folder Group…**. Plain groups start new terminals in your home directory;
+folder groups supply the selected folder as the default. An explicit project
+directory still takes priority. Moving a project between groups does not change
+its running terminals or replace its pinned directory.
+
+Drag a project onto a group header or another project to organize it. Drag it
+onto **New Ungrouped Project** to remove its group membership. Group headers
+can also be dragged to reorder groups. Click a header to collapse it,
+double-click to rename it, or use its context menu. **Remove Group** keeps all
+of its projects open. Number shortcuts follow the currently visible project
+rows; next/previous project navigation can reveal members of a collapsed group.
+
+You can drop folders from Finder anywhere in the sidebar's project list. An
+already open folder is focused instead of creating a duplicate project.
+
 ### The project directory
 
 Two panels need to know which folder they're showing: the file tree and the git
@@ -72,9 +90,31 @@ is set to — with its own working directory and scrollback.
 | Next / previous tab | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
 | Close the focused pane | <kbd>Cmd</kbd>+<kbd>W</kbd> |
 
-A new session starts in the pinned project directory when one is set. Otherwise
-it inherits the current session's directory, then falls back to your home
-directory when neither is known.
+A new local session starts in the pinned project directory when one is set,
+then uses its sidebar group's default directory. Without either, it inherits
+the current session's directory and falls back to your home directory.
+
+### Tab groups
+
+Use **New Tab Group** beside the new-session button, or right-click a tab and
+choose **Move to Group → New Tab Group**. The current tab joins the new group,
+whose name can be edited immediately. New sessions opened from a grouped tab
+stay in that group; the group's **+** button creates a session directly inside it.
+
+Drag a tab onto a group header or another tab to move it. Its context menu also
+lists groups and **Remove from Group**. Click a group header to collapse or
+expand it, and double-click to rename it. Collapsing a group keeps the active
+terminal running and visible; switching to a hidden member expands the group.
+Removing a group keeps its tabs and sessions open. Pinning a grouped tab moves
+it to the fixed section outside the groups.
+
+A tab can also be dropped onto a sidebar project, or onto a sidebar group header
+to create a new project inside that group. **New Ungrouped Project** creates a
+project outside all sidebar groups. **Move Tab to Project** in the tab menu
+also reaches other windows. These moves preserve the running terminals and
+pane layout. Projects must have the same local or SSH location; creating a new
+project from a tab preserves its source location. Tabs containing diffs stay in
+their current project.
 
 ### Tab titles
 
@@ -99,7 +139,9 @@ restored separately.
 Zshell snapshots your layout as you work, so quitting and reopening gives you back:
 
 - every project, in order
-- every tab, including custom names and pinned directories
+- every tab, including custom names, pinning, and color markers
+- sidebar groups and tab groups, including names, order, membership, and collapse state
+- pinned project directories and empty projects
 - the pane layout inside each tab
 - which sidebars were open and which right panel was selected
 
