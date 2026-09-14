@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 SOURCE = Path(__file__).resolve().parents[1] / "zshell/GitStatusModel.swift"
+REVIEW_SOURCE = Path(__file__).resolve().parents[1] / "zshell/DiffReview.swift"
 DUPLICATE_PATH = "duplicate status.txt"
 
 
@@ -30,13 +31,27 @@ class GitStatusParserTests(unittest.TestCase):
             source.index("    /// Parses NUL-delimited porcelain v2."):
             source.index("    nonisolated static func parseWorktrees(")
         ]
+        # #67's review wiring reaches into the parsed slices: Entry carries a
+        # reviewSnapshot helper over DiffReview's value types and StatusResult
+        # keys ReviewFingerprints by path. Pull in exactly those definitions so
+        # the harness keeps compiling against the current sources.
+        review_types = REVIEW_SOURCE.read_text()[
+            REVIEW_SOURCE.read_text().index("enum DiffReviewLayer"):
+            REVIEW_SOURCE.read_text().index("enum DiffReviewFingerprint")
+        ]
+        review_fingerprints = source[
+            source.index("    nonisolated struct ReviewFingerprints"):
+            source.index("    nonisolated struct StatusResult:")
+        ]
         helper = Path(cls.build.name) / "main.swift"
         helper.write_text(
             "import Foundation\n"
+            "import CryptoKit\n"
             "struct Worktree: Equatable, Sendable {}\n"
             "struct RecentCommit: Equatable, Sendable {}\n"
+            + review_types + "\n"
             "struct GitStatusModel {\n"
-            + entry + result + parser
+            + review_fingerprints + entry + result + parser
             + "}\n"
             + "let data = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1]))\n"
             + "let output = String(decoding: data, as: UTF8.self)\n"
