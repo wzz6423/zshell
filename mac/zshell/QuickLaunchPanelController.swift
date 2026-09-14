@@ -63,7 +63,10 @@ final class QuickLaunchPanelController: NSObject {
 
     private let searchField = NSTextField()
     private let clearButton = NSButton()
-    private let tableView = NSTableView()
+    // A table subclass: without it the table claims every mouse-down
+    // (including ones on the rows' buttons), so the row's edit/delete
+    // buttons could never receive a click.
+    private let tableView = RowButtonTableView()
     private let scrollView = NSScrollView()
     private let emptyStateView = NSView()
     private let emptyTitleLabel = NSTextField(labelWithString: "")
@@ -318,8 +321,12 @@ final class QuickLaunchPanelController: NSObject {
             bar.leadingAnchor.constraint(equalTo: content.leadingAnchor),
             bar.trailingAnchor.constraint(equalTo: content.trailingAnchor),
             bar.heightAnchor.constraint(equalToConstant: Self.searchBarHeight),
-            clearButton.widthAnchor.constraint(equalToConstant: 15),
+            // Explicit heights: an image-only borderless button's natural
+            // size is its ~11pt glyph, a click target far too small to hit.
+            clearButton.widthAnchor.constraint(equalToConstant: 18),
+            clearButton.heightAnchor.constraint(equalToConstant: 20),
             closeButton.widthAnchor.constraint(equalToConstant: 18),
+            closeButton.heightAnchor.constraint(equalToConstant: 20),
             separator.topAnchor.constraint(equalTo: bar.bottomAnchor),
             separator.leadingAnchor.constraint(equalTo: content.leadingAnchor),
             separator.trailingAnchor.constraint(equalTo: content.trailingAnchor),
@@ -604,13 +611,12 @@ final class QuickLaunchPanelController: NSObject {
     }
 
     @objc private func tableViewClicked() {
-        // NSTableView fires this action for any click that selects a row,
-        // including clicks on the row's trailing edit/delete buttons — the
-        // button does not consume the mouse-down. Skip so the button's own
-        // action handles those clicks instead of launching.
-        // Clicks always fill clickedRow; the selectedRow fallback covers
-        // programmatic action dispatch (and is harmless otherwise, since
-        // the two agree for a normal click).
+        // NSTableView fires this action for any click that selects a row.
+        // With RowButtonTableView the row's buttons now receive their own
+        // mouse-downs, so this normally only sees plain row clicks; the
+        // button check stays as a guard for edge cases (e.g. a press that
+        // started on a button and drifted). Clicks always fill clickedRow;
+        // the selectedRow fallback covers programmatic action dispatch.
         let row = tableView.clickedRow >= 0 ? tableView.clickedRow : tableView.selectedRow
         guard row >= 0, !clickLandedOnRowButton() else { return }
         if let entry = entry(atRow: row) {
@@ -849,7 +855,11 @@ private final class QuickLaunchRowView: NSView {
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
             iconView.widthAnchor.constraint(equalToConstant: 16),
             editButton.widthAnchor.constraint(equalToConstant: 18),
+            // Same as the search bar: keep a real click target, not the
+            // glyph's natural ~11pt.
+            editButton.heightAnchor.constraint(equalToConstant: 20),
             deleteButton.widthAnchor.constraint(equalToConstant: 18),
+            deleteButton.heightAnchor.constraint(equalToConstant: 20),
         ])
     }
 

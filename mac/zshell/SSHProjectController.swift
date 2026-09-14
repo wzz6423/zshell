@@ -168,7 +168,10 @@ final class SSHProjectController: NSObject {
     private weak var manager: TerminalManager?
     private var window: NSWindow?
 
-    private let tableView = NSTableView()
+    // A table subclass: without it the table claims every mouse-down
+    // (including ones on the rows' buttons), so the row's edit/delete
+    // buttons could never receive a click.
+    private let tableView = RowButtonTableView()
     private let scrollView = NSScrollView()
     private let emptyStateLabel = NSTextField(labelWithString: "")
 
@@ -524,10 +527,9 @@ final class SSHProjectController: NSObject {
         // the two agree for a normal click).
         let row = tableView.clickedRow >= 0 ? tableView.clickedRow : tableView.selectedRow
         guard row >= 0, case .entry(let entry) = displayRows[row] else { return }
-        // Clicking the row's edit/delete buttons also selects the row and
-        // sends this action — NSTableView fires it for any click that
-        // selects, whatever the hit view. The buttons' own actions own
-        // those clicks, so the row must not connect on top of them.
+        // RowButtonTableView hands the rows' buttons their own mouse-downs,
+        // so this action only fires for plain row clicks; the button check
+        // remains as a guard for drifted presses.
         if clickLandedOnRowButton() { return }
         connect(entry)
     }
@@ -773,8 +775,12 @@ private final class SSHProjectRowView: NSView {
             stack.topAnchor.constraint(equalTo: topAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
             iconView.widthAnchor.constraint(equalToConstant: 16),
+            // Explicit heights: an image-only bordered-less button's natural
+            // size is its ~11pt glyph, a click target far too small to hit.
             editButton.widthAnchor.constraint(equalToConstant: 22),
+            editButton.heightAnchor.constraint(equalToConstant: 22),
             deleteButton.widthAnchor.constraint(equalToConstant: 22),
+            deleteButton.heightAnchor.constraint(equalToConstant: 22),
         ])
     }
 
