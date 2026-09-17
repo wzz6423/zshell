@@ -213,11 +213,8 @@ final class TabSplitDragCoordinator: ObservableObject {
         alert.messageText = String(localized: "Couldn’t Move Tab")
         alert.informativeText = failure.message
         alert.addButton(withTitle: String(localized: "OK"))
-        if let window = NSApp.keyWindow ?? NSApp.mainWindow {
-            alert.beginSheetModal(for: window)
-        } else {
-            alert.runModal()
-        }
+        guard let window = AppWindowPresentation.hostWindow() else { return }
+        alert.beginSheetModal(for: window)
     }
 
     private func dropEdge(at location: CGPoint, in frame: CGRect) -> PaneDropEdge {

@@ -774,8 +774,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     /// Asks whether to save before discarding an edited file, matching the
     /// standard macOS Save / Don't Save / Cancel prompt. Presented as a sheet
-    /// on `window` (app-modal only when there's no window) so it doesn't block
-    /// the whole app. Returns `true` if the user backed out — Cancel, or a save
+    /// on the owning Zshell window so it doesn't block the whole app. If no
+    /// owning window is available, leave the content open and report a
+    /// cancellation. Returns `true` if the user backed out — Cancel, or a save
     /// that failed — so a batch close can stop before tearing down other panes.
     ///
     /// This is `async` on purpose: awaiting the sheet means each prompt in a
@@ -796,12 +797,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         let cancel = alert.addButton(withTitle: String(localized: "Cancel"))
         cancel.keyEquivalent = "\u{1b}"
 
-        let response: NSApplication.ModalResponse
-        if let window {
-            response = await alert.beginSheetModal(for: window)
-        } else {
-            response = alert.runModal()
-        }
+        guard let host = AppWindowPresentation.hostWindow(relativeTo: window) else { return true }
+        let response = await alert.beginSheetModal(for: host)
 
         switch response {
         case .alertFirstButtonReturn: // Save
@@ -867,6 +864,11 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         tabGroups[index].name = name
     }
 
+    func setTabGroupColor(_ color: ProjectTabMarkerColor?, id: UUID) {
+        guard let index = tabGroups.firstIndex(where: { $0.id == id }) else { return }
+        tabGroups[index].markerColor = color
+    }
+
     func setTabGroupCollapsed(_ collapsed: Bool, id: UUID) {
         guard let index = tabGroups.firstIndex(where: { $0.id == id }),
               tabGroups[index].isCollapsed != collapsed else { return }
@@ -908,8 +910,12 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     @discardableResult
     func newSession(inTabGroup groupID: UUID) -> TerminalSession? {
         guard tabGroup(id: groupID) != nil else { return nil }
-        let session = newSession()
-        if let tab = selectedTab { moveTab(tab.id, toGroup: groupID) }
+        let session = makeSession(launchSettings: launchSettings)
+        let tab = makeTab(content: .session(session))
+        insertNextToSelected(tab)
+        // Assign the destination before selection can expand the previous group.
+        moveTab(tab.id, toGroup: groupID)
+        selectedTabID = tab.id
         return session
     }
 

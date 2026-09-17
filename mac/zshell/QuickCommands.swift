@@ -182,12 +182,8 @@ final class QuickCommandEditorWindowController: NSWindowController,
         tableView.reloadData()
         select(row: presets.isEmpty ? -1 : min(max(selectedRow, 0), presets.count - 1))
         guard let window else { return }
-        if let parent, window.sheetParent == nil {
-            parent.beginSheet(window)
-        } else {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate()
-        }
+        guard let host = AppWindowPresentation.hostWindow(relativeTo: parent) else { return }
+        AppWindowPresentation.presentSheet(window, on: host)
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int { presets.count }

@@ -8,8 +8,8 @@ import Combine
 import FuzzyMatch
 
 /// The borderless panel hosting Quick Launch. It becomes key — the search
-/// field must take typing — while `nonactivatingPanel` keeps the owning app
-/// frontmost, matching how Spotlight-style overlays behave.
+/// field must take typing — while remaining a child of the owning Zshell
+/// window so it cannot float above another application or Space.
 final class QuickLaunchPanel: NSPanel {
     override var canBecomeKey: Bool { true }
 
@@ -40,7 +40,7 @@ final class QuickLaunchPanel: NSPanel {
     weak var controller: QuickLaunchPanelController?
 }
 
-/// The Quick Launch overlay: a floating panel over the key window listing the
+/// The Quick Launch overlay: a child panel over the owning window listing the
 /// saved command and SSH entries. Typing fuzzy-filters the list, Return
 /// launches the selection in a new terminal session, and ⌘N / ⌘E / ⌘⌫ manage
 /// entries. One shared panel; opening again repositions it over the current
@@ -59,6 +59,7 @@ final class QuickLaunchPanelController: NSObject {
     private static let topOffset: CGFloat = 110
 
     private var panel: QuickLaunchPanel?
+    private weak var hostWindow: NSWindow?
     private weak var manager: TerminalManager?
 
     private let searchField = NSTextField()
@@ -141,7 +142,9 @@ final class QuickLaunchPanelController: NSObject {
     }
 
     func show(manager: TerminalManager) {
+        guard let host = AppWindowPresentation.hostWindow(relativeTo: manager.presentationWindow) else { return }
         self.manager = manager
+        hostWindow = host
         let panel = self.panel ?? makePanel()
         self.panel = panel
 
@@ -150,43 +153,14 @@ final class QuickLaunchPanelController: NSObject {
         updateClearButton()
         refilterAndReload(preservingSelection: false)
         applyTheme()
-        position(panel: panel)
+        AppWindowPresentation.attach(panel, to: host, placement: .topCentered(Self.topOffset))
         panel.makeKeyAndOrderFront(nil)
         panel.makeFirstResponder(searchField)
     }
 
     func close() {
-        panel?.orderOut(nil)
-    }
-
-    private func position(panel: NSPanel) {
-        let size = contentSize()
-        // Position over the window Quick Launch was invoked from; the panel
-        // is not key yet at this point, so the key window is that window.
-        guard let host = NSApp.keyWindow, host !== panel else {
-            if let screen = NSScreen.main {
-                panel.setFrame(
-                    NSRect(
-                        x: screen.visibleFrame.midX - size.width / 2,
-                        y: screen.visibleFrame.midY - size.height / 2 + 80,
-                        width: size.width,
-                        height: size.height
-                    ),
-                    display: false
-                )
-            }
-            return
-        }
-        let hostFrame = host.frame
-        panel.setFrame(
-            NSRect(
-                x: hostFrame.midX - size.width / 2,
-                y: hostFrame.maxY - Self.topOffset - size.height,
-                width: size.width,
-                height: size.height
-            ),
-            display: false
-        )
+        if let panel { AppWindowPresentation.hideChild(panel) }
+        hostWindow = nil
     }
 
     private func contentSize() -> NSSize {
@@ -207,7 +181,7 @@ final class QuickLaunchPanelController: NSObject {
     private func makePanel() -> QuickLaunchPanel {
         let panel = QuickLaunchPanel(
             contentRect: NSRect(origin: .zero, size: contentSize()),
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
@@ -217,8 +191,8 @@ final class QuickLaunchPanelController: NSObject {
         panel.hasShadow = true
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = true
-        panel.level = .floating
-        panel.collectionBehavior = [.fullScreenAuxiliary]
+        panel.level = .normal
+        panel.collectionBehavior = []
 
         let content = QuickLaunchPanelContentView()
         content.onEffectiveAppearanceChange = { [weak self] in self?.applyTheme() }
@@ -564,9 +538,14 @@ final class QuickLaunchPanelController: NSObject {
 
         let size = contentSize()
         listHeightConstraint?.constant = size.height - Self.searchBarHeight - Self.footerHeight - 2
-        let top = panel.frame.maxY
         panel.setContentSize(size)
-        panel.setFrameOrigin(NSPoint(x: panel.frame.minX, y: top - panel.frame.height))
+        if let hostWindow {
+            AppWindowPresentation.position(
+                panel,
+                relativeTo: hostWindow,
+                placement: .topCentered(Self.topOffset)
+            )
+        }
         tableView.sizeLastColumnToFit()
 
         if displayRows.isEmpty {

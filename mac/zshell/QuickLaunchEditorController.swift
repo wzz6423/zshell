@@ -61,23 +61,17 @@ final class QuickLaunchEditorController: NSObject, NSWindowDelegate {
         buildForm()
     }
 
-    /// Presents the editor centered over `parent` (the launcher panel when it
-    /// is open, else centered on screen).
+    /// Presents the editor centered in the Zshell window that owns `parent`.
     static func present(editing entry: QuickLaunchEntry?, relativeTo parent: NSWindow?) {
+        guard let host = AppWindowPresentation.hostWindow(relativeTo: parent) else { return }
         let controller = QuickLaunchEditorController(entry: entry)
         openEditors.append(controller)
 
-        if let parent {
-            let frame = controller.window.frame
-            controller.window.setFrameOrigin(NSPoint(
-                x: parent.frame.midX - frame.width / 2,
-                y: parent.frame.midY - frame.height / 2
-            ))
-        } else {
-            controller.window.center()
-        }
-        // The launcher panel floats, so the editor must float above it.
-        controller.window.level = .floating
+        AppWindowPresentation.attach(
+            controller.window,
+            to: host,
+            placement: .centered
+        )
         controller.window.makeKeyAndOrderFront(nil)
         controller.window.makeFirstResponder(controller.nameField)
     }
