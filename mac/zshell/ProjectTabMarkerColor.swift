@@ -14,7 +14,7 @@ struct ProjectTabMarkerColor: Equatable, Sendable {
 
     let hex: String
 
-    init?(hex rawValue: String) {
+    nonisolated init?(hex rawValue: String) {
         let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
         let value = trimmed.hasPrefix("#") ? String(trimmed.dropFirst()) : trimmed
         guard value.count == 6, UInt64(value, radix: 16) != nil else { return nil }
@@ -42,30 +42,56 @@ struct ProjectTabMarkerColor: Equatable, Sendable {
 }
 
 /// Owns the shared AppKit color panel without introducing another SwiftUI
-/// representable. The active project or tab receives continuous color changes.
+/// representable. The active project, tab, or group receives color changes.
 @MainActor
 final class ProjectTabColorPanelController: NSObject {
     static let shared = ProjectTabColorPanelController()
 
     private var applyColor: ((ProjectTabMarkerColor) -> Void)?
 
-    func present(project: Project) {
-        present(markerColor: project.markerColor) { [weak project] color in
-            project?.markerColor = color
-        }
+    func present(project: Project, hostWindow: NSWindow? = nil) {
+        present(
+            markerColor: project.markerColor,
+            apply: { [weak project] color in
+                project?.markerColor = color
+            },
+            hostWindow: hostWindow
+        )
     }
 
-    func present(tab: PaneTab) {
-        present(markerColor: tab.markerColor) { [weak tab] color in
-            tab?.markerColor = color
-        }
+    func present(tab: PaneTab, hostWindow: NSWindow? = nil) {
+        present(
+            markerColor: tab.markerColor,
+            apply: { [weak tab] color in
+                tab?.markerColor = color
+            },
+            hostWindow: hostWindow
+        )
+    }
+
+    func present(
+        group: ProjectGroup,
+        apply: @escaping (ProjectTabMarkerColor) -> Void,
+        hostWindow: NSWindow? = nil
+    ) {
+        present(markerColor: group.markerColor, apply: apply, hostWindow: hostWindow)
+    }
+
+    func present(
+        tabGroup: SessionTabGroup,
+        apply: @escaping (ProjectTabMarkerColor) -> Void,
+        hostWindow: NSWindow? = nil
+    ) {
+        present(markerColor: tabGroup.markerColor, apply: apply, hostWindow: hostWindow)
     }
 
     private func present(
         markerColor: ProjectTabMarkerColor?,
-        apply: @escaping (ProjectTabMarkerColor) -> Void
+        apply: @escaping (ProjectTabMarkerColor) -> Void,
+        hostWindow: NSWindow?
     ) {
         let initialColor = markerColor ?? .defaultColor
+        guard let host = AppWindowPresentation.hostWindow(relativeTo: hostWindow) else { return }
         applyColor = apply
 
         let panel = NSColorPanel.shared
@@ -74,6 +100,7 @@ final class ProjectTabColorPanelController: NSObject {
         panel.color = initialColor.nsColor
         panel.setTarget(self)
         panel.setAction(#selector(colorDidChange(_:)))
+        AppWindowPresentation.attach(panel, to: host, placement: .centered)
         panel.makeKeyAndOrderFront(nil)
     }
 

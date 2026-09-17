@@ -21,10 +21,12 @@ struct SidebarLayoutMetrics {
         let minimum = CGFloat(
             AppSettings.sidebarFontSizeRange.lowerBound
                 / AppSettings.defaultSidebarFontSize
+                * AppSettings.interfaceScaleRange.lowerBound
         )
         let maximum = CGFloat(
             AppSettings.sidebarFontSizeRange.upperBound
                 / AppSettings.defaultSidebarFontSize
+                * AppSettings.interfaceScaleRange.upperBound
         )
         self.fontScale = min(max(fontScale, minimum), maximum)
         growthScale = max(1, self.fontScale)

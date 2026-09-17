@@ -156,6 +156,8 @@ final class TerminalManager: nonisolated ObservableObject {
     /// Window hosting this manager, once SwiftUI has attached its content.
     /// Finder service requests use it to target the active Zshell window.
     private weak var window: NSWindow?
+    /// The host window for singleton panels opened by this manager.
+    var presentationWindow: NSWindow? { window }
     /// The untouched project created before the first window appears. A Finder
     /// request arriving during launch replaces it instead of leaving an extra
     /// home-directory project beside the requested folder.

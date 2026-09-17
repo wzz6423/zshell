@@ -167,6 +167,7 @@ final class SSHProjectController: NSObject {
 
     private weak var manager: TerminalManager?
     private var window: NSWindow?
+    private weak var hostWindow: NSWindow?
 
     // A table subclass: without it the table claims every mouse-down
     // (including ones on the rows' buttons), so the row's edit/delete
@@ -221,13 +222,15 @@ final class SSHProjectController: NSObject {
     private var lifetime: [AnyCancellable] = []
 
     func present(for manager: TerminalManager) {
+        guard let host = AppWindowPresentation.hostWindow(relativeTo: manager.presentationWindow) else { return }
         self.manager = manager
+        hostWindow = host
         let window = self.window ?? makeWindow()
         self.window = window
 
         clearForm()
         reloadList()
-        window.center()
+        AppWindowPresentation.attach(window, to: host, placement: .centered)
         window.makeKeyAndOrderFront(nil)
         window.makeFirstResponder(hostField)
     }
@@ -601,12 +604,13 @@ final class SSHProjectController: NSObject {
     }
 
     private func connect(_ entry: SSHProjectEntry, endpoint: SSHEndpoint? = nil) {
-        guard window?.isVisible == true, let manager else { return }
+        guard let window, window.isVisible, let manager else { return }
         do {
             let endpoint = try endpoint ?? SSHEndpoint(
                 host: entry.host, user: entry.user, port: entry.port
             )
-            window?.orderOut(nil)
+            AppWindowPresentation.hideChild(window)
+            hostWindow = nil
             manager.newSSHProject(
                 endpoint: endpoint,
                 remoteDirectory: entry.directory

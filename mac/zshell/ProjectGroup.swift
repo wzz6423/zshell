@@ -18,6 +18,8 @@ struct ProjectGroup: Identifiable, Codable, Equatable {
     var kind: Kind
     /// The section renders collapsed in the sidebar.
     var isCollapsed: Bool
+    /// Opaque sRGB marker color. Older group files omit this field.
+    var markerColorHex: String?
 
     enum Kind: Codable, Equatable {
         case plain
@@ -28,12 +30,19 @@ struct ProjectGroup: Identifiable, Codable, Equatable {
         id: UUID = UUID(),
         name: String,
         kind: Kind,
-        isCollapsed: Bool = false
+        isCollapsed: Bool = false,
+        markerColorHex: String? = nil
     ) {
         self.id = id
         self.name = name
         self.kind = kind
         self.isCollapsed = isCollapsed
+        self.markerColorHex = markerColorHex
+    }
+
+    var markerColor: ProjectTabMarkerColor? {
+        get { markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:)) }
+        set { markerColorHex = newValue?.hex }
     }
 
     /// The directory a session opened from this group starts in: home for a
@@ -146,10 +155,23 @@ struct SessionTabGroup: Identifiable, Codable, Equatable {
     let id: UUID
     var name: String
     var isCollapsed: Bool
+    /// Opaque sRGB marker color. Older session snapshots omit this field.
+    var markerColorHex: String?
 
-    init(id: UUID = UUID(), name: String, isCollapsed: Bool = false) {
+    init(
+        id: UUID = UUID(),
+        name: String,
+        isCollapsed: Bool = false,
+        markerColorHex: String? = nil
+    ) {
         self.id = id
         self.name = name
         self.isCollapsed = isCollapsed
+        self.markerColorHex = markerColorHex
+    }
+
+    var markerColor: ProjectTabMarkerColor? {
+        get { markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:)) }
+        set { markerColorHex = newValue?.hex }
     }
 }

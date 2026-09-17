@@ -284,7 +284,7 @@ final class SessionTabsNSView: NSView {
         row.apply(title: group.name, icon: nil,
                   selected: project.selectedTab?.tabGroupID == group.id,
                   group: true, collapsed: group.isCollapsed, grouped: true,
-                  count: members.count, scale: scale, actionSymbol: "plus",
+                  marker: group.markerColor, count: members.count, scale: scale, actionSymbol: "plus",
                   actionLabel: String(localized: "New Session in Group"),
                   action: { [weak project] in project?.newSession(inTabGroup: group.id) })
         row.toolTip = group.name
@@ -298,15 +298,36 @@ final class SessionTabsNSView: NSView {
         }
         row.menuItems = { [weak row, weak project] in
             guard let project, let current = project.tabGroup(id: group.id) else { return [] }
-            return [
+            var items: [AppKitContextMenuItem] = [
                 .action(title: String(localized: "New Session in Group")) { project.newSession(inTabGroup: group.id) },
                 .action(title: String(localized: "Rename…")) { row?.onRename?() },
                 .action(title: String(localized: current.isCollapsed ? "Expand Group" : "Collapse Group")) {
                     project.setTabGroupCollapsed(!current.isCollapsed, id: group.id)
                 },
+            ]
+            items += [
+                .separator,
+                .action(title: String(localized: "Set Color Marker…")) { [weak project] in
+                    guard let project, let latest = project.tabGroup(id: group.id) else { return }
+                    ProjectTabColorPanelController.shared.present(
+                        tabGroup: latest,
+                        apply: { [weak project] color in
+                            project?.setTabGroupColor(color, id: group.id)
+                        },
+                        hostWindow: row?.window
+                    )
+                },
+            ]
+            if current.markerColor != nil {
+                items.append(.action(title: String(localized: "Remove Color Marker")) {
+                    project.setTabGroupColor(nil, id: group.id)
+                })
+            }
+            items += [
                 .separator,
                 .action(title: String(localized: "Remove Group")) { project.removeTabGroup(group.id) },
             ]
+            return items
         }
     }
 
@@ -469,7 +490,12 @@ final class SessionTabsNSView: NSView {
             groupItems.append(.action(title: String(localized: "Remove from Group")) { project.moveTab(tab.id, toGroup: nil) })
         }
         items += [.separator, .submenu(title: String(localized: "Move to Group"), items: groupItems), .separator]
-        items.append(.action(title: String(localized: "Set Color Marker…")) { ProjectTabColorPanelController.shared.present(tab: tab) })
+        items.append(.action(title: String(localized: "Set Color Marker…")) {
+            ProjectTabColorPanelController.shared.present(
+                tab: tab,
+                hostWindow: self.rows[.tab(tab.id)]?.window
+            )
+        })
         if tab.markerColor != nil { items.append(.action(title: String(localized: "Remove Color Marker")) { tab.markerColor = nil }) }
         if case .file(let file) = tab.focusedContent {
             items.append(.action(title: String(localized: "Reveal in Finder")) { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: file.path)]) })

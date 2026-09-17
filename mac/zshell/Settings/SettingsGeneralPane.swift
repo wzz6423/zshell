@@ -113,10 +113,7 @@ final class SettingsGeneralPane: SettingsPaneViewController {
         alert.informativeText = error.localizedDescription
         alert.alertStyle = .warning
         alert.addButton(withTitle: String(localized: "OK"))
-        if let window = view.window {
-            alert.beginSheetModal(for: window)
-        } else {
-            alert.runModal()
-        }
+        guard let window = AppWindowPresentation.hostWindow(relativeTo: view.window) else { return }
+        alert.beginSheetModal(for: window)
     }
 }

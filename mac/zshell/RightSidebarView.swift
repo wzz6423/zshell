@@ -1396,11 +1396,8 @@ private struct GitPanel: View {
             }
         }
 
-        if let window = NSApp.keyWindow ?? NSApp.mainWindow {
-            alert.beginSheetModal(for: window, completionHandler: handleResponse)
-        } else {
-            handleResponse(alert.runModal())
-        }
+        guard let window = AppWindowPresentation.hostWindow() else { return }
+        alert.beginSheetModal(for: window, completionHandler: handleResponse)
     }
 
     // MARK: Commit box
@@ -1636,27 +1633,12 @@ private struct GitPanel: View {
     @ViewBuilder
     private var worktreesSection: some View {
         if !model.worktrees.isEmpty {
-            VStack(spacing: 0) {
-                GitSectionHeader(
-                    title: String(localized: "WORKTREES"),
-                    count: model.worktrees.count,
-                    isCollapsed: $worktreesCollapsed,
-                    actions: [],
-                    actionsDisabled: model.isBusy
-                )
-                if !worktreesCollapsed {
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(model.worktrees) { worktree in
-                                WorktreeRow(worktree: worktree) {
-                                    openWorktree(worktree.path)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .frame(maxHeight: worktreesCollapsed ? nil : 160)
+            GitWorktreeSectionView(
+                worktrees: model.worktrees,
+                isCollapsed: $worktreesCollapsed,
+                fontScale: sidebarFontScale,
+                openWorktree: openWorktree
+            )
         }
     }
 
@@ -2132,69 +2114,6 @@ private struct GitPanel: View {
 
     private func shellQuoted(_ path: String) -> String {
         "'" + path.replacingOccurrences(of: "'", with: "'\\''") + "'"
-    }
-}
-
-private struct WorktreeRow: View {
-    let worktree: GitStatusModel.Worktree
-    let open: () -> Void
-
-    private var branchLabel: String {
-        worktree.branch ?? String(localized: "Detached HEAD")
-    }
-
-    var body: some View {
-        Button(action: open) {
-            HStack(spacing: 7) {
-                Image(systemName: worktree.isBare ? "archivebox" : "folder")
-                    .sidebarFont(size: 11, weight: .medium)
-                    .foregroundStyle(worktree.isCurrent ? Color(nsColor: Theme.accent) : .secondary)
-                    .frame(width: 14)
-                VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: 5) {
-                        Text(verbatim: branchLabel)
-                            .sidebarFont(size: 11, weight: .medium)
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        if worktree.isCurrent {
-                            Text(String(localized: "Current"))
-                                .sidebarFont(size: 8.5, weight: .medium)
-                                .foregroundStyle(Color(nsColor: Theme.accent))
-                        }
-                    }
-                    Text(verbatim: worktree.path)
-                        .sidebarFont(size: 9.5)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.head)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "arrow.up.forward")
-                    .sidebarFont(size: 9, weight: .medium)
-                    .foregroundStyle(.tertiary)
-            }
-            .frame(maxWidth: .infinity, minHeight: 16, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .disabled(worktree.isBare)
-        .opacity(worktree.isBare ? 0.55 : 1)
-        .help(
-            worktree.isBare
-                ? String(localized: "Bare repositories do not have a working directory")
-                : String(localized: "Open Worktree in New Tab")
-        )
-        .accessibilityLabel(
-            branchLabel + ", " + worktree.path
-        )
-        .accessibilityHint(
-            worktree.isBare
-                ? String(localized: "Bare repositories cannot be opened in a terminal tab")
-                : String(localized: "Opens a new terminal tab in this worktree")
-        )
     }
 }
 

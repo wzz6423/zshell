@@ -42,9 +42,11 @@ directory still takes priority. Moving a project between groups does not change
 its running terminals or replace its pinned directory.
 
 Drag a project onto a group header or another project to organize it. Drag it
-onto **New Ungrouped Project** to remove its group membership. Group headers
-can also be dragged to reorder groups. Click a header to collapse it,
-double-click to rename it, or use its context menu. **Remove Group** keeps all
+onto **+ (New Project)** at the bottom of the sidebar to remove its group
+membership. Group headers can also be dragged to reorder groups. Click a header
+to collapse or expand it, double-click to rename it, or use its context menu.
+Choose **Set Color Marker…** to give the group a color, or **Remove Color Marker**
+to clear it. **Remove Group** keeps all
 of its projects open. Number shortcuts follow the currently visible project
 rows; next/previous project navigation can reveal members of a collapsed group.
 
@@ -106,10 +108,12 @@ lists groups and **Remove from Group**. Click a group header to collapse or
 expand it, and double-click to rename it. Collapsing a group keeps the active
 terminal running and visible; switching to a hidden member expands the group.
 Removing a group keeps its tabs and sessions open. Pinning a grouped tab moves
-it to the fixed section outside the groups.
+it to the fixed section outside the groups. Right-click a group header to choose
+**Set Color Marker…** or **Remove Color Marker**. Group names, colors, and
+collapse state are restored after relaunching Zshell.
 
 A tab can also be dropped onto a sidebar project, or onto a sidebar group header
-to create a new project inside that group. **New Ungrouped Project** creates a
+to create a new project inside that group. Dropping onto **+ (New Project)** at the bottom of the sidebar creates a
 project outside all sidebar groups. **Move Tab to Project** in the tab menu
 also reaches other windows. These moves preserve the running terminals and
 pane layout. Projects must have the same local or SSH location; creating a new
@@ -140,7 +144,7 @@ Zshell snapshots your layout as you work, so quitting and reopening gives you ba
 
 - every project, in order
 - every tab, including custom names, pinning, and color markers
-- sidebar groups and tab groups, including names, order, membership, and collapse state
+- sidebar groups and tab groups, including names, color markers, order, membership, and collapse state
 - pinned project directories and empty projects
 - the pane layout inside each tab
 - which sidebars were open and which right panel was selected

@@ -136,28 +136,22 @@ enum SettingsImportExport {
         present(alert) { _ in }
     }
 
-    /// Sheets panels and alerts on the key window, falling back to a modal
-    /// run when no window can host a sheet — the pattern the project picker
-    /// in the sidebar uses.
+    /// Sheets panels and alerts on the active Zshell window. Without an owning
+    /// application window there is no stable place for an ordinary popup, so
+    /// the request is ignored instead of falling back to a screen-level modal.
     private static func present(
         _ panel: NSSavePanel,
         completion: @escaping (NSApplication.ModalResponse) -> Void
     ) {
-        if let window = NSApp.keyWindow ?? NSApp.mainWindow {
-            panel.beginSheetModal(for: window, completionHandler: completion)
-        } else {
-            completion(panel.runModal())
-        }
+        guard let window = AppWindowPresentation.hostWindow() else { return }
+        panel.beginSheetModal(for: window, completionHandler: completion)
     }
 
     private static func present(
         _ alert: NSAlert,
         completion: @escaping (NSApplication.ModalResponse) -> Void
     ) {
-        if let window = NSApp.keyWindow ?? NSApp.mainWindow {
-            alert.beginSheetModal(for: window, completionHandler: completion)
-        } else {
-            completion(alert.runModal())
-        }
+        guard let window = AppWindowPresentation.hostWindow() else { return }
+        alert.beginSheetModal(for: window, completionHandler: completion)
     }
 }

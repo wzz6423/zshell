@@ -90,6 +90,7 @@ extension NSView {
 /// Stable row views avoid replacing live field editors when terminal titles
 /// change. Terminal surfaces are never owned by this chrome.
 final class WorkspaceItemView: NSView, NSTextFieldDelegate {
+    private static weak var pendingGroupSelectionOwner: WorkspaceItemView?
     let titleLabel = NSTextField(labelWithString: "")
     private let subtitleLabel = NSTextField(labelWithString: "")
     private let iconView = NSImageView()
@@ -115,6 +116,8 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     private var mouseOrigin: NSPoint?
     private var hasDragged = false
     private var dragCancelMonitor: Any?
+    private var pendingGroupSelection: DispatchWorkItem?
+    private var pendingGroupSelectionID: UUID?
     private var isHovered = false
     private var isSelected = false
     private var isGroup = false
@@ -207,7 +210,11 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         shortcutLabel.textColor = .secondaryLabelColor
         shortcutLabel.stringValue = shortcut ?? ""
         actionButton.configure(symbol: actionSymbol, label: actionLabel, pointSize: 9 * scale)
-        actionButton.onAction = action
+        actionButton.onAction = { [weak self] in
+            self?.cancelPendingGroupSelection()
+            WorkspaceItemView.pendingGroupSelectionOwner?.cancelPendingGroupSelection()
+            action?()
+        }
         if let rollup {
             badge.apply(phase: rollup.phase, count: rollup.count)
             badgeWidth = badge.intrinsicContentSize.width + 4 * scale
@@ -322,16 +329,22 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     }
 
     override func mouseDown(with event: NSEvent) {
+        Self.pendingGroupSelectionOwner?.cancelPendingGroupSelection()
         if event.modifierFlags.contains(.control) { rightMouseDown(with: event); return }
         mouseOrigin = event.locationInWindow
         hasDragged = false
-        if event.clickCount == 2 { mouseOrigin = nil; onRename?() }
+        if event.clickCount == 2 {
+            cancelPendingGroupSelection()
+            mouseOrigin = nil
+            onRename?()
+        }
     }
 
     override func mouseDragged(with event: NSEvent) {
         guard !isRenaming, let mouseOrigin else { return }
         if !hasDragged {
             guard hypot(event.locationInWindow.x - mouseOrigin.x, event.locationInWindow.y - mouseOrigin.y) >= 4 else { return }
+            cancelPendingGroupSelection()
             hasDragged = true
             dragCancelMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
                 let input = WorkspaceChromeEvent(event)
@@ -352,7 +365,32 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         mouseOrigin = nil
         removeDragMonitor()
         if hasDragged { onDragEnded?(event) }
-        else if bounds.contains(convert(event.locationInWindow, from: nil)) { onSelect?() }
+        else if bounds.contains(convert(event.locationInWindow, from: nil)) {
+            // Any row selection supersedes a delayed group selection.
+            Self.pendingGroupSelectionOwner?.cancelPendingGroupSelection()
+            if isGroup && onRename != nil {
+                // A group's first click must not collapse it before a second
+                // click starts renaming. Ordinary tabs still select immediately.
+                cancelPendingGroupSelection()
+                Self.pendingGroupSelectionOwner = self
+                let selectionID = UUID()
+                pendingGroupSelectionID = selectionID
+                let selection = DispatchWorkItem { [weak self] in
+                    guard let self,
+                          self.pendingGroupSelectionID == selectionID,
+                          self.window != nil,
+                          !self.isRenaming else { return }
+                    if Self.pendingGroupSelectionOwner === self {
+                        Self.pendingGroupSelectionOwner = nil
+                    }
+                    self.pendingGroupSelection = nil
+                    self.pendingGroupSelectionID = nil
+                    self.onSelect?()
+                }
+                pendingGroupSelection = selection
+                DispatchQueue.main.asyncAfter(deadline: .now() + NSEvent.doubleClickInterval, execute: selection)
+            } else { onSelect?() }
+        }
         hasDragged = false
         NSCursor.arrow.set()
     }
@@ -363,17 +401,20 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     }
 
     override func rightMouseDown(with event: NSEvent) {
+        Self.pendingGroupSelectionOwner?.cancelPendingGroupSelection()
         guard let items = menuItems?(), !items.isEmpty else { return }
         menuPresenter.popUp(items: items, at: convert(event.locationInWindow, from: nil), in: self)
     }
 
     override func accessibilityPerformShowMenu() -> Bool {
+        Self.pendingGroupSelectionOwner?.cancelPendingGroupSelection()
         guard let items = menuItems?(), !items.isEmpty else { return false }
         menuPresenter.popUp(items: items, at: NSPoint(x: bounds.midX, y: bounds.midY), in: self)
         return true
     }
 
     override func keyDown(with event: NSEvent) {
+        Self.pendingGroupSelectionOwner?.cancelPendingGroupSelection()
         if event.keyCode == 109, event.modifierFlags.contains(.shift) {
             _ = accessibilityPerformShowMenu()
             return
@@ -388,9 +429,28 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         }
     }
 
-    override func accessibilityPerformPress() -> Bool { onSelect?(); return onSelect != nil }
+    override func accessibilityPerformPress() -> Bool {
+        Self.pendingGroupSelectionOwner?.cancelPendingGroupSelection()
+        onSelect?()
+        return onSelect != nil
+    }
+
+    private func cancelPendingGroupSelection() {
+        pendingGroupSelection?.cancel()
+        pendingGroupSelection = nil
+        pendingGroupSelectionID = nil
+        if Self.pendingGroupSelectionOwner === self {
+            Self.pendingGroupSelectionOwner = nil
+        }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil { cancelPendingGroupSelection() }
+    }
 
     private func cancelMouseDrag() {
+        cancelPendingGroupSelection()
         mouseOrigin = nil
         hasDragged = false
         removeDragMonitor()
@@ -404,10 +464,12 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     }
 
     deinit {
+        pendingGroupSelection?.cancel()
         if let dragCancelMonitor { NSEvent.removeMonitor(dragCancelMonitor) }
     }
 
     func beginRename(value: String, commit: @escaping (String) -> Void) {
+        cancelPendingGroupSelection()
         guard !isRenaming else { return }
         renamePreviousResponder = window?.firstResponder
         renameCommit = commit

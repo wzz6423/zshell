@@ -57,14 +57,16 @@ final class TerminalEnvironmentEditorController: NSWindowController, NSWindowDel
         self.scope = scope
         loadValues()
         guard let window else { return }
-        let parent = NSApp.keyWindow ?? NSApp.mainWindow
+        guard let parent = AppWindowPresentation.hostWindow() else {
+            self.scope = nil
+            self.parentWindow = nil
+            return
+        }
         parentWindow = parent
-        if let parent, parent !== window {
-            parent.beginSheet(window)
+        if parent !== window {
+            AppWindowPresentation.presentSheet(window, on: parent)
         } else {
-            window.center()
             window.makeKeyAndOrderFront(nil)
-            NSApp.activate()
         }
     }
 
@@ -295,8 +297,8 @@ final class TerminalEnvironmentEditorController: NSWindowController, NSWindowDel
 
     private func closeEditor() {
         guard let window else { return }
-        if let parentWindow, window.sheetParent === parentWindow {
-            parentWindow.endSheet(window)
+        if let parent = window.sheetParent {
+            parent.endSheet(window)
         } else {
             window.orderOut(nil)
         }

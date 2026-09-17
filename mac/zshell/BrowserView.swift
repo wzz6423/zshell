@@ -712,11 +712,11 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         for webView: WKWebView,
         completion: @escaping (NSApplication.ModalResponse) -> Void
     ) {
-        if let window = webView.window {
-            alert.beginSheetModal(for: window, completionHandler: completion)
-        } else {
-            completion(alert.runModal())
+        guard let window = AppWindowPresentation.hostWindow(relativeTo: webView.window) else {
+            completion(.cancel)
+            return
         }
+        alert.beginSheetModal(for: window, completionHandler: completion)
     }
 }
 

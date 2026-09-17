@@ -330,7 +330,8 @@ final class FileTreeModel: nonisolated ObservableObject {
         alert.messageText = messageText
         alert.informativeText = informativeText
         alert.alertStyle = .warning
-        alert.runModal()
+        guard let window = AppWindowPresentation.hostWindow() else { return }
+        alert.beginSheetModal(for: window)
     }
 
     private func rebuild() {
