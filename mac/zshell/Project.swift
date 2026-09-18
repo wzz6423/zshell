@@ -1002,6 +1002,48 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         revealSelectedTabGroup()
     }
 
+    /// Pulls one live pane out of a split tab and places it in an adjacent tab.
+    /// The existing pane and content objects move intact so terminal surfaces,
+    /// editor state, and browser state are never torn down during the transfer.
+    @discardableResult
+    func extractPaneAsAdjacentTab(_ paneID: UUID, from sourceTabID: UUID) -> PaneTab? {
+        guard let sourceIndex = tabs.firstIndex(where: { $0.id == sourceTabID }) else {
+            return nil
+        }
+        let source = tabs[sourceIndex]
+        let panesBefore = source.allPanes
+        guard panesBefore.count > 1,
+              let paneIndex = panesBefore.firstIndex(where: { $0.id == paneID }),
+              !panesBefore[paneIndex].content.isDiff
+        else { return nil }
+
+        let result = source.layout.removingPane(paneID)
+        guard let movedPane = result.pane, let remainingLayout = result.node else {
+            return nil
+        }
+
+        let detached = PaneTab(
+            layout: .pane(movedPane),
+            focusedPaneID: movedPane.id,
+            isPinned: source.isPinned
+        )
+        detached.tabGroupID = source.tabGroupID
+        detached.launchSettingsOverride = source.launchSettingsOverride
+        detached.contextSession = source.contextSession ?? source.sessions.first
+
+        source.layout = remainingLayout
+        if source.focusedPaneID == paneID {
+            let survivors = source.allPanes
+            source.focusedPaneID = survivors[min(paneIndex, survivors.count - 1)].id
+        }
+        source.isZoomed = false
+
+        register(detached)
+        tabs.insert(detached, at: sourceIndex + 1)
+        selectedTabID = detached.id
+        return detached
+    }
+
     /// Moves a tab into another tab's pane tree at the indicated drop edge.
     /// The source layout is grafted intact, so dragging a tab that already has
     /// splits preserves those panes and their proportions. Diff tabs stay

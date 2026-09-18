@@ -414,9 +414,12 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     override func draw(_ dirtyRect: NSRect) {
         let usesGroupControlBackground = isCompactGroup || fillsGroupRow
         let drawsItemBackground = isDropTarget || isSelected || isHovered || isGroup
-        let shapeBounds = usesGroupControlBackground ? groupControlFrame : bounds.insetBy(dx: 0.5, dy: 1)
+        let shapeBounds = usesGroupControlBackground
+            ? groupControlFrame
+            : bounds.insetBy(dx: 0.5, dy: usesTabStripHoverTracking ? 6 : 1)
         let cornerRadius = min(
-            (isCompactGroup ? 6 * compactGroupControlScale : (isSidebar ? 6 : 12) * scale),
+            (isCompactGroup ? 6 * compactGroupControlScale
+                : (usesTabStripHoverTracking ? 7 : (isSidebar ? 6 : 12) * scale)),
             min(shapeBounds.width, shapeBounds.height) / 2
         )
         let shape = NSBezierPath(roundedRect: shapeBounds, xRadius: cornerRadius, yRadius: cornerRadius)
