@@ -32,6 +32,7 @@ private final class ProjectSidebarOutlineView: NSView {
     var footerHeight: CGFloat = 0
     var drawsOuterEdge = false
     var dropFrame: NSRect?
+    var workspaceDropFrame: NSRect?
     override var isFlipped: Bool { true }
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
@@ -44,6 +45,18 @@ private final class ProjectSidebarOutlineView: NSView {
             Theme.accent.setStroke()
             path.lineWidth = 2
             path.setLineDash([5, 4], count: 2, phase: 0)
+            path.stroke()
+        }
+        if let workspaceDropFrame {
+            let path = NSBezierPath(
+                roundedRect: workspaceDropFrame.insetBy(dx: 4, dy: 4),
+                xRadius: 6,
+                yRadius: 6
+            )
+            Theme.accent.withAlphaComponent(0.18).setFill()
+            path.fill()
+            Theme.accent.setStroke()
+            path.lineWidth = 1.5
             path.stroke()
         }
     }
@@ -72,7 +85,8 @@ final class ProjectSidebarNSView: NSView {
     private var revealSelection = true
     private var draggedItem: Item?
     private var dropItem: Item?
-    private var isUngroupedDropTarget = false
+    private var isUngroupedWorkspaceDropTarget = false
+    private var isUngroupedFooterDropTarget = false
     private var isFolderDropTarget = false {
         didSet { outline.dropFrame = isFolderDropTarget ? scrollView.frame : nil; outline.needsDisplay = true }
     }
@@ -81,6 +95,7 @@ final class ProjectSidebarNSView: NSView {
     private var scale: CGFloat { CGFloat(AppSettings.shared.interfaceScale) }
     private var metrics: SidebarLayoutMetrics { SidebarLayoutMetrics(fontSize: AppSettings.shared.sidebarFontSize) }
     private var fontScale: CGFloat { metrics.fontScale * scale }
+    private var groupMemberIndent: CGFloat { 18 * scale }
 
     init(manager: TerminalManager, tabDrag: TabSplitDragCoordinator, bottomBarHeight: CGFloat) {
         self.manager = manager
@@ -123,7 +138,7 @@ final class ProjectSidebarNSView: NSView {
             publisher.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.scheduleRefresh() }
                 .store(in: &observations)
         }
-        tabDrag.$drag.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.updateDropHighlights() }
+        tabDrag.$sidebarDropHighlight.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.updateDropHighlights() }
             .store(in: &observations)
         NotificationCenter.default.publisher(for: NSView.boundsDidChangeNotification, object: scrollView.contentView)
             .sink { [weak self] _ in self?.publishDropFrames() }.store(in: &observations)
@@ -193,11 +208,14 @@ final class ProjectSidebarNSView: NSView {
         let subtitle: String?
         if project.sessions.count > 1 { subtitle = String(localized: "\(project.sessions.count) sessions") }
         else { subtitle = project.selectedSession?.directoryLabel }
+        let groupColor = groupStore.group(id: project.groupID).map {
+            $0.markerColor ?? .defaultColor
+        }
         row.apply(title: project.name, subtitle: subtitle,
                   icon: NSImage(systemSymbolName: project.isRemote ? "network" : "folder", accessibilityDescription: nil),
                   selected: project.id == manager.selectedProjectID, pinned: project.isPinned,
-                  marker: project.markerColor, rollup: project.agentRollup, sidebar: true,
-                  indent: project.groupID == nil ? 0 : 12 * scale, scale: fontScale, shortcut: shortcut,
+                  marker: groupColor ?? project.markerColor, rollup: project.agentRollup, sidebar: true,
+                  indent: project.groupID == nil ? 0 : groupMemberIndent, scale: fontScale, shortcut: shortcut,
                   actionLabel: String(localized: "Close Project"), action: { [weak manager, weak project] in
                       if let project { manager?.close(project) }
                   })
@@ -215,14 +233,10 @@ final class ProjectSidebarNSView: NSView {
 
     private func configure(_ row: WorkspaceItemView, group: ProjectGroup) {
         let count = manager.projects.filter { $0.groupID == group.id }.count
-        row.apply(title: group.name,
-                  icon: NSImage(systemSymbolName: group.folderPath == nil ? "tray.full" : "folder", accessibilityDescription: nil),
+        row.apply(title: group.name, icon: nil,
                   selected: manager.selectedProject?.groupID == group.id, group: true, collapsed: group.isCollapsed,
-                  marker: group.markerColor, count: count, sidebar: true, scale: fontScale, actionSymbol: "plus",
-                  actionLabel: String(localized: "New Project in Group"), action: { [weak manager, weak groupStore] in
-                      guard let current = groupStore?.group(id: group.id) else { return }
-                      manager?.newProject(in: current)
-                  })
+                  marker: group.markerColor ?? .defaultColor, count: count, sidebar: true,
+                  fillsGroupRow: true, scale: fontScale, groupControlScale: scale)
         row.toolTip = [group.name, group.folderPath].compactMap { $0 }.joined(separator: "\n")
         row.onSelect = { [weak groupStore] in
             guard var current = groupStore?.group(id: group.id) else { return }
@@ -300,11 +314,20 @@ final class ProjectSidebarNSView: NSView {
         for item in order {
             guard let row = rows[item] else { continue }
             let height: CGFloat
+            let width: CGFloat
+            let x: CGFloat
             switch item {
-            case .project: height = max(38, ceil(31 * fontScale + 8))
-            case .group: height = max(28, ceil(21 * fontScale + 6)); y += 5
+            case .project:
+                height = max(38, ceil(31 * fontScale + 8))
+                width = rowWidth
+                x = 8
+            case .group:
+                height = min(30, max(26, ceil(14 * fontScale + 6)))
+                width = rowWidth
+                x = 8
+                y += 5
             }
-            row.frame = NSRect(x: 8, y: y, width: rowWidth, height: height)
+            row.frame = NSRect(x: x, y: y, width: width, height: height)
             y += height + 3
         }
         document.frame = NSRect(x: 0, y: 0, width: scrollView.contentSize.width, height: max(scrollView.contentSize.height, y + 6))
@@ -330,7 +353,10 @@ final class ProjectSidebarNSView: NSView {
         fpsCounter.stop()
         draggedItem = nil
         dropItem = nil
-        isUngroupedDropTarget = false
+        isUngroupedWorkspaceDropTarget = false
+        isUngroupedFooterDropTarget = false
+        outline.workspaceDropFrame = nil
+        tabDrag.cancelProjectDrag()
         tabDrag.updateSidebarFrames(projects: [:], groups: [:], ungrouped: nil)
     }
 
@@ -338,46 +364,85 @@ final class ProjectSidebarNSView: NSView {
         guard window != nil else { return }
         var projects: [UUID: CGRect] = [:], groups: [UUID: CGRect] = [:]
         for (item, row) in rows {
-            let visible = row.bounds.intersection(row.convert(document.visibleRect, from: document))
-            guard !visible.isEmpty else { continue }
-            let frame = row.workspaceGlobalRect(visible)
             switch item {
-            case .project(let id): projects[id] = frame
-            case .group(let id): groups[id] = frame
+            case .project(let id):
+                let visible = row.bounds.intersection(row.convert(document.visibleRect, from: document))
+                guard !visible.isEmpty else { continue }
+                projects[id] = row.workspaceGlobalRect(visible)
+            case .group(let id):
+                let dropTarget = NSRect(
+                    x: 0,
+                    y: row.frame.minY - 4,
+                    width: document.bounds.width,
+                    height: row.frame.height + 8
+                ).intersection(document.visibleRect)
+                guard !dropTarget.isEmpty else { continue }
+                groups[id] = document.workspaceGlobalRect(dropTarget)
             }
         }
         let newProjectButton = footerButtons[0]
         tabDrag.updateSidebarFrames(projects: projects, groups: groups,
-            ungrouped: newProjectButton.workspaceGlobalRect(newProjectButton.bounds))
+            ungrouped: scrollView.workspaceGlobalRect(scrollView.bounds),
+            ungroupedFooter: newProjectButton.workspaceGlobalRect(newProjectButton.bounds))
     }
 
     private func updateDropHighlights() {
+        let tabDrop = tabDrag.sidebarDropHighlight
         for (item, row) in rows {
             let targeted: Bool
-            switch (item, tabDrag.drag?.sidebarTarget) {
+            switch (item, tabDrop) {
             case (.project(let id), .project(let target)): targeted = id == target
-            case (.group(let id), .newProject(let target)): targeted = id == target
+            case (.group(let id), .group(let target)): targeted = id == target
             default: targeted = false
             }
             row.isDropTarget = targeted || (item == dropItem && item != draggedItem)
         }
-        footerButtons[0].highlight(isUngroupedDropTarget || tabDrag.drag?.sidebarTarget == .newProject(groupID: nil))
+        let tabDropsOnWorkspace = tabDrop == .ungroupedWorkspace
+        let tabDropsOnFooter = tabDrop == .ungroupedFooter
+        outline.workspaceDropFrame = isUngroupedWorkspaceDropTarget || tabDropsOnWorkspace
+            ? scrollView.frame
+            : nil
+        outline.needsDisplay = true
+        footerButtons[0].highlight(isUngroupedFooterDropTarget || tabDropsOnFooter)
     }
 
-    private func item(at event: NSEvent) -> Item? {
+    private func documentPoint(at event: NSEvent) -> NSPoint? {
         let point = convert(event.locationInWindow, from: nil)
         guard scrollView.frame.contains(point) else { return nil }
-        let location = document.convert(event.locationInWindow, from: nil)
-        return order.first { rows[$0]?.frame.contains(location) == true }
+        return document.convert(point, from: self)
+    }
+
+    private func item(at event: NSEvent, extendingGroupTargets: Bool = false) -> Item? {
+        guard let location = documentPoint(at: event) else { return nil }
+        if let item = order.first(where: { rows[$0]?.frame.contains(location) == true }) {
+            return item
+        }
+        guard extendingGroupTargets else { return nil }
+        return order.first { item in
+            guard case .group = item, let frame = rows[item]?.frame else { return false }
+            return NSRect(
+                x: 0,
+                y: frame.minY - 4,
+                width: document.bounds.width,
+                height: frame.height + 8
+            ).contains(location)
+        }
     }
 
     private func updateDrag(item: Item, event: NSEvent) {
         draggedItem = item
-        dropItem = self.item(at: event)
+        dropItem = self.item(at: event, extendingGroupTargets: true)
         let point = convert(event.locationInWindow, from: nil)
-        isUngroupedDropTarget = false
-        if case .project = item {
-            isUngroupedDropTarget = footerButtons[0].frame.contains(point)
+        isUngroupedWorkspaceDropTarget = false
+        isUngroupedFooterDropTarget = false
+        if case .project(let id) = item {
+            isUngroupedWorkspaceDropTarget = dropItem == nil && scrollView.frame.contains(point)
+            isUngroupedFooterDropTarget = footerButtons[0].frame.contains(point)
+            tabDrag.updateProjectDrag(
+                sourceProjectID: id,
+                screenLocation: NSEvent.mouseLocation,
+                manager: manager
+            )
         }
         updateDropHighlights()
         if scrollView.frame.contains(point) {
@@ -391,20 +456,34 @@ final class ProjectSidebarNSView: NSView {
     }
 
     private func finishDrag(item: Item, event: NSEvent) {
-        let target = self.item(at: event)
+        let target = self.item(at: event, extendingGroupTargets: true)
         if case .project(let id) = item,
            let project = manager.projects.first(where: { $0.id == id }) {
+            var handled = false
             switch target {
-            case .group(let groupID): manager.moveProject(project, to: groupStore.group(id: groupID))
+            case .group(let groupID):
+                manager.moveProject(project, to: groupStore.group(id: groupID))
+                handled = true
             case .project(let targetID):
                 if targetID != id, let destination = manager.projects.first(where: { $0.id == targetID }) {
                     manager.moveProject(project, to: groupStore.group(id: destination.groupID))
                     manager.moveProject(id, to: targetID)
                 }
+                handled = true
             case nil:
-                if footerButtons[0].frame.contains(convert(event.locationInWindow, from: nil)) {
+                let point = convert(event.locationInWindow, from: nil)
+                if scrollView.frame.contains(point) || footerButtons[0].frame.contains(point) {
                     manager.moveProject(project, to: nil)
+                    handled = true
                 }
+            }
+            if !handled {
+                tabDrag.updateProjectDrag(
+                    sourceProjectID: id,
+                    screenLocation: NSEvent.mouseLocation,
+                    manager: manager
+                )
+                tabDrag.commitProjectDrag()
             }
         } else if case .group(let id) = item, case .group(let targetID) = target {
             groupStore.move(id, to: targetID)
@@ -415,7 +494,10 @@ final class ProjectSidebarNSView: NSView {
     private func cancelDrag() {
         draggedItem = nil
         dropItem = nil
-        isUngroupedDropTarget = false
+        isUngroupedWorkspaceDropTarget = false
+        isUngroupedFooterDropTarget = false
+        outline.workspaceDropFrame = nil
+        tabDrag.cancelProjectDrag()
         updateDropHighlights()
         NSCursor.arrow.set()
     }
@@ -450,7 +532,13 @@ final class ProjectSidebarNSView: NSView {
     }
 
     private func createGroup(kind: ProjectGroup.Kind) {
-        let group = ProjectGroup(name: ProjectGroup.defaultName(for: kind), kind: kind)
+        let name: String
+        if case .plain = kind {
+            name = groupStore.nextPlainGroupName()
+        } else {
+            name = ProjectGroup.defaultName(for: kind)
+        }
+        let group = ProjectGroup(name: name, kind: kind)
         groupStore.add(group)
         refresh()
         layoutSubtreeIfNeeded()

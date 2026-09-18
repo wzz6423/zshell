@@ -48,12 +48,30 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var isCapturingHistoryExport = false
     private var capturedHistoryExportPath: String?
     private var isSurfaceVisible = false
+    /// Process metadata keeps local shells in sync until their OSC 7 support
+    /// reports a directory, which is required for remote sessions.
+    private var directoryTimer: Timer?
+    private var lastReportedDirectory: String?
+    private var usesOSCWorkingDirectory = false
     private(set) var backgroundOpacity = 1.0
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         installProgressBar()
         registerForDraggedTypes([.fileURL])
+        for name in [
+            NSApplication.didBecomeActiveNotification,
+            NSApplication.didResignActiveNotification,
+            NSWindow.didBecomeKeyNotification,
+            NSWindow.didResignKeyNotification,
+        ] {
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(effectiveFocusChanged(_:)),
+                name: name,
+                object: nil
+            )
+        }
     }
 
     /// Entry point for `TerminalBackend.makeSurface(launch:)`. Starts the
@@ -65,7 +83,9 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     deinit {
+        directoryTimer?.invalidate()
         selectionAutoscrollTimer?.invalidate()
+        NotificationCenter.default.removeObserver(self)
     }
 
     // MARK: - TerminalBackendSurface
@@ -79,6 +99,45 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         if !visible { stopSelectionAutoscroll() }
         isSurfaceVisible = visible
         super.setSurfaceVisible(visible)
+        updateDirectoryPolling()
+    }
+
+    @objc private func effectiveFocusChanged(_ notification: Notification) {
+        updateDirectoryPolling()
+    }
+
+    private func updateDirectoryPolling() {
+        let shouldPoll = !usesOSCWorkingDirectory
+            && isSurfaceVisible
+            && window?.isKeyWindow == true
+        guard shouldPoll else {
+            directoryTimer?.invalidate()
+            directoryTimer = nil
+            return
+        }
+        reportWorkingDirectory()
+        guard directoryTimer == nil else { return }
+        directoryTimer = Timer.scheduledTimer(
+            withTimeInterval: 1, repeats: true
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.reportWorkingDirectory() }
+        }
+    }
+
+    private func reportWorkingDirectory() {
+        guard !usesOSCWorkingDirectory,
+              let pid = foregroundPid,
+              let path = processWorkingDirectory(pid: pid),
+              path != lastReportedDirectory
+        else { return }
+        lastReportedDirectory = path
+        events?.terminalDidChangeWorkingDirectory(path)
+    }
+
+    func stopDirectoryPollingForOSC() {
+        usesOSCWorkingDirectory = true
+        directoryTimer?.invalidate()
+        directoryTimer = nil
     }
 
     func setBackgroundOpacity(_ opacity: CGFloat) {
@@ -765,6 +824,9 @@ final class SplitMenuTarget: NSObject {
     var onNewBrowserPane: ((String?) -> Void)?
     var onNewFileTab: ((String) -> Void)?
     var onNewFilePane: ((String) -> Void)?
+    var onInsertQuickCommand: ((QuickCommandPreset) -> Void)?
+    var onRunQuickCommand: ((QuickCommandPreset) -> Void)?
+    var onManageQuickCommands: (() -> Void)?
     private let quickCommandTarget = QuickCommandMenuTarget()
 
     func browserMenuItems(initialURL: String) -> [NSMenuItem] {
@@ -796,6 +858,9 @@ final class SplitMenuTarget: NSObject {
     }
 
     func quickCommandMenuItem() -> NSMenuItem {
+        quickCommandTarget.onInsertPreset = onInsertQuickCommand
+        quickCommandTarget.onRunPreset = onRunQuickCommand
+        quickCommandTarget.onManagePresets = onManageQuickCommands
         let parent = NSMenuItem(
             title: String(localized: "Quick Commands"),
             action: nil,

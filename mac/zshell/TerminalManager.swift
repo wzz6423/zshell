@@ -135,6 +135,34 @@ final class TerminalManager: nonisolated ObservableObject {
         var succeeded: Bool { failure == nil }
     }
 
+    enum ProjectMoveFailure {
+        case unavailable
+        case containsDiff
+        case incompatibleLocation
+        case agentAliasConflict(String)
+
+        var message: String {
+            switch self {
+            case .unavailable:
+                return String(localized: "The project or destination project is no longer available.")
+            case .containsDiff:
+                return String(localized: "Projects containing diffs can’t be moved into another project.")
+            case .incompatibleLocation:
+                return String(localized: "Move this project to a project with the same local or SSH location.")
+            case .agentAliasConflict(let alias):
+                return String(
+                    localized: "The destination project already has an agent named “\(alias)”.",
+                    comment: "Project move failure. The placeholder is an agent alias."
+                )
+            }
+        }
+    }
+
+    struct ProjectMoveResult {
+        let failure: ProjectMoveFailure?
+        var succeeded: Bool { failure == nil }
+    }
+
     /// Projects whose diff stacks have already been mounted in this window.
     /// Unvisited restored projects stay lazy so launch does not instantiate all
     /// of their WKWebViews at once.
@@ -725,9 +753,7 @@ final class TerminalManager: nonisolated ObservableObject {
     // MARK: - Sessions
 
     /// New session in the current project; creates a project if none exist.
-    /// `commandArguments` execs an explicit argv instead of the login shell —
-    /// Quick Launch uses it to start a session straight into a command or an
-    /// SSH connection.
+    /// `commandArguments` execs an explicit argv instead of the login shell.
     func newSession(directory: String? = nil, commandArguments: [String]? = nil) {
         guard let project = selectedProject else {
             if let commandArguments {
@@ -744,18 +770,24 @@ final class TerminalManager: nonisolated ObservableObject {
         project.newSession(directory: directory, commandArguments: commandArguments)
     }
 
-    /// Runs a Quick Launch entry: a new session in the selected project execs
-    /// the entry's argv — its command or SSH connection — like any other new
-    /// terminal, so the pane follows the normal project and tab flow.
+    /// Runs a Quick Launch entry in a fresh project. The entry's action runs
+    /// first, then the effective terminal startup argv keeps the project open
+    /// at a normal shell prompt.
     func runQuickLaunchEntry(_ entry: QuickLaunchEntry) {
-        let arguments = entry.launchArguments(loginShellPath: TerminalSession.loginShell())
+        let arguments = entry.launchArguments(
+            startupCommand: TerminalSession.quickLaunchStartupCommand()
+        )
         let directory: String?
         if case .command(_, let pinned) = entry.kind {
             directory = pinned
         } else {
             directory = nil
         }
-        newSession(directory: directory, commandArguments: arguments)
+        let project = makeProject(createInitialSession: false)
+        project.customName = entry.name
+        project.customDirectory = directory
+        project.newSession(directory: directory, commandArguments: arguments)
+        insert(project)
     }
 
     /// Whether "Reopen Closed Session" (⇧⌘T) has history to act on.
@@ -921,6 +953,56 @@ final class TerminalManager: nonisolated ObservableObject {
         return TabMoveResult(failure: nil)
     }
 
+    /// Folds every live tab from one project into another project as a new tab
+    /// group. Terminal processes and pane trees remain intact; only ownership
+    /// changes before the now-empty source project is removed.
+    @discardableResult
+    func moveProjectTabs(
+        from sourceProjectID: UUID,
+        to destinationProjectID: UUID
+    ) -> ProjectMoveResult {
+        guard sourceProjectID != destinationProjectID,
+              let source = projects.first(where: { $0.id == sourceProjectID }),
+              let destination = projects.first(where: { $0.id == destinationProjectID }),
+              !source.tabs.isEmpty
+        else { return ProjectMoveResult(failure: .unavailable) }
+
+        guard source.tabs.allSatisfy({ $0.diffs.isEmpty }) else {
+            return ProjectMoveResult(failure: .containsDiff)
+        }
+        guard source.location == destination.location else {
+            return ProjectMoveResult(failure: .incompatibleLocation)
+        }
+        let destinationAliases = Set(destination.sessions.compactMap { $0.agentStatus?.alias })
+        if let conflict = source.sessions.compactMap({ $0.agentStatus?.alias })
+            .first(where: destinationAliases.contains) {
+            return ProjectMoveResult(failure: .agentAliasConflict(conflict))
+        }
+
+        let sourceName = source.name
+        let sourceSelection = source.selectedTabID
+        let tabIDs = source.tabs.map(\.id)
+        let shouldCreateGroup = tabIDs.count > 1
+            && source.tabs.contains(where: { !$0.isPinned })
+        let group = shouldCreateGroup
+            ? destination.createTabGroup(named: sourceName)
+            : nil
+        for tabID in tabIDs {
+            guard let tab = source.detachTabForTransfer(id: tabID) else { continue }
+            destination.adoptTransferredTab(tab, manager: self)
+            if !tab.isPinned, let group {
+                destination.moveTab(tab.id, toGroup: group.id)
+            }
+        }
+        if let sourceSelection,
+           destination.tabs.contains(where: { $0.id == sourceSelection }) {
+            destination.selectedTabID = sourceSelection
+        }
+        remove(source)
+        selectedProjectID = destination.id
+        return ProjectMoveResult(failure: nil)
+    }
+
     /// Brings `session` to the foreground: selects its project and tab, then
     /// focuses its pane. Backs the command palette's session switcher; a no-op
     /// if the session is no longer open anywhere.
@@ -1033,33 +1115,6 @@ final class TerminalManager: nonisolated ObservableObject {
         if case .session(let session)? = selectedProject?.focusedContent {
             session.clear()
         }
-    }
-
-    // Context-menu actions resolve their manager at click time via the shared
-    // activeWindowManager resolver above, so commands cannot leak into a
-    // terminal owned by another window.
-    static func insertQuickCommand(_ preset: QuickCommandPreset) {
-        activeWindowManager?.sendQuickCommand(preset, appendingReturn: false)
-    }
-
-    static func runQuickCommand(_ preset: QuickCommandPreset) {
-        activeWindowManager?.sendQuickCommand(preset, appendingReturn: true)
-    }
-
-    static func manageQuickCommands() {
-        guard let manager = activeWindowManager else { return }
-        QuickCommandEditor.show(relativeTo: manager.window)
-    }
-
-    /// Routes only to the focused terminal pane. Return is appended solely by
-    /// the separately named run action.
-    private func sendQuickCommand(
-        _ preset: QuickCommandPreset,
-        appendingReturn: Bool
-    ) {
-        guard case .session(let session)? = selectedProject?.focusedContent else { return }
-        session.sendCommand(preset.command)
-        if appendingReturn { session.sendEnter() }
     }
 
     /// Whether ⌘K has a terminal on screen to act on right now.
@@ -1393,10 +1448,12 @@ final class TerminalManager: nonisolated ObservableObject {
         }
     }
 
-    /// Applies the effective background alpha to every backend and makes the
-    /// host window transparent only while terminal translucency is usable.
+    /// Applies main-window opacity. Terminal surfaces become clear only while
+    /// material is active, revealing the shared window backdrop without
+    /// compounding the alpha value.
     private func refreshTranslucency() {
         let settings = AppSettings.shared
+        window?.alphaValue = CGFloat(settings.effectiveTerminalBackgroundOpacity)
         window?.isOpaque = !settings.isTerminalBackgroundTranslucent
         window?.backgroundColor = settings.isTerminalBackgroundTranslucent
             ? .clear

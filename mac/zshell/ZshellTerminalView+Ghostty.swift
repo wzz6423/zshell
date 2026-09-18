@@ -202,6 +202,7 @@ extension ZshellTerminalView: TerminalSurfaceTitleDelegate {
 
 extension ZshellTerminalView: TerminalSurfacePwdDelegate {
     func terminalDidChangeWorkingDirectory(_ path: String) {
+        stopDirectoryPollingForOSC()
         events?.terminalDidChangeWorkingDirectory(path)
     }
 }

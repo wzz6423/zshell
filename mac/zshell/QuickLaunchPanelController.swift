@@ -21,10 +21,13 @@ final class QuickLaunchPanel: NSPanel {
             return super.performKeyEquivalent(with: event)
         }
 
-        switch (event.charactersIgnoringModifiers, flags == .command) {
-        case ("n", true):
+        if flags == [.command, .shift],
+           event.charactersIgnoringModifiers?.lowercased() == "n" {
             controller.addEntry()
             return true
+        }
+
+        switch (event.charactersIgnoringModifiers, flags == .command) {
         case ("e", true):
             controller.editSelectedEntry()
             return true
@@ -42,7 +45,7 @@ final class QuickLaunchPanel: NSPanel {
 
 /// The Quick Launch overlay: a child panel over the owning window listing the
 /// saved command and SSH entries. Typing fuzzy-filters the list, Return
-/// launches the selection in a new terminal session, and ⌘N / ⌘E / ⌘⌫ manage
+/// launches the selection in a new terminal session, and ⌘⇧N / ⌘E / ⌘⌫ manage
 /// entries. One shared panel; opening again repositions it over the current
 /// key window.
 @MainActor
@@ -402,7 +405,7 @@ final class QuickLaunchPanelController: NSObject {
         // action also has a visible, clickable affordance.
         let hints: [(key: String, label: String, action: Selector)] = [
             ("↩", String(localized: "Launch", comment: "Quick Launch footer hint: Return launches the selected entry."), #selector(launchClicked)),
-            ("⌘N", String(localized: "New", comment: "Quick Launch footer hint: ⌘N creates an entry."), #selector(newClicked)),
+            ("⌘⇧N", String(localized: "New", comment: "Quick Launch footer hint: ⌘⇧N creates an entry."), #selector(newClicked)),
             ("⌘E", String(localized: "Edit", comment: "Quick Launch footer hint: ⌘E edits the selected entry."), #selector(editClicked)),
             ("⌘⌫", String(localized: "Delete", comment: "Quick Launch footer hint: ⌘⌫ deletes the selected entry."), #selector(deleteClicked)),
         ]
@@ -557,7 +560,7 @@ final class QuickLaunchPanelController: NSObject {
                     comment: "Empty state of the Quick Launch panel with no saved entries."
                 )
                 emptyHintLabel.stringValue = String(
-                    localized: "Press ⌘N to add your first entry.",
+                    localized: "Press ⌘⇧N to add your first entry.",
                     comment: "Hint in the empty Quick Launch panel."
                 )
             } else {

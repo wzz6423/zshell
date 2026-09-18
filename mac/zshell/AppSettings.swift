@@ -122,6 +122,23 @@ enum ApplicationIcon: String, CaseIterable, Identifiable {
     /// preserved the source `Icons` directory in the resource bundle.
     func bundledImage() -> NSImage? {
         guard let resourceName else { return nil }
+        guard let image = Self.image(named: resourceName) else { return nil }
+        if let compiledIconSize = Self.compiledIconSize {
+            // Runtime overrides use an NSImage's point size to size the Dock tile.
+            image.size = compiledIconSize
+        }
+        return image
+    }
+
+    private static var compiledIconSize: NSSize? {
+        #if DEBUG
+        image(named: "AppIconDebug")?.size
+        #else
+        image(named: "AppIcon")?.size
+        #endif
+    }
+
+    private static func image(named resourceName: String) -> NSImage? {
         let urls = [
             Bundle.main.url(forResource: resourceName, withExtension: "icns"),
             Bundle.main.url(
@@ -166,6 +183,7 @@ final class AppSettings: nonisolated ObservableObject {
     static let sidebarFontSizeRange: ClosedRange<Double> = 9...24
     static let defaultInterfaceScale: Double = 1
     static let interfaceScaleRange: ClosedRange<Double> = 0.9...1.5
+    static let defaultShowTabGroupNames = true
     static let defaultToolbarVisibility: ToolbarVisibility = .hide
     static let defaultTerminalBackgroundOpacity: Double = 1
     static let terminalBackgroundOpacityRange: ClosedRange<Double> = 0.2...1
@@ -266,6 +284,11 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    /// Whether tab-group controls include their name or stay icon-only.
+    @Published var showTabGroupNames: Bool {
+        didSet { save() }
+    }
+
     /// `auto` shows the toolbar only for Git projects; `always` keeps its Git
     /// panel entry point visible in every project; `hide` suppresses it.
     @Published var toolbarVisibility: ToolbarVisibility {
@@ -335,8 +358,8 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
-    /// Alpha of terminal backgrounds in main windows. Text, cursor, selection,
-    /// and explicit cell backgrounds remain fully opaque in each backend.
+    /// Alpha of each main workspace window. The terminal's default background
+    /// is clear only while the shared behind-window material is active.
     @Published var terminalBackgroundOpacity: Double {
         didSet { save() }
     }
@@ -471,6 +494,7 @@ final class AppSettings: nonisolated ObservableObject {
         self.interfaceScale = Self.interfaceScaleRange.contains(interfaceScale)
             ? interfaceScale
             : Self.defaultInterfaceScale
+        showTabGroupNames = toml["tabs.show-group-names"]?.bool ?? Self.defaultShowTabGroupNames
         toolbarVisibility = ToolbarVisibility(
             rawValue: toml["toolbar.visibility"]?.string ?? ""
         ) ?? Self.defaultToolbarVisibility
@@ -610,6 +634,7 @@ final class AppSettings: nonisolated ObservableObject {
             && fontSize == Self.defaultFontSize
             && sidebarFontSize == Self.defaultSidebarFontSize
             && interfaceScale == Self.defaultInterfaceScale
+            && showTabGroupNames == Self.defaultShowTabGroupNames
             && !fontThicken
             && fontThickenStrength == Self.defaultFontThickenStrength
             && terminalLineHeight == Self.defaultTerminalLineHeight
@@ -650,6 +675,7 @@ final class AppSettings: nonisolated ObservableObject {
         themeDark = Theme.defaultDarkThemeName
         themeLight = Theme.defaultLightThemeName
         terminalThemeOnly = false
+        showTabGroupNames = Self.defaultShowTabGroupNames
         toolbarVisibility = Self.defaultToolbarVisibility
         cursorShape = .block
         cursorBlinking = true
@@ -901,6 +927,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if interfaceScale != Self.defaultInterfaceScale {
             lines.append("interface.scale = \(TOML.number(interfaceScale))")
+        }
+        if showTabGroupNames != Self.defaultShowTabGroupNames {
+            lines.append("tabs.show-group-names = false")
         }
         if toolbarVisibility != Self.defaultToolbarVisibility {
             lines.append("toolbar.visibility = \(TOML.quote(toolbarVisibility.rawValue))")

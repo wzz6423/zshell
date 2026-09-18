@@ -11,7 +11,7 @@ final class TerminalStartupSettingsView: NSView, NSTextFieldDelegate {
     private let programField = NSTextField()
     private let argumentsField = NSTextField()
     private let detailLabel = NSTextField(wrappingLabelWithString: "")
-    private let customFields = NSStackView()
+    private let customFields = NSGridView()
     private let onChange: (String, String) -> Void
     private var isSynchronizing = false
 
@@ -39,26 +39,44 @@ final class TerminalStartupSettingsView: NSView, NSTextFieldDelegate {
         programField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         argumentsField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        let programRow = labeledRow(title: String(localized: "Program"), field: programField)
-        let argumentsRow = labeledRow(title: String(localized: "Arguments"), field: argumentsField)
-        customFields.orientation = .vertical
-        customFields.alignment = .leading
-        customFields.spacing = 6
-        customFields.addArrangedSubview(programRow)
-        customFields.addArrangedSubview(argumentsRow)
-        for row in [programRow, argumentsRow] {
-            row.widthAnchor.constraint(equalTo: customFields.widthAnchor).isActive = true
-        }
+        customFields.addRow(with: [
+            formLabel(String(localized: "Program")),
+            programField,
+        ])
+        customFields.addRow(with: [
+            formLabel(String(localized: "Arguments")),
+            argumentsField,
+        ])
+        customFields.rowSpacing = 8
+        customFields.columnSpacing = 8
+        customFields.column(at: 0).xPlacement = .trailing
+        customFields.column(at: 0).width = 72
+        customFields.column(at: 1).xPlacement = .fill
 
         detailLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         detailLabel.textColor = .secondaryLabelColor
         detailLabel.isSelectable = false
         detailLabel.maximumNumberOfLines = 0
 
-        let stack = NSStackView(views: [modeButton, customFields, detailLabel])
+        let modeSpacer = NSView()
+        modeSpacer.widthAnchor.constraint(equalToConstant: 72).isActive = true
+        let modeRow = NSStackView(views: [modeSpacer, modeButton])
+        modeRow.orientation = .horizontal
+        modeRow.alignment = .centerY
+        modeRow.spacing = 8
+
+        let detailSpacer = NSView()
+        detailSpacer.widthAnchor.constraint(equalToConstant: 72).isActive = true
+        let detailRow = NSStackView(views: [detailSpacer, detailLabel])
+        detailRow.orientation = .horizontal
+        detailRow.alignment = .top
+        detailRow.spacing = 8
+        detailLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+        let stack = NSStackView(views: [modeRow, customFields, detailRow])
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 6
+        stack.spacing = 8
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
         NSLayoutConstraint.activate([
@@ -66,10 +84,12 @@ final class TerminalStartupSettingsView: NSView, NSTextFieldDelegate {
             stack.trailingAnchor.constraint(equalTo: trailingAnchor),
             stack.topAnchor.constraint(equalTo: topAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
+            modeRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
             customFields.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            detailLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            modeButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 170),
+            detailRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            modeButton.widthAnchor.constraint(equalToConstant: 170),
         ])
+        updateState()
     }
 
     @available(*, unavailable)
@@ -153,18 +173,11 @@ final class TerminalStartupSettingsView: NSView, NSTextFieldDelegate {
         field.setAccessibilityLabel(accessibilityLabel)
     }
 
-    private func labeledRow(title: String, field: NSTextField) -> NSView {
+    private func formLabel(_ title: String) -> NSTextField {
         let label = NSTextField(labelWithString: title)
         label.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         label.alignment = .right
         label.setContentHuggingPriority(.required, for: .horizontal)
-        label.widthAnchor.constraint(equalToConstant: 72).isActive = true
-
-        let stack = NSStackView(views: [label, field])
-        stack.orientation = .horizontal
-        stack.alignment = .centerY
-        stack.spacing = 8
-        field.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        return stack
+        return label
     }
 }

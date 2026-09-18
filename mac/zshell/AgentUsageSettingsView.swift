@@ -10,11 +10,14 @@ final class AgentUsageSettingsView: NSView {
     private let providerStack = NSStackView()
     private let claudeView = AgentUsageProviderView(kind: .claude)
     private let codexView = AgentUsageProviderView(kind: .codex)
+    private let providerSeparator = SettingsSeparatorView()
     private let refreshButton = SettingsActionButton(
         title: String(localized: "Refresh Usage")
     ) {
         AgentUsageModel.shared.refresh()
     }
+
+    private(set) var hasVisibleUsage = false
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -22,10 +25,7 @@ final class AgentUsageSettingsView: NSView {
         providerStack.orientation = .vertical
         providerStack.alignment = .leading
         providerStack.spacing = 12
-        providerStack.addArrangedSubview(claudeView)
-        providerStack.addArrangedSubview(SettingsSeparatorView())
-        providerStack.addArrangedSubview(codexView)
-        for view in providerStack.arrangedSubviews {
+        for view in [claudeView, codexView, providerSeparator] {
             view.widthAnchor.constraint(equalTo: providerStack.widthAnchor).isActive = true
         }
 
@@ -50,14 +50,29 @@ final class AgentUsageSettingsView: NSView {
     }
 
     func apply(claude: AgentUsageProviderState, codex: AgentUsageProviderState) {
-        claudeView.apply(claude)
-        codexView.apply(codex)
-        refreshButton.isEnabled = !claude.isRefreshing && !codex.isRefreshing
+        let states = [claude, codex].filter { state in
+            if case .available = state.availability { return true }
+            return false
+        }
+        providerStack.arrangedSubviews.forEach {
+            providerStack.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
+        for (index, state) in states.enumerated() {
+            if index > 0 { providerStack.addArrangedSubview(providerSeparator) }
+            let provider = state.kind == .claude ? claudeView : codexView
+            provider.apply(state)
+            providerStack.addArrangedSubview(provider)
+        }
+        hasVisibleUsage = !states.isEmpty
+        refreshButton.isHidden = !hasVisibleUsage
+        refreshButton.isEnabled = !states.contains(where: \.isRefreshing)
         invalidateIntrinsicContentSize()
     }
 
     override var intrinsicContentSize: NSSize {
-        NSSize(
+        guard hasVisibleUsage else { return .zero }
+        return NSSize(
             width: NSView.noIntrinsicMetric,
             height: ceil(providerStack.fittingSize.height + 12 + refreshButton.fittingSize.height)
         )
@@ -120,41 +135,13 @@ private final class AgentUsageProviderView: NSView {
             $0.removeFromSuperview()
         }
 
-        let availability = state.availability
-        let snapshot: AgentUsageSnapshot?
-        switch availability {
-        case .waiting:
-            snapshot = nil
-            statusLabel.stringValue = state.isRefreshing
-                ? String(localized: "Refreshing…")
-                : String(localized: "Waiting for refresh")
-        case .available(let value):
-            snapshot = value
-            statusLabel.stringValue = state.isRefreshing
-                ? String(localized: "Refreshing…")
-                : Self.updatedLabel(value.updatedAt)
-        case .stale(let value, _):
-            snapshot = value
-            statusLabel.stringValue = state.isRefreshing
-                ? String(localized: "Refreshing…")
-                : String(localized: "Stale")
-        case .unavailable(let issue):
-            snapshot = nil
-            statusLabel.stringValue = state.isRefreshing
-                ? String(localized: "Refreshing…")
-                : String(localized: "Unavailable")
-            addDetail(Self.message(for: issue, provider: kind))
+        guard case .available(let snapshot) = state.availability else { return }
+        statusLabel.stringValue = state.isRefreshing
+            ? String(localized: "Refreshing…")
+            : Self.updatedLabel(snapshot.updatedAt)
+        for window in snapshot.windows {
+            addWindow(window)
         }
-
-        if let snapshot {
-            for window in snapshot.windows {
-                addWindow(window)
-            }
-            if case .stale(_, let issue) = availability {
-                addDetail(Self.staleMessage(for: issue, provider: kind))
-            }
-        }
-        addDetail(Self.sourceDescription(for: kind))
     }
 
     private func addWindow(_ window: AgentUsageWindow) {
@@ -199,15 +186,6 @@ private final class AgentUsageProviderView: NSView {
             resetLabel.textColor = .tertiaryLabelColor
             detailStack.addArrangedSubview(resetLabel)
         }
-    }
-
-    private func addDetail(_ text: String) {
-        let label = NSTextField(wrappingLabelWithString: text)
-        label.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
-        label.textColor = .secondaryLabelColor
-        label.maximumNumberOfLines = 0
-        detailStack.addArrangedSubview(label)
-        label.widthAnchor.constraint(equalTo: detailStack.widthAnchor).isActive = true
     }
 
     private static func windowTitle(_ window: AgentUsageWindow) -> String {
@@ -256,44 +234,4 @@ private final class AgentUsageProviderView: NSView {
         )
     }
 
-    private static func sourceDescription(for provider: ZshellAgentKind) -> String {
-        switch provider {
-        case .claude:
-            return String(localized: "Source: Claude Code status line from an active Zshell session")
-        case .codex:
-            return String(localized: "Source: local Codex app server")
-        default:
-            return ""
-        }
-    }
-
-    private static func message(
-        for issue: AgentUsageIssue,
-        provider: ZshellAgentKind
-    ) -> String {
-        switch (provider, issue) {
-        case (.claude, .noClaudeSession), (.claude, .noLimits):
-            return String(localized: "No rate-limit snapshot from an active Claude Code session yet.")
-        case (.codex, .cliMissing):
-            return String(localized: "Codex is not available on Zshell's app PATH.")
-        case (.codex, .notSignedIn):
-            return String(localized: "Codex is installed, but its local app server is not signed in.")
-        case (_, .timedOut):
-            return String(localized: "The local usage source did not respond in time.")
-        case (_, .invalidResponse):
-            return String(localized: "The local usage source returned an unsupported response.")
-        default:
-            return String(localized: "The local usage source could not be read.")
-        }
-    }
-
-    private static func staleMessage(
-        for issue: AgentUsageIssue,
-        provider: ZshellAgentKind
-    ) -> String {
-        String(
-            localized: "Showing the last local snapshot. \(message(for: issue, provider: provider))",
-            comment: "Stale account usage explanation"
-        )
-    }
 }

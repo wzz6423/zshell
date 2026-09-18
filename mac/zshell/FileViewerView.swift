@@ -5,7 +5,9 @@
 
 import AppKit
 import Combine
+import QuickLookUI
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// A file opened as a tab in a project. Text content lives here (not in the
 /// view) so edits survive tab switches.
@@ -19,6 +21,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     enum Content {
         case text
         case image(NSImage)
+        case quickLook
         case unavailable(String)
     }
 
@@ -50,18 +53,29 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     weak var editorView: NSView?
 
     private nonisolated static let maxTextBytes = 5 << 20
-    private nonisolated static let imageExtensions: Set<String> = [
+    /// These image types keep the existing native, pixel-accurate image view.
+    /// Other visual types, such as SVG, route through Quick Look instead.
+    private nonisolated static let directlyRenderedImageTypeIdentifiers = Set([
         "png", "jpg", "jpeg", "gif", "heic", "webp", "tiff", "bmp", "icns",
-    ]
+    ].compactMap { UTType(filenameExtension: $0)?.identifier })
     /// Exact image bytes, kept so a reload can compare the new data against the
     /// old without a lossy hash (a hash here could collide and show a stale
     /// image for a different file).
     private var imageData: Data?
+    /// Quick Look owns file decoding, so the file's metadata identifies whether
+    /// a clean preview needs to be regenerated without loading its bytes here.
+    private var quickLookSignature: QuickLookSignature?
     private var reloadGeneration: UInt = 0
     private var reloadTask: Task<Void, Never>?
 
+    private nonisolated struct QuickLookSignature: Equatable, Sendable {
+        let fileSize: UInt64
+        let modificationTime: TimeInterval
+    }
+
     private nonisolated enum ReadResult {
         case data(Data)
+        case quickLook(QuickLookSignature)
         case tooLarge
         case unavailable
     }
@@ -70,6 +84,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         let content: Content
         let text: String
         let imageData: Data?
+        let quickLookSignature: QuickLookSignature?
     }
 
     init(path: String) {
@@ -78,6 +93,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         text = ""
         savedText = ""
         imageData = nil
+        quickLookSignature = nil
         reloadFromDiskIfClean()
     }
 
@@ -167,6 +183,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
             self.text = loaded.text
             self.savedText = loaded.text
             self.imageData = loaded.imageData
+            self.quickLookSignature = loaded.quickLookSignature
             self.saveError = nil
             self.reloadRevision &+= 1
         }
@@ -184,6 +201,8 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
             return savedText == loaded.text
         case (.image, .image):
             return imageData == loaded.imageData
+        case (.quickLook, .quickLook):
+            return quickLookSignature == loaded.quickLookSignature
         case (.unavailable(let current), .unavailable(let new)):
             return current == new
         default:
@@ -193,7 +212,11 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
 
     private nonisolated static func readData(path: String) -> ReadResult {
         let url = URL(fileURLWithPath: path)
-        guard !imageExtensions.contains(url.pathExtension.lowercased()) else {
+        if shouldUseQuickLook(for: url) {
+            guard let signature = quickLookSignature(for: path) else { return .unavailable }
+            return .quickLook(signature)
+        }
+        guard !usesDirectImagePreview(for: url) else {
             return (try? Data(contentsOf: url)).map(ReadResult.data) ?? .unavailable
         }
 
@@ -231,55 +254,105 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         }
     }
 
+    private nonisolated static func contentType(for url: URL) -> UTType? {
+        let pathExtension = url.pathExtension
+        guard !pathExtension.isEmpty else { return nil }
+        return UTType(filenameExtension: pathExtension)
+    }
+
+    private nonisolated static func usesDirectImagePreview(for url: URL) -> Bool {
+        guard let type = contentType(for: url) else { return false }
+        return directlyRenderedImageTypeIdentifiers.contains(type.identifier)
+    }
+
+    private nonisolated static func shouldUseQuickLook(for url: URL) -> Bool {
+        guard let type = contentType(for: url) else { return false }
+        if type.conforms(to: .image) {
+            return !directlyRenderedImageTypeIdentifiers.contains(type.identifier)
+        }
+        return type.conforms(to: .audiovisualContent)
+            || type.conforms(to: .archive)
+            || (!type.conforms(to: .text) && type.conforms(to: .compositeContent))
+    }
+
+    private nonisolated static func quickLookSignature(for path: String) -> QuickLookSignature? {
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: path),
+              let size = attributes[.size] as? NSNumber
+        else { return nil }
+        let modificationTime = (attributes[.modificationDate] as? Date)?
+            .timeIntervalSinceReferenceDate ?? 0
+        return QuickLookSignature(
+            fileSize: size.uint64Value,
+            modificationTime: modificationTime
+        )
+    }
+
     private static func loadedContent(path: String, result: ReadResult) -> LoadedContent {
         let url = URL(fileURLWithPath: path)
         let data: Data
         switch result {
         case .data(let loadedData):
             data = loadedData
+        case .quickLook(let signature):
+            return LoadedContent(
+                content: .quickLook,
+                text: "",
+                imageData: nil,
+                quickLookSignature: signature
+            )
         case .tooLarge:
             return LoadedContent(
                 content: .unavailable(String(localized: "File is too large to open")),
                 text: "",
-                imageData: nil
+                imageData: nil,
+                quickLookSignature: nil
             )
         case .unavailable:
             return LoadedContent(
                 content: .unavailable(String(localized: "Could not read file")),
                 text: "",
-                imageData: nil
+                imageData: nil,
+                quickLookSignature: nil
             )
         }
-        if imageExtensions.contains(url.pathExtension.lowercased()),
+        if usesDirectImagePreview(for: url),
            let image = NSImage(data: data) {
             return LoadedContent(
                 content: .image(image),
                 text: "",
-                imageData: data
+                imageData: data,
+                quickLookSignature: nil
             )
         }
         guard data.count <= maxTextBytes else {
             return LoadedContent(
                 content: .unavailable(String(localized: "File is too large to open")),
                 text: "",
-                imageData: nil
+                imageData: nil,
+                quickLookSignature: nil
             )
         }
         guard let string = String(data: data, encoding: .utf8) else {
             return LoadedContent(
                 content: .unavailable(String(localized: "Binary file")),
                 text: "",
-                imageData: nil
+                imageData: nil,
+                quickLookSignature: nil
             )
         }
-        return LoadedContent(content: .text, text: string, imageData: nil)
+        return LoadedContent(
+            content: .text,
+            text: string,
+            imageData: nil,
+            quickLookSignature: nil
+        )
     }
 }
 
 /// Content of a file tab, hosted in AppKit: the source editor, the rendered
-/// markdown preview, an image, or a placeholder for anything binary or
-/// oversized. SwiftUI is only the mount point — `FileViewerContainerView` owns
-/// the views and the switching between them.
+/// markdown preview, an image, a native Quick Look preview, or a placeholder
+/// for anything binary or oversized. SwiftUI is only the mount point —
+/// `FileViewerContainerView` owns the views and the switching between them.
 struct FileViewerView: NSViewRepresentable {
     @ObservedObject var file: FileTab
     /// Whether this file's pane is the focused one in its tab.
@@ -345,6 +418,7 @@ final class FileViewerContainerView: NSView {
 
     private var editor: SourceEditorController?
     private var preview: MarkdownPreviewView?
+    private var quickLookPreview: QLPreviewView?
     /// The currently mounted content view, whichever kind it is.
     private var contentView: NSView?
     private var contentKind: ContentKind?
@@ -372,6 +446,7 @@ final class FileViewerContainerView: NSView {
         case source
         case preview
         case image
+        case quickLook
         case unavailable(String)
     }
 
@@ -478,6 +553,8 @@ final class FileViewerContainerView: NSView {
         if mountedPath != file.path {
             mountedPath = file.path
             preview?.reloadForPathChange()
+            quickLookPreview?.previewItem = URL(fileURLWithPath: file.path) as NSURL
+            quickLookPreview?.refreshPreviewItem()
         }
         editor?.update(
             font: font,
@@ -503,6 +580,8 @@ final class FileViewerContainerView: NSView {
             Self.isMarkdown(file.path) && !showsSource ? .preview : .source
         case .image:
             .image
+        case .quickLook:
+            .quickLook
         case .unavailable(let reason):
             .unavailable(reason)
         }
@@ -520,6 +599,7 @@ final class FileViewerContainerView: NSView {
         if revision != mountedRevision {
             editor = nil
             preview = nil
+            quickLookPreview = nil
         }
         contentKind = kind
         mountedRevision = revision
@@ -561,8 +641,24 @@ final class FileViewerContainerView: NSView {
             file.editorView = markdown
             view = markdown
         case .image:
+            file.editorView = nil
             view = Self.imageView(for: file, palette: palette)
+        case .quickLook:
+            file.editorView = nil
+            if let existing = quickLookPreview {
+                view = existing
+            } else if let preview = Self.quickLookView(for: file.path) {
+                quickLookPreview = preview
+                view = preview
+            } else {
+                view = Self.placeholderView(
+                    path: file.path,
+                    reason: String(localized: "Could not read file"),
+                    palette: palette
+                )
+            }
         case .unavailable(let reason):
+            file.editorView = nil
             view = Self.placeholderView(path: file.path, reason: reason, palette: palette)
         }
 
@@ -582,7 +678,7 @@ final class FileViewerContainerView: NSView {
             switch kind {
             case .preview: preview?.takeFocus()
             case .source: editor?.takeFocus()
-            case .image, .unavailable: break
+            case .image, .quickLook, .unavailable: break
             }
         }
     }
@@ -594,20 +690,14 @@ final class FileViewerContainerView: NSView {
 
     private static func imageView(for file: FileTab, palette: EditorPalette) -> NSView {
         guard case .image(let image) = file.content else { return NSView() }
-        let imageView = NSImageView()
-        imageView.image = image
-        imageView.imageScaling = .scaleNone
-        imageView.frame = CGRect(origin: .zero, size: image.size)
+        return ImagePreviewView(image: image, backgroundColor: palette.background)
+    }
 
-        let scrollView = NSScrollView()
-        scrollView.documentView = imageView
-        scrollView.hasVerticalScroller = true
-        scrollView.hasHorizontalScroller = true
-        scrollView.automaticallyAdjustsContentInsets = false
-        scrollView.contentInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-        scrollView.drawsBackground = true
-        scrollView.backgroundColor = palette.background
-        return scrollView
+    private static func quickLookView(for path: String) -> QLPreviewView? {
+        guard let preview = QLPreviewView(frame: .zero, style: .normal) else { return nil }
+        preview.previewItem = URL(fileURLWithPath: path) as NSURL
+        preview.autostarts = false
+        return preview
     }
 
     private static func placeholderView(
@@ -651,6 +741,226 @@ final class FileViewerContainerView: NSView {
             label.topAnchor.constraint(equalTo: icon.bottomAnchor, constant: 8),
         ])
         return container
+    }
+}
+
+/// Native bitmap preview with an explicit zoom state. The image sits in a
+/// canvas that never becomes smaller than the viewport, keeping a fitted image
+/// centered while still allowing the scroll view to expose an enlarged one.
+@MainActor
+final class ImagePreviewView: NSView {
+    private static let imageMargin: CGFloat = 16
+    private static let zoomStep: CGFloat = 1.25
+    private static let minimumZoomScale: CGFloat = 0.05
+    private static let maximumZoomScale: CGFloat = 16
+    private static let controlSize: CGFloat = 24
+    private static let controlInset: CGFloat = 8
+    private static let controlPadding: CGFloat = 2
+
+    private let scrollView = NSScrollView()
+    private let canvas = NSView()
+    private let imageView = NSImageView()
+    private let controls = NSVisualEffectView()
+    private let zoomOutButton = WorkspaceChromeButton(
+        symbol: "minus.magnifyingglass",
+        label: String(localized: "Zoom Out")
+    )
+    private let zoomInButton = WorkspaceChromeButton(
+        symbol: "plus.magnifyingglass",
+        label: String(localized: "Zoom In")
+    )
+    private let fitButton = WorkspaceChromeButton(
+        symbol: "arrow.up.left.and.arrow.down.right",
+        label: String(localized: "Fit Image to Window")
+    )
+    private let imageSize: CGSize
+
+    private var zoomScale: CGFloat = 1
+    private var automaticallyFitsImage = true
+
+    init(image: NSImage, backgroundColor: NSColor) {
+        let size = image.size
+        imageSize = CGSize(
+            width: size.width.isFinite && size.width > 0 ? size.width : 1,
+            height: size.height.isFinite && size.height > 0 ? size.height : 1
+        )
+        super.init(frame: .zero)
+
+        imageView.image = image
+        imageView.imageAlignment = .alignCenter
+        imageView.imageScaling = .scaleProportionallyUpOrDown
+        canvas.addSubview(imageView)
+
+        scrollView.documentView = canvas
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = true
+        scrollView.autohidesScrollers = true
+        scrollView.automaticallyAdjustsContentInsets = false
+        scrollView.drawsBackground = true
+        scrollView.backgroundColor = backgroundColor
+        addSubview(scrollView)
+
+        controls.material = .hudWindow
+        controls.blendingMode = .withinWindow
+        controls.state = .active
+        controls.wantsLayer = true
+        controls.layer?.cornerRadius = 6
+        controls.layer?.masksToBounds = true
+        addSubview(controls)
+
+        zoomOutButton.configure(
+            symbol: "minus.magnifyingglass",
+            label: String(localized: "Zoom Out"),
+            pointSize: 11
+        )
+        zoomInButton.configure(
+            symbol: "plus.magnifyingglass",
+            label: String(localized: "Zoom In"),
+            pointSize: 11
+        )
+        fitButton.configure(
+            symbol: "arrow.up.left.and.arrow.down.right",
+            label: String(localized: "Fit Image to Window"),
+            pointSize: 11
+        )
+        for button in [zoomOutButton, zoomInButton, fitButton] {
+            controls.addSubview(button)
+        }
+        zoomOutButton.onAction = { [weak self] in
+            self?.changeZoom(by: 1 / Self.zoomStep)
+        }
+        zoomInButton.onAction = { [weak self] in
+            self?.changeZoom(by: Self.zoomStep)
+        }
+        fitButton.onAction = { [weak self] in
+            self?.fitImageToWindow()
+        }
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func layout() {
+        super.layout()
+        scrollView.frame = bounds
+        layoutControls()
+        layoutImage()
+    }
+
+    private func layoutControls() {
+        let buttons = [zoomOutButton, zoomInButton, fitButton]
+        let side = Self.controlSize
+        let padding = Self.controlPadding
+        let controlsSize = CGSize(
+            width: side * CGFloat(buttons.count) + padding * 2,
+            height: side + padding * 2
+        )
+        controls.frame = NSRect(
+            x: max(bounds.minX + Self.controlInset, bounds.maxX - Self.controlInset - controlsSize.width),
+            y: max(bounds.minY + Self.controlInset, bounds.maxY - Self.controlInset - controlsSize.height),
+            width: controlsSize.width,
+            height: controlsSize.height
+        )
+        for (index, button) in buttons.enumerated() {
+            button.frame = NSRect(
+                x: padding + CGFloat(index) * side,
+                y: padding,
+                width: side,
+                height: side
+            )
+        }
+    }
+
+    private func layoutImage() {
+        let viewportSize = scrollView.contentView.bounds.size
+        guard viewportSize.width > 0, viewportSize.height > 0 else { return }
+        if automaticallyFitsImage {
+            zoomScale = fitScale(for: viewportSize)
+        }
+
+        let scaledSize = CGSize(
+            width: imageSize.width * zoomScale,
+            height: imageSize.height * zoomScale
+        )
+        let canvasSize = CGSize(
+            width: max(viewportSize.width, scaledSize.width + Self.imageMargin * 2),
+            height: max(viewportSize.height, scaledSize.height + Self.imageMargin * 2)
+        )
+        canvas.frame = NSRect(origin: .zero, size: canvasSize)
+        imageView.frame = NSRect(
+            x: (canvasSize.width - scaledSize.width) / 2,
+            y: (canvasSize.height - scaledSize.height) / 2,
+            width: scaledSize.width,
+            height: scaledSize.height
+        )
+
+        if automaticallyFitsImage {
+            scroll(to: .zero)
+        } else {
+            constrainScrollPosition()
+        }
+    }
+
+    private func fitScale(for viewportSize: CGSize) -> CGFloat {
+        let availableWidth = max(1, viewportSize.width - Self.imageMargin * 2)
+        let availableHeight = max(1, viewportSize.height - Self.imageMargin * 2)
+        return min(1, availableWidth / imageSize.width, availableHeight / imageSize.height)
+    }
+
+    private func changeZoom(by multiplier: CGFloat) {
+        let visibleBounds = scrollView.contentView.bounds
+        let relativePoint = imageRelativePoint(
+            at: NSPoint(x: visibleBounds.midX, y: visibleBounds.midY)
+        )
+        let minimumScale = min(Self.minimumZoomScale, fitScale(for: visibleBounds.size))
+        zoomScale = min(
+            Self.maximumZoomScale,
+            max(minimumScale, zoomScale * multiplier)
+        )
+        automaticallyFitsImage = false
+        layoutImage()
+
+        let target = NSPoint(
+            x: imageView.frame.minX + imageView.frame.width * relativePoint.x - visibleBounds.width / 2,
+            y: imageView.frame.minY + imageView.frame.height * relativePoint.y - visibleBounds.height / 2
+        )
+        scroll(to: target)
+    }
+
+    private func fitImageToWindow() {
+        automaticallyFitsImage = true
+        layoutImage()
+    }
+
+    private func imageRelativePoint(at point: NSPoint) -> NSPoint {
+        let frame = imageView.frame
+        guard frame.width > 0, frame.height > 0 else {
+            return NSPoint(x: 0.5, y: 0.5)
+        }
+        return NSPoint(
+            x: min(1, max(0, (point.x - frame.minX) / frame.width)),
+            y: min(1, max(0, (point.y - frame.minY) / frame.height))
+        )
+    }
+
+    private func constrainScrollPosition() {
+        scroll(to: scrollView.contentView.bounds.origin)
+    }
+
+    private func scroll(to origin: NSPoint) {
+        let viewportSize = scrollView.contentView.bounds.size
+        let maximumOrigin = NSPoint(
+            x: max(0, canvas.bounds.width - viewportSize.width),
+            y: max(0, canvas.bounds.height - viewportSize.height)
+        )
+        let constrainedOrigin = NSPoint(
+            x: min(maximumOrigin.x, max(0, origin.x)),
+            y: min(maximumOrigin.y, max(0, origin.y))
+        )
+        scrollView.contentView.scroll(to: constrainedOrigin)
+        scrollView.reflectScrolledClipView(scrollView.contentView)
     }
 }
 

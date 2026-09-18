@@ -95,29 +95,28 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     }
 
     override func makeGroups() -> [NSView] {
-        var groups: [NSView] = [
-            SettingsGroup(rows: [
-                SettingsRow(
-                    title: String(localized: "Startup"),
-                    description: String(localized: "Changes apply only to new terminals. Open terminals keep their current process."),
-                    control: startupView
-                ),
-            ]),
+        var startupRows: [NSView] = [
+            SettingsRow(
+                title: String(localized: "Startup"),
+                description: String(localized: "Changes apply only to new terminals. Open terminals keep their current process."),
+                control: startupView
+            ),
         ]
 
         // Only offer this once there is a real choice. `selectable` omits
         // backends this build cannot create, so every card here takes effect
         // instead of silently producing a dead pane.
         if TerminalBackend.selectable.count > 1 {
-            groups.append(SettingsGroup(rows: [
+            startupRows.append(
                 SettingsRow(
                     title: String(localized: "Backend"),
                     description: String(localized: "Changes apply only to new terminals. Open shells keep their current backend."),
                     control: backendPicker
-                ),
-            ]))
+                )
+            )
         }
 
+        var groups: [NSView] = [SettingsGroup(rows: startupRows)]
         groups.append(SettingsGroup(header: String(localized: "Cursor"), rows: [
             SettingsCustomRow(cursorShapeView),
             SettingsCustomRow(cursorBlinkingView),

@@ -8,6 +8,7 @@ import Combine
 import Foundation
 import PierreDiffsSwift
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Mutable pipe storage shared by the two dedicated readers in
 /// `DiffTab.runGitData`. Each instance is written by exactly one reader.
@@ -112,8 +113,17 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     @Published private(set) var isDirty = false
     @Published private(set) var reviewSnapshot: DiffReviewSnapshot?
     @Published var saveError: String?
+    @Published private(set) var imageComparison: ImageComparison?
 
     let web = DiffWebModel()
+
+    /// Image bytes remain in their original Git representation until AppKit
+    /// decodes them on the main actor. Git loading stays detached, while image
+    /// decoding gets the same thread-affinity as the preview view.
+    nonisolated struct ImageComparison: Equatable, Sendable {
+        let beforeData: Data?
+        let afterData: Data?
+    }
 
     /// The web view lives on the tab (not in the SwiftUI view) so switching
     /// tabs re-parents the same rendered view instead of booting a fresh
@@ -190,6 +200,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         isLoading = true
         error = nil
         reviewSnapshot = nil
+        imageComparison = nil
         let root = repoRoot
         let path = path
         let oldPath = origPath ?? path
@@ -202,36 +213,26 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
                 var failureVar: String?
                 let unmerged = commitHash == nil && !staged
                     && Self.isUnmerged(path: path, in: root)
-                let old: String
-                let new: String
+                let old: GitContent
+                let new: GitContent
                 if let commitHash {
-                    old = Self.firstGitContent(
-                        ["\(commitHash)^:\(oldPath)"], in: root, error: &failureVar
-                    )
-                    new = Self.firstGitContent(
-                        ["\(commitHash):\(path)"], in: root, error: &failureVar
-                    )
+                    old = Self.gitContent("\(commitHash)^:\(oldPath)", in: root)
+                    new = Self.gitContent("\(commitHash):\(path)", in: root)
                 } else if staged {
-                    old = Self.firstGitContent(
-                        ["HEAD:\(oldPath)"], in: root, error: &failureVar
-                    )
-                    new = Self.firstGitContent(
-                        [":\(path)"], in: root, error: &failureVar
-                    )
+                    old = Self.gitContent("HEAD:\(oldPath)", in: root)
+                    new = Self.gitContent(":\(path)", in: root)
                 } else {
                     if untracked {
-                        old = ""
+                        old = .missing
                     } else {
                         // An unmerged index has no stage-0 `:path`. Prefer our
                         // side, then the merge base, so conflict rows show a
                         // meaningful before-side instead of the whole file as new.
-                        old = Self.firstGitContent(
-                            [":\(oldPath)", ":2:\(oldPath)", ":1:\(oldPath)", "HEAD:\(oldPath)"],
-                            in: root,
-                            error: &failureVar
-                        )
+                        old = Self.firstGitContent([
+                            ":\(oldPath)", ":2:\(oldPath)", ":1:\(oldPath)", "HEAD:\(oldPath)",
+                        ], in: root)
                     }
-                    new = Self.readWorktreeFile(root: root, path: path, error: &failureVar)
+                    new = Self.readWorktreeContent(root: root, path: path, error: &failureVar)
                 }
                 let editable = commitHash == nil && !staged
                     && Self.isEditableWorktreeFile(root: root, path: path)
@@ -268,19 +269,37 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
                 )
             }.value
             guard let self, self.reloadGeneration == generation else { return }
+            let comparison = Self.imageComparison(
+                from: result.old,
+                beforePath: oldPath,
+                and: result.new,
+                afterPath: path
+            )
+            var failure = result.failure
+            let old: String
+            let new: String
+            if comparison == nil {
+                old = Self.textContent(from: result.old, error: &failure)
+                new = Self.textContent(from: result.new, error: &failure)
+            } else {
+                old = ""
+                new = ""
+            }
+            let hasChanges = comparison.map { $0.beforeData != $0.afterData } ?? (old != new)
             self.isLoading = false
-            self.error = result.failure
+            self.error = failure
             self.isUnmerged = result.unmerged
-            self.isEditable = result.editable && result.failure == nil
+            self.imageComparison = failure == nil ? comparison : nil
+            self.isEditable = result.editable && failure == nil && comparison == nil
             self.web.canEdit = self.isEditable
-            self.web.oldContent = result.old
-            self.web.newContent = result.new
-            self.savedNewContent = result.new
-            self.editedNewContent = result.new
+            self.web.oldContent = old
+            self.web.newContent = new
+            self.savedNewContent = new
+            self.editedNewContent = new
             self.isDirty = false
             self.saveError = nil
             if self.commitHash == nil, result.failure == nil,
-               result.old != result.new, let fingerprint = result.fingerprint {
+               failure == nil, hasChanges, let fingerprint = result.fingerprint {
                 let snapshot = DiffReviewSnapshot(
                     key: result.reviewKey,
                     fingerprint: fingerprint
@@ -371,28 +390,83 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     private nonisolated enum GitContent {
         case missing
         case content(String)
-        case binary
+        case binary(Data)
         case tooLarge
     }
 
-    private nonisolated static func firstGitContent(
-        _ specs: [String], in root: String, error: inout String?
-    ) -> String {
-        for spec in specs {
-            switch gitContent(spec, in: root) {
-            case .missing:
-                continue
-            case .content(let content):
-                return content
-            case .binary:
-                error = String(localized: "Binary file")
-                return ""
-            case .tooLarge:
-                error = String(localized: "File is too large to diff")
-                return ""
-            }
+    /// Image decoding belongs on the main actor with the AppKit views that use
+    /// it. The detached Git read retains raw bytes only until this decision.
+    private static func imageComparison(
+        from old: GitContent,
+        beforePath: String,
+        and new: GitContent,
+        afterPath: String
+    ) -> ImageComparison? {
+        let beforeData: Data?
+        switch old {
+        case .missing:
+            beforeData = nil
+        case .binary(let data):
+            beforeData = data
+        case .content, .tooLarge:
+            return nil
         }
-        return ""
+
+        let afterData: Data?
+        switch new {
+        case .missing:
+            afterData = nil
+        case .binary(let data):
+            afterData = data
+        case .content, .tooLarge:
+            return nil
+        }
+
+        guard beforeData != nil || afterData != nil else { return nil }
+        let isKnownImage = Self.isImagePath(beforePath) || Self.isImagePath(afterPath)
+        let hasDecodableImage = [beforeData, afterData].contains { data in
+            data.flatMap(NSImage.init(data:)) != nil
+        }
+        guard isKnownImage || hasDecodableImage else { return nil }
+        return ImageComparison(beforeData: beforeData, afterData: afterData)
+    }
+
+    private nonisolated static func isImagePath(_ path: String) -> Bool {
+        let pathExtension = URL(fileURLWithPath: path).pathExtension
+        guard !pathExtension.isEmpty,
+              let type = UTType(filenameExtension: pathExtension)
+        else { return false }
+        return type.conforms(to: .image)
+    }
+
+    private static func textContent(from content: GitContent, error: inout String?) -> String {
+        switch content {
+        case .missing:
+            return ""
+        case .content(let content):
+            return content
+        case .binary:
+            if error == nil {
+                error = String(localized: "Binary file")
+            }
+            return ""
+        case .tooLarge:
+            if error == nil {
+                error = String(localized: "File is too large to diff")
+            }
+            return ""
+        }
+    }
+
+    private nonisolated static func firstGitContent(
+        _ specs: [String], in root: String
+    ) -> GitContent {
+        for spec in specs {
+            let content = gitContent(spec, in: root)
+            if case .missing = content { continue }
+            return content
+        }
+        return .missing
     }
 
     private nonisolated static func gitContent(_ spec: String, in root: String) -> GitContent {
@@ -406,7 +480,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         guard !run.stdout.contains(0),
               let content = String(data: run.stdout, encoding: .utf8)
         else {
-            return .binary
+            return .binary(run.stdout)
         }
         return .content(content)
     }
@@ -503,17 +577,16 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         return true
     }
 
-    private nonisolated static func readWorktreeFile(
+    private nonisolated static func readWorktreeContent(
         root: String, path: String, error: inout String?
-    ) -> String {
+    ) -> GitContent {
         let url = URL(fileURLWithPath: root, isDirectory: true).appendingPathComponent(path)
         let fm = FileManager.default
         if let destination = try? fm.destinationOfSymbolicLink(atPath: url.path) {
             guard destination.utf8.count <= maxBytes else {
-                error = String(localized: "File is too large to diff")
-                return ""
+                return .tooLarge
             }
-            return destination
+            return .content(destination)
         }
         do {
             // Keep one descriptor for the whole read: replacing the path while
@@ -523,8 +596,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             defer { try? handle.close() }
             let initialSize = try handle.seekToEnd()
             guard initialSize <= UInt64(maxBytes) else {
-                error = String(localized: "File is too large to diff")
-                return ""
+                return .tooLarge
             }
             try handle.seek(toOffset: 0)
 
@@ -538,26 +610,24 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             }
             let finalSize = try handle.seekToEnd()
             guard finalSize <= UInt64(maxBytes) else {
-                error = String(localized: "File is too large to diff")
-                return ""
+                return .tooLarge
             }
             guard !data.contains(0),
                   let text = String(data: data, encoding: .utf8)
             else {
-                error = String(localized: "Binary file")
-                return ""
+                return .binary(data)
             }
-            return text
+            return .content(text)
         } catch let readError as CocoaError
             where readError.code == .fileNoSuchFile || readError.code == .fileReadNoSuchFile {
             // Deleted from the worktree: an empty "after" side is the diff.
-            return ""
+            return .missing
         } catch let fileError {
             error = String(
                 localized: "Unable to read file: \(fileError.localizedDescription)",
                 comment: "Diff error followed by a system-provided error description."
             )
-            return ""
+            return .missing
         }
     }
 }
@@ -718,6 +788,191 @@ private struct DiffWebHostView: NSViewRepresentable {
     }
 }
 
+/// AppKit owns the binary image comparison so each side gets the same zooming
+/// and viewport behavior as Files previews.
+private struct DiffImageComparisonHostView: NSViewRepresentable {
+    let comparison: DiffTab.ImageComparison
+
+    func makeNSView(context: Context) -> DiffImageComparisonNSView {
+        let view = DiffImageComparisonNSView()
+        view.update(comparison: comparison)
+        return view
+    }
+
+    func updateNSView(_ view: DiffImageComparisonNSView, context: Context) {
+        view.update(comparison: comparison)
+    }
+}
+
+@MainActor
+private final class DiffImageComparisonNSView: NSView {
+    private let before = DiffImageComparisonSideView(
+        title: String(localized: "Before", comment: "The previous version in an image diff.")
+    )
+    private let after = DiffImageComparisonSideView(
+        title: String(localized: "After", comment: "The new version in an image diff.")
+    )
+    private let divider = NSView()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+
+        for view in [before, divider, after] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(view)
+        }
+        divider.wantsLayer = true
+
+        NSLayoutConstraint.activate([
+            before.leadingAnchor.constraint(equalTo: leadingAnchor),
+            before.topAnchor.constraint(equalTo: topAnchor),
+            before.bottomAnchor.constraint(equalTo: bottomAnchor),
+            divider.leadingAnchor.constraint(equalTo: before.trailingAnchor),
+            divider.topAnchor.constraint(equalTo: topAnchor),
+            divider.bottomAnchor.constraint(equalTo: bottomAnchor),
+            divider.widthAnchor.constraint(equalToConstant: 1),
+            after.leadingAnchor.constraint(equalTo: divider.trailingAnchor),
+            after.trailingAnchor.constraint(equalTo: trailingAnchor),
+            after.topAnchor.constraint(equalTo: topAnchor),
+            after.bottomAnchor.constraint(equalTo: bottomAnchor),
+            before.widthAnchor.constraint(equalTo: after.widthAnchor),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func update(comparison: DiffTab.ImageComparison) {
+        before.update(imageData: comparison.beforeData)
+        after.update(imageData: comparison.afterData)
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateAppearanceColors()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearanceColors()
+    }
+
+    private func updateAppearanceColors() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = Theme.background.cgColor
+            divider.layer?.backgroundColor = Theme.divider.cgColor
+        }
+    }
+}
+
+@MainActor
+private final class DiffImageComparisonSideView: NSView {
+    private let titleLabel: NSTextField
+    private let divider = NSView()
+    private var content: NSView?
+    private var imageData: Data?
+
+    init(title: String) {
+        titleLabel = NSTextField(labelWithString: title)
+        super.init(frame: .zero)
+        wantsLayer = true
+
+        titleLabel.font = .systemFont(ofSize: 11, weight: .medium)
+        titleLabel.textColor = .secondaryLabelColor
+        titleLabel.lineBreakMode = .byTruncatingTail
+        divider.wantsLayer = true
+        for view in [titleLabel, divider] as [NSView] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(view)
+        }
+        NSLayoutConstraint.activate([
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+            divider.leadingAnchor.constraint(equalTo: leadingAnchor),
+            divider.trailingAnchor.constraint(equalTo: trailingAnchor),
+            divider.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 7),
+            divider.heightAnchor.constraint(equalToConstant: 1),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func update(imageData: Data?) {
+        guard self.imageData != imageData || content == nil else { return }
+        self.imageData = imageData
+        content?.removeFromSuperview()
+
+        let replacement: NSView
+        if let imageData, let image = NSImage(data: imageData) {
+            replacement = ImagePreviewView(image: image, backgroundColor: Theme.background)
+            replacement.setAccessibilityLabel(titleLabel.stringValue)
+        } else {
+            replacement = placeholder(
+                text: String(localized: imageData == nil ? "No image" : "Image unavailable")
+            )
+        }
+        replacement.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(replacement)
+        NSLayoutConstraint.activate([
+            replacement.leadingAnchor.constraint(equalTo: leadingAnchor),
+            replacement.trailingAnchor.constraint(equalTo: trailingAnchor),
+            replacement.topAnchor.constraint(equalTo: divider.bottomAnchor),
+            replacement.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+        content = replacement
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateAppearanceColors()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearanceColors()
+    }
+
+    private func placeholder(text: String) -> NSView {
+        let container = NSView()
+        let icon = NSImageView()
+        let label = NSTextField(labelWithString: text)
+        icon.image = NSImage(systemSymbolName: "photo", accessibilityDescription: nil)
+        icon.contentTintColor = .tertiaryLabelColor
+        label.font = .systemFont(ofSize: 11)
+        label.textColor = .tertiaryLabelColor
+        label.alignment = .center
+        let stack = NSStackView(views: [icon, label])
+        stack.orientation = .vertical
+        stack.alignment = .centerX
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 12),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -12),
+        ])
+        container.setAccessibilityElement(true)
+        container.setAccessibilityLabel("\(titleLabel.stringValue): \(text)")
+        return container
+    }
+
+    private func updateAppearanceColors() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = Theme.background.cgColor
+            divider.layer?.backgroundColor = Theme.divider.cgColor
+        }
+    }
+}
+
 /// Renders a diff tab with PierreDiffsSwift: syntax-highlighted unified or
 /// split view with word-level change highlighting.
 struct DiffViewerView: View {
@@ -747,6 +1002,12 @@ struct DiffViewerView: View {
             Group {
                 if let error = diff.error {
                     placeholder(icon: "exclamationmark.triangle", text: error)
+                } else if let imageComparison = diff.imageComparison {
+                    VStack(spacing: 0) {
+                        controlBar
+                        DiffImageComparisonHostView(comparison: imageComparison)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
                 } else if web.oldContent == web.newContent {
                     if diff.isLoading {
                         initialLoadingSkeleton
@@ -830,7 +1091,8 @@ struct DiffViewerView: View {
                 set: { diff.setEditing($0) }
             ),
             reviewSnapshot: diff.reviewSnapshot,
-            canEdit: diff.isEditable
+            canEdit: diff.isEditable,
+            showsLayout: diff.imageComparison == nil
         )
         .frame(height: DiffViewerLayout.controlsHeight)
     }
@@ -891,6 +1153,7 @@ private struct DiffControlsBar: NSViewRepresentable {
     @ObservedObject private var reviews = DiffReviewStore.shared
     let reviewSnapshot: DiffReviewSnapshot?
     let canEdit: Bool
+    let showsLayout: Bool
 
     func makeNSView(context: Context) -> DiffControlsNSView {
         DiffControlsNSView()
@@ -903,6 +1166,7 @@ private struct DiffControlsBar: NSViewRepresentable {
             diffStyle: diffStyle,
             isEditing: isEditing,
             canEdit: canEdit,
+            showsLayout: showsLayout,
             reviewAvailable: reviewSnapshot != nil,
             reviewed: reviewed,
             onDiffStyleChange: { diffStyle = $0 },
@@ -1083,6 +1347,7 @@ private final class DiffControlsNSView: NSView {
         diffStyle: DiffStyle,
         isEditing: Bool,
         canEdit: Bool,
+        showsLayout: Bool,
         reviewAvailable: Bool,
         reviewed: Bool,
         onDiffStyleChange: @escaping (DiffStyle) -> Void,
@@ -1097,6 +1362,7 @@ private final class DiffControlsNSView: NSView {
 
         layoutControl.selectedSegment = diffStyle == .split ? 1 : 0
         modeControl.isHidden = !canEdit
+        layoutControl.isHidden = !showsLayout
         modeControl.setEnabled(canEdit, forSegment: 1)
         modeControl.selectedSegment = canEdit && isEditing ? 1 : 0
     }

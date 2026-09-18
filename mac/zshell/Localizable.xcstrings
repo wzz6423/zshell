@@ -818,6 +818,22 @@
         }
       }
     },
+    "After": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更後"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "变更后"
+          }
+        }
+      }
+    },
     "Agent finished": {},
     "Agent idle": {},
     "Agent needs attention": {},
@@ -1268,6 +1284,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "行为"
+          }
+        }
+      }
+    },
+    "Before": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更前"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "变更前"
           }
         }
       }
@@ -2764,6 +2796,22 @@
         }
       }
     },
+    "Couldn’t Move Project": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロジェクトを移動できませんでした"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法移动项目"
+          }
+        }
+      }
+    },
     "Couldn’t Move Tab": {
       "localizations": {
         "ja": {
@@ -4084,6 +4132,22 @@
         }
       }
     },
+    "Fit Image to Window": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画像をウインドウに合わせる"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将图像适配到窗口"
+          }
+        }
+      }
+    },
     "Finish discarding all changes": {
       "localizations": {
         "ja": {
@@ -4707,6 +4771,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "图像渲染"
+          }
+        }
+      }
+    },
+    "Image unavailable": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画像を表示できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图像不可用"
           }
         }
       }
@@ -5528,6 +5608,22 @@
         }
       }
     },
+    "Move this project to a project with the same local or SSH location.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このプロジェクトを同じローカルまたは SSH 接続先のプロジェクトに移動してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请将此项目移到相同本地或 SSH 位置的项目。"
+          }
+        }
+      }
+    },
     "Move this tab to a project with the same local or SSH location, or create a new project from it.": {
       "localizations": {
         "ja": {
@@ -5657,7 +5753,7 @@
       }
     },
     "New": {
-      "comment": "Quick Launch footer hint: ⌘N creates an entry.",
+      "comment": "Quick Launch footer hint: ⌘⇧N creates an entry.",
       "localizations": {
         "ja": {
           "stringUnit": {
@@ -5781,6 +5877,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "新規グループ"
+          }
+        }
+      }
+    },
+    "New Group %lld": {
+      "comment": "Default name of a newly created plain sidebar project group. The placeholder is the group number.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新規グループ %lld"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新分组 %lld"
           }
         }
       }
@@ -6140,6 +6253,22 @@
         }
       }
     },
+    "No image": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画像なし"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无图像"
+          }
+        }
+      }
+    },
     "No Matches": {
       "comment": "Empty state when a filter matches nothing.",
       "localizations": {
@@ -6367,18 +6496,18 @@
         }
       }
     },
-    "No saved projects yet. Fill in the form below and click Save.": {
+    "No saved projects yet. Click New to add one.": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "保存されたプロジェクトはまだありません。下のフォームに入力して「保存」をクリックしてください。"
+            "value": "保存されたプロジェクトはまだありません。「新規」をクリックして追加してください。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "暂无保存的项目。在下方填写后点击“保存”。"
+            "value": "暂无保存的项目。点击“新建”以添加项目。"
           }
         }
       }
@@ -7157,19 +7286,19 @@
         }
       }
     },
-    "Press ⌘N to add your first entry.": {
+    "Press ⌘⇧N to add your first entry.": {
       "comment": "Hint in the empty Quick Launch panel.",
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "⌘N で最初のエントリを追加します。"
+            "value": "⌘⇧N で最初のエントリを追加します。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "按 ⌘N 添加第一个条目。"
+            "value": "按 ⌘⇧N 添加第一个条目。"
           }
         }
       }
@@ -9249,6 +9378,22 @@
         }
       }
     },
+    "Show tab group names": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タブグループ名を表示"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示标签页分组名称"
+          }
+        }
+      }
+    },
     "Showing the last local snapshot. %@": {
       "localizations": {
         "ja": {
@@ -10089,6 +10234,22 @@
         }
       }
     },
+    "Projects containing diffs can’t be moved into another project.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "差分を含むプロジェクトは別のプロジェクトに移動できません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包含差异的项目无法移入另一个项目。"
+          }
+        }
+      }
+    },
     "Tabs": {
       "localizations": {
         "ja": {
@@ -10559,6 +10720,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "项目将从保存列表中移除，已打开的终端保持不变。"
+          }
+        }
+      }
+    },
+    "The project or destination project is no longer available.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロジェクトまたは移動先のプロジェクトが利用できなくなりました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "项目或目标项目已不可用。"
           }
         }
       }
@@ -11808,6 +11985,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "如果不保存，更改将会丢失。"
+          }
+        }
+      }
+    },
+    "Zoom In": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拡大"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "放大"
+          }
+        }
+      }
+    },
+    "Zoom Out": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "縮小"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缩小"
           }
         }
       }

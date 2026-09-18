@@ -98,7 +98,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         let launch = TerminalLaunch(
             program: "/bin/sh",
             arguments: ["-c", script],
-            commandLine: "/bin/sh -c \(Self.shellQuote(script))",
+            commandLine: Self.ghosttyCommandLine(for: script),
             interactiveShell: directCommand == nil ? shellPath : nil,
             workingDirectory: directory,
             environment: Self.surfaceEnvironment(
@@ -124,6 +124,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         super.init()
 
         surface.events = self
+        configureQuickCommandMenu()
         installOverlayScrollbar()
         promptQueueBar.attach(queue: promptQueue, session: self)
         applyTheme()
@@ -164,13 +165,30 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         hostManagerID == ObjectIdentifier(manager)
     }
 
+    /// Context-menu actions retain the terminal they came from, even if another
+    /// Zshell window becomes key while the menu is open.
+    private func configureQuickCommandMenu() {
+        surface.splitTarget.onInsertQuickCommand = { [weak self] preset in
+            self?.sendCommand(preset.command)
+        }
+        surface.splitTarget.onRunQuickCommand = { [weak self] preset in
+            guard let self else { return }
+            self.sendCommand(preset.command)
+            self.sendEnter()
+        }
+        surface.splitTarget.onManageQuickCommands = { [weak self] in
+            guard let self else { return }
+            QuickCommandEditor.show(relativeTo: self.surface.window)
+        }
+    }
+
     /// Reconfigures the surface in place when appearance or terminal settings
-    /// change. A caller may supply an override for surfaces, such as the quick
-    /// terminal, whose alpha is not owned by the main-window setting.
+    /// change. The main window owns alpha; a clear default terminal background
+    /// exposes its material layer only while the effect is active.
     func applyTheme(backgroundOpacity: CGFloat? = nil) {
         surface.setBackgroundOpacity(
             backgroundOpacity
-                ?? CGFloat(AppSettings.shared.effectiveTerminalBackgroundOpacity)
+                ?? (AppSettings.shared.isTerminalBackgroundBlurActive ? 0 : 1)
         )
         surface.applyAppearance()
     }
@@ -198,6 +216,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         surface.splitTarget.onNewBrowserPane = nil
         surface.splitTarget.onNewFileTab = nil
         surface.splitTarget.onNewFilePane = nil
+        surface.splitTarget.onInsertQuickCommand = nil
+        surface.splitTarget.onRunQuickCommand = nil
+        surface.splitTarget.onManageQuickCommands = nil
 
         if processAlive {
             _ = shellPid // Cache it before `hasExited` changes.
@@ -765,6 +786,14 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
+    /// Ghostty renders `command` as one config line. Encoding the launch shim
+    /// keeps user-provided multiline startup commands from splitting that line.
+    private static func ghosttyCommandLine(for script: String) -> String {
+        let encoded = Data(script.utf8).base64EncodedString()
+        let decode = "/usr/bin/printf %s \(shellQuote(encoded)) | /usr/bin/base64 -D"
+        return "/bin/sh -c \(shellQuote("eval \"$(\(decode))\""))"
+    }
+
     private static func validWorkingDirectory(_ requested: String?) -> String {
         var isDirectory: ObjCBool = false
         if let requested,
@@ -788,6 +817,13 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         case .failure:
             return nil
         }
+    }
+
+    /// The command Quick Launch returns to after its action completes. Unlike
+    /// an ordinary session this is always an argv, so callers preserve custom
+    /// programs and their parsed arguments without assuming shell flags.
+    static func quickLaunchStartupCommand() -> [String] {
+        configuredStartupCommand() ?? [loginShell(), "-l"]
     }
 
     /// Internal so Quick Launch entries build their launch argv around the

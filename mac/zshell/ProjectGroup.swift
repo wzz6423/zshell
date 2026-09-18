@@ -31,7 +31,7 @@ struct ProjectGroup: Identifiable, Codable, Equatable {
         name: String,
         kind: Kind,
         isCollapsed: Bool = false,
-        markerColorHex: String? = nil
+        markerColorHex: String? = ProjectTabMarkerColor.defaultColor.hex
     ) {
         self.id = id
         self.name = name
@@ -71,6 +71,13 @@ struct ProjectGroup: Identifiable, Codable, Equatable {
             comment: "Default name of a newly created sidebar project group."
         )
     }
+
+    static func defaultPlainName(_ number: Int) -> String {
+        String(
+            localized: "New Group \(number)",
+            comment: "Default name of a newly created plain sidebar project group. The placeholder is the group number."
+        )
+    }
 }
 
 /// The saved project groups, persisted as JSON under the same Debug/Release-
@@ -100,6 +107,14 @@ final class ProjectGroupStore: ObservableObject {
     func add(_ group: ProjectGroup) {
         groups.append(group)
         save()
+    }
+
+    func nextPlainGroupName() -> String {
+        var number = 1
+        while groups.contains(where: { $0.name == ProjectGroup.defaultPlainName(number) }) {
+            number += 1
+        }
+        return ProjectGroup.defaultPlainName(number)
     }
 
     func update(_ group: ProjectGroup) {
@@ -162,7 +177,7 @@ struct SessionTabGroup: Identifiable, Codable, Equatable {
         id: UUID = UUID(),
         name: String,
         isCollapsed: Bool = false,
-        markerColorHex: String? = nil
+        markerColorHex: String? = ProjectTabMarkerColor.defaultColor.hex
     ) {
         self.id = id
         self.name = name

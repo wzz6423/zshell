@@ -750,6 +750,8 @@ private struct TabPaneThumbnail: View {
                 .resizable()
                 .scaledToFit()
                 .padding(5)
+        case .quickLook:
+            MaterialFileIconView(path: file.path, size: 22, opacity: 0.82)
         case .unavailable(let reason):
             if reason.isEmpty {
                 ProgressView()

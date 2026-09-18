@@ -23,7 +23,7 @@ enum SettingsCategory: String, CaseIterable {
         case .appearance: String(localized: "Appearance")
         case .terminal: String(localized: "Terminal")
         case .editor: String(localized: "Editor")
-        case .automation: String(localized: "Automation")
+        case .automation: String(localized: "AI")
         case .updates: String(localized: "Updates")
         }
     }
@@ -62,7 +62,8 @@ final class SettingsWindowController: NSWindowController {
     private static let categoryDefaultsKey = "zshell.settings.category"
     private static let frameAutosaveName = "Settings"
     private static let sidebarWidth: CGFloat = 188
-    private static let defaultContentSize = NSSize(width: 720, height: 660)
+    private static let legacyContentHeight: CGFloat = 660
+    private static let defaultContentSize = NSSize(width: 720, height: 560)
 
     private let sidebar = SettingsSidebarViewController()
     private let content = SettingsContentViewController()
@@ -98,10 +99,23 @@ final class SettingsWindowController: NSWindowController {
         window.isReleasedWhenClosed = false
         // setFrameAutosaveName writes the current frame immediately, so a
         // remembered one has to be restored before the name is set.
-        if !window.setFrameUsingName(Self.frameAutosaveName) {
+        let restoredFrame = window.setFrameUsingName(Self.frameAutosaveName)
+        if !restoredFrame {
             window.center()
         }
         window.setFrameAutosaveName(Self.frameAutosaveName)
+        if restoredFrame {
+            let restoredSize = window.contentRect(forFrameRect: window.frame).size
+            if restoredSize.height == Self.legacyContentHeight {
+                // Preserve the user's width and position while migrating the
+                // previous, overly tall default to the denser window layout.
+                window.setContentSize(NSSize(
+                    width: restoredSize.width,
+                    height: Self.defaultContentSize.height
+                ))
+                window.saveFrame(usingName: Self.frameAutosaveName)
+            }
+        }
 
         super.init(window: window)
 

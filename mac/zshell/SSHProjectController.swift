@@ -147,23 +147,19 @@ final class SSHProjectStore: ObservableObject {
     }
 }
 
-/// The SSH project dialog: a small titled window listing saved projects —
-/// grouped, one click connects, per-row edit/delete — above the connection
-/// form. Replaces the old one-shot alert, whose accessory view broke its own
-/// layout and which kept no history of previously entered projects.
+/// The SSH project dialog keeps saved-project browsing separate from editing,
+/// so the next action is clear without losing grouped rows or one-click
+/// connect/edit/delete controls.
 @MainActor
 final class SSHProjectController: NSObject {
     static let shared = SSHProjectController()
 
     private static let windowWidth: CGFloat = 500
     private static let listHeight: CGFloat = 210
+    private static let listContentHeight: CGFloat = 278
     private static let rowHeight: CGFloat = 34
     private static let headerHeight: CGFloat = 26
-    /// Content height: list box + gap + form stack (header + 5-row grid +
-    /// buttons) + insets. An exact fit matters — every extra point the outer
-    /// stack cannot spend on spacing is dumped into the grid as a stretched,
-    /// blank band after its first row.
-    private static let formHeight: CGFloat = 256
+    private static let fallbackFormContentHeight: CGFloat = 240
 
     private weak var manager: TerminalManager?
     private var window: NSWindow?
@@ -175,17 +171,20 @@ final class SSHProjectController: NSObject {
     private let tableView = RowButtonTableView()
     private let scrollView = NSScrollView()
     private let emptyStateLabel = NSTextField(labelWithString: "")
+    private let listContainer = NSView()
+    private let formContainer = NSView()
 
-    private let groupField = NSTextField()
+    private let groupField = NSComboBox()
     private let hostField = NSTextField()
     private let userField = NSTextField()
     private let portField = NSTextField()
     private let directoryField = NSTextField()
     private let errorLabel = NSTextField(wrappingLabelWithString: "")
     private let saveButton = NSButton(title: "", target: nil, action: nil)
+    private let cancelButton = NSButton(title: "", target: nil, action: nil)
     private let newButton = NSButton(title: "", target: nil, action: nil)
     private let connectButton = NSButton(title: "", target: nil, action: nil)
-    private var formHeaderLabel: NSTextField?
+    private var formStack: NSStackView?
 
     /// The entry being edited, if the form was filled from a row's edit
     /// button; saving replaces it instead of appending.
@@ -205,6 +204,13 @@ final class SSHProjectController: NSObject {
     /// Rows as they appear in the table — grouped sections when at least one
     /// entry carries a group, otherwise the saved order.
     private var displayRows: [DisplayRow] = []
+
+    private enum DisplayMode: Equatable {
+        case savedProjects
+        case form
+    }
+
+    private var displayMode: DisplayMode = .savedProjects
 
     private var selectedEntry: SSHProjectEntry? {
         let row = tableView.selectedRow
@@ -228,11 +234,10 @@ final class SSHProjectController: NSObject {
         let window = self.window ?? makeWindow()
         self.window = window
 
-        clearForm()
-        reloadList()
+        showSavedProjects()
         AppWindowPresentation.attach(window, to: host, placement: .centered)
         window.makeKeyAndOrderFront(nil)
-        window.makeFirstResponder(hostField)
+        focusSavedProjects()
     }
 
     // MARK: - Window construction
@@ -242,7 +247,7 @@ final class SSHProjectController: NSObject {
             contentRect: NSRect(
                 x: 0, y: 0,
                 width: Self.windowWidth,
-                height: Self.listHeight + Self.formHeight
+                height: Self.listContentHeight
             ),
             styleMask: [.titled, .closable],
             backing: .buffered,
@@ -256,6 +261,7 @@ final class SSHProjectController: NSObject {
 
         buildList(in: content)
         buildForm(in: content)
+        applyDisplayMode(resizeWindow: false)
 
         if mouseDownMonitor == nil {
             mouseDownMonitor = NSEvent.addLocalMonitorForEvents(
@@ -272,6 +278,15 @@ final class SSHProjectController: NSObject {
     }
 
     private func buildList(in content: NSView) {
+        listContainer.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(listContainer)
+        NSLayoutConstraint.activate([
+            listContainer.topAnchor.constraint(equalTo: content.topAnchor),
+            listContainer.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            listContainer.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            listContainer.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+        ])
+
         tableView.headerView = nil
         tableView.backgroundColor = .clear
         tableView.rowHeight = Self.rowHeight
@@ -297,27 +312,51 @@ final class SSHProjectController: NSObject {
         scrollView.hasVerticalScroller = true
         scrollView.autohidesScrollers = true
         scrollView.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(scrollView)
+        listContainer.addSubview(scrollView)
 
         emptyStateLabel.alignment = .center
         emptyStateLabel.font = .systemFont(ofSize: 12)
         emptyStateLabel.textColor = .tertiaryLabelColor
         emptyStateLabel.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(emptyStateLabel)
+        listContainer.addSubview(emptyStateLabel)
 
         let listBorder = HairlineBox()
         listBorder.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(listBorder)
+        listContainer.addSubview(listBorder)
+
+        newButton.title = String(
+            localized: "New",
+            comment: "Button opening the SSH project form."
+        )
+        newButton.bezelStyle = .rounded
+        newButton.controlSize = .small
+        newButton.target = self
+        newButton.action = #selector(newClicked)
+
+        connectButton.title = String(
+            localized: "Connect",
+            comment: "Button connecting the selected saved SSH project."
+        )
+        connectButton.bezelStyle = .rounded
+        connectButton.controlSize = .small
+        connectButton.target = self
+        connectButton.action = #selector(connectSelectedClicked)
+
+        let buttonRow = NSStackView(views: [newButton, NSView(), connectButton])
+        buttonRow.orientation = .horizontal
+        buttonRow.alignment = .centerY
+        buttonRow.translatesAutoresizingMaskIntoConstraints = false
+        listContainer.addSubview(buttonRow)
 
         NSLayoutConstraint.activate([
             listBorder.topAnchor.constraint(
-                equalTo: content.topAnchor, constant: 16
+                equalTo: listContainer.topAnchor, constant: 16
             ),
             listBorder.leadingAnchor.constraint(
-                equalTo: content.leadingAnchor, constant: 16
+                equalTo: listContainer.leadingAnchor, constant: 16
             ),
             listBorder.trailingAnchor.constraint(
-                equalTo: content.trailingAnchor, constant: -16
+                equalTo: listContainer.trailingAnchor, constant: -16
             ),
             listBorder.heightAnchor.constraint(equalToConstant: Self.listHeight),
             scrollView.topAnchor.constraint(equalTo: listBorder.topAnchor, constant: 1),
@@ -326,14 +365,30 @@ final class SSHProjectController: NSObject {
             scrollView.trailingAnchor.constraint(equalTo: listBorder.trailingAnchor, constant: -1),
             emptyStateLabel.centerXAnchor.constraint(equalTo: listBorder.centerXAnchor),
             emptyStateLabel.centerYAnchor.constraint(equalTo: listBorder.centerYAnchor),
+            buttonRow.topAnchor.constraint(equalTo: listBorder.bottomAnchor, constant: 12),
+            buttonRow.leadingAnchor.constraint(equalTo: listContainer.leadingAnchor, constant: 16),
+            buttonRow.trailingAnchor.constraint(equalTo: listContainer.trailingAnchor, constant: -16),
+            buttonRow.bottomAnchor.constraint(equalTo: listContainer.bottomAnchor, constant: -16),
         ])
     }
 
     private func buildForm(in content: NSView) {
+        formContainer.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(formContainer)
+        NSLayoutConstraint.activate([
+            formContainer.topAnchor.constraint(equalTo: content.topAnchor),
+            formContainer.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            formContainer.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            formContainer.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+        ])
+
         groupField.placeholderString = String(
             localized: "Optional, e.g. Production",
             comment: "Placeholder of the SSH project group field."
         )
+        groupField.isEditable = true
+        groupField.completes = true
+        groupField.numberOfVisibleItems = 6
         hostField.placeholderString = String(
             localized: "example.com",
             comment: "Placeholder of the SSH host field."
@@ -353,7 +408,6 @@ final class SSHProjectController: NSObject {
         ))
         formHeader.font = .systemFont(ofSize: 12, weight: .semibold)
         formHeader.textColor = .secondaryLabelColor
-        formHeaderLabel = formHeader
 
         let grid = NSGridView(views: [
             formRow(String(localized: "Group", comment: "SSH project form label for the group."), groupField),
@@ -374,12 +428,6 @@ final class SSHProjectController: NSObject {
         grid.column(at: 1).width = 300
         grid.translatesAutoresizingMaskIntoConstraints = false
 
-        newButton.title = String(localized: "New", comment: "Button clearing the SSH form for a fresh entry.")
-        newButton.bezelStyle = .rounded
-        newButton.controlSize = .small
-        newButton.target = self
-        newButton.action = #selector(clearFormClicked)
-
         saveButton.title = String(localized: "Save", comment: "Button saving the SSH form into the list.")
         saveButton.bezelStyle = .rounded
         saveButton.controlSize = .small
@@ -387,13 +435,14 @@ final class SSHProjectController: NSObject {
         saveButton.action = #selector(saveClicked)
         saveButton.keyEquivalent = "\r"
 
-        connectButton.title = String(localized: "Connect", comment: "Button connecting the SSH form's project.")
-        connectButton.bezelStyle = .rounded
-        connectButton.controlSize = .small
-        connectButton.target = self
-        connectButton.action = #selector(connectClicked)
+        cancelButton.title = String(localized: "Cancel", comment: "Button discarding SSH project form changes.")
+        cancelButton.bezelStyle = .rounded
+        cancelButton.controlSize = .small
+        cancelButton.target = self
+        cancelButton.action = #selector(cancelClicked)
+        cancelButton.keyEquivalent = "\u{1b}"
 
-        let buttons = NSStackView(views: [newButton, NSView(), errorLabel, saveButton, connectButton])
+        let buttons = NSStackView(views: [NSView(), errorLabel, cancelButton, saveButton])
         buttons.orientation = .horizontal
         buttons.alignment = .centerY
         buttons.spacing = 8
@@ -405,14 +454,18 @@ final class SSHProjectController: NSObject {
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 12
+        stack.setContentHuggingPriority(.required, for: .vertical)
         stack.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(stack)
+        formContainer.addSubview(stack)
+        formStack = stack
 
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: 14),
-            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 16),
-            stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -16),
-            stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -16),
+            stack.topAnchor.constraint(equalTo: formContainer.topAnchor, constant: 20),
+            stack.leadingAnchor.constraint(equalTo: formContainer.leadingAnchor, constant: 16),
+            stack.trailingAnchor.constraint(equalTo: formContainer.trailingAnchor, constant: -16),
+            stack.bottomAnchor.constraint(
+                lessThanOrEqualTo: formContainer.bottomAnchor, constant: -16
+            ),
             grid.widthAnchor.constraint(equalTo: stack.widthAnchor),
             buttons.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
@@ -424,10 +477,73 @@ final class SSHProjectController: NSObject {
         return [label, field]
     }
 
+    private func showSavedProjects(selecting entryID: UUID? = nil) {
+        clearForm()
+        tableView.deselectAll(nil)
+        reloadList()
+        if let entryID { selectEntry(id: entryID) }
+        displayMode = .savedProjects
+        applyDisplayMode()
+        updateConnectButton()
+    }
+
+    private func showForm() {
+        displayMode = .form
+        applyDisplayMode()
+    }
+
+    private func applyDisplayMode(resizeWindow: Bool = true) {
+        let showsSavedProjects = displayMode == .savedProjects
+        listContainer.isHidden = !showsSavedProjects
+        formContainer.isHidden = showsSavedProjects
+        window?.title = showsSavedProjects
+            ? String(localized: "Saved SSH Projects")
+            : String(localized: "New SSH Project")
+
+        guard resizeWindow, let window else { return }
+        let oldFrame = window.frame
+        let contentHeight = showsSavedProjects
+            ? Self.listContentHeight
+            : formContentHeight()
+        window.setContentSize(NSSize(width: Self.windowWidth, height: contentHeight))
+        window.setFrameOrigin(NSPoint(
+            x: oldFrame.midX - window.frame.width / 2,
+            y: oldFrame.maxY - window.frame.height
+        ))
+    }
+
+    private func formContentHeight() -> CGFloat {
+        guard let formStack else { return Self.fallbackFormContentHeight }
+        formStack.layoutSubtreeIfNeeded()
+        return ceil(formStack.fittingSize.height + 36)
+    }
+
+    private func focusSavedProjects() {
+        if SSHProjectStore.shared.entries.isEmpty {
+            window?.makeFirstResponder(newButton)
+        } else {
+            window?.makeFirstResponder(tableView)
+        }
+    }
+
+    private func selectEntry(id: UUID) {
+        guard let row = displayRows.firstIndex(where: {
+            guard case .entry(let entry) = $0 else { return false }
+            return entry.id == id
+        }) else { return }
+        tableView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+        tableView.scrollRowToVisible(row)
+    }
+
+    private func updateConnectButton() {
+        connectButton.isEnabled = selectedEntry != nil
+    }
+
     // MARK: - List updates
 
     private func reloadList() {
         let entries = SSHProjectStore.shared.entries
+        reloadGroupOptions(entries)
         var rows: [DisplayRow] = []
         if entries.contains(where: { !$0.groupKey.isEmpty }) {
             var seenGroups: [String] = []
@@ -457,10 +573,24 @@ final class SSHProjectController: NSObject {
         let empty = entries.isEmpty
         emptyStateLabel.isHidden = !empty
         emptyStateLabel.stringValue = String(
-            localized: "No saved projects yet. Fill in the form below and click Save.",
+            localized: "No saved projects yet. Click New to add one.",
             comment: "Empty state of the saved SSH project list."
         )
         tableView.sizeLastColumnToFit()
+        updateConnectButton()
+    }
+
+    private func reloadGroupOptions(_ entries: [SSHProjectEntry]) {
+        let currentValue = groupField.stringValue
+        var seenGroups = Set<String>()
+        let groups = entries.compactMap { entry -> String? in
+            let group = entry.group?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !group.isEmpty, seenGroups.insert(group).inserted else { return nil }
+            return group
+        }
+        groupField.removeAllItems()
+        groupField.addItems(withObjectValues: groups)
+        groupField.stringValue = currentValue
     }
 
     // MARK: - Form state
@@ -473,7 +603,6 @@ final class SSHProjectController: NSObject {
         directoryField.stringValue = ""
         editingEntryID = nil
         hideError()
-        saveButton.title = String(localized: "Save", comment: "Button saving the SSH form into the list.")
     }
 
     private func fillForm(from entry: SSHProjectEntry) {
@@ -484,15 +613,12 @@ final class SSHProjectController: NSObject {
         directoryField.stringValue = entry.directory ?? ""
         editingEntryID = entry.id
         hideError()
-        saveButton.title = String(
-            localized: "Update",
-            comment: "Button saving edits to an existing SSH project."
-        )
     }
 
     private func showError(_ message: String) {
         errorLabel.stringValue = message
         errorLabel.isHidden = false
+        if displayMode == .form { applyDisplayMode() }
     }
 
     private func hideError() {
@@ -565,10 +691,15 @@ final class SSHProjectController: NSObject {
         return false
     }
 
-    @objc private func clearFormClicked() {
+    @objc private func newClicked() {
         clearForm()
-        tableView.deselectAll(nil)
+        showForm()
         window?.makeFirstResponder(hostField)
+    }
+
+    @objc private func cancelClicked() {
+        showSavedProjects()
+        focusSavedProjects()
     }
 
     @objc private func saveClicked() {
@@ -579,7 +710,7 @@ final class SSHProjectController: NSObject {
             } else {
                 SSHProjectStore.shared.add(entry)
             }
-            clearForm()
+            showSavedProjects(selecting: entry.id)
         } catch let error as SSHEndpoint.ValidationError {
             showError(error.errorDescription ?? error.localizedDescription)
         } catch {
@@ -587,26 +718,15 @@ final class SSHProjectController: NSObject {
         }
     }
 
-    @objc private func connectClicked() {
-        do {
-            // Connecting while editing also persists the edits, so "Update,
-            // then connect" is one click.
-            let (entry, endpoint) = try entryFromForm(name: "")
-            if editingEntryID != nil {
-                SSHProjectStore.shared.update(entry)
-            }
-            connect(entry, endpoint: endpoint)
-        } catch let error as SSHEndpoint.ValidationError {
-            showError(error.errorDescription ?? error.localizedDescription)
-        } catch {
-            showError(error.localizedDescription)
-        }
+    @objc private func connectSelectedClicked() {
+        guard let entry = selectedEntry else { return }
+        connect(entry)
     }
 
-    private func connect(_ entry: SSHProjectEntry, endpoint: SSHEndpoint? = nil) {
+    private func connect(_ entry: SSHProjectEntry) {
         guard let window, window.isVisible, let manager else { return }
         do {
-            let endpoint = try endpoint ?? SSHEndpoint(
+            let endpoint = try SSHEndpoint(
                 host: entry.host, user: entry.user, port: entry.port
             )
             AppWindowPresentation.hideChild(window)
@@ -616,12 +736,16 @@ final class SSHProjectController: NSObject {
                 remoteDirectory: entry.directory
             )
         } catch {
+            fillForm(from: entry)
+            showForm()
             showError(error.localizedDescription)
+            window.makeFirstResponder(hostField)
         }
     }
 
     private func editEntry(_ entry: SSHProjectEntry) {
         fillForm(from: entry)
+        showForm()
         window?.makeFirstResponder(hostField)
     }
 
@@ -693,6 +817,10 @@ extension SSHProjectController: NSTableViewDataSource, NSTableViewDelegate {
     func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
         if case .entry = displayRows[row] { return true }
         return false
+    }
+
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        updateConnectButton()
     }
 }
 

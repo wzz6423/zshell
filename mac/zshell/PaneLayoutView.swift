@@ -537,7 +537,7 @@ private struct PaneView: View {
                 onNewFilePane: newFilePaneFromMenu
             )
                 .background(
-                    settings.isTerminalBackgroundTranslucent
+                    settings.isTerminalBackgroundBlurActive
                         ? Color.clear
                         : Color(nsColor: Theme.background)
                 )

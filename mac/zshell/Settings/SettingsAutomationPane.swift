@@ -11,6 +11,10 @@ final class SettingsAutomationPane: SettingsPaneViewController {
     private let supportView = AgentCLISupportSettingsView(frame: .zero)
     private let usageView = AgentUsageSettingsView(frame: .zero)
     private let usage = AgentUsageModel.shared
+    private lazy var usageGroup = SettingsGroup(
+        header: String(localized: "Account Usage"),
+        rows: [SettingsCustomRow(usageView)]
+    )
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -35,10 +39,7 @@ final class SettingsAutomationPane: SettingsPaneViewController {
     override func makeGroups() -> [NSView] {
         [
             SettingsGroup(rows: [SettingsCustomRow(supportView)]),
-            SettingsGroup(
-                header: String(localized: "Account Usage"),
-                rows: [SettingsCustomRow(usageView)]
-            ),
+            usageGroup,
         ]
     }
 
@@ -49,5 +50,6 @@ final class SettingsAutomationPane: SettingsPaneViewController {
 
     private func syncUsage() {
         usageView.apply(claude: usage.claude, codex: usage.codex)
+        usageGroup.isHidden = !usageView.hasVisibleUsage
     }
 }

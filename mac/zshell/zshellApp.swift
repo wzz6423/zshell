@@ -18,6 +18,7 @@ struct zshellApp: App {
         TerminalNotificationService.shared.configure()
         AppSettings.shared.reconcileAIEnabled()
         Self.migrateDefaultWindowFrame()
+        Self.migrateDefaultWindowFrameToScreenshotSize()
     }
 
     private static func migrateDefaultWindowFrame() {
@@ -46,6 +47,35 @@ struct zshellApp: App {
         defaults.set(true, forKey: migrationKey)
     }
 
+    private static func migrateDefaultWindowFrameToScreenshotSize() {
+        let defaults = UserDefaults.standard
+        let migrationKey = "zshell.default-window-size-1260x706-migrated"
+        guard !defaults.bool(forKey: migrationKey) else { return }
+
+        for key in defaults.dictionaryRepresentation().keys
+            where key.hasPrefix("NSWindow Frame main") {
+            guard let savedFrame = defaults.string(forKey: key) else { continue }
+            var components = savedFrame.split(whereSeparator: { $0 == " " || $0 == "\t" })
+                .map(String.init)
+            guard components.count >= 4,
+                  let x = Double(components[0]),
+                  let y = Double(components[1]),
+                  let width = Double(components[2]),
+                  let height = Double(components[3]),
+                  width == 1080,
+                  height == 600
+            else { continue }
+
+            components[0] = String(Int((x - 90).rounded()))
+            components[1] = String(Int((y - 53).rounded()))
+            components[2] = "1260"
+            components[3] = "706"
+            defaults.set(components.joined(separator: " "), forKey: key)
+        }
+
+        defaults.set(true, forKey: migrationKey)
+    }
+
     var body: some Scene {
         WindowGroup("zshell", id: "main") {
             WindowRootView()
@@ -54,7 +84,7 @@ struct zshellApp: App {
         // Keep title-bar dragging away from interactive tabs. The empty
         // header surfaces opt in explicitly through WindowDragArea.
         .windowBackgroundDragBehavior(.disabled)
-        .defaultSize(width: 1080, height: 600)
+        .defaultSize(width: 1260, height: 706)
         .commands {
             CommandGroup(after: .appInfo) {
                 CheckForUpdatesView(updater: updater)

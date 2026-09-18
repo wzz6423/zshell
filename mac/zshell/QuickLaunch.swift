@@ -8,14 +8,14 @@ import Combine
 import Foundation
 
 /// One saved Quick Launch entry: either a shell command or an SSH connection.
-/// Both launch the same way — a new terminal session in the selected project
+/// Both launch the same way — a fresh project gets one terminal session that
 /// runs the entry, then drops back to a normal shell prompt, so a finished
 /// command or a closed connection never silently removes its pane.
 struct QuickLaunchEntry: Identifiable, Equatable {
     enum Kind: Equatable {
-        /// A shell command, run through the user's login shell in a new
-        /// session; `directory` pins where it starts, or nil follows the
-        /// project default like any other new terminal.
+        /// A shell command run before the configured terminal startup argv;
+        /// `directory` pins where it starts, or nil follows the project default
+        /// like any other new terminal.
         case command(command: String, directory: String?)
         /// An SSH connection. `user` nil lets ssh pick the current account;
         /// `port` nil means the default 22; `extraArguments` is free-form
@@ -65,18 +65,18 @@ struct QuickLaunchEntry: Identifiable, Equatable {
         }
     }
 
-    /// The argv a new terminal session execs for this entry. The user's login
-    /// shell runs the entry's action non-interactively, then re-execs itself
-    /// as an interactive login shell: the command sees the profile environment
-    /// (`-i` loads rc files, so nvm-style PATH setup works) and the pane keeps
-    /// a working prompt afterwards. Going through the launch argv instead of
-    /// typing into the shell keeps both terminal backends race-free — no bytes
-    /// are written before the PTY exists.
-    func launchArguments(loginShellPath: String) -> [String] {
+    /// The argv a new terminal session execs for this entry. A configured
+    /// shell evaluates the action with its existing arguments; any other
+    /// program starts only after a POSIX shell has run the action, because an
+    /// arbitrary executable has no portable `-c` convention. In both cases the
+    /// configured argv is then exec'd unchanged. Going through the launch argv
+    /// instead of typing into the shell keeps both terminal backends race-free
+    /// -- no bytes are written before the PTY exists.
+    func launchArguments(startupCommand: [String]) -> [String] {
         let script: String
         switch kind {
         case .command(let command, _):
-            script = command + "\n" + Self.loginShellTail(loginShellPath: loginShellPath)
+            script = command + "\n" + Self.startupCommandTail(startupCommand)
         case .ssh(let user, let host, let port, let extraArguments):
             var action = "ssh"
             if let port, port != 22 { action += " -p \(port)" }
@@ -85,13 +85,23 @@ struct QuickLaunchEntry: Identifiable, Equatable {
             )
             let extra = extraArguments?.trimmingCharacters(in: .whitespaces) ?? ""
             if !extra.isEmpty { action += " " + extra }
-            script = action + "\n" + Self.loginShellTail(loginShellPath: loginShellPath)
+            script = action + "\n" + Self.startupCommandTail(startupCommand)
         }
-        return [loginShellPath, "-l", "-i", "-c", script]
+        return Self.commandRunner(for: startupCommand, script: script)
     }
 
-    private static func loginShellTail(loginShellPath: String) -> String {
-        "exec " + TerminalSession.shellQuote(loginShellPath) + " -l"
+    private static func startupCommandTail(_ startupCommand: [String]) -> String {
+        "exec " + startupCommand.map(TerminalSession.shellQuote).joined(separator: " ")
+    }
+
+    private static func commandRunner(for startupCommand: [String], script: String) -> [String] {
+        guard let program = startupCommand.first else { return [] }
+        switch (program as NSString).lastPathComponent {
+        case "bash", "dash", "fish", "ksh", "mksh", "sh", "zsh":
+            return startupCommand + ["-i", "-c", script]
+        default:
+            return ["/bin/sh", "-l", "-c", script]
+        }
     }
 }
 

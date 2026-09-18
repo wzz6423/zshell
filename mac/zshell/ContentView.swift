@@ -7,11 +7,20 @@ import Combine
 import SwiftUI
 
 /// A sidebar destination for a live tab drag. Dropping on an existing project
-/// transfers the tab into it; dropping on a group header or the explicit
-/// ungrouped target pulls the tab out into a new project.
+/// transfers the tab into it; dropping on a group header or the ungrouped
+/// sidebar area pulls the tab out into a new project.
 enum TabSidebarDropTarget: Equatable {
     case project(UUID)
     case newProject(groupID: UUID?)
+}
+
+/// The sidebar only needs to redraw when the visible destination changes.
+/// Pointer movement inside the same destination stays private to the drag.
+enum TabSidebarDropHighlight: Equatable {
+    case project(UUID)
+    case group(UUID)
+    case ungroupedWorkspace
+    case ungroupedFooter
 }
 
 /// Coordinates a direct tab-strip drag across the mounted pane layout and the
@@ -27,21 +36,35 @@ final class TabSplitDragCoordinator: ObservableObject {
         let targetPaneID: UUID?
         let edge: PaneDropEdge?
         let sidebarTarget: TabSidebarDropTarget?
+        let sidebarHighlight: TabSidebarDropHighlight?
         let title: String
         let systemImage: String
         let fileIconPath: String?
         let paneCount: Int
     }
 
+    struct ProjectDrag: Equatable {
+        let sourceProjectID: UUID
+        let targetProjectID: UUID?
+    }
+
     @Published private(set) var drag: Drag?
+    @Published private(set) var projectDrag: ProjectDrag?
+    @Published private(set) var sidebarDropHighlight: TabSidebarDropHighlight?
 
     private weak var project: Project?
     private weak var manager: TerminalManager?
+    private weak var projectDragManager: TerminalManager?
+    private var projectDragSourceProjectID: UUID?
+    private var projectDragScreenLocation: CGPoint?
     private var renderedTabID: UUID?
     private var paneFrames: [UUID: CGRect] = [:]
     private var sidebarProjectFrames: [UUID: CGRect] = [:]
     private var sidebarGroupFrames: [UUID: CGRect] = [:]
     private var sidebarUngroupedFrame: CGRect?
+    private var sidebarUngroupedFooterFrame: CGRect?
+    private var tabStripProjectID: UUID?
+    private var tabStripScreenFrame: CGRect?
 
     func update(
         sourceTabID: UUID,
@@ -51,11 +74,14 @@ final class TabSplitDragCoordinator: ObservableObject {
     ) {
         self.project = project
         self.manager = manager
-        drag = resolvedDrag(
+        if projectDragSourceProjectID != nil { cancelProjectDrag() }
+        let resolved = resolvedDrag(
             sourceTabID: sourceTabID,
             location: location,
             in: project
         )
+        drag = resolved
+        updateSidebarDropHighlight(resolved.sidebarHighlight)
     }
 
     /// Sidebar geometry is reported independently from the tab strip. Re-resolve
@@ -64,20 +90,51 @@ final class TabSplitDragCoordinator: ObservableObject {
     func updateSidebarFrames(
         projects: [UUID: CGRect],
         groups: [UUID: CGRect],
-        ungrouped: CGRect?
+        ungrouped: CGRect?,
+        ungroupedFooter: CGRect? = nil
     ) {
         let changed = sidebarProjectFrames != projects
             || sidebarGroupFrames != groups
             || sidebarUngroupedFrame != ungrouped
+            || sidebarUngroupedFooterFrame != ungroupedFooter
         sidebarProjectFrames = projects
         sidebarGroupFrames = groups
         sidebarUngroupedFrame = ungrouped
+        sidebarUngroupedFooterFrame = ungroupedFooter
         guard changed, let drag, let project else { return }
-        self.drag = resolvedDrag(
+        let resolved = resolvedDrag(
             sourceTabID: drag.sourceTabID,
             location: drag.location,
             in: project
         )
+        self.drag = resolved
+        updateSidebarDropHighlight(resolved.sidebarHighlight)
+    }
+
+    func updateProjectDrag(
+        sourceProjectID: UUID,
+        screenLocation: CGPoint,
+        manager: TerminalManager
+    ) {
+        let beginsNewDrag = projectDragSourceProjectID != sourceProjectID
+            || projectDragManager !== manager
+        if beginsNewDrag {
+            if drag != nil { drag = nil }
+            project = nil
+            self.manager = nil
+        }
+        projectDragManager = manager
+        projectDragSourceProjectID = sourceProjectID
+        projectDragScreenLocation = screenLocation
+        publishProjectDrag()
+    }
+
+    func updateTabStripFrame(projectID: UUID?, screenFrame: CGRect?) {
+        let changed = tabStripProjectID != projectID || tabStripScreenFrame != screenFrame
+        tabStripProjectID = projectID
+        tabStripScreenFrame = screenFrame
+        guard changed, projectDragSourceProjectID != nil, projectDragScreenLocation != nil else { return }
+        publishProjectDrag()
     }
 
     /// Pane frames are reported by the currently mounted layout, including a
@@ -147,10 +204,45 @@ final class TabSplitDragCoordinator: ObservableObject {
         cancel()
     }
 
+    func commitProjectDrag() {
+        guard let sourceProjectID = projectDragSourceProjectID,
+              let screenLocation = projectDragScreenLocation,
+              let manager = projectDragManager
+        else {
+            cancelProjectDrag()
+            return
+        }
+        let resolved = resolvedProjectDrag(
+            sourceProjectID: sourceProjectID,
+            screenLocation: screenLocation
+        )
+        guard let destinationProjectID = resolved.targetProjectID else {
+            cancelProjectDrag()
+            return
+        }
+        let result = manager.moveProjectTabs(
+            from: resolved.sourceProjectID,
+            to: destinationProjectID
+        )
+        if let failure = result.failure {
+            presentProjectMoveFailure(failure)
+        }
+        cancelProjectDrag()
+    }
+
     func cancel() {
-        drag = nil
+        if drag != nil { drag = nil }
         project = nil
         manager = nil
+        updateSidebarDropHighlight(nil)
+        cancelProjectDrag()
+    }
+
+    func cancelProjectDrag() {
+        if projectDrag != nil { projectDrag = nil }
+        projectDragManager = nil
+        projectDragSourceProjectID = nil
+        projectDragScreenLocation = nil
     }
 
     private func resolvedDrag(
@@ -177,29 +269,20 @@ final class TabSplitDragCoordinator: ObservableObject {
             edge = dropEdge(at: location, in: hit.value)
         }
 
-        let sidebarTarget: TabSidebarDropTarget?
-        if let destination = sidebarProjectFrames.first(where: {
-            $0.key != project.id && $0.value.contains(location)
-        })?.key {
-            sidebarTarget = .project(destination)
-        } else if let groupID = sidebarGroupFrames.first(where: {
-            $0.value.contains(location)
-        })?.key {
-            sidebarTarget = .newProject(groupID: groupID)
-        } else if sidebarUngroupedFrame?.contains(location) == true {
-            sidebarTarget = .newProject(groupID: nil)
-        } else {
-            sidebarTarget = nil
-        }
+        let sidebarDrop = resolvedSidebarDrop(
+            at: location,
+            excluding: project.id
+        )
 
         return Drag(
             sourceTabID: sourceTabID,
             sourceProjectID: project.id,
             location: location,
-            targetTabID: sidebarTarget == nil && targetPaneID != nil ? targetTabID : nil,
-            targetPaneID: sidebarTarget == nil ? targetPaneID : nil,
-            edge: sidebarTarget == nil ? edge : nil,
-            sidebarTarget: sidebarTarget,
+            targetTabID: sidebarDrop.target == nil && targetPaneID != nil ? targetTabID : nil,
+            targetPaneID: sidebarDrop.target == nil ? targetPaneID : nil,
+            edge: sidebarDrop.target == nil ? edge : nil,
+            sidebarTarget: sidebarDrop.target,
+            sidebarHighlight: sidebarDrop.highlight,
             title: source?.displayTitle ?? sourceContent?.title ?? String(localized: "Tab"),
             systemImage: sourceContent?.systemImage ?? "terminal",
             fileIconPath: sourceContent?.fileIconPath,
@@ -207,10 +290,78 @@ final class TabSplitDragCoordinator: ObservableObject {
         )
     }
 
+    private func resolvedProjectDrag(
+        sourceProjectID: UUID,
+        screenLocation: CGPoint
+    ) -> ProjectDrag {
+        let targetProjectID: UUID?
+        if let tabStripProjectID, let tabStripScreenFrame,
+           tabStripScreenFrame.contains(screenLocation), tabStripProjectID != sourceProjectID {
+            targetProjectID = tabStripProjectID
+        } else {
+            targetProjectID = nil
+        }
+        return ProjectDrag(
+            sourceProjectID: sourceProjectID,
+            targetProjectID: targetProjectID
+        )
+    }
+
+    private func resolvedSidebarDrop(
+        at location: CGPoint,
+        excluding sourceProjectID: UUID
+    ) -> (target: TabSidebarDropTarget?, highlight: TabSidebarDropHighlight?) {
+        if let destination = sidebarProjectFrames.first(where: {
+            $0.key != sourceProjectID && $0.value.contains(location)
+        })?.key {
+            return (.project(destination), .project(destination))
+        }
+        if let groupID = sidebarGroupFrames.first(where: {
+            $0.value.contains(location)
+        })?.key {
+            return (.newProject(groupID: groupID), .group(groupID))
+        }
+        if sidebarUngroupedFooterFrame?.contains(location) == true {
+            return (.newProject(groupID: nil), .ungroupedFooter)
+        }
+        if sidebarUngroupedFrame?.contains(location) == true {
+            return (.newProject(groupID: nil), .ungroupedWorkspace)
+        }
+        return (nil, nil)
+    }
+
+    private func updateSidebarDropHighlight(_ highlight: TabSidebarDropHighlight?) {
+        guard sidebarDropHighlight != highlight else { return }
+        sidebarDropHighlight = highlight
+    }
+
+    private func publishProjectDrag() {
+        guard let sourceProjectID = projectDragSourceProjectID,
+              let screenLocation = projectDragScreenLocation
+        else { return }
+        let resolved = resolvedProjectDrag(
+            sourceProjectID: sourceProjectID,
+            screenLocation: screenLocation
+        )
+        let next = resolved.targetProjectID == nil ? nil : resolved
+        guard projectDrag != next else { return }
+        projectDrag = next
+    }
+
     func presentMoveFailure(_ failure: TerminalManager.TabMoveFailure) {
         let alert = NSAlert()
         alert.alertStyle = .warning
         alert.messageText = String(localized: "Couldn’t Move Tab")
+        alert.informativeText = failure.message
+        alert.addButton(withTitle: String(localized: "OK"))
+        guard let window = AppWindowPresentation.hostWindow() else { return }
+        alert.beginSheetModal(for: window)
+    }
+
+    private func presentProjectMoveFailure(_ failure: TerminalManager.ProjectMoveFailure) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = String(localized: "Couldn’t Move Project")
         alert.informativeText = failure.message
         alert.addButton(withTitle: String(localized: "OK"))
         guard let window = AppWindowPresentation.hostWindow() else { return }
@@ -252,7 +403,7 @@ struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var tabSwitcher = TabSwitcherController()
     @StateObject private var git = GitStatusModel()
-    @StateObject private var tabSplitDrag = TabSplitDragCoordinator()
+    @State private var tabSplitDrag = TabSplitDragCoordinator()
 
     /// Every terminal in the selected project can change the same repository.
     /// Watching command completion keeps the toolbar current without polling.
@@ -271,6 +422,13 @@ struct ContentView: View {
         )
     }
 
+    private var mainHeader: some View {
+        MainHeaderView(manager: manager, tabSplitDrag: tabSplitDrag)
+            .frame(maxWidth: .infinity)
+            .frame(height: MainHeaderNSView.height)
+            .zIndex(1)
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             if manager.isLeftSidebarVisible {
@@ -282,11 +440,6 @@ struct ContentView: View {
             }
 
             VStack(spacing: 0) {
-                // Above the pane stack so header tooltips, which hang down
-                // into the terminal area, aren't covered by it.
-                MainHeaderView(manager: manager, tabSplitDrag: tabSplitDrag)
-                    .zIndex(1)
-
                 ZStack {
                     // Diff panes stay mounted after their project has been
                     // visited: removing a project's stack pulls every
@@ -333,7 +486,7 @@ struct ContentView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     // Opaque so the pane gaps hide unselected diffs behind,
-                    // except while a diff tab or translucent terminal is up.
+                    // except while a diff tab or window material is up.
                     .background(paneLayerIsOpaque ? AnyShapeStyle(Color(nsColor: Theme.background)) : AnyShapeStyle(Color.clear))
                     .zIndex(2)
                 }
@@ -350,8 +503,14 @@ struct ContentView: View {
                     )
                 }
             }
+            // The header must be mounted after the AppKit terminal hosts so it
+            // remains the native hit-test target across its complete height.
+            .padding(.top, MainHeaderNSView.height)
+            .overlay(alignment: .top) {
+                mainHeader
+            }
             .background(
-                settings.isTerminalBackgroundTranslucent
+                settings.isTerminalBackgroundBlurActive
                     ? Color.clear
                     : Color(nsColor: Theme.background)
             )
@@ -388,7 +547,9 @@ struct ContentView: View {
             TabSwitcherEventMonitor(manager: manager, controller: tabSwitcher)
                 .frame(width: 0, height: 0)
         }
-        .background(WindowChromeAccessor {
+        .background(WindowChromeAccessor(
+            showsFrostedBackground: settings.isTerminalBackgroundBlurActive
+        ) {
             manager.attach(to: $0)
         })
         .onAppear { syncGit() }
@@ -422,15 +583,11 @@ struct ContentView: View {
             .filter { !visibleIDs.contains($0.id) }
     }
 
-    /// Pane gaps hide retained diff views unless a diff or an all-terminal tab
-    /// needs the window behind this layer to remain visible.
+    /// Pane gaps expose the material when it is active, and otherwise only for
+    /// a diff tab that needs the stack behind this layer to remain visible.
     private var paneLayerIsOpaque: Bool {
         guard let tab = manager.selectedProject?.selectedTab else { return true }
-        if !tab.diffs.isEmpty { return false }
-        guard !tab.sessions.isEmpty,
-              tab.sessions.count == tab.allPanes.count
-        else { return true }
-        return !settings.isTerminalBackgroundTranslucent
+        return tab.diffs.isEmpty && !settings.isTerminalBackgroundBlurActive
     }
 
     private func syncGit() {

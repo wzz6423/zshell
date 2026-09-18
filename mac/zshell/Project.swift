@@ -852,7 +852,12 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     @discardableResult
     func createTabGroup(containing tab: PaneTab? = nil) -> SessionTabGroup {
-        let group = SessionTabGroup(name: String(localized: "New Tab Group"))
+        createTabGroup(named: String(localized: "New Tab Group"), containing: tab)
+    }
+
+    @discardableResult
+    func createTabGroup(named name: String, containing tab: PaneTab? = nil) -> SessionTabGroup {
+        let group = SessionTabGroup(name: name)
         tabGroups.append(group)
         if let tab { moveTab(tab.id, toGroup: group.id) }
         return group

@@ -51,6 +51,10 @@ final class QuickCommandStore {
 
 @MainActor
 final class QuickCommandMenuTarget: NSObject {
+    var onInsertPreset: ((QuickCommandPreset) -> Void)?
+    var onRunPreset: ((QuickCommandPreset) -> Void)?
+    var onManagePresets: (() -> Void)?
+
     func menuItems() -> [NSMenuItem] {
         let store = QuickCommandStore.shared
         var items: [NSMenuItem] = []
@@ -118,16 +122,16 @@ final class QuickCommandMenuTarget: NSObject {
 
     @objc private func insertPreset(_ sender: NSMenuItem) {
         guard let preset = preset(from: sender) else { return }
-        TerminalManager.insertQuickCommand(preset)
+        onInsertPreset?(preset)
     }
 
     @objc private func runPreset(_ sender: NSMenuItem) {
         guard let preset = preset(from: sender) else { return }
-        TerminalManager.runQuickCommand(preset)
+        onRunPreset?(preset)
     }
 
     @objc private func managePresets() {
-        TerminalManager.manageQuickCommands()
+        onManagePresets?()
     }
 }
 

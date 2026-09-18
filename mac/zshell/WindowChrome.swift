@@ -14,9 +14,14 @@ struct WindowChromeAccessor: NSViewRepresentable {
     static let buttonLeading: CGFloat = 16
     static let buttonSpacing: CGFloat = 20
 
+    private let showsFrostedBackground: Bool
     private let onAttach: (NSWindow) -> Void
 
-    init(onAttach: @escaping (NSWindow) -> Void = { _ in }) {
+    init(
+        showsFrostedBackground: Bool = false,
+        onAttach: @escaping (NSWindow) -> Void = { _ in }
+    ) {
+        self.showsFrostedBackground = showsFrostedBackground
         self.onAttach = onAttach
     }
 
@@ -29,6 +34,7 @@ struct WindowChromeAccessor: NSViewRepresentable {
         DispatchQueue.main.async {
             if let window = view.window {
                 context.coordinator.attach(window)
+                context.coordinator.setFrostedBackground(showsFrostedBackground)
             }
         }
         return view
@@ -37,6 +43,7 @@ struct WindowChromeAccessor: NSViewRepresentable {
     func updateNSView(_ view: NSView, context: Context) {
         if let window = view.window {
             context.coordinator.attach(window)
+            context.coordinator.setFrostedBackground(showsFrostedBackground)
         }
     }
 
@@ -44,6 +51,7 @@ struct WindowChromeAccessor: NSViewRepresentable {
     final class Coordinator {
         private weak var window: NSWindow?
         private var observers: [NSObjectProtocol] = []
+        private var frostedBackground: NSVisualEffectView?
         private let onAttach: (NSWindow) -> Void
 
         init(onAttach: @escaping (NSWindow) -> Void) {
@@ -52,6 +60,8 @@ struct WindowChromeAccessor: NSViewRepresentable {
 
         func attach(_ window: NSWindow) {
             guard self.window !== window else { return }
+            frostedBackground?.removeFromSuperview()
+            frostedBackground = nil
             self.window = window
             onAttach(window)
             // WindowDragArea still limits pointer-driven moves to empty header
@@ -83,6 +93,31 @@ struct WindowChromeAccessor: NSViewRepresentable {
             }
         }
 
+        func setFrostedBackground(_ visible: Bool) {
+            guard let contentView = window?.contentView else { return }
+            guard visible else {
+                frostedBackground?.removeFromSuperview()
+                frostedBackground = nil
+                return
+            }
+            guard frostedBackground?.superview !== contentView else { return }
+            frostedBackground?.removeFromSuperview()
+
+            let background = NSVisualEffectView()
+            background.material = .underWindowBackground
+            background.blendingMode = .behindWindow
+            background.state = .followsWindowActiveState
+            background.translatesAutoresizingMaskIntoConstraints = false
+            contentView.addSubview(background, positioned: .below, relativeTo: nil)
+            NSLayoutConstraint.activate([
+                background.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+                background.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+                background.topAnchor.constraint(equalTo: contentView.topAnchor),
+                background.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            ])
+            frostedBackground = background
+        }
+
         private func reposition() {
             guard let window else { return }
             window.isMovable = true
@@ -111,6 +146,7 @@ struct WindowChromeAccessor: NSViewRepresentable {
             for observer in observers {
                 NotificationCenter.default.removeObserver(observer)
             }
+            frostedBackground?.removeFromSuperview()
         }
     }
 }

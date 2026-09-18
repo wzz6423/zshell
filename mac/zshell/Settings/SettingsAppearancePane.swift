@@ -80,6 +80,10 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         onChange: { AppSettings.shared.interfaceScale = $0 }
     )
 
+    private let tabGroupNamesSwitch = SettingsSwitch {
+        AppSettings.shared.showTabGroupNames = $0
+    }
+
     private let thickenSwitch = SettingsSwitch { AppSettings.shared.fontThicken = $0 }
 
     private let thickenStrengthRow = SettingsSliderRow(
@@ -153,6 +157,7 @@ final class SettingsAppearancePane: SettingsPaneViewController {
             SettingsGroup(header: String(localized: "Interface"), rows: [
                 interfaceScaleRow,
                 sidebarFontSizeRow,
+                SettingsRow(title: String(localized: "Show tab group names"), control: tabGroupNamesSwitch),
             ]),
             SettingsGroup(header: String(localized: "Panes"), rows: [
                 SettingsRow(
@@ -181,6 +186,7 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         fontSizeRow.setValue(settings.fontSize)
         sidebarFontSizeRow.setValue(settings.sidebarFontSize)
         interfaceScaleRow.setValue(settings.interfaceScale)
+        tabGroupNamesSwitch.isOn = settings.showTabGroupNames
         thickenSwitch.isOn = settings.fontThicken
         thickenStrengthRow.setValue(Double(settings.fontThickenStrength))
         thickenStrengthRow.setEnabled(settings.fontThicken)
