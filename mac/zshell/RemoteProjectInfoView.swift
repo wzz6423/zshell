@@ -76,7 +76,7 @@ final class RemoteProjectInfoNSView: NSView {
     }
 
     func configure(project: Project) {
-        guard case .ssh(let endpoint, let remoteDirectory) = project.location else {
+        guard case .ssh(let endpoint, let remoteDirectory, _, _) = project.location else {
             return
         }
         hostValue.stringValue = endpoint.host

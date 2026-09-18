@@ -106,13 +106,13 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     /// The declared endpoint for SSH projects, nil for local projects.
     var remoteEndpoint: SSHEndpoint? {
-        if case .ssh(let endpoint, _) = location { return endpoint }
+        if case .ssh(let endpoint, _, _, _) = location { return endpoint }
         return nil
     }
 
     /// The directory sessions start in on the remote host, nil when unset.
     var remoteDirectory: String? {
-        if case .ssh(_, let directory) = location { return directory }
+        if case .ssh(_, let directory, _, _) = location { return directory }
         return nil
     }
 
@@ -330,6 +330,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     ) -> TerminalSession {
         let initialDirectory: String?
         let launchArguments: [String]?
+        let additionalEnvironment: [String: String]
+        let sshMaterial: SSHAuthenticationMaterial?
         switch location {
         case .local:
             initialDirectory = directory
@@ -337,19 +339,56 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 ?? groupSessionDirectory
                 ?? selectedSession?.currentDirectoryPath
             launchArguments = commandArguments
-        case .ssh(let endpoint, let remoteDirectory):
+            additionalEnvironment = [:]
+            sshMaterial = nil
+        case let .ssh(endpoint, remoteDirectory, authentication, credentialID):
             initialDirectory = nil
-            launchArguments = ["/usr/bin/ssh"]
-                + endpoint.terminalArguments(remoteDirectory: remoteDirectory)
+            do {
+                let material = try authentication.makeMaterial(credentialID: credentialID)
+                launchArguments = ["/usr/bin/ssh"]
+                    + endpoint.terminalArguments(
+                        remoteDirectory: remoteDirectory,
+                        authentication: authentication,
+                        identityFile: authentication.identityFile(material: material)
+                    )
+                var environment = material?.environment ?? [:]
+                if authentication == .password {
+                    // Saved passwords must use askpass even though an SSH
+                    // terminal has a TTY, otherwise OpenSSH prompts instead.
+                    environment["SSH_ASKPASS_REQUIRE"] = "force"
+                    environment["DISPLAY"] = "zshell"
+                }
+                additionalEnvironment = environment
+                sshMaterial = material
+            } catch {
+                // Do not let a missing Keychain item silently retry with an
+                // unrelated agent identity. The probe reports the same error.
+                launchArguments = [
+                    "/bin/sh", "-c",
+                    "printf '%s\\n' \"$1\" >&2; exit 1",
+                    "zshell", error.localizedDescription,
+                ]
+                additionalEnvironment = [:]
+                sshMaterial = nil
+            }
         }
         let session = TerminalSession(
             initialDirectory: initialDirectory,
             restoredHistory: restoredHistory,
             commandArguments: launchArguments,
             environmentPath: environmentPath,
-            launchSettings: launchSettings ?? self.launchSettings
+            launchSettings: launchSettings ?? self.launchSettings,
+            additionalEnvironment: additionalEnvironment
         )
         register(session)
+        if let sshMaterial {
+            session.retainForSessionLifetime(sshMaterial)
+            let existingOnExited = session.onExited
+            session.onExited = { exitedSession in
+                sshMaterial.cleanup()
+                existingOnExited?(exitedSession)
+            }
+        }
         manager.map { session.transferHost(to: $0) }
         return session
     }

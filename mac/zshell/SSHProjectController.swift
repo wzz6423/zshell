@@ -17,6 +17,7 @@ struct SSHProjectEntry: Identifiable, Equatable, Codable {
     var port: Int?
     var directory: String?
     var group: String?
+    var authentication: SSHAuthentication
 
     init(
         id: UUID = UUID(),
@@ -25,7 +26,8 @@ struct SSHProjectEntry: Identifiable, Equatable, Codable {
         host: String,
         port: Int?,
         directory: String?,
-        group: String?
+        group: String?,
+        authentication: SSHAuthentication = .agent
     ) {
         self.id = id
         self.name = name
@@ -34,6 +36,7 @@ struct SSHProjectEntry: Identifiable, Equatable, Codable {
         self.port = port
         self.directory = directory
         self.group = group
+        self.authentication = authentication
     }
 
     /// `user@host:port`, the connection summary shown under the name.
@@ -55,7 +58,7 @@ struct SSHProjectEntry: Identifiable, Equatable, Codable {
 
 extension SSHProjectEntry {
     private enum CodingKeys: String, CodingKey {
-        case id, name, user, host, port, directory, group
+        case id, name, user, host, port, directory, group, authentication
     }
 
     init(from decoder: any Decoder) throws {
@@ -67,7 +70,10 @@ extension SSHProjectEntry {
             host: try container.decode(String.self, forKey: .host),
             port: try container.decodeIfPresent(Int.self, forKey: .port),
             directory: try container.decodeIfPresent(String.self, forKey: .directory),
-            group: try container.decodeIfPresent(String.self, forKey: .group)
+            group: try container.decodeIfPresent(String.self, forKey: .group),
+            authentication: try container.decodeIfPresent(
+                SSHAuthentication.self, forKey: .authentication
+            ) ?? .agent
         )
     }
 
@@ -80,6 +86,9 @@ extension SSHProjectEntry {
         try container.encodeIfPresent(port, forKey: .port)
         try container.encodeIfPresent(directory, forKey: .directory)
         try container.encodeIfPresent(group, forKey: .group)
+        if authentication != .agent {
+            try container.encode(authentication, forKey: .authentication)
+        }
     }
 }
 
@@ -116,6 +125,7 @@ final class SSHProjectStore: ObservableObject {
     func remove(_ entry: SSHProjectEntry) {
         entries.removeAll { $0.id == entry.id }
         save()
+        SSHCredentialStore.shared.remove(entry.id)
     }
 
     private func save() {
@@ -179,12 +189,21 @@ final class SSHProjectController: NSObject {
     private let userField = NSTextField()
     private let portField = NSTextField()
     private let directoryField = NSTextField()
+    private let authenticationField = NSPopUpButton()
+    private let passwordField = NSSecureTextField()
+    private let privateKeyPathField = NSTextField()
+    private let privateKeyContentField = NSTextView()
+    private let privateKeyContentScrollView = NSScrollView()
     private let errorLabel = NSTextField(wrappingLabelWithString: "")
     private let saveButton = NSButton(title: "", target: nil, action: nil)
     private let cancelButton = NSButton(title: "", target: nil, action: nil)
     private let newButton = NSButton(title: "", target: nil, action: nil)
     private let connectButton = NSButton(title: "", target: nil, action: nil)
     private var formStack: NSStackView?
+    private var formGrid: NSGridView?
+    private var passwordRow: NSGridRow?
+    private var privateKeyPathRow: NSGridRow?
+    private var privateKeyContentRow: NSGridRow?
 
     /// The entry being edited, if the form was filled from a row's edit
     /// button; saving replaces it instead of appending.
@@ -396,6 +415,28 @@ final class SSHProjectController: NSObject {
         userField.placeholderString = NSUserName()
         portField.placeholderString = "22"
         directoryField.placeholderString = "~/project"
+        authenticationField.addItems(withTitles: [
+            String(localized: "SSH Agent", comment: "SSH project authentication method."),
+            String(localized: "Password", comment: "SSH project authentication method."),
+            String(localized: "Private Key File", comment: "SSH project authentication method."),
+            String(localized: "Private Key Text", comment: "SSH project authentication method."),
+        ])
+        authenticationField.target = self
+        authenticationField.action = #selector(authenticationChanged)
+        passwordField.placeholderString = String(
+            localized: "Saved in Keychain",
+            comment: "Placeholder for a previously saved SSH password."
+        )
+        privateKeyPathField.placeholderString = "~/.ssh/id_ed25519"
+        privateKeyContentField.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+        privateKeyContentField.isRichText = false
+        privateKeyContentField.isAutomaticQuoteSubstitutionEnabled = false
+        privateKeyContentField.isAutomaticDashSubstitutionEnabled = false
+        privateKeyContentScrollView.documentView = privateKeyContentField
+        privateKeyContentScrollView.hasVerticalScroller = true
+        privateKeyContentScrollView.borderType = .bezelBorder
+        privateKeyContentScrollView.translatesAutoresizingMaskIntoConstraints = false
+        privateKeyContentScrollView.heightAnchor.constraint(equalToConstant: 84).isActive = true
 
         errorLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         errorLabel.textColor = .systemRed
@@ -409,6 +450,21 @@ final class SSHProjectController: NSObject {
         formHeader.font = .systemFont(ofSize: 12, weight: .semibold)
         formHeader.textColor = .secondaryLabelColor
 
+        let privateKeyPathRow = NSStackView(views: [
+            privateKeyPathField,
+            NSButton(
+                image: NSImage(systemSymbolName: "folder", accessibilityDescription: String(
+                    localized: "Choose Private Key File",
+                    comment: "Accessibility label for the button choosing an SSH private key file."
+                )) ?? NSImage(),
+                target: self,
+                action: #selector(choosePrivateKeyFile)
+            ),
+        ])
+        privateKeyPathRow.orientation = .horizontal
+        privateKeyPathRow.spacing = 6
+        privateKeyPathRow.arrangedSubviews.last?.setContentHuggingPriority(.required, for: .horizontal)
+
         let grid = NSGridView(views: [
             formRow(String(localized: "Group", comment: "SSH project form label for the group."), groupField),
             formRow(String(localized: "Host", comment: "SSH project form label for the host."), hostField),
@@ -421,12 +477,31 @@ final class SSHProjectController: NSObject {
                 ),
                 directoryField
             ),
+            formRow(
+                String(localized: "Authentication", comment: "SSH project form label for authentication."),
+                authenticationField
+            ),
+            formRow(String(localized: "Password", comment: "SSH project form label for a password."), passwordField),
+            formRow(
+                String(localized: "Private Key File", comment: "SSH project form label for a private key path."),
+                privateKeyPathRow
+            ),
+            formRow(
+                String(localized: "Private Key Text", comment: "SSH project form label for pasted private key content."),
+                privateKeyContentScrollView
+            ),
         ])
         grid.rowSpacing = 8
         grid.columnSpacing = 10
         grid.column(at: 0).xPlacement = .trailing
         grid.column(at: 1).width = 300
+        grid.column(at: 1).xPlacement = .fill
         grid.translatesAutoresizingMaskIntoConstraints = false
+        formGrid = grid
+        passwordRow = grid.row(at: 6)
+        self.privateKeyPathRow = grid.row(at: 7)
+        privateKeyContentRow = grid.row(at: 8)
+        updateAuthenticationFields(resizeWindow: false)
 
         saveButton.title = String(localized: "Save", comment: "Button saving the SSH form into the list.")
         saveButton.bezelStyle = .rounded
@@ -475,6 +550,35 @@ final class SSHProjectController: NSObject {
         let label = NSTextField(labelWithString: title)
         label.alignment = .right
         return [label, field]
+    }
+
+    @objc private func authenticationChanged() {
+        updateAuthenticationFields()
+    }
+
+    @objc private func choosePrivateKeyFile() {
+        guard let window else { return }
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = String(
+            localized: "Choose",
+            comment: "Button title confirming private key file selection."
+        )
+        panel.beginSheetModal(for: window) { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            self?.privateKeyPathField.stringValue = url.path
+        }
+    }
+
+    private func updateAuthenticationFields(resizeWindow: Bool = true) {
+        let index = authenticationField.indexOfSelectedItem
+        passwordRow?.isHidden = index != 1
+        privateKeyPathRow?.isHidden = index != 2
+        privateKeyContentRow?.isHidden = index != 3
+        guard resizeWindow, displayMode == .form else { return }
+        applyDisplayMode()
     }
 
     private func showSavedProjects(selecting entryID: UUID? = nil) {
@@ -591,6 +695,18 @@ final class SSHProjectController: NSObject {
         groupField.removeAllItems()
         groupField.addItems(withObjectValues: groups)
         groupField.stringValue = currentValue
+        let groupHint = groups.isEmpty
+            ? String(
+                localized: "No saved groups yet. Type a name to create one.",
+                comment: "SSH project group field hint when there are no saved groups."
+            )
+            : String(
+                localized: "Optional, e.g. Production",
+                comment: "Placeholder of the SSH project group field."
+            )
+        groupField.placeholderString = groupHint
+        groupField.toolTip = groupHint
+        groupField.setAccessibilityHelp(groupHint)
     }
 
     // MARK: - Form state
@@ -601,6 +717,11 @@ final class SSHProjectController: NSObject {
         userField.stringValue = ""
         portField.stringValue = ""
         directoryField.stringValue = ""
+        authenticationField.selectItem(at: 0)
+        passwordField.stringValue = ""
+        privateKeyPathField.stringValue = ""
+        privateKeyContentField.string = ""
+        updateAuthenticationFields(resizeWindow: false)
         editingEntryID = nil
         hideError()
     }
@@ -611,6 +732,23 @@ final class SSHProjectController: NSObject {
         userField.stringValue = entry.user ?? ""
         portField.stringValue = entry.port.map(String.init) ?? ""
         directoryField.stringValue = entry.directory ?? ""
+        passwordField.stringValue = ""
+        privateKeyContentField.string = ""
+        switch entry.authentication {
+        case .agent:
+            authenticationField.selectItem(at: 0)
+            privateKeyPathField.stringValue = ""
+        case .password:
+            authenticationField.selectItem(at: 1)
+            privateKeyPathField.stringValue = ""
+        case .privateKeyPath(let path):
+            authenticationField.selectItem(at: 2)
+            privateKeyPathField.stringValue = path
+        case .privateKeyContent:
+            authenticationField.selectItem(at: 3)
+            privateKeyPathField.stringValue = ""
+        }
+        updateAuthenticationFields(resizeWindow: false)
         editingEntryID = entry.id
         hideError()
     }
@@ -627,7 +765,9 @@ final class SSHProjectController: NSObject {
 
     /// Builds an entry from the form. Throws `SSHEndpoint.ValidationError` for
     /// bad connection fields; an empty host reports "Enter a host."
-    private func entryFromForm(name: String) throws -> (SSHProjectEntry, SSHEndpoint) {
+    private func entryFromForm(
+        name: String
+    ) throws -> (entry: SSHProjectEntry, endpoint: SSHEndpoint, credential: String?) {
         let portText = portField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         let port = Int(portText)
         if !portText.isEmpty, port == nil {
@@ -643,6 +783,7 @@ final class SSHProjectController: NSObject {
         let group = groupField.stringValue
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let existingEntry = SSHProjectStore.shared.entries.first { $0.id == editingEntryID }
+        let authentication = try authenticationFromForm(existingEntry: existingEntry)
         let entry = SSHProjectEntry(
             id: editingEntryID ?? UUID(),
             name: existingEntry?.name ?? name,
@@ -650,9 +791,62 @@ final class SSHProjectController: NSObject {
             host: endpoint.host,
             port: endpoint.port,
             directory: directory.isEmpty ? nil : directory,
-            group: group.isEmpty ? nil : group
+            group: group.isEmpty ? nil : group,
+            authentication: authentication.method
         )
-        return (entry, endpoint)
+        return (entry, endpoint, authentication.credential)
+    }
+
+    private func authenticationFromForm(
+        existingEntry: SSHProjectEntry?
+    ) throws -> (method: SSHAuthentication, credential: String?) {
+        switch authenticationField.indexOfSelectedItem {
+        case 0:
+            return (.agent, nil)
+        case 1:
+            let password = passwordField.stringValue
+            if !password.isEmpty { return (.password, password) }
+            guard existingEntry?.authentication == .password else {
+                throw SSHAuthentication.Error.missingCredential
+            }
+            return (.password, nil)
+        case 2:
+            let path = privateKeyPathField.stringValue
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !path.isEmpty else {
+                throw SSHAuthentication.Error.missingCredential
+            }
+            return (.privateKeyPath(path), nil)
+        case 3:
+            let key = privateKeyContentField.string
+            if !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return (.privateKeyContent, key)
+            }
+            guard existingEntry?.authentication == .privateKeyContent else {
+                throw SSHAuthentication.Error.missingCredential
+            }
+            return (.privateKeyContent, nil)
+        default:
+            return (.agent, nil)
+        }
+    }
+
+    private func saveCredential(
+        _ credential: String?,
+        for entry: SSHProjectEntry,
+        previousEntry: SSHProjectEntry?
+    ) throws {
+        if let credential {
+            try SSHCredentialStore.shared.save(credential, for: entry.id)
+            return
+        }
+        if entry.authentication.requiresCredential {
+            guard previousEntry?.authentication == entry.authentication,
+                  try SSHCredentialStore.shared.load(entry.id) != nil
+            else { throw SSHAuthentication.Error.missingCredential }
+            return
+        }
+        SSHCredentialStore.shared.remove(entry.id)
     }
 
     // MARK: - Actions
@@ -704,13 +898,19 @@ final class SSHProjectController: NSObject {
 
     @objc private func saveClicked() {
         do {
-            let (entry, _) = try entryFromForm(name: "")
-            if SSHProjectStore.shared.entries.contains(where: { $0.id == entry.id }) {
-                SSHProjectStore.shared.update(entry)
+            let result = try entryFromForm(name: "")
+            let previousEntry = SSHProjectStore.shared.entries.first { $0.id == result.entry.id }
+            try saveCredential(
+                result.credential,
+                for: result.entry,
+                previousEntry: previousEntry
+            )
+            if previousEntry != nil {
+                SSHProjectStore.shared.update(result.entry)
             } else {
-                SSHProjectStore.shared.add(entry)
+                SSHProjectStore.shared.add(result.entry)
             }
-            showSavedProjects(selecting: entry.id)
+            showSavedProjects(selecting: result.entry.id)
         } catch let error as SSHEndpoint.ValidationError {
             showError(error.errorDescription ?? error.localizedDescription)
         } catch {
@@ -729,11 +929,18 @@ final class SSHProjectController: NSObject {
             let endpoint = try SSHEndpoint(
                 host: entry.host, user: entry.user, port: entry.port
             )
+            if entry.authentication.requiresCredential {
+                guard try SSHCredentialStore.shared.load(entry.id) != nil else {
+                    throw SSHAuthentication.Error.missingCredential
+                }
+            }
             AppWindowPresentation.hideChild(window)
             hostWindow = nil
             manager.newSSHProject(
                 endpoint: endpoint,
-                remoteDirectory: entry.directory
+                remoteDirectory: entry.directory,
+                authentication: entry.authentication,
+                credentialID: entry.id
             )
         } catch {
             fillForm(from: entry)

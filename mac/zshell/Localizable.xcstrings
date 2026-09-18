@@ -6496,6 +6496,23 @@
         }
       }
     },
+    "No saved groups yet. Type a name to create one.": {
+      "comment": "SSH project group field hint when there are no saved groups.",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存済みのグループはまだありません。名前を入力して作成できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚无已保存的分组。输入名称即可创建。"
+          }
+        }
+      }
+    },
     "No saved projects yet. Click New to add one.": {
       "localizations": {
         "ja": {
@@ -12199,6 +12216,150 @@
           "stringUnit": {
             "state": "translated",
             "value": "“%@”由 Zshell 管理，无法覆盖。"
+          }
+        }
+      }
+    },
+    "Authentication": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "認証"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "身份验证"
+          }
+        }
+      }
+    },
+    "Choose Private Key File": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "秘密鍵ファイルを選択"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择私钥文件"
+          }
+        }
+      }
+    },
+    "Couldn’t save the SSH credential in Keychain.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH認証情報をキーチェーンに保存できませんでした。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法将 SSH 凭据保存到钥匙串。"
+          }
+        }
+      }
+    },
+    "Password": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワード"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码"
+          }
+        }
+      }
+    },
+    "Private Key File": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "秘密鍵ファイル"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "私钥文件"
+          }
+        }
+      }
+    },
+    "Private Key Text": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "秘密鍵テキスト"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "私钥内容"
+          }
+        }
+      }
+    },
+    "Saved in Keychain": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーチェーンに保存済み"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已存储在钥匙串"
+          }
+        }
+      }
+    },
+    "SSH Agent": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSHエージェント"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH 代理"
+          }
+        }
+      }
+    },
+    "The saved SSH credential is unavailable.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存済みのSSH認証情報を利用できません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存的 SSH 凭据不可用。"
           }
         }
       }
