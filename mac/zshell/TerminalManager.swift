@@ -595,6 +595,12 @@ final class TerminalManager: nonisolated ObservableObject {
             ?? registry.first { $0.window === NSApp.mainWindow }
             ?? registry.last { $0.window != nil }
         guard let manager else { return }
+        if arguments.count == 1,
+           let entry = QuickLaunchStore.shared.entries.first(where: { $0.name == arguments[0] }) {
+            manager.runQuickLaunchEntry(entry)
+            manager.window?.makeKeyAndOrderFront(nil)
+            return
+        }
         manager.newProject(
             cliLaunch: CLIProjectLaunch(
                 arguments: arguments,

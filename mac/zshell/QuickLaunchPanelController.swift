@@ -849,7 +849,12 @@ private final class QuickLaunchRowView: NSView {
             comment: "Accessibility label of a Quick Launch row's delete button."
         ))
 
-        let stack = NSStackView(views: [iconView, titleLabel, detailLabel, editButton, deleteButton])
+        let trailingSpacer = NSView()
+        trailingSpacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+        let stack = NSStackView(views: [
+            iconView, titleLabel, detailLabel, trailingSpacer, editButton, deleteButton,
+        ])
         stack.orientation = .horizontal
         stack.alignment = .centerY
         stack.spacing = 9
