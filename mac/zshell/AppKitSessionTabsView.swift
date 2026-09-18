@@ -34,6 +34,7 @@ final class MainHeaderNSView: NSView {
     private let leftButton = WorkspaceChromeButton(symbol: "sidebar.left", label: AppCommand.toggleLeftSidebar.title)
     private let rightButton = WorkspaceChromeButton(symbol: "sidebar.right", label: AppCommand.toggleRightSidebar.title)
     private let zoomButton = WorkspaceChromeButton(symbol: "arrow.down.forward.and.arrow.up.backward", label: String(localized: "Exit Pane Zoom (⇧⌘↩)"))
+    private let dropTarget = HeaderDropTargetView(frame: .zero)
     private var observations: [AnyCancellable] = []
     private var refreshScheduled = false
     private let presentsWindowOverlay: Bool
@@ -49,6 +50,7 @@ final class MainHeaderNSView: NSView {
         super.init(frame: .zero)
         addSubview(windowDrag)
         for view in [strip, leftButton, rightButton, zoomButton] { addSubview(view) }
+        addSubview(dropTarget)
         leftButton.onAction = { [weak manager] in manager?.toggleLeftSidebar() }
         rightButton.onAction = { [weak manager] in manager?.toggleSidebar() }
         zoomButton.onAction = { [weak manager] in manager?.togglePaneZoom() }
@@ -59,6 +61,10 @@ final class MainHeaderNSView: NSView {
             publisher.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.scheduleRefresh() }
                 .store(in: &observations)
         }
+        tabDrag.$projectDrag.combineLatest(tabDrag.$paneDrag)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.updateDropTarget() }
+            .store(in: &observations)
         setAccessibilityElement(false)
         refresh()
     }
@@ -202,6 +208,14 @@ final class MainHeaderNSView: NSView {
             height: max(0, bounds.height - 4)
         )
         windowDrag.frame = NSRect(x: 0, y: 0, width: bounds.width, height: bounds.height)
+        dropTarget.frame = bounds
+        let project = manager.selectedProject
+        tabDrag.updateTabStripFrame(
+            projectID: project?.id,
+            screenFrame: project == nil ? nil : workspaceScreenRect(bounds),
+            workspaceFrame: project == nil ? nil : workspaceGlobalRect(bounds)
+        )
+        updateDropTarget(animated: false)
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -213,18 +227,19 @@ final class MainHeaderNSView: NSView {
 
     override func viewDidChangeEffectiveAppearance() { super.viewDidChangeEffectiveAppearance(); refresh() }
 
+    private func updateDropTarget(animated: Bool = true) {
+        let isTarget = manager.selectedProject.map {
+            tabDrag.projectDrag?.targetProjectID == $0.id
+                || (tabDrag.paneDrag?.targetsTabStrip == true
+                    && tabDrag.paneDrag?.sourceProjectID == $0.id)
+        } ?? false
+        dropTarget.setActive(isTarget, animated: animated)
+    }
+
     deinit { removeWindowOverlay() }
 }
 
 private final class SessionStripScrollView: NSScrollView {
-    override func tile() {
-        super.tile()
-        // AppKit only scrolls horizontal gestures when a scroller is enabled;
-        // keep its mechanics while the lightweight overlay owns the visuals.
-        contentView.frame = bounds
-        horizontalScroller?.frame = .zero
-    }
-
     override func hitTest(_ point: NSPoint) -> NSView? {
         guard let documentView else { return super.hitTest(point) }
         let clipPoint = contentView.convert(point, from: self)
@@ -234,13 +249,11 @@ private final class SessionStripScrollView: NSScrollView {
     }
 
     override func scrollWheel(with event: NSEvent) {
-        if abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) {
-            super.scrollWheel(with: event)
-            return
-        }
-        guard event.scrollingDeltaY != 0 else { return }
+        let dominantDelta = abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY)
+            ? event.scrollingDeltaX : event.scrollingDeltaY
+        guard dominantDelta != 0 else { return }
         let maximum = max(0, (documentView?.bounds.width ?? 0) - contentSize.width)
-        let delta = event.scrollingDeltaY * (event.hasPreciseScrollingDeltas ? 1 : 12)
+        let delta = dominantDelta * (event.hasPreciseScrollingDeltas ? 1 : 12)
         contentView.scroll(to: NSPoint(x: min(max(0, contentView.bounds.minX - delta), maximum), y: 0))
         reflectScrolledClipView(contentView)
     }
@@ -292,14 +305,16 @@ private final class SessionStripOverlayScroller: NSView {
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        guard !isHidden, thumbRect.insetBy(dx: -4, dy: -5).contains(point) else { return nil }
+        guard !isHidden, trackRect.insetBy(dx: 0, dy: -5).contains(point) else { return nil }
         return self
     }
 
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
         let thumb = thumbRect
-        dragOffset = min(max(point.x - thumb.minX, 0), thumb.width)
+        dragOffset = thumb.insetBy(dx: -4, dy: -5).contains(point)
+            ? min(max(point.x - thumb.minX, 0), thumb.width)
+            : thumb.width / 2
         isDragging = true
         moveThumb(to: point.x)
     }
@@ -325,15 +340,57 @@ private final class SessionStripOverlayScroller: NSView {
     }
 }
 
-private final class SessionStripProjectDropTargetView: NSView {
+private final class HeaderDropTargetView: NSView {
+    private var isActive = false
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        alphaValue = 0
+        isHidden = true
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
+    func setActive(_ active: Bool, animated: Bool) {
+        guard isActive != active else { return }
+        isActive = active
+        let shouldAnimate = animated && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        if active {
+            isHidden = false
+            needsDisplay = true
+            if !shouldAnimate {
+                alphaValue = 1
+                return
+            }
+            alphaValue = 0
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.16
+                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                animator().alphaValue = 1
+            }
+        } else if shouldAnimate {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.12
+                context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+                animator().alphaValue = 0
+            } completionHandler: { [weak self] in
+                guard let self, !self.isActive else { return }
+                self.isHidden = true
+            }
+        } else {
+            alphaValue = 0
+            isHidden = true
+        }
+    }
+
     override func draw(_ dirtyRect: NSRect) {
-        let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 1, dy: 1), xRadius: 6, yRadius: 6)
-        Theme.accent.withAlphaComponent(0.18).setFill()
+        let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 1, dy: 2), xRadius: 7, yRadius: 7)
+        Theme.accent.withAlphaComponent(0.10).setFill()
         path.fill()
-        Theme.accent.setStroke()
-        path.lineWidth = 1.5
+        Theme.accent.withAlphaComponent(0.7).setStroke()
+        path.lineWidth = 1
         path.stroke()
     }
 }
@@ -347,13 +404,12 @@ final class SessionTabsNSView: NSView {
     private let document = SessionStripDocumentView()
     private let overlayScroller = SessionStripOverlayScroller()
     private let addButton = WorkspaceChromeButton(symbol: "plus", label: AppCommand.newSession.title)
-    private let projectDropTarget = SessionStripProjectDropTargetView(frame: .zero)
     private var rows: [Item: WorkspaceItemView] = [:]
     private var order: [Item] = []
     private var contentObservations: [UUID: AnyCancellable] = [:]
     private var scrollObservation: AnyCancellable?
-    private var projectDragObservation: AnyCancellable?
     private var pointerTrackingArea: NSTrackingArea?
+    private var scrollWheelMonitor: Any?
     private var isPointerInsideStrip = false
     private var refreshScheduled = false
     private var contentWidth: CGFloat = 0
@@ -368,7 +424,7 @@ final class SessionTabsNSView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         scrollView.drawsBackground = false
-        scrollView.hasHorizontalScroller = true
+        scrollView.hasHorizontalScroller = false
         scrollView.hasVerticalScroller = false
         scrollView.horizontalScrollElasticity = .none
         scrollView.verticalScrollElasticity = .none
@@ -376,8 +432,6 @@ final class SessionTabsNSView: NSView {
         scrollView.documentView = document
         document.scrollView = scrollView
         for view in [scrollView, overlayScroller, addButton] { addSubview(view) }
-        projectDropTarget.isHidden = true
-        addSubview(projectDropTarget)
         addButton.onAction = { [weak self] in self?.project?.newSession() }
         overlayScroller.onScroll = { [weak self] position in self?.scroll(to: position) }
         overlayScroller.onDragEnded = { [weak self] in self?.updateOverlayScroller() }
@@ -388,6 +442,18 @@ final class SessionTabsNSView: NSView {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        installScrollWheelMonitor()
+    }
+
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        if newWindow !== window { removeScrollWheelMonitor() }
+        super.viewWillMove(toWindow: newWindow)
+    }
+
+    deinit { removeScrollWheelMonitor() }
 
     var preferredWidth: CGFloat { contentWidth + controlWidth + 4 }
     private var scale: CGFloat { CGFloat(AppSettings.shared.interfaceScale) }
@@ -413,12 +479,7 @@ final class SessionTabsNSView: NSView {
         }
         self.manager = manager
         self.project = project
-        if self.tabDrag !== tabDrag {
-            self.tabDrag = tabDrag
-            projectDragObservation = tabDrag.$projectDrag.combineLatest(tabDrag.$paneDrag)
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] _ in self?.updateProjectDropTarget() }
-        }
+        self.tabDrag = tabDrag
         refresh()
     }
 
@@ -593,19 +654,6 @@ final class SessionTabsNSView: NSView {
         )
         updatePointerPresence()
         updateOverlayScroller()
-        projectDropTarget.frame = scrollView.frame
-        let projectDropBounds = scrollView.frame
-            .insetBy(dx: -4 * scale, dy: -2 * scale)
-            .intersection(bounds)
-        let projectDropScreenFrame = project == nil
-            ? nil
-            : workspaceScreenRect(projectDropBounds)
-        tabDrag?.updateTabStripFrame(
-            projectID: project?.id,
-            screenFrame: projectDropScreenFrame,
-            workspaceFrame: project == nil ? nil : workspaceGlobalRect(projectDropBounds)
-        )
-        updateProjectDropTarget()
         for row in rows.values { row.setFrameSize(NSSize(width: row.frame.width, height: bounds.height)) }
         if lastViewportWidth != available { lastViewportWidth = available; revealSelection = true }
         scroll(by: 0)
@@ -639,6 +687,31 @@ final class SessionTabsNSView: NSView {
     override func scrollWheel(with event: NSEvent) {
         isPointerInsideStrip = true
         scrollView.scrollWheel(with: event)
+    }
+
+    private func installScrollWheelMonitor() {
+        guard scrollWheelMonitor == nil, window != nil else { return }
+        scrollWheelMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+            guard let self, self.handlesScrollWheel(event) else { return event }
+            self.scrollWheel(with: event)
+            return nil
+        }
+    }
+
+    private func removeScrollWheelMonitor() {
+        if let scrollWheelMonitor { NSEvent.removeMonitor(scrollWheelMonitor) }
+        scrollWheelMonitor = nil
+    }
+
+    private func handlesScrollWheel(_ event: NSEvent) -> Bool {
+        guard let window,
+              event.window === window,
+              let contentView = window.contentView
+        else { return false }
+        let point = contentView.convert(event.locationInWindow, from: nil)
+        guard let hitView = contentView.hitTest(point) else { return false }
+        return hitView === scrollView || hitView.isDescendant(of: scrollView)
+            || hitView === overlayScroller || hitView.isDescendant(of: overlayScroller)
     }
 
     override func updateTrackingAreas() {
@@ -681,16 +754,6 @@ final class SessionTabsNSView: NSView {
             contentWidth: document.bounds.width,
             visible: isPointerInsideStrip || overlayScroller.isDragging
         )
-    }
-
-    private func updateProjectDropTarget() {
-        let isTarget = project.map {
-            tabDrag?.projectDrag?.targetProjectID == $0.id
-                || (tabDrag?.paneDrag?.targetsTabStrip == true
-                    && tabDrag?.paneDrag?.sourceProjectID == $0.id)
-        } ?? false
-        guard projectDropTarget.isHidden == !isTarget else { return }
-        projectDropTarget.isHidden = !isTarget
     }
 
     private func documentPoint(at event: NSEvent) -> NSPoint? {
