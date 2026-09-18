@@ -126,6 +126,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     var onDragEnded: ((NSEvent) -> Void)?
     var onDragCancelled: (() -> Void)?
     var onNavigate: ((UInt16) -> Void)?
+    var onScrollWheel: ((NSEvent) -> Void)?
     var menuItems: (() -> [AppKitContextMenuItem])?
     private var renameCommit: ((String) -> Void)?
     private weak var renamePreviousResponder: NSResponder?
@@ -142,6 +143,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     private var isGrouped = false
     private var isDirty = false
     private var isSidebar = false
+    private var usesTabStripHoverTracking = false
     private var indent: CGFloat = 0
     private var scale: CGFloat = 1
     private var groupControlScale: CGFloat = 1
@@ -194,6 +196,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         sidebar: Bool = false, compactGroup: Bool = false, fillsGroupRow: Bool = false,
         showsGroupTitle: Bool = false,
         indent: CGFloat = 0, scale: CGFloat = 1, groupControlScale: CGFloat? = nil,
+        tabStrip: Bool = false,
         shortcut: String? = nil, actionSymbol: String = "xmark",
         actionLabel: String = String(localized: "Close"), action: (() -> Void)? = nil
     ) {
@@ -205,6 +208,10 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         self.isGrouped = grouped
         self.isDirty = dirty
         self.isSidebar = sidebar
+        if usesTabStripHoverTracking != tabStrip {
+            usesTabStripHoverTracking = tabStrip
+            updateTrackingAreas()
+        }
         self.indent = indent
         self.scale = scale
         self.groupControlScale = groupControlScale ?? scale
@@ -406,6 +413,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
 
     override func draw(_ dirtyRect: NSRect) {
         let usesGroupControlBackground = isCompactGroup || fillsGroupRow
+        let drawsItemBackground = isDropTarget || isSelected || isHovered || isGroup
         let shapeBounds = usesGroupControlBackground ? groupControlFrame : bounds.insetBy(dx: 0.5, dy: 1)
         let cornerRadius = min(
             (isCompactGroup ? 6 * compactGroupControlScale : (isSidebar ? 6 : 12) * scale),
@@ -420,7 +428,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
             (isDropTarget ? Theme.accent.withAlphaComponent(0.15)
                 : NSColor.white.withAlphaComponent(isSelected ? 0.16 : 0.08)).setFill()
             shape.fill()
-        } else if !usesGroupControlBackground && (isDropTarget || isSelected || isHovered || isGroup) {
+        } else if !usesGroupControlBackground && drawsItemBackground {
             (isDropTarget ? Theme.accent.withAlphaComponent(0.15)
                 : NSColor.labelColor.withAlphaComponent(isSelected ? 0.09 : (isHovered ? 0.05 : 0.025))).setFill()
             shape.fill()
@@ -452,7 +460,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
             NSColor.secondaryLabelColor.setFill()
             NSBezierPath(ovalIn: NSRect(x: actionButton.frame.midX - 2.5, y: bounds.midY - 2.5, width: 5, height: 5)).fill()
         }
-        if window?.firstResponder === self {
+        if window?.firstResponder === self, !usesTabStripHoverTracking {
             NSColor.keyboardFocusIndicatorColor.setStroke()
             shape.lineWidth = 2
             shape.stroke()
@@ -466,12 +474,21 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
+        let activeOption: NSTrackingArea.Options = usesTabStripHoverTracking ? .activeAlways : .activeInKeyWindow
         addTrackingArea(NSTrackingArea(rect: .zero,
-            options: [.activeInKeyWindow, .mouseEnteredAndExited, .inVisibleRect], owner: self))
+            options: [activeOption, .mouseEnteredAndExited, .inVisibleRect], owner: self))
     }
 
     override func mouseEntered(with event: NSEvent) { isHovered = true; updateActionVisibility(); needsDisplay = true }
     override func mouseExited(with event: NSEvent) { isHovered = false; updateActionVisibility(); needsDisplay = true }
+
+    override func scrollWheel(with event: NSEvent) {
+        if let onScrollWheel {
+            onScrollWheel(event)
+        } else {
+            super.scrollWheel(with: event)
+        }
+    }
 
     private func updateActionVisibility() {
         actionButton.isHidden = !hasAction || isRenaming
