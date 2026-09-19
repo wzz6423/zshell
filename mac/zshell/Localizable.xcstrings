@@ -2672,6 +2672,38 @@
         }
       }
     },
+    "Copy on select": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選択時にコピー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选中时复制"
+          }
+        }
+      }
+    },
+    "Copies selected terminal text to the clipboard when you finish dragging": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ドラッグして選択を終えると、選択したターミナルのテキストをクリップボードにコピーします"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成拖动选择后，将选中的终端文本复制到剪贴板"
+          }
+        }
+      }
+    },
     "Could not enter interactive terminal mode.": {
       "localizations": {
         "ja": {

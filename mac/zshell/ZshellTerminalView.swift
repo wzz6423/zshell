@@ -386,7 +386,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         stopSelectionAutoscroll()
         let hadInputSelection = inputSelectionDragActive
         super.mouseUp(with: event)
-        if pointerSelectionDragged, !isMouseCaptured {
+        if pointerSelectionDragged, !isMouseCaptured, AppSettings.shared.copyOnSelect {
             copySelectedTextToPasteboard()
         }
         if hadInputSelection, canEditPromptSelection {
