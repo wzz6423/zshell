@@ -195,6 +195,9 @@ final class SSHProjectController: NSObject {
     private let privateKeyPathField = NSTextField()
     private let privateKeyContentField = NSTextView()
     private let privateKeyContentScrollView = NSScrollView()
+    private let privateKeyContentContainer = RoundedTextEditorContainer(
+        cornerRadius: SSHProjectController.formFieldCornerRadius
+    )
     private let errorLabel = NSTextField(wrappingLabelWithString: "")
     private let saveButton = NSButton(title: "", target: nil, action: nil)
     private let cancelButton = NSButton(title: "", target: nil, action: nil)
@@ -205,6 +208,7 @@ final class SSHProjectController: NSObject {
     private var passwordRow: NSGridRow?
     private var privateKeyPathRow: NSGridRow?
     private var privateKeyContentRow: NSGridRow?
+    private var groupComboPopupCornerRadius: CGFloat?
 
     /// The entry being edited, if the form was filled from a row's edit
     /// button; saving replaces it instead of appending.
@@ -435,13 +439,17 @@ final class SSHProjectController: NSObject {
         privateKeyPathField.placeholderString = "~/.ssh/id_ed25519"
         privateKeyContentField.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
         privateKeyContentField.isRichText = false
+        privateKeyContentField.drawsBackground = false
         privateKeyContentField.isAutomaticQuoteSubstitutionEnabled = false
         privateKeyContentField.isAutomaticDashSubstitutionEnabled = false
         privateKeyContentScrollView.documentView = privateKeyContentField
         privateKeyContentScrollView.hasVerticalScroller = true
-        privateKeyContentScrollView.borderType = .bezelBorder
-        privateKeyContentScrollView.translatesAutoresizingMaskIntoConstraints = false
-        privateKeyContentScrollView.heightAnchor.constraint(equalToConstant: 84).isActive = true
+        privateKeyContentScrollView.borderType = .noBorder
+        privateKeyContentScrollView.drawsBackground = false
+        privateKeyContentScrollView.contentView.drawsBackground = false
+        privateKeyContentContainer.install(privateKeyContentScrollView)
+        privateKeyContentContainer.translatesAutoresizingMaskIntoConstraints = false
+        privateKeyContentContainer.heightAnchor.constraint(equalToConstant: 84).isActive = true
 
         errorLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         errorLabel.textColor = .systemRed
@@ -493,7 +501,7 @@ final class SSHProjectController: NSObject {
             ),
             formRow(
                 String(localized: "Private Key Text", comment: "SSH project form label for pasted private key content."),
-                privateKeyContentScrollView
+                privateKeyContentContainer
             ),
         ])
         grid.rowSpacing = 8
@@ -1019,12 +1027,20 @@ extension SSHProjectController: NSComboBoxDelegate {
             popupFrame.origin.y = fieldFrame.maxY
         }
         popup.setFrame(popupFrame, display: false)
-        popup.backgroundColor = .textBackgroundColor
-        popup.isOpaque = false
-        popup.contentView?.wantsLayer = true
-        popup.contentView?.layer?.cornerRadius = Self.formFieldCornerRadius
-        popup.contentView?.layer?.cornerCurve = .continuous
-        popup.contentView?.layer?.masksToBounds = true
+        guard
+            let contentView = popup.contentView,
+            let contentLayer = contentView.layer,
+            let frameView = contentView.superview
+        else { return }
+        let cornerRadius = groupComboPopupCornerRadius ?? contentLayer.cornerRadius
+        guard cornerRadius > 0 else { return }
+        groupComboPopupCornerRadius = cornerRadius
+        contentLayer.cornerRadius = 0
+        contentLayer.masksToBounds = false
+        frameView.wantsLayer = true
+        frameView.layer?.cornerRadius = cornerRadius
+        frameView.layer?.cornerCurve = .continuous
+        frameView.layer?.masksToBounds = true
     }
 }
 
@@ -1237,6 +1253,51 @@ private final class HairlineBox: NSView {
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         needsDisplay = true
+    }
+}
+
+private final class RoundedTextEditorContainer: NSView {
+    init(cornerRadius: CGFloat) {
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.cornerRadius = cornerRadius
+        layer?.cornerCurve = .continuous
+        layer?.masksToBounds = true
+        layer?.borderWidth = 1
+        updateAppearanceColors()
+    }
+
+    func install(_ scrollView: NSScrollView) {
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(scrollView)
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: topAnchor, constant: 1),
+            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 1),
+            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -1),
+            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -1),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateAppearanceColors()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearanceColors()
+    }
+
+    private func updateAppearanceColors() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = NSColor.textBackgroundColor.cgColor
+            layer?.borderColor = NSColor.separatorColor.cgColor
+        }
     }
 }
 
