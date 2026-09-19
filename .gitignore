@@ -32,3 +32,7 @@ playground.xcworkspace
 # it would be a second copy to keep in sync. Symlink one here if a tool needs it.
 .claude/
 CLAUDE.md
+
+.vscode/
+.idea/
+.workbuddy/

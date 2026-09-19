@@ -48,7 +48,22 @@ final class TabSplitDragCoordinator: ObservableObject {
         let targetProjectID: UUID?
     }
 
+    struct PaneDrag {
+        let sourcePaneID: UUID
+        let sourceTabID: UUID
+        let sourceProjectID: UUID
+        let location: CGPoint
+        let targetsTabStrip: Bool
+        let sidebarTarget: TabSidebarDropTarget?
+        let sidebarHighlight: TabSidebarDropHighlight?
+
+        var hasExternalTarget: Bool {
+            targetsTabStrip || sidebarTarget != nil
+        }
+    }
+
     @Published private(set) var drag: Drag?
+    @Published private(set) var paneDrag: PaneDrag?
     @Published private(set) var projectDrag: ProjectDrag?
     @Published private(set) var sidebarDropHighlight: TabSidebarDropHighlight?
 
@@ -65,6 +80,7 @@ final class TabSplitDragCoordinator: ObservableObject {
     private var sidebarUngroupedFooterFrame: CGRect?
     private var tabStripProjectID: UUID?
     private var tabStripScreenFrame: CGRect?
+    private var tabStripWorkspaceFrame: CGRect?
 
     func update(
         sourceTabID: UUID,
@@ -72,6 +88,7 @@ final class TabSplitDragCoordinator: ObservableObject {
         in project: Project,
         manager: TerminalManager
     ) {
+        if paneDrag != nil { cancelPaneDrag() }
         self.project = project
         self.manager = manager
         if projectDragSourceProjectID != nil { cancelProjectDrag() }
@@ -101,13 +118,45 @@ final class TabSplitDragCoordinator: ObservableObject {
         sidebarGroupFrames = groups
         sidebarUngroupedFrame = ungrouped
         sidebarUngroupedFooterFrame = ungroupedFooter
-        guard changed, let drag, let project else { return }
-        let resolved = resolvedDrag(
-            sourceTabID: drag.sourceTabID,
-            location: drag.location,
+        guard changed, let project else { return }
+        if let drag {
+            let resolved = resolvedDrag(
+                sourceTabID: drag.sourceTabID,
+                location: drag.location,
+                in: project
+            )
+            self.drag = resolved
+            updateSidebarDropHighlight(resolved.sidebarHighlight)
+        } else if let paneDrag {
+            let resolved = resolvedPaneDrag(
+                sourcePaneID: paneDrag.sourcePaneID,
+                sourceTabID: paneDrag.sourceTabID,
+                location: paneDrag.location,
+                in: project
+            )
+            self.paneDrag = resolved
+            updateSidebarDropHighlight(resolved.sidebarHighlight)
+        }
+    }
+
+    func updatePaneDrag(
+        sourcePaneID: UUID,
+        sourceTabID: UUID,
+        location: CGPoint,
+        in project: Project,
+        manager: TerminalManager
+    ) {
+        if drag != nil { drag = nil }
+        if projectDragSourceProjectID != nil { cancelProjectDrag() }
+        self.project = project
+        self.manager = manager
+        let resolved = resolvedPaneDrag(
+            sourcePaneID: sourcePaneID,
+            sourceTabID: sourceTabID,
+            location: location,
             in: project
         )
-        self.drag = resolved
+        paneDrag = resolved
         updateSidebarDropHighlight(resolved.sidebarHighlight)
     }
 
@@ -120,6 +169,7 @@ final class TabSplitDragCoordinator: ObservableObject {
             || projectDragManager !== manager
         if beginsNewDrag {
             if drag != nil { drag = nil }
+            if paneDrag != nil { cancelPaneDrag() }
             project = nil
             self.manager = nil
         }
@@ -129,12 +179,31 @@ final class TabSplitDragCoordinator: ObservableObject {
         publishProjectDrag()
     }
 
-    func updateTabStripFrame(projectID: UUID?, screenFrame: CGRect?) {
-        let changed = tabStripProjectID != projectID || tabStripScreenFrame != screenFrame
+    func updateTabStripFrame(
+        projectID: UUID?,
+        screenFrame: CGRect?,
+        workspaceFrame: CGRect? = nil
+    ) {
+        let changed = tabStripProjectID != projectID
+            || tabStripScreenFrame != screenFrame
+            || tabStripWorkspaceFrame != workspaceFrame
         tabStripProjectID = projectID
         tabStripScreenFrame = screenFrame
-        guard changed, projectDragSourceProjectID != nil, projectDragScreenLocation != nil else { return }
-        publishProjectDrag()
+        tabStripWorkspaceFrame = workspaceFrame
+        guard changed else { return }
+        if projectDragSourceProjectID != nil, projectDragScreenLocation != nil {
+            publishProjectDrag()
+        }
+        if let paneDrag, let project {
+            let resolved = resolvedPaneDrag(
+                sourcePaneID: paneDrag.sourcePaneID,
+                sourceTabID: paneDrag.sourceTabID,
+                location: paneDrag.location,
+                in: project
+            )
+            self.paneDrag = resolved
+            updateSidebarDropHighlight(resolved.sidebarHighlight)
+        }
     }
 
     /// Pane frames are reported by the currently mounted layout, including a
@@ -204,6 +273,70 @@ final class TabSplitDragCoordinator: ObservableObject {
         cancel()
     }
 
+    /// Commits a pane only when it is over an external destination. Returning
+    /// false lets PaneLayoutView preserve its existing in-tab rearrangement.
+    @discardableResult
+    func commitPaneDrag() -> Bool {
+        guard let paneDrag, let project, let manager else {
+            cancelPaneDrag()
+            return false
+        }
+        let resolved = resolvedPaneDrag(
+            sourcePaneID: paneDrag.sourcePaneID,
+            sourceTabID: paneDrag.sourceTabID,
+            location: paneDrag.location,
+            in: project
+        )
+        guard resolved.hasExternalTarget else {
+            cancelPaneDrag()
+            return false
+        }
+
+        if case .project(let destinationProjectID) = resolved.sidebarTarget,
+           let failure = paneMoveFailure(
+               resolved,
+               to: destinationProjectID,
+               from: project,
+               manager: manager
+           ) {
+            presentMoveFailure(failure)
+            cancelPaneDrag()
+            return true
+        }
+
+        guard let detached = project.extractPaneAsAdjacentTab(
+            resolved.sourcePaneID,
+            from: resolved.sourceTabID
+        ) else {
+            cancelPaneDrag()
+            return true
+        }
+
+        let result: TerminalManager.TabMoveResult?
+        switch resolved.sidebarTarget {
+        case .project(let destinationProjectID):
+            result = manager.moveTab(
+                id: detached.id,
+                from: resolved.sourceProjectID,
+                to: destinationProjectID,
+                in: ObjectIdentifier(manager)
+            )
+        case .newProject(let groupID):
+            result = manager.moveTabToNewProject(
+                id: detached.id,
+                from: resolved.sourceProjectID,
+                in: ProjectGroupStore.shared.group(id: groupID)
+            )
+        case nil:
+            result = nil
+        }
+        if let failure = result?.failure {
+            presentMoveFailure(failure)
+        }
+        cancelPaneDrag()
+        return true
+    }
+
     func commitProjectDrag() {
         guard let sourceProjectID = projectDragSourceProjectID,
               let screenLocation = projectDragScreenLocation,
@@ -232,10 +365,19 @@ final class TabSplitDragCoordinator: ObservableObject {
 
     func cancel() {
         if drag != nil { drag = nil }
+        if paneDrag != nil { paneDrag = nil }
         project = nil
         manager = nil
         updateSidebarDropHighlight(nil)
         cancelProjectDrag()
+    }
+
+    func cancelPaneDrag() {
+        guard paneDrag != nil else { return }
+        paneDrag = nil
+        project = nil
+        manager = nil
+        updateSidebarDropHighlight(nil)
     }
 
     func cancelProjectDrag() {
@@ -305,6 +447,57 @@ final class TabSplitDragCoordinator: ObservableObject {
             sourceProjectID: sourceProjectID,
             targetProjectID: targetProjectID
         )
+    }
+
+    private func resolvedPaneDrag(
+        sourcePaneID: UUID,
+        sourceTabID: UUID,
+        location: CGPoint,
+        in project: Project
+    ) -> PaneDrag {
+        let sourceTab = project.tabs.first { $0.id == sourceTabID }
+        let canDetach = sourceTab?.hasMultiplePanes == true
+            && sourceTab?.allPanes.first(where: { $0.id == sourcePaneID })?.content.isDiff == false
+        let sidebarDrop: (
+            target: TabSidebarDropTarget?,
+            highlight: TabSidebarDropHighlight?
+        ) = canDetach
+            ? resolvedSidebarDrop(at: location, excluding: project.id)
+            : (nil, nil)
+        let targetsTabStrip = canDetach
+            && sidebarDrop.target == nil
+            && tabStripProjectID == project.id
+            && tabStripWorkspaceFrame?.contains(location) == true
+        return PaneDrag(
+            sourcePaneID: sourcePaneID,
+            sourceTabID: sourceTabID,
+            sourceProjectID: project.id,
+            location: location,
+            targetsTabStrip: targetsTabStrip,
+            sidebarTarget: sidebarDrop.target,
+            sidebarHighlight: sidebarDrop.highlight
+        )
+    }
+
+    /// Validate before extracting the pane so a rejected cross-project move
+    /// leaves the source split exactly as it was.
+    private func paneMoveFailure(
+        _ drag: PaneDrag,
+        to destinationProjectID: UUID,
+        from source: Project,
+        manager: TerminalManager
+    ) -> TerminalManager.TabMoveFailure? {
+        guard let destination = manager.projects.first(where: { $0.id == destinationProjectID }),
+              let sourceTab = source.tabs.first(where: { $0.id == drag.sourceTabID }),
+              let sourcePane = sourceTab.allPanes.first(where: { $0.id == drag.sourcePaneID })
+        else { return .unavailable }
+        guard source.location == destination.location else { return .incompatibleLocation }
+        guard !sourcePane.content.isDiff else { return .containsDiff }
+        guard case .session(let session) = sourcePane.content,
+              let alias = session.agentStatus?.alias
+        else { return nil }
+        let aliases = Set(destination.sessions.compactMap { $0.agentStatus?.alias })
+        return aliases.contains(alias) ? .agentAliasConflict(alias) : nil
     }
 
     private func resolvedSidebarDrop(
@@ -461,9 +654,11 @@ struct ContentView: View {
                         }
                     }
                     Group {
-                        if let tab = manager.selectedProject?.selectedTab {
+                        if let project = manager.selectedProject,
+                           let tab = project.selectedTab {
                             PaneLayoutView(
                                 manager: manager,
+                                project: project,
                                 tab: tab,
                                 tabSplitDrag: tabSplitDrag,
                                 onSplit: { manager.split(toward: $0) },

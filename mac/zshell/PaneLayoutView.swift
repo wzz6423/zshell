@@ -11,6 +11,7 @@ import SwiftUI
 /// combined freely. Only the selected tab's layout is ever mounted.
 struct PaneLayoutView: View {
     let manager: TerminalManager
+    let project: Project
     @ObservedObject var tab: PaneTab
     @ObservedObject var tabSplitDrag: TabSplitDragCoordinator
     @ObservedObject private var themeChanges = Theme.changes
@@ -100,6 +101,7 @@ struct PaneLayoutView: View {
         }
         .onDisappear {
             tabSplitDrag.clearPaneFrames(for: tab.id)
+            tabSplitDrag.cancelPaneDrag()
         }
         // A divider or pane-move drag can't deliver its ending callback once
         // toggling zoom unmounts its view — drop any in-flight drag state so a
@@ -109,6 +111,7 @@ struct PaneLayoutView: View {
             dragLayout = nil
             paneDrag = nil
             dragThumbnail = nil
+            tabSplitDrag.cancelPaneDrag()
         }
     }
 
@@ -126,7 +129,7 @@ struct PaneLayoutView: View {
                         tab: tab,
                         pane: placement.pane,
                         showSplitChrome: tab.hasMultiplePanes,
-                        allowsMove: true,
+                        allowsMove: tab.hasMultiplePanes && !placement.pane.content.isDiff,
                         isMoveSource: paneDrag?.sourceID == placement.pane.id,
                         dropEdge: dropEdge(for: placement.pane.id),
                         onMove: {
@@ -251,19 +254,29 @@ struct PaneLayoutView: View {
         if paneDrag == nil {
             dragThumbnail = thumbnail(for: source)
         }
+        tabSplitDrag.updatePaneDrag(
+            sourcePaneID: source,
+            sourceTabID: tab.id,
+            location: location,
+            in: project,
+            manager: manager
+        )
         if let (targetID, frame) = paneFrames.first(where: { $0.key != source && $0.value.contains(location) }) {
             paneDrag = PaneMove(sourceID: source, location: location, targetID: targetID, edge: dropEdge(at: location, in: frame))
             NSCursor.closedHand.set()
         } else {
             paneDrag = PaneMove(sourceID: source, location: location, targetID: nil, edge: nil)
-            NSCursor.operationNotAllowed.set()
+            (tabSplitDrag.paneDrag?.hasExternalTarget == true
+                ? NSCursor.closedHand : NSCursor.operationNotAllowed).set()
         }
     }
 
     /// Commits a pane-move on release: splits the target on the chosen edge and
     /// drops the carried pane there.
     private func commitPaneMove() {
-        if let paneDrag, let target = paneDrag.targetID, let edge = paneDrag.edge {
+        let committedExternally = tabSplitDrag.commitPaneDrag()
+        if !committedExternally,
+           let paneDrag, let target = paneDrag.targetID, let edge = paneDrag.edge {
             tab.movePane(paneDrag.sourceID, edge, of: target)
         }
         paneDrag = nil
