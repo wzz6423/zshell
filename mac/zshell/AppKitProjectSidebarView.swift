@@ -62,6 +62,28 @@ private final class ProjectSidebarOutlineView: NSView {
     }
 }
 
+private final class ProjectSidebarScroller: NSScroller {
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor.clear.setFill()
+        dirtyRect.fill()
+        drawKnob()
+    }
+
+    override func drawKnob() {
+        let knob = rect(for: .knob)
+        guard !knob.isEmpty else { return }
+        let thickness: CGFloat = 1
+        let rect = NSRect(
+            x: knob.midX - thickness / 2,
+            y: knob.minY,
+            width: thickness,
+            height: knob.height
+        )
+        NSColor.labelColor.withAlphaComponent(0.28).setFill()
+        NSBezierPath(roundedRect: rect, xRadius: thickness / 2, yRadius: thickness / 2).fill()
+    }
+}
+
 final class ProjectSidebarNSView: NSView {
     private typealias Item = ProjectSidebarItem
     private let manager: TerminalManager
@@ -110,6 +132,7 @@ final class ProjectSidebarNSView: NSView {
         scrollView.hasVerticalScroller = true
         scrollView.autohidesScrollers = true
         scrollView.scrollerStyle = .overlay
+        scrollView.verticalScroller = ProjectSidebarScroller()
         scrollView.documentView = document
         scrollView.contentView.postsBoundsChangedNotifications = true
         fpsLabel.font = .monospacedDigitSystemFont(ofSize: 10, weight: .medium)
