@@ -251,13 +251,14 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         self.scale = scale
         self.groupControlScale = groupControlScale ?? scale
         self.hasAction = action != nil
+        groupControlColor = group ? (marker ?? .defaultColor).nsColor : nil
         let fontSize: CGFloat = (group ? 10.5 : 11.5) * scale
         titleLabel.font = .systemFont(ofSize: fontSize, weight: group ? .medium : .regular)
         titleLabel.lineBreakMode = fillsGroupRow ? .byTruncatingTail : .byTruncatingMiddle
         titleLabel.alignment = fillsGroupRow ? .left : .natural
         titleLabel.stringValue = title
         titleLabel.textColor = (isCompactGroup || fillsGroupRow)
-            ? .white
+            ? groupControlColor
             : (selected ? .labelColor : .secondaryLabelColor)
         titleWidth = ceil(titleLabel.attributedStringValue.size().width)
         titleLabel.isHidden = isRenaming || (isCompactGroup && !showsCompactGroupTitle)
@@ -269,8 +270,9 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         iconView.contentTintColor = icon?.isTemplate == true ? (selected ? Theme.accent : .secondaryLabelColor) : nil
         disclosureView.isHidden = !group
         disclosureView.image = NSImage(systemSymbolName: collapsed ? "chevron.right" : "chevron.down", accessibilityDescription: nil)
-        groupControlColor = group ? (marker ?? .defaultColor).nsColor : nil
-        disclosureView.contentTintColor = groupControlColor == nil ? .secondaryLabelColor : .white
+        disclosureView.contentTintColor = (isCompactGroup || fillsGroupRow)
+            ? groupControlColor
+            : (groupControlColor == nil ? .secondaryLabelColor : .white)
         pinView.isHidden = !pinned
         pinView.image = NSImage(systemSymbolName: "pin.fill", accessibilityDescription: nil)
         pinView.contentTintColor = .secondaryLabelColor
@@ -405,7 +407,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
             } else {
                 titleLabel.frame = .zero
             }
-            renameField.frame = control.insetBy(dx: 5 * controlScale, dy: 2 * controlScale)
+            renameField.frame = titleLabel.frame
             return
         }
         var x = 8 * scale + indent
@@ -459,7 +461,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         )
         let shape = NSBezierPath(roundedRect: shapeBounds, xRadius: cornerRadius, yRadius: cornerRadius)
         if usesGroupControlBackground, let groupControlColor {
-            groupControlColor.setFill()
+            (groupControlColor.blended(withFraction: 0.85, of: .white) ?? groupControlColor).setFill()
             shape.fill()
         }
         if usesGroupControlBackground && (isDropTarget || isSelected || isHovered) {
@@ -471,7 +473,11 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
                 : NSColor.labelColor.withAlphaComponent(isSelected ? 0.09 : (isHovered ? 0.05 : 0.025))).setFill()
             shape.fill()
         }
-        if isDropTarget {
+        if usesGroupControlBackground, let groupControlColor {
+            (isDropTarget ? Theme.accent : groupControlColor).setStroke()
+            shape.lineWidth = 1
+            shape.stroke()
+        } else if isDropTarget {
             Theme.accent.setStroke()
             shape.lineWidth = 1
             shape.stroke()
