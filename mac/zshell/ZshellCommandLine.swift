@@ -578,6 +578,7 @@ private func printHelp() {
           zshell +help
 
         With no arguments, zshell creates a project with a normal login shell.
+        A single command matching a Quick Launch entry starts that saved entry.
         An argv creates a project whose first terminal runs it directly.
 
         +themes browses Zshell's themes in the terminal. Moving through the list
