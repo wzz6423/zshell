@@ -423,27 +423,46 @@ final class TerminalManager: nonisolated ObservableObject {
 
     func newSSHProject(
         endpoint: SSHEndpoint,
-        remoteDirectory: String?
+        remoteDirectory: String?,
+        authentication: SSHAuthentication = .agent,
+        credentialID: UUID? = nil
     ) {
         let location = ProjectLocation.ssh(
             endpoint: endpoint,
-            remoteDirectory: remoteDirectory
+            remoteDirectory: remoteDirectory,
+            authentication: authentication,
+            credentialID: credentialID
         )
         let project = makeProject(location: location)
         project.customName = endpoint.destination
         insert(project)
-        probeRemoteConnection(project, endpoint: endpoint)
+        probeRemoteConnection(
+            project,
+            endpoint: endpoint,
+            authentication: authentication,
+            credentialID: credentialID
+        )
     }
 
-    /// Verifies key-based connectivity once at creation so the Info panel can
-    /// state the truth instead of assuming. The project's terminal is the
-    /// primary connection path; this only reports its reachability.
-    private func probeRemoteConnection(_ project: Project, endpoint: SSHEndpoint) {
+    /// Verifies connectivity once at creation so the Info panel can state the
+    /// truth instead of assuming. The project's terminal is the primary
+    /// connection path; this only reports its reachability.
+    private func probeRemoteConnection(
+        _ project: Project,
+        endpoint: SSHEndpoint,
+        authentication: SSHAuthentication,
+        credentialID: UUID?
+    ) {
         Task.detached(priority: .utility) {
             let transport = OpenSSHTransport(timeout: 8)
             let state: RemoteConnectionState
             do {
-                _ = try transport.run(endpoint: endpoint, command: [":"])
+                _ = try transport.run(
+                    endpoint: endpoint,
+                    command: [":"],
+                    authentication: authentication,
+                    credentialID: credentialID
+                )
                 state = .connected
             } catch let error as OpenSSHTransport.TransportError {
                 switch error {

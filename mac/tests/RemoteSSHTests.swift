@@ -36,6 +36,64 @@ struct RemoteSSHTests {
         expect(transport.contains("ConnectTimeout=3"), "connect timeout rounded up")
         expect(transport.suffix(2) == ["dev@example.com", "'printf' '%s' 'a'\\''b'"], "command quoted")
 
+        let passwordAuthentication = SSHAuthentication.password
+        let passwordArguments = endpoint.transportArguments(
+            connectTimeout: 2,
+            command: [":"],
+            authentication: passwordAuthentication
+        )
+        expect(passwordArguments.contains("BatchMode=no"), "password auth enables askpass")
+        expect(
+            passwordArguments.contains("PreferredAuthentications=password,keyboard-interactive"),
+            "password auth is explicit"
+        )
+        let privateKeyArguments = endpoint.terminalArguments(
+            remoteDirectory: nil,
+            authentication: .privateKeyPath("/tmp/id_ed25519"),
+            identityFile: "/tmp/id_ed25519"
+        )
+        expect(privateKeyArguments.contains("IdentityFile=none"), "key auth disables defaults")
+        expect(privateKeyArguments.contains("/tmp/id_ed25519"), "key path is passed as argv")
+
+        let authenticationData = try JSONEncoder().encode(SSHAuthentication.privateKeyContent)
+        let authenticationJSON = String(decoding: authenticationData, as: UTF8.self)
+        expect(!authenticationJSON.contains("PRIVATE KEY"), "authentication JSON excludes key text")
+
+        let legacyLocationData = Data(
+            #"{"ssh":{"endpoint":{"host":"example.com","user":"dev","port":2222},"remoteDirectory":"/srv/project"}}"#.utf8
+        )
+        let legacyLocation = try JSONDecoder().decode(ProjectLocation.self, from: legacyLocationData)
+        expect(
+            legacyLocation == .ssh(endpoint: endpoint, remoteDirectory: "/srv/project"),
+            "legacy SSH location defaults to agent authentication"
+        )
+
+        let credentialID = UUID()
+        let credentialStore = SSHCredentialStore(
+            service: "sh.zshell.remote-ssh-tests.\(UUID().uuidString)"
+        )
+        defer { credentialStore.remove(credentialID) }
+        try credentialStore.save("test-password", for: credentialID)
+        let material = try passwordAuthentication.makeMaterial(
+            credentialID: credentialID,
+            credentialStore: credentialStore
+        )
+        guard let material else { preconditionFailure("password material missing") }
+        let temporaryDirectory = material.temporaryDirectoryURL
+        let passwordFile = temporaryDirectory.appendingPathComponent("password")
+        let askpassFile = temporaryDirectory.appendingPathComponent("askpass")
+        let passwordPermissions = try FileManager.default.attributesOfItem(
+            atPath: passwordFile.path
+        )[.posixPermissions] as? NSNumber
+        let askpassPermissions = try FileManager.default.attributesOfItem(
+            atPath: askpassFile.path
+        )[.posixPermissions] as? NSNumber
+        expect(passwordPermissions?.intValue == 0o600, "password material is private")
+        expect(askpassPermissions?.intValue == 0o700, "askpass script is executable and private")
+        expect(material.environment["SSH_ASKPASS"] == askpassFile.path, "askpass path is exported")
+        material.cleanup()
+        expect(!FileManager.default.fileExists(atPath: temporaryDirectory.path), "material is cleaned up")
+
         expect(SSHEndpoint.shellWord("~") == "~", "bare tilde")
         expect(SSHEndpoint.shellWord("~/my repo") == "~/'my repo'", "tilde home")
         expect(SSHEndpoint.shellWord("~alice/x y") == "~alice/'x y'", "tilde user")

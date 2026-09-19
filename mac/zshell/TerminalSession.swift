@@ -53,6 +53,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     private var lastHistorySnapshot: String?
     private var isTerminating = false
     private var commandExecutionStartedAtNanos: UInt64?
+    /// Session-scoped material such as SSH askpass files must survive pane
+    /// transfers, then be released only after the terminal process ends.
+    private var retainedSessionResources: [AnyObject] = []
     /// Alternate-screen transcript paging must begin at the live prompt, never
     /// from text the user has scrolled back to inspect.
     var terminalIsAtLiveBottom = true
@@ -72,7 +75,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         restoredHistory: String? = nil,
         commandArguments: [String]? = nil,
         environmentPath: String? = nil,
-        launchSettings: TerminalLaunchSettings = .init()
+        launchSettings: TerminalLaunchSettings = .init(),
+        additionalEnvironment: [String: String] = [:]
     ) {
         let sessionID = UUID()
         let directCommand = commandArguments.flatMap { $0.isEmpty ? nil : $0 }
@@ -104,7 +108,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             environment: Self.surfaceEnvironment(
                 pathOverride: environmentPath,
                 configuredEnvironment: launchSettings.environment,
-                sessionID: sessionID
+                sessionID: sessionID,
+                additionalEnvironment: additionalEnvironment
             )
         )
 
@@ -163,6 +168,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
 
     func belongs(to manager: TerminalManager) -> Bool {
         hostManagerID == ObjectIdentifier(manager)
+    }
+
+    func retainForSessionLifetime(_ resource: AnyObject) {
+        retainedSessionResources.append(resource)
     }
 
     /// Context-menu actions retain the terminal they came from, even if another
@@ -260,6 +269,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
 
     private func removeLaunchArtifacts() {
         ZshellCLIService.shared.revokeTerminal(id: id)
+        retainedSessionResources.removeAll()
         guard let launchDirectoryURL else { return }
         try? FileManager.default.removeItem(at: launchDirectoryURL)
     }
@@ -364,7 +374,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     private static func surfaceEnvironment(
         pathOverride: String?,
         configuredEnvironment: [String: String],
-        sessionID: UUID
+        sessionID: UUID,
+        additionalEnvironment: [String: String]
     ) -> [String: String] {
         var environment = [
             "TERM": "xterm-256color",
@@ -383,6 +394,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         if let pathOverride, !pathOverride.isEmpty {
             environment["PATH"] = pathOverride
         }
+        environment.merge(additionalEnvironment, uniquingKeysWith: { _, additionalValue in
+            additionalValue
+        })
         // Locale belongs to the user's shell environment. Zshell's app language
         // must never synthesize or override LANG/LC_* for terminal processes.
         return environment
