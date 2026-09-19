@@ -144,6 +144,7 @@ final class ProjectGroupStore: ObservableObject {
     }
 
     func add(_ group: ProjectGroup) {
+        guard !groups.contains(where: { $0.name == group.name }) else { return }
         groups.append(group)
         save()
     }
@@ -156,10 +157,14 @@ final class ProjectGroupStore: ObservableObject {
         return ProjectGroup.defaultPlainName(number)
     }
 
-    func update(_ group: ProjectGroup) {
-        guard let index = groups.firstIndex(where: { $0.id == group.id }) else { return }
+    @discardableResult
+    func update(_ group: ProjectGroup) -> Bool {
+        guard let index = groups.firstIndex(where: { $0.id == group.id }),
+              !groups.contains(where: { $0.id != group.id && $0.name == group.name })
+        else { return false }
         groups[index] = group
         save()
+        return true
     }
 
     func move(_ groupID: UUID, to targetID: UUID) {

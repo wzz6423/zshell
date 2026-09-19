@@ -9,10 +9,14 @@ import AppKit
 final class SettingsEditorPane: SettingsPaneViewController {
     private let wrapLinesSwitch = SettingsSwitch { AppSettings.shared.wrapLines = $0 }
 
-    private lazy var externalEditorPopUp = SettingsPopUpButton<ExternalEditor>(
-        items: ExternalEditor.allCases.map { .value($0.title, $0) },
-        onChange: { AppSettings.shared.externalEditor = $0 }
-    )
+    private let externalEditorPopUp: SettingsPopUpButton<ExternalEditor> = {
+        let popup = SettingsPopUpButton<ExternalEditor>(
+            items: ExternalEditor.allCases.map { .value($0.title, $0) },
+            onChange: { AppSettings.shared.externalEditor = $0 }
+        )
+        popup.heightAnchor.constraint(equalToConstant: 24).isActive = true
+        return popup
+    }()
 
     override func makeGroups() -> [NSView] {
         [
