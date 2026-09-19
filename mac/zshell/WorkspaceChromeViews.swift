@@ -167,6 +167,8 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     private var mouseOrigin: NSPoint?
     private var hasDragged = false
     private var dragCancelMonitor: Any?
+    private var pendingGroupSelection: DispatchWorkItem?
+    private var pendingGroupSelectionID: UUID?
     private var isHovered = false
     private var isSelected = false
     private var isGroup = false
@@ -249,13 +251,14 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         self.scale = scale
         self.groupControlScale = groupControlScale ?? scale
         self.hasAction = action != nil
+        groupControlColor = group ? (marker ?? .defaultColor).nsColor : nil
         let fontSize: CGFloat = (group ? 10.5 : 11.5) * scale
         titleLabel.font = .systemFont(ofSize: fontSize, weight: group ? .medium : .regular)
         titleLabel.lineBreakMode = fillsGroupRow ? .byTruncatingTail : .byTruncatingMiddle
         titleLabel.alignment = fillsGroupRow ? .left : .natural
         titleLabel.stringValue = title
         titleLabel.textColor = (isCompactGroup || fillsGroupRow)
-            ? .white
+            ? groupControlColor
             : (selected ? .labelColor : .secondaryLabelColor)
         titleWidth = ceil(titleLabel.attributedStringValue.size().width)
         titleLabel.isHidden = isRenaming || (isCompactGroup && !showsCompactGroupTitle)
@@ -267,8 +270,9 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         iconView.contentTintColor = icon?.isTemplate == true ? (selected ? Theme.accent : .secondaryLabelColor) : nil
         disclosureView.isHidden = !group
         disclosureView.image = NSImage(systemSymbolName: collapsed ? "chevron.right" : "chevron.down", accessibilityDescription: nil)
-        groupControlColor = group ? (marker ?? .defaultColor).nsColor : nil
-        disclosureView.contentTintColor = groupControlColor == nil ? .secondaryLabelColor : .white
+        disclosureView.contentTintColor = (isCompactGroup || fillsGroupRow)
+            ? groupControlColor
+            : (groupControlColor == nil ? .secondaryLabelColor : .white)
         pinView.isHidden = !pinned
         pinView.image = NSImage(systemSymbolName: "pin.fill", accessibilityDescription: nil)
         pinView.contentTintColor = .secondaryLabelColor
@@ -403,7 +407,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
             } else {
                 titleLabel.frame = .zero
             }
-            renameField.frame = control.insetBy(dx: 5 * controlScale, dy: 2 * controlScale)
+            renameField.frame = titleLabel.frame
             return
         }
         var x = 8 * scale + indent
@@ -457,7 +461,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         )
         let shape = NSBezierPath(roundedRect: shapeBounds, xRadius: cornerRadius, yRadius: cornerRadius)
         if usesGroupControlBackground, let groupControlColor {
-            groupControlColor.setFill()
+            (groupControlColor.blended(withFraction: 0.85, of: .white) ?? groupControlColor).setFill()
             shape.fill()
         }
         if usesGroupControlBackground && (isDropTarget || isSelected || isHovered) {
@@ -469,7 +473,11 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
                 : NSColor.labelColor.withAlphaComponent(isSelected ? 0.09 : (isHovered ? 0.05 : 0.025))).setFill()
             shape.fill()
         }
-        if isDropTarget {
+        if usesGroupControlBackground, let groupControlColor {
+            (isDropTarget ? Theme.accent : groupControlColor).setStroke()
+            shape.lineWidth = 1
+            shape.stroke()
+        } else if isDropTarget {
             Theme.accent.setStroke()
             shape.lineWidth = 1
             shape.stroke()
@@ -537,6 +545,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         mouseOrigin = event.locationInWindow
         hasDragged = false
         if event.clickCount == 2 {
+            cancelPendingGroupSelection()
             mouseOrigin = nil
             onRename?()
         }
@@ -546,6 +555,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         guard !isRenaming, let mouseOrigin else { return }
         if !hasDragged {
             guard hypot(event.locationInWindow.x - mouseOrigin.x, event.locationInWindow.y - mouseOrigin.y) >= 4 else { return }
+            cancelPendingGroupSelection()
             hasDragged = true
             dragCancelMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
                 let input = WorkspaceChromeEvent(event)
@@ -567,7 +577,26 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         removeDragMonitor()
         if hasDragged { onDragEnded?(event) }
         else if bounds.contains(convert(event.locationInWindow, from: nil)) {
-            onSelect?()
+            if isGroup && onRename != nil && event.clickCount == 1 {
+                let selectionID = UUID()
+                pendingGroupSelectionID = selectionID
+                let selection = DispatchWorkItem { [weak self] in
+                    guard let self,
+                          self.pendingGroupSelectionID == selectionID,
+                          self.window != nil,
+                          !self.isRenaming else { return }
+                    self.pendingGroupSelection = nil
+                    self.pendingGroupSelectionID = nil
+                    self.onSelect?()
+                }
+                pendingGroupSelection = selection
+                DispatchQueue.main.asyncAfter(
+                    deadline: .now() + NSEvent.doubleClickInterval,
+                    execute: selection
+                )
+            } else {
+                onSelect?()
+            }
         }
         hasDragged = false
         NSCursor.arrow.set()
@@ -579,12 +608,14 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     }
 
     override func rightMouseDown(with event: NSEvent) {
+        cancelPendingGroupSelection()
         window?.makeFirstResponder(self)
         guard let items = menuItems?(), !items.isEmpty else { return }
         menuPresenter.popUp(items: items, at: convert(event.locationInWindow, from: nil), in: self)
     }
 
     override func accessibilityPerformShowMenu() -> Bool {
+        cancelPendingGroupSelection()
         window?.makeFirstResponder(self)
         guard let items = menuItems?(), !items.isEmpty else { return false }
         menuPresenter.popUp(items: items, at: NSPoint(x: bounds.midX, y: bounds.midY), in: self)
@@ -592,6 +623,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     }
 
     override func keyDown(with event: NSEvent) {
+        cancelPendingGroupSelection()
         if event.keyCode == 109, event.modifierFlags.contains(.shift) {
             _ = accessibilityPerformShowMenu()
             return
@@ -607,12 +639,25 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     }
 
     override func accessibilityPerformPress() -> Bool {
+        cancelPendingGroupSelection()
         window?.makeFirstResponder(self)
         onSelect?()
         return onSelect != nil
     }
 
+    private func cancelPendingGroupSelection() {
+        pendingGroupSelection?.cancel()
+        pendingGroupSelection = nil
+        pendingGroupSelectionID = nil
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil { cancelPendingGroupSelection() }
+    }
+
     private func cancelMouseDrag() {
+        cancelPendingGroupSelection()
         mouseOrigin = nil
         hasDragged = false
         removeDragMonitor()
@@ -626,10 +671,12 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     }
 
     deinit {
+        pendingGroupSelection?.cancel()
         if let dragCancelMonitor { NSEvent.removeMonitor(dragCancelMonitor) }
     }
 
     func beginRename(value: String, commit: @escaping (String) -> Void) {
+        cancelPendingGroupSelection()
         guard !isRenaming else { return }
         let requestID = UUID()
         renameRequestID = requestID
@@ -656,7 +703,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         updateActionVisibility()
         layoutSubtreeIfNeeded()
         window?.makeFirstResponder(renameField)
-        renameField.selectText(nil)
+        renameField.currentEditor()?.selectAll(nil)
     }
 
     private func finishRename(apply: Bool, restoreFocus: Bool = false) {

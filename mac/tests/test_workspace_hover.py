@@ -64,11 +64,95 @@ struct HoverRegression {
             print("\(condition ? "PASS" : "FAIL") \(name)")
             if !condition { failures += 1 }
         }
+        func renderedColor(_ view: NSView, x: Int, y: Int) -> NSColor {
+            let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(view.bounds.width),
+                pixelsHigh: Int(view.bounds.height), bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+                isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+            let context = NSGraphicsContext(bitmapImageRep: bitmap)!
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = context
+            context.cgContext.clear(view.bounds)
+            view.draw(view.bounds)
+            context.flushGraphics()
+            NSGraphicsContext.restoreGraphicsState()
+            return bitmap.colorAt(x: x, y: y)!.usingColorSpace(.deviceRGB)!
+        }
+        func hasTintedFillAndSolidBorder(_ view: NSView, fillX: Int, borderX: Int, y: Int) -> Bool {
+            let fill = renderedColor(view, x: fillX, y: y)
+            let border = renderedColor(view, x: borderX, y: y)
+            return fill.alphaComponent > 0.99
+                && fill.redComponent > border.redComponent + 0.45
+                && fill.greenComponent > border.greenComponent + 0.2
+        }
         let compactGroup = WorkspaceItemView(frame: NSRect(x: 0, y: 0, width: 34, height: 34))
+        compactGroup.appearance = NSAppearance(named: .aqua)
         compactGroup.apply(title: "Group", icon: nil, selected: false, group: true,
                            collapsed: true, grouped: true, marker: .defaultColor,
                            compactGroup: true, tabStrip: true)
+        compactGroup.layoutSubtreeIfNeeded()
         check(compactGroup.preferredWidth == 17, "compact tab group is half its previous width")
+        check(hasTintedFillAndSolidBorder(compactGroup, fillX: 17, borderX: 8, y: 17),
+              "compact tab group uses a pale fill with a solid marker-color border")
+
+        let groupWindow = HoverWindow(contentRect: NSRect(x: 320, y: 240, width: 240, height: 80),
+                                      styleMask: [.borderless], backing: .buffered, defer: false)
+        groupWindow.isReleasedWhenClosed = false
+        groupWindow.appearance = NSAppearance(named: .aqua)
+        let groupRoot = FlippedView(frame: NSRect(x: 0, y: 0, width: 240, height: 80))
+        groupWindow.contentView = groupRoot
+        let groupRow = WorkspaceItemView(frame: NSRect(x: 8, y: 8, width: 224, height: 28))
+        groupRoot.addSubview(groupRow)
+        groupRow.apply(title: "New Group", icon: nil, selected: false, group: true,
+                       collapsed: false, marker: .defaultColor, sidebar: true,
+                       fillsGroupRow: true)
+        groupRow.layoutSubtreeIfNeeded()
+        check(hasTintedFillAndSolidBorder(groupRow, fillX: 180, borderX: 0, y: 14),
+              "sidebar group uses a pale fill with a solid marker-color border")
+        var groupSelections = 0
+        var groupRenames = 0
+        var committedGroupName: String?
+        groupRow.onSelect = { groupSelections += 1 }
+        groupRow.onRename = {
+            groupRenames += 1
+            groupRow.beginRename(value: "New Group") { committedGroupName = $0 }
+        }
+        func groupMouse(_ type: NSEvent.EventType, clickCount: Int) -> NSEvent {
+            let location = groupRow.convert(NSPoint(x: 20, y: 14), to: nil)
+            return NSEvent.mouseEvent(with: type, location: location, modifierFlags: [],
+                timestamp: 0, windowNumber: groupWindow.windowNumber, context: nil,
+                eventNumber: 0, clickCount: clickCount, pressure: 1)!
+        }
+        groupRow.mouseDown(with: groupMouse(.leftMouseDown, clickCount: 1))
+        groupRow.mouseUp(with: groupMouse(.leftMouseUp, clickCount: 1))
+        groupRow.mouseDown(with: groupMouse(.leftMouseDown, clickCount: 2))
+        groupRow.mouseUp(with: groupMouse(.leftMouseUp, clickCount: 2))
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
+        let renameField = groupRow.subviews.compactMap { $0 as? NSTextField }.first { $0.isEditable }!
+        check(groupSelections == 0, "double-clicking a group does not collapse it")
+        check(groupRenames == 1, "double-clicking a group starts rename")
+        check(groupRow.isRenaming && !renameField.isHidden, "group rename shows its editable field")
+        let fieldEditor = groupWindow.fieldEditor(false, for: renameField) as! NSTextView
+        fieldEditor.selectedRange = NSRange(location: 0, length: 0)
+        let candidateAnchor = fieldEditor.firstRect(
+            forCharacterRange: fieldEditor.selectedRange,
+            actualRange: nil
+        )
+        let titleScreenFrame = groupWindow.convertToScreen(groupRow.titleLabel.convert(groupRow.titleLabel.bounds, to: nil))
+        check(titleScreenFrame.minX...titleScreenFrame.maxX ~= candidateAnchor.minX,
+              "group rename anchors IME candidates to the visible title position")
+        renameField.stringValue = "Renamed Group"
+        _ = groupRow.control(renameField, textView: fieldEditor,
+                             doCommandBy: #selector(NSResponder.insertNewline(_:)))
+        check(committedGroupName == "Renamed Group", "group rename commits the edited name")
+
+        groupSelections = 0
+        groupRow.mouseDown(with: groupMouse(.leftMouseDown, clickCount: 1))
+        groupRow.mouseUp(with: groupMouse(.leftMouseUp, clickCount: 1))
+        check(groupSelections == 0, "group selection waits for the double-click interval")
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: NSEvent.doubleClickInterval + 0.05))
+        check(groupSelections == 1, "single-clicking a group still toggles it")
+        groupWindow.close()
+
         for tabStrip in [true, false] {
             let window = HoverWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 400),
                                      styleMask: [.borderless], backing: .buffered, defer: false)
@@ -127,17 +211,7 @@ struct HoverRegression {
                 }
             }
             func alpha(_ view: NSView, x: Int = 10, y: Int = 17) -> CGFloat {
-                let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(view.bounds.width),
-                    pixelsHigh: Int(view.bounds.height), bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
-                    isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
-                let context = NSGraphicsContext(bitmapImageRep: bitmap)!
-                NSGraphicsContext.saveGraphicsState()
-                NSGraphicsContext.current = context
-                context.cgContext.clear(view.bounds)
-                view.draw(view.bounds)
-                context.flushGraphics()
-                NSGraphicsContext.restoreGraphicsState()
-                return bitmap.colorAt(x: x, y: y)!.alphaComponent
+                renderedColor(view, x: x, y: y).alphaComponent
             }
 
             check(trackingRect(rows[0]) == rows[0].bounds, "row hover is bounded (tabStrip=\(tabStrip))")

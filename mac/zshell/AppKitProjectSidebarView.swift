@@ -63,7 +63,7 @@ private final class ProjectSidebarOutlineView: NSView {
 }
 
 final class ProjectSidebarNSView: NSView {
-    private enum Item: Hashable { case project(UUID), group(UUID) }
+    private typealias Item = ProjectSidebarItem
     private let manager: TerminalManager
     private let tabDrag: TabSplitDragCoordinator
     private let groupStore = ProjectGroupStore.shared
@@ -160,11 +160,13 @@ final class ProjectSidebarNSView: NSView {
     }
 
     func refresh() {
-        let groupIDs = Set(groupStore.groups.map(\.id))
-        var items: [Item] = manager.projects.filter { $0.groupID.map { !groupIDs.contains($0) } ?? true }.map { .project($0.id) }
-        for group in groupStore.groups {
-            items.append(.group(group.id))
-            if !group.isCollapsed { items += manager.projects.filter { $0.groupID == group.id }.map { .project($0.id) } }
+        var items: [Item] = []
+        for item in manager.sidebarTopLevelItems {
+            items.append(item)
+            guard case .group(let id) = item,
+                  let group = groupStore.group(id: id),
+                  !group.isCollapsed else { continue }
+            items += manager.projects.filter { $0.groupID == id }.map { .project($0.id) }
         }
         let valid = Set(items)
         for key in rows.keys where !valid.contains(key) { rows.removeValue(forKey: key)?.removeFromSuperview() }
@@ -431,7 +433,12 @@ final class ProjectSidebarNSView: NSView {
 
     private func updateDrag(item: Item, event: NSEvent) {
         draggedItem = item
-        dropItem = self.item(at: event, extendingGroupTargets: true)
+        let candidate = self.item(at: event, extendingGroupTargets: true)
+        if case .group = item {
+            dropItem = candidate.flatMap(topLevelItem(containing:))
+        } else {
+            dropItem = candidate
+        }
         let point = convert(event.locationInWindow, from: nil)
         isUngroupedWorkspaceDropTarget = false
         isUngroupedFooterDropTarget = false
@@ -467,6 +474,9 @@ final class ProjectSidebarNSView: NSView {
             case .project(let targetID):
                 if targetID != id, let destination = manager.projects.first(where: { $0.id == targetID }) {
                     manager.moveProject(project, to: groupStore.group(id: destination.groupID))
+                    if destination.groupID == nil {
+                        manager.moveSidebarItem(.project(id), to: .project(targetID))
+                    }
                     manager.moveProject(id, to: targetID)
                 }
                 handled = true
@@ -474,6 +484,7 @@ final class ProjectSidebarNSView: NSView {
                 let point = convert(event.locationInWindow, from: nil)
                 if scrollView.frame.contains(point) || footerButtons[0].frame.contains(point) {
                     manager.moveProject(project, to: nil)
+                    manager.moveSidebarItem(.project(id), to: nil)
                     handled = true
                 }
             }
@@ -485,10 +496,26 @@ final class ProjectSidebarNSView: NSView {
                 )
                 tabDrag.commitProjectDrag()
             }
-        } else if case .group(let id) = item, case .group(let targetID) = target {
-            groupStore.move(id, to: targetID)
+        } else if case .group = item {
+            let point = convert(event.locationInWindow, from: nil)
+            if let target = target.flatMap(topLevelItem(containing:)) {
+                manager.moveSidebarItem(item, to: target)
+            } else if scrollView.frame.contains(point) {
+                manager.moveSidebarItem(item, to: nil)
+            }
         }
         cancelDrag()
+    }
+
+    private func topLevelItem(containing item: Item) -> Item? {
+        switch item {
+        case .group:
+            return item
+        case .project(let id):
+            guard let project = manager.projects.first(where: { $0.id == id }) else { return nil }
+            guard let groupID = project.groupID, groupStore.group(id: groupID) != nil else { return item }
+            return .group(groupID)
+        }
     }
 
     private func cancelDrag() {
