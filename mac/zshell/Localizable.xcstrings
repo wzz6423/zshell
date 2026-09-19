@@ -9378,22 +9378,6 @@
         }
       }
     },
-    "Show tab group names": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タブグループ名を表示"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "显示标签页分组名称"
-          }
-        }
-      }
-    },
     "Showing the last local snapshot. %@": {
       "localizations": {
         "ja": {

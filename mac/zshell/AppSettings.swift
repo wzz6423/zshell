@@ -183,7 +183,6 @@ final class AppSettings: nonisolated ObservableObject {
     static let sidebarFontSizeRange: ClosedRange<Double> = 9...24
     static let defaultInterfaceScale: Double = 1
     static let interfaceScaleRange: ClosedRange<Double> = 0.9...1.5
-    static let defaultShowTabGroupNames = true
     static let defaultToolbarVisibility: ToolbarVisibility = .hide
     static let defaultTerminalBackgroundOpacity: Double = 1
     static let terminalBackgroundOpacityRange: ClosedRange<Double> = 0.2...1
@@ -281,11 +280,6 @@ final class AppSettings: nonisolated ObservableObject {
     /// Scale applied to application chrome while terminal and editor content
     /// keep their separately configured font size.
     @Published var interfaceScale: Double {
-        didSet { save() }
-    }
-
-    /// Whether tab-group controls include their name or stay icon-only.
-    @Published var showTabGroupNames: Bool {
         didSet { save() }
     }
 
@@ -494,7 +488,6 @@ final class AppSettings: nonisolated ObservableObject {
         self.interfaceScale = Self.interfaceScaleRange.contains(interfaceScale)
             ? interfaceScale
             : Self.defaultInterfaceScale
-        showTabGroupNames = toml["tabs.show-group-names"]?.bool ?? Self.defaultShowTabGroupNames
         toolbarVisibility = ToolbarVisibility(
             rawValue: toml["toolbar.visibility"]?.string ?? ""
         ) ?? Self.defaultToolbarVisibility
@@ -634,7 +627,6 @@ final class AppSettings: nonisolated ObservableObject {
             && fontSize == Self.defaultFontSize
             && sidebarFontSize == Self.defaultSidebarFontSize
             && interfaceScale == Self.defaultInterfaceScale
-            && showTabGroupNames == Self.defaultShowTabGroupNames
             && !fontThicken
             && fontThickenStrength == Self.defaultFontThickenStrength
             && terminalLineHeight == Self.defaultTerminalLineHeight
@@ -675,7 +667,6 @@ final class AppSettings: nonisolated ObservableObject {
         themeDark = Theme.defaultDarkThemeName
         themeLight = Theme.defaultLightThemeName
         terminalThemeOnly = false
-        showTabGroupNames = Self.defaultShowTabGroupNames
         toolbarVisibility = Self.defaultToolbarVisibility
         cursorShape = .block
         cursorBlinking = true
@@ -927,9 +918,6 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if interfaceScale != Self.defaultInterfaceScale {
             lines.append("interface.scale = \(TOML.number(interfaceScale))")
-        }
-        if showTabGroupNames != Self.defaultShowTabGroupNames {
-            lines.append("tabs.show-group-names = false")
         }
         if toolbarVisibility != Self.defaultToolbarVisibility {
             lines.append("toolbar.visibility = \(TOML.quote(toolbarVisibility.rawValue))")

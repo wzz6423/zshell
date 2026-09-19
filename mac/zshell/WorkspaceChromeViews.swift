@@ -46,13 +46,45 @@ final class WorkspaceChromeButton: NSButton {
         // Unclipped views can report a visibleRect larger than their bounds.
         addTrackingArea(NSTrackingArea(
             rect: NSIntersectionRect(bounds, visibleRect),
-            options: [.activeInKeyWindow, .mouseEnteredAndExited],
+            options: [.activeAlways, .mouseEnteredAndExited],
             owner: self
         ))
+        synchronizeHoverWithMouse()
     }
 
-    override func mouseEntered(with event: NSEvent) { isHovered = true; needsDisplay = true }
-    override func mouseExited(with event: NSEvent) { isHovered = false; needsDisplay = true }
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        synchronizeHoverWithMouse()
+    }
+
+    override func viewDidHide() {
+        super.viewDidHide()
+        setHovered(false)
+    }
+
+    override func viewDidUnhide() {
+        super.viewDidUnhide()
+        synchronizeHoverWithMouse()
+    }
+
+    override func mouseEntered(with event: NSEvent) { setHovered(true) }
+    override func mouseExited(with event: NSEvent) { setHovered(false) }
+
+    private func synchronizeHoverWithMouse() {
+        guard let window, !isHiddenOrHasHiddenAncestor else {
+            setHovered(false)
+            return
+        }
+        // Layout and visibility changes can move the button without a mouse exit.
+        let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
+        setHovered(NSIntersectionRect(bounds, visibleRect).contains(point))
+    }
+
+    private func setHovered(_ hovered: Bool) {
+        guard isHovered != hovered else { return }
+        isHovered = hovered
+        needsDisplay = true
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         if isHovered || isHighlighted {
@@ -298,7 +330,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
                 ? min(28, max(24, ceil(titlePointSize + 8)))
                 : min(26, max(22, 24 * controlScale))
             guard showsCompactGroupTitle else {
-                return NSSize(width: max(34 * controlScale, height + 9 * controlScale), height: height)
+                return NSSize(width: 17 * controlScale, height: height)
             }
             let horizontalPadding = 8 * controlScale
             let title = min(titleWidth, 68 * controlScale)

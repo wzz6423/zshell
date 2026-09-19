@@ -17,7 +17,8 @@ source = (subprocess.check_output(["git", "show", f"{args.source_ref}:{SOURCE}"]
           if args.source_ref else (ROOT / SOURCE).read_text())
 
 # Only dependencies unrelated to hover/layout/painting are stubbed. Both
-# WorkspaceItemView and WorkspaceChromeButton compile unchanged in full.
+# WorkspaceItemView and WorkspaceChromeButton compile unchanged in full;
+# the fixture window supplies pointer/key state without moving the desktop mouse.
 fixture = r'''
 enum Theme { static let accent = NSColor.systemBlue }
 struct AppCommand { var title = "Command" }
@@ -45,6 +46,13 @@ final class FlippedView: NSView {
     override var isFlipped: Bool { true }
 }
 
+final class HoverWindow: NSWindow {
+    var pointerLocation = NSPoint(x: -100, y: -100)
+    var hasKeyStatus = true
+    override var mouseLocationOutsideOfEventStream: NSPoint { pointerLocation }
+    override var isKeyWindow: Bool { hasKeyStatus }
+}
+
 @main
 struct HoverRegression {
     static func main() {
@@ -56,9 +64,14 @@ struct HoverRegression {
             print("\(condition ? "PASS" : "FAIL") \(name)")
             if !condition { failures += 1 }
         }
+        let compactGroup = WorkspaceItemView(frame: NSRect(x: 0, y: 0, width: 34, height: 34))
+        compactGroup.apply(title: "Group", icon: nil, selected: false, group: true,
+                           collapsed: true, grouped: true, marker: .defaultColor,
+                           compactGroup: true, tabStrip: true)
+        check(compactGroup.preferredWidth == 17, "compact tab group is half its previous width")
         for tabStrip in [true, false] {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 400),
-                                  styleMask: [.borderless], backing: .buffered, defer: false)
+            let window = HoverWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 400),
+                                     styleMask: [.borderless], backing: .buffered, defer: false)
             window.isReleasedWhenClosed = false
             window.appearance = NSAppearance(named: .aqua)
             let root = FlippedView(frame: NSRect(x: 0, y: 0, width: 800, height: 400))
@@ -81,8 +94,11 @@ struct HoverRegression {
             let views: [NSView] = rows + buttons
             views.forEach { $0.updateTrackingAreas() }
 
+            func trackingArea(_ view: NSView) -> NSTrackingArea {
+                view.trackingAreas.first { ($0.owner as? NSView) === view }!
+            }
             func trackingRect(_ view: NSView) -> NSRect {
-                let area = view.trackingAreas.first { ($0.owner as? NSView) === view }!
+                let area = trackingArea(view)
                 return area.options.contains(.inVisibleRect) ? view.visibleRect : area.rect
             }
             func contains(_ view: NSView, _ location: NSPoint) -> Bool {
@@ -93,7 +109,11 @@ struct HoverRegression {
             }
             var entered = Set<ObjectIdentifier>()
             func move(_ point: NSPoint) {
+                window.pointerLocation = point
                 for view in views {
+                    let options = trackingArea(view).options
+                    guard options.contains(.activeAlways)
+                        || (options.contains(.activeInKeyWindow) && window.isKeyWindow) else { continue }
                     let id = ObjectIdentifier(view)
                     let inside = contains(view, point)
                     if inside != entered.contains(id) {
@@ -140,6 +160,61 @@ struct HoverRegression {
             if tabStrip {
                 check(alpha(rows[2], y: 3) == 0, "selected tab keeps the compact vertical inset")
             }
+
+            let outside = root.convert(NSPoint(x: 50, y: 150), to: nil)
+            move(location(buttons[0], x: 12, y: 12))
+            buttons[0].updateTrackingAreas()
+            check(alpha(buttons[0], x: 3, y: 12) > 0, "tracking refresh preserves hover under a stationary pointer")
+            let originalFrame = rows[0].frame
+            rows[0].setFrameOrigin(NSPoint(x: 40, y: 0))
+            buttons[0].updateTrackingAreas()
+            check(alpha(buttons[0], x: 3, y: 12) == 0, "moving a tab away clears close hover without an exit event")
+            rows[0].frame = originalFrame
+            buttons[0].updateTrackingAreas()
+            check(alpha(buttons[0], x: 3, y: 12) > 0, "moving the close button under a stationary pointer restores hover")
+            clip.scroll(to: NSPoint(x: 50, y: 0))
+            buttons[0].updateTrackingAreas()
+            check(alpha(buttons[0], x: 3, y: 12) == 0, "scrolling the close button away clears hover without an exit event")
+            clip.scroll(to: .zero)
+            buttons[0].updateTrackingAreas()
+            check(alpha(buttons[0], x: 3, y: 12) > 0, "scrolling the close button back under the pointer restores hover")
+            clip.setFrameSize(NSSize(width: 174, height: 34))
+            buttons[0].updateTrackingAreas()
+            check(alpha(buttons[0], x: 3, y: 12) == 0, "a clipped part of the close button cannot retain hover")
+            clip.setFrameSize(NSSize(width: 600, height: 34))
+            buttons[0].updateTrackingAreas()
+            move(outside)
+
+            move(location(buttons[0], x: 12, y: 12))
+            buttons[0].isHidden = true
+            window.pointerLocation = outside
+            buttons[0].isHidden = false
+            check(alpha(buttons[0], x: 3, y: 12) == 0, "showing a close button again does not restore stale hover")
+            move(outside)
+            move(location(buttons[0], x: 12, y: 12))
+            rows[0].isHidden = true
+            window.pointerLocation = outside
+            rows[0].isHidden = false
+            check(alpha(buttons[0], x: 3, y: 12) == 0, "showing a tab again does not restore its close button's stale hover")
+            move(outside)
+            move(location(buttons[0], x: 12, y: 12))
+            rows[0].isHidden = true
+            rows[0].isHidden = false
+            check(alpha(buttons[0], x: 3, y: 12) > 0, "showing a tab under a stationary pointer restores real close hover")
+            rows[0].removeFromSuperview()
+            window.pointerLocation = outside
+            document.addSubview(rows[0])
+            check(alpha(buttons[0], x: 3, y: 12) == 0, "reattaching a tab does not restore its close button's stale hover")
+            move(outside)
+
+            move(location(buttons[0], x: 12, y: 12))
+            window.hasKeyStatus = false
+            move(outside)
+            check(alpha(buttons[0], x: 3, y: 12) == 0, "leaving the close button after window deactivation clears hover")
+            window.hasKeyStatus = true
+            move(outside)
+            check(alpha(rows[2]) > 0, "hover lifecycle changes preserve the selected tab background")
+
             clip.scroll(to: NSPoint(x: 50, y: 0))
             views.forEach { $0.updateTrackingAreas() }
             check(!contains(rows[0], location(rows[0], x: 10, y: 17)), "clipped tab portion cannot hover")

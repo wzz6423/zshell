@@ -98,18 +98,18 @@ the current session's directory and falls back to your home directory.
 
 ### Tab groups
 
-Use **New Tab Group** beside the new-session button, or right-click a tab and
-choose **Move to Group → New Tab Group**. The current tab joins the new group,
-whose name can be edited immediately. New sessions opened from a grouped tab
-stay in that group; the group's **+** button creates a session directly inside it.
+Right-click a tab and choose **Move to Group → New Tab Group**. That tab joins
+the new group, shown as a colored arrow without a name. New sessions opened
+from a grouped tab stay in that group; right-click the group's arrow and choose
+**New Session in Group** to create a session directly inside it.
 
-Drag a tab onto a group header or another tab to move it. Its context menu also
-lists groups and **Remove from Group**. Click a group header to collapse or
-expand it, and double-click to rename it. Collapsing a group keeps the active
+Drag a tab onto a group's arrow or another tab to move it. Its context menu also
+lists groups and **Remove from Group**. Click the arrow to collapse or
+expand the group. Collapsing a group keeps the active
 terminal running and visible; switching to a hidden member expands the group.
 Removing a group keeps its tabs and sessions open. Pinning a grouped tab moves
-it to the fixed section outside the groups. Right-click a group header to choose
-**Set Color Marker…** or **Remove Color Marker**. Group names, colors, and
+it to the fixed section outside the groups. Right-click a group's arrow to choose
+**Set Color Marker…** or **Remove Color Marker**. Group colors and
 collapse state are restored after relaunching Zshell.
 
 A tab can also be dropped onto a sidebar project, or onto a sidebar group header
@@ -144,7 +144,8 @@ Zshell snapshots your layout as you work, so quitting and reopening gives you ba
 
 - every project, in order
 - every tab, including custom names, pinning, and color markers
-- sidebar groups and tab groups, including names, color markers, order, membership, and collapse state
+- sidebar groups, including names, color markers, order, membership, and collapse state
+- tab groups, including color markers, order, membership, and collapse state
 - pinned project directories and empty projects
 - the pane layout inside each tab
 - which sidebars were open and which right panel was selected

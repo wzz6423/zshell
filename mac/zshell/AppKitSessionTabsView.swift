@@ -577,25 +577,18 @@ final class SessionTabsNSView: NSView {
         row.apply(title: group.name, icon: nil,
                   selected: project.selectedTab?.tabGroupID == group.id,
                   group: true, collapsed: group.isCollapsed, grouped: true,
-                  marker: group.markerColor ?? .defaultColor, compactGroup: true,
-                  showsGroupTitle: AppSettings.shared.showTabGroupNames, scale: scale)
-        row.toolTip = group.name
+                  marker: group.markerColor ?? .defaultColor, compactGroup: true, scale: scale,
+                  tabStrip: true)
+        row.toolTip = String(localized: group.isCollapsed ? "Expand Group" : "Collapse Group")
         row.onSelect = { [weak project] in
             guard let current = project?.tabGroup(id: group.id) else { return }
             project?.setTabGroupCollapsed(!current.isCollapsed, id: group.id)
         }
-        row.onRename = { [weak self, weak row, weak project] in
-            guard let project, let current = project.tabGroup(id: group.id) else { return }
-            row?.beginRename(value: current.name) { [weak self, weak project] name in
-                project?.renameTabGroup(group.id, to: name)
-                self?.scheduleRefresh()
-            }
-        }
+        row.onRename = nil
         row.menuItems = { [weak self, weak row, weak project] in
             guard let project, let current = project.tabGroup(id: group.id) else { return [] }
             var items: [AppKitContextMenuItem] = [
                 .action(title: String(localized: "New Session in Group")) { project.newSession(inTabGroup: group.id) },
-                .action(title: String(localized: "Rename…")) { row?.onRename?() },
                 .action(title: String(localized: current.isCollapsed ? "Expand Group" : "Collapse Group")) {
                     project.setTabGroupCollapsed(!current.isCollapsed, id: group.id)
                 },
@@ -858,9 +851,8 @@ final class SessionTabsNSView: NSView {
         if tab.customName != nil { items.append(.action(title: String(localized: "Use Automatic Title")) { tab.customName = nil }) }
         var groupItems: [AppKitContextMenuItem] = [
             .action(title: String(localized: "New Tab Group")) { [weak self] in
-                let group = project.createTabGroup(containing: tab)
+                project.createTabGroup(containing: tab)
                 self?.refresh()
-                DispatchQueue.main.async { [weak self] in self?.rows[.group(group.id)]?.onRename?() }
             },
         ]
         if !project.tabGroups.isEmpty { groupItems.append(.separator) }
