@@ -139,6 +139,9 @@ extension ZshellTerminalView {
             // stealing mouse events from full-screen terminal programs.
             builder.withCustom("shell-integration", launchShellIntegration)
             builder.withCustom("cursor-click-to-move", "true")
+            // Zshell applies this after mouseUp so the app setting remains the
+            // single source of truth instead of Ghostty copying first.
+            builder.withCustom("copy-on-select", "false")
             // The previous backend retained 500 rows. Ghostty budgets bytes
             // instead, so use a small per-surface cap with enough room for at
             // least that many normally sized rows while keeping synchronous
