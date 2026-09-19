@@ -82,8 +82,12 @@ struct HoverRegression {
                        fillsGroupRow: true)
         var groupSelections = 0
         var groupRenames = 0
+        var committedGroupName: String?
         groupRow.onSelect = { groupSelections += 1 }
-        groupRow.onRename = { groupRenames += 1 }
+        groupRow.onRename = {
+            groupRenames += 1
+            groupRow.beginRename(value: "New Group") { committedGroupName = $0 }
+        }
         func groupMouse(_ type: NSEvent.EventType, clickCount: Int) -> NSEvent {
             let location = groupRow.convert(NSPoint(x: 20, y: 14), to: nil)
             return NSEvent.mouseEvent(with: type, location: location, modifierFlags: [],
@@ -94,8 +98,16 @@ struct HoverRegression {
         groupRow.mouseUp(with: groupMouse(.leftMouseUp, clickCount: 1))
         groupRow.mouseDown(with: groupMouse(.leftMouseDown, clickCount: 2))
         groupRow.mouseUp(with: groupMouse(.leftMouseUp, clickCount: 2))
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
+        let renameField = groupRow.subviews.compactMap { $0 as? NSTextField }.first { $0.isEditable }!
         check(groupSelections == 0, "double-clicking a group does not collapse it")
         check(groupRenames == 1, "double-clicking a group starts rename")
+        check(groupRow.isRenaming && !renameField.isHidden, "group rename shows its editable field")
+        renameField.stringValue = "Renamed Group"
+        let fieldEditor = groupWindow.fieldEditor(false, for: renameField) as! NSTextView
+        _ = groupRow.control(renameField, textView: fieldEditor,
+                             doCommandBy: #selector(NSResponder.insertNewline(_:)))
+        check(committedGroupName == "Renamed Group", "group rename commits the edited name")
 
         groupSelections = 0
         groupRow.mouseDown(with: groupMouse(.leftMouseDown, clickCount: 1))

@@ -697,7 +697,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         updateActionVisibility()
         layoutSubtreeIfNeeded()
         window?.makeFirstResponder(renameField)
-        renameField.selectText(nil)
+        renameField.currentEditor()?.selectAll(nil)
     }
 
     private func finishRename(apply: Bool, restoreFocus: Bool = false) {

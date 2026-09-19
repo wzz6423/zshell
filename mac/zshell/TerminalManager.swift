@@ -57,6 +57,7 @@ struct ClosedSessionRecord: Equatable {
 @MainActor
 final class TerminalManager: nonisolated ObservableObject {
     @Published var projects: [Project] = []
+    @Published private var preferredSidebarOrder: [ProjectSidebarItem] = []
     private var isRestoringProjects = false
     @Published var selectedProjectID: UUID? {
         willSet {
@@ -741,11 +742,35 @@ final class TerminalManager: nonisolated ObservableObject {
     /// Matches the displayed sidebar sequence, including group placement.
     /// Collapsed members stay available to the palette and next/previous
     /// navigation, while number shortcuts describe only the visible rows.
-    var sidebarOrderedProjects: [Project] {
+    var sidebarTopLevelItems: [ProjectSidebarItem] {
         let groups = ProjectGroupStore.shared.groups
         let groupIDs = Set(groups.map(\.id))
-        return projects.filter { $0.groupID.map { !groupIDs.contains($0) } ?? true }
-            + groups.flatMap { group in projects.filter { $0.groupID == group.id } }
+        let projectIDs = projects.compactMap { project in
+            project.groupID.map { groupIDs.contains($0) } == true ? nil : project.id
+        }
+        return ProjectSidebarOrder.normalized(
+            preferredSidebarOrder,
+            projectIDs: projectIDs,
+            groupIDs: groups.map(\.id)
+        )
+    }
+
+    func moveSidebarItem(_ item: ProjectSidebarItem, to target: ProjectSidebarItem?) {
+        let current = sidebarTopLevelItems
+        let moved = ProjectSidebarOrder.moving(item, to: target, in: current)
+        guard moved != current else { return }
+        preferredSidebarOrder = moved
+    }
+
+    var sidebarOrderedProjects: [Project] {
+        sidebarTopLevelItems.flatMap { item -> [Project] in
+            switch item {
+            case .project(let id):
+                return projects.first(where: { $0.id == id }).map { [$0] } ?? []
+            case .group(let id):
+                return projects.filter { $0.groupID == id }
+            }
+        }
     }
 
     var visibleSidebarProjects: [Project] {
@@ -1624,6 +1649,15 @@ final class TerminalManager: nonisolated ObservableObject {
                 )
             },
             selectedProjectIndex: projects.firstIndex { $0.id == selectedProjectID },
+            sidebarOrder: sidebarTopLevelItems.compactMap { item in
+                switch item {
+                case .project(let id):
+                    return projects.firstIndex(where: { $0.id == id })
+                        .map(SessionSnapshot.SidebarItemSnapshot.project)
+                case .group(let id):
+                    return .group(id)
+                }
+            },
             isLeftSidebarVisible: isLeftSidebarVisible,
             isRightPanelVisible: isPanelVisible,
             rightPanelTab: panelTab
@@ -1747,6 +1781,14 @@ final class TerminalManager: nonisolated ObservableObject {
             project.resetRecency()
             projects.append(project)
         }
+        preferredSidebarOrder = snapshot.sidebarOrder?.compactMap { item in
+            switch item {
+            case .project(let index):
+                return projects.indices.contains(index) ? .project(projects[index].id) : nil
+            case .group(let id):
+                return .group(id)
+            }
+        } ?? []
         guard !projects.isEmpty else { return false }
         if let index = snapshot.selectedProjectIndex, projects.indices.contains(index) {
             selectedProjectID = projects[index].id

@@ -80,6 +80,45 @@ struct ProjectGroup: Identifiable, Codable, Equatable {
     }
 }
 
+/// A top-level sidebar row. Projects inside a group are deliberately absent:
+/// they always render immediately below their owning group.
+enum ProjectSidebarItem: Hashable {
+    case project(UUID)
+    case group(UUID)
+}
+
+enum ProjectSidebarOrder {
+    /// Keeps a saved order where possible, then appends rows introduced after
+    /// that order was saved. An empty saved order preserves the legacy layout:
+    /// ungrouped projects first, followed by groups.
+    static func normalized(
+        _ saved: [ProjectSidebarItem],
+        projectIDs: [UUID],
+        groupIDs: [UUID]
+    ) -> [ProjectSidebarItem] {
+        let fallback = projectIDs.map(ProjectSidebarItem.project)
+            + groupIDs.map(ProjectSidebarItem.group)
+        let available = Set(fallback)
+        var seen = Set<ProjectSidebarItem>()
+        var result = saved.filter { available.contains($0) && seen.insert($0).inserted }
+        result.append(contentsOf: fallback.filter { seen.insert($0).inserted })
+        return result
+    }
+
+    static func moving(
+        _ item: ProjectSidebarItem,
+        to target: ProjectSidebarItem?,
+        in order: [ProjectSidebarItem]
+    ) -> [ProjectSidebarItem] {
+        guard let sourceIndex = order.firstIndex(of: item), target != item else { return order }
+        let targetIndex = target.flatMap(order.firstIndex(of:)) ?? order.endIndex
+        var result = order
+        result.remove(at: sourceIndex)
+        result.insert(item, at: min(targetIndex, result.endIndex))
+        return result
+    }
+}
+
 /// The saved project groups, persisted as JSON under the same Debug/Release-
 /// separated directory as the SSH project store. Group membership lives on
 /// each `Project` (`groupID`) and survives through the session snapshot.

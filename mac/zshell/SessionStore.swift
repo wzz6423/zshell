@@ -12,6 +12,11 @@ import Foundation
 /// (see `historyKey` and `TerminalHistoryStore`); file and diff panes reload
 /// from disk.
 struct SessionSnapshot: Codable {
+    enum SidebarItemSnapshot: Codable, Equatable {
+        case project(Int)
+        case group(UUID)
+    }
+
     struct ProjectSnapshot: Codable {
         /// A single pane's content — the terminal, file, browser, or diff it
         /// holds. The original case shapes stay unchanged, so old saved tabs
@@ -329,6 +334,9 @@ struct SessionSnapshot: Codable {
 
     var projects: [ProjectSnapshot]
     var selectedProjectIndex: Int?
+    /// Top-level project/group rows in sidebar order. Project indexes refer to
+    /// `projects`; nil preserves the pre-mixed-order layout during migration.
+    var sidebarOrder: [SidebarItemSnapshot]? = nil
     /// Sidebar layout. Optional so snapshots written before these were
     /// captured still decode; nil leaves the window at its defaults.
     var isLeftSidebarVisible: Bool?
