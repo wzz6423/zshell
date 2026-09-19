@@ -69,6 +69,42 @@ struct HoverRegression {
                            collapsed: true, grouped: true, marker: .defaultColor,
                            compactGroup: true, tabStrip: true)
         check(compactGroup.preferredWidth == 17, "compact tab group is half its previous width")
+
+        let groupWindow = HoverWindow(contentRect: NSRect(x: 0, y: 0, width: 240, height: 80),
+                                      styleMask: [.borderless], backing: .buffered, defer: false)
+        groupWindow.isReleasedWhenClosed = false
+        let groupRoot = FlippedView(frame: NSRect(x: 0, y: 0, width: 240, height: 80))
+        groupWindow.contentView = groupRoot
+        let groupRow = WorkspaceItemView(frame: NSRect(x: 8, y: 8, width: 224, height: 28))
+        groupRoot.addSubview(groupRow)
+        groupRow.apply(title: "New Group", icon: nil, selected: false, group: true,
+                       collapsed: false, marker: .defaultColor, sidebar: true,
+                       fillsGroupRow: true)
+        var groupSelections = 0
+        var groupRenames = 0
+        groupRow.onSelect = { groupSelections += 1 }
+        groupRow.onRename = { groupRenames += 1 }
+        func groupMouse(_ type: NSEvent.EventType, clickCount: Int) -> NSEvent {
+            let location = groupRow.convert(NSPoint(x: 20, y: 14), to: nil)
+            return NSEvent.mouseEvent(with: type, location: location, modifierFlags: [],
+                timestamp: 0, windowNumber: groupWindow.windowNumber, context: nil,
+                eventNumber: 0, clickCount: clickCount, pressure: 1)!
+        }
+        groupRow.mouseDown(with: groupMouse(.leftMouseDown, clickCount: 1))
+        groupRow.mouseUp(with: groupMouse(.leftMouseUp, clickCount: 1))
+        groupRow.mouseDown(with: groupMouse(.leftMouseDown, clickCount: 2))
+        groupRow.mouseUp(with: groupMouse(.leftMouseUp, clickCount: 2))
+        check(groupSelections == 0, "double-clicking a group does not collapse it")
+        check(groupRenames == 1, "double-clicking a group starts rename")
+
+        groupSelections = 0
+        groupRow.mouseDown(with: groupMouse(.leftMouseDown, clickCount: 1))
+        groupRow.mouseUp(with: groupMouse(.leftMouseUp, clickCount: 1))
+        check(groupSelections == 0, "group selection waits for the double-click interval")
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: NSEvent.doubleClickInterval + 0.05))
+        check(groupSelections == 1, "single-clicking a group still toggles it")
+        groupWindow.close()
+
         for tabStrip in [true, false] {
             let window = HoverWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 400),
                                      styleMask: [.borderless], backing: .buffered, defer: false)

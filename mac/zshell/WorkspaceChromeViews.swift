@@ -167,6 +167,8 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     private var mouseOrigin: NSPoint?
     private var hasDragged = false
     private var dragCancelMonitor: Any?
+    private var pendingGroupSelection: DispatchWorkItem?
+    private var pendingGroupSelectionID: UUID?
     private var isHovered = false
     private var isSelected = false
     private var isGroup = false
@@ -537,6 +539,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         mouseOrigin = event.locationInWindow
         hasDragged = false
         if event.clickCount == 2 {
+            cancelPendingGroupSelection()
             mouseOrigin = nil
             onRename?()
         }
@@ -546,6 +549,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         guard !isRenaming, let mouseOrigin else { return }
         if !hasDragged {
             guard hypot(event.locationInWindow.x - mouseOrigin.x, event.locationInWindow.y - mouseOrigin.y) >= 4 else { return }
+            cancelPendingGroupSelection()
             hasDragged = true
             dragCancelMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
                 let input = WorkspaceChromeEvent(event)
@@ -567,7 +571,26 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         removeDragMonitor()
         if hasDragged { onDragEnded?(event) }
         else if bounds.contains(convert(event.locationInWindow, from: nil)) {
-            onSelect?()
+            if isGroup && onRename != nil && event.clickCount == 1 {
+                let selectionID = UUID()
+                pendingGroupSelectionID = selectionID
+                let selection = DispatchWorkItem { [weak self] in
+                    guard let self,
+                          self.pendingGroupSelectionID == selectionID,
+                          self.window != nil,
+                          !self.isRenaming else { return }
+                    self.pendingGroupSelection = nil
+                    self.pendingGroupSelectionID = nil
+                    self.onSelect?()
+                }
+                pendingGroupSelection = selection
+                DispatchQueue.main.asyncAfter(
+                    deadline: .now() + NSEvent.doubleClickInterval,
+                    execute: selection
+                )
+            } else {
+                onSelect?()
+            }
         }
         hasDragged = false
         NSCursor.arrow.set()
@@ -579,12 +602,14 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     }
 
     override func rightMouseDown(with event: NSEvent) {
+        cancelPendingGroupSelection()
         window?.makeFirstResponder(self)
         guard let items = menuItems?(), !items.isEmpty else { return }
         menuPresenter.popUp(items: items, at: convert(event.locationInWindow, from: nil), in: self)
     }
 
     override func accessibilityPerformShowMenu() -> Bool {
+        cancelPendingGroupSelection()
         window?.makeFirstResponder(self)
         guard let items = menuItems?(), !items.isEmpty else { return false }
         menuPresenter.popUp(items: items, at: NSPoint(x: bounds.midX, y: bounds.midY), in: self)
@@ -592,6 +617,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     }
 
     override func keyDown(with event: NSEvent) {
+        cancelPendingGroupSelection()
         if event.keyCode == 109, event.modifierFlags.contains(.shift) {
             _ = accessibilityPerformShowMenu()
             return
@@ -607,12 +633,25 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     }
 
     override func accessibilityPerformPress() -> Bool {
+        cancelPendingGroupSelection()
         window?.makeFirstResponder(self)
         onSelect?()
         return onSelect != nil
     }
 
+    private func cancelPendingGroupSelection() {
+        pendingGroupSelection?.cancel()
+        pendingGroupSelection = nil
+        pendingGroupSelectionID = nil
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil { cancelPendingGroupSelection() }
+    }
+
     private func cancelMouseDrag() {
+        cancelPendingGroupSelection()
         mouseOrigin = nil
         hasDragged = false
         removeDragMonitor()
@@ -626,10 +665,12 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     }
 
     deinit {
+        pendingGroupSelection?.cancel()
         if let dragCancelMonitor { NSEvent.removeMonitor(dragCancelMonitor) }
     }
 
     func beginRename(value: String, commit: @escaping (String) -> Void) {
+        cancelPendingGroupSelection()
         guard !isRenaming else { return }
         let requestID = UUID()
         renameRequestID = requestID
