@@ -93,6 +93,7 @@ final class MainHeaderNSView: NSView {
         guard presentsWindowOverlay,
               let window,
               let contentView = window.contentView,
+              let container = contentView.superview,
               overlayHeader == nil
         else { return }
 
@@ -102,8 +103,9 @@ final class MainHeaderNSView: NSView {
             presentsWindowOverlay: false
         )
         header.windowDrag.dragWindow = window
-        // A view overlay cannot be left behind on another Space or display.
-        contentView.addSubview(header, positioned: .above, relativeTo: nil)
+        // NSHostingView skips manually added children during hit testing. Keep
+        // the native header beside it, below the system title-bar controls.
+        container.addSubview(header, positioned: .above, relativeTo: contentView)
         overlayHeader = header
 
         let names: [Notification.Name] = [
@@ -131,13 +133,14 @@ final class MainHeaderNSView: NSView {
               let window,
               let header = overlayHeader,
               let host = superview,
-              let contentView = window.contentView
+              let contentView = window.contentView,
+              let container = contentView.superview
         else { return }
 
-        let frame = host.convert(host.bounds, to: contentView)
+        let frame = host.convert(host.bounds, to: container)
         guard frame.width > 0, frame.height > 0 else { return }
-        if header.superview !== contentView {
-            contentView.addSubview(header, positioned: .above, relativeTo: nil)
+        if header.superview !== container {
+            container.addSubview(header, positioned: .above, relativeTo: contentView)
         }
         header.frame = frame
     }
@@ -240,14 +243,6 @@ final class MainHeaderNSView: NSView {
 }
 
 private final class SessionStripScrollView: NSScrollView {
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        guard let documentView else { return super.hitTest(point) }
-        let clipPoint = contentView.convert(point, from: self)
-        guard contentView.bounds.contains(clipPoint) else { return super.hitTest(point) }
-        let documentPoint = documentView.convert(clipPoint, from: contentView)
-        return documentView.hitTest(documentPoint) ?? super.hitTest(point)
-    }
-
     override func scrollWheel(with event: NSEvent) {
         let dominantDelta = abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY)
             ? event.scrollingDeltaX : event.scrollingDeltaY
@@ -276,6 +271,7 @@ private final class SessionStripOverlayScroller: NSView {
     private var position: CGFloat = 0
     private var proportion: CGFloat = 1
     private var dragOffset: CGFloat = 0
+    private var showsThumb = false
 
     override var isFlipped: Bool { true }
 
@@ -283,7 +279,10 @@ private final class SessionStripOverlayScroller: NSView {
         let hasOverflow = contentWidth > viewportWidth + 0.5
         if !isDragging { self.position = min(max(position, 0), 1) }
         proportion = min(max(viewportWidth / max(contentWidth, 1), 0), 1)
-        isHidden = !visible || !hasOverflow
+        showsThumb = visible
+        // Keep the grab area alive even if hover tracking has not caught up
+        // with the mouse-down event; only the painted thumb fades out.
+        isHidden = !hasOverflow
         needsDisplay = true
     }
 
@@ -299,13 +298,18 @@ private final class SessionStripOverlayScroller: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
+        guard showsThumb || isDragging else { return }
         let thumb = thumbRect
         NSColor.labelColor.withAlphaComponent(isDragging ? 0.35 : 0.2).setFill()
         NSBezierPath(roundedRect: thumb, xRadius: 1, yRadius: 1).fill()
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        guard !isHidden, trackRect.insetBy(dx: 0, dy: -5).contains(point) else { return nil }
+        let localPoint = convert(point, from: superview)
+        guard !isHidden,
+              bounds.contains(localPoint),
+              trackRect.insetBy(dx: 0, dy: -5).contains(localPoint)
+        else { return nil }
         return self
     }
 
@@ -424,6 +428,8 @@ final class SessionTabsNSView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         scrollView.drawsBackground = false
+        clipsToBounds = true
+        scrollView.automaticallyAdjustsContentInsets = false
         scrollView.hasHorizontalScroller = false
         scrollView.hasVerticalScroller = false
         scrollView.horizontalScrollElasticity = .none
@@ -687,6 +693,7 @@ final class SessionTabsNSView: NSView {
     override func scrollWheel(with event: NSEvent) {
         isPointerInsideStrip = true
         scrollView.scrollWheel(with: event)
+        updateOverlayScroller()
     }
 
     private func installScrollWheelMonitor() {
@@ -706,10 +713,10 @@ final class SessionTabsNSView: NSView {
     private func handlesScrollWheel(_ event: NSEvent) -> Bool {
         guard let window,
               event.window === window,
-              let contentView = window.contentView
+              let rootView = window.contentView?.superview
         else { return false }
-        let point = contentView.convert(event.locationInWindow, from: nil)
-        guard let hitView = contentView.hitTest(point) else { return false }
+        let point = rootView.superview?.convert(event.locationInWindow, from: nil) ?? event.locationInWindow
+        guard let hitView = rootView.hitTest(point) else { return false }
         return hitView === scrollView || hitView.isDescendant(of: scrollView)
             || hitView === overlayScroller || hitView.isDescendant(of: overlayScroller)
     }
