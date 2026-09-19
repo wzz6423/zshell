@@ -43,9 +43,10 @@ final class WorkspaceChromeButton: NSButton {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
+        // Unclipped views can report a visibleRect larger than their bounds.
         addTrackingArea(NSTrackingArea(
-            rect: .zero,
-            options: [.activeInKeyWindow, .mouseEnteredAndExited, .inVisibleRect],
+            rect: NSIntersectionRect(bounds, visibleRect),
+            options: [.activeInKeyWindow, .mouseEnteredAndExited],
             owner: self
         ))
     }
@@ -478,8 +479,8 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
         let activeOption: NSTrackingArea.Options = usesTabStripHoverTracking ? .activeAlways : .activeInKeyWindow
-        addTrackingArea(NSTrackingArea(rect: .zero,
-            options: [activeOption, .mouseEnteredAndExited, .inVisibleRect], owner: self))
+        addTrackingArea(NSTrackingArea(rect: NSIntersectionRect(bounds, visibleRect),
+            options: [activeOption, .mouseEnteredAndExited], owner: self))
     }
 
     override func mouseEntered(with event: NSEvent) { isHovered = true; updateActionVisibility(); needsDisplay = true }

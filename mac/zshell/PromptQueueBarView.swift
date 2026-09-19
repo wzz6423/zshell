@@ -205,13 +205,17 @@ final class PromptQueueBarView: NSView {
         contentStack.addArrangedSubview(listScroll)
 
         addSubview(contentStack)
+        let contentTrailing = contentStack.trailingAnchor.constraint(
+            equalTo: trailingAnchor, constant: -Metrics.horizontalPadding
+        )
+        // Let the clipped bar retain its controls' minimum width without
+        // imposing that width on the terminal's split pane.
+        contentTrailing.priority = .defaultLow
         NSLayoutConstraint.activate([
             contentStack.leadingAnchor.constraint(
                 equalTo: leadingAnchor, constant: Metrics.horizontalPadding
             ),
-            contentStack.trailingAnchor.constraint(
-                equalTo: trailingAnchor, constant: -Metrics.horizontalPadding
-            ),
+            contentTrailing,
             contentStack.topAnchor.constraint(
                 equalTo: topAnchor, constant: Metrics.padding
             ),
