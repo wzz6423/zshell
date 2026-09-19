@@ -170,6 +170,7 @@ final class SSHProjectController: NSObject {
     private static let rowHeight: CGFloat = 34
     private static let headerHeight: CGFloat = 26
     private static let fallbackFormContentHeight: CGFloat = 240
+    private static let formFieldCornerRadius: CGFloat = 6
 
     private weak var manager: TerminalManager?
     private var window: NSWindow?
@@ -408,6 +409,10 @@ final class SSHProjectController: NSObject {
         groupField.isEditable = true
         groupField.completes = true
         groupField.numberOfVisibleItems = 6
+        groupField.bezelStyle = .roundedBezel
+        groupField.controlSize = .regular
+        groupField.isButtonBordered = true
+        groupField.delegate = self
         hostField.placeholderString = String(
             localized: "example.com",
             comment: "Placeholder of the SSH host field."
@@ -977,6 +982,49 @@ final class SSHProjectController: NSObject {
             if editingEntryID == entry.id { clearForm() }
             SSHProjectStore.shared.remove(entry)
         }
+    }
+}
+
+extension SSHProjectController: NSComboBoxDelegate {
+    func comboBoxWillPopUp(_ notification: Notification) {
+        guard let combo = notification.object as? NSComboBox, combo === groupField else { return }
+        Task { @MainActor [weak self, weak combo] in
+            guard let self, let combo else { return }
+            alignGroupComboPopup(combo)
+        }
+    }
+
+    private func alignGroupComboPopup(_ combo: NSComboBox) {
+        guard let hostWindow = combo.window else { return }
+        let fieldFrame = hostWindow.convertToScreen(combo.convert(combo.bounds, to: nil))
+        let popup = NSApp.windows
+            .filter { window in
+                window.isVisible
+                    && window !== hostWindow
+                    && window.className.contains("ComboBox")
+                    && window.frame.width >= fieldFrame.width * 0.5
+            }
+            .min { lhs, rhs in
+                abs(lhs.frame.midX - fieldFrame.midX) < abs(rhs.frame.midX - fieldFrame.midX)
+            }
+        guard let popup else { return }
+
+        var popupFrame = popup.frame
+        popupFrame.origin.x = fieldFrame.minX
+        popupFrame.size.width = fieldFrame.width
+        let belowOriginY = fieldFrame.minY - popupFrame.height
+        if let screen = hostWindow.screen, belowOriginY >= screen.visibleFrame.minY {
+            popupFrame.origin.y = belowOriginY
+        } else {
+            popupFrame.origin.y = fieldFrame.maxY
+        }
+        popup.setFrame(popupFrame, display: false)
+        popup.backgroundColor = .textBackgroundColor
+        popup.isOpaque = false
+        popup.contentView?.wantsLayer = true
+        popup.contentView?.layer?.cornerRadius = Self.formFieldCornerRadius
+        popup.contentView?.layer?.cornerCurve = .continuous
+        popup.contentView?.layer?.masksToBounds = true
     }
 }
 
