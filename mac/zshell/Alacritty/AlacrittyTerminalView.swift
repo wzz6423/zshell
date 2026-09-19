@@ -1605,7 +1605,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         selectionAnchor = nil
         selectionWasDragged = false
         inputSelectionAnchor = nil
-        if dragged {
+        if dragged, AppSettings.shared.copyOnSelect {
             copy(nil)
         }
     }

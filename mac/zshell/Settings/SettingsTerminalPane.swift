@@ -22,6 +22,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     private let terminalBellSwitch = SettingsSwitch { AppSettings.shared.terminalBell = $0 }
     private let shiftEnterNewlineSwitch = SettingsSwitch { AppSettings.shared.shiftEnterNewline = $0 }
     private let restoreHistorySwitch = SettingsSwitch { AppSettings.shared.restoreTerminalHistory = $0 }
+    private let copyOnSelectSwitch = SettingsSwitch { AppSettings.shared.copyOnSelect = $0 }
     private let terminalBackgroundBlurSwitch = SettingsSwitch {
         AppSettings.shared.terminalBackgroundBlur = $0
     }
@@ -152,6 +153,11 @@ final class SettingsTerminalPane: SettingsPaneViewController {
                 description: String(localized: "Reopened terminals show their previous scrollback above a fresh shell"),
                 control: restoreHistorySwitch
             ),
+            SettingsRow(
+                title: String(localized: "Copy on select"),
+                description: String(localized: "Copies selected terminal text to the clipboard when you finish dragging"),
+                control: copyOnSelectSwitch
+            ),
         ]))
 
         groups.append(SettingsGroup(header: String(localized: "Command Notifications"), rows: [
@@ -188,6 +194,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         terminalBellSwitch.isOn = settings.terminalBell
         shiftEnterNewlineSwitch.isOn = settings.shiftEnterNewline
         restoreHistorySwitch.isOn = settings.restoreTerminalHistory
+        copyOnSelectSwitch.isOn = settings.copyOnSelect
         terminalBackgroundOpacityRow.setValue(settings.terminalBackgroundOpacity)
         terminalBackgroundBlurSwitch.isOn = settings.terminalBackgroundBlur
         terminalBackgroundBlurSwitch.isEnabled = settings.terminalBackgroundOpacity < 1

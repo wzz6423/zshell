@@ -18,6 +18,7 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Make copying terminal selections configurable from Terminal settings.
 - Move a tab to another project — including a project in another Zshell window —
   from the tab's context menu. The tab keeps its running shells, split layout,
   and focus while it moves.

@@ -352,6 +352,12 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    /// Copy terminal text to the clipboard after a pointer selection ends.
+    /// Enabled by default to preserve Zshell's existing selection behavior.
+    @Published var copyOnSelect: Bool {
+        didSet { save() }
+    }
+
     /// Alpha of each main workspace window. The terminal's default background
     /// is clear only while the shared behind-window material is active.
     @Published var terminalBackgroundOpacity: Double {
@@ -516,6 +522,7 @@ final class AppSettings: nonisolated ObservableObject {
             toml["editor.external-editor"]?.string
         )
         restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? false
+        copyOnSelect = toml["terminal.copy-on-select"]?.bool ?? true
         let terminalBackgroundOpacity = toml["terminal.background-opacity"]?.double
             ?? Self.defaultTerminalBackgroundOpacity
         self.terminalBackgroundOpacity = Self.terminalBackgroundOpacityRange.contains(
@@ -644,6 +651,7 @@ final class AppSettings: nonisolated ObservableObject {
             && wrapLines
             && externalEditor == .systemDefault
             && !restoreTerminalHistory
+            && copyOnSelect
             && terminalBackgroundOpacity == Self.defaultTerminalBackgroundOpacity
             && terminalBackgroundBlur == Self.defaultTerminalBackgroundBlur
             && notifyFinishSeconds == 0
@@ -676,6 +684,7 @@ final class AppSettings: nonisolated ObservableObject {
         wrapLines = true
         externalEditor = .systemDefault
         restoreTerminalHistory = false
+        copyOnSelect = true
         terminalBackgroundOpacity = Self.defaultTerminalBackgroundOpacity
         terminalBackgroundBlur = Self.defaultTerminalBackgroundBlur
         notifyFinishSeconds = 0
@@ -806,6 +815,7 @@ final class AppSettings: nonisolated ObservableObject {
         macosOptionAsAlt = toml["terminal.macos-option-as-alt"]?.bool ?? false
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
         restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? false
+        copyOnSelect = toml["terminal.copy-on-select"]?.bool ?? true
         let quickTerminalSize = toml["quick-terminal.size"]?.double
             ?? Self.defaultQuickTerminalSize
         self.quickTerminalSize = Self.quickTerminalSizeRange.contains(quickTerminalSize)
@@ -954,6 +964,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if restoreTerminalHistory {
             lines.append("terminal.restore-history = true")
+        }
+        if !copyOnSelect {
+            lines.append("terminal.copy-on-select = false")
         }
         if terminalBackgroundOpacity != Self.defaultTerminalBackgroundOpacity {
             lines.append(
