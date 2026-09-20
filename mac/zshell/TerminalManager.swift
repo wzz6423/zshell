@@ -389,6 +389,7 @@ final class TerminalManager: nonisolated ObservableObject {
         project.groupID = group.id
         project.newSession(directory: group.sessionDirectory)
         insert(project)
+        persistSidebarGrouping()
         return project
     }
 
@@ -398,11 +399,13 @@ final class TerminalManager: nonisolated ObservableObject {
     func moveProject(_ project: Project, to group: ProjectGroup?) {
         guard projects.contains(where: { $0 === project }),
               group == nil || projectGroup(id: group?.id) != nil else { return }
+        let previousGroupID = project.groupID
         project.groupID = group?.id
         if var group, group.isCollapsed {
             group.isCollapsed = false
             ProjectGroupStore.shared.update(group)
         }
+        if previousGroupID != project.groupID { persistSidebarGrouping() }
     }
 
     /// Deletes a global group without closing its projects. Groups are shared
@@ -416,6 +419,7 @@ final class TerminalManager: nonisolated ObservableObject {
             }
         }
         ProjectGroupStore.shared.remove(group)
+        persistSidebarGrouping()
     }
 
     func promptForSSHProject() {
@@ -760,6 +764,7 @@ final class TerminalManager: nonisolated ObservableObject {
         let moved = ProjectSidebarOrder.moving(item, to: target, in: current)
         guard moved != current else { return }
         preferredSidebarOrder = moved
+        persistSidebarGrouping()
     }
 
     var sidebarOrderedProjects: [Project] {
@@ -1653,6 +1658,10 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     // MARK: - Persistence
+
+    private func persistSidebarGrouping() {
+        Self.saveAll(captureTerminalHistory: false)
+    }
 
     private static func saveAll(captureTerminalHistory: Bool) {
         guard !registry.isEmpty else { return }
