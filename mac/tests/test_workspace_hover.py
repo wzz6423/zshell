@@ -77,13 +77,12 @@ struct HoverRegression {
             NSGraphicsContext.restoreGraphicsState()
             return bitmap.colorAt(x: x, y: y)!.usingColorSpace(.deviceRGB)!
         }
-        func hasTintedFillWithoutSolidBorder(_ view: NSView, fillX: Int, borderX: Int, y: Int) -> Bool {
+        func hasTintedFillAndSolidBorder(_ view: NSView, fillX: Int, borderX: Int, y: Int) -> Bool {
             let fill = renderedColor(view, x: fillX, y: y)
             let border = renderedColor(view, x: borderX, y: y)
             return fill.alphaComponent > 0.99
-                && (border.alphaComponent < 0.99
-                    || border.redComponent >= fill.redComponent - 0.2
-                    || border.greenComponent >= fill.greenComponent - 0.2)
+                && fill.redComponent > border.redComponent + 0.45
+                && fill.greenComponent > border.greenComponent + 0.2
         }
         let compactGroup = WorkspaceItemView(frame: NSRect(x: 0, y: 0, width: 34, height: 34))
         compactGroup.appearance = NSAppearance(named: .aqua)
@@ -92,8 +91,8 @@ struct HoverRegression {
                            compactGroup: true, tabStrip: true)
         compactGroup.layoutSubtreeIfNeeded()
         check(compactGroup.preferredWidth == 17, "compact tab group is half its previous width")
-        check(hasTintedFillWithoutSolidBorder(compactGroup, fillX: 17, borderX: 8, y: 17),
-              "compact tab group keeps its fill without an idle marker-color border")
+        check(hasTintedFillAndSolidBorder(compactGroup, fillX: 17, borderX: 8, y: 17),
+              "compact tab group uses a pale fill with a persistent marker-color border")
 
         let groupWindow = HoverWindow(contentRect: NSRect(x: 320, y: 240, width: 240, height: 80),
                                       styleMask: [.borderless], backing: .buffered, defer: false)
@@ -107,8 +106,8 @@ struct HoverRegression {
                        collapsed: false, marker: .defaultColor, sidebar: true,
                        fillsGroupRow: true)
         groupRow.layoutSubtreeIfNeeded()
-        check(hasTintedFillWithoutSolidBorder(groupRow, fillX: 180, borderX: 0, y: 14),
-              "sidebar group keeps its fill without an idle marker-color border")
+        check(hasTintedFillAndSolidBorder(groupRow, fillX: 180, borderX: 0, y: 14),
+              "sidebar group uses a pale fill with a persistent marker-color border")
         var groupSelections = 0
         var groupRenames = 0
         var committedGroupName: String?

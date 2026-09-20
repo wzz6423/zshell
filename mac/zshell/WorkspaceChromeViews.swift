@@ -477,7 +477,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
                 : NSColor.labelColor.withAlphaComponent(isSelected ? 0.09 : (isHovered ? 0.05 : 0.025))).setFill()
             shape.fill()
         }
-        if usesGroupControlBackground, let groupControlColor, isDropTarget || isHovered {
+        if usesGroupControlBackground, let groupControlColor {
             (isDropTarget ? Theme.accent : groupControlColor).setStroke()
             shape.lineWidth = 1
             shape.stroke()
