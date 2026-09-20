@@ -86,16 +86,10 @@ private final class ApplicationIconOptionCard: SettingsCardButton {
         let image: NSImage?
         switch applicationIcon {
         case .defaultIcon:
-            // Must mirror ASSETCATALOG_COMPILER_APPICON_NAME, which differs
-            // per configuration to keep the Debug identity apart.
-            #if DEBUG
-            image = bundledImage(named: "AppIconDebug")
-            #else
-            image = bundledImage(named: "AppIcon")
-            #endif
+            // Use the system-rendered icon, including its Dock padding and
+            // the separate identity compiled into Debug builds.
+            image = NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath)
         case .light, .dark:
-            // Runtime overrides normalize the alternate icon to the compiled
-            // icon's point size before assigning it to NSApplication.
             image = applicationIcon.bundledImage()
         }
         guard let image else {
@@ -103,18 +97,6 @@ private final class ApplicationIconOptionCard: SettingsCardButton {
                 ?? NSImage(systemSymbolName: "questionmark.app", accessibilityDescription: nil)!
         }
         return image
-    }
-
-    private static func bundledImage(named resource: String) -> NSImage? {
-        let urls = [
-            Bundle.main.url(forResource: resource, withExtension: "icns"),
-            Bundle.main.url(
-                forResource: resource,
-                withExtension: "icns",
-                subdirectory: "Icons"
-            ),
-        ]
-        return urls.compactMap { $0 }.compactMap(NSImage.init(contentsOf:)).first
     }
 
     override func didChangeSelection() {

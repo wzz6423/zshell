@@ -124,10 +124,20 @@ enum ApplicationIcon: String, CaseIterable, Identifiable {
         guard let resourceName else { return nil }
         guard let image = Self.image(named: resourceName) else { return nil }
         if let compiledIconSize = Self.compiledIconSize {
-            // Runtime overrides use an NSImage's point size to size the Dock tile.
             image.size = compiledIconSize
         }
-        return image
+        guard #available(macOS 26.0, *) else { return image }
+
+        // macOS insets bundled app icons into an 824-point shape on a
+        // 1024-point canvas. Runtime overrides bypass that normalization.
+        return NSImage(size: image.size, flipped: false) { rect in
+            let content = rect.insetBy(
+                dx: rect.width * 100 / 1024,
+                dy: rect.height * 100 / 1024
+            )
+            image.draw(in: content, from: .zero, operation: .sourceOver, fraction: 1)
+            return true
+        }
     }
 
     private static var compiledIconSize: NSSize? {
@@ -358,8 +368,8 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
-    /// Alpha of each main workspace window. The terminal's default background
-    /// is clear only while the shared behind-window material is active.
+    /// Alpha of each main workspace window. With blur, the same value blends
+    /// the terminal's theme background over the native behind-window material.
     @Published var terminalBackgroundOpacity: Double {
         didSet { save() }
     }
