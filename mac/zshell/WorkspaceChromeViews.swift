@@ -527,10 +527,27 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         let activeOption: NSTrackingArea.Options = usesTabStripHoverTracking ? .activeAlways : .activeInKeyWindow
         addTrackingArea(NSTrackingArea(rect: NSIntersectionRect(bounds, visibleRect),
             options: [activeOption, .mouseEnteredAndExited], owner: self))
+        synchronizeHoverWithMouse()
     }
 
-    override func mouseEntered(with event: NSEvent) { isHovered = true; updateActionVisibility(); needsDisplay = true }
-    override func mouseExited(with event: NSEvent) { isHovered = false; updateActionVisibility(); needsDisplay = true }
+    override func mouseEntered(with event: NSEvent) { setHovered(true) }
+    override func mouseExited(with event: NSEvent) { setHovered(false) }
+
+    private func synchronizeHoverWithMouse() {
+        guard let window, !isHiddenOrHasHiddenAncestor else {
+            setHovered(false)
+            return
+        }
+        let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
+        setHovered(NSIntersectionRect(bounds, visibleRect).contains(point))
+    }
+
+    private func setHovered(_ hovered: Bool) {
+        guard isHovered != hovered else { return }
+        isHovered = hovered
+        updateActionVisibility()
+        needsDisplay = true
+    }
 
     override func scrollWheel(with event: NSEvent) {
         if let onScrollWheel {
@@ -664,11 +681,18 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         if let window {
             let center = NotificationCenter.default
             for name in [NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification] {
-                keyWindowObservers.append(center.addObserver(forName: name, object: window, queue: .main) { [weak self] _ in
-                    self?.needsDisplay = true
+                keyWindowObservers.append(center.addObserver(forName: name, object: window, queue: .main) { [weak self] notification in
+                    guard let self else { return }
+                    if notification.name == NSWindow.didResignKeyNotification {
+                        self.setHovered(false)
+                    } else {
+                        self.synchronizeHoverWithMouse()
+                    }
+                    self.needsDisplay = true
                 })
             }
         }
+        synchronizeHoverWithMouse()
         if window == nil { cancelPendingGroupSelection() }
     }
 

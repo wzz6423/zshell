@@ -223,6 +223,14 @@ struct HoverRegression {
             move(first)
             check(alpha(rows[0]) > 0, "pointer over a tab paints hover")
             check(alpha(rows[1]) == 0, "non-hovered unselected tab has no background")
+            window.hasKeyStatus = false
+            NotificationCenter.default.post(name: NSWindow.didResignKeyNotification, object: window)
+            check(alpha(rows[0]) == 0, "window deactivation clears a stale row hover")
+            window.pointerLocation = location(rows[1], x: 60, y: 17)
+            window.hasKeyStatus = true
+            NotificationCenter.default.post(name: NSWindow.didBecomeKeyNotification, object: window)
+            check(alpha(rows[0]) == 0, "window activation does not restore the old row hover")
+            check(alpha(rows[1]) > 0, "window activation restores hover only under the current pointer")
             check(alpha(buttons[0], x: 3, y: 12) == 0, "non-hovered close button has no background")
             move(location(buttons[0], x: 12, y: 12))
             check(alpha(buttons[0], x: 3, y: 12) > 0, "close button paints its own hover")
