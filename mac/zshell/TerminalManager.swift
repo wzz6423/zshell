@@ -1053,6 +1053,74 @@ final class TerminalManager: nonisolated ObservableObject {
         return ProjectMoveResult(failure: nil)
     }
 
+    /// Folds every project in a sidebar group into one destination project.
+    /// Validation covers the complete batch before ownership changes so a
+    /// rejected group drag never leaves only part of the group transferred.
+    @discardableResult
+    func moveGroupTabs(
+        from sourceGroupID: UUID,
+        to destinationProjectID: UUID
+    ) -> ProjectMoveResult {
+        guard ProjectGroupStore.shared.group(id: sourceGroupID) != nil,
+              let destination = projects.first(where: { $0.id == destinationProjectID })
+        else { return ProjectMoveResult(failure: .unavailable) }
+
+        let sources = projects.filter {
+            $0.groupID == sourceGroupID && $0.id != destination.id && !$0.tabs.isEmpty
+        }
+        guard !sources.isEmpty else { return ProjectMoveResult(failure: .unavailable) }
+
+        guard sources.allSatisfy({ source in
+            source.location == destination.location
+                && source.tabs.allSatisfy { $0.diffs.isEmpty }
+        }) else {
+            if sources.contains(where: { $0.location != destination.location }) {
+                return ProjectMoveResult(failure: .incompatibleLocation)
+            }
+            return ProjectMoveResult(failure: .containsDiff)
+        }
+
+        var aliases = Set(destination.sessions.compactMap { $0.agentStatus?.alias })
+        for source in sources {
+            if let conflict = source.sessions.compactMap({ $0.agentStatus?.alias })
+                .first(where: aliases.contains) {
+                return ProjectMoveResult(failure: .agentAliasConflict(conflict))
+            }
+            aliases.formUnion(source.sessions.compactMap { $0.agentStatus?.alias })
+        }
+
+        let plans = sources.map { source in
+            (
+                projectID: source.id,
+                sourceName: source.name,
+                selectedTabID: source.selectedTabID,
+                tabIDs: source.tabs.map(\.id),
+                shouldCreateGroup: source.tabs.count > 1
+                    && source.tabs.contains(where: { !$0.isPinned })
+            )
+        }
+        for plan in plans {
+            guard let source = projects.first(where: { $0.id == plan.projectID }) else { continue }
+            let group = plan.shouldCreateGroup
+                ? destination.createTabGroup(named: plan.sourceName)
+                : nil
+            for tabID in plan.tabIDs {
+                guard let tab = source.detachTabForTransfer(id: tabID) else { continue }
+                destination.adoptTransferredTab(tab, manager: self)
+                if !tab.isPinned, let group {
+                    destination.moveTab(tab.id, toGroup: group.id)
+                }
+            }
+            if let selectedTabID = plan.selectedTabID,
+               destination.tabs.contains(where: { $0.id == selectedTabID }) {
+                destination.selectedTabID = selectedTabID
+            }
+            remove(source)
+        }
+        selectedProjectID = destination.id
+        return ProjectMoveResult(failure: nil)
+    }
+
     /// Brings `session` to the foreground: selects its project and tab, then
     /// focuses its pane. Backs the command palette's session switcher; a no-op
     /// if the session is no longer open anywhere.

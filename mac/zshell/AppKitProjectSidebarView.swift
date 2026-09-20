@@ -473,6 +473,12 @@ final class ProjectSidebarNSView: NSView {
                 screenLocation: NSEvent.mouseLocation,
                 manager: manager
             )
+        } else if case .group(let id) = item {
+            tabDrag.updateGroupDrag(
+                sourceGroupID: id,
+                screenLocation: NSEvent.mouseLocation,
+                manager: manager
+            )
         }
         updateDropHighlights()
         if scrollView.frame.contains(point) {
@@ -519,12 +525,19 @@ final class ProjectSidebarNSView: NSView {
                 )
                 tabDrag.commitProjectDrag()
             }
-        } else if case .group = item {
+        } else if case .group(let groupID) = item {
             let point = convert(event.locationInWindow, from: nil)
             if let target = target.flatMap(topLevelItem(containing:)) {
                 manager.moveSidebarItem(item, to: target)
             } else if scrollView.frame.contains(point) {
                 manager.moveSidebarItem(item, to: nil)
+            } else {
+                tabDrag.updateGroupDrag(
+                    sourceGroupID: groupID,
+                    screenLocation: NSEvent.mouseLocation,
+                    manager: manager
+                )
+                tabDrag.commitGroupDrag()
             }
         }
         cancelDrag()

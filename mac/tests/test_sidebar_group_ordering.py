@@ -11,6 +11,7 @@ GROUP_SOURCE = ROOT / "mac/zshell/ProjectGroup.swift"
 SIDEBAR_SOURCE = ROOT / "mac/zshell/AppKitProjectSidebarView.swift"
 MANAGER_SOURCE = ROOT / "mac/zshell/TerminalManager.swift"
 SESSION_SOURCE = ROOT / "mac/zshell/SessionStore.swift"
+CONTENT_SOURCE = ROOT / "mac/zshell/ContentView.swift"
 
 fixture = r'''
 struct AppSettings {
@@ -160,9 +161,14 @@ struct SessionSnapshotRegression {
 sidebar = SIDEBAR_SOURCE.read_text()
 manager = MANAGER_SOURCE.read_text()
 session = SESSION_SOURCE.read_text()
+content = CONTENT_SOURCE.read_text()
 assert "for item in manager.sidebarTopLevelItems" in sidebar
 assert "items += manager.projects.filter { $0.groupID == id }" in sidebar
 assert "manager.moveSidebarItem(item, to: target)" in sidebar
+assert "tabDrag.updateGroupDrag(" in sidebar
+assert "tabDrag.commitGroupDrag()" in sidebar
+assert "func commitGroupDrag()" in content
+assert "manager.moveGroupTabs(" in content
 assert "var sidebarTopLevelItems: [ProjectSidebarItem]" in manager
 assert "sidebarOrder: sidebarTopLevelItems.compactMap" in manager
 assert "var sidebarOrder: [SidebarItemSnapshot]? = nil" in session

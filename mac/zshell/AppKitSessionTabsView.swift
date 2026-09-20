@@ -61,7 +61,9 @@ final class MainHeaderNSView: NSView {
             publisher.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.scheduleRefresh() }
                 .store(in: &observations)
         }
-        tabDrag.$projectDrag.combineLatest(tabDrag.$paneDrag)
+        tabDrag.$projectDrag
+            .combineLatest(tabDrag.$groupDrag)
+            .combineLatest(tabDrag.$paneDrag)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.updateDropTarget() }
             .store(in: &observations)
@@ -202,7 +204,7 @@ final class MainHeaderNSView: NSView {
             button.frame = NSRect(x: right, y: y, width: buttonSide, height: buttonSide)
             right -= 6
         }
-        let available = max(0, right - left - 32)
+        let available = max(0, right - left)
         let stripWidth = min(strip.preferredWidth, available)
         strip.frame = NSRect(
             x: left,
@@ -233,6 +235,7 @@ final class MainHeaderNSView: NSView {
     private func updateDropTarget(animated: Bool = true) {
         let isTarget = manager.selectedProject.map {
             tabDrag.projectDrag?.targetProjectID == $0.id
+                || tabDrag.groupDrag?.targetProjectID == $0.id
                 || (tabDrag.paneDrag?.targetsTabStrip == true
                     && tabDrag.paneDrag?.sourceProjectID == $0.id)
         } ?? false
