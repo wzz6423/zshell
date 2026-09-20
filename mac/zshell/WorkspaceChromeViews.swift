@@ -169,6 +169,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     private var dragCancelMonitor: Any?
     private var pendingGroupSelection: DispatchWorkItem?
     private var pendingGroupSelectionID: UUID?
+    private var keyWindowObservers: [NSObjectProtocol] = []
     private var isHovered = false
     private var isSelected = false
     private var isGroup = false
@@ -196,6 +197,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
+        focusRingType = .none
         for label in [titleLabel, subtitleLabel, countLabel, shortcutLabel] {
             label.translatesAutoresizingMaskIntoConstraints = true
             label.lineBreakMode = .byTruncatingMiddle
@@ -212,7 +214,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         renameField.isHidden = true
         renameField.isBordered = false
         renameField.drawsBackground = false
-        renameField.focusRingType = .exterior
+        renameField.focusRingType = .none
         for view in [disclosureView, iconView, pinView, titleLabel, subtitleLabel,
                      countLabel, shortcutLabel, badge, actionButton, renameField] {
             addSubview(view)
@@ -450,6 +452,8 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
 
     override func draw(_ dirtyRect: NSRect) {
         let usesGroupControlBackground = isCompactGroup || fillsGroupRow
+        let isDarkAppearance = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let groupControlBlendColor: NSColor = isDarkAppearance ? .black : .white
         let drawsItemBackground = isDropTarget || isSelected || isHovered || isGroup
         let shapeBounds = usesGroupControlBackground
             ? groupControlFrame
@@ -461,12 +465,12 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         )
         let shape = NSBezierPath(roundedRect: shapeBounds, xRadius: cornerRadius, yRadius: cornerRadius)
         if usesGroupControlBackground, let groupControlColor {
-            (groupControlColor.blended(withFraction: 0.85, of: .white) ?? groupControlColor).setFill()
+            (groupControlColor.blended(withFraction: 0.85, of: groupControlBlendColor) ?? groupControlColor).setFill()
             shape.fill()
         }
         if usesGroupControlBackground && (isDropTarget || isSelected || isHovered) {
             (isDropTarget ? Theme.accent.withAlphaComponent(0.15)
-                : NSColor.white.withAlphaComponent(isSelected ? 0.16 : 0.08)).setFill()
+                : groupControlBlendColor.withAlphaComponent(isSelected ? 0.16 : 0.08)).setFill()
             shape.fill()
         } else if !usesGroupControlBackground && drawsItemBackground {
             (isDropTarget ? Theme.accent.withAlphaComponent(0.15)
@@ -504,7 +508,8 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
             NSColor.secondaryLabelColor.setFill()
             NSBezierPath(ovalIn: NSRect(x: actionButton.frame.midX - 2.5, y: bounds.midY - 2.5, width: 5, height: 5)).fill()
         }
-        if window?.firstResponder === self, !usesTabStripHoverTracking {
+        if isSelected, window?.isKeyWindow == true, window?.firstResponder === self,
+           !isRenaming, !usesTabStripHoverTracking {
             NSColor.keyboardFocusIndicatorColor.setStroke()
             shape.lineWidth = 2
             shape.stroke()
@@ -512,6 +517,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     }
 
     override func viewDidChangeEffectiveAppearance() { super.viewDidChangeEffectiveAppearance(); needsDisplay = true }
+
     override func becomeFirstResponder() -> Bool { needsDisplay = true; return true }
     override func resignFirstResponder() -> Bool { needsDisplay = true; return true }
 
@@ -521,10 +527,27 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         let activeOption: NSTrackingArea.Options = usesTabStripHoverTracking ? .activeAlways : .activeInKeyWindow
         addTrackingArea(NSTrackingArea(rect: NSIntersectionRect(bounds, visibleRect),
             options: [activeOption, .mouseEnteredAndExited], owner: self))
+        synchronizeHoverWithMouse()
     }
 
-    override func mouseEntered(with event: NSEvent) { isHovered = true; updateActionVisibility(); needsDisplay = true }
-    override func mouseExited(with event: NSEvent) { isHovered = false; updateActionVisibility(); needsDisplay = true }
+    override func mouseEntered(with event: NSEvent) { setHovered(true) }
+    override func mouseExited(with event: NSEvent) { setHovered(false) }
+
+    private func synchronizeHoverWithMouse() {
+        guard let window, !isHiddenOrHasHiddenAncestor else {
+            setHovered(false)
+            return
+        }
+        let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
+        setHovered(NSIntersectionRect(bounds, visibleRect).contains(point))
+    }
+
+    private func setHovered(_ hovered: Bool) {
+        guard isHovered != hovered else { return }
+        isHovered = hovered
+        updateActionVisibility()
+        needsDisplay = true
+    }
 
     override func scrollWheel(with event: NSEvent) {
         if let onScrollWheel {
@@ -653,6 +676,23 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        keyWindowObservers.forEach(NotificationCenter.default.removeObserver)
+        keyWindowObservers.removeAll()
+        if let window {
+            let center = NotificationCenter.default
+            for name in [NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification] {
+                keyWindowObservers.append(center.addObserver(forName: name, object: window, queue: .main) { [weak self] notification in
+                    guard let self else { return }
+                    if notification.name == NSWindow.didResignKeyNotification {
+                        self.setHovered(false)
+                    } else {
+                        self.synchronizeHoverWithMouse()
+                    }
+                    self.needsDisplay = true
+                })
+            }
+        }
+        synchronizeHoverWithMouse()
         if window == nil { cancelPendingGroupSelection() }
     }
 
@@ -671,6 +711,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     }
 
     deinit {
+        keyWindowObservers.forEach(NotificationCenter.default.removeObserver)
         pendingGroupSelection?.cancel()
         if let dragCancelMonitor { NSEvent.removeMonitor(dragCancelMonitor) }
     }

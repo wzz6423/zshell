@@ -143,8 +143,8 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func select(_ category: SettingsCategory) {
-        sidebar.select(category)
         content.show(category)
+        sidebar.select(category)
         window?.title = category.title
         UserDefaults.standard.set(category.rawValue, forKey: Self.categoryDefaultsKey)
     }
@@ -161,14 +161,19 @@ private final class SettingsContentViewController: NSViewController {
     }
 
     func show(_ category: SettingsCategory) {
-        guard self.category != category else { return }
-        self.category = category
-
         let pane = panes[category] ?? {
             let pane = category.makePane()
             panes[category] = pane
             return pane
         }()
+
+        guard self.category != category || children.first !== pane else { return }
+
+        // Load the new pane before removing the old one. Some panes perform
+        // first-load setup, so the settings window should not expose a mixed
+        // sidebar/title/content state while that work is happening.
+        let paneView = pane.view
+        paneView.translatesAutoresizingMaskIntoConstraints = false
 
         for child in children where child !== pane {
             child.view.removeFromSuperview()
@@ -176,13 +181,13 @@ private final class SettingsContentViewController: NSViewController {
         }
 
         addChild(pane)
-        pane.view.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(pane.view)
+        view.addSubview(paneView)
         NSLayoutConstraint.activate([
-            pane.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            pane.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            pane.view.topAnchor.constraint(equalTo: view.topAnchor),
-            pane.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            paneView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            paneView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            paneView.topAnchor.constraint(equalTo: view.topAnchor),
+            paneView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+        self.category = category
     }
 }

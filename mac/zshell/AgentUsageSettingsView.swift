@@ -16,6 +16,7 @@ final class AgentUsageSettingsView: NSView {
     ) {
         AgentUsageModel.shared.refresh()
     }
+    private var providerWidthConstraints: [NSLayoutConstraint] = []
 
     private(set) var hasVisibleUsage = false
 
@@ -25,9 +26,6 @@ final class AgentUsageSettingsView: NSView {
         providerStack.orientation = .vertical
         providerStack.alignment = .leading
         providerStack.spacing = 12
-        for view in [claudeView, codexView, providerSeparator] {
-            view.widthAnchor.constraint(equalTo: providerStack.widthAnchor).isActive = true
-        }
 
         providerStack.translatesAutoresizingMaskIntoConstraints = false
         refreshButton.translatesAutoresizingMaskIntoConstraints = false
@@ -54,16 +52,27 @@ final class AgentUsageSettingsView: NSView {
             if case .available = state.availability { return true }
             return false
         }
+        NSLayoutConstraint.deactivate(providerWidthConstraints)
+        providerWidthConstraints.removeAll(keepingCapacity: true)
         providerStack.arrangedSubviews.forEach {
             providerStack.removeArrangedSubview($0)
             $0.removeFromSuperview()
         }
         for (index, state) in states.enumerated() {
-            if index > 0 { providerStack.addArrangedSubview(providerSeparator) }
+            if index > 0 {
+                providerStack.addArrangedSubview(providerSeparator)
+                providerWidthConstraints.append(
+                    providerSeparator.widthAnchor.constraint(equalTo: providerStack.widthAnchor)
+                )
+            }
             let provider = state.kind == .claude ? claudeView : codexView
             provider.apply(state)
             providerStack.addArrangedSubview(provider)
+            providerWidthConstraints.append(
+                provider.widthAnchor.constraint(equalTo: providerStack.widthAnchor)
+            )
         }
+        NSLayoutConstraint.activate(providerWidthConstraints)
         hasVisibleUsage = !states.isEmpty
         refreshButton.isHidden = !hasVisibleUsage
         refreshButton.isEnabled = !states.contains(where: \.isRefreshing)

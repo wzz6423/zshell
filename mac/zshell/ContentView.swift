@@ -48,6 +48,11 @@ final class TabSplitDragCoordinator: ObservableObject {
         let targetProjectID: UUID?
     }
 
+    struct GroupDrag: Equatable {
+        let sourceGroupID: UUID
+        let targetProjectID: UUID?
+    }
+
     struct PaneDrag {
         let sourcePaneID: UUID
         let sourceTabID: UUID
@@ -65,12 +70,14 @@ final class TabSplitDragCoordinator: ObservableObject {
     @Published private(set) var drag: Drag?
     @Published private(set) var paneDrag: PaneDrag?
     @Published private(set) var projectDrag: ProjectDrag?
+    @Published private(set) var groupDrag: GroupDrag?
     @Published private(set) var sidebarDropHighlight: TabSidebarDropHighlight?
 
     private weak var project: Project?
     private weak var manager: TerminalManager?
     private weak var projectDragManager: TerminalManager?
     private var projectDragSourceProjectID: UUID?
+    private var groupDragSourceGroupID: UUID?
     private var projectDragScreenLocation: CGPoint?
     private var renderedTabID: UUID?
     private var paneFrames: [UUID: CGRect] = [:]
@@ -165,6 +172,7 @@ final class TabSplitDragCoordinator: ObservableObject {
         screenLocation: CGPoint,
         manager: TerminalManager
     ) {
+        if groupDragSourceGroupID != nil { cancelGroupDrag() }
         let beginsNewDrag = projectDragSourceProjectID != sourceProjectID
             || projectDragManager !== manager
         if beginsNewDrag {
@@ -177,6 +185,26 @@ final class TabSplitDragCoordinator: ObservableObject {
         projectDragSourceProjectID = sourceProjectID
         projectDragScreenLocation = screenLocation
         publishProjectDrag()
+    }
+
+    func updateGroupDrag(
+        sourceGroupID: UUID,
+        screenLocation: CGPoint,
+        manager: TerminalManager
+    ) {
+        if projectDragSourceProjectID != nil { clearProjectDrag() }
+        let beginsNewDrag = groupDragSourceGroupID != sourceGroupID
+            || projectDragManager !== manager
+        if beginsNewDrag {
+            if drag != nil { drag = nil }
+            if paneDrag != nil { cancelPaneDrag() }
+            project = nil
+            self.manager = nil
+        }
+        projectDragManager = manager
+        groupDragSourceGroupID = sourceGroupID
+        projectDragScreenLocation = screenLocation
+        publishGroupDrag()
     }
 
     func updateTabStripFrame(
@@ -193,6 +221,9 @@ final class TabSplitDragCoordinator: ObservableObject {
         guard changed else { return }
         if projectDragSourceProjectID != nil, projectDragScreenLocation != nil {
             publishProjectDrag()
+        }
+        if groupDragSourceGroupID != nil, projectDragScreenLocation != nil {
+            publishGroupDrag()
         }
         if let paneDrag, let project {
             let resolved = resolvedPaneDrag(
@@ -363,6 +394,33 @@ final class TabSplitDragCoordinator: ObservableObject {
         cancelProjectDrag()
     }
 
+    func commitGroupDrag() {
+        guard let sourceGroupID = groupDragSourceGroupID,
+              let screenLocation = projectDragScreenLocation,
+              let manager = projectDragManager
+        else {
+            cancelGroupDrag()
+            return
+        }
+        let resolved = resolvedGroupDrag(
+            sourceGroupID: sourceGroupID,
+            screenLocation: screenLocation,
+            manager: manager
+        )
+        guard let destinationProjectID = resolved.targetProjectID else {
+            cancelGroupDrag()
+            return
+        }
+        let result = manager.moveGroupTabs(
+            from: resolved.sourceGroupID,
+            to: destinationProjectID
+        )
+        if let failure = result.failure {
+            presentProjectMoveFailure(failure)
+        }
+        cancelGroupDrag()
+    }
+
     func cancel() {
         if drag != nil { drag = nil }
         if paneDrag != nil { paneDrag = nil }
@@ -381,10 +439,26 @@ final class TabSplitDragCoordinator: ObservableObject {
     }
 
     func cancelProjectDrag() {
+        clearProjectDrag()
+        cancelGroupDrag()
+    }
+
+    func cancelGroupDrag() {
+        if groupDrag != nil { groupDrag = nil }
+        groupDragSourceGroupID = nil
+        if projectDragSourceProjectID == nil {
+            projectDragManager = nil
+            projectDragScreenLocation = nil
+        }
+    }
+
+    private func clearProjectDrag() {
         if projectDrag != nil { projectDrag = nil }
-        projectDragManager = nil
         projectDragSourceProjectID = nil
-        projectDragScreenLocation = nil
+        if groupDragSourceGroupID == nil {
+            projectDragManager = nil
+            projectDragScreenLocation = nil
+        }
     }
 
     private func resolvedDrag(
@@ -445,6 +519,27 @@ final class TabSplitDragCoordinator: ObservableObject {
         }
         return ProjectDrag(
             sourceProjectID: sourceProjectID,
+            targetProjectID: targetProjectID
+        )
+    }
+
+    private func resolvedGroupDrag(
+        sourceGroupID: UUID,
+        screenLocation: CGPoint,
+        manager: TerminalManager
+    ) -> GroupDrag {
+        let targetProjectID: UUID?
+        if let tabStripProjectID, let tabStripScreenFrame,
+           tabStripScreenFrame.contains(screenLocation),
+           let target = manager.projects.first(where: { $0.id == tabStripProjectID }),
+           target.groupID != sourceGroupID,
+           ProjectGroupStore.shared.group(id: sourceGroupID) != nil {
+            targetProjectID = target.id
+        } else {
+            targetProjectID = nil
+        }
+        return GroupDrag(
+            sourceGroupID: sourceGroupID,
             targetProjectID: targetProjectID
         )
     }
@@ -539,6 +634,21 @@ final class TabSplitDragCoordinator: ObservableObject {
         let next = resolved.targetProjectID == nil ? nil : resolved
         guard projectDrag != next else { return }
         projectDrag = next
+    }
+
+    private func publishGroupDrag() {
+        guard let sourceGroupID = groupDragSourceGroupID,
+              let screenLocation = projectDragScreenLocation,
+              let manager = projectDragManager
+        else { return }
+        let resolved = resolvedGroupDrag(
+            sourceGroupID: sourceGroupID,
+            screenLocation: screenLocation,
+            manager: manager
+        )
+        let next = resolved.targetProjectID == nil ? nil : resolved
+        guard groupDrag != next else { return }
+        groupDrag = next
     }
 
     func presentMoveFailure(_ failure: TerminalManager.TabMoveFailure) {

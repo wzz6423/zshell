@@ -389,6 +389,7 @@ final class TerminalManager: nonisolated ObservableObject {
         project.groupID = group.id
         project.newSession(directory: group.sessionDirectory)
         insert(project)
+        persistSidebarGrouping()
         return project
     }
 
@@ -398,11 +399,13 @@ final class TerminalManager: nonisolated ObservableObject {
     func moveProject(_ project: Project, to group: ProjectGroup?) {
         guard projects.contains(where: { $0 === project }),
               group == nil || projectGroup(id: group?.id) != nil else { return }
+        let previousGroupID = project.groupID
         project.groupID = group?.id
         if var group, group.isCollapsed {
             group.isCollapsed = false
             ProjectGroupStore.shared.update(group)
         }
+        if previousGroupID != project.groupID { persistSidebarGrouping() }
     }
 
     /// Deletes a global group without closing its projects. Groups are shared
@@ -416,6 +419,7 @@ final class TerminalManager: nonisolated ObservableObject {
             }
         }
         ProjectGroupStore.shared.remove(group)
+        persistSidebarGrouping()
     }
 
     func promptForSSHProject() {
@@ -760,6 +764,7 @@ final class TerminalManager: nonisolated ObservableObject {
         let moved = ProjectSidebarOrder.moving(item, to: target, in: current)
         guard moved != current else { return }
         preferredSidebarOrder = moved
+        persistSidebarGrouping()
     }
 
     var sidebarOrderedProjects: [Project] {
@@ -1049,6 +1054,74 @@ final class TerminalManager: nonisolated ObservableObject {
             destination.selectedTabID = sourceSelection
         }
         remove(source)
+        selectedProjectID = destination.id
+        return ProjectMoveResult(failure: nil)
+    }
+
+    /// Folds every project in a sidebar group into one destination project.
+    /// Validation covers the complete batch before ownership changes so a
+    /// rejected group drag never leaves only part of the group transferred.
+    @discardableResult
+    func moveGroupTabs(
+        from sourceGroupID: UUID,
+        to destinationProjectID: UUID
+    ) -> ProjectMoveResult {
+        guard ProjectGroupStore.shared.group(id: sourceGroupID) != nil,
+              let destination = projects.first(where: { $0.id == destinationProjectID })
+        else { return ProjectMoveResult(failure: .unavailable) }
+
+        let sources = projects.filter {
+            $0.groupID == sourceGroupID && $0.id != destination.id && !$0.tabs.isEmpty
+        }
+        guard !sources.isEmpty else { return ProjectMoveResult(failure: .unavailable) }
+
+        guard sources.allSatisfy({ source in
+            source.location == destination.location
+                && source.tabs.allSatisfy { $0.diffs.isEmpty }
+        }) else {
+            if sources.contains(where: { $0.location != destination.location }) {
+                return ProjectMoveResult(failure: .incompatibleLocation)
+            }
+            return ProjectMoveResult(failure: .containsDiff)
+        }
+
+        var aliases = Set(destination.sessions.compactMap { $0.agentStatus?.alias })
+        for source in sources {
+            if let conflict = source.sessions.compactMap({ $0.agentStatus?.alias })
+                .first(where: aliases.contains) {
+                return ProjectMoveResult(failure: .agentAliasConflict(conflict))
+            }
+            aliases.formUnion(source.sessions.compactMap { $0.agentStatus?.alias })
+        }
+
+        let plans = sources.map { source in
+            (
+                projectID: source.id,
+                sourceName: source.name,
+                selectedTabID: source.selectedTabID,
+                tabIDs: source.tabs.map(\.id),
+                shouldCreateGroup: source.tabs.count > 1
+                    && source.tabs.contains(where: { !$0.isPinned })
+            )
+        }
+        for plan in plans {
+            guard let source = projects.first(where: { $0.id == plan.projectID }) else { continue }
+            let group = plan.shouldCreateGroup
+                ? destination.createTabGroup(named: plan.sourceName)
+                : nil
+            for tabID in plan.tabIDs {
+                guard let tab = source.detachTabForTransfer(id: tabID) else { continue }
+                destination.adoptTransferredTab(tab, manager: self)
+                if !tab.isPinned, let group {
+                    destination.moveTab(tab.id, toGroup: group.id)
+                }
+            }
+            if let selectedTabID = plan.selectedTabID,
+               destination.tabs.contains(where: { $0.id == selectedTabID }) {
+                destination.selectedTabID = selectedTabID
+            }
+            remove(source)
+        }
         selectedProjectID = destination.id
         return ProjectMoveResult(failure: nil)
     }
@@ -1585,6 +1658,10 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     // MARK: - Persistence
+
+    private func persistSidebarGrouping() {
+        Self.saveAll(captureTerminalHistory: false)
+    }
 
     private static func saveAll(captureTerminalHistory: Bool) {
         guard !registry.isEmpty else { return }

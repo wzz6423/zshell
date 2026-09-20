@@ -83,24 +83,22 @@ private final class ApplicationIconOptionCard: SettingsCardButton {
     /// the icon compiled into this bundle — the Debug build ships its own —
     /// and the variants are the alternate .icns resources in that bundle.
     private static func preview(for applicationIcon: ApplicationIcon) -> NSImage {
-        let resource: String?
+        let image: NSImage?
         switch applicationIcon {
         case .defaultIcon:
             // Must mirror ASSETCATALOG_COMPILER_APPICON_NAME, which differs
             // per configuration to keep the Debug identity apart.
             #if DEBUG
-            resource = "AppIconDebug"
+            image = bundledImage(named: "AppIconDebug")
             #else
-            resource = "AppIcon"
+            image = bundledImage(named: "AppIcon")
             #endif
-        case .light:
-            resource = "AppIconLight"
-        case .dark:
-            resource = "AppIconDark"
+        case .light, .dark:
+            // Runtime overrides normalize the alternate icon to the compiled
+            // icon's point size before assigning it to NSApplication.
+            image = applicationIcon.bundledImage()
         }
-        guard let resource,
-              let image = Self.bundledImage(named: resource)
-        else {
+        guard let image else {
             return NSApplication.shared.applicationIconImage
                 ?? NSImage(systemSymbolName: "questionmark.app", accessibilityDescription: nil)!
         }

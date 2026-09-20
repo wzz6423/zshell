@@ -92,7 +92,7 @@ struct HoverRegression {
         compactGroup.layoutSubtreeIfNeeded()
         check(compactGroup.preferredWidth == 17, "compact tab group is half its previous width")
         check(hasTintedFillAndSolidBorder(compactGroup, fillX: 17, borderX: 8, y: 17),
-              "compact tab group uses a pale fill with a solid marker-color border")
+              "compact tab group uses a pale fill with a persistent marker-color border")
 
         let groupWindow = HoverWindow(contentRect: NSRect(x: 320, y: 240, width: 240, height: 80),
                                       styleMask: [.borderless], backing: .buffered, defer: false)
@@ -107,7 +107,7 @@ struct HoverRegression {
                        fillsGroupRow: true)
         groupRow.layoutSubtreeIfNeeded()
         check(hasTintedFillAndSolidBorder(groupRow, fillX: 180, borderX: 0, y: 14),
-              "sidebar group uses a pale fill with a solid marker-color border")
+              "sidebar group uses a pale fill with a persistent marker-color border")
         var groupSelections = 0
         var groupRenames = 0
         var committedGroupName: String?
@@ -222,6 +222,14 @@ struct HoverRegression {
             move(first)
             check(alpha(rows[0]) > 0, "pointer over a tab paints hover")
             check(alpha(rows[1]) == 0, "non-hovered unselected tab has no background")
+            window.hasKeyStatus = false
+            NotificationCenter.default.post(name: NSWindow.didResignKeyNotification, object: window)
+            check(alpha(rows[0]) == 0, "window deactivation clears a stale row hover")
+            window.pointerLocation = location(rows[1], x: 60, y: 17)
+            window.hasKeyStatus = true
+            NotificationCenter.default.post(name: NSWindow.didBecomeKeyNotification, object: window)
+            check(alpha(rows[0]) == 0, "window activation does not restore the old row hover")
+            check(alpha(rows[1]) > 0, "window activation restores hover only under the current pointer")
             check(alpha(buttons[0], x: 3, y: 12) == 0, "non-hovered close button has no background")
             move(location(buttons[0], x: 12, y: 12))
             check(alpha(buttons[0], x: 3, y: 12) > 0, "close button paints its own hover")
