@@ -808,9 +808,8 @@ struct ContentView: View {
                     )
                 }
             }
-            // The header must be mounted after the AppKit terminal hosts so it
-            // remains the native hit-test target across its complete height.
-            .padding(.top, MainHeaderNSView.height)
+            // The window-level header already occupies the hidden title bar;
+            // reserving its height here leaves a second, empty row above panes.
             .overlay(alignment: .top) {
                 mainHeader
             }
