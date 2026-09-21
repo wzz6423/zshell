@@ -221,6 +221,9 @@ final class MainHeaderNSView: NSView {
             workspaceFrame: project == nil ? nil : workspaceGlobalRect(bounds)
         )
         updateDropTarget(animated: false)
+        // Sidebar changes resize the SwiftUI host after refresh observes the
+        // model, so the earlier sync can still carry its previous frame.
+        syncWindowOverlay()
     }
 
     override func draw(_ dirtyRect: NSRect) {

@@ -743,6 +743,8 @@ struct ContentView: View {
             }
 
             VStack(spacing: 0) {
+                mainHeader
+
                 ZStack {
                     // Diff panes stay mounted after their project has been
                     // visited: removing a project's stack pulls every
@@ -807,11 +809,6 @@ struct ContentView: View {
                         hideToolbar: { settings.toolbarVisibility = .hide }
                     )
                 }
-            }
-            // The window-level header already occupies the hidden title bar;
-            // reserving its height here leaves a second, empty row above panes.
-            .overlay(alignment: .top) {
-                mainHeader
             }
             .background(
                 settings.isTerminalBackgroundBlurActive

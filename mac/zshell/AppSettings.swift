@@ -118,6 +118,15 @@ enum ApplicationIcon: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Compensates for the light card reading larger than the dark default
+    /// against Dock glass while retaining the system's icon geometry.
+    private var dockVisualScale: CGFloat {
+        switch self {
+        case .light: 0.9
+        case .defaultIcon, .dark: 1
+        }
+    }
+
     /// Loads an icon resource whether Xcode copied it at the bundle root or
     /// preserved the source `Icons` directory in the resource bundle.
     func bundledImage() -> NSImage? {
@@ -130,11 +139,10 @@ enum ApplicationIcon: String, CaseIterable, Identifiable {
 
         // macOS insets bundled app icons into an 824-point shape on a
         // 1024-point canvas. Runtime overrides bypass that normalization.
+        let contentScale = CGFloat(824.0 / 1024.0) * dockVisualScale
         return NSImage(size: image.size, flipped: false) { rect in
-            let content = rect.insetBy(
-                dx: rect.width * 100 / 1024,
-                dy: rect.height * 100 / 1024
-            )
+            let inset = (1 - contentScale) / 2
+            let content = rect.insetBy(dx: rect.width * inset, dy: rect.height * inset)
             image.draw(in: content, from: .zero, operation: .sourceOver, fraction: 1)
             return true
         }
