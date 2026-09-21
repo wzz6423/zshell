@@ -4,7 +4,7 @@ description: Save the commands and SSH connections you start over and over, and 
 ---
 
 <kbd>Cmd</kbd>+<kbd>O</kbd> opens **Quick Launch**: a searchable list of launch
-entries that each open a new terminal session in the current project. A saved
+entries that each open a new project with a terminal session. A saved
 entry is either a **command** — anything you type often, like `npm run dev` or
 `make watch` — or an **SSH connection**.
 
@@ -12,12 +12,21 @@ entry is either a **command** — anything you type often, like `npm run dev` or
 
 Type a name, command, connection target, or group to fuzzy-filter the list.
 Click a row, or select it with the arrow keys and press <kbd>Return</kbd>.
-The entry runs in a fresh session of the selected project —
-the same flow as any other new terminal, with its own tab and directory.
+The entry runs in a fresh project named after the entry, with its own terminal
+session and directory.
 
 When the command finishes or the connection closes, the pane drops back to a
 normal shell prompt instead of disappearing. Nothing you launched can quietly
 close itself.
+
+You can also run a saved entry by name from any Zshell terminal:
+
+```bash
+zshell "Entry name"
+```
+
+Use the entry's exact name, with quotes if it contains spaces. The hint at the
+bottom of Quick Launch shows this syntax. The entry opens in a new project.
 
 ## Managing entries
 
@@ -29,7 +38,7 @@ Use the optional **Group** field to organize entries into named sections.
 The edit and delete buttons act on their entry without launching it.
 
 A command entry can pin a **working directory** it always starts in; without
-one it follows the project like a normal session. An SSH entry takes the host,
+one it uses the default directory for a new project. An SSH entry takes the host,
 an optional user and port, and free-form extra `ssh` options such as `-L
 8080:localhost:80`.
 

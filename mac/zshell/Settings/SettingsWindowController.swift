@@ -14,6 +14,7 @@ enum SettingsCategory: String, CaseIterable {
     case terminal
     case editor
     case automation
+    case recommendations
     case updates
 
     var title: String {
@@ -24,6 +25,7 @@ enum SettingsCategory: String, CaseIterable {
         case .terminal: String(localized: "Terminal")
         case .editor: String(localized: "Editor")
         case .automation: String(localized: "AI")
+        case .recommendations: String(localized: "Recommendations")
         case .updates: String(localized: "Updates")
         }
     }
@@ -36,6 +38,7 @@ enum SettingsCategory: String, CaseIterable {
         case .terminal: "terminal.fill"
         case .editor: "curlybraces"
         case .automation: "sparkles"
+        case .recommendations: "star.circle.fill"
         case .updates: "arrow.down.circle.fill"
         }
     }
@@ -48,6 +51,7 @@ enum SettingsCategory: String, CaseIterable {
         case .terminal: SettingsTerminalPane()
         case .editor: SettingsEditorPane()
         case .automation: SettingsAutomationPane()
+        case .recommendations: SettingsRecommendationsPane()
         case .updates: SettingsUpdatesPane()
         }
     }
