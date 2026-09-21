@@ -7,8 +7,8 @@ import AppKit
 import SwiftUI
 
 /// Hosts a session's long-lived terminal surface in SwiftUI, wrapped in a
-/// container that insets the terminal content while pinning the session's
-/// overlay scrollbar to the container's true trailing edge.
+/// full-bleed container with the session's overlay scrollbar pinned to its
+/// trailing edge. Text padding is owned by the terminal backend.
 struct TerminalHostView: NSViewRepresentable {
     let session: TerminalSession
     let manager: TerminalManager
@@ -220,9 +220,8 @@ private final class TerminalContainerView: NSView {
         scrollbar.translatesAutoresizingMaskIntoConstraints = false
         addSubview(terminal)
         addSubview(scrollbar, positioned: .above, relativeTo: terminal)
-        // Zshell's visual insets live inside the backend as window padding. The
-        // surface keeps only a hairline pane-background inset, while the overlay
-        // scrollbar stays pinned to the container's true trailing edge.
+        // Text padding lives inside the backend. Insetting the surface itself
+        // exposes a contrasting background strip beside the header and sidebars.
         if let queueBar {
             // The prompt queue bar docks: the terminal's bottom edge rides the
             // bar's top edge, so an open bar claims height from the grid instead
@@ -232,10 +231,10 @@ private final class TerminalContainerView: NSView {
             queueBar.translatesAutoresizingMaskIntoConstraints = false
             addSubview(queueBar, positioned: .above, relativeTo: scrollbar)
             surfaceConstraints = [
-                terminal.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
-                terminal.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
-                terminal.topAnchor.constraint(equalTo: topAnchor, constant: 2),
-                terminal.bottomAnchor.constraint(equalTo: queueBar.topAnchor, constant: -2),
+                terminal.leadingAnchor.constraint(equalTo: leadingAnchor),
+                terminal.trailingAnchor.constraint(equalTo: trailingAnchor),
+                terminal.topAnchor.constraint(equalTo: topAnchor),
+                terminal.bottomAnchor.constraint(equalTo: queueBar.topAnchor),
                 queueBar.leadingAnchor.constraint(equalTo: leadingAnchor),
                 queueBar.trailingAnchor.constraint(equalTo: trailingAnchor),
                 queueBar.bottomAnchor.constraint(equalTo: bottomAnchor),
@@ -246,10 +245,10 @@ private final class TerminalContainerView: NSView {
             ]
         } else {
             surfaceConstraints = [
-                terminal.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
-                terminal.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
-                terminal.topAnchor.constraint(equalTo: topAnchor, constant: 2),
-                terminal.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -2),
+                terminal.leadingAnchor.constraint(equalTo: leadingAnchor),
+                terminal.trailingAnchor.constraint(equalTo: trailingAnchor),
+                terminal.topAnchor.constraint(equalTo: topAnchor),
+                terminal.bottomAnchor.constraint(equalTo: bottomAnchor),
                 scrollbar.trailingAnchor.constraint(equalTo: trailingAnchor),
                 scrollbar.topAnchor.constraint(equalTo: topAnchor),
                 scrollbar.bottomAnchor.constraint(equalTo: bottomAnchor),

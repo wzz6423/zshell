@@ -92,12 +92,9 @@ extension ZshellTerminalView {
             // Zshell's insets around the grid live inside ghostty as
             // window-padding so that window-padding-color=extend can flood
             // them with the nearest cell's background — full-screen TUIs
-            // fill the surface while text keeps its breathing room (the
-            // host adds a 2pt pane-background frame around the surface, so
-            // the fill stops just short of the pane edges; these values plus
-            // that frame put the text at least 12pt from the sides and 10pt
-            // from the top/bottom). Balance splits sub-cell remainder across
-            // both edges instead of leaving what looks like a reserved strip
+            // fill the pane edge to edge while text keeps at least 10pt at
+            // the sides and 8pt at the top/bottom. Balance splits sub-cell
+            // remainder across both edges instead of leaving a reserved strip
             // below the final row. Git context is cached per terminal root so
             // tab selection no longer resizes through an intermediate toolbar
             // state and makes that balanced origin move twice.
