@@ -1,4 +1,4 @@
-"""Exercise production pane chrome beside a native content surface at narrow widths.
+"""Exercise pane bounds and full-bleed native terminal surfaces during layout changes.
 
 Run: python3 mac/tests/test_pane_bounds.py [--source-ref <git-ref>]
 The offscreen fixture never sends input to the user's desktop.
@@ -163,12 +163,13 @@ struct LayoutFixture: View {
     let panes: [Pane]
     let width: CGFloat
     let height: CGFloat
+    var showSplitChrome = true
     let tab = PaneTab()
     var body: some View {
         ZStack(alignment: .topLeading) {
             ForEach(Array(panes.enumerated()), id: \.element.id) { index, pane in
                 PaneView(manager: TerminalManager(), tab: tab, pane: pane,
-                         showSplitChrome: true, allowsMove: true, isMoveSource: false,
+                         showSplitChrome: showSplitChrome, allowsMove: true, isMoveSource: false,
                          dropEdge: nil, onMove: { _ in }, onMoveEnded: {}, onSplit: { _ in },
                          onNewBrowserTab: { _ in }, onNewBrowserPane: { _ in },
                          onNewFileTab: { _ in }, onNewFilePane: { _ in })
@@ -190,13 +191,32 @@ struct PaneBoundsRegression {
             print("\(value ? "PASS" : "FAIL") \(name)")
             if !value { failures += 1 }
         }
-        for (width, height, showsQueue): (CGFloat, CGFloat, Bool) in [
-            (360, 240, false), (160, 240, false), (80, 240, false), (32, 240, false),
-            (360, 90, true), (160, 90, true), (80, 90, true), (32, 90, true),
+        func checkSurfaceEdges(_ surface: SurfaceView) {
+            let container = surface.superview!
+            let frame = surface.convert(surface.bounds, to: container)
+            let bar = container.subviews.compactMap { $0 as? PromptQueueFixture }.first
+            check(abs(frame.minX - container.bounds.minX) < 0.01,
+                  "terminal left edge is full bleed: inset=\(frame.minX - container.bounds.minX)")
+            check(abs(frame.maxX - container.bounds.maxX) < 0.01,
+                  "terminal right edge is full bleed: inset=\(container.bounds.maxX - frame.maxX)")
+            check(abs(frame.maxY - container.bounds.maxY) < 0.01,
+                  "terminal top edge is full bleed: inset=\(container.bounds.maxY - frame.maxY)")
+            let bottom = bar?.frame.maxY ?? container.bounds.minY
+            check(abs(frame.minY - bottom) < 0.01,
+                  "terminal meets queue or bottom without a gap or overlap: inset=\(frame.minY - bottom)")
+        }
+        for (width, height, showsQueue, showSplitChrome): (CGFloat, CGFloat, Bool, Bool) in [
+            (360, 240, false, true), (160, 240, false, true),
+            (80, 240, false, true), (32, 240, false, true),
+            (360, 90, true, true), (160, 90, true, true),
+            (80, 90, true, true), (32, 90, true, true),
+            (806, 674, false, false), (1045, 674, false, false), (806, 674, true, false),
         ] {
             FixtureState.showsQueue = showsQueue
-            let panes = (0..<4).map { _ in Pane(content: .session(TerminalSession())) }
-            let hosting = NSHostingView(rootView: LayoutFixture(panes: panes, width: width, height: height))
+            let panes = (0..<(showSplitChrome ? 4 : 1)).map { _ in Pane(content: .session(TerminalSession())) }
+            let hosting = NSHostingView(rootView: LayoutFixture(
+                panes: panes, width: width, height: height, showSplitChrome: showSplitChrome
+            ))
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1600, height: 360),
                                   styleMask: .borderless, backing: .buffered, defer: false)
             window.isReleasedWhenClosed = false
@@ -211,6 +231,7 @@ struct PaneBoundsRegression {
             check(surfaces.count == panes.count, "all panes mount at width \(width), queue open=\(showsQueue)")
             for (index, pane) in panes.enumerated() {
                 guard let surface = surfaces.first(where: { $0.id == pane.id }) else { continue }
+                checkSurfaceEdges(surface)
                 let frame = surface.convert(surface.bounds, to: hosting)
                 let expectedMinX = CGFloat(index) * (width + 10)
                 check(frame.minX >= expectedMinX - 0.5 && frame.maxX <= expectedMinX + width + 0.5,
@@ -228,11 +249,13 @@ struct PaneBoundsRegression {
                           "queue controls fill the available width when it fits")
                 }
             }
-            if width == 360 {
+            if width == 360 || !showSplitChrome {
                 // Reuse the same live surfaces while width changes, as it does
                 // on every divider-drag update; static initial layout is not enough.
-                for resizedWidth: CGFloat in [240, 160, 80, 32, 80, 160, 360] {
-                    hosting.rootView = LayoutFixture(panes: panes, width: resizedWidth, height: height)
+                for resizedWidth: CGFloat in [240, 160, 80, 32, 80, 160, width] {
+                    hosting.rootView = LayoutFixture(
+                        panes: panes, width: resizedWidth, height: height, showSplitChrome: showSplitChrome
+                    )
                     hosting.setFrameSize(NSSize(width: CGFloat(panes.count) * (resizedWidth + 10), height: height))
                     hosting.layoutSubtreeIfNeeded()
                     RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.04))
@@ -242,6 +265,7 @@ struct PaneBoundsRegression {
                           "resizing to \(resizedWidth) preserves live terminal surfaces")
                     for (index, pane) in panes.enumerated() {
                         guard let surface = resized.first(where: { $0.id == pane.id }) else { continue }
+                        checkSurfaceEdges(surface)
                         let frame = surface.convert(surface.bounds, to: hosting)
                         let expectedMinX = CGFloat(index) * (resizedWidth + 10)
                         check(frame.minX >= expectedMinX - 0.5 && frame.maxX <= expectedMinX + resizedWidth + 0.5,
@@ -251,6 +275,23 @@ struct PaneBoundsRegression {
             }
             window.close()
         }
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 806, height: 674),
+                              styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        let container = TerminalContainerView()
+        container.focusOnAppear = false
+        window.contentView = container
+        let surface = SurfaceView(id: UUID())
+        let scrollbar = NSView()
+        container.mount(surface, scrollbar: scrollbar)
+        for width: CGFloat in [806, 1045, 80, 806] {
+            window.setContentSize(NSSize(width: width, height: 674))
+            container.layoutSubtreeIfNeeded()
+            checkSurfaceEdges(surface)
+            check(abs(scrollbar.frame.maxX - container.bounds.maxX) < 0.01,
+                  "scrollbar remains pinned to trailing edge without a queue bar")
+        }
+        window.close()
         print("Pane bounds regression: \(checks - failures) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }

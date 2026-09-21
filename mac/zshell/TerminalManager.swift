@@ -1571,9 +1571,9 @@ final class TerminalManager: nonisolated ObservableObject {
         }
     }
 
-    /// Applies main-window opacity. Terminal surfaces become clear only while
-    /// material is active, revealing the shared window backdrop without
-    /// compounding the alpha value.
+    /// Applies main-window opacity. With blur, terminal surfaces tint the
+    /// material with their theme background; window alpha still controls
+    /// the complete workspace, including its text and chrome.
     private func refreshTranslucency() {
         let settings = AppSettings.shared
         window?.alphaValue = CGFloat(settings.effectiveTerminalBackgroundOpacity)

@@ -192,12 +192,14 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     }
 
     /// Reconfigures the surface in place when appearance or terminal settings
-    /// change. The main window owns alpha; a clear default terminal background
-    /// exposes its material layer only while the effect is active.
+    /// change. The main window owns overall opacity; with blur, the terminal
+    /// palette tints the material instead of exposing its unthemed gray fill.
     func applyTheme(backgroundOpacity: CGFloat? = nil) {
+        let settings = AppSettings.shared
         surface.setBackgroundOpacity(
             backgroundOpacity
-                ?? (AppSettings.shared.isTerminalBackgroundBlurActive ? 0 : 1)
+                ?? (settings.isTerminalBackgroundBlurActive
+                    ? CGFloat(settings.effectiveTerminalBackgroundOpacity) : 1)
         )
         surface.applyAppearance()
     }

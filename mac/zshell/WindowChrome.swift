@@ -34,7 +34,7 @@ struct WindowChromeAccessor: NSViewRepresentable {
         DispatchQueue.main.async {
             if let window = view.window {
                 context.coordinator.attach(window)
-                context.coordinator.setFrostedBackground(showsFrostedBackground)
+                context.coordinator.setFrostedBackground(showsFrostedBackground, in: view)
             }
         }
         return view
@@ -43,7 +43,7 @@ struct WindowChromeAccessor: NSViewRepresentable {
     func updateNSView(_ view: NSView, context: Context) {
         if let window = view.window {
             context.coordinator.attach(window)
-            context.coordinator.setFrostedBackground(showsFrostedBackground)
+            context.coordinator.setFrostedBackground(showsFrostedBackground, in: view)
         }
     }
 
@@ -93,28 +93,23 @@ struct WindowChromeAccessor: NSViewRepresentable {
             }
         }
 
-        func setFrostedBackground(_ visible: Bool) {
-            guard let contentView = window?.contentView else { return }
+        func setFrostedBackground(_ visible: Bool, in hostView: NSView) {
             guard visible else {
                 frostedBackground?.removeFromSuperview()
                 frostedBackground = nil
                 return
             }
-            guard frostedBackground?.superview !== contentView else { return }
+            guard frostedBackground?.superview !== hostView else { return }
             frostedBackground?.removeFromSuperview()
 
-            let background = NSVisualEffectView()
+            let background = NSVisualEffectView(frame: hostView.bounds)
             background.material = .underWindowBackground
             background.blendingMode = .behindWindow
             background.state = .followsWindowActiveState
-            background.translatesAutoresizingMaskIntoConstraints = false
-            contentView.addSubview(background, positioned: .below, relativeTo: nil)
-            NSLayoutConstraint.activate([
-                background.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-                background.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-                background.topAnchor.constraint(equalTo: contentView.topAnchor),
-                background.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            ])
+            // SwiftUI sizes this background's host. Keeping the effect inside
+            // it avoids covering the root's rendering or constraining its layout.
+            background.autoresizingMask = [.width, .height]
+            hostView.addSubview(background, positioned: .below, relativeTo: nil)
             frostedBackground = background
         }
 

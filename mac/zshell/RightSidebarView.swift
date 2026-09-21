@@ -141,8 +141,7 @@ struct RightSidebarView: View {
     var body: some View {
         HStack(spacing: 0) {
             if manager.isPanelVisible {
-                Rectangle()
-                    .fill(Color(nsColor: Theme.divider))
+                RightSidebarDivider(backgroundColor: Theme.sidebar, dividerColor: Theme.divider)
                     .frame(width: 1)
 
                 VStack(spacing: 0) {
@@ -375,6 +374,48 @@ struct RightSidebarView: View {
 }
 
 // MARK: - Shared panel chrome
+
+private struct RightSidebarDivider: NSViewRepresentable {
+    let backgroundColor: NSColor
+    let dividerColor: NSColor
+
+    func makeNSView(context: Context) -> RightSidebarDividerNSView {
+        RightSidebarDividerNSView(frame: .zero)
+    }
+
+    func updateNSView(_ view: RightSidebarDividerNSView, context: Context) {
+        view.backgroundColor = backgroundColor
+        view.dividerColor = dividerColor
+        view.needsDisplay = true
+    }
+
+    func sizeThatFits(
+        _ proposal: ProposedViewSize,
+        nsView: RightSidebarDividerNSView,
+        context: Context
+    ) -> CGSize? {
+        CGSize(width: 1, height: proposal.height ?? 0)
+    }
+}
+
+private final class RightSidebarDividerNSView: NSView {
+    var backgroundColor = Theme.sidebar
+    var dividerColor = Theme.divider
+    override var isOpaque: Bool { true }
+
+    override func draw(_ dirtyRect: NSRect) {
+        // 默认分隔色是半透明的，先铺侧栏底色，避免透明窗口在交界处露出桌面。
+        backgroundColor.setFill()
+        bounds.fill()
+        dividerColor.setFill()
+        bounds.fill(using: .sourceOver)
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+}
 
 private struct PanelHeader: View {
     let title: String

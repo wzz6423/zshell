@@ -743,6 +743,8 @@ struct ContentView: View {
             }
 
             VStack(spacing: 0) {
+                mainHeader
+
                 ZStack {
                     // Diff panes stay mounted after their project has been
                     // visited: removing a project's stack pulls every
@@ -807,12 +809,6 @@ struct ContentView: View {
                         hideToolbar: { settings.toolbarVisibility = .hide }
                     )
                 }
-            }
-            // The header must be mounted after the AppKit terminal hosts so it
-            // remains the native hit-test target across its complete height.
-            .padding(.top, MainHeaderNSView.height)
-            .overlay(alignment: .top) {
-                mainHeader
             }
             .background(
                 settings.isTerminalBackgroundBlurActive
