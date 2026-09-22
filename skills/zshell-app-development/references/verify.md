@@ -13,7 +13,7 @@
 
 | 改动范围 | 命令 | 期望 |
 | --- | --- | --- |
-| 任何 app 代码 | `make run` 后实际操作改动路径 | 构建通过，行为符合预期；UI 改动留截图或录屏 |
+| 任何 app 代码 | `make run` 后实际操作改动路径 | 构建通过，行为符合预期；记录实际验证结果 |
 | 终端 surface / 面板 | 同上，并在 Settings 切换 Backend 后新开终端复测 | Ghostty 与 Alacritty 都成立 |
 | `mac/Vendor/alacritty-bridge` | `cd mac/Vendor/alacritty-bridge && cargo test --locked` | 测试通过；`--locked` 与构建阶段一致，能提前暴露过期的 `Cargo.lock` |
 | 桥的发布构型 | `(cd mac/Vendor/alacritty-bridge && cargo build --locked --release)` | 与 app 实际链接的 profile 一致（`panic = "abort"` 只在 release 生效） |

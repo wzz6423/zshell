@@ -161,7 +161,7 @@ Zshell 的开发语言是英文，简体中文和日文翻译维护在 Xcode Str
   ```
 
 - `PR Quality` 检查会校验这个格式；检查失败时 Pull Request 无法合并。随后 `PR Automation` 会打标签并指派 Pull Request。
-- 项目没有单元测试 target：应用改动靠构建、运行 Zshell 并实际操作来证明，所以请在 `Validation` 里写清楚你做了什么，UI 改动请附截图或录屏。桥接层改动请在 `mac/Vendor/alacritty-bridge` 运行 `cargo test --locked`，站点改动请在 `web/` 运行 `bun run typecheck && bun run build`，`mac/scripts/` 下的改动请在 `mac/` 运行 `bunx tsc --noEmit`。运行 Bun 检查前先在各自的包里用 `bun install --frozen-lockfile` 安装依赖。
+- 项目没有单元测试 target：应用改动靠构建、运行 Zshell 并实际操作来证明，所以请在 `Validation` 里写清楚你做了什么及验证结果。桥接层改动请在 `mac/Vendor/alacritty-bridge` 运行 `cargo test --locked`，站点改动请在 `web/` 运行 `bun run typecheck && bun run build`，`mac/scripts/` 下的改动请在 `mac/` 运行 `bunx tsc --noEmit`。运行 Bun 检查前先在各自的包里用 `bun install --frozen-lockfile` 安装依赖。
 - 所有新 UI 都用 AppKit 写。SwiftUI 属于遗留代码，不得引入也不得扩大；对现有 SwiftUI 视图做实质性修改时，要把受影响的 UI 迁移到 AppKit。
 - 改变用户可见行为、构建说明或发布流程时，请同步更新相关文档。[CHANGELOG.md](CHANGELOG.md) 是写给最终用户的，因此只记录最终交付的结果，而不是过程中的修复和重构；版本号只由发布流程提升，绝不在 Pull Request 里改。
 - 不要提交 `mac/build/`、`mac/Vendor/alacritty-bridge/target`、`node_modules`、`dist`、下载的文件、日志、token、签名材料或个人数据。`Repository Hygiene` 会因此失败。

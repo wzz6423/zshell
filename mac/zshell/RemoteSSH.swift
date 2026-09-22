@@ -492,19 +492,19 @@ extension ProjectLocation {
     private enum EmptyCodingKeys: CodingKey {}
 }
 
-struct BoundedProcessOutput: Equatable, Sendable {
+nonisolated struct BoundedProcessOutput: Equatable, Sendable {
     let stdout: String
     let stderr: String
     let wasTruncated: Bool
 }
 
-struct BoundedProcessResult: Equatable, Sendable {
+nonisolated struct BoundedProcessResult: Equatable, Sendable {
     let terminationStatus: Int32
     let timedOut: Bool
     let output: BoundedProcessOutput
 }
 
-struct BoundedProcessRunner {
+nonisolated struct BoundedProcessRunner {
     static func run(
         executableURL: URL,
         arguments: [String],
@@ -652,7 +652,7 @@ struct OpenSSHTransport {
     }
 }
 
-private final class BoundedOutputCollector: @unchecked Sendable {
+private nonisolated final class BoundedOutputCollector: @unchecked Sendable {
     enum Stream {
         case stdout
         case stderr

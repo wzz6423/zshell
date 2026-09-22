@@ -65,7 +65,6 @@ bun scripts/publish-release.ts --verify build/release-v<version> <version> <sour
 
 按实际改动运行脚本测试、客户端验证与官网 build/typecheck。Release 正文写清签名、公证、
 架构、实测系统范围和首次打开步骤；反馈入口指向 GitHub，Gitee 作为发版镜像。
-正文截图若存在，必须为本次 tag 的稳定附件 URL，逐一核对 HTTP 200 与真实 PNG 字节。
 
 失败先按 [troubleshooting](references/troubleshooting.md) 确认线上已生效步骤，从同一份本地产物
 恢复，不能盲目重新打包覆盖。完成后只清本次构建、binary、挂载、测试实例和临时下载，保留

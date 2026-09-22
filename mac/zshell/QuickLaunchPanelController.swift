@@ -205,6 +205,15 @@ final class QuickLaunchPanelController: NSObject {
         content.layer?.masksToBounds = true
         panel.contentView = content
 
+        // Sheet dimming is a sibling of the content view, so clip the window
+        // frame as well to keep the panel's rounded corners transparent.
+        if let frameView = content.superview {
+            frameView.wantsLayer = true
+            frameView.layer?.cornerRadius = 12
+            frameView.layer?.cornerCurve = .continuous
+            frameView.layer?.masksToBounds = true
+        }
+
         buildSearchBar(in: content)
         buildList(in: content)
         buildFooter(in: content)
@@ -419,6 +428,7 @@ final class QuickLaunchPanelController: NSObject {
             button.isBordered = false
             button.font = .systemFont(ofSize: 11)
             button.contentTintColor = .secondaryLabelColor
+            button.setContentCompressionResistancePriority(.required, for: .horizontal)
             if hint.action != #selector(newClicked) {
                 selectionButtons.append(button)
             }
@@ -427,6 +437,25 @@ final class QuickLaunchPanelController: NSObject {
             }
             views.append(button)
         }
+
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        let cliHint = NSTextField(labelWithString: String(
+            localized: "Run: zshell <name>",
+            comment: "Quick Launch footer hint. Keep zshell unchanged; <name> is the saved entry name."
+        ))
+        cliHint.font = .systemFont(ofSize: 11)
+        cliHint.textColor = .secondaryLabelColor
+        cliHint.alignment = .right
+        cliHint.lineBreakMode = .byTruncatingTail
+        cliHint.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        cliHint.toolTip = String(
+            localized: "In the Zshell terminal, run zshell followed by the exact entry name. Quote names containing spaces, for example: zshell \"My Command\".",
+            comment: "Explains how to launch a saved Quick Launch entry from the bundled zshell CLI. Keep zshell unchanged."
+        )
+        cliHint.setAccessibilityHelp(cliHint.toolTip)
+        views.append(contentsOf: [spacer, cliHint])
+
         let footer = NSStackView(views: views)
         footer.orientation = .horizontal
         footer.alignment = .centerY
