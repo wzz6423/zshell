@@ -50,12 +50,14 @@ bun scripts/publish-release.ts --verify build/release-v<version> <version> <sour
 
 ## 更新验收
 
-- Gitee 主 feed：`releases/download/update-release/appcast.xml`。
-- GitHub fallback：`releases/latest/download/appcast.xml`。
+- Gitee feed：`releases/download/update-release/appcast.xml`。
+- GitHub feed：`releases/latest/download/appcast.xml`。
+- 出口 IP 国家码优先，查询失败使用 macOS 系统地区：中国大陆 Gitee → GitHub，其他地区 GitHub → Gitee。
 - 单架构 feed 为 `appcast-arm64.xml` / `appcast-x86_64.xml`，Universal 为 `appcast.xml`。
 - 直接安装和 Homebrew 安装均由 Sparkle 更新。Homebrew 仅保留显式命令或落后版本兜底。
-- 旧版正式测试实例必须走真实签名 feed、下载、验签、替换、重启；主 feed 或下载失败仅重试
-  GitHub 一次。测试 thin 保留架构、Universal 保留双架构、Rosetta Intel 迁移 arm64。
+- 旧版正式测试实例必须走真实签名 feed、下载、验签、替换、重启；首选 feed 或下载失败仅重试
+  备用源一次。覆盖两种地区顺序、IP 查询失败兜底、自动下载并安装开关及其重启持久化。
+  测试 thin 保留架构、Universal 保留双架构、Rosetta Intel 迁移 arm64。
 - 签名字段存在、单元测试通过、Debug 能运行都不能替代真实升级验收。没有旧版测试机时如实
   标注未验证范围，不宣称全部对齐验收完成。
 - 此次 0.1.0 从旧 ad-hoc build 2 迁移到固定自签名 build 3；保留旧下载名、原更新私钥和旧

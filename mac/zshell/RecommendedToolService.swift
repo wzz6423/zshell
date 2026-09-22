@@ -70,14 +70,14 @@ final class RecommendedToolService: ObservableObject {
            let cache = try? JSONDecoder().decode([String: CachedVersion].self, from: data) {
             versionCache = cache
         }
-        for tool in RecommendedTool.allCases where tool != .zshell {
+        for tool in RecommendedTool.allCases {
             states[tool] = RecommendedToolState(latestVersion: versionCache[tool.rawValue]?.version)
         }
     }
 
     var isBusy: Bool { isRefreshing || isInstalling }
     var missingTools: [RecommendedTool] {
-        RecommendedTool.allCases.filter { $0 != .zshell && states[$0]?.hasCheckedInstallation == true && states[$0]?.isInstalled != true }
+        RecommendedTool.allCases.filter { states[$0]?.hasCheckedInstallation == true && states[$0]?.isInstalled != true }
     }
     var updatableTools: [RecommendedTool] {
         RecommendedTool.allCases.filter { states[$0]?.location == .homebrew && states[$0]?.hasUpdate == true }
@@ -90,7 +90,7 @@ final class RecommendedToolService: ObservableObject {
         error = nil
         defer { isRefreshing = false }
         homebrewURL = locateHomebrew()
-        let tools = RecommendedTool.allCases.filter { $0 != .zshell }
+        let tools = RecommendedTool.allCases
         await refreshInstalled(tools)
         await checkLatest(tools, force: force)
     }
@@ -105,7 +105,7 @@ final class RecommendedToolService: ObservableObject {
         isInstalling = true
         error = nil
         defer { activeTool = nil; isInstalling = false }
-        for tool in RecommendedTool.allCases where tools.contains(tool) && tool != .zshell {
+        for tool in RecommendedTool.allCases where tools.contains(tool) {
             guard let package = tool.packageName else { continue }
             activeTool = tool
             states[tool]?.error = nil

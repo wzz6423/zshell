@@ -65,8 +65,8 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>A program running within Zshell would like to use your microphone.</string>
 
-	<!-- Each check starts on Gitee and can retry GitHub once; both feeds and ZIPs
-	     must be signed by the same release key. -->
+	<!-- The updater orders these mirrors by network country, with system region
+	     as a fallback. Both feeds and ZIPs must use the same release key. -->
 	<key>SUFeedURL</key>
 	<string>https://gitee.com/wzz6423/zshell/releases/download/update-release/appcast.xml</string>
 	<key>ZshellReleaseFallbackAppcastURL</key>

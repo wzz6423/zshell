@@ -16,6 +16,16 @@ the original feature bullet instead of adding separate entries for them.
 
 ## [Unreleased]
 
+### Added
+
+- Choose whether Zshell downloads and installs updates automatically in Settings.
+
+### Changed
+
+- Prefer Gitee for updates in mainland China and GitHub elsewhere, with the other
+  source available as a fallback.
+- Recommend Zisla in the desktop application list instead of Zshell itself.
+
 ## [0.1.4]
 
 ### Added

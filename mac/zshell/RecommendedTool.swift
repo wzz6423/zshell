@@ -65,7 +65,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
     case kaku
     case kero
     case markdownPreview
-    case zshell
+    case zisla
 
     var name: String {
         switch self {
@@ -114,7 +114,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .kaku: "Kaku"
         case .kero: "Kero"
         case .markdownPreview: "Markdown Preview"
-        case .zshell: "Zshell"
+        case .zisla: "Zisla"
         }
     }
 
@@ -165,7 +165,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .kaku: String(localized: "Terminal for AI coding")
         case .kero: String(localized: "Terminal workspace")
         case .markdownPreview: String(localized: "Markdown preview")
-        case .zshell: String(localized: "Native macOS terminal workspace")
+        case .zisla: String(localized: "Media, files, system tools, and local AI")
         }
     }
 
@@ -216,7 +216,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .kaku: "kaku"
         case .kero: "kero"
         case .markdownPreview: "mdp"
-        case .zshell: "zshell"
+        case .zisla: "zisla"
         }
     }
 
@@ -267,13 +267,13 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .kaku: "tw93/tap/kakuku"
         case .kero: "egoist/tap/kero"
         case .markdownPreview: "markdown-preview"
-        case .zshell: nil
+        case .zisla: "wzz6423/tap/zisla"
         }
     }
 
     var isCask: Bool {
         switch self {
-        case .libreOffice, .keka, .kaku, .kero, .markdownPreview: true
+        case .libreOffice, .keka, .kaku, .kero, .markdownPreview, .zisla: true
         default: false
         }
     }
@@ -296,7 +296,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
             .developmentToolchain
         case .ytDLP, .libreOffice, .keka:
             .utility
-        case .kaku, .kero, .markdownPreview, .zshell:
+        case .kaku, .kero, .markdownPreview, .zisla:
             .desktopApplication
         }
     }
@@ -308,6 +308,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .kaku: "Kaku"
         case .kero: "Kero"
         case .markdownPreview: "Markdown Preview"
+        case .zisla: "zisla"
         default: nil
         }
     }
@@ -336,6 +337,8 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
             source = "https://api.github.com/repos/tw93/homebrew-tap/contents/Casks/kakuku.rb?ref=main"
         case .kero:
             source = "https://api.github.com/repos/egoist/homebrew-tap/contents/Casks/kero.rb?ref=main"
+        case .zisla:
+            source = "https://api.github.com/repos/wzz6423/homebrew-tap/contents/Casks/zisla.rb?ref=main"
         default:
             source = "https://formulae.brew.sh/api/\(isCask ? "cask" : "formula")/\(packageName).json"
         }

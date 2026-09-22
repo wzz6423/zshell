@@ -8,7 +8,6 @@ import Combine
 
 final class SettingsRecommendationsPane: SettingsPaneViewController {
     private let service = RecommendedToolService()
-    private let updater = Updater.shared
     private var rows: [RecommendedTool: SettingsRow] = [:]
     private var buttons: [RecommendedTool: SettingsActionButton] = [:]
     private var timer: Timer?
@@ -61,7 +60,6 @@ final class SettingsRecommendationsPane: SettingsPaneViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         observe(service.objectWillChange.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.sync() })
-        observe(updater.objectWillChange.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.sync() })
         sync()
     }
 
@@ -86,9 +84,7 @@ final class SettingsRecommendationsPane: SettingsPaneViewController {
     private func makeRow(_ tool: RecommendedTool) -> NSView {
         let button = SettingsActionButton(title: String(localized: "Install")) { [weak self] in
             guard let self else { return }
-            if tool == .zshell {
-                self.updater.checkForUpdates()
-            } else if self.service.states[tool]?.location == .homebrew && self.service.states[tool]?.hasUpdate != true {
+            if self.service.states[tool]?.location == .homebrew && self.service.states[tool]?.hasUpdate != true {
                 Task { await self.service.refresh(force: true) }
             } else {
                 Task { await self.service.install([tool]) }
@@ -126,12 +122,6 @@ final class SettingsRecommendationsPane: SettingsPaneViewController {
         status.textColor = service.error == nil ? .secondaryLabelColor : .systemRed
         for tool in RecommendedTool.allCases {
             guard let row = rows[tool], let button = buttons[tool] else { continue }
-            if tool == .zshell {
-                row.setDescription(tool.purpose + "\n" + String(localized: "Zshell updates are managed in Updates settings."))
-                button.title = updater.updateActionTitle
-                button.isEnabled = updater.canCheckForUpdates && !updater.isUpdating
-                continue
-            }
             let state = service.states[tool] ?? RecommendedToolState()
             var detail = tool.purpose
             if let version = state.installedVersion {

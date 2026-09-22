@@ -20,7 +20,7 @@ dotfiles。终端窗格可以选择 Ghostty 或 Alacritty 作为后端。
 
 <Accordion title="它会收集数据吗？">
 
-没有遥测，也没有分析统计。Zshell 自己发起的唯一网络请求，是向 Gitee 上的发布 feed 检查更新，失败时回退 GitHub，而这个可以在 **设置 → Updates** 里关掉。
+没有遥测，也没有分析统计。检查更新时会查询网络出口 IP 的国家码，以选择 GitHub 或 Gitee，再获取发布 feed。在**设置 → 更新**中关闭自动检查，就会停止这些后台请求；手动检查仍会发起请求。详见[更新说明](/zh/docs/installation#更新)。推荐页面打开时也会查询工具版本。
 
 你在[浏览器窗格](/zh/docs/browser)里打开的网页，以及自己运行的 agent CLI，会像在 Zshell 外面一样发起你要求的网络请求。
 
