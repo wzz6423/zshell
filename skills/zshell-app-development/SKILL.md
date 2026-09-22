@@ -99,7 +99,7 @@ xcodebuild -project mac/zshell.xcodeproj -scheme zshell -configuration Debug \
 
 ## 验证
 
-app 没有单元测试目标：**构建、运行、实际操作改动路径**就是验证，UI 改动附截图或录屏。
+app 没有单元测试目标：**构建、运行、实际操作改动路径**就是验证，在 PR 的 `Validation` 中说明结果。
 最小组合：
 
 ```sh

@@ -164,9 +164,7 @@ the maintainer merges the PR; do not deploy unmerged website changes.
 
 State that this is a stable macOS release, its signing and notarization status,
 first-launch steps, supported architectures, and actually tested macOS versions.
-Link issues and PRs to GitHub; Gitee is the release mirror. If including product
-screenshots, upload them as versioned release assets and verify that the URLs in
-each host's release body return the expected PNG bytes.
+Link issues and PRs to GitHub; Gitee is the release mirror.
 
 The original 0.1.0 ad-hoc build 2 retains its legacy download names. The planned aligned
 0.1.0 build 3 will use the canonical architecture names and a higher Sparkle build
