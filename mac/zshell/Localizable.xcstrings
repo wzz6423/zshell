@@ -1142,6 +1142,22 @@
         }
       }
     },
+    "Automatically download and install updates": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アップデートを自動でダウンロードしてインストール"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动下载并安装更新"
+          }
+        }
+      }
+    },
     "Automation": {
       "localizations": {
         "ja": {
@@ -5475,6 +5491,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "区分大小写"
+          }
+        }
+      }
+    },
+    "Media, files, system tools, and local AI": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メディア、ファイル、システムツール、ローカル AI"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "媒体、文件、系统工具与本地 AI"
           }
         }
       }
@@ -12616,6 +12648,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "通过 Homebrew 下载并安装。"
+          }
+        }
+      }
+    },
+    "Downloads updates in the background and installs them when you quit or restart Zshell.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バックグラウンドでアップデートをダウンロードし、Zshell の終了時または再起動時にインストールします。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在后台下载更新，并在退出或重启 Zshell 时安装。"
           }
         }
       }

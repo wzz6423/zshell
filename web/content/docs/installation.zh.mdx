@@ -32,22 +32,27 @@ brew upgrade --cask --greedy-auto-updates zshell
 ## 更新
 
 直接下载和 Homebrew 安装都通过 [Sparkle](https://sparkle-project.org) 更新。
-Zshell 优先访问 Gitee 更新源；feed 或下载失败时，自动重试 GitHub 一次。
-安装前会验证 feed 和更新包的签名，并保留安装包的架构；在 Rosetta 下运行的 Intel 版
-会迁移到 Apple Silicon 版。
+中国大陆优先访问 Gitee，失败后尝试 GitHub；其他地区优先访问 GitHub，失败后尝试 Gitee。
+地区优先使用当前网络出口 IP 的国家码，查询失败时使用 macOS 系统地区。
+国家码查询使用 [ipinfo.io/country](https://ipinfo.io/country)，最多等待 5 秒，结果仅在内存中
+缓存 30 分钟。服务会接收到网络公网 IP，Zshell 不保存 IP；关闭自动检查也会停止后台国家码查询。
 
-用 <kbd>Cmd</kbd>+<kbd>,</kbd> 打开 **设置 → Updates**，可控制自动检查，
-或选择 **Check for Updates…** 立即检查。下载完成后，在退出或重启 Zshell 时安装。
-需要显式更新或补齐落后的已安装版本时，使用上面的 Homebrew 命令。
+feed 或更新包下载失败时，只切换到另一个源重试一次。安装前会验证 feed 和更新包的签名，
+并保留安装包的架构；在 Rosetta 下运行的 Intel 版会迁移到 Apple Silicon 版。
+
+用 <kbd>Cmd</kbd>+<kbd>,</kbd> 打开 **设置 → 更新**，可分别控制**自动检查更新**和
+**自动下载并安装更新**。自动下载默认关闭，需要先开启自动检查；开启后会在后台下载，
+并在退出或重启 Zshell 时安装。也可以选择**检查更新…**立即手动检查，或使用上面的
+Homebrew 命令显式更新。
 
 ## 推荐工具
 
-打开 **设置 → 推荐**，可以浏览与 Zisla 相同的终端效率、网络与数据、开发工具链、
-实用工具和桌面应用清单。页面会自动检测已安装的工具和可用更新。点击单项的
+打开 **设置 → 推荐**，可以浏览终端效率、网络与数据、开发工具链、实用工具和桌面应用，
+其中包括 Zisla。页面会自动检测已安装的工具和可用更新。点击单项的
 **安装**或**更新**，也可以批量安装缺失工具、更新有新版本的工具。
 
 工具安装使用 Homebrew；尚未安装 Homebrew 时，页面会提供安装说明入口。
-自动检查不会自行安装或更新工具。清单中的 Zshell 使用应用内置更新器。
+自动检查不会自行安装或更新工具。Zshell 自身的更新在**设置 → 更新**中管理。
 
 ## 从 Finder 打开文件夹
 

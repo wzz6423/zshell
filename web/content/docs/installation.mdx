@@ -34,27 +34,36 @@ brew upgrade --cask --greedy-auto-updates zshell
 ## Updates
 
 Both direct downloads and Homebrew installations use
-[Sparkle](https://sparkle-project.org). Zshell checks the Gitee update source
-first and retries GitHub once if the feed or download fails. It verifies the
-signed feed and update package before installation and keeps the installed
-architecture; Intel apps running under Rosetta migrate to Apple Silicon.
+[Sparkle](https://sparkle-project.org). In mainland China, Zshell tries Gitee
+first, then GitHub; elsewhere, it tries GitHub first, then Gitee. It uses the
+network's IP country when available and falls back to the macOS region if the
+country lookup fails. A failed feed or download retries the other source once.
+The country lookup uses [ipinfo.io/country](https://ipinfo.io/country), with a
+five-second timeout and a 30-minute in-memory cache. This request exposes the
+network's public IP to that service; Zshell does not save the IP. Turning off
+automatic checks also stops background country lookups.
+
+Zshell verifies the signed feed and update package before installation and keeps
+the installed architecture; Intel apps running under Rosetta migrate to Apple Silicon.
 
 Open **Settings → Updates** (<kbd>Cmd</kbd>+<kbd>,</kbd>) to control automatic
-checks, or choose **Check for Updates…** to check now. Downloaded
-updates install when you quit or restart Zshell. Use the Homebrew command above for an explicit update or when the installed
-version is behind.
+checks and **Automatically download and install updates** separately. Automatic
+downloads are off by default and require automatic checks to be enabled. When
+you opt in, updates download in the background and install when you quit or
+restart Zshell. Choose **Check for Updates…** to check manually. The Homebrew
+command above remains available for an explicit update.
 
 ## Recommended tools
 
-Open **Settings → Recommendations** to browse the same terminal, network,
-development, utility, and desktop tools recommended by Zisla. The page detects
+Open **Settings → Recommendations** to browse terminal, network, development,
+utility, and desktop tools, including Zisla. The page detects
 installed tools and checks for available updates automatically. Use a tool's
 **Install** or **Update** button, or install missing tools and update available
 tools in a batch.
 
 Tool installation uses Homebrew. If Homebrew is missing, the page links to its
 installation instructions. Checks do not install or update tools on their own.
-Zshell's own entry uses its built-in updater.
+Zshell itself is managed separately in **Settings → Updates**.
 
 ## Open a folder from Finder
 

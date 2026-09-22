@@ -5,8 +5,9 @@ import Foundation
 import Sparkle
 
 @MainActor
-private final class InstallDriver: SPUStandardUserDriver {
+private final class InstallDriver: SPUStandardUserDriver, SPUUpdaterDelegate {
     let root: URL
+    let automatic = Bundle.main.object(forInfoDictionaryKey: "ZshellTestAutomatic") as? Bool == true
 
     init(root: URL) {
         self.root = root
@@ -33,6 +34,12 @@ private final class InstallDriver: SPUStandardUserDriver {
     override func showUserInitiatedUpdateCheck(cancellation: @escaping () -> Void) {}
     override func showUpdateFound(with appcastItem: SUAppcastItem, state: SPUUserUpdateState,
                                   reply: @escaping (SPUUserUpdateChoice) -> Void) {
+        guard !automatic else {
+            record("error", details: "Automatic updates must download without an update prompt")
+            reply(.dismiss)
+            NSApp.terminate(nil)
+            return
+        }
         guard appcastItem.signingValidationStatus == .succeeded else {
             record("error", details: "Appcast did not pass its signature check")
             reply(.dismiss)
@@ -72,6 +79,27 @@ private final class InstallDriver: SPUStandardUserDriver {
         acknowledgement()
     }
     override func dismissUpdateInstallation() {}
+
+    func updater(_ updater: SPUUpdater, didDownloadUpdate item: SUAppcastItem) {
+        guard automatic else { return }
+        guard item.signingValidationStatus == .succeeded else {
+            record("error", details: "Automatic download used an unverified feed")
+            NSApp.terminate(nil)
+            return
+        }
+        record("signedFeedAccepted", details: item.versionString)
+        record("automaticDownload")
+    }
+
+    func updater(_ updater: SPUUpdater, willInstallUpdateOnQuit item: SUAppcastItem,
+                 immediateInstallationBlock: @escaping () -> Void) -> Bool {
+        guard automatic else { return false }
+        record("ready")
+        record("quitForAutomaticInstall")
+        // Let Sparkle's installer observe a normal quit instead of requesting immediate installation.
+        DispatchQueue.main.async { NSApp.terminate(nil) }
+        return false
+    }
 }
 
 @main
@@ -104,9 +132,13 @@ struct SparkleInstallFixture {
             return
         }
         let updater = SPUUpdater(hostBundle: .main, applicationBundle: .main,
-                                 userDriver: driver, delegate: nil)
+                                 userDriver: driver, delegate: driver)
         try updater.start()
-        DispatchQueue.main.async { updater.checkForUpdates() }
+        if driver.automatic {
+            updater.checkForUpdatesInBackground()
+        } else {
+            DispatchQueue.main.async { updater.checkForUpdates() }
+        }
         withExtendedLifetime((driver, updater)) { app.run() }
     }
 }

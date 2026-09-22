@@ -128,10 +128,12 @@ the Applications symlink. Do not treat a signature field's presence as a
 successful installation test.
 
 Test an older Release installation through **Check for Updates…** to verify
-feed signature, archive signature, replacement, and restart. Verify Gitee first,
-then one GitHub retry when the primary feed or package download fails. Thin
+feed signature, archive signature, replacement, and restart. Verify Gitee → GitHub
+for mainland China and GitHub → Gitee elsewhere, with one retry when the preferred
+feed or package download fails. Cover IP country lookup success, failure with
+macOS region fallback, and automatic download/install opt-in across relaunches. Thin
 installs retain their architecture, Universal retains both slices, and an Intel
-app running under Rosetta migrates to Apple Silicon. Debug does not initialize
+app running under Rosetta migrates to Apple Silicon. Debug does not start
 Sparkle and cannot substitute for this test. Record any unavailable test machine
 or incomplete installation test explicitly.
 

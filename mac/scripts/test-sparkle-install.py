@@ -4,6 +4,7 @@
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+import argparse
 import json
 import os
 import platform
@@ -40,7 +41,7 @@ def appcast_tool():
     return hits[0]
 
 
-def main():
+def main(automatic=False):
     generator = appcast_tool()
     bundle_id = "sh.zshell.sparkle-install-test." + uuid.uuid4().hex
     with tempfile.TemporaryDirectory(prefix="zshell-sparkle-install-") as temporary:
@@ -83,7 +84,8 @@ def main():
                     "CFBundlePackageType": "APPL", "CFBundleShortVersionString": f"0.0.{build}",
                     "CFBundleVersion": build, "LSMinimumSystemVersion": "15.6", "LSUIElement": True,
                     "SUFeedURL": prefix + "appcast.xml", "SUPublicEDKey": public_key,
-                    "SUEnableAutomaticChecks": False, "SURequireSignedFeed": True,
+                    "SUEnableAutomaticChecks": automatic, "SUAutomaticallyUpdate": automatic,
+                    "SURequireSignedFeed": True, "ZshellTestAutomatic": automatic,
                     "SUVerifyUpdateBeforeExtraction": True, "ZshellTestRoot": str(root),
                 }
                 (contents / "Info.plist").write_bytes(plistlib.dumps(info))
@@ -103,6 +105,7 @@ def main():
             with (root / "fixture.log").open("w") as log:
                 process = subprocess.Popen([str(installed / "Contents/MacOS/Fixture")], env=ENV, stdout=log, stderr=log)
                 old_pid = process.pid
+                relaunched_after_quit = False
                 deadline = time.monotonic() + 120
                 while time.monotonic() < deadline:
                     marker = root / "relaunched.json"
@@ -111,6 +114,11 @@ def main():
                     errors = [event for event in events if event["stage"] == "error"]
                     if errors:
                         raise RuntimeError(f"Sparkle error: {errors}; stages: {events}; log: {(root / 'fixture.log').read_text()}")
+                    if automatic and not relaunched_after_quit and process.poll() is not None:
+                        installed_info = installed / "Contents/Info.plist"
+                        if installed_info.exists() and plistlib.loads(installed_info.read_bytes())["CFBundleVersion"] == "2":
+                            process = subprocess.Popen([str(installed / "Contents/MacOS/Fixture")], env=ENV, stdout=log, stderr=log)
+                            relaunched_after_quit = True
                     if marker.exists():
                         result = json.loads(marker.read_text())
                         assert result["build"] == "2" and result["pid"] != old_pid, result
@@ -118,12 +126,17 @@ def main():
                         assert result["architecture"] == platform.machine(), result
                         assert any(event["stage"] == "signedFeedAccepted" for event in events), events
                         assert any(event["stage"] == "ready" for event in events), events
+                        if automatic:
+                            assert any(event["stage"] == "automaticDownload" for event in events), events
+                            assert any(event["stage"] == "quitForAutomaticInstall" for event in events), events
                         assert "/appcast.xml" in requests and "/fixture-update.zip" in requests, requests
                         assert plistlib.loads((installed / "Contents/Info.plist").read_bytes())["CFBundleVersion"] == "2"
                         run("/usr/bin/codesign", "--verify", "--deep", "--strict", installed)
                         # Wait for the relaunched fixture to finish flushing its test preferences.
                         exit_deadline = time.monotonic() + 10
                         while time.monotonic() < exit_deadline:
+                            if result["pid"] == process.pid and process.poll() is not None:
+                                break
                             try:
                                 os.kill(result["pid"], 0)
                             except ProcessLookupError:
@@ -131,7 +144,8 @@ def main():
                             time.sleep(0.05)
                         else:
                             raise RuntimeError("Relaunched fixture did not exit")
-                        print("Sparkle installer fixture E2E: 1 passed, 0 failed (signed feed + ZIP, in-place install, relaunch, architecture, codesign)", flush=True)
+                        mode = "automatic download + install on quit" if automatic else "manual update"
+                        print(f"Sparkle installer fixture E2E: 1 passed, 0 failed ({mode}, signed feed + ZIP, in-place install, relaunch, architecture, codesign)", flush=True)
                         return
                     time.sleep(0.1)
                 raise RuntimeError(f"Timed out; stages: {events}; log: {(root / 'fixture.log').read_text()}")
@@ -149,8 +163,11 @@ def main():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--automatic", action="store_true", help="Verify background download and installation on normal quit")
+    arguments = parser.parse_args()
     try:
-        main()
+        main(arguments.automatic)
     except subprocess.CalledProcessError as error:
         print(error.output.decode() if isinstance(error.output, bytes) else error.output)
         raise
