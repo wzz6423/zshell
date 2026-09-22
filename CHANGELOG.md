@@ -16,6 +16,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ## [Unreleased]
 
+## [0.1.5]
+
 ### Added
 
 - Choose whether Zshell downloads and installs updates automatically in Settings.
