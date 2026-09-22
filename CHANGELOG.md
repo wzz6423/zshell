@@ -16,21 +16,45 @@ the original feature bullet instead of adding separate entries for them.
 
 ## [Unreleased]
 
+## [0.1.4]
+
 ### Added
 
-- Browse recommended tools in Settings, install them individually or in a batch,
-  and automatically check for available updates.
+- Browse recommended development tools in Settings, install or update them
+  individually or in batches, and automatically check for available updates.
+- Search file contents within a project or across open projects, and preview
+  Markdown files directly in the editor.
+- Use Quick Launch to save, group, and run frequent commands or SSH connections
+  in fresh projects, including from the `zshell` command line.
+- Open remote SSH projects with saved connection authentication, and organize
+  local or remote projects with reorderable sidebar groups and Finder folder
+  drops.
+- Review repository changes from the Git panel, and use a built-in terminal
+  multiplexer, prompt queue, and long-command notifications to manage active
+  terminal work.
+- Manage sessions more directly with tab renaming, color markers, pinning,
+  reopening, grouping, and moves between compatible projects or windows while
+  preserving their running terminals and split layouts.
+- Customize the interface and terminal with appearance scaling, alternate app
+  icons, settings import and export, remapped shortcuts, startup programs,
+  environment setup, quick commands, terminal themes, opacity, and blur.
+- Monitor agent usage and limits from the workspace while keeping agent work
+  visible alongside files, diffs, and terminals.
 - Make copying terminal selections configurable from Terminal settings.
-- Move a tab to another project — including a project in another Zshell window —
-  from the tab's context menu. The tab keeps its running shells, split layout,
-  and focus while it moves.
 
 ### Fixed
 
-- Terminal links now recognize web addresses without a scheme —
-  `www.baidu.com`, `baidu.com/docs`, `localhost:3000` — so ⌘-click and the
-  context menu open them like `https://` links. Ordinary dotted words such as
+- Terminal links now recognize web addresses without a scheme, including
+  `www.baidu.com`, `baidu.com/docs`, and `localhost:3000`, so Command-click
+  and the context menu open them like `https://` links. Ordinary dotted words such as
   file names still stay plain text.
+- Improve terminal interaction across both backends, including mouse-aware
+  applications, selection autoscrolling, IME composition, text metrics, and
+  first-pane mounting.
+- Restore reliable sidebar grouping, tab scrolling and pane transfers, row
+  button actions, workspace sizing, and appearance behavior.
+- Reduce unnecessary large-file highlighting and file reload work while keeping
+  project views accurate after terminal directory changes.
 
 ## [0.1.3]
 
@@ -57,13 +81,3 @@ the original feature bullet instead of adding separate entries for them.
   remembers its size and position.
 - Editor line wrapping, AI agent coordination, and automatic update checks
   start out enabled.
-
-## [unreleased]
-
-### Added
-
-- Scale tabs, icons, controls, and sidebars from Appearance settings while keeping terminal content at its configured font size.
-- Quick Launch (⌘O): save the commands and SSH connections you start over and
-  over, then fuzzy-search and launch any of them into a fresh terminal session.
-  Entries are managed right in the launcher and stored per user, and a finished
-  command or closed connection leaves a normal shell prompt in the pane.
