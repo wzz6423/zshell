@@ -16,6 +16,11 @@ the original feature bullet instead of adding separate entries for them.
 
 ## [Unreleased]
 
+### Fixed
+
+- Show complete session names in the scrollable tab strip, and place the
+  ellipsis at the end of project names that do not fit in the sidebar.
+
 ## [0.1.5]
 
 ### Added

@@ -256,7 +256,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         groupControlColor = group ? (marker ?? .defaultColor).nsColor : nil
         let fontSize: CGFloat = (group ? 10.5 : 11.5) * scale
         titleLabel.font = .systemFont(ofSize: fontSize, weight: group ? .medium : .regular)
-        titleLabel.lineBreakMode = fillsGroupRow ? .byTruncatingTail : .byTruncatingMiddle
+        titleLabel.lineBreakMode = sidebar ? .byTruncatingTail : .byTruncatingMiddle
         titleLabel.alignment = fillsGroupRow ? .left : .natural
         titleLabel.stringValue = title
         titleLabel.textColor = (isCompactGroup || fillsGroupRow)
@@ -320,6 +320,10 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
             + (iconView.image == nil ? 0 : 17 * scale)
             + (pinView.isHidden ? 0 : 13 * scale)
         let trailing = 6 * scale + actionSlotWidth + countWidth + badgeWidth
+        if usesTabStripHoverTracking {
+            let fullTitleWidth = ceil(titleLabel.cell?.cellSize.width ?? titleWidth)
+            return max(68 * scale, leading + fullTitleWidth + trailing + 2 * scale)
+        }
         return min(260 * scale, max(68 * scale, leading + min(titleWidth, 160 * scale) + trailing))
     }
 
