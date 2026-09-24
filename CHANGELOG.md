@@ -16,6 +16,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ## [Unreleased]
 
+## [0.1.6]
+
 ### Fixed
 
 - Show complete session names in the scrollable tab strip, and place the
