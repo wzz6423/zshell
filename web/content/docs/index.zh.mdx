@@ -1,32 +1,41 @@
 ---
-title: Zshell 是什么
-description: 原生 macOS 终端工作区——项目、会话、浏览器、文件、git 与编码 agent，都在同一个窗口里。
+title: 文档
+description: 安装 Zshell，管理项目与终端，使用 Git、浏览器和 Agent 协作。
 ---
 
-Zshell 是一个终端。窗口里其余的部分，是为了让你不必离开它。
-
-你手上的每个仓库，都会成为侧边栏里的一个**项目**。一个项目可以开任意多个终端**会话**，每个会话是一个标签页，有自己的工作目录和滚动历史；每个标签页还可以**分屏**成多个窗格。在这一切旁边是侧边面板，各自只需一个快捷键：用来审阅和提交的 git 面板、带编辑器的文件树，以及当前会话正在跑哪些进程、开了哪些端口的实时视图。
-
-浏览器窗格和编码 agent 状态也在同一个项目布局里，不会再变成一堆要单独管理的窗口。
-
-终端窗格可以选择 [Ghostty 或 Alacritty](/zh/docs/terminal#终端后端)，两者都由 Zshell 原生承载并用 GPU 渲染。你的 shell、提示符、别名和 dotfiles 一律原封不动。
-
-## 它不是什么
-
-Zshell 不是 IDE，也不打算变成 IDE。git 和文件面板的存在，是为了让你不切换应用就能读一段
-diff、改一个错字——而不是让你整天泡在里面。它也不会背着你做事：每一个 git 操作都对应一条你本可以自己敲的命令，输出会原样展示给你。
-
-## 接下来看什么
+## 开始使用
 
 <Cards>
-  <Card title="安装 Zshell" href="/zh/docs/installation" description="下载、Homebrew、更新与卸载。" />
-  <Card title="快速上手" href="/zh/docs/quick-start" description="五分钟从空窗口到能干活的项目。" />
-  <Card title="键盘快捷键" href="/zh/docs/shortcuts" description="按用途分组的完整列表。" />
-  <Card title="配置" href="/zh/docs/configuration" description="持久化选项，以及 Zshell 把它们存在哪里。" />
-  <Card title="浏览器窗格" href="/zh/docs/browser" description="把网页或本地服务放在对应终端旁边。" />
-  <Card title="与 AI Agent 协作" href="/zh/docs/automation" description="让 agent 在窗格间分派和协调工作，而你掌握进度与决定权。" />
+  <Card title="安装" href="/docs/installation" description="下载、Homebrew、系统要求与更新。" />
+  <Card title="快速上手" href="/docs/quick-start" description="添加项目、创建会话、分屏与审阅代码。" />
+  <Card title="快捷键" href="/docs/shortcuts" description="常用操作、全局快捷终端与自定义按键。" />
+  <Card title="配置" href="/docs/configuration" description="外观、终端行为、配置文件与设置迁移。" />
 </Cards>
 
-## 免费，而且很低调
+## 工作区结构
 
-Zshell 免费，源码基于 PolyForm Noncommercial License 1.0.0 公开，不需要账号，也没有订阅。它不发送任何遥测数据，不做分析统计。[检查更新](/zh/docs/installation#更新)时，会查询 IP 国家码以选择 GitHub 或 Gitee 更新源；可以在设置里关闭自动检查。推荐页面打开时会查询工具版本。浏览器和 agent CLI 会发起你要求的网络请求。
+| 对象 | 用途 |
+| --- | --- |
+| 项目 | 本地目录或 SSH 连接；在侧边栏中分组管理 |
+| 会话 | 项目中的标签页，可重命名、标色、固定和分组 |
+| 窗格 | 标签页内的终端、浏览器、编辑器或 diff，可分屏排列 |
+
+## 功能参考
+
+| 功能 | 文档内容 |
+| --- | --- |
+| [项目与会话](/docs/projects) | 本地 / SSH 项目、标签页管理、终端环境与恢复 |
+| [分屏与窗格](/docs/panes) | 分屏、焦点、缩放与布局 |
+| [终端](/docs/terminal) | Ghostty / Alacritty、查找、通知、提示词队列与快捷终端 |
+| [快速启动](/docs/quick-launch) | 保存命令、SSH 连接和分组 |
+| [浏览器](/docs/browser) | 网页、本地服务与终端并排 |
+| [Git 面板](/docs/git) | diff、暂存、提交、分支、stash 与 worktree |
+| [文件与编辑器](/docs/files) | 文件搜索、编辑、Markdown 预览与外部编辑器 |
+| [进程与端口](/docs/session-info) | 当前会话的进程、监听端口与资源使用 |
+| [Agent 协作](/docs/automation) | 窗格协调、状态跟踪与账户用量 |
+
+## 许可与隐私
+
+Zshell 免费，源码基于 PolyForm Noncommercial License 1.0.0 公开，无需账号或订阅。
+应用没有遥测或分析统计。更新检查、工具版本查询和已配置的 Agent 用量服务可能联网；
+浏览器与命令行工具发起各自的请求。详见[常见问题](/docs/faq)。

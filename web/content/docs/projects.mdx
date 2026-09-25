@@ -33,6 +33,21 @@ same way a tab title does. Right-click it in the sidebar for **Rename…** (and
 Project**. Closing a project ends its sessions; it doesn't touch anything on
 disk.
 
+### Saved SSH projects
+
+Open the command palette (<kbd>Cmd</kbd>+<kbd>P</kbd>) and choose **New SSH
+Project…**. Add a host, optional user and port, and the remote directory to
+open. Choose **SSH Agent**, **Password**, **Private Key File**, or **Private Key
+Text** for authentication, then save the connection and select **Connect**.
+
+Saved connections stay available after relaunch. Use the optional **Group**
+field to organize the connection list, and its edit and delete buttons to
+maintain entries. Passwords and pasted private keys are saved in macOS Keychain;
+a private-key file entry remembers the path to your existing key.
+
+For a command or an SSH launch with extra options, see
+[Quick Launch](/en/docs/quick-launch).
+
 ### Sidebar groups
 
 Use **New Group** at the bottom of the sidebar to create a **Plain Group** or a
@@ -155,5 +170,18 @@ keep processes alive in the background — if a build was running when you quit,
 stopped when you quit.
 
 Previous scrollback is restored only if you ask for it, with
-[`terminal.restore-history`](/docs/configuration#terminalrestore-history). It's
+[`terminal.restore-history`](/en/docs/configuration#terminalrestore-history). It's
 off by default because the restored scrollback is stored on disk.
+
+## Terminal environment and initialization
+
+Select a project, then use **Terminal → Project Terminal Environment…** to set environment variables and an initialization command.
+Use **Terminal → Tab Terminal Environment…** for the current tab's overrides.
+
+| Scope | Behavior |
+| --- | --- |
+| Project | New terminals in this project inherit its variables and initialization command |
+| Tab | Variables override project values with the same name; the command can inherit, replace, or disable the project command |
+
+Changes affect only terminals created after saving. Existing processes keep their environment. Initialization runs for the normal login shell, not for a custom startup program or explicit argv.
+`ZSHELL_*`, `TERM`, `COLORTERM`, `TERM_PROGRAM`, and `TERM_PROGRAM_VERSION` are managed by Zshell and cannot be overridden.

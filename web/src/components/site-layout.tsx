@@ -14,7 +14,7 @@ export function SiteLayout({
   lang?: string
 }) {
   return (
-    <main className="mx-auto flex max-w-[680px] flex-col gap-11 px-6 pt-[12vh] pb-[14vh] font-mono text-[14px] leading-[1.6]">
+    <main className="home-container flex flex-col gap-14 pt-16 pb-20 font-mono text-[14px] leading-[1.6]">
       <header className="flex flex-col gap-3">
         <h1 className="text-2xl font-bold tracking-[0.02em]">
           <HomeLink lang={lang} className="flex items-center gap-2.5">

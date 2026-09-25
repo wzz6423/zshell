@@ -30,10 +30,10 @@ const DocsSearchDialog = lazy(() => import('@/components/docs-search'))
 export const docsClientLoader = browserCollections.docs.createClientLoader({
   component({ toc, frontmatter, default: MDX }) {
     return (
-      <DocsPage toc={toc}>
+      <DocsPage toc={toc} className="docs-page" tableOfContent={{ single: true }}>
         <DocsTitle>{frontmatter.title}</DocsTitle>
-        <DocsDescription>{frontmatter.description}</DocsDescription>
-        <DocsBody>
+        <DocsDescription className="docs-description">{frontmatter.description}</DocsDescription>
+        <DocsBody className="docs-body">
           <MDX components={getMDXComponents()} />
         </DocsBody>
       </DocsPage>
@@ -72,7 +72,7 @@ export function DocsShell({
             : navigate({ to: '/$lang/docs/$', params: { lang: next, _splat: slug } }),
       }}
     >
-      <DocsLayout {...docsLayoutOptions(lang)} tree={data.pageTree}>
+      <DocsLayout {...docsLayoutOptions(lang)} tree={data.pageTree} containerProps={{ className: 'docs-layout' }}>
         <Suspense>{docsClientLoader.useContent(data.path)}</Suspense>
       </DocsLayout>
     </RootProvider>

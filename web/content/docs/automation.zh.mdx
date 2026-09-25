@@ -5,11 +5,11 @@ description: 让编码 agent 在 Zshell 窗格间分派和协调工作，而你�
 
 Zshell 的自动化主要是给 AI 编码 agent 用的。它让 agent 安全地操作 Zshell 的窗格、协调其他 agent；你不需要再学一套命令。
 
-打开后，继续像平时一样和编码 agent 对话。它可以新建后台窗格、启动另一个 agent、运行命令、等待结果，再把结论带回来，全程不抢走你正在使用的窗格焦点。
+AI 集成默认启用，直接像平时一样和编码 agent 对话。它可以新建后台窗格、启动另一个 agent、运行命令、等待结果，再把结论带回来，全程不抢走你正在使用的窗格焦点。
 
-## 只需打开一次
+## 设置
 
-进入 **设置 → Automation**，打开 **AI**。然后新建一个终端；如果编码 agent 已经在运行，请重启它。
+**设置 → Automation → AI** 默认开启。如果之前关闭过，请重新开启，再新建终端；已经运行的编码 agent 需要重启。
 
 Zshell 支持 Codex、Claude Code、Gemini CLI、Grok Build、OpenCode、Cursor Agent、Aider、Amp 和 Pi。如果现有 agent 配置与这项功能冲突，Zshell 会原样保留它，让开关回到之前的状态，并在设置里显示错误。
 
@@ -51,13 +51,22 @@ Zshell 会把自己刚提交的 prompt 记为 **Working**，但不会扫描终�
 
 当集成报告 agent 已完成或需要输入时，Zshell 还可以发送通知。按 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>，会跳到下一个已报告且需要你处理的 agent。
 
+## 账户用量与限制
+
+**设置 → Automation → 账户用量**会显示 Claude Code 和 Codex 当前可读取的账户限制，
+包括已使用百分比、提供方报告的重置时间，以及上次更新时间。点击 **刷新用量**可以重新读取。
+
+Codex 需要已安装、已登录且能报告账户限制的 CLI。Claude Code 的用量会在 Zshell 收到
+提供方的状态栏用量报告后显示。仅在有可用数据时才显示这一分区；具体用量周期取决于提供方和账户。
+这里显示的是账户限制，不是当前会话的 token 总量。
+
 ## 一次典型的使用过程
 
 1. 在 Zshell 终端里启动你平时使用的编码 agent。
 2. 让它分派一个范围明确的任务、在后台运行某个程序，或协调另一个 agent。
 3. 继续在当前窗格工作；Zshell 会把后台任务留在同一个项目布局里，随时看得见。
 4. 如果 provider 会报告生命周期，可以通过 **Working**、**Blocked** 或 **Done** 徽章掌握进度；否则请打开对应窗格，直接查看对话或终端输出。
-5. 在 [Git 面板](/zh/docs/git)里审阅结果和 diff，只保留你认可的改动。
+5. 在 [Git 面板](/docs/git)里审阅结果和 diff，只保留你认可的改动。
 
 ## 决定权仍然在你手里
 

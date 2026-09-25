@@ -1,45 +1,41 @@
 ---
-title: What Zshell is
-description: A native macOS terminal workspace — projects, sessions, browsers, files, git, and coding agents in one window.
+title: Documentation
+description: Install Zshell, manage projects and terminals, and use Git, browser panes, and coding agents.
 ---
 
-Zshell is a terminal. The rest of the window exists so you don't have to leave it.
-
-Each repository you work on becomes a **project** in the sidebar. A project holds
-as many terminal **sessions** as you need, each one a tab with its own directory
-and scrollback, and each tab can be **split** into panes. Beside all of that sit
-the side panels, each one a keystroke away: a git panel for reviewing and
-committing, a file tree with an editor, and a live view of the processes and
-ports your session is running. Browser panes and coding-agent status live in
-the same project layout instead of becoming separate windows to manage.
-
-Terminal panes use your choice of [Ghostty or Alacritty](/docs/terminal#terminal-backends),
-both hosted and GPU-rendered natively by Zshell. Your shell, prompt, aliases, and
-dotfiles are untouched.
-
-## What it is not
-
-Zshell is not an IDE, and it's not trying to become one. The git and files panels
-exist so you can read a diff or fix a typo without switching apps — not so you
-can live in them. Nothing runs behind your back: every git action maps to a
-command you could have typed, and the output is shown to you.
-
-## Where to go next
+## Get started
 
 <Cards>
-  <Card title="Install Zshell" href="/docs/installation" description="Download, Homebrew, updates, and uninstalling." />
-  <Card title="Quick start" href="/docs/quick-start" description="From an empty window to a working project in five minutes." />
-  <Card title="Keyboard shortcuts" href="/docs/shortcuts" description="The full list, grouped by what it does." />
-  <Card title="Configuration" href="/docs/configuration" description="Persistent options and where Zshell stores them." />
-  <Card title="Browser panes" href="/docs/browser" description="Open a site or local server beside its terminal." />
-  <Card title="Working with AI agents" href="/docs/automation" description="Let agents delegate work, coordinate across panes, and keep you in control." />
+  <Card title="Installation" href="/en/docs/installation" description="Downloads, Homebrew, system requirements, and updates." />
+  <Card title="Quick start" href="/en/docs/quick-start" description="Add a project, create sessions, split panes, and review code." />
+  <Card title="Keyboard shortcuts" href="/en/docs/shortcuts" description="Common actions, Quick Terminal, and custom shortcuts." />
+  <Card title="Configuration" href="/en/docs/configuration" description="Appearance, terminal behavior, configuration files, and migration." />
 </Cards>
 
-## Free, and quiet about it
+## Workspace structure
 
-Zshell is free and its source is public under the PolyForm Noncommercial
-License 1.0.0, with no account and no subscription. It
-sends no telemetry and collects no analytics. [Update checks](/docs/installation#updates)
-use an IP country lookup to choose a GitHub or Gitee release source; automatic
-checks can be disabled in Settings. The Recommendations page checks tool versions
-while it is open. Browser navigation and agent CLIs make the requests you ask them to make.
+| Object | Purpose |
+| --- | --- |
+| Project | A local directory or SSH connection, organized in sidebar groups |
+| Session | A project tab that you can rename, color, pin, and group |
+| Pane | A terminal, browser, editor, or diff within a tab; split panes to work side by side |
+
+## Feature reference
+
+| Feature | Topics |
+| --- | --- |
+| [Projects and sessions](/en/docs/projects) | Local / SSH projects, tabs, terminal environments, and restoration |
+| [Panes](/en/docs/panes) | Splitting, focus, zoom, and layouts |
+| [Terminal](/en/docs/terminal) | Ghostty / Alacritty, search, notifications, prompt queues, and Quick Terminal |
+| [Quick Launch](/en/docs/quick-launch) | Saved commands, SSH connections, and groups |
+| [Browser panes](/en/docs/browser) | Websites and local services beside their terminal |
+| [Git panel](/en/docs/git) | Diffs, staging, commits, branches, stashes, and worktrees |
+| [Files and editor](/en/docs/files) | File search, editing, Markdown previews, and external editors |
+| [Processes and ports](/en/docs/session-info) | Session processes, listening ports, and resource usage |
+| [Agent coordination](/en/docs/automation) | Pane coordination, agent status, and account usage |
+
+## License and privacy
+
+Zshell is free, with public source under the PolyForm Noncommercial License 1.0.0, and requires no account or subscription.
+The app has no telemetry or analytics. Updates, tool version checks, and configured agent usage services may access the network;
+browser panes and command-line tools make their own requests. See the [FAQ](/en/docs/faq).

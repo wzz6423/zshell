@@ -7,15 +7,16 @@ Zshell's automation is primarily for AI coding agents. It gives them a safe way
 to work with Zshell's panes and coordinate other agents; it is not another
 command language you need to learn.
 
-After you enable it, keep talking to your coding agent normally. It can create
+AI integration is enabled by default. Talk to your coding agent normally. It can create
 a background pane, start a delegated worker, run a command, wait for the
 result, and bring the answer back without taking focus from the pane you are
 using.
 
-## Turn it on once
+## Setup
 
-Open **Settings → Automation** and enable **AI**. Then start a new terminal or
-restart any coding agent that was already running.
+Check **Settings → Automation → AI**. It is on by default; if you previously
+disabled it, enable it again, then start a new terminal or restart an agent
+that was already running.
 
 Zshell supports Codex, Claude Code, Gemini CLI, Grok Build, OpenCode, Cursor
 Agent, Aider, Amp, and Pi. If Zshell finds an existing agent setup that conflicts
@@ -80,6 +81,19 @@ When an integration reports that an agent finished or needs input, Zshell can
 also send a notification. Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> to
 jump to the next reported agent that needs your attention.
 
+## Account usage and limits
+
+**Settings → Automation → Account Usage** shows available account limits for
+Claude Code and Codex, including the used percentage, reset time when reported,
+and the time of the last update. Use **Refresh Usage** to reload the latest
+available data.
+
+Codex needs an installed, signed-in CLI that can report account limits. Claude
+Code usage appears when Zshell has received a status-line usage report from
+the provider. The section only appears when usage data is available;
+supported windows depend on the provider and account. These are account limits,
+not a token total for the focused session.
+
 ## A typical workflow
 
 1. Start your usual coding agent in a Zshell terminal.
@@ -90,7 +104,7 @@ jump to the next reported agent that needs your attention.
 4. Follow a provider-reported **Working**, **Blocked**, or **Done** badge when
    available. If the tool does not report lifecycle, open the pane to inspect
    its conversation or terminal output instead.
-5. Review the resulting files in the [Git panel](/docs/git), inspect the diff,
+5. Review the resulting files in the [Git panel](/en/docs/git), inspect the diff,
    and decide what to keep.
 
 ## You stay in control
