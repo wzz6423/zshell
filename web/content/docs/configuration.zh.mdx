@@ -47,7 +47,7 @@ Zshell 大多数持久化设置都在一个文件里：
 - `"auto"` 只在项目目录是 Git 仓库时显示。
 - `"always"` 在每个项目里显示；不是仓库时会显示 **No Git Repository**。
 
-它具体展示什么，见 [Git 工具栏](/zh/docs/git#git-工具栏)。
+它具体展示什么，见 [Git 工具栏](/docs/git#git-工具栏)。
 
 ## 文字
 
@@ -113,9 +113,9 @@ regular/bold 区分及后备字体字重。
 
 ### `editor.wrap-lines`
 
-布尔值——默认 `false`
+布尔值——默认 `true`
 
-在[文件编辑器](/zh/docs/files)里按窗格宽度软折行。关闭时长行横向滚动；它不会改变终端或 diff
+在[文件编辑器](/docs/files)里按窗格宽度软折行。关闭时长行横向滚动；它不会改变终端或 diff
 里的折行行为。
 
 ## 终端
@@ -138,7 +138,7 @@ regular/bold 区分及后备字体字重。
 
 选择之后新建终端使用的模拟器；已经打开的窗格继续使用启动时的后端。两者都是原生 GPU 加速，都支持图片渲染并共用 Zshell 主题；Alacritty 通常占用更少内存。
 
-环境变量与兼容约定见[终端后端](/zh/docs/terminal#终端后端)。
+环境变量与兼容约定见[终端后端](/docs/terminal#终端后端)。
 
 ### `terminal.macos-option-as-alt`
 
@@ -158,17 +158,49 @@ regular/bold 区分及后备字体字重。
 
 重启后，在全新 shell 上方恢复每个终端之前的滚动历史。恢复的是静态文本，不是仍在运行的进程。
 
-恢复的滚动历史会保存在磁盘上，所以终端里显示过的密钥也可能包含在内。这个设置默认关闭。[项目、标签页和窗格布局](/zh/docs/projects#重启后还剩下什么)无论如何都会恢复。
+恢复的滚动历史会保存在磁盘上，所以终端里显示过的密钥也可能包含在内。这个设置默认关闭。[项目、标签页和窗格布局](/docs/projects#重启后还剩下什么)无论如何都会恢复。
 
 ## 自动化
 
 ### `ai.enabled`
 
-布尔值——默认 `false`
+布尔值——默认 `true`
 
 让受支持的编码 agent 按照你的自然语言要求协调 Zshell 后台窗格，并在界面里显示 provider 报告的生命周期状态。Zshell 不会根据终端文字推断状态。推荐用设置窗口的开关，因为错误会直接显示出来，而且冲突的现有配置会保持原样。
 
-具体怎么使用，见[与 AI Agent 协作](/zh/docs/automation)。
+具体怎么使用，见[与 AI Agent 协作](/docs/automation)。
+
+## 其他配置项
+
+| 配置键 | 默认值 | 可选值 / 范围 | 作用 |
+| --- | --- | --- | --- |
+| `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | 应用图标 |
+| `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | 文件和目录使用的外部编辑器 |
+| `terminal.theme-only` | `false` | 布尔值 | 只将所选配色应用于终端 |
+| `terminal.cursor-shape` | `"block"` | `"block"` / `"bar"` / `"underline"` | 终端光标形状 |
+| `terminal.cursor-blinking` | `true` | 布尔值 | 光标闪烁 |
+| `terminal.copy-on-select` | `true` | 布尔值 | 选中终端文本后复制 |
+| `terminal.shift-enter-newline` | `true` | 布尔值 | Shift+Enter 发送增强换行序列，需终端程序支持 |
+| `terminal.background-opacity` | `1` | 0.2–1 | 终端背景不透明度 |
+| `terminal.background-blur` | `false` | 布尔值 | 半透明背景模糊 |
+| `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | 新建 zsh 终端中，运行至少该秒数的命令结束后通知；0 为关闭 |
+| `terminal.notify-on-error` | `false` | 布尔值 | 新建 zsh 终端中，命令失败时通知 |
+| `quick-terminal.size` | `0.75` | 0.35–0.95 | 快捷终端的屏幕占比 |
+| `quick-terminal.opacity` | `0.5` | 0.05–1 | 快捷终端背景不透明度 |
+| `quick-terminal.shortcut` | `Cmd+I` | 设置中录制 | 在设置中录制全局快捷键，自动保存按键编码 |
+| `panes.show-focus-ring` | `true` | 布尔值 | 显示当前窗格焦点边框 |
+| `panes.focus-ring-opacity` | `0.85` | 0.05–1 | 焦点边框不透明度 |
+
+## 备份与迁移
+
+通过 **Zshell → Export Settings…** 导出 TOML 文件，使用 **Import Settings…** 导入。
+导入前会要求确认替换，并尝试将当前配置备份为同目录的 `config.toml.bak`。
+
+当前导入支持主题、主要字体设置、光标、终端后端、历史恢复、选中复制、快捷终端和 AI 开关等设置，
+不会完整恢复所有导出项。界面缩放、应用图标、外部编辑器、终端背景等需要在导入后重新检查。
+需要完整迁移时，退出 Zshell 后备份并复制 `config.toml`，再启动应用。
+AI 开关只在导入文件明确包含 `ai.enabled` 时更新，导入后请检查。
+项目和标签页的环境变量属于会话数据，不包含在此配置文件中。
 
 ## 一份完整的例子
 
@@ -197,11 +229,16 @@ ai.enabled = true
 
 每个键都是可选的。删掉某个键，就让那项设置恢复默认值。
 
+## 自定义快捷键
+
+打开 **设置 → 快捷键**，可以为核心命令录制新的组合键。若与其他命令冲突，
+Zshell 会拒绝此次修改并显示占用它的命令。点击 **恢复默认快捷键**可以清除全部自定义项。
+[快捷键文档](/docs/shortcuts)列出的是出厂默认值。
+
 ## 不在这个文件里的设置
 
 - **语言。** 设置里可选「跟随系统」、English、简体中文和日本語。它使用 macOS 的单应用语言偏好，并且要重启后生效，所以不存进 TOML。
-- **自动更新。** **设置 → 更新**中的自动检查和自动下载并安装开关由 Sparkle 管理，重启后会保留选择。见[安装](/zh/docs/installation#更新)。
+- **自动更新。** **设置 → 更新**中的自动检查和自动下载并安装开关由 Sparkle 管理，重启后会保留选择。见[安装](/docs/installation#更新)。
 - **窗口与布局状态。** 窗口尺寸、侧边栏宽度、当前面板、项目、标签页、窗格、浏览器 URL 和
   diff 控件偏好，都存在 Zshell 的 macOS 偏好设置或会话快照里。
 - **后端自己的配置文件。** Zshell 不读取 `~/.config/ghostty`，也不读取 Alacritty 配置。Zshell 的设置就是两个后端共同支持的配置面。
-- **快捷键。** 目前[快捷键](/zh/docs/shortcuts)是固定的。

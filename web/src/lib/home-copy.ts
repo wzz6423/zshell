@@ -1,9 +1,7 @@
 import { DEFAULT_LANGUAGE } from '@/lib/i18n'
 
 export type Row = { name: string; detail: string }
-export type ProofItem = { title: string; desc: string }
-export type FlowStep = { phase: string; title: string; desc: string }
-export type FeatureGroup = { name: string; lede: string; rows: Row[] }
+export type FeatureGroup = { name: string; slug: string; rows: Row[] }
 
 export type HomeCopy = {
   /** Display name of this language, for the footer's switcher. */
@@ -11,8 +9,9 @@ export type HomeCopy = {
   title: string
   description: string
   nav: {
+    overview: string
+    sections: string
     features: string
-    how: string
     shortcuts: string
     faq: string
     docs: string
@@ -27,33 +26,34 @@ export type HomeCopy = {
     titleHighlight: string
     titleAfter: string
     lede: string
-    ledeFree: string
     download: string
     docs: string
-    hints: [string, string, string]
   }
+  preview: {
+    label: string
+    tabs: [string, string, string]
+    captions: [string, string, string]
+    projects: string
+    local: string
+    remote: string
+    files: string
+    changes: string
+    agents: string
+    running: string
+    attention: string
+    queue: string
+  }
+  skipLink: string
   copy: string
   copied: string
   copyAria: (command: string) => string
-  /** `{count}` in the keyboard entry's title is replaced with the shortcut count. */
-  proof: [ProofItem, ProofItem, ProofItem, ProofItem]
   features: {
-    eyebrow: string
-    titleBefore: string
-    titleMuted: string
-    lede: string
+    title: string
+    docsLink: string
     groups: FeatureGroup[]
   }
-  flow: {
-    eyebrow: string
-    title: string
-    lede: string
-    steps: [FlowStep, FlowStep, FlowStep]
-  }
   shortcuts: {
-    eyebrow: string
     title: string
-    lede: string
     docsLink: string
     /**
      * Modifiers are spelled out rather than set as ⌘/⇧/⌥/⌃. Geist Mono ships no
@@ -64,36 +64,31 @@ export type HomeCopy = {
     rows: Row[]
   }
   download: {
-    eyebrow: string
     title: string
-    /** `{minSystem}` is replaced with the release's minimum macOS version. */
-    copy: string
     dmg: string
     mirror: string
     changelog: string
-    notes: { version: string; system: string; license: string; licenseValue: string }
+    license: string
   }
   faq: {
-    eyebrow: string
     title: string
-    lede: string
     items: { q: string; a: string }[]
   }
   /** The author's name is a link, so the credit is split around it. */
   footerBuiltBy: { before: string; after: string }
   footerDocs: string
   footerChangelog: string
-  footerTagline: string
 }
 
 const en: HomeCopy = {
   languageName: 'English',
   title: 'Zshell — A native terminal workspace for macOS',
   description:
-    'Zshell is a fast, keyboard-first terminal workspace for macOS. Projects, sessions, browser panes, git diffs, and coding agents — all in one native window.',
+    'A native macOS terminal workspace with local and SSH projects, split panes, Git review, file search, Markdown previews, and coding agent coordination.',
   nav: {
+    overview: 'Overview',
+    sections: 'Page sections',
     features: 'Features',
-    how: 'How it works',
     shortcuts: 'Shortcuts',
     faq: 'FAQ',
     docs: 'Docs',
@@ -103,177 +98,68 @@ const en: HomeCopy = {
   },
   hero: {
     eyebrow: 'Native macOS terminal workspace',
-    titleBefore: 'Your terminal, with the ',
-    titleHighlight: 'whole project',
-    titleAfter: ' around it.',
-    lede: 'A native macOS workspace built around the terminal — projects, persistent sessions, files, and git in one window.',
-    ledeFree: 'Free, no telemetry, no subscription.',
+    titleBefore: 'Your terminal.',
+    titleHighlight: 'Your whole project.',
+    titleAfter: '',
+    lede: 'Run your shells and coding agents. Keep local and SSH projects, files, and Git review together in one native macOS workspace.',
     download: 'Download for macOS',
     docs: 'Read the docs',
-    hints: ['Free & source-available', 'Ghostty or Alacritty inside', 'No account, no telemetry'],
   },
+  preview: {
+    label: 'Workspace illustration',
+    tabs: ['Terminal', 'Code review', 'Agents'],
+    captions: ['Local and SSH projects, with room for every session.', 'Inspect the changes beside the shell that made them.', 'Follow agent status and queue the next prompt.'],
+    projects: 'Projects', local: 'Local', remote: 'SSH', files: 'Files', changes: 'Changes',
+    agents: 'Agents', running: 'Running', attention: 'Needs attention', queue: 'Prompt queue',
+  },
+  skipLink: 'Skip to content',
   copy: 'Copy',
   copied: 'Copied',
   copyAria: (command) => `Copy "${command}" to the clipboard`,
-  proof: [
-    {
-      title: '100% native',
-      desc: 'An AppKit app through and through — fast to launch, quiet on battery, no Electron.',
-    },
-    {
-      title: '2 GPU backends',
-      desc: 'New panes run Ghostty or Alacritty, both GPU-accelerated, both with images.',
-    },
-    {
-      title: '0 telemetry',
-      desc: 'No analytics, no account, no subscription. The update check is the only call home.',
-    },
-    {
-      title: '{count} shortcuts',
-      desc: 'Every action has a key. Switch, split, commit, ship — hands never leave the keyboard.',
-    },
-  ],
   features: {
-    eyebrow: 'Features',
-    titleBefore: 'Everything around the shell, ',
-    titleMuted: 'nothing in its way.',
-    lede: 'The terminal stays the center of gravity; the panels exist so you never have to leave it.',
+    title: 'Workspace features',
+    docsLink: 'Docs',
     groups: [
       {
-        name: 'projects & sessions',
-        lede: 'Structure for long-running work, not just the last command you ran.',
+        name: 'Projects and sessions', slug: 'projects',
         rows: [
-          {
-            name: 'Projects, not windows',
-            detail:
-              'each repo is a project in the sidebar — Cmd+1–9 switches, Cmd+N adds one',
-          },
-          {
-            name: 'Sessions per project',
-            detail:
-              'open as many terminal tabs as a project needs with Cmd+T, each with its own directory and scrollback',
-          },
-          {
-            name: 'Split panes',
-            detail:
-              'Cmd+D splits right, Cmd+Shift+D splits down, Opt+Cmd+arrows moves focus between panes',
-          },
-          {
-            name: 'Browser panes',
-            detail:
-              'open a site or local server beside its terminal, with native tabs, splits, and restored URLs',
-          },
-          {
-            name: 'Restored on relaunch',
-            detail:
-              'quit and reopen: projects, tabs, and pane layout come back, each shell fresh beneath its previous scrollback',
-          },
-          {
-            name: 'Command palette',
-            detail: 'Cmd+P to jump to any project or session, or run any command',
-          },
+          { name: 'Local and SSH projects', detail: 'Group projects, drop folders from Finder, and reuse saved SSH connections with password or private-key authentication.' },
+          { name: 'Quick Launch', detail: 'Save and group commands or SSH connections. Open them in a fresh project from the app or the zshell CLI.' },
+          { name: 'Sessions that stay organized', detail: 'Rename, color, pin, and group tabs. Move sessions between compatible projects or windows with their running terminals and splits.' },
+          { name: 'Split and restore', detail: 'Keep terminals and browser panes side by side. Restore layouts on relaunch; scrollback returns when history restoration is enabled.' },
         ],
       },
       {
-        name: 'review & ship',
-        lede: 'See what changed and get it committed without leaving the window.',
+        name: 'Files and Git', slug: 'files',
         rows: [
-          {
-            name: 'Git panel',
-            detail:
-              'stage, unstage, discard, and commit — amend included — beside the shell that made the changes',
-          },
-          {
-            name: 'Inline diffs',
-            detail:
-              'review unified or split diffs in place, and edit live unstaged changes directly',
-          },
-          {
-            name: 'Branch work',
-            detail:
-              'switch or create a branch, fetch, fast-forward pull, push, publish a new upstream, or stash',
-          },
-          {
-            name: 'Files panel',
-            detail:
-              'browse the working tree, open a file, edit it with syntax highlighting, Cmd+S to save',
-          },
-          {
-            name: 'Session info',
-            detail:
-              'the processes running under a session and the TCP ports they are listening on',
-          },
+          { name: 'Project search', detail: 'Search file contents in the current local project, or find files by name and path across open local projects.' },
+          { name: 'Editor and Markdown preview', detail: 'Edit with syntax highlighting and preview Markdown without switching apps.' },
+          { name: 'Git review', detail: 'Inspect unified or split diffs, edit unstaged changes, and stage, commit, or push from the Git panel.' },
+          { name: 'Branches and worktrees', detail: 'Create and switch branches, manage stashes, and open an existing worktree in a new terminal tab.' },
         ],
       },
       {
-        name: 'the terminal itself',
-        lede: 'Your shell, your config, your fonts — hosted, not replaced.',
+        name: 'Agents and automation', slug: 'automation',
         rows: [
-          {
-            name: 'Your shell, unchanged',
-            detail:
-              'zsh, fish, or bash exactly as you configured it — prompt, aliases, dotfiles and all',
-          },
-          {
-            name: 'Two native backends',
-            detail:
-              'choose Ghostty or Alacritty for new panes; both are GPU-accelerated and support images',
-          },
-          {
-            name: 'Agent-aware',
-            detail:
-              'let coding agents delegate work and coordinate across Zshell panes while you follow status, notifications, and approvals',
-          },
-          {
-            name: 'Desktop notifications',
-            detail:
-              'a bell in an unfocused session, or a notification escape from a long-running command, reaches Notification Center',
-          },
-          {
-            name: 'Progress reports',
-            detail:
-              'OSC 9;4 progress shows as a slim bar above the terminal, error and pause states included',
-          },
-          {
-            name: 'Fonts',
-            detail:
-              'ships with JetBrains Mono and Nerd Font symbols; swap in any monospace family and size',
-          },
-          {
-            name: 'Quiet updates',
-            detail:
-              'new builds check in with Sparkle and install in the background, on their own',
-          },
+          { name: 'Agent coordination', detail: 'Let coding agents coordinate across panes while you follow status and requests for attention.' },
+          { name: 'Usage and limits', detail: 'View available Claude Code and Codex account usage and reset times in Settings when the provider reports them.' },
+          { name: 'Prompt queue', detail: 'Queue follow-up prompts per session. Send them manually, or let supported shell integration dispatch them when the shell is ready.' },
+          { name: 'Long-command notifications', detail: 'Enable completion or failure notifications for new zsh terminals, and see progress when a program reports it.' },
         ],
       },
-    ],
-  },
-  flow: {
-    eyebrow: 'How it works',
-    title: 'Open. Work. Ship.',
-    lede: 'One window for the whole loop, from cloning to pushing.',
-    steps: [
       {
-        phase: '01 — Open',
-        title: 'Add a project',
-        desc: 'Cmd+N points Zshell at a repo. It lands in the sidebar, next to everything else you’re juggling.',
-      },
-      {
-        phase: '02 — Work',
-        title: 'Split, browse, delegate',
-        desc: 'Terminals, browsers, and editors share the window. Coding agents can drive panes while you watch.',
-      },
-      {
-        phase: '03 — Ship',
-        title: 'Review and commit',
-        desc: 'The git panel sits beside the shell that made the changes. Diff, edit, commit, push — done.',
+        name: 'Settings and tools', slug: 'configuration',
+        rows: [
+          { name: 'Two terminal engines', detail: 'Choose Ghostty or Alacritty for new panes, with your own shell, fonts, themes, opacity, and blur.' },
+          { name: 'Recommended tools', detail: 'Browse development tools and desktop apps in Settings, with supported install, update, and batch actions.' },
+          { name: 'Settings that travel', detail: 'Remap shortcuts, adjust interface scale and selection copying, and import or export your settings.' },
+          { name: 'Updates you control', detail: 'Choose automatic checks and installation. Updates prefer Gitee in mainland China and GitHub elsewhere, with a fallback source.' },
+        ],
       },
     ],
   },
   shortcuts: {
-    eyebrow: 'Shortcuts',
-    title: 'Hands on the keyboard.',
-    lede: 'The ones you’ll use every hour. The full list lives in the docs.',
+    title: 'Keyboard shortcuts',
     docsLink: 'All shortcuts',
     rows: [
       { name: 'Cmd+N', detail: 'new project' },
@@ -298,23 +184,14 @@ const en: HomeCopy = {
     ],
   },
   download: {
-    eyebrow: 'Download',
-    title: 'Start in one window.',
-    copy: 'Free for macOS {minSystem} and later. Install with Homebrew, or download the dmg.',
+    title: 'Download Zshell',
     dmg: 'Download Universal DMG',
     mirror: 'Gitee mirror',
     changelog: 'Changelog',
-    notes: {
-      version: 'Latest version',
-      system: 'Requires',
-      license: 'License',
-      licenseValue: 'Free, source-available',
-    },
+    license: 'Free, source-available',
   },
   faq: {
-    eyebrow: 'FAQ',
-    title: 'Questions, answered.',
-    lede: 'The short version: it hosts your shell, it doesn’t replace it.',
+    title: 'FAQ',
     items: [
       {
         q: 'Is zshell free?',
@@ -326,7 +203,7 @@ const en: HomeCopy = {
       },
       {
         q: 'Does it collect any data?',
-        a: 'No telemetry, no analytics. Its only automatic network request is the update check; browser pages and agent CLIs make only the requests you ask them to.',
+        a: 'Zshell has no telemetry or analytics. App and tool update checks, downloads, and configured agent usage services can access the network; browser panes and command-line tools make their own requests.',
       },
       {
         q: 'What happens to my sessions when I quit?',
@@ -341,17 +218,17 @@ const en: HomeCopy = {
   footerBuiltBy: { before: 'Built by ', after: '' },
   footerDocs: 'Docs',
   footerChangelog: 'Changelog',
-  footerTagline: 'A native terminal workspace for macOS.',
 }
 
 const zh: HomeCopy = {
   languageName: '中文',
   title: 'Zshell — 原生 macOS 终端工作区',
   description:
-    'Zshell 是面向 macOS 的原生终端工作区：快速、键盘优先。项目、会话、浏览器窗格、git diff 和编码 agent，都在同一个窗口里。',
+    'Zshell 是原生 macOS 终端工作区，集成本地与 SSH 项目、分屏、Git 审阅、文件搜索、Markdown 预览和编码 Agent 协作。',
   nav: {
+    overview: '概览',
+    sections: '章节导航',
     features: '功能',
-    how: '工作方式',
     shortcuts: '快捷键',
     faq: '常见问题',
     docs: '文档',
@@ -361,167 +238,68 @@ const zh: HomeCopy = {
   },
   hero: {
     eyebrow: '原生 macOS 终端工作区',
-    titleBefore: '你的终端，',
-    titleHighlight: '整个项目',
-    titleAfter: '都在身边。',
-    lede: '以终端为中心的原生 macOS 工作区——项目、可恢复的会话、文件和 git，都在同一个窗口里。',
-    ledeFree: '免费，无遥测，无订阅。',
+    titleBefore: '终端在中心。',
+    titleHighlight: '项目在掌握。',
+    titleAfter: '',
+    lede: '运行你的 shell 和编码 Agent，把本地与 SSH 项目、文件和 Git 审阅留在同一个原生 macOS 工作区。',
     download: '下载 macOS 版',
     docs: '阅读文档',
-    hints: ['免费、源码公开', '内置 Ghostty / Alacritty', '无需账号，没有遥测'],
   },
+  preview: {
+    label: '工作区示意',
+    tabs: ['终端', '代码审阅', 'Agent 协作'],
+    captions: ['本地与 SSH 项目，每个会话各就其位。', '在产生改动的终端旁，审阅每一处变化。', '关注 Agent 状态，为当前会话准备下一条提示。'],
+    projects: '项目', local: '本地', remote: 'SSH', files: '文件', changes: '改动',
+    agents: 'Agent', running: '运行中', attention: '需要关注', queue: '提示词队列',
+  },
+  skipLink: '跳转到正文',
   copy: '复制',
   copied: '已复制',
   copyAria: (command) => `将「${command}」复制到剪贴板`,
-  proof: [
-    {
-      title: '100% 原生',
-      desc: '彻头彻尾的 AppKit 应用——启动快、省电，没有 Electron。',
-    },
-    {
-      title: '2 个 GPU 后端',
-      desc: '新窗格可选 Ghostty 或 Alacritty，都是 GPU 加速，都支持图片。',
-    },
-    {
-      title: '0 遥测',
-      desc: '没有分析统计，无需账号和订阅，唯一自动发起的请求是更新检查。',
-    },
-    {
-      title: '{count} 个快捷键',
-      desc: '每个操作都有键位。切换、分屏、提交、推送，手不离键盘。',
-    },
-  ],
   features: {
-    eyebrow: '功能',
-    titleBefore: '围绕 shell 的一切，',
-    titleMuted: '一样不多。',
-    lede: '终端始终是核心；这些面板的存在，是为了让你不必离开终端。',
+    title: '工作区功能',
+    docsLink: '文档',
     groups: [
       {
-        name: '项目与会话',
-        lede: '为长期进行的工作提供结构，而不只是记住上一条命令。',
+        name: '项目与会话', slug: 'projects',
         rows: [
-          {
-            name: '按项目组织，而不是窗口',
-            detail: '每个仓库对应侧边栏里的一个项目——Cmd+1–9 切换，Cmd+N 新建',
-          },
-          {
-            name: '一个项目，多个会话',
-            detail:
-              'Cmd+T 想开几个终端标签页就开几个，每个都有自己的工作目录和滚动历史',
-          },
-          {
-            name: '分屏',
-            detail: 'Cmd+D 向右分，Cmd+Shift+D 向下分，Opt+Cmd+方向键在窗格间切换焦点',
-          },
-          {
-            name: '浏览器窗格',
-            detail: '把网页或本地服务放在终端旁边；支持标签页、分屏和 URL 恢复',
-          },
-          {
-            name: '重启后原样恢复',
-            detail:
-              '退出再打开，项目、标签页和窗格布局都还在；每个 shell 重新启动，之前的输出留在上方',
-          },
-          {
-            name: '命令面板',
-            detail: 'Cmd+P 跳到任意项目或会话，也能直接执行命令',
-          },
+          { name: '本地与 SSH 项目', detail: '分组管理项目，拖入 Finder 文件夹；保存 SSH 连接，复用密码或私钥认证。' },
+          { name: '快速启动', detail: '保存、分组常用命令与 SSH 连接，从应用或 zshell 命令行启动到新项目。' },
+          { name: '有序的会话', detail: '重命名、标色、固定和分组标签页；在兼容项目或窗口间转移会话，保留运行中的终端与分屏。' },
+          { name: '分屏与恢复', detail: '终端和浏览器并排工作。重启后恢复布局；开启历史恢复时，也会找回之前的滚动输出。' },
         ],
       },
       {
-        name: '审阅与提交',
-        lede: '不用离开窗口，看清改了什么、提交到哪里。',
+        name: '文件与 Git', slug: 'files',
         rows: [
-          {
-            name: 'Git 面板',
-            detail:
-              '暂存、取消暂存、丢弃、提交（含 amend）——就在产生改动的那个 shell 旁边',
-          },
-          {
-            name: '内联 diff',
-            detail: '在窗口里看单栏或左右 diff，还能直接编辑实时、未暂存的改动',
-          },
-          {
-            name: '分支操作',
-            detail:
-              '切换或新建分支，fetch、fast-forward 拉取、推送、发布 upstream，或 stash',
-          },
-          {
-            name: '文件面板',
-            detail: '浏览工作区，打开文件编辑；语法高亮，Cmd+S 保存',
-          },
-          {
-            name: '会话信息',
-            detail: '当前会话在跑哪些进程，以及它们监听的 TCP 端口',
-          },
+          { name: '项目搜索', detail: '在当前本地项目内搜索文件内容，或在打开的本地项目间按名称和路径查找文件。' },
+          { name: '编辑器与 Markdown 预览', detail: '通过语法高亮阅读、编辑文件，直接预览 Markdown，无需切换应用。' },
+          { name: 'Git 审阅', detail: '查看单栏或左右 diff，编辑未暂存改动，在 Git 面板中暂存、提交与推送。' },
+          { name: '分支与 Worktree', detail: '新建、切换分支，管理 stash，把已有的 worktree 打开为新的终端标签页。' },
         ],
       },
       {
-        name: '终端本身',
-        lede: '你的 shell、配置和字体原封不动——是承载，不是替代。',
+        name: 'Agent 与自动化', slug: 'automation',
         rows: [
-          {
-            name: '你的 shell，原封不动',
-            detail:
-              'zsh、fish 还是 bash，你怎么配的就怎么用——提示符、别名、dotfiles 一个不少',
-          },
-          {
-            name: '两个原生后端',
-            detail: '新窗格可选 Ghostty 或 Alacritty；两者都有 GPU 加速并支持图片',
-          },
-          {
-            name: '与 AI Agent 协作',
-            detail: '让编码 agent 在 Zshell 窗格间分派和协调工作，你通过状态、通知和批准掌握进度',
-          },
-          {
-            name: '桌面通知',
-            detail:
-              '未聚焦的会话响铃，或跑了很久的命令发来通知，都会出现在系统通知中心',
-          },
-          {
-            name: '进度显示',
-            detail:
-              '程序上报的 OSC 9;4 进度会变成终端上方的细进度条，错误和暂停也能看出来',
-          },
-          {
-            name: '字体',
-            detail: '内置 JetBrains Mono 和 Nerd Font 符号；也可以换成任何等宽字体和字号',
-          },
-          {
-            name: '静默更新',
-            detail: '通过 Sparkle 在后台检查并安装新版本，不用你操心',
-          },
+          { name: 'Agent 协作', detail: '让编码 Agent 在窗格间协调工作，通过状态和待处理提示跟进进展。' },
+          { name: '用量与限额', detail: '在设置中查看可用的 Claude Code 与 Codex 账户用量与提供方报告的重置时间。' },
+          { name: '提示词队列', detail: '为每个会话排好后续提示词，手动发送，或由受支持的 shell 集成在就绪时依次发送。' },
+          { name: '长命令通知', detail: '按需为新建 zsh 终端开启命令完成或失败通知，程序主动上报时显示进度。' },
         ],
       },
-    ],
-  },
-  flow: {
-    eyebrow: '工作方式',
-    title: '打开。工作。交付。',
-    lede: '从克隆到推送，整个闭环都在一个窗口里。',
-    steps: [
       {
-        phase: '01 — 打开',
-        title: '添加项目',
-        desc: 'Cmd+N 指向一个仓库，它就出现在侧边栏里，和你手头的其他项目排在一起。',
-      },
-      {
-        phase: '02 — 工作',
-        title: '分屏、浏览、派活',
-        desc: '终端、浏览器和编辑器同处一个窗口；编码 agent 可以驱动窗格，你看着它干。',
-      },
-      {
-        phase: '03 — 交付',
-        title: '审阅并提交',
-        desc: 'Git 面板就在产生改动的 shell 旁边。看 diff、改文件、提交、推送，一站完成。',
+        name: '设置与工具', slug: 'configuration',
+        rows: [
+          { name: '双终端引擎', detail: '新窗格可选 Ghostty 或 Alacritty，自定义 shell、字体、主题、透明度与模糊。' },
+          { name: '推荐工具', detail: '在设置中浏览开发工具与桌面应用，使用各工具支持的安装、更新和批量操作。' },
+          { name: '可迁移的设置', detail: '重映射快捷键，调整界面缩放与选中复制，导入或导出个人设置。' },
+          { name: '由你控制的更新', detail: '选择自动检查与安装偏好；中国大陆优先 Gitee，其他地区优先 GitHub，并提供备用源。' },
+        ],
       },
     ],
   },
   shortcuts: {
-    eyebrow: '快捷键',
-    title: '手不离键盘。',
-    lede: '这些是每小时都会用到的。完整列表在文档里。',
+    title: '常用快捷键',
     docsLink: '全部快捷键',
     rows: [
       { name: 'Cmd+N', detail: '新建项目' },
@@ -546,23 +324,14 @@ const zh: HomeCopy = {
     ],
   },
   download: {
-    eyebrow: '下载',
-    title: '从一个窗口开始。',
-    copy: '免费，需要 macOS {minSystem} 或更高版本。用 Homebrew 安装，或直接下载 dmg。',
+    title: '下载 Zshell',
     dmg: '下载 Universal DMG',
     mirror: 'Gitee 镜像',
     changelog: '更新日志',
-    notes: {
-      version: '最新版本',
-      system: '系统要求',
-      license: '许可',
-      licenseValue: '免费、源码公开',
-    },
+    license: '免费、源码公开',
   },
   faq: {
-    eyebrow: '常见问题',
-    title: '问题与回答。',
-    lede: '简单说：它承载你的 shell，而不是取代它。',
+    title: '常见问题',
     items: [
       {
         q: 'zshell 免费吗？',
@@ -574,7 +343,7 @@ const zh: HomeCopy = {
       },
       {
         q: '它会收集数据吗？',
-        a: '没有遥测，也没有分析统计。唯一自动发起的是更新检查；浏览器页面和 agent CLI 只会发送你要求的请求。',
+        a: 'Zshell 没有遥测或分析统计。应用与工具更新检查、下载，以及已配置的 Agent 用量服务可能联网；浏览器窗格和命令行工具会发起各自的请求。',
       },
       {
         q: '退出之后我的会话会怎样？',
@@ -589,21 +358,10 @@ const zh: HomeCopy = {
   footerBuiltBy: { before: '由 ', after: ' 打造' },
   footerDocs: '文档',
   footerChangelog: '更新日志',
-  footerTagline: '原生 macOS 终端工作区。',
 }
 
 const COPY: Record<string, HomeCopy> = { en, zh }
 
 export function homeCopy(lang: string): HomeCopy {
   return COPY[lang] ?? COPY[DEFAULT_LANGUAGE]
-}
-
-/** Fills `{token}` placeholders in copy templates (shortcut count, min system). */
-export function formatCopy(
-  template: string,
-  values: Readonly<Record<string, string | number>>,
-): string {
-  return template.replace(/\{(\w+)\}/g, (match, key: string) =>
-    key in values ? String(values[key]) : match,
-  )
 }

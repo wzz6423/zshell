@@ -41,7 +41,7 @@ you genuinely need to distinguish the renderer.
 <Callout type="info">
 Zshell does not read `~/.config/ghostty` or an Alacritty config. Fonts, colors,
 input behavior, and the backend are configured in Zshell's own
-[settings](/docs/configuration).
+[settings](/en/docs/configuration).
 </Callout>
 
 ## Search
@@ -69,6 +69,25 @@ If a nested or replacement shell has not loaded Zshell’s prompt editing suppor
 dragging still selects terminal text for copying but does not edit the input.
 Input selection editing resumes when you exit back to the original prompt.
 
+## Prompt queue
+
+Focus a terminal and press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>, or
+choose **Toggle Prompt Queue** in the command palette. The bar opens below that
+terminal. Type an entry and press <kbd>Return</kbd> or **Add to Queue**; each
+entry is a single line, with pasted line breaks replaced by spaces.
+
+When the original zsh returns to an empty shell prompt, Zshell sends the next
+entry and presses Return. Entries run in queue order. Automatic sending waits
+while an agent or another foreground program owns the terminal, or while the
+shell prompt contains draft input. It requires Zshell's zsh integration; other
+shells and nested shells can use manual sending.
+
+Each entry has **Send Now** and **Remove** buttons. **Send Now** immediately
+sends the text and Return to the terminal's current program, without waiting
+for a shell prompt. <kbd>Esc</kbd> or the close button hides the bar and keeps
+the queued entries. Each terminal has its own queue; closing that session or
+quitting Zshell discards it.
+
 ## Paths and URLs
 
 Zshell recognizes web URLs and existing local paths printed by terminal
@@ -85,7 +104,7 @@ or relative to the pane's live working directory. A diagnostic suffix such as
   pane menu instead.
 
 This gives compiler output and agent transcripts a direct route back into the
-same project. Browser behavior is covered in [Browser panes](/docs/browser).
+same project. Browser behavior is covered in [Browser panes](/en/docs/browser).
 
 ## Notifications
 
@@ -98,6 +117,31 @@ Zshell forwards two terminal events to Notification Center:
 Notifications can play the system sound. Clicking one activates Zshell and jumps
 to the exact session that emitted it. macOS asks for permission only when a
 terminal first tries to notify you, not when Zshell launches.
+
+### Command completion
+
+Open **Settings → Terminal → Command Notifications** to have Zshell notify you
+when a command finishes:
+
+- **Long-running commands**: choose 5, 10, 30, or 60 seconds. A command that runs
+  at least that long triggers a completion notification. The default is **Off**.
+- **Failed commands**: notify on a nonzero exit status, regardless of runtime.
+  This is also off by default and can be enabled independently.
+
+These settings apply to zsh terminals created after the change, on either
+terminal backend. They use the original shell's command completion event;
+commands run inside a nested shell or an interactive program do not report
+individual completions through this integration.
+
+The same settings can be saved in `~/.config/zshell/config.toml`:
+
+```toml
+terminal.notify-finish-seconds = 30
+terminal.notify-on-error = true
+```
+
+Set `terminal.notify-finish-seconds` to `0` to turn off runtime-based
+notifications. Notification delivery follows your macOS notification settings.
 
 ## Progress reports
 
@@ -120,7 +164,7 @@ By default, Option stays with the active macOS input source so layouts such as
 Polish Pro can type composed characters. Enable **Use Option as Alt/Meta** in
 Settings when a terminal program should receive Option-key chords as Meta
 shortcuts instead. See
-[`terminal.macos-option-as-alt`](/docs/configuration#terminalmacos-option-as-alt).
+[`terminal.macos-option-as-alt`](/en/docs/configuration#terminalmacos-option-as-alt).
 
 ## The `zshell` command
 
@@ -142,8 +186,19 @@ it and Escape restores the previous theme.
 Zshell bundles JetBrains Mono plus Nerd Font symbols. Any installed monospace
 family can replace the Latin face, and an installed CJK family can be inserted
 before the symbol and system fallbacks. See
-[`font-family`](/docs/configuration#font-family),
-[`terminal.font-fallback-family`](/docs/configuration#terminalfont-fallback-family),
-[`font-size`](/docs/configuration#font-size),
-[`terminal.font-thicken`](/docs/configuration#terminalfont-thicken), and
-[`terminal.line-height`](/docs/configuration#terminalline-height).
+[`font-family`](/en/docs/configuration#font-family),
+[`terminal.font-fallback-family`](/en/docs/configuration#terminalfont-fallback-family),
+[`font-size`](/en/docs/configuration#font-size),
+[`terminal.font-thicken`](/en/docs/configuration#terminalfont-thicken), and
+[`terminal.line-height`](/en/docs/configuration#terminalline-height).
+
+## Global Quick Terminal
+
+While Zshell is running, press <kbd>Cmd</kbd>+<kbd>I</kbd> to open an independent terminal over another app; press it again to close it.
+It owns a temporary shell outside project tabs. Adjust its size, opacity, and shortcut in **Settings → Terminal → Quick Terminal**.
+
+- Pin the window to keep it open when switching apps.
+- An unpinned window closes when it loses focus or you click outside it.
+- <kbd>Esc</kbd> or the global shortcut closes the window and terminates its shell and running tasks. Opening it again starts a fresh session.
+
+Use a project terminal for long-running services. [Quick Launch](/en/docs/quick-launch), which saves and runs commands, is a separate feature.

@@ -25,10 +25,10 @@ Ghostty or Alacritty as its backend.
 No telemetry and no analytics. Update checks look up the network's IP country
 to choose between GitHub and Gitee, then fetch the release feed. Turn off
 automatic checks in **Settings → Updates** to stop these background requests;
-manual checks still make them. See [Updates](/docs/installation#updates).
+manual checks still make them. See [Updates](/en/docs/installation#updates).
 The Recommendations page checks tool versions while it is open.
 
-Pages you open in a [browser pane](/docs/browser) and agent CLIs you run make
+Pages you open in a [browser pane](/en/docs/browser) and agent CLIs you run make
 their own user-directed requests, just as they would outside Zshell.
 
 </Accordion>
@@ -36,7 +36,7 @@ their own user-directed requests, just as they would outside Zshell.
 <Accordion title="Does it read my Ghostty or Alacritty config?">
 
 No. Backend, fonts, colors, and input behavior come from Zshell's own
-[settings](/docs/configuration). Zshell does not load either terminal app's
+[settings](/en/docs/configuration). Zshell does not load either terminal app's
 config file.
 
 </Accordion>
@@ -48,7 +48,7 @@ as a fresh shell in its old directory. Nothing keeps running in the background
 after you quit.
 
 Previous scrollback comes back too if you enable
-[`terminal.restore-history`](/docs/configuration#terminalrestore-history) — it
+[`terminal.restore-history`](/en/docs/configuration#terminalrestore-history) — it
 appears above a `Session Contents Restored` divider as static text.
 
 </Accordion>
@@ -72,16 +72,16 @@ Ghostty uses.
 
 <Accordion title="Can I use it with an AI coding agent?">
 
-That's much of what it is built for. Enable AI once, then ask a supported agent
+Yes. AI integration is enabled by default. Ask a supported agent
 in plain language to run something in a background pane or delegate a bounded
 task. Agents in separate Zshell panes can also exchange questions, findings, and
 follow-ups instead of making you copy context between them. Zshell keeps their
 provider-reported working/blocked/completed state visible without guessing from
 terminal text, while you retain control of approvals and the final diff. See
-[Working with AI agents](/docs/automation).
+[Working with AI agents](/en/docs/automation).
 
 You can still use an agent as an ordinary terminal program: review its diff in
-the [Git panel](/docs/git), read files beside it, and stage only what you want.
+the [Git panel](/en/docs/git), read files beside it, and stage only what you want.
 
 </Accordion>
 

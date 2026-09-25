@@ -72,7 +72,7 @@ function parseReleases(markdown: string): Release[] {
   const headings = Array.from(markdown.matchAll(/^## \[([^\]]+)\]\s*$/gm))
 
   return headings
-    .filter((heading) => heading[1] !== 'unreleased')
+    .filter((heading) => heading[1].toLowerCase() !== 'unreleased')
     .map((heading, index, releasedHeadings) => {
       const bodyStart = (heading.index ?? 0) + heading[0].length
       const bodyEnd = releasedHeadings[index + 1]?.index ?? markdown.length

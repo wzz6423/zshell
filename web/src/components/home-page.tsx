@@ -1,31 +1,46 @@
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { DocsLink, HomeLink } from '@/components/site-links'
-import { formatCopy, homeCopy, type HomeCopy, type Row } from '@/lib/home-copy'
-import { DEFAULT_LANGUAGE, i18n } from '@/lib/i18n'
+import { homeCopy, type HomeCopy, type Row } from '@/lib/home-copy'
+import { i18n } from '@/lib/i18n'
 import { BREW_COMMAND, GITHUB_URL, RELEASE_ARCHITECTURES, dmgUrl, type Release } from '@/lib/release'
 import { cn, withBase } from '@/lib/utils'
 
 /** The landing page, rendered once per language from `homeCopy`. */
 export function HomePage({ lang, release }: { lang: string; release: Release }) {
   const copy = homeCopy(lang)
-  const progressRef = useRef<HTMLDivElement>(null)
   useRevealMotion()
-  useScrollProgress(progressRef)
+
+  // The landing page always opens at the top. The browser and router otherwise
+  // restore a returning visitor's previous scroll position on reload (e.g. the
+  // shortcuts section); an explicit hash deep-link (#features …) still wins.
+  useEffect(() => {
+    if (window.location.hash) return
+    const html = document.documentElement
+    const previous = html.style.scrollBehavior
+    html.style.scrollBehavior = 'auto' // override the global smooth so the reset is instant
+    window.scrollTo(0, 0)
+    const raf = requestAnimationFrame(() => {
+      window.scrollTo(0, 0)
+      html.style.scrollBehavior = previous
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [])
 
   return (
-    <div className="min-h-screen bg-background font-sans text-[15px] leading-relaxed text-foreground">
-      <div aria-hidden className="scroll-progress" ref={progressRef} />
+    <div className="home-page min-h-screen bg-background font-sans text-base leading-relaxed text-foreground">
+      <a href="#main" className="skip-link">{copy.skipLink}</a>
       <Header lang={lang} copy={copy} release={release} />
+      <SectionProgress copy={copy} />
 
-      <main>
+      <main id="main">
         <Hero lang={lang} copy={copy} release={release} />
-        <ProofBand copy={copy} />
-        <Features copy={copy} />
-        <Flow copy={copy} />
+        <Features lang={lang} copy={copy} />
         <Shortcuts lang={lang} copy={copy} />
-        <Download copy={copy} release={release} />
-        <Faq copy={copy} />
+        <div className="home-support-grid">
+          <Download copy={copy} release={release} />
+          <Faq copy={copy} />
+        </div>
       </main>
 
       <Footer lang={lang} copy={copy} />
@@ -37,24 +52,54 @@ export function HomePage({ lang, release }: { lang: string; release: Release }) 
 /* Chrome                                                              */
 /* ------------------------------------------------------------------ */
 
-/** Tracks page scroll with a thin brand bar, like zisla's reader-style progress. */
-function useScrollProgress(progressRef: React.RefObject<HTMLDivElement | null>) {
+function SectionProgress({ copy }: { copy: HomeCopy }) {
+  const [active, setActive] = useState('overview')
+  const sections = [
+    { id: 'overview', label: copy.nav.overview },
+    { id: 'features', label: copy.features.title },
+    { id: 'shortcuts', label: copy.shortcuts.title },
+    { id: 'download', label: `${copy.nav.download} / ${copy.nav.faq}` },
+  ]
+
   useEffect(() => {
-    const bar = progressRef.current
-    if (!bar) return
+    const ids = ['overview', 'features', 'shortcuts', 'download']
+    let frame = 0
     const update = () => {
-      const scrollable = document.documentElement.scrollHeight - window.innerHeight
-      const progress = scrollable > 0 ? window.scrollY / scrollable : 0
-      bar.style.transform = `scaleX(${Math.min(1, Math.max(0, progress))})`
+      frame = 0
+      const reached = ids.filter((id) => (document.getElementById(id)?.getBoundingClientRect().top ?? Infinity) <= 120)
+      const atEnd = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2
+      const target = document.getElementById(window.location.hash.slice(1))
+      // Short final sections share the same clamped scroll position; honor the clicked anchor there.
+      const targetY = target ? Math.min(
+        document.documentElement.scrollHeight - window.innerHeight,
+        Math.max(0, target.getBoundingClientRect().top + window.scrollY - parseFloat(getComputedStyle(target).scrollMarginTop)),
+      ) : -1
+      const onTarget = target && ids.includes(target.id) && Math.abs(window.scrollY - targetY) < 2
+      setActive(onTarget ? target.id : atEnd ? ids[ids.length - 1] : reached.at(-1) ?? ids[0])
     }
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update) }
     update()
-    window.addEventListener('scroll', update, { passive: true })
-    window.addEventListener('resize', update)
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    window.addEventListener('hashchange', schedule)
     return () => {
-      window.removeEventListener('scroll', update)
-      window.removeEventListener('resize', update)
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+      window.removeEventListener('hashchange', schedule)
     }
   }, [])
+
+  return (
+    <nav className="section-progress" aria-label={copy.nav.sections}>
+      {sections.map(({ id, label }) => (
+        <a key={id} href={`#${id}`} aria-label={label} aria-current={active === id ? 'location' : undefined}>
+          <span className="section-progress-mark" aria-hidden />
+          <span className="section-progress-label" aria-hidden>{label}</span>
+        </a>
+      ))}
+    </nav>
+  )
 }
 
 /**
@@ -116,17 +161,29 @@ function Reveal({
 
 function Header({ lang, copy, release }: { lang: string; copy: HomeCopy; release: Release }) {
   const [open, setOpen] = useState(false)
+  const menuButton = useRef<HTMLButtonElement>(null)
   const anchors = [
     { href: '#features', label: copy.nav.features },
-    { href: '#how', label: copy.nav.how },
     { href: '#shortcuts', label: copy.nav.shortcuts },
     { href: '#faq', label: copy.nav.faq },
   ]
   const others = i18n.languages.filter((code) => code !== lang)
 
+  useEffect(() => {
+    if (!open) return
+    const close = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false)
+        menuButton.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', close)
+    return () => window.removeEventListener('keydown', close)
+  }, [open])
+
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-6">
+    <header className="sticky top-0 z-50 border-b border-border bg-background/95">
+      <div className="home-container flex h-20 items-center justify-between gap-4">
         <HomeLink lang={lang} className="flex items-center gap-2.5 font-bold tracking-tight">
           <img
             src={withBase('/zshell-icon.png')}
@@ -138,7 +195,7 @@ function Header({ lang, copy, release }: { lang: string; copy: HomeCopy; release
           zshell
         </HomeLink>
 
-        <nav className="hidden items-center gap-7 font-mono text-[12px] text-muted-foreground md:flex">
+        <nav aria-label={copy.nav.features} className="hidden items-center gap-6 font-mono text-[12px] text-muted-foreground lg:flex">
           {anchors.map((a) => (
             <a key={a.href} href={a.href} className="transition-colors hover:text-foreground">
               {a.label}
@@ -162,17 +219,18 @@ function Header({ lang, copy, release }: { lang: string; copy: HomeCopy; release
           <a
             href={release.dmg}
             download
-            className="hidden items-center gap-1.5 rounded-md bg-brand px-3.5 py-1.5 text-[13px] font-semibold text-brand-foreground transition-transform hover:-translate-y-px sm:inline-flex"
+            className="hidden min-h-10 items-center gap-1.5 border border-border px-3.5 text-[13px] font-semibold transition-colors hover:border-brand hover:text-brand sm:inline-flex"
           >
             <span aria-hidden className="i-mingcute-apple-fill size-3.5" />
             {copy.nav.download}
           </a>
           <button
             type="button"
+            ref={menuButton}
             aria-expanded={open}
             aria-label={open ? copy.nav.menuClose : copy.nav.menuOpen}
             onClick={() => setOpen(!open)}
-            className="flex size-9 items-center justify-center rounded-md border border-border text-muted-foreground md:hidden"
+            aria-controls="mobile-navigation" className="flex size-11 items-center justify-center border border-border text-foreground lg:hidden"
           >
             <span aria-hidden className={cn('size-4', open ? 'i-mingcute-close-line' : 'i-mingcute-menu-line')} />
           </button>
@@ -180,7 +238,7 @@ function Header({ lang, copy, release }: { lang: string; copy: HomeCopy; release
       </div>
 
       {open && (
-        <nav className="flex flex-col gap-1 border-t border-border/60 bg-background px-6 py-3 font-mono text-[13px] md:hidden">
+        <nav id="mobile-navigation" className="flex max-h-[calc(100dvh-5rem)] flex-col gap-1 overflow-y-auto border-t border-border bg-background px-6 py-3 font-mono text-sm lg:hidden">
           {anchors.map((a) => (
             <a
               key={a.href}
@@ -193,6 +251,7 @@ function Header({ lang, copy, release }: { lang: string; copy: HomeCopy; release
           ))}
           <DocsLink
             lang={lang}
+            onClick={() => setOpen(false)}
             className="rounded-md px-2 py-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             {copy.nav.docs}
@@ -228,184 +287,124 @@ function Header({ lang, copy, release }: { lang: string; copy: HomeCopy; release
 
 function Hero({ lang, copy, release }: { lang: string; copy: HomeCopy; release: Release }) {
   return (
-    <section className="relative overflow-hidden">
-      {/* Faint terminal grid backdrop */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 [background-image:linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [background-size:56px_56px] opacity-40 [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,black,transparent)]"
-      />
-      <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-6 pt-20 pb-16 lg:grid-cols-[1.02fr_0.98fr] lg:pt-28 lg:pb-24">
-        <div className="max-w-xl">
-          <Reveal>
-            <p className="font-mono text-[12px] font-semibold tracking-[0.14em] text-brand uppercase">
-              {copy.hero.eyebrow}
-            </p>
-          </Reveal>
-          <Reveal delay={90}>
-            <h1 className="mt-5 text-[clamp(2.3rem,4.6vw,3.6rem)] leading-[1.08] font-bold tracking-tight text-balance">
-              {copy.hero.titleBefore}
-              <span className="text-brand">{copy.hero.titleHighlight}</span>
-              {copy.hero.titleAfter}
-            </h1>
-          </Reveal>
-          <Reveal delay={180}>
-            <p className="mt-5 text-[16px] leading-relaxed text-pretty text-muted-foreground">
-              {copy.hero.lede}
-              <br />
-              {copy.hero.ledeFree}
-            </p>
-          </Reveal>
-          <Reveal delay={260}>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <a
-                href={release.dmg}
-                download
-                className="inline-flex items-center gap-2 rounded-md bg-brand px-5 py-2.5 font-semibold text-brand-foreground transition-transform hover:-translate-y-px"
-              >
-                <span aria-hidden className="i-mingcute-apple-fill size-4" />
-                {copy.hero.download}
-              </a>
-              <DocsLink
-                lang={lang}
-                className="inline-flex items-center gap-2 rounded-md border border-border px-5 py-2.5 font-semibold transition-colors hover:border-brand hover:text-brand"
-              >
-                <span aria-hidden className="i-mingcute-book-2-line size-4" />
-                {copy.hero.docs}
-              </DocsLink>
-            </div>
-          </Reveal>
-          <Reveal delay={340}>
-            <ul className="mt-8 flex list-none flex-wrap gap-x-6 gap-y-2 p-0 text-[13px] text-muted-foreground">
-              {copy.hero.hints.map((hint) => (
-                <li key={hint} className="flex items-center gap-1.5">
-                  <span aria-hidden className="i-mingcute-check-line size-3.5 text-success" />
-                  {hint}
-                </li>
-              ))}
-            </ul>
+    <section id="overview" className="hero-section scroll-mt-24">
+      <div className="home-container py-8 md:py-10">
+        <div className="flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
+          <p className="flex items-center gap-3 tracking-wide text-muted-foreground">
+            <span aria-hidden className="text-brand">[ &gt;_ ]</span>{copy.hero.eyebrow}
+          </p>
+          <Link to="/changelog" className="inline-flex items-center gap-2 text-muted-foreground hover:text-brand">
+            v{release.version}<span aria-hidden>↗</span>
+          </Link>
+        </div>
+        <div className="hero-content">
+          <div className="hero-intro">
+            <Reveal>
+              <h1 className="hero-title">
+                <span>{copy.hero.titleBefore}</span>
+                <span>{copy.hero.titleHighlight}{copy.hero.titleAfter}<span aria-hidden className="hero-cursor" /></span>
+              </h1>
+            </Reveal>
+            <Reveal delay={90}>
+              <p className="max-w-md text-base leading-relaxed text-muted-foreground">{copy.hero.lede}</p>
+              <div className="mt-7 flex flex-wrap items-center gap-5">
+                <a href={release.dmg} download className="home-cta">
+                  <span aria-hidden className="i-mingcute-apple-fill size-4" />{copy.hero.download}
+                  <span aria-hidden className="i-mingcute-arrow-down-line size-4" />
+                </a>
+                <DocsLink lang={lang} className="home-text-link">{copy.hero.docs}<span aria-hidden>↗</span></DocsLink>
+              </div>
+            </Reveal>
+          </div>
+          <Reveal delay={140}>
+            <TerminalWindow copy={copy} />
           </Reveal>
         </div>
-
-        <Reveal delay={200} className="max-lg:mx-auto max-lg:w-full max-lg:max-w-xl">
-          <TerminalWindow />
-        </Reveal>
       </div>
     </section>
   )
 }
 
-/**
- * The hero's centerpiece: the app itself, rebuilt in CSS so it stays sharp at
- * every density and costs no network. Left to right — projects sidebar, a live
- * terminal with an OSC 9;4 progress bar, and the git panel mid-review.
- */
-function TerminalWindow() {
+function TerminalWindow({ copy }: { copy: HomeCopy }) {
+  const [view, setView] = useState(0)
+  const preview = copy.preview
+
   return (
-    <div className="window-float overflow-hidden rounded-xl border border-border bg-card shadow-[0_32px_80px_-24px_rgba(0,0,0,0.55)]">
-      {/* Title bar */}
-      <div className="flex items-center border-b border-border px-4 py-2.5">
-        <span className="flex gap-1.5">
-          <i className="size-2.5 rounded-full bg-[#ff5f57]" />
-          <i className="size-2.5 rounded-full bg-[#febc2e]" />
-          <i className="size-2.5 rounded-full bg-[#28c840]" />
-        </span>
-        <span className="ml-3 font-mono text-[11px] text-muted-foreground">zshell — ~/code/zshell</span>
+    <figure className="workspace-preview">
+      <div className="preview-toolbar">
+        <span className="hidden text-xs text-muted-foreground sm:block">{preview.label}</span>
+        <div className="preview-switcher" role="group" aria-label={preview.label}>
+          {preview.tabs.map((label, index) => (
+            <button key={label} type="button" aria-pressed={view === index} aria-controls="workspace-example" onClick={() => setView(index)}>
+              <span aria-hidden className="mr-2 opacity-50">0{index + 1}</span>{label}
+            </button>
+          ))}
+        </div>
       </div>
-
-      <div className="grid h-[290px] grid-cols-[104px_1fr] font-mono text-[10.5px] leading-[1.7] sm:grid-cols-[110px_1fr_148px]">
-        {/* Projects sidebar */}
-        <div className="border-r border-border bg-muted/40 px-3 py-3">
-          <p className="text-[9px] tracking-[0.12em] text-muted-foreground/70">PROJECTS</p>
-          <ul className="mt-1.5 space-y-1">
-            <li className="-mx-1 rounded bg-brand/15 px-1 text-brand">▸ zshell</li>
-            <li className="px-1 text-muted-foreground">▸ zisla</li>
-            <li className="px-1 text-muted-foreground">▸ dotfiles</li>
-          </ul>
-          <p className="mt-4 text-[9px] tracking-[0.12em] text-muted-foreground/70">AGENTS</p>
-          <ul className="mt-1.5 space-y-1">
-            <li className="flex items-center gap-1.5 px-1 text-muted-foreground">
-              <i className="size-1.5 rounded-full bg-success" />
-              claude
-            </li>
-            <li className="flex items-center gap-1.5 px-1 text-muted-foreground">
-              <i className="size-1.5 animate-caret rounded-full bg-[#febc2e]" />
-              codex
-            </li>
-          </ul>
+      <div id="workspace-example" className="workspace-window" role="img" aria-label={`${preview.label}：${preview.captions[view]}`}>
+        <div className="workspace-titlebar" aria-hidden="true">
+          <span className="flex gap-1.5"><i /><i /><i /></span>
+          <span>zshell — ~/code/zshell</span>
+          <span aria-hidden />
         </div>
-
-        {/* Terminal pane */}
-        <div className="relative bg-[#0b0e14] px-3.5 py-3">
-          <div className="demo-progress absolute inset-x-0 top-0 h-[2px] bg-brand" />
-          <p className="text-muted-foreground/60">~/code/zshell · main*</p>
-          <p className="mt-2">
-            <span className="text-success">❯</span> <span className="text-foreground">git status</span>
-          </p>
-          <p className="text-muted-foreground">
-            on main, <span className="text-[#e3b341]">3 files changed</span>
-          </p>
-          <p className="mt-2">
-            <span className="text-success">❯</span> <span className="text-foreground">make run</span>
-          </p>
-          <p className="text-muted-foreground">building zshell…</p>
-          <p>
-            <span className="text-success">✓</span> <span className="text-muted-foreground">build succeeded in 4.2s</span>
-          </p>
-          <p className="mt-2">
-            <span className="text-success">❯</span>
-            <span aria-hidden className="ml-1.5 inline-block h-[12px] w-[6px] animate-caret bg-brand align-[-1px]" />
-          </p>
-        </div>
-
-        {/* Git panel */}
-        <div className="hidden border-l border-border px-3 py-3 sm:block">
-          <p className="text-[9px] tracking-[0.12em] text-muted-foreground/70">
-            <span className="text-foreground">GIT</span> · FILES · INFO
-          </p>
-          <p className="mt-2 text-muted-foreground/70">Changes (3)</p>
-          <ul className="mt-1 space-y-1">
-            <li>
-              <span className="text-[#e3b341]">M</span> <span className="text-muted-foreground">main.swift</span>
-            </li>
-            <li>
-              <span className="text-success">+</span> <span className="text-muted-foreground">pane.swift</span>
-            </li>
-            <li>
-              <span className="text-destructive">−</span> <span className="text-muted-foreground">legacy.swift</span>
-            </li>
-          </ul>
-          <div className="mt-3 rounded border border-border bg-muted/50 px-2 py-1.5 text-muted-foreground">
-            feat: split panes
+        <div className="workspace-body" aria-hidden="true">
+          <aside className="workspace-sidebar">
+            <p className="preview-label">{preview.projects}</p>
+            <p className="mt-6 text-xs text-muted-foreground">{preview.local}</p>
+            <p className="preview-project selected"><span>▾</span> zshell</p>
+            <p className="preview-project"><span>▸</span> website</p>
+            <p className="preview-project"><span>▸</span> dotfiles</p>
+            <p className="mt-6 text-xs text-muted-foreground">{preview.remote}</p>
+            <p className="preview-project"><span>↗</span> staging</p>
+            <div className="mt-auto border-t border-border pt-4 text-xs text-muted-foreground">main <span className="float-right text-brand">+12 −3</span></div>
+          </aside>
+          <div className="min-w-0">
+            <div className="workspace-tabs"><span className="text-foreground">{view === 0 ? 'shell' : view === 1 ? 'review' : 'codex'}</span><span>dev server</span><span className="ml-auto">+</span></div>
+            {view === 0 ? (
+              <div className="preview-terminal">
+                <p className="text-muted-foreground">~/code/zshell <span className="text-brand">main</span></p>
+                <p className="mt-5"><span className="text-brand">❯</span> git status --short</p>
+                <p className="mt-2 text-muted-foreground"><span className="text-brand"> M</span> src/workspace.ts</p>
+                <p className="text-muted-foreground"><span className="text-brand"> M</span> src/theme.css</p>
+                <p className="text-muted-foreground"><span className="text-brand">??</span> docs/quick-start.md</p>
+                <p className="mt-6"><span className="text-brand">❯</span> <span className="preview-caret" /></p>
+                <div className="preview-split"><span>dev server</span><span>localhost:3000 ↗</span></div>
+                <p className="text-muted-foreground"><span className="text-brand">❯</span> bun run dev</p>
+              </div>
+            ) : view === 1 ? (
+              <div className="preview-code">
+                <p className="mb-6 text-muted-foreground">src/workspace.ts</p>
+                <p><span className="line-number">18</span> const workspace = {'{'}</p>
+                <p className="diff-removed"><span className="line-number">19</span>−  layout: 'single',</p>
+                <p className="diff-added"><span className="line-number">19</span>+  layout: 'split',</p>
+                <p className="diff-added"><span className="line-number">20</span>+  keepContext: true,</p>
+                <p><span className="line-number">21</span> {'}'}</p>
+                <p className="mt-8 text-muted-foreground">main → feat/workspace</p>
+              </div>
+            ) : (
+              <div className="preview-terminal">
+                <p><span className="text-brand">❯</span> codex</p>
+                <p className="mt-5 text-muted-foreground">› Review the workspace changes.</p>
+                <p className="mt-4 text-brand">{preview.running} <span className="preview-caret" /></p>
+                <div className="preview-queue">
+                  <p className="preview-label">{preview.queue}</p>
+                  <p className="mt-3">01 <span className="text-muted-foreground">Check the keyboard shortcuts.</span></p>
+                  <p className="mt-2">02 <span className="text-muted-foreground">Summarize the changes.</span></p>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="mt-2 rounded bg-brand px-2 py-1 text-center font-semibold text-brand-foreground">
-            Commit ▸
-          </div>
+          <aside className="workspace-inspector">
+            <p className="preview-label">{view === 2 ? preview.agents : preview.changes}</p>
+            {view === 2 ? (
+              <div className="space-y-6 pt-6"><p>codex<span className="mt-1 block text-xs text-brand">● {preview.running}</span></p><p>claude<span className="mt-1 block text-xs text-muted-foreground">○ {preview.attention}</span></p></div>
+            ) : (
+              <div className="space-y-3 pt-6 text-xs text-muted-foreground"><p><span className="text-brand">M</span> workspace.ts</p><p><span className="text-brand">M</span> theme.css</p><p><span className="text-brand">+</span> quick-start.md</p><div className="mt-8 border-t border-border pt-4">{preview.files} <span className="float-right">3</span></div></div>
+            )}
+          </aside>
         </div>
       </div>
-    </div>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* Proof band                                                          */
-/* ------------------------------------------------------------------ */
-
-function ProofBand({ copy }: { copy: HomeCopy }) {
-  return (
-    <section className="border-y border-border bg-muted/30">
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-px lg:grid-cols-4">
-        {copy.proof.map((item, i) => (
-          <Reveal key={item.title} delay={i * 70} className="border-border max-lg:odd:border-r lg:not-last:border-r">
-            <div className="px-6 py-7">
-              <p className="font-mono text-[15px] font-bold text-foreground">
-                {formatCopy(item.title, { count: copy.shortcuts.rows.length })}
-              </p>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{item.desc}</p>
-            </div>
-          </Reveal>
-        ))}
-      </div>
-    </section>
+    </figure>
   )
 }
 
@@ -413,54 +412,31 @@ function ProofBand({ copy }: { copy: HomeCopy }) {
 /* Sections                                                            */
 /* ------------------------------------------------------------------ */
 
-function SectionHeading({
-  eyebrow,
-  title,
-  lede,
-}: {
-  eyebrow: string
-  title: ReactNode
-  lede: string
-}) {
+function SectionHeading({ title, action }: { title: string; action?: ReactNode }) {
   return (
     <Reveal>
-      <div className="flex items-end justify-between gap-12 max-md:flex-col max-md:items-start max-md:gap-4">
-        <div className="max-w-2xl">
-          <p className="font-mono text-[12px] font-semibold tracking-[0.14em] text-brand uppercase">{eyebrow}</p>
-          <h2 className="mt-4 text-[clamp(1.7rem,3.2vw,2.5rem)] leading-[1.12] font-bold tracking-tight text-balance">
-            {title}
-          </h2>
-        </div>
-        <p className="max-w-xs text-[14px] leading-relaxed text-pretty text-muted-foreground">{lede}</p>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <h2 className="home-section-title">{title}</h2>
+        {action}
       </div>
     </Reveal>
   )
 }
 
-function Features({ copy }: { copy: HomeCopy }) {
+function Features({ lang, copy }: { lang: string; copy: HomeCopy }) {
   return (
-    <section id="features" className="scroll-mt-20 py-24">
-      <div className="mx-auto max-w-6xl px-6">
-        <SectionHeading
-          eyebrow={copy.features.eyebrow}
-          title={
-            <>
-              {copy.features.titleBefore}
-              <span className="text-muted-foreground">{copy.features.titleMuted}</span>
-            </>
-          }
-          lede={copy.features.lede}
-        />
-        <div className="mt-14 flex flex-col gap-14">
-          {copy.features.groups.map((group, i) => (
+    <section id="features" className="home-section">
+      <div className="home-container">
+        <SectionHeading title={copy.features.title} />
+        <div className="mt-8 grid gap-x-10 gap-y-9 lg:grid-cols-2">
+          {copy.features.groups.map((group) => (
             <Reveal key={group.name} delay={60}>
-              <div className="grid gap-6 border-t border-border pt-8 lg:grid-cols-[280px_1fr] lg:gap-12">
-                <div>
-                  <p className="font-mono text-[12px] text-muted-foreground/70">{String(i + 1).padStart(2, '0')}</p>
-                  <h3 className="mt-2 font-mono text-[15px] font-semibold text-foreground">{group.name}</h3>
-                  <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{group.lede}</p>
+              <div className="h-full border-t border-border pt-6 pb-2">
+                <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <h3 className="text-xl font-semibold tracking-tight">{group.name}</h3>
+                  <DocsLink lang={lang} slug={group.slug} className="home-text-link text-xs">{copy.features.docsLink}<span aria-hidden>↗</span></DocsLink>
                 </div>
-                <ul className="grid list-none gap-x-10 gap-y-3 p-0 sm:grid-cols-2">
+                <ul className="grid list-none gap-x-8 gap-y-6 p-0 sm:grid-cols-2">
                   {group.rows.map((row) => (
                     <DefinitionRow key={row.name} {...row} />
                   ))}
@@ -474,50 +450,24 @@ function Features({ copy }: { copy: HomeCopy }) {
   )
 }
 
-function Flow({ copy }: { copy: HomeCopy }) {
-  return (
-    <section id="how" className="scroll-mt-20 border-y border-border bg-muted/30 py-24">
-      <div className="mx-auto max-w-6xl px-6">
-        <SectionHeading eyebrow={copy.flow.eyebrow} title={copy.flow.title} lede={copy.flow.lede} />
-        <ol className="mt-14 grid list-none gap-10 p-0 md:grid-cols-3">
-          {copy.flow.steps.map((step, i) => (
-            <Reveal key={step.phase} delay={i * 90}>
-              <li className="relative border-l-2 border-brand/40 pl-5">
-                <p className="font-mono text-[11px] tracking-[0.1em] text-brand uppercase">{step.phase}</p>
-                <h3 className="mt-2 text-[17px] font-bold">{step.title}</h3>
-                <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">{step.desc}</p>
-              </li>
-            </Reveal>
-          ))}
-        </ol>
-      </div>
-    </section>
-  )
-}
-
 function Shortcuts({ lang, copy }: { lang: string; copy: HomeCopy }) {
   return (
-    <section id="shortcuts" className="scroll-mt-20 py-24">
-      <div className="mx-auto max-w-6xl px-6">
-        <SectionHeading eyebrow={copy.shortcuts.eyebrow} title={copy.shortcuts.title} lede={copy.shortcuts.lede} />
+    <section id="shortcuts" className="home-section">
+      <div className="home-container">
+        <SectionHeading title={copy.shortcuts.title} action={
+          <DocsLink lang={lang} slug="shortcuts" className="home-text-link text-sm text-brand">
+            {copy.shortcuts.docsLink}<span aria-hidden>↗</span>
+          </DocsLink>
+        } />
         <Reveal delay={80}>
-          <ul className="mt-12 grid list-none gap-x-8 gap-y-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
-            {copy.shortcuts.rows.map((row) => (
-              <li key={row.name} className="flex items-center gap-3">
+          <ul className="shortcut-grid">
+            {copy.shortcuts.rows.slice(0, 8).map((row) => (
+              <li key={row.name} className="flex flex-wrap content-center items-center gap-x-3 gap-y-2 border-b border-border py-4">
                 <span className="keycap">{row.name}</span>
                 <span className="text-[13px] text-muted-foreground">{row.detail}</span>
               </li>
             ))}
           </ul>
-        </Reveal>
-        <Reveal delay={120}>
-          <DocsLink
-            lang={lang}
-            className="mt-8 inline-flex items-center gap-1.5 font-mono text-[13px] text-brand transition-opacity hover:opacity-75"
-          >
-            {copy.shortcuts.docsLink}
-            <span aria-hidden className="i-mingcute-arrow-right-line size-3.5" />
-          </DocsLink>
         </Reveal>
       </div>
     </section>
@@ -526,73 +476,46 @@ function Shortcuts({ lang, copy }: { lang: string; copy: HomeCopy }) {
 
 function Download({ copy, release }: { copy: HomeCopy; release: Release }) {
   return (
-    <section id="download" className="scroll-mt-20 border-y border-border bg-muted/30 py-24">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="grid items-center gap-12 lg:grid-cols-[1fr_360px]">
-          <Reveal>
-            <div>
-              <p className="font-mono text-[12px] font-semibold tracking-[0.14em] text-brand uppercase">
-                {copy.download.eyebrow}
-              </p>
-              <h2 className="mt-4 text-[clamp(1.7rem,3.2vw,2.5rem)] leading-[1.12] font-bold tracking-tight text-balance">
-                {copy.download.title}
-              </h2>
-              <p className="mt-4 max-w-md text-[15px] leading-relaxed text-pretty text-muted-foreground">
-                {formatCopy(copy.download.copy, { minSystem: release.minSystem })}
-              </p>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <a
-                  href={release.dmg}
-                  download
-                  className="inline-flex items-center gap-2 rounded-md bg-brand px-5 py-2.5 font-semibold text-brand-foreground transition-transform hover:-translate-y-px"
-                >
-                  <span aria-hidden className="i-mingcute-apple-fill size-4" />
-                  {copy.download.dmg}
-                </a>
-                <CopyCommand command={BREW_COMMAND} label={copy.copy} copiedLabel={copy.copied} aria={copy.copyAria(BREW_COMMAND)} />
-              </div>
-              {release.architecturePackages && <div className="mt-4 space-y-2 font-mono text-[12px] text-muted-foreground">
-                {(['github', 'gitee'] as const).map((host) => (
-                  <div key={host} className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <span>{host === 'github' ? 'GitHub' : copy.download.mirror}</span>
-                    {RELEASE_ARCHITECTURES.filter((arch) => host === 'gitee' || arch !== 'universal').map((arch) => (
-                      <a
-                        key={arch}
-                        href={dmgUrl(release.version, arch, host)}
-                        className="text-brand transition-opacity hover:opacity-75"
-                      >
-                        {arch === 'arm64' ? 'Apple Silicon' : arch === 'x86_64' ? 'Intel' : 'Universal'}
-                      </a>
-                    ))}
-                  </div>
-                ))}
-              </div>}
+    <section id="download" className="home-section">
+      <div className="home-container">
+        <Reveal>
+          <div>
+            <h2 className="home-section-title">{copy.download.title}</h2>
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+              <span>v{release.version}</span>
+              <span>macOS {release.minSystem}+</span>
+              <span>{copy.download.license}</span>
+              <Link to="/changelog" className="home-text-link text-brand">{copy.download.changelog}<span aria-hidden>↗</span></Link>
             </div>
-          </Reveal>
-          <Reveal delay={120}>
-            <dl className="grid gap-px overflow-hidden rounded-lg border border-border bg-border font-mono text-[12.5px]">
-              <div className="flex items-center justify-between bg-card px-4 py-3">
-                <dt className="text-muted-foreground">{copy.download.notes.version}</dt>
-                <dd className="font-semibold text-brand">v{release.version}</dd>
-              </div>
-              <div className="flex items-center justify-between bg-card px-4 py-3">
-                <dt className="text-muted-foreground">{copy.download.notes.system}</dt>
-                <dd>macOS {release.minSystem}+</dd>
-              </div>
-              <div className="flex items-center justify-between bg-card px-4 py-3">
-                <dt className="text-muted-foreground">{copy.download.notes.license}</dt>
-                <dd>{copy.download.notes.licenseValue}</dd>
-              </div>
-              <Link
-                to="/changelog"
-                className="flex items-center justify-between bg-card px-4 py-3 text-brand transition-colors hover:bg-muted"
+            <div className="mt-5 flex flex-wrap items-stretch gap-3">
+              <a
+                href={release.dmg}
+                download
+                className="home-cta"
               >
-                {copy.download.changelog}
-                <span aria-hidden className="i-mingcute-arrow-right-line size-3.5" />
-              </Link>
-            </dl>
-          </Reveal>
-        </div>
+                <span aria-hidden className="i-mingcute-apple-fill size-4" />
+                {copy.download.dmg}
+              </a>
+              <CopyCommand command={BREW_COMMAND} label={copy.copy} copiedLabel={copy.copied} aria={copy.copyAria(BREW_COMMAND)} />
+            </div>
+            {release.architecturePackages && <div className="mt-4 space-y-2 font-mono text-[12px] text-muted-foreground">
+              {(['github', 'gitee'] as const).map((host) => (
+                <div key={host} className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <span>{host === 'github' ? 'GitHub' : copy.download.mirror}</span>
+                  {RELEASE_ARCHITECTURES.filter((arch) => host === 'gitee' || arch !== 'universal').map((arch) => (
+                    <a
+                      key={arch}
+                      href={dmgUrl(release.version, arch, host)}
+                      className="text-brand transition-opacity hover:opacity-75"
+                    >
+                      {arch === 'arm64' ? 'Apple Silicon' : arch === 'x86_64' ? 'Intel' : 'Universal'}
+                    </a>
+                  ))}
+                </div>
+              ))}
+            </div>}
+          </div>
+        </Reveal>
       </div>
     </section>
   )
@@ -600,10 +523,10 @@ function Download({ copy, release }: { copy: HomeCopy; release: Release }) {
 
 function Faq({ copy }: { copy: HomeCopy }) {
   return (
-    <section id="faq" className="scroll-mt-20 py-24">
-      <div className="mx-auto max-w-6xl px-6">
-        <SectionHeading eyebrow={copy.faq.eyebrow} title={copy.faq.title} lede={copy.faq.lede} />
-        <div className="mt-12 grid gap-x-14 lg:grid-cols-2">
+    <section id="faq" className="home-section">
+      <div className="home-container">
+        <SectionHeading title={copy.faq.title} />
+        <div className="mt-4">
           {copy.faq.items.map((item, i) => (
             <Reveal key={item.q} delay={(i % 2) * 60}>
               <details className="group border-b border-border">
@@ -632,7 +555,7 @@ function Footer({ lang, copy }: { lang: string; copy: HomeCopy }) {
   const others = i18n.languages.filter((code) => code !== lang)
   return (
     <footer className="border-t border-border">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-10">
+      <div className="home-container py-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <HomeLink lang={lang} className="flex items-center gap-2.5 font-bold tracking-tight">
             <img
@@ -661,16 +584,6 @@ function Footer({ lang, copy }: { lang: string; copy: HomeCopy }) {
               </HomeLink>
             ))}
           </nav>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-5 text-[12.5px] text-muted-foreground">
-          <span>{copy.footerTagline}</span>
-          <span className="font-mono">
-            {copy.footerBuiltBy.before}
-            <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="text-foreground transition-colors hover:text-brand">
-              zshell
-            </a>
-            {copy.footerBuiltBy.after} · © 2026
-          </span>
         </div>
       </div>
     </footer>
@@ -724,7 +637,7 @@ function CopyCommand({
   }
 
   return (
-    <div className="flex max-w-full items-stretch self-start overflow-hidden rounded-md border border-border bg-card font-mono text-[13px]">
+    <div className="home-command flex max-w-full items-stretch overflow-hidden border border-border bg-card font-mono text-xs">
       <code className="flex min-w-0 items-center gap-2 overflow-x-auto px-4 py-2.5 whitespace-pre">
         <span aria-hidden className="shrink-0 text-muted-foreground select-none">
           $
@@ -749,11 +662,11 @@ function CopyCommand({
 /** A feature's name and what it does — the page's one repeating unit. */
 function DefinitionRow({ name, detail }: Row) {
   return (
-    <li className="group">
-      <span className="block text-[14px] font-semibold text-foreground transition-colors group-hover:text-brand">
+    <li className="min-w-0">
+      <span className="block text-base font-semibold text-foreground">
         {name}
       </span>
-      <span className="mt-0.5 block text-[13px] leading-relaxed text-muted-foreground">{detail}</span>
+      <span className="mt-2 block text-[15px] leading-7 text-muted-foreground">{detail}</span>
     </li>
   )
 }

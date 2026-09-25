@@ -20,15 +20,15 @@ dotfiles。终端窗格可以选择 Ghostty 或 Alacritty 作为后端。
 
 <Accordion title="它会收集数据吗？">
 
-没有遥测，也没有分析统计。检查更新时会查询网络出口 IP 的国家码，以选择 GitHub 或 Gitee，再获取发布 feed。在**设置 → 更新**中关闭自动检查，就会停止这些后台请求；手动检查仍会发起请求。详见[更新说明](/zh/docs/installation#更新)。推荐页面打开时也会查询工具版本。
+没有遥测，也没有分析统计。检查更新时会查询网络出口 IP 的国家码，以选择 GitHub 或 Gitee，再获取发布 feed。在**设置 → 更新**中关闭自动检查，就会停止这些后台请求；手动检查仍会发起请求。详见[更新说明](/docs/installation#更新)。推荐页面打开时也会查询工具版本。
 
-你在[浏览器窗格](/zh/docs/browser)里打开的网页，以及自己运行的 agent CLI，会像在 Zshell 外面一样发起你要求的网络请求。
+你在[浏览器窗格](/docs/browser)里打开的网页，以及自己运行的 agent CLI，会像在 Zshell 外面一样发起你要求的网络请求。
 
 </Accordion>
 
 <Accordion title="它会读我的 Ghostty 或 Alacritty 配置吗？">
 
-不会。后端、字体、配色和输入行为都来自 Zshell 自己的[设置](/zh/docs/configuration)，两个终端应用的配置文件都不会加载。
+不会。后端、字体、配色和输入行为都来自 Zshell 自己的[设置](/docs/configuration)，两个终端应用的配置文件都不会加载。
 
 </Accordion>
 
@@ -36,7 +36,7 @@ dotfiles。终端窗格可以选择 Ghostty 或 Alacritty 作为后端。
 
 项目、标签页和窗格布局会在重启后回来，每个终端会在原目录里以全新的 shell 打开。退出之后不会有任何东西继续在后台跑。
 
-如果你打开 [`terminal.restore-history`](/zh/docs/configuration#terminalrestore-history)，之前的滚动历史也会回来——它以静态文本的形式出现在 `Session Contents Restored` 分隔线上方。
+如果你打开 [`terminal.restore-history`](/docs/configuration#terminalrestore-history)，之前的滚动历史也会回来——它以静态文本的形式出现在 `Session Contents Restored` 分隔线上方。
 
 </Accordion>
 
@@ -54,9 +54,9 @@ dotfiles。终端窗格可以选择 Ghostty 或 Alacritty 作为后端。
 
 <Accordion title="能和 AI 编码工具一起用吗？">
 
-很大程度上就是为此而做的。打开 AI 后，直接用自然语言让受支持的 agent 在后台窗格运行任务，或把范围明确的工作交给另一个 agent。不同 Zshell 窗格里的 agent 还可以互相询问、传递发现和补充要求，不再需要你来回复制上下文。Zshell 会显示 provider 报告的 working、blocked 和完成状态，不会根据终端文字猜测；批准与最终 diff 仍由你决定。见[与 AI Agent 协作](/zh/docs/automation)。
+可以，AI 集成默认启用。直接用自然语言让受支持的 agent 在后台窗格运行任务，或把范围明确的工作交给另一个 agent。不同 Zshell 窗格里的 agent 还可以互相询问、传递发现和补充要求，不再需要你来回复制上下文。Zshell 会显示 provider 报告的 working、blocked 和完成状态，不会根据终端文字猜测；批准与最终 diff 仍由你决定。见[与 AI Agent 协作](/docs/automation)。
 
-当然也可以把 agent 当作普通终端程序使用：在 [Git 面板](/zh/docs/git)里审阅它的 diff，在旁边读文件，然后只暂存真正想要的部分。
+当然也可以把 agent 当作普通终端程序使用：在 [Git 面板](/docs/git)里审阅它的 diff，在旁边读文件，然后只暂存真正想要的部分。
 
 </Accordion>
 

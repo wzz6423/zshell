@@ -31,7 +31,7 @@ Zshell 额外设置了能力与身份变量：
 
 <Callout type="info">
 Zshell 不读取 `~/.config/ghostty`，也不读取 Alacritty 配置。字体、颜色、输入行为和后端都在 Zshell
-自己的[设置](/zh/docs/configuration)里配置。
+自己的[设置](/docs/configuration)里配置。
 </Callout>
 
 ## 搜索
@@ -52,6 +52,20 @@ Zshell 不读取 `~/.config/ghostty`，也不读取 Alacritty 配置。字体、
 
 嵌套启动或替换的 shell 若未加载 Zshell 的提示符编辑支持，拖拽仍可选择、复制终端文字，但不会直接修改输入。退出嵌套 shell、回到原提示符后，输入选区编辑会自动恢复。
 
+## 提示词队列
+
+聚焦终端，按 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>，或在命令面板选择
+**显示/隐藏 提示词队列**，即可在该终端底部打开队列栏。输入内容后按 <kbd>Return</kbd>
+或点击 **加入队列**。每项只保留一行，粘贴内容中的换行会替换为空格。
+
+原来的 zsh 回到空 Shell 提示符时，Zshell 会按入队顺序发送下一项并按下 Return。
+Agent 或其他前台程序仍占用终端、或者提示符中已有草稿输入时，自动发送会等待。
+自动发送需要 Zshell 的 zsh 集成；其他 Shell 和嵌套 Shell 可以手动发送。
+
+每项都有 **立即发送**和 **移除**按钮。**立即发送**会直接把文字和 Return 交给终端当前运行的
+程序，不等待 Shell 提示符。按 <kbd>Esc</kbd> 或关闭按钮只会隐藏队列栏，已有队列仍然保留。
+每个终端的队列独立；关闭会话或退出 Zshell 后，队列会被清空。
+
 ## 路径与 URL
 
 Zshell 能识别终端程序打印出来的网页 URL 和确实存在的本地路径。本地链接可以是绝对路径、以
@@ -64,7 +78,7 @@ Zshell 能识别终端程序打印出来的网页 URL 和确实存在的本地�
 - 启用鼠标报告的全屏程序会收到普通右键。按住 **Shift** 再右键，可改为打开 Zshell 的终端和窗格菜单。
 
 这样一来，编译器输出和 agent 对话就能直接回到同一个项目里。网页相关行为见
-[浏览器窗格](/zh/docs/browser)。
+[浏览器窗格](/docs/browser)。
 
 ## 通知
 
@@ -74,6 +88,27 @@ Zshell 会把两类终端事件转给通知中心：
 - 构建工具或编码 agent 发出的 `OSC 777;notify` 请求。
 
 通知可以播放系统提示音。点通知会激活 Zshell，并跳到发出它的确切会话。macOS 只在某个终端第一次真的要通知时申请权限，不会在 Zshell 启动时就弹框。
+
+### 命令完成通知
+
+打开 **设置 → Terminal → 命令通知**，可以让 Zshell 在命令结束时提醒你：
+
+- **长时间运行的命令**：可选 5、10、30、60 秒。运行时间达到该值后结束的命令会触发通知，
+  默认 **关闭**。
+- **失败的命令**：退出状态非零时通知，不受运行时长限制。默认关闭，可以独立开启。
+
+设置只影响修改之后新建的 zsh 终端，两个终端后端都支持。通知依赖原 Shell 的命令完成事件；
+嵌套 Shell 或交互程序内部运行的命令，不会通过这项集成逐条报告完成。
+
+也可以写入 `~/.config/zshell/config.toml`：
+
+```toml
+terminal.notify-finish-seconds = 30
+terminal.notify-on-error = true
+```
+
+将 `terminal.notify-finish-seconds` 设为 `0` 可关闭按时长触发的通知。
+通知是否送达仍取决于 macOS 的通知设置。
 
 ## 进度显示
 
@@ -88,7 +123,7 @@ Zshell 会把两类终端事件转给通知中心：
 ## Option 键输入
 
 默认情况下，Option 交给当前 macOS 输入源，因此 Polish Pro 之类的布局可以输入组合字符。如果终端程序需要把 Option 组合键当成 Meta 快捷键，打开设置里的 **Use Option as Alt/Meta**。对应配置键是
-[`terminal.macos-option-as-alt`](/zh/docs/configuration#terminalmacos-option-as-alt)。
+[`terminal.macos-option-as-alt`](/docs/configuration#terminalmacos-option-as-alt)。
 
 ## `zshell` 命令
 
@@ -108,8 +143,19 @@ zshell +help                   # 查看全部命令组
 
 Zshell 内置 JetBrains Mono 和 Nerd Font 符号。拉丁字形可以换成任意已安装的等宽字族，
 还可在符号字体与系统后备字体之前插入一个已安装的 CJK 字族。见
-[`font-family`](/zh/docs/configuration#font-family)、
-[`terminal.font-fallback-family`](/zh/docs/configuration#terminalfont-fallback-family)、
-[`font-size`](/zh/docs/configuration#font-size)、
-[`terminal.font-thicken`](/zh/docs/configuration#terminalfont-thicken) 和
-[`terminal.line-height`](/zh/docs/configuration#terminalline-height)。
+[`font-family`](/docs/configuration#font-family)、
+[`terminal.font-fallback-family`](/docs/configuration#terminalfont-fallback-family)、
+[`font-size`](/docs/configuration#font-size)、
+[`terminal.font-thicken`](/docs/configuration#terminalfont-thicken) 和
+[`terminal.line-height`](/docs/configuration#terminalline-height)。
+
+## 全局快捷终端
+
+Zshell 运行时，按 <kbd>Cmd</kbd>+<kbd>I</kbd> 可以在其他应用上方打开独立的快捷终端，再按一次关闭。
+它使用临时 shell，不属于项目中的标签页。**设置 → 终端 → Quick Terminal** 可调整窗口大小、透明度和快捷键。
+
+- 点击固定按钮后，切换到其他应用时仍保持打开。
+- 未固定时，点击外部或失去焦点会关闭窗口。
+- <kbd>Esc</kbd> 或再次按全局快捷键会关闭窗口，并终止其中的 shell 和运行任务；重新打开会创建新会话。
+
+需要持续运行的服务请放在项目终端中。[快速启动](/docs/quick-launch)用于保存和运行命令，是另一项功能。

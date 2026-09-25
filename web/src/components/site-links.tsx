@@ -24,13 +24,13 @@ export function HomeLink({ lang, className, children, onClick }: LinkProps) {
  * default, which is served unprefixed. TanStack types `to` against the route
  * tree, so both have to be spelled out.
  */
-export function DocsLink({ lang, className, children }: LinkProps) {
+export function DocsLink({ lang, className, children, onClick, slug = '' }: LinkProps & { slug?: string }) {
   return lang === DEFAULT_LANGUAGE ? (
-    <Link to="/docs/$" params={{ _splat: '' }} className={className}>
+    <Link to="/docs/$" params={{ _splat: slug }} className={className} onClick={onClick}>
       {children}
     </Link>
   ) : (
-    <Link to="/$lang/docs/$" params={{ lang, _splat: '' }} className={className}>
+    <Link to="/$lang/docs/$" params={{ lang, _splat: slug }} className={className} onClick={onClick}>
       {children}
     </Link>
   )

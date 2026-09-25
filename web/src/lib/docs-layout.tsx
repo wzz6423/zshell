@@ -6,8 +6,8 @@ const GITHUB_URL = 'https://github.com/wzz6423/zshell'
 
 /** The changelog is generated from CHANGELOG.md, so it has no translation. */
 const NAV_LABELS = {
-  en: { home: 'Home', changelog: 'Changelog', download: 'Download' },
-  zh: { home: '首页', changelog: '更新日志', download: '下载' },
+  en: { changelog: 'Changelog', download: 'Download' },
+  zh: { changelog: '更新日志', download: '下载' },
 } as const
 
 /** Chrome shared by every docs page: the zshell wordmark plus links back to the site. */
@@ -36,9 +36,8 @@ export function docsLayoutOptions(lang: string): BaseLayoutProps {
       ),
     },
     links: [
-      { text: labels.home, url: home, active: 'url' },
       { text: labels.changelog, url: '/changelog', active: 'url' },
-      { type: 'button', text: labels.download, url: home, active: 'none' },
+      { type: 'button', text: labels.download, url: `${home}#download`, active: 'none' },
     ],
   }
 }

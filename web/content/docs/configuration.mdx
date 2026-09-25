@@ -64,7 +64,7 @@ Controls the compact toolbar below the active tab:
 - `"always"` keeps its Git entry point visible in every project, including a
   **No Git Repository** state.
 
-See [The Git toolbar](/docs/git#the-git-toolbar) for what it shows.
+See [The Git toolbar](/en/docs/git#the-git-toolbar) for what it shows.
 
 ## Text
 
@@ -142,9 +142,9 @@ fallback weights consistently across static and variable fonts.
 
 ### `editor.wrap-lines`
 
-boolean — default `false`
+boolean — default `true`
 
-Soft-wraps long lines to the pane width in the [file editor](/docs/files).
+Soft-wraps long lines to the pane width in the [file editor](/en/docs/files).
 When false, long lines scroll horizontally. It does not change wrapping in a
 terminal or diff.
 
@@ -175,7 +175,7 @@ keep the backend they started with. Both choices are native, GPU-accelerated,
 support image rendering, and use the same Zshell themes; Alacritty generally has
 the lower memory footprint.
 
-See [Terminal backends](/docs/terminal#terminal-backends) for the environment
+See [Terminal backends](/en/docs/terminal#terminal-backends) for the environment
 variables and compatibility contract.
 
 ### `terminal.macos-option-as-alt`
@@ -205,14 +205,14 @@ relaunch. The restored content is static text, not a surviving process.
 
 Restored scrollback is stored on disk, so any secrets shown in the terminal may
 be included. This setting is off by default.
-[Projects, tabs, and pane layout](/docs/projects#what-survives-a-relaunch) are
+[Projects, tabs, and pane layout](/en/docs/projects#what-survives-a-relaunch) are
 restored either way.
 
 ## Automation
 
 ### `ai.enabled`
 
-boolean — default `false`
+boolean — default `true`
 
 Lets supported coding agents coordinate background Zshell panes when you ask in
 plain language, and shows provider-reported lifecycle status in the UI. Zshell
@@ -221,7 +221,40 @@ way to change it because errors are shown inline and conflicting existing setups
 are left untouched.
 
 The human workflow is described in
-[Working with AI agents](/docs/automation).
+[Working with AI agents](/en/docs/automation).
+
+## Additional settings
+
+| Key | Default | Values / range | Effect |
+| --- | --- | --- | --- |
+| `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Application icon |
+| `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | External editor for files and folders |
+| `terminal.theme-only` | `false` | boolean | Apply the selected palette to the terminal only |
+| `terminal.cursor-shape` | `"block"` | `"block"` / `"bar"` / `"underline"` | Terminal cursor shape |
+| `terminal.cursor-blinking` | `true` | boolean | Blink the cursor |
+| `terminal.copy-on-select` | `true` | boolean | Copy selected terminal text |
+| `terminal.shift-enter-newline` | `true` | boolean | Send an enhanced newline sequence with Shift+Enter; requires application support |
+| `terminal.background-opacity` | `1` | 0.2–1 | Terminal background opacity |
+| `terminal.background-blur` | `false` | boolean | Blur translucent backgrounds |
+| `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Notify after a command runs for at least this duration and finishes in new zsh terminals; 0 disables it |
+| `terminal.notify-on-error` | `false` | boolean | Notify on command failure in new zsh terminals |
+| `quick-terminal.size` | `0.75` | 0.35–0.95 | Quick Terminal size relative to the screen |
+| `quick-terminal.opacity` | `0.5` | 0.05–1 | Quick Terminal background opacity |
+| `quick-terminal.shortcut` | `Cmd+I` | Record in Settings | Record the global shortcut in Settings; key codes are saved automatically |
+| `panes.show-focus-ring` | `true` | boolean | Show a focus ring around the active pane |
+| `panes.focus-ring-opacity` | `0.85` | 0.05–1 | Focus-ring opacity |
+
+## Backup and migration
+
+Use **Zshell → Export Settings…** to save a TOML file, and **Import Settings…** to load it.
+Import asks you to confirm replacement and attempts to back up the current file as `config.toml.bak` in the same directory.
+
+The importer currently restores a subset: themes, main font options, cursor settings, terminal backend,
+history restoration, selection copying, Quick Terminal, and AI support. It does not round-trip every
+exported setting. Check interface scale, app icon, external editor, and terminal background settings afterward.
+For a complete configuration transfer, quit Zshell, back up and copy `config.toml`, then relaunch.
+The AI toggle updates only when the imported file explicitly contains `ai.enabled`; check it after importing.
+Project and tab environment variables are session data and are not included in this file.
 
 ## A complete example
 
@@ -250,6 +283,13 @@ ai.enabled = true
 
 Every key is optional. Delete a key to return that setting to its default.
 
+## Keyboard shortcuts
+
+Open **Settings → Shortcuts** to record a new shortcut for a core command.
+Zshell rejects conflicting combinations and names the command already using
+them. **Restore Default Shortcuts** resets all overrides. The
+[keyboard reference](/en/docs/shortcuts) lists the shipped defaults.
+
 ## Settings outside this file
 
 - **Language.** Settings offers System Default, English, Simplified Chinese,
@@ -257,10 +297,9 @@ Every key is optional. Delete a key to return that setting to its default.
   relaunch, so it lives in Zshell's preferences rather than TOML.
 - **Automatic updates.** The automatic check and automatic download/install
   switches in **Settings → Updates** belong to Sparkle, which remembers your
-  choices across launches. See [Installation](/docs/installation#updates).
+  choices across launches. See [Installation](/en/docs/installation#updates).
 - **Window and layout state.** Window size, sidebar widths, selected panels,
   projects, tabs, panes, browser URLs, and diff control preferences live in
   Zshell's macOS preferences and session snapshot.
 - **Backend config files.** Zshell does not read `~/.config/ghostty` or an
   Alacritty config. Zshell's settings are the supported surface for both.
-- **Keybindings.** The [shortcuts](/docs/shortcuts) are fixed for now.

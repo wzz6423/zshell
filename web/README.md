@@ -107,9 +107,9 @@ page needs no config change.
 
 ## Notes
 
-- The theme lives in [`src/styles/app.css`](src/styles/app.css) — a GitHub-dark
-  palette that mirrors the macOS app (`mac/zshell/Theme.swift`). Fumadocs reads the
-  same variables through `fumadocs-ui/css/shadcn.css`, so the docs inherit it.
+- The theme lives in [`src/styles/app.css`](src/styles/app.css). Documentation
+  uses the shared GitHub palette through `fumadocs-ui/css/shadcn.css`; the landing
+  page scopes its monochrome palette and terminal-green accent to `.home-page`.
 - Add more components with `bunx shadcn@latest add <name>` — the project is
   already configured for Base UI (`components.json` → `"style": "base-nova"`).
 - Landing pages read the newest release from the Sparkle appcast through
@@ -123,5 +123,6 @@ page needs no config change.
   favicon, and Apple touch icon. It is used by the root route and the site,
   docs, and landing-page navigation — through `withBase()`, like every other
   file in `public/`.
-- The site has no hero product shot yet. Add one under `public/` and reference
-  it from `src/components/home-page.tsx` when it is ready.
+- The landing page uses a labeled workspace illustration with terminal, code
+  review, and agent views. It is rendered in CSS, not a screenshot or a live
+  terminal. Copy and captions for both languages live in `src/lib/home-copy.ts`.
