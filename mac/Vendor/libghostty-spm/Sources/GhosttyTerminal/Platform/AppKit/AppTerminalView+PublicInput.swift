@@ -120,6 +120,33 @@
             return String(text[lower..<upper]).trimmingCharacters(in: CharacterSet(charactersIn: "()[]{}"))
         }
 
+        /// Read a bounded rectangle at the bottom of the viewport without
+        /// changing the selection or exporting scrollback to disk.
+        public func readViewportText(maxLines: Int, maxColumns: Int) -> String? {
+            guard let surface, let raw = surface.rawValue,
+                  let size = surface.size(), size.rows > 0, size.columns > 0
+            else { return nil }
+            let rows = min(Int(size.rows), min(max(maxLines, 1), 500))
+            let columns = min(Int(size.columns), min(max(maxColumns, 1), 2_000))
+            let selection = ghostty_selection_s(
+                top_left: ghostty_point_s(
+                    tag: GHOSTTY_POINT_VIEWPORT, coord: GHOSTTY_POINT_COORD_EXACT,
+                    x: 0, y: UInt32(Int(size.rows) - rows)
+                ),
+                bottom_right: ghostty_point_s(
+                    tag: GHOSTTY_POINT_VIEWPORT, coord: GHOSTTY_POINT_COORD_EXACT,
+                    x: UInt32(columns - 1), y: UInt32(size.rows - 1)
+                ),
+                rectangle: true
+            )
+            var result = ghostty_text_s()
+            guard ghostty_surface_read_text(raw, selection, &result) else { return nil }
+            defer { ghostty_surface_free_text(raw, &result) }
+            return result.text.map {
+                String(decoding: UnsafeRawBufferPointer(start: $0, count: Int(result.text_len)), as: UTF8.self)
+            } ?? ""
+        }
+
         /// Search the screen and scrollback for `needle`, replacing any active
         /// search. An empty needle cancels without dismissing host search UI.
         @discardableResult

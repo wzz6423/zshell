@@ -347,6 +347,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var vimCommandHints: Bool {
+        didSet { save() }
+    }
+
     /// Send Shift-Return as LF so coding agents can insert a line without
     /// changing plain Return's submit behavior.
     @Published var shiftEnterNewline: Bool {
@@ -533,6 +537,7 @@ final class AppSettings: nonisolated ObservableObject {
         ) ?? .block
         cursorBlinking = toml["terminal.cursor-blinking"]?.bool ?? true
         macosOptionAsAlt = toml["terminal.macos-option-as-alt"]?.bool ?? false
+        vimCommandHints = toml["terminal.vim-command-hints"]?.bool ?? false
         terminalBell = toml["terminal.bell"]?.bool ?? true
         shiftEnterNewline = toml["terminal.shift-enter-newline"]?.bool ?? true
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
@@ -665,6 +670,7 @@ final class AppSettings: nonisolated ObservableObject {
             && cursorBlinking
             && !macosOptionAsAlt
             && terminalBell
+            && !vimCommandHints
             && shiftEnterNewline
             && wrapLines
             && externalEditor == .systemDefault
@@ -698,6 +704,7 @@ final class AppSettings: nonisolated ObservableObject {
         cursorBlinking = true
         macosOptionAsAlt = false
         terminalBell = true
+        vimCommandHints = false
         shiftEnterNewline = true
         wrapLines = true
         externalEditor = .systemDefault
@@ -831,6 +838,7 @@ final class AppSettings: nonisolated ObservableObject {
         ) ?? .block
         cursorBlinking = toml["terminal.cursor-blinking"]?.bool ?? true
         macosOptionAsAlt = toml["terminal.macos-option-as-alt"]?.bool ?? false
+        vimCommandHints = toml["terminal.vim-command-hints"]?.bool ?? false
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
         restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? false
         copyOnSelect = toml["terminal.copy-on-select"]?.bool ?? true
@@ -970,6 +978,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if !terminalBell {
             lines.append("terminal.bell = false")
+        }
+        if vimCommandHints {
+            lines.append("terminal.vim-command-hints = true")
         }
         if !shiftEnterNewline {
             lines.append("terminal.shift-enter-newline = false")
