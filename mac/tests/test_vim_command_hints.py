@@ -24,13 +24,21 @@ struct Input: Decodable {
     let text: String
     let previouslyDetected: Bool
     let query: String
+    let foregroundPID: Int32?
+    let launchPID: Int32?
+    let launchProcessGroup: Int32?
 }
 let input = try JSONDecoder().decode(Input.self, from: FileHandle.standardInput.readDataToEndOfFile())
 let mode = VimModeDetection.detect(executable: input.executable, title: input.title,
                                   text: input.text, previouslyDetected: input.previouslyDetected)
 let entries = VimCommandCatalog.ordered(for: mode ?? .normal, query: input.query)
+let inspectionPID = input.foregroundPID.map {
+    VimModeDetection.inspectionPID(foregroundPID: $0, launchPID: input.launchPID,
+                                  launchProcessGroup: input.launchProcessGroup)
+} ?? 0
 let result = ["mode": mode?.rawValue ?? "none", "first": entries.first?.command.keys ?? "",
               "count": String(entries.count), "total": String(VimCommandCatalog.all.count),
+              "inspectionPID": String(inspectionPID),
               "keys": entries.map { $0.command.keys }.joined(separator: "\n")]
 let translated = VimCommandReference(command: .init("yy", "复制整行・行をコピー"), modes: [.normal])
 precondition(translated.matches("复制") && translated.matches("コピー") && translated.matches("YY"))
@@ -41,12 +49,31 @@ FileHandle.standardOutput.write(try JSONEncoder().encode(result))
         source = Path(__file__).resolve().parents[1] / "zshell/VimCommandHints.swift"
         subprocess.run(["swiftc", str(source), str(main), "-o", str(cls.binary)], check=True)
 
-    def detect(self, text, executable="vim", title="", previous=False, query=""):
+    def detect(self, text, executable="vim", title="", previous=False, query="", process=None):
         result = subprocess.run([str(self.binary)], input=json.dumps({
             "executable": executable, "title": title, "text": text,
             "previouslyDetected": previous, "query": query,
+            **(process or {}),
         }), text=True, capture_output=True, check=True)
         return json.loads(result.stdout)
+
+    def test_foreground_login_wrapper_and_background_jobs(self):
+        cases = [
+            (200, 201, 200, 201),
+            (200, 201, 201, 200),
+            (200, None, None, 200),
+            (200, 0, 200, 200),
+            (200, 201, -1, 200),
+            (200, 200, 200, 200),
+            (201, 200, 200, 201),
+        ]
+        for foreground, launch, group, expected in cases:
+            with self.subTest(foreground=foreground, launch=launch, group=group):
+                result = self.detect("", process={
+                    "foregroundPID": foreground, "launchPID": launch,
+                    "launchProcessGroup": group,
+                })
+                self.assertEqual(int(result["inspectionPID"]), expected)
 
     def test_mode_priority(self):
         cases = [

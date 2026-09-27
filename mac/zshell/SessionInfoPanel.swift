@@ -83,6 +83,9 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
             else { self.collapsed.insert("vim") }
             self.rebuildHints()
         }
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(refreshLanguage), name: AppLocalization.didChange, object: nil
+        )
         hintSearch.placeholderString = String(localized: "Search Vim commands")
         hintSearch.setAccessibilityLabel(String(localized: "Search Vim commands"))
         hintSearch.sendsSearchStringImmediately = true
@@ -136,6 +139,16 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
         updatePolling()
     }
 
+    @objc private func refreshLanguage() {
+        hintHeading.title = String(localized: "VIM COMMANDS")
+        hintHeading.toolTip = hintHeading.title
+        hintHeading.setAccessibilityLabel(hintHeading.title)
+        hintSearch.placeholderString = String(localized: "Search Vim commands")
+        hintSearch.setAccessibilityLabel(hintSearch.placeholderString)
+        renderInformation?()
+        rebuildHints()
+    }
+
     func stopPolling() {
         timer?.invalidate()
         timer = nil
@@ -157,8 +170,16 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
 
     private func pollMode() {
         guard let session, !session.hasExited, session.terminalIsAtLiveBottom,
-              let pid = session.surface.foregroundPid,
-              let path = processExecutablePath(pid: pid) else {
+              let foreground = session.surface.foregroundPid else {
+            setMode(nil)
+            return
+        }
+        let launchPID = session.shellPid
+        let pid = VimModeDetection.inspectionPID(
+            foregroundPID: foreground, launchPID: launchPID,
+            launchProcessGroup: launchPID.map { getpgid($0) }
+        )
+        guard let path = processExecutablePath(pid: pid) else {
             setMode(nil)
             return
         }
@@ -235,7 +256,6 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
             let remote = RemoteProjectInfoNSView()
             remote.configure(project: remoteProject)
             add(remote, to: information)
-            remote.heightAnchor.constraint(equalToConstant: 220 * fontScale).isActive = true
             return
         }
         let header = NSStackView()
@@ -372,6 +392,7 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
         let button = SettingsActionButton(title: title, action: action)
         button.isBordered = false
         button.alignment = .left
+        button.lineBreakMode = .byTruncatingTail
         button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
             .withSymbolConfiguration(.init(pointSize: 10 * fontScale, weight: .regular))
         button.imagePosition = title.isEmpty ? .imageOnly : .imageLeading

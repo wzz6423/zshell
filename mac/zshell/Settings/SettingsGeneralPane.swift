@@ -6,7 +6,7 @@
 import AppKit
 
 /// App-wide preferences that belong to no single surface: the language Zshell
-/// launches in, whether projects show the toolbar, and the reset escape hatch.
+/// uses, whether projects show the toolbar, and the reset escape hatch.
 final class SettingsGeneralPane: SettingsPaneViewController {
     private let languagePopUp = SettingsPopUpButton<AppLanguage>(
         items: AppLanguage.allCases.map { .value($0.title, $0) },
@@ -31,27 +31,7 @@ final class SettingsGeneralPane: SettingsPaneViewController {
     private lazy var languageGroup = SettingsGroup(rows: [
         SettingsRow(title: String(localized: "Language"), control: languagePopUp),
         toolbarRow,
-        relaunchRow,
     ])
-
-    private lazy var relaunchRow: NSView = {
-        let notice = NSTextField(wrappingLabelWithString: String(
-            localized: "Relaunch Zshell to apply the language change.",
-            comment: "Explains that the language change is pending."
-        ))
-        notice.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
-        notice.textColor = .secondaryLabelColor
-        notice.maximumNumberOfLines = 0
-        return SettingsStackRow(
-            views: [
-                notice,
-                SettingsActionButton(title: String(localized: "Relaunch Zshell")) { [weak self] in
-                    self?.relaunch()
-                },
-            ],
-            alignment: .firstBaseline
-        )
-    }()
 
     private lazy var resetRow = SettingsButtonRow(
         title: String(localized: "Reset to Defaults")
@@ -70,7 +50,6 @@ final class SettingsGeneralPane: SettingsPaneViewController {
         languagePopUp.select(settings.language)
         toolbarPopUp.select(settings.toolbarVisibility)
         toolbarRow.setDescription(Self.toolbarDescription(for: settings.toolbarVisibility))
-        languageGroup.setRowHidden(!settings.languageRequiresRelaunch, at: 2)
         resetRow.button.isEnabled = !settings.isAtDefaults
     }
 
@@ -85,35 +64,4 @@ final class SettingsGeneralPane: SettingsPaneViewController {
         }
     }
 
-    /// Reopens Zshell as a second instance and quits this one, so the new
-    /// process picks up the per-app `AppleLanguages` value.
-    private func relaunch() {
-        TerminalManager.saveForRelaunch()
-
-        let configuration = NSWorkspace.OpenConfiguration()
-        configuration.createsNewApplicationInstance = true
-        configuration.activates = true
-        NSWorkspace.shared.openApplication(
-            at: Bundle.main.bundleURL,
-            configuration: configuration
-        ) { [weak self] _, error in
-            DispatchQueue.main.async {
-                guard let error else {
-                    NSApp.terminate(nil)
-                    return
-                }
-                self?.presentRelaunchFailure(error)
-            }
-        }
-    }
-
-    private func presentRelaunchFailure(_ error: Error) {
-        let alert = NSAlert()
-        alert.messageText = String(localized: "Couldn’t Relaunch Zshell")
-        alert.informativeText = error.localizedDescription
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: String(localized: "OK"))
-        guard let window = AppWindowPresentation.hostWindow(relativeTo: view.window) else { return }
-        alert.beginSheetModal(for: window)
-    }
 }

@@ -7,79 +7,6 @@ import AppKit
 import Combine
 import Foundation
 
-/// The app-specific language macOS should use when Zshell next launches.
-///
-/// `AppleLanguages` is stored in Zshell's own defaults domain, matching the
-/// per-app language preference managed by System Settings. Removing it returns
-/// control to the user's system language order.
-enum AppLanguage: String, CaseIterable, Identifiable {
-    case system
-    case english = "en"
-    case simplifiedChinese = "zh-Hans"
-    case japanese = "ja"
-
-    var id: String { rawValue }
-
-    /// Language names are autonyms so the picker stays usable even when the
-    /// current app language is unfamiliar to the user.
-    var title: String {
-        switch self {
-        case .system:
-            String(
-                localized: "System Default",
-                comment: "Language choice that follows the macOS setting."
-            )
-        case .english:
-            "English"
-        case .simplifiedChinese:
-            "简体中文"
-        case .japanese:
-            "日本語"
-        }
-    }
-
-    static var saved: AppLanguage {
-        guard
-            let bundleIdentifier = Bundle.main.bundleIdentifier,
-            let domain = UserDefaults.standard.persistentDomain(
-                forName: bundleIdentifier
-            ),
-            let identifiers = domain["AppleLanguages"] as? [String],
-            let identifier = identifiers.first
-        else {
-            return .system
-        }
-
-        return from(identifier: identifier) ?? .system
-    }
-
-    private static func from(identifier: String) -> AppLanguage? {
-        let normalized = identifier.replacingOccurrences(of: "_", with: "-")
-        if normalized == "zh-Hans"
-            || normalized.hasPrefix("zh-Hans-")
-            || normalized.hasPrefix("zh-CN")
-            || normalized.hasPrefix("zh-SG") {
-            return .simplifiedChinese
-        }
-        if normalized == "ja" || normalized.hasPrefix("ja-") {
-            return .japanese
-        }
-        if normalized == "en" || normalized.hasPrefix("en-") {
-            return .english
-        }
-        return nil
-    }
-
-    func persist() {
-        switch self {
-        case .system:
-            UserDefaults.standard.removeObject(forKey: "AppleLanguages")
-        case .english, .simplifiedChinese, .japanese:
-            UserDefaults.standard.set([rawValue], forKey: "AppleLanguages")
-        }
-    }
-}
-
 /// Whether the toolbar follows project context, always shows, or stays hidden.
 enum ToolbarVisibility: String, CaseIterable, Identifiable {
     case auto
@@ -219,16 +146,12 @@ final class AppSettings: nonisolated ObservableObject {
     /// the pane's shell integration would not have been built with.
     static let notifyFinishSecondChoices = [0, 5, 10, 30, 60]
 
-    /// The language this process launched with, kept separate from the pending
-    /// selection so Settings can explain when a relaunch is required.
-    let activeLanguage: AppLanguage
-
     @Published var language: AppLanguage {
-        didSet { language.persist() }
-    }
-
-    var languageRequiresRelaunch: Bool {
-        language != activeLanguage
+        didSet {
+            guard language != oldValue else { return }
+            language.persist()
+            AppLocalization.apply(language)
+        }
     }
 
     /// Icon shown for the running app; `defaultIcon` restores the icon compiled
@@ -482,7 +405,6 @@ final class AppSettings: nonisolated ObservableObject {
 
     private init() {
         let savedLanguage = AppLanguage.saved
-        activeLanguage = savedLanguage
         language = savedLanguage
 
         let existing = TOML.parse(at: Self.configURL)

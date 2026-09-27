@@ -126,6 +126,9 @@ final class SettingsWindowController: NSWindowController {
         sidebar.onSelect = { [weak self] category in
             self?.select(category)
         }
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(refreshLanguage), name: AppLocalization.didChange, object: nil
+        )
     }
 
     @available(*, unavailable)
@@ -137,6 +140,12 @@ final class SettingsWindowController: NSWindowController {
         select(restoredCategory)
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate()
+    }
+
+    @objc private func refreshLanguage() {
+        sidebar.refreshLanguage()
+        content.refreshLanguage()
+        window?.title = restoredCategory.title
     }
 
     private var restoredCategory: SettingsCategory {
@@ -162,6 +171,18 @@ private final class SettingsContentViewController: NSViewController {
 
     override func loadView() {
         view = NSView()
+    }
+
+    func refreshLanguage() {
+        let position = (children.first?.view as? NSScrollView)?.contentView.bounds.origin
+        panes.removeAll()
+        guard let category else { return }
+        show(category)
+        if let position, let scroll = children.first?.view as? NSScrollView {
+            scroll.layoutSubtreeIfNeeded()
+            scroll.contentView.scroll(to: position)
+            scroll.reflectScrolledClipView(scroll.contentView)
+        }
     }
 
     func show(_ category: SettingsCategory) {

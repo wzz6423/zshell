@@ -120,6 +120,8 @@ final class GitWorktreeSectionNSView: NSView, NSTableViewDataSource, NSTableView
         self.openWorktree = openWorktree
         self.toggleCollapsed = toggleCollapsed
         let scale = metrics.sidebar.fontScale
+        header.title = String(localized: "WORKTREES")
+        tableView.setAccessibilityLabel(header.title)
         header.font = .systemFont(ofSize: 9.5 * scale, weight: .medium)
         header.contentTintColor = .secondaryLabelColor
         header.image = NSImage(systemSymbolName: isCollapsed ? "chevron.right" : "chevron.down", accessibilityDescription: nil)?
@@ -269,6 +271,7 @@ private final class GitWorktreeRowButton: NSButton {
         self.metrics = metrics
         openWorktree = open
         let scale = metrics.sidebar.fontScale
+        currentLabel.stringValue = String(localized: "Current")
         branchLabel.stringValue = worktree.branch ?? String(localized: "Detached HEAD")
         branchLabel.font = .systemFont(ofSize: 11 * scale, weight: .medium)
         branchLabel.textColor = .labelColor

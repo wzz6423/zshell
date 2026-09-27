@@ -94,6 +94,7 @@ final class RecentCommitsNSView: NSView {
         GitStatusModel.RecentCommit.FileChange
     ) -> Void)?
     private var snapshot: Snapshot?
+    private var language: String?
     private var orderedRows: [NSView] = []
     private weak var observedClipView: NSClipView?
     private var autoLoadRequestPending = false
@@ -118,7 +119,8 @@ final class RecentCommitsNSView: NSView {
             hasMoreCommits: hasMoreCommits,
             isLoadingMore: isLoadingMore
         )
-        guard snapshot != next else {
+        let language = AppLocalization.current.identifier
+        guard snapshot != next || self.language != language else {
             orderedRows.forEach { $0.needsDisplay = true }
             evaluateAutoLoadIfNeeded()
             return
@@ -128,6 +130,7 @@ final class RecentCommitsNSView: NSView {
             || !next.hasMoreCommits {
             autoLoadRequestPending = false
         }
+        self.language = language
         snapshot = next
         rebuildRows(using: next)
     }

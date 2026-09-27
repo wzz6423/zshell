@@ -106,7 +106,7 @@ nonisolated struct VimCommandReference {
 }
 
 nonisolated enum VimCommandCatalog {
-    static let all: [VimCommandReference] = {
+    static var all: [VimCommandReference] {
         var commands: [VimCommandHint] = []
         var modesByCommand: [VimCommandHint: [VimMode]] = [:]
         for mode in VimMode.allCases {
@@ -116,7 +116,7 @@ nonisolated enum VimCommandCatalog {
             }
         }
         return commands.map { VimCommandReference(command: $0, modes: modesByCommand[$0] ?? []) }
-    }()
+    }
 
     static func ordered(for mode: VimMode, query: String = "") -> [VimCommandReference] {
         let preferred = mode.commands
@@ -137,6 +137,14 @@ nonisolated enum VimModeDetection {
 
     static func canInspect(executable: String) -> Bool {
         editors.contains(executable) || transports.contains(executable)
+    }
+
+    static func inspectionPID(foregroundPID: Int32, launchPID: Int32?, launchProcessGroup: Int32?) -> Int32 {
+        // macOS 的 login 可能仍是前台进程组长；仅在启动进程属于该组时使用它，避免识别后台任务。
+        if let launchPID, launchPID > 0, launchProcessGroup == foregroundPID {
+            return launchPID
+        }
+        return foregroundPID
     }
 
     static func detect(executable: String, title: String, text: String, previouslyDetected: Bool) -> VimMode? {

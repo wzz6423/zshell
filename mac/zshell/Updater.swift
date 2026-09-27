@@ -415,6 +415,7 @@ final class Updater: ObservableObject {
 /// The "Check for Updates…" application-menu command.
 struct CheckForUpdatesView: View {
     @ObservedObject var updater: Updater
+    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         Button(updater.updateActionTitle) {
