@@ -12,6 +12,7 @@ struct zshellApp: App {
     // Held here so Sparkle starts at launch and background checks run even if
     // the menu is never opened.
     @StateObject private var updater = Updater.shared
+    @ObservedObject private var settings = AppSettings.shared
 
     init() {
         TerminalFont.registerBundledFonts()
@@ -92,18 +93,18 @@ struct zshellApp: App {
             // The settings window is AppKit, so it replaces SwiftUI's Settings
             // scene along with the menu item that scene would have supplied.
             CommandGroup(replacing: .appSettings) {
-                Button("Settings…") {
+                Button(String(localized: "Settings…")) {
                     SettingsWindowController.shared.show()
                 }
                 .keyboardShortcut(",", modifiers: .command)
 
                 Divider()
 
-                Button("Export Settings…") {
+                Button(String(localized: "Export Settings…")) {
                     SettingsImportExport.exportSettings()
                 }
 
-                Button("Import Settings…") {
+                Button(String(localized: "Import Settings…")) {
                     SettingsImportExport.importSettings()
                 }
             }
@@ -117,10 +118,12 @@ struct zshellApp: App {
 /// reopens windows for any snapshots left over.
 private struct WindowRootView: View {
     @StateObject private var manager = TerminalManager()
+    @ObservedObject private var settings = AppSettings.shared
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         ContentView(manager: manager)
+            .environment(\.locale, AppLocalization.current.locale)
             .focusedSceneObject(manager)
             .onAppear {
                 TerminalManager.openRestoredWindows {
@@ -148,18 +151,18 @@ private struct ZshellCommands: Commands {
         }
 
         CommandGroup(replacing: .newItem) {
-            Button("New Project") {
+            Button(String(localized: "New Project")) {
                 manager?.newProject()
             }
             .keyboardShortcut(settings.keyboardShortcut(for: .newProject))
             .disabled(manager == nil)
 
-            Button("New SSH Project…") {
+            Button(String(localized: "New SSH Project…")) {
                 manager?.promptForSSHProject()
             }
             .disabled(manager == nil)
 
-            Button("New Session") {
+            Button(String(localized: "New Session")) {
                 manager?.newSession()
             }
             .keyboardShortcut(settings.keyboardShortcut(for: .newSession))
@@ -167,29 +170,29 @@ private struct ZshellCommands: Commands {
 
             // The browser "reopen closed tab" convention. History is scoped
             // to the window: ⇧⌘T walks back through what this window closed.
-            Button("Reopen Closed Session") {
+            Button(String(localized: "Reopen Closed Session")) {
                 manager?.reopenClosedSession()
             }
             .keyboardShortcut("t", modifiers: [.command, .shift])
             .disabled(manager?.canReopenClosedSession != true)
 
-            Button("Toggle Prompt Queue") {
+            Button(String(localized: "Toggle Prompt Queue")) {
                 manager?.togglePromptQueue()
             }
             .keyboardShortcut("m", modifiers: [.command, .shift])
             .disabled(manager?.canTogglePromptQueue != true)
 
-            Button("New Browser Tab") {
+            Button(String(localized: "New Browser Tab")) {
                 manager?.newBrowserTab()
             }
             .disabled(manager == nil)
 
-            Button("New Window") {
+            Button(String(localized: "New Window")) {
                 openWindow(id: "main")
             }
             .keyboardShortcut(settings.keyboardShortcut(for: .newWindow))
 
-            Button("Close Pane") {
+            Button(String(localized: "Close Pane")) {
                 // Cmd-W is app-wide: close a pane only when a main window with
                 // an open project is key. Otherwise close the key window
                 // itself — a non-main window (e.g. Settings), or a main window
@@ -205,7 +208,7 @@ private struct ZshellCommands: Commands {
         }
 
         CommandGroup(replacing: .saveItem) {
-            Button("Save") {
+            Button(String(localized: "Save")) {
                 manager?.saveSelectedFile()
             }
             .keyboardShortcut("s", modifiers: .command)
@@ -219,31 +222,31 @@ private struct ZshellCommands: Commands {
             // the first responder, which keeps them live while the find bar's
             // text field has keyboard focus. ⇧⌘G is already Toggle Git Panel,
             // so Find Previous is reachable by ⇧↩ in the bar instead.
-            Menu("Find") {
-                Button("Find…") {
+            Menu(String(localized: "Find")) {
+                Button(String(localized: "Find…")) {
                     manager?.performFindAction(.show)
                 }
                 .keyboardShortcut("f", modifiers: .command)
                 .disabled(manager?.canFind != true)
 
-                Button("Find and Replace…") {
+                Button(String(localized: "Find and Replace…")) {
                     manager?.performFindAction(.replace)
                 }
                 .keyboardShortcut("f", modifiers: [.command, .option])
                 .disabled(manager?.canReplace != true)
 
-                Button("Find Next") {
+                Button(String(localized: "Find Next")) {
                     manager?.performFindAction(.next)
                 }
                 .keyboardShortcut("g", modifiers: .command)
                 .disabled(manager?.canFind != true)
 
-                Button("Find Previous") {
+                Button(String(localized: "Find Previous")) {
                     manager?.performFindAction(.previous)
                 }
                 .disabled(manager?.canFind != true)
 
-                Button("Use Selection for Find") {
+                Button(String(localized: "Use Selection for Find")) {
                     manager?.performFindAction(.useSelection)
                 }
                 .keyboardShortcut("e", modifiers: .command)
@@ -252,7 +255,7 @@ private struct ZshellCommands: Commands {
 
             Divider()
 
-            Button("Clear Terminal") {
+            Button(String(localized: "Clear Terminal")) {
                 manager?.clearActiveTerminal()
             }
             .keyboardShortcut(settings.keyboardShortcut(for: .clearTerminal))
@@ -263,13 +266,13 @@ private struct ZshellCommands: Commands {
         CommandGroup(replacing: .printItem) {}
 
         CommandGroup(after: .sidebar) {
-            Button("Command Palette…") {
+            Button(String(localized: "Command Palette…")) {
                 manager?.toggleCommandPalette()
             }
             .keyboardShortcut(settings.keyboardShortcut(for: .commandPalette))
             .disabled(manager == nil)
 
-            Button("Quick Launch…") {
+            Button(String(localized: "Quick Launch…")) {
                 manager?.toggleQuickLaunch()
             }
             .keyboardShortcut("o", modifiers: .command)
@@ -277,31 +280,31 @@ private struct ZshellCommands: Commands {
 
             Divider()
 
-            Button("Toggle Left Sidebar") {
+            Button(String(localized: "Toggle Left Sidebar")) {
                 manager?.toggleLeftSidebar()
             }
             .keyboardShortcut(settings.keyboardShortcut(for: .toggleLeftSidebar))
             .disabled(manager == nil)
 
-            Button("Toggle Right Sidebar") {
+            Button(String(localized: "Toggle Right Sidebar")) {
                 manager?.toggleSidebar()
             }
             .keyboardShortcut(settings.keyboardShortcut(for: .toggleRightSidebar))
             .disabled(manager?.selectedProject == nil)
 
-            Button("Toggle Files Panel") {
+            Button(String(localized: "Toggle Files Panel")) {
                 manager?.togglePanel(.files)
             }
             .keyboardShortcut(settings.keyboardShortcut(for: .toggleFilesPanel))
             .disabled(manager?.selectedProject == nil)
 
-            Button("Toggle Git Panel") {
+            Button(String(localized: "Toggle Git Panel")) {
                 manager?.togglePanel(.git)
             }
             .keyboardShortcut(settings.keyboardShortcut(for: .toggleGitPanel))
             .disabled(manager?.selectedProject == nil)
 
-            Button("Toggle Info Panel") {
+            Button(String(localized: "Toggle Info Panel")) {
                 manager?.togglePanel(.info)
             }
             .keyboardShortcut("i", modifiers: [.command, .shift])
@@ -309,21 +312,21 @@ private struct ZshellCommands: Commands {
 
             Divider()
 
-            Button("Toggle Markdown Preview") {
+            Button(String(localized: "Toggle Markdown Preview")) {
                 manager?.toggleMarkdownPreview()
             }
             .keyboardShortcut("v", modifiers: [.command, .shift])
             .disabled(manager?.canToggleMarkdownPreview != true)
         }
 
-        CommandMenu("Projects") {
-            Button("Next Project") {
+        CommandMenu(String(localized: "Projects")) {
+            Button(String(localized: "Next Project")) {
                 manager?.selectNextProject()
             }
             .keyboardShortcut(settings.keyboardShortcut(for: .nextProject))
             .disabled(manager == nil)
 
-            Button("Previous Project") {
+            Button(String(localized: "Previous Project")) {
                 manager?.selectPreviousProject()
             }
             .keyboardShortcut(settings.keyboardShortcut(for: .previousProject))
@@ -339,96 +342,96 @@ private struct ZshellCommands: Commands {
             }
         }
 
-        CommandMenu("Browser") {
-            Button("Focus Address Bar") {
+        CommandMenu(String(localized: "Browser")) {
+            Button(String(localized: "Focus Address Bar")) {
                 manager?.focusBrowserAddressBar()
             }
             .keyboardShortcut("l", modifiers: .command)
             .disabled(manager?.hasSelectedBrowser != true)
 
-            Button("Reload Page") {
+            Button(String(localized: "Reload Page")) {
                 manager?.reloadSelectedBrowser()
             }
             .keyboardShortcut("r", modifiers: .command)
             .disabled(manager?.hasSelectedBrowser != true)
 
-            Button("Stop Loading") {
+            Button(String(localized: "Stop Loading")) {
                 manager?.stopSelectedBrowser()
             }
             .disabled(manager?.hasSelectedBrowser != true)
 
             Divider()
 
-            Button("Open in Default Browser") {
+            Button(String(localized: "Open in Default Browser")) {
                 manager?.openSelectedPageInDefaultBrowser()
             }
             .disabled(manager?.hasSelectedBrowser != true)
         }
 
-        CommandMenu("Agents") {
-            Button("Next Agent Needing Attention") {
+        CommandMenu(String(localized: "Agents")) {
+            Button(String(localized: "Next Agent Needing Attention")) {
                 manager?.focusNextAgentAttention()
             }
             .keyboardShortcut("a", modifiers: [.command, .shift])
             .disabled(manager?.hasAgentAttention != true)
         }
 
-        CommandMenu("Tabs") {
-            Button("Split Right") {
+        CommandMenu(String(localized: "Tabs")) {
+            Button(String(localized: "Split Right")) {
                 manager?.splitRight()
             }
             .keyboardShortcut("d", modifiers: .command)
             .disabled(manager?.canSplit != true)
 
-            Button("Split Down") {
+            Button(String(localized: "Split Down")) {
                 manager?.splitDown()
             }
             .keyboardShortcut("d", modifiers: [.command, .shift])
             .disabled(manager?.canSplit != true)
 
-            Button("Split Left") {
+            Button(String(localized: "Split Left")) {
                 manager?.splitLeft()
             }
             .disabled(manager?.canSplit != true)
 
-            Button("Split Up") {
+            Button(String(localized: "Split Up")) {
                 manager?.splitUp()
             }
             .disabled(manager?.canSplit != true)
 
             Divider()
 
-            Button("Focus Pane Left") {
+            Button(String(localized: "Focus Pane Left")) {
                 manager?.focusPaneLeft()
             }
             .keyboardShortcut(.leftArrow, modifiers: [.command, .option])
             .disabled(manager == nil)
 
-            Button("Focus Pane Right") {
+            Button(String(localized: "Focus Pane Right")) {
                 manager?.focusPaneRight()
             }
             .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
             .disabled(manager == nil)
 
-            Button("Focus Pane Up") {
+            Button(String(localized: "Focus Pane Up")) {
                 manager?.focusPaneUp()
             }
             .keyboardShortcut(.upArrow, modifiers: [.command, .option])
             .disabled(manager == nil)
 
-            Button("Focus Pane Down") {
+            Button(String(localized: "Focus Pane Down")) {
                 manager?.focusPaneDown()
             }
             .keyboardShortcut(.downArrow, modifiers: [.command, .option])
             .disabled(manager == nil)
 
-            Button("Focus Previous Pane") {
+            Button(String(localized: "Focus Previous Pane")) {
                 manager?.focusPreviousPane()
             }
             .keyboardShortcut("[", modifiers: .command)
             .disabled(manager == nil)
 
-            Button("Focus Next Pane") {
+            Button(String(localized: "Focus Next Pane")) {
                 manager?.focusNextPane()
             }
             .keyboardShortcut("]", modifiers: .command)
@@ -436,38 +439,38 @@ private struct ZshellCommands: Commands {
 
             Divider()
 
-            Button("Toggle Pane Zoom") {
+            Button(String(localized: "Toggle Pane Zoom")) {
                 manager?.togglePaneZoom()
             }
             .keyboardShortcut(.return, modifiers: [.command, .shift])
             .disabled(manager?.hasSplitPanes != true)
 
-            Button("Equalize Panes") {
+            Button(String(localized: "Equalize Panes")) {
                 manager?.equalizePanes()
             }
             .keyboardShortcut("=", modifiers: [.command, .control])
             .disabled(manager?.hasSplitPanes != true)
 
-            Menu("Resize Pane") {
-                Button("Up") {
+            Menu(String(localized: "Resize Pane")) {
+                Button(String(localized: "Up")) {
                     manager?.resizePaneUp()
                 }
                 .keyboardShortcut(.upArrow, modifiers: [.command, .control])
                 .disabled(manager?.hasSplitPanes != true)
 
-                Button("Down") {
+                Button(String(localized: "Down")) {
                     manager?.resizePaneDown()
                 }
                 .keyboardShortcut(.downArrow, modifiers: [.command, .control])
                 .disabled(manager?.hasSplitPanes != true)
 
-                Button("Left") {
+                Button(String(localized: "Left")) {
                     manager?.resizePaneLeft()
                 }
                 .keyboardShortcut(.leftArrow, modifiers: [.command, .control])
                 .disabled(manager?.hasSplitPanes != true)
 
-                Button("Right") {
+                Button(String(localized: "Right")) {
                     manager?.resizePaneRight()
                 }
                 .keyboardShortcut(.rightArrow, modifiers: [.command, .control])
@@ -476,13 +479,13 @@ private struct ZshellCommands: Commands {
 
             Divider()
 
-            Button("Next Tab") {
+            Button(String(localized: "Next Tab")) {
                 manager?.selectNextTab()
             }
             .keyboardShortcut("]", modifiers: [.command, .shift])
             .disabled(manager == nil)
 
-            Button("Previous Tab") {
+            Button(String(localized: "Previous Tab")) {
                 manager?.selectPreviousTab()
             }
             .keyboardShortcut("[", modifiers: [.command, .shift])

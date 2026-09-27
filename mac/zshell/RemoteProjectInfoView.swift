@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import Combine
 import SwiftUI
 
 /// Info panel content for SSH projects: the declared remote and the outcome
@@ -29,6 +30,8 @@ final class RemoteProjectInfoNSView: NSView {
     private let userValue = NSTextField(labelWithString: "")
     private let portValue = NSTextField(labelWithString: "")
     private let directoryValue = NSTextField(labelWithString: "")
+    private weak var project: Project?
+    private var connectionObservation: AnyCancellable?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -39,35 +42,33 @@ final class RemoteProjectInfoNSView: NSView {
         statusDetail.maximumNumberOfLines = 0
         statusDetail.isHidden = true
 
-        let grid = NSGridView(views: [
+        let fields = NSStackView(views: [
             row(String(localized: "Status"), statusValue),
             row(String(localized: "Host"), hostValue),
             row(String(localized: "User"), userValue),
             row(String(localized: "Port"), portValue),
             row(String(localized: "Remote Directory"), directoryValue),
         ])
-        grid.rowSpacing = 8
-        grid.columnSpacing = 10
-        grid.column(at: 0).xPlacement = .trailing
-        grid.column(at: 1).width = 200
-        grid.translatesAutoresizingMaskIntoConstraints = false
+        fields.orientation = .vertical
+        fields.alignment = .leading
+        fields.spacing = 8
+        for row in fields.arrangedSubviews {
+            row.widthAnchor.constraint(equalTo: fields.widthAnchor).isActive = true
+        }
 
-        let stack = NSStackView(views: [grid, statusDetail])
+        let stack = NSStackView(views: [fields, statusDetail])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.centerXAnchor.constraint(equalTo: centerXAnchor),
-            stack.centerYAnchor.constraint(equalTo: centerYAnchor),
-            stack.leadingAnchor.constraint(
-                greaterThanOrEqualTo: leadingAnchor, constant: 16
-            ),
-            stack.trailingAnchor.constraint(
-                lessThanOrEqualTo: trailingAnchor, constant: -16
-            ),
-            statusDetail.widthAnchor.constraint(lessThanOrEqualToConstant: 260),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor),
+            stack.topAnchor.constraint(equalTo: topAnchor),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor),
+            fields.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            statusDetail.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
     }
 
@@ -79,12 +80,26 @@ final class RemoteProjectInfoNSView: NSView {
         guard case .ssh(let endpoint, let remoteDirectory, _, _) = project.location else {
             return
         }
+        if self.project !== project {
+            self.project = project
+            connectionObservation = project.$remoteConnectionState
+                .dropFirst()
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] in self?.refreshConnectionState($0) }
+        }
         hostValue.stringValue = endpoint.host
         userValue.stringValue = endpoint.user ?? "—"
         portValue.stringValue = endpoint.port.map(String.init) ?? "—"
         directoryValue.stringValue = remoteDirectory ?? "~"
+        for value in [hostValue, userValue, portValue, directoryValue] {
+            value.toolTip = value.stringValue
+        }
 
-        switch project.remoteConnectionState {
+        refreshConnectionState(project.remoteConnectionState)
+    }
+
+    private func refreshConnectionState(_ state: RemoteConnectionState) {
+        switch state {
         case .checking:
             statusValue.stringValue = String(localized: "Connecting…")
             statusValue.textColor = .secondaryLabelColor
@@ -101,10 +116,20 @@ final class RemoteProjectInfoNSView: NSView {
         }
     }
 
-    private func row(_ title: String, _ value: NSTextField) -> [NSView] {
+    private func row(_ title: String, _ value: NSTextField) -> NSStackView {
         let label = NSTextField(labelWithString: title)
+        label.font = .systemFont(ofSize: 11)
         label.textColor = .secondaryLabelColor
-        label.alignment = .right
-        return [label, value]
+        label.lineBreakMode = .byTruncatingTail
+        value.lineBreakMode = .byTruncatingMiddle
+        value.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        let row = NSStackView(views: [label, value])
+        row.orientation = .vertical
+        row.alignment = .leading
+        row.spacing = 2
+        for field in [label, value] {
+            field.widthAnchor.constraint(equalTo: row.widthAnchor).isActive = true
+        }
+        return row
     }
 }

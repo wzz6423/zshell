@@ -21,6 +21,7 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
         NSApp.servicesProvider = self
         WindowScreenConstraint.shared.start()
         installTerminalEnvironmentMenu()
+        AppMenuLocalization.shared.start()
         GlobalTerminalOverlay.shared.start()
     }
 

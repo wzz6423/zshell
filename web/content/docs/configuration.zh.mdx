@@ -152,6 +152,14 @@ regular/bold 区分及后备字体字重。
 
 控制终端程序触发铃声时的提示音和 macOS 视觉提醒。关闭后，Zshell 不会播放提示音、发送终端铃声通知或请求 Dock 提醒；辅助技术仍会收到铃声的语义公告。两个终端后端都遵循此设置。
 
+### `terminal.vim-command-hints`
+
+布尔值，默认 `false`。
+
+在右侧 **信息** 栏的会话信息下方显示按模式排序的 Vim / Neovim 常用命令。
+立即作用于两种终端后端，也支持识别 SSH 中的编辑器。
+检测条件见 [Vim 命令提示](/zh/docs/terminal#vim-命令提示)。
+
 ### `terminal.restore-history`
 
 布尔值——默认 `false`

@@ -202,3 +202,29 @@ It owns a temporary shell outside project tabs. Adjust its size, opacity, and sh
 - <kbd>Esc</kbd> or the global shortcut closes the window and terminates its shell and running tasks. Opening it again starts a fresh session.
 
 Use a project terminal for long-running services. [Quick Launch](/en/docs/quick-launch), which saves and runs commands, is a separate feature.
+
+## Vim command hints
+
+Enable **Settings → Terminal → Behavior → Vim command hints**, then open the
+right sidebar's **Info** tab. A **VIM COMMANDS** section appears below the session
+information while Vim, Vi, or Neovim is active. It is off by default and applies
+immediately to existing terminals on both backends.
+
+The complete common-command list stays available; only its priority changes: Normal puts `:w`, `:q`, `yy`, and `p`/`P` first;
+Visual Block puts `I`/`A`, block changes, and corner movement first. Insert,
+Replace, Visual, Visual Line, Select, command-line, and search modes have their
+own ordering. Each entry names its applicable modes. Search by keys, description,
+or mode name; descriptions and search UI follow the app language (English,
+Simplified Chinese, or Japanese). Clear the query to restore the full list.
+The hints are a reference; they never send input to the editor.
+
+Local editors are identified by their foreground executable. Inside SSH, Mosh,
+or a terminal multiplexer, detection uses the visible Vim mode/status line and
+screen layout without installing a remote plugin. Keep Vim's `showmode` or a
+recognizable status line enabled. Configurations that hide or rename mode labels
+can fall back to Normal hints or prevent remote detection; custom mappings are
+not interpreted. Only the active Info panel is sampled, and hints disappear
+when the foreground program changes or the editor is no longer recognizable.
+
+You can also enable it in the configuration file with
+`terminal.vim-command-hints = true`.

@@ -2,8 +2,9 @@
 
 Zshell follows the macOS language selected by the user, including the per-app
 language in System Settings. Users can also choose a language from
-**Zshell → Settings → General → Language**; Zshell asks to relaunch so native
-menus, dialogs, and SwiftUI views all change together. English is the
+**Zshell → Settings → General → Language**. Changes apply immediately in the
+running app, preserving terminal sessions, jobs, and Vim command searches.
+**System Default** restores the global macOS language order. English is the
 development language. The currently maintained localizations are:
 
 | Language | Identifier |
@@ -77,4 +78,17 @@ In Xcode, choose **Product → Scheme → Edit Scheme… → Run → Options**, 
 **App Language** and **App Region**. Test English, Simplified Chinese, and
 Japanese independently. Also use the in-app picker to switch between all four
 options and confirm that **System Default** follows the user’s macOS preference
-after relaunch.
+immediately. Keep a terminal job running while switching and confirm its PID,
+contents, and selection remain intact. Check the settings sidebar, menu bar,
+workspace controls, and the visible Vim command list without reopening them.
+
+`AppLocalization` resolves an explicit `.lproj` bundle because Foundation caches
+the main bundle’s language. The app’s `String(localized:comment:)` overload keeps
+String Catalog extraction and interpolation while using that current bundle.
+Existing SwiftUI hosts receive the current locale without changing view identity.
+AppKit views must refresh stored labels on `AppLocalization.didChange` or their
+existing settings update path; never cache translated strings across languages.
+System-owned privacy prompts and Finder Services remain managed by macOS.
+
+Run `python3 mac/tests/test_app_localization.py` for the production catalog’s
+language switching, system fallback, interpolation, and Vim search regression.

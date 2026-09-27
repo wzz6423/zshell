@@ -17,6 +17,10 @@ final class SettingsSidebarViewController: NSViewController {
     private let rows = SettingsCategory.allCases.map { SettingsSidebarRow(category: $0) }
     private var selected: SettingsCategory?
 
+    func refreshLanguage() {
+        rows.forEach { $0.refreshLanguage() }
+    }
+
     override func loadView() {
         let stack = NSStackView(views: rows)
         stack.orientation = .vertical
@@ -182,6 +186,11 @@ private final class SettingsSidebarRow: NSButton {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    func refreshLanguage() {
+        titleLabel.stringValue = category.title
+        setAccessibilityLabel(category.title)
     }
 
     @objc private func invoke() {

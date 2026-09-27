@@ -1317,7 +1317,6 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             while line.last == " " || line.last == "\t" { line.removeLast() }
             lines.append(line)
         }
-        while lines.last?.isEmpty == true { lines.removeLast() }
         return lines.joined(separator: "\n")
     }
 
