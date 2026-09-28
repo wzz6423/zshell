@@ -30,7 +30,7 @@ final class SettingsUpdatesPane: SettingsPaneViewController {
                 ),
                 SettingsRow(
                     title: String(localized: "Automatically download and install updates"),
-                    description: String(localized: "Downloads updates in the background and installs them when you quit or restart Zshell."),
+                    description: String(localized: "Downloads updates in the background, then installs them and restarts Zshell automatically. Running terminal processes will stop."),
                     control: automaticDownloadSwitch
                 ),
                 checkRow,
