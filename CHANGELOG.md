@@ -16,6 +16,29 @@ the original feature bullet instead of adding separate entries for them.
 
 ## [Unreleased]
 
+## [0.1.7]
+
+### Added
+
+- Enable searchable, mode-aware Vim command hints in the session info panel,
+  with English, Simplified Chinese, and Japanese descriptions for local and SSH
+  sessions on both terminal backends.
+- Block Zshell shortcuts for an individual pane so foreground terminal
+  applications can handle those commands.
+
+### Changed
+
+- Apply language changes immediately across the app without restarting active
+  terminal sessions.
+
+### Fixed
+
+- Edit Claude Code input reliably on both terminal backends: click to position
+  the caret, replace selected text by typing or pasting, and preserve edits
+  through terminal redraws.
+- Prevent duplicate voice insertion into terminal input.
+- Keep remote project details and Vim command hints usable in narrow sidebars.
+
 ## [0.1.6]
 
 ### Fixed
