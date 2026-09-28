@@ -12620,18 +12620,82 @@
         }
       }
     },
-    "Downloads updates in the background, then installs them and restarts Zshell automatically. Running terminal processes will stop.": {
+    "Automatically download updates": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "バックグラウンドでアップデートをダウンロードし、インストール後に Zshell を自動的に再起動します。実行中のターミナルプロセスは停止します。"
+            "value": "アップデートを自動的にダウンロード"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在后台下载更新，随后自动安装并重启 Zshell。正在运行的终端进程会停止。"
+            "value": "自动下载更新"
+          }
+        }
+      }
+    },
+    "Automatically install updates": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アップデートを自動的にインストール"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动安装更新"
+          }
+        }
+      }
+    },
+    "Downloads updates in the background. If automatic installation is off, updates install when you quit Zshell.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バックグラウンドでアップデートをダウンロードします。自動インストールがオフの場合、Zshell の終了時にインストールします。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在后台下载更新。关闭自动安装时，更新会在退出 Zshell 时安装。"
+          }
+        }
+      }
+    },
+    "The update is being prepared in the background. It will be installed when you quit Zshell, or you can install it manually when it is ready.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バックグラウンドでアップデートを準備しています。Zshell の終了時にインストールされます。準備ができたら手動でインストールすることもできます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在后台准备更新。更新会在退出 Zshell 时安装，也可以在准备就绪后手动安装。"
+          }
+        }
+      }
+    },
+    "Installs downloaded updates and restarts Zshell automatically. Running terminal processes will stop.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロード済みのアップデートをインストールし、Zshell を自動的に再起動します。実行中のターミナルプロセスは停止します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动安装已下载的更新并重启 Zshell。正在运行的终端进程会停止。"
           }
         }
       }

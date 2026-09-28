@@ -190,6 +190,7 @@ struct UpdateFeedFallbackState {
 final class UpdateFeedDelegate: NSObject, SPUUpdaterDelegate {
     var onCheckRequested: ((SPUUpdateCheck) -> Void)?
     var onAvailableUpdateChanged: ((String?) -> Void)?
+    var shouldAutomaticallyInstall: () -> Bool = { false }
     private(set) var installAndRelaunch: (() -> Void)?
     private let configuration: UpdateFeedConfiguration
     private let resolver: UpdateFeedResolver
@@ -249,7 +250,8 @@ final class UpdateFeedDelegate: NSObject, SPUUpdaterDelegate {
 
     func updater(_ updater: SPUUpdater, willInstallUpdateOnQuit item: SUAppcastItem,
                  immediateInstallationBlock immediateInstallHandler: @escaping () -> Void) -> Bool {
-        guard updater.automaticallyChecksForUpdates, updater.automaticallyDownloadsUpdates else { return false }
+        guard updater.automaticallyChecksForUpdates, updater.automaticallyDownloadsUpdates,
+              shouldAutomaticallyInstall() else { return false }
         // Keep Sparkle's handler available if the application cancels its first quit request.
         installAndRelaunch = immediateInstallHandler
         immediateInstallHandler()
@@ -345,6 +347,10 @@ final class Updater: ObservableObject {
     @Published private(set) var isUpdating = false
     @Published private(set) var allowsAutomaticUpdates = false
 
+    @Published var automaticallyInstallsUpdates = UserDefaults.standard.bool(forKey: "ZshellAutomaticallyInstallsUpdates") {
+        didSet { UserDefaults.standard.set(automaticallyInstallsUpdates, forKey: "ZshellAutomaticallyInstallsUpdates") }
+    }
+
     var updateActionTitle: String { String(localized: "Check for Updates…") }
 
     @Published var automaticallyChecksForUpdates: Bool {
@@ -399,6 +405,7 @@ final class Updater: ObservableObject {
             }
             .store(in: &preferenceObservations)
 
+        delegate.shouldAutomaticallyInstall = { [weak self] in self?.automaticallyInstallsUpdates == true }
         delegate.onAvailableUpdateChanged = { [weak self] in self?.availableUpdateVersion = $0 }
         delegate.onCheckRequested = { [weak self] check in
             guard let self else { return }
@@ -432,7 +439,9 @@ final class Updater: ObservableObject {
             } else {
                 let alert = NSAlert()
                 alert.messageText = String(localized: "Updating Zshell")
-                alert.informativeText = String(localized: "The update is being downloaded and verified in the background. Zshell will restart automatically when it is ready.")
+                alert.informativeText = automaticallyChecksForUpdates && automaticallyDownloadsUpdates && automaticallyInstallsUpdates
+                    ? String(localized: "The update is being downloaded and verified in the background. Zshell will restart automatically when it is ready.")
+                    : String(localized: "The update is being prepared in the background. It will be installed when you quit Zshell, or you can install it manually when it is ready.")
                 if let window = NSApp.keyWindow { alert.beginSheetModal(for: window) }
             }
         } else {

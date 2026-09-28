@@ -275,6 +275,11 @@ struct UpdaterTests {
                                         immediateInstallationBlock: install), "auto restart requires opt-in")
         expect(installations == 0, "opt-out must not invoke the installation handler")
         installUpdater.automaticallyDownloadsUpdates = true
+        expect(!installDelegate.updater(installUpdater, willInstallUpdateOnQuit: updateItem,
+                                        immediateInstallationBlock: install), "downloads alone retain install-on-quit behavior")
+        expect(installations == 0, "downloads alone must not restart the app")
+        var autoInstall = true
+        installDelegate.shouldAutomaticallyInstall = { autoInstall }
         expect(installDelegate.updater(installUpdater, willInstallUpdateOnQuit: updateItem,
                                        immediateInstallationBlock: install), "opt-in takes ownership of installation")
         expect(installations == 1, "prepared update installs and relaunches immediately")
@@ -282,6 +287,11 @@ struct UpdaterTests {
         expect(installations == 2, "a canceled termination can be retried from the sidebar")
         installDelegate.updater(installUpdater, didFinishUpdateCycleFor: .updatesInBackground, error: nil)
         expect(installDelegate.installAndRelaunch == nil, "completed cycles release the installation handler")
+        autoInstall = false
+        expect(!installDelegate.updater(installUpdater, willInstallUpdateOnQuit: updateItem,
+                                        immediateInstallationBlock: install), "disabling installation before preparation prevents restart")
+        expect(installations == 2, "installation opt-out must not invoke the handler")
+        autoInstall = true
         installUpdater.automaticallyChecksForUpdates = false
         expect(!installDelegate.updater(installUpdater, willInstallUpdateOnQuit: updateItem,
                                         immediateInstallationBlock: install), "disabled checks prevent auto restart")

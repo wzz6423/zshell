@@ -50,6 +50,7 @@ struct UpdaterPreferencesTests {
 
         switch phase {
         case "fresh":
+            expect(!updater.automaticallyInstallsUpdates, "automatic installation requires a separate opt-in")
             try await expectState(checks: true, downloads: false, allowed: true)
             expect(defaults.object(forKey: "SUAutomaticallyUpdate") == nil,
                    "initialization must preserve Sparkle's opt-in default without writing a preference")
@@ -61,6 +62,8 @@ struct UpdaterPreferencesTests {
             try await expectState(checks: true, downloads: false, allowed: true)
             expect(!defaults.bool(forKey: "SUAutomaticallyUpdate"), "user opt-out is stored by Sparkle")
 
+            updater.automaticallyInstallsUpdates = true
+            expect(!updater.automaticallyDownloadsUpdates, "installation preference must not enable downloads")
             updater.automaticallyDownloadsUpdates = true
             updater.automaticallyChecksForUpdates = false
             try await expectState(checks: false, downloads: false, allowed: false)
@@ -93,18 +96,23 @@ struct UpdaterPreferencesTests {
             expect(defaults.bool(forKey: "SUAutomaticallyUpdate"), "external defaults changes preserve opt-in")
 
         case "restore-disabled":
+            expect(updater.automaticallyInstallsUpdates, "restart retains installation preference while hidden")
             try await expectState(checks: false, downloads: false, allowed: false)
             expect(defaults.bool(forKey: "SUAutomaticallyUpdate"), "restart retains opt-in while checks are disabled")
             updater.automaticallyChecksForUpdates = true
             try await expectState(checks: true, downloads: true, allowed: true)
 
         case "restore-enabled":
+            expect(updater.automaticallyInstallsUpdates, "restart retains independent installation opt-in")
+            updater.automaticallyInstallsUpdates = false
+            expect(updater.automaticallyDownloadsUpdates, "disabling installation must preserve downloads")
             try await expectState(checks: true, downloads: true, allowed: true)
             expect(defaults.bool(forKey: "SUAutomaticallyUpdate"), "restart must not overwrite a previous opt-in")
             updater.automaticallyDownloadsUpdates = false
             try await expectState(checks: true, downloads: false, allowed: true)
 
         case "restore-opted-out":
+            expect(!updater.automaticallyInstallsUpdates, "restart retains independent installation opt-out")
             try await expectState(checks: true, downloads: false, allowed: true)
             expect(defaults.object(forKey: "SUAutomaticallyUpdate") as? Bool == false,
                    "restart must not overwrite a previous opt-out")
