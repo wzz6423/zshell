@@ -113,6 +113,19 @@ struct zshellApp: App {
     }
 }
 
+/// The "Check for Updates…" application-menu command.
+private struct CheckForUpdatesView: View {
+    @ObservedObject var updater: Updater
+    @ObservedObject private var settings = AppSettings.shared
+
+    var body: some View {
+        Button(updater.updateActionTitle) {
+            updater.checkForUpdates()
+        }
+        .disabled(!updater.canCheckForUpdates || updater.isUpdating)
+    }
+}
+
 /// Root of one terminal window. Each window owns its own manager, which
 /// claims the next unclaimed window snapshot; the first window to appear
 /// reopens windows for any snapshots left over.
