@@ -428,6 +428,7 @@ impl OscInterceptor {
 struct StreamScanner {
     state: ScanState,
     parameters: Vec<u8>,
+    utf8_continuations: u8,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -483,6 +484,20 @@ impl StreamScanner {
         let mut events = Vec::new();
 
         for &byte in input {
+            // UTF-8 continuation bytes overlap C1 controls. In particular,
+            // Claude's ❯ contains 0x9d; treating it as OSC hides the following
+            // synchronized-update end and leaves the host frame suppressed.
+            if self.utf8_continuations > 0 && (0x80..=0xbf).contains(&byte) {
+                self.utf8_continuations -= 1;
+                continue;
+            }
+            self.utf8_continuations = match byte {
+                0xc2..=0xdf => 1,
+                0xe0..=0xef => 2,
+                0xf0..=0xf4 => 3,
+                _ => 0,
+            };
+
             match self.state {
                 ScanState::Ground => match byte {
                     0x1b => self.state = ScanState::Escape,
@@ -2173,6 +2188,51 @@ mod tests {
             events.extend(scanner.process(&input[split..]));
             assert_eq!(events, expected, "split at {split}");
         }
+    }
+
+    #[test]
+    fn stream_scanner_keeps_unicode_tui_frames_synchronized() {
+        let input = "\x1b[?2026h❯ ▐▛█▜▌ 中文 😀\x1b[?2026l\x1b[?1002h".as_bytes();
+        let expected = vec![
+            ScanEvent::SyncUpdate(SyncUpdateEvent::Start),
+            ScanEvent::SyncUpdate(SyncUpdateEvent::End),
+            ScanEvent::MouseShape("default"),
+        ];
+
+        for split in 0..=input.len() {
+            let mut scanner = StreamScanner::default();
+            let mut events = scanner.process(&input[..split]);
+            events.extend(scanner.process(&input[split..]));
+            assert_eq!(events, expected, "split at {split}");
+        }
+    }
+
+    #[test]
+    fn stream_scanner_keeps_unicode_inside_control_strings() {
+        let input = "\x1b]0;✜\x1b[?2026h\x07\x1b[?2026hframe\x1b[?2026l".as_bytes();
+        let expected = vec![
+            ScanEvent::SyncUpdate(SyncUpdateEvent::Start),
+            ScanEvent::SyncUpdate(SyncUpdateEvent::End),
+        ];
+
+        for split in 0..=input.len() {
+            let mut scanner = StreamScanner::default();
+            let mut events = scanner.process(&input[..split]);
+            events.extend(scanner.process(&input[split..]));
+            assert_eq!(events, expected, "split at {split}");
+        }
+    }
+
+    #[test]
+    fn stream_scanner_recovers_from_incomplete_utf8() {
+        let mut scanner = StreamScanner::default();
+        assert_eq!(
+            scanner.process(b"\xe2\x1b[?2026h\xf0\x9f\x1b[?2026l"),
+            vec![
+                ScanEvent::SyncUpdate(SyncUpdateEvent::Start),
+                ScanEvent::SyncUpdate(SyncUpdateEvent::End),
+            ],
+        );
     }
 
     #[test]

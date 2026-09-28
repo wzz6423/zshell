@@ -22,6 +22,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     /// Fired whenever direct interaction makes this pane the active one.
     var onBecomeFirstResponder: (() -> Void)?
     let splitTarget = SplitMenuTarget()
+    let commandRouting = TerminalCommandRouting()
 
     /// Held strongly for the surface's lifetime; ``detach()`` drops it.
     var ghosttyController: TerminalController?
@@ -31,6 +32,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     /// The final login shell behind Zshell's `/bin/sh -c` launch shim.
     var launchShellIntegration = "none"
     var supportsInputSelection = false
+    var nativeCursorClickToMove = true
     private var inputSelectionDragActive = false
     private var promptSelectionMarkerArmed = false
     private var pendingPromptSelectionActivation = false
@@ -38,6 +40,14 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var isForwardingRightMouseButton = false
     private var selectionAutoscrollTimer: Timer?
     private var selectionAutoscrollModifierFlags: NSEvent.ModifierFlags = []
+    private lazy var aiInputEditor = TerminalAIInputEditor(
+        readSnapshot: { [weak self] in self?.aiInputContext()?.snapshot },
+        sendControl: { [weak self] text in
+            let escaped = text.utf8.map { String(format: "\\x%02x", $0) }.joined()
+            self?.performBindingAction("text:" + escaped)
+        },
+        clearHighlight: {}
+    )
     /// Latest scroll report, so a scrollbar drag can be mapped back onto a row.
     var lastScroll: TerminalScrollPosition?
     /// Ghostty reports the recognized link under the pointer as hover state.
@@ -104,6 +114,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     @objc private func effectiveFocusChanged(_ notification: Notification) {
         updateDirectoryPolling()
+        GlobalTerminalOverlay.shared.scheduleHotkeyRegistrationRefresh()
     }
 
     private func updateDirectoryPolling() {
@@ -270,10 +281,6 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     override func accessibilityValue() -> Any? { "" }
 
-    override func setAccessibilityValue(_ value: Any?) {
-        insertAccessibilityText(value)
-    }
-
     override func accessibilityNumberOfCharacters() -> Int { 0 }
 
     override func accessibilitySelectedText() -> String? { "" }
@@ -303,8 +310,10 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func isAccessibilitySelectorAllowed(_ selector: Selector) -> Bool {
-        if selector == #selector(setAccessibilityValue(_:))
-            || selector == #selector(setAccessibilitySelectedText(_:)) {
+        // AXValue replaces a document and must be readable after a write.
+        // Advertising it on a terminal makes dictation retry, then paste again.
+        if selector == #selector(setAccessibilityValue(_:)) { return false }
+        if selector == #selector(setAccessibilitySelectedText(_:)) {
             // Keep the setter discoverable while Zshell is inactive, but never
             // advertise a parked or otherwise unfocused terminal as writable.
             return isSurfaceVisible && window?.firstResponder === self
@@ -312,27 +321,34 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         return super.isAccessibilitySelectorAllowed(selector)
     }
 
-    /// A terminal is append-at-cursor rather than a document whose value can
-    /// be replaced. Both editable AX insertion routes therefore feed the PTY,
-    /// but only while this exact surface is the live text destination.
+    /// AXSelectedText inserts at the live caret without replacing a document.
     private func insertAccessibilityText(_ value: Any?) {
-        guard isSurfaceVisible, hasEffectiveTerminalFocus else { return }
         let text = (value as? String) ?? (value as? NSAttributedString)?.string ?? ""
+        guard isSurfaceVisible, hasEffectiveTerminalFocus else { return }
         guard !text.isEmpty else { return }
+        if aiInputEditor.deferWhileBusy({ [weak self] in self?.insertAccessibilityText(text) })
+            || aiInputEditor.replaceSelection(then: { [weak self] in self?.sendText(text) }) {
+            return
+        }
         activatePendingPromptSelection()
         sendText(text)
     }
 
     override func becomeFirstResponder() -> Bool {
         let accepted = super.becomeFirstResponder()
-        if accepted { onBecomeFirstResponder?() }
+        if accepted {
+            onBecomeFirstResponder?()
+            GlobalTerminalOverlay.shared.scheduleHotkeyRegistrationRefresh()
+        }
         return accepted
     }
 
     override func resignFirstResponder() -> Bool {
+        aiInputEditor.cancel()
         stopSelectionAutoscroll()
         inputSelectionDragActive = false
         pendingPromptSelectionActivation = false
+        GlobalTerminalOverlay.shared.scheduleHotkeyRegistrationRefresh()
         return super.resignFirstResponder()
     }
 
@@ -354,7 +370,11 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         promptSelectionMarkerArmed = false
         pointerSelectionDragged = false
         focusForInteraction()
+        updateCursorClickToMove()
         super.mouseDown(with: event)
+        let aiContext = event.clickCount == 1 && event.modifierFlags.intersection([.command, .option, .control]).isEmpty
+            ? aiInputContext(for: event) : nil
+        aiInputEditor.beginPointer(at: aiContext?.caret, in: aiContext?.snapshot)
         if canEditPromptSelection {
             // Ghostty has placed the cursor at the drag origin by the time
             // mouseDown returns; mark that caret before the drag moves.
@@ -389,6 +409,10 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         if pointerSelectionDragged, !isMouseCaptured, AppSettings.shared.copyOnSelect {
             copySelectedTextToPasteboard()
         }
+        let aiContext = aiInputContext(for: event, clampingDrag: pointerSelectionDragged)
+        aiInputEditor.endPointer(
+            at: aiContext?.caret, in: aiContext?.snapshot, dragged: pointerSelectionDragged
+        )
         if hadInputSelection, canEditPromptSelection {
             // Cursor movement deactivates ZLE's region; reactivate the mark
             // after Ghostty has finished moving to the drag endpoint.
@@ -481,18 +505,77 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func keyDown(with event: NSEvent) {
+        if !hasMarkedText(),
+           aiInputEditor.handleKeyDown(event, replay: { [weak self] in self?.keyDown(with: event) }) { return }
         activatePendingPromptSelection(for: event)
         super.keyDown(with: event)
     }
 
     override func insertText(_ string: Any, replacementRange range: NSRange) {
+        let text = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""
+        if !text.isEmpty, aiInputEditor.isBusy || aiInputEditor.hasSelection {
+            unmarkText()
+            // Ghostty's IME handler needs the current NSEvent, which may be
+            // gone by the time cursor movement acknowledges this commit.
+            if aiInputEditor.deferWhileBusy({ [weak self] in self?.pasteAIInput(text) })
+                || aiInputEditor.replaceSelection(then: { [weak self] in self?.sendText(text) }) { return }
+        }
         activatePendingPromptSelection()
         super.insertText(string, replacementRange: range)
     }
 
     override func paste(_ sender: Any?) {
+        if aiInputEditor.deferWhileBusy({ [weak self] in self?.paste(sender) }) { return }
+        if aiInputEditor.hasSelection, let text = NSPasteboard.general.string(forType: .string) {
+            if text.contains("\n") || text.contains("\r") {
+                events?.terminalDidRequestClipboardConfirmation(
+                    TerminalClipboardRequest(kind: .unsafePaste, contents: text) { [weak self] approved in
+                        guard approved else { return }
+                        self?.pasteAIInput(text)
+                    }
+                )
+            } else {
+                pasteAIInput(text)
+            }
+            return
+        }
         activatePendingPromptSelection()
         super.paste(sender)
+    }
+
+    private func pasteAIInput(_ text: String) {
+        if !aiInputEditor.replaceSelection(then: { [weak self] in self?.sendText(text) }) {
+            sendText(text)
+        }
+    }
+
+    private func aiInputContext(for event: NSEvent? = nil, clampingDrag: Bool = false) -> (
+        snapshot: TerminalAIInputSnapshot, caret: TerminalAIInputCaret?
+    )? {
+        guard !isMouseCaptured, !hasMarkedText(), hasEffectiveTerminalFocus,
+              lastScroll?.position ?? 1 >= 1,
+              let foregroundPid, ZshellAgentKind.recognize(processID: foregroundPid) == .claude,
+              let viewport = readViewportTextSnapshot(), viewport.cursorColumn >= 2,
+              let cursorPrefix = readViewportText(
+                row: viewport.cursorRow, columns: 0..<viewport.cursorColumn,
+                preservingTrailingSpaces: true
+              )?.text,
+              let snapshot = TerminalAIInputSnapshot(
+                processID: foregroundPid, columns: viewport.columns, lines: viewport.lines,
+                cursorRow: viewport.cursorRow, cursorPrefix: cursorPrefix
+              )
+        else { return nil }
+        guard let event else { return (snapshot, nil) }
+        let point = convert(event.locationInWindow, from: nil)
+        let row = Int(((bounds.height - point.y - viewport.origin.y) / viewport.cellSize.height).rounded(.down))
+        let rawColumn = Int(((point.x - viewport.origin.x) / viewport.cellSize.width).rounded())
+        guard row >= 0, row < viewport.lines.count,
+              clampingDrag || (rawColumn >= 0 && rawColumn <= viewport.columns)
+        else { return (snapshot, nil) }
+        let column = min(viewport.columns, max(clampingDrag ? 2 : 0, rawColumn))
+        guard let prefix = readViewportText(row: row, columns: 0..<column, preservingTrailingSpaces: true)?.text
+        else { return (snapshot, nil) }
+        return (snapshot, snapshot.caret(viewportRow: row, prefix: prefix))
     }
 
     private func activatePendingPromptSelection(for event: NSEvent? = nil) {
@@ -563,7 +646,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     private func shouldForwardRightMouse(_ event: NSEvent) -> Bool {
-        isMouseCaptured
+        !commandRouting.blocksCommands
+            && isMouseCaptured
             && event.modifierFlags.intersection([.shift, .command]).isEmpty
     }
 
@@ -582,6 +666,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         menu.addItem(contextItem(String(localized: "Paste"), #selector(NSText.paste(_:))))
         menu.addItem(.separator())
         menu.addItem(contextItem(String(localized: "Select All"), #selector(selectAll(_:))))
+        menu.addItem(.separator())
+        menu.addItem(commandRouting.contextMenuItem())
         menu.addItem(.separator())
         menu.addItem(splitTarget.quickCommandMenuItem())
         if let linkTarget {
