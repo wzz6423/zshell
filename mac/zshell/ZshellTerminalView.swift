@@ -180,14 +180,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     func findSelection() { searchSelection() }
 
     func readVisibleText(maxLines: Int, maxColumns: Int) -> String? {
-        // Ghostty's public host API currently exposes styled screen export but
-        // not its viewport read primitive. Callers choose tight bounds so the
-        // agent monitor does not pay the larger diagnostic-read cost.
-        TerminalHistorySerializer.previewText(
-            from: self,
-            maxLines: min(max(maxLines, 1), 500),
-            maxColumns: min(max(maxColumns, 1), 2_000)
-        )
+        readViewportText(maxLines: maxLines, maxColumns: maxColumns)
     }
 
     func sendApplicationScroll(lines: Int) -> Bool {

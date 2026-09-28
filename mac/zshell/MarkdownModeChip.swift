@@ -39,6 +39,7 @@ final class MarkdownModeChipView: NSView {
     private let icon = NSImageView()
     private let label = NSTextField(labelWithString: "")
     private var showsSource = false
+    private var language: String?
     private var hovering = false
 
     /// Clears the vertical scroller (~15pt) plus a margin, so the chip and the
@@ -77,7 +78,9 @@ final class MarkdownModeChipView: NSView {
     }
 
     func update(showsSource: Bool) {
-        guard self.showsSource != showsSource || label.stringValue.isEmpty else { return }
+        let language = AppLocalization.current.identifier
+        guard self.showsSource != showsSource || self.language != language else { return }
+        self.language = language
         self.showsSource = showsSource
         if showsSource {
             label.stringValue = String(

@@ -220,8 +220,15 @@ final class ProjectSidebarNSView: NSView {
         outline.needsDisplay = true
         sidebarButton.configure(symbol: "sidebar.left", command: .toggleLeftSidebar, pointSize: 12 * scale)
         footerButtons[0].configure(symbol: "plus", command: .newProject, pointSize: 12 * scale)
-        for (button, symbol) in zip(footerButtons.dropFirst(), ["folder.badge.plus", "network", "bolt", "exclamationmark.bubble", "gearshape"]) {
-            button.configure(symbol: symbol, label: button.toolTip ?? "", pointSize: 12 * scale)
+        let footerItems = [
+            ("folder.badge.plus", String(localized: "New Group")),
+            ("network", String(localized: "New SSH Project")),
+            ("bolt", String(localized: "Quick Launch (⌘O)")),
+            ("exclamationmark.bubble", String(localized: "Send Feedback")),
+            ("gearshape", String(localized: "Settings (⌘,)")),
+        ]
+        for (button, item) in zip(footerButtons.dropFirst(), footerItems) {
+            button.configure(symbol: item.0, label: item.1, pointSize: 12 * scale)
         }
         if manager.isFPSCounterVisible, window != nil { fpsCounter.start() } else { fpsCounter.stop() }
         updateDropHighlights()

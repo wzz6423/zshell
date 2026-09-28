@@ -7,7 +7,6 @@ import Combine
 import Foundation
 import AppKit
 import Sparkle
-import SwiftUI
 
 enum UpdateFeedPreference {
     case giteeFirst
@@ -409,17 +408,5 @@ final class Updater: ObservableObject {
         case .updateInformation: updater.checkForUpdateInformation()
         @unknown default: updater.checkForUpdatesInBackground()
         }
-    }
-}
-
-/// The "Check for Updates…" application-menu command.
-struct CheckForUpdatesView: View {
-    @ObservedObject var updater: Updater
-
-    var body: some View {
-        Button(updater.updateActionTitle) {
-            updater.checkForUpdates()
-        }
-        .disabled(!updater.canCheckForUpdates || updater.isUpdating)
     }
 }

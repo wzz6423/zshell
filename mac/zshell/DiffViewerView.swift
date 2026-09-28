@@ -717,6 +717,7 @@ private struct DiffWebRoot: View {
                 }
             }
         )
+        .environment(\.locale, AppLocalization.current.locale)
         // Pierre derives its JavaScript theme from this environment value.
         // Make it follow the host view's effective AppKit appearance instead
         // of a colorScheme captured while the detached host was constructed.

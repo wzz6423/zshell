@@ -180,6 +180,7 @@ final class FileContentSearchPanel: NSView {
         openResult: @escaping (FileContentSearchModel.Match) -> Void
     ) {
         self.openResult = openResult
+        refreshLanguage()
         guard fontScale != self.fontScale else { return }
         self.fontScale = fontScale
         applyFonts()
@@ -194,6 +195,20 @@ final class FileContentSearchPanel: NSView {
 
     override func cancelOperation(_ sender: Any?) {
         closeRequested()
+    }
+
+    private func refreshLanguage() {
+        searchField.placeholderString = String(localized: "Search File Contents")
+        searchField.setAccessibilityLabel(searchField.placeholderString)
+        for (button, title) in [
+            (caseButton, String(localized: "Match Case")),
+            (stopButton, String(localized: "Stop Search")),
+            (closeButton, String(localized: "Close Search")),
+        ] {
+            button.toolTip = title
+            button.setAccessibilityLabel(title)
+        }
+        if let model { statusLabel.stringValue = statusText(for: model) }
     }
 
     // MARK: - Model sync

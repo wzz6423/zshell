@@ -19,6 +19,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     private let cursorBlinkingView = TerminalCursorBlinkingSettingsView(frame: .zero)
 
     private let optionAsAltSwitch = SettingsSwitch { AppSettings.shared.macosOptionAsAlt = $0 }
+    private let vimCommandHintsSwitch = SettingsSwitch { AppSettings.shared.vimCommandHints = $0 }
     private let terminalBellSwitch = SettingsSwitch { AppSettings.shared.terminalBell = $0 }
     private let shiftEnterNewlineSwitch = SettingsSwitch { AppSettings.shared.shiftEnterNewline = $0 }
     private let restoreHistorySwitch = SettingsSwitch { AppSettings.shared.restoreTerminalHistory = $0 }
@@ -134,6 +135,11 @@ final class SettingsTerminalPane: SettingsPaneViewController {
 
         groups.append(SettingsGroup(header: String(localized: "Behavior"), rows: [
             SettingsRow(
+                title: String(localized: "Vim command hints"),
+                description: String(localized: "Show common Vim and Neovim commands in Info, ordered by the visible editor mode, including over SSH."),
+                control: vimCommandHintsSwitch
+            ),
+            SettingsRow(
                 title: String(localized: "Use Option as Alt/Meta"),
                 description: String(localized: "Sends Option-key combinations to terminal programs as Meta shortcuts instead of macOS text input"),
                 control: optionAsAltSwitch
@@ -191,6 +197,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         cursorShapeView.apply(shape: settings.cursorShape)
         cursorBlinkingView.apply(isBlinking: settings.cursorBlinking)
         optionAsAltSwitch.isOn = settings.macosOptionAsAlt
+        vimCommandHintsSwitch.isOn = settings.vimCommandHints
         terminalBellSwitch.isOn = settings.terminalBell
         shiftEnterNewlineSwitch.isOn = settings.shiftEnterNewline
         restoreHistorySwitch.isOn = settings.restoreTerminalHistory
