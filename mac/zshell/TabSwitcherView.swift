@@ -254,8 +254,13 @@ final class TabSwitcherMonitorView: NSView {
                       window.isKeyWindow,
                       let manager = self.manager,
                       let controller = self.controller,
-                      let event = input.value
+                      let event = input.value,
+                      (event.window ?? NSApp.keyWindow) === window
                 else { return input }
+                guard !TerminalCommandRouting.isBlockingCommands(in: window) else {
+                    if controller.isPresented { controller.cancel() }
+                    return input
+                }
                 return MainThreadEvent(
                     controller.handle(event, manager: manager)
                 )

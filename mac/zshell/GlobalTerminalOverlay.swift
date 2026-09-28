@@ -137,6 +137,8 @@ final class GlobalTerminalOverlay: NSObject {
     private var backdropWindow: GlobalTerminalBackdropWindow?
     private var previousApplication: NSRunningApplication?
     private var isPinned = false
+    private var isRecordingHotkey = false
+    private var hotkeyRefreshScheduled = false
 
     func start() {
         guard hotkeyHandlerRef == nil else { return }
@@ -160,7 +162,7 @@ final class GlobalTerminalOverlay: NSObject {
         }
         hotkeyHandlerRef = handler
 
-        _ = registerHotkey(AppSettings.shared.quickTerminalShortcut)
+        refreshHotkeyRegistration()
     }
 
     func stop() {
@@ -177,18 +179,46 @@ final class GlobalTerminalOverlay: NSObject {
     }
 
     func beginHotkeyRecording() {
+        isRecordingHotkey = true
         unregisterHotkey()
     }
 
     func endHotkeyRecording() {
-        guard hotkey == nil else { return }
-        _ = registerHotkey(AppSettings.shared.quickTerminalShortcut)
+        isRecordingHotkey = false
+        refreshHotkeyRegistration()
     }
 
     func reloadHotkey() {
         guard hotkeyHandlerRef != nil else { return }
         unregisterHotkey()
-        _ = registerHotkey(AppSettings.shared.quickTerminalShortcut)
+        refreshHotkeyRegistration()
+    }
+
+    /// First-responder and key-window callbacks arrive before AppKit has
+    /// completed the focus change; coalesce them and read the settled state.
+    func scheduleHotkeyRegistrationRefresh() {
+        guard hotkeyHandlerRef != nil, !hotkeyRefreshScheduled else { return }
+        hotkeyRefreshScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.hotkeyRefreshScheduled = false
+            self.refreshHotkeyRegistration()
+        }
+    }
+
+    func refreshHotkeyRegistration() {
+        guard hotkeyHandlerRef != nil else { return }
+        // Carbon hotkeys are consumed before AppKit's local event monitors.
+        // Unregister while the focused pane blocks commands so the original
+        // key-down, repeats, and key-up reach its terminal input path.
+        if isRecordingHotkey || (
+            NSApp.keyWindow?.isKeyWindow == true
+                && TerminalCommandRouting.isBlockingCommands(in: NSApp.keyWindow)
+        ) {
+            unregisterHotkey()
+        } else {
+            _ = registerHotkey(AppSettings.shared.quickTerminalShortcut)
+        }
     }
 
     func setHotkey(_ shortcut: QuickTerminalShortcut) -> Bool {
@@ -196,6 +226,7 @@ final class GlobalTerminalOverlay: NSObject {
             AppSettings.shared.quickTerminalShortcut = shortcut
             return true
         }
+        defer { refreshHotkeyRegistration() }
 
         unregisterHotkey()
         guard registerHotkey(shortcut) else {
@@ -431,7 +462,8 @@ private final class GlobalTerminalOverlayWindow: NSPanel {
     override var canBecomeMain: Bool { false }
 
     override func sendEvent(_ event: NSEvent) {
-        if event.type == .keyDown, event.keyCode == UInt16(kVK_Escape) {
+        if event.type == .keyDown, event.keyCode == UInt16(kVK_Escape),
+           !TerminalCommandRouting.isBlockingCommands(in: self) {
             GlobalTerminalOverlay.shared.dismissFromWindow()
             return
         }

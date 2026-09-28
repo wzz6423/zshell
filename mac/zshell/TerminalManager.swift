@@ -581,6 +581,7 @@ final class TerminalManager: nonisolated ObservableObject {
                 [weak self, weak window] event in
                 guard let self, let window,
                       event.window === window,
+                      !TerminalCommandRouting.isBlockingCommands(in: window),
                       event.charactersIgnoringModifiers?.lowercased() == "a",
                       event.modifierFlags.intersection(.deviceIndependentFlagsMask)
                         == [.command, .option]

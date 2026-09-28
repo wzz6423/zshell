@@ -1384,6 +1384,22 @@
         }
       }
     },
+    "Block Zshell Commands": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zshell のコマンドをブロック"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏蔽 Zshell 命令"
+          }
+        }
+      }
+    },
     "Blur behind window": {
       "localizations": {
         "ja": {

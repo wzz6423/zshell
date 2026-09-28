@@ -69,6 +69,27 @@ If a nested or replacement shell has not loaded Zshell’s prompt editing suppor
 dragging still selects terminal text for copying but does not edit the input.
 Input selection editing resumes when you exit back to the original prompt.
 
+Claude Code's standard input box supports click-to-position and drag-to-edit
+on both backends, including wrapped and multi-line drafts. Type or paste to
+replace the selected input, or press Backspace or Delete to remove it.
+Vim normal/visual mode, dialogs, attachment or collapsed-paste placeholders,
+and scrolled transcript text keep their existing terminal selection behavior.
+Applications that capture the mouse continue to handle their own input.
+
+Voice input from Zisla uses the terminal's paste action. In Claude Code, it also
+replaces a selected input range; repeating a phrase intentionally remains supported.
+
+## Foreground application shortcuts
+
+When a terminal application's shortcuts conflict with Zshell, right-click its
+pane and enable **Block Zshell Commands**. Modified keys, including
+<kbd>Ctrl</kbd>+<kbd>Return</kbd>, go to the foreground application while that
+pane has keyboard focus. Copy, paste, and select all remain available.
+
+The setting applies only to that pane. Right-click again and clear the checkmark
+to restore Zshell shortcuts. If an application captures the mouse, hold
+<kbd>Shift</kbd> while right-clicking to open Zshell's menu.
+
 ## Prompt queue
 
 Focus a terminal and press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>, or
@@ -199,7 +220,7 @@ It owns a temporary shell outside project tabs. Adjust its size, opacity, and sh
 
 - Pin the window to keep it open when switching apps.
 - An unpinned window closes when it loses focus or you click outside it.
-- <kbd>Esc</kbd> or the global shortcut closes the window and terminates its shell and running tasks. Opening it again starts a fresh session.
+- With **Block Zshell Commands** off, <kbd>Esc</kbd> or the global shortcut closes the window and terminates its shell and running tasks. Opening it again starts a fresh session.
 
 Use a project terminal for long-running services. [Quick Launch](/en/docs/quick-launch), which saves and runs commands, is a separate feature.
 

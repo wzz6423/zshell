@@ -174,6 +174,9 @@ protocol TerminalBackendSurface: NSView {
     /// Target for the pane-split items in the surface's context menu.
     var splitTarget: SplitMenuTarget { get }
 
+    /// Per-pane command routing, retained when the surface is reparented.
+    var commandRouting: TerminalCommandRouting { get }
+
     /// True only while Zshell is active, its window is key, and this exact
     /// surface owns the first responder.
     var hasEffectiveTerminalFocus: Bool { get }
@@ -257,6 +260,77 @@ protocol TerminalBackendSurface: NSView {
     /// viewport alone. Nil when there is none — which is also how Zshell tells a
     /// scrolled shell from a full-screen TUI.
     func exportScrollbackFile() -> String?
+}
+
+/// Sends command chords to the focused terminal before AppKit can resolve
+/// them against the application's menus. Normal input still uses keyDown so
+/// input methods and each backend's terminal key encoding remain in charge.
+@MainActor
+final class TerminalCommandRouting: NSObject {
+    private(set) var blocksCommands = false
+    private static var eventMonitor: Any?
+
+    func contextMenuItem() -> NSMenuItem {
+        let item = NSMenuItem(
+            title: String(localized: "Block Zshell Commands"),
+            action: #selector(toggleBlocking(_:)),
+            keyEquivalent: ""
+        )
+        item.target = self
+        item.state = blocksCommands ? .on : .off
+        return item
+    }
+
+    static func isBlockingCommands(in window: NSWindow?) -> Bool {
+        let surface = window?.firstResponder as? any TerminalBackendSurface
+        return surface?.commandRouting.blocksCommands == true
+    }
+
+    @objc private func toggleBlocking(_ sender: NSMenuItem) {
+        blocksCommands.toggle()
+        sender.state = blocksCommands ? .on : .off
+        if blocksCommands { Self.installEventMonitor() }
+        GlobalTerminalOverlay.shared.refreshHotkeyRegistration()
+    }
+
+    private static func installEventMonitor() {
+        guard eventMonitor == nil else { return }
+        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { event in
+            assumeMainActor {
+                // AppKit can route an event to a background window, and
+                // windowless key equivalents target the application's key
+                // window. Honor that destination just as its menus would.
+                let window = event.window ?? NSApp.keyWindow
+                guard !event.modifierFlags.intersection([.command, .control, .option]).isEmpty,
+                      let surface = window?.firstResponder as? any TerminalBackendSurface,
+                      surface.commandRouting.blocksCommands
+                else { return event }
+
+                // Copy, paste, and selecting terminal text remain editing
+                // operations even while workspace commands are blocked.
+                let flags = event.modifierFlags.intersection([.command, .control, .option, .shift])
+                var action: Selector?
+                if flags == .command {
+                    action = switch event.charactersIgnoringModifiers?.lowercased() {
+                    case "c": #selector(NSText.copy(_:))
+                    case "v": #selector(NSText.paste(_:))
+                    case "a": #selector(NSText.selectAll(_:))
+                    default: nil
+                    }
+                }
+                if let action {
+                    if event.type == .keyDown {
+                        NSApp.sendAction(action, to: surface, from: nil)
+                    }
+                } else if event.type == .keyUp {
+                    surface.keyUp(with: event)
+                } else {
+                    surface.keyDown(with: event)
+                }
+                return nil
+            }
+        }
+    }
 }
 
 /// What a terminal surface reports back to the session that owns it. Each

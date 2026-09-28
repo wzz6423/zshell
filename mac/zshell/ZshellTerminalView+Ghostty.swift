@@ -62,6 +62,15 @@ extension ZshellTerminalView {
 
     // MARK: - Configuration
 
+    func updateCursorClickToMove() {
+        let enabled = foregroundPid.map { ZshellAgentKind.recognize(processID: $0) != .claude } ?? true
+        guard enabled != nativeCursorClickToMove else { return }
+        // Shell prompt marks can survive inside a TUI. Let the AI editor own
+        // movement there, or Ghostty's mouse-up emits a second set of arrows.
+        nativeCursorClickToMove = enabled
+        _ = ghosttyController?.setTerminalConfiguration(terminalConfiguration(command: launchCommand))
+    }
+
     private func terminalConfiguration(command: String) -> TerminalConfiguration {
         let settings = AppSettings.shared
         let family = settings.fontFamily.isEmpty
@@ -135,7 +144,7 @@ extension ZshellTerminalView {
             // terminal output, so clicks can move the shell cursor without
             // stealing mouse events from full-screen terminal programs.
             builder.withCustom("shell-integration", launchShellIntegration)
-            builder.withCustom("cursor-click-to-move", "true")
+            builder.withCustom("cursor-click-to-move", nativeCursorClickToMove ? "true" : "false")
             // Zshell applies this after mouseUp so the app setting remains the
             // single source of truth instead of Ghostty copying first.
             builder.withCustom("copy-on-select", "false")
