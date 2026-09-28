@@ -95,6 +95,9 @@ final class ProjectSidebarNSView: NSView {
     private let scrollView = NSScrollView()
     private let document = ProjectSidebarDocumentView()
     private let sidebarButton = WorkspaceChromeButton(symbol: "sidebar.left", label: AppCommand.toggleLeftSidebar.title)
+    private let updateButton = WorkspaceChromeButton(symbol: "arrow.down.circle", label: String(localized: "Update Available")) {
+        Updater.shared.showAvailableUpdate()
+    }
     private let fpsLabel = NSTextField(labelWithString: "")
     private let fpsCounter = FPSCounter()
     private let menuPresenter = AppKitContextMenuMonitorView()
@@ -152,9 +155,11 @@ final class ProjectSidebarNSView: NSView {
             WorkspaceChromeButton(symbol: "gearshape", label: String(localized: "Settings (⌘,)")) { SettingsWindowController.shared.show() },
         ]
         footerButtons.forEach(addSubview)
+        addSubview(updateButton)
         addSubview(outline)
         outline.setAccessibilityElement(false)
         for publisher in [manager.objectWillChange.eraseToAnyPublisher(),
+                          Updater.shared.objectWillChange.eraseToAnyPublisher(),
                           groupStore.objectWillChange.eraseToAnyPublisher(),
                           AppSettings.shared.objectWillChange.eraseToAnyPublisher(),
                           Theme.changes.objectWillChange.eraseToAnyPublisher()] {
@@ -230,6 +235,13 @@ final class ProjectSidebarNSView: NSView {
         for (button, item) in zip(footerButtons.dropFirst(), footerItems) {
             button.configure(symbol: item.0, label: item.1, pointSize: 12 * scale)
         }
+        updateButton.isHidden = Updater.shared.availableUpdateVersion == nil
+        let updateLabel = Updater.shared.availableUpdateVersion.map { String(localized: "Update available: \($0)") }
+            ?? String(localized: "Update Available")
+        updateButton.toolTip = updateLabel
+        updateButton.setAccessibilityLabel(updateLabel)
+        updateButton.image = NSImage(named: "UpdateAvailable")?.copy() as? NSImage
+        updateButton.image?.size = NSSize(width: 16 * scale, height: 16 * scale)
         if manager.isFPSCounterVisible, window != nil { fpsCounter.start() } else { fpsCounter.stop() }
         updateDropHighlights()
         needsLayout = true
@@ -336,11 +348,13 @@ final class ProjectSidebarNSView: NSView {
         fpsLabel.frame = NSRect(x: sidebarButton.frame.minX - 55, y: 12, width: 52, height: 16)
         let footerY = max(headerHeight, bounds.height - bottomBarHeight)
         scrollView.frame = NSRect(x: 0, y: headerHeight, width: bounds.width, height: max(0, footerY - headerHeight))
-        let side = min(max(24, 26 * scale), max(0, (bounds.width - 16) / 6))
+        let side = min(max(24, 26 * scale), max(0, (bounds.width - 16) / (updateButton.isHidden ? 6 : 7)))
         for (index, button) in footerButtons.enumerated() {
             let x = index < 4 ? 8 + CGFloat(index) * side : bounds.width - 8 - CGFloat(6 - index) * side
             button.frame = NSRect(x: x, y: footerY + (bottomBarHeight - side) / 2, width: side, height: side)
         }
+        updateButton.frame = NSRect(x: bounds.width - 8 - 3 * side,
+                                    y: footerY + (bottomBarHeight - side) / 2, width: side, height: side)
         var y: CGFloat = 7
         let rowWidth = max(0, scrollView.contentSize.width - 16)
         for item in order {

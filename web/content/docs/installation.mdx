@@ -47,10 +47,18 @@ Zshell verifies the signed feed and update package before installation and keeps
 the installed architecture; Intel apps running under Rosetta migrate to Apple Silicon.
 
 Open **Settings → Updates** (<kbd>Cmd</kbd>+<kbd>,</kbd>) to control automatic
-checks and **Automatically download and install updates** separately. Automatic
-downloads are off by default and require automatic checks to be enabled. When
-you opt in, updates download in the background and install when you quit or
-restart Zshell. Choose **Check for Updates…** to check manually. The Homebrew
+checks and **Automatically download updates**. Downloads are off by default and
+require automatic checks. Enabling downloads reveals a separate **Automatically
+install updates** switch, which is off by default. With installation off,
+updates download in the background and install when you quit Zshell. With both
+switches on, prepared updates install and restart Zshell automatically. Running
+terminal processes stop during the restart; the workspace is restored when
+Zshell reopens. Turning downloads off hides the installation switch and prevents
+automatic restarts, while preserving its preference for the next time downloads
+are enabled. Both choices persist across app restarts. An update icon appears at the bottom of the
+project sidebar, to the left of the feedback button, when an update is available.
+Click it to open the update or its progress, or retry a pending restart. Choose
+**Check for Updates…** to check manually. The Homebrew
 command above remains available for an explicit update.
 
 ## Recommended tools

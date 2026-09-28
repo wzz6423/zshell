@@ -304,9 +304,10 @@ them. **Restore Default Shortcuts** resets all overrides. The
 - **Language.** Settings offers System Default, English, Simplified Chinese,
   and Japanese. The choice uses macOS's per-app language preference and needs a
   relaunch, so it lives in Zshell's preferences rather than TOML.
-- **Automatic updates.** The automatic check and automatic download/install
-  switches in **Settings → Updates** belong to Sparkle, which remembers your
-  choices across launches. See [Installation](/en/docs/installation#updates).
+- **Automatic updates.** The automatic check, download, and installation
+  switches in **Settings → Updates** use app preferences outside TOML and
+  remember your choices across launches. Installation is shown only while
+  automatic downloads are enabled. See [Installation](/en/docs/installation#updates).
 - **Window and layout state.** Window size, sidebar widths, selected panels,
   projects, tabs, panes, browser URLs, and diff control preferences live in
   Zshell's macOS preferences and session snapshot.

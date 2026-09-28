@@ -189,6 +189,9 @@ struct UpdateFeedFallbackState {
 @MainActor
 final class UpdateFeedDelegate: NSObject, SPUUpdaterDelegate {
     var onCheckRequested: ((SPUUpdateCheck) -> Void)?
+    var onAvailableUpdateChanged: ((String?) -> Void)?
+    var shouldAutomaticallyInstall: () -> Bool = { false }
+    private(set) var installAndRelaunch: (() -> Void)?
     private let configuration: UpdateFeedConfiguration
     private let resolver: UpdateFeedResolver
     private var checkPreference = UpdateFeedPreference(countryCode: nil, systemRegionCode: Locale.current.region?.identifier)
@@ -232,12 +235,36 @@ final class UpdateFeedDelegate: NSObject, SPUUpdaterDelegate {
         state.didLoadAppcast()
     }
 
+    func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        onAvailableUpdateChanged?(item.displayVersionString)
+    }
+
+    func updaterDidNotFindUpdate(_ updater: SPUUpdater, error: Error) {
+        onAvailableUpdateChanged?(nil)
+    }
+
+    func updater(_ updater: SPUUpdater, userDidMake choice: SPUUserUpdateChoice,
+                 forUpdate item: SUAppcastItem, state: SPUUserUpdateState) {
+        if choice == .skip { onAvailableUpdateChanged?(nil) }
+    }
+
+    func updater(_ updater: SPUUpdater, willInstallUpdateOnQuit item: SUAppcastItem,
+                 immediateInstallationBlock immediateInstallHandler: @escaping () -> Void) -> Bool {
+        guard updater.automaticallyChecksForUpdates, updater.automaticallyDownloadsUpdates,
+              shouldAutomaticallyInstall() else { return false }
+        // Keep Sparkle's handler available if the application cancels its first quit request.
+        installAndRelaunch = immediateInstallHandler
+        immediateInstallHandler()
+        return true
+    }
+
     func updater(_ updater: SPUUpdater, failedToDownloadUpdate item: SUAppcastItem, error: Error) {
         state.downloadFailed()
     }
 
     func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck,
                  error: Error?) {
+        installAndRelaunch = nil
         if isDeferringCheck {
             isDeferringCheck = false
             let check = deferredCheck
@@ -276,10 +303,22 @@ final class UpdateFeedDelegate: NSObject, SPUUpdaterDelegate {
 @MainActor
 final class UpdateUserDriver: SPUStandardUserDriver {
     private let shouldSuppressUpdaterError: () -> Bool
+    private(set) var isShowingUpdate = false
 
     init(shouldSuppressUpdaterError: @escaping () -> Bool) {
         self.shouldSuppressUpdaterError = shouldSuppressUpdaterError
         super.init(hostBundle: .main, delegate: nil)
+    }
+
+    override func showUpdateFound(with appcastItem: SUAppcastItem, state: SPUUserUpdateState,
+                                  reply: @escaping (SPUUserUpdateChoice) -> Void) {
+        isShowingUpdate = true
+        super.showUpdateFound(with: appcastItem, state: state, reply: reply)
+    }
+
+    override func dismissUpdateInstallation() {
+        isShowingUpdate = false
+        super.dismissUpdateInstallation()
     }
 
     override func showUpdaterError(_ error: Error, acknowledgement: @escaping () -> Void) {
@@ -303,9 +342,14 @@ final class Updater: ObservableObject {
     private var sessionObservation: AnyCancellable?
     private var preferenceObservations: Set<AnyCancellable> = []
 
+    @Published private(set) var availableUpdateVersion: String?
     @Published private(set) var canCheckForUpdates = false
     @Published private(set) var isUpdating = false
     @Published private(set) var allowsAutomaticUpdates = false
+
+    @Published var automaticallyInstallsUpdates = UserDefaults.standard.bool(forKey: "ZshellAutomaticallyInstallsUpdates") {
+        didSet { UserDefaults.standard.set(automaticallyInstallsUpdates, forKey: "ZshellAutomaticallyInstallsUpdates") }
+    }
 
     var updateActionTitle: String { String(localized: "Check for Updates…") }
 
@@ -361,6 +405,8 @@ final class Updater: ObservableObject {
             }
             .store(in: &preferenceObservations)
 
+        delegate.shouldAutomaticallyInstall = { [weak self] in self?.automaticallyInstallsUpdates == true }
+        delegate.onAvailableUpdateChanged = { [weak self] in self?.availableUpdateVersion = $0 }
         delegate.onCheckRequested = { [weak self] check in
             guard let self else { return }
             if self.pendingCheck != .updates { self.pendingCheck = check }
@@ -379,6 +425,27 @@ final class Updater: ObservableObject {
             }
         } catch {
             NSLog("Unable to start Sparkle: %@", error.localizedDescription)
+        }
+        #endif
+    }
+
+    func showAvailableUpdate() {
+        #if !DEBUG
+        if let installAndRelaunch = feedDelegate.installAndRelaunch {
+            installAndRelaunch()
+        } else if updater.sessionInProgress {
+            if userDriver.isShowingUpdate {
+                userDriver.showUpdateInFocus()
+            } else {
+                let alert = NSAlert()
+                alert.messageText = String(localized: "Updating Zshell")
+                alert.informativeText = automaticallyChecksForUpdates && automaticallyDownloadsUpdates && automaticallyInstallsUpdates
+                    ? String(localized: "The update is being downloaded and verified in the background. Zshell will restart automatically when it is ready.")
+                    : String(localized: "The update is being prepared in the background. It will be installed when you quit Zshell, or you can install it manually when it is ready.")
+                if let window = NSApp.keyWindow { alert.beginSheetModal(for: window) }
+            }
+        } else {
+            checkForUpdates()
         }
         #endif
     }

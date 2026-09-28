@@ -253,6 +253,50 @@ struct UpdaterTests {
         expect(allowsCheck(deferredDelegate, deferredUpdater, .updates), "resolved manual check proceeds")
         expect(deferredDelegate.feedURLString(for: deferredUpdater) == configuration.fallback.absoluteString, "resolved overseas check uses GitHub first")
 
+        let installDelegate = UpdateFeedDelegate(configuration: configuration)
+        let installDriver = UpdateUserDriver { false }
+        let installUpdater = SPUUpdater(hostBundle: .main, applicationBundle: .main,
+                                        userDriver: installDriver, delegate: installDelegate)
+        let updateItem = SUAppcastItem(dictionary: ["enclosure": [
+            "url": "https://example.com/update.zip", "sparkle:version": "2",
+            "sparkle:shortVersionString": "2.0"
+        ]])!
+        var availableVersion: String?
+        installDelegate.onAvailableUpdateChanged = { availableVersion = $0 }
+        installDelegate.updater(installUpdater, didFindValidUpdate: updateItem)
+        expect(availableVersion == "2.0", "valid update exposes its version to the sidebar")
+        installDelegate.updaterDidNotFindUpdate(installUpdater, error: failure)
+        expect(availableVersion == nil, "no update clears the sidebar indicator")
+        var installations = 0
+        let install = { installations += 1 }
+        installUpdater.automaticallyChecksForUpdates = true
+        installUpdater.automaticallyDownloadsUpdates = false
+        expect(!installDelegate.updater(installUpdater, willInstallUpdateOnQuit: updateItem,
+                                        immediateInstallationBlock: install), "auto restart requires opt-in")
+        expect(installations == 0, "opt-out must not invoke the installation handler")
+        installUpdater.automaticallyDownloadsUpdates = true
+        expect(!installDelegate.updater(installUpdater, willInstallUpdateOnQuit: updateItem,
+                                        immediateInstallationBlock: install), "downloads alone retain install-on-quit behavior")
+        expect(installations == 0, "downloads alone must not restart the app")
+        var autoInstall = true
+        installDelegate.shouldAutomaticallyInstall = { autoInstall }
+        expect(installDelegate.updater(installUpdater, willInstallUpdateOnQuit: updateItem,
+                                       immediateInstallationBlock: install), "opt-in takes ownership of installation")
+        expect(installations == 1, "prepared update installs and relaunches immediately")
+        installDelegate.installAndRelaunch?()
+        expect(installations == 2, "a canceled termination can be retried from the sidebar")
+        installDelegate.updater(installUpdater, didFinishUpdateCycleFor: .updatesInBackground, error: nil)
+        expect(installDelegate.installAndRelaunch == nil, "completed cycles release the installation handler")
+        autoInstall = false
+        expect(!installDelegate.updater(installUpdater, willInstallUpdateOnQuit: updateItem,
+                                        immediateInstallationBlock: install), "disabling installation before preparation prevents restart")
+        expect(installations == 2, "installation opt-out must not invoke the handler")
+        autoInstall = true
+        installUpdater.automaticallyChecksForUpdates = false
+        expect(!installDelegate.updater(installUpdater, willInstallUpdateOnQuit: updateItem,
+                                        immediateInstallationBlock: install), "disabled checks prevent auto restart")
+        expect(installations == 2, "disabling checks during download must not restart the app")
+
         let integrationLookup = PendingCountryLookup()
         var integrationClock = Date()
         let integrationResolver = UpdateFeedResolver(loadCountryCode: { await integrationLookup.load() },
@@ -260,7 +304,9 @@ struct UpdaterTests {
         let integrationDelegate = UpdateFeedDelegate(configuration: configuration, resolver: integrationResolver)
         for selector in ["updater:mayPerformUpdateCheck:error:", "feedURLStringForUpdater:",
                          "updater:didFinishLoadingAppcast:", "updater:failedToDownloadUpdate:error:",
-                         "updater:didFinishUpdateCycleForUpdateCheck:error:"] {
+                         "updater:didFinishUpdateCycleForUpdateCheck:error:", "updater:didFindValidUpdate:",
+                         "updaterDidNotFindUpdate:error:", "updater:userDidMakeChoice:forUpdate:state:",
+                         "updater:willInstallUpdateOnQuit:immediateInstallationBlock:"] {
             expect(integrationDelegate.responds(to: NSSelectorFromString(selector)),
                    "Swift delegate implements Sparkle's Objective-C callback \(selector)")
         }
