@@ -1,0 +1,23 @@
+{
+  "title": "문서",
+  "pages": [
+    "---시작하기---",
+    "index",
+    "installation",
+    "quick-start",
+    "---Zshell 사용---",
+    "projects",
+    "panes",
+    "terminal",
+    "quick-launch",
+    "browser",
+    "git",
+    "files",
+    "session-info",
+    "automation",
+    "---참고---",
+    "shortcuts",
+    "configuration",
+    "faq"
+  ]
+}

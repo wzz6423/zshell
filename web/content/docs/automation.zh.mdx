@@ -7,13 +7,17 @@ Zshell 的自动化主要是给 AI 编码 agent 用的。它让 agent 安全地�
 
 AI 集成默认启用，直接像平时一样和编码 agent 对话。它可以新建后台窗格、启动另一个 agent、运行命令、等待结果，再把结论带回来，全程不抢走你正在使用的窗格焦点。
 
-## 设置
+<span id="设置" data-canonical-heading="setup" />
+
+## 设置 [#setup]
 
 **设置 → Automation → AI** 默认开启。如果之前关闭过，请重新开启，再新建终端；已经运行的编码 agent 需要重启。
 
 Zshell 支持 Codex、Claude Code、Gemini CLI、Grok Build、OpenCode、Cursor Agent、Aider、Amp 和 Pi。如果现有 agent 配置与这项功能冲突，Zshell 会原样保留它，让开关回到之前的状态，并在设置里显示错误。
 
-## 直接说你想要什么
+<span id="直接说你想要什么" data-canonical-heading="ask-in-plain-language" />
+
+## 直接说你想要什么 [#ask-in-plain-language]
 
 告诉 agent 最终要达到的结果。例如：
 
@@ -29,7 +33,9 @@ Zshell 支持 Codex、Claude Code、Gemini CLI、Grok Build、OpenCode、Cursor 
 
 Zshell 的自动化接口由 agent 自己调用，你不需要输入或记住任何自动化命令。
 
-## 让多个 agent 在窗格间协作
+<span id="让多个-agent-在窗格间协作" data-canonical-heading="let-agents-coordinate-across-panes" />
+
+## 让多个 agent 在窗格间协作 [#let-agents-coordinate-across-panes]
 
 你可以把相关工作拆到几个 Zshell 窗格里，再让主要 agent 负责协调。例如，一个 agent 修改 API，另一个补测试。协调方可以向指定的 agent 询问发现或进度、补充要求、把有用的结果传给另一个 agent，最后再把汇总后的答案交给你。不同窗格也可以运行不同的受支持编码工具。
 
@@ -37,7 +43,9 @@ Zshell 的自动化接口由 agent 自己调用，你不需要输入或记住任
 
 发出补充消息不代表任务已经完成。协调方仍要等待 agent、读取结果并检查结论。来自另一个 agent 的消息也不等于你的批准；权限、凭据、信任和破坏性操作仍然必须交还给你决定。
 
-## 它运行时，你继续工作
+<span id="它运行时你继续工作" data-canonical-heading="keep-working-while-it-runs" />
+
+## 它运行时，你继续工作 [#keep-working-while-it-runs]
 
 除非你要求查看，分派出去的窗格会留在后台。当 provider 的原生生命周期集成报告状态时，Zshell 会在窗格和标签页上显示：
 
@@ -51,7 +59,9 @@ Zshell 会把自己刚提交的 prompt 记为 **Working**，但不会扫描终�
 
 当集成报告 agent 已完成或需要输入时，Zshell 还可以发送通知。按 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>，会跳到下一个已报告且需要你处理的 agent。
 
-## 账户用量与限制
+<span id="账户用量与限制" data-canonical-heading="account-usage-and-limits" />
+
+## 账户用量与限制 [#account-usage-and-limits]
 
 **设置 → Automation → 账户用量**会显示 Claude Code 和 Codex 当前可读取的账户限制，
 包括已使用百分比、提供方报告的重置时间，以及上次更新时间。点击 **刷新用量**可以重新读取。
@@ -60,7 +70,9 @@ Codex 需要已安装、已登录且能报告账户限制的 CLI。Claude Code �
 提供方的状态栏用量报告后显示。仅在有可用数据时才显示这一分区；具体用量周期取决于提供方和账户。
 这里显示的是账户限制，不是当前会话的 token 总量。
 
-## 一次典型的使用过程
+<span id="一次典型的使用过程" data-canonical-heading="a-typical-workflow" />
+
+## 一次典型的使用过程 [#a-typical-workflow]
 
 1. 在 Zshell 终端里启动你平时使用的编码 agent。
 2. 让它分派一个范围明确的任务、在后台运行某个程序，或协调另一个 agent。
@@ -68,14 +80,18 @@ Codex 需要已安装、已登录且能报告账户限制的 CLI。Claude Code �
 4. 如果 provider 会报告生命周期，可以通过 **Working**、**Blocked** 或 **Done** 徽章掌握进度；否则请打开对应窗格，直接查看对话或终端输出。
 5. 在 [Git 面板](/docs/git)里审阅结果和 diff，只保留你认可的改动。
 
-## 决定权仍然在你手里
+<span id="决定权仍然在你手里" data-canonical-heading="you-stay-in-control" />
+
+## 决定权仍然在你手里 [#you-stay-in-control]
 
 - Agent 自动化只作用于当前 Zshell 项目，不能操作其他项目或窗口里的窗格。
 - 后台工作默认不抢焦点。
 - Zshell 不会替你回答权限、凭据、信任或破坏性操作提示。Provider 报告 **Blocked**，就是把决定交还给你。
 - Provider 报告的 **Done** 只表示可以开始审阅，不代表 Zshell 自动批准了 agent 的改动。
 
-## Agent 没有使用 Zshell 时
+<span id="agent-没有使用-zshell-时" data-canonical-heading="if-an-agent-does-not-use-zshell" />
+
+## Agent 没有使用 Zshell 时 [#if-an-agent-does-not-use-zshell]
 
 - 确认 **设置 → Automation → AI** 已经打开。
 - 如果当前终端是在打开设置前创建的，请新建一个 Zshell 终端。

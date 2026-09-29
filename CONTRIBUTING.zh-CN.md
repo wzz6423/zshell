@@ -100,7 +100,7 @@ Sparkle 偏好都存在这个独立 bundle id 下。
 
 ## 本地化
 
-Zshell 的开发语言是英文，简体中文和日文翻译维护在 Xcode String Catalog 中。翻译现有
+Zshell 的开发语言是英文，应用和官网支持相同的 17 种语言，应用译文维护在 Xcode String Catalog 中。翻译现有
 文案、新增语言、测试本地化以及编写可本地化的 Swift 代码，见
 [LOCALIZATION.md](mac/LOCALIZATION.md)。
 

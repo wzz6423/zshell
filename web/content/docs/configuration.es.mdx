@@ -1,0 +1,233 @@
+---
+title: Configuración
+description: Todas las opciones persistentes de Zshell, qué hacen y dónde se guardan.
+---
+
+La mayoría de los ajustes persistentes de Zshell se guardan en un único archivo:
+
+```
+~/.config/zshell/config.toml
+```
+
+La ventana Ajustes (<kbd>Cmd</kbd>+<kbd>,</kbd>) escribe en este mismo archivo. Algunos ajustes gestionados por macOS —el idioma y las actualizaciones automáticas— se guardan en otro lugar y se enumeran al final de esta página.
+
+## Cómo se comporta el archivo [#how-the-file-behaves]
+
+Antes de editarlo a mano, ten en cuenta lo siguiente:
+
+- **Se lee al iniciar.** Editar el archivo mientras Zshell está en ejecución no cambia nada hasta volver a iniciar. Los cambios realizados en Ajustes se aplican inmediatamente, salvo que el control indique lo contrario.
+- **Zshell lo reescribe cada vez que cambia un ajuste guardado en el archivo.** El archivo se genera de nuevo desde cero, por lo que los comentarios y las claves desconocidas se pierden la próxima vez que uses uno de esos controles. Elige un solo medio para editarlo o conserva una copia de referencia entre tus archivos de configuración.
+- **Solo se escriben valores distintos de los predeterminados, con una excepción.** `font-size` siempre está presente. Eliminar cualquier otra clave restaura su valor predeterminado.
+- **El analizador es pequeño de forma deliberada.** Admite claves simples, claves con puntos, cabeceras `[table]`, comentarios `#` y valores de cadena, número o booleano. No admite arrays, tablas en línea ni cadenas multilínea.
+- **Los valores incorrectos usan alternativas seguras.** Un tamaño fuera de rango, un motor desconocido o un tema mal escrito no impiden que Zshell se inicie.
+
+## Apariencia [#appearance]
+
+### `theme` [#theme]
+
+`"system"` · `"light"` · `"dark"` — predeterminado: `"system"`
+
+Elige la apariencia de la aplicación. `"system"` sigue a macOS; los otros dos valores fijan una apariencia para Zshell.
+
+### `theme-dark` y `theme-light` [#theme-dark-and-theme-light]
+
+cadena — valores predeterminados: `"Default Dark"` y `"Default Light"`
+
+El tema de color para cada apariencia. Un tema cambia a la vez los colores de los paneles de terminal, el marco de la ventana, las barras laterales, el editor y las diferencias. Los temas predeterminados conservan la barra lateral translúcida de Zshell; los demás la pintan con su paleta.
+
+Ajustes muestra el catálogo de temas seleccionados que comparten ambos motores de terminal. Un nombre escrito a mano debe coincidir exactamente con uno de los nombres mostrados, incluidas mayúsculas y minúsculas; de lo contrario, Zshell vuelve al tema predeterminado correspondiente.
+
+### `toolbar.visibility` [#toolbarvisibility]
+
+`"hide"` · `"auto"` · `"always"` — predeterminado: `"hide"`
+
+Controla la barra compacta situada debajo de la pestaña activa:
+
+- `"hide"` la mantiene fuera de la ventana.
+- `"auto"` la muestra solo cuando el directorio del proyecto es un repositorio Git.
+- `"always"` mantiene visible el acceso a Git en todos los proyectos, incluido el estado **Sin repositorio Git**.
+
+Consulta [La barra de herramientas de Git](/es/docs/git#the-git-toolbar) para saber qué muestra.
+
+## Texto [#text]
+
+### `font-family` [#font-family]
+
+cadena — predeterminado: `""`, que indica JetBrains Mono incluida con la aplicación
+
+El terminal, el editor y el visor de diferencias comparten esta familia para caracteres latinos. Indica el nombre de una familia, no de un estilo: `"IBM Plex Mono"`, no `"IBM Plex Mono Regular"`. Las familias desconocidas o no monoespaciadas usan la predeterminada incluida.
+
+El orden de sustitución del terminal es la familia latina, la fuente CJK opcional de abajo, Symbols Nerd Font incluida y, por último, la sustitución del sistema del motor. El editor y el visor de diferencias siguen usando su sustitución normal de macOS/WebKit.
+
+### `terminal.font-fallback-family` [#terminalfont-fallback-family]
+
+cadena — predeterminado: `""`, que indica la sustitución del motor o del sistema
+
+Añade una familia CJK instalada a la cadena ordenada de fuentes de sustitución del terminal. El selector de Ajustes incluye familias con glifos representativos del chino, japonés o coreano; no exige que sean estrictamente monoespaciadas porque solo aportan los glifos que faltan en la fuente latina principal.
+
+### `font-size` [#font-size]
+
+número, 8–32 — predeterminado: `13`
+
+Tamaño de fuente en puntos compartido por el terminal, el editor y las diferencias. Es la única clave que Zshell escribe incluso cuando tiene el valor predeterminado.
+
+### `interface.scale` [#interfacescale]
+
+número, 0.9–1.5 — predeterminado: `1`
+
+Escala pestañas, iconos, botones, barras laterales y el resto de la interfaz. El contenido del terminal, el editor y las diferencias conserva el tamaño de fuente configurado por separado más arriba.
+
+### `sidebar.font-size` [#sidebarfont-size]
+
+número, 9–24 — predeterminado: `14`
+
+Tamaño base del texto de ambas barras laterales. Las cabeceras de sección, filas, metadatos y controles mantienen su jerarquía relativa al cambiar la base.
+
+### `terminal.font-thicken` [#terminalfont-thicken]
+
+booleano — predeterminado: `false`
+
+Representa los glifos del terminal con trazos algo más gruesos, parecidos al suavizado de fuentes clásico de macOS. Ambos motores respetan la opción y la vista previa de Ajustes muestra el resultado. Las configuraciones antiguas con `font-thicken` se siguen leyendo y después se reescriben con la clave actual con puntos.
+
+### `terminal.font-thicken-strength` [#terminalfont-thicken-strength]
+
+entero, 0–255 — predeterminado: `255`
+
+Controla el engrosamiento cuando `terminal.font-thicken` es true. Cero es el engrosamiento más ligero disponible, no lo desactiva. Ghostty usa su intensidad nativa de macOS; Alacritty asigna el mismo rango a un trazo de CoreText, de modo que la dirección y los extremos coinciden, aunque los píxeles rasterizados pueden diferir.
+
+### `terminal.line-height` [#terminalline-height]
+
+número, 0.75–2 — predeterminado: `1`
+
+Multiplica la altura natural de celda de cada motor de terminal y mantiene los glifos centrados verticalmente. Solo cambia las filas del terminal, no el espaciado del editor ni de las diferencias.
+
+Zshell no ofrece un control de peso base de fuente. Ghostty selecciona estilos con nombre o ejes de variación, mientras que Alacritty/CoreText resuelve las variantes regular y negrita mediante atributos; un único valor compartido no conservaría de forma coherente la distinción regular/negrita ni los pesos de sustitución entre fuentes estáticas y variables.
+
+### `editor.wrap-lines` [#editorwrap-lines]
+
+booleano — predeterminado: `true`
+
+Ajusta visualmente las líneas largas al ancho del panel en el [editor de archivos](/es/docs/files). Con false, las líneas largas se desplazan horizontalmente. No cambia el ajuste de líneas de un terminal ni de una vista de diferencias.
+
+## Terminal [#terminal]
+
+### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
+
+cadenas — sin valor predeterminado
+
+Eligen el ejecutable y el vector de argumentos de los terminales creados a partir de ese momento. Cuando no existe `terminal.startup-program`, Zshell sigue usando el shell de inicio de sesión de la cuenta con `-l`. El programa debe ser una ruta absoluta a un ejecutable; si la ruta no existe o no es ejecutable, se usa el shell de inicio de sesión en lugar de abrir un panel inutilizable.
+
+`terminal.startup-arguments` se divide en argumentos sin invocar un shell. Las comillas y las barras inversas conservan sus límites, incluidos espacios y argumentos vacíos, pero no se expanden variables, patrones glob ni sustituciones de comandos. Las comillas no válidas también hacen que se use el shell de inicio de sesión. Un argv explícito proporcionado por la CLI de Zshell conserva la prioridad para ese terminal.
+
+### `terminal.backend` [#terminalbackend]
+
+`"libghostty"` · `"alacritty"` — predeterminado: `"libghostty"`
+
+Elige el emulador de los terminales creados a partir de ese momento. Los paneles existentes conservan el motor con el que se iniciaron. Ambos son nativos, tienen aceleración por GPU, admiten imágenes y usan los mismos temas de Zshell; Alacritty suele consumir menos memoria.
+
+Consulta [Motores de terminal](/es/docs/terminal#terminal-backends) para conocer las variables de entorno y las garantías de compatibilidad.
+
+### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
+
+booleano — predeterminado: `false`
+
+Con true, las combinaciones de la tecla Opción se envían a los programas de terminal como atajos Alt/Meta. El valor predeterminado deja Opción en manos de la fuente de entrada activa de macOS para que distribuciones como Polish Pro puedan escribir sus caracteres compuestos.
+
+### `terminal.bell` [#terminalbell]
+
+booleano — predeterminado: `true`
+
+Controla el sonido de alerta y la llamada de atención visual de macOS cuando un programa de terminal activa la campana. Con false, Zshell no reproduce el sonido, no publica una notificación de campana ni solicita atención en el Dock. Las tecnologías de accesibilidad siguen recibiendo la campana como anuncio semántico. Ambos motores respetan este ajuste.
+
+### `terminal.vim-command-hints` [#terminalvim-command-hints]
+
+booleano — predeterminado: `false`
+
+Muestra comandos de Vim / Neovim según el modo debajo de la información de sesión en la barra lateral **Información**. Se aplica inmediatamente en ambos motores, incluidos editores reconocibles a través de SSH. Consulta [Sugerencias de comandos de Vim](/es/docs/terminal#vim-command-hints) para conocer los requisitos de detección de modo.
+
+### `terminal.restore-history` [#terminalrestore-history]
+
+booleano — predeterminado: `false`
+
+Restaura el historial de salida anterior de cada terminal sobre un shell nuevo al volver a iniciar. El contenido restaurado es texto estático, no un proceso que haya sobrevivido.
+
+El historial restaurado se guarda en disco, por lo que puede incluir secretos mostrados en el terminal. La opción está desactivada de forma predeterminada. Los [proyectos, pestañas y distribución de paneles](/es/docs/projects#what-survives-a-relaunch) se restauran en cualquier caso.
+
+## Automatización [#automation]
+
+### `ai.enabled` [#aienabled]
+
+booleano — predeterminado: `true`
+
+Permite que los agentes de programación compatibles coordinen paneles de Zshell en segundo plano cuando lo pides con lenguaje natural, y muestra en la interfaz el estado del ciclo de vida comunicado por el proveedor. Zshell no infiere el estado del texto del terminal. Se recomienda cambiarlo desde el interruptor de Ajustes porque los errores aparecen junto al control y las configuraciones existentes que entren en conflicto se dejan intactas.
+
+El flujo de trabajo para el usuario se describe en [Trabajar con agentes de IA](/es/docs/automation).
+
+## Ajustes adicionales [#additional-settings]
+
+| Clave | Predeterminado | Valores / rango | Efecto |
+| --- | --- | --- | --- |
+| `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Icono de la aplicación |
+| `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Editor externo para archivos y carpetas |
+| `terminal.theme-only` | `false` | booleano | Aplicar la paleta seleccionada solo al terminal |
+| `terminal.cursor-shape` | `"block"` | `"block"` / `"bar"` / `"underline"` | Forma del cursor del terminal |
+| `terminal.cursor-blinking` | `true` | booleano | Hacer parpadear el cursor |
+| `terminal.copy-on-select` | `true` | booleano | Copiar el texto seleccionado en el terminal |
+| `terminal.shift-enter-newline` | `true` | booleano | Enviar una secuencia de nueva línea mejorada con Shift+Enter; requiere compatibilidad de la aplicación |
+| `terminal.background-opacity` | `1` | 0.2–1 | Opacidad del fondo del terminal |
+| `terminal.background-blur` | `false` | booleano | Desenfocar los fondos translúcidos |
+| `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Notificar cuando un comando haya durado al menos este tiempo y termine en un terminal zsh nuevo; 0 lo desactiva |
+| `terminal.notify-on-error` | `false` | booleano | Notificar errores de comandos en terminales zsh nuevos |
+| `quick-terminal.size` | `0.75` | 0.35–0.95 | Tamaño del terminal rápido relativo a la pantalla |
+| `quick-terminal.opacity` | `0.5` | 0.05–1 | Opacidad del fondo del terminal rápido |
+| `quick-terminal.shortcut` | `Cmd+I` | Registrar en Ajustes | Registrar el atajo global en Ajustes; los códigos de tecla se guardan automáticamente |
+| `panes.show-focus-ring` | `true` | booleano | Mostrar un contorno de foco alrededor del panel activo |
+| `panes.focus-ring-opacity` | `0.85` | 0.05–1 | Opacidad del contorno de foco |
+
+## Copias de seguridad y migración [#backup-and-migration]
+
+Usa **Zshell → Exportar ajustes…** para guardar un archivo TOML e **Importar ajustes…** para cargarlo.
+La importación pide confirmar la sustitución e intenta guardar una copia del archivo actual como `config.toml.bak` en el mismo directorio.
+
+Actualmente, el importador restaura un subconjunto: temas, opciones principales de fuente, ajustes del cursor, motor de terminal, restauración del historial, copia de selecciones, terminal rápido y compatibilidad con IA. No recupera todos los ajustes exportados. Comprueba después la escala de la interfaz, el icono de la aplicación, el editor externo y los ajustes de fondo del terminal.
+Para transferir la configuración completa, sal de Zshell, guarda una copia de seguridad y copia `config.toml`; después vuelve a iniciar.
+El interruptor de IA solo se actualiza cuando el archivo importado contiene explícitamente `ai.enabled`; compruébalo después de importar.
+Las variables de entorno de proyectos y pestañas son datos de sesión y no se incluyen en este archivo.
+
+## Un ejemplo completo [#a-complete-example]
+
+```toml title="~/.config/zshell/config.toml"
+theme = "dark"
+theme-dark = "Catppuccin Mocha"
+theme-light = "Catppuccin Latte"
+font-family = "IBM Plex Mono"
+font-size = 14
+interface.scale = 1.25
+sidebar.font-size = 13
+toolbar.visibility = "auto"
+terminal.font-fallback-family = "PingFang SC"
+terminal.font-thicken = true
+terminal.font-thicken-strength = 180
+terminal.line-height = 1.15
+terminal.macos-option-as-alt = false
+terminal.bell = false
+terminal.startup-program = "/opt/homebrew/bin/fish"
+terminal.startup-arguments = "--no-config"
+terminal.backend = "alacritty"
+terminal.restore-history = true
+editor.wrap-lines = true
+ai.enabled = true
+```
+
+Todas las claves son opcionales. Elimina una clave para devolver ese ajuste a su valor predeterminado.
+
+## Atajos de teclado [#keyboard-shortcuts]
+
+Abre **Ajustes → Atajos** para registrar un atajo nuevo para un comando principal. Zshell rechaza combinaciones en conflicto e indica qué comando ya las utiliza. **Restaurar atajos predeterminados** elimina todas las personalizaciones. La [referencia de teclado](/es/docs/shortcuts) enumera los valores predeterminados incluidos.
+
+## Ajustes fuera de este archivo [#settings-outside-this-file]
+
+- **Idioma.** Ajustes ofrece Predeterminado del sistema y 17 idiomas, los mismos que el sitio web. Los cambios se aplican inmediatamente y las sesiones de terminal siguen en ejecución. La selección usa la preferencia de idioma por aplicación de macOS, por lo que se guarda en las preferencias de Zshell y no en TOML. Predeterminado del sistema sigue el orden de idiomas de macOS.
+- **Actualizaciones automáticas.** Los interruptores de comprobación, descarga e instalación automáticas de **Ajustes → Actualizaciones** usan preferencias de la aplicación fuera de TOML y recuerdan tus elecciones entre inicios. La opción de instalación solo se muestra cuando las descargas automáticas están activadas. Consulta [Instalación](/es/docs/installation#updates).
+- **Estado de ventanas y distribución.** El tamaño de ventana, los anchos de las barras laterales, los paneles seleccionados, los proyectos, pestañas, paneles, URL del navegador y preferencias de controles de diferencias se guardan en las preferencias de macOS de Zshell y en la instantánea de sesión.
+- **Archivos de configuración de los motores.** Zshell no lee `~/.config/ghostty` ni una configuración de Alacritty. Los ajustes de Zshell son la interfaz admitida para ambos.

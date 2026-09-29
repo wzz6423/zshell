@@ -1,0 +1,79 @@
+---
+title: Instalasi
+description: Unduh Zshell, pasang dengan Homebrew, perbarui, dan hapus secara menyeluruh.
+---
+
+Zshell belum dinotarisasi oleh Apple. [Beranda](/id) menampilkan versi minimum macOS yang diperlukan rilis saat ini di samping unduhan.
+
+## Unduh [#download]
+
+Unduh `.dmg` dari [beranda](/id). Rilis 0.1.7 saat ini menyediakan paket Universal, Apple Silicon, dan Intel, dengan Gitee sebagai mirror.
+Buka citra disk dan seret **Zshell** ke Applications.
+
+Saat pertama dibuka, macOS mungkin memblokir aplikasi. Setelah mencoba membukanya, buka **Pengaturan Sistem → Privasi & Keamanan → Tetap Buka (System Settings → Privacy & Security → Open Anyway)**, lalu konfirmasikan pembukaan Zshell. Ini juga berlaku untuk instalasi Homebrew.
+
+## Homebrew [#homebrew]
+
+```bash
+brew install wzz6423/tap/zshell
+```
+
+Cask berada di `wzz6423/homebrew-tap` dan memasang ZIP sesuai prosesor Mac Anda.
+Setelah instalasi, Zshell menggunakan Sparkle untuk pembaruan. Untuk memperbarui secara eksplisit melalui Homebrew atau mengejar versi terpasang yang tertinggal:
+
+```bash
+brew upgrade --cask --greedy-auto-updates zshell
+```
+
+## Pembaruan [#updates]
+
+Unduhan langsung dan instalasi Homebrew sama-sama menggunakan [Sparkle](https://sparkle-project.org).
+Di Tiongkok daratan, Zshell mencoba Gitee lalu GitHub; di tempat lain, GitHub lalu Gitee.
+Jika tersedia, negara dari IP jaringan digunakan; jika pencarian negara gagal, wilayah macOS menjadi cadangan. Kegagalan feed atau unduhan mencoba sumber lain sekali.
+Pencarian negara menggunakan [ipinfo.io/country](https://ipinfo.io/country), dengan batas waktu lima detik dan cache dalam memori selama 30 menit.
+Permintaan ini mengungkap IP publik jaringan kepada layanan tersebut; Zshell tidak menyimpan IP. Menonaktifkan pemeriksaan otomatis juga menghentikan pencarian negara di latar belakang.
+
+Zshell memverifikasi feed bertanda tangan dan paket pembaruan sebelum instalasi, serta mempertahankan arsitektur terpasang; aplikasi Intel yang berjalan melalui Rosetta beralih ke Apple Silicon.
+
+Buka **Pengaturan → Pembaruan (Settings → Updates)** (<kbd>Cmd</kbd>+<kbd>,</kbd>) untuk mengatur pemeriksaan otomatis dan **Unduh pembaruan otomatis (Automatically download updates)**.
+Unduhan nonaktif secara bawaan dan memerlukan pemeriksaan otomatis. Saat unduhan diaktifkan, sakelar terpisah **Pasang pembaruan otomatis (Automatically install updates)** muncul dan juga nonaktif secara bawaan.
+Jika pemasangan otomatis mati, pembaruan diunduh di latar belakang dan dipasang saat Anda keluar dari Zshell.
+Jika keduanya aktif, pembaruan yang siap dipasang akan diterapkan dan Zshell dimulai ulang otomatis. Proses terminal yang berjalan berhenti selama mulai ulang; ruang kerja dipulihkan saat Zshell terbuka kembali.
+Mematikan unduhan menyembunyikan sakelar pemasangan dan mencegah mulai ulang otomatis, tetapi menyimpan pilihannya untuk saat unduhan diaktifkan lagi. Kedua pilihan bertahan setelah aplikasi dimulai ulang.
+Ikon pembaruan muncul di bagian bawah bilah proyek, di kiri tombol umpan balik, jika pembaruan tersedia. Klik untuk membuka pembaruan atau kemajuannya, atau mencoba kembali mulai ulang yang tertunda.
+Pilih **Periksa Pembaruan… (Check for Updates…)** untuk memeriksa manual. Perintah Homebrew di atas tetap dapat digunakan untuk pembaruan eksplisit.
+
+## Alat rekomendasi [#recommended-tools]
+
+Buka **Pengaturan → Rekomendasi (Settings → Recommendations)** untuk menjelajahi alat terminal, jaringan, pengembangan, utilitas, dan desktop, termasuk Zisla.
+Selama terbuka, halaman mendeteksi alat terpasang dan memeriksa pembaruan yang tersedia.
+Gunakan **Pasang (Install)** atau **Perbarui (Update)** untuk tiap alat, **Pasang yang Belum Ada (Install Missing)** untuk semua rekomendasi yang belum terpasang, atau **Perbarui Semua (Update All)** untuk pembaruan alat yang dikelola Homebrew.
+
+Pemasangan alat menggunakan Homebrew. Jika belum ada, halaman menautkan petunjuk instalasinya. Pemeriksaan tidak memasang atau memperbarui alat dengan sendirinya.
+Alat yang terdeteksi di luar Homebrew berlabel **Di Luar Homebrew (Outside Homebrew)**.
+**Gunakan Homebrew (Use Homebrew)** memasang salinan kelolaan Homebrew; salinan lama mungkin tetap didahulukan oleh `PATH` shell Anda.
+Gunakan **Segarkan (Refresh)** untuk memeriksa lagi setelah mengubah instalasi. Zshell sendiri dikelola melalui **Pengaturan → Pembaruan**.
+
+## Buka folder dari Finder [#open-a-folder-from-finder]
+
+Zshell mendaftarkan layanan macOS bernama **New Zshell Project Here**.
+Pilih satu atau beberapa folder di Finder, klik kanan, lalu pilih layanan itu dari submenu **Layanan (Services)**. Setiap folder terbuka sebagai proyek dengan terminal yang sudah berjalan di dalamnya.
+
+Jika tidak ada di menu, aktifkan melalui **Pengaturan Sistem → Keyboard → Pintasan Keyboard → Layanan → Berkas dan Folder (System Settings → Keyboard → Keyboard Shortcuts → Services → Files and Folders)**.
+macOS baru mencantumkan layanan setelah aplikasi pernah dibuka sekali.
+
+## Menghapus instalasi [#uninstalling]
+
+Jika **Pengaturan → Otomatisasi → AI** aktif, matikan sebelum menghapus aplikasi agar Zshell dapat membersihkan dukungan agen yang dipasangnya.
+
+Hapus `zshell.app` dari Applications. Untuk menghapus pengaturan juga:
+
+```bash
+rm -rf ~/.config/zshell
+```
+
+Tata letak jendela, lebar bilah samping, dan snapshot sesi berada dalam penyimpanan preferensi macOS:
+
+```bash
+defaults delete sh.zshell
+```

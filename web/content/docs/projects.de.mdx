@@ -1,0 +1,112 @@
+---
+title: Projekte und Sitzungen
+description: Projekte in der Seitenleiste, Sitzungen als Tabs und was nach einem Neustart erhalten bleibt.
+---
+
+## Projekte [#projects]
+
+Ein Projekt entspricht einer Aufgabe, meist einem Repository, mit eigenen Terminals, Tabs und Panel-Einstellungen.
+
+<kbd>Cmd</kbd>+<kbd>N</kbd> erstellt ein Projekt mit einem Terminal. Es startet im Verzeichnis der aktuellen Sitzung oder, wenn keine vorhanden ist, in Ihrem Benutzerordner. Wechseln Sie anschließend mit `cd` an den gewünschten Ort. Zshell richtet Dateibaum und Git-Panel automatisch auf das Repository aus, das dieses Verzeichnis enthält.
+
+Um sich das `cd` zu sparen, klicken Sie im Finder mit der rechten Maustaste auf einen Ordner und wählen **Dienste → Neues Zshell-Projekt hier**. Das neue Projekt startet sein Terminal direkt darin.
+
+Zwischen Projekten wechseln Sie so:
+
+| Aktion | Tastenkürzel |
+| --- | --- |
+| Neues Projekt | <kbd>Cmd</kbd>+<kbd>N</kbd> |
+| Zu Projekt 1–9 wechseln | <kbd>Cmd</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Nächstes / vorheriges Projekt | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Projektseitenleiste ausblenden | <kbd>Cmd</kbd>+<kbd>B</kbd> |
+
+Ein Projekt trägt den Namen seiner ausgewählten Sitzung und folgt damit, wie ein Tab-Titel, dem Terminal. Sein Kontextmenü in der Seitenleiste bietet **Umbenennen…**, **Automatischen Titel verwenden** zum Zurücksetzen, **Projektverzeichnis festlegen…** und **Projekt schließen**. Beim Schließen werden seine Sitzungen beendet; Dateien auf dem Datenträger bleiben unverändert.
+
+### Gespeicherte SSH-Projekte [#saved-ssh-projects]
+
+Öffnen Sie die Befehlspalette (<kbd>Cmd</kbd>+<kbd>P</kbd>) und wählen Sie **Neues SSH-Projekt…**. Geben Sie Host, optional Benutzer und Port sowie das entfernte Startverzeichnis an. Zur Authentifizierung stehen **SSH-Agent**, **Passwort**, **Private Schlüsseldatei** und **Privater Schlüssel als Text** zur Wahl. Speichern Sie die Verbindung und wählen Sie **Verbinden**.
+
+Gespeicherte Verbindungen bleiben nach einem Neustart verfügbar. Über das optionale Feld **Gruppe** ordnen Sie die Liste; Schaltflächen zum Bearbeiten und Löschen verwalten die Einträge. Passwörter und eingefügte private Schlüssel werden im macOS-Schlüsselbund gespeichert. Bei einer privaten Schlüsseldatei merkt sich Zshell den Pfad zu Ihrer vorhandenen Datei.
+
+Für Befehle oder SSH-Aufrufe mit zusätzlichen Optionen siehe [Schnellstart](/de/docs/quick-launch).
+
+### Gruppen in der Seitenleiste [#sidebar-groups]
+
+Mit **Neue Gruppe** am unteren Rand der Seitenleiste erstellen Sie eine **Einfache Gruppe** oder **Ordnergruppe…**. Einfache Gruppen starten neue Terminals im Benutzerordner, Ordnergruppen verwenden den ausgewählten Ordner. Ein ausdrücklich festgelegtes Projektverzeichnis hat weiterhin Vorrang. Das Verschieben zwischen Gruppen verändert weder laufende Terminals noch das festgelegte Verzeichnis.
+
+Ziehen Sie ein Projekt auf einen Gruppenkopf oder ein anderes Projekt, um es einzuordnen. Ziehen auf **+ (Neues Projekt)** am unteren Rand löst die Gruppenzugehörigkeit. Auch Gruppenköpfe lassen sich durch Ziehen umordnen. Ein Klick klappt die Gruppe ein oder aus, ein Doppelklick benennt sie um; weitere Aktionen stehen im Kontextmenü. **Farbmarkierung festlegen…** gibt der Gruppe eine Farbe, **Farbmarkierung entfernen** löscht sie. **Gruppe entfernen** lässt alle Projekte geöffnet. Ziffernkürzel beziehen sich auf die gerade sichtbaren Projektzeilen. Die Navigation zum nächsten oder vorherigen Projekt kann Mitglieder eingeklappter Gruppen einblenden.
+
+Ordner aus dem Finder können Sie überall in der Projektliste ablegen. Ist ein Ordner bereits geöffnet, wird sein Projekt fokussiert statt ein Duplikat angelegt.
+
+### Das Projektverzeichnis [#the-project-directory]
+
+Dateibaum und Git-Panel müssen wissen, welchen Ordner sie anzeigen sollen. Standardmäßig ermittelt Zshell ihn aus dem aktuellen Terminalverzeichnis und geht bis zum **nächsten übergeordneten Git-Repository** nach oben.
+
+Darum springt der Dateibaum beim Wechsel mit `cd` innerhalb eines Repositorys nicht umher: Seine Wurzel bleibt das Repository-Verzeichnis. Außerhalb eines Repositorys folgen die Panels dem Terminalverzeichnis.
+
+Wechselt das Vordergrundprogramm in einen anderen Checkout, etwa wenn ein Agent seinen eigenen Git-Worktree betritt, folgen Dateien, Git und Info diesem Checkout. Kehrt der Vordergrundprozess zurück, folgen die Panels ebenfalls. Ein manuell festgelegtes Projektverzeichnis hat immer Vorrang und deaktiviert diesen automatischen Wechsel.
+
+Zum Festlegen wählen Sie im Projektkontextmenü **Projektverzeichnis festlegen…**. Der Ordner bleibt nach Neustarts gespeichert. **Automatisches Verzeichnis verwenden** aktiviert wieder die automatische Auswahl.
+
+<Callout type="info">
+Das Infopanel (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>) zeigt beide Angaben: das aktuelle **Arbeitsverzeichnis** der Shell, falls es abweicht, und das **Projektverzeichnis**, auf das die Panels ausgerichtet sind. Automatisch ermittelte Verzeichnisse tragen die Markierung `(AUTO)`.
+</Callout>
+
+## Sitzungen [#sessions]
+
+Ein Projekt kann beliebig viele Sitzungen enthalten, dargestellt als Tabs am oberen Rand. Jede Sitzung ist eine echte Login-Shell – etwa `zsh`, `fish` oder `bash`, entsprechend Ihrem Benutzerkonto – mit eigenem Arbeitsverzeichnis und Ausgabeverlauf.
+
+| Aktion | Tastenkürzel |
+| --- | --- |
+| Neue Sitzung | <kbd>Cmd</kbd>+<kbd>T</kbd> |
+| Zu Tab 1–9 wechseln | <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Tab-Wechsler nach letzter Verwendung | <kbd>Ctrl</kbd>+<kbd>Tab</kbd> |
+| Nächster / vorheriger Tab | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Fokussierten Bereich schließen | <kbd>Cmd</kbd>+<kbd>W</kbd> |
+
+Eine neue lokale Sitzung beginnt zuerst im festgelegten Projektverzeichnis, andernfalls im Standardverzeichnis ihrer Seitenleistengruppe. Fehlt beides, übernimmt sie das Verzeichnis der aktuellen Sitzung und verwendet ersatzweise den Benutzerordner.
+
+### Tab-Gruppen [#tab-groups]
+
+Klicken Sie mit der rechten Maustaste auf einen Tab und wählen Sie **In Gruppe verschieben → Neue Tab-Gruppe**. Der Tab gehört dann zur neuen Gruppe, die als farbiger Pfeil ohne Namen erscheint. Neue Sitzungen aus einem gruppierten Tab bleiben in derselben Gruppe. Über **Neue Sitzung in Gruppe** im Kontextmenü des Gruppenpfeils erstellen Sie direkt darin eine Sitzung.
+
+Ziehen Sie einen Tab auf einen Gruppenpfeil oder anderen Tab, um ihn zu verschieben. Im Kontextmenü stehen außerdem die Gruppen und **Aus Gruppe entfernen**. Ein Klick auf den Pfeil klappt die Gruppe ein oder aus. Beim Einklappen bleibt das aktive Terminal sichtbar und läuft weiter; der Wechsel zu einem verborgenen Mitglied klappt die Gruppe auf. Das Entfernen einer Gruppe lässt ihre Tabs und Sitzungen geöffnet. Wird ein gruppierter Tab angeheftet, wechselt er in den festen Bereich außerhalb der Gruppen. Das Kontextmenü des Gruppenpfeils bietet **Farbmarkierung festlegen…** und **Farbmarkierung entfernen**. Farben und eingeklappter Zustand werden beim nächsten Start wiederhergestellt.
+
+Ein Tab lässt sich auch auf ein Projekt in der Seitenleiste ziehen oder auf einen Gruppenkopf, um darin ein neues Projekt zu erstellen. Ablegen auf **+ (Neues Projekt)** erstellt ein Projekt außerhalb aller Seitenleistengruppen. **Tab in Projekt verschieben** im Tab-Menü erreicht auch Projekte anderer Fenster. Laufende Terminals und Bereichsanordnung bleiben dabei erhalten. Die Projekte müssen denselben lokalen oder SSH-Ort haben; ein aus einem Tab erstelltes Projekt übernimmt dessen Herkunftsort. Tabs mit Diffs bleiben in ihrem bisherigen Projekt.
+
+### Tab-Titel [#tab-titles]
+
+Tab-Titel stammen aus den Meldungen des Terminals: aus der Escape-Sequenz Ihres Shell-Prompts oder vom laufenden Programm. Im Kontextmenü können Sie mit **Umbenennen…** einen eigenen Titel setzen und mit **Automatischen Titel verwenden** wieder dem Terminal folgen.
+
+Weitere Einträge sind **Schließen**, **Andere schließen**, **Tabs rechts schließen**, **Alle schließen** sowie **Im Finder zeigen** und **Absoluten Pfad kopieren** für das Sitzungsverzeichnis. **Dateien schließen** und **Diffs schließen** entfernen diese Inhalte im gesamten Projekt; Terminals und Browserbereiche bleiben offen.
+
+## Fenster [#windows]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> öffnet ein weiteres Fenster. Jedes Fenster hat unabhängige Projekte und Seitenleisteneinstellungen und wird separat wiederhergestellt.
+
+## Was nach einem Neustart erhalten bleibt [#what-survives-a-relaunch]
+
+Zshell speichert während der Arbeit regelmäßig die Anordnung. Nach dem Beenden und erneuten Öffnen erhalten Sie zurück:
+
+- alle Projekte in ihrer Reihenfolge;
+- alle Tabs einschließlich eigener Namen, Anheftungen und Farbmarkierungen;
+- Seitenleistengruppen mit Namen, Farben, Reihenfolge, Mitgliedern und eingeklapptem Zustand;
+- Tab-Gruppen mit Farben, Reihenfolge, Mitgliedern und eingeklapptem Zustand;
+- festgelegte Projektverzeichnisse und leere Projekte;
+- die Bereichsanordnung jedes Tabs;
+- die geöffneten Seitenleisten und das ausgewählte rechte Panel.
+
+Terminals starten als **neue Shells** in ihren bisherigen Verzeichnissen. Zshell hält keine Prozesse im Hintergrund am Leben. Ein beim Beenden laufender Build wird dabei ebenfalls beendet.
+
+Die bisherige Ausgabe wird nur mit aktiviertem [`terminal.restore-history`](/de/docs/configuration#terminalrestore-history) wiederhergestellt. Standardmäßig ist dies ausgeschaltet, da der Verlauf auf dem Datenträger gespeichert wird.
+
+## Terminalumgebung und Initialisierung [#terminal-environment-and-initialization]
+
+Wählen Sie ein Projekt und dann **Terminal → Terminalumgebung des Projekts…**, um Umgebungsvariablen und einen Initialisierungsbefehl festzulegen. Mit **Terminal → Terminalumgebung des Tabs…** setzen Sie abweichende Werte für den aktuellen Tab.
+
+| Geltungsbereich | Verhalten |
+| --- | --- |
+| Projekt | Neue Terminals dieses Projekts übernehmen Variablen und Initialisierungsbefehl |
+| Tab | Gleichnamige Variablen überschreiben Projektwerte; der Befehl kann den Projektbefehl übernehmen, ersetzen oder deaktivieren |
+
+Änderungen betreffen nur Terminals, die nach dem Speichern erstellt werden. Laufende Prozesse behalten ihre Umgebung. Die Initialisierung läuft für die normale Login-Shell, nicht für ein eigenes Startprogramm oder explizite argv-Argumente. `ZSHELL_*`, `TERM`, `COLORTERM`, `TERM_PROGRAM` und `TERM_PROGRAM_VERSION` werden von Zshell verwaltet und können nicht überschrieben werden.

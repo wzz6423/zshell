@@ -1,0 +1,37 @@
+---
+title: Processi e porte
+description: Scopri cosa esegue realmente una sessione e quali porte ha aperto.
+---
+
+Premi <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>. Il pannello Info descrive la **sessione attiva**, non il progetto, e si aggiorna quando i processi iniziano e terminano.
+
+## Directory [#directory]
+
+Sono separate perché non sempre coincidono:
+
+- **Directory corrente** — directory di lavoro attuale della shell, mostrata quando differisce dalla seguente.
+- **Directory del progetto** — cartella a cui sono ancorati i pannelli File e Git, contrassegnata `(AUTO)` quando ricavata da Zshell. Il popover `?` spiega entrambe.
+
+Accanto ci sono scorciatoie per mostrare la cartella nel **Finder**, aprirla in **VS Code**, se installato, e **Copiare** il percorso.
+
+## Processi [#processes]
+
+Tutti i processi sotto la shell della sessione, con PID, percentuale CPU e memoria residente. Fai clic destro su un processo per:
+
+- **Termina** — un normale `SIGTERM`;
+- **Termina forzatamente** — `SIGKILL`, se il processo non risponde;
+- **Copia PID** / **Copia percorso eseguibile**.
+
+I processi figli già terminati ma ancora in attesa di essere raccolti (`<defunct>`) sono esclusi: non c'è nulla da esaminare o terminare.
+
+## Porte [#ports]
+
+Sono elencate le porte TCP su cui ascoltano questi processi, insieme al proprietario. Serve per rispondere a domande quotidiane come *quale porta ha scelto stavolta il server di sviluppo* o *cosa occupa ancora la 3000*.
+
+- Fai clic su una porta per aprire `http://localhost:<port>/` nel browser.
+- **Copia URL**.
+- **Termina processo**, se a occupare la porta è qualcosa che avevi dimenticato.
+
+<Callout type="info">
+L'elenco si aggiorna mentre il pannello è aperto e si interrompe quando viene nascosto.
+</Callout>

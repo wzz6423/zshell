@@ -1,39 +1,30 @@
 import { Suspense, lazy } from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useRouterState } from '@tanstack/react-router'
 import browserCollections from 'collections/browser'
 import { useFumadocsLoader } from 'fumadocs-core/source/client'
 import { RootProvider } from 'fumadocs-ui/provider/tanstack'
-import { i18nProvider, uiTranslations } from 'fumadocs-ui/i18n'
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
-import {
-  DocsBody,
-  DocsDescription,
-  DocsPage,
-  DocsTitle,
-} from 'fumadocs-ui/layouts/docs/page'
-import { zhCN } from '@fumadocs/language/zh-cn'
+import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page'
 import { getMDXComponents } from '@/components/docs-mdx'
+import { LanguageSelect } from '@/components/language-select'
 import { docsLayoutOptions } from '@/lib/docs-layout'
 import type { DocsPageData } from '@/lib/docs-loader'
-import { DEFAULT_LANGUAGE, i18n } from '@/lib/i18n'
+import { DEFAULT_LANGUAGE, i18n, languageDirection, languageNames, languageTag } from '@/lib/i18n'
+import { docsTranslations, uiCopy } from '@/lib/ui-copy'
+import { currentHeadingHash } from '@/lib/docs-anchors'
 
-// The dialog, Orama, and the Chinese tokenizer: ~120 kB gzipped of code that a
-// reader who never searches should not pay for, ahead of the index itself, which
-// the first keystroke fetches. Fumadocs preloads the chunk on hover.
+// Search and its tokenizer are loaded only when the reader needs them.
 const DocsSearchDialog = lazy(() => import('@/components/docs-search'))
 
-/**
- * The MDX for a page is fetched by the browser on demand — the server only
- * hands over the page's `path`. Shared by both language routes so a page
- * already fetched stays cached when you switch languages and back.
- */
-export const docsClientLoader = browserCollections.docs.createClientLoader({
-  component({ toc, frontmatter, default: MDX }) {
+export const docsClientLoader = browserCollections.docs.createClientLoader<{ lang: string; contentLanguage: string }>({
+  component({ toc, frontmatter, default: MDX }, { lang, contentLanguage }) {
+    const isFallback = lang !== contentLanguage
     return (
       <DocsPage toc={toc} className="docs-page" tableOfContent={{ single: true }}>
-        <DocsTitle>{frontmatter.title}</DocsTitle>
-        <DocsDescription className="docs-description">{frontmatter.description}</DocsDescription>
-        <DocsBody className="docs-body">
+        {isFallback && <p className="docs-fallback" role="note">{uiCopy(lang).fallback.replace('{language}', languageNames[lang as keyof typeof languageNames])}</p>}
+        <DocsTitle lang={languageTag(contentLanguage)} dir={languageDirection(contentLanguage)}>{frontmatter.title}</DocsTitle>
+        <DocsDescription lang={languageTag(contentLanguage)} dir={languageDirection(contentLanguage)} className="docs-description">{frontmatter.description}</DocsDescription>
+        <DocsBody lang={languageTag(contentLanguage)} dir={languageDirection(contentLanguage)} className="docs-body">
           <MDX components={getMDXComponents()} />
         </DocsBody>
       </DocsPage>
@@ -41,39 +32,34 @@ export const docsClientLoader = browserCollections.docs.createClientLoader({
   },
 })
 
-const translations = i18n.translations().extend(uiTranslations()).preset('zh', zhCN())
-
-export function DocsShell({
-  lang,
-  slug,
-  data: serialized,
-}: {
-  lang: string
-  /** The splat after `/docs/`, used to stay on the same page across languages. */
-  slug: string
-  data: DocsPageData
-}) {
+export function DocsShell({ lang, slug, data: serialized }: { lang: string; slug: string; data: DocsPageData }) {
   const data = useFumadocsLoader(serialized)
   const navigate = useNavigate()
+  const hash = useRouterState({ select: (state) => state.location.hash })
 
   return (
     <RootProvider
-      // The site is dark-only, so `<html class="dark">` is set once in the root
-      // route; next-themes would only fight it.
+      dir={languageDirection(lang)}
       theme={{ enabled: false }}
       search={{ SearchDialog: DocsSearchDialog }}
       i18n={{
-        ...i18nProvider(translations, lang),
-        // The default handler assumes every locale is a URL prefix, but the
-        // default Chinese locale is unprefixed here (`hideLocale: 'default-locale'`).
-        onLocaleChange: (next) =>
-          next === DEFAULT_LANGUAGE
-            ? navigate({ to: '/docs/$', params: { _splat: slug } })
-            : navigate({ to: '/$lang/docs/$', params: { lang: next, _splat: slug } }),
+        locale: lang,
+        defaultLanguage: DEFAULT_LANGUAGE,
+        hideLocale: i18n.hideLocale,
+        translations: docsTranslations(lang),
+        locales: i18n.languages.map((locale) => ({ locale, name: languageNames[locale] })),
+        onLocaleChange: (next) => next === DEFAULT_LANGUAGE
+          ? navigate({ to: '/docs/$', params: { _splat: slug }, hash: currentHeadingHash(hash) })
+          : navigate({ to: '/$lang/docs/$', params: { lang: next, _splat: slug }, hash: currentHeadingHash(hash) }),
       }}
     >
-      <DocsLayout {...docsLayoutOptions(lang)} tree={data.pageTree} containerProps={{ className: 'docs-layout' }}>
-        <Suspense>{docsClientLoader.useContent(data.path)}</Suspense>
+      <DocsLayout
+        {...docsLayoutOptions(lang)}
+        tree={data.pageTree}
+        containerProps={{ className: 'docs-layout' }}
+        slots={{ languageSelect: { root: () => <LanguageSelect lang={lang} slug={slug} />, text: () => null } }}
+      >
+        <Suspense>{docsClientLoader.useContent(data.path, { lang, contentLanguage: data.contentLanguage })}</Suspense>
       </DocsLayout>
     </RootProvider>
   )

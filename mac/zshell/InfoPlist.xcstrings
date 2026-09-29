@@ -11,7 +11,8 @@
             "value": "Zshell"
           }
         }
-      }
+      },
+      "shouldTranslate": false
     },
     "CFBundleName": {
       "comment": "Bundle name",
@@ -23,15 +24,52 @@
             "value": "Zshell"
           }
         }
-      }
+      },
+      "shouldTranslate": false
     },
     "NSMicrophoneUsageDescription": {
       "comment": "Privacy prompt shown when a program running in a Zshell terminal requests microphone access.",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يرغب برنامج يعمل داخل Zshell في استخدام الميكروفون."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein in Zshell ausgeführtes Programm möchte dein Mikrofon verwenden."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "A program running within Zshell would like to use your microphone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un programa que se ejecuta en Zshell quiere usar tu micrófono."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un programme exécuté dans Zshell souhaite utiliser votre microphone."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Program yang berjalan di Zshell ingin menggunakan mikrofon Anda."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un programma in esecuzione in Zshell vorrebbe usare il microfono."
           }
         },
         "ja": {
@@ -40,10 +78,58 @@
             "value": "Zshell内で実行中のプログラムがマイクを使用しようとしています。"
           }
         },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zshell에서 실행 중인 프로그램이 마이크를 사용하려고 합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een programma dat in Zshell wordt uitgevoerd, wil je microfoon gebruiken."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um programa em execução no Zshell gostaria de usar seu microfone."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Программа, запущенная в Zshell, запрашивает доступ к микрофону."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "โปรแกรมที่ทำงานใน Zshell ต้องการใช้ไมโครโฟนของคุณ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zshell içinde çalışan bir program mikrofonunuzu kullanmak istiyor."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Một chương trình đang chạy trong Zshell muốn sử dụng micrô của bạn."
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "在 Zshell 中运行的程序请求使用你的麦克风。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Zshell 中執行的程式想要使用你的麥克風。"
           }
         }
       }

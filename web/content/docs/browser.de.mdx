@@ -1,0 +1,41 @@
+---
+title: Browserbereiche
+description: Webseiten neben dem Terminal öffnen, mit nativen Bedienelementen navigieren und Links im Projekt behalten.
+---
+
+Zshell kann in jedem Tab oder geteilten Bereich einen integrierten Browser anzeigen. Das eignet sich für lokale Entwicklungsserver, API-Dokumentation, Issues und andere Webseiten, die Sie neben dem zugehörigen Terminal brauchen.
+
+## Einen Browser öffnen [#opening-a-browser]
+
+- Wählen Sie **Ablage → Neuer Browser-Tab**, um einen leeren Tab zu öffnen.
+- Öffnen Sie die Befehlspalette (<kbd>Cmd</kbd>+<kbd>P</kbd>) und wählen Sie **Neuer Browser-Tab** oder **Neuer Browserbereich**.
+- Klicken Sie im Terminal bei gedrückter Command-Taste mit der rechten Maustaste auf eine erkannte URL und wählen Sie eine dieser beiden Aktionen. Die Adresse muss nicht zuerst kopiert werden.
+
+Browser-Tabs gehören zum ausgewählten Projekt und sind Teil seiner normalen Tab- und Bereichsanordnung. Ist noch kein Projekt geöffnet, legt Zshell eines für den Browser an.
+
+## Adresse und Suche [#address-and-search]
+
+Das obere Eingabefeld akzeptiert vollständige URLs, Hostnamen und Suchbegriffe:
+
+- `zshell.sh` wird zu einer HTTPS-Adresse.
+- `localhost`, lokale Hostnamen, IP-Adressen und explizite Ports verwenden HTTP.
+- Andere Eingaben werden als Google-Suche geöffnet.
+
+<kbd>Cmd</kbd>+<kbd>L</kbd> fokussiert das Feld, <kbd>Cmd</kbd>+<kbd>R</kbd> lädt die Seite neu. Die Werkzeugleiste bietet außerdem Zurück, Vorwärts, Stoppen/Neu laden, Teilen und **Im Standardbrowser öffnen**. Die Vor- und Zurückgesten des Trackpads funktionieren ebenfalls.
+
+| Aktion | Tastenkürzel |
+| --- | --- |
+| Adressleiste fokussieren | <kbd>Cmd</kbd>+<kbd>L</kbd> |
+| Seite neu laden | <kbd>Cmd</kbd>+<kbd>R</kbd> |
+
+## Ziel für Links wählen [#opening-links-where-you-want-them]
+
+Das Kontextmenü eines Webseitenlinks bietet **Link in neuem Tab öffnen** und **Link in neuem Bereich öffnen**. Die neue Seite bleibt im Arbeitsbereich desselben Projekts.
+
+Im Terminal öffnet ein normaler Command-Klick eine erkannte Webadresse im Standardbrowser. Erst Command-Rechtsklick bietet einen Zshell-Tab oder -Bereich an. Für lokale Pfade gibt es entsprechende Aktionen unter [Pfade und URLs](/de/docs/terminal#paths-and-urls).
+
+## Was erhalten bleibt [#what-is-preserved]
+
+Beim Wechsel zwischen Tabs oder Projekten bleiben Verlauf, Scrollposition, Formulare und interner Zustand der Seite erhalten. Beim erneuten Start von Zshell werden aktuelle URL und Anordnung wiederhergestellt, jedoch nicht der vollständige Vor- und Zurückverlauf.
+
+Browserbereiche speichern Cookies, Anmeldungen und andere Websitedaten über Tabs und Neustarts hinweg. Es handelt sich nicht um einen privaten Browsermodus.

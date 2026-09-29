@@ -11,7 +11,9 @@ Zshell 大多数持久化设置都在一个文件里：
 
 设置窗口（<kbd>Cmd</kbd>+<kbd>,</kbd>）写的也是这个文件。少数由 macOS 管理的设置——语言和自动更新——存在别处，列在本页末尾。
 
-## 这个文件的行为
+<span id="这个文件的行为" data-canonical-heading="how-the-file-behaves" />
+
+## 这个文件的行为 [#how-the-file-behaves]
 
 手动改之前值得先知道：
 
@@ -21,15 +23,19 @@ Zshell 大多数持久化设置都在一个文件里：
 - **解析器有意保持精简。** 支持扁平键、点号键、`[table]` 表头、`#` 注释，以及字符串、数字和布尔值；不支持数组、内联表和多行字符串。
 - **错误值会安全回退。** 超出范围的字号、未知后端或拼错的主题名不会让 Zshell 启动失败。
 
-## 外观
+<span id="外观" data-canonical-heading="appearance" />
 
-### `theme`
+## 外观 [#appearance]
+
+### `theme` [#theme]
 
 `"system"` · `"light"` · `"dark"`——默认 `"system"`
 
 选择应用外观。`"system"` 跟随 macOS，另外两个把 Zshell 固定为浅色或深色。
 
-### `theme-dark` 和 `theme-light`
+<span id="theme-dark-和-theme-light" data-canonical-heading="theme-dark-and-theme-light" />
+
+### `theme-dark` 和 `theme-light` [#theme-dark-and-theme-light]
 
 字符串——默认 `"Default Dark"` 和 `"Default Light"`
 
@@ -37,7 +43,7 @@ Zshell 大多数持久化设置都在一个文件里：
 
 设置窗口列出两个终端后端共同支持的精选主题。手写名称必须与列表里的显示名完全一致，包括大小写；否则会回退到对应的默认主题。
 
-### `toolbar.visibility`
+### `toolbar.visibility` [#toolbarvisibility]
 
 `"hide"` · `"auto"` · `"always"`——默认 `"hide"`
 
@@ -47,11 +53,13 @@ Zshell 大多数持久化设置都在一个文件里：
 - `"auto"` 只在项目目录是 Git 仓库时显示。
 - `"always"` 在每个项目里显示；不是仓库时会显示 **No Git Repository**。
 
-它具体展示什么，见 [Git 工具栏](/docs/git#git-工具栏)。
+它具体展示什么，见 [Git 工具栏](/docs/git#the-git-toolbar)。
 
-## 文字
+<span id="文字" data-canonical-heading="text" />
 
-### `font-family`
+## 文字 [#text]
+
+### `font-family` [#font-family]
 
 字符串——默认 `""`，表示内置的 JetBrains Mono
 
@@ -61,38 +69,38 @@ Zshell 大多数持久化设置都在一个文件里：
 终端的后备顺序是：拉丁字族、下面可选的 CJK 后备字族、内置 Symbols Nerd Font，最后是
 后端的系统后备字体。编辑器和 diff 继续使用 macOS/WebKit 的正常后备机制。
 
-### `terminal.font-fallback-family`
+### `terminal.font-fallback-family` [#terminalfont-fallback-family]
 
 字符串——默认 `""`，表示交给后端和系统选择
 
 在终端的有序后备链中加入一个已安装的 CJK 字族。设置列表会显示包含代表性中文、日文或
 韩文字形的字族；它们不必严格等宽，因为只负责拉丁主字体缺少的字形。
 
-### `font-size`
+### `font-size` [#font-size]
 
 数字，8–32——默认 `13`
 
 终端、编辑器和 diff 共用的字号，单位是磅。这是唯一一个即使等于默认值，Zshell 也会写进文件的键。
 
-### `interface.scale`
+### `interface.scale` [#interfacescale]
 
 数字，0.9–1.5——默认 `1`
 
 缩放标签页、图标、按钮、侧边栏和应用界面的其他部分。终端、编辑器和 diff 内容仍使用上方单独配置的字号。
 
-### `sidebar.font-size`
+### `sidebar.font-size` [#sidebarfont-size]
 
 数字，9–24——默认 `14`
 
 左右侧边栏的基础字号。调整后，分区标题、列表、元数据和控件仍会保持原本的大小层级。
 
-### `terminal.font-thicken`
+### `terminal.font-thicken` [#terminalfont-thicken]
 
 布尔值——默认 `false`
 
 用稍粗的笔画渲染终端文字，效果类似经典 macOS 字体平滑。两个终端后端都支持，设置窗口里的预览也会反映效果。旧的 `font-thicken` 仍能读取，但保存后会改写成现在的点号键。
 
-### `terminal.font-thicken-strength`
+### `terminal.font-thicken-strength` [#terminalfont-thicken-strength]
 
 整数，0–255——默认 `255`
 
@@ -100,7 +108,7 @@ Zshell 大多数持久化设置都在一个文件里：
 使用其原生 macOS 强度；Alacritty 把同一范围映射到 CoreText 描边，所以方向和端点一致，
 但光栅化像素可能不同。
 
-### `terminal.line-height`
+### `terminal.line-height` [#terminalline-height]
 
 数字，0.75–2——默认 `1`
 
@@ -111,16 +119,18 @@ Zshell 不提供基础字重控件。Ghostty 使用具名字形样式或可变�
 trait 解析 regular 与 bold 字体；单个共享数值无法在静态字体和可变字体之间一致地保留
 regular/bold 区分及后备字体字重。
 
-### `editor.wrap-lines`
+### `editor.wrap-lines` [#editorwrap-lines]
 
 布尔值——默认 `true`
 
 在[文件编辑器](/docs/files)里按窗格宽度软折行。关闭时长行横向滚动；它不会改变终端或 diff
 里的折行行为。
 
-## 终端
+<span id="终端" data-canonical-heading="terminal" />
 
-### `terminal.startup-program` / `terminal.startup-arguments`
+## 终端 [#terminal]
+
+### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
 
 字符串——默认未设置
 
@@ -132,45 +142,47 @@ regular/bold 区分及后备字体字重。
 包括含空格和空字符串的参数，但不会展开变量、通配符或命令替换。引号不完整时也会回退到
 登录 Shell。Zshell CLI 为单个终端显式传入的 argv 仍然优先。
 
-### `terminal.backend`
+### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"`——默认 `"libghostty"`
 
 选择之后新建终端使用的模拟器；已经打开的窗格继续使用启动时的后端。两者都是原生 GPU 加速，都支持图片渲染并共用 Zshell 主题；Alacritty 通常占用更少内存。
 
-环境变量与兼容约定见[终端后端](/docs/terminal#终端后端)。
+环境变量与兼容约定见[终端后端](/docs/terminal#terminal-backends)。
 
-### `terminal.macos-option-as-alt`
+### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 布尔值——默认 `false`
 
 打开后，Option 组合键会作为 Alt/Meta 快捷键发送给终端程序。默认关闭，让 Option 继续交给当前 macOS 输入源，因此 Polish Pro 之类的键盘布局仍能输入组合字符。
 
-### `terminal.bell`
+### `terminal.bell` [#terminalbell]
 
 布尔值——默认 `true`
 
 控制终端程序触发铃声时的提示音和 macOS 视觉提醒。关闭后，Zshell 不会播放提示音、发送终端铃声通知或请求 Dock 提醒；辅助技术仍会收到铃声的语义公告。两个终端后端都遵循此设置。
 
-### `terminal.vim-command-hints`
+### `terminal.vim-command-hints` [#terminalvim-command-hints]
 
 布尔值，默认 `false`。
 
 在右侧 **信息** 栏的会话信息下方显示按模式排序的 Vim / Neovim 常用命令。
 立即作用于两种终端后端，也支持识别 SSH 中的编辑器。
-检测条件见 [Vim 命令提示](/zh/docs/terminal#vim-命令提示)。
+检测条件见 [Vim 命令提示](/docs/terminal#vim-command-hints)。
 
-### `terminal.restore-history`
+### `terminal.restore-history` [#terminalrestore-history]
 
 布尔值——默认 `false`
 
 重启后，在全新 shell 上方恢复每个终端之前的滚动历史。恢复的是静态文本，不是仍在运行的进程。
 
-恢复的滚动历史会保存在磁盘上，所以终端里显示过的密钥也可能包含在内。这个设置默认关闭。[项目、标签页和窗格布局](/docs/projects#重启后还剩下什么)无论如何都会恢复。
+恢复的滚动历史会保存在磁盘上，所以终端里显示过的密钥也可能包含在内。这个设置默认关闭。[项目、标签页和窗格布局](/docs/projects#what-survives-a-relaunch)无论如何都会恢复。
 
-## 自动化
+<span id="自动化" data-canonical-heading="automation" />
 
-### `ai.enabled`
+## 自动化 [#automation]
+
+### `ai.enabled` [#aienabled]
 
 布尔值——默认 `true`
 
@@ -178,7 +190,9 @@ regular/bold 区分及后备字体字重。
 
 具体怎么使用，见[与 AI Agent 协作](/docs/automation)。
 
-## 其他配置项
+<span id="其他配置项" data-canonical-heading="additional-settings" />
+
+## 其他配置项 [#additional-settings]
 
 | 配置键 | 默认值 | 可选值 / 范围 | 作用 |
 | --- | --- | --- | --- |
@@ -199,7 +213,9 @@ regular/bold 区分及后备字体字重。
 | `panes.show-focus-ring` | `true` | 布尔值 | 显示当前窗格焦点边框 |
 | `panes.focus-ring-opacity` | `0.85` | 0.05–1 | 焦点边框不透明度 |
 
-## 备份与迁移
+<span id="备份与迁移" data-canonical-heading="backup-and-migration" />
+
+## 备份与迁移 [#backup-and-migration]
 
 通过 **Zshell → Export Settings…** 导出 TOML 文件，使用 **Import Settings…** 导入。
 导入前会要求确认替换，并尝试将当前配置备份为同目录的 `config.toml.bak`。
@@ -210,7 +226,9 @@ regular/bold 区分及后备字体字重。
 AI 开关只在导入文件明确包含 `ai.enabled` 时更新，导入后请检查。
 项目和标签页的环境变量属于会话数据，不包含在此配置文件中。
 
-## 一份完整的例子
+<span id="一份完整的例子" data-canonical-heading="a-complete-example" />
+
+## 一份完整的例子 [#a-complete-example]
 
 ```toml title="~/.config/zshell/config.toml"
 theme = "dark"
@@ -237,16 +255,20 @@ ai.enabled = true
 
 每个键都是可选的。删掉某个键，就让那项设置恢复默认值。
 
-## 自定义快捷键
+<span id="自定义快捷键" data-canonical-heading="keyboard-shortcuts" />
+
+## 自定义快捷键 [#keyboard-shortcuts]
 
 打开 **设置 → 快捷键**，可以为核心命令录制新的组合键。若与其他命令冲突，
 Zshell 会拒绝此次修改并显示占用它的命令。点击 **恢复默认快捷键**可以清除全部自定义项。
 [快捷键文档](/docs/shortcuts)列出的是出厂默认值。
 
-## 不在这个文件里的设置
+<span id="不在这个文件里的设置" data-canonical-heading="settings-outside-this-file" />
 
-- **语言。** 设置里可选「跟随系统」、English、简体中文和日本語。它使用 macOS 的单应用语言偏好，并且要重启后生效，所以不存进 TOML。
-- **自动更新。** **设置 → 更新**中的自动检查、自动下载和自动安装使用 TOML 之外的应用偏好，重启后会保留选择。开启自动下载后才显示自动安装。见[安装](/docs/installation#更新)。
+## 不在这个文件里的设置 [#settings-outside-this-file]
+
+- **语言。** 设置里可选「跟随系统」及与官网一致的 17 种语言。切换立即生效，终端会话继续运行。它使用 macOS 的单应用语言偏好，所以不存进 TOML。「跟随系统」会按 macOS 的语言优先级选择。
+- **自动更新。** **设置 → 更新**中的自动检查、自动下载和自动安装使用 TOML 之外的应用偏好，重启后会保留选择。开启自动下载后才显示自动安装。见[安装](/docs/installation#updates)。
 - **窗口与布局状态。** 窗口尺寸、侧边栏宽度、当前面板、项目、标签页、窗格、浏览器 URL 和
   diff 控件偏好，都存在 Zshell 的 macOS 偏好设置或会话快照里。
 - **后端自己的配置文件。** Zshell 不读取 `~/.config/ghostty`，也不读取 Alacritty 配置。Zshell 的设置就是两个后端共同支持的配置面。

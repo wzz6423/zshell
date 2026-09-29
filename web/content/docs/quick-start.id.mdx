@@ -1,0 +1,88 @@
+---
+title: Mulai cepat
+description: Dari jendela kosong menjadi proyek siap kerja — hal yang berguna untuk dipelajari lebih dahulu.
+---
+
+<Steps>
+
+<Step>
+
+### Mulai proyek [#start-a-project]
+
+Tekan <kbd>Cmd</kbd>+<kbd>N</kbd>. Proyek baru dengan satu terminal muncul di bilah samping.
+Gunakan `cd` menuju repositori yang diinginkan, seperti di terminal mana pun. Pohon berkas dan panel Git mengikuti Anda dan menetapkan akar repositori sebagai dasarnya.
+
+Ingin mulai dari folder? Klik kanan folder di Finder dan pilih **Layanan → Proyek Zshell Baru di Sini (Services → New Zshell Project Here)**.
+
+Punya beberapa repositori? Tambahkan semuanya. <kbd>Cmd</kbd>+<kbd>1</kbd> hingga <kbd>Cmd</kbd>+<kbd>9</kbd> langsung berpindah ke proyek, dan setiap proyek menyimpan tab serta tata letaknya sendiri.
+
+</Step>
+
+<Step>
+
+### Tambahkan sesi [#add-sessions]
+
+<kbd>Cmd</kbd>+<kbd>T</kbd> membuka terminal lain dalam proyek yang sama: tab baru dengan direktori kerja dan riwayat gulirnya sendiri.
+Satu untuk server pengembangan, satu untuk pengujian, dan satu untuk mengetik perintah.
+
+<kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> berpindah tab secara langsung;
+<kbd>Ctrl</kbd>+<kbd>Tab</kbd> membuka pengalih berdasarkan urutan penggunaan terbaru.
+
+</Step>
+
+<Step>
+
+### Bagi tab [#split-a-tab]
+
+<kbd>Cmd</kbd>+<kbd>D</kbd> membagi panel aktif ke kanan, sedangkan <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> membaginya ke bawah.
+Berpindahlah dengan <kbd>Opt</kbd>+<kbd>Cmd</kbd>+tombol panah. Tekan <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> untuk memperbesar satu panel hingga memenuhi tab saat membaca teks panjang.
+
+</Step>
+
+<Step>
+
+### Buka panel samping [#open-the-side-panels]
+
+Bilah samping kanan memuat panel berikut, masing-masing dengan pintasan sendiri:
+
+| Panel | Pintasan | Kegunaan |
+| --- | --- | --- |
+| Git | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> | Staging, meninjau perbedaan, commit, push |
+| Berkas | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | Menjelajahi pohon, membuka dan menyunting berkas |
+| Info | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> | Proses dan port yang mendengarkan |
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> menyembunyikan seluruh bilah kanan;
+<kbd>Cmd</kbd>+<kbd>B</kbd> menyembunyikan bilah proyek di kiri.
+
+</Step>
+
+<Step>
+
+### Ingat satu pintasan: <kbd>Cmd</kbd>+<kbd>P</kbd> [#learn-one-shortcut-cmdp]
+
+Palet perintah mencari semua proyek, sesi terbuka, dan perintah Zshell.
+Jika Anda lupa bagian lain halaman ini, ingat pintasan ini: setiap perintah menampilkan pintasannya sendiri di sampingnya.
+
+</Step>
+
+</Steps>
+
+## Yang dipulihkan setelah keluar [#what-comes-back-after-you-quit]
+
+Keluar dan buka lagi: proyek, tab, serta tata letak panel kembali seperti sebelumnya.
+Setiap terminal memulai **shell baru** di direktori lamanya; tidak ada yang diam-diam tetap berjalan di latar belakang.
+
+Riwayat gulir bersifat opsional. Aktifkan [`terminal.restore-history`](/id/docs/configuration#terminalrestore-history) agar terminal yang dibuka kembali menampilkan keluaran sebelumnya di atas pembatas `Session Contents Restored`, dengan shell baru berjalan di bawahnya.
+
+<Callout type="info">
+Teks yang dipulihkan hanyalah teks: rekaman kejadian sebelumnya, bukan sesi aktif. Menggulirnya tidak akan menjalankan ulang apa pun.
+</Callout>
+
+## Berikutnya [#next]
+
+<Cards>
+  <Card title="Proyek dan sesi" href="/id/docs/projects" description="Penamaan, menyematkan direktori, dan data yang dilacak proyek." />
+  <Card title="Panel Git" href="/id/docs/git" description="Staging, perbedaan, commit, dan cabang." />
+  <Card title="Panel browser" href="/id/docs/browser" description="Letakkan server lokal atau dokumentasi di samping terminalnya." />
+  <Card title="Bekerja dengan agen AI" href="/id/docs/automation" description="Minta agen mendelegasikan tugas dan berkoordinasi antarpanel Zshell." />
+</Cards>

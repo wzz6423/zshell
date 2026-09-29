@@ -1,0 +1,158 @@
+---
+title: "Terminal"
+description: "Zshell terminal arka uçları, kabuk ortamı, bağlantılar, bildirimler ve güvenlik özellikleri."
+---
+
+Her terminal bölmesi gerçek giriş kabuğunuzu ve GPU hızlandırmalı iki yerel terminal arka ucundan birini çalıştırır. Bölme odağı, arama, bildirimler, bağlantılar, geçmiş, temalar ve güvenli yapıştırma Zshell tarafından yönetilir; seçtiğiniz emülatörden bağımsız olarak tutarlıdır.
+
+## Terminal arka uçları [#terminal-backends]
+
+**Ayarlar → Terminal → Arka Uç** altında seçin:
+
+| Arka uç | Notlar |
+| --- | --- |
+| **Ghostty** | Varsayılan |
+| **Alacritty** | Genellikle daha az bellek kullanır |
+
+İkisi de GPU hızlandırma, görüntü oluşturma, Zshell’in ortak tema kataloğu, arama, fare raporlama, bildirim ve ilerleme raporlarını destekler. Değişim yalnızca yeni terminallere uygulanır; mevcut bölmeler başladıkları emülatörü korur.
+
+## Kabuğunuz değişmez [#your-shell-unchanged]
+
+Her oturum hesabınızın giriş kabuğunu başlatır; istem, takma adlar, işlevler ve dotfile’lar diğer terminallerdeki gibi yüklenir. Zshell yetenek ve kimlik değişkenleri ekler:
+
+| Değişken | Değer |
+| --- | --- |
+| `TERM_PROGRAM` | `ghostty` |
+| `TERM_PROGRAM_VERSION` | Zshell’in uyguladığı Ghostty yetenek sürümü |
+| `ZSHELL_TERM` | Bölmenin gerçek arka ucu: `ghostty` veya `alacritty` |
+
+Görüntü ve bildirim destekleyen CLI’lar yetenek işareti olarak kullandığından iki arka uç da `TERM_PROGRAM` ile Ghostty bildirir. Yalnızca çiziciyi gerçekten ayırmanız gerekiyorsa `ZSHELL_TERM` kullanın.
+
+<Callout type="info">
+Zshell `~/.config/ghostty` veya Alacritty yapılandırmasını okumaz. Yazı tipleri, renkler, giriş davranışı ve arka uç Zshell’in kendi [ayarlarında](/tr/docs/configuration) yapılandırılır.
+</Callout>
+
+## Arama [#search]
+
+| İşlem | Kısayol |
+| --- | --- |
+| Bul | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Sonrakini bul | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+| Öncekini bul | Arama çubuğunda <kbd>Shift</kbd>+<kbd>Return</kbd> |
+| Seçimi aramada kullan | <kbd>Cmd</kbd>+<kbd>E</kbd> |
+| Terminali temizle | <kbd>Cmd</kbd>+<kbd>K</kbd> |
+
+Arama odaktaki terminal veya düzenleyici bölmesinde çalışır; arama alanı klavye odağını tutarken etkin kalır.
+
+## İstem düzenleme [#prompt-editing]
+
+Etkin kabuk istemine tıklayarak giriş imlecini taşıyın ve o konumda yazın. zsh isteminde giriş üzerinde sürükleyerek aralık seçin: yazmak seçimi değiştirir, Backspace veya Delete siler. Çift/üç tıklama yine terminal metnini seçer; tam ekran TUI gibi fare raporlamasını açan programlar kendi fare olaylarını almaya devam eder.
+
+İç içe veya yerine geçen kabuk Zshell’in istem düzenleme desteğini yüklememişse sürükleme kopyalamak için terminal metnini seçer, girişi düzenlemez. Asıl isteme çıkınca giriş seçimi düzenlemesi geri gelir.
+
+Claude Code’un standart giriş kutusu her iki arka uçta da tıklayarak konumlandırmayı ve sürükleyerek düzenlemeyi, sarılmış ve çok satırlı taslaklar dâhil destekler. Yazın/yapıştırın veya Backspace/Delete ile seçimi değiştirin/silin. Vim normal/görsel modu, diyaloglar, ek veya daraltılmış yapıştırma yer tutucuları ve kaydırılmış konuşma metni mevcut terminal seçimi davranışını korur. Fareyi yakalayan uygulamalar kendi girişlerini yönetir.
+
+Zisla sesli girişi terminalin yapıştırma eylemini kullanır. Claude Code’da seçili giriş aralığını da değiştirir; ifadeyi bilerek tekrarlama desteklenir.
+
+## Öndeki uygulamanın kısayolları [#foreground-application-shortcuts]
+
+Terminal uygulamasının kısayolları Zshell ile çakışırsa bölmeye sağ tıklayıp **Zshell Komutlarını Engelle**’yi açın. Bölme klavye odağındayken <kbd>Ctrl</kbd>+<kbd>Return</kbd> dâhil değiştiricili tuşlar öndeki uygulamaya gider. Kopyala, yapıştır ve tümünü seç kullanılabilir kalır.
+
+Ayar yalnızca o bölmeye uygulanır. Yeniden sağ tıklayıp işareti kaldırmak Zshell kısayollarını geri getirir. Uygulama fareyi yakalıyorsa Zshell menüsü için <kbd>Shift</kbd> basılıyken sağ tıklayın.
+
+## Komut kuyruğu [#prompt-queue]
+
+Terminale odaklanıp <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> basın veya komut paletinde **Komut Kuyruğunu Aç/Kapat** seçin. Çubuk terminalin altında açılır. Girdi yazıp <kbd>Return</kbd> veya **Kuyruğa Ekle** kullanın; her girdi tek satırdır, yapıştırılan satır sonları boşluğa dönüşür.
+
+Asıl zsh boş kabuk istemine dönünce Zshell sıradaki girdiyi ve Return gönderir. Girdiler kuyruk sırasıyla çalışır. Ajan veya başka program terminali kullanırken ya da istemde taslak varken otomatik gönderim bekler. Zshell’in zsh entegrasyonu gerekir; diğer ve iç içe kabuklar elle gönderimi kullanabilir.
+
+Her girdinin **Şimdi Gönder** ve **Kaldır** düğmesi vardır. **Şimdi Gönder** kabuk istemi beklemeden metni ve Return’ü terminaldeki mevcut programa hemen gönderir. <kbd>Esc</kbd> veya kapatma düğmesi girdileri koruyarak çubuğu gizler. Her terminalin kuyruğu ayrıdır; oturumu kapatmak veya Zshell’den çıkmak kuyruğu siler.
+
+## Yollar ve URL’ler [#paths-and-urls]
+
+Zshell terminal programlarının yazdırdığı web URL’lerini ve mevcut yerel yolları tanır. Yol mutlak, `~/`, `./`, `../` göreli veya bölmenin anlık çalışma dizinine göreli olabilir. `:42` veya `:42:7` gibi tanı son ekleri dosyanın bulunmasını engellemez.
+
+- Yerel yola **Command-tıklama** Finder’da gösterir; URL’ye yapmak varsayılan tarayıcıda açar.
+- Yola **Command-sağ tıklama**, **Yeni Dosya Sekmesi** / **Yeni Dosya Bölmesi**; URL’ye yapmak **Yeni Tarayıcı Sekmesi** / **Yeni Tarayıcı Bölmesi** sunar.
+- Fare raporlamasını açan tam ekran programlar değiştiricisiz sağ tıklamayı alır. Zshell terminal/bölme menüsü için **Shift** basılıyken sağ tıklayın.
+
+Böylece derleyici çıktısından ve ajan konuşmasından aynı projeye doğrudan dönersiniz. Tarayıcı davranışı [Tarayıcı bölmeleri](/tr/docs/browser) bölümündedir.
+
+## Bildirimler [#notifications]
+
+Zshell Bildirim Merkezi’ne iki terminal olayı iletir:
+
+- odakta olmayan oturumun zili;
+- uzun derleme veya kodlama ajanı gibi programdan gelen `OSC 777;notify` isteği.
+
+Bildirimler sistem sesi çalabilir. Tıklamak Zshell’i etkinleştirir ve bildirimi gönderen tam oturuma gider. macOS izni Zshell açılırken değil, terminal ilk kez bildirim istediğinde sorar.
+
+### Komut tamamlanması [#command-completion]
+
+Komut bitiş bildirimi için **Ayarlar → Terminal → Komut Bildirimleri**’ni açın:
+
+- **Uzun süren komutlar**: 5, 10, 30 veya 60 saniye seçin. En az bu süre çalışan komut bitince bildirim üretir. Varsayılan **Kapalı**.
+- **Başarısız komutlar**: süreden bağımsız sıfır dışı çıkış durumunda bildirir. Varsayılan kapalıdır, bağımsız açılabilir.
+
+İki arka uçta da değişiklikten sonra oluşturulan zsh terminallerine uygulanır. Asıl kabuğun komut tamamlanma olayını kullanır; iç içe kabuk veya etkileşimli program içindeki komutlar bu entegrasyonla ayrı bitiş bildirmez.
+
+Aynı ayarlar `~/.config/zshell/config.toml` içine kaydedilebilir:
+
+```toml
+terminal.notify-finish-seconds = 30
+terminal.notify-on-error = true
+```
+
+Süreye bağlı bildirimi kapatmak için `terminal.notify-finish-seconds` değerini `0` yapın. Bildirim teslimi macOS bildirim ayarlarınıza uyar.
+
+## İlerleme raporları [#progress-reports]
+
+`OSC 9;4` ilerlemesi gönderen programlar terminal üstünde normal, duraklatılmış ve hata durumları ayrı olan ince bir çubuk gösterir. Açılacak ayar yoktur; program raporlarsa bölme gösterir.
+
+## Pano, sürükleme ve güvenli yapıştırma [#clipboard-drops-and-paste-safety]
+
+- **Pano okuma onaylanır.** `OSC 52`, SSH üzerinden uzak sunucudan da macOS panosunu isteyebilir. Zshell vermeden önce sorar.
+- **Riskli yapıştırmalar işaretlenir.** Çok satırlı veya komuta benzeyen metin hemen gönderilmez, onay bekler.
+- **Dosyalar kabuk için güvenli yola dönüşür.** Finder’dan kopyalanan/sürüklenen dosyalar tırnaklı mutlak yol olarak eklenir. Pano görüntüleri görüntü destekleyen TUI’lara ulaşmaya devam eder.
+
+## Option tuşu girişi [#option-key-input]
+
+Varsayılan olarak Option etkin macOS giriş kaynağında kalır; Polish Pro gibi düzenler birleşik karakter yazabilir. Terminal programına Option birleşimlerini Meta kısayolları olarak göndermek için Ayarlar’da **Option’ı Alt/Meta Olarak Kullan** açın. [`terminal.macos-option-as-alt`](/tr/docs/configuration#terminalmacos-option-as-alt) bölümüne bakın.
+
+## `zshell` komutu [#the-zshell-command]
+
+Her Zshell terminalinde projeyi tanıyan CLI vardır:
+
+```sh
+zshell                         # geçerli dizinde bir proje oluştur
+zshell vim ~/src/app.swift     # projeyi oluştur ve bu argv değerini ilk terminalde çalıştır
+zshell +themes                 # temalara etkileşimli olarak göz at ve önizle
+zshell +themes --list --dark   # tema seçiciyi açmadan tema adlarını yazdır
+zshell +help                   # tüm komut gruplarını göster
+```
+
+Tema tarayıcısı her seçimi tüm uygulamada önizler; Return kaydeder, Escape eski temayı geri getirir.
+
+## Yazı tipleri [#fonts]
+
+Zshell JetBrains Mono ve Nerd Font simgelerini içerir. Kurulu herhangi bir eş aralıklı aile Latin yazı tipinin yerine kullanılabilir; kurulu CJK ailesi simge ve sistem yedeklerinden önce eklenebilir. [`font-family`](/tr/docs/configuration#font-family), [`terminal.font-fallback-family`](/tr/docs/configuration#terminalfont-fallback-family), [`font-size`](/tr/docs/configuration#font-size), [`terminal.font-thicken`](/tr/docs/configuration#terminalfont-thicken) ve [`terminal.line-height`](/tr/docs/configuration#terminalline-height) ayarlarına bakın.
+
+## Genel Hızlı Terminal [#global-quick-terminal]
+
+Zshell çalışırken <kbd>Cmd</kbd>+<kbd>I</kbd> başka uygulamanın üzerinde bağımsız terminal açar; tekrar basmak kapatır. Proje sekmelerinin dışında geçici kabuğu vardır. Boyut, opaklık ve kısayolu **Ayarlar → Terminal → Hızlı Terminal**’de değiştirin.
+
+- Uygulamalar arasında geçerken açık kalması için pencereyi sabitleyin.
+- Sabitlenmemiş pencere odağı kaybedince veya dışına tıklayınca kapanır.
+- **Zshell Komutlarını Engelle** kapalıysa <kbd>Esc</kbd> veya genel kısayol pencereyi kapatıp kabuğu ve çalışan görevleri sonlandırır. Tekrar açmak yeni oturum başlatır.
+
+Uzun süren hizmetler için proje terminali kullanın. Komut kaydedip çalıştıran [Hızlı Başlat](/tr/docs/quick-launch) ayrı özelliktir.
+
+## Vim komut ipuçları [#vim-command-hints]
+
+**Ayarlar → Terminal → Davranış → Vim komut ipuçları** seçeneğini açıp sağ kenar çubuğunun **Bilgi** sekmesine gidin. Vim, Vi veya Neovim etkinken oturum bilgisinin altında **VIM KOMUTLARI** görünür. Varsayılan kapalıdır; iki arka uçtaki mevcut terminallere hemen uygulanır.
+
+Yaygın komutların tam listesi hep erişilebilirdir; yalnızca öncelik değişir. Normal modda `:w`, `:q`, `yy`, `p`/`P`; Görsel Blok’ta `I`/`A`, blok değişiklikleri ve köşe hareketleri başa gelir. Ekleme, Değiştirme, Görsel, Görsel Satır, Seçim, komut satırı ve arama modlarının kendi sıralaması vardır. Her kayıt geçerli modları belirtir. Tuş, açıklama veya mod adıyla arayın; açıklama ve arama arayüzü uygulamanın 17 dilini izler. Sorguyu temizlemek tam listeyi geri getirir. İpuçları başvuru içindir, düzenleyiciye giriş göndermez.
+
+Yerel düzenleyici öndeki çalıştırılabilir dosyadan tanınır. SSH, Mosh veya terminal çoklayıcısında uzak eklenti kurulmadan görünür Vim mod/durum satırı ve ekran düzeni kullanılır. Vim `showmode` veya tanınabilir durum satırını açık tutun. Mod etiketlerini gizleyen/değiştiren ayarlar Normal ipuçlarına düşebilir veya uzak algılamayı engelleyebilir; özel eşlemeler yorumlanmaz. Yalnızca etkin Bilgi paneli örneklenir; öndeki program değişince veya düzenleyici tanınamaz olunca ipuçları kaybolur.
+
+Yapılandırmada `terminal.vim-command-hints = true` ile de açabilirsiniz.

@@ -1,0 +1,62 @@
+---
+title: Arquivos e editor
+description: Encontre arquivos entre projetos, pesquise seu conteúdo, edite código e visualize Markdown ao lado do terminal.
+---
+
+Pressione <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> para abrir a árvore de arquivos. Assim como o painel Git, ela usa o [diretório do projeto](/pt-BR/docs/projects#the-project-directory) como raiz, sem mudar toda vez que você executa `cd`.
+
+## A árvore [#the-tree]
+
+Clique em um arquivo para abri-lo no painel em foco. Clique com o botão direito para as demais ações:
+
+| Item | Função |
+| --- | --- |
+| **Abrir** / **Abrir ao Lado** | Neste painel ou em uma nova divisão |
+| **Abrir no Aplicativo Padrão** | Usar o aplicativo associado pelo macOS |
+| **Mostrar no Finder** | |
+| **Copiar Caminho** | Caminho absoluto |
+| **cd Aqui** | Executar `cd <folder>` no terminal em foco |
+| **Novo Arquivo…** / **Nova Pasta…** | Criar dentro da pasta selecionada |
+| **Renomear** | |
+| **Mover para o Lixo** | Enviar ao Lixo, sem excluir permanentemente |
+
+As linhas usam ícones Material conforme o nome do arquivo. Em um repositório Git, caminhos alterados também exibem cores e indicadores de estado; arquivos ignorados aparecem atenuados. A árvore mostra o mesmo estado do worktree que o painel Git, sem precisar abri-lo.
+
+## Encontrar arquivos e buscar conteúdo [#find-files-and-search-contents]
+
+A paleta de comandos (<kbd>Cmd</kbd>+<kbd>P</kbd>) encontra arquivos por nome ou caminho entre os projetos locais abertos na janela atual, junto com comandos e sessões abertas. Selecionar um arquivo alterna para seu projeto e o abre lá.
+
+Para buscar texto dentro dos arquivos, clique na lupa do painel Arquivos ou escolha **Buscar Conteúdo de Arquivos** na paleta. Digite o texto e pressione <kbd>Return</kbd> para pesquisar no diretório do projeto local atual. Use **Aa** para diferenciar maiúsculas e minúsculas; abra um resultado para ir à linha correspondente no editor.
+
+A busca usa texto literal, ignora arquivos binários e pastas comuns de dependências e build, e para após 2.000 correspondências. Você pode interromper a busca mantendo os resultados ou fechá-la para voltar à árvore. Projetos SSH não participam dessas buscas locais.
+
+## O editor [#the-editor]
+
+Abrir um arquivo oferece um editor real em um painel, com destaque de sintaxe.
+
+| Ação | Atalho |
+| --- | --- |
+| Salvar | <kbd>Cmd</kbd>+<kbd>S</kbd> |
+| Buscar | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Buscar e substituir | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Buscar próxima ocorrência | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+Linhas longas se ajustam à largura do painel por padrão. Desative [`editor.wrap-lines`](/pt-BR/docs/configuration#editorwrap-lines) para rolar horizontalmente.
+
+Renomear um arquivo na árvore atualiza os painéis que o têm aberto, incluindo arquivos dentro de uma pasta renomeada.
+
+Se outro programa alterar um arquivo aberto, o Zshell atualiza uma prévia sem alterações pendentes quando o aplicativo volta a ficar ativo. Ele nunca substitui um buffer com edições não salvas.
+
+<Callout type="info">
+Este editor serve para a alteração que você já está examinando: corrigir um erro de digitação, ajustar uma constante ou ler um arquivo citado no diff. Não há servidor de linguagem, autocompletar nem refatoração de projeto. É uma escolha deliberada.
+</Callout>
+
+## Prévia de Markdown [#markdown-preview]
+
+Abra um arquivo `.md` para ver sua prévia renderizada no mesmo painel. Clique em **Editar** no canto superior direito para trabalhar no fonte e em **Prévia** para ver o resultado. O Zshell lembra seu modo preferido para outros arquivos Markdown e para a próxima inicialização.
+
+Trocar de modo mantém as edições e o histórico de desfazer. Salve com <kbd>Cmd</kbd>+<kbd>S</kbd>, como sempre. Arquivos Markdown com outras extensões abrem como código-fonte.
+
+## Diffs [#diffs]
+
+Um diff aberto pelo [painel Git](/pt-BR/docs/git) é apenas outro painel: diff, arquivo e terminal podem ficar lado a lado na mesma aba. Ele usa a fonte do terminal, e um conjunto de alterações com mil arquivos abre tão rápido quanto uma alteração de uma linha. Diffs atuais e não preparados do worktree também permitem trocar de Revisão para Edição; diffs preparados e históricos continuam somente leitura. Consulte [Ler diffs](/pt-BR/docs/git#reading-diffs).

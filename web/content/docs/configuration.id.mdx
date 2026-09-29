@@ -1,0 +1,229 @@
+---
+title: Konfigurasi
+description: Semua opsi Zshell yang tersimpan, fungsinya, dan lokasi penyimpanannya.
+---
+
+Sebagian besar pengaturan Zshell yang tersimpan berada dalam satu berkas:
+
+```
+~/.config/zshell/config.toml
+```
+
+Jendela Pengaturan (<kbd>Cmd</kbd>+<kbd>,</kbd>) menulis berkas yang sama. Beberapa pengaturan milik macOS, yaitu bahasa dan pembaruan otomatis, disimpan di tempat lain dan dijelaskan di akhir halaman.
+
+## Perilaku berkas [#how-the-file-behaves]
+
+Sebelum menyunting secara manual, perhatikan:
+
+- **Dibaca saat aplikasi dimulai.** Menyunting berkas ketika Zshell berjalan tidak mengubah perilaku sampai aplikasi dibuka kembali. Perubahan dari Pengaturan berlaku segera, kecuali kontrolnya menyatakan lain.
+- **Zshell menulis ulang berkas saat pengaturan yang disimpan di dalamnya berubah.** Berkas dibuat ulang dari awal, sehingga komentar dan kunci yang tidak dikenali akan hilang ketika kontrol tersebut digunakan lagi. Pilih satu cara menyunting, atau simpan salinan utama di dotfiles Anda.
+- **Hanya nilai nonbawaan yang ditulis, dengan satu pengecualian.** `font-size` selalu ada. Menghapus kunci lain memulihkan nilai bawaannya.
+- **Parser sengaja sederhana.** Parser mendukung kunci datar, kunci bertitik, judul `[table]`, komentar `#`, serta nilai string/angka/boolean. Array, tabel sebaris, dan string multibaris tidak didukung.
+- **Nilai salah menggunakan cadangan yang aman.** Ukuran di luar rentang, backend tidak dikenal, atau salah eja tema tidak menghalangi Zshell untuk dibuka.
+
+## Tampilan [#appearance]
+
+### `theme` [#theme]
+
+`"system"` · `"light"` · `"dark"` — bawaan `"system"`
+
+Memilih tampilan aplikasi. `"system"` mengikuti macOS; dua pilihan lainnya menetapkan satu tampilan untuk Zshell.
+
+### `theme-dark` dan `theme-light` [#theme-dark-and-theme-light]
+
+String — bawaan `"Default Dark"` dan `"Default Light"`
+
+Tema warna untuk setiap tampilan. Tema mewarnai panel terminal, bingkai jendela, bilah samping, editor, dan tampilan perbedaan sekaligus. Tema bawaan mempertahankan bilah samping tembus pandang; tema lain mewarnainya sesuai palet.
+
+Pengaturan menampilkan katalog tema pilihan yang digunakan kedua backend. Nama yang ditulis manual harus sama persis dengan nama tampilannya, termasuk huruf besar/kecil, atau Zshell memakai tema bawaan yang sesuai.
+
+### `toolbar.visibility` [#toolbarvisibility]
+
+`"hide"` · `"auto"` · `"always"` — bawaan `"hide"`
+
+Mengontrol bilah alat ringkas di bawah tab aktif:
+
+- `"hide"` menyembunyikannya dari jendela.
+- `"auto"` menampilkannya hanya jika direktori proyek adalah repositori Git.
+- `"always"` mempertahankan akses Git di setiap proyek, termasuk status **Tidak Ada Repositori Git**.
+
+Lihat [Bilah alat Git](/id/docs/git#the-git-toolbar) untuk isinya.
+
+## Teks [#text]
+
+### `font-family` [#font-family]
+
+String — bawaan `""`, yang berarti JetBrains Mono bawaan
+
+Terminal, editor, dan penampil perbedaan memakai keluarga huruf Latin yang sama. Berikan nama keluarga, bukan gaya: `"IBM Plex Mono"`, bukan `"IBM Plex Mono Regular"`. Keluarga yang tidak dikenal atau tidak monospace digantikan font bawaan.
+
+Urutan cadangan terminal adalah keluarga Latin, keluarga CJK opsional di bawah, Symbols Nerd Font bawaan, lalu cadangan sistem backend. Editor dan penampil perbedaan tetap memakai cadangan macOS/WebKit biasanya.
+
+### `terminal.font-fallback-family` [#terminalfont-fallback-family]
+
+String — bawaan `""`, berarti cadangan backend/sistem
+
+Menambahkan satu keluarga CJK terpasang ke urutan cadangan terminal. Pemilih Pengaturan memuat keluarga dengan contoh glif Mandarin, Jepang, atau Korea. Keluarga itu tidak wajib sepenuhnya monospace karena hanya memasok glif yang tidak ada dalam font Latin utama.
+
+### `font-size` [#font-size]
+
+Angka, 8–32 — bawaan `13`
+
+Ukuran font bersama untuk terminal, editor, dan perbedaan dalam poin. Ini satu-satunya kunci yang ditulis Zshell meskipun bernilai bawaan.
+
+### `interface.scale` [#interfacescale]
+
+Angka, 0.9–1.5 — bawaan `1`
+
+Mengubah skala tab, ikon, tombol, bilah samping, dan antarmuka lain. Konten terminal, editor, dan perbedaan mempertahankan ukuran font terpisah di atas.
+
+### `sidebar.font-size` [#sidebarfont-size]
+
+Angka, 9–24 — bawaan `14`
+
+Ukuran teks dasar kedua bilah samping. Judul bagian, baris, metadata, dan kontrol mempertahankan hierarki relatif ketika ukuran dasar berubah.
+
+### `terminal.font-thicken` [#terminalfont-thicken]
+
+Boolean — bawaan `false`
+
+Merender glif terminal dengan goresan sedikit lebih tebal, mirip penghalusan font macOS klasik. Kedua backend mendukungnya, dan pratinjau Pengaturan memperlihatkan hasilnya. Konfigurasi lama `font-thicken` masih dibaca, lalu ditulis ulang memakai kunci bertitik yang baru.
+
+### `terminal.font-thicken-strength` [#terminalfont-thicken-strength]
+
+Bilangan bulat, 0–255 — bawaan `255`
+
+Mengatur penebalan ketika `terminal.font-thicken` bernilai true. Nol adalah penebalan paling ringan, bukan mati. Ghostty menggunakan kekuatan asli macOS; Alacritty memetakan rentang yang sama ke goresan CoreText. Arah dan batasnya sama, tetapi piksel hasil rasterisasi bisa berbeda.
+
+### `terminal.line-height` [#terminalline-height]
+
+Angka, 0.75–2 — bawaan `1`
+
+Mengalikan tinggi sel alami masing-masing backend, sambil menjaga glif terpusat vertikal. Hanya baris terminal yang berubah, bukan jarak editor atau perbedaan.
+
+Zshell tidak menyediakan kontrol bobot font dasar. Ghostty memilih gaya bernama atau sumbu variasi, sedangkan Alacritty/CoreText menentukan wajah reguler dan tebal berdasarkan atribut. Satu nilai bersama tidak akan menjaga perbedaan reguler/tebal dan bobot cadangan secara konsisten di font statis maupun variabel.
+
+### `editor.wrap-lines` [#editorwrap-lines]
+
+Boolean — bawaan `true`
+
+Membungkus baris panjang sesuai lebar panel dalam [editor berkas](/id/docs/files). Jika false, baris panjang digulir horizontal. Pembungkusan terminal dan perbedaan tidak berubah.
+
+## Terminal [#terminal]
+
+### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
+
+String — bawaan tidak diatur
+
+Memilih executable dan vektor argumen untuk terminal yang dibuat setelah perubahan. Tanpa `terminal.startup-program`, Zshell tetap memakai shell login akun dengan `-l`. Program harus berupa jalur absolut yang dapat dieksekusi; jalur hilang atau tidak executable akan kembali ke shell login, bukan membuka panel yang tidak berfungsi.
+
+`terminal.startup-arguments` dipecah menjadi argumen tanpa menjalankan shell. Tanda kutip dan garis miring terbalik mempertahankan batas, termasuk spasi dan argumen kosong, tetapi variabel, glob, dan substitusi perintah tidak diperluas. Kutipan tidak valid juga kembali ke shell login. Argv eksplisit dari CLI Zshell tetap didahulukan untuk terminal itu.
+
+### `terminal.backend` [#terminalbackend]
+
+`"libghostty"` · `"alacritty"` — bawaan `"libghostty"`
+
+Memilih emulator untuk terminal yang dibuat setelah perubahan. Panel yang sudah ada mempertahankan backend awalnya. Keduanya native, dipercepat GPU, mendukung gambar, dan menggunakan tema Zshell yang sama; Alacritty biasanya memakai memori lebih sedikit.
+
+Lihat [Backend terminal](/id/docs/terminal#terminal-backends) untuk variabel lingkungan dan ketentuan kompatibilitas.
+
+### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
+
+Boolean — bawaan `false`
+
+Jika true, kombinasi Option dikirim ke program terminal sebagai pintasan Alt/Meta. Bawaan membiarkan Option pada sumber input macOS aktif agar tata letak seperti Polish Pro dapat mengetik karakter gabungan.
+
+### `terminal.bell` [#terminalbell]
+
+Boolean — bawaan `true`
+
+Mengontrol suara peringatan dan perhatian visual macOS saat program terminal membunyikan bel. Jika false, Zshell tidak memutar suara, mengirim notifikasi bel terminal, atau meminta perhatian di Dock. Teknologi aksesibilitas tetap menerima bel sebagai pengumuman semantik. Kedua backend mendukungnya.
+
+### `terminal.vim-command-hints` [#terminalvim-command-hints]
+
+Boolean — bawaan `false`
+
+Menampilkan perintah Vim / Neovim sesuai mode di bawah informasi sesi dalam bilah samping **Info**. Berlaku segera pada kedua backend, termasuk editor melalui SSH yang dapat dikenali. Lihat [Petunjuk perintah Vim](/id/docs/terminal#vim-command-hints) untuk persyaratan deteksi mode.
+
+### `terminal.restore-history` [#terminalrestore-history]
+
+Boolean — bawaan `false`
+
+Memulihkan keluaran sebelumnya di atas shell baru saat aplikasi dibuka kembali. Konten yang dipulihkan adalah teks statis, bukan proses yang masih berjalan.
+
+Riwayat disimpan di disk, sehingga rahasia yang tampil di terminal mungkin ikut tersimpan. Karena itu bawaan pengaturan ini mati. [Proyek, tab, dan tata letak panel](/id/docs/projects#what-survives-a-relaunch) tetap dipulihkan dalam kedua keadaan.
+
+## Otomatisasi [#automation]
+
+### `ai.enabled` [#aienabled]
+
+Boolean — bawaan `true`
+
+Memungkinkan agen pemrograman yang didukung mengoordinasikan panel Zshell di latar belakang melalui permintaan bahasa biasa, serta menampilkan status siklus hidup dari penyedia. Zshell tidak menyimpulkan status dari teks terminal. Sebaiknya gunakan sakelar Pengaturan karena kesalahan ditampilkan langsung dan konfigurasi lama yang berkonflik dibiarkan utuh.
+
+Alur pengguna dijelaskan dalam [Bekerja dengan agen AI](/id/docs/automation).
+
+## Pengaturan tambahan [#additional-settings]
+
+| Kunci | Bawaan | Nilai / rentang | Efek |
+| --- | --- | --- | --- |
+| `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Ikon aplikasi |
+| `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Editor eksternal untuk berkas dan folder |
+| `terminal.theme-only` | `false` | Boolean | Terapkan palet hanya pada terminal |
+| `terminal.cursor-shape` | `"block"` | `"block"` / `"bar"` / `"underline"` | Bentuk kursor terminal |
+| `terminal.cursor-blinking` | `true` | Boolean | Kedipan kursor |
+| `terminal.copy-on-select` | `true` | Boolean | Salin teks terminal yang dipilih |
+| `terminal.shift-enter-newline` | `true` | Boolean | Kirim urutan baris baru yang diperluas lewat Shift+Enter; memerlukan dukungan aplikasi |
+| `terminal.background-opacity` | `1` | 0.2–1 | Opasitas latar terminal |
+| `terminal.background-blur` | `false` | Boolean | Buramkan latar tembus pandang |
+| `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Beri notifikasi saat perintah yang berjalan minimal selama durasi ini selesai di terminal zsh baru; 0 menonaktifkan |
+| `terminal.notify-on-error` | `false` | Boolean | Notifikasi kegagalan perintah di terminal zsh baru |
+| `quick-terminal.size` | `0.75` | 0.35–0.95 | Ukuran Terminal Cepat relatif terhadap layar |
+| `quick-terminal.opacity` | `0.5` | 0.05–1 | Opasitas latar Terminal Cepat |
+| `quick-terminal.shortcut` | `Cmd+I` | Rekam di Pengaturan | Rekam pintasan global di Pengaturan; kode tombol disimpan otomatis |
+| `panes.show-focus-ring` | `true` | Boolean | Tampilkan bingkai fokus di panel aktif |
+| `panes.focus-ring-opacity` | `0.85` | 0.05–1 | Opasitas bingkai fokus |
+
+## Pencadangan dan migrasi [#backup-and-migration]
+
+Gunakan **Zshell → Ekspor Pengaturan…** untuk menyimpan berkas TOML dan **Impor Pengaturan…** untuk memuatnya. Impor meminta konfirmasi penggantian dan mencoba mencadangkan berkas saat ini sebagai `config.toml.bak` di direktori yang sama.
+
+Saat ini pengimpor hanya memulihkan sebagian pengaturan: tema, opsi font utama, kursor, backend terminal, pemulihan riwayat, penyalinan pilihan, Terminal Cepat, dan dukungan AI. Tidak semua pengaturan yang diekspor dapat diimpor kembali. Periksa skala antarmuka, ikon aplikasi, editor eksternal, dan latar terminal setelahnya. Untuk pemindahan konfigurasi lengkap, tutup Zshell, cadangkan dan salin `config.toml`, lalu buka kembali. Sakelar AI berubah hanya jika berkas impor secara eksplisit memuat `ai.enabled`; periksa setelah impor. Variabel lingkungan proyek dan tab adalah data sesi dan tidak termasuk dalam berkas ini.
+
+## Contoh lengkap [#a-complete-example]
+
+```toml title="~/.config/zshell/config.toml"
+theme = "dark"
+theme-dark = "Catppuccin Mocha"
+theme-light = "Catppuccin Latte"
+font-family = "IBM Plex Mono"
+font-size = 14
+interface.scale = 1.25
+sidebar.font-size = 13
+toolbar.visibility = "auto"
+terminal.font-fallback-family = "PingFang SC"
+terminal.font-thicken = true
+terminal.font-thicken-strength = 180
+terminal.line-height = 1.15
+terminal.macos-option-as-alt = false
+terminal.bell = false
+terminal.startup-program = "/opt/homebrew/bin/fish"
+terminal.startup-arguments = "--no-config"
+terminal.backend = "alacritty"
+terminal.restore-history = true
+editor.wrap-lines = true
+ai.enabled = true
+```
+
+Semua kunci opsional. Hapus kunci untuk mengembalikan pengaturannya ke nilai bawaan.
+
+## Pintasan keyboard [#keyboard-shortcuts]
+
+Buka **Pengaturan → Pintasan** untuk merekam pintasan baru bagi perintah inti. Zshell menolak kombinasi yang berkonflik dan menyebutkan perintah yang sudah memakainya. **Pulihkan Pintasan Bawaan** menghapus semua penggantian. [Referensi keyboard](/id/docs/shortcuts) mencantumkan pintasan bawaan.
+
+## Pengaturan di luar berkas ini [#settings-outside-this-file]
+
+- **Bahasa.** Pengaturan menyediakan Bawaan Sistem dan 17 bahasa yang sama dengan situs. Perubahan berlaku langsung sambil sesi terminal tetap berjalan. Pilihan menggunakan preferensi bahasa per aplikasi macOS, sehingga disimpan dalam preferensi Zshell, bukan TOML. Bawaan Sistem mengikuti urutan bahasa macOS.
+- **Pembaruan otomatis.** Sakelar pemeriksaan, unduhan, dan pemasangan otomatis di **Pengaturan → Pembaruan** memakai preferensi aplikasi di luar TOML dan mengingat pilihan antarpeluncuran. Pemasangan hanya ditampilkan selama unduhan otomatis aktif. Lihat [Instalasi](/id/docs/installation#updates).
+- **Status jendela dan tata letak.** Ukuran jendela, lebar bilah samping, panel yang dipilih, proyek, tab, panel konten, URL browser, dan preferensi kontrol perbedaan tersimpan dalam preferensi macOS dan cuplikan sesi Zshell.
+- **Berkas konfigurasi backend.** Zshell tidak membaca `~/.config/ghostty` atau konfigurasi Alacritty. Pengaturan Zshell adalah cara yang didukung untuk keduanya.

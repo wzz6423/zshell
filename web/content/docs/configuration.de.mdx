@@ -1,0 +1,229 @@
+---
+title: Konfiguration
+description: Alle dauerhaften Einstellungen von Zshell, ihre Wirkung und ihr Speicherort.
+---
+
+Die meisten dauerhaften Einstellungen stehen in einer Datei:
+
+```
+~/.config/zshell/config.toml
+```
+
+Das Einstellungsfenster (<kbd>Cmd</kbd>+<kbd>,</kbd>) schreibt dieselbe Datei. Einige von macOS verwaltete Einstellungen, etwa Sprache und automatische Updates, werden anderswo gespeichert. Sie stehen am Ende dieser Seite.
+
+## Verhalten der Datei [#how-the-file-behaves]
+
+Vor dem manuellen Bearbeiten sollten Sie Folgendes wissen:
+
+- **Die Datei wird beim Start gelesen.** Änderungen an der Datei während des Betriebs greifen erst nach einem Neustart. Änderungen im Einstellungsfenster wirken sofort, sofern das Steuerelement nichts anderes angibt.
+- **Zshell schreibt die Datei bei jeder darin gespeicherten Einstellungsänderung neu.** Dabei gehen Kommentare und unbekannte Schlüssel verloren. Bearbeiten Sie sie möglichst auf nur einem Weg oder halten Sie eine maßgebliche Kopie in Ihren Dotfiles vor.
+- **Gespeichert werden nur vom Standard abweichende Werte, mit einer Ausnahme.** `font-size` steht immer in der Datei. Das Entfernen eines anderen Schlüssels stellt seinen Standardwert wieder her.
+- **Der Parser ist bewusst klein.** Er unterstützt einfache und punktgetrennte Schlüssel, `[table]`-Kopfzeilen, `#`-Kommentare sowie Zeichenketten, Zahlen und boolesche Werte. Arrays, Inline-Tabellen und mehrzeilige Zeichenketten werden nicht unterstützt.
+- **Ungültige Werte verwenden sichere Ersatzwerte.** Eine Größe außerhalb des Bereichs, ein unbekanntes Backend oder ein falsch geschriebener Themenname verhindert den Start nicht.
+
+## Erscheinungsbild [#appearance]
+
+### `theme` [#theme]
+
+`"system"` · `"light"` · `"dark"` – Standard: `"system"`
+
+Bestimmt das Erscheinungsbild. `"system"` folgt macOS; die anderen Werte legen Zshell auf hell oder dunkel fest.
+
+### `theme-dark` und `theme-light` [#theme-dark-and-theme-light]
+
+Zeichenkette – Standard: `"Default Dark"` und `"Default Light"`
+
+Das Farbthema für jedes Erscheinungsbild. Ein Thema färbt Terminalbereiche, Fensterrahmen, Seitenleisten, Editor und Diffs gemeinsam ein. Die eingebauten Standardthemen erhalten die durchscheinende Seitenleiste; andere Themen verwenden dort ihre eigene Palette.
+
+Die Einstellungen zeigen den für beide Terminal-Backends gemeinsamen Themenkatalog. Ein manuell eingetragener Name muss einschließlich Groß- und Kleinschreibung genau einem Anzeigenamen entsprechen. Andernfalls verwendet Zshell das jeweilige Standardthema.
+
+### `toolbar.visibility` [#toolbarvisibility]
+
+`"hide"` · `"auto"` · `"always"` – Standard: `"hide"`
+
+Steuert die kompakte Werkzeugleiste unter dem aktiven Tab:
+
+- `"hide"` blendet sie aus.
+- `"auto"` zeigt sie nur, wenn das Projektverzeichnis ein Git-Repository ist.
+- `"always"` lässt den Zugang zum Git-Panel in jedem Projekt sichtbar, einschließlich des Zustands **Kein Git-Repository**.
+
+Ihre Inhalte beschreibt [Die Git-Werkzeugleiste](/de/docs/git#the-git-toolbar).
+
+## Text [#text]
+
+### `font-family` [#font-family]
+
+Zeichenkette – Standard: `""`, die mitgelieferte JetBrains Mono
+
+Terminal, Editor und Diff-Ansicht teilen diese lateinische Schriftfamilie. Geben Sie eine Familie an, etwa `"IBM Plex Mono"`, keinen einzelnen Schnitt wie `"IBM Plex Mono Regular"`. Unbekannte oder nicht dicktengleiche Familien fallen auf den mitgelieferten Standard zurück.
+
+Im Terminal werden zuerst die lateinische Familie, dann die optionale CJK-Ersatzschrift, danach die mitgelieferte Symbols Nerd Font und schließlich die Systemersatzschrift des Backends verwendet. Editor und Diff-Ansicht behalten ihren normalen macOS-/WebKit-Fallback.
+
+### `terminal.font-fallback-family` [#terminalfont-fallback-family]
+
+Zeichenkette – Standard: `""`, der Fallback des Backends oder Systems
+
+Fügt eine installierte CJK-Schriftfamilie zur geordneten Ersatzschriftkette des Terminals hinzu. Die Auswahl enthält Familien mit repräsentativen chinesischen, japanischen oder koreanischen Zeichen. Sie müssen nicht streng dicktengleich sein, da sie nur fehlende Zeichen der primären lateinischen Schrift ergänzen.
+
+### `font-size` [#font-size]
+
+Zahl, 8–32 – Standard: `13`
+
+Gemeinsame Schriftgröße von Terminal, Editor und Diff in Punkten. Dieser Schlüssel wird auch mit seinem Standardwert gespeichert.
+
+### `interface.scale` [#interfacescale]
+
+Zahl, 0.9–1.5 – Standard: `1`
+
+Skaliert Tabs, Symbole, Schaltflächen, Seitenleisten und die übrige Oberfläche. Inhalte von Terminal, Editor und Diff behalten die separat eingestellte Schriftgröße.
+
+### `sidebar.font-size` [#sidebarfont-size]
+
+Zahl, 9–24 – Standard: `14`
+
+Grundschriftgröße beider Seitenleisten. Abschnittsüberschriften, Zeilen, Metadaten und Steuerelemente behalten dabei ihre relative Größenhierarchie.
+
+### `terminal.font-thicken` [#terminalfont-thicken]
+
+Boolescher Wert – Standard: `false`
+
+Zeichnet Terminalzeichen mit etwas kräftigeren Strichen, ähnlich der klassischen macOS-Schriftglättung. Beide Backends berücksichtigen dies; die Vorschau in den Einstellungen zeigt das Ergebnis. Ältere Konfigurationen mit `font-thicken` werden weiterhin gelesen und anschließend mit dem aktuellen punktgetrennten Schlüssel gespeichert.
+
+### `terminal.font-thicken-strength` [#terminalfont-thicken-strength]
+
+Ganzzahl, 0–255 – Standard: `255`
+
+Steuert die Verstärkung bei aktiviertem `terminal.font-thicken`. Null bedeutet die geringste verfügbare Verstärkung, nicht ausgeschaltet. Ghostty verwendet seine native macOS-Stärke, Alacritty bildet denselben Bereich auf einen CoreText-Konturstrich ab. Richtung und Endpunkte stimmen überein, einzelne gerasterte Pixel können sich unterscheiden.
+
+### `terminal.line-height` [#terminalline-height]
+
+Zahl, 0.75–2 – Standard: `1`
+
+Multipliziert die natürliche Zellenhöhe des jeweiligen Terminal-Backends und hält Zeichen vertikal zentriert. Nur Terminalzeilen ändern sich; Abstände in Editor und Diff bleiben erhalten.
+
+Zshell bietet keinen Regler für eine grundlegende Schriftstärke. Ghostty wählt benannte Schnitte oder Variationsachsen, während Alacritty/CoreText normale und fette Schnitte über Schriftmerkmale auflöst. Ein gemeinsamer Wert würde bei statischen und variablen Schriften weder die Unterscheidung normal/fett noch die Ersatzschriftstärke zuverlässig erhalten.
+
+### `editor.wrap-lines` [#editorwrap-lines]
+
+Boolescher Wert – Standard: `true`
+
+Bricht lange Zeilen im [Dateieditor](/de/docs/files) an der Bereichsbreite optisch um. Bei `false` scrollen lange Zeilen horizontal. Der Umbruch in Terminal und Diff wird nicht verändert.
+
+## Terminal [#terminal]
+
+### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
+
+Zeichenketten – standardmäßig nicht gesetzt
+
+Bestimmen Programm und Argumente für danach neu erstellte Terminals. Ohne `terminal.startup-program` startet Zshell weiterhin die Login-Shell des Benutzerkontos mit `-l`. Das Programm muss als absoluter Pfad auf eine ausführbare Datei zeigen. Fehlt sie oder ist sie nicht ausführbar, startet die Login-Shell statt eines funktionslosen Bereichs.
+
+`terminal.startup-arguments` wird ohne Shell-Aufruf in Argumente zerlegt. Anführungszeichen und Backslashes erhalten Argumentgrenzen, einschließlich Leerzeichen und leerer Argumente. Variablen, Globs und Befehlssubstitutionen werden nicht expandiert. Ungültige Anführungszeichen führen ebenfalls zur Login-Shell. Explizit über die Zshell-CLI übergebene argv-Argumente haben für das betreffende Terminal weiterhin Vorrang.
+
+### `terminal.backend` [#terminalbackend]
+
+`"libghostty"` · `"alacritty"` – Standard: `"libghostty"`
+
+Bestimmt den Emulator für danach erstellte Terminals. Bestehende Bereiche behalten ihr bisheriges Backend. Beide sind nativ, GPU-beschleunigt, unterstützen Bilder und verwenden dieselben Zshell-Themen. Alacritty benötigt im Allgemeinen weniger Arbeitsspeicher.
+
+Umgebungsvariablen und Kompatibilitätszusagen stehen unter [Terminal-Backends](/de/docs/terminal#terminal-backends).
+
+### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
+
+Boolescher Wert – Standard: `false`
+
+Bei `true` werden Option-Tastenkombinationen als Alt-/Meta-Kürzel an Terminalprogramme gesendet. Standardmäßig bleibt Option bei der aktiven macOS-Eingabequelle, damit etwa Polish Pro seine zusammengesetzten Zeichen eingeben kann.
+
+### `terminal.bell` [#terminalbell]
+
+Boolescher Wert – Standard: `true`
+
+Steuert Ton und visuelle Aufmerksamkeit unter macOS, wenn ein Terminalprogramm die Glocke auslöst. Bei `false` spielt Zshell keinen Ton, sendet keine Terminalglocken-Mitteilung und fordert keine Aufmerksamkeit im Dock an. Bedienungshilfen erhalten die Glocke weiterhin als semantische Meldung. Beide Backends berücksichtigen diese Einstellung.
+
+### `terminal.vim-command-hints` [#terminalvim-command-hints]
+
+Boolescher Wert – Standard: `false`
+
+Zeigt vom Modus abhängige Vim-/Neovim-Befehle unter den Sitzungsinformationen in der **Info**-Seitenleiste. Die Einstellung wirkt sofort bei beiden Backends, auch für erkennbare Editoren über SSH. Voraussetzungen für die Moduserkennung stehen unter [Vim-Befehlshinweise](/de/docs/terminal#vim-command-hints).
+
+### `terminal.restore-history` [#terminalrestore-history]
+
+Boolescher Wert – Standard: `false`
+
+Stellt nach einem Neustart die bisherige Terminalausgabe über einer neuen Shell wieder her. Sie ist statischer Text, kein weiterlaufender Prozess.
+
+Der Verlauf wird auf dem Datenträger gespeichert und kann im Terminal angezeigte Geheimnisse enthalten. Darum ist die Einstellung standardmäßig ausgeschaltet. [Projekte, Tabs und Bereichsanordnung](/de/docs/projects#what-survives-a-relaunch) werden unabhängig davon wiederhergestellt.
+
+## Automatisierung [#automation]
+
+### `ai.enabled` [#aienabled]
+
+Boolescher Wert – Standard: `true`
+
+Ermöglicht unterstützten Programmieragenten, auf Ihre natürlichsprachliche Bitte Hintergrundbereiche zu koordinieren, und zeigt den vom Anbieter gemeldeten Lebenszyklusstatus an. Zshell leitet den Status nicht aus Terminaltext ab. Ändern Sie dies vorzugsweise im Einstellungsfenster: Dort erscheinen Fehler direkt, und widersprüchliche bestehende Konfigurationen bleiben unangetastet.
+
+Den Ablauf beschreibt [Mit KI-Agenten arbeiten](/de/docs/automation).
+
+## Weitere Einstellungen [#additional-settings]
+
+| Schlüssel | Standard | Werte / Bereich | Wirkung |
+| --- | --- | --- | --- |
+| `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Anwendungssymbol |
+| `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Externer Editor für Dateien und Ordner |
+| `terminal.theme-only` | `false` | Boolescher Wert | Gewählte Palette nur auf das Terminal anwenden |
+| `terminal.cursor-shape` | `"block"` | `"block"` / `"bar"` / `"underline"` | Form des Terminalcursors |
+| `terminal.cursor-blinking` | `true` | Boolescher Wert | Cursor blinken lassen |
+| `terminal.copy-on-select` | `true` | Boolescher Wert | Markierten Terminaltext kopieren |
+| `terminal.shift-enter-newline` | `true` | Boolescher Wert | Erweiterte Zeilenumbruchsequenz mit Shift+Enter senden; erfordert Unterstützung des Programms |
+| `terminal.background-opacity` | `1` | 0.2–1 | Deckkraft des Terminalhintergrunds |
+| `terminal.background-blur` | `false` | Boolescher Wert | Durchscheinende Hintergründe weichzeichnen |
+| `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | In neuen zsh-Terminals nach Abschluss eines mindestens so lange laufenden Befehls benachrichtigen; 0 deaktiviert dies |
+| `terminal.notify-on-error` | `false` | Boolescher Wert | In neuen zsh-Terminals bei fehlgeschlagenen Befehlen benachrichtigen |
+| `quick-terminal.size` | `0.75` | 0.35–0.95 | Größe des Schnellterminals relativ zum Bildschirm |
+| `quick-terminal.opacity` | `0.5` | 0.05–1 | Hintergrunddeckkraft des Schnellterminals |
+| `quick-terminal.shortcut` | `Cmd+I` | In den Einstellungen aufzeichnen | Globales Kürzel aufzeichnen; Tastencodes werden automatisch gespeichert |
+| `panes.show-focus-ring` | `true` | Boolescher Wert | Fokusring um den aktiven Bereich anzeigen |
+| `panes.focus-ring-opacity` | `0.85` | 0.05–1 | Deckkraft des Fokusrings |
+
+## Sicherung und Übertragung [#backup-and-migration]
+
+Mit **Zshell → Einstellungen exportieren…** speichern Sie eine TOML-Datei, mit **Einstellungen importieren…** laden Sie sie. Der Import fragt vor dem Ersetzen nach und versucht, die aktuelle Datei als `config.toml.bak` im selben Verzeichnis zu sichern.
+
+Der Import stellt derzeit eine Teilmenge wieder her: Themen, grundlegende Schriftoptionen, Cursor, Terminal-Backend, Verlaufswiederherstellung, Kopieren bei Auswahl, Schnellterminal und KI-Unterstützung. Nicht jede exportierte Einstellung lässt sich auf diesem Weg zurückspielen. Prüfen Sie danach Oberflächenskalierung, Anwendungssymbol, externen Editor und Terminalhintergrund. Für eine vollständige Übertragung beenden Sie Zshell, sichern und kopieren `config.toml` und starten Zshell erneut. Die KI-Einstellung wird nur geändert, wenn die importierte Datei ausdrücklich `ai.enabled` enthält; prüfen Sie sie nach dem Import. Umgebungsvariablen von Projekten und Tabs sind Sitzungsdaten und gehören nicht zu dieser Datei.
+
+## Ein vollständiges Beispiel [#a-complete-example]
+
+```toml title="~/.config/zshell/config.toml"
+theme = "dark"
+theme-dark = "Catppuccin Mocha"
+theme-light = "Catppuccin Latte"
+font-family = "IBM Plex Mono"
+font-size = 14
+interface.scale = 1.25
+sidebar.font-size = 13
+toolbar.visibility = "auto"
+terminal.font-fallback-family = "PingFang SC"
+terminal.font-thicken = true
+terminal.font-thicken-strength = 180
+terminal.line-height = 1.15
+terminal.macos-option-as-alt = false
+terminal.bell = false
+terminal.startup-program = "/opt/homebrew/bin/fish"
+terminal.startup-arguments = "--no-config"
+terminal.backend = "alacritty"
+terminal.restore-history = true
+editor.wrap-lines = true
+ai.enabled = true
+```
+
+Jeder Schlüssel ist optional. Entfernen Sie einen Schlüssel, um dessen Standardwert wiederherzustellen.
+
+## Tastenkürzel [#keyboard-shortcuts]
+
+Unter **Einstellungen → Tastenkürzel** zeichnen Sie neue Kürzel für zentrale Befehle auf. Zshell weist Konflikte zurück und nennt den Befehl, der die Kombination bereits verwendet. **Standardtastenkürzel wiederherstellen** setzt alle eigenen Belegungen zurück. Die [Tastenkürzelübersicht](/de/docs/shortcuts) enthält die ausgelieferten Vorgaben.
+
+## Einstellungen außerhalb dieser Datei [#settings-outside-this-file]
+
+- **Sprache.** Die Einstellungen bieten den Systemstandard und dieselben 17 Sprachen wie die Website. Änderungen wirken sofort, während Terminalsitzungen weiterlaufen. Die Auswahl verwendet die macOS-Sprachpräferenz pro Anwendung und liegt deshalb in Zshells Voreinstellungen statt in TOML. Der Systemstandard folgt der macOS-Sprachreihenfolge.
+- **Automatische Updates.** Die Schalter für automatische Prüfung, Download und Installation unter **Einstellungen → Updates** liegen ebenfalls außerhalb von TOML und bleiben über Neustarts erhalten. Die Installationsoption erscheint nur bei aktivierten automatischen Downloads. Siehe [Installation](/de/docs/installation#updates).
+- **Fenster und Anordnung.** Fenstergröße, Seitenleistenbreiten, ausgewählte Panels, Projekte, Tabs, Bereiche, Browser-URLs und Diff-Voreinstellungen liegen in Zshells macOS-Voreinstellungen und Sitzungsabbild.
+- **Backend-Konfigurationsdateien.** Zshell liest weder `~/.config/ghostty` noch eine Alacritty-Konfiguration. Für beide Backends sind Zshells Einstellungen maßgeblich.

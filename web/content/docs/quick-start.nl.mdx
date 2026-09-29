@@ -1,0 +1,81 @@
+---
+title: Snel aan de slag
+description: Van een leeg venster naar een werkend project — wat je het beste als eerste leert.
+---
+
+<Steps>
+
+<Step>
+
+### Een project starten [#start-a-project]
+
+Druk op <kbd>Cmd</kbd>+<kbd>N</kbd>. Er verschijnt een nieuw project met één terminal in de zijbalk. Ga vervolgens met `cd` naar de gewenste repository, precies zoals in elke andere terminal. De bestandsboom en het Git-paneel volgen je en gebruiken de hoofdmap van de repository.
+
+Begin je liever vanuit de map? Klik erop met de rechtermuisknop in Finder en kies **Voorzieningen → Nieuw Zshell-project hier**.
+
+Heb je meerdere repositories? Voeg ze allemaal toe. Met <kbd>Cmd</kbd>+<kbd>1</kbd> tot en met <kbd>Cmd</kbd>+<kbd>9</kbd> spring je rechtstreeks naar een project, en elk project behoudt zijn eigen tabbladen en indeling.
+
+</Step>
+
+<Step>
+
+### Sessies toevoegen [#add-sessions]
+
+<kbd>Cmd</kbd>+<kbd>T</kbd> opent nog een terminal in hetzelfde project: een nieuw tabblad met een eigen werkmap en uitvoergeschiedenis. Eén voor de ontwikkelserver, één voor tests en één om zelf opdrachten in te typen.
+
+<kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> wisselt rechtstreeks van tabblad; <kbd>Ctrl</kbd>+<kbd>Tab</kbd> opent een wisselvenster gesorteerd op recent gebruik.
+
+</Step>
+
+<Step>
+
+### Een tabblad splitsen [#split-a-tab]
+
+<kbd>Cmd</kbd>+<kbd>D</kbd> splitst het huidige deelvenster naar rechts; <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> splitst het naar beneden. Wissel tussen deelvensters met <kbd>Opt</kbd>+<kbd>Cmd</kbd>+pijltoetsen en druk op <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> om één deelvenster het hele tabblad te laten vullen wanneer je iets langers leest.
+
+</Step>
+
+<Step>
+
+### De zijpanelen openen [#open-the-side-panels]
+
+De rechterzijbalk bevat deze panelen, elk met een eigen sneltoets:
+
+| Paneel | Sneltoets | Waarvoor |
+| --- | --- | --- |
+| Git | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> | Stagen, diffs beoordelen, committen en pushen |
+| Bestanden | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | De boomstructuur bekijken en bestanden openen en bewerken |
+| Info | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> | Processen en luisterende poorten |
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> verbergt de hele zijbalk weer; <kbd>Cmd</kbd>+<kbd>B</kbd> verbergt de projectzijbalk links.
+
+</Step>
+
+<Step>
+
+### Onthoud één sneltoets: <kbd>Cmd</kbd>+<kbd>P</kbd> [#learn-one-shortcut-cmdp]
+
+Het opdrachtenpalet doorzoekt alle projecten, alle geopende sessies en elke opdracht die Zshell kent. Als je de rest van deze pagina vergeet, onthoud dan deze sneltoets: naast elke opdracht staat de bijbehorende sneltoets.
+
+</Step>
+
+</Steps>
+
+## Wat terugkomt na afsluiten [#what-comes-back-after-you-quit]
+
+Sluit de app en open haar opnieuw: je projecten, tabbladen en deelvensterindeling staan waar je ze hebt achtergelaten. Elke terminal start een **nieuwe shell** in de vorige map. Er blijft niets ongemerkt op de achtergrond draaien.
+
+Uitvoergeschiedenis herstel je alleen als je dit inschakelt. Zet [`terminal.restore-history`](/nl/docs/configuration#terminalrestore-history) aan. Heropende terminals tonen dan de eerdere uitvoer boven de scheidingsregel `Session Contents Restored`, met de nieuwe shell eronder.
+
+<Callout type="info">
+De herstelde inhoud is alleen tekst: een verslag van wat er is gebeurd, geen actieve sessie. Terugscrollen voert dus niets opnieuw uit.
+</Callout>
+
+## Verder [#next]
+
+<Cards>
+  <Card title="Projecten en sessies" href="/nl/docs/projects" description="Namen geven, een map vastzetten en wat een project daadwerkelijk bijhoudt." />
+  <Card title="Het Git-paneel" href="/nl/docs/git" description="Stagen, diffs, commits en branches." />
+  <Card title="Browserdeelvensters" href="/nl/docs/browser" description="Houd een lokale server of documentatie naast de bijbehorende terminal." />
+  <Card title="Werken met AI-agents" href="/nl/docs/automation" description="Vraag agents om werk te delegeren en tussen Zshell-deelvensters samen te werken." />
+</Cards>

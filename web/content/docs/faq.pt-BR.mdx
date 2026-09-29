@@ -1,0 +1,68 @@
+---
+title: Perguntas frequentes
+description: Perguntas comuns sobre preço, privacidade e a relação entre o Zshell e seu shell.
+---
+
+<Accordions>
+
+<Accordion title="O Zshell é gratuito?">
+
+Sim. O download é gratuito, o código é público sob a PolyForm Noncommercial License 1.0.0 e não há conta nem assinatura.
+
+</Accordion>
+
+<Accordion title="Ele substitui meu shell?">
+
+Não. O Zshell hospeda o shell que você já usa: inicia `$SHELL -l` e mantém seu prompt, aliases, funções e dotfiles. O painel de terminal pode usar Ghostty ou Alacritty como backend.
+
+</Accordion>
+
+<Accordion title="Ele coleta dados?">
+
+Não há telemetria nem análise de uso. A verificação de atualizações consulta o país do IP da rede para escolher entre GitHub e Gitee e então busca o feed de versões. Desative as verificações automáticas em **Ajustes → Atualizações** para interromper essas requisições em segundo plano; verificações manuais ainda as fazem. Consulte [Atualizações](/pt-BR/docs/installation#updates). A página Recomendações verifica versões de ferramentas enquanto está aberta.
+
+Páginas abertas em um [painel de navegador](/pt-BR/docs/browser) e CLIs de agentes fazem suas próprias requisições conforme suas ações, assim como fora do Zshell.
+
+</Accordion>
+
+<Accordion title="Ele lê minha configuração do Ghostty ou Alacritty?">
+
+Não. Backend, fontes, cores e comportamento de entrada vêm dos [ajustes](/pt-BR/docs/configuration) do próprio Zshell. Ele não carrega o arquivo de configuração de nenhum dos dois aplicativos de terminal.
+
+</Accordion>
+
+<Accordion title="O que acontece com minhas sessões quando saio?">
+
+Projetos, abas e layout dos painéis são restaurados ao abrir novamente. Cada terminal inicia um shell novo no diretório anterior. Nada continua rodando em segundo plano após sair.
+
+A saída anterior também retorna se você ativar [`terminal.restore-history`](/pt-BR/docs/configuration#terminalrestore-history), aparecendo como texto estático acima do separador `Session Contents Restored`.
+
+</Accordion>
+
+<Accordion title="Isto é uma IDE?">
+
+Não, e não está caminhando nessa direção. O terminal continua sendo o centro. Os painéis Git e Arquivos existem para revisar e entregar o trabalho feito no terminal sem trocar de aplicativo, não para se tornar o lugar principal de trabalho.
+
+</Accordion>
+
+<Accordion title="Por que apareceu uma confirmação antes de um programa ler a área de transferência?">
+
+Porque um programa solicitou acesso. A sequência de escape `OSC 52` permite que um programa de terminal leia a área de transferência, inclusive quando executado em um host remoto via SSH. O Zshell confirma com você antes de fornecê-la, o mesmo padrão usado pelo Ghostty.
+
+</Accordion>
+
+<Accordion title="Posso usar um agente de programação com IA?">
+
+Sim. A integração de IA vem ativada. Peça em linguagem natural a um agente compatível para executar algo em um painel de fundo ou delegar uma tarefa delimitada. Agentes em painéis separados também podem trocar perguntas, resultados e complementos, sem você copiar o contexto. O Zshell mostra os estados de trabalho, bloqueio e conclusão informados pelo provedor, sem adivinhar pelo texto do terminal; aprovações e o diff final continuam sob seu controle. Consulte [Trabalhar com agentes de IA](/pt-BR/docs/automation).
+
+Você também pode usar um agente como programa de terminal comum: revise seu diff no [painel Git](/pt-BR/docs/git), leia arquivos ao lado e prepare apenas o que quiser.
+
+</Accordion>
+
+<Accordion title="Onde relato um bug?">
+
+Abra uma issue no [GitHub](https://github.com/wzz6423/zshell/issues). A versão do macOS e o que você fazia quando ocorreu costumam ser um bom ponto de partida.
+
+</Accordion>
+
+</Accordions>

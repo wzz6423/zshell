@@ -1,0 +1,94 @@
+---
+title: El panel de Git
+description: Prepara, revisa, confirma y envía cambios junto al shell donde los hiciste.
+---
+
+Pulsa <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>. El panel abre el repositorio al que está vinculado el proyecto; consulta [el directorio del proyecto](/es/docs/projects#the-project-directory) para saber cómo lo elige Zshell.
+
+Cada acción es un comando de Git que Zshell ejecuta por ti. La salida se muestra cuando hay algo más que decir que «hecho». Nada se reescribe, se combina con squash ni se envía de forma forzada salvo que lo hayas pedido.
+
+## La barra de herramientas de Git [#the-git-toolbar]
+
+Zshell puede mostrar una barra compacta debajo de la pestaña activa. Dentro de un repositorio muestra la rama actual y el total de líneas añadidas y eliminadas; un árbol sin modificaciones muestra **Sin cambios** en verde. Los archivos sin seguimiento cuentan como líneas añadidas.
+
+- Haz clic en la rama para buscar y cambiar entre ramas locales. La rama predeterminada del repositorio aparece marcada en la lista.
+- Haz clic en los contadores de cambios para abrir el panel de Git.
+- Fuera de un repositorio, el modo **Mostrar siempre** deja un botón **Sin repositorio Git** que abre el estado de inicialización del panel.
+
+Elige **Ocultar**, **Automático** o **Mostrar siempre** en **Ajustes → General**, o configura [`toolbar.visibility`](/es/docs/configuration#toolbarvisibility). El valor predeterminado es Ocultar. También puedes ocultar una barra visible desde su menú contextual.
+
+## Archivos modificados [#changed-files]
+
+Los archivos se agrupan en conflictos, cambios preparados y cambios sin preparar. Pasa el puntero sobre una fila para ver sus botones o usa el menú contextual:
+
+| Botón | Qué hace |
+| --- | --- |
+| **+** | Prepara el archivo |
+| **−** | Retira el archivo del área de preparación |
+| **↺** | Descarta sus cambios |
+
+**Descartar todos los cambios** está en la cabecera del panel y pide confirmación: es la única acción de este panel que no puedes deshacer con otro comando de Git.
+
+Los archivos en conflicto muestran **Marcar como resuelto (preparar)** en lugar de un botón de preparación normal, para que resolverlos sea un paso deliberado y no un efecto secundario.
+
+El botón de embudo de la cabecera filtra la lista por nombre de archivo, la forma más rápida de recorrer un cambio grande.
+
+## Leer diferencias [#reading-diffs]
+
+Haz clic en cualquier archivo modificado para abrir sus diferencias en un panel junto al terminal, sin superponerlas. Desde el menú contextual también puedes **Abrir archivo** (el archivo en sí, editable) o **Abrir archivo al lado**.
+
+Las diferencias grandes siguen respondiendo con fluidez. Un conjunto de cambios de mil archivos se abre tan rápido como uno de una línea y se desplaza sin tirones.
+
+Los controles sobre la vista de diferencias recuerdan dos preferencias globales:
+
+- **Unificado / Dividido** cambia entre una columna y una disposición en paralelo.
+- **Revisar / Editar** aparece para un archivo sin preparar del árbol de trabajo actual. Edita directamente el lado nuevo y guarda con <kbd>Cmd</kbd>+<kbd>S</kbd>; al cerrar un archivo con cambios sin guardar se aplica el mismo tratamiento que en el editor normal.
+
+Las diferencias preparadas y las de commits históricos siguen siendo de solo lectura porque son instantáneas, no archivos que Zshell pueda escribir con seguridad. Cambiar una vista a Editar o Dividido actualiza la preferencia de otras vistas abiertas, sin convertir en editable una que no cumpla los requisitos.
+
+## Crear commits [#committing]
+
+Escribe un mensaje y usa el botón de commit o elige una opción de su menú:
+
+- **Confirmar preparados**: crea un commit exactamente con lo que preparaste.
+- **Preparar todo y confirmar**: prepara todos los archivos con seguimiento y después crea el commit.
+- **Modificar último commit**: incorpora los cambios preparados al commit anterior.
+- **Preparar todo y modificar**.
+
+Los commits recientes aparecen debajo, con **Copiar hash del commit** y **Copiar mensaje del commit** en sus menús contextuales.
+
+## Ramas [#branches]
+
+El nombre de la rama en la cabecera es un menú: elige otra rama para cambiar a ella o **Crear nueva rama…** para crear una desde tu posición actual.
+
+## Árboles de trabajo [#worktrees]
+
+El panel de Git enumera todos los árboles de trabajo del repositorio, con su rama y la ruta de la copia de trabajo. La copia activa aparece marcada como **Actual**. Haz clic en un árbol de trabajo para abrir una pestaña de terminal nueva en ese directorio; cada copia conserva así su propio contexto de shell dentro del mismo proyecto. Las listas largas se desplazan dentro de su propia área delimitada; la cabecera de sección, los controles de commit y la lista de archivos modificados permanecen en su sitio. Haz clic en la cabecera de árboles de trabajo para contraerla o expandirla.
+
+Los árboles de trabajo con HEAD separado muestran **HEAD separado** en lugar del nombre de una rama. Los repositorios bare también se enumeran para que la lista sea completa, pero no tienen directorio de trabajo y no pueden abrirse en una pestaña de terminal.
+
+## Remotos [#remotes]
+
+El menú **⋯** contiene todas las acciones que se comunican con un remoto:
+
+| Acción | Qué hace |
+| --- | --- |
+| **Obtener** | Actualiza las referencias de seguimiento remoto |
+| **Traer (solo avance rápido)** | Trae cambios sin permitir crear un commit de fusión |
+| **Enviar** | Envía la rama actual |
+| **Publicar rama** | Envía una rama que aún no tiene upstream y permite elegir el remoto si hay más de uno |
+| **Sincronizar cambios** | Trae cambios con avance rápido y después los envía |
+| **Guardar todos los cambios** | Guarda todo en un stash, incluidos los archivos sin seguimiento |
+| **Aplicar y eliminar stash** | Restaura el stash más reciente |
+
+Los indicadores junto a la rama muestran cuántos commits estás **↓ por detrás** y **↑ por delante** del upstream.
+
+El mismo menú contiene **Copiar rutas modificadas**, **Copiar ruta del repositorio** y **Mostrar repositorio en Finder**.
+
+<Callout type="info">
+La actualización usa exclusivamente avance rápido de forma deliberada. Si hace falta una fusión o un rebase real, Git lo indica y tú decides desde el terminal; el panel no elige una estrategia por ti.
+</Callout>
+
+## Todavía no es un repositorio [#not-a-repository-yet]
+
+Si el directorio del proyecto no contiene un repositorio, el panel ofrece **Inicializar repositorio**, que ejecuta `git init` en esa carpeta. Hasta entonces, no estorba.

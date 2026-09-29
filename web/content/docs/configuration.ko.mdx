@@ -1,0 +1,229 @@
+---
+title: 설정
+description: Zshell의 모든 영구 설정, 각 설정의 동작과 저장 위치.
+---
+
+대부분의 Zshell 영구 설정은 한 파일에 저장됩니다.
+
+```
+~/.config/zshell/config.toml
+```
+
+설정 창(<kbd>Cmd</kbd>+<kbd>,</kbd>)도 같은 파일에 씁니다. 언어와 자동 업데이트처럼 macOS가 관리하는 일부 설정은 다른 곳에 저장되며 이 페이지 끝에 정리되어 있습니다.
+
+## 설정 파일의 동작 [#how-the-file-behaves]
+
+직접 편집하기 전에 다음을 알아두세요.
+
+- **앱을 시작할 때 읽습니다.** Zshell 실행 중 파일을 편집해도 다시 실행하기 전까지는 반영되지 않습니다. 설정 창에서 변경한 내용은 컨트롤에 별도 안내가 있는 경우를 제외하고 즉시 적용됩니다.
+- **파일에 저장되는 설정이 바뀔 때마다 Zshell이 다시 씁니다.** 파일 전체를 다시 생성하므로 해당 컨트롤을 다음에 사용하면 주석과 알 수 없는 키가 사라집니다. 파일을 관리할 편집 방식을 하나로 정하거나 dotfile에 기준 복사본을 보관하세요.
+- **기본값이 아닌 값만 쓰지만 예외가 하나 있습니다.** `font-size`는 항상 기록합니다. 그 밖의 키를 삭제하면 기본값으로 돌아갑니다.
+- **파서는 의도적으로 간단합니다.** 단순 키, 점으로 구분한 키, `[table]` 머리글, `#` 주석과 문자열/숫자/불리언 값을 지원합니다. 배열, 인라인 테이블과 여러 줄 문자열은 지원하지 않습니다.
+- **잘못된 값은 안전한 기본값으로 대체됩니다.** 범위를 벗어난 크기, 알 수 없는 백엔드나 오타가 있는 테마 때문에 Zshell을 시작하지 못하는 일은 없습니다.
+
+## 모양 [#appearance]
+
+### `theme` [#theme]
+
+`"system"` · `"light"` · `"dark"` — 기본값 `"system"`
+
+앱 모양을 선택합니다. `"system"`은 macOS를 따르고 나머지 두 값은 특정 모양으로 고정합니다.
+
+### `theme-dark`와 `theme-light` [#theme-dark-and-theme-light]
+
+문자열 — 기본값 `"Default Dark"` 및 `"Default Light"`
+
+각 모양의 색상 테마입니다. 테마는 터미널 분할 창, 창 프레임, 사이드바, 편집기와 차이 보기의 색상을 함께 바꿉니다. 기본 내장 테마는 반투명 사이드바를 유지하고 다른 테마는 각 색상표에 맞게 사이드바를 칠합니다.
+
+설정에는 두 터미널 백엔드가 공유하는 선별된 테마 목록이 표시됩니다. 파일에 직접 적는 이름은 대소문자까지 표시 이름과 정확히 일치해야 합니다. 그렇지 않으면 해당 모양의 기본 테마로 돌아갑니다.
+
+### `toolbar.visibility` [#toolbarvisibility]
+
+`"hide"` · `"auto"` · `"always"` — 기본값 `"hide"`
+
+활성 탭 아래의 간결한 도구 막대를 제어합니다.
+
+- `"hide"`는 창에서 도구 막대를 숨깁니다.
+- `"auto"`는 프로젝트 디렉터리가 Git 저장소일 때만 표시합니다.
+- `"always"`는 **Git 저장소 없음** 상태를 포함해 모든 프로젝트에 Git 진입점을 표시합니다.
+
+표시되는 내용은 [Git 도구 막대](/ko/docs/git#the-git-toolbar)를 참고하세요.
+
+## 텍스트 [#text]
+
+### `font-family` [#font-family]
+
+문자열 — 기본값 `""`이며 내장 JetBrains Mono를 뜻합니다.
+
+터미널, 편집기와 차이 보기가 이 라틴 글꼴 모음을 공유합니다. 개별 스타일인 `"IBM Plex Mono Regular"`가 아니라 `"IBM Plex Mono"` 같은 글꼴 모음 이름을 지정하세요. 알 수 없거나 고정폭이 아닌 글꼴 모음은 내장 기본 글꼴로 대체됩니다.
+
+터미널은 라틴 글꼴 모음, 아래의 선택적 CJK 대체 글꼴, 내장 Symbols Nerd Font, 백엔드의 시스템 대체 글꼴 순서로 사용합니다. 편집기와 차이 보기는 기존 macOS/WebKit 대체 글꼴 방식을 계속 사용합니다.
+
+### `terminal.font-fallback-family` [#terminalfont-fallback-family]
+
+문자열 — 기본값 `""`이며 백엔드/시스템 대체 글꼴을 뜻합니다.
+
+설치된 CJK 글꼴 모음 하나를 터미널의 대체 글꼴 순서에 추가합니다. 설정 선택기에는 대표적인 중국어, 일본어 또는 한국어 글리프를 포함한 모음이 표시됩니다. 기본 라틴 글꼴에 없는 글리프만 제공하므로 엄격한 고정폭일 필요는 없습니다.
+
+### `font-size` [#font-size]
+
+숫자, 8–32 — 기본값 `13`
+
+터미널, 편집기와 차이 보기가 공유하는 포인트 단위 글꼴 크기입니다. 기본값이어도 Zshell이 항상 기록하는 유일한 키입니다.
+
+### `interface.scale` [#interfacescale]
+
+숫자, 0.9–1.5 — 기본값 `1`
+
+탭, 아이콘, 버튼, 사이드바와 나머지 앱 인터페이스의 배율을 조절합니다. 터미널, 편집기와 차이 보기의 내용은 위에서 따로 설정한 글꼴 크기를 유지합니다.
+
+### `sidebar.font-size` [#sidebarfont-size]
+
+숫자, 9–24 — 기본값 `14`
+
+양쪽 사이드바의 기본 글자 크기입니다. 기본 크기가 바뀌어도 구역 제목, 행, 메타데이터와 컨트롤은 상대적인 계층을 유지합니다.
+
+### `terminal.font-thicken` [#terminalfont-thicken]
+
+불리언 — 기본값 `false`
+
+기존 macOS 글꼴 다듬기와 비슷하게 터미널 글리프의 획을 약간 굵게 표시합니다. 두 백엔드 모두 지원하며 설정 미리보기에서 결과를 확인할 수 있습니다. 예전 `font-thicken` 설정도 읽고 이후 현재의 점 구분 키로 다시 씁니다.
+
+### `terminal.font-thicken-strength` [#terminalfont-thicken-strength]
+
+정수, 0–255 — 기본값 `255`
+
+`terminal.font-thicken`이 true일 때 굵게 처리하는 정도를 조절합니다. 0은 끄기가 아니라 가장 약한 굵기 보정입니다. Ghostty는 macOS의 기본 강도를 사용하고 Alacritty는 같은 범위를 CoreText 획에 대응시킵니다. 따라서 방향과 양 끝값은 같지만 실제 래스터화된 픽셀은 다를 수 있습니다.
+
+### `terminal.line-height` [#terminalline-height]
+
+숫자, 0.75–2 — 기본값 `1`
+
+글리프를 세로 중앙에 유지하면서 각 터미널 백엔드의 기본 셀 높이에 배율을 적용합니다. 터미널 행만 바꾸며 편집기나 차이 보기의 줄 간격은 바꾸지 않습니다.
+
+Zshell은 기본 글꼴 두께 컨트롤을 제공하지 않습니다. Ghostty는 이름이 있는 스타일이나 가변 축을 고르고 Alacritty/CoreText는 속성으로 보통체와 굵은체를 결정합니다. 하나의 공통 값으로는 정적 및 가변 글꼴 전체에서 보통체/굵은체의 구분과 대체 글꼴 두께를 일관되게 유지할 수 없기 때문입니다.
+
+### `editor.wrap-lines` [#editorwrap-lines]
+
+불리언 — 기본값 `true`
+
+[파일 편집기](/ko/docs/files)의 긴 줄을 분할 창 너비에 맞춰 화면상으로 줄바꿈합니다. false이면 긴 줄을 가로로 스크롤합니다. 터미널이나 차이 보기의 줄바꿈은 바꾸지 않습니다.
+
+## 터미널 [#terminal]
+
+### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
+
+문자열 — 기본적으로 설정하지 않음
+
+이후 생성하는 터미널의 실행 파일과 인수 목록을 선택합니다. `terminal.startup-program`이 없으면 계정의 로그인 셸을 `-l` 옵션으로 계속 사용합니다. 프로그램은 실행 가능한 파일의 절대 경로여야 합니다. 경로가 없거나 실행할 수 없으면 동작하지 않는 창을 여는 대신 로그인 셸로 돌아갑니다.
+
+`terminal.startup-arguments`는 셸을 호출하지 않고 인수로 나눕니다. 따옴표와 역슬래시는 공백 및 빈 인수를 포함한 경계를 유지하지만 변수, glob 패턴과 명령 치환은 확장하지 않습니다. 따옴표가 잘못되어도 로그인 셸로 돌아갑니다. Zshell CLI로 명시적인 argv를 전달했다면 해당 터미널에서는 그것이 우선합니다.
+
+### `terminal.backend` [#terminalbackend]
+
+`"libghostty"` · `"alacritty"` — 기본값 `"libghostty"`
+
+이후 만드는 터미널의 에뮬레이터를 선택합니다. 기존 분할 창은 시작할 때 사용한 백엔드를 유지합니다. 둘 다 네이티브 GPU 가속, 이미지 렌더링과 같은 Zshell 테마를 지원하며 Alacritty는 일반적으로 메모리를 더 적게 사용합니다.
+
+환경 변수와 호환성 규약은 [터미널 백엔드](/ko/docs/terminal#terminal-backends)를 참고하세요.
+
+### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
+
+불리언 — 기본값 `false`
+
+true이면 Option 키 조합을 Alt/Meta 단축키로 터미널 프로그램에 보냅니다. 기본값에서는 Option을 활성 macOS 입력 소스에 맡기므로 Polish Pro 같은 배열에서 조합 문자를 입력할 수 있습니다.
+
+### `terminal.bell` [#terminalbell]
+
+불리언 — 기본값 `true`
+
+터미널 프로그램이 벨을 울릴 때 경고음과 macOS 시각적 주의 알림을 제어합니다. false이면 소리를 내거나 터미널 벨 알림을 게시하거나 Dock에서 주의를 요청하지 않습니다. 보조 기술에는 여전히 벨의 의미를 알리는 접근성 알림을 전달합니다. 두 백엔드 모두 이 설정을 따릅니다.
+
+### `terminal.vim-command-hints` [#terminalvim-command-hints]
+
+불리언 — 기본값 `false`
+
+**정보** 사이드바의 세션 정보 아래에 모드에 맞는 Vim / Neovim 명령을 표시합니다. 두 백엔드에 즉시 적용되며 SSH를 통해 인식할 수 있는 편집기도 포함됩니다. 모드 감지 조건은 [Vim 명령 힌트](/ko/docs/terminal#vim-command-hints)를 참고하세요.
+
+### `terminal.restore-history` [#terminalrestore-history]
+
+불리언 — 기본값 `false`
+
+재실행 후 새 셸 위에 각 터미널의 이전 스크롤 기록을 복원합니다. 복원 내용은 살아 있는 프로세스가 아닌 정적인 텍스트입니다.
+
+복원용 스크롤 기록은 디스크에 저장되므로 터미널에 표시된 비밀 정보가 포함될 수 있습니다. 따라서 기본적으로 꺼져 있습니다. 이 설정과 관계없이 [프로젝트, 탭과 분할 창 배치](/ko/docs/projects#what-survives-a-relaunch)는 복원됩니다.
+
+## 자동화 [#automation]
+
+### `ai.enabled` [#aienabled]
+
+불리언 — 기본값 `true`
+
+평소 말하듯 요청하면 지원하는 코딩 에이전트가 백그라운드 Zshell 분할 창을 조율하고 제공자가 보고한 수명 주기 상태를 UI에 표시할 수 있습니다. Zshell은 터미널 텍스트에서 상태를 추측하지 않습니다. 오류를 인라인으로 보여 주고 충돌하는 기존 설정은 건드리지 않으므로 설정 창의 스위치로 변경하는 것이 좋습니다.
+
+실제 사용 흐름은 [AI 에이전트와 작업](/ko/docs/automation)에서 설명합니다.
+
+## 추가 설정 [#additional-settings]
+
+| 키 | 기본값 | 값 / 범위 | 동작 |
+| --- | --- | --- | --- |
+| `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | 앱 아이콘 |
+| `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | 파일과 폴더에 사용할 외부 편집기 |
+| `terminal.theme-only` | `false` | 불리언 | 선택한 색상표를 터미널에만 적용 |
+| `terminal.cursor-shape` | `"block"` | `"block"` / `"bar"` / `"underline"` | 터미널 커서 모양 |
+| `terminal.cursor-blinking` | `true` | 불리언 | 커서 깜박임 |
+| `terminal.copy-on-select` | `true` | 불리언 | 선택한 터미널 텍스트 복사 |
+| `terminal.shift-enter-newline` | `true` | 불리언 | Shift+Enter로 확장 줄바꿈 시퀀스 전송. 앱 지원 필요 |
+| `terminal.background-opacity` | `1` | 0.2–1 | 터미널 배경 불투명도 |
+| `terminal.background-blur` | `false` | 불리언 | 반투명 배경 흐림 효과 |
+| `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | 새 zsh 터미널에서 명령이 지정 시간 이상 실행된 뒤 종료되면 알림. 0은 끄기 |
+| `terminal.notify-on-error` | `false` | 불리언 | 새 zsh 터미널에서 명령 실패 시 알림 |
+| `quick-terminal.size` | `0.75` | 0.35–0.95 | 화면에 대한 빠른 터미널 크기 비율 |
+| `quick-terminal.opacity` | `0.5` | 0.05–1 | 빠른 터미널 배경 불투명도 |
+| `quick-terminal.shortcut` | `Cmd+I` | 설정에서 지정 | 설정에서 전역 단축키를 지정하면 키 코드가 자동 저장됨 |
+| `panes.show-focus-ring` | `true` | 불리언 | 활성 분할 창에 포커스 테두리 표시 |
+| `panes.focus-ring-opacity` | `0.85` | 0.05–1 | 포커스 테두리 불투명도 |
+
+## 백업과 마이그레이션 [#backup-and-migration]
+
+<strong>Zshell → 설정 내보내기…</strong>로 TOML 파일을 저장하고 <strong>설정 가져오기…</strong>로 불러옵니다. 가져오기 전에 교체 여부를 확인하며 현재 파일을 같은 디렉터리의 `config.toml.bak`로 백업하려고 시도합니다.
+
+현재 가져오기는 테마, 주요 글꼴 옵션, 커서 설정, 터미널 백엔드, 기록 복원, 선택 시 복사, 빠른 터미널과 AI 지원 등 일부 설정을 복원합니다. 내보낸 모든 설정을 그대로 왕복 복원하지는 않습니다. 이후 인터페이스 배율, 앱 아이콘, 외부 편집기와 터미널 배경 설정을 확인하세요. 전체 설정을 옮기려면 Zshell을 종료한 뒤 `config.toml`을 백업하고 복사한 다음 다시 실행하세요. AI 스위치는 가져온 파일에 `ai.enabled`가 명시적으로 있을 때만 갱신되므로 가져온 뒤 확인하세요. 프로젝트와 탭 환경 변수는 세션 데이터이며 이 파일에 포함되지 않습니다.
+
+## 전체 예제 [#a-complete-example]
+
+```toml title="~/.config/zshell/config.toml"
+theme = "dark"
+theme-dark = "Catppuccin Mocha"
+theme-light = "Catppuccin Latte"
+font-family = "IBM Plex Mono"
+font-size = 14
+interface.scale = 1.25
+sidebar.font-size = 13
+toolbar.visibility = "auto"
+terminal.font-fallback-family = "PingFang SC"
+terminal.font-thicken = true
+terminal.font-thicken-strength = 180
+terminal.line-height = 1.15
+terminal.macos-option-as-alt = false
+terminal.bell = false
+terminal.startup-program = "/opt/homebrew/bin/fish"
+terminal.startup-arguments = "--no-config"
+terminal.backend = "alacritty"
+terminal.restore-history = true
+editor.wrap-lines = true
+ai.enabled = true
+```
+
+모든 키는 선택 사항입니다. 키를 삭제하면 해당 설정이 기본값으로 돌아갑니다.
+
+## 키보드 단축키 [#keyboard-shortcuts]
+
+**설정 → 단축키**에서 주요 명령의 새 단축키를 지정하세요. Zshell은 충돌하는 조합을 거부하고 이미 사용하는 명령의 이름을 알려 줍니다. **기본 단축키 복원**은 모든 재정의를 초기화합니다. [단축키 안내](/ko/docs/shortcuts)에 기본값이 정리되어 있습니다.
+
+## 이 파일 밖의 설정 [#settings-outside-this-file]
+
+- **언어.** 설정에는 시스템 기본값과 웹사이트와 동일한 17개 언어가 있습니다. 터미널 세션을 계속 실행하는 상태에서 변경이 즉시 적용됩니다. macOS의 앱별 언어 환경설정을 사용하므로 TOML이 아닌 Zshell 환경설정에 저장됩니다. 시스템 기본값은 macOS의 언어 우선순위를 따릅니다.
+- **자동 업데이트.** **설정 → 업데이트**의 자동 확인, 다운로드와 설치 스위치는 TOML 밖의 앱 환경설정에 저장되며 재실행 후에도 유지됩니다. 자동 다운로드를 켰을 때만 설치 설정을 표시합니다. [설치](/ko/docs/installation#updates)를 참고하세요.
+- **창과 배치 상태.** 창 크기, 사이드바 너비, 선택한 패널, 프로젝트, 탭, 분할 창, 브라우저 URL과 차이 보기 컨트롤 설정은 Zshell의 macOS 환경설정과 세션 스냅샷에 저장됩니다.
+- **백엔드 설정 파일.** Zshell은 `~/.config/ghostty`나 Alacritty 설정을 읽지 않습니다. 두 백엔드 모두 Zshell 자체 설정을 사용해야 합니다.

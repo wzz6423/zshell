@@ -1,0 +1,81 @@
+---
+title: Schnelleinstieg
+description: Vom leeren Fenster zum einsatzbereiten Projekt – die wichtigsten Schritte für den Anfang.
+---
+
+<Steps>
+
+<Step>
+
+### Ein Projekt anlegen [#start-a-project]
+
+Drücken Sie <kbd>Cmd</kbd>+<kbd>N</kbd>. In der Seitenleiste erscheint ein Projekt mit einem Terminal. Wechseln Sie darin mit `cd` zu Ihrem Repository, wie in jedem anderen Terminal. Dateibaum und Git-Bereich folgen Ihnen und verwenden anschließend das Stammverzeichnis des Repositorys.
+
+Sie möchten direkt mit einem Ordner beginnen? Klicken Sie ihn im Finder mit der rechten Maustaste an und wählen Sie **Dienste → Neues Zshell-Projekt hier**.
+
+Bei mehreren Repositorys können Sie alle hinzufügen. <kbd>Cmd</kbd>+<kbd>1</kbd> bis <kbd>Cmd</kbd>+<kbd>9</kbd> wechseln direkt zu einem Projekt. Jedes behält seine eigenen Tabs und seine Anordnung.
+
+</Step>
+
+<Step>
+
+### Sitzungen hinzufügen [#add-sessions]
+
+<kbd>Cmd</kbd>+<kbd>T</kbd> öffnet ein weiteres Terminal im selben Projekt: einen neuen Tab mit eigenem Arbeitsverzeichnis und Ausgabeverlauf. Beispielsweise einen für den Entwicklungsserver, einen für Tests und einen für Ihre Befehle.
+
+<kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> wechseln direkt zwischen Tabs. <kbd>Ctrl</kbd>+<kbd>Tab</kbd> öffnet einen nach letzter Verwendung sortierten Umschalter.
+
+</Step>
+
+<Step>
+
+### Einen Tab teilen [#split-a-tab]
+
+<kbd>Cmd</kbd>+<kbd>D</kbd> teilt den aktuellen Bereich nach rechts, <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> nach unten. Mit <kbd>Opt</kbd>+<kbd>Cmd</kbd>+Pfeiltasten wechseln Sie zwischen Bereichen. <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> vergrößert einen Bereich auf den ganzen Tab, etwa zum Lesen langer Ausgaben.
+
+</Step>
+
+<Step>
+
+### Seitenbereiche öffnen [#open-the-side-panels]
+
+Die rechte Seitenleiste enthält diese Bereiche, jeweils mit eigenem Tastenkürzel:
+
+| Bereich | Tastenkürzel | Zweck |
+| --- | --- | --- |
+| Git | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> | Änderungen vormerken, Diffs prüfen, committen und pushen |
+| Dateien | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | Dateibaum durchsuchen, Dateien öffnen und bearbeiten |
+| Informationen | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> | Prozesse und lauschende Ports anzeigen |
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> blendet die gesamte rechte Seitenleiste aus; <kbd>Cmd</kbd>+<kbd>B</kbd> die Projektseitenleiste links.
+
+</Step>
+
+<Step>
+
+### Ein Tastenkürzel merken: <kbd>Cmd</kbd>+<kbd>P</kbd> [#learn-one-shortcut-cmdp]
+
+Die Befehlspalette durchsucht alle Projekte, geöffneten Sitzungen und Zshell-Befehle. Wenn Sie sich nur ein Kürzel merken, nehmen Sie dieses: Neben jedem Befehl steht sein eigenes Tastenkürzel.
+
+</Step>
+
+</Steps>
+
+## Was nach dem Beenden wiederhergestellt wird [#what-comes-back-after-you-quit]
+
+Nach dem Beenden und erneuten Öffnen finden Sie Projekte, Tabs und Bereichsanordnung wieder vor. Jedes Terminal startet eine **neue Shell** im bisherigen Verzeichnis. Es bleiben keine Prozesse unbemerkt im Hintergrund aktiv.
+
+Der Ausgabeverlauf wird nur auf Wunsch wiederhergestellt. Aktivieren Sie [`terminal.restore-history`](/de/docs/configuration#terminalrestore-history), damit frühere Ausgaben über einer Trennlinie `Session Contents Restored` erscheinen. Darunter läuft die neue Shell.
+
+<Callout type="info">
+Der wiederhergestellte Inhalt ist statischer Text: eine Aufzeichnung früherer Vorgänge, keine aktive Sitzung. Beim Zurückscrollen wird nichts erneut ausgeführt.
+</Callout>
+
+## Weiterführendes [#next]
+
+<Cards>
+  <Card title="Projekte und Sitzungen" href="/de/docs/projects" description="Benennung, festgelegte Verzeichnisse und die Zuordnung eines Projekts." />
+  <Card title="Git-Bereich" href="/de/docs/git" description="Vormerken, Diffs, Commits und Branches." />
+  <Card title="Browserbereiche" href="/de/docs/browser" description="Lokale Server oder Dokumentation neben dem zugehörigen Terminal." />
+  <Card title="Mit KI-Agenten arbeiten" href="/de/docs/automation" description="Agenten Aufgaben delegieren und zwischen Zshell-Bereichen koordinieren lassen." />
+</Cards>

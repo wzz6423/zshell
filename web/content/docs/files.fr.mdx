@@ -1,0 +1,62 @@
+---
+title: Fichiers et éditeur
+description: Retrouvez des fichiers dans vos projets, recherchez leur contenu, modifiez le code et consultez Markdown à côté du terminal.
+---
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> ouvre l'arborescence des fichiers. Comme le panneau Git, elle part du [répertoire du projet](/fr/docs/projects#the-project-directory), sans changer de racine à chaque `cd`.
+
+## Arborescence [#the-tree]
+
+Cliquez sur un fichier pour l'ouvrir dans le volet actif. Les autres actions sont accessibles par clic droit :
+
+| Action | Effet |
+| --- | --- |
+| **Ouvrir** / **Ouvrir sur le côté** | Ouvrir dans ce volet ou dans une nouvelle division |
+| **Ouvrir dans l'application par défaut** | Utiliser l'application choisie par macOS |
+| **Afficher dans le Finder** | |
+| **Copier le chemin** | Copier le chemin absolu |
+| **cd ici** | Exécuter `cd <folder>` dans le terminal actif |
+| **Nouveau fichier…** / **Nouveau dossier…** | Créer dans le dossier sélectionné |
+| **Renommer** | |
+| **Placer dans la corbeille** | Déplacer vers la corbeille sans suppression définitive |
+
+Les lignes utilisent des icônes Material adaptées aux noms de fichiers. Dans un dépôt Git, les chemins modifiés portent également des couleurs et des badges d'état, tandis que les fichiers ignorés sont atténués. L'arborescence reflète ainsi le même état de l'arbre de travail que le panneau Git.
+
+## Trouver des fichiers et rechercher leur contenu [#find-files-and-search-contents]
+
+La palette de commandes (<kbd>Cmd</kbd>+<kbd>P</kbd>) recherche des fichiers par nom ou par chemin dans les projets locaux ouverts de la fenêtre actuelle, ainsi que des commandes et des sessions. Sélectionner un fichier active son projet et l'y ouvre.
+
+Pour rechercher du texte dans les fichiers, cliquez sur la loupe du panneau Fichiers ou choisissez **Rechercher dans les fichiers** dans la palette. Saisissez le texte puis appuyez sur <kbd>Return</kbd> pour chercher dans le répertoire du projet local actuel. **Aa** active le respect de la casse ; ouvrir un résultat vous amène à la ligne correspondante dans l'éditeur.
+
+La recherche correspond au texte littéral, ignore les fichiers binaires et les dossiers habituels de dépendances ou de compilation, et s'arrête à 2 000 résultats. Vous pouvez arrêter une recherche en conservant les résultats, ou la fermer pour revenir à l'arborescence. Ces recherches locales ne couvrent pas les projets SSH.
+
+## Éditeur [#the-editor]
+
+Ouvrir un fichier affiche un véritable éditeur dans un volet, avec coloration syntaxique.
+
+| Action | Raccourci |
+| --- | --- |
+| Enregistrer | <kbd>Cmd</kbd>+<kbd>S</kbd> |
+| Rechercher | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Rechercher et remplacer | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Occurrence suivante | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+Par défaut, les longues lignes reviennent à la ligne selon la largeur du volet. Désactivez [`editor.wrap-lines`](/fr/docs/configuration#editorwrap-lines) pour utiliser le défilement horizontal.
+
+Renommer un fichier dans l'arborescence met à jour tous les volets qui l'affichent, y compris les fichiers situés sous un dossier renommé.
+
+Si un autre programme modifie un fichier ouvert, Zshell actualise l'aperçu sans modifications locales lorsque l'application redevient active. Il n'écrase jamais un tampon d'éditeur contenant des changements non enregistrés.
+
+<Callout type="info">
+Cet éditeur sert à la modification que vous examinez : corriger une faute, ajuster une constante ou lire un fichier cité dans un diff. Il ne propose ni serveur de langage, ni complétion, ni refactorisation à l'échelle du projet. Ce choix est volontaire.
+</Callout>
+
+## Aperçu Markdown [#markdown-preview]
+
+Ouvrez un fichier `.md` pour lire son rendu dans le même volet. Cliquez sur **Modifier** en haut à droite pour travailler sur le texte source, puis sur **Aperçu** pour voir le résultat. Zshell mémorise le mode choisi pour les autres fichiers Markdown et le prochain lancement.
+
+Changer de mode conserve vos modifications et l'historique d'annulation. Enregistrez normalement avec <kbd>Cmd</kbd>+<kbd>S</kbd>. Les fichiers Markdown portant d'autres extensions s'ouvrent en mode source.
+
+## Diffs [#diffs]
+
+Un diff ouvert depuis le [panneau Git](/fr/docs/git) est un volet comme les autres : diff, fichier et terminal peuvent donc cohabiter dans un même onglet. Il utilise votre police de terminal, et un ensemble de mille fichiers s'ouvre aussi rapidement qu'un changement d'une ligne. Les diffs non indexés de l'arbre de travail actuel peuvent passer du mode Révision au mode Modification ; les diffs indexés et historiques restent en lecture seule. Consultez [Lire les diffs](/fr/docs/git#reading-diffs).

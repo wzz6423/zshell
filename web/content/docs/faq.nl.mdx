@@ -1,0 +1,68 @@
+---
+title: Veelgestelde vragen
+description: Veelgestelde vragen over kosten, privacy en de verhouding tussen Zshell en je shell.
+---
+
+<Accordions>
+
+<Accordion title="Is Zshell gratis?">
+
+Ja. Gratis te downloaden, met openbare broncode onder de PolyForm Noncommercial License 1.0.0, zonder account of abonnement.
+
+</Accordion>
+
+<Accordion title="Vervangt het mijn shell?">
+
+Nee. Zshell biedt ruimte aan de shell die je al gebruikt. Het start `$SHELL -l` en laat je prompt, aliassen, functies en dotfiles intact. Het terminaldeelvenster kan Ghostty of Alacritty als backend gebruiken.
+
+</Accordion>
+
+<Accordion title="Verzamelt het gegevens?">
+
+Geen telemetrie of analyses. Updatecontroles zoeken het land van het netwerk-IP op om tussen GitHub en Gitee te kiezen en halen daarna de releasefeed op. Schakel automatische controles uit onder **Instellingen → Updates** om deze achtergrondverzoeken te stoppen; handmatige controles doen ze nog wel. Zie [Updates](/nl/docs/installation#updates). De pagina Aanbevelingen controleert toolversies zolang ze open is.
+
+Pagina's die je in een [browserdeelvenster](/nl/docs/browser) opent en agent-CLI's die je uitvoert, doen hun eigen door jou gestuurde verzoeken, net zoals buiten Zshell.
+
+</Accordion>
+
+<Accordion title="Leest het mijn Ghostty- of Alacritty-configuratie?">
+
+Nee. Backend, lettertypen, kleuren en invoergedrag komen uit de eigen [instellingen](/nl/docs/configuration) van Zshell. Zshell laadt het configuratiebestand van geen van beide terminalapps.
+
+</Accordion>
+
+<Accordion title="Wat gebeurt er met mijn sessies als ik afsluit?">
+
+Projecten, tabbladen en deelvensterindeling komen terug na een herstart, en elke terminal opent als een nieuwe shell in de vorige map. Na het afsluiten blijft niets op de achtergrond draaien.
+
+Eerdere uitvoergeschiedenis komt ook terug als je [`terminal.restore-history`](/nl/docs/configuration#terminalrestore-history) inschakelt. Ze verschijnt als statische tekst boven een scheidingsregel `Session Contents Restored`.
+
+</Accordion>
+
+<Accordion title="Is dit een IDE?">
+
+Nee, en dat is ook niet de richting. De terminal blijft centraal staan. De Git- en bestandspanelen bestaan zodat je kunt beoordelen en opleveren wat in de terminal gebeurt zonder van app te wisselen, niet om je hoofdwerkplek te worden.
+
+</Accordion>
+
+<Accordion title="Waarom vroeg een dialoog toestemming voordat een programma mijn klembord mocht lezen?">
+
+Omdat een programma erom vroeg. De escape-reeks `OSC 52` laat een terminalprogramma het systeemklembord lezen, ook als dat programma op een externe host via SSH draait. Zshell vraagt eerst je bevestiging in plaats van de inhoud stilzwijgend te geven. Ghostty gebruikt dezelfde standaard.
+
+</Accordion>
+
+<Accordion title="Kan ik het met een AI-programmeeragent gebruiken?">
+
+Ja. AI-integratie staat standaard aan. Vraag een ondersteunde agent in gewone taal om iets in een achtergronddeelvenster uit te voeren of een afgebakende taak te delegeren. Agents in afzonderlijke Zshell-deelvensters kunnen ook vragen, bevindingen en vervolgopdrachten uitwisselen, zodat jij geen context hoeft te kopiëren. Zshell houdt hun door de aanbieder gemelde status bezig/geblokkeerd/klaar zichtbaar zonder die uit terminaltekst te raden, terwijl jij beslist over goedkeuringen en de uiteindelijke diff. Zie [Werken met AI-agents](/nl/docs/automation).
+
+Je kunt een agent ook gewoon als terminalprogramma gebruiken: beoordeel de diff in het [Git-paneel](/nl/docs/git), lees bestanden ernaast en stage alleen wat je wilt.
+
+</Accordion>
+
+<Accordion title="Waar meld ik een bug?">
+
+Open een issue op [GitHub](https://github.com/wzz6423/zshell/issues). De macOS-versie en wat je deed toen het gebeurde, zijn meestal genoeg om te beginnen.
+
+</Accordion>
+
+</Accordions>

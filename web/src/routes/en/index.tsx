@@ -1,26 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { HomePage } from '@/components/home-page'
-import { homeCopy } from '@/lib/home-copy'
-import { loadRelease } from '@/lib/release'
+import { loadHomePage } from '@/lib/home-loader'
+import { pageHead } from '@/lib/page-head'
 
 const LANG = 'en'
 
-/** The explicit English landing page, while Chinese stays at the root URL. */
 export const Route = createFileRoute('/en/')({
   component: Home,
-  loader: () => loadRelease(),
+  loader: () => loadHomePage(LANG),
   staleTime: Infinity,
-  head: () => {
-    const copy = homeCopy(LANG)
-    return {
-      meta: [
-        { title: copy.title },
-        { name: 'description', content: copy.description },
-      ],
-    }
-  },
+  head: ({ loaderData }) => loaderData ? pageHead(LANG, loaderData.copy.title, loaderData.copy.description) : {},
 })
 
 function Home() {
-  return <HomePage lang={LANG} release={Route.useLoaderData()} />
+  const data = Route.useLoaderData()
+  return <HomePage lang={LANG} release={data.release} copy={data.copy} />
 }

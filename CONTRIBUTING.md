@@ -141,8 +141,8 @@ and documentation URLs.
 
 ## Localization
 
-Zshell’s development language is English, with Simplified Chinese and Japanese
-translations maintained in Xcode String Catalogs. See
+Zshell’s development language is English. The app and website support the same
+17 languages, with app translations maintained in Xcode String Catalogs. See
 [LOCALIZATION.md](mac/LOCALIZATION.md) for translating existing text, adding a
 language, testing a localization, and writing localizable Swift.
 

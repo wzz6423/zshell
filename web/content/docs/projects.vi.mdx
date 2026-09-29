@@ -1,0 +1,113 @@
+---
+title: "Dự án và phiên"
+description: "Cách Zshell tổ chức công việc: dự án ở thanh bên, phiên ở tab và dữ liệu giữ lại khi mở lại."
+---
+
+## Dự án [#projects]
+
+Dự án là một phần công việc, thực tế thường là một kho mã, có terminal, tab và trạng thái bảng riêng.
+
+<kbd>Cmd</kbd>+<kbd>N</kbd> tạo dự án với một terminal. Terminal bắt đầu trong thư mục phiên hiện tại hoặc thư mục nhà nếu chưa có phiên, nên thường bạn dùng `cd` để tới nơi cần làm. Zshell tiếp tục bằng cách gắn cây tệp và bảng Git vào kho chứa thư mục đó.
+
+Để bỏ qua `cd`, nhấp phải thư mục trong Finder và chọn **Dịch vụ → Dự án Zshell mới tại đây**; dự án mở với terminal đã bắt đầu bên trong.
+
+Dự án là đơn vị chuyển đổi của Zshell:
+
+| Thao tác | Phím tắt |
+| --- | --- |
+| Dự án mới | <kbd>Cmd</kbd>+<kbd>N</kbd> |
+| Chuyển tới dự án 1–9 | <kbd>Cmd</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Dự án sau / trước | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Ẩn thanh dự án | <kbd>Cmd</kbd>+<kbd>B</kbd> |
+
+Tên dự án lấy từ phiên đã chọn, theo terminal giống tiêu đề tab. Nhấp phải dự án để **Đổi tên…**, hoàn tác bằng **Dùng tiêu đề tự động**, **Đặt thư mục dự án…** hoặc **Đóng dự án**. Đóng dự án kết thúc các phiên nhưng không đụng tới dữ liệu trên đĩa.
+
+### Dự án SSH đã lưu [#saved-ssh-projects]
+
+Mở bảng lệnh (<kbd>Cmd</kbd>+<kbd>P</kbd>) và chọn **Dự án SSH mới…**. Nhập máy chủ, người dùng/cổng tùy chọn và thư mục từ xa cần mở. Chọn xác thực **SSH Agent**, **Mật khẩu**, **Tệp khóa riêng** hoặc **Văn bản khóa riêng**, lưu rồi chọn **Kết nối**.
+
+Kết nối đã lưu còn sau khi mở lại. Trường **Nhóm** tùy chọn tổ chức danh sách; dùng nút sửa/xóa để quản lý. Mật khẩu và khóa riêng dán vào được lưu trong Chuỗi khóa macOS; mục tệp khóa riêng chỉ nhớ đường dẫn tới khóa có sẵn.
+
+Để chạy lệnh hoặc SSH có tùy chọn bổ sung, xem [Khởi chạy nhanh](/vi/docs/quick-launch).
+
+### Nhóm ở thanh bên [#sidebar-groups]
+
+Dùng **Nhóm mới** cuối thanh bên để tạo **Nhóm thường** hoặc **Nhóm thư mục…**. Nhóm thường mở terminal mới trong thư mục nhà; nhóm thư mục cung cấp thư mục đã chọn làm mặc định. Thư mục dự án đặt rõ vẫn ưu tiên hơn. Chuyển dự án giữa các nhóm không thay đổi terminal đang chạy hay thư mục đã ghim.
+
+Kéo dự án lên tiêu đề nhóm hoặc dự án khác để sắp xếp. Kéo lên **+ (Dự án mới)** ở cuối thanh bên để bỏ khỏi nhóm. Có thể kéo tiêu đề nhóm để đổi thứ tự. Nhấn tiêu đề để thu gọn/mở rộng, nhấp đúp để đổi tên hoặc dùng menu ngữ cảnh. **Đặt dấu màu…** thêm màu, **Xóa dấu màu** bỏ màu. **Xóa nhóm** giữ mọi dự án mở. Phím số đi theo hàng dự án đang thấy; chuyển dự án sau/trước có thể hiện thành viên nhóm đang thu gọn.
+
+Bạn có thể thả thư mục Finder ở bất kỳ vị trí nào trong danh sách dự án. Thư mục đã mở sẽ được chọn thay vì tạo dự án trùng.
+
+### Thư mục dự án [#the-project-directory]
+
+Cây tệp và bảng Git cần biết thư mục đang hiển thị. Mặc định Zshell lấy thư mục hiện tại của terminal rồi đi lên tìm **kho Git bao quanh gần nhất**.
+
+Vì vậy `cd` trong kho không làm cây tệp nhảy: gốc kho vẫn là gốc. Ngoài kho, các bảng chỉ đi theo terminal.
+
+Khi chương trình tiền cảnh sang bản checkout khác, chẳng hạn tác nhân vào Git worktree riêng, Tệp, Git và Thông tin theo checkout đó. Chúng trở lại khi công việc tiền cảnh trở lại. Thư mục dự án ghim thủ công luôn thắng và tắt việc đổi gốc tự động này.
+
+Để ghim, nhấp phải dự án rồi chọn **Đặt thư mục dự án…**. Thư mục được nhớ qua các lần mở; **Dùng thư mục tự động** trao quyền lại cho cơ chế tự động.
+
+<Callout type="info">
+Bảng Thông tin (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>) hiển thị cả hai: **Thư mục hiện tại** trực tiếp của shell khi khác, và **Thư mục dự án** nơi các bảng gắn vào, có dấu `(AUTO)` nếu được suy ra tự động.
+</Callout>
+
+## Phiên [#sessions]
+
+Mỗi dự án chứa bao nhiêu phiên tùy bạn, hiển thị bằng tab phía trên. Phiên là shell đăng nhập thật, như `zsh`, `fish`, `bash` theo thiết lập tài khoản, có thư mục và lịch sử đầu ra riêng.
+
+| Thao tác | Phím tắt |
+| --- | --- |
+| Phiên mới | <kbd>Cmd</kbd>+<kbd>T</kbd> |
+| Chuyển tới tab 1–9 | <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Bộ chọn tab theo lần dùng gần nhất | <kbd>Ctrl</kbd>+<kbd>Tab</kbd> |
+| Tab sau / trước | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Đóng ô đang có tiêu điểm | <kbd>Cmd</kbd>+<kbd>W</kbd> |
+
+Phiên cục bộ mới dùng thư mục dự án đã ghim trước, rồi thư mục mặc định của nhóm thanh bên. Nếu không có cả hai, kế thừa thư mục phiên hiện tại; cuối cùng dùng thư mục nhà.
+
+### Nhóm tab [#tab-groups]
+
+Nhấp phải tab, chọn **Chuyển tới nhóm → Nhóm tab mới**. Tab vào nhóm mới biểu diễn bằng mũi tên màu không có tên. Phiên mới mở từ tab thuộc nhóm vẫn ở nhóm đó; nhấp phải mũi tên nhóm và chọn **Phiên mới trong nhóm** để tạo trực tiếp.
+
+Kéo tab lên mũi tên nhóm hoặc tab khác để chuyển. Menu ngữ cảnh cũng liệt kê nhóm và **Bỏ khỏi nhóm**. Nhấn mũi tên để thu gọn/mở rộng. Thu gọn vẫn giữ terminal hoạt động chạy và hiển thị; chuyển tới thành viên ẩn sẽ mở rộng nhóm. Xóa nhóm giữ tab và phiên mở. Ghim tab trong nhóm chuyển nó sang vùng cố định ngoài nhóm. Nhấp phải mũi tên để **Đặt dấu màu…** hoặc **Xóa dấu màu**. Màu và trạng thái thu gọn được khôi phục khi mở lại Zshell.
+
+Tab cũng thả được lên dự án thanh bên, hoặc tiêu đề nhóm để tạo dự án trong nhóm đó. Thả lên **+ (Dự án mới)** cuối thanh bên tạo dự án ngoài mọi nhóm. **Chuyển tab tới dự án** trong menu tab còn truy cập được cửa sổ khác. Những thao tác này giữ terminal đang chạy và bố cục ô. Dự án phải cùng vị trí cục bộ hoặc SSH; tạo dự án mới từ tab giữ vị trí nguồn. Tab chứa diff ở lại dự án hiện tại.
+
+### Tiêu đề tab [#tab-titles]
+
+Tiêu đề do terminal báo: chuỗi điều khiển của dấu nhắc shell hoặc chương trình đang chạy. Nhấp phải **Đổi tên…** để đặt tay; **Dùng tiêu đề tự động** quay lại theo terminal.
+
+Menu còn có **Đóng**, **Đóng các tab khác**, **Đóng tab bên phải**, **Đóng tất cả**, **Hiển thị trong Finder** và **Sao chép đường dẫn tuyệt đối** của thư mục phiên. **Đóng tệp** và **Đóng diff** xóa các loại nội dung đó trong toàn dự án, giữ nguyên terminal và ô trình duyệt.
+
+## Cửa sổ [#windows]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> mở cửa sổ khác. Mỗi cửa sổ có dự án và trạng thái thanh bên độc lập, được khôi phục riêng.
+
+## Dữ liệu còn sau khi mở lại [#what-survives-a-relaunch]
+
+Zshell lưu ảnh chụp bố cục khi làm việc; thoát rồi mở lại sẽ khôi phục:
+
+- mọi dự án theo đúng thứ tự
+- mọi tab, gồm tên riêng, ghim và dấu màu
+- nhóm thanh bên, gồm tên, màu, thứ tự, thành viên và trạng thái thu gọn
+- nhóm tab, gồm màu, thứ tự, thành viên và trạng thái thu gọn
+- thư mục dự án đã ghim và dự án trống
+- bố cục ô trong mỗi tab
+- thanh bên đang mở và bảng bên phải đã chọn
+
+Terminal trở lại bằng **shell mới** trong thư mục cũ. Zshell không giữ tiến trình chạy nền; bản build đang chạy lúc thoát cũng dừng khi đó.
+
+Đầu ra cũ chỉ được khôi phục khi bật [`terminal.restore-history`](/vi/docs/configuration#terminalrestore-history). Mặc định tắt vì lịch sử khôi phục được lưu trên đĩa.
+
+## Môi trường và khởi tạo terminal [#terminal-environment-and-initialization]
+
+Chọn dự án, dùng **Terminal → Môi trường terminal của dự án…** để đặt biến môi trường và lệnh khởi tạo. Dùng **Terminal → Môi trường terminal của tab…** cho thiết lập ghi đè của tab hiện tại.
+
+| Phạm vi | Hành vi |
+| --- | --- |
+| Dự án | Terminal mới trong dự án kế thừa biến và lệnh khởi tạo |
+| Tab | Biến ghi đè giá trị dự án cùng tên; lệnh có thể kế thừa, thay thế hoặc tắt lệnh dự án |
+
+Thay đổi chỉ tác động terminal tạo sau khi lưu. Tiến trình hiện có giữ nguyên môi trường. Khởi tạo chạy cho shell đăng nhập thường, không cho chương trình khởi động tùy chỉnh hay argv rõ ràng.
+`ZSHELL_*`, `TERM`, `COLORTERM`, `TERM_PROGRAM` và `TERM_PROGRAM_VERSION` do Zshell quản lý, không thể ghi đè.

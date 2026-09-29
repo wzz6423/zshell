@@ -1,0 +1,68 @@
+---
+title: Häufige Fragen
+description: Antworten zu Kosten, Datenschutz und dem Zusammenspiel von Zshell und Ihrer Shell.
+---
+
+<Accordions>
+
+<Accordion title="Ist Zshell kostenlos?">
+
+Ja. Der Download ist kostenlos, der Quellcode ist unter der PolyForm Noncommercial License 1.0.0 öffentlich zugänglich. Es sind weder ein Konto noch ein Abonnement nötig.
+
+</Accordion>
+
+<Accordion title="Ersetzt Zshell meine Shell?">
+
+Nein. Zshell führt Ihre bisherige Shell aus: Es startet `$SHELL -l` und lässt Prompt, Aliasse, Funktionen und Konfigurationsdateien unverändert. Als Backend für Terminalbereiche stehen Ghostty und Alacritty zur Wahl.
+
+</Accordion>
+
+<Accordion title="Erfasst Zshell Daten?">
+
+Es gibt weder Telemetrie noch Nutzungsanalyse. Bei der Updatesuche wird das Land der Netzwerk-IP ermittelt, um zwischen GitHub und Gitee zu wählen; anschließend wird der Release-Feed abgerufen. Deaktivieren Sie automatische Prüfungen unter **Einstellungen → Updates**, um diese Hintergrundanfragen zu unterbinden. Manuelle Prüfungen führen sie weiterhin aus. Siehe [Updates](/de/docs/installation#updates). Die Empfehlungsseite prüft Werkzeugversionen, solange sie geöffnet ist.
+
+Seiten, die Sie in einem [Browserbereich](/de/docs/browser) öffnen, und von Ihnen gestartete Agenten-CLIs führen ihre eigenen, von Ihnen veranlassten Anfragen aus, wie außerhalb von Zshell auch.
+
+</Accordion>
+
+<Accordion title="Liest Zshell meine Ghostty- oder Alacritty-Konfiguration?">
+
+Nein. Backend, Schriftarten, Farben und Eingabeverhalten stammen aus Zshells eigenen [Einstellungen](/de/docs/configuration). Die Konfigurationsdateien der beiden Terminalanwendungen werden nicht geladen.
+
+</Accordion>
+
+<Accordion title="Was geschieht beim Beenden mit meinen Sitzungen?">
+
+Projekte, Tabs und die Anordnung der Bereiche werden beim nächsten Start wiederhergestellt. Jedes Terminal öffnet eine neue Shell in seinem bisherigen Verzeichnis. Nach dem Beenden läuft nichts im Hintergrund weiter.
+
+Mit aktiviertem [`terminal.restore-history`](/de/docs/configuration#terminalrestore-history) erscheint auch die bisherige Terminalausgabe wieder: als statischer Text oberhalb einer Trennlinie mit dem Hinweis `Session Contents Restored`.
+
+</Accordion>
+
+<Accordion title="Ist Zshell eine IDE?">
+
+Nein, und das ist auch nicht das Ziel. Das Terminal bleibt der Mittelpunkt. Git- und Dateipanel helfen dabei, die im Terminal entstandene Arbeit zu prüfen und zu veröffentlichen, ohne die Anwendung zu wechseln. Sie sollen nicht zum eigentlichen Arbeitsort werden.
+
+</Accordion>
+
+<Accordion title="Warum wurde ich gefragt, bevor ein Programm meine Zwischenablage lesen durfte?">
+
+Weil ein Programm den Zugriff angefordert hat. Mit der Escape-Sequenz `OSC 52` kann ein Terminalprogramm die Systemzwischenablage lesen, auch wenn es über SSH auf einem entfernten Rechner läuft. Zshell fragt vorher nach, statt den Inhalt stillschweigend weiterzugeben. Das entspricht auch Ghosttys Standardeinstellung.
+
+</Accordion>
+
+<Accordion title="Kann ich einen KI-Programmieragenten verwenden?">
+
+Ja. Die KI-Integration ist standardmäßig aktiviert. Bitten Sie einen unterstützten Agenten in normaler Sprache, etwas in einem Hintergrundbereich auszuführen oder eine klar begrenzte Aufgabe zu delegieren. Agenten in verschiedenen Zshell-Bereichen können Fragen, Erkenntnisse und Folgeaufgaben austauschen, ohne dass Sie Kontext kopieren müssen. Zshell zeigt den vom Anbieter gemeldeten Zustand – arbeitet, blockiert oder abgeschlossen – an, ohne ihn aus Terminaltext zu erraten. Freigaben und der abschließende Diff bleiben unter Ihrer Kontrolle. Siehe [Mit KI-Agenten arbeiten](/de/docs/automation).
+
+Sie können einen Agenten auch wie jedes andere Terminalprogramm verwenden: Prüfen Sie seinen Diff im [Git-Panel](/de/docs/git), lesen Sie Dateien daneben und nehmen Sie nur die gewünschten Änderungen in die Staging-Area auf.
+
+</Accordion>
+
+<Accordion title="Wo melde ich einen Fehler?">
+
+Erstellen Sie ein Issue auf [GitHub](https://github.com/wzz6423/zshell/issues). Die macOS-Version und eine Beschreibung dessen, was Sie beim Auftreten getan haben, reichen meist als Ausgangspunkt.
+
+</Accordion>
+
+</Accordions>

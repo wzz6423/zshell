@@ -1,0 +1,94 @@
+---
+title: "Git paneli"
+description: "Değişiklikleri üreten kabuğun yanında hazırlayın, inceleyin, commit ve push yapın."
+---
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> tuşlarına basın. Panel projenizin bağlı olduğu depoda açılır; nasıl seçildiği için [proje dizini](/tr/docs/projects#the-project-directory) bölümüne bakın.
+
+Buradaki her işlem Zshell’in sizin adınıza çalıştırdığı bir Git komutudur. Sonuç yalnızca “tamamlandı”dan fazlasını anlatıyorsa çıktı gösterilir. Siz istemedikçe geçmiş yeniden yazılmaz, squash veya force push yapılmaz.
+
+## Git araç çubuğu [#the-git-toolbar]
+
+Zshell etkin sekmenin altında küçük bir araç çubuğu gösterebilir. Depoda geçerli dal ve toplam eklenen/silinen satır sayısı görünür; değişiklik yoksa yeşil **Temiz** durumu gösterilir. İzlenmeyen dosyalar eklenen satır sayısına dâhildir.
+
+- Yerel dalları aramak ve değiştirmek için dal adına tıklayın. Deponun varsayılan dalı listede işaretlidir.
+- Git panelini açmak için değişiklik sayılarına tıklayın.
+- Depo dışında **Her Zaman Göster** modu, panelin başlatma görünümünü açan **Git Deposu Yok** düğmesini bırakır.
+
+**Ayarlar → Genel** altında **Gizle**, **Otomatik** veya **Her Zaman Göster** seçin ya da [`toolbar.visibility`](/tr/docs/configuration#toolbarvisibility) ayarlayın. Varsayılan Gizle’dir. Görünür araç çubuğu kendi bağlam menüsünden de gizlenebilir.
+
+## Değişmiş dosyalar [#changed-files]
+
+Dosyalar çakışmalar, hazırlanmış ve hazırlanmamış değişiklikler olarak gruplanır. Düğmeler için satırın üzerine gelin veya bağlam menüsünü kullanın:
+
+| Düğme | İşlev |
+| --- | --- |
+| **+** | Dosyayı hazırlama alanına ekler |
+| **−** | Hazırlama alanından çıkarır |
+| **↺** | Değişikliklerini atar |
+
+Panel başlığındaki **Tüm Değişiklikleri At** önce onay ister; burada başka bir Git komutuyla geri alamayacağınız işlem budur.
+
+Çakışmalı dosyalarda normal hazırlama düğmesi yerine **Çözüldü Olarak İşaretle (Hazırla)** vardır; çözme yan etki değil, bilinçli adımdır.
+
+Başlıktaki huni düğmesi dosya adına göre süzer; büyük değişikliklerde gezinmenin en hızlı yoludur.
+
+## Farkları okuma [#reading-diffs]
+
+Değişmiş dosyaya tıklamak farkını terminalin üstüne değil, yanındaki bölmeye açar. Bağlam menüsünde **Dosyayı Aç** (düzenlenebilir dosyanın kendisi) ve **Dosyayı Yanda Aç** da vardır.
+
+Büyük farklar da akıcıdır. Bin dosyalık değişiklik kümesi tek satırlık kadar hızlı açılır ve takılmadan kaydırılır.
+
+Fark üstündeki denetimler iki tercihi uygulama genelinde hatırlar:
+
+- **Birleşik / Yan Yana**, tek sütun ve karşılıklı görünüm arasında geçer.
+- **İncele / Düzenle**, canlı çalışma ağacındaki hazırlanmamış dosyalarda görünür. Yeni tarafı doğrudan düzenleyip <kbd>Cmd</kbd>+<kbd>S</kbd> ile kaydedin; kaydedilmemiş dosyayı kapatma davranışı normal düzenleyiciyle aynıdır.
+
+Hazırlanmış ve geçmiş commit farkları salt okunurdur; bunlar Zshell’in güvenle yazabileceği dosyalar değil, anlık görüntülerdir. Bir farkı Düzenle veya Yan Yana yapmak diğer açık farkların tercihini günceller ama uygun olmayan farkları düzenlenebilir yapmaz.
+
+## Commit oluşturma [#committing]
+
+Mesaj yazıp commit düğmesini kullanın veya menüsünden seçin:
+
+- **Hazırlananları Commit Et** — tam olarak hazırladıklarınızı commit eder
+- **Tümünü Hazırla ve Commit Et** — izlenen her şeyi hazırlayıp commit eder
+- **Son Commit’i Değiştir** — hazırlanmış değişiklikleri önceki commit’e katar
+- **Tümünü Hazırla ve Son Commit’i Değiştir**
+
+Son commit’ler altta listelenir; bağlam menülerinde **Commit Hash’ini Kopyala** ve **Commit Mesajını Kopyala** vardır.
+
+## Dallar [#branches]
+
+Başlıktaki dal adı bir menüdür: geçmek için başka dal seçin veya bulunduğunuz yerden dal başlatmak için **Yeni Dal Oluştur…** kullanın.
+
+## Çalışma ağaçları [#worktrees]
+
+Git paneli deponun tüm çalışma ağaçlarını dal ve çalışma kopyası yollarıyla listeler. Etkin kopya **Geçerli** işaretlidir. Birine tıklamak o dizinde yeni terminal sekmesi açar; her kopya aynı projede kalırken kendi kabuk bağlamını korur. Uzun listeler sınırlandırılmış kendi alanında kaydırılır; bölüm başlığı, commit denetimleri ve değişmiş dosya listesi yerinde kalır. Başlığa tıklamak bölümü daraltır/genişletir.
+
+Detached HEAD çalışma ağaçlarında dal adı yerine **Detached HEAD** görünür. Bare depolar da bütünlük için listelenir; çalışma dizinleri olmadığından terminal sekmesinde açılamaz.
+
+## Uzak depolar [#remotes]
+
+**⋯** menüsü uzak depoyla konuşan işlemleri içerir:
+
+| İşlem | İşlev |
+| --- | --- |
+| **Fetch** | Uzak izleme referanslarını günceller |
+| **Pull (Yalnızca Fast-forward)** | Merge commit oluşturmadan çeker; gerekirse reddeder |
+| **Push** | Geçerli dalı gönderir |
+| **Dalı Yayımla** | Upstream’i olmayan dalı gönderir; birden fazla uzak varsa seçtirir |
+| **Değişiklikleri Eşitle** | Fast-forward pull, ardından push |
+| **Tüm Değişiklikleri Stash’e Al** | İzlenmeyen dosyalar dâhil her şeyi saklar |
+| **Stash’i Geri Yükle** | En son stash’i geri getirir |
+
+Dalın yanındaki rozetler upstream’e göre kaç commit **↓ geride** ve **↑ ileride** olduğunuzu gösterir.
+
+Aynı menüde **Değişen Yolları Kopyala**, **Depo Yolunu Kopyala** ve **Depoyu Finder’da Göster** vardır.
+
+<Callout type="info">
+Pull bilinçli olarak yalnızca fast-forward yapar. Gerçek merge veya rebase gerekirse Git söyler; kararı terminalde siz verirsiniz. Panel sizin yerinize strateji seçmez.
+</Callout>
+
+## Henüz depo değilse [#not-a-repository-yet]
+
+Proje dizininde depo yoksa panel o klasörde `git init` çalıştıran **Depoyu Başlat** seçeneğini sunar. O zamana kadar önünüze çıkmaz.

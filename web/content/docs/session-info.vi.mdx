@@ -1,0 +1,37 @@
+---
+title: "Tiến trình và cổng"
+description: "Xem phiên thực sự đang chạy gì và đã mở những cổng nào."
+---
+
+Nhấn <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>. Bảng Thông tin mô tả **phiên đang có tiêu điểm**, không phải dự án, và làm mới khi công việc bắt đầu hoặc dừng.
+
+## Thư mục [#directory]
+
+Được tách riêng vì không phải lúc nào cũng giống nhau:
+
+- **Thư mục hiện tại** — thư mục làm việc trực tiếp của shell, hiện khi khác thư mục bên dưới.
+- **Thư mục dự án** — thư mục cây tệp và bảng Git gắn vào, có `(AUTO)` khi Zshell tự suy ra. Cửa sổ `?` giải thích cả hai.
+
+Bên cạnh là lối tắt mở thư mục trong **Finder**, **VS Code** nếu đã cài, và **Sao chép** đường dẫn.
+
+## Tiến trình [#processes]
+
+Mọi thứ chạy dưới shell của phiên, cùng PID, phần trăm CPU và bộ nhớ thường trú. Nhấp phải tiến trình để:
+
+- **Kết thúc** — gửi `SIGTERM` nhẹ nhàng
+- **Buộc dừng** — dùng `SIGKILL` nếu tiến trình không chịu dừng
+- **Sao chép PID** / **Sao chép đường dẫn chương trình**
+
+Tiến trình con đã thoát nhưng chờ thu hồi (`<defunct>`) được bỏ qua vì không còn gì để xem hoặc dừng.
+
+## Cổng [#ports]
+
+Mọi cổng TCP mà các tiến trình ấy đang lắng nghe, kèm tiến trình sở hữu. Hữu ích để biết lần này máy chủ phát triển chọn cổng nào hoặc thứ gì còn giữ 3000.
+
+- Nhấn cổng để mở `http://localhost:<port>/` trong trình duyệt
+- **Sao chép URL**
+- **Dừng tiến trình** — khi thứ giữ cổng là một tiến trình bạn đã quên
+
+<Callout type="info">
+Danh sách cập nhật khi bảng mở và tạm dừng khi bảng bị ẩn.
+</Callout>

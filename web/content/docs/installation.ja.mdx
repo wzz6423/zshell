@@ -1,0 +1,79 @@
+---
+title: インストール
+description: Zshell のダウンロード、Homebrew でのインストール、更新、完全な削除。
+---
+
+Zshell は Apple の公証を受けていません。[ホームページ](/ja)のダウンロード欄に、現在のリリースが必要とする macOS の最小バージョンを表示しています。
+
+## ダウンロード [#download]
+
+[ホームページ](/ja)から `.dmg` をダウンロードします。現在の 0.1.7 リリースには Universal、Apple Silicon、Intel 向けのパッケージがあり、Gitee ミラーも利用できます。
+ディスクイメージを開き、**Zshell** を「アプリケーション」にドラッグしてください。
+
+初回起動時に macOS がアプリをブロックすることがあります。一度起動を試みてから、<strong>システム設定 → プライバシーとセキュリティ → このまま開く（Open Anyway）</strong>を選び、Zshell を開くことを確認します。Homebrew からのインストールも同様です。
+
+## Homebrew [#homebrew]
+
+```bash
+brew install wzz6423/tap/zshell
+```
+
+Cask は `wzz6423/homebrew-tap` にあり、Mac のプロセッサに合う ZIP をインストールします。
+インストール後の更新には Sparkle を使います。Homebrew から明示的に更新する場合や、古いバージョンを最新にする場合は、次を実行します。
+
+```bash
+brew upgrade --cask --greedy-auto-updates zshell
+```
+
+## 更新 [#updates]
+
+直接ダウンロードした場合も Homebrew から入れた場合も、更新には [Sparkle](https://sparkle-project.org) を使用します。
+中国本土では Gitee、次に GitHub、それ以外では GitHub、次に Gitee を試します。取得できる場合は接続元 IP の国情報を使い、取得に失敗した場合は macOS の地域設定を使います。
+フィードやダウンロードに失敗すると、もう一方の配信元で 1 回再試行します。
+国情報の取得には [ipinfo.io/country](https://ipinfo.io/country) を使い、タイムアウトは 5 秒、メモリ内のキャッシュは 30 分です。
+このリクエストにより接続元の公開 IP が同サービスに伝わりますが、Zshell は IP を保存しません。自動確認をオフにすると、バックグラウンドでの国情報取得も停止します。
+
+インストール前に署名付きフィードと更新パッケージを検証し、インストール済みのアーキテクチャを維持します。Rosetta 上で動く Intel 版は Apple Silicon 版へ移行します。
+
+<strong>設定 → 更新（Updates）</strong>（<kbd>Cmd</kbd>+<kbd>,</kbd>）で自動確認と<strong>更新を自動ダウンロード（Automatically download updates）</strong>を設定できます。
+ダウンロードは初期状態ではオフで、自動確認が有効な場合に使えます。ダウンロードをオンにすると、独立した<strong>更新を自動インストール（Automatically install updates）</strong>が現れます。こちらも初期状態ではオフです。
+インストールをオフにしている場合、更新はバックグラウンドでダウンロードされ、Zshell を終了するときに適用されます。両方をオンにすると、準備できた更新を自動インストールして Zshell を再起動します。
+再起動中に実行中のターミナルプロセスは停止し、Zshell が開き直すとワークスペースが復元されます。
+ダウンロードをオフにするとインストールのスイッチが隠れ、自動再起動も行いません。ただし選択内容は保持され、次にダウンロードを有効にしたときに戻ります。両方の選択はアプリの再起動後も保持されます。
+更新があると、プロジェクトサイドバー下部のフィードバックボタンの左に更新アイコンが表示されます。クリックすると更新や進捗を開いたり、保留中の再起動を再試行したりできます。
+手動で確認するには<strong>更新を確認…（Check for Updates…）</strong>を選びます。上記の Homebrew コマンドからも明示的に更新できます。
+
+## おすすめのツール [#recommended-tools]
+
+<strong>設定 → おすすめ（Recommendations）</strong>では、ターミナル、ネットワーク、開発、ユーティリティ、Zisla などのデスクトップツールを探せます。
+このページを開いている間に、インストール済みツールと利用可能な更新を確認します。
+各ツールの<strong>インストール（Install）</strong>や<strong>更新（Update）</strong>、未導入のおすすめをまとめて入れる<strong>未インストールを導入（Install Missing）</strong>、Homebrew 管理ツールの更新をまとめて適用する<strong>すべて更新（Update All）</strong>を使用できます。
+
+ツールのインストールには Homebrew を使います。Homebrew がない場合は導入手順へのリンクが表示されます。確認だけで勝手にインストールや更新を行うことはありません。
+Homebrew 以外から入れたツールには <strong>Homebrew 管理外（Outside Homebrew）</strong>と表示されます。
+<strong>Homebrew を使用（Use Homebrew）</strong>は Homebrew 管理のコピーをインストールしますが、シェルの `PATH` によっては既存のコピーが引き続き優先されます。
+インストール状況を変えたあとは<strong>再読み込み（Refresh）</strong>で確認し直せます。Zshell 自体は<strong>設定 → 更新</strong>で管理します。
+
+## Finder からフォルダを開く [#open-a-folder-from-finder]
+
+Zshell は **New Zshell Project Here** という macOS サービスを登録します。
+Finder で 1 つ以上のフォルダを選び、右クリックして**サービス**サブメニューから選択すると、各フォルダがプロジェクトになり、その場所でターミナルが起動します。
+
+メニューにない場合は、**システム設定 → キーボード → キーボードショートカット → サービス → ファイルとフォルダ**で有効にします。
+macOS が新しいサービスを表示するには、アプリを一度起動する必要があります。
+
+## アンインストール [#uninstalling]
+
+**設定 → 自動化 → AI** が有効な場合は、アプリを削除する前にオフにしてください。Zshell がインストールしたエージェント連携を削除できます。
+
+「アプリケーション」から `zshell.app` を削除します。設定も初期化したい場合は次を実行します。
+
+```bash
+rm -rf ~/.config/zshell
+```
+
+ウィンドウ配置、サイドバー幅、セッションのスナップショットは macOS の環境設定ストアにあります。
+
+```bash
+defaults delete sh.zshell
+```

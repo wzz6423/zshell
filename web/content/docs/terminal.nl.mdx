@@ -1,0 +1,158 @@
+---
+title: De terminal
+description: De terminalbackends, shellomgeving, koppelingen, meldingen en veiligheidsfuncties van Zshell.
+---
+
+Elk terminaldeelvenster draait je echte inlogshell en gebruikt een van twee native, GPU-versnelde terminalbackends. Zshell regelt het gedrag eromheen: deelvensterfocus, zoeken, meldingen, koppelingen, geschiedenis, thema's en veilig plakken. Dat blijft dus hetzelfde, ongeacht welke emulator je kiest.
+
+## Terminalbackends [#terminal-backends]
+
+Kies een backend onder **Instellingen → Terminal → Backend**:
+
+| Backend | Opmerkingen |
+| --- | --- |
+| **Ghostty** | De standaard |
+| **Alacritty** | Gebruikt doorgaans minder geheugen |
+
+Beide ondersteunen GPU-versnelling, afbeeldingen, de gedeelde themacatalogus van Zshell, zoeken, muisrapportage, meldingen en voortgangsrapportage. Een backendwijziging geldt alleen voor nieuwe terminals; bestaande deelvensters houden de emulator waarmee ze zijn gestart.
+
+## Je shell blijft hetzelfde [#your-shell-unchanged]
+
+Elke sessie start de inlogshell van je account, zodat je prompt, aliassen, functies en dotfiles worden geladen zoals in elke andere terminal. Zshell voegt variabelen toe voor mogelijkheden en identificatie:
+
+| Variabele | Waarde |
+| --- | --- |
+| `TERM_PROGRAM` | `ghostty` |
+| `TERM_PROGRAM_VERSION` | De Ghostty-capaciteitsversie die Zshell implementeert |
+| `ZSHELL_TERM` | `ghostty` of `alacritty`, de werkelijke backend van het deelvenster |
+
+Beide backends melden Ghostty via `TERM_PROGRAM`, omdat CLI's met ondersteuning voor afbeeldingen en meldingen dit als aanwijzing voor beschikbare mogelijkheden gebruiken. Gebruik `ZSHELL_TERM` alleen als je de renderer daadwerkelijk moet onderscheiden.
+
+<Callout type="info">
+Zshell leest `~/.config/ghostty` noch een Alacritty-configuratie. Lettertypen, kleuren, invoergedrag en de backend stel je in via de eigen [instellingen](/nl/docs/configuration) van Zshell.
+</Callout>
+
+## Zoeken [#search]
+
+| Actie | Sneltoets |
+| --- | --- |
+| Zoeken | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Volgende zoeken | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+| Vorige zoeken | <kbd>Shift</kbd>+<kbd>Return</kbd> in de zoekbalk |
+| Selectie gebruiken om te zoeken | <kbd>Cmd</kbd>+<kbd>E</kbd> |
+| Terminal wissen | <kbd>Cmd</kbd>+<kbd>K</kbd> |
+
+Zoeken werkt op het terminal- of editordeelvenster met focus en blijft actief zolang het zoekveld de toetsenbordfocus heeft.
+
+## Prompt bewerken [#prompt-editing]
+
+Klik in de actieve shellprompt om de invoercursor te verplaatsen en typ op die plek verder. In een zsh-prompt kun je over de invoer slepen om een bereik te selecteren: typen vervangt de selectie, Backspace of Delete verwijdert haar. Dubbel- en driedubbelklikken selecteren nog steeds terminaltekst. Programma's met muisrapportage, zoals TUI's op volledig scherm, blijven hun eigen muisgebeurtenissen ontvangen.
+
+Als een geneste of vervangende shell de promptbewerkingsondersteuning van Zshell niet heeft geladen, selecteert slepen nog steeds terminaltekst om te kopiëren, maar bewerkt het de invoer niet. Bewerken van invoerselecties werkt weer zodra je terugkeert naar de oorspronkelijke prompt.
+
+Het standaardinvoerveld van Claude Code ondersteunt klikken om de cursor te plaatsen en slepen om invoer te bewerken op beide backends, ook bij afgebroken regels en concepten met meerdere regels. Typ of plak om de geselecteerde invoer te vervangen, of druk op Backspace of Delete om haar te verwijderen. De normale en visuele Vim-modus, dialoogvensters, bijlagen of samengevouwen plakinhoud en teruggescrolde gesprekstekst behouden hun bestaande terminalselectiegedrag. Applicaties die de muis overnemen, blijven hun eigen invoer afhandelen.
+
+Spraakinvoer van Zisla gebruikt de plakactie van de terminal. In Claude Code vervangt die ook een geselecteerd invoerbereik; bewust een zin herhalen blijft ondersteund.
+
+## Sneltoetsen voor de voorgrondapplicatie [#foreground-application-shortcuts]
+
+Als de sneltoetsen van een terminalapplicatie met Zshell botsen, klik je met de rechtermuisknop op het deelvenster en schakel je **Zshell-opdrachten blokkeren** in. Toetscombinaties met modificatietoetsen, waaronder <kbd>Ctrl</kbd>+<kbd>Return</kbd>, gaan dan naar de voorgrondapplicatie zolang dat deelvenster toetsenbordfocus heeft. Kopiëren, plakken en alles selecteren blijven beschikbaar.
+
+Deze instelling geldt alleen voor dat deelvenster. Klik opnieuw met de rechtermuisknop en verwijder het vinkje om Zshell-sneltoetsen te herstellen. Als een applicatie de muis overneemt, houd je <kbd>Shift</kbd> ingedrukt tijdens het rechtsklikken om het Zshell-menu te openen.
+
+## Promptwachtrij [#prompt-queue]
+
+Geef een terminal de focus en druk op <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>, of kies **Promptwachtrij tonen/verbergen** in het opdrachtenpalet. De balk opent onder die terminal. Typ een item en druk op <kbd>Return</kbd> of **Toevoegen aan wachtrij**. Elk item bestaat uit één regel; geplakte regeleinden worden spaties.
+
+Wanneer de oorspronkelijke zsh terugkeert naar een lege shellprompt, verstuurt Zshell het volgende item en drukt het op Return. Items worden op volgorde uitgevoerd. Automatisch versturen wacht zolang een agent of ander voorgrondprogramma de terminal beheert, of zolang de shellprompt conceptinvoer bevat. Daarvoor is de zsh-integratie van Zshell nodig; andere en geneste shells kunnen handmatig versturen gebruiken.
+
+Elk item heeft knoppen **Nu verzenden** en **Verwijderen**. **Nu verzenden** stuurt de tekst en Return onmiddellijk naar het huidige terminalprogramma, zonder op een shellprompt te wachten. <kbd>Esc</kbd> of de sluitknop verbergt de balk en bewaart de items. Elke terminal heeft een eigen wachtrij; de sessie sluiten of Zshell afsluiten verwijdert die wachtrij.
+
+## Paden en URL's [#paths-and-urls]
+
+Zshell herkent web-URL's en bestaande lokale paden in de uitvoer van terminalprogramma's. Lokale koppelingen kunnen absoluut zijn, relatief aan `~/`, met `./` of `../`, of relatief aan de actuele werkmap van het deelvenster. Een diagnostisch achtervoegsel zoals `:42` of `:42:7` verhindert niet dat het onderliggende bestand wordt gevonden.
+
+- **Command-klik** op een lokaal pad om het in Finder te tonen, of op een URL om die in je standaardbrowser te openen.
+- **Command-rechtsklik** op een pad voor **Nieuw bestandstabblad** / **Nieuw bestandsdeelvenster**, of op een URL voor **Nieuw browsertabblad** / **Nieuw browserdeelvenster**.
+- Programma's op volledig scherm met muisrapportage ontvangen een gewone rechtermuisklik zelf. Houd **Shift** ingedrukt tijdens het rechtsklikken om in plaats daarvan het terminal- en deelvenstermenu van Zshell te openen.
+
+Zo bieden compileruitvoer en agentgesprekken een directe weg terug naar hetzelfde project. Browsergedrag staat beschreven in [Browserdeelvensters](/nl/docs/browser).
+
+## Meldingen [#notifications]
+
+Zshell stuurt twee terminalgebeurtenissen door naar het Berichtencentrum:
+
+- een belsignaal van een sessie zonder focus;
+- een `OSC 777;notify`-verzoek van een programma, zoals een langdurige build of programmeeragent.
+
+Meldingen kunnen het systeemgeluid afspelen. Klikken op een melding activeert Zshell en brengt je naar de exacte sessie die haar verstuurde. macOS vraagt pas om toestemming wanneer een terminal voor het eerst een melding probeert te sturen, niet bij het starten van Zshell.
+
+### Voltooide opdrachten [#command-completion]
+
+Open **Instellingen → Terminal → Opdrachtmeldingen** om meldingen te krijgen wanneer een opdracht eindigt:
+
+- **Langlopende opdrachten**: kies 5, 10, 30 of 60 seconden. Een opdracht die minstens zo lang duurt, geeft een voltooiingsmelding. Standaard staat dit **Uit**.
+- **Mislukte opdrachten**: meld een afsluitstatus anders dan nul, ongeacht de looptijd. Ook dit staat standaard uit en kan onafhankelijk worden ingeschakeld.
+
+Deze instellingen gelden voor zsh-terminals die na de wijziging worden gemaakt, op beide terminalbackends. Ze gebruiken de voltooiingsgebeurtenis van de oorspronkelijke shell; opdrachten binnen een geneste shell of interactief programma melden via deze integratie geen afzonderlijke voltooiingen.
+
+Je kunt dezelfde instellingen opslaan in `~/.config/zshell/config.toml`:
+
+```toml
+terminal.notify-finish-seconds = 30
+terminal.notify-on-error = true
+```
+
+Stel `terminal.notify-finish-seconds` in op `0` om meldingen op basis van looptijd uit te schakelen. De bezorging volgt je macOS-meldingsinstellingen.
+
+## Voortgangsrapportage [#progress-reports]
+
+Programma's die voortgang via `OSC 9;4` doorgeven, krijgen een dunne balk boven de terminal, met afzonderlijke toestanden voor normaal, gepauzeerd en fout. Je hoeft niets in te schakelen: als het programma voortgang meldt, toont het deelvenster die.
+
+## Klembord, slepen en veilig plakken [#clipboard-drops-and-paste-safety]
+
+- **Lezen van het klembord vereist bevestiging.** `OSC 52` kan de inhoud van het macOS-klembord opvragen, ook vanaf een externe host via SSH. Zshell vraagt toestemming voordat het die terugstuurt.
+- **Riskante plakacties worden gemarkeerd.** Tekst met meerdere regels of tekst die op een opdracht lijkt, vereist bevestiging en wordt niet meteen ingevoerd.
+- **Bestanden worden shellveilige paden.** Bestanden die vanuit Finder zijn gekopieerd of gesleept, worden ingevoegd als absolute paden tussen aanhalingstekens. Klembordafbeeldingen bereiken nog steeds TUI's die afbeeldingen ondersteunen.
+
+## Invoer met Option [#option-key-input]
+
+Standaard blijft Option bij de actieve macOS-invoerbron, zodat indelingen zoals Polish Pro samengestelde tekens kunnen invoeren. Schakel **Option als Alt/Meta gebruiken** in bij Instellingen wanneer een terminalprogramma Option-combinaties als Meta-sneltoetsen moet ontvangen. Zie [`terminal.macos-option-as-alt`](/nl/docs/configuration#terminalmacos-option-as-alt).
+
+## De opdracht `zshell` [#the-zshell-command]
+
+Elke Zshell-terminal bevat een CLI die het project kent:
+
+```sh
+zshell                         # maak een project in de huidige map
+zshell vim ~/src/app.swift     # maak het project en voer deze argv uit in de eerste terminal
+zshell +themes                 # bekijk thema’s en hun voorbeelden interactief
+zshell +themes --list --dark   # druk themanamen af zonder de themakiezer
+zshell +help                   # toon alle opdrachtgroepen
+```
+
+De themakiezer toont elke selectie als voorbeeld in de hele app. Return slaat de keuze op; Escape herstelt het vorige thema.
+
+## Lettertypen [#fonts]
+
+Zshell levert JetBrains Mono en Nerd Font-symbolen mee. Elk geïnstalleerd monospacelettertype kan het Latijnse lettertype vervangen; een geïnstalleerde CJK-familie kan vóór de symbool- en systeemfallbacks worden geplaatst. Zie [`font-family`](/nl/docs/configuration#font-family), [`terminal.font-fallback-family`](/nl/docs/configuration#terminalfont-fallback-family), [`font-size`](/nl/docs/configuration#font-size), [`terminal.font-thicken`](/nl/docs/configuration#terminalfont-thicken) en [`terminal.line-height`](/nl/docs/configuration#terminalline-height).
+
+## Algemene snelle terminal [#global-quick-terminal]
+
+Druk terwijl Zshell draait op <kbd>Cmd</kbd>+<kbd>I</kbd> om een onafhankelijke terminal boven een andere app te openen; druk nogmaals om hem te sluiten. Hij heeft een tijdelijke shell buiten de projecttabbladen. Pas grootte, dekking en sneltoets aan onder **Instellingen → Terminal → Snelle terminal**.
+
+- Zet het venster vast om het open te houden wanneer je tussen apps wisselt.
+- Een niet-vastgezet venster sluit zodra het focus verliest of je erbuiten klikt.
+- Als **Zshell-opdrachten blokkeren** uitstaat, sluit <kbd>Esc</kbd> of de algemene sneltoets het venster en beëindigt de shell met alle actieve taken. Opnieuw openen start een nieuwe sessie.
+
+Gebruik een projectterminal voor diensten die lang moeten draaien. [Snel starten](/nl/docs/quick-launch), waarmee je opdrachten opslaat en uitvoert, is een afzonderlijke functie.
+
+## Vim-opdrachthulp [#vim-command-hints]
+
+Schakel **Instellingen → Terminal → Gedrag → Vim-opdrachthulp** in en open vervolgens **Info** in de rechterzijbalk. Onder de sessiegegevens verschijnt een gedeelte **VIM-OPDRACHTEN** zolang Vim, Vi of Neovim actief is. Dit staat standaard uit en geldt onmiddellijk voor bestaande terminals op beide backends.
+
+De volledige lijst met veelgebruikte opdrachten blijft beschikbaar; alleen de prioriteit verandert. De normale modus zet `:w`, `:q`, `yy` en `p`/`P` vooraan; Visueel blok zet `I`/`A`, blokwijzigingen en beweging tussen hoeken vooraan. Invoegen, Vervangen, Visueel, Visuele regel, Selecteren, opdrachtregel- en zoekmodus hebben een eigen volgorde. Bij elke opdracht staan de toepasselijke modi. Zoek op toetsen, beschrijving of modusnaam; beschrijvingen en zoekinterface volgen elk van de 17 app-talen. Wis de zoekopdracht om de volledige lijst te herstellen. De hulp is naslagmateriaal en stuurt nooit invoer naar de editor.
+
+Lokale editors worden herkend aan hun uitvoerbare voorgrondprogramma. Binnen SSH, Mosh of een terminalmultiplexer gebruikt de detectie de zichtbare Vim-modus- of statusregel en schermindeling, zonder een externe plug-in te installeren. Houd Vim's `showmode` of een herkenbare statusregel ingeschakeld. Configuraties die moduslabels verbergen of hernoemen, kunnen terugvallen op hulp voor de normale modus of externe detectie verhinderen; aangepaste toetsbindingen worden niet geïnterpreteerd. Alleen het actieve Info-paneel wordt bemonsterd. De hulp verdwijnt wanneer het voorgrondprogramma verandert of de editor niet meer herkenbaar is.
+
+Je kunt dit ook in het configuratiebestand inschakelen met `terminal.vim-command-hints = true`.

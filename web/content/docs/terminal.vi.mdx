@@ -1,0 +1,158 @@
+---
+title: "Terminal"
+description: "Backend terminal, môi trường shell, liên kết, thông báo và tính năng an toàn của Zshell."
+---
+
+Mỗi ô terminal chạy shell đăng nhập thật của bạn và dùng một trong hai backend gốc có tăng tốc GPU. Zshell quản lý hành vi xung quanh: tiêu điểm ô, tìm kiếm, thông báo, liên kết, lịch sử, chủ đề và an toàn khi dán, nên nhất quán dù bạn chọn bộ mô phỏng nào.
+
+## Backend terminal [#terminal-backends]
+
+Chọn ở **Cài đặt → Terminal → Backend**:
+
+| Backend | Ghi chú |
+| --- | --- |
+| **Ghostty** | Mặc định |
+| **Alacritty** | Thường dùng ít bộ nhớ hơn |
+
+Cả hai hỗ trợ tăng tốc GPU, kết xuất ảnh, bộ chủ đề chung của Zshell, tìm kiếm, báo cáo chuột, thông báo và báo tiến độ. Đổi backend chỉ tác động terminal mới; ô hiện tại giữ backend lúc bắt đầu.
+
+## Shell của bạn không đổi [#your-shell-unchanged]
+
+Mỗi phiên mở shell đăng nhập của tài khoản, nên dấu nhắc, alias, hàm và dotfile nạp như trong terminal khác. Zshell thêm biến nhận diện và khả năng:
+
+| Biến | Giá trị |
+| --- | --- |
+| `TERM_PROGRAM` | `ghostty` |
+| `TERM_PROGRAM_VERSION` | Phiên bản khả năng Ghostty mà Zshell triển khai |
+| `ZSHELL_TERM` | `ghostty` hoặc `alacritty`, backend thật của ô |
+
+Cả hai backend khai báo Ghostty qua `TERM_PROGRAM` vì CLI hỗ trợ ảnh/thông báo dùng nó như dấu hiệu khả năng. Chỉ dùng `ZSHELL_TERM` khi thực sự cần phân biệt bộ kết xuất.
+
+<Callout type="info">
+Zshell không đọc `~/.config/ghostty` hay cấu hình Alacritty. Phông, màu, hành vi nhập và backend được đặt trong [cài đặt](/vi/docs/configuration) riêng của Zshell.
+</Callout>
+
+## Tìm kiếm [#search]
+
+| Thao tác | Phím tắt |
+| --- | --- |
+| Tìm | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Tìm tiếp | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+| Tìm trước | <kbd>Shift</kbd>+<kbd>Return</kbd> trong thanh tìm |
+| Dùng phần chọn để tìm | <kbd>Cmd</kbd>+<kbd>E</kbd> |
+| Xóa terminal | <kbd>Cmd</kbd>+<kbd>K</kbd> |
+
+Tìm hoạt động trên ô terminal hoặc trình soạn thảo có tiêu điểm và tiếp tục khi ô tìm giữ tiêu điểm bàn phím.
+
+## Sửa dấu nhắc [#prompt-editing]
+
+Nhấn trong dấu nhắc shell đang hoạt động để chuyển con trỏ nhập, rồi gõ tại đó. Trong zsh, kéo qua đầu vào để chọn đoạn: gõ thay đoạn chọn, Backspace hoặc Delete xóa đoạn đó. Nhấp đúp/ba vẫn chọn chữ terminal; chương trình bật báo cáo chuột, như TUI toàn màn hình, tiếp tục nhận sự kiện chuột riêng.
+
+Nếu shell lồng nhau hoặc shell thay thế chưa nạp hỗ trợ sửa dấu nhắc của Zshell, kéo vẫn chọn chữ terminal để sao chép nhưng không sửa đầu vào. Chỉnh sửa vùng chọn trở lại khi thoát về dấu nhắc gốc.
+
+Ô nhập chuẩn của Claude Code hỗ trợ nhấn đặt con trỏ và kéo chỉnh sửa trên cả hai backend, kể cả bản nháp xuống dòng mềm hoặc nhiều dòng. Gõ/dán để thay vùng chọn, Backspace/Delete để xóa. Chế độ normal/visual của Vim, hộp thoại, phần giữ chỗ tệp đính kèm hoặc đoạn dán thu gọn, và hội thoại đã cuộn vẫn dùng hành vi chọn terminal hiện có. Ứng dụng bắt chuột tiếp tục tự xử lý đầu vào.
+
+Nhập giọng nói Zisla dùng thao tác dán của terminal. Trong Claude Code, nó cũng thay vùng nhập đang chọn; lặp lại một câu có chủ ý vẫn được hỗ trợ.
+
+## Phím tắt ứng dụng tiền cảnh [#foreground-application-shortcuts]
+
+Khi phím tắt terminal xung đột với Zshell, nhấp phải ô rồi bật **Chặn lệnh Zshell**. Khi ô có tiêu điểm bàn phím, phím có bổ trợ, gồm <kbd>Ctrl</kbd>+<kbd>Return</kbd>, đi tới ứng dụng tiền cảnh. Sao chép, dán và chọn tất cả vẫn dùng được.
+
+Thiết lập chỉ áp dụng ô đó. Nhấp phải bỏ dấu chọn để khôi phục phím Zshell. Nếu ứng dụng bắt chuột, giữ <kbd>Shift</kbd> khi nhấp phải để mở menu Zshell.
+
+## Hàng đợi lệnh [#prompt-queue]
+
+Chọn terminal và nhấn <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>, hoặc **Bật/tắt hàng đợi lệnh** trong bảng lệnh. Thanh mở dưới terminal đó. Gõ mục rồi <kbd>Return</kbd> hoặc **Thêm vào hàng đợi**; mỗi mục một dòng, xuống dòng dán vào đổi thành khoảng trắng.
+
+Khi zsh gốc trở lại dấu nhắc trống, Zshell gửi mục kế tiếp rồi Return. Mục chạy theo thứ tự hàng đợi. Gửi tự động chờ khi tác nhân/chương trình tiền cảnh đang dùng terminal hoặc dấu nhắc có bản nháp. Cần tích hợp zsh của Zshell; shell khác và shell lồng nhau có thể gửi thủ công.
+
+Mỗi mục có **Gửi ngay** và **Xóa**. **Gửi ngay** lập tức gửi chữ và Return tới chương trình hiện tại, không đợi dấu nhắc shell. <kbd>Esc</kbd> hoặc nút đóng ẩn thanh và giữ hàng đợi. Mỗi terminal có hàng đợi riêng; đóng phiên hoặc thoát Zshell sẽ bỏ nó.
+
+## Đường dẫn và URL [#paths-and-urls]
+
+Zshell nhận URL web và đường dẫn cục bộ tồn tại do chương trình in ra. Liên kết có thể tuyệt đối, tương đối `~/`, `./`, `../` hoặc theo thư mục làm việc trực tiếp của ô. Hậu tố chẩn đoán như `:42`, `:42:7` không cản tìm tệp gốc.
+
+- **Command-nhấp** đường dẫn để hiện trong Finder, hoặc URL để mở bằng trình duyệt mặc định.
+- **Command-nhấp phải** đường dẫn cho **Tab tệp mới** / **Ô tệp mới**, hoặc URL cho **Tab trình duyệt mới** / **Ô trình duyệt mới**.
+- Chương trình toàn màn hình bật báo cáo chuột nhận nhấp phải không bổ trợ. Giữ **Shift** khi nhấp phải để mở menu terminal/ô của Zshell.
+
+Nhờ vậy đầu ra trình biên dịch và hội thoại tác nhân nối thẳng về cùng dự án. Xem hành vi trình duyệt ở [Ô trình duyệt](/vi/docs/browser).
+
+## Thông báo [#notifications]
+
+Zshell chuyển hai sự kiện terminal tới Trung tâm thông báo:
+
+- chuông từ phiên không có tiêu điểm;
+- yêu cầu `OSC 777;notify` từ chương trình như build dài hoặc tác nhân lập trình.
+
+Thông báo có thể phát âm hệ thống. Nhấn thông báo kích hoạt Zshell và tới đúng phiên phát ra nó. macOS chỉ xin quyền khi terminal lần đầu muốn thông báo, không phải khi Zshell mở.
+
+### Hoàn thành lệnh [#command-completion]
+
+Mở **Cài đặt → Terminal → Thông báo lệnh** để nhận báo khi lệnh kết thúc:
+
+- **Lệnh chạy lâu**: chọn 5, 10, 30 hoặc 60 giây. Lệnh chạy ít nhất thời gian đó phát thông báo khi xong. Mặc định **Tắt**.
+- **Lệnh thất bại**: báo khi mã thoát khác không, bất kể thời gian. Cũng mặc định tắt và bật độc lập được.
+
+Áp dụng terminal zsh tạo sau thay đổi, trên cả hai backend. Tính năng dùng sự kiện hoàn thành của shell gốc; lệnh chạy trong shell lồng nhau hoặc chương trình tương tác không báo từng lần hoàn thành qua tích hợp này.
+
+Có thể lưu cùng thiết lập trong `~/.config/zshell/config.toml`:
+
+```toml
+terminal.notify-finish-seconds = 30
+terminal.notify-on-error = true
+```
+
+Đặt `terminal.notify-finish-seconds` thành `0` để tắt báo theo thời lượng. Việc gửi thông báo tuân theo cài đặt macOS.
+
+## Báo tiến độ [#progress-reports]
+
+Chương trình phát `OSC 9;4` có thanh mảnh trên terminal, phân biệt bình thường, tạm dừng và lỗi. Không cần bật gì: chương trình báo tiến độ thì ô hiển thị.
+
+## Bảng nhớ tạm, thả tệp và dán an toàn [#clipboard-drops-and-paste-safety]
+
+- **Đọc bảng nhớ tạm cần xác nhận.** `OSC 52` có thể yêu cầu bảng nhớ macOS, kể cả từ máy SSH từ xa. Zshell hỏi trước khi trả dữ liệu.
+- **Đánh dấu thao tác dán rủi ro.** Văn bản nhiều dòng hoặc giống lệnh chờ xác nhận thay vì gửi ngay.
+- **Tệp thành đường dẫn an toàn cho shell.** Tệp kéo hoặc sao chép từ Finder được chèn bằng đường dẫn tuyệt đối trong dấu nháy. Ảnh bảng nhớ vẫn tới TUI có hỗ trợ ảnh.
+
+## Nhập với phím Option [#option-key-input]
+
+Mặc định Option thuộc nguồn nhập macOS đang dùng để bố cục như Polish Pro nhập được ký tự tổ hợp. Bật **Dùng Option làm Alt/Meta** trong Cài đặt nếu chương trình terminal cần nhận tổ hợp Option như phím Meta. Xem [`terminal.macos-option-as-alt`](/vi/docs/configuration#terminalmacos-option-as-alt).
+
+## Lệnh `zshell` [#the-zshell-command]
+
+Mỗi terminal Zshell có CLI nhận biết dự án:
+
+```sh
+zshell                         # tạo dự án trong thư mục hiện tại
+zshell vim ~/src/app.swift     # tạo dự án và chạy argv này trong terminal đầu tiên
+zshell +themes                 # duyệt và xem trước giao diện theo cách tương tác
+zshell +themes --list --dark   # in tên các giao diện mà không mở trình chọn
+zshell +help                   # hiển thị tất cả các nhóm lệnh
+```
+
+Trình duyệt chủ đề xem trước mỗi lựa chọn trên toàn ứng dụng; Return lưu, Escape khôi phục chủ đề trước.
+
+## Phông chữ [#fonts]
+
+Zshell kèm JetBrains Mono và ký hiệu Nerd Font. Bất kỳ họ phông đơn cách đã cài nào cũng thay được phông Latin; họ CJK đã cài có thể thêm trước phông ký hiệu và dự phòng hệ thống. Xem [`font-family`](/vi/docs/configuration#font-family), [`terminal.font-fallback-family`](/vi/docs/configuration#terminalfont-fallback-family), [`font-size`](/vi/docs/configuration#font-size), [`terminal.font-thicken`](/vi/docs/configuration#terminalfont-thicken) và [`terminal.line-height`](/vi/docs/configuration#terminalline-height).
+
+## Terminal nhanh toàn cục [#global-quick-terminal]
+
+Khi Zshell chạy, <kbd>Cmd</kbd>+<kbd>I</kbd> mở terminal độc lập phủ trên ứng dụng khác; nhấn lại để đóng. Nó có shell tạm ngoài các tab dự án. Điều chỉnh kích thước, độ mờ và phím tắt ở **Cài đặt → Terminal → Terminal nhanh**.
+
+- Ghim cửa sổ để giữ mở khi đổi ứng dụng.
+- Cửa sổ không ghim đóng khi mất tiêu điểm hoặc nhấn bên ngoài.
+- Khi **Chặn lệnh Zshell** tắt, <kbd>Esc</kbd> hoặc phím tắt toàn cục đóng cửa sổ, kết thúc shell và tác vụ đang chạy. Mở lại tạo phiên mới.
+
+Dùng terminal dự án cho dịch vụ chạy lâu. [Khởi chạy nhanh](/vi/docs/quick-launch), dùng lưu và chạy lệnh, là tính năng riêng.
+
+## Gợi ý lệnh Vim [#vim-command-hints]
+
+Bật **Cài đặt → Terminal → Hành vi → Gợi ý lệnh Vim**, rồi mở tab **Thông tin** bên phải. Mục **LỆNH VIM** xuất hiện dưới thông tin phiên khi Vim, Vi hoặc Neovim hoạt động. Mặc định tắt, có hiệu lực ngay với terminal hiện có trên cả hai backend.
+
+Toàn bộ danh sách lệnh thông dụng luôn còn; chỉ ưu tiên thay đổi. Normal đưa `:w`, `:q`, `yy`, `p`/`P` lên trước; Visual Block ưu tiên `I`/`A`, thay đổi khối và di chuyển góc. Insert, Replace, Visual, Visual Line, Select, dòng lệnh và tìm kiếm có thứ tự riêng. Mỗi mục ghi chế độ áp dụng. Tìm theo phím, mô tả hoặc tên chế độ; mô tả và giao diện tìm theo bất kỳ ngôn ngữ nào trong 17 ngôn ngữ ứng dụng. Xóa truy vấn để trở về danh sách đầy đủ. Gợi ý chỉ để tham khảo, không gửi đầu vào cho trình soạn thảo.
+
+Trình soạn thảo cục bộ được nhận diện qua chương trình tiền cảnh. Trong SSH, Mosh hoặc bộ ghép terminal, việc phát hiện dùng dòng chế độ/trạng thái Vim nhìn thấy và bố cục màn hình, không cài plugin từ xa. Giữ `showmode` hoặc dòng trạng thái dễ nhận diện. Cấu hình giấu/đổi nhãn chế độ có thể trở về gợi ý Normal hoặc ngăn nhận diện từ xa; ánh xạ phím tùy chỉnh không được diễn giải. Chỉ bảng Thông tin đang hoạt động được lấy mẫu; gợi ý biến mất khi chương trình tiền cảnh đổi hoặc không còn nhận ra trình soạn thảo.
+
+Cũng có thể bật bằng `terminal.vim-command-hints = true` trong cấu hình.

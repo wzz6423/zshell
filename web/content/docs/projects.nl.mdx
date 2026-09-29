@@ -1,0 +1,114 @@
+---
+title: Projecten en sessies
+description: Hoe Zshell je werk ordent — projecten in de zijbalk, sessies als tabbladen en wat na een herstart terugkomt.
+---
+
+## Projecten [#projects]
+
+Een project is één stuk werk, in de praktijk één repository, met eigen terminals, tabbladen en paneelinstellingen.
+
+<kbd>Cmd</kbd>+<kbd>N</kbd> maakt een project met één terminal. De terminal begint in de map van de huidige sessie, of je thuismap als er geen sessie is. Meestal ga je daarna met `cd` naar je werkmap. Zshell neemt het dan over: de bestandsboom en het Git-paneel richten zich op de repository waarin die map staat.
+
+Wil je `cd` overslaan, klik dan met de rechtermuisknop op een map in Finder en kies **Voorzieningen → Nieuw Zshell-project hier**. De map opent als project, met de terminal al in die map.
+
+Projecten zijn de eenheid waartussen Zshell wisselt:
+
+| Actie | Sneltoets |
+| --- | --- |
+| Nieuw project | <kbd>Cmd</kbd>+<kbd>N</kbd> |
+| Naar project 1–9 | <kbd>Cmd</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Volgend / vorig project | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Projectzijbalk verbergen | <kbd>Cmd</kbd>+<kbd>B</kbd> |
+
+Een project krijgt de naam van de geselecteerde sessie en volgt dus de terminal, net als een tabbladtitel. Klik er in de zijbalk met de rechtermuisknop op voor **Hernoemen…** (en **Automatische titel gebruiken** om dat ongedaan te maken), **Projectmap instellen…** en **Project sluiten**. Een project sluiten beëindigt de sessies, maar verandert niets op schijf.
+
+### Opgeslagen SSH-projecten [#saved-ssh-projects]
+
+Open het opdrachtenpalet (<kbd>Cmd</kbd>+<kbd>P</kbd>) en kies **Nieuw SSH-project…**. Voer een host, eventueel een gebruiker en poort, en de te openen externe map in. Kies **SSH-agent**, **Wachtwoord**, **Privésleutelbestand** of **Privésleuteltekst** als authenticatiemethode. Sla de verbinding op en kies **Verbinden**.
+
+Opgeslagen verbindingen blijven beschikbaar na een herstart. Gebruik het optionele veld **Groep** om de verbindingslijst te ordenen, en de knoppen voor bewerken en verwijderen om vermeldingen te beheren. Wachtwoorden en geplakte privésleutels worden opgeslagen in de macOS-sleutelhanger; een vermelding voor een privésleutelbestand onthoudt het pad naar je bestaande sleutel.
+
+Voor een opdracht of SSH-start met extra opties, zie [Snel starten](/nl/docs/quick-launch).
+
+### Zijbalkgroepen [#sidebar-groups]
+
+Gebruik **Nieuwe groep** onderaan de zijbalk om een **Gewone groep** of **Mapgroep…** te maken. Gewone groepen starten nieuwe terminals in je thuismap; mapgroepen gebruiken standaard de geselecteerde map. Een expliciet ingestelde projectmap heeft altijd voorrang. Een project naar een andere groep verplaatsen verandert geen actieve terminals en vervangt de vastgezette map niet.
+
+Sleep een project naar een groepskop of ander project om het te ordenen. Sleep het naar **+ (Nieuw project)** onderaan de zijbalk om het uit de groep te halen. Je kunt groepskoppen ook slepen om groepen te herordenen. Klik op een kop om in of uit te klappen, dubbelklik om te hernoemen of gebruik het contextmenu. Kies **Kleurmarkering instellen…** om de groep een kleur te geven, of **Kleurmarkering verwijderen** om de kleur weg te halen. **Groep verwijderen** houdt alle projecten in die groep open. Cijfersneltoetsen volgen de momenteel zichtbare projectrijen; navigeren naar het volgende of vorige project kan leden van een ingeklapte groep zichtbaar maken.
+
+Je kunt mappen uit Finder overal in de projectlijst van de zijbalk neerzetten. Als een map al open is, krijgt het bestaande project de focus in plaats van dat er een duplicaat wordt gemaakt.
+
+### De projectmap [#the-project-directory]
+
+Twee panelen moeten weten welke map ze tonen: de bestandsboom en het Git-paneel. Standaard bepaalt Zshell dat zelf: het neemt de huidige terminalmap en zoekt omhoog naar de **dichtstbijzijnde omsluitende Git-repository**.
+
+Daarom verspringt de bestandsboom niet wanneer je met `cd` binnen een repository navigeert: de hoofdmap blijft dezelfde. Buiten een repository volgen de panelen gewoon de terminal.
+
+Wanneer het programma op de voorgrond naar een andere checkout gaat, bijvoorbeeld een agent die zijn eigen Git-worktree opent, volgen Bestanden, Git en Info die checkout. Ze keren terug zodra de voorgrondtaak dat doet. Een handmatig vastgezette projectmap heeft altijd voorrang en schakelt deze automatische verandering van hoofdmap uit.
+
+Om een map vast te zetten, klik je met de rechtermuisknop op het project en kies je **Projectmap instellen…**. Deze map wordt na een herstart onthouden; **Automatische map gebruiken** geeft de controle terug aan Zshell.
+
+<Callout type="info">
+Het Info-paneel (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>) toont beide: de actuele **Huidige map** van de shell als die afwijkt, en de **Projectmap** waarop de panelen zijn gericht, met `(AUTO)` wanneer deze automatisch is afgeleid.
+</Callout>
+
+## Sessies [#sessions]
+
+Elk project kan zoveel sessies bevatten als je wilt. Ze verschijnen als tabbladen bovenaan. Een sessie is een echte inlogshell, zoals `zsh`, `fish` of `bash`, afhankelijk van je accountinstelling, met een eigen werkmap en uitvoergeschiedenis.
+
+| Actie | Sneltoets |
+| --- | --- |
+| Nieuwe sessie | <kbd>Cmd</kbd>+<kbd>T</kbd> |
+| Naar tabblad 1–9 | <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Tabbladwisselaar op recent gebruik | <kbd>Ctrl</kbd>+<kbd>Tab</kbd> |
+| Volgend / vorig tabblad | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Deelvenster met focus sluiten | <kbd>Cmd</kbd>+<kbd>W</kbd> |
+
+Een nieuwe lokale sessie begint in de vastgezette projectmap als die is ingesteld, en anders in de standaardmap van de zijbalkgroep. Als geen van beide bestaat, neemt de sessie de map van de huidige sessie over en valt uiteindelijk terug op je thuismap.
+
+### Tabbladgroepen [#tab-groups]
+
+Klik met de rechtermuisknop op een tabblad en kies **Verplaatsen naar groep → Nieuwe tabbladgroep**. Het tabblad wordt lid van de nieuwe groep, weergegeven als een gekleurde pijl zonder naam. Nieuwe sessies die vanuit een gegroepeerd tabblad worden geopend, blijven in dezelfde groep; klik met de rechtermuisknop op de groepspijl en kies **Nieuwe sessie in groep** om er rechtstreeks een sessie in te maken.
+
+Sleep een tabblad naar een groepspijl of ander tabblad om het te verplaatsen. Het contextmenu bevat ook de groepen en **Uit groep verwijderen**. Klik op de pijl om de groep in of uit te klappen. Bij het inklappen blijft de actieve terminal draaien en zichtbaar; wisselen naar een verborgen lid klapt de groep open. Een groep verwijderen houdt alle tabbladen en sessies open. Als je een gegroepeerd tabblad vastzet, komt het in het vaste gedeelte buiten de groepen. Klik met de rechtermuisknop op een groepspijl voor **Kleurmarkering instellen…** of **Kleurmarkering verwijderen**. Groepskleuren en de ingeklapte toestand worden na een herstart van Zshell hersteld.
+
+Je kunt een tabblad ook op een project in de zijbalk neerzetten, of op een groepskop om binnen die groep een nieuw project te maken. Neerzetten op **+ (Nieuw project)** onderaan de zijbalk maakt een project buiten alle zijbalkgroepen. Met **Tabblad naar project verplaatsen** in het tabbladmenu bereik je ook andere vensters. Deze verplaatsingen behouden actieve terminals en de deelvensterindeling. Projecten moeten dezelfde lokale of SSH-locatie hebben; een nieuw project vanuit een tabblad behoudt de bronlocatie. Tabbladen met diffs blijven in hun huidige project.
+
+### Tabbladtitels [#tab-titles]
+
+Tabbladen krijgen de titel die de terminal doorgeeft, bijvoorbeeld via de escape-reeks van je shellprompt of het actieve programma. Klik met de rechtermuisknop op een tabblad en kies **Hernoemen…** om zelf een naam in te voeren. **Automatische titel gebruiken** volgt weer de terminal.
+
+De rest van het tabbladmenu bevat de gebruikelijke opties: **Sluiten**, **Andere sluiten**, **Tabbladen rechts sluiten**, **Alles sluiten**, plus **Toon in Finder** en **Absoluut pad kopiëren** voor de sessiemap. **Bestanden sluiten** en **Diffs sluiten** sluiten die inhoudstypen in het hele project, terwijl terminals en browserdeelvensters open blijven.
+
+## Vensters [#windows]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> opent een ander venster. Vensters zijn onafhankelijk, met eigen projecten en zijbalkinstellingen, en worden afzonderlijk hersteld.
+
+## Wat na een herstart behouden blijft [#what-survives-a-relaunch]
+
+Zshell bewaart tijdens het werken momentopnamen van de indeling. Na afsluiten en opnieuw openen krijg je terug:
+
+- elk project, in dezelfde volgorde
+- elk tabblad, inclusief aangepaste namen, vastgezette status en kleurmarkeringen
+- zijbalkgroepen, inclusief namen, kleurmarkeringen, volgorde, leden en ingeklapte toestand
+- tabbladgroepen, inclusief kleurmarkeringen, volgorde, leden en ingeklapte toestand
+- vastgezette projectmappen en lege projecten
+- de deelvensterindeling in elk tabblad
+- welke zijbalken open waren en welk rechterpaneel was geselecteerd
+
+Terminals komen terug als **nieuwe shells** in hun vorige mappen. Zshell houdt processen niet op de achtergrond in leven. Als bij het afsluiten een build draaide, stopte die op dat moment.
+
+Eerdere uitvoergeschiedenis wordt alleen hersteld als je dit instelt met [`terminal.restore-history`](/nl/docs/configuration#terminalrestore-history). Dit staat standaard uit, omdat de herstelde geschiedenis op schijf wordt opgeslagen.
+
+## Terminalomgeving en initialisatie [#terminal-environment-and-initialization]
+
+Selecteer een project en gebruik **Terminal → Terminalomgeving van project…** om omgevingsvariabelen en een initialisatieopdracht in te stellen.
+Gebruik **Terminal → Terminalomgeving van tabblad…** voor overschrijvingen in het huidige tabblad.
+
+| Bereik | Gedrag |
+| --- | --- |
+| Project | Nieuwe terminals in dit project nemen de variabelen en initialisatieopdracht over |
+| Tabblad | Variabelen overschrijven gelijknamige projectwaarden; de opdracht kan de projectopdracht overnemen, vervangen of uitschakelen |
+
+Wijzigingen gelden alleen voor terminals die na het opslaan worden gemaakt. Bestaande processen behouden hun omgeving. Initialisatie wordt uitgevoerd voor de normale inlogshell, niet voor een aangepast startprogramma of expliciete argv.
+`ZSHELL_*`, `TERM`, `COLORTERM`, `TERM_PROGRAM` en `TERM_PROGRAM_VERSION` worden door Zshell beheerd en kunnen niet worden overschreven.

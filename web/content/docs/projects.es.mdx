@@ -1,0 +1,114 @@
+---
+title: Proyectos y sesiones
+description: 'Cómo organiza Zshell tu trabajo: proyectos en la barra lateral, sesiones como pestañas y qué se conserva al volver a iniciar.'
+---
+
+## Proyectos [#projects]
+
+Un proyecto es una unidad de trabajo —en la práctica, un repositorio— con sus propios terminales, pestañas y estado de los paneles.
+
+<kbd>Cmd</kbd>+<kbd>N</kbd> crea uno con un único terminal. El terminal se inicia en el directorio de la sesión actual o en tu carpeta personal si no hay ninguna sesión, así que el siguiente paso habitual es ejecutar `cd` para ir adonde quieras. Zshell se encarga del resto: el árbol de archivos y el panel de Git se vinculan al repositorio que contiene ese directorio.
+
+Para ahorrarte el `cd`, haz clic derecho en una carpeta de Finder y elige **Servicios → Nuevo proyecto Zshell aquí**: se abre como proyecto con el terminal ya situado dentro.
+
+Los proyectos son la unidad entre la que navega Zshell:
+
+| Acción | Atajo |
+| --- | --- |
+| Nuevo proyecto | <kbd>Cmd</kbd>+<kbd>N</kbd> |
+| Ir al proyecto 1–9 | <kbd>Cmd</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Proyecto siguiente / anterior | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Ocultar la barra lateral de proyectos | <kbd>Cmd</kbd>+<kbd>B</kbd> |
+
+El proyecto recibe el nombre de su sesión seleccionada: sigue al terminal igual que el título de una pestaña. Haz clic derecho sobre él en la barra lateral para **Renombrar…** (y **Usar título automático** para revertirlo), **Establecer directorio del proyecto…** o **Cerrar proyecto**. Cerrar un proyecto termina sus sesiones; no modifica nada en el disco.
+
+### Proyectos SSH guardados [#saved-ssh-projects]
+
+Abre la paleta de comandos (<kbd>Cmd</kbd>+<kbd>P</kbd>) y elige **Nuevo proyecto SSH…**. Añade un servidor, un usuario y un puerto opcionales, y el directorio remoto que quieres abrir. Elige **Agente SSH**, **Contraseña**, **Archivo de clave privada** o **Texto de clave privada** como autenticación; después guarda la conexión y selecciona **Conectar**.
+
+Las conexiones guardadas siguen disponibles al volver a iniciar. Usa el campo opcional **Grupo** para organizar la lista de conexiones y los botones de editar y eliminar para mantenerla. Las contraseñas y las claves privadas pegadas se guardan en el Llavero de macOS; una entrada de archivo de clave privada recuerda la ruta de tu clave existente.
+
+Para ejecutar un comando o iniciar SSH con opciones adicionales, consulta [Inicio rápido](/es/docs/quick-launch).
+
+### Grupos de la barra lateral [#sidebar-groups]
+
+Usa **Nuevo grupo**, al pie de la barra lateral, para crear un **Grupo simple** o un **Grupo de carpetas…**. Los grupos simples abren los terminales nuevos en tu carpeta personal; los grupos de carpetas usan la carpeta seleccionada como ubicación predeterminada. Un directorio de proyecto establecido explícitamente conserva la prioridad. Mover un proyecto entre grupos no cambia sus terminales en ejecución ni sustituye su directorio fijado.
+
+Arrastra un proyecto a la cabecera de un grupo o a otro proyecto para organizarlo. Arrástralo a **+ (Nuevo proyecto)**, al pie de la barra lateral, para sacarlo del grupo. También puedes arrastrar las cabeceras para reordenar los grupos. Haz clic en una cabecera para contraerla o expandirla, doble clic para renombrarla, o usa su menú contextual. Elige **Establecer marcador de color…** para asignar un color al grupo o **Quitar marcador de color** para eliminarlo. **Quitar grupo** mantiene abiertos todos sus proyectos. Los atajos numéricos siguen las filas de proyectos visibles; la navegación al proyecto siguiente o anterior puede mostrar miembros de un grupo contraído.
+
+Puedes soltar carpetas desde Finder en cualquier parte de la lista de proyectos de la barra lateral. Si una carpeta ya está abierta, se le da el foco en vez de crear un proyecto duplicado.
+
+### El directorio del proyecto [#the-project-directory]
+
+Dos paneles necesitan saber qué carpeta mostrar: el árbol de archivos y el panel de Git. De forma predeterminada, Zshell lo determina tomando el directorio actual del terminal y subiendo hasta el **repositorio Git contenedor más cercano**.
+
+Por eso moverte con `cd` dentro de un repositorio no hace saltar el árbol de archivos: la raíz del repositorio sigue siendo su raíz. Fuera de un repositorio, los paneles siguen al terminal.
+
+Cuando el programa en primer plano entra en otra copia de trabajo —por ejemplo, un agente que accede a su propio árbol de trabajo de Git—, Archivos, Git e Información siguen esa copia. Vuelven cuando lo hace el programa en primer plano. Un directorio de proyecto fijado manualmente tiene siempre prioridad y desactiva este cambio automático de raíz.
+
+Para fijarlo, haz clic derecho en el proyecto y elige **Establecer directorio del proyecto…**. La carpeta fijada se recuerda al volver a iniciar, y **Usar directorio automático** devuelve el control a Zshell.
+
+<Callout type="info">
+El panel Información (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>) muestra ambos: el **Directorio actual** del shell cuando difiere y el **Directorio del proyecto** al que están vinculados los paneles, marcado con `(AUTO)` si se determina automáticamente.
+</Callout>
+
+## Sesiones [#sessions]
+
+Cada proyecto admite tantas sesiones como quieras, mostradas como pestañas en la parte superior. Una sesión es un shell de inicio de sesión real —`zsh`, `fish`, `bash` o el que tenga configurado tu cuenta— con su propio directorio de trabajo e historial de salida.
+
+| Acción | Atajo |
+| --- | --- |
+| Nueva sesión | <kbd>Cmd</kbd>+<kbd>T</kbd> |
+| Cambiar a la pestaña 1–9 | <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Selector de pestañas (por uso reciente) | <kbd>Ctrl</kbd>+<kbd>Tab</kbd> |
+| Pestaña siguiente / anterior | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Cerrar el panel con el foco | <kbd>Cmd</kbd>+<kbd>W</kbd> |
+
+Una sesión local nueva se inicia en el directorio fijado del proyecto, si existe; después tiene prioridad el directorio predeterminado de su grupo de la barra lateral. Si no hay ninguno de los dos, hereda el directorio de la sesión actual y, en último caso, usa tu carpeta personal.
+
+### Grupos de pestañas [#tab-groups]
+
+Haz clic derecho en una pestaña y elige **Mover al grupo → Nuevo grupo de pestañas**. La pestaña se incorpora al nuevo grupo, representado por una flecha de color sin nombre. Las sesiones nuevas abiertas desde una pestaña agrupada permanecen en ese grupo; haz clic derecho en la flecha y elige **Nueva sesión en el grupo** para crear una sesión directamente dentro de él.
+
+Arrastra una pestaña a la flecha de un grupo o a otra pestaña para moverla. Su menú contextual también enumera los grupos y ofrece **Quitar del grupo**. Haz clic en la flecha para contraer o expandir el grupo. Al contraerlo, el terminal activo sigue ejecutándose y visible; cambiar a un miembro oculto expande el grupo. Eliminar un grupo mantiene abiertas sus pestañas y sesiones. Fijar una pestaña agrupada la lleva a la sección fija fuera de los grupos. Haz clic derecho en la flecha para elegir **Establecer marcador de color…** o **Quitar marcador de color**. Los colores y el estado contraído se restauran al volver a iniciar Zshell.
+
+También puedes soltar una pestaña sobre un proyecto de la barra lateral o sobre la cabecera de un grupo lateral para crear un proyecto dentro de ese grupo. Soltarla en **+ (Nuevo proyecto)**, al pie de la barra lateral, crea un proyecto fuera de todos los grupos laterales. **Mover pestaña a proyecto**, en el menú de la pestaña, también permite llegar a otras ventanas. Estos movimientos conservan los terminales en ejecución y la distribución de paneles. Los proyectos deben compartir la misma ubicación local o SSH; crear un proyecto desde una pestaña conserva su ubicación de origen. Las pestañas que contienen diferencias permanecen en su proyecto actual.
+
+### Títulos de las pestañas [#tab-titles]
+
+Las pestañas toman el título que comunica el terminal: la secuencia de escape del prompt o el programa en ejecución. Haz clic derecho para **Renombrar…** una pestaña manualmente y elige **Usar título automático** para volver a seguir al terminal.
+
+El resto del menú ofrece las opciones habituales: **Cerrar**, **Cerrar los demás**, **Cerrar pestañas a la derecha**, **Cerrar todas**, además de **Mostrar en Finder** y **Copiar ruta absoluta** para el directorio de la sesión. **Cerrar archivos** y **Cerrar diferencias** eliminan esos tipos de contenido de todo el proyecto sin cerrar terminales ni paneles de navegador.
+
+## Ventanas [#windows]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> abre otra ventana. Las ventanas son independientes, cada una con sus proyectos y su estado de la barra lateral, y se restauran por separado.
+
+## Qué se conserva al volver a iniciar [#what-survives-a-relaunch]
+
+Zshell guarda instantáneas de la distribución mientras trabajas, de modo que al salir y volver a abrir recuperas:
+
+- Todos los proyectos, en su orden.
+- Todas las pestañas, incluidos nombres personalizados, fijación y marcadores de color.
+- Los grupos de la barra lateral, incluidos nombres, marcadores de color, orden, miembros y estado contraído.
+- Los grupos de pestañas, incluidos marcadores de color, orden, miembros y estado contraído.
+- Los directorios de proyecto fijados y los proyectos vacíos.
+- La distribución de paneles dentro de cada pestaña.
+- Las barras laterales que estaban abiertas y el panel derecho seleccionado.
+
+Los terminales vuelven como **shells nuevos** en sus directorios anteriores. Zshell no mantiene procesos vivos en segundo plano: si había una compilación en marcha al salir, se detuvo al salir.
+
+El historial de salida anterior solo se restaura si lo solicitas mediante [`terminal.restore-history`](/es/docs/configuration#terminalrestore-history). Está desactivado de forma predeterminada porque el historial restaurado se guarda en disco.
+
+## Entorno e inicialización del terminal [#terminal-environment-and-initialization]
+
+Selecciona un proyecto y usa **Terminal → Entorno de terminal del proyecto…** para configurar variables de entorno y un comando de inicialización.
+Usa **Terminal → Entorno de terminal de la pestaña…** para las opciones específicas de la pestaña actual.
+
+| Ámbito | Comportamiento |
+| --- | --- |
+| Proyecto | Los terminales nuevos de este proyecto heredan sus variables y su comando de inicialización |
+| Pestaña | Las variables sustituyen los valores de proyecto con el mismo nombre; el comando puede heredar, sustituir o desactivar el comando del proyecto |
+
+Los cambios afectan solo a los terminales creados después de guardar. Los procesos existentes conservan su entorno. La inicialización se ejecuta para el shell de inicio de sesión normal, no para un programa de inicio personalizado ni para un argv explícito.
+`ZSHELL_*`, `TERM`, `COLORTERM`, `TERM_PROGRAM` y `TERM_PROGRAM_VERSION` están gestionados por Zshell y no pueden sobrescribirse.

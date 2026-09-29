@@ -1,0 +1,50 @@
+---
+title: Divisioni e pannelli
+description: Dividi una scheda in pannelli, passa da uno all'altro, ridimensionali e ingrandiscine uno.
+---
+
+Qualsiasi scheda può essere divisa in pannelli. Un pannello di solito contiene un terminale, ma può ospitare anche un file, diff o [browser](/it/docs/browser): ciò che leggi resta così accanto alla shell che lo ha prodotto.
+
+## Dividere [#splitting]
+
+| Azione | Scorciatoia |
+| --- | --- |
+| Dividi a destra | <kbd>Cmd</kbd>+<kbd>D</kbd> |
+| Dividi in basso | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> |
+| Dividi a sinistra | — |
+| Dividi in alto | — |
+
+Le divisioni a sinistra e in alto non hanno scorciatoie predefinite; usa il menu **Schede**, la palette (<kbd>Cmd</kbd>+<kbd>P</kbd>) o il menu contestuale del pannello. Il nuovo pannello eredita la directory di lavoro di quello attivo.
+
+La divisione riguarda sempre il **pannello attivo**, anche in una disposizione annidata, senza ridimensionare un vicino estraneo. Ogni pannello mostra un piccolo titolo aggiornato e i controlli di divisione nell'intestazione, così il contesto resta visibile.
+
+Puoi riordinare pannelli aperti trascinando la sottile striscia superiore sul bordo di un altro pannello. Il destinatario mostra in quale metà finirà prima del rilascio.
+
+Puoi anche trasformare un'intera scheda in pannello. Trascina la scheda dalla barra superiore sul bordo sinistro, destro, superiore o inferiore del contenuto della scheda corrente. L'anteprima mostra la divisione risultante prima del rilascio.
+
+## Passare tra pannelli [#moving-between-panes]
+
+| Azione | Scorciatoia |
+| --- | --- |
+| Attivare il pannello a sinistra / destra / sopra / sotto | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+frecce |
+| Spostare il focus indietro / avanti | <kbd>Cmd</kbd>+<kbd>[</kbd> / <kbd>Cmd</kbd>+<kbd>]</kbd> |
+
+## Ingrandire e ridimensionare [#zoom-and-resize]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> ingrandisce il pannello attivo fino a occupare la scheda e, premuto ancora, lo ripristina. L'intestazione mostra un pulsante durante l'ingrandimento, offrendo un'alternativa alla scorciatoia per uscirne.
+
+| Azione | Scorciatoia |
+| --- | --- |
+| Attivare/disattivare l'ingrandimento | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> |
+| Ingrandire il pannello in una direzione | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+frecce |
+| Uniformare tutti i pannelli | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+<kbd>=</kbd> |
+
+Anche i divisori tra pannelli possono essere trascinati.
+
+## Chiudere [#closing]
+
+<kbd>Cmd</kbd>+<kbd>W</kbd> chiude il pannello attivo. Chiudendo l'ultimo pannello si chiude anche la scheda.
+
+<Callout type="warn">
+Chiudere un pannello terminale termina la shell e tutto ciò che ha avviato. Zshell non chiede conferma: equivale a chiudere un terminale altrove.
+</Callout>

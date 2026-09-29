@@ -1,0 +1,38 @@
+---
+title: Schnellstart
+description: Wiederkehrende Befehle und SSH-Verbindungen speichern und mit einem Tastendruck starten.
+---
+
+<kbd>Cmd</kbd>+<kbd>O</kbd> öffnet den **Schnellstart**: eine durchsuchbare Liste von Einträgen, die jeweils ein neues Projekt mit einer Terminalsitzung öffnen. Ein Eintrag enthält entweder einen **Befehl**, etwa `npm run dev` oder `make watch`, oder eine **SSH-Verbindung**.
+
+## Einträge starten [#launching]
+
+Geben Sie Namen, Befehl, Verbindungsziel oder Gruppe ein, um die Liste unscharf zu filtern. Klicken Sie einen Eintrag an oder wählen Sie ihn mit den Pfeiltasten und drücken Sie <kbd>Return</kbd>. Er startet in einem neuen Projekt mit dem Namen des Eintrags sowie eigener Terminalsitzung und eigenem Verzeichnis.
+
+Wenn der Befehl endet oder die Verbindung geschlossen wird, kehrt der Bereich zu einer normalen Shell-Eingabe zurück, statt zu verschwinden. Ein gestartetes Programm schließt den Bereich nicht unbemerkt.
+
+Gespeicherte Einträge lassen sich auch aus jedem Zshell-Terminal über ihren Namen starten:
+
+```bash
+zshell "Name des Eintrags"
+```
+
+Verwenden Sie den genauen Namen und setzen Sie ihn bei Leerzeichen in Anführungszeichen. Der Hinweis unten im Schnellstart zeigt diese Syntax. Der Eintrag öffnet sich in einem neuen Projekt.
+
+## Einträge verwalten [#managing-entries]
+
+- <kbd>Cmd</kbd>+<kbd>N</kbd>: neuer Eintrag.
+- <kbd>Cmd</kbd>+<kbd>E</kbd>: ausgewählten Eintrag bearbeiten.
+- <kbd>Cmd</kbd>+<kbd>Delete</kbd>: ausgewählten Eintrag löschen.
+
+Das optionale Feld **Gruppe** ordnet Einträge benannten Abschnitten zu. Die Schaltflächen zum Bearbeiten und Löschen verändern nur den jeweiligen Eintrag, ohne ihn zu starten.
+
+Ein Befehl kann ein festes **Arbeitsverzeichnis** erhalten, in dem er immer startet. Ohne diese Angabe verwendet er das Standardverzeichnis eines neuen Projekts. Bei SSH geben Sie Host, optional Benutzer und Port sowie zusätzliche freie `ssh`-Optionen wie `-L 8080:localhost:80` an.
+
+## Speicherort [#where-entries-live]
+
+Die Einträge liegen in `~/.config/zshell/quick-launch.json` und werden von allen Fenstern gemeinsam verwendet. Es handelt sich um normale Benutzerdaten; Sie können die Datei direkt bearbeiten oder sichern.
+
+<Callout type="info">
+Befehle laufen über Ihre Login-Shell und erhalten die Umgebung aus Ihrem Profil. Danach bleibt der Bereich eine normale Sitzung mit Ihren Aliasen und Ihrer Eingabeaufforderung.
+</Callout>

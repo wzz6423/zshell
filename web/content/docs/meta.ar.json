@@ -1,0 +1,23 @@
+{
+  "title": "الوثائق",
+  "pages": [
+    "---البدء---",
+    "index",
+    "installation",
+    "quick-start",
+    "---استخدام Zshell---",
+    "projects",
+    "panes",
+    "terminal",
+    "quick-launch",
+    "browser",
+    "git",
+    "files",
+    "session-info",
+    "automation",
+    "---المرجع---",
+    "shortcuts",
+    "configuration",
+    "faq"
+  ]
+}

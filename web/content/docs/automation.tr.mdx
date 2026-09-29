@@ -1,0 +1,81 @@
+---
+title: "AI ajanlarıyla çalışma"
+description: "Kontrol sizde kalırken kodlama ajanları işleri devretsin ve Zshell bölmeleri arasında koordine olsun."
+---
+
+Zshell otomasyonu öncelikle AI kodlama ajanları içindir. Onlara bölmelerle çalışma ve diğer ajanları koordine etme olanağını güvenli biçimde verir; öğrenmeniz gereken başka bir komut dili değildir.
+
+AI entegrasyonu varsayılan olarak açıktır. Ajanınızla normal biçimde konuşun. Kullandığınız bölmenin odağını almadan arka plan bölmesi oluşturabilir, bir çalışan ajana iş devredebilir, komut çalıştırabilir, sonucu bekleyip size getirebilir.
+
+## Kurulum [#setup]
+
+**Ayarlar → Otomasyon → AI** seçeneğini kontrol edin. Varsayılan açık; önceden kapattıysanız açıp yeni terminal başlatın veya çalışan ajanı yeniden başlatın.
+
+Zshell, Codex, Claude Code, Gemini CLI, Grok Build, OpenCode, Cursor Agent, Aider, Amp ve Pi’yi destekler. Mevcut ajan kurulumu bu özellik ile çakışıyorsa Zshell o kuruluma dokunmaz, anahtarı önceki durumuna döndürür ve Ayarlar’da hata gösterir.
+
+## Doğal dille isteyin [#ask-in-plain-language]
+
+Ajanınıza istediğiniz sonucu söyleyin. Örneğin:
+
+> İlgili testleri arka plan bölmesinde çalıştır ve başarısız olanları söyle.
+
+> Bu hatayı başka bir Codex ajanına devret, ardından sonucunu incele.
+
+> API üzerinde çalışan ajana şemanın hazır olup olmadığını sor, yanıtı testleri çalıştıran ajana ilet.
+
+> Geliştirme sunucusunu yanımızda başlat, hazır olmasını bekle ve URL’yi ver.
+
+> Arka plan ajanının bitirip bitirmediğini kontrol et. Takıldıysa neye ihtiyacı olduğunu söyle.
+
+Ajan sizin adınıza Zshell otomasyon arayüzünü kullanır. Otomasyon komutu yazmanız veya ezberlemeniz gerekmez.
+
+## Bölmeler arasında ajan koordinasyonu [#let-agents-coordinate-across-panes]
+
+İlişkili işleri birden çok bölmeye ayırıp ana ajanınızdan koordine etmesini isteyebilirsiniz. Örneğin bir ajan API üzerinde çalışırken diğeri testleri günceller. Koordinatör belirli çalışanın bulgularını sorabilir, takip mesajı gönderebilir, faydalı sonucu diğerine iletebilir ve birleşik yanıtı size getirebilir. Çalışanlar desteklenen farklı kodlama araçlarını kullanabilir.
+
+Böylece paralel işte kopyalama/yapıştırma adımı kalkar. Her ajan kendi konuşmasını kendi bölmesinde tutar; koordinatör yalnızca diğerinin ihtiyaç duyduğu soruyu, güncellemeyi veya sonucu iletir.
+
+Takip mesajı göndermek işin bittiği anlamına gelmez. Koordinatör çalışanı bekler, sonucunu okur ve çıktıyı kontrol eder. Başka ajandan gelen mesaj sizin onayınız sayılmaz. İzinler, kimlik bilgileri, güven kararları ve yıkıcı işlemler yine size gelir.
+
+## Çalışırken işinize devam edin [#keep-working-while-it-runs]
+
+Görmek istemedikçe devredilmiş bölmeler arka planda kalır. Sağlayıcının yerel yaşam döngüsü entegrasyonu durum bildirirse Zshell bunu ajan bölmesinde ve sekmesinde gösterir:
+
+| Durum | Sizin için anlamı |
+| --- | --- |
+| **Çalışıyor** | Ajan görevi etkin olarak işliyor. |
+| **Engellendi** | Sizden girdi, onay veya başka karar gerekiyor. |
+| **Tamamlandı** | Arka planda bitirdi; bölmeyi henüz görmediniz. |
+
+Zshell gönderdiği istemi **Çalışıyor** olarak kaydeder ama sonrasını tahmin etmek için işlenmiş terminal metnini taramaz. **Engellendi** ve **Tamamlandı** geçişleriyle bildirimleri sağlayıcının yaşam döngüsü raporunu gerektirir. Ajan raporlamıyorsa tahmini duruma güvenmek yerine bölmesini ve proje değişikliklerini doğrudan inceleyin.
+
+Entegrasyon bitiş veya girdi gereksinimi bildirince Zshell bildirim de gönderebilir. Dikkatinizi gerektirdiği raporlanan sonraki ajana geçmek için <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> kullanın.
+
+## Hesap kullanımı ve sınırlar [#account-usage-and-limits]
+
+**Ayarlar → Otomasyon → Hesap Kullanımı**, Claude Code ve Codex’in erişilebilir hesap sınırlarını; kullanılan yüzdeyi, raporlanmışsa sıfırlama zamanını ve son güncelleme zamanını gösterir. Güncel veriyi almak için **Kullanımı Yenile** kullanın.
+
+Codex, kurulu, giriş yapılmış ve hesap sınırlarını raporlayabilen CLI gerektirir. Claude Code kullanımı, Zshell sağlayıcıdan durum satırı kullanım raporu aldığında görünür. Bölüm yalnızca veri varsa görünür; desteklenen zaman aralıkları sağlayıcı ve hesaba bağlıdır. Bunlar odaktaki oturumun token toplamı değil, hesap sınırlarıdır.
+
+## Tipik iş akışı [#a-typical-workflow]
+
+1. Her zamanki kodlama ajanınızı Zshell terminalinde başlatın.
+2. Sınırları belli bir görev devretmesini, arka planda bir şey çalıştırmasını veya başka ajanı koordine etmesini isteyin.
+3. Zshell devredilen işi proje düzeninde görünür tutarken mevcut bölmenizde çalışın.
+4. Varsa sağlayıcının bildirdiği **Çalışıyor**, **Engellendi** veya **Tamamlandı** rozetini izleyin. Araç yaşam döngüsü raporlamıyorsa konuşmayı veya terminal çıktısını incelemek için bölmeyi açın.
+5. Sonuç dosyalarını [Git panelinde](/tr/docs/git) ve fark görünümünde inceleyip nelerin kalacağına karar verin.
+
+## Kontrol sizde [#you-stay-in-control]
+
+- Ajan otomasyonu mevcut Zshell projesiyle sınırlıdır; başka proje veya pencerenin bölmelerine erişemez.
+- Açıkça istemedikçe arka plan işi odağı almaz.
+- Zshell izin, kimlik bilgisi, güven veya yıkıcı işlem sorularını sizin adınıza yanıtlamaz. Sağlayıcının engellenmiş bildirdiği ajan kararı size bırakır.
+- Tamamlanma bildirimi sonucu inceleme işaretidir; değişikliklerin otomatik onayı değildir.
+
+## Ajan Zshell’i kullanmıyorsa [#if-an-agent-does-not-use-zshell]
+
+- **Ayarlar → Otomasyon → AI** seçeneğinin açık olduğunu doğrulayın.
+- Mevcut terminal ayarı açmanızdan önce oluşturulduysa yeni terminal açın.
+- Ayarı açtığınızda zaten çalışan ajanı yeniden başlatın.
+- Ayarlar’da satır içi kurulum hatası olup olmadığını kontrol edin.
+- Bu akışı istediğiniz görevde açıkça “arka plan Zshell bölmesi” veya “devredilmiş Zshell ajanı” isteyin.

@@ -1,0 +1,38 @@
+---
+title: 程序與連接埠
+description: 看清一個工作階段到底在跑什麼，以及它開了哪些連接埠。
+---
+
+按 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>。資訊面板描述的是**當前聚焦的工作階段**——
+不是專案——並且隨著東西啟停實時重新整理。
+
+## 目錄 [#directory]
+
+分成兩項，因為它們並不總是同一個：
+
+- **Current Directory**——shell 實時的工作目錄，和下面那個不同時才顯示。
+- **Project Directory**——檔案和 git 面板錨定的資料夾，Zshell 自動推導時標著 `(AUTO)`。旁邊的 `?` 會解釋這兩種模式。
+
+緊挨著它們的是幾個快速操作：在 **Finder** 中顯示、用 **VS Code** 打開（裝了才有）、以及 **Copy** 路徑。
+
+## 程序 [#processes]
+
+工作階段 shell 底下跑著的所有東西，帶 PID、CPU 百分比和常駐記憶體。右鍵某個程序可以：
+
+- **Terminate**——客氣的 `SIGTERM`
+- **Force Kill**——`SIGKILL`，對付不聽勸的
+- **Copy PID** / **Copy Executable Path**
+
+已經退出、還在等待回收的子程序（`<defunct>`）不會列出來——那裡既沒有輸出可看，也沒有東西可殺。
+
+## 連接埠 [#ports]
+
+這些程序正在監聽的 TCP 連接埠，以及各自屬於哪個程序。用來回答那些日常問題：*這次開發伺服器又挑了哪個連接埠*，還有*到底是什麼還佔著 3000*。
+
+- 點連接埠在瀏覽器裡打開 `http://localhost:<port>/`
+- **Copy URL**
+- **Kill Process**——當「什麼還佔著它」的答案是「某個我忘了的東西」時
+
+<Callout type="info">
+面板打開時列表會持續更新，隱藏後就會暫停。
+</Callout>

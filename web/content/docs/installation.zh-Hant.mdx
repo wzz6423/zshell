@@ -1,0 +1,84 @@
+---
+title: 安裝
+description: 下載 Zshell、用 Homebrew 安裝、保持更新，以及乾淨地卸載。
+---
+
+Zshell 未經 Apple 公證。當前版本需要的最低
+macOS 版本，標在[首頁](/zh-Hant)的下載按鈕旁邊。
+
+## 下載 [#download]
+
+從[首頁](/zh-Hant)下載 `.dmg`。當前 0.1.7 提供 **Universal**、Apple Silicon 和 Intel
+安裝包，Gitee 同時提供鏡像下載。
+打開磁碟映像後，把 **Zshell** 拖進「應用程式」資料夾。
+
+首次打開時，macOS 可能會攔截應用。嘗試打開後，前往
+**系統設定 → 隱私與安全性 → 仍要打開**，確認打開 Zshell。
+通過 Homebrew 安裝也可能需要這一步。
+
+## Homebrew [#homebrew]
+
+```bash
+brew install wzz6423/tap/zshell
+```
+
+cask 放在 `wzz6423/homebrew-tap`，會按本機處理器安裝 ZIP 包，安裝後由 Sparkle 更新。
+需要顯式通過 Homebrew 更新，或補齊落後的已安裝版本時，可以執行：
+
+```bash
+brew upgrade --cask --greedy-auto-updates zshell
+```
+
+## 更新 [#updates]
+
+直接下載和 Homebrew 安裝都通過 [Sparkle](https://sparkle-project.org) 更新。
+中國大陸優先訪問 Gitee，失敗後嘗試 GitHub；其他地區優先訪問 GitHub，失敗後嘗試 Gitee。
+地區優先使用當前網絡出口 IP 的國家碼，查詢失敗時使用 macOS 系統地區。
+國家碼查詢使用 [ipinfo.io/country](https://ipinfo.io/country)，最多等待 5 秒，結果僅在記憶體中
+緩存 30 分鐘。服務會接收到網絡公網 IP，Zshell 不儲存 IP；關閉自動檢查也會停止後台國家碼查詢。
+
+feed 或更新包下載失敗時，只切換到另一個源重試一次。安裝前會驗證 feed 和更新包的簽名，
+並保留安裝包的架構；在 Rosetta 下執行的 Intel 版會遷移到 Apple Silicon 版。
+
+用 <kbd>Cmd</kbd>+<kbd>,</kbd> 打開 <strong>設定 → 更新</strong>，可分別控制<strong>自動檢查更新</strong>和
+<strong>自動下載更新</strong>。自動下載預設關閉，需要先開啟自動檢查；開啟後才顯示獨立的<strong>自動安裝更新</strong>開關，預設關閉。
+只開啟自動下載時，會在後台下載，並在退出 Zshell 時安裝。兩個開關都開啟時，更新準備就緒後會自動安裝並重新啟動 Zshell。
+重新啟動會停止正在執行的終端機程序，重新打開後恢復工作區。關閉自動下載會隱藏自動安裝並阻止自動重新啟動，
+但保留自動安裝的選擇，供再次開啟下載時使用。兩個開關的選擇都會在應用重新啟動後保留。
+檢測到更新時，專案側欄底部、反饋按鈕左側會顯示更新圖示；點擊可打開更新或查看進度，
+也可重試待完成的重新啟動。也可以選擇<strong>檢查更新…</strong>立即手動檢查，或使用上面的 Homebrew 指令顯式更新。
+
+## 推薦工具 [#recommended-tools]
+
+打開 **設定 → 推薦**，可以瀏覽終端機效率、網絡與資料、開發工具鏈、實用工具和桌面應用，
+其中包括 Zisla。頁面打開期間會自動檢測已安裝的工具和可用更新。點擊單項的
+**安裝**或**更新**，用 **安裝未安裝項**安裝所有尚未安裝的推薦工具，或用 **全部更新**
+更新 Homebrew 管理且有新版本的工具。
+
+工具安裝使用 Homebrew；尚未安裝 Homebrew 時，頁面會提供安裝說明入口。
+自動檢查不會自行安裝或更新工具。通過其他方式安裝的工具會標注 **非 Homebrew 安裝**；
+**通過 Homebrew 安裝** 會安裝一份由 Homebrew 管理的副本，Shell 的 `PATH` 仍可能優先找到
+原來的版本。更改安裝後，可以點擊 **重新整理**重新檢查。Zshell 自身的更新在**設定 → 更新**中管理。
+
+## 從 Finder 打開資料夾 [#open-a-folder-from-finder]
+
+Zshell 註冊了一個名為 **New Zshell Project Here** 的 macOS 服務。在 Finder 裡選中一個或多個資料夾，右鍵，從 **服務** 子選單裡選它——每個資料夾都會作為一個專案打開，終端機已經在對應目錄裡啟動好了。
+
+如果選單裡沒有它，去 **系統設定 → 鍵盤 → 鍵盤快速鍵 → 服務 → 檔案和資料夾** 打開。macOS
+只會在應用至少啟動過一次之後才列出新服務。
+
+## 卸載 [#uninstalling]
+
+如果打開了 **設定 → Automation → AI**，請先關掉再刪除應用，讓 Zshell 移除它安裝的 agent 支持。
+
+從「應用程式」裡刪掉 `zshell.app`，如果想徹底清乾淨，再刪掉它的配置：
+
+```bash
+rm -rf ~/.config/zshell
+```
+
+視窗佈局、側邊欄寬度和工作階段快照存在 macOS 自己的偏好設定裡：
+
+```bash
+defaults delete sh.zshell
+```

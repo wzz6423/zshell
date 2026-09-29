@@ -1,0 +1,73 @@
+---
+title: Tanya jawab
+description: Pertanyaan umum tentang biaya, privasi, dan hubungan Zshell dengan shell Anda.
+---
+
+<Accordions>
+
+<Accordion title="Apakah Zshell gratis?">
+
+Ya. Gratis diunduh, kode sumber publik di bawah PolyForm Noncommercial License 1.0.0, tanpa akun atau langganan.
+
+</Accordion>
+
+<Accordion title="Apakah ini menggantikan shell saya?">
+
+Tidak. Zshell menjalankan shell yang sudah Anda gunakan: memulai `$SHELL -l` tanpa mengubah prompt, alias, fungsi, atau dotfile. Panel terminal dapat memakai backend Ghostty atau Alacritty.
+
+</Accordion>
+
+<Accordion title="Apakah ada data yang dikumpulkan?">
+
+Tidak ada telemetri atau analitik. Pemeriksaan pembaruan mencari negara IP jaringan untuk memilih GitHub atau Gitee, lalu mengambil feed rilis.
+Matikan pemeriksaan otomatis dalam **Pengaturan → Pembaruan** untuk menghentikan permintaan latar belakang tersebut; pemeriksaan manual tetap melakukannya. Lihat [Pembaruan](/id/docs/installation#updates).
+Halaman Rekomendasi memeriksa versi alat selama terbuka.
+
+Halaman yang dibuka di [panel browser](/id/docs/browser) dan CLI agen yang Anda jalankan membuat permintaan sendiri atas arahan Anda, sama seperti di luar Zshell.
+
+</Accordion>
+
+<Accordion title="Apakah konfigurasi Ghostty atau Alacritty saya dibaca?">
+
+Tidak. Backend, font, warna, dan perilaku input berasal dari [pengaturan](/id/docs/configuration) Zshell sendiri. Berkas konfigurasi kedua aplikasi terminal itu tidak dibaca.
+
+</Accordion>
+
+<Accordion title="Apa yang terjadi pada sesi ketika saya keluar?">
+
+Proyek, tab, dan tata letak panel dipulihkan saat dibuka kembali. Setiap terminal membuka shell baru di direktori lamanya. Tidak ada proses yang terus berjalan di latar belakang setelah Anda keluar.
+
+Riwayat gulir sebelumnya juga kembali jika [`terminal.restore-history`](/id/docs/configuration#terminalrestore-history) diaktifkan. Riwayat tampil sebagai teks statis di atas pembatas `Session Contents Restored`.
+
+</Accordion>
+
+<Accordion title="Apakah ini IDE?">
+
+Tidak, dan Zshell tidak diarahkan ke sana. Terminal tetap pusatnya. Panel Git dan berkas membantu Anda meninjau serta mengirim pekerjaan terminal tanpa berpindah aplikasi, bukan menjadi tempat kerja utama pengganti terminal.
+
+</Accordion>
+
+<Accordion title="Mengapa dialog meminta izin sebelum program membaca papan klip?">
+
+Karena program memintanya. Urutan escape `OSC 52` memungkinkan program terminal membaca papan klip sistem, termasuk program di host jarak jauh melalui SSH.
+Zshell meminta konfirmasi sebelum menyerahkannya, alih-alih melakukannya diam-diam, sesuai perilaku bawaan Ghostty.
+
+</Accordion>
+
+<Accordion title="Bisakah saya memakainya dengan agen pemrograman AI?">
+
+Ya. Integrasi AI aktif secara bawaan. Minta agen yang didukung dalam bahasa biasa untuk menjalankan sesuatu di panel latar belakang atau mendelegasikan tugas dengan batas jelas.
+Agen di panel Zshell terpisah dapat bertukar pertanyaan, temuan, dan tindak lanjut tanpa mengharuskan Anda menyalin konteks.
+Zshell menampilkan status bekerja/terhambat/selesai yang dilaporkan penyedia tanpa menebak dari teks terminal, sedangkan persetujuan dan keputusan diff akhir tetap milik Anda. Lihat [Bekerja dengan agen AI](/id/docs/automation).
+
+Agen tetap dapat digunakan sebagai program terminal biasa: tinjau diff-nya di [panel Git](/id/docs/git), baca berkas di sampingnya, dan stage hanya perubahan yang Anda inginkan.
+
+</Accordion>
+
+<Accordion title="Di mana saya melaporkan bug?">
+
+Buka issue di [GitHub](https://github.com/wzz6423/zshell/issues). Versi macOS dan aktivitas Anda saat masalah muncul biasanya cukup untuk memulai penyelidikan.
+
+</Accordion>
+
+</Accordions>

@@ -1,0 +1,83 @@
+---
+title: 鍵盤快速鍵
+description: Zshell 的全部預設快速鍵，按用途分組。
+---
+
+忘了某個？<kbd>Cmd</kbd>+<kbd>P</kbd> 打開指令面板，每條指令旁邊都標著它的快速鍵。
+
+## 全局快速終端機 [#global-quick-terminal]
+
+| 快速鍵 | 操作 |
+| --- | --- |
+| <kbd>Cmd</kbd>+<kbd>I</kbd> | 顯示 / 關閉快速終端機 |
+| <kbd>Esc</kbd> | 關閉快速終端機並終止其中的 shell |
+
+可在 **設定 → 終端機 → Quick Terminal** 錄制其他組合鍵。未固定時，失去焦點也會關閉；詳見[快速終端機](/zh-Hant/docs/terminal#global-quick-terminal)。
+
+## 專案與工作階段 [#projects-and-sessions]
+
+| 快速鍵 | 操作 |
+| --- | --- |
+| <kbd>Cmd</kbd>+<kbd>N</kbd> | 新建專案 |
+| <kbd>Cmd</kbd>+<kbd>T</kbd> | 新建工作階段 |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> | 新建視窗 |
+| <kbd>Cmd</kbd>+<kbd>W</kbd> | 關閉當前窗格 |
+| <kbd>Cmd</kbd>+<kbd>1</kbd>–<kbd>9</kbd> | 切到第 1–9 個專案 |
+| <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>]</kbd> / <kbd>[</kbd> | 下一個 / 上一個專案 |
+| <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> | 切到第 1–9 個分頁 |
+| <kbd>Ctrl</kbd>+<kbd>Tab</kbd> | 分頁切換器，按最近使用排序 |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> | 下一個 / 上一個分頁 |
+
+## 窗格 [#panes]
+
+| 快速鍵 | 操作 |
+| --- | --- |
+| <kbd>Cmd</kbd>+<kbd>D</kbd> | 向右分割畫面 |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> | 向下分割畫面 |
+| <kbd>Opt</kbd>+<kbd>Cmd</kbd>+方向鍵 | 聚焦該方向的窗格 |
+| <kbd>Cmd</kbd>+<kbd>[</kbd> / <kbd>Cmd</kbd>+<kbd>]</kbd> | 循環切換窗格焦點 |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> | 切換窗格放大 |
+| <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+方向鍵 | 調整當前窗格大小 |
+| <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+<kbd>=</kbd> | 讓所有窗格等分 |
+
+向左分割畫面和向上分割畫面沒有預設快速鍵——用 **Tabs** 選單、窗格快速選單或指令面板。
+
+## 面板 [#panels]
+
+| 快速鍵 | 操作 |
+| --- | --- |
+| <kbd>Cmd</kbd>+<kbd>P</kbd> | 指令面板 |
+| <kbd>Cmd</kbd>+<kbd>O</kbd> | 快速啟動 |
+| <kbd>Cmd</kbd>+<kbd>B</kbd> | 切換左側邊欄 |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> | 切換右側邊欄 |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> | Git 面板 |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | 檔案面板 |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> | 資訊面板 |
+
+## 瀏覽器與 Agent [#browser-and-agents]
+
+| 快速鍵 | 操作 |
+| --- | --- |
+| <kbd>Cmd</kbd>+<kbd>L</kbd> | 聚焦當前瀏覽器的地址欄 |
+| <kbd>Cmd</kbd>+<kbd>R</kbd> | 重新載入當前瀏覽器頁面 |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> | 跳到下一個需要注意的 agent |
+
+新建瀏覽器分頁和窗格沒有預設快速鍵，請使用 **File** 選單或指令面板。
+
+## 文本與搜尋 [#text-and-search]
+
+| 快速鍵 | 操作 |
+| --- | --- |
+| <kbd>Cmd</kbd>+<kbd>F</kbd> | 在當前窗格裡查找 |
+| <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> | 查找並替換（編輯器） |
+| <kbd>Cmd</kbd>+<kbd>G</kbd> | 查找下一個 |
+| <kbd>Shift</kbd>+<kbd>Return</kbd> | 查找上一個（在查找欄內按） |
+| <kbd>Cmd</kbd>+<kbd>E</kbd> | 用選中內容查找 |
+| <kbd>Cmd</kbd>+<kbd>K</kbd> | 清空終端機 |
+| <kbd>Cmd</kbd>+<kbd>S</kbd> | 儲存當前檔案 |
+| <kbd>Cmd</kbd>+<kbd>,</kbd> | 設定 |
+
+## 查找上一個 [#find-previous]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> 在 macOS 上通常是「查找上一個」，但在 Zshell 裡它用來切換 git 面板。請在查找欄裡按 <kbd>Shift</kbd>+<kbd>Return</kbd>，或者用
+**Edit → Find** 選單裡的那一項。

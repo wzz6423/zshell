@@ -1,0 +1,113 @@
+---
+title: Progetti e sessioni
+description: Come Zshell organizza il lavoro — progetti nella barra laterale, sessioni nelle schede e ripristino dopo il riavvio.
+---
+
+## Progetti [#projects]
+
+Un progetto è un'attività, in pratica un repository, con terminali, schede e stato dei pannelli propri.
+
+<kbd>Cmd</kbd>+<kbd>N</kbd> ne crea uno con un solo terminale. Il terminale parte nella directory della sessione corrente o, se non ce n'è una, nella tua home. Di solito il passo successivo è usare `cd` verso la destinazione. Zshell ancora quindi l'albero dei file e Git al repository che contiene quella directory.
+
+Per saltare il `cd`, fai clic destro su una cartella nel Finder e scegli **Servizi → Nuovo progetto Zshell qui**: si apre come progetto con il terminale già avviato al suo interno.
+
+I progetti sono l'unità tra cui Zshell passa:
+
+| Azione | Scorciatoia |
+| --- | --- |
+| Nuovo progetto | <kbd>Cmd</kbd>+<kbd>N</kbd> |
+| Vai al progetto 1–9 | <kbd>Cmd</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Progetto successivo / precedente | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Nascondi la barra dei progetti | <kbd>Cmd</kbd>+<kbd>B</kbd> |
+
+Il nome del progetto segue la sessione selezionata, come il titolo di una scheda segue il terminale. Il clic destro offre **Rinomina…**, **Usa titolo automatico** per annullare il nome manuale, **Imposta directory del progetto…** e **Chiudi progetto**. La chiusura termina le sessioni senza toccare il disco.
+
+### Progetti SSH salvati [#saved-ssh-projects]
+
+Apri la palette (<kbd>Cmd</kbd>+<kbd>P</kbd>) e scegli **Nuovo progetto SSH…**. Inserisci host, utente e porta facoltativi e directory remota. Scegli **Agente SSH**, **Password**, **File di chiave privata** o **Testo di chiave privata** per autenticarti, salva la connessione e seleziona **Connetti**.
+
+Le connessioni salvate restano disponibili dopo il riavvio. Usa il campo facoltativo **Gruppo** per organizzare l'elenco e i pulsanti modifica/elimina per gestire le voci. Password e chiavi private incollate sono salvate nel Portachiavi macOS; per un file di chiave viene memorizzato il percorso della chiave esistente.
+
+Per comandi o avvii SSH con opzioni aggiuntive, vedi [Avvio rapido](/it/docs/quick-launch).
+
+### Gruppi della barra laterale [#sidebar-groups]
+
+Usa **Nuovo gruppo** in basso per creare un **Gruppo semplice** o **Gruppo cartella…**. I gruppi semplici avviano nuovi terminali nella home; quelli cartella forniscono la cartella selezionata come predefinita. Una directory esplicita del progetto ha comunque la precedenza. Spostare progetti tra gruppi non modifica i terminali attivi né sostituisce la directory fissata.
+
+Trascina un progetto su un'intestazione di gruppo o un altro progetto per organizzarlo. Trascinalo su **+ (Nuovo progetto)** in basso per rimuoverlo dal gruppo. Puoi trascinare anche le intestazioni per riordinare i gruppi. Fai clic per comprimere o espandere, doppio clic per rinominare, oppure usa il menu contestuale. **Imposta indicatore colore…** assegna un colore; **Rimuovi indicatore colore** lo cancella. **Rimuovi gruppo** mantiene aperti tutti i progetti. Le scorciatoie numeriche seguono le righe visibili; la navigazione al progetto successivo/precedente può mostrare membri di un gruppo compresso.
+
+Puoi trascinare cartelle dal Finder in qualsiasi punto dell'elenco. Una cartella già aperta riceve il focus invece di creare un duplicato.
+
+### La directory del progetto [#the-project-directory]
+
+L'albero dei file e Git devono sapere quale cartella mostrare. Per impostazione predefinita, Zshell prende la directory corrente del terminale e risale al **repository Git contenitore più vicino**.
+
+Per questo usare `cd` dentro un repository non fa saltare l'albero: la radice resta quella del repository. Fuori da un repository, i pannelli seguono il terminale.
+
+Quando il programma in primo piano passa a un altro checkout, ad esempio un agente entra nel proprio worktree Git, File, Git e Info seguono quel checkout. Tornano quando torna il processo in primo piano. Una directory fissata manualmente ha sempre la precedenza e disattiva questo cambio automatico della radice.
+
+Per fissarla, fai clic destro sul progetto e scegli **Imposta directory del progetto…**. La cartella viene ricordata al riavvio; **Usa directory automatica** restituisce il controllo automatico.
+
+<Callout type="info">
+Info (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>) mostra entrambe: la **Directory corrente** della shell quando differisce e la **Directory del progetto** che ancora i pannelli, indicata con `(AUTO)` se ricavata automaticamente.
+</Callout>
+
+## Sessioni [#sessions]
+
+Ogni progetto può contenere tutte le sessioni necessarie, mostrate come schede in alto. Una sessione è una vera shell di login, come `zsh`, `fish` o `bash`, secondo il tuo account, con directory e cronologia dell'output proprie.
+
+| Azione | Scorciatoia |
+| --- | --- |
+| Nuova sessione | <kbd>Cmd</kbd>+<kbd>T</kbd> |
+| Vai alla scheda 1–9 | <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Selettore di schede per uso recente | <kbd>Ctrl</kbd>+<kbd>Tab</kbd> |
+| Scheda successiva / precedente | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Chiudi il pannello attivo | <kbd>Cmd</kbd>+<kbd>W</kbd> |
+
+Una nuova sessione locale usa prima la directory fissata del progetto, poi quella predefinita del gruppo laterale. Senza entrambe, eredita la directory della sessione corrente e ripiega sulla home.
+
+### Gruppi di schede [#tab-groups]
+
+Fai clic destro su una scheda e scegli **Sposta nel gruppo → Nuovo gruppo di schede**. La scheda entra nel gruppo, mostrato come una freccia colorata senza nome. Nuove sessioni da una scheda raggruppata restano nel gruppo; fai clic destro sulla freccia e scegli **Nuova sessione nel gruppo** per crearne una direttamente al suo interno.
+
+Trascina una scheda sulla freccia di un gruppo o su un'altra scheda per spostarla. Il menu contestuale elenca anche i gruppi e **Rimuovi dal gruppo**. Fai clic sulla freccia per comprimere o espandere. La compressione mantiene il terminale attivo visibile e in esecuzione; passare a un membro nascosto espande il gruppo. Rimuovere il gruppo mantiene aperte schede e sessioni. Fissare una scheda raggruppata la sposta nella sezione fissa fuori dai gruppi. Il menu della freccia offre **Imposta indicatore colore…** e **Rimuovi indicatore colore**. Colori e stato compresso vengono ripristinati al riavvio.
+
+Una scheda può anche essere trascinata su un progetto laterale o sull'intestazione di un gruppo per creare lì un nuovo progetto. Trascinarla su **+ (Nuovo progetto)** in basso crea un progetto fuori da tutti i gruppi. **Sposta scheda nel progetto** nel menu raggiunge anche altre finestre. Questi spostamenti conservano terminali attivi e disposizione dei pannelli. I progetti devono avere la stessa posizione locale o SSH; un nuovo progetto da una scheda conserva la posizione di origine. Le schede con diff restano nel progetto corrente.
+
+### Titoli delle schede [#tab-titles]
+
+I titoli seguono ciò che riporta il terminale: la sequenza di escape del prompt o il programma in esecuzione. Usa **Rinomina…** dal menu contestuale per un nome manuale e **Usa titolo automatico** per tornare a seguire il terminale.
+
+Il resto del menu comprende **Chiudi**, **Chiudi altre**, **Chiudi schede a destra**, **Chiudi tutte**, più **Mostra nel Finder** e **Copia percorso assoluto** per la directory della sessione. **Chiudi file** e **Chiudi diff** rimuovono quei tipi di contenuto dall'intero progetto lasciando intatti terminali e browser.
+
+## Finestre [#windows]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> apre un'altra finestra. Le finestre sono indipendenti, ciascuna con progetti e stato laterale propri, e vengono ripristinate separatamente.
+
+## Cosa sopravvive al riavvio [#what-survives-a-relaunch]
+
+Zshell salva snapshot della disposizione mentre lavori. Uscendo e riaprendo ritrovi:
+
+- tutti i progetti, nello stesso ordine;
+- tutte le schede, con nomi personalizzati, fissaggio e colori;
+- gruppi laterali, con nomi, colori, ordine, membri e stato compresso;
+- gruppi di schede, con colori, ordine, membri e stato compresso;
+- directory fissate e progetti vuoti;
+- disposizione dei pannelli in ogni scheda;
+- barre laterali aperte e pannello destro selezionato.
+
+I terminali tornano come **nuove shell** nelle vecchie directory. Zshell non mantiene i processi vivi in background: una build attiva termina quando esci.
+
+L'output precedente viene ripristinato solo attivando [`terminal.restore-history`](/it/docs/configuration#terminalrestore-history). L'opzione è disattivata perché l'output da ripristinare viene conservato su disco.
+
+## Ambiente del terminale e inizializzazione [#terminal-environment-and-initialization]
+
+Seleziona un progetto e usa **Terminale → Ambiente terminale del progetto…** per impostare variabili e comando di inizializzazione. Usa **Terminale → Ambiente terminale della scheda…** per le sostituzioni della scheda corrente.
+
+| Ambito | Comportamento |
+| --- | --- |
+| Progetto | I nuovi terminali ereditano variabili e comando di inizializzazione del progetto |
+| Scheda | Le variabili sostituiscono valori di progetto con lo stesso nome; il comando può ereditare, sostituire o disattivare quello del progetto |
+
+Le modifiche riguardano solo i terminali creati dopo il salvataggio. I processi esistenti conservano il proprio ambiente. L'inizializzazione si esegue per la normale shell di login, non per un programma di avvio personalizzato o argv esplicito.
+`ZSHELL_*`, `TERM`, `COLORTERM`, `TERM_PROGRAM` e `TERM_PROGRAM_VERSION` sono gestiti da Zshell e non possono essere sovrascritti.

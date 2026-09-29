@@ -386,3 +386,34 @@ html.reveal-ready .reveal:not(.is-visible) {
   .reveal { transition: none; }
   .section-progress-mark, .section-progress-label { transition: none; }
 }
+
+.language-select {
+  max-width: min(11rem, 40vw);
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  cursor: pointer;
+}
+.language-select:hover { border-color: var(--brand); }
+.language-select:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+.docs-layout .language-select { max-width: 100%; width: 100%; margin-bottom: 8px; }
+.docs-fallback { padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius); color: var(--muted-foreground); font-size: 14px; }
+.docs-body :is(pre, code), .keycap { direction: ltr; unicode-bidi: isolate; text-align: left; }
+.hero-title { overflow-wrap: anywhere; }
+.preview-switcher { flex-wrap: wrap; }
+[dir='rtl'] .section-progress { left: auto; right: 4px; }
+[dir='rtl'] .section-progress a { padding-left: 0; padding-right: 6px; }
+[dir='rtl'] .section-progress-mark { transform-origin: right; }
+[dir='rtl'] .section-progress-label { left: auto; right: 36px; }
+[dir='rtl'] .hero-cursor { margin-left: 0; margin-right: 0.12em; }
+[dir='rtl'] .workspace-sidebar { border-right: 0; border-left: 1px solid var(--border); }
+[dir='rtl'] .workspace-inspector { border-left: 0; border-right: 1px solid var(--border); }
+[dir='rtl'] .preview-project > span { margin-right: 0; margin-left: 8px; }
+@media (min-width: 1024px) {
+  [dir='rtl'] .home-page > main { padding-left: 0; padding-right: 20px; }
+}

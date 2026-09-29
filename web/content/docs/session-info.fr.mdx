@@ -1,0 +1,37 @@
+---
+title: Processus et ports
+description: Découvrez ce qu'une session exécute réellement et quels ports elle utilise.
+---
+
+Appuyez sur <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>. Le panneau Informations décrit la **session active**, et non le projet. Il s'actualise au démarrage et à l'arrêt des processus.
+
+## Répertoires [#directory]
+
+Deux répertoires sont présentés, car ils ne coïncident pas toujours :
+
+- **Répertoire actuel** : le répertoire de travail courant du shell, affiché lorsqu'il diffère du suivant.
+- **Répertoire du projet** : le dossier utilisé comme racine par les panneaux Fichiers et Git, marqué `(AUTO)` lorsque Zshell le détermine automatiquement. Le bouton `?` explique ces deux modes.
+
+À côté se trouvent les actions permettant d'afficher le dossier dans le **Finder**, de l'ouvrir dans **VS Code** s'il est installé, ou de **copier** son chemin.
+
+## Processus [#processes]
+
+La liste présente tous les processus exécutés sous le shell de la session, avec leur PID, leur pourcentage de CPU et leur mémoire résidente. Faites un clic droit sur un processus pour :
+
+- **Terminer** : envoyer `SIGTERM` pour un arrêt normal.
+- **Forcer l'arrêt** : envoyer `SIGKILL` si le processus ne répond pas.
+- **Copier le PID** ou **Copier le chemin de l'exécutable**.
+
+Les processus enfants terminés qui attendent encore d'être récupérés (`<defunct>`) sont exclus : il n'y a plus de contenu à consulter ni de processus à arrêter.
+
+## Ports [#ports]
+
+La liste affiche les ports TCP sur lesquels ces processus écoutent et le processus qui les détient. Elle permet de savoir quel port le serveur de développement a choisi ou quel programme occupe encore le port 3000.
+
+- Cliquez sur un port pour ouvrir `http://localhost:<port>/` dans le navigateur.
+- **Copier l'URL** copie son adresse.
+- **Arrêter le processus** libère le port lorsqu'un programme oublié l'occupe encore.
+
+<Callout type="info">
+La liste s'actualise tant que le panneau est ouvert et se met en pause lorsqu'il est masqué.
+</Callout>

@@ -1,0 +1,90 @@
+---
+title: クイックスタート
+description: 空のウィンドウから作業できるプロジェクトへ。最初に覚えておくと便利な操作。
+---
+
+<Steps>
+
+<Step>
+
+### プロジェクトを始める [#start-a-project]
+
+<kbd>Cmd</kbd>+<kbd>N</kbd> を押すと、ターミナルを 1 つ含む新しいプロジェクトがサイドバーに追加されます。
+あとは普段のターミナルと同じように `cd` で目的のリポジトリに移動してください。
+ファイルツリーと Git パネルも移動先に追従し、リポジトリのルートを表示します。
+
+フォルダから始める場合は、Finder で右クリックし、<strong>サービス → ここに新しい Zshell プロジェクトを作成（New Zshell Project Here）</strong>を選びます。
+
+リポジトリが複数あれば、すべて追加できます。<kbd>Cmd</kbd>+<kbd>1</kbd> から <kbd>Cmd</kbd>+<kbd>9</kbd> で直接切り替えられ、各プロジェクトは独自のタブとレイアウトを保持します。
+
+</Step>
+
+<Step>
+
+### セッションを追加する [#add-sessions]
+
+<kbd>Cmd</kbd>+<kbd>T</kbd> は、同じプロジェクトに別のターミナルを開きます。新しいタブには独自の作業ディレクトリとスクロールバックがあります。
+開発サーバー用、テスト用、操作用などに分けられます。
+
+<kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> でタブを直接選択できます。
+<kbd>Ctrl</kbd>+<kbd>Tab</kbd> は、最近使用した順に並ぶタブ切り替えを開きます。
+
+</Step>
+
+<Step>
+
+### タブを分割する [#split-a-tab]
+
+<kbd>Cmd</kbd>+<kbd>D</kbd> は現在のペインを右に分割し、<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> は下に分割します。
+<kbd>Opt</kbd>+<kbd>Cmd</kbd>+矢印キーでペイン間を移動できます。
+長い内容を読むときは <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> で 1 つのペインをタブ全体に拡大します。
+
+</Step>
+
+<Step>
+
+### サイドパネルを開く [#open-the-side-panels]
+
+右サイドバーには次のパネルがあり、それぞれショートカットで開けます。
+
+| パネル | ショートカット | 用途 |
+| --- | --- | --- |
+| Git | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> | ステージ、差分確認、コミット、プッシュ |
+| ファイル | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | ツリーの閲覧、ファイルを開く・編集する |
+| 情報 | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> | プロセスと待ち受けポート |
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> で右サイドバー全体を再び非表示にできます。
+<kbd>Cmd</kbd>+<kbd>B</kbd> は左のプロジェクトサイドバーを非表示にします。
+
+</Step>
+
+<Step>
+
+### まず覚えるショートカット：<kbd>Cmd</kbd>+<kbd>P</kbd> [#learn-one-shortcut-cmdp]
+
+コマンドパレットは、すべてのプロジェクト、開いているセッション、Zshell の全コマンドを検索します。
+このページのほかの操作を忘れても、これだけは覚えておくと便利です。各コマンドの隣に対応するショートカットが表示されます。
+
+</Step>
+
+</Steps>
+
+## 終了後に復元されるもの [#what-comes-back-after-you-quit]
+
+終了して開き直すと、プロジェクト、タブ、ペイン配置が元に戻ります。
+各ターミナルは以前のディレクトリで**新しいシェル**を起動します。裏で密かに動作を続けるわけではありません。
+
+スクロールバックの復元は任意です。[`terminal.restore-history`](/ja/docs/configuration#terminalrestore-history) を有効にすると、開き直したターミナルで以前の出力が `Session Contents Restored` の区切りより上に表示され、その下で新しいシェルが動きます。
+
+<Callout type="info">
+復元されるのはあくまでテキストです。過去の記録であり、稼働中のセッションではありません。さかのぼって読んでもコマンドが再実行されることはありません。
+</Callout>
+
+## 次に読む [#next]
+
+<Cards>
+  <Card title="プロジェクトとセッション" href="/ja/docs/projects" description="名前、ディレクトリの固定、プロジェクトが追跡する情報。" />
+  <Card title="Git パネル" href="/ja/docs/git" description="ステージ、差分、コミット、ブランチ。" />
+  <Card title="ブラウザペイン" href="/ja/docs/browser" description="ローカルサーバーやドキュメントをターミナルの隣に表示。" />
+  <Card title="AI エージェントとの作業" href="/ja/docs/automation" description="Zshell のペイン間で作業を分担し、連携するようエージェントに依頼。" />
+</Cards>

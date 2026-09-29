@@ -1,0 +1,44 @@
+---
+title: Panel browser
+description: Buka situs di samping terminal, gunakan navigasi native, dan simpan tautan dalam proyek.
+---
+
+Zshell dapat menempatkan browser bawaan dalam tab atau panel terbagi mana pun. Cocok untuk server pengembangan lokal, dokumentasi API, issue, atau halaman lain yang ingin Anda letakkan di samping terminal yang menggunakannya.
+
+## Membuka browser [#opening-a-browser]
+
+- Pilih **Berkas → Tab Browser Baru (File → New Browser Tab)** untuk tab kosong.
+- Buka palet perintah (<kbd>Cmd</kbd>+<kbd>P</kbd>) dan jalankan **Tab Browser Baru** atau **Panel Browser Baru (New Browser Pane)**.
+- Tahan Command sambil mengeklik kanan URL yang terdeteksi di terminal, lalu pilih **Tab Browser Baru** atau **Panel Browser Baru** agar tidak perlu menyalin alamat.
+
+Tab browser milik proyek yang dipilih dan mengikuti tata letak tab serta panel normalnya. Jika belum ada proyek terbuka, Zshell membuat proyek untuk menampung browser.
+
+## Alamat dan pencarian [#address-and-search]
+
+Kolom di atas menerima URL lengkap, nama host, atau kata pencarian:
+
+- `zshell.sh` menjadi alamat HTTPS.
+- `localhost`, nama host lokal, alamat IP, dan port eksplisit menggunakan HTTP.
+- Selain itu menjadi pencarian Google.
+
+Gunakan <kbd>Cmd</kbd>+<kbd>L</kbd> untuk memfokuskan kolom dan <kbd>Cmd</kbd>+<kbd>R</kbd> untuk memuat ulang.
+Toolbar juga menyediakan Kembali, Maju, Hentikan/Muat Ulang, Bagikan, dan **Buka di Browser Bawaan (Open in Default Browser)**. Gestur mundur dan maju pada trackpad juga berfungsi.
+
+| Tindakan | Pintasan |
+| --- | --- |
+| Fokus bilah alamat | <kbd>Cmd</kbd>+<kbd>L</kbd> |
+| Muat ulang halaman | <kbd>Cmd</kbd>+<kbd>R</kbd> |
+
+## Membuka tautan di tempat yang diinginkan [#opening-links-where-you-want-them]
+
+Klik kanan tautan dalam halaman untuk **Buka Tautan di Tab Baru (Open Link in New Tab)** atau **Buka Tautan di Panel Baru (Open Link in New Pane)**. Halaman baru tetap dalam ruang kerja proyek yang sama.
+
+Di terminal, Command-klik biasa membuka URL web terdeteksi di browser bawaan. Command-klik kanan menawarkan tab atau panel Zshell.
+Alur serupa untuk jalur lokal dijelaskan di [Jalur dan URL](/id/docs/terminal#paths-and-urls).
+
+## Yang dipertahankan [#what-is-preserved]
+
+Berpindah tab atau proyek mempertahankan halaman, termasuk riwayat, posisi gulir, formulir, dan keadaan dalam halaman.
+Saat Zshell dimulai ulang, URL aktif dan tata letak dipulihkan, tetapi bukan seluruh riwayat mundur/maju.
+
+Panel browser menyimpan cookie, login, dan data situs lainnya lintas tab dan peluncuran. Ini bukan mode penjelajahan privat.

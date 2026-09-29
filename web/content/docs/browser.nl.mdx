@@ -1,0 +1,41 @@
+---
+title: Browserdeelvensters
+description: Open websites naast een terminal, navigeer met native knoppen en houd koppelingen binnen het project.
+---
+
+Zshell kan een ingebouwde browser in elk tabblad of gesplitst deelvenster plaatsen. Dat is handig voor een lokale ontwikkelserver, API-documentatie, een issue of iets anders dat je naast de bijbehorende terminal wilt zien.
+
+## Een browser openen [#opening-a-browser]
+
+- Kies **Archief → Nieuw browsertabblad** voor een leeg tabblad.
+- Open het opdrachtenpalet (<kbd>Cmd</kbd>+<kbd>P</kbd>) en voer **Nieuw browsertabblad** of **Nieuw browserdeelvenster** uit.
+- Command-rechtsklik op een herkende URL in een terminal en kies **Nieuw browsertabblad** of **Nieuw browserdeelvenster** om hem te openen zonder het adres te kopiëren.
+
+Browsertabbladen horen bij het geselecteerde project en gebruiken de gewone tabblad- en deelvensterindeling. Als er geen project open is, maakt Zshell er een voor de browser.
+
+## Adres en zoeken [#address-and-search]
+
+Het veld bovenaan accepteert een volledige URL, hostnaam of zoektermen:
+
+- `zshell.sh` wordt een HTTPS-adres.
+- `localhost`, lokale hostnamen, IP-adressen en expliciete poorten gebruiken HTTP.
+- Alle andere invoer wordt een Google-zoekopdracht.
+
+Gebruik <kbd>Cmd</kbd>+<kbd>L</kbd> om het veld focus te geven en <kbd>Cmd</kbd>+<kbd>R</kbd> om te herladen. De werkbalk bevat ook Terug, Vooruit, Stoppen/Herladen, Delen en **Openen in standaardbrowser**. Trackpadgebaren voor terug en vooruit werken eveneens.
+
+| Actie | Sneltoets |
+| --- | --- |
+| Adresbalk focussen | <kbd>Cmd</kbd>+<kbd>L</kbd> |
+| Pagina herladen | <kbd>Cmd</kbd>+<kbd>R</kbd> |
+
+## Koppelingen openen waar jij ze wilt [#opening-links-where-you-want-them]
+
+Klik met de rechtermuisknop op een koppeling op een pagina voor **Koppeling openen in nieuw tabblad** of **Koppeling openen in nieuw deelvenster**. De nieuwe pagina blijft binnen dezelfde projectwerkruimte.
+
+In een terminal opent een gewone Command-klik een herkende web-URL in je standaardbrowser. Command-rechtsklik biedt een Zshell-tabblad of -deelvenster aan. Lokale paden hebben een vergelijkbare werkwijze, beschreven onder [Paden en URL's](/nl/docs/terminal#paths-and-urls).
+
+## Wat behouden blijft [#what-is-preserved]
+
+Als je van tabblad of project wisselt, blijft de pagina zoals je haar achterliet, inclusief geschiedenis, scrollpositie, formulieren en interne paginastatus. Bij een herstart herstelt Zshell de huidige URL en indeling, maar niet de volledige terug-/vooruitgeschiedenis.
+
+Browserdeelvensters bewaren cookies, aanmeldingen en andere websitegegevens tussen tabbladen en starts. Dit is geen privémodus.

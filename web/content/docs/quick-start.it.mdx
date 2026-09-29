@@ -1,0 +1,81 @@
+---
+title: Guida rapida
+description: Da una finestra vuota a un progetto operativo — le prime cose da imparare.
+---
+
+<Steps>
+
+<Step>
+
+### Avviare un progetto [#start-a-project]
+
+Premi <kbd>Cmd</kbd>+<kbd>N</kbd>. Nella barra laterale compare un progetto con un terminale; usa `cd` per raggiungere il repository desiderato, come in qualsiasi terminale. L'albero dei file e il pannello Git ti seguono e si fermano alla radice del repository.
+
+Preferisci partire dalla cartella? Fai clic destro nel Finder e scegli **Servizi → Nuovo progetto Zshell qui**.
+
+Hai più repository? Aggiungili tutti. Da <kbd>Cmd</kbd>+<kbd>1</kbd> a <kbd>Cmd</kbd>+<kbd>9</kbd> passi direttamente a un progetto; ognuno mantiene schede e disposizione proprie.
+
+</Step>
+
+<Step>
+
+### Aggiungere sessioni [#add-sessions]
+
+<kbd>Cmd</kbd>+<kbd>T</kbd> apre un altro terminale nello stesso progetto: una nuova scheda con directory di lavoro e cronologia dell'output indipendenti. Una per il server di sviluppo, una per i test, una per digitare.
+
+<kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> cambia direttamente scheda; <kbd>Ctrl</kbd>+<kbd>Tab</kbd> apre un selettore ordinato per utilizzo recente.
+
+</Step>
+
+<Step>
+
+### Dividere una scheda [#split-a-tab]
+
+<kbd>Cmd</kbd>+<kbd>D</kbd> divide il pannello a destra; <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> lo divide in basso. Passa tra pannelli con <kbd>Opt</kbd>+<kbd>Cmd</kbd>+frecce e premi <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> per ingrandirne uno fino a riempire la scheda quando leggi contenuti lunghi.
+
+</Step>
+
+<Step>
+
+### Aprire i pannelli laterali [#open-the-side-panels]
+
+La barra destra contiene questi pannelli, ognuno con una scorciatoia:
+
+| Pannello | Scorciatoia | Scopo |
+| --- | --- | --- |
+| Git | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> | Preparare modifiche, rivedere diff, fare commit e push |
+| File | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | Esplorare l'albero, aprire e modificare file |
+| Info | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> | Processi e porte in ascolto |
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> nasconde l'intera barra destra; <kbd>Cmd</kbd>+<kbd>B</kbd> nasconde la barra dei progetti a sinistra.
+
+</Step>
+
+<Step>
+
+### Ricorda una scorciatoia: <kbd>Cmd</kbd>+<kbd>P</kbd> [#learn-one-shortcut-cmdp]
+
+La palette cerca in tutti i progetti, le sessioni aperte e i comandi di Zshell. Se dimentichi il resto, ricorda questa: ogni comando mostra accanto la propria scorciatoia.
+
+</Step>
+
+</Steps>
+
+## Cosa torna dopo l'uscita [#what-comes-back-after-you-quit]
+
+Esci e riapri: progetti, schede e disposizione sono come li avevi lasciati. Ogni terminale avvia una **nuova shell** nella vecchia directory; nulla rimane segretamente in esecuzione in background.
+
+La cronologia dell'output è facoltativa. Attiva [`terminal.restore-history`](/it/docs/configuration#terminalrestore-history): nei terminali riaperti l'output precedente compare sopra un separatore `Session Contents Restored`, con la nuova shell sotto.
+
+<Callout type="info">
+Il testo ripristinato è solo testo: il resoconto di ciò che è accaduto, non una sessione attiva. Scorrere indietro non esegue di nuovo nulla.
+</Callout>
+
+## Continua [#next]
+
+<Cards>
+  <Card title="Progetti e sessioni" href="/it/docs/projects" description="Nomi, directory fissate e ciò che un progetto tiene sotto controllo." />
+  <Card title="Pannello Git" href="/it/docs/git" description="Staging, diff, commit e branch." />
+  <Card title="Pannelli browser" href="/it/docs/browser" description="Tieni server locali e documentazione accanto al terminale." />
+  <Card title="Lavorare con agenti AI" href="/it/docs/automation" description="Chiedi agli agenti di delegare attività e coordinarsi tra pannelli Zshell." />
+</Cards>

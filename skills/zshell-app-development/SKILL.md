@@ -93,7 +93,7 @@ xcodebuild -project mac/zshell.xcodeproj -scheme zshell -configuration Debug \
 ## 本地化
 
 新增用户可见文本后先构建一次（构建开启了字符串提取），再到
-`mac/zshell/Localizable.xcstrings` 补 `zh-Hans` 与 `ja`。运行时需要 `String` 的地方用
+`mac/zshell/Localizable.xcstrings` 补齐 `mac/LOCALIZATION.md` 列出的全部受支持语言。运行时需要 `String` 的地方用
 `String(localized:comment:)`；用户内容、文件名、终端输出不作为本地化查找键；AppKit 控件直接显示原值。
 细节见 `mac/LOCALIZATION.md`。
 

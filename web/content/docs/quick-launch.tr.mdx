@@ -1,0 +1,38 @@
+---
+title: "Hızlı Başlat"
+description: "Tekrar tekrar kullandığınız komutları ve SSH bağlantılarını kaydedip tek tuşla başlatın."
+---
+
+<kbd>Cmd</kbd>+<kbd>O</kbd>, aranabilir **Hızlı Başlat** listesini açar. Her kayıt terminal oturumuyla yeni bir proje açar. Kayıt, `npm run dev` veya `make watch` gibi sık yazdığınız bir **komut** ya da **SSH bağlantısı** olabilir.
+
+## Başlatma [#launching]
+
+Ad, komut, bağlantı hedefi veya grup yazarak listeyi yaklaşık eşleşmeyle süzün. Satıra tıklayın ya da ok tuşlarıyla seçip <kbd>Return</kbd> basın. Kayıt, kendi adını taşıyan yeni projede, ayrı terminal oturumu ve diziniyle çalışır.
+
+Komut bitince veya bağlantı kapanınca bölme kaybolmaz, normal kabuk istemine döner. Başlattığınız hiçbir şey sessizce kendini kapatamaz.
+
+Kaydedilmiş kaydı herhangi bir Zshell terminalinden adıyla da çalıştırabilirsiniz:
+
+```bash
+zshell "Entry name"
+```
+
+Kaydın tam adını kullanın; boşluk varsa tırnağa alın. Hızlı Başlat’ın altındaki ipucu bu sözdizimini gösterir. Kayıt yeni projede açılır.
+
+## Kayıtları yönetme [#managing-entries]
+
+- <kbd>Cmd</kbd>+<kbd>N</kbd> — yeni kayıt
+- <kbd>Cmd</kbd>+<kbd>E</kbd> — seçili kaydı düzenle
+- <kbd>Cmd</kbd>+<kbd>Delete</kbd> — seçili kaydı sil
+
+İsteğe bağlı **Grup** alanıyla kayıtları adlandırılmış bölümlere ayırın. Düzenleme ve silme düğmeleri kaydı başlatmadan işlem yapar.
+
+Komut kaydına daima başlayacağı bir **çalışma dizini** sabitlenebilir; belirtilmezse yeni projenin varsayılan dizini kullanılır. SSH kaydı sunucu, isteğe bağlı kullanıcı ve port ile `-L 8080:localhost:80` gibi serbest biçimli ek `ssh` seçeneklerini alır.
+
+## Kayıtların konumu [#where-entries-live]
+
+Kayıtlar `~/.config/zshell/quick-launch.json` dosyasına kaydedilir ve tüm pencerelerce paylaşılır. Normal kullanıcı verisidir; dosyayı dilediğinizce düzenleyebilir veya yedekleyebilirsiniz.
+
+<Callout type="info">
+Komutlar giriş kabuğunuz üzerinden çalışır, böylece profil ortamınızı görür. Ardından bölme, takma adlarınız ve isteminiz korunmuş normal bir oturumdur.
+</Callout>

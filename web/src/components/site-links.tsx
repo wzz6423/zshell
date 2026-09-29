@@ -1,19 +1,12 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
-import { DEFAULT_LANGUAGE } from '@/lib/i18n'
+import { DEFAULT_LANGUAGE, homePath, language } from '@/lib/i18n'
 
 type LinkProps = { lang: string; className?: string; children: ReactNode; onClick?: () => void }
 
-/**
- * Landing pages are spelled-out routes rather than one `/$lang` route — see
- * `routes/zh/index.tsx` for why — so each language maps to its own. Add a
- * language here when you add its route.
- */
-const HOME_ROUTES: Record<string, '/' | '/en' | '/zh'> = { zh: '/', en: '/en' }
-
 export function HomeLink({ lang, className, children, onClick }: LinkProps) {
   return (
-    <Link to={HOME_ROUTES[lang] ?? '/'} className={className} onClick={onClick}>
+    <Link to={homePath(lang)} className={className} onClick={onClick}>
       {children}
     </Link>
   )
@@ -25,12 +18,12 @@ export function HomeLink({ lang, className, children, onClick }: LinkProps) {
  * tree, so both have to be spelled out.
  */
 export function DocsLink({ lang, className, children, onClick, slug = '' }: LinkProps & { slug?: string }) {
-  return lang === DEFAULT_LANGUAGE ? (
+  return language(lang) === DEFAULT_LANGUAGE ? (
     <Link to="/docs/$" params={{ _splat: slug }} className={className} onClick={onClick}>
       {children}
     </Link>
   ) : (
-    <Link to="/$lang/docs/$" params={{ lang, _splat: slug }} className={className} onClick={onClick}>
+    <Link to="/$lang/docs/$" params={{ lang: language(lang), _splat: slug }} className={className} onClick={onClick}>
       {children}
     </Link>
   )

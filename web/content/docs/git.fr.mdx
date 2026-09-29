@@ -1,0 +1,94 @@
+---
+title: Panneau Git
+description: Indexez, examinez, validez et poussez les changements à côté du shell qui les a produits.
+---
+
+Appuyez sur <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>. Le panneau s'ouvre sur le dépôt auquel votre projet est rattaché ; la page [Répertoire du projet](/fr/docs/projects#the-project-directory) explique comment Zshell le détermine.
+
+Chaque action correspond à une commande Git exécutée pour vous. Si son résultat nécessite plus qu'une simple confirmation, sa sortie vous est présentée. Aucun historique n'est réécrit, aucun commit regroupé et aucune poussée forcée effectuée sans votre demande.
+
+## Barre d'outils Git [#the-git-toolbar]
+
+Zshell peut afficher une barre d'outils compacte sous l'onglet actif. Dans un dépôt, elle indique la branche actuelle et les totaux de lignes ajoutées ou supprimées. Un arbre sans modifications affiche l'état vert **Propre**. Les fichiers non suivis sont inclus dans le nombre de lignes ajoutées.
+
+- Cliquez sur la branche pour rechercher et sélectionner une branche locale. La branche par défaut du dépôt est signalée dans la liste.
+- Cliquez sur le nombre de changements pour ouvrir le panneau Git.
+- Hors d'un dépôt, le mode **Toujours afficher** conserve un bouton **Aucun dépôt Git** qui ouvre le panneau à l'étape d'initialisation.
+
+Choisissez **Masquer**, **Automatique** ou **Toujours afficher** dans **Réglages → Général**, ou définissez [`toolbar.visibility`](/fr/docs/configuration#toolbarvisibility). La valeur par défaut est Masquer. Le menu contextuel d'une barre visible permet aussi de la masquer.
+
+## Fichiers modifiés [#changed-files]
+
+Les fichiers sont regroupés en conflits, changements indexés et changements non indexés. Survolez une ligne pour afficher ses boutons, ou ouvrez son menu contextuel :
+
+| Bouton | Effet |
+| --- | --- |
+| **+** | Indexer le fichier |
+| **−** | Retirer le fichier de l'index |
+| **↺** | Abandonner ses modifications |
+
+**Abandonner toutes les modifications**, dans l'en-tête du panneau, demande d'abord confirmation. C'est l'action de cette liste qui ne peut pas être annulée par une autre commande Git.
+
+Les fichiers en conflit proposent **Marquer comme résolu (indexer)** à la place du simple bouton d'indexation : la résolution reste une décision explicite.
+
+Le bouton en forme d'entonnoir filtre les fichiers par nom, ce qui facilite la navigation dans les changements importants.
+
+## Lire les diffs [#reading-diffs]
+
+Cliquez sur un fichier modifié pour ouvrir son diff dans un volet, à côté du terminal. Le menu contextuel permet également d'**ouvrir le fichier** lui-même pour l'éditer, ou de l'**ouvrir sur le côté**.
+
+Les grands diffs restent réactifs. Un ensemble de mille fichiers s'ouvre aussi rapidement qu'une modification d'une ligne, avec un défilement fluide.
+
+Les commandes au-dessus d'un diff mémorisent deux préférences globales :
+
+- **Unifié / Séparé** alterne entre une colonne unique et une présentation côte à côte.
+- **Révision / Modification** apparaît pour un fichier non indexé dans l'arbre de travail actuel. Modifiez directement la nouvelle version puis enregistrez avec <kbd>Cmd</kbd>+<kbd>S</kbd>. La fermeture d'un fichier modifié suit les mêmes règles que l'éditeur habituel.
+
+Les diffs indexés et ceux des commits historiques restent en lecture seule : ce sont des instantanés, pas des fichiers dans lesquels Zshell peut écrire sans risque. Passer un diff en mode Modification ou Séparé actualise la préférence des autres diffs ouverts, sans rendre modifiable un instantané qui ne l'est pas.
+
+## Créer un commit [#committing]
+
+Saisissez un message et utilisez le bouton de commit, ou son menu :
+
+- **Valider les changements indexés** : inclure exactement ce que vous avez indexé.
+- **Tout indexer et valider** : indexer tous les fichiers suivis, puis créer le commit.
+- **Modifier le dernier commit** : intégrer les changements indexés au commit précédent.
+- **Tout indexer et modifier le dernier commit**.
+
+Les commits récents apparaissent en dessous. Leur menu contextuel propose **Copier le hash du commit** et **Copier le message du commit**.
+
+## Branches [#branches]
+
+Le nom de la branche dans l'en-tête ouvre un menu. Choisissez une autre branche pour y passer, ou **Créer une branche…** pour en créer une à partir de la position actuelle.
+
+## Arbres de travail [#worktrees]
+
+Le panneau Git répertorie tous les arbres de travail du dépôt avec leur branche et le chemin de leur copie de travail. La copie active porte la mention **Actuel**. Cliquez sur un arbre pour ouvrir un nouvel onglet de terminal dans son répertoire : chaque copie conserve ainsi son contexte de shell tout en appartenant au même projet. Les longues listes défilent dans leur propre zone de hauteur limitée ; l'en-tête, les commandes de commit et la liste des fichiers modifiés restent en place. Cliquez sur le titre des arbres de travail pour réduire ou développer la liste.
+
+Un arbre avec une HEAD détachée affiche **HEAD détachée** à la place d'un nom de branche. Les dépôts nus figurent aussi dans la liste, mais ils n'ont pas de répertoire de travail et ne peuvent pas être ouverts dans un onglet de terminal.
+
+## Dépôts distants [#remotes]
+
+Le menu **⋯** regroupe les opérations avec un dépôt distant :
+
+| Action | Effet |
+| --- | --- |
+| **Récupérer** | Actualiser les références de suivi distantes |
+| **Tirer (avance rapide uniquement)** | Récupérer les changements sans créer de commit de fusion |
+| **Pousser** | Envoyer la branche actuelle |
+| **Publier la branche** | Envoyer une branche sans branche amont ; choisir le dépôt distant s'il y en a plusieurs |
+| **Synchroniser les changements** | Tirer en avance rapide, puis pousser |
+| **Remiser tous les changements** | Créer un stash de tous les changements, fichiers non suivis compris |
+| **Réappliquer le dernier stash** | Restaurer le stash le plus récent |
+
+Les badges à côté de la branche indiquent les commits **↓ en retard** et **↑ en avance** sur la branche amont.
+
+Ce même menu propose **Copier les chemins modifiés**, **Copier le chemin du dépôt** et **Afficher le dépôt dans le Finder**.
+
+<Callout type="info">
+Le tirage est volontairement limité à l'avance rapide. Si une fusion ou un rebase est nécessaire, Git vous l'indique et vous choisissez la marche à suivre dans le terminal. Le panneau ne choisit pas cette stratégie à votre place.
+</Callout>
+
+## Aucun dépôt pour le moment [#not-a-repository-yet]
+
+Si le répertoire du projet ne contient pas de dépôt, le panneau propose **Initialiser le dépôt**, qui exécute `git init` dans ce dossier. Il reste discret tant que le dépôt n'est pas initialisé.

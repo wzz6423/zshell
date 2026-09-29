@@ -1,0 +1,38 @@
+---
+title: Lancement rapide
+description: Enregistrez vos commandes et connexions SSH récurrentes pour les lancer en un raccourci.
+---
+
+<kbd>Cmd</kbd>+<kbd>O</kbd> ouvre le **Lancement rapide**, une liste consultable d'entrées qui ouvrent chacune un nouveau projet avec une session de terminal. Une entrée contient soit une **commande** souvent utilisée, comme `npm run dev` ou `make watch`, soit une **connexion SSH**.
+
+## Lancer une entrée [#launching]
+
+Saisissez un nom, une commande, une destination de connexion ou un groupe pour filtrer la liste par correspondance approximative. Cliquez sur une ligne, ou sélectionnez-la avec les flèches puis appuyez sur <kbd>Return</kbd>. L'entrée s'exécute dans un nouveau projet portant son nom, avec sa propre session de terminal et son répertoire.
+
+Lorsque la commande se termine ou que la connexion se ferme, le volet revient à une invite de shell normale au lieu de disparaître. Le programme lancé ne ferme pas discrètement le volet.
+
+Vous pouvez aussi lancer une entrée enregistrée par son nom depuis tout terminal Zshell :
+
+```bash
+zshell "Nom de l'entrée"
+```
+
+Utilisez son nom exact, entre guillemets s'il contient des espaces. L'indication en bas du Lancement rapide rappelle cette syntaxe. L'entrée s'ouvre dans un nouveau projet.
+
+## Gérer les entrées [#managing-entries]
+
+- <kbd>Cmd</kbd>+<kbd>N</kbd> : créer une entrée.
+- <kbd>Cmd</kbd>+<kbd>E</kbd> : modifier l'entrée sélectionnée.
+- <kbd>Cmd</kbd>+<kbd>Delete</kbd> : supprimer l'entrée sélectionnée.
+
+Le champ facultatif **Groupe** organise les entrées en sections nommées. Les boutons de modification et de suppression agissent sur leur entrée sans la lancer.
+
+Une commande peut fixer un **répertoire de travail** dans lequel elle démarrera systématiquement ; sans ce réglage, elle utilise le répertoire par défaut d'un nouveau projet. Une connexion SSH comprend l'hôte, un utilisateur et un port facultatifs, ainsi que des options `ssh` libres comme `-L 8080:localhost:80`.
+
+## Stockage des entrées [#where-entries-live]
+
+Les entrées sont enregistrées dans `~/.config/zshell/quick-launch.json` et partagées par toutes les fenêtres. Il s'agit de simples données utilisateur : vous pouvez modifier ce fichier ou le sauvegarder directement.
+
+<Callout type="info">
+Les commandes passent par votre shell de connexion et disposent de l'environnement défini dans votre profil. Le volet reste ensuite une session normale, avec vos alias et votre invite.
+</Callout>

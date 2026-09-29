@@ -1,0 +1,23 @@
+{
+  "title": "Документация",
+  "pages": [
+    "---Начало работы---",
+    "index",
+    "installation",
+    "quick-start",
+    "---Работа с Zshell---",
+    "projects",
+    "panes",
+    "terminal",
+    "quick-launch",
+    "browser",
+    "git",
+    "files",
+    "session-info",
+    "automation",
+    "---Справочник---",
+    "shortcuts",
+    "configuration",
+    "faq"
+  ]
+}

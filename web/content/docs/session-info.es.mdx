@@ -1,0 +1,37 @@
+---
+title: Procesos y puertos
+description: Comprueba qué ejecuta realmente una sesión y qué puertos ha abierto.
+---
+
+Pulsa <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>. El panel Información describe la **sesión con el foco**, no el proyecto, y se actualiza a medida que se inician y detienen procesos.
+
+## Directorio [#directory]
+
+Se muestran por separado porque no siempre coinciden:
+
+- **Directorio actual**: el directorio de trabajo actual del shell, visible cuando difiere del siguiente.
+- **Directorio del proyecto**: la carpeta a la que están vinculados los paneles Archivos y Git, marcada con `(AUTO)` cuando Zshell la determina automáticamente. La ventana emergente `?` explica ambos.
+
+A su lado hay accesos para mostrar la carpeta en **Finder**, abrirla en **VS Code** si está instalado y **Copiar** la ruta.
+
+## Procesos [#processes]
+
+Todo lo que se ejecuta bajo el shell de la sesión, con su PID, porcentaje de CPU y memoria residente. Haz clic derecho en un proceso para:
+
+- **Terminar**: envía `SIGTERM` para solicitar que termine.
+- **Forzar finalización**: envía `SIGKILL` cuando el proceso no responde a la solicitud.
+- **Copiar PID** / **Copiar ruta del ejecutable**.
+
+Se omiten los procesos hijos que ya han terminado pero aún esperan a que se recoja su estado (`<defunct>`): ya no hay nada que consultar ni finalizar.
+
+## Puertos [#ports]
+
+Los puertos TCP en los que escuchan esos procesos, junto con el proceso al que pertenece cada uno. Útil para las preguntas de cada día: *qué puerto ha elegido esta vez el servidor de desarrollo* y *qué sigue ocupando el 3000*.
+
+- Haz clic en un puerto para abrir `http://localhost:<port>/` en el navegador.
+- **Copiar URL**.
+- **Finalizar proceso**: cuando la respuesta a «qué sigue ocupándolo» es «algo que había olvidado».
+
+<Callout type="info">
+La lista se actualiza mientras el panel está abierto y se pausa cuando está oculto.
+</Callout>

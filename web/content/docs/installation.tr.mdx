@@ -1,0 +1,60 @@
+---
+title: "Kurulum"
+description: "Zshell’i indirin, Homebrew ile kurun, güncel tutun ve temiz biçimde kaldırın."
+---
+
+Zshell Apple tarafından noter onayı almamıştır. [Ana sayfada](/tr), güncel sürümün gerektirdiği en düşük macOS sürümü indirme bağlantısının yanında gösterilir.
+
+## İndirme [#download]
+
+`.dmg` dosyasını [ana sayfadan](/tr) indirin. Güncel 0.1.7 sürümü Universal, Apple Silicon ve Intel paketleri sunar; Gitee de ayna olarak kullanılabilir. Disk görüntüsünü açın ve **Zshell**’i Uygulamalar’a sürükleyin.
+
+İlk açılışta macOS uygulamayı engelleyebilir. Açmayı denedikten sonra **Sistem Ayarları → Gizlilik ve Güvenlik → Yine de Aç** yolunu izleyip Zshell’i açmayı onaylayın. Homebrew kurulumları için de geçerlidir.
+
+## Homebrew [#homebrew]
+
+```bash
+brew install wzz6423/tap/zshell
+```
+
+Cask, `wzz6423/homebrew-tap` deposundadır ve Mac’inizin işlemcisine uygun ZIP’i kurar. Kurulumdan sonra Zshell güncellemeler için Sparkle kullanır. Homebrew üzerinden özellikle güncellemek veya eski kalan kurulumu güncel sürüme getirmek için:
+
+```bash
+brew upgrade --cask --greedy-auto-updates zshell
+```
+
+## Güncellemeler [#updates]
+
+Doğrudan indirmeler de Homebrew kurulumları da [Sparkle](https://sparkle-project.org) kullanır. Çin anakarasında Zshell önce Gitee’yi, sonra GitHub’ı; diğer yerlerde önce GitHub’ı, sonra Gitee’yi dener. Erişilebilirse ağın IP ülkesini kullanır; ülke sorgusu başarısız olursa macOS bölgesine döner. Akış veya indirme başarısız olursa diğer kaynak bir kez denenir. Ülke sorgusu [ipinfo.io/country](https://ipinfo.io/country) üzerinden, beş saniyelik zaman aşımı ve bellekte 30 dakikalık önbellekle yapılır. Bu istek ağın genel IP adresini o hizmete gösterir; Zshell IP’yi kaydetmez. Otomatik denetimleri kapatmak arka plandaki ülke sorgularını da durdurur.
+
+Zshell kurulumdan önce imzalı akışı ve güncelleme paketini doğrular ve kurulu mimariyi korur; Rosetta altında çalışan Intel uygulamaları Apple Silicon’a geçirilir.
+
+Otomatik denetimleri ve **Güncellemeleri otomatik indir** seçeneğini yönetmek için **Ayarlar → Güncellemeler**’i (<kbd>Cmd</kbd>+<kbd>,</kbd>) açın. İndirme varsayılan olarak kapalıdır ve otomatik denetim gerektirir. İndirmeyi açmak, varsayılan olarak kapalı olan ayrı **Güncellemeleri otomatik yükle** anahtarını gösterir. Yükleme kapalıyken güncellemeler arka planda indirilir ve Zshell’den çıktığınızda kurulur. İkisi de açıkken hazırlanmış güncellemeler otomatik kurulur ve Zshell yeniden başlar. Yeniden başlatma terminal işlemlerini durdurur; uygulama açıldığında çalışma alanı geri yüklenir. İndirmeyi kapatmak yükleme anahtarını gizler ve otomatik yeniden başlatmayı engeller; indirme yeniden açıldığında kullanılmak üzere yükleme tercihi korunur. İki tercih de uygulama yeniden başlatmalarında saklanır. Güncelleme varsa proje kenar çubuğunun altında, geri bildirim düğmesinin solunda güncelleme simgesi belirir. Güncellemeyi veya ilerlemesini açmak ya da bekleyen yeniden başlatmayı tekrar denemek için tıklayın. Elle denetlemek için **Güncellemeleri Denetle…**’yi seçin. Yukarıdaki Homebrew komutu da doğrudan güncelleme için kullanılabilir.
+
+## Önerilen araçlar [#recommended-tools]
+
+Zisla dâhil terminal, ağ, geliştirme, yardımcı ve masaüstü araçlarını görmek için **Ayarlar → Öneriler**’i açın. Sayfa açıkken kurulu araçları algılar ve güncellemeleri denetler. Bir aracın **Yükle** veya **Güncelle** düğmesini, eksik önerilerin tamamı için **Eksikleri Yükle**’yi ya da Homebrew tarafından yönetilen araçların güncellemeleri için **Tümünü Güncelle**’yi kullanın.
+
+Araç kurulumu Homebrew kullanır. Homebrew yoksa sayfa kurulum yönergelerine bağlantı verir. Denetimler kendiliğinden kurulum veya güncelleme yapmaz. Homebrew dışında algılanan araçlar **Homebrew dışında** olarak işaretlenir. **Homebrew Kullan**, Homebrew yönetiminde bir kopya kurar; mevcut kopya kabuğun `PATH` sıralamasında yine öncelikli olabilir. Kurulumu değiştirdikten sonra tekrar denetlemek için **Yenile**’yi kullanın. Zshell’in kendisi **Ayarlar → Güncellemeler**’den yönetilir.
+
+## Finder’dan klasör açma [#open-a-folder-from-finder]
+
+Zshell, **Burada Yeni Zshell Projesi** adlı bir macOS servisi kaydeder. Finder’da bir veya birkaç klasör seçin, sağ tıklayın ve **Servisler** alt menüsünden bunu seçin. Her klasör, terminali o dizinde başlamış bir proje olarak açılır.
+
+Menüde yoksa **Sistem Ayarları → Klavye → Klavye Kısayolları → Servisler → Dosyalar ve Klasörler** altında açın. macOS yeni servisi ancak uygulama bir kez başlatıldıktan sonra listeler.
+
+## Kaldırma [#uninstalling]
+
+**Ayarlar → Otomasyon → AI** açıksa uygulamayı silmeden önce kapatın; böylece Zshell kurduğu ajan desteğini kaldırabilir.
+
+Uygulamalar’dan `zshell.app` dosyasını silin. Temiz bir başlangıç için isterseniz ayarlarını da kaldırın:
+
+```bash
+rm -rf ~/.config/zshell
+```
+
+Pencere düzeni, kenar çubuğu genişlikleri ve oturum anlık görüntüsü macOS’in kendi tercih deposundadır:
+
+```bash
+defaults delete sh.zshell
+```

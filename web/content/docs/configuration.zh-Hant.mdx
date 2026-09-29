@@ -1,0 +1,252 @@
+---
+title: 配置
+description: Zshell 的全部持久化選項、各自作用，以及它們存在哪裡。
+---
+
+Zshell 大多數持久化設定都在一個檔案裡：
+
+```
+~/.config/zshell/config.toml
+```
+
+設定視窗（<kbd>Cmd</kbd>+<kbd>,</kbd>）寫的也是這個檔案。少數由 macOS 管理的設定——語言和自動更新——存在別處，列在本頁末尾。
+
+## 這個檔案的行為 [#how-the-file-behaves]
+
+手動改之前值得先知道：
+
+- **啟動時讀取。** Zshell 執行中改檔案不會立即生效，要重新啟動。設定視窗裡的改動通常立即生效，控件另有說明的除外。
+- **只要檔案型設定有變化，Zshell 就會重寫它。** 檔案會從頭生成，所以你的注釋和未知鍵會在下次使用這些控件時丟失。最好只選一種方式維護它，或者把權威版本放在 dotfiles 裡。
+- **通常只寫非預設值。** 唯一例外是 `font-size`，它總會出現。刪掉其他鍵就恢復預設值。
+- **解析器有意保持精簡。** 支持扁平鍵、點號鍵、`[table]` 表頭、`#` 注釋，以及字串、數字和布林值；不支持數組、行內表和多行字串。
+- **錯誤值會安全回退。** 超出範圍的字級、未知後端或拼錯的主題名不會讓 Zshell 啟動失敗。
+
+## 外觀 [#appearance]
+
+### `theme` [#theme]
+
+`"system"` · `"light"` · `"dark"`——預設 `"system"`
+
+選擇應用外觀。`"system"` 跟隨 macOS，另外兩個把 Zshell 固定為淺色或深色。
+
+### `theme-dark` 和 `theme-light` [#theme-dark-and-theme-light]
+
+字串——預設 `"Default Dark"` 和 `"Default Light"`
+
+兩種外觀各自使用的配色主題。它會同時重繪終端機、視窗裝飾、側邊欄、編輯器和 diff。Zshell 自帶的預設主題保留半透明側邊欄，其他主題會把側邊欄刷成與自身配色一致。
+
+設定視窗列出兩個終端機後端共同支持的精選主題。手寫名稱必須與列表裡的顯示名完全一致，包括大小寫；否則會回退到對應的預設主題。
+
+### `toolbar.visibility` [#toolbarvisibility]
+
+`"hide"` · `"auto"` · `"always"`——預設 `"hide"`
+
+控制當前分頁下方的緊湊工具欄：
+
+- `"hide"` 始終隱藏。
+- `"auto"` 只在專案目錄是 Git 儲存庫時顯示。
+- `"always"` 在每個專案裡顯示；不是儲存庫時會顯示 **No Git Repository**。
+
+它具體展示什麼，見 [Git 工具欄](/zh-Hant/docs/git#the-git-toolbar)。
+
+## 文字 [#text]
+
+### `font-family` [#font-family]
+
+字串——預設 `""`，表示內建的 JetBrains Mono
+
+終端機、編輯器和 diff 共用這個拉丁字型家族。請寫字型家族名，不要寫具體字重：`"IBM Plex Mono"`，
+而不是 `"IBM Plex Mono Regular"`。不存在或非等寬的字型家族會回退到內建預設值。
+
+終端機的後備順序是：拉丁字型家族、下面可選的 CJK 後備字型家族、內建 Symbols Nerd Font，最後是
+後端的系統後備字型。編輯器和 diff 繼續使用 macOS/WebKit 的正常後備機制。
+
+### `terminal.font-fallback-family` [#terminalfont-fallback-family]
+
+字串——預設 `""`，表示交給後端和系統選擇
+
+在終端機的有序後備鏈中加入一個已安裝的 CJK 字型家族。設定列表會顯示包含代表性中文、日文或
+韓文字形的字型家族；它們不必嚴格等寬，因為只負責拉丁主字型缺少的字形。
+
+### `font-size` [#font-size]
+
+數字，8–32——預設 `13`
+
+終端機、編輯器和 diff 共用的字級，單位是磅。這是唯一一個即使等於預設值，Zshell 也會寫進檔案的鍵。
+
+### `interface.scale` [#interfacescale]
+
+數字，0.9–1.5——預設 `1`
+
+縮放分頁、圖示、按鈕、側邊欄和應用介面的其他部分。終端機、編輯器和 diff 內容仍使用上方單獨配置的字級。
+
+### `sidebar.font-size` [#sidebarfont-size]
+
+數字，9–24——預設 `14`
+
+左右側邊欄的基礎字級。調整後，分區標題、列表、元資料和控件仍會保持原本的大小層級。
+
+### `terminal.font-thicken` [#terminalfont-thicken]
+
+布林值——預設 `false`
+
+用稍粗的筆畫渲染終端機文字，效果類似經典 macOS 字型平滑。兩個終端機後端都支持，設定視窗裡的預覽也會反映效果。舊的 `font-thicken` 仍能讀取，但儲存後會改寫成現在的點號鍵。
+
+### `terminal.font-thicken-strength` [#terminalfont-thicken-strength]
+
+整數，0–255——預設 `255`
+
+控制 `terminal.font-thicken` 打開時的粗化強度。零表示最輕的可用粗化，而不是關閉。Ghostty
+使用其原生 macOS 強度；Alacritty 把同一範圍映射到 CoreText 描邊，所以方向和端點一致，
+但光柵化像素可能不同。
+
+### `terminal.line-height` [#terminalline-height]
+
+數字，0.75–2——預設 `1`
+
+按比例調整各終端機後端的自然單元格高度，同時讓字形保持垂直居中。它只改變終端機行，不改變
+編輯器或 diff 的行距。
+
+Zshell 不提供基礎字重控件。Ghostty 使用具名字形樣式或可變軸，而 Alacritty/CoreText 按
+trait 解析 regular 與 bold 字型；單個共享數值無法在靜態字型和可變字型之間一致地保留
+regular/bold 區分及後備字型字重。
+
+### `editor.wrap-lines` [#editorwrap-lines]
+
+布林值——預設 `true`
+
+在[檔案編輯器](/zh-Hant/docs/files)裡按窗格寬度軟折行。關閉時長行橫向捲動；它不會改變終端機或 diff
+裡的折行行為。
+
+## 終端機 [#terminal]
+
+### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
+
+字串——預設未設定
+
+選擇之後新建終端機使用的可執行程式與參數向量。未設定 `terminal.startup-program` 時，Zshell
+繼續以 `-l` 啟動帳戶登錄 Shell。程式必須是可執行檔案的絕對路徑；路徑不存在或不可執行時會
+回退到登錄 Shell，而不是打開一個立即關閉的空窗格。
+
+`terminal.startup-arguments` 不經 Shell 直接拆分為參數。引號和反斜槓用於保留參數邊界，
+包括含空格和空字串的參數，但不會展開變數、通配符或指令替換。引號不完整時也會回退到
+登錄 Shell。Zshell CLI 為單個終端機顯式傳入的 argv 仍然優先。
+
+### `terminal.backend` [#terminalbackend]
+
+`"libghostty"` · `"alacritty"`——預設 `"libghostty"`
+
+選擇之後新建終端機使用的模擬器；已經打開的窗格繼續使用啟動時的後端。兩者都是原生 GPU 加速，都支持圖片渲染並共用 Zshell 主題；Alacritty 通常佔用更少記憶體。
+
+環境變數與相容約定見[終端機後端](/zh-Hant/docs/terminal#terminal-backends)。
+
+### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
+
+布林值——預設 `false`
+
+打開後，Option 組合鍵會作為 Alt/Meta 快速鍵發送給終端機程式。預設關閉，讓 Option 繼續交給當前 macOS 輸入源，因此 Polish Pro 之類的鍵盤佈局仍能輸入組合字符。
+
+### `terminal.bell` [#terminalbell]
+
+布林值——預設 `true`
+
+控制終端機程式觸發鈴聲時的提示音和 macOS 視覺提醒。關閉後，Zshell 不會播放提示音、發送終端機鈴聲通知或請求 Dock 提醒；輔助技術仍會收到鈴聲的語義公告。兩個終端機後端都遵循此設定。
+
+### `terminal.vim-command-hints` [#terminalvim-command-hints]
+
+布林值，預設 `false`。
+
+在右側 **資訊** 欄的工作階段資訊下方顯示按模式排序的 Vim / Neovim 常用指令。
+立即作用於兩種終端機後端，也支持識別 SSH 中的編輯器。
+檢測條件見 [Vim 指令提示](/zh-Hant/docs/terminal#vim-command-hints)。
+
+### `terminal.restore-history` [#terminalrestore-history]
+
+布林值——預設 `false`
+
+重新啟動後，在全新 shell 上方恢復每個終端機之前的捲動歷史。恢復的是靜態文本，不是仍在執行的程序。
+
+恢復的捲動歷史會儲存在磁碟上，所以終端機裡顯示過的密鑰也可能包含在內。這個設定預設關閉。[專案、分頁和窗格佈局](/zh-Hant/docs/projects#what-survives-a-relaunch)無論如何都會恢復。
+
+## 自動化 [#automation]
+
+### `ai.enabled` [#aienabled]
+
+布林值——預設 `true`
+
+讓受支持的編碼 agent 按照你的自然語言要求協調 Zshell 後台窗格，並在介面裡顯示 provider 報告的生命週期狀態。Zshell 不會根據終端機文字推斷狀態。推薦用設定視窗的開關，因為錯誤會直接顯示出來，而且衝突的現有配置會保持原樣。
+
+具體怎麼使用，見[與 AI Agent 協作](/zh-Hant/docs/automation)。
+
+## 其他配置項 [#additional-settings]
+
+| 配置鍵 | 預設值 | 可選值 / 範圍 | 作用 |
+| --- | --- | --- | --- |
+| `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | 應用圖示 |
+| `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | 檔案和目錄使用的外部編輯器 |
+| `terminal.theme-only` | `false` | 布林值 | 只將所選配色應用於終端機 |
+| `terminal.cursor-shape` | `"block"` | `"block"` / `"bar"` / `"underline"` | 終端機游標形狀 |
+| `terminal.cursor-blinking` | `true` | 布林值 | 游標閃爍 |
+| `terminal.copy-on-select` | `true` | 布林值 | 選中終端機文本後複製 |
+| `terminal.shift-enter-newline` | `true` | 布林值 | Shift+Enter 發送增強換行序列，需終端機程式支持 |
+| `terminal.background-opacity` | `1` | 0.2–1 | 終端機背景不透明度 |
+| `terminal.background-blur` | `false` | 布林值 | 半透明背景模糊 |
+| `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | 新建 zsh 終端機中，執行至少該秒數的指令結束後通知；0 為關閉 |
+| `terminal.notify-on-error` | `false` | 布林值 | 新建 zsh 終端機中，指令失敗時通知 |
+| `quick-terminal.size` | `0.75` | 0.35–0.95 | 快速終端機的螢幕佔比 |
+| `quick-terminal.opacity` | `0.5` | 0.05–1 | 快速終端機背景不透明度 |
+| `quick-terminal.shortcut` | `Cmd+I` | 設定中錄制 | 在設定中錄制全局快速鍵，自動儲存按鍵編碼 |
+| `panes.show-focus-ring` | `true` | 布林值 | 顯示當前窗格焦點邊框 |
+| `panes.focus-ring-opacity` | `0.85` | 0.05–1 | 焦點邊框不透明度 |
+
+## 備份與遷移 [#backup-and-migration]
+
+通過 **Zshell → Export Settings…** 匯出 TOML 檔案，使用 **Import Settings…** 匯入。
+匯入前會要求確認替換，並嘗試將當前配置備份為同目錄的 `config.toml.bak`。
+
+當前匯入支持主題、主要字型設定、游標、終端機後端、歷史恢復、選中複製、快速終端機和 AI 開關等設定，
+不會完整恢復所有匯出項。介面縮放、應用圖示、外部編輯器、終端機背景等需要在匯入後重新檢查。
+需要完整遷移時，退出 Zshell 後備份並複製 `config.toml`，再啟動應用。
+AI 開關只在匯入檔案明確包含 `ai.enabled` 時更新，匯入後請檢查。
+專案和分頁的環境變數屬於工作階段資料，不包含在此配置檔案中。
+
+## 一份完整的例子 [#a-complete-example]
+
+```toml title="~/.config/zshell/config.toml"
+theme = "dark"
+theme-dark = "Catppuccin Mocha"
+theme-light = "Catppuccin Latte"
+font-family = "IBM Plex Mono"
+font-size = 14
+interface.scale = 1.25
+sidebar.font-size = 13
+toolbar.visibility = "auto"
+terminal.font-fallback-family = "PingFang SC"
+terminal.font-thicken = true
+terminal.font-thicken-strength = 180
+terminal.line-height = 1.15
+terminal.macos-option-as-alt = false
+terminal.bell = false
+terminal.startup-program = "/opt/homebrew/bin/fish"
+terminal.startup-arguments = "--no-config"
+terminal.backend = "alacritty"
+terminal.restore-history = true
+editor.wrap-lines = true
+ai.enabled = true
+```
+
+每個鍵都是可選的。刪掉某個鍵，就讓那項設定恢復預設值。
+
+## 自訂快速鍵 [#keyboard-shortcuts]
+
+打開 **設定 → 快速鍵**，可以為核心指令錄制新的組合鍵。若與其他指令衝突，
+Zshell 會拒絕此次修改並顯示佔用它的指令。點擊 **恢復預設快速鍵**可以清除全部自訂項。
+[快速鍵文檔](/zh-Hant/docs/shortcuts)列出的是出廠預設值。
+
+## 不在這個檔案裡的設定 [#settings-outside-this-file]
+
+- **語言。** 設定裡可選「跟隨系統」及與官網一致的 17 種語言。切換立即生效，終端機工作階段繼續執行。它使用 macOS 的單應用語言偏好，所以不存進 TOML。「跟隨系統」會按 macOS 的語言優先級選擇。
+- **自動更新。** **設定 → 更新**中的自動檢查、自動下載和自動安裝使用 TOML 之外的應用偏好，重新啟動後會保留選擇。開啟自動下載後才顯示自動安裝。見[安裝](/zh-Hant/docs/installation#updates)。
+- **視窗與佈局狀態。** 視窗尺寸、側邊欄寬度、當前面板、專案、分頁、窗格、瀏覽器 URL 和
+  diff 控件偏好，都存在 Zshell 的 macOS 偏好設定或工作階段快照裡。
+- **後端自己的配置檔案。** Zshell 不讀取 `~/.config/ghostty`，也不讀取 Alacritty 配置。Zshell 的設定就是兩個後端共同支持的配置面。

@@ -1,0 +1,94 @@
+---
+title: Pannello Git
+description: Prepara, rivedi, esegui commit e push accanto alla shell che ha prodotto le modifiche.
+---
+
+Premi <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>. Il pannello si apre sul repository a cui è ancorato il progetto; [La directory del progetto](/it/docs/projects#the-project-directory) spiega come viene scelto.
+
+Ogni azione corrisponde a un comando Git eseguito da Zshell per te. L'output viene mostrato quando c'è altro da dire oltre a “completato”. Nulla viene riscritto, unito con squash o inviato con force push senza una tua richiesta.
+
+## La barra degli strumenti Git [#the-git-toolbar]
+
+Zshell può mostrare una barra compatta sotto la scheda attiva. Nei repository indica branch corrente e conteggi complessivi delle righe aggiunte/eliminate; un albero senza modifiche mostra **Pulito** in verde. I file non tracciati sono inclusi nelle aggiunte.
+
+- Fai clic sul branch per cercare e cambiare branch locali. Quello predefinito del repository è contrassegnato.
+- Fai clic sui conteggi per aprire il pannello Git.
+- Fuori da un repository, **Mostra sempre** mantiene un pulsante **Nessun repository Git** che apre la schermata di inizializzazione.
+
+Scegli **Nascondi**, **Automatico** o **Mostra sempre** in **Impostazioni → Generali**, oppure imposta [`toolbar.visibility`](/it/docs/configuration#toolbarvisibility). Il valore predefinito è Nascondi. Puoi anche nascondere una barra visibile dal suo menu contestuale.
+
+## File modificati [#changed-files]
+
+I file sono raggruppati in conflitti, modifiche in staging e modifiche non in staging. Passa il puntatore su una riga per i pulsanti o usa il menu contestuale:
+
+| Pulsante | Funzione |
+| --- | --- |
+| **+** | Aggiunge il file all'area di staging |
+| **−** | Rimuove il file dallo staging |
+| **↺** | Scarta le modifiche |
+
+**Scarta tutte le modifiche** è nell'intestazione e richiede conferma: è l'azione che non puoi annullare con un altro comando Git.
+
+I file in conflitto mostrano **Segna come risolto (staging)** al posto del pulsante normale, rendendo la risoluzione un passaggio esplicito.
+
+Il pulsante a imbuto filtra l'elenco per nome, utile per modifiche numerose.
+
+## Leggere i diff [#reading-diffs]
+
+Fai clic su un file modificato per aprire il diff in un pannello accanto al terminale. Il menu contestuale offre anche **Apri file**, modificabile, e **Apri file a lato**.
+
+I diff grandi restano reattivi. Un insieme di mille file si apre velocemente quanto una modifica di una riga e scorre senza scatti.
+
+I controlli sopra il diff ricordano due scelte globali:
+
+- **Unificato / Affiancato** alterna tra una colonna e due viste affiancate.
+- **Revisione / Modifica** compare per file non in staging nel worktree corrente. Modifica direttamente il lato nuovo e salva con <kbd>Cmd</kbd>+<kbd>S</kbd>; la chiusura di file non salvati funziona come nell'editor normale.
+
+I diff in staging e dei commit storici restano in sola lettura perché sono snapshot, non file scrivibili in sicurezza. Passare un diff a Modifica o Affiancato aggiorna la preferenza degli altri diff aperti senza rendere modificabile un diff non idoneo.
+
+## Commit [#committing]
+
+Inserisci un messaggio e usa il pulsante commit, oppure il suo menu:
+
+- **Commit delle modifiche in staging** — include esattamente ciò che hai preparato;
+- **Prepara tutto e fai commit** — prepara tutto ciò che è tracciato, poi esegue il commit;
+- **Modifica ultimo commit** — incorpora le modifiche in staging nel commit precedente;
+- **Prepara tutto e modifica ultimo commit**.
+
+I commit recenti sono elencati sotto; i menu contestuali includono **Copia hash del commit** e **Copia messaggio del commit**.
+
+## Branch [#branches]
+
+Il nome del branch nell'intestazione è un menu. Scegline un altro per passarvi o **Crea nuovo branch…** per partire dallo stato corrente.
+
+## Worktree [#worktrees]
+
+Il pannello elenca tutti i worktree del repository, con branch e percorso del checkout. Quello attivo è indicato come **Corrente**. Fai clic per aprire una nuova scheda terminale in quella directory: ogni checkout mantiene il proprio contesto shell restando nello stesso progetto. Gli elenchi lunghi scorrono in un'area delimitata, lasciando fermi intestazione, controlli di commit e file modificati. Fai clic sull'intestazione dei worktree per comprimere o espandere.
+
+I worktree in detached HEAD mostrano **Detached HEAD** al posto del nome del branch. I repository bare sono elencati per completezza, ma non hanno directory di lavoro e non possono aprirsi in una scheda terminale.
+
+## Remoti [#remotes]
+
+Il menu **⋯** raccoglie le operazioni verso i remoti:
+
+| Azione | Funzione |
+| --- | --- |
+| **Fetch** | Aggiorna i riferimenti di tracciamento remoto |
+| **Pull (solo fast-forward)** | Esegue pull senza creare commit di merge |
+| **Push** | Invia il branch corrente |
+| **Pubblica branch** | Invia un branch senza upstream, scegliendo il remoto se ce n'è più di uno |
+| **Sincronizza modifiche** | Pull fast-forward seguito da push |
+| **Stash di tutte le modifiche** | Salva tutto nello stash, inclusi i file non tracciati |
+| **Ripristina e rimuovi stash** | Ripristina lo stash più recente |
+
+Gli indicatori accanto al branch mostrano quanti commit sei **↓ indietro** o **↑ avanti** rispetto all'upstream.
+
+Lo stesso menu contiene **Copia percorsi modificati**, **Copia percorso repository** e **Mostra repository nel Finder**.
+
+<Callout type="info">
+Il pull è volutamente solo fast-forward. Se serve un vero merge o rebase, Git lo segnala e decidi nel terminale; il pannello non sceglie una strategia al posto tuo.
+</Callout>
+
+## Non è ancora un repository [#not-a-repository-yet]
+
+Se la directory del progetto non contiene un repository, il pannello offre **Inizializza repository**, che esegue `git init` nella cartella. Fino ad allora rimane discreto.

@@ -1,0 +1,94 @@
+---
+title: Het Git-paneel
+description: Stage, beoordeel, commit en push naast de shell waarin de wijzigingen zijn gemaakt.
+---
+
+Druk op <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>. Het paneel opent de repository waarop je project is gericht. Zie [de projectmap](/nl/docs/projects#the-project-directory) voor hoe Zshell die kiest.
+
+Elke actie hier is een Git-opdracht die Zshell voor je uitvoert. De uitvoer wordt getoond wanneer er meer te melden is dan alleen dat de actie klaar is. Er wordt niets herschreven, samengevoegd via squash of geforceerd gepusht tenzij je daarom vraagt.
+
+## De Git-werkbalk [#the-git-toolbar]
+
+Zshell kan een compacte werkbalk onder het actieve tabblad tonen. In een repository toont die de huidige branch en het totale aantal toegevoegde en verwijderde regels; een ongewijzigde werkboom krijgt de groene status **Schoon**. Niet-gevolgde bestanden tellen mee bij de toegevoegde regels.
+
+- Klik op de branch om lokale branches te doorzoeken en te wisselen. De standaardbranch van de repository wordt gemarkeerd in de lijst.
+- Klik op de aantallen wijzigingen om het Git-paneel te openen.
+- Buiten een repository laat de modus **Altijd tonen** een knop **Geen Git-repository** staan die de initialisatiepagina van het paneel opent.
+
+Kies **Verbergen**, **Automatisch** of **Altijd tonen** onder **Instellingen → Algemeen**, of stel [`toolbar.visibility`](/nl/docs/configuration#toolbarvisibility) in. Standaard is de werkbalk verborgen. Je kunt een zichtbare werkbalk ook via het contextmenu verbergen.
+
+## Gewijzigde bestanden [#changed-files]
+
+Bestanden zijn gegroepeerd in conflicten, gestagede wijzigingen en niet-gestagede wijzigingen. Beweeg over een rij voor de knoppen of gebruik het contextmenu:
+
+| Knop | Functie |
+| --- | --- |
+| **+** | Het bestand stagen |
+| **−** | Het bestand uit de staging area halen |
+| **↺** | Wijzigingen in het bestand verwerpen |
+
+**Alle wijzigingen verwerpen** staat in de paneelkop en vraagt eerst om bevestiging. Dit is de enige actie hier die je niet met een andere Git-opdracht ongedaan kunt maken.
+
+Bestanden met conflicten tonen **Markeren als opgelost (stagen)** in plaats van een gewone stageknop, zodat het oplossen een bewuste stap is en geen neveneffect.
+
+De trechterknop in de kop filtert de lijst op bestandsnaam, de snelste manier om door een grote wijziging te navigeren.
+
+## Diffs lezen [#reading-diffs]
+
+Klik op een gewijzigd bestand om de diff in een deelvenster naast de terminal te openen. Via het contextmenu kun je ook **Bestand openen** (het bewerkbare bestand zelf) of **Bestand aan de zijkant openen** kiezen.
+
+Grote diffs blijven responsief. Een wijzigingenset met duizend bestanden opent even snel als een wijziging van één regel en scrolt zonder haperingen.
+
+De bediening boven een diff onthoudt twee keuzes voor de hele app:
+
+- **Gecombineerd / Gesplitst** wisselt tussen één kolom en een indeling naast elkaar.
+- **Beoordelen / Bewerken** verschijnt voor een niet-gestaged bestand in de actuele worktree. Bewerk de nieuwe kant rechtstreeks en sla op met <kbd>Cmd</kbd>+<kbd>S</kbd>. Sluiten met niet-opgeslagen wijzigingen werkt zoals in de gewone editor.
+
+Gestagede diffs en diffs van historische commits blijven alleen-lezen: het zijn momentopnamen en geen bestanden die Zshell veilig kan schrijven. Als je één diff op Bewerken of Gesplitst zet, wordt de voorkeur voor andere geopende diffs bijgewerkt zonder een ongeschikte diff bewerkbaar te maken.
+
+## Committen [#committing]
+
+Typ een bericht en gebruik de commitknop of kies uit het menu:
+
+- **Gestagede wijzigingen committen** — commit precies wat je hebt gestaged
+- **Alles stagen en committen** — stage alle gevolgde wijzigingen en commit ze
+- **Laatste commit aanpassen** — voeg de gestagede wijzigingen toe aan de vorige commit
+- **Alles stagen en laatste commit aanpassen**
+
+Recente commits staan daaronder, met **Commithash kopiëren** en **Commitbericht kopiëren** in het contextmenu.
+
+## Branches [#branches]
+
+De branchnaam in de kop is een menu. Kies een andere branch om ernaartoe te wisselen, of **Nieuwe branch maken…** om vanaf het huidige punt te beginnen.
+
+## Worktrees [#worktrees]
+
+Het Git-paneel toont alle worktrees van de repository met hun branch en checkoutpad. De actieve checkout is gemarkeerd als **Huidig**. Klik op een worktree om een nieuw terminaltabblad in die map te openen. Elke checkout houdt zo zijn eigen shellcontext binnen hetzelfde project. Lange worktreelijsten scrollen binnen hun eigen begrensde gebied; de sectiekop, commitbediening en lijst met gewijzigde bestanden blijven staan. Klik op de worktreekop om de sectie in of uit te klappen.
+
+Worktrees met een losgekoppelde HEAD tonen **Detached HEAD** in plaats van een branchnaam. Bare repositories staan voor de volledigheid in de lijst, maar hebben geen werkmap en kunnen niet in een terminaltabblad worden geopend.
+
+## Remotes [#remotes]
+
+Het menu **⋯** bevat alle acties die met een remote communiceren:
+
+| Actie | Functie |
+| --- | --- |
+| **Ophalen** | Referenties voor remote-tracking bijwerken |
+| **Pullen (alleen fast-forward)** | Pullen zonder een mergecommit te maken |
+| **Pushen** | De huidige branch pushen |
+| **Branch publiceren** | Een branch zonder upstream pushen; bij meerdere remotes kun je kiezen |
+| **Wijzigingen synchroniseren** | Eerst fast-forward pullen, daarna pushen |
+| **Alle wijzigingen stashen** | Alles stashen, inclusief niet-gevolgde bestanden |
+| **Laatste stash toepassen en verwijderen** | De recentste stash herstellen |
+
+Badges naast de branch tonen hoeveel commits je **↓ achterloopt** en **↑ voorloopt** op de upstream.
+
+Hetzelfde menu bevat **Gewijzigde paden kopiëren**, **Repositorypad kopiëren** en **Repository tonen in Finder**.
+
+<Callout type="info">
+Pullen is bewust beperkt tot fast-forward. Als een echte merge of rebase nodig is, meldt Git dat en beslis je in de terminal. Het paneel kiest geen strategie voor je.
+</Callout>
+
+## Nog geen repository [#not-a-repository-yet]
+
+Als de projectmap geen repository bevat, biedt het paneel **Repository initialiseren** aan. Dit voert `git init` in die map uit. Tot dan blijft het paneel op de achtergrond.

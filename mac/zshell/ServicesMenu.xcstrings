@@ -5,10 +5,46 @@
       "comment": "Finder Services menu item used by debug builds.",
       "extractionState": "stale",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مشروع Zshell Debug جديد هنا"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neues Zshell Debug-Projekt hier"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "New Zshell Debug Project Here"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuevo proyecto Zshell Debug aquí"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nouveau projet Zshell Debug ici"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proyek Zshell Debug Baru di Sini"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuovo progetto Zshell Debug qui"
           }
         },
         "ja": {
@@ -17,10 +53,58 @@
             "value": "ここに新規Zshell Debugプロジェクトを作成"
           }
         },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "여기에 새 Zshell Debug 프로젝트"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieuw Zshell Debug-project hier"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novo projeto Zshell Debug aqui"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новый проект Zshell Debug здесь"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "โปรเจ็กต์ Zshell Debug ใหม่ที่นี่"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Burada Yeni Zshell Debug Projesi"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dự án Zshell Debug mới tại đây"
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "在此处新建 Zshell Debug 项目"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在此新增 Zshell Debug 專案"
           }
         }
       }
@@ -29,10 +113,46 @@
       "comment": "Finder Services menu item used by release builds.",
       "extractionState": "stale",
       "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مشروع Zshell جديد هنا"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neues Zshell-Projekt hier"
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "New Zshell Project Here"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuevo proyecto Zshell aquí"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nouveau projet Zshell ici"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proyek Zshell Baru di Sini"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuovo progetto Zshell qui"
           }
         },
         "ja": {
@@ -41,10 +161,58 @@
             "value": "ここに新規Zshellプロジェクトを作成"
           }
         },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "여기에 새 Zshell 프로젝트"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieuw Zshell-project hier"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novo projeto Zshell aqui"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новый проект Zshell здесь"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "โปรเจ็กต์ Zshell ใหม่ที่นี่"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Burada Yeni Zshell Projesi"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dự án Zshell mới tại đây"
+          }
+        },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "在此处新建 Zshell 项目"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在此新增 Zshell 專案"
           }
         }
       }

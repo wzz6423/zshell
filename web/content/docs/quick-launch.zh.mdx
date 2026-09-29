@@ -5,7 +5,9 @@ description: 把反复使用的命令和 SSH 连接存成条目，一键启动�
 
 <kbd>Cmd</kbd>+<kbd>O</kbd> 打开**快速启动**：一个可搜索的启动条目列表，每一条都会新建一个项目，并打开终端会话。条目要么是**命令**——任何你经常敲的东西，比如 `npm run dev`、`make watch`——要么是 **SSH 连接**。
 
-## 启动
+<span id="启动" data-canonical-heading="launching" />
+
+## 启动 [#launching]
 
 输入名称、命令、连接目标或分组名即可模糊过滤。单击条目，或用方向键选中后按 <kbd>Return</kbd>，条目会在以它命名的新项目里运行，有自己的终端会话和工作目录。
 
@@ -19,7 +21,9 @@ zshell "命令名"
 
 名称须与保存的条目名称完全一致，包含空格时加引号。快速启动底部也会提示这一用法。条目会在新项目里打开。
 
-## 管理条目
+<span id="管理条目" data-canonical-heading="managing-entries" />
+
+## 管理条目 [#managing-entries]
 
 - <kbd>Cmd</kbd>+<kbd>N</kbd>——新建条目
 - <kbd>Cmd</kbd>+<kbd>E</kbd>——编辑选中的条目
@@ -29,7 +33,9 @@ zshell "命令名"
 
 命令条目可以固定一个**工作目录**，每次都从这里启动；不填就使用新项目的默认目录。SSH 条目填主机、可选的用户和端口，外加自由格式的 `ssh` 参数，比如 `-L 8080:localhost:80`。
 
-## 条目存在哪
+<span id="条目存在哪" data-canonical-heading="where-entries-live" />
+
+## 条目存在哪 [#where-entries-live]
 
 条目保存在 `~/.config/zshell/quick-launch.json`，所有窗口共用。就是一份普通的用户数据——直接编辑文件或备份都行。
 

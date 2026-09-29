@@ -1,0 +1,62 @@
+---
+title: Installatie
+description: Download Zshell, installeer het met Homebrew, houd het bijgewerkt en verwijder het volledig.
+---
+
+Zshell is niet door Apple genotariseerd. Op [de startpagina](/nl) staat bij de download welke minimale macOS-versie de huidige release nodig heeft.
+
+## Downloaden [#download]
+
+Download de `.dmg` van [de startpagina](/nl). De huidige release 0.1.7 biedt Universal-, Apple Silicon- en Intel-pakketten, met Gitee als spiegelserver.
+Open de schijfkopie en sleep **Zshell** naar Programma's.
+
+Bij de eerste start kan macOS de app blokkeren. Probeer de app te openen, ga daarna naar **Systeeminstellingen → Privacy en beveiliging → Open toch** en bevestig dat je Zshell wilt openen. Dit geldt ook voor installaties via Homebrew.
+
+## Homebrew [#homebrew]
+
+```bash
+brew install wzz6423/tap/zshell
+```
+
+De cask staat in `wzz6423/homebrew-tap` en installeert de ZIP voor de processor van je Mac. Na installatie gebruikt Zshell Sparkle voor updates. Gebruik het volgende om uitdrukkelijk via Homebrew bij te werken, of wanneer de geïnstalleerde versie achterloopt:
+
+```bash
+brew upgrade --cask --greedy-auto-updates zshell
+```
+
+## Updates [#updates]
+
+Zowel rechtstreekse downloads als Homebrew-installaties gebruiken [Sparkle](https://sparkle-project.org). Op het Chinese vasteland probeert Zshell eerst Gitee en daarna GitHub; elders eerst GitHub en daarna Gitee. Als die informatie beschikbaar is, gebruikt het het land van het netwerk-IP. Als de landcontrole mislukt, valt het terug op de macOS-regio. Als een feed of download mislukt, wordt de andere bron eenmaal geprobeerd.
+De landcontrole gebruikt [ipinfo.io/country](https://ipinfo.io/country), met een time-out van vijf seconden en een cache van 30 minuten in het geheugen. Dit verzoek maakt het openbare IP-adres van het netwerk zichtbaar voor die dienst; Zshell slaat het IP-adres niet op. Het uitschakelen van automatische controles stopt ook landcontroles op de achtergrond.
+
+Zshell verifieert de ondertekende feed en het updatepakket vóór installatie en behoudt de geïnstalleerde architectuur; Intel-apps die onder Rosetta draaien, worden omgezet naar Apple Silicon.
+
+Open **Instellingen → Updates** (<kbd>Cmd</kbd>+<kbd>,</kbd>) om automatische controles en **Updates automatisch downloaden** te beheren. Downloaden staat standaard uit en vereist automatische controles. Als je downloaden inschakelt, verschijnt een afzonderlijke schakelaar **Updates automatisch installeren**, die standaard uitstaat. Als installeren uitstaat, worden updates op de achtergrond gedownload en geïnstalleerd wanneer je Zshell afsluit. Als beide schakelaars aanstaan, worden voorbereide updates automatisch geïnstalleerd en wordt Zshell opnieuw gestart. Actieve terminalprocessen stoppen tijdens die herstart; de werkruimte wordt hersteld zodra Zshell weer opent. Als je downloaden uitschakelt, verdwijnt de installatieschakelaar en worden automatische herstarts voorkomen, terwijl de installatievoorkeur bewaard blijft voor wanneer je downloaden opnieuw inschakelt. Beide keuzes blijven behouden na het herstarten van de app. Als een update beschikbaar is, verschijnt onderaan de projectzijbalk een updatepictogram links van de feedbackknop. Klik erop om de update of de voortgang te openen, of een wachtende herstart opnieuw te proberen. Kies **Zoek naar updates…** om handmatig te controleren. De bovenstaande Homebrew-opdracht blijft beschikbaar om expliciet bij te werken.
+
+## Aanbevolen tools [#recommended-tools]
+
+Open **Instellingen → Aanbevelingen** om terminal-, netwerk-, ontwikkel-, hulp- en desktoptools te bekijken, waaronder Zisla. De pagina detecteert geïnstalleerde tools en controleert op beschikbare updates zolang zij open is. Gebruik **Installeren** of **Bijwerken** bij een tool, **Ontbrekende installeren** voor alle ontbrekende aanbevelingen, of **Alles bijwerken** voor beschikbare updates van tools die Homebrew beheert.
+
+Tools worden via Homebrew geïnstalleerd. Als Homebrew ontbreekt, verwijst de pagina naar de installatie-instructies. Controles installeren of updaten niets zelfstandig. Tools die buiten Homebrew zijn gevonden, krijgen het label **Buiten Homebrew**. **Homebrew gebruiken** installeert een door Homebrew beheerde kopie; de bestaande kopie kan nog steeds voorrang hebben in de `PATH` van je shell. Gebruik **Vernieuwen** om na een installatiewijziging opnieuw te controleren. Zshell zelf wordt beheerd onder **Instellingen → Updates**.
+
+## Een map vanuit Finder openen [#open-a-folder-from-finder]
+
+Zshell registreert een macOS-voorziening met de naam **Nieuw Zshell-project hier**. Selecteer een of meer mappen in Finder, klik met de rechtermuisknop en kies deze optie in het submenu **Voorzieningen**. Elke map opent als project met een terminal die al in die map is gestart.
+
+Als de optie ontbreekt, schakel je haar in onder **Systeeminstellingen → Toetsenbord → Toetscombinaties → Voorzieningen → Bestanden en mappen**. macOS toont een nieuwe voorziening pas nadat de app eenmaal is gestart.
+
+## Verwijderen [#uninstalling]
+
+Als **Instellingen → Automatisering → AI** aanstaat, schakel je dit uit voordat je de app verwijdert, zodat Zshell de geïnstalleerde agentondersteuning kan verwijderen.
+
+Verwijder `zshell.app` uit Programma's en verwijder daarna desgewenst ook de instellingen om helemaal opnieuw te beginnen:
+
+```bash
+rm -rf ~/.config/zshell
+```
+
+De vensterindeling, zijbalkbreedtes en sessiemomentopname staan in het voorkeurenarchief van macOS zelf:
+
+```bash
+defaults delete sh.zshell
+```

@@ -1,0 +1,50 @@
+---
+title: "Bölünmüş görünümler ve bölmeler"
+description: "Sekmeyi bölmelere ayırın, aralarında geçin, boyutlandırın ve birini tam boyuta büyütün."
+---
+
+Her sekme bölmelere ayrılabilir. Bölme genellikle terminal içerir; dosya, fark veya [tarayıcı](/tr/docs/browser) da içerebilir. Amaç, okuduğunuz içeriği onu üreten kabuğun yanında tutmaktır.
+
+## Bölme [#splitting]
+
+| İşlem | Kısayol |
+| --- | --- |
+| Sağa böl | <kbd>Cmd</kbd>+<kbd>D</kbd> |
+| Aşağı böl | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> |
+| Sola böl | — |
+| Yukarı böl | — |
+
+Sola ve yukarı bölmenin varsayılan kısayolu yoktur. **Sekmeler** menüsünü, komut paletini (<kbd>Cmd</kbd>+<kbd>P</kbd>) veya bölmenin bağlam menüsünü kullanın. Yeni bölme odaktaki bölmenin çalışma dizinini devralır.
+
+İç içe düzende bile bölme işlemi her zaman **odaktaki bölmeyi** ayırır; ilgisiz bir komşuyu boyutlandırmaz. Her bölmenin başlığında küçük bir canlı başlık ve bölme denetimleri bulunur; böylece yerel bağlam görünür kalır.
+
+Açık bölmeleri yeniden düzenlemek için üstteki ince şeridi başka bir bölmenin kenarına sürükleyin. Bırakmadan önce hedef bölme hangi yarıya yerleşeceğini gösterir.
+
+Bir sekmenin tamamını da bölmeye dönüştürebilirsiniz. Üst şeritteki sekmesini geçerli sekme içeriğinin sol, sağ, üst veya alt kenarına sürükleyin. Bırakma önizlemesi oluşacak düzeni gösterir.
+
+## Bölmeler arasında geçme [#moving-between-panes]
+
+| İşlem | Kısayol |
+| --- | --- |
+| Soldaki / sağdaki / üstteki / alttaki bölmeye odaklan | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+ok tuşları |
+| Odağı geriye / ileriye döndür | <kbd>Cmd</kbd>+<kbd>[</kbd> / <kbd>Cmd</kbd>+<kbd>]</kbd> |
+
+## Büyütme ve boyutlandırma [#zoom-and-resize]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> odaktaki bölmeyi sekmeyi dolduracak biçimde büyütür; tekrar basmak eski boyuta döndürür. Büyütülmüşken sekme başlığında bir düğme görünür, böylece kısayolsuz da geri dönebilirsiniz.
+
+| İşlem | Kısayol |
+| --- | --- |
+| Bölme büyütmesini aç/kapat | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> |
+| Bölmeyi bir yönde genişlet | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+ok tuşları |
+| Tüm bölmeleri eşitle | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+<kbd>=</kbd> |
+
+Bölmeler arasındaki ayırıcılar da sürüklenebilir.
+
+## Kapatma [#closing]
+
+<kbd>Cmd</kbd>+<kbd>W</kbd> odaktaki bölmeyi kapatır. Sekmedeki son bölmeyi kapatmak sekmeyi de kapatır.
+
+<Callout type="warn">
+Terminal bölmesini kapatmak içindeki kabuğu ve onun başlattığı her şeyi sonlandırır. Zshell önce sormaz; başka bir terminali kapatmakla aynıdır.
+</Callout>

@@ -1,0 +1,113 @@
+---
+title: Proyek dan sesi
+description: Cara Zshell mengatur pekerjaan — proyek di bilah samping, sesi sebagai tab, dan hal yang dipulihkan saat dibuka kembali.
+---
+
+## Proyek [#projects]
+
+Proyek adalah satu pekerjaan, biasanya satu repositori, dengan terminal, tab, dan status panelnya sendiri.
+
+<kbd>Cmd</kbd>+<kbd>N</kbd> membuat proyek dengan satu terminal. Terminal dimulai di direktori sesi saat ini, atau direktori pribadi jika tidak ada sesi. Biasanya Anda kemudian menjalankan `cd` ke lokasi tujuan. Zshell menautkan pohon berkas dan panel Git ke repositori yang memuat direktori tersebut.
+
+Untuk melewati langkah `cd`, klik kanan folder di Finder dan pilih **Layanan → Proyek Zshell Baru di Sini**. Folder akan dibuka sebagai proyek dengan terminal yang sudah berjalan di dalamnya.
+
+Zshell berpindah pekerjaan melalui proyek:
+
+| Tindakan | Pintasan |
+| --- | --- |
+| Proyek baru | <kbd>Cmd</kbd>+<kbd>N</kbd> |
+| Buka proyek 1–9 | <kbd>Cmd</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Proyek berikutnya / sebelumnya | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Sembunyikan bilah samping proyek | <kbd>Cmd</kbd>+<kbd>B</kbd> |
+
+Nama proyek mengikuti sesi yang dipilih, seperti judul tab mengikuti terminal. Klik kanan proyek untuk **Ubah Nama…**, **Gunakan Judul Otomatis** untuk membatalkannya, **Atur Direktori Proyek…**, dan **Tutup Proyek**. Menutup proyek mengakhiri sesinya tanpa mengubah apa pun di disk.
+
+### Proyek SSH tersimpan [#saved-ssh-projects]
+
+Buka palet perintah (<kbd>Cmd</kbd>+<kbd>P</kbd>) dan pilih **Proyek SSH Baru…**. Isi host, pengguna dan port opsional, serta direktori jarak jauh. Pilih **Agen SSH**, **Kata Sandi**, **Berkas Kunci Privat**, atau **Teks Kunci Privat** untuk autentikasi, simpan koneksi, lalu pilih **Hubungkan**.
+
+Koneksi tersimpan tetap tersedia setelah aplikasi dibuka kembali. Gunakan kolom **Grup** opsional untuk mengatur daftar, serta tombol edit dan hapus untuk mengelola entri. Kata sandi dan kunci privat yang ditempel disimpan di Rantai Kunci macOS; entri berkas kunci privat menyimpan jalur ke kunci yang sudah ada.
+
+Untuk perintah atau koneksi SSH dengan opsi tambahan, lihat [Peluncuran Cepat](/id/docs/quick-launch).
+
+### Grup bilah samping [#sidebar-groups]
+
+Gunakan **Grup Baru** di bagian bawah bilah samping untuk membuat **Grup Biasa** atau **Grup Folder…**. Grup biasa memulai terminal baru di direktori pribadi; grup folder menggunakan folder pilihan sebagai direktori bawaan. Direktori proyek yang ditentukan secara eksplisit tetap didahulukan. Memindahkan proyek antargrup tidak mengubah terminal yang berjalan atau direktori yang disematkan.
+
+Seret proyek ke judul grup atau proyek lain untuk mengaturnya. Seret ke **+ (Proyek Baru)** di bagian bawah bilah samping untuk mengeluarkannya dari grup. Judul grup juga dapat diseret untuk mengubah urutan. Klik judul untuk melipat atau membentangkan, klik dua kali untuk mengganti nama, atau gunakan menu konteks. Pilih **Atur Penanda Warna…** untuk memberi warna dan **Hapus Penanda Warna** untuk menghapusnya. **Hapus Grup** tetap membiarkan semua proyeknya terbuka. Pintasan angka mengikuti baris proyek yang sedang terlihat; navigasi proyek berikutnya/sebelumnya dapat menampilkan anggota grup yang dilipat.
+
+Folder dari Finder dapat dijatuhkan di mana saja dalam daftar proyek. Folder yang sudah terbuka akan difokuskan tanpa membuat proyek duplikat.
+
+### Direktori proyek [#the-project-directory]
+
+Pohon berkas dan panel Git perlu mengetahui folder yang ditampilkan. Secara bawaan, Zshell mengambil direktori terminal saat ini lalu menelusuri ke atas hingga **repositori Git terdekat yang menaunginya**.
+
+Karena itu, berpindah dengan `cd` di dalam repositori tidak membuat pohon berkas berubah akar: akar repositori tetap digunakan. Di luar repositori, panel mengikuti terminal.
+
+Ketika program latar depan berpindah ke checkout lain, misalnya agen memasuki pohon kerja Git sendiri, panel Berkas, Git, dan Info mengikuti checkout tersebut. Panel kembali ketika pekerjaan latar depan kembali. Direktori proyek yang disematkan secara manual selalu didahulukan dan menonaktifkan perubahan akar otomatis ini.
+
+Untuk menyematkan direktori, klik kanan proyek lalu pilih **Atur Direktori Proyek…**. Folder tersimpan setelah aplikasi dibuka kembali; **Gunakan Direktori Otomatis** mengembalikan kendali otomatis.
+
+<Callout type="info">
+Panel Info (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>) menampilkan keduanya: **Direktori Saat Ini** shell jika berbeda, dan **Direktori Proyek** yang menjadi akar panel, dengan tanda `(AUTO)` jika ditentukan otomatis.
+</Callout>
+
+## Sesi [#sessions]
+
+Setiap proyek dapat memuat sesi sebanyak yang Anda perlukan, ditampilkan sebagai tab di bagian atas. Sesi adalah shell login sungguhan — `zsh`, `fish`, `bash`, atau shell akun Anda — dengan direktori kerja dan riwayat keluaran sendiri.
+
+| Tindakan | Pintasan |
+| --- | --- |
+| Sesi baru | <kbd>Cmd</kbd>+<kbd>T</kbd> |
+| Beralih ke tab 1–9 | <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Pengalih tab berdasarkan pemakaian terakhir | <kbd>Ctrl</kbd>+<kbd>Tab</kbd> |
+| Tab berikutnya / sebelumnya | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Tutup panel yang difokuskan | <kbd>Cmd</kbd>+<kbd>W</kbd> |
+
+Sesi lokal baru dimulai di direktori proyek yang disematkan jika ada, lalu memakai direktori bawaan grup bilah samping. Tanpa keduanya, sesi mewarisi direktori sesi saat ini dan menggunakan direktori pribadi sebagai cadangan.
+
+### Grup tab [#tab-groups]
+
+Klik kanan tab dan pilih **Pindahkan ke Grup → Grup Tab Baru**. Tab masuk ke grup baru yang ditandai panah berwarna tanpa nama. Sesi baru yang dibuka dari tab bergrup tetap berada dalam grup itu; klik kanan panah grup dan pilih **Sesi Baru dalam Grup** untuk membuat sesi langsung di dalamnya.
+
+Seret tab ke panah grup atau tab lain untuk memindahkannya. Menu konteks juga memuat daftar grup dan **Keluarkan dari Grup**. Klik panah untuk melipat atau membentangkan grup. Pelipatan menjaga terminal aktif tetap berjalan dan terlihat; beralih ke anggota tersembunyi akan membentangkan grup. Menghapus grup tidak menutup tab atau sesinya. Menyematkan tab bergrup memindahkannya ke bagian tetap di luar grup. Klik kanan panah untuk **Atur Penanda Warna…** atau **Hapus Penanda Warna**. Warna dan status lipatan grup dipulihkan saat Zshell dibuka kembali.
+
+Tab juga dapat dijatuhkan ke proyek pada bilah samping, atau ke judul grup untuk membuat proyek baru di dalam grup tersebut. Menjatuhkan ke **+ (Proyek Baru)** di bagian bawah membuat proyek di luar semua grup bilah samping. **Pindahkan Tab ke Proyek** dalam menu tab juga menjangkau jendela lain. Pemindahan ini mempertahankan terminal berjalan dan tata letak panel. Proyek harus memiliki lokasi lokal atau SSH yang sama; proyek baru dari tab mempertahankan lokasi asal. Tab yang memuat tampilan perbedaan tetap di proyeknya.
+
+### Judul tab [#tab-titles]
+
+Judul tab mengikuti informasi terminal, baik escape prompt shell maupun program yang berjalan. Klik kanan tab untuk **Ubah Nama…** secara manual, dan **Gunakan Judul Otomatis** untuk kembali mengikuti terminal.
+
+Menu tab lainnya memuat **Tutup**, **Tutup yang Lain**, **Tutup Tab di Kanan**, **Tutup Semua**, serta **Tampilkan di Finder** dan **Salin Jalur Absolut** untuk direktori sesi. **Tutup Berkas** dan **Tutup Perbedaan** membersihkan jenis konten tersebut di seluruh proyek, sambil membiarkan terminal dan panel browser terbuka.
+
+## Jendela [#windows]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> membuka jendela lain. Setiap jendela memiliki proyek dan status bilah samping sendiri, serta dipulihkan secara terpisah.
+
+## Hal yang dipulihkan saat dibuka kembali [#what-survives-a-relaunch]
+
+Zshell menyimpan cuplikan tata letak selama Anda bekerja. Saat keluar lalu membuka kembali, yang dipulihkan adalah:
+
+- semua proyek beserta urutannya;
+- semua tab, termasuk nama khusus, penyematan, dan penanda warna;
+- grup bilah samping, termasuk nama, warna, urutan, keanggotaan, dan status lipatan;
+- grup tab, termasuk warna, urutan, keanggotaan, dan status lipatan;
+- direktori proyek yang disematkan dan proyek kosong;
+- tata letak panel dalam setiap tab;
+- bilah samping yang terbuka dan panel kanan yang dipilih.
+
+Terminal kembali sebagai **shell baru** di direktori sebelumnya. Zshell tidak mempertahankan proses di latar belakang; build yang berjalan ketika Anda keluar akan berhenti saat itu juga.
+
+Riwayat keluaran lama hanya dipulihkan jika Anda mengaktifkan [`terminal.restore-history`](/id/docs/configuration#terminalrestore-history). Bawaan fitur ini mati karena riwayat yang dipulihkan disimpan di disk.
+
+## Lingkungan terminal dan inisialisasi [#terminal-environment-and-initialization]
+
+Pilih proyek, lalu gunakan **Terminal → Lingkungan Terminal Proyek…** untuk mengatur variabel lingkungan dan perintah inisialisasi. Gunakan **Terminal → Lingkungan Terminal Tab…** untuk penggantian khusus tab saat ini.
+
+| Cakupan | Perilaku |
+| --- | --- |
+| Proyek | Terminal baru dalam proyek mewarisi variabel dan perintah inisialisasinya |
+| Tab | Variabel mengganti nilai proyek bernama sama; perintah dapat mewarisi, mengganti, atau menonaktifkan perintah proyek |
+
+Perubahan hanya memengaruhi terminal yang dibuat setelah disimpan. Proses yang sudah berjalan mempertahankan lingkungannya. Inisialisasi dijalankan untuk shell login biasa, bukan program startup khusus atau argv eksplisit.
+`ZSHELL_*`, `TERM`, `COLORTERM`, `TERM_PROGRAM`, dan `TERM_PROGRAM_VERSION` dikelola Zshell dan tidak dapat diganti.

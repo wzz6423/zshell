@@ -1,0 +1,60 @@
+---
+title: "Cài đặt"
+description: "Tải Zshell, cài bằng Homebrew, cập nhật và gỡ bỏ sạch sẽ."
+---
+
+Zshell chưa được Apple công chứng. [Trang chủ](/vi) hiển thị phiên bản macOS tối thiểu của bản phát hành hiện tại bên cạnh mục tải xuống.
+
+## Tải xuống [#download]
+
+Tải `.dmg` từ [trang chủ](/vi). Bản 0.1.7 hiện tại có gói Universal, Apple Silicon và Intel, cùng bản sao tải xuống trên Gitee. Mở ảnh đĩa rồi kéo **Zshell** vào Applications.
+
+Lần mở đầu, macOS có thể chặn ứng dụng. Sau khi thử mở, vào **Cài đặt hệ thống → Quyền riêng tư & Bảo mật → Vẫn mở**, rồi xác nhận mở Zshell. Cách này cũng áp dụng với bản cài Homebrew.
+
+## Homebrew [#homebrew]
+
+```bash
+brew install wzz6423/tap/zshell
+```
+
+Cask nằm trong `wzz6423/homebrew-tap` và cài ZIP phù hợp với bộ xử lý của Mac. Sau khi cài, Zshell dùng Sparkle để cập nhật. Để chủ động cập nhật qua Homebrew hoặc đưa bản đã cũ lên phiên bản mới:
+
+```bash
+brew upgrade --cask --greedy-auto-updates zshell
+```
+
+## Cập nhật [#updates]
+
+Bản tải trực tiếp và bản Homebrew đều dùng [Sparkle](https://sparkle-project.org). Tại Trung Quốc đại lục, Zshell thử Gitee rồi GitHub; nơi khác thử GitHub rồi Gitee. Nếu có, ứng dụng dùng quốc gia của IP mạng; khi truy vấn thất bại, dùng vùng macOS. Nếu nguồn cấp hoặc tải xuống thất bại, ứng dụng thử nguồn còn lại một lần. Truy vấn quốc gia dùng [ipinfo.io/country](https://ipinfo.io/country), thời hạn năm giây và bộ nhớ đệm trong RAM 30 phút. Yêu cầu này để dịch vụ thấy IP công khai của mạng; Zshell không lưu IP. Tắt kiểm tra tự động cũng dừng truy vấn quốc gia nền.
+
+Zshell xác minh nguồn cấp và gói cập nhật đã ký trước khi cài, đồng thời giữ kiến trúc đã cài; ứng dụng Intel chạy bằng Rosetta được chuyển sang Apple Silicon.
+
+Mở **Cài đặt → Cập nhật** (<kbd>Cmd</kbd>+<kbd>,</kbd>) để quản lý kiểm tra tự động và **Tự động tải cập nhật**. Tải xuống mặc định tắt và cần bật kiểm tra tự động. Khi bật tải xuống, công tắc riêng **Tự động cài cập nhật** xuất hiện, mặc định cũng tắt. Nếu tắt cài đặt, bản cập nhật tải nền rồi cài khi bạn thoát Zshell. Nếu bật cả hai, bản cập nhật đã chuẩn bị tự cài và khởi động lại Zshell. Tiến trình terminal dừng trong lúc khởi động lại; không gian làm việc được khôi phục khi ứng dụng mở lại. Tắt tải xuống sẽ ẩn công tắc cài đặt và ngăn tự khởi động lại, nhưng giữ lựa chọn cài đặt cho lần bật tải xuống sau. Cả hai lựa chọn tồn tại qua các lần mở ứng dụng. Khi có bản cập nhật, biểu tượng xuất hiện ở đáy thanh dự án, bên trái nút phản hồi. Nhấn để mở bản cập nhật, xem tiến trình hoặc thử lại bước khởi động lại đang chờ. Chọn **Kiểm tra cập nhật…** để kiểm tra thủ công. Lệnh Homebrew ở trên vẫn dùng được để cập nhật chủ động.
+
+## Công cụ được đề xuất [#recommended-tools]
+
+Mở **Cài đặt → Đề xuất** để xem công cụ terminal, mạng, phát triển, tiện ích và máy tính, gồm Zisla. Khi đang mở, trang phát hiện công cụ đã cài và kiểm tra cập nhật. Dùng **Cài đặt** hoặc **Cập nhật** trên từng công cụ, **Cài phần còn thiếu** cho mọi đề xuất chưa cài, hoặc **Cập nhật tất cả** cho công cụ do Homebrew quản lý.
+
+Cài công cụ dùng Homebrew. Nếu chưa có Homebrew, trang dẫn tới hướng dẫn cài. Việc kiểm tra không tự cài hay cập nhật. Công cụ phát hiện ngoài Homebrew có nhãn **Ngoài Homebrew**. **Dùng Homebrew** cài bản do Homebrew quản lý; bản hiện tại vẫn có thể được ưu tiên trong `PATH` của shell. Dùng **Làm mới** sau khi thay đổi cài đặt. Bản thân Zshell được quản lý ở **Cài đặt → Cập nhật**.
+
+## Mở thư mục từ Finder [#open-a-folder-from-finder]
+
+Zshell đăng ký dịch vụ macOS **Dự án Zshell mới tại đây**. Chọn một hay nhiều thư mục trong Finder, nhấp phải và chọn dịch vụ trong menu con **Dịch vụ**. Mỗi thư mục mở thành dự án với terminal đã chạy trong đó.
+
+Nếu menu chưa có, bật tại **Cài đặt hệ thống → Bàn phím → Phím tắt → Dịch vụ → Tệp và thư mục**. macOS chỉ liệt kê dịch vụ mới sau khi ứng dụng đã được mở một lần.
+
+## Gỡ cài đặt [#uninstalling]
+
+Nếu **Cài đặt → Tự động hóa → AI** đang bật, hãy tắt trước khi xóa ứng dụng để Zshell gỡ phần hỗ trợ tác nhân đã cài.
+
+Xóa `zshell.app` trong Applications, rồi xóa cấu hình nếu muốn bắt đầu sạch:
+
+```bash
+rm -rf ~/.config/zshell
+```
+
+Bố cục cửa sổ, độ rộng thanh bên và ảnh chụp trạng thái phiên nằm trong kho tùy chọn của macOS:
+
+```bash
+defaults delete sh.zshell
+```

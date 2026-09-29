@@ -1,0 +1,23 @@
+{
+  "title": "Documentação",
+  "pages": [
+    "---Primeiros passos---",
+    "index",
+    "installation",
+    "quick-start",
+    "---Como usar o Zshell---",
+    "projects",
+    "panes",
+    "terminal",
+    "quick-launch",
+    "browser",
+    "git",
+    "files",
+    "session-info",
+    "automation",
+    "---Referência---",
+    "shortcuts",
+    "configuration",
+    "faq"
+  ]
+}

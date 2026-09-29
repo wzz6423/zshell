@@ -1,0 +1,62 @@
+---
+title: "Dosyalar ve düzenleyici"
+description: "Projeler arasında dosya bulun, içerik arayın, kod düzenleyin ve terminalin yanında Markdown önizleyin."
+---
+
+Dosya ağacı için <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> kullanın. Git paneli gibi [proje dizinine](/tr/docs/projects#the-project-directory) köklenir; her `cd` yaptığınızda kökü değişmez.
+
+## Ağaç [#the-tree]
+
+Dosyaya tıklamak onu odaktaki bölmede açar. Diğer işlemler sağ tık menüsündedir:
+
+| Öğe | İşlev |
+| --- | --- |
+| **Aç** / **Yanda Aç** | Bu bölmede veya yeni bir bölmede açar |
+| **Varsayılan Uygulamada Aç** | macOS’in dosya için kullandığı uygulamaya verir |
+| **Finder’da Göster** | |
+| **Yolu Kopyala** | Mutlak yol |
+| **Burada cd** | Odaktaki terminalde `cd <folder>` çalıştırır |
+| **Yeni Dosya…** / **Yeni Klasör…** | Seçili klasör içinde oluşturur |
+| **Yeniden Adlandır** | |
+| **Çöp Sepetine Taşı** | Kalıcı silmek yerine Çöp Sepetine taşır |
+
+Satırlar dosya adını tanıyan Material simgeleri kullanır. Git deposundaki değişmiş yollarda durum renkleri ve rozetler, yok sayılan dosyalarda soluk görünüm vardır. Böylece Git panelini açmadan aynı çalışma ağacı durumunu görürsünüz.
+
+## Dosya ve içerik arama [#find-files-and-search-contents]
+
+Komut paleti (<kbd>Cmd</kbd>+<kbd>P</kbd>), geçerli pencerede açık yerel projelerde dosyaları ada veya yola göre, komutlar ve açık oturumlarla birlikte bulur. Dosya seçmek projesine geçer ve orada açar.
+
+Dosya içi metni aramak için Dosyalar panelindeki büyütece tıklayın veya komut paletinde **Dosya İçeriklerini Ara** seçin. Metni yazıp <kbd>Return</kbd> ile geçerli yerel proje dizinini arayın. Büyük/küçük harf duyarlılığı için **Aa** kullanın; sonucu açmak düzenleyicide eşleşen satıra gider.
+
+İçerik araması düz metin eşleştirir, ikili dosyaları ve yaygın bağımlılık/derleme klasörlerini atlar, 2.000 eşleşmede durur. Sonuçları koruyarak çalışan aramayı durdurabilir veya aramayı kapatıp ağaca dönebilirsiniz. SSH projeleri bu yerel dosya aramalarına katılmaz.
+
+## Düzenleyici [#the-editor]
+
+Dosyayı açınca bölmede sözdizimi vurgulamalı gerçek bir düzenleyici görünür.
+
+| İşlem | Kısayol |
+| --- | --- |
+| Kaydet | <kbd>Cmd</kbd>+<kbd>S</kbd> |
+| Bul | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Bul ve değiştir | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Sonrakini bul | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+Uzun satırlar varsayılan olarak bölme genişliğine sarılır. Yatay kaydırma için [`editor.wrap-lines`](/tr/docs/configuration#editorwrap-lines) seçeneğini kapatın.
+
+Ağaçta dosya adını değiştirmek onu açık tutan bölmeleri günceller; yeniden adlandırılmış klasörün altındaki dosyalar da buna dâhildir.
+
+Başka program açık dosyayı değiştirirse Zshell yeniden etkinleştiğinde değişiklik içermeyen önizlemeyi yeniler. Kaydedilmemiş değişiklik içeren düzenleyici arabelleğini asla değiştirmez.
+
+<Callout type="info">
+Bu düzenleyici zaten incelediğiniz değişiklik içindir: yazım hatası düzeltmek, sabit değer değiştirmek, farkın işaret ettiği dosyayı okumak. Dil sunucusu, tamamlama ve proje çapında yeniden düzenleme yoktur; bu bilinçli bir tercihtir.
+</Callout>
+
+## Markdown önizlemesi [#markdown-preview]
+
+`.md` dosyası aynı bölmede işlenmiş önizlemeyle açılır. Kaynağı düzenlemek için sağ üstte **Düzenle**, sonucu görmek için **Önizleme** seçin. Zshell tercihinizi diğer Markdown dosyaları ve sonraki açılış için hatırlar.
+
+Mod değişimi düzenlemeleri ve geri alma geçmişini korur. Her zamanki gibi <kbd>Cmd</kbd>+<kbd>S</kbd> ile kaydedin. Başka uzantılı Markdown dosyaları kaynak olarak açılır.
+
+## Farklar [#diffs]
+
+[Git panelinden](/tr/docs/git) açılan fark da bir bölmedir; fark, dosya ve terminal aynı sekmede yan yana durabilir. Terminal yazı tipini kullanır; bin dosyalık değişiklik kümesi tek satırlık kadar hızlı açılır. Canlı çalışma ağacındaki hazırlanmamış farklar İnceleme’den Düzenleme’ye geçirilebilir; hazırlanmış ve geçmiş farklar salt okunurdur. [Farkları okuma](/tr/docs/git#reading-diffs) bölümüne bakın.

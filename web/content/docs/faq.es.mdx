@@ -1,0 +1,68 @@
+---
+title: Preguntas frecuentes
+description: Preguntas habituales sobre el coste, la privacidad y la relación de Zshell con tu shell.
+---
+
+<Accordions>
+
+<Accordion title="¿Zshell es gratis?">
+
+Sí. La descarga es gratuita, el código fuente es público bajo la licencia PolyForm Noncommercial 1.0.0 y no necesitas cuenta ni suscripción.
+
+</Accordion>
+
+<Accordion title="¿Sustituye a mi shell?">
+
+No. Zshell aloja el shell que ya utilizas: ejecuta `$SHELL -l` y conserva tu prompt, alias, funciones y archivos de configuración. El panel de terminal puede usar Ghostty o Alacritty como motor.
+
+</Accordion>
+
+<Accordion title="¿Recopila datos?">
+
+No hay telemetría ni analítica. Las comprobaciones de actualizaciones consultan el país de la IP de la red para elegir entre GitHub y Gitee, y después obtienen el canal de versiones. Desactiva las comprobaciones automáticas en **Ajustes → Actualizaciones** para detener estas solicitudes en segundo plano; las comprobaciones manuales siguen haciéndolas. Consulta [Actualizaciones](/es/docs/installation#updates). La página Recomendaciones comprueba las versiones de las herramientas mientras está abierta.
+
+Las páginas que abres en un [panel de navegador](/es/docs/browser) y las CLI de agentes que ejecutas realizan sus propias solicitudes por indicación del usuario, como lo harían fuera de Zshell.
+
+</Accordion>
+
+<Accordion title="¿Lee mi configuración de Ghostty o Alacritty?">
+
+No. El motor, las fuentes, los colores y el comportamiento de entrada proceden de los [ajustes](/es/docs/configuration) propios de Zshell. Zshell no carga el archivo de configuración de ninguna de esas aplicaciones de terminal.
+
+</Accordion>
+
+<Accordion title="¿Qué pasa con mis sesiones al salir?">
+
+Los proyectos, las pestañas y la distribución de paneles vuelven al iniciar de nuevo, y cada terminal abre un shell nuevo en su directorio anterior. Nada sigue ejecutándose en segundo plano después de salir.
+
+El historial de salida también vuelve si activas [`terminal.restore-history`](/es/docs/configuration#terminalrestore-history): aparece como texto estático sobre un separador `Session Contents Restored`.
+
+</Accordion>
+
+<Accordion title="¿Es un IDE?">
+
+No, ni pretende serlo. El terminal sigue siendo el centro. Los paneles de Git y Archivos existen para que puedas revisar y entregar lo que sucede en el terminal sin cambiar de aplicación, no para convertirse en tu lugar principal de trabajo.
+
+</Accordion>
+
+<Accordion title="¿Por qué un diálogo pidió permiso antes de que un programa pudiera leer mi portapapeles?">
+
+Porque un programa lo solicitó. La secuencia de escape `OSC 52` permite a un programa de terminal leer el portapapeles del sistema, incluso si se ejecuta en un equipo remoto por SSH. Zshell te pide confirmación antes de entregárselo, en lugar de hacerlo silenciosamente; es el mismo comportamiento predeterminado de Ghostty.
+
+</Accordion>
+
+<Accordion title="¿Puedo usarlo con un agente de programación con IA?">
+
+Sí. La integración con IA está activada de forma predeterminada. Pide con tus propias palabras a un agente compatible que ejecute algo en un panel en segundo plano o delegue una tarea acotada. Los agentes en paneles separados de Zshell también pueden intercambiar preguntas, hallazgos e instrucciones adicionales sin obligarte a copiar el contexto entre ellos. Zshell mantiene visible el estado de trabajo, bloqueo o finalización comunicado por el proveedor, sin inferirlo del texto del terminal, mientras tú conservas el control de las aprobaciones y de las diferencias finales. Consulta [Trabajar con agentes de IA](/es/docs/automation).
+
+También puedes usar un agente como cualquier otro programa de terminal: revisa sus diferencias en el [panel de Git](/es/docs/git), lee archivos a su lado y prepara solo lo que quieras.
+
+</Accordion>
+
+<Accordion title="¿Dónde informo de un error?">
+
+Abre una incidencia en [GitHub](https://github.com/wzz6423/zshell/issues). La versión de macOS y lo que estabas haciendo cuando ocurrió suelen bastar para empezar a investigar.
+
+</Accordion>
+
+</Accordions>

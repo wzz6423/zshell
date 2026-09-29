@@ -1,0 +1,81 @@
+---
+title: Trabajar con agentes de IA
+description: Deja que los agentes de programación deleguen tareas y se coordinen entre paneles de Zshell mientras mantienes la concentración y el control.
+---
+
+La automatización de Zshell está pensada principalmente para agentes de programación con IA. Les ofrece una forma segura de trabajar con los paneles de Zshell y coordinar otros agentes; no es otro lenguaje de comandos que tengas que aprender.
+
+La integración con IA está activada de forma predeterminada. Habla con tu agente de programación como siempre. Puede crear un panel en segundo plano, iniciar un agente delegado, ejecutar un comando, esperar el resultado y traerte la respuesta sin quitar el foco al panel que estás usando.
+
+## Configuración inicial [#setup]
+
+Revisa **Ajustes → Automatización → IA**. La opción está activada de forma predeterminada; si la desactivaste, vuelve a activarla y después abre un terminal nuevo o reinicia el agente que ya estuviera en ejecución.
+
+Zshell admite Codex, Claude Code, Gemini CLI, Grok Build, OpenCode, Cursor Agent, Aider, Amp y Pi. Si detecta una configuración de agente existente que entra en conflicto con esta función, la deja intacta, devuelve el interruptor a su estado anterior y muestra el error en Ajustes.
+
+## Pide lo que necesitas con tus propias palabras [#ask-in-plain-language]
+
+Explica a tu agente qué resultado quieres. Por ejemplo:
+
+> Ejecuta las pruebas pertinentes en un panel en segundo plano y dime cuáles fallan.
+
+> Delega este error a otro agente de Codex y después revisa su resultado.
+
+> Pregunta al agente que trabaja en la API si el esquema está listo y pasa la respuesta al agente que ejecuta las pruebas.
+
+> Inicia el servidor de desarrollo a nuestro lado, espera a que esté listo y dame la URL.
+
+> Comprueba si el agente en segundo plano ha terminado. Si está bloqueado, dime qué necesita.
+
+El agente utiliza la interfaz de automatización de Zshell por ti. No necesitas escribir ni memorizar comandos de automatización de Zshell.
+
+## Deja que los agentes se coordinen entre paneles [#let-agents-coordinate-across-panes]
+
+Puedes repartir trabajo relacionado entre varios paneles de Zshell y pedir a tu agente principal que lo coordine. Por ejemplo, un agente puede trabajar en una API mientras otro actualiza las pruebas. El agente coordinador puede pedir sus hallazgos a un agente concreto, enviarle una instrucción adicional, pasar el resultado útil a otro agente y devolverte una respuesta conjunta. Los agentes delegados pueden usar distintas herramientas de programación compatibles.
+
+Así se elimina el paso de copiar y pegar en el trabajo en paralelo. Cada agente mantiene su propia conversación en su panel, mientras el coordinador transmite solo la pregunta, la actualización o el resultado que necesita el otro agente.
+
+Enviar una instrucción adicional no significa que el trabajo haya terminado. El coordinador sigue esperando al agente, lee su resultado y comprueba lo conseguido. Un mensaje de otro agente tampoco se considera nunca tu aprobación. Los permisos, las credenciales, las decisiones de confianza y las acciones destructivas siguen requiriendo tu intervención.
+
+## Sigue trabajando mientras se ejecuta [#keep-working-while-it-runs]
+
+Los paneles delegados permanecen en segundo plano salvo que pidas verlos. Cuando una integración nativa del proveedor informa del estado del ciclo de vida, Zshell lo muestra en el panel y la pestaña del agente:
+
+| Estado | Qué significa para ti |
+| --- | --- |
+| **Trabajando** | El agente está realizando la tarea. |
+| **Bloqueado** | Necesita información, una aprobación u otra decisión tuya. |
+| **Terminado** | Ha terminado en segundo plano y todavía no has visto su panel. |
+
+Zshell registra una instrucción que envía como **Trabajando**, pero nunca analiza el texto representado en el terminal para adivinar lo que ocurre después. Las transiciones a **Bloqueado** y **Terminado**, y sus notificaciones, necesitan un informe del ciclo de vida del proveedor. Si un agente no lo proporciona, revisa directamente su panel y los cambios resultantes en el proyecto en lugar de confiar en un estado supuesto.
+
+Cuando una integración informa de que un agente ha terminado o necesita información, Zshell también puede enviar una notificación. Pulsa <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> para ir al siguiente agente que haya indicado que necesita tu atención.
+
+## Uso y límites de la cuenta [#account-usage-and-limits]
+
+**Ajustes → Automatización → Uso de la cuenta** muestra los límites de cuenta disponibles para Claude Code y Codex, incluido el porcentaje utilizado, la hora de restablecimiento cuando se informa de ella y la hora de la última actualización. Usa **Actualizar uso** para cargar los datos más recientes disponibles.
+
+Codex necesita una CLI instalada, con sesión iniciada y capaz de informar de los límites de cuenta. El uso de Claude Code aparece cuando Zshell recibe del proveedor un informe de uso a través de la línea de estado. La sección solo aparece cuando hay datos de uso; los periodos disponibles dependen del proveedor y de la cuenta. Son límites de la cuenta, no un total de tokens de la sesión con el foco.
+
+## Un flujo de trabajo habitual [#a-typical-workflow]
+
+1. Inicia tu agente de programación habitual en un terminal de Zshell.
+2. Pídele que delegue una tarea acotada, ejecute algo en segundo plano o coordine otro agente.
+3. Sigue trabajando en el panel actual mientras Zshell mantiene visible el trabajo delegado en la distribución del proyecto.
+4. Consulta el indicador **Trabajando**, **Bloqueado** o **Terminado** comunicado por el proveedor cuando esté disponible. Si la herramienta no informa de su ciclo de vida, abre el panel para revisar su conversación o la salida del terminal.
+5. Revisa los archivos resultantes en el [panel de Git](/es/docs/git), examina las diferencias y decide qué conservar.
+
+## Tú mantienes el control [#you-stay-in-control]
+
+- La automatización de agentes se limita al proyecto actual de Zshell y no puede acceder a paneles de otro proyecto o ventana.
+- El trabajo en segundo plano no toma el foco salvo que lo pidas explícitamente.
+- Zshell nunca responde por ti a solicitudes de permisos, credenciales, confianza o acciones destructivas. Si el proveedor comunica que un agente está bloqueado, esa decisión vuelve a ti.
+- Una finalización comunicada es una señal para revisar el resultado, no una aprobación automática de los cambios del agente.
+
+## Si un agente no utiliza Zshell [#if-an-agent-does-not-use-zshell]
+
+- Confirma que **Ajustes → Automatización → IA** está activado.
+- Abre un terminal nuevo de Zshell si el actual ya existía antes de activar la opción.
+- Reinicia el agente si ya estaba en ejecución cuando la activaste.
+- Comprueba si Ajustes muestra un error de configuración junto a la opción.
+- Pide expresamente un «panel de Zshell en segundo plano» o un «agente delegado de Zshell» si quieres que el agente use este flujo de trabajo para una tarea.

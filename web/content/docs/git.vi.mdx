@@ -1,0 +1,94 @@
+---
+title: "Bảng Git"
+description: "Stage, xem xét, commit và push cạnh shell đã tạo ra thay đổi."
+---
+
+Nhấn <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>. Bảng mở tại kho mà dự án gắn vào; xem [thư mục dự án](/vi/docs/projects#the-project-directory) để biết cách Zshell chọn.
+
+Mỗi thao tác là lệnh Git Zshell chạy thay bạn, và hiển thị đầu ra khi có nhiều thông tin hơn lời “xong”. Không viết lại lịch sử, squash hay force push trừ khi bạn yêu cầu.
+
+## Thanh công cụ Git [#the-git-toolbar]
+
+Zshell có thể hiện thanh công cụ gọn dưới tab hoạt động. Trong kho, nó hiển thị nhánh hiện tại và tổng số dòng thêm/xóa; cây không đổi có trạng thái xanh **Sạch**. Tệp chưa theo dõi được tính vào số dòng thêm.
+
+- Nhấn nhánh để tìm và chuyển nhánh cục bộ. Nhánh mặc định của kho được đánh dấu.
+- Nhấn số thay đổi để mở bảng Git.
+- Ngoài kho, chế độ **Luôn hiện** để lại nút **Không có kho Git**, mở trạng thái khởi tạo của bảng.
+
+Chọn **Ẩn**, **Tự động** hoặc **Luôn hiện** tại **Cài đặt → Chung**, hoặc đặt [`toolbar.visibility`](/vi/docs/configuration#toolbarvisibility). Mặc định là Ẩn. Có thể ẩn thanh đang hiện bằng menu ngữ cảnh của nó.
+
+## Tệp đã thay đổi [#changed-files]
+
+Tệp được nhóm thành xung đột, đã stage và chưa stage. Rê chuột lên hàng để thấy nút hoặc dùng menu ngữ cảnh:
+
+| Nút | Tác dụng |
+| --- | --- |
+| **+** | Stage tệp |
+| **−** | Bỏ stage |
+| **↺** | Hủy thay đổi |
+
+**Hủy mọi thay đổi** nằm ở đầu bảng và hỏi xác nhận trước; đây là thao tác không thể hoàn tác bằng một lệnh Git khác.
+
+Tệp xung đột hiện **Đánh dấu đã giải quyết (Stage)** thay cho nút stage thường, để giải quyết là bước có chủ ý chứ không phải tác dụng phụ.
+
+Nút phễu ở đầu lọc theo tên tệp, là cách nhanh nhất đi qua tập thay đổi lớn.
+
+## Đọc diff [#reading-diffs]
+
+Nhấn tệp thay đổi để mở diff trong ô cạnh terminal thay vì đè lên nó. Menu ngữ cảnh còn có **Mở tệp** (chính tệp, có thể sửa) và **Mở tệp bên cạnh**.
+
+Diff lớn vẫn phản hồi nhanh. Tập nghìn tệp mở nhanh như thay đổi một dòng và cuộn mượt.
+
+Điều khiển trên diff nhớ hai lựa chọn trên toàn ứng dụng:
+
+- **Hợp nhất / Chia đôi** đổi giữa một cột và hai cột cạnh nhau.
+- **Xem xét / Chỉnh sửa** có với tệp chưa stage trong worktree hiện hành. Sửa trực tiếp phía mới và <kbd>Cmd</kbd>+<kbd>S</kbd> để lưu; đóng tệp chưa lưu được xử lý như trình soạn thảo thường.
+
+Diff đã stage và commit lịch sử chỉ đọc vì là ảnh chụp trạng thái, không phải tệp Zshell có thể ghi an toàn. Chuyển một diff sang Chỉnh sửa hoặc Chia đôi cập nhật tùy chọn của diff đang mở khác nhưng không làm diff không đủ điều kiện trở nên sửa được.
+
+## Commit [#committing]
+
+Nhập thông điệp và dùng nút commit hoặc chọn từ menu:
+
+- **Commit phần đã stage** — commit đúng phần bạn đã stage
+- **Stage tất cả & commit** — stage mọi tệp được theo dõi rồi commit
+- **Sửa commit cuối** — gộp thay đổi đã stage vào commit trước
+- **Stage tất cả & sửa commit cuối**
+
+Commit gần đây được liệt kê bên dưới; menu có **Sao chép mã commit** và **Sao chép thông điệp commit**.
+
+## Nhánh [#branches]
+
+Tên nhánh ở đầu là menu: chọn nhánh khác để chuyển hoặc **Tạo nhánh mới…** từ vị trí hiện tại.
+
+## Worktree [#worktrees]
+
+Bảng Git liệt kê mọi worktree của kho, cùng nhánh và đường dẫn checkout. Checkout hoạt động có nhãn **Hiện tại**. Nhấn worktree để mở tab terminal trong thư mục đó; mỗi checkout giữ ngữ cảnh shell riêng nhưng vẫn cùng dự án. Danh sách dài cuộn trong vùng giới hạn riêng; đầu mục, điều khiển commit và danh sách tệp thay đổi giữ nguyên. Nhấn tiêu đề worktree để thu gọn/mở rộng.
+
+Worktree ở trạng thái tách HEAD hiện **Detached HEAD** thay tên nhánh. Kho bare vẫn được liệt kê đầy đủ nhưng không có thư mục làm việc nên không mở được bằng tab terminal.
+
+## Kho từ xa [#remotes]
+
+Menu **⋯** có mọi thao tác giao tiếp kho từ xa:
+
+| Thao tác | Tác dụng |
+| --- | --- |
+| **Fetch** | Cập nhật tham chiếu theo dõi từ xa |
+| **Pull (chỉ fast-forward)** | Pull và từ chối tạo merge commit |
+| **Push** | Đẩy nhánh hiện tại |
+| **Xuất bản nhánh** | Đẩy nhánh chưa có upstream; chọn remote nếu có nhiều |
+| **Đồng bộ thay đổi** | Pull fast-forward rồi push |
+| **Stash mọi thay đổi** | Cất mọi thứ, kể cả tệp chưa theo dõi |
+| **Pop stash** | Khôi phục stash gần nhất |
+
+Huy hiệu bên cạnh nhánh cho biết **↓ chậm hơn** và **↑ đi trước** upstream bao nhiêu commit.
+
+Menu còn có **Sao chép đường dẫn thay đổi**, **Sao chép đường dẫn kho** và **Hiển thị kho trong Finder**.
+
+<Callout type="info">
+Pull chỉ fast-forward là có chủ đích. Nếu cần merge hoặc rebase thực sự, Git sẽ báo và bạn quyết định ở terminal; bảng không chọn chiến lược thay bạn.
+</Callout>
+
+## Chưa phải kho mã [#not-a-repository-yet]
+
+Nếu thư mục dự án chưa có kho, bảng cung cấp **Khởi tạo kho**, chạy `git init` tại đó. Trước khi ấy bảng không làm phiền.

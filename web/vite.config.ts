@@ -44,8 +44,8 @@ export default defineConfig({
       pages: [
         // The landing pages, so the whole site ships as static files.
         { path: '/' },
-        { path: '/en' },
-        { path: '/zh' },
+        ...i18n.languages.map((lang) => ({ path: `/${lang}` })),
+        { path: '/zh-Hans' },
         { path: '/changelog' },
         // Not pages: the search index, the release the download buttons point
         // at, and the sidebar tree and titles for one language. Each response is
@@ -54,6 +54,7 @@ export default defineConfig({
         // what a page fetches when the browser navigates to it rather than
         // loading it as a prerendered document.
         { path: '/api/search' },
+        ...i18n.languages.filter((lang) => lang !== i18n.defaultLanguage).map((lang) => ({ path: `/api/search-index/${lang}` })),
         { path: '/api/release' },
         ...i18n.languages.map((lang) => ({ path: `/api/docs/${lang}` })),
         ...docsPages(),

@@ -1,0 +1,81 @@
+---
+title: "Hızlı başlangıç"
+description: "Boş bir pencereden çalışan projeye: önce öğrenmeye değer olanlar."
+---
+
+<Steps>
+
+<Step>
+
+### Proje başlatma [#start-a-project]
+
+<kbd>Cmd</kbd>+<kbd>N</kbd> tuşlarına basın. Kenar çubuğunda bir terminal içeren yeni proje oluşur. Diğer terminallerde olduğu gibi `cd` ile istediğiniz depoya gidin. Dosya ağacı ve Git paneli sizi izleyip depo köküne yerleşir.
+
+Klasörden başlamak için Finder’da sağ tıklayıp **Servisler → Burada Yeni Zshell Projesi**’ni seçin.
+
+Birden çok deponuz varsa hepsini ekleyin. <kbd>Cmd</kbd>+<kbd>1</kbd> ile <kbd>Cmd</kbd>+<kbd>9</kbd> arasında doğrudan projelere geçebilirsiniz; her projenin sekmeleri ve düzeni ayrı kalır.
+
+</Step>
+
+<Step>
+
+### Oturum ekleme [#add-sessions]
+
+<kbd>Cmd</kbd>+<kbd>T</kbd> aynı projede başka bir terminal açar: kendi çalışma dizini ve çıktı geçmişi olan yeni bir sekme. Birini geliştirme sunucusuna, birini testlere, birini komut yazmaya ayırabilirsiniz.
+
+<kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> doğrudan sekme değiştirir; <kbd>Ctrl</kbd>+<kbd>Tab</kbd> yakın zamanda kullanım sırasına göre bir sekme seçici açar.
+
+</Step>
+
+<Step>
+
+### Sekmeyi bölme [#split-a-tab]
+
+<kbd>Cmd</kbd>+<kbd>D</kbd> geçerli bölmeyi sağa, <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> aşağı böler. <kbd>Opt</kbd>+<kbd>Cmd</kbd>+ok tuşları ile bölmeler arasında geçin. Uzun bir metni okurken bölmeyi sekmenin tamamını kaplayacak kadar büyütmek için <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> kullanın.
+
+</Step>
+
+<Step>
+
+### Yan panelleri açma [#open-the-side-panels]
+
+Sağ kenar çubuğundaki paneller birer kısayolla açılır:
+
+| Panel | Kısayol | Kullanım |
+| --- | --- | --- |
+| Git | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> | Hazırlama, fark inceleme, commit, push |
+| Dosyalar | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | Ağacı gezme, dosya açma ve düzenleme |
+| Bilgi | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> | İşlemler ve dinlenen portlar |
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> sağ kenar çubuğunun tamamını tekrar gizler; <kbd>Cmd</kbd>+<kbd>B</kbd> soldaki proje kenar çubuğunu gizler.
+
+</Step>
+
+<Step>
+
+### Bir kısayolu öğrenin: <kbd>Cmd</kbd>+<kbd>P</kbd> [#learn-one-shortcut-cmdp]
+
+Komut paleti her projeyi, açık oturumu ve Zshell komutunu arar. Bu sayfanın geri kalanını unutsanız bile bunu hatırlayın: her komutun yanında kısayolu yazılıdır.
+
+</Step>
+
+</Steps>
+
+## Çıktıktan sonra geri gelenler [#what-comes-back-after-you-quit]
+
+Çıkıp yeniden açtığınızda projeler, sekmeler ve bölme düzeni bıraktığınız yerde olur. Her terminal eski dizininde **yeni bir kabuk** başlatır; hiçbir şey gizlice arka planda çalışmaya devam etmez.
+
+Çıktı geçmişi isteğe bağlıdır. [`terminal.restore-history`](/tr/docs/configuration#terminalrestore-history) seçeneğini açarsanız yeniden açılan terminaller eski çıktıyı `Session Contents Restored` ayırıcısının üzerinde gösterir; yeni kabuk altında çalışır.
+
+<Callout type="info">
+Geri yüklenen içerik yalnızca metindir. Canlı bir oturum değil, olanların kaydıdır; geçmişi kaydırmak hiçbir şeyi yeniden çalıştırmaz.
+</Callout>
+
+## Sıradaki adımlar [#next]
+
+<Cards>
+  <Card title="Projeler ve oturumlar" href="/tr/docs/projects" description="Adlandırma, dizin sabitleme ve projenin neleri izlediği." />
+  <Card title="Git paneli" href="/tr/docs/git" description="Hazırlama, farklar, commit ve dallar." />
+  <Card title="Tarayıcı bölmeleri" href="/tr/docs/browser" description="Yerel sunucuyu veya belgeleri terminalinin yanında tutun." />
+  <Card title="AI ajanlarıyla çalışma" href="/tr/docs/automation" description="Ajanlardan işleri devretmelerini ve Zshell bölmeleri arasında koordine olmalarını isteyin." />
+</Cards>
