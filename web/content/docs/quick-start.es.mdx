@@ -1,0 +1,81 @@
+---
+title: Inicio rápido
+description: 'De una ventana vacía a un proyecto listo para trabajar: lo primero que conviene aprender.'
+---
+
+<Steps>
+
+<Step>
+
+### Iniciar un proyecto [#start-a-project]
+
+Pulsa <kbd>Cmd</kbd>+<kbd>N</kbd>. Aparecerá un proyecto nuevo en la barra lateral con un terminal. Después, usa `cd` para ir al repositorio que quieras, como en cualquier terminal. El árbol de archivos y el panel de Git te siguen hasta allí y toman la raíz del repositorio como referencia.
+
+¿Prefieres empezar desde una carpeta? Haz clic derecho sobre ella en Finder y elige **Servicios → Nuevo proyecto Zshell aquí**.
+
+¿Tienes varios repositorios? Añádelos todos. De <kbd>Cmd</kbd>+<kbd>1</kbd> a <kbd>Cmd</kbd>+<kbd>9</kbd> puedes saltar directamente a uno; cada proyecto conserva sus propias pestañas y disposición.
+
+</Step>
+
+<Step>
+
+### Añadir sesiones [#add-sessions]
+
+<kbd>Cmd</kbd>+<kbd>T</kbd> abre otro terminal en el mismo proyecto: una pestaña nueva con su propio directorio de trabajo e historial de salida. Puedes dedicar una al servidor de desarrollo, otra a las pruebas y otra a escribir comandos.
+
+<kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> cambia directamente de pestaña; <kbd>Ctrl</kbd>+<kbd>Tab</kbd> abre un selector ordenado por uso reciente.
+
+</Step>
+
+<Step>
+
+### Dividir una pestaña [#split-a-tab]
+
+<kbd>Cmd</kbd>+<kbd>D</kbd> divide el panel actual hacia la derecha y <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> hacia abajo. Muévete entre paneles con <kbd>Opt</kbd>+<kbd>Cmd</kbd>+las flechas y pulsa <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> para ampliar un panel hasta llenar la pestaña mientras lees un contenido largo.
+
+</Step>
+
+<Step>
+
+### Abrir los paneles laterales [#open-the-side-panels]
+
+La barra lateral derecha contiene estos paneles, cada uno con su atajo:
+
+| Panel | Atajo | Para qué sirve |
+| --- | --- | --- |
+| Git | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> | Preparar cambios, revisar diferencias, crear commits y enviar cambios |
+| Archivos | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | Explorar el árbol, abrir y editar archivos |
+| Información | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> | Ver procesos y puertos a la escucha |
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> vuelve a ocultar toda la barra lateral derecha; <kbd>Cmd</kbd>+<kbd>B</kbd> oculta la barra de proyectos de la izquierda.
+
+</Step>
+
+<Step>
+
+### Aprende un atajo: <kbd>Cmd</kbd>+<kbd>P</kbd> [#learn-one-shortcut-cmdp]
+
+La paleta de comandos busca en todos los proyectos, todas las sesiones abiertas y todos los comandos de Zshell. Si solo recuerdas una cosa de esta página, que sea esta: cada comando muestra también su propio atajo.
+
+</Step>
+
+</Steps>
+
+## Qué se recupera al volver a abrir la app [#what-comes-back-after-you-quit]
+
+Sal y vuelve a abrir Zshell: tus proyectos, pestañas y disposición de paneles estarán donde los dejaste. Cada terminal inicia un **shell nuevo** en su directorio anterior. No se mantiene ningún proceso oculto en segundo plano.
+
+Restaurar el historial de salida es opcional. Activa [`terminal.restore-history`](/es/docs/configuration#terminalrestore-history) para que los terminales reabiertos muestren la salida anterior sobre un separador `Session Contents Restored`, con el shell nuevo ejecutándose debajo.
+
+<Callout type="info">
+El contenido restaurado es solo texto: un registro de lo ocurrido, no una sesión activa. Desplazarte por ese historial no vuelve a ejecutar nada.
+</Callout>
+
+## Siguientes pasos [#next]
+
+<Cards>
+  <Card title="Proyectos y sesiones" href="/es/docs/projects" description="Nombres, directorios fijos y qué sigue realmente un proyecto." />
+  <Card title="Panel de Git" href="/es/docs/git" description="Preparación de cambios, diferencias, commits y ramas." />
+  <Card title="Paneles de navegador" href="/es/docs/browser" description="Mantén un servidor local o documentación junto a su terminal." />
+  <Card title="Trabajar con agentes de IA" href="/es/docs/automation" description="Pide a los agentes que deleguen trabajo y se coordinen entre los paneles de Zshell." />
+</Cards>

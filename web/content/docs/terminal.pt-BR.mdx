@@ -1,0 +1,158 @@
+---
+title: O terminal
+description: Backends do terminal Zshell, ambiente do shell, links, notificações e recursos de segurança.
+---
+
+Cada painel de terminal executa seu shell de login real e usa um de dois backends nativos acelerados por GPU. O Zshell controla o comportamento ao redor — foco, busca, notificações, links, histórico, temas e segurança ao colar — para manter a experiência consistente em qualquer emulador.
+
+## Backends de terminal [#terminal-backends]
+
+Escolha em **Ajustes → Terminal → Backend**:
+
+| Backend | Observações |
+| --- | --- |
+| **Ghostty** | Padrão |
+| **Alacritty** | Geralmente usa menos memória |
+
+Ambos suportam aceleração por GPU, imagens, o catálogo compartilhado de temas, busca, eventos de mouse, notificações e relatórios de progresso. Trocar o backend só afeta terminais novos; painéis existentes mantêm o emulador inicial.
+
+## Seu shell, sem alterações [#your-shell-unchanged]
+
+Cada sessão inicia o shell de login da conta. Prompt, aliases, funções e dotfiles carregam como em qualquer terminal. O Zshell acrescenta variáveis de capacidade e identidade:
+
+| Variável | Valor |
+| --- | --- |
+| `TERM_PROGRAM` | `ghostty` |
+| `TERM_PROGRAM_VERSION` | A versão de capacidades Ghostty implementada pelo Zshell |
+| `ZSHELL_TERM` | `ghostty` ou `alacritty`, o backend real do painel |
+
+Ambos anunciam Ghostty em `TERM_PROGRAM` porque CLIs com suporte a imagens e notificações usam isso como indicação de capacidade. Use `ZSHELL_TERM` apenas quando precisar distinguir o renderizador.
+
+<Callout type="info">
+O Zshell não lê `~/.config/ghostty` nem a configuração do Alacritty. Fontes, cores, entrada e backend são definidos nos [ajustes](/pt-BR/docs/configuration) do Zshell.
+</Callout>
+
+## Busca [#search]
+
+| Ação | Atalho |
+| --- | --- |
+| Buscar | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Buscar próxima ocorrência | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+| Buscar anterior | <kbd>Shift</kbd>+<kbd>Return</kbd> na barra de busca |
+| Usar seleção na busca | <kbd>Cmd</kbd>+<kbd>E</kbd> |
+| Limpar terminal | <kbd>Cmd</kbd>+<kbd>K</kbd> |
+
+A busca atua no terminal ou editor em foco e continua ativa enquanto seu campo tem o foco do teclado.
+
+## Editar o prompt [#prompt-editing]
+
+Clique dentro do prompt ativo para mover o cursor e continuar digitando nessa posição. No zsh, arraste sobre a entrada para selecionar um trecho: digitar substitui a seleção; Backspace ou Delete a remove. Cliques duplos e triplos continuam selecionando texto do terminal. Programas com eventos de mouse, como TUIs em tela cheia, continuam recebendo seus eventos.
+
+Se um shell aninhado ou substituto não carregou o suporte de edição do Zshell, arrastar seleciona texto para copiar, mas não edita a entrada. A edição da seleção volta ao retornar ao prompt original.
+
+A caixa padrão do Claude Code permite posicionar o cursor com clique e editar arrastando em ambos os backends, inclusive em rascunhos com quebra visual ou múltiplas linhas. Digite ou cole para substituir a entrada selecionada, ou use Backspace/Delete para apagar. Os modos normal/visual do Vim, diálogos, marcadores de anexos ou colagens recolhidas e texto de conversa rolado mantêm a seleção usual do terminal. Aplicativos que capturam o mouse continuam controlando a própria entrada.
+
+A entrada por voz do Zisla usa a ação de colar do terminal. No Claude Code, também substitui um trecho selecionado; repetir uma frase intencionalmente continua permitido.
+
+## Atalhos do aplicativo em primeiro plano [#foreground-application-shortcuts]
+
+Quando os atalhos de um aplicativo de terminal conflitam com o Zshell, clique com o botão direito no painel e ative **Bloquear Comandos do Zshell**. Teclas com modificadores, incluindo <kbd>Ctrl</kbd>+<kbd>Return</kbd>, vão para o aplicativo em primeiro plano enquanto o painel tem foco. Copiar, colar e selecionar tudo continuam disponíveis.
+
+A opção vale apenas para esse painel. Desmarque no mesmo menu para restaurar os atalhos. Se o aplicativo capturar o mouse, segure <kbd>Shift</kbd> ao clicar com o botão direito para abrir o menu Zshell.
+
+## Fila de prompts [#prompt-queue]
+
+Foque um terminal e pressione <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> ou escolha **Alternar Fila de Prompts** na paleta. A barra abre abaixo do terminal. Digite uma entrada e pressione <kbd>Return</kbd> ou **Adicionar à Fila**. Cada entrada tem uma linha; quebras coladas viram espaços.
+
+Quando o zsh original retorna a um prompt vazio, o Zshell envia a próxima entrada e Return. A ordem da fila é respeitada. O envio automático espera enquanto um agente ou outro programa ocupa o terminal, ou quando há um rascunho no prompt. Ele exige a integração zsh; outros shells e shells aninhados podem usar envio manual.
+
+Cada entrada tem **Enviar Agora** e **Remover**. **Enviar Agora** envia imediatamente texto e Return ao programa atual, sem esperar pelo prompt. <kbd>Esc</kbd> ou o botão de fechar oculta a barra e preserva as entradas. Cada terminal tem sua própria fila; fechar a sessão ou sair do Zshell a descarta.
+
+## Caminhos e URLs [#paths-and-urls]
+
+O Zshell reconhece URLs e caminhos locais existentes na saída dos programas. Links locais podem ser absolutos, relativos a `~/`, `./`, `../` ou ao diretório atual do painel. Sufixos de diagnóstico como `:42` e `:42:7` não impedem localizar o arquivo.
+
+- **Command-clique** em um caminho para revelá-lo no Finder ou em uma URL para abrir no navegador padrão.
+- **Command-clique com o botão direito** em um caminho oferece **Nova Aba de Arquivo** / **Novo Painel de Arquivo**; em uma URL, **Nova Aba de Navegador** / **Novo Painel de Navegador**.
+- Programas em tela cheia com eventos de mouse recebem o clique direito comum. Segure **Shift** para abrir o menu do terminal e painel Zshell.
+
+Assim, saídas de compiladores e conversas de agentes levam diretamente ao mesmo projeto. Veja [Painéis de navegador](/pt-BR/docs/browser) para o comportamento do navegador.
+
+## Notificações [#notifications]
+
+O Zshell encaminha dois eventos à Central de Notificações:
+
+- um sinal sonoro de uma sessão fora de foco;
+- uma solicitação `OSC 777;notify` de um programa, como uma compilação longa ou agente.
+
+As notificações podem tocar o som do sistema. Clicar ativa o Zshell e vai à sessão exata que as emitiu. O macOS pede permissão apenas na primeira tentativa de notificar, não ao iniciar o aplicativo.
+
+### Conclusão de comandos [#command-completion]
+
+Abra **Ajustes → Terminal → Notificações de Comandos** para receber avisos ao terminar:
+
+- **Comandos demorados**: escolha 5, 10, 30 ou 60 segundos. Um comando que dure pelo menos isso gera aviso de conclusão. O padrão é **Desativado**.
+- **Comandos com falha**: avisar quando o código de saída não for zero, independentemente da duração. Também vem desativado e pode ser ativado separadamente.
+
+As opções valem para terminais zsh criados após a mudança em ambos os backends. Elas usam o evento de conclusão do shell original; comandos dentro de shell aninhado ou programa interativo não informam conclusões individuais por essa integração.
+
+As mesmas opções podem ser salvas em `~/.config/zshell/config.toml`:
+
+```toml
+terminal.notify-finish-seconds = 30
+terminal.notify-on-error = true
+```
+
+Use `0` em `terminal.notify-finish-seconds` para desativar avisos por duração. A entrega segue as preferências de notificações do macOS.
+
+## Relatórios de progresso [#progress-reports]
+
+Programas que emitem progresso `OSC 9;4` ganham uma barra fina acima do terminal, com estados normal, pausado e erro distintos. Não há nada a ativar: se o programa informa progresso, o painel mostra.
+
+## Área de transferência, arrastar e segurança ao colar [#clipboard-drops-and-paste-safety]
+
+- **Leituras da área de transferência exigem confirmação.** `OSC 52` pode solicitar o conteúdo, inclusive de um host remoto via SSH. O Zshell pergunta antes de fornecer.
+- **Colagens arriscadas são sinalizadas.** Texto com várias linhas ou parecido com comandos aguarda confirmação em vez de ser enviado imediatamente.
+- **Arquivos viram caminhos seguros para o shell.** Arquivos copiados no Finder ou arrastados são inseridos como caminhos absolutos entre aspas. Imagens da área de transferência continuam chegando a TUIs compatíveis.
+
+## Entrada com Option [#option-key-input]
+
+Por padrão, Option permanece com a fonte de entrada ativa do macOS para que layouts como Polish Pro digitem caracteres compostos. Ative **Usar Option como Alt/Meta** quando um programa precisar receber essas combinações como atalhos Meta. Consulte [`terminal.macos-option-as-alt`](/pt-BR/docs/configuration#terminalmacos-option-as-alt).
+
+## O comando `zshell` [#the-zshell-command]
+
+Cada terminal inclui um CLI que conhece o projeto:
+
+```sh
+zshell                         # cria um projeto no diretório atual
+zshell vim ~/src/app.swift     # cria o projeto e executa estes argumentos no primeiro terminal
+zshell +themes                 # explora e pré-visualiza temas de forma interativa
+zshell +themes --list --dark   # exibe os nomes dos temas sem abrir o seletor
+zshell +help                   # mostra todos os grupos de comandos
+```
+
+Os comandos criam um projeto no diretório atual, criam e executam o argv no primeiro terminal, abrem a seleção interativa de temas, listam temas escuros sem o seletor e mostram todos os grupos de comandos, respectivamente. O seletor de temas aplica uma prévia ao aplicativo inteiro; Return salva e Escape restaura o tema anterior.
+
+## Fontes [#fonts]
+
+O Zshell inclui JetBrains Mono e símbolos Nerd Font. Qualquer família monoespaçada instalada pode substituir a fonte latina; uma família CJK pode entrar antes dos símbolos e fallbacks do sistema. Veja [`font-family`](/pt-BR/docs/configuration#font-family), [`terminal.font-fallback-family`](/pt-BR/docs/configuration#terminalfont-fallback-family), [`font-size`](/pt-BR/docs/configuration#font-size), [`terminal.font-thicken`](/pt-BR/docs/configuration#terminalfont-thicken) e [`terminal.line-height`](/pt-BR/docs/configuration#terminalline-height).
+
+## Terminal Rápido global [#global-quick-terminal]
+
+Com o Zshell aberto, pressione <kbd>Cmd</kbd>+<kbd>I</kbd> para abrir um terminal independente sobre outro aplicativo; pressione novamente para fechar. Ele usa um shell temporário fora das abas de projetos. Ajuste tamanho, opacidade e atalho em **Ajustes → Terminal → Terminal Rápido**.
+
+- Fixe a janela para mantê-la aberta ao alternar aplicativos.
+- Uma janela não fixada fecha ao perder o foco ou receber um clique externo.
+- Com **Bloquear Comandos do Zshell** desativado, <kbd>Esc</kbd> ou o atalho global fecha a janela e encerra o shell e suas tarefas. Abrir novamente inicia uma sessão nova.
+
+Use um terminal de projeto para serviços duradouros. [Inicialização Rápida](/pt-BR/docs/quick-launch), que salva e executa comandos, é outro recurso.
+
+## Dicas de comandos Vim [#vim-command-hints]
+
+Ative **Ajustes → Terminal → Comportamento → Dicas de comandos Vim** e abra **Info** na barra direita. Uma seção **COMANDOS VIM** aparece sob as informações da sessão enquanto Vim, Vi ou Neovim está ativo. A opção vem desativada e afeta imediatamente terminais existentes em ambos os backends.
+
+A lista completa de comandos comuns permanece disponível; só a prioridade muda. Normal prioriza `:w`, `:q`, `yy` e `p`/`P`; Visual Block prioriza `I`/`A`, alterações em bloco e movimento entre cantos. Insert, Replace, Visual, Visual Line, Select, linha de comando e busca têm sua própria ordem. Cada entrada identifica os modos aplicáveis. Pesquise por teclas, descrição ou nome do modo; descrições e interface de busca seguem qualquer um dos 17 idiomas. Limpe a busca para restaurar a lista completa. As dicas são uma referência e nunca enviam entrada ao editor.
+
+Editores locais são identificados pelo executável em primeiro plano. Em SSH, Mosh ou multiplexadores, a detecção usa a linha visível de modo/status e o layout da tela sem instalar plugin remoto. Mantenha `showmode` ou uma linha de status reconhecível. Configurações que ocultam ou renomeiam modos podem retornar às dicas Normal ou impedir a detecção remota; mapeamentos personalizados não são interpretados. Apenas o painel Info ativo é amostrado; as dicas somem quando muda o programa em primeiro plano ou o editor deixa de ser reconhecível.
+
+Você também pode ativar no arquivo com `terminal.vim-command-hints = true`.

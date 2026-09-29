@@ -1,0 +1,41 @@
+---
+title: Painéis de navegador
+description: Abra sites ao lado de um terminal, navegue com controles nativos e mantenha os links no projeto.
+---
+
+O Zshell pode colocar um navegador integrado em qualquer aba ou painel dividido. Ele é útil para um servidor de desenvolvimento local, documentação de API, uma issue ou qualquer conteúdo que você queira ao lado do terminal que o utiliza.
+
+## Abrir um navegador [#opening-a-browser]
+
+- Escolha **Arquivo → Nova Aba de Navegador** para uma aba em branco.
+- Abra a paleta de comandos (<kbd>Cmd</kbd>+<kbd>P</kbd>) e execute **Nova Aba de Navegador** ou **Novo Painel de Navegador**.
+- Clique com o botão direito e Command em uma URL detectada no terminal e escolha **Nova Aba de Navegador** ou **Novo Painel de Navegador** para abri-la sem copiar o endereço.
+
+As abas de navegador pertencem ao projeto selecionado e participam do layout normal de abas e painéis. Se não houver um projeto aberto, o Zshell cria um para o navegador.
+
+## Endereço e busca [#address-and-search]
+
+O campo superior aceita uma URL completa, um nome de host ou termos de busca:
+
+- `zshell.sh` vira um endereço HTTPS.
+- `localhost`, nomes de host locais, endereços IP e portas explícitas usam HTTP.
+- Todo o restante vira uma busca no Google.
+
+Use <kbd>Cmd</kbd>+<kbd>L</kbd> para focar o campo e <kbd>Cmd</kbd>+<kbd>R</kbd> para recarregar. A barra de ferramentas também oferece Voltar, Avançar, Parar/Recarregar, Compartilhar e **Abrir no Navegador Padrão**. Gestos de voltar e avançar no trackpad também funcionam.
+
+| Ação | Atalho |
+| --- | --- |
+| Focar a barra de endereços | <kbd>Cmd</kbd>+<kbd>L</kbd> |
+| Recarregar a página | <kbd>Cmd</kbd>+<kbd>R</kbd> |
+
+## Abrir links onde você quiser [#opening-links-where-you-want-them]
+
+Clique com o botão direito em um link da página para **Abrir Link em Nova Aba** ou **Abrir Link em Novo Painel**. A nova página permanece no mesmo projeto.
+
+No terminal, Command-clique abre uma URL detectada no navegador padrão. Command-clique com o botão direito oferece uma aba ou painel do Zshell. Caminhos locais seguem um fluxo semelhante, descrito em [Caminhos e URLs](/pt-BR/docs/terminal#paths-and-urls).
+
+## O que é preservado [#what-is-preserved]
+
+Alternar abas ou projetos mantém a página como estava, incluindo histórico, posição de rolagem, formulários e estado interno. Ao reiniciar, o Zshell restaura a URL atual e o layout, mas não todo o histórico de voltar e avançar.
+
+Os painéis de navegador mantêm cookies, sessões de login e outros dados de sites entre abas e inicializações. Este não é um modo de navegação privada.

@@ -1,11 +1,12 @@
 import type { SerializedPageTree } from 'fumadocs-core/source/client'
 import { source } from '@/lib/source'
-import { DEFAULT_LANGUAGE } from '@/lib/i18n'
+import { DEFAULT_LANGUAGE, language } from '@/lib/i18n'
 
 /** One docs page, minus the MDX the browser fetches for itself. */
 export type DocsIndexEntry = {
   path: string
   title: string
+  contentLanguage: string
   description?: string
 }
 
@@ -28,12 +29,14 @@ export type DocsIndex = {
  * missing one falls back rather than disappearing.
  */
 export async function buildDocsIndex(lang: string): Promise<DocsIndex> {
+  lang = language(lang)
   const pages: Record<string, DocsIndexEntry> = {}
 
   for (const canonical of source.getPages(DEFAULT_LANGUAGE)) {
     const page = source.getPage(canonical.slugs, lang) ?? canonical
     pages[canonical.slugs.join('/')] = {
       path: page.path,
+      contentLanguage: page.path.match(/\.([^.]+)\.mdx$/)?.[1] ?? 'en',
       title: page.data.title,
       ...(page.data.description ? { description: page.data.description } : {}),
     }

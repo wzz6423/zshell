@@ -1,0 +1,256 @@
+---
+title: 設定
+description: Zshell の永続設定、その効果、保存場所。
+---
+
+Zshell の永続設定の多くは、次の 1 ファイルに保存されます。
+
+```
+~/.config/zshell/config.toml
+```
+
+設定ウィンドウ（<kbd>Cmd</kbd>+<kbd>,</kbd>）も同じファイルへ書き込みます。
+言語や自動更新など macOS が管理する一部の設定は別の場所に保存され、このページの末尾にまとめています。
+
+## ファイルの動作 [#how-the-file-behaves]
+
+手動編集の前に、次の点を確認してください。
+
+- **起動時に読み込みます。** 実行中にファイルを編集しても、再起動までは反映されません。設定画面からの変更は、操作欄に別の説明がある場合を除いてすぐに適用されます。
+- **ファイルで管理する設定を変えるたびに書き直します。** ファイル全体を再生成するため、次に該当する操作欄を使うとコメントや未知のキーは失われます。編集方法を一つにするか、管理元のコピーを dotfiles に保存してください。
+- **原則として既定値以外だけを書き込みます。** 例外として `font-size` は常に存在します。ほかのキーを削除すると既定値に戻ります。
+- **パーサーは意図的に小さくしています。** 単純なキー、ドット付きキー、`[table]` 見出し、`#` コメント、文字列・数値・真偽値に対応します。配列、インラインテーブル、複数行文字列は非対応です。
+- **不正な値は安全に代替されます。** 範囲外のサイズ、未知のバックエンド、誤記したテーマがあっても Zshell の起動を妨げません。
+
+## 外観 [#appearance]
+
+### `theme` [#theme]
+
+`"system"` · `"light"` · `"dark"` — 既定値 `"system"`
+
+アプリの外観を選びます。`"system"` は macOS に従い、ほかの 2 つは指定した外観に固定します。
+
+### `theme-dark` と `theme-light` [#theme-dark-and-theme-light]
+
+文字列 — 既定値 `"Default Dark"` と `"Default Light"`
+
+各外観に使う配色テーマです。ターミナル、ウィンドウ周辺、サイドバー、エディタ、差分をまとめて配色します。
+内蔵の既定テーマは半透明のサイドバーを保ち、その他のテーマはそのパレットに合わせた色を使います。
+
+設定には、両バックエンド共通の厳選したテーマ一覧を表示します。手書きの名前は大文字小文字も含め表示名と完全一致する必要があり、一致しなければ対応する既定テーマに戻ります。
+
+### `toolbar.visibility` [#toolbarvisibility]
+
+`"hide"` · `"auto"` · `"always"` — 既定値 `"hide"`
+
+アクティブなタブの下のコンパクトなツールバーを制御します。
+
+- `"hide"` は表示しません。
+- `"auto"` はプロジェクトディレクトリが Git リポジトリの場合だけ表示します。
+- `"always"` は全プロジェクトに Git の入口を表示し、リポジトリがなければ<strong>Git リポジトリなし（No Git Repository）</strong>を表示します。
+
+内容は [Git ツールバー](/ja/docs/git#the-git-toolbar)を参照してください。
+
+## テキスト [#text]
+
+### `font-family` [#font-family]
+
+文字列 — 既定値 `""`。同梱の JetBrains Mono を使います
+
+ターミナル、エディタ、差分表示で共有する欧文フォントファミリーです。
+`"IBM Plex Mono Regular"` のような書体名ではなく、`"IBM Plex Mono"` のようなファミリー名を指定します。未知または等幅でないファミリーは同梱の既定フォントへ戻ります。
+
+ターミナルの代替順は、欧文ファミリー、任意の CJK 代替、同梱の Symbols Nerd Font、バックエンドのシステム代替です。
+エディタと差分表示は従来の macOS／WebKit の代替処理を使います。
+
+### `terminal.font-fallback-family` [#terminalfont-fallback-family]
+
+文字列 — 既定値 `""`。バックエンド／システムの代替を使います
+
+インストール済みの CJK ファミリーを 1 つ、ターミナルの代替フォント列に追加します。
+設定の選択欄には代表的な中国語・日本語・韓国語の文字を含むファミリーを表示します。主な欧文フォントにない文字だけを補うため、厳密な等幅である必要はありません。
+
+### `font-size` [#font-size]
+
+数値、8–32 — 既定値 `13`
+
+ターミナル、エディタ、差分で共有するポイント単位の文字サイズです。既定値でも Zshell が書き出す唯一のキーです。
+
+### `interface.scale` [#interfacescale]
+
+数値、0.9–1.5 — 既定値 `1`
+
+タブ、アイコン、ボタン、サイドバーなどアプリのインターフェースを拡大・縮小します。
+ターミナル、エディタ、差分の内容は、上記で別に設定した文字サイズを保ちます。
+
+### `sidebar.font-size` [#sidebarfont-size]
+
+数値、9–24 — 既定値 `14`
+
+両サイドバーの基本文字サイズです。変更しても、セクション見出し、行、メタデータ、操作欄の相対的な階層を維持します。
+
+### `terminal.font-thicken` [#terminalfont-thicken]
+
+真偽値 — 既定値 `false`
+
+従来の macOS のフォントスムージングに近い、少し太い線でターミナル文字を描きます。
+両バックエンドで使え、設定のプレビューで結果を確認できます。旧 `font-thicken` も読み込めますが、書き直すと現在のドット付きキーになります。
+
+### `terminal.font-thicken-strength` [#terminalfont-thicken-strength]
+
+整数、0–255 — 既定値 `255`
+
+`terminal.font-thicken` が true の場合の太さ補正を調整します。0 はオフではなく、最も弱い補正です。
+Ghostty は macOS ネイティブの強度、Alacritty は同じ範囲を CoreText の線幅に対応させます。増減方向と両端はそろいますが、描画されたピクセルは異なることがあります。
+
+### `terminal.line-height` [#terminalline-height]
+
+数値、0.75–2 — 既定値 `1`
+
+各バックエンドの標準セル高に倍率を掛け、文字の縦位置は中央に保ちます。ターミナル行だけを変え、エディタや差分の行間は変えません。
+
+Zshell は基本のフォントウェイト設定を公開していません。
+Ghostty は名前付きスタイルや可変軸を選び、Alacritty／CoreText は属性から標準・太字の書体を解決します。単一の共有値では、静的・可変フォントを通して標準／太字の区別や代替フォントの太さを一貫して保てないためです。
+
+### `editor.wrap-lines` [#editorwrap-lines]
+
+真偽値 — 既定値 `true`
+
+[ファイルエディタ](/ja/docs/files)で長い行をペイン幅に折り返します。
+false なら横スクロールします。ターミナルや差分の折り返しは変わりません。
+
+## ターミナル [#terminal]
+
+### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
+
+文字列 — 標準では未設定
+
+以降に作成するターミナルで使う実行ファイルと引数列を指定します。
+`terminal.startup-program` がなければ、アカウントのログインシェルを `-l` 付きで使います。
+実行可能な絶対パスが必要です。存在しない、または実行できない場合は、空のペインを開かずログインシェルに戻ります。
+
+`terminal.startup-arguments` はシェルを呼び出さず引数に分割します。
+引用符とバックスラッシュで、空白や空の引数も含め境界を保ちますが、変数・glob・コマンド置換は展開しません。
+引用符が不正な場合もログインシェルへ戻ります。Zshell CLI から明示的な argv が与えられた場合は、そのターミナルではそちらが優先します。
+
+### `terminal.backend` [#terminalbackend]
+
+`"libghostty"` · `"alacritty"` — 既定値 `"libghostty"`
+
+以降に作成するターミナルのエミュレータを選びます。既存ペインは起動時のバックエンドを保ちます。
+両方ともネイティブ、GPU アクセラレーション、画像描画、共通の Zshell テーマに対応し、一般に Alacritty のほうがメモリ使用量は少なめです。
+
+環境変数と互換性の取り決めは[ターミナルバックエンド](/ja/docs/terminal#terminal-backends)を参照してください。
+
+### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
+
+真偽値 — 既定値 `false`
+
+true なら Option キーの組み合わせを Alt/Meta ショートカットとしてターミナルプログラムへ送ります。
+標準では macOS の現在の入力ソースに任せ、Polish Pro などの配列で合成文字を入力できるようにします。
+
+### `terminal.bell` [#terminalbell]
+
+真偽値 — 既定値 `true`
+
+ターミナルプログラムがベルを鳴らした際の音と、macOS の視覚的な注意喚起を制御します。
+false なら音、ターミナルベル通知、Dock での注意要求を行いません。支援技術には意味的な通知としてベルを引き続き伝えます。両バックエンドに適用されます。
+
+### `terminal.vim-command-hints` [#terminalvim-command-hints]
+
+真偽値 — 既定値 `false`
+
+**情報**サイドバーのセッション情報の下に、モードに応じた Vim／Neovim コマンドを表示します。
+認識できる SSH 上のエディタを含め、両バックエンドですぐに反映されます。検出条件は [Vim コマンドヒント](/ja/docs/terminal#vim-command-hints)を参照してください。
+
+### `terminal.restore-history` [#terminalrestore-history]
+
+真偽値 — 既定値 `false`
+
+再起動後、新しいシェルの上にターミナルの以前のスクロールバックを復元します。復元するのは静的なテキストで、生き残ったプロセスではありません。
+
+復元用の履歴はディスクに保存されるため、ターミナルに表示された機密情報も含まれる可能性があります。このため標準ではオフです。
+[プロジェクト、タブ、ペイン配置](/ja/docs/projects#what-survives-a-relaunch)は、この設定にかかわらず復元されます。
+
+## 自動化 [#automation]
+
+### `ai.enabled` [#aienabled]
+
+真偽値 — 既定値 `true`
+
+自然な言葉で依頼すると、対応するコーディングエージェントがバックグラウンドの Zshell ペインを調整でき、提供元が報告するライフサイクル状態を UI に表示します。
+Zshell はターミナル文字から状態を推測しません。エラーを画面内で確認でき、競合する既存設定を変更しないため、設定画面のスイッチから変更することを推奨します。
+
+使い方は [AI エージェントとの作業](/ja/docs/automation)で説明しています。
+
+## その他の設定 [#additional-settings]
+
+| キー | 既定値 | 値／範囲 | 効果 |
+| --- | --- | --- | --- |
+| `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | アプリのアイコン |
+| `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | ファイル・フォルダ用の外部エディタ |
+| `terminal.theme-only` | `false` | 真偽値 | 選んだ配色をターミナルだけに適用 |
+| `terminal.cursor-shape` | `"block"` | `"block"` / `"bar"` / `"underline"` | ターミナルのカーソル形状 |
+| `terminal.cursor-blinking` | `true` | 真偽値 | カーソルを点滅 |
+| `terminal.copy-on-select` | `true` | 真偽値 | 選択したターミナル文字をコピー |
+| `terminal.shift-enter-newline` | `true` | 真偽値 | Shift+Enter で拡張改行シーケンスを送信。アプリ側の対応が必要 |
+| `terminal.background-opacity` | `1` | 0.2–1 | ターミナル背景の不透明度 |
+| `terminal.background-blur` | `false` | 真偽値 | 半透明の背景をぼかす |
+| `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | 新しい zsh で指定時間以上かかったコマンドの完了を通知。0 は無効 |
+| `terminal.notify-on-error` | `false` | 真偽値 | 新しい zsh でコマンド失敗を通知 |
+| `quick-terminal.size` | `0.75` | 0.35–0.95 | 画面に対するクイックターミナルのサイズ |
+| `quick-terminal.opacity` | `0.5` | 0.05–1 | クイックターミナル背景の不透明度 |
+| `quick-terminal.shortcut` | `Cmd+I` | 設定で登録 | グローバルショートカットを設定で登録し、キーコードは自動保存 |
+| `panes.show-focus-ring` | `true` | 真偽値 | アクティブなペインにフォーカスリングを表示 |
+| `panes.focus-ring-opacity` | `0.85` | 0.05–1 | フォーカスリングの不透明度 |
+
+## バックアップと移行 [#backup-and-migration]
+
+<strong>Zshell → 設定をエクスポート…（Export Settings…）</strong>で TOML を保存し、<strong>設定をインポート…（Import Settings…）</strong>で読み込みます。
+インポート時は置き換えを確認し、現在のファイルを同じディレクトリの `config.toml.bak` にバックアップしようとします。
+
+現在のインポーターが復元するのは、テーマ、主要フォント設定、カーソル、バックエンド、履歴復元、選択コピー、クイックターミナル、AI 連携の一部です。エクスポートされる全設定が往復するわけではありません。
+インターフェース倍率、アプリアイコン、外部エディタ、ターミナル背景は後で確認してください。
+完全に移行するには Zshell を終了し、`config.toml` をバックアップしてコピーしてから再起動します。
+AI スイッチはインポートしたファイルに `ai.enabled` が明示されている場合だけ更新されるため、インポート後に確認してください。
+プロジェクト・タブの環境変数はセッションデータで、このファイルには含まれません。
+
+## 設定例 [#a-complete-example]
+
+```toml title="~/.config/zshell/config.toml"
+theme = "dark"
+theme-dark = "Catppuccin Mocha"
+theme-light = "Catppuccin Latte"
+font-family = "IBM Plex Mono"
+font-size = 14
+interface.scale = 1.25
+sidebar.font-size = 13
+toolbar.visibility = "auto"
+terminal.font-fallback-family = "PingFang SC"
+terminal.font-thicken = true
+terminal.font-thicken-strength = 180
+terminal.line-height = 1.15
+terminal.macos-option-as-alt = false
+terminal.bell = false
+terminal.startup-program = "/opt/homebrew/bin/fish"
+terminal.startup-arguments = "--no-config"
+terminal.backend = "alacritty"
+terminal.restore-history = true
+editor.wrap-lines = true
+ai.enabled = true
+```
+
+すべてのキーは省略できます。キーを削除すると、その設定を既定値へ戻します。
+
+## キーボードショートカット [#keyboard-shortcuts]
+
+<strong>設定 → ショートカット（Shortcuts）</strong>で主要コマンドの新しいショートカットを登録できます。
+競合する組み合わせは拒否し、すでに使っているコマンド名を表示します。
+<strong>標準ショートカットに戻す（Restore Default Shortcuts）</strong>で全変更をリセットできます。[キー操作一覧](/ja/docs/shortcuts)に標準の割り当てを掲載しています。
+
+## このファイル以外にある設定 [#settings-outside-this-file]
+
+- **言語。** 設定にはシステム既定と Web サイトと同じ 17 言語があります。変更は即座に適用され、ターミナルセッションは動作を続けます。macOS のアプリ別言語設定を使うため TOML ではなく Zshell の環境設定に保存されます。システム既定は macOS の言語順序に従います。
+- **自動更新。** **設定 → 更新**の自動確認・ダウンロード・インストールは TOML 外のアプリ環境設定に保存され、起動をまたいで保持します。インストールは自動ダウンロードが有効な間だけ表示します。[インストール](/ja/docs/installation#updates)を参照してください。
+- **ウィンドウとレイアウト。** ウィンドウサイズ、サイドバー幅、選択パネル、プロジェクト、タブ、ペイン、ブラウザ URL、差分表示の設定は macOS の環境設定とセッションスナップショットに保存します。
+- **バックエンドの設定ファイル。** `~/.config/ghostty` や Alacritty の設定は読み込みません。両方とも Zshell の設定で管理します。

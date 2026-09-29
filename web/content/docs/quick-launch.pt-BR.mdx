@@ -1,0 +1,38 @@
+---
+title: Inicialização Rápida
+description: Salve comandos e conexões SSH usados com frequência e inicie qualquer um com um atalho.
+---
+
+<kbd>Cmd</kbd>+<kbd>O</kbd> abre a **Inicialização Rápida**: uma lista pesquisável cujas entradas abrem um novo projeto com uma sessão de terminal. Uma entrada salva é um **comando**, como `npm run dev` ou `make watch`, ou uma **conexão SSH**.
+
+## Iniciar [#launching]
+
+Digite um nome, comando, destino de conexão ou grupo para filtrar a lista por aproximação. Clique em uma linha ou selecione-a com as setas e pressione <kbd>Return</kbd>. A entrada é executada em um projeto novo com seu nome, sua própria sessão de terminal e diretório.
+
+Quando o comando termina ou a conexão fecha, o painel volta ao prompt normal do shell em vez de desaparecer. Nada do que você iniciou fecha a si mesmo silenciosamente.
+
+Você também pode executar uma entrada salva pelo nome em qualquer terminal Zshell:
+
+```bash
+zshell "Entry name"
+```
+
+Use o nome exato da entrada, entre aspas se contiver espaços. A dica no rodapé da Inicialização Rápida mostra essa sintaxe. A entrada abre em um projeto novo.
+
+## Gerenciar entradas [#managing-entries]
+
+- <kbd>Cmd</kbd>+<kbd>N</kbd> — nova entrada
+- <kbd>Cmd</kbd>+<kbd>E</kbd> — editar a entrada selecionada
+- <kbd>Cmd</kbd>+<kbd>Delete</kbd> — excluir a entrada selecionada
+
+Use o campo opcional **Grupo** para organizar entradas em seções nomeadas. Os botões de editar e excluir atuam na entrada sem iniciá-la.
+
+Uma entrada de comando pode fixar um **diretório de trabalho** para todas as execuções; sem ele, usa o diretório padrão de um projeto novo. Uma entrada SSH recebe host, usuário e porta opcionais e opções livres de `ssh`, como `-L 8080:localhost:80`.
+
+## Onde as entradas ficam [#where-entries-live]
+
+As entradas são salvas em `~/.config/zshell/quick-launch.json` e compartilhadas por todas as janelas. São dados comuns do usuário: você pode editar o arquivo ou fazer backup livremente.
+
+<Callout type="info">
+Os comandos passam pelo shell de login, portanto recebem o ambiente do seu perfil. Depois, o painel continua como uma sessão comum, com aliases e prompt intactos.
+</Callout>

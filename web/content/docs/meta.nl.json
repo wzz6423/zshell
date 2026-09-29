@@ -1,0 +1,23 @@
+{
+  "title": "Documentatie",
+  "pages": [
+    "---Aan de slag---",
+    "index",
+    "installation",
+    "quick-start",
+    "---Zshell gebruiken---",
+    "projects",
+    "panes",
+    "terminal",
+    "quick-launch",
+    "browser",
+    "git",
+    "files",
+    "session-info",
+    "automation",
+    "---Naslag---",
+    "shortcuts",
+    "configuration",
+    "faq"
+  ]
+}

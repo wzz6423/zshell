@@ -1,0 +1,23 @@
+{
+  "title": "ドキュメント",
+  "pages": [
+    "---はじめに---",
+    "index",
+    "installation",
+    "quick-start",
+    "---Zshell を使う---",
+    "projects",
+    "panes",
+    "terminal",
+    "quick-launch",
+    "browser",
+    "git",
+    "files",
+    "session-info",
+    "automation",
+    "---リファレンス---",
+    "shortcuts",
+    "configuration",
+    "faq"
+  ]
+}

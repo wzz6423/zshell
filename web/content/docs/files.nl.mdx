@@ -1,0 +1,62 @@
+---
+title: Bestanden en de editor
+description: Vind bestanden in meerdere projecten, doorzoek hun inhoud, bewerk code en bekijk Markdown naast de terminal.
+---
+
+Druk op <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> voor de bestandsboom. Net als het Git-paneel gebruikt die [de projectmap](/nl/docs/projects#the-project-directory) als hoofdmap, zodat de boom niet bij elke `cd` opnieuw wordt geworteld.
+
+## De boomstructuur [#the-tree]
+
+Klik op een bestand om het in het deelvenster met focus te openen. Klik met de rechtermuisknop voor de andere opties:
+
+| Optie | Functie |
+| --- | --- |
+| **Openen** / **Aan de zijkant openen** | In dit deelvenster of in een nieuwe splitsing |
+| **Openen in standaardapp** | Openen met de app die macOS ervoor gebruikt |
+| **Toon in Finder** | |
+| **Pad kopiëren** | Het absolute pad |
+| **cd hier** | `cd <folder>` uitvoeren in de terminal met focus |
+| **Nieuw bestand…** / **Nieuwe map…** | Maken in de geselecteerde map |
+| **Hernoemen** | |
+| **Verplaats naar prullenmand** | Naar de prullenmand, niet direct definitief verwijderen |
+
+Rijen gebruiken Material-pictogrammen die bij de bestandsnaam passen. In een Git-repository hebben gewijzigde paden ook statuskleuren en badges, terwijl genegeerde bestanden gedimd zijn. Zo toont de boom dezelfde worktreestatus als het Git-paneel zonder dat je dat hoeft te openen.
+
+## Bestanden vinden en inhoud doorzoeken [#find-files-and-search-contents]
+
+Het opdrachtenpalet (<kbd>Cmd</kbd>+<kbd>P</kbd>) vindt bestanden op naam of pad in de lokale projecten die in het huidige venster open zijn, naast opdrachten en geopende sessies. Als je een bestand selecteert, wisselt Zshell naar het bijbehorende project en opent het daar.
+
+Klik om tekst binnen bestanden te zoeken op het vergrootglas in het paneel Bestanden, of kies **Bestandsinhoud doorzoeken** in het opdrachtenpalet. Voer tekst in en druk op <kbd>Return</kbd> om de huidige lokale projectmap te doorzoeken. Gebruik **Aa** om hoofdlettergevoelig te zoeken en open een resultaat om naar de overeenkomende regel in de editor te gaan.
+
+Inhoud zoeken zoekt letterlijke tekst, slaat binaire bestanden en veelgebruikte afhankelijkheids- en buildmappen over en stopt na 2.000 overeenkomsten. Je kunt een lopende zoekopdracht stoppen en de resultaten behouden, of het zoeken sluiten om naar de bestandsboom terug te keren. SSH-projecten zijn uitgesloten van deze lokale zoekfuncties.
+
+## De editor [#the-editor]
+
+Een bestand openen geeft je een echte editor in een deelvenster, met syntaxisaccentuering.
+
+| Actie | Sneltoets |
+| --- | --- |
+| Opslaan | <kbd>Cmd</kbd>+<kbd>S</kbd> |
+| Zoeken | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Zoeken en vervangen | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Volgende zoeken | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+Lange regels worden standaard afgebroken op de breedte van het deelvenster. Schakel [`editor.wrap-lines`](/nl/docs/configuration#editorwrap-lines) uit om horizontaal te scrollen.
+
+Als je in de boom een bestand hernoemt, worden alle deelvensters waarin het open is bijgewerkt. Dat geldt ook voor bestanden binnen een hernoemde map.
+
+Als een ander programma een geopend bestand wijzigt, vernieuwt Zshell een ongewijzigd voorbeeld wanneer de app weer actief wordt. Een editorbuffer met niet-opgeslagen wijzigingen wordt nooit vervangen.
+
+<Callout type="info">
+Deze editor is bedoeld voor de wijziging die je al bekijkt: een typefout herstellen, een constante aanpassen of een bestand lezen waarnaar de diff verwijst. Er is geen taalserver, automatische aanvulling of projectbrede refactoring. Dat is een bewuste keuze.
+</Callout>
+
+## Markdown-voorbeeld [#markdown-preview]
+
+Open een `.md`-bestand om het opgemaakte voorbeeld in hetzelfde deelvenster te lezen. Klik rechtsboven op **Bewerken** om de bron te bewerken en daarna op **Voorbeeld** om het resultaat te zien. Zshell onthoudt je voorkeursmodus voor andere Markdown-bestanden en de volgende start.
+
+Wisselen van modus behoudt je wijzigingen en de geschiedenis voor ongedaan maken. Sla zoals gebruikelijk op met <kbd>Cmd</kbd>+<kbd>S</kbd>. Markdown-bestanden met andere extensies openen als brontekst.
+
+## Diffs [#diffs]
+
+Een diff vanuit [het Git-paneel](/nl/docs/git) is gewoon een ander deelvenster. Daardoor kunnen een diff, een bestand en een terminal naast elkaar in één tabblad staan. De diff gebruikt je terminallettertype en een wijzigingenset van duizend bestanden opent even snel als één regel. Actuele, niet-gestagede worktreediffs kunnen van Beoordelen naar Bewerken wisselen; gestagede en historische diffs blijven alleen-lezen. Zie [Diffs lezen](/nl/docs/git#reading-diffs).

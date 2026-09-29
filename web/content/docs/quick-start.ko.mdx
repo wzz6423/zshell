@@ -1,0 +1,81 @@
+---
+title: 빠른 시작
+description: 빈 창에서 작업 가능한 프로젝트까지, 먼저 알아두면 좋은 기능.
+---
+
+<Steps>
+
+<Step>
+
+### 프로젝트 시작 [#start-a-project]
+
+<kbd>Cmd</kbd>+<kbd>N</kbd>을 누르면 사이드바에 터미널 하나가 있는 새 프로젝트가 생깁니다. 다른 터미널과 마찬가지로 `cd`로 원하는 저장소로 이동하세요. 파일 트리와 Git 패널도 따라 이동하며 저장소 루트를 기준으로 표시됩니다.
+
+폴더에서 바로 시작하고 싶다면 Finder에서 폴더를 오른쪽 클릭한 뒤 **서비스 → 여기에 새 Zshell 프로젝트**를 선택하세요.
+
+저장소가 여러 개라면 모두 추가하세요. <kbd>Cmd</kbd>+<kbd>1</kbd>부터 <kbd>Cmd</kbd>+<kbd>9</kbd>까지의 단축키로 프로젝트에 바로 이동할 수 있으며, 각 프로젝트는 자신의 탭과 배치를 유지합니다.
+
+</Step>
+
+<Step>
+
+### 세션 추가 [#add-sessions]
+
+<kbd>Cmd</kbd>+<kbd>T</kbd>는 같은 프로젝트에 터미널을 하나 더 엽니다. 새 탭에는 독립적인 작업 디렉터리와 스크롤 기록이 있습니다. 개발 서버용, 테스트용, 명령 입력용 세션을 각각 두면 편리합니다.
+
+<kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd>로 탭에 바로 이동하고, <kbd>Ctrl</kbd>+<kbd>Tab</kbd>로 최근 사용 순서의 탭 전환기를 엽니다.
+
+</Step>
+
+<Step>
+
+### 탭 분할 [#split-a-tab]
+
+<kbd>Cmd</kbd>+<kbd>D</kbd>는 현재 분할 창을 오른쪽으로, <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>는 아래쪽으로 나눕니다. <kbd>Opt</kbd>+<kbd>Cmd</kbd>+방향키로 분할 창 사이를 이동하세요. 긴 내용을 읽을 때 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd>를 누르면 한 분할 창이 탭 전체를 채우도록 확대됩니다.
+
+</Step>
+
+<Step>
+
+### 옆 패널 열기 [#open-the-side-panels]
+
+오른쪽 사이드바의 각 패널은 다음 단축키로 열 수 있습니다.
+
+| 패널 | 단축키 | 용도 |
+| --- | --- | --- |
+| Git | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> | 스테이징, 차이 검토, 커밋, 푸시 |
+| 파일 | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | 파일 트리 탐색, 파일 열기와 편집 |
+| 정보 | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> | 프로세스와 수신 대기 포트 |
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>는 오른쪽 사이드바 전체를 다시 숨기며, <kbd>Cmd</kbd>+<kbd>B</kbd>는 왼쪽 프로젝트 사이드바를 숨깁니다.
+
+</Step>
+
+<Step>
+
+### 하나만 기억할 단축키: <kbd>Cmd</kbd>+<kbd>P</kbd> [#learn-one-shortcut-cmdp]
+
+명령 팔레트는 모든 프로젝트, 열린 세션과 Zshell의 모든 명령을 검색합니다. 이 페이지의 다른 내용을 잊더라도 이 단축키는 기억하세요. 각 명령 옆에는 해당 단축키도 표시됩니다.
+
+</Step>
+
+</Steps>
+
+## 앱을 종료한 뒤 복원되는 항목 [#what-comes-back-after-you-quit]
+
+앱을 종료했다 다시 열면 프로젝트, 탭과 분할 창 배치가 그대로 돌아옵니다. 각 터미널은 이전 디렉터리에서 **새 셸**을 시작합니다. 백그라운드에 몰래 실행 중인 프로세스를 남겨 두지 않습니다.
+
+스크롤 기록 복원은 직접 켜야 합니다. [`terminal.restore-history`](/ko/docs/configuration#terminalrestore-history)를 켜면 다시 연 터미널에서 이전 출력이 `Session Contents Restored`(세션 내용 복원됨) 구분선 위에 표시되고, 그 아래에서 새 셸이 실행됩니다.
+
+<Callout type="info">
+복원된 텍스트는 이전 작업의 기록일 뿐 실행 중인 세션이 아닙니다. 과거 출력으로 스크롤해도 명령이 다시 실행되지는 않습니다.
+</Callout>
+
+## 다음 단계 [#next]
+
+<Cards>
+  <Card title="프로젝트와 세션" href="/ko/docs/projects" description="이름 지정, 디렉터리 고정과 프로젝트가 실제로 추적하는 내용." />
+  <Card title="Git 패널" href="/ko/docs/git" description="스테이징, 차이 보기, 커밋과 브랜치." />
+  <Card title="브라우저 분할 창" href="/ko/docs/browser" description="터미널 옆에 로컬 서버나 문서를 두세요." />
+  <Card title="AI 에이전트와 작업" href="/ko/docs/automation" description="에이전트에게 Zshell 분할 창 간 작업 위임과 협업을 요청하세요." />
+</Cards>

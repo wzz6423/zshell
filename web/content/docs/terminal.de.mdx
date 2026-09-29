@@ -1,0 +1,158 @@
+---
+title: Das Terminal
+description: Terminal-Backends, Shell-Umgebung, Links, Mitteilungen und Sicherheitsfunktionen in Zshell.
+---
+
+Jeder Terminalbereich führt Ihre echte Login-Shell aus und nutzt eines von zwei nativen, GPU-beschleunigten Backends. Das Verhalten darum herum – Fokus, Suche, Mitteilungen, Links, Verlauf, Themen und sicheres Einfügen – wird von Zshell verwaltet und bleibt bei beiden Emulatoren einheitlich.
+
+## Terminal-Backends [#terminal-backends]
+
+Wählen Sie unter **Einstellungen → Terminal → Backend**:
+
+| Backend | Hinweis |
+| --- | --- |
+| **Ghostty** | Standard |
+| **Alacritty** | Benötigt im Allgemeinen weniger Arbeitsspeicher |
+
+Beide unterstützen GPU-Beschleunigung, Bilder, Zshells gemeinsamen Themenkatalog, Suche, Mausmeldungen, Mitteilungen und Fortschrittsmeldungen. Ein Backend-Wechsel betrifft nur neue Terminals; bestehende Bereiche behalten ihren ursprünglichen Emulator.
+
+## Ihre Shell bleibt unverändert [#your-shell-unchanged]
+
+Jede Sitzung startet die Login-Shell Ihres Kontos. Prompt, Aliasse, Funktionen und Dotfiles werden wie in jedem anderen Terminal geladen. Zshell ergänzt Variablen für Fähigkeiten und Identität:
+
+| Variable | Wert |
+| --- | --- |
+| `TERM_PROGRAM` | `ghostty` |
+| `TERM_PROGRAM_VERSION` | Die von Zshell implementierte Ghostty-Fähigkeitsversion |
+| `ZSHELL_TERM` | `ghostty` oder `alacritty`, das tatsächliche Backend des Bereichs |
+
+Beide Backends melden über `TERM_PROGRAM` Ghostty, da CLIs mit Bild- und Mitteilungsunterstützung dies als Fähigkeitshinweis verwenden. Nutzen Sie `ZSHELL_TERM`, wenn Sie den Renderer unterscheiden müssen.
+
+<Callout type="info">
+Zshell liest weder `~/.config/ghostty` noch eine Alacritty-Konfiguration. Schriften, Farben, Eingabeverhalten und Backend werden in Zshells eigenen [Einstellungen](/de/docs/configuration) festgelegt.
+</Callout>
+
+## Suche [#search]
+
+| Aktion | Tastenkürzel |
+| --- | --- |
+| Suchen | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Nächsten Treffer suchen | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+| Vorherigen Treffer suchen | <kbd>Shift</kbd>+<kbd>Return</kbd> in der Suchleiste |
+| Auswahl als Suchtext verwenden | <kbd>Cmd</kbd>+<kbd>E</kbd> |
+| Terminal leeren | <kbd>Cmd</kbd>+<kbd>K</kbd> |
+
+Die Suche gilt für den fokussierten Terminal- oder Editorbereich und bleibt aktiv, solange ihr Eingabefeld den Tastaturfokus hat.
+
+## Eingabe am Prompt bearbeiten [#prompt-editing]
+
+Klicken Sie in die aktive Shell-Eingabe, um den Cursor zu versetzen und dort weiterzuschreiben. In einem zsh-Prompt wählen Sie durch Ziehen einen Eingabebereich aus: Tippen ersetzt die Auswahl, Backspace oder Delete entfernt sie. Doppel- und Dreifachklick wählen weiterhin Terminaltext aus. Programme mit aktivierten Mausmeldungen, etwa bildschirmfüllende TUIs, erhalten weiterhin ihre eigenen Mausereignisse.
+
+Hat eine verschachtelte oder ersetzende Shell Zshells Unterstützung für Prompt-Bearbeitung nicht geladen, wählt Ziehen weiterhin Terminaltext zum Kopieren aus, bearbeitet aber nicht die Eingabe. Nach der Rückkehr zum ursprünglichen Prompt steht die Eingabebearbeitung wieder bereit.
+
+Das normale Eingabefeld von Claude Code unterstützt auf beiden Backends Klickpositionierung und Bearbeitung per Ziehauswahl, auch bei umgebrochenen und mehrzeiligen Entwürfen. Tippen oder Einfügen ersetzt die markierte Eingabe; Backspace oder Delete entfernt sie. Vim-Normal- und Visual-Modus, Dialoge, Platzhalter für Anhänge oder eingeklappte Einfügungen sowie gescrollte Gesprächsausgaben behalten die übliche Terminalauswahl. Anwendungen, die Mausereignisse abfangen, verarbeiten diese weiterhin selbst.
+
+Spracheingaben aus Zisla verwenden die Einfügeaktion des Terminals. In Claude Code ersetzen sie ebenfalls einen markierten Eingabebereich. Absichtliche Wiederholungen einer Phrase bleiben möglich.
+
+## Tastenkürzel des Vordergrundprogramms [#foreground-application-shortcuts]
+
+Wenn Tastenkürzel eines Terminalprogramms mit Zshell kollidieren, aktivieren Sie im Kontextmenü seines Bereichs **Zshell-Befehle blockieren**. Tastenkombinationen mit Zusatztasten, darunter <kbd>Ctrl</kbd>+<kbd>Return</kbd>, gehen dann an das Vordergrundprogramm, solange der Bereich den Tastaturfokus hat. Kopieren, Einfügen und Alles auswählen bleiben verfügbar.
+
+Die Einstellung gilt nur für diesen Bereich. Entfernen Sie das Häkchen im Kontextmenü, um Zshells Kürzel wiederherzustellen. Fängt ein Programm die Maus ab, halten Sie beim Rechtsklick <kbd>Shift</kbd> gedrückt, um Zshells Menü zu öffnen.
+
+## Prompt-Warteschlange [#prompt-queue]
+
+Fokussieren Sie ein Terminal und drücken Sie <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> oder wählen Sie **Prompt-Warteschlange umschalten** in der Befehlspalette. Die Leiste öffnet sich unter diesem Terminal. Geben Sie einen Eintrag ein und drücken Sie <kbd>Return</kbd> oder **Zur Warteschlange hinzufügen**. Jeder Eintrag ist einzeilig; eingefügte Zeilenumbrüche werden zu Leerzeichen.
+
+Sobald die ursprüngliche zsh zu einem leeren Prompt zurückkehrt, sendet Zshell den nächsten Eintrag samt Return. Die Einträge laufen der Reihe nach. Das automatische Senden wartet, solange ein Agent oder anderes Vordergrundprogramm das Terminal belegt oder der Prompt einen Eingabeentwurf enthält. Es benötigt Zshells zsh-Integration. Bei anderen oder verschachtelten Shells ist manuelles Senden möglich.
+
+Jeder Eintrag besitzt **Jetzt senden** und **Entfernen**. **Jetzt senden** übergibt Text und Return sofort an das aktuelle Terminalprogramm, ohne auf einen Shell-Prompt zu warten. <kbd>Esc</kbd> oder die Schließen-Schaltfläche blendet die Leiste aus und erhält die Einträge. Jedes Terminal hat seine eigene Warteschlange. Beim Schließen der Sitzung oder Beenden von Zshell wird sie verworfen.
+
+## Pfade und URLs [#paths-and-urls]
+
+Zshell erkennt Web-URLs und vorhandene lokale Pfade in der Programmausgabe. Lokale Links dürfen absolut, relativ zu `~/`, `./` oder `../` oder relativ zum aktuellen Arbeitsverzeichnis des Bereichs sein. Diagnose-Endungen wie `:42` oder `:42:7` verhindern das Auffinden der Datei nicht.
+
+- **Command-Klick** auf einen lokalen Pfad zeigt ihn im Finder, auf eine URL öffnet er den Standardbrowser.
+- **Command-Rechtsklick** bietet für Pfade **Neuer Datei-Tab** / **Neuer Dateibereich**, für URLs **Neuer Browser-Tab** / **Neuer Browserbereich**.
+- Bildschirmfüllende Programme mit Mausmeldungen erhalten einen normalen Rechtsklick selbst. Halten Sie **Shift** gedrückt, um stattdessen Zshells Terminal- und Bereichsmenü zu öffnen.
+
+So führen Compilerausgaben und Agentenprotokolle direkt zurück in dasselbe Projekt. Das Browserverhalten beschreibt [Browserbereiche](/de/docs/browser).
+
+## Mitteilungen [#notifications]
+
+Zshell leitet zwei Terminalereignisse an die Mitteilungszentrale weiter:
+
+- eine Glocke aus einer nicht fokussierten Sitzung;
+- eine `OSC 777;notify`-Anfrage eines Programms, etwa eines langen Builds oder Programmieragenten.
+
+Mitteilungen können den Systemton abspielen. Ein Klick aktiviert Zshell und springt genau zu der auslösenden Sitzung. macOS fragt erst nach Erlaubnis, wenn ein Terminal erstmals eine Mitteilung senden möchte, nicht schon beim Start von Zshell.
+
+### Befehlsabschluss [#command-completion]
+
+Unter **Einstellungen → Terminal → Befehlsmitteilungen** aktivieren Sie Mitteilungen zum Befehlsende:
+
+- **Lange laufende Befehle**: Wählen Sie 5, 10, 30 oder 60 Sekunden. Ein mindestens so lange laufender Befehl löst beim Abschluss eine Mitteilung aus. Standardmäßig ist dies **Aus**.
+- **Fehlgeschlagene Befehle**: Benachrichtigt unabhängig von der Laufzeit bei einem Exit-Status ungleich null. Auch dies ist standardmäßig aus und lässt sich separat aktivieren.
+
+Die Einstellungen gelten auf beiden Backends für zsh-Terminals, die danach erstellt werden. Sie verwenden das Abschlussereignis der ursprünglichen Shell. Befehle innerhalb einer verschachtelten Shell oder eines interaktiven Programms melden über diese Integration keine einzelnen Abschlüsse.
+
+Dieselben Einstellungen können in `~/.config/zshell/config.toml` stehen:
+
+```toml
+terminal.notify-finish-seconds = 30
+terminal.notify-on-error = true
+```
+
+Mit `terminal.notify-finish-seconds = 0` deaktivieren Sie laufzeitabhängige Mitteilungen. Die Zustellung richtet sich nach Ihren macOS-Mitteilungseinstellungen.
+
+## Fortschrittsmeldungen [#progress-reports]
+
+Programme, die `OSC 9;4`-Fortschritt senden, erhalten eine schmale Leiste über dem Terminal, mit unterschiedlichen Zuständen für normal, pausiert und Fehler. Es muss nichts aktiviert werden: Meldet das Programm Fortschritt, zeigt der Bereich ihn an.
+
+## Zwischenablage, Drag-and-drop und sicheres Einfügen [#clipboard-drops-and-paste-safety]
+
+- **Lesen der Zwischenablage wird bestätigt.** `OSC 52` kann die macOS-Zwischenablage anfordern, auch von einem entfernten Rechner über SSH. Zshell fragt vor der Herausgabe nach.
+- **Riskante Einfügungen werden markiert.** Mehrzeiliger oder befehlsähnlicher Text wartet auf eine Bestätigung, bevor er direkt übergeben wird.
+- **Dateien werden zu Shell-sicheren Pfaden.** Aus dem Finder kopierte oder gezogene Dateien werden als korrekt zitierte absolute Pfade eingefügt. Bilder aus der Zwischenablage erreichen weiterhin TUIs mit Bildunterstützung.
+
+## Eingabe mit der Option-Taste [#option-key-input]
+
+Standardmäßig bleibt Option bei der aktiven macOS-Eingabequelle, damit Layouts wie Polish Pro zusammengesetzte Zeichen eingeben können. Aktivieren Sie **Option als Alt/Meta verwenden**, wenn ein Terminalprogramm diese Kombinationen als Meta-Kürzel erhalten soll. Siehe [`terminal.macos-option-as-alt`](/de/docs/configuration#terminalmacos-option-as-alt).
+
+## Der Befehl `zshell` [#the-zshell-command]
+
+Jedes Zshell-Terminal enthält eine projektbezogene CLI:
+
+```sh
+zshell                         # Projekt im aktuellen Verzeichnis erstellen
+zshell vim ~/src/app.swift     # Projekt erstellen und diese argv im ersten Terminal ausführen
+zshell +themes                 # Themen interaktiv durchsuchen und voranzeigen
+zshell +themes --list --dark   # Themennamen ohne Browser ausgeben
+zshell +help                   # Alle Befehlsgruppen anzeigen
+```
+
+Der Themenbrowser zeigt jede Auswahl in der gesamten Anwendung als Vorschau. Return speichert sie, Escape stellt das vorherige Thema wieder her.
+
+## Schriften [#fonts]
+
+Zshell enthält JetBrains Mono und Nerd-Font-Symbole. Jede installierte dicktengleiche Familie kann die lateinische Schrift ersetzen; eine installierte CJK-Familie lässt sich vor den Symbol- und Systemersatzschriften einfügen. Siehe [`font-family`](/de/docs/configuration#font-family), [`terminal.font-fallback-family`](/de/docs/configuration#terminalfont-fallback-family), [`font-size`](/de/docs/configuration#font-size), [`terminal.font-thicken`](/de/docs/configuration#terminalfont-thicken) und [`terminal.line-height`](/de/docs/configuration#terminalline-height).
+
+## Globales Schnellterminal [#global-quick-terminal]
+
+Solange Zshell läuft, öffnet <kbd>Cmd</kbd>+<kbd>I</kbd> ein unabhängiges Terminal über einer anderen Anwendung. Erneutes Drücken schließt es. Es besitzt eine temporäre Shell außerhalb der Projekt-Tabs. Größe, Deckkraft und Tastenkürzel ändern Sie unter **Einstellungen → Terminal → Schnellterminal**.
+
+- Heften Sie das Fenster an, damit es beim App-Wechsel offen bleibt.
+- Ohne Anheftung schließt es bei Fokusverlust oder einem Klick außerhalb.
+- Ist **Zshell-Befehle blockieren** ausgeschaltet, schließen <kbd>Esc</kbd> oder das globale Kürzel das Fenster und beenden Shell und laufende Aufgaben. Erneutes Öffnen startet eine frische Sitzung.
+
+Verwenden Sie für langfristig laufende Dienste ein Projektterminal. Der [Schnellstart](/de/docs/quick-launch), der Befehle speichert und ausführt, ist eine eigene Funktion.
+
+## Vim-Befehlshinweise [#vim-command-hints]
+
+Aktivieren Sie **Einstellungen → Terminal → Verhalten → Vim-Befehlshinweise** und öffnen Sie den Tab **Info** in der rechten Seitenleiste. Solange Vim, Vi oder Neovim aktiv ist, erscheint unter den Sitzungsinformationen der Abschnitt **VIM-BEFEHLE**. Die Funktion ist standardmäßig aus und wirkt bei beiden Backends sofort auf bestehende Terminals.
+
+Die vollständige Liste gängiger Befehle bleibt verfügbar; nur die Reihenfolge ändert sich. Im Normal-Modus stehen `:w`, `:q`, `yy` und `p`/`P` zuerst, im Visual-Block-Modus `I`/`A`, Blockänderungen und Bewegungen zwischen Ecken. Insert, Replace, Visual, Visual Line, Select, Befehlszeilen- und Suchmodus besitzen eigene Reihenfolgen. Jeder Eintrag nennt seine anwendbaren Modi. Sie können nach Tasten, Beschreibung oder Modusnamen suchen; Beschreibungen und Suchoberfläche unterstützen alle 17 Anwendungssprachen. Leeren Sie die Suche für die vollständige Liste. Die Hinweise dienen nur als Referenz und senden keine Eingabe an den Editor.
+
+Lokale Editoren werden am Vordergrundprogramm erkannt. Innerhalb von SSH, Mosh oder einem Terminalmultiplexer nutzt die Erkennung die sichtbare Vim-Modus-/Statuszeile und Bildschirmanordnung, ohne ein entferntes Plugin zu installieren. Lassen Sie Vims `showmode` oder eine erkennbare Statuszeile aktiv. Verborgene oder umbenannte Modusnamen können zu Normal-Hinweisen führen oder die entfernte Erkennung verhindern; eigene Tastenzuordnungen werden nicht ausgewertet. Nur das aktive Infopanel wird abgetastet. Die Hinweise verschwinden, wenn das Vordergrundprogramm wechselt oder der Editor nicht mehr erkennbar ist.
+
+Alternativ aktivieren Sie die Funktion mit `terminal.vim-command-hints = true` in der Konfigurationsdatei.

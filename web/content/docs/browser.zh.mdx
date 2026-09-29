@@ -5,7 +5,9 @@ description: 把网页放在终端旁边，用原生控件浏览，并让链接�
 
 Zshell 可以在任意标签页或分屏里放一个内置浏览器。它适合打开本地开发服务器、API 文档、issue，或者任何你想和当前终端并排看的网页。
 
-## 打开浏览器
+<span id="打开浏览器" data-canonical-heading="opening-a-browser" />
+
+## 打开浏览器 [#opening-a-browser]
 
 - 选 **File → New Browser Tab** 新建空白标签页。
 - 打开命令面板（<kbd>Cmd</kbd>+<kbd>P</kbd>），运行 **New Browser Tab** 或
@@ -15,7 +17,9 @@ Zshell 可以在任意标签页或分屏里放一个内置浏览器。它适合�
 
 浏览器标签页属于当前项目，和普通标签页、窗格一起参与布局。如果一个项目都没打开，Zshell 会先建一个项目，让浏览器有地方归属。
 
-## 地址与搜索
+<span id="地址与搜索" data-canonical-heading="address-and-search" />
+
+## 地址与搜索 [#address-and-search]
 
 顶部输入框可以接收完整 URL、主机名或搜索词：
 
@@ -30,13 +34,17 @@ Zshell 可以在任意标签页或分屏里放一个内置浏览器。它适合�
 | 聚焦地址栏 | <kbd>Cmd</kbd>+<kbd>L</kbd> |
 | 重新加载 | <kbd>Cmd</kbd>+<kbd>R</kbd> |
 
-## 决定链接打开在哪里
+<span id="决定链接打开在哪里" data-canonical-heading="opening-links-where-you-want-them" />
+
+## 决定链接打开在哪里 [#opening-links-where-you-want-them]
 
 右键网页里的链接，可以选 **Open Link in New Tab** 或 **Open Link in New Pane**。新页面仍留在同一个项目工作区里。
 
-在终端里，直接 Command 点按识别出来的网页 URL，会交给系统默认浏览器；按住 Command 右键，才会提供 Zshell 标签页和窗格。对本地路径也有一套对应操作，见[路径与 URL](/docs/terminal#路径与-url)。
+在终端里，直接 Command 点按识别出来的网页 URL，会交给系统默认浏览器；按住 Command 右键，才会提供 Zshell 标签页和窗格。对本地路径也有一套对应操作，见[路径与 URL](/docs/terminal#paths-and-urls)。
 
-## 会保留什么
+<span id="会保留什么" data-canonical-heading="what-is-preserved" />
+
+## 会保留什么 [#what-is-preserved]
 
 切换标签页或项目后，网页会保持原样，包括浏览历史、滚动位置、表单和页面内部状态。Zshell 重启时会恢复当前 URL 和布局，但不会恢复完整的前进 / 后退历史。
 

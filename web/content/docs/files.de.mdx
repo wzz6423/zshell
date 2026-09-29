@@ -1,0 +1,62 @@
+---
+title: Dateien und Editor
+description: Projektübergreifend Dateien finden, Inhalte durchsuchen, Code bearbeiten und Markdown neben dem Terminal ansehen.
+---
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> öffnet den Dateibaum. Wie der Git-Bereich verwendet er das [Projektverzeichnis](/de/docs/projects#the-project-directory) als Wurzel und wechselt sie nicht bei jedem `cd`.
+
+## Dateibaum [#the-tree]
+
+Ein Klick öffnet eine Datei im fokussierten Bereich. Das Kontextmenü enthält weitere Aktionen:
+
+| Aktion | Wirkung |
+| --- | --- |
+| **Öffnen** / **Seitlich öffnen** | Im aktuellen Bereich oder einer neuen Teilung öffnen |
+| **In Standard-App öffnen** | Die von macOS zugeordnete Anwendung verwenden |
+| **Im Finder zeigen** | |
+| **Pfad kopieren** | Den absoluten Pfad kopieren |
+| **Hierher wechseln** | `cd <folder>` im fokussierten Terminal ausführen |
+| **Neue Datei…** / **Neuer Ordner…** | Im ausgewählten Ordner erstellen |
+| **Umbenennen** | |
+| **In den Papierkorb bewegen** | In den Papierkorb verschieben, nicht endgültig löschen |
+
+Die Zeilen verwenden zum Dateinamen passende Material-Symbole. In Git-Repositorys kennzeichnen Statusfarben und Markierungen geänderte Pfade, ignorierte Dateien werden abgeblendet. So zeigt der Dateibaum den Zustand des Worktrees auch ohne geöffneten Git-Bereich.
+
+## Dateien und Inhalte suchen [#find-files-and-search-contents]
+
+Die Befehlspalette (<kbd>Cmd</kbd>+<kbd>P</kbd>) sucht anhand von Namen oder Pfaden in den lokalen Projekten des aktuellen Fensters sowie nach Befehlen und offenen Sitzungen. Die Auswahl einer Datei wechselt zu ihrem Projekt und öffnet sie dort.
+
+Für die Inhaltssuche klicken Sie auf die Lupe im Dateibereich oder wählen **Dateiinhalte durchsuchen** in der Befehlspalette. Geben Sie Text ein und drücken Sie <kbd>Return</kbd>, um im Verzeichnis des aktuellen lokalen Projekts zu suchen. **Aa** schaltet die Beachtung von Groß- und Kleinschreibung um. Das Öffnen eines Treffers springt zur entsprechenden Editorzeile.
+
+Die Suche verwendet wörtliche Textübereinstimmungen, überspringt Binärdateien sowie übliche Abhängigkeits- und Build-Verzeichnisse und endet bei 2.000 Treffern. Sie können eine laufende Suche unter Beibehaltung ihrer Ergebnisse stoppen oder schließen, um zum Dateibaum zurückzukehren. SSH-Projekte sind von dieser lokalen Dateisuche ausgeschlossen.
+
+## Editor [#the-editor]
+
+Eine geöffnete Datei erscheint in einem vollwertigen Editorbereich mit Syntaxhervorhebung.
+
+| Aktion | Tastenkürzel |
+| --- | --- |
+| Sichern | <kbd>Cmd</kbd>+<kbd>S</kbd> |
+| Suchen | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Suchen und ersetzen | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Nächsten Treffer suchen | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+Lange Zeilen werden standardmäßig an der Bereichsbreite umgebrochen. Deaktivieren Sie [`editor.wrap-lines`](/de/docs/configuration#editorwrap-lines), um horizontal zu scrollen.
+
+Das Umbenennen einer Datei im Baum aktualisiert alle Bereiche, in denen sie geöffnet ist. Das gilt auch für Dateien innerhalb eines umbenannten Ordners.
+
+Ändert ein anderes Programm eine offene Datei, aktualisiert Zshell unveränderte Vorschauen, sobald die App wieder aktiv wird. Editorpuffer mit ungesicherten Änderungen werden niemals ersetzt.
+
+<Callout type="info">
+Dieser Editor ist für die gerade betrachtete Änderung gedacht: einen Tippfehler korrigieren, eine Konstante anpassen oder eine im Diff genannte Datei lesen. Sprachserver, Vervollständigung und projektweite Refaktorierung sind bewusst nicht enthalten.
+</Callout>
+
+## Markdown-Vorschau [#markdown-preview]
+
+Öffnen Sie eine `.md`-Datei, um ihre gerenderte Vorschau im selben Bereich zu lesen. **Bearbeiten** oben rechts öffnet den Quelltext, **Vorschau** zeigt das Ergebnis. Zshell merkt sich den Modus für weitere Markdown-Dateien und den nächsten Start.
+
+Beim Moduswechsel bleiben Änderungen und Rückgängig-Verlauf erhalten. Sichern Sie wie gewohnt mit <kbd>Cmd</kbd>+<kbd>S</kbd>. Markdown-Dateien mit anderen Endungen öffnen sich als Quelltext.
+
+## Diffs [#diffs]
+
+Ein aus dem [Git-Bereich](/de/docs/git) geöffneter Diff ist ein weiterer Bereich. Diff, Datei und Terminal können daher in einem Tab nebeneinander liegen. Er nutzt Ihre Terminalschrift; auch ein Änderungssatz aus tausend Dateien öffnet sich so schnell wie eine einzelne geänderte Zeile. Aktuelle, nicht vorgemerkte Worktree-Diffs können von Prüfen zu Bearbeiten wechseln. Vorgemerkte und historische Diffs bleiben schreibgeschützt. Siehe [Diffs lesen](/de/docs/git#reading-diffs).

@@ -1,0 +1,37 @@
+---
+title: Processen en poorten
+description: Bekijk wat een sessie daadwerkelijk uitvoert en welke poorten zij heeft geopend.
+---
+
+Druk op <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>. Het Info-paneel beschrijft de **sessie met focus**, niet het project, en wordt bijgewerkt wanneer processen starten en stoppen.
+
+## Map [#directory]
+
+De mappen worden afzonderlijk getoond, omdat ze niet altijd gelijk zijn:
+
+- **Huidige map** — de actuele werkmap van de shell, zichtbaar als die verschilt van de map hieronder.
+- **Projectmap** — de map waarop de bestands- en Git-panelen zijn gericht, met `(AUTO)` zolang Zshell die afleidt. De pop-over bij `?` legt beide uit.
+
+Daarnaast staan snelkoppelingen om de map in **Finder** te tonen, in **VS Code** te openen als dat is geïnstalleerd, en het pad te **Kopiëren**.
+
+## Processen [#processes]
+
+Alles wat onder de shell van de sessie draait, met PID, CPU-percentage en resident geheugen. Klik met de rechtermuisknop op een proces voor:
+
+- **Beëindigen** — een vriendelijk `SIGTERM`
+- **Geforceerd stoppen** — `SIGKILL`, voor een proces dat niet reageert
+- **PID kopiëren** / **Pad van uitvoerbaar bestand kopiëren**
+
+Afgesloten kindprocessen die nog op opruimen wachten (`<defunct>`) worden weggelaten. Daar valt niets meer te bekijken of te stoppen.
+
+## Poorten [#ports]
+
+Alle TCP-poorten waarop die processen luisteren, met het bijbehorende proces. Handig voor dagelijkse vragen: *welke poort koos de ontwikkelserver deze keer* en *wat houdt poort 3000 nog bezet*.
+
+- Klik op een poort om `http://localhost:<port>/` in je browser te openen
+- **URL kopiëren**
+- **Proces stoppen** — als de poort nog bezet is door iets dat je vergeten was
+
+<Callout type="info">
+De lijst wordt bijgewerkt zolang het paneel open is en pauzeert wanneer het verborgen is.
+</Callout>

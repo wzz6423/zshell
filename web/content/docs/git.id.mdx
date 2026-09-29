@@ -1,0 +1,103 @@
+---
+title: Panel Git
+description: Stage, tinjau, commit, dan push di samping shell yang membuat perubahan.
+---
+
+Tekan <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>. Panel terbuka pada repositori acuan proyek.
+Lihat [direktori proyek](/id/docs/projects#the-project-directory) untuk cara Zshell memilihnya.
+
+Setiap tindakan adalah perintah Git yang dijalankan Zshell untuk Anda. Keluaran ditampilkan jika ada informasi selain “selesai”.
+Tidak ada penulisan ulang riwayat, squash, atau force-push tanpa permintaan Anda.
+
+## Toolbar Git [#the-git-toolbar]
+
+Zshell dapat menampilkan toolbar ringkas di bawah tab aktif. Dalam repositori, toolbar menunjukkan cabang saat ini dan total baris ditambah/dihapus; pohon yang tidak berubah mendapat status hijau **Bersih (Clean)**.
+Berkas yang belum dilacak termasuk dalam jumlah tambahan.
+
+- Klik cabang untuk mencari dan berpindah cabang lokal. Cabang bawaan repositori ditandai dalam daftar.
+- Klik jumlah perubahan untuk membuka panel Git.
+- Di luar repositori, mode **Selalu Tampilkan (Always Show)** menyisakan tombol **Tidak Ada Repositori Git (No Git Repository)** yang membuka keadaan inisialisasi panel.
+
+Pilih **Sembunyikan (Hide)**, **Otomatis (Auto)**, atau **Selalu Tampilkan** di **Pengaturan → Umum**, atau atur [`toolbar.visibility`](/id/docs/configuration#toolbarvisibility).
+Bawaannya Sembunyikan. Toolbar yang terlihat juga dapat disembunyikan dari menu konteksnya.
+
+## Berkas berubah [#changed-files]
+
+Berkas dikelompokkan menjadi konflik, perubahan yang di-stage, dan yang belum di-stage. Arahkan penunjuk ke baris untuk tombolnya, atau gunakan menu konteks:
+
+| Tombol | Kegunaan |
+| --- | --- |
+| **+** | Stage berkas |
+| **−** | Keluarkan dari staging |
+| **↺** | Buang perubahannya |
+
+**Buang Semua Perubahan (Discard All Changes)** berada di header panel dan meminta konfirmasi terlebih dahulu; ini tindakan yang tidak dapat dibatalkan dengan perintah Git lain.
+
+Berkas konflik menampilkan **Tandai Terselesaikan (Stage) (Mark Resolved (Stage))**, bukan tombol staging biasa, sehingga penyelesaian merupakan langkah yang disengaja.
+
+Tombol corong di header menyaring daftar menurut nama berkas, cara cepat menelusuri perubahan besar.
+
+## Membaca perbedaan [#reading-diffs]
+
+Klik berkas berubah untuk membuka diff dalam panel di samping terminal, bukan menimpanya.
+Menu konteks juga menyediakan **Buka Berkas (Open File)** untuk berkas asli yang dapat diedit dan **Buka Berkas di Samping (Open File to the Side)**.
+
+Diff besar tetap responsif. Perubahan seribu berkas terbuka secepat perubahan satu baris dan dapat digulir tanpa tersendat.
+
+Kontrol di atas diff mengingat dua pilihan secara global:
+
+- **Terpadu / Terpisah (Unified / Split)** beralih antara satu kolom dan tampilan berdampingan.
+- **Tinjau / Edit (Review / Edit)** tersedia untuk berkas belum di-stage dalam pohon kerja aktif. Edit sisi baru secara langsung dan simpan dengan <kbd>Cmd</kbd>+<kbd>S</kbd>; penanganan penutupan berkas yang belum tersimpan sama seperti editor biasa.
+
+Diff yang sudah di-stage dan diff commit historis tetap hanya baca karena merupakan snapshot, bukan berkas yang aman ditulis Zshell.
+Mengalihkan satu diff ke Edit atau Terpisah memperbarui preferensi diff terbuka lainnya tanpa membuat diff yang tidak memenuhi syarat menjadi dapat diedit.
+
+## Commit [#committing]
+
+Masukkan pesan lalu gunakan tombol commit, atau pilih dari menunya:
+
+- **Commit yang Di-stage (Commit Staged)** — commit tepat yang telah Anda stage
+- **Stage Semua & Commit (Stage All & Commit)** — stage semua perubahan yang dilacak lalu commit
+- **Ubah Commit Terakhir (Amend Last Commit)** — gabungkan perubahan staging ke commit sebelumnya
+- **Stage Semua & Ubah Commit (Stage All & Amend)**
+
+Commit terbaru ditampilkan di bawah, dengan **Salin Hash Commit (Copy Commit Hash)** dan **Salin Pesan Commit (Copy Commit Message)** pada menu konteksnya.
+
+## Cabang [#branches]
+
+Nama cabang di header adalah menu. Pilih cabang lain untuk berpindah, atau **Buat Cabang Baru… (Create New Branch…)** untuk memulai cabang dari posisi saat ini.
+
+## Pohon kerja [#worktrees]
+
+Panel Git menampilkan semua pohon kerja repositori, beserta cabang dan jalur checkout-nya. Checkout aktif ditandai **Saat Ini (Current)**.
+Klik pohon kerja untuk membuka tab terminal baru pada direktorinya, sehingga setiap checkout memiliki konteks shell sendiri sambil tetap dalam proyek yang sama.
+Daftar panjang bergulir dalam area terbatasnya sendiri; header bagian, kontrol commit, dan daftar berkas berubah tetap pada tempatnya. Klik header pohon kerja untuk menciutkan atau membukanya.
+
+Pohon kerja dengan HEAD terlepas menampilkan **Detached HEAD** sebagai pengganti nama cabang.
+Repositori bare tetap dicantumkan, tetapi tidak memiliki direktori kerja sehingga tidak dapat dibuka dalam tab terminal.
+
+## Remote [#remotes]
+
+Menu **⋯** memuat tindakan komunikasi dengan remote:
+
+| Tindakan | Kegunaan |
+| --- | --- |
+| **Ambil (Fetch)** | Perbarui referensi pelacakan remote |
+| **Tarik (Hanya Fast-forward) (Pull (Fast-forward Only))** | Tarik tanpa membuat commit merge |
+| **Kirim (Push)** | Kirim cabang saat ini |
+| **Publikasikan Cabang (Publish Branch)** | Kirim cabang yang belum memiliki upstream; pilih remote jika ada beberapa |
+| **Sinkronkan Perubahan (Sync Changes)** | Tarik fast-forward, lalu push |
+| **Simpan Semua ke Stash (Stash All Changes)** | Simpan semua perubahan, termasuk berkas belum dilacak |
+| **Pulihkan Stash (Pop Stash)** | Pulihkan stash terbaru |
+
+Lencana di samping cabang menunjukkan seberapa jauh **↓ tertinggal** dan **↑ mendahului** upstream.
+
+Menu yang sama menyediakan **Salin Jalur Berubah (Copy Changed Paths)**, **Salin Jalur Repositori (Copy Repository Path)**, dan **Tampilkan Repositori di Finder (Reveal Repository in Finder)**.
+
+<Callout type="info">
+Pull sengaja dibatasi pada fast-forward. Jika merge atau rebase sungguhan diperlukan, Git memberi tahu dan Anda memutuskan di terminal; panel tidak memilih strategi untuk Anda.
+</Callout>
+
+## Belum menjadi repositori [#not-a-repository-yet]
+
+Jika direktori proyek belum memiliki repositori, panel menawarkan **Inisialisasi Repositori (Initialize Repository)** yang menjalankan `git init` dalam folder itu. Sebelum itu, panel tidak mengganggu pekerjaan Anda.

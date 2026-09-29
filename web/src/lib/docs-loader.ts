@@ -3,12 +3,15 @@ import { createIsomorphicFn } from '@tanstack/react-start'
 import type { SerializedPageTree } from 'fumadocs-core/source/client'
 import { buildDocsIndex, type DocsIndex } from '@/lib/docs-index'
 import { withBase } from '@/lib/utils'
+import { pageHead } from '@/lib/page-head'
+import { isLanguage, language } from '@/lib/i18n'
 
 /** What a docs route hands its component. */
 export type DocsPageData = {
   path: string
   pageTree: SerializedPageTree
-  meta: Array<Record<string, string>>
+  contentLanguage: string
+  head: ReturnType<typeof pageHead>
 }
 
 /**
@@ -49,6 +52,8 @@ export async function loadDocsPage({
   slug: string
   lang: string
 }): Promise<DocsPageData> {
+  if (!isLanguage(lang)) throw notFound()
+  lang = language(lang)
   const index = await docsIndex(lang)
   const page = index.pages[slug]
   if (!page) throw notFound()
@@ -56,9 +61,7 @@ export async function loadDocsPage({
   return {
     path: page.path,
     pageTree: index.pageTree,
-    meta: [
-      { title: `${page.title} — Zshell` },
-      ...(page.description ? [{ name: 'description', content: page.description }] : []),
-    ],
+    contentLanguage: page.contentLanguage,
+    head: pageHead(lang, `${page.title} — Zshell`, page.description, slug),
   }
 }

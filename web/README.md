@@ -20,6 +20,7 @@ Run these commands from `web/`; dependencies are locked by `web/bun.lock`.
 bun install --frozen-lockfile
 bun run dev        # http://localhost:3000
 bun run typecheck  # tsc --noEmit
+bun test           # locale routes and complete static copy
 ```
 
 ## Deploy (GitHub Pages)
@@ -62,9 +63,10 @@ prerendering renders those files against — a build artifact, never deployed.
 Nothing runs at request time, so a new URL has to be listed in
 [`vite.config.ts`](vite.config.ts) to exist at all.
 
-Three of those URLs answer with JSON instead of a document, and are how a page
+Three endpoint families answer with JSON instead of a document, and are how a page
 reached by client-side navigation gets what a server would otherwise have
-computed for it: `/api/search` is the docs search index, `/api/release` is the
+computed for it: `/api/search` is the default-language search index,
+`/api/search-index/<lang>` serves each other language, `/api/release` is the
 release the download buttons point at, and `/api/docs/<lang>` is the sidebar tree
 and page titles for one language. Each is read straight from the source while
 prerendering and fetched from the static file afterwards — see
@@ -73,32 +75,50 @@ split that keeps the build-time half out of the browser bundle.
 
 ## Languages
 
-Chinese is the default and stays unprefixed (`/`, `/docs/git`); English sits
-under its own prefix (`/en`, `/en/docs/git`). The supported list
-is [`src/lib/i18n.ts`](src/lib/i18n.ts).
+Simplified Chinese remains the default at `/` and `/docs/git`. The other
+16 languages use their canonical language tags, for example `/ja`, `/pt-BR`,
+and `/zh-Hant/docs/git`. The list in [`src/lib/i18n.ts`](src/lib/i18n.ts)
+matches the app: Simplified and Traditional Chinese, English, Japanese, Korean,
+French, German, Spanish, Brazilian Portuguese, Italian, Dutch, Russian, Arabic,
+Thai, Indonesian, Vietnamese, and Turkish.
 
-**Landing page.** One [`HomePage`](src/components/home-page.tsx) rendered from
-per-language strings in [`src/lib/home-copy.ts`](src/lib/home-copy.ts), with a
-route per language: [`routes/index.tsx`](src/routes/index.tsx),
-[`routes/en/index.tsx`](src/routes/en/index.tsx), and
-[`routes/zh/index.tsx`](src/routes/zh/index.tsx). Spelling the routes out is
-deliberate — a landing page under `/$lang` shares a chunk with `/$lang/docs`,
-and once it also shares `HomePage` with `/`, the bundler folds the ~190 kB
-Fumadocs bundle into the entry chunk that every page loads. Adding a language
-means a route file plus an entry in `home-copy.ts` and in `HOME_ROUTES`
-([`src/components/site-links.tsx`](src/components/site-links.tsx)).
+The internal code `zh` preserves existing `.zh.mdx` filenames and default URLs.
+The `/zh` and `/zh-Hans` landing pages remain aliases of `/`; their canonical
+link points to `/`, and HTML language tags and alternate links use `zh-Hans`.
+Traditional Chinese uses `zh-Hant` throughout and never resolves to Simplified
+Chinese. The changelog is generated from the English root changelog and is
+identified as English.
 
-**Docs.** MDX under [`content/docs`](content/docs), served by Fumadocs from a
-single `/$lang/docs` route. A translation is the same filename with the
-language inserted — `git.mdx` → `git.zh.mdx` — and a page with no translation
-falls back to English instead of 404ing. Sidebar order and section headings
-come from `meta.json` (`meta.zh.json` for the translated labels). A new
-language also needs a UI language pack in
-[`src/components/docs-shell.tsx`](src/components/docs-shell.tsx). Search needs
-nothing: the engine's tokenizer is multilingual by default, so
-[`src/routes/api/search.ts`](src/routes/api/search.ts) splits the index and
-[`src/components/docs-search.tsx`](src/components/docs-search.tsx) splits the
-query the same way, in any language, without either side being configured.
+**Landing page.** One [`HomePage`](src/components/home-page.tsx) renders the
+complete static copy in [`src/lib/home-copy/`](src/lib/home-copy/). Each language
+has an explicit route and its own dynamically loaded translation chunk. Keep
+those explicit routes: using `/$lang` for the homepage can merge the Fumadocs
+branch into the landing-page entry. Add a translation module, route, and entry
+in the locale registry together. `bun test` checks that all languages include
+the complete feature, shortcut, FAQ, navigation, and preview copy.
+
+**Navigation.** The shared native language selector works on narrow screens
+and with a keyboard. Switching within docs preserves the page slug and heading
+anchor. Arabic sets HTML and Fumadocs to RTL; terminal output, commands, keyboard
+shortcuts, and code blocks retain LTR ordering. Page titles, descriptions,
+canonical URLs, Open Graph metadata, and language alternates follow the selected
+locale.
+
+**Docs.** MDX is under [`content/docs`](content/docs). A translation keeps the
+English filename and adds its internal language code: `git.mdx` becomes
+`git.ja.mdx`, `git.zh-Hant.mdx`, or `git.zh.mdx`. Sidebar order and group labels
+come from `meta.<lang>.json`. Titles and descriptions come from the translated
+frontmatter; preserve explicit heading IDs when translating headings so links
+stay valid across languages. Missing translations fall back to English with a
+localized notice and English content-language attributes. Navigation, table of
+contents controls, pagination, copying, and search UI use
+[`src/lib/ui-copy.ts`](src/lib/ui-copy.ts).
+
+Search runs locally against the selected language's prerendered index, so
+opening search does not download the other 16 languages. The multilingual tokenizer
+is shared by [`src/lib/docs-search-index.ts`](src/lib/docs-search-index.ts) and
+[`src/components/docs-search.tsx`](src/components/docs-search.tsx), and the
+selected locale chooses the corresponding index.
 
 Docs pages are written for people using the app; see
 [CONTRIBUTING.md](../CONTRIBUTING.md). Every docs URL is prerendered —
@@ -125,4 +145,4 @@ page needs no config change.
   file in `public/`.
 - The landing page uses a labeled workspace illustration with terminal, code
   review, and agent views. It is rendered in CSS, not a screenshot or a live
-  terminal. Copy and captions for both languages live in `src/lib/home-copy.ts`.
+  terminal. Copy and captions for all 17 languages live in `src/lib/home-copy/`.

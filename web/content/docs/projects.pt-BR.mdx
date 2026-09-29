@@ -1,0 +1,113 @@
+---
+title: Projetos e sessões
+description: Como o Zshell organiza seu trabalho — projetos na barra lateral, sessões em abas e o que volta após reiniciar.
+---
+
+## Projetos [#projects]
+
+Um projeto é uma unidade de trabalho, na prática um repositório, com seus próprios terminais, abas e estado dos painéis.
+
+<kbd>Cmd</kbd>+<kbd>N</kbd> cria um projeto com um terminal. Ele inicia no diretório da sessão atual ou na sua pasta pessoal quando não há sessão. Normalmente, o próximo passo é usar `cd` para ir ao destino. O Zshell então ancora a árvore de arquivos e o painel Git no repositório que contém esse diretório.
+
+Para pular o `cd`, clique com o botão direito em uma pasta no Finder e escolha **Serviços → Novo Projeto Zshell Aqui**: ela abre como projeto com o terminal já iniciado dentro.
+
+Projetos são a unidade de alternância do Zshell:
+
+| Ação | Atalho |
+| --- | --- |
+| Novo projeto | <kbd>Cmd</kbd>+<kbd>N</kbd> |
+| Ir ao projeto 1–9 | <kbd>Cmd</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Próximo / projeto anterior | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Ocultar barra de projetos | <kbd>Cmd</kbd>+<kbd>B</kbd> |
+
+O nome do projeto segue a sessão selecionada, como o título de uma aba segue o terminal. Clique com o botão direito para **Renomear…**, **Usar Título Automático** para desfazer o nome manual, **Definir Diretório do Projeto…** e **Fechar Projeto**. Fechar encerra suas sessões sem alterar nada no disco.
+
+### Projetos SSH salvos [#saved-ssh-projects]
+
+Abra a paleta (<kbd>Cmd</kbd>+<kbd>P</kbd>) e escolha **Novo Projeto SSH…**. Informe host, usuário e porta opcionais e o diretório remoto. Escolha **Agente SSH**, **Senha**, **Arquivo de Chave Privada** ou **Texto de Chave Privada** para autenticação, salve a conexão e selecione **Conectar**.
+
+Conexões salvas continuam disponíveis após reiniciar. Use o campo opcional **Grupo** para organizar a lista e os botões de editar e excluir para mantê-la. Senhas e chaves privadas coladas são salvas nas Chaves do macOS; a entrada de arquivo de chave guarda o caminho da chave existente.
+
+Para um comando ou uma conexão SSH com opções extras, consulte [Inicialização Rápida](/pt-BR/docs/quick-launch).
+
+### Grupos da barra lateral [#sidebar-groups]
+
+Use **Novo Grupo** na parte inferior para criar um **Grupo Simples** ou **Grupo de Pasta…**. Grupos simples iniciam terminais na pasta pessoal; grupos de pasta usam a pasta escolhida como padrão. Um diretório explícito de projeto continua tendo prioridade. Mover projetos entre grupos não muda terminais em execução nem substitui seu diretório fixado.
+
+Arraste um projeto sobre o cabeçalho de um grupo ou outro projeto para organizá-lo. Arraste até **+ (Novo Projeto)** no rodapé para tirá-lo do grupo. Cabeçalhos também podem ser arrastados para reordenar grupos. Clique para recolher ou expandir, dê dois cliques para renomear ou use o menu de contexto. **Definir Marcador de Cor…** atribui uma cor; **Remover Marcador de Cor** limpa. **Remover Grupo** mantém todos os projetos abertos. Atalhos numéricos seguem as linhas visíveis; a navegação de próximo/anterior pode revelar membros de grupos recolhidos.
+
+Pastas do Finder podem ser soltas em qualquer parte da lista de projetos. Uma pasta já aberta recebe foco em vez de gerar um projeto duplicado.
+
+### O diretório do projeto [#the-project-directory]
+
+A árvore de arquivos e o painel Git precisam saber qual pasta mostrar. Por padrão, o Zshell parte do diretório atual do terminal e sobe até o **repositório Git envolvente mais próximo**.
+
+Por isso, usar `cd` dentro de um repositório não faz a árvore saltar: a raiz do repositório continua sendo a raiz. Fora de um repositório, os painéis simplesmente seguem o terminal.
+
+Quando o programa em primeiro plano entra em outro checkout, por exemplo um agente em seu próprio worktree Git, Arquivos, Git e Info passam a acompanhar esse checkout. Eles voltam quando o trabalho em primeiro plano retorna. Um diretório fixado manualmente sempre tem prioridade e desativa a troca automática de raiz.
+
+Para fixar, clique com o botão direito no projeto e escolha **Definir Diretório do Projeto…**. A pasta é lembrada após reiniciar; **Usar Diretório Automático** devolve o controle automático.
+
+<Callout type="info">
+O painel Info (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>) mostra os dois: o **Diretório Atual** do shell quando difere, e o **Diretório do Projeto** que ancora os painéis, marcado `(AUTO)` quando calculado.
+</Callout>
+
+## Sessões [#sessions]
+
+Cada projeto comporta quantas sessões você precisar, exibidas como abas no topo. Uma sessão é um shell de login real, como `zsh`, `fish` ou `bash`, conforme sua conta, com diretório e histórico de saída próprios.
+
+| Ação | Atalho |
+| --- | --- |
+| Nova sessão | <kbd>Cmd</kbd>+<kbd>T</kbd> |
+| Ir à aba 1–9 | <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Seletor de abas por uso recente | <kbd>Ctrl</kbd>+<kbd>Tab</kbd> |
+| Próxima / aba anterior | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Fechar painel em foco | <kbd>Cmd</kbd>+<kbd>W</kbd> |
+
+Uma sessão local nova usa primeiro o diretório fixado do projeto, depois o padrão do grupo da barra lateral. Sem ambos, herda o diretório da sessão atual e recorre à pasta pessoal.
+
+### Grupos de abas [#tab-groups]
+
+Clique com o botão direito em uma aba e escolha **Mover para Grupo → Novo Grupo de Abas**. A aba entra no novo grupo, mostrado por uma seta colorida sem nome. Novas sessões abertas a partir de uma aba agrupada permanecem no grupo; clique com o botão direito na seta e escolha **Nova Sessão no Grupo** para criar diretamente dentro dele.
+
+Arraste uma aba até a seta de um grupo ou outra aba para movê-la. O menu de contexto também lista grupos e **Remover do Grupo**. Clique na seta para recolher ou expandir. Recolher mantém o terminal ativo rodando e visível; selecionar um membro oculto expande o grupo. Remover um grupo mantém abas e sessões abertas. Fixar uma aba agrupada move-a para a seção fixa fora dos grupos. O menu da seta oferece **Definir Marcador de Cor…** e **Remover Marcador de Cor**. Cores e estado recolhido são restaurados ao reiniciar.
+
+Uma aba também pode ser solta sobre um projeto lateral ou sobre o cabeçalho de um grupo para criar um novo projeto dentro dele. Soltar em **+ (Novo Projeto)** no rodapé cria um projeto fora de todos os grupos. **Mover Aba para Projeto** no menu da aba também alcança outras janelas. Os movimentos preservam os terminais em execução e o layout. Os projetos devem ter a mesma localização local ou SSH; criar um projeto de uma aba preserva a localização de origem. Abas com diffs permanecem no projeto atual.
+
+### Títulos de abas [#tab-titles]
+
+Os títulos vêm do que o terminal informa: uma sequência de escape do prompt ou o programa em execução. Clique com o botão direito para **Renomear…** manualmente e **Usar Título Automático** para voltar a seguir o terminal.
+
+O restante do menu contém **Fechar**, **Fechar Outras**, **Fechar Abas à Direita**, **Fechar Todas**, além de **Mostrar no Finder** e **Copiar Caminho Absoluto** para o diretório da sessão. **Fechar Arquivos** e **Fechar Diffs** removem esses tipos de conteúdo do projeto, preservando terminais e navegadores.
+
+## Janelas [#windows]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> abre outra janela. Cada janela tem seus projetos e estado de barras laterais e é restaurada separadamente.
+
+## O que permanece após reiniciar [#what-survives-a-relaunch]
+
+O Zshell salva snapshots do layout durante o trabalho. Ao sair e reabrir, voltam:
+
+- todos os projetos, na mesma ordem;
+- todas as abas, com nomes personalizados, fixação e cores;
+- grupos laterais, com nomes, cores, ordem, membros e estado recolhido;
+- grupos de abas, com cores, ordem, membros e estado recolhido;
+- diretórios fixados e projetos vazios;
+- o layout de painéis de cada aba;
+- quais barras estavam abertas e qual painel direito estava selecionado.
+
+Os terminais voltam como **shells novos** nos diretórios anteriores. O Zshell não mantém processos rodando em segundo plano: uma compilação ativa para quando você sai.
+
+A saída anterior só volta se você ativar [`terminal.restore-history`](/pt-BR/docs/configuration#terminalrestore-history). A opção vem desativada porque o conteúdo restaurado é armazenado no disco.
+
+## Ambiente do terminal e inicialização [#terminal-environment-and-initialization]
+
+Selecione um projeto e use **Terminal → Ambiente do Terminal do Projeto…** para configurar variáveis e um comando de inicialização. Use **Terminal → Ambiente do Terminal da Aba…** para substituições da aba atual.
+
+| Escopo | Comportamento |
+| --- | --- |
+| Projeto | Terminais novos herdam variáveis e comando de inicialização do projeto |
+| Aba | Variáveis substituem valores de mesmo nome do projeto; o comando pode herdar, substituir ou desativar o comando do projeto |
+
+Alterações só afetam terminais criados depois de salvar. Processos existentes mantêm seu ambiente. A inicialização roda no shell de login normal, não em um programa de início personalizado nem em argv explícito.
+`ZSHELL_*`, `TERM`, `COLORTERM`, `TERM_PROGRAM` e `TERM_PROGRAM_VERSION` são gerenciados pelo Zshell e não podem ser substituídos.

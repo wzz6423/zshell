@@ -37,7 +37,7 @@ final class AppMenuLocalization: NSObject {
             ("Help", String(localized: "Help")),
             ("Terminal", String(localized: "Terminal")),
         ]
-        let bundles = ["en", "zh-Hans", "ja"].compactMap {
+        let bundles = AppLanguage.localizationIdentifiers.compactMap {
             Bundle.main.url(forResource: $0, withExtension: "lproj").flatMap(Bundle.init(url:))
         }
         for item in menu.items {

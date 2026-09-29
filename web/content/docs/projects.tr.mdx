@@ -1,0 +1,113 @@
+---
+title: "Projeler ve oturumlar"
+description: "Kenar çubuğundaki projeler, sekme biçimindeki oturumlar ve yeniden başlatmada korunanlar."
+---
+
+## Projeler [#projects]
+
+Proje, kendi terminalleri, sekmeleri ve panel durumuyla bir iş bütünüdür; pratikte çoğunlukla bir depodur.
+
+<kbd>Cmd</kbd>+<kbd>N</kbd> tek terminalli bir proje oluşturur. Terminal geçerli oturumun dizininde, oturum yoksa ev dizininizde başlar. Sonraki adım genellikle `cd` ile istediğiniz yere gitmektir. Zshell dosya ağacını ve Git panelini bu dizini içeren depoya bağlar.
+
+`cd` adımını atlamak için Finder’da klasöre sağ tıklayıp **Servisler → Burada Yeni Zshell Projesi**’ni seçin; terminali o klasörde başlayan bir proje açılır.
+
+Zshell’de proje geçişlerinin birimi projedir:
+
+| İşlem | Kısayol |
+| --- | --- |
+| Yeni proje | <kbd>Cmd</kbd>+<kbd>N</kbd> |
+| Proje 1–9’a geç | <kbd>Cmd</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Sonraki / önceki proje | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Proje kenar çubuğunu gizle | <kbd>Cmd</kbd>+<kbd>B</kbd> |
+
+Proje adı seçili oturumdan gelir; sekme başlığı gibi terminali izler. Kenar çubuğunda sağ tıklayarak **Yeniden Adlandır…**, bunu geri almak için **Otomatik Başlık Kullan**, **Proje Dizinini Ayarla…** ve **Projeyi Kapat** seçeneklerine ulaşın. Projeyi kapatmak oturumlarını bitirir; diskteki dosyalara dokunmaz.
+
+### Kaydedilmiş SSH projeleri [#saved-ssh-projects]
+
+Komut paletini (<kbd>Cmd</kbd>+<kbd>P</kbd>) açıp **Yeni SSH Projesi…**’ni seçin. Sunucu, isteğe bağlı kullanıcı ve port ile açılacak uzak dizini girin. Kimlik doğrulama için **SSH Agent**, **Parola**, **Özel Anahtar Dosyası** veya **Özel Anahtar Metni**’ni seçin; bağlantıyı kaydedip **Bağlan**’a basın.
+
+Kaydedilen bağlantılar yeniden başlatmadan sonra da kalır. İsteğe bağlı **Grup** alanıyla listeyi düzenleyin; düzenleme ve silme düğmeleriyle kayıtları yönetin. Parolalar ve yapıştırılmış özel anahtarlar macOS Anahtar Zinciri’nde saklanır; özel anahtar dosyası kaydı mevcut anahtarınızın yolunu hatırlar.
+
+Ek seçeneklerle komut veya SSH başlatmak için [Hızlı Başlat](/tr/docs/quick-launch) bölümüne bakın.
+
+### Kenar çubuğu grupları [#sidebar-groups]
+
+Kenar çubuğunun altındaki **Yeni Grup** ile **Normal Grup** veya **Klasör Grubu…** oluşturun. Normal gruplar yeni terminalleri ev dizininizde başlatır; klasör grupları seçilen klasörü varsayılan yapar. Açıkça belirlenmiş proje dizini daha önceliklidir. Bir projeyi gruplar arasında taşımak çalışan terminallerini veya sabitlenmiş dizinini değiştirmez.
+
+Projeyi grup başlığına veya başka bir projeye sürükleyerek düzenleyin. Grup üyeliğini kaldırmak için kenar çubuğunun altındaki **+ (Yeni Proje)** üzerine sürükleyin. Grup başlıkları da sıralamak için sürüklenebilir. Başlığa tıklamak grubu daraltır/genişletir, çift tıklamak yeniden adlandırır; bağlam menüsü de kullanılabilir. **Renk İşaretçisi Ayarla…** renk verir, **Renk İşaretçisini Kaldır** temizler. **Grubu Kaldır** tüm projelerini açık bırakır. Sayı kısayolları o anda görünür proje satırlarını izler; sonraki/önceki proje gezintisi daraltılmış grubun üyelerini gösterebilir.
+
+Finder’daki klasörleri kenar çubuğunun proje listesinde herhangi bir yere bırakabilirsiniz. Klasör zaten açıksa yinelenen proje oluşturulmaz, mevcut proje odaklanır.
+
+### Proje dizini [#the-project-directory]
+
+Dosya ağacı ve Git paneli hangi klasörü gösterdiklerini bilmelidir. Varsayılan olarak Zshell terminalin geçerli dizininden yukarı yürüyüp **onu kapsayan en yakın Git deposunu** bulur.
+
+Bu nedenle depo içinde `cd` yapmak ağacı sıçratmaz: kök, depo kökü olarak kalır. Depo dışında paneller terminali izler.
+
+Öndeki program başka bir çalışma kopyasına geçtiğinde, örneğin ajan kendi Git çalışma ağacına girdiğinde Dosyalar, Git ve Bilgi bu kopyayı izler. Öndeki iş geri döndüğünde onlar da döner. Elle sabitlenmiş proje dizini her zaman önceliklidir ve bu otomatik kök değişimini kapatır.
+
+Sabitlemek için projeye sağ tıklayıp **Proje Dizinini Ayarla…**’yı seçin. Sabit klasör yeniden başlatmalarda hatırlanır; **Otomatik Dizin Kullan** denetimi yeniden otomatiğe verir.
+
+<Callout type="info">
+Bilgi paneli (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>) ikisini de gösterir: farklıysa kabuğun anlık **Geçerli Dizin**’i ve panellerin bağlı olduğu **Proje Dizini**. Otomatik türetilen dizin `(AUTO)` ile işaretlenir.
+</Callout>
+
+## Oturumlar [#sessions]
+
+Her proje istediğiniz kadar oturum barındırır; bunlar üstte sekme olarak görünür. Oturum, kendi çalışma dizini ve çıktı geçmişi olan gerçek bir giriş kabuğudur: hesabınızda ayarlı `zsh`, `fish`, `bash` veya başka bir kabuk.
+
+| İşlem | Kısayol |
+| --- | --- |
+| Yeni oturum | <kbd>Cmd</kbd>+<kbd>T</kbd> |
+| Sekme 1–9’a geç | <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Sekme seçici (son kullanıma göre) | <kbd>Ctrl</kbd>+<kbd>Tab</kbd> |
+| Sonraki / önceki sekme | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Odaktaki bölmeyi kapat | <kbd>Cmd</kbd>+<kbd>W</kbd> |
+
+Yeni yerel oturum önce sabitlenmiş proje dizinini, yoksa kenar çubuğu grubunun varsayılan dizinini kullanır. İkisi de yoksa geçerli oturumun dizinini devralır; son seçenek ev dizininizdir.
+
+### Sekme grupları [#tab-groups]
+
+Sekmeye sağ tıklayıp **Gruba Taşı → Yeni Sekme Grubu**’nu seçin. Sekme, adsız renkli okla gösterilen yeni gruba katılır. Gruplanmış sekmeden açılan yeni oturumlar aynı grupta kalır; grubun okuna sağ tıklayıp **Grupta Yeni Oturum** ile doğrudan içinde oturum oluşturun.
+
+Sekmeyi taşımak için grup okuna veya başka bir sekmeye sürükleyin. Bağlam menüsünde gruplar ve **Gruptan Kaldır** da bulunur. Oku tıklamak grubu daraltır/genişletir. Daraltma etkin terminali çalışır ve görünür tutar; gizli bir üyeye geçmek grubu genişletir. Grubu kaldırmak sekmeleri ve oturumları açık bırakır. Gruplanmış sekmeyi sabitlemek onu grupların dışındaki sabit bölüme taşır. Okun sağ tık menüsünde **Renk İşaretçisi Ayarla…** ve **Renk İşaretçisini Kaldır** vardır. Grup renkleri ve daraltma durumu Zshell yeniden açıldığında geri yüklenir.
+
+Sekme kenar çubuğundaki projeye veya grup başlığına da bırakılabilir; ikincisi o grupta yeni proje oluşturur. Alttaki **+ (Yeni Proje)** üzerine bırakmak tüm grupların dışında proje oluşturur. Sekme menüsündeki **Sekmeyi Projeye Taşı**, başka pencerelere de erişir. Taşıma çalışan terminalleri ve bölme düzenini korur. Projelerin yerel veya SSH konumu aynı olmalıdır; sekmeden oluşturulan yeni proje kaynak konumu korur. Fark içeren sekmeler mevcut projelerinde kalır.
+
+### Sekme başlıkları [#tab-titles]
+
+Başlık, terminalin bildirdiği değerdir: kabuğun istem kaçış dizisi veya çalışan program. Sağ tıklayıp **Yeniden Adlandır…** ile elle belirleyin; **Otomatik Başlık Kullan** ile terminali izlemeye dönün.
+
+Menüde ayrıca **Kapat**, **Diğerlerini Kapat**, **Sağdaki Sekmeleri Kapat**, **Tümünü Kapat**, oturum dizini için **Finder’da Göster** ve **Mutlak Yolu Kopyala** bulunur. **Dosyaları Kapat** ve **Farkları Kapat**, proje genelinde o içerikleri temizler; terminallere ve tarayıcı bölmelerine dokunmaz.
+
+## Pencereler [#windows]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> başka pencere açar. Pencerelerin projeleri ve kenar çubuğu durumları bağımsızdır; her biri ayrı geri yüklenir.
+
+## Yeniden başlatmada korunanlar [#what-survives-a-relaunch]
+
+Zshell çalışırken düzenin anlık görüntüsünü alır. Çıkıp açınca şunlar geri gelir:
+
+- tüm projeler, sıralarıyla
+- özel adları, sabitlemeleri ve renk işaretçileriyle tüm sekmeler
+- adları, renkleri, sırası, üyeliği ve daraltma durumuyla kenar çubuğu grupları
+- renkleri, sırası, üyeliği ve daraltma durumuyla sekme grupları
+- sabitlenmiş proje dizinleri ve boş projeler
+- her sekmedeki bölme düzeni
+- açık kenar çubukları ve seçili sağ panel
+
+Terminaller eski dizinlerinde **yeni kabuklar** olarak açılır. Zshell işlemleri arka planda yaşatmaz; çıkarken çalışan bir derleme varsa o anda durur.
+
+Eski çıktı geçmişi yalnızca [`terminal.restore-history`](/tr/docs/configuration#terminalrestore-history) ile isterseniz geri yüklenir. Geçmiş diske kaydedildiğinden varsayılan olarak kapalıdır.
+
+## Terminal ortamı ve başlatma [#terminal-environment-and-initialization]
+
+Proje seçip **Terminal → Proje Terminal Ortamı…** ile ortam değişkenlerini ve başlatma komutunu belirleyin. Geçerli sekmenin geçersiz kılmaları için **Terminal → Sekme Terminal Ortamı…** kullanın.
+
+| Kapsam | Davranış |
+| --- | --- |
+| Proje | Bu projedeki yeni terminaller değişkenleri ve başlatma komutunu devralır |
+| Sekme | Aynı adlı proje değişkenlerini geçersiz kılar; komut, proje komutunu devralabilir, değiştirebilir veya kapatabilir |
+
+Değişiklikler yalnızca kayıttan sonra oluşturulan terminalleri etkiler. Mevcut işlemlerin ortamı değişmez. Başlatma normal giriş kabuğunda çalışır; özel başlangıç programı veya açık argv için çalışmaz.
+`ZSHELL_*`, `TERM`, `COLORTERM`, `TERM_PROGRAM` ve `TERM_PROGRAM_VERSION` Zshell tarafından yönetilir ve geçersiz kılınamaz.

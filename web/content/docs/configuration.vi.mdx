@@ -1,0 +1,229 @@
+---
+title: "Cấu hình"
+description: "Mọi tùy chọn bền vững của Zshell, tác dụng và nơi lưu."
+---
+
+Hầu hết cài đặt bền vững của Zshell nằm trong một tệp:
+
+```
+~/.config/zshell/config.toml
+```
+
+Cửa sổ Cài đặt (<kbd>Cmd</kbd>+<kbd>,</kbd>) ghi cùng tệp này. Một số cài đặt do macOS quản lý, như ngôn ngữ và cập nhật tự động, nằm nơi khác và được liệt kê cuối trang.
+
+## Hành vi của tệp [#how-the-file-behaves]
+
+Nên biết trước khi sửa tay:
+
+- **Được đọc lúc khởi chạy.** Sửa tệp khi Zshell đang chạy không có hiệu lực tới khi mở lại. Thay đổi trong Cài đặt áp dụng ngay, trừ nơi điều khiển nói khác.
+- **Zshell ghi lại tệp mỗi khi một cài đặt lưu trong tệp thay đổi.** Tệp được tạo lại từ đầu, nên chú thích và khóa lạ mất vào lần dùng điều khiển đó tiếp theo. Chọn một nơi chỉnh sửa, hoặc giữ bản chuẩn trong dotfile của bạn.
+- **Chỉ ghi giá trị khác mặc định, trừ một ngoại lệ.** `font-size` luôn có. Xóa khóa khác trả về mặc định.
+- **Bộ phân tích cố ý đơn giản.** Hỗ trợ khóa phẳng, khóa dấu chấm, tiêu đề `[table]`, chú thích `#`, giá trị chuỗi/số/boolean. Không hỗ trợ mảng, bảng nội tuyến hay chuỗi nhiều dòng.
+- **Giá trị sai có phương án dự phòng an toàn.** Kích thước ngoài khoảng, backend không rõ hay tên chủ đề sai không làm Zshell không khởi chạy được.
+
+## Giao diện [#appearance]
+
+### `theme` [#theme]
+
+`"system"` · `"light"` · `"dark"` — mặc định `"system"`
+
+Chọn giao diện ứng dụng. `"system"` theo macOS; hai giá trị kia cố định Zshell vào một giao diện.
+
+### `theme-dark` và `theme-light` [#theme-dark-and-theme-light]
+
+chuỗi — mặc định `"Default Dark"` và `"Default Light"`
+
+Chủ đề màu cho từng giao diện. Chủ đề đổi màu ô terminal, khung cửa sổ, thanh bên, trình soạn thảo và diff cùng lúc. Mặc định tích hợp giữ thanh bên trong mờ; chủ đề khác tô theo bảng màu riêng.
+
+Cài đặt liệt kê bộ chủ đề chọn lọc dùng chung cho hai backend. Tên gõ tay phải khớp hoàn toàn tên hiển thị, kể cả hoa/thường; nếu không sẽ dùng mặc định tương ứng.
+
+### `toolbar.visibility` [#toolbarvisibility]
+
+`"hide"` · `"auto"` · `"always"` — mặc định `"hide"`
+
+Điều khiển thanh công cụ gọn dưới tab hoạt động:
+
+- `"hide"` ẩn khỏi cửa sổ.
+- `"auto"` chỉ hiện khi thư mục dự án là kho Git.
+- `"always"` luôn giữ lối vào Git ở mọi dự án, kể cả trạng thái **Không có kho Git**.
+
+Xem nội dung hiển thị ở [Thanh công cụ Git](/vi/docs/git#the-git-toolbar).
+
+## Văn bản [#text]
+
+### `font-family` [#font-family]
+
+chuỗi — mặc định `""`, nghĩa là JetBrains Mono đi kèm
+
+Họ phông Latin dùng chung cho terminal, trình soạn thảo và diff. Đưa tên họ, không phải kiểu chữ: `"IBM Plex Mono"`, không phải `"IBM Plex Mono Regular"`. Họ không tồn tại hoặc không đơn cách trở về mặc định đi kèm.
+
+Thứ tự dự phòng terminal là họ Latin, họ CJK tùy chọn dưới đây, Symbols Nerd Font đi kèm, rồi dự phòng hệ thống của backend. Trình soạn thảo và diff tiếp tục dùng dự phòng macOS/WebKit thông thường.
+
+### `terminal.font-fallback-family` [#terminalfont-fallback-family]
+
+chuỗi — mặc định `""`, dùng dự phòng backend/hệ thống
+
+Thêm một họ CJK đã cài vào chuỗi dự phòng theo thứ tự của terminal. Bộ chọn gồm họ có ký tự đại diện Trung, Nhật hoặc Hàn; không bắt buộc hoàn toàn đơn cách vì chúng chỉ cung cấp ký tự thiếu ở phông Latin chính.
+
+### `font-size` [#font-size]
+
+số, 8–32 — mặc định `13`
+
+Cỡ chữ theo point dùng chung cho terminal, trình soạn thảo và diff. Đây là khóa duy nhất Zshell luôn ghi dù có giá trị mặc định.
+
+### `interface.scale` [#interfacescale]
+
+số, 0.9–1.5 — mặc định `1`
+
+Đổi tỷ lệ tab, biểu tượng, nút, thanh bên và phần giao diện còn lại. Nội dung terminal, trình soạn thảo và diff giữ cỡ chữ được đặt riêng ở trên.
+
+### `sidebar.font-size` [#sidebarfont-size]
+
+số, 9–24 — mặc định `14`
+
+Cỡ chữ cơ sở của cả hai thanh bên. Tiêu đề phần, hàng, siêu dữ liệu và điều khiển giữ quan hệ phân cấp khi cỡ cơ sở đổi.
+
+### `terminal.font-thicken` [#terminalfont-thicken]
+
+boolean — mặc định `false`
+
+Vẽ ký tự terminal với nét hơi dày hơn, giống làm mịn phông macOS cổ điển. Cả hai backend áp dụng; bản xem trước trong Cài đặt cho thấy kết quả. Cấu hình `font-thicken` cũ vẫn đọc được, rồi ghi lại bằng khóa dấu chấm hiện tại.
+
+### `terminal.font-thicken-strength` [#terminalfont-thicken-strength]
+
+số nguyên, 0–255 — mặc định `255`
+
+Điều chỉnh độ dày khi `terminal.font-thicken` là true. Số không là mức dày nhẹ nhất, không phải tắt. Ghostty dùng cường độ macOS gốc; Alacritty ánh xạ cùng khoảng sang nét CoreText, nên chiều thay đổi và điểm đầu/cuối khớp nhưng pixel kết xuất có thể khác.
+
+### `terminal.line-height` [#terminalline-height]
+
+số, 0.75–2 — mặc định `1`
+
+Nhân chiều cao ô tự nhiên của từng backend, giữ ký tự ở giữa theo chiều dọc. Chỉ đổi hàng terminal, không đổi khoảng cách trình soạn thảo hoặc diff.
+
+Zshell không cung cấp điều khiển trọng lượng phông cơ sở. Ghostty chọn kiểu có tên hoặc trục biến thiên, còn Alacritty/CoreText chọn regular/bold theo thuộc tính; một giá trị chung không thể giữ nhất quán phân biệt thường/đậm hay trọng lượng dự phòng giữa phông tĩnh và biến thiên.
+
+### `editor.wrap-lines` [#editorwrap-lines]
+
+boolean — mặc định `true`
+
+Xuống dòng mềm theo chiều rộng ô trong [trình soạn thảo tệp](/vi/docs/files). Nếu false, dòng dài cuộn ngang. Không đổi cách xuống dòng của terminal hoặc diff.
+
+## Terminal [#terminal]
+
+### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
+
+chuỗi — mặc định chưa đặt
+
+Chọn chương trình và vector đối số dùng cho terminal tạo từ sau đó. Thiếu `terminal.startup-program`, Zshell vẫn dùng shell đăng nhập của tài khoản với `-l`. Chương trình phải là đường dẫn tuyệt đối có quyền thực thi; đường dẫn thiếu/không chạy được sẽ dùng shell đăng nhập thay vì mở ô chết.
+
+`terminal.startup-arguments` được tách đối số không gọi shell. Dấu nháy và gạch chéo ngược giữ ranh giới, kể cả khoảng trắng và đối số rỗng; biến, glob và thay thế lệnh không được mở rộng. Nháy không hợp lệ cũng trở về shell đăng nhập. argv được CLI Zshell đưa rõ vẫn ưu tiên cho terminal đó.
+
+### `terminal.backend` [#terminalbackend]
+
+`"libghostty"` · `"alacritty"` — mặc định `"libghostty"`
+
+Chọn bộ mô phỏng cho terminal tạo sau đó. Ô hiện tại giữ backend ban đầu. Cả hai là native, tăng tốc GPU, hỗ trợ ảnh và dùng chung chủ đề; Alacritty thường chiếm ít bộ nhớ hơn.
+
+Xem biến môi trường và cam kết tương thích ở [Backend terminal](/vi/docs/terminal#terminal-backends).
+
+### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
+
+boolean — mặc định `false`
+
+Nếu true, tổ hợp Option gửi tới chương trình terminal như Alt/Meta. Mặc định để Option cho nguồn nhập macOS đang dùng, giúp bố cục như Polish Pro gõ ký tự tổ hợp.
+
+### `terminal.bell` [#terminalbell]
+
+boolean — mặc định `true`
+
+Điều khiển âm báo và thu hút chú ý bằng hình ảnh của macOS khi chương trình rung chuông. Nếu false, Zshell không phát âm, đăng thông báo chuông hoặc yêu cầu chú ý trên Dock. Công nghệ hỗ trợ tiếp cận vẫn nhận chuông dưới dạng thông báo ngữ nghĩa. Cả hai backend tuân theo.
+
+### `terminal.vim-command-hints` [#terminalvim-command-hints]
+
+boolean — mặc định `false`
+
+Hiện lệnh Vim/Neovim theo chế độ dưới thông tin phiên ở thanh **Thông tin**. Có hiệu lực ngay trên cả hai backend, kể cả trình soạn thảo nhận diện được qua SSH. Xem [Gợi ý lệnh Vim](/vi/docs/terminal#vim-command-hints) cho điều kiện nhận diện.
+
+### `terminal.restore-history` [#terminalrestore-history]
+
+boolean — mặc định `false`
+
+Khôi phục đầu ra trước của từng terminal phía trên shell mới sau khi mở lại. Nội dung là văn bản tĩnh, không phải tiến trình được giữ sống.
+
+Đầu ra khôi phục lưu trên đĩa, nên có thể gồm bí mật từng hiển thị. Mặc định tắt. [Dự án, tab và bố cục ô](/vi/docs/projects#what-survives-a-relaunch) vẫn luôn được khôi phục.
+
+## Tự động hóa [#automation]
+
+### `ai.enabled` [#aienabled]
+
+boolean — mặc định `true`
+
+Cho tác nhân lập trình được hỗ trợ phối hợp ô nền khi bạn yêu cầu bằng ngôn ngữ thường, và hiện trạng thái vòng đời do nhà cung cấp báo. Zshell không suy ra trạng thái từ chữ terminal. Nên dùng công tắc Cài đặt vì lỗi hiện tại chỗ và thiết lập hiện có bị xung đột được giữ nguyên.
+
+Quy trình sử dụng nằm ở [Làm việc với tác nhân AI](/vi/docs/automation).
+
+## Cài đặt bổ sung [#additional-settings]
+
+| Khóa | Mặc định | Giá trị / khoảng | Tác dụng |
+| --- | --- | --- | --- |
+| `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Biểu tượng ứng dụng |
+| `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Trình soạn thảo ngoài cho tệp/thư mục |
+| `terminal.theme-only` | `false` | boolean | Chỉ áp dụng bảng màu cho terminal |
+| `terminal.cursor-shape` | `"block"` | `"block"` / `"bar"` / `"underline"` | Hình con trỏ terminal |
+| `terminal.cursor-blinking` | `true` | boolean | Nhấp nháy con trỏ |
+| `terminal.copy-on-select` | `true` | boolean | Sao chép chữ terminal đã chọn |
+| `terminal.shift-enter-newline` | `true` | boolean | Gửi chuỗi xuống dòng nâng cao bằng Shift+Enter; cần ứng dụng hỗ trợ |
+| `terminal.background-opacity` | `1` | 0.2–1 | Độ đục nền terminal |
+| `terminal.background-blur` | `false` | boolean | Làm mờ nền trong suốt |
+| `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Báo khi lệnh chạy ít nhất thời gian này rồi kết thúc trong terminal zsh mới; 0 tắt |
+| `terminal.notify-on-error` | `false` | boolean | Báo lệnh thất bại trong terminal zsh mới |
+| `quick-terminal.size` | `0.75` | 0.35–0.95 | Kích thước Terminal nhanh so với màn hình |
+| `quick-terminal.opacity` | `0.5` | 0.05–1 | Độ đục nền Terminal nhanh |
+| `quick-terminal.shortcut` | `Cmd+I` | Ghi trong Cài đặt | Ghi phím tắt toàn cục; mã phím tự lưu |
+| `panes.show-focus-ring` | `true` | boolean | Hiện viền tiêu điểm quanh ô hoạt động |
+| `panes.focus-ring-opacity` | `0.85` | 0.05–1 | Độ đục viền tiêu điểm |
+
+## Sao lưu và chuyển cấu hình [#backup-and-migration]
+
+Dùng **Zshell → Xuất cài đặt…** để lưu TOML và **Nhập cài đặt…** để nạp. Nhập yêu cầu xác nhận thay thế và cố sao lưu tệp hiện tại thành `config.toml.bak` trong cùng thư mục.
+
+Bộ nhập hiện chỉ khôi phục một phần: chủ đề, tùy chọn phông chính, con trỏ, backend terminal, khôi phục lịch sử, sao chép vùng chọn, Terminal nhanh và AI. Không phải mọi tùy chọn xuất ra đều được nhập lại. Kiểm tra tỷ lệ giao diện, biểu tượng ứng dụng, trình soạn thảo ngoài và nền terminal sau đó. Muốn chuyển toàn bộ, thoát Zshell, sao lưu và chép `config.toml`, rồi mở lại. Công tắc AI chỉ cập nhật nếu tệp nhập có rõ `ai.enabled`; hãy kiểm tra sau nhập. Biến môi trường dự án/tab là dữ liệu phiên, không nằm trong tệp này.
+
+## Ví dụ đầy đủ [#a-complete-example]
+
+```toml title="~/.config/zshell/config.toml"
+theme = "dark"
+theme-dark = "Catppuccin Mocha"
+theme-light = "Catppuccin Latte"
+font-family = "IBM Plex Mono"
+font-size = 14
+interface.scale = 1.25
+sidebar.font-size = 13
+toolbar.visibility = "auto"
+terminal.font-fallback-family = "PingFang SC"
+terminal.font-thicken = true
+terminal.font-thicken-strength = 180
+terminal.line-height = 1.15
+terminal.macos-option-as-alt = false
+terminal.bell = false
+terminal.startup-program = "/opt/homebrew/bin/fish"
+terminal.startup-arguments = "--no-config"
+terminal.backend = "alacritty"
+terminal.restore-history = true
+editor.wrap-lines = true
+ai.enabled = true
+```
+
+Mọi khóa đều tùy chọn. Xóa khóa để đưa thiết lập về mặc định.
+
+## Phím tắt [#keyboard-shortcuts]
+
+Mở **Cài đặt → Phím tắt** để ghi phím mới cho lệnh cốt lõi. Zshell từ chối tổ hợp xung đột và nêu tên lệnh đang dùng nó. **Khôi phục phím tắt mặc định** xóa mọi ghi đè. [Bảng phím tắt](/vi/docs/shortcuts) liệt kê mặc định đi kèm.
+
+## Cài đặt ngoài tệp này [#settings-outside-this-file]
+
+- **Ngôn ngữ.** Cài đặt có Mặc định hệ thống và 17 ngôn ngữ như website. Đổi áp dụng ngay, phiên terminal tiếp tục chạy. Lựa chọn dùng tùy chọn ngôn ngữ theo ứng dụng của macOS, nên nằm trong preferences Zshell thay vì TOML. Mặc định hệ thống theo thứ tự ngôn ngữ macOS.
+- **Cập nhật tự động.** Công tắc tự kiểm tra, tải và cài ở **Cài đặt → Cập nhật** dùng preferences ngoài TOML và nhớ lựa chọn qua lần mở. Cài đặt chỉ hiện khi tự tải bật. Xem [Cài đặt](/vi/docs/installation#updates).
+- **Cửa sổ và bố cục.** Kích thước cửa sổ, độ rộng thanh bên, bảng đã chọn, dự án, tab, ô, URL trình duyệt và tùy chọn điều khiển diff nằm trong preferences macOS và ảnh chụp phiên của Zshell.
+- **Tệp cấu hình backend.** Zshell không đọc `~/.config/ghostty` hay cấu hình Alacritty. Cài đặt Zshell là nơi cấu hình được hỗ trợ cho cả hai.

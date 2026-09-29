@@ -1,0 +1,197 @@
+---
+title: 終端機本身
+description: Zshell 的終端機後端、shell 環境、鏈接處理、通知與安全功能。
+---
+
+每個終端機窗格都執行你真正的登錄 shell，並使用兩個原生 GPU 加速後端之一。窗格焦點、搜尋、通知、鏈接、歷史、主題和貼上安全由 Zshell 統一管理，所以無論選哪個模擬器，外圍行為都一致。
+
+## 終端機後端 [#terminal-backends]
+
+在 **設定 → Terminal → Backend** 裡選擇：
+
+| 後端 | 說明 |
+| --- | --- |
+| **Ghostty** | 預設選項 |
+| **Alacritty** | 通常佔用更少記憶體 |
+
+兩者都支持 GPU 加速、圖片渲染、Zshell 的共享主題目錄、查找、滑鼠上報、通知和進度。後端改動只影響之後新建的終端機；已有窗格繼續使用啟動時的模擬器。
+
+## 你的 shell，原封不動 [#your-shell-unchanged]
+
+每個工作階段啟動你帳戶的登錄 shell，所以提示符、別名、函式和 dotfiles 都和其他終端機裡一樣載入。
+Zshell 額外設定了能力與身份變數：
+
+| 變數 | 值 |
+| --- | --- |
+| `TERM_PROGRAM` | `ghostty` |
+| `TERM_PROGRAM_VERSION` | Zshell 實現的 Ghostty 能力版本 |
+| `ZSHELL_TERM` | `ghostty` 或 `alacritty`，也就是窗格實際使用的後端 |
+
+兩個後端都通過 `TERM_PROGRAM` 聲明 Ghostty，因為支持圖片和通知的 CLI 會把它當作能力提示。只有確實需要區分渲染器時，才看 `ZSHELL_TERM`。
+
+<Callout type="info">
+Zshell 不讀取 `~/.config/ghostty`，也不讀取 Alacritty 配置。字型、顏色、輸入行為和後端都在 Zshell
+自己的[設定](/zh-Hant/docs/configuration)裡配置。
+</Callout>
+
+## 搜尋 [#search]
+
+| 操作 | 快速鍵 |
+| --- | --- |
+| 查找 | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| 查找下一個 | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+| 查找上一個 | 在查找欄裡按 <kbd>Shift</kbd>+<kbd>Return</kbd> |
+| 用選中內容查找 | <kbd>Cmd</kbd>+<kbd>E</kbd> |
+| 清空終端機 | <kbd>Cmd</kbd>+<kbd>K</kbd> |
+
+查找作用於當前終端機或編輯器窗格，並且在搜尋輸入框拿著鍵盤焦點時仍然有效。
+
+## 提示符編輯 [#prompt-editing]
+
+在活動 shell 提示符內點按，輸入游標會移到點擊位置，後續輸入就從那裡開始。zsh 提示符中，可在輸入內容上拖拽選中一段文字：繼續輸入會替換選區，按 Backspace 或 Delete 會刪除選區。雙擊、三擊仍用於選擇終端機輸出文字；全螢幕 TUI 等主動啟用終端機滑鼠上報的程式，仍會收到自己的滑鼠事件。
+
+嵌套啟動或替換的 shell 若未載入 Zshell 的提示符編輯支持，拖拽仍可選擇、複製終端機文字，但不會直接修改輸入。退出嵌套 shell、回到原提示符後，輸入選區編輯會自動恢復。
+
+Claude Code 的標準輸入框在兩個後端中也支持點擊定位和拖選編輯，包括自動折行和多行草稿。
+選中後輸入或貼上會替換選區，按 Backspace 或 Delete 會刪除選區。
+Vim 普通/可視模式、對話框、附件或折疊貼上內容的佔位符，以及捲動歷史中的文字，仍沿用終端機原有的選區行為。
+已接管滑鼠的程式繼續自行處理輸入。
+
+Zisla 的語音輸入通過終端機貼上插入文字，也可替換 Claude Code 輸入框中的選區；主動重復輸入同一句話仍會正常保留。
+
+## 前台程式快速鍵 [#foreground-application-shortcuts]
+
+當終端機程式的快速鍵與 Zshell 衝突時，在當前窗格右鍵勾選 **屏蔽 Zshell 指令**。
+該窗格獲得鍵盤焦點後，<kbd>Ctrl</kbd>+<kbd>Return</kbd> 等組合鍵會交給前台程式，
+複製、貼上和全選仍可使用。
+
+開關只影響當前窗格。再次右鍵取消勾選，即可恢復 Zshell 快速鍵。
+如果程式已接管滑鼠，按住 <kbd>Shift</kbd> 再右鍵可打開 Zshell 選單。
+
+## 提示詞隊列 [#prompt-queue]
+
+聚焦終端機，按 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>，或在指令面板選擇
+**顯示/隱藏 提示詞隊列**，即可在該終端機底部打開隊列欄。輸入內容後按 <kbd>Return</kbd>
+或點擊 **加入隊列**。每項只保留一行，貼上內容中的換行會替換為空格。
+
+原來的 zsh 回到空 Shell 提示符時，Zshell 會按入隊順序發送下一項並按下 Return。
+Agent 或其他前台程式仍佔用終端機、或者提示符中已有草稿輸入時，自動發送會等待。
+自動發送需要 Zshell 的 zsh 集成；其他 Shell 和嵌套 Shell 可以手動發送。
+
+每項都有 **立即發送**和 **移除**按鈕。**立即發送**會直接把文字和 Return 交給終端機當前執行的
+程式，不等待 Shell 提示符。按 <kbd>Esc</kbd> 或關閉按鈕只會隱藏隊列欄，已有隊列仍然保留。
+每個終端機的隊列獨立；關閉工作階段或退出 Zshell 後，隊列會被清空。
+
+## 路徑與 URL [#paths-and-urls]
+
+Zshell 能識別終端機程式打印出來的網頁 URL 和確實存在的本地路徑。本地鏈接可以是絕對路徑、以
+`~/` 開頭、以 `./` 或 `../` 開頭，也可以相對窗格的實時工作目錄。診斷資訊末尾的 `:42` 或
+`:42:7` 不會妨礙找到背後的檔案。
+
+- **Command 點按**本地路徑會在 Finder 裡顯示它；點網頁 URL 則交給系統預設瀏覽器。
+- **按住 Command 右鍵**路徑，會出現 **New File Tab** / **New File Pane**；對 URL 則出現
+  **New Browser Tab** / **New Browser Pane**。
+- 啟用滑鼠報告的全螢幕程式會收到普通右鍵。按住 **Shift** 再右鍵，可改為打開 Zshell 的終端機和窗格選單。
+
+這樣一來，編譯器輸出和 agent 對話就能直接回到同一個專案裡。網頁相關行為見
+[瀏覽器窗格](/zh-Hant/docs/browser)。
+
+## 通知 [#notifications]
+
+Zshell 會把兩類終端機事件轉給通知中心：
+
+- 未聚焦工作階段裡的鈴聲；
+- 構建工具或編碼 agent 發出的 `OSC 777;notify` 請求。
+
+通知可以播放系統提示音。點通知會啟用 Zshell，並跳到發出它的確切工作階段。macOS 只在某個終端機第一次真的要通知時申請權限，不會在 Zshell 啟動時就彈框。
+
+### 指令完成通知 [#command-completion]
+
+打開 **設定 → Terminal → 指令通知**，可以讓 Zshell 在指令結束時提醒你：
+
+- **長時間執行的指令**：可選 5、10、30、60 秒。執行時間達到該值後結束的指令會觸發通知，
+  預設 **關閉**。
+- **失敗的指令**：退出狀態非零時通知，不受執行時長限制。預設關閉，可以獨立開啟。
+
+設定只影響修改之後新建的 zsh 終端機，兩個終端機後端都支持。通知依賴原 Shell 的指令完成事件；
+嵌套 Shell 或交互程式內部執行的指令，不會通過這項集成逐條報告完成。
+
+也可以寫入 `~/.config/zshell/config.toml`：
+
+```toml
+terminal.notify-finish-seconds = 30
+terminal.notify-on-error = true
+```
+
+將 `terminal.notify-finish-seconds` 設為 `0` 可關閉按時長觸發的通知。
+通知是否送達仍取決於 macOS 的通知設定。
+
+## 進度顯示 [#progress-reports]
+
+發出 `OSC 9;4` 進度的程式，會在終端機上方得到一條細進度條，正常、暫停和錯誤狀態各有區分。不需要打開任何開關——程式報告了，窗格就顯示。
+
+## 剪貼簿、拖放與貼上安全 [#clipboard-drops-and-paste-safety]
+
+- **讀剪貼簿要確認。** `OSC 52` 可以申請讀取 macOS 剪貼簿，包括通過 SSH 跑在遠端的程式。Zshell 會先問你。
+- **有風險的貼上會提示。** 多行或看起來會立即執行指令的文本，會先停在確認步驟。
+- **檔案會變成 shell 安全路徑。** 從 Finder 複製或拖進來的檔案，會作為經過引用的絕對路徑插入。剪貼簿圖片仍會交給支持圖片的 TUI。
+
+## Option 鍵輸入 [#option-key-input]
+
+預設情況下，Option 交給當前 macOS 輸入源，因此 Polish Pro 之類的佈局可以輸入組合字符。如果終端機程式需要把 Option 組合鍵當成 Meta 快速鍵，打開設定裡的 **Use Option as Alt/Meta**。對應配置鍵是
+[`terminal.macos-option-as-alt`](/zh-Hant/docs/configuration#terminalmacos-option-as-alt)。
+
+## `zshell` 指令 [#the-zshell-command]
+
+每個 Zshell 終端機都帶一套瞭解專案上下文的 CLI：
+
+```sh
+zshell                         # 以當前目錄新建專案
+zshell vim ~/src/app.swift     # 新建專案，並讓第一個終端機直接執行這組 argv
+zshell +themes                 # 交互式瀏覽和預覽主題
+zshell +themes --list --dark   # 不打開瀏覽器，直接列出主題名
+zshell +help                   # 查看全部指令組
+```
+
+主題瀏覽器會把當前選項實時預覽到整個應用；Return 儲存，Escape 恢復之前的主題。
+
+## 字型 [#fonts]
+
+Zshell 內建 JetBrains Mono 和 Nerd Font 符號。拉丁字形可以換成任意已安裝的等寬字型家族，
+還可在符號字型與系統後備字型之前插入一個已安裝的 CJK 字型家族。見
+[`font-family`](/zh-Hant/docs/configuration#font-family)、
+[`terminal.font-fallback-family`](/zh-Hant/docs/configuration#terminalfont-fallback-family)、
+[`font-size`](/zh-Hant/docs/configuration#font-size)、
+[`terminal.font-thicken`](/zh-Hant/docs/configuration#terminalfont-thicken) 和
+[`terminal.line-height`](/zh-Hant/docs/configuration#terminalline-height)。
+
+## 全局快速終端機 [#global-quick-terminal]
+
+Zshell 執行時，按 <kbd>Cmd</kbd>+<kbd>I</kbd> 可以在其他應用上方打開獨立的快速終端機，再按一次關閉。
+它使用臨時 shell，不屬於專案中的分頁。**設定 → 終端機 → Quick Terminal** 可調整視窗大小、透明度和快速鍵。
+
+- 點擊固定按鈕後，切換到其他應用時仍保持打開。
+- 未固定時，點擊外部或失去焦點會關閉視窗。
+- 未開啟 **屏蔽 Zshell 指令** 時，<kbd>Esc</kbd> 或再次按全局快速鍵會關閉視窗，並終止其中的 shell 和執行任務；重新打開會創建新工作階段。
+
+需要持續執行的服務請放在專案終端機中。[快速啟動](/zh-Hant/docs/quick-launch)用於儲存和執行指令，是另一項功能。
+
+## Vim 指令提示 [#vim-command-hints]
+
+打開 **設定 → 終端機 → 行為 → Vim 指令提示**，再打開右側的 **資訊** 分頁。
+使用 Vim、Vi 或 Neovim 時，工作階段資訊下方會出現 **VIM 常用指令**。
+此功能預設關閉，開啟後立即作用於兩種後端的現有終端機。
+
+完整常用指令列表始終保留，只按可見模式調整優先級：普通模式優先顯示 `:w`、`:q`、`yy` 和 `p`/`P`；可視塊模式
+優先顯示 `I`/`A`、塊修改和角點切換。插入、替換、可視、可視行、選擇、指令行和
+搜尋模式各有對應排序。每條指令標注適用模式；搜尋框可按按鍵、當前語言的描述
+或模式名稱篩選，描述和搜尋介面支持應用中的全部 17 種語言。清空搜尋即可恢復完整列表。
+提示僅供查閱，不會向編輯器發送按鍵。
+
+本地編輯器通過前台可執行程式識別。SSH、Mosh 和終端機復用器中的編輯器通過可見的
+Vim 模式行、狀態欄和螢幕佈局識別，無需安裝遠端插件。請保留 Vim 的 `showmode`
+或可識別的狀態欄；隱藏或改名後的模式提示可能回退為普通模式提示，或使遠端檢測
+無法生效，自訂映射不會被解析。僅當前活動的資訊面板會進行檢測；前台程式切換
+或編輯器不再可識別時，提示會消失。
+
+也可在配置檔案中設定 `terminal.vim-command-hints = true`。

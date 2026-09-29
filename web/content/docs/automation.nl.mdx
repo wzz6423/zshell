@@ -1,0 +1,81 @@
+---
+title: Werken met AI-agents
+description: Laat programmeeragents werk delegeren en tussen Zshell-deelvensters samenwerken terwijl jij de focus en controle houdt.
+---
+
+De automatisering van Zshell is vooral bedoeld voor AI-programmeeragents. Zij krijgen een veilige manier om met Zshell-deelvensters te werken en andere agents te coördineren. Je hoeft er geen nieuwe opdrachttaal voor te leren.
+
+AI-integratie staat standaard aan. Praat zoals gewoonlijk met je programmeeragent. Die kan een deelvenster op de achtergrond maken, een gedelegeerde werker starten, een opdracht uitvoeren, op het resultaat wachten en het antwoord terugbrengen zonder de focus van jouw deelvenster over te nemen.
+
+## Instellen [#setup]
+
+Controleer **Instellingen → Automatisering → AI**. Dit staat standaard aan. Heb je het eerder uitgezet, schakel het dan opnieuw in en start een nieuwe terminal of herstart een agent die al draaide.
+
+Zshell ondersteunt Codex, Claude Code, Gemini CLI, Grok Build, OpenCode, Cursor Agent, Aider, Amp en Pi. Als Zshell een bestaande agentconfiguratie vindt die met deze functie botst, laat het die ongewijzigd, zet het de schakelaar terug naar de vorige stand en toont het de fout in Instellingen.
+
+## Vragen in gewone taal [#ask-in-plain-language]
+
+Vertel je agent welk resultaat je wilt, bijvoorbeeld:
+
+> Voer de gerichte tests uit in een achtergronddeelvenster en vertel me wat mislukt.
+
+> Delegeer deze bug aan een andere Codex-agent en beoordeel daarna het resultaat.
+
+> Vraag de agent die aan de API werkt of het schema klaar is en geef het antwoord door aan de agent die de tests uitvoert.
+
+> Start de ontwikkelserver naast ons, wacht tot die klaar is en geef me de URL.
+
+> Controleer of de achtergrondagent klaar is. Als die geblokkeerd is, vertel me dan wat er nodig is.
+
+De agent gebruikt de automatiseringsinterface van Zshell voor je. Je hoeft geen Zshell-automatiseringsopdrachten te typen of te onthouden.
+
+## Agents laten samenwerken tussen deelvensters [#let-agents-coordinate-across-panes]
+
+Je kunt samenhangend werk over meerdere Zshell-deelvensters verdelen en je hoofdagent vragen het te coördineren. De ene agent kan bijvoorbeeld aan een API werken terwijl een andere tests bijwerkt. De coördinerende agent kan een specifieke werker naar bevindingen vragen, een vervolgopdracht sturen, een bruikbaar resultaat doorgeven aan een andere werker en het gecombineerde antwoord aan jou teruggeven. De werkers mogen verschillende ondersteunde programmeertools gebruiken.
+
+Zo verdwijnt het kopiëren en plakken tussen parallelle taken. Elke agent houdt zijn eigen gesprek in zijn eigen deelvenster, terwijl de coördinerende agent alleen de vraag, update of het resultaat doorgeeft dat de andere werker nodig heeft.
+
+Een vervolgopdracht versturen betekent niet dat het werk klaar is. De coördinerende agent wacht nog steeds op de werker, leest het resultaat en controleert de uitkomst. Een bericht van een andere agent geldt ook nooit als jouw toestemming. Beslissingen over rechten, inloggegevens, vertrouwen en destructieve acties blijven bij jou.
+
+## Doorwerken terwijl de taak draait [#keep-working-while-it-runs]
+
+Gedelegeerde deelvensters blijven op de achtergrond tenzij je vraagt ze te zien. Als een native levenscyclusintegratie van de aanbieder status meldt, toont Zshell die in het deelvenster en tabblad van de agent:
+
+| Status | Betekenis voor jou |
+| --- | --- |
+| **Bezig** | De agent werkt actief aan de taak. |
+| **Geblokkeerd** | Er is invoer, toestemming of een andere beslissing van jou nodig. |
+| **Klaar** | De agent is op de achtergrond klaar en je hebt het deelvenster nog niet bekeken. |
+
+Zshell registreert een verstuurde prompt als **Bezig**, maar doorzoekt nooit weergegeven terminaltekst om te raden wat er daarna gebeurt. Overgangen naar **Geblokkeerd** en **Klaar**, en de bijbehorende meldingen, vereisen een levenscyclusrapport van de aanbieder. Als een agent dat niet levert, bekijk je rechtstreeks het deelvenster en de projectwijzigingen, in plaats van op een geraden status te vertrouwen.
+
+Wanneer een integratie meldt dat een agent klaar is of invoer nodig heeft, kan Zshell ook een melding sturen. Druk op <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> om naar de volgende gemelde agent te gaan die je aandacht nodig heeft.
+
+## Accountgebruik en limieten [#account-usage-and-limits]
+
+**Instellingen → Automatisering → Accountgebruik** toont beschikbare accountlimieten voor Claude Code en Codex, inclusief het gebruikte percentage, de resettijd indien gemeld en het tijdstip van de laatste update. Gebruik **Gebruik vernieuwen** om de nieuwste beschikbare gegevens op te halen.
+
+Codex vereist een geïnstalleerde en aangemelde CLI die accountlimieten kan melden. Claude Code-gebruik verschijnt zodra Zshell een gebruiksrapport via de statusregel van de aanbieder heeft ontvangen. De sectie verschijnt alleen als gebruiksgegevens beschikbaar zijn; ondersteunde tijdvensters hangen af van de aanbieder en het account. Dit zijn accountlimieten, geen tokentotaal voor de sessie met focus.
+
+## Een gebruikelijke werkwijze [#a-typical-workflow]
+
+1. Start je gebruikelijke programmeeragent in een Zshell-terminal.
+2. Vraag om een afgebakende taak te delegeren, iets op de achtergrond uit te voeren of een andere agent te coördineren.
+3. Werk verder in je huidige deelvenster terwijl Zshell het gedelegeerde werk zichtbaar houdt in de projectindeling.
+4. Volg een door de aanbieder gemelde badge **Bezig**, **Geblokkeerd** of **Klaar** als die beschikbaar is. Als de tool geen levenscyclus meldt, open je het deelvenster om het gesprek of de terminaluitvoer te bekijken.
+5. Beoordeel de gewijzigde bestanden in het [Git-paneel](/nl/docs/git), inspecteer de diff en beslis wat je wilt behouden.
+
+## Jij houdt de controle [#you-stay-in-control]
+
+- Agentautomatisering blijft binnen het huidige Zshell-project en kan geen deelvensters in een ander project of venster bereiken.
+- Achtergrondwerk neemt de focus niet over tenzij je daar uitdrukkelijk om vraagt.
+- Zshell beantwoordt nooit verzoeken om toestemming, inloggegevens, vertrouwen of destructieve acties voor je. Als de aanbieder meldt dat een agent geblokkeerd is, komt de beslissing bij jou terug.
+- Een gemelde voltooiing is een signaal om het resultaat te beoordelen, geen automatische goedkeuring van de wijzigingen van de agent.
+
+## Als een agent Zshell niet gebruikt [#if-an-agent-does-not-use-zshell]
+
+- Controleer of **Instellingen → Automatisering → AI** aanstaat.
+- Open een nieuwe Zshell-terminal als de huidige al bestond voordat je de instelling inschakelde.
+- Herstart een agent die al draaide bij het inschakelen.
+- Controleer Instellingen op een foutmelding bij de configuratie.
+- Vraag expliciet om een “Zshell-achtergronddeelvenster” of een “gedelegeerde Zshell-agent” als je wilt dat de agent deze werkwijze gebruikt.

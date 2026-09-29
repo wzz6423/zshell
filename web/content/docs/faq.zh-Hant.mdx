@@ -1,0 +1,69 @@
+---
+title: 常見問題
+description: 關於費用、隱私，以及 Zshell 和你的 shell 是什麼關係。
+---
+
+<Accordions>
+
+<Accordion title="Zshell 免費嗎？">
+
+是的。免費下載，原始碼基於 PolyForm Noncommercial License 1.0.0 公開，不需要帳號，也沒有訂閱。
+
+</Accordion>
+
+<Accordion title="它會替換我的 shell 嗎？">
+
+不會。Zshell 執行的就是你已經在用的 shell——它啟動 `$SHELL -l`，不碰你的提示符、別名、函式和
+dotfiles。終端機窗格可以選擇 Ghostty 或 Alacritty 作為後端。
+
+</Accordion>
+
+<Accordion title="它會收集資料嗎？">
+
+沒有遙測，也沒有分析統計。檢查更新時會查詢網絡出口 IP 的國家碼，以選擇 GitHub 或 Gitee，再獲取發佈 feed。在**設定 → 更新**中關閉自動檢查，就會停止這些後台請求；手動檢查仍會發起請求。詳見[更新說明](/zh-Hant/docs/installation#updates)。推薦頁面打開時也會查詢工具版本。
+
+你在[瀏覽器窗格](/zh-Hant/docs/browser)裡打開的網頁，以及自己執行的 agent CLI，會像在 Zshell 外面一樣發起你要求的網絡請求。
+
+</Accordion>
+
+<Accordion title="它會讀我的 Ghostty 或 Alacritty 配置嗎？">
+
+不會。後端、字型、配色和輸入行為都來自 Zshell 自己的[設定](/zh-Hant/docs/configuration)，兩個終端機應用的配置檔案都不會載入。
+
+</Accordion>
+
+<Accordion title="退出之後我的工作階段會怎樣？">
+
+專案、分頁和窗格佈局會在重新啟動後回來，每個終端機會在原目錄裡以全新的 shell 打開。退出之後不會有任何東西繼續在後台跑。
+
+如果你打開 [`terminal.restore-history`](/zh-Hant/docs/configuration#terminalrestore-history)，之前的捲動歷史也會回來——它以靜態文本的形式出現在 `Session Contents Restored` 分隔線上方。
+
+</Accordion>
+
+<Accordion title="這是一個 IDE 嗎？">
+
+不是，也不打算往那個方向走。終端機始終是核心。git 和檔案面板的存在，是為了讓你不切換應用就能審閱並提交終端機裡完成的工作——而不是變成你主要的工作場所。
+
+</Accordion>
+
+<Accordion title="為什麼有個對話框問我某個程式能不能讀剪貼簿？">
+
+因為確實有程式在問。`OSC 52` 轉義序列允許終端機程式讀取系統剪貼簿，包括通過 SSH 跑在遠端主機上的程式。Zshell 會先跟你確認，而不是悄悄交出去——這和 Ghostty 的預設行為一致。
+
+</Accordion>
+
+<Accordion title="能和 AI 編碼工具一起用嗎？">
+
+可以，AI 集成預設啟用。直接用自然語言讓受支持的 agent 在後台窗格執行任務，或把範圍明確的工作交給另一個 agent。不同 Zshell 窗格裡的 agent 還可以互相詢問、傳遞發現和補充要求，不再需要你來回複製上下文。Zshell 會顯示 provider 報告的 working、blocked 和完成狀態，不會根據終端機文字猜測；批准與最終 diff 仍由你決定。見[與 AI Agent 協作](/zh-Hant/docs/automation)。
+
+當然也可以把 agent 當作普通終端機程式使用：在 [Git 面板](/zh-Hant/docs/git)裡審閱它的 diff，在旁邊讀檔案，然後只暫存真正想要的部分。
+
+</Accordion>
+
+<Accordion title="在哪裡報告 bug？">
+
+在 [GitHub](https://github.com/wzz6423/zshell/issues) 上開一個 issue。寫清 macOS 版本，以及出問題時你在做什麼，通常就夠排查了。
+
+</Accordion>
+
+</Accordions>

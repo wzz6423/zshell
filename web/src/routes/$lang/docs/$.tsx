@@ -1,6 +1,6 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, redirect, notFound } from '@tanstack/react-router'
 import { DocsShell, docsClientLoader } from '@/components/docs-shell'
-import { DEFAULT_LANGUAGE } from '@/lib/i18n'
+import { DEFAULT_LANGUAGE, isLanguage, language } from '@/lib/i18n'
 import { loadDocsPage } from '@/lib/docs-loader'
 
 /** Non-default docs, e.g. `/en/docs/git`. Chinese is unprefixed — see `/docs/$`. */
@@ -9,7 +9,8 @@ export const Route = createFileRoute('/$lang/docs/$')({
   beforeLoad: ({ params }) => {
     // Chinese is served without a prefix, so `/zh/docs/…` would otherwise be a
     // second URL for a page that already lives at `/docs/…`.
-    if (params.lang === DEFAULT_LANGUAGE) {
+    if (!isLanguage(params.lang)) throw notFound()
+    if (language(params.lang) === DEFAULT_LANGUAGE) {
       throw redirect({
         to: '/docs/$',
         params: { _splat: params._splat ?? '' },
@@ -25,9 +26,7 @@ export const Route = createFileRoute('/$lang/docs/$')({
     await docsClientLoader.preload(data.path)
     return data
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData?.meta ?? [],
-  }),
+  head: ({ loaderData }) => loaderData?.head ?? {},
 })
 
 function Page() {

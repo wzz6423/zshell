@@ -1,0 +1,67 @@
+---
+title: Berkas dan editor
+description: Temukan berkas lintas proyek, cari isinya, edit kode, dan pratinjau Markdown di samping terminal.
+---
+
+Tekan <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> untuk pohon berkas. Seperti panel Git, akarnya adalah [direktori proyek](/id/docs/projects#the-project-directory), sehingga tidak berubah setiap kali Anda menjalankan `cd`.
+
+## Pohon berkas [#the-tree]
+
+Klik berkas untuk membukanya dalam panel aktif. Klik kanan untuk tindakan lainnya:
+
+| Item | Kegunaan |
+| --- | --- |
+| **Buka (Open)** / **Buka di Samping (Open to the Side)** | Buka dalam panel ini atau panel terbagi baru |
+| **Buka di Aplikasi Bawaan (Open in Default App)** | Serahkan ke aplikasi yang ditetapkan macOS |
+| **Tampilkan di Finder (Reveal in Finder)** | |
+| **Salin Jalur (Copy Path)** | Jalur absolut |
+| **cd di Sini (cd Here)** | Jalankan `cd <folder>` dalam terminal aktif |
+| **Berkas Baru… (New File…)** / **Folder Baru… (New Folder…)** | Buat di dalam folder yang dipilih |
+| **Ubah Nama (Rename)** | |
+| **Pindahkan ke Tong Sampah (Move to Trash)** | Masukkan ke Tong Sampah, bukan hapus permanen |
+
+Baris memakai ikon Material sesuai nama berkas. Dalam repositori Git, jalur yang berubah memakai warna dan lencana status, sedangkan berkas yang diabaikan diredupkan. Pohon menampilkan keadaan pohon kerja yang sama dengan panel Git tanpa harus membukanya.
+
+## Cari berkas dan isi [#find-files-and-search-contents]
+
+Palet perintah (<kbd>Cmd</kbd>+<kbd>P</kbd>) menemukan berkas menurut nama atau jalur di proyek lokal yang terbuka pada jendela saat ini, bersama perintah dan sesi terbuka. Memilih berkas berpindah ke proyeknya dan membukanya di sana.
+
+Untuk mencari teks dalam berkas, klik kaca pembesar di panel Berkas atau pilih **Cari Isi Berkas (Search File Contents)** dalam palet perintah.
+Masukkan teks dan tekan <kbd>Return</kbd> untuk mencari dalam direktori proyek lokal saat ini. Gunakan **Aa** untuk membedakan huruf besar-kecil, lalu buka hasil untuk menuju baris yang cocok di editor.
+
+Pencarian isi mencocokkan teks literal, melewati berkas biner serta folder dependensi dan build yang umum, lalu berhenti pada 2.000 kecocokan.
+Anda dapat menghentikan pencarian sambil mempertahankan hasilnya, atau menutup pencarian untuk kembali ke pohon berkas. Proyek SSH tidak disertakan dalam pencarian berkas lokal ini.
+
+## Editor [#the-editor]
+
+Membuka berkas menghadirkan editor sungguhan dalam panel, dengan penyorotan sintaks.
+
+| Tindakan | Pintasan |
+| --- | --- |
+| Simpan | <kbd>Cmd</kbd>+<kbd>S</kbd> |
+| Cari | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Cari dan ganti | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Cari berikutnya | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+Baris panjang dibungkus sesuai lebar panel secara bawaan. Nonaktifkan [`editor.wrap-lines`](/id/docs/configuration#editorwrap-lines) untuk menggulir secara horizontal.
+
+Mengganti nama berkas di pohon memperbarui semua panel yang membukanya, termasuk berkas di dalam folder yang diganti namanya.
+
+Jika program lain mengubah berkas terbuka, Zshell memperbarui pratinjau yang tidak memiliki perubahan saat aplikasi aktif kembali. Buffer editor dengan perubahan belum tersimpan tidak pernah diganti.
+
+<Callout type="info">
+Editor ini untuk perubahan yang sedang Anda lihat: memperbaiki salah ketik, mengubah konstanta, atau membaca berkas yang dirujuk oleh diff. Tidak ada server bahasa, pelengkapan, atau refaktor seluruh proyek. Itu disengaja.
+</Callout>
+
+## Pratinjau Markdown [#markdown-preview]
+
+Buka berkas `.md` untuk membaca hasil render dalam panel yang sama. Klik **Edit** di kanan atas untuk mengubah sumber, lalu **Pratinjau (Preview)** untuk melihat hasilnya.
+Zshell mengingat mode pilihan Anda untuk berkas Markdown lain dan peluncuran berikutnya.
+
+Pergantian mode mempertahankan suntingan dan riwayat undo. Simpan seperti biasa dengan <kbd>Cmd</kbd>+<kbd>S</kbd>. Berkas Markdown berekstensi lain dibuka sebagai sumber.
+
+## Perbedaan [#diffs]
+
+Diff dari [panel Git](/id/docs/git) juga merupakan panel biasa, sehingga diff, berkas, dan terminal dapat berdampingan dalam satu tab.
+Tampilannya memakai font terminal, dan perubahan berisi seribu berkas terbuka secepat perubahan satu baris. Diff pohon kerja aktif yang belum di-stage juga dapat beralih dari Tinjau ke Edit; diff yang telah di-stage dan diff historis tetap hanya baca.
+Lihat [Membaca perbedaan](/id/docs/git#reading-diffs).

@@ -1,0 +1,41 @@
+---
+title: Paneles de navegador
+description: Abre sitios web junto a un terminal, navega con controles nativos y conserva los enlaces dentro del proyecto.
+---
+
+Zshell permite integrar un navegador en cualquier pestaña o panel dividido. Resulta útil para un servidor de desarrollo local, documentación de API, una incidencia o cualquier contenido que quieras tener junto al terminal que lo utiliza.
+
+## Abrir un navegador [#opening-a-browser]
+
+- Elige **Archivo → Nueva pestaña de navegador** para abrir una pestaña vacía.
+- Abre la paleta de comandos (<kbd>Cmd</kbd>+<kbd>P</kbd>) y ejecuta **Nueva pestaña de navegador** o **Nuevo panel de navegador**.
+- Haz clic derecho con Command pulsado sobre una URL detectada en un terminal y elige **Nueva pestaña de navegador** o **Nuevo panel de navegador** para abrirla sin copiar la dirección.
+
+Las pestañas de navegador pertenecen al proyecto seleccionado y forman parte de su disposición normal de pestañas y paneles. Si no hay un proyecto abierto, Zshell crea uno para alojar el navegador.
+
+## Dirección y búsqueda [#address-and-search]
+
+El campo superior acepta una URL completa, un nombre de host o términos de búsqueda:
+
+- `zshell.sh` se convierte en una dirección HTTPS.
+- `localhost`, los nombres de host locales, las direcciones IP y los puertos explícitos usan HTTP.
+- El resto se convierte en una búsqueda en Google.
+
+Usa <kbd>Cmd</kbd>+<kbd>L</kbd> para enfocar el campo y <kbd>Cmd</kbd>+<kbd>R</kbd> para recargar. La barra de herramientas también incluye Atrás, Adelante, Detener/Recargar, Compartir y **Abrir en el navegador predeterminado**. También funcionan los gestos de avanzar y retroceder del trackpad.
+
+| Acción | Atajo |
+| --- | --- |
+| Enfocar barra de direcciones | <kbd>Cmd</kbd>+<kbd>L</kbd> |
+| Recargar página | <kbd>Cmd</kbd>+<kbd>R</kbd> |
+
+## Abrir enlaces donde quieras [#opening-links-where-you-want-them]
+
+Haz clic derecho en un enlace de una página para elegir **Abrir enlace en una pestaña nueva** o **Abrir enlace en un panel nuevo**. La página nueva permanece en el espacio de trabajo del mismo proyecto.
+
+En un terminal, un clic normal con Command abre una URL web detectada en el navegador predeterminado. El clic derecho con Command ofrece una pestaña o panel de Zshell. Las rutas locales tienen un flujo equivalente, descrito en [Rutas y URL](/es/docs/terminal#paths-and-urls).
+
+## Qué se conserva [#what-is-preserved]
+
+Al cambiar de pestaña o proyecto, la página permanece como la dejaste, incluido el historial, la posición de desplazamiento, los formularios y el estado interno de la página. Cuando Zshell vuelve a iniciarse, restaura la URL actual y la disposición, pero no todo el historial de navegación.
+
+Los paneles de navegador conservan las cookies, las sesiones iniciadas y otros datos de los sitios entre pestañas y reinicios. No es un modo de navegación privada.

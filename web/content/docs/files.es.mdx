@@ -1,0 +1,62 @@
+---
+title: Archivos y editor
+description: Busca archivos entre proyectos, encuentra texto en su contenido, edita código y previsualiza Markdown junto al terminal.
+---
+
+Pulsa <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> para abrir el árbol de archivos. Al igual que el panel de Git, tiene su raíz en [el directorio del proyecto](/es/docs/projects#the-project-directory), por lo que no cambia de raíz cada vez que ejecutas `cd`.
+
+## El árbol [#the-tree]
+
+Haz clic en un archivo para abrirlo en el panel con el foco. Haz clic derecho para acceder al resto de opciones:
+
+| Opción | Qué hace |
+| --- | --- |
+| **Abrir** / **Abrir al lado** | Abre aquí o en una nueva división |
+| **Abrir con la aplicación predeterminada** | Lo abre con la aplicación que macOS tenga asociada |
+| **Mostrar en Finder** | |
+| **Copiar ruta** | Copia la ruta absoluta |
+| **cd aquí** | Ejecuta `cd <folder>` en el terminal con el foco |
+| **Nuevo archivo…** / **Nueva carpeta…** | Crea un elemento dentro de la carpeta seleccionada |
+| **Renombrar** | |
+| **Mover a la papelera** | Lo envía a la papelera; no lo elimina definitivamente |
+
+Las filas usan iconos de Material según el nombre del archivo. Dentro de un repositorio Git, las rutas modificadas también muestran colores e indicadores de estado, y los archivos ignorados aparecen atenuados. Así, el árbol muestra el mismo estado del árbol de trabajo que el panel de Git sin necesidad de abrirlo.
+
+## Buscar archivos y contenido [#find-files-and-search-contents]
+
+La paleta de comandos (<kbd>Cmd</kbd>+<kbd>P</kbd>) busca archivos por nombre o ruta en los proyectos locales abiertos en la ventana actual, además de comandos y sesiones abiertas. Al seleccionar un archivo, cambia a su proyecto y lo abre allí.
+
+Para buscar texto dentro de los archivos, haz clic en la lupa del panel Archivos o elige **Buscar en el contenido de archivos** en la paleta de comandos. Introduce texto y pulsa <kbd>Return</kbd> para buscar en el directorio del proyecto local actual. Usa **Aa** para distinguir mayúsculas y minúsculas, y abre un resultado para ir a la línea correspondiente en el editor.
+
+La búsqueda de contenido encuentra texto literal, omite archivos binarios y las carpetas habituales de dependencias y compilación, y se detiene al llegar a 2000 coincidencias. Puedes detener una búsqueda en curso conservando sus resultados o cerrarla para volver al árbol de archivos. Los proyectos SSH quedan fuera de estas búsquedas locales.
+
+## El editor [#the-editor]
+
+Al abrir un archivo obtienes un editor real en un panel, con resaltado de sintaxis.
+
+| Acción | Atajo |
+| --- | --- |
+| Guardar | <kbd>Cmd</kbd>+<kbd>S</kbd> |
+| Buscar | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Buscar y reemplazar | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Buscar siguiente | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+Las líneas largas se ajustan al ancho del panel de forma predeterminada. Desactiva [`editor.wrap-lines`](/es/docs/configuration#editorwrap-lines) para desplazarte horizontalmente.
+
+Renombrar un archivo en el árbol actualiza cualquier panel que lo tenga abierto, incluidos los archivos dentro de una carpeta renombrada.
+
+Si otro programa modifica un archivo abierto, Zshell actualiza la vista sin cambios pendientes cuando la aplicación vuelve a estar activa. Nunca sustituye el contenido de un editor con cambios sin guardar.
+
+<Callout type="info">
+Este editor sirve para el cambio que ya estás revisando: corregir una errata, ajustar una constante o leer un archivo mencionado en las diferencias. No tiene servidor de lenguaje, autocompletado ni refactorización de todo el proyecto. Es una decisión deliberada.
+</Callout>
+
+## Vista previa de Markdown [#markdown-preview]
+
+Abre un archivo `.md` para leer su vista previa renderizada en el mismo panel. Haz clic en **Editar**, en la esquina superior derecha, para trabajar con el código fuente y después en **Vista previa** para ver el resultado. Zshell recuerda el modo que prefieres para otros archivos Markdown y para el siguiente inicio.
+
+Cambiar de modo conserva tus ediciones y el historial de deshacer. Guarda los cambios con <kbd>Cmd</kbd>+<kbd>S</kbd>, como siempre. Los archivos Markdown con otras extensiones se abren como código fuente.
+
+## Diferencias [#diffs]
+
+Una vista de diferencias abierta desde [el panel de Git](/es/docs/git) es otro panel más, por lo que puedes tener unas diferencias, un archivo y un terminal juntos en una pestaña. Utiliza la fuente del terminal, y un conjunto de cambios de mil archivos se abre tan rápido como uno de una línea. Las diferencias actuales y sin preparar del árbol de trabajo también permiten pasar de Revisar a Editar; las diferencias preparadas e históricas siguen siendo de solo lectura. Consulta [Leer diferencias](/es/docs/git#reading-diffs).

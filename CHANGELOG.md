@@ -16,6 +16,11 @@ the original feature bullet instead of adding separate entries for them.
 
 ## [Unreleased]
 
+### Added
+
+- Offer 17 languages in the macOS app and website, with in-app language changes
+  keeping active terminal sessions running.
+
 ## [0.1.7]
 
 ### Added

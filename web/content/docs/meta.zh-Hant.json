@@ -1,0 +1,23 @@
+{
+  "title": "文件",
+  "pages": [
+    "---入門---",
+    "index",
+    "installation",
+    "quick-start",
+    "---使用 Zshell---",
+    "projects",
+    "panes",
+    "terminal",
+    "quick-launch",
+    "browser",
+    "git",
+    "files",
+    "session-info",
+    "automation",
+    "---參考---",
+    "shortcuts",
+    "configuration",
+    "faq"
+  ]
+}

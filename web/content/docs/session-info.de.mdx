@@ -1,0 +1,37 @@
+---
+title: Prozesse und Ports
+description: Sehen, was in einer Sitzung tatsächlich läuft und welche Ports geöffnet sind.
+---
+
+Drücken Sie <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>. Der Informationsbereich beschreibt die **fokussierte Sitzung**, nicht das ganze Projekt, und aktualisiert sich beim Starten und Beenden von Prozessen.
+
+## Verzeichnisse [#directory]
+
+Die Verzeichnisse werden getrennt dargestellt, weil sie nicht immer übereinstimmen:
+
+- **Aktuelles Verzeichnis**: das momentane Arbeitsverzeichnis der Shell; sichtbar, wenn es vom folgenden Verzeichnis abweicht.
+- **Projektverzeichnis**: der Ordner, auf den Datei- und Git-Bereich ausgerichtet sind. Bei automatischer Ermittlung steht daneben `(AUTO)`. Das `?` erklärt beide Angaben.
+
+Daneben können Sie den Ordner im **Finder** anzeigen, ihn in **VS Code** öffnen, sofern installiert, oder seinen Pfad **kopieren**.
+
+## Prozesse [#processes]
+
+Angezeigt werden die Prozesse unterhalb der Sitzungsshell mit PID, CPU-Auslastung in Prozent und residentem Speicher. Das Kontextmenü bietet:
+
+- **Beenden**: normales Beenden mit `SIGTERM`.
+- **Sofort beenden**: `SIGKILL`, wenn ein Prozess nicht reagiert.
+- **PID kopieren** oder **Pfad der ausführbaren Datei kopieren**.
+
+Bereits beendete Kindprozesse, die noch auf ihre Übernahme warten (`<defunct>`), werden ausgeblendet. Bei ihnen gibt es keine Ausgabe mehr zu prüfen und keinen laufenden Prozess zu beenden.
+
+## Ports [#ports]
+
+Hier stehen die TCP-Ports, auf denen diese Prozesse lauschen, mit dem jeweils zugehörigen Prozess. So finden Sie etwa den Port des Entwicklungsservers oder das Programm, das Port 3000 noch belegt.
+
+- Klicken Sie einen Port an, um `http://localhost:<port>/` im Browser zu öffnen.
+- **URL kopieren** kopiert die Adresse.
+- **Prozess beenden** beendet ein vergessenes Programm, das den Port weiterhin belegt.
+
+<Callout type="info">
+Die Liste wird aktualisiert, solange der Bereich geöffnet ist. Im ausgeblendeten Zustand pausiert die Aktualisierung.
+</Callout>

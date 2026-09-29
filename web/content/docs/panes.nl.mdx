@@ -1,0 +1,50 @@
+---
+title: Splitsingen en deelvensters
+description: Verdeel een tabblad in deelvensters, wissel ertussen, pas hun grootte aan en vergroot één tot het hele tabblad.
+---
+
+Elk tabblad kan in deelvensters worden gesplitst. Een deelvenster bevat meestal een terminal, maar kan ook een bestand, diff of [browser](/nl/docs/browser) bevatten. Zo staat wat je leest naast de shell die het heeft voortgebracht.
+
+## Splitsen [#splitting]
+
+| Actie | Sneltoets |
+| --- | --- |
+| Naar rechts splitsen | <kbd>Cmd</kbd>+<kbd>D</kbd> |
+| Naar beneden splitsen | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> |
+| Naar links splitsen | — |
+| Naar boven splitsen | — |
+
+Naar links en boven splitsen heeft geen standaardsneltoets. Gebruik daarvoor het menu **Tabbladen**, het opdrachtenpalet (<kbd>Cmd</kbd>+<kbd>P</kbd>) of het contextmenu van het deelvenster. Het nieuwe deelvenster neemt de werkmap van het deelvenster met focus over.
+
+Splitsen verdeelt altijd het **deelvenster met focus**, ook binnen een geneste indeling. De grootte van een ander buurvenster verandert niet. Elk deelvenster krijgt een kleine actuele titel en splitsingsknoppen in de kop, zodat de lokale context zichtbaar blijft.
+
+Je kunt geopende deelvensters verplaatsen: pak de dunne strook bovenaan een deelvenster en sleep die naar de rand van een ander. Het doelvenster toont vóór het loslaten in welke helft het terechtkomt.
+
+Je kunt ook een heel tabblad in een deelvenster veranderen. Sleep het tabblad uit de bovenste balk naar de linker-, rechter-, boven- of onderrand van de inhoud van het huidige tabblad. Het voorbeeld toont de resulterende splitsing voordat je loslaat.
+
+## Tussen deelvensters wisselen [#moving-between-panes]
+
+| Actie | Sneltoets |
+| --- | --- |
+| Focus naar links / rechts / boven / beneden | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+pijltoetsen |
+| Focus achteruit / vooruit doorlopen | <kbd>Cmd</kbd>+<kbd>[</kbd> / <kbd>Cmd</kbd>+<kbd>]</kbd> |
+
+## Vergroten en formaat wijzigen [#zoom-and-resize]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> vergroot het deelvenster met focus tot het hele tabblad. Nogmaals drukken herstelt de indeling. De tabbladkop toont tijdens het vergroten ook een knop, zodat je altijd zonder sneltoets terug kunt.
+
+| Actie | Sneltoets |
+| --- | --- |
+| Deelvenster vergroten / herstellen | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> |
+| Deelvenster in een richting vergroten | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+pijltoetsen |
+| Alle deelvensters even groot maken | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+<kbd>=</kbd> |
+
+Je kunt ook de scheidingslijnen tussen deelvensters verslepen.
+
+## Sluiten [#closing]
+
+<kbd>Cmd</kbd>+<kbd>W</kbd> sluit het deelvenster met focus. Als je het laatste deelvenster in een tabblad sluit, wordt het tabblad ook gesloten.
+
+<Callout type="warn">
+Een terminaldeelvenster sluiten beëindigt de shell die erin draait, samen met alles wat die heeft gestart. Zshell vraagt dit niet vooraf, net als bij het sluiten van een gewone terminal.
+</Callout>

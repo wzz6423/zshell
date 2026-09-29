@@ -1,0 +1,50 @@
+---
+title: Divisões e painéis
+description: Divida uma aba em painéis, alterne entre eles, redimensione e amplie um painel.
+---
+
+Qualquer aba pode ser dividida em painéis. Um painel normalmente contém um terminal, mas também pode conter um arquivo, diff ou [navegador](/pt-BR/docs/browser): assim, o conteúdo que você lê fica ao lado do shell que o produziu.
+
+## Dividir [#splitting]
+
+| Ação | Atalho |
+| --- | --- |
+| Dividir à direita | <kbd>Cmd</kbd>+<kbd>D</kbd> |
+| Dividir abaixo | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> |
+| Dividir à esquerda | — |
+| Dividir acima | — |
+
+Dividir à esquerda e acima não tem atalho padrão. Use o menu **Abas**, a paleta de comandos (<kbd>Cmd</kbd>+<kbd>P</kbd>) ou o menu de contexto do painel. O novo painel herda o diretório de trabalho do painel em foco.
+
+A divisão sempre afeta o **painel em foco**, mesmo em um layout aninhado. Ela não redimensiona um vizinho sem relação. Cada painel tem um pequeno título atualizado e controles de divisão no cabeçalho para manter seu contexto visível.
+
+Para reorganizar painéis abertos, arraste a faixa fina no topo de um painel até a borda de outro. O destino mostra em qual metade ele ficará antes de você soltar.
+
+Também é possível transformar uma aba inteira em painel. Arraste a aba da faixa superior até a borda esquerda, direita, superior ou inferior do conteúdo da aba atual. A prévia mostra a divisão resultante antes de soltar.
+
+## Alternar entre painéis [#moving-between-panes]
+
+| Ação | Atalho |
+| --- | --- |
+| Focar o painel à esquerda / direita / acima / abaixo | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+setas |
+| Alternar o foco para trás / para frente | <kbd>Cmd</kbd>+<kbd>[</kbd> / <kbd>Cmd</kbd>+<kbd>]</kbd> |
+
+## Ampliar e redimensionar [#zoom-and-resize]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> amplia o painel em foco para preencher a aba; pressione novamente para restaurá-lo. O cabeçalho da aba mostra um botão enquanto um painel está ampliado, oferecendo uma saída além do atalho.
+
+| Ação | Atalho |
+| --- | --- |
+| Alternar ampliação do painel | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> |
+| Aumentar o painel em uma direção | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+setas |
+| Igualar todos os painéis | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+<kbd>=</kbd> |
+
+As divisórias entre painéis também podem ser arrastadas.
+
+## Fechar [#closing]
+
+<kbd>Cmd</kbd>+<kbd>W</kbd> fecha o painel em foco. Fechar o último painel de uma aba também fecha a aba.
+
+<Callout type="warn">
+Fechar um painel de terminal encerra seu shell e tudo o que ele iniciou. O Zshell não pede confirmação: funciona como fechar um terminal em qualquer outro lugar.
+</Callout>

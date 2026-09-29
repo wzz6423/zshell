@@ -1,0 +1,81 @@
+---
+title: Mit KI-Agenten arbeiten
+description: Programmieragenten Aufgaben delegieren und über Zshell-Bereiche koordinieren lassen, während Sie die Kontrolle behalten.
+---
+
+Zshells Automatisierung richtet sich vor allem an KI-Programmieragenten. Sie bietet ihnen einen sicheren Weg, Bereiche zu verwalten und andere Agenten zu koordinieren. Dafür müssen Sie keine weitere Befehlssprache lernen.
+
+Die KI-Integration ist standardmäßig aktiviert. Sprechen Sie wie gewohnt mit Ihrem Agenten. Er kann einen Hintergrundbereich anlegen, einen weiteren Agenten starten, einen Befehl ausführen, auf das Ergebnis warten und Ihnen die Antwort zurückbringen, ohne Ihrem aktuellen Bereich den Fokus zu nehmen.
+
+## Einrichtung [#setup]
+
+Prüfen Sie **Einstellungen → Automatisierung → KI**. Die Option ist standardmäßig aktiv. Falls Sie sie zuvor deaktiviert haben, aktivieren Sie sie erneut und öffnen Sie ein neues Terminal oder starten Sie einen bereits laufenden Agenten neu.
+
+Zshell unterstützt Codex, Claude Code, Gemini CLI, Grok Build, OpenCode, Cursor Agent, Aider, Amp und Pi. Entdeckt es eine bestehende Agentenkonfiguration, die mit der Funktion kollidiert, lässt es diese unverändert, setzt den Schalter auf seinen vorherigen Zustand zurück und zeigt den Fehler in den Einstellungen.
+
+## In normaler Sprache fragen [#ask-in-plain-language]
+
+Beschreiben Sie Ihrem Agenten das gewünschte Ergebnis, zum Beispiel:
+
+> Führe die relevanten Tests in einem Hintergrundbereich aus und sage mir, welche fehlschlagen.
+
+> Delegiere diesen Fehler an einen anderen Codex-Agenten und prüfe anschließend sein Ergebnis.
+
+> Frage den Agenten an der API, ob das Schema fertig ist, und gib seine Antwort an den Agenten weiter, der die Tests ausführt.
+
+> Starte den Entwicklungsserver neben uns, warte auf seine Bereitschaft und gib mir die URL.
+
+> Prüfe, ob der Hintergrundagent fertig ist. Falls er blockiert ist, sage mir, was er braucht.
+
+Der Agent bedient Zshells Automatisierungsschnittstelle für Sie. Sie müssen keine Automatisierungsbefehle eingeben oder auswendig lernen.
+
+## Agenten über Bereiche hinweg koordinieren [#let-agents-coordinate-across-panes]
+
+Verteilen Sie zusammengehörige Arbeit auf mehrere Zshell-Bereiche und bitten Sie Ihren Hauptagenten, sie zu koordinieren. Ein Agent kann beispielsweise an einer API arbeiten, während ein anderer die Tests aktualisiert. Der koordinierende Agent fragt gezielt nach Ergebnissen, sendet Folgeaufgaben, reicht relevante Informationen weiter und bringt Ihnen die gemeinsame Antwort. Die Beteiligten können unterschiedliche unterstützte Programmierwerkzeuge verwenden.
+
+Dadurch entfällt das Kopieren und Einfügen von Kontext bei paralleler Arbeit. Jeder Agent behält seine eigene Unterhaltung in seinem Bereich. Der koordinierende Agent gibt nur die Frage, den Zwischenstand oder das Ergebnis weiter, das der andere benötigt.
+
+Eine gesendete Folgeaufgabe bedeutet noch keinen Abschluss. Der koordinierende Agent wartet weiterhin auf das Ergebnis, liest es und prüft die Wirkung. Eine Nachricht eines anderen Agenten gilt niemals als Ihre Freigabe. Berechtigungen, Zugangsdaten, Vertrauensentscheidungen und destruktive Aktionen bleiben Ihre Entscheidung.
+
+## Währenddessen weiterarbeiten [#keep-working-while-it-runs]
+
+Delegierte Bereiche bleiben im Hintergrund, bis Sie sie sehen möchten. Meldet die native Lebenszyklusintegration des Anbieters einen Zustand, zeigt Zshell ihn am Bereich und Tab des Agenten:
+
+| Zustand | Bedeutung |
+| --- | --- |
+| **Arbeitet** | Der Agent bearbeitet die Aufgabe. |
+| **Blockiert** | Er benötigt eine Eingabe, Freigabe oder andere Entscheidung von Ihnen. |
+| **Fertig** | Er hat die Arbeit im Hintergrund beendet; Sie haben seinen Bereich noch nicht angesehen. |
+
+Einen von Zshell gesendeten Prompt erfasst es als **Arbeitet**. Es durchsucht jedoch keinen gerenderten Terminaltext, um den weiteren Verlauf zu erraten. Wechsel zu **Blockiert** und **Fertig** sowie entsprechende Mitteilungen benötigen eine Lebenszyklusmeldung des Anbieters. Liefert ein Agent keine solche Meldung, prüfen Sie seinen Bereich und die entstandenen Projektänderungen direkt.
+
+Meldet eine Integration den Abschluss oder benötigte Eingaben, kann Zshell zusätzlich eine Mitteilung senden. <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> springt zum nächsten gemeldeten Agenten, der Ihre Aufmerksamkeit braucht.
+
+## Kontonutzung und Limits [#account-usage-and-limits]
+
+**Einstellungen → Automatisierung → Kontonutzung** zeigt verfügbare Kontolimits für Claude Code und Codex: verbrauchten Anteil, gegebenenfalls gemeldete Rücksetzzeit und Zeitpunkt der letzten Aktualisierung. **Nutzung aktualisieren** lädt die neuesten verfügbaren Daten.
+
+Codex benötigt eine installierte, angemeldete CLI, die Kontolimits melden kann. Die Claude-Code-Nutzung erscheint, sobald Zshell einen Nutzungsbericht aus der Statuszeile des Anbieters erhalten hat. Der Abschnitt erscheint nur bei verfügbaren Daten. Unterstützte Zeitfenster hängen von Anbieter und Konto ab. Es handelt sich um Kontolimits, nicht um die Token-Summe der fokussierten Sitzung.
+
+## Ein typischer Ablauf [#a-typical-workflow]
+
+1. Starten Sie Ihren üblichen Programmieragenten in einem Zshell-Terminal.
+2. Bitten Sie ihn, eine begrenzte Aufgabe zu delegieren, etwas im Hintergrund auszuführen oder einen anderen Agenten zu koordinieren.
+3. Arbeiten Sie in Ihrem aktuellen Bereich weiter. Zshell hält die delegierte Arbeit in der Projektanordnung sichtbar.
+4. Beachten Sie die vom Anbieter gemeldeten Markierungen **Arbeitet**, **Blockiert** oder **Fertig**, sofern verfügbar. Ohne Lebenszyklusmeldungen öffnen Sie den Bereich und prüfen Unterhaltung oder Terminalausgabe direkt.
+5. Prüfen Sie die entstandenen Dateien und ihren Diff im [Git-Panel](/de/docs/git) und entscheiden Sie, was Sie übernehmen.
+
+## Sie behalten die Kontrolle [#you-stay-in-control]
+
+- Agentenautomatisierung bleibt im aktuellen Zshell-Projekt und erreicht keine Bereiche anderer Projekte oder Fenster.
+- Hintergrundarbeit übernimmt den Fokus nur auf Ihren ausdrücklichen Wunsch.
+- Zshell beantwortet keine Fragen zu Berechtigungen, Zugangsdaten, Vertrauen oder destruktiven Aktionen für Sie. Ein als blockiert gemeldeter Agent gibt diese Entscheidung an Sie zurück.
+- Ein gemeldeter Abschluss fordert zur Ergebnisprüfung auf; er genehmigt die Änderungen nicht automatisch.
+
+## Wenn ein Agent Zshell nicht verwendet [#if-an-agent-does-not-use-zshell]
+
+- Prüfen Sie, ob **Einstellungen → Automatisierung → KI** aktiviert ist.
+- Öffnen Sie ein neues Zshell-Terminal, falls das aktuelle bereits vor der Aktivierung existierte.
+- Starten Sie einen Agenten neu, der während der Aktivierung schon lief.
+- Prüfen Sie die Einstellungen auf einen direkt angezeigten Einrichtungsfehler.
+- Bitten Sie ausdrücklich um einen „Zshell-Hintergrundbereich“ oder einen „delegierten Zshell-Agenten“, wenn die Aufgabe diesen Ablauf nutzen soll.

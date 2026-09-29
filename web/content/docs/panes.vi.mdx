@@ -1,0 +1,50 @@
+---
+title: "Chia màn hình và các ô"
+description: "Chia tab thành nhiều ô, di chuyển, đổi kích thước và phóng lớn một ô."
+---
+
+Mọi tab đều chia được thành các ô. Ô thường chứa terminal nhưng cũng có thể chứa tệp, diff hoặc [trình duyệt](/vi/docs/browser), để nội dung bạn đọc nằm cạnh shell đã tạo ra nó.
+
+## Chia ô [#splitting]
+
+| Thao tác | Phím tắt |
+| --- | --- |
+| Chia sang phải | <kbd>Cmd</kbd>+<kbd>D</kbd> |
+| Chia xuống | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> |
+| Chia sang trái | — |
+| Chia lên | — |
+
+Chia trái và lên không có phím tắt mặc định; dùng menu **Tab**, bảng lệnh (<kbd>Cmd</kbd>+<kbd>P</kbd>) hoặc menu ngữ cảnh của ô. Ô mới kế thừa thư mục làm việc của ô đang có tiêu điểm.
+
+Thao tác luôn chia **ô đang có tiêu điểm**, kể cả trong bố cục lồng nhau; không đổi kích thước ô bên cạnh không liên quan. Mỗi ô có tiêu đề nhỏ cập nhật trực tiếp và nút chia ở đầu để giữ rõ ngữ cảnh riêng.
+
+Để sắp xếp lại ô đã mở, kéo dải mỏng trên cùng tới cạnh ô khác. Ô đích cho xem nửa nào sẽ nhận ô trước khi thả.
+
+Bạn cũng có thể biến cả tab thành ô. Kéo tab từ thanh trên tới cạnh trái, phải, trên hoặc dưới nội dung tab hiện tại. Bản xem trước cho thấy cách chia trước khi thả.
+
+## Di chuyển giữa các ô [#moving-between-panes]
+
+| Thao tác | Phím tắt |
+| --- | --- |
+| Chuyển tiêu điểm trái / phải / lên / xuống | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+phím mũi tên |
+| Chuyển tiêu điểm vòng lùi / tiến | <kbd>Cmd</kbd>+<kbd>[</kbd> / <kbd>Cmd</kbd>+<kbd>]</kbd> |
+
+## Phóng lớn và đổi kích thước [#zoom-and-resize]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> phóng ô đang có tiêu điểm đầy tab; nhấn lại để khôi phục. Khi phóng lớn, đầu tab có nút để bạn trở lại mà không cần phím tắt.
+
+| Thao tác | Phím tắt |
+| --- | --- |
+| Bật/tắt phóng lớn ô | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> |
+| Nới ô theo một hướng | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+phím mũi tên |
+| Chia đều mọi ô | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+<kbd>=</kbd> |
+
+Các vạch phân cách cũng kéo được.
+
+## Đóng [#closing]
+
+<kbd>Cmd</kbd>+<kbd>W</kbd> đóng ô có tiêu điểm. Đóng ô cuối cùng cũng đóng tab.
+
+<Callout type="warn">
+Đóng ô terminal chấm dứt shell và mọi thứ nó đã khởi chạy. Zshell không hỏi trước, giống như đóng terminal ở ứng dụng khác.
+</Callout>

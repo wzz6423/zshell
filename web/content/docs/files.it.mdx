@@ -1,0 +1,62 @@
+---
+title: File ed editor
+description: Trova file nei progetti, cerca nei contenuti, modifica codice e visualizza Markdown accanto al terminale.
+---
+
+Premi <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> per l'albero dei file. Come il pannello Git, usa la [directory del progetto](/it/docs/projects#the-project-directory) come radice e non la cambia a ogni `cd`.
+
+## L'albero [#the-tree]
+
+Fai clic su un file per aprirlo nel pannello attivo. Il clic destro offre il resto:
+
+| Voce | Funzione |
+| --- | --- |
+| **Apri** / **Apri a lato** | Nel pannello corrente o in una nuova divisione |
+| **Apri nell'app predefinita** | Usa l'app associata da macOS |
+| **Mostra nel Finder** | |
+| **Copia percorso** | Il percorso assoluto |
+| **cd qui** | Esegue `cd <folder>` nel terminale attivo |
+| **Nuovo file…** / **Nuova cartella…** | Crea nella cartella selezionata |
+| **Rinomina** | |
+| **Sposta nel Cestino** | Sposta nel Cestino senza eliminare definitivamente |
+
+Le righe usano icone Material in base al nome del file. Nei repository Git, i percorsi modificati mostrano anche colori e indicatori di stato, mentre i file ignorati sono attenuati. L'albero riflette così lo stesso worktree del pannello Git senza aprirlo.
+
+## Trovare file e cercare nei contenuti [#find-files-and-search-contents]
+
+La palette (<kbd>Cmd</kbd>+<kbd>P</kbd>) trova file per nome o percorso tra i progetti locali aperti nella finestra corrente, insieme a comandi e sessioni. Selezionare un file passa al suo progetto e lo apre lì.
+
+Per cercare testo nei file, fai clic sulla lente nel pannello File o scegli **Cerca contenuto dei file** nella palette. Inserisci il testo e premi <kbd>Return</kbd> per cercare nella directory del progetto locale corrente. **Aa** distingue maiuscole e minuscole; apri un risultato per raggiungere la riga corrispondente nell'editor.
+
+La ricerca usa testo letterale, salta binari e cartelle comuni di dipendenze e build, e si ferma a 2.000 corrispondenze. Puoi interromperla mantenendo i risultati o chiuderla per tornare all'albero. I progetti SSH sono esclusi dalle ricerche locali.
+
+## L'editor [#the-editor]
+
+Aprire un file offre un vero editor in un pannello, con evidenziazione della sintassi.
+
+| Azione | Scorciatoia |
+| --- | --- |
+| Salva | <kbd>Cmd</kbd>+<kbd>S</kbd> |
+| Trova | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Trova e sostituisci | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Trova successivo | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+Le righe lunghe vanno a capo alla larghezza del pannello. Disattiva [`editor.wrap-lines`](/it/docs/configuration#editorwrap-lines) per scorrere orizzontalmente.
+
+Rinominare un file nell'albero aggiorna tutti i pannelli che lo hanno aperto, anche per file contenuti in una cartella rinominata.
+
+Se un altro programma modifica un file aperto, Zshell aggiorna l'anteprima senza modifiche pendenti quando l'app torna attiva. Non sostituisce mai un buffer con modifiche non salvate.
+
+<Callout type="info">
+Questo editor serve alla modifica che stai già esaminando: correggere un refuso, cambiare una costante o leggere un file citato nel diff. Non include server di linguaggio, completamento o refactoring dell'intero progetto. È intenzionale.
+</Callout>
+
+## Anteprima Markdown [#markdown-preview]
+
+Apri un file `.md` per leggerne l'anteprima renderizzata nello stesso pannello. Fai clic su **Modifica** in alto a destra per lavorare sul sorgente, poi su **Anteprima** per vedere il risultato. Zshell ricorda la modalità preferita per gli altri file Markdown e per il prossimo avvio.
+
+Cambiare modalità conserva modifiche e cronologia di annullamento. Salva con <kbd>Cmd</kbd>+<kbd>S</kbd> come al solito. I file Markdown con altre estensioni si aprono come sorgente.
+
+## Diff [#diffs]
+
+Un diff aperto dal [pannello Git](/it/docs/git) è un altro pannello: diff, file e terminale possono stare affiancati nella stessa scheda. Usa il font del terminale, e un insieme di modifiche con mille file si apre velocemente quanto uno di una riga. I diff correnti non in staging possono passare da Revisione a Modifica; quelli in staging e storici restano in sola lettura. Vedi [Leggere i diff](/it/docs/git#reading-diffs).

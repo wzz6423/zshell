@@ -1,0 +1,42 @@
+---
+title: Peluncuran Cepat
+description: Simpan perintah dan koneksi SSH yang sering digunakan, lalu jalankan dengan satu pintasan.
+---
+
+<kbd>Cmd</kbd>+<kbd>O</kbd> membuka **Peluncuran Cepat (Quick Launch)**: daftar entri yang dapat dicari, masing-masing membuka proyek baru dengan sesi terminal.
+Entri tersimpan berupa **perintah**, misalnya `npm run dev` atau `make watch`, atau **koneksi SSH**.
+
+## Meluncurkan [#launching]
+
+Ketik nama, perintah, target koneksi, atau grup untuk menyaring daftar dengan pencocokan samar.
+Klik baris, atau pilih dengan tombol panah dan tekan <kbd>Return</kbd>.
+Entri berjalan dalam proyek baru bernama sesuai entri, dengan sesi terminal dan direktori sendiri.
+
+Setelah perintah selesai atau koneksi ditutup, panel kembali ke prompt shell biasa alih-alih menghilang. Peluncuran tidak menutup panelnya sendiri secara diam-diam.
+
+Anda juga dapat menjalankan entri tersimpan menurut nama dari terminal Zshell mana pun:
+
+```bash
+zshell "Entry name"
+```
+
+Gunakan nama entri yang persis, dengan tanda kutip jika mengandung spasi. Petunjuk di bawah Peluncuran Cepat menampilkan sintaks ini. Entri terbuka dalam proyek baru.
+
+## Mengelola entri [#managing-entries]
+
+- <kbd>Cmd</kbd>+<kbd>N</kbd> — entri baru
+- <kbd>Cmd</kbd>+<kbd>E</kbd> — edit entri terpilih
+- <kbd>Cmd</kbd>+<kbd>Delete</kbd> — hapus entri terpilih
+
+Gunakan kolom opsional **Grup (Group)** untuk membagi entri ke bagian bernama. Tombol edit dan hapus bekerja pada entrinya tanpa meluncurkannya.
+
+Entri perintah dapat menetapkan **direktori kerja** tetap; tanpa itu, direktori bawaan proyek baru digunakan.
+Entri SSH menerima host, pengguna dan port opsional, serta opsi tambahan `ssh` bebas seperti `-L 8080:localhost:80`.
+
+## Penyimpanan entri [#where-entries-live]
+
+Entri disimpan di `~/.config/zshell/quick-launch.json` dan dibagikan ke semua jendela. Ini data pengguna biasa; Anda bebas mengedit atau mencadangkannya.
+
+<Callout type="info">
+Perintah berjalan melalui shell login, sehingga menggunakan lingkungan profil Anda. Sesudahnya panel menjadi sesi biasa, dengan alias dan prompt tetap utuh.
+</Callout>

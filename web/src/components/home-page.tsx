@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { DocsLink, HomeLink } from '@/components/site-links'
-import { homeCopy, type HomeCopy, type Row } from '@/lib/home-copy'
-import { i18n } from '@/lib/i18n'
+import type { HomeCopy, Row } from '@/lib/home-copy'
+import { LanguageSelect } from '@/components/language-select'
 import { BREW_COMMAND, GITHUB_URL, RELEASE_ARCHITECTURES, dmgUrl, type Release } from '@/lib/release'
 import { cn, withBase } from '@/lib/utils'
 
 /** The landing page, rendered once per language from `homeCopy`. */
-export function HomePage({ lang, release }: { lang: string; release: Release }) {
-  const copy = homeCopy(lang)
+export function HomePage({ lang, release, copy }: { lang: string; release: Release; copy: HomeCopy }) {
   useRevealMotion()
 
   // The landing page always opens at the top. The browser and router otherwise
@@ -167,7 +166,6 @@ function Header({ lang, copy, release }: { lang: string; copy: HomeCopy; release
     { href: '#shortcuts', label: copy.nav.shortcuts },
     { href: '#faq', label: copy.nav.faq },
   ]
-  const others = i18n.languages.filter((code) => code !== lang)
 
   useEffect(() => {
     if (!open) return
@@ -207,15 +205,7 @@ function Header({ lang, copy, release }: { lang: string; copy: HomeCopy; release
         </nav>
 
         <div className="flex items-center gap-3">
-          {others.map((code) => (
-            <HomeLink
-              key={code}
-              lang={code}
-              className="hidden font-mono text-[12px] text-muted-foreground transition-colors hover:text-foreground sm:block"
-            >
-              {homeCopy(code).languageName}
-            </HomeLink>
-          ))}
+          <LanguageSelect lang={lang} onChange={() => setOpen(false)} />
           <a
             href={release.dmg}
             download
@@ -256,16 +246,6 @@ function Header({ lang, copy, release }: { lang: string; copy: HomeCopy; release
           >
             {copy.nav.docs}
           </DocsLink>
-          {others.map((code) => (
-            <HomeLink
-              key={code}
-              lang={code}
-              onClick={() => setOpen(false)}
-              className="rounded-md px-2 py-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              {homeCopy(code).languageName}
-            </HomeLink>
-          ))}
           <a
             href={release.dmg}
             download
@@ -336,13 +316,13 @@ function TerminalWindow({ copy }: { copy: HomeCopy }) {
         <div className="preview-switcher" role="group" aria-label={preview.label}>
           {preview.tabs.map((label, index) => (
             <button key={label} type="button" aria-pressed={view === index} aria-controls="workspace-example" onClick={() => setView(index)}>
-              <span aria-hidden className="mr-2 opacity-50">0{index + 1}</span>{label}
+              <span aria-hidden className="me-2 opacity-50">0{index + 1}</span>{label}
             </button>
           ))}
         </div>
       </div>
       <div id="workspace-example" className="workspace-window" role="img" aria-label={`${preview.label}：${preview.captions[view]}`}>
-        <div className="workspace-titlebar" aria-hidden="true">
+        <div className="workspace-titlebar" dir="ltr" aria-hidden="true">
           <span className="flex gap-1.5"><i /><i /><i /></span>
           <span>zshell — ~/code/zshell</span>
           <span aria-hidden />
@@ -359,9 +339,9 @@ function TerminalWindow({ copy }: { copy: HomeCopy }) {
             <div className="mt-auto border-t border-border pt-4 text-xs text-muted-foreground">main <span className="float-right text-brand">+12 −3</span></div>
           </aside>
           <div className="min-w-0">
-            <div className="workspace-tabs"><span className="text-foreground">{view === 0 ? 'shell' : view === 1 ? 'review' : 'codex'}</span><span>dev server</span><span className="ml-auto">+</span></div>
+            <div className="workspace-tabs" dir="ltr"><span className="text-foreground">{view === 0 ? 'shell' : view === 1 ? 'review' : 'codex'}</span><span>dev server</span><span className="ml-auto">+</span></div>
             {view === 0 ? (
-              <div className="preview-terminal">
+              <div className="preview-terminal" dir="ltr">
                 <p className="text-muted-foreground">~/code/zshell <span className="text-brand">main</span></p>
                 <p className="mt-5"><span className="text-brand">❯</span> git status --short</p>
                 <p className="mt-2 text-muted-foreground"><span className="text-brand"> M</span> src/workspace.ts</p>
@@ -372,7 +352,7 @@ function TerminalWindow({ copy }: { copy: HomeCopy }) {
                 <p className="text-muted-foreground"><span className="text-brand">❯</span> bun run dev</p>
               </div>
             ) : view === 1 ? (
-              <div className="preview-code">
+              <div className="preview-code" dir="ltr">
                 <p className="mb-6 text-muted-foreground">src/workspace.ts</p>
                 <p><span className="line-number">18</span> const workspace = {'{'}</p>
                 <p className="diff-removed"><span className="line-number">19</span>−  layout: 'single',</p>
@@ -382,14 +362,14 @@ function TerminalWindow({ copy }: { copy: HomeCopy }) {
                 <p className="mt-8 text-muted-foreground">main → feat/workspace</p>
               </div>
             ) : (
-              <div className="preview-terminal">
+              <div className="preview-terminal" dir="ltr">
                 <p><span className="text-brand">❯</span> codex</p>
-                <p className="mt-5 text-muted-foreground">› Review the workspace changes.</p>
+                <p className="mt-5 text-muted-foreground">› {preview.prompts[0]}</p>
                 <p className="mt-4 text-brand">{preview.running} <span className="preview-caret" /></p>
                 <div className="preview-queue">
                   <p className="preview-label">{preview.queue}</p>
-                  <p className="mt-3">01 <span className="text-muted-foreground">Check the keyboard shortcuts.</span></p>
-                  <p className="mt-2">02 <span className="text-muted-foreground">Summarize the changes.</span></p>
+                  <p className="mt-3">01 <span className="text-muted-foreground">{preview.prompts[1]}</span></p>
+                  <p className="mt-2">02 <span className="text-muted-foreground">{preview.prompts[2]}</span></p>
                 </div>
               </div>
             )}
@@ -463,7 +443,7 @@ function Shortcuts({ lang, copy }: { lang: string; copy: HomeCopy }) {
           <ul className="shortcut-grid">
             {copy.shortcuts.rows.slice(0, 8).map((row) => (
               <li key={row.name} className="flex flex-wrap content-center items-center gap-x-3 gap-y-2 border-b border-border py-4">
-                <span className="keycap">{row.name}</span>
+                <span className="keycap" dir="ltr">{row.name}</span>
                 <span className="text-[13px] text-muted-foreground">{row.detail}</span>
               </li>
             ))}
@@ -496,7 +476,7 @@ function Download({ copy, release }: { copy: HomeCopy; release: Release }) {
                 <span aria-hidden className="i-mingcute-apple-fill size-4" />
                 {copy.download.dmg}
               </a>
-              <CopyCommand command={BREW_COMMAND} label={copy.copy} copiedLabel={copy.copied} aria={copy.copyAria(BREW_COMMAND)} />
+              <CopyCommand command={BREW_COMMAND} label={copy.copy} copiedLabel={copy.copied} aria={copy.copyAria.replace('{command}', BREW_COMMAND)} />
             </div>
             {release.architecturePackages && <div className="mt-4 space-y-2 font-mono text-[12px] text-muted-foreground">
               {(['github', 'gitee'] as const).map((host) => (
@@ -537,7 +517,7 @@ function Faq({ copy }: { copy: HomeCopy }) {
                   />
                   {item.q}
                 </summary>
-                <p className="mb-4 ml-6 text-[13.5px] leading-relaxed text-muted-foreground">{item.a}</p>
+                <p className="mb-4 ms-6 text-[13.5px] leading-relaxed text-muted-foreground">{item.a}</p>
               </details>
             </Reveal>
           ))}
@@ -552,7 +532,6 @@ function Faq({ copy }: { copy: HomeCopy }) {
 /* ------------------------------------------------------------------ */
 
 function Footer({ lang, copy }: { lang: string; copy: HomeCopy }) {
-  const others = i18n.languages.filter((code) => code !== lang)
   return (
     <footer className="border-t border-border">
       <div className="home-container py-6">
@@ -578,11 +557,6 @@ function Footer({ lang, copy }: { lang: string; copy: HomeCopy }) {
             <Link to="/changelog" className="transition-colors hover:text-foreground">
               {copy.footerChangelog}
             </Link>
-            {others.map((code) => (
-              <HomeLink key={code} lang={code} className="transition-colors hover:text-foreground">
-                {homeCopy(code).languageName}
-              </HomeLink>
-            ))}
           </nav>
         </div>
       </div>
@@ -638,7 +612,7 @@ function CopyCommand({
 
   return (
     <div className="home-command flex max-w-full items-stretch overflow-hidden border border-border bg-card font-mono text-xs">
-      <code className="flex min-w-0 items-center gap-2 overflow-x-auto px-4 py-2.5 whitespace-pre">
+      <code dir="ltr" className="flex min-w-0 items-center gap-2 overflow-x-auto px-4 py-2.5 whitespace-pre">
         <span aria-hidden className="shrink-0 text-muted-foreground select-none">
           $
         </span>
@@ -648,7 +622,7 @@ function CopyCommand({
         type="button"
         onClick={copyCommand}
         aria-label={aria}
-        className="inline-flex shrink-0 items-center gap-1.5 border-l border-border px-3 text-muted-foreground transition-colors hover:bg-brand/10 hover:text-brand"
+        className="inline-flex shrink-0 items-center gap-1.5 border-s border-border px-3 text-muted-foreground transition-colors hover:bg-brand/10 hover:text-brand"
       >
         <span aria-hidden className={cn('size-3.5 shrink-0', copied ? 'i-mingcute-check-line' : 'i-mingcute-copy-2-line')} />
         <span aria-live="polite" className="max-[420px]:sr-only">

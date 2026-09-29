@@ -6,7 +6,9 @@ description: 看清一个会话到底在跑什么，以及它开了哪些端口�
 按 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>。信息面板描述的是**当前聚焦的会话**——
 不是项目——并且随着东西启停实时刷新。
 
-## 目录
+<span id="目录" data-canonical-heading="directory" />
+
+## 目录 [#directory]
 
 分成两项，因为它们并不总是同一个：
 
@@ -15,7 +17,9 @@ description: 看清一个会话到底在跑什么，以及它开了哪些端口�
 
 紧挨着它们的是几个快捷操作：在 **Finder** 中显示、用 **VS Code** 打开（装了才有）、以及 **Copy** 路径。
 
-## 进程
+<span id="进程" data-canonical-heading="processes" />
+
+## 进程 [#processes]
 
 会话 shell 底下跑着的所有东西，带 PID、CPU 百分比和常驻内存。右键某个进程可以：
 
@@ -25,7 +29,9 @@ description: 看清一个会话到底在跑什么，以及它开了哪些端口�
 
 已经退出、还在等待回收的子进程（`<defunct>`）不会列出来——那里既没有输出可看，也没有东西可杀。
 
-## 端口
+<span id="端口" data-canonical-heading="ports" />
+
+## 端口 [#ports]
 
 这些进程正在监听的 TCP 端口，以及各自属于哪个进程。用来回答那些日常问题：*这次开发服务器又挑了哪个端口*，还有*到底是什么还占着 3000*。
 

@@ -1,0 +1,23 @@
+{
+  "title": "เอกสารประกอบ",
+  "pages": [
+    "---เริ่มต้นใช้งาน---",
+    "index",
+    "installation",
+    "quick-start",
+    "---การใช้งาน Zshell---",
+    "projects",
+    "panes",
+    "terminal",
+    "quick-launch",
+    "browser",
+    "git",
+    "files",
+    "session-info",
+    "automation",
+    "---ข้อมูลอ้างอิง---",
+    "shortcuts",
+    "configuration",
+    "faq"
+  ]
+}

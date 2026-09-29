@@ -1,0 +1,86 @@
+---
+title: 快速上手
+description: 從空視窗到可以開始工作的專案——最值得先學的那些事。
+---
+
+<Steps>
+
+<Step>
+
+### 建立專案 [#start-a-project]
+
+按 <kbd>Cmd</kbd>+<kbd>N</kbd>。側邊欄裡會多出一個專案，裡面有一個終端機——然後像在任何終端機裡一樣 `cd` 到你要的儲存庫。檔案樹和 git 面板會跟過去，並停在儲存庫根目錄上。
+
+想直接從資料夾起步？在 Finder 裡右鍵它，選 **服務 → New Zshell Project Here**。
+
+有好幾個儲存庫？全部加進來。<kbd>Cmd</kbd>+<kbd>1</kbd> 到 <kbd>Cmd</kbd>+<kbd>9</kbd> 可以直接跳到某一個，每個專案各自保留自己的分頁和佈局。
+
+</Step>
+
+<Step>
+
+### 新增工作階段 [#add-sessions]
+
+<kbd>Cmd</kbd>+<kbd>T</kbd> 在同一個專案裡再開一個終端機——新分頁，有自己的工作目錄和捲動歷史。一個跑開發伺服器，一個跑測試，還有一個留給真正敲指令。
+
+<kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> 直接切分頁；
+<kbd>Ctrl</kbd>+<kbd>Tab</kbd> 打開一個按最近使用排序的切換器。
+
+</Step>
+
+<Step>
+
+### 把分頁分割畫面 [#split-a-tab]
+
+<kbd>Cmd</kbd>+<kbd>D</kbd> 向右分割畫面，<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> 向下分割畫面。用 <kbd>Opt</kbd>+<kbd>Cmd</kbd>+方向鍵在窗格之間移動；要讀一段很長的輸出時，按
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> 把當前窗格放大到鋪滿整個分頁。
+
+</Step>
+
+<Step>
+
+### 打開側邊面板 [#open-the-side-panels]
+
+右側邊欄放著這些，各自一個快速鍵：
+
+| 面板 | 快速鍵 | 用來做什麼 |
+| --- | --- | --- |
+| Git | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> | 暫存、看 diff、提交、推送 |
+| 檔案 | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | 瀏覽檔案樹、打開和編輯檔案 |
+| 資訊 | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> | 程序和正在監聽的連接埠 |
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> 收起整個右側邊欄；<kbd>Cmd</kbd>+<kbd>B</kbd>
+收起左邊的專案側邊欄。
+
+</Step>
+
+<Step>
+
+### 只記一個快速鍵：<kbd>Cmd</kbd>+<kbd>P</kbd> [#learn-one-shortcut-cmdp]
+
+指令面板會搜尋所有專案、所有已打開的工作階段，以及 Zshell 的每一條指令。這一頁別的都忘了沒關係，記住這個就行——每條指令旁邊都標著它自己的快速鍵。
+
+</Step>
+
+</Steps>
+
+## 退出之後還剩下什麼 [#what-comes-back-after-you-quit]
+
+退出再打開，專案、分頁和窗格佈局都還在原處。每個終端機會在原來的目錄裡啟動一個
+**全新的 shell**——不會有東西被偷偷留在後台繼續跑。
+
+捲動歷史預設不恢復。打開
+[`terminal.restore-history`](/zh-Hant/docs/configuration#terminalrestore-history) 之後，重開的終端機會在 `Session Contents Restored` 分隔線上方顯示之前的輸出，新 shell 在下方執行。
+
+<Callout type="info">
+恢復出來的就是文本本身。它是「當時發生過什麼」的記錄，不是一個還活著的工作階段，往回翻不會重新執行任何東西。
+</Callout>
+
+## 下一步 [#next]
+
+<Cards>
+  <Card title="專案與工作階段" href="/zh-Hant/docs/projects" description="命名、固定目錄，以及專案到底記住了什麼。" />
+  <Card title="Git 面板" href="/zh-Hant/docs/git" description="暫存、diff、提交、分支。" />
+  <Card title="瀏覽器窗格" href="/zh-Hant/docs/browser" description="把本地服務或文檔放在對應終端機旁邊。" />
+  <Card title="與 AI Agent 協作" href="/zh-Hant/docs/automation" description="讓 agent 在 Zshell 窗格間分派和協調工作，同時由你掌握決定權。" />
+</Cards>

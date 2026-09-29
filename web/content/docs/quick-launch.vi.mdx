@@ -1,0 +1,38 @@
+---
+title: "Khởi chạy nhanh"
+description: "Lưu lệnh và kết nối SSH dùng thường xuyên, khởi chạy bằng một phím."
+---
+
+<kbd>Cmd</kbd>+<kbd>O</kbd> mở **Khởi chạy nhanh**: danh sách có thể tìm kiếm, mỗi mục mở dự án mới cùng một phiên terminal. Mục đã lưu là **lệnh** hay gõ như `npm run dev`, `make watch`, hoặc **kết nối SSH**.
+
+## Khởi chạy [#launching]
+
+Nhập tên, lệnh, đích kết nối hoặc nhóm để lọc gần đúng. Nhấn một hàng hoặc chọn bằng mũi tên rồi <kbd>Return</kbd>. Mục chạy trong dự án mới lấy tên của mục, có phiên terminal và thư mục riêng.
+
+Khi lệnh kết thúc hay kết nối đóng, ô trở về dấu nhắc shell bình thường thay vì biến mất. Không mục đã khởi chạy nào âm thầm tự đóng.
+
+Bạn cũng có thể chạy mục đã lưu theo tên từ bất kỳ terminal Zshell nào:
+
+```bash
+zshell "Entry name"
+```
+
+Dùng chính xác tên mục, đặt trong dấu ngoặc kép nếu có khoảng trắng. Gợi ý cuối cửa sổ Khởi chạy nhanh hiển thị cú pháp này. Mục mở trong dự án mới.
+
+## Quản lý mục [#managing-entries]
+
+- <kbd>Cmd</kbd>+<kbd>N</kbd> — mục mới
+- <kbd>Cmd</kbd>+<kbd>E</kbd> — sửa mục đã chọn
+- <kbd>Cmd</kbd>+<kbd>Delete</kbd> — xóa mục đã chọn
+
+Trường **Nhóm** tùy chọn sắp xếp mục theo các phần có tên. Nút sửa và xóa tác động lên mục mà không khởi chạy nó.
+
+Mục lệnh có thể ghim **thư mục làm việc** để luôn bắt đầu ở đó; nếu không, dùng thư mục mặc định cho dự án mới. Mục SSH nhận máy chủ, người dùng và cổng tùy chọn, cùng tùy chọn `ssh` bổ sung dạng tự do như `-L 8080:localhost:80`.
+
+## Nơi lưu các mục [#where-entries-live]
+
+Các mục nằm trong `~/.config/zshell/quick-launch.json`, dùng chung giữa mọi cửa sổ. Đây là dữ liệu người dùng thông thường; bạn có thể tự sửa hoặc sao lưu tệp.
+
+<Callout type="info">
+Lệnh chạy qua shell đăng nhập nên nhận môi trường hồ sơ của bạn. Sau đó ô là phiên thông thường, giữ nguyên alias và dấu nhắc.
+</Callout>

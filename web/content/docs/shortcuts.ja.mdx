@@ -1,0 +1,83 @@
+---
+title: キーボードショートカット
+description: Zshell の標準ショートカットを用途別にまとめました。
+---
+
+忘れたときは <kbd>Cmd</kbd>+<kbd>P</kbd> でコマンドパレットを開いてください。各コマンドの隣にショートカットを表示します。
+
+## グローバルクイックターミナル [#global-quick-terminal]
+
+| ショートカット | 操作 |
+| --- | --- |
+| <kbd>Cmd</kbd>+<kbd>I</kbd> | クイックターミナルを表示／閉じる |
+| <kbd>Esc</kbd> | クイックターミナルを閉じてシェルを終了 |
+
+**設定 → ターミナル → クイックターミナル**で別のショートカットを登録できます。固定していないターミナルはフォーカスを失っても閉じます。[クイックターミナル](/ja/docs/terminal#global-quick-terminal)を参照してください。
+
+## プロジェクトとセッション [#projects-and-sessions]
+
+| ショートカット | 操作 |
+| --- | --- |
+| <kbd>Cmd</kbd>+<kbd>N</kbd> | 新規プロジェクト |
+| <kbd>Cmd</kbd>+<kbd>T</kbd> | 新規セッション |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> | 新規ウィンドウ |
+| <kbd>Cmd</kbd>+<kbd>W</kbd> | フォーカス中のペインを閉じる |
+| <kbd>Cmd</kbd>+<kbd>1</kbd>–<kbd>9</kbd> | プロジェクト 1–9 に切り替える |
+| <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>]</kbd> / <kbd>[</kbd> | 次／前のプロジェクト |
+| <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> | タブ 1–9 に切り替える |
+| <kbd>Ctrl</kbd>+<kbd>Tab</kbd> | 最近使用した順のタブ切り替え |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> | 次／前のタブ |
+
+## ペイン [#panes]
+
+| ショートカット | 操作 |
+| --- | --- |
+| <kbd>Cmd</kbd>+<kbd>D</kbd> | 右に分割 |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> | 下に分割 |
+| <kbd>Opt</kbd>+<kbd>Cmd</kbd>+矢印キー | 指定方向のペインにフォーカス |
+| <kbd>Cmd</kbd>+<kbd>[</kbd> / <kbd>Cmd</kbd>+<kbd>]</kbd> | ペインのフォーカスを順に移動 |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> | ペインの拡大を切り替える |
+| <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+矢印キー | フォーカス中のペインのサイズを変更 |
+| <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+<kbd>=</kbd> | ペインを均等にする |
+
+左・上への分割には標準ショートカットがありません。**タブ**メニュー、ペインのコンテキストメニュー、コマンドパレットを使います。
+
+## パネル [#panels]
+
+| ショートカット | 操作 |
+| --- | --- |
+| <kbd>Cmd</kbd>+<kbd>P</kbd> | コマンドパレット |
+| <kbd>Cmd</kbd>+<kbd>O</kbd> | クイック起動 |
+| <kbd>Cmd</kbd>+<kbd>B</kbd> | 左サイドバーを切り替える |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> | 右サイドバーを切り替える |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> | Git パネル |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | ファイルパネル |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> | 情報パネル |
+
+## ブラウザとエージェント [#browser-and-agents]
+
+| ショートカット | 操作 |
+| --- | --- |
+| <kbd>Cmd</kbd>+<kbd>L</kbd> | 現在のブラウザのアドレスバーにフォーカス |
+| <kbd>Cmd</kbd>+<kbd>R</kbd> | 現在のブラウザページを再読み込み |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> | 次の対応が必要なエージェントへ移動 |
+
+新規ブラウザタブ・ペインには標準ショートカットがありません。**ファイル**メニューまたはコマンドパレットを使います。
+
+## テキストと検索 [#text-and-search]
+
+| ショートカット | 操作 |
+| --- | --- |
+| <kbd>Cmd</kbd>+<kbd>F</kbd> | フォーカス中のペインで検索 |
+| <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> | 検索と置換（エディタ） |
+| <kbd>Cmd</kbd>+<kbd>G</kbd> | 次を検索 |
+| <kbd>Shift</kbd>+<kbd>Return</kbd> | 検索バー内から前を検索 |
+| <kbd>Cmd</kbd>+<kbd>E</kbd> | 選択範囲を検索に使用 |
+| <kbd>Cmd</kbd>+<kbd>K</kbd> | ターミナルをクリア |
+| <kbd>Cmd</kbd>+<kbd>S</kbd> | 開いているファイルを保存 |
+| <kbd>Cmd</kbd>+<kbd>,</kbd> | 設定 |
+
+## 前を検索 [#find-previous]
+
+macOS では通常、<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> は前を検索するショートカットですが、Zshell では Git パネルを切り替えます。
+検索バー内で <kbd>Shift</kbd>+<kbd>Return</kbd> を使ってください。**編集 → 検索**のメニュー項目からも実行できます。

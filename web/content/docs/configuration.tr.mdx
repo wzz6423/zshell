@@ -1,0 +1,229 @@
+---
+title: "Yapılandırma"
+description: "Zshell’in kalıcı seçenekleri, işlevleri ve saklandıkları yerler."
+---
+
+Zshell’in kalıcı ayarlarının çoğu tek dosyadadır:
+
+```
+~/.config/zshell/config.toml
+```
+
+Ayarlar penceresi (<kbd>Cmd</kbd>+<kbd>,</kbd>) aynı dosyaya yazar. Dil ve otomatik güncelleme gibi macOS’in yönettiği birkaç ayar başka yerde saklanır; sayfanın sonunda listelenmiştir.
+
+## Dosyanın davranışı [#how-the-file-behaves]
+
+Elle düzenlemeden önce bilin:
+
+- **Açılışta okunur.** Zshell çalışırken dosyayı düzenlemek yeniden başlatana kadar etki etmez. Ayarlar’dan yapılan değişiklikler, denetim aksini söylemedikçe hemen uygulanır.
+- **Dosyada tutulan ayar değişince Zshell dosyayı yeniden yazar.** Baştan oluşturulduğu için bu denetimleri sonraki kullanımınızda yorumlar ve bilinmeyen anahtarlar kaybolur. Dosya için tek düzenleyici seçin veya dotfile’larınızda esas kopya tutun.
+- **Bir istisna dışında yalnızca varsayılan dışı değerler yazılır.** `font-size` daima bulunur; diğer anahtarları silmek varsayılana döndürür.
+- **Ayrıştırıcı bilinçli olarak küçüktür.** Düz/noktalı anahtarları, `[table]` başlıklarını, `#` yorumlarını ve metin/sayı/mantıksal değerleri destekler. Dizi, satır içi tablo ve çok satırlı metin desteklemez.
+- **Geçersiz değerler güvenle varsayılana döner.** Aralık dışı boyut, bilinmeyen arka uç veya yanlış yazılmış tema Zshell’in açılmasını engellemez.
+
+## Görünüm [#appearance]
+
+### `theme` [#theme]
+
+`"system"` · `"light"` · `"dark"` — varsayılan `"system"`
+
+Uygulama görünümünü seçer. `"system"` macOS’i izler; diğerleri Zshell’i tek görünüme sabitler.
+
+### `theme-dark` ve `theme-light` [#theme-dark-and-theme-light]
+
+metin — varsayılanlar `"Default Dark"` ve `"Default Light"`
+
+Her görünümün renk temasıdır. Terminal bölmeleri, pencere çerçevesi, kenar çubukları, düzenleyici ve farkları birlikte renklendirir. Yerleşik varsayılanlar saydam kenar çubuğunu korur; diğer temalar kendi paletlerine boyar.
+
+Ayarlar iki arka ucun ortak seçilmiş tema kataloğunu listeler. Elle yazılan ad, büyük/küçük harf dâhil görünen adla tam eşleşmelidir; aksi hâlde ilgili varsayılan kullanılır.
+
+### `toolbar.visibility` [#toolbarvisibility]
+
+`"hide"` · `"auto"` · `"always"` — varsayılan `"hide"`
+
+Etkin sekme altındaki küçük araç çubuğunu denetler:
+
+- `"hide"` pencerede göstermez.
+- `"auto"` yalnızca proje dizini Git deposuysa gösterir.
+- `"always"`, **Git Deposu Yok** durumu dâhil her projede Git girişini görünür tutar.
+
+Gösterilen bilgiler için [Git araç çubuğu](/tr/docs/git#the-git-toolbar) bölümüne bakın.
+
+## Metin [#text]
+
+### `font-family` [#font-family]
+
+metin — varsayılan `""`, yerleşik JetBrains Mono anlamına gelir
+
+Terminal, düzenleyici ve fark görüntüleyicinin ortak Latin ailesidir. Tek stil yerine aile adı verin: `"IBM Plex Mono Regular"` değil `"IBM Plex Mono"`. Bilinmeyen veya eş aralıklı olmayan ailelerde yerleşik varsayılan kullanılır.
+
+Terminal yedek sırası Latin ailesi, aşağıdaki isteğe bağlı CJK ailesi, yerleşik Symbols Nerd Font ve arka ucun sistem yedeğidir. Düzenleyici ve fark görüntüleyici normal macOS/WebKit yedeklerini kullanır.
+
+### `terminal.font-fallback-family` [#terminalfont-fallback-family]
+
+metin — varsayılan `""`, arka uç/sistem yedeği anlamına gelir
+
+Terminalin sıralı yedek zincirine kurulu bir CJK ailesi ekler. Ayar seçicisi temsilî Çince, Japonca veya Korece karakterler içeren aileleri gösterir. Bunlar yalnızca ana Latin yazı tipinde eksik karakterleri sağladığından tam eş aralıklılık gerekmez.
+
+### `font-size` [#font-size]
+
+sayı, 8–32 — varsayılan `13`
+
+Terminal, düzenleyici ve fark için ortak punto boyutu. Zshell’in varsayılan değerdeyken bile yazdığı tek anahtardır.
+
+### `interface.scale` [#interfacescale]
+
+sayı, 0.9–1.5 — varsayılan `1`
+
+Sekmeleri, simgeleri, düğmeleri, kenar çubuklarını ve arayüzün geri kalanını ölçekler. Terminal, düzenleyici ve fark içeriği yukarıda ayrı ayarlanan yazı boyutunu korur.
+
+### `sidebar.font-size` [#sidebarfont-size]
+
+sayı, 9–24 — varsayılan `14`
+
+İki kenar çubuğunun temel metin boyutu. Bölüm başlıkları, satırlar, meta veriler ve denetimler temel değişirken göreli hiyerarşilerini korur.
+
+### `terminal.font-thicken` [#terminalfont-thicken]
+
+mantıksal — varsayılan `false`
+
+Terminal karakterlerini klasik macOS yazı yumuşatmasına benzer biraz kalın çizer. İki arka uç da uygular; Ayarlar önizlemesi sonucu gösterir. Eski `font-thicken` ayarı okunmaya devam eder, ardından güncel noktalı anahtarla yeniden yazılır.
+
+### `terminal.font-thicken-strength` [#terminalfont-thicken-strength]
+
+tam sayı, 0–255 — varsayılan `255`
+
+`terminal.font-thicken` açıkken kalınlığı denetler. Sıfır kapalı değil, en hafif kalınlaştırmadır. Ghostty yerel macOS gücünü kullanır; Alacritty aynı aralığı CoreText çizgisine eşler. Yön ve uçlar eşleşse de çizilen pikseller farklı olabilir.
+
+### `terminal.line-height` [#terminalline-height]
+
+sayı, 0.75–2 — varsayılan `1`
+
+Karakterleri dikey ortalayarak arka ucun doğal hücre yüksekliğini çarpar. Yalnızca terminal satırlarını etkiler; düzenleyici/fark aralığını değiştirmez.
+
+Zshell temel yazı ağırlığı denetimi sunmaz. Ghostty adlı stilleri veya değişken eksenlerini seçer; Alacritty/CoreText normal ve kalını özelliklerden çözer. Tek ortak değer, sabit ve değişken yazı tiplerinde normal/kalın ayrımını veya yedek ağırlıkları tutarlı korumaz.
+
+### `editor.wrap-lines` [#editorwrap-lines]
+
+mantıksal — varsayılan `true`
+
+[Dosya düzenleyicisinde](/tr/docs/files) uzun satırları bölme genişliğine sarar. `false` ise yatay kaydırılır. Terminal veya fark satır sarmasını değiştirmez.
+
+## Terminal [#terminal]
+
+### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
+
+metinler — varsayılan olarak ayarlanmamış
+
+Bundan sonra oluşturulan terminallerin çalıştırılabilir dosyasını ve argüman vektörünü seçer. `terminal.startup-program` yoksa hesabın giriş kabuğu `-l` ile kullanılır. Program çalıştırılabilir mutlak yol olmalıdır; eksik/çalıştırılamayan yolda boş bölme yerine giriş kabuğu açılır.
+
+`terminal.startup-arguments` kabuk çağırmadan argümanlara ayrılır. Tırnak ve ters eğik çizgiler boşluk ve boş argüman dâhil sınırları korur; değişken, glob ve komut yerine koyma genişletilmez. Geçersiz tırnaklama da giriş kabuğuna döner. Zshell CLI’ın açıkça verdiği argv o terminalde yine önceliklidir.
+
+### `terminal.backend` [#terminalbackend]
+
+`"libghostty"` · `"alacritty"` — varsayılan `"libghostty"`
+
+Sonradan oluşturulan terminallerin emülatörünü seçer. Mevcut bölmeler başlangıçtaki arka ucu korur. İkisi de yerel ve GPU hızlandırmalıdır; görüntü oluşturur ve aynı temaları kullanır. Alacritty genellikle daha az bellek kullanır.
+
+Ortam değişkenleri ve uyumluluk için [Terminal arka uçları](/tr/docs/terminal#terminal-backends) bölümüne bakın.
+
+### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
+
+mantıksal — varsayılan `false`
+
+Açıksa Option birleşimleri terminal programlarına Alt/Meta kısayolu olarak gider. Varsayılan, Polish Pro gibi düzenlerde birleşik karakter yazılabilmesi için Option’ı etkin macOS giriş kaynağına bırakır.
+
+### `terminal.bell` [#terminalbell]
+
+mantıksal — varsayılan `true`
+
+Terminal programı zil çalınca uyarı sesini ve macOS görsel dikkatini denetler. Kapalıysa ses, terminal zili bildirimi ve Dock dikkat isteği üretilmez. Erişilebilirlik teknolojileri zili anlamsal duyuru olarak alır. İki arka uç da bu ayara uyar.
+
+### `terminal.vim-command-hints` [#terminalvim-command-hints]
+
+mantıksal — varsayılan `false`
+
+**Bilgi** kenar çubuğunda oturum bilgisi altında moda duyarlı Vim/Neovim komutlarını gösterir. SSH’de tanınabilen düzenleyiciler dâhil iki arka uçta hemen uygulanır. Algılama koşulları için [Vim komut ipuçları](/tr/docs/terminal#vim-command-hints) bölümüne bakın.
+
+### `terminal.restore-history` [#terminalrestore-history]
+
+mantıksal — varsayılan `false`
+
+Yeniden açılışta her terminalin eski çıktı geçmişini yeni kabuğun üstüne getirir. Geri yüklenen içerik sabit metindir; yaşayan işlem değildir.
+
+Geçmiş diskte saklandığından terminalde görünen sırlar da bulunabilir. Bu nedenle varsayılan kapalıdır. [Projeler, sekmeler ve bölme düzeni](/tr/docs/projects#what-survives-a-relaunch) her durumda geri yüklenir.
+
+## Otomasyon [#automation]
+
+### `ai.enabled` [#aienabled]
+
+mantıksal — varsayılan `true`
+
+Doğal dille istediğinizde desteklenen kodlama ajanlarının arka plan bölmelerini koordine etmesini sağlar ve sağlayıcının bildirdiği yaşam döngüsü durumunu arayüzde gösterir. Zshell terminal metninden durum çıkarmaz. Ayarlar anahtarı önerilir: hatalar satır içinde gösterilir, çakışan kurulumlar değiştirilmez.
+
+Kullanım akışı [AI ajanlarıyla çalışma](/tr/docs/automation) bölümündedir.
+
+## Ek ayarlar [#additional-settings]
+
+| Anahtar | Varsayılan | Değerler / aralık | Etki |
+| --- | --- | --- | --- |
+| `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Uygulama simgesi |
+| `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Dosya ve klasörlerin harici düzenleyicisi |
+| `terminal.theme-only` | `false` | mantıksal | Paleti yalnızca terminale uygular |
+| `terminal.cursor-shape` | `"block"` | `"block"` / `"bar"` / `"underline"` | Terminal imleç biçimi |
+| `terminal.cursor-blinking` | `true` | mantıksal | İmleci yanıp söndürür |
+| `terminal.copy-on-select` | `true` | mantıksal | Seçili terminal metnini kopyalar |
+| `terminal.shift-enter-newline` | `true` | mantıksal | Shift+Enter ile gelişmiş satır sonu dizisi gönderir; uygulama desteği gerekir |
+| `terminal.background-opacity` | `1` | 0.2–1 | Terminal arka plan opaklığı |
+| `terminal.background-blur` | `false` | mantıksal | Saydam arka planları bulanıklaştırır |
+| `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Yeni zsh terminallerinde en az bu süre çalışıp biten komutu bildirir; 0 kapatır |
+| `terminal.notify-on-error` | `false` | mantıksal | Yeni zsh terminallerinde komut hatasını bildirir |
+| `quick-terminal.size` | `0.75` | 0.35–0.95 | Hızlı Terminal’in ekrana göre boyutu |
+| `quick-terminal.opacity` | `0.5` | 0.05–1 | Hızlı Terminal arka plan opaklığı |
+| `quick-terminal.shortcut` | `Cmd+I` | Ayarlar’da kaydedilir | Genel kısayolu Ayarlar’da kaydedin; tuş kodları otomatik saklanır |
+| `panes.show-focus-ring` | `true` | mantıksal | Etkin bölme çevresinde odak halkası |
+| `panes.focus-ring-opacity` | `0.85` | 0.05–1 | Odak halkasının opaklığı |
+
+## Yedekleme ve taşıma [#backup-and-migration]
+
+TOML kaydetmek için **Zshell → Ayarları Dışa Aktar…**, yüklemek için **Ayarları İçe Aktar…** kullanın. İçe aktarma değiştirmeyi onaylatır ve mevcut dosyayı aynı dizinde `config.toml.bak` olarak yedeklemeyi dener.
+
+İçe aktarıcı şu an yalnızca bir alt kümeyi geri yükler: temalar, ana yazı tipi seçenekleri, imleç ayarları, terminal arka ucu, geçmiş geri yükleme, seçim kopyalama, Hızlı Terminal ve AI desteği. Dışa aktarılan her ayarı geri getirmez. Sonrasında arayüz ölçeği, uygulama simgesi, harici düzenleyici ve terminal arka planını kontrol edin. Tam aktarım için Zshell’den çıkın, `config.toml` dosyasını yedekleyip kopyalayın ve yeniden açın. AI anahtarı yalnızca içe alınan dosya açıkça `ai.enabled` içeriyorsa güncellenir; aktarım sonrası kontrol edin. Proje ve sekme ortam değişkenleri oturum verisidir, bu dosyada bulunmaz.
+
+## Tam örnek [#a-complete-example]
+
+```toml title="~/.config/zshell/config.toml"
+theme = "dark"
+theme-dark = "Catppuccin Mocha"
+theme-light = "Catppuccin Latte"
+font-family = "IBM Plex Mono"
+font-size = 14
+interface.scale = 1.25
+sidebar.font-size = 13
+toolbar.visibility = "auto"
+terminal.font-fallback-family = "PingFang SC"
+terminal.font-thicken = true
+terminal.font-thicken-strength = 180
+terminal.line-height = 1.15
+terminal.macos-option-as-alt = false
+terminal.bell = false
+terminal.startup-program = "/opt/homebrew/bin/fish"
+terminal.startup-arguments = "--no-config"
+terminal.backend = "alacritty"
+terminal.restore-history = true
+editor.wrap-lines = true
+ai.enabled = true
+```
+
+Her anahtar isteğe bağlıdır. Varsayılana dönmek için anahtarı silin.
+
+## Klavye kısayolları [#keyboard-shortcuts]
+
+Temel komuta yeni kısayol kaydetmek için **Ayarlar → Kısayollar**’ı açın. Zshell çakışan birleşimleri reddedip kullanan komutu belirtir. **Varsayılan Kısayolları Geri Yükle** tüm özel ayarları sıfırlar. Gelen varsayılanlar [klavye başvurusunda](/tr/docs/shortcuts) listelenir.
+
+## Bu dosyanın dışındaki ayarlar [#settings-outside-this-file]
+
+- **Dil.** Ayarlar, web sitesiyle aynı 17 dili ve Sistem Varsayılanı’nı sunar. Terminal oturumları çalışmaya devam ederken değişiklik hemen uygulanır. macOS’in uygulamaya özel dil tercihini kullanır; TOML yerine Zshell tercihlerindedir. Sistem Varsayılanı macOS dil sırasını izler.
+- **Otomatik güncellemeler.** **Ayarlar → Güncellemeler**’deki otomatik denetim, indirme ve kurulum anahtarları TOML dışındaki uygulama tercihlerindedir; açılışlar arasında hatırlanır. Kurulum yalnızca otomatik indirme açıkken gösterilir. [Kurulum](/tr/docs/installation#updates) bölümüne bakın.
+- **Pencere ve düzen durumu.** Pencere boyutu, kenar çubuğu genişlikleri, seçili paneller, projeler, sekmeler, bölmeler, tarayıcı URL’leri ve fark denetimi tercihleri macOS tercihleri ve oturum anlık görüntüsünde saklanır.
+- **Arka uç yapılandırma dosyaları.** Zshell `~/.config/ghostty` veya Alacritty yapılandırması okumaz. Her iki arka uç için desteklenen yapılandırma yeri Zshell ayarlarıdır.

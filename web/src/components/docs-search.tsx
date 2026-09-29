@@ -12,10 +12,12 @@ import {
   SearchDialogList,
   SearchDialogOverlay,
 } from 'fumadocs-ui/components/dialog/search'
+import { uiCopy } from '@/lib/ui-copy'
+import { DEFAULT_LANGUAGE, language } from '@/lib/i18n'
 import { withBase } from '@/lib/utils'
 
 /**
- * Docs search. The index is a static file the browser downloads once and
+ * Docs search. Each language has a static index the browser downloads once and
  * queries locally — see `src/routes/api/search.ts` for how it is built.
  *
  * The engine's default tokenizer is multilingual, so a Chinese query is split
@@ -25,7 +27,9 @@ import { withBase } from '@/lib/utils'
  */
 export default function DocsSearchDialog(props: SharedProps) {
   const { locale } = useI18n()
-  const client = staticClient({ locale, from: withBase('/api/search') })
+  const lang = language(locale)
+  const copy = uiCopy(lang)
+  const client = staticClient({ locale: lang, from: withBase(lang === DEFAULT_LANGUAGE ? '/api/search' : `/api/search-index/${lang}`) })
   const { search, setSearch, query } = useDocsSearch({ client })
 
   return (
@@ -42,7 +46,7 @@ export default function DocsSearchDialog(props: SharedProps) {
           <SearchDialogInput />
           <SearchDialogClose />
         </SearchDialogHeader>
-        <SearchDialogList items={query.data !== 'empty' ? query.data : null} />
+        {query.error ? <p role="alert" className="p-4 text-sm">{copy.searchError}</p> : <SearchDialogList items={query.data !== 'empty' ? query.data : null} />}
       </SearchDialogContent>
     </SearchDialog>
   )

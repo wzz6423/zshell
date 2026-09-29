@@ -1,0 +1,158 @@
+---
+title: Terminal
+description: Backend terminal Zshell, lingkungan shell, penanganan tautan, notifikasi, dan fitur keamanan.
+---
+
+Setiap panel terminal menjalankan shell login Anda yang sesungguhnya dan memakai salah satu dari dua backend native dengan akselerasi GPU. Zshell mengatur perilaku di sekelilingnya — fokus panel, pencarian, notifikasi, tautan, riwayat, tema, dan keamanan tempel — secara konsisten, apa pun emulator yang dipilih.
+
+## Backend terminal [#terminal-backends]
+
+Pilih backend di **Pengaturan → Terminal → Backend**:
+
+| Backend | Catatan |
+| --- | --- |
+| **Ghostty** | Pilihan bawaan |
+| **Alacritty** | Biasanya memakai lebih sedikit memori |
+
+Keduanya mendukung akselerasi GPU, gambar, katalog tema bersama Zshell, pencarian, pelaporan mouse, notifikasi, dan laporan kemajuan. Perubahan backend hanya berlaku untuk terminal baru; panel yang sudah ada mempertahankan emulator awalnya.
+
+## Shell Anda tetap sama [#your-shell-unchanged]
+
+Setiap sesi memulai shell login akun Anda. Prompt, alias, fungsi, dan dotfiles dimuat seperti di terminal lain. Zshell menambahkan variabel kemampuan dan identitas:
+
+| Variabel | Nilai |
+| --- | --- |
+| `TERM_PROGRAM` | `ghostty` |
+| `TERM_PROGRAM_VERSION` | Versi kemampuan Ghostty yang diterapkan Zshell |
+| `ZSHELL_TERM` | `ghostty` atau `alacritty`, backend panel yang sebenarnya |
+
+Kedua backend menyatakan Ghostty lewat `TERM_PROGRAM` karena CLI yang memahami gambar dan notifikasi memakainya sebagai petunjuk kemampuan. Gunakan `ZSHELL_TERM` hanya jika benar-benar perlu membedakan renderer.
+
+<Callout type="info">
+Zshell tidak membaca `~/.config/ghostty` atau konfigurasi Alacritty. Font, warna, perilaku input, dan backend diatur melalui [pengaturan](/id/docs/configuration) Zshell sendiri.
+</Callout>
+
+## Pencarian [#search]
+
+| Tindakan | Pintasan |
+| --- | --- |
+| Cari | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Cari berikutnya | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+| Cari sebelumnya | <kbd>Shift</kbd>+<kbd>Return</kbd> di bilah pencarian |
+| Gunakan pilihan untuk pencarian | <kbd>Cmd</kbd>+<kbd>E</kbd> |
+| Bersihkan terminal | <kbd>Cmd</kbd>+<kbd>K</kbd> |
+
+Pencarian bekerja pada panel terminal atau editor yang difokuskan dan tetap aktif selama kolom pencariannya memiliki fokus keyboard.
+
+## Menyunting prompt [#prompt-editing]
+
+Klik di dalam prompt shell aktif untuk memindahkan kursor input, lalu lanjutkan mengetik di posisi itu. Pada prompt zsh, seret melintasi input untuk memilih rentang: mengetik mengganti pilihan, sedangkan Backspace atau Delete menghapusnya. Klik dua atau tiga kali tetap memilih teks terminal; program yang mengaktifkan pelaporan mouse, seperti TUI layar penuh, tetap menerima peristiwa mouse sendiri.
+
+Jika shell bersarang atau pengganti belum memuat dukungan penyuntingan prompt Zshell, menyeret masih memilih teks untuk disalin tetapi tidak menyunting input. Penyuntingan pilihan kembali bekerja setelah Anda keluar ke prompt awal.
+
+Kotak input standar Claude Code mendukung klik untuk memindahkan kursor dan seret untuk menyunting pada kedua backend, termasuk draf yang terbungkus dan multibaris. Ketik atau tempel untuk mengganti input terpilih, atau tekan Backspace/Delete untuk menghapusnya. Mode normal/visual Vim, dialog, placeholder lampiran atau tempelan yang dilipat, dan teks percakapan yang digulir mempertahankan perilaku pilihan terminalnya. Aplikasi yang menangkap mouse tetap menangani input sendiri.
+
+Input suara Zisla memakai tindakan tempel terminal. Dalam Claude Code, input itu juga mengganti rentang terpilih; pengulangan frasa yang disengaja tetap didukung.
+
+## Pintasan aplikasi latar depan [#foreground-application-shortcuts]
+
+Jika pintasan aplikasi terminal bertentangan dengan Zshell, klik kanan panelnya dan aktifkan **Blokir Perintah Zshell**. Tombol dengan modifier, termasuk <kbd>Ctrl</kbd>+<kbd>Return</kbd>, diteruskan ke aplikasi latar depan selama panel memiliki fokus keyboard. Salin, tempel, dan pilih semua tetap tersedia.
+
+Pengaturan hanya berlaku pada panel itu. Klik kanan lagi dan hapus centang untuk memulihkan pintasan Zshell. Jika aplikasi menangkap mouse, tahan <kbd>Shift</kbd> saat klik kanan untuk membuka menu Zshell.
+
+## Antrean instruksi [#prompt-queue]
+
+Fokuskan terminal lalu tekan <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>, atau pilih **Tampilkan/Sembunyikan Antrean Instruksi** di palet perintah. Bilah akan terbuka di bawah terminal. Ketik entri lalu tekan <kbd>Return</kbd> atau **Tambahkan ke Antrean**. Setiap entri hanya satu baris; pergantian baris yang ditempel diganti spasi.
+
+Saat zsh awal kembali ke prompt kosong, Zshell mengirim entri berikutnya beserta Return. Entri dijalankan sesuai urutan. Pengiriman otomatis menunggu saat agen atau program latar depan lain menguasai terminal, atau saat prompt berisi draf. Fitur ini memerlukan integrasi zsh Zshell; shell lain dan shell bersarang dapat mengirim secara manual.
+
+Setiap entri memiliki tombol **Kirim Sekarang** dan **Hapus**. **Kirim Sekarang** langsung mengirim teks beserta Return ke program terminal saat ini tanpa menunggu prompt shell. <kbd>Esc</kbd> atau tombol tutup menyembunyikan bilah tanpa menghapus antrean. Tiap terminal mempunyai antreannya sendiri; menutup sesi atau keluar dari Zshell menghapusnya.
+
+## Jalur dan URL [#paths-and-urls]
+
+Zshell mengenali URL web dan jalur lokal yang ada dalam keluaran program terminal. Tautan lokal dapat berupa jalur absolut, relatif terhadap `~/`, `./`, `../`, atau direktori kerja panel saat ini. Akhiran diagnostik seperti `:42` atau `:42:7` tidak menghalangi pencarian berkas dasarnya.
+
+- **Command-klik** jalur lokal untuk menampilkannya di Finder, atau URL untuk membukanya di browser bawaan.
+- **Command-klik kanan** jalur untuk **Tab Berkas Baru** / **Panel Berkas Baru**, atau URL untuk **Tab Browser Baru** / **Panel Browser Baru**.
+- Program layar penuh dengan pelaporan mouse menerima klik kanan biasa. Tahan **Shift** saat klik kanan untuk membuka menu terminal dan panel Zshell.
+
+Ini memberi keluaran compiler dan percakapan agen jalan langsung kembali ke proyek yang sama. Perilaku browser dijelaskan dalam [Panel browser](/id/docs/browser).
+
+## Notifikasi [#notifications]
+
+Zshell meneruskan dua peristiwa terminal ke Pusat Notifikasi:
+
+- bel dari sesi yang tidak difokuskan;
+- permintaan `OSC 777;notify` dari program, misalnya build lama atau agen pemrograman.
+
+Notifikasi dapat memainkan suara sistem. Mengkliknya mengaktifkan Zshell dan langsung membuka sesi pengirim. macOS meminta izin saat terminal pertama kali mencoba mengirim notifikasi, bukan saat Zshell dibuka.
+
+### Penyelesaian perintah [#command-completion]
+
+Buka **Pengaturan → Terminal → Notifikasi Perintah** untuk menerima pemberitahuan ketika perintah selesai:
+
+- **Perintah berdurasi lama**: pilih 5, 10, 30, atau 60 detik. Perintah yang berjalan setidaknya selama durasi itu memicu notifikasi selesai. Bawaannya **Mati**.
+- **Perintah gagal**: beri notifikasi untuk status keluar bukan nol, berapa pun durasinya. Bawaannya juga mati dan dapat diaktifkan terpisah.
+
+Pengaturan berlaku untuk terminal zsh yang dibuat setelah perubahan pada kedua backend. Fitur memakai peristiwa penyelesaian dari shell awal; perintah dalam shell bersarang atau program interaktif tidak melaporkan penyelesaian satu per satu melalui integrasi ini.
+
+Pengaturan yang sama dapat disimpan di `~/.config/zshell/config.toml`:
+
+```toml
+terminal.notify-finish-seconds = 30
+terminal.notify-on-error = true
+```
+
+Atur `terminal.notify-finish-seconds` ke `0` untuk mematikan notifikasi berdasarkan durasi. Pengiriman mengikuti pengaturan notifikasi macOS.
+
+## Laporan kemajuan [#progress-reports]
+
+Program yang mengirim kemajuan `OSC 9;4` mendapat bilah tipis di atas terminal, dengan status normal, dijeda, dan kesalahan yang berbeda. Tidak perlu diaktifkan: jika program melaporkan kemajuan, panel menampilkannya.
+
+## Papan klip, seret-lepas, dan keamanan tempel [#clipboard-drops-and-paste-safety]
+
+- **Pembacaan papan klip dikonfirmasi.** `OSC 52` dapat meminta papan klip macOS, termasuk dari host jarak jauh lewat SSH. Zshell meminta izin sebelum mengembalikannya.
+- **Tempelan berisiko ditandai.** Teks multibaris atau menyerupai perintah ditahan untuk konfirmasi, bukan langsung dikirim.
+- **Berkas menjadi jalur aman bagi shell.** Berkas yang disalin di Finder atau diseret dimasukkan sebagai jalur absolut berkutip. Gambar papan klip tetap diteruskan ke TUI yang mendukung gambar.
+
+## Input tombol Option [#option-key-input]
+
+Secara bawaan, Option tetap dikelola sumber input macOS aktif agar tata letak seperti Polish Pro dapat mengetik karakter gabungan. Aktifkan **Gunakan Option sebagai Alt/Meta** di Pengaturan jika program terminal perlu menerima kombinasi Option sebagai pintasan Meta. Lihat [`terminal.macos-option-as-alt`](/id/docs/configuration#terminalmacos-option-as-alt).
+
+## Perintah `zshell` [#the-zshell-command]
+
+Setiap terminal Zshell menyertakan CLI yang mengenali proyek:
+
+```sh
+zshell                         # buat proyek di direktori saat ini
+zshell vim ~/src/app.swift     # buat proyek dan jalankan argv ini di terminal pertama
+zshell +themes                 # telusuri dan pratinjau tema secara interaktif
+zshell +themes --list --dark   # cetak nama tema tanpa membuka pemilih
+zshell +help                   # tampilkan semua kelompok perintah
+```
+
+Perintah tersebut berturut-turut membuat proyek di direktori saat ini, membuatnya sambil menjalankan argv di terminal pertama, menjelajahi tema secara interaktif, mencetak nama tema gelap tanpa penjelajah, dan menampilkan semua grup perintah. Penjelajah tema mempratinjau setiap pilihan di seluruh aplikasi; Return menyimpan dan Escape memulihkan tema sebelumnya.
+
+## Font [#fonts]
+
+Zshell menyertakan JetBrains Mono dan simbol Nerd Font. Keluarga monospace terpasang dapat menggantikan font Latin; keluarga CJK terpasang dapat disisipkan sebelum simbol dan cadangan sistem. Lihat [`font-family`](/id/docs/configuration#font-family), [`terminal.font-fallback-family`](/id/docs/configuration#terminalfont-fallback-family), [`font-size`](/id/docs/configuration#font-size), [`terminal.font-thicken`](/id/docs/configuration#terminalfont-thicken), dan [`terminal.line-height`](/id/docs/configuration#terminalline-height).
+
+## Terminal Cepat global [#global-quick-terminal]
+
+Saat Zshell berjalan, tekan <kbd>Cmd</kbd>+<kbd>I</kbd> untuk membuka terminal mandiri di atas aplikasi lain; tekan lagi untuk menutup. Terminal ini memakai shell sementara di luar tab proyek. Atur ukuran, opasitas, dan pintasannya di **Pengaturan → Terminal → Terminal Cepat**.
+
+- Sematkan jendela agar tetap terbuka saat berpindah aplikasi.
+- Jendela yang tidak disematkan menutup saat kehilangan fokus atau ketika Anda mengeklik di luarnya.
+- Jika **Blokir Perintah Zshell** mati, <kbd>Esc</kbd> atau pintasan global menutup jendela sekaligus mengakhiri shell dan tugasnya. Membukanya lagi memulai sesi baru.
+
+Gunakan terminal proyek untuk layanan yang berjalan lama. [Peluncuran Cepat](/id/docs/quick-launch), yang menyimpan dan menjalankan perintah, adalah fitur terpisah.
+
+## Petunjuk perintah Vim [#vim-command-hints]
+
+Aktifkan **Pengaturan → Terminal → Perilaku → Petunjuk perintah Vim**, lalu buka tab **Info** pada bilah samping kanan. Bagian **PERINTAH VIM** muncul di bawah informasi sesi saat Vim, Vi, atau Neovim aktif. Bawaannya mati dan perubahan langsung berlaku pada terminal yang ada di kedua backend.
+
+Daftar lengkap perintah umum tetap tersedia; hanya prioritasnya berubah. Normal menempatkan `:w`, `:q`, `yy`, dan `p`/`P` di awal; Visual Block mendahulukan `I`/`A`, perubahan blok, dan gerakan sudut. Insert, Replace, Visual, Visual Line, Select, baris perintah, dan pencarian memiliki urutan sendiri. Setiap entri menyebutkan mode yang sesuai. Cari berdasarkan tombol, deskripsi, atau nama mode; deskripsi dan antarmuka pencarian mengikuti 17 bahasa aplikasi. Kosongkan pencarian untuk mengembalikan daftar penuh. Petunjuk hanya referensi dan tidak pernah mengirim input ke editor.
+
+Editor lokal dikenali melalui executable latar depan. Dalam SSH, Mosh, atau multiplexer terminal, deteksi memakai baris mode/status Vim yang terlihat dan tata letak layar tanpa memasang plugin jarak jauh. Pertahankan `showmode` atau baris status Vim yang dikenali. Konfigurasi yang menyembunyikan atau mengganti nama label mode dapat kembali ke petunjuk Normal atau menghalangi deteksi jarak jauh; pemetaan khusus tidak ditafsirkan. Hanya panel Info aktif yang diperiksa, dan petunjuk hilang saat program latar depan berubah atau editor tak lagi dikenali.
+
+Fitur ini juga dapat diaktifkan dalam konfigurasi dengan `terminal.vim-command-hints = true`.

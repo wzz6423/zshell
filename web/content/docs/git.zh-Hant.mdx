@@ -1,0 +1,100 @@
+---
+title: Git 面板
+description: 在產生這些改動的 shell 旁邊暫存、審閱、提交和推送。
+---
+
+按 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>。面板會打開在專案所錨定的那個儲存庫上——
+Zshell 怎麼選這個目錄，見[專案目錄](/zh-Hant/docs/projects#the-project-directory)。
+
+這裡的每一個操作都是 Zshell 代你執行的 git 指令；只要結果不止「完成了」這麼簡單，輸出就會展示給你。除非你明確要求，否則不會有改寫歷史、squash 或強推。
+
+## Git 工具欄 [#the-git-toolbar]
+
+Zshell 可以在當前分頁下方顯示一條緊湊工具欄。在儲存庫裡，它展示當前分支和總新增 / 刪除行數；工作區沒有改動時顯示綠色 **Clean**，未跟蹤檔案也會算進新增行數。
+
+- 點分支名可以搜尋並切換本地分支，列表裡會標出儲存庫預設分支。
+- 點變更數字會打開 Git 面板。
+- 不在儲存庫裡時，**Always Show** 模式保留一個 **No Git Repository** 按鈕，點它進入面板的初始化狀態。
+
+在 **設定 → General** 裡選擇 **Hide**、**Auto** 或 **Always Show**，也可以設定
+[`toolbar.visibility`](/zh-Hant/docs/configuration#toolbarvisibility)。預設是 Hide。已經顯示的工具欄也能從快速選單裡隱藏。
+
+## 變更的檔案 [#changed-files]
+
+檔案按衝突、已暫存和未暫存分組。把滑鼠移到某一行會出現按鈕，快速選單裡也有：
+
+| 按鈕 | 作用 |
+| --- | --- |
+| **+** | 暫存該檔案 |
+| **−** | 取消暫存 |
+| **↺** | 丟棄它的改動 |
+
+**Discard All Changes** 在面板頭部，並且會先要求確認——它是這裡唯一一個沒法用另一條 git
+指令撤回的操作。
+
+衝突檔案顯示的是 **Mark Resolved (Stage)** 而不是普通的暫存按鈕，讓「標記為已解決」成為一個明確的動作，而不是順手的副作用。
+
+頭部的漏斗按鈕按檔案名過濾列表，改動很多時這是最快的走法。
+
+## 看 diff [#reading-diffs]
+
+點任意一個變更檔案，它的 diff 會在一個窗格裡打開，是在終端機**旁邊**而不是蓋在上面。快速選單裡還可以 **Open File**（檔案本身，可編輯）或 **Open File to the Side**。
+
+大 diff 也不會卡。上千個檔案的改動集，打開速度和一行的一樣，捲動也不掉幀。
+
+Diff 上方的控件會全局記住兩組選擇：
+
+- **Unified / Split** 在單欄和左右對照佈局之間切換。
+- **Review / Edit** 只會出現在實時工作區裡尚未暫存的檔案上。進入 Edit 後可以直接改新版內容，用 <kbd>Cmd</kbd>+<kbd>S</kbd> 儲存；有未儲存內容時，關閉行為和普通編輯器一致。
+
+已經暫存的 diff 和歷史提交 diff 始終只讀，因為它們是快照，不是 Zshell 可以安全寫回的檔案。在某個 diff 裡切到 Edit 或 Split，會同步其他已打開 diff 的偏好，但不會讓不符合條件的快照突然變得可編輯。
+
+## 提交 [#committing]
+
+寫好資訊用提交按鈕，或者從它的選單裡挑：
+
+- **Commit Staged**——只提交你暫存了的
+- **Stage All & Commit**——先暫存所有已跟蹤檔案，再提交
+- **Amend Last Commit**——把暫存的改動折進上一個提交
+- **Stage All & Amend**
+
+下方列著最近的提交，右鍵有 **Copy Commit Hash** 和 **Copy Commit Message**。
+
+## 分支 [#branches]
+
+頭部的分支名是一個選單：選另一個分支就切過去，或者選 **Create New Branch…** 從當前位置開一個新分支。
+
+## 工作樹 [#worktrees]
+
+Git 面板會列出這個儲存庫的所有工作樹，以及它們對應的分支和檢出路徑。當前檢出會標記為
+**Current**。點某個工作樹，就會在對應目錄新開一個終端機分頁；每個檢出都有自己的 shell 上下文，同時仍屬於同一個專案。工作樹較多時，列表只在自己的限高區域內上下捲動，標題、提交控件和變更檔案列表保持原位。單擊工作樹標題可以折疊或展開列表。
+
+處於 detached HEAD 狀態的工作樹會顯示 **Detached HEAD**，而不是分支名。裸儲存庫也會列出，但它沒有工作目錄，不能在終端機分頁中打開。
+
+## 遠端 [#remotes]
+
+**⋯** 選單裡是所有和遠端打交道的操作：
+
+| 操作 | 作用 |
+| --- | --- |
+| **Fetch** | 更新遠端跟蹤引用 |
+| **Pull (Fast-forward Only)** | 拉取，拒絕產生合併提交 |
+| **Push** | 推送當前分支 |
+| **Publish Branch** | 推送還沒有 upstream 的分支；遠端不止一個時讓你選 |
+| **Sync Changes** | 先 fast-forward 拉取，再推送 |
+| **Stash All Changes** | 把所有改動（含未跟蹤檔案）存進 stash |
+| **Pop Stash** | 恢復最近一次 stash |
+
+分支旁邊的徽章顯示你比 upstream **↓ 落後**和 **↑ 領先**多少。
+
+同一個選單裡還有 **Copy Changed Paths**、**Copy Repository Path** 和 **Reveal Repository
+in Finder**。
+
+<Callout type="info">
+拉取只做 fast-forward 是有意的。如果真需要 merge 或 rebase，git 會說出來，由你在終端機裡決定——面板不會替你挑策略。
+</Callout>
+
+## 還不是一個儲存庫 [#not-a-repository-yet]
+
+如果專案目錄裡沒有儲存庫，面板會提供 **Initialize Repository**，它在那個資料夾裡執行
+`git init`。在那之前它不會礙事。

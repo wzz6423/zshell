@@ -1,0 +1,72 @@
+---
+title: 檔案與編輯器
+description: 跨專案查找檔案、搜尋檔案內容，在終端機旁編輯程式碼並預覽 Markdown。
+---
+
+按 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> 打開檔案樹。和 git 面板一樣，它以
+[專案目錄](/zh-Hant/docs/projects#the-project-directory)為根，所以不會每次 `cd` 都換根。
+
+## 檔案樹 [#the-tree]
+
+點檔案在當前窗格裡打開。右鍵是其餘的操作：
+
+| 選單項 | 作用 |
+| --- | --- |
+| **Open** / **Open to the Side** | 在當前窗格打開，或新開一個分割畫面 |
+| **Open in Default App** | 交給 macOS 的預設應用 |
+| **Reveal in Finder** | |
+| **Copy Path** | 絕對路徑 |
+| **cd Here** | 在當前終端機裡執行 `cd <folder>` |
+| **New File…** / **New Folder…** | 在選中的資料夾裡新建 |
+| **Rename** | |
+| **Move to Trash** | 移到廢紙簍，不是直接刪除 |
+
+每一行都使用能識別檔案名的 Material 圖示。在 Git 儲存庫裡，改動過的路徑還會顯示狀態顏色與徽章，被忽略的檔案會變淡，所以不打開 Git 面板也能看出工作區狀態。
+
+## 查找檔案與搜尋內容 [#find-files-and-search-contents]
+
+指令面板（<kbd>Cmd</kbd>+<kbd>P</kbd>）按檔案名或路徑查找當前視窗中已打開的本地專案，
+同時顯示匹配的指令和工作階段。選中檔案後，會切到它所屬的專案並打開檔案。
+
+要搜尋檔案裡的文字，點擊檔案面板中的放大鏡，或在指令面板中選擇 **搜尋檔案內容**。
+輸入文字並按 <kbd>Return</kbd>，即可搜尋當前本地專案目錄。**Aa** 控制是否區分大小寫；
+打開搜尋結果，會在編輯器中跳到對應的行。
+
+內容搜尋按字面文字匹配，跳過二進制檔案和常見依賴、構建目錄，最多顯示 2,000 條結果。
+可以停止正在執行的搜尋並保留已有結果，或關閉搜尋回到檔案樹。這些本地檔案搜尋不包含
+SSH 專案。
+
+## 編輯器 [#the-editor]
+
+打開檔案後，窗格裡是一個真正的編輯器，帶語法高亮。
+
+| 操作 | 快速鍵 |
+| --- | --- |
+| 儲存 | <kbd>Cmd</kbd>+<kbd>S</kbd> |
+| 查找 | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| 查找並替換 | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
+| 查找下一個 | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+長行預設按窗格寬度軟折行。關閉
+[`editor.wrap-lines`](/zh-Hant/docs/configuration#editorwrap-lines) 後改為橫向捲動。
+
+在檔案樹裡重新命名檔案，所有打開了它的窗格都會跟著更新，包括被重新命名資料夾底下的檔案。
+
+如果外部程式改了一個已經打開的檔案，Zshell 會在應用重新啟用時重新整理沒有本地修改的預覽；有未儲存改動的編輯器緩衝區絕不會被覆蓋。
+
+<Callout type="info">
+這是一個用來改你眼前這處改動的編輯器——修個錯字、調個常量、讀一眼 diff 裡提到的檔案。沒有語言伺服器，沒有補全，也沒有跨專案重構。這是有意為之。
+</Callout>
+
+## Markdown 預覽 [#markdown-preview]
+
+打開 `.md` 檔案後，可以直接在窗格裡閱讀渲染後的文檔。點擊右上角的 **編輯** 修改源文，
+再用 **預覽** 查看效果。Zshell 會記住這個模式，後續打開 Markdown 檔案和重新啟動時繼續沿用。
+
+切換模式會保留編輯內容和撤銷歷史；按 <kbd>Cmd</kbd>+<kbd>S</kbd> 儲存改動。
+其他副檔名的 Markdown 檔案仍以原始碼打開。
+
+## Diff [#diffs]
+
+從 [git 面板](/zh-Hant/docs/git)打開的 diff 也只是一個窗格，所以 diff、檔案和終端機可以在一個分頁裡並排。它使用你的終端機字型，上千個檔案的改動集，打開速度和一行的一樣。實時工作區裡尚未暫存的 diff 還可以從 Review 切到 Edit；已暫存和歷史 diff 始終只讀。見
+[看 diff](/zh-Hant/docs/git#reading-diffs)。

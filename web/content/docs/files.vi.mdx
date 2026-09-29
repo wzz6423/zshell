@@ -1,0 +1,62 @@
+---
+title: "Tệp và trình soạn thảo"
+description: "Tìm tệp giữa các dự án, tìm nội dung, sửa mã và xem Markdown cạnh terminal."
+---
+
+Nhấn <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> để mở cây tệp. Giống bảng Git, nó lấy [thư mục dự án](/vi/docs/projects#the-project-directory) làm gốc, nên không đổi gốc mỗi khi bạn `cd`.
+
+## Cây tệp [#the-tree]
+
+Nhấn tệp để mở trong ô có tiêu điểm. Nhấp phải cho các thao tác khác:
+
+| Mục | Tác dụng |
+| --- | --- |
+| **Mở** / **Mở bên cạnh** | Trong ô hiện tại hoặc ô chia mới |
+| **Mở bằng ứng dụng mặc định** | Giao cho ứng dụng macOS dùng để mở tệp |
+| **Hiển thị trong Finder** | |
+| **Sao chép đường dẫn** | Đường dẫn tuyệt đối |
+| **cd tại đây** | Chạy `cd <folder>` trong terminal có tiêu điểm |
+| **Tệp mới…** / **Thư mục mới…** | Tạo trong thư mục đã chọn |
+| **Đổi tên** | |
+| **Chuyển vào Thùng rác** | Đưa vào Thùng rác, không xóa vĩnh viễn |
+
+Các hàng dùng biểu tượng Material theo tên tệp. Trong kho Git, đường dẫn thay đổi có màu và huy hiệu trạng thái, tệp bị bỏ qua hiển thị mờ. Cây phản ánh cùng trạng thái worktree với bảng Git mà không cần mở bảng.
+
+## Tìm tệp và nội dung [#find-files-and-search-contents]
+
+Bảng lệnh (<kbd>Cmd</kbd>+<kbd>P</kbd>) tìm theo tên hoặc đường dẫn trong các dự án cục bộ đang mở ở cửa sổ hiện tại, cùng lệnh và phiên mở. Chọn tệp sẽ chuyển sang dự án của nó và mở tại đó.
+
+Để tìm văn bản bên trong, nhấn kính lúp của bảng Tệp hoặc **Tìm nội dung tệp** trong bảng lệnh. Nhập chữ rồi <kbd>Return</kbd> để tìm trong thư mục dự án cục bộ hiện tại. **Aa** bật phân biệt hoa/thường; mở kết quả để tới dòng khớp trong trình soạn thảo.
+
+Tìm nội dung khớp văn bản nguyên dạng, bỏ tệp nhị phân cùng thư mục phụ thuộc/build thông dụng và dừng ở 2.000 kết quả. Bạn có thể dừng tìm nhưng giữ kết quả, hoặc đóng tìm để về cây. Dự án SSH không tham gia tìm tệp cục bộ.
+
+## Trình soạn thảo [#the-editor]
+
+Mở tệp tạo trình soạn thảo thực trong ô, có tô màu cú pháp.
+
+| Thao tác | Phím tắt |
+| --- | --- |
+| Lưu | <kbd>Cmd</kbd>+<kbd>S</kbd> |
+| Tìm | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Tìm và thay thế | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
+| Tìm tiếp | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+Dòng dài mặc định xuống dòng mềm theo chiều rộng ô. Tắt [`editor.wrap-lines`](/vi/docs/configuration#editorwrap-lines) để cuộn ngang.
+
+Đổi tên tệp trong cây cập nhật mọi ô đang mở nó, kể cả tệp nằm dưới thư mục đã đổi tên.
+
+Nếu chương trình khác sửa tệp đang mở, Zshell làm mới bản xem trước chưa có sửa đổi khi ứng dụng hoạt động trở lại. Nó không bao giờ thay bộ đệm có thay đổi chưa lưu.
+
+<Callout type="info">
+Trình soạn thảo này dành cho thay đổi bạn đang xem: sửa lỗi gõ, đổi hằng số, đọc tệp mà diff nhắc tới. Không có máy chủ ngôn ngữ, hoàn thành mã hay tái cấu trúc toàn dự án. Đó là chủ ý.
+</Callout>
+
+## Xem trước Markdown [#markdown-preview]
+
+Mở tệp `.md` để đọc bản kết xuất ngay trong ô. Nhấn **Chỉnh sửa** phía trên phải để sửa nguồn, rồi **Xem trước** để thấy kết quả. Zshell nhớ chế độ ưa dùng cho tệp Markdown khác và lần mở sau.
+
+Chuyển chế độ giữ sửa đổi và lịch sử hoàn tác. Lưu bằng <kbd>Cmd</kbd>+<kbd>S</kbd> như thường lệ. Markdown có đuôi khác mở dưới dạng nguồn.
+
+## Bản so sánh [#diffs]
+
+Diff từ [bảng Git](/vi/docs/git) cũng là một ô; diff, tệp và terminal có thể nằm cạnh nhau trong một tab. Nó dùng phông terminal; tập thay đổi nghìn tệp mở nhanh như một dòng. Diff chưa stage của worktree hiện hành có thể chuyển từ Xem xét sang Chỉnh sửa; diff đã stage và lịch sử vẫn chỉ đọc. Xem [Đọc diff](/vi/docs/git#reading-diffs).

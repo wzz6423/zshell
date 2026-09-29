@@ -1,0 +1,229 @@
+---
+title: Configuratie
+description: Alle blijvende Zshell-opties, wat ze doen en waar ze worden opgeslagen.
+---
+
+De meeste blijvende Zshell-instellingen staan in één bestand:
+
+```
+~/.config/zshell/config.toml
+```
+
+Het instellingenvenster (<kbd>Cmd</kbd>+<kbd>,</kbd>) schrijft naar hetzelfde bestand. Enkele door macOS beheerde instellingen, zoals taal en automatische updates, staan elders en worden onderaan deze pagina vermeld.
+
+## Hoe het bestand werkt [#how-the-file-behaves]
+
+Handig om te weten voordat je handmatig bewerkt:
+
+- **Het wordt bij het starten gelezen.** Het bestand bewerken terwijl Zshell draait, heeft pas na een herstart effect. Wijzigingen via Instellingen gelden meteen, behalve wanneer het bedieningselement anders vermeldt.
+- **Zshell herschrijft het wanneer een bestandsgebonden instelling verandert.** Het bestand wordt volledig opnieuw gegenereerd. Je opmerkingen en onbekende sleutels verdwijnen dus wanneer je de volgende keer een van die instellingen wijzigt. Kies één manier om het bestand te bewerken of houd een leidende kopie bij in je dotfiles.
+- **Alleen afwijkingen van de standaard worden geschreven, met één uitzondering.** `font-size` is altijd aanwezig. Elke andere sleutel verwijderen herstelt de standaardwaarde.
+- **De parser is bewust beperkt.** Hij ondersteunt platte sleutels, sleutels met punten, `[table]`-koppen, `#`-opmerkingen en tekenreeks-, getal- en booleaanse waarden. Arrays, inline-tabellen en tekenreeksen met meerdere regels worden niet ondersteund.
+- **Ongeldige waarden vallen veilig terug.** Een grootte buiten het bereik, onbekende backend of verkeerd gespeld thema verhindert niet dat Zshell start.
+
+## Weergave [#appearance]
+
+### `theme` [#theme]
+
+`"system"` · `"light"` · `"dark"` — standaard `"system"`
+
+Kiest de weergave van de app. `"system"` volgt macOS; de andere twee zetten Zshell vast op één weergave.
+
+### `theme-dark` en `theme-light` [#theme-dark-and-theme-light]
+
+Tekenreeks — standaard `"Default Dark"` en `"Default Light"`
+
+Het kleurthema voor elke weergave. Een thema kleurt terminaldeelvensters, vensterranden, zijbalken, de editor en diffs gezamenlijk. De ingebouwde standaardthema's behouden de doorschijnende zijbalk van Zshell; andere thema's kleuren die volgens hun palet.
+
+Instellingen toont de samengestelde themacatalogus die beide terminalbackends delen. Een handmatig ingevoerde naam moet exact overeenkomen met een van die weergavenamen, inclusief hoofdletters. Anders gebruikt Zshell het bijbehorende standaardthema.
+
+### `toolbar.visibility` [#toolbarvisibility]
+
+`"hide"` · `"auto"` · `"always"` — standaard `"hide"`
+
+Regelt de compacte werkbalk onder het actieve tabblad:
+
+- `"hide"` houdt hem verborgen.
+- `"auto"` toont hem alleen wanneer de projectmap een Git-repository is.
+- `"always"` houdt de Git-toegang zichtbaar in elk project, inclusief de status **Geen Git-repository**.
+
+Zie [De Git-werkbalk](/nl/docs/git#the-git-toolbar) voor wat hij toont.
+
+## Tekst [#text]
+
+### `font-family` [#font-family]
+
+Tekenreeks — standaard `""`, voor het meegeleverde JetBrains Mono
+
+De terminal, editor en diffviewer delen deze Latijnse lettertypefamilie. Geef een familienaam op, geen variant: `"IBM Plex Mono"`, niet `"IBM Plex Mono Regular"`. Onbekende of niet-monospacefamilies vallen terug op het meegeleverde standaardlettertype.
+
+De fallbackvolgorde van de terminal is de Latijnse familie, de optionele CJK-fallback hieronder, het meegeleverde Symbols Nerd Font en daarna de systeemfallback van de backend. De editor en diffviewer blijven hun normale macOS-/WebKit-fallback gebruiken.
+
+### `terminal.font-fallback-family` [#terminalfont-fallback-family]
+
+Tekenreeks — standaard `""`, voor de backend-/systeemfallback
+
+Voegt één geïnstalleerde CJK-familie toe aan de geordende fallbackketen van de terminal. De kiezer in Instellingen bevat families met representatieve Chinese, Japanse of Koreaanse tekens. Die hoeven niet strikt monospace te zijn, omdat ze alleen tekens leveren die ontbreken in het primaire Latijnse lettertype.
+
+### `font-size` [#font-size]
+
+Getal, 8–32 — standaard `13`
+
+De gedeelde lettergrootte van terminal, editor en diff, in punten. Dit is de enige sleutel die Zshell ook schrijft als hij de standaardwaarde heeft.
+
+### `interface.scale` [#interfacescale]
+
+Getal, 0.9–1.5 — standaard `1`
+
+Schaalt tabbladen, pictogrammen, knoppen, zijbalken en de rest van de app-interface. De inhoud van terminal, editor en diffs behoudt de hierboven afzonderlijk ingestelde lettergrootte.
+
+### `sidebar.font-size` [#sidebarfont-size]
+
+Getal, 9–24 — standaard `14`
+
+De basistekstgrootte voor beide zijbalken. Sectiekoppen, rijen, metadata en bedieningselementen behouden hun onderlinge hiërarchie wanneer de basis verandert.
+
+### `terminal.font-thicken` [#terminalfont-thicken]
+
+Booleaans — standaard `false`
+
+Tekent terminaltekens met iets dikkere lijnen, vergelijkbaar met klassieke macOS-lettertypeverzachting. Beide backends ondersteunen dit en het voorbeeld in Instellingen toont het resultaat. Oudere `font-thicken`-configuraties worden nog gelezen en vervolgens herschreven met de huidige sleutel met punt.
+
+### `terminal.font-thicken-strength` [#terminalfont-thicken-strength]
+
+Geheel getal, 0–255 — standaard `255`
+
+Regelt de verdikking wanneer `terminal.font-thicken` true is. Nul is de lichtste beschikbare verdikking, niet uit. Ghostty gebruikt zijn native macOS-sterkte; Alacritty vertaalt hetzelfde bereik naar een CoreText-lijndikte. Richting en eindpunten komen overeen, maar gerasterde pixels kunnen verschillen.
+
+### `terminal.line-height` [#terminalline-height]
+
+Getal, 0.75–2 — standaard `1`
+
+Vermenigvuldigt de natuurlijke celhoogte van elke terminalbackend en houdt tekens verticaal gecentreerd. Dit verandert alleen terminalregels, niet de regelafstand in editor of diff.
+
+Zshell biedt geen instelling voor het basislettergewicht. Ghostty kiest benoemde stijlen of variatieassen, terwijl Alacritty/CoreText normale en vette varianten op basis van eigenschappen bepaalt. Eén gedeelde waarde zou het onderscheid tussen normaal en vet of fallbackgewichten niet consistent behouden voor statische en variabele lettertypen.
+
+### `editor.wrap-lines` [#editorwrap-lines]
+
+Booleaans — standaard `true`
+
+Breekt lange regels visueel af op de deelvensterbreedte in de [bestandseditor](/nl/docs/files). Bij false scrollen lange regels horizontaal. Dit verandert regelafbreking in terminals of diffs niet.
+
+## Terminal [#terminal]
+
+### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
+
+Tekenreeksen — standaard niet ingesteld
+
+Kies het uitvoerbare programma en de argumentvector voor terminals die hierna worden gemaakt. Zonder `terminal.startup-program` blijft Zshell de inlogshell van het account gebruiken met `-l`. Het programma moet een absoluut pad naar een uitvoerbaar bestand zijn. Een ontbrekend of niet-uitvoerbaar pad valt terug op de inlogshell in plaats van een onbruikbaar deelvenster te openen.
+
+`terminal.startup-arguments` wordt in argumenten gesplitst zonder een shell aan te roepen. Aanhalingstekens en backslashes behouden grenzen, inclusief spaties en lege argumenten. Variabelen, globs en opdrachtvervangingen worden niet uitgebreid. Ongeldige aanhalingstekens leiden ook tot een terugval op de inlogshell. Een expliciete argv vanuit de Zshell-CLI heeft nog steeds voorrang voor die terminal.
+
+### `terminal.backend` [#terminalbackend]
+
+`"libghostty"` · `"alacritty"` — standaard `"libghostty"`
+
+Kiest de emulator voor terminals die hierna worden gemaakt. Bestaande deelvensters behouden hun oorspronkelijke backend. Beide opties zijn native, GPU-versneld, ondersteunen afbeeldingen en gebruiken dezelfde Zshell-thema's; Alacritty gebruikt doorgaans minder geheugen.
+
+Zie [Terminalbackends](/nl/docs/terminal#terminal-backends) voor omgevingsvariabelen en compatibiliteitsafspraken.
+
+### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
+
+Booleaans — standaard `false`
+
+Bij true worden Option-toetscombinaties als Alt-/Meta-sneltoetsen naar terminalprogramma's gestuurd. Standaard blijft Option bij de actieve macOS-invoerbron, zodat indelingen zoals Polish Pro hun samengestelde tekens kunnen typen.
+
+### `terminal.bell` [#terminalbell]
+
+Booleaans — standaard `true`
+
+Regelt het waarschuwingsgeluid en de visuele aandacht van macOS wanneer een terminalprogramma een belsignaal geeft. Bij false speelt Zshell geen geluid af, stuurt het geen terminalbelmelding en vraagt het geen aandacht in het Dock. Toegankelijkheidstechnologieën ontvangen de bel nog wel als semantische aankondiging. Beide terminalbackends respecteren deze instelling.
+
+### `terminal.vim-command-hints` [#terminalvim-command-hints]
+
+Booleaans — standaard `false`
+
+Toont modusafhankelijke Vim-/Neovim-opdrachten onder de sessiegegevens in de zijbalk **Info**. Dit geldt onmiddellijk op beide terminalbackends, ook voor herkenbare editors via SSH. Zie [Vim-opdrachthulp](/nl/docs/terminal#vim-command-hints) voor de voorwaarden van modusdetectie.
+
+### `terminal.restore-history` [#terminalrestore-history]
+
+Booleaans — standaard `false`
+
+Herstelt na een herstart de eerdere uitvoergeschiedenis van elke terminal boven een nieuwe shell. De herstelde inhoud is statische tekst, geen proces dat is blijven draaien.
+
+Herstelde geschiedenis wordt op schijf opgeslagen en kan dus geheimen bevatten die in de terminal zijn weergegeven. Deze instelling staat standaard uit. [Projecten, tabbladen en deelvensterindeling](/nl/docs/projects#what-survives-a-relaunch) worden in beide gevallen hersteld.
+
+## Automatisering [#automation]
+
+### `ai.enabled` [#aienabled]
+
+Booleaans — standaard `true`
+
+Laat ondersteunde programmeeragents Zshell-deelvensters op de achtergrond coördineren wanneer je dat in gewone taal vraagt, en toont door de aanbieder gemelde levenscyclusstatus in de interface. Zshell leidt geen status af uit terminaltekst. Gebruik bij voorkeur de schakelaar in Instellingen: fouten worden daar direct getoond en conflicterende bestaande configuraties blijven intact.
+
+De werkwijze voor gebruikers staat in [Werken met AI-agents](/nl/docs/automation).
+
+## Aanvullende instellingen [#additional-settings]
+
+| Sleutel | Standaard | Waarden / bereik | Effect |
+| --- | --- | --- | --- |
+| `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | App-pictogram |
+| `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Externe editor voor bestanden en mappen |
+| `terminal.theme-only` | `false` | Booleaans | Het gekozen palet alleen op de terminal toepassen |
+| `terminal.cursor-shape` | `"block"` | `"block"` / `"bar"` / `"underline"` | Vorm van de terminalcursor |
+| `terminal.cursor-blinking` | `true` | Booleaans | De cursor laten knipperen |
+| `terminal.copy-on-select` | `true` | Booleaans | Geselecteerde terminaltekst kopiëren |
+| `terminal.shift-enter-newline` | `true` | Booleaans | Een uitgebreide nieuweregelreeks sturen met Shift+Enter; vereist ondersteuning van de applicatie |
+| `terminal.background-opacity` | `1` | 0.2–1 | Dekking van de terminalachtergrond |
+| `terminal.background-blur` | `false` | Booleaans | Doorschijnende achtergronden vervagen |
+| `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | In nieuwe zsh-terminals melden wanneer een opdracht na minstens deze duur eindigt; 0 schakelt dit uit |
+| `terminal.notify-on-error` | `false` | Booleaans | Mislukte opdrachten melden in nieuwe zsh-terminals |
+| `quick-terminal.size` | `0.75` | 0.35–0.95 | Grootte van de snelle terminal ten opzichte van het scherm |
+| `quick-terminal.opacity` | `0.5` | 0.05–1 | Achtergronddekking van de snelle terminal |
+| `quick-terminal.shortcut` | `Cmd+I` | Vastleggen in Instellingen | De algemene sneltoets vastleggen in Instellingen; toetscodes worden automatisch opgeslagen |
+| `panes.show-focus-ring` | `true` | Booleaans | Een focusrand om het actieve deelvenster tonen |
+| `panes.focus-ring-opacity` | `0.85` | 0.05–1 | Dekking van de focusrand |
+
+## Back-up en migratie [#backup-and-migration]
+
+Gebruik **Zshell → Instellingen exporteren…** om een TOML-bestand op te slaan en **Instellingen importeren…** om het te laden. Importeren vraagt bevestiging voor het vervangen en probeert een back-up van het huidige bestand als `config.toml.bak` in dezelfde map te maken.
+
+De importfunctie herstelt momenteel een deelverzameling: thema's, hoofdlettertypeopties, cursorinstellingen, terminalbackend, geschiedenisherstel, kopiëren van selecties, snelle terminal en AI-ondersteuning. Niet elke geëxporteerde instelling wordt bij import hersteld. Controleer daarna interfaceschaal, app-pictogram, externe editor en terminalachtergrond. Voor een volledige configuratieoverdracht sluit je Zshell af, maak je een back-up en kopieer je `config.toml`, waarna je opnieuw start. De AI-schakelaar verandert alleen als het geïmporteerde bestand expliciet `ai.enabled` bevat; controleer die na het importeren. Omgevingsvariabelen voor projecten en tabbladen zijn sessiegegevens en staan niet in dit bestand.
+
+## Een volledig voorbeeld [#a-complete-example]
+
+```toml title="~/.config/zshell/config.toml"
+theme = "dark"
+theme-dark = "Catppuccin Mocha"
+theme-light = "Catppuccin Latte"
+font-family = "IBM Plex Mono"
+font-size = 14
+interface.scale = 1.25
+sidebar.font-size = 13
+toolbar.visibility = "auto"
+terminal.font-fallback-family = "PingFang SC"
+terminal.font-thicken = true
+terminal.font-thicken-strength = 180
+terminal.line-height = 1.15
+terminal.macos-option-as-alt = false
+terminal.bell = false
+terminal.startup-program = "/opt/homebrew/bin/fish"
+terminal.startup-arguments = "--no-config"
+terminal.backend = "alacritty"
+terminal.restore-history = true
+editor.wrap-lines = true
+ai.enabled = true
+```
+
+Elke sleutel is optioneel. Verwijder een sleutel om de instelling op de standaard terug te zetten.
+
+## Sneltoetsen [#keyboard-shortcuts]
+
+Open **Instellingen → Sneltoetsen** om een nieuwe sneltoets voor een kernopdracht vast te leggen. Zshell weigert conflicterende combinaties en noemt de opdracht die ze al gebruikt. **Standaardsneltoetsen herstellen** wist alle aanpassingen. Het [sneltoetsenoverzicht](/nl/docs/shortcuts) vermeldt de meegeleverde standaardcombinaties.
+
+## Instellingen buiten dit bestand [#settings-outside-this-file]
+
+- **Taal.** Instellingen biedt Systeemstandaard en 17 talen, net als de website. Wijzigingen gelden onmiddellijk terwijl terminalsessies blijven draaien. De keuze gebruikt de macOS-taalvoorkeur per app en staat daarom in de voorkeuren van Zshell, niet in TOML. Systeemstandaard volgt de macOS-taalvolgorde.
+- **Automatische updates.** De schakelaars voor automatisch controleren, downloaden en installeren onder **Instellingen → Updates** gebruiken app-voorkeuren buiten TOML en onthouden je keuzes na herstarts. Installeren verschijnt alleen als automatisch downloaden aanstaat. Zie [Installatie](/nl/docs/installation#updates).
+- **Venster- en indelingsstatus.** Venstergrootte, zijbalkbreedtes, geselecteerde panelen, projecten, tabbladen, deelvensters, browser-URL's en diffvoorkeuren staan in de macOS-voorkeuren van Zshell en de sessiemomentopname.
+- **Backendconfiguraties.** Zshell leest `~/.config/ghostty` noch een Alacritty-configuratie. De instellingen van Zshell vormen de ondersteunde configuratie voor beide.

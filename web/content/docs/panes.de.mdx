@@ -1,0 +1,50 @@
+---
+title: Geteilte Ansichten und Bereiche
+description: Tabs in Bereiche teilen, zwischen ihnen wechseln, ihre Größe ändern und einen Bereich vergrößern.
+---
+
+Jeder Tab lässt sich in Bereiche teilen. Ein Bereich enthält meist ein Terminal, kann aber auch eine Datei, einen Diff oder einen [Browser](/de/docs/browser) anzeigen. So liegt der gelesene Inhalt direkt neben der Shell, in der er entstanden ist.
+
+## Bereiche teilen [#splitting]
+
+| Aktion | Tastenkürzel |
+| --- | --- |
+| Nach rechts teilen | <kbd>Cmd</kbd>+<kbd>D</kbd> |
+| Nach unten teilen | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> |
+| Nach links teilen | — |
+| Nach oben teilen | — |
+
+Für das Teilen nach links und oben gibt es keine Standardkürzel. Nutzen Sie das Menü **Tabs**, die Befehlspalette (<kbd>Cmd</kbd>+<kbd>P</kbd>) oder das Kontextmenü des Bereichs. Ein neuer Bereich übernimmt das Arbeitsverzeichnis des fokussierten Bereichs.
+
+Geteilt wird immer nur der **fokussierte Bereich**, auch in verschachtelten Anordnungen. Die Größe eines unbeteiligten Nachbarn bleibt erhalten. Jeder Bereich besitzt in seiner Kopfzeile einen kleinen aktuellen Titel und eigene Teilungsschaltflächen, damit sein Kontext sichtbar bleibt.
+
+Offene Bereiche können Sie umordnen: Ziehen Sie den schmalen Streifen oben an einem Bereich an den Rand eines anderen. Vor dem Loslassen zeigt der Zielbereich die Hälfte an, in der er landen wird.
+
+Auch ein ganzer Tab kann zum Bereich werden. Ziehen Sie seinen Tab aus der oberen Leiste an den linken, rechten, oberen oder unteren Rand des aktuellen Tab-Inhalts. Die Vorschau zeigt die entstehende Teilung vor dem Loslassen.
+
+## Zwischen Bereichen wechseln [#moving-between-panes]
+
+| Aktion | Tastenkürzel |
+| --- | --- |
+| Bereich links, rechts, oben oder unten fokussieren | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+Pfeiltasten |
+| Fokus rückwärts oder vorwärts wechseln | <kbd>Cmd</kbd>+<kbd>[</kbd> / <kbd>Cmd</kbd>+<kbd>]</kbd> |
+
+## Vergrößern und Größe ändern [#zoom-and-resize]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> vergrößert den fokussierten Bereich auf den gesamten Tab. Erneutes Drücken stellt die vorherige Größe wieder her. Währenddessen erscheint in der Tab-Kopfzeile auch eine Schaltfläche zum Zurückkehren ohne Tastenkürzel.
+
+| Aktion | Tastenkürzel |
+| --- | --- |
+| Vergrößerung umschalten | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> |
+| Bereich in eine Richtung vergrößern | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+Pfeiltasten |
+| Alle Bereiche gleich groß machen | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+<kbd>=</kbd> |
+
+Die Trennlinien zwischen Bereichen lassen sich ebenfalls ziehen.
+
+## Schließen [#closing]
+
+<kbd>Cmd</kbd>+<kbd>W</kbd> schließt den fokussierten Bereich. Beim Schließen des letzten Bereichs wird auch der Tab geschlossen.
+
+<Callout type="warn">
+Das Schließen eines Terminalbereichs beendet seine Shell und alle von ihr gestarteten Prozesse. Zshell fragt vorher nicht nach, wie beim Schließen eines Terminals in anderen Anwendungen.
+</Callout>

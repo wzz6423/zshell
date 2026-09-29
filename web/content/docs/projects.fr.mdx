@@ -1,0 +1,113 @@
+---
+title: Projets et sessions
+description: Découvrez l'organisation du travail dans Zshell, des projets de la barre latérale aux sessions en onglets et à la restauration.
+---
+
+## Projets [#projects]
+
+Un projet représente un travail, généralement un dépôt, avec ses propres terminaux, onglets et état des panneaux.
+
+<kbd>Cmd</kbd>+<kbd>N</kbd> crée un projet contenant un terminal. Celui-ci démarre dans le répertoire de la session actuelle ou, en l'absence de session, dans votre dossier personnel. Vous utilisez donc généralement `cd` pour rejoindre le dossier souhaité. Zshell prend ensuite le relais : l'arborescence des fichiers et le panneau Git se rattachent au dépôt qui contient ce répertoire.
+
+Pour éviter ce `cd`, faites un clic droit sur un dossier dans le Finder et choisissez **Services → Nouveau projet Zshell ici**. Le projet s'ouvre avec son terminal déjà placé dans ce dossier.
+
+Le projet est l'unité principale de navigation dans Zshell :
+
+| Action | Raccourci |
+| --- | --- |
+| Nouveau projet | <kbd>Cmd</kbd>+<kbd>N</kbd> |
+| Sélectionner le projet 1 à 9 | <kbd>Cmd</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Projet suivant ou précédent | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Masquer la barre latérale des projets | <kbd>Cmd</kbd>+<kbd>B</kbd> |
+
+Le nom d'un projet est celui de sa session sélectionnée : il suit donc le terminal, comme le titre d'un onglet. Son menu contextuel propose **Renommer…**, **Utiliser le titre automatique** pour revenir au comportement initial, **Définir le répertoire du projet…** et **Fermer le projet**. Fermer un projet termine ses sessions sans modifier les fichiers sur disque.
+
+### Projets SSH enregistrés [#saved-ssh-projects]
+
+Ouvrez la palette de commandes (<kbd>Cmd</kbd>+<kbd>P</kbd>) et choisissez **Nouveau projet SSH…**. Renseignez l'hôte, éventuellement l'utilisateur et le port, puis le répertoire distant à ouvrir. Pour l'authentification, choisissez **Agent SSH**, **Mot de passe**, **Fichier de clé privée** ou **Texte de clé privée**, puis enregistrez la connexion et sélectionnez **Connecter**.
+
+Les connexions enregistrées restent disponibles après un redémarrage. Le champ facultatif **Groupe** organise la liste ; les boutons de modification et de suppression permettent de gérer les entrées. Les mots de passe et clés privées collées sont conservés dans le trousseau macOS. Une entrée utilisant un fichier de clé privée conserve le chemin de la clé existante.
+
+Pour une commande ou une connexion SSH avec des options supplémentaires, consultez [Lancement rapide](/fr/docs/quick-launch).
+
+### Groupes de la barre latérale [#sidebar-groups]
+
+Utilisez **Nouveau groupe** en bas de la barre latérale pour créer un **groupe simple** ou un **groupe de dossier**. Un groupe simple démarre les nouveaux terminaux dans votre dossier personnel ; un groupe de dossier utilise le dossier choisi comme valeur par défaut. Un répertoire de projet explicitement défini reste prioritaire. Déplacer un projet entre des groupes ne modifie pas ses terminaux actifs et ne remplace pas son répertoire fixé.
+
+Faites glisser un projet sur l'en-tête d'un groupe ou sur un autre projet pour l'organiser. Déposez-le sur **+ (Nouveau projet)** en bas de la barre latérale pour le retirer de son groupe. Les en-têtes se déplacent également pour réordonner les groupes. Un clic réduit ou développe le groupe, un double-clic le renomme, et le clic droit ouvre son menu. **Définir un repère de couleur…** ajoute une couleur ; **Supprimer le repère de couleur** la retire. **Supprimer le groupe** conserve tous ses projets ouverts. Les raccourcis numériques suivent l'ordre des projets visibles ; la navigation vers le projet suivant ou précédent peut révéler un membre d'un groupe réduit.
+
+Vous pouvez déposer des dossiers du Finder dans la liste des projets. Si le dossier est déjà ouvert, Zshell sélectionne le projet existant au lieu de le dupliquer.
+
+### Répertoire du projet [#the-project-directory]
+
+L'arborescence des fichiers et le panneau Git doivent savoir quel dossier afficher. Par défaut, Zshell part du répertoire courant du terminal et remonte jusqu'au **dépôt Git englobant le plus proche**.
+
+Les déplacements avec `cd` à l'intérieur d'un dépôt ne font donc pas changer la racine de l'arborescence. Hors d'un dépôt, les panneaux suivent simplement le terminal.
+
+Lorsque le programme au premier plan rejoint une autre copie de travail, par exemple un agent entrant dans son propre arbre de travail Git, les panneaux Fichiers, Git et Informations suivent cette copie. Ils reviennent à la précédente lorsque le programme revient. Un répertoire de projet fixé manuellement reste prioritaire et désactive ce changement automatique de racine.
+
+Pour fixer le dossier, faites un clic droit sur le projet puis choisissez **Définir le répertoire du projet…**. Ce choix est conservé après redémarrage ; **Utiliser le répertoire automatique** rend la main à la détection.
+
+<Callout type="info">
+Le panneau Informations (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>) affiche le **répertoire actuel** du shell lorsqu'il est différent, ainsi que le **répertoire du projet** auquel les panneaux sont rattachés, marqué `(AUTO)` lorsqu'il est déterminé automatiquement.
+</Callout>
+
+## Sessions [#sessions]
+
+Chaque projet peut contenir autant de sessions que vous le souhaitez, présentées sous forme d'onglets en haut. Une session est un véritable shell de connexion, `zsh`, `fish`, `bash` ou celui défini pour votre compte, avec son propre répertoire de travail et son historique de défilement.
+
+| Action | Raccourci |
+| --- | --- |
+| Nouvelle session | <kbd>Cmd</kbd>+<kbd>T</kbd> |
+| Sélectionner l'onglet 1 à 9 | <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> |
+| Sélecteur d'onglets par utilisation récente | <kbd>Ctrl</kbd>+<kbd>Tab</kbd> |
+| Onglet suivant ou précédent | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Fermer le volet actif | <kbd>Cmd</kbd>+<kbd>W</kbd> |
+
+Une nouvelle session locale utilise d'abord le répertoire fixé du projet, puis le dossier par défaut de son groupe latéral. Sans l'un ni l'autre, elle reprend le répertoire de la session actuelle, ou votre dossier personnel en dernier recours.
+
+### Groupes d'onglets [#tab-groups]
+
+Faites un clic droit sur un onglet et choisissez **Déplacer vers un groupe → Nouveau groupe d'onglets**. L'onglet rejoint le nouveau groupe, représenté par une flèche colorée sans nom. Les sessions créées depuis un onglet groupé restent dans ce groupe. Le menu de sa flèche propose aussi **Nouvelle session dans le groupe**.
+
+Déplacez un onglet sur la flèche d'un groupe ou sur un autre onglet pour le changer de groupe. Le menu contextuel liste aussi les groupes et **Retirer du groupe**. Cliquez sur la flèche pour réduire ou développer le groupe. Le terminal actif reste visible et continue de s'exécuter lorsqu'un groupe est réduit ; sélectionner un membre masqué développe le groupe. Supprimer un groupe conserve ses onglets et ses sessions. Épingler un onglet groupé le déplace dans la zone fixe, hors des groupes. Le menu de la flèche permet de **définir un repère de couleur** ou de le **supprimer**. Les couleurs et l'état réduit des groupes sont restaurés au redémarrage.
+
+Un onglet peut également être déposé sur un projet de la barre latérale, ou sur l'en-tête d'un groupe latéral pour y créer un projet. Un dépôt sur **+ (Nouveau projet)** crée un projet sans groupe. **Déplacer l'onglet vers un projet** permet aussi de cibler une autre fenêtre. Ces déplacements conservent les terminaux actifs et la disposition des volets. Les projets doivent partager le même emplacement local ou SSH ; un projet créé depuis un onglet conserve son emplacement d'origine. Les onglets contenant des diffs restent dans leur projet actuel.
+
+### Titres des onglets [#tab-titles]
+
+Les titres proviennent du terminal : séquence d'échappement de l'invite du shell ou programme en cours. Le menu contextuel permet de **Renommer…** manuellement l'onglet, puis d'**Utiliser le titre automatique** pour revenir au suivi du terminal.
+
+Les autres actions sont **Fermer**, **Fermer les autres**, **Fermer les onglets à droite** et **Tout fermer**, ainsi qu'**Afficher dans le Finder** et **Copier le chemin absolu** pour le répertoire de la session. **Fermer les fichiers** et **Fermer les diffs** retirent ces contenus de tout le projet tout en conservant les terminaux et les volets de navigateur.
+
+## Fenêtres [#windows]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> ouvre une autre fenêtre. Chaque fenêtre possède ses projets et l'état de ses barres latérales ; leur restauration est indépendante.
+
+## Éléments restaurés au redémarrage [#what-survives-a-relaunch]
+
+Zshell enregistre des instantanés de votre disposition pendant le travail. À la réouverture, vous retrouvez :
+
+- Tous les projets, dans le même ordre.
+- Tous les onglets, avec leurs noms personnalisés, leur état épinglé et leurs repères de couleur.
+- Les groupes latéraux, avec noms, couleurs, ordre, membres et état réduit.
+- Les groupes d'onglets, avec couleurs, ordre, membres et état réduit.
+- Les répertoires de projet fixés et les projets vides.
+- La disposition des volets de chaque onglet.
+- Les barres latérales ouvertes et le panneau droit sélectionné.
+
+Les terminaux redémarrent avec de **nouveaux shells** dans leurs anciens répertoires. Zshell ne maintient aucun processus en arrière-plan : une compilation en cours s'arrête lorsque vous quittez l'application.
+
+L'ancien historique de défilement n'est restauré que si vous activez [`terminal.restore-history`](/fr/docs/configuration#terminalrestore-history). Cette option est désactivée par défaut, car cet historique est enregistré sur disque.
+
+## Environnement du terminal et initialisation [#terminal-environment-and-initialization]
+
+Sélectionnez un projet puis utilisez **Terminal → Environnement du terminal du projet…** pour définir ses variables d'environnement et sa commande d'initialisation. **Terminal → Environnement du terminal de l'onglet…** définit les valeurs propres à l'onglet actuel.
+
+| Portée | Comportement |
+| --- | --- |
+| Projet | Les nouveaux terminaux héritent de ses variables et de sa commande d'initialisation |
+| Onglet | Les variables remplacent celles du projet portant le même nom ; la commande peut hériter de celle du projet, la remplacer ou la désactiver |
+
+Les changements ne concernent que les terminaux créés après l'enregistrement. Les processus existants conservent leur environnement. L'initialisation s'exécute pour le shell de connexion normal, pas pour un programme de démarrage personnalisé ni des arguments argv explicites.
+`ZSHELL_*`, `TERM`, `COLORTERM`, `TERM_PROGRAM` et `TERM_PROGRAM_VERSION` sont gérés par Zshell et ne peuvent pas être remplacés.

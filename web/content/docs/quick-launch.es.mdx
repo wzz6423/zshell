@@ -1,0 +1,39 @@
+---
+title: Inicio rápido de comandos
+description: Guarda los comandos y conexiones SSH que usas a menudo e inicia cualquiera con un atajo.
+---
+
+<kbd>Cmd</kbd>+<kbd>O</kbd> abre **Inicio rápido**: una lista con búsqueda de entradas que abren un proyecto nuevo con una sesión de terminal. Una entrada guardada puede ser un **comando**, como `npm run dev` o `make watch`, o una **conexión SSH**.
+
+## Iniciar una entrada [#launching]
+
+Escribe un nombre, comando, destino de conexión o grupo para filtrar la lista mediante coincidencia aproximada. Haz clic en una fila o selecciónala con las flechas y pulsa <kbd>Return</kbd>. La entrada se ejecuta en un proyecto nuevo con su mismo nombre y con su propia sesión de terminal y directorio.
+
+Cuando termina el comando o se cierra la conexión, el panel vuelve al prompt normal del shell en vez de desaparecer. Nada de lo que hayas iniciado se cierra por su cuenta y sin avisar.
+
+También puedes ejecutar una entrada guardada por su nombre desde cualquier terminal de Zshell:
+
+```bash
+zshell "Entry name"
+```
+
+Usa el nombre exacto de la entrada y ponlo entre comillas si contiene espacios. La indicación en la parte inferior de Inicio rápido muestra esta sintaxis. La entrada se abre en un proyecto nuevo.
+
+## Gestionar entradas [#managing-entries]
+
+- <kbd>Cmd</kbd>+<kbd>N</kbd>: nueva entrada
+- <kbd>Cmd</kbd>+<kbd>E</kbd>: editar la entrada seleccionada
+- <kbd>Cmd</kbd>+<kbd>Delete</kbd>: eliminar la entrada seleccionada
+
+Usa el campo opcional **Grupo** para organizar las entradas en secciones con nombre. Los botones de edición y eliminación actúan sobre su entrada sin iniciarla.
+
+Una entrada de comando puede fijar un **directorio de trabajo** en el que siempre se inicia; si no lo tiene, utiliza el directorio predeterminado de los proyectos nuevos. Una entrada SSH admite el host, un usuario y puerto opcionales y opciones `ssh` adicionales de formato libre, como `-L
+8080:localhost:80`.
+
+## Dónde se guardan las entradas [#where-entries-live]
+
+Las entradas se guardan en `~/.config/zshell/quick-launch.json` y se comparten entre todas las ventanas. Son datos de usuario normales: puedes editar el archivo o hacer una copia de seguridad libremente.
+
+<Callout type="info">
+Los comandos se ejecutan a través de tu shell de inicio de sesión, por lo que tienen acceso al entorno de tu perfil. Después, el panel sigue siendo una sesión normal, con tus alias y tu prompt intactos.
+</Callout>

@@ -1,0 +1,41 @@
+---
+title: Pannelli browser
+description: Apri siti accanto al terminale, naviga con controlli nativi e mantieni i link nel progetto.
+---
+
+Zshell può inserire un browser integrato in qualsiasi scheda o pannello diviso. È utile per un server di sviluppo locale, la documentazione di un'API, una issue o qualsiasi contenuto da tenere accanto al terminale che lo usa.
+
+## Aprire un browser [#opening-a-browser]
+
+- Scegli **File → Nuova scheda browser** per una scheda vuota.
+- Apri la palette dei comandi (<kbd>Cmd</kbd>+<kbd>P</kbd>) ed esegui **Nuova scheda browser** o **Nuovo pannello browser**.
+- Fai clic destro con Command su un URL rilevato nel terminale e scegli **Nuova scheda browser** o **Nuovo pannello browser** per aprirlo senza copiarlo.
+
+Le schede browser appartengono al progetto selezionato e partecipano alla normale disposizione di schede e pannelli. Se non è aperto alcun progetto, Zshell ne crea uno per il browser.
+
+## Indirizzo e ricerca [#address-and-search]
+
+Il campo superiore accetta URL completi, nomi host o termini di ricerca:
+
+- `zshell.sh` diventa un indirizzo HTTPS.
+- `localhost`, nomi host locali, indirizzi IP e porte esplicite usano HTTP.
+- Tutto il resto diventa una ricerca Google.
+
+Usa <kbd>Cmd</kbd>+<kbd>L</kbd> per attivare il campo e <kbd>Cmd</kbd>+<kbd>R</kbd> per ricaricare. La barra offre anche Indietro, Avanti, Interrompi/Ricarica, Condividi e **Apri nel browser predefinito**. Funzionano anche i gesti avanti e indietro del trackpad.
+
+| Azione | Scorciatoia |
+| --- | --- |
+| Attivare la barra degli indirizzi | <kbd>Cmd</kbd>+<kbd>L</kbd> |
+| Ricaricare la pagina | <kbd>Cmd</kbd>+<kbd>R</kbd> |
+
+## Aprire i link dove preferisci [#opening-links-where-you-want-them]
+
+Fai clic destro su un link nella pagina per **Apri link in nuova scheda** o **Apri link in nuovo pannello**. La pagina rimane nello stesso spazio di lavoro del progetto.
+
+Nel terminale, un normale Command-clic apre l'URL rilevato nel browser predefinito. Command-clic destro offre invece una scheda o un pannello Zshell. I percorsi locali seguono un flusso analogo descritto in [Percorsi e URL](/it/docs/terminal#paths-and-urls).
+
+## Cosa viene conservato [#what-is-preserved]
+
+Passare tra schede o progetti conserva la pagina, inclusi cronologia, posizione di scorrimento, moduli e stato interno. Al riavvio, Zshell ripristina URL corrente e disposizione, ma non tutta la cronologia avanti/indietro.
+
+I pannelli browser conservano cookie, accessi e altri dati dei siti tra schede e avvii. Non si tratta di navigazione privata.

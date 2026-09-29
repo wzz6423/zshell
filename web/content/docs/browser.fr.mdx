@@ -1,0 +1,41 @@
+---
+title: Volets de navigateur
+description: Ouvrez des sites à côté du terminal, utilisez des commandes natives et gardez les liens dans votre projet.
+---
+
+Zshell peut afficher un navigateur intégré dans n'importe quel onglet ou volet divisé. Il convient à un serveur de développement local, à la documentation d'une API, à un ticket ou à toute page utile à côté du terminal concerné.
+
+## Ouvrir un navigateur [#opening-a-browser]
+
+- Choisissez **Fichier → Nouvel onglet de navigateur** pour ouvrir un onglet vide.
+- Ouvrez la palette de commandes (<kbd>Cmd</kbd>+<kbd>P</kbd>) et lancez **Nouvel onglet de navigateur** ou **Nouveau volet de navigateur**.
+- Dans un terminal, maintenez Command en faisant un clic droit sur une URL reconnue, puis choisissez **Nouvel onglet de navigateur** ou **Nouveau volet de navigateur** pour l'ouvrir sans copier l'adresse.
+
+Les onglets de navigateur appartiennent au projet sélectionné et participent à sa disposition habituelle d'onglets et de volets. Si aucun projet n'est ouvert, Zshell en crée un pour accueillir le navigateur.
+
+## Adresse et recherche [#address-and-search]
+
+Le champ supérieur accepte une URL complète, un nom d'hôte ou des mots à rechercher :
+
+- `zshell.sh` devient une adresse HTTPS.
+- `localhost`, les noms d'hôtes locaux, les adresses IP et les ports explicites utilisent HTTP.
+- Tout autre contenu lance une recherche Google.
+
+<kbd>Cmd</kbd>+<kbd>L</kbd> place le focus dans le champ et <kbd>Cmd</kbd>+<kbd>R</kbd> recharge la page. La barre d'outils propose aussi Précédent, Suivant, Arrêter/Recharger, Partager et **Ouvrir dans le navigateur par défaut**. Les gestes de navigation arrière et avant du trackpad fonctionnent également.
+
+| Action | Raccourci |
+| --- | --- |
+| Activer la barre d'adresse | <kbd>Cmd</kbd>+<kbd>L</kbd> |
+| Recharger la page | <kbd>Cmd</kbd>+<kbd>R</kbd> |
+
+## Choisir où ouvrir les liens [#opening-links-where-you-want-them]
+
+Faites un clic droit sur un lien dans une page pour choisir **Ouvrir le lien dans un nouvel onglet** ou **Ouvrir le lien dans un nouveau volet**. La nouvelle page reste dans l'espace de travail du même projet.
+
+Dans un terminal, un simple clic avec Command ouvre l'URL reconnue dans votre navigateur par défaut. Le clic droit avec Command propose, lui, un onglet ou un volet Zshell. Les chemins locaux disposent d'actions équivalentes, décrites dans [Chemins et URL](/fr/docs/terminal#paths-and-urls).
+
+## Éléments conservés [#what-is-preserved]
+
+Changer d'onglet ou de projet conserve la page, son historique, sa position de défilement, ses formulaires et son état interne. Au redémarrage de Zshell, l'URL actuelle et la disposition sont restaurées, mais pas l'historique complet des navigations arrière et avant.
+
+Les volets conservent les cookies, les connexions et les autres données des sites entre les onglets et les lancements. Il ne s'agit pas d'un mode de navigation privée.

@@ -6,7 +6,9 @@ description: 下载 Zshell、用 Homebrew 安装、保持更新，以及干净�
 Zshell 未经 Apple 公证。当前版本需要的最低
 macOS 版本，标在[首页](/)的下载按钮旁边。
 
-## 下载
+<span id="下载" data-canonical-heading="download" />
+
+## 下载 [#download]
 
 从[首页](/)下载 `.dmg`。当前 0.1.7 提供 **Universal**、Apple Silicon 和 Intel
 安装包，Gitee 同时提供镜像下载。
@@ -16,7 +18,7 @@ macOS 版本，标在[首页](/)的下载按钮旁边。
 **系统设置 → 隐私与安全性 → 仍要打开**，确认打开 Zshell。
 通过 Homebrew 安装也可能需要这一步。
 
-## Homebrew
+## Homebrew [#homebrew]
 
 ```bash
 brew install wzz6423/tap/zshell
@@ -29,7 +31,9 @@ cask 放在 `wzz6423/homebrew-tap`，会按本机处理器安装 ZIP 包，安�
 brew upgrade --cask --greedy-auto-updates zshell
 ```
 
-## 更新
+<span id="更新" data-canonical-heading="updates" />
+
+## 更新 [#updates]
 
 直接下载和 Homebrew 安装都通过 [Sparkle](https://sparkle-project.org) 更新。
 中国大陆优先访问 Gitee，失败后尝试 GitHub；其他地区优先访问 GitHub，失败后尝试 Gitee。
@@ -40,15 +44,17 @@ brew upgrade --cask --greedy-auto-updates zshell
 feed 或更新包下载失败时，只切换到另一个源重试一次。安装前会验证 feed 和更新包的签名，
 并保留安装包的架构；在 Rosetta 下运行的 Intel 版会迁移到 Apple Silicon 版。
 
-用 <kbd>Cmd</kbd>+<kbd>,</kbd> 打开 **设置 → 更新**，可分别控制**自动检查更新**和
-**自动下载更新**。自动下载默认关闭，需要先开启自动检查；开启后才显示独立的**自动安装更新**开关，默认关闭。
+用 <kbd>Cmd</kbd>+<kbd>,</kbd> 打开 <strong>设置 → 更新</strong>，可分别控制<strong>自动检查更新</strong>和
+<strong>自动下载更新</strong>。自动下载默认关闭，需要先开启自动检查；开启后才显示独立的<strong>自动安装更新</strong>开关，默认关闭。
 只开启自动下载时，会在后台下载，并在退出 Zshell 时安装。两个开关都开启时，更新准备就绪后会自动安装并重启 Zshell。
 重启会停止正在运行的终端进程，重新打开后恢复工作区。关闭自动下载会隐藏自动安装并阻止自动重启，
 但保留自动安装的选择，供再次开启下载时使用。两个开关的选择都会在应用重启后保留。
 检测到更新时，项目侧栏底部、反馈按钮左侧会显示更新图标；点击可打开更新或查看进度，
-也可重试待完成的重启。也可以选择**检查更新…**立即手动检查，或使用上面的 Homebrew 命令显式更新。
+也可重试待完成的重启。也可以选择<strong>检查更新…</strong>立即手动检查，或使用上面的 Homebrew 命令显式更新。
 
-## 推荐工具
+<span id="推荐工具" data-canonical-heading="recommended-tools" />
+
+## 推荐工具 [#recommended-tools]
 
 打开 **设置 → 推荐**，可以浏览终端效率、网络与数据、开发工具链、实用工具和桌面应用，
 其中包括 Zisla。页面打开期间会自动检测已安装的工具和可用更新。点击单项的
@@ -60,14 +66,18 @@ feed 或更新包下载失败时，只切换到另一个源重试一次。安装
 **通过 Homebrew 安装** 会安装一份由 Homebrew 管理的副本，Shell 的 `PATH` 仍可能优先找到
 原来的版本。更改安装后，可以点击 **刷新**重新检查。Zshell 自身的更新在**设置 → 更新**中管理。
 
-## 从 Finder 打开文件夹
+<span id="从-finder-打开文件夹" data-canonical-heading="open-a-folder-from-finder" />
+
+## 从 Finder 打开文件夹 [#open-a-folder-from-finder]
 
 Zshell 注册了一个名为 **New Zshell Project Here** 的 macOS 服务。在 Finder 里选中一个或多个文件夹，右键，从 **服务** 子菜单里选它——每个文件夹都会作为一个项目打开，终端已经在对应目录里启动好了。
 
 如果菜单里没有它，去 **系统设置 → 键盘 → 键盘快捷键 → 服务 → 文件和文件夹** 打开。macOS
 只会在应用至少启动过一次之后才列出新服务。
 
-## 卸载
+<span id="卸载" data-canonical-heading="uninstalling" />
+
+## 卸载 [#uninstalling]
 
 如果打开了 **设置 → Automation → AI**，请先关掉再删除应用，让 Zshell 移除它安装的 agent 支持。
 

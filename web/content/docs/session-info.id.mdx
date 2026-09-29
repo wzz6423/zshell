@@ -1,0 +1,38 @@
+---
+title: Proses dan port
+description: Lihat apa yang dijalankan sesi dan port mana yang dibukanya.
+---
+
+Tekan <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>. Panel Info menjelaskan **sesi yang difokuskan**, bukan proyek, dan diperbarui saat proses mulai atau berhenti.
+
+## Direktori [#directory]
+
+Dua direktori ditampilkan terpisah karena tidak selalu sama:
+
+- **Direktori Saat Ini (Current Directory)** — direktori kerja shell yang aktif, ditampilkan jika berbeda dari yang di bawah.
+- **Direktori Proyek (Project Directory)** — folder acuan panel berkas dan Git, bertanda `(AUTO)` saat ditentukan oleh Zshell. Popover `?` menjelaskan keduanya.
+
+Di sampingnya ada pintasan untuk menampilkan folder di **Finder**, membukanya di **VS Code** jika terpasang, dan **menyalin** jalur.
+
+## Proses [#processes]
+
+Semua proses di bawah shell sesi ditampilkan bersama PID, persentase CPU, dan memori residen. Klik kanan proses untuk:
+
+- **Hentikan (Terminate)** — `SIGTERM` yang meminta penghentian secara wajar
+- **Paksa Hentikan (Force Kill)** — `SIGKILL` untuk proses yang tidak merespons
+- **Salin PID (Copy PID)** / **Salin Jalur Program (Copy Executable Path)**
+
+Proses anak yang sudah keluar tetapi menunggu dikumpulkan (`<defunct>`) tidak disertakan; tidak ada lagi yang perlu dilihat atau dihentikan.
+
+## Port [#ports]
+
+Port TCP yang didengarkan proses tersebut ditampilkan bersama proses pemiliknya.
+Berguna untuk menjawab pertanyaan sehari-hari: *port mana yang dipilih server pengembangan kali ini* dan *apa yang masih memakai 3000*.
+
+- Klik port untuk membuka `http://localhost:<port>/` di browser
+- **Salin URL (Copy URL)**
+- **Hentikan Proses (Kill Process)** — jika pemilik port adalah proses yang Anda lupakan
+
+<Callout type="info">
+Daftar diperbarui saat panel terbuka dan dijeda ketika panel tersembunyi.
+</Callout>

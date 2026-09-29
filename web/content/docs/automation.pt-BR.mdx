@@ -1,0 +1,81 @@
+---
+title: Trabalhar com agentes de IA
+description: Deixe agentes de programação delegarem tarefas e se coordenarem entre painéis Zshell enquanto você mantém o foco e o controle.
+---
+
+A automação do Zshell é voltada principalmente a agentes de programação com IA. Ela oferece uma forma segura de trabalhar com painéis e coordenar outros agentes; você não precisa aprender outra linguagem de comandos.
+
+A integração vem ativada. Converse normalmente com seu agente. Ele pode criar um painel em segundo plano, iniciar um executor delegado, executar um comando, aguardar o resultado e trazer a resposta sem tirar o foco do painel em uso.
+
+## Configuração [#setup]
+
+Confira **Ajustes → Automação → IA**. A opção vem ativada; se você a desativou, ative novamente e abra um terminal novo ou reinicie o agente que já estava rodando.
+
+O Zshell suporta Codex, Claude Code, Gemini CLI, Grok Build, OpenCode, Cursor Agent, Aider, Amp e Pi. Se encontrar uma configuração de agente que conflite com o recurso, ele mantém a configuração existente, devolve a opção ao estado anterior e mostra o erro nos Ajustes.
+
+## Peça em linguagem natural [#ask-in-plain-language]
+
+Diga ao agente o resultado esperado. Por exemplo:
+
+> Execute os testes relevantes em um painel de fundo e me diga quais falham.
+
+> Delegue este bug a outro agente Codex e depois revise o resultado.
+
+> Pergunte ao agente da API se o esquema está pronto e passe a resposta ao agente dos testes.
+
+> Inicie o servidor de desenvolvimento ao nosso lado, espere ficar pronto e me dê a URL.
+
+> Veja se o agente em segundo plano terminou. Se estiver bloqueado, diga do que precisa.
+
+O agente usa a interface de automação do Zshell por você. Não é necessário digitar nem memorizar comandos de automação.
+
+## Coordenação entre painéis [#let-agents-coordinate-across-panes]
+
+Você pode dividir tarefas relacionadas entre vários painéis e pedir que seu agente principal coordene o trabalho. Um agente pode cuidar da API enquanto outro atualiza testes. O coordenador pode pedir resultados a um executor específico, enviar um complemento, repassar informações úteis a outro e trazer a resposta combinada. Os executores podem usar ferramentas de programação diferentes, desde que compatíveis.
+
+Isso elimina o copiar e colar na execução paralela. Cada agente mantém sua conversa em seu próprio painel, enquanto o coordenador repassa apenas a pergunta, atualização ou resultado necessário ao outro.
+
+Enviar uma solicitação adicional não significa concluir o trabalho. O coordenador ainda aguarda o executor, lê o resultado e o verifica. Uma mensagem de outro agente nunca equivale à sua aprovação. Permissões, credenciais, decisões de confiança e ações destrutivas continuam voltando a você.
+
+## Continue trabalhando durante a execução [#keep-working-while-it-runs]
+
+Painéis delegados ficam em segundo plano até você pedir para vê-los. Quando a integração nativa de ciclo de vida do provedor informa o estado, o Zshell o exibe no painel e na aba do agente:
+
+| Estado | Significado |
+| --- | --- |
+| **Trabalhando** | O agente está executando a tarefa. |
+| **Bloqueado** | Precisa de uma resposta, aprovação ou decisão sua. |
+| **Concluído** | Terminou em segundo plano e você ainda não viu o painel. |
+
+O Zshell registra um prompt enviado como **Trabalhando**, mas nunca examina o texto renderizado do terminal para adivinhar o que acontece depois. As transições para **Bloqueado** e **Concluído**, e suas notificações, exigem um relatório de ciclo de vida do provedor. Se o agente não o fornece, examine o painel e as alterações do projeto diretamente.
+
+Quando uma integração informa conclusão ou necessidade de entrada, o Zshell também pode notificar. Pressione <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> para ir ao próximo agente que informou precisar da sua atenção.
+
+## Uso e limites da conta [#account-usage-and-limits]
+
+**Ajustes → Automação → Uso da Conta** mostra limites disponíveis de Claude Code e Codex, incluindo porcentagem usada, horário de renovação quando informado e horário da última atualização. Use **Atualizar Uso** para recarregar os dados mais recentes disponíveis.
+
+O Codex precisa de um CLI instalado, autenticado e capaz de informar limites. O uso do Claude Code aparece quando o Zshell recebe um relatório do provedor pela linha de status. A seção só aparece com dados disponíveis; os períodos dependem do provedor e da conta. São limites da conta, não o total de tokens da sessão em foco.
+
+## Um fluxo comum [#a-typical-workflow]
+
+1. Inicie seu agente habitual em um terminal Zshell.
+2. Peça para delegar uma tarefa delimitada, executar algo em segundo plano ou coordenar outro agente.
+3. Continue no painel atual enquanto o trabalho delegado permanece visível no layout do projeto.
+4. Acompanhe os indicadores **Trabalhando**, **Bloqueado** ou **Concluído** quando o provedor os fornecer. Caso contrário, abra o painel para examinar a conversa ou saída do terminal.
+5. Revise os arquivos no [painel Git](/pt-BR/docs/git), confira o diff e decida o que manter.
+
+## Você mantém o controle [#you-stay-in-control]
+
+- A automação fica no projeto Zshell atual e não alcança painéis de outro projeto ou janela.
+- Trabalho em segundo plano não toma o foco sem seu pedido explícito.
+- O Zshell não responde por você a solicitações de permissão, credenciais, confiança ou ações destrutivas. Um agente bloqueado conforme o provedor devolve a decisão a você.
+- Conclusão informada é um sinal para revisar, não aprovação automática das alterações.
+
+## Se o agente não usar o Zshell [#if-an-agent-does-not-use-zshell]
+
+- Confirme que **Ajustes → Automação → IA** está ativado.
+- Abra um terminal Zshell novo se o atual já existia antes da ativação.
+- Reinicie o agente que estava rodando quando você ativou a opção.
+- Confira os Ajustes para erros de configuração mostrados junto ao controle.
+- Peça explicitamente um “painel Zshell em segundo plano” ou um “agente Zshell delegado” para usar esse fluxo na tarefa.

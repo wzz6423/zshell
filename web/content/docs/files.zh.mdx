@@ -4,9 +4,11 @@ description: 跨项目查找文件、搜索文件内容，在终端旁编辑代�
 ---
 
 按 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> 打开文件树。和 git 面板一样，它以
-[项目目录](/docs/projects#项目目录)为根，所以不会每次 `cd` 都换根。
+[项目目录](/docs/projects#the-project-directory)为根，所以不会每次 `cd` 都换根。
 
-## 文件树
+<span id="文件树" data-canonical-heading="the-tree" />
+
+## 文件树 [#the-tree]
 
 点文件在当前窗格里打开。右键是其余的操作：
 
@@ -23,7 +25,9 @@ description: 跨项目查找文件、搜索文件内容，在终端旁编辑代�
 
 每一行都使用能识别文件名的 Material 图标。在 Git 仓库里，改动过的路径还会显示状态颜色与徽章，被忽略的文件会变淡，所以不打开 Git 面板也能看出工作区状态。
 
-## 查找文件与搜索内容
+<span id="查找文件与搜索内容" data-canonical-heading="find-files-and-search-contents" />
+
+## 查找文件与搜索内容 [#find-files-and-search-contents]
 
 命令面板（<kbd>Cmd</kbd>+<kbd>P</kbd>）按文件名或路径查找当前窗口中已打开的本地项目，
 同时显示匹配的命令和会话。选中文件后，会切到它所属的项目并打开文件。
@@ -36,7 +40,9 @@ description: 跨项目查找文件、搜索文件内容，在终端旁编辑代�
 可以停止正在运行的搜索并保留已有结果，或关闭搜索回到文件树。这些本地文件搜索不包含
 SSH 项目。
 
-## 编辑器
+<span id="编辑器" data-canonical-heading="the-editor" />
+
+## 编辑器 [#the-editor]
 
 打开文件后，窗格里是一个真正的编辑器，带语法高亮。
 
@@ -58,7 +64,9 @@ SSH 项目。
 这是一个用来改你眼前这处改动的编辑器——修个错字、调个常量、读一眼 diff 里提到的文件。没有语言服务器，没有补全，也没有跨项目重构。这是有意为之。
 </Callout>
 
-## Markdown 预览
+<span id="markdown-预览" data-canonical-heading="markdown-preview" />
+
+## Markdown 预览 [#markdown-preview]
 
 打开 `.md` 文件后，可以直接在窗格里阅读渲染后的文档。点击右上角的 **编辑** 修改源文，
 再用 **预览** 查看效果。Zshell 会记住这个模式，后续打开 Markdown 文件和重启时继续沿用。
@@ -66,7 +74,9 @@ SSH 项目。
 切换模式会保留编辑内容和撤销历史；按 <kbd>Cmd</kbd>+<kbd>S</kbd> 保存改动。
 其他扩展名的 Markdown 文件仍以源码打开。
 
-## Diff
+<span id="diff" data-canonical-heading="diffs" />
+
+## Diff [#diffs]
 
 从 [git 面板](/docs/git)打开的 diff 也只是一个窗格，所以 diff、文件和终端可以在一个标签页里并排。它使用你的终端字体，上千个文件的改动集，打开速度和一行的一样。实时工作区里尚未暂存的 diff 还可以从 Review 切到 Edit；已暂存和历史 diff 始终只读。见
-[看 diff](/docs/git#看-diff)。
+[看 diff](/docs/git#reading-diffs)。

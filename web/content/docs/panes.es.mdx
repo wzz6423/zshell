@@ -1,0 +1,50 @@
+---
+title: Divisiones y paneles
+description: Divide una pestaña en paneles, muévete entre ellos, cambia su tamaño y amplía uno para ocupar toda la pestaña.
+---
+
+Cualquier pestaña puede dividirse en paneles. Normalmente un panel contiene un terminal, pero también puede contener un archivo, unas diferencias o un [navegador](/es/docs/browser): así puedes leer un contenido junto al shell que lo generó.
+
+## Dividir [#splitting]
+
+| Acción | Atajo |
+| --- | --- |
+| Dividir hacia la derecha | <kbd>Cmd</kbd>+<kbd>D</kbd> |
+| Dividir hacia abajo | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> |
+| Dividir hacia la izquierda | — |
+| Dividir hacia arriba | — |
+
+Las divisiones hacia la izquierda y hacia arriba no tienen atajo predeterminado. Ejecútalas desde el menú **Pestañas**, la paleta de comandos (<kbd>Cmd</kbd>+<kbd>P</kbd>) o el menú contextual del propio panel. El panel nuevo hereda el directorio de trabajo del panel enfocado.
+
+La división siempre afecta al **panel enfocado**, incluso en una disposición anidada. No cambia el tamaño de un vecino ajeno a la operación. Cada panel muestra en su cabecera un pequeño título actualizado y controles de división para mantener visible su contexto local.
+
+Puedes reorganizar los paneles ya abiertos: arrastra la tira fina de su borde superior hasta el borde de otro panel. El panel de destino muestra la mitad que ocupará antes de soltarlo.
+
+También puedes convertir una pestaña completa en un panel. Arrastra su pestaña desde la tira superior hasta el borde izquierdo, derecho, superior o inferior del contenido de la pestaña actual. La vista previa muestra la división resultante antes de soltarla.
+
+## Moverse entre paneles [#moving-between-panes]
+
+| Acción | Atajo |
+| --- | --- |
+| Enfocar el panel izquierdo/derecho/superior/inferior | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+flechas |
+| Recorrer el foco hacia atrás/delante | <kbd>Cmd</kbd>+<kbd>[</kbd> / <kbd>Cmd</kbd>+<kbd>]</kbd> |
+
+## Zoom y tamaño [#zoom-and-resize]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> amplía el panel enfocado para llenar la pestaña; al pulsarlo de nuevo se restaura su tamaño. Mientras un panel está ampliado, la cabecera de la pestaña muestra un botón para salir de ese estado sin depender del atajo.
+
+| Acción | Atajo |
+| --- | --- |
+| Alternar zoom del panel | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> |
+| Ampliar el panel en una dirección | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+flechas |
+| Igualar todos los paneles | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+<kbd>=</kbd> |
+
+También puedes arrastrar los separadores entre paneles.
+
+## Cerrar [#closing]
+
+<kbd>Cmd</kbd>+<kbd>W</kbd> cierra el panel enfocado. Cerrar el último panel de una pestaña también cierra la pestaña.
+
+<Callout type="warn">
+Cerrar un panel de terminal termina el shell que se ejecuta en él y todo lo que haya iniciado. Zshell no pide confirmación: funciona como cerrar cualquier otro terminal.
+</Callout>

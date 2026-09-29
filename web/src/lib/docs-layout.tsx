@@ -1,19 +1,14 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
-import { DEFAULT_LANGUAGE } from '@/lib/i18n'
+import { homePath } from '@/lib/i18n'
+import { uiCopy } from '@/lib/ui-copy'
 import { withBase } from '@/lib/utils'
 
 const GITHUB_URL = 'https://github.com/wzz6423/zshell'
 
-/** The changelog is generated from CHANGELOG.md, so it has no translation. */
-const NAV_LABELS = {
-  en: { changelog: 'Changelog', download: 'Download' },
-  zh: { changelog: '更新日志', download: '下载' },
-} as const
-
 /** Chrome shared by every docs page: the zshell wordmark plus links back to the site. */
 export function docsLayoutOptions(lang: string): BaseLayoutProps {
-  const labels = NAV_LABELS[lang as keyof typeof NAV_LABELS] ?? NAV_LABELS.en
-  const home = lang === DEFAULT_LANGUAGE ? '/' : `/${lang}`
+  const labels = uiCopy(lang)
+  const home = homePath(lang)
 
   return {
     githubUrl: GITHUB_URL,

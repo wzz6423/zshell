@@ -1,0 +1,41 @@
+---
+title: "Tarayıcı bölmeleri"
+description: "Web sitelerini terminalin yanında açın, yerel denetimlerle gezinin ve bağlantıları projede tutun."
+---
+
+Zshell her sekmeye veya bölünmüş bölmeye yerleşik tarayıcı koyabilir. Yerel geliştirme sunucusu, API belgeleri, bir issue veya kullanan terminalin yanında tutmak istediğiniz diğer içerikler için uygundur.
+
+## Tarayıcı açma [#opening-a-browser]
+
+- Boş sekme için **Dosya → Yeni Tarayıcı Sekmesi**’ni seçin.
+- Komut paletinde (<kbd>Cmd</kbd>+<kbd>P</kbd>) **Yeni Tarayıcı Sekmesi** veya **Yeni Tarayıcı Bölmesi** çalıştırın.
+- Terminalde algılanmış URL’ye Command-sağ tıklayın; adresi kopyalamadan açmak için **Yeni Tarayıcı Sekmesi** veya **Yeni Tarayıcı Bölmesi** seçin.
+
+Tarayıcı sekmeleri seçili projeye aittir ve normal sekme/bölme düzenine katılır. Açık proje yoksa Zshell tarayıcı için bir proje oluşturur.
+
+## Adres ve arama [#address-and-search]
+
+Üst alan tam URL, sunucu adı veya arama sözcükleri kabul eder:
+
+- `zshell.sh` HTTPS adresine dönüşür.
+- `localhost`, yerel sunucu adları, IP adresleri ve açıkça belirtilen portlar HTTP kullanır.
+- Diğer girdiler Google aramasına dönüşür.
+
+<kbd>Cmd</kbd>+<kbd>L</kbd> alanı odaklar, <kbd>Cmd</kbd>+<kbd>R</kbd> yeniden yükler. Araç çubuğunda Geri, İleri, Durdur/Yeniden Yükle, Paylaş ve **Varsayılan Tarayıcıda Aç** da vardır. İzleme dörtgeninin ileri/geri hareketleri desteklenir.
+
+| İşlem | Kısayol |
+| --- | --- |
+| Adres çubuğuna odaklan | <kbd>Cmd</kbd>+<kbd>L</kbd> |
+| Sayfayı yeniden yükle | <kbd>Cmd</kbd>+<kbd>R</kbd> |
+
+## Bağlantıları istediğiniz yerde açma [#opening-links-where-you-want-them]
+
+Sayfa bağlantısına sağ tıklayıp **Bağlantıyı Yeni Sekmede Aç** veya **Bağlantıyı Yeni Bölmede Aç** seçin. Yeni sayfa aynı proje çalışma alanında kalır.
+
+Terminalde normal Command-tıklama algılanmış web URL’sini varsayılan tarayıcıda açar. Command-sağ tıklama Zshell sekmesi veya bölmesi seçeneklerini sunar. Yerel yollar için benzer akış [Yollar ve URL’ler](/tr/docs/terminal#paths-and-urls) bölümündedir.
+
+## Korunan durum [#what-is-preserved]
+
+Sekme veya proje değiştirmek sayfanın geçmişini, kaydırma konumunu, formlarını ve sayfa içi durumunu korur. Zshell yeniden açıldığında geçerli URL ve düzen geri gelir; tam ileri/geri geçmişi geri gelmez.
+
+Tarayıcı bölmeleri çerezleri, girişleri ve diğer site verilerini sekmeler ve uygulama açılışları arasında saklar. Bu, özel gezinme modu değildir.

@@ -1,0 +1,68 @@
+---
+title: "Sık sorulan sorular"
+description: "Ücret, gizlilik ve Zshell’in kabuğunuzla ilişkisi hakkında sık sorulanlar."
+---
+
+<Accordions>
+
+<Accordion title="Zshell ücretsiz mi?">
+
+Evet. İndirmesi ücretsizdir, kaynak kodu PolyForm Noncommercial License 1.0.0 altında açıktır; hesap veya abonelik yoktur.
+
+</Accordion>
+
+<Accordion title="Kabuğumun yerini alır mı?">
+
+Hayır. Zshell mevcut kabuğunuzu barındırır: `$SHELL -l` başlatır, isteminize, takma adlarınıza, işlevlerinize ve dotfile’larınıza dokunmaz. Terminal bölmesi Ghostty veya Alacritty arka ucunu kullanabilir.
+
+</Accordion>
+
+<Accordion title="Veri topluyor mu?">
+
+Telemetri ve analiz yoktur. Güncelleme denetimi GitHub ile Gitee arasında seçim için ağın IP ülkesini sorgular, sonra sürüm akışını indirir. Arka plan isteklerini durdurmak için **Ayarlar → Güncellemeler**’de otomatik denetimleri kapatın; elle denetim yine bu istekleri yapar. [Güncellemeler](/tr/docs/installation#updates) bölümüne bakın. Öneriler sayfası açıkken araç sürümlerini denetler.
+
+[Tarayıcı bölmesinde](/tr/docs/browser) açtığınız sayfalar ve çalıştırdığınız ajan CLI’ları, Zshell dışında olduğu gibi kullanıcının yönlendirdiği kendi isteklerini yapar.
+
+</Accordion>
+
+<Accordion title="Ghostty veya Alacritty yapılandırmamı okur mu?">
+
+Hayır. Arka uç, yazı tipleri, renkler ve giriş davranışı Zshell’in kendi [ayarlarından](/tr/docs/configuration) gelir. İki terminal uygulamasının da yapılandırma dosyası yüklenmez.
+
+</Accordion>
+
+<Accordion title="Çıktığımda oturumlarıma ne olur?">
+
+Projeler, sekmeler ve bölme düzeni yeniden açıldığında geri gelir; her terminal eski dizininde yeni kabuk açar. Çıktıktan sonra hiçbir şey arka planda çalışmaz.
+
+[`terminal.restore-history`](/tr/docs/configuration#terminalrestore-history) açılırsa geçmiş çıktı da `Session Contents Restored` ayırıcısının üzerinde sabit metin olarak geri gelir.
+
+</Accordion>
+
+<Accordion title="Bu bir IDE mi?">
+
+Hayır; o yöne de gitmiyor. Merkez terminaldir. Git ve dosya panelleri, terminalde yapılan işi uygulama değiştirmeden inceleyip yayımlamanız içindir; ana çalışma yerinize dönüşmeleri için değil.
+
+</Accordion>
+
+<Accordion title="Program panomu okumadan önce neden onay istedi?">
+
+Çünkü program bunu istedi. `OSC 52` kaçış dizisi, SSH üzerinden uzak sunucuda çalışanlar da dâhil terminal programlarının sistem panosunu okumasına izin verir. Zshell sessizce vermek yerine size sorar; Ghostty de aynı varsayılanı kullanır.
+
+</Accordion>
+
+<Accordion title="AI kodlama ajanıyla kullanabilir miyim?">
+
+Evet. AI entegrasyonu varsayılan olarak açıktır. Desteklenen ajandan doğal dille arka plan bölmesinde bir şey çalıştırmasını veya sınırlı görev devretmesini isteyin. Ayrı Zshell bölmelerindeki ajanlar da size bağlam kopyalatmadan soru, bulgu ve takip mesajı paylaşabilir. Zshell terminal metninden tahmin etmeden sağlayıcının bildirdiği çalışıyor/engellendi/tamamlandı durumunu gösterir; onayların ve son farkın kontrolü sizdedir. [AI ajanlarıyla çalışma](/tr/docs/automation) bölümüne bakın.
+
+Ajanı normal terminal programı olarak da kullanabilirsiniz: farkını [Git panelinde](/tr/docs/git) inceleyin, yanında dosya okuyun ve yalnızca istediğiniz değişiklikleri hazırlayın.
+
+</Accordion>
+
+<Accordion title="Hatayı nereye bildireyim?">
+
+[GitHub’da](https://github.com/wzz6423/zshell/issues) issue açın. macOS sürümü ve hata olduğunda ne yaptığınız genellikle başlangıç için yeterlidir.
+
+</Accordion>
+
+</Accordions>

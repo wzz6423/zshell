@@ -1,0 +1,23 @@
+{
+  "title": "Dokumentasi",
+  "pages": [
+    "---Memulai---",
+    "index",
+    "installation",
+    "quick-start",
+    "---Menggunakan Zshell---",
+    "projects",
+    "panes",
+    "terminal",
+    "quick-launch",
+    "browser",
+    "git",
+    "files",
+    "session-info",
+    "automation",
+    "---Referensi---",
+    "shortcuts",
+    "configuration",
+    "faq"
+  ]
+}

@@ -1,0 +1,81 @@
+---
+title: Lavorare con agenti AI
+description: Lascia che gli agenti di programmazione deleghino attività e si coordinino tra pannelli Zshell, mantenendo concentrazione e controllo.
+---
+
+L'automazione di Zshell è pensata principalmente per gli agenti di programmazione AI. Offre loro un modo sicuro di lavorare con i pannelli e coordinare altri agenti; non è un altro linguaggio di comandi da imparare.
+
+L'integrazione AI è attiva per impostazione predefinita. Parla normalmente con il tuo agente: può creare un pannello in background, avviare un esecutore delegato, eseguire un comando, attendere il risultato e riportarti la risposta senza togliere il focus al pannello che usi.
+
+## Configurazione [#setup]
+
+Controlla **Impostazioni → Automazione → AI**. È già attiva; se l'avevi disattivata, riattivala e apri un nuovo terminale o riavvia l'agente già in esecuzione.
+
+Zshell supporta Codex, Claude Code, Gemini CLI, Grok Build, OpenCode, Cursor Agent, Aider, Amp e Pi. Se trova una configurazione esistente dell'agente incompatibile con la funzione, la lascia intatta, riporta l'interruttore allo stato precedente e mostra l'errore nelle Impostazioni.
+
+## Chiedere in linguaggio naturale [#ask-in-plain-language]
+
+Descrivi all'agente il risultato desiderato. Per esempio:
+
+> Esegui i test pertinenti in un pannello in background e dimmi quali falliscono.
+
+> Delega questo bug a un altro agente Codex, poi rivedi il risultato.
+
+> Chiedi all'agente che lavora sull'API se lo schema è pronto e passa la risposta all'agente dei test.
+
+> Avvia il server di sviluppo accanto a noi, aspetta che sia pronto e dammi l'URL.
+
+> Controlla se l'agente in background ha finito. Se è bloccato, dimmi di cosa ha bisogno.
+
+L'agente gestisce l'interfaccia di automazione per te. Non devi digitare o memorizzare comandi Zshell.
+
+## Coordinare gli agenti tra pannelli [#let-agents-coordinate-across-panes]
+
+Puoi suddividere attività correlate tra diversi pannelli e chiedere all'agente principale di coordinarle. Un agente può lavorare sull'API mentre un altro aggiorna i test. Il coordinatore può chiedere i risultati a un esecutore specifico, inviare una richiesta successiva, passare informazioni utili a un altro e riportarti la risposta complessiva. Gli esecutori possono usare diversi strumenti supportati.
+
+Questo elimina il copia e incolla dal lavoro parallelo. Ogni agente conserva la propria conversazione nel proprio pannello; il coordinatore trasmette soltanto domande, aggiornamenti o risultati necessari all'altro.
+
+Inviare una richiesta successiva non significa che il lavoro sia finito. Il coordinatore deve ancora attendere l'esecutore, leggere il risultato e verificarlo. Un messaggio di un altro agente non equivale mai alla tua approvazione. Permessi, credenziali, decisioni di fiducia e azioni distruttive continuano a tornare a te.
+
+## Continuare a lavorare durante l'esecuzione [#keep-working-while-it-runs]
+
+I pannelli delegati restano in background finché non chiedi di vederli. Quando l'integrazione nativa del ciclo di vita del provider comunica lo stato, Zshell lo mostra nel pannello e nella scheda dell'agente:
+
+| Stato | Significato |
+| --- | --- |
+| **Al lavoro** | L'agente sta eseguendo l'attività. |
+| **Bloccato** | Serve un tuo input, un'approvazione o un'altra decisione. |
+| **Completato** | Ha finito in background e non hai ancora visto il pannello. |
+
+Zshell registra come **Al lavoro** un prompt che invia, ma non esamina mai il testo visualizzato nel terminale per indovinare cosa accade dopo. Il passaggio a **Bloccato** o **Completato** e le relative notifiche richiedono un rapporto del provider. Se manca, esamina direttamente pannello e modifiche al progetto.
+
+Quando l'integrazione segnala la conclusione o la necessità di input, Zshell può anche inviare una notifica. Premi <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> per raggiungere il prossimo agente che ha segnalato di richiedere attenzione.
+
+## Utilizzo e limiti dell'account [#account-usage-and-limits]
+
+**Impostazioni → Automazione → Utilizzo dell'account** mostra i limiti disponibili di Claude Code e Codex: percentuale usata, orario di ripristino se comunicato e momento dell'ultimo aggiornamento. **Aggiorna utilizzo** ricarica i dati più recenti disponibili.
+
+Codex richiede una CLI installata, con accesso effettuato e capace di comunicare i limiti. L'utilizzo di Claude Code compare quando Zshell riceve dal provider un rapporto tramite la riga di stato. La sezione appare solo quando sono disponibili dati; i periodi supportati dipendono da provider e account. Sono limiti dell'account, non il totale dei token della sessione attiva.
+
+## Un flusso tipico [#a-typical-workflow]
+
+1. Avvia l'agente abituale in un terminale Zshell.
+2. Chiedigli di delegare un'attività circoscritta, eseguire qualcosa in background o coordinare un altro agente.
+3. Continua nel pannello corrente mentre il lavoro delegato resta visibile nella disposizione del progetto.
+4. Segui gli indicatori **Al lavoro**, **Bloccato** o **Completato** quando il provider li fornisce. Se lo strumento non comunica il ciclo di vita, apri il pannello per leggere conversazione o output.
+5. Rivedi i file nel [pannello Git](/it/docs/git), esamina il diff e decidi cosa tenere.
+
+## Il controllo resta a te [#you-stay-in-control]
+
+- L'automazione resta nel progetto Zshell corrente e non può raggiungere pannelli di altri progetti o finestre.
+- Il lavoro in background non prende il focus senza una tua richiesta esplicita.
+- Zshell non risponde al posto tuo a richieste di permessi, credenziali, fiducia o azioni distruttive. Un agente bloccato secondo il provider ti restituisce la decisione.
+- Il completamento segnalato invita a rivedere il risultato, non approva automaticamente le modifiche.
+
+## Se un agente non usa Zshell [#if-an-agent-does-not-use-zshell]
+
+- Verifica che **Impostazioni → Automazione → AI** sia attivo.
+- Apri un nuovo terminale se quello corrente esisteva già prima dell'attivazione.
+- Riavvia l'agente che era già in esecuzione quando l'hai attivata.
+- Controlla le Impostazioni per un errore di configurazione mostrato accanto al controllo.
+- Chiedi esplicitamente un “pannello Zshell in background” o un “agente Zshell delegato” quando vuoi usare questo flusso.

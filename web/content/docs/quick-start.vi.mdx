@@ -1,0 +1,81 @@
+---
+title: "Bắt đầu nhanh"
+description: "Từ cửa sổ trống đến dự án hoạt động: những điều nên học trước."
+---
+
+<Steps>
+
+<Step>
+
+### Bắt đầu dự án [#start-a-project]
+
+Nhấn <kbd>Cmd</kbd>+<kbd>N</kbd>. Thanh bên có dự án mới với một terminal; dùng `cd` tới kho mã cần làm như ở terminal thông thường. Cây tệp và bảng Git đi theo rồi cố định ở gốc kho.
+
+Muốn bắt đầu từ thư mục? Nhấp phải thư mục trong Finder và chọn **Dịch vụ → Dự án Zshell mới tại đây**.
+
+Có nhiều kho mã thì thêm tất cả. <kbd>Cmd</kbd>+<kbd>1</kbd> đến <kbd>Cmd</kbd>+<kbd>9</kbd> chuyển thẳng tới từng dự án; mỗi dự án giữ tab và bố cục riêng.
+
+</Step>
+
+<Step>
+
+### Thêm phiên [#add-sessions]
+
+<kbd>Cmd</kbd>+<kbd>T</kbd> mở terminal khác trong cùng dự án: tab mới có thư mục làm việc và lịch sử đầu ra riêng. Có thể dành một cho máy chủ phát triển, một cho kiểm thử và một để nhập lệnh.
+
+<kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> chuyển trực tiếp giữa các tab; <kbd>Ctrl</kbd>+<kbd>Tab</kbd> mở bộ chọn xếp theo lần dùng gần nhất.
+
+</Step>
+
+<Step>
+
+### Chia tab [#split-a-tab]
+
+<kbd>Cmd</kbd>+<kbd>D</kbd> chia ô hiện tại sang phải; <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> chia xuống dưới. Di chuyển bằng <kbd>Opt</kbd>+<kbd>Cmd</kbd>+phím mũi tên. Nhấn <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> để phóng ô đầy tab khi đọc nội dung dài.
+
+</Step>
+
+<Step>
+
+### Mở các bảng bên [#open-the-side-panels]
+
+Thanh bên phải có các bảng, mỗi bảng mở bằng một phím tắt:
+
+| Bảng | Phím tắt | Công dụng |
+| --- | --- | --- |
+| Git | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> | Stage, xem diff, commit, push |
+| Tệp | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | Duyệt cây, mở và sửa tệp |
+| Thông tin | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> | Tiến trình và cổng lắng nghe |
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> ẩn toàn bộ thanh bên phải; <kbd>Cmd</kbd>+<kbd>B</kbd> ẩn thanh dự án bên trái.
+
+</Step>
+
+<Step>
+
+### Nhớ một phím tắt: <kbd>Cmd</kbd>+<kbd>P</kbd> [#learn-one-shortcut-cmdp]
+
+Bảng lệnh tìm mọi dự án, phiên đang mở và lệnh của Zshell. Nếu quên phần còn lại của trang này, hãy nhớ nó: bên cạnh mỗi lệnh đều có phím tắt tương ứng.
+
+</Step>
+
+</Steps>
+
+## Những gì trở lại sau khi thoát [#what-comes-back-after-you-quit]
+
+Thoát rồi mở lại, dự án, tab và bố cục ô ở đúng vị trí đã để lại. Mỗi terminal bắt đầu **shell mới** trong thư mục cũ; không có gì âm thầm chạy nền.
+
+Lịch sử đầu ra cần bật riêng. Bật [`terminal.restore-history`](/vi/docs/configuration#terminalrestore-history) để terminal mở lại hiển thị đầu ra cũ phía trên vạch `Session Contents Restored`, còn shell mới chạy phía dưới.
+
+<Callout type="info">
+Nội dung khôi phục chỉ là văn bản, là bản ghi điều đã xảy ra chứ không phải phiên sống. Cuộn qua nó không chạy lại lệnh nào.
+</Callout>
+
+## Tiếp theo [#next]
+
+<Cards>
+  <Card title="Dự án và phiên" href="/vi/docs/projects" description="Đặt tên, ghim thư mục và dữ liệu dự án thực sự theo dõi." />
+  <Card title="Bảng Git" href="/vi/docs/git" description="Stage, diff, commit và nhánh." />
+  <Card title="Ô trình duyệt" href="/vi/docs/browser" description="Đặt máy chủ cục bộ hoặc tài liệu cạnh terminal tương ứng." />
+  <Card title="Làm việc với tác nhân AI" href="/vi/docs/automation" description="Nhờ tác nhân giao việc và phối hợp giữa các ô Zshell." />
+</Cards>

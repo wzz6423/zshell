@@ -1,0 +1,51 @@
+---
+title: Pembagian dan panel
+description: Bagi tab menjadi panel, berpindah di antaranya, ubah ukuran, dan perbesar satu panel.
+---
+
+Tab mana pun dapat dibagi menjadi panel. Biasanya panel berisi terminal, tetapi juga dapat memuat berkas, perbedaan, atau [browser](/id/docs/browser): agar yang Anda baca berada di samping shell yang menghasilkannya.
+
+## Membagi panel [#splitting]
+
+| Tindakan | Pintasan |
+| --- | --- |
+| Bagi ke kanan | <kbd>Cmd</kbd>+<kbd>D</kbd> |
+| Bagi ke bawah | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> |
+| Bagi ke kiri | — |
+| Bagi ke atas | — |
+
+Pembagian ke kiri dan atas tidak memiliki pintasan bawaan. Gunakan menu **Tab (Tabs)**, palet perintah (<kbd>Cmd</kbd>+<kbd>P</kbd>), atau menu konteks panel. Panel baru mewarisi direktori kerja panel yang sedang difokuskan.
+
+Pembagian selalu mengenai **panel yang difokuskan**, termasuk dalam tata letak bertingkat. Panel tetangga yang tidak terkait tidak diubah ukurannya.
+Setiap panel memiliki judul kecil yang diperbarui langsung dan kontrol pembagian di header agar konteks lokalnya tetap terlihat.
+
+Panel yang sudah terbuka dapat ditata ulang: seret strip tipis di tepi atas panel ke tepi panel lain. Panel tujuan menampilkan sisi penempatan sebelum Anda melepaskan.
+
+Seluruh tab juga dapat dijadikan panel. Seret tab dari strip atas ke tepi kiri, kanan, atas, atau bawah isi tab saat ini. Pratinjau menunjukkan hasil pembagian sebelum dilepas.
+
+## Berpindah antarpanel [#moving-between-panes]
+
+| Tindakan | Pintasan |
+| --- | --- |
+| Fokus panel kiri / kanan / atas / bawah | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+tombol panah |
+| Putar fokus mundur / maju | <kbd>Cmd</kbd>+<kbd>[</kbd> / <kbd>Cmd</kbd>+<kbd>]</kbd> |
+
+## Perbesar dan ubah ukuran [#zoom-and-resize]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> memperbesar panel aktif hingga memenuhi tab; tekan lagi untuk memulihkannya. Saat diperbesar, header tab menyediakan tombol untuk kembali tanpa pintasan.
+
+| Tindakan | Pintasan |
+| --- | --- |
+| Alihkan pembesaran panel | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> |
+| Perbesar panel ke suatu arah | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+tombol panah |
+| Samakan semua panel | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+<kbd>=</kbd> |
+
+Pemisah antarpanel juga dapat diseret.
+
+## Menutup [#closing]
+
+<kbd>Cmd</kbd>+<kbd>W</kbd> menutup panel yang difokuskan. Menutup panel terakhir dalam tab juga menutup tab itu.
+
+<Callout type="warn">
+Menutup panel terminal menghentikan shell di dalamnya beserta semua proses yang dimulainya. Zshell tidak meminta konfirmasi, sama seperti menutup terminal lainnya.
+</Callout>

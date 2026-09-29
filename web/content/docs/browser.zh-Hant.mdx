@@ -1,0 +1,43 @@
+---
+title: 瀏覽器窗格
+description: 把網頁放在終端機旁邊，用原生控件瀏覽，並讓鏈接留在當前專案裡。
+---
+
+Zshell 可以在任意分頁或分割畫面裡放一個內建瀏覽器。它適合打開本地開發伺服器、API 文檔、issue，或者任何你想和當前終端機並排看的網頁。
+
+## 打開瀏覽器 [#opening-a-browser]
+
+- 選 **File → New Browser Tab** 新建空白分頁。
+- 打開指令面板（<kbd>Cmd</kbd>+<kbd>P</kbd>），執行 **New Browser Tab** 或
+  **New Browser Pane**。
+- 在終端機裡按住 Command 右鍵一個識別出來的 URL，選 **New Browser Tab** 或
+  **New Browser Pane**，不用先複製地址。
+
+瀏覽器分頁屬於當前專案，和普通分頁、窗格一起參與佈局。如果一個專案都沒打開，Zshell 會先建一個專案，讓瀏覽器有地方歸屬。
+
+## 地址與搜尋 [#address-and-search]
+
+頂部輸入框可以接收完整 URL、主機名或搜尋詞：
+
+- `zshell.sh` 會變成 HTTPS 地址。
+- `localhost`、局域網主機名、IP 地址和顯式連接埠使用 HTTP。
+- 其他內容會變成 Google 搜尋。
+
+按 <kbd>Cmd</kbd>+<kbd>L</kbd> 聚焦輸入框，<kbd>Cmd</kbd>+<kbd>R</kbd> 重新載入。工具欄還提供後退、前進、停止 / 重新整理、分享和 **Open in Default Browser**。觸控板的前進後退手勢也能用。
+
+| 操作 | 快速鍵 |
+| --- | --- |
+| 聚焦地址欄 | <kbd>Cmd</kbd>+<kbd>L</kbd> |
+| 重新載入 | <kbd>Cmd</kbd>+<kbd>R</kbd> |
+
+## 決定鏈接打開在哪裡 [#opening-links-where-you-want-them]
+
+右鍵網頁裡的鏈接，可以選 **Open Link in New Tab** 或 **Open Link in New Pane**。新頁面仍留在同一個專案工作區裡。
+
+在終端機裡，直接 Command 點按識別出來的網頁 URL，會交給系統預設瀏覽器；按住 Command 右鍵，才會提供 Zshell 分頁和窗格。對本地路徑也有一套對應操作，見[路徑與 URL](/zh-Hant/docs/terminal#paths-and-urls)。
+
+## 會保留什麼 [#what-is-preserved]
+
+切換分頁或專案後，網頁會保持原樣，包括瀏覽歷史、捲動位置、表單和頁面內部狀態。Zshell 重新啟動時會恢復當前 URL 和佈局，但不會恢復完整的前進 / 後退歷史。
+
+瀏覽器窗格會跨分頁、跨啟動保留 Cookie、登錄狀態和其他站點資料；這不是私密瀏覽模式。

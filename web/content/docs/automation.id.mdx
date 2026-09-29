@@ -1,0 +1,91 @@
+---
+title: Bekerja dengan agen AI
+description: Biarkan agen pemrograman mendelegasikan tugas dan berkoordinasi antarpanel Zshell sementara Anda tetap fokus dan memegang kendali.
+---
+
+Otomatisasi Zshell terutama ditujukan untuk agen pemrograman AI. Fitur ini memberi mereka cara aman untuk bekerja dengan panel Zshell dan mengoordinasikan agen lain; bukan bahasa perintah baru yang perlu Anda pelajari.
+
+Integrasi AI aktif secara bawaan. Bicaralah seperti biasa kepada agen Anda. Agen dapat membuat panel latar belakang, memulai pekerja yang didelegasikan, menjalankan perintah, menunggu hasil, dan membawa jawaban kembali tanpa merebut fokus dari panel yang Anda gunakan.
+
+## Pengaturan [#setup]
+
+Periksa **Pengaturan → Otomatisasi → AI**. Fitur ini aktif secara bawaan. Jika pernah Anda matikan, aktifkan lagi, lalu buka terminal baru atau mulai ulang agen yang sudah berjalan.
+
+Zshell mendukung Codex, Claude Code, Gemini CLI, Grok Build, OpenCode, Cursor Agent, Aider, Amp, dan Pi.
+Jika menemukan penyiapan agen yang bertentangan dengan fitur ini, Zshell membiarkannya tetap utuh, mengembalikan sakelar ke keadaan semula, dan menampilkan kesalahan di Pengaturan.
+
+## Minta dengan bahasa biasa [#ask-in-plain-language]
+
+Sampaikan hasil yang Anda inginkan. Contohnya:
+
+> Jalankan pengujian yang relevan di panel latar belakang dan beri tahu apa yang gagal.
+
+> Delegasikan bug ini ke agen Codex lain, lalu tinjau hasilnya.
+
+> Tanyakan kepada agen API apakah skemanya sudah siap, lalu teruskan jawabannya ke agen pengujian.
+
+> Jalankan server pengembangan di sebelah kita, tunggu hingga siap, lalu berikan URL-nya.
+
+> Periksa apakah agen latar belakang sudah selesai. Jika terhambat, beri tahu apa yang dibutuhkannya.
+
+Agen menangani antarmuka otomatisasi Zshell untuk Anda. Anda tidak perlu mengetik atau menghafal perintah otomatisasinya.
+
+## Koordinasi agen antarpanel [#let-agents-coordinate-across-panes]
+
+Anda dapat membagi pekerjaan terkait ke beberapa panel Zshell dan meminta agen utama mengoordinasikannya.
+Misalnya, satu agen mengerjakan API sementara agen lain memperbarui pengujian. Agen koordinator dapat meminta temuan pekerja tertentu, mengirim tindak lanjut, meneruskan hasil yang berguna ke pekerja lain, lalu membawa jawaban gabungan kepada Anda.
+Para pekerja dapat menggunakan alat pemrograman berbeda yang didukung.
+
+Ini menghilangkan langkah salin-tempel dalam kerja paralel. Setiap agen menyimpan percakapan di panelnya sendiri, sedangkan koordinator hanya meneruskan pertanyaan, pembaruan, atau hasil yang dibutuhkan pekerja lain.
+
+Mengirim tindak lanjut tidak berarti pekerjaan selesai. Koordinator tetap menunggu pekerja, membaca hasilnya, dan memeriksa keluaran.
+Pesan dari agen lain tidak pernah dianggap sebagai persetujuan Anda. Izin, kredensial, keputusan kepercayaan, dan tindakan destruktif tetap membutuhkan keputusan Anda.
+
+## Tetap bekerja selama agen berjalan [#keep-working-while-it-runs]
+
+Panel delegasi tetap di latar belakang kecuali Anda meminta melihatnya. Ketika integrasi siklus hidup native penyedia melaporkan status, Zshell menampilkannya pada panel dan tab agen:
+
+| Status | Artinya bagi Anda |
+| --- | --- |
+| **Bekerja (Working)** | Agen sedang mengerjakan tugas. |
+| **Terhambat (Blocked)** | Agen membutuhkan input, persetujuan, atau keputusan Anda. |
+| **Selesai (Done)** | Agen selesai di latar belakang dan panelnya belum Anda lihat. |
+
+Zshell mencatat instruksi yang dikirimnya sebagai **Bekerja**, tetapi tidak memindai teks terminal untuk menebak kejadian selanjutnya.
+Peralihan ke **Terhambat** dan **Selesai**, beserta notifikasinya, memerlukan laporan siklus hidup penyedia.
+Jika agen tidak menyediakannya, periksa panel dan perubahan proyek secara langsung, bukan mengandalkan status tebakan.
+
+Saat integrasi melaporkan penyelesaian atau kebutuhan input, Zshell juga dapat mengirim notifikasi.
+Tekan <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> untuk menuju agen berikutnya yang dilaporkan memerlukan perhatian.
+
+## Penggunaan akun dan batas [#account-usage-and-limits]
+
+**Pengaturan → Otomatisasi → Penggunaan Akun (Account Usage)** menampilkan batas akun yang tersedia untuk Claude Code dan Codex, termasuk persentase terpakai, waktu reset jika dilaporkan, dan waktu pembaruan terakhir.
+Gunakan **Segarkan Penggunaan (Refresh Usage)** untuk memuat data terbaru yang tersedia.
+
+Codex memerlukan CLI terpasang dan sudah masuk yang dapat melaporkan batas akun.
+Penggunaan Claude Code muncul ketika Zshell menerima laporan penggunaan dari baris status penyedia.
+Bagian ini hanya tampil bila data tersedia; periode yang didukung bergantung pada penyedia dan akun. Ini batas akun, bukan total token sesi aktif.
+
+## Alur kerja umum [#a-typical-workflow]
+
+1. Mulai agen pemrograman biasa Anda di terminal Zshell.
+2. Minta agen mendelegasikan tugas terbatas, menjalankan sesuatu di latar belakang, atau mengoordinasikan agen lain.
+3. Lanjutkan pekerjaan di panel saat ini sementara tugas delegasi tetap terlihat dalam tata letak proyek.
+4. Ikuti lencana **Bekerja**, **Terhambat**, atau **Selesai** dari penyedia bila tersedia. Jika alat tidak melaporkan siklus hidup, buka panel untuk memeriksa percakapan atau keluaran terminalnya.
+5. Tinjau berkas hasil di [panel Git](/id/docs/git), periksa diff, dan tentukan yang akan dipertahankan.
+
+## Anda tetap memegang kendali [#you-stay-in-control]
+
+- Otomatisasi agen tetap dalam proyek Zshell saat ini dan tidak dapat menjangkau panel proyek atau jendela lain.
+- Pekerjaan latar belakang tidak mengambil fokus kecuali Anda memintanya secara eksplisit.
+- Zshell tidak menjawab permintaan izin, kredensial, kepercayaan, atau tindakan destruktif untuk Anda. Agen yang dilaporkan terhambat mengembalikan keputusan itu kepada Anda.
+- Laporan selesai adalah tanda untuk meninjau hasil, bukan persetujuan otomatis atas perubahan agen.
+
+## Jika agen tidak menggunakan Zshell [#if-an-agent-does-not-use-zshell]
+
+- Pastikan **Pengaturan → Otomatisasi → AI** aktif.
+- Buka terminal Zshell baru jika terminal saat ini sudah ada sebelum pengaturan diaktifkan.
+- Mulai ulang agen yang telah berjalan saat fitur diaktifkan.
+- Periksa kesalahan penyiapan yang ditampilkan di Pengaturan.
+- Minta secara eksplisit “panel Zshell latar belakang” atau “agen Zshell yang didelegasikan” jika ingin alur ini digunakan untuk tugas tersebut.

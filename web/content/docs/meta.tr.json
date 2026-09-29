@@ -1,0 +1,23 @@
+{
+  "title": "Belgeler",
+  "pages": [
+    "---Başlarken---",
+    "index",
+    "installation",
+    "quick-start",
+    "---Zshell kullanımı---",
+    "projects",
+    "panes",
+    "terminal",
+    "quick-launch",
+    "browser",
+    "git",
+    "files",
+    "session-info",
+    "automation",
+    "---Başvuru---",
+    "shortcuts",
+    "configuration",
+    "faq"
+  ]
+}

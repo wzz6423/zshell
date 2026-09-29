@@ -1,0 +1,41 @@
+---
+title: ドキュメント
+description: Zshell のインストール、プロジェクトとターミナルの管理、Git・ブラウザペイン・コーディングエージェントの使い方。
+---
+
+## はじめに [#get-started]
+
+<Cards>
+  <Card title="インストール" href="/ja/docs/installation" description="ダウンロード、Homebrew、システム要件、更新。" />
+  <Card title="クイックスタート" href="/ja/docs/quick-start" description="プロジェクトの追加、セッションの作成、ペインの分割、コードレビュー。" />
+  <Card title="キーボードショートカット" href="/ja/docs/shortcuts" description="よく使う操作、クイックターミナル、ショートカットの変更。" />
+  <Card title="設定" href="/ja/docs/configuration" description="外観、ターミナルの動作、設定ファイル、設定の移行。" />
+</Cards>
+
+## ワークスペースの構造 [#workspace-structure]
+
+| 対象 | 役割 |
+| --- | --- |
+| プロジェクト | ローカルのディレクトリまたは SSH 接続。サイドバーのグループで整理します |
+| セッション | プロジェクト内のタブ。名前や色の変更、固定、グループ化ができます |
+| ペイン | タブ内のターミナル、ブラウザ、エディタ、差分表示。分割して並べて使えます |
+
+## 機能リファレンス [#feature-reference]
+
+| 機能 | 内容 |
+| --- | --- |
+| [プロジェクトとセッション](/ja/docs/projects) | ローカル／SSH プロジェクト、タブ、ターミナル環境、復元 |
+| [ペイン](/ja/docs/panes) | 分割、フォーカス、拡大、レイアウト |
+| [ターミナル](/ja/docs/terminal) | Ghostty／Alacritty、検索、通知、プロンプトキュー、クイックターミナル |
+| [クイック起動](/ja/docs/quick-launch) | 保存したコマンド、SSH 接続、グループ |
+| [ブラウザペイン](/ja/docs/browser) | ターミナルの隣で Web サイトやローカルサービスを表示 |
+| [Git パネル](/ja/docs/git) | 差分、ステージ、コミット、ブランチ、スタッシュ、ワークツリー |
+| [ファイルとエディタ](/ja/docs/files) | ファイル検索、編集、Markdown プレビュー、外部エディタ |
+| [プロセスとポート](/ja/docs/session-info) | セッションのプロセス、待ち受けポート、リソース使用量 |
+| [エージェント連携](/ja/docs/automation) | ペイン間の連携、エージェントの状態、アカウント使用量 |
+
+## ライセンスとプライバシー [#license-and-privacy]
+
+Zshell は無料です。ソースコードは PolyForm Noncommercial License 1.0.0 のもとで公開されており、アカウントやサブスクリプションは不要です。
+アプリにテレメトリや分析機能はありません。更新、ツールのバージョン確認、設定したエージェント使用量サービスは通信する場合があります。
+ブラウザペインとコマンドラインツールはそれぞれ独自に通信します。[よくある質問](/ja/docs/faq)も参照してください。

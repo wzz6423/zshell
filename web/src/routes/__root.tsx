@@ -7,7 +7,7 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import appCss from "@/styles/app.css?url";
-import { DEFAULT_LANGUAGE, isLanguage } from "@/lib/i18n";
+import { languageFromPath, languageTag, languageDirection } from "@/lib/i18n";
 import { withBase } from "@/lib/utils";
 
 export const Route = createRootRoute({
@@ -45,11 +45,10 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   // of `/$lang/docs/…` and spelled-out routes like `/en`, and only the URL is
   // common to both. Chinese is unprefixed, so anything else is Chinese.
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const prefix = pathname.split("/")[1];
-  const language = isLanguage(prefix) ? prefix : DEFAULT_LANGUAGE;
+  const language = languageFromPath(pathname);
 
   return (
-    <html lang={language} className="dark">
+    <html lang={languageTag(language)} dir={languageDirection(language)} className="dark">
       <head>
         <HeadContent />
       </head>

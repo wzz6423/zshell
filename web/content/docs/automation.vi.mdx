@@ -1,0 +1,81 @@
+---
+title: "Làm việc với tác nhân AI"
+description: "Để tác nhân lập trình giao việc và phối hợp giữa các ô Zshell trong khi bạn vẫn tập trung và kiểm soát."
+---
+
+Tự động hóa Zshell chủ yếu dành cho tác nhân lập trình AI. Nó cho tác nhân cách an toàn để làm việc với các ô và phối hợp tác nhân khác, không phải ngôn ngữ lệnh mới mà bạn cần học.
+
+Tích hợp AI mặc định bật. Cứ nói chuyện bình thường với tác nhân. Nó có thể tạo ô nền, khởi chạy tác nhân được giao việc, chạy lệnh, chờ kết quả và mang câu trả lời về mà không lấy tiêu điểm ô bạn đang dùng.
+
+## Thiết lập [#setup]
+
+Kiểm tra **Cài đặt → Tự động hóa → AI**. Mặc định bật; nếu từng tắt, hãy bật lại rồi mở terminal mới hoặc khởi động lại tác nhân đang chạy.
+
+Zshell hỗ trợ Codex, Claude Code, Gemini CLI, Grok Build, OpenCode, Cursor Agent, Aider, Amp và Pi. Nếu thấy thiết lập tác nhân hiện có xung đột, Zshell giữ nguyên thiết lập đó, đưa công tắc về trạng thái trước và hiện lỗi trong Cài đặt.
+
+## Yêu cầu bằng ngôn ngữ tự nhiên [#ask-in-plain-language]
+
+Nói kết quả bạn muốn. Ví dụ:
+
+> Chạy các kiểm thử liên quan trong ô nền và cho tôi biết chỗ thất bại.
+
+> Giao lỗi này cho tác nhân Codex khác, rồi xem xét kết quả của nó.
+
+> Hỏi tác nhân làm API xem schema đã sẵn sàng chưa, rồi chuyển câu trả lời cho tác nhân chạy kiểm thử.
+
+> Khởi động máy chủ phát triển cạnh chúng ta, đợi nó sẵn sàng và đưa tôi URL.
+
+> Kiểm tra tác nhân nền đã xong chưa. Nếu bị chặn, cho tôi biết nó cần gì.
+
+Tác nhân dùng giao diện tự động hóa Zshell thay bạn. Bạn không cần gõ hay nhớ lệnh tự động hóa nào.
+
+## Phối hợp tác nhân giữa các ô [#let-agents-coordinate-across-panes]
+
+Bạn có thể chia việc liên quan vào nhiều ô Zshell và nhờ tác nhân chính phối hợp. Ví dụ một tác nhân làm API trong khi tác nhân khác cập nhật kiểm thử. Tác nhân điều phối hỏi kết quả của một tác nhân cụ thể, gửi yêu cầu tiếp theo, chuyển phần hữu ích cho tác nhân khác và trả lời tổng hợp. Chúng có thể dùng các công cụ lập trình được hỗ trợ khác nhau.
+
+Cách này bỏ bước sao chép/dán của công việc song song. Mỗi tác nhân giữ hội thoại riêng trong ô riêng; tác nhân điều phối chỉ chuyển câu hỏi, cập nhật hoặc kết quả mà bên kia cần.
+
+Gửi yêu cầu tiếp không có nghĩa công việc đã xong. Tác nhân điều phối vẫn đợi, đọc kết quả và kiểm tra đầu ra. Tin nhắn tác nhân khác cũng không được coi là sự chấp thuận của bạn. Quyền, thông tin xác thực, quyết định tin cậy và thao tác phá hủy vẫn quay về bạn.
+
+## Tiếp tục làm việc trong lúc chạy [#keep-working-while-it-runs]
+
+Ô được giao việc ở nền trừ khi bạn muốn xem. Khi tích hợp vòng đời gốc của nhà cung cấp báo trạng thái, Zshell hiện trên ô và tab của tác nhân:
+
+| Trạng thái | Ý nghĩa với bạn |
+| --- | --- |
+| **Đang làm việc** | Tác nhân đang xử lý nhiệm vụ. |
+| **Bị chặn** | Cần bạn nhập liệu, phê duyệt hoặc quyết định. |
+| **Hoàn tất** | Đã xong ở nền và bạn chưa xem ô. |
+
+Zshell ghi nhận prompt đã gửi là **Đang làm việc**, nhưng không quét văn bản terminal đã kết xuất để đoán diễn biến sau đó. Chuyển sang **Bị chặn**, **Hoàn tất** và thông báo tương ứng cần báo cáo vòng đời của nhà cung cấp. Nếu tác nhân không cung cấp, hãy kiểm tra ô và thay đổi dự án trực tiếp thay vì dựa vào trạng thái đoán.
+
+Khi tích hợp báo hoàn tất hoặc cần nhập liệu, Zshell cũng có thể gửi thông báo. <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> chuyển tới tác nhân tiếp theo được báo cần bạn chú ý.
+
+## Mức dùng và giới hạn tài khoản [#account-usage-and-limits]
+
+**Cài đặt → Tự động hóa → Mức dùng tài khoản** hiển thị giới hạn tài khoản khả dụng cho Claude Code và Codex, gồm phần trăm đã dùng, thời điểm đặt lại nếu có và lần cập nhật cuối. Dùng **Làm mới mức dùng** để lấy dữ liệu mới nhất.
+
+Codex cần CLI đã cài, đăng nhập và có khả năng báo giới hạn tài khoản. Mức dùng Claude Code xuất hiện khi Zshell nhận báo cáo sử dụng qua dòng trạng thái của nhà cung cấp. Mục chỉ hiện khi có dữ liệu; các khoảng thời gian được hỗ trợ tùy nhà cung cấp và tài khoản. Đây là giới hạn tài khoản, không phải tổng token của phiên đang có tiêu điểm.
+
+## Quy trình điển hình [#a-typical-workflow]
+
+1. Chạy tác nhân lập trình quen dùng trong terminal Zshell.
+2. Yêu cầu giao nhiệm vụ có phạm vi rõ, chạy việc nền hoặc phối hợp tác nhân khác.
+3. Tiếp tục làm trong ô hiện tại, trong khi Zshell giữ công việc được giao hiển thị trong bố cục dự án.
+4. Theo dõi huy hiệu **Đang làm việc**, **Bị chặn**, **Hoàn tất** do nhà cung cấp báo nếu có. Nếu công cụ không báo vòng đời, mở ô để xem hội thoại hoặc đầu ra terminal.
+5. Xem tệp kết quả trong [bảng Git](/vi/docs/git), kiểm tra diff và quyết định giữ gì.
+
+## Bạn vẫn nắm quyền [#you-stay-in-control]
+
+- Tự động hóa tác nhân giới hạn trong dự án Zshell hiện tại, không chạm ô của dự án hoặc cửa sổ khác.
+- Công việc nền không lấy tiêu điểm trừ khi bạn yêu cầu rõ.
+- Zshell không trả lời thay bạn các lời nhắc về quyền, thông tin xác thực, tin cậy hoặc thao tác phá hủy. Tác nhân bị chặn theo báo cáo trả quyết định cho bạn.
+- Hoàn tất được báo là tín hiệu để xem xét, không phải tự phê duyệt thay đổi.
+
+## Nếu tác nhân không dùng Zshell [#if-an-agent-does-not-use-zshell]
+
+- Xác nhận **Cài đặt → Tự động hóa → AI** đang bật.
+- Mở terminal mới nếu terminal hiện tại có trước khi bật tùy chọn.
+- Khởi động lại tác nhân đã chạy trước lúc bật.
+- Kiểm tra lỗi thiết lập hiển thị ngay trong Cài đặt.
+- Yêu cầu rõ “ô nền Zshell” hoặc “tác nhân Zshell được giao việc” nếu muốn dùng quy trình này cho nhiệm vụ.

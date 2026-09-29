@@ -1,0 +1,94 @@
+---
+title: Painel Git
+description: Prepare, revise, faça commit e envie alterações ao lado do shell que as produziu.
+---
+
+Pressione <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>. O painel abre no repositório ao qual o projeto está ancorado. Veja [O diretório do projeto](/pt-BR/docs/projects#the-project-directory) para entender a escolha.
+
+Cada ação é um comando Git executado pelo Zshell em seu nome; a saída é mostrada quando há mais a dizer do que “concluído”. Nada é reescrito, compactado com squash ou enviado à força sem você pedir.
+
+## A barra de ferramentas Git [#the-git-toolbar]
+
+O Zshell pode mostrar uma barra compacta abaixo da aba ativa. Em um repositório, ela exibe a branch atual e os totais de linhas adicionadas/removidas; uma árvore sem alterações mostra **Limpo** em verde. Arquivos não rastreados entram na contagem de adições.
+
+- Clique na branch para buscar e alternar branches locais. A branch padrão do repositório fica marcada.
+- Clique nas contagens de alterações para abrir o painel Git.
+- Fora de um repositório, **Sempre Mostrar** mantém um botão **Sem Repositório Git** que abre a tela de inicialização do painel.
+
+Escolha **Ocultar**, **Automático** ou **Sempre Mostrar** em **Ajustes → Geral**, ou configure [`toolbar.visibility`](/pt-BR/docs/configuration#toolbarvisibility). O padrão é Ocultar. Você também pode ocultar a barra pelo menu de contexto.
+
+## Arquivos alterados [#changed-files]
+
+Os arquivos são agrupados em conflitos, alterações preparadas e não preparadas. Passe o ponteiro sobre uma linha para ver botões ou use o menu de contexto:
+
+| Botão | Função |
+| --- | --- |
+| **+** | Preparar o arquivo |
+| **−** | Retirar da área de preparação |
+| **↺** | Descartar alterações |
+
+**Descartar Todas as Alterações** fica no cabeçalho e pede confirmação: é a ação aqui que não pode ser desfeita por outro comando Git.
+
+Arquivos em conflito mostram **Marcar como Resolvido (Preparar)** no lugar do botão comum, para que a resolução seja uma ação intencional.
+
+O funil no cabeçalho filtra por nome de arquivo, facilitando conjuntos grandes de alterações.
+
+## Ler diffs [#reading-diffs]
+
+Clique em um arquivo alterado para abrir seu diff em um painel ao lado do terminal. O menu de contexto também oferece **Abrir Arquivo**, editável, e **Abrir Arquivo ao Lado**.
+
+Diffs grandes continuam responsivos. Um conjunto com mil arquivos abre tão rápido quanto uma alteração de uma linha e rola sem travamentos.
+
+Os controles acima do diff lembram duas escolhas globalmente:
+
+- **Unificado / Dividido** alterna entre uma coluna e visualização lado a lado.
+- **Revisão / Edição** aparece para arquivos não preparados no worktree atual. Edite o lado novo diretamente e salve com <kbd>Cmd</kbd>+<kbd>S</kbd>; o tratamento ao fechar arquivos modificados é igual ao editor normal.
+
+Diffs preparados e de commits históricos são somente leitura porque são snapshots, não arquivos que o Zshell possa alterar com segurança. Trocar um diff para Edição ou Dividido atualiza a preferência dos outros diffs abertos sem tornar editável um diff não elegível.
+
+## Fazer commit [#committing]
+
+Digite uma mensagem e use o botão de commit ou seu menu:
+
+- **Commit das Alterações Preparadas** — incluir exatamente o que foi preparado;
+- **Preparar Tudo e Fazer Commit** — preparar todos os arquivos rastreados e fazer commit;
+- **Emendar Último Commit** — incorporar as alterações preparadas ao commit anterior;
+- **Preparar Tudo e Emendar**.
+
+Os commits recentes aparecem abaixo, com **Copiar Hash do Commit** e **Copiar Mensagem do Commit** nos menus de contexto.
+
+## Branches [#branches]
+
+O nome da branch no cabeçalho é um menu. Selecione outra para alternar ou **Criar Nova Branch…** para começar a partir do estado atual.
+
+## Worktrees [#worktrees]
+
+O painel lista todos os worktrees do repositório, com branch e caminho do checkout. O checkout ativo é marcado como **Atual**. Clique em um worktree para abrir uma nova aba de terminal naquele diretório, mantendo o contexto de shell próprio no mesmo projeto. Listas longas rolam em uma área limitada; o cabeçalho, os controles de commit e a lista de arquivos permanecem no lugar. Clique no cabeçalho dos worktrees para recolher ou expandir.
+
+Worktrees em detached HEAD mostram **Detached HEAD** no lugar da branch. Repositórios bare aparecem para completar a lista, mas não têm diretório de trabalho e não podem ser abertos em uma aba de terminal.
+
+## Remotos [#remotes]
+
+O menu **⋯** reúne as operações com remotos:
+
+| Ação | Função |
+| --- | --- |
+| **Buscar** | Atualizar referências de acompanhamento remoto |
+| **Puxar (Somente Fast-forward)** | Fazer pull sem criar commit de merge |
+| **Enviar** | Fazer push da branch atual |
+| **Publicar Branch** | Enviar uma branch sem upstream, escolhendo o remoto quando houver mais de um |
+| **Sincronizar Alterações** | Pull fast-forward, seguido de push |
+| **Guardar Todas as Alterações em Stash** | Guardar tudo, incluindo arquivos não rastreados |
+| **Aplicar e Remover Stash** | Restaurar o stash mais recente |
+
+Indicadores ao lado da branch mostram quantos commits ela está **↓ atrás** ou **↑ à frente** do upstream.
+
+O mesmo menu oferece **Copiar Caminhos Alterados**, **Copiar Caminho do Repositório** e **Mostrar Repositório no Finder**.
+
+<Callout type="info">
+O pull é somente fast-forward de propósito. Se for necessário merge ou rebase, o Git informa e você decide no terminal; o painel não escolhe a estratégia.
+</Callout>
+
+## Ainda não é um repositório [#not-a-repository-yet]
+
+Se o diretório do projeto não contém um repositório, o painel oferece **Inicializar Repositório**, que executa `git init` nessa pasta. Até lá, ele permanece discreto.

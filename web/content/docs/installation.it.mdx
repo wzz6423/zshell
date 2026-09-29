@@ -1,0 +1,60 @@
+---
+title: Installazione
+description: Scarica Zshell, installalo con Homebrew, aggiornalo e rimuovilo senza lasciare configurazioni.
+---
+
+Zshell non è autenticato da Apple tramite notarizzazione. La [pagina iniziale](/it) indica accanto al download la versione minima di macOS richiesta dalla versione corrente.
+
+## Download [#download]
+
+Scarica il `.dmg` dalla [pagina iniziale](/it). La versione corrente 0.1.7 offre pacchetti Universal, Apple Silicon e Intel, con Gitee come mirror. Apri l'immagine disco e trascina **Zshell** in Applicazioni.
+
+Al primo avvio, macOS potrebbe bloccare l'app. Dopo aver tentato di aprirla, vai in **Impostazioni di Sistema → Privacy e Sicurezza → Apri comunque**, poi conferma. Vale anche per le installazioni Homebrew.
+
+## Homebrew [#homebrew]
+
+```bash
+brew install wzz6423/tap/zshell
+```
+
+Il cask è in `wzz6423/homebrew-tap` e installa lo ZIP adatto al processore del Mac. Dopo l'installazione, Zshell usa Sparkle per gli aggiornamenti. Per aggiornare esplicitamente tramite Homebrew, anche quando la versione installata è rimasta indietro:
+
+```bash
+brew upgrade --cask --greedy-auto-updates zshell
+```
+
+## Aggiornamenti [#updates]
+
+Download diretti e installazioni Homebrew usano entrambi [Sparkle](https://sparkle-project.org). Nella Cina continentale, Zshell prova prima Gitee e poi GitHub; altrove, prima GitHub e poi Gitee. Usa il paese dell'IP di rete quando disponibile e ripiega sulla regione di macOS se la ricerca fallisce. Un feed o download non riuscito viene ritentato una volta sull'altra fonte. La ricerca del paese usa [ipinfo.io/country](https://ipinfo.io/country), con timeout di cinque secondi e cache in memoria di 30 minuti. Questa richiesta espone l'IP pubblico al servizio; Zshell non lo salva. Disattivare i controlli automatici ferma anche le ricerche del paese in background.
+
+Zshell verifica il feed firmato e il pacchetto prima dell'installazione e mantiene l'architettura installata; le app Intel eseguite con Rosetta migrano ad Apple Silicon.
+
+Apri **Impostazioni → Aggiornamenti** (<kbd>Cmd</kbd>+<kbd>,</kbd>) per controllare le verifiche automatiche e **Scarica automaticamente gli aggiornamenti**. I download sono disattivati per impostazione predefinita e richiedono i controlli automatici. Attivandoli compare **Installa automaticamente gli aggiornamenti**, anch'esso inizialmente disattivato. Con l'installazione disattivata, gli aggiornamenti vengono scaricati in background e installati all'uscita da Zshell. Con entrambe le opzioni attive, gli aggiornamenti pronti vengono installati e Zshell si riavvia automaticamente. I processi del terminale terminano durante il riavvio; lo spazio di lavoro viene ripristinato alla riapertura. Disattivare i download nasconde l'opzione d'installazione e impedisce i riavvii automatici, conservandone la preferenza per la prossima attivazione. Entrambe le scelte persistono tra avvii. Quando è disponibile un aggiornamento, compare un'icona in basso nella barra dei progetti, a sinistra del feedback. Fai clic per aprire l'aggiornamento, seguirne l'avanzamento o ritentare un riavvio in sospeso. Scegli **Verifica aggiornamenti…** per un controllo manuale. Il comando Homebrew sopra resta disponibile per aggiornare esplicitamente.
+
+## Strumenti consigliati [#recommended-tools]
+
+Apri **Impostazioni → Raccomandazioni** per esplorare strumenti per terminale, rete, sviluppo, utilità e desktop, incluso Zisla. La pagina rileva gli strumenti installati e cerca aggiornamenti mentre è aperta. Usa **Installa** o **Aggiorna** per un singolo strumento, **Installa mancanti** per tutte le raccomandazioni mancanti o **Aggiorna tutto** per gli aggiornamenti disponibili degli strumenti gestiti da Homebrew.
+
+L'installazione usa Homebrew. Se manca, la pagina rimanda alle istruzioni d'installazione. I controlli non installano o aggiornano autonomamente. Gli strumenti trovati fuori da Homebrew sono indicati come **Fuori da Homebrew**. **Usa Homebrew** installa una copia gestita; quella esistente potrebbe comunque precederla nel `PATH` della shell. Usa **Aggiorna elenco** per ricontrollare dopo una modifica. Zshell stesso si gestisce in **Impostazioni → Aggiornamenti**.
+
+## Aprire una cartella dal Finder [#open-a-folder-from-finder]
+
+Zshell registra il servizio macOS **Nuovo progetto Zshell qui**. Seleziona una o più cartelle nel Finder, fai clic destro e scegli il servizio dal sottomenu **Servizi**. Ogni cartella diventa un progetto con terminale già avviato al suo interno.
+
+Se non compare, attivalo in **Impostazioni di Sistema → Tastiera → Abbreviazioni da tastiera → Servizi → File e cartelle**. macOS elenca un nuovo servizio solo dopo che l'app è stata aperta una volta.
+
+## Disinstallazione [#uninstalling]
+
+Se **Impostazioni → Automazione → AI** è attivo, disattivalo prima di eliminare l'app affinché Zshell rimuova il supporto degli agenti installato.
+
+Elimina `zshell.app` da Applicazioni, poi rimuovi anche le impostazioni se desideri ripartire da zero:
+
+```bash
+rm -rf ~/.config/zshell
+```
+
+Disposizione delle finestre, larghezze laterali e snapshot delle sessioni risiedono nelle preferenze di macOS:
+
+```bash
+defaults delete sh.zshell
+```

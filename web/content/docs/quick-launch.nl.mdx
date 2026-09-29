@@ -1,0 +1,38 @@
+---
+title: Snel starten
+description: Bewaar veelgebruikte opdrachten en SSH-verbindingen en start ze met één toetsaanslag.
+---
+
+<kbd>Cmd</kbd>+<kbd>O</kbd> opent **Snel starten**: een doorzoekbare lijst van startitems die elk een nieuw project met een terminalsessie openen. Een opgeslagen item is een **opdracht**, zoals `npm run dev` of `make watch` die je vaak typt, of een **SSH-verbinding**.
+
+## Starten [#launching]
+
+Typ een naam, opdracht, verbindingsdoel of groep om de lijst met een benaderende zoekopdracht te filteren. Klik op een rij, of selecteer haar met de pijltoetsen en druk op <kbd>Return</kbd>. Het item draait in een nieuw project met de naam van het item, een eigen terminalsessie en een eigen map.
+
+Als de opdracht eindigt of de verbinding sluit, keert het deelvenster terug naar een normale shellprompt in plaats van te verdwijnen. Wat je gestart hebt, kan zichzelf dus niet ongemerkt sluiten.
+
+Je kunt een opgeslagen item ook op naam starten vanuit elke Zshell-terminal:
+
+```bash
+zshell "Entry name"
+```
+
+Gebruik de exacte naam van het item, met aanhalingstekens als er spaties in staan. De aanwijzing onderaan Snel starten toont deze syntaxis. Het item opent in een nieuw project.
+
+## Items beheren [#managing-entries]
+
+- <kbd>Cmd</kbd>+<kbd>N</kbd> — nieuw item
+- <kbd>Cmd</kbd>+<kbd>E</kbd> — geselecteerd item bewerken
+- <kbd>Cmd</kbd>+<kbd>Delete</kbd> — geselecteerd item verwijderen
+
+Gebruik het optionele veld **Groep** om items in benoemde secties te ordenen. De knoppen voor bewerken en verwijderen werken op hun item zonder het te starten.
+
+Een opdrachtitem kan een **werkmap** vastleggen waarin het altijd begint. Zonder werkmap gebruikt het de standaardmap voor een nieuw project. Een SSH-item bevat de host, optioneel een gebruiker en poort, en vrije extra `ssh`-opties zoals `-L 8080:localhost:80`.
+
+## Waar items worden opgeslagen [#where-entries-live]
+
+Items staan in `~/.config/zshell/quick-launch.json` en worden door alle vensters gedeeld. Het zijn gewone gebruikersgegevens; je kunt het bestand vrij bewerken of er een back-up van maken.
+
+<Callout type="info">
+Opdrachten draaien via je inlogshell en zien daardoor je profielomgeving. Het deelvenster blijft daarna een gewone sessie, met je aliassen en prompt intact.
+</Callout>

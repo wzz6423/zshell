@@ -1,0 +1,50 @@
+---
+title: Divisions et volets
+description: Divisez un onglet en volets, passez de l'un à l'autre, redimensionnez-les ou agrandissez-en un.
+---
+
+Tout onglet peut être divisé en volets. Un volet contient généralement un terminal, mais peut aussi afficher un fichier, un diff ou un [navigateur](/fr/docs/browser). Le contenu que vous lisez reste ainsi à côté du shell qui l'a produit.
+
+## Diviser un volet [#splitting]
+
+| Action | Raccourci |
+| --- | --- |
+| Diviser vers la droite | <kbd>Cmd</kbd>+<kbd>D</kbd> |
+| Diviser vers le bas | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> |
+| Diviser vers la gauche | — |
+| Diviser vers le haut | — |
+
+Les divisions vers la gauche et vers le haut n'ont pas de raccourci par défaut. Utilisez le menu **Onglets**, la palette de commandes (<kbd>Cmd</kbd>+<kbd>P</kbd>) ou le menu contextuel du volet. Le nouveau volet reprend le répertoire de travail du volet actif.
+
+La division s'applique toujours au **volet actif**, même dans une disposition imbriquée, sans redimensionner un volet voisin sans rapport. Chaque volet affiche un petit titre actualisé et des commandes de division dans son en-tête, afin que son contexte reste visible.
+
+Vous pouvez aussi réorganiser les volets déjà ouverts : saisissez la fine bande en haut d'un volet et faites-la glisser vers le bord d'un autre. Avant de relâcher, le volet cible indique la moitié qui sera occupée.
+
+Un onglet entier peut devenir un volet. Faites glisser son onglet depuis la barre supérieure vers le bord gauche, droit, supérieur ou inférieur du contenu de l'onglet actuel. L'aperçu du dépôt montre la division obtenue avant que vous relâchiez.
+
+## Passer d'un volet à l'autre [#moving-between-panes]
+
+| Action | Raccourci |
+| --- | --- |
+| Activer le volet à gauche, à droite, en haut ou en bas | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+les flèches |
+| Passer au volet précédent ou suivant | <kbd>Cmd</kbd>+<kbd>[</kbd> / <kbd>Cmd</kbd>+<kbd>]</kbd> |
+
+## Agrandir et redimensionner [#zoom-and-resize]
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> agrandit le volet actif pour remplir l'onglet ; une seconde pression rétablit sa taille. L'en-tête de l'onglet affiche également un bouton lorsqu'un volet est agrandi, pour permettre de revenir sans raccourci.
+
+| Action | Raccourci |
+| --- | --- |
+| Agrandir ou rétablir le volet | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> |
+| Agrandir le volet dans une direction | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+les flèches |
+| Donner la même taille aux volets | <kbd>Ctrl</kbd>+<kbd>Cmd</kbd>+<kbd>=</kbd> |
+
+Les séparateurs entre les volets peuvent aussi être déplacés à la souris.
+
+## Fermer un volet [#closing]
+
+<kbd>Cmd</kbd>+<kbd>W</kbd> ferme le volet actif. Fermer le dernier volet d'un onglet ferme également l'onglet.
+
+<Callout type="warn">
+Fermer un volet de terminal arrête son shell et tous les processus qu'il a lancés. Zshell ne demande pas de confirmation, comme lorsque vous fermez un terminal dans une autre application.
+</Callout>

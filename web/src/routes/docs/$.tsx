@@ -14,9 +14,7 @@ export const Route = createFileRoute('/docs/$')({
     await docsClientLoader.preload(data.path)
     return data
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData?.meta ?? [],
-  }),
+  head: ({ loaderData }) => loaderData?.head ?? {},
 })
 
 function Page() {

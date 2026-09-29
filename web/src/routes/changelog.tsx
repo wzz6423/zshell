@@ -99,7 +99,7 @@ function Changelog() {
   const contributorCount = Route.useLoaderData()
 
   return (
-    <SiteLayout>
+    <SiteLayout lang="en">
       <section className="flex flex-col gap-5">
         <div className="flex items-center gap-3 text-[12px] tracking-[0.08em] text-brand uppercase">
           <span className="size-1.5 rounded-full bg-brand shadow-[0_0_12px_var(--brand)]" />

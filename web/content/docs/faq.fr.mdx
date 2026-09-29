@@ -1,0 +1,68 @@
+---
+title: Questions fréquentes
+description: Questions courantes sur le prix, la confidentialité et la relation entre Zshell et votre shell.
+---
+
+<Accordions>
+
+<Accordion title="Zshell est-il gratuit ?">
+
+Oui. Le téléchargement est gratuit, le code source est public sous la licence PolyForm Noncommercial License 1.0.0, et aucun compte ni abonnement n'est nécessaire.
+
+</Accordion>
+
+<Accordion title="Remplace-t-il mon shell ?">
+
+Non. Zshell héberge le shell que vous utilisez déjà : il démarre `$SHELL -l` et conserve votre invite, vos alias, vos fonctions et vos dotfiles. Le volet de terminal peut utiliser Ghostty ou Alacritty comme moteur.
+
+</Accordion>
+
+<Accordion title="Collecte-t-il des données ?">
+
+Il n'y a ni télémétrie ni outils d'analyse. Les vérifications de mise à jour recherchent le pays de l'adresse IP du réseau pour choisir GitHub ou Gitee, puis récupèrent le flux des versions. Désactivez les vérifications automatiques dans **Réglages → Mises à jour** pour arrêter ces requêtes en arrière-plan ; les vérifications manuelles les effectuent toujours. Consultez les [mises à jour](/fr/docs/installation#updates). La page Recommandations vérifie aussi les versions des outils lorsqu'elle est ouverte.
+
+Les sites ouverts dans un [volet de navigateur](/fr/docs/browser) et les agents en ligne de commande exécutent les requêtes que vous leur demandez, comme en dehors de Zshell.
+
+</Accordion>
+
+<Accordion title="Lit-il ma configuration Ghostty ou Alacritty ?">
+
+Non. Le moteur, les polices, les couleurs et le comportement de saisie proviennent des [réglages de Zshell](/fr/docs/configuration). Les fichiers de configuration de ces deux applications de terminal ne sont pas chargés.
+
+</Accordion>
+
+<Accordion title="Que deviennent mes sessions lorsque je quitte l'application ?">
+
+Les projets, onglets et dispositions de volets sont restaurés au prochain lancement. Chaque terminal ouvre un nouveau shell dans son ancien répertoire. Aucun processus ne continue de s'exécuter en arrière-plan après la fermeture.
+
+L'ancien historique de défilement revient également si vous activez [`terminal.restore-history`](/fr/docs/configuration#terminalrestore-history). Il s'affiche sous forme de texte statique au-dessus du séparateur `Session Contents Restored`.
+
+</Accordion>
+
+<Accordion title="Est-ce un environnement de développement intégré ?">
+
+Non, et ce n'est pas l'objectif. Le terminal reste au centre. Les panneaux Git et Fichiers permettent d'examiner et de livrer le travail effectué dans le terminal sans changer d'application ; ils ne cherchent pas à devenir votre environnement de travail principal.
+
+</Accordion>
+
+<Accordion title="Pourquoi une boîte de dialogue demande-t-elle mon accord pour lire le presse-papiers ?">
+
+Parce qu'un programme a demandé cet accès. La séquence d'échappement `OSC 52` permet à un programme du terminal de lire le presse-papiers système, y compris depuis un hôte distant par SSH. Zshell vous demande confirmation avant de transmettre son contenu, comme le fait Ghostty par défaut.
+
+</Accordion>
+
+<Accordion title="Puis-je l'utiliser avec un agent de programmation IA ?">
+
+Oui. L'intégration IA est activée par défaut. Demandez simplement à un agent compatible d'exécuter une commande dans un volet en arrière-plan ou de déléguer une tâche bien délimitée. Des agents placés dans des volets Zshell distincts peuvent aussi échanger questions, résultats et précisions, sans vous imposer de recopier leur contexte. Zshell affiche les états de travail, de blocage et de fin signalés par le fournisseur, sans les déduire du texte du terminal. Vous gardez la main sur les autorisations et le diff final. Consultez [Travailler avec des agents IA](/fr/docs/automation).
+
+Vous pouvez aussi utiliser un agent comme un programme de terminal ordinaire : examinez son diff dans le [panneau Git](/fr/docs/git), lisez les fichiers à côté et n'indexez que les modifications souhaitées.
+
+</Accordion>
+
+<Accordion title="Où signaler un bug ?">
+
+Ouvrez un ticket sur [GitHub](https://github.com/wzz6423/zshell/issues). Indiquez votre version de macOS et ce que vous faisiez lorsque le problème est survenu : cela suffit généralement pour commencer l'analyse.
+
+</Accordion>
+
+</Accordions>

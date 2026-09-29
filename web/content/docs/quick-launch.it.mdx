@@ -1,0 +1,38 @@
+---
+title: Avvio rapido
+description: Salva comandi e connessioni SSH usati spesso e avviali con una scorciatoia.
+---
+
+<kbd>Cmd</kbd>+<kbd>O</kbd> apre **Avvio rapido**, un elenco ricercabile di voci che aprono ciascuna un nuovo progetto con una sessione terminale. Una voce è un **comando**, come `npm run dev` o `make watch`, oppure una **connessione SSH**.
+
+## Avviare [#launching]
+
+Digita un nome, comando, destinazione o gruppo per filtrare l'elenco con corrispondenza approssimata. Fai clic su una riga o selezionala con le frecce e premi <kbd>Return</kbd>. La voce viene eseguita in un nuovo progetto con il suo nome, una sessione terminale e una directory proprie.
+
+Quando il comando termina o la connessione si chiude, il pannello torna al normale prompt della shell invece di scomparire. Nulla di ciò che avvii può chiudersi silenziosamente.
+
+Puoi avviare una voce salvata per nome da qualsiasi terminale Zshell:
+
+```bash
+zshell "Entry name"
+```
+
+Usa il nome esatto, tra virgolette se contiene spazi. Il suggerimento in fondo ad Avvio rapido mostra questa sintassi. La voce si apre in un nuovo progetto.
+
+## Gestire le voci [#managing-entries]
+
+- <kbd>Cmd</kbd>+<kbd>N</kbd> — nuova voce
+- <kbd>Cmd</kbd>+<kbd>E</kbd> — modifica la voce selezionata
+- <kbd>Cmd</kbd>+<kbd>Delete</kbd> — elimina la voce selezionata
+
+Usa il campo facoltativo **Gruppo** per organizzare le voci in sezioni con un nome. I pulsanti modifica ed elimina agiscono sulla voce senza avviarla.
+
+Una voce comando può fissare una **directory di lavoro** da usare sempre; senza, usa la directory predefinita di un nuovo progetto. Una voce SSH accetta host, utente e porta facoltativi, più opzioni `ssh` libere come `-L 8080:localhost:80`.
+
+## Dove sono salvate le voci [#where-entries-live]
+
+Le voci sono salvate in `~/.config/zshell/quick-launch.json` e condivise tra tutte le finestre. Sono normali dati utente: puoi modificare il file o farne liberamente una copia di sicurezza.
+
+<Callout type="info">
+I comandi passano dalla shell di login e quindi ricevono l'ambiente del profilo. In seguito il pannello rimane una sessione normale, con alias e prompt intatti.
+</Callout>

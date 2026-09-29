@@ -1,0 +1,81 @@
+---
+title: Prise en main
+description: Passez d'une fenêtre vide à un projet opérationnel en découvrant les fonctions essentielles.
+---
+
+<Steps>
+
+<Step>
+
+### Créer un projet [#start-a-project]
+
+Appuyez sur <kbd>Cmd</kbd>+<kbd>N</kbd>. Un projet contenant un terminal apparaît dans la barre latérale. Utilisez ensuite `cd` pour rejoindre votre dépôt, comme dans n'importe quel terminal. L'arborescence des fichiers et le panneau Git suivent ce déplacement et prennent la racine du dépôt comme point de départ.
+
+Vous préférez partir d'un dossier ? Faites un clic droit dessus dans le Finder et choisissez **Services → Nouveau projet Zshell ici**.
+
+Vous avez plusieurs dépôts ? Ajoutez-les tous. <kbd>Cmd</kbd>+<kbd>1</kbd> à <kbd>Cmd</kbd>+<kbd>9</kbd> permettent de rejoindre directement un projet ; chacun conserve ses propres onglets et sa disposition.
+
+</Step>
+
+<Step>
+
+### Ajouter des sessions [#add-sessions]
+
+<kbd>Cmd</kbd>+<kbd>T</kbd> ouvre un autre terminal dans le même projet, dans un nouvel onglet avec son propre répertoire de travail et son historique de défilement. Vous pouvez en réserver un au serveur de développement, un aux tests et un à vos commandes.
+
+<kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> sélectionnent directement les onglets ; <kbd>Ctrl</kbd>+<kbd>Tab</kbd> ouvre un sélecteur classé par utilisation récente.
+
+</Step>
+
+<Step>
+
+### Diviser un onglet [#split-a-tab]
+
+<kbd>Cmd</kbd>+<kbd>D</kbd> divise le volet actuel vers la droite et <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> vers le bas. Passez d'un volet à l'autre avec <kbd>Opt</kbd>+<kbd>Cmd</kbd>+les flèches. Pour lire un long contenu, <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> agrandit le volet afin qu'il remplisse l'onglet.
+
+</Step>
+
+<Step>
+
+### Ouvrir les panneaux latéraux [#open-the-side-panels]
+
+La barre latérale droite contient les panneaux suivants, accessibles chacun par un raccourci :
+
+| Panneau | Raccourci | Utilité |
+| --- | --- | --- |
+| Git | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> | Indexer, examiner les diffs, créer des commits et pousser |
+| Fichiers | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | Parcourir l'arborescence, ouvrir et modifier des fichiers |
+| Informations | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> | Consulter les processus et les ports en écoute |
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> masque toute la barre latérale droite ; <kbd>Cmd</kbd>+<kbd>B</kbd> masque celle des projets à gauche.
+
+</Step>
+
+<Step>
+
+### Retenir un raccourci : <kbd>Cmd</kbd>+<kbd>P</kbd> [#learn-one-shortcut-cmdp]
+
+La palette de commandes recherche dans tous les projets, toutes les sessions ouvertes et toutes les commandes de Zshell. Si vous ne retenez qu'un raccourci de cette page, choisissez celui-ci : chaque commande affiche aussi son propre raccourci.
+
+</Step>
+
+</Steps>
+
+## Ce qui revient après la fermeture [#what-comes-back-after-you-quit]
+
+Quittez puis rouvrez Zshell : vos projets, onglets et dispositions de volets retrouvent leur place. Chaque terminal démarre un **nouveau shell** dans son ancien répertoire. Aucun processus n'est maintenu discrètement en arrière-plan.
+
+La restauration de l'historique de défilement est facultative. Activez [`terminal.restore-history`](/fr/docs/configuration#terminalrestore-history) pour retrouver les anciennes sorties au-dessus d'un séparateur `Session Contents Restored`, tandis que le nouveau shell s'exécute en dessous.
+
+<Callout type="info">
+Le contenu restauré est uniquement du texte : c'est la trace de ce qui s'est passé, pas une session active. Faire défiler cet historique ne relance aucune commande.
+</Callout>
+
+## Pour continuer [#next]
+
+<Cards>
+  <Card title="Projets et sessions" href="/fr/docs/projects" description="Nommer un projet, fixer son répertoire et comprendre ce qu'il suit." />
+  <Card title="Panneau Git" href="/fr/docs/git" description="Indexation, diffs, commits et branches." />
+  <Card title="Volets de navigateur" href="/fr/docs/browser" description="Garder un serveur local ou la documentation à côté de son terminal." />
+  <Card title="Travailler avec des agents IA" href="/fr/docs/automation" description="Demander aux agents de déléguer et de coordonner leur travail entre les volets Zshell." />
+</Cards>

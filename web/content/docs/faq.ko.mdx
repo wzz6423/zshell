@@ -1,0 +1,68 @@
+---
+title: 자주 묻는 질문
+description: 비용, 개인정보와 Zshell이 셸과 함께 동작하는 방식에 관한 질문.
+---
+
+<Accordions>
+
+<Accordion title="Zshell은 무료인가요?">
+
+네. 무료로 다운로드할 수 있으며 소스는 PolyForm Noncommercial License 1.0.0에 따라 공개됩니다. 계정이나 구독은 필요하지 않습니다.
+
+</Accordion>
+
+<Accordion title="기존 셸을 대체하나요?">
+
+아니요. Zshell은 사용 중인 셸을 담는 프로그램입니다. `$SHELL -l`을 시작하며 프롬프트, 별칭, 함수와 dotfile은 그대로 둡니다. 터미널 분할 창의 백엔드로 Ghostty 또는 Alacritty를 사용할 수 있습니다.
+
+</Accordion>
+
+<Accordion title="데이터를 수집하나요?">
+
+원격 측정이나 분석 기능은 없습니다. 업데이트 확인 시 네트워크 IP의 국가를 조회하여 GitHub와 Gitee 중 소스를 고른 다음 릴리스 피드를 가져옵니다. **설정 → 업데이트**에서 자동 확인을 끄면 이러한 백그라운드 요청도 중지되지만, 수동 확인 시에는 요청합니다. [업데이트](/ko/docs/installation#updates)를 참고하세요. 추천 페이지는 열려 있는 동안 도구 버전을 확인합니다.
+
+[브라우저 분할 창](/ko/docs/browser)에서 연 페이지와 실행한 에이전트 CLI는 Zshell 밖에서 사용할 때와 마찬가지로 사용자의 지시에 따라 자체 네트워크 요청을 보냅니다.
+
+</Accordion>
+
+<Accordion title="Ghostty나 Alacritty 설정을 읽나요?">
+
+아니요. 백엔드, 글꼴, 색상과 입력 동작은 Zshell 자체 [설정](/ko/docs/configuration)을 따릅니다. 두 터미널 앱의 설정 파일은 불러오지 않습니다.
+
+</Accordion>
+
+<Accordion title="앱을 종료하면 세션은 어떻게 되나요?">
+
+다시 실행하면 프로젝트, 탭과 분할 창 배치를 복원하고 각 터미널은 이전 디렉터리에서 새 셸로 열립니다. 종료 후 백그라운드에 계속 실행되는 작업은 없습니다.
+
+[`terminal.restore-history`](/ko/docs/configuration#terminalrestore-history)를 켜면 이전 스크롤 기록도 복원됩니다. `Session Contents Restored`(세션 내용 복원됨) 구분선 위에 정적인 텍스트로 표시됩니다.
+
+</Accordion>
+
+<Accordion title="IDE인가요?">
+
+아니요. IDE로 발전시키려는 방향도 아닙니다. 터미널이 중심이며, Git 및 파일 패널은 앱을 전환하지 않고 터미널에서 생긴 변경 사항을 검토하고 반영하도록 돕습니다. 작업의 중심을 패널로 옮기려는 기능은 아닙니다.
+
+</Accordion>
+
+<Accordion title="프로그램이 클립보드를 읽기 전에 확인 창이 뜨는 이유는 무엇인가요?">
+
+프로그램이 읽기 권한을 요청했기 때문입니다. `OSC 52` 이스케이프 시퀀스를 사용하면 터미널 프로그램이 시스템 클립보드를 읽을 수 있으며, SSH로 원격 호스트에서 실행 중인 프로그램도 포함됩니다. Zshell은 내용을 조용히 넘기지 않고 먼저 확인을 받습니다. Ghostty도 같은 기본 동작을 사용합니다.
+
+</Accordion>
+
+<Accordion title="AI 코딩 에이전트와 함께 사용할 수 있나요?">
+
+네. AI 통합은 기본적으로 켜져 있습니다. 지원하는 에이전트에게 평소 말하듯 백그라운드 분할 창에서 작업을 실행하거나 범위가 정해진 작업을 위임해 달라고 요청하세요. 서로 다른 Zshell 분할 창의 에이전트끼리 질문, 발견한 내용과 후속 요청을 주고받을 수도 있어 사용자가 맥락을 복사해서 전달할 필요가 줄어듭니다. Zshell은 터미널 텍스트를 추측하는 대신 제공자가 보고한 작업 중/차단됨/완료 상태를 표시하며, 승인과 최종 차이 검토의 결정권은 사용자에게 있습니다. [AI 에이전트와 작업](/ko/docs/automation)을 참고하세요.
+
+에이전트를 일반 터미널 프로그램으로 사용해도 됩니다. [Git 패널](/ko/docs/git)에서 변경 사항을 검토하고 옆에서 파일을 읽으며 원하는 변경만 스테이징하세요.
+
+</Accordion>
+
+<Accordion title="버그는 어디에 신고하나요?">
+
+[GitHub](https://github.com/wzz6423/zshell/issues)에 이슈를 등록하세요. 보통 macOS 버전과 문제가 발생했을 때 수행하던 작업을 알려 주면 조사에 도움이 됩니다.
+
+</Accordion>
+
+</Accordions>

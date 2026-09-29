@@ -1,0 +1,41 @@
+---
+title: "Ô trình duyệt"
+description: "Mở web cạnh terminal, điều hướng bằng điều khiển gốc và giữ liên kết trong dự án."
+---
+
+Zshell đặt được trình duyệt tích hợp trong bất kỳ tab hoặc ô chia nào. Nó hữu ích cho máy chủ phát triển cục bộ, tài liệu API, issue hay nội dung bạn muốn đặt cạnh terminal đang dùng nó.
+
+## Mở trình duyệt [#opening-a-browser]
+
+- Chọn **Tệp → Tab trình duyệt mới** để mở tab trống.
+- Mở bảng lệnh (<kbd>Cmd</kbd>+<kbd>P</kbd>) và chạy **Tab trình duyệt mới** hoặc **Ô trình duyệt mới**.
+- Giữ Command rồi nhấp phải URL đã nhận diện trong terminal, chọn **Tab trình duyệt mới** hoặc **Ô trình duyệt mới** để mở mà không cần sao chép địa chỉ.
+
+Tab trình duyệt thuộc dự án đang chọn và dùng chung bố cục tab/ô bình thường. Nếu chưa có dự án, Zshell tạo một dự án chứa trình duyệt.
+
+## Địa chỉ và tìm kiếm [#address-and-search]
+
+Ô trên cùng nhận URL đầy đủ, tên máy chủ hoặc từ khóa:
+
+- `zshell.sh` trở thành địa chỉ HTTPS.
+- `localhost`, tên máy cục bộ, IP và cổng được chỉ định rõ dùng HTTP.
+- Phần còn lại trở thành truy vấn Google.
+
+<kbd>Cmd</kbd>+<kbd>L</kbd> chọn ô địa chỉ; <kbd>Cmd</kbd>+<kbd>R</kbd> tải lại. Thanh công cụ còn có Quay lại, Tiến, Dừng/Tải lại, Chia sẻ và **Mở bằng trình duyệt mặc định**. Cử chỉ tiến/lùi trên bàn di chuột cũng hoạt động.
+
+| Thao tác | Phím tắt |
+| --- | --- |
+| Chọn thanh địa chỉ | <kbd>Cmd</kbd>+<kbd>L</kbd> |
+| Tải lại trang | <kbd>Cmd</kbd>+<kbd>R</kbd> |
+
+## Mở liên kết ở nơi bạn muốn [#opening-links-where-you-want-them]
+
+Nhấp phải liên kết trên trang để **Mở liên kết trong tab mới** hoặc **Mở liên kết trong ô mới**. Trang mới vẫn ở cùng không gian dự án.
+
+Trong terminal, Command-nhấp bình thường mở URL web đã nhận diện bằng trình duyệt mặc định. Command-nhấp phải cung cấp lựa chọn tab hoặc ô Zshell. Quy trình tương tự cho đường dẫn cục bộ nằm ở [Đường dẫn và URL](/vi/docs/terminal#paths-and-urls).
+
+## Trạng thái được giữ lại [#what-is-preserved]
+
+Đổi tab hoặc dự án giữ nguyên trang, gồm lịch sử, vị trí cuộn, biểu mẫu và trạng thái bên trong. Khi mở lại Zshell, URL hiện tại và bố cục được khôi phục, nhưng toàn bộ lịch sử tiến/lùi thì không.
+
+Ô trình duyệt giữ cookie, đăng nhập và dữ liệu trang khác qua các tab và lần mở ứng dụng. Đây không phải chế độ riêng tư.

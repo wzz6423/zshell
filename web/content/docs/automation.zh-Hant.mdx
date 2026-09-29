@@ -1,0 +1,84 @@
+---
+title: 與 AI Agent 協作
+description: 讓編碼 agent 在 Zshell 窗格間分派和協調工作，而你繼續專注並掌握決定權。
+---
+
+Zshell 的自動化主要是給 AI 編碼 agent 用的。它讓 agent 安全地操作 Zshell 的窗格、協調其他 agent；你不需要再學一套指令。
+
+AI 集成預設啟用，直接像平時一樣和編碼 agent 對話。它可以新建後台窗格、啟動另一個 agent、執行指令、等待結果，再把結論帶回來，全程不搶走你正在使用的窗格焦點。
+
+## 設定 [#setup]
+
+**設定 → Automation → AI** 預設開啟。如果之前關閉過，請重新開啟，再新建終端機；已經執行的編碼 agent 需要重新啟動。
+
+Zshell 支持 Codex、Claude Code、Gemini CLI、Grok Build、OpenCode、Cursor Agent、Aider、Amp 和 Pi。如果現有 agent 配置與這項功能衝突，Zshell 會原樣保留它，讓開關回到之前的狀態，並在設定裡顯示錯誤。
+
+## 直接說你想要什麼 [#ask-in-plain-language]
+
+告訴 agent 最終要達到的結果。例如：
+
+> 在後台窗格裡跑相關測試，然後告訴我哪裡失敗了。
+
+> 把這個 bug 交給另一個 Codex agent，完成後再檢查它的結果。
+
+> 問一下負責 API 的 agent，schema 是否已經定下來，再把答案告訴跑測試的 agent。
+
+> 在旁邊啟動開發伺服器，等它就緒後把 URL 告訴我。
+
+> 看看後台 agent 做完沒有。如果它卡住了，告訴我需要什麼。
+
+Zshell 的自動化接口由 agent 自己調用，你不需要輸入或記住任何自動化指令。
+
+## 讓多個 agent 在窗格間協作 [#let-agents-coordinate-across-panes]
+
+你可以把相關工作拆到幾個 Zshell 窗格裡，再讓主要 agent 負責協調。例如，一個 agent 修改 API，另一個補測試。協調方可以向指定的 agent 詢問發現或進度、補充要求、把有用的結果傳給另一個 agent，最後再把匯總後的答案交給你。不同窗格也可以執行不同的受支持編碼工具。
+
+這樣並行工作時就不必由你來回複製上下文。每個 agent 的對話仍留在自己的窗格裡，協調方只會傳遞另一個 agent 當前需要的問題、更新或結果。
+
+發出補充消息不代表任務已經完成。協調方仍要等待 agent、讀取結果並檢查結論。來自另一個 agent 的消息也不等於你的批准；權限、憑據、信任和破壞性操作仍然必須交還給你決定。
+
+## 它執行時，你繼續工作 [#keep-working-while-it-runs]
+
+除非你要求查看，分派出去的窗格會留在後台。當 provider 的原生生命週期集成報告狀態時，Zshell 會在窗格和分頁上顯示：
+
+| 狀態 | 對你意味著什麼 |
+| --- | --- |
+| **Working** | Agent 正在處理任務。 |
+| **Blocked** | 它需要你的輸入、批准或決定。 |
+| **Done** | 它已經在後台完成，而你還沒有查看那個窗格。 |
+
+Zshell 會把自己剛提交的 prompt 記為 **Working**，但不會掃描終端機裡渲染的文字來猜測後續狀態。**Blocked**、**Done** 及其通知都必須來自 provider 的生命週期報告。如果某個 agent 沒有提供這類報告，請直接查看它的窗格和實際專案改動，不要依賴猜測出來的狀態。
+
+當集成報告 agent 已完成或需要輸入時，Zshell 還可以發送通知。按 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>，會跳到下一個已報告且需要你處理的 agent。
+
+## 帳戶用量與限制 [#account-usage-and-limits]
+
+**設定 → Automation → 帳戶用量**會顯示 Claude Code 和 Codex 當前可讀取的帳戶限制，
+包括已使用百分比、提供方報告的重置時間，以及上次更新時間。點擊 **重新整理用量**可以重新讀取。
+
+Codex 需要已安裝、已登錄且能報告帳戶限制的 CLI。Claude Code 的用量會在 Zshell 收到
+提供方的狀態欄用量報告後顯示。僅在有可用資料時才顯示這一分區；具體用量週期取決於提供方和帳戶。
+這裡顯示的是帳戶限制，不是當前工作階段的 token 總量。
+
+## 一次典型的使用過程 [#a-typical-workflow]
+
+1. 在 Zshell 終端機裡啟動你平時使用的編碼 agent。
+2. 讓它分派一個範圍明確的任務、在後台執行某個程式，或協調另一個 agent。
+3. 繼續在當前窗格工作；Zshell 會把後台任務留在同一個專案佈局裡，隨時看得見。
+4. 如果 provider 會報告生命週期，可以通過 **Working**、**Blocked** 或 **Done** 徽章掌握進度；否則請打開對應窗格，直接查看對話或終端機輸出。
+5. 在 [Git 面板](/zh-Hant/docs/git)裡審閱結果和 diff，只保留你認可的改動。
+
+## 決定權仍然在你手裡 [#you-stay-in-control]
+
+- Agent 自動化只作用於當前 Zshell 專案，不能操作其他專案或視窗裡的窗格。
+- 後台工作預設不搶焦點。
+- Zshell 不會替你回答權限、憑據、信任或破壞性操作提示。Provider 報告 **Blocked**，就是把決定交還給你。
+- Provider 報告的 **Done** 只表示可以開始審閱，不代表 Zshell 自動批准了 agent 的改動。
+
+## Agent 沒有使用 Zshell 時 [#if-an-agent-does-not-use-zshell]
+
+- 確認 **設定 → Automation → AI** 已經打開。
+- 如果當前終端機是在打開設定前創建的，請新建一個 Zshell 終端機。
+- 如果 agent 當時已經在執行，請重新啟動它。
+- 看看設定裡有沒有直接顯示的錯誤。
+- 如果希望這次任務使用自動化，可以明確說「在 Zshell 後台窗格裡執行」或「交給另一個 Zshell agent」。

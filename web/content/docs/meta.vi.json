@@ -1,0 +1,23 @@
+{
+  "title": "Tài liệu",
+  "pages": [
+    "---Bắt đầu---",
+    "index",
+    "installation",
+    "quick-start",
+    "---Sử dụng Zshell---",
+    "projects",
+    "panes",
+    "terminal",
+    "quick-launch",
+    "browser",
+    "git",
+    "files",
+    "session-info",
+    "automation",
+    "---Tham khảo---",
+    "shortcuts",
+    "configuration",
+    "faq"
+  ]
+}

@@ -1,0 +1,94 @@
+---
+title: Das Git-Panel
+description: Änderungen neben der Shell prüfen, stagen, committen und pushen.
+---
+
+Drücken Sie <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>. Das Panel öffnet das Repository, auf das Ihr Projekt ausgerichtet ist. Wie Zshell es auswählt, beschreibt [Das Projektverzeichnis](/de/docs/projects#the-project-directory).
+
+Jede Aktion ist ein Git-Befehl, den Zshell für Sie ausführt. Wenn die Ausgabe mehr als eine Erfolgsmeldung enthält, wird sie angezeigt. Ohne Ihren Auftrag werden weder Commits umgeschrieben oder zusammengefasst noch Force-Pushes ausgeführt.
+
+## Die Git-Werkzeugleiste [#the-git-toolbar]
+
+Zshell kann unter dem aktiven Tab eine kompakte Werkzeugleiste anzeigen. In einem Repository zeigt sie den aktuellen Branch und die Gesamtzahl hinzugefügter und gelöschter Zeilen. Ein unveränderter Arbeitsbaum erhält den grünen Status **Sauber**. Nicht versionierte Dateien zählen zu den hinzugefügten Zeilen.
+
+- Klicken Sie auf den Branch, um lokale Branches zu suchen und zu wechseln. Der Standardbranch des Repositorys ist in der Liste markiert.
+- Klicken Sie auf die Änderungszahlen, um das Git-Panel zu öffnen.
+- Außerhalb eines Repositorys bleibt im Modus **Immer anzeigen** eine Schaltfläche **Kein Git-Repository** sichtbar. Sie öffnet den Bereich zum Initialisieren eines Repositorys.
+
+Wählen Sie unter **Einstellungen → Allgemein** zwischen **Ausblenden**, **Automatisch** und **Immer anzeigen**, oder setzen Sie [`toolbar.visibility`](/de/docs/configuration#toolbarvisibility). Standardmäßig ist die Leiste ausgeblendet. Eine sichtbare Leiste lässt sich auch über ihr Kontextmenü ausblenden.
+
+## Geänderte Dateien [#changed-files]
+
+Dateien sind nach Konflikten, gestagten und nicht gestagten Änderungen gruppiert. Bewegen Sie den Zeiger über eine Zeile, um ihre Schaltflächen einzublenden, oder nutzen Sie das Kontextmenü:
+
+| Schaltfläche | Wirkung |
+| --- | --- |
+| **+** | Datei stagen |
+| **−** | Datei aus der Staging-Area nehmen |
+| **↺** | Änderungen an der Datei verwerfen |
+
+**Alle Änderungen verwerfen** befindet sich in der Kopfzeile und verlangt vorher eine Bestätigung. Diese Aktion lässt sich nicht mit einem weiteren Git-Befehl rückgängig machen.
+
+Bei Dateien mit Konflikten erscheint **Als gelöst markieren (stagen)** statt einer einfachen Staging-Schaltfläche. So wird die Auflösung ausdrücklich bestätigt.
+
+Die Trichterschaltfläche in der Kopfzeile filtert die Liste nach Dateinamen, was bei vielen Änderungen am schnellsten zum Ziel führt.
+
+## Diffs lesen [#reading-diffs]
+
+Klicken Sie auf eine geänderte Datei, um ihren Diff in einem Bereich neben dem Terminal zu öffnen. Über das Kontextmenü können Sie auch **Datei öffnen**, um sie zu bearbeiten, oder **Datei daneben öffnen** wählen.
+
+Auch große Diffs bleiben reaktionsschnell. Ein Änderungssatz mit tausend Dateien öffnet sich so schnell wie eine einzelne geänderte Zeile und lässt sich flüssig scrollen.
+
+Die Steuerelemente über dem Diff speichern zwei Einstellungen global:
+
+- **Vereinheitlicht / Geteilt** wechselt zwischen einer Spalte und der Gegenüberstellung.
+- **Prüfen / Bearbeiten** erscheint bei einer nicht gestagten Datei im aktuellen Arbeitsbaum. Bearbeiten Sie die neue Seite direkt und speichern Sie mit <kbd>Cmd</kbd>+<kbd>S</kbd>. Beim Schließen ungespeicherter Dateien gilt dasselbe Verhalten wie im normalen Editor.
+
+Gestagte Diffs und Diffs früherer Commits bleiben schreibgeschützt, da sie Momentaufnahmen sind. Wenn Sie einen Diff auf Bearbeiten oder Geteilt umstellen, übernehmen andere geöffnete Diffs diese Voreinstellung. Schreibgeschützte Diffs werden dadurch nicht bearbeitbar.
+
+## Commits erstellen [#committing]
+
+Geben Sie eine Nachricht ein und klicken Sie auf die Commit-Schaltfläche, oder wählen Sie aus ihrem Menü:
+
+- **Gestagte Änderungen committen** – genau die gestagten Änderungen übernehmen.
+- **Alles stagen und committen** – alle versionierten Änderungen stagen und anschließend committen.
+- **Letzten Commit ergänzen** – gestagte Änderungen in den vorherigen Commit aufnehmen.
+- **Alles stagen und letzten Commit ergänzen**.
+
+Darunter stehen die letzten Commits. Ihre Kontextmenüs bieten **Commit-Hash kopieren** und **Commit-Nachricht kopieren**.
+
+## Branches [#branches]
+
+Der Branchname in der Kopfzeile ist ein Menü. Wählen Sie einen anderen Branch zum Wechseln oder **Neuen Branch erstellen…**, um am aktuellen Stand einen Branch anzulegen.
+
+## Worktrees [#worktrees]
+
+Das Git-Panel listet alle Worktrees des Repositorys mit Branch und Checkout-Pfad auf. Der aktive Checkout ist mit **Aktuell** markiert. Ein Klick öffnet einen neuen Terminal-Tab in diesem Verzeichnis. So behält jeder Checkout seinen eigenen Shell-Kontext und bleibt Teil desselben Projekts. Lange Worktree-Listen scrollen in einem begrenzten Bereich; Abschnittskopf, Commit-Steuerung und Liste geänderter Dateien bleiben an ihrem Platz. Klicken Sie auf den Worktree-Abschnittskopf, um die Liste ein- oder auszuklappen.
+
+Worktrees mit losgelöstem HEAD zeigen **Detached HEAD** statt eines Branchnamens. Bare-Repositorys werden der Vollständigkeit halber aufgeführt, haben aber kein Arbeitsverzeichnis und können nicht in einem Terminal-Tab geöffnet werden.
+
+## Remotes [#remotes]
+
+Das Menü **⋯** enthält alle Aktionen für entfernte Repositorys:
+
+| Aktion | Wirkung |
+| --- | --- |
+| **Abrufen** | Remote-Tracking-Referenzen aktualisieren |
+| **Pullen (nur Fast-Forward)** | Änderungen holen, ohne einen Merge-Commit zu erzeugen |
+| **Pushen** | Aktuellen Branch pushen |
+| **Branch veröffentlichen** | Branch ohne Upstream pushen; bei mehreren Remotes eines auswählen |
+| **Änderungen synchronisieren** | Fast-Forward-Pull, dann Push |
+| **Alle Änderungen stashen** | Alles einschließlich nicht versionierter Dateien zwischenspeichern |
+| **Stash anwenden und entfernen** | Letzten Stash wiederherstellen |
+
+Markierungen neben dem Branch zeigen, wie viele Commits Sie dem Upstream **↓ hinterher** oder **↑ voraus** sind.
+
+Dasselbe Menü enthält **Geänderte Pfade kopieren**, **Repository-Pfad kopieren** und **Repository im Finder zeigen**.
+
+<Callout type="info">
+Pull verwendet bewusst nur Fast-Forward. Ist ein echter Merge oder Rebase nötig, meldet Git das, und Sie entscheiden im Terminal über die Strategie.
+</Callout>
+
+## Noch kein Repository [#not-a-repository-yet]
+
+Enthält das Projektverzeichnis noch kein Repository, bietet das Panel **Repository initialisieren** an. Damit wird `git init` in diesem Ordner ausgeführt. Bis dahin bleibt das Panel zurückhaltend.

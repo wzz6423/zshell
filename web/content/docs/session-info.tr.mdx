@@ -1,0 +1,37 @@
+---
+title: "İşlemler ve portlar"
+description: "Oturumun gerçekten ne çalıştırdığını ve hangi portları açtığını görün."
+---
+
+<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> tuşlarına basın. Bilgi paneli projeyi değil **odaktaki oturumu** açıklar; işlemler başladıkça ve durdukça yenilenir.
+
+## Dizin [#directory]
+
+Her zaman aynı olmadıkları için ayrı gösterilir:
+
+- **Geçerli Dizin** — kabuğun anlık çalışma dizini; aşağıdakinden farklıysa gösterilir.
+- **Proje Dizini** — dosyalar ve Git panellerinin bağlı olduğu klasör; Zshell türetirken `(AUTO)` işaretlidir. `?` açılır açıklaması ikisini de anlatır.
+
+Yanlarında klasörü **Finder**’da, kuruluysa **VS Code**’da açma ve yolu **Kopyala** kısayolları vardır.
+
+## İşlemler [#processes]
+
+Oturum kabuğunun altında çalışan her şey PID, CPU yüzdesi ve yerleşik bellek kullanımıyla listelenir. İşleme sağ tıklayarak:
+
+- **Sonlandır** — nazik bir `SIGTERM`
+- **Zorla Öldür** — normal sonlanmayan işlem için `SIGKILL`
+- **PID’yi Kopyala** / **Çalıştırılabilir Dosya Yolunu Kopyala**
+
+Sonlanmış ancak henüz ebeveyni tarafından toplanmamış (`<defunct>`) çocuk işlemler dışarıda bırakılır; incelenecek veya öldürülecek bir şey kalmamıştır.
+
+## Portlar [#ports]
+
+Bu işlemlerin dinlediği TCP portları sahip işlemleriyle gösterilir. Geliştirme sunucusunun bu kez hangi portu seçtiğini veya 3000’i hâlâ neyin tuttuğunu görmenizi sağlar.
+
+- Portu tıklayarak tarayıcıda `http://localhost:<port>/` açın
+- **URL’yi Kopyala**
+- **İşlemi Öldür** — portu unuttuğunuz bir işlem tutuyorsa
+
+<Callout type="info">
+Liste panel açıkken yenilenir, panel gizliyken güncellemeler duraklar.
+</Callout>

@@ -1,0 +1,68 @@
+---
+title: "Câu hỏi thường gặp"
+description: "Câu hỏi về chi phí, quyền riêng tư và quan hệ giữa Zshell với shell của bạn."
+---
+
+<Accordions>
+
+<Accordion title="Zshell có miễn phí không?">
+
+Có. Tải miễn phí, mã nguồn công khai theo PolyForm Noncommercial License 1.0.0, không cần tài khoản hoặc thuê bao.
+
+</Accordion>
+
+<Accordion title="Nó thay thế shell của tôi không?">
+
+Không. Zshell chứa shell bạn đang dùng: khởi chạy `$SHELL -l`, giữ nguyên dấu nhắc, alias, hàm và dotfile. Ô terminal có thể dùng Ghostty hoặc Alacritty làm backend.
+
+</Accordion>
+
+<Accordion title="Nó có thu thập dữ liệu không?">
+
+Không có đo lường từ xa hay phân tích. Kiểm tra cập nhật tra quốc gia IP của mạng để chọn GitHub hoặc Gitee, rồi lấy nguồn cấp phát hành. Tắt kiểm tra tự động trong **Cài đặt → Cập nhật** để dừng yêu cầu nền; kiểm tra thủ công vẫn gửi chúng. Xem [Cập nhật](/vi/docs/installation#updates). Trang Đề xuất kiểm tra phiên bản công cụ khi mở.
+
+Trang bạn mở trong [ô trình duyệt](/vi/docs/browser) và CLI tác nhân bạn chạy tự gửi yêu cầu theo chỉ dẫn của người dùng, giống bên ngoài Zshell.
+
+</Accordion>
+
+<Accordion title="Nó đọc cấu hình Ghostty hoặc Alacritty của tôi không?">
+
+Không. Backend, phông, màu và hành vi nhập lấy từ [cài đặt](/vi/docs/configuration) riêng của Zshell. Nó không nạp tệp cấu hình của hai ứng dụng terminal đó.
+
+</Accordion>
+
+<Accordion title="Điều gì xảy ra với phiên khi tôi thoát?">
+
+Dự án, tab và bố cục ô trở lại khi mở lại; mỗi terminal mở shell mới trong thư mục cũ. Không có gì tiếp tục chạy nền sau khi thoát.
+
+Đầu ra trước đó cũng trở lại nếu bật [`terminal.restore-history`](/vi/docs/configuration#terminalrestore-history), dưới dạng văn bản tĩnh phía trên vạch `Session Contents Restored`.
+
+</Accordion>
+
+<Accordion title="Đây có phải IDE không?">
+
+Không, và nó không đi theo hướng đó. Terminal vẫn là trung tâm. Bảng Git và Tệp giúp bạn xem xét, chuyển giao kết quả trong terminal mà không đổi ứng dụng, không nhằm trở thành nơi làm việc chính.
+
+</Accordion>
+
+<Accordion title="Vì sao hộp thoại hỏi trước khi chương trình đọc bảng nhớ tạm?">
+
+Vì chương trình đã yêu cầu. Chuỗi thoát `OSC 52` cho phép chương trình terminal đọc bảng nhớ tạm hệ thống, kể cả chương trình trên máy từ xa qua SSH. Zshell xác nhận trước thay vì âm thầm đưa dữ liệu; đây cũng là mặc định của Ghostty.
+
+</Accordion>
+
+<Accordion title="Có dùng được với tác nhân lập trình AI không?">
+
+Có. Tích hợp AI mặc định bật. Yêu cầu tác nhân được hỗ trợ bằng ngôn ngữ thường để chạy việc trong ô nền hoặc giao nhiệm vụ có phạm vi rõ. Tác nhân ở các ô khác nhau cũng trao đổi câu hỏi, kết quả và yêu cầu tiếp mà không bắt bạn sao chép ngữ cảnh. Zshell hiển thị trạng thái làm việc/bị chặn/hoàn tất do nhà cung cấp báo, không đoán từ chữ terminal; bạn giữ quyền phê duyệt và xem diff cuối. Xem [Làm việc với tác nhân AI](/vi/docs/automation).
+
+Bạn vẫn dùng tác nhân như chương trình terminal thường được: xem diff trong [bảng Git](/vi/docs/git), đọc tệp cạnh nó và chỉ stage phần muốn giữ.
+
+</Accordion>
+
+<Accordion title="Tôi báo lỗi ở đâu?">
+
+Mở issue trên [GitHub](https://github.com/wzz6423/zshell/issues). Phiên bản macOS và việc bạn đang làm khi lỗi xảy ra thường đủ để bắt đầu.
+
+</Accordion>
+
+</Accordions>

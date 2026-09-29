@@ -5,7 +5,9 @@ description: Zshell 的终端后端、shell 环境、链接处理、通知与安
 
 每个终端窗格都运行你真正的登录 shell，并使用两个原生 GPU 加速后端之一。窗格焦点、搜索、通知、链接、历史、主题和粘贴安全由 Zshell 统一管理，所以无论选哪个模拟器，外围行为都一致。
 
-## 终端后端
+<span id="终端后端" data-canonical-heading="terminal-backends" />
+
+## 终端后端 [#terminal-backends]
 
 在 **设置 → Terminal → Backend** 里选择：
 
@@ -16,7 +18,9 @@ description: Zshell 的终端后端、shell 环境、链接处理、通知与安
 
 两者都支持 GPU 加速、图片渲染、Zshell 的共享主题目录、查找、鼠标上报、通知和进度。后端改动只影响之后新建的终端；已有窗格继续使用启动时的模拟器。
 
-## 你的 shell，原封不动
+<span id="你的-shell原封不动" data-canonical-heading="your-shell-unchanged" />
+
+## 你的 shell，原封不动 [#your-shell-unchanged]
 
 每个会话启动你账户的登录 shell，所以提示符、别名、函数和 dotfiles 都和其他终端里一样加载。
 Zshell 额外设置了能力与身份变量：
@@ -34,7 +38,9 @@ Zshell 不读取 `~/.config/ghostty`，也不读取 Alacritty 配置。字体、
 自己的[设置](/docs/configuration)里配置。
 </Callout>
 
-## 搜索
+<span id="搜索" data-canonical-heading="search" />
+
+## 搜索 [#search]
 
 | 操作 | 快捷键 |
 | --- | --- |
@@ -46,7 +52,9 @@ Zshell 不读取 `~/.config/ghostty`，也不读取 Alacritty 配置。字体、
 
 查找作用于当前终端或编辑器窗格，并且在搜索输入框拿着键盘焦点时仍然有效。
 
-## 提示符编辑
+<span id="提示符编辑" data-canonical-heading="prompt-editing" />
+
+## 提示符编辑 [#prompt-editing]
 
 在活动 shell 提示符内点按，输入光标会移到点击位置，后续输入就从那里开始。zsh 提示符中，可在输入内容上拖拽选中一段文字：继续输入会替换选区，按 Backspace 或 Delete 会删除选区。双击、三击仍用于选择终端输出文字；全屏 TUI 等主动启用终端鼠标上报的程序，仍会收到自己的鼠标事件。
 
@@ -59,7 +67,9 @@ Vim 普通/可视模式、对话框、附件或折叠粘贴内容的占位符，
 
 Zisla 的语音输入通过终端粘贴插入文字，也可替换 Claude Code 输入框中的选区；主动重复输入同一句话仍会正常保留。
 
-## 前台程序快捷键
+<span id="前台程序快捷键" data-canonical-heading="foreground-application-shortcuts" />
+
+## 前台程序快捷键 [#foreground-application-shortcuts]
 
 当终端程序的快捷键与 Zshell 冲突时，在当前窗格右键勾选 **屏蔽 Zshell 命令**。
 该窗格获得键盘焦点后，<kbd>Ctrl</kbd>+<kbd>Return</kbd> 等组合键会交给前台程序，
@@ -68,7 +78,9 @@ Zisla 的语音输入通过终端粘贴插入文字，也可替换 Claude Code �
 开关只影响当前窗格。再次右键取消勾选，即可恢复 Zshell 快捷键。
 如果程序已接管鼠标，按住 <kbd>Shift</kbd> 再右键可打开 Zshell 菜单。
 
-## 提示词队列
+<span id="提示词队列" data-canonical-heading="prompt-queue" />
+
+## 提示词队列 [#prompt-queue]
 
 聚焦终端，按 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>，或在命令面板选择
 **显示/隐藏 提示词队列**，即可在该终端底部打开队列栏。输入内容后按 <kbd>Return</kbd>
@@ -82,7 +94,9 @@ Agent 或其他前台程序仍占用终端、或者提示符中已有草稿输�
 程序，不等待 Shell 提示符。按 <kbd>Esc</kbd> 或关闭按钮只会隐藏队列栏，已有队列仍然保留。
 每个终端的队列独立；关闭会话或退出 Zshell 后，队列会被清空。
 
-## 路径与 URL
+<span id="路径与-url" data-canonical-heading="paths-and-urls" />
+
+## 路径与 URL [#paths-and-urls]
 
 Zshell 能识别终端程序打印出来的网页 URL 和确实存在的本地路径。本地链接可以是绝对路径、以
 `~/` 开头、以 `./` 或 `../` 开头，也可以相对窗格的实时工作目录。诊断信息末尾的 `:42` 或
@@ -96,7 +110,9 @@ Zshell 能识别终端程序打印出来的网页 URL 和确实存在的本地�
 这样一来，编译器输出和 agent 对话就能直接回到同一个项目里。网页相关行为见
 [浏览器窗格](/docs/browser)。
 
-## 通知
+<span id="通知" data-canonical-heading="notifications" />
+
+## 通知 [#notifications]
 
 Zshell 会把两类终端事件转给通知中心：
 
@@ -105,7 +121,9 @@ Zshell 会把两类终端事件转给通知中心：
 
 通知可以播放系统提示音。点通知会激活 Zshell，并跳到发出它的确切会话。macOS 只在某个终端第一次真的要通知时申请权限，不会在 Zshell 启动时就弹框。
 
-### 命令完成通知
+<span id="命令完成通知" data-canonical-heading="command-completion" />
+
+### 命令完成通知 [#command-completion]
 
 打开 **设置 → Terminal → 命令通知**，可以让 Zshell 在命令结束时提醒你：
 
@@ -126,22 +144,30 @@ terminal.notify-on-error = true
 将 `terminal.notify-finish-seconds` 设为 `0` 可关闭按时长触发的通知。
 通知是否送达仍取决于 macOS 的通知设置。
 
-## 进度显示
+<span id="进度显示" data-canonical-heading="progress-reports" />
+
+## 进度显示 [#progress-reports]
 
 发出 `OSC 9;4` 进度的程序，会在终端上方得到一条细进度条，正常、暂停和错误状态各有区分。不需要打开任何开关——程序报告了，窗格就显示。
 
-## 剪贴板、拖放与粘贴安全
+<span id="剪贴板拖放与粘贴安全" data-canonical-heading="clipboard-drops-and-paste-safety" />
+
+## 剪贴板、拖放与粘贴安全 [#clipboard-drops-and-paste-safety]
 
 - **读剪贴板要确认。** `OSC 52` 可以申请读取 macOS 剪贴板，包括通过 SSH 跑在远端的程序。Zshell 会先问你。
 - **有风险的粘贴会提示。** 多行或看起来会立即执行命令的文本，会先停在确认步骤。
 - **文件会变成 shell 安全路径。** 从 Finder 复制或拖进来的文件，会作为经过引用的绝对路径插入。剪贴板图片仍会交给支持图片的 TUI。
 
-## Option 键输入
+<span id="option-键输入" data-canonical-heading="option-key-input" />
+
+## Option 键输入 [#option-key-input]
 
 默认情况下，Option 交给当前 macOS 输入源，因此 Polish Pro 之类的布局可以输入组合字符。如果终端程序需要把 Option 组合键当成 Meta 快捷键，打开设置里的 **Use Option as Alt/Meta**。对应配置键是
 [`terminal.macos-option-as-alt`](/docs/configuration#terminalmacos-option-as-alt)。
 
-## `zshell` 命令
+<span id="zshell-命令" data-canonical-heading="the-zshell-command" />
+
+## `zshell` 命令 [#the-zshell-command]
 
 每个 Zshell 终端都带一套了解项目上下文的 CLI：
 
@@ -155,7 +181,9 @@ zshell +help                   # 查看全部命令组
 
 主题浏览器会把当前选项实时预览到整个应用；Return 保存，Escape 恢复之前的主题。
 
-## 字体
+<span id="字体" data-canonical-heading="fonts" />
+
+## 字体 [#fonts]
 
 Zshell 内置 JetBrains Mono 和 Nerd Font 符号。拉丁字形可以换成任意已安装的等宽字族，
 还可在符号字体与系统后备字体之前插入一个已安装的 CJK 字族。见
@@ -165,7 +193,9 @@ Zshell 内置 JetBrains Mono 和 Nerd Font 符号。拉丁字形可以换成任�
 [`terminal.font-thicken`](/docs/configuration#terminalfont-thicken) 和
 [`terminal.line-height`](/docs/configuration#terminalline-height)。
 
-## 全局快捷终端
+<span id="全局快捷终端" data-canonical-heading="global-quick-terminal" />
+
+## 全局快捷终端 [#global-quick-terminal]
 
 Zshell 运行时，按 <kbd>Cmd</kbd>+<kbd>I</kbd> 可以在其他应用上方打开独立的快捷终端，再按一次关闭。
 它使用临时 shell，不属于项目中的标签页。**设置 → 终端 → Quick Terminal** 可调整窗口大小、透明度和快捷键。
@@ -176,7 +206,9 @@ Zshell 运行时，按 <kbd>Cmd</kbd>+<kbd>I</kbd> 可以在其他应用上方�
 
 需要持续运行的服务请放在项目终端中。[快速启动](/docs/quick-launch)用于保存和运行命令，是另一项功能。
 
-## Vim 命令提示
+<span id="vim-命令提示" data-canonical-heading="vim-command-hints" />
+
+## Vim 命令提示 [#vim-command-hints]
 
 打开 **设置 → 终端 → 行为 → Vim 命令提示**，再打开右侧的 **信息** 标签页。
 使用 Vim、Vi 或 Neovim 时，会话信息下方会出现 **VIM 常用命令**。
@@ -185,7 +217,7 @@ Zshell 运行时，按 <kbd>Cmd</kbd>+<kbd>I</kbd> 可以在其他应用上方�
 完整常用命令列表始终保留，只按可见模式调整优先级：普通模式优先显示 `:w`、`:q`、`yy` 和 `p`/`P`；可视块模式
 优先显示 `I`/`A`、块修改和角点切换。插入、替换、可视、可视行、选择、命令行和
 搜索模式各有对应排序。每条命令标注适用模式；搜索框可按按键、当前语言的描述
-或模式名称筛选，支持英文、简体中文和日文。清空搜索即可恢复完整列表。
+或模式名称筛选，描述和搜索界面支持应用中的全部 17 种语言。清空搜索即可恢复完整列表。
 提示仅供查阅，不会向编辑器发送按键。
 
 本地编辑器通过前台可执行程序识别。SSH、Mosh 和终端复用器中的编辑器通过可见的
