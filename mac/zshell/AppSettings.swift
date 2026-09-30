@@ -456,7 +456,7 @@ final class AppSettings: nonisolated ObservableObject {
             : Self.defaultTerminalLineHeight
         cursorShape = TerminalCursorShape(
             rawValue: toml["terminal.cursor-shape"]?.string ?? ""
-        ) ?? .block
+        ) ?? .bar
         cursorBlinking = toml["terminal.cursor-blinking"]?.bool ?? true
         macosOptionAsAlt = toml["terminal.macos-option-as-alt"]?.bool ?? false
         vimCommandHints = toml["terminal.vim-command-hints"]?.bool ?? false
@@ -588,7 +588,7 @@ final class AppSettings: nonisolated ObservableObject {
             && themeLight == Theme.defaultLightThemeName
             && !terminalThemeOnly
             && toolbarVisibility == Self.defaultToolbarVisibility
-            && cursorShape == .block
+            && cursorShape == .bar
             && cursorBlinking
             && !macosOptionAsAlt
             && terminalBell
@@ -622,7 +622,7 @@ final class AppSettings: nonisolated ObservableObject {
         themeLight = Theme.defaultLightThemeName
         terminalThemeOnly = false
         toolbarVisibility = Self.defaultToolbarVisibility
-        cursorShape = .block
+        cursorShape = .bar
         cursorBlinking = true
         macosOptionAsAlt = false
         terminalBell = true
@@ -757,7 +757,7 @@ final class AppSettings: nonisolated ObservableObject {
             ?? false
         cursorShape = TerminalCursorShape(
             rawValue: toml["terminal.cursor-shape"]?.string ?? ""
-        ) ?? .block
+        ) ?? .bar
         cursorBlinking = toml["terminal.cursor-blinking"]?.bool ?? true
         macosOptionAsAlt = toml["terminal.macos-option-as-alt"]?.bool ?? false
         vimCommandHints = toml["terminal.vim-command-hints"]?.bool ?? false
@@ -889,7 +889,7 @@ final class AppSettings: nonisolated ObservableObject {
         if terminalLineHeight != Self.defaultTerminalLineHeight {
             lines.append("terminal.line-height = \(TOML.number(terminalLineHeight))")
         }
-        if cursorShape != .block {
+        if cursorShape != .bar {
             lines.append("terminal.cursor-shape = \(TOML.quote(cursorShape.rawValue))")
         }
         if !cursorBlinking {

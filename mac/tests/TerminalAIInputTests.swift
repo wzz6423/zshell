@@ -31,6 +31,11 @@ private final class InputFixture {
         editor.endPointer(at: TerminalAIInputCaret(row: 0, offset: range.upperBound), in: snapshot, dragged: true)
     }
 
+    func selectBackward(_ range: Range<Int>) {
+        editor.beginPointer(at: TerminalAIInputCaret(row: 0, offset: range.upperBound), in: snapshot)
+        editor.endPointer(at: TerminalAIInputCaret(row: 0, offset: range.lowerBound), in: snapshot, dragged: true)
+    }
+
     func insert(_ value: String) {
         if editor.deferWhileBusy({ [unowned self] in insert(value) }) { return }
         if editor.replaceSelection(then: { [unowned self] in insert(value) }) { return }
@@ -130,6 +135,35 @@ struct TerminalAIInputTests {
             fixture.settle()
             precondition(fixture.controls.last == "voice")
             print("PASS: cursor timeout does not swallow deferred input")
+        }
+        do {
+            let fixture = InputFixture()
+            fixture.selectBackward(2..<8)
+            fixture.insert("voice")
+            fixture.settle()
+            precondition(String(fixture.text) == "01voice89abcdefghij")
+            print("PASS: a right-to-left drag replaces the same range as a forward drag")
+        }
+        do {
+            let fixture = InputFixture()
+            fixture.text = Array("零一二三四五六七八九")
+            fixture.cursor = fixture.text.count
+            fixture.select(2..<8)
+            fixture.insert("语音")
+            fixture.settle()
+            precondition(String(fixture.text) == "零一语音八九")
+            print("PASS: replacing a wide-character selection counts glyphs, not cells")
+        }
+        do {
+            let fixture = InputFixture()
+            fixture.select(3..<7)
+            fixture.text = Array("a completely different prompt")
+            fixture.cursor = fixture.text.count
+            fixture.insert("Z")
+            fixture.settle()
+            precondition(!fixture.controls.contains { $0.contains("\u{1b}[3~") })
+            precondition(fixture.controls.contains("Z"))
+            print("PASS: a selection over changed input inserts without deleting")
         }
     }
 }

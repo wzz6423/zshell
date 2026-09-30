@@ -5,6 +5,7 @@ Build mac/build/debug first, then run:
 No live app window, Claude account, or user draft is used.
 """
 
+import os
 from pathlib import Path
 import platform
 import subprocess
@@ -37,12 +38,15 @@ with tempfile.TemporaryDirectory(prefix="zshell-input-surfaces-") as directory:
     arguments += [
         "-I", str(root / "mac/Vendor/alacritty-bridge/include"),
         "-I", str(root / "mac/Vendor/tree-sitter/lib/include"),
-        str(root / "mac/tests/TerminalAIInputSurfaceTests.swift"), str(library),
+        str(library),
         "-Xlinker", "-rpath", "-Xlinker", str(products),
         "-Xlinker", "-rpath", "-Xlinker", str(library.parent), "-o", str(binary),
     ]
-    subprocess.run(arguments, cwd=root, check=True)
-    for backend in ("alacritty", "ghostty"):
-        subprocess.run([
-            str(binary), backend, str(root / "mac/tests/fixtures/claude.py"),
-        ], cwd=root, check=True, timeout=30)
+    for suite in ("TerminalPromptSelectionSurfaceTests", "TerminalAIInputSurfaceTests"):
+        source = root / "mac/tests" / (suite + ".swift")
+        subprocess.run(arguments + [str(source)], cwd=root, check=True)
+        for backend in ("alacritty", "ghostty"):
+            subprocess.run([
+                str(binary), backend, str(root / "mac/tests/fixtures/claude.py"),
+            ], cwd=root, check=True, timeout=30,
+                env={**os.environ, "CFFIXED_USER_HOME": directory})

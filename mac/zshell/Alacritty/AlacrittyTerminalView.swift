@@ -1377,10 +1377,13 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     private func activatePendingPromptSelection(for event: NSEvent? = nil) {
         guard pendingPromptSelectionActivation else { return }
+        if let event, event.modifierFlags.intersection([.command, .control, .option, .shift]) == .command,
+           event.charactersIgnoringModifiers?.lowercased() == "c" { return }
         if let event,
            !event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty
                 || [115, 116, 119, 121, 123, 124, 125, 126].contains(Int(event.keyCode)) {
             pendingPromptSelectionActivation = false
+            if events?.terminalPromptSelectionIsReady == true { sendText("\u{1b}[27;2;27~") }
             return
         }
         pendingPromptSelectionActivation = false
@@ -1947,6 +1950,17 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             } else {
                 zshell_alacritty_selection_clear(handle)
             }
+        }
+        let start = (cursor.line, cursor.x) < (caret.line, caret.x) ? cursor : caret
+        let end = (cursor.line, cursor.x) < (caret.line, caret.x) ? caret : cursor
+        if end.line > start.line, end.column == 0, !end.rightHalf {
+            let firstCell = PromptCaret((line: end.line, column: 0, rightHalf: true))
+            updateSelection(from: end, to: firstCell, handle: handle)
+            let suffix = selectedText() ?? ""
+            updateSelection(from: start, to: firstCell, handle: handle)
+            let span = selectedText() ?? ""
+            guard span.hasSuffix(suffix) else { return Self.maxPromptCursorSteps + 1 }
+            return span.dropLast(suffix.count).unicodeScalars.filter { $0.value != 0x0d }.count
         }
         updateSelection(from: cursor, to: caret, handle: handle)
         return selectedText()?.unicodeScalars.reduce(into: 0) { count, scalar in

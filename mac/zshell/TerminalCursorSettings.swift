@@ -7,8 +7,8 @@ import Foundation
 import GhosttyTerminal
 
 enum TerminalCursorShape: String, CaseIterable, Sendable {
-    case block
     case bar
+    case block
     case underline
 
     var title: String {
