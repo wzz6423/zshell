@@ -38,6 +38,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var promptSelectionAnchor: (row: Int, column: Int)?
     private var pendingPromptSelectionActivation = false
     private var pointerSelectionDragged = false
+    private var aiInputPointerActive = false
     private var isForwardingRightMouseButton = false
     private var selectionAutoscrollTimer: Timer?
     private var selectionAutoscrollModifierFlags: NSEvent.ModifierFlags = []
@@ -344,6 +345,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         stopSelectionAutoscroll()
         inputSelectionDragActive = false
         pendingPromptSelectionActivation = false
+        aiInputPointerActive = false
         GlobalTerminalOverlay.shared.scheduleHotkeyRegistrationRefresh()
         return super.resignFirstResponder()
     }
@@ -366,14 +368,16 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         promptSelectionAnchor = nil
         pendingPromptSelectionActivation = false
         pointerSelectionDragged = false
+        aiInputPointerActive = false
         focusForInteraction()
         updateCursorClickToMove()
         recordPromptInputStart()
         if canEditPromptSelection { performBindingAction("text:\\x1b[27;2;27~") }
-        super.mouseDown(with: event)
         let aiContext = event.clickCount == 1 && event.modifierFlags.intersection([.command, .option, .control]).isEmpty
             ? aiInputContext(for: event) : nil
+        aiInputPointerActive = aiContext?.caret != nil
         aiInputEditor.beginPointer(at: aiContext?.caret, in: aiContext?.snapshot)
+        super.mouseDown(with: localInputSelectionEvent(event))
         promptSelectionAnchor = promptCaret(for: event)
     }
 
@@ -383,7 +387,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         if promptSelectionAnchor != nil, canEditPromptSelection {
             inputSelectionDragActive = true
         }
-        super.mouseDragged(with: event)
+        super.mouseDragged(with: localInputSelectionEvent(event))
         if isMouseCaptured {
             stopSelectionAutoscroll()
         } else {
@@ -394,7 +398,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     override func mouseUp(with event: NSEvent) {
         stopSelectionAutoscroll()
         let hadInputSelection = inputSelectionDragActive
-        super.mouseUp(with: event)
+        super.mouseUp(with: localInputSelectionEvent(event))
         if pointerSelectionDragged, !isMouseCaptured, AppSettings.shared.copyOnSelect {
             copySelectedTextToPasteboard()
         }
@@ -414,6 +418,17 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         inputSelectionDragActive = false
         promptSelectionAnchor = nil
         pointerSelectionDragged = false
+        aiInputPointerActive = false
+    }
+
+    private func localInputSelectionEvent(_ event: NSEvent) -> NSEvent {
+        guard aiInputPointerActive, isMouseCaptured else { return event }
+        return NSEvent.mouseEvent(
+            with: event.type, location: event.locationInWindow,
+            modifierFlags: event.modifierFlags.union(.shift), timestamp: event.timestamp,
+            windowNumber: event.windowNumber, context: nil, eventNumber: event.eventNumber,
+            clickCount: event.clickCount, pressure: event.pressure
+        ) ?? event
     }
 
     private func updateSelectionAutoscroll(at location: NSPoint) {
@@ -549,7 +564,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private func aiInputContext(for event: NSEvent? = nil, clampingDrag: Bool = false) -> (
         snapshot: TerminalAIInputSnapshot, caret: TerminalAIInputCaret?
     )? {
-        guard !isMouseCaptured, !hasMarkedText(), hasEffectiveTerminalFocus,
+        guard !hasMarkedText(), hasEffectiveTerminalFocus,
               lastScroll?.position ?? 1 >= 1,
               let foregroundPid, ZshellAgentKind.recognize(processID: foregroundPid) == .claude,
               let viewport = readViewportTextSnapshot(), viewport.cursorColumn >= 2,

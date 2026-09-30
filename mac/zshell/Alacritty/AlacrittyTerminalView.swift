@@ -1563,14 +1563,14 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             events?.terminalDidRequestOpenURL(hit.value)
             return
         }
-        if shouldReportMouse(event) {
+        let aiContext = event.clickCount == 1 && event.modifierFlags.intersection([.command, .option, .control]).isEmpty
+            ? aiInputContext(for: event) : nil
+        if shouldReportMouse(event), aiContext?.caret == nil {
             reportingMouseButton = true
             sendMouse(code: 0, event: event, released: false)
             return
         }
         let point = gridPoint(for: event)
-        let aiContext = event.clickCount == 1 && event.modifierFlags.intersection([.command, .option, .control]).isEmpty
-            ? aiInputContext(for: event) : nil
         aiInputEditor.beginPointer(at: aiContext?.caret, in: aiContext?.snapshot)
         let kind: UInt32 = switch event.clickCount {
         case 2: 1 // word
@@ -2052,7 +2052,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     )? {
         // VTE buffers synchronized redraws, so the committed input grid still
         // accepts gestures while the next frame is pending.
-        guard let handle, !terminalMode.contains(.mouseReporting), !hasMarkedText(),
+        guard let handle, !hasMarkedText(),
               hasEffectiveTerminalFocus,
               let foregroundPid, ZshellAgentKind.recognize(processID: foregroundPid) == .claude
         else { return nil }

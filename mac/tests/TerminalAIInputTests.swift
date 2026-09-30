@@ -83,6 +83,26 @@ private final class InputFixture {
 struct TerminalAIInputTests {
     @MainActor static func main() {
         do {
+            let rule = String(repeating: "─", count: 100)
+            var lines = Array(repeating: "", count: 30)
+            lines[26] = rule
+            lines[27] = "❯\u{a0}0123456789abcdefghij"
+            lines[28] = rule
+            lines[29] = "  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents"
+            let snapshot = TerminalAIInputSnapshot(
+                processID: 1, columns: 100, lines: lines,
+                cursorRow: 27, cursorPrefix: lines[27]
+            )
+            precondition(snapshot?.firstRow == 27)
+            precondition(snapshot?.rows == ["0123456789abcdefghij"])
+            precondition(snapshot?.cursor == TerminalAIInputCaret(row: 0, offset: 20))
+            precondition(TerminalAIInputSnapshot(
+                processID: 1, columns: 100, lines: lines,
+                cursorRow: 29, cursorPrefix: "  "
+            ) == nil)
+            print("PASS: real Claude NBSP frame recognizes the input caret and rejects a footer caret")
+        }
+        do {
             let fixture = InputFixture()
             fixture.click(5)
             fixture.insert("X")

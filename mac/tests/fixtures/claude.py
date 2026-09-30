@@ -19,6 +19,9 @@ tty.setraw(0)
 
 text = "0123456789abcdefghij"
 cursor = len(text)
+mouse_reports = 0
+mouse_input_reports = 0
+prompt_separator = " "
 finish_at = None
 decoder = codecs.getincrementaldecoder("utf-8")()
 pending = ""
@@ -28,14 +31,16 @@ sequences = ("\x1b[D", "\x1b[C", "\x1b[A", "\x1b[B", "\x1b[3~", "\x1b[200~", "\x
 def draw():
     rule = "─" * os.get_terminal_size().columns
     rows = text.split("\n")
-    output = f"\x1b[2J\x1b[H{rule}\x1b[2;1H❯ "
+    output = f"\x1b[2J\x1b[H{rule}\x1b[2;1H❯{prompt_separator}"
     for index, row in enumerate(rows):
         # A TUI can leave erased cells for indentation and spaces instead of
         # printing literal spaces. Text reads must preserve those columns.
         output += f"\x1b[{index + 2};3H" + re.sub(r" +", lambda match: f"\x1b[{len(match[0])}C", row)
     prefix = text[:cursor].split("\n")
     column = sum(2 if unicodedata.east_asian_width(char) in ("W", "F") else 1 for char in prefix[-1])
-    output += f"\x1b[{len(rows) + 2};1H{rule}\x1b[{len(prefix) + 1};{column + 3}H"
+    output += f"\x1b[{len(rows) + 2};1H{rule}\x1b[{len(rows) + 3};1HMouse reports: {mouse_reports}"
+    output += f"\x1b[{len(rows) + 4};1HMouse input reports: {mouse_input_reports}"
+    output += f"\x1b[{len(prefix) + 1};{column + 3}H"
     sys.stdout.write(output)
     sys.stdout.flush()
 
@@ -54,6 +59,17 @@ while True:
         break
     pending += decoder.decode(data)
     while pending:
+        if pending.startswith("\x1b[<"):
+            mouse = re.match(r"\x1b\[<(\d+);\d+;\d+[mM]", pending)
+            if mouse is None:
+                break
+            pending = pending[len(mouse[0]):]
+            mouse_reports += 1
+            if int(mouse[1]) & 3 != 3 or mouse[0].endswith("m"):
+                mouse_input_reports += 1
+            continue
+        if "\x1b[<".startswith(pending):
+            break
         sequence = next((value for value in sequences if pending.startswith(value)), None)
         if sequence:
             pending = pending[len(sequence):]
@@ -85,6 +101,11 @@ while True:
             sys.stdout.write("\x1b[?2026h")
             sys.stdout.flush()
             finish_at = time.monotonic() + 0.1
+        elif char == "\x15":
+            mouse_reports = 0
+            mouse_input_reports = 0
+            prompt_separator = "\u00a0"
+            sys.stdout.write("\x1b[?1049h\x1b[?1000h\x1b[?1002h\x1b[?1003h\x1b[?1006h")
         elif char == "\x7f":
             if cursor:
                 text = text[:cursor - 1] + text[cursor:]

@@ -17,7 +17,15 @@ private func pump(_ duration: TimeInterval) {
 
 @main
 struct TerminalAIInputSurfaceTests {
-    @MainActor static func main() throws {
+    @MainActor static func main() {
+        do { try run() }
+        catch {
+            fputs("\(error)\n", stderr)
+            exit(1)
+        }
+    }
+
+    @MainActor private static func run() throws {
         setbuf(stdout, nil)
         _ = NSApplication.shared
         let backend = CommandLine.arguments[1]
@@ -50,7 +58,8 @@ struct TerminalAIInputSurfaceTests {
         func inputRow() -> Int? {
             let rows = lines()
             return rows.indices.first {
-                $0 > 0 && rows[$0].hasPrefix("❯ ") && rows[$0 - 1].hasPrefix("────")
+                $0 > 0 && (rows[$0].hasPrefix("❯ ") || rows[$0].hasPrefix("❯\u{a0}"))
+                    && rows[$0 - 1].hasPrefix("────")
             }
         }
 
@@ -141,6 +150,16 @@ struct TerminalAIInputSurfaceTests {
             pump(0.1)
         }
 
+        func verifyMouseReports(_ expected: Range<Int>, _ label: String, inputOnly: Bool = false) {
+            pump(0.15)
+            let prefix = inputOnly ? "Mouse input reports: " : "Mouse reports: "
+            let count = lines().first { $0.hasPrefix(prefix) }
+                .flatMap { Int($0.dropFirst(prefix.count).trimmingCharacters(in: .whitespaces)) }
+            let passed = count.map { expected.contains($0) } ?? false
+            if !passed { failures += 1 }
+            print("\(passed ? "PASS" : "FAIL"): \(backend) \(label): \(count.map(String.init) ?? "missing counter")")
+        }
+
         let deadline = Date().addingTimeInterval(5)
         while inputRow() == nil && Date() < deadline { pump(0.01) }
         guard inputRow() != nil else { throw NSError(domain: "TerminalInputStartup", code: 1) }
@@ -221,6 +240,60 @@ struct TerminalAIInputSurfaceTests {
         mouse(.leftMouseUp, 7)
         key()
         verify("中文 xd", "erased spaces after wide characters")
+
+        control("\u{15}")
+        pump(0.1)
+        select()
+        key()
+        verify("01x89abcdefghij", "Claude mouse-reporting input replacement")
+        verifyMouseReports(0..<1, "AI drag does not also send native mouse input", inputOnly: true)
+
+        control("\u{15}")
+        pump(0.1)
+        select()
+        key("\u{7f}", code: 51)
+        verify("0189abcdefghij", "Claude mouse-reporting Backspace removes selection")
+        verifyMouseReports(0..<1, "AI Backspace drag stays local", inputOnly: true)
+
+        control("\u{15}")
+        pump(0.1)
+        select()
+        key("\u{f728}", code: 117)
+        verify("0189abcdefghij", "Claude mouse-reporting Delete removes selection")
+        verifyMouseReports(0..<1, "AI Delete drag stays local", inputOnly: true)
+
+        control("\u{15}")
+        pump(0.1)
+        select()
+        let pasteboard = NSPasteboard.general
+        let previousClipboard = pasteboard.pasteboardItems?.map { item in
+            item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
+        } ?? []
+        pasteboard.clearContents()
+        pasteboard.setString("paste", forType: .string)
+        if let ghostty = view as? ZshellTerminalView { ghostty.paste(nil) }
+        else if let alacritty = view as? AlacrittyTerminalView { alacritty.paste(nil) }
+        pasteboard.clearContents()
+        pasteboard.writeObjects(previousClipboard.map { values in
+            let item = NSPasteboardItem()
+            for (type, data) in values { item.setData(data, forType: type) }
+            return item
+        })
+        verify("01paste89abcdefghij", "Claude mouse-reporting paste replaces selection")
+        verifyMouseReports(0..<1, "AI paste drag stays local", inputOnly: true)
+
+        control("\u{15}")
+        pump(0.1)
+        click(5)
+        key()
+        verify("01234x56789abcdefghij", "Claude mouse-reporting click and type")
+        verifyMouseReports(0..<1, "AI click does not also send native mouse input", inputOnly: true)
+
+        mouse(.leftMouseDown, 2, row: -1)
+        mouse(.leftMouseDragged, 8, row: -1)
+        mouse(.leftMouseUp, 8, row: -1)
+        verifyMouseReports(1..<Int.max, "mouse reporting remains enabled outside the AI input")
+        verifyMouseReports(1..<Int.max, "native mouse input remains enabled outside the AI input", inputOnly: true)
 
         if failures > 0 { throw NSError(domain: "TerminalInputFailures", code: failures) }
     }
