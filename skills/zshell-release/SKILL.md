@@ -65,8 +65,11 @@ bun scripts/publish-release.ts --verify build/release-v<version> <version> <sour
 
 ## 验证与清理
 
-按实际改动运行脚本测试、客户端验证与官网 build/typecheck。Release 正文写清签名、公证、
-架构、实测系统范围和首次打开步骤；反馈入口指向 GitHub，Gitee 作为发版镜像。
+发版时不重复验证本次发布新增或更新的功能，也不要求提供这些功能的验收记录作为发版前置条件；
+功能验收在开发及对应 PR 阶段完成。发版仍须验证构建、打包、签名、双端资产和更新链路。
+本次发版准备若修改发布脚本或官网，则追加对应脚本测试或官网 build/typecheck，不重新执行
+客户端功能验收。Release 正文写清签名、公证、架构、实测系统范围和首次打开步骤；反馈入口
+指向 GitHub，Gitee 作为发版镜像。
 
 失败先按 [troubleshooting](references/troubleshooting.md) 确认线上已生效步骤，从同一份本地产物
 恢复，不能盲目重新打包覆盖。完成后只清本次构建、binary、挂载、测试实例和临时下载，保留
