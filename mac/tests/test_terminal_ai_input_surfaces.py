@@ -3,6 +3,9 @@
 Build mac/build/debug first, then run:
     python3 mac/tests/test_terminal_ai_input_surfaces.py
 No live app window, Claude account, or user draft is used.
+
+Set ZSHELL_TEST_ZSHRC to a zsh configuration file to load its widgets before
+the deterministic prompt fixture. This mode disables command-history writes.
 """
 
 import os

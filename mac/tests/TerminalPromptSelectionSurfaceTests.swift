@@ -27,7 +27,14 @@ struct TerminalPromptSelectionSurfaceTests {
         defer { try? FileManager.default.removeItem(at: directory) }
         let buffer = directory.appendingPathComponent("buffer")
         let bufferPath = "'" + buffer.path.replacingOccurrences(of: "'", with: "'\\''") + "'"
+        let profile = ProcessInfo.processInfo.environment["ZSHELL_TEST_ZSHRC"]
+        let sourceProfile = profile.map {
+            "source '" + $0.replacingOccurrences(of: "'", with: "'\\''") + "'"
+        } ?? ""
         try """
+        \(sourceProfile)
+        HISTFILE=/dev/null
+        unsetopt SHARE_HISTORY INC_APPEND_HISTORY INC_APPEND_HISTORY_TIME APPEND_HISTORY
         bindkey -e
         builtin print -r -- 'OUTPUT'
         PROMPT='READY> '
@@ -152,6 +159,24 @@ struct TerminalPromptSelectionSurfaceTests {
             if start != end { try mouse(.leftMouseDragged, end) }
             try mouse(.leftMouseUp, end)
             key(text, code: code)
+            pump(0.15)
+            try verify(expected, label)
+        }
+
+        for (start, end, text, code, expected, label) in [
+            (2, 8, "X", UInt16(7), "01X89abcdefghij", "Shift character replaces forward selection"),
+            (8, 2, "X", UInt16(7), "01X89abcdefghij", "Shift character replaces reverse selection"),
+            (8, 2, "$", UInt16(21), "01$89abcdefghij", "Shift punctuation replaces selection"),
+            (8, 2, "\u{7f}", UInt16(51), "0189abcdefghij", "Shift Backspace deletes selection"),
+        ] {
+            control("\u{12}")
+            pump(0.1)
+            key("0123456789abcdefghij", code: 0)
+            pump(0.1)
+            try mouse(.leftMouseDown, start)
+            try mouse(.leftMouseDragged, end)
+            try mouse(.leftMouseUp, end)
+            key(text, code: code, modifiers: .shift)
             pump(0.15)
             try verify(expected, label)
         }

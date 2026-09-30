@@ -1380,7 +1380,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         if let event, event.modifierFlags.intersection([.command, .control, .option, .shift]) == .command,
            event.charactersIgnoringModifiers?.lowercased() == "c" { return }
         if let event,
-           !event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty
+           !event.modifierFlags.intersection([.command, .control, .option]).isEmpty
                 || [115, 116, 119, 121, 123, 124, 125, 126].contains(Int(event.keyCode)) {
             pendingPromptSelectionActivation = false
             if events?.terminalPromptSelectionIsReady == true { sendText("\u{1b}[27;2;27~") }
