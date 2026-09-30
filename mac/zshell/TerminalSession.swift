@@ -616,7 +616,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             # the kill, so a wrapped delete widget must not also run -- otherwise Backspace
             # removes the selection plus one more character.
             _zshell_kill_selection() {
-              (( _zshell_selection_active )) || return 1
+              (( _zshell_selection_active || REGION_ACTIVE )) || return 1
               if (( MARK == CURSOR )); then
                 _zshell_selection_active=0
                 REGION_ACTIVE=0

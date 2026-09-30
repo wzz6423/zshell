@@ -49,6 +49,9 @@ struct TerminalPromptSelectionSurfaceTests {
         _multiline() { BUFFER=$'first line\\nsecond line'; CURSOR=${#BUFFER}; }
         zle -N _multiline
         bindkey '^N' _multiline
+        _select_left() { (( REGION_ACTIVE )) || zle set-mark-command; zle backward-char; }
+        zle -N _select_left
+        bindkey '^[[1;2D' _select_left
         """.write(to: directory.appendingPathComponent(".zshrc"), atomically: true, encoding: .utf8)
         AppSettings.shared.terminalBackend = backend == "ghostty" ? .libghostty : .alacritty
         AppSettings.shared.terminalStartupProgram = ""
@@ -177,6 +180,24 @@ struct TerminalPromptSelectionSurfaceTests {
             try mouse(.leftMouseDragged, end)
             try mouse(.leftMouseUp, end)
             key(text, code: code, modifiers: .shift)
+            pump(0.15)
+            try verify(expected, label)
+        }
+
+        for (text, code, modifiers, expected, label) in [
+            ("x", UInt16(7), NSEvent.ModifierFlags(), "01x89abcdefghij", "keyboard selection replacement"),
+            ("X", UInt16(7), NSEvent.ModifierFlags.shift, "01X89abcdefghij", "keyboard selection Shift replacement"),
+            ("\u{7f}", UInt16(51), NSEvent.ModifierFlags(), "0189abcdefghij", "keyboard selection Backspace"),
+            ("\u{f728}", UInt16(117), NSEvent.ModifierFlags(), "0189abcdefghij", "keyboard selection forward Delete"),
+        ] {
+            control("\u{12}")
+            pump(0.1)
+            key("0123456789abcdefghij", code: 0)
+            pump(0.1)
+            for _ in 0..<12 { key("\u{f702}", code: 123) }
+            for _ in 0..<6 { key("\u{f702}", code: 123, modifiers: .shift) }
+            pump(0.1)
+            key(text, code: code, modifiers: modifiers)
             pump(0.15)
             try verify(expected, label)
         }
