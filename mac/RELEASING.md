@@ -10,6 +10,13 @@ Once that authorization is given, complete this release without asking again.
 Homebrew and website changes are submitted as pull requests for the maintainer to
 merge; the release command does not push the tap or deploy the website.
 
+Release-time verification covers building, packaging, signing, publishing, and
+the update path. Do not re-test the features added or changed in this release or
+require their acceptance records as a prerequisite for publishing; feature
+acceptance belongs to development and the corresponding feature PR. If release
+preparation changes the release scripts or website, run their relevant tests or
+build/typecheck without repeating client feature acceptance.
+
 ## Signing and credentials
 
 Two independent signing identities protect the release:
