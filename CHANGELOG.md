@@ -14,11 +14,22 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
-## [Unreleased]
+## [0.1.9]
 
 ### Added
 
 - Show the current app version in the bottom-left corner of the Settings sidebar.
+
+### Changed
+
+- Use a bar cursor by default when no cursor shape is configured, while keeping
+  existing cursor preferences.
+
+### Fixed
+
+- Restore input selection editing in zsh and Claude Code on both terminal
+  backends, including typing before releasing the mouse and clearing stale
+  selection highlights.
 
 ## [0.1.8]
 
