@@ -92,9 +92,9 @@ final class MarkdownCodeHighlighter {
         pendingCompiles.insert(language)
 
         let data = SyntaxHighlighting.highlightsData(for: language)
-        let parser = language.parser
-        DispatchQueue.global(qos: .userInitiated).async {
-            let query = try? SwiftTreeSitter.Query(language: Language(language: parser), data: data)
+        let tsLanguage = Language(language: language.parser)
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let query = try? SwiftTreeSitter.Query(language: tsLanguage, data: data)
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.pendingCompiles.remove(language)

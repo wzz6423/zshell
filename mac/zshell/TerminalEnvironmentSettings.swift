@@ -6,13 +6,13 @@
 import Foundation
 
 /// One environment entry kept in user order for editing and snapshot stability.
-struct TerminalEnvironmentVariable: Codable, Equatable {
+nonisolated struct TerminalEnvironmentVariable: Codable, Equatable {
     var name: String
     var value: String
 }
 
 /// Project-level values inherited by every terminal created in the project.
-struct TerminalLaunchSettings: Codable, Equatable {
+nonisolated struct TerminalLaunchSettings: Codable, Equatable {
     var environmentVariables: [TerminalEnvironmentVariable] = []
     var initializationCommand: String?
 
@@ -68,7 +68,7 @@ struct TerminalLaunchSettings: Codable, Equatable {
 
 /// Per-tab additions. Environment entries replace project entries with the same
 /// name; the command explicitly inherits, replaces, or disables the project one.
-struct TerminalLaunchSettingsOverride: Codable, Equatable {
+nonisolated struct TerminalLaunchSettingsOverride: Codable, Equatable {
     enum InitializationMode: String, Codable, CaseIterable {
         case inherit
         case replace

@@ -148,7 +148,7 @@ enum TerminalHistorySerializer {
                 )
             )
         }
-        return Set(labels.map(restoredBannerText))
+        return Set(labels.map { restoredBannerText(label: $0) })
     }()
 
     /// A single-line divider fed into the terminal directly beneath replayed

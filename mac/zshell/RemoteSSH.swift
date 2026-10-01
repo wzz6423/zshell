@@ -7,7 +7,7 @@ import Darwin
 import Foundation
 import Security
 
-struct SSHEndpoint: Codable, Equatable, Sendable {
+nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
     enum ValidationError: LocalizedError, Equatable {
         case missingHost
         case invalidHost
@@ -152,7 +152,7 @@ struct SSHEndpoint: Codable, Equatable, Sendable {
 /// Metadata for one SSH authentication method. Passwords and pasted private
 /// keys are deliberately absent: they are stored in the user's Keychain under
 /// the saved project's UUID instead of in project or session JSON.
-enum SSHAuthentication: Equatable, Sendable {
+nonisolated enum SSHAuthentication: Equatable, Sendable {
     case agent
     case password
     case privateKeyPath(String)
@@ -284,7 +284,7 @@ extension SSHAuthentication: Codable {
 
 /// Small Keychain wrapper for sensitive saved SSH credentials. The account is
 /// an opaque project UUID, never an endpoint or a secret-derived identifier.
-struct SSHCredentialStore {
+nonisolated struct SSHCredentialStore {
     static let shared = SSHCredentialStore(
         service: (Bundle.main.bundleIdentifier ?? "sh.zshell") + ".ssh-project-authentication"
     )
@@ -352,7 +352,7 @@ struct SSHCredentialStore {
 
 /// Ephemeral OpenSSH material. The owner removes its 0700 directory after the
 /// command or terminal session ends; nothing here is persisted or logged.
-final class SSHAuthenticationMaterial {
+nonisolated final class SSHAuthenticationMaterial {
     let identityFile: String?
     let environment: [String: String]
 
@@ -573,7 +573,7 @@ nonisolated struct BoundedProcessRunner {
     }
 }
 
-struct OpenSSHTransport {
+nonisolated struct OpenSSHTransport {
     enum TransportError: LocalizedError {
         case timedOut(BoundedProcessOutput)
         case failed(status: Int32, output: BoundedProcessOutput)

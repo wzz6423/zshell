@@ -259,13 +259,14 @@ final class SyntaxHighlightCoordinator {
         let data = highlightsData
         let tsLanguage = self.tsLanguage
         let language = self.language
+        let install: @MainActor @Sendable (SwiftTreeSitter.Query?) -> Void = { [weak self] query in
+            guard let self, let query else { return }
+            HighlightQueryCache.store(query, for: language)
+            self.finishInstall(highlightsQuery: query, textContentManager: textContentManager)
+        }
         DispatchQueue.global(qos: .userInitiated).async {
             let query = try? SwiftTreeSitter.Query(language: tsLanguage, data: data)
-            DispatchQueue.main.async { [weak self] in
-                guard let self, let query else { return }
-                HighlightQueryCache.store(query, for: language)
-                self.finishInstall(highlightsQuery: query, textContentManager: textContentManager)
-            }
+            DispatchQueue.main.async { install(query) }
         }
     }
 
@@ -406,9 +407,9 @@ final class SyntaxHighlightCoordinator {
         pendingInjectionCompiles.insert(language)
 
         let data = SyntaxHighlighting.highlightsData(for: language)
-        let parser = language.parser
-        DispatchQueue.global(qos: .userInitiated).async {
-            let query = try? SwiftTreeSitter.Query(language: Language(language: parser), data: data)
+        let tsLanguage = Language(language: language.parser)
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let query = try? SwiftTreeSitter.Query(language: tsLanguage, data: data)
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.pendingInjectionCompiles.remove(language)

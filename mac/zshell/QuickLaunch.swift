@@ -115,7 +115,7 @@ extension QuickLaunchEntry: Codable {
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         // `group` is optional for files written before grouping existed.
-        try self.init(
+        self.init(
             id: try container.decode(UUID.self, forKey: .id),
             name: try container.decode(String.self, forKey: .name),
             kind: try Self.decodeKind(from: container),
