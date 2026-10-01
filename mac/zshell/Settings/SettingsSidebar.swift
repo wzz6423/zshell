@@ -39,14 +39,26 @@ final class SettingsSidebarViewController: NSViewController {
             }
         }
 
+        let version = (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let versionLabel = NSTextField(labelWithString: version.flatMap { $0.isEmpty ? nil : $0 } ?? "unknown")
+        versionLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        versionLabel.textColor = .secondaryLabelColor
+        versionLabel.lineBreakMode = .byTruncatingTail
+
         let container = NSView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(stack)
+        versionLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(versionLabel)
         var constraints = [
             stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             stack.topAnchor.constraint(equalTo: container.topAnchor),
-            stack.bottomAnchor.constraint(lessThanOrEqualTo: container.bottomAnchor),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: versionLabel.topAnchor, constant: -Self.rowInset),
+            versionLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: Self.rowInset),
+            versionLabel.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -Self.rowInset),
+            versionLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -Self.rowInset),
         ]
         // Rows are stretched by constraint, not by the stack's own alignment:
         // `.width` lines a vertical stack's subviews up on their trailing edges
