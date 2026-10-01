@@ -14,6 +14,12 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
+## [Unreleased]
+
+### Added
+
+- Show the current app version in the bottom-left corner of the Settings sidebar.
+
 ## [0.1.8]
 
 ### Added
