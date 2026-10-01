@@ -257,6 +257,7 @@ extension ZshellTerminalView: TerminalSurfaceProgressReportDelegate {
 
 extension ZshellTerminalView: TerminalSurfaceCommandFinishedDelegate {
     func terminalDidFinishCommand(exitCode: Int?, durationNanos: UInt64) {
+        resetPromptInputStart()
         events?.terminalDidReportShellIntegration(
             .commandFinished(exitCode: exitCode, durationNanos: durationNanos)
         )
@@ -286,6 +287,7 @@ extension ZshellTerminalView: TerminalSurfaceScrollbarDelegate {
             topRow: scrollbar.offset
         )
         lastScroll = position
+        recordPromptInputStart()
         events?.terminalDidScroll(position)
     }
 }

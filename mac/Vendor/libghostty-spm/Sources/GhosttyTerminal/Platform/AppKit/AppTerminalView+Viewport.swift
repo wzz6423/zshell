@@ -57,6 +57,40 @@
             )
         }
 
+        public func readViewportText(
+            fromRow: Int, column: Int, toRow: Int, column endColumn: Int
+        ) -> String? {
+            guard let rawSurface = surface?.rawValue, let size = surface?.size(),
+                  fromRow >= 0, toRow >= fromRow, toRow < Int(size.rows),
+                  column >= 0, endColumn >= 0,
+                  column <= Int(size.columns), endColumn <= Int(size.columns)
+            else { return nil }
+            if fromRow == toRow, column == endColumn { return "" }
+            guard (fromRow, column) < (toRow, endColumn) else { return nil }
+            let selection = ghostty_selection_s(
+                top_left: ghostty_point_s(
+                    tag: GHOSTTY_POINT_VIEWPORT, coord: GHOSTTY_POINT_COORD_EXACT,
+                    x: UInt32(column), y: UInt32(fromRow)
+                ),
+                bottom_right: ghostty_point_s(
+                    tag: GHOSTTY_POINT_VIEWPORT, coord: GHOSTTY_POINT_COORD_EXACT,
+                    x: UInt32(max(0, endColumn - 1)), y: UInt32(toRow)
+                ), rectangle: false
+            )
+            var result = ghostty_text_s()
+            guard ghostty_surface_read_text(rawSurface, selection, &result) else { return nil }
+            defer { ghostty_surface_free_text(rawSurface, &result) }
+            var text = result.text.map {
+                String(decoding: UnsafeRawBufferPointer(start: $0, count: Int(result.text_len)), as: UTF8.self)
+            } ?? ""
+            if endColumn == 0,
+               let firstCell = readViewportText(row: toRow, columns: 0..<1)?.text,
+               text.hasSuffix(firstCell) {
+                text.removeLast(firstCell.count)
+            }
+            return text
+        }
+
         /// Cell-bounded text lets hosts count graphemes using the emulator's
         /// actual wide-cell layout instead of a second Unicode-width table.
         public func readViewportText(

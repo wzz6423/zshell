@@ -3,8 +3,13 @@
 Build mac/build/debug first, then run:
     python3 mac/tests/test_terminal_ai_input_surfaces.py
 No live app window, Claude account, or user draft is used.
+
+Set ZSHELL_TEST_ZSHRC to a zsh configuration file to load its widgets before
+the deterministic prompt fixture. This mode disables command-history writes.
+Set ZSHELL_TEST_DERIVED_DATA to use an isolated Debug build instead of mac/build/debug.
 """
 
+import os
 from pathlib import Path
 import platform
 import subprocess
@@ -12,11 +17,11 @@ import tempfile
 
 
 root = Path(__file__).resolve().parents[2]
-build = root / "mac/build/debug/Build"
+build = Path(os.environ.get("ZSHELL_TEST_DERIVED_DATA", root / "mac/build/debug")) / "Build"
 products = build / "Products/Debug"
 library = products / "zshell Debug.app/Contents/MacOS/zshell.debug.dylib"
 if not library.is_file():
-    raise SystemExit("Build the Debug app in mac/build/debug before running surface tests.")
+    raise SystemExit(f"Build the Debug app in {build.parent} before running surface tests.")
 
 with tempfile.TemporaryDirectory(prefix="zshell-input-surfaces-") as directory:
     binary = Path(directory) / "terminal-input-tests"
@@ -37,12 +42,15 @@ with tempfile.TemporaryDirectory(prefix="zshell-input-surfaces-") as directory:
     arguments += [
         "-I", str(root / "mac/Vendor/alacritty-bridge/include"),
         "-I", str(root / "mac/Vendor/tree-sitter/lib/include"),
-        str(root / "mac/tests/TerminalAIInputSurfaceTests.swift"), str(library),
+        str(library),
         "-Xlinker", "-rpath", "-Xlinker", str(products),
         "-Xlinker", "-rpath", "-Xlinker", str(library.parent), "-o", str(binary),
     ]
-    subprocess.run(arguments, cwd=root, check=True)
-    for backend in ("alacritty", "ghostty"):
-        subprocess.run([
-            str(binary), backend, str(root / "mac/tests/fixtures/claude.py"),
-        ], cwd=root, check=True, timeout=30)
+    for suite in ("TerminalPromptSelectionSurfaceTests", "TerminalAIInputSurfaceTests"):
+        source = root / "mac/tests" / (suite + ".swift")
+        subprocess.run(arguments + [str(source)], cwd=root, check=True)
+        for backend in ("alacritty", "ghostty"):
+            subprocess.run([
+                str(binary), backend, str(root / "mac/tests/fixtures/claude.py"),
+            ], cwd=root, check=True, timeout=90,
+                env={**os.environ, "CFFIXED_USER_HOME": directory})

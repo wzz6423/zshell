@@ -154,8 +154,8 @@ final class SourceEditorController: NSObject, STTextViewDelegate {
         // its place instead: the caret was just placed on the line a search
         // hit asked for, and that line is scrolled into view the same way.
         if state.revealSelection == true, let location = state.selectionLocation {
-            scrollView.restoreOnFirstLayout = { [weak scrollView, weak textView, weak file] in
-                guard let scrollView, let textView else { return }
+            scrollView.restoreOnFirstLayout = { [weak textView, weak file] in
+                guard let textView else { return }
                 textView.scrollRangeToVisible(NSRange(location: location, length: 0))
                 // Consume the request so later tab switches restore the
                 // offset the user actually scrolled to.

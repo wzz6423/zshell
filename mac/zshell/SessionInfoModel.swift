@@ -11,7 +11,7 @@ import Foundation
 /// under it and any TCP ports those processes are listening on.
 @MainActor
 final class SessionInfoModel: nonisolated ObservableObject {
-    struct ProcessItem: Identifiable, Equatable {
+    nonisolated struct ProcessItem: Identifiable, Equatable, Sendable {
         var id: pid_t { pid }
         let pid: pid_t
         /// Executable name, e.g. "node".
@@ -31,7 +31,7 @@ final class SessionInfoModel: nonisolated ObservableObject {
         }
     }
 
-    struct PortItem: Identifiable, Equatable {
+    nonisolated struct PortItem: Identifiable, Equatable, Sendable {
         var id: String { "\(pid):\(port)" }
         let port: Int
         let pid: pid_t
@@ -84,7 +84,7 @@ final class SessionInfoModel: nonisolated ObservableObject {
 
         Task.detached(priority: .utility) { [weak self] in
             let (processes, ports) = Self.snapshot(shellPid: pid)
-            await MainActor.run {
+            await MainActor.run { [weak self] in
                 guard let self else { return }
                 self.isRefreshing = false
                 // A tab switch may have re-targeted us while ps/lsof ran.

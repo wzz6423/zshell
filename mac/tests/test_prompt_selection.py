@@ -62,9 +62,16 @@ class PromptSelectionTests(unittest.TestCase):
         self.state_file = self.root / "prompt-selection.pid"
         self.config = (
             "bindkey -e\nPROMPT='READY> '\nRPROMPT=''\n"
+            "bindkey '^[[3~' delete-char\n"
             f"_dump() {{ print -rn -- \"$BUFFER\" >| {shlex.quote(str(self.buffer_file))}; }}\n"
             "zle -N _dump\n"
             "for map in emacs viins vicmd; do bindkey -M $map '^T' _dump; done\n"
+            "_test_select_left() { (( REGION_ACTIVE )) || zle set-mark-command; zle backward-char; }\n"
+            "_test_select_right() { (( REGION_ACTIVE )) || zle set-mark-command; zle forward-char; }\n"
+            "zle -N _test_select_left\nzle -N _test_select_right\n"
+            "bindkey '^[[1;2D' _test_select_left\nbindkey '^[[1;2C' _test_select_right\n"
+            "_test_cancel_region() { REGION_ACTIVE=0; }\n"
+            "zle -N _test_cancel_region\nbindkey '^O' _test_cancel_region\n"
         )
         (self.original / ".zshrc").write_text(self.config)
         integration = subprocess.check_output(
@@ -153,6 +160,31 @@ class PromptSelectionTests(unittest.TestCase):
 
     def test_click_cancels_selection(self):
         self.assertEqual(self.buffer(b"abcd\x1f\x1b[D\x1e" + CLICK + b"X"), "abcXd")
+
+    def test_native_zle_selection_replace_and_delete(self):
+        select_left = b"\x1b[1;2D" * 2
+        for edit, expected in (
+            (b"X", "abX"),
+            (b"\x7f", "ab"),
+            (b"\x1b[3~", "ab"),
+            (b"\x1b[200~paste\x1b[201~", "abpaste"),
+        ):
+            with self.subTest(edit=edit):
+                self.assertEqual(self.buffer(b"\x15abcd" + select_left + edit), expected)
+
+    def test_native_forward_selection_deletes_only_the_region(self):
+        self.assertEqual(self.buffer(b"abcd\x01" + b"\x1b[1;2C" * 2 + b"\x7f"), "cd")
+
+    def test_native_selection_over_the_middle_of_a_draft(self):
+        draft = b"111111111222222222111111111111111"
+        selection = b"\x1b[D" * 15 + b"\x1b[1;2D" * 9
+        self.assertEqual(self.buffer(draft + selection + b"\x7f"), "1" * 24)
+
+    def test_inactive_native_mark_does_not_delete_a_region(self):
+        self.assertEqual(self.buffer(b"abcd" + b"\x1b[1;2D" * 2 + b"\x0fX"), "abXcd")
+
+    def test_empty_native_region_does_not_swallow_backspace(self):
+        self.assertEqual(self.buffer(b"abcd\x1b[1;2C\x7f"), "abc")
 
     def test_reload_keymaps_repairs_bindings(self):
         (self.original / ".zshrc").write_text("bindkey -d\n" + self.config)
