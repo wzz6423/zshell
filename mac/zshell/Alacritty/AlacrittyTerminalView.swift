@@ -85,6 +85,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     private var selectionWasDragged = false
     private var supportsInputSelection = false
     private var inputSelectionAnchor: PromptCaret?
+    private var inputSelectionMouseEvent: NSEvent?
+    private var suppressPointerEventsUntilMouseDown = false
     private var pendingPromptSelectionActivation = false
     /// PTY input is asynchronous. Keep the destination of a queued click
     /// move so a drag release does not measure from the emulator's stale
@@ -1419,6 +1421,13 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     override func resignFirstResponder() -> Bool {
         let resigned = super.resignFirstResponder()
         if resigned {
+            if inputSelectionMouseEvent != nil {
+                suppressPointerEventsUntilMouseDown = true
+                selectionAnchor = nil
+                selectionWasDragged = false
+                inputSelectionAnchor = nil
+                inputSelectionMouseEvent = nil
+            }
             aiInputEditor.cancel()
             pendingPromptSelectionActivation = false
             stopSelectionAutoscroll()
@@ -1487,6 +1496,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func keyDown(with event: NSEvent) {
+        finalizePointerSelectionBeforeInput()
         if !hasMarkedText(),
            aiInputEditor.handleKeyDown(event, replay: { [weak self] in self?.keyDown(with: event) }) { return }
         activatePendingPromptSelection(for: event)
@@ -1556,6 +1566,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // without starting a selection, and a stale anchor would let the next
         // mouse-up move the cursor for a click that never selected anything.
         inputSelectionAnchor = nil
+        inputSelectionMouseEvent = nil
+        suppressPointerEventsUntilMouseDown = false
         pendingPromptSelectionActivation = false
         guard let handle else { return }
         if event.modifierFlags.contains(.command),
@@ -1579,6 +1591,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         }
         selectionWasDragged = false
         inputSelectionAnchor = promptSelectionAnchor(for: point, clickCount: event.clickCount)
+        if inputSelectionAnchor != nil || aiContext?.caret != nil { inputSelectionMouseEvent = event }
         if inputSelectionAnchor != nil, moveCursorToClick(point) {
             // Establish the ZLE mark before the visual selection starts. The
             // visual selection remains owned by Alacritty and is restored after
@@ -1593,6 +1606,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func mouseDragged(with event: NSEvent) {
+        guard !suppressPointerEventsUntilMouseDown else { return }
         if reportingMouseButton {
             if terminalMode.contains(.mouseDrag) || terminalMode.contains(.mouseMotion) {
                 sendMouse(code: 32, event: event, released: false)
@@ -1603,11 +1617,17 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         selectionWasDragged = true
         let location = convert(event.locationInWindow, from: nil)
         updateSelection(at: location, handle: handle)
+        if inputSelectionMouseEvent != nil { inputSelectionMouseEvent = event }
         scheduleRender(force: true)
         updateSelectionAutoscroll(at: location)
     }
 
     override func mouseUp(with event: NSEvent) {
+        guard !suppressPointerEventsUntilMouseDown else { return }
+        finishPointerSelection(with: event, copyOnSelect: true)
+    }
+
+    private func finishPointerSelection(with event: NSEvent, copyOnSelect: Bool) {
         stopSelectionAutoscroll()
         if reportingMouseButton {
             reportingMouseButton = false
@@ -1632,7 +1652,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         selectionAnchor = nil
         selectionWasDragged = false
         inputSelectionAnchor = nil
-        if dragged, AppSettings.shared.copyOnSelect {
+        inputSelectionMouseEvent = nil
+        if copyOnSelect, dragged, AppSettings.shared.copyOnSelect {
             copy(nil)
         }
     }
@@ -2086,6 +2107,14 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         return (snapshot, snapshot.caret(viewportRow: point.line, prefix: prefix))
     }
 
+    private func finalizePointerSelectionBeforeInput() {
+        guard selectionWasDragged, let event = inputSelectionMouseEvent else { return }
+        // Keep a delayed drag or release from selecting the freshly edited text
+        // or replacing the clipboard after a paste.
+        suppressPointerEventsUntilMouseDown = true
+        finishPointerSelection(with: event, copyOnSelect: false)
+    }
+
     private func selectedText() -> String? {
         guard let handle else { return nil }
         let required = zshell_alacritty_selection_text(handle, nil, 0)
@@ -2198,6 +2227,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     @objc func paste(_ sender: Any?) {
+        finalizePointerSelectionBeforeInput()
         if aiInputEditor.deferWhileBusy({ [weak self] in self?.paste(sender) }) { return }
         activatePendingPromptSelection()
         pendingPromptCaret = nil
@@ -2445,6 +2475,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         guard isSurfaceVisible, hasEffectiveTerminalFocus else { return }
         let text = (value as? String) ?? (value as? NSAttributedString)?.string ?? ""
         guard !text.isEmpty else { return }
+        finalizePointerSelectionBeforeInput()
         if aiInputEditor.deferWhileBusy({ [weak self] in self?.insertAccessibilityText(text) })
             || aiInputEditor.replaceSelection(then: { [weak self] in self?.sendText(text) }) {
             return
@@ -2461,6 +2492,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 extension AlacrittyTerminalView: NSTextInputClient {
     func insertText(_ string: Any, replacementRange: NSRange) {
         let text = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""
+        if !text.isEmpty { finalizePointerSelectionBeforeInput() }
         if !text.isEmpty, aiInputEditor.isBusy || aiInputEditor.hasSelection {
             unmarkText()
             if aiInputEditor.deferWhileBusy({ [weak self] in self?.insertText(text, replacementRange: replacementRange) })
@@ -2477,6 +2509,7 @@ extension AlacrittyTerminalView: NSTextInputClient {
     }
 
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+        finalizePointerSelectionBeforeInput()
         markedText = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""
         preeditChanged = true
         scheduleRender()

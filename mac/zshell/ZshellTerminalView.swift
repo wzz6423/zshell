@@ -36,6 +36,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var inputSelectionDragActive = false
     private var promptInputStart: (row: UInt64, column: Int)?
     private var promptSelectionAnchor: (row: Int, column: Int)?
+    private var inputSelectionMouseEvent: NSEvent?
+    private var suppressPointerEventsUntilMouseDown = false
     private var pendingPromptSelectionActivation = false
     private var pointerSelectionDragged = false
     private var aiInputPointerActive = false
@@ -44,10 +46,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var selectionAutoscrollModifierFlags: NSEvent.ModifierFlags = []
     private lazy var aiInputEditor = TerminalAIInputEditor(
         readSnapshot: { [weak self] in self?.aiInputContext()?.snapshot },
-        sendControl: { [weak self] text in
-            let escaped = text.utf8.map { String(format: "\\x%02x", $0) }.joined()
-            self?.performBindingAction("text:" + escaped)
-        },
+        sendControl: { [weak self] in self?.sendAIInputControl($0) },
         clearHighlight: {}
     )
     /// Latest scroll report, so a scrollbar drag can be mapped back onto a row.
@@ -321,6 +320,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         let text = (value as? String) ?? (value as? NSAttributedString)?.string ?? ""
         guard isSurfaceVisible, hasEffectiveTerminalFocus else { return }
         guard !text.isEmpty else { return }
+        finalizePointerSelectionBeforeInput()
         recordPromptInputStart()
         if aiInputEditor.deferWhileBusy({ [weak self] in self?.insertAccessibilityText(text) })
             || aiInputEditor.replaceSelection(then: { [weak self] in self?.sendText(text) }) {
@@ -341,9 +341,16 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func resignFirstResponder() -> Bool {
+        if let event = inputSelectionMouseEvent {
+            super.mouseUp(with: localInputSelectionEvent(event, type: .leftMouseUp))
+            suppressPointerEventsUntilMouseDown = true
+        }
         aiInputEditor.cancel()
         stopSelectionAutoscroll()
         inputSelectionDragActive = false
+        promptSelectionAnchor = nil
+        inputSelectionMouseEvent = nil
+        pointerSelectionDragged = false
         pendingPromptSelectionActivation = false
         aiInputPointerActive = false
         GlobalTerminalOverlay.shared.scheduleHotkeyRegistrationRefresh()
@@ -366,6 +373,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         selectionAutoscrollModifierFlags = []
         inputSelectionDragActive = false
         promptSelectionAnchor = nil
+        inputSelectionMouseEvent = nil
+        suppressPointerEventsUntilMouseDown = false
         pendingPromptSelectionActivation = false
         pointerSelectionDragged = false
         aiInputPointerActive = false
@@ -379,15 +388,18 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         aiInputEditor.beginPointer(at: aiContext?.caret, in: aiContext?.snapshot)
         super.mouseDown(with: localInputSelectionEvent(event))
         promptSelectionAnchor = promptCaret(for: event)
+        if promptSelectionAnchor != nil || aiInputPointerActive { inputSelectionMouseEvent = event }
     }
 
     override func mouseDragged(with event: NSEvent) {
+        guard !suppressPointerEventsUntilMouseDown else { return }
         pointerSelectionDragged = true
         selectionAutoscrollModifierFlags = event.modifierFlags
         if promptSelectionAnchor != nil, canEditPromptSelection {
             inputSelectionDragActive = true
         }
         super.mouseDragged(with: localInputSelectionEvent(event))
+        if inputSelectionMouseEvent != nil { inputSelectionMouseEvent = event }
         if isMouseCaptured {
             stopSelectionAutoscroll()
         } else {
@@ -396,10 +408,15 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func mouseUp(with event: NSEvent) {
+        guard !suppressPointerEventsUntilMouseDown else { return }
+        finishPointerSelection(with: event, copyOnSelect: true)
+    }
+
+    private func finishPointerSelection(with event: NSEvent, copyOnSelect: Bool) {
         stopSelectionAutoscroll()
         let hadInputSelection = inputSelectionDragActive
-        super.mouseUp(with: localInputSelectionEvent(event))
-        if pointerSelectionDragged, !isMouseCaptured, AppSettings.shared.copyOnSelect {
+        super.mouseUp(with: localInputSelectionEvent(event, type: .leftMouseUp))
+        if copyOnSelect, pointerSelectionDragged, !isMouseCaptured, AppSettings.shared.copyOnSelect {
             copySelectedTextToPasteboard()
         }
         let aiContext = aiInputContext(for: event, clampingDrag: pointerSelectionDragged)
@@ -407,7 +424,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
             at: aiContext?.caret, in: aiContext?.snapshot, dragged: pointerSelectionDragged
         )
         if hadInputSelection, let anchor = promptSelectionAnchor,
-           let endpoint = promptCaret(for: event),
+           let endpoint = promptCaret(for: event, allowZeroClick: true),
            let snapshot = readViewportTextSnapshot(),
            let toAnchor = promptCursorMovement(
                 from: (snapshot.cursorRow, snapshot.cursorColumn), to: anchor
@@ -417,15 +434,19 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         }
         inputSelectionDragActive = false
         promptSelectionAnchor = nil
+        inputSelectionMouseEvent = nil
         pointerSelectionDragged = false
         aiInputPointerActive = false
     }
 
-    private func localInputSelectionEvent(_ event: NSEvent) -> NSEvent {
-        guard aiInputPointerActive, isMouseCaptured else { return event }
+    private func localInputSelectionEvent(_ event: NSEvent, type: NSEvent.EventType? = nil) -> NSEvent {
+        let bypassCapture = aiInputPointerActive && isMouseCaptured
+        let type = type ?? event.type
+        guard bypassCapture || type != event.type else { return event }
         return NSEvent.mouseEvent(
-            with: event.type, location: event.locationInWindow,
-            modifierFlags: event.modifierFlags.union(.shift), timestamp: event.timestamp,
+            with: type, location: event.locationInWindow,
+            modifierFlags: bypassCapture ? event.modifierFlags.union(.shift) : event.modifierFlags,
+            timestamp: event.timestamp,
             windowNumber: event.windowNumber, context: nil, eventNumber: event.eventNumber,
             clickCount: event.clickCount, pressure: event.pressure
         ) ?? event
@@ -510,6 +531,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func keyDown(with event: NSEvent) {
+        finalizePointerSelectionBeforeInput()
         recordPromptInputStart()
         if !hasMarkedText(),
            aiInputEditor.handleKeyDown(event, replay: { [weak self] in self?.keyDown(with: event) }) { return }
@@ -522,8 +544,9 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func insertText(_ string: Any, replacementRange range: NSRange) {
-        recordPromptInputStart()
         let text = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""
+        if !text.isEmpty { finalizePointerSelectionBeforeInput() }
+        recordPromptInputStart()
         if !text.isEmpty, aiInputEditor.isBusy || aiInputEditor.hasSelection {
             unmarkText()
             // Ghostty's IME handler needs the current NSEvent, which may be
@@ -535,7 +558,13 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         super.insertText(string, replacementRange: range)
     }
 
+    override func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+        finalizePointerSelectionBeforeInput()
+        super.setMarkedText(string, selectedRange: selectedRange, replacementRange: replacementRange)
+    }
+
     override func paste(_ sender: Any?) {
+        finalizePointerSelectionBeforeInput()
         recordPromptInputStart()
         if aiInputEditor.deferWhileBusy({ [weak self] in self?.paste(sender) }) { return }
         if aiInputEditor.hasSelection, let text = NSPasteboard.general.string(forType: .string) {
@@ -559,6 +588,24 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         if !aiInputEditor.replaceSelection(then: { [weak self] in self?.sendText(text) }) {
             sendText(text)
         }
+    }
+
+    private func sendAIInputControl(_ text: String) {
+        var remaining = text[...]
+        if remaining.hasPrefix("\u{1b}[3~"), let event = NSEvent.keyEvent(
+            with: .keyDown, location: .zero, modifierFlags: [],
+            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window?.windowNumber ?? 0,
+            context: nil, characters: "\u{f728}", charactersIgnoringModifiers: "\u{f728}",
+            isARepeat: false, keyCode: 117
+        ) {
+            // Raw PTY writes leave Ghostty's highlight intact. Deliver the first
+            // Delete as a key so editing clears it without touching the clipboard.
+            super.keyDown(with: event)
+            remaining = remaining.dropFirst(4)
+        }
+        guard !remaining.isEmpty else { return }
+        let escaped = remaining.utf8.map { String(format: "\\x%02x", $0) }.joined()
+        performBindingAction("text:" + escaped)
     }
 
     private func aiInputContext(for event: NSEvent? = nil, clampingDrag: Bool = false) -> (
@@ -590,6 +637,14 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         return (snapshot, snapshot.caret(viewportRow: row, prefix: prefix))
     }
 
+    private func finalizePointerSelectionBeforeInput() {
+        guard pointerSelectionDragged, let event = inputSelectionMouseEvent else { return }
+        // AppKit can deliver input before mouse-up. Release the native selector
+        // before editing, then discard the remaining events from that gesture.
+        suppressPointerEventsUntilMouseDown = true
+        finishPointerSelection(with: event, copyOnSelect: false)
+    }
+
     private func activatePendingPromptSelection(for event: NSEvent? = nil) {
         guard pendingPromptSelectionActivation else { return }
         if let event, event.modifierFlags.intersection([.command, .control, .option, .shift]) == .command,
@@ -618,8 +673,11 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         promptInputStart = nil
     }
 
-    private func promptCaret(for event: NSEvent) -> (row: Int, column: Int)? {
-        guard canEditPromptSelection, event.clickCount == 1,
+    private func promptCaret(
+        for event: NSEvent, allowZeroClick: Bool = false
+    ) -> (row: Int, column: Int)? {
+        guard canEditPromptSelection,
+              event.clickCount == 1 || (allowZeroClick && event.clickCount == 0),
               event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty,
               let start = promptInputStart, let snapshot = readViewportTextSnapshot()
         else { return nil }

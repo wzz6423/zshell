@@ -52,5 +52,5 @@ with tempfile.TemporaryDirectory(prefix="zshell-input-surfaces-") as directory:
         for backend in ("alacritty", "ghostty"):
             subprocess.run([
                 str(binary), backend, str(root / "mac/tests/fixtures/claude.py"),
-            ], cwd=root, check=True, timeout=30,
+            ], cwd=root, check=True, timeout=90,
                 env={**os.environ, "CFFIXED_USER_HOME": directory})

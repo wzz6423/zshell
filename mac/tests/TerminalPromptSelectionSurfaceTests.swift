@@ -3,6 +3,12 @@ import GhosttyTerminal
 @testable import zshell
 
 @MainActor
+private final class PromptTestApplication: NSApplication {
+    var textInputEvent: NSEvent?
+    override var currentEvent: NSEvent? { textInputEvent ?? super.currentEvent }
+}
+
+@MainActor
 private final class PromptTestWindow: NSWindow {
     override var isKeyWindow: Bool { true }
 }
@@ -19,7 +25,7 @@ private func pump(_ duration: TimeInterval) {
 struct TerminalPromptSelectionSurfaceTests {
     @MainActor static func main() throws {
         setbuf(stdout, nil)
-        _ = NSApplication.shared
+        let app = PromptTestApplication.shared as! PromptTestApplication
         let backend = CommandLine.arguments[1]
         let directory = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("zshell-prompt-surface-\(UUID().uuidString)")
@@ -85,7 +91,10 @@ struct TerminalPromptSelectionSurfaceTests {
             }
         }
 
-        func mouse(_ type: NSEvent.EventType, _ offset: Int, row relativeRow: Int = 0) throws {
+        func mouse(
+            _ type: NSEvent.EventType, _ offset: Int, row relativeRow: Int = 0,
+            clickCount: Int = 1
+        ) throws {
             guard let firstRow = lines().lastIndex(where: { $0.hasPrefix("READY> ") }) else {
                 throw NSError(domain: "PromptRowMissing", code: 1)
             }
@@ -113,7 +122,7 @@ struct TerminalPromptSelectionSurfaceTests {
             let event = NSEvent.mouseEvent(
                 with: type, location: view.convert(location, to: nil), modifierFlags: [],
                 timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
-                context: nil, eventNumber: 0, clickCount: 1, pressure: 1
+                context: nil, eventNumber: 0, clickCount: clickCount, pressure: 1
             )!
             switch type {
             case .leftMouseDown: view.mouseDown(with: event)
@@ -121,6 +130,22 @@ struct TerminalPromptSelectionSurfaceTests {
             default: view.mouseDragged(with: event)
             }
             pump(0.05)
+        }
+
+        func commitText(_ text: String, composing: Bool = false) {
+            // Ghostty commits text only while AppKit is dispatching an event.
+            app.textInputEvent = NSEvent.keyEvent(
+                with: .keyDown, location: .zero, modifierFlags: [],
+                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                context: nil, characters: text, charactersIgnoringModifiers: text, isARepeat: false, keyCode: 0
+            )
+            defer { app.textInputEvent = nil }
+            let client = view as! any NSTextInputClient
+            if composing {
+                client.setMarkedText("zi", selectedRange: NSRange(location: 2, length: 0),
+                                     replacementRange: NSRange(location: NSNotFound, length: 0))
+            }
+            client.insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))
         }
 
         func key(_ text: String, code: UInt16, modifiers: NSEvent.ModifierFlags = []) {
@@ -165,6 +190,97 @@ struct TerminalPromptSelectionSurfaceTests {
             pump(0.15)
             try verify(expected, label)
         }
+
+        do {
+            let pasteboard = NSPasteboard.general
+            let previousClipboard = pasteboard.pasteboardItems?.map { item in
+                item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
+            } ?? []
+            let copyOnSelect = AppSettings.shared.copyOnSelect
+            AppSettings.shared.copyOnSelect = true
+            defer {
+                AppSettings.shared.copyOnSelect = copyOnSelect
+                pasteboard.clearContents()
+                pasteboard.writeObjects(previousClipboard.map { values in
+                    let item = NSPasteboardItem()
+                    for (type, data) in values { item.setData(data, forType: type) }
+                    return item
+                })
+            }
+            for reverse in [false, true] {
+                for action in ["key", "Backspace", "Delete", "insertText", "IME", "paste", "accessibility"] {
+                    control("\u{12}")
+                    pump(0.1)
+                    key("0123456789abcdefghij", code: 0)
+                    pump(0.1)
+                    pasteboard.clearContents()
+                    pasteboard.setString("paste", forType: .string)
+                    try mouse(.leftMouseDown, reverse ? 8 : 2)
+                    try mouse(.leftMouseDragged, reverse ? 2 : 8, clickCount: 0)
+                    let replacement: String
+                    switch action {
+                    case "Backspace": key("\u{7f}", code: 51); replacement = ""
+                    case "Delete": key("\u{f728}", code: 117); replacement = ""
+                    case "insertText":
+                        commitText("字")
+                        replacement = "字"
+                    case "IME":
+                        commitText("字", composing: true)
+                        replacement = "字"
+                    case "paste":
+                        if let ghostty = view as? ZshellTerminalView { ghostty.paste(nil) }
+                        else if let alacritty = view as? AlacrittyTerminalView { alacritty.paste(nil) }
+                        replacement = "paste"
+                    case "accessibility": view.setAccessibilitySelectedText("voice"); replacement = "voice"
+                    default: key("x", code: 7); replacement = "x"
+                    }
+                    let label = "\(reverse ? "reverse" : "forward") \(action) before release"
+                    try verify("01\(replacement)89abcdefghij", label)
+                    try mouse(.leftMouseDragged, 12, clickCount: 0)
+                    try mouse(.leftMouseUp, 14, clickCount: 0)
+                    key("z", code: 6)
+                    try verify("01\(replacement)z89abcdefghij", "\(label) ignores delayed pointer events")
+                    let clipboardPreserved = pasteboard.string(forType: .string) == "paste"
+                    if !clipboardPreserved { failures += 1 }
+                    print("\(clipboardPreserved ? "PASS" : "FAIL"): \(backend) zsh \(label) preserves clipboard")
+                }
+            }
+        }
+
+        control("\u{12}")
+        pump(0.1)
+        key("0123456789abcdefghij", code: 0)
+        pump(0.1)
+        try mouse(.leftMouseDown, 2)
+        try mouse(.leftMouseDragged, 5, clickCount: 0)
+        try mouse(.leftMouseUp, 8, clickCount: 0)
+        key("x", code: 7)
+        try verify("01x89abcdefghij", "normal release uses its final position")
+
+        control("\u{12}")
+        pump(0.1)
+        key("0123456789abcdefghij", code: 0)
+        pump(0.1)
+        try mouse(.leftMouseDown, 2)
+        try mouse(.leftMouseDragged, 5)
+        view.setAccessibilitySelectedText("")
+        try mouse(.leftMouseDragged, 8, clickCount: 0)
+        try mouse(.leftMouseUp, 8, clickCount: 0)
+        key("x", code: 7)
+        try verify("01x89abcdefghij", "empty accessibility input leaves the drag active")
+
+        control("\u{12}")
+        pump(0.1)
+        key("0123456789abcdefghij", code: 0)
+        pump(0.1)
+        try mouse(.leftMouseDown, 2)
+        try mouse(.leftMouseDragged, 8)
+        window.makeFirstResponder(nil)
+        view.setAccessibilitySelectedText("unfocused")
+        try mouse(.leftMouseDragged, 12, clickCount: 0)
+        try mouse(.leftMouseUp, 14, clickCount: 0)
+        try verify("0123456789abcdefghij", "focus loss cancels the drag and rejects accessibility input")
+        window.makeFirstResponder(view)
 
         for (start, end, text, code, expected, label) in [
             (2, 8, "X", UInt16(7), "01X89abcdefghij", "Shift character replaces forward selection"),
