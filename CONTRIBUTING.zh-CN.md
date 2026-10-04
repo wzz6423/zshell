@@ -11,7 +11,7 @@
 
 - Bug 报告用 `[Bug] 简短的问题描述`，例如 `[Bug] Closing the git panel loses focus in the active pane`。请写明 zshell 版本、macOS 版本和机型、安装方式、复现步骤、预期行为和实际行为。
 - 功能请求用 `[Feature] 简短的需求描述`，例如 `[Feature] Remember the file tree scroll position per project`。请描述问题、你希望的方案，以及你考虑过的替代做法。
-- 在表单里选择一个 **Area**。这是必填项，决定 `area:*` 标签：`Feature Development`、`Bug Fix`、`CI & Build`、`Documentation` 或 `Community & Discussion`。简体中文表单提供相同的选项，映射到相同的标签。
+- 在表单里选择一个 **Area**。这是必填项，决定 `area:*` 标签：`Feature Development`、`Bug Fix`、`CI & Build`、`Documentation` 或 `Community & Discussion`。
 - 如果问题涉及终端本身，请说明它需要哪个终端后端：Ghostty 还是 Alacritty。两者是独立实现，一个 Bug 很少同时出现在两边。
 - 请从日志、截图和录屏中移除 token、账号信息、本地路径和其他敏感内容。
 - 安全漏洞请通过[安全公告](https://github.com/wzz6423/zshell/security/advisories/new)私下报告，不要开公开 Issue。

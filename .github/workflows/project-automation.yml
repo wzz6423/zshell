@@ -22,13 +22,53 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
-      issues: read
-      pull-requests: read
+      issues: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
+
+      - name: Record item timeline
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ITEM_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+          TIMELINE_MARKER: "<!-- zshell-item-timeline -->"
+        run: |
+          set -euo pipefail
+
+          timeline="$RUNNER_TEMP/item-timeline.md"
+          comments="$RUNNER_TEMP/item-timeline-comments.json"
+          ruby .github/scripts/item-timeline.rb render \
+            --event-file "$GITHUB_EVENT_PATH" > "$timeline"
+
+          gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/issues/$ITEM_NUMBER/comments?per_page=100" \
+            | jq 'flatten(1)' > "$comments"
+
+          existing="$(TIMELINE_MARKER="$TIMELINE_MARKER" jq -r '
+            map(select(.user.login == "github-actions[bot]"
+              and (.body | contains(env.TIMELINE_MARKER)))) | last | .id // empty
+          ' "$comments")"
+
+          if [ -n "$existing" ] && [ "$(jq -r --rawfile body "$timeline" \
+            --argjson id "$existing" \
+            'map(select(.id == $id)) | last | .body == $body' "$comments")" = 'true' ]; then
+            echo '::notice::The item timeline is already up to date.'
+            exit 0
+          fi
+
+          payload="$RUNNER_TEMP/item-timeline-comment.json"
+          jq -n --rawfile body "$timeline" '{body: $body}' > "$payload"
+
+          if [ -n "$existing" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" \
+              --input "$payload" >/dev/null
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$ITEM_NUMBER/comments" \
+              --input "$payload" >/dev/null
+          fi
 
       - name: Add item and synchronize status
         env:
@@ -245,5 +285,7 @@ jobs:
       - name: Remove project payloads
         if: always()
         run: |
+          rm -f "$RUNNER_TEMP/item-timeline.md" "$RUNNER_TEMP/item-timeline-comments.json" \
+            "$RUNNER_TEMP/item-timeline-comment.json"
           rm -f "$RUNNER_TEMP/project.json" "$RUNNER_TEMP/project-add-error.txt" \
             "$RUNNER_TEMP/project-update.json"
