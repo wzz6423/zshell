@@ -117,6 +117,9 @@ jobs:
       - name: Test project status routing
         run: ruby .github/scripts/project-status-test.rb
 
+      - name: Test issue and pull request timelines
+        run: ruby .github/scripts/item-timeline-test.rb
+
       - name: Verify the issue automation contract
         run: ruby .github/scripts/issue-metadata.rb verify-manifest
 

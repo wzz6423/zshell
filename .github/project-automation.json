@@ -1,5 +1,5 @@
 {
-  "comment": "ProjectV2 metadata for the shared zshell development board. The project is user-owned, so the workflow uses PROJECT_AUTOMATION_TOKEN instead of GITHUB_TOKEN.",
+  "comment": "ProjectV2 metadata for the shared zshell development board. The project is user-owned, so the workflow uses PROJECT_AUTOMATION_TOKEN instead of GITHUB_TOKEN. GitHub's built-in Created and Closed fields mirror the Issue or pull request timestamps; Start date and Target date remain schedule-controlled.",
   "project": {
     "owner": "wzz6423",
     "number": 2,

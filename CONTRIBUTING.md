@@ -12,11 +12,12 @@ Thank you for opening an issue. Search existing Issues and Discussions first so 
 
 - Use `[Bug] Short problem description` for bug reports, for example `[Bug] Closing the git panel loses focus in the active pane`. Include the zshell version, macOS version and device, installation method, reproduction steps, expected behavior, and actual behavior.
 - Use `[Feature] Short request description` for feature requests, for example `[Feature] Remember the file tree scroll position per project`. Describe the problem, the proposed solution, and alternatives you considered.
-- Pick one **Area** in the form. It is required and decides the `area:*` label: `Feature Development`, `Bug Fix`, `CI & Build`, `Documentation`, or `Community & Discussion`. The Simplified Chinese forms offer the same options and map to the same labels.
+- Pick one **Area** in the form. It is required and decides the `area:*` label: `Feature Development`, `Bug Fix`, `CI & Build`, `Documentation`, or `Community & Discussion`.
 - Say which terminal backend the problem needs, Ghostty or Alacritty, when the report touches the terminal itself. They are separate implementations and a bug rarely reaches both.
 - Remove tokens, account details, local paths, and other sensitive information from logs, screenshots, and recordings.
 - Report security vulnerabilities privately through [Security Advisories](https://github.com/wzz6423/zshell/security/advisories/new) instead of opening a public issue.
 - Automation applies `bug` or `enhancement` together with the matching `area:*` label, and leaves every other label untouched. When the title prefix or a required field does not follow the form, it also applies `needs-more-info` and keeps a single comment listing what is missing; edit the issue and that comment updates itself.
+- Issues and pull requests keep a single **Timeline** comment with their submission and completion timestamps in UTC. Closing an item records its close time; merging a pull request records its merge time. Reopening an item resets completion to `Pending`. The project's built-in `Created` and `Closed` fields reflect the source timestamps; `Start date` and `Target date` remain for scheduling.
 
 ## Development setup
 

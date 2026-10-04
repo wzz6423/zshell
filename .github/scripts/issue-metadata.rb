@@ -7,13 +7,11 @@ require 'yaml'
 
 # Parses and validates the issue form contract.
 #
-# GitHub renders an Issue Form as one `### <field label>` section per field, and
-# that label is localized, so the field ids in .github/ISSUE_TEMPLATE are the
-# only identity shared by the English and the Simplified Chinese form. This
-# module reads the shipped forms to build the heading map for every locale, then
-# reports the labels the Issue Automation workflow applies and every reason the
-# issue is still incomplete. An incomplete issue is data, never an exception, so
-# the workflow can label it instead of failing.
+# GitHub renders an Issue Form as one `### <field label>` section per field. This
+# module reads the shipped forms to build the heading map, then reports the
+# labels the Issue Automation workflow applies and every reason the issue is
+# still incomplete. An incomplete issue is data, never an exception, so the
+# workflow can label it instead of failing.
 module IssueMetadata
   NO_RESPONSE = /\A_+no response_+\z/i
   FENCE = /\A[[:space:]]{0,3}(`{3,}|~{3,})/
@@ -109,8 +107,8 @@ module IssueMetadata
       @forms.select { |form| form.kind == kind }
     end
 
-    # Picks the form whose localized labels the body actually used, which is the
-    # only way to tell an English body from a Simplified Chinese one.
+    # Picks the form whose labels the body actually used, which is the
+    # only way to tell which shipped form the body used.
     def detect(headings)
       best = nil
       best_score = 0
