@@ -17,6 +17,7 @@ Thank you for opening an issue. Search existing Issues and Discussions first so 
 - Remove tokens, account details, local paths, and other sensitive information from logs, screenshots, and recordings.
 - Report security vulnerabilities privately through [Security Advisories](https://github.com/wzz6423/zshell/security/advisories/new) instead of opening a public issue.
 - Automation applies `bug` or `enhancement` together with the matching `area:*` label, and leaves every other label untouched. When the title prefix or a required field does not follow the form, it also applies `needs-more-info` and keeps a single comment listing what is missing; edit the issue and that comment updates itself.
+- Issues and pull requests keep a single **Timeline** comment with their submission and completion timestamps in UTC. Closing an item records its close time; merging a pull request records its merge time. Reopening an item resets completion to `Pending`. The project's built-in `Created` and `Closed` fields reflect the source timestamps; `Start date` and `Target date` remain for scheduling.
 
 ## Development setup
 

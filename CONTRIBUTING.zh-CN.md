@@ -16,6 +16,7 @@
 - 请从日志、截图和录屏中移除 token、账号信息、本地路径和其他敏感内容。
 - 安全漏洞请通过[安全公告](https://github.com/wzz6423/zshell/security/advisories/new)私下报告，不要开公开 Issue。
 - 自动化会同时打上 `bug` 或 `enhancement` 以及对应的 `area:*` 标签，其他标签一概不动。如果标题前缀或某个必填项不符合表单要求，它还会加上 `needs-more-info`，并保留一条评论列出缺失的内容；编辑 Issue 后那条评论会自动更新。
+- Issue 和 PR 各保留一条 **Timeline** 评论，以 UTC 记录提交和结束时间。关闭时记录关闭时间，合并 PR 时记录合并时间，重新打开后将结束状态恢复为 `Pending`。Project 内建的 `Created` 和 `Closed` 字段反映源条目的时间；`Start date` 和 `Target date` 仍用于排期。
 
 ## 开发环境
 
