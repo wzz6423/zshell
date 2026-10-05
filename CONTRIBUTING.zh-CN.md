@@ -16,7 +16,7 @@
 - 请从日志、截图和录屏中移除 token、账号信息、本地路径和其他敏感内容。
 - 安全漏洞请通过[安全公告](https://github.com/wzz6423/zshell/security/advisories/new)私下报告，不要开公开 Issue。
 - 自动化会同时打上 `bug` 或 `enhancement` 以及对应的 `area:*` 标签，其他标签一概不动。如果标题前缀或某个必填项不符合表单要求，它还会加上 `needs-more-info`，并保留一条评论列出缺失的内容；编辑 Issue 后那条评论会自动更新。
-- Issue 和 PR 各保留一条 **Timeline** 评论，以 UTC 记录提交和结束时间。关闭时记录关闭时间，合并 PR 时记录合并时间，重新打开后将结束状态恢复为 `Pending`。Project 内建的 `Created` 和 `Closed` 字段反映源条目的时间；`Start date` 和 `Target date` 仍用于排期。
+- Issue 和 PR 各保留一条 **Timeline** 评论，以 UTC+08:00 记录提交和结束时间。关闭时记录关闭时间，合并 PR 时记录合并时间，重新打开后将结束状态恢复为 `Pending`。Project 看板中的 `Submitted date` 自动取创建日期，`End date` 记录关闭或合并日期，重新打开后会清空 `End date`；这些日期均按 UTC+08:00 计算。`Start date` 和 `Target date` 仍用于排期。
 
 ## 开发环境
 
@@ -127,6 +127,7 @@ Zshell 的开发语言是英文，应用和官网支持相同的 17 种语言，
 
 - **PR 正文**必须是英文，并包含 `.github/PULL_REQUEST_TEMPLATE.md` 提供的 `Summary`、`GitHub Project`、`PR Type`、`Validation`、`Risk and Rollback`、`Related Issue` 和 `AI Attribution` 各节。
   - `GitHub Project` 保留模板里的 `- Project: zshell Development`。`Project Automation` 读取它把 Pull Request 放到共享看板上。
+  - `GitHub Project` 中可选填 `Start date` 和 `Target date`，格式为 `YYYY-MM-DD`；留空会保留 Project 中已有的值。`Submitted date` 自动取 UTC+08:00 的创建日期；`End date` 在 PR 关闭或合并时自动填写，重新打开后清空，两者都不需要手动输入。
   - `PR Type` 只声明一个 `- Type:` 值，且必须与标题里的类型一致。`PR Automation` 会把它转成标签，例如 `fix` 转成 `bug`。
   - 每个 `Validation` 块都要声明 `passed`、`failed` 或 `not run`。`passed` 和 `failed` 需要 `Command` 和 `Result`；`not run` 需要 `Reason`。
   - `Related Issue` 要么用 `Closes #123` 这类关键字关闭某个 Issue（这也会打上 `development` 标签），要么就写成 `None`。
@@ -140,6 +141,8 @@ Zshell 的开发语言是英文，应用和官网支持相同的 17 种语言，
 
   ## GitHub Project
   - Project: zshell Development
+  - Start date: 2026-10-05
+  - Target date: 2026-10-12
 
   ## PR Type
   - Type: ci

@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require 'date'
 require 'json'
 require 'optparse'
 
@@ -86,14 +87,14 @@ module PullRequestMetadata
   end
 
   # Returns every `- Key: value` value in a section, dropping template comments.
-  def self.field_values(lines, key)
+  def self.field_values(lines, key, include_empty: false)
     pattern = /\A[[:space:]]*-[[:space:]]*#{Regexp.escape(key)}:[[:space:]]*(.*?)[[:space:]]*\z/i
     Array(lines).filter_map do |line|
       match = pattern.match(line)
       next if match.nil?
 
       value = match[1].to_s
-      next if value.empty? || PLACEHOLDER.match?(value)
+      next if !include_empty && (value.empty? || PLACEHOLDER.match?(value))
 
       value
     end
@@ -101,6 +102,24 @@ module PullRequestMetadata
 
   def self.field(lines, key)
     field_values(lines, key).first
+  end
+
+  def self.project_dates(lines)
+    { 'startDate' => 'Start date', 'targetDate' => 'Target date' }.to_h do |key, label|
+      values = field_values(lines, label, include_empty: true)
+      raise ContractError, "GitHub Project must declare at most one #{label} entry." if values.length > 1
+
+      value = values.first
+      value = nil if value.to_s.empty?
+      if value
+        raise Date::Error unless value.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+
+        Date.iso8601(value)
+      end
+      [key, value]
+    rescue Date::Error
+      raise ContractError, "#{label} must be a valid date in YYYY-MM-DD format."
+    end
   end
 
   def self.parse(body, contract)
@@ -114,6 +133,8 @@ module PullRequestMetadata
       'type' => type,
       'typeLabel' => type && contract.label_for(type),
       'project' => field(parsed['GitHub Project'], 'Project'),
+      'startDate' => field(parsed['GitHub Project'], 'Start date'),
+      'targetDate' => field(parsed['GitHub Project'], 'Target date'),
       'issues' => (related.scan(ISSUE_REFERENCE) + related.scan(ISSUE_URL)).flatten.map(&:to_i).uniq.sort,
       'relatedIsNone' => Array(parsed['Related Issue']).any? { |line| line.match?(/\A[[:space:]]*-?[[:space:]]*none[[:space:]]*\z/i) },
       'agent' => agent,
@@ -175,9 +196,12 @@ module PullRequestMetadata
 
     values = field_values(lines, 'Project')
     return ['GitHub Project must declare exactly one "- Project: zshell Development" entry.'] unless values.length == 1
-    return [] if values.first == contract.project_name
+    return ["GitHub Project must be #{contract.project_name.inspect}."] unless values.first == contract.project_name
 
-    ["GitHub Project must be #{contract.project_name.inspect}."]
+    project_dates(lines)
+    []
+  rescue ContractError => error
+    [error.message]
   end
 
   def self.validate_validation(metadata)
@@ -242,10 +266,13 @@ end
 
 def command_json(options, contract)
   metadata = PullRequestMetadata.parse(File.read(options[:body_file]), contract)
+  dates = PullRequestMetadata.project_dates(metadata['sections']['GitHub Project'])
   puts JSON.pretty_generate(
     'type' => metadata['type'],
     'typeLabel' => metadata['typeLabel'],
     'project' => metadata['project'],
+    'startDate' => dates['startDate'],
+    'targetDate' => dates['targetDate'],
     'issues' => metadata['issues'],
     'agent' => metadata['agent'],
     'coAuthors' => metadata['coAuthors'],
