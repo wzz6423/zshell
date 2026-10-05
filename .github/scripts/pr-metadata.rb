@@ -104,13 +104,14 @@ module PullRequestMetadata
     field_values(lines, key).first
   end
 
-  def self.project_dates(lines)
+  def self.project_dates(lines, required: false)
     { 'startDate' => 'Start date', 'targetDate' => 'Target date' }.to_h do |key, label|
       values = field_values(lines, label, include_empty: true)
       raise ContractError, "GitHub Project must declare at most one #{label} entry." if values.length > 1
 
       value = values.first
       value = nil if value.to_s.empty?
+      raise ContractError, "GitHub Project must include a non-empty #{label} in YYYY-MM-DD format." if required && value.nil?
       if value
         raise Date::Error unless value.match?(/\A\d{4}-\d{2}-\d{2}\z/)
 
@@ -198,7 +199,7 @@ module PullRequestMetadata
     return ['GitHub Project must declare exactly one "- Project: zshell Development" entry.'] unless values.length == 1
     return ["GitHub Project must be #{contract.project_name.inspect}."] unless values.first == contract.project_name
 
-    project_dates(lines)
+    project_dates(lines, required: true)
     []
   rescue ContractError => error
     [error.message]

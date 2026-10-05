@@ -58,7 +58,7 @@ class PullRequestMetadataTest < Minitest::Test
   end
 
   def test_project_dates_accept_calendar_dates_and_ignore_other_sections
-    body = build_body(project: "zshell Development\n- Start date: 2024-02-29\n- Target date: 2026-10-10")
+    body = build_body(schedule: "- Start date: 2024-02-29\n- Target date: 2026-10-10")
     body += "\n## Notes\n- Start date: invalid\n"
     sections = PullRequestMetadata.sections(body)
 
@@ -67,7 +67,7 @@ class PullRequestMetadataTest < Minitest::Test
     assert_empty PullRequestMetadata.validate(title: 'ci: add automation', body: body, contract: @contract)
   end
 
-  def test_project_dates_are_optional_and_ignore_template_comments
+  def test_project_date_parsing_accepts_historical_missing_dates_and_template_comments
     [nil, [], ['- Start date:', '- Target date:   ']].each do |lines|
       assert_equal({ 'startDate' => nil, 'targetDate' => nil }, PullRequestMetadata.project_dates(lines))
     end
@@ -77,12 +77,47 @@ class PullRequestMetadataTest < Minitest::Test
                  PullRequestMetadata.project_dates(PullRequestMetadata.sections(body)['GitHub Project']))
   end
 
+  def test_validation_requires_both_project_dates
+    assert_includes validate('ci: add automation', schedule: nil).join("\n"), 'non-empty Start date'
+    ['Start date', 'Target date'].each do |field|
+      other_field = field == 'Start date' ? 'Target date' : 'Start date'
+      errors = validate('ci: add automation', schedule: "- #{other_field}: 2026-10-10")
+
+      assert_includes errors.join("\n"), "non-empty #{field}"
+    end
+  end
+
+  def test_validation_rejects_blank_or_template_placeholder_dates
+    ['Start date', 'Target date'].product(['', '   ', '<!-- YYYY-MM-DD -->']).each do |field, value|
+      other_field = field == 'Start date' ? 'Target date' : 'Start date'
+      schedule = "- #{other_field}: 2026-10-10\n- #{field}: #{value}"
+      errors = validate('ci: add automation', schedule: schedule)
+
+      assert_includes errors.join("\n"), "non-empty #{field}"
+    end
+  end
+
+  def test_json_cli_preserves_historical_missing_or_blank_dates
+    Dir.mktmpdir('zshell-pr-metadata-') do |directory|
+      path = File.join(directory, 'body.md')
+      [nil, "- Start date: <!-- YYYY-MM-DD -->\n- Target date:   "].each do |schedule|
+        File.write(path, build_body(schedule: schedule))
+        output, error, status = Open3.capture3('ruby', File.join(__dir__, 'pr-metadata.rb'), 'json', '--body-file', path)
+
+        assert status.success?, error
+        assert_nil JSON.parse(output)['startDate']
+        assert_nil JSON.parse(output)['targetDate']
+      end
+    end
+  end
+
   def test_project_dates_reject_invalid_calendar_dates_formats_and_untrusted_values
     invalid = ['2026-02-29', '2026-02-30', '2026-13-01', '2026-00-01', '2026-10-00',
                '2026-4-1', '20261005', '2026-W41-1', '2026-278', '2026-10-05T00:00:00Z',
                'tomorrow', '2026-10-05; $(id)', '2026-10-05`id`', '2026-10-05\\nextra']
     ['Start date', 'Target date'].product(invalid).each do |field, value|
-      errors = validate('ci: add automation', project: "zshell Development\n- #{field}: #{value}")
+      schedule = "- Start date: 2026-10-01\n- Target date: 2026-10-10".sub(/^- #{field}:.*$/, "- #{field}: #{value}")
+      errors = validate('ci: add automation', schedule: schedule)
 
       assert_includes errors.join("\n"), "#{field} must be a valid date in YYYY-MM-DD format.", value
     end
@@ -90,7 +125,8 @@ class PullRequestMetadataTest < Minitest::Test
 
   def test_project_dates_reject_duplicate_values
     ['Start date', 'Target date'].each do |field|
-      errors = validate('ci: add automation', project: "zshell Development\n- #{field}: 2026-10-01\n- #{field}: 2026-10-10")
+      schedule = "- Start date: 2026-10-01\n- Target date: 2026-10-10\n- #{field}: 2026-10-10"
+      errors = validate('ci: add automation', schedule: schedule)
 
       assert_includes errors.join("\n"), "at most one #{field} entry"
     end
@@ -98,7 +134,9 @@ class PullRequestMetadataTest < Minitest::Test
 
   def test_project_dates_reject_duplicate_blank_entries
     ['Start date', 'Target date'].product(['', '2026-10-01']).each do |field, value|
-      errors = validate('ci: add automation', project: "zshell Development\n- #{field}:\n- #{field}: #{value}")
+      other_field = field == 'Start date' ? 'Target date' : 'Start date'
+      schedule = "- #{other_field}: 2026-10-10\n- #{field}:\n- #{field}: #{value}"
+      errors = validate('ci: add automation', schedule: schedule)
 
       assert_includes errors.join("\n"), "at most one #{field} entry"
     end
@@ -107,13 +145,13 @@ class PullRequestMetadataTest < Minitest::Test
   def test_json_cli_exports_schedule_and_fails_without_output_for_invalid_dates
     Dir.mktmpdir('zshell-pr-metadata-') do |directory|
       path = File.join(directory, 'body.md')
-      File.write(path, build_body(project: "zshell Development\n- Start date: 2026-10-01\n- Target date: 2026-10-10"))
+      File.write(path, build_body)
       output, error, status = Open3.capture3('ruby', File.join(__dir__, 'pr-metadata.rb'), 'json', '--body-file', path)
       assert status.success?, error
       assert_equal '2026-10-01', JSON.parse(output)['startDate']
       assert_equal '2026-10-10', JSON.parse(output)['targetDate']
 
-      File.write(path, build_body(project: "zshell Development\n- Start date: 2026-02-30"))
+      File.write(path, build_body(schedule: "- Start date: 2026-02-30\n- Target date: 2026-10-10"))
       output, error, status = Open3.capture3('ruby', File.join(__dir__, 'pr-metadata.rb'), 'json', '--body-file', path)
       refute status.success?
       assert_empty output
@@ -201,6 +239,8 @@ class PullRequestMetadataTest < Minitest::Test
   def test_repository_template_needs_only_its_own_fields_filled_in
     template = File.read(File.expand_path('../PULL_REQUEST_TEMPLATE.md', __dir__))
                    .sub(/^- Type:$/, '- Type: ci')
+                   .sub(/^- Start date:.*$/, '- Start date: 2026-10-01')
+                   .sub(/^- Target date:.*$/, '- Target date: 2026-10-10')
                    .sub(/^- Status:.*$/, '- Status: not run')
                    .sub(/^- Reason:.*$/, '- Reason: Automation only.')
     metadata = PullRequestMetadata.parse(template, @contract)
@@ -232,7 +272,8 @@ class PullRequestMetadataTest < Minitest::Test
     PullRequestMetadata.parse(build_body(**overrides), @contract)
   end
 
-  def build_body(type: 'ci', project: 'zshell Development', validation: nil, related: 'None', attribution: '- Agent: None')
+  def build_body(type: 'ci', project: 'zshell Development', validation: nil, related: 'None', attribution: '- Agent: None',
+                 schedule: "- Start date: 2026-10-01\n- Target date: 2026-10-10")
     <<~BODY
       ## Summary
 
@@ -241,6 +282,7 @@ class PullRequestMetadataTest < Minitest::Test
       ## GitHub Project
 
       - Project: #{project}
+      #{schedule}
 
       ## PR Type
 

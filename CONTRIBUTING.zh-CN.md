@@ -127,13 +127,15 @@ Zshell 的开发语言是英文，应用和官网支持相同的 17 种语言，
 
 - **PR 正文**必须是英文，并包含 `.github/PULL_REQUEST_TEMPLATE.md` 提供的 `Summary`、`GitHub Project`、`PR Type`、`Validation`、`Risk and Rollback`、`Related Issue` 和 `AI Attribution` 各节。
   - `GitHub Project` 保留模板里的 `- Project: zshell Development`。`Project Automation` 读取它把 Pull Request 放到共享看板上。
-  - `GitHub Project` 中可选填 `Start date` 和 `Target date`，格式为 `YYYY-MM-DD`；留空会保留 Project 中已有的值。`Submitted date` 自动取 UTC+08:00 的创建日期；`End date` 在 PR 关闭或合并时自动填写，重新打开后清空，两者都不需要手动输入。
+  - `GitHub Project` 中必填 `Start date` 和 `Target date`，格式为 `YYYY-MM-DD`，每个字段只能填写一次。日期缺失、留空、重复或非法都会导致 `PR Quality` 失败。`Submitted date` 自动取 UTC+08:00 的创建日期；`End date` 在 PR 关闭或合并时自动填写，重新打开后清空，两者都不需要手动输入。
   - `PR Type` 只声明一个 `- Type:` 值，且必须与标题里的类型一致。`PR Automation` 会把它转成标签，例如 `fix` 转成 `bug`。
   - 每个 `Validation` 块都要声明 `passed`、`failed` 或 `not run`。`passed` 和 `failed` 需要 `Command` 和 `Result`；`not run` 需要 `Reason`。
   - `Related Issue` 要么用 `Closes #123` 这类关键字关闭某个 Issue（这也会打上 `development` 标签），要么就写成 `None`。
   - `AI Attribution` 必须声明 `- Agent:`。除 `None` 以外的任何 agent 都需要一行对应的 `- Co-authored-by: Name <email>`，并且它必须同时作为 trailer 出现在至少一个提交里，这会打上 `ai-assisted` 标签。
 
-  示例：
+  示例 PR 标题：`ci: add a repository hygiene check`
+
+  示例 PR 正文：
 
   ```markdown
   ## Summary

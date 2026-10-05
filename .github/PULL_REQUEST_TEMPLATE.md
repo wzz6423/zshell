@@ -6,7 +6,8 @@
 
 <!-- Keep the exact project name so CI can place this pull request on the shared board. -->
 - Project: zshell Development
-<!-- Optional schedule dates in YYYY-MM-DD format. Blank or removed fields preserve existing Project values. -->
+<!-- Required schedule dates in YYYY-MM-DD format. PR Quality rejects missing, blank, duplicate, or invalid dates. -->
+<!-- Submitted date and End date are generated automatically; do not enter them here. -->
 - Start date:
 - Target date:
 
