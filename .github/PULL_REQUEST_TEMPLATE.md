@@ -6,6 +6,9 @@
 
 <!-- Keep the exact project name so CI can place this pull request on the shared board. -->
 - Project: zshell Development
+<!-- Optional schedule dates in YYYY-MM-DD format. Blank or removed fields preserve existing Project values. -->
+- Start date:
+- Target date:
 
 ## PR Type
 

@@ -17,7 +17,7 @@ Thank you for opening an issue. Search existing Issues and Discussions first so 
 - Remove tokens, account details, local paths, and other sensitive information from logs, screenshots, and recordings.
 - Report security vulnerabilities privately through [Security Advisories](https://github.com/wzz6423/zshell/security/advisories/new) instead of opening a public issue.
 - Automation applies `bug` or `enhancement` together with the matching `area:*` label, and leaves every other label untouched. When the title prefix or a required field does not follow the form, it also applies `needs-more-info` and keeps a single comment listing what is missing; edit the issue and that comment updates itself.
-- Issues and pull requests keep a single **Timeline** comment with their submission and completion timestamps in UTC. Closing an item records its close time; merging a pull request records its merge time. Reopening an item resets completion to `Pending`. The project's built-in `Created` and `Closed` fields reflect the source timestamps; `Start date` and `Target date` remain for scheduling.
+- Issues and pull requests keep a single **Timeline** comment with their submission and completion timestamps in UTC+08:00. Closing an item records its close time; merging a pull request records its merge time. Reopening an item resets completion to `Pending`. On the Project board, `Submitted date` automatically uses the creation date, and `End date` records the close or merge date; reopening clears `End date`. These dates use UTC+08:00. `Start date` and `Target date` remain for scheduling.
 
 ## Development setup
 
@@ -169,6 +169,7 @@ Thank you for opening a pull request. Check these requirements while it is await
 
 - The **PR body** must be in English and contain the `Summary`, `GitHub Project`, `PR Type`, `Validation`, `Risk and Rollback`, `Related Issue`, and `AI Attribution` sections that `.github/PULL_REQUEST_TEMPLATE.md` provides.
   - `GitHub Project` keeps the template value `- Project: zshell Development`. `Project Automation` reads it to place the pull request on the shared board.
+  - In `GitHub Project`, add optional `Start date` and `Target date` values in `YYYY-MM-DD` format, or leave them blank to preserve existing Project values. `Submitted date` automatically uses the creation date in UTC+08:00; `End date` is filled automatically when the pull request is closed or merged and cleared when it reopens. Neither needs to be entered manually.
   - `PR Type` declares exactly one `- Type:` value, and it must match the type in the title. `PR Automation` turns it into a label, for example `fix` into `bug`.
   - Every `Validation` block must declare `passed`, `failed`, or `not run`. `passed` and `failed` need `Command` and `Result`; `not run` needs `Reason`.
   - `Related Issue` must either close an issue with a keyword such as `Closes #123`, which also applies the `development` label, or be exactly `None`.
@@ -182,6 +183,8 @@ Thank you for opening a pull request. Check these requirements while it is await
 
   ## GitHub Project
   - Project: zshell Development
+  - Start date: 2026-10-05
+  - Target date: 2026-10-12
 
   ## PR Type
   - Type: ci
