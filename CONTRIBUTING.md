@@ -169,13 +169,15 @@ Thank you for opening a pull request. Check these requirements while it is await
 
 - The **PR body** must be in English and contain the `Summary`, `GitHub Project`, `PR Type`, `Validation`, `Risk and Rollback`, `Related Issue`, and `AI Attribution` sections that `.github/PULL_REQUEST_TEMPLATE.md` provides.
   - `GitHub Project` keeps the template value `- Project: zshell Development`. `Project Automation` reads it to place the pull request on the shared board.
-  - In `GitHub Project`, add optional `Start date` and `Target date` values in `YYYY-MM-DD` format, or leave them blank to preserve existing Project values. `Submitted date` automatically uses the creation date in UTC+08:00; `End date` is filled automatically when the pull request is closed or merged and cleared when it reopens. Neither needs to be entered manually.
+  - In `GitHub Project`, add required `Start date` and `Target date` values in `YYYY-MM-DD` format, each exactly once. Missing, blank, duplicate, or invalid dates fail `PR Quality`. `Submitted date` automatically uses the creation date in UTC+08:00; `End date` is filled automatically when the pull request is closed or merged and cleared when it reopens. Neither needs to be entered manually.
   - `PR Type` declares exactly one `- Type:` value, and it must match the type in the title. `PR Automation` turns it into a label, for example `fix` into `bug`.
   - Every `Validation` block must declare `passed`, `failed`, or `not run`. `passed` and `failed` need `Command` and `Result`; `not run` needs `Reason`.
   - `Related Issue` must either close an issue with a keyword such as `Closes #123`, which also applies the `development` label, or be exactly `None`.
   - `AI Attribution` must declare `- Agent:`. Any agent other than `None` requires a matching `- Co-authored-by: Name <email>` line, which must also appear as a trailer on at least one commit, and applies the `ai-assisted` label.
 
-  Example:
+  Example PR title: `ci: add a repository hygiene check`
+
+  Example PR body:
 
   ```markdown
   ## Summary

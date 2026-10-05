@@ -8,6 +8,8 @@ require 'open3'
 require 'tmpdir'
 require 'fileutils'
 
+require_relative 'pr-metadata'
+
 class ContributorWelcomeTest < Minitest::Test
   ROOT = File.expand_path('../..', __dir__)
   MARKER = '<!-- zshell-contributor-welcome -->'
@@ -46,15 +48,37 @@ class ContributorWelcomeTest < Minitest::Test
     body = render('pr')
     assert_includes body, '- Start date: 2026-10-05'
     assert_includes body, '- Target date: 2026-10-12'
-    assert_includes body, 'optional `Start date` and `Target date`'
+    assert_includes body, 'required `Start date` and `Target date`'
     assert_includes body, '`YYYY-MM-DD`'
-    assert_includes body, 'leave them blank to preserve existing Project values'
+    assert_includes body, 'Missing, blank, duplicate, or invalid dates fail `PR Quality`'
     assert_includes body, '`Submitted date` automatically uses the creation date in UTC+08:00'
     assert_includes body, '`End date` is filled automatically when the pull request is closed or merged and cleared when it reopens'
     assert body.start_with?(MARKER)
     refute_includes body, '## Skipping CI'
     assert_includes File.read(File.join(ROOT, 'CONTRIBUTING.zh-CN.md')), '- Start date: 2026-10-05'
     assert_includes File.read(File.join(ROOT, 'CONTRIBUTING.zh-CN.md')), '- Target date: 2026-10-12'
+  end
+
+  def test_welcome_and_translated_guide_provide_valid_complete_pr_examples
+    contract = PullRequestMetadata::Contract.load(File.join(ROOT, '.github/pr-automation.json'))
+    examples = [
+      [render('pr'), /Example PR title: `([^`]+)`/],
+      [File.read(File.join(ROOT, 'CONTRIBUTING.zh-CN.md')), /示例 PR 标题：`([^`]+)`/]
+    ]
+    examples.each do |guidance, title_pattern|
+      title = guidance.match(title_pattern)
+      body = guidance.match(/  ```markdown\n(.*?)\n  ```/m)
+      refute_nil title, 'The complete example must include a PR title.'
+      refute_nil body, 'The complete example must include a copyable PR body.'
+      example = body[1].gsub(/^  /, '')
+      metadata = PullRequestMetadata.parse(example, contract)
+
+      assert_equal PullRequestMetadata::REQUIRED_SECTIONS, metadata['sections'].keys
+      assert_equal '2026-10-05', metadata['startDate']
+      assert_equal '2026-10-12', metadata['targetDate']
+      assert_equal metadata['type'], title[1].split(':', 2).first
+      assert_empty PullRequestMetadata.validate(title: title[1], body: example, contract: contract)
+    end
   end
 
   def test_first_run_posts_the_rendered_message
