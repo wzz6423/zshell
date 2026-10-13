@@ -138,7 +138,8 @@ jobs:
   codeql:
     name: CodeQL (JavaScript)
     needs: gate
-    if: needs.gate.outputs.skip != 'true' && needs.gate.outputs.relevant != 'false'
+    # The database also includes macOS scripts and vendored JavaScript outside web/.
+    if: needs.gate.outputs.skip != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

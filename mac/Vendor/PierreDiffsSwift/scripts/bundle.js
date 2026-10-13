@@ -15,7 +15,7 @@ const isWatch = process.argv.includes('--watch');
 /**
  * Builds the highlight worker and writes it into the main bundle's source tree
  * as a string module. The worker cannot be loaded from a URL in the WebView
- * (`loadHTMLString(baseURL: nil)` gives the page a null origin), so the bridge
+ * (`loadHTMLString(baseURL: about:blank)` gives the page a null origin), so the bridge
  * starts it from a blob built out of this string instead.
  */
 async function buildWorkerSource() {

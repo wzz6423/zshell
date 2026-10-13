@@ -232,6 +232,6 @@ public struct PierreDiffView: NSViewRepresentable {
 
   private func loadHTML(into webView: WKWebView) {
     let html = DiffHTMLTemplate.generateHTML()
-    webView.loadHTMLString(html, baseURL: nil)
+    webView.loadHTMLString(html, baseURL: URL(string: "about:blank"))
   }
 }

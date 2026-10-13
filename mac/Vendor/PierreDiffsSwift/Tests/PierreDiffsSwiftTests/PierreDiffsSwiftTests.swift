@@ -301,7 +301,7 @@ import Testing
   // scrolling a virtualized multi-file diff stalled for as long as it took to
   // highlight each newly mounted file. Highlighting has to happen in workers,
   // and they can only be started from a blob — the page is loaded with
-  // loadHTMLString(baseURL: nil) and has no URL to load a worker script from.
+  // loadHTMLString(baseURL: about:blank) and has no URL to load a worker script from.
   let html = DiffHTMLTemplate.generateHTML()
   #expect(html.contains("workerFactory"))
   #expect(html.contains("new Worker("))

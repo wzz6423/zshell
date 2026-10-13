@@ -91,11 +91,10 @@ function preservingScrollPosition(update) {
     container.scrollLeft = scrollLeft;
   };
 
-  const result = update(container);
+  update(container);
   restore();
   requestAnimationFrame(restore);
   setTimeout(restore, 0);
-  return result;
 }
 
 /**
@@ -128,7 +127,7 @@ function escapeCSSString(value) {
 
 /**
  * Injects (or clears) @font-face rules for bundled font bytes.
- * Fonts are embedded as data URLs so they work with loadHTMLString(baseURL: nil).
+ * Fonts are embedded as data URLs so they work with loadHTMLString(baseURL: about:blank).
  */
 function applyFontFaces(faces) {
   let styleEl = document.getElementById(FONT_FACE_STYLE_ID);

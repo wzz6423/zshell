@@ -37,7 +37,7 @@ const matrix = {
       }
     },
   },
-}
+};
 
 // Determine the URL of the file.
 const platform = matrix.platform[process.platform];
@@ -116,7 +116,7 @@ function get(url, callback) {
       'Proxy-Authorization': `Basic ${Buffer.from(
         auth
       ).toString('base64')}`,
-    }
+    };
   }
   request.request(requestOption).on('connect', (response, socket, _head) => {
     if (response.statusCode !== 200) {

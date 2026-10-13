@@ -257,7 +257,7 @@ window.initializePlayground = async (opts) => {
       } else if (cursor.nodeIsNamed) {
         displayName = cursor.nodeType;
       } else if (anonymousNodes.checked) {
-        displayName = cursor.nodeType
+        displayName = cursor.nodeType;
       }
 
       if (visitedChildren) {

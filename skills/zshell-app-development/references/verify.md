@@ -54,6 +54,8 @@ CI 另外加 `-skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED
 | `Skill CI` | `skills/**`、`mac/zshell/Skills/**`、`.github/**` | 每个 `SKILL.md` 的 frontmatter、本地引用与 release URL |
 | `CI Lint`、`Repository Hygiene`、`PR Quality Gates`、`CodeQL`、`Dependency Review` | 无作用域 | 每个 PR 都跑 |
 
+`Web CI` 中的 `CodeQL (JavaScript)` 同样在每个 PR 上运行，覆盖 `web/` 之外的 macOS 脚本和 vendored JavaScript；路径筛选只限制网站构建。
+
 作用域由 `.github/ci-skip.json` 的 `paths` 拥有；改工作流文件必须同步这个清单，
 否则 `Test CI Scripts` 会因清单漂移失败。`.github/**` 下任何改动都会跑全部工作流。
 跳过检查的 `skip-*` / `unskip-*` 评论指令规则见 `CONTRIBUTING.md`，只有仓库 owner、
