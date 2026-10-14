@@ -243,10 +243,11 @@ A platform workflow only runs when the pull request touches the files it builds,
 | --- | --- |
 | `macOS App` | `mac/zshell/**`, `mac/zshell.xcodeproj/**`, `mac/Vendor/**`, `mac/Config/**`, `mac/Makefile`, `Makefile`, `mac/scripts/build-alacritty-bridge.sh`, `.github/**` |
 | `Release Scripts` | `mac/scripts/**`, `mac/package.json`, `mac/bun.lock`, `mac/tsconfig.json`, `.github/**` |
-| `Web CI` | `web/**`, `.github/**` |
+| `Web CI` website build | `web/**`, `.github/**` |
 | `Skill CI` | `skills/**`, `mac/zshell/Skills/**`, `.github/**` |
 
 - The `paths` field of `.github/ci-skip.json` owns the scopes, and a workflow that declares none always runs. `CI Lint`, `Repository Hygiene`, `PR Quality Gates`, `CodeQL` and `Dependency Review` therefore run on every pull request.
+- `CodeQL (JavaScript)` also runs on every pull request: its database includes macOS scripts and vendored JavaScript outside `web/`. The `Web CI` path filter applies only to the website build.
 - `mac/scripts/build-alacritty-bridge.sh` is deliberately owned by two workflows: it lives under `mac/scripts/`, but it is also the Xcode build phase that produces the Alacritty backend's static library.
 - Any change under `.github/` runs everything, because a change to CI must be proven against every platform.
 - The jobs are skipped by a job condition instead of a workflow `paths:` filter, so a required check reports success rather than staying pending forever.

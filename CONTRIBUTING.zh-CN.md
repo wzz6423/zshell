@@ -203,10 +203,11 @@ macOS runner：
 | --- | --- |
 | `macOS App` | `mac/zshell/**`、`mac/zshell.xcodeproj/**`、`mac/Vendor/**`、`mac/Config/**`、`mac/Makefile`、`Makefile`、`mac/scripts/build-alacritty-bridge.sh`、`.github/**` |
 | `Release Scripts` | `mac/scripts/**`、`mac/package.json`、`mac/bun.lock`、`mac/tsconfig.json`、`.github/**` |
-| `Web CI` | `web/**`、`.github/**` |
+| `Web CI` 的网站构建 | `web/**`、`.github/**` |
 | `Skill CI` | `skills/**`、`mac/zshell/Skills/**`、`.github/**` |
 
 - 范围由 `.github/ci-skip.json` 的 `paths` 字段决定，没有声明 paths 的工作流总是运行。因此 `CI Lint`、`Repository Hygiene`、`PR Quality Gates`、`CodeQL` 和 `Dependency Review` 在每个 Pull Request 上都会跑。
+- `CodeQL (JavaScript)` 也在每个 Pull Request 上运行，因为扫描范围包含 `web/` 之外的 macOS 脚本和 vendored JavaScript；`Web CI` 的路径筛选仅用于网站构建。
 - `mac/scripts/build-alacritty-bridge.sh` 被两个工作流同时认领是刻意的：它位于 `mac/scripts/` 下，同时也是产出 Alacritty 后端静态库的那个 Xcode 构建阶段。
 - `.github/` 下的任何改动都会触发全部检查，因为改 CI 必须在每个平台上验证。
 - 这些 job 是用 job 条件跳过的，而不是工作流的 `paths:` 过滤器，这样必需检查会报告成功，而不是永远挂在 pending。

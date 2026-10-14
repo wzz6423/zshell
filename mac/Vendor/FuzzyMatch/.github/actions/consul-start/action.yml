@@ -2,7 +2,7 @@ name: "Start Consul"
 runs:
   using: "composite"
   steps:
-    - uses: nahsi/setup-hashi-tool@v1
+    - uses: nahsi/setup-hashi-tool@531d9121867c5039ecb272a1ff5c319cf41149d9 # v1.0.0
       if: github.repository == 'ordo-one/package-consul' || github.repository == 'ordo-one/package-distributed-system'
       with:
         name: consul

@@ -92,7 +92,7 @@ public struct PierreMultiDiffView: NSViewRepresentable {
     webView.setValue(false, forKey: "drawsBackground")
 
     context.coordinator.webView = webView
-    webView.loadHTMLString(DiffHTMLTemplate.generateHTML(), baseURL: nil)
+    webView.loadHTMLString(DiffHTMLTemplate.generateHTML(), baseURL: URL(string: "about:blank"))
 
     return webView
   }

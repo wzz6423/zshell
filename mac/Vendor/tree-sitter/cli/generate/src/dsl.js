@@ -270,7 +270,7 @@ function grammar(baseGrammar, options) {
       throw new Error("Grammar's 'externals' property must be a function.");
     }
 
-    const externalsRuleBuilder = RuleBuilder(null)
+    const externalsRuleBuilder = RuleBuilder(null);
     const externalRules = options.externals.call(externalsRuleBuilder, externalsRuleBuilder, baseGrammar.externals);
 
     if (!Array.isArray(externalRules)) {
@@ -338,7 +338,7 @@ function grammar(baseGrammar, options) {
     }
 
     for (const reservedWordSetName of Object.keys(options.reserved)) {
-      const reservedWordSetFn = options.reserved[reservedWordSetName]
+      const reservedWordSetFn = options.reserved[reservedWordSetName];
       if (typeof reservedWordSetFn !== "function") {
         throw new Error(`Grammar reserved word sets must all be functions. '${reservedWordSetName}' is not.`);
       }
@@ -360,10 +360,10 @@ function grammar(baseGrammar, options) {
     }
 
     extras = options.extras
-      .call(ruleBuilder, ruleBuilder, baseGrammar.extras)
+      .call(ruleBuilder, ruleBuilder, baseGrammar.extras);
 
     if (!Array.isArray(extras)) {
-      throw new Error("Grammar's 'extras' function must return an array.")
+      throw new Error("Grammar's 'extras' function must return an array.");
     }
 
     extras = extras.map(normalize);

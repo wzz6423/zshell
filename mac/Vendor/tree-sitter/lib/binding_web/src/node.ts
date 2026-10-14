@@ -1,8 +1,6 @@
 import { INTERNAL, Internal, assertInternal, Point, Edit, SIZE_OF_INT, SIZE_OF_NODE, SIZE_OF_POINT, ZERO_POINT, isPoint, C } from './constants';
 import { getText, Tree } from './tree';
 import { TreeCursor } from './tree_cursor';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Language } from './language';
 import { marshalNode, marshalPoint, unmarshalNode, unmarshalPoint } from './marshal';
 import { TRANSFER_BUFFER } from './parser';
 
@@ -219,7 +217,7 @@ export class Node {
    * Get this node's child with the given numerical field id.
    *
    * See also {@link Node#childForFieldName}. You can
-   * convert a field name to an id using {@link Language#fieldIdForName}.
+   * convert a field name to an id using the {@link Tree#language} object's `fieldIdForName` method.
    */
   childForFieldId(fieldId: number): Node | null {
     marshalNode(this);
@@ -403,7 +401,7 @@ export class Node {
   /**
    * Get the descendants of this node that are the given type, or in the given types array.
    *
-   * The types array should contain node type strings, which can be retrieved from {@link Language#types}.
+   * The types array should contain node type strings, which can be retrieved from the {@link Tree#language} object's `types` array.
    *
    * Additionally, a `startPosition` and `endPosition` can be passed in to restrict the search to a byte range.
    */

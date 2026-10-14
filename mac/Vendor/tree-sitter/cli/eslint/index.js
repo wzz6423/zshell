@@ -37,7 +37,6 @@ export default [
       'array-element-newline': 'off',
       'block-spacing': ['error', 'never'],
       'brace-style': 'error',
-      'camelcase': ['error', { properties: 'never' }],
       'comma-dangle': ['error', 'always-multiline'],
       'comma-spacing': 'error',
       'comma-style': 'error',
