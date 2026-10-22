@@ -63,7 +63,6 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
     case libreOffice
     case keka
     case kaku
-    case kero
     case markdownPreview
     case zisla
 
@@ -112,7 +111,6 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .libreOffice: "LibreOffice"
         case .keka: "Keka"
         case .kaku: "Kaku"
-        case .kero: "Kero"
         case .markdownPreview: "Markdown Preview"
         case .zisla: "Zisla"
         }
@@ -163,7 +161,6 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .libreOffice: String(localized: "Office to PDF conversion")
         case .keka: String(localized: "Archive compression and extraction")
         case .kaku: String(localized: "Terminal for AI coding")
-        case .kero: String(localized: "Terminal workspace")
         case .markdownPreview: String(localized: "Markdown preview")
         case .zisla: String(localized: "Media, files, system tools, and local AI")
         }
@@ -214,7 +211,6 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .libreOffice: "soffice"
         case .keka: "keka"
         case .kaku: "kaku"
-        case .kero: "kero"
         case .markdownPreview: "mdp"
         case .zisla: "zisla"
         }
@@ -265,7 +261,6 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .libreOffice: "libreoffice"
         case .keka: "keka"
         case .kaku: "tw93/tap/kakuku"
-        case .kero: "egoist/tap/kero"
         case .markdownPreview: "markdown-preview"
         case .zisla: "wzz6423/tap/zisla"
         }
@@ -273,7 +268,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
 
     var isCask: Bool {
         switch self {
-        case .libreOffice, .keka, .kaku, .kero, .markdownPreview, .zisla: true
+        case .libreOffice, .keka, .kaku, .markdownPreview, .zisla: true
         default: false
         }
     }
@@ -296,7 +291,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
             .developmentToolchain
         case .ytDLP, .libreOffice, .keka:
             .utility
-        case .kaku, .kero, .markdownPreview, .zisla:
+        case .kaku, .markdownPreview, .zisla:
             .desktopApplication
         }
     }
@@ -306,7 +301,6 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .libreOffice: "LibreOffice"
         case .keka: "Keka"
         case .kaku: "Kaku"
-        case .kero: "Kero"
         case .markdownPreview: "Markdown Preview"
         case .zisla: "zisla"
         default: nil
@@ -335,8 +329,6 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
             source = "https://api.github.com/repos/hashicorp/homebrew-tap/contents/Formula/packer.rb?ref=main"
         case .kaku:
             source = "https://api.github.com/repos/tw93/homebrew-tap/contents/Casks/kakuku.rb?ref=main"
-        case .kero:
-            source = "https://api.github.com/repos/egoist/homebrew-tap/contents/Casks/kero.rb?ref=main"
         case .zisla:
             source = "https://api.github.com/repos/wzz6423/homebrew-tap/contents/Casks/zisla.rb?ref=main"
         default:
