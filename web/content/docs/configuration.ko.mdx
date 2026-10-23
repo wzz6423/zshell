@@ -163,6 +163,14 @@ true이면 Option 키 조합을 Alt/Meta 단축키로 터미널 프로그램에 
 
 실제 사용 흐름은 [AI 에이전트와 작업](/ko/docs/automation)에서 설명합니다.
 
+### `ai.resume-conversations` [#airesume-conversations]
+
+불리언 — 기본값 `true`
+
+터미널 창 복원 시 원래 PTY를 사용할 수 없으면 기록된 Claude Code, Codex, Pi 또는 OpenCode의 정확한 원래 대화를 재개합니다. `ai.enabled = true`가 필요합니다. 확인된 대화가 없는 창은 새 셸을 열며, Zshell은 디렉터리를 기준으로 최근 대화를 선택하지 않습니다.
+
+**설정 → 자동화 → 에이전트 대화 재개**에서 전환합니다. `terminal.restore-history`와 독립적인 설정입니다.
+
 ## 추가 설정 [#additional-settings]
 
 | 키 | 기본값 | 값 / 범위 | 동작 |
@@ -213,6 +221,7 @@ terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
 ai.enabled = true
+ai.resume-conversations = true
 ```
 
 모든 키는 선택 사항입니다. 키를 삭제하면 해당 설정이 기본값으로 돌아갑니다.

@@ -163,6 +163,14 @@ Doğal dille istediğinizde desteklenen kodlama ajanlarının arka plan bölmele
 
 Kullanım akışı [AI ajanlarıyla çalışma](/tr/docs/automation) bölümündedir.
 
+### `ai.resume-conversations` [#airesume-conversations]
+
+boole — varsayılan `true`
+
+Terminal bölmeleri geri yüklenirken özgün PTY kullanılamıyorsa kaydedilmiş Claude Code, Codex, Pi veya OpenCode konuşmasının tam olarak kendisini sürdürür. `ai.enabled = true` gerekir. Doğrulanmış konuşması olmayan bölme yeni bir kabuk açar; Zshell dizine göre en son konuşmayı seçmez.
+
+**Ayarlar → Otomasyon → Ajan konuşmalarını sürdür** üzerinden ayarlanır. `terminal.restore-history` seçeneğinden bağımsızdır.
+
 ## Ek ayarlar [#additional-settings]
 
 | Anahtar | Varsayılan | Değerler / aralık | Etki |
@@ -213,6 +221,7 @@ terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
 ai.enabled = true
+ai.resume-conversations = true
 ```
 
 Her anahtar isteğe bağlıdır. Varsayılana dönmek için anahtarı silin.

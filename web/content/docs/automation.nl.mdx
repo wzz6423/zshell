@@ -79,3 +79,13 @@ Codex vereist een geïnstalleerde en aangemelde CLI die accountlimieten kan meld
 - Herstart een agent die al draaide bij het inschakelen.
 - Controleer Instellingen op een foutmelding bij de configuratie.
 - Vraag expliciet om een “Zshell-achtergronddeelvenster” of een “gedelegeerde Zshell-agent” als je wilt dat de agent deze werkwijze gebruikt.
+
+## Het oorspronkelijke gesprek hervatten [#resume-the-original-conversation]
+
+Met **Agentgesprekken hervatten** hervat een paneel zonder beschikbaar oorspronkelijk PTY zijn opgeslagen gesprek van Claude Code, Codex, Pi of OpenCode. Panelen in dezelfde map houden elk hun eigen gesprek.
+
+Zshell installeert SessionStart-hooks voor Claude Code en Codex, een Pi-extensie en een OpenCode-TUI-plugin in de bestaande configuratie. Andere hooks, plugins, instellingen en JSONC-opmerkingen blijven behouden. Schakel op verzoek hooks in via de vertrouwensmelding van Claude Code en keur nieuwe Codex-hooks goed in `/hooks`. Herstart agenten die al actief waren voor de installatie.
+
+Alleen lokale hoofdgesprekken die deze integraties melden worden hervat. Codex vereist een ingebedde lokale CLI (`--no-daemon`); gedeelde daemons en externe verbindingen worden niet ondersteund. OpenCode vereist de TUI-plugin-API; oudere versies, serversessies zonder interface en `opencode attach` worden niet ondersteund. Een onderliggende agent vervangt het gesprek van het bovenliggende paneel niet. Pi vereist het opgeslagen sessiebestand.
+
+Zonder geverifieerde identiteit, oorspronkelijke map of Pi-bestand opent een nieuwe shell. Een ontbrekende CLI keert ook terug naar de shell. Zshell voert geen willekeurige opstartopdracht opnieuw uit en kiest geen recent gesprek. Providerfouten, zoals een verwijderd gesprek, verschijnen in de CLI.

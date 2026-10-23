@@ -97,6 +97,40 @@ enum ZshellAutomationRouter {
         case "agent.report":
             return reportAgent(request, caller: caller)
 
+        case "agent.session.start":
+            guard let session = caller.session else {
+                return failure(request, "terminal_required", "The caller is not a terminal pane.")
+            }
+            guard let value = request.params["identity"],
+                  let data = try? JSONEncoder().encode(value),
+                  let identity = try? JSONDecoder().decode(AgentConversationIdentity.self, from: data),
+                  let pid = request.params["reporter_pid"]?.intValue,
+                  let reporterPID = Int32(exactly: pid), reporterPID > 1 else {
+                return failure(request, "invalid_agent_session", "A valid provider session identity and reporting process are required.")
+            }
+            guard session.acceptAgentConversation(.init(
+                identity: identity, reporterPID: reporterPID,
+                source: request.params["source"]?.stringValue
+            ), peerProcessID: request.peerProcessID) else {
+                return failure(request, "agent_session_not_attached", "The reporting agent process does not own this terminal's foreground job.")
+            }
+            return success(request, .object(["accepted": .bool(true)]))
+
+        case "agent.session.clear":
+            guard let session = caller.session,
+                  let name = request.params["provider"]?.stringValue,
+                  let provider = AgentConversationIdentity.Provider(rawValue: name),
+                  let pid = request.params["reporter_pid"]?.intValue,
+                  let reporterPID = Int32(exactly: pid), reporterPID > 1 else {
+                return failure(request, "invalid_agent_session", "A valid provider and reporting process are required.")
+            }
+            guard session.clearAgentConversation(
+                provider: provider, reporterPID: reporterPID, peerProcessID: request.peerProcessID
+            ) else {
+                return failure(request, "agent_session_not_attached", "The reporting agent process does not own this terminal's foreground job.")
+            }
+            return success(request, .object(["accepted": .bool(true)]))
+
         case "agent.usage.report":
             // Usage reporting is a private hook installed by Zshell, so it must
             // originate from a real terminal pane the same way `agent.report` does.

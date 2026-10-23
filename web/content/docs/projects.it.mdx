@@ -96,7 +96,7 @@ Zshell salva snapshot della disposizione mentre lavori. Uscendo e riaprendo ritr
 - disposizione dei pannelli in ogni scheda;
 - barre laterali aperte e pannello destro selezionato.
 
-I terminali tornano come **nuove shell** nelle vecchie directory. Zshell non mantiene i processi vivi in background: una build attiva termina quando esci.
+Se il PTY originale non è disponibile e sono attivi **Riprendi le conversazioni degli agenti** e il supporto IA, Zshell riprende la conversazione verificata di Claude Code, Codex, Pi o OpenCode. Gli altri pannelli aprono **nuove shell** nelle cartelle precedenti. La conversazione mantiene la sua identità; Zshell non recupera una compilazione ripetendo comandi.
 
 L'output precedente viene ripristinato solo attivando [`terminal.restore-history`](/it/docs/configuration#terminalrestore-history). L'opzione è disattivata perché l'output da ripristinare viene conservato su disco.
 

@@ -6,8 +6,8 @@
 import Foundation
 
 /// Snapshot of open projects and tabs, saved so a relaunch restores the
-/// previous layout. Terminal sessions restore as fresh shells started in
-/// their last known working directory — with their previous scrollback
+/// previous layout. Terminals resume a verified provider conversation or start
+/// a fresh shell in their last known working directory, with previous scrollback
 /// replayed above the prompt when the "Restore session history" setting is on
 /// (see `historyKey` and `TerminalHistoryStore`); file and diff panes reload
 /// from disk.
@@ -43,6 +43,32 @@ struct SessionSnapshot: Codable {
             /// nil for files, browsers, diffs, or when history restore is off.
             /// Optional so snapshots written before this feature still decode.
             var historyKey: String?
+            var agentResume: AgentConversationIdentity?
+
+            init(
+                content: PaneContentSnapshot,
+                weight: Double,
+                historyKey: String? = nil,
+                agentResume: AgentConversationIdentity? = nil
+            ) {
+                self.content = content
+                self.weight = weight
+                self.historyKey = historyKey
+                self.agentResume = agentResume
+            }
+
+            private enum CodingKeys: String, CodingKey {
+                case content, weight, historyKey, agentResume
+            }
+
+            init(from decoder: any Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                content = try container.decode(PaneContentSnapshot.self, forKey: .content)
+                weight = try container.decode(Double.self, forKey: .weight)
+                historyKey = try container.decodeIfPresent(String.self, forKey: .historyKey)
+                // Unknown providers or a corrupt ID must not discard the layout.
+                agentResume = try? container.decodeIfPresent(AgentConversationIdentity.self, forKey: .agentResume)
+            }
         }
 
         struct ColumnSnapshot: Codable {
