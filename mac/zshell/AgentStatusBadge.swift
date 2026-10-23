@@ -12,8 +12,8 @@ import SwiftUI
 /// The badge is the agent's presence lamp, with two deliberate tiers. Ring
 /// shapes carry the ambient lifecycle — a dotted ring while starting, a live
 /// spinner while working, a plain ring at rest — and stay quiet so a wall of
-/// running agents never shouts. Blocked and done, the only two states that
-/// also post a notification, are the only ones that earn a tinted capsule:
+/// running agents never shouts. Blocked and done earn a tinted capsule;
+/// reported transitions can notify, while inferred screen hints stay quiet:
 /// chrome weight always means "this wants you". Shape, color, motion,
 /// tooltip, and accessibility label all encode the state, so status never
 /// depends on color alone.
@@ -44,6 +44,8 @@ final class AgentStatusBadgeView: NSView {
 
     private var phase: ZshellAgentPhase?
     private var count = 0
+    private var progress: Int?
+    private var detail = ""
     private var countSize = NSSize.zero
     private var reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
 
@@ -144,14 +146,17 @@ final class AgentStatusBadgeView: NSView {
         }
     }
 
-    func apply(phase: ZshellAgentPhase, count: Int) {
-        guard self.phase != phase || self.count != count else { return }
+    func apply(phase: ZshellAgentPhase, count: Int, detail: String = "", progress: Int? = nil) {
+        guard self.phase != phase || self.count != count
+            || self.detail != detail || self.progress != progress else { return }
         let previous = self.phase
         self.phase = phase
         self.count = count
+        self.detail = detail
+        self.progress = progress
 
-        if count > 1 {
-            countLabel.stringValue = "\(count)"
+        if hasLabel {
+            countLabel.stringValue = count > 1 ? "\(count)" : "\(progress ?? 0)%"
             let measured = countLabel.attributedStringValue.size()
             countSize = NSSize(width: ceil(measured.width), height: ceil(measured.height))
             countLabel.isHidden = false
@@ -161,7 +166,8 @@ final class AgentStatusBadgeView: NSView {
             countLabel.isHidden = true
         }
 
-        let description = statusDescription(phase: phase, count: count)
+        let description = [statusDescription(phase: phase, count: count), detail]
+            .filter { !$0.isEmpty }.joined(separator: "\n")
         toolTip = description
         setAccessibilityLabel(description)
 
@@ -199,7 +205,7 @@ final class AgentStatusBadgeView: NSView {
         arcLayer.position = glyphCenter
         imageView.frame = glyphFrame
 
-        if count > 1 {
+        if hasLabel {
             let gap = isCapsule ? Metrics.capsuleCountGap : Metrics.bareCountGap
             countLabel.frame = NSRect(
                 x: glyphFrame.maxX + gap,
@@ -239,9 +245,10 @@ final class AgentStatusBadgeView: NSView {
     }
 
     private var isCapsule: Bool { phase == .blocked || phase == .done }
+    private var hasLabel: Bool { count > 1 || progress != nil }
 
     private var badgeWidth: CGFloat {
-        let hasCount = count > 1
+        let hasCount = hasLabel
         if isCapsule {
             return Metrics.capsulePad + Metrics.glyphBox + (
                 hasCount
@@ -384,11 +391,11 @@ struct AgentStatusBadgeRepresentable: NSViewRepresentable {
 
     func makeNSView(context: Context) -> AgentStatusBadgeView {
         let view = AgentStatusBadgeView(frame: .zero)
-        view.apply(phase: rollup.phase, count: rollup.count)
+        view.apply(phase: rollup.phase, count: rollup.count, detail: rollup.detail, progress: rollup.progress)
         return view
     }
 
     func updateNSView(_ view: AgentStatusBadgeView, context: Context) {
-        view.apply(phase: rollup.phase, count: rollup.count)
+        view.apply(phase: rollup.phase, count: rollup.count, detail: rollup.detail, progress: rollup.progress)
     }
 }

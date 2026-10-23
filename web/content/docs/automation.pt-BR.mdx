@@ -47,7 +47,11 @@ Painéis delegados ficam em segundo plano até você pedir para vê-los. Quando 
 | **Bloqueado** | Precisa de uma resposta, aprovação ou decisão sua. |
 | **Concluído** | Terminou em segundo plano e você ainda não viu o painel. |
 
-O Zshell registra um prompt enviado como **Trabalhando**, mas nunca examina o texto renderizado do terminal para adivinhar o que acontece depois. As transições para **Bloqueado** e **Concluído**, e suas notificações, exigem um relatório de ciclo de vida do provedor. Se o agente não o fornece, examine o painel e as alterações do projeto diretamente.
+Zshell prioriza eventos nativos de Codex, Claude Code, Pi, OpenCode e Grok, seguidos de relatórios explícitos dos programas. Passe o cursor pelo indicador ou abra **Agents** para ver origem, motivo da espera, porcentagem e subtarefas. Os hooks do Codex precisam ser revisados e considerados confiáveis em `/hooks`; Zshell não ignora essa etapa.
+
+Sem relatório nativo, apenas uma parte limitada do rodapé da tela atual de um agente reconhecido é analisada. A **inferência de tela** é identificada, não informa conclusão, não envia notificações e não satisfaz `zshell +agent wait`. Ela não concede aprovação. Verifique o painel e o resultado real.
+
+Programas informam progresso com `zshell +agent report` e removem seu próprio relatório com `zshell +agent clear`. O relatório expira após 120 segundos sem atualização ou quando seu processo termina.
 
 Quando uma integração informa conclusão ou necessidade de entrada, o Zshell também pode notificar. Pressione <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> para ir ao próximo agente que informou precisar da sua atenção.
 

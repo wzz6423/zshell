@@ -797,18 +797,22 @@ final class AppSettings: nonisolated ObservableObject {
     func setAIEnabled(_ enabled: Bool) throws {
         if enabled {
             try ZshellAgentIntegrations.preflightInstallAvailable()
+            try ZshellAgentLifecycleHooks.preflightInstallAvailable()
             _ = try ZshellAutomationSkill.install(
                 destinations: ZshellAutomationSkill.Destination.allCases,
                 force: false
             )
             try ZshellAgentIntegrations.installAvailable()
+            try ZshellAgentLifecycleHooks.installAvailable()
         } else {
             try ZshellAgentIntegrations.preflightUninstallManaged()
+            try ZshellAgentLifecycleHooks.preflightUninstallManaged()
             _ = try ZshellAutomationSkill.uninstall(
                 destinations: ZshellAutomationSkill.Destination.allCases,
                 force: false
             )
             try ZshellAgentIntegrations.uninstallManaged()
+            try ZshellAgentLifecycleHooks.uninstallManaged()
         }
         aiEnabled = enabled
     }
@@ -824,6 +828,7 @@ final class AppSettings: nonisolated ObservableObject {
                 force: false
             )
             try ZshellAgentIntegrations.installAvailable()
+            try ZshellAgentLifecycleHooks.installAvailable()
         } catch {
             NSLog("zshell: failed to refresh AI support: \(error)")
         }

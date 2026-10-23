@@ -52,7 +52,8 @@ supported agent kind; both agents stay under the same project-scoped contract.
 4. Inspect `zshell +agent get`. If `agent.authority` becomes `integration`, use
    `zshell +agent wait` and `zshell +agent read` to collect the result. Otherwise,
    read the returned `pane_id` with `zshell +pane read` and inspect the actual
-   project outcome; Zshell does not infer lifecycle from terminal text.
+   project outcome. `screen` authority is an explicitly labelled inference,
+   never evidence of completion or permission to approve a prompt.
 5. If an integration reports the target blocked, surface the reason to the
    user. Do not send a follow-up that attempts to work around the blocker.
 
@@ -98,8 +99,8 @@ Follow this sequence:
    zshell +agent read tests --lines 160
    ```
 
-   Zshell does not infer progress from terminal text. If no lifecycle integration
-   is active, inspect the target pane directly instead of waiting for a guessed
+   Screen inference cannot satisfy `wait`. If no lifecycle integration
+   is active, inspect the target pane directly instead of waiting for an inferred
    state:
 
    ```sh
@@ -128,12 +129,22 @@ still running. Use a new alias for a new worker.
 
 ## Lifecycle and result reads
 
-Never ask a worker model to report `working`, `blocked`, or `done`. Zshell accepts
-semantic state from native CLI lifecycle integrations and never classifies the
-rendered terminal screen. `done` is the unseen presentation of integration-
-reported idle, not a state the model must announce. For an agent without an
-active integration, do not use `agent wait` as proof of progress or completion;
-read its pane and verify the project outcome directly.
+Never ask a worker model to announce `working`, `blocked`, or `done` as proof of
+its own success. Native CLI lifecycle integrations take priority over explicit
+program reports, followed by bounded screen inference and process detection.
+`done` is normally the unseen presentation of integration-reported idle.
+`screen` authority never reports completion and cannot satisfy `agent wait`.
+Neither a native event nor a program report proves that the claimed result is
+correct; inspect the pane and verify the project outcome directly.
+
+Scripts may report their own progress with `zshell +agent report STATE --name
+NAME --progress PERCENT`, optionally adding `--attention approval|input|login|error`
+in blocked state and `--tasks JSON` for up to 32 child tasks. `report --json`
+accepts a bounded object on stdin. A report belongs only to the invoking terminal
+and the CLI's live parent (or a validated ancestor selected by `--pid`). It expires
+after 120 seconds without an update or when that process exits. `zshell +agent
+clear` clears only that program report. Do not use reporting as a substitute for
+the provider's native hooks or to bypass an approval.
 
 Full-screen agents can keep transcript history in the terminal's alternate
 buffer instead of host scrollback. After `wait` reaches `idle` or `done`, use an
@@ -163,7 +174,8 @@ reply with that path, then read the file directly.
   prompt on the user's behalf.
 - Keep background splits unfocused unless the user asks to see them.
 - Do not ask an agent to run lifecycle-reporting commands. Zshell's AI setting
-  owns the supported hooks and plugins; other agents have no inferred fallback.
+  owns the supported hooks and plugins. A screen inference is a diagnostic hint,
+  not authoritative evidence for coordination or an approval.
 - Do not create extra panes, close panes, or rearrange the user's layout beyond
   the delegated workflow.
 - Treat `blocked` as a handoff to the user, not an invitation to bypass the

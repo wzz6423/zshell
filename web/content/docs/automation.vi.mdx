@@ -47,7 +47,11 @@ Gửi yêu cầu tiếp không có nghĩa công việc đã xong. Tác nhân đi
 | **Bị chặn** | Cần bạn nhập liệu, phê duyệt hoặc quyết định. |
 | **Hoàn tất** | Đã xong ở nền và bạn chưa xem ô. |
 
-Zshell ghi nhận prompt đã gửi là **Đang làm việc**, nhưng không quét văn bản terminal đã kết xuất để đoán diễn biến sau đó. Chuyển sang **Bị chặn**, **Hoàn tất** và thông báo tương ứng cần báo cáo vòng đời của nhà cung cấp. Nếu tác nhân không cung cấp, hãy kiểm tra ô và thay đổi dự án trực tiếp thay vì dựa vào trạng thái đoán.
+Zshell ưu tiên sự kiện gốc từ Codex, Claude Code, Pi, OpenCode và Grok, sau đó đến báo cáo rõ ràng của chương trình. Di chuột lên huy hiệu hoặc mở **Agents** để xem nguồn, lý do chờ, phần trăm và tác vụ con. Hook Codex phải được xem xét và tin cậy trong `/hooks`; Zshell không bỏ qua bước này.
+
+Khi không có báo cáo gốc, chỉ một phần giới hạn ở cuối màn hình hiện tại của tiến trình Agent đã nhận diện được kiểm tra. **Suy luận từ màn hình** được ghi rõ, không báo hoàn thành, không gửi thông báo và không đáp ứng `zshell +agent wait`. Nó không phê duyệt yêu cầu. Hãy kiểm tra khung và kết quả thực tế.
+
+Chương trình báo tiến độ bằng `zshell +agent report` và xóa báo cáo của mình bằng `zshell +agent clear`. Báo cáo hết hạn sau 120 giây không cập nhật hoặc khi tiến trình sở hữu kết thúc.
 
 Khi tích hợp báo hoàn tất hoặc cần nhập liệu, Zshell cũng có thể gửi thông báo. <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> chuyển tới tác nhân tiếp theo được báo cần bạn chú ý.
 

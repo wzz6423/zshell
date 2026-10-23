@@ -292,7 +292,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         actionButton.configure(symbol: actionSymbol, label: actionLabel, pointSize: 9 * scale)
         actionButton.onAction = { action?() }
         if let rollup {
-            badge.apply(phase: rollup.phase, count: rollup.count)
+            badge.apply(phase: rollup.phase, count: rollup.count, detail: rollup.detail, progress: rollup.progress)
             badgeWidth = badge.intrinsicContentSize.width + 4 * scale
             badge.isHidden = false
         } else {

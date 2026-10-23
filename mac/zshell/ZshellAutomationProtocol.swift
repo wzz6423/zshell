@@ -84,6 +84,12 @@ struct ZshellAutomationRequest: Codable, Sendable {
     let token: String
     let terminalID: String
     let params: [String: ZshellJSONValue]
+    /// Kernel credential, deliberately excluded from the JSON contract.
+    var peerProcessID: pid_t? = nil
+
+    private enum CodingKeys: String, CodingKey {
+        case version, id, method, token, terminalID, params
+    }
 }
 
 struct ZshellAutomationErrorPayload: Codable, Sendable {
@@ -281,7 +287,7 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
             data = data[..<newline]
         }
 
-        let request: ZshellAutomationRequest
+        var request: ZshellAutomationRequest
         do {
             request = try JSONDecoder().decode(ZshellAutomationRequest.self, from: data)
         } catch {
@@ -295,6 +301,11 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
             return
         }
 
+        var peer = pid_t(0)
+        var peerSize = socklen_t(MemoryLayout<pid_t>.size)
+        if getsockopt(client, SOL_LOCAL, LOCAL_PEERPID, &peer, &peerSize) == 0, peer > 1 {
+            request.peerProcessID = peer
+        }
         handler(request) { [weak self] response in
             guard let self else {
                 Darwin.close(client)
