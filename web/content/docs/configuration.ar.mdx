@@ -163,6 +163,14 @@ description: "كل خيارات Zshell الدائمة ووظائفها ومكا�
 
 يشرح قسم [العمل مع وكلاء الذكاء الاصطناعي](/ar/docs/automation) سير العمل للمستخدم.
 
+### `ai.resume-conversations` [#airesume-conversations]
+
+قيمة منطقية — الافتراضي `true`
+
+عند استعادة لوحات الطرفية، يستأنف المحادثة الأصلية المسجلة نفسها في Claude Code أو Codex أو Pi أو OpenCode إذا لم يعد PTY الأصلي متاحًا. يتطلب `ai.enabled = true`. تفتح اللوحة التي لا تملك محادثة موثقة صدفة جديدة؛ ولا يختار Zshell أحدث محادثة بحسب المجلد.
+
+تتحكم بها من **الإعدادات → الأتمتة → استئناف محادثات الوكلاء**. وهي مستقلة عن `terminal.restore-history`.
+
 ## إعدادات إضافية [#additional-settings]
 
 | المفتاح | الافتراضي | القيم / النطاق | التأثير |
@@ -213,6 +221,7 @@ terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
 ai.enabled = true
+ai.resume-conversations = true
 ```
 
 جميع المفاتيح اختيارية. احذف المفتاح لإعادة إعداده إلى القيمة الافتراضية.

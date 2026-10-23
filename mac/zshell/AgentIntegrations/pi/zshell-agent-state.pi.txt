@@ -4,6 +4,8 @@
 // @ts-nocheck
 
 import net from "node:net";
+import os from "node:os";
+import path from "node:path";
 
 type AgentState = "working" | "blocked" | "idle";
 
@@ -11,7 +13,6 @@ const socketPath = process.env.ZSHELL_AUTOMATION_SOCKET;
 const token = process.env.ZSHELL_AUTOMATION_TOKEN;
 const terminalID = process.env.ZSHELL_TERMINAL_ID;
 let requestSequence = Date.now() * 1000;
-let requestChain = Promise.resolve();
 
 function enabled(): boolean {
   return process.env.ZSHELL_AUTOMATION === "1"
@@ -20,26 +21,17 @@ function enabled(): boolean {
     && !!terminalID;
 }
 
-function report(state: AgentState, reason?: string): Promise<void> {
-  const pending = requestChain.then(() => reportOnce(state, reason));
-  requestChain = pending.catch(() => {});
-  return pending;
-}
-
-function reportOnce(state: AgentState, reason?: string): Promise<void> {
+function requestOnce(method: string, params): Promise<void> {
   if (!enabled()) return Promise.resolve();
 
   requestSequence += 1;
   const request = {
     version: 1,
     id: `zshell:pi:${requestSequence}`,
-    method: "agent.report",
+    method,
     token,
     terminalID,
-    params: {
-      state,
-      reason: reason ?? `Pi lifecycle: ${state}`,
-    },
+    params,
   };
 
   return new Promise((resolve) => {
@@ -66,19 +58,55 @@ export default function zshellAgentState(pi) {
   let rootSession = false;
   let active = false;
   let lastState: AgentState | undefined;
+  let requestChain = Promise.resolve();
+
+  function enqueue(method, params) {
+    const pending = requestChain.then(() => requestOnce(method, params));
+    requestChain = pending.catch(() => {});
+    return pending;
+  }
 
   function publish(state: AgentState) {
     if (state === lastState) return;
     lastState = state;
-    void report(state);
+    void enqueue("agent.report", { state, reason: `Pi lifecycle: ${state}` });
   }
 
-  pi.on("session_start", (_event, context) => {
+  async function bindConversation(event, context) {
     if (context?.mode !== "tui") return;
     rootSession = true;
     active = context?.isIdle?.() === false;
+    try {
+      const sessionID = context.sessionManager.getSessionId();
+      const sessionFile = context.sessionManager.getSessionFile();
+      if (sessionFile && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionID)) {
+        await enqueue("agent.session.start", {
+          identity: {
+            provider: "pi",
+            sessionID,
+            sessionFile,
+            workingDirectory: context.sessionManager.getCwd(),
+            configDirectory: path.resolve(process.env.PI_CODING_AGENT_DIR || path.join(os.homedir(), ".pi", "agent")),
+          },
+          reporter_pid: process.pid,
+          source: event?.reason ?? "startup",
+        });
+      } else {
+        await enqueue("agent.session.clear", {
+          provider: "pi", reporter_pid: process.pid,
+        });
+      }
+    } catch {
+      await enqueue("agent.session.clear", { provider: "pi", reporter_pid: process.pid });
+    }
+    lastState = undefined;
     publish(active ? "working" : "idle");
-  });
+  }
+
+  pi.on("session_start", bindConversation);
+  // Earlier Pi releases use switch/fork instead of restarting the extension.
+  pi.on("session_switch", bindConversation);
+  pi.on("session_fork", bindConversation);
 
   pi.on("agent_start", () => {
     if (!rootSession) return;

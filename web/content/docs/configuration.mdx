@@ -232,6 +232,14 @@ are left untouched.
 The human workflow is described in
 [Working with AI agents](/en/docs/automation).
 
+### `ai.resume-conversations`
+
+boolean — default `true`
+
+When terminal panes are restored, resumes the exact recorded Claude Code, Codex, Pi, or OpenCode conversation after its original PTY is unavailable. Requires `ai.enabled = true`. A pane without a verified conversation opens a new shell; Zshell never chooses the latest conversation by directory.
+
+Control it with **Settings → Automation → Resume agent conversations**. This setting is independent of `terminal.restore-history`.
+
 ## Additional settings
 
 | Key | Default | Values / range | Effect |
@@ -288,6 +296,7 @@ terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
 ai.enabled = true
+ai.resume-conversations = true
 ```
 
 Every key is optional. Delete a key to return that setting to its default.

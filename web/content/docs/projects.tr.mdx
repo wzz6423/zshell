@@ -96,7 +96,7 @@ Zshell çalışırken düzenin anlık görüntüsünü alır. Çıkıp açınca 
 - her sekmedeki bölme düzeni
 - açık kenar çubukları ve seçili sağ panel
 
-Terminaller eski dizinlerinde **yeni kabuklar** olarak açılır. Zshell işlemleri arka planda yaşatmaz; çıkarken çalışan bir derleme varsa o anda durur.
+Özgün PTY kullanılamıyorsa ve **Ajan konuşmalarını sürdür** ile AI desteği açıksa Zshell doğrulanmış Claude Code, Codex, Pi veya OpenCode konuşmasını sürdürür. Diğer bölmeler önceki dizinlerinde **yeni kabuklar** açar. Konuşma kimliğini korur; Zshell derlemeyi komutları yineleyerek kurtarmaz.
 
 Eski çıktı geçmişi yalnızca [`terminal.restore-history`](/tr/docs/configuration#terminalrestore-history) ile isterseniz geri yüklenir. Geçmiş diske kaydedildiğinden varsayılan olarak kapalıdır.
 

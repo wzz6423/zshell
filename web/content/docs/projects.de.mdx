@@ -96,7 +96,7 @@ Zshell speichert während der Arbeit regelmäßig die Anordnung. Nach dem Beende
 - die Bereichsanordnung jedes Tabs;
 - die geöffneten Seitenleisten und das ausgewählte rechte Panel.
 
-Terminals starten als **neue Shells** in ihren bisherigen Verzeichnissen. Zshell hält keine Prozesse im Hintergrund am Leben. Ein beim Beenden laufender Build wird dabei ebenfalls beendet.
+Ist das ursprüngliche PTY nicht verfügbar und sind **Agentengespräche fortsetzen** sowie die KI-Unterstützung aktiv, setzt Zshell das bestätigte Gespräch mit Claude Code, Codex, Pi oder OpenCode fort. Andere Bereiche öffnen **neue Shells** im bisherigen Verzeichnis. Das Gespräch behält seine Identität; ein laufender Build wird nicht durch erneutes Ausführen von Befehlen wiederhergestellt.
 
 Die bisherige Ausgabe wird nur mit aktiviertem [`terminal.restore-history`](/de/docs/configuration#terminalrestore-history) wiederhergestellt. Standardmäßig ist dies ausgeschaltet, da der Verlauf auf dem Datenträger gespeichert wird.
 

@@ -178,6 +178,14 @@ regular/bold 區分及後備字型字重。
 
 具體怎麼使用，見[與 AI Agent 協作](/zh-Hant/docs/automation)。
 
+### `ai.resume-conversations` [#airesume-conversations]
+
+布林值——預設 `true`
+
+恢復終端窗格時，若原 PTY 已不可用，繼續已記錄的 Claude Code、Codex、Pi 或 OpenCode 確切原對話。需要 `ai.enabled = true`。沒有已驗證對話的窗格會開啟新 shell；Zshell 不會按目錄選擇最近對話。
+
+可在 **設定 → 自動化 → 恢復 Agent 對話** 中切換。它與 `terminal.restore-history` 獨立。
+
 ## 其他配置項 [#additional-settings]
 
 | 配置鍵 | 預設值 | 可選值 / 範圍 | 作用 |
@@ -233,6 +241,7 @@ terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
 ai.enabled = true
+ai.resume-conversations = true
 ```
 
 每個鍵都是可選的。刪掉某個鍵，就讓那項設定恢復預設值。

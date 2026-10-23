@@ -163,6 +163,14 @@ Zshell ไม่มีตัวควบคุมน้ำหนักฟอน�
 
 ขั้นตอนสำหรับผู้ใช้อธิบายที่[ทำงานร่วมกับเอเจนต์ AI](/th/docs/automation)
 
+### `ai.resume-conversations` [#airesume-conversations]
+
+ค่าบูลีน — ค่าเริ่มต้น `true`
+
+เมื่อกู้คืนแผงเทอร์มินัลและ PTY เดิมไม่พร้อมใช้งาน จะสนทนาเดิมที่บันทึกไว้ของ Claude Code, Codex, Pi หรือ OpenCode ต่อโดยใช้บทสนทนาเดิมนั้น ต้องมี `ai.enabled = true` แผงที่ไม่มีบทสนทนาที่ตรวจสอบแล้วจะเปิดเชลล์ใหม่ Zshell จะไม่เลือกบทสนทนาล่าสุดจากไดเรกทอรี
+
+ควบคุมได้ที่ **การตั้งค่า → ระบบอัตโนมัติ → สนทนากับเอเจนต์ต่อ** แยกจาก `terminal.restore-history`
+
 ## การตั้งค่าเพิ่มเติม [#additional-settings]
 
 | คีย์ | เริ่มต้น | ค่า / ช่วง | ผล |
@@ -213,6 +221,7 @@ terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
 ai.enabled = true
+ai.resume-conversations = true
 ```
 
 ทุกคีย์ไม่บังคับ ลบคีย์เพื่อคืนค่านั้นเป็นค่าเริ่มต้น

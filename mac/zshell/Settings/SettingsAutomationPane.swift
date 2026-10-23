@@ -11,6 +11,9 @@ final class SettingsAutomationPane: SettingsPaneViewController {
     private let supportView = AgentCLISupportSettingsView(frame: .zero)
     private let usageView = AgentUsageSettingsView(frame: .zero)
     private let usage = AgentUsageModel.shared
+    private let resumeConversationsSwitch = SettingsSwitch {
+        AppSettings.shared.resumeAgentConversations = $0
+    }
     private lazy var usageGroup = SettingsGroup(
         header: String(localized: "Account Usage"),
         rows: [SettingsCustomRow(usageView)]
@@ -38,13 +41,22 @@ final class SettingsAutomationPane: SettingsPaneViewController {
 
     override func makeGroups() -> [NSView] {
         [
-            SettingsGroup(rows: [SettingsCustomRow(supportView)]),
+            SettingsGroup(rows: [
+                SettingsCustomRow(supportView),
+                SettingsRow(
+                    title: String(localized: "Resume agent conversations"),
+                    description: String(localized: "Resume recorded Claude Code, Codex, Pi, and OpenCode conversations when restoring terminal panes."),
+                    control: resumeConversationsSwitch
+                ),
+            ]),
             usageGroup,
         ]
     }
 
     override func syncFromSettings() {
         supportView.apply(isEnabled: settings.aiEnabled)
+        resumeConversationsSwitch.isOn = settings.resumeAgentConversations
+        resumeConversationsSwitch.isEnabled = settings.aiEnabled
         syncUsage()
     }
 

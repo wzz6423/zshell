@@ -163,6 +163,14 @@ Laat ondersteunde programmeeragents Zshell-deelvensters op de achtergrond coörd
 
 De werkwijze voor gebruikers staat in [Werken met AI-agents](/nl/docs/automation).
 
+### `ai.resume-conversations` [#airesume-conversations]
+
+boolean — standaard `true`
+
+Bij het herstellen van terminalpanelen wordt het precieze opgeslagen gesprek van Claude Code, Codex, Pi of OpenCode hervat als het oorspronkelijke PTY niet beschikbaar is. Vereist `ai.enabled = true`. Zonder geverifieerd gesprek opent het paneel een nieuwe shell; Zshell kiest nooit het nieuwste gesprek op basis van de map.
+
+Gebruik **Instellingen → Automatisering → Agentgesprekken hervatten**. Deze optie staat los van `terminal.restore-history`.
+
 ## Aanvullende instellingen [#additional-settings]
 
 | Sleutel | Standaard | Waarden / bereik | Effect |
@@ -213,6 +221,7 @@ terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
 ai.enabled = true
+ai.resume-conversations = true
 ```
 
 Elke sleutel is optioneel. Verwijder een sleutel om de instelling op de standaard terug te zetten.

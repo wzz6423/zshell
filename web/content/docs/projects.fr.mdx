@@ -96,7 +96,7 @@ Zshell enregistre des instantanés de votre disposition pendant le travail. À l
 - La disposition des volets de chaque onglet.
 - Les barres latérales ouvertes et le panneau droit sélectionné.
 
-Les terminaux redémarrent avec de **nouveaux shells** dans leurs anciens répertoires. Zshell ne maintient aucun processus en arrière-plan : une compilation en cours s'arrête lorsque vous quittez l'application.
+Si le PTY d’origine est indisponible, Zshell reprend la conversation vérifiée de Claude Code, Codex, Pi ou OpenCode lorsque **Reprendre les conversations des agents** et l’IA sont activés. Les autres volets ouvrent de **nouveaux shells** dans leurs répertoires précédents. La conversation conserve son identité ; Zshell ne rétablit pas une compilation en rejouant des commandes.
 
 L'ancien historique de défilement n'est restauré que si vous activez [`terminal.restore-history`](/fr/docs/configuration#terminalrestore-history). Cette option est désactivée par défaut, car cet historique est enregistré sur disque.
 

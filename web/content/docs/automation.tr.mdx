@@ -79,3 +79,13 @@ Codex, kurulu, giriş yapılmış ve hesap sınırlarını raporlayabilen CLI ge
 - Ayarı açtığınızda zaten çalışan ajanı yeniden başlatın.
 - Ayarlar’da satır içi kurulum hatası olup olmadığını kontrol edin.
 - Bu akışı istediğiniz görevde açıkça “arka plan Zshell bölmesi” veya “devredilmiş Zshell ajanı” isteyin.
+
+## Özgün konuşmayı sürdürme [#resume-the-original-conversation]
+
+**Ajan konuşmalarını sürdür** açıkken özgün PTY kullanılamayan bölme, kaydedilmiş Claude Code, Codex, Pi veya OpenCode konuşmasını sürdürür. Aynı dizindeki bölmeler kendi ayrı konuşmalarını korur.
+
+Zshell mevcut sağlayıcı yapılandırmasına Claude Code ve Codex için SessionStart kancaları, Pi uzantısı ve OpenCode TUI eklentisi kurar. Diğer kancalar, eklentiler, ayarlar ve JSONC yorumları korunur. Sağlayıcı istediğinde Claude Code güven sorusunda kancaları etkinleştirin ve Codex’in `/hooks` bölümünde yeni kancaları onaylayın. Kurulumdan önce çalışan ajanları yeniden başlatın.
+
+Yalnızca bu entegrasyonların bildirdiği yerel ana konuşmalar sürdürülür. Codex gömülü yerel CLI (`--no-daemon`) gerektirir; paylaşılan daemon ve uzak bağlantılar desteklenmez. OpenCode TUI eklenti API’si gerektirir; eski sürümler, arayüzsüz sunucu oturumları ve `opencode attach` desteklenmez. Alt ajan üst bölmenin konuşmasını değiştiremez. Pi kayıtlı oturum dosyasını gerektirir.
+
+Doğrulanmış kimlik, özgün çalışma dizini veya Pi dosyası yoksa yeni kabuk açılır. CLI bulunamazsa da kabuğa dönülür. Zshell rastgele başlangıç komutunu yinelemez ve son konuşmayı seçmez. Silinmiş konuşma gibi sağlayıcı hatalarını CLI gösterir.
