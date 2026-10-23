@@ -16,6 +16,7 @@ enum ZshellAgentKind: String, CaseIterable, Codable, Sendable {
     case aider
     case amp
     case pi
+    case program
 
     var displayName: String {
         switch self {
@@ -28,6 +29,7 @@ enum ZshellAgentKind: String, CaseIterable, Codable, Sendable {
         case .aider: return "Aider"
         case .amp: return "Amp"
         case .pi: return "Pi"
+        case .program: return String(localized: "Program")
         }
     }
 
@@ -148,10 +150,24 @@ enum ZshellAgentPhase: String, Codable, CaseIterable, Sendable {
 enum ZshellAgentStateAuthority: String, Codable, Sendable {
     /// A native agent hook or plugin reported a complete lifecycle event.
     case integration
+    /// An authenticated program explicitly reported its own status.
+    case report
+    /// A bounded live viewport matched a known agent UI rule.
+    case screen
     /// Zshell recognized the foreground executable.
     case process
     /// Zshell just launched or prompted the agent and is awaiting a lifecycle event.
     case command
+
+    var displayName: String {
+        switch self {
+        case .integration: String(localized: "Native lifecycle")
+        case .report: String(localized: "Program report")
+        case .screen: String(localized: "Screen inference")
+        case .process: String(localized: "Process detection")
+        case .command: String(localized: "Submitted command")
+        }
+    }
 }
 
 struct ZshellAgentStatus: Equatable, Sendable {
@@ -165,11 +181,30 @@ struct ZshellAgentStatus: Equatable, Sendable {
     /// Completion remains unseen until the pane itself receives focus. Reads
     /// through the automation API deliberately do not mutate this bit.
     let unseen: Bool
+    let progress: Int?
+    let attention: ZshellAgentAttention?
+    let tasks: [ZshellAgentTaskStatus]
+
+    var detail: String {
+        var lines = [String(localized: "Source: \(authority.displayName)")]
+        if let attention { lines.append(attention.displayName) }
+        if let progress { lines.append(String(localized: "Progress: \(progress)%")) }
+        if authority == .report, !reason.isEmpty { lines.append(reason) }
+        if !tasks.isEmpty { lines.append(String(localized: "Tasks: \(tasks.count)")) }
+        for task in tasks.prefix(8) {
+            let state = task.attention?.displayName ?? task.phase.statusDescription
+            let progress = task.progress.map { " · \($0)%" } ?? ""
+            lines.append("\(task.title) · \(state)\(progress)")
+        }
+        return lines.joined(separator: "\n")
+    }
 }
 
 struct ZshellAgentRollup: Equatable {
     let phase: ZshellAgentPhase
     let count: Int
+    let detail: String
+    let progress: Int?
 }
 
 enum ZshellAutomationReadError: Error {
@@ -186,6 +221,14 @@ final class ZshellAgentObservationState {
     var lastForegroundPID: pid_t?
     var integrationPhase: ZshellAgentPhase?
     var integrationReason: String?
+    var integrationOwner: ZshellAgentProcessIdentity?
+    var integrationAttention: ZshellAgentAttention?
+    var integrationTasks: [ZshellAgentTaskStatus] = []
+    var programReport: ZshellAgentProgramObservation?
+    var lastProgramReportAt: Date?
+    var screenEvidence: ZshellAgentScreenEvidence?
+    var screenEvidenceSamples = 0
+    var lastScreenCheck = Date.distantPast
     /// Native integrations publish semantic idle, not whether that idle ended
     /// a turn. Track active-turn evidence so launching an already-idle CLI in
     /// the background never looks like a newly finished task.
@@ -267,12 +310,12 @@ extension TerminalSession {
     var isShellAvailableForAutomation: Bool {
         guard !hasExited, let shellPid, shellPid > 0 else { return false }
         return surface.foregroundPid == shellPid
+            && ZshellAgentKind.recognize(processID: shellPid) == nil
             && commandLifecycle.phase != .executing
     }
 
     func isAutomationAgentRunning(kind: ZshellAgentKind) -> Bool {
-        guard let foreground = surface.foregroundPid,
-              foreground != shellPid else { return false }
+        guard let foreground = surface.foregroundPid else { return false }
         return ZshellAgentKind.recognize(processID: foreground) == kind
     }
 
@@ -434,6 +477,8 @@ extension TerminalSession {
     }
 
     func declareAutomationAgent(alias: String, kind: ZshellAgentKind) {
+        clearNativeAgentObservation()
+        agentObservation.programReport = nil
         agentObservation.alias = alias
         agentObservation.declaredKind = kind
         agentObservation.integrationPhase = nil
@@ -454,6 +499,7 @@ extension TerminalSession {
 
     func markAutomationAgentPrompted() {
         guard let status = agentStatus else { return }
+        clearNativeAgentObservation()
         agentObservation.integrationPhase = nil
         agentObservation.integrationReason = nil
         agentObservation.integrationTurnActive = true
@@ -472,235 +518,272 @@ extension TerminalSession {
 
     func reportAutomationAgent(
         phase: ZshellAgentPhase,
-        reason: String?
+        reason: String?,
+        provider: ZshellAgentKind,
+        peerProcessID: pid_t,
+        attention: ZshellAgentAttention? = nil,
+        task: ZshellAgentTaskStatus? = nil,
+        endsSession: Bool = false
     ) -> Bool {
-        let foreground = surface.foregroundPid
-        let rememberedProcess = agentStatus?.processID
-        let recognized = [rememberedProcess, foreground]
-            .compactMap { $0 }
-            .lazy
-            .compactMap { processID -> (pid_t, ZshellAgentKind)? in
-                ZshellAgentKind.recognize(processID: processID).map { (processID, $0) }
+        guard !hasExited, let shell = shellPid,
+              ZshellAgentProcessIdentity.isDescendant(peerProcessID, of: shell)
+        else { return false }
+        var candidate = peerProcessID
+        var owner: ZshellAgentProcessIdentity?
+        var nearestProvider: ZshellAgentProcessIdentity?
+        for _ in 0..<64 {
+            if ZshellAgentKind.recognize(processID: candidate) == provider {
+                owner = ZshellAgentProcessIdentity(pid: candidate)
+                if nearestProvider == nil { nearestProvider = owner }
             }
-            .first
-        guard let (processID, detected) = recognized else { return false }
-        let kind = agentStatus?.kind ?? agentObservation.declaredKind ?? detected
-        guard kind == detected else { return false }
-        let alias = agentStatus?.alias ?? agentObservation.alias ?? kind.rawValue
-        agentObservation.alias = alias
-        agentObservation.declaredKind = kind
-        let focused = TerminalManager.automationIsSessionFocused(id)
-        agentObservation.integrationPhase = phase
-        agentObservation.integrationReason = reason
-        agentObservation.commandGraceDeadline = nil
-        if phase == .working || phase == .blocked {
-            agentObservation.integrationTurnActive = true
+            if candidate == shell { break }
+            guard let parent = ZshellAgentProcessIdentity.parent(of: candidate), parent > 1 else { break }
+            candidate = parent
         }
-
-        // A newly launched interactive CLI commonly publishes its initial idle
-        // event before Zshell submits any task. Keep the deliberate `created`
-        // state; readiness is process recognition, not a disposable lifecycle
-        // turn that should appear as background completion.
-        if agentObservation.awaitingInitialPrompt, phase == .idle {
-            agentObservation.integrationPhase = nil
-            agentObservation.integrationReason = nil
-            updateAutomationAgentStatus(
-                alias: alias,
-                kind: kind,
-                phase: .created,
-                authority: .process,
-                reason: "Agent process created; no task has been submitted",
-                processID: processID,
-                unseen: false
-            )
+        // Nested invocations inherit the terminal capability too. Only the
+        // outer provider may change the parent lifecycle; identified children
+        // may update their own task entry instead.
+        guard let owner, task != nil || nearestProvider == owner else { return false }
+        if let foreground = surface.foregroundPid,
+           let foregroundKind = ZshellAgentKind.recognize(processID: foreground),
+           foregroundKind != provider { return false }
+        if agentObservation.integrationOwner != owner {
+            agentObservation.integrationTasks.removeAll()
+            agentObservation.integrationTurnActive = false
+        }
+        let alias = agentObservation.declaredKind == provider
+            ? agentObservation.alias ?? provider.rawValue : provider.rawValue
+        agentObservation.alias = alias
+        agentObservation.declaredKind = provider
+        agentObservation.integrationOwner = owner
+        agentObservation.commandGraceDeadline = nil
+        if task == nil, reason == "\(provider.displayName): SessionStart" {
+            agentObservation.integrationTasks.removeAll()
+            agentObservation.integrationTurnActive = false
+        }
+        if endsSession {
+            clearAutomationAgentStatus()
             return true
         }
-
-        let completedTurn = agentObservation.integrationTurnActive
-            || agentStatus?.phase == .working
-            || agentStatus?.phase == .blocked
-        let presentedPhase: ZshellAgentPhase
-        switch phase {
-        case .idle, .done:
-            presentedPhase = completedTurn && !focused ? .done : .idle
-            agentObservation.integrationTurnActive = false
-        default:
-            presentedPhase = phase
+        if let task {
+            var tasks = agentObservation.integrationTasks
+            if let index = tasks.firstIndex(where: { $0.id == task.id }) { tasks[index] = task }
+            else if tasks.count < ZshellAgentReport.maximumTasks { tasks.append(task) }
+            else if let index = tasks.firstIndex(where: { $0.phase == .done || $0.phase == .idle }) {
+                tasks.remove(at: index)
+                tasks.append(task)
+            }
+            agentObservation.integrationTasks = tasks
+            if phase == .working { agentObservation.integrationTurnActive = true }
+            if agentObservation.integrationPhase == nil { agentObservation.integrationPhase = .working }
+        } else {
+            agentObservation.integrationPhase = phase
+            agentObservation.integrationAttention = attention
         }
-        updateAutomationAgentStatus(
-            alias: alias,
-            kind: kind,
-            phase: presentedPhase,
-            authority: .integration,
-            reason: reason ?? "Reported by native agent integration",
-            processID: processID,
-            unseen: presentedPhase == .done
+        agentObservation.integrationReason = reason
+        if phase == .working || phase == .blocked {
+            agentObservation.integrationTurnActive = true
+            agentObservation.awaitingInitialPrompt = false
+        }
+        presentNativeAgentStatus(isFocused: TerminalManager.automationIsSessionFocused(id))
+        return true
+    }
+
+    func reportAutomationProgram(
+        _ report: ZshellAgentReport, ownerPID: pid_t, peerProcessID: pid_t
+    ) -> Bool {
+        guard !hasExited, let shell = shellPid,
+              ZshellAgentProcessIdentity.isDescendant(peerProcessID, of: ownerPID),
+              ZshellAgentProcessIdentity.isDescendant(ownerPID, of: shell),
+              let owner = ZshellAgentProcessIdentity(pid: ownerPID)
+        else { return false }
+        if agentStatus?.authority == .report,
+           agentObservation.programReport?.report.phase != report.phase {
+            agentStatus = nil
+        }
+        agentObservation.programReport = ZshellAgentProgramObservation(
+            report: report, owner: owner, updatedAt: Date()
         )
+        agentObservation.lastProgramReportAt = Date()
+        refreshAutomationAgentState(isFocused: TerminalManager.automationIsSessionFocused(id))
+        return true
+    }
+
+    func clearAutomationProgram(peerProcessID: pid_t) -> Bool {
+        guard let shell = shellPid,
+              ZshellAgentProcessIdentity.isDescendant(peerProcessID, of: shell) else { return false }
+        if let report = agentObservation.programReport,
+           !ZshellAgentProcessIdentity.isDescendant(peerProcessID, of: report.owner.pid) {
+            return false
+        }
+        agentObservation.programReport = nil
+        if agentStatus?.authority == .report { agentStatus = nil }
+        refreshAutomationAgentState(isFocused: TerminalManager.automationIsSessionFocused(id))
         return true
     }
 
     func markAutomationAgentSeen() {
         guard let status = agentStatus, status.phase == .done || status.unseen else { return }
-        guard isAutomationAgentRunning(kind: status.kind) else {
-            clearAutomationAgentStatus()
-            return
+        if status.authority == .report {
+            guard agentObservation.programReport?.isCurrent(at: Date()) == true else {
+                agentObservation.programReport = nil
+                agentStatus = nil
+                return
+            }
+        } else {
+            guard agentObservation.integrationOwner?.isAlive == true
+                || isAutomationAgentRunning(kind: status.kind) else {
+                clearAutomationAgentStatus()
+                return
+            }
+            agentObservation.integrationPhase = .idle
+            agentObservation.integrationReason = "Completion viewed"
+            agentObservation.integrationTurnActive = false
         }
-        agentObservation.integrationPhase = .idle
-        agentObservation.integrationReason = "Completion viewed"
-        agentObservation.integrationTurnActive = false
         updateAutomationAgentStatus(
-            alias: status.alias,
-            kind: status.kind,
-            phase: .idle,
-            authority: status.authority,
-            reason: "Completion viewed",
-            processID: status.processID,
-            unseen: false
+            alias: status.alias, kind: status.kind, phase: .idle,
+            authority: status.authority, reason: status.reason,
+            processID: status.processID, unseen: false,
+            progress: status.progress, attention: nil, tasks: status.tasks
+        )
+    }
+
+    private func presentNativeAgentStatus(isFocused: Bool) {
+        guard let owner = agentObservation.integrationOwner,
+              let kind = agentObservation.declaredKind,
+              let reported = agentObservation.integrationPhase else { return }
+        let tasks = agentObservation.integrationTasks
+        let blockedChild = tasks.first(where: { $0.phase == .blocked })
+        let childrenWorking = tasks.contains(where: { $0.phase == .working })
+        var phase = blockedChild != nil ? ZshellAgentPhase.blocked
+            : childrenWorking && (reported == .idle || reported == .done) ? .working : reported
+        let initialIdle = agentObservation.awaitingInitialPrompt && phase == .idle
+        let completedTurn = agentObservation.integrationTurnActive
+            || agentStatus?.phase == .working || agentStatus?.phase == .blocked
+        if initialIdle { phase = .created }
+        else if phase == .idle || phase == .done {
+            // Preserve a previously acknowledged completion when focus changes.
+            let unseenCompletion = agentStatus?.authority == .integration && agentStatus?.unseen == true
+            phase = !isFocused && (completedTurn || unseenCompletion) ? .done : .idle
+            agentObservation.integrationTurnActive = false
+        }
+        updateAutomationAgentStatus(
+            alias: agentObservation.alias ?? kind.rawValue, kind: kind, phase: phase,
+            authority: .integration,
+            reason: agentObservation.integrationReason ?? "Reported by native agent integration",
+            processID: owner.pid, unseen: phase == .done,
+            attention: blockedChild?.attention ?? agentObservation.integrationAttention,
+            tasks: tasks
         )
     }
 
     fileprivate func refreshAutomationAgentState(isFocused: Bool) {
+        guard !hasExited else { clearAutomationAgentStatus(); return }
         if isFocused { markAutomationAgentSeen() }
-
-        let foreground = surface.foregroundPid
-        let shell = shellPid
-        let processIsAgent = foreground != nil && foreground != shell
-        let detectedKind = processIsAgent
-            ? foreground.flatMap(ZshellAgentKind.recognize(processID:))
-            : nil
-        let kind = detectedKind
-        if detectedKind != nil {
-            agentObservation.commandGraceDeadline = nil
+        let now = Date()
+        if let owner = agentObservation.integrationOwner, !owner.isAlive {
+            clearNativeAgentObservation()
+            if agentStatus?.authority == .integration { agentStatus = nil }
         }
-
+        if let report = agentObservation.programReport, !report.isCurrent(at: now) {
+            agentObservation.programReport = nil
+            if agentStatus?.authority == .report { agentStatus = nil }
+        }
+        if agentObservation.integrationOwner != nil, agentObservation.integrationPhase != nil {
+            presentNativeAgentStatus(isFocused: isFocused)
+            return
+        }
+        if let observation = agentObservation.programReport {
+            let report = observation.report
+            let seen = agentStatus?.authority == .report && agentStatus?.phase == .idle
+                && agentStatus?.processID == observation.owner.pid
+            let phase = (report.activityPhase == .done && (isFocused || seen))
+                ? ZshellAgentPhase.idle : report.activityPhase
+            updateAutomationAgentStatus(
+                alias: report.name, kind: .program, phase: phase, authority: .report,
+                reason: report.reason, processID: observation.owner.pid,
+                unseen: phase == .done, progress: report.progress,
+                attention: report.activityAttention, tasks: report.tasks
+            )
+            return
+        }
+        let foreground = surface.foregroundPid
+        let kind = foreground.flatMap(ZshellAgentKind.recognize(processID:))
         if foreground != agentObservation.lastForegroundPID {
             agentObservation.lastForegroundPID = foreground
-            if !processIsAgent {
-                agentObservation.integrationPhase = nil
-                agentObservation.integrationReason = nil
-            }
+            agentObservation.screenEvidence = nil
+            agentObservation.screenEvidenceSamples = 0
         }
-
         guard let kind else {
-            guard let previous = agentStatus else { return }
-            if !processIsAgent {
-                if previous.phase == .working,
-                   previous.authority == .command,
-                   let deadline = agentObservation.commandGraceDeadline,
-                   Date() < deadline {
-                    return
-                }
-                clearAutomationAgentStatus()
-            }
+            if let deadline = agentObservation.commandGraceDeadline, now < deadline { return }
+            clearAutomationAgentStatus()
             return
         }
-
-        let alias = agentObservation.alias ?? agentStatus?.alias ?? kind.rawValue
+        if let previous = agentStatus, previous.kind != kind || previous.processID != foreground {
+            clearNativeAgentObservation()
+            agentObservation.alias = nil
+            agentObservation.awaitingInitialPrompt = false
+        }
+        agentObservation.commandGraceDeadline = nil
+        let alias = agentObservation.alias ?? kind.rawValue
         agentObservation.alias = alias
-        let declaredKind = agentObservation.declaredKind
         agentObservation.declaredKind = kind
 
-        // Directly launched CLIs have no `agent.start` declaration. Process
-        // recognition records an idle presence, but terminal text never changes
-        // lifecycle state; only commands and native integrations do that.
-        if agentStatus == nil,
-           agentObservation.integrationPhase == nil {
-            updateAutomationAgentStatus(
-                alias: alias,
-                kind: kind,
-                phase: .idle,
-                authority: .process,
-                reason: "Directly launched \(kind.displayName) detected",
-                processID: foreground,
-                unseen: false
-            )
+        if now.timeIntervalSince(agentObservation.lastScreenCheck) >= 1.5 {
+            agentObservation.lastScreenCheck = now
+            let evidence = terminalIsAtLiveBottom && !agentObservation.isCollectingAlternateScreenHistory
+                ? ZshellAgentScreenEvidence.detect(
+                    kind: kind, text: automationVisibleText(maxLines: 32, maxColumns: 240)
+                  ) : nil
+            agentObservation.screenEvidenceSamples = evidence == agentObservation.screenEvidence
+                ? agentObservation.screenEvidenceSamples + 1 : 1
+            agentObservation.screenEvidence = evidence
         }
-
-        if let phase = agentObservation.integrationPhase,
-           phase != .working, phase != .blocked {
-            // Presentation is decided when the native event arrives. Preserve
-            // it until a new event or explicit focus acknowledges completion;
-            // otherwise leaving an idle pane would turn it back into `done`.
-            let currentPresentation = agentStatus.flatMap { status in
-                status.authority == .integration
-                    && (status.phase == .idle || status.phase == .done)
-                    ? status : nil
-            }
-            let normalized = currentPresentation?.phase
-                ?? ((phase == .idle || phase == .done) ? .idle : phase)
+        if let evidence = agentObservation.screenEvidence,
+           agentObservation.screenEvidenceSamples >= 2 {
             updateAutomationAgentStatus(
-                alias: alias,
-                kind: kind,
-                phase: normalized,
-                authority: .integration,
-                reason: agentObservation.integrationReason
-                    ?? "Reported by native agent integration",
-                processID: foreground,
-                unseen: currentPresentation?.unseen ?? (normalized == .done)
+                alias: alias, kind: kind, phase: evidence.phase, authority: .screen,
+                reason: evidence.reason, processID: foreground, unseen: false,
+                attention: evidence.attention
             )
             return
         }
-
-        if agentObservation.awaitingInitialPrompt, declaredKind == kind {
+        if agentObservation.awaitingInitialPrompt {
             updateAutomationAgentStatus(
-                alias: alias,
-                kind: kind,
-                phase: .created,
-                authority: .process,
+                alias: alias, kind: kind, phase: .created, authority: .process,
                 reason: "Agent process created; no task has been submitted",
-                processID: foreground,
-                unseen: false
+                processID: foreground, unseen: false
             )
-            return
-        }
-
-        if let phase = agentObservation.integrationPhase {
+        } else if let current = agentStatus, current.authority == .command, current.phase == .working {
             updateAutomationAgentStatus(
-                alias: alias,
-                kind: kind,
-                phase: phase,
-                authority: .integration,
-                reason: agentObservation.integrationReason
-                    ?? "Reported by native agent integration",
-                processID: foreground,
-                unseen: false
+                alias: alias, kind: kind, phase: .working, authority: .command,
+                reason: current.reason, processID: foreground, unseen: false
             )
-            return
-        }
-
-        if let current = agentStatus,
-           current.phase == .working,
-           current.authority == .command {
+        } else {
             updateAutomationAgentStatus(
-                alias: alias,
-                kind: kind,
-                phase: .working,
-                authority: .command,
-                reason: current.reason,
-                processID: foreground,
-                unseen: false
+                alias: alias, kind: kind, phase: .idle, authority: .process,
+                reason: "Directly launched \(kind.displayName) detected", processID: foreground, unseen: false
             )
-            return
         }
-
-        updateAutomationAgentStatus(
-            alias: alias,
-            kind: kind,
-            phase: .idle,
-            authority: .process,
-            reason: "Directly launched \(kind.displayName) detected",
-            processID: foreground,
-            unseen: false
-        )
     }
 
-    private func clearAutomationAgentStatus() {
+    private func clearNativeAgentObservation() {
+        agentObservation.integrationPhase = nil
+        agentObservation.integrationReason = nil
+        agentObservation.integrationOwner = nil
+        agentObservation.integrationAttention = nil
+        agentObservation.integrationTasks.removeAll()
+        agentObservation.integrationTurnActive = false
+    }
+
+    func clearAutomationAgentStatus() {
         agentStatus = nil
         agentObservation.alias = nil
         agentObservation.declaredKind = nil
-        agentObservation.integrationPhase = nil
-        agentObservation.integrationReason = nil
-        agentObservation.integrationTurnActive = false
+        clearNativeAgentObservation()
+        agentObservation.programReport = nil
+        agentObservation.screenEvidence = nil
+        agentObservation.screenEvidenceSamples = 0
         agentObservation.awaitingInitialPrompt = false
         agentObservation.commandGraceDeadline = nil
     }
@@ -712,7 +795,10 @@ extension TerminalSession {
         authority: ZshellAgentStateAuthority,
         reason: String,
         processID: pid_t?,
-        unseen: Bool
+        unseen: Bool,
+        progress: Int? = nil,
+        attention: ZshellAgentAttention? = nil,
+        tasks: [ZshellAgentTaskStatus] = []
     ) {
         if let current = agentStatus,
            current.alias == alias,
@@ -721,7 +807,10 @@ extension TerminalSession {
            current.authority == authority,
            current.reason == reason,
            current.processID == processID,
-           current.unseen == unseen {
+           current.unseen == unseen,
+           current.progress == progress,
+           current.attention == attention,
+           current.tasks == tasks {
             return
         }
 
@@ -734,10 +823,13 @@ extension TerminalSession {
             reason: reason,
             updatedAt: Date(),
             processID: processID,
-            unseen: unseen
+            unseen: unseen,
+            progress: progress,
+            attention: attention,
+            tasks: tasks
         )
 
-        guard phase != previousPhase,
+        guard authority != .screen, phase != previousPhase,
               phase == .blocked || phase == .done,
               !TerminalManager.automationIsSessionFocused(id)
         else { return }
@@ -766,7 +858,9 @@ extension PaneTab {
         }) else { return nil }
         return ZshellAgentRollup(
             phase: phase,
-            count: visibleStatuses.filter { $0.phase == phase }.count
+            count: visibleStatuses.filter { $0.phase == phase }.count,
+            detail: visibleStatuses.prefix(8).map { "\($0.alias)\n\($0.detail)" }.joined(separator: "\n\n"),
+            progress: visibleStatuses.count == 1 ? visibleStatuses.first?.progress : nil
         )
     }
 }

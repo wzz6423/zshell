@@ -47,7 +47,11 @@ Zshell 的自動化接口由 agent 自己調用，你不需要輸入或記住任
 | **Blocked** | 它需要你的輸入、批准或決定。 |
 | **Done** | 它已經在後台完成，而你還沒有查看那個窗格。 |
 
-Zshell 會把自己剛提交的 prompt 記為 **Working**，但不會掃描終端機裡渲染的文字來猜測後續狀態。**Blocked**、**Done** 及其通知都必須來自 provider 的生命週期報告。如果某個 agent 沒有提供這類報告，請直接查看它的窗格和實際專案改動，不要依賴猜測出來的狀態。
+Zshell 優先採用 Codex、Claude Code、Pi、OpenCode 和 Grok 的原生生命週期事件，其次採用程式主動回報。將游標停在狀態標記上，或開啟 **Agents**，可查看來源、等待原因、百分比及子任務。Codex 的 hook 需先在其 `/hooks` 選單中審閱並信任；Zshell 不會略過此步驟。
+
+沒有原生回報時，Zshell 只會檢查已辨識 Agent 程序目前畫面底部的有限文字。**畫面推斷**會標示來源，不代表完成、不發送通知，也不能滿足 `zshell +agent wait`，更不會核准提示。請查看窗格及實際結果。
+
+程式可使用 `zshell +agent report` 回報進度，並透過 `zshell +agent clear` 清除自己的回報。超過 120 秒未更新或所屬程序結束時，回報會失效。
 
 當集成報告 agent 已完成或需要輸入時，Zshell 還可以發送通知。按 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>，會跳到下一個已報告且需要你處理的 agent。
 

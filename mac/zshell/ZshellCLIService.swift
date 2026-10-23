@@ -127,6 +127,7 @@ final class ZshellCLIService {
             environment["ZSHELL_AUTOMATION_SKILL"] = skillURL.path
         }
         if let executableURL = Bundle.main.executableURL {
+            environment["ZSHELL_EXECUTABLE"] = executableURL.path
             let bin = executableURL.deletingLastPathComponent().path
             let inherited = ProcessInfo.processInfo.environment["PATH"]
                 ?? "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"

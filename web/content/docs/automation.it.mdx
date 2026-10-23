@@ -47,7 +47,11 @@ I pannelli delegati restano in background finché non chiedi di vederli. Quando 
 | **Bloccato** | Serve un tuo input, un'approvazione o un'altra decisione. |
 | **Completato** | Ha finito in background e non hai ancora visto il pannello. |
 
-Zshell registra come **Al lavoro** un prompt che invia, ma non esamina mai il testo visualizzato nel terminale per indovinare cosa accade dopo. Il passaggio a **Bloccato** o **Completato** e le relative notifiche richiedono un rapporto del provider. Se manca, esamina direttamente pannello e modifiche al progetto.
+Zshell dà priorità agli eventi nativi di Codex, Claude Code, Pi, OpenCode e Grok, poi alle segnalazioni esplicite dei programmi. Passa il puntatore sul badge o apri **Agents** per vedere origine, motivo dell’attesa, percentuale e attività secondarie. Gli hook Codex vanno prima esaminati e autorizzati in `/hooks`; Zshell non aggira questa verifica.
+
+Senza segnalazioni native viene esaminata solo una porzione limitata del fondo della schermata attiva di un agente riconosciuto. La **deduzione dallo schermo** è indicata, non segnala il completamento, non invia notifiche e non soddisfa `zshell +agent wait`. Non concede approvazioni. Controlla il pannello e il risultato effettivo.
+
+I programmi usano `zshell +agent report` per segnalare l’avanzamento e `zshell +agent clear` per cancellare la propria segnalazione. Questa scade dopo 120 secondi senza aggiornamenti o alla chiusura del processo proprietario.
 
 Quando l'integrazione segnala la conclusione o la necessità di input, Zshell può anche inviare una notifica. Premi <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> per raggiungere il prossimo agente che ha segnalato di richiedere attenzione.
 
