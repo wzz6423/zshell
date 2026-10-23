@@ -150,6 +150,26 @@ terminal or diff.
 
 ## Terminal
 
+### `terminal.preserve-sessions`
+
+boolean — default `false`
+
+Keeps shells, coding agents, and development servers in newly opened terminals
+running after you quit Zshell. Reopening connects to the same live process and
+restores its terminal screen and input modes with either backend. The daemon
+keeps bounded screen history in memory; it does not survive a macOS restart. If
+the PTY is no longer alive, the pane opens a fresh shell instead.
+
+Closing a pane, project, or window still ends its tasks. Use **Zshell → Quit and
+End All Sessions**, or turn this setting off before quitting, to end every
+background session. The Quick Terminal does not retain a background session.
+
+The CLI in a retained shell reconnects to its original terminal when Zshell
+reopens. It is unavailable while the GUI is closed. The stable CLI launcher is
+updated on reconnect; removing a development build can make the CLI unavailable
+until another build of Zshell reopens the session. Terminal image placements and
+backend-specific graphics are not restored; applications can redraw them.
+
 ### `terminal.startup-program` / `terminal.startup-arguments`
 
 strings — default unset

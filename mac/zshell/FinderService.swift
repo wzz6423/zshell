@@ -21,6 +21,7 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
         NSApp.servicesProvider = self
         WindowScreenConstraint.shared.start()
         installTerminalEnvironmentMenu()
+        installEndAllSessionsMenu()
         AppMenuLocalization.shared.start()
         GlobalTerminalOverlay.shared.start()
     }
@@ -44,6 +45,27 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         item.submenu = submenu
         mainMenu.addItem(item)
+    }
+
+    private func installEndAllSessionsMenu() {
+        guard let menu = NSApp.mainMenu?.items.first?.submenu else { return }
+        let item = NSMenuItem(
+            title: String(localized: "Quit and End All Sessions"),
+            action: #selector(quitAndEndAllSessions), keyEquivalent: ""
+        )
+        item.target = self
+        let index = menu.items.firstIndex { $0.action == #selector(NSApplication.terminate(_:)) } ?? menu.items.count
+        menu.insertItem(item, at: index)
+    }
+
+    @objc private func quitAndEndAllSessions() {
+        TerminalManager.prepareForApplicationQuit(endAll: true)
+        NSApp.terminate(nil)
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        TerminalManager.prepareForApplicationQuit()
+        return .terminateNow
     }
 
     @objc private func editProjectTerminalEnvironment() {

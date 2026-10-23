@@ -16,7 +16,10 @@ public extension TerminalView {
     /// correlate the surface with an external process list. Nil until the
     /// surface has a process.
     var foregroundPid: pid_t? {
-        surface?.foregroundPid
+        #if canImport(AppKit) && !canImport(UIKit)
+            if let foregroundProcessProvider { return foregroundProcessProvider() }
+        #endif
+        return surface?.foregroundPid
     }
 
     /// Name of the pty's controlling tty (e.g. `/dev/ttys004`), or nil until
