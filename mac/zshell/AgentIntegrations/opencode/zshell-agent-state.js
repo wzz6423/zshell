@@ -51,7 +51,7 @@ function reportOnce(state, reason) {
       socket.destroy();
       resolve();
     };
-    socket.setTimeout(750, finish);
+    socket.setTimeout(15_000, finish);
     socket.on("connect", () => socket.write(`${JSON.stringify(request)}\n`));
     socket.on("data", finish);
     socket.on("error", finish);

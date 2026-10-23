@@ -217,6 +217,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// or been force-stopped. Detaching first can make a backend wait
     /// synchronously for a process that ignored SIGHUP.
     private func beginTeardown(processAlive: Bool, notifyExit: Bool) {
+        AgentTurnReviewStore.shared.abort(sessionID: id)
         // TerminalHostView normally clears these while dismantling, but close
         // teardown must not depend on a later SwiftUI reconciliation pass.
         // These callbacks originate on PaneView and capture this session.

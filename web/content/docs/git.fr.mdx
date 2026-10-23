@@ -92,3 +92,17 @@ Le tirage est volontairement limité à l'avance rapide. Si une fusion ou un reb
 ## Aucun dépôt pour le moment [#not-a-repository-yet]
 
 Si le répertoire du projet ne contient pas de dépôt, le panneau propose **Initialiser le dépôt**, qui exécute `git init` dans ce dossier. Il reste discret tant que le dépôt n'est pas initialisé.
+
+## Révision des tours d’agent [#agent-turn-review]
+
+Cliquez sur **Examiner les modifications…** dans le panneau Git.
+
+- **Dernier tour** compare les instantanés de début et de fin de l’agent choisi, y compris toutes les modifications de cet intervalle, quel qu’en soit l’auteur.
+- **Non validées** compare HEAD à l’arbre de travail, fichiers indexés et non suivis compris.
+- **Branche entière** compare l’ancêtre commun avec la branche de base choisie à l’arbre de travail, commits et modifications non validées compris.
+
+Choisissez un fichier et un bloc. **Conserver le bloc** enregistre la révision ; **Annuler le bloc** inverse ce bloc dans l’arbre de travail. Ces actions du dernier tour ne modifient pas l’index Git. L’instantané original et les décisions restent affichés.
+
+L’annulation est refusée si le fichier ou HEAD a changé, si le chemin est dangereux, si un agent est actif ou si des tours se chevauchent. Les changements binaires ou de permissions sont en lecture seule. Les fichiers dépassant 5 MiB sont indisponibles, comme les instantanés dépassant 2 048 chemins modifiés, 25 MiB de contenu capturé ou le délai de capture.
+
+Les instantanés durent le temps de la session de l’application. Des événements fiables de début et de fin sont requis. Pi, OpenCode et Grok disposent d’intégrations natives. Les prompts protégés capturent le début, mais nécessitent aussi un événement de fin. Sinon, aucun instantané terminé n’est disponible.

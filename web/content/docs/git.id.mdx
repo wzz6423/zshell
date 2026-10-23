@@ -101,3 +101,17 @@ Pull sengaja dibatasi pada fast-forward. Jika merge atau rebase sungguhan diperl
 ## Belum menjadi repositori [#not-a-repository-yet]
 
 Jika direktori proyek belum memiliki repositori, panel menawarkan **Inisialisasi Repositori (Initialize Repository)** yang menjalankan `git init` dalam folder itu. Sebelum itu, panel tidak mengganggu pekerjaan Anda.
+
+## Meninjau giliran agen [#agent-turn-review]
+
+Klik **Tinjau Perubahan…** di panel Git.
+
+- **Giliran Terakhir** membandingkan snapshot awal dan akhir agen terpilih, termasuk semua suntingan pada interval itu, siapa pun penulisnya.
+- **Belum Dikomit** membandingkan HEAD dengan pohon kerja, termasuk file di staging dan yang belum dilacak.
+- **Seluruh Branch** membandingkan leluhur bersama dengan branch dasar terpilih ke pohon kerja, termasuk commit dan file yang belum dikomit.
+
+Pilih file dan bagian perubahan. Pada Giliran Terakhir, **Pertahankan Bagian** mencatat tinjauan; **Kembalikan Bagian** membalik perubahan di pohon kerja. Keduanya tidak mengubah indeks Git. Snapshot asli dan keputusan tetap ditampilkan.
+
+Pengembalian ditolak jika file atau HEAD berubah, jalurnya tidak aman, ada agen aktif, atau giliran tumpang tindih. Perubahan biner dan izin saja hanya dapat dibaca. File di atas 5 MiB tidak tersedia; demikian pula snapshot di atas 2.048 jalur berubah, 25 MiB konten, atau batas waktu perekaman.
+
+Snapshot berlaku selama sesi aplikasi saat ini. Dibutuhkan peristiwa awal dan akhir yang andal. Pi, OpenCode, dan Grok memiliki integrasi native. Prompt terlindungi merekam awal, tetapi tetap memerlukan peristiwa selesai. Tanpanya, tidak ada snapshot giliran selesai.

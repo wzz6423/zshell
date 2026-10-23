@@ -92,3 +92,17 @@ Pull bilinçli olarak yalnızca fast-forward yapar. Gerçek merge veya rebase ge
 ## Henüz depo değilse [#not-a-repository-yet]
 
 Proje dizininde depo yoksa panel o klasörde `git init` çalıştıran **Depoyu Başlat** seçeneğini sunar. O zamana kadar önünüze çıkmaz.
+
+## Aracı turlarını inceleme [#agent-turn-review]
+
+Git panelinde **Değişiklikleri İncele…** seçeneğine tıklayın.
+
+- **Son Tur**, seçilen aracının başlangıç ve bitiş anlık görüntülerini karşılaştırır; yazarı kim olursa olsun o aralıktaki tüm düzenlemeleri içerir.
+- **Commit Edilmemiş**, hazırlanmış ve izlenmeyen dosyalar dahil HEAD ile çalışma ağacını karşılaştırır.
+- **Tüm Dal**, seçilen temel dalla ortak atayı commit ve commit edilmemiş dosyalar dahil çalışma ağacıyla karşılaştırır.
+
+Bir dosya ve değişiklik bloğu seçin. Son Tur’da **Değişiklik Bloğunu Koru** incelemeyi kaydeder; **Değişiklik Bloğunu Geri Al** çalışma ağacındaki bloğu geri alır. İkisi de Git indeksini değiştirmez. İlk anlık görüntü ve kararlar görünür kalır.
+
+Dosya veya HEAD sonradan değişmişse, yol güvenli değilse, etkin aracı varsa veya turlar çakışıyorsa geri alma reddedilir. İkili ve yalnızca izin değişiklikleri salt okunurdur. 5 MiB üzerindeki dosyalar kullanılamaz. 2.048 değişen yol, 25 MiB içerik veya yakalama süresi sınırını aşan anlık görüntüler de kullanılamaz.
+
+Anlık görüntüler geçerli uygulama oturumu boyunca saklanır. Güvenilir başlangıç ve bitiş olayları gerekir. Pi, OpenCode ve Grok yerel entegrasyonlara sahiptir. Korumalı istemler başlangıcı yakalar ancak yine de bitiş olayı gerekir. Eksikse tamamlanmış anlık görüntü bulunmadığı gösterilir.

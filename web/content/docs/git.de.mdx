@@ -92,3 +92,17 @@ Pull verwendet bewusst nur Fast-Forward. Ist ein echter Merge oder Rebase nötig
 ## Noch kein Repository [#not-a-repository-yet]
 
 Enthält das Projektverzeichnis noch kein Repository, bietet das Panel **Repository initialisieren** an. Damit wird `git init` in diesem Ordner ausgeführt. Bis dahin bleibt das Panel zurückhaltend.
+
+## Agent-Durchläufe prüfen [#agent-turn-review]
+
+Klicken Sie im Git-Panel auf **Änderungen prüfen…**.
+
+- **Letzter Durchlauf** vergleicht die Schnappschüsse am Anfang und Ende des gewählten Agenten. Alle Änderungen im Zeitraum sind enthalten, unabhängig vom Autor.
+- **Nicht committet** vergleicht HEAD mit dem Arbeitsbaum, einschließlich vorgemerkter und unversionierter Dateien.
+- **Gesamter Branch** vergleicht den gemeinsamen Vorfahren mit dem gewählten Basisbranch mit dem Arbeitsbaum, einschließlich Commits und nicht committeter Dateien.
+
+Wählen Sie eine Datei und einen Änderungsblock. **Änderungsblock behalten** vermerkt die Prüfung; **Änderungsblock zurücknehmen** setzt den Block im Arbeitsbaum zurück. Beide Aktionen im letzten Durchlauf lassen den Git-Index unverändert. Der ursprüngliche Schnappschuss und Ihre Entscheidungen bleiben sichtbar.
+
+Zurücksetzen wird bei späteren Datei- oder HEAD-Änderungen, unsicheren Pfaden, aktiven Agenten oder überlappenden Durchläufen abgelehnt. Binär- und reine Berechtigungsänderungen sind schreibgeschützt. Dateien über 5 MiB sind nicht verfügbar; ebenso Schnappschüsse mit mehr als 2.048 geänderten Pfaden, 25 MiB erfassten Inhalten oder überschrittenem Zeitlimit.
+
+Schnappschüsse gelten für die aktuelle App-Sitzung. Verlässliche Start- und Abschlussereignisse sind nötig. Pi, OpenCode und Grok bieten native Integrationen. Geschützte Prompts erfassen den Start, benötigen aber weiterhin ein Abschlussereignis. Fehlt es, wird kein abgeschlossener Schnappschuss angezeigt.
