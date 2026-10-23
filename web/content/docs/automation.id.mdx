@@ -7,6 +7,12 @@ Otomatisasi Zshell terutama ditujukan untuk agen pemrograman AI. Fitur ini membe
 
 Integrasi AI aktif secara bawaan. Bicaralah seperti biasa kepada agen Anda. Agen dapat membuat panel latar belakang, memulai pekerja yang didelegasikan, menjalankan perintah, menunggu hasil, dan membawa jawaban kembali tanpa merebut fokus dari panel yang Anda gunakan.
 
+## Menunggu hasil perintah [#wait-for-command-results]
+
+Untuk perintah yang selesai, seperti pengujian atau build, agen Anda dapat menunggu kode keluar dan durasi perintah itu sendiri, lalu membaca keluaran terminal terbaru yang disimpan. Jika waktu tunggu habis, perintah tetap berjalan dan tugas yang sama dapat ditunggu lagi tanpa memindahkan fokus. Ini memerlukan prompt kosong di zsh lokal asli yang diluncurkan Zshell; shell bersarang, SSH, dan program awal khusus tidak didukung. Keluaran terbaru dibatasi dan dapat mencakup perintah atau prompt sebelumnya. Minta agen menyimpan keluaran lengkap ke berkas bila diperlukan.
+
+Panggilan langsung `exit`, `logout`, dan `exec` ditolak karena mengakhiri atau menggantikan shell asli; gunakan `/bin/sh -c` untuk menjalankannya dalam subproses.
+
 ## Pengaturan [#setup]
 
 Periksa **Pengaturan → Otomatisasi → AI**. Fitur ini aktif secara bawaan. Jika pernah Anda matikan, aktifkan lagi, lalu buka terminal baru atau mulai ulang agen yang sudah berjalan.

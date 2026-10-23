@@ -49,6 +49,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     private let launchWorkingDirectory: String
     private let launchDirectoryURL: URL?
     private let shellPidFileURL: URL?
+    let supportsCommandTaskShellIntegration: Bool
     private var cachedShellPid: pid_t?
     private var lastHistorySnapshot: String?
     private var isTerminating = false
@@ -119,6 +120,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         launchWorkingDirectory = directory
         launchDirectoryURL = artifacts.directoryURL
         shellPidFileURL = artifacts.pidFileURL
+        supportsCommandTaskShellIntegration = directCommand == nil
+            && artifacts.shellIntegrationDirectoryURL != nil
         title = (shellPath as NSString).lastPathComponent
         agentStatus = nil
 
@@ -217,6 +220,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// or been force-stopped. Detaching first can make a backend wait
     /// synchronously for a process that ignored SIGHUP.
     private func beginTeardown(processAlive: Bool, notifyExit: Bool) {
+        TerminalCommandTaskStore.shared.terminalClosed(in: self)
         // TerminalHostView normally clears these while dismantling, but close
         // teardown must not depend on a later SwiftUI reconciliation pass.
         // These callbacks originate on PaneView and capture this session.
@@ -355,6 +359,19 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
 
     var shellName: String {
         (shellPath as NSString).lastPathComponent
+    }
+
+    /// Persisted PTY adoption must preserve this directory along with the
+    /// shell's original launch artifacts; a new directory cannot identify a
+    /// command already running in that shell.
+    var commandTaskDirectoryURL: URL? {
+        guard supportsCommandTaskShellIntegration else { return nil }
+        return launchDirectoryURL?.appendingPathComponent("command-tasks", isDirectory: true)
+    }
+
+    static var canLaunchCommandTaskShell: Bool {
+        configuredStartupCommand() == nil
+            && (loginShell() as NSString).lastPathComponent == "zsh"
     }
 
     /// PID of the root terminal process. The launch shim records its own PID
@@ -782,7 +799,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         }
         for (name, contents) in files {
             let file = integrationDirectory.appendingPathComponent(name)
-            try Data((contents + "\n").utf8).write(to: file, options: .atomic)
+            // .zshrc restores ZDOTDIR, so the proxy .zlogin is no longer a
+            // reliable injection point after the user's configuration loads.
+            let taskIntegration = name == ".zshrc"
+                ? TerminalCommandTaskShellIntegration.script(in: directory) : ""
+            try Data((contents + taskIntegration + "\n").utf8).write(to: file, options: .atomic)
             try FileManager.default.setAttributes(
                 [.posixPermissions: 0o600], ofItemAtPath: file.path
             )
@@ -949,6 +970,9 @@ extension TerminalSession: TerminalBackendEvents {
             promptQueueDidObservePromptReturn()
         }
         commandLifecycle = lifecycle
+        if case .commandFinished = event {
+            TerminalCommandTaskStore.shared.observeCompletion(in: self)
+        }
     }
 
     func terminalDidClose(processAlive: Bool) {
