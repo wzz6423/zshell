@@ -326,7 +326,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         restoredHistory: String? = nil,
         commandArguments: [String]? = nil,
         environmentPath: String? = nil,
-        launchSettings: TerminalLaunchSettings? = nil
+        launchSettings: TerminalLaunchSettings? = nil,
+        restoredSessionID: UUID? = nil
     ) -> TerminalSession {
         let initialDirectory: String?
         let launchArguments: [String]?
@@ -376,6 +377,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             initialDirectory: initialDirectory,
             restoredHistory: restoredHistory,
             commandArguments: launchArguments,
+            restoredSessionID: restoredSessionID,
             environmentPath: environmentPath,
             launchSettings: launchSettings ?? self.launchSettings,
             additionalEnvironment: additionalEnvironment
@@ -1271,7 +1273,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             return .pane(Pane(content: makeContent(
                 from: pane.content,
                 restoredHistory: restoredHistory,
-                launchSettings: launchSettings
+                launchSettings: launchSettings,
+                restoredSessionID: pane.terminalID
             )))
         case .split(let axis, let fraction, let first, let second):
             return .split(PaneSplit(
@@ -1294,14 +1297,16 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     private func makeContent(
         from snap: SessionSnapshot.ProjectSnapshot.PaneContentSnapshot,
         restoredHistory: String? = nil,
-        launchSettings: TerminalLaunchSettings
+        launchSettings: TerminalLaunchSettings,
+        restoredSessionID: UUID? = nil
     ) -> PaneContent {
         switch snap {
         case .session(let workingDirectory):
             return .session(makeSession(
                 directory: workingDirectory,
                 restoredHistory: restoredHistory,
-                launchSettings: launchSettings
+                launchSettings: launchSettings,
+                restoredSessionID: restoredSessionID
             ))
         case .file(let path, let editorState):
             let file = FileTab(path: path)
