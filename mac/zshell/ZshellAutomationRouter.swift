@@ -12,7 +12,7 @@ import Foundation
 /// project by guessing a UUID.
 @MainActor
 enum ZshellAutomationRouter {
-    private struct PaneContext {
+    struct PaneContext {
         let manager: TerminalManager
         let project: Project
         let tab: PaneTab
@@ -43,6 +43,8 @@ enum ZshellAutomationRouter {
                 "current_terminal_id": .string(callerTerminalID.uuidString),
                 "reads_mark_seen": .bool(false),
                 "split_focus_default": .bool(false),
+                "browser_automation": .bool(true),
+                "browser_max_timeout_ms": .number(Double(BrowserAutomation.maximumTimeoutMS)),
             ]))
 
         case "pane.current":
@@ -73,6 +75,9 @@ enum ZshellAutomationRouter {
 
         case "pane.read":
             return await readPane(request, caller: caller)
+
+        case let method where method.hasPrefix("browser."):
+            return await routeBrowser(request, caller: caller)
 
         case "agent.list":
             let agents = projectContexts(caller.project, manager: caller.manager)
@@ -458,7 +463,7 @@ enum ZshellAutomationRouter {
         return caller.session?.agentStatus == nil ? nil : caller
     }
 
-    private static func context(forSession id: UUID) -> PaneContext? {
+    static func context(forSession id: UUID) -> PaneContext? {
         for manager in TerminalManager.automationManagers {
             for project in manager.projects {
                 for tab in project.tabs {
@@ -475,7 +480,7 @@ enum ZshellAutomationRouter {
         return nil
     }
 
-    private static func projectContexts(
+    static func projectContexts(
         _ project: Project,
         manager: TerminalManager
     ) -> [PaneContext] {
@@ -516,6 +521,9 @@ enum ZshellAutomationRouter {
             object["shell_available"] = .bool(session.isShellAvailableForAutomation)
             object["exited"] = .bool(session.hasExited)
             object["agent"] = session.agentStatus.map(agentSnapshot) ?? .null
+        }
+        if case .browser(let browser) = context.pane.content {
+            object["browser_id"] = .string(browser.id.uuidString)
         }
         return .object(object)
     }

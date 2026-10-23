@@ -593,6 +593,7 @@ private func printHelp() {
         its complete contract.
         """)
     )
+    print(String(localized: "Browser automation: `zshell +browser --help`."))
 }
 
 private func run() throws {
@@ -603,6 +604,12 @@ private func run() throws {
     }
     if arguments.first == "+pty-mux" {
         try PTYMuxCommandLine.run(arguments: Array(arguments.dropFirst()))
+        return
+    }
+    if arguments.first == "+browser" {
+        try ZshellBrowserAutomationCommandLine.run(
+            arguments: Array(arguments.dropFirst())
+        )
         return
     }
     if arguments.first == "+pane" || arguments.first == "+agent" {
