@@ -12,6 +12,12 @@ a background pane, start a delegated worker, run a command, wait for the
 result, and bring the answer back without taking focus from the pane you are
 using.
 
+## Wait for command results
+
+For finite commands such as tests or a build, your agent can wait for the command’s own exit status and duration, then read saved recent terminal output. If a wait times out, the command keeps running and the same task can be waited on again. Waiting does not take focus. This requires an empty prompt in the original local zsh that Zshell launched; nested shells, SSH, and custom startup programs do not support command results. Recent terminal output can include earlier commands or prompts and is bounded, so ask the agent to save complete output to a file when needed.
+
+Direct `exit`, `logout`, and `exec` are rejected because they end or replace the original shell; use `/bin/sh -c` for those commands in a subprocess.
+
 ## Setup
 
 Check **Settings → Automation → AI**. It is on by default; if you previously

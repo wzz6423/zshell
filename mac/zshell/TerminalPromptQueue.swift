@@ -76,8 +76,7 @@ extension TerminalSession {
     /// `.promptStart` and `.commandFinished` — whichever the active backend
     /// actually reports. libghostty surfaces only completed commands (there
     /// is no prompt-start callback), while the Alacritty bridge extracts all
-    /// OSC 133 markers but Zshell's own zsh shim emits only the prompt-start
-    /// half. Subscribing to both covers the two backends; a session whose
+    /// OSC 133 markers. Subscribing to both covers the two backends; a session whose
     /// shell reports neither simply leaves the queue to manual sends.
     func promptQueueDidObservePromptReturn() {
         guard !promptQueue.commands.isEmpty else { return }
@@ -113,6 +112,7 @@ extension TerminalSession {
     /// fresh prompt. Returns whether the head was sent.
     private func sendPromptQueueHeadIfShellIsReady() -> Bool {
         guard !promptQueue.commands.isEmpty,
+              !TerminalCommandTaskStore.shared.hasActiveTask(terminalID: id),
               terminalPromptQueueIsReady
         else { return false }
         // The gate above already proves the root shell is the foreground
