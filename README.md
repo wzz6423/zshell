@@ -18,6 +18,12 @@ Zshell requires macOS 15.6 or later.
 - Command palette, project-wide file search, and local path links
 - AI agents can delegate background work and coordinate across Zshell panes, with provider-reported status and human-controlled approvals
 
+Open Settings with **Cmd+,**. The sidebar groups settings by category; search
+for an option name, description, or configuration key, then select a result to
+jump to its setting. General also offers System, Light, and Dark appearance
+previews. **Cmd+F** focuses settings search, and **Cmd+[** / **Cmd+]** moves
+through previously visited categories.
+
 ## Get started
 
 Download the latest release from [the Zshell website](https://wzz6423.github.io/zshell/), or install it

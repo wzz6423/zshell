@@ -5,15 +5,16 @@
 
 import AppKit
 
-/// A settings row: label column on the left, control on the right. A row with
-/// an explanation aligns its control to the top, the way macOS Settings does;
-/// without one both sides center.
+/// Multiline editors stay top-aligned so their first control remains beside
+/// the title, while single controls center beside the row's text.
 final class SettingsRow: NSView {
     private let descriptionLabel: NSTextField?
 
-    init(title: String, description: String? = nil, control: NSView) {
-        let titleLabel = NSTextField(labelWithString: title)
+    init(title: String, description: String? = nil, control: NSView, symbolName: String? = nil) {
+        let titleLabel = NSTextField(wrappingLabelWithString: title)
         titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize)
+        titleLabel.maximumNumberOfLines = 0
+        titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         let textStack = NSStackView(views: [titleLabel])
         if let description {
@@ -22,6 +23,7 @@ final class SettingsRow: NSView {
             label.textColor = .secondaryLabelColor
             label.isSelectable = false
             label.maximumNumberOfLines = 0
+            label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
             textStack.addArrangedSubview(label)
             descriptionLabel = label
         } else {
@@ -29,17 +31,25 @@ final class SettingsRow: NSView {
         }
         textStack.orientation = .vertical
         textStack.alignment = .leading
-        textStack.spacing = 2
+        textStack.spacing = 3
+        for label in textStack.arrangedSubviews {
+            label.widthAnchor.constraint(equalTo: textStack.widthAnchor).isActive = true
+        }
 
         super.init(frame: .zero)
 
-        let stack = NSStackView(views: [textStack, control])
+        var views: [NSView] = [textStack, control]
+        if let symbolName { views.insert(SettingsRowSymbolView(symbolName: symbolName), at: 0) }
+        let stack = NSStackView(views: views)
         stack.orientation = .horizontal
-        stack.alignment = description == nil ? .centerY : .top
+        stack.alignment = control is NSControl || description == nil ? .centerY : .top
         stack.spacing = SettingsMetrics.labelControlGap
         stack.distribution = .fill
+        if symbolName != nil { stack.setCustomSpacing(12, after: views[0]) }
         textStack.setHuggingPriority(.defaultLow, for: .horizontal)
+        textStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         control.setContentHuggingPriority(.required, for: .horizontal)
+        if control.accessibilityLabel() == nil { control.setAccessibilityLabel(title) }
 
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
@@ -60,6 +70,46 @@ final class SettingsRow: NSView {
     /// the value they show.
     func setDescription(_ text: String) {
         descriptionLabel?.stringValue = text
+    }
+}
+
+private final class SettingsRowSymbolView: NSView {
+    init(symbolName: String) {
+        super.init(frame: .zero)
+
+        let symbol = NSImageView(image: NSImage(
+            systemSymbolName: symbolName,
+            accessibilityDescription: nil
+        )?.withSymbolConfiguration(.init(pointSize: 17, weight: .regular)) ?? NSImage())
+        symbol.contentTintColor = .controlAccentColor
+        symbol.imageScaling = .scaleProportionallyDown
+        symbol.setAccessibilityElement(false)
+        symbol.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(symbol)
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: 32),
+            heightAnchor.constraint(equalToConstant: 32),
+            symbol.widthAnchor.constraint(equalToConstant: 20),
+            symbol.heightAnchor.constraint(equalToConstant: 20),
+            symbol.centerXAnchor.constraint(equalTo: centerXAnchor),
+            symbol.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+        setAccessibilityElement(false)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor.controlAccentColor.withAlphaComponent(0.12).setFill()
+        NSBezierPath(roundedRect: bounds, xRadius: 8, yRadius: 8).fill()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
     }
 }
 
@@ -200,8 +250,10 @@ final class SettingsSliderRow: NSView {
         stepper = showsStepper ? NSStepper() : nil
         super.init(frame: .zero)
 
-        let titleLabel = NSTextField(labelWithString: title)
+        let titleLabel = NSTextField(wrappingLabelWithString: title)
         titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize)
+        titleLabel.maximumNumberOfLines = 0
+        titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         slider.minValue = range.lowerBound
         slider.maxValue = range.upperBound
@@ -242,6 +294,7 @@ final class SettingsSliderRow: NSView {
             stack.topAnchor.constraint(equalTo: topAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
             valueLabel.widthAnchor.constraint(equalToConstant: SettingsMetrics.sliderValueWidth),
+            titleLabel.widthAnchor.constraint(lessThanOrEqualTo: stack.widthAnchor, multiplier: 0.42),
         ])
 
         slider.setAccessibilityLabel(accessibilityLabel ?? title)
@@ -298,7 +351,7 @@ final class SettingsSwitch: NSSwitch {
     init(onChange: @escaping (Bool) -> Void) {
         self.onChange = onChange
         super.init(frame: .zero)
-        controlSize = .small
+        controlSize = .regular
         target = self
         action = #selector(toggled)
     }
@@ -340,7 +393,8 @@ final class SettingsPopUpButton<Value: Equatable>: NSPopUpButton {
         }
         self.onChange = onChange
         super.init(frame: .zero, pullsDown: false)
-        controlSize = .small
+        controlSize = .regular
+        font = .systemFont(ofSize: NSFont.systemFontSize)
         for item in items {
             switch item {
             case let .value(title, _):
@@ -356,6 +410,8 @@ final class SettingsPopUpButton<Value: Equatable>: NSPopUpButton {
         target = self
         action = #selector(selectionChanged)
         widthAnchor.constraint(greaterThanOrEqualToConstant: 132).isActive = true
+        widthAnchor.constraint(lessThanOrEqualToConstant: 240).isActive = true
+        setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
     }
 
     @available(*, unavailable)
