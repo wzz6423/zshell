@@ -6,8 +6,10 @@
 import AppKit
 
 /// App-wide preferences that belong to no single surface: the language Zshell
-/// uses, whether projects show the toolbar, and the reset escape hatch.
+/// uses, its appearance, whether projects show the toolbar, and the reset escape hatch.
 final class SettingsGeneralPane: SettingsPaneViewController {
+    private let themePicker = SettingsThemePicker { AppSettings.shared.theme = $0 }
+
     private let languagePopUp = SettingsPopUpButton<AppLanguage>(
         items: AppLanguage.allCases.map { .value($0.title, $0) },
         onChange: { AppSettings.shared.language = $0 }
@@ -25,12 +27,17 @@ final class SettingsGeneralPane: SettingsPaneViewController {
     private lazy var toolbarRow = SettingsRow(
         title: String(localized: "Toolbar"),
         description: Self.toolbarDescription(for: settings.toolbarVisibility),
-        control: toolbarPopUp
+        control: toolbarPopUp,
+        symbolName: "macwindow"
     )
 
     private lazy var languageGroup = SettingsGroup(rows: [
-        SettingsRow(title: String(localized: "Language"), control: languagePopUp),
+        SettingsRow(title: String(localized: "Language"), control: languagePopUp, symbolName: "globe"),
         toolbarRow,
+    ])
+
+    private lazy var appearanceGroup = SettingsGroup(header: String(localized: "Appearance"), rows: [
+        SettingsCustomRow(themePicker),
     ])
 
     private lazy var resetRow = SettingsButtonRow(
@@ -43,11 +50,13 @@ final class SettingsGeneralPane: SettingsPaneViewController {
         // The reset button stands on its own rather than inside a group: it is
         // an action, not a setting, and hairlines around a lone button read as
         // an empty group.
-        [languageGroup, resetRow]
+        [languageGroup, appearanceGroup, resetRow]
     }
 
     override func syncFromSettings() {
         languagePopUp.select(settings.language)
+        themePicker.select(settings.theme)
+        themePicker.refreshPreviews()
         toolbarPopUp.select(settings.toolbarVisibility)
         toolbarRow.setDescription(Self.toolbarDescription(for: settings.toolbarVisibility))
         resetRow.button.isEnabled = !settings.isAtDefaults

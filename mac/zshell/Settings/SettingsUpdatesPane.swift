@@ -45,6 +45,13 @@ final class SettingsUpdatesPane: SettingsPaneViewController {
 
     override func makeGroups() -> [NSView] { [updateGroup] }
 
+    override func revealSearchResult(_ title: String, in section: String? = nil) -> Bool {
+        // Automatic installation is hidden until its download prerequisite is enabled.
+        let target = title == String(localized: "Automatically install updates") && !updater.automaticallyDownloadsUpdates
+            ? String(localized: "Automatically download updates") : title
+        return super.revealSearchResult(target, in: section)
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         automaticSwitch.setAccessibilityLabel(String(localized: "Automatically check for updates"))
