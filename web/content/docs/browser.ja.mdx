@@ -42,3 +42,23 @@ Zshell では、どのタブや分割ペインにも内蔵ブラウザを置け�
 Zshell の再起動時には現在の URL とレイアウトを復元しますが、戻る・進むの履歴全体は復元しません。
 
 ブラウザペインはタブやアプリの起動をまたいで Cookie、ログイン、その他のサイトデータを保持します。プライベートブラウズではありません。
+
+## Agent にページをテストしてもらう [#let-an-agent-test-the-page]
+
+コーディング Agent に、このプロジェクトで開いているページの確認、フォーム入力、結果の検証、表示領域の撮影を依頼できます。既存のブラウザーセッションを使い、通常はターミナルのフォーカスを維持します。ローカル開発用 URL をバックグラウンドのブラウザーペインで開くこともできます。
+
+スクリプトから使う場合は Zshell ターミナル内で実行します。返された `browser_id` を記録し、下の `BROWSER_ID` を置き換えてください：
+
+```sh
+zshell +browser list
+zshell +browser open http://localhost:3000 --wait
+zshell +browser snapshot --browser BROWSER_ID
+zshell +browser fill --browser BROWSER_ID --selector '#search' --text 'terminal'
+zshell +browser click --browser BROWSER_ID --selector 'button[type="submit"]'
+zshell +browser wait --browser BROWSER_ID --selector '#results' --timeout 10000
+zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
+```
+
+スナップショットはメインフレームのテキスト、アクセシブルなラベル、要素参照を返します。参照はページの変更や操作後に失効するため、再利用前に新しいスナップショットを取得します。CSS セレクターは一つの要素だけに一致する必要があります。移動には `navigate`、`back`、`forward`、`reload`、`stop` を使います。
+
+自動化で使用できるのは完全な HTTP/HTTPS URL と `about:blank` です。他のプロトコル、ダウンロード、ファイル選択、ネイティブダイアログには直接操作が必要です。アドレスバーやツールバーから手動で移動すると、この制限が解除されます。対象は呼び出し元のプロジェクトとウインドウ内に限られます。`--timeout` は 100–30000 ミリ秒です。スナップショットは最大 200 要素、32768 文字、256 KiB で、パスワードとファイル入力の値を含みません。PNG は表示領域のみで最大 512 KiB、ペインを一度表示する必要があり、既存ファイルは上書きしません。`--width` で縮小できます。詳細は `zshell +browser --help` を参照してください。

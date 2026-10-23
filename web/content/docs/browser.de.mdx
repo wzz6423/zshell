@@ -39,3 +39,23 @@ Im Terminal öffnet ein normaler Command-Klick eine erkannte Webadresse im Stand
 Beim Wechsel zwischen Tabs oder Projekten bleiben Verlauf, Scrollposition, Formulare und interner Zustand der Seite erhalten. Beim erneuten Start von Zshell werden aktuelle URL und Anordnung wiederhergestellt, jedoch nicht der vollständige Vor- und Zurückverlauf.
 
 Browserbereiche speichern Cookies, Anmeldungen und andere Websitedaten über Tabs und Neustarts hinweg. Es handelt sich nicht um einen privaten Browsermodus.
+
+## Die Seite von einem Agent testen lassen [#let-an-agent-test-the-page]
+
+Bitte deinen Coding-Agent, eine bereits in diesem Projekt geöffnete Seite zu prüfen, ein Formular auszufüllen, ein Ergebnis zu kontrollieren oder den sichtbaren Bereich aufzunehmen. Er nutzt die vorhandene Browsersitzung und lässt den Fokus standardmäßig im Terminal. Eine lokale Entwicklungs-URL kann auch in einem Browserbereich im Hintergrund geöffnet werden.
+
+Führe diese Befehle für Skripte in einem Zshell-Terminal aus. Notiere die zurückgegebene `browser_id` und ersetze unten `BROWSER_ID`:
+
+```sh
+zshell +browser list
+zshell +browser open http://localhost:3000 --wait
+zshell +browser snapshot --browser BROWSER_ID
+zshell +browser fill --browser BROWSER_ID --selector '#search' --text 'terminal'
+zshell +browser click --browser BROWSER_ID --selector 'button[type="submit"]'
+zshell +browser wait --browser BROWSER_ID --selector '#results' --timeout 10000
+zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
+```
+
+Snapshots liefern Text des Hauptframes, zugängliche Beschriftungen und Elementreferenzen. Nach Seitenänderungen oder Aktionen verfallen Referenzen; erstelle vor der Wiederverwendung einen neuen Snapshot. Ein CSS-Selektor muss genau ein Element treffen. Zur Navigation dienen `navigate`, `back`, `forward`, `reload` und `stop`.
+
+Erlaubt sind vollständige HTTP/HTTPS-URLs und `about:blank`. Andere Protokolle, Downloads, Dateiauswahl und native Dialoge erfordern deine Interaktion. Die Einschränkung endet durch manuelle Navigation über Adress- oder Werkzeugleiste. Befehle bleiben im Projekt und Fenster des aufrufenden Terminals. `--timeout` beträgt 100–30000 Millisekunden. Snapshots enthalten höchstens 200 Elemente, 32768 Textzeichen und 256 KiB; Passwort- und Dateifeldwerte fehlen. PNG-Aufnahmen des sichtbaren Bereichs sind auf 512 KiB begrenzt, benötigen einen zuvor angezeigten Bereich und überschreiben keine Dateien. Mit `--width` lässt sich die Größe reduzieren. Alle Optionen: `zshell +browser --help`.
