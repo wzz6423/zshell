@@ -92,10 +92,10 @@ enum ZshellAutomationRouter {
             return startAgent(request, caller: caller)
 
         case "agent.prompt":
-            return promptAgent(request, caller: caller)
+            return await promptAgent(request, caller: caller)
 
         case "agent.report":
-            return reportAgent(request, caller: caller)
+            return await reportAgent(request, caller: caller)
 
         case "agent.usage.report":
             // Usage reporting is a private hook installed by Zshell, so it must
@@ -358,7 +358,7 @@ enum ZshellAutomationRouter {
     private static func promptAgent(
         _ request: ZshellAutomationRequest,
         caller: PaneContext
-    ) -> ZshellAutomationResponse {
+    ) async -> ZshellAutomationResponse {
         guard let target = targetAgent(request, caller: caller),
               let session = target.session,
               let status = session.agentStatus else {
@@ -388,6 +388,16 @@ enum ZshellAutomationRouter {
             )
         }
 
+        if status.phase != .working {
+            await AgentTurnReviewStore.shared.begin(
+                sessionID: session.id, alias: status.alias,
+                directory: session.currentDirectoryPath
+            )
+        }
+        guard !session.hasExited, session.isAutomationAgentRunning(kind: status.kind) else {
+            AgentTurnReviewStore.shared.abort(sessionID: session.id)
+            return failure(request, "agent_not_running", "The agent exited before the prompt was submitted.")
+        }
         let normalized = prompt
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
@@ -404,7 +414,7 @@ enum ZshellAutomationRouter {
     private static func reportAgent(
         _ request: ZshellAutomationRequest,
         caller: PaneContext
-    ) -> ZshellAutomationResponse {
+    ) async -> ZshellAutomationResponse {
         guard let session = caller.session else {
             return failure(request, "terminal_required", "The caller is not a terminal pane.")
         }
@@ -425,6 +435,16 @@ enum ZshellAutomationRouter {
                 request, "agent_not_recognized",
                 "Declare or start an agent in this terminal before reporting its state."
             )
+        }
+        if phase == .working, let status = session.agentStatus {
+            await AgentTurnReviewStore.shared.begin(
+                sessionID: session.id, alias: status.alias,
+                directory: session.currentDirectoryPath
+            )
+        } else if phase == .idle || phase == .done {
+            await AgentTurnReviewStore.shared.finish(sessionID: session.id)
+        } else if phase == .unknown {
+            AgentTurnReviewStore.shared.abort(sessionID: session.id)
         }
         return success(request, paneSnapshot(caller, caller: caller))
     }

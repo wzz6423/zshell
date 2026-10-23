@@ -12,11 +12,28 @@ nonisolated struct GitCommandResult: Sendable {
     let stderr: String
 }
 
+nonisolated struct GitCommandDataResult: Sendable {
+    let status: Int32
+    let stdout: Data
+    let stderr: String
+    let truncated: Bool
+}
+
 nonisolated protocol GitCommandRunning: Sendable {
     func run(_ args: [String], in directory: String) async -> GitCommandResult
 }
 
 nonisolated struct GitCommandRunner: GitCommandRunning {
+    static func runData(
+        _ args: [String], in directory: String,
+        environment: [String: String] = [:], input: Data? = nil,
+        limit: Int = 10 << 20
+    ) -> GitCommandDataResult {
+        GitProcessState().runData(
+            args, in: directory, environment: environment, input: input, limit: limit
+        )
+    }
+
     func run(_ args: [String], in directory: String) async -> GitCommandResult {
         let state = GitProcessState()
         return await withTaskCancellationHandler {
@@ -51,6 +68,19 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
     }
 
     func run(_ args: [String], in directory: String) -> GitCommandResult {
+        let result = runData(args, in: directory)
+        return GitCommandResult(
+            status: result.status,
+            stdout: String(data: result.stdout, encoding: .utf8) ?? "",
+            stderr: result.stderr
+        )
+    }
+
+    func runData(
+        _ args: [String], in directory: String,
+        environment additionalEnvironment: [String: String] = [:],
+        input: Data? = nil, limit: Int = .max
+    ) -> GitCommandDataResult {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
         process.arguments = args
@@ -59,13 +89,15 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
         environment["GIT_OPTIONAL_LOCKS"] = "0"
         environment["GIT_TERMINAL_PROMPT"] = "0"
         environment["LC_ALL"] = "C"
+        environment.merge(additionalEnvironment, uniquingKeysWith: { _, value in value })
         process.environment = environment
 
         let stdout = Pipe()
         let stderr = Pipe()
         process.standardOutput = stdout
         process.standardError = stderr
-        process.standardInput = FileHandle.nullDevice
+        let stdin = input == nil ? nil : Pipe()
+        process.standardInput = stdin.map { $0 as Any } ?? FileHandle.nullDevice
 
         let cancelledBeforeLaunch = lock.withLock { () -> Bool in
             guard !isCancelled else { return true }
@@ -73,14 +105,16 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
             return false
         }
         guard !cancelledBeforeLaunch else {
-            return GitCommandResult(status: -3, stdout: "", stderr: "")
+            return GitCommandDataResult(status: -3, stdout: Data(), stderr: "", truncated: false)
         }
         defer { lock.withLock { self.process = nil } }
 
         do {
             try process.run()
         } catch {
-            return GitCommandResult(status: -1, stdout: "", stderr: error.localizedDescription)
+            return GitCommandDataResult(
+                status: -1, stdout: Data(), stderr: error.localizedDescription, truncated: false
+            )
         }
         if lock.withLock({ isCancelled }) {
             cancel()
@@ -89,9 +123,24 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
         let output = PipeData()
         let errorOutput = PipeData()
         let readers = DispatchGroup()
+        if let stdin, let input {
+            readers.enter()
+            let writer = Thread {
+                try? stdin.fileHandleForWriting.write(contentsOf: input)
+                try? stdin.fileHandleForWriting.close()
+                readers.leave()
+            }
+            writer.qualityOfService = Thread.current.qualityOfService
+            writer.start()
+        }
         readers.enter()
         let stdoutReader = Thread {
-            output.value = stdout.fileHandleForReading.readDataToEndOfFile()
+            while let chunk = try? stdout.fileHandleForReading.read(upToCount: 64 * 1024),
+                  !chunk.isEmpty {
+                let remaining = limit - output.value.count
+                if remaining > 0 { output.value.append(chunk.prefix(remaining)) }
+                if chunk.count > remaining { output.truncated = true }
+            }
             readers.leave()
         }
         stdoutReader.qualityOfService = Thread.current.qualityOfService
@@ -106,14 +155,16 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
 
         process.waitUntilExit()
         readers.wait()
-        return GitCommandResult(
+        return GitCommandDataResult(
             status: lock.withLock { isCancelled } ? -3 : process.terminationStatus,
-            stdout: String(data: output.value, encoding: .utf8) ?? "",
-            stderr: String(data: errorOutput.value, encoding: .utf8) ?? ""
+            stdout: output.value,
+            stderr: String(data: errorOutput.value, encoding: .utf8) ?? "",
+            truncated: output.truncated
         )
     }
 }
 
 private nonisolated final class PipeData: @unchecked Sendable {
     var value = Data()
+    var truncated = false
 }

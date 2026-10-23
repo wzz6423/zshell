@@ -130,3 +130,17 @@ you.
 If the project directory has no repository, the panel offers **Initialize
 Repository**, which runs `git init` in that folder. Until then it stays out of
 the way.
+
+## Agent turn review [#agent-turn-review]
+
+Click **Review Changes…** in the Git panel to open a native review window:
+
+- **Latest Turn** compares the selected agent's start and finish snapshots. It includes every workspace edit during that interval, regardless of author.
+- **Uncommitted** compares HEAD with the current working tree, including staged and untracked files.
+- **Entire Branch** compares the merge base with your selected base branch to the current working tree, including commits and uncommitted files.
+
+Select a file, then a hunk. In Latest Turn, **Keep Hunk** marks that hunk reviewed; **Revert Hunk** reverses it in the working tree. Neither action changes the Git index. The view continues to show the original snapshot and each decision.
+
+Revert refuses a changed file or HEAD, an unsafe path, an active agent in the repository, or overlapping agent turns. Binary and mode-only changes are read-only. Files over 5 MiB and unsafe paths are listed as unavailable; a snapshot exceeding 2,048 dirty paths, 25 MiB of captured content, or the capture time limit is unavailable.
+
+Turn snapshots last for the current app session. A reliable start and completion event is required: Pi, OpenCode, and Grok have native lifecycle integrations; guarded agent prompts capture a start, but still need a completion event. If those events are missing, Latest Turn reports that no completed snapshot is available.

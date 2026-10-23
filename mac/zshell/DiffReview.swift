@@ -292,23 +292,34 @@ struct DiffReviewSummaryView: NSViewRepresentable {
     let reviewedCount: Int
     let totalCount: Int
     let fontScale: CGFloat
+    let repositoryRoot: String
 
     func makeNSView(context: Context) -> DiffReviewSummaryNSView {
         DiffReviewSummaryNSView()
     }
 
     func updateNSView(_ view: DiffReviewSummaryNSView, context: Context) {
-        view.update(reviewedCount: reviewedCount, totalCount: totalCount, fontScale: fontScale)
+        view.update(
+            reviewedCount: reviewedCount, totalCount: totalCount,
+            fontScale: fontScale, repositoryRoot: repositoryRoot
+        )
     }
 }
 
 final class DiffReviewSummaryNSView: NSView {
     private let imageView = NSImageView()
     private let label = NSTextField(labelWithString: "")
+    private let reviewButton = NSButton(title: "", target: nil, action: nil)
+    private var repositoryRoot = ""
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        for view in [imageView, label] {
+        reviewButton.bezelStyle = .accessoryBarAction
+        reviewButton.controlSize = .small
+        reviewButton.target = self
+        reviewButton.action = #selector(openReview)
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        for view in [imageView, label, reviewButton] {
             view.translatesAutoresizingMaskIntoConstraints = false
             addSubview(view)
         }
@@ -319,8 +330,10 @@ final class DiffReviewSummaryNSView: NSView {
             imageView.widthAnchor.constraint(equalToConstant: 13),
             imageView.heightAnchor.constraint(equalToConstant: 13),
             label.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 6),
-            label.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -8),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: reviewButton.leadingAnchor, constant: -6),
             label.centerYAnchor.constraint(equalTo: centerYAnchor),
+            reviewButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
+            reviewButton.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
     }
 
@@ -329,7 +342,11 @@ final class DiffReviewSummaryNSView: NSView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func update(reviewedCount: Int, totalCount: Int, fontScale: CGFloat) {
+    func update(reviewedCount: Int, totalCount: Int, fontScale: CGFloat, repositoryRoot: String) {
+        self.repositoryRoot = repositoryRoot
+        reviewButton.title = String(localized: "Review Changes…")
+        reviewButton.setAccessibilityLabel(reviewButton.title)
+        reviewButton.isEnabled = !repositoryRoot.isEmpty
         let complete = totalCount > 0 && reviewedCount == totalCount
         imageView.image = NSImage(
             systemSymbolName: complete ? "checkmark.circle.fill" : "circle.dotted",
@@ -347,7 +364,10 @@ final class DiffReviewSummaryNSView: NSView {
                 localized: "Reviewed \(reviewedCount) of \(totalCount) changes",
                 comment: "Git review summary. The placeholders are reviewed and total staged and unstaged file changes."
             )
-        setAccessibilityElement(true)
-        setAccessibilityLabel(label.stringValue)
+        setAccessibilityElement(false)
+    }
+
+    @objc private func openReview() {
+        AgentReviewWindowController.show(repositoryRoot: repositoryRoot)
     }
 }

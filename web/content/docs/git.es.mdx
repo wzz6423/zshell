@@ -92,3 +92,17 @@ La actualización usa exclusivamente avance rápido de forma deliberada. Si hace
 ## Todavía no es un repositorio [#not-a-repository-yet]
 
 Si el directorio del proyecto no contiene un repositorio, el panel ofrece **Inicializar repositorio**, que ejecuta `git init` en esa carpeta. Hasta entonces, no estorba.
+
+## Revisar turnos de agentes [#agent-turn-review]
+
+Pulsa **Revisar cambios…** en el panel Git.
+
+- **Último turno** compara las instantáneas inicial y final del agente elegido e incluye todas las ediciones de ese intervalo, sin importar el autor.
+- **Sin confirmar** compara HEAD con el árbol de trabajo, incluidos archivos preparados y sin seguimiento.
+- **Rama completa** compara el ancestro común con la rama base elegida y el árbol de trabajo, incluidos commits y archivos sin confirmar.
+
+Elige un archivo y un bloque. En Último turno, **Conservar bloque** registra la revisión; **Revertir bloque** lo revierte en el árbol de trabajo. Ninguna acción modifica el índice Git. La instantánea original y las decisiones siguen visibles.
+
+Se rechaza la reversión si cambió el archivo o HEAD, la ruta no es segura, hay un agente activo o los turnos se solapan. Los cambios binarios o solo de permisos son de solo lectura. Los archivos de más de 5 MiB no están disponibles; tampoco las instantáneas con más de 2048 rutas modificadas, 25 MiB capturados o que superen el tiempo límite.
+
+Las instantáneas duran la sesión actual de la aplicación. Se necesitan eventos fiables de inicio y fin. Pi, OpenCode y Grok tienen integraciones nativas. Los prompts protegidos capturan el inicio, pero también necesitan un evento de finalización. Sin él, no habrá una instantánea completada.

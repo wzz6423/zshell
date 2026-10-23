@@ -86,6 +86,10 @@ final class DiffWebModel: nonisolated ObservableObject {
 /// reloads when the view reappears.
 @MainActor
 final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
+    nonisolated struct TreeComparison: Sendable {
+        let before: String
+        let after: String
+    }
     nonisolated let id = UUID()
 
     /// Absolute repository root the diff runs in.
@@ -102,6 +106,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// comparison in the tab strip.
     let commitParentHash: String?
     let commitStatus: Character?
+    let treeComparison: TreeComparison?
     /// Previous path when the change is a rename/copy; the "before" side
     /// reads from here so renames diff old file → new file like VS Code.
     var origPath: String?
@@ -149,7 +154,8 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         origPath: String?,
         commitHash: String? = nil,
         commitParentHash: String? = nil,
-        commitStatus: Character? = nil
+        commitStatus: Character? = nil,
+        treeComparison: TreeComparison? = nil
     ) {
         self.repoRoot = repoRoot
         self.path = path
@@ -159,6 +165,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         self.commitHash = commitHash
         self.commitParentHash = commitParentHash
         self.commitStatus = commitStatus
+        self.treeComparison = treeComparison
         web.fileName = name
         web.fileID = path
         web.onFileEditChange = { [weak self] fileID, contents in
@@ -207,15 +214,19 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         let staged = staged
         let untracked = untracked
         let commitHash = commitHash
+        let treeComparison = treeComparison
 
         Task { [weak self] in
             let result = await Task.detached(priority: .userInitiated) {
                 var failureVar: String?
-                let unmerged = commitHash == nil && !staged
+                let unmerged = commitHash == nil && treeComparison == nil && !staged
                     && Self.isUnmerged(path: path, in: root)
                 let old: GitContent
                 let new: GitContent
-                if let commitHash {
+                if let treeComparison {
+                    old = Self.gitContent("\(treeComparison.before):\(oldPath)", in: root)
+                    new = Self.gitContent("\(treeComparison.after):\(path)", in: root)
+                } else if let commitHash {
                     old = Self.gitContent("\(commitHash)^:\(oldPath)", in: root)
                     new = Self.gitContent("\(commitHash):\(path)", in: root)
                 } else if staged {
@@ -234,7 +245,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
                     }
                     new = Self.readWorktreeContent(root: root, path: path, error: &failureVar)
                 }
-                let editable = commitHash == nil && !staged
+                let editable = commitHash == nil && treeComparison == nil && !staged
                     && Self.isEditableWorktreeFile(root: root, path: path)
                 let reviewKey = DiffReviewKey(
                     repositoryRoot: root,
@@ -242,7 +253,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
                     layer: staged ? .staged : .worktree
                 )
                 let fingerprint: String?
-                if commitHash == nil {
+                if commitHash == nil && treeComparison == nil {
                     let head = GitStatusModel.runGit(
                         ["rev-parse", "--verify", "HEAD"], in: root
                     )
@@ -298,7 +309,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             self.editedNewContent = new
             self.isDirty = false
             self.saveError = nil
-            if self.commitHash == nil, result.failure == nil,
+            if self.commitHash == nil, self.treeComparison == nil, result.failure == nil,
                failure == nil, hasChanges, let fingerprint = result.fingerprint {
                 let snapshot = DiffReviewSnapshot(
                     key: result.reviewKey,
@@ -311,7 +322,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
                 }
             } else {
                 self.reviewSnapshot = nil
-                if self.commitHash == nil {
+                if self.commitHash == nil && self.treeComparison == nil {
                     DiffReviewStore.shared.invalidate(result.reviewKey)
                 }
             }
@@ -324,7 +335,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// only makes WebKit render the same diff again. An initial live load also
     /// stays in flight rather than being duplicated by the view's first mount.
     func refreshWhenSelected() {
-        guard commitHash == nil, !isLoading else { return }
+        guard commitHash == nil, treeComparison == nil, !isLoading else { return }
         reload()
     }
 
@@ -363,6 +374,8 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     func setDiffStyle(_ style: DiffStyle) {
         DiffViewPreferences.shared.diffStyle = style
     }
+
+    var diffStyle: DiffStyle { DiffViewPreferences.shared.diffStyle }
 
     func setEditing(_ isEditing: Bool) {
         guard isEditable else { return }
@@ -806,7 +819,7 @@ private struct DiffImageComparisonHostView: NSViewRepresentable {
 }
 
 @MainActor
-private final class DiffImageComparisonNSView: NSView {
+final class DiffImageComparisonNSView: NSView {
     private let before = DiffImageComparisonSideView(
         title: String(localized: "Before", comment: "The previous version in an image diff.")
     )
