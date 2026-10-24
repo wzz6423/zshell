@@ -13,6 +13,9 @@ struct GitWorktreeSectionView: NSViewRepresentable {
     @Binding var isCollapsed: Bool
     let fontScale: CGFloat
     let openWorktree: (String) -> Void
+    let createWorktree: () -> Void
+    let removeWorktree: (GitStatusModel.Worktree) -> Void
+    let deleteBranch: (String) -> Void
 
     func makeNSView(context: Context) -> GitWorktreeSectionNSView {
         GitWorktreeSectionNSView(frame: .zero)
@@ -20,7 +23,9 @@ struct GitWorktreeSectionView: NSViewRepresentable {
 
     func updateNSView(_ view: GitWorktreeSectionNSView, context: Context) {
         view.apply(worktrees: worktrees, isCollapsed: isCollapsed, fontScale: fontScale,
-                   openWorktree: openWorktree, toggleCollapsed: { isCollapsed.toggle() })
+                   openWorktree: openWorktree, createWorktree: createWorktree,
+                   removeWorktree: removeWorktree, deleteBranch: deleteBranch,
+                   toggleCollapsed: { isCollapsed.toggle() })
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: GitWorktreeSectionNSView, context: Context) -> CGSize? {
@@ -51,6 +56,7 @@ struct GitWorktreeSectionMetrics {
 
 final class GitWorktreeSectionNSView: NSView, NSTableViewDataSource, NSTableViewDelegate {
     private let header = NSButton(title: String(localized: "WORKTREES"), target: nil, action: nil)
+    private let addButton = NSButton(title: "", target: nil, action: nil)
     private let countLabel = NSTextField(labelWithString: "")
     private let scrollView = GitWorktreeScrollView()
     private let tableView = RowButtonTableView()
@@ -58,6 +64,9 @@ final class GitWorktreeSectionNSView: NSView, NSTableViewDataSource, NSTableView
     private var metrics = GitWorktreeSectionMetrics(fontScale: 1)
     private var isCollapsed = false
     private var openWorktree: ((String) -> Void)?
+    private var createWorktree: (() -> Void)?
+    private var removeWorktree: ((GitStatusModel.Worktree) -> Void)?
+    private var deleteBranch: ((String) -> Void)?
     private var toggleCollapsed: (() -> Void)?
     override var isFlipped: Bool { true }
     override var intrinsicContentSize: NSSize {
@@ -71,6 +80,12 @@ final class GitWorktreeSectionNSView: NSView, NSTableViewDataSource, NSTableView
         header.imagePosition = .imageLeading
         header.target = self
         header.action = #selector(toggleSection)
+        addButton.isBordered = false
+        addButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: nil)
+        addButton.toolTip = String(localized: "Create Worktree")
+        addButton.target = self
+        addButton.action = #selector(createWorktreeClicked)
+        addButton.setAccessibilityLabel(String(localized: "Create Worktree"))
         countLabel.alignment = .right
         countLabel.textColor = .tertiaryLabelColor
         countLabel.setAccessibilityElement(false)
@@ -98,7 +113,7 @@ final class GitWorktreeSectionNSView: NSView, NSTableViewDataSource, NSTableView
         scrollView.verticalScrollElasticity = .none
         scrollView.horizontalScrollElasticity = .none
         scrollView.automaticallyAdjustsContentInsets = false
-        for view in [header, countLabel, scrollView] { addSubview(view) }
+        for view in [header, addButton, countLabel, scrollView] { addSubview(view) }
         setAccessibilityElement(false)
         setContentHuggingPriority(.required, for: .vertical)
         setContentCompressionResistancePriority(.required, for: .vertical)
@@ -108,7 +123,11 @@ final class GitWorktreeSectionNSView: NSView, NSTableViewDataSource, NSTableView
 
     func apply(
         worktrees: [GitStatusModel.Worktree], isCollapsed: Bool, fontScale: CGFloat,
-        openWorktree: @escaping (String) -> Void, toggleCollapsed: @escaping () -> Void
+        openWorktree: @escaping (String) -> Void,
+        createWorktree: @escaping () -> Void,
+        removeWorktree: @escaping (GitStatusModel.Worktree) -> Void,
+        deleteBranch: @escaping (String) -> Void,
+        toggleCollapsed: @escaping () -> Void
     ) {
         let nextMetrics = GitWorktreeSectionMetrics(fontScale: fontScale)
         let changed = self.worktrees != worktrees || metrics.sidebar.fontScale != nextMetrics.sidebar.fontScale
@@ -118,6 +137,9 @@ final class GitWorktreeSectionNSView: NSView, NSTableViewDataSource, NSTableView
         self.isCollapsed = isCollapsed
         self.metrics = nextMetrics
         self.openWorktree = openWorktree
+        self.createWorktree = createWorktree
+        self.removeWorktree = removeWorktree
+        self.deleteBranch = deleteBranch
         self.toggleCollapsed = toggleCollapsed
         let scale = metrics.sidebar.fontScale
         header.title = String(localized: "WORKTREES")
@@ -128,6 +150,9 @@ final class GitWorktreeSectionNSView: NSView, NSTableViewDataSource, NSTableView
             .withSymbolConfiguration(.init(pointSize: 7 * scale, weight: .semibold))
         header.setAccessibilityLabel(String(localized: "WORKTREES") + ", \(worktrees.count)")
         header.setAccessibilityValue(String(localized: isCollapsed ? "Collapsed" : "Expanded"))
+        addButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: nil)?
+            .withSymbolConfiguration(.init(pointSize: 9 * scale, weight: .medium))
+        addButton.contentTintColor = .secondaryLabelColor
         countLabel.font = .monospacedDigitSystemFont(ofSize: 9 * scale, weight: .medium)
         countLabel.stringValue = String(worktrees.count)
         scrollView.isHidden = isCollapsed || worktrees.isEmpty
@@ -143,7 +168,10 @@ final class GitWorktreeSectionNSView: NSView, NSTableViewDataSource, NSTableView
         super.layout()
         let countWidth = ceil(countLabel.intrinsicContentSize.width)
         let labelHeight = metrics.headerHeight - 11
-        header.frame = NSRect(x: 8, y: 8, width: max(0, bounds.width - countWidth - 24), height: labelHeight)
+        let actionWidth: CGFloat = 18
+        header.frame = NSRect(x: 8, y: 8, width: max(0, bounds.width - countWidth - actionWidth - 28), height: labelHeight)
+        addButton.frame = NSRect(x: max(8, bounds.width - countWidth - actionWidth - 13), y: 6,
+                                  width: actionWidth, height: labelHeight + 4)
         countLabel.frame = NSRect(x: max(8, bounds.width - countWidth - 8), y: 8,
                                  width: countWidth, height: labelHeight)
         let listHeight = isCollapsed ? 0 : min(
@@ -182,6 +210,10 @@ final class GitWorktreeSectionNSView: NSView, NSTableViewDataSource, NSTableView
         let worktree = worktrees[row]
         cell.apply(worktree: worktree, metrics: metrics) { [weak self] in
             self?.openWorktree?(worktree.path)
+        } remove: { [weak self] in
+            self?.removeWorktree?(worktree)
+        } deleteBranch: { [weak self] branch in
+            self?.deleteBranch?(branch)
         }
     }
 
@@ -206,6 +238,8 @@ final class GitWorktreeSectionNSView: NSView, NSTableViewDataSource, NSTableView
     }
 
     @objc private func toggleSection() { toggleCollapsed?() }
+
+    @objc private func createWorktreeClicked() { createWorktree?() }
 
     @objc private func openSelectedWorktree() {
         let index = tableView.clickedRow >= 0 ? tableView.clickedRow : tableView.selectedRow
@@ -243,6 +277,10 @@ private final class GitWorktreeRowButton: NSButton {
     private let openIcon = NSImageView()
     private var metrics = GitWorktreeSectionMetrics(fontScale: 1)
     private var openWorktree: (() -> Void)?
+    private var removeWorktree: (() -> Void)?
+    private var deleteBranch: ((String) -> Void)?
+    private var branch: String?
+    private var canDeleteBranch = false
     private var isHovered = false
     override var isFlipped: Bool { true }
 
@@ -267,9 +305,19 @@ private final class GitWorktreeRowButton: NSButton {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func apply(worktree: GitStatusModel.Worktree, metrics: GitWorktreeSectionMetrics, open: @escaping () -> Void) {
+    func apply(
+        worktree: GitStatusModel.Worktree,
+        metrics: GitWorktreeSectionMetrics,
+        open: @escaping () -> Void,
+        remove: @escaping () -> Void,
+        deleteBranch: @escaping (String) -> Void
+    ) {
         self.metrics = metrics
         openWorktree = open
+        removeWorktree = remove
+        self.deleteBranch = deleteBranch
+        branch = worktree.branch
+        canDeleteBranch = worktree.isCurrent && worktree.branch != nil
         let scale = metrics.sidebar.fontScale
         currentLabel.stringValue = String(localized: "Current")
         branchLabel.stringValue = worktree.branch ?? String(localized: "Detached HEAD")
@@ -295,6 +343,24 @@ private final class GitWorktreeRowButton: NSButton {
             + (worktree.isCurrent ? ", " + String(localized: "Current") : ""))
         setAccessibilityHelp(worktree.isBare ? String(localized: "Bare repositories cannot be opened in a terminal tab")
             : String(localized: "Opens a new terminal tab in this worktree"))
+        let menu = NSMenu()
+        let removeItem = NSMenuItem(
+            title: String(localized: "Remove Worktree"),
+            action: #selector(removeWorktreeClicked), keyEquivalent: ""
+        )
+        removeItem.target = self
+        removeItem.isEnabled = !worktree.isCurrent && !worktree.isBare
+        menu.addItem(removeItem)
+        if worktree.branch != nil {
+            let deleteItem = NSMenuItem(
+                title: String(localized: "Delete Branch…"),
+                action: #selector(deleteBranchClicked), keyEquivalent: ""
+            )
+            deleteItem.target = self
+            deleteItem.isEnabled = canDeleteBranch
+            menu.addItem(deleteItem)
+        }
+        self.menu = menu
         needsLayout = true
     }
 
@@ -334,4 +400,11 @@ private final class GitWorktreeRowButton: NSButton {
         super.draw(dirtyRect)
     }
     @objc private func openClicked() { if isEnabled { openWorktree?() } }
+
+    @objc private func removeWorktreeClicked() { removeWorktree?() }
+
+    @objc private func deleteBranchClicked() {
+        guard canDeleteBranch, let branch else { return }
+        deleteBranch?(branch)
+    }
 }

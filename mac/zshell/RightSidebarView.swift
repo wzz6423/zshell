@@ -925,6 +925,8 @@ private struct GitPanel: View {
         case discardAll
         case entry(path: String, operation: EntryOperation)
         case initializeRepository
+        case worktree
+        case branchManagement
     }
 
     private struct FileFingerprint: Equatable {
@@ -963,6 +965,9 @@ private struct GitPanel: View {
     @State private var changesCollapsed = false
     @State private var historyCollapsed = false
     @State private var worktreesCollapsed = false
+    @State private var worktreeBranchSearch = ""
+    @State private var pendingRemoveWorktree: GitStatusModel.Worktree?
+    @State private var pendingDeleteBranch: String?
     @State private var expandedCommitIDs: Set<String> = []
     @State private var filterText = ""
     @State private var showFilter = false
@@ -984,7 +989,10 @@ private struct GitPanel: View {
                 }
             } else {
                 trackingBar
-                worktreesSection
+                if !isRemote {
+                    worktreeBranchSearchBar
+                    worktreesSection
+                }
                 repositoryOperationBanner
                 if !isRemote {
                     commitBox
@@ -1018,6 +1026,46 @@ private struct GitPanel: View {
                 pendingDiscard = nil
             }
             .disabled(model.isBusy)
+        }
+        .confirmationDialog(
+            String(localized: "Remove Worktree?"),
+            isPresented: Binding(
+                get: { pendingRemoveWorktree != nil },
+                set: { if !$0 { pendingRemoveWorktree = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Remove Worktree"), role: .destructive) {
+                guard let worktree = pendingRemoveWorktree else { return }
+                pendingRemoveWorktree = nil
+                performOperation(.worktree) { model.removeWorktree(worktree) }
+            }
+            .disabled(model.isBusy)
+            Button(String(localized: "Cancel"), role: .cancel) { pendingRemoveWorktree = nil }
+        } message: {
+            if let worktree = pendingRemoveWorktree {
+                Text(verbatim: "Remove the worktree at \(worktree.path)? Git will keep its branch.")
+            }
+        }
+        .confirmationDialog(
+            String(localized: "Delete Branch?"),
+            isPresented: Binding(
+                get: { pendingDeleteBranch != nil },
+                set: { if !$0 { pendingDeleteBranch = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Delete Branch"), role: .destructive) {
+                guard let branch = pendingDeleteBranch else { return }
+                pendingDeleteBranch = nil
+                performOperation(.branchManagement) { model.deleteBranch(named: branch) }
+            }
+            .disabled(model.isBusy)
+            Button(String(localized: "Cancel"), role: .cancel) { pendingDeleteBranch = nil }
+        } message: {
+            if let branch = pendingDeleteBranch {
+                Text(verbatim: "A stash snapshot including untracked files will be created before deleting \(branch).")
+            }
         }
         .confirmationDialog(
             "Discard the \(pendingDiscardAll.count) reviewed changes? Untracked and moved files go to the Trash.",
@@ -1123,10 +1171,55 @@ private struct GitPanel: View {
         }
     }
 
+    private var worktreeBranchQuery: String {
+        worktreeBranchSearch.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var filteredWorktrees: [GitStatusModel.Worktree] {
+        guard !worktreeBranchQuery.isEmpty else { return model.worktrees }
+        return model.worktrees.filter { worktree in
+            worktree.path.localizedCaseInsensitiveContains(worktreeBranchQuery)
+                || (worktree.branch?.localizedCaseInsensitiveContains(worktreeBranchQuery) ?? false)
+        }
+    }
+
+    private var filteredBranchesWithoutWorktrees: [String] {
+        guard !worktreeBranchQuery.isEmpty else { return model.branchesWithoutWorktrees }
+        return model.branchesWithoutWorktrees.filter {
+            $0.localizedCaseInsensitiveContains(worktreeBranchQuery)
+        }
+    }
+
+    private var worktreeBranchSearchBar: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .sidebarFont(size: 10)
+                .foregroundStyle(.tertiary)
+            TextField(String(localized: "Search worktrees or branches"), text: $worktreeBranchSearch)
+                .textFieldStyle(.plain)
+                .sidebarFont(size: 11)
+            if !worktreeBranchSearch.isEmpty {
+                Button { worktreeBranchSearch = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .sidebarFont(size: 10)
+                        .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "Clear worktree and branch search"))
+            }
+        }
+        .padding(.horizontal, 8)
+        .frame(height: 26)
+        .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.045)))
+        .padding(.horizontal, 10)
+        .padding(.bottom, 4)
+        .accessibilityElement(children: .contain)
+    }
+
     private var branchMenu: some View {
         Menu {
-            if !model.branches.isEmpty {
-                ForEach(model.branches, id: \.self) { branch in
+            if !filteredBranchesWithoutWorktrees.isEmpty {
+                ForEach(filteredBranchesWithoutWorktrees, id: \.self) { branch in
                     Button {
                         performOperation(.branchMenu) {
                             model.switchBranch(to: branch)
@@ -1142,6 +1235,32 @@ private struct GitPanel: View {
                 }
                 Divider()
             }
+            Button(String(localized: "Create Worktree…")) {
+                presentCreateWorktreeDialog()
+            }
+            .disabled(model.isBusy || filteredBranchesWithoutWorktrees.isEmpty)
+            if let currentBranch = model.branch,
+               currentBranch != "detached HEAD" {
+                Button(String(localized: "Delete Current Branch…")) {
+                    requestDeleteBranch(currentBranch)
+                }
+                .disabled(model.isBusy)
+            }
+            Menu(String(localized: "Delete Branch…")) {
+                if filteredBranchesWithoutWorktrees.isEmpty {
+                    Text(String(localized: "No available branches"))
+                } else {
+                    ForEach(filteredBranchesWithoutWorktrees, id: \.self) { branch in
+                        Button {
+                            requestDeleteBranch(branch)
+                        } label: {
+                            Label(branch, systemImage: "trash")
+                        }
+                        .disabled(model.isBusy)
+                    }
+                }
+            }
+            Divider()
             Button("Create New Branch…") {
                 presentCreateBranchDialog()
             }
@@ -1439,6 +1558,53 @@ private struct GitPanel: View {
         alert.beginSheetModal(for: window, completionHandler: handleResponse)
     }
 
+    private func presentCreateWorktreeDialog() {
+        guard !model.isBusy else { return }
+        let availableBranches = model.branchesWithoutWorktrees
+        guard !availableBranches.isEmpty else {
+            model.lastError = String(localized: "Create a branch before creating a worktree")
+            return
+        }
+        guard let window = AppWindowPresentation.hostWindow() else { return }
+
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Create Worktree")
+        alert.informativeText = String(localized: "Choose a local branch, then choose the worktree directory.")
+        let picker = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 280, height: 24), pullsDown: false)
+        picker.addItems(withTitles: availableBranches)
+        alert.accessoryView = picker
+        let create = alert.addButton(withTitle: String(localized: "Choose Directory"))
+        create.keyEquivalent = "\r"
+        let cancel = alert.addButton(withTitle: String(localized: "Cancel"))
+        cancel.keyEquivalent = "\u{1b}"
+
+        alert.beginSheetModal(for: window) { response in
+            guard response == .alertFirstButtonReturn,
+                  let branch = picker.titleOfSelectedItem else { return }
+            let panel = NSSavePanel()
+            panel.title = String(localized: "Choose Worktree Directory")
+            panel.nameFieldStringValue = branch.replacingOccurrences(of: "/", with: "-")
+            panel.directoryURL = URL(fileURLWithPath: model.repoRoot).deletingLastPathComponent()
+            panel.canCreateDirectories = true
+            panel.beginSheetModal(for: window) { panelResponse in
+                guard panelResponse == .OK, let url = panel.url else { return }
+                performOperation(.worktree) {
+                    model.createWorktree(at: url.path, forBranch: branch)
+                }
+            }
+        }
+    }
+
+    private func requestRemoveWorktree(_ worktree: GitStatusModel.Worktree) {
+        guard !model.isBusy, !worktree.isCurrent else { return }
+        pendingRemoveWorktree = worktree
+    }
+
+    private func requestDeleteBranch(_ branch: String) {
+        guard !model.isBusy else { return }
+        pendingDeleteBranch = branch
+    }
+
     // MARK: Commit box
 
     private var reviewSnapshots: [DiffReviewSnapshot] {
@@ -1671,12 +1837,15 @@ private struct GitPanel: View {
 
     @ViewBuilder
     private var worktreesSection: some View {
-        if !model.worktrees.isEmpty {
+        if !filteredWorktrees.isEmpty {
             GitWorktreeSectionView(
-                worktrees: model.worktrees,
+                worktrees: filteredWorktrees,
                 isCollapsed: $worktreesCollapsed,
                 fontScale: sidebarFontScale,
-                openWorktree: openWorktree
+                openWorktree: openWorktree,
+                createWorktree: presentCreateWorktreeDialog,
+                removeWorktree: requestRemoveWorktree,
+                deleteBranch: requestDeleteBranch
             )
         }
     }
@@ -2148,6 +2317,9 @@ private struct GitPanel: View {
         changesCollapsed = false
         historyCollapsed = false
         worktreesCollapsed = false
+        worktreeBranchSearch = ""
+        pendingRemoveWorktree = nil
+        pendingDeleteBranch = nil
         expandedCommitIDs.removeAll()
     }
 
