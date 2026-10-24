@@ -206,6 +206,13 @@ final class GitStatusModel: nonisolated ObservableObject {
     @Published private(set) var operation: Operation?
     @Published var lastError: String?
 
+    /// Branches checked out by a worktree are represented in the worktree
+    /// section, so the branch picker can avoid showing the same ref twice.
+    var branchesWithoutWorktrees: [String] {
+        let checkedOut = Set(worktrees.compactMap(\.branch))
+        return branches.filter { !checkedOut.contains($0) }
+    }
+
     /// Absolute repository root. Porcelain paths are relative to this path,
     /// not necessarily to the terminal's current working directory.
     private var topLevel = ""
@@ -701,6 +708,85 @@ final class GitStatusModel: nonisolated ObservableObject {
         )
     }
 
+    func createWorktree(
+        at directory: String,
+        forBranch branchName: String,
+        completion: (@MainActor (Bool) -> Void)? = nil
+    ) {
+        let directory = URL(fileURLWithPath: directory).standardizedFileURL.path
+        let trimmedBranch = branchName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !directory.isEmpty else {
+            failImmediately(String(localized: "Choose a directory for the worktree"), completion: completion)
+            return
+        }
+        guard branches.contains(trimmedBranch) else {
+            failImmediately(String(localized: "The selected branch is no longer available"), completion: completion)
+            return
+        }
+        guard !worktrees.contains(where: { $0.branch == trimmedBranch }) else {
+            failImmediately(String(localized: "That branch is already checked out in a worktree"), completion: completion)
+            return
+        }
+        perform(
+            label: String(localized: "Create worktree"),
+            commands: [["worktree", "add", directory, trimmedBranch]],
+            completion: completion
+        )
+    }
+
+    func removeWorktree(
+        _ worktree: Worktree,
+        completion: (@MainActor (Bool) -> Void)? = nil
+    ) {
+        guard !worktree.isCurrent else {
+            failImmediately(String(localized: "The current worktree cannot be removed"), completion: completion)
+            return
+        }
+        guard worktrees.contains(where: { $0.path == worktree.path }) else {
+            failImmediately(String(localized: "The selected worktree is no longer available"), completion: completion)
+            return
+        }
+        perform(
+            label: String(localized: "Remove worktree"),
+            commands: [["worktree", "remove", worktree.path]],
+            completion: completion
+        )
+    }
+
+    func deleteBranch(
+        named name: String,
+        completion: (@MainActor (Bool) -> Void)? = nil
+    ) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard branches.contains(trimmed) else {
+            failImmediately(String(localized: "The selected branch is no longer available"), completion: completion)
+            return
+        }
+        if let worktree = worktrees.first(where: { $0.branch == trimmed }), !worktree.isCurrent {
+            failImmediately(String(localized: "A branch checked out in another worktree cannot be deleted"), completion: completion)
+            return
+        }
+        // Always keep a recoverable snapshot before changing refs. Git exits
+        // successfully with a clear message when the worktree is already clean.
+        let snapshotMessage = "Zshell snapshot before deleting branch \(trimmed)"
+        var commands = [["stash", "push", "--include-untracked", "-m", snapshotMessage]]
+        if branch == trimmed {
+            guard hasHead else {
+                failImmediately(String(localized: "The current branch has no commit to preserve"), completion: completion)
+                return
+            }
+            // Git refuses to delete the branch pointed at by HEAD. Detaching
+            // keeps the checked-out files and lets the explicit delete finish.
+            commands.append(["switch", "--detach", "HEAD"])
+        }
+        commands.append(["branch", "-d", trimmed])
+        perform(
+            label: String(localized: "Delete branch"),
+            commands: commands,
+            completion: completion
+        )
+    }
+
     func stash(includeUntracked: Bool = true) {
         guard totalChangeCount > 0 else {
             failImmediately(String(localized: "There are no changes to stash"))
@@ -754,6 +840,13 @@ final class GitStatusModel: nonisolated ObservableObject {
         requiresStableUpstream: Bool = false,
         completion: (@MainActor (Bool) -> Void)? = nil
     ) {
+        guard remoteEndpoint == nil else {
+            failImmediately(
+                String(localized: "Git actions on SSH projects aren’t supported yet."),
+                completion: completion
+            )
+            return
+        }
         if directory == nil && !isRepo {
             failImmediately(
                 String(localized: "Repository changed; review the current directory and try the Git action again."),
