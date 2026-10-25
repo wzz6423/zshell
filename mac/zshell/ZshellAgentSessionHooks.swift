@@ -227,7 +227,7 @@ enum ZshellAgentSessionHooks {
                 throw HookError.message(String(localized: "Zshell's hook manifest at \(manifestURL.path) has local changes."))
             }
             config = match
-        } else { config = candidates.first(where: itemExists) ?? candidates[1] }
+        } else { config = candidates.first { itemExists($0) } ?? candidates[1] }
         let spec = link.absoluteString
         if let manifest, manifest.commands != ["plugin": spec] {
             throw HookError.message(String(localized: "Zshell's hook manifest at \(manifestURL.path) has local changes."))

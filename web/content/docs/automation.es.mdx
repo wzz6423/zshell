@@ -7,6 +7,12 @@ La automatización de Zshell está pensada principalmente para agentes de progra
 
 La integración con IA está activada de forma predeterminada. Habla con tu agente de programación como siempre. Puede crear un panel en segundo plano, iniciar un agente delegado, ejecutar un comando, esperar el resultado y traerte la respuesta sin quitar el foco al panel que estás usando.
 
+## Esperar los resultados de un comando [#wait-for-command-results]
+
+Para comandos que terminan, como pruebas o compilaciones, tu agente puede esperar su propio código de salida y duración y después leer la salida reciente guardada del terminal. Si se agota la espera, el comando sigue ejecutándose y puedes volver a esperar la misma tarea sin cambiar el foco. Se requiere un indicador vacío en el zsh local original que inició Zshell; no se admiten shells anidados, SSH ni programas de inicio personalizados. La salida reciente es limitada y puede incluir comandos o indicadores anteriores. Pide al agente que guarde la salida completa en un archivo cuando lo necesites.
+
+Se rechazan las llamadas directas a `exit`, `logout` y `exec` porque terminan o reemplazan el shell original; usa `/bin/sh -c` para ejecutarlas en un subproceso.
+
 ## Configuración inicial [#setup]
 
 Revisa **Ajustes → Automatización → IA**. La opción está activada de forma predeterminada; si la desactivaste, vuelve a activarla y después abre un terminal nuevo o reinicia el agente que ya estuviera en ejecución.
@@ -47,7 +53,11 @@ Los paneles delegados permanecen en segundo plano salvo que pidas verlos. Cuando
 | **Bloqueado** | Necesita información, una aprobación u otra decisión tuya. |
 | **Terminado** | Ha terminado en segundo plano y todavía no has visto su panel. |
 
-Zshell registra una instrucción que envía como **Trabajando**, pero nunca analiza el texto representado en el terminal para adivinar lo que ocurre después. Las transiciones a **Bloqueado** y **Terminado**, y sus notificaciones, necesitan un informe del ciclo de vida del proveedor. Si un agente no lo proporciona, revisa directamente su panel y los cambios resultantes en el proyecto en lugar de confiar en un estado supuesto.
+Zshell da prioridad a los eventos nativos de Codex, Claude Code, Pi, OpenCode y Grok, y después a los informes explícitos de programas. Pasa el cursor por el indicador o abre **Agents** para ver origen, motivo de espera, porcentaje y subtareas. Los hooks de Codex deben revisarse y marcarse como fiables en `/hooks`; Zshell no omite este paso.
+
+Sin informe nativo, solo se examina una parte limitada del pie de la pantalla actual de un agente reconocido. La **inferencia de pantalla** se identifica, nunca indica finalización, envía notificaciones ni satisface `zshell +agent wait`. Tampoco concede aprobaciones. Revisa el panel y el resultado real.
+
+Los programas informan con `zshell +agent report` y borran su propio informe con `zshell +agent clear`. El informe caduca tras 120 segundos sin actualizar o al salir el proceso propietario.
 
 Cuando una integración informa de que un agente ha terminado o necesita información, Zshell también puede enviar una notificación. Pulsa <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> para ir al siguiente agente que haya indicado que necesita tu atención.
 

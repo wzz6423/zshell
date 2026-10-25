@@ -39,3 +39,23 @@ No terminal, Command-clique abre uma URL detectada no navegador padrão. Command
 Alternar abas ou projetos mantém a página como estava, incluindo histórico, posição de rolagem, formulários e estado interno. Ao reiniciar, o Zshell restaura a URL atual e o layout, mas não todo o histórico de voltar e avançar.
 
 Os painéis de navegador mantêm cookies, sessões de login e outros dados de sites entre abas e inicializações. Este não é um modo de navegação privada.
+
+## Pedir a um agente para testar a página [#let-an-agent-test-the-page]
+
+Peça ao agente de programação para verificar a página já aberta neste projeto, preencher um formulário, conferir um resultado ou capturar a área visível. Ele reutiliza a sessão do navegador e mantém o foco no terminal por padrão. Também pode abrir uma URL de desenvolvimento em um painel em segundo plano.
+
+Em scripts, execute estes comandos dentro de um terminal Zshell. Anote o `browser_id` retornado e substitua `BROWSER_ID` abaixo:
+
+```sh
+zshell +browser list
+zshell +browser open http://localhost:3000 --wait
+zshell +browser snapshot --browser BROWSER_ID
+zshell +browser fill --browser BROWSER_ID --selector '#search' --text 'terminal'
+zshell +browser click --browser BROWSER_ID --selector 'button[type="submit"]'
+zshell +browser wait --browser BROWSER_ID --selector '#results' --timeout 10000
+zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
+```
+
+Os snapshots retornam texto do quadro principal, rótulos acessíveis e referências de elementos. As referências expiram após alterações ou ações; gere outro snapshot antes de reutilizá-las. O seletor CSS deve corresponder a um único elemento. Use `navigate`, `back`, `forward`, `reload` e `stop` para navegar.
+
+A automação aceita URLs HTTP/HTTPS completas e `about:blank`. Outros protocolos, downloads, seletores de arquivos e diálogos nativos exigem sua interação. A restrição termina após navegar manualmente pela barra de endereços ou ferramentas. Os comandos ficam no projeto e na janela do terminal que os chamou. `--timeout` aceita 100–30000 milissegundos. Os snapshots têm limites de 200 elementos, 32768 caracteres e 256 KiB, sem valores de senha ou arquivo. Capturas PNG da área visível têm limite de 512 KiB, exigem que o painel tenha sido exibido e não sobrescrevem arquivos. Reduza `--width` se necessário. Consulte `zshell +browser --help`.

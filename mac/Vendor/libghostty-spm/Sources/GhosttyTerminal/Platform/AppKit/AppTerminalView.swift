@@ -44,6 +44,9 @@
             set { core.configuration = newValue }
         }
 
+        /// Hosts that render a relay can report the original PTY's foreground job.
+        public var foregroundProcessProvider: (() -> pid_t?)?
+
         open func setSurfaceVisible(_ visible: Bool) {
             core.setDisplayVisible(visible)
         }

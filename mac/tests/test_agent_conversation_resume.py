@@ -44,6 +44,75 @@ snapshot_types = snapshot[
 ]
 kind = source("AgentAutomation.swift")
 kind = kind[kind.index("enum ZshellAgentKind:"):kind.index("enum ZshellAgentPhase:")]
+has_lifecycle = "ZshellAgentLifecycleHooks" in refresh
+startup_fixture = ""
+startup_checks = ""
+if "PersistentPTY.reconnect" in session:
+    startup = session[session.index("        let sessionID ="):
+                      session.index("        let backend =", session.index("        let sessionID ="))]
+    startup_fixture = r'''
+@MainActor
+struct PersistentPTY {
+    let workingDirectory: String
+    static var fixture: PersistentPTY?
+    static var requests: [UUID] = []
+    static func reconnect(id: UUID) -> PersistentPTY? {
+        requests.append(id)
+        return fixture
+    }
+}
+@MainActor
+enum ResumeStartupProbe {
+    static func configuredStartupCommand() -> [String]? { ["/bin/false"] }
+    static func loginShell() -> String { "/bin/zsh" }
+    static func validWorkingDirectory(_ path: String?) -> String { path ?? "/" }
+    static func launch(
+        initialDirectory: String?, commandArguments: [String]? = nil,
+        restoredSessionID: UUID?, agentResume: AgentConversationIdentity?,
+        isRestoredSession: Bool = true, allowsPersistence: Bool = true
+    ) -> (id: UUID, resume: AgentConversationIdentity.ResumeLaunch?,
+          command: [String]?, shell: String, directory: String, preserve: Bool) {
+STARTUP
+        return (sessionID, resumeLaunch, directCommand, shellPath, directory, preserve)
+    }
+}
+'''.replace("STARTUP", startup)
+    startup_checks = r'''
+        let terminalID = UUID()
+        PersistentPTY.fixture = .init(workingDirectory: home.appendingPathComponent("live").path)
+        let attached = ResumeStartupProbe.launch(
+            initialDirectory: "/", restoredSessionID: terminalID, agentResume: restored
+        )
+        check(PersistentPTY.requests == [terminalID] && attached.id == terminalID,
+              "restoration reconnects the saved persistent terminal before selecting a resume command")
+        check(attached.resume == nil && attached.command == nil && attached.shell == "/bin/zsh",
+              "production startup never relaunches Claude or startup commands in an existing PTY")
+        check(attached.directory == PersistentPTY.fixture?.workingDirectory && attached.preserve,
+              "a live PTY keeps its working directory and persistence")
+        PersistentPTY.fixture = nil
+        let restarted = ResumeStartupProbe.launch(
+            initialDirectory: "/", restoredSessionID: terminalID, agentResume: restored
+        )
+        check(restarted.resume?.arguments == ["claude", "--resume", event.identity.sessionID]
+              && restarted.directory == event.identity.workingDirectory && restarted.shell == "claude",
+              "production startup resumes the exact saved identity only when its PTY cannot reconnect")
+        let reopened = TerminalSession()
+        reopened.shellPid = getpid()
+        reopened.surface.foregroundPid = agent.processIdentifier
+        reopened.agentResume = restored
+        check(reopened.conversationIdentityForPersistence == nil,
+              "repeated PTY reconnects never inherit unverified conversation process metadata")
+        let persistentSnapshot = SessionSnapshot.ProjectSnapshot.PaneSnapshot(
+            content: .session(workingDirectory: home.path), weight: 1,
+            agentResume: restored, terminalID: terminalID
+        )
+        let persistentRoundTrip = try JSONDecoder().decode(
+            SessionSnapshot.ProjectSnapshot.PaneSnapshot.self,
+            from: JSONEncoder().encode(persistentSnapshot)
+        )
+        check(persistentRoundTrip.terminalID == terminalID && persistentRoundTrip.agentResume == restored,
+              "snapshot preserves both persistent terminal and provider conversation identities")
+'''
 fixture = r'''
 import Darwin
 import Foundation
@@ -52,6 +121,8 @@ import Foundation
 final class AppSettings {
     static let shared = AppSettings()
     var aiEnabled = true
+    var resumeAgentConversations = true
+    var preserveTerminalSessions = false
 REFRESH
 }
 
@@ -67,6 +138,8 @@ final class TerminalSession {
     var agentConversationProcessID: pid_t?
 RECORD
 }
+
+STARTUP_FIXTURE
 
 @main
 struct AgentResumeRegression {
@@ -98,6 +171,7 @@ struct AgentResumeRegression {
         check(FileManager.default.fileExists(atPath: link.path) == shouldInstall,
               "\(mode): provider hook points to the bundled executable script")
         check(settings["fixture"] as? String == "preserve", "provider settings keep unrelated user values")
+LIFECYCLE_CHECKS
         let userSkill = home.appendingPathComponent(".claude/skills/zshell-automation/SKILL.md")
         if mode == "modified" {
             check((try String(contentsOf: userSkill, encoding: .utf8)) == "user-owned skill\n",
@@ -155,6 +229,7 @@ struct AgentResumeRegression {
         check(restored?.resumeLaunch(enabled: false) == nil, "disabled resume does not launch a saved conversation")
         check(restored?.resumeLaunch(enabled: true, hasLiveTerminal: true) == nil,
               "a reconnected live terminal does not launch a duplicate agent")
+STARTUP_CHECKS
         let ordinary = TerminalSession()
         ordinary.shellPid = getpid()
         ordinary.surface.foregroundPid = getpid()
@@ -170,7 +245,18 @@ struct AgentResumeRegression {
         exit(failures == 0 ? 0 : 1)
     }
 }
-'''.replace("REFRESH", refresh).replace("RECORD", record)
+'''.replace("REFRESH", refresh).replace("RECORD", record).replace(
+    "STARTUP_FIXTURE", startup_fixture
+).replace("STARTUP_CHECKS", startup_checks).replace("LIFECYCLE_CHECKS", r'''
+        let lifecycleLink = home.appendingPathComponent(".claude/hooks/zshell-lifecycle-hook.sh")
+        check(FileManager.default.fileExists(atPath: lifecycleLink.path) == shouldInstall,
+              "provider lifecycle hook also survives an unrelated skill conflict")
+        let commands = sessionHooks?.flatMap { ($0["hooks"] as? [[String: Any]]) ?? [] }
+            .compactMap { $0["command"] as? String } ?? []
+        check(commands.filter { $0.contains("zshell-session-hook.sh") }.count == (shouldInstall ? 1 : 0)
+              && commands.filter { $0.contains("zshell-lifecycle-hook.sh") }.count == (shouldInstall ? 1 : 0),
+              "SessionStart preserves both separately managed identity and lifecycle hooks")
+''' if has_lifecycle else "")
 
 with tempfile.TemporaryDirectory(prefix="zshell-agent-resume-") as temporary:
     root = Path(temporary)
@@ -184,10 +270,13 @@ with tempfile.TemporaryDirectory(prefix="zshell-agent-resume-") as temporary:
         "CFBundleExecutable": executable.name,
         "CFBundlePackageType": "APPL",
     }))
-    for relative in (
+    bundled_resources = [
         "Skills/zshell-automation/SKILL.md", "Skills/zshell-automation/agents/openai.yaml",
         "AgentIntegrations/zshell-session-hook.sh",
-    ):
+    ]
+    if has_lifecycle:
+        bundled_resources.append("AgentIntegrations/zshell-lifecycle-hook.sh")
+    for relative in bundled_resources:
         destination = resources / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / "mac/zshell" / relative, destination)
@@ -199,6 +288,8 @@ with tempfile.TemporaryDirectory(prefix="zshell-agent-resume-") as temporary:
                   "TerminalAgentConversation.swift", "ProcessWorkingDirectory.swift",
                   "ZshellAgentSessionHooks.swift", "ZshellAgentIntegrations.swift",
                   "ZshellAutomationSkill.swift"]
+    if has_lifecycle:
+        production.append("ZshellAgentLifecycleHooks.swift")
     sources = []
     for filename in production:
         path = root / filename

@@ -333,8 +333,7 @@ final class TerminalManager: nonisolated ObservableObject {
             .publisher(for: NSApplication.willTerminateNotification)
             .sink { _ in
                 guard !TerminalManager.isQuitting else { return }
-                TerminalManager.isQuitting = true
-                TerminalManager.saveAll(captureTerminalHistory: true)
+                TerminalManager.prepareForApplicationQuit()
             }
     }
 
@@ -1673,6 +1672,21 @@ final class TerminalManager: nonisolated ObservableObject {
         TerminalHistoryStore.save(histories)
     }
 
+    static func prepareForApplicationQuit(endAll: Bool = false) {
+        guard !isQuitting else { return }
+        isQuitting = true
+        saveAll(captureTerminalHistory: true)
+        let preserve = AppSettings.shared.preserveTerminalSessions && !endAll
+        for manager in registry {
+            for project in manager.projects {
+                for session in project.sessions { session.prepareForApplicationQuit(preserve: preserve) }
+            }
+        }
+        if !preserve {
+            _ = try? PTYMuxCommandLine.exchange(method: "terminateAll", timeout: 0.5)
+        }
+    }
+
     /// Builds this window's layout snapshot and, alongside it, the scrollback
     /// to persist for its sessions. Each captured session gets a fresh
     /// `historyKey` stored on both sides so restore can pair them; sessions
@@ -1746,10 +1760,12 @@ final class TerminalManager: nonisolated ObservableObject {
         switch layout {
         case .pane(let pane):
             var historyKey: String?
-            let agentResume: AgentConversationIdentity?
+            var agentResume: AgentConversationIdentity?
+            var terminalID: UUID?
             if case .session(let session) = pane.content {
                 agentResume = session.conversationIdentityForPersistence
-            } else { agentResume = nil }
+                terminalID = session.id
+            }
             if case .session(let session) = pane.content,
                let history = session.serializedHistory(
                    captureLive: captureTerminalHistory
@@ -1762,7 +1778,8 @@ final class TerminalManager: nonisolated ObservableObject {
                 content: contentSnapshot(pane.content),
                 weight: 1,
                 historyKey: historyKey,
-                agentResume: agentResume
+                agentResume: agentResume,
+                terminalID: terminalID
             ))
         case .split(let split):
             return .split(

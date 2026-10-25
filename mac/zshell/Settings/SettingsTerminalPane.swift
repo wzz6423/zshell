@@ -23,6 +23,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     private let terminalBellSwitch = SettingsSwitch { AppSettings.shared.terminalBell = $0 }
     private let shiftEnterNewlineSwitch = SettingsSwitch { AppSettings.shared.shiftEnterNewline = $0 }
     private let restoreHistorySwitch = SettingsSwitch { AppSettings.shared.restoreTerminalHistory = $0 }
+    private let preserveSessionsSwitch = SettingsSwitch { AppSettings.shared.preserveTerminalSessions = $0 }
     private let copyOnSelectSwitch = SettingsSwitch { AppSettings.shared.copyOnSelect = $0 }
     private let terminalBackgroundBlurSwitch = SettingsSwitch {
         AppSettings.shared.terminalBackgroundBlur = $0
@@ -135,6 +136,11 @@ final class SettingsTerminalPane: SettingsPaneViewController {
 
         groups.append(SettingsGroup(header: String(localized: "Behavior"), rows: [
             SettingsRow(
+                title: String(localized: "Keep sessions running after quitting"),
+                description: String(localized: "New terminals keep shells, agents, and servers running when Zshell quits. Closing a pane ends its tasks. Turn this off before quitting to end all sessions."),
+                control: preserveSessionsSwitch
+            ),
+            SettingsRow(
                 title: String(localized: "Vim command hints"),
                 description: String(localized: "Show common Vim and Neovim commands in Info, ordered by the visible editor mode, including over SSH."),
                 control: vimCommandHintsSwitch
@@ -201,6 +207,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         terminalBellSwitch.isOn = settings.terminalBell
         shiftEnterNewlineSwitch.isOn = settings.shiftEnterNewline
         restoreHistorySwitch.isOn = settings.restoreTerminalHistory
+        preserveSessionsSwitch.isOn = settings.preserveTerminalSessions
         copyOnSelectSwitch.isOn = settings.copyOnSelect
         terminalBackgroundOpacityRow.setValue(settings.terminalBackgroundOpacity)
         terminalBackgroundBlurSwitch.isOn = settings.terminalBackgroundBlur

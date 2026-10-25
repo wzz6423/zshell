@@ -84,8 +84,8 @@ struct ZshellAutomationRequest: Codable, Sendable {
     let token: String
     let terminalID: String
     let params: [String: ZshellJSONValue]
-    /// Populated by the socket server, never decoded from the caller's JSON.
-    var peerProcessID: pid_t?
+    /// Kernel credential, deliberately excluded from the JSON contract.
+    var peerProcessID: pid_t? = nil
 
     private enum CodingKeys: String, CodingKey {
         case version, id, method, token, terminalID, params

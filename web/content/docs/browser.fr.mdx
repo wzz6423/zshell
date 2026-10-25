@@ -39,3 +39,23 @@ Dans un terminal, un simple clic avec Command ouvre l'URL reconnue dans votre na
 Changer d'onglet ou de projet conserve la page, son historique, sa position de défilement, ses formulaires et son état interne. Au redémarrage de Zshell, l'URL actuelle et la disposition sont restaurées, mais pas l'historique complet des navigations arrière et avant.
 
 Les volets conservent les cookies, les connexions et les autres données des sites entre les onglets et les lancements. Il ne s'agit pas d'un mode de navigation privée.
+
+## Faire tester la page par un agent [#let-an-agent-test-the-page]
+
+Demandez à votre agent de vérifier une page déjà ouverte dans ce projet, de remplir un formulaire, de contrôler un résultat ou de capturer la zone visible. Il réutilise la session du navigateur et conserve le focus du terminal par défaut. Il peut aussi ouvrir une URL de développement dans un volet en arrière-plan.
+
+Dans un script, exécutez ces commandes depuis un terminal Zshell. Notez le `browser_id` renvoyé et remplacez `BROWSER_ID` ci-dessous :
+
+```sh
+zshell +browser list
+zshell +browser open http://localhost:3000 --wait
+zshell +browser snapshot --browser BROWSER_ID
+zshell +browser fill --browser BROWSER_ID --selector '#search' --text 'terminal'
+zshell +browser click --browser BROWSER_ID --selector 'button[type="submit"]'
+zshell +browser wait --browser BROWSER_ID --selector '#results' --timeout 10000
+zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
+```
+
+Les instantanés renvoient le texte du cadre principal, les libellés accessibles et des références d’éléments. Ces références expirent après une modification ou une action : reprenez un instantané avant de les réutiliser. Un sélecteur CSS doit correspondre à un seul élément. Utilisez `navigate`, `back`, `forward`, `reload` et `stop` pour naviguer.
+
+Seuls les URL HTTP/HTTPS explicites et `about:blank` sont autorisés. Les autres protocoles, téléchargements, sélecteurs de fichiers et dialogues natifs nécessitent votre intervention. Cette restriction cesse après une navigation manuelle par la barre d’adresse ou d’outils. Les commandes restent dans le projet et la fenêtre du terminal appelant. `--timeout` vaut 100–30000 millisecondes. Les instantanés sont limités à 200 éléments, 32768 caractères et 256 KiB, sans valeurs de mot de passe ou de fichier. Les captures PNG de la zone visible sont limitées à 512 KiB, nécessitent un volet déjà affiché et n’écrasent aucun fichier. Réduisez `--width` si nécessaire. Voir `zshell +browser --help`.

@@ -78,6 +78,7 @@ final class AppConnection {
     private let terminalID: String?
 
     init(environment: [String: String] = ProcessInfo.processInfo.environment) throws {
+        let environment = try PersistentCLIConnection.resolvedEnvironment(environment)
         guard let statePath = environment["ZSHELL_CLI_STATE"],
               let token = environment["ZSHELL_CLI_TOKEN"],
               !statePath.isEmpty,
@@ -593,24 +594,30 @@ private func printHelp() {
         its complete contract.
         """)
     )
+    print(String(localized: "Browser automation: `zshell +browser --help`."))
 }
 
-private func run() throws {
+private func run() throws -> Int32 {
     let arguments = Array(CommandLine.arguments.dropFirst())
     if arguments == ["+help"] {
         printHelp()
-        return
+        return 0
     }
     if arguments.first == "+pty-mux" {
         try PTYMuxCommandLine.run(arguments: Array(arguments.dropFirst()))
-        return
+        return 0
+    }
+    if arguments.first == "+browser" {
+        try ZshellBrowserAutomationCommandLine.run(
+            arguments: Array(arguments.dropFirst())
+        )
+        return 0
     }
     if arguments.first == "+pane" || arguments.first == "+agent" {
-        try ZshellAutomationCommandLine.run(
+        return try ZshellAutomationCommandLine.run(
             namespace: arguments[0],
             arguments: Array(arguments.dropFirst())
         )
-        return
     }
     if arguments.first != "+themes" {
         if let command = arguments.first, command.hasPrefix("+") {
@@ -620,7 +627,7 @@ private func run() throws {
         }
         let connection = try AppConnection()
         connection.createProject(arguments: arguments)
-        return
+        return 0
     }
 
     var requestedAppearance: Appearance?
@@ -641,7 +648,7 @@ private func run() throws {
             listOnly = true
         case "--help", "-h":
             printHelp()
-            return
+            return 0
         default:
             throw CLIError.message(
                 String(localized: "Unknown option “\(argument)”. Run `zshell +themes --help`.")
@@ -659,7 +666,7 @@ private func run() throws {
         for theme in state.themes where theme.appearance == appearance.rawValue {
             print(theme.name)
         }
-        return
+        return 0
     }
 
     let browser = ThemeBrowser(
@@ -670,6 +677,7 @@ private func run() throws {
     if let saved = try browser.run() {
         print(String(localized: "Saved \(saved.theme) as Zshell's \(saved.appearance.title) theme."))
     }
+    return 0
 }
 
 enum ZshellCommandLine {
@@ -689,8 +697,7 @@ enum ZshellCommandLine {
         installExitHandlers()
 
         do {
-            try run()
-            exit(0)
+            exit(try run())
         } catch {
             fputs("zshell: \(error)\n", stderr)
             exit(1)

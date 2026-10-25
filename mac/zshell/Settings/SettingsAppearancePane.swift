@@ -118,11 +118,11 @@ final class SettingsAppearancePane: SettingsPaneViewController {
 
     override func makeGroups() -> [NSView] {
         [
-            SettingsGroup(rows: [
-                SettingsRow(title: String(localized: "Theme"), control: themePicker),
+            SettingsGroup(header: String(localized: "Theme"), rows: [
+                SettingsCustomRow(themePicker),
             ]),
             SettingsGroup(header: String(localized: "App Icon"), rows: [
-                SettingsRow(title: String(localized: "Dock icon"), control: iconPicker),
+                SettingsRow(title: String(localized: "Dock icon"), control: iconPicker, symbolName: "app"),
             ]),
             SettingsGroup(header: String(localized: "Colors"), rows: [
                 SettingsRow(title: String(localized: "Dark theme"), control: darkThemePopUp),
@@ -130,7 +130,8 @@ final class SettingsAppearancePane: SettingsPaneViewController {
                 SettingsRow(
                     title: String(localized: "Terminal theme only"),
                     description: String(localized: "Keep the window, sidebars, and editor on Zshell’s default colors"),
-                    control: terminalThemeOnlySwitch
+                    control: terminalThemeOnlySwitch,
+                    symbolName: "terminal"
                 ),
             ]),
             SettingsGroup(header: String(localized: "Font"), rows: [

@@ -18,26 +18,28 @@ function enabled() {
     && !!terminalID;
 }
 
-function report(state, reason) {
-  if (state === lastState) return Promise.resolve();
-  lastState = state;
-  const pending = requestChain.then(() => reportOnce(state, reason));
+function report(state, reason, attention) {
+  if (`${state}:${attention ?? ""}` === lastState) return Promise.resolve();
+  lastState = `${state}:${attention ?? ""}`;
+  const pending = requestChain.then(() => reportOnce(state, reason, attention));
   requestChain = pending.catch(() => {});
   return pending;
 }
 
-function reportOnce(state, reason) {
+function reportOnce(state, reason, attention) {
   if (!enabled()) return Promise.resolve();
 
   requestSequence += 1;
   const request = {
     version: 1,
     id: `zshell:opencode:${requestSequence}`,
-    method: "agent.report",
+    method: "agent.lifecycle",
     token,
     terminalID,
     params: {
+      provider: "opencode",
       state,
+      attention,
       reason: reason ?? `OpenCode lifecycle: ${state}`,
     },
   };
@@ -51,7 +53,7 @@ function reportOnce(state, reason) {
       socket.destroy();
       resolve();
     };
-    socket.setTimeout(750, finish);
+    socket.setTimeout(15_000, finish);
     socket.on("connect", () => socket.write(`${JSON.stringify(request)}\n`));
     socket.on("data", finish);
     socket.on("error", finish);
@@ -98,9 +100,13 @@ export const ZshellAgentStatePlugin = async () => {
           await report("working");
           break;
         case "permission.asked":
+          await report("blocked", undefined, "approval");
+          break;
         case "question.asked":
+          await report("blocked", undefined, "input");
+          break;
         case "session.error":
-          await report("blocked");
+          await report("blocked", undefined, "error");
           break;
         case "session.idle":
           await report("idle");

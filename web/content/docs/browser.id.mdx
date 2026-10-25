@@ -42,3 +42,23 @@ Berpindah tab atau proyek mempertahankan halaman, termasuk riwayat, posisi gulir
 Saat Zshell dimulai ulang, URL aktif dan tata letak dipulihkan, tetapi bukan seluruh riwayat mundur/maju.
 
 Panel browser menyimpan cookie, login, dan data situs lainnya lintas tab dan peluncuran. Ini bukan mode penjelajahan privat.
+
+## Meminta agen menguji halaman [#let-an-agent-test-the-page]
+
+Minta agen pemrograman memeriksa halaman yang sudah terbuka dalam proyek ini, mengisi formulir, memeriksa hasil, atau menangkap area yang terlihat. Agen memakai sesi browser yang ada dan mempertahankan fokus terminal secara default. URL pengembangan lokal juga dapat dibuka di panel browser latar belakang.
+
+Untuk skrip, jalankan perintah berikut di terminal Zshell. Catat `browser_id` yang dikembalikan lalu ganti `BROWSER_ID` di bawah:
+
+```sh
+zshell +browser list
+zshell +browser open http://localhost:3000 --wait
+zshell +browser snapshot --browser BROWSER_ID
+zshell +browser fill --browser BROWSER_ID --selector '#search' --text 'terminal'
+zshell +browser click --browser BROWSER_ID --selector 'button[type="submit"]'
+zshell +browser wait --browser BROWSER_ID --selector '#results' --timeout 10000
+zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
+```
+
+Snapshot memberikan teks bingkai utama, label aksesibilitas, dan referensi elemen. Referensi kedaluwarsa setelah perubahan halaman atau tindakan; ambil snapshot baru sebelum memakainya lagi. Pemilih CSS harus cocok dengan tepat satu elemen. Gunakan `navigate`, `back`, `forward`, `reload`, dan `stop` untuk navigasi.
+
+Otomatisasi menerima URL HTTP/HTTPS lengkap dan `about:blank`. Protokol lain, unduhan, pemilih berkas, dan dialog native memerlukan interaksi Anda. Pembatasan berakhir setelah navigasi manual melalui bilah alamat atau toolbar. Perintah tetap berada dalam proyek dan jendela terminal pemanggil. `--timeout` adalah 100–30000 milidetik. Snapshot dibatasi 200 elemen, 32768 karakter, dan 256 KiB, tanpa nilai kata sandi atau berkas. PNG area terlihat dibatasi 512 KiB, memerlukan panel yang pernah ditampilkan, dan tidak menimpa berkas. Kurangi `--width` jika perlu. Lihat `zshell +browser --help`.

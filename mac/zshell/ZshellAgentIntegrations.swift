@@ -6,9 +6,8 @@
 import Foundation
 
 /// Native lifecycle integrations for agent CLIs whose public event surfaces
-/// cover an interactive turn. Zshell never infers lifecycle state from rendered
-/// terminal text, so these events are the only source of blocked and completed
-/// transitions. Managed integrations are links into the app bundle so a Zshell
+/// cover an interactive turn. These semantic events take priority over program
+/// reports and bounded screen hints. Managed integrations link into the app bundle so a Zshell
 /// update cannot leave copied hook/plugin code stale.
 enum ZshellAgentIntegrations {
     enum Kind: String, CaseIterable {

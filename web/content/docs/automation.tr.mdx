@@ -7,6 +7,12 @@ Zshell otomasyonu öncelikle AI kodlama ajanları içindir. Onlara bölmelerle �
 
 AI entegrasyonu varsayılan olarak açıktır. Ajanınızla normal biçimde konuşun. Kullandığınız bölmenin odağını almadan arka plan bölmesi oluşturabilir, bir çalışan ajana iş devredebilir, komut çalıştırabilir, sonucu bekleyip size getirebilir.
 
+## Komut sonuçlarını bekleme [#wait-for-command-results]
+
+Test veya derleme gibi sona eren komutlarda ajanınız komutun kendi çıkış kodunu ve süresini bekleyip kaydedilen son terminal çıktısını okuyabilir. Bekleme süresi dolarsa komut çalışmaya devam eder ve odak değişmeden aynı görev yeniden beklenebilir. Zshell’in başlattığı özgün yerel zsh içinde boş bir istem gerekir; iç içe kabuklar, SSH ve özel başlangıç programları desteklenmez. Son çıktı sınırlıdır ve önceki komutları veya istemleri içerebilir. Tam kayıt gerektiğinde ajandan çıktıyı bir dosyaya kaydetmesini isteyin.
+
+Özgün kabuğu sonlandıran veya değiştiren doğrudan `exit`, `logout` ve `exec` çağrıları reddedilir; bunları alt süreçte çalıştırmak için `/bin/sh -c` kullanın.
+
 ## Kurulum [#setup]
 
 **Ayarlar → Otomasyon → AI** seçeneğini kontrol edin. Varsayılan açık; önceden kapattıysanız açıp yeni terminal başlatın veya çalışan ajanı yeniden başlatın.
@@ -47,7 +53,11 @@ Görmek istemedikçe devredilmiş bölmeler arka planda kalır. Sağlayıcının
 | **Engellendi** | Sizden girdi, onay veya başka karar gerekiyor. |
 | **Tamamlandı** | Arka planda bitirdi; bölmeyi henüz görmediniz. |
 
-Zshell gönderdiği istemi **Çalışıyor** olarak kaydeder ama sonrasını tahmin etmek için işlenmiş terminal metnini taramaz. **Engellendi** ve **Tamamlandı** geçişleriyle bildirimleri sağlayıcının yaşam döngüsü raporunu gerektirir. Ajan raporlamıyorsa tahmini duruma güvenmek yerine bölmesini ve proje değişikliklerini doğrudan inceleyin.
+Zshell önce Codex, Claude Code, Pi, OpenCode ve Grok’un yerel olaylarını, ardından programların açık bildirimlerini kullanır. Kaynak, bekleme nedeni, yüzde ve alt görevleri görmek için durum rozetinin üzerine gelin veya **Agents** bölümünü açın. Codex kancaları önce `/hooks` menüsünde incelenip güvenilir olarak işaretlenmelidir; Zshell bunu atlamaz.
+
+Yerel bildirim yoksa yalnızca tanınan Agent sürecinin güncel ekranının alt kısmı sınırlı olarak incelenir. **Ekrandan çıkarım** etiketlenir; tamamlanma bildirmez, bildirim göndermez, `zshell +agent wait` koşulunu karşılamaz ve onay vermez. Bölmeyi ve gerçek sonucu inceleyin.
+
+Programlar `zshell +agent report` ile ilerleme bildirir, `zshell +agent clear` ile kendi bildirimini temizler. Bildirim 120 saniye güncellenmezse veya sahibi olan süreç sonlanırsa geçersiz olur.
 
 Entegrasyon bitiş veya girdi gereksinimi bildirince Zshell bildirim de gönderebilir. Dikkatinizi gerektirdiği raporlanan sonraki ajana geçmek için <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> kullanın.
 

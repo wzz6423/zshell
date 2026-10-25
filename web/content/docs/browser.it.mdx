@@ -39,3 +39,23 @@ Nel terminale, un normale Command-clic apre l'URL rilevato nel browser predefini
 Passare tra schede o progetti conserva la pagina, inclusi cronologia, posizione di scorrimento, moduli e stato interno. Al riavvio, Zshell ripristina URL corrente e disposizione, ma non tutta la cronologia avanti/indietro.
 
 I pannelli browser conservano cookie, accessi e altri dati dei siti tra schede e avvii. Non si tratta di navigazione privata.
+
+## Far testare la pagina a un agente [#let-an-agent-test-the-page]
+
+Chiedi al tuo agente di programmazione di controllare la pagina già aperta in questo progetto, compilare un modulo, verificare un risultato o acquisire l’area visibile. Riutilizza la sessione del browser e mantiene il focus nel terminale per impostazione predefinita. Può anche aprire un URL di sviluppo in un pannello in background.
+
+Negli script, esegui questi comandi da un terminale Zshell. Annota il `browser_id` restituito e sostituisci `BROWSER_ID` qui sotto:
+
+```sh
+zshell +browser list
+zshell +browser open http://localhost:3000 --wait
+zshell +browser snapshot --browser BROWSER_ID
+zshell +browser fill --browser BROWSER_ID --selector '#search' --text 'terminal'
+zshell +browser click --browser BROWSER_ID --selector 'button[type="submit"]'
+zshell +browser wait --browser BROWSER_ID --selector '#results' --timeout 10000
+zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
+```
+
+Le istantanee restituiscono testo del frame principale, etichette accessibili e riferimenti agli elementi. I riferimenti scadono dopo modifiche o azioni: acquisisci una nuova istantanea prima di riutilizzarli. Un selettore CSS deve corrispondere a un solo elemento. Usa `navigate`, `back`, `forward`, `reload` e `stop` per navigare.
+
+L’automazione accetta URL HTTP/HTTPS completi e `about:blank`. Altri protocolli, download, selettori di file e finestre native richiedono il tuo intervento. Il limite termina dopo una navigazione manuale dalla barra degli indirizzi o degli strumenti. I comandi restano nel progetto e nella finestra del terminale chiamante. `--timeout` accetta 100–30000 millisecondi. Le istantanee hanno un massimo di 200 elementi, 32768 caratteri e 256 KiB, senza valori di password o file. Le catture PNG dell’area visibile hanno un massimo di 512 KiB, richiedono un pannello già mostrato e non sovrascrivono file. Riduci `--width` se necessario. Vedi `zshell +browser --help`.

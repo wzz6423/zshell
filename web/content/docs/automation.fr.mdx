@@ -7,6 +7,12 @@ L'automatisation de Zshell s'adresse principalement aux agents de programmation 
 
 L'intégration IA est activée par défaut. Parlez normalement à votre agent : il peut créer un volet en arrière-plan, démarrer un autre agent, exécuter une commande, attendre son résultat et vous le rapporter sans prendre le focus du volet que vous utilisez.
 
+## Attendre le résultat d’une commande [#wait-for-command-results]
+
+Pour une commande qui se termine, comme des tests ou une compilation, votre agent peut attendre son code de sortie et sa durée, puis lire la sortie récente du terminal enregistrée. Si le délai expire, la commande continue et la même tâche peut être attendue à nouveau, sans prendre le focus. Une invite vide dans le zsh local initial lancé par Zshell est nécessaire ; les shells imbriqués, SSH et les programmes de démarrage personnalisés ne sont pas pris en charge. La sortie récente est limitée et peut contenir d’anciennes commandes ou invites. Demandez à l’agent d’enregistrer la sortie complète dans un fichier si nécessaire.
+
+Les commandes directes `exit`, `logout` et `exec` sont refusées, car elles terminent ou remplacent le shell d’origine ; utilisez `/bin/sh -c` pour les exécuter dans un sous-processus.
+
 ## Configuration [#setup]
 
 Vérifiez **Réglages → Automatisation → IA**. L'option est activée par défaut. Si vous l'aviez désactivée, réactivez-la, puis ouvrez un nouveau terminal ou redémarrez l'agent déjà en cours d'exécution.
@@ -47,7 +53,11 @@ Les volets délégués restent en arrière-plan, sauf si vous demandez à les vo
 | **Bloqué** | Il attend une information, une autorisation ou une décision de votre part. |
 | **Terminé** | Il a terminé en arrière-plan et vous n'avez pas encore consulté son volet. |
 
-Zshell marque une invite qu'il soumet comme **En cours**, mais n'analyse jamais le texte rendu du terminal pour deviner la suite. Les transitions vers **Bloqué** ou **Terminé**, ainsi que leurs notifications, nécessitent un rapport de cycle de vie du fournisseur. Si un agent n'en fournit pas, consultez directement son volet et les changements du projet plutôt que de vous fier à un état supposé.
+Zshell privilégie les événements natifs de Codex, Claude Code, Pi, OpenCode et Grok, puis les rapports explicites des programmes. Survolez le badge ou ouvrez **Agents** pour voir la source, le motif d’attente, le pourcentage et les sous-tâches. Les hooks Codex doivent d’abord être examinés et approuvés dans `/hooks` ; Zshell ne contourne pas cette étape.
+
+Sans rapport natif, seul le bas de l’écran actif d’un processus d’agent reconnu est analysé, dans une limite fixe. La **déduction à partir de l’écran** est signalée, ne rapporte jamais une fin, n’envoie aucune notification et ne satisfait pas `zshell +agent wait`. Elle n’accorde aucune autorisation. Vérifiez le volet et le résultat réel.
+
+Les programmes utilisent `zshell +agent report` pour signaler leur progression et `zshell +agent clear` pour effacer leur propre rapport. Celui-ci expire après 120 secondes sans mise à jour ou à la fin du processus propriétaire.
 
 Lorsqu'une intégration signale la fin d'un agent ou une demande d'intervention, Zshell peut aussi envoyer une notification. <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> rejoint le prochain agent signalé comme nécessitant votre attention.
 

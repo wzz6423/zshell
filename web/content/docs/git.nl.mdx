@@ -92,3 +92,17 @@ Pullen is bewust beperkt tot fast-forward. Als een echte merge of rebase nodig i
 ## Nog geen repository [#not-a-repository-yet]
 
 Als de projectmap geen repository bevat, biedt het paneel **Repository initialiseren** aan. Dit voert `git init` in die map uit. Tot dan blijft het paneel op de achtergrond.
+
+## Agentbeurten beoordelen [#agent-turn-review]
+
+Klik op **Wijzigingen beoordelen…** in het Git-paneel.
+
+- **Laatste beurt** vergelijkt begin- en eindsnapshots van de gekozen agent, inclusief alle bewerkingen in dat tijdvak, ongeacht de auteur.
+- **Niet gecommit** vergelijkt HEAD met de werkboom, inclusief gestagede en niet-gevolgde bestanden.
+- **Volledige branch** vergelijkt de gemeenschappelijke voorouder met de gekozen basisbranch met de werkboom, inclusief commits en niet-gecommitte bestanden.
+
+Kies een bestand en een wijzigingsblok. In Laatste beurt registreert **Wijzigingsblok behouden** de beoordeling; **Wijzigingsblok terugdraaien** draait het blok terug in de werkboom. Geen van beide wijzigt de Git-index. De oorspronkelijke snapshot en beslissingen blijven zichtbaar.
+
+Terugdraaien wordt geweigerd bij latere bestands- of HEAD-wijzigingen, onveilige paden, actieve agenten of overlappende beurten. Binaire wijzigingen en wijzigingen van alleen rechten zijn alleen-lezen. Bestanden boven 5 MiB zijn niet beschikbaar; dit geldt ook voor snapshots boven 2.048 gewijzigde paden, 25 MiB vastgelegde inhoud of de tijdslimiet.
+
+Snapshots blijven bestaan tijdens de huidige appsessie. Betrouwbare begin- en eindegebeurtenissen zijn nodig. Pi, OpenCode en Grok hebben native integraties. Beveiligde prompts leggen het begin vast, maar hebben ook een eindegebeurtenis nodig. Zonder die gebeurtenis is er geen voltooide snapshot.

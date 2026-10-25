@@ -41,3 +41,23 @@ Zshell 可以在任意分頁或分割畫面裡放一個內建瀏覽器。它適�
 切換分頁或專案後，網頁會保持原樣，包括瀏覽歷史、捲動位置、表單和頁面內部狀態。Zshell 重新啟動時會恢復當前 URL 和佈局，但不會恢復完整的前進 / 後退歷史。
 
 瀏覽器窗格會跨分頁、跨啟動保留 Cookie、登錄狀態和其他站點資料；這不是私密瀏覽模式。
+
+## 讓 Agent 測試頁面 [#let-an-agent-test-the-page]
+
+可以讓程式設計 Agent 檢查目前專案中已開啟的頁面、填寫表單、核對結果或擷取可見區域。Agent 使用現有瀏覽器工作階段，預設保持終端機焦點，也可以為本機開發網址建立背景瀏覽器面板。
+
+指令碼可在 Zshell 終端機中使用以下命令。記錄傳回的 `browser_id`，取代下方的 `BROWSER_ID`：
+
+```sh
+zshell +browser list
+zshell +browser open http://localhost:3000 --wait
+zshell +browser snapshot --browser BROWSER_ID
+zshell +browser fill --browser BROWSER_ID --selector '#search' --text 'terminal'
+zshell +browser click --browser BROWSER_ID --selector 'button[type="submit"]'
+zshell +browser wait --browser BROWSER_ID --selector '#results' --timeout 10000
+zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
+```
+
+快照提供主框架文字、無障礙標籤和元素參照。頁面變更或執行操作後參照會失效，再次使用前需重新取得快照。CSS 選取器必須唯一符合一個元素。導覽命令包括 `navigate`、`back`、`forward`、`reload` 和 `stop`。
+
+自動化只接受完整的 HTTP/HTTPS 網址和 `about:blank`。其他通訊協定、下載、檔案選擇器和原生對話框需要你直接操作；透過網址列或工具列手動導覽後才會解除此限制。命令僅作用於呼叫終端機所在的專案和視窗。`--timeout` 範圍為 100–30000 毫秒。快照最多包含 200 個元素、32768 個文字字元，總大小不超過 256 KiB，密碼和檔案輸入值會省略。PNG 截圖僅擷取可見區域，上限為 512 KiB，面板需至少顯示過一次，既有檔案不會被覆寫；可用 `--width` 縮小截圖。完整語法見 `zshell +browser --help`。

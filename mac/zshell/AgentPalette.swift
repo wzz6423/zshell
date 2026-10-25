@@ -14,6 +14,10 @@ final class AgentPaletteController: NSObject {
         let alias: String
         let kind: ZshellAgentKind
         let phase: ZshellAgentPhase
+        let detail: String
+        let summary: String
+        let progress: Int?
+        let attention: ZshellAgentAttention?
         let projectName: String
         let sessionTitle: String
         let directory: String
@@ -25,6 +29,7 @@ final class AgentPaletteController: NSObject {
                 kind.rawValue,
                 phase.rawValue,
                 phase.paletteDescription,
+                detail,
                 projectName,
                 sessionTitle,
                 directory,
@@ -188,6 +193,11 @@ final class AgentPaletteController: NSObject {
                     alias: status.alias,
                     kind: status.kind,
                     phase: status.phase,
+                    detail: status.detail,
+                    summary: status.authority.displayName
+                        + (status.authority == .report && !status.reason.isEmpty ? " · \(status.reason)" : ""),
+                    progress: status.progress,
+                    attention: status.attention,
                     projectName: project.name,
                     sessionTitle: session.title,
                     directory: Self.abbreviate(session.foregroundDirectoryPath
@@ -352,6 +362,10 @@ extension AgentPaletteController: NSTableViewDataSource, NSTableViewDelegate {
             alias: entry.alias,
             kind: entry.kind.displayName,
             phase: entry.phase,
+            detail: entry.detail,
+            summary: entry.summary,
+            progress: entry.progress,
+            attention: entry.attention,
             project: entry.projectName,
             sessionTitle: entry.sessionTitle,
             directory: entry.directory
@@ -568,16 +582,21 @@ private final class AgentPaletteRowView: NSTableCellView {
         alias: String,
         kind: String,
         phase: ZshellAgentPhase,
+        detail: String,
+        summary: String,
+        progress: Int?,
+        attention: ZshellAgentAttention?,
         project: String,
         sessionTitle: String,
         directory: String
     ) {
-        badge.apply(phase: phase, count: 1)
+        badge.apply(phase: phase, count: 1, detail: detail, progress: progress)
         titleLabel.stringValue = alias == kind ? kind : "\(alias) · \(kind)"
-        phaseLabel.stringValue = phase.paletteDescription
+        phaseLabel.stringValue = attention?.displayName ?? phase.paletteDescription
         let context = sessionTitle == project ? project : "\(project) · \(sessionTitle)"
-        subtitleLabel.stringValue = directory.isEmpty ? context : "\(context) · \(directory)"
-        setAccessibilityLabel("\(titleLabel.stringValue), \(phaseLabel.stringValue), \(subtitleLabel.stringValue)")
+        subtitleLabel.stringValue = "\(context) · \(summary)"
+        toolTip = "\(directory)\n\(detail)"
+        setAccessibilityLabel("\(titleLabel.stringValue), \(phaseLabel.stringValue), \(subtitleLabel.stringValue), \(detail)")
         updateSelectionAppearance()
     }
 
