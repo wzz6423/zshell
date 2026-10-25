@@ -130,6 +130,21 @@ regular/bold 区分及后备字体字重。
 
 ## 终端 [#terminal]
 
+### `terminal.preserve-sessions` [#terminalpreserve-sessions]
+
+布尔值——默认 `false`
+
+让之后新建终端中的 Shell、编程 Agent 和开发服务器在退出 Zshell 后继续运行。重开后会
+连接同一个存活进程，并恢复终端屏幕和输入模式，两个后端都支持。守护进程只在内存里保留
+有界的屏幕历史；macOS 重启后不会继续运行。原 PTY 已结束时，窗格会打开新的 Shell。
+
+关闭窗格、项目或窗口仍会结束其中的任务。选择 **Zshell → 退出并结束所有会话**，或在
+退出前关闭此选项，可以结束所有后台会话。快速终端不保留后台会话。
+
+保留 Shell 中的 CLI 会在 Zshell 重开后绑定到原终端；GUI 关闭期间不可用。稳定 CLI
+启动器在重连时更新，删除开发构建后，需要另一个 Zshell 构建重开会话才能再次使用 CLI。
+终端图片摆放和后端专有图形不会恢复，应用可以自行重绘。
+
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
 
 字符串——默认未设置

@@ -35483,6 +35483,112 @@
         }
       }
     },
+    "Keep sessions running after quitting": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إبقاء الجلسات قيد التشغيل بعد الخروج"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sitzungen nach dem Beenden weiterlaufen lassen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep sessions running after quitting"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener las sesiones activas al salir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Garder les sessions actives après avoir quitté"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Biarkan sesi berjalan setelah keluar"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantieni le sessioni attive dopo la chiusura"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "終了後もセッションを実行し続ける"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "종료 후에도 세션 계속 실행"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sessies actief houden na afsluiten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manter sessões ativas após sair"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не останавливать сеансы при выходе"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ให้เซสชันทำงานต่อหลังออกจากแอป"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çıktıktan sonra oturumları çalışır tut"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giữ phiên chạy sau khi thoát"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出后保持会话运行"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結束 App 後保持工作階段執行"
+          }
+        }
+      }
+    },
     "Keep the window, sidebars, and editor on Zshell’s default colors": {
       "localizations": {
         "ar": {
@@ -42493,6 +42599,112 @@
           "stringUnit": {
             "state": "translated",
             "value": "新分支名稱"
+          }
+        }
+      }
+    },
+    "New terminals keep shells, agents, and servers running when Zshell quits. Closing a pane ends its tasks. Turn this off before quitting to end all sessions.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تُبقي الطرفيات الجديدة الصدف والوكلاء والخوادم قيد التشغيل عند الخروج من Zshell. إغلاق اللوحة ينهي مهامها. عطّل هذا الخيار قبل الخروج لإنهاء جميع الجلسات."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neue Terminals lassen Shells, Agenten und Server nach dem Beenden von Zshell weiterlaufen. Das Schließen eines Bereichs beendet seine Aufgaben. Deaktivieren Sie dies vor dem Beenden, um alle Sitzungen zu stoppen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New terminals keep shells, agents, and servers running when Zshell quits. Closing a pane ends its tasks. Turn this off before quitting to end all sessions."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los nuevos terminales mantienen shells, agentes y servidores activos al salir de Zshell. Cerrar un panel termina sus tareas. Desactiva esta opción antes de salir para terminar todas las sesiones."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les nouveaux terminaux gardent les shells, agents et serveurs actifs après la fermeture de Zshell. Fermer un volet arrête ses tâches. Désactivez cette option avant de quitter pour tout arrêter."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminal baru membiarkan shell, agen, dan server berjalan saat Zshell ditutup. Menutup panel mengakhiri tugasnya. Nonaktifkan ini sebelum keluar untuk mengakhiri semua sesi."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I nuovi terminali mantengono shell, agenti e server attivi quando Zshell si chiude. Chiudere un pannello termina le sue attività. Disattiva questa opzione prima di uscire per terminare tutte le sessioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいターミナルでは Zshell 終了後もシェル、エージェント、サーバーが動作します。ペインを閉じるとタスクが終了します。すべて終了するには、終了前にこの設定をオフにしてください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새 터미널의 셸, 에이전트, 서버는 Zshell 종료 후에도 실행됩니다. 창 분할을 닫으면 작업이 종료됩니다. 모든 세션을 종료하려면 앱 종료 전에 이 옵션을 끄세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieuwe terminals houden shells, agents en servers actief wanneer Zshell afsluit. Een paneel sluiten beëindigt zijn taken. Schakel dit vóór afsluiten uit om alle sessies te beëindigen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novos terminais mantêm shells, agentes e servidores ativos ao sair do Zshell. Fechar um painel encerra suas tarefas. Desative esta opção antes de sair para encerrar todas as sessões."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В новых терминалах оболочки, агенты и серверы продолжают работать после выхода из Zshell. Закрытие панели завершает её задачи. Отключите эту настройку перед выходом, чтобы завершить все сеансы."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เทอร์มินัลใหม่จะให้เชลล์ เอเจนต์ และเซิร์ฟเวอร์ทำงานต่อเมื่อออกจาก Zshell การปิดแผงจะสิ้นสุดงานในแผงนั้น ปิดตัวเลือกนี้ก่อนออกเพื่อสิ้นสุดทุกเซสชัน"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni terminaller, Zshell kapandığında kabukları, ajanları ve sunucuları çalışır tutar. Bir bölmeyi kapatmak görevlerini sonlandırır. Tüm oturumları bitirmek için çıkmadan önce bunu kapatın."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Các terminal mới giữ shell, agent và máy chủ chạy khi thoát Zshell. Đóng một ô sẽ kết thúc tác vụ trong ô đó. Tắt tùy chọn này trước khi thoát để kết thúc mọi phiên."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "之后新建终端中的 Shell、Agent 和服务器会在退出 Zshell 后继续运行。关闭窗格会结束其中的任务。退出前关闭此选项可结束所有会话。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "之後新增終端中的 Shell、Agent 和伺服器會在結束 Zshell 後繼續執行。關閉面板會結束其中的工作。結束前關閉此選項可結束所有工作階段。"
           }
         }
       }
@@ -53003,6 +53215,112 @@
           "stringUnit": {
             "state": "translated",
             "value": "臨時終端機快速鍵"
+          }
+        }
+      }
+    },
+    "Quit and End All Sessions": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الخروج وإنهاء جميع الجلسات"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beenden und alle Sitzungen stoppen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit and End All Sessions"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salir y terminar todas las sesiones"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitter et terminer toutes les sessions"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keluar dan akhiri semua sesi"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esci e termina tutte le sessioni"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "終了してすべてのセッションを停止"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "종료 및 모든 세션 끝내기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afsluiten en alle sessies beëindigen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sair e encerrar todas as sessões"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выйти и завершить все сеансы"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ออกและสิ้นสุดทุกเซสชัน"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çık ve tüm oturumları sonlandır"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thoát và kết thúc mọi phiên"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出并结束所有会话"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結束 App 並結束所有工作階段"
           }
         }
       }
