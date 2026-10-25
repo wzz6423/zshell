@@ -9,26 +9,26 @@ import Foundation
 /// operations return JSON so scripts can compose stable IDs and state. Skill
 /// management is human-readable by default and offers explicit `--json` output.
 enum ZshellAutomationCommandLine {
-    static func run(namespace: String, arguments: [String]) throws {
+    static func run(namespace: String, arguments: [String]) throws -> Int32 {
         if arguments.isEmpty || arguments == ["--help"] || arguments == ["-h"] {
             namespace == "+pane" ? printPaneHelp() : printAgentHelp()
-            return
+            return 0
         }
         if namespace == "+agent", arguments == ["explain"] {
             printAgentContract()
-            return
+            return 0
         }
         if namespace == "+agent", arguments.first == "_integration" {
             runAgentIntegration(Array(arguments.dropFirst()))
-            return
+            return 0
         }
         if namespace == "+agent", arguments.first == "_usage-statusline" {
             runAgentUsageStatusLine(Array(arguments.dropFirst()))
-            return
+            return 0
         }
         if namespace == "+agent", arguments.first == "skill" {
             try runAgentSkill(Array(arguments.dropFirst()))
-            return
+            return 0
         }
 
         let connection = try AppConnection()
@@ -42,6 +42,7 @@ enum ZshellAutomationCommandLine {
             throw CLIError.message("Unknown automation namespace \(namespace).")
         }
         try printJSON(result)
+        return namespace == "+pane" ? TerminalCommandTaskWait.exitCode(for: result) : 0
     }
 
     // MARK: - Pane commands
@@ -72,6 +73,8 @@ enum ZshellAutomationCommandLine {
             return try splitPane(tail, connection: connection)
         case "run":
             return try runInPane(tail, connection: connection)
+        case "wait":
+            return try waitForCommandTask(tail, connection: connection)
         case "send":
             return try sendToPane(tail, connection: connection)
         case "read":
@@ -96,8 +99,15 @@ enum ZshellAutomationCommandLine {
         var edge = "right"
         var cwd: String?
         var focus = false
+        var wait = false
+        var timeoutMS = 30_000
+        var argv: [String]?
         var index = 0
         while index < arguments.count {
+            if arguments[index] == "--" {
+                argv = Array(arguments.dropFirst(index + 1))
+                break
+            }
             switch arguments[index] {
             case "--pane": paneID = try value(after: &index, in: arguments, option: "--pane")
             case "--current": paneID = nil
@@ -108,6 +118,8 @@ enum ZshellAutomationCommandLine {
             case "--cwd": cwd = try value(after: &index, in: arguments, option: "--cwd")
             case "--focus": focus = true
             case "--no-focus": focus = false
+            case "--wait": wait = true
+            case "--timeout": timeoutMS = try integerValue(after: &index, in: arguments, option: "--timeout")
             default:
                 throw unknownOption(arguments[index], command: "+pane split")
             }
@@ -117,7 +129,16 @@ enum ZshellAutomationCommandLine {
         params["edge"] = .string(edge)
         params["focus"] = .bool(focus)
         if let cwd { params["cwd"] = .string(cwd) }
-        return try connection.automationRequest(method: "pane.split", params: params)
+        if let argv {
+            guard !argv.isEmpty else { throw CLIError.message(String(localized: "No command was provided after `--`.")) }
+            params["argv"] = .array(argv.map(ZshellJSONValue.string))
+        }
+        guard !wait || argv != nil else {
+            throw CLIError.message(String(localized: "`zshell +pane split --wait` requires `-- command [arguments...]`."))
+        }
+        try validateTimeout(timeoutMS)
+        let result = try connection.automationRequest(method: "pane.split", params: params)
+        return try commandResult(result, wait: wait, timeoutMS: timeoutMS, connection: connection)
     }
 
     private static func runInPane(
@@ -125,11 +146,15 @@ enum ZshellAutomationCommandLine {
         connection: AppConnection
     ) throws -> ZshellJSONValue {
         var paneID: String?
+        var wait = false
+        var timeoutMS = 30_000
         var index = 0
         while index < arguments.count, arguments[index] != "--" {
             switch arguments[index] {
             case "--pane": paneID = try value(after: &index, in: arguments, option: "--pane")
             case "--current": paneID = nil
+            case "--wait": wait = true
+            case "--timeout": timeoutMS = try integerValue(after: &index, in: arguments, option: "--timeout")
             default: throw unknownOption(arguments[index], command: "+pane run")
             }
             index += 1
@@ -139,11 +164,49 @@ enum ZshellAutomationCommandLine {
         }
         let argv = Array(arguments.dropFirst(index + 1))
         guard !argv.isEmpty else {
-            throw CLIError.message("No command was provided after `--`.")
+            throw CLIError.message(String(localized: "No command was provided after `--`."))
         }
         var params = targetParams(paneID: paneID)
         params["argv"] = .array(argv.map(ZshellJSONValue.string))
-        return try connection.automationRequest(method: "pane.run", params: params)
+        params["require_command_result"] = .bool(wait)
+        try validateTimeout(timeoutMS)
+        let result = try connection.automationRequest(method: "pane.run", params: params)
+        return try commandResult(result, wait: wait, timeoutMS: timeoutMS, connection: connection)
+    }
+
+    private static func commandResult(
+        _ result: ZshellJSONValue, wait: Bool, timeoutMS: Int, connection: AppConnection
+    ) throws -> ZshellJSONValue {
+        guard wait else { return result }
+        guard let taskID = result.objectValue?["task_id"]?.stringValue else {
+            throw CLIError.message(String(localized: "Zshell did not return a command task ID."))
+        }
+        return try TerminalCommandTaskWait.wait(
+            taskID: taskID, timeoutMS: timeoutMS, connection: connection, initialResult: result
+        )
+    }
+
+    private static func waitForCommandTask(
+        _ arguments: [String], connection: AppConnection
+    ) throws -> ZshellJSONValue {
+        var taskID: String?
+        var timeoutMS = 30_000
+        var index = 0
+        while index < arguments.count {
+            switch arguments[index] {
+            case "--task": taskID = try value(after: &index, in: arguments, option: "--task")
+            case "--timeout": timeoutMS = try integerValue(after: &index, in: arguments, option: "--timeout")
+            default: throw unknownOption(arguments[index], command: "+pane wait")
+            }
+            index += 1
+        }
+        guard let taskID, UUID(uuidString: taskID) != nil else {
+            throw CLIError.message(String(localized: "`zshell +pane wait` requires --task UUID from +pane run or split."))
+        }
+        try validateTimeout(timeoutMS)
+        return try TerminalCommandTaskWait.wait(
+            taskID: taskID, timeoutMS: timeoutMS, connection: connection
+        )
     }
 
     private static func sendToPane(
@@ -978,8 +1041,9 @@ enum ZshellAutomationCommandLine {
           zshell +pane current
           zshell +pane list
           zshell +pane get [--pane ID | --current]
-          zshell +pane split [--pane ID] [--left|--right|--up|--down] [--cwd PATH] [--focus]
-          zshell +pane run [--pane ID] -- command [arguments...]
+          zshell +pane split [--pane ID] [--left|--right|--up|--down] [--cwd PATH] [--focus] [--wait] [--timeout MS] [-- command [arguments...]]
+          zshell +pane run [--pane ID] [--wait] [--timeout MS] -- command [arguments...]
+          zshell +pane wait --task UUID [--timeout MS]
           zshell +pane send [--pane ID] --text TEXT [--enter]
           zshell +pane read [--pane ID] [--lines N] [--columns N]
           zshell +pane wait-output [--pane ID] --contains TEXT [--timeout MS]
@@ -989,6 +1053,20 @@ enum ZshellAutomationCommandLine {
         and never steal focus unless --focus is explicit. `run` accepts argv
         and quotes each argument for the target shell. `send` is raw input.
         All successful results are JSON; reads do not mark agent output seen.
+        Commands in the original zsh shell return a stable task_id. --wait and
+        `wait --task` exit with the command's own status and include task.exit_code,
+        task.duration_ms, and bounded task.output. Output is a recent screen snapshot,
+        may include earlier commands or the prompt, and sets output_complete=false.
+        Timeout exits 124, sets timed_out,
+        and leaves the task running so it can be waited on again. Task results
+        remain in this app session until the oldest of 256 retained results expires.
+        There can be at most 64 pending or running tasks. A new split waits up to
+        30 seconds for an empty original zsh prompt. Running --wait against the caller's
+        pane, or waiting for an active task in that pane, is rejected.
+        Nested shells, SSH, and custom startup programs do not support command results.
+        Arguments are control-free, at most 256, 16 KiB each and 64 KiB quoted total.
+        Direct exit, logout, and exec are rejected; run them inside /bin/sh -c.
+        wait-output watches text; it does not prove that a command finished.
         """)
     }
 
