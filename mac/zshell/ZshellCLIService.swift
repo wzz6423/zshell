@@ -50,6 +50,7 @@ final class ZshellCLIService {
     private var activePreview: ActivePreview?
     private var automationServer: ZshellAutomationSocketServer?
     private var terminalCapabilities: [String: UUID] = [:]
+    private var persistentTerminals = Set<UUID>()
 
     private init() {
         let fileManager = FileManager.default
@@ -137,6 +138,24 @@ final class ZshellCLIService {
 
     func revokeTerminal(id: UUID) {
         terminalCapabilities = terminalCapabilities.filter { $0.value != id }
+        if persistentTerminals.remove(id) != nil { PersistentCLIConnection.remove(for: id) }
+    }
+
+    func persistentTerminalEnvironment(
+        for id: UUID, bindingToken: String, environment: [String: String]
+    ) throws -> [String: String] {
+        let bin = try PersistentCLIConnection.updateLauncher(executable: PersistentPTY.executablePath)
+        var environment = environment
+        environment["PATH"] = bin + ":" + (environment["PATH"] ?? ProcessInfo.processInfo.environment["PATH"] ?? "/usr/bin:/bin")
+        environment["ZSHELL_PERSISTENT_CONNECTION"] = PersistentCLIConnection.connectionURL(for: id).path
+        environment["ZSHELL_PERSISTENT_TOKEN"] = bindingToken
+        environment["ZSHELL_PTY_MUX_DIRECTORY"] = PTYMuxPaths.directoryURL.path
+        let connectionVariables = environment.filter {
+            $0.key.hasPrefix("ZSHELL_CLI_") || $0.key.hasPrefix("ZSHELL_AUTOMATION") || $0.key == "ZSHELL_TERMINAL_ID"
+        }
+        try PersistentCLIConnection.save(id: id, bindingToken: bindingToken, environment: connectionVariables)
+        persistentTerminals.insert(id)
+        return environment
     }
 
     private func handleAutomation(
@@ -348,6 +367,8 @@ final class ZshellCLIService {
         clearActivePreview()
         automationServer = nil
         terminalCapabilities = [:]
+        for id in persistentTerminals { PersistentCLIConnection.remove(for: id) }
+        persistentTerminals = []
         try? FileManager.default.removeItem(at: directoryURL)
     }
 }

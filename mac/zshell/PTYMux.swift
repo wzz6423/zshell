@@ -1,28 +1,30 @@
 import Darwin
 import Foundation
 
-private enum PTYMuxConstants {
-    static let protocolVersion = 1
+enum PTYMuxConstants {
+    static let protocolVersion = 2
     static let maximumFrameBytes = 256 * 1024
     static let maximumBacklogBytes = 1024 * 1024
     static let maximumTailBytes = 64 * 1024
     static let maximumSessions = 128
+    static let maximumSnapshotBytes = 16 * 1024 * 1024
+    static let maximumInputBytes = 256 * 1024
     static let socketTimeout: TimeInterval = 2
 }
 
-private struct PTYMuxRequest: Codable {
+struct PTYMuxRequest: Codable {
     let version: Int
     let id: String
     let method: String
     let params: [String: ZshellJSONValue]
 }
 
-private struct PTYMuxErrorPayload: Codable {
+struct PTYMuxErrorPayload: Codable {
     let code: String
     let message: String
 }
 
-private struct PTYMuxResponse: Codable {
+struct PTYMuxResponse: Codable {
     let version: Int
     let id: String
     let ok: Bool
@@ -50,7 +52,7 @@ private struct PTYMuxResponse: Codable {
     }
 }
 
-private enum PTYMuxError: Error, CustomStringConvertible {
+enum PTYMuxError: Error, CustomStringConvertible {
     case message(String)
 
     var description: String {
@@ -60,7 +62,7 @@ private enum PTYMuxError: Error, CustomStringConvertible {
     }
 }
 
-private enum PTYMuxPaths {
+enum PTYMuxPaths {
     static var directoryURL: URL {
         if let override = ProcessInfo.processInfo.environment["ZSHELL_PTY_MUX_DIRECTORY"],
            !override.isEmpty
@@ -132,7 +134,7 @@ private extension Data {
     }
 }
 
-private enum PTYMuxWire {
+enum PTYMuxWire {
     static func configureSocket(
         _ descriptor: Int32,
         timeout: TimeInterval = PTYMuxConstants.socketTimeout
@@ -228,7 +230,7 @@ private enum PTYMuxWire {
         return try JSONDecoder().decode(type, from: payload)
     }
 
-    private static func writeAll(_ data: Data, to descriptor: Int32) throws {
+    static func writeAll(_ data: Data, to descriptor: Int32) throws {
         try data.withUnsafeBytes { raw in
             var offset = 0
             while offset < raw.count {
@@ -273,332 +275,6 @@ private enum PTYMuxWire {
     }
 }
 
-private final class PTYMuxBacklog: @unchecked Sendable {
-    private let lock = NSLock()
-    private var data = Data()
-    private var totalBytes: UInt64 = 0
-
-    func append(_ bytes: UnsafeRawBufferPointer) {
-        guard !bytes.isEmpty else { return }
-        lock.lock()
-        defer { lock.unlock() }
-        totalBytes &+= UInt64(bytes.count)
-        if bytes.count >= PTYMuxConstants.maximumBacklogBytes {
-            data = Data(bytes.suffix(PTYMuxConstants.maximumBacklogBytes))
-            return
-        }
-        let overflow = data.count + bytes.count - PTYMuxConstants.maximumBacklogBytes
-        if overflow > 0 { data.removeFirst(overflow) }
-        data.append(contentsOf: bytes)
-    }
-
-    func snapshot(limit: Int) -> (data: Data, totalBytes: UInt64) {
-        lock.lock()
-        defer { lock.unlock() }
-        return (Data(data.suffix(limit)), totalBytes)
-    }
-}
-
-private final class PTYMuxSession: @unchecked Sendable {
-    let id: String
-    let pid: pid_t
-    let startedAt: Date
-    let workingDirectory: String
-    let command: [String]
-
-    private let master: Int32
-    private let backlog = PTYMuxBacklog()
-    private let stateLock = NSLock()
-    private var processExited = false
-    private var waitStatus: Int32?
-    private var masterClosed = false
-    private var reapSource: DispatchSourceProcess?
-    private var readSource: DispatchSourceRead?
-
-    init(
-        id: String,
-        pid: pid_t,
-        master: Int32,
-        workingDirectory: String,
-        command: [String]
-    ) {
-        self.id = id
-        self.pid = pid
-        self.master = master
-        self.startedAt = Date()
-        self.workingDirectory = workingDirectory
-        self.command = command
-        startReading()
-        startReaping()
-    }
-
-    var isRunning: Bool {
-        stateLock.lock()
-        defer { stateLock.unlock() }
-        return !processExited
-    }
-
-    func terminate() {
-        guard isRunning else { return }
-        _ = Darwin.kill(-pid, SIGHUP)
-        _ = Darwin.kill(pid, SIGHUP)
-        let pid = self.pid
-        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + .milliseconds(500)) {
-            guard self.isRunning else { return }
-            _ = Darwin.kill(-pid, SIGKILL)
-            _ = Darwin.kill(pid, SIGKILL)
-        }
-    }
-
-    func snapshot(tailBytes: Int) -> ZshellJSONValue {
-        let tail = backlog.snapshot(limit: tailBytes)
-        stateLock.lock()
-        let exited = processExited
-        let status = waitStatus
-        stateLock.unlock()
-        return .object([
-            "id": .string(id),
-            "pid": .number(Double(pid)),
-            "running": .bool(!exited),
-            "waitStatus": status.map { .number(Double($0)) } ?? .null,
-            "startedAt": .number(startedAt.timeIntervalSince1970),
-            "workingDirectory": .string(workingDirectory),
-            "command": .array(command.map(ZshellJSONValue.string)),
-            "totalOutputBytes": .number(Double(tail.totalBytes)),
-            "tailBase64": .string(tail.data.base64EncodedString()),
-        ])
-    }
-
-    private func startReading() {
-        let source = DispatchSource.makeReadSource(
-            fileDescriptor: master,
-            queue: DispatchQueue(label: "sh.zshell.pty-mux.output.\(id)")
-        )
-        source.setEventHandler { [weak self] in self?.drainOutput() }
-        source.setCancelHandler { [weak self] in
-            guard let self else { return }
-            self.stateLock.lock()
-            let shouldClose = !self.masterClosed
-            self.masterClosed = true
-            self.stateLock.unlock()
-            if shouldClose { Darwin.close(self.master) }
-        }
-        readSource = source
-        source.resume()
-    }
-
-    private func drainOutput() {
-        var buffer = [UInt8](repeating: 0, count: 16 * 1024)
-        while true {
-            let count = Darwin.read(master, &buffer, buffer.count)
-            if count > 0 {
-                buffer.withUnsafeBytes { raw in
-                    backlog.append(UnsafeRawBufferPointer(rebasing: raw[..<count]))
-                }
-            } else if count == 0 {
-                readSource?.cancel()
-                readSource = nil
-                return
-            } else if errno == EINTR {
-                continue
-            } else if errno == EAGAIN || errno == EWOULDBLOCK {
-                return
-            } else {
-                readSource?.cancel()
-                readSource = nil
-                return
-            }
-        }
-    }
-
-    private func startReaping() {
-        let source = DispatchSource.makeProcessSource(
-            identifier: pid,
-            eventMask: .exit,
-            queue: DispatchQueue(label: "sh.zshell.pty-mux.reap.\(id)")
-        )
-        source.setEventHandler { [weak self] in self?.reap() }
-        reapSource = source
-        source.resume()
-    }
-
-    private func reap() {
-        var status: Int32 = 0
-        var result: pid_t
-        repeat {
-            result = waitpid(pid, &status, 0)
-        } while result < 0 && errno == EINTR
-
-        stateLock.lock()
-        processExited = true
-        waitStatus = result == pid ? status : nil
-        stateLock.unlock()
-        reapSource?.cancel()
-        reapSource = nil
-        drainOutput()
-    }
-}
-
-private final class PTYMuxSessionStore: @unchecked Sendable {
-    private let lock = NSLock()
-    private var sessions: [String: PTYMuxSession] = [:]
-    private var reservedSessionSlots = 0
-
-    func create(
-        workingDirectory: String,
-        command: [String]
-    ) throws -> PTYMuxSession {
-        lock.lock()
-        while sessions.count + reservedSessionSlots >= PTYMuxConstants.maximumSessions,
-              let expired = sessions.values.filter({ !$0.isRunning }).min(by: {
-                  $0.startedAt < $1.startedAt
-              }) {
-            sessions.removeValue(forKey: expired.id)
-        }
-        guard sessions.count + reservedSessionSlots < PTYMuxConstants.maximumSessions else {
-            lock.unlock()
-            throw PTYMuxError.message("PTY mux session limit reached.")
-        }
-        reservedSessionSlots += 1
-        lock.unlock()
-
-        do {
-            let session = try createReserved(workingDirectory: workingDirectory, command: command)
-            // Release the reservation now that the session is registered, so the
-            // slot is counted exactly once. Held across the spawn, it keeps
-            // concurrent `create` calls from pushing the real session count
-            // past the 128-session limit.
-            lock.lock()
-            reservedSessionSlots -= 1
-            lock.unlock()
-            return session
-        } catch {
-            lock.lock()
-            reservedSessionSlots -= 1
-            lock.unlock()
-            throw error
-        }
-    }
-
-    private func createReserved(
-        workingDirectory: String,
-        command: [String]
-    ) throws -> PTYMuxSession {
-        let resolvedCommand = command.isEmpty
-            ? [ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh", "-l"]
-            : command
-        guard resolvedCommand.count <= 128,
-              resolvedCommand.allSatisfy({ $0.utf8.count <= 64 * 1024 }) else {
-            throw PTYMuxError.message("PTY mux command is too large.")
-        }
-
-        let resolvedDirectory = URL(fileURLWithPath: workingDirectory).standardizedFileURL.path
-        var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: resolvedDirectory, isDirectory: &isDirectory),
-              isDirectory.boolValue else {
-            throw PTYMuxError.message("Working directory does not exist: \(workingDirectory)")
-        }
-
-        let id = UUID().uuidString.lowercased()
-        let spawned = try spawn(
-            command: resolvedCommand,
-            workingDirectory: resolvedDirectory
-        )
-        let session = PTYMuxSession(
-            id: id,
-            pid: spawned.pid,
-            master: spawned.master,
-            workingDirectory: resolvedDirectory,
-            command: resolvedCommand
-        )
-        lock.lock()
-        sessions[id] = session
-        lock.unlock()
-        return session
-    }
-
-    func list() -> [PTYMuxSession] {
-        lock.lock()
-        defer { lock.unlock() }
-        return sessions.values.sorted { $0.startedAt < $1.startedAt }
-    }
-
-    func session(id: String) -> PTYMuxSession? {
-        lock.lock()
-        defer { lock.unlock() }
-        return sessions[id]
-    }
-
-    func terminateAll() {
-        for session in list() { session.terminate() }
-    }
-
-    private func spawn(
-        command: [String],
-        workingDirectory: String
-    ) throws -> (pid: pid_t, master: Int32) {
-        var master: Int32 = -1
-        let pid = forkpty(&master, nil, nil, nil)
-        guard pid >= 0 else { throw PTYMuxWire.errnoError("forkpty") }
-        if pid == 0 {
-            closeDescriptorsForExec()
-            if chdir(workingDirectory) != 0 {
-                let message = "zshell pty mux: chdir: \(String(cString: strerror(errno)))\n"
-                message.withCString { pointer in
-                    _ = Darwin.write(STDERR_FILENO, pointer, strlen(pointer))
-                }
-                _exit(126)
-            }
-            var environment = ProcessInfo.processInfo.environment
-            environment.removeValue(forKey: "ZSHELL_CLI_STATE")
-            environment.removeValue(forKey: "ZSHELL_CLI_TOKEN")
-            environment.removeValue(forKey: "ZSHELL_AUTOMATION_SOCKET")
-            environment.removeValue(forKey: "ZSHELL_AUTOMATION_TOKEN")
-            environment.removeValue(forKey: "ZSHELL_TERMINAL_ID")
-            environment["TERM"] = environment["TERM"] ?? "xterm-256color"
-            execute(command: command, environment: environment)
-        }
-        do {
-            try PTYMuxWire.markCloseOnExec(master)
-            let flags = fcntl(master, F_GETFL, 0)
-            guard flags >= 0, fcntl(master, F_SETFL, flags | O_NONBLOCK) == 0 else {
-                throw PTYMuxWire.errnoError("fcntl")
-            }
-        } catch {
-            Darwin.close(master)
-            _ = Darwin.kill(pid, SIGKILL)
-            var status: Int32 = 0
-            while waitpid(pid, &status, 0) < 0 && errno == EINTR {}
-            throw error
-        }
-        return (pid, master)
-    }
-
-    private func closeDescriptorsForExec() {
-        let maximum = getdtablesize()
-        if maximum > STDERR_FILENO {
-            for descriptor in stride(from: maximum - 1, through: STDERR_FILENO + 1, by: -1) {
-                Darwin.close(descriptor)
-            }
-        }
-    }
-
-    private func execute(command: [String], environment: [String: String]) -> Never {
-        let arguments = command.map { strdup($0) }
-        var argumentPointers = arguments.map { $0 }
-        argumentPointers.append(nil)
-        let environmentStrings = environment.map { strdup("\($0.key)=\($0.value)") }
-        var environmentPointers = environmentStrings.map { $0 }
-        environmentPointers.append(nil)
-        execve(command[0], &argumentPointers, &environmentPointers)
-        let message = "zshell pty mux: execve: \(String(cString: strerror(errno)))\n"
-        message.withCString { pointer in
-            _ = Darwin.write(STDERR_FILENO, pointer, strlen(pointer))
-        }
-        _exit(127)
-    }
-}
-
 private final class PTYMuxDaemon {
     private let store = PTYMuxSessionStore()
     private let listener: Int32
@@ -610,6 +286,7 @@ private final class PTYMuxDaemon {
     )
     private let shutdownLock = NSLock()
     private var shuttingDown = false
+    private var activeClients = 0
 
     init() throws {
         try PTYMuxPaths.prepareDirectory()
@@ -683,7 +360,17 @@ private final class PTYMuxDaemon {
                 // runs only after the shutdown success response has been written.
                 break
             }
-            workers.async { [self] in handle(client) }
+            shutdownLock.lock()
+            let accepted = activeClients < PTYMuxConstants.maximumSessions + 32
+            if accepted { activeClients += 1 }
+            shutdownLock.unlock()
+            guard accepted else { Darwin.close(client); continue }
+            workers.async { [self] in
+                handle(client)
+                shutdownLock.lock()
+                activeClients -= 1
+                shutdownLock.unlock()
+            }
         }
         store.terminateAll()
         exit(0)
@@ -725,28 +412,54 @@ private final class PTYMuxDaemon {
                 return
             }
 
-        let request = try PTYMuxWire.readFrame(PTYMuxRequest.self, from: client)
-        let response = route(request)
-        try PTYMuxWire.writeFrame(response, to: client)
-        // Only the worker that served a successful `shutdown` wakes the run
-        // loop by closing the listener. Other workers never exit on their own,
-        // so a concurrent request cannot race this worker to `exit` and
-        // truncate the shutdown success response that was just written above.
-        if request.method == "shutdown", response.ok {
-            shutdownLock.lock()
-            let shouldStop = shuttingDown
-            shutdownLock.unlock()
-            if shouldStop {
-                // The main thread is blocked in `accept` on the listener, and
-                // `close` alone does not wake it — the worker would hang the
-                // daemon forever. `shutdown` first aborts the pending accept
-                // with an error so the run loop can exit cleanly; a -1 return
-                // (e.g. EBADF) is harmless and must not skip the `close`.
-                _ = shutdown(listener, SHUT_RDWR)
-                Darwin.close(listener)
-                unlink(PTYMuxPaths.socketPath)
+            let request = try PTYMuxWire.readFrame(PTYMuxRequest.self, from: client)
+            if request.method == "attach", request.version == PTYMuxConstants.protocolVersion {
+                let session = try requireSession(request)
+                let dimensions = try dimensions(request)
+                session.resize(columns: dimensions.0, rows: dimensions.1,
+                               cellWidth: dimensions.2, cellHeight: dimensions.3)
+                let result = session.snapshot(tailBytes: 0)
+                let attachment = PTYMuxAttachment(descriptor: client)
+                defer { session.detach(attachment); attachment.finish() }
+                // Reads live for the attachment; writes remain bounded so a frozen
+                // client cannot leave a snapshot writer blocked indefinitely.
+                var receiveTimeout = timeval(tv_sec: 0, tv_usec: 0)
+                guard setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &receiveTimeout,
+                                 socklen_t(MemoryLayout<timeval>.size)) == 0 else {
+                    throw PTYMuxWire.errnoError("setsockopt")
+                }
+                try session.attach(attachment) {
+                    try PTYMuxWire.writeFrame(PTYMuxResponse.success(id: request.id, result: result), to: client)
+                }
+                var buffer = [UInt8](repeating: 0, count: 16 * 1024)
+                while true {
+                    let count = Darwin.read(client, &buffer, buffer.count)
+                    if count > 0 { session.write(Data(buffer.prefix(count)), from: attachment) }
+                    else if count < 0 && errno == EINTR { continue }
+                    else { return }
+                }
             }
-        }
+            let response = route(request)
+            try PTYMuxWire.writeFrame(response, to: client)
+            // Only the worker that served a successful `shutdown` wakes the run
+            // loop by closing the listener. Other workers never exit on their own,
+            // so a concurrent request cannot race this worker to `exit` and
+            // truncate the shutdown success response that was just written above.
+            if request.method == "shutdown", response.ok {
+                shutdownLock.lock()
+                let shouldStop = shuttingDown
+                shutdownLock.unlock()
+                if shouldStop {
+                    // The main thread is blocked in `accept` on the listener, and
+                    // `close` alone does not wake it — the worker would hang the
+                    // daemon forever. `shutdown` first aborts the pending accept
+                    // with an error so the run loop can exit cleanly; a -1 return
+                    // (e.g. EBADF) is harmless and must not skip the `close`.
+                    _ = shutdown(listener, SHUT_RDWR)
+                    Darwin.close(listener)
+                    unlink(PTYMuxPaths.socketPath)
+                }
+            }
         } catch {
             try? PTYMuxWire.writeFrame(
                 PTYMuxResponse.failure(
@@ -787,6 +500,17 @@ private final class PTYMuxDaemon {
                 let session = try requireSession(request)
                 session.terminate()
                 return .success(id: request.id, result: .object(["accepted": .bool(true)]))
+            case "resize":
+                let session = try requireSession(request)
+                let size = try dimensions(request)
+                session.resize(columns: size.0, rows: size.1, cellWidth: size.2, cellHeight: size.3)
+                return .success(id: request.id, result: .object(["accepted": .bool(true)]))
+            case "theme":
+                try requireSession(request).setTheme(try theme(request))
+                return .success(id: request.id, result: .object(["accepted": .bool(true)]))
+            case "terminateAll":
+                store.terminateAll()
+                return .success(id: request.id, result: .object(["accepted": .bool(true)]))
             case "shutdown":
                 guard store.list().allSatisfy({ !$0.isRunning }) else {
                     return .failure(
@@ -823,8 +547,13 @@ private final class PTYMuxDaemon {
             throw PTYMuxError.message("command must be an array of strings.")
         }
         let session = try store.create(
+            id: request.params["id"]?.stringValue ?? UUID().uuidString,
             workingDirectory: workingDirectory,
-            command: command
+            command: command,
+            environment: try environment(request),
+            launchDirectoryURL: request.params["launchDirectory"]?.stringValue.map { URL(fileURLWithPath: $0) },
+            executable: request.params["executable"]?.stringValue ?? CommandLine.arguments[0],
+            theme: try theme(request)
         )
         return .success(id: request.id, result: session.snapshot(tailBytes: 0))
     }
@@ -838,10 +567,61 @@ private final class PTYMuxDaemon {
         }
         return session
     }
+
+    private func environment(_ request: PTYMuxRequest) throws -> [String: String] {
+        guard let values = request.params["environment"]?.objectValue else { return [:] }
+        var result: [String: String] = [:]
+        for (key, value) in values {
+            guard let value = value.stringValue else { throw PTYMuxError.message("Environment values must be strings.") }
+            result[key] = value
+        }
+        return result
+    }
+
+    private func theme(_ request: PTYMuxRequest) throws -> ZshellTheme {
+        var theme = ZshellTheme()
+        theme.foreground = 0xeeeeee
+        theme.background = 0x111111
+        theme.cursor = 0xeeeeee
+        guard let encoded = request.params["theme"]?.stringValue else { return theme }
+        guard let data = Data(base64Encoded: encoded), data.count == MemoryLayout<ZshellTheme>.size else {
+            throw PTYMuxError.message("Invalid terminal theme.")
+        }
+        _ = withUnsafeMutableBytes(of: &theme) { data.copyBytes(to: $0) }
+        return theme
+    }
+
+    private func dimensions(_ request: PTYMuxRequest) throws -> (UInt16, UInt16, UInt16, UInt16) {
+        let columns = request.params["columns"]?.intValue ?? 80
+        let rows = request.params["rows"]?.intValue ?? 24
+        guard (1...512).contains(columns), (1...256).contains(rows), columns * rows <= 65_536 else {
+            throw PTYMuxError.message("Invalid terminal dimensions.")
+        }
+        return (UInt16(columns), UInt16(rows),
+                UInt16(clamping: request.params["cellWidth"]?.intValue ?? 8),
+                UInt16(clamping: request.params["cellHeight"]?.intValue ?? 16))
+    }
 }
 
 enum PTYMuxCommandLine {
     static let daemonArgument = "--pty-mux-daemon"
+    static let childArgument = "--pty-mux-child"
+    static let relayArgument = "--pty-mux-relay"
+
+    static var shouldRunChild: Bool { CommandLine.arguments.dropFirst().first == childArgument }
+    static var shouldRunRelay: Bool { CommandLine.arguments.dropFirst().first == relayArgument }
+
+    static func runChild() -> Never {
+        guard CommandLine.arguments.count > 2, ioctl(STDIN_FILENO, TIOCSCTTY, 0) == 0 else {
+            fputs("zshell pty mux: could not claim controlling terminal.\n", stderr)
+            exit(126)
+        }
+        let command = CommandLine.arguments.dropFirst(2).map { strdup($0) }
+        var arguments = command + [nil]
+        execve(CommandLine.arguments[2], &arguments, environ)
+        fputs("zshell pty mux: could not exec terminal command.\n", stderr)
+        exit(127)
+    }
 
     static var shouldRunDaemon: Bool {
         CommandLine.arguments.dropFirst().first == daemonArgument
@@ -919,11 +699,10 @@ enum PTYMuxCommandLine {
       zshell +pty-mux terminate SESSION_ID
       zshell +pty-mux shutdown
 
-    This is an internal validation interface. It owns real PTY processes outside
-    the app, but terminal panes do not attach to those sessions yet.
+    This internal interface inspects the PTYs kept outside the GUI process.
     """
 
-    private static func startDaemonIfNeeded() throws {
+    static func startDaemonIfNeeded() throws {
         if (try? exchange(method: "list", timeout: 0.2)) != nil { return }
         try PTYMuxPaths.prepareDirectory()
         let executable = URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL.path
@@ -979,12 +758,11 @@ enum PTYMuxCommandLine {
         throw PTYMuxError.message("Timed out starting the PTY mux daemon.")
     }
 
-    private static func exchange(
+    static func exchange(
         method: String,
         params: [String: ZshellJSONValue] = [:],
         timeout: TimeInterval = PTYMuxConstants.socketTimeout
     ) throws -> PTYMuxResponse {
-        try PTYMuxPaths.prepareDirectory()
         let descriptor = Darwin.socket(AF_UNIX, SOCK_STREAM, 0)
         guard descriptor >= 0 else { throw PTYMuxWire.errnoError("socket") }
         defer { Darwin.close(descriptor) }

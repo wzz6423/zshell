@@ -18,8 +18,10 @@ extension ZshellTerminalView {
     // MARK: - Lifecycle
 
     func start(launch: TerminalLaunch) {
+        foregroundProcessProvider = launch.foregroundProcessProvider
         launchCommand = launch.commandLine
-        launchShellIntegration = Self.shellIntegration(for: launch.interactiveShell)
+        launchShellIntegration = launch.foregroundProcessProvider == nil
+            ? Self.shellIntegration(for: launch.interactiveShell) : "none"
         supportsInputSelection = launch.usesZsh
         let controller = TerminalController(
             configSource: .none,
@@ -55,6 +57,7 @@ extension ZshellTerminalView {
     /// Releases the surface. The view itself stays in the layout so teardown
     /// never pulls a pane out from under SwiftUI mid-frame.
     func detach() {
+        foregroundProcessProvider = nil
         stopSelectionAutoscroll()
         controller = nil
         ghosttyController = nil

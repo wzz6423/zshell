@@ -64,6 +64,7 @@ extern "C" {
 #define ZSHELL_MODE_ALTERNATE_SCROLL (1u << 10)
 
 typedef struct ZshellTerminal ZshellTerminal;
+typedef struct ZshellPersistentTerminal ZshellPersistentTerminal;
 
 typedef void (*ZshellEventCallback)(void *context, uint32_t kind, const uint8_t *data, size_t len);
 
@@ -94,6 +95,19 @@ typedef struct {
   uint32_t background;
   uint32_t cursor;
 } ZshellTheme;
+
+/// Emulation without a PTY or renderer, owned by the persistent-session daemon.
+ZshellPersistentTerminal *zshell_persistent_terminal_new(uint16_t columns, uint16_t rows,
+                                                       const ZshellTheme *theme);
+void zshell_persistent_terminal_free(ZshellPersistentTerminal *handle);
+void zshell_persistent_terminal_feed(ZshellPersistentTerminal *handle, const uint8_t *bytes,
+                                    size_t len, bool answer_queries);
+void zshell_persistent_terminal_resize(ZshellPersistentTerminal *handle, uint16_t columns,
+                                      uint16_t rows, uint16_t cell_width, uint16_t cell_height);
+void zshell_persistent_terminal_set_theme(ZshellPersistentTerminal *handle, const ZshellTheme *theme);
+/// Returned bytes belong to the handle and remain valid until its next call.
+const uint8_t *zshell_persistent_terminal_snapshot(ZshellPersistentTerminal *handle, size_t *length);
+const uint8_t *zshell_persistent_terminal_replies(ZshellPersistentTerminal *handle, size_t *length);
 
 typedef struct {
   /// `columns * rows` cells in row-major order. Owned by the handle and valid
