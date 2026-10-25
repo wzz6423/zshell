@@ -970,7 +970,6 @@ private struct GitPanel: View {
     @State private var pendingDeleteBranch: String?
     @State private var expandedCommitIDs: Set<String> = []
     @State private var filterText = ""
-    @State private var showFilter = false
     @State private var operationExpanded = false
     @State private var operationTrigger: OperationTrigger?
     @Environment(\.sidebarFontScale) private var sidebarFontScale
@@ -1132,14 +1131,6 @@ private struct GitPanel: View {
                     .accessibilityLabel(String(localized: "Refreshing Git status"))
             }
             if model.isRepo {
-                headerButton(
-                    "line.3.horizontal.decrease",
-                    help: String(localized: "Filter Changed Files"),
-                    disabled: false
-                ) {
-                    showFilter.toggle()
-                    if !showFilter { filterText = "" }
-                }
                 headerButton(
                     "arrow.clockwise",
                     help: String(localized: "Refresh Git Status"),
@@ -1852,38 +1843,11 @@ private struct GitPanel: View {
 
     // MARK: Filter
 
-    @ViewBuilder
     private var filterBar: some View {
-        if showFilter {
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .sidebarFont(size: 10)
-                    .foregroundStyle(.tertiary)
-                TextField("Filter changed files", text: $filterText)
-                    .textFieldStyle(.plain)
-                    .sidebarFont(size: 11)
-                if !filterText.isEmpty {
-                    Button {
-                        filterText = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .sidebarFont(size: 10)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Clear Filter")
-                    .accessibilityLabel("Clear Git Filter")
-                }
-            }
-            .padding(.horizontal, 8)
-            .frame(height: 26)
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.primary.opacity(0.045))
-            )
+        GitChangedFilesSearchField(text: $filterText, fontScale: sidebarFontScale)
+            .frame(height: 26 * max(1, sidebarFontScale))
             .padding(.horizontal, 10)
             .padding(.bottom, 4)
-        }
     }
 
     // MARK: Change list
@@ -2306,7 +2270,6 @@ private struct GitPanel: View {
     private func resetRepositoryDrafts() {
         commitMessage = ""
         filterText = ""
-        showFilter = false
         operationExpanded = false
         operationTrigger = nil
         pendingDiscard = nil

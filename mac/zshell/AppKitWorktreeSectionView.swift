@@ -166,9 +166,9 @@ final class GitWorktreeSectionNSView: NSView, NSTableViewDataSource, NSTableView
 
     override func layout() {
         super.layout()
-        let countWidth = ceil(countLabel.intrinsicContentSize.width)
+        let countWidth = ceil(countLabel.fittingSize.width)
         let labelHeight = metrics.headerHeight - 11
-        let actionWidth: CGFloat = 18
+        let actionWidth = metrics.sidebar.slotSize(18)
         header.frame = NSRect(x: 8, y: 8, width: max(0, bounds.width - countWidth - actionWidth - 28), height: labelHeight)
         addButton.frame = NSRect(x: max(8, bounds.width - countWidth - actionWidth - 13), y: 6,
                                   width: actionWidth, height: labelHeight + 4)
