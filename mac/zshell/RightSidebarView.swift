@@ -1450,12 +1450,13 @@ private struct GitPanel: View {
     @ViewBuilder
     private var reviewSummary: some View {
         let snapshots = reviewSnapshots
-        if !snapshots.isEmpty {
+        if !isRemote {
             let _ = reviews.revision
             DiffReviewSummaryView(
                 reviewedCount: reviews.reviewedCount(in: snapshots),
                 totalCount: snapshots.count,
-                fontScale: sidebarFontScale
+                fontScale: sidebarFontScale,
+                repositoryRoot: model.repositoryIdentity
             )
             .frame(height: 25)
             .padding(.horizontal, 10)

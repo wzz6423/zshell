@@ -325,7 +325,7 @@ enum ZshellAutomationCommandLine {
                 "state": .string(phase.rawValue),
                 "attention": phase == .blocked ? .string("error") : .null,
             ],
-            timeout: 1
+            timeout: 15
         )
     }
 
@@ -836,7 +836,7 @@ enum ZshellAutomationCommandLine {
         }
         var params = target.params
         params["text"] = .string(prompt)
-        let submitted = try connection.automationRequest(method: "agent.prompt", params: params)
+        let submitted = try connection.automationRequest(method: "agent.prompt", params: params, timeout: 15)
         guard wait else { return submitted }
         try validateTimeout(timeoutMS)
         return try pollAgent(

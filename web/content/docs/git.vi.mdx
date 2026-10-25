@@ -92,3 +92,17 @@ Pull chỉ fast-forward là có chủ đích. Nếu cần merge hoặc rebase th
 ## Chưa phải kho mã [#not-a-repository-yet]
 
 Nếu thư mục dự án chưa có kho, bảng cung cấp **Khởi tạo kho**, chạy `git init` tại đó. Trước khi ấy bảng không làm phiền.
+
+## Xem lại lượt của tác nhân [#agent-turn-review]
+
+Nhấn **Xem lại thay đổi…** trong bảng Git.
+
+- **Lượt gần nhất** so sánh ảnh chụp đầu và cuối của tác nhân đã chọn, bao gồm mọi chỉnh sửa trong khoảng đó, bất kể tác giả.
+- **Chưa commit** so sánh HEAD với cây làm việc, bao gồm tệp đã stage và chưa được theo dõi.
+- **Toàn bộ nhánh** so sánh tổ tiên chung với nhánh cơ sở đã chọn với cây làm việc, bao gồm commit và tệp chưa commit.
+
+Chọn tệp và đoạn thay đổi. Ở Lượt gần nhất, **Giữ đoạn thay đổi** ghi nhận việc xem lại; **Hoàn tác đoạn thay đổi** đảo thay đổi trong cây làm việc. Cả hai đều không thay đổi chỉ mục Git. Ảnh chụp gốc và các quyết định vẫn được hiển thị.
+
+Hoàn tác bị từ chối nếu tệp hoặc HEAD đã thay đổi, đường dẫn không an toàn, tác nhân đang hoạt động hoặc các lượt chồng lấn. Thay đổi nhị phân và chỉ quyền truy cập chỉ có thể xem. Tệp trên 5 MiB không khả dụng; ảnh chụp vượt 2.048 đường dẫn thay đổi, 25 MiB nội dung hoặc thời gian chụp cũng vậy.
+
+Ảnh chụp tồn tại trong phiên ứng dụng hiện tại. Cần sự kiện bắt đầu và hoàn tất đáng tin cậy. Pi, OpenCode và Grok có tích hợp sẵn. Lời nhắc được bảo vệ chụp lúc bắt đầu nhưng vẫn cần sự kiện hoàn tất. Nếu thiếu, không có ảnh chụp lượt đã hoàn tất.

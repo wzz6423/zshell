@@ -92,3 +92,17 @@ O pull é somente fast-forward de propósito. Se for necessário merge ou rebase
 ## Ainda não é um repositório [#not-a-repository-yet]
 
 Se o diretório do projeto não contém um repositório, o painel oferece **Inicializar Repositório**, que executa `git init` nessa pasta. Até lá, ele permanece discreto.
+
+## Revisar turnos de agentes [#agent-turn-review]
+
+Clique em **Revisar alterações…** no painel Git.
+
+- **Último turno** compara os snapshots inicial e final do agente escolhido, incluindo todas as edições do intervalo, independentemente do autor.
+- **Não commitadas** compara HEAD à árvore de trabalho, incluindo arquivos preparados e não rastreados.
+- **Branch inteira** compara o ancestral comum com a branch base escolhida à árvore de trabalho, incluindo commits e arquivos não commitados.
+
+Selecione um arquivo e um bloco. No Último turno, **Manter bloco** registra a revisão; **Reverter bloco** desfaz esse bloco na árvore de trabalho. Nenhuma ação altera o índice Git. O snapshot original e as decisões continuam visíveis.
+
+A reversão é recusada se o arquivo ou HEAD mudou, o caminho não é seguro, há agentes ativos ou os turnos se sobrepõem. Mudanças binárias ou apenas de permissões são somente leitura. Arquivos acima de 5 MiB ficam indisponíveis, assim como snapshots que ultrapassem 2.048 caminhos alterados, 25 MiB capturados ou o limite de tempo.
+
+Os snapshots duram a sessão atual do aplicativo. Eventos confiáveis de início e conclusão são necessários. Pi, OpenCode e Grok têm integrações nativas. Prompts protegidos capturam o início, mas ainda precisam de um evento de conclusão. Sem ele, não haverá snapshot concluído.

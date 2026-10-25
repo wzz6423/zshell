@@ -258,6 +258,19 @@ final class AgentAutomationMonitor {
     private init() {}
 
     func register(_ session: TerminalSession) {
+        AgentTurnReviewStore.shared.activeAgentCheck = { root in
+            TerminalManager.automationManagers.contains { manager in
+                manager.projects.contains { project in
+                    project.sessions.contains { session in
+                        guard !session.hasExited, let phase = session.agentStatus?.phase,
+                              phase == .working || phase == .blocked || phase == .unknown else { return false }
+                        let directory = URL(fileURLWithPath: session.currentDirectoryPath)
+                            .resolvingSymlinksInPath().path
+                        return directory == root || directory.hasPrefix(root + "/")
+                    }
+                }
+            }
+        }
         sessions.add(session)
         guard !pendingSessionIDs.contains(session.id) else { return }
         pendingSessionIDs.append(session.id)
@@ -777,6 +790,7 @@ extension TerminalSession {
     }
 
     func clearAutomationAgentStatus() {
+        AgentTurnReviewStore.shared.abort(sessionID: id)
         agentStatus = nil
         agentObservation.alias = nil
         agentObservation.declaredKind = nil
