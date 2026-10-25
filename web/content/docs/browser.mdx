@@ -54,3 +54,23 @@ the current URL and layout, but not the full back/forward history.
 
 Browser panes keep cookies, logins, and other site data across tabs and
 launches. This is not a private-browsing mode.
+
+## Let an agent test the page
+
+Ask your coding agent to inspect the page already open in this project, fill a form, check a result, or capture its viewport. The agent uses the existing browser session and keeps focus in your terminal. It can also open a background browser pane for a local development URL.
+
+For scripts, run these commands inside a Zshell terminal. Record the returned `browser_id` and replace `BROWSER_ID` below:
+
+```sh
+zshell +browser list
+zshell +browser open http://localhost:3000 --wait
+zshell +browser snapshot --browser BROWSER_ID
+zshell +browser fill --browser BROWSER_ID --selector '#search' --text 'terminal'
+zshell +browser click --browser BROWSER_ID --selector 'button[type="submit"]'
+zshell +browser wait --browser BROWSER_ID --selector '#results' --timeout 10000
+zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
+```
+
+Snapshots return main-frame text, accessible labels, and element references. References expire after page changes or actions; take a new snapshot before reusing one. CSS selectors must match exactly one element. Use `navigate`, `back`, `forward`, `reload`, and `stop` for navigation.
+
+Automation accepts explicit HTTP/HTTPS URLs and `about:blank`. Other protocols, downloads, file pickers, and native dialogs require your interaction. A page remains under this protocol restriction until you navigate manually with the address bar or toolbar. Commands stay inside the calling terminal’s project and window. `--timeout` is 100–30000 milliseconds. Snapshots are limited to 200 elements, 32768 text characters, and 256 KiB; password and file-input values are omitted. PNG viewport captures are limited to 512 KiB, require a pane that has been shown once, and never overwrite files. Reduce `--width` for a smaller capture. See `zshell +browser --help` for complete syntax.

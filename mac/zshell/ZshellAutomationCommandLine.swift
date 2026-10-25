@@ -983,7 +983,7 @@ enum ZshellAutomationCommandLine {
         return states
     }
 
-    private static func value(
+    static func value(
         after index: inout Int,
         in arguments: [String],
         option: String
@@ -995,7 +995,7 @@ enum ZshellAutomationCommandLine {
         return arguments[index]
     }
 
-    private static func integerValue(
+    static func integerValue(
         after index: inout Int,
         in arguments: [String],
         option: String
@@ -1023,7 +1023,7 @@ enum ZshellAutomationCommandLine {
         .message("Unknown option \(value) for `zshell \(command)`. Run `zshell \(command.components(separatedBy: " ").first ?? command) --help`.")
     }
 
-    private static func printJSON(_ value: ZshellJSONValue) throws {
+    static func printJSON(_ value: ZshellJSONValue) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         let data = try encoder.encode(value)
