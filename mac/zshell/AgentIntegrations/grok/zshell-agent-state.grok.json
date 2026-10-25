@@ -6,7 +6,7 @@
           {
             "type": "command",
             "command": "[ \"$ZSHELL_AUTOMATION\" = \"1\" ] || exit 0; command -v zshell >/dev/null 2>&1 || exit 0; exec zshell +agent _integration grok working # ZSHELL_INTEGRATION_ID=grok",
-            "timeout": 2
+            "timeout": 20
           }
         ]
       }
@@ -17,7 +17,7 @@
           {
             "type": "command",
             "command": "[ \"$ZSHELL_AUTOMATION\" = \"1\" ] || exit 0; command -v zshell >/dev/null 2>&1 || exit 0; exec zshell +agent _integration grok idle --genuine-stop # ZSHELL_INTEGRATION_ID=grok",
-            "timeout": 2
+            "timeout": 20
           }
         ]
       }

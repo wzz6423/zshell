@@ -7,6 +7,12 @@ Tự động hóa Zshell chủ yếu dành cho tác nhân lập trình AI. Nó c
 
 Tích hợp AI mặc định bật. Cứ nói chuyện bình thường với tác nhân. Nó có thể tạo ô nền, khởi chạy tác nhân được giao việc, chạy lệnh, chờ kết quả và mang câu trả lời về mà không lấy tiêu điểm ô bạn đang dùng.
 
+## Chờ kết quả lệnh [#wait-for-command-results]
+
+Với các lệnh sẽ kết thúc như kiểm thử hoặc bản dựng, tác nhân có thể chờ mã thoát và thời gian chạy của chính lệnh đó rồi đọc đầu ra terminal gần đây đã lưu. Nếu hết thời gian chờ, lệnh vẫn tiếp tục chạy và có thể chờ lại cùng tác vụ mà không đổi tiêu điểm. Cần dấu nhắc trống trong zsh cục bộ ban đầu do Zshell khởi chạy; không hỗ trợ shell lồng nhau, SSH và chương trình khởi động tùy chỉnh. Đầu ra gần đây có giới hạn và có thể chứa các lệnh hoặc dấu nhắc trước đó. Hãy yêu cầu tác nhân lưu toàn bộ đầu ra vào tệp khi cần.
+
+Các lệnh `exit`, `logout` và `exec` trực tiếp bị từ chối vì kết thúc hoặc thay thế shell gốc; hãy dùng `/bin/sh -c` để chạy chúng trong tiến trình con.
+
 ## Thiết lập [#setup]
 
 Kiểm tra **Cài đặt → Tự động hóa → AI**. Mặc định bật; nếu từng tắt, hãy bật lại rồi mở terminal mới hoặc khởi động lại tác nhân đang chạy.
@@ -47,7 +53,11 @@ Gửi yêu cầu tiếp không có nghĩa công việc đã xong. Tác nhân đi
 | **Bị chặn** | Cần bạn nhập liệu, phê duyệt hoặc quyết định. |
 | **Hoàn tất** | Đã xong ở nền và bạn chưa xem ô. |
 
-Zshell ghi nhận prompt đã gửi là **Đang làm việc**, nhưng không quét văn bản terminal đã kết xuất để đoán diễn biến sau đó. Chuyển sang **Bị chặn**, **Hoàn tất** và thông báo tương ứng cần báo cáo vòng đời của nhà cung cấp. Nếu tác nhân không cung cấp, hãy kiểm tra ô và thay đổi dự án trực tiếp thay vì dựa vào trạng thái đoán.
+Zshell ưu tiên sự kiện gốc từ Codex, Claude Code, Pi, OpenCode và Grok, sau đó đến báo cáo rõ ràng của chương trình. Di chuột lên huy hiệu hoặc mở **Agents** để xem nguồn, lý do chờ, phần trăm và tác vụ con. Hook Codex phải được xem xét và tin cậy trong `/hooks`; Zshell không bỏ qua bước này.
+
+Khi không có báo cáo gốc, chỉ một phần giới hạn ở cuối màn hình hiện tại của tiến trình Agent đã nhận diện được kiểm tra. **Suy luận từ màn hình** được ghi rõ, không báo hoàn thành, không gửi thông báo và không đáp ứng `zshell +agent wait`. Nó không phê duyệt yêu cầu. Hãy kiểm tra khung và kết quả thực tế.
+
+Chương trình báo tiến độ bằng `zshell +agent report` và xóa báo cáo của mình bằng `zshell +agent clear`. Báo cáo hết hạn sau 120 giây không cập nhật hoặc khi tiến trình sở hữu kết thúc.
 
 Khi tích hợp báo hoàn tất hoặc cần nhập liệu, Zshell cũng có thể gửi thông báo. <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> chuyển tới tác nhân tiếp theo được báo cần bạn chú ý.
 

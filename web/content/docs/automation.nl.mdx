@@ -7,6 +7,12 @@ De automatisering van Zshell is vooral bedoeld voor AI-programmeeragents. Zij kr
 
 AI-integratie staat standaard aan. Praat zoals gewoonlijk met je programmeeragent. Die kan een deelvenster op de achtergrond maken, een gedelegeerde werker starten, een opdracht uitvoeren, op het resultaat wachten en het antwoord terugbrengen zonder de focus van jouw deelvenster over te nemen.
 
+## Wachten op opdrachtresultaten [#wait-for-command-results]
+
+Bij opdrachten die eindigen, zoals tests of een build, kan je agent wachten op de eigen exitcode en duur van de opdracht en daarna de opgeslagen recente terminaluitvoer lezen. Als de wachttijd verloopt, blijft de opdracht draaien en kun je opnieuw op dezelfde taak wachten, zonder de focus te verplaatsen. Dit vereist een lege prompt in de oorspronkelijke lokale zsh die Zshell heeft gestart; geneste shells, SSH en aangepaste opstartprogramma’s worden niet ondersteund. Recente uitvoer is begrensd en kan eerdere opdrachten of prompts bevatten. Vraag de agent de volledige uitvoer in een bestand op te slaan als je die nodig hebt.
+
+Directe aanroepen van `exit`, `logout` en `exec` worden geweigerd omdat ze de oorspronkelijke shell beëindigen of vervangen; gebruik `/bin/sh -c` om ze in een subproces uit te voeren.
+
 ## Instellen [#setup]
 
 Controleer **Instellingen → Automatisering → AI**. Dit staat standaard aan. Heb je het eerder uitgezet, schakel het dan opnieuw in en start een nieuwe terminal of herstart een agent die al draaide.
@@ -47,7 +53,11 @@ Gedelegeerde deelvensters blijven op de achtergrond tenzij je vraagt ze te zien.
 | **Geblokkeerd** | Er is invoer, toestemming of een andere beslissing van jou nodig. |
 | **Klaar** | De agent is op de achtergrond klaar en je hebt het deelvenster nog niet bekeken. |
 
-Zshell registreert een verstuurde prompt als **Bezig**, maar doorzoekt nooit weergegeven terminaltekst om te raden wat er daarna gebeurt. Overgangen naar **Geblokkeerd** en **Klaar**, en de bijbehorende meldingen, vereisen een levenscyclusrapport van de aanbieder. Als een agent dat niet levert, bekijk je rechtstreeks het deelvenster en de projectwijzigingen, in plaats van op een geraden status te vertrouwen.
+Zshell geeft voorrang aan ingebouwde gebeurtenissen van Codex, Claude Code, Pi, OpenCode en Grok, gevolgd door expliciete programmameldingen. Houd de aanwijzer boven de badge of open **Agents** voor bron, wachtreden, percentage en subtaken. Codex-hooks moeten eerst in `/hooks` worden beoordeeld en vertrouwd; Zshell slaat dit niet over.
+
+Zonder ingebouwde melding wordt alleen een begrensd deel van de onderkant van het actuele scherm van een herkende agent bekeken. **Afleiding uit scherm** wordt aangegeven, meldt geen voltooiing, stuurt geen melding en voldoet niet aan `zshell +agent wait`. Er wordt nooit goedkeuring verleend. Controleer het paneel en het echte resultaat.
+
+Programma’s melden voortgang met `zshell +agent report` en wissen hun eigen melding met `zshell +agent clear`. Meldingen vervallen na 120 seconden zonder update of wanneer het bijbehorende proces stopt.
 
 Wanneer een integratie meldt dat een agent klaar is of invoer nodig heeft, kan Zshell ook een melding sturen. Druk op <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> om naar de volgende gemelde agent te gaan die je aandacht nodig heeft.
 

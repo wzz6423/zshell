@@ -326,7 +326,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         restoredHistory: String? = nil,
         commandArguments: [String]? = nil,
         environmentPath: String? = nil,
-        launchSettings: TerminalLaunchSettings? = nil
+        launchSettings: TerminalLaunchSettings? = nil,
+        restoredSessionID: UUID? = nil
     ) -> TerminalSession {
         let initialDirectory: String?
         let launchArguments: [String]?
@@ -376,6 +377,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             initialDirectory: initialDirectory,
             restoredHistory: restoredHistory,
             commandArguments: launchArguments,
+            restoredSessionID: restoredSessionID,
             environmentPath: environmentPath,
             launchSettings: launchSettings ?? self.launchSettings,
             additionalEnvironment: additionalEnvironment
@@ -567,7 +569,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     @discardableResult
     func newBrowserTab(
         initialURL: String? = nil,
-        initialFocus: BrowserTab.InitialFocus = .addressBar
+        initialFocus: BrowserTab.InitialFocus = .addressBar,
+        focus: Bool = true
     ) -> BrowserTab {
         let context = selectedSession
         let browser = makeBrowser(
@@ -577,7 +580,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         let tab = makeTab(content: .browser(browser))
         tab.contextSession = context
         insertNextToSelected(tab)
-        selectedTabID = tab.id
+        if focus { selectedTabID = tab.id }
         return browser
     }
 
@@ -587,14 +590,26 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     func newBrowserPane(
         toward edge: PaneDropEdge = .right,
         initialURL: String? = nil,
-        initialFocus: BrowserTab.InitialFocus = .addressBar
+        initialFocus: BrowserTab.InitialFocus = .addressBar,
+        beside targetPaneID: UUID? = nil,
+        focus: Bool = true
     ) -> BrowserTab? {
-        guard let tab = selectedTab, tab.canSplit else { return nil }
+        let tab = targetPaneID.flatMap { id in
+            tabs.first(where: { $0.layout.contains(id) })
+        } ?? selectedTab
+        guard let tab,
+              let target = tab.allPanes.first(where: {
+                  $0.id == (targetPaneID ?? tab.focusedPaneID)
+              }), !target.content.isDiff else { return nil }
         let browser = makeBrowser(
             initialURL: initialURL,
             initialFocus: initialFocus
         )
-        tab.split(Pane(content: .browser(browser)), toward: edge)
+        tab.split(
+            Pane(content: .browser(browser)), toward: edge,
+            beside: target.id, focusInserted: focus
+        )
+        if focus { selectedTabID = tab.id }
         return browser
     }
 
@@ -1271,7 +1286,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             return .pane(Pane(content: makeContent(
                 from: pane.content,
                 restoredHistory: restoredHistory,
-                launchSettings: launchSettings
+                launchSettings: launchSettings,
+                restoredSessionID: pane.terminalID
             )))
         case .split(let axis, let fraction, let first, let second):
             return .split(PaneSplit(
@@ -1294,14 +1310,16 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     private func makeContent(
         from snap: SessionSnapshot.ProjectSnapshot.PaneContentSnapshot,
         restoredHistory: String? = nil,
-        launchSettings: TerminalLaunchSettings
+        launchSettings: TerminalLaunchSettings,
+        restoredSessionID: UUID? = nil
     ) -> PaneContent {
         switch snap {
         case .session(let workingDirectory):
             return .session(makeSession(
                 directory: workingDirectory,
                 restoredHistory: restoredHistory,
-                launchSettings: launchSettings
+                launchSettings: launchSettings,
+                restoredSessionID: restoredSessionID
             ))
         case .file(let path, let editorState):
             let file = FileTab(path: path)

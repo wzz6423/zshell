@@ -297,6 +297,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var preserveTerminalSessions: Bool {
+        didSet { save() }
+    }
+
     /// Copy terminal text to the clipboard after a pointer selection ends.
     /// Enabled by default to preserve Zshell's existing selection behavior.
     @Published var copyOnSelect: Bool {
@@ -467,6 +471,7 @@ final class AppSettings: nonisolated ObservableObject {
             toml["editor.external-editor"]?.string
         )
         restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? false
+        preserveTerminalSessions = toml["terminal.preserve-sessions"]?.bool ?? false
         copyOnSelect = toml["terminal.copy-on-select"]?.bool ?? true
         let terminalBackgroundOpacity = toml["terminal.background-opacity"]?.double
             ?? Self.defaultTerminalBackgroundOpacity
@@ -597,6 +602,7 @@ final class AppSettings: nonisolated ObservableObject {
             && wrapLines
             && externalEditor == .systemDefault
             && !restoreTerminalHistory
+            && !preserveTerminalSessions
             && copyOnSelect
             && terminalBackgroundOpacity == Self.defaultTerminalBackgroundOpacity
             && terminalBackgroundBlur == Self.defaultTerminalBackgroundBlur
@@ -631,6 +637,7 @@ final class AppSettings: nonisolated ObservableObject {
         wrapLines = true
         externalEditor = .systemDefault
         restoreTerminalHistory = false
+        preserveTerminalSessions = false
         copyOnSelect = true
         terminalBackgroundOpacity = Self.defaultTerminalBackgroundOpacity
         terminalBackgroundBlur = Self.defaultTerminalBackgroundBlur
@@ -763,6 +770,7 @@ final class AppSettings: nonisolated ObservableObject {
         vimCommandHints = toml["terminal.vim-command-hints"]?.bool ?? false
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
         restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? false
+        preserveTerminalSessions = toml["terminal.preserve-sessions"]?.bool ?? false
         copyOnSelect = toml["terminal.copy-on-select"]?.bool ?? true
         let quickTerminalSize = toml["quick-terminal.size"]?.double
             ?? Self.defaultQuickTerminalSize
@@ -797,18 +805,22 @@ final class AppSettings: nonisolated ObservableObject {
     func setAIEnabled(_ enabled: Bool) throws {
         if enabled {
             try ZshellAgentIntegrations.preflightInstallAvailable()
+            try ZshellAgentLifecycleHooks.preflightInstallAvailable()
             _ = try ZshellAutomationSkill.install(
                 destinations: ZshellAutomationSkill.Destination.allCases,
                 force: false
             )
             try ZshellAgentIntegrations.installAvailable()
+            try ZshellAgentLifecycleHooks.installAvailable()
         } else {
             try ZshellAgentIntegrations.preflightUninstallManaged()
+            try ZshellAgentLifecycleHooks.preflightUninstallManaged()
             _ = try ZshellAutomationSkill.uninstall(
                 destinations: ZshellAutomationSkill.Destination.allCases,
                 force: false
             )
             try ZshellAgentIntegrations.uninstallManaged()
+            try ZshellAgentLifecycleHooks.uninstallManaged()
         }
         aiEnabled = enabled
     }
@@ -824,6 +836,7 @@ final class AppSettings: nonisolated ObservableObject {
                 force: false
             )
             try ZshellAgentIntegrations.installAvailable()
+            try ZshellAgentLifecycleHooks.installAvailable()
         } catch {
             NSLog("zshell: failed to refresh AI support: \(error)")
         }
@@ -915,6 +928,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if restoreTerminalHistory {
             lines.append("terminal.restore-history = true")
+        }
+        if preserveTerminalSessions {
+            lines.append("terminal.preserve-sessions = true")
         }
         if !copyOnSelect {
             lines.append("terminal.copy-on-select = false")

@@ -33,6 +33,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// changing the setting only affects terminals opened afterwards.
     let backend: TerminalBackend
     let surface: any TerminalBackendSurface
+    let reconnectedToPersistentPTY: Bool
     let overlayScrollbar = OverlayScrollbarView()
     /// Find-in-terminal state for this session's pane (⌘F).
     let find: TerminalFind
@@ -49,9 +50,12 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     private let launchWorkingDirectory: String
     private let launchDirectoryURL: URL?
     private let shellPidFileURL: URL?
+    let supportsCommandTaskShellIntegration: Bool
     private var cachedShellPid: pid_t?
     private var lastHistorySnapshot: String?
     private var isTerminating = false
+    private let persistentPTY: PersistentPTY?
+    private var preservesLaunchArtifacts = false
     private var commandExecutionStartedAtNanos: UInt64?
     /// Session-scoped material such as SSH askpass files must survive pane
     /// transfers, then be released only after the terminal process ends.
@@ -74,20 +78,31 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         initialDirectory: String? = nil,
         restoredHistory: String? = nil,
         commandArguments: [String]? = nil,
+        restoredSessionID: UUID? = nil,
         environmentPath: String? = nil,
         launchSettings: TerminalLaunchSettings = .init(),
-        additionalEnvironment: [String: String] = [:]
+        additionalEnvironment: [String: String] = [:],
+        allowsPersistence: Bool = true
     ) {
-        let sessionID = UUID()
+        let sessionID = restoredSessionID ?? UUID()
+        let existingPTY = restoredSessionID.flatMap { PersistentPTY.reconnect(id: $0) }
+        let preserve = allowsPersistence && (AppSettings.shared.preserveTerminalSessions || existingPTY != nil)
         let directCommand = commandArguments.flatMap { $0.isEmpty ? nil : $0 }
             ?? Self.configuredStartupCommand()
         let shellPath = directCommand?.first ?? Self.loginShell()
-        let directory = Self.validWorkingDirectory(initialDirectory)
+        let directory = Self.validWorkingDirectory(existingPTY?.workingDirectory ?? initialDirectory)
         let backend = AppSettings.shared.terminalBackend
-        let artifacts = Self.makeLaunchArtifacts(
+        let artifacts = existingPTY.map {
+            let integration = $0.launchDirectoryURL?.appendingPathComponent("zsh-integration", isDirectory: true)
+            return LaunchArtifacts(directoryURL: $0.launchDirectoryURL, pidFileURL: nil,
+                                   replayFileURL: nil, shellIntegrationDirectoryURL: integration.flatMap {
+                                       FileManager.default.fileExists(atPath: $0.path) ? $0 : nil
+                                   })
+        } ?? Self.makeLaunchArtifacts(
             restoredHistory: restoredHistory,
             backend: backend,
-            shellPath: directCommand == nil ? shellPath : nil
+            shellPath: directCommand == nil ? shellPath : nil,
+            persistentSessionID: preserve ? sessionID : nil
         )
         let script = Self.makeLaunchScript(
             backend: backend,
@@ -99,30 +114,68 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             replayFileURL: artifacts.replayFileURL,
             shellIntegrationDirectoryURL: artifacts.shellIntegrationDirectoryURL
         )
-        let launch = TerminalLaunch(
+        var environment = Self.surfaceEnvironment(
+            pathOverride: environmentPath, configuredEnvironment: launchSettings.environment,
+            sessionID: sessionID, additionalEnvironment: additionalEnvironment
+        )
+        var canPersist = preserve
+        if preserve {
+            do {
+                environment = try ZshellCLIService.shared.persistentTerminalEnvironment(
+                    for: sessionID,
+                    bindingToken: existingPTY?.bindingToken ?? UUID().uuidString + UUID().uuidString,
+                    environment: environment
+                )
+            } catch {
+                canPersist = false
+                NSLog("zshell: could not prepare persistent terminal connection: \(error)")
+            }
+        }
+        var launch = TerminalLaunch(
             program: "/bin/sh",
             arguments: ["-c", script],
             commandLine: Self.ghosttyCommandLine(for: script),
             interactiveShell: directCommand == nil ? shellPath : nil,
             workingDirectory: directory,
-            environment: Self.surfaceEnvironment(
-                pathOverride: environmentPath,
-                configuredEnvironment: launchSettings.environment,
-                sessionID: sessionID,
-                additionalEnvironment: additionalEnvironment
-            )
+            environment: environment
         )
+        var pty = existingPTY
+        if pty == nil, canPersist {
+            do {
+                pty = try PersistentPTY.create(id: sessionID, launch: launch,
+                                              launchDirectoryURL: artifacts.directoryURL,
+                                              theme: AlacrittyTheme.current())
+            } catch {
+                ZshellCLIService.shared.revokeTerminal(id: sessionID)
+                var fallback = Self.surfaceEnvironment(
+                    pathOverride: environmentPath, configuredEnvironment: launchSettings.environment,
+                    sessionID: sessionID, additionalEnvironment: additionalEnvironment
+                )
+                for key in ["ZSHELL_PERSISTENT_CONNECTION", "ZSHELL_PERSISTENT_TOKEN"] { fallback.removeValue(forKey: key) }
+                launch = TerminalLaunch(
+                    program: launch.program, arguments: launch.arguments, commandLine: launch.commandLine,
+                    interactiveShell: launch.interactiveShell, workingDirectory: launch.workingDirectory,
+                    environment: fallback
+                )
+                NSLog("zshell: could not start persistent PTY; starting a local shell: \(error)")
+            }
+        }
 
         id = sessionID
         self.shellPath = shellPath
         self.backend = backend
+        persistentPTY = pty
+        reconnectedToPersistentPTY = existingPTY != nil
+        cachedShellPid = pty?.shellPID
         launchWorkingDirectory = directory
         launchDirectoryURL = artifacts.directoryURL
         shellPidFileURL = artifacts.pidFileURL
+        supportsCommandTaskShellIntegration = directCommand == nil
+            && artifacts.shellIntegrationDirectoryURL != nil
         title = (shellPath as NSString).lastPathComponent
         agentStatus = nil
 
-        let surface = Self.makeSurface(backend: backend, launch: launch)
+        let surface = Self.makeSurface(backend: backend, launch: pty?.relayLaunch(from: launch) ?? launch)
         self.surface = surface
         find = TerminalFind(surface: surface)
         lastHistorySnapshot = restoredHistory
@@ -134,10 +187,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         promptQueueBar.attach(queue: promptQueue, session: self)
         applyTheme()
         AgentAutomationMonitor.shared.register(self)
+        pty?.startMonitoring()
     }
 
     deinit {
-        if let launchDirectoryURL {
+        if !preservesLaunchArtifacts, let launchDirectoryURL {
             try? FileManager.default.removeItem(at: launchDirectoryURL)
         }
     }
@@ -202,21 +256,42 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                     ? CGFloat(settings.effectiveTerminalBackgroundOpacity) : 1)
         )
         surface.applyAppearance()
+        persistentPTY?.updateTheme(AlacrittyTheme.current())
     }
 
     /// Stops the whole PTY job before releasing the surface. The backend's
     /// teardown owns the final reap; sending HUP first gives shells the same
     /// close signal they received before the backend migration.
     func terminate() {
-        guard !hasExited, !isTerminating else { return }
+        guard !isTerminating, !hasExited || persistentPTY != nil else { return }
         isTerminating = true
+        persistentPTY?.terminate()
         beginTeardown(processAlive: true, notifyExit: false)
+    }
+
+    /// On quit the renderer and relay may go away while the daemon keeps the
+    /// real PTY and its startup files. Closing a pane still calls terminate().
+    func prepareForApplicationQuit(preserve: Bool) {
+        guard !isTerminating else { return }
+        if preserve, let persistentPTY {
+            isTerminating = true
+            preservesLaunchArtifacts = true
+            persistentPTY.stopMonitoring()
+            surface.events = nil
+            surface.setSurfaceVisible(false)
+            surface.detach()
+            ZshellCLIService.shared.revokeTerminal(id: id)
+        } else {
+            terminate()
+        }
     }
 
     /// Keeps the session and surface alive until the child has either exited
     /// or been force-stopped. Detaching first can make a backend wait
     /// synchronously for a process that ignored SIGHUP.
     private func beginTeardown(processAlive: Bool, notifyExit: Bool) {
+        AgentTurnReviewStore.shared.abort(sessionID: id)
+        TerminalCommandTaskStore.shared.terminalClosed(in: self)
         // TerminalHostView normally clears these while dismantling, but close
         // teardown must not depend on a later SwiftUI reconciliation pass.
         // These callbacks originate on PaneView and capture this session.
@@ -231,13 +306,13 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         surface.splitTarget.onRunQuickCommand = nil
         surface.splitTarget.onManageQuickCommands = nil
 
-        if processAlive {
+        if processAlive, persistentPTY == nil {
             _ = shellPid // Cache it before `hasExited` changes.
             signalTerminalJob(SIGHUP)
         }
 
         Task { @MainActor [self] in
-            if processAlive {
+            if processAlive, persistentPTY == nil {
                 // Give well-behaved shells a moment to unwind, then guarantee
                 // surface teardown cannot wait indefinitely.
                 try? await Task.sleep(for: .milliseconds(120))
@@ -249,6 +324,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             }
             surface.detach()
             hasExited = true
+            clearAutomationAgentStatus()
             removeLaunchArtifacts()
             if notifyExit { onExited?(self) }
         }
@@ -357,6 +433,19 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         (shellPath as NSString).lastPathComponent
     }
 
+    /// Persisted PTY adoption must preserve this directory along with the
+    /// shell's original launch artifacts; a new directory cannot identify a
+    /// command already running in that shell.
+    var commandTaskDirectoryURL: URL? {
+        guard supportsCommandTaskShellIntegration else { return nil }
+        return launchDirectoryURL?.appendingPathComponent("command-tasks", isDirectory: true)
+    }
+
+    static var canLaunchCommandTaskShell: Bool {
+        configuredStartupCommand() == nil
+            && (loginShell() as NSString).lastPathComponent == "zsh"
+    }
+
     /// PID of the root terminal process. The launch shim records its own PID
     /// before `exec`, so this remains stable while a shell's foreground PID
     /// moves to child jobs and back.
@@ -414,12 +503,14 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     private static func makeLaunchArtifacts(
         restoredHistory: String?,
         backend: TerminalBackend,
-        shellPath: String?
+        shellPath: String?,
+        persistentSessionID: UUID? = nil
     ) -> LaunchArtifacts {
         let fileManager = FileManager.default
-        let directory = fileManager.temporaryDirectory
-            .appendingPathComponent("zshell-terminal-\(UUID().uuidString)", isDirectory: true)
+        let directory = persistentSessionID.map(PersistentCLIConnection.launchDirectory(for:))
+            ?? fileManager.temporaryDirectory.appendingPathComponent("zshell-terminal-\(UUID().uuidString)", isDirectory: true)
         do {
+            if let persistentSessionID { try PersistentCLIConnection.prepare(for: persistentSessionID) }
             try fileManager.createDirectory(
                 at: directory,
                 withIntermediateDirectories: false,
@@ -782,7 +873,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         }
         for (name, contents) in files {
             let file = integrationDirectory.appendingPathComponent(name)
-            try Data((contents + "\n").utf8).write(to: file, options: .atomic)
+            // .zshrc restores ZDOTDIR, so the proxy .zlogin is no longer a
+            // reliable injection point after the user's configuration loads.
+            let taskIntegration = name == ".zshrc"
+                ? TerminalCommandTaskShellIntegration.script(in: directory) : ""
+            try Data((contents + taskIntegration + "\n").utf8).write(to: file, options: .atomic)
             try FileManager.default.setAttributes(
                 [.posixPermissions: 0o600], ofItemAtPath: file.path
             )
@@ -804,7 +899,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
 
     /// Ghostty renders `command` as one config line. Encoding the launch shim
     /// keeps user-provided multiline startup commands from splitting that line.
-    private static func ghosttyCommandLine(for script: String) -> String {
+    static func ghosttyCommandLine(for script: String) -> String {
         let encoded = Data(script.utf8).base64EncodedString()
         let decode = "/usr/bin/printf %s \(shellQuote(encoded)) | /usr/bin/base64 -D"
         return "/bin/sh -c \(shellQuote("eval \"$(\(decode))\""))"
@@ -949,10 +1044,29 @@ extension TerminalSession: TerminalBackendEvents {
             promptQueueDidObservePromptReturn()
         }
         commandLifecycle = lifecycle
+        if case .commandFinished = event {
+            TerminalCommandTaskStore.shared.observeCompletion(in: self)
+        }
     }
 
     func terminalDidClose(processAlive: Bool) {
         guard !isTerminating else { return }
+        // Losing a relay never sends signals to the daemon-owned job.
+        if let persistentPTY {
+            persistentPTY.stopMonitoring()
+            preservesLaunchArtifacts = true
+            Task { @MainActor [self] in
+                await Task.yield()
+                surface.events = nil
+                surface.detach()
+                hasExited = true
+                ZshellCLIService.shared.revokeTerminal(id: id)
+                // Keep a live daemon job represented in the layout so the
+                // user can explicitly close it or reconnect on relaunch.
+                if Darwin.kill(persistentPTY.shellPID, 0) != 0 { onExited?(self) }
+            }
+            return
+        }
         isTerminating = true
         beginTeardown(processAlive: processAlive, notifyExit: true)
     }

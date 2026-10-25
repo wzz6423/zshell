@@ -12,6 +12,12 @@ a background pane, start a delegated worker, run a command, wait for the
 result, and bring the answer back without taking focus from the pane you are
 using.
 
+## Wait for command results
+
+For finite commands such as tests or a build, your agent can wait for the command’s own exit status and duration, then read saved recent terminal output. If a wait times out, the command keeps running and the same task can be waited on again. Waiting does not take focus. This requires an empty prompt in the original local zsh that Zshell launched; nested shells, SSH, and custom startup programs do not support command results. Recent terminal output can include earlier commands or prompts and is bounded, so ask the agent to save complete output to a file when needed.
+
+Direct `exit`, `logout`, and `exec` are rejected because they end or replace the original shell; use `/bin/sh -c` for those commands in a subprocess.
+
 ## Setup
 
 Check **Settings → Automation → AI**. It is on by default; if you previously
@@ -71,15 +77,70 @@ agent's pane and tab:
 | **Blocked** | It needs input, approval, or another decision from you. |
 | **Done** | It finished in the background and you have not viewed the pane yet. |
 
-Zshell records a prompt it submits as **Working**, but it never scans rendered
-terminal text to guess what happens next. **Blocked** and **Done** transitions
-and their notifications require a provider lifecycle report. If an agent does
-not provide one, inspect its pane and the resulting project changes directly
-instead of relying on a guessed status.
+Zshell prefers native lifecycle events from Codex, Claude Code, Pi, OpenCode, and Grok, followed by explicit program reports. Hover the status badge or open **Agents** to see the source, waiting reason, percentage, and child tasks. Codex hooks must first be reviewed and trusted in its `/hooks` menu; Zshell does not bypass that review.
+
+For recognized agent processes without a native report, Zshell can inspect a bounded live screen footer. **Screen inference** is labelled, never reports completion, never sends a notification, and cannot satisfy `zshell +agent wait`. It never grants an approval. Read the pane and verify the actual result before treating work as complete.
+
+Programs can report progress with `zshell +agent report` and clear their own report with `zshell +agent clear`. Reports expire after 120 seconds without an update or when the owning process exits. See [program reports](#program-reports).
 
 When an integration reports that an agent finished or needs input, Zshell can
 also send a notification. Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> to
 jump to the next reported agent that needs your attention.
+
+## Program reports [#program-reports]
+
+A script or tool running inside a Zshell terminal can publish its own status:
+
+```sh
+zshell +agent report working --name Build --progress 25 --reason 'Compiling sources'
+zshell +agent report blocked --name Build --attention approval --reason 'Review the release before publishing'
+zshell +agent clear
+```
+
+`running` is an alias for `working`. `approval`, `input`, `login`, and `error`
+are shortcuts for `blocked` with that attention reason. Other states are
+`done`, `idle`, and `unknown`. `done` is an explicit status report, not a verified
+command result. Zshell never answers a prompt or grants approval based on a report.
+Completion in the focused pane is already seen, so `done` appears as `idle`
+with its progress and task details retained. Reading through the API does not
+mark a background completion seen; focusing that pane does.
+
+For several child tasks, pass `--tasks` with a JSON array or send one JSON object
+to `zshell +agent report --json` on standard input:
+
+```json
+{
+  "name": "Build",
+  "state": "working",
+  "progress": 50,
+  "tasks": [
+    { "id": "compile", "title": "Compile", "state": "done", "progress": 100 },
+    { "id": "tests", "title": "Tests", "state": "working", "progress": 20 }
+  ]
+}
+```
+
+Each report replaces the previous program report and child-task list. Task IDs
+must be unique. A blocked child brings the parent to attention; an active child
+keeps a reported idle or completed parent working. Percentages must be integers from 0 to 100. A report supports
+at most 32 tasks; the badge tooltip previews eight and reports the total, while
+`zshell +agent get --current` returns every task. Names are limited to 128 UTF-8
+bytes, reasons to 1 KiB, task IDs to 128 bytes, task titles to 256 bytes, and
+standard-input JSON to 32 KiB. Text must fit on one line and contain no terminal
+control characters. Reports are limited to 10 updates per second per terminal.
+
+The CLI binds the report to its parent process by default. `--pid PID` (or
+`process_id` in JSON) may select a live ancestor of the CLI within the same
+terminal. Its PID and process start time must still match. Refresh long-running
+reports at least once every 120 seconds. Closing the terminal, exiting the owner,
+or letting the report expire removes its status. `clear` removes only the
+program report; it cannot clear a provider's native lifecycle state.
+
+This interface uses Zshell's private, authenticated Unix socket and works with
+both Ghostty and Alacritty. It has no pane or project target option. Printing
+terminal text or an OSC sequence cannot impersonate a native lifecycle report.
+Native state takes priority over program reports; inferred screen state is
+lower priority and never counts as a result or approval.
 
 ## Account usage and limits
 

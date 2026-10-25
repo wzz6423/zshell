@@ -33,10 +33,11 @@ function reportOnce(state: AgentState, reason?: string): Promise<void> {
   const request = {
     version: 1,
     id: `zshell:pi:${requestSequence}`,
-    method: "agent.report",
+    method: "agent.lifecycle",
     token,
     terminalID,
     params: {
+      provider: "pi",
       state,
       reason: reason ?? `Pi lifecycle: ${state}`,
     },
@@ -51,7 +52,7 @@ function reportOnce(state: AgentState, reason?: string): Promise<void> {
       socket.destroy();
       resolve();
     };
-    socket.setTimeout(750, finish);
+    socket.setTimeout(15_000, finish);
     socket.on("connect", () => socket.write(`${JSON.stringify(request)}\n`));
     socket.on("data", finish);
     socket.on("error", finish);
@@ -70,26 +71,26 @@ export default function zshellAgentState(pi) {
   function publish(state: AgentState) {
     if (state === lastState) return;
     lastState = state;
-    void report(state);
+    return report(state);
   }
 
   pi.on("session_start", (_event, context) => {
     if (context?.mode !== "tui") return;
     rootSession = true;
     active = context?.isIdle?.() === false;
-    publish(active ? "working" : "idle");
+    return publish(active ? "working" : "idle");
   });
 
   pi.on("agent_start", () => {
     if (!rootSession) return;
     active = true;
-    publish("working");
+    return publish("working");
   });
 
   const settle = (_event, context) => {
     if (!rootSession || context?.isIdle?.() === false) return;
     active = false;
-    publish("idle");
+    return publish("idle");
   };
   pi.on("agent_settled", settle);
   // Older Pi releases expose agent_end but not agent_settled.

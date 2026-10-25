@@ -39,3 +39,23 @@ Trong terminal, Command-nhấp bình thường mở URL web đã nhận diện b
 Đổi tab hoặc dự án giữ nguyên trang, gồm lịch sử, vị trí cuộn, biểu mẫu và trạng thái bên trong. Khi mở lại Zshell, URL hiện tại và bố cục được khôi phục, nhưng toàn bộ lịch sử tiến/lùi thì không.
 
 Ô trình duyệt giữ cookie, đăng nhập và dữ liệu trang khác qua các tab và lần mở ứng dụng. Đây không phải chế độ riêng tư.
+
+## Nhờ Agent kiểm thử trang [#let-an-agent-test-the-page]
+
+Bạn có thể nhờ Agent lập trình kiểm tra trang đang mở trong dự án này, điền biểu mẫu, xác minh kết quả hoặc chụp vùng đang hiển thị. Agent dùng lại phiên trình duyệt hiện tại và mặc định giữ tiêu điểm ở terminal. Agent cũng có thể mở URL phát triển cục bộ trong khung trình duyệt nền.
+
+Với tập lệnh, chạy các lệnh sau trong terminal Zshell. Ghi lại `browser_id` trả về và thay `BROWSER_ID` bên dưới:
+
+```sh
+zshell +browser list
+zshell +browser open http://localhost:3000 --wait
+zshell +browser snapshot --browser BROWSER_ID
+zshell +browser fill --browser BROWSER_ID --selector '#search' --text 'terminal'
+zshell +browser click --browser BROWSER_ID --selector 'button[type="submit"]'
+zshell +browser wait --browser BROWSER_ID --selector '#results' --timeout 10000
+zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
+```
+
+Ảnh chụp DOM trả về văn bản khung chính, nhãn trợ năng và tham chiếu phần tử. Tham chiếu hết hạn sau khi trang thay đổi hoặc có thao tác; hãy chụp DOM mới trước khi dùng lại. Bộ chọn CSS phải khớp đúng một phần tử. Dùng `navigate`, `back`, `forward`, `reload` và `stop` để điều hướng.
+
+Tự động hóa chỉ nhận URL HTTP/HTTPS đầy đủ và `about:blank`. Giao thức khác, tải xuống, hộp chọn tệp và hộp thoại hệ thống cần bạn trực tiếp thao tác. Giới hạn được gỡ sau khi bạn điều hướng thủ công bằng thanh địa chỉ hoặc thanh công cụ. Lệnh chỉ hoạt động trong dự án và cửa sổ của terminal gọi lệnh. `--timeout` từ 100–30000 mili giây. Ảnh chụp DOM tối đa 200 phần tử, 32768 ký tự và 256 KiB, không gồm giá trị mật khẩu hoặc tệp. PNG chỉ chụp vùng hiển thị, tối đa 512 KiB, cần khung đã được hiển thị một lần và không ghi đè tệp. Giảm `--width` nếu cần. Xem `zshell +browser --help`.
