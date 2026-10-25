@@ -69,7 +69,7 @@ struct FilterFixture: View {
         }
         for scale in [0.9, 1.0, 1.5, 2.0, 24.0 / 14.0 * 1.5] {
             for width in [162.0, 180, 240, 500] {
-                let view = GitWorktreeSectionNSView(frame: NSRect(x: 0, y: 0, width: width, height: 240))
+                let view = GitRepositorySectionNSView(frame: NSRect(x: 0, y: 0, width: width, height: 240))
                 for count in [2, 8, 12, 128] {
                     let trees = (0..<count).map {
                         GitStatusModel.Worktree(path: "/fixture/\($0)", headOID: nil,

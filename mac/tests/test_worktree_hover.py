@@ -74,7 +74,7 @@ struct WorktreeHoverRegression {
                                      styleMask: [.borderless], backing: .buffered, defer: false)
             window.isReleasedWhenClosed = false
             window.appearance = NSAppearance(named: appearance)
-            let section = GitWorktreeSectionNSView(frame: NSRect(x: 0, y: 0, width: 320, height: 200))
+            let section = GitRepositorySectionNSView(frame: NSRect(x: 0, y: 0, width: 320, height: 200))
             window.contentView = section
             let worktrees = (0..<12).map {
                 GitStatusModel.Worktree(path: "/fixture/worktree-\($0)", headOID: "abc",
@@ -87,8 +87,8 @@ struct WorktreeHoverRegression {
             let scroll = section.subviews.compactMap { $0 as? NSScrollView }.first!
             let table = scroll.documentView as! NSTableView
             table.layoutSubtreeIfNeeded()
-            func row(_ index: Int) -> GitWorktreeRowButton {
-                let button = table.view(atColumn: 0, row: index, makeIfNecessary: true) as! GitWorktreeRowButton
+            func row(_ index: Int) -> GitRepositoryRowButton {
+                let button = table.view(atColumn: 0, row: index, makeIfNecessary: true) as! GitRepositoryRowButton
                 button.layoutSubtreeIfNeeded()
                 return button
             }
@@ -124,7 +124,7 @@ struct WorktreeHoverRegression {
             next.updateTrackingAreas()
             check(alpha(next) == 0, "leaving the viewport clears a refreshed row hover")
             next.mouseEntered(with: enter)
-            next.apply(worktree: worktrees[8], metrics: GitWorktreeSectionMetrics(fontScale: 1),
+            next.apply(worktree: worktrees[8], metrics: GitRepositorySectionMetrics(fontScale: 1),
                        open: {}, remove: {}, deleteBranch: { _ in })
             next.updateTrackingAreas()
             check(alpha(next) == 0, "reconfiguring a row cannot retain a previous worktree hover")
@@ -135,7 +135,7 @@ struct WorktreeHoverRegression {
             next.removeFromSuperview()
             check(alpha(next) == 0, "detaching a recycled row clears hover")
 
-            let selected = GitWorktreeTableRowView(frame: NSRect(x: 0, y: 0, width: 320, height: 34))
+            let selected = GitRepositoryTableRowView(frame: NSRect(x: 0, y: 0, width: 320, height: 34))
             selected.isSelected = true
             check(alpha(selected, selection: true) > 0,
                   "actual table selection keeps its independent background")

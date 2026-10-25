@@ -207,7 +207,7 @@ final class GitStatusModel: nonisolated ObservableObject {
     @Published var lastError: String?
 
     /// Branches checked out by a worktree are represented in the worktree
-    /// section, so the branch picker can avoid showing the same ref twice.
+    /// section, so the branch list and picker do not repeat the same ref.
     var branchesWithoutWorktrees: [String] {
         let checkedOut = Set(worktrees.compactMap(\.branch))
         return branches.filter { !checkedOut.contains($0) }

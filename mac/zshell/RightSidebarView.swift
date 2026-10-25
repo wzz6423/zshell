@@ -964,6 +964,7 @@ private struct GitPanel: View {
     @State private var stagedCollapsed = false
     @State private var changesCollapsed = false
     @State private var historyCollapsed = false
+    @State private var branchesCollapsed = false
     @State private var worktreesCollapsed = false
     @State private var worktreeBranchSearch = ""
     @State private var pendingRemoveWorktree: GitStatusModel.Worktree?
@@ -990,6 +991,7 @@ private struct GitPanel: View {
                 trackingBar
                 if !isRemote {
                     worktreeBranchSearchBar
+                    branchesSection
                     worktreesSection
                 }
                 repositoryOperationBanner
@@ -1515,8 +1517,9 @@ private struct GitPanel: View {
         }
     }
 
-    private func presentCreateBranchDialog() {
-        guard !model.isBusy else { return }
+    private func presentCreateBranchDialog(relativeTo preferredWindow: NSWindow? = nil) {
+        guard !model.isBusy,
+              let window = AppWindowPresentation.hostWindow(relativeTo: preferredWindow) else { return }
 
         let alert = NSAlert()
         alert.messageText = String(localized: "Create New Branch")
@@ -1545,15 +1548,18 @@ private struct GitPanel: View {
             }
         }
 
-        guard let window = AppWindowPresentation.hostWindow() else { return }
         alert.beginSheetModal(for: window, completionHandler: handleResponse)
     }
 
-    private func presentCreateWorktreeDialog() {
+    private func presentCreateWorktreeDialog(forBranch preferredBranch: String? = nil) {
         guard !model.isBusy else { return }
         let availableBranches = model.branchesWithoutWorktrees
         guard !availableBranches.isEmpty else {
             model.lastError = String(localized: "Create a branch before creating a worktree")
+            return
+        }
+        if let preferredBranch, !availableBranches.contains(preferredBranch) {
+            model.lastError = String(localized: "The selected branch is no longer available")
             return
         }
         guard let window = AppWindowPresentation.hostWindow() else { return }
@@ -1563,6 +1569,7 @@ private struct GitPanel: View {
         alert.informativeText = String(localized: "Choose a local branch, then choose the worktree directory.")
         let picker = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 280, height: 24), pullsDown: false)
         picker.addItems(withTitles: availableBranches)
+        if let preferredBranch { picker.selectItem(withTitle: preferredBranch) }
         alert.accessoryView = picker
         let create = alert.addButton(withTitle: String(localized: "Choose Directory"))
         create.keyEquivalent = "\r"
@@ -1828,6 +1835,25 @@ private struct GitPanel: View {
     }
 
     @ViewBuilder
+    private var branchesSection: some View {
+        if !filteredBranchesWithoutWorktrees.isEmpty {
+            GitBranchesSectionView(
+                branches: filteredBranchesWithoutWorktrees,
+                isCollapsed: $branchesCollapsed,
+                fontScale: sidebarFontScale,
+                repositoryID: model.repoRoot,
+                isBusy: model.isBusy,
+                switchBranch: { branch in
+                    performOperation(.branchMenu) { model.switchBranch(to: branch) }
+                },
+                createBranch: { presentCreateBranchDialog(relativeTo: $0) },
+                createWorktree: { presentCreateWorktreeDialog(forBranch: $0) },
+                deleteBranch: requestDeleteBranch
+            )
+        }
+    }
+
+    @ViewBuilder
     private var worktreesSection: some View {
         if !filteredWorktrees.isEmpty {
             GitWorktreeSectionView(
@@ -1835,9 +1861,10 @@ private struct GitPanel: View {
                 isCollapsed: $worktreesCollapsed,
                 fontScale: sidebarFontScale,
                 openWorktree: openWorktree,
-                createWorktree: presentCreateWorktreeDialog,
+                createWorktree: { presentCreateWorktreeDialog() },
                 removeWorktree: requestRemoveWorktree,
-                deleteBranch: requestDeleteBranch
+                deleteBranch: requestDeleteBranch,
+                isBusy: model.isBusy
             )
         }
     }
@@ -2280,6 +2307,7 @@ private struct GitPanel: View {
         stagedCollapsed = false
         changesCollapsed = false
         historyCollapsed = false
+        branchesCollapsed = false
         worktreesCollapsed = false
         worktreeBranchSearch = ""
         pendingRemoveWorktree = nil
