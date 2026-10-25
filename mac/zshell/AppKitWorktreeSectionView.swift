@@ -361,6 +361,7 @@ private final class GitWorktreeRowButton: NSButton {
             menu.addItem(deleteItem)
         }
         self.menu = menu
+        synchronizeHoverWithMouse()
         needsLayout = true
     }
 
@@ -387,11 +388,45 @@ private final class GitWorktreeRowButton: NSButton {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
-        addTrackingArea(NSTrackingArea(rect: .zero,
-            options: [.activeInKeyWindow, .mouseEnteredAndExited, .inVisibleRect], owner: self))
+        addTrackingArea(NSTrackingArea(rect: NSIntersectionRect(bounds, visibleRect),
+            options: [.activeInKeyWindow, .mouseEnteredAndExited], owner: self))
+        synchronizeHoverWithMouse()
     }
-    override func mouseEntered(with event: NSEvent) { isHovered = true; needsDisplay = true }
-    override func mouseExited(with event: NSEvent) { isHovered = false; needsDisplay = true }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        synchronizeHoverWithMouse()
+    }
+
+    override func viewDidHide() {
+        super.viewDidHide()
+        setHovered(false)
+    }
+
+    override func viewDidUnhide() {
+        super.viewDidUnhide()
+        synchronizeHoverWithMouse()
+    }
+
+    override func mouseEntered(with event: NSEvent) { setHovered(true) }
+    override func mouseExited(with event: NSEvent) { setHovered(false) }
+
+    private func synchronizeHoverWithMouse() {
+        guard let window, !isHiddenOrHasHiddenAncestor else {
+            setHovered(false)
+            return
+        }
+        // Scrolling and row reuse can move the row without a mouse exit.
+        let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
+        setHovered(NSIntersectionRect(bounds, visibleRect).contains(point))
+    }
+
+    private func setHovered(_ hovered: Bool) {
+        guard isHovered != hovered else { return }
+        isHovered = hovered
+        needsDisplay = true
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         if isEnabled && (isHovered || isHighlighted) {
             NSColor.labelColor.withAlphaComponent(isHighlighted ? 0.09 : 0.05).setFill()
