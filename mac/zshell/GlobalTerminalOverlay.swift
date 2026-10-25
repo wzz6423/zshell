@@ -273,7 +273,7 @@ final class GlobalTerminalOverlay: NSObject {
     private func show() {
         guard let screen = screenAtPointer() else { return }
         if terminalSession == nil {
-            terminalSession = TerminalSession()
+            terminalSession = TerminalSession(allowsPersistence: false)
         }
         guard let terminalSession else { return }
 

@@ -16,6 +16,9 @@
 mod graphics_event_loop;
 mod kitty_graphics;
 mod kitty_graphics_tracking;
+mod persistent_terminal;
+
+pub use persistent_terminal::*;
 
 use std::borrow::Cow;
 use std::collections::VecDeque;

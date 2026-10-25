@@ -145,6 +145,7 @@ struct TerminalLaunch {
     let interactiveShell: String?
     let workingDirectory: String
     let environment: [String: String]
+    var foregroundProcessProvider: (() -> pid_t?)? = nil
 
     /// Zshell enables prompt-local selection edits only for zsh. Other shells
     /// keep ordinary terminal text-selection semantics.
