@@ -33,10 +33,11 @@ function reportOnce(state: AgentState, reason?: string): Promise<void> {
   const request = {
     version: 1,
     id: `zshell:pi:${requestSequence}`,
-    method: "agent.report",
+    method: "agent.lifecycle",
     token,
     terminalID,
     params: {
+      provider: "pi",
       state,
       reason: reason ?? `Pi lifecycle: ${state}`,
     },

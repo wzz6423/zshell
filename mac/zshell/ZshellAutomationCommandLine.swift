@@ -22,6 +22,10 @@ enum ZshellAutomationCommandLine {
             runAgentIntegration(Array(arguments.dropFirst()))
             return 0
         }
+        if namespace == "+agent", arguments.first == "_lifecycle" {
+            runAgentLifecycle(Array(arguments.dropFirst()))
+            return 0
+        }
         if namespace == "+agent", arguments.first == "_usage-statusline" {
             runAgentUsageStatusLine(Array(arguments.dropFirst()))
             return 0
@@ -288,7 +292,7 @@ enum ZshellAutomationCommandLine {
 
     /// Private entry point for lifecycle hooks installed by Zshell. It is
     /// intentionally absent from help and never appears in an agent prompt.
-    /// Hook failures stay passive; Zshell does not guess state from terminal text.
+    /// Hook failures stay passive; screen hints never become native evidence.
     private static func runAgentIntegration(_ arguments: [String]) {
         guard arguments.count == 2 || arguments.count == 3,
               arguments[0] == "grok",
@@ -315,13 +319,50 @@ enum ZshellAutomationCommandLine {
 
         guard let connection = try? AppConnection() else { return }
         _ = try? connection.automationRequest(
-            method: "agent.report",
+            method: "agent.lifecycle",
             params: [
+                "provider": .string("grok"),
                 "state": .string(phase.rawValue),
-                "reason": .string("Grok lifecycle hook"),
+                "attention": phase == .blocked ? .string("error") : .null,
             ],
             timeout: 15
         )
+    }
+
+    /// No hook output ever grants or denies approval. Only the small semantic
+    /// fields are forwarded; prompts, tool arguments, and transcripts stay out.
+    private static func runAgentLifecycle(_ arguments: [String]) {
+        guard arguments.count == 1,
+              let provider = ZshellAgentKind(rawValue: arguments[0]),
+              provider == .codex || provider == .claude,
+              let data = try? boundedInput(maximum: 1_048_576),
+              let value = try? JSONDecoder().decode(ZshellJSONValue.self, from: data),
+              let object = value.objectValue,
+              ZshellAgentLifecycleEvent.parse(provider: provider, payload: object) != nil
+        else { return }
+        let fields: Set<String> = ["hook_event_name", "agent_id", "agent_type", "notification_type", "error", "tool_name"]
+        let event = object.filter { fields.contains($0.key) }
+        if let connection = try? AppConnection() {
+            _ = try? connection.automationRequest(
+                method: "agent.lifecycle",
+                params: ["provider": .string(provider.rawValue), "event": .object(event)],
+                timeout: 1
+            )
+        }
+        if provider == .codex,
+           ["Stop", "SubagentStop"].contains(object["hook_event_name"]?.stringValue ?? "") {
+            print("{}")
+        }
+    }
+
+    private static func boundedInput(maximum: Int) throws -> Data {
+        var result = Data()
+        while let chunk = try FileHandle.standardInput.read(upToCount: min(8_192, maximum + 1 - result.count)),
+              !chunk.isEmpty {
+            result.append(chunk)
+            guard result.count <= maximum else { throw CLIError.message("Input exceeds the report limit.") }
+        }
+        return result
     }
 
     /// Private Claude Code status-line adapter. It forwards only provider-owned
@@ -641,6 +682,11 @@ enum ZshellAutomationCommandLine {
             return try readAgent(tail, connection: connection)
         case "wait":
             return try waitForAgent(tail, connection: connection)
+        case "report":
+            return try reportAgent(tail, connection: connection)
+        case "clear":
+            try requireNoArguments(tail, command: "+agent clear")
+            return try connection.automationRequest(method: "agent.clear")
         case "help", "--help", "-h":
             printAgentHelp()
             return .object(["help": .bool(true)])
@@ -649,6 +695,50 @@ enum ZshellAutomationCommandLine {
                 "Unknown +agent command \(command). Run `zshell +agent --help`."
             )
         }
+    }
+
+    private static func reportAgent(
+        _ arguments: [String], connection: AppConnection
+    ) throws -> ZshellJSONValue {
+        var params: [String: ZshellJSONValue]
+        if arguments == ["--json"] {
+            let data = try boundedInput(maximum: 32_768)
+            guard let value = try JSONDecoder().decode(ZshellJSONValue.self, from: data).objectValue else {
+                throw CLIError.message("Report JSON must be an object.")
+            }
+            params = value
+        } else {
+            guard let state = arguments.first, !state.hasPrefix("--") else {
+                throw CLIError.message("`zshell +agent report` requires STATE or --json on stdin.")
+            }
+            params = ["state": .string(state), "name": .string("Program")]
+            if state == "running" { params["state"] = .string("working") }
+            if ZshellAgentAttention(rawValue: state) != nil {
+                params["state"] = .string("blocked")
+                params["attention"] = .string(state)
+            }
+            var index = 1
+            while index < arguments.count {
+                switch arguments[index] {
+                case "--name", "--reason", "--attention":
+                    let option = arguments[index]
+                    params[String(option.dropFirst(2))] = .string(try value(after: &index, in: arguments, option: option))
+                case "--progress", "--pid":
+                    let option = arguments[index]
+                    let number = try integerValue(after: &index, in: arguments, option: option)
+                    params[option == "--pid" ? "process_id" : "progress"] = .number(Double(number))
+                case "--tasks":
+                    let text = try value(after: &index, in: arguments, option: "--tasks")
+                    guard text.utf8.count <= 32_768 else { throw CLIError.message("Task JSON exceeds 32 KiB.") }
+                    params["tasks"] = try JSONDecoder().decode(ZshellJSONValue.self, from: Data(text.utf8))
+                default: throw unknownOption(arguments[index], command: "+agent report")
+                }
+                index += 1
+            }
+        }
+        if params["process_id"] == nil { params["process_id"] = .number(Double(getppid())) }
+        _ = try ZshellAgentReport(params: params)
+        return try connection.automationRequest(method: "agent.report", params: params)
     }
 
     private static func startAgent(
@@ -824,7 +914,9 @@ enum ZshellAutomationCommandLine {
             let result = try connection.automationRequest(
                 method: "agent.get", params: target.params
             )
-            if let name = result.objectValue?["agent"]?.objectValue?["state"]?.stringValue,
+            if let agent = result.objectValue?["agent"]?.objectValue,
+               agent["authority"]?.stringValue != "screen",
+               let name = agent["state"]?.stringValue,
                let phase = ZshellAgentPhase(rawValue: name), states.contains(phase) {
                 return result
             }
@@ -983,7 +1075,7 @@ enum ZshellAutomationCommandLine {
         return states
     }
 
-    private static func value(
+    static func value(
         after index: inout Int,
         in arguments: [String],
         option: String
@@ -995,7 +1087,7 @@ enum ZshellAutomationCommandLine {
         return arguments[index]
     }
 
-    private static func integerValue(
+    static func integerValue(
         after index: inout Int,
         in arguments: [String],
         option: String
@@ -1023,7 +1115,7 @@ enum ZshellAutomationCommandLine {
         .message("Unknown option \(value) for `zshell \(command)`. Run `zshell \(command.components(separatedBy: " ").first ?? command) --help`.")
     }
 
-    private static func printJSON(_ value: ZshellJSONValue) throws {
+    static func printJSON(_ value: ZshellJSONValue) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         let data = try encoder.encode(value)
@@ -1079,6 +1171,9 @@ enum ZshellAutomationCommandLine {
           zshell +agent prompt ALIAS --text TEXT [--wait] [--timeout MS]
           zshell +agent read ALIAS [--lines N] [--columns N]
           zshell +agent wait ALIAS [--state idle,done,blocked] [--timeout MS]
+          zshell +agent report STATE [--name NAME] [--reason TEXT] [--progress 0-100] [--attention REASON] [--tasks JSON] [--pid PID]
+          zshell +agent report --json < report.json
+          zshell +agent clear
           zshell +agent skill <path|print|status|install|uninstall> [options]
           zshell +agent explain
 
@@ -1088,11 +1183,17 @@ enum ZshellAutomationCommandLine {
         Guarded prompts accept agents in created, working, idle, or done. While
         an agent is working, its CLI decides whether input steers the active
         turn or queues it. Use +pane send only when raw input is intentional.
-        Zshell never infers lifecycle from rendered terminal text. After Zshell
-        submits a prompt, only a provider-native hook or plugin can advance it
-        to blocked, idle, or done. A reported idle background agent appears as
-        done until its pane is focused. Without an integration, inspect the
-        terminal output instead of relying on a lifecycle wait. `skill install`
+        Native lifecycle reports take priority over explicit program reports,
+        then bounded screen inference and process detection. Screen inference
+        never means completion and cannot satisfy `wait`. Report states are
+        working, blocked, done, idle, or unknown; running aliases working, and
+        approval, input, login, or error alias blocked with that attention reason.
+        Reports belong only to the invoking terminal and a live ancestor process
+        (the parent process by default). They expire after 120 seconds without
+        an update; long jobs should refresh them. At most 32 child tasks and
+        10 updates per second are accepted. `clear` removes the caller's report.
+        A native idle background agent appears as done until its pane is focused.
+        Codex hooks must first be reviewed in its /hooks menu. `skill install`
         explicitly links Zshell's bundled coordination skill into supported
         agents; it never changes user files unless invoked.
         """)
@@ -1138,10 +1239,12 @@ enum ZshellAutomationCommandLine {
            lifecycle state. Raw +pane send is a visibly separate escape hatch
            and can interact with any terminal program.
         6. A recognized process Zshell launched is created until its first prompt.
-           The model is never asked to report lifecycle, and Zshell never guesses
-           from rendered terminal text. Provider-native lifecycle events are the
-           only source of blocked and completed transitions. Without one, inspect
-           the terminal output directly. Reported unseen idle is presented as done.
+           Native lifecycle takes priority over explicit program reports, then
+           bounded screen inference and process detection. Inference is labelled,
+           never means completion, cannot satisfy a lifecycle wait, and never
+           approves prompts. A program report describes its own terminal and
+           expires after 120 seconds or when its owning process exits. It is
+           status information, not proof that a command succeeded.
         7. The optional zshell-automation Agent Skill teaches this workflow to
            compatible agents. Enable AI in Settings or install it explicitly
            with `zshell +agent skill install`. The AI setting also manages only

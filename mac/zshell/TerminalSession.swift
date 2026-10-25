@@ -324,6 +324,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             }
             surface.detach()
             hasExited = true
+            clearAutomationAgentStatus()
             removeLaunchArtifacts()
             if notifyExit { onExited?(self) }
         }

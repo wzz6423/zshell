@@ -53,7 +53,11 @@ Delegierte Bereiche bleiben im Hintergrund, bis Sie sie sehen möchten. Meldet d
 | **Blockiert** | Er benötigt eine Eingabe, Freigabe oder andere Entscheidung von Ihnen. |
 | **Fertig** | Er hat die Arbeit im Hintergrund beendet; Sie haben seinen Bereich noch nicht angesehen. |
 
-Einen von Zshell gesendeten Prompt erfasst es als **Arbeitet**. Es durchsucht jedoch keinen gerenderten Terminaltext, um den weiteren Verlauf zu erraten. Wechsel zu **Blockiert** und **Fertig** sowie entsprechende Mitteilungen benötigen eine Lebenszyklusmeldung des Anbieters. Liefert ein Agent keine solche Meldung, prüfen Sie seinen Bereich und die entstandenen Projektänderungen direkt.
+Zshell bevorzugt native Ereignisse von Codex, Claude Code, Pi, OpenCode und Grok, danach ausdrückliche Programmmeldungen. Bewegen Sie den Zeiger über die Markierung oder öffnen Sie **Agents**, um Quelle, Wartegrund, Fortschritt und Unteraufgaben zu sehen. Codex-Hooks müssen zuerst unter `/hooks` geprüft und als vertrauenswürdig bestätigt werden; Zshell umgeht dies nicht.
+
+Ohne native Meldung wird nur ein begrenzter Ausschnitt am unteren Rand des aktuellen Bildschirms eines erkannten Agenten geprüft. Die **Bildschirmableitung** wird gekennzeichnet, meldet keinen Abschluss, sendet keine Mitteilung und erfüllt `zshell +agent wait` nicht. Sie erteilt keine Freigabe. Prüfen Sie Bereich und tatsächliches Ergebnis.
+
+Programme melden Fortschritt mit `zshell +agent report` und löschen ihre eigene Meldung mit `zshell +agent clear`. Meldungen verfallen nach 120 Sekunden ohne Aktualisierung oder beim Ende ihres Prozesses.
 
 Meldet eine Integration den Abschluss oder benötigte Eingaben, kann Zshell zusätzlich eine Mitteilung senden. <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> springt zum nächsten gemeldeten Agenten, der Ihre Aufmerksamkeit braucht.
 

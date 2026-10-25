@@ -1,12 +1,12 @@
 ---
 name: zshell-automation
-description: Coordinate coding agents and terminal panes inside Zshell. Use when delegating work to another Zshell pane, starting or prompting a coding agent, coordinating existing Zshell agents, waiting for agent state, or reading a result.
+description: Coordinate agents, terminal panes, and project browser pages inside Zshell. Use for delegation, agent prompts and results, or inspecting and exercising a development page in Zshell's existing browser.
 ---
 
 # Zshell Automation
 
-Use Zshell's authenticated, project-scoped CLI to coordinate terminal panes and
-recognized coding agents. Keep layout creation, agent prompts, and raw terminal
+Use Zshell's authenticated, project-scoped CLI to coordinate terminal panes,
+recognized coding agents, and the existing browser. Keep layout creation, agent prompts, and raw terminal
 input as separate actions.
 
 ## Check availability
@@ -20,7 +20,69 @@ input as separate actions.
    targets in other projects and windows.
 
 Use `zshell +agent explain` for the lifecycle and security contract, and use
-`zshell +agent --help` or `zshell +pane --help` for complete syntax.
+`zshell +agent --help`, `zshell +pane --help`, or `zshell +browser --help` for complete syntax.
+
+## Exercise a project page
+
+Use the existing browser when the user asks to inspect or test a page in Zshell.
+Do not launch a second browser or inspect another application's windows.
+
+1. Run `zshell +browser list`. Record the returned `browser_id` and confirm the
+   intended URL. If several pages are plausible, ask the user before acting.
+   With no existing target, explicitly create one background pane:
+
+   ```sh
+   zshell +browser open http://localhost:3000 --wait
+   ```
+
+   `open` defaults to a split beside the calling terminal; `--tab` creates a
+   background tab. Only `--focus` changes selection. Use the returned stable
+   browser ID for every following command; pane IDs and browser IDs differ.
+2. Wait for page readiness, then inspect the DOM and accessible labels:
+
+   ```sh
+   zshell +browser wait --browser BROWSER_ID --timeout 10000
+   zshell +browser snapshot --browser BROWSER_ID
+   ```
+
+   The snapshot covers the main frame and returns bounded visible text,
+   semantic roles, names, field state, and element `ref` values. It excludes
+   password and file-input values. Frames and shadow roots require direct user
+   interaction; this interface does not expose arbitrary JavaScript evaluation.
+3. Use a snapshot reference or a unique CSS selector for the intended action:
+
+   ```sh
+   zshell +browser fill --browser BROWSER_ID --selector '#search' --text 'terminal'
+   zshell +browser click --browser BROWSER_ID --selector 'button[type="submit"]'
+   zshell +browser wait --browser BROWSER_ID --selector '#results' --timeout 10000
+   zshell +browser snapshot --browser BROWSER_ID
+   ```
+
+   References expire after DOM mutations, navigation, another snapshot, or any
+   click/fill action. On `stale_element_reference`, inspect a fresh snapshot
+   and reassess the target. Never retry a mutation blindly after a timeout:
+   the page may already have handled it. Click uses DOM events; flows requiring
+   trusted hardware input, file pickers, dialogs, downloads, credentials, or
+   permissions remain with the user.
+4. Capture the viewport when visual inspection matters:
+
+   ```sh
+   zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
+   ```
+
+   The pane must have been shown once so WebKit has a viewport. PNG output is
+   limited to 512 KiB and never overwrites an existing file; use a unique path
+   and reduce `--width` if needed. Clean up your captures after review.
+
+Navigation uses `navigate URL`, `back`, `forward`, `reload`, and `stop`, with the
+same browser target. Only explicit HTTP/HTTPS URLs or `about:blank` are allowed.
+After automation touches a document, its navigation stays under this protocol
+restriction until the user navigates with the address bar or toolbar. Targets
+cannot cross the invoking terminal's project or window, even while waiting.
+Use `--timeout` between 100 and 30000 milliseconds. Snapshots support
+`--max-elements` (1–200) and `--max-text` (1–32768); DOM responses are limited
+to 256 KiB. A wait without a selector checks page readiness; an element wait
+can require `--state attached` or the default `visible`.
 
 ## Run a command and collect its result
 
@@ -94,7 +156,8 @@ supported agent kind; both agents stay under the same project-scoped contract.
 4. Inspect `zshell +agent get`. If `agent.authority` becomes `integration`, use
    `zshell +agent wait` and `zshell +agent read` to collect the result. Otherwise,
    read the returned `pane_id` with `zshell +pane read` and inspect the actual
-   project outcome; Zshell does not infer lifecycle from terminal text.
+   project outcome. `screen` authority is an explicitly labelled inference,
+   never evidence of completion or permission to approve a prompt.
 5. If an integration reports the target blocked, surface the reason to the
    user. Do not send a follow-up that attempts to work around the blocker.
 
@@ -140,8 +203,8 @@ Follow this sequence:
    zshell +agent read tests --lines 160
    ```
 
-   Zshell does not infer progress from terminal text. If no lifecycle integration
-   is active, inspect the target pane directly instead of waiting for a guessed
+   Screen inference cannot satisfy `wait`. If no lifecycle integration
+   is active, inspect the target pane directly instead of waiting for an inferred
    state:
 
    ```sh
@@ -170,12 +233,22 @@ still running. Use a new alias for a new worker.
 
 ## Lifecycle and result reads
 
-Never ask a worker model to report `working`, `blocked`, or `done`. Zshell accepts
-semantic state from native CLI lifecycle integrations and never classifies the
-rendered terminal screen. `done` is the unseen presentation of integration-
-reported idle, not a state the model must announce. For an agent without an
-active integration, do not use `agent wait` as proof of progress or completion;
-read its pane and verify the project outcome directly.
+Never ask a worker model to announce `working`, `blocked`, or `done` as proof of
+its own success. Native CLI lifecycle integrations take priority over explicit
+program reports, followed by bounded screen inference and process detection.
+`done` is normally the unseen presentation of integration-reported idle.
+`screen` authority never reports completion and cannot satisfy `agent wait`.
+Neither a native event nor a program report proves that the claimed result is
+correct; inspect the pane and verify the project outcome directly.
+
+Scripts may report their own progress with `zshell +agent report STATE --name
+NAME --progress PERCENT`, optionally adding `--attention approval|input|login|error`
+in blocked state and `--tasks JSON` for up to 32 child tasks. `report --json`
+accepts a bounded object on stdin. A report belongs only to the invoking terminal
+and the CLI's live parent (or a validated ancestor selected by `--pid`). It expires
+after 120 seconds without an update or when that process exits. `zshell +agent
+clear` clears only that program report. Do not use reporting as a substitute for
+the provider's native hooks or to bypass an approval.
 
 Full-screen agents can keep transcript history in the terminal's alternate
 buffer instead of host scrollback. After `wait` reaches `idle` or `done`, use an
@@ -205,7 +278,8 @@ reply with that path, then read the file directly.
   prompt on the user's behalf.
 - Keep background splits unfocused unless the user asks to see them.
 - Do not ask an agent to run lifecycle-reporting commands. Zshell's AI setting
-  owns the supported hooks and plugins; other agents have no inferred fallback.
+  owns the supported hooks and plugins. A screen inference is a diagnostic hint,
+  not authoritative evidence for coordination or an approval.
 - Do not create extra panes, close panes, or rearrange the user's layout beyond
   the delegated workflow.
 - Treat `blocked` as a handoff to the user, not an invitation to bypass the

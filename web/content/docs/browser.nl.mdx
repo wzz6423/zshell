@@ -39,3 +39,23 @@ In een terminal opent een gewone Command-klik een herkende web-URL in je standaa
 Als je van tabblad of project wisselt, blijft de pagina zoals je haar achterliet, inclusief geschiedenis, scrollpositie, formulieren en interne paginastatus. Bij een herstart herstelt Zshell de huidige URL en indeling, maar niet de volledige terug-/vooruitgeschiedenis.
 
 Browserdeelvensters bewaren cookies, aanmeldingen en andere websitegegevens tussen tabbladen en starts. Dit is geen privémodus.
+
+## Een agent de pagina laten testen [#let-an-agent-test-the-page]
+
+Vraag je programmeeragent om de pagina die al in dit project openstaat te controleren, een formulier in te vullen, een resultaat na te kijken of het zichtbare deel vast te leggen. De bestaande browsersessie wordt gebruikt en de focus blijft standaard in de terminal. Een lokale ontwikkel-URL kan ook in een browserpaneel op de achtergrond worden geopend.
+
+Voer deze opdrachten voor scripts uit in een Zshell-terminal. Noteer de teruggegeven `browser_id` en vervang hieronder `BROWSER_ID`:
+
+```sh
+zshell +browser list
+zshell +browser open http://localhost:3000 --wait
+zshell +browser snapshot --browser BROWSER_ID
+zshell +browser fill --browser BROWSER_ID --selector '#search' --text 'terminal'
+zshell +browser click --browser BROWSER_ID --selector 'button[type="submit"]'
+zshell +browser wait --browser BROWSER_ID --selector '#results' --timeout 10000
+zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
+```
+
+Snapshots geven tekst van het hoofdframe, toegankelijke labels en elementverwijzingen terug. Verwijzingen verlopen na wijzigingen of acties; maak een nieuwe snapshot voordat je ze opnieuw gebruikt. Een CSS-selector moet precies één element vinden. Gebruik `navigate`, `back`, `forward`, `reload` en `stop` voor navigatie.
+
+Automatisering accepteert volledige HTTP/HTTPS-URL’s en `about:blank`. Andere protocollen, downloads, bestandskiezers en native dialoogvensters vereisen jouw interactie. De beperking eindigt na handmatige navigatie via adres- of werkbalk. Opdrachten blijven binnen het project en venster van de aanroepende terminal. `--timeout` is 100–30000 milliseconden. Snapshots bevatten maximaal 200 elementen, 32768 teksttekens en 256 KiB, zonder wachtwoord- of bestandswaarden. PNG-opnamen van het zichtbare deel zijn maximaal 512 KiB, vereisen een eerder getoond paneel en overschrijven geen bestanden. Verlaag zo nodig `--width`. Zie `zshell +browser --help`.

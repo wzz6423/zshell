@@ -49,3 +49,23 @@ Zshell 可以在任意标签页或分屏里放一个内置浏览器。它适合�
 切换标签页或项目后，网页会保持原样，包括浏览历史、滚动位置、表单和页面内部状态。Zshell 重启时会恢复当前 URL 和布局，但不会恢复完整的前进 / 后退历史。
 
 浏览器窗格会跨标签页、跨启动保留 Cookie、登录状态和其他站点数据；这不是无痕浏览模式。
+
+## 让 Agent 测试页面 [#let-an-agent-test-the-page]
+
+可以让编程 Agent 检查当前项目中已经打开的页面、填写表单、核对结果或截取可见区域。Agent 复用现有浏览器会话，默认保持终端焦点，也可以为本地开发地址新建后台浏览器面板。
+
+脚本可在 Zshell 终端中使用以下命令。记录返回的 `browser_id`，替换下方的 `BROWSER_ID`：
+
+```sh
+zshell +browser list
+zshell +browser open http://localhost:3000 --wait
+zshell +browser snapshot --browser BROWSER_ID
+zshell +browser fill --browser BROWSER_ID --selector '#search' --text 'terminal'
+zshell +browser click --browser BROWSER_ID --selector 'button[type="submit"]'
+zshell +browser wait --browser BROWSER_ID --selector '#results' --timeout 10000
+zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
+```
+
+快照提供主框架的文本、可访问标签和元素引用。页面变化或执行操作后引用会过期，再次使用前需要重新获取快照。CSS 选择器必须唯一匹配一个元素。导航命令包括 `navigate`、`back`、`forward`、`reload` 和 `stop`。
+
+自动化只接受完整的 HTTP/HTTPS 地址和 `about:blank`。其他协议、下载、文件选择器和原生对话框需要你直接操作；你通过地址栏或工具栏手动导航后，页面才会解除这一协议限制。命令只作用于调用终端所在的项目和窗口。`--timeout` 范围为 100–30000 毫秒。快照最多包含 200 个元素、32768 个文本字符，总大小不超过 256 KiB，密码和文件输入值会被省略。PNG 截图只截取可见区域，上限为 512 KiB，面板需至少显示过一次，已有文件不会被覆盖；可用 `--width` 缩小截图。完整语法见 `zshell +browser --help`。

@@ -170,6 +170,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     @Published private(set) var focusAddressRequest: UInt = 0
 
     let webView: BrowserWebView
+    let automation = BrowserAutomation()
     /// Identity of the manager currently allowed to host this web view. Moving
     /// a tab updates it before SwiftUI can reconcile either window.
     private(set) var hostManagerID: ObjectIdentifier?
@@ -258,6 +259,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     }
 
     func transferHost(to manager: TerminalManager) {
+        automation.invalidateDocument()
         hostManagerID = ObjectIdentifier(manager)
     }
 
@@ -293,21 +295,25 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     func navigate(to address: String) {
         let trimmed = address.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let url = Self.destination(for: trimmed) else { return }
+        automation.releaseNavigationRestriction()
         errorMessage = nil
         webView.load(URLRequest(url: url))
     }
 
     func goBack() {
         guard webView.canGoBack else { return }
+        automation.releaseNavigationRestriction()
         webView.goBack()
     }
 
     func goForward() {
         guard webView.canGoForward else { return }
+        automation.releaseNavigationRestriction()
         webView.goForward()
     }
 
     func reloadOrStop() {
+        automation.releaseNavigationRestriction()
         if webView.isLoading {
             webView.stopLoading()
         } else if !isBlank {
@@ -318,8 +324,24 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
 
     func reload() {
         guard !isBlank else { return }
+        automation.releaseNavigationRestriction()
         errorMessage = nil
         webView.reload()
+    }
+
+    func automationNavigate(_ operation: String, url: URL? = nil) {
+        automation.restrictNavigation()
+        automation.resetNavigationError()
+        automation.invalidateDocument()
+        errorMessage = nil
+        switch operation {
+        case "navigate": if let url { webView.load(URLRequest(url: url)) }
+        case "back": webView.goBack()
+        case "forward": webView.goForward()
+        case "reload": webView.reload()
+        case "stop": webView.stopLoading()
+        default: break
+        }
     }
 
     func stopLoading() {
@@ -490,7 +512,12 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        automation.invalidateDocument()
         errorMessage = String(localized: "The webpage stopped responding.")
+    }
+
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        automation.invalidateDocument()
     }
 
     func webView(
@@ -504,12 +531,36 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
             decisionHandler(.allow)
             return
         }
+        if automation.restrictsNavigation,
+           (!BrowserAutomation.isAllowedURL(
+                url, isMainFrame: navigationAction.targetFrame?.isMainFrame ?? true
+           ) || navigationAction.shouldPerformDownload) {
+            automation.rejectNavigation()
+            decisionHandler(.cancel)
+            return
+        }
         let handledSchemes = ["http", "https", "file", "about", "data", "blob"]
         if handledSchemes.contains(scheme) {
             decisionHandler(.allow)
         } else {
             NSWorkspace.shared.open(url)
             decisionHandler(.cancel)
+        }
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationResponse: WKNavigationResponse,
+        decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void
+    ) {
+        let disposition = (navigationResponse.response as? HTTPURLResponse)?
+            .value(forHTTPHeaderField: "Content-Disposition")?.lowercased() ?? ""
+        if automation.restrictsNavigation,
+           (!navigationResponse.canShowMIMEType || disposition.hasPrefix("attachment")) {
+            automation.rejectNavigation()
+            decisionHandler(.cancel)
+        } else {
+            decisionHandler(.allow)
         }
     }
 

@@ -12,7 +12,7 @@ import Foundation
 /// project by guessing a UUID.
 @MainActor
 enum ZshellAutomationRouter {
-    private struct PaneContext {
+    struct PaneContext {
         let manager: TerminalManager
         let project: Project
         let tab: PaneTab
@@ -43,6 +43,10 @@ enum ZshellAutomationRouter {
                 "current_terminal_id": .string(callerTerminalID.uuidString),
                 "reads_mark_seen": .bool(false),
                 "split_focus_default": .bool(false),
+                "agent_report_lifetime_seconds": .number(ZshellAgentReport.lifetime),
+                "agent_report_max_tasks": .number(Double(ZshellAgentReport.maximumTasks)),
+                "browser_automation": .bool(true),
+                "browser_max_timeout_ms": .number(Double(BrowserAutomation.maximumTimeoutMS)),
             ]))
 
         case "pane.current":
@@ -77,6 +81,9 @@ enum ZshellAutomationRouter {
         case "pane.read":
             return await readPane(request, caller: caller)
 
+        case let method where method.hasPrefix("browser."):
+            return await routeBrowser(request, caller: caller)
+
         case "agent.list":
             let agents = projectContexts(caller.project, manager: caller.manager)
                 .compactMap { context -> ZshellJSONValue? in
@@ -99,6 +106,17 @@ enum ZshellAutomationRouter {
 
         case "agent.report":
             return await reportAgent(request, caller: caller)
+
+        case "agent.lifecycle":
+            return await reportAgentLifecycle(request, caller: caller)
+
+        case "agent.clear":
+            guard request.params.isEmpty, let session = caller.session,
+                  let peer = request.peerProcessID,
+                  session.clearAutomationProgram(peerProcessID: peer) else {
+                return failure(request, "invalid_report_owner", "Only a reporting program can clear its own terminal report.")
+            }
+            return success(request, paneSnapshot(caller, caller: caller))
 
         case "agent.usage.report":
             // Usage reporting is a private hook installed by Zshell, so it must
@@ -440,10 +458,10 @@ enum ZshellAutomationRouter {
             )
         }
         guard let kindName = request.params["kind"]?.stringValue,
-              let kind = ZshellAgentKind(rawValue: kindName) else {
+              let kind = ZshellAgentKind(rawValue: kindName), kind != .program else {
             return failure(
                 request, "invalid_agent_kind",
-                "Supported kinds: \(ZshellAgentKind.allCases.map(\.rawValue).joined(separator: ", "))."
+                "Supported kinds: \(ZshellAgentKind.allCases.filter { $0 != .program }.map(\.rawValue).joined(separator: ", "))."
             )
         }
         let duplicate = caller.project.sessions.contains {
@@ -539,22 +557,78 @@ enum ZshellAutomationRouter {
         guard let session = caller.session else {
             return failure(request, "terminal_required", "The caller is not a terminal pane.")
         }
-        guard let name = request.params["state"]?.stringValue,
-              let phase = ZshellAgentPhase(rawValue: name),
-              phase != .created else {
+        if let last = session.agentObservation.lastProgramReportAt,
+           Date().timeIntervalSince(last) < 0.1 {
+            return failure(request, "report_rate_limited", "Program reports are limited to 10 updates per second.")
+        }
+        let report: ZshellAgentReport
+        do { report = try ZshellAgentReport(params: request.params) }
+        catch { return failure(request, "invalid_params", String(describing: error)) }
+        guard !caller.project.sessions.contains(where: {
+            $0.id != session.id && $0.agentStatus?.alias == report.name
+        }) else {
+            return failure(request, "alias_in_use", "Another agent or program in this project already uses that name.")
+        }
+        guard let peer = request.peerProcessID,
+              let ownerNumber = request.params["process_id"]?.intValue,
+              let owner = pid_t(exactly: ownerNumber),
+              session.reportAutomationProgram(report, ownerPID: owner, peerProcessID: peer) else {
             return failure(
-                request, "invalid_params",
-                "state must be working, blocked, done, idle, or unknown."
+                request, "invalid_report_owner",
+                "process_id must be a live ancestor of the reporting client inside this terminal."
             )
         }
-        let reason = request.params["reason"]?.stringValue
-        guard reason?.utf8.count ?? 0 <= 4_096 else {
-            return failure(request, "invalid_params", "reason is limited to 4 KiB.")
+        return success(request, paneSnapshot(caller, caller: caller))
+    }
+
+    private static func reportAgentLifecycle(
+        _ request: ZshellAutomationRequest,
+        caller: PaneContext
+    ) async -> ZshellAutomationResponse {
+        guard let session = caller.session,
+              let peer = request.peerProcessID,
+              let name = request.params["provider"]?.stringValue,
+              let provider = ZshellAgentKind(rawValue: name), provider != .program else {
+            return failure(request, "invalid_lifecycle", "A lifecycle report requires its provider and a terminal process.")
         }
-        guard session.reportAutomationAgent(phase: phase, reason: reason) else {
+        let phase: ZshellAgentPhase
+        let reason: String
+        var attention: ZshellAgentAttention?
+        var task: ZshellAgentTaskStatus?
+        var endsSession = false
+        if provider == .codex || provider == .claude {
+            guard let payload = request.params["event"]?.objectValue,
+                  let event = ZshellAgentLifecycleEvent.parse(provider: provider, payload: payload) else {
+                return failure(request, "invalid_lifecycle", "Unsupported provider lifecycle event.")
+            }
+            phase = event.phase
+            reason = event.reason
+            attention = event.attention
+            task = event.task
+            endsSession = event.endsSession
+        } else {
+            guard [.pi, .opencode, .grok].contains(provider),
+                  let name = request.params["state"]?.stringValue,
+                  let value = ZshellAgentPhase(rawValue: name),
+                  [.working, .blocked, .idle].contains(value) else {
+                return failure(request, "invalid_lifecycle", "Unsupported provider lifecycle state.")
+            }
+            phase = value
+            reason = "\(provider.displayName) lifecycle integration"
+            if let value = request.params["attention"]?.stringValue {
+                guard phase == .blocked, let parsed = ZshellAgentAttention(rawValue: value) else {
+                    return failure(request, "invalid_lifecycle", "Invalid attention reason.")
+                }
+                attention = parsed
+            }
+        }
+        guard session.reportAutomationAgent(
+            phase: phase, reason: reason, provider: provider, peerProcessID: peer,
+            attention: attention, task: task, endsSession: endsSession
+        ) else {
             return failure(
                 request, "agent_not_recognized",
-                "Declare or start an agent in this terminal before reporting its state."
+                "Native lifecycle reports require a live matching provider ancestor in this terminal."
             )
         }
         if phase == .working, let status = session.agentStatus {
@@ -599,7 +673,7 @@ enum ZshellAutomationRouter {
         return caller.session?.agentStatus == nil ? nil : caller
     }
 
-    private static func context(forSession id: UUID) -> PaneContext? {
+    static func context(forSession id: UUID) -> PaneContext? {
         for manager in TerminalManager.automationManagers {
             for project in manager.projects {
                 for tab in project.tabs {
@@ -616,7 +690,7 @@ enum ZshellAutomationRouter {
         return nil
     }
 
-    private static func projectContexts(
+    static func projectContexts(
         _ project: Project,
         manager: TerminalManager
     ) -> [PaneContext] {
@@ -658,6 +732,9 @@ enum ZshellAutomationRouter {
             object["exited"] = .bool(session.hasExited)
             object["agent"] = session.agentStatus.map(agentSnapshot) ?? .null
         }
+        if case .browser(let browser) = context.pane.content {
+            object["browser_id"] = .string(browser.id.uuidString)
+        }
         return .object(object)
     }
 
@@ -671,6 +748,10 @@ enum ZshellAutomationRouter {
             "updated_at": .string(ISO8601DateFormatter().string(from: status.updatedAt)),
             "process_id": status.processID.map { .number(Double($0)) } ?? .null,
             "unseen": .bool(status.unseen),
+            "inferred": .bool(status.authority == .screen),
+            "progress": status.progress.map { .number(Double($0)) } ?? .null,
+            "attention": status.attention.map { .string($0.rawValue) } ?? .null,
+            "tasks": .array(status.tasks.map(\.snapshot)),
         ])
     }
 
