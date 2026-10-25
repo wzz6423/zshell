@@ -85,13 +85,5 @@ final class AgentCLISupportSettingsView: NSView {
             errorLabel.stringValue = error.localizedDescription
             errorLabel.isHidden = false
         }
-        invalidateIntrinsicContentSize()
-    }
-
-    override var intrinsicContentSize: NSSize {
-        NSSize(
-            width: NSView.noIntrinsicMetric,
-            height: ceil(max(textStack.fittingSize.height, toggle.fittingSize.height))
-        )
     }
 }

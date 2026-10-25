@@ -7,6 +7,12 @@ Tự động hóa Zshell chủ yếu dành cho tác nhân lập trình AI. Nó c
 
 Tích hợp AI mặc định bật. Cứ nói chuyện bình thường với tác nhân. Nó có thể tạo ô nền, khởi chạy tác nhân được giao việc, chạy lệnh, chờ kết quả và mang câu trả lời về mà không lấy tiêu điểm ô bạn đang dùng.
 
+## Chờ kết quả lệnh [#wait-for-command-results]
+
+Với các lệnh sẽ kết thúc như kiểm thử hoặc bản dựng, tác nhân có thể chờ mã thoát và thời gian chạy của chính lệnh đó rồi đọc đầu ra terminal gần đây đã lưu. Nếu hết thời gian chờ, lệnh vẫn tiếp tục chạy và có thể chờ lại cùng tác vụ mà không đổi tiêu điểm. Cần dấu nhắc trống trong zsh cục bộ ban đầu do Zshell khởi chạy; không hỗ trợ shell lồng nhau, SSH và chương trình khởi động tùy chỉnh. Đầu ra gần đây có giới hạn và có thể chứa các lệnh hoặc dấu nhắc trước đó. Hãy yêu cầu tác nhân lưu toàn bộ đầu ra vào tệp khi cần.
+
+Các lệnh `exit`, `logout` và `exec` trực tiếp bị từ chối vì kết thúc hoặc thay thế shell gốc; hãy dùng `/bin/sh -c` để chạy chúng trong tiến trình con.
+
 ## Thiết lập [#setup]
 
 Kiểm tra **Cài đặt → Tự động hóa → AI**. Mặc định bật; nếu từng tắt, hãy bật lại rồi mở terminal mới hoặc khởi động lại tác nhân đang chạy.

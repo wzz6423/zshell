@@ -21,7 +21,8 @@ final class SettingsThemePicker: NSView {
         let stack = NSStackView(views: options)
         stack.orientation = .horizontal
         stack.alignment = .top
-        stack.spacing = 4
+        stack.distribution = .fillEqually
+        stack.spacing = 14
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
         NSLayoutConstraint.activate([
@@ -64,20 +65,27 @@ private final class ThemeOptionCard: SettingsCardButton {
         label = NSTextField(labelWithString: theme.title)
         label.font = .systemFont(ofSize: NSFont.systemFontSize)
         label.textColor = .secondaryLabelColor
-        // Without this a narrow window can squeeze a label to zero width,
-        // wrapping it into blank lines that stretch one option past its
-        // neighbours.
+        label.alignment = .center
+        // Long translations must not stretch one option past its neighbours.
         label.maximumNumberOfLines = 1
-        label.setContentCompressionResistancePriority(.required, for: .horizontal)
+        label.lineBreakMode = .byTruncatingTail
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         let content = NSStackView(views: [preview, label])
         content.orientation = .vertical
         content.alignment = .centerX
-        content.spacing = 4
+        content.spacing = 8
+
+        let previewWidth = preview.widthAnchor.constraint(equalTo: content.widthAnchor)
+        previewWidth.priority = .defaultHigh
+        NSLayoutConstraint.activate([
+            previewWidth,
+            label.widthAnchor.constraint(equalTo: content.widthAnchor),
+        ])
 
         super.init(
             content: content,
-            insets: NSEdgeInsets(top: 5, left: 5, bottom: 5, right: 5),
+            insets: NSEdgeInsets(top: 10, left: 10, bottom: 10, right: 10),
             unselectedBorder: nil,
             accessibilityLabel: theme.title,
             action: action
@@ -89,7 +97,7 @@ private final class ThemeOptionCard: SettingsCardButton {
             ofSize: NSFont.systemFontSize,
             weight: isSelectedCard ? .semibold : .regular
         )
-        label.textColor = isSelectedCard ? .labelColor : .secondaryLabelColor
+        label.textColor = isSelectedCard ? .controlAccentColor : .secondaryLabelColor
     }
 
     func refreshPreview() {
@@ -98,14 +106,14 @@ private final class ThemeOptionCard: SettingsCardButton {
 }
 
 /// A miniature zshell window painted in one appearance's real colors.
-/// `system` splits down the middle — light on the left, dark on the right —
-/// the same way System Settings previews "Auto".
+/// `system` shows both palettes so it stays distinct from either fixed appearance.
 private final class ThemePreviewView: NSView {
-    private static let size = NSSize(width: 76, height: 50)
+    private static let size = NSSize(width: 160, height: 76)
     private static let corner: CGFloat = 7
-    private static let sidebarWidth: CGFloat = 22
-    private static let padding: CGFloat = 5
-    private static let barHeight: CGFloat = 2.5
+    private static let sidebarWidth: CGFloat = 40
+    private static let titlebarHeight: CGFloat = 17
+    private static let padding: CGFloat = 8
+    private static let barHeight: CGFloat = 3
 
     private let theme: AppTheme
 
@@ -114,7 +122,7 @@ private final class ThemePreviewView: NSView {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            widthAnchor.constraint(equalToConstant: Self.size.width),
+            widthAnchor.constraint(lessThanOrEqualToConstant: Self.size.width),
             heightAnchor.constraint(equalToConstant: Self.size.height),
         ])
     }
@@ -149,12 +157,12 @@ private final class ThemePreviewView: NSView {
         case .system:
             drawWindow(dark: false)
             context.saveGraphicsState()
-            NSBezierPath(rect: NSRect(
-                x: bounds.midX,
-                y: 0,
-                width: bounds.width / 2,
-                height: bounds.height
-            )).addClip()
+            let darkHalf = NSBezierPath()
+            darkHalf.move(to: NSPoint(x: bounds.maxX, y: bounds.minY))
+            darkHalf.line(to: NSPoint(x: bounds.maxX, y: bounds.maxY))
+            darkHalf.line(to: NSPoint(x: bounds.minX, y: bounds.maxY))
+            darkHalf.close()
+            darkHalf.addClip()
             drawWindow(dark: true)
             context.restoreGraphicsState()
         }
@@ -180,42 +188,43 @@ private final class ThemePreviewView: NSView {
             height: bounds.height
         ).fill()
 
-        // Traffic lights, then three sidebar rows.
+        Theme.application(dark: dark).surfaceNSColor(elevation: 0.08).setFill()
+        NSRect(x: 0, y: 0, width: bounds.width, height: Self.titlebarHeight).fill()
+
         let dots = [0xFF5F57, 0xFEBC2E, 0x28C840]
         for (index, hex) in dots.enumerated() {
-            let x = Self.padding + CGFloat(index) * (3.5 + 2.5)
+            let x = Self.padding + CGFloat(index) * 7
             NSColor(srgbRed: CGFloat((hex >> 16) & 0xff) / 255,
                     green: CGFloat((hex >> 8) & 0xff) / 255,
                     blue: CGFloat(hex & 0xff) / 255,
                     alpha: 1).setFill()
-            NSBezierPath(ovalIn: NSRect(x: x, y: Self.padding, width: 3.5, height: 3.5)).fill()
+            NSBezierPath(ovalIn: NSRect(x: x, y: 6, width: 4.5, height: 4.5)).fill()
         }
         let sidebarFaint = text.withAlphaComponent(0.35)
-        for (index, width) in [CGFloat(11), 8, 11].enumerated() {
+        for (index, width) in [CGFloat(22), 16, 22].enumerated() {
             bar(
                 x: Self.padding,
-                y: 14.5 + CGFloat(index) * (Self.barHeight + 3),
+                y: 26 + CGFloat(index) * (Self.barHeight + 5),
                 width: width,
                 color: sidebarFaint
             )
         }
 
-        // A tab, then output lines: two prompts with a cursor block, and two
-        // wrapped result lines between them.
         let contentX = Self.sidebarWidth + Self.padding
+        let contentWidth = max(0, bounds.width - contentX - Self.padding)
         text.withAlphaComponent(0.12).setFill()
         NSBezierPath(
-            roundedRect: NSRect(x: contentX, y: Self.padding, width: 14, height: 5),
+            roundedRect: NSRect(x: contentX, y: 5, width: contentWidth * 0.35, height: 7),
             xRadius: 1.5,
             yRadius: 1.5
         ).fill()
 
-        bar(x: contentX, y: 14.5, width: 3, color: cursor)
-        bar(x: contentX + 5, y: 14.5, width: 22, color: text.withAlphaComponent(0.8))
-        bar(x: contentX, y: 20.5, width: 30, color: text.withAlphaComponent(0.45))
-        bar(x: contentX, y: 26.5, width: 16, color: text.withAlphaComponent(0.45))
-        bar(x: contentX, y: 32.5, width: 3, color: cursor)
-        bar(x: contentX + 5, y: 32.5, width: 7, color: text.withAlphaComponent(0.8))
+        bar(x: contentX, y: 26, width: 4, color: cursor)
+        bar(x: contentX + 7, y: 26, width: contentWidth * 0.45, color: text.withAlphaComponent(0.8))
+        bar(x: contentX, y: 35, width: contentWidth * 0.65, color: text.withAlphaComponent(0.45))
+        bar(x: contentX, y: 44, width: contentWidth * 0.4, color: text.withAlphaComponent(0.45))
+        bar(x: contentX, y: 53, width: 4, color: cursor)
+        bar(x: contentX + 7, y: 53, width: contentWidth * 0.2, color: text.withAlphaComponent(0.8))
     }
 
     private func bar(x: CGFloat, y: CGFloat, width: CGFloat, color: NSColor) {

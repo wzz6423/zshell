@@ -50,7 +50,9 @@ class PromptSelectionTests(unittest.TestCase):
                           '} else {\n'
                           'print(Session(launchDirectoryURL: directory, surface: Surface(foregroundPid: pid_t(CommandLine.arguments[3]))).terminalPromptSelectionIsReady)\n}\n')
         cls.helper = Path(cls.build.name) / "integration"
-        subprocess.run(["swiftc", str(helper), "-o", str(cls.helper)], check=True)
+        subprocess.run(["swiftc", str(helper),
+                        str(SOURCE.parent / "TerminalCommandTaskShellIntegration.swift"),
+                        "-o", str(cls.helper)], check=True)
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="zshell-prompt-'")
