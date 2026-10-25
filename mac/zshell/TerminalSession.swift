@@ -28,6 +28,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// Recognized coding agent occupying this terminal, if any. The monitor
     /// reconciles foreground process identity with explicit lifecycle events.
     @Published var agentStatus: ZshellAgentStatus?
+    @Published private(set) var agentResume: AgentConversationIdentity?
+    private(set) var agentConversationProcessID: pid_t?
 
     /// The emulator driving this session. Fixed for the session's lifetime —
     /// changing the setting only affects terminals opened afterwards.
@@ -82,15 +84,25 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         environmentPath: String? = nil,
         launchSettings: TerminalLaunchSettings = .init(),
         additionalEnvironment: [String: String] = [:],
+        agentResume: AgentConversationIdentity? = nil,
+        isRestoredSession: Bool = false,
         allowsPersistence: Bool = true
     ) {
         let sessionID = restoredSessionID ?? UUID()
         let existingPTY = restoredSessionID.flatMap { PersistentPTY.reconnect(id: $0) }
         let preserve = allowsPersistence && (AppSettings.shared.preserveTerminalSessions || existingPTY != nil)
-        let directCommand = commandArguments.flatMap { $0.isEmpty ? nil : $0 }
-            ?? Self.configuredStartupCommand()
+        let resumeLaunch = agentResume?.resumeLaunch(
+            enabled: isRestoredSession && AppSettings.shared.aiEnabled
+                && AppSettings.shared.resumeAgentConversations,
+            hasLiveTerminal: existingPTY != nil
+        )
+        let directCommand = resumeLaunch?.arguments
+            ?? commandArguments.flatMap { $0.isEmpty ? nil : $0 }
+            ?? (isRestoredSession ? nil : Self.configuredStartupCommand())
         let shellPath = directCommand?.first ?? Self.loginShell()
-        let directory = Self.validWorkingDirectory(existingPTY?.workingDirectory ?? initialDirectory)
+        let directory = Self.validWorkingDirectory(
+            existingPTY?.workingDirectory ?? resumeLaunch?.workingDirectory ?? initialDirectory
+        )
         let backend = AppSettings.shared.terminalBackend
         let artifacts = existingPTY.map {
             let integration = $0.launchDirectoryURL?.appendingPathComponent("zsh-integration", isDirectory: true)
@@ -108,15 +120,22 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             backend: backend,
             shellPath: shellPath,
             commandArguments: directCommand,
-            initializationCommand: directCommand == nil
+            initializationCommand: directCommand == nil && !isRestoredSession
                 ? launchSettings.initializationCommand : nil,
             pidFileURL: artifacts.pidFileURL,
             replayFileURL: artifacts.replayFileURL,
-            shellIntegrationDirectoryURL: artifacts.shellIntegrationDirectoryURL
+            shellIntegrationDirectoryURL: artifacts.shellIntegrationDirectoryURL,
+            resumeLaunch: resumeLaunch,
+            resumeFailed: isRestoredSession && AppSettings.shared.aiEnabled
+                && AppSettings.shared.resumeAgentConversations
+                && agentResume != nil && resumeLaunch == nil && existingPTY == nil
+        )
+        let launchEnvironment = additionalEnvironment.merging(
+            resumeLaunch?.environment ?? [:], uniquingKeysWith: { _, saved in saved }
         )
         var environment = Self.surfaceEnvironment(
             pathOverride: environmentPath, configuredEnvironment: launchSettings.environment,
-            sessionID: sessionID, additionalEnvironment: additionalEnvironment
+            sessionID: sessionID, additionalEnvironment: launchEnvironment
         )
         var canPersist = preserve
         if preserve {
@@ -149,7 +168,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                 ZshellCLIService.shared.revokeTerminal(id: sessionID)
                 var fallback = Self.surfaceEnvironment(
                     pathOverride: environmentPath, configuredEnvironment: launchSettings.environment,
-                    sessionID: sessionID, additionalEnvironment: additionalEnvironment
+                    sessionID: sessionID, additionalEnvironment: launchEnvironment
                 )
                 for key in ["ZSHELL_PERSISTENT_CONNECTION", "ZSHELL_PERSISTENT_TOKEN"] { fallback.removeValue(forKey: key) }
                 launch = TerminalLaunch(
@@ -174,6 +193,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             && artifacts.shellIntegrationDirectoryURL != nil
         title = (shellPath as NSString).lastPathComponent
         agentStatus = nil
+        self.agentResume = agentResume
 
         let surface = Self.makeSurface(backend: backend, launch: pty?.relayLaunch(from: launch) ?? launch)
         self.surface = surface
@@ -186,8 +206,18 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         installOverlayScrollbar()
         promptQueueBar.attach(queue: promptQueue, session: self)
         applyTheme()
+        if resumeLaunch != nil, let identity = agentResume,
+           let kind = ZshellAgentKind(rawValue: identity.provider.rawValue) {
+            declareAutomationAgent(alias: identity.alias ?? kind.rawValue, kind: kind)
+        }
         AgentAutomationMonitor.shared.register(self)
         pty?.startMonitoring()
+    }
+
+    func recordAgentConversation(_ identity: AgentConversationIdentity?, processID: pid_t?) {
+        agentConversationProcessID = processID
+        guard agentResume != identity else { return }
+        agentResume = identity
     }
 
     deinit {
@@ -563,7 +593,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         initializationCommand: String?,
         pidFileURL: URL?,
         replayFileURL: URL?,
-        shellIntegrationDirectoryURL: URL?
+        shellIntegrationDirectoryURL: URL?,
+        resumeLaunch: AgentConversationIdentity.ResumeLaunch? = nil,
+        resumeFailed: Bool = false
     ) -> String {
         var commands: [String] = []
         if let pidFileURL {
@@ -580,6 +612,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         if let replayFileURL {
             let path = shellQuote(replayFileURL.path)
             commands.append("if [ -r \(path) ]; then /bin/cat \(path); /bin/rm -f \(path); fi")
+        }
+        let resumeFailure = String(localized: "Could not resume the recorded agent conversation. Opening a new shell.")
+        if resumeFailed {
+            commands.append("printf '%s\\n' \(shellQuote(resumeFailure)) >&2")
         }
         // ZSHELL_TERM exposes the actual surface. TERM_PROGRAM remains a
         // capability hint so tools select protocols Zshell can actually render.
@@ -598,7 +634,24 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             // `env` resolves argv[0] against the caller's PATH. Every argument
             // is quoted independently, so no command text is reparsed or
             // expanded by the launch shim.
-            commands.append("exec /usr/bin/env -- \(argv)")
+            if let resumeLaunch {
+                // User CLI paths often come from interactive dotfiles, not
+                // the GUI's PATH. Reapply the original profile after dotfiles.
+                let resumeShell = Self.loginShell()
+                let unset = resumeLaunch.configurationVariables.subtracting(resumeLaunch.environment.keys)
+                    .sorted().map { "-u \(shellQuote($0))" }.joined(separator: " ")
+                let environment = resumeLaunch.environment.sorted { $0.key < $1.key }
+                    .map { shellQuote("\($0.key)=\($0.value)") }.joined(separator: " ")
+                let fallback = "printf '%s\\n' \(shellQuote(resumeFailure)) >&2; exec \(shellQuote(resumeShell)) -l"
+                let restore = "if command -v \(shellQuote(commandArguments[0])) >/dev/null 2>&1 "
+                    + "&& cd \(shellQuote(resumeLaunch.workingDirectory)); then "
+                    + "exec /usr/bin/env \(unset) -- \(environment) \(argv); else \(fallback); fi"
+                commands.append("if [ -n \"$ZSHELL_ORIGINAL_ZDOTDIR\" ]; then export ZDOTDIR=\"$ZSHELL_ORIGINAL_ZDOTDIR\"; fi")
+                commands.append("unset ZSHELL_INIT_COMMAND")
+                commands.append("exec \(shellQuote(resumeShell)) -l -i -c \(shellQuote("exec /bin/sh -c \(shellQuote(restore))"))")
+            } else {
+                commands.append("exec /usr/bin/env -- \(argv)")
+            }
         } else {
             let initialization = initializationCommand?.trimmingCharacters(
                 in: .whitespacesAndNewlines

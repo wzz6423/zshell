@@ -7,7 +7,8 @@ import Foundation
 
 /// Snapshot of open projects and tabs, saved so a relaunch restores the
 /// previous layout. Persistent terminal ids reconnect to live PTYs; terminals
-/// without one start a fresh shell, optionally replaying saved history.
+/// without one resume a verified provider conversation or start a fresh shell,
+/// optionally replaying saved history. File and diff panes reload from disk.
 struct SessionSnapshot: Codable {
     enum SidebarItemSnapshot: Codable, Equatable {
         case project(Int)
@@ -40,8 +41,37 @@ struct SessionSnapshot: Codable {
             /// nil for files, browsers, diffs, or when history restore is off.
             /// Optional so snapshots written before this feature still decode.
             var historyKey: String?
+            var agentResume: AgentConversationIdentity?
             /// Stable identity of a terminal, absent in pre-persistence snapshots.
-            var terminalID: UUID? = nil
+            var terminalID: UUID?
+
+            init(
+                content: PaneContentSnapshot,
+                weight: Double,
+                historyKey: String? = nil,
+                agentResume: AgentConversationIdentity? = nil,
+                terminalID: UUID? = nil
+            ) {
+                self.content = content
+                self.weight = weight
+                self.historyKey = historyKey
+                self.agentResume = agentResume
+                self.terminalID = terminalID
+            }
+
+            private enum CodingKeys: String, CodingKey {
+                case content, weight, historyKey, agentResume, terminalID
+            }
+
+            init(from decoder: any Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                content = try container.decode(PaneContentSnapshot.self, forKey: .content)
+                weight = try container.decode(Double.self, forKey: .weight)
+                historyKey = try container.decodeIfPresent(String.self, forKey: .historyKey)
+                terminalID = try container.decodeIfPresent(UUID.self, forKey: .terminalID)
+                // Unknown providers or a corrupt ID must not discard the layout.
+                agentResume = try? container.decodeIfPresent(AgentConversationIdentity.self, forKey: .agentResume)
+            }
         }
 
         struct ColumnSnapshot: Codable {

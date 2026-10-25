@@ -163,6 +163,14 @@ Cho tác nhân lập trình được hỗ trợ phối hợp ô nền khi bạn 
 
 Quy trình sử dụng nằm ở [Làm việc với tác nhân AI](/vi/docs/automation).
 
+### `ai.resume-conversations` [#airesume-conversations]
+
+boolean — mặc định `true`
+
+Khi khôi phục ngăn terminal và PTY gốc không còn khả dụng, tiếp tục đúng cuộc trò chuyện gốc đã lưu của Claude Code, Codex, Pi hoặc OpenCode. Cần `ai.enabled = true`. Ngăn không có cuộc trò chuyện được xác minh sẽ mở shell mới; Zshell không bao giờ chọn cuộc trò chuyện mới nhất theo thư mục.
+
+Điều khiển trong **Cài đặt → Tự động hóa → Tiếp tục cuộc trò chuyện của tác nhân**. Tùy chọn này độc lập với `terminal.restore-history`.
+
 ## Cài đặt bổ sung [#additional-settings]
 
 | Khóa | Mặc định | Giá trị / khoảng | Tác dụng |
@@ -213,6 +221,7 @@ terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
 ai.enabled = true
+ai.resume-conversations = true
 ```
 
 Mọi khóa đều tùy chọn. Xóa khóa để đưa thiết lập về mặc định.

@@ -188,3 +188,13 @@ not a token total for the focused session.
 - Check Settings for an inline setup error.
 - Ask explicitly for a "background Zshell pane" or a "delegated Zshell agent" if
   you want the agent to use this workflow for a task.
+
+## Resume the original conversation
+
+With **Resume agent conversations** enabled, reopening a terminal pane resumes its recorded Claude Code, Codex, Pi, or OpenCode conversation when the original PTY is unavailable. The conversation belongs to that pane, even when several panes use the same directory.
+
+Zshell installs SessionStart hooks for Claude Code and Codex, a Pi extension, and an OpenCode TUI plugin in existing provider configuration. Your other hooks, plugins, settings, and JSONC comments are preserved. Enable the hooks in Claude Code’s trust prompt and approve new Codex hooks in `/hooks` when the provider asks. Restart an agent that was running before installation.
+
+Only local root conversations reported by these integrations can be resumed. Codex requires an embedded local CLI (`--no-daemon`); shared daemons and remote connections are unsupported. OpenCode requires the TUI plugin API; older versions, headless server sessions, and `opencode attach` are unsupported. A child agent cannot replace the parent pane’s conversation. Pi requires its saved session file.
+
+No verified identity, a missing working directory, or an unavailable Pi file opens a new shell. An unavailable CLI also returns to a shell. Zshell does not replay an arbitrary startup command or pick a recent conversation. Provider errors such as a deleted conversation are displayed by the CLI.

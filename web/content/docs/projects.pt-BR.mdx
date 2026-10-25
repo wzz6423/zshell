@@ -96,7 +96,7 @@ O Zshell salva snapshots do layout durante o trabalho. Ao sair e reabrir, voltam
 - o layout de painéis de cada aba;
 - quais barras estavam abertas e qual painel direito estava selecionado.
 
-Os terminais voltam como **shells novos** nos diretórios anteriores. O Zshell não mantém processos rodando em segundo plano: uma compilação ativa para quando você sai.
+Se o PTY original estiver indisponível e **Retomar conversas de agentes** e o suporte a IA estiverem ativos, o Zshell retoma a conversa verificada de Claude Code, Codex, Pi ou OpenCode. Outros painéis abrem **novos shells** nos diretórios anteriores. A conversa mantém sua identidade; o Zshell não recupera uma compilação repetindo comandos.
 
 A saída anterior só volta se você ativar [`terminal.restore-history`](/pt-BR/docs/configuration#terminalrestore-history). A opção vem desativada porque o conteúdo restaurado é armazenado no disco.
 

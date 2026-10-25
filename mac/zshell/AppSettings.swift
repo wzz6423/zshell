@@ -389,6 +389,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var resumeAgentConversations: Bool {
+        didSet { save() }
+    }
+
     /// Which emulator drives terminal panes. Only ever holds a backend this
     /// build ships a surface for — see `TerminalBackend` — and a session binds
     /// its backend at creation, so a change here reaches terminals opened
@@ -506,6 +510,7 @@ final class AppSettings: nonisolated ObservableObject {
             paneFocusRingOpacity
         ) ? paneFocusRingOpacity : Self.defaultPaneFocusRingOpacity
         aiEnabled = toml["ai.enabled"]?.bool ?? true
+        resumeAgentConversations = toml["ai.resume-conversations"]?.bool ?? true
         terminalBackend = TerminalBackend(persisted: toml["terminal.backend"]?.string)
         terminalStartupProgram = toml["terminal.startup-program"]?.string ?? ""
         terminalStartupArguments = toml["terminal.startup-arguments"]?.string ?? ""
@@ -614,6 +619,7 @@ final class AppSettings: nonisolated ObservableObject {
             && showPaneFocusRing
             && Self.paneFocusRingOpacityMatchesDefault(paneFocusRingOpacity)
             && aiEnabled
+            && resumeAgentConversations
             && terminalBackend == .fallback
             && terminalStartupProgram.isEmpty
             && terminalStartupArguments.isEmpty
@@ -660,6 +666,7 @@ final class AppSettings: nonisolated ObservableObject {
         terminalBackend = .fallback
         terminalStartupProgram = ""
         terminalStartupArguments = ""
+        resumeAgentConversations = true
     }
 
     /// The effective shortcut for a command: its recorded binding, or the
@@ -772,6 +779,7 @@ final class AppSettings: nonisolated ObservableObject {
         restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? false
         preserveTerminalSessions = toml["terminal.preserve-sessions"]?.bool ?? false
         copyOnSelect = toml["terminal.copy-on-select"]?.bool ?? true
+        resumeAgentConversations = toml["ai.resume-conversations"]?.bool ?? true
         let quickTerminalSize = toml["quick-terminal.size"]?.double
             ?? Self.defaultQuickTerminalSize
         self.quickTerminalSize = Self.quickTerminalSizeRange.contains(quickTerminalSize)
@@ -835,6 +843,11 @@ final class AppSettings: nonisolated ObservableObject {
                 destinations: ZshellAutomationSkill.Destination.allCases,
                 force: false
             )
+        } catch {
+            NSLog("zshell: failed to refresh AI automation skill: \(error)")
+        }
+        // A local skill edit must not prevent independent provider session hooks.
+        do {
             try ZshellAgentIntegrations.installAvailable()
             try ZshellAgentLifecycleHooks.installAvailable()
         } catch {
@@ -971,6 +984,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if !aiEnabled {
             lines.append("ai.enabled = false")
+        }
+        if !resumeAgentConversations {
+            lines.append("ai.resume-conversations = false")
         }
         if terminalBackend != .fallback {
             lines.append("terminal.backend = \(TOML.quote(terminalBackend.rawValue))")

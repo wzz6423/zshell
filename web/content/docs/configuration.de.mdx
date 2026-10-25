@@ -163,6 +163,14 @@ Ermöglicht unterstützten Programmieragenten, auf Ihre natürlichsprachliche Bi
 
 Den Ablauf beschreibt [Mit KI-Agenten arbeiten](/de/docs/automation).
 
+### `ai.resume-conversations` [#airesume-conversations]
+
+Boolescher Wert — Standard `true`
+
+Beim Wiederherstellen von Terminalbereichen wird das genaue gespeicherte Gespräch mit Claude Code, Codex, Pi oder OpenCode fortgesetzt, wenn das ursprüngliche PTY nicht verfügbar ist. Erfordert `ai.enabled = true`. Ohne bestätigtes Gespräch öffnet der Bereich eine neue Shell; Zshell wählt niemals das letzte Gespräch anhand des Verzeichnisses.
+
+Die Option steht unter **Einstellungen → Automatisierung → Agentengespräche fortsetzen**. Sie ist unabhängig von `terminal.restore-history`.
+
 ## Weitere Einstellungen [#additional-settings]
 
 | Schlüssel | Standard | Werte / Bereich | Wirkung |
@@ -213,6 +221,7 @@ terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
 ai.enabled = true
+ai.resume-conversations = true
 ```
 
 Jeder Schlüssel ist optional. Entfernen Sie einen Schlüssel, um dessen Standardwert wiederherzustellen.

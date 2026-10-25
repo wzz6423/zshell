@@ -327,6 +327,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         commandArguments: [String]? = nil,
         environmentPath: String? = nil,
         launchSettings: TerminalLaunchSettings? = nil,
+        agentResume: AgentConversationIdentity? = nil,
+        isRestoredSession: Bool = false,
         restoredSessionID: UUID? = nil
     ) -> TerminalSession {
         let initialDirectory: String?
@@ -380,7 +382,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             restoredSessionID: restoredSessionID,
             environmentPath: environmentPath,
             launchSettings: launchSettings ?? self.launchSettings,
-            additionalEnvironment: additionalEnvironment
+            additionalEnvironment: additionalEnvironment,
+            agentResume: isRemote ? nil : agentResume,
+            isRestoredSession: isRestoredSession
         )
         register(session)
         if let sshMaterial {
@@ -1287,6 +1291,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 from: pane.content,
                 restoredHistory: restoredHistory,
                 launchSettings: launchSettings,
+                agentResume: pane.agentResume,
                 restoredSessionID: pane.terminalID
             )))
         case .split(let axis, let fraction, let first, let second):
@@ -1311,6 +1316,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         from snap: SessionSnapshot.ProjectSnapshot.PaneContentSnapshot,
         restoredHistory: String? = nil,
         launchSettings: TerminalLaunchSettings,
+        agentResume: AgentConversationIdentity? = nil,
         restoredSessionID: UUID? = nil
     ) -> PaneContent {
         switch snap {
@@ -1319,6 +1325,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 directory: workingDirectory,
                 restoredHistory: restoredHistory,
                 launchSettings: launchSettings,
+                agentResume: agentResume,
+                isRestoredSession: true,
                 restoredSessionID: restoredSessionID
             ))
         case .file(let path, let editorState):

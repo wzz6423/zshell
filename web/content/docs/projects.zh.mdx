@@ -126,7 +126,7 @@ Zshell 会随着你的操作持续快照布局，所以退出再打开会拿回�
 - 每个标签页里的窗格布局
 - 哪些侧边栏是打开的、右侧选中的是哪个面板
 
-终端会在原目录里以**全新的 shell** 回来。Zshell 不会在后台留着进程——退出时如果有构建在跑，它就在退出时停了。
+原终端 PTY 不可用时，若启用了 **恢复 Agent 对话** 和 AI 支持，Zshell 会继续已验证的 Claude Code、Codex、Pi 或 OpenCode 原对话。其他窗格在原目录打开**新 shell**。对话按原身份恢复；Zshell 不会重放命令来恢复运行中的构建。
 
 之前的滚动历史只有你主动要求才会恢复，开关是
 [`terminal.restore-history`](/docs/configuration#terminalrestore-history)。它默认关着，因为恢复的滚动历史会保存在磁盘上。

@@ -96,7 +96,7 @@ Zshell menyimpan cuplikan tata letak selama Anda bekerja. Saat keluar lalu membu
 - tata letak panel dalam setiap tab;
 - bilah samping yang terbuka dan panel kanan yang dipilih.
 
-Terminal kembali sebagai **shell baru** di direktori sebelumnya. Zshell tidak mempertahankan proses di latar belakang; build yang berjalan ketika Anda keluar akan berhenti saat itu juga.
+Jika PTY asal tidak tersedia dan **Lanjutkan percakapan agen** serta dukungan AI aktif, Zshell melanjutkan percakapan terverifikasi dari Claude Code, Codex, Pi, atau OpenCode. Panel lain membuka **shell baru** di direktori sebelumnya. Percakapan mempertahankan identitasnya; Zshell tidak memulihkan build dengan mengulang perintah.
 
 Riwayat keluaran lama hanya dipulihkan jika Anda mengaktifkan [`terminal.restore-history`](/id/docs/configuration#terminalrestore-history). Bawaan fitur ini mati karena riwayat yang dipulihkan disimpan di disk.
 

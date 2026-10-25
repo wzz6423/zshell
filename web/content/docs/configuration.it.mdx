@@ -163,6 +163,14 @@ Consente agli agenti di programmazione supportati di coordinare pannelli Zshell 
 
 Il flusso di lavoro è descritto in [Lavorare con gli agenti IA](/it/docs/automation).
 
+### `ai.resume-conversations` [#airesume-conversations]
+
+booleano — predefinito `true`
+
+Quando vengono ripristinati i pannelli del terminale, riprende esattamente la conversazione originale registrata di Claude Code, Codex, Pi o OpenCode se il PTY originale non è disponibile. Richiede `ai.enabled = true`. Senza una conversazione verificata, il pannello apre una nuova shell; Zshell non sceglie mai l’ultima conversazione in base alla cartella.
+
+Si controlla in **Impostazioni → Automazione → Riprendi le conversazioni degli agenti**. È indipendente da `terminal.restore-history`.
+
 ## Altre impostazioni [#additional-settings]
 
 | Chiave | Predefinito | Valori / intervallo | Effetto |
@@ -213,6 +221,7 @@ terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
 ai.enabled = true
+ai.resume-conversations = true
 ```
 
 Ogni chiave è facoltativa. Elimina una chiave per ripristinarne il valore predefinito.

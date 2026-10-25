@@ -238,17 +238,18 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
                 Darwin.close(client)
                 continue
             }
+            let peerProcessID = Self.peerProcessID(client)
             workers.async { [weak self] in
                 guard let self else {
                     Darwin.close(client)
                     return
                 }
-                self.readRequest(from: client)
+                self.readRequest(from: client, peerProcessID: peerProcessID)
             }
         }
     }
 
-    private func readRequest(from client: Int32) {
+    private func readRequest(from client: Int32, peerProcessID: pid_t?) {
         var data = Data()
         var buffer = [UInt8](repeating: 0, count: 8_192)
 
@@ -290,6 +291,7 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
         var request: ZshellAutomationRequest
         do {
             request = try JSONDecoder().decode(ZshellAutomationRequest.self, from: data)
+            request.peerProcessID = peerProcessID
         } catch {
             respond(
                 .failure(
@@ -301,11 +303,6 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
             return
         }
 
-        var peer = pid_t(0)
-        var peerSize = socklen_t(MemoryLayout<pid_t>.size)
-        if getsockopt(client, SOL_LOCAL, LOCAL_PEERPID, &peer, &peerSize) == 0, peer > 1 {
-            request.peerProcessID = peer
-        }
         handler(request) { [weak self] response in
             guard let self else {
                 Darwin.close(client)
@@ -313,6 +310,14 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
             }
             self.workers.async { self.respond(response, to: client) }
         }
+    }
+
+    private static func peerProcessID(_ descriptor: Int32) -> pid_t? {
+        var pid: pid_t = 0
+        var length = socklen_t(MemoryLayout<pid_t>.size)
+        guard getsockopt(descriptor, SOL_LOCAL, LOCAL_PEERPID, &pid, &length) == 0,
+              length == MemoryLayout<pid_t>.size, pid > 1 else { return nil }
+        return pid
     }
 
     private func respond(_ response: ZshellAutomationResponse, to client: Int32) {

@@ -163,6 +163,14 @@ Permet aux agents de programmation compatibles de coordonner des volets Zshell e
 
 Le déroulement est expliqué dans [Travailler avec des agents IA](/fr/docs/automation).
 
+### `ai.resume-conversations` [#airesume-conversations]
+
+booléen — valeur par défaut `true`
+
+Lors de la restauration des volets de terminal, reprend exactement la conversation enregistrée de Claude Code, Codex, Pi ou OpenCode si le PTY d’origine est indisponible. Nécessite `ai.enabled = true`. Sans conversation vérifiée, le volet ouvre un nouveau shell ; Zshell ne choisit jamais la dernière conversation selon le répertoire.
+
+Activez cette option dans **Réglages → Automatisation → Reprendre les conversations des agents**. Elle est indépendante de `terminal.restore-history`.
+
 ## Autres réglages [#additional-settings]
 
 | Clé | Valeur par défaut | Valeurs / plage | Effet |
@@ -214,6 +222,7 @@ terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
 ai.enabled = true
+ai.resume-conversations = true
 ```
 
 Toutes les clés sont facultatives. Supprimez une clé pour rétablir sa valeur par défaut.

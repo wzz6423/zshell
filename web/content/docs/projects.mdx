@@ -165,9 +165,7 @@ Zshell snapshots your layout as you work, so quitting and reopening gives you ba
 - the pane layout inside each tab
 - which sidebars were open and which right panel was selected
 
-Terminals come back as **fresh shells** in their old directories. Zshell doesn't
-keep processes alive in the background — if a build was running when you quit, it
-stopped when you quit.
+If a terminal’s original PTY is unavailable, Zshell resumes its verified Claude Code, Codex, Pi, or OpenCode conversation when **Resume agent conversations** and AI support are enabled. Other panes open **fresh shells** in their previous directories. The resumed conversation keeps its own identity; Zshell does not recover a running build by replaying commands.
 
 Previous scrollback is restored only if you ask for it, with
 [`terminal.restore-history`](/en/docs/configuration#terminalrestore-history). It's
