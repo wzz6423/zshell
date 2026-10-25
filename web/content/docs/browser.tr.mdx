@@ -39,3 +39,23 @@ Terminalde normal Command-tıklama algılanmış web URL’sini varsayılan tara
 Sekme veya proje değiştirmek sayfanın geçmişini, kaydırma konumunu, formlarını ve sayfa içi durumunu korur. Zshell yeniden açıldığında geçerli URL ve düzen geri gelir; tam ileri/geri geçmişi geri gelmez.
 
 Tarayıcı bölmeleri çerezleri, girişleri ve diğer site verilerini sekmeler ve uygulama açılışları arasında saklar. Bu, özel gezinme modu değildir.
+
+## Sayfayı bir Agent ile test etme [#let-an-agent-test-the-page]
+
+Kodlama Agent’ınızdan bu projede açık olan sayfayı incelemesini, bir formu doldurmasını, sonucu kontrol etmesini veya görünür alanı yakalamasını isteyin. Mevcut tarayıcı oturumunu kullanır ve varsayılan olarak odağı terminalde tutar. Yerel geliştirme URL’sini arka plandaki bir tarayıcı bölmesinde de açabilir.
+
+Betikler için bu komutları Zshell terminalinde çalıştırın. Döndürülen `browser_id` değerini kaydedip aşağıdaki `BROWSER_ID` yerine yazın:
+
+```sh
+zshell +browser list
+zshell +browser open http://localhost:3000 --wait
+zshell +browser snapshot --browser BROWSER_ID
+zshell +browser fill --browser BROWSER_ID --selector '#search' --text 'terminal'
+zshell +browser click --browser BROWSER_ID --selector 'button[type="submit"]'
+zshell +browser wait --browser BROWSER_ID --selector '#results' --timeout 10000
+zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
+```
+
+Anlık görüntüler ana çerçevenin metnini, erişilebilir etiketleri ve öğe başvurularını döndürür. Sayfa değiştiğinde veya işlem yapıldığında başvuruların süresi dolar; yeniden kullanmadan önce yeni görüntü alın. CSS seçicisi tam bir öğeyle eşleşmelidir. Gezinme için `navigate`, `back`, `forward`, `reload` ve `stop` kullanın.
+
+Otomasyon yalnızca tam HTTP/HTTPS URL’lerini ve `about:blank` adresini kabul eder. Diğer protokoller, indirmeler, dosya seçiciler ve yerel iletişim kutuları doğrudan etkileşiminizi gerektirir. Adres veya araç çubuğundan elle gezinince bu kısıtlama kalkar. Komutlar çağıran terminalin projesi ve penceresi içinde kalır. `--timeout` 100–30000 milisaniyedir. Anlık görüntüler en çok 200 öğe, 32768 metin karakteri ve 256 KiB içerir; parola ve dosya değerleri dışarıda tutulur. Görünür alanın PNG görüntüleri en çok 512 KiB olur, bölmenin daha önce gösterilmiş olmasını gerektirir ve dosyaların üzerine yazmaz. Gerekirse `--width` değerini azaltın. Tam sözdizimi için `zshell +browser --help` kullanın.

@@ -39,3 +39,23 @@ Zshell은 모든 탭이나 분할 창에 내장 브라우저를 표시할 수 �
 탭이나 프로젝트를 전환해도 페이지의 탐색 기록, 스크롤 위치, 양식과 페이지 내부 상태가 그대로 유지됩니다. Zshell을 다시 실행하면 현재 URL과 배치가 복원되지만 전체 뒤로/앞으로 기록은 복원되지 않습니다.
 
 브라우저 분할 창은 탭을 전환하거나 앱을 다시 실행해도 쿠키, 로그인 및 기타 사이트 데이터를 유지합니다. 비공개 브라우징 모드가 아닙니다.
+
+## Agent로 페이지 테스트하기 [#let-an-agent-test-the-page]
+
+코딩 Agent에게 현재 프로젝트에서 열린 페이지 확인, 양식 입력, 결과 검증 또는 표시 영역 캡처를 요청할 수 있습니다. 기존 브라우저 세션을 사용하며 기본적으로 터미널 포커스를 유지합니다. 로컬 개발 URL을 백그라운드 브라우저 창으로 열 수도 있습니다.
+
+스크립트에서는 Zshell 터미널 안에서 다음 명령을 실행하세요. 반환된 `browser_id`를 기록하고 아래 `BROWSER_ID`를 바꾸세요:
+
+```sh
+zshell +browser list
+zshell +browser open http://localhost:3000 --wait
+zshell +browser snapshot --browser BROWSER_ID
+zshell +browser fill --browser BROWSER_ID --selector '#search' --text 'terminal'
+zshell +browser click --browser BROWSER_ID --selector 'button[type="submit"]'
+zshell +browser wait --browser BROWSER_ID --selector '#results' --timeout 10000
+zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
+```
+
+스냅샷은 기본 프레임의 텍스트, 접근성 레이블 및 요소 참조를 반환합니다. 페이지 변경이나 작업 후에는 참조가 만료되므로 다시 사용하기 전에 새 스냅샷을 얻으세요. CSS 선택기는 요소 하나에만 일치해야 합니다. 탐색에는 `navigate`, `back`, `forward`, `reload`, `stop`을 사용합니다.
+
+자동화는 전체 HTTP/HTTPS URL과 `about:blank`만 허용합니다. 다른 프로토콜, 다운로드, 파일 선택기 및 기본 대화 상자는 직접 조작해야 합니다. 주소 표시줄이나 도구 모음으로 수동 탐색하면 이 제한이 해제됩니다. 명령은 호출한 터미널의 프로젝트와 창 안에서만 작동합니다. `--timeout`은 100–30000밀리초입니다. 스냅샷은 최대 200개 요소, 32768자, 256 KiB이며 암호 및 파일 입력 값은 제외합니다. PNG는 표시 영역만 최대 512 KiB로 캡처하며 창을 한 번 표시해야 하고 기존 파일은 덮어쓰지 않습니다. `--width`로 줄일 수 있습니다. 전체 구문은 `zshell +browser --help`에서 확인하세요.

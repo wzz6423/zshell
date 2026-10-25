@@ -569,7 +569,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     @discardableResult
     func newBrowserTab(
         initialURL: String? = nil,
-        initialFocus: BrowserTab.InitialFocus = .addressBar
+        initialFocus: BrowserTab.InitialFocus = .addressBar,
+        focus: Bool = true
     ) -> BrowserTab {
         let context = selectedSession
         let browser = makeBrowser(
@@ -579,7 +580,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         let tab = makeTab(content: .browser(browser))
         tab.contextSession = context
         insertNextToSelected(tab)
-        selectedTabID = tab.id
+        if focus { selectedTabID = tab.id }
         return browser
     }
 
@@ -589,14 +590,26 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     func newBrowserPane(
         toward edge: PaneDropEdge = .right,
         initialURL: String? = nil,
-        initialFocus: BrowserTab.InitialFocus = .addressBar
+        initialFocus: BrowserTab.InitialFocus = .addressBar,
+        beside targetPaneID: UUID? = nil,
+        focus: Bool = true
     ) -> BrowserTab? {
-        guard let tab = selectedTab, tab.canSplit else { return nil }
+        let tab = targetPaneID.flatMap { id in
+            tabs.first(where: { $0.layout.contains(id) })
+        } ?? selectedTab
+        guard let tab,
+              let target = tab.allPanes.first(where: {
+                  $0.id == (targetPaneID ?? tab.focusedPaneID)
+              }), !target.content.isDiff else { return nil }
         let browser = makeBrowser(
             initialURL: initialURL,
             initialFocus: initialFocus
         )
-        tab.split(Pane(content: .browser(browser)), toward: edge)
+        tab.split(
+            Pane(content: .browser(browser)), toward: edge,
+            beside: target.id, focusInserted: focus
+        )
+        if focus { selectedTabID = tab.id }
         return browser
     }
 
