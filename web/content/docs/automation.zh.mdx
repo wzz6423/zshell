@@ -61,9 +61,59 @@ Zshell 的自动化接口由 agent 自己调用，你不需要输入或记住任
 | **Blocked** | 它需要你的输入、批准或决定。 |
 | **Done** | 它已经在后台完成，而你还没有查看那个窗格。 |
 
-Zshell 会把自己刚提交的 prompt 记为 **Working**，但不会扫描终端里渲染的文字来猜测后续状态。**Blocked**、**Done** 及其通知都必须来自 provider 的生命周期报告。如果某个 agent 没有提供这类报告，请直接查看它的窗格和实际项目改动，不要依赖猜测出来的状态。
+Zshell 优先采用 Codex、Claude Code、Pi、OpenCode 和 Grok 的原生生命周期事件，其次采用程序主动报告。将鼠标停在状态标记上，或打开 **Agents**，可以看到来源、等待原因、百分比和子任务。Codex 的 hook 需要先在其 `/hooks` 菜单中审阅并信任，Zshell 不会绕过这一步。
+
+对于已经识别、但尚无原生报告的 Agent 进程，Zshell 可以检查有界的当前屏幕底部。**屏幕推断**会明确标注来源，不报告完成、不发送通知，也不能满足 `zshell +agent wait`。它不会批准提示。确认任务完成前，仍需查看窗格和实际结果。
+
+程序可以通过 `zshell +agent report` 报告进度，通过 `zshell +agent clear` 清除自己的报告。报告超过 120 秒未更新，或所属进程退出后，会自动失效。详见[程序主动报告](#program-reports)。
 
 当集成报告 agent 已完成或需要输入时，Zshell 还可以发送通知。按 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>，会跳到下一个已报告且需要你处理的 agent。
+
+## 程序主动报告 [#program-reports]
+
+在 Zshell 终端中运行的脚本和工具，可以主动报告自己的状态：
+
+```sh
+zshell +agent report working --name Build --progress 25 --reason '正在编译'
+zshell +agent report blocked --name Build --attention approval --reason '发布前需要审阅'
+zshell +agent clear
+```
+
+`running` 是 `working` 的别名；`approval`、`input`、`login`、`error` 是带对应等待原因的
+`blocked` 简写。其他状态为 `done`、`idle` 和 `unknown`。`done` 是程序自己的报告，
+不代表 Zshell 已验证命令成功。报告不会触发自动回答或批准。
+当前聚焦窗格中的完成状态已经被查看，因此 `done` 会显示为 `idle`，百分比和子任务详情仍然保留。
+API 读取不会把后台完成标为已读，只有聚焦那个窗格才会确认查看。
+
+多个子任务可以通过 `--tasks` 传入 JSON 数组，也可以将完整 JSON 送到
+`zshell +agent report --json` 的标准输入：
+
+```json
+{
+  "name": "Build",
+  "state": "working",
+  "progress": 50,
+  "tasks": [
+    { "id": "compile", "title": "编译", "state": "done", "progress": 100 },
+    { "id": "tests", "title": "测试", "state": "working", "progress": 20 }
+  ]
+}
+```
+
+每次报告会替换之前的程序报告和子任务列表，子任务 ID 必须唯一。百分比必须是 0–100 的整数。
+子任务需要处理时，父任务也会显示等待；仍有子任务在运行时，父任务不会提前显示空闲或完成。
+最多支持 32 个子任务，提示中预览前 8 个并显示总数，`zshell +agent get --current` 返回完整列表。
+名称最多 128 个 UTF-8 字节、原因最多 1 KiB、子任务 ID 最多 128 字节、标题最多 256 字节，
+标准输入 JSON 最多 32 KiB。文字必须为单行，且不能包含终端控制字符。
+每个终端每秒最多接受 10 次更新。
+
+报告默认绑定 CLI 的父进程。`--pid PID`（或 JSON 的 `process_id`）可以指定同一终端内
+仍然存活的 CLI 祖先进程；PID 和进程启动时间都必须匹配。长任务需要至少每 120 秒刷新一次。
+关闭终端、所属进程退出或报告过期后，状态会清除。`clear` 只清除程序自己的报告，不清除提供方的原生状态。
+
+接口复用 Zshell 经过授权的私有 Unix socket，同时适用于 Ghostty 和 Alacritty，不提供其他窗格或项目的目标参数。
+打印终端文字或 OSC 序列不能冒充原生生命周期报告。原生事件优先于程序报告，屏幕推断的优先级更低，
+且始终不能作为任务结果或批准依据。
 
 <span id="账户用量与限制" data-canonical-heading="account-usage-and-limits" />
 

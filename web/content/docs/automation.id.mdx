@@ -57,9 +57,11 @@ Panel delegasi tetap di latar belakang kecuali Anda meminta melihatnya. Ketika i
 | **Terhambat (Blocked)** | Agen membutuhkan input, persetujuan, atau keputusan Anda. |
 | **Selesai (Done)** | Agen selesai di latar belakang dan panelnya belum Anda lihat. |
 
-Zshell mencatat instruksi yang dikirimnya sebagai **Bekerja**, tetapi tidak memindai teks terminal untuk menebak kejadian selanjutnya.
-Peralihan ke **Terhambat** dan **Selesai**, beserta notifikasinya, memerlukan laporan siklus hidup penyedia.
-Jika agen tidak menyediakannya, periksa panel dan perubahan proyek secara langsung, bukan mengandalkan status tebakan.
+Zshell memprioritaskan peristiwa bawaan Codex, Claude Code, Pi, OpenCode, dan Grok, lalu laporan eksplisit program. Arahkan penunjuk ke lencana atau buka **Agents** untuk melihat sumber, alasan menunggu, persentase, dan subtugas. Hook Codex harus ditinjau dan dipercaya melalui `/hooks`; Zshell tidak melewatinya.
+
+Tanpa laporan bawaan, hanya bagian terbatas dari bawah layar aktif proses agen yang dikenali yang diperiksa. **Inferensi layar** diberi label, tidak melaporkan penyelesaian, tidak mengirim notifikasi, dan tidak memenuhi `zshell +agent wait`. Inferensi tidak memberikan persetujuan. Periksa panel dan hasil sebenarnya.
+
+Program melaporkan progres dengan `zshell +agent report` dan menghapus laporannya sendiri dengan `zshell +agent clear`. Laporan kedaluwarsa setelah 120 detik tanpa pembaruan atau saat proses pemilik berakhir.
 
 Saat integrasi melaporkan penyelesaian atau kebutuhan input, Zshell juga dapat mengirim notifikasi.
 Tekan <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> untuk menuju agen berikutnya yang dilaporkan memerlukan perhatian.
