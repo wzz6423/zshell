@@ -2,7 +2,7 @@ import Foundation
 
 private actor ToolFixture {
     var formulae = ["fzf": "0.60.0", "python@3.14": "3.14.0"]
-    var casks = ["kero": "0.1.47"]
+    var casks = ["kakuku": "0.1.47", "kero": "0.1.47"]
     var commands: [[String]] = []
     var metadataRequests: [URL] = []
     var failFzfUpgrade = false
@@ -95,9 +95,10 @@ struct RecommendedToolTests {
             homeDirectory: URL(fileURLWithPath: "/nonexistent-zshell-test-home"),
             applicationDirectories: []
         )
-        expect(RecommendedTool.allCases.count == 46, "46 recommendations remain available")
-        expect(RecommendedToolGroup.allCases.map { group in RecommendedTool.allCases.filter { $0.group == group }.count } == [11, 7, 21, 3, 4], "preserve the five recommendation groups")
+        expect(RecommendedTool.allCases.count == 45, "45 recommendations remain available")
+        expect(RecommendedToolGroup.allCases.map { group in RecommendedTool.allCases.filter { $0.group == group }.count } == [11, 7, 21, 3, 3], "preserve the five recommendation groups")
         expect(RecommendedTool(rawValue: "zshell") == nil, "the running app is not recommended to itself")
+        expect(RecommendedTool(rawValue: "kero") == nil, "Kero is no longer recommended")
         expect(service.missingTools.isEmpty, "unchecked inventory must not enable install-all")
         await service.refresh(force: true)
         expect(service.states[.fzf]?.installedVersion == "0.60.0", "detect Homebrew formula")
@@ -110,7 +111,8 @@ struct RecommendedToolTests {
         let afterRefresh = await fixture.commands
         expect(!afterRefresh.contains { ["install", "upgrade", "tap"].contains($0.first ?? "") }, "automatic checks never mutate packages or taps")
         let requests = await fixture.metadataRequests
-        expect(requests.count == 46, "check every recommended tool")
+        expect(requests.count == 45, "check every recommended tool")
+        expect(!requests.contains { $0.absoluteString.contains("kero") }, "removed Kero metadata is never requested")
         expect(requests.contains(URL(string: "https://api.github.com/repos/wzz6423/homebrew-tap/contents/Casks/zisla.rb?ref=main")!), "Zisla metadata uses the installable tap recipe")
         await service.refresh()
         let cachedRequests = await fixture.metadataRequests
@@ -143,11 +145,12 @@ struct RecommendedToolTests {
         await service.install(service.updatableTools)
         expect(service.states[.fzf]?.error?.contains("fixture download failed") == true, "failed download remains visible")
         expect(service.states[.python]?.installedVersion == "3.14.2", "batch continues after a failure and resolves Python alias")
-        expect(service.states[.kero]?.installedVersion == "0.1.48", "batch updates cask after earlier failure")
+        expect(service.states[.kaku]?.installedVersion == "0.1.48", "batch updates cask after earlier failure")
         expect(service.states[.zisla]?.installedVersion == "0.1.11", "batch updates Zisla after earlier failure")
         let afterBatch = await fixture.commands
         expect(afterBatch.contains(["upgrade", "--formula", "python"]), "managed Python uses upgrade")
-        expect(afterBatch.contains(["upgrade", "--cask", "--greedy-auto-updates", "egoist/tap/kero"]), "explicit cask upgrade includes apps with automatic updates")
+        expect(afterBatch.contains(["upgrade", "--cask", "--greedy-auto-updates", "tw93/tap/kakuku"]), "explicit cask upgrade includes apps with automatic updates")
+        expect(!afterBatch.contains { $0.contains("kero") || $0.contains("egoist/tap/kero") || $0.contains("egoist/tap") }, "removed Kero is never installed, upgraded, or tapped")
         expect(afterBatch.contains(["upgrade", "--cask", "--greedy-auto-updates", "wzz6423/tap/zisla"]), "update-all upgrades Zisla through its cask")
         expect(!service.isBusy && service.activeTool == nil, "batch always releases busy state")
 
