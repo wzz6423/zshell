@@ -831,6 +831,11 @@ final class AppSettings: nonisolated ObservableObject {
                 destinations: ZshellAutomationSkill.Destination.allCases,
                 force: false
             )
+        } catch {
+            NSLog("zshell: failed to refresh AI automation skill: \(error)")
+        }
+        // A local skill edit must not prevent independent provider session hooks.
+        do {
             try ZshellAgentIntegrations.installAvailable()
         } catch {
             NSLog("zshell: failed to refresh AI support: \(error)")
