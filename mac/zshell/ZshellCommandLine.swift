@@ -78,6 +78,7 @@ final class AppConnection {
     private let terminalID: String?
 
     init(environment: [String: String] = ProcessInfo.processInfo.environment) throws {
+        let environment = try PersistentCLIConnection.resolvedEnvironment(environment)
         guard let statePath = environment["ZSHELL_CLI_STATE"],
               let token = environment["ZSHELL_CLI_TOKEN"],
               !statePath.isEmpty,

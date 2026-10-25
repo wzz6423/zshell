@@ -6,11 +6,8 @@
 import Foundation
 
 /// Snapshot of open projects and tabs, saved so a relaunch restores the
-/// previous layout. Terminal sessions restore as fresh shells started in
-/// their last known working directory — with their previous scrollback
-/// replayed above the prompt when the "Restore session history" setting is on
-/// (see `historyKey` and `TerminalHistoryStore`); file and diff panes reload
-/// from disk.
+/// previous layout. Persistent terminal ids reconnect to live PTYs; terminals
+/// without one start a fresh shell, optionally replaying saved history.
 struct SessionSnapshot: Codable {
     enum SidebarItemSnapshot: Codable, Equatable {
         case project(Int)
@@ -43,6 +40,8 @@ struct SessionSnapshot: Codable {
             /// nil for files, browsers, diffs, or when history restore is off.
             /// Optional so snapshots written before this feature still decode.
             var historyKey: String?
+            /// Stable identity of a terminal, absent in pre-persistence snapshots.
+            var terminalID: UUID? = nil
         }
 
         struct ColumnSnapshot: Codable {

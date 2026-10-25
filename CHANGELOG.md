@@ -18,6 +18,10 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Optionally keep shell, agent, and development server sessions running when
+  quitting Zshell, then reconnect to their original terminal state on reopening.
+  Closing a pane, project, or window ends its sessions; use Quit and End All
+  Sessions to stop all background work when exiting.
 - Run commands in background panes and wait for a task's own exit status,
   duration, and saved recent output, including waiting again after a timeout.
 
