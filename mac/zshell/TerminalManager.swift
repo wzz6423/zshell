@@ -1760,8 +1760,12 @@ final class TerminalManager: nonisolated ObservableObject {
         switch layout {
         case .pane(let pane):
             var historyKey: String?
+            var agentResume: AgentConversationIdentity?
             var terminalID: UUID?
-            if case .session(let session) = pane.content { terminalID = session.id }
+            if case .session(let session) = pane.content {
+                agentResume = session.conversationIdentityForPersistence
+                terminalID = session.id
+            }
             if case .session(let session) = pane.content,
                let history = session.serializedHistory(
                    captureLive: captureTerminalHistory
@@ -1774,6 +1778,7 @@ final class TerminalManager: nonisolated ObservableObject {
                 content: contentSnapshot(pane.content),
                 weight: 1,
                 historyKey: historyKey,
+                agentResume: agentResume,
                 terminalID: terminalID
             ))
         case .split(let split):

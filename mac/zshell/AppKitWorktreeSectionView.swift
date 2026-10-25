@@ -344,6 +344,7 @@ private final class GitWorktreeRowButton: NSButton {
         setAccessibilityHelp(worktree.isBare ? String(localized: "Bare repositories cannot be opened in a terminal tab")
             : String(localized: "Opens a new terminal tab in this worktree"))
         let menu = NSMenu()
+        menu.autoenablesItems = false
         let removeItem = NSMenuItem(
             title: String(localized: "Remove Worktree"),
             action: #selector(removeWorktreeClicked), keyEquivalent: ""

@@ -89,3 +89,13 @@ Codex nécessite une CLI installée, connectée et capable de rapporter les limi
 - Redémarrez l'agent s'il était déjà en cours d'exécution.
 - Vérifiez si une erreur de configuration apparaît dans Réglages.
 - Demandez explicitement un « volet Zshell en arrière-plan » ou un « agent Zshell délégué » pour utiliser ce fonctionnement dans votre tâche.
+
+## Reprendre la conversation d’origine [#resume-the-original-conversation]
+
+Avec **Reprendre les conversations des agents**, un volet dont le PTY d’origine est indisponible reprend sa conversation enregistrée de Claude Code, Codex, Pi ou OpenCode. Plusieurs volets dans le même répertoire conservent chacun leur propre conversation.
+
+Zshell installe des hooks SessionStart pour Claude Code et Codex, une extension Pi et un plugin TUI OpenCode dans la configuration existante. Les autres hooks, plugins, réglages et commentaires JSONC sont conservés. À la demande du fournisseur, activez les hooks dans la confirmation de confiance de Claude Code et approuvez ceux de Codex dans `/hooks`. Redémarrez les agents déjà lancés avant l’installation.
+
+Seules les conversations racines locales signalées par ces intégrations sont reprises. Codex exige un CLI local intégré (`--no-daemon`) ; les démons partagés et connexions distantes ne sont pas pris en charge. OpenCode exige l’API de plugins TUI ; les anciennes versions, sessions serveur sans interface et `opencode attach` ne sont pas pris en charge. Un agent enfant ne remplace pas la conversation du volet parent. Pi nécessite son fichier de session enregistré.
+
+Sans identité vérifiée, répertoire d’origine ou fichier Pi, le volet ouvre un nouveau shell. Un CLI introuvable ramène aussi au shell. Zshell ne rejoue aucune commande de démarrage arbitraire et ne choisit pas une conversation récente. Le CLI affiche les erreurs du fournisseur, par exemple une conversation supprimée.

@@ -30,6 +30,10 @@ enum ZshellAutomationCommandLine {
             runAgentUsageStatusLine(Array(arguments.dropFirst()))
             return 0
         }
+        if namespace == "+agent", arguments.first == "_session-start" {
+            runAgentSessionStart(Array(arguments.dropFirst()))
+            return 0
+        }
         if namespace == "+agent", arguments.first == "skill" {
             try runAgentSkill(Array(arguments.dropFirst()))
             return 0
@@ -289,6 +293,35 @@ enum ZshellAutomationCommandLine {
     }
 
     // MARK: - Agent commands
+
+    private static func runAgentSessionStart(_ arguments: [String]) {
+        guard arguments.count == 1,
+              let provider = AgentConversationIdentity.Provider(rawValue: arguments[0])
+        else { return }
+        let environment = ProcessInfo.processInfo.environment
+        guard environment["ZSHELL_AUTOMATION"] == "1",
+              let data = try? FileHandle.standardInput.read(upToCount: 1_048_577),
+              let event = AgentConversationSessionEvent.sessionStart(
+                provider: provider,
+                payload: data,
+                environment: environment,
+                reporterPID: ProcessInfo.processInfo.processIdentifier,
+                currentDirectory: FileManager.default.currentDirectoryPath
+              ),
+              let identityData = try? JSONEncoder().encode(event.identity),
+              let identity = try? JSONDecoder().decode(ZshellJSONValue.self, from: identityData),
+              let connection = try? AppConnection()
+        else { return }
+        _ = try? connection.automationRequest(
+            method: "agent.session.start",
+            params: [
+                "identity": identity,
+                "reporter_pid": .number(Double(event.reporterPID)),
+                "source": event.source.map(ZshellJSONValue.string) ?? .null,
+            ],
+            timeout: 1
+        )
+    }
 
     /// Private entry point for lifecycle hooks installed by Zshell. It is
     /// intentionally absent from help and never appears in an agent prompt.

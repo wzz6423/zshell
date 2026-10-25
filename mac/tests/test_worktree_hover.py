@@ -93,6 +93,13 @@ struct WorktreeHoverRegression {
                 return button
             }
             let first = row(0)
+            first.menu!.update()
+            check(!first.menu!.items[0].isEnabled,
+                  "AppKit menu validation keeps current worktree removal disabled")
+            let other = row(1)
+            other.menu!.update()
+            check(!other.menu!.items[1].isEnabled,
+                  "AppKit menu validation keeps another worktree's branch deletion disabled")
             let point = first.convert(NSPoint(x: 80, y: first.bounds.midY), to: nil)
             window.pointerLocation = point
             let enter = NSEvent.enterExitEvent(with: .mouseEntered, location: point,

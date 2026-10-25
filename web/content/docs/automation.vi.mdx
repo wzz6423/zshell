@@ -89,3 +89,13 @@ Codex cần CLI đã cài, đăng nhập và có khả năng báo giới hạn t
 - Khởi động lại tác nhân đã chạy trước lúc bật.
 - Kiểm tra lỗi thiết lập hiển thị ngay trong Cài đặt.
 - Yêu cầu rõ “ô nền Zshell” hoặc “tác nhân Zshell được giao việc” nếu muốn dùng quy trình này cho nhiệm vụ.
+
+## Tiếp tục cuộc trò chuyện gốc [#resume-the-original-conversation]
+
+Khi bật **Tiếp tục cuộc trò chuyện của tác nhân**, ngăn không có PTY gốc khả dụng sẽ tiếp tục cuộc trò chuyện Claude Code, Codex, Pi hoặc OpenCode đã lưu của ngăn đó. Các ngăn trong cùng thư mục giữ cuộc trò chuyện riêng.
+
+Zshell cài hook SessionStart cho Claude Code và Codex, phần mở rộng Pi và plugin TUI OpenCode vào cấu hình nhà cung cấp hiện có. Các hook, plugin, cài đặt và chú thích JSONC khác được giữ lại. Khi nhà cung cấp yêu cầu, bật hook trong xác nhận tin cậy của Claude Code và duyệt hook Codex mới trong `/hooks`. Khởi động lại tác nhân đã chạy trước khi cài đặt.
+
+Chỉ tiếp tục cuộc trò chuyện gốc cục bộ được các tích hợp này báo cáo. Codex cần CLI cục bộ nhúng (`--no-daemon`); daemon dùng chung và kết nối từ xa không được hỗ trợ. OpenCode cần API plugin TUI; phiên bản cũ, phiên máy chủ không giao diện và `opencode attach` không được hỗ trợ. Tác nhân con không thể thay cuộc trò chuyện của ngăn cha. Pi cần tệp phiên đã lưu.
+
+Thiếu danh tính được xác minh, thư mục gốc hoặc tệp Pi sẽ mở shell mới. Không tìm thấy CLI cũng quay về shell. Zshell không chạy lại lệnh khởi động tùy ý hoặc chọn cuộc trò chuyện gần nhất. CLI hiển thị lỗi nhà cung cấp, như cuộc trò chuyện đã bị xóa.

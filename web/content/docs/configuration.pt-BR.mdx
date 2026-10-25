@@ -163,6 +163,14 @@ Permite que agentes compatíveis coordenem painéis de fundo quando você pede e
 
 O fluxo de uso está em [Trabalhar com agentes de IA](/pt-BR/docs/automation).
 
+### `ai.resume-conversations` [#airesume-conversations]
+
+booleano — padrão `true`
+
+Ao restaurar os painéis de terminal, retoma exatamente a conversa original registrada de Claude Code, Codex, Pi ou OpenCode quando o PTY original está indisponível. Requer `ai.enabled = true`. Sem uma conversa verificada, o painel abre um novo shell; o Zshell nunca escolhe a conversa mais recente pelo diretório.
+
+Controle em **Ajustes → Automação → Retomar conversas de agentes**. Esta opção é independente de `terminal.restore-history`.
+
 ## Ajustes adicionais [#additional-settings]
 
 | Chave | Padrão | Valores / faixa | Efeito |
@@ -213,6 +221,7 @@ terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
 ai.enabled = true
+ai.resume-conversations = true
 ```
 
 Toda chave é opcional. Exclua uma para restaurar seu padrão.

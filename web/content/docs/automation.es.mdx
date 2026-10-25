@@ -89,3 +89,13 @@ Codex necesita una CLI instalada, con sesión iniciada y capaz de informar de lo
 - Reinicia el agente si ya estaba en ejecución cuando la activaste.
 - Comprueba si Ajustes muestra un error de configuración junto a la opción.
 - Pide expresamente un «panel de Zshell en segundo plano» o un «agente delegado de Zshell» si quieres que el agente use este flujo de trabajo para una tarea.
+
+## Reanudar la conversación original [#resume-the-original-conversation]
+
+Con **Reanudar conversaciones de agentes**, un panel cuyo PTY original no esté disponible retoma su conversación registrada de Claude Code, Codex, Pi u OpenCode. Los paneles del mismo directorio mantienen conversaciones independientes.
+
+Zshell instala hooks SessionStart para Claude Code y Codex, una extensión Pi y un plugin TUI de OpenCode en la configuración existente. Conserva otros hooks, plugins, ajustes y comentarios JSONC. Cuando el proveedor lo pida, active los hooks en la confirmación de confianza de Claude Code y apruebe los nuevos hooks de Codex en `/hooks`. Reinicie los agentes que ya estaban en ejecución.
+
+Solo se reanudan conversaciones raíz locales notificadas por estas integraciones. Codex requiere un CLI local integrado (`--no-daemon`); no admite daemons compartidos ni conexiones remotas. OpenCode requiere la API de plugins TUI; no admite versiones antiguas, sesiones de servidor sin interfaz ni `opencode attach`. Un agente hijo no sustituye la conversación del panel padre. Pi necesita su archivo de sesión guardado.
+
+Sin identidad verificada, directorio original o archivo Pi, se abre una nueva shell. Si no se encuentra el CLI, también se vuelve a la shell. Zshell no repite comandos de inicio arbitrarios ni elige una conversación reciente. El CLI muestra los errores del proveedor, como una conversación eliminada.

@@ -163,6 +163,14 @@ Memungkinkan agen pemrograman yang didukung mengoordinasikan panel Zshell di lat
 
 Alur pengguna dijelaskan dalam [Bekerja dengan agen AI](/id/docs/automation).
 
+### `ai.resume-conversations` [#airesume-conversations]
+
+boolean — bawaan `true`
+
+Saat panel terminal dipulihkan dan PTY asal tidak tersedia, melanjutkan percakapan asli yang tepat dan tercatat dari Claude Code, Codex, Pi, atau OpenCode. Memerlukan `ai.enabled = true`. Panel tanpa percakapan terverifikasi membuka shell baru; Zshell tidak pernah memilih percakapan terbaru berdasarkan direktori.
+
+Atur melalui **Pengaturan → Otomatisasi → Lanjutkan percakapan agen**. Opsi ini terpisah dari `terminal.restore-history`.
+
 ## Pengaturan tambahan [#additional-settings]
 
 | Kunci | Bawaan | Nilai / rentang | Efek |
@@ -213,6 +221,7 @@ terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
 ai.enabled = true
+ai.resume-conversations = true
 ```
 
 Semua kunci opsional. Hapus kunci untuk mengembalikan pengaturannya ke nilai bawaan.

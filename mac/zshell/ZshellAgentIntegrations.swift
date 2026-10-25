@@ -54,9 +54,8 @@ enum ZshellAgentIntegrations {
                 }
                 return homeURL.appendingPathComponent(".pi/agent", isDirectory: true)
             case .opencode:
-                return homeURL.appendingPathComponent(
-                    ".config/opencode",
-                    isDirectory: true
+                return AgentConversationIdentity.Provider.opencode.installationRoot(
+                    homeURL: homeURL, environment: environment
                 )
             case .grok:
                 if let configured = environment["GROK_HOME"],
@@ -110,6 +109,9 @@ enum ZshellAgentIntegrations {
         homeURL: URL = FileManager.default.homeDirectoryForCurrentUser,
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) throws {
+        try ZshellAgentSessionHooks.preflightInstallAvailable(
+            bundle: bundle, homeURL: homeURL, environment: environment
+        )
         for kind in Kind.allCases {
             let root = kind.installationRoot(homeURL: homeURL, environment: environment)
             guard isDirectory(root) else { continue }
@@ -156,12 +158,18 @@ enum ZshellAgentIntegrations {
             }
             try replaceWithLink(at: destination, sourceURL: source.url)
         }
+        try ZshellAgentSessionHooks.installAvailable(
+            bundle: bundle, homeURL: homeURL, environment: environment
+        )
     }
 
     static func preflightUninstallManaged(
         homeURL: URL = FileManager.default.homeDirectoryForCurrentUser,
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) throws {
+        try ZshellAgentSessionHooks.preflightUninstallManaged(
+            homeURL: homeURL, environment: environment
+        )
         for kind in Kind.allCases {
             let destination = kind.destinationURL(
                 homeURL: homeURL,
@@ -190,6 +198,9 @@ enum ZshellAgentIntegrations {
                 try FileManager.default.removeItem(at: destination)
             }
         }
+        try ZshellAgentSessionHooks.uninstallManaged(
+            homeURL: homeURL, environment: environment
+        )
     }
 
     private struct Source {

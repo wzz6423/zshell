@@ -1043,7 +1043,7 @@ private struct GitPanel: View {
             Button(String(localized: "Cancel"), role: .cancel) { pendingRemoveWorktree = nil }
         } message: {
             if let worktree = pendingRemoveWorktree {
-                Text(verbatim: "Remove the worktree at \(worktree.path)? Git will keep its branch.")
+                Text(String(localized: "Remove the worktree at \(worktree.path)? Git will keep its branch."))
             }
         }
         .confirmationDialog(
@@ -1063,7 +1063,7 @@ private struct GitPanel: View {
             Button(String(localized: "Cancel"), role: .cancel) { pendingDeleteBranch = nil }
         } message: {
             if let branch = pendingDeleteBranch {
-                Text(verbatim: "A stash snapshot including untracked files will be created before deleting \(branch).")
+                Text(String(localized: "A stash snapshot including untracked files will be created before deleting \(branch)."))
             }
         }
         .confirmationDialog(

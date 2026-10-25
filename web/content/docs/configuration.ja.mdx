@@ -183,6 +183,14 @@ Zshell はターミナル文字から状態を推測しません。エラーを�
 
 使い方は [AI エージェントとの作業](/ja/docs/automation)で説明しています。
 
+### `ai.resume-conversations` [#airesume-conversations]
+
+真偽値 — 既定値 `true`
+
+ターミナルペインの復元時、元の PTY が利用できなければ、記録済みの Claude Code、Codex、Pi、OpenCode の元の会話を再開します。`ai.enabled = true` が必要です。検証済みの会話がないペインは新しいシェルを開きます。ディレクトリから最新の会話を選ぶことはありません。
+
+**設定 → 自動化 → エージェントの会話を再開** で切り替えます。`terminal.restore-history` とは独立した設定です。
+
 ## その他の設定 [#additional-settings]
 
 | キー | 既定値 | 値／範囲 | 効果 |
@@ -238,6 +246,7 @@ terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
 ai.enabled = true
+ai.resume-conversations = true
 ```
 
 すべてのキーは省略できます。キーを削除すると、その設定を既定値へ戻します。

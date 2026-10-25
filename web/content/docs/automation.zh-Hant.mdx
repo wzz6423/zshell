@@ -92,3 +92,13 @@ Codex 需要已安裝、已登錄且能報告帳戶限制的 CLI。Claude Code �
 - 如果 agent 當時已經在執行，請重新啟動它。
 - 看看設定裡有沒有直接顯示的錯誤。
 - 如果希望這次任務使用自動化，可以明確說「在 Zshell 後台窗格裡執行」或「交給另一個 Zshell agent」。
+
+## 繼續原對話 [#resume-the-original-conversation]
+
+啟用 **恢復 Agent 對話** 後，重新開啟終端窗格時，若原 PTY 不可用，會繼續該窗格已記錄的 Claude Code、Codex、Pi 或 OpenCode 原對話。同一目錄裡的多個窗格各自綁定自己的對話。
+
+Zshell 在現有 provider 設定中安裝 Claude Code 和 Codex 的 SessionStart 掛鉤、Pi 擴充和 OpenCode TUI 外掛，保留其他掛鉤、外掛、設定和 JSONC 註解。provider 提示時，需在 Claude Code 信任提示中啟用掛鉤，並在 Codex 的 `/hooks` 中核准新掛鉤。安裝前已執行的 agent 需要重新啟動。
+
+只恢復這些整合回報的本機根對話。Codex 需要內嵌本機 CLI（`--no-daemon`），不支援共用 daemon 或遠端連線。OpenCode 需要支援 TUI 外掛 API 的版本；不支援舊版本、無介面 server 工作階段和 `opencode attach`。子 agent 不會覆蓋父窗格的對話。Pi 需要已儲存的工作階段檔案。
+
+缺少已驗證身分、原工作目錄或 Pi 檔案時，窗格會開啟新 shell；找不到 CLI 時也會回到 shell。Zshell 不會重播任意啟動命令或選擇最近對話。對話已刪除等 provider 錯誤由 CLI 顯示。
