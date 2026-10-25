@@ -22,6 +22,48 @@ input as separate actions.
 Use `zshell +agent explain` for the lifecycle and security contract, and use
 `zshell +agent --help` or `zshell +pane --help` for complete syntax.
 
+## Run a command and collect its result
+
+For a finite shell command, create a background pane with a command task:
+
+```sh
+zshell +pane split --right --wait --timeout 300000 -- make test
+```
+
+For an existing empty shell in another pane:
+
+```sh
+zshell +pane run --pane PANE_ID --wait --timeout 300000 -- make test
+```
+
+Record `task_id` from the JSON. `--wait` returns the command's exit status,
+`task.exit_code`, `task.duration_ms`, and a saved, bounded `task.output` snapshot.
+`output_kind=recent_terminal_text` and `output_complete=false` mean this is
+recent terminal text, which can include earlier commands and prompts; it is
+not a complete stdout/stderr transcript. Redirect output to a project-local
+file when a complete record is needed.
+
+A timeout exits 124 and returns `timed_out=true`; it leaves the command running.
+Wait again using the same ID:
+
+```sh
+zshell +pane wait --task TASK_ID --timeout 300000
+```
+
+Repeated waits return the same saved completion result. At most 64 tasks can
+be pending or running, and the latest 256 finished results remain until this
+app session ends. Closing a pane stops unfinished tasks. Results cannot be
+read from another project.
+
+Command results require an empty prompt in the original local zsh that Zshell
+launched. New splits wait up to 30 seconds for that prompt. Nested shells, SSH,
+and custom startup programs cannot provide command results; `--wait` rejects
+unsupported execution before sending the command. Direct `exit`, `logout`, and
+`exec` are rejected because they cannot return a result to the original shell;
+use `/bin/sh -c` when a subprocess needs those operations. Never wait for an active
+task in the invoking pane: the command would be waiting on itself. Use a split
+or another pane. `wait-output` only watches text and does not prove completion.
+
 ## Supported agents
 
 Use these exact values with `zshell +agent start --kind`:

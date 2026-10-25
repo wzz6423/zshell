@@ -7,6 +7,12 @@ A automação do Zshell é voltada principalmente a agentes de programação com
 
 A integração vem ativada. Converse normalmente com seu agente. Ele pode criar um painel em segundo plano, iniciar um executor delegado, executar um comando, aguardar o resultado e trazer a resposta sem tirar o foco do painel em uso.
 
+## Aguardar resultados de comandos [#wait-for-command-results]
+
+Para comandos que terminam, como testes ou compilações, seu agente pode aguardar o próprio código de saída e a duração do comando e ler a saída recente salva do terminal. Se o tempo de espera expirar, o comando continua executando e é possível aguardar a mesma tarefa novamente, sem mudar o foco. É necessário um prompt vazio no zsh local original iniciado pelo Zshell; shells aninhados, SSH e programas de inicialização personalizados não são compatíveis. A saída recente é limitada e pode incluir comandos ou prompts anteriores. Peça ao agente para salvar a saída completa em um arquivo quando necessário.
+
+Chamadas diretas a `exit`, `logout` e `exec` são rejeitadas porque encerram ou substituem o shell original; use `/bin/sh -c` para executá-las em um subprocesso.
+
 ## Configuração [#setup]
 
 Confira **Ajustes → Automação → IA**. A opção vem ativada; se você a desativou, ative novamente e abra um terminal novo ou reinicie o agente que já estava rodando.

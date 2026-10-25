@@ -70,6 +70,9 @@ enum ZshellAutomationRouter {
         case "pane.run":
             return runInPane(request, caller: caller)
 
+        case "pane.task":
+            return commandTask(request, caller: caller)
+
         case "pane.send":
             return sendToPane(request, caller: caller)
 
@@ -171,6 +174,24 @@ enum ZshellAutomationRouter {
                 )
             }
         }
+        let argv: [String]?
+        if let value = request.params["argv"] {
+            guard let arguments = validatedCommandArguments(value) else {
+                return failure(request, "invalid_params",
+                               "argv must contain 1 to 256 control-free arguments. Direct exit, logout, or exec cannot return command results; use /bin/sh -c for a finite subprocess.")
+            }
+            argv = arguments
+        } else {
+            argv = nil
+        }
+        if argv != nil {
+            guard case .local = caller.project.location, TerminalSession.canLaunchCommandTaskShell else {
+                return failure(request, "command_wait_unsupported", unsupportedCommandWaitMessage)
+            }
+            guard TerminalCommandTaskStore.shared.canSubmit else {
+                return failure(request, "task_limit", commandTaskLimitMessage)
+            }
+        }
 
         guard let created = caller.project.automationSplitTerminal(
             beside: target.pane.id,
@@ -187,7 +208,12 @@ enum ZshellAutomationRouter {
             tab: created.tab,
             pane: created.pane
         )
-        return success(request, paneSnapshot(context, caller: caller))
+        guard let argv else { return success(request, paneSnapshot(context, caller: caller)) }
+        let task = TerminalCommandTaskStore.shared.submit(
+            argv: argv, projectID: caller.project.id, paneID: created.pane.id,
+            session: created.session, afterShellStartup: true
+        )
+        return success(request, paneWithTask(context, caller: caller, task: task))
     }
 
     private static func runInPane(
@@ -198,28 +224,120 @@ enum ZshellAutomationRouter {
               let session = target.session else {
             return failure(request, "terminal_required", "The target pane is not a terminal.")
         }
+        if request.params["require_command_result"]?.boolValue == true,
+           session.id == caller.session?.id {
+            return failure(request, "wait_deadlock", commandWaitDeadlockMessage)
+        }
         guard session.isShellAvailableForAutomation else {
+            if request.params["require_command_result"]?.boolValue == true,
+               session.surface.foregroundPid != session.shellPid,
+               let foregroundPID = session.surface.foregroundPid,
+               let executable = processExecutablePath(pid: foregroundPID),
+               ["zsh", "bash", "fish", "sh"].contains((executable as NSString).lastPathComponent) {
+                return failure(request, "command_wait_unsupported", unsupportedCommandWaitMessage)
+            }
             return failure(
                 request, "shell_busy",
                 "The target terminal does not have an available foreground shell."
             )
         }
-        guard let argv = stringArray(request.params["argv"]),
-              !argv.isEmpty, argv.count <= 256,
-              !argv[0].isEmpty,
-              argv.allSatisfy({
-                  $0.utf8.count <= 16_384 && isSafeShellArgument($0)
-              })
-        else {
+        guard let argv = validatedCommandArguments(request.params["argv"]) else {
             return failure(
                 request, "invalid_params",
-                "argv must contain 1 to 256 control-free arguments with a non-empty executable."
+                "argv must contain 1 to 256 control-free arguments. Direct exit, logout, or exec cannot return command results; use /bin/sh -c for a finite subprocess."
             )
         }
+        guard !TerminalCommandTaskStore.shared.hasActiveTask(terminalID: session.id) else {
+            return failure(request, "shell_busy", commandTaskBusyMessage)
+        }
+        if session.isCommandTaskShellReady {
+            guard TerminalCommandTaskStore.shared.canSubmit else {
+                return failure(request, "task_limit", commandTaskLimitMessage)
+            }
+            let task = TerminalCommandTaskStore.shared.submit(
+                argv: argv, projectID: caller.project.id, paneID: target.pane.id,
+                session: session
+            )
+            return success(request, paneWithTask(target, caller: caller, task: task))
+        }
+        if request.params["require_command_result"]?.boolValue == true {
+            return failure(request, "command_wait_unsupported", unsupportedCommandWaitMessage)
+        }
+        if session.supportsCommandTaskShellIntegration,
+           session.surface.foregroundPid == session.shellPid {
+            return failure(request, "shell_not_ready", unsupportedCommandWaitMessage)
+        }
+        let task = TerminalCommandTaskStore.shared.recordUnsupported(
+            argv: argv, projectID: caller.project.id, paneID: target.pane.id, terminalID: session.id
+        )
         let command = argv.map(shellQuote).joined(separator: " ")
         session.sendCommand(command)
         session.sendEnter()
-        return success(request, paneSnapshot(target, caller: caller))
+        return success(request, paneWithTask(target, caller: caller, task: task))
+    }
+
+    private static var unsupportedCommandWaitMessage: String {
+        TerminalCommandTaskStore.unsupportedMessage
+    }
+
+    private static var commandTaskBusyMessage: String {
+        String(localized: "This terminal already has a pending or running command task.")
+    }
+
+    private static var commandTaskLimitMessage: String {
+        String(localized: "Zshell already has 64 pending or running command tasks. Wait for one to finish before starting another.")
+    }
+
+    private static var commandWaitDeadlockMessage: String {
+        String(localized: "A command cannot wait for its own terminal. Run or wait from another pane, or create a split with --wait.")
+    }
+
+    private static func validatedCommandArguments(_ value: ZshellJSONValue?) -> [String]? {
+        guard let argv = stringArray(value), !argv.isEmpty, argv.count <= 256,
+              !argv[0].isEmpty,
+              !TerminalCommandTaskShellIntegration.replacesOriginalShell(argv),
+              argv.allSatisfy({ $0.utf8.count <= 16_384 && isSafeShellArgument($0) }),
+              argv.map(TerminalSession.shellQuote).joined(separator: " ").utf8.count <= 65_536
+        else { return nil }
+        return argv
+    }
+
+    private static func paneWithTask(
+        _ target: PaneContext, caller: PaneContext, task: TerminalCommandTask
+    ) -> ZshellJSONValue {
+        var value = paneSnapshot(target, caller: caller).objectValue ?? [:]
+        value["task_id"] = .string(task.id.uuidString)
+        value["task"] = task.json
+        return .object(value)
+    }
+
+    private static func commandTask(
+        _ request: ZshellAutomationRequest, caller: PaneContext
+    ) -> ZshellAutomationResponse {
+        guard let value = request.params["task_id"]?.stringValue,
+              let id = UUID(uuidString: value) else {
+            return failure(request, "invalid_params", "task_id must be a command task UUID.")
+        }
+        guard let task = TerminalCommandTaskStore.shared.task(id: id, projectID: caller.project.id) else {
+            return failure(request, "task_not_found",
+                           String(localized: "No matching command task is retained in this project. The task may belong to another project, have expired, or predate this app session."))
+        }
+        if let target = context(forSession: task.terminalID), target.project.id != caller.project.id {
+            return failure(request, "task_not_found",
+                           String(localized: "No matching command task is retained in this project. The task may belong to another project, have expired, or predate this app session."))
+        }
+        if request.params["wait"]?.boolValue == true, !task.state.isTerminal,
+           task.terminalID == caller.session?.id {
+            return failure(request, "wait_deadlock", commandWaitDeadlockMessage)
+        }
+        return success(request, .object([
+            "task_id": .string(id.uuidString),
+            "task": task.json,
+        ]))
+    }
+
+    static func commandTaskIsInOriginalProject(_ task: TerminalCommandTask) -> Bool {
+        context(forSession: task.terminalID)?.project.id == task.projectID
     }
 
     private static func sendToPane(
@@ -317,6 +435,9 @@ enum ZshellAutomationRouter {
                 request, "shell_busy",
                 "Agents can start only in an existing terminal with an available shell."
             )
+        }
+        guard !TerminalCommandTaskStore.shared.hasActiveTask(terminalID: session.id) else {
+            return failure(request, "shell_busy", commandTaskBusyMessage)
         }
         guard session.agentStatus == nil else {
             return failure(

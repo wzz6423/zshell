@@ -7,6 +7,12 @@ Zshells Automatisierung richtet sich vor allem an KI-Programmieragenten. Sie bie
 
 Die KI-Integration ist standardmäßig aktiviert. Sprechen Sie wie gewohnt mit Ihrem Agenten. Er kann einen Hintergrundbereich anlegen, einen weiteren Agenten starten, einen Befehl ausführen, auf das Ergebnis warten und Ihnen die Antwort zurückbringen, ohne Ihrem aktuellen Bereich den Fokus zu nehmen.
 
+## Auf Befehlsergebnisse warten [#wait-for-command-results]
+
+Bei endlichen Befehlen wie Tests oder Builds kann Ihr Agent auf den eigenen Exit-Status und die Laufzeit des Befehls warten und danach die gespeicherte letzte Terminalausgabe lesen. Bei einer Zeitüberschreitung läuft der Befehl weiter; auf denselben Auftrag kann erneut gewartet werden, ohne den Fokus zu ändern. Dafür ist eine leere Eingabeaufforderung in der ursprünglichen lokalen zsh von Zshell nötig. Verschachtelte Shells, SSH und eigene Startprogramme werden nicht unterstützt. Die letzte Ausgabe ist begrenzt und kann frühere Befehle oder Eingabeaufforderungen enthalten. Bitten Sie den Agenten bei Bedarf, die vollständige Ausgabe in einer Datei zu speichern.
+
+Direkte Aufrufe von `exit`, `logout` und `exec` werden abgelehnt, weil sie die ursprüngliche Shell beenden oder ersetzen. Verwende dafür `/bin/sh -c` in einem Unterprozess.
+
 ## Einrichtung [#setup]
 
 Prüfen Sie **Einstellungen → Automatisierung → KI**. Die Option ist standardmäßig aktiv. Falls Sie sie zuvor deaktiviert haben, aktivieren Sie sie erneut und öffnen Sie ein neues Terminal oder starten Sie einen bereits laufenden Agenten neu.

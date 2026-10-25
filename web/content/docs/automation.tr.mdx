@@ -7,6 +7,12 @@ Zshell otomasyonu öncelikle AI kodlama ajanları içindir. Onlara bölmelerle �
 
 AI entegrasyonu varsayılan olarak açıktır. Ajanınızla normal biçimde konuşun. Kullandığınız bölmenin odağını almadan arka plan bölmesi oluşturabilir, bir çalışan ajana iş devredebilir, komut çalıştırabilir, sonucu bekleyip size getirebilir.
 
+## Komut sonuçlarını bekleme [#wait-for-command-results]
+
+Test veya derleme gibi sona eren komutlarda ajanınız komutun kendi çıkış kodunu ve süresini bekleyip kaydedilen son terminal çıktısını okuyabilir. Bekleme süresi dolarsa komut çalışmaya devam eder ve odak değişmeden aynı görev yeniden beklenebilir. Zshell’in başlattığı özgün yerel zsh içinde boş bir istem gerekir; iç içe kabuklar, SSH ve özel başlangıç programları desteklenmez. Son çıktı sınırlıdır ve önceki komutları veya istemleri içerebilir. Tam kayıt gerektiğinde ajandan çıktıyı bir dosyaya kaydetmesini isteyin.
+
+Özgün kabuğu sonlandıran veya değiştiren doğrudan `exit`, `logout` ve `exec` çağrıları reddedilir; bunları alt süreçte çalıştırmak için `/bin/sh -c` kullanın.
+
 ## Kurulum [#setup]
 
 **Ayarlar → Otomasyon → AI** seçeneğini kontrol edin. Varsayılan açık; önceden kapattıysanız açıp yeni terminal başlatın veya çalışan ajanı yeniden başlatın.
