@@ -411,6 +411,14 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var browserContentBlocking: Bool {
+        didSet { save() }
+    }
+
+    @Published var browserFilterLists: String {
+        didSet { save() }
+    }
+
     private init() {
         let savedLanguage = AppLanguage.saved
         language = savedLanguage
@@ -514,6 +522,8 @@ final class AppSettings: nonisolated ObservableObject {
         terminalBackend = TerminalBackend(persisted: toml["terminal.backend"]?.string)
         terminalStartupProgram = toml["terminal.startup-program"]?.string ?? ""
         terminalStartupArguments = toml["terminal.startup-arguments"]?.string ?? ""
+        browserContentBlocking = toml["browser.content-blocking"]?.bool ?? true
+        browserFilterLists = toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults
         applyAppearance()
         applyApplicationIcon()
         reloadThemeSelection()
@@ -623,6 +633,8 @@ final class AppSettings: nonisolated ObservableObject {
             && terminalBackend == .fallback
             && terminalStartupProgram.isEmpty
             && terminalStartupArguments.isEmpty
+            && browserContentBlocking
+            && browserFilterLists == BrowserFilterSource.defaults
     }
 
     func resetToDefaults() {
@@ -666,6 +678,8 @@ final class AppSettings: nonisolated ObservableObject {
         terminalBackend = .fallback
         terminalStartupProgram = ""
         terminalStartupArguments = ""
+        browserContentBlocking = true
+        browserFilterLists = BrowserFilterSource.defaults
         resumeAgentConversations = true
     }
 
@@ -744,6 +758,8 @@ final class AppSettings: nonisolated ObservableObject {
     /// `UserDefaults` (`AppleLanguages`), not config.toml, so it is neither
     /// exported nor imported.
     func applyImported(_ toml: [String: TOML.Value]) {
+        browserContentBlocking = toml["browser.content-blocking"]?.bool ?? true
+        browserFilterLists = toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults
         theme = toml["theme"]?.string.flatMap(AppTheme.init(rawValue:)) ?? .system
         themeDark = Self.knownTheme(
             toml["theme-dark"]?.string,
@@ -996,6 +1012,12 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if !terminalStartupArguments.isEmpty {
             lines.append("terminal.startup-arguments = \(TOML.quote(terminalStartupArguments))")
+        }
+        if !browserContentBlocking {
+            lines.append("browser.content-blocking = false")
+        }
+        if browserFilterLists != BrowserFilterSource.defaults {
+            lines.append("browser.filter-lists = \(TOML.quote(browserFilterLists))")
         }
         return lines.joined(separator: "\n") + "\n"
     }

@@ -59,3 +59,11 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 Anlık görüntüler ana çerçevenin metnini, erişilebilir etiketleri ve öğe başvurularını döndürür. Sayfa değiştiğinde veya işlem yapıldığında başvuruların süresi dolar; yeniden kullanmadan önce yeni görüntü alın. CSS seçicisi tam bir öğeyle eşleşmelidir. Gezinme için `navigate`, `back`, `forward`, `reload` ve `stop` kullanın.
 
 Otomasyon yalnızca tam HTTP/HTTPS URL’lerini ve `about:blank` adresini kabul eder. Diğer protokoller, indirmeler, dosya seçiciler ve yerel iletişim kutuları doğrudan etkileşiminizi gerektirir. Adres veya araç çubuğundan elle gezinince bu kısıtlama kalkar. Komutlar çağıran terminalin projesi ve penceresi içinde kalır. `--timeout` 100–30000 milisaniyedir. Anlık görüntüler en çok 200 öğe, 32768 metin karakteri ve 256 KiB içerir; parola ve dosya değerleri dışarıda tutulur. Görünür alanın PNG görüntüleri en çok 512 KiB olur, bölmenin daha önce gösterilmiş olmasını gerektirir ve dosyaların üzerine yazmaz. Gerekirse `--width` değerini azaltın. Tam sözdizimi için `zshell +browser --help` kullanın.
+
+## Reklamlar ve izleyiciler [#ads-and-trackers]
+
+**Ayarlar → Tarayıcı**, [EasyList](https://easylist.to/) ve EasyPrivacy ile WebKit engellemesini varsayılan olarak açar. Listeleri ayrı ayrı kapatın veya her satıra bir HTTP/HTTPS ABP listesi URL’si ekleyip **Listeleri uygula** seçeneğini kullanın. Her biri 8 MiB olan en fazla 8 liste kabul edilir. HTTP şifrelenmez.
+
+Kurallar tüm panellerdeki sonraki isteklere uygulanır. Değişiklikten sonra sayfaları yenileyin. **Listeleri şimdi güncelle** zorla günceller. Listeler önbelleğe alınır; yeniden başlatma sonrası tarayıcı açılırken dört günden eski listeler denetlenir. Ayarlar dönüştürülen/atlanan filtreleri, hataları ve önbellek kullanımını gösterir. Başarısız liste değişimi, seçimi kaldırılan başka bir listeyi sessizce kullanmaz.
+
+URL jokerleri, çapalar, yaygın kaynak türleri, `@@` istisnaları, basit alan adları ve CSS `##`/`#@#` desteklenir. Alan adları üst sayfaya, taraf sınıflandırması WebKit’e göre değerlendirilir. Scriptlet, işlemsel filtre, yönlendirme, düzenli ifade, tüm sayfa izni ve dahil edilen alan adının alt alan istisnaları atlanır. Tam uBlock Origin uyumluluğu yoktur.

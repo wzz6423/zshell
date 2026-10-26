@@ -1,6 +1,1825 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Applies to future page requests in every browser pane. Reload open pages after changing rules.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applies to future page requests in every browser pane. Reload open pages after changing rules."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对所有浏览器窗格的后续页面请求生效。更改规则后请重新加载已打开的页面。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "套用至所有瀏覽器窗格的後續頁面請求。變更規則後請重新載入已開啟的頁面。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべてのブラウザペインの今後のリクエストに適用されます。変更後はページを再読み込みしてください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "모든 브라우저 창의 이후 요청에 적용됩니다. 규칙 변경 후 열린 페이지를 새로고침하세요."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "S’applique aux prochaines requêtes de tous les volets. Rechargez les pages après modification."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gilt für künftige Anfragen aller Browserbereiche. Nach Änderungen offene Seiten neu laden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se aplica a futuras solicitudes de todos los paneles. Recarga las páginas tras cambiar las reglas."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aplica-se às próximas solicitações de todos os painéis. Recarregue as páginas após alterar regras."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si applica alle richieste future di tutti i pannelli. Ricarica le pagine dopo le modifiche."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geldt voor nieuwe verzoeken in alle browserpanelen. Herlaad pagina’s na regelwijzigingen."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Действует на будущие запросы всех панелей браузера. После изменений перезагрузите страницы."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يُطبّق على الطلبات اللاحقة في جميع لوحات المتصفح. أعد تحميل الصفحات بعد تغيير القواعد."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ใช้กับคำขอถัดไปในทุกบานหน้าต่างเบราว์เซอร์ โหลดหน้าใหม่หลังเปลี่ยนกฎ"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Berlaku untuk permintaan berikutnya di semua panel. Muat ulang halaman setelah mengubah aturan."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Áp dụng cho yêu cầu tiếp theo trong mọi ngăn trình duyệt. Tải lại trang sau khi đổi quy tắc."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tüm tarayıcı panellerindeki sonraki isteklere uygulanır. Kuralları değiştirdikten sonra sayfaları yenileyin."
+          }
+        }
+      }
+    },
+    "Apply Lists": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply Lists"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用列表"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "套用清單"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リストを適用"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "목록 적용"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appliquer les listes"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listen anwenden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aplicar listas"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aplicar listas"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applica liste"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lijsten toepassen"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Применить списки"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تطبيق القوائم"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ใช้รายการ"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terapkan daftar"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Áp dụng danh sách"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listeleri uygula"
+          }
+        }
+      }
+    },
+    "Block ads and trackers": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Block ads and trackers"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拦截广告和跟踪器"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "封鎖廣告和追蹤器"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "広告とトラッカーをブロック"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "광고 및 추적기 차단"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloquer les publicités et les traqueurs"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Werbung und Tracker blockieren"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloquear anuncios y rastreadores"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloquear anúncios e rastreadores"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocca pubblicità e tracker"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Advertenties en trackers blokkeren"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Блокировать рекламу и трекеры"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حظر الإعلانات وأدوات التتبع"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "บล็อกโฆษณาและตัวติดตาม"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blokir iklan dan pelacak"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chặn quảng cáo và trình theo dõi"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reklamları ve izleyicileri engelle"
+          }
+        }
+      }
+    },
+    "Content blocking failed. Check the list URLs and try updating again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Content blocking failed. Check the list URLs and try updating again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容拦截失败。请检查列表 URL 并重新更新。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內容封鎖失敗。請檢查清單 URL 並重新更新。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コンテンツブロックに失敗しました。リスト URL を確認して再度更新してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "콘텐츠 차단에 실패했습니다. 목록 URL을 확인하고 다시 업데이트하세요."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le blocage a échoué. Vérifiez les URL des listes et réessayez."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inhaltsblockierung fehlgeschlagen. Listen-URLs prüfen und erneut aktualisieren."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falló el bloqueo. Revisa las URL de las listas y vuelve a actualizar."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O bloqueio falhou. Verifique as URLs das listas e atualize novamente."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocco non riuscito. Controlla gli URL delle liste e riprova."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blokkeren mislukt. Controleer de lijst-URL’s en probeer opnieuw."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Блокировка не удалась. Проверьте URL списков и повторите обновление."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فشل حظر المحتوى. تحقق من روابط القوائم وحاول التحديث مجددًا."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "บล็อกเนื้อหาล้มเหลว ตรวจสอบ URL รายการแล้วลองอัปเดตอีกครั้ง"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pemblokiran gagal. Periksa URL daftar lalu coba perbarui lagi."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chặn nội dung thất bại. Kiểm tra URL danh sách rồi thử cập nhật lại."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İçerik engelleme başarısız. Liste URL’lerini denetleyip yeniden güncelleyin."
+          }
+        }
+      }
+    },
+    "Content blocking is active: %lld filters converted; %lld unsupported filters skipped.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Content blocking is active: %lld filters converted; %lld unsupported filters skipped."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容拦截已启用：已转换 %lld 条过滤规则，已跳过 %lld 条不支持的规则。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內容封鎖已啟用：已轉換 %lld 條篩選規則，已略過 %lld 條不支援的規則。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コンテンツブロックは有効です：%lld 件を変換、未対応の %lld 件をスキップしました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "콘텐츠 차단 활성: 필터 %lld개 변환, 지원하지 않는 필터 %lld개 건너뜀."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocage actif : %lld filtres convertis ; %lld filtres non pris en charge ignorés."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inhaltsblockierung aktiv: %lld Filter konvertiert; %lld nicht unterstützte Filter übersprungen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloqueo activo: %lld filtros convertidos; %lld filtros no compatibles omitidos."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloqueio ativo: %lld filtros convertidos; %lld filtros não suportados ignorados."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocco attivo: %lld filtri convertiti; %lld filtri non supportati ignorati."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blokkeren actief: %lld filters omgezet; %lld niet-ondersteunde filters overgeslagen."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Блокировка активна: преобразовано фильтров: %lld; пропущено неподдерживаемых: %lld."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حظر المحتوى نشط: تم تحويل %lld من المرشحات وتخطي %lld من المرشحات غير المدعومة."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เปิดการบล็อกเนื้อหา: แปลงตัวกรอง %lld รายการ ข้ามตัวกรองที่ไม่รองรับ %lld รายการ"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pemblokiran aktif: %lld filter dikonversi; %lld filter tidak didukung dilewati."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang chặn nội dung: đã chuyển đổi %lld bộ lọc; bỏ qua %lld bộ lọc không hỗ trợ."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İçerik engelleme etkin: %lld filtre dönüştürüldü; desteklenmeyen %lld filtre atlandı."
+          }
+        }
+      }
+    },
+    "Content blocking is off.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Content blocking is off."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容拦截已关闭。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內容封鎖已關閉。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コンテンツブロックはオフです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "콘텐츠 차단이 꺼져 있습니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le blocage de contenu est désactivé."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inhaltsblockierung ist ausgeschaltet."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El bloqueo de contenido está desactivado."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O bloqueio de conteúdo está desativado."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il blocco dei contenuti è disattivato."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inhoud blokkeren is uitgeschakeld."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Блокировка содержимого отключена."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حظر المحتوى متوقف."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ปิดการบล็อกเนื้อหาอยู่"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pemblokiran konten nonaktif."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tính năng chặn nội dung đã tắt."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İçerik engelleme kapalı."
+          }
+        }
+      }
+    },
+    "Content blocking starts when a browser opens.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Content blocking starts when a browser opens."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开浏览器时开始内容拦截。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開啟瀏覽器時開始內容封鎖。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブラウザを開くとコンテンツブロックを開始します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "브라우저를 열면 콘텐츠 차단이 시작됩니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le blocage démarre à l’ouverture du navigateur."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Inhaltsblockierung startet beim Öffnen eines Browsers."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El bloqueo comienza al abrir un navegador."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O bloqueio começa ao abrir um navegador."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il blocco inizia quando si apre un browser."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blokkeren start wanneer een browser wordt geopend."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Блокировка начнётся при открытии браузера."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يبدأ حظر المحتوى عند فتح المتصفح."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เริ่มบล็อกเนื้อหาเมื่อเปิดเบราว์เซอร์"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pemblokiran dimulai saat browser dibuka."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bắt đầu chặn nội dung khi mở trình duyệt."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarayıcı açıldığında içerik engelleme başlar."
+          }
+        }
+      }
+    },
+    "Custom ABP list URLs": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom ABP list URLs"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自定义 ABP 列表 URL"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自訂 ABP 清單 URL"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カスタム ABP リスト URL"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사용자 지정 ABP 목록 URL"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL de listes ABP personnalisées"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eigene ABP-Listen-URLs"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL de listas ABP personalizadas"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URLs de listas ABP personalizadas"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL delle liste ABP personalizzate"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aangepaste ABP-lijst-URL’s"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL пользовательских списков ABP"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "روابط قوائم ABP المخصصة"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL รายการ ABP ที่กำหนดเอง"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL daftar ABP khusus"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL danh sách ABP tùy chỉnh"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Özel ABP listesi URL’leri"
+          }
+        }
+      }
+    },
+    "Enter valid HTTP or HTTPS URLs without credentials or fragments, with at most 8 lists total.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter valid HTTP or HTTPS URLs without credentials or fragments, with at most 8 lists total."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入有效的 HTTP 或 HTTPS URL，不包含凭据或片段标识，总计最多 8 个列表。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請輸入有效的 HTTP 或 HTTPS URL，不含憑證或片段識別，總計最多 8 個清單。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "認証情報やフラグメントを含まない有効な HTTP/HTTPS URL を入力してください。最大 8 リストです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인증 정보나 프래그먼트 없는 유효한 HTTP/HTTPS URL을 입력하세요. 최대 8개입니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisissez des URL HTTP/HTTPS valides sans identifiants ni fragments, 8 listes maximum."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gültige HTTP-/HTTPS-URLs ohne Anmeldedaten oder Fragmente eingeben, höchstens 8 Listen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Introduce URL HTTP/HTTPS válidas sin credenciales ni fragmentos, hasta 8 listas."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insira URLs HTTP/HTTPS válidas sem credenciais ou fragmentos, até 8 listas."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inserisci URL HTTP/HTTPS validi senza credenziali o frammenti, massimo 8 liste."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voer geldige HTTP-/HTTPS-URL’s zonder inloggegevens of fragmenten in, maximaal 8 lijsten."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите корректные HTTP/HTTPS URL без учётных данных и фрагментов, максимум 8 списков."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أدخل روابط HTTP أو HTTPS صالحة دون بيانات اعتماد أو أجزاء، بحد أقصى 8 قوائم."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ป้อน URL HTTP หรือ HTTPS ที่ถูกต้องโดยไม่มีข้อมูลเข้าสู่ระบบหรือส่วนย่อย สูงสุด 8 รายการ"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masukkan URL HTTP/HTTPS valid tanpa kredensial atau fragmen, maksimal 8 daftar."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhập URL HTTP/HTTPS hợp lệ không chứa thông tin đăng nhập hay đoạn, tối đa 8 danh sách."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kimlik bilgisi veya parça içermeyen geçerli HTTP/HTTPS URL’leri girin; en fazla 8 liste."
+          }
+        }
+      }
+    },
+    "Filter Lists": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter Lists"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "过滤列表"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "篩選清單"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルターリスト"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "필터 목록"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listes de filtres"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filterlisten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listas de filtros"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listas de filtros"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liste di filtri"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filterlijsten"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Списки фильтров"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "قوائم التصفية"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "รายการตัวกรอง"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daftar filter"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Danh sách bộ lọc"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtre listeleri"
+          }
+        }
+      }
+    },
+    "No filter lists selected.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No filter lists selected."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未选择过滤列表。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未選取篩選清單。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルターリストが選択されていません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "선택된 필터 목록이 없습니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune liste de filtres sélectionnée."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Filterlisten ausgewählt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se han seleccionado listas de filtros."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma lista de filtros selecionada."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna lista di filtri selezionata."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen filterlijsten geselecteerd."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Списки фильтров не выбраны."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يتم تحديد قوائم تصفية."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ยังไม่ได้เลือกรายการตัวกรอง"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Belum ada daftar filter dipilih."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa chọn danh sách bộ lọc."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtre listesi seçilmedi."
+          }
+        }
+      }
+    },
+    "One HTTP or HTTPS ABP list URL per line. Up to 8 lists total. HTTP lists are unencrypted.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One HTTP or HTTPS ABP list URL per line. Up to 8 lists total. HTTP lists are unencrypted."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每行一个 HTTP 或 HTTPS ABP 列表 URL，总计最多 8 个列表。HTTP 列表未加密。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每行一個 HTTP 或 HTTPS ABP 清單 URL，總計最多 8 個清單。HTTP 清單未加密。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 行に HTTP/HTTPS の ABP リスト URL を 1 つ入力します。最大 8 リスト。HTTP は暗号化されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "한 줄에 HTTP/HTTPS ABP 목록 URL 하나, 총 8개까지 가능합니다. HTTP는 암호화되지 않습니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une URL de liste ABP HTTP ou HTTPS par ligne, 8 listes maximum. HTTP n’est pas chiffré."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine HTTP-/HTTPS-ABP-Listen-URL pro Zeile, insgesamt höchstens 8 Listen. HTTP ist unverschlüsselt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una URL de lista ABP HTTP o HTTPS por línea, hasta 8 listas. HTTP no está cifrado."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma URL de lista ABP HTTP ou HTTPS por linha, até 8 listas. HTTP não é criptografado."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un URL ABP HTTP o HTTPS per riga, massimo 8 liste. HTTP non è cifrato."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eén HTTP- of HTTPS-ABP-lijst-URL per regel, maximaal 8 lijsten. HTTP is niet versleuteld."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Один HTTP/HTTPS URL списка ABP на строку, максимум 8 списков. HTTP не шифруется."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "رابط قائمة ABP عبر HTTP أو HTTPS في كل سطر، بحد أقصى 8 قوائم. HTTP غير مشفّر."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL รายการ ABP แบบ HTTP หรือ HTTPS หนึ่งรายการต่อบรรทัด สูงสุด 8 รายการ HTTP ไม่เข้ารหัส"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Satu URL daftar ABP HTTP atau HTTPS per baris, maksimal 8 daftar. HTTP tidak terenkripsi."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mỗi dòng một URL danh sách ABP HTTP hoặc HTTPS, tối đa 8 danh sách. HTTP không được mã hóa."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Her satıra bir HTTP veya HTTPS ABP listesi URL’si, toplam en fazla 8 liste. HTTP şifrelenmez."
+          }
+        }
+      }
+    },
+    "Supports common network and CSS hiding filters. Scriptlets, procedural filters, redirects, regular expressions, and complex domain exceptions are skipped. This is not full uBlock Origin compatibility.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supports common network and CSS hiding filters. Scriptlets, procedural filters, redirects, regular expressions, and complex domain exceptions are skipped. This is not full uBlock Origin compatibility."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持常见网络过滤和 CSS 元素隐藏规则。脚本片段、过程式过滤、重定向、正则表达式和复杂域名例外会跳过，不完全兼容 uBlock Origin。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支援常見網路篩選與 CSS 元素隱藏規則。腳本片段、程序式篩選、重新導向、正規表示式及複雜網域例外會略過，並非完整相容 uBlock Origin。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一般的なネットワークと CSS 非表示フィルターに対応。スクリプトレット、手続き型フィルター、リダイレクト、正規表現、複雑なドメイン例外はスキップされます。uBlock Origin との完全互換ではありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일반 네트워크 및 CSS 숨김 필터를 지원합니다. 스크립틀릿, 절차적 필터, 리디렉션, 정규식 및 복잡한 도메인 예외는 건너뜁니다. uBlock Origin과 완전히 호환되지는 않습니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtres réseau et masquage CSS courants pris en charge. Scriptlets, filtres procéduraux, redirections, expressions régulières et exceptions de domaine complexes sont ignorés. Compatibilité uBlock Origin partielle."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Übliche Netzwerk- und CSS-Ausblendefilter werden unterstützt. Scriptlets, prozedurale Filter, Umleitungen, reguläre Ausdrücke und komplexe Domainausnahmen werden übersprungen. Keine vollständige uBlock-Origin-Kompatibilität."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Admite filtros comunes de red y ocultación CSS. Omite scriptlets, filtros procedimentales, redirecciones, expresiones regulares y excepciones de dominio complejas. La compatibilidad con uBlock Origin es parcial."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suporta filtros comuns de rede e ocultação CSS. Scriptlets, filtros procedurais, redirecionamentos, expressões regulares e exceções complexas de domínio são ignorados. Compatibilidade parcial com uBlock Origin."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supporta filtri di rete e mascheramento CSS comuni. Scriptlet, filtri procedurali, reindirizzamenti, espressioni regolari ed eccezioni di dominio complesse vengono ignorati. Compatibilità uBlock Origin parziale."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ondersteunt gangbare netwerk- en CSS-verbergfilters. Scriptlets, procedurele filters, omleidingen, reguliere expressies en complexe domeinuitzonderingen worden overgeslagen. Geen volledige uBlock Origin-compatibiliteit."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поддерживаются обычные сетевые и CSS-фильтры скрытия. Скриптлеты, процедурные фильтры, перенаправления, регулярные выражения и сложные исключения доменов пропускаются. Совместимость с uBlock Origin неполная."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يدعم مرشحات الشبكة وإخفاء CSS الشائعة. يتم تخطي السكربتات المصغرة والمرشحات الإجرائية وإعادة التوجيه والتعبيرات النمطية واستثناءات النطاق المعقدة. التوافق مع uBlock Origin جزئي."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "รองรับตัวกรองเครือข่ายและการซ่อน CSS ทั่วไป ข้ามสคริปต์เล็ต ตัวกรองเชิงกระบวนการ การเปลี่ยนเส้นทาง นิพจน์ทั่วไป และข้อยกเว้นโดเมนที่ซับซ้อน ไม่รองรับ uBlock Origin อย่างสมบูรณ์"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mendukung filter jaringan dan penyembunyian CSS umum. Scriptlet, filter prosedural, pengalihan, ekspresi reguler, dan pengecualian domain kompleks dilewati. Kompatibilitas uBlock Origin tidak penuh."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hỗ trợ bộ lọc mạng và ẩn CSS phổ biến. Bỏ qua scriptlet, bộ lọc thủ tục, chuyển hướng, biểu thức chính quy và ngoại lệ tên miền phức tạp. Không tương thích đầy đủ uBlock Origin."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yaygın ağ ve CSS gizleme filtrelerini destekler. Scriptlet, işlemsel filtreler, yönlendirmeler, düzenli ifadeler ve karmaşık alan adı istisnaları atlanır. Tam uBlock Origin uyumluluğu yoktur."
+          }
+        }
+      }
+    },
+    "The update failed. Previously active rules are still in use.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The update failed. Previously active rules are still in use."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新失败。先前启用的规则仍在使用。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新失敗。先前啟用的規則仍在使用。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新に失敗しました。以前のルールを引き続き使用します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트에 실패했습니다. 이전 규칙을 계속 사용합니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La mise à jour a échoué. Les règles précédentes restent actives."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktualisierung fehlgeschlagen. Die bisherigen Regeln bleiben aktiv."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falló la actualización. Las reglas anteriores siguen activas."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A atualização falhou. As regras anteriores continuam ativas."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiornamento non riuscito. Le regole precedenti restano attive."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bijwerken mislukt. De vorige regels blijven actief."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновление не удалось. Прежние правила продолжают действовать."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فشل التحديث. لا تزال القواعد السابقة قيد الاستخدام."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "อัปเดตล้มเหลว ยังคงใช้กฎเดิมอยู่"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pembaruan gagal. Aturan sebelumnya masih digunakan."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cập nhật thất bại. Các quy tắc trước vẫn đang được dùng."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Güncelleme başarısız. Önceki kurallar kullanılmaya devam ediyor."
+          }
+        }
+      }
+    },
+    "Update Lists Now": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update Lists Now"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "立即更新列表"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "立即更新清單"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今すぐリストを更新"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지금 목록 업데이트"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mettre à jour les listes"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listen jetzt aktualisieren"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizar listas ahora"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizar listas agora"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiorna liste ora"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lijsten nu bijwerken"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновить списки сейчас"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تحديث القوائم الآن"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "อัปเดตรายการตอนนี้"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perbarui daftar sekarang"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cập nhật danh sách ngay"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listeleri şimdi güncelle"
+          }
+        }
+      }
+    },
+    "Updating content blocking rules…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updating content blocking rules…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在更新内容拦截规则…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在更新內容封鎖規則…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コンテンツブロックルールを更新中…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "콘텐츠 차단 규칙 업데이트 중…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mise à jour des règles de blocage…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blockierregeln werden aktualisiert…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizando reglas de bloqueo…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizando regras de bloqueio…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiornamento delle regole di blocco…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blokkeerregels bijwerken…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновление правил блокировки…"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ تحديث قواعد حظر المحتوى…"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "กำลังอัปเดตกฎการบล็อกเนื้อหา…"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Memperbarui aturan pemblokiran…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang cập nhật quy tắc chặn nội dung…"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İçerik engelleme kuralları güncelleniyor…"
+          }
+        }
+      }
+    },
+    "Using cached rules: %lld filters converted; %lld unsupported filters skipped. The update failed.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Using cached rules: %lld filters converted; %lld unsupported filters skipped. The update failed."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在使用缓存规则：已转换 %lld 条，跳过 %lld 条不支持的规则。更新失败。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在使用快取規則：已轉換 %lld 條，略過 %lld 條不支援的規則。更新失敗。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キャッシュを使用中：%lld 件を変換、未対応の %lld 件をスキップ。更新に失敗しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "캐시 규칙 사용 중: %lld개 변환, 미지원 %lld개 건너뜀. 업데이트에 실패했습니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Règles en cache : %lld filtres convertis ; %lld ignorés. La mise à jour a échoué."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zwischengespeicherte Regeln: %lld Filter konvertiert; %lld übersprungen. Aktualisierung fehlgeschlagen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reglas en caché: %lld filtros convertidos; %lld omitidos. Falló la actualización."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regras em cache: %lld filtros convertidos; %lld ignorados. A atualização falhou."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regole in cache: %lld filtri convertiti; %lld ignorati. Aggiornamento non riuscito."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cacheregels: %lld filters omgezet; %lld overgeslagen. Bijwerken mislukt."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Правила из кеша: преобразовано: %lld; пропущено: %lld. Обновление не удалось."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "قواعد مخزنة مؤقتًا: تم تحويل %lld مرشحًا وتخطي %lld. فشل التحديث."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ใช้กฎที่แคชไว้: แปลง %lld รายการ ข้าม %lld รายการ การอัปเดตล้มเหลว"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menggunakan cache: %lld filter dikonversi; %lld dilewati. Pembaruan gagal."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dùng quy tắc đã lưu: chuyển đổi %lld bộ lọc; bỏ qua %lld. Cập nhật thất bại."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önbellekteki kurallar: %lld filtre dönüştürüldü; %lld atlandı. Güncelleme başarısız."
+          }
+        }
+      }
+    },
     "": {
       "shouldTranslate": false
     },

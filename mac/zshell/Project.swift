@@ -400,6 +400,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     }
 
     func terminateAll() {
+        for browser in tabs.flatMap(\.browsers) { browser.close() }
         for session in sessions {
             session.terminate()
         }
@@ -757,7 +758,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             Task { @MainActor in
                 _ = await confirmCloseUnsaved(content, in: window)
             }
-        case .browser:
+        case .browser(let browser):
+            browser.close()
             removePaneWithContent(content.id)
         case .diff(let diff):
             guard diff.isDirty else {

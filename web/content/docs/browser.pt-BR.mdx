@@ -59,3 +59,11 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 Os snapshots retornam texto do quadro principal, rótulos acessíveis e referências de elementos. As referências expiram após alterações ou ações; gere outro snapshot antes de reutilizá-las. O seletor CSS deve corresponder a um único elemento. Use `navigate`, `back`, `forward`, `reload` e `stop` para navegar.
 
 A automação aceita URLs HTTP/HTTPS completas e `about:blank`. Outros protocolos, downloads, seletores de arquivos e diálogos nativos exigem sua interação. A restrição termina após navegar manualmente pela barra de endereços ou ferramentas. Os comandos ficam no projeto e na janela do terminal que os chamou. `--timeout` aceita 100–30000 milissegundos. Os snapshots têm limites de 200 elementos, 32768 caracteres e 256 KiB, sem valores de senha ou arquivo. Capturas PNG da área visível têm limite de 512 KiB, exigem que o painel tenha sido exibido e não sobrescrevem arquivos. Reduza `--width` se necessário. Consulte `zshell +browser --help`.
+
+## Anúncios e rastreadores [#ads-and-trackers]
+
+**Ajustes → Navegador** ativa por padrão o bloqueio WebKit com [EasyList](https://easylist.to/) e EasyPrivacy. Desative cada lista separadamente ou adicione uma URL ABP HTTP/HTTPS por linha e clique em **Aplicar listas**. Até 8 listas de 8 MiB cada. HTTP não é criptografado.
+
+As regras afetam solicitações futuras de todos os painéis. Recarregue as páginas após alterações. **Atualizar listas agora** força a atualização. As listas ficam em cache; ao abrir o navegador após reiniciar, as com mais de quatro dias são verificadas. Os ajustes mostram filtros convertidos/ignorados, falhas e uso do cache. Uma troca malsucedida não reutiliza silenciosamente outra lista desmarcada.
+
+Suporta curingas e âncoras URL, tipos comuns, exceções `@@`, domínios simples e CSS `##`/`#@#`. Os domínios usam a página principal e a classificação de terceiros segue o WebKit. Scriptlets, filtros procedurais, redirecionamentos, expressões regulares, liberação de página inteira e exclusões de subdomínios de domínio incluído são ignorados. Compatibilidade parcial com uBlock Origin.

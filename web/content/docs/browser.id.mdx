@@ -62,3 +62,11 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 Snapshot memberikan teks bingkai utama, label aksesibilitas, dan referensi elemen. Referensi kedaluwarsa setelah perubahan halaman atau tindakan; ambil snapshot baru sebelum memakainya lagi. Pemilih CSS harus cocok dengan tepat satu elemen. Gunakan `navigate`, `back`, `forward`, `reload`, dan `stop` untuk navigasi.
 
 Otomatisasi menerima URL HTTP/HTTPS lengkap dan `about:blank`. Protokol lain, unduhan, pemilih berkas, dan dialog native memerlukan interaksi Anda. Pembatasan berakhir setelah navigasi manual melalui bilah alamat atau toolbar. Perintah tetap berada dalam proyek dan jendela terminal pemanggil. `--timeout` adalah 100–30000 milidetik. Snapshot dibatasi 200 elemen, 32768 karakter, dan 256 KiB, tanpa nilai kata sandi atau berkas. PNG area terlihat dibatasi 512 KiB, memerlukan panel yang pernah ditampilkan, dan tidak menimpa berkas. Kurangi `--width` jika perlu. Lihat `zshell +browser --help`.
+
+## Iklan dan pelacak [#ads-and-trackers]
+
+**Pengaturan → Browser** mengaktifkan pemblokiran WebKit dengan [EasyList](https://easylist.to/) dan EasyPrivacy secara default. Nonaktifkan daftar secara terpisah atau tambahkan satu URL daftar ABP HTTP/HTTPS per baris, lalu pilih **Terapkan daftar**. Maksimal 8 daftar, masing-masing 8 MiB. HTTP tidak terenkripsi.
+
+Aturan berlaku untuk permintaan berikutnya di semua panel. Muat ulang halaman setelah perubahan. **Perbarui daftar sekarang** memaksa pembaruan. Daftar disimpan dalam cache; setelah restart, membuka browser memeriksa daftar berusia lebih dari empat hari. Pengaturan menampilkan jumlah filter dikonversi/dilewati, kegagalan, dan penggunaan cache. Penggantian yang gagal tidak diam-diam memakai daftar lain yang tidak dipilih.
+
+Mendukung wildcard URL, jangkar, tipe sumber umum, pengecualian `@@`, domain sederhana, dan CSS `##`/`#@#`. Domain mengacu ke halaman utama; klasifikasi pihak mengikuti WebKit. Scriptlet, filter prosedural, pengalihan, regex, izin seluruh halaman, dan pengecualian subdomain dari domain yang disertakan dilewati. Kompatibilitas uBlock Origin tidak penuh.

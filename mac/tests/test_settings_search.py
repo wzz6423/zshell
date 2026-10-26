@@ -18,10 +18,12 @@ LANGUAGES = (
     "it", "nl", "ru", "ar", "th", "id", "vi", "tr",
 )
 CATEGORIES = (
-    "general", "shortcuts", "appearance", "terminal", "editor", "automation",
+    "general", "shortcuts", "appearance", "terminal", "editor", "browser", "automation",
     "recommendations", "updates",
 )
 CONFIGURATION_ITEMS = {
+    "browser.content-blocking": ("browser", "Block ads and trackers", ""),
+    "browser.filter-lists": ("browser", "Filter Lists", "Filter Lists"),
     "toolbar.visibility": ("general", "Toolbar", ""),
     "app-icon": ("appearance", "Dock icon", "App Icon"),
     "theme-dark": ("appearance", "Dark theme", "Colors"),

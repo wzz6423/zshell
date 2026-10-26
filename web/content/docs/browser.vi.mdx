@@ -59,3 +59,11 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 Ảnh chụp DOM trả về văn bản khung chính, nhãn trợ năng và tham chiếu phần tử. Tham chiếu hết hạn sau khi trang thay đổi hoặc có thao tác; hãy chụp DOM mới trước khi dùng lại. Bộ chọn CSS phải khớp đúng một phần tử. Dùng `navigate`, `back`, `forward`, `reload` và `stop` để điều hướng.
 
 Tự động hóa chỉ nhận URL HTTP/HTTPS đầy đủ và `about:blank`. Giao thức khác, tải xuống, hộp chọn tệp và hộp thoại hệ thống cần bạn trực tiếp thao tác. Giới hạn được gỡ sau khi bạn điều hướng thủ công bằng thanh địa chỉ hoặc thanh công cụ. Lệnh chỉ hoạt động trong dự án và cửa sổ của terminal gọi lệnh. `--timeout` từ 100–30000 mili giây. Ảnh chụp DOM tối đa 200 phần tử, 32768 ký tự và 256 KiB, không gồm giá trị mật khẩu hoặc tệp. PNG chỉ chụp vùng hiển thị, tối đa 512 KiB, cần khung đã được hiển thị một lần và không ghi đè tệp. Giảm `--width` nếu cần. Xem `zshell +browser --help`.
+
+## Quảng cáo và trình theo dõi [#ads-and-trackers]
+
+**Cài đặt → Trình duyệt** bật chặn WebKit mặc định với [EasyList](https://easylist.to/) và EasyPrivacy. Tắt từng danh sách hoặc thêm mỗi dòng một URL danh sách ABP HTTP/HTTPS rồi chọn **Áp dụng danh sách**. Tối đa 8 danh sách, mỗi danh sách 8 MiB. HTTP không được mã hóa.
+
+Quy tắc áp dụng cho yêu cầu tiếp theo trong mọi ngăn. Tải lại trang sau khi thay đổi. **Cập nhật danh sách ngay** buộc cập nhật. Danh sách được lưu cục bộ; sau khi khởi động lại, mở trình duyệt sẽ kiểm tra danh sách cũ hơn bốn ngày. Cài đặt hiển thị số bộ lọc đã chuyển đổi/bỏ qua, lỗi và việc dùng bản lưu. Thay danh sách thất bại không âm thầm dùng danh sách khác đã bỏ chọn.
+
+Hỗ trợ ký tự đại diện URL, neo, loại tài nguyên phổ biến, ngoại lệ `@@`, phạm vi tên miền đơn giản và CSS `##`/`#@#`. Tên miền dựa trên trang cấp cao nhất; phân loại bên theo WebKit. Bỏ qua scriptlet, bộ lọc thủ tục, chuyển hướng, biểu thức chính quy, cho phép cả trang và loại trừ tên miền con của tên miền được chọn. Không tương thích đầy đủ uBlock Origin.

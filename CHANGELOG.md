@@ -18,6 +18,9 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Block browser ads and trackers with EasyList and EasyPrivacy, and manage
+  filter lists and custom ABP subscriptions in native Browser settings.
+
 - Optionally keep shell, agent, and development server sessions running when
   quitting Zshell, then reconnect to their original terminal state on reopening.
   Closing a pane, project, or window ends its sessions; use Quit and End All

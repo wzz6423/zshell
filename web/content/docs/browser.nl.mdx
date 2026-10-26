@@ -59,3 +59,11 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 Snapshots geven tekst van het hoofdframe, toegankelijke labels en elementverwijzingen terug. Verwijzingen verlopen na wijzigingen of acties; maak een nieuwe snapshot voordat je ze opnieuw gebruikt. Een CSS-selector moet precies één element vinden. Gebruik `navigate`, `back`, `forward`, `reload` en `stop` voor navigatie.
 
 Automatisering accepteert volledige HTTP/HTTPS-URL’s en `about:blank`. Andere protocollen, downloads, bestandskiezers en native dialoogvensters vereisen jouw interactie. De beperking eindigt na handmatige navigatie via adres- of werkbalk. Opdrachten blijven binnen het project en venster van de aanroepende terminal. `--timeout` is 100–30000 milliseconden. Snapshots bevatten maximaal 200 elementen, 32768 teksttekens en 256 KiB, zonder wachtwoord- of bestandswaarden. PNG-opnamen van het zichtbare deel zijn maximaal 512 KiB, vereisen een eerder getoond paneel en overschrijven geen bestanden. Verlaag zo nodig `--width`. Zie `zshell +browser --help`.
+
+## Advertenties en trackers [#ads-and-trackers]
+
+**Instellingen → Browser** schakelt WebKit-blokkering standaard in met [EasyList](https://easylist.to/) en EasyPrivacy. Schakel lijsten apart uit of voeg één HTTP-/HTTPS-ABP-lijst-URL per regel toe en kies **Lijsten toepassen**. Maximaal 8 lijsten van elk 8 MiB. HTTP is niet versleuteld.
+
+Regels gelden voor nieuwe verzoeken in alle browserpanelen. Herlaad pagina’s na wijzigingen. **Lijsten nu bijwerken** forceert een update. Lijsten worden lokaal gecachet; na herstart controleert het openen van de browser lijsten ouder dan vier dagen. Instellingen tonen omgezette/overgeslagen filters, fouten en cachegebruik. Een mislukte lijstwissel hergebruikt niet stilzwijgend een andere uitgeschakelde lijst.
+
+Ondersteunt URL-jokertekens, ankers, gangbare typen, `@@`-uitzonderingen, eenvoudige domeinen en CSS `##`/`#@#`. Domeinen volgen de hoofdpagina; partijclassificatie volgt WebKit. Scriptlets, procedurele filters, omleidingen, reguliere expressies, volledige paginatoestemming en uitgesloten subdomeinen van ingesloten domeinen worden overgeslagen. Geen volledige uBlock Origin-compatibiliteit.

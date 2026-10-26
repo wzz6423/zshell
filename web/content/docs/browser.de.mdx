@@ -59,3 +59,11 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 Snapshots liefern Text des Hauptframes, zugängliche Beschriftungen und Elementreferenzen. Nach Seitenänderungen oder Aktionen verfallen Referenzen; erstelle vor der Wiederverwendung einen neuen Snapshot. Ein CSS-Selektor muss genau ein Element treffen. Zur Navigation dienen `navigate`, `back`, `forward`, `reload` und `stop`.
 
 Erlaubt sind vollständige HTTP/HTTPS-URLs und `about:blank`. Andere Protokolle, Downloads, Dateiauswahl und native Dialoge erfordern deine Interaktion. Die Einschränkung endet durch manuelle Navigation über Adress- oder Werkzeugleiste. Befehle bleiben im Projekt und Fenster des aufrufenden Terminals. `--timeout` beträgt 100–30000 Millisekunden. Snapshots enthalten höchstens 200 Elemente, 32768 Textzeichen und 256 KiB; Passwort- und Dateifeldwerte fehlen. PNG-Aufnahmen des sichtbaren Bereichs sind auf 512 KiB begrenzt, benötigen einen zuvor angezeigten Bereich und überschreiben keine Dateien. Mit `--width` lässt sich die Größe reduzieren. Alle Optionen: `zshell +browser --help`.
+
+## Werbung und Tracker [#ads-and-trackers]
+
+Unter **Einstellungen → Browser** ist die WebKit-Inhaltsblockierung mit [EasyList](https://easylist.to/) und EasyPrivacy standardmäßig aktiv. Listen lassen sich einzeln ausschalten. Eigene HTTP-/HTTPS-ABP-Listen-URLs zeilenweise eintragen und **Listen anwenden** wählen. Höchstens 8 Listen mit je 8 MiB; HTTP ist unverschlüsselt.
+
+Änderungen gelten für künftige Anfragen aller Browserbereiche. Offene Seiten danach neu laden. **Listen jetzt aktualisieren** erzwingt eine Aktualisierung. Listen werden lokal gespeichert; nach einem Neustart prüft das Öffnen des Browsers über vier Tage alte Listen. Die Einstellungen zeigen konvertierte/übersprungene Filter, Fehler und veraltete Caches an. Ein fehlgeschlagener Listenwechsel verwendet nicht stillschweigend eine abgewählte Liste weiter.
+
+Unterstützt werden URL-Platzhalter, Anker, übliche Ressourcentypen, `@@`-Ausnahmen, einfache Domainbereiche und CSS `##`/`#@#`. Domains beziehen sich auf die Hauptseite; Drittanbieter werden nach WebKit eingeordnet. Scriptlets, prozedurale Filter, Umleitungen, reguläre Ausdrücke, vollständige Seitenfreigaben und ausgeschlossene Subdomains eingeschlossener Domains werden übersprungen. Keine vollständige uBlock-Origin-Kompatibilität.

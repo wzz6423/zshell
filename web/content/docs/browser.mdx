@@ -74,3 +74,11 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 Snapshots return main-frame text, accessible labels, and element references. References expire after page changes or actions; take a new snapshot before reusing one. CSS selectors must match exactly one element. Use `navigate`, `back`, `forward`, `reload`, and `stop` for navigation.
 
 Automation accepts explicit HTTP/HTTPS URLs and `about:blank`. Other protocols, downloads, file pickers, and native dialogs require your interaction. A page remains under this protocol restriction until you navigate manually with the address bar or toolbar. Commands stay inside the calling terminal’s project and window. `--timeout` is 100–30000 milliseconds. Snapshots are limited to 200 elements, 32768 text characters, and 256 KiB; password and file-input values are omitted. PNG viewport captures are limited to 512 KiB, require a pane that has been shown once, and never overwrite files. Reduce `--width` for a smaller capture. See `zshell +browser --help` for complete syntax.
+
+## Ads and trackers
+
+**Settings → Browser** enables native WebKit content blocking by default, using [EasyList](https://easylist.to/) and EasyPrivacy. Switch either list off independently, add custom HTTP/HTTPS ABP list URLs (one per line), and choose **Apply Lists**. Up to 8 lists of 8 MiB each are accepted. HTTP downloads are unencrypted.
+
+Rules apply to future requests in all existing and new browser panes; reload open pages to update resources and hidden elements. **Update Lists Now** forces a refresh. Lists are cached locally; opening a browser after restarting checks lists older than four days. The settings show updates, converted/skipped filter counts, failures, and use of cached rules when a refresh fails. A failed replacement does not silently reuse a different selected list.
+
+Supported filters include URL wildcards and anchors, common resource types, `@@` network exceptions, simple positive/negative domain scopes, and CSS `##`/`#@#` hiding rules. Domain scopes use the top-level page; party classification follows WebKit. Unsupported syntax is skipped conservatively, including scriptlets, procedural filters, redirects, regular expressions, document allowlisting, and scopes combining an included domain with excluded child domains. This does not provide full uBlock Origin compatibility.
