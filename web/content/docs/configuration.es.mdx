@@ -21,6 +21,16 @@ Antes de editarlo a mano, ten en cuenta lo siguiente:
 - **El analizador es pequeño de forma deliberada.** Admite claves simples, claves con puntos, cabeceras `[table]`, comentarios `#` y valores de cadena, número o booleano. No admite arrays, tablas en línea ni cadenas multilínea.
 - **Los valores incorrectos usan alternativas seguras.** Un tamaño fuera de rango, un motor desconocido o un tema mal escrito no impiden que Zshell se inicie.
 
+## Presencia de la aplicación [#application-presence]
+
+### `app-presence`
+
+`"dock"` · `"dock-and-menu-bar"` · `"menu-bar"` — predeterminado `"dock"`
+
+Elige **Ajustes → General → Mostrar Zshell en** para cambiar al instante. `"dock"` muestra solo el icono del Dock, `"dock-and-menu-bar"` muestra ambos y `"menu-bar"` muestra solo el icono de la barra de menús.
+
+La barra de menús abre el espacio de trabajo actual, el terminal rápido, los ajustes y la búsqueda de actualizaciones. En ambos modos con barra de menús, cerrar la última ventana la oculta y mantiene sus terminales y tareas en ejecución. **Abrir espacio de trabajo** vuelve a la misma ventana, proyecto y sesión. Cerrar otra ventana, panel o proyecto sigue terminando sus tareas. **Salir** respeta `terminal.preserve-sessions`; **Salir y finalizar todas las sesiones** las termina. El modo se conserva al reiniciar.
+
 ## Apariencia [#appearance]
 
 ### `theme` [#theme]

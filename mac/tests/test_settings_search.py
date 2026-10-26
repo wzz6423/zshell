@@ -22,6 +22,7 @@ CATEGORIES = (
     "recommendations", "updates",
 )
 CONFIGURATION_ITEMS = {
+    "app-presence": ("general", "Show Zshell in", ""),
     "toolbar.visibility": ("general", "Toolbar", ""),
     "app-icon": ("appearance", "Dock icon", "App Icon"),
     "theme-dark": ("appearance", "Dark theme", "Colors"),
@@ -174,6 +175,8 @@ class SettingsSearchTests(unittest.TestCase):
                           "AppCommand", "    var defaultShortcut:"),
             metadata_enum((sources / "TerminalBackend.swift").read_text(),
                           "TerminalBackend", "    var settingsHighlights:"),
+            metadata_enum((sources / "ApplicationPresenceController.swift").read_text(),
+                          "ApplicationPresence", "\n}"),
         ]))
         harness = root / "Harness.swift"
         harness.write_text(HARNESS)

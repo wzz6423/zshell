@@ -21,6 +21,16 @@ Handig om te weten voordat je handmatig bewerkt:
 - **De parser is bewust beperkt.** Hij ondersteunt platte sleutels, sleutels met punten, `[table]`-koppen, `#`-opmerkingen en tekenreeks-, getal- en booleaanse waarden. Arrays, inline-tabellen en tekenreeksen met meerdere regels worden niet ondersteund.
 - **Ongeldige waarden vallen veilig terug.** Een grootte buiten het bereik, onbekende backend of verkeerd gespeld thema verhindert niet dat Zshell start.
 
+## Aanwezigheid van de app [#application-presence]
+
+### `app-presence`
+
+`"dock"` · `"dock-and-menu-bar"` · `"menu-bar"` — standaard `"dock"`
+
+Kies **Instellingen → Algemeen → Zshell weergeven in** om direct te wisselen. `"dock"` toont alleen het Dock-symbool, `"dock-and-menu-bar"` beide symbolen en `"menu-bar"` alleen het menubalksymbool.
+
+De menubalk opent de huidige werkruimte, de snelle terminal, instellingen en de updatecontrole. In beide menubalkmodi wordt het laatste werkruimtevenster bij sluiten verborgen terwijl terminals en taken actief blijven. **Werkruimte openen** keert terug naar hetzelfde venster, project en dezelfde sessie. Andere vensters, panelen of projecten sluiten beëindigt hun taken nog steeds. **Stop** volgt `terminal.preserve-sessions`; **Stop en beëindig alle sessies** beëindigt ze. De modus blijft na opnieuw starten bewaard.
+
 ## Weergave [#appearance]
 
 ### `theme` [#theme]

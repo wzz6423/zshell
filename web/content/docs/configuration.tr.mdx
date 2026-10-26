@@ -21,6 +21,16 @@ Elle düzenlemeden önce bilin:
 - **Ayrıştırıcı bilinçli olarak küçüktür.** Düz/noktalı anahtarları, `[table]` başlıklarını, `#` yorumlarını ve metin/sayı/mantıksal değerleri destekler. Dizi, satır içi tablo ve çok satırlı metin desteklemez.
 - **Geçersiz değerler güvenle varsayılana döner.** Aralık dışı boyut, bilinmeyen arka uç veya yanlış yazılmış tema Zshell’in açılmasını engellemez.
 
+## Uygulama görünürlüğü [#application-presence]
+
+### `app-presence`
+
+`"dock"` · `"dock-and-menu-bar"` · `"menu-bar"` — varsayılan `"dock"`
+
+Hemen değiştirmek için **Ayarlar → Genel → Zshell gösterim yeri** seçeneğini kullanın. `"dock"` yalnızca Dock simgesini, `"dock-and-menu-bar"` iki simgeyi ve `"menu-bar"` yalnızca menü çubuğu simgesini gösterir.
+
+Menü çubuğundan geçerli çalışma alanı, Hızlı Terminal, ayarlar ve güncelleme denetimi açılır. İki menü çubuğu modunda da son çalışma alanı penceresini kapatmak pencereyi gizler; terminaller ve işler çalışır. **Çalışma alanını aç** aynı pencereye, projeye ve oturuma döner. Başka bir pencereyi, bölmeyi veya projeyi kapatmak o görevleri bitirmeye devam eder. **Çık**, `terminal.preserve-sessions` ayarını izler; **Çık ve tüm oturumları sonlandır** hepsini bitirir. Mod yeniden başlatıldığında korunur.
+
 ## Görünüm [#appearance]
 
 ### `theme` [#theme]

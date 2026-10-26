@@ -21,6 +21,16 @@ Vor dem manuellen Bearbeiten sollten Sie Folgendes wissen:
 - **Der Parser ist bewusst klein.** Er unterstützt einfache und punktgetrennte Schlüssel, `[table]`-Kopfzeilen, `#`-Kommentare sowie Zeichenketten, Zahlen und boolesche Werte. Arrays, Inline-Tabellen und mehrzeilige Zeichenketten werden nicht unterstützt.
 - **Ungültige Werte verwenden sichere Ersatzwerte.** Eine Größe außerhalb des Bereichs, ein unbekanntes Backend oder ein falsch geschriebener Themenname verhindert den Start nicht.
 
+## Anwendungspräsenz [#application-presence]
+
+### `app-presence`
+
+`"dock"` · `"dock-and-menu-bar"` · `"menu-bar"` — Standard `"dock"`
+
+Unter **Einstellungen → Allgemein → Zshell anzeigen in** wird die Änderung sofort wirksam. `"dock"` zeigt nur das Dock-Symbol, `"dock-and-menu-bar"` beide Symbole und `"menu-bar"` nur das Menüleistensymbol.
+
+Die Menüleiste öffnet den aktuellen Arbeitsbereich, das Schnellterminal, Einstellungen und die Updateprüfung. In beiden Menüleistenmodi wird das letzte Arbeitsbereichsfenster beim Schließen ausgeblendet, während Terminals und Aufgaben weiterlaufen. **Arbeitsbereich öffnen** kehrt zum selben Fenster, Projekt und zur selben Sitzung zurück. Das Schließen anderer Fenster, Bereiche oder Projekte beendet weiterhin deren Aufgaben. **Beenden** folgt `terminal.preserve-sessions`; **Beenden und alle Sitzungen schließen** beendet sie. Der Modus bleibt nach einem Neustart erhalten.
+
 ## Erscheinungsbild [#appearance]
 
 ### `theme` [#theme]

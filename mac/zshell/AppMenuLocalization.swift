@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 
 /// SwiftUI updates app commands; AppKit owns the standard menu titles and
 /// actions. Update those in place so their targets and keyboard bindings stay
@@ -7,13 +8,18 @@ import AppKit
 final class AppMenuLocalization: NSObject {
     static let shared = AppMenuLocalization()
     private var refreshScheduled = false
+    private var shortcutObservation: AnyCancellable?
+    private weak var applicationDelegate: ZshellApplicationDelegate?
 
-    func start() {
+    func start(applicationDelegate: ZshellApplicationDelegate) {
+        self.applicationDelegate = applicationDelegate
+        shortcutObservation = AppSettings.shared.$commandShortcuts.receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.refresh() }
         for name in [AppLocalization.didChange, NSMenu.didBeginTrackingNotification] {
             NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: name, object: nil)
         }
-        for name in [NSMenu.didAddItemNotification, NSMenu.didChangeItemNotification] {
-            NotificationCenter.default.addObserver(self, selector: #selector(scheduleRefresh), name: name, object: NSApp.mainMenu)
+        for name in [NSMenu.didAddItemNotification, NSMenu.didChangeItemNotification, NSMenu.didRemoveItemNotification] {
+            NotificationCenter.default.addObserver(self, selector: #selector(scheduleRefresh), name: name, object: nil)
         }
         refresh()
     }
@@ -28,6 +34,8 @@ final class AppMenuLocalization: NSObject {
     }
 
     @objc private func refresh() {
+        // SwiftUI rebuilds its menu tree when a window or setting changes.
+        applicationDelegate?.restoreTerminalMenus()
         guard let menu = NSApp.mainMenu else { return }
         let titles: [(String.LocalizationValue, String)] = [
             ("File", String(localized: "File")),
@@ -64,6 +72,7 @@ final class AppMenuLocalization: NSObject {
                 case "hideOtherApplications:": title = String(localized: "Hide Others")
                 case "unhideAllApplications:": title = String(localized: "Show All")
                 case "terminate:": title = String(localized: "Quit \(appName)")
+                case "quitAndEndAllSessions": title = String(localized: "Quit and End All Sessions")
                 case "undo:": title = String(localized: "Undo")
                 case "redo:": title = String(localized: "Redo")
                 case "cut:": title = String(localized: "Cut")
