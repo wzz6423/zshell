@@ -58,4 +58,19 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 
 Snapshots liefern Text des Hauptframes, zugängliche Beschriftungen und Elementreferenzen. Nach Seitenänderungen oder Aktionen verfallen Referenzen; erstelle vor der Wiederverwendung einen neuen Snapshot. Ein CSS-Selektor muss genau ein Element treffen. Zur Navigation dienen `navigate`, `back`, `forward`, `reload` und `stop`.
 
-Erlaubt sind vollständige HTTP/HTTPS-URLs und `about:blank`. Andere Protokolle, Downloads, Dateiauswahl und native Dialoge erfordern deine Interaktion. Die Einschränkung endet durch manuelle Navigation über Adress- oder Werkzeugleiste. Befehle bleiben im Projekt und Fenster des aufrufenden Terminals. `--timeout` beträgt 100–30000 Millisekunden. Snapshots enthalten höchstens 200 Elemente, 32768 Textzeichen und 256 KiB; Passwort- und Dateifeldwerte fehlen. PNG-Aufnahmen des sichtbaren Bereichs sind auf 512 KiB begrenzt, benötigen einen zuvor angezeigten Bereich und überschreiben keine Dateien. Mit `--width` lässt sich die Größe reduzieren. Alle Optionen: `zshell +browser --help`.
+Erlaubt sind vollständige HTTP/HTTPS-URLs und `about:blank`. Andere Protokolle, Downloads, Dateiauswahl und native Dialoge erfordern deine Interaktion. Die Einschränkung endet durch manuelle Navigation über Adress- oder Werkzeugleiste. Befehle bleiben im Projekt und Fenster des aufrufenden Terminals. `--timeout` beträgt 100–30000 Millisekunden. Snapshots enthalten höchstens 200 Elemente, 32768 Textzeichen und 256 KiB; Passwort- und Dateifeldwerte fehlen. PNG-Aufnahmen des sichtbaren Bereichs sind auf 512 KiB begrenzt, funktionieren auch vor dem ersten Anzeigen mit einem 1024 × 768 großen Viewport ohne Fokuswechsel und überschreiben keine Dateien. Mit `--width` lässt sich die Größe reduzieren. Alle Optionen: `zshell +browser --help`.
+
+## Seitenskripte und Anmeldestatus [#page-scripts-and-saved-logins]
+
+```sh
+zshell +browser eval --browser BROWSER_ID --script 'Promise.resolve({title: document.title})'
+zshell +browser state save --browser BROWSER_ID --output /tmp/zshell-login.json
+zshell +browser state load --browser BROWSER_ID --input /tmp/zshell-login.json
+zshell +browser reload --browser BROWSER_ID --wait
+```
+
+`eval --script` läuft im echten Hauptframe, wartet auf eine zurückgegebene Promise und liefert JSON in `value`; `undefined` wird `null`. Für `await` nutze einen asynchronen Funktionsausdruck. Grenzen: 64 KiB Eingabe; 256 KiB, 10000 Werte und 64 Ebenen Ausgabe. DOM-Referenzen verfallen danach. Ein Timeout beendet nur das Warten. Prüfe die Seite vor dem Wiederholen einer Änderung; eine synchrone Endlosschleife kann das Schließen der Seite erfordern.
+
+`state save` speichert die für den Zielhost geltenden Cookies (auch übergeordnete Domains und HttpOnly) und localStorage der aktuellen Origin als Playwright storage-state JSON. `state load` führt Cookies zusammen und ersetzt diesen localStorage; lade danach neu. Schema, Host und Port müssen genau übereinstimmen. Fremde Cookie-Domains, öffentliche Suffixe, unbekannte Felder und falsche Typen werden vor Änderungen abgelehnt. Secure-Cookies erfordern HTTPS.
+
+Mit `--format cookies` bei beiden Befehlen wird Netscape `cookies.txt` verwendet, ohne localStorage und SameSite. Dateien sind auf 256 KiB begrenzt und enthalten Zugangsdaten: privat halten und nicht in Git aufnehmen. Der Import verlangt eine reguläre Datei, auf die nur der Eigentümer zugreifen kann (etwa `0600`); symbolische Links werden abgelehnt. Exporte erstellen neue private Dateien ohne Überschreiben. WebKit-Daten bleiben zwischen Browserbereichen geteilt; Projekt-, Fenster- und Navigationsgrenzen gelten weiterhin.

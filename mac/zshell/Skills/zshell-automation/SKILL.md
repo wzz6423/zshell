@@ -47,8 +47,9 @@ Do not launch a second browser or inspect another application's windows.
 
    The snapshot covers the main frame and returns bounded visible text,
    semantic roles, names, field state, and element `ref` values. It excludes
-   password and file-input values. Frames and shadow roots require direct user
-   interaction; this interface does not expose arbitrary JavaScript evaluation.
+   password and file-input values. Prefer these bounded operations for routine
+   interactions. Use explicit page evaluation below for assertions that require
+   the page's JavaScript context.
 3. Use a snapshot reference or a unique CSS selector for the intended action:
 
    ```sh
@@ -70,9 +71,45 @@ Do not launch a second browser or inspect another application's windows.
    zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
    ```
 
-   The pane must have been shown once so WebKit has a viewport. PNG output is
-   limited to 512 KiB and never overwrites an existing file; use a unique path
-   and reduce `--width` if needed. Clean up your captures after review.
+   Never-shown background panes use a 1024 × 768 viewport without selecting
+   the tab or changing focus. PNG output is limited to 512 KiB and never
+   overwrites an existing file; use a unique path and reduce `--width` if
+   needed. Clean up your captures after review.
+
+For a page-specific assertion, evaluate a script in the actual main frame:
+
+```sh
+zshell +browser eval --browser BROWSER_ID --script 'Promise.resolve({title: document.title})'
+```
+
+The command awaits a returned Promise and returns JSON in `value`; `undefined`
+becomes `null`. Use an async function expression for `await`. Input is limited
+to 64 KiB, and JSON output to 256 KiB, 10000 values, and 64 levels. Evaluation
+expires old DOM references. A timeout stops waiting, not page execution; inspect
+the page before retrying a mutation. A synchronous endless loop can stall that
+page and require closing it. Protocol restrictions still apply to script-driven
+navigation, popups, and downloads.
+
+Save or load a login only when it serves the user's requested workflow, using
+their specified private file:
+
+```sh
+zshell +browser state save --browser BROWSER_ID --output /private/path/login.json
+zshell +browser state load --browser BROWSER_ID --input /private/path/login.json
+zshell +browser reload --browser BROWSER_ID --wait
+```
+
+The default is Playwright storage-state JSON: cookies applicable to the target
+host (including parent-domain and HttpOnly cookies) and localStorage for exactly
+the current HTTP(S) origin. Load merges cookies and replaces that origin's
+localStorage. Other origins, unrelated cookie domains, public suffixes, invalid
+types, and unsupported fields are rejected before changes. Secure cookies
+require HTTPS. Use `--format cookies` on both commands for Netscape cookies.txt,
+which cannot preserve localStorage or SameSite. Files are limited to 256 KiB;
+imports require owner-only regular files and reject symlinks. Exports create new
+0600 files without overwriting. CLI output includes only metadata, never cookie
+values or localStorage. These files contain credentials: never print them or
+commit them to Git. WebKit site data remains shared across browser panes.
 
 Navigation uses `navigate URL`, `back`, `forward`, `reload`, and `stop`, with the
 same browser target. Only explicit HTTP/HTTPS URLs or `about:blank` are allowed.

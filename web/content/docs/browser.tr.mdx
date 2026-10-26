@@ -58,4 +58,19 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 
 Anlık görüntüler ana çerçevenin metnini, erişilebilir etiketleri ve öğe başvurularını döndürür. Sayfa değiştiğinde veya işlem yapıldığında başvuruların süresi dolar; yeniden kullanmadan önce yeni görüntü alın. CSS seçicisi tam bir öğeyle eşleşmelidir. Gezinme için `navigate`, `back`, `forward`, `reload` ve `stop` kullanın.
 
-Otomasyon yalnızca tam HTTP/HTTPS URL’lerini ve `about:blank` adresini kabul eder. Diğer protokoller, indirmeler, dosya seçiciler ve yerel iletişim kutuları doğrudan etkileşiminizi gerektirir. Adres veya araç çubuğundan elle gezinince bu kısıtlama kalkar. Komutlar çağıran terminalin projesi ve penceresi içinde kalır. `--timeout` 100–30000 milisaniyedir. Anlık görüntüler en çok 200 öğe, 32768 metin karakteri ve 256 KiB içerir; parola ve dosya değerleri dışarıda tutulur. Görünür alanın PNG görüntüleri en çok 512 KiB olur, bölmenin daha önce gösterilmiş olmasını gerektirir ve dosyaların üzerine yazmaz. Gerekirse `--width` değerini azaltın. Tam sözdizimi için `zshell +browser --help` kullanın.
+Otomasyon yalnızca tam HTTP/HTTPS URL’lerini ve `about:blank` adresini kabul eder. Diğer protokoller, indirmeler, dosya seçiciler ve yerel iletişim kutuları doğrudan etkileşiminizi gerektirir. Adres veya araç çubuğundan elle gezinince bu kısıtlama kalkar. Komutlar çağıran terminalin projesi ve penceresi içinde kalır. `--timeout` 100–30000 milisaniyedir. Anlık görüntüler en çok 200 öğe, 32768 metin karakteri ve 256 KiB içerir; parola ve dosya değerleri dışarıda tutulur. Görünür alanın PNG görüntüleri en çok 512 KiB olur, bölme hiç gösterilmeden de odağı değiştirmeden 1024 × 768 görüntü alanıyla çalışır ve dosyaların üzerine yazmaz. Gerekirse `--width` değerini azaltın. Tam sözdizimi için `zshell +browser --help` kullanın.
+
+## Sayfa betikleri ve kaydedilen oturumlar [#page-scripts-and-saved-logins]
+
+```sh
+zshell +browser eval --browser BROWSER_ID --script 'Promise.resolve({title: document.title})'
+zshell +browser state save --browser BROWSER_ID --output /tmp/zshell-login.json
+zshell +browser state load --browser BROWSER_ID --input /tmp/zshell-login.json
+zshell +browser reload --browser BROWSER_ID --wait
+```
+
+`eval --script` gerçek ana çerçevede çalışır, döndürülen Promise’i bekler ve `value` içinde JSON döndürür; `undefined`, `null` olur. `await` için asenkron işlev ifadesi kullanın. Sınırlar: 64 KiB giriş; 256 KiB, 10000 değer ve 64 seviye sonuç. DOM başvuruları işlemden sonra geçersizleşir. Zaman aşımı yalnızca beklemeyi bitirir, betiği iptal etmez. Değişikliği tekrarlamadan önce sayfayı inceleyin; eşzamanlı sonsuz döngü sayfayı kapatmayı gerektirebilir.
+
+`state save`, hedef ana bilgisayara uygulanan Cookie’leri (üst alan ve HttpOnly dahil) ve geçerli kaynağın localStorage verisini Playwright storage-state JSON olarak kaydeder. `state load` Cookie’leri birleştirir ve o kaynağın localStorage verisini değiştirir; ardından sayfayı yenileyin. Şema, ana bilgisayar ve bağlantı noktası tam eşleşmelidir. İlgisiz alanlar, genel son ekler, desteklenmeyen alanlar ve yanlış türler değişiklik yapılmadan reddedilir. Secure Cookie’ler HTTPS gerektirir.
+
+Netscape `cookies.txt` için iki komutta da `--format cookies` kullanın; bu biçim localStorage ve SameSite içermez. Dosyalar en fazla 256 KiB olur ve kimlik bilgisi içerir: özel tutun ve Git’e koymayın. İçe aktarma yalnızca sahibinin erişebildiği normal dosya (ör. `0600`) gerektirir; sembolik bağlantılar reddedilir. Dışa aktarma mevcut yolları ezmeden yeni özel dosya oluşturur. WebKit verileri bölmeler arasında paylaşılmaya devam eder; proje, pencere ve gezinme sınırları korunur.

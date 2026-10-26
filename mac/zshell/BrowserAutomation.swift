@@ -12,12 +12,13 @@ struct BrowserAutomationError: Error {
     let message: String
 }
 
-/// A separate content world keeps page code out of element identity and command dispatch.
-/// The only script input is data for the fixed operations below, never executable source.
+/// DOM 操作使用隔离内容世界，显式 eval 才进入页面上下文。
 @MainActor
 final class BrowserAutomation {
     static let maximumTimeoutMS = 30_000
     static let maximumImageBytes = 524_288
+    static let maximumScriptBytes = 65_536
+    static let maximumResultBytes = 262_144
     static let world = WKContentWorld.world(name: "sh.zshell.browser.automation")
 
     private(set) var restrictsNavigation = false
@@ -131,13 +132,15 @@ final class BrowserAutomation {
         try checkPage(webView, scopeIsValid: scopeIsValid)
         restrictNavigation()
         let revision = documentRevision
+        let viewport = webView.window == nil ? BrowserAutomationViewport(webView) : nil
+        defer { viewport?.restore() }
         let size = webView.bounds.size
         guard size.width >= 1, size.height >= 1,
               size.width <= 16_384, size.height <= 16_384 else {
-            throw BrowserAutomationError(code: "browser_not_visible", message: "Show this browser pane once before taking a viewport screenshot.")
+            throw BrowserAutomationError(code: "invalid_viewport", message: "The browser viewport must be between 1 and 16384 points per side.")
         }
         let configuration = WKSnapshotConfiguration()
-        configuration.afterScreenUpdates = false
+        configuration.afterScreenUpdates = true
         configuration.snapshotWidth = NSNumber(value: min(Double(width), Double(width) * size.width / size.height))
         let pending = BrowserAutomationPending<NSImage>()
         let image = try await pending.run(timeoutMS: timeoutMS) { finish in
@@ -168,6 +171,143 @@ final class BrowserAutomation {
         ])
     }
 
+    func evaluate(
+        _ source: String,
+        in webView: WKWebView,
+        timeoutMS: Int,
+        scopeIsValid: @escaping @MainActor () -> Bool
+    ) async throws -> ZshellJSONValue {
+        guard !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              source.utf8.count <= Self.maximumScriptBytes else {
+            throw BrowserAutomationError(code: "invalid_params", message: "script must be non-empty and at most 64 KiB.")
+        }
+        try checkPage(webView, scopeIsValid: scopeIsValid)
+        restrictNavigation()
+        invalidateDocument()
+        let revision = documentRevision
+        let pending = BrowserAutomationPending<String>()
+        let json = try await pending.run(timeoutMS: timeoutMS) { finish in
+            webView.callAsyncJavaScript(Self.evaluationScript, arguments: [
+                "source": source, "deadline": Date().timeIntervalSince1970 * 1_000 + Double(timeoutMS),
+                "maximum": Self.maximumResultBytes,
+            ], in: nil, in: .page) { result in
+                switch result {
+                case .success(let value):
+                    guard let string = value as? String, string.utf8.count <= Self.maximumResultBytes else {
+                        finish(.failure(BrowserAutomationError(code: "response_too_large", message: "JavaScript results are limited to 256 KiB.")))
+                        return
+                    }
+                    finish(.success(string))
+                case .failure:
+                    finish(.failure(BrowserAutomationError(code: "javascript_error", message: "WebKit could not evaluate the page script.")))
+                }
+            }
+        }
+        try checkPage(webView, scopeIsValid: scopeIsValid)
+        guard revision == documentRevision else {
+            throw BrowserAutomationError(code: "page_changed", message: "The page navigated during evaluation. Inspect it before retrying a mutation.")
+        }
+        guard let result = try? JSONDecoder().decode(ZshellJSONValue.self, from: Data(json.utf8)) else {
+            throw BrowserAutomationError(code: "invalid_response", message: "WebKit returned an invalid JavaScript result.")
+        }
+        if let error = result.objectValue?["error"]?.objectValue,
+           let code = error["code"]?.stringValue, let message = error["message"]?.stringValue {
+            throw BrowserAutomationError(code: code, message: message)
+        }
+        return result
+    }
+
+    func saveState(
+        in webView: WKWebView,
+        format: BrowserStorageState.Format,
+        timeoutMS: Int,
+        scopeIsValid: @escaping @MainActor () -> Bool
+    ) async throws -> ZshellJSONValue {
+        try checkPage(webView, scopeIsValid: scopeIsValid)
+        guard let url = webView.url else { throw stateChanged() }
+        let origin = try BrowserStorageState.origin(for: url)
+        restrictNavigation()
+        let revision = documentRevision
+        let deadline = Date().addingTimeInterval(Double(timeoutMS) / 1_000)
+        let valid = { @MainActor in
+            scopeIsValid() && self.documentRevision == revision
+                && (try? webView.url.map(BrowserStorageState.origin(for:))) == origin
+        }
+        let pending = BrowserAutomationPending<[HTTPCookie]>()
+        let cookies = try await pending.run(timeoutMS: timeoutMS) { finish in
+            webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { finish(.success($0)) }
+        }
+        guard valid() else { throw stateChanged() }
+        var storage: [String: String]?
+        if format == .storageState {
+            let result = try await perform("storage_get", in: webView, params: ["origin": .string(origin)],
+                                           timeoutMS: remaining(deadline), scopeIsValid: valid)
+            guard let entries = result.objectValue?["entries"]?.arrayValue else { throw stateChanged() }
+            storage = try BrowserStorageState.decodeLocalStorage(entries)
+        }
+        guard valid() else { throw stateChanged() }
+        let selected = cookies.filter { BrowserStorageState.includes($0, for: url) }
+        guard selected.count <= BrowserStorageState.maximumCookies else {
+            throw BrowserAutomationError(code: "invalid_storage_state", message: "Storage state supports at most 256 cookies.")
+        }
+        let data = try BrowserStorageState(cookies: selected, localStorage: storage).encoded(format: format, for: url)
+        return .object([
+            "format": .string(format.rawValue), "origin": .string(origin), "cookies": .number(Double(selected.count)),
+            "local_storage_entries": .number(Double(storage?.count ?? 0)), "bytes": .number(Double(data.count)),
+            "data_base64": .string(data.base64EncodedString()),
+        ])
+    }
+
+    func loadState(
+        _ data: Data,
+        in webView: WKWebView,
+        format: BrowserStorageState.Format,
+        timeoutMS: Int,
+        scopeIsValid: @escaping @MainActor () -> Bool
+    ) async throws -> ZshellJSONValue {
+        try checkPage(webView, scopeIsValid: scopeIsValid)
+        guard let url = webView.url else { throw stateChanged() }
+        let state = try BrowserStorageState.decode(data, format: format, for: url)
+        let origin = try BrowserStorageState.origin(for: url)
+        let revision = documentRevision
+        let deadline = Date().addingTimeInterval(Double(timeoutMS) / 1_000)
+        let valid = { @MainActor in
+            scopeIsValid() && self.documentRevision == revision
+                && (try? webView.url.map(BrowserStorageState.origin(for:))) == origin
+        }
+        restrictNavigation()
+        if let storage = state.localStorage {
+            let entries = ZshellJSONValue.array(storage.map { .object(["name": .string($0.key), "value": .string($0.value)]) })
+            let json = String(decoding: try JSONEncoder().encode(entries), as: UTF8.self)
+            _ = try await perform("storage_set", in: webView, params: ["origin": .string(origin), "storage_json": .string(json)],
+                                  timeoutMS: remaining(deadline), scopeIsValid: valid)
+        }
+        for cookie in state.cookies {
+            guard valid() else { throw stateChanged() }
+            let pending = BrowserAutomationPending<Void>()
+            try await pending.run(timeoutMS: remaining(deadline)) { finish in
+                webView.configuration.websiteDataStore.httpCookieStore.setCookie(cookie) { finish(.success(())) }
+            }
+        }
+        guard valid() else { throw stateChanged() }
+        invalidateDocument()
+        return .object([
+            "loaded": .bool(true), "format": .string(format.rawValue), "origin": .string(origin),
+            "cookies": .number(Double(state.cookies.count)), "local_storage_entries": .number(Double(state.localStorage?.count ?? 0)),
+        ])
+    }
+
+    private func remaining(_ deadline: Date) throws -> Int {
+        guard deadline.timeIntervalSinceNow > 0 else {
+            throw BrowserAutomationError(code: "browser_timeout", message: "The browser operation timed out.")
+        }
+        return max(1, Int(deadline.timeIntervalSinceNow * 1_000))
+    }
+
+    private func stateChanged() -> BrowserAutomationError {
+        BrowserAutomationError(code: "browser_scope_changed", message: "The target document, project, or window changed during the storage operation.")
+    }
+
     private func checkPage(
         _ webView: WKWebView,
         scopeIsValid: @MainActor () -> Bool
@@ -179,6 +319,34 @@ final class BrowserAutomation {
             throw BrowserAutomationError(code: "unsupported_url", message: "Only HTTP, HTTPS, and about:blank pages can be automated.")
         }
     }
+
+    private static let evaluationScript = #"""
+    const fail = (code, message) => JSON.stringify({error: {code, message}});
+    if (Date.now() > deadline) return fail('browser_timeout', 'The evaluation expired before it could execute.');
+    try {
+      const value = await (0, eval)(source);
+      const seen = new Set();
+      let nodes = 0, text = 0;
+      const check = (item, depth) => {
+        if (++nodes > 10000 || depth > 64) throw new Error('limit');
+        if (typeof item === 'string') { text += item.length; if (text > maximum) throw new Error('limit'); return; }
+        if (item === null || typeof item === 'boolean' || (typeof item === 'number' && Number.isFinite(item))) return;
+        if (typeof item !== 'object' || (!Array.isArray(item) && ![Object.prototype, null].includes(Object.getPrototypeOf(item)))) throw new TypeError('json');
+        if (seen.has(item)) throw new TypeError('json');
+        seen.add(item);
+        const keys = Object.keys(item);
+        if (keys.length > 10000 || (Array.isArray(item) && item.length > 10000)) throw new Error('limit');
+        for (const key of keys) { text += key.length; if (text > maximum) throw new Error('limit'); check(item[key], depth + 1); }
+        seen.delete(item);
+      };
+      try { check(value === undefined ? null : value, 0); }
+      catch (error) { return fail(error.message === 'limit' ? 'response_too_large' : 'invalid_javascript_result', 'Return a JSON value within 256 KiB, 10000 nodes, and 64 levels.'); }
+      const result = JSON.stringify({value: value === undefined ? null : value});
+      return result.length <= maximum ? result : fail('response_too_large', 'JavaScript results are limited to 256 KiB.');
+    } catch (error) {
+      return fail('javascript_error', String(error?.message || error).slice(0, 1024));
+    }
+    """#
 
     private static let script = #"""
     const fail = (code, message) => ({error: {code, message}});
@@ -263,6 +431,24 @@ final class BrowserAutomation {
       return {url: location.href.slice(0, 8192), title: document.title.slice(0, 512), ready_state: document.readyState, text: pageText.replace(/\s+/g, ' ').trim().slice(0, max_text), elements, truncated, frame_scope: 'main'};
     }
     if (operation === 'ready') return {ready: document.readyState !== 'loading', ready_state: document.readyState};
+    if (operation === 'storage_get' || operation === 'storage_set') {
+      if (location.origin !== origin) return fail('invalid_storage_state', 'The storage origin does not match the target page.');
+      try {
+        const entries = [];
+        if (localStorage.length > 1000) return fail('invalid_storage_state', 'localStorage supports at most 1000 entries.');
+        let bytes = 0;
+        for (let i = 0; i < localStorage.length; i++) {
+          const name = localStorage.key(i), value = localStorage.getItem(name);
+          if (name.length > 4096 || value.length > 65536 || (bytes += name.length + value.length) > 262144) return fail('invalid_storage_state', 'localStorage exceeds the storage-state limit.');
+          entries.push({name, value});
+        }
+        if (operation === 'storage_get') return {entries};
+        const replacement = JSON.parse(storage_json);
+        try { localStorage.clear(); for (const entry of replacement) localStorage.setItem(entry.name, entry.value); }
+        catch { localStorage.clear(); for (const entry of entries) localStorage.setItem(entry.name, entry.value); return fail('storage_failed', 'Could not restore localStorage; its previous values were restored.'); }
+        return {restored: true};
+      } catch { return fail('storage_failed', 'This page does not allow access to localStorage.'); }
+    }
     const element = resolve();
     if (!(element instanceof Element)) return element;
     if (operation === 'wait') {
@@ -297,6 +483,71 @@ final class BrowserAutomation {
     }
     return fail('unsupported_action', 'Unsupported browser operation.');
     """#
+}
+
+/// 未显示过的后台标签没有布局；临时原生宿主让 WebKit 产生真实视口而不选中标签。
+@MainActor
+private final class BrowserAutomationViewport {
+    private let webView: WKWebView
+    private let window: BrowserAutomationWindow
+    private weak var originalSuperview: NSView?
+    private let originalFrame: NSRect
+    private let originalMask: NSView.AutoresizingMask
+    private let originalTranslates: Bool
+    private let originalConstraints: [NSLayoutConstraint]
+    private weak var nextSibling: NSView?
+
+    init(_ webView: WKWebView) {
+        self.webView = webView
+        originalSuperview = webView.superview
+        originalFrame = webView.frame
+        originalMask = webView.autoresizingMask
+        originalTranslates = webView.translatesAutoresizingMaskIntoConstraints
+        originalConstraints = webView.superview?.constraints.filter {
+            $0.firstItem === webView || $0.secondItem === webView
+        } ?? []
+        if let siblings = webView.superview?.subviews, let index = siblings.firstIndex(of: webView), index + 1 < siblings.count {
+            nextSibling = siblings[index + 1]
+        }
+        let size = webView.bounds.width >= 1 && webView.bounds.height >= 1
+            ? webView.bounds.size : NSSize(width: 1_024, height: 768)
+        window = BrowserAutomationWindow(contentRect: NSRect(origin: .zero, size: size),
+                                          styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.ignoresMouseEvents = true
+        window.collectionBehavior = [.ignoresCycle, .transient]
+        let host = NSView(frame: NSRect(origin: .zero, size: size))
+        window.contentView = host
+        NSLayoutConstraint.deactivate(originalConstraints)
+        webView.removeFromSuperview()
+        webView.translatesAutoresizingMaskIntoConstraints = true
+        webView.autoresizingMask = [.width, .height]
+        webView.frame = host.bounds
+        host.addSubview(webView)
+        host.layoutSubtreeIfNeeded()
+    }
+
+    func restore() {
+        // 用户可能在异步截图期间选中或移动标签，不覆盖新宿主的布局。
+        if webView.window === window {
+            webView.removeFromSuperview()
+            webView.frame = originalFrame
+            webView.autoresizingMask = originalMask
+            webView.translatesAutoresizingMaskIntoConstraints = originalTranslates
+            if let originalSuperview {
+                originalSuperview.addSubview(webView, positioned: .below,
+                                             relativeTo: nextSibling?.superview === originalSuperview ? nextSibling : nil)
+                NSLayoutConstraint.activate(originalConstraints)
+            }
+        }
+        window.contentView = nil
+        window.close()
+    }
+}
+
+private final class BrowserAutomationWindow: NSWindow {
+    override var canBecomeKey: Bool { false }
+    override var canBecomeMain: Bool { false }
 }
 
 /// A WebKit callback can remain pending behind a modal or an unresponsive page.

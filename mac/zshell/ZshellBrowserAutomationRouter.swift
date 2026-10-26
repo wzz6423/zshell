@@ -38,6 +38,7 @@ extension ZshellAutomationRouter {
         let methods: Set<String> = [
             "browser.get", "browser.navigate", "browser.back", "browser.forward", "browser.reload", "browser.stop",
             "browser.snapshot", "browser.click", "browser.fill", "browser.wait", "browser.screenshot",
+            "browser.eval", "browser.state.save", "browser.state.load",
         ]
         guard methods.contains(request.method) else {
             throw browserError("method_not_found", "Unknown browser automation method.")
@@ -149,6 +150,34 @@ extension ZshellAutomationRouter {
             try requireLoaded(browser)
             let width = try browserInteger(params, "width", default: 1_024, range: 64...1_600)
             let result = try await browser.automation.screenshot(in: browser.webView, width: width, timeoutMS: timeout, scopeIsValid: scopeIsValid)
+            return browserEnvelope(result, target: target)
+
+        case "eval":
+            try requireLoaded(browser)
+            guard let script = params["script"]?.stringValue else {
+                throw browserError("invalid_params", "script is required.")
+            }
+            browser.automation.resetNavigationError()
+            let result = try await browser.automation.evaluate(script, in: browser.webView, timeoutMS: timeout, scopeIsValid: scopeIsValid)
+            return browserEnvelope(result, target: target)
+
+        case "state.save", "state.load":
+            try requireLoaded(browser)
+            let formatValue = params["format"] ?? .string("storage-state")
+            guard let formatName = formatValue.stringValue, let format = BrowserStorageState.Format(rawValue: formatName) else {
+                throw browserError("invalid_params", "format must be storage-state or cookies.")
+            }
+            let result: ZshellJSONValue
+            if operation == "state.save" {
+                result = try await browser.automation.saveState(in: browser.webView, format: format, timeoutMS: timeout, scopeIsValid: scopeIsValid)
+            } else {
+                guard let encoded = params["data_base64"]?.stringValue,
+                      encoded.utf8.count <= (BrowserStorageState.maximumBytes + 2) / 3 * 4,
+                      let data = Data(base64Encoded: encoded), data.count <= BrowserStorageState.maximumBytes else {
+                    throw browserError("invalid_params", "A base64 storage-state file of at most 256 KiB is required.")
+                }
+                result = try await browser.automation.loadState(data, in: browser.webView, format: format, timeoutMS: timeout, scopeIsValid: scopeIsValid)
+            }
             return browserEnvelope(result, target: target)
         default:
             throw browserError("method_not_found", "Unknown browser operation.")

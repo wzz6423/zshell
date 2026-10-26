@@ -24,6 +24,8 @@ the original feature bullet instead of adding separate entries for them.
   Sessions to stop all background work when exiting.
 - Run commands in background panes and wait for a task's own exit status,
   duration, and saved recent output, including waiting again after a timeout.
+- Capture browser panes before showing them, evaluate page scripts, and save
+  or restore a site's cookies and local storage through the project-scoped CLI.
 
 ## [0.1.10]
 
