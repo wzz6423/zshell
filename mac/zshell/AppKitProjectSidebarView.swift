@@ -147,7 +147,7 @@ final class ProjectSidebarNSView: NSView {
         footerButtons = [
             WorkspaceChromeButton(symbol: "plus", label: AppCommand.newProject.title) { [weak manager] in manager?.newProject() },
             WorkspaceChromeButton(symbol: "folder.badge.plus", label: String(localized: "New Group")) { [weak self] in self?.showNewGroupMenu() },
-            WorkspaceChromeButton(symbol: "network", label: String(localized: "New SSH Project")) { [weak manager] in manager?.promptForSSHProject() },
+            WorkspaceChromeButton(symbol: "network", label: String(localized: "Remote Connections")) { [weak self] in self?.showRemoteMenu() },
             WorkspaceChromeButton(symbol: "bolt", label: String(localized: "Quick Launch (⌘O)")) { [weak manager] in manager?.toggleQuickLaunch() },
             WorkspaceChromeButton(symbol: "exclamationmark.bubble", label: String(localized: "Send Feedback")) {
                 NSWorkspace.shared.open(URL(string: "https://github.com/wzz6423/zshell/issues/new")!)
@@ -227,7 +227,7 @@ final class ProjectSidebarNSView: NSView {
         footerButtons[0].configure(symbol: "plus", command: .newProject, pointSize: 12 * scale)
         let footerItems = [
             ("folder.badge.plus", String(localized: "New Group")),
-            ("network", String(localized: "New SSH Project")),
+            ("network", String(localized: "Remote Connections")),
             ("bolt", String(localized: "Quick Launch (⌘O)")),
             ("exclamationmark.bubble", String(localized: "Send Feedback")),
             ("gearshape", String(localized: "Settings (⌘,)")),
@@ -250,12 +250,14 @@ final class ProjectSidebarNSView: NSView {
 
     private func configure(_ row: WorkspaceItemView, project: Project, shortcut: String?) {
         let subtitle: String?
-        if project.sessions.count > 1 { subtitle = String(localized: "\(project.sessions.count) sessions") }
+        if project.sharedHost != nil { subtitle = project.selectedSession?.remoteStatus?.label ?? String(localized: "Connecting…") }
+        else if project.sessions.count > 1 { subtitle = String(localized: "\(project.sessions.count) sessions") }
         else { subtitle = project.selectedSession?.directoryLabel }
         let groupColor = groupStore.group(id: project.groupID).map {
             $0.markerColor ?? .defaultColor
         }
-        row.apply(title: project.name, subtitle: subtitle,
+        let title = project.sharedHost.map { "\(project.name) — \($0.name)" } ?? project.name
+        row.apply(title: title, subtitle: subtitle,
                   icon: NSImage(systemSymbolName: project.isRemote ? "network" : "folder", accessibilityDescription: nil),
                   selected: project.id == manager.selectedProjectID, pinned: project.isPinned,
                   marker: groupColor ?? project.markerColor, rollup: project.agentRollup, sidebar: true,
@@ -615,6 +617,13 @@ final class ProjectSidebarNSView: NSView {
         menuPresenter.popUp(items: newGroupMenuItems(), at: NSPoint(x: 0, y: 0), in: button)
     }
 
+    private func showRemoteMenu() {
+        menuPresenter.popUp(items: [
+            .action(title: String(localized: "Remote Hosts…")) { [weak manager] in manager?.promptForRemoteHosts() },
+            .action(title: String(localized: "New SSH Project")) { [weak manager] in manager?.promptForSSHProject() },
+        ], at: NSPoint(x: 0, y: 0), in: footerButtons[2])
+    }
+
     private func createGroup(kind: ProjectGroup.Kind) {
         let name: String
         if case .plain = kind {
@@ -652,6 +661,20 @@ final class ProjectSidebarNSView: NSView {
             .action(title: String(localized: project.isPinned ? "Unpin Project" : "Pin Project")) { [weak manager] in manager?.setPinned(!project.isPinned, for: project) },
             .action(title: String(localized: "Rename…")) { [weak row] in row?.onRename?() },
         ]
+        if project.sharedHost != nil {
+            items += [
+                .separator,
+                .action(title: String(localized: "Reconnect Remote Host")) { project.sessions.forEach { $0.remoteConnection?.reconnect() } },
+                .action(title: String(localized: "Remote Hosts…")) { [weak manager] in manager?.promptForRemoteHosts() },
+            ]
+            if let session = project.selectedSession, let connection = session.remoteConnection {
+                items += [
+                    .action(title: String(localized: "Take Terminal Control"), enabled: !session.hasExited) { connection.takeControl() },
+                    .action(title: String(localized: "Detach Remote Session"), enabled: !session.hasExited) { connection.detach() },
+                    .action(title: String(localized: "End Remote Session…")) { [weak row] in RemoteHostsController.endSession(session, relativeTo: row?.window) },
+                ]
+            }
+        }
         if project.customName != nil { items.append(.action(title: String(localized: "Use Automatic Title")) { project.customName = nil }) }
         items += [.separator, .submenu(title: String(localized: "Move to Group"), items: groups), .separator]
         items.append(.action(title: String(localized: "Set Color Marker…")) {

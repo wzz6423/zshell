@@ -18,6 +18,9 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Share host-owned terminal sessions across machines over SSH or Tailscale,
+  reconnect with their screen and history after quitting or a network outage,
+  and manage hosts and input control from the macOS app.
 - Optionally keep shell, agent, and development server sessions running when
   quitting Zshell, then reconnect to their original terminal state on reopening.
   Closing a pane, project, or window ends its sessions; use Quit and End All

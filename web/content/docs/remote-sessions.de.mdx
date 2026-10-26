@@ -1,0 +1,48 @@
+---
+title: Gemeinsame Remote-Sitzungen
+description: Über SSH oder Tailscale denselben Remote-Terminal nutzen und Aufgaben nach dem Trennen weiterlaufen lassen.
+---
+
+`zshell-server` hält Shell und Prozesse auf einem macOS- oder Linux-Host am Leben. Beide Terminal-Backends von Zshell können sich verbinden. Beim Schließen des Clients oder bei einem Netzwerkausfall laufen Aufgaben weiter. Eine erneute Verbindung stellt Bildschirm, Verlauf, Cursor und Terminalmodi wieder her.
+
+## Installation [#install]
+
+Bauen Sie das Zshell-Repository auf dem Host mit einer aktuellen Rust-Toolchain. Der Mac-Client enthält den Relay und benötigt kein Cargo. Ein nativer Windows-Server wird nicht unterstützt.
+
+```sh
+cargo build --locked --release --manifest-path remote/Cargo.toml
+install -d "$HOME/.local/bin"
+install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
+```
+
+## SSH [#ssh]
+
+Prüfen Sie zunächst Hostschlüssel und Schlüssel- oder Agent-Authentifizierung:
+
+```sh
+ssh devbox true
+```
+
+Öffnen Sie die Remote-Hosts im Netzwerkmenü der Seitenleiste. Tragen Sie Name, `ssh://me@devbox:22` oder SSH-Alias und `~/.local/bin/zshell-server` ein. Das Verbinden lädt vorhandene Projekte und Sitzungen. Ein Remote-Verzeichnis wie `~/repo` und das Öffnen des Remote-Projekts erstellen eine neue Shell. Leerzeichen in Pfaden werden unterstützt; neue Tabs und geteilte Bereiche laufen ebenfalls auf dem Host.
+
+SSH startet den Daemon automatisch und nutzt Ihre OpenSSH-Konfiguration, Schlüssel, den Agent und vertraute Hostschlüssel. Unbekannte Schlüssel und Anmeldefehler erscheinen als Fehler. Dateien und Git verwenden SSH zum selben Host, auch bei einer Tailscale-Terminalverbindung. Remote-Pfade greifen niemals auf Mac-Dateien zu. `ZSHELL_SSH_CONFIG_FILE` kann eine separate lesbare OpenSSH-Datei als absoluten Pfad auswählen.
+
+## Tailscale [#tailscale]
+
+Melden Sie beide Geräte bei Tailscale an und starten Sie den privaten Listener vor dem Erstellen von Sitzungen:
+
+```sh
+zshell-server serve --listen tailscale://:7373
+```
+
+Fügen Sie `tailscale://devbox:7373` hinzu. MagicDNS und Tailscale-IPv4/IPv6 funktionieren, öffentliche Adressen werden abgelehnt. Standardmäßig sind nur unmarkierte Geräte des Hostbesitzers erlaubt. `--allow-user` erlaubt einen weiteren exakten Anmeldenamen; markierte Clients bleiben gesperrt. Auf dem Server selbst verwenden Sie SSH. Tailnet-ACLs gelten weiterhin. Berechtigte Clients können das Unix-Konto des Dienstes bedienen.
+
+## Teilen und beenden [#sharing]
+
+Alle Clients erhalten dieselbe Ausgabe. Durch Fokussieren oder Übernehmen der Terminalsteuerung erhält ein Client Eingabe und Größensteuerung. Trennt er sich, übernimmt der älteste verbleibende Client. Das Info-Panel zeigt Zustand, Clientzahl und Steuerung und bietet Trennen und Wiederverbinden. Netzfehler werden automatisch erneut versucht; Offline-Eingaben werden verworfen. Gespeicherte Layouts verbinden dieselbe Remote-UUID erneut.
+
+Das Schließen von Bereich, Projekt oder Fenster sowie beide Optionen zum Beenden der App trennen nur die Verbindung. Das Beenden einer Remote-Sitzung verlangt Bestätigung und stoppt Shell und Aufgaben für alle Clients. Auf dem Host geht das mit `zshell-server terminate --project ~/repo --session UUID`.
+
+## Grenzen [#limits]
+
+Die Sitzung bleibt nur während der Lebenszeit des Daemons bestehen, nicht über Host-Neustarts, Abstürze oder Daemon-Neustarts hinweg. Fehlende Sitzungen werden gemeldet und nicht still ersetzt. Grenzen: 128 Sitzungen, 16 MiB Terminal-Snapshot, 1 MiB Live-Warteschlange pro Client. Langsame Clients blockieren die anderen nicht. Der Verlauf bleibt im Host-RAM. Dienstkonfiguration und CLI stehen in der [Serverreferenz](https://github.com/wzz6423/zshell/tree/main/remote).

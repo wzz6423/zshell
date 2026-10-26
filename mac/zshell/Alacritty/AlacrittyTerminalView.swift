@@ -43,6 +43,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     private var handle: OpaquePointer?
     private var foregroundProcessProvider: (() -> pid_t?)?
+    private var reportsLocalWorkingDirectory = true
     private let token = AlacrittyRegistry.shared.nextToken()
     private var metrics: AlacrittyMetrics
     private var backgroundOpacity: CGFloat = 1
@@ -233,6 +234,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     private func start(launch: TerminalLaunch) {
         foregroundProcessProvider = launch.foregroundProcessProvider
+        reportsLocalWorkingDirectory = launch.reportsLocalWorkingDirectory
         supportsInputSelection = launch.usesZsh
         let geometry = gridGeometry(for: bounds.size)
         gridGeometry = geometry
@@ -395,7 +397,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     private func updateDirectoryPolling() {
         let shouldPoll =
-            !usesOSCWorkingDirectory && isSurfaceVisible && window?.isKeyWindow == true
+            reportsLocalWorkingDirectory && !usesOSCWorkingDirectory && isSurfaceVisible && window?.isKeyWindow == true
         guard shouldPoll else {
             directoryTimer?.invalidate()
             directoryTimer = nil
@@ -413,7 +415,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     private func reportWorkingDirectory() {
-        guard !usesOSCWorkingDirectory, let handle else { return }
+        guard reportsLocalWorkingDirectory, !usesOSCWorkingDirectory, let handle else { return }
         // The foreground job's directory, falling back to the shell's — a
         // long-running command should not blank the label.
         let pid = foregroundProcessProvider?() ?? zshell_alacritty_foreground_pid(handle)

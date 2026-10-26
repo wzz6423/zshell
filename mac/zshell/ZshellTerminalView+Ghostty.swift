@@ -19,6 +19,7 @@ extension ZshellTerminalView {
 
     func start(launch: TerminalLaunch) {
         foregroundProcessProvider = launch.foregroundProcessProvider
+        reportsLocalWorkingDirectory = launch.reportsLocalWorkingDirectory
         launchCommand = launch.commandLine
         launchShellIntegration = launch.foregroundProcessProvider == nil
             ? Self.shellIntegration(for: launch.interactiveShell) : "none"
@@ -140,6 +141,11 @@ extension ZshellTerminalView {
                 builder.withCustom("keybind", "shift+numpad_enter=text:\\x0a")
             }
             builder.withCustom("command", "shell:\(command)")
+            if !reportsLocalWorkingDirectory {
+                // A remote job may already have exited before we attach. Its
+                // status belongs to the session, not Ghostty's launch warning.
+                builder.withCustom("abnormal-command-exit-runtime", "0")
+            }
             builder.withCustom("term", "xterm-256color")
             // The launch command is a `/bin/sh -c` shim, so `detect` would
             // miss the final login shell and never emit its OSC 133 prompts.

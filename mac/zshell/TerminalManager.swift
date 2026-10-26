@@ -425,6 +425,32 @@ final class TerminalManager: nonisolated ObservableObject {
         SSHProjectController.shared.present(for: self)
     }
 
+    func promptForRemoteHosts() { RemoteHostsController.shared.present(for: self) }
+
+    func synchronizeRemoteHost(_ host: RemoteHost, projects listings: [RemoteProjectListing]) throws {
+        for project in projects where project.sharedHost?.id == host.id { try project.updateSharedHost(host) }
+        let selection = selectedProjectID
+        for listing in listings {
+            let project = sharedProject(host: host, directory: listing.directory)
+            for info in listing.sessions { project.attachRemoteSession(info) }
+        }
+        if let selection { selectedProjectID = selection }
+    }
+
+    func openSharedProject(host: RemoteHost, session: RemoteSessionInfo) {
+        let project = sharedProject(host: host, directory: session.project)
+        project.attachRemoteSession(session)
+        selectedProjectID = project.id
+    }
+
+    private func sharedProject(host: RemoteHost, directory: String) -> Project {
+        if let project = projects.first(where: { $0.sharedHost?.id == host.id && $0.remoteDirectory == directory }) { return project }
+        let project = makeProject(location: .shared(host: host, directory: directory), createInitialSession: false)
+        project.customName = (directory as NSString).lastPathComponent
+        insert(project)
+        return project
+    }
+
     func newSSHProject(
         endpoint: SSHEndpoint,
         remoteDirectory: String?,
@@ -1762,9 +1788,11 @@ final class TerminalManager: nonisolated ObservableObject {
             var historyKey: String?
             var agentResume: AgentConversationIdentity?
             var terminalID: UUID?
+            var remoteSessionID: UUID?
             if case .session(let session) = pane.content {
                 agentResume = session.conversationIdentityForPersistence
                 terminalID = session.id
+                remoteSessionID = session.remoteConnection?.sessionID
             }
             if case .session(let session) = pane.content,
                let history = session.serializedHistory(
@@ -1779,7 +1807,8 @@ final class TerminalManager: nonisolated ObservableObject {
                 weight: 1,
                 historyKey: historyKey,
                 agentResume: agentResume,
-                terminalID: terminalID
+                terminalID: terminalID,
+                remoteSessionID: remoteSessionID
             ))
         case .split(let split):
             return .split(

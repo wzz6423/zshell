@@ -16,7 +16,7 @@ import Foundation
 final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     nonisolated let id = UUID()
 
-    let location: ProjectLocation
+    @Published private(set) var location: ProjectLocation
 
     /// User-assigned name; when nil the project title follows the
     /// selected session's terminal title.
@@ -97,6 +97,11 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     var isRemote: Bool { location.isRemote }
 
+    var sharedHost: RemoteHost? {
+        if case .shared(let host, _) = location { return host }
+        return nil
+    }
+
     /// The directory the project's sidebar group hands to new terminals
     /// (home for a plain group, its folder for a folder group); nil when the
     /// project is ungrouped or belongs to a group that no longer exists.
@@ -104,15 +109,23 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         manager?.projectGroup(id: groupID)?.sessionDirectory
     }
 
-    /// The declared endpoint for SSH projects, nil for local projects.
+    /// Files and Git keep using SSH, including on a Tailscale host. Its SSH
+    /// user and port come from the existing OpenSSH configuration.
     var remoteEndpoint: SSHEndpoint? {
         if case .ssh(let endpoint, _, _, _) = location { return endpoint }
+        if let host = sharedHost, let endpoint = try? host.endpoint() {
+            switch endpoint {
+            case .ssh(let endpoint): return endpoint
+            case .tailscale(let host, _): return try? SSHEndpoint(host: host)
+            }
+        }
         return nil
     }
 
     /// The directory sessions start in on the remote host, nil when unset.
     var remoteDirectory: String? {
         if case .ssh(_, let directory, _, _) = location { return directory }
+        if case .shared(_, let directory) = location { return directory }
         return nil
     }
 
@@ -329,12 +342,14 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         launchSettings: TerminalLaunchSettings? = nil,
         agentResume: AgentConversationIdentity? = nil,
         isRestoredSession: Bool = false,
-        restoredSessionID: UUID? = nil
+        restoredSessionID: UUID? = nil,
+        remoteSessionID: UUID? = nil
     ) -> TerminalSession {
         let initialDirectory: String?
         let launchArguments: [String]?
         let additionalEnvironment: [String: String]
         let sshMaterial: SSHAuthenticationMaterial?
+        let remoteConnection: RemoteSessionConnection?
         switch location {
         case .local:
             initialDirectory = directory
@@ -344,16 +359,34 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             launchArguments = commandArguments
             additionalEnvironment = [:]
             sshMaterial = nil
+            remoteConnection = nil
+        case let .shared(host, directory):
+            initialDirectory = nil
+            additionalEnvironment = [:]
+            sshMaterial = nil
+            do {
+                let connection = try RemoteSessionConnection(
+                    host: host, directory: directory, sessionID: remoteSessionID ?? restoredSessionID ?? UUID(),
+                    createIfMissing: !isRestoredSession, command: commandArguments,
+                    launchSettings: launchSettings ?? self.launchSettings
+                )
+                remoteConnection = connection
+                launchArguments = connection.launchArguments
+            } catch {
+                remoteConnection = nil
+                launchArguments = ["/bin/sh", "-c", "printf '%s\\n' \"$1\" >&2; exit 1", "zshell", error.localizedDescription]
+            }
         case let .ssh(endpoint, remoteDirectory, authentication, credentialID):
             initialDirectory = nil
+            remoteConnection = nil
             do {
                 let material = try authentication.makeMaterial(credentialID: credentialID)
                 launchArguments = ["/usr/bin/ssh"]
-                    + endpoint.terminalArguments(
+                    + (try endpoint.terminalArguments(
                         remoteDirectory: remoteDirectory,
                         authentication: authentication,
                         identityFile: authentication.identityFile(material: material)
-                    )
+                    ))
                 var environment = material?.environment ?? [:]
                 if authentication == .password {
                     // Saved passwords must use askpass even though an SSH
@@ -384,7 +417,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             launchSettings: launchSettings ?? self.launchSettings,
             additionalEnvironment: additionalEnvironment,
             agentResume: isRemote ? nil : agentResume,
-            isRestoredSession: isRestoredSession
+            isRestoredSession: isRestoredSession,
+            allowsPersistence: sharedHost == nil,
+            remoteConnection: remoteConnection
         )
         register(session)
         if let sshMaterial {
@@ -397,6 +432,20 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         }
         manager.map { session.transferHost(to: $0) }
         return session
+    }
+
+    func attachRemoteSession(_ info: RemoteSessionInfo) {
+        guard sharedHost != nil, let id = UUID(uuidString: info.sessionId),
+              !sessions.contains(where: { $0.remoteConnection?.sessionID == id }) else { return }
+        let session = makeSession(isRestoredSession: true, remoteSessionID: id)
+        let tab = makeTab(content: .session(session))
+        append(tab)
+    }
+
+    func updateSharedHost(_ host: RemoteHost) throws {
+        guard case .shared(_, let directory) = location else { return }
+        for session in sessions { try session.remoteConnection?.update(host: host) }
+        location = .shared(host: host, directory: directory)
     }
 
     func terminateAll() {
@@ -1292,7 +1341,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 restoredHistory: restoredHistory,
                 launchSettings: launchSettings,
                 agentResume: pane.agentResume,
-                restoredSessionID: pane.terminalID
+                restoredSessionID: pane.terminalID,
+                remoteSessionID: pane.remoteSessionID
             )))
         case .split(let axis, let fraction, let first, let second):
             return .split(PaneSplit(
@@ -1317,7 +1367,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         restoredHistory: String? = nil,
         launchSettings: TerminalLaunchSettings,
         agentResume: AgentConversationIdentity? = nil,
-        restoredSessionID: UUID? = nil
+        restoredSessionID: UUID? = nil,
+        remoteSessionID: UUID? = nil
     ) -> PaneContent {
         switch snap {
         case .session(let workingDirectory):
@@ -1327,7 +1378,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 launchSettings: launchSettings,
                 agentResume: agentResume,
                 isRestoredSession: true,
-                restoredSessionID: restoredSessionID
+                restoredSessionID: restoredSessionID,
+                remoteSessionID: remoteSessionID
             ))
         case .file(let path, let editorState):
             let file = FileTab(path: path)
