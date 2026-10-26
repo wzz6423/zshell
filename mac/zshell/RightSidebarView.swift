@@ -120,7 +120,7 @@ struct RightSidebarView: View {
                     origPath: file.originalPath
                 )
             },
-            openWorktree: { manager.newSession(directory: $0) }
+            openWorktree: { manager.openWorktreeSession(at: $0) }
         )
     }
 

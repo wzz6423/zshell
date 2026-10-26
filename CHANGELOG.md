@@ -18,6 +18,9 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Create isolated terminal sessions in Git worktrees, then choose whether to
+  keep or safely remove the checkout when closing the session. Manage sessions
+  from an external terminal with `zshell +session`.
 - Optionally keep shell, agent, and development server sessions running when
   quitting Zshell, then reconnect to their original terminal state on reopening.
   Closing a pane, project, or window ends its sessions; use Quit and End All

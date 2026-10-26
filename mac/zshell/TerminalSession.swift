@@ -29,6 +29,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// reconciles foreground process identity with explicit lifecycle events.
     @Published var agentStatus: ZshellAgentStatus?
     @Published private(set) var agentResume: AgentConversationIdentity?
+    @Published var worktree: SessionWorktree?
     private(set) var agentConversationProcessID: pid_t?
 
     /// The emulator driving this session. Fixed for the session's lifetime —
@@ -85,6 +86,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         launchSettings: TerminalLaunchSettings = .init(),
         additionalEnvironment: [String: String] = [:],
         agentResume: AgentConversationIdentity? = nil,
+        worktree: SessionWorktree? = nil,
         isRestoredSession: Bool = false,
         allowsPersistence: Bool = true
     ) {
@@ -194,6 +196,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         title = (shellPath as NSString).lastPathComponent
         agentStatus = nil
         self.agentResume = agentResume
+        self.worktree = worktree
 
         let surface = Self.makeSurface(backend: backend, launch: pty?.relayLaunch(from: launch) ?? launch)
         self.surface = surface
@@ -297,6 +300,28 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         isTerminating = true
         persistentPTY?.terminate()
         beginTeardown(processAlive: true, notifyExit: false)
+    }
+
+    func waitUntilStarted() async -> Bool {
+        for _ in 0..<50 {
+            if hasExited || isTerminating { return false }
+            if let pid = shellPid, Darwin.kill(pid, 0) == 0 {
+                // The launch shim writes its PID before exec; let immediate
+                // failures reach the backend before reporting a live session.
+                try? await Task.sleep(for: .milliseconds(100))
+                return !hasExited && !isTerminating && Darwin.kill(pid, 0) == 0
+            }
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        return false
+    }
+
+    func waitUntilTerminated() async -> Bool {
+        for _ in 0..<50 {
+            if hasExited, shellPid.map({ Darwin.kill($0, 0) != 0 && errno == ESRCH }) ?? true { return true }
+            try? await Task.sleep(for: .milliseconds(40))
+        }
+        return hasExited && (shellPid.map { Darwin.kill($0, 0) != 0 && errno == ESRCH } ?? true)
     }
 
     /// On quit the renderer and relay may go away while the daemon keeps the

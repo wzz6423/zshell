@@ -238,6 +238,12 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
                 Darwin.close(client)
                 continue
             }
+            var peerUID: uid_t = 0
+            var peerGID: gid_t = 0
+            guard getpeereid(client, &peerUID, &peerGID) == 0, peerUID == getuid() else {
+                Darwin.close(client)
+                continue
+            }
             let peerProcessID = Self.peerProcessID(client)
             workers.async { [weak self] in
                 guard let self else {

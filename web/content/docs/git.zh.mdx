@@ -85,6 +85,22 @@ Git 面板会列出这个仓库的所有工作树，以及它们对应的分支�
 
 处于 detached HEAD 状态的工作树会显示 **Detached HEAD**，而不是分支名。裸仓库也会列出，但它没有工作目录，不能在终端标签页中打开。
 
+### 工作树会话 [#worktree-sessions]
+
+在本地 Git 仓库的终端中，选择 **终端 → 在工作树中新建会话…**，或按 <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>。标签页右键菜单和 **+** 按钮的右键菜单也提供此入口。选择新建或已有的本地分支，并指定尚不存在的目录。新分支默认从仓库的默认分支创建，也可明确选择 **当前 HEAD**；已有分支保留当前提交。建议目录位于源检出旁边。
+
+分屏会继承会话的工作树关联，保存的布局也会恢复这一关联。关闭关联会话时，可选择 **保留工作树**、**移除工作树** 或 **取消**。只有检出中没有改动、未跟踪或忽略的文件，没有超出记录基准的提交，没有锁定，且没有其他已打开的会话使用它时，才允许移除。Git 分支始终保留。
+
+外部终端可通过 `zshell +session` 创建和关闭会话。使用 `projects` 返回的 ID 指定 `--project`；在 Zshell 内则自动使用调用终端所属的项目。默认在后台创建会话，添加 `--focus` 可切换到新会话。`--base HEAD` 或 `--base REF` 指定其他基准，`--worktree NEW_DIR` 指定目录。需要选择特定运行实例时使用 `--connection FILE`。关闭默认保留工作树，只有明确添加 `--remove-worktree` 才请求清理；`check` 会报告当前是否可以安全清理。
+
+```sh
+zshell +session projects
+zshell +session new --project PROJECT_ID --cwd /path/to/repo --branch feat/task
+zshell +session list --project PROJECT_ID
+zshell +session check --project PROJECT_ID --session SESSION_ID
+zshell +session close --project PROJECT_ID --session SESSION_ID --remove-worktree
+```
+
 <span id="远端" data-canonical-heading="remotes" />
 
 ## 远端 [#remotes]
