@@ -85,6 +85,9 @@ zshell +browser eval --browser BROWSER_ID --script 'Promise.resolve({title: docu
 The command awaits a returned Promise and returns JSON in `value`; `undefined`
 becomes `null`. Use an async function expression for `await`. Input is limited
 to 64 KiB, and JSON output to 256 KiB, 10000 values, and 64 levels. Evaluation
+injects single expressions, including IIFEs, as native global Scripts. Other
+multi-statement strings follow the page's CSP; wrap them in an IIFE if string
+evaluation is blocked. Zshell does not relax the page's CSP. Evaluation
 expires old DOM references. A timeout stops waiting, not page execution; inspect
 the page before retrying a mutation. A synchronous endless loop can stall that
 page and require closing it. Protocol restrictions still apply to script-driven

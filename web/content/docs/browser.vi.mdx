@@ -69,7 +69,7 @@ zshell +browser state load --browser BROWSER_ID --input /tmp/zshell-login.json
 zshell +browser reload --browser BROWSER_ID --wait
 ```
 
-`eval --script` chạy trong trang chính thật, chờ Promise được trả về và trả JSON trong `value`; `undefined` thành `null`. Dùng biểu thức hàm bất đồng bộ cho `await`. Giới hạn: đầu vào 64 KiB; kết quả 256 KiB, 10000 giá trị và 64 cấp. Tham chiếu DOM hết hạn sau khi chạy. Hết thời gian chỉ dừng chờ, không hủy mã. Kiểm tra trang trước khi lặp lại thay đổi; vòng lặp đồng bộ vô hạn có thể buộc bạn đóng trang.
+`eval --script` chạy trong trang chính thật, chờ Promise được trả về và trả JSON trong `value`; `undefined` thành `null`. Dùng biểu thức hàm bất đồng bộ cho `await`. Giới hạn: đầu vào 64 KiB; kết quả 256 KiB, 10000 giá trị và 64 cấp. Tham chiếu DOM hết hạn sau khi chạy. Hết thời gian chỉ dừng chờ, không hủy mã. Kiểm tra trang trước khi lặp lại thay đổi; vòng lặp đồng bộ vô hạn có thể buộc bạn đóng trang. Biểu thức đơn, gồm IIFE, được chèn dưới dạng Script toàn cục gốc. Chuỗi nhiều câu lệnh vẫn tuân theo CSP của trang; nếu đánh giá chuỗi bị chặn, hãy bọc các câu lệnh trong IIFE.
 
 `state save` lưu Cookie áp dụng cho host đích (gồm miền cha và HttpOnly) cùng localStorage của origin hiện tại dưới dạng Playwright storage-state JSON. `state load` hợp nhất Cookie và thay thế localStorage của origin đó; sau đó tải lại trang. Giao thức, host và cổng phải khớp chính xác. Miền không liên quan, hậu tố công cộng, trường không hỗ trợ và kiểu sai bị từ chối trước mọi thay đổi. Cookie Secure yêu cầu HTTPS.
 

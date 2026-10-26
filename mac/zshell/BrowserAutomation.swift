@@ -185,21 +185,53 @@ final class BrowserAutomation {
         restrictNavigation()
         invalidateDocument()
         let revision = documentRevision
+        let expression = BrowserJavaScriptExpression.source(from: source)
+        let slot = expression.map { _ in "__zshellEvaluation_" + UUID().uuidString.replacingOccurrences(of: "-", with: "") }
+        let deadline = Date().timeIntervalSince1970 * 1_000 + Double(timeoutMS)
+        var isWaiting = true
+        let cleanup = {
+            if let slot {
+                webView.evaluateJavaScript("delete globalThis.\(slot); void 0", in: nil, in: .page) { _ in }
+            }
+        }
+        defer { isWaiting = false; cleanup() }
         let pending = BrowserAutomationPending<String>()
         let json = try await pending.run(timeoutMS: timeoutMS) { finish in
-            webView.callAsyncJavaScript(Self.evaluationScript, arguments: [
-                "source": source, "deadline": Date().timeIntervalSince1970 * 1_000 + Double(timeoutMS),
-                "maximum": Self.maximumResultBytes,
-            ], in: nil, in: .page) { result in
-                switch result {
-                case .success(let value):
-                    guard let string = value as? String, string.utf8.count <= Self.maximumResultBytes else {
-                        finish(.failure(BrowserAutomationError(code: "response_too_large", message: "JavaScript results are limited to 256 KiB.")))
-                        return
+            let readResult = {
+                webView.callAsyncJavaScript(Self.evaluationScript, arguments: [
+                    "source": slot == nil ? source : "", "slot": slot ?? "", "deadline": deadline,
+                    "maximum": Self.maximumResultBytes,
+                ], in: nil, in: .page) { result in
+                    switch result {
+                    case .success(let value):
+                        guard let string = value as? String, string.utf8.count <= Self.maximumResultBytes else {
+                            finish(.failure(BrowserAutomationError(code: "response_too_large", message: "JavaScript results are limited to 256 KiB.")))
+                            return
+                        }
+                        finish(.success(string))
+                    case .failure:
+                        finish(.failure(BrowserAutomationError(code: "javascript_error", message: "WebKit could not evaluate the page script.")))
                     }
-                    finish(.success(string))
-                case .failure:
-                    finish(.failure(BrowserAutomationError(code: "javascript_error", message: "WebKit could not evaluate the page script.")))
+                }
+            }
+            guard let expression, let slot else { readResult(); return }
+            // 原生全局 Script 绕开页面的字符串 eval 限制，结果槽保留 Promise 和全局名称查找。
+            let script = "if (Date.now() <= \(deadline)) { globalThis.\(slot) = (\n\(expression)\n); }\nvoid 0"
+            webView.evaluateJavaScript(script, in: nil, in: .page) { result in
+                guard isWaiting else { cleanup(); return }
+                do {
+                    _ = try result.get()
+                    try self.checkPage(webView, scopeIsValid: scopeIsValid)
+                    guard revision == self.documentRevision else {
+                        throw BrowserAutomationError(code: "page_changed", message: "The page navigated during evaluation. Inspect it before retrying a mutation.")
+                    }
+                    readResult()
+                } catch let error as BrowserAutomationError {
+                    finish(.failure(error))
+                } catch {
+                    let message = (error as NSError).userInfo["WKJavaScriptExceptionMessage"] as? String
+                        ?? "WebKit could not evaluate the page script."
+                    finish(.failure(BrowserAutomationError(code: "javascript_error", message: String(message.prefix(1_024)))))
                 }
             }
         }
@@ -324,7 +356,7 @@ final class BrowserAutomation {
     const fail = (code, message) => JSON.stringify({error: {code, message}});
     if (Date.now() > deadline) return fail('browser_timeout', 'The evaluation expired before it could execute.');
     try {
-      const value = await (0, eval)(source);
+      const value = await (slot ? globalThis[slot] : (0, eval)(source));
       const seen = new Set();
       let nodes = 0, text = 0;
       const check = (item, depth) => {
@@ -344,7 +376,9 @@ final class BrowserAutomation {
       const result = JSON.stringify({value: value === undefined ? null : value});
       return result.length <= maximum ? result : fail('response_too_large', 'JavaScript results are limited to 256 KiB.');
     } catch (error) {
-      return fail('javascript_error', String(error?.message || error).slice(0, 1024));
+      let message = String(error?.message || error);
+      if (!slot && /Content Security Policy|unsafe-eval|trusted-types-eval/i.test(message)) message = 'This page blocks string evaluation. Use a single expression or an IIFE, for example (() => { /* statements */ return result; })().';
+      return fail('javascript_error', message.slice(0, 1024));
     }
     """#
 

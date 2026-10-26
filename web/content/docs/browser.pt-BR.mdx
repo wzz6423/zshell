@@ -69,7 +69,7 @@ zshell +browser state load --browser BROWSER_ID --input /tmp/zshell-login.json
 zshell +browser reload --browser BROWSER_ID --wait
 ```
 
-`eval --script` executa na página principal real, aguarda uma Promise retornada e fornece JSON em `value`; `undefined` vira `null`. Use uma expressão de função assíncrona para `await`. Limites: entrada de 64 KiB; saída de 256 KiB, 10000 valores e 64 níveis. Referências DOM expiram após a execução. O tempo limite apenas para de esperar, sem cancelar o script. Inspecione a página antes de repetir alterações; um loop síncrono infinito pode exigir fechá-la.
+`eval --script` executa na página principal real, aguarda uma Promise retornada e fornece JSON em `value`; `undefined` vira `null`. Use uma expressão de função assíncrona para `await`. Limites: entrada de 64 KiB; saída de 256 KiB, 10000 valores e 64 níveis. Referências DOM expiram após a execução. O tempo limite apenas para de esperar, sem cancelar o script. Inspecione a página antes de repetir alterações; um loop síncrono infinito pode exigir fechá-la. Expressões únicas, incluindo IIFEs, são injetadas como Scripts globais nativos. Strings com várias instruções continuam sujeitas à CSP da página; se a avaliação for bloqueada, envolva as instruções em uma IIFE.
 
 `state save` salva cookies aplicáveis ao host de destino (incluindo domínio pai e HttpOnly) e localStorage da origem atual em JSON storage-state do Playwright. `state load` mescla os cookies e substitui esse localStorage; recarregue depois. Esquema, host e porta devem coincidir exatamente. Domínios alheios, sufixos públicos, campos não suportados e tipos inválidos são rejeitados antes de qualquer mudança. Cookies Secure exigem HTTPS.
 

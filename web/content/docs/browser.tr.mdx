@@ -69,7 +69,7 @@ zshell +browser state load --browser BROWSER_ID --input /tmp/zshell-login.json
 zshell +browser reload --browser BROWSER_ID --wait
 ```
 
-`eval --script` gerçek ana çerçevede çalışır, döndürülen Promise’i bekler ve `value` içinde JSON döndürür; `undefined`, `null` olur. `await` için asenkron işlev ifadesi kullanın. Sınırlar: 64 KiB giriş; 256 KiB, 10000 değer ve 64 seviye sonuç. DOM başvuruları işlemden sonra geçersizleşir. Zaman aşımı yalnızca beklemeyi bitirir, betiği iptal etmez. Değişikliği tekrarlamadan önce sayfayı inceleyin; eşzamanlı sonsuz döngü sayfayı kapatmayı gerektirebilir.
+`eval --script` gerçek ana çerçevede çalışır, döndürülen Promise’i bekler ve `value` içinde JSON döndürür; `undefined`, `null` olur. `await` için asenkron işlev ifadesi kullanın. Sınırlar: 64 KiB giriş; 256 KiB, 10000 değer ve 64 seviye sonuç. DOM başvuruları işlemden sonra geçersizleşir. Zaman aşımı yalnızca beklemeyi bitirir, betiği iptal etmez. Değişikliği tekrarlamadan önce sayfayı inceleyin; eşzamanlı sonsuz döngü sayfayı kapatmayı gerektirebilir. Tek ifadeler, IIFE’ler dahil, yerel genel Script olarak eklenir. Birden çok deyim içeren dizeler sayfanın CSP kurallarına uymaya devam eder; dize değerlendirmesi engellenirse deyimleri bir IIFE içine alın.
 
 `state save`, hedef ana bilgisayara uygulanan Cookie’leri (üst alan ve HttpOnly dahil) ve geçerli kaynağın localStorage verisini Playwright storage-state JSON olarak kaydeder. `state load` Cookie’leri birleştirir ve o kaynağın localStorage verisini değiştirir; ardından sayfayı yenileyin. Şema, ana bilgisayar ve bağlantı noktası tam eşleşmelidir. İlgisiz alanlar, genel son ekler, desteklenmeyen alanlar ve yanlış türler değişiklik yapılmadan reddedilir. Secure Cookie’ler HTTPS gerektirir.
 

@@ -62,10 +62,9 @@ def verify_curl_jar(temporary):
     return normalized
 
 
-def verify_webkit(temporary):
+def compile_app_test(temporary, source, binary, additional_sources=()):
     products = build / "Build/Products/Debug"
     library = products / "zshell Debug.app/Contents/MacOS/zshell.debug.dylib"
-    binary = temporary / "navigation-tests"
     arguments = [
         "xcrun", "swiftc", "-parse-as-library", "-swift-version", "5",
         "-target", f"{platform.machine()}-apple-macos15.6",
@@ -85,9 +84,14 @@ def verify_webkit(temporary):
         "-I", str(root / "mac/Vendor/tree-sitter/lib/include"), str(library),
         "-Xlinker", "-rpath", "-Xlinker", str(products),
         "-Xlinker", "-rpath", "-Xlinker", str(library.parent),
-        str(root / "mac/tests/BrowserAutomationNavigationTests.swift"), "-o", str(binary),
+        *(str(path) for path in additional_sources), str(source), "-o", str(binary),
     ]
     subprocess.run(arguments, check=True, cwd=root)
+
+
+def verify_webkit(temporary):
+    binary = temporary / "navigation-tests"
+    compile_app_test(temporary, root / "mac/tests/BrowserAutomationNavigationTests.swift", binary)
 
     class Fixture(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
@@ -111,6 +115,8 @@ iframe,button{position:absolute;top:600px}
 <script>window.fixturePageToken='page-context';localStorage.setItem('fixture-login','fixture-only')</script>'''
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            if self.path == "/csp":
+                self.send_header("Content-Security-Policy", "script-src 'unsafe-inline'")
             self.send_header("Set-Cookie", "fixture_http=fixture-only; Path=/; HttpOnly; SameSite=Strict; Max-Age=3600")
             self.send_header("Set-Cookie", "fixture_session=fixture-only; Path=/; SameSite=Lax")
             self.end_headers()
@@ -133,7 +139,18 @@ iframe,button{position:absolute;top:600px}
         arguments = [str(binary), f"http://127.0.0.1:{server.server_port}/"]
         if output := os.environ.get("ZSHELL_TEST_ARTIFACTS"):
             arguments.append(str(Path(output).resolve()))
-        subprocess.run(arguments, env=environment, check=True, timeout=75)
+        process = subprocess.Popen(arguments, env=environment)
+        try:
+            if process.wait(timeout=75) != 0:
+                raise subprocess.CalledProcessError(process.returncode, arguments)
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=5)
+            for path in Path("/tmp").glob(f"zshell-{os.getuid()}-{process.pid}-*.sock"):
+                metadata = path.lstat()
+                if stat.S_ISSOCK(metadata.st_mode) and metadata.st_uid == os.getuid():
+                    path.unlink()
     finally:
         server.shutdown()
         worker.join(timeout=2)
@@ -144,6 +161,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-browser-test-", dir="/tmp") as d
     temporary = Path(directory)
     policy = temporary / "PolicyTests.swift"
     policy.write_text('''import Foundation
+@testable import zshell
 @main struct PolicyTests {
     @MainActor static func main() throws {
         for allowed in ["http://localhost:3000/", "http://127.0.0.1:8080/test", "http://[::1]:8080/", "https://example.com/path?q=test#result", "about:blank"] {
@@ -175,15 +193,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-browser-test-", dir="/tmp") as d
 }
 ''')
     policy_binary = temporary / "policy-tests"
-    subprocess.run([
-        "xcrun", "swiftc", "-parse-as-library", "-swift-version", "5",
-        "-module-cache-path", str(temporary / "ModuleCache"),
-        str(root / "mac/zshell/ZshellAutomationProtocol.swift"),
-        str(root / "mac/zshell/BrowserStorageState.swift"),
-        str(root / "mac/tests/BrowserStorageStateTests.swift"),
-        str(root / "mac/zshell/BrowserAutomation.swift"), str(policy),
-        "-o", str(policy_binary),
-    ], check=True, cwd=root)
+    compile_app_test(temporary, policy, policy_binary, [root / "mac/tests/BrowserStorageStateTests.swift"])
     curl_jar = verify_curl_jar(temporary)
     subprocess.run([str(policy_binary), str(curl_jar)], check=True, cwd=root)
 

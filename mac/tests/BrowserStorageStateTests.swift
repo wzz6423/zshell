@@ -1,7 +1,8 @@
 import Foundation
+@testable import zshell
 
 enum BrowserStorageStateTests {
-    static func verify() throws {
+    @MainActor static func verify() throws {
         let url = URL(string: "https://example.test/app")!
         let expiration = floor(Date().timeIntervalSince1970) + 3_600
         let cookie: [String: ZshellJSONValue] = [

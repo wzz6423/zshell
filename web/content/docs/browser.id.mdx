@@ -72,7 +72,7 @@ zshell +browser state load --browser BROWSER_ID --input /tmp/zshell-login.json
 zshell +browser reload --browser BROWSER_ID --wait
 ```
 
-`eval --script` berjalan pada halaman utama yang sebenarnya, menunggu Promise yang dikembalikan, dan menghasilkan JSON dalam `value`; `undefined` menjadi `null`. Gunakan ekspresi fungsi asinkron untuk `await`. Batas: masukan 64 KiB; keluaran 256 KiB, 10000 nilai, dan 64 tingkat. Referensi DOM kedaluwarsa setelah eksekusi. Timeout hanya menghentikan penantian, bukan skrip. Periksa halaman sebelum mengulangi perubahan; loop sinkron tanpa akhir mungkin mengharuskan halaman ditutup.
+`eval --script` berjalan pada halaman utama yang sebenarnya, menunggu Promise yang dikembalikan, dan menghasilkan JSON dalam `value`; `undefined` menjadi `null`. Gunakan ekspresi fungsi asinkron untuk `await`. Batas: masukan 64 KiB; keluaran 256 KiB, 10000 nilai, dan 64 tingkat. Referensi DOM kedaluwarsa setelah eksekusi. Timeout hanya menghentikan penantian, bukan skrip. Periksa halaman sebelum mengulangi perubahan; loop sinkron tanpa akhir mungkin mengharuskan halaman ditutup. Ekspresi tunggal, termasuk IIFE, disisipkan sebagai Script global native. String dengan beberapa pernyataan tetap mengikuti CSP halaman; jika evaluasi string diblokir, bungkus pernyataan dalam IIFE.
 
 `state save` menyimpan Cookie yang berlaku untuk host tujuan (termasuk domain induk dan HttpOnly) serta localStorage origin saat ini sebagai Playwright storage-state JSON. `state load` menggabungkan Cookie dan mengganti localStorage origin itu; muat ulang setelahnya. Skema, host, dan port harus sama persis. Domain lain, sufiks publik, kolom tak didukung, dan tipe tidak valid ditolak sebelum perubahan. Cookie Secure memerlukan HTTPS.
 

@@ -17,9 +17,10 @@ struct BrowserAutomationNavigationTests {
         while !complete && Date() < deadline {
             _ = RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.01))
         }
+        NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: NSApp)
         if let failure { fputs("\(failure)\n", stderr); exit(1) }
         guard complete else { fputs("Browser navigation test timed out.\n", stderr); exit(1) }
-        print("WebKit: unmounted viewport pixels/focus, srcdoc, Cookie/localStorage restore, page eval/Promise/errors/timeout recovery, project/window scope passed")
+        print("WebKit: unmounted viewport pixels/focus, srcdoc, Cookie/localStorage restore, CSP-safe page eval/Promise/errors/timeout cleanup, project/window scope passed")
     }
 
     @MainActor private static func verify() async throws {
@@ -65,6 +66,7 @@ struct BrowserAutomationNavigationTests {
         }
         if CommandLine.arguments.count > 2 { try png.write(to: URL(fileURLWithPath: CommandLine.arguments[2]).appendingPathComponent("unmounted-viewport.png")) }
         try await verifyEvaluation(browser, snapshot: snapshot)
+        try await verifyStrictCSP()
         try await verifyStorage(browser)
         try await verifyRouterScope()
         _ = try await browser.automation.perform(
@@ -117,6 +119,15 @@ struct BrowserAutomationNavigationTests {
         }
         let recovered = try await evaluate("Promise.resolve(42)", browser)
         guard recovered.objectValue?["value"]?.intValue == 42 else { throw failure("Browser did not recover after async evaluation timeout.") }
+        let statements = try await evaluate("var fixtureDeclared = (window.fixtureExecutions = (window.fixtureExecutions || 0) + 1, 5); fixtureDeclared + 2", browser)
+        let declarations = try await evaluate("({declared: fixtureDeclared, count: fixtureExecutions})", browser)
+        guard statements.objectValue?["value"]?.intValue == 7,
+              declarations.objectValue?["value"]?.objectValue?["declared"]?.intValue == 5,
+              declarations.objectValue?["value"]?.objectValue?["count"]?.intValue == 1 else {
+            throw failure("Multi-statement completion/global declaration semantics changed or executed twice.")
+        }
+        let completion = try await evaluate("try { Promise.resolve(7) } finally { window.fixtureExecutions++ }", browser)
+        guard completion.objectValue?["value"]?.intValue == 7 else { throw failure("Multi-statement Promise completion changed.") }
         if let ref = snapshot.objectValue?["elements"]?.arrayValue?.first?.objectValue?["ref"]?.stringValue {
             do {
                 _ = try await browser.automation.perform("click", in: browser.webView, params: ["ref": .string(ref)], timeoutMS: 1_000, scopeIsValid: { true })
@@ -129,6 +140,69 @@ struct BrowserAutomationNavigationTests {
         } catch let error as BrowserAutomationError { guard error.code == "browser_scope_changed" else { throw error } }
         let untouched = try await evaluate("typeof window.scopeLeak", browser)
         guard untouched.objectValue?["value"]?.stringValue == "undefined" else { throw failure("Out-of-scope script reached the page.") }
+    }
+
+    @MainActor private static func verifyStrictCSP() async throws {
+        let browser = BrowserTab(initialFocus: .none)
+        defer { browser.webView.stopLoading() }
+        browser.automationNavigate("navigate", url: URL(string: CommandLine.arguments[1])!.appendingPathComponent("csp"))
+        try await loaded(browser)
+        _ = try await browser.webView.evaluateJavaScript("window.value='page-value'; window.source='page-source'; window.deadline='page-deadline'; window.maximum='page-maximum'; window.slot='page-slot'; window.fixtureExecutions=0")
+        let globals = try await evaluate("/* leading */ ({token:fixturePageToken, receiver:this===window, args:typeof arguments, value, source, deadline, maximum, slot}); // trailing", browser)
+        let object = globals.objectValue?["value"]?.objectValue
+        guard object?["token"]?.stringValue == "page-context", object?["receiver"]?.boolValue == true,
+              object?["args"]?.stringValue == "undefined", object?["value"]?.stringValue == "page-value",
+              object?["source"]?.stringValue == "page-source", object?["deadline"]?.stringValue == "page-deadline",
+              object?["maximum"]?.stringValue == "page-maximum", object?["slot"]?.stringValue == "page-slot" else {
+            throw failure("Strict-CSP expression evaluation lost or shadowed global Script bindings.")
+        }
+        let scalar = try await evaluate("6 * 7; /* trailing */", browser)
+        let promise = try await evaluate("Promise.resolve({answer:42})", browser)
+        let once = try await evaluate("(++window.fixtureExecutions, fixtureExecutions)", browser)
+        let iife = try await evaluate("(() => { window.fixtureExecutions++; const value='IIFE'; return Promise.resolve({value,count:fixtureExecutions}); })()", browser)
+        guard scalar.objectValue?["value"]?.intValue == 42,
+              promise.objectValue?["value"]?.objectValue?["answer"]?.intValue == 42,
+              once.objectValue?["value"]?.intValue == 1,
+              iife.objectValue?["value"]?.objectValue?["count"]?.intValue == 2 else {
+            throw failure("Strict-CSP scalar/Promise/IIFE results failed or side effects executed twice.")
+        }
+        for source in ["Promise.reject(new Error('CSP rejection'))", "(() => { throw new Error('CSP exception'); })()"] {
+            do { _ = try await evaluate(source, browser); throw failure("Strict-CSP rejected/thrown script unexpectedly succeeded.") }
+            catch let error as BrowserAutomationError {
+                guard error.code == "javascript_error", error.message.contains("CSP ") else { throw error }
+            }
+        }
+        do {
+            _ = try await evaluate("window.fixtureExecutions++; fixtureExecutions", browser)
+            throw failure("Strict CSP unexpectedly allowed multi-statement string evaluation.")
+        } catch let error as BrowserAutomationError {
+            guard error.code == "javascript_error", error.message.contains("IIFE") else { throw error }
+        }
+        for source in ["window.fixtureExecutions++; (]", "window.fixtureExecutions++, new.target"] {
+            do { _ = try await evaluate(source, browser); throw failure("A syntax-invalid script unexpectedly executed.") }
+            catch let error as BrowserAutomationError { guard error.code == "javascript_error" else { throw error } }
+        }
+        let unchanged = try await evaluate("fixtureExecutions", browser)
+        guard unchanged.objectValue?["value"]?.intValue == 2 else { throw failure("CSP or syntax rejection executed a script prefix.") }
+        for source in [
+            "new Promise(()=>{})",
+            "(() => { const end=Date.now()+350; while(Date.now()<end){}; return ++window.fixtureExecutions; })()",
+        ] {
+            do { _ = try await evaluate(source, browser, timeout: 100); throw failure("Slow strict-CSP script did not time out.") }
+            catch let error as BrowserAutomationError { guard error.code == "browser_timeout" else { throw error } }
+            try await Task.sleep(for: .milliseconds(400))
+            let recovered = try await evaluate("({answer:42,slots:Object.keys(globalThis).filter(key=>key.startsWith('__zshellEvaluation_')).length})", browser)
+            guard recovered.objectValue?["value"]?.objectValue?["answer"]?.intValue == 42,
+                  recovered.objectValue?["value"]?.objectValue?["slots"]?.intValue == 0 else {
+                throw failure("A timed-out evaluation leaked its slot or prevented the next evaluation.")
+            }
+        }
+        do {
+            _ = try await browser.webView.evaluateJavaScript("(0,eval)('1')")
+            throw failure("Automation weakened the fixture's CSP.")
+        } catch let error as NSError {
+            guard error.domain == WKError.errorDomain else { throw error }
+        }
     }
 
     @MainActor private static func verifyStorage(_ browser: BrowserTab) async throws {

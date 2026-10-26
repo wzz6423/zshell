@@ -69,7 +69,7 @@ zshell +browser state load --browser BROWSER_ID --input /tmp/zshell-login.json
 zshell +browser reload --browser BROWSER_ID --wait
 ```
 
-`eval --script`는 실제 메인 프레임에서 실행하고 반환된 Promise를 기다린 뒤 `value`에 JSON을 반환합니다. `undefined`는 `null`이 됩니다. `await`는 비동기 함수 표현식 안에서 사용하세요. 입력은 64 KiB, 결과는 256 KiB·10000개 값·64단계로 제한됩니다. 실행 후 DOM 참조는 만료됩니다. 시간 초과는 대기만 끝내며 스크립트를 취소하지 않습니다. 변경을 재시도하기 전에 페이지를 확인하세요. 동기 무한 루프로 멈춘 페이지는 닫아야 할 수 있습니다.
+`eval --script`는 실제 메인 프레임에서 실행하고 반환된 Promise를 기다린 뒤 `value`에 JSON을 반환합니다. `undefined`는 `null`이 됩니다. `await`는 비동기 함수 표현식 안에서 사용하세요. 입력은 64 KiB, 결과는 256 KiB·10000개 값·64단계로 제한됩니다. 실행 후 DOM 참조는 만료됩니다. 시간 초과는 대기만 끝내며 스크립트를 취소하지 않습니다. 변경을 재시도하기 전에 페이지를 확인하세요. 동기 무한 루프로 멈춘 페이지는 닫아야 할 수 있습니다. 단일 표현식(IIFE 포함)은 네이티브 전역 Script로 주입됩니다. 여러 문장으로 된 문자열은 페이지 CSP를 따릅니다. 문자열 평가가 차단되면 문장들을 IIFE로 감싸세요.
 
 `state save`는 대상 호스트에 적용되는 Cookie(상위 도메인 및 HttpOnly 포함)와 현재 출처의 localStorage를 Playwright storage-state JSON으로 저장합니다. `state load`는 Cookie를 병합하고 해당 출처의 localStorage를 교체합니다. 이후 페이지를 새로 고치세요. 출처는 스킴·호스트·포트가 정확히 일치해야 합니다. 무관한 Cookie 도메인, 공용 접미사, 지원하지 않는 필드 및 잘못된 유형은 변경 전에 거부됩니다. Secure Cookie는 HTTPS가 필요합니다.
 

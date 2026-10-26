@@ -216,6 +216,9 @@ enum ZshellBrowserAutomationCommandLine {
         to 256 KiB, 10000 values, and 64 levels. A timeout stops waiting, not
         page execution; inspect state before retrying. Synchronous endless code
         can stall that page and require closing it. DOM refs expire after eval.
+        Single expressions and IIFEs use native global Script injection.
+        Multi-statement strings follow page CSP; wrap them in an IIFE if string
+        evaluation is blocked. The page's CSP is never relaxed.
 
         State save/load handles only the current HTTP(S) origin's localStorage
         and cookies applicable to its host (including HttpOnly and parent-domain
