@@ -61,7 +61,7 @@ pub fn wasmtimeDep(target: std.Target) []const u8 {
     const arch = target.cpu.arch;
     const os = target.os.tag;
     const abi = target.abi;
-    return switch (os) {
+    const dependency: ?[]const u8 = switch (os) {
         .linux => switch (arch) {
             .x86_64 => switch (abi) {
                 .gnu => "wasmtime_c_api_x86_64_linux",
@@ -96,7 +96,8 @@ pub fn wasmtimeDep(target: std.Target) []const u8 {
             else => null,
         },
         else => null,
-    } orelse std.debug.panic(
+    };
+    return dependency orelse std.debug.panic(
         "Unsupported target for wasmtime: {s}-{s}-{s}",
         .{ @tagName(arch), @tagName(os), @tagName(abi) },
     );
