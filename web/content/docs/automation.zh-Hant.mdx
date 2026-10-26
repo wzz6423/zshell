@@ -102,3 +102,17 @@ Zshell 在現有 provider 設定中安裝 Claude Code 和 Codex 的 SessionStart
 只恢復這些整合回報的本機根對話。Codex 需要內嵌本機 CLI（`--no-daemon`），不支援共用 daemon 或遠端連線。OpenCode 需要支援 TUI 外掛 API 的版本；不支援舊版本、無介面 server 工作階段和 `opencode attach`。子 agent 不會覆蓋父窗格的對話。Pi 需要已儲存的工作階段檔案。
 
 缺少已驗證身分、原工作目錄或 Pi 檔案時，窗格會開啟新 shell；找不到 CLI 時也會回到 shell。Zshell 不會重播任意啟動命令或選擇最近對話。對話已刪除等 provider 錯誤由 CLI 顯示。
+
+## 訂閱專案即時事件 [#live-events]
+
+在 Zshell 窗格內執行 `zshell +events`，以 NDJSON 接收目前終端機所屬專案和視窗的後續變更。支援 `--pane UUID`、可重複的 `--event NAME`、`--once` 和 `--timeout MS`（0 為無限等待），不需輪詢。
+
+事件涵蓋終端工作階段、窗格建立與關閉、焦點、Agent 進度與注意事項、完成及命令完成。首行 `stream.ready` 的 `sequence` 為 0，後續相符事件逐一遞增，包含 `version`、`event`、`stream_id`、`sequence`、Unix 毫秒 `time`、`project_id` 和 `data`。不重播歷史；命令工作結果用 `+pane wait --task UUID` 讀取。
+
+最多 32 個訂閱，每個佇列最多 256 幀、1 MiB，單幀最多 64 KiB。落後時傳送 `stream.lagged` 並斷線；連續 2 秒無法寫入也會關閉。落後、意外斷線或序號錯誤會非零結束，請重新訂閱並讀取目前狀態。關閉所屬終端機、輪換權杖或移至另一專案/視窗會終止原訂閱並清空佇列。不支援外部控制或 `--project`；清除環境變數不會擴大權限。`--once` 未相符而逾時回傳 124，一般逾時回傳 0。
+
+```sh
+zshell +events --event command.task.finished --once --timeout 30000
+```
+
+`pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).

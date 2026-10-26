@@ -99,3 +99,17 @@ Zshell installiert SessionStart-Hooks für Claude Code und Codex, eine Pi-Erweit
 Nur von diesen Integrationen gemeldete lokale Hauptgespräche werden fortgesetzt. Codex benötigt eine eingebettete lokale CLI (`--no-daemon`); gemeinsame Daemons und Remote-Verbindungen werden nicht unterstützt. OpenCode benötigt die TUI-Plugin-API; ältere Versionen, Server ohne Oberfläche und `opencode attach` werden nicht unterstützt. Untergeordnete Agenten können das Gespräch des übergeordneten Bereichs nicht ersetzen. Pi benötigt die gespeicherte Sitzungsdatei.
 
 Fehlt eine bestätigte Identität, das ursprüngliche Verzeichnis oder die Pi-Datei, wird eine neue Shell geöffnet. Fehlt die CLI, kehrt der Bereich ebenfalls zur Shell zurück. Zshell führt keine beliebigen Startbefehle erneut aus und wählt kein letztes Gespräch. Anbieterfehler wie gelöschte Gespräche zeigt die CLI an.
+
+## Live-Projektereignisse verfolgen [#live-events]
+
+Im Zshell-Terminal abonniert `zshell +events` zukünftige Änderungen des eigenen Projekts und Fensters als NDJSON, ohne Polling. Optionen: --pane UUID, wiederholbares --event NAME, --once und --timeout MS (0 wartet unbegrenzt).
+
+Gemeldet werden erstellte und geschlossene Sitzungen und Bereiche, Fokus, Agent-Fortschritt, Aufmerksamkeit und Abschluss sowie abgeschlossene Befehle. stream.ready beginnt mit sequence 0; passende Ereignisse erhöhen die Nummer. Jede Zeile enthält version, event, stream_id, sequence, time in Unix-Millisekunden, project_id und data. Keine Wiederholung früherer Ereignisse. Ergebnisse mit +pane wait --task UUID lesen.
+
+Grenzen: 32 Abonnements, 256 Frames und 1 MiB pro Warteschlange, 64 KiB pro Frame. Langsame Leser erhalten nach Möglichkeit stream.lagged und werden getrennt; 2 Sekunden blockiertes Schreiben beendet ebenfalls die Verbindung. Verzögerung, unerwartete Trennung oder Sequenzfehler führen zu einem Fehlercode. Neu abonnieren und aktuellen Zustand lesen. Terminalschließung, Tokenwechsel oder Wechsel zu einem anderen Projekt/Fenster beendet das Abonnement. Keine externe Steuerung oder --project; entfernte Umgebungsvariablen erweitern keine Rechte. --once ohne Treffer liefert bei Zeitablauf 124, sonst 0.
+
+```sh
+zshell +events --event command.task.finished --once --timeout 30000
+```
+
+`pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).

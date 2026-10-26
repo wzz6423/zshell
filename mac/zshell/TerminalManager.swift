@@ -56,7 +56,9 @@ struct ClosedSessionRecord: Equatable {
 /// project's selected session.
 @MainActor
 final class TerminalManager: nonisolated ObservableObject {
-    @Published var projects: [Project] = []
+    @Published var projects: [Project] = [] {
+        didSet { ZshellAutomationEventHub.shared.topologyChanged() }
+    }
     @Published private var preferredSidebarOrder: [ProjectSidebarItem] = []
     private var isRestoringProjects = false
     @Published var selectedProjectID: UUID? {
@@ -71,6 +73,7 @@ final class TerminalManager: nonisolated ObservableObject {
             }
         }
         didSet {
+            ZshellAutomationEventHub.shared.topologyChanged()
             guard !isRestoringProjects, let project = selectedProject,
                   var group = projectGroup(id: project.groupID), group.isCollapsed else { return }
             group.isCollapsed = false
@@ -1633,6 +1636,7 @@ final class TerminalManager: nonisolated ObservableObject {
             self.agentPaletteKeyMonitor = nil
         }
         Self.registry.removeAll { $0 === self }
+        ZshellAutomationEventHub.shared.topologyChanged()
         if Self.registry.isEmpty {
             // These shells are about to be destroyed, so this is their final
             // capture even though the macOS app may remain open with no window.

@@ -99,3 +99,17 @@ Zshell installe des hooks SessionStart pour Claude Code et Codex, une extension 
 Seules les conversations racines locales signalées par ces intégrations sont reprises. Codex exige un CLI local intégré (`--no-daemon`) ; les démons partagés et connexions distantes ne sont pas pris en charge. OpenCode exige l’API de plugins TUI ; les anciennes versions, sessions serveur sans interface et `opencode attach` ne sont pas pris en charge. Un agent enfant ne remplace pas la conversation du volet parent. Pi nécessite son fichier de session enregistré.
 
 Sans identité vérifiée, répertoire d’origine ou fichier Pi, le volet ouvre un nouveau shell. Un CLI introuvable ramène aussi au shell. Zshell ne rejoue aucune commande de démarrage arbitraire et ne choisit pas une conversation récente. Le CLI affiche les erreurs du fournisseur, par exemple une conversation supprimée.
+
+## Suivre les événements du projet [#live-events]
+
+Dans un terminal Zshell, `zshell +events` suit en NDJSON les changements futurs du projet et de la fenêtre du terminal, sans interrogation périodique. Options : --pane UUID, --event NAME répétable, --once et --timeout MS (0 attend indéfiniment).
+
+Le flux signale les créations et fermetures de sessions et volets, le focus, la progression, l’attention et la fin des agents, et la fin des commandes. stream.ready commence à sequence 0 ; chaque événement correspondant incrémente la séquence. Chaque ligne contient version, event, stream_id, sequence, time en millisecondes Unix, project_id et data. Aucun historique n’est rejoué. Lisez les résultats avec +pane wait --task UUID.
+
+Limites : 32 abonnements, 256 trames et 1 MiB par file, 64 KiB par trame. Un lecteur lent reçoit si possible stream.lagged puis est déconnecté ; une écriture bloquée 2 secondes ferme aussi la connexion. Retard, déconnexion inattendue ou séquence invalide terminent avec un code non nul. Réabonnez-vous et relisez l’état actuel. Fermeture du terminal, renouvellement du jeton ou transfert vers un autre projet ou fenêtre terminent l’abonnement. Aucun contrôle externe ni --project ; supprimer les variables ne donne pas plus de droits. Un délai sans correspondance avec --once retourne 124 ; sinon 0.
+
+```sh
+zshell +events --event command.task.finished --once --timeout 30000
+```
+
+`pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).

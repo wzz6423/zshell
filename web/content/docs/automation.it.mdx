@@ -99,3 +99,17 @@ Zshell installa hook SessionStart per Claude Code e Codex, un’estensione Pi e 
 Si riprendono solo conversazioni radice locali segnalate da queste integrazioni. Codex richiede una CLI locale integrata (`--no-daemon`); daemon condivisi e connessioni remote non sono supportati. OpenCode richiede l’API dei plugin TUI; versioni precedenti, sessioni server senza interfaccia e `opencode attach` non sono supportati. Un agente figlio non sostituisce la conversazione del pannello padre. Pi richiede il file della sessione salvato.
 
 Senza identità verificata, cartella originale o file Pi si apre una nuova shell. Anche una CLI non disponibile riporta alla shell. Zshell non riesegue comandi di avvio arbitrari e non sceglie una conversazione recente. La CLI mostra gli errori del provider, per esempio una conversazione eliminata.
+
+## Seguire gli eventi del progetto [#live-events]
+
+Esegui `zshell +events` in un terminale Zshell per ricevere in NDJSON le modifiche future del suo progetto e della sua finestra, senza polling. Opzioni: --pane UUID, --event NAME ripetibile, --once e --timeout MS (0 attende senza limiti).
+
+Include creazione e chiusura di sessioni e riquadri, focus, avanzamento, attenzione e completamento degli agenti, e comandi terminati. stream.ready inizia da sequence 0; ogni evento corrispondente incrementa la sequenza. Ogni riga contiene version, event, stream_id, sequence, time in millisecondi Unix, project_id e data. Nessuna riproduzione dello storico. Leggi i risultati con +pane wait --task UUID.
+
+Limiti: 32 iscrizioni, 256 frame e 1 MiB per coda, 64 KiB per frame. Un lettore lento riceve stream.lagged se possibile, poi viene disconnesso; anche 2 secondi senza scrittura chiudono la connessione. Ritardo, disconnessione inattesa o errore di sequenza terminano con codice diverso da zero. Iscriviti di nuovo e leggi lo stato attuale. Chiusura del terminale, rotazione del token o trasferimento ad altro progetto o finestra terminano l’iscrizione. Nessun controllo esterno né --project; eliminare variabili non amplia i permessi. --once senza corrispondenze restituisce 124 alla scadenza, altrimenti 0.
+
+```sh
+zshell +events --event command.task.finished --once --timeout 30000
+```
+
+`pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).

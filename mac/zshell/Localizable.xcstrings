@@ -110452,6 +110452,642 @@
           }
         }
       }
+    },
+    "Live project events: `zshell +events --help`.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live project events: `zshell +events --help`."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前项目实时事件：`zshell +events --help`。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前專案即時事件：`zshell +events --help`。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロジェクトのリアルタイムイベント：`zshell +events --help`。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "프로젝트 실시간 이벤트: `zshell +events --help`."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Événements du projet en direct : `zshell +events --help`."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live-Projektereignisse: `zshell +events --help`."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eventos del proyecto en directo: `zshell +events --help`."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eventos do projeto em tempo real: `zshell +events --help`."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eventi del progetto in tempo reale: `zshell +events --help`."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live projectgebeurtenissen: `zshell +events --help`."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "События проекта в реальном времени: `zshell +events --help`."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أحداث المشروع المباشرة: `zshell +events --help`."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เหตุการณ์โครงการแบบสด: `zshell +events --help`"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peristiwa proyek langsung: `zshell +events --help`."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sự kiện dự án trực tiếp: `zshell +events --help`."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canlı proje olayları: `zshell +events --help`."
+          }
+        }
+      }
+    },
+    "Stream live events from this terminal's project as NDJSON. Use --pane UUID, --event NAME, --once, and --timeout MS (0 waits indefinitely).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stream live events from this terminal's project as NDJSON. Use --pane UUID, --event NAME, --once, and --timeout MS (0 waits indefinitely)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以 NDJSON 订阅当前终端所属项目的实时事件。支持 --pane UUID、--event NAME、--once 和 --timeout MS（0 表示无限等待）。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以 NDJSON 訂閱目前終端機所屬專案的即時事件。支援 --pane UUID、--event NAME、--once 和 --timeout MS（0 表示無限等待）。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このターミナルのプロジェクトのイベントを NDJSON で購読します。--pane UUID、--event NAME、--once、--timeout MS（0 は無期限）を指定できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 터미널의 프로젝트 이벤트를 NDJSON으로 구독합니다. --pane UUID, --event NAME, --once, --timeout MS를 사용하세요(0은 무제한 대기)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suivez les événements du projet de ce terminal en NDJSON. Options : --pane UUID, --event NAME, --once et --timeout MS (0 attend indéfiniment)."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Projektereignisse dieses Terminals als NDJSON abonnieren. Optionen: --pane UUID, --event NAME, --once und --timeout MS (0 wartet unbegrenzt)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recibe los eventos del proyecto de esta terminal en NDJSON. Usa --pane UUID, --event NAME, --once y --timeout MS (0 espera indefinidamente)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acompanhe os eventos do projeto deste terminal em NDJSON. Use --pane UUID, --event NAME, --once e --timeout MS (0 aguarda indefinidamente)."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segui gli eventi del progetto di questo terminale in NDJSON. Usa --pane UUID, --event NAME, --once e --timeout MS (0 attende senza limiti)."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volg gebeurtenissen van het project van deze terminal als NDJSON. Gebruik --pane UUID, --event NAME, --once en --timeout MS (0 wacht onbeperkt)."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подписка на события проекта этого терминала в NDJSON. Параметры: --pane UUID, --event NAME, --once и --timeout MS (0 — без ограничения)."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اشترك في أحداث مشروع هذه الطرفية بصيغة NDJSON. استخدم --pane UUID و--event NAME و--once و--timeout MS (القيمة 0 للانتظار دون حد)."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ติดตามเหตุการณ์โครงการของเทอร์มินัลนี้เป็น NDJSON ใช้ --pane UUID, --event NAME, --once และ --timeout MS (0 คือรอไม่จำกัด)"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ikuti peristiwa proyek terminal ini sebagai NDJSON. Gunakan --pane UUID, --event NAME, --once, dan --timeout MS (0 menunggu tanpa batas)."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Theo dõi sự kiện dự án của terminal này dưới dạng NDJSON. Dùng --pane UUID, --event NAME, --once và --timeout MS (0 chờ vô hạn)."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu terminalin projesindeki olayları NDJSON olarak izleyin. --pane UUID, --event NAME, --once ve --timeout MS kullanın (0 süresiz bekler)."
+          }
+        }
+      }
+    },
+    "The event stream fell behind. Subscribe again to continue.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The event stream fell behind. Subscribe again to continue."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事件流处理滞后，请重新订阅后继续。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事件串流處理落後，請重新訂閱後繼續。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "イベントストリームに遅延が生じました。再購読して続行してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이벤트 스트림이 지연되었습니다. 계속하려면 다시 구독하세요."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le flux d’événements a pris du retard. Abonnez-vous à nouveau pour continuer."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Ereignisstrom ist zurückgefallen. Zum Fortfahren erneut abonnieren."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El flujo de eventos se ha retrasado. Vuelve a suscribirte para continuar."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O fluxo de eventos ficou atrasado. Assine novamente para continuar."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il flusso di eventi è rimasto indietro. Iscriviti di nuovo per continuare."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De gebeurtenissenstroom is achtergeraakt. Abonneer opnieuw om verder te gaan."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поток событий отстал. Подпишитесь заново, чтобы продолжить."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تأخر تدفق الأحداث. اشترك مجددًا للمتابعة."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "สตรีมเหตุการณ์ล่าช้า โปรดสมัครติดตามใหม่เพื่อดำเนินการต่อ"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aliran peristiwa tertinggal. Berlangganan kembali untuk melanjutkan."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Luồng sự kiện bị chậm. Hãy đăng ký lại để tiếp tục."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olay akışı geride kaldı. Devam etmek için yeniden abone olun."
+          }
+        }
+      }
+    },
+    "Event filters require a pane UUID and known event names.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Event filters require a pane UUID and known event names."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事件筛选需要有效的面板 UUID 和已知事件名称。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事件篩選需要有效的窗格 UUID 和已知事件名稱。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "イベントの絞り込みにはペインの UUID と既知のイベント名が必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이벤트 필터에는 창 UUID와 알려진 이벤트 이름이 필요합니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les filtres nécessitent un UUID de volet et des noms d’événements connus."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ereignisfilter benötigen eine Bereichs-UUID und bekannte Ereignisnamen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los filtros requieren un UUID de panel y nombres de eventos conocidos."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os filtros exigem um UUID de painel e nomes de eventos conhecidos."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I filtri richiedono un UUID del riquadro e nomi di eventi noti."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gebeurtenisfilters vereisen een paneel-UUID en bekende gebeurtenisnamen."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Фильтрам нужны UUID панели и известные имена событий."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تتطلب المرشحات UUID للوحة وأسماء أحداث معروفة."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ตัวกรองต้องใช้ UUID ของบานหน้าต่างและชื่อเหตุการณ์ที่รู้จัก"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter memerlukan UUID panel dan nama peristiwa yang dikenal."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bộ lọc yêu cầu UUID của ngăn và tên sự kiện hợp lệ."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olay filtreleri bir bölme UUID değeri ve bilinen olay adları gerektirir."
+          }
+        }
+      }
+    },
+    "Event timeouts must be between 0 and 86400000 milliseconds.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Event timeouts must be between 0 and 86400000 milliseconds."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事件等待超时必须介于 0 到 86400000 毫秒之间。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事件等待逾時必須介於 0 到 86400000 毫秒之間。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "イベントの待機時間は 0～86400000 ミリ秒で指定してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이벤트 제한 시간은 0~86400000밀리초여야 합니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le délai doit être compris entre 0 et 86400000 millisecondes."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ereigniszeitlimits müssen zwischen 0 und 86400000 Millisekunden liegen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El tiempo de espera debe estar entre 0 y 86400000 milisegundos."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O tempo limite deve estar entre 0 e 86400000 milissegundos."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il timeout deve essere compreso tra 0 e 86400000 millisecondi."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De wachttijd moet tussen 0 en 86400000 milliseconden liggen."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Время ожидания событий должно быть от 0 до 86400000 миллисекунд."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يجب أن تكون مهلة الأحداث بين 0 و86400000 مللي ثانية."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เวลารอเหตุการณ์ต้องอยู่ระหว่าง 0 ถึง 86400000 มิลลิวินาที"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batas waktu peristiwa harus antara 0 dan 86400000 milidetik."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thời gian chờ sự kiện phải từ 0 đến 86400000 mili giây."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olay zaman aşımı 0 ile 86400000 milisaniye arasında olmalıdır."
+          }
+        }
+      }
+    },
+    "Unknown event option. Run `zshell +events --help`.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown event option. Run `zshell +events --help`."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知事件选项，请运行 `zshell +events --help`。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知事件選項，請執行 `zshell +events --help`。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不明なイベントオプションです。`zshell +events --help` を実行してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "알 수 없는 이벤트 옵션입니다. `zshell +events --help`를 실행하세요."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Option d’événement inconnue. Exécutez `zshell +events --help`."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unbekannte Ereignisoption. Führe `zshell +events --help` aus."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opción de evento desconocida. Ejecuta `zshell +events --help`."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opção de evento desconhecida. Execute `zshell +events --help`."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opzione evento sconosciuta. Esegui `zshell +events --help`."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onbekende gebeurtenisoptie. Voer `zshell +events --help` uit."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Неизвестный параметр событий. Выполните `zshell +events --help`."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "خيار أحداث غير معروف. شغّل `zshell +events --help`."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ไม่รู้จักตัวเลือกเหตุการณ์ เรียกใช้ `zshell +events --help`"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opsi peristiwa tidak dikenal. Jalankan `zshell +events --help`."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tùy chọn sự kiện không xác định. Chạy `zshell +events --help`."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bilinmeyen olay seçeneği. `zshell +events --help` komutunu çalıştırın."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

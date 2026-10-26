@@ -107,3 +107,17 @@ Zshell memasang hook SessionStart untuk Claude Code dan Codex, ekstensi Pi, sert
 Hanya percakapan induk lokal yang dilaporkan integrasi ini dapat dilanjutkan. Codex memerlukan CLI lokal tertanam (`--no-daemon`); daemon bersama dan koneksi jarak jauh tidak didukung. OpenCode memerlukan API plugin TUI; versi lama, sesi server tanpa antarmuka, dan `opencode attach` tidak didukung. Agen anak tidak dapat mengganti percakapan panel induk. Pi memerlukan berkas sesi tersimpan.
 
 Tanpa identitas terverifikasi, direktori kerja asli, atau berkas Pi, shell baru terbuka. CLI yang tidak ditemukan juga kembali ke shell. Zshell tidak menjalankan ulang perintah awal sembarang atau memilih percakapan terbaru. Kesalahan penyedia, seperti percakapan yang dihapus, ditampilkan oleh CLI.
+
+## Mengikuti peristiwa proyek langsung [#live-events]
+
+Jalankan `zshell +events` di terminal Zshell untuk mengikuti perubahan berikutnya pada proyek dan jendelanya sebagai NDJSON tanpa polling. Opsi: --pane UUID, --event NAME yang dapat diulang, --once, dan --timeout MS (0 menunggu tanpa batas).
+
+Mencakup pembuatan dan penutupan sesi serta panel, fokus, kemajuan, perhatian dan penyelesaian agen, serta perintah selesai. stream.ready dimulai pada sequence 0; setiap peristiwa yang cocok menambah urutan. Setiap baris memuat version, event, stream_id, sequence, time dalam milidetik Unix, project_id, dan data. Riwayat tidak diputar ulang. Baca hasil dengan +pane wait --task UUID.
+
+Batas: 32 langganan, 256 bingkai dan 1 MiB per antrean, 64 KiB per bingkai. Pembaca lambat menerima stream.lagged jika memungkinkan lalu terputus; gagal menulis selama 2 detik juga menutup koneksi. Keterlambatan, putus tak terduga, atau kesalahan urutan menghasilkan kode bukan nol. Langganan ulang dan baca keadaan saat ini. Menutup terminal, mengganti token, atau memindahkan ke proyek/jendela lain mengakhiri langganan. Tidak ada kontrol eksternal atau --project; menghapus variabel tidak memperluas izin. --once tanpa kecocokan mengembalikan 124 saat waktu habis; batas waktu biasa mengembalikan 0.
+
+```sh
+zshell +events --event command.task.finished --once --timeout 30000
+```
+
+`pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).

@@ -99,3 +99,17 @@ Zshell mevcut sağlayıcı yapılandırmasına Claude Code ve Codex için Sessio
 Yalnızca bu entegrasyonların bildirdiği yerel ana konuşmalar sürdürülür. Codex gömülü yerel CLI (`--no-daemon`) gerektirir; paylaşılan daemon ve uzak bağlantılar desteklenmez. OpenCode TUI eklenti API’si gerektirir; eski sürümler, arayüzsüz sunucu oturumları ve `opencode attach` desteklenmez. Alt ajan üst bölmenin konuşmasını değiştiremez. Pi kayıtlı oturum dosyasını gerektirir.
 
 Doğrulanmış kimlik, özgün çalışma dizini veya Pi dosyası yoksa yeni kabuk açılır. CLI bulunamazsa da kabuğa dönülür. Zshell rastgele başlangıç komutunu yinelemez ve son konuşmayı seçmez. Silinmiş konuşma gibi sağlayıcı hatalarını CLI gösterir.
+
+## Canlı proje olaylarını izleme [#live-events]
+
+Zshell terminalinde `zshell +events`, terminalin projesi ve penceresindeki sonraki değişiklikleri yoklama yapmadan NDJSON olarak izler. Seçenekler: --pane UUID, yinelenebilir --event NAME, --once ve --timeout MS (0 süresiz bekler).
+
+Oturum ve bölme oluşturma/kapatma, odak, agent ilerlemesi, dikkat isteği ve bitişi ile komut bitişi bildirilir. stream.ready, sequence 0 ile başlar; eşleşen her olay sıra numarasını artırır. Her satır version, event, stream_id, sequence, Unix milisaniyesi time, project_id ve data içerir. Geçmiş yeniden gönderilmez. Sonuçları +pane wait --task UUID ile okuyun.
+
+Sınırlar: 32 abonelik, kuyruk başına 256 kare ve 1 MiB, kare başına 64 KiB. Yavaş okuyucuya mümkünse stream.lagged gönderilip bağlantı kesilir; 2 saniye yazılamayan bağlantı da kapanır. Gecikme, beklenmeyen kopma veya sıra hatası sıfırdan farklı çıkış verir. Yeniden abone olup güncel durumu okuyun. Terminali kapatma, token yenileme veya başka proje/pencereye taşıma aboneliği bitirir. Dış denetim ve --project desteklenmez; ortam değişkenlerini silmek yetkiyi artırmaz. --once eşleşmeden zaman aşımında 124, normal zaman aşımında 0 döner.
+
+```sh
+zshell +events --event command.task.finished --once --timeout 30000
+```
+
+`pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).

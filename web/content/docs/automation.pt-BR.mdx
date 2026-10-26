@@ -99,3 +99,17 @@ O Zshell instala hooks SessionStart para Claude Code e Codex, uma extensão Pi e
 Somente conversas raiz locais informadas pelas integrações são retomadas. O Codex requer CLI local integrado (`--no-daemon`); daemons compartilhados e conexões remotas não são suportados. O OpenCode requer a API de plugins TUI; versões antigas, sessões de servidor sem interface e `opencode attach` não são suportados. Um agente filho não substitui a conversa do painel pai. O Pi precisa do arquivo de sessão salvo.
 
 Sem identidade verificada, diretório original ou arquivo Pi, abre-se um novo shell. Se o CLI não for encontrado, também se retorna ao shell. O Zshell não repete comandos de início arbitrários nem escolhe a conversa mais recente. Erros do provedor, como conversas excluídas, aparecem no CLI.
+
+## Acompanhar eventos do projeto [#live-events]
+
+Execute `zshell +events` em um terminal Zshell para receber em NDJSON as mudanças futuras do projeto e da janela desse terminal, sem consultas periódicas. Opções: --pane UUID, --event NAME repetível, --once e --timeout MS (0 aguarda indefinidamente).
+
+Inclui criação e fechamento de sessões e painéis, foco, progresso, atenção e conclusão de agentes e comandos concluídos. stream.ready começa em sequence 0; cada evento correspondente incrementa a sequência. Cada linha contém version, event, stream_id, sequence, time em milissegundos Unix, project_id e data. Não há repetição do histórico. Leia os resultados com +pane wait --task UUID.
+
+Limites: 32 assinaturas, 256 quadros e 1 MiB por fila, 64 KiB por quadro. Um leitor lento recebe stream.lagged quando possível e é desconectado; dois segundos sem escrita também fecham a conexão. Atraso, desconexão inesperada ou erro de sequência encerram com código diferente de zero. Assine novamente e leia o estado atual. Fechar o terminal, renovar o token ou mover para outro projeto ou janela encerra a assinatura. Sem controle externo nem --project; remover variáveis não amplia permissões. --once sem correspondência retorna 124 no tempo limite; o limite normal retorna 0.
+
+```sh
+zshell +events --event command.task.finished --once --timeout 30000
+```
+
+`pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).

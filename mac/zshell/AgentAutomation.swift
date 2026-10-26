@@ -610,6 +610,8 @@ extension TerminalSession {
               ZshellAgentProcessIdentity.isDescendant(ownerPID, of: shell),
               let owner = ZshellAgentProcessIdentity(pid: ownerPID)
         else { return false }
+        let finished = report.activityPhase == .done
+            && agentObservation.programReport?.report.activityPhase != .done
         if agentStatus?.authority == .report,
            agentObservation.programReport?.report.phase != report.phase {
             agentStatus = nil
@@ -619,6 +621,7 @@ extension TerminalSession {
         )
         agentObservation.lastProgramReportAt = Date()
         refreshAutomationAgentState(isFocused: TerminalManager.automationIsSessionFocused(id))
+        if finished { ZshellAutomationEventHub.shared.agentReportFinished(in: self) }
         return true
     }
 

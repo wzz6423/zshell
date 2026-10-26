@@ -176,6 +176,30 @@ final class AppConnection {
         Thread.sleep(forTimeInterval: 0.05)
     }
 
+    func automationEvents(params: [String: ZshellJSONValue], timeoutMS: Int, once: Bool) throws -> Int32 {
+        guard let automationSocketPath, !automationSocketPath.isEmpty,
+              let automationToken, !automationToken.isEmpty,
+              let terminalID, !terminalID.isEmpty else {
+            throw CLIError.message(String(localized: "This terminal predates Zshell automation. Open a new terminal and try again."))
+        }
+        let request = ZshellAutomationRequest(
+            version: 1, id: UUID().uuidString, method: "events.subscribe",
+            token: automationToken, terminalID: terminalID, params: params
+        )
+        setbuf(stdout, nil)
+        let matched = try ZshellAutomationSocketServer.followEvents(
+            path: automationSocketPath, request: request, timeoutMS: timeoutMS
+        ) { value in
+            try ZshellAutomationCommandLine.printJSON(value)
+            let event = value.objectValue?["event"]?.stringValue ?? ""
+            if event == "stream.lagged" {
+                throw CLIError.message(String(localized: "The event stream fell behind. Subscribe again to continue."))
+            }
+            return once && event != "stream.ready"
+        }
+        return once && !matched ? 124 : 0
+    }
+
     func automationRequest(
         method: String,
         params: [String: ZshellJSONValue] = [:],
@@ -594,6 +618,7 @@ private func printHelp() {
         its complete contract.
         """)
     )
+    print(String(localized: "Live project events: `zshell +events --help`."))
     print(String(localized: "Browser automation: `zshell +browser --help`."))
 }
 
@@ -606,6 +631,9 @@ private func run() throws -> Int32 {
     if arguments.first == "+pty-mux" {
         try PTYMuxCommandLine.run(arguments: Array(arguments.dropFirst()))
         return 0
+    }
+    if arguments.first == "+events" {
+        return try ZshellEventsCommandLine.run(arguments: Array(arguments.dropFirst()))
     }
     if arguments.first == "+browser" {
         try ZshellBrowserAutomationCommandLine.run(
