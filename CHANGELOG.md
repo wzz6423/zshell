@@ -18,6 +18,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Let terminal programs request camera access and permission to control other
+  apps, with localized macOS permission prompts.
 - Optionally keep shell, agent, and development server sessions running when
   quitting Zshell, then reconnect to their original terminal state on reopening.
   Closing a pane, project, or window ends its sessions; use Quit and End All

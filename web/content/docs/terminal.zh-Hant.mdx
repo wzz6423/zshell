@@ -34,6 +34,14 @@ Zshell 不讀取 `~/.config/ghostty`，也不讀取 Alacritty 配置。字型、
 自己的[設定](/zh-Hant/docs/configuration)裡配置。
 </Callout>
 
+## 系統權限 [#system-permissions]
+
+Zshell 終端機中的本機程式可以要求使用相機、麥克風，或透過 Apple Events 控制其他 App。
+macOS 會將這些要求歸屬於 Zshell；請只允許你信任的程式。自動化權限依受控制的目標 App 分別授權。
+
+你可以在 **系統設定 → 隱私權與安全性 → 相機、麥克風或自動化** 中管理權限。
+拒絕要求會阻止對應功能，Zshell 不會自動授予這些權限。
+
 ## 搜尋 [#search]
 
 | 操作 | 快速鍵 |
