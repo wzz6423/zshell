@@ -15,6 +15,7 @@ import Foundation
 @MainActor
 final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     nonisolated let id = UUID()
+    var conversationHistoryProjectID = UUID()
 
     let location: ProjectLocation
 
@@ -318,6 +319,32 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         return session
     }
 
+    @discardableResult
+    func resumeConversation(
+        _ record: AgentConversationHistoryRecord, focus: Bool, restoredTerminalID: UUID? = nil
+    ) -> TerminalSession {
+        let previousSelection = selectedTabID
+        let session = makeSession(
+            directory: record.identity.workingDirectory,
+            agentResume: record.identity,
+            isRestoredSession: true,
+            restoredSessionID: restoredTerminalID,
+            explicitlyResumeConversation: true
+        )
+        session.agentConversationHistoryID = record.id
+        session.agentConversationResumeDeadline = session.reconnectedToPersistentPTY
+            ? nil : Date().addingTimeInterval(30)
+        let tab = makeTab(content: .session(session))
+        tab.customName = Self.normalizedCustomName(record.title)
+        insertNextToSelected(tab)
+        selectedTabID = focus ? tab.id : previousSelection
+        AgentConversationHistoryStore.shared.note(
+            record.identity, projectID: conversationHistoryProjectID, projectName: name,
+            title: record.title, terminalID: session.id
+        )
+        return session
+    }
+
     /// Builds a session wired for exit + change observation, without placing
     /// it in a tab — shared by new tabs and splits. `restoredHistory` seeds the
     /// scrollback when reopening a saved session.
@@ -329,7 +356,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         launchSettings: TerminalLaunchSettings? = nil,
         agentResume: AgentConversationIdentity? = nil,
         isRestoredSession: Bool = false,
-        restoredSessionID: UUID? = nil
+        restoredSessionID: UUID? = nil,
+        explicitlyResumeConversation: Bool = false
     ) -> TerminalSession {
         let initialDirectory: String?
         let launchArguments: [String]?
@@ -384,7 +412,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             launchSettings: launchSettings ?? self.launchSettings,
             additionalEnvironment: additionalEnvironment,
             agentResume: isRemote ? nil : agentResume,
-            isRestoredSession: isRestoredSession
+            isRestoredSession: isRestoredSession,
+            explicitlyResumeConversation: explicitlyResumeConversation
         )
         register(session)
         if let sshMaterial {
@@ -1194,12 +1223,29 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     }
 
     private func register(_ session: TerminalSession) {
+        session.onAgentConversationChanged = { [weak self] session, identity in
+            guard let self, !self.isRemote else { return }
+            let store = AgentConversationHistoryStore.shared
+            let title = self.tabs.first(where: { $0.sessions.contains(where: { $0 === session }) })?.customName
+                ?? session.agentStatus?.alias
+            if let id = session.agentConversationHistoryID {
+                let continues = identity.map { store.record(id: id)?.matches($0) == true } ?? false
+                if !continues { store.ended(id: id, terminalID: session.id, title: title) }
+            }
+            session.agentConversationHistoryID = identity.map {
+                store.note($0, projectID: self.conversationHistoryProjectID, projectName: self.name,
+                           title: title, terminalID: session.id)
+            }
+        }
         session.onExited = { [weak self] session in
             // Already dead — just drop its pane, no second terminate.
             self?.closeContent(.session(session), terminate: false)
         }
         sessionObservations[session.id] = session.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
+        }
+        if session.agentConversationOwner?.isAlive == true, let identity = session.agentResume {
+            session.onAgentConversationChanged?(session, identity)
         }
     }
 

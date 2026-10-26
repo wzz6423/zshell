@@ -99,3 +99,21 @@ Zshell installa hook SessionStart per Claude Code e Codex, un’estensione Pi e 
 Si riprendono solo conversazioni radice locali segnalate da queste integrazioni. Codex richiede una CLI locale integrata (`--no-daemon`); daemon condivisi e connessioni remote non sono supportati. OpenCode richiede l’API dei plugin TUI; versioni precedenti, sessioni server senza interfaccia e `opencode attach` non sono supportati. Un agente figlio non sostituisce la conversazione del pannello padre. Pi richiede il file della sessione salvato.
 
 Senza identità verificata, cartella originale o file Pi si apre una nuova shell. Anche una CLI non disponibile riporta alla shell. Zshell non riesegue comandi di avvio arbitrari e non sceglie una conversazione recente. La CLI mostra gli errori del provider, per esempio una conversazione eliminata.
+
+## Trovare e riprendere conversazioni salvate [#saved-conversation-history]
+
+Apri **Agenti → Cronologia delle conversazioni degli agenti**, fai clic sull’orologio in cima alla barra laterale dei progetti. Cerca tra i progetti per titolo, provider, progetto, ID della conversazione o cartelle di lavoro e configurazione. Zshell conserva le ultime 200 conversazioni locali verificate dopo la chiusura di agenti e pannelli e il riavvio dell’app. **Recenti** mostra 20 risultati non archiviati; **Tutte** include quelli archiviati; **Archiviate** mostra solo questi ultimi.
+
+Scegli **Mostra conversazione** se è aperta o **Riprendi conversazione** se è salvata. Zshell riutilizza un pannello aperto, riconnette un PTY ancora attivo o riprende l’esatta conversazione del provider con la cartella e la configurazione originali. La ripresa manuale richiede l’integrazione AI anche se il ripristino automatico è disattivato. Cartelle mancanti e file Pi assenti o non corrispondenti producono un errore prima di creare un pannello.
+
+**Archivia** nasconde la voce da Recenti; **Ripristina** la riporta. **Elimina…** rimuove solo la voce di Zshell e conserva i file del provider.
+
+In un pannello Zshell, `zshell +agent history --all` e `zshell +agent resume --id HISTORY_UUID` riguardano il suo progetto. Da un normale terminale esterno, lascia Zshell aperto, trova l’UUID del progetto e selezionalo esplicitamente:
+
+```sh
+zshell +agent history projects
+zshell +agent history --project PROJECT_UUID --all
+zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
+```
+
+La CLI riprende in background senza `--focus`. Per un progetto aperto in più finestre scegli `--window WINDOW_UUID` da `history projects`. Con più istanze dell’app usa `--connection PATH` con il percorso assoluto del file di connessione privato indicato dalla CLI. Queste opzioni sono per terminali esterni; i processi dei pannelli mantengono il progetto originale.

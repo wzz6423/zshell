@@ -95,6 +95,7 @@ final class ProjectSidebarNSView: NSView {
     private let scrollView = NSScrollView()
     private let document = ProjectSidebarDocumentView()
     private let sidebarButton = WorkspaceChromeButton(symbol: "sidebar.left", label: AppCommand.toggleLeftSidebar.title)
+    private let historyButton = WorkspaceChromeButton(symbol: "clock.arrow.circlepath", label: String(localized: "Agent Conversation History"))
     private let updateButton = WorkspaceChromeButton(symbol: "arrow.down.circle", label: String(localized: "Update Available")) {
         Updater.shared.showAvailableUpdate()
     }
@@ -142,8 +143,9 @@ final class ProjectSidebarNSView: NSView {
         fpsLabel.textColor = .secondaryLabelColor
         fpsLabel.isHidden = true
         addSubview(material)
-        for view in [windowDrag, scrollView, fpsLabel, sidebarButton] { addSubview(view) }
+        for view in [windowDrag, scrollView, fpsLabel, historyButton, sidebarButton] { addSubview(view) }
         sidebarButton.onAction = { [weak manager] in manager?.toggleLeftSidebar() }
+        historyButton.onAction = { [weak manager] in manager?.showConversationHistory() }
         footerButtons = [
             WorkspaceChromeButton(symbol: "plus", label: AppCommand.newProject.title) { [weak manager] in manager?.newProject() },
             WorkspaceChromeButton(symbol: "folder.badge.plus", label: String(localized: "New Group")) { [weak self] in self?.showNewGroupMenu() },
@@ -224,6 +226,7 @@ final class ProjectSidebarNSView: NSView {
         outline.drawsOuterEdge = material.isHidden
         outline.needsDisplay = true
         sidebarButton.configure(symbol: "sidebar.left", command: .toggleLeftSidebar, pointSize: 12 * scale)
+        historyButton.configure(symbol: "clock.arrow.circlepath", label: String(localized: "Agent Conversation History"), pointSize: 12 * scale)
         footerButtons[0].configure(symbol: "plus", command: .newProject, pointSize: 12 * scale)
         let footerItems = [
             ("folder.badge.plus", String(localized: "New Group")),
@@ -343,9 +346,10 @@ final class ProjectSidebarNSView: NSView {
         let headerHeight: CGFloat = 38
         let buttonSize = min(34, max(24, 24 * scale))
         sidebarButton.frame = NSRect(x: bounds.width - buttonSize - 8, y: (headerHeight - buttonSize) / 2, width: buttonSize, height: buttonSize)
-        windowDrag.frame = NSRect(x: 0, y: 0, width: sidebarButton.frame.minX, height: headerHeight)
-        fpsLabel.isHidden = !manager.isFPSCounterVisible || bounds.width < 210
-        fpsLabel.frame = NSRect(x: sidebarButton.frame.minX - 55, y: 12, width: 52, height: 16)
+        historyButton.frame = NSRect(x: sidebarButton.frame.minX - buttonSize - 4, y: sidebarButton.frame.minY, width: buttonSize, height: buttonSize)
+        windowDrag.frame = NSRect(x: 0, y: 0, width: historyButton.frame.minX, height: headerHeight)
+        fpsLabel.isHidden = !manager.isFPSCounterVisible || bounds.width < 250
+        fpsLabel.frame = NSRect(x: historyButton.frame.minX - 55, y: 12, width: 52, height: 16)
         let footerY = max(headerHeight, bounds.height - bottomBarHeight)
         scrollView.frame = NSRect(x: 0, y: headerHeight, width: bounds.width, height: max(0, footerY - headerHeight))
         let side = min(max(24, 26 * scale), max(0, (bounds.width - 16) / (updateButton.isHidden ? 6 : 7)))

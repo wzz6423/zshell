@@ -282,6 +282,7 @@ struct SessionSnapshot: Codable {
         /// ungrouped. Optional so snapshots written before grouping existed
         /// still decode.
         var groupID: UUID?
+        var conversationHistoryProjectID: UUID?
         var tabGroups: [SessionTabGroup] = []
         /// Project values inherited by newly created terminals. Empty settings
         /// are omitted while decoding still accepts snapshots that lack them.
@@ -293,7 +294,7 @@ struct SessionSnapshot: Codable {
         var selectedTabIndex: Int?
 
         enum CodingKeys: String, CodingKey {
-            case customName, isPinned, markerColorHex, customDirectory, groupID, tabGroups, launchSettings, location, tabs, selectedTabIndex
+            case customName, isPinned, markerColorHex, customDirectory, groupID, conversationHistoryProjectID, tabGroups, launchSettings, location, tabs, selectedTabIndex
         }
 
         init(
@@ -302,6 +303,7 @@ struct SessionSnapshot: Codable {
             markerColorHex: String? = nil,
             customDirectory: String?,
             groupID: UUID? = nil,
+            conversationHistoryProjectID: UUID? = nil,
             tabGroups: [SessionTabGroup] = [],
             launchSettings: TerminalLaunchSettings = .init(),
             location: ProjectLocation? = nil,
@@ -313,6 +315,7 @@ struct SessionSnapshot: Codable {
             self.markerColorHex = markerColorHex
             self.customDirectory = customDirectory
             self.groupID = groupID
+            self.conversationHistoryProjectID = conversationHistoryProjectID
             self.tabGroups = tabGroups
             self.launchSettings = launchSettings
             self.location = location
@@ -329,6 +332,7 @@ struct SessionSnapshot: Codable {
                 String.self, forKey: .customDirectory
             )
             groupID = try container.decodeIfPresent(UUID.self, forKey: .groupID)
+            conversationHistoryProjectID = try container.decodeIfPresent(UUID.self, forKey: .conversationHistoryProjectID)
             tabGroups = try container.decodeIfPresent([SessionTabGroup].self, forKey: .tabGroups) ?? []
             launchSettings = try container.decodeIfPresent(
                 TerminalLaunchSettings.self, forKey: .launchSettings
@@ -351,6 +355,7 @@ struct SessionSnapshot: Codable {
             try container.encodeIfPresent(markerColorHex, forKey: .markerColorHex)
             try container.encodeIfPresent(customDirectory, forKey: .customDirectory)
             try container.encodeIfPresent(groupID, forKey: .groupID)
+            try container.encodeIfPresent(conversationHistoryProjectID, forKey: .conversationHistoryProjectID)
             if !tabGroups.isEmpty { try container.encode(tabGroups, forKey: .tabGroups) }
             if launchSettings != .init() {
                 try container.encode(launchSettings, forKey: .launchSettings)

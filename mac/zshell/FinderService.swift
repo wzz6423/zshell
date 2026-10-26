@@ -20,14 +20,21 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.servicesProvider = self
         WindowScreenConstraint.shared.start()
-        installTerminalEnvironmentMenu()
-        installEndAllSessionsMenu()
-        AppMenuLocalization.shared.start()
+        restoreTerminalMenus()
+        AppMenuLocalization.shared.start(applicationDelegate: self)
         GlobalTerminalOverlay.shared.start()
     }
 
+    func restoreTerminalMenus() {
+        installTerminalEnvironmentMenu()
+        installEndAllSessionsMenu()
+    }
+
     private func installTerminalEnvironmentMenu() {
-        guard let mainMenu = NSApp.mainMenu else { return }
+        guard let mainMenu = NSApp.mainMenu,
+              !mainMenu.items.contains(where: { item in
+                  item.submenu?.items.contains(where: { $0.action == #selector(editProjectTerminalEnvironment) }) == true
+              }) else { return }
         let title = String(localized: "Terminal")
         let submenu = NSMenu(title: title)
         submenu.addItem(NSMenuItem(
@@ -48,7 +55,8 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
     }
 
     private func installEndAllSessionsMenu() {
-        guard let menu = NSApp.mainMenu?.items.first?.submenu else { return }
+        guard let menu = NSApp.mainMenu?.items.first?.submenu,
+              !menu.items.contains(where: { $0.action == #selector(quitAndEndAllSessions) }) else { return }
         let item = NSMenuItem(
             title: String(localized: "Quit and End All Sessions"),
             action: #selector(quitAndEndAllSessions), keyEquivalent: ""

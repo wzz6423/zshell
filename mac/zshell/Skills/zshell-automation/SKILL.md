@@ -1,6 +1,6 @@
 ---
 name: zshell-automation
-description: Coordinate agents, terminal panes, and project browser pages inside Zshell. Use for delegation, agent prompts and results, or inspecting and exercising a development page in Zshell's existing browser.
+description: Coordinate agents, terminal panes, saved conversations, and project browser pages in Zshell. Use for delegation, agent prompts and results, finding or resuming verified conversation history, or exercising a development page in Zshell's existing browser.
 ---
 
 # Zshell Automation
@@ -11,12 +11,14 @@ input as separate actions.
 
 ## Check availability
 
-1. Require `ZSHELL_AUTOMATION=1`. If it is absent, explain that the command must
-   run inside a newly opened Zshell terminal.
+1. Pane, browser, and active-agent coordination require `ZSHELL_AUTOMATION=1`.
+   If it is absent, explain that these commands must run inside a newly opened
+   Zshell terminal. Saved conversation history also supports explicit external
+   access as described below.
 2. Run `zshell +pane protocol` before a multi-step workflow.
 3. Treat successful command output as JSON. Record returned `pane_id` values;
    do not infer pane IDs from titles or screen position.
-4. Stay within the invoking terminal's project. Zshell intentionally rejects
+4. Inside a pane, stay within the invoking terminal's project. Zshell intentionally rejects
    targets in other projects and windows.
 
 Use `zshell +agent explain` for the lifecycle and security contract, and use
@@ -139,6 +141,61 @@ Use these exact values with `zshell +agent start --kind`:
 - `aider` — Aider
 - `amp` — Amp
 - `pi` — Pi
+
+## Find or resume a saved conversation
+
+History contains up to 200 verified local root conversations from Claude Code,
+Codex, Pi, and OpenCode, including conversations whose agents or panes have
+closed. Recent returns the newest 20 unarchived matches; `--all` includes
+archived entries. Search the current pane's project without selecting a target:
+
+```sh
+zshell +agent history --all --query 'fix'
+```
+
+Record the returned history `id`; it differs from the provider's `session_id`.
+When the user asks to resume that conversation, use its exact history UUID:
+
+```sh
+zshell +agent resume --id HISTORY_UUID
+```
+
+`resume` first reveals an already open conversation, then reconnects a surviving
+PTY, and otherwise starts the provider's exact saved resume command with its
+original working directory and configuration. It requires AI integration when
+starting or reconnecting a terminal, but does not require the automatic
+**Resume agent conversations** setting. Keep it in the background unless the
+user asks to see it; only `--focus` changes selection. The returned `action`
+describes what Zshell did. `resume_started` does not prove provider startup or
+task completion; inspect the returned terminal and actual outcome.
+
+Archive, unarchive, or delete only the record the user selected:
+
+```sh
+zshell +agent archive --id HISTORY_UUID
+zshell +agent unarchive --id HISTORY_UUID
+zshell +agent delete --id HISTORY_UUID
+```
+
+Deleting removes the Zshell record and keeps provider conversation files.
+Missing directories, a missing or mismatched Pi file, and unavailable providers
+must be surfaced to the user; do not substitute another conversation.
+
+From an ordinary external terminal with Zshell running, discover the explicit
+project scope before reading or resuming history:
+
+```sh
+zshell +agent history projects
+zshell +agent history --project PROJECT_UUID --all
+zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID
+```
+
+For a project open in several windows, select `--window WINDOW_UUID` returned by
+`history projects`. When several app instances are running, use `--connection`
+with the absolute owner-only descriptor path identified by the CLI. These
+options belong only to external access. Never clear a pane's environment or
+use an external descriptor to widen its project scope; Zshell checks process
+ownership and rejects that access, including from Quick Terminal.
 
 ## Coordinate existing Zshell agents
 

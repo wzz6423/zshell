@@ -56,6 +56,7 @@ struct ClosedSessionRecord: Equatable {
 /// project's selected session.
 @MainActor
 final class TerminalManager: nonisolated ObservableObject {
+    nonisolated let conversationHistoryWindowID = UUID()
     @Published var projects: [Project] = []
     @Published private var preferredSidebarOrder: [ProjectSidebarItem] = []
     private var isRestoringProjects = false
@@ -238,6 +239,7 @@ final class TerminalManager: nonisolated ObservableObject {
     private static var didReopenWindows = false
 
     init() {
+        _ = AgentConversationHistoryStore.shared
         if !Self.hasLoadedStore {
             Self.hasLoadedStore = true
             Self.pendingRestores = SessionStore.load()
@@ -693,6 +695,16 @@ final class TerminalManager: nonisolated ObservableObject {
         projectObservations[project.id] = project.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
+        return project
+    }
+
+    func makeConversationHistoryProject(_ record: AgentConversationHistoryRecord, focus: Bool) -> Project {
+        let project = makeProject(createInitialSession: false)
+        project.conversationHistoryProjectID = record.projectID
+        project.customName = Project.normalizedCustomName(record.projectName)
+        project.customDirectory = record.identity.workingDirectory
+        projects.append(project)
+        if focus { selectedProjectID = project.id }
         return project
     }
 
@@ -1627,6 +1639,7 @@ final class TerminalManager: nonisolated ObservableObject {
     /// kill its shells.
     func windowClosed() {
         guard !Self.isQuitting else { return }
+        AgentConversationHistoryController.shared.close(ifOwnedBy: self)
         agentPalette.dismiss(restoreFocus: false)
         if let agentPaletteKeyMonitor {
             NSEvent.removeMonitor(agentPaletteKeyMonitor)
@@ -1685,6 +1698,7 @@ final class TerminalManager: nonisolated ObservableObject {
         if !preserve {
             _ = try? PTYMuxCommandLine.exchange(method: "terminateAll", timeout: 0.5)
         }
+        AgentConversationHistoryStore.shared.flush()
     }
 
     /// Builds this window's layout snapshot and, alongside it, the scrollback
@@ -1727,6 +1741,7 @@ final class TerminalManager: nonisolated ObservableObject {
                     markerColorHex: project.markerColor?.hex,
                     customDirectory: project.customDirectory,
                     groupID: project.groupID,
+                    conversationHistoryProjectID: project.conversationHistoryProjectID,
                     tabGroups: project.tabGroups,
                     launchSettings: project.launchSettings,
                     location: project.location,
@@ -1844,6 +1859,7 @@ final class TerminalManager: nonisolated ObservableObject {
                 createInitialSession: false
             )
             project.customName = Project.normalizedCustomName(saved.customName)
+            project.conversationHistoryProjectID = saved.conversationHistoryProjectID ?? UUID()
             project.markerColor = saved.markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:))
             project.customDirectory = saved.customDirectory
             // A group may have been deleted while this window was closed or

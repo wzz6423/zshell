@@ -381,14 +381,6 @@ private struct ZshellCommands: Commands {
             .disabled(manager?.hasSelectedBrowser != true)
         }
 
-        CommandMenu(String(localized: "Agents")) {
-            Button(String(localized: "Next Agent Needing Attention")) {
-                manager?.focusNextAgentAttention()
-            }
-            .keyboardShortcut("a", modifiers: [.command, .shift])
-            .disabled(manager?.hasAgentAttention != true)
-        }
-
         CommandMenu(String(localized: "Tabs")) {
             Button(String(localized: "Split Right")) {
                 manager?.splitRight()

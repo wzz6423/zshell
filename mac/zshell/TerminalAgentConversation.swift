@@ -2,6 +2,25 @@ import Darwin
 import Foundation
 
 extension TerminalSession {
+    func refreshAgentConversationHistory() {
+        if let owner = agentConversationOwner, !owner.isAlive {
+            recordAgentConversation(nil, processID: nil)
+        } else if let deadline = agentConversationResumeDeadline,
+                  Date() >= deadline, let identity = agentResume,
+                  ZshellAgentKind(rawValue: identity.provider.rawValue)
+                    .map(isAutomationAgentRunning(kind:)) != true {
+            recordAgentConversation(nil, processID: nil)
+        }
+    }
+
+    func hasOpenConversation(_ identity: AgentConversationIdentity) -> Bool {
+        guard !hasExited, let current = agentResume, current.matchesConversation(identity) else { return false }
+        if agentConversationOwner?.isAlive == true { return true }
+        guard let deadline = agentConversationResumeDeadline else { return false }
+        return Date() < deadline || ZshellAgentKind(rawValue: identity.provider.rawValue)
+            .map(isAutomationAgentRunning(kind:)) == true
+    }
+
     func acceptAgentConversation(_ event: AgentConversationSessionEvent, peerProcessID: pid_t?) -> Bool {
         guard AppSettings.shared.aiEnabled, !hasExited,
               let shellPID = shellPid,

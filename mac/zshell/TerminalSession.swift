@@ -30,6 +30,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     @Published var agentStatus: ZshellAgentStatus?
     @Published private(set) var agentResume: AgentConversationIdentity?
     private(set) var agentConversationProcessID: pid_t?
+    private(set) var agentConversationOwner: ZshellAgentProcessIdentity?
+    var agentConversationHistoryID: UUID?
+    var agentConversationResumeDeadline: Date?
+    var onAgentConversationChanged: ((TerminalSession, AgentConversationIdentity?) -> Void)?
 
     /// The emulator driving this session. Fixed for the session's lifetime —
     /// changing the setting only affects terminals opened afterwards.
@@ -86,14 +90,15 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         additionalEnvironment: [String: String] = [:],
         agentResume: AgentConversationIdentity? = nil,
         isRestoredSession: Bool = false,
-        allowsPersistence: Bool = true
+        allowsPersistence: Bool = true,
+        explicitlyResumeConversation: Bool = false
     ) {
         let sessionID = restoredSessionID ?? UUID()
         let existingPTY = restoredSessionID.flatMap { PersistentPTY.reconnect(id: $0) }
         let preserve = allowsPersistence && (AppSettings.shared.preserveTerminalSessions || existingPTY != nil)
         let resumeLaunch = agentResume?.resumeLaunch(
-            enabled: isRestoredSession && AppSettings.shared.aiEnabled
-                && AppSettings.shared.resumeAgentConversations,
+            enabled: AppSettings.shared.aiEnabled
+                && (explicitlyResumeConversation || isRestoredSession && AppSettings.shared.resumeAgentConversations),
             hasLiveTerminal: existingPTY != nil
         )
         let directCommand = resumeLaunch?.arguments
@@ -126,8 +131,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             replayFileURL: artifacts.replayFileURL,
             shellIntegrationDirectoryURL: artifacts.shellIntegrationDirectoryURL,
             resumeLaunch: resumeLaunch,
-            resumeFailed: isRestoredSession && AppSettings.shared.aiEnabled
-                && AppSettings.shared.resumeAgentConversations
+            resumeFailed: AppSettings.shared.aiEnabled
+                && (explicitlyResumeConversation || isRestoredSession && AppSettings.shared.resumeAgentConversations)
                 && agentResume != nil && resumeLaunch == nil && existingPTY == nil
         )
         let launchEnvironment = additionalEnvironment.merging(
@@ -216,8 +221,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
 
     func recordAgentConversation(_ identity: AgentConversationIdentity?, processID: pid_t?) {
         agentConversationProcessID = processID
-        guard agentResume != identity else { return }
-        agentResume = identity
+        agentConversationOwner = processID.flatMap(ZshellAgentProcessIdentity.init(pid:))
+        agentConversationResumeDeadline = nil
+        if agentResume != identity { agentResume = identity }
+        onAgentConversationChanged?(self, identity)
     }
 
     deinit {
@@ -320,6 +327,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// or been force-stopped. Detaching first can make a backend wait
     /// synchronously for a process that ignored SIGHUP.
     private func beginTeardown(processAlive: Bool, notifyExit: Bool) {
+        recordAgentConversation(nil, processID: nil)
         AgentTurnReviewStore.shared.abort(sessionID: id)
         TerminalCommandTaskStore.shared.terminalClosed(in: self)
         // TerminalHostView normally clears these while dismantling, but close
@@ -1113,6 +1121,9 @@ extension TerminalSession: TerminalBackendEvents {
                 surface.events = nil
                 surface.detach()
                 hasExited = true
+                if Darwin.kill(persistentPTY.shellPID, 0) != 0 {
+                    recordAgentConversation(nil, processID: nil)
+                }
                 ZshellCLIService.shared.revokeTerminal(id: id)
                 // Keep a live daemon job represented in the layout so the
                 // user can explicitly close it or reconnect on relaunch.

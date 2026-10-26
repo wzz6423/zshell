@@ -7,13 +7,15 @@ import AppKit
 final class AppMenuLocalization: NSObject {
     static let shared = AppMenuLocalization()
     private var refreshScheduled = false
+    private weak var applicationDelegate: ZshellApplicationDelegate?
 
-    func start() {
+    func start(applicationDelegate: ZshellApplicationDelegate) {
+        self.applicationDelegate = applicationDelegate
         for name in [AppLocalization.didChange, NSMenu.didBeginTrackingNotification] {
             NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: name, object: nil)
         }
-        for name in [NSMenu.didAddItemNotification, NSMenu.didChangeItemNotification] {
-            NotificationCenter.default.addObserver(self, selector: #selector(scheduleRefresh), name: name, object: NSApp.mainMenu)
+        for name in [NSMenu.didAddItemNotification, NSMenu.didChangeItemNotification, NSMenu.didRemoveItemNotification] {
+            NotificationCenter.default.addObserver(self, selector: #selector(scheduleRefresh), name: name, object: nil)
         }
         refresh()
     }
@@ -28,7 +30,11 @@ final class AppMenuLocalization: NSObject {
     }
 
     @objc private func refresh() {
+        // SwiftUI can replace the main menu after workspace changes. Restore
+        // AppKit-owned commands after that reconciliation.
+        applicationDelegate?.restoreTerminalMenus()
         guard let menu = NSApp.mainMenu else { return }
+        AgentConversationHistoryController.shared.installMenu(in: menu)
         let titles: [(String.LocalizationValue, String)] = [
             ("File", String(localized: "File")),
             ("Edit", String(localized: "Edit")),
@@ -36,6 +42,7 @@ final class AppMenuLocalization: NSObject {
             ("Window", String(localized: "Window")),
             ("Help", String(localized: "Help")),
             ("Terminal", String(localized: "Terminal")),
+            ("Agents", String(localized: "Agents")),
         ]
         let bundles = AppLanguage.localizationIdentifiers.compactMap {
             Bundle.main.url(forResource: $0, withExtension: "lproj").flatMap(Bundle.init(url:))
