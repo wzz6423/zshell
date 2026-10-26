@@ -114,7 +114,7 @@ final class RemoteProjectInfoNSView: NSView {
             switch try? host.endpoint() {
             case .ssh(let endpoint):
                 userValue.stringValue = endpoint.user ?? "—"
-                portValue.stringValue = endpoint.port.map(String.init) ?? "22"
+                portValue.stringValue = endpoint.port.map(String.init) ?? "—"
             case .tailscale(_, let port):
                 userValue.stringValue = "Tailscale"
                 portValue.stringValue = String(port)
