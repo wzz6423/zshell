@@ -336,17 +336,17 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         surface.splitTarget.onRunQuickCommand = nil
         surface.splitTarget.onManageQuickCommands = nil
 
-        if processAlive, persistentPTY == nil {
-            _ = shellPid // Cache it before `hasExited` changes.
-            signalTerminalJob(SIGHUP)
-        }
+        // A backend can close its PTY before the delayed kill; its raw file
+        // descriptor may already belong to a newly opened terminal by then.
+        let processIDs = processAlive && persistentPTY == nil ? terminalJobPIDs() : []
+        if processAlive, persistentPTY == nil { signalTerminalJob(SIGHUP, processIDs: processIDs) }
 
         Task { @MainActor [self] in
             if processAlive, persistentPTY == nil {
                 // Give well-behaved shells a moment to unwind, then guarantee
                 // surface teardown cannot wait indefinitely.
                 try? await Task.sleep(for: .milliseconds(120))
-                signalTerminalJob(SIGKILL)
+                signalTerminalJob(SIGKILL, processIDs: processIDs)
             } else {
                 // Avoid freeing the surface reentrantly from the backend's
                 // process-close callback.
@@ -360,13 +360,17 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         }
     }
 
-    private func signalTerminalJob(_ signal: Int32) {
+    private func terminalJobPIDs() -> Set<pid_t> {
         var pids = Set<pid_t>()
         if let shellPid { pids.insert(shellPid) }
         if let foreground = surface.foregroundPid, foreground > 0 {
             pids.insert(foreground)
         }
-        for pid in pids where pid > 1 {
+        return pids
+    }
+
+    private func signalTerminalJob(_ signal: Int32, processIDs: Set<pid_t>) {
+        for pid in processIDs where pid > 1 {
             // Interactive shells and their foreground jobs normally lead
             // distinct process groups. Signal the group, then the leader as a
             // fallback for an unusual launch configuration.
