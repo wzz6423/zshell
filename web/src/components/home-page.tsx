@@ -821,31 +821,31 @@ function ModernFeatures({ lang, copy }: { lang: string; copy: HomeCopy }) {
       title: '分屏布局',
       description: '灵活的窗格布局系统，支持多种分屏方式，并排查看多个终端',
       icon: 'i-mingcute-layout-grid-fill',
-      gradient: 'bg-gradient-to-br from-blue-500/10 to-transparent',
+      gradient: 'bg-gradient-to-br from-gray-500/10 to-transparent',
     },
     {
       title: 'Git 集成',
       description: '内置 Git 面板，可视化管理代码变更、分支和提交历史',
       icon: 'i-mingcute-git-branch-fill',
-      gradient: 'bg-gradient-to-br from-purple-500/10 to-transparent',
+      gradient: 'bg-gradient-to-br from-gray-500/10 to-transparent',
     },
     {
       title: '文件浏览器',
       description: '内置文件树浏览器，快速导航项目文件，支持文件搜索',
       icon: 'i-mingcute-file-search-fill',
-      gradient: 'bg-gradient-to-br from-yellow-500/10 to-transparent',
+      gradient: 'bg-gradient-to-br from-gray-500/10 to-transparent',
     },
     {
       title: '代码编辑器',
       description: '集成轻量级代码编辑器，快速编辑文件无需切换应用',
       icon: 'i-mingcute-code-fill',
-      gradient: 'bg-gradient-to-br from-red-500/10 to-transparent',
+      gradient: 'bg-gradient-to-br from-gray-500/10 to-transparent',
     },
     {
       title: '原生性能',
       description: '原生 macOS 应用，流畅运行，低资源占用，完美集成系统',
       icon: 'i-mingcute-flash-fill',
-      gradient: 'bg-gradient-to-br from-orange-500/10 to-transparent',
+      gradient: 'bg-gradient-to-br from-gray-500/10 to-transparent',
     },
   ]
 
