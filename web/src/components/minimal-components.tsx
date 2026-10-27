@@ -40,11 +40,6 @@ export function MinimalFeature({ number, title, description, icon }: MinimalFeat
         {/* 编号 */}
         <div>
           <div className="text-sm font-medium text-gray-400">{number}</div>
-          {icon && (
-            <div className="mt-4 inline-flex rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 p-3">
-              <span className={`text-3xl ${icon}`} />
-            </div>
-          )}
         </div>
 
         {/* 内容 */}

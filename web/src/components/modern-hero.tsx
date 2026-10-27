@@ -110,7 +110,7 @@ export function ModernHero({ lang, copy, release }: { lang: string; copy: HomeCo
         }}
       >
         {/* 状态标签 */}
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-black bg-white px-4 py-2 text-sm font-medium shadow-sm">
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-black shadow-sm">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-600 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-600" />
@@ -158,18 +158,23 @@ export function ModernHero({ lang, copy, release }: { lang: string; copy: HomeCo
         </div>
 
         {/* Homebrew 安装 */}
-        <div className="mt-8 inline-flex items-center gap-3 rounded-lg border border-gray-300 bg-gray-50 px-5 py-3 font-mono text-sm shadow-sm">
-          <span className="text-gray-500">$</span>
-          <code className="text-gray-900">brew install zshell</code>
+        <div className="mt-8 inline-flex items-stretch overflow-hidden rounded-lg border border-gray-300 bg-white shadow-sm">
+          <div className="flex items-center gap-3 px-5 py-3 font-mono text-sm">
+            <span className="text-gray-500">$</span>
+            <code className="text-gray-900 select-all">brew install wzz6423/tap/zshell</code>
+          </div>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText('brew install wzz6423/tap/zshell')
+            }}
+            className="border-l border-gray-300 px-4 transition-colors hover:bg-gray-50"
+            aria-label="复制命令"
+          >
+            <span className="i-mingcute-copy-2-line text-gray-600" />
+          </button>
         </div>
       </div>
 
-      {/* 滚动指示器 */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-        <div className="flex h-12 w-7 items-start justify-center rounded-full border-2 border-gray-400 p-2">
-          <div className="h-2 w-2 rounded-full bg-gray-600" />
-        </div>
-      </div>
     </section>
   )
 }
