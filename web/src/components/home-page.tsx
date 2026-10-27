@@ -161,8 +161,20 @@ function DownloadSection({ copy, release }: { copy: HomeCopy; release: Release }
             下载 macOS 版本
           </a>
 
-          <div className="mt-4 max-w-xl rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-            <code className="text-sm text-gray-600 dark:text-gray-300">{BREW_COMMAND}</code>
+          <div className="mt-4 inline-flex max-w-xl items-stretch overflow-hidden rounded-lg border border-gray-200 bg-gray-50 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+            <div className="flex items-center gap-3 px-5 py-3 font-mono text-sm">
+              <span className="text-gray-500 dark:text-gray-400">$</span>
+              <code className="text-gray-600 select-all dark:text-gray-300">{BREW_COMMAND}</code>
+            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(BREW_COMMAND)
+              }}
+              className="flex items-center justify-center border-l border-gray-200 px-4 transition-colors hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+              aria-label="复制命令"
+            >
+              <span className="i-mingcute-copy-2-line text-gray-600 dark:text-gray-400" />
+            </button>
           </div>
         </div>
       </div>
