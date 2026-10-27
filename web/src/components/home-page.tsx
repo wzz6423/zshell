@@ -7,6 +7,7 @@ import { BREW_COMMAND, GITHUB_URL, type Release } from '@/lib/release'
 import { cn, withBase } from '@/lib/utils'
 import { ModernHero } from '@/components/modern-hero'
 import { MinimalFeature, MinimalSection } from '@/components/minimal-components'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 /** The landing page, rendered once per language from `homeCopy`. */
 export function HomePage({ lang, release, copy }: { lang: string; release: Release; copy: HomeCopy }) {
@@ -59,12 +60,13 @@ function MinimalHeader({ lang, copy, release }: { lang: string; copy: HomeCopy; 
         </HomeLink>
 
         <div className="flex items-center gap-6">
-          <DocsLink lang={lang} className="text-sm text-gray-600 transition-colors hover:text-black">
+          <DocsLink lang={lang} className="text-sm text-gray-600 transition-colors hover:text-black dark:text-gray-400 dark:hover:text-white">
             文档
           </DocsLink>
-          <Link to="/changelog" className="text-sm text-gray-600 transition-colors hover:text-black">
+          <Link to="/changelog" className="text-sm text-gray-600 transition-colors hover:text-black dark:text-gray-400 dark:hover:text-white">
             更新日志
           </Link>
+          <ThemeToggle />
           <LanguageSelect lang={lang} />
         </div>
       </div>

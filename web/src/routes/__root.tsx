@@ -29,6 +29,21 @@ export const Route = createRootRoute({
       { rel: "icon", type: "image/png", href: withBase("/zshell-icon.png?v=3") },
       { rel: "apple-touch-icon", href: withBase("/zshell-icon.png?v=3") },
     ],
+    scripts: [
+      {
+        children: `
+          (function() {
+            const theme = localStorage.getItem('theme') || 'auto';
+            const isDark = theme === 'auto'
+              ? window.matchMedia('(prefers-color-scheme: dark)').matches
+              : theme === 'dark';
+            if (isDark) {
+              document.documentElement.classList.add('dark');
+            }
+          })();
+        `,
+      },
+    ],
   }),
   component: RootComponent,
 });
@@ -48,21 +63,32 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const language = languageFromPath(pathname);
 
-  // 自动跟随系统主题
+  // 自动跟随系统主题（但如果用户有保存的偏好则使用用户偏好）
   useEffect(() => {
-    const updateTheme = (e?: MediaQueryListEvent | MediaQueryList) => {
-      const isDark = e ? e.matches : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const updateTheme = () => {
+      const savedTheme = localStorage.getItem('theme') || 'auto';
+      const isDark = savedTheme === 'auto'
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
+        : savedTheme === 'dark';
       document.documentElement.classList.toggle('dark', isDark);
     };
-
-    // 初始设置
-    updateTheme(window.matchMedia('(prefers-color-scheme: dark)'));
 
     // 监听系统主题变化
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     mediaQuery.addEventListener('change', updateTheme);
 
-    return () => mediaQuery.removeEventListener('change', updateTheme);
+    // 监听 localStorage 变化（跨标签页同步）
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'theme') {
+        updateTheme();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', updateTheme);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   return (
