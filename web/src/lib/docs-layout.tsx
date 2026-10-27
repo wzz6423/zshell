@@ -12,9 +12,8 @@ export function docsLayoutOptions(lang: string): BaseLayoutProps {
 
   return {
     githubUrl: GITHUB_URL,
-    // The site has no light mode, so a light/dark toggle would be a control
-    // that does nothing.
-    themeSwitch: { enabled: false },
+    // Enable theme switch for dark/light mode toggle
+    themeSwitch: { enabled: true },
     nav: {
       url: home,
       title: (
