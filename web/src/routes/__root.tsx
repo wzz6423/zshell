@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useEffect } from "react";
 import {
   Outlet,
   createRootRoute,
@@ -47,8 +48,25 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const language = languageFromPath(pathname);
 
+  // 自动跟随系统主题
+  useEffect(() => {
+    const updateTheme = (e?: MediaQueryListEvent | MediaQueryList) => {
+      const isDark = e ? e.matches : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.classList.toggle('dark', isDark);
+    };
+
+    // 初始设置
+    updateTheme(window.matchMedia('(prefers-color-scheme: dark)'));
+
+    // 监听系统主题变化
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', updateTheme);
+
+    return () => mediaQuery.removeEventListener('change', updateTheme);
+  }, []);
+
   return (
-    <html lang={languageTag(language)} dir={languageDirection(language)} className="dark">
+    <html lang={languageTag(language)} dir={languageDirection(language)}>
       <head>
         <HeadContent />
       </head>
