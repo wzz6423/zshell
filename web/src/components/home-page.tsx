@@ -26,7 +26,7 @@ export function HomePage({ lang, release, copy }: { lang: string; release: Relea
   }, [])
 
   return (
-    <div className="home-page min-h-screen bg-white font-sans text-base leading-relaxed">
+    <div className="home-page min-h-screen bg-white font-sans text-base leading-relaxed dark:bg-gray-950">
       <MinimalHeader lang={lang} copy={copy} release={release} />
 
       <main id="main">
@@ -46,9 +46,9 @@ export function HomePage({ lang, release, copy }: { lang: string; release: Relea
 
 function MinimalHeader({ lang, copy, release }: { lang: string; copy: HomeCopy; release: Release }) {
   return (
-    <header className="fixed top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-xl">
+    <header className="fixed top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-xl dark:border-gray-800 dark:bg-gray-950/80">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <HomeLink lang={lang} className="flex items-center gap-2 text-lg font-medium text-black">
+        <HomeLink lang={lang} className="flex items-center gap-2 text-lg font-medium text-black dark:text-white">
           <img
             src={withBase('/zshell-icon.png')}
             alt=""
