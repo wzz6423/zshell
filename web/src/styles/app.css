@@ -158,8 +158,12 @@
     @apply bg-background text-foreground;
   }
   ::selection {
-    background: color-mix(in oklab, var(--brand) 30%, transparent);
-    color: var(--foreground);
+    background: #0969da;
+    color: #ffffff;
+  }
+  .dark ::selection {
+    background: #58a6ff;
+    color: #0a0c0b;
   }
 }
 
