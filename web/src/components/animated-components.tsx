@@ -35,9 +35,9 @@ export function AnimatedFeatureCard({ title, description, icon, delay = 0, gradi
     <div
       ref={cardRef}
       className={cn(
-        'group relative overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/50 p-8 backdrop-blur-sm transition-all duration-700',
+        'group relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/50 p-8 backdrop-blur-sm transition-all duration-700',
         isVisible ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0',
-        'hover:border-gray-700 hover:shadow-2xl'
+        'hover:border-neutral-700 hover:shadow-2xl'
       )}
       style={{
         transitionDelay: `${delay}ms`,
@@ -53,17 +53,17 @@ export function AnimatedFeatureCard({ title, description, icon, delay = 0, gradi
 
       {/* 内容 */}
       <div className="relative z-10">
-        <div className="mb-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-br from-gray-500/10 to-gray-500/10 p-3">
+        <div className="mb-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-br from-neutral-500/10 to-neutral-500/10 p-3">
           <span className={cn('text-4xl', icon)} />
         </div>
 
         <h3 className="mb-3 text-2xl font-bold text-white">{title}</h3>
-        <p className="text-gray-400">{description}</p>
+        <p className="text-neutral-400">{description}</p>
       </div>
 
       {/* 光晕效果 */}
       <div className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100">
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-gray-500/20 to-gray-500/20 blur-xl" />
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-neutral-500/20 to-neutral-500/20 blur-xl" />
       </div>
     </div>
   )
@@ -72,9 +72,10 @@ export function AnimatedFeatureCard({ title, description, icon, delay = 0, gradi
 interface AnimatedSectionProps {
   children: React.ReactNode
   className?: string
+  id?: string
 }
 
-export function AnimatedSection({ children, className }: AnimatedSectionProps) {
+export function AnimatedSection({ children, className, id }: AnimatedSectionProps) {
   const [isVisible, setIsVisible] = useState(false)
   const sectionRef = useRef<HTMLElement>(null)
 
@@ -99,6 +100,7 @@ export function AnimatedSection({ children, className }: AnimatedSectionProps) {
   return (
     <section
       ref={sectionRef}
+      id={id}
       className={cn(
         'transition-all duration-1000',
         isVisible ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0',
@@ -152,29 +154,29 @@ export function CodeWindow({ code, language = 'bash' }: { code: string; language
   return (
     <div
       ref={windowRef}
-      className="relative overflow-hidden rounded-xl border border-gray-800 bg-gray-900/80 backdrop-blur-sm"
+      className="relative overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900/80 backdrop-blur-sm"
     >
       {/* 窗口标题栏 */}
-      <div className="flex items-center gap-2 border-b border-gray-800 px-4 py-3">
+      <div className="flex items-center gap-2 border-b border-neutral-800 px-4 py-3">
         <div className="flex gap-2">
-          <div className="h-3 w-3 rounded-full bg-red-500" />
-          <div className="h-3 w-3 rounded-full bg-yellow-500" />
-          <div className="h-3 w-3 rounded-full bg-green-500" />
+          <div className="h-3 w-3 rounded-full bg-neutral-500" />
+          <div className="h-3 w-3 rounded-full bg-neutral-600" />
+          <div className="h-3 w-3 rounded-full bg-neutral-700" />
         </div>
-        <span className="ml-auto text-xs text-gray-500">{language}</span>
+        <span className="ml-auto text-xs text-neutral-500">{language}</span>
       </div>
 
       {/* 代码内容 */}
       <div className="p-4 font-mono text-sm">
-        <pre className="text-green-400">
+        <pre className="text-neutral-200">
           {displayedCode}
-          <span className="inline-block h-4 w-2 animate-pulse bg-green-400" />
+          <span className="inline-block h-4 w-2 animate-pulse bg-neutral-200" />
         </pre>
       </div>
 
       {/* 发光效果 */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-green-500/5 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-neutral-500/5 to-transparent" />
       </div>
     </div>
   )

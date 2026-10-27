@@ -1,66 +1,34 @@
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
+import { Airplay, Moon, Sun } from 'lucide-react'
+import { useTheme } from 'fumadocs-ui/provider/base'
+import { DEFAULT_LANGUAGE } from '@/lib/i18n'
+import { uiCopy } from '@/lib/ui-copy'
 
-export function ThemeToggle() {
-  const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>('auto')
-  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>('light')
+const noop = () => () => {}
+const themeOptions = {
+  system: { label: 'themeAuto', Icon: Airplay, next: 'light' },
+  light: { label: 'themeLight', Icon: Sun, next: 'dark' },
+  dark: { label: 'themeDark', Icon: Moon, next: 'system' },
+} as const
 
-  useEffect(() => {
-    // 检测系统主题
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    const updateSystemTheme = () => {
-      setSystemTheme(mediaQuery.matches ? 'dark' : 'light')
-    }
-
-    updateSystemTheme()
-    mediaQuery.addEventListener('change', updateSystemTheme)
-
-    // 从 localStorage 读取用户偏好
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | 'auto' | null
-    if (savedTheme) {
-      setTheme(savedTheme)
-    }
-
-    return () => mediaQuery.removeEventListener('change', updateSystemTheme)
-  }, [])
-
-  useEffect(() => {
-    // 应用主题
-    const isDark = theme === 'auto' ? systemTheme === 'dark' : theme === 'dark'
-    document.documentElement.classList.toggle('dark', isDark)
-
-    // 保存用户偏好
-    localStorage.setItem('theme', theme)
-  }, [theme, systemTheme])
-
-  const cycleTheme = () => {
-    setTheme(current => {
-      if (current === 'auto') return 'light'
-      if (current === 'light') return 'dark'
-      return 'auto'
-    })
-  }
-
-  const currentIcon = () => {
-    if (theme === 'auto') {
-      return systemTheme === 'dark' ? 'i-mingcute-moon-line' : 'i-mingcute-sun-line'
-    }
-    return theme === 'dark' ? 'i-mingcute-moon-fill' : 'i-mingcute-sun-fill'
-  }
-
-  const getLabel = () => {
-    if (theme === 'auto') return '自动'
-    return theme === 'dark' ? '深色' : '浅色'
-  }
+export function ThemeToggle({ lang = DEFAULT_LANGUAGE }: { lang?: string }) {
+  const { theme, setTheme } = useTheme()
+  const mounted = useSyncExternalStore(noop, () => true, () => false)
+  const currentTheme = theme === 'light' || theme === 'dark' ? theme : 'system'
+  const { label, Icon } = themeOptions[mounted ? currentTheme : 'system']
+  const labels = uiCopy(lang)
+  const toggleLabel = labels.toggleTheme.replace('{theme}', labels[label])
 
   return (
     <button
-      onClick={cycleTheme}
-      className="inline-flex h-11 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800"
-      aria-label={`切换主题 (当前: ${getLabel()})`}
-      title={`切换主题 (当前: ${getLabel()})`}
+      type="button"
+      data-theme-toggle=""
+      onClick={() => setTheme(themeOptions[currentTheme].next)}
+      className="inline-flex h-11 w-[62px] shrink-0 items-center justify-center rounded-lg border border-border bg-background px-1 text-foreground transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+      aria-label={toggleLabel}
+      title={toggleLabel}
     >
-      <span className={`${currentIcon()} text-base`} />
-      <span className="hidden sm:inline">{getLabel()}</span>
+      <Icon className="size-4 shrink-0" aria-hidden="true" />
     </button>
   )
 }

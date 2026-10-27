@@ -1,13 +1,14 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { DocsLink, HomeLink } from '@/components/site-links'
 import type { HomeCopy, Row } from '@/lib/home-copy'
 import { LanguageSelect } from '@/components/language-select'
-import { BREW_COMMAND, GITHUB_URL, type Release } from '@/lib/release'
+import { BREW_COMMAND, dmgUrl, GITHUB_URL, RELEASE_ARCHITECTURES, type Release } from '@/lib/release'
 import { cn, withBase } from '@/lib/utils'
 import { ModernHero } from '@/components/modern-hero'
 import { MinimalFeature, MinimalSection } from '@/components/minimal-components'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { AnimatedFeatureCard, AnimatedSection, CodeWindow } from '@/components/animated-components'
 
 /** The landing page, rendered once per language from `homeCopy`. */
 export function HomePage({ lang, release, copy }: { lang: string; release: Release; copy: HomeCopy }) {
@@ -26,7 +27,7 @@ export function HomePage({ lang, release, copy }: { lang: string; release: Relea
   }, [])
 
   return (
-    <div className="home-page min-h-screen bg-white font-sans text-base leading-relaxed dark:bg-gray-950">
+    <div className="home-page min-h-screen bg-background font-sans text-base leading-relaxed">
       <MinimalHeader lang={lang} copy={copy} release={release} />
 
       <main id="main">
@@ -46,9 +47,9 @@ export function HomePage({ lang, release, copy }: { lang: string; release: Relea
 
 function MinimalHeader({ lang, copy, release }: { lang: string; copy: HomeCopy; release: Release }) {
   return (
-    <header className="fixed top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-xl dark:border-gray-800 dark:bg-gray-950/80">
+    <header className="fixed top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <HomeLink lang={lang} className="flex items-center gap-2 text-lg font-medium text-black dark:text-white">
+        <HomeLink lang={lang} className="flex items-center gap-2 text-lg font-medium text-foreground">
           <img
             src={withBase('/zshell-icon.png')}
             alt=""
@@ -60,13 +61,13 @@ function MinimalHeader({ lang, copy, release }: { lang: string; copy: HomeCopy; 
         </HomeLink>
 
         <div className="flex items-center gap-6">
-          <DocsLink lang={lang} className="text-sm text-gray-600 transition-colors hover:text-black dark:text-gray-400 dark:hover:text-white">
+          <DocsLink lang={lang} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
             文档
           </DocsLink>
-          <Link to="/changelog" className="text-sm text-gray-600 transition-colors hover:text-black dark:text-gray-400 dark:hover:text-white">
+          <Link to="/changelog" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
             更新日志
           </Link>
-          <ThemeToggle />
+          <ThemeToggle lang={lang} />
           <LanguageSelect lang={lang} />
         </div>
       </div>
@@ -145,10 +146,10 @@ function MinimalFeatures() {
 
 function DownloadSection({ copy, release }: { copy: HomeCopy; release: Release }) {
   return (
-    <MinimalSection className="border-t border-gray-200 dark:border-gray-800">
+    <MinimalSection className="border-t border-border">
       <div className="text-center">
-        <h2 className="mb-6 text-4xl font-light text-black dark:text-white">立即开始</h2>
-        <p className="mb-8 text-lg text-gray-600 dark:text-gray-400">
+        <h2 className="mb-6 text-4xl font-light text-foreground">立即开始</h2>
+        <p className="mb-8 text-lg text-muted-foreground">
           v{release.version} · macOS {release.minSystem}+
         </p>
 
@@ -156,24 +157,24 @@ function DownloadSection({ copy, release }: { copy: HomeCopy; release: Release }
           <a
             href={release.dmg}
             download
-            className="inline-flex items-center gap-2 rounded-full bg-black px-8 py-3 text-base font-medium text-white transition-all hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3 text-base font-medium text-primary-foreground transition-all hover:bg-primary/90"
           >
             下载 macOS 版本
           </a>
 
-          <div className="mt-4 inline-flex max-w-xl items-stretch overflow-hidden rounded-lg border border-gray-200 bg-gray-50 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+          <div className="mt-4 inline-flex max-w-xl items-stretch overflow-hidden rounded-lg border border-border bg-card shadow-sm">
             <div className="flex items-center gap-3 px-5 py-3 font-mono text-sm">
-              <span className="text-gray-500 dark:text-gray-400">$</span>
-              <code className="text-gray-600 select-all dark:text-gray-300">{BREW_COMMAND}</code>
+              <span className="text-muted-foreground">$</span>
+              <code className="text-foreground select-all">{BREW_COMMAND}</code>
             </div>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(BREW_COMMAND)
               }}
-              className="flex items-center justify-center border-l border-gray-200 px-4 transition-colors hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+              className="flex items-center justify-center border-l border-border px-4 transition-colors hover:bg-muted"
               aria-label="复制命令"
             >
-              <span className="i-mingcute-copy-2-line text-gray-600 dark:text-gray-400" />
+              <span className="i-mingcute-copy-2-line text-muted-foreground" />
             </button>
           </div>
         </div>
@@ -188,9 +189,9 @@ function DownloadSection({ copy, release }: { copy: HomeCopy; release: Release }
 
 function MinimalFooter({ lang }: { lang: string }) {
   return (
-    <footer className="border-t border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
+    <footer className="border-t border-border bg-background">
       <div className="mx-auto max-w-6xl px-6 py-12">
-        <div className="flex flex-col items-center justify-between gap-4 text-sm text-gray-600 sm:flex-row dark:text-gray-400">
+        <div className="flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground sm:flex-row">
           <div className="flex items-center gap-2">
             <img
               src={withBase('/zshell-icon.png')}
@@ -203,13 +204,13 @@ function MinimalFooter({ lang }: { lang: string }) {
           </div>
 
           <div className="flex items-center gap-6">
-            <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="hover:text-black dark:hover:text-white">
+            <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="hover:text-foreground">
               GitHub
             </a>
-            <DocsLink lang={lang} className="hover:text-black dark:hover:text-white">
+            <DocsLink lang={lang} className="hover:text-foreground">
               文档
             </DocsLink>
-            <Link to="/changelog" className="hover:text-black dark:hover:text-white">
+            <Link to="/changelog" className="hover:text-foreground">
               更新日志
             </Link>
           </div>
@@ -815,37 +816,37 @@ function ModernFeatures({ lang, copy }: { lang: string; copy: HomeCopy }) {
       title: '项目管理',
       description: '轻松管理多个项目，快速切换工作环境，提高开发效率',
       icon: 'i-mingcute-folder-open-fill',
-      gradient: 'bg-gradient-to-br from-green-500/10 to-transparent',
+      gradient: 'bg-gradient-to-br from-neutral-500/10 to-transparent',
     },
     {
       title: '分屏布局',
       description: '灵活的窗格布局系统，支持多种分屏方式，并排查看多个终端',
       icon: 'i-mingcute-layout-grid-fill',
-      gradient: 'bg-gradient-to-br from-gray-500/10 to-transparent',
+      gradient: 'bg-gradient-to-br from-neutral-500/10 to-transparent',
     },
     {
       title: 'Git 集成',
       description: '内置 Git 面板，可视化管理代码变更、分支和提交历史',
       icon: 'i-mingcute-git-branch-fill',
-      gradient: 'bg-gradient-to-br from-gray-500/10 to-transparent',
+      gradient: 'bg-gradient-to-br from-neutral-500/10 to-transparent',
     },
     {
       title: '文件浏览器',
       description: '内置文件树浏览器，快速导航项目文件，支持文件搜索',
       icon: 'i-mingcute-file-search-fill',
-      gradient: 'bg-gradient-to-br from-gray-500/10 to-transparent',
+      gradient: 'bg-gradient-to-br from-neutral-500/10 to-transparent',
     },
     {
       title: '代码编辑器',
       description: '集成轻量级代码编辑器，快速编辑文件无需切换应用',
       icon: 'i-mingcute-code-fill',
-      gradient: 'bg-gradient-to-br from-gray-500/10 to-transparent',
+      gradient: 'bg-gradient-to-br from-neutral-500/10 to-transparent',
     },
     {
       title: '原生性能',
       description: '原生 macOS 应用，流畅运行，低资源占用，完美集成系统',
       icon: 'i-mingcute-flash-fill',
-      gradient: 'bg-gradient-to-br from-gray-500/10 to-transparent',
+      gradient: 'bg-gradient-to-br from-neutral-500/10 to-transparent',
     },
   ]
 
@@ -856,7 +857,7 @@ function ModernFeatures({ lang, copy }: { lang: string; copy: HomeCopy }) {
           <h2 className="mb-4 text-4xl font-bold text-white md:text-5xl">
             强大的功能特性
           </h2>
-          <p className="mx-auto max-w-2xl text-lg text-gray-400">
+          <p className="mx-auto max-w-2xl text-lg text-neutral-400">
             为开发者打造的现代化终端工作空间
           </p>
         </div>
@@ -894,14 +895,14 @@ M  src/theme.css
 ✓ Server running at localhost:3000`
 
   return (
-    <AnimatedSection className="bg-gradient-to-b from-black to-gray-900 py-24">
+    <AnimatedSection className="bg-gradient-to-b from-black to-neutral-900 py-24">
       <div className="home-container">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
             <h2 className="mb-6 text-4xl font-bold text-white md:text-5xl">
               流畅的开发体验
             </h2>
-            <p className="mb-8 text-lg text-gray-400">
+            <p className="mb-8 text-lg text-neutral-400">
               原生 macOS 终端，结合现代化的项目管理功能，让你的开发工作更加高效和愉悦。
             </p>
 
@@ -912,8 +913,8 @@ M  src/theme.css
                 '快捷键驱动的高效操作',
                 'SSH 远程服务器管理',
               ].map((item, index) => (
-                <li key={index} className="flex items-center gap-3 text-gray-300">
-                  <span className="i-mingcute-check-circle-fill text-xl text-green-400" />
+                <li key={index} className="flex items-center gap-3 text-neutral-300">
+                  <span className="i-mingcute-check-circle-fill text-xl text-neutral-200" />
                   {item}
                 </li>
               ))}

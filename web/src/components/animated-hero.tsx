@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { DocsLink } from '@/components/site-links'
-import type { HomeCopy, Release } from '@/lib/home-copy'
+import type { HomeCopy } from '@/lib/home-copy'
+import type { Release } from '@/lib/release'
 import { cn } from '@/lib/utils'
 
 /**
@@ -57,7 +58,7 @@ export function AnimatedHero({ lang, copy, release }: { lang: string; copy: Home
         const opacity = 1 - this.life / this.maxLife
         const size = 2 + Math.random() * 2
 
-        ctx.fillStyle = `rgba(0, 255, 100, ${opacity * 0.6})`
+        ctx.fillStyle = `rgba(163, 163, 163, ${opacity * 0.6})`
         ctx.beginPath()
         ctx.arc(this.x, this.y, size, 0, Math.PI * 2)
         ctx.fill()
@@ -78,7 +79,7 @@ export function AnimatedHero({ lang, copy, release }: { lang: string; copy: Home
       // 清除画布，使用渐变背景
       const gradient = ctx.createLinearGradient(0, 0, width, height)
       gradient.addColorStop(0, 'rgba(0, 0, 0, 0.05)')
-      gradient.addColorStop(1, 'rgba(0, 100, 50, 0.05)')
+      gradient.addColorStop(1, 'rgba(26, 26, 26, 0.05)')
       ctx.fillStyle = gradient
       ctx.fillRect(0, 0, width, height)
 
@@ -101,7 +102,7 @@ export function AnimatedHero({ lang, copy, release }: { lang: string; copy: Home
       }
 
       // 绘制连线
-      ctx.strokeStyle = 'rgba(0, 255, 100, 0.1)'
+      ctx.strokeStyle = 'rgba(163, 163, 163, 0.1)'
       ctx.lineWidth = 1
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
@@ -143,7 +144,7 @@ export function AnimatedHero({ lang, copy, release }: { lang: string; copy: Home
   }, [])
 
   return (
-    <section className="relative min-h-screen overflow-hidden bg-gradient-to-br from-black via-gray-900 to-black">
+    <section className="relative min-h-screen overflow-hidden bg-gradient-to-br from-black via-neutral-900 to-black">
       {/* 粒子画布 */}
       <canvas
         ref={canvasRef}
@@ -157,13 +158,13 @@ export function AnimatedHero({ lang, copy, release }: { lang: string; copy: Home
       {/* 渐变光晕 */}
       <div className="absolute inset-0 overflow-hidden">
         <div
-          className="absolute -left-1/4 -top-1/4 h-1/2 w-1/2 rounded-full bg-green-500/20 blur-[120px]"
+          className="absolute -left-1/4 -top-1/4 h-1/2 w-1/2 rounded-full bg-neutral-500/20 blur-[120px]"
           style={{
             transform: `translate(${mousePos.x * 30}px, ${mousePos.y * 30}px)`,
           }}
         />
         <div
-          className="absolute -right-1/4 -bottom-1/4 h-1/2 w-1/2 rounded-full bg-gray-500/20 blur-[120px]"
+          className="absolute -right-1/4 -bottom-1/4 h-1/2 w-1/2 rounded-full bg-neutral-500/20 blur-[120px]"
           style={{
             transform: `translate(${-mousePos.x * 30}px, ${-mousePos.y * 30}px)`,
           }}
@@ -174,18 +175,18 @@ export function AnimatedHero({ lang, copy, release }: { lang: string; copy: Home
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 text-center">
         <div className="animate-fade-in-up">
           <h1 className="mb-6 text-6xl font-bold tracking-tight text-white md:text-8xl">
-            <span className="bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-neutral-100 via-neutral-300 to-neutral-500 bg-clip-text text-transparent">
               zshell
             </span>
           </h1>
 
-          <p className="mb-4 text-xl text-gray-300 md:text-2xl">
+          <p className="mb-4 text-xl text-neutral-300 md:text-2xl">
             {copy.hero.titleBefore}
-            <span className="font-semibold text-green-400">{copy.hero.titleHighlight}</span>
+            <span className="font-semibold text-neutral-100">{copy.hero.titleHighlight}</span>
             {copy.hero.titleAfter}
           </p>
 
-          <p className="mx-auto mb-12 max-w-2xl text-base text-gray-400 md:text-lg">
+          <p className="mx-auto mb-12 max-w-2xl text-base text-neutral-400 md:text-lg">
             {copy.hero.lede}
           </p>
 
@@ -193,18 +194,18 @@ export function AnimatedHero({ lang, copy, release }: { lang: string; copy: Home
             <a
               href={release.dmg}
               download
-              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-green-500 px-8 py-4 font-semibold text-white transition-all hover:bg-green-600 hover:shadow-lg hover:shadow-green-500/50"
+              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-neutral-700 px-8 py-4 font-semibold text-white transition-all hover:bg-neutral-600 hover:shadow-lg hover:shadow-neutral-500/50"
             >
               <span className="relative z-10 flex items-center gap-2">
                 <span className="i-mingcute-apple-fill text-xl" />
                 {copy.hero.download}
               </span>
-              <div className="absolute inset-0 -z-0 bg-gradient-to-r from-gray-600 to-gray-800 opacity-0 transition-opacity group-hover:opacity-100" />
+              <div className="absolute inset-0 -z-0 bg-gradient-to-r from-neutral-600 to-neutral-800 opacity-0 transition-opacity group-hover:opacity-100" />
             </a>
 
             <DocsLink
               lang={lang}
-              className="inline-flex items-center gap-2 rounded-full border border-gray-700 px-8 py-4 font-semibold text-gray-300 transition-all hover:border-green-500 hover:text-green-400"
+              className="inline-flex items-center gap-2 rounded-full border border-neutral-700 px-8 py-4 font-semibold text-neutral-300 transition-all hover:border-neutral-500 hover:text-neutral-100"
             >
               {copy.hero.docs}
               <span className="i-mingcute-arrow-right-line text-xl" />
@@ -214,7 +215,7 @@ export function AnimatedHero({ lang, copy, release }: { lang: string; copy: Home
 
         {/* 滚动提示 */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <div className="flex flex-col items-center gap-2 text-gray-500">
+          <div className="flex flex-col items-center gap-2 text-neutral-500">
             <span className="text-sm">向下滚动探索更多</span>
             <span className="i-mingcute-arrow-down-line text-2xl" />
           </div>

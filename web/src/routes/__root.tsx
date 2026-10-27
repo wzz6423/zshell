@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { useEffect } from "react";
 import {
   Outlet,
   createRootRoute,
@@ -7,6 +6,7 @@ import {
   Scripts,
   useRouterState,
 } from "@tanstack/react-router";
+import { RootProvider } from "fumadocs-ui/provider/base";
 import appCss from "@/styles/app.css?url";
 import { languageFromPath, languageTag, languageDirection } from "@/lib/i18n";
 import { withBase } from "@/lib/utils";
@@ -22,7 +22,7 @@ export const Route = createRootRoute({
         content:
           "Zshell is a fast, keyboard-first terminal workspace for macOS. Projects, sessions, a command palette, and inline git diffs — all in one native window.",
       },
-      { name: "theme-color", content: "#0d1117" },
+      { name: "theme-color", content: "#0a0a0a" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -32,15 +32,11 @@ export const Route = createRootRoute({
     scripts: [
       {
         children: `
-          (function() {
-            const theme = localStorage.getItem('theme') || 'auto';
-            const isDark = theme === 'auto'
-              ? window.matchMedia('(prefers-color-scheme: dark)').matches
-              : theme === 'dark';
-            if (isDark) {
-              document.documentElement.classList.add('dark');
+          try {
+            if (localStorage.getItem('theme') === 'auto') {
+              localStorage.setItem('theme', 'system');
             }
-          })();
+          } catch {}
         `,
       },
     ],
@@ -63,41 +59,15 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const language = languageFromPath(pathname);
 
-  // 自动跟随系统主题（但如果用户有保存的偏好则使用用户偏好）
-  useEffect(() => {
-    const updateTheme = () => {
-      const savedTheme = localStorage.getItem('theme') || 'auto';
-      const isDark = savedTheme === 'auto'
-        ? window.matchMedia('(prefers-color-scheme: dark)').matches
-        : savedTheme === 'dark';
-      document.documentElement.classList.toggle('dark', isDark);
-    };
-
-    // 监听系统主题变化
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.addEventListener('change', updateTheme);
-
-    // 监听 localStorage 变化（跨标签页同步）
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'theme') {
-        updateTheme();
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      mediaQuery.removeEventListener('change', updateTheme);
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
-
   return (
-    <html lang={languageTag(language)} dir={languageDirection(language)}>
+    <html lang={languageTag(language)} dir={languageDirection(language)} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
       <body>
-        {children}
+        <RootProvider dir={languageDirection(language)} theme={{ hotKey: false }} search={{ enabled: false }}>
+          {children}
+        </RootProvider>
         <Scripts />
       </body>
     </html>

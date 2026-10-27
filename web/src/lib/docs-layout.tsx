@@ -3,17 +3,14 @@ import { homePath } from '@/lib/i18n'
 import { uiCopy } from '@/lib/ui-copy'
 import { withBase } from '@/lib/utils'
 
-const GITHUB_URL = 'https://github.com/wzz6423/zshell'
-
 /** Chrome shared by every docs page: the zshell wordmark plus links back to the site. */
 export function docsLayoutOptions(lang: string): BaseLayoutProps {
   const labels = uiCopy(lang)
   const home = homePath(lang)
 
   return {
-    githubUrl: GITHUB_URL,
-    // Enable theme switch for dark/light mode toggle
-    themeSwitch: { enabled: true },
+    i18n: false,
+    themeSwitch: { enabled: false },
     nav: {
       url: home,
       title: (

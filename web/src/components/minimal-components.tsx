@@ -29,25 +29,25 @@ export function MinimalFeature({ number, title, description, icon }: MinimalFeat
   return (
     <div
       ref={ref}
-      className={`group relative overflow-hidden border-t border-gray-200 py-16 transition-all duration-700 dark:border-gray-800 ${
+      className={`group relative overflow-hidden border-t border-border py-16 transition-all duration-700 ${
         isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
       }`}
     >
       {/* 悬停背景效果 */}
-      <div className="absolute inset-0 bg-gradient-to-r from-gray-50/0 via-gray-50/50 to-gray-50/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 dark:from-gray-900/0 dark:via-gray-900/30 dark:to-gray-900/0" />
+      <div className="absolute inset-0 bg-gradient-to-r from-neutral-50/0 via-neutral-50/50 to-neutral-50/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 dark:from-neutral-900/0 dark:via-neutral-900/30 dark:to-neutral-900/0" />
 
       <div className="relative grid gap-8 md:grid-cols-[120px_1fr] md:gap-16">
         {/* 编号 */}
         <div>
-          <div className="text-sm font-medium text-gray-400 dark:text-gray-500">{number}</div>
+          <div className="text-sm font-medium text-neutral-400 dark:text-neutral-500">{number}</div>
         </div>
 
         {/* 内容 */}
         <div>
-          <h3 className="mb-4 text-3xl font-semibold text-black transition-transform duration-300 group-hover:translate-x-2 dark:text-white">
+          <h3 className="mb-4 text-3xl font-semibold text-foreground transition-transform duration-300 group-hover:translate-x-2">
             {title}
           </h3>
-          <p className="max-w-xl text-lg leading-relaxed text-gray-600 dark:text-gray-400">{description}</p>
+          <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">{description}</p>
         </div>
       </div>
     </div>
@@ -62,7 +62,7 @@ export function MinimalSection({
   className?: string
 }) {
   return (
-    <section className={`bg-white py-24 dark:bg-gray-950 ${className}`}>
+    <section className={`bg-background py-24 ${className}`}>
       <div className="mx-auto max-w-6xl px-6">{children}</div>
     </section>
   )
@@ -114,15 +114,15 @@ export function TerminalDemo() {
   }, [isVisible])
 
   return (
-    <div ref={ref} className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-900 to-black shadow-2xl">
+    <div ref={ref} className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-br from-neutral-900 to-black shadow-2xl">
       {/* 窗口标题栏 */}
-      <div className="flex items-center gap-2 border-b border-gray-800 bg-gray-800/50 px-4 py-3 backdrop-blur">
+      <div className="flex items-center gap-2 border-b border-neutral-800 bg-neutral-800/50 px-4 py-3 backdrop-blur">
         <div className="flex gap-2">
-          <div className="h-3 w-3 rounded-full bg-red-500" />
-          <div className="h-3 w-3 rounded-full bg-yellow-500" />
-          <div className="h-3 w-3 rounded-full bg-green-500" />
+          <div className="h-3 w-3 rounded-full bg-neutral-500" />
+          <div className="h-3 w-3 rounded-full bg-neutral-600" />
+          <div className="h-3 w-3 rounded-full bg-neutral-700" />
         </div>
-        <div className="ml-4 text-xs text-gray-400">zshell</div>
+        <div className="ml-4 text-xs text-neutral-400">zshell</div>
       </div>
 
       {/* 终端内容 */}
@@ -134,10 +134,10 @@ export function TerminalDemo() {
               line.type === 'command'
                 ? 'text-white'
                 : line.type === 'modified'
-                  ? 'text-yellow-400'
+                  ? 'text-neutral-300'
                   : line.type === 'success'
-                    ? 'text-green-400'
-                    : 'text-gray-400'
+                    ? 'text-neutral-100'
+                    : 'text-neutral-400'
             }`}
           >
             {line.text}
@@ -149,7 +149,7 @@ export function TerminalDemo() {
       </div>
 
       {/* 光晕效果 */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-gray-500/10 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-neutral-500/10 to-transparent" />
     </div>
   )
 }
@@ -191,13 +191,13 @@ export function FeatureCard({
         isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
       }`}
     >
-      <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-8 shadow-sm transition-all duration-300 hover:shadow-xl">
+      <div className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm transition-all duration-300 hover:shadow-xl">
         {/* 视觉元素 */}
         <div className="mb-6">{visual}</div>
 
         {/* 文本内容 */}
         <h3 className="mb-3 text-2xl font-semibold text-black">{title}</h3>
-        <p className="text-gray-600">{description}</p>
+        <p className="text-neutral-600">{description}</p>
 
         {/* 悬停箭头 */}
         <div className="mt-4 flex items-center gap-2 text-sm font-medium text-black opacity-0 transition-all duration-300 group-hover:translate-x-2 group-hover:opacity-100 dark:text-white">

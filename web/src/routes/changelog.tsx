@@ -150,7 +150,7 @@ function Changelog() {
                 <div
                   className={`rounded-xl border bg-card/60 px-5 py-5 transition-colors sm:px-6 ${
                     isLatest
-                      ? 'border-gray-300 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-900/50'
+                      ? 'border-neutral-300 bg-neutral-50/50 dark:border-neutral-700 dark:bg-neutral-900/50'
                       : 'border-border hover:border-foreground/20'
                   }`}
                 >
@@ -163,7 +163,7 @@ function Changelog() {
                     </a>
                     <div className="flex items-center gap-2 text-[11px] tracking-[0.06em] uppercase">
                       {isLatest && (
-                        <span className="rounded-full border border-gray-300 bg-gray-100 px-2 py-0.5 text-black dark:border-gray-700 dark:bg-gray-800 dark:text-white">
+                        <span className="rounded-full border border-neutral-300 bg-neutral-100 px-2 py-0.5 text-black dark:border-neutral-700 dark:bg-neutral-800 dark:text-white">
                           Latest
                         </span>
                       )}

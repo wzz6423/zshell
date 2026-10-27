@@ -6,7 +6,7 @@ import { RootProvider } from 'fumadocs-ui/provider/tanstack'
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page'
 import { getMDXComponents } from '@/components/docs-mdx'
-import { LanguageSelect } from '@/components/language-select'
+import { DocsSidebarFooter } from '@/components/docs-sidebar-footer'
 import { docsLayoutOptions } from '@/lib/docs-layout'
 import type { DocsPageData } from '@/lib/docs-loader'
 import { DEFAULT_LANGUAGE, i18n, languageDirection, languageNames, languageTag } from '@/lib/i18n'
@@ -57,7 +57,7 @@ export function DocsShell({ lang, slug, data: serialized }: { lang: string; slug
         {...docsLayoutOptions(lang)}
         tree={data.pageTree}
         containerProps={{ className: 'docs-layout' }}
-        slots={{ languageSelect: { root: () => <LanguageSelect lang={lang} slug={slug} />, text: () => null } }}
+        sidebar={{ footer: <DocsSidebarFooter lang={lang} slug={slug} /> }}
       >
         <Suspense>{docsClientLoader.useContent(data.path, { lang, contentLanguage: data.contentLanguage })}</Suspense>
       </DocsLayout>
