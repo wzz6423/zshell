@@ -101,8 +101,8 @@ function Changelog() {
   return (
     <SiteLayout lang="en">
       <section className="flex flex-col gap-5">
-        <div className="flex items-center gap-3 text-[12px] tracking-[0.08em] text-brand uppercase">
-          <span className="size-1.5 rounded-full bg-brand shadow-[0_0_12px_var(--brand)]" />
+        <div className="flex items-center gap-3 text-[12px] tracking-[0.08em] text-black uppercase dark:text-white">
+          <span className="size-1.5 rounded-full bg-black shadow-[0_0_12px_rgba(0,0,0,0.5)] dark:bg-white dark:shadow-[0_0_12px_rgba(255,255,255,0.5)]" />
           Product updates
         </div>
         <div className="flex flex-col gap-3">
@@ -144,26 +144,26 @@ function Changelog() {
                 <span
                   aria-hidden
                   className={`absolute top-[17px] -left-[33px] size-2.5 rounded-full border-2 border-background sm:-left-[45px] ${
-                    isLatest ? 'bg-brand shadow-[0_0_14px_var(--brand)]' : 'bg-border'
+                    isLatest ? 'bg-black shadow-[0_0_14px_rgba(0,0,0,0.5)] dark:bg-white dark:shadow-[0_0_14px_rgba(255,255,255,0.5)]' : 'bg-border'
                   }`}
                 />
                 <div
                   className={`rounded-xl border bg-card/60 px-5 py-5 transition-colors sm:px-6 ${
                     isLatest
-                      ? 'border-brand/45 bg-brand/[0.045]'
+                      ? 'border-gray-300 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-900/50'
                       : 'border-border hover:border-foreground/20'
                   }`}
                 >
                   <header className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
                     <a
                       href={`#v${release.version}`}
-                      className="text-[19px] font-semibold tracking-[-0.02em] text-foreground transition-colors hover:text-brand"
+                      className="text-[19px] font-semibold tracking-[-0.02em] text-foreground transition-colors hover:text-black dark:hover:text-white"
                     >
                       v{release.version}
                     </a>
                     <div className="flex items-center gap-2 text-[11px] tracking-[0.06em] uppercase">
                       {isLatest && (
-                        <span className="rounded-full border border-brand/40 bg-brand/10 px-2 py-0.5 text-brand">
+                        <span className="rounded-full border border-gray-300 bg-gray-100 px-2 py-0.5 text-black dark:border-gray-700 dark:bg-gray-800 dark:text-white">
                           Latest
                         </span>
                       )}
@@ -178,7 +178,7 @@ function Changelog() {
                         key={note}
                         className="grid grid-cols-[12px_1fr] gap-2.5 text-foreground/90"
                       >
-                        <span aria-hidden className="pt-[1px] text-brand">
+                        <span aria-hidden className="pt-[1px] text-black dark:text-white">
                           +
                         </span>
                         <span>{note}</span>
