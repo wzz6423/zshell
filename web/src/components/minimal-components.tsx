@@ -29,25 +29,25 @@ export function MinimalFeature({ number, title, description, icon }: MinimalFeat
   return (
     <div
       ref={ref}
-      className={`group relative overflow-hidden border-t border-gray-200 py-16 transition-all duration-700 ${
+      className={`group relative overflow-hidden border-t border-gray-200 py-16 transition-all duration-700 dark:border-gray-800 ${
         isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
       }`}
     >
       {/* 悬停背景效果 */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-50/0 via-blue-50/50 to-blue-50/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-50/0 via-blue-50/50 to-blue-50/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 dark:from-blue-950/0 dark:via-blue-950/30 dark:to-blue-950/0" />
 
       <div className="relative grid gap-8 md:grid-cols-[120px_1fr] md:gap-16">
         {/* 编号 */}
         <div>
-          <div className="text-sm font-medium text-gray-400">{number}</div>
+          <div className="text-sm font-medium text-gray-400 dark:text-gray-500">{number}</div>
         </div>
 
         {/* 内容 */}
         <div>
-          <h3 className="mb-4 text-3xl font-semibold text-black transition-transform duration-300 group-hover:translate-x-2">
+          <h3 className="mb-4 text-3xl font-semibold text-black transition-transform duration-300 group-hover:translate-x-2 dark:text-white">
             {title}
           </h3>
-          <p className="max-w-xl text-lg leading-relaxed text-gray-600">{description}</p>
+          <p className="max-w-xl text-lg leading-relaxed text-gray-600 dark:text-gray-400">{description}</p>
         </div>
       </div>
     </div>
@@ -62,7 +62,7 @@ export function MinimalSection({
   className?: string
 }) {
   return (
-    <section className={`bg-white py-24 ${className}`}>
+    <section className={`bg-white py-24 dark:bg-gray-950 ${className}`}>
       <div className="mx-auto max-w-6xl px-6">{children}</div>
     </section>
   )

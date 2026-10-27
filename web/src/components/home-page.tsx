@@ -145,10 +145,10 @@ function MinimalFeatures() {
 
 function DownloadSection({ copy, release }: { copy: HomeCopy; release: Release }) {
   return (
-    <MinimalSection className="border-t border-gray-200">
+    <MinimalSection className="border-t border-gray-200 dark:border-gray-800">
       <div className="text-center">
-        <h2 className="mb-6 text-4xl font-light text-black">立即开始</h2>
-        <p className="mb-8 text-lg text-gray-600">
+        <h2 className="mb-6 text-4xl font-light text-black dark:text-white">立即开始</h2>
+        <p className="mb-8 text-lg text-gray-600 dark:text-gray-400">
           v{release.version} · macOS {release.minSystem}+
         </p>
 
@@ -156,13 +156,13 @@ function DownloadSection({ copy, release }: { copy: HomeCopy; release: Release }
           <a
             href={release.dmg}
             download
-            className="inline-flex items-center gap-2 rounded-full bg-black px-8 py-3 text-base font-medium text-white transition-all hover:bg-gray-800"
+            className="inline-flex items-center gap-2 rounded-full bg-black px-8 py-3 text-base font-medium text-white transition-all hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
           >
             下载 macOS 版本
           </a>
 
-          <div className="mt-4 max-w-xl rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <code className="text-sm text-gray-600">{BREW_COMMAND}</code>
+          <div className="mt-4 max-w-xl rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+            <code className="text-sm text-gray-600 dark:text-gray-300">{BREW_COMMAND}</code>
           </div>
         </div>
       </div>
@@ -176,9 +176,9 @@ function DownloadSection({ copy, release }: { copy: HomeCopy; release: Release }
 
 function MinimalFooter({ lang }: { lang: string }) {
   return (
-    <footer className="border-t border-gray-200 bg-white">
+    <footer className="border-t border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
       <div className="mx-auto max-w-6xl px-6 py-12">
-        <div className="flex flex-col items-center justify-between gap-4 text-sm text-gray-600 sm:flex-row">
+        <div className="flex flex-col items-center justify-between gap-4 text-sm text-gray-600 sm:flex-row dark:text-gray-400">
           <div className="flex items-center gap-2">
             <img
               src={withBase('/zshell-icon.png')}
@@ -191,13 +191,13 @@ function MinimalFooter({ lang }: { lang: string }) {
           </div>
 
           <div className="flex items-center gap-6">
-            <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="hover:text-black">
+            <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="hover:text-black dark:hover:text-white">
               GitHub
             </a>
-            <DocsLink lang={lang} className="hover:text-black">
+            <DocsLink lang={lang} className="hover:text-black dark:hover:text-white">
               文档
             </DocsLink>
-            <Link to="/changelog" className="hover:text-black">
+            <Link to="/changelog" className="hover:text-black dark:hover:text-white">
               更新日志
             </Link>
           </div>
