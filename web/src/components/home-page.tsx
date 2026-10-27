@@ -82,33 +82,51 @@ function MinimalFeatures() {
   const features = [
     {
       number: '01',
-      title: '项目管理',
-      description: '快速切换多个项目，保持工作环境独立且有序。本地和远程项目统一管理。',
+      title: '项目与会话管理',
+      description: '原生 AppKit 界面管理项目、标签页和分屏窗格。快速切换项目，每个项目保持独立的终端会话和工作环境。',
       icon: 'i-mingcute-folder-open-fill',
     },
     {
       number: '02',
-      title: '分屏布局',
-      description: '灵活的窗格系统，并排查看多个终端会话。支持水平、垂直和网格布局。',
+      title: '灵活的分屏布局',
+      description: '原生分屏系统，支持标签页和多窗格布局。在同一窗口并排查看多个终端会话、文件或浏览器。',
       icon: 'i-mingcute-layout-grid-fill',
     },
     {
       number: '03',
-      title: 'Git 集成',
-      description: '可视化管理代码变更、分支和提交历史。内置差异查看器和合并工具。',
+      title: 'Git 集成与文件管理',
+      description: '内置文件树、Git 状态查看和可编辑的差异对比。快速检查代码变更、暂存文件和提交历史。',
       icon: 'i-mingcute-git-branch-fill',
     },
     {
       number: '04',
-      title: '文件浏览',
-      description: '内置文件树，快速导航项目文件结构。支持文件搜索和快速预览。',
-      icon: 'i-mingcute-file-search-fill',
+      title: '命令面板与文件搜索',
+      description: '项目范围的文件搜索、命令面板和本地路径链接。快速导航到任何文件或执行命令。',
+      icon: 'i-mingcute-search-line',
     },
     {
       number: '05',
-      title: '原生体验',
-      description: '原生 macOS 应用，流畅运行，完美集成系统。低资源占用，高效响应。',
-      icon: 'i-mingcute-flash-fill',
+      title: '集成浏览器面板',
+      description: '内置浏览器标签页和窗格，方便查看文档、调试 Web 应用或预览开发结果。',
+      icon: 'i-mingcute-compass-line',
+    },
+    {
+      number: '06',
+      title: 'AI Agent 集成',
+      description: 'AI 智能体可以委托后台工作、跨 Zshell 窗格协调，提供状态报告和人工审批控制。',
+      icon: 'i-mingcute-magic-2-line',
+    },
+    {
+      number: '07',
+      title: '多终端后端支持',
+      description: '默认使用 libghostty，可选 Alacritty 后端。灵活选择最适合你的终端引擎。',
+      icon: 'i-mingcute-terminal-box-line',
+    },
+    {
+      number: '08',
+      title: '原生 macOS 体验',
+      description: '原生 AppKit 应用，完美集成 macOS 系统。流畅运行，低资源占用，支持 macOS 15.6+。',
+      icon: 'i-mingcute-apple-fill',
     },
   ]
 
