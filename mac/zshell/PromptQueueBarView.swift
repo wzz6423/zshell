@@ -76,16 +76,17 @@ final class PromptQueueBarView: NSView {
         self.session = session
         queue.$isPresented
             .removeDuplicates()
+            .dropFirst()
             .sink { [weak self] presented in
                 // A genuine open/close transition; a remounting pane must not
                 // yank keyboard focus into the bar.
-                self?.applyPresentation(presented, focusFieldOnOpen: true)
+                self?.applyPresentation(presented, updateFocus: true)
             }
             .store(in: &cancellables)
         queue.$commands
             .sink { [weak self] commands in self?.rebuildItems(commands) }
             .store(in: &cancellables)
-        applyPresentation(queue.isPresented, focusFieldOnOpen: false)
+        applyPresentation(queue.isPresented, updateFocus: false)
         rebuildItems(queue.commands)
     }
 
@@ -240,20 +241,19 @@ final class PromptQueueBarView: NSView {
     // MARK: - State
 
     private func applyPresentation(
-        _ presented: Bool, focusFieldOnOpen: Bool
+        _ presented: Bool, updateFocus: Bool
     ) {
         heightConstraint.constant = fittedHeight(
             presented: presented, count: queue?.commands.count ?? 0
         )
         isHidden = !presented
         onLayoutChange?()
-        if presented, focusFieldOnOpen {
-            focusFieldOnNextTick = true
-        }
+        focusFieldOnNextTick = presented && updateFocus
+        guard updateFocus else { return }
         DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
+            guard let self, self.queue?.isPresented == presented else { return }
             if presented {
-                guard focusFieldOnOpen, self.focusFieldOnNextTick else { return }
+                guard self.focusFieldOnNextTick else { return }
                 self.focusFieldOnNextTick = false
                 self.window?.makeFirstResponder(self.inputField)
             } else {
