@@ -53,7 +53,7 @@ export function AnimatedFeatureCard({ title, description, icon, delay = 0, gradi
 
       {/* 内容 */}
       <div className="relative z-10">
-        <div className="mb-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-br from-green-500/10 to-blue-500/10 p-3">
+        <div className="mb-4 inline-flex items-center justify-center rounded-xl bg-gradient-to-br from-gray-500/10 to-gray-500/10 p-3">
           <span className={cn('text-4xl', icon)} />
         </div>
 
@@ -63,7 +63,7 @@ export function AnimatedFeatureCard({ title, description, icon, delay = 0, gradi
 
       {/* 光晕效果 */}
       <div className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100">
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-green-500/20 to-blue-500/20 blur-xl" />
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-gray-500/20 to-gray-500/20 blur-xl" />
       </div>
     </div>
   )

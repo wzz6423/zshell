@@ -163,7 +163,7 @@ export function AnimatedHero({ lang, copy, release }: { lang: string; copy: Home
           }}
         />
         <div
-          className="absolute -right-1/4 -bottom-1/4 h-1/2 w-1/2 rounded-full bg-blue-500/20 blur-[120px]"
+          className="absolute -right-1/4 -bottom-1/4 h-1/2 w-1/2 rounded-full bg-gray-500/20 blur-[120px]"
           style={{
             transform: `translate(${-mousePos.x * 30}px, ${-mousePos.y * 30}px)`,
           }}
@@ -199,7 +199,7 @@ export function AnimatedHero({ lang, copy, release }: { lang: string; copy: Home
                 <span className="i-mingcute-apple-fill text-xl" />
                 {copy.hero.download}
               </span>
-              <div className="absolute inset-0 -z-0 bg-gradient-to-r from-green-600 to-blue-600 opacity-0 transition-opacity group-hover:opacity-100" />
+              <div className="absolute inset-0 -z-0 bg-gradient-to-r from-gray-600 to-gray-800 opacity-0 transition-opacity group-hover:opacity-100" />
             </a>
 
             <DocsLink
