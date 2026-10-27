@@ -417,3 +417,49 @@ html.reveal-ready .reveal:not(.is-visible) {
 @media (min-width: 1024px) {
   [dir='rtl'] .home-page > main { padding-left: 0; padding-right: 20px; }
 }
+
+/* ------------------------------------------------------------------ */
+/* Custom animations for the modern homepage                           */
+/* ------------------------------------------------------------------ */
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0, 255, 100, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(0, 255, 100, 0.6);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 1s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
