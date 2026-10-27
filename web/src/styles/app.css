@@ -380,8 +380,8 @@ html.reveal-ready .reveal:not(.is-visible) {
 .docs-body :is(pre, code) { font-size: 13px; }
 .docs-body a:not(.not-prose) { text-underline-offset: 3px; }
 .docs-layout #nd-toc { padding-top: 28px; }
-.docs-layout #nd-toc a[data-active='true'] { font-size: 15px; font-weight: 650; color: var(--brand); }
-.docs-layout #nd-sidebar [data-active='true'] { color: var(--brand); }
+.docs-layout #nd-toc a[data-active='true'] { font-size: 15px; font-weight: 650; color: var(--foreground); }
+.docs-layout #nd-sidebar [data-active='true'] { color: var(--foreground); }
 @media (max-width: 767px) {
   .docs-page { padding: 20px 16px; }
 }
@@ -410,6 +410,40 @@ html.reveal-ready .reveal:not(.is-visible) {
 .language-select:hover { border-color: var(--brand); }
 .language-select:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
 .docs-layout .language-select { max-width: 100%; width: 100%; margin-bottom: 8px; }
+
+/* 文档侧边栏底部按钮布局：语言选择、主题切换、GitHub 在同一行 */
+.docs-layout [data-sidebar-footer] {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 12px !important;
+}
+
+.docs-layout [data-sidebar-footer] .language-select {
+  flex: 1 !important;
+  max-width: none !important;
+  width: auto !important;
+  margin-bottom: 0 !important;
+  min-width: 0 !important;
+}
+
+.docs-layout [data-sidebar-footer] > div {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+/* 确保主题切换和 GitHub 按钮大小一致 */
+.docs-layout [data-sidebar-footer] button,
+.docs-layout [data-sidebar-footer] a[href*="github"] {
+  height: 44px !important;
+  min-width: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
 .docs-fallback { padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius); color: var(--muted-foreground); font-size: 14px; }
 .docs-body :is(pre, code), .keycap { direction: ltr; unicode-bidi: isolate; text-align: left; }
 .hero-title { overflow-wrap: anywhere; }
