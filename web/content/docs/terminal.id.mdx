@@ -139,13 +139,19 @@ Zshell menyertakan JetBrains Mono dan simbol Nerd Font. Keluarga monospace terpa
 
 ## Terminal Cepat global [#global-quick-terminal]
 
-Saat Zshell berjalan, tekan <kbd>Cmd</kbd>+<kbd>I</kbd> untuk membuka terminal mandiri di atas aplikasi lain; tekan lagi untuk menutup. Terminal ini memakai shell sementara di luar tab proyek. Atur ukuran, opasitas, dan pintasannya di **Pengaturan → Terminal → Terminal Cepat**.
+Saat Zshell berjalan, <kbd>Cmd</kbd>+<kbd>I</kbd> atau **Terminal → Terminal Cepat** menampilkan atau menyembunyikan terminal mandiri. Atur ukuran, opasitas, dan pintasan di **Pengaturan → Terminal → Terminal Cepat**.
 
-- Sematkan jendela agar tetap terbuka saat berpindah aplikasi.
-- Jendela yang tidak disematkan menutup saat kehilangan fokus atau ketika Anda mengeklik di luarnya.
-- Jika **Blokir Perintah Zshell** mati, <kbd>Esc</kbd> atau pintasan global menutup jendela sekaligus mengakhiri shell dan tugasnya. Membukanya lagi memulai sesi baru.
+**Perilaku sesi: Gunakan kembali ruang kerja (bawaan) / Ruang kerja baru setiap kali.** Penggunaan ulang mempertahankan panel dan tugas. Ruang baru berakhir saat disembunyikan. Mode berubah pada tampilan berikutnya; ruang yang digunakan ulang tetap tersedia saat beralih kembali. Riwayat mengikuti konfigurasi shell. Ruang baru selalu dimulai dengan satu terminal kosong tanpa memulihkan keluaran, tata letak panel, atau keadaan sesi sebelumnya.
 
-Gunakan terminal proyek untuk layanan yang berjalan lama. [Peluncuran Cepat](/id/docs/quick-launch), yang menyimpan dan menjalankan perintah, adalah fitur terpisah.
+Pisahkan dengan **Bagi ke Kanan** / **Bagi ke Bawah**, menu konteks, atau <kbd>Cmd</kbd>+<kbd>D</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>. Penyimpanan berikut berlaku untuk ruang yang digunakan ulang, termasuk rasio dan fokus.
+
+- Pintasan, <kbd>Esc</kbd>, klik di luar atau kehilangan fokus hanya menyembunyikan jendela. Shell, masukan, riwayat, dan tugas yang sama tetap berjalan.
+- Sematkan jendela agar tetap terlihat saat berpindah aplikasi. Ukuran, opasitas, dan status sematan tetap disimpan saat disembunyikan.
+- Jalankan `exit` untuk mengakhiri sesi; membukanya lagi memulai shell baru.
+
+Aktifkan `terminal.preserve-sessions` sebelum membuka Terminal Cepat baru agar tetap berjalan setelah keluar normal dari Zshell. Kedua backend menyambung kembali ke shell yang sama saat dibuka lagi. **Zshell → Keluar dan akhiri semua sesi** juga mengakhiri sesi tersembunyi. Memulai ulang macOS mengakhiri sesi.
+
+[Peluncuran Cepat](/id/docs/quick-launch), yang menyimpan dan menjalankan perintah, adalah fitur terpisah.
 
 ## Petunjuk perintah Vim [#vim-command-hints]
 

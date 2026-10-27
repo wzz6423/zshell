@@ -1677,6 +1677,7 @@ final class TerminalManager: nonisolated ObservableObject {
         isQuitting = true
         saveAll(captureTerminalHistory: true)
         let preserve = AppSettings.shared.preserveTerminalSessions && !endAll
+        GlobalTerminalOverlay.shared.prepareForApplicationQuit(preserve: preserve, endAll: endAll)
         for manager in registry {
             for project in manager.projects {
                 for session in project.sessions { session.prepareForApplicationQuit(preserve: preserve) }

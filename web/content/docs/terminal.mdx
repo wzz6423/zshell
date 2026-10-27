@@ -215,14 +215,19 @@ before the symbol and system fallbacks. See
 
 ## Global Quick Terminal
 
-While Zshell is running, press <kbd>Cmd</kbd>+<kbd>I</kbd> to open an independent terminal over another app; press it again to close it.
-It owns a temporary shell outside project tabs. Adjust its size, opacity, and shortcut in **Settings → Terminal → Quick Terminal**.
+While Zshell is running, press <kbd>Cmd</kbd>+<kbd>I</kbd> or choose **Terminal → Quick Terminal** to show or hide its independent shell. Adjust size, opacity, and the global shortcut in **Settings → Terminal → Quick Terminal**.
 
-- Pin the window to keep it open when switching apps.
-- An unpinned window closes when it loses focus or you click outside it.
-- With **Block Zshell Commands** off, <kbd>Esc</kbd> or the global shortcut closes the window and terminates its shell and running tasks. Opening it again starts a fresh session.
+**Session behavior: Reuse workspace (default) / New workspace each time.** Reuse keeps panes and tasks. New workspaces end when hidden. Mode changes apply on next show; the reusable workspace stays available when switching back. Shell history follows your shell configuration. A new workspace always starts with one empty terminal, without the previous output, pane layout or session state.
 
-Use a project terminal for long-running services. [Quick Launch](/en/docs/quick-launch), which saves and runs commands, is a separate feature.
+Split with the toolbar buttons **Split Right** / **Split Down**, the terminal context menu, or <kbd>Cmd</kbd>+<kbd>D</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>. The preservation behavior below applies to reusable workspaces, including pane ratios and focus.
+
+- Hiding with the shortcut, <kbd>Esc</kbd>, a click outside, or loss of focus keeps the same shell, input, scrollback, and running tasks. Open it again to continue.
+- Pinning keeps the window visible when switching apps. Size, opacity, and pin state remain when hidden.
+- Run `exit` in the shell to end the session; opening Quick Terminal again starts a fresh shell.
+
+Enable [`terminal.preserve-sessions`](/en/docs/configuration#terminalpreserve-sessions) before opening a new quick terminal to keep it running after a normal Zshell quit. On relaunch, opening Quick Terminal reconnects to that live shell with either backend. **Zshell → Quit and End All Sessions** ends it even when hidden. macOS restarts end all sessions.
+
+[Quick Launch](/en/docs/quick-launch), which saves and runs commands, is a separate feature.
 
 ## Vim command hints
 

@@ -7,13 +7,15 @@ import AppKit
 final class AppMenuLocalization: NSObject {
     static let shared = AppMenuLocalization()
     private var refreshScheduled = false
+    private weak var applicationDelegate: ZshellApplicationDelegate?
 
-    func start() {
+    func start(applicationDelegate: ZshellApplicationDelegate) {
+        self.applicationDelegate = applicationDelegate
         for name in [AppLocalization.didChange, NSMenu.didBeginTrackingNotification] {
             NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: name, object: nil)
         }
-        for name in [NSMenu.didAddItemNotification, NSMenu.didChangeItemNotification] {
-            NotificationCenter.default.addObserver(self, selector: #selector(scheduleRefresh), name: name, object: NSApp.mainMenu)
+        for name in [NSMenu.didAddItemNotification, NSMenu.didChangeItemNotification, NSMenu.didRemoveItemNotification] {
+            NotificationCenter.default.addObserver(self, selector: #selector(scheduleRefresh), name: name, object: nil)
         }
         refresh()
     }
@@ -28,6 +30,8 @@ final class AppMenuLocalization: NSObject {
     }
 
     @objc private func refresh() {
+        // SwiftUI can replace the menu tree after workspace changes.
+        applicationDelegate?.restoreTerminalMenus()
         guard let menu = NSApp.mainMenu else { return }
         let titles: [(String.LocalizationValue, String)] = [
             ("File", String(localized: "File")),
@@ -80,6 +84,8 @@ final class AppMenuLocalization: NSObject {
                         ? String(localized: "Exit Full Screen") : String(localized: "Enter Full Screen")
                 case "editProjectTerminalEnvironment": title = String(localized: "Project Terminal Environment…")
                 case "editTabTerminalEnvironment": title = String(localized: "Tab Terminal Environment…")
+                case "toggleQuickTerminal": title = String(localized: "Quick Terminal")
+                case "quitAndEndAllSessions": title = String(localized: "Quit and End All Sessions")
                 default: title = nil
                 }
                 if let title, item.title != title { item.title = title }

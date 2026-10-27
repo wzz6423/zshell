@@ -46,6 +46,10 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     )
 
     private let shortcutRecorder = QuickTerminalShortcutRecorder(frame: .zero)
+    private let quickTerminalModePopup = SettingsPopUpButton<QuickTerminalMode>(
+        items: QuickTerminalMode.allCases.map { .value($0.title, $0) },
+        onChange: { AppSettings.shared.quickTerminalMode = $0 }
+    )
 
     /// Popup entries for `terminal.notify-finish-seconds`: off, then the
     /// offered minimum runtimes. One interpolated format covers every step,
@@ -186,6 +190,11 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         ]))
 
         groups.append(SettingsGroup(header: String(localized: "Quick Terminal"), rows: [
+            SettingsRow(
+                title: String(localized: "Session behavior"),
+                description: QuickTerminalMode.explanation,
+                control: quickTerminalModePopup
+            ),
             SettingsRow(title: String(localized: "Shortcut"), control: shortcutRecorder),
             quickTerminalSizeRow,
             quickTerminalOpacityRow,
@@ -216,6 +225,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         notifyFinishPopup.select(settings.notifyFinishSeconds)
         notifyOnErrorSwitch.isOn = settings.notifyOnError
         shortcutRecorder.setShortcut(settings.quickTerminalShortcut)
+        quickTerminalModePopup.select(settings.quickTerminalMode)
         quickTerminalSizeRow.setValue(settings.quickTerminalSize)
         quickTerminalOpacityRow.setValue(settings.quickTerminalOpacity)
     }

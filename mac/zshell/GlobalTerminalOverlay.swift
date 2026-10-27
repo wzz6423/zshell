@@ -5,6 +5,7 @@
 
 import AppKit
 import Carbon.HIToolbox
+import Combine
 
 struct QuickTerminalShortcut: Equatable {
     static let defaultValue = QuickTerminalShortcut(
@@ -95,8 +96,7 @@ struct QuickTerminalShortcut: Equatable {
     ]
 }
 
-/// The independent quick terminal. An unpinned overlay owns a temporary shell
-/// only while it is focused; pinning changes that lifetime explicitly.
+/// The independent quick terminal keeps its session while its window is hidden.
 @MainActor
 final class GlobalTerminalOverlay: NSObject {
     static let shared = GlobalTerminalOverlay()
@@ -132,16 +132,23 @@ final class GlobalTerminalOverlay: NSObject {
 
     private var hotkey: EventHotKeyRef?
     private var hotkeyHandlerRef: EventHandlerRef?
-    private var terminalSession: TerminalSession?
+    private(set) var workspace: PaneTab?
+    private var reusableWorkspace: PaneTab?
+    private var reusableWindow: GlobalTerminalOverlayWindow?
+    private var workspaceMode = QuickTerminalMode.reuse
+    private var workspaceObservation: AnyCancellable?
     private var terminalWindow: GlobalTerminalOverlayWindow?
     private var backdropWindow: GlobalTerminalBackdropWindow?
     private var previousApplication: NSRunningApplication?
     private var isPinned = false
     private var isRecordingHotkey = false
     private var hotkeyRefreshScheduled = false
+    private var pendingSnapshot: QuickTerminalWorkspaceSnapshot.Snapshot?
+    private var isQuitting = false
 
     func start() {
         guard hotkeyHandlerRef == nil else { return }
+        pendingSnapshot = SessionStore.loadQuickTerminalWorkspace()
 
         var eventType = EventTypeSpec(
             eventClass: OSType(kEventClassKeyboard),
@@ -172,10 +179,38 @@ final class GlobalTerminalOverlay: NSObject {
         hotkeyHandlerRef = nil
         backdropWindow?.close()
         terminalWindow?.close()
-        terminalSession?.terminate()
+        reusableWindow?.close()
+        if !isQuitting {
+            for session in allSessions { session.terminate() }
+        }
+        workspaceObservation = nil
         backdropWindow = nil
         terminalWindow = nil
-        terminalSession = nil
+        reusableWindow = nil
+        workspace = nil
+        reusableWorkspace = nil
+    }
+
+    private var allSessions: [TerminalSession] {
+        var seen = Set<UUID>()
+        return ((workspace?.sessions ?? []) + (reusableWorkspace?.sessions ?? [])).filter { seen.insert($0.id).inserted }
+    }
+
+    func prepareForApplicationQuit(preserve: Bool, endAll: Bool = false) {
+        guard !isQuitting else { return }
+        isQuitting = true
+        dismiss(restorePreviousApplication: false)
+        if endAll {
+            SessionStore.saveQuickTerminalWorkspace(nil)
+        } else if let reusableWorkspace {
+            SessionStore.saveQuickTerminalWorkspace(QuickTerminalWorkspaceSnapshot.capture(reusableWorkspace))
+        } else {
+            SessionStore.saveQuickTerminalWorkspace(pendingSnapshot)
+        }
+        for session in allSessions {
+            let reusable = reusableWorkspace?.sessions.contains(where: { $0 === session }) == true
+            session.prepareForApplicationQuit(preserve: preserve && reusable)
+        }
     }
 
     func beginHotkeyRecording() {
@@ -262,7 +297,7 @@ final class GlobalTerminalOverlay: NSObject {
         hotkey = nil
     }
 
-    private func toggle() {
+    func toggle() {
         if terminalWindow?.isVisible == true {
             dismiss()
         } else {
@@ -271,25 +306,53 @@ final class GlobalTerminalOverlay: NSObject {
     }
 
     private func show() {
-        guard let screen = screenAtPointer() else { return }
-        if terminalSession == nil {
-            terminalSession = TerminalSession(allowsPersistence: false)
+        guard !isQuitting, let screen = screenAtPointer() else { return }
+        let mode = AppSettings.shared.quickTerminalMode
+        if mode != workspaceMode {
+            workspace = nil
+            terminalWindow = nil
         }
-        guard let terminalSession else { return }
-
+        workspaceMode = mode
+        if workspace == nil {
+            if mode == .reuse {
+                if reusableWorkspace == nil {
+                    let tab = pendingSnapshot.map(QuickTerminalWorkspaceSnapshot.restore)
+                        ?? PaneTab(content: .session(TerminalSession()))
+                    pendingSnapshot = nil
+                    reusableWorkspace = tab
+                    workspaceObservation = Publishers.CombineLatest(tab.$layout, tab.$focusedPaneID)
+                        .receive(on: DispatchQueue.main).sink { [weak self, weak tab] _ in
+                            guard let self, let tab, !self.isQuitting, self.reusableWorkspace === tab else { return }
+                            SessionStore.saveQuickTerminalWorkspace(QuickTerminalWorkspaceSnapshot.capture(tab))
+                        }
+                    configureSessions(in: tab)
+                }
+                workspace = reusableWorkspace
+                terminalWindow = reusableWindow
+            } else {
+                let tab = PaneTab(content: .session(TerminalSession(allowsPersistence: false)))
+                workspace = tab
+                configureSessions(in: tab)
+            }
+        }
+        guard let workspace else { return }
+        let focusedPaneID = workspace.focusedPaneID
+        repairExitedSessions(in: workspace)
         if terminalWindow == nil {
             let window = GlobalTerminalOverlayWindow(
-                session: terminalSession,
+                tab: workspace,
                 defaultSize: AppSettings.shared.quickTerminalSize,
                 defaultOpacity: AppSettings.shared.quickTerminalOpacity,
-                onPinChanged: { [weak self] pinned in
-                    self?.setPinned(pinned)
-                }
+                onPinChanged: { [weak self] pinned in self?.setPinned(pinned) },
+                split: { [weak self] edge in self?.split(toward: edge) },
+                close: { [weak self] in self?.closeFocusedPane() }
             )
             window.delegate = self
             terminalWindow = window
+            if mode == .reuse { reusableWindow = window }
         }
         guard let terminalWindow else { return }
+        isPinned = terminalWindow.isPinned
 
         let frontmostApplication = NSWorkspace.shared.frontmostApplication
         previousApplication = frontmostApplication?.processIdentifier
@@ -298,11 +361,14 @@ final class GlobalTerminalOverlay: NSObject {
             : frontmostApplication
 
         terminalWindow.prepareForPresentation(on: screen)
-        terminalSession.applyTheme(
-            backgroundOpacity: terminalWindow.backgroundOpacity
-        )
+        for session in workspace.sessions { session.applyTheme(backgroundOpacity: terminalWindow.backgroundOpacity) }
         terminalWindow.orderFrontRegardless()
         terminalWindow.makeKey()
+        // AppKit can select an initial responder while presenting the panel.
+        // Restore the workspace's chosen pane before queuing terminal focus.
+        if workspace.layout.contains(focusedPaneID), workspace.focusedPaneID != focusedPaneID {
+            workspace.focusedPaneID = focusedPaneID
+        }
         terminalWindow.revealTerminal()
         updateBackdrop(on: screen)
     }
@@ -311,17 +377,19 @@ final class GlobalTerminalOverlay: NSObject {
         guard let terminalWindow, terminalWindow.isVisible else { return }
 
         backdropWindow?.orderOut(nil)
-        terminalSession?.surface.setSurfaceVisible(false)
+        terminalWindow.hideSettings()
+        for session in workspace?.sessions ?? [] { session.surface.setSurfaceVisible(false) }
         terminalWindow.orderOut(nil)
 
         let application = previousApplication
         previousApplication = nil
-        terminalSession?.terminate()
-        terminalSession = nil
-        terminalWindow.close()
-        self.terminalWindow = nil
-        isPinned = false
-
+        if workspaceMode == .fresh {
+            for session in workspace?.sessions ?? [] { session.terminate() }
+            terminalWindow.close()
+            self.terminalWindow = nil
+            workspace = nil
+            isPinned = false
+        }
         guard restorePreviousApplication,
               NSApp.isActive,
               let application,
@@ -329,6 +397,77 @@ final class GlobalTerminalOverlay: NSObject {
         else { return }
         DispatchQueue.main.async {
             application.activate(options: [])
+        }
+    }
+
+    func split(toward edge: PaneDropEdge) {
+        guard let workspace, terminalWindow?.isVisible == true else { return }
+        let directory: String?
+        if case .session(let session)? = workspace.focusedContent { directory = session.currentDirectoryPath }
+        else { directory = nil }
+        let session = TerminalSession(initialDirectory: directory, allowsPersistence: workspaceMode == .reuse)
+        workspace.split(Pane(content: .session(session)), toward: edge)
+        configureSessions(in: workspace)
+    }
+
+    func closeFocusedPane() {
+        guard let workspace, let pane = workspace.focusedPane,
+              case .session(let session) = pane.content else { return }
+        session.terminate()
+        removeSession(session, from: workspace)
+    }
+
+    private func configureSessions(in tab: PaneTab) {
+        for session in tab.sessions {
+            session.onExited = { [weak self, weak tab] exited in
+                guard let self, let tab else { return }
+                self.removeSession(exited, from: tab)
+            }
+        }
+    }
+
+    private func removeSession(_ session: TerminalSession, from tab: PaneTab) {
+        guard let pane = tab.allPanes.first(where: {
+            if case .session(let current) = $0.content { return current === session }
+            return false
+        }) else { return }
+        if tab.removePane(pane.id) { return }
+        if workspace === tab {
+            dismiss()
+            terminalWindow?.close()
+            terminalWindow = nil
+            workspace = nil
+            isPinned = false
+        }
+        if reusableWorkspace === tab {
+            reusableWindow?.close()
+            reusableWindow = nil
+            reusableWorkspace = nil
+            workspaceObservation = nil
+            SessionStore.saveQuickTerminalWorkspace(nil)
+        }
+    }
+
+    private func repairExitedSessions(in tab: PaneTab) {
+        func repair(_ node: PaneNode) -> PaneNode {
+            switch node {
+            case .pane(var pane):
+                if case .session(let session) = pane.content, session.hasExited {
+                    pane.content = .session(TerminalSession(initialDirectory: session.currentDirectoryPath,
+                                                           restoredSessionID: session.persistentSessionID,
+                                                           isRestoredSession: true,
+                                                           allowsPersistence: workspaceMode == .reuse))
+                }
+                return .pane(pane)
+            case .split(var split):
+                split.first = repair(split.first)
+                split.second = repair(split.second)
+                return .split(split)
+            }
+        }
+        if tab.sessions.contains(where: \.hasExited) {
+            tab.layout = repair(tab.layout)
+            configureSessions(in: tab)
         }
     }
 
@@ -373,10 +512,12 @@ final class GlobalTerminalOverlay: NSObject {
 
 extension GlobalTerminalOverlay: NSWindowDelegate {
     func windowDidResignKey(_ notification: Notification) {
-        guard !isPinned else { return }
+        guard !isPinned, let resignedWindow = notification.object as? NSWindow,
+              resignedWindow === terminalWindow else { return }
         DispatchQueue.main.async { [weak self] in
             guard let self,
                   let window = self.terminalWindow,
+                  window === resignedWindow,
                   window.isVisible,
                   !window.isKeyWindow,
                   !window.isShowingSettings
@@ -407,10 +548,12 @@ private final class GlobalTerminalOverlayWindow: NSPanel {
     private var hasConfiguredFrame = false
 
     init(
-        session: TerminalSession,
+        tab: PaneTab,
         defaultSize: Double,
         defaultOpacity: Double,
-        onPinChanged: @escaping (Bool) -> Void
+        onPinChanged: @escaping (Bool) -> Void,
+        split: @escaping (PaneDropEdge) -> Void,
+        close: @escaping () -> Void
     ) {
         self.defaultSize = CGFloat(defaultSize)
         areaFraction = CGFloat(defaultSize)
@@ -439,9 +582,11 @@ private final class GlobalTerminalOverlayWindow: NSPanel {
         minSize = NSSize(width: 420, height: 260)
 
         content = GlobalTerminalContentView(
-            session: session,
+            tab: tab,
             opacity: CGFloat(defaultOpacity),
             isPinned: false,
+            split: split,
+            close: close,
             togglePinned: { [weak self] in
                 guard let self else { return }
                 self.setPinned(!self.isPinned)
@@ -461,7 +606,13 @@ private final class GlobalTerminalOverlayWindow: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if content.handleKeyEquivalent(event) { return true }
+        return super.performKeyEquivalent(with: event)
+    }
+
     override func sendEvent(_ event: NSEvent) {
+        if event.type == .keyDown, content.handleKeyEquivalent(event) { return }
         if event.type == .keyDown, event.keyCode == UInt16(kVK_Escape),
            !TerminalCommandRouting.isBlockingCommands(in: self) {
             GlobalTerminalOverlay.shared.dismissFromWindow()
@@ -510,6 +661,10 @@ private final class GlobalTerminalOverlayWindow: NSPanel {
 
     var isShowingSettings: Bool {
         settingsPopover?.isShown == true
+    }
+
+    func hideSettings() {
+        settingsPopover?.close()
     }
 
     private func showSettings(from button: NSButton) {
@@ -623,7 +778,7 @@ private final class GlobalTerminalOverlayWindow: NSPanel {
 
 @MainActor
 private final class GlobalTerminalContentView: NSView {
-    private let terminal: any TerminalBackendSurface
+    private let terminal: QuickTerminalWorkspaceView
     private let materialBackground: NSVisualEffectView
     private let titlebar: GlobalTerminalTitlebarView
     private let resizeHandle: GlobalTerminalResizeHandle
@@ -631,20 +786,24 @@ private final class GlobalTerminalContentView: NSView {
     private(set) var backgroundOpacity: CGFloat
 
     init(
-        session: TerminalSession,
+        tab: PaneTab,
         opacity: CGFloat,
         isPinned: Bool,
+        split: @escaping (PaneDropEdge) -> Void,
+        close: @escaping () -> Void,
         togglePinned: @escaping () -> Void,
         showSettings: @escaping (NSButton) -> Void,
         beginResize: @escaping (NSEvent) -> Void,
         resize: @escaping (NSEvent) -> Void,
         endResize: @escaping () -> Void
     ) {
-        terminal = session.surface
+        terminal = QuickTerminalWorkspaceView(tab: tab, split: split, close: close)
         materialBackground = NSVisualEffectView()
         backgroundOpacity = opacity
         titlebar = GlobalTerminalTitlebarView(
             isPinned: isPinned,
+            split: split,
+            close: close,
             togglePinned: togglePinned,
             showSettings: showSettings
         )
@@ -728,6 +887,8 @@ private final class GlobalTerminalContentView: NSView {
         terminal.setBackgroundOpacity(backgroundOpacity)
     }
 
+    func handleKeyEquivalent(_ event: NSEvent) -> Bool { terminal.handleKeyEquivalent(event) }
+
     func revealTerminal() {
         shouldActivateTerminal = true
         needsLayout = true
@@ -744,14 +905,14 @@ private final class GlobalTerminalContentView: NSView {
         else { return }
 
         shouldActivateTerminal = false
-        terminal.setSurfaceVisible(true)
+        terminal.reveal()
         DispatchQueue.main.async { [weak self] in
             guard let self,
                   let window = self.window,
                   window.isKeyWindow,
                   self.terminal.window === window
             else { return }
-            window.makeFirstResponder(self.terminal)
+            self.terminal.reveal()
         }
     }
 }
@@ -760,16 +921,25 @@ private final class GlobalTerminalContentView: NSView {
 private final class GlobalTerminalTitlebarView: NSView {
     private let pinButton = NSButton()
     private let settingsButton = NSButton()
+    private let splitRightButton = NSButton()
+    private let splitDownButton = NSButton()
+    private let closeButton = NSButton()
     private let togglePinned: () -> Void
     private let showSettings: (NSButton) -> Void
+    private let split: (PaneDropEdge) -> Void
+    private let closePane: () -> Void
 
     init(
         isPinned: Bool,
+        split: @escaping (PaneDropEdge) -> Void,
+        close: @escaping () -> Void,
         togglePinned: @escaping () -> Void,
         showSettings: @escaping (NSButton) -> Void
     ) {
         self.togglePinned = togglePinned
         self.showSettings = showSettings
+        self.split = split
+        closePane = close
         super.init(frame: .zero)
 
         configure(
@@ -788,6 +958,15 @@ private final class GlobalTerminalTitlebarView: NSView {
         pinButton.action = #selector(pinPressed)
         settingsButton.target = self
         settingsButton.action = #selector(settingsPressed)
+        for (button, symbol, title, action) in [
+            (splitRightButton, "rectangle.split.2x1", String(localized: "Split Right"), #selector(splitRightPressed)),
+            (splitDownButton, "rectangle.split.1x2", String(localized: "Split Down"), #selector(splitDownPressed)),
+            (closeButton, "xmark", String(localized: "Close Pane"), #selector(closePressed)),
+        ] {
+            configure(button, imageName: symbol, label: title, tooltip: title)
+            button.target = self
+            button.action = action
+        }
 
         pinButton.translatesAutoresizingMaskIntoConstraints = false
         settingsButton.translatesAutoresizingMaskIntoConstraints = false
@@ -803,6 +982,18 @@ private final class GlobalTerminalTitlebarView: NSView {
             settingsButton.widthAnchor.constraint(equalToConstant: 24),
             settingsButton.heightAnchor.constraint(equalToConstant: 24),
         ])
+        var previous = settingsButton
+        for button in [splitRightButton, splitDownButton, closeButton] {
+            button.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(button)
+            NSLayoutConstraint.activate([
+                button.leadingAnchor.constraint(equalTo: previous.trailingAnchor, constant: 2),
+                button.centerYAnchor.constraint(equalTo: centerYAnchor),
+                button.widthAnchor.constraint(equalToConstant: 24),
+                button.heightAnchor.constraint(equalToConstant: 24),
+            ])
+            previous = button
+        }
     }
 
     @available(*, unavailable)
@@ -832,6 +1023,10 @@ private final class GlobalTerminalTitlebarView: NSView {
     @objc private func settingsPressed() {
         showSettings(settingsButton)
     }
+
+    @objc private func splitRightPressed() { split(.right) }
+    @objc private func splitDownPressed() { split(.bottom) }
+    @objc private func closePressed() { closePane() }
 
     private func configure(
         _ button: NSButton,
@@ -955,6 +1150,10 @@ private final class GlobalTerminalAdjustmentsViewController: NSViewController {
     private let opacitySlider = NSSlider()
     private let sizeValue = NSTextField(labelWithString: "")
     private let opacityValue = NSTextField(labelWithString: "")
+    private let modePopup = SettingsPopUpButton<QuickTerminalMode>(
+        items: QuickTerminalMode.allCases.map { .value($0.title, $0) },
+        onChange: { AppSettings.shared.quickTerminalMode = $0 }
+    )
 
     init(
         size: @escaping () -> CGFloat,
@@ -975,6 +1174,7 @@ private final class GlobalTerminalAdjustmentsViewController: NSViewController {
     }
 
     override func loadView() {
+        modePopup.select(AppSettings.shared.quickTerminalMode)
         sizeSlider.minValue = AppSettings.quickTerminalSizeRange.lowerBound
         sizeSlider.maxValue = AppSettings.quickTerminalSizeRange.upperBound
         sizeSlider.isContinuous = true
@@ -999,14 +1199,24 @@ private final class GlobalTerminalAdjustmentsViewController: NSViewController {
             $0.widthAnchor.constraint(equalToConstant: 42).isActive = true
         }
 
+        let modeLabel = NSTextField(labelWithString: String(localized: "Session behavior"))
+        let modeRow = NSStackView(views: [modeLabel, modePopup])
+        modeRow.orientation = .horizontal
+        modeRow.spacing = 7
+        let hint = NSTextField(wrappingLabelWithString: QuickTerminalMode.explanation)
+        hint.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        hint.textColor = .secondaryLabelColor
+        hint.widthAnchor.constraint(equalToConstant: 332).isActive = true
         let stack = NSStackView(views: [
+            modeRow,
+            hint,
             row(title: String(localized: "Size"), slider: sizeSlider, value: sizeValue),
             row(title: String(localized: "Opacity"), slider: opacitySlider, value: opacityValue),
         ])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 9
-        let root = NSView(frame: NSRect(x: 0, y: 0, width: 270, height: 74))
+        let root = NSView(frame: NSRect(x: 0, y: 0, width: 360, height: 230))
         stack.translatesAutoresizingMaskIntoConstraints = false
         root.addSubview(stack)
         NSLayoutConstraint.activate([

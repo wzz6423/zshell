@@ -139,13 +139,19 @@ Zshell levert JetBrains Mono en Nerd Font-symbolen mee. Elk geïnstalleerd monos
 
 ## Algemene snelle terminal [#global-quick-terminal]
 
-Druk terwijl Zshell draait op <kbd>Cmd</kbd>+<kbd>I</kbd> om een onafhankelijke terminal boven een andere app te openen; druk nogmaals om hem te sluiten. Hij heeft een tijdelijke shell buiten de projecttabbladen. Pas grootte, dekking en sneltoets aan onder **Instellingen → Terminal → Snelle terminal**.
+Terwijl Zshell draait, toont of verbergt <kbd>Cmd</kbd>+<kbd>I</kbd> of **Terminal → Snelle terminal** een onafhankelijke terminal. Pas grootte, dekking en sneltoets aan onder **Instellingen → Terminal → Snelle terminal**.
 
-- Zet het venster vast om het open te houden wanneer je tussen apps wisselt.
-- Een niet-vastgezet venster sluit zodra het focus verliest of je erbuiten klikt.
-- Als **Zshell-opdrachten blokkeren** uitstaat, sluit <kbd>Esc</kbd> of de algemene sneltoets het venster en beëindigt de shell met alle actieve taken. Opnieuw openen start een nieuwe sessie.
+**Sessiewerking: Werkruimte hergebruiken (standaard) / Elke keer een nieuwe werkruimte.** Hergebruik bewaart panelen en taken. Nieuwe werkruimten stoppen bij verbergen. De modus wijzigt bij de volgende weergave; de herbruikbare werkruimte blijft bij terugschakelen beschikbaar. De geschiedenis volgt je shellconfiguratie. Een nieuwe werkruimte begint steeds met één lege terminal, zonder eerdere uitvoer, paneelindeling of sessiestatus.
 
-Gebruik een projectterminal voor diensten die lang moeten draaien. [Snel starten](/nl/docs/quick-launch), waarmee je opdrachten opslaat en uitvoert, is een afzonderlijke functie.
+Splits met **Naar rechts splitsen** / **Naar beneden splitsen**, het contextmenu of <kbd>Cmd</kbd>+<kbd>D</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>. Het onderstaande behoud geldt voor herbruikbare werkruimten, inclusief verhoudingen en focus.
+
+- De sneltoets, <kbd>Esc</kbd>, buiten klikken of focusverlies verbergen alleen het venster. Dezelfde shell, invoer, geschiedenis en taken blijven actief.
+- Zet het venster vast om het zichtbaar te houden bij het wisselen van apps. Grootte, dekking en vastzetstatus blijven bij verbergen behouden.
+- Voer `exit` uit om de sessie te beëindigen; opnieuw openen start een nieuwe shell.
+
+Schakel `terminal.preserve-sessions` in voordat je een nieuwe snelle terminal opent om deze na normaal afsluiten van Zshell actief te houden. Beide backends verbinden bij heropenen met dezelfde shell. **Zshell → Afsluiten en alle sessies beëindigen** beëindigt ook verborgen sessies. Een herstart van macOS beëindigt de sessies.
+
+[Snel starten](/nl/docs/quick-launch), waarmee je opdrachten opslaat en uitvoert, is een afzonderlijke functie.
 
 ## Vim-opdrachthulp [#vim-command-hints]
 

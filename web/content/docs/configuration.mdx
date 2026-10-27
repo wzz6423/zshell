@@ -162,7 +162,9 @@ the PTY is no longer alive, the pane opens a fresh shell instead.
 
 Closing a pane, project, or window still ends its tasks. Use **Zshell → Quit and
 End All Sessions**, or turn this setting off before quitting, to end every
-background session. The Quick Terminal does not retain a background session.
+background session, including a hidden Quick Terminal. In reuse mode, hiding the Quick Terminal
+keeps its shells alive; this setting controls whether newly opened reusable panes
+also survive quitting Zshell. Fresh workspaces end when hidden.
 
 The CLI in a retained shell reconnects to its original terminal when Zshell
 reopens. It is unavailable while the GUI is closed. The stable CLI launcher is
@@ -275,6 +277,7 @@ Control it with **Settings → Automation → Resume agent conversations**. This
 | `terminal.background-blur` | `false` | boolean | Blur translucent backgrounds |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Notify after a command runs for at least this duration and finishes in new zsh terminals; 0 disables it |
 | `terminal.notify-on-error` | `false` | boolean | Notify on command failure in new zsh terminals |
+| `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Reuse workspace / New workspace each time |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Quick Terminal size relative to the screen |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Quick Terminal background opacity |
 | `quick-terminal.shortcut` | `Cmd+I` | Record in Settings | Record the global shortcut in Settings; key codes are saved automatically |

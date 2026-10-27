@@ -135,6 +135,7 @@ enum SettingsSearchIndex {
                  description: String(localized: "Notify when a command exits with a failure, no matter how briefly it ran. Changes apply to zsh terminals opened afterwards."),
                  keywords: "terminal.notify-on-error"),
             item(.terminal, String(localized: "Shortcut"), section: quickTerminal, keywords: "quick-terminal.shortcut"),
+            item(.terminal, String(localized: "Session behavior"), section: quickTerminal, keywords: "quick-terminal.mode reuse fresh workspace"),
             item(.terminal, String(localized: "Size"), section: quickTerminal,
                  description: String(localized: "Quick Terminal default size"), keywords: "quick-terminal.size"),
             item(.terminal, String(localized: "Opacity"), section: quickTerminal,

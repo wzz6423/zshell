@@ -53,6 +53,7 @@ CONFIGURATION_ITEMS = {
     "terminal.notify-finish-seconds": ("terminal", "Long-running commands", "Command Notifications"),
     "terminal.notify-on-error": ("terminal", "Failed commands", "Command Notifications"),
     "quick-terminal.shortcut": ("terminal", "Shortcut", "Quick Terminal"),
+    "quick-terminal.mode": ("terminal", "Session behavior", "Quick Terminal"),
     "quick-terminal.size": ("terminal", "Size", "Quick Terminal"),
     "quick-terminal.opacity": ("terminal", "Opacity", "Quick Terminal"),
     "editor.external-editor": ("editor", "External editor", ""),

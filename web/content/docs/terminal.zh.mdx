@@ -197,14 +197,19 @@ Zshell 内置 JetBrains Mono 和 Nerd Font 符号。拉丁字形可以换成任�
 
 ## 全局快捷终端 [#global-quick-terminal]
 
-Zshell 运行时，按 <kbd>Cmd</kbd>+<kbd>I</kbd> 可以在其他应用上方打开独立的快捷终端，再按一次关闭。
-它使用临时 shell，不属于项目中的标签页。**设置 → 终端 → Quick Terminal** 可调整窗口大小、透明度和快捷键。
+Zshell 运行时，按 <kbd>Cmd</kbd>+<kbd>I</kbd> 或选择 **终端 → 快捷终端**，可显示或隐藏独立的快捷终端。**设置 → 终端 → Quick Terminal** 可调整窗口大小、透明度和全局快捷键。
 
-- 点击固定按钮后，切换到其他应用时仍保持打开。
-- 未固定时，点击外部或失去焦点会关闭窗口。
-- 未开启 **屏蔽 Zshell 命令** 时，<kbd>Esc</kbd> 或再次按全局快捷键会关闭窗口，并终止其中的 shell 和运行任务；重新打开会创建新会话。
+**会话行为：复用工作区（默认）/ 每次新建工作区。** 复用模式保留窗格和任务。新建模式在隐藏时结束工作区。模式更改在下次显示时生效；切回后仍可继续原来的复用工作区。命令历史遵从现有 Shell 配置。新建模式每次只打开一个空白终端，不恢复上次的输出、分屏布局或会话状态；不会清理或禁用命令历史和 `HISTFILE`。
 
-需要持续运行的服务请放在项目终端中。[快速启动](/docs/quick-launch)用于保存和运行命令，是另一项功能。
+可用工具栏的 **向右分屏** / **向下分屏**、终端右键菜单或 <kbd>Cmd</kbd>+<kbd>D</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> 分屏。以下保留行为只适用于复用工作区，包括分屏比例和焦点。
+
+- 快捷键、<kbd>Esc</kbd>、点击外部或失去焦点只会隐藏窗口；同一个 Shell、输入内容、滚动历史和运行任务会保留，再次打开即可继续。
+- 固定窗口后，切换应用时仍保持显示。隐藏后会保留大小、透明度和固定状态。
+- 在 Shell 中执行 `exit` 可结束此会话；再次打开快捷终端会新建 Shell。
+
+新建快捷终端前启用 [`terminal.preserve-sessions`](/docs/configuration#terminalpreserve-sessions)，可在正常退出 Zshell 后继续运行。重开应用后打开快捷终端，两个后端都会重连原来存活的 Shell。**Zshell → 退出并结束所有会话** 也会结束隐藏的快捷终端。macOS 重启后会话会结束。
+
+[快速启动](/docs/quick-launch)用于保存和运行命令，是另一项功能。
 
 <span id="vim-命令提示" data-canonical-heading="vim-command-hints" />
 
