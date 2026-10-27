@@ -34,7 +34,7 @@ export function MinimalFeature({ number, title, description, icon }: MinimalFeat
       }`}
     >
       {/* 悬停背景效果 */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-50/0 via-blue-50/50 to-blue-50/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 dark:from-blue-950/0 dark:via-blue-950/30 dark:to-blue-950/0" />
+      <div className="absolute inset-0 bg-gradient-to-r from-gray-50/0 via-gray-50/50 to-gray-50/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 dark:from-gray-900/0 dark:via-gray-900/30 dark:to-gray-900/0" />
 
       <div className="relative grid gap-8 md:grid-cols-[120px_1fr] md:gap-16">
         {/* 编号 */}
@@ -149,7 +149,7 @@ export function TerminalDemo() {
       </div>
 
       {/* 光晕效果 */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-blue-500/10 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-gray-500/10 to-transparent" />
     </div>
   )
 }
@@ -200,7 +200,7 @@ export function FeatureCard({
         <p className="text-gray-600">{description}</p>
 
         {/* 悬停箭头 */}
-        <div className="mt-4 flex items-center gap-2 text-sm font-medium text-blue-600 opacity-0 transition-all duration-300 group-hover:translate-x-2 group-hover:opacity-100">
+        <div className="mt-4 flex items-center gap-2 text-sm font-medium text-black opacity-0 transition-all duration-300 group-hover:translate-x-2 group-hover:opacity-100 dark:text-white">
           了解更多
           <span className="i-mingcute-arrow-right-line" />
         </div>

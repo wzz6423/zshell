@@ -85,24 +85,24 @@
   --destructive: #cf222e;
   --border: #d1d9e0;
   --input: #d1d9e0;
-  --ring: #0969da;
-  --brand: #0969da;
+  --ring: #1f2328;
+  --brand: #1f2328;
   --brand-foreground: #ffffff;
-  --success: #1a7f37;
-  --chart-1: #0969da;
-  --chart-2: #1a7f37;
-  --chart-3: #8250df;
-  --chart-4: #1b7c83;
-  --chart-5: #bf8700;
+  --success: #1f2328;
+  --chart-1: #1f2328;
+  --chart-2: #59636e;
+  --chart-3: #6e7781;
+  --chart-4: #89929b;
+  --chart-5: #a4acb6;
   --radius: 0.75rem;
   --sidebar: #f6f8fa;
   --sidebar-foreground: #1f2328;
-  --sidebar-primary: #0969da;
+  --sidebar-primary: #1f2328;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #eaeef2;
   --sidebar-accent-foreground: #1f2328;
   --sidebar-border: #d1d9e0;
-  --sidebar-ring: #0969da;
+  --sidebar-ring: #1f2328;
 }
 
 /* Zshell — near-black developer canvas (default) */
@@ -113,8 +113,8 @@
   --card-foreground: #f1f3ef;
   --popover: #111412;
   --popover-foreground: #f1f3ef;
-  --primary: #afe886;
-  --primary-foreground: #10200c;
+  --primary: #f1f3ef;
+  --primary-foreground: #0a0c0b;
   --secondary: #171b18;
   --secondary-foreground: #f1f3ef;
   --muted: #171b18;
@@ -124,24 +124,24 @@
   --destructive: #ff7b72;
   --border: #2b322d;
   --input: #2b322d;
-  --ring: #afe886;
-  --brand: #afe886;
-  --brand-foreground: #10200c;
-  --success: #afe886;
+  --ring: #f1f3ef;
+  --brand: #f1f3ef;
+  --brand-foreground: #0a0c0b;
+  --success: #f1f3ef;
   --radius: 0.375rem;
-  --chart-1: #58a6ff;
-  --chart-2: #3fb950;
-  --chart-3: #bc8cff;
-  --chart-4: #39c5cf;
-  --chart-5: #e3b341;
+  --chart-1: #6e7781;
+  --chart-2: #89929b;
+  --chart-3: #a4acb6;
+  --chart-4: #c1c8d0;
+  --chart-5: #d8dfe6;
   --sidebar: #0d100e;
   --sidebar-foreground: #f1f3ef;
-  --sidebar-primary: #afe886;
-  --sidebar-primary-foreground: #10200c;
+  --sidebar-primary: #f1f3ef;
+  --sidebar-primary-foreground: #0a0c0b;
   --sidebar-accent: #242d24;
   --sidebar-accent-foreground: #f1f3ef;
   --sidebar-border: #2b322d;
-  --sidebar-ring: #afe886;
+  --sidebar-ring: #f1f3ef;
 }
 
 @layer base {
@@ -158,11 +158,11 @@
     @apply bg-background text-foreground;
   }
   ::selection {
-    background: #0969da;
+    background: #1f2328;
     color: #ffffff;
   }
   .dark ::selection {
-    background: #58a6ff;
+    background: #f1f3ef;
     color: #0a0c0b;
   }
 }

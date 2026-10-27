@@ -112,8 +112,8 @@ export function ModernHero({ lang, copy, release }: { lang: string; copy: HomeCo
         {/* 状态标签 */}
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-black shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-600 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-600" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gray-600 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-600" />
           </span>
           新版本 v{release.version} 已发布
         </div>
@@ -126,7 +126,7 @@ export function ModernHero({ lang, copy, release }: { lang: string; copy: HomeCo
         {/* 副标题 - 更多信息 */}
         <p className="mb-4 text-2xl font-semibold text-black md:text-4xl dark:text-white">
           终端在中心。
-          <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <span className="font-bold text-black dark:text-white">
             项目在掌握
           </span>
           。
