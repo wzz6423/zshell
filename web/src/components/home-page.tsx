@@ -27,7 +27,7 @@ export function HomePage({ lang, release, copy }: { lang: string; release: Relea
   }, [])
 
   return (
-    <div className="home-page min-h-screen bg-background font-sans text-base leading-relaxed">
+    <div className="home-page min-h-screen font-sans text-base leading-relaxed">
       <MinimalHeader lang={lang} copy={copy} release={release} />
 
       <main id="main">
@@ -189,7 +189,7 @@ function DownloadSection({ copy, release }: { copy: HomeCopy; release: Release }
 
 function MinimalFooter({ lang }: { lang: string }) {
   return (
-    <footer className="border-t border-border bg-background">
+    <footer className="border-t border-border">
       <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground sm:flex-row">
           <div className="flex items-center gap-2">

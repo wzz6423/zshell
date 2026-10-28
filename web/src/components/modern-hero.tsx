@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react'
 import { DocsLink } from '@/components/site-links'
 import type { HomeCopy } from '@/lib/home-copy'
 import type { Release } from '@/lib/release'
@@ -7,94 +6,14 @@ import type { Release } from '@/lib/release'
  * 现代化 Hero 区域 - 参考 Google Antigravity
  */
 export function ModernHero({ lang, copy, release }: { lang: string; copy: HomeCopy; release: Release }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [scrollY, setScrollY] = useState(0)
-
-  // 清晰可见的粒子动画
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const resize = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
-    resize()
-    window.addEventListener('resize', resize)
-
-    let frame = 0
-    const particles: Array<{ x: number; y: number; vx: number; vy: number }> = []
-
-    // 初始化粒子
-    for (let i = 0; i < 60; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-      })
-    }
-
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-      // 更新和绘制粒子
-      particles.forEach((p) => {
-        p.x += p.vx
-        p.y += p.vy
-
-        // 边界反弹
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1
-
-        // 绘制粒子 - 更大更明显
-        ctx.fillStyle = '#666'
-        ctx.beginPath()
-        ctx.arc(p.x, p.y, 2, 0, Math.PI * 2)
-        ctx.fill()
-      })
-
-      frame++
-      requestAnimationFrame(animate)
-    }
-    animate()
-
-    return () => window.removeEventListener('resize', resize)
-  }, [])
-
-  // 视差滚动
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY)
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
   return (
-    <section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background">
-      {/* 粒子画布 */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0"
-        style={{
-          transform: `translateY(${scrollY * 0.5}px)`,
-        }}
-      />
-
-      <div
-        className="relative z-10 w-full max-w-6xl px-6 text-center"
-        style={{
-          transform: `translateY(${scrollY * 0.3}px)`,
-          opacity: Math.max(0, 1 - scrollY / 600),
-        }}
-      >
+    <section className="relative flex min-h-screen items-center justify-center overflow-hidden">
+      <div className="hero-copy relative z-10 w-full max-w-6xl px-6 text-center">
         {/* 状态标签 */}
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-neutral-600 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-neutral-600" />
+            <span className="absolute inline-flex h-full w-full motion-safe:animate-ping rounded-full bg-brand opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-brand" />
           </span>
           新版本 v{release.version} 已发布
         </div>

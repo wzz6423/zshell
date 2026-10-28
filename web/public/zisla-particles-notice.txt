@@ -1,0 +1,6 @@
+The ambient particle background is adapted from Zisla (web/src/main.ts).
+Source: https://github.com/wzz6423/zisla
+License: PolyForm Noncommercial License 1.0.0
+https://polyformproject.org/licenses/noncommercial/1.0.0
+
+Required Notice: Copyright 2026 Zisla Contributors (https://github.com/wzz6423/zisla)

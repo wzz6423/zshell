@@ -129,7 +129,13 @@ page needs no config change.
 
 - The theme lives in [`src/styles/app.css`](src/styles/app.css). Documentation
   maps the shared palette through `fumadocs-ui/css/shadcn.css`; the landing page,
-  documentation, and changelog use the same neutral black and gray dark theme.
+  documentation, and changelog share the black and white palette with Zisla's
+  `#007aff` blue for accents. A single viewport-sized particle background stays
+  visible from the top to the footer on every page. It reuses Zisla's Three.js
+  ambient particle texture, size, count, depth, and drift. The source and license
+  notice ships in [`public/zisla-particles-notice.txt`](public/zisla-particles-notice.txt).
+  It adapts to light and dark themes,
+  pauses when the tab is hidden, and stays still with reduced motion enabled.
 - Theme choices persist across pages and reloads. The single theme button cycles
   through system, light, and dark modes. Language and theme controls keep 12px
   corner radii in both light and dark modes. The docs sidebar footer shows
