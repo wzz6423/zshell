@@ -23,6 +23,7 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
         restoreTerminalMenus()
         AppMenuLocalization.shared.start(applicationDelegate: self)
         GlobalTerminalOverlay.shared.start()
+        ApplicationPresenceController.shared.start()
     }
 
     func restoreTerminalMenus() {
@@ -37,6 +38,11 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
               }) else { return }
         let title = String(localized: "Terminal")
         let submenu = NSMenu(title: title)
+        let worktree = NSMenuItem(title: AppCommand.newSessionInWorktree.title,
+                                 action: #selector(newSessionInWorktree), keyEquivalent: "t")
+        worktree.keyEquivalentModifierMask = [.command, .option]
+        submenu.addItem(worktree)
+        submenu.addItem(.separator())
         submenu.addItem(NSMenuItem(
             title: String(localized: "Quick Terminal"),
             action: #selector(toggleQuickTerminal),
@@ -82,8 +88,14 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        ApplicationPresenceController.shared.prepareForTermination()
         TerminalManager.prepareForApplicationQuit()
         return .terminateNow
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        TerminalManager.showWorkspace()
+        return false
     }
 
     @objc private func editProjectTerminalEnvironment() {
@@ -92,6 +104,10 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
             return
         }
         TerminalEnvironmentEditorController.show(project: project)
+    }
+
+    @objc private func newSessionInWorktree() {
+        TerminalManager.activeWindowManager?.promptForWorktreeSession()
     }
 
     @objc private func editTabTerminalEnvironment() {
@@ -105,6 +121,8 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         switch menuItem.action {
+        case #selector(newSessionInWorktree):
+            TerminalManager.activeWindowManager?.selectedProject?.isRemote == false
         case #selector(editProjectTerminalEnvironment):
             TerminalManager.activeWindowManager?.selectedProject != nil
         case #selector(editTabTerminalEnvironment):
@@ -116,6 +134,7 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
 
     func applicationWillTerminate(_ notification: Notification) {
         WindowScreenConstraint.shared.stop()
+        ApplicationPresenceController.shared.stop()
         GlobalTerminalOverlay.shared.stop()
     }
 

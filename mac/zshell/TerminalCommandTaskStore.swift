@@ -186,6 +186,7 @@ final class TerminalCommandTaskStore {
 
     private func retainResult(_ id: UUID) {
         guard let task = tasks[id] else { return }
+        ZshellAutomationEventHub.shared.commandTaskFinished(task)
         if activeByTerminal[task.terminalID] == id { activeByTerminal[task.terminalID] = nil }
         completionReadyAt[id] = nil
         retainedResults.append(id)

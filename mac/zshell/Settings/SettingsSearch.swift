@@ -56,8 +56,14 @@ enum SettingsSearchIndex {
 
         var result = SettingsCategory.allCases.filter { $0 != .automation }.map { item($0, $0.title) }
         result += [
+            item(.browser, String(localized: "Block ads and trackers"), keywords: "browser.content-blocking ads trackers privacy"),
+            item(.browser, String(localized: "Filter Lists"), section: String(localized: "Filter Lists"), keywords: "browser.filter-lists EasyList EasyPrivacy ABP custom URL"),
+            item(.browser, String(localized: "Update Lists Now")),
             item(.general, String(localized: "Language"),
                  keywords: AppLanguage.allCases.map(\.title).joined(separator: " ")),
+            item(.general, String(localized: "Show Zshell in"),
+                 description: String(localized: "With a menu bar icon, closing the last workspace window keeps its terminals running."),
+                 keywords: "app-presence Dock " + ApplicationPresence.allCases.map(\.title).joined(separator: " ")),
             item(.general, String(localized: "Toolbar"), description: [
                 String(localized: "Shows the toolbar only in Git repositories"),
                 String(localized: "Shows the toolbar in every project"),

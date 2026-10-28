@@ -1,0 +1,61 @@
+---
+title: 远程共享会话
+description: 通过 SSH 或 Tailscale 连接同一远程终端，断开客户端后继续运行任务。
+---
+
+`zshell-server` 在 macOS 或 Linux 主机上持有 shell 和任务，Zshell 的两种终端后端都可以显示它。关闭客户端、退出应用或网络中断后，远程任务继续运行；重新附着会恢复当前屏幕、滚动历史、光标和终端模式。
+
+## 在主机安装 [#install]
+
+在远程主机上使用当前 Rust 工具链，从 Zshell 仓库构建。Mac 客户端已包含 relay，无需安装 Cargo。
+
+```sh
+cargo build --locked --release --manifest-path remote/Cargo.toml
+install -d "$HOME/.local/bin"
+install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
+```
+
+服务端使用哪个 Unix 账户运行，连接者就能操作该账户的 shell 和文件。目前不支持原生 Windows 服务端。
+
+## 使用 SSH 连接 [#ssh]
+
+先在普通终端确认主机公钥以及密钥或 agent 认证：
+
+```sh
+ssh devbox true
+```
+
+从侧栏底部的网络菜单打开**远端主机…**，填写名称、`ssh://me@devbox:22` 或已有 SSH 别名，服务端程序保留 `~/.local/bin/zshell-server`。**连接主机**会查询该主机上的项目并附着已有会话。填写 `~/repo` 等远程目录后，选择**打开远端项目**创建新 shell，路径可以包含空格。此项目中新建标签和分屏也运行在远程主机。
+
+SSH 会自动启动仅该账户可访问的 daemon，并沿用 OpenSSH 配置、密钥、agent 和已信任公钥。未知主机公钥或认证失败会显示错误，请先用普通 SSH 核实后重试。Zshell 不收集密码，也不代为安装服务端。
+
+文件和 Git 面板通过 SSH 访问同一主机；终端直接使用 Tailscale 时，这两个面板仍需要可用的 SSH 认证。远程路径不会指向 Mac 文件。高级用户可以在启动应用前设置绝对路径 `ZSHELL_SSH_CONFIG_FILE`，让终端、文件和 Git 使用独立的可读 OpenSSH 配置。
+
+## 使用 Tailscale 连接 [#tailscale]
+
+两台机器登录 Tailscale，在创建会话前启动带私有监听器的主机 daemon：
+
+```sh
+zshell-server serve --listen tailscale://:7373
+```
+
+在**远端主机…**填写 `tailscale://devbox:7373`。支持 MagicDNS 和 Tailscale IPv4/IPv6 地址，拒绝公网地址。默认只允许主机所有者账户下的未打标签设备；`--allow-user` 可以明确允许另一个完整登录名，带标签的客户端仍会被拒绝。在服务端同机连接请使用 SSH。Tailnet ACL 同样生效；只向可以操作此 Unix 账户的人授权。
+
+## 共享、分离和重连 [#sharing]
+
+所有客户端都能看到相同输出。聚焦终端或选择**获取终端控制权**后，该客户端可以输入并改变终端尺寸，其余客户端只读。控制者断开时，最早仍连接的客户端接管。
+
+信息面板显示连接状态、客户端数量和控制权。**分离远端会话**暂停当前客户端，**重新连接**恢复附着；意外断网会自动重试。离线时输入的按键会丢弃，不会在重连后执行。布局单独保存远端会话 UUID，应用重新启动时连接原任务。
+
+关闭面板、项目、窗口或使用任一种退出选项，都只会分离远程会话。**结束远端会话…**会先确认，再为所有客户端结束共享 shell 和任务。也可以在主机执行：
+
+```sh
+zshell-server list --project ~/repo
+zshell-server terminate --project ~/repo --session UUID
+```
+
+## 持久化边界 [#limits]
+
+会话仅在主机 daemon 存活期间持久化，不能跨主机重启、daemon 崩溃或重启。保存的会话不可用时会明确报错，不会悄悄创建新 shell。每个 daemon 最多保留 128 个会话，每个终端快照最多 16 MiB，每个客户端实时队列最多 1 MiB；慢客户端会断开，不会阻塞其他客户端。历史保存在主机内存中。
+
+systemd、LaunchAgent、CLI 和身份策略见[服务端说明](https://github.com/wzz6423/zshell/tree/main/remote)。应先配置服务再创建会话；修改已运行 daemon 的监听器需要先结束其中的会话。

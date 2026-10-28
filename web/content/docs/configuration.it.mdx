@@ -21,6 +21,16 @@ Prima di modificarlo a mano, tieni presente che:
 - **Il parser è volutamente limitato.** Supporta chiavi semplici, chiavi separate da punti, intestazioni `[table]`, commenti `#` e valori stringa, numero o booleano. Non supporta array, tabelle inline o stringhe su più righe.
 - **I valori non validi usano un ripiego sicuro.** Una dimensione fuori intervallo, un motore sconosciuto o un nome di tema errato non impedisce l'avvio di Zshell.
 
+## Presenza dell’app [#application-presence]
+
+### `app-presence`
+
+`"dock"` · `"dock-and-menu-bar"` · `"menu-bar"` — predefinito `"dock"`
+
+Scegli **Impostazioni → Generali → Mostra Zshell in** per cambiare subito. `"dock"` mostra solo l’icona nel Dock, `"dock-and-menu-bar"` entrambe le icone e `"menu-bar"` solo l’icona nella barra dei menu.
+
+La barra dei menu apre l’area di lavoro attuale, il terminale rapido, le impostazioni e la ricerca di aggiornamenti. In entrambe le modalità con barra dei menu, chiudere l’ultima finestra la nasconde mentre terminali e attività continuano. **Apri area di lavoro** torna alla stessa finestra, progetto e sessione. Chiudere altre finestre, pannelli o progetti termina ancora le loro attività. **Esci** segue `terminal.preserve-sessions`; **Esci e termina tutte le sessioni** le arresta. La modalità rimane salvata al riavvio.
+
 ## Aspetto [#appearance]
 
 ### `theme` [#theme]

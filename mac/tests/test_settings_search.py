@@ -18,10 +18,13 @@ LANGUAGES = (
     "it", "nl", "ru", "ar", "th", "id", "vi", "tr",
 )
 CATEGORIES = (
-    "general", "shortcuts", "appearance", "terminal", "editor", "automation",
+    "general", "shortcuts", "appearance", "terminal", "editor", "browser", "automation",
     "recommendations", "updates",
 )
 CONFIGURATION_ITEMS = {
+    "app-presence": ("general", "Show Zshell in", ""),
+    "browser.content-blocking": ("browser", "Block ads and trackers", ""),
+    "browser.filter-lists": ("browser", "Filter Lists", "Filter Lists"),
     "toolbar.visibility": ("general", "Toolbar", ""),
     "app-icon": ("appearance", "Dock icon", "App Icon"),
     "theme-dark": ("appearance", "Dark theme", "Colors"),
@@ -175,6 +178,8 @@ class SettingsSearchTests(unittest.TestCase):
                           "AppCommand", "    var defaultShortcut:"),
             metadata_enum((sources / "TerminalBackend.swift").read_text(),
                           "TerminalBackend", "    var settingsHighlights:"),
+            metadata_enum((sources / "ApplicationPresenceController.swift").read_text(),
+                          "ApplicationPresence", "\n}"),
         ]))
         harness = root / "Harness.swift"
         harness.write_text(HARNESS)

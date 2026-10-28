@@ -44,6 +44,11 @@ snapshot_types = snapshot[
 ]
 kind = source("AgentAutomation.swift")
 kind = kind[kind.index("enum ZshellAgentKind:"):kind.index("enum ZshellAgentPhase:")]
+process_identity = source("AgentStatusReporting.swift")
+process_identity = process_identity[
+    process_identity.index("struct ZshellAgentProcessIdentity:"):
+    process_identity.index("struct ZshellAgentReport:")
+]
 has_lifecycle = "ZshellAgentLifecycleHooks" in refresh
 startup_fixture = ""
 startup_checks = ""
@@ -69,7 +74,8 @@ enum ResumeStartupProbe {
     static func launch(
         initialDirectory: String?, commandArguments: [String]? = nil,
         restoredSessionID: UUID?, agentResume: AgentConversationIdentity?,
-        isRestoredSession: Bool = true, allowsPersistence: Bool = true
+        isRestoredSession: Bool = true, allowsPersistence: Bool = true,
+        explicitlyResumeConversation: Bool = false
     ) -> (id: UUID, resume: AgentConversationIdentity.ResumeLaunch?,
           command: [String]?, shell: String, directory: String, preserve: Bool) {
 STARTUP
@@ -136,6 +142,12 @@ final class TerminalSession {
     var agentStatus: AgentStatus?
     var agentResume: AgentConversationIdentity?
     var agentConversationProcessID: pid_t?
+    var agentConversationOwner: ZshellAgentProcessIdentity?
+    var agentConversationResumeDeadline: Date?
+    var onAgentConversationChanged: ((TerminalSession, AgentConversationIdentity?) -> Void)?
+    func isAutomationAgentRunning(kind: ZshellAgentKind) -> Bool {
+        surface.foregroundPid.flatMap(ZshellAgentKind.recognize(processID:)) == kind
+    }
 RECORD
 }
 
@@ -283,7 +295,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-agent-resume-") as temporary:
     helper = root / "Probe.swift"
     helper.write_text("import Foundation\nstruct EditorState: Codable {}\n"
                       + "struct SessionSnapshot { struct ProjectSnapshot {\n"
-                      + snapshot_types + "} }\n" + kind + fixture)
+                      + snapshot_types + "} }\n" + kind + process_identity + fixture)
     production = ["AgentConversationIdentity.swift", "AgentConversationBinding.swift",
                   "TerminalAgentConversation.swift", "ProcessWorkingDirectory.swift",
                   "ZshellAgentSessionHooks.swift", "ZshellAgentIntegrations.swift",

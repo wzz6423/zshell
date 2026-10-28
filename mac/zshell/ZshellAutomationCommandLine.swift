@@ -38,6 +38,11 @@ enum ZshellAutomationCommandLine {
             try runAgentSkill(Array(arguments.dropFirst()))
             return 0
         }
+        if namespace == "+agent", let command = arguments.first,
+           ["history", "resume", "archive", "unarchive", "delete"].contains(command) {
+            try AgentConversationHistoryCommandLine.run(arguments: arguments)
+            return 0
+        }
 
         let connection = try AppConnection()
         let result: ZshellJSONValue
@@ -1207,6 +1212,9 @@ enum ZshellAutomationCommandLine {
           zshell +agent report STATE [--name NAME] [--reason TEXT] [--progress 0-100] [--attention REASON] [--tasks JSON] [--pid PID]
           zshell +agent report --json < report.json
           zshell +agent clear
+          zshell +agent history [projects | --all | --archived] [--query TEXT]
+          zshell +agent resume --id UUID [--focus]
+          zshell +agent archive|unarchive|delete --id UUID
           zshell +agent skill <path|print|status|install|uninstall> [options]
           zshell +agent explain
 
@@ -1230,6 +1238,7 @@ enum ZshellAutomationCommandLine {
         explicitly links Zshell's bundled coordination skill into supported
         agents; it never changes user files unless invoked.
         """)
+        print(String(localized: "Run `zshell +agent history --help` for persistent conversation history and external-terminal access."))
     }
 
     private static func printAgentSkillHelp() {

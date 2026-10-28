@@ -21,6 +21,16 @@ Sebelum menyunting secara manual, perhatikan:
 - **Parser sengaja sederhana.** Parser mendukung kunci datar, kunci bertitik, judul `[table]`, komentar `#`, serta nilai string/angka/boolean. Array, tabel sebaris, dan string multibaris tidak didukung.
 - **Nilai salah menggunakan cadangan yang aman.** Ukuran di luar rentang, backend tidak dikenal, atau salah eja tema tidak menghalangi Zshell untuk dibuka.
 
+## Tampilan aplikasi [#application-presence]
+
+### `app-presence`
+
+`"dock"` · `"dock-and-menu-bar"` · `"menu-bar"` — bawaan `"dock"`
+
+Pilih **Pengaturan → Umum → Tampilkan Zshell di** untuk langsung beralih. `"dock"` hanya menampilkan ikon Dock, `"dock-and-menu-bar"` menampilkan keduanya, dan `"menu-bar"` hanya menampilkan ikon bilah menu.
+
+Bilah menu membuka ruang kerja saat ini, Terminal Cepat, pengaturan, dan pemeriksaan pembaruan. Pada kedua mode bilah menu, menutup jendela ruang kerja terakhir menyembunyikannya sementara terminal dan tugas tetap berjalan. **Buka ruang kerja** mengembalikan jendela, proyek, dan sesi yang sama. Menutup jendela lain, panel, atau proyek tetap mengakhiri tugasnya. **Keluar** mengikuti `terminal.preserve-sessions`; **Keluar dan akhiri semua sesi** mengakhiri semuanya. Mode disimpan saat aplikasi dijalankan ulang.
+
 ## Tampilan [#appearance]
 
 ### `theme` [#theme]

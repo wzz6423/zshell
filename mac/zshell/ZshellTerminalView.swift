@@ -64,6 +64,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var directoryTimer: Timer?
     private var lastReportedDirectory: String?
     private var usesOSCWorkingDirectory = false
+    var reportsLocalWorkingDirectory = true
     private(set) var backgroundOpacity = 1.0
 
     override init(frame: CGRect) {
@@ -119,7 +120,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     private func updateDirectoryPolling() {
-        let shouldPoll = !usesOSCWorkingDirectory
+        let shouldPoll = reportsLocalWorkingDirectory && !usesOSCWorkingDirectory
             && isSurfaceVisible
             && window?.isKeyWindow == true
         guard shouldPoll else {
@@ -137,7 +138,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     private func reportWorkingDirectory() {
-        guard !usesOSCWorkingDirectory,
+        guard reportsLocalWorkingDirectory, !usesOSCWorkingDirectory,
               let pid = foregroundPid,
               let path = processWorkingDirectory(pid: pid),
               path != lastReportedDirectory

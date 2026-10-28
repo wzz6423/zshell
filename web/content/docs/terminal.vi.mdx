@@ -32,6 +32,14 @@ Cả hai backend khai báo Ghostty qua `TERM_PROGRAM` vì CLI hỗ trợ ảnh/t
 Zshell không đọc `~/.config/ghostty` hay cấu hình Alacritty. Phông, màu, hành vi nhập và backend được đặt trong [cài đặt](/vi/docs/configuration) riêng của Zshell.
 </Callout>
 
+## Quyền hệ thống [#system-permissions]
+
+Chương trình cục bộ trong terminal Zshell có thể yêu cầu truy cập camera hoặc micrô, hay điều khiển ứng dụng khác qua Apple Events.
+macOS quy các yêu cầu này cho Zshell; chỉ cấp quyền cho chương trình bạn tin cậy. Quyền tự động hóa được cấp riêng cho từng ứng dụng đích.
+
+Quản lý quyền trong **Cài đặt hệ thống → Quyền riêng tư & Bảo mật → Camera, Micrô hoặc Tự động hóa**.
+Từ chối yêu cầu sẽ chặn tính năng tương ứng. Zshell không tự động cấp các quyền này.
+
 ## Tìm kiếm [#search]
 
 | Thao tác | Phím tắt |

@@ -139,6 +139,7 @@ struct CommandShortcut: Equatable {
 /// translations — stay the same one source of truth.
 enum AppCommand: String, CaseIterable {
     case newSession = "new-session"
+    case newSessionInWorktree = "new-session-in-worktree"
     case newProject = "new-project"
     case newWindow = "new-window"
     case closePane = "close-pane"
@@ -154,6 +155,7 @@ enum AppCommand: String, CaseIterable {
     var title: String {
         switch self {
         case .newSession: String(localized: "New Session")
+        case .newSessionInWorktree: String(localized: "New Session in Worktree…")
         case .newProject: String(localized: "New Project")
         case .newWindow: String(localized: "New Window")
         case .closePane: String(localized: "Close Pane")
@@ -173,6 +175,7 @@ enum AppCommand: String, CaseIterable {
     var defaultShortcut: CommandShortcut {
         switch self {
         case .newSession: CommandShortcut(character: "t", modifiers: .command)
+        case .newSessionInWorktree: CommandShortcut(character: "t", modifiers: [.command, .option])
         case .newProject: CommandShortcut(character: "n", modifiers: .command)
         case .newWindow: CommandShortcut(character: "n", modifiers: [.command, .shift])
         case .closePane: CommandShortcut(character: "w", modifiers: .command)

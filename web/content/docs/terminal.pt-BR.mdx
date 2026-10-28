@@ -32,6 +32,14 @@ Ambos anunciam Ghostty em `TERM_PROGRAM` porque CLIs com suporte a imagens e not
 O Zshell não lê `~/.config/ghostty` nem a configuração do Alacritty. Fontes, cores, entrada e backend são definidos nos [ajustes](/pt-BR/docs/configuration) do Zshell.
 </Callout>
 
+## Permissões do sistema [#system-permissions]
+
+Programas locais em um terminal do Zshell podem solicitar acesso à câmera ou ao microfone, ou controlar outro app por Apple Events.
+O macOS atribui essas solicitações ao Zshell; permita o acesso apenas a programas confiáveis. A autorização de automação é específica para cada app de destino.
+
+Gerencie o acesso em **Ajustes do Sistema → Privacidade e Segurança → Câmera, Microfone ou Automação**.
+Negar uma solicitação bloqueia o recurso correspondente. O Zshell não concede essas permissões automaticamente.
+
 ## Busca [#search]
 
 | Ação | Atalho |

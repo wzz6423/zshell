@@ -60,8 +60,12 @@
 		</dict>
 	</array>
 
-	<!-- Programs running inside the terminal (e.g. Claude Code voice dictation)
-	     request mic access attributed to Zshell as the responsible process. -->
+	<!-- macOS attributes terminal programs' privacy requests to Zshell as the
+	     responsible process, so their usage descriptions belong in this bundle. -->
+	<key>NSAppleEventsUsageDescription</key>
+	<string>A program running within Zshell would like to control other apps.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>A program running within Zshell would like to use your camera.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>A program running within Zshell would like to use your microphone.</string>
 

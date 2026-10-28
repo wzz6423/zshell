@@ -36,6 +36,8 @@ enum ZshellAutomationRouter {
         }
 
         switch request.method {
+        case let method where method.hasPrefix("session."):
+            return await ZshellSessionAutomationRouter.route(request, manager: caller.manager, project: caller.project, caller: caller)
         case "protocol.info":
             return success(request, .object([
                 "version": .number(1),
@@ -45,6 +47,7 @@ enum ZshellAutomationRouter {
                 "split_focus_default": .bool(false),
                 "agent_report_lifetime_seconds": .number(ZshellAgentReport.lifetime),
                 "agent_report_max_tasks": .number(Double(ZshellAgentReport.maximumTasks)),
+                "event_stream": .bool(true),
                 "browser_automation": .bool(true),
                 "browser_max_timeout_ms": .number(Double(BrowserAutomation.maximumTimeoutMS)),
             ]))
@@ -91,6 +94,9 @@ enum ZshellAutomationRouter {
                     return paneSnapshot(context, caller: caller)
                 }
             return success(request, .array(agents))
+
+        case let method where method.hasPrefix("agent.history."):
+            return AgentConversationHistoryRouter.scoped(request, caller: caller)
 
         case "agent.get":
             guard let target = targetAgent(request, caller: caller) else {
@@ -735,9 +741,9 @@ enum ZshellAutomationRouter {
         }
     }
 
-    private static func paneSnapshot(
+    static func paneSnapshot(
         _ context: PaneContext,
-        caller: PaneContext
+        caller: PaneContext?
     ) -> ZshellJSONValue {
         let contentKind: String = switch context.pane.content {
         case .session: "terminal"
@@ -752,7 +758,7 @@ enum ZshellAutomationRouter {
             "pane_id": .string(context.pane.id.uuidString),
             "content": .string(contentKind),
             "title": .string(context.pane.content.title),
-            "is_caller": .bool(context.pane.id == caller.pane.id),
+            "is_caller": .bool(context.pane.id == caller?.pane.id),
             "is_focused": .bool(
                 context.manager.selectedProjectID == context.project.id
                     && context.project.selectedTabID == context.tab.id
@@ -765,6 +771,7 @@ enum ZshellAutomationRouter {
             object["shell_available"] = .bool(session.isShellAvailableForAutomation)
             object["exited"] = .bool(session.hasExited)
             object["agent"] = session.agentStatus.map(agentSnapshot) ?? .null
+            object["worktree"] = session.worktree?.snapshot ?? .null
         }
         if case .browser(let browser) = context.pane.content {
             object["browser_id"] = .string(browser.id.uuidString)
@@ -772,7 +779,7 @@ enum ZshellAutomationRouter {
         return .object(object)
     }
 
-    private static func agentSnapshot(_ status: ZshellAgentStatus) -> ZshellJSONValue {
+    static func agentSnapshot(_ status: ZshellAgentStatus) -> ZshellJSONValue {
         .object([
             "alias": .string(status.alias),
             "kind": .string(status.kind.rawValue),

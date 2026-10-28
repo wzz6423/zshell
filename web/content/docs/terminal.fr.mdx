@@ -32,6 +32,14 @@ Les deux moteurs annoncent Ghostty via `TERM_PROGRAM`, car les outils prenant en
 Zshell ne lit ni `~/.config/ghostty` ni les réglages d'Alacritty. Les polices, couleurs, comportements de saisie et moteurs sont configurés dans les [réglages de Zshell](/fr/docs/configuration).
 </Callout>
 
+## Autorisations système [#system-permissions]
+
+Les programmes locaux exécutés dans un terminal Zshell peuvent demander l’accès à la caméra ou au microphone, ou le contrôle d’une autre app via Apple Events.
+macOS attribue ces demandes à Zshell ; n’autorisez que les programmes de confiance. L’autorisation d’automatisation est propre à chaque app cible.
+
+Gérez les accès dans **Réglages Système → Confidentialité et sécurité → Caméra, Microphone ou Automatisation**.
+Refuser une demande bloque la fonctionnalité concernée. Zshell n’accorde pas ces autorisations automatiquement.
+
 ## Recherche [#search]
 
 | Action | Raccourci |

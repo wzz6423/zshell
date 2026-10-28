@@ -76,6 +76,22 @@ Daftar panjang bergulir dalam area terbatasnya sendiri; header bagian, kontrol c
 Pohon kerja dengan HEAD terlepas menampilkan **Detached HEAD** sebagai pengganti nama cabang.
 Repositori bare tetap dicantumkan, tetapi tidak memiliki direktori kerja sehingga tidak dapat dibuka dalam tab terminal.
 
+### Sesi worktree [#worktree-sessions]
+
+Dari terminal dalam repositori Git lokal, pilih **Terminal → Sesi Baru di Worktree…** atau tekan <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>. Menu konteks tab dan tombol **+** menyediakan tindakan yang sama. Pilih cabang lokal baru atau yang sudah ada serta direktori yang belum ada. Cabang baru dimulai dari cabang bawaan repositori; **HEAD Saat Ini** dapat dipilih secara eksplisit. Cabang yang ada mempertahankan commit saat ini. Direktori yang disarankan berada di sebelah checkout sumber.
+
+Panel yang dibagi mewarisi hubungan worktree sesi, dan tata letak tersimpan memulihkannya. Saat menutup sesi terkait, pilih **Pertahankan Worktree**, **Hapus Worktree**, atau **Batal**. Penghapusan hanya tersedia tanpa file yang diubah, tidak dilacak, atau diabaikan, commit di luar referensi tercatat, kunci, dan sesi terbuka lain yang memakai checkout. Cabang Git selalu dipertahankan.
+
+Terminal eksternal dapat membuat dan menutup sesi dengan `zshell +session`. Gunakan ID dari `projects` untuk `--project`; di dalam Zshell, proyek terminal pemanggil digunakan secara otomatis. Sesi dibuat di latar belakang kecuali Anda menambahkan `--focus`. `--base HEAD` atau `--base REF` memilih referensi lain dan `--worktree NEW_DIR` menentukan direktori. `--connection FILE` memilih instans yang berjalan jika diperlukan. Penutupan mempertahankan worktree tanpa `--remove-worktree` eksplisit; `check` melaporkan apakah pembersihan saat ini aman.
+
+```sh
+zshell +session projects
+zshell +session new --project PROJECT_ID --cwd /path/to/repo --branch feat/task
+zshell +session list --project PROJECT_ID
+zshell +session check --project PROJECT_ID --session SESSION_ID
+zshell +session close --project PROJECT_ID --session SESSION_ID --remove-worktree
+```
+
 ## Remote [#remotes]
 
 Menu **⋯** memuat tindakan komunikasi dengan remote:

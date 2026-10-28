@@ -30,9 +30,10 @@ struct TerminalHostView: NSViewRepresentable {
         let container = TerminalContainerView()
         guard session.belongs(to: manager) else { return container }
         let terminal = session.surface
+        let didFocus = onFocused
         container.terminal = terminal
         container.focusOnAppear = isFocused
-        terminal.onBecomeFirstResponder = onFocused
+        terminal.onBecomeFirstResponder = { [weak session] in session?.terminalDidBecomeFocused(); didFocus() }
         terminal.splitTarget.onSplit = onSplit
         terminal.splitTarget.onNewBrowserTab = onNewBrowserTab
         terminal.splitTarget.onNewBrowserPane = onNewBrowserPane
@@ -65,7 +66,8 @@ struct TerminalHostView: NSViewRepresentable {
                 container?.layoutSubtreeIfNeeded()
             }
         }
-        session.surface.onBecomeFirstResponder = onFocused
+        let didFocus = onFocused
+        session.surface.onBecomeFirstResponder = { [weak session] in session?.terminalDidBecomeFocused(); didFocus() }
         session.surface.splitTarget.onSplit = onSplit
         session.surface.splitTarget.onNewBrowserTab = onNewBrowserTab
         session.surface.splitTarget.onNewBrowserPane = onNewBrowserPane

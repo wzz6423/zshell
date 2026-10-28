@@ -13,6 +13,7 @@ enum SettingsCategory: String, CaseIterable {
     case appearance
     case terminal
     case editor
+    case browser
     case automation
     case recommendations
     case updates
@@ -24,6 +25,7 @@ enum SettingsCategory: String, CaseIterable {
         case .appearance: String(localized: "Appearance")
         case .terminal: String(localized: "Terminal")
         case .editor: String(localized: "Editor")
+        case .browser: String(localized: "Browser")
         case .automation: String(localized: "AI")
         case .recommendations: String(localized: "Recommendations")
         case .updates: String(localized: "Updates")
@@ -37,6 +39,7 @@ enum SettingsCategory: String, CaseIterable {
         case .appearance: "paintpalette.fill"
         case .terminal: "terminal.fill"
         case .editor: "curlybraces"
+        case .browser: "globe"
         case .automation: "sparkles"
         case .recommendations: "star.circle.fill"
         case .updates: "arrow.down.circle.fill"
@@ -50,6 +53,7 @@ enum SettingsCategory: String, CaseIterable {
         case .appearance: SettingsAppearancePane()
         case .terminal: SettingsTerminalPane()
         case .editor: SettingsEditorPane()
+        case .browser: SettingsBrowserPane()
         case .automation: SettingsAutomationPane()
         case .recommendations: SettingsRecommendationsPane()
         case .updates: SettingsUpdatesPane()

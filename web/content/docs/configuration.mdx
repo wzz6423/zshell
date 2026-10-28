@@ -32,6 +32,16 @@ Worth knowing before you hand-edit:
 - **Bad values fall back safely.** An out-of-range size, unknown backend, or
   misspelled theme does not stop Zshell from launching.
 
+## Application presence [#application-presence]
+
+### `app-presence`
+
+`"dock"` · `"dock-and-menu-bar"` · `"menu-bar"` — default `"dock"`
+
+Choose **Settings → General → Show Zshell in** to switch immediately. `"dock"` shows only the Dock icon. `"dock-and-menu-bar"` shows both icons. `"menu-bar"` shows only the menu bar icon.
+
+The menu bar opens the current workspace, Quick Terminal, Settings, and the update checker. With either menu bar mode, closing the last workspace window hides it while its terminals and jobs keep running. **Open Workspace** returns to that same window, project, and session. Closing another workspace window, a pane, or a project still ends its tasks. Explicit **Quit** keeps following `terminal.preserve-sessions`; **Quit and End All Sessions** ends them. The mode is saved across launches.
+
 ## Appearance
 
 ### `theme`
@@ -160,7 +170,8 @@ restores its terminal screen and input modes with either backend. The daemon
 keeps bounded screen history in memory; it does not survive a macOS restart. If
 the PTY is no longer alive, the pane opens a fresh shell instead.
 
-Closing a pane, project, or window still ends its tasks. Use **Zshell → Quit and
+Closing a pane, project, or window still ends its tasks, except for the last
+workspace window in a [menu bar mode](#application-presence). Use **Zshell → Quit and
 End All Sessions**, or turn this setting off before quitting, to end every
 background session, including a hidden Quick Terminal. In reuse mode, hiding the Quick Terminal
 keeps its shells alive; this setting controls whether newly opened reusable panes

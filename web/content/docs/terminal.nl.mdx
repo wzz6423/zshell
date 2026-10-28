@@ -32,6 +32,14 @@ Beide backends melden Ghostty via `TERM_PROGRAM`, omdat CLI's met ondersteuning 
 Zshell leest `~/.config/ghostty` noch een Alacritty-configuratie. Lettertypen, kleuren, invoergedrag en de backend stel je in via de eigen [instellingen](/nl/docs/configuration) van Zshell.
 </Callout>
 
+## Systeemrechten [#system-permissions]
+
+Lokale programma’s in een Zshell-terminal kunnen toegang tot de camera of microfoon vragen, of een andere app via Apple Events aansturen.
+macOS schrijft deze verzoeken toe aan Zshell; geef alleen vertrouwde programma’s toegang. Automatisering moet voor elke doelapp apart worden toegestaan.
+
+Beheer de toegang via **Systeeminstellingen → Privacy en beveiliging → Camera, Microfoon of Automatisering**.
+Een verzoek weigeren blokkeert die functie. Zshell verleent deze rechten niet automatisch.
+
 ## Zoeken [#search]
 
 | Actie | Sneltoets |
