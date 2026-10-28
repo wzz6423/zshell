@@ -20,16 +20,28 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.servicesProvider = self
         WindowScreenConstraint.shared.start()
-        installTerminalEnvironmentMenu()
-        installEndAllSessionsMenu()
-        AppMenuLocalization.shared.start()
+        restoreTerminalMenus()
+        AppMenuLocalization.shared.start(applicationDelegate: self)
         GlobalTerminalOverlay.shared.start()
     }
 
+    func restoreTerminalMenus() {
+        installTerminalEnvironmentMenu()
+        installEndAllSessionsMenu()
+    }
+
     private func installTerminalEnvironmentMenu() {
-        guard let mainMenu = NSApp.mainMenu else { return }
+        guard let mainMenu = NSApp.mainMenu,
+              !mainMenu.items.contains(where: { item in
+                  item.submenu?.items.contains(where: { $0.action == #selector(newSessionInWorktree) }) == true
+              }) else { return }
         let title = String(localized: "Terminal")
         let submenu = NSMenu(title: title)
+        let worktree = NSMenuItem(title: AppCommand.newSessionInWorktree.title,
+                                 action: #selector(newSessionInWorktree), keyEquivalent: "t")
+        worktree.keyEquivalentModifierMask = [.command, .option]
+        submenu.addItem(worktree)
+        submenu.addItem(.separator())
         submenu.addItem(NSMenuItem(
             title: String(localized: "Project Terminal Environment…"),
             action: #selector(editProjectTerminalEnvironment),
@@ -48,7 +60,8 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
     }
 
     private func installEndAllSessionsMenu() {
-        guard let menu = NSApp.mainMenu?.items.first?.submenu else { return }
+        guard let menu = NSApp.mainMenu?.items.first?.submenu,
+              !menu.items.contains(where: { $0.action == #selector(quitAndEndAllSessions) }) else { return }
         let item = NSMenuItem(
             title: String(localized: "Quit and End All Sessions"),
             action: #selector(quitAndEndAllSessions), keyEquivalent: ""
@@ -76,6 +89,10 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
         TerminalEnvironmentEditorController.show(project: project)
     }
 
+    @objc private func newSessionInWorktree() {
+        TerminalManager.activeWindowManager?.promptForWorktreeSession()
+    }
+
     @objc private func editTabTerminalEnvironment() {
         guard let project = TerminalManager.activeWindowManager?.selectedProject,
               let tab = project.selectedTab else {
@@ -87,6 +104,8 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         switch menuItem.action {
+        case #selector(newSessionInWorktree):
+            TerminalManager.activeWindowManager?.selectedProject?.isRemote == false
         case #selector(editProjectTerminalEnvironment):
             TerminalManager.activeWindowManager?.selectedProject != nil
         case #selector(editTabTerminalEnvironment):

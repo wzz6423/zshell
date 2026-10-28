@@ -99,3 +99,35 @@ Zshell cài hook SessionStart cho Claude Code và Codex, phần mở rộng Pi v
 Chỉ tiếp tục cuộc trò chuyện gốc cục bộ được các tích hợp này báo cáo. Codex cần CLI cục bộ nhúng (`--no-daemon`); daemon dùng chung và kết nối từ xa không được hỗ trợ. OpenCode cần API plugin TUI; phiên bản cũ, phiên máy chủ không giao diện và `opencode attach` không được hỗ trợ. Tác nhân con không thể thay cuộc trò chuyện của ngăn cha. Pi cần tệp phiên đã lưu.
 
 Thiếu danh tính được xác minh, thư mục gốc hoặc tệp Pi sẽ mở shell mới. Không tìm thấy CLI cũng quay về shell. Zshell không chạy lại lệnh khởi động tùy ý hoặc chọn cuộc trò chuyện gần nhất. CLI hiển thị lỗi nhà cung cấp, như cuộc trò chuyện đã bị xóa.
+
+## Tìm và tiếp tục hội thoại đã lưu [#saved-conversation-history]
+
+Mở **Tác tử → Lịch sử hội thoại của tác nhân**, nhấn đồng hồ ở đầu thanh bên dự án. Tìm trên các dự án theo tiêu đề, nhà cung cấp, dự án, ID hội thoại, thư mục làm việc hoặc cấu hình. Zshell giữ 200 hội thoại cục bộ đã xác minh gần nhất sau khi tác nhân và ngăn đóng, cũng như sau khi ứng dụng khởi động lại. **Gần đây** hiển thị 20 kết quả chưa lưu trữ; **Tất cả** bao gồm mục đã lưu trữ; **Đã lưu trữ** chỉ hiển thị các mục đó.
+
+Chọn **Hiện hội thoại** nếu đang mở hoặc **Tiếp tục hội thoại** nếu đã lưu. Zshell dùng lại ngăn đang mở, kết nối lại PTY còn hoạt động hoặc tiếp tục đúng hội thoại của nhà cung cấp bằng thư mục và cấu hình ban đầu. Tiếp tục thủ công cần bật tích hợp AI ngay cả khi tắt khôi phục tự động. Thư mục bị thiếu hoặc tệp Pi bị thiếu hay không khớp sẽ báo lỗi trước khi tạo ngăn.
+
+**Lưu trữ** ẩn mục khỏi Gần đây; **Bỏ lưu trữ** đưa mục trở lại. **Xóa…** chỉ xóa lịch sử Zshell và giữ tệp hội thoại của nhà cung cấp.
+
+Trong ngăn Zshell, `zshell +agent history --all` và `zshell +agent resume --id HISTORY_UUID` giới hạn ở dự án của ngăn. Từ terminal bên ngoài thông thường, giữ Zshell chạy, tìm UUID dự án rồi chọn rõ ràng:
+
+```sh
+zshell +agent history projects
+zshell +agent history --project PROJECT_UUID --all
+zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
+```
+
+CLI tiếp tục ở nền trừ khi thêm `--focus`. Với dự án mở trong nhiều cửa sổ, chọn `--window WINDOW_UUID` từ `history projects`. Nếu có nhiều phiên bản ứng dụng đang chạy, dùng `--connection PATH` với đường dẫn tuyệt đối của tệp kết nối riêng do CLI chỉ ra. Các tùy chọn này dành cho terminal bên ngoài; tiến trình trong ngăn vẫn giữ phạm vi dự án ban đầu.
+
+## Theo dõi sự kiện dự án trực tiếp [#live-events]
+
+Chạy `zshell +events` trong terminal Zshell để nhận thay đổi tiếp theo của dự án và cửa sổ đó dưới dạng NDJSON, không thăm dò định kỳ. Tùy chọn: --pane UUID, --event NAME có thể lặp lại, --once và --timeout MS (0 chờ vô hạn).
+
+Bao gồm tạo và đóng phiên, ngăn, tiêu điểm, tiến độ, yêu cầu chú ý và hoàn thành của agent, cùng lệnh hoàn tất. stream.ready bắt đầu ở sequence 0; mỗi sự kiện khớp tăng thứ tự. Mỗi dòng gồm version, event, stream_id, sequence, time theo mili giây Unix, project_id và data. Không phát lại lịch sử. Đọc kết quả bằng +pane wait --task UUID.
+
+Giới hạn: 32 đăng ký, 256 khung và 1 MiB mỗi hàng đợi, 64 KiB mỗi khung. Bên đọc chậm nhận stream.lagged nếu có thể rồi ngắt; không ghi được trong 2 giây cũng đóng kết nối. Chậm, ngắt bất ngờ hoặc sai thứ tự trả mã khác 0. Đăng ký lại và đọc trạng thái hiện tại. Đóng terminal, đổi token hoặc chuyển sang dự án/cửa sổ khác kết thúc đăng ký. Không có điều khiển bên ngoài hay --project; xóa biến môi trường không tăng quyền. --once hết giờ không khớp trả 124; hết giờ thông thường trả 0.
+
+```sh
+zshell +events --event command.task.finished --once --timeout 30000
+```
+
+`pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).

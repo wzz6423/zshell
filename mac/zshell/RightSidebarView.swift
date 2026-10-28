@@ -120,7 +120,7 @@ struct RightSidebarView: View {
                     origPath: file.originalPath
                 )
             },
-            openWorktree: { manager.newSession(directory: $0) }
+            openWorktree: { manager.openWorktreeSession(at: $0) }
         )
     }
 
@@ -283,7 +283,7 @@ struct RightSidebarView: View {
             // configured the endpoint and remote root — syncing git here
             // with a local root would clobber that.
             fileTree.configureRemote(project.remoteEndpoint)
-            fileTree.sync(root: project.remoteDirectory ?? "~")
+            fileTree.sync(root: project.remoteEndpoint == nil ? "" : project.remoteDirectory ?? "~")
             info.sync(
                 root: "", projectRoot: "",
                 projectRootSource: .shell,

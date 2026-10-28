@@ -5,6 +5,15 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
     enum Provider: String, Codable, CaseIterable, Sendable {
         case claude, codex, pi, opencode
 
+        var displayName: String {
+            switch self {
+            case .claude: "Claude Code"
+            case .codex: "Codex"
+            case .pi: "Pi"
+            case .opencode: "OpenCode"
+            }
+        }
+
         var configurationVariable: String {
             switch self {
             case .claude: "CLAUDE_CONFIG_DIR"
@@ -136,6 +145,13 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
         let workingDirectory: String
         let environment: [String: String]
         let configurationVariables: Set<String>
+    }
+
+    func matchesConversation(_ other: Self) -> Bool {
+        provider == other.provider && sessionID == other.sessionID
+            && workingDirectory == other.workingDirectory && configDirectory == other.configDirectory
+            && (configurationEnvironment ?? [:]) == (other.configurationEnvironment ?? [:])
+            && sessionFile == other.sessionFile
     }
 
     /// Called only after the terminal persistence layer cannot reconnect a PTY.

@@ -95,6 +95,7 @@ final class ProjectSidebarNSView: NSView {
     private let scrollView = NSScrollView()
     private let document = ProjectSidebarDocumentView()
     private let sidebarButton = WorkspaceChromeButton(symbol: "sidebar.left", label: AppCommand.toggleLeftSidebar.title)
+    private let historyButton = WorkspaceChromeButton(symbol: "clock.arrow.circlepath", label: String(localized: "Agent Conversation History"))
     private let updateButton = WorkspaceChromeButton(symbol: "arrow.down.circle", label: String(localized: "Update Available")) {
         Updater.shared.showAvailableUpdate()
     }
@@ -142,12 +143,13 @@ final class ProjectSidebarNSView: NSView {
         fpsLabel.textColor = .secondaryLabelColor
         fpsLabel.isHidden = true
         addSubview(material)
-        for view in [windowDrag, scrollView, fpsLabel, sidebarButton] { addSubview(view) }
+        for view in [windowDrag, scrollView, fpsLabel, historyButton, sidebarButton] { addSubview(view) }
         sidebarButton.onAction = { [weak manager] in manager?.toggleLeftSidebar() }
+        historyButton.onAction = { [weak manager] in manager?.showConversationHistory() }
         footerButtons = [
             WorkspaceChromeButton(symbol: "plus", label: AppCommand.newProject.title) { [weak manager] in manager?.newProject() },
             WorkspaceChromeButton(symbol: "folder.badge.plus", label: String(localized: "New Group")) { [weak self] in self?.showNewGroupMenu() },
-            WorkspaceChromeButton(symbol: "network", label: String(localized: "New SSH Project")) { [weak manager] in manager?.promptForSSHProject() },
+            WorkspaceChromeButton(symbol: "network", label: String(localized: "Remote Connections")) { [weak self] in self?.showRemoteMenu() },
             WorkspaceChromeButton(symbol: "bolt", label: String(localized: "Quick Launch (⌘O)")) { [weak manager] in manager?.toggleQuickLaunch() },
             WorkspaceChromeButton(symbol: "exclamationmark.bubble", label: String(localized: "Send Feedback")) {
                 NSWorkspace.shared.open(URL(string: "https://github.com/wzz6423/zshell/issues/new")!)
@@ -224,10 +226,11 @@ final class ProjectSidebarNSView: NSView {
         outline.drawsOuterEdge = material.isHidden
         outline.needsDisplay = true
         sidebarButton.configure(symbol: "sidebar.left", command: .toggleLeftSidebar, pointSize: 12 * scale)
+        historyButton.configure(symbol: "clock.arrow.circlepath", label: String(localized: "Agent Conversation History"), pointSize: 12 * scale)
         footerButtons[0].configure(symbol: "plus", command: .newProject, pointSize: 12 * scale)
         let footerItems = [
             ("folder.badge.plus", String(localized: "New Group")),
-            ("network", String(localized: "New SSH Project")),
+            ("network", String(localized: "Remote Connections")),
             ("bolt", String(localized: "Quick Launch (⌘O)")),
             ("exclamationmark.bubble", String(localized: "Send Feedback")),
             ("gearshape", String(localized: "Settings (⌘,)")),
@@ -250,12 +253,14 @@ final class ProjectSidebarNSView: NSView {
 
     private func configure(_ row: WorkspaceItemView, project: Project, shortcut: String?) {
         let subtitle: String?
-        if project.sessions.count > 1 { subtitle = String(localized: "\(project.sessions.count) sessions") }
+        if project.sharedHost != nil { subtitle = project.selectedSession?.remoteStatus?.label ?? String(localized: "Connecting…") }
+        else if project.sessions.count > 1 { subtitle = String(localized: "\(project.sessions.count) sessions") }
         else { subtitle = project.selectedSession?.directoryLabel }
         let groupColor = groupStore.group(id: project.groupID).map {
             $0.markerColor ?? .defaultColor
         }
-        row.apply(title: project.name, subtitle: subtitle,
+        let title = project.sharedHost.map { "\(project.name) — \($0.name)" } ?? project.name
+        row.apply(title: title, subtitle: subtitle,
                   icon: NSImage(systemSymbolName: project.isRemote ? "network" : "folder", accessibilityDescription: nil),
                   selected: project.id == manager.selectedProjectID, pinned: project.isPinned,
                   marker: groupColor ?? project.markerColor, rollup: project.agentRollup, sidebar: true,
@@ -343,9 +348,10 @@ final class ProjectSidebarNSView: NSView {
         let headerHeight: CGFloat = 38
         let buttonSize = min(34, max(24, 24 * scale))
         sidebarButton.frame = NSRect(x: bounds.width - buttonSize - 8, y: (headerHeight - buttonSize) / 2, width: buttonSize, height: buttonSize)
-        windowDrag.frame = NSRect(x: 0, y: 0, width: sidebarButton.frame.minX, height: headerHeight)
-        fpsLabel.isHidden = !manager.isFPSCounterVisible || bounds.width < 210
-        fpsLabel.frame = NSRect(x: sidebarButton.frame.minX - 55, y: 12, width: 52, height: 16)
+        historyButton.frame = NSRect(x: sidebarButton.frame.minX - buttonSize - 4, y: sidebarButton.frame.minY, width: buttonSize, height: buttonSize)
+        windowDrag.frame = NSRect(x: 0, y: 0, width: historyButton.frame.minX, height: headerHeight)
+        fpsLabel.isHidden = !manager.isFPSCounterVisible || bounds.width < 250
+        fpsLabel.frame = NSRect(x: historyButton.frame.minX - 55, y: 12, width: 52, height: 16)
         let footerY = max(headerHeight, bounds.height - bottomBarHeight)
         scrollView.frame = NSRect(x: 0, y: headerHeight, width: bounds.width, height: max(0, footerY - headerHeight))
         let side = min(max(24, 26 * scale), max(0, (bounds.width - 16) / (updateButton.isHidden ? 6 : 7)))
@@ -615,6 +621,13 @@ final class ProjectSidebarNSView: NSView {
         menuPresenter.popUp(items: newGroupMenuItems(), at: NSPoint(x: 0, y: 0), in: button)
     }
 
+    private func showRemoteMenu() {
+        menuPresenter.popUp(items: [
+            .action(title: String(localized: "Remote Hosts…")) { [weak manager] in manager?.promptForRemoteHosts() },
+            .action(title: String(localized: "New SSH Project")) { [weak manager] in manager?.promptForSSHProject() },
+        ], at: NSPoint(x: 0, y: 0), in: footerButtons[2])
+    }
+
     private func createGroup(kind: ProjectGroup.Kind) {
         let name: String
         if case .plain = kind {
@@ -652,6 +665,20 @@ final class ProjectSidebarNSView: NSView {
             .action(title: String(localized: project.isPinned ? "Unpin Project" : "Pin Project")) { [weak manager] in manager?.setPinned(!project.isPinned, for: project) },
             .action(title: String(localized: "Rename…")) { [weak row] in row?.onRename?() },
         ]
+        if project.sharedHost != nil {
+            items += [
+                .separator,
+                .action(title: String(localized: "Reconnect Remote Host")) { project.sessions.forEach { $0.remoteConnection?.reconnect() } },
+                .action(title: String(localized: "Remote Hosts…")) { [weak manager] in manager?.promptForRemoteHosts() },
+            ]
+            if let session = project.selectedSession, let connection = session.remoteConnection {
+                items += [
+                    .action(title: String(localized: "Take Terminal Control"), enabled: !session.hasExited) { connection.takeControl() },
+                    .action(title: String(localized: "Detach Remote Session"), enabled: !session.hasExited) { connection.detach() },
+                    .action(title: String(localized: "End Remote Session…")) { [weak row] in RemoteHostsController.endSession(session, relativeTo: row?.window) },
+                ]
+            }
+        }
         if project.customName != nil { items.append(.action(title: String(localized: "Use Automatic Title")) { project.customName = nil }) }
         items += [.separator, .submenu(title: String(localized: "Move to Group"), items: groups), .separator]
         items.append(.action(title: String(localized: "Set Color Marker…")) {

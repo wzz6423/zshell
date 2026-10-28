@@ -13,6 +13,7 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
         case invalidHost
         case invalidUser
         case invalidPort
+        case invalidConfiguration
 
         var errorDescription: String? {
             switch self {
@@ -24,6 +25,8 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
                 String(localized: "The user can’t contain “@” or whitespace.")
             case .invalidPort:
                 String(localized: "Enter a port from 1 to 65535.")
+            case .invalidConfiguration:
+                String(localized: "SSH configuration must be an existing readable file at an absolute path.")
             }
         }
     }
@@ -59,8 +62,8 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
         remoteDirectory: String?,
         authentication: SSHAuthentication = .agent,
         identityFile: String? = nil
-    ) -> [String] {
-        var arguments = connectionArguments + authentication.arguments(identityFile: identityFile) + [
+    ) throws -> [String] {
+        var arguments = try connectionArguments + authentication.arguments(identityFile: identityFile) + [
             "-o", "StrictHostKeyChecking=ask",
             "-o", "ConnectTimeout=10",
         ]
@@ -78,9 +81,9 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
         command: [String],
         authentication: SSHAuthentication = .agent,
         identityFile: String? = nil
-    ) -> [String] {
+    ) throws -> [String] {
         let timeoutSeconds = max(1, Int(connectTimeout.rounded(.up)))
-        return connectionArguments + authentication.arguments(identityFile: identityFile) + [
+        return try connectionArguments + authentication.arguments(identityFile: identityFile) + [
             "-o", "StrictHostKeyChecking=yes",
             "-o", "ConnectionAttempts=1",
             "-o", "ConnectTimeout=\(timeoutSeconds)",
@@ -91,8 +94,20 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
     }
 
     private var connectionArguments: [String] {
-        guard let port else { return [] }
-        return ["-p", String(port)]
+        get throws {
+            var arguments = try Self.configurationArguments()
+            if let port { arguments += ["-p", String(port)] }
+            return arguments
+        }
+    }
+
+    static func configurationArguments(environment: [String: String] = ProcessInfo.processInfo.environment) throws -> [String] {
+        guard let path = environment["ZSHELL_SSH_CONFIG_FILE"], !path.isEmpty else { return [] }
+        var isDirectory = ObjCBool(false)
+        guard path.hasPrefix("/"), !path.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains),
+              FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), !isDirectory.boolValue,
+              FileManager.default.isReadableFile(atPath: path) else { throw ValidationError.invalidConfiguration }
+        return ["-F", path]
     }
 
     private static func shellQuote(_ value: String) -> String {
@@ -435,6 +450,7 @@ enum RemoteConnectionState: Equatable {
 
 enum ProjectLocation: Codable, Equatable, Sendable {
     case local
+    case shared(host: RemoteHost, directory: String)
     case ssh(
         endpoint: SSHEndpoint,
         remoteDirectory: String?,
@@ -443,24 +459,34 @@ enum ProjectLocation: Codable, Equatable, Sendable {
     )
 
     var isRemote: Bool {
-        if case .ssh = self { return true }
-        return false
+        switch self {
+        case .local: false
+        case .ssh, .shared: true
+        }
     }
 }
 
 extension ProjectLocation {
     private enum CodingKeys: String, CodingKey {
-        case local, ssh
+        case local, ssh, shared
     }
 
     private enum SSHCodingKeys: String, CodingKey {
         case endpoint, remoteDirectory, authentication, credentialID
     }
 
+    private enum SharedCodingKeys: String, CodingKey { case host, directory }
+
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         if container.contains(.local) {
             self = .local
+            return
+        }
+        if container.contains(.shared) {
+            let shared = try container.nestedContainer(keyedBy: SharedCodingKeys.self, forKey: .shared)
+            self = .shared(host: try shared.decode(RemoteHost.self, forKey: .host),
+                           directory: try shared.decode(String.self, forKey: .directory))
             return
         }
         let ssh = try container.nestedContainer(keyedBy: SSHCodingKeys.self, forKey: .ssh)
@@ -478,6 +504,10 @@ extension ProjectLocation {
         switch self {
         case .local:
             _ = container.nestedContainer(keyedBy: EmptyCodingKeys.self, forKey: .local)
+        case let .shared(host, directory):
+            var shared = container.nestedContainer(keyedBy: SharedCodingKeys.self, forKey: .shared)
+            try shared.encode(host, forKey: .host)
+            try shared.encode(directory, forKey: .directory)
         case let .ssh(endpoint, remoteDirectory, authentication, credentialID):
             var ssh = container.nestedContainer(keyedBy: SSHCodingKeys.self, forKey: .ssh)
             try ssh.encode(endpoint, forKey: .endpoint)
@@ -616,7 +646,7 @@ nonisolated struct OpenSSHTransport {
         }
         let result = try BoundedProcessRunner.run(
             executableURL: executableURL,
-            arguments: endpoint.transportArguments(
+            arguments: try endpoint.transportArguments(
                 connectTimeout: timeout,
                 command: command,
                 authentication: authentication,

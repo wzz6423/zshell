@@ -67,6 +67,22 @@ Das Git-Panel listet alle Worktrees des Repositorys mit Branch und Checkout-Pfad
 
 Worktrees mit losgelöstem HEAD zeigen **Detached HEAD** statt eines Branchnamens. Bare-Repositorys werden der Vollständigkeit halber aufgeführt, haben aber kein Arbeitsverzeichnis und können nicht in einem Terminal-Tab geöffnet werden.
 
+### Worktree-Sitzungen [#worktree-sessions]
+
+Wählen Sie in einem Terminal eines lokalen Git-Repositorys **Terminal → Neue Sitzung im Worktree…** oder drücken Sie <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>. Die Kontextmenüs des Tabs und der **+**-Schaltfläche bieten dieselbe Aktion. Wählen Sie einen neuen oder vorhandenen lokalen Zweig und ein noch nicht vorhandenes Verzeichnis. Neue Zweige beginnen am Standardzweig des Repositorys; **Aktueller HEAD** ist eine ausdrückliche Auswahl. Vorhandene Zweige behalten ihren aktuellen Commit. Das vorgeschlagene Verzeichnis liegt neben dem Quell-Checkout.
+
+Geteilte Bereiche übernehmen die Worktree-Zuordnung, und die gespeicherte Anordnung stellt sie wieder her. Beim Schließen einer zugeordneten Sitzung wählen Sie **Worktree behalten**, **Worktree entfernen** oder **Abbrechen**. Das Entfernen ist nur ohne geänderte, nicht verfolgte oder ignorierte Dateien, nicht integrierte Commits gegenüber der gespeicherten Basisreferenz, Sperre und andere offene Sitzungen im Checkout möglich. Der Git-Zweig bleibt immer erhalten.
+
+Ein externes Terminal kann mit `zshell +session` Sitzungen erstellen und schließen. Verwenden Sie eine von `projects` zurückgegebene ID für `--project`; in Zshell wird automatisch das Projekt des aufrufenden Terminals verwendet. Neue Sitzungen bleiben ohne `--focus` im Hintergrund. `--base HEAD` oder `--base REF` wählt eine andere Basisreferenz, `--worktree NEW_DIR` legt das Verzeichnis fest. Bei Bedarf wählt `--connection FILE` eine laufende Instanz aus. Das Schließen behält den Worktree ohne ausdrückliches `--remove-worktree`; `check` zeigt, ob eine sichere Bereinigung möglich ist.
+
+```sh
+zshell +session projects
+zshell +session new --project PROJECT_ID --cwd /path/to/repo --branch feat/task
+zshell +session list --project PROJECT_ID
+zshell +session check --project PROJECT_ID --session SESSION_ID
+zshell +session close --project PROJECT_ID --session SESSION_ID --remove-worktree
+```
+
 ## Remotes [#remotes]
 
 Das Menü **⋯** enthält alle Aktionen für entfernte Repositorys:

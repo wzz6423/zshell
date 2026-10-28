@@ -146,6 +146,8 @@ struct TerminalLaunch {
     let workingDirectory: String
     let environment: [String: String]
     var foregroundProcessProvider: (() -> pid_t?)? = nil
+    /// A remote relay's local process directory cannot describe the remote shell.
+    var reportsLocalWorkingDirectory = true
 
     /// Zshell enables prompt-local selection edits only for zsh. Other shells
     /// keep ordinary terminal text-selection semantics.

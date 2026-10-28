@@ -396,8 +396,12 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// Overrides applied only when this tab creates a later terminal. Existing
     /// terminal panes keep the process environment they were launched with.
     @Published var launchSettingsOverride = TerminalLaunchSettingsOverride()
-    @Published var layout: PaneNode
-    @Published var focusedPaneID: UUID
+    @Published var layout: PaneNode {
+        didSet { ZshellAutomationEventHub.shared.topologyChanged() }
+    }
+    @Published var focusedPaneID: UUID {
+        didSet { ZshellAutomationEventHub.shared.topologyChanged() }
+    }
     /// Whether the focused pane is zoomed to fill the tab. Presentation-only:
     /// the split tree and fractions stay intact underneath, and the layout
     /// simply renders the focused pane alone while set — so zoom follows a
