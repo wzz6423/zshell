@@ -641,6 +641,10 @@ private func run() throws -> Int32 {
         )
         return 0
     }
+    if arguments.first == "+session" {
+        try ZshellSessionCommandLine.run(arguments: Array(arguments.dropFirst()))
+        return 0
+    }
     if arguments.first == "+pane" || arguments.first == "+agent" {
         return try ZshellAutomationCommandLine.run(
             namespace: arguments[0],

@@ -89,7 +89,7 @@ struct PersistentCLIConnection: Codable {
         try verifyPrivateDirectory(url)
     }
 
-    private static func verifyPrivateDirectory(_ url: URL) throws {
+    static func verifyPrivateDirectory(_ url: URL) throws {
         var metadata = stat()
         guard lstat(url.path, &metadata) == 0,
               metadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFDIR),
@@ -98,7 +98,7 @@ struct PersistentCLIConnection: Codable {
         }
     }
 
-    private static func readPrivate(_ url: URL) throws -> Data {
+    static func readPrivate(_ url: URL, maximumBytes: Int = PTYMuxConstants.maximumFrameBytes) throws -> Data {
         let descriptor = Darwin.open(url.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
         guard descriptor >= 0 else { throw PTYMuxWire.errnoError("open") }
         defer { Darwin.close(descriptor) }
@@ -107,12 +107,12 @@ struct PersistentCLIConnection: Codable {
               metadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG),
               metadata.st_mode & 0o777 == 0o600, metadata.st_uid == geteuid(),
               metadata.st_nlink == 1, metadata.st_size > 0,
-              metadata.st_size <= PTYMuxConstants.maximumFrameBytes else {
+              metadata.st_size <= maximumBytes else {
             throw CLIError.message("Persistent terminal connection must be a private 0600 file.")
         }
         var data = Data()
         var buffer = [UInt8](repeating: 0, count: 4096)
-        while data.count <= PTYMuxConstants.maximumFrameBytes {
+        while data.count <= maximumBytes {
             let count = Darwin.read(descriptor, &buffer, buffer.count)
             if count > 0 { data.append(contentsOf: buffer.prefix(count)) }
             else if count == 0 { return data }
@@ -121,12 +121,13 @@ struct PersistentCLIConnection: Codable {
         throw CLIError.message("Persistent terminal connection exceeds its size limit.")
     }
 
-    private static func writePrivate(_ data: Data, to url: URL, mode: mode_t = 0o600) throws {
+    static func writePrivate(_ data: Data, to url: URL, mode: mode_t = 0o600, durable: Bool = false) throws {
         let temporary = url.deletingLastPathComponent().appendingPathComponent(".\(UUID().uuidString)")
         let descriptor = Darwin.open(temporary.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, mode)
         guard descriptor >= 0 else { throw PTYMuxWire.errnoError("open") }
         defer { Darwin.close(descriptor); unlink(temporary.path) }
         try PTYMuxWire.writeAll(data, to: descriptor)
+        if durable, fsync(descriptor) != 0 { throw PTYMuxWire.errnoError("fsync") }
         guard fchmod(descriptor, mode) == 0, rename(temporary.path, url.path) == 0 else {
             throw PTYMuxWire.errnoError("rename")
         }

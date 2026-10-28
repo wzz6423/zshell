@@ -9,7 +9,7 @@ import Foundation
 /// JSON values used by the local automation protocol. Keeping the wire model
 /// concrete avoids accepting arbitrary Foundation object graphs at the app
 /// boundary and lets both the app and bundled CLI share one Codable contract.
-enum ZshellJSONValue: Codable, Equatable, Sendable {
+nonisolated enum ZshellJSONValue: Codable, Equatable, Sendable {
     case string(String)
     case number(Double)
     case bool(Bool)
@@ -245,6 +245,13 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
                 Darwin.close(client)
                 continue
             }
+            var peerUser: uid_t = 0
+            var peerGroup: gid_t = 0
+            guard getpeereid(client, &peerUser, &peerGroup) == 0,
+                  peerUser == geteuid() else {
+                Darwin.close(client)
+                continue
+            }
             clientsLock.lock()
             let admitted = pendingClients < 64
             if admitted { pendingClients += 1 }
@@ -383,7 +390,8 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
     static func exchange(
         path: String,
         request: ZshellAutomationRequest,
-        timeout: TimeInterval = 5
+        timeout: TimeInterval = 5,
+        expectedPeerProcessID: pid_t? = nil
     ) throws -> ZshellAutomationResponse {
         let descriptor = Darwin.socket(AF_UNIX, SOCK_STREAM, 0)
         guard descriptor >= 0 else {
@@ -404,6 +412,15 @@ final class ZshellAutomationSocketServer: @unchecked Sendable {
             throw ZshellAutomationWireError.message(
                 "Could not connect to Zshell automation: \(String(cString: strerror(errno)))."
             )
+        }
+
+        if let expectedPeerProcessID {
+            var peerUser: uid_t = 0
+            var peerGroup: gid_t = 0
+            guard getpeereid(descriptor, &peerUser, &peerGroup) == 0,
+                  peerUser == geteuid(), Self.peerProcessID(descriptor) == expectedPeerProcessID else {
+                throw ZshellAutomationWireError.message("The history control socket has an unexpected owner or process.")
+            }
         }
 
         var encoded = try JSONEncoder.zshellAutomation.encode(request)

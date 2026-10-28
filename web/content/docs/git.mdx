@@ -103,6 +103,22 @@ Detached HEAD worktrees show **Detached HEAD** instead of a branch name. Bare
 repositories are listed for completeness, but they do not have a working
 directory and cannot be opened in a terminal tab.
 
+### Worktree sessions [#worktree-sessions]
+
+From a terminal in a local Git repository, choose **Terminal → New Session in Worktree…** or press <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>. The tab context menu and the **+** button’s context menu offer the same action. Choose a new or existing local branch and a directory that does not exist yet. New branches start from the repository’s default branch; **Current HEAD** is an explicit choice. Existing branches keep their current commit. The suggested directory sits beside the source checkout.
+
+Splits inherit the session’s worktree association, and the saved layout restores it. Closing an associated session offers **Keep Worktree**, **Remove Worktree**, or **Cancel**. Removal is available only when the checkout has no changed, untracked, or ignored files, no commits outside the recorded baseline, no lock, and no other open session using it. The Git branch is always kept.
+
+An external terminal can create and close sessions with `zshell +session`. Use `--project` with an ID returned by `projects`; inside Zshell, the invoking terminal’s project is used automatically. Creation opens a background session unless you add `--focus`. `--base HEAD` or `--base REF` selects another baseline, and `--worktree NEW_DIR` sets the directory. `--connection FILE` selects a particular running instance when needed. Closing keeps the worktree unless `--remove-worktree` is explicit; `check` reports whether cleanup is currently safe.
+
+```sh
+zshell +session projects
+zshell +session new --project PROJECT_ID --cwd /path/to/repo --branch feat/task
+zshell +session list --project PROJECT_ID
+zshell +session check --project PROJECT_ID --session SESSION_ID
+zshell +session close --project PROJECT_ID --session SESSION_ID --remove-worktree
+```
+
 ## Remotes
 
 The **⋯** menu holds everything that talks to a remote:

@@ -49,6 +49,7 @@ struct ClosedSessionRecord: Equatable {
     /// When the session was closed.
     let closedAt: Date
     var tabGroupID: UUID? = nil
+    var worktree: SessionWorktree? = nil
 }
 
 /// Owns the list of projects and the current selection. Each project holds
@@ -56,6 +57,7 @@ struct ClosedSessionRecord: Equatable {
 /// project's selected session.
 @MainActor
 final class TerminalManager: nonisolated ObservableObject {
+    nonisolated let conversationHistoryWindowID = UUID()
     @Published var projects: [Project] = [] {
         didSet { ZshellAutomationEventHub.shared.topologyChanged() }
     }
@@ -241,6 +243,7 @@ final class TerminalManager: nonisolated ObservableObject {
     private static var didReopenWindows = false
 
     init() {
+        _ = AgentConversationHistoryStore.shared
         if !Self.hasLoadedStore {
             Self.hasLoadedStore = true
             Self.pendingRestores = SessionStore.load()
@@ -428,6 +431,32 @@ final class TerminalManager: nonisolated ObservableObject {
         SSHProjectController.shared.present(for: self)
     }
 
+    func promptForRemoteHosts() { RemoteHostsController.shared.present(for: self) }
+
+    func synchronizeRemoteHost(_ host: RemoteHost, projects listings: [RemoteProjectListing]) throws {
+        for project in projects where project.sharedHost?.id == host.id { try project.updateSharedHost(host) }
+        let selection = selectedProjectID
+        for listing in listings {
+            let project = sharedProject(host: host, directory: listing.directory)
+            for info in listing.sessions { project.attachRemoteSession(info) }
+        }
+        if let selection { selectedProjectID = selection }
+    }
+
+    func openSharedProject(host: RemoteHost, session: RemoteSessionInfo) {
+        let project = sharedProject(host: host, directory: session.project)
+        project.attachRemoteSession(session)
+        selectedProjectID = project.id
+    }
+
+    private func sharedProject(host: RemoteHost, directory: String) -> Project {
+        if let project = projects.first(where: { $0.sharedHost?.id == host.id && $0.remoteDirectory == directory }) { return project }
+        let project = makeProject(location: .shared(host: host, directory: directory), createInitialSession: false)
+        project.customName = (directory as NSString).lastPathComponent
+        insert(project)
+        return project
+    }
+
     func newSSHProject(
         endpoint: SSHEndpoint,
         remoteDirectory: String?,
@@ -494,14 +523,14 @@ final class TerminalManager: nonisolated ObservableObject {
 
     /// Creates a project rooted at `directory`, with its first terminal
     /// launched there. Used by Zshell's Finder service.
-    private func newProject(directory: String) {
+    private func newProject(directory: String, worktree: SessionWorktree? = nil) {
         let project = makeProject(createInitialSession: false)
         project.customName = URL(
             fileURLWithPath: directory,
             isDirectory: true
         ).lastPathComponent
         project.customDirectory = directory
-        project.newSession(directory: directory)
+        project.newSession(directory: directory, worktree: worktree)
         insert(project)
     }
 
@@ -699,7 +728,27 @@ final class TerminalManager: nonisolated ObservableObject {
         return project
     }
 
+    func makeConversationHistoryProject(_ record: AgentConversationHistoryRecord, focus: Bool) -> Project {
+        let project = makeProject(createInitialSession: false)
+        project.conversationHistoryProjectID = record.projectID
+        project.customName = Project.normalizedCustomName(record.projectName)
+        project.customDirectory = record.identity.workingDirectory
+        projects.append(project)
+        if focus { selectedProjectID = project.id }
+        return project
+    }
+
     func close(_ project: Project) {
+        if project.sessions.contains(where: { $0.worktree != nil }) {
+            Task { @MainActor in
+                for session in project.sessions where session.worktree != nil {
+                    if !(await requestCloseWorktreeSession(session, in: project)) { return }
+                }
+                project.terminateAll()
+                remove(project)
+            }
+            return
+        }
         project.terminateAll()
         remove(project)
     }
@@ -860,13 +909,17 @@ final class TerminalManager: nonisolated ObservableObject {
     /// command walks back through the close history.
     func reopenClosedSession() {
         guard let record = closedSessionRecords.popLast() else { return }
+        let worktree = record.worktree.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
+        let directory = record.worktree != nil && worktree == nil
+            ? record.worktree!.repositoryRoot : record.workingDirectory
         if let project = record.projectID.flatMap({ projectID in
             projects.first { $0.id == projectID }
         }) ?? selectedProject {
             selectedProjectID = project.id
             project.newSession(
-                directory: record.workingDirectory,
-                tabTitle: record.customTitle
+                directory: directory,
+                tabTitle: record.customTitle,
+                worktree: worktree
             )
             if let tab = project.selectedTab {
                 project.moveTab(tab.id, toGroup: project.tabGroup(id: record.tabGroupID)?.id)
@@ -875,7 +928,7 @@ final class TerminalManager: nonisolated ObservableObject {
             // No project left in this window: start one anchored at the
             // recorded directory. The tab title is only carried when a
             // project already exists to open the tab in.
-            newSession(directory: record.workingDirectory)
+            newProject(directory: directory, worktree: worktree)
         }
     }
 
@@ -1630,6 +1683,7 @@ final class TerminalManager: nonisolated ObservableObject {
     /// kill its shells.
     func windowClosed() {
         guard !Self.isQuitting else { return }
+        AgentConversationHistoryController.shared.close(ifOwnedBy: self)
         agentPalette.dismiss(restoreFocus: false)
         if let agentPaletteKeyMonitor {
             NSEvent.removeMonitor(agentPaletteKeyMonitor)
@@ -1689,6 +1743,7 @@ final class TerminalManager: nonisolated ObservableObject {
         if !preserve {
             _ = try? PTYMuxCommandLine.exchange(method: "terminateAll", timeout: 0.5)
         }
+        AgentConversationHistoryStore.shared.flush()
     }
 
     /// Builds this window's layout snapshot and, alongside it, the scrollback
@@ -1731,6 +1786,7 @@ final class TerminalManager: nonisolated ObservableObject {
                     markerColorHex: project.markerColor?.hex,
                     customDirectory: project.customDirectory,
                     groupID: project.groupID,
+                    conversationHistoryProjectID: project.conversationHistoryProjectID,
                     tabGroups: project.tabGroups,
                     launchSettings: project.launchSettings,
                     location: project.location,
@@ -1766,9 +1822,13 @@ final class TerminalManager: nonisolated ObservableObject {
             var historyKey: String?
             var agentResume: AgentConversationIdentity?
             var terminalID: UUID?
+            var remoteSessionID: UUID?
+            var worktree: SessionWorktree?
             if case .session(let session) = pane.content {
                 agentResume = session.conversationIdentityForPersistence
                 terminalID = session.id
+                remoteSessionID = session.remoteConnection?.sessionID
+                worktree = session.worktree
             }
             if case .session(let session) = pane.content,
                let history = session.serializedHistory(
@@ -1783,7 +1843,9 @@ final class TerminalManager: nonisolated ObservableObject {
                 weight: 1,
                 historyKey: historyKey,
                 agentResume: agentResume,
-                terminalID: terminalID
+                terminalID: terminalID,
+                remoteSessionID: remoteSessionID,
+                worktree: worktree
             ))
         case .split(let split):
             return .split(
@@ -1848,6 +1910,7 @@ final class TerminalManager: nonisolated ObservableObject {
                 createInitialSession: false
             )
             project.customName = Project.normalizedCustomName(saved.customName)
+            project.conversationHistoryProjectID = saved.conversationHistoryProjectID ?? UUID()
             project.markerColor = saved.markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:))
             project.customDirectory = saved.customDirectory
             // A group may have been deleted while this window was closed or

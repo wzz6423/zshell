@@ -100,6 +100,24 @@ Yalnızca bu entegrasyonların bildirdiği yerel ana konuşmalar sürdürülür.
 
 Doğrulanmış kimlik, özgün çalışma dizini veya Pi dosyası yoksa yeni kabuk açılır. CLI bulunamazsa da kabuğa dönülür. Zshell rastgele başlangıç komutunu yinelemez ve son konuşmayı seçmez. Silinmiş konuşma gibi sağlayıcı hatalarını CLI gösterir.
 
+## Kaydedilmiş konuşmaları bulma ve sürdürme [#saved-conversation-history]
+
+**Aracılar → Ajan Konuşma Geçmişi** menüsünü, proje kenar çubuğunun üstündeki saati açın. Projeler arasında başlık, sağlayıcı, proje, konuşma ID’si, çalışma veya yapılandırma diziniyle arayın. Zshell, ajanlar ve bölmeler kapandıktan ve uygulama yeniden başladıktan sonra en yeni 200 doğrulanmış yerel konuşmayı tutar. **Son** arşivlenmemiş 20 eşleşmeyi, **Tümü** arşiv dahil tüm kayıtları, **Arşivlenen** yalnızca arşivi gösterir.
+
+Açık konuşma için **Konuşmayı göster**, kayıtlı konuşma için **Konuşmayı sürdür** seçin. Zshell açık bölmeyi kullanır, çalışan PTY’ye yeniden bağlanır veya sağlayıcının tam olarak o konuşmasını özgün dizin ve yapılandırmasıyla sürdürür. Elle sürdürme, otomatik geri yükleme kapalı olsa da AI entegrasyonunu gerektirir. Eksik dizinler ve eksik veya eşleşmeyen Pi dosyaları yeni bölme açılmadan hata gösterir.
+
+**Arşivle** kaydı Son listesinden gizler; **Arşivden çıkar** geri getirir. **Sil…** yalnızca Zshell kaydını kaldırır ve sağlayıcının konuşma dosyalarını korur.
+
+Zshell bölmesinde `zshell +agent history --all` ve `zshell +agent resume --id HISTORY_UUID` o bölmenin projesiyle sınırlıdır. Sıradan bir dış terminalden Zshell’i açık tutun, proje UUID’sini bulun ve açıkça seçin:
+
+```sh
+zshell +agent history projects
+zshell +agent history --project PROJECT_UUID --all
+zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
+```
+
+CLI, `--focus` eklenmedikçe arka planda sürdürür. Proje birkaç pencerede açıksa `history projects` çıktısından `--window WINDOW_UUID` seçin. Birkaç uygulama örneği çalışıyorsa CLI’ın belirttiği özel bağlantı dosyasının mutlak yoluyla `--connection PATH` kullanın. Bu hedef seçenekleri dış terminallere aittir; bölme süreçleri özgün proje kapsamını korur.
+
 ## Canlı proje olaylarını izleme [#live-events]
 
 Zshell terminalinde `zshell +events`, terminalin projesi ve penceresindeki sonraki değişiklikleri yoklama yapmadan NDJSON olarak izler. Seçenekler: --pane UUID, yinelenebilir --event NAME, --once ve --timeout MS (0 süresiz bekler).

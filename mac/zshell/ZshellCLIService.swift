@@ -41,6 +41,7 @@ final class ZshellCLIService {
     }
 
     private let secret = UUID().uuidString
+    private let sessionControlToken = UUID().uuidString + UUID().uuidString
     private let directoryURL: URL
     private let stateURL: URL
     private let automationSocketPath: String
@@ -51,6 +52,7 @@ final class ZshellCLIService {
     private var automationServer: ZshellAutomationSocketServer?
     private var terminalCapabilities: [String: UUID] = [:]
     private var persistentTerminals = Set<UUID>()
+    private var sessionControlConnectionURL: URL?
 
     private init() {
         let fileManager = FileManager.default
@@ -88,9 +90,14 @@ final class ZshellCLIService {
                     reply(await ZshellCLIService.shared.handleAutomation(request))
                 }
             }
+            sessionControlConnectionURL = try ZshellSessionControlConnection.publish(
+                socketPath: automationSocketPath, token: sessionControlToken
+            )
         } catch {
             NSLog("zshell: failed to start automation socket: \(error)")
         }
+
+        _ = AgentConversationHistoryControlService.shared
 
         notificationObserver = DistributedNotificationCenter.default()
             .addObserver(
@@ -189,6 +196,13 @@ final class ZshellCLIService {
     private func handleAutomation(
         _ request: ZshellAutomationRequest
     ) async -> ZshellAutomationResponse {
+        guard request.version == 1 else {
+            return .failure(id: request.id, code: "unsupported_version",
+                            message: "Zshell supports automation protocol version 1.")
+        }
+        if request.token == sessionControlToken, request.terminalID == ZshellSessionControlConnection.callerID {
+            return await ZshellSessionAutomationRouter.routeExternal(request)
+        }
         if let failure = authorizationFailure(request) { return failure }
         return await ZshellAutomationRouter.route(
             request, callerTerminalID: UUID(uuidString: request.terminalID)!
@@ -381,6 +395,10 @@ final class ZshellCLIService {
         terminalCapabilities = [:]
         for id in persistentTerminals { PersistentCLIConnection.remove(for: id) }
         persistentTerminals = []
+        if let sessionControlConnectionURL {
+            try? FileManager.default.removeItem(at: sessionControlConnectionURL)
+            self.sessionControlConnectionURL = nil
+        }
         try? FileManager.default.removeItem(at: directoryURL)
     }
 }

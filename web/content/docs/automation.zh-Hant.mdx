@@ -103,6 +103,24 @@ Zshell 在現有 provider 設定中安裝 Claude Code 和 Codex 的 SessionStart
 
 缺少已驗證身分、原工作目錄或 Pi 檔案時，窗格會開啟新 shell；找不到 CLI 時也會回到 shell。Zshell 不會重播任意啟動命令或選擇最近對話。對話已刪除等 provider 錯誤由 CLI 顯示。
 
+## 尋找並繼續已儲存對話 [#saved-conversation-history]
+
+開啟 **Agent → Agent 對話歷史**，點擊專案側欄頂部的時鐘按鈕。可以跨專案按標題、provider、專案、對話 ID、工作目錄或設定目錄搜尋。Zshell 保留最近 200 條已驗證的本機對話，Agent 或窗格關閉、應用程式重新啟動後仍可查看。**最近** 顯示 20 條未封存的符合結果；**全部** 包含封存記錄；**已封存** 只顯示封存記錄。
+
+選擇 **顯示對話** 前往仍開啟的對話，或選擇 **繼續對話** 恢復已儲存對話。Zshell 優先使用現有窗格、重新連線仍存活的 PTY，再以原工作目錄和設定恢復 provider 的確切對話。手動恢復需要啟用 AI 整合，即使自動恢復對話設定已關閉也可使用。工作目錄、設定目錄不存在，或 Pi 檔案遺失、身分不符時，會在建立新窗格前顯示錯誤。
+
+**封存** 將記錄從「最近」隱藏，**取消封存** 將其恢復。**刪除…** 只刪除 Zshell 歷史記錄，保留 provider 的對話檔案。
+
+在 Zshell 窗格內，使用 `zshell +agent history --all` 和 `zshell +agent resume --id HISTORY_UUID`，範圍為當前窗格的專案。在一般外部終端機中，保持 Zshell 執行，先取得專案 UUID，再明確選擇專案：
+
+```sh
+zshell +agent history projects
+zshell +agent history --project PROJECT_UUID --all
+zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
+```
+
+CLI 恢復預設在背景進行，加入 `--focus` 才切換焦點。專案在多個視窗中開啟時，用 `history projects` 回傳的 `--window WINDOW_UUID` 明確選擇；多個應用程式實例執行時，用 `--connection PATH` 指向 CLI 提示的絕對私有連線檔案路徑。這些目標選項只用於外部終端機，窗格程序始終保留原專案範圍。
+
 ## 訂閱專案即時事件 [#live-events]
 
 在 Zshell 窗格內執行 `zshell +events`，以 NDJSON 接收目前終端機所屬專案和視窗的後續變更。支援 `--pane UUID`、可重複的 `--event NAME`、`--once` 和 `--timeout MS`（0 為無限等待），不需輪詢。

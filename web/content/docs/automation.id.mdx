@@ -108,6 +108,24 @@ Hanya percakapan induk lokal yang dilaporkan integrasi ini dapat dilanjutkan. Co
 
 Tanpa identitas terverifikasi, direktori kerja asli, atau berkas Pi, shell baru terbuka. CLI yang tidak ditemukan juga kembali ke shell. Zshell tidak menjalankan ulang perintah awal sembarang atau memilih percakapan terbaru. Kesalahan penyedia, seperti percakapan yang dihapus, ditampilkan oleh CLI.
 
+## Menemukan dan melanjutkan percakapan tersimpan [#saved-conversation-history]
+
+Buka **Agen → Riwayat Percakapan Agen**, klik jam di bagian atas bilah samping proyek. Cari lintas proyek menurut judul, penyedia, proyek, ID percakapan, direktori kerja atau konfigurasi. Zshell menyimpan 200 percakapan lokal terverifikasi terbaru setelah agen dan panel ditutup serta aplikasi dimulai ulang. **Terbaru** menampilkan 20 hasil yang belum diarsipkan; **Semua** mencakup arsip; **Diarsipkan** hanya menampilkan arsip.
+
+Pilih **Tampilkan percakapan** jika masih terbuka atau **Lanjutkan percakapan** jika tersimpan. Zshell memakai panel terbuka, menyambungkan kembali PTY yang masih aktif, atau melanjutkan percakapan penyedia yang tepat dengan direktori dan konfigurasi asli. Pelanjutan manual memerlukan integrasi AI meski pemulihan otomatis dimatikan. Direktori yang hilang serta berkas Pi yang hilang atau tidak cocok menampilkan kesalahan sebelum panel dibuat.
+
+**Arsipkan** menyembunyikan catatan dari Terbaru; **Batalkan arsip** mengembalikannya. **Hapus…** hanya menghapus catatan Zshell dan mempertahankan berkas percakapan penyedia.
+
+Di panel Zshell, `zshell +agent history --all` dan `zshell +agent resume --id HISTORY_UUID` berlaku untuk proyek panel itu. Dari terminal eksternal biasa, biarkan Zshell berjalan, temukan UUID proyek, lalu pilih secara eksplisit:
+
+```sh
+zshell +agent history projects
+zshell +agent history --project PROJECT_UUID --all
+zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
+```
+
+CLI melanjutkan di latar belakang kecuali ditambah `--focus`. Untuk proyek di beberapa jendela, pilih `--window WINDOW_UUID` dari `history projects`. Jika beberapa instans aplikasi berjalan, gunakan `--connection PATH` dengan jalur absolut berkas koneksi pribadi yang ditunjukkan CLI. Target ini hanya untuk terminal eksternal; proses panel tetap dalam cakupan proyek asal.
+
 ## Mengikuti peristiwa proyek langsung [#live-events]
 
 Jalankan `zshell +events` di terminal Zshell untuk mengikuti perubahan berikutnya pada proyek dan jendelanya sebagai NDJSON tanpa polling. Opsi: --pane UUID, --event NAME yang dapat diulang, --once, dan --timeout MS (0 menunggu tanpa batas).

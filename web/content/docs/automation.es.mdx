@@ -100,6 +100,24 @@ Solo se reanudan conversaciones raíz locales notificadas por estas integracione
 
 Sin identidad verificada, directorio original o archivo Pi, se abre una nueva shell. Si no se encuentra el CLI, también se vuelve a la shell. Zshell no repite comandos de inicio arbitrarios ni elige una conversación reciente. El CLI muestra los errores del proveedor, como una conversación eliminada.
 
+## Buscar y reanudar conversaciones guardadas [#saved-conversation-history]
+
+Abre **Agentes → Historial de conversaciones de agentes**, pulsa el reloj de la parte superior de la barra lateral de proyectos. Busca entre proyectos por título, proveedor, proyecto, ID de conversación o directorios de trabajo y configuración. Zshell conserva las 200 conversaciones locales verificadas más recientes después de cerrar agentes y paneles y de reiniciar la aplicación. **Recientes** muestra 20 coincidencias sin archivar; **Todas** incluye las archivadas; **Archivadas** solo muestra estas últimas.
+
+Elige **Mostrar conversación** si está abierta o **Reanudar conversación** si está guardada. Zshell reutiliza un panel abierto, reconecta un PTY activo o reanuda la conversación exacta del proveedor con su directorio y configuración originales. La reanudación manual requiere la integración de IA, aunque la restauración automática esté desactivada. Si falta un directorio o el archivo Pi falta o no corresponde a la conversación, se muestra un error antes de crear un panel.
+
+**Archivar** oculta el registro en Recientes; **Desarchivar** lo devuelve. **Eliminar…** solo elimina el registro de Zshell y conserva los archivos del proveedor.
+
+Dentro de un panel Zshell, `zshell +agent history --all` y `zshell +agent resume --id HISTORY_UUID` se limitan a su proyecto. Desde un terminal externo normal, mantén Zshell abierto, obtén el UUID del proyecto y selecciónalo explícitamente:
+
+```sh
+zshell +agent history projects
+zshell +agent history --project PROJECT_UUID --all
+zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
+```
+
+La CLI reanuda en segundo plano salvo que añadas `--focus`. Si el proyecto está abierto en varias ventanas, elige `--window WINDOW_UUID` de `history projects`. Si hay varias instancias de la aplicación, usa `--connection PATH` con la ruta absoluta del archivo de conexión privado indicada por la CLI. Estas opciones son para terminales externos; los procesos de los paneles conservan su proyecto original.
+
 ## Seguir eventos del proyecto [#live-events]
 
 Ejecuta `zshell +events` dentro de Zshell para recibir en NDJSON los cambios futuros de su proyecto y ventana, sin sondeo. Opciones: --pane UUID, --event NAME repetible, --once y --timeout MS (0 espera indefinidamente).
