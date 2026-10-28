@@ -77,3 +77,11 @@ zshell +browser reload --browser BROWSER_ID --wait
 `state save` menyimpan Cookie yang berlaku untuk host tujuan (termasuk domain induk dan HttpOnly) serta localStorage origin saat ini sebagai Playwright storage-state JSON. `state load` menggabungkan Cookie dan mengganti localStorage origin itu; muat ulang setelahnya. Skema, host, dan port harus sama persis. Domain lain, sufiks publik, kolom tak didukung, dan tipe tidak valid ditolak sebelum perubahan. Cookie Secure memerlukan HTTPS.
 
 Gunakan `--format cookies` pada kedua perintah untuk Netscape `cookies.txt`, tanpa localStorage dan SameSite. Berkas dibatasi 256 KiB dan berisi kredensial: simpan secara privat dan di luar Git. Impor memerlukan berkas biasa yang hanya dapat diakses pemilik (misalnya `0600`), dan menolak symlink. Ekspor membuat berkas privat baru tanpa menimpa jalur yang ada. Data WebKit tetap dibagikan antar panel; batas proyek, jendela, dan navigasi tetap berlaku.
+
+## Iklan dan pelacak [#ads-and-trackers]
+
+**Pengaturan → Browser** mengaktifkan pemblokiran WebKit dengan [EasyList](https://easylist.to/) dan EasyPrivacy secara default. Nonaktifkan daftar secara terpisah atau tambahkan satu URL daftar ABP HTTP/HTTPS per baris, lalu pilih **Terapkan daftar**. Maksimal 8 daftar, masing-masing 8 MiB. HTTP tidak terenkripsi.
+
+Aturan berlaku untuk permintaan berikutnya di semua panel. Muat ulang halaman setelah perubahan. **Perbarui daftar sekarang** memaksa pembaruan. Daftar disimpan dalam cache; setelah restart, membuka browser memeriksa daftar berusia lebih dari empat hari. Pengaturan menampilkan jumlah filter dikonversi/dilewati, kegagalan, dan penggunaan cache. Penggantian yang gagal tidak diam-diam memakai daftar lain yang tidak dipilih.
+
+Mendukung wildcard URL, jangkar, tipe sumber umum, pengecualian `@@`, domain sederhana, dan CSS `##`/`#@#`. Domain mengacu ke halaman utama; klasifikasi pihak mengikuti WebKit. Scriptlet, filter prosedural, pengalihan, regex, izin seluruh halaman, dan pengecualian subdomain dari domain yang disertakan dilewati. Kompatibilitas uBlock Origin tidak penuh.

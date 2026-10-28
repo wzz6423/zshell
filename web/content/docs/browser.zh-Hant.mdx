@@ -76,3 +76,11 @@ zshell +browser reload --browser BROWSER_ID --wait
 `state save` 將適用於目標主機的 Cookie（含父網域和 HttpOnly Cookie）及目前來源的 localStorage 儲存為 Playwright storage-state JSON。`state load` 合併 Cookie 並取代該來源的 localStorage，之後請重新載入頁面。localStorage 的通訊協定、主機和連接埠必須完全相符；無關 Cookie 網域、公用後綴、未知欄位和錯誤型別會在修改前遭拒。Secure Cookie 需要 HTTPS。
 
 兩個命令皆加 `--format cookies` 可使用 Netscape `cookies.txt`，但該格式不儲存 localStorage 和 SameSite。狀態檔上限為 256 KiB，含有憑證，須保持私有且不要提交到 Git。匯入只接受僅擁有者可存取的一般檔案（如 `0600`），拒絕符號連結；匯出建立新私有檔案且不覆寫既有路徑。WebKit 網站資料仍由各瀏覽器面板共用，命令繼續受原有專案、視窗及導覽限制。
+
+## 廣告與追蹤封鎖 [#ads-and-trackers]
+
+在 **設定 → 瀏覽器** 管理原生 WebKit 內容封鎖，預設啟用 [EasyList](https://easylist.to/) 和 EasyPrivacy。可分別停用預設清單，或每行新增一個 HTTP/HTTPS ABP 清單 URL，再按**套用清單**。最多 8 個清單，每個上限 8 MiB；HTTP 下載未加密。
+
+規則套用至所有現有及新建瀏覽器窗格的後續請求；變更後請重新載入頁面，以更新資源與隱藏元素。**立即更新清單**可強制重新整理。清單快取於本機，重新啟動後開啟瀏覽器時會檢查超過四天的快取。設定會顯示更新狀態、轉換及略過數量、失敗及改用快取的情況。清單替換失敗時不會默默沿用已取消選取的其他清單。
+
+支援 URL 萬用字元與錨點、常見資源類型、`@@` 網路例外、簡單的正負網域範圍及 CSS `##`/`#@#` 隱藏規則。網域範圍以頂層頁面為準，第一方/第三方分類遵循 WebKit。腳本片段、程序式篩選、重新導向、正規表示式、整頁放行及包含網域與排除子網域的複雜範圍會略過，並非完整相容 uBlock Origin。

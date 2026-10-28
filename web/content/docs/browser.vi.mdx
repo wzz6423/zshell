@@ -74,3 +74,11 @@ zshell +browser reload --browser BROWSER_ID --wait
 `state save` lưu Cookie áp dụng cho host đích (gồm miền cha và HttpOnly) cùng localStorage của origin hiện tại dưới dạng Playwright storage-state JSON. `state load` hợp nhất Cookie và thay thế localStorage của origin đó; sau đó tải lại trang. Giao thức, host và cổng phải khớp chính xác. Miền không liên quan, hậu tố công cộng, trường không hỗ trợ và kiểu sai bị từ chối trước mọi thay đổi. Cookie Secure yêu cầu HTTPS.
 
 Dùng `--format cookies` cho cả hai lệnh để dùng Netscape `cookies.txt`, không có localStorage và SameSite. Tệp tối đa 256 KiB và chứa thông tin đăng nhập: giữ riêng tư và ngoài Git. Nhập chỉ chấp nhận tệp thường mà chỉ chủ sở hữu truy cập được (ví dụ `0600`), từ chối liên kết tượng trưng. Xuất tạo tệp riêng tư mới và không ghi đè đường dẫn có sẵn. Dữ liệu WebKit vẫn dùng chung giữa các khung; giới hạn dự án, cửa sổ và điều hướng vẫn áp dụng.
+
+## Quảng cáo và trình theo dõi [#ads-and-trackers]
+
+**Cài đặt → Trình duyệt** bật chặn WebKit mặc định với [EasyList](https://easylist.to/) và EasyPrivacy. Tắt từng danh sách hoặc thêm mỗi dòng một URL danh sách ABP HTTP/HTTPS rồi chọn **Áp dụng danh sách**. Tối đa 8 danh sách, mỗi danh sách 8 MiB. HTTP không được mã hóa.
+
+Quy tắc áp dụng cho yêu cầu tiếp theo trong mọi ngăn. Tải lại trang sau khi thay đổi. **Cập nhật danh sách ngay** buộc cập nhật. Danh sách được lưu cục bộ; sau khi khởi động lại, mở trình duyệt sẽ kiểm tra danh sách cũ hơn bốn ngày. Cài đặt hiển thị số bộ lọc đã chuyển đổi/bỏ qua, lỗi và việc dùng bản lưu. Thay danh sách thất bại không âm thầm dùng danh sách khác đã bỏ chọn.
+
+Hỗ trợ ký tự đại diện URL, neo, loại tài nguyên phổ biến, ngoại lệ `@@`, phạm vi tên miền đơn giản và CSS `##`/`#@#`. Tên miền dựa trên trang cấp cao nhất; phân loại bên theo WebKit. Bỏ qua scriptlet, bộ lọc thủ tục, chuyển hướng, biểu thức chính quy, cho phép cả trang và loại trừ tên miền con của tên miền được chọn. Không tương thích đầy đủ uBlock Origin.

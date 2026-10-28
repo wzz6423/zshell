@@ -74,3 +74,11 @@ zshell +browser reload --browser BROWSER_ID --wait
 `state save` guarda cookies aplicables al host de destino (incluidos dominio padre y HttpOnly) y localStorage del origen actual en JSON storage-state de Playwright. `state load` combina las cookies y reemplaza ese localStorage; recarga después. El esquema, host y puerto deben coincidir exactamente. Los dominios ajenos, sufijos públicos, campos no admitidos y tipos inválidos se rechazan antes de modificar nada. Las cookies Secure requieren HTTPS.
 
 Usa `--format cookies` en ambos comandos para Netscape `cookies.txt`, sin localStorage ni SameSite. Los archivos están limitados a 256 KiB y contienen credenciales: mantenlos privados y fuera de Git. La importación exige un archivo normal accesible solo por su propietario (por ejemplo `0600`) y rechaza enlaces simbólicos. La exportación crea un archivo privado sin sobrescribir rutas existentes. Los datos WebKit siguen compartidos entre paneles y se mantienen los límites de proyecto, ventana y navegación.
+
+## Anuncios y rastreadores [#ads-and-trackers]
+
+**Ajustes → Navegador** activa por defecto el bloqueo WebKit con [EasyList](https://easylist.to/) y EasyPrivacy. Desactiva cada lista por separado o añade una URL de lista ABP HTTP/HTTPS por línea y pulsa **Aplicar listas**. Máximo: 8 listas de 8 MiB cada una. HTTP no está cifrado.
+
+Las reglas afectan a futuras solicitudes de todos los paneles. Recarga las páginas después de cambiar reglas. **Actualizar listas ahora** fuerza la actualización. Las listas se guardan en caché; al abrir el navegador tras reiniciar se revisan las de más de cuatro días. Los ajustes muestran filtros convertidos/omitidos, errores y uso de caché. Un cambio fallido no reutiliza silenciosamente otra lista desmarcada.
+
+Admite comodines y anclas URL, tipos comunes, excepciones `@@`, dominios simples y CSS `##`/`#@#`. Los dominios usan la página principal y la clasificación de terceros sigue WebKit. Se omiten scriptlets, filtros procedimentales, redirecciones, expresiones regulares, permisos de página completa y exclusiones de subdominios de un dominio incluido. La compatibilidad con uBlock Origin es parcial.

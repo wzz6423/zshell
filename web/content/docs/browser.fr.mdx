@@ -74,3 +74,11 @@ zshell +browser reload --browser BROWSER_ID --wait
 `state save` enregistre les cookies applicables à l’hôte cible (y compris ceux du domaine parent et HttpOnly) et le localStorage de l’origine actuelle au format Playwright storage-state JSON. `state load` fusionne les cookies et remplace ce localStorage ; rechargez ensuite la page. Le schéma, l’hôte et le port doivent correspondre exactement. Les domaines sans rapport, suffixes publics, champs non pris en charge et types invalides sont refusés avant toute modification. Les cookies Secure exigent HTTPS.
 
 Ajoutez `--format cookies` aux deux commandes pour Netscape `cookies.txt`, sans localStorage ni SameSite. Les fichiers, limités à 256 KiB, contiennent des identifiants : gardez-les privés et hors de Git. L’import exige un fichier ordinaire accessible uniquement à son propriétaire (par exemple `0600`) et refuse les liens symboliques. L’export crée un fichier privé sans écraser de chemin existant. Les données WebKit restent partagées entre volets ; les restrictions de projet, fenêtre et navigation s’appliquent toujours.
+
+## Publicités et traqueurs [#ads-and-trackers]
+
+**Réglages → Navigateur** active par défaut le blocage WebKit avec [EasyList](https://easylist.to/) et EasyPrivacy. Désactivez chaque liste séparément ou ajoutez une URL de liste ABP HTTP/HTTPS par ligne, puis cliquez sur **Appliquer les listes**. Maximum : 8 listes de 8 Mio chacune. HTTP n’est pas chiffré.
+
+Les règles concernent les prochaines requêtes de tous les volets. Rechargez les pages après une modification. **Mettre à jour les listes** force l’actualisation. Les listes sont mises en cache ; après un redémarrage, l’ouverture du navigateur vérifie celles datant de plus de quatre jours. Les réglages affichent les filtres convertis/ignorés, les échecs et le recours au cache. Un remplacement échoué ne réutilise pas silencieusement une autre liste désélectionnée.
+
+Prend en charge les jokers et ancres URL, types de ressources courants, exceptions `@@`, domaines simples et masquage CSS `##`/`#@#`. Les domaines ciblent la page principale ; la classification des tiers suit WebKit. Scriptlets, filtres procéduraux, redirections, expressions régulières, autorisation de page entière et exclusions de sous-domaines d’un domaine inclus sont ignorés. Compatibilité uBlock Origin partielle.

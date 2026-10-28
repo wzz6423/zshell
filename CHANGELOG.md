@@ -18,6 +18,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Block browser ads and trackers with EasyList and EasyPrivacy, and manage
+  filter lists and custom ABP subscriptions in native Browser settings.
 - Share host-owned terminal sessions across machines over SSH or Tailscale,
   reconnect with their screen and history after quitting or a network outage,
   and manage hosts and input control from the macOS app.

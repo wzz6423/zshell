@@ -89,3 +89,11 @@ zshell +browser reload --browser BROWSER_ID --wait
 `state save` writes Playwright storage-state JSON containing cookies applicable to the target host (including parent-domain and HttpOnly cookies) and the current origin’s localStorage. `state load` merges those cookies and replaces that origin’s localStorage; reload afterwards. localStorage origins must match scheme, host, and port exactly. Unrelated cookie domains, public suffixes, unsupported fields, and invalid types are rejected before changes. Secure cookies require HTTPS.
 
 Use `--format cookies` on both commands for Netscape `cookies.txt`; that format omits localStorage and SameSite. State files are limited to 256 KiB, contain credentials, and must stay private and out of Git. Imports require an owner-only regular file, such as mode `0600`; symlinks are rejected. Exports create a new private file and never overwrite an existing path. WebKit site data remains shared across browser panes. These commands retain the same project, window, and navigation restrictions.
+
+## Ads and trackers
+
+**Settings → Browser** enables native WebKit content blocking by default, using [EasyList](https://easylist.to/) and EasyPrivacy. Switch either list off independently, add custom HTTP/HTTPS ABP list URLs (one per line), and choose **Apply Lists**. Up to 8 lists of 8 MiB each are accepted. HTTP downloads are unencrypted.
+
+Rules apply to future requests in all existing and new browser panes; reload open pages to update resources and hidden elements. **Update Lists Now** forces a refresh. Lists are cached locally; opening a browser after restarting checks lists older than four days. The settings show updates, converted/skipped filter counts, failures, and use of cached rules when a refresh fails. A failed replacement does not silently reuse a different selected list.
+
+Supported filters include URL wildcards and anchors, common resource types, `@@` network exceptions, simple positive/negative domain scopes, and CSS `##`/`#@#` hiding rules. Domain scopes use the top-level page; party classification follows WebKit. Unsupported syntax is skipped conservatively, including scriptlets, procedural filters, redirects, regular expressions, document allowlisting, and scopes combining an included domain with excluded child domains. This does not provide full uBlock Origin compatibility.

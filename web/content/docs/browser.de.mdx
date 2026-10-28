@@ -74,3 +74,11 @@ zshell +browser reload --browser BROWSER_ID --wait
 `state save` speichert die für den Zielhost geltenden Cookies (auch übergeordnete Domains und HttpOnly) und localStorage der aktuellen Origin als Playwright storage-state JSON. `state load` führt Cookies zusammen und ersetzt diesen localStorage; lade danach neu. Schema, Host und Port müssen genau übereinstimmen. Fremde Cookie-Domains, öffentliche Suffixe, unbekannte Felder und falsche Typen werden vor Änderungen abgelehnt. Secure-Cookies erfordern HTTPS.
 
 Mit `--format cookies` bei beiden Befehlen wird Netscape `cookies.txt` verwendet, ohne localStorage und SameSite. Dateien sind auf 256 KiB begrenzt und enthalten Zugangsdaten: privat halten und nicht in Git aufnehmen. Der Import verlangt eine reguläre Datei, auf die nur der Eigentümer zugreifen kann (etwa `0600`); symbolische Links werden abgelehnt. Exporte erstellen neue private Dateien ohne Überschreiben. WebKit-Daten bleiben zwischen Browserbereichen geteilt; Projekt-, Fenster- und Navigationsgrenzen gelten weiterhin.
+
+## Werbung und Tracker [#ads-and-trackers]
+
+Unter **Einstellungen → Browser** ist die WebKit-Inhaltsblockierung mit [EasyList](https://easylist.to/) und EasyPrivacy standardmäßig aktiv. Listen lassen sich einzeln ausschalten. Eigene HTTP-/HTTPS-ABP-Listen-URLs zeilenweise eintragen und **Listen anwenden** wählen. Höchstens 8 Listen mit je 8 MiB; HTTP ist unverschlüsselt.
+
+Änderungen gelten für künftige Anfragen aller Browserbereiche. Offene Seiten danach neu laden. **Listen jetzt aktualisieren** erzwingt eine Aktualisierung. Listen werden lokal gespeichert; nach einem Neustart prüft das Öffnen des Browsers über vier Tage alte Listen. Die Einstellungen zeigen konvertierte/übersprungene Filter, Fehler und veraltete Caches an. Ein fehlgeschlagener Listenwechsel verwendet nicht stillschweigend eine abgewählte Liste weiter.
+
+Unterstützt werden URL-Platzhalter, Anker, übliche Ressourcentypen, `@@`-Ausnahmen, einfache Domainbereiche und CSS `##`/`#@#`. Domains beziehen sich auf die Hauptseite; Drittanbieter werden nach WebKit eingeordnet. Scriptlets, prozedurale Filter, Umleitungen, reguläre Ausdrücke, vollständige Seitenfreigaben und ausgeschlossene Subdomains eingeschlossener Domains werden übersprungen. Keine vollständige uBlock-Origin-Kompatibilität.

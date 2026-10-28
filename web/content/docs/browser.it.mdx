@@ -74,3 +74,11 @@ zshell +browser reload --browser BROWSER_ID --wait
 `state save` salva i cookie applicabili all’host di destinazione (inclusi dominio padre e HttpOnly) e il localStorage dell’origine corrente nel JSON storage-state di Playwright. `state load` unisce i cookie e sostituisce quel localStorage; poi ricarica. Schema, host e porta devono corrispondere esattamente. Domini estranei, suffissi pubblici, campi non supportati e tipi non validi vengono rifiutati prima delle modifiche. I cookie Secure richiedono HTTPS.
 
 Usa `--format cookies` in entrambi i comandi per Netscape `cookies.txt`, senza localStorage e SameSite. I file sono limitati a 256 KiB e contengono credenziali: tienili privati e fuori da Git. L’importazione richiede un file normale accessibile solo al proprietario (ad esempio `0600`) e rifiuta i collegamenti simbolici. L’esportazione crea un file privato senza sovrascrivere percorsi esistenti. I dati WebKit restano condivisi tra pannelli, con gli stessi limiti di progetto, finestra e navigazione.
+
+## Pubblicità e tracker [#ads-and-trackers]
+
+**Impostazioni → Browser** attiva per impostazione predefinita il blocco WebKit con [EasyList](https://easylist.to/) e EasyPrivacy. Disattiva le liste singolarmente o aggiungi un URL ABP HTTP/HTTPS per riga e scegli **Applica liste**. Massimo 8 liste da 8 MiB ciascuna. HTTP non è cifrato.
+
+Le regole valgono per le richieste future di tutti i pannelli. Ricarica le pagine dopo le modifiche. **Aggiorna liste ora** forza l’aggiornamento. Le liste sono in cache; aprendo il browser dopo un riavvio vengono controllate quelle più vecchie di quattro giorni. Le impostazioni mostrano filtri convertiti/ignorati, errori e uso della cache. Un cambio fallito non riutilizza in silenzio altre liste deselezionate.
+
+Supporta caratteri jolly e ancore URL, tipi comuni, eccezioni `@@`, domini semplici e CSS `##`/`#@#`. I domini si riferiscono alla pagina principale; la classificazione delle parti segue WebKit. Scriptlet, filtri procedurali, reindirizzamenti, espressioni regolari, autorizzazioni di pagina intera ed esclusioni di sottodomini di un dominio incluso vengono ignorati. Compatibilità uBlock Origin parziale.

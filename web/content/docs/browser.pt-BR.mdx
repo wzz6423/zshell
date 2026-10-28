@@ -74,3 +74,11 @@ zshell +browser reload --browser BROWSER_ID --wait
 `state save` salva cookies aplicáveis ao host de destino (incluindo domínio pai e HttpOnly) e localStorage da origem atual em JSON storage-state do Playwright. `state load` mescla os cookies e substitui esse localStorage; recarregue depois. Esquema, host e porta devem coincidir exatamente. Domínios alheios, sufixos públicos, campos não suportados e tipos inválidos são rejeitados antes de qualquer mudança. Cookies Secure exigem HTTPS.
 
 Use `--format cookies` nos dois comandos para Netscape `cookies.txt`, sem localStorage e SameSite. Os arquivos têm limite de 256 KiB e contêm credenciais: mantenha-os privados e fora do Git. A importação exige arquivo comum acessível somente pelo proprietário (por exemplo `0600`) e rejeita links simbólicos. A exportação cria arquivo privado sem sobrescrever caminhos existentes. Os dados WebKit continuam compartilhados entre painéis, com os mesmos limites de projeto, janela e navegação.
+
+## Anúncios e rastreadores [#ads-and-trackers]
+
+**Ajustes → Navegador** ativa por padrão o bloqueio WebKit com [EasyList](https://easylist.to/) e EasyPrivacy. Desative cada lista separadamente ou adicione uma URL ABP HTTP/HTTPS por linha e clique em **Aplicar listas**. Até 8 listas de 8 MiB cada. HTTP não é criptografado.
+
+As regras afetam solicitações futuras de todos os painéis. Recarregue as páginas após alterações. **Atualizar listas agora** força a atualização. As listas ficam em cache; ao abrir o navegador após reiniciar, as com mais de quatro dias são verificadas. Os ajustes mostram filtros convertidos/ignorados, falhas e uso do cache. Uma troca malsucedida não reutiliza silenciosamente outra lista desmarcada.
+
+Suporta curingas e âncoras URL, tipos comuns, exceções `@@`, domínios simples e CSS `##`/`#@#`. Os domínios usam a página principal e a classificação de terceiros segue o WebKit. Scriptlets, filtros procedurais, redirecionamentos, expressões regulares, liberação de página inteira e exclusões de subdomínios de domínio incluído são ignorados. Compatibilidade parcial com uBlock Origin.

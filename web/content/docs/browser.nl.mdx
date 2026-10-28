@@ -74,3 +74,11 @@ zshell +browser reload --browser BROWSER_ID --wait
 `state save` bewaart cookies die gelden voor de doelhost (inclusief bovenliggende domeinen en HttpOnly) en localStorage van de huidige oorsprong als Playwright storage-state JSON. `state load` voegt cookies samen en vervangt die localStorage; laad daarna opnieuw. Schema, host en poort moeten exact overeenkomen. Vreemde domeinen, publieke suffixen, onbekende velden en ongeldige typen worden vóór wijzigingen geweigerd. Secure-cookies vereisen HTTPS.
 
 Gebruik `--format cookies` bij beide opdrachten voor Netscape `cookies.txt`, zonder localStorage en SameSite. Bestanden zijn maximaal 256 KiB en bevatten inloggegevens: houd ze privé en buiten Git. Import vereist een regulier bestand dat alleen de eigenaar kan lezen (zoals `0600`); symbolische links worden geweigerd. Export maakt een nieuw privébestand zonder bestaande paden te overschrijven. WebKit-gegevens blijven gedeeld tussen browserpanelen; project-, venster- en navigatiegrenzen blijven gelden.
+
+## Advertenties en trackers [#ads-and-trackers]
+
+**Instellingen → Browser** schakelt WebKit-blokkering standaard in met [EasyList](https://easylist.to/) en EasyPrivacy. Schakel lijsten apart uit of voeg één HTTP-/HTTPS-ABP-lijst-URL per regel toe en kies **Lijsten toepassen**. Maximaal 8 lijsten van elk 8 MiB. HTTP is niet versleuteld.
+
+Regels gelden voor nieuwe verzoeken in alle browserpanelen. Herlaad pagina’s na wijzigingen. **Lijsten nu bijwerken** forceert een update. Lijsten worden lokaal gecachet; na herstart controleert het openen van de browser lijsten ouder dan vier dagen. Instellingen tonen omgezette/overgeslagen filters, fouten en cachegebruik. Een mislukte lijstwissel hergebruikt niet stilzwijgend een andere uitgeschakelde lijst.
+
+Ondersteunt URL-jokertekens, ankers, gangbare typen, `@@`-uitzonderingen, eenvoudige domeinen en CSS `##`/`#@#`. Domeinen volgen de hoofdpagina; partijclassificatie volgt WebKit. Scriptlets, procedurele filters, omleidingen, reguliere expressies, volledige paginatoestemming en uitgesloten subdomeinen van ingesloten domeinen worden overgeslagen. Geen volledige uBlock Origin-compatibiliteit.
