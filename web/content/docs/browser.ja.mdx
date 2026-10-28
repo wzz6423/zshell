@@ -61,7 +61,22 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 
 スナップショットはメインフレームのテキスト、アクセシブルなラベル、要素参照を返します。参照はページの変更や操作後に失効するため、再利用前に新しいスナップショットを取得します。CSS セレクターは一つの要素だけに一致する必要があります。移動には `navigate`、`back`、`forward`、`reload`、`stop` を使います。
 
-自動化で使用できるのは完全な HTTP/HTTPS URL と `about:blank` です。他のプロトコル、ダウンロード、ファイル選択、ネイティブダイアログには直接操作が必要です。アドレスバーやツールバーから手動で移動すると、この制限が解除されます。対象は呼び出し元のプロジェクトとウインドウ内に限られます。`--timeout` は 100–30000 ミリ秒です。スナップショットは最大 200 要素、32768 文字、256 KiB で、パスワードとファイル入力の値を含みません。PNG は表示領域のみで最大 512 KiB、ペインを一度表示する必要があり、既存ファイルは上書きしません。`--width` で縮小できます。詳細は `zshell +browser --help` を参照してください。
+自動化で使用できるのは完全な HTTP/HTTPS URL と `about:blank` です。他のプロトコル、ダウンロード、ファイル選択、ネイティブダイアログには直接操作が必要です。アドレスバーやツールバーから手動で移動すると、この制限が解除されます。対象は呼び出し元のプロジェクトとウインドウ内に限られます。`--timeout` は 100–30000 ミリ秒です。スナップショットは最大 200 要素、32768 文字、256 KiB で、パスワードとファイル入力の値を含みません。PNG は表示領域のみで最大 512 KiB、未表示のバックグラウンドペインもフォーカスを変えず 1024 × 768 のビューポートで撮影でき、既存ファイルは上書きしません。`--width` で縮小できます。詳細は `zshell +browser --help` を参照してください。
+
+## ページのスクリプトとログイン状態 [#page-scripts-and-saved-logins]
+
+```sh
+zshell +browser eval --browser BROWSER_ID --script 'Promise.resolve({title: document.title})'
+zshell +browser state save --browser BROWSER_ID --output /tmp/zshell-login.json
+zshell +browser state load --browser BROWSER_ID --input /tmp/zshell-login.json
+zshell +browser reload --browser BROWSER_ID --wait
+```
+
+`eval --script` は実際のメインフレームで実行し、返された Promise を待って `value` に JSON を返します。`undefined` は `null` になります。`await` には非同期関数式を使います。入力は 64 KiB、結果は 256 KiB・10000 値・64 階層までです。実行後は DOM 参照が失効します。タイムアウトしてもスクリプトは停止しません。変更を再試行する前にページを確認してください。同期無限ループで応答しなくなった場合はページを閉じる必要があります。 単一の式（IIFE を含む）はネイティブのグローバル Script として挿入されます。複数文の文字列はページの CSP に従います。文字列評価が禁止されている場合は、文を IIFE で囲んでください。
+
+`state save` は対象ホストに適用される Cookie（親ドメイン、HttpOnly を含む）と現在のオリジンの localStorage を Playwright storage-state JSON に保存します。`state load` は Cookie を統合し、そのオリジンの localStorage を置き換えます。その後に再読み込みしてください。オリジンはスキーム・ホスト・ポートが完全一致する必要があります。無関係な Cookie ドメイン、パブリックサフィックス、未対応フィールド、不正な型は変更前に拒否されます。Secure Cookie には HTTPS が必要です。
+
+両方のコマンドで `--format cookies` を指定すると Netscape `cookies.txt` を使えますが、localStorage と SameSite は保存されません。ファイルは 256 KiB までで認証情報を含むため、非公開にし Git に登録しないでください。読み込みは所有者だけがアクセスできる通常ファイル（例：`0600`）に限られ、シンボリックリンクは拒否されます。保存は新しい非公開ファイルを作り、既存パスを上書きしません。WebKit のサイトデータはブラウザペイン間で共有され、プロジェクト・ウインドウ・ナビゲーションの制限は引き続き適用されます。
 
 ## 広告とトラッカー [#ads-and-trackers]
 

@@ -60,7 +60,22 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 
 快照提供主框架文字、無障礙標籤和元素參照。頁面變更或執行操作後參照會失效，再次使用前需重新取得快照。CSS 選取器必須唯一符合一個元素。導覽命令包括 `navigate`、`back`、`forward`、`reload` 和 `stop`。
 
-自動化只接受完整的 HTTP/HTTPS 網址和 `about:blank`。其他通訊協定、下載、檔案選擇器和原生對話框需要你直接操作；透過網址列或工具列手動導覽後才會解除此限制。命令僅作用於呼叫終端機所在的專案和視窗。`--timeout` 範圍為 100–30000 毫秒。快照最多包含 200 個元素、32768 個文字字元，總大小不超過 256 KiB，密碼和檔案輸入值會省略。PNG 截圖僅擷取可見區域，上限為 512 KiB，面板需至少顯示過一次，既有檔案不會被覆寫；可用 `--width` 縮小截圖。完整語法見 `zshell +browser --help`。
+自動化只接受完整的 HTTP/HTTPS 網址和 `about:blank`。其他通訊協定、下載、檔案選擇器和原生對話框需要你直接操作；透過網址列或工具列手動導覽後才會解除此限制。命令僅作用於呼叫終端機所在的專案和視窗。`--timeout` 範圍為 100–30000 毫秒。快照最多包含 200 個元素、32768 個文字字元，總大小不超過 256 KiB，密碼和檔案輸入值會省略。PNG 截圖僅擷取可見區域，上限為 512 KiB，從未顯示的背景面板也可截圖，使用 1024 × 768 視口且不改變焦點，既有檔案不會被覆寫；可用 `--width` 縮小截圖。完整語法見 `zshell +browser --help`。
+
+## 頁面指令碼與登入狀態 [#page-scripts-and-saved-logins]
+
+```sh
+zshell +browser eval --browser BROWSER_ID --script 'Promise.resolve({title: document.title})'
+zshell +browser state save --browser BROWSER_ID --output /tmp/zshell-login.json
+zshell +browser state load --browser BROWSER_ID --input /tmp/zshell-login.json
+zshell +browser reload --browser BROWSER_ID --wait
+```
+
+`eval --script` 在真實主框架頁面執行指令碼，等待回傳的 Promise，並在 `value` 中傳回 JSON；`undefined` 轉為 `null`。需要 `await` 時請使用非同步函式運算式。指令碼上限為 64 KiB，結果上限為 256 KiB、10000 個值和 64 層；執行後原 DOM 參照失效。逾時只停止等待，不取消指令碼。重試修改前先檢查頁面；同步無窮迴圈可能令頁面無回應，需要關閉頁面。 單一運算式（含 IIFE）透過原生全域 Script 注入執行。多語句字串仍遵守頁面 CSP；若字串求值遭禁止，請將語句包在 IIFE 中。
+
+`state save` 將適用於目標主機的 Cookie（含父網域和 HttpOnly Cookie）及目前來源的 localStorage 儲存為 Playwright storage-state JSON。`state load` 合併 Cookie 並取代該來源的 localStorage，之後請重新載入頁面。localStorage 的通訊協定、主機和連接埠必須完全相符；無關 Cookie 網域、公用後綴、未知欄位和錯誤型別會在修改前遭拒。Secure Cookie 需要 HTTPS。
+
+兩個命令皆加 `--format cookies` 可使用 Netscape `cookies.txt`，但該格式不儲存 localStorage 和 SameSite。狀態檔上限為 256 KiB，含有憑證，須保持私有且不要提交到 Git。匯入只接受僅擁有者可存取的一般檔案（如 `0600`），拒絕符號連結；匯出建立新私有檔案且不覆寫既有路徑。WebKit 網站資料仍由各瀏覽器面板共用，命令繼續受原有專案、視窗及導覽限制。
 
 ## 廣告與追蹤封鎖 [#ads-and-trackers]
 

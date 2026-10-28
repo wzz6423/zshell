@@ -164,3 +164,35 @@ Zshell 在现有 provider 配置中安装 Claude Code 和 Codex 的 SessionStart
 只恢复这些集成报告的本地根对话。Codex 需要内嵌本地 CLI（`--no-daemon`），不支持共享 daemon 或远程连接。OpenCode 需要支持 TUI 插件 API 的版本；不支持旧版本、无界面 server 会话和 `opencode attach`。子 agent 不会覆盖父窗格的对话。Pi 需要已保存的会话文件。
 
 缺少已验证身份、原工作目录或 Pi 文件时，窗格会打开新 shell；找不到 CLI 时也会回到 shell。Zshell 不会重放任意启动命令或选择最近对话。对话已删除等 provider 错误由 CLI 显示。
+
+## 查找并继续已保存对话 [#saved-conversation-history]
+
+打开 **Agent → Agent 对话历史**，点击项目侧栏顶部的时钟按钮。可以跨项目按标题、provider、项目、对话 ID、工作目录或配置目录搜索。Zshell 保留最近 200 条已验证的本地对话，Agent 或窗格关闭、应用重启后仍可查看。**最近** 显示 20 条未归档匹配；**全部** 包含归档记录；**已归档** 只显示归档记录。
+
+选择 **显示对话** 跳到仍打开的对话，或选择 **继续对话** 恢复已保存对话。Zshell 优先复用现有窗格、重连仍存活的 PTY，再以原工作目录和配置恢复 provider 的精确对话。手动恢复需要开启 AI 集成，即使自动恢复对话设置已关闭也可使用。工作目录、配置目录缺失，或 Pi 文件缺失、身份不匹配时，会在创建新窗格前显示错误。
+
+**归档** 将记录从“最近”隐藏，**取消归档** 将其恢复。**删除…** 只删除 Zshell 历史记录，保留 provider 的对话文件。
+
+在 Zshell 窗格内，使用 `zshell +agent history --all` 和 `zshell +agent resume --id HISTORY_UUID`，范围为当前窗格的项目。在普通外部终端中，保持 Zshell 运行，先获取项目 UUID，再明确选择项目：
+
+```sh
+zshell +agent history projects
+zshell +agent history --project PROJECT_UUID --all
+zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
+```
+
+CLI 恢复默认在后台进行，添加 `--focus` 才切换焦点。项目在多个窗口中打开时，用 `history projects` 返回的 `--window WINDOW_UUID` 明确选择；多个应用实例运行时，用 `--connection PATH` 指向 CLI 提示的绝对私有连接文件路径。这些目标选项仅用于外部终端，窗格进程始终保留原项目范围。
+
+## 订阅项目实时事件 [#live-events]
+
+在 Zshell 面板内运行 `zshell +events`，以 NDJSON 接收当前终端所属项目和窗口的后续变化。支持 `--pane UUID`、可重复的 `--event NAME`、`--once` 和 `--timeout MS`（0 为无限等待）。无需轮询。
+
+事件包括 `session.created/closed`、`pane.created/closed/updated`、`focus.changed`、`agent.status/progress/attention/finished`、`command.finished` 和 `command.task.finished`。首行 `stream.ready` 的 `sequence` 为 0，之后每条匹配事件递增，包含 `version`、`event`、`stream_id`、`sequence`、Unix 毫秒 `time`、`project_id` 和事件 `data`。不重放历史；命令任务事件只提供元数据，结果用 `+pane wait --task UUID` 读取。
+
+最多 32 个订阅，每个队列最多 256 帧、1 MiB，单帧最多 64 KiB。处理滞后会发送 `stream.lagged` 并断开；连续 2 秒无法写入也会关闭。滞后、意外断线或序号错误会非零退出，请重新订阅并读取当前状态。关闭所属终端、轮换令牌或转移到另一项目/窗口会终止原订阅并清空排队事件。不支持外部控制或 `--project`；清除环境变量不会扩大权限。`--once` 未匹配而超时返回 124，普通超时返回 0。
+
+```sh
+zshell +events --event command.task.finished --once --timeout 30000
+```
+
+`pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).

@@ -1,6 +1,6 @@
 ---
 name: zshell-automation
-description: Coordinate agents, terminal panes, and project browser pages inside Zshell. Use for delegation, agent prompts and results, or inspecting and exercising a development page in Zshell's existing browser.
+description: Coordinate agents, terminal panes, saved conversations, and project browser pages in Zshell. Use for delegation, agent prompts and results, finding or resuming verified conversation history, or exercising a development page in Zshell's existing browser.
 ---
 
 # Zshell Automation
@@ -11,16 +11,45 @@ input as separate actions.
 
 ## Check availability
 
-1. Require `ZSHELL_AUTOMATION=1`. If it is absent, explain that the command must
-   run inside a newly opened Zshell terminal.
+1. Pane, browser, and active-agent coordination require `ZSHELL_AUTOMATION=1`
+   in a newly opened Zshell terminal. Saved conversation history supports explicit
+   external access as described below; external session management uses `+session`.
 2. Run `zshell +pane protocol` before a multi-step workflow.
 3. Treat successful command output as JSON. Record returned `pane_id` values;
    do not infer pane IDs from titles or screen position.
-4. Stay within the invoking terminal's project. Zshell intentionally rejects
+4. Inside a pane, stay within the invoking terminal's project. Zshell intentionally rejects
    targets in other projects and windows.
 
 Use `zshell +agent explain` for the lifecycle and security contract, and use
-`zshell +agent --help`, `zshell +pane --help`, or `zshell +browser --help` for complete syntax.
+`zshell +agent --help`, `zshell +pane --help`, `zshell +browser --help`, or
+`zshell +session --help` for complete syntax.
+
+## Create and close worktree sessions
+
+An external terminal can discover open projects with `zshell +session projects`.
+Use the returned `project_id` explicitly; inside Zshell, session commands use the
+invoking terminal's project. Pane programs remain in that scope even when they
+clear the bridge environment. External session control grants no pane reads,
+terminal input, or agent commands.
+
+```sh
+zshell +session new --project PROJECT_ID --cwd /path/to/repo --branch feat/task
+zshell +session list --project PROJECT_ID
+zshell +session check --project PROJECT_ID --session TERMINAL_ID
+zshell +session close --project PROJECT_ID --session TERMINAL_ID --keep-worktree
+```
+
+Record `terminal_id` and the returned `worktree.path`. New branches start from
+the repository default branch; `--base HEAD` or `--base REF` chooses another
+baseline. Existing branches keep their commit. `--worktree NEW_DIR` chooses a
+directory that does not exist, and `--focus` selects the new session. Use
+`--connection FILE` to select a particular running instance.
+
+Closing keeps the checkout by default. For an explicitly requested cleanup,
+inspect `check` before using `--remove-worktree`. Cleanup refuses changed,
+untracked, ignored, unmerged, locked, replaced, or shared worktrees and preserves
+the Git branch. Native session close offers Keep Worktree, Remove Worktree, and
+Cancel; splits and saved layouts retain the association.
 
 ## Exercise a project page
 
@@ -47,8 +76,9 @@ Do not launch a second browser or inspect another application's windows.
 
    The snapshot covers the main frame and returns bounded visible text,
    semantic roles, names, field state, and element `ref` values. It excludes
-   password and file-input values. Frames and shadow roots require direct user
-   interaction; this interface does not expose arbitrary JavaScript evaluation.
+   password and file-input values. Prefer these bounded operations for routine
+   interactions. Use explicit page evaluation below for assertions that require
+   the page's JavaScript context.
 3. Use a snapshot reference or a unique CSS selector for the intended action:
 
    ```sh
@@ -70,9 +100,48 @@ Do not launch a second browser or inspect another application's windows.
    zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
    ```
 
-   The pane must have been shown once so WebKit has a viewport. PNG output is
-   limited to 512 KiB and never overwrites an existing file; use a unique path
-   and reduce `--width` if needed. Clean up your captures after review.
+   Never-shown background panes use a 1024 × 768 viewport without selecting
+   the tab or changing focus. PNG output is limited to 512 KiB and never
+   overwrites an existing file; use a unique path and reduce `--width` if
+   needed. Clean up your captures after review.
+
+For a page-specific assertion, evaluate a script in the actual main frame:
+
+```sh
+zshell +browser eval --browser BROWSER_ID --script 'Promise.resolve({title: document.title})'
+```
+
+The command awaits a returned Promise and returns JSON in `value`; `undefined`
+becomes `null`. Use an async function expression for `await`. Input is limited
+to 64 KiB, and JSON output to 256 KiB, 10000 values, and 64 levels. Evaluation
+injects single expressions, including IIFEs, as native global Scripts. Other
+multi-statement strings follow the page's CSP; wrap them in an IIFE if string
+evaluation is blocked. Zshell does not relax the page's CSP. Evaluation
+expires old DOM references. A timeout stops waiting, not page execution; inspect
+the page before retrying a mutation. A synchronous endless loop can stall that
+page and require closing it. Protocol restrictions still apply to script-driven
+navigation, popups, and downloads.
+
+Save or load a login only when it serves the user's requested workflow, using
+their specified private file:
+
+```sh
+zshell +browser state save --browser BROWSER_ID --output /private/path/login.json
+zshell +browser state load --browser BROWSER_ID --input /private/path/login.json
+zshell +browser reload --browser BROWSER_ID --wait
+```
+
+The default is Playwright storage-state JSON: cookies applicable to the target
+host (including parent-domain and HttpOnly cookies) and localStorage for exactly
+the current HTTP(S) origin. Load merges cookies and replaces that origin's
+localStorage. Other origins, unrelated cookie domains, public suffixes, invalid
+types, and unsupported fields are rejected before changes. Secure cookies
+require HTTPS. Use `--format cookies` on both commands for Netscape cookies.txt,
+which cannot preserve localStorage or SameSite. Files are limited to 256 KiB;
+imports require owner-only regular files and reject symlinks. Exports create new
+0600 files without overwriting. CLI output includes only metadata, never cookie
+values or localStorage. These files contain credentials: never print them or
+commit them to Git. WebKit site data remains shared across browser panes.
 
 Navigation uses `navigate URL`, `back`, `forward`, `reload`, and `stop`, with the
 same browser target. Only explicit HTTP/HTTPS URLs or `about:blank` are allowed.
@@ -139,6 +208,61 @@ Use these exact values with `zshell +agent start --kind`:
 - `aider` — Aider
 - `amp` — Amp
 - `pi` — Pi
+
+## Find or resume a saved conversation
+
+History contains up to 200 verified local root conversations from Claude Code,
+Codex, Pi, and OpenCode, including conversations whose agents or panes have
+closed. Recent returns the newest 20 unarchived matches; `--all` includes
+archived entries. Search the current pane's project without selecting a target:
+
+```sh
+zshell +agent history --all --query 'fix'
+```
+
+Record the returned history `id`; it differs from the provider's `session_id`.
+When the user asks to resume that conversation, use its exact history UUID:
+
+```sh
+zshell +agent resume --id HISTORY_UUID
+```
+
+`resume` first reveals an already open conversation, then reconnects a surviving
+PTY, and otherwise starts the provider's exact saved resume command with its
+original working directory and configuration. It requires AI integration when
+starting or reconnecting a terminal, but does not require the automatic
+**Resume agent conversations** setting. Keep it in the background unless the
+user asks to see it; only `--focus` changes selection. The returned `action`
+describes what Zshell did. `resume_started` does not prove provider startup or
+task completion; inspect the returned terminal and actual outcome.
+
+Archive, unarchive, or delete only the record the user selected:
+
+```sh
+zshell +agent archive --id HISTORY_UUID
+zshell +agent unarchive --id HISTORY_UUID
+zshell +agent delete --id HISTORY_UUID
+```
+
+Deleting removes the Zshell record and keeps provider conversation files.
+Missing directories, a missing or mismatched Pi file, and unavailable providers
+must be surfaced to the user; do not substitute another conversation.
+
+From an ordinary external terminal with Zshell running, discover the explicit
+project scope before reading or resuming history:
+
+```sh
+zshell +agent history projects
+zshell +agent history --project PROJECT_UUID --all
+zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID
+```
+
+For a project open in several windows, select `--window WINDOW_UUID` returned by
+`history projects`. When several app instances are running, use `--connection`
+with the absolute owner-only descriptor path identified by the CLI. These
+options belong only to external access. Never clear a pane's environment or
+use an external descriptor to widen its project scope; Zshell checks process
+ownership and rejects that access, including from Quick Terminal.
 
 ## Coordinate existing Zshell agents
 
@@ -284,3 +408,24 @@ reply with that path, then read the file directly.
   the delegated workflow.
 - Treat `blocked` as a handoff to the user, not an invitation to bypass the
   blocker.
+
+## Live event subscriptions
+
+Use `zshell +events` inside the owning terminal to receive future changes in its
+project and window as NDJSON. Optional `--pane UUID` and repeatable `--event NAME`
+filters apply before delivery. `--once --timeout 30000` waits for one matching
+change (exit 124 on timeout); `stream.ready` is only the handshake.
+
+Events cover session/pane creation and closing, focus, Agent status/progress/
+attention/finish, shell completion and `command.task.finished`. See
+`zshell +events --help` for names. Agent events preserve source authority; screen
+inference never proves completion or grants approval. Read the actual result.
+
+Each line has `version`, `event`, `stream_id`, `sequence`, `time` (Unix ms),
+`project_id`, and `data`. Sequence starts at 0 for `stream.ready`. There is no
+replay. Queues are bounded (32 subscribers, 256 frames/1 MiB per connection,
+64 KiB per frame). `stream.lagged`, a sequence error, or unexpected EOF means
+reconnect and inspect current state. Closing or moving the caller to a different
+project/window, or rotating its token, ends the old subscription. No external
+control or `--project` fallback exists. Do not remove environment variables to
+try to gain broader scope.

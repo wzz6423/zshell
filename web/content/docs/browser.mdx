@@ -73,7 +73,22 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 
 Snapshots return main-frame text, accessible labels, and element references. References expire after page changes or actions; take a new snapshot before reusing one. CSS selectors must match exactly one element. Use `navigate`, `back`, `forward`, `reload`, and `stop` for navigation.
 
-Automation accepts explicit HTTP/HTTPS URLs and `about:blank`. Other protocols, downloads, file pickers, and native dialogs require your interaction. A page remains under this protocol restriction until you navigate manually with the address bar or toolbar. Commands stay inside the calling terminal’s project and window. `--timeout` is 100–30000 milliseconds. Snapshots are limited to 200 elements, 32768 text characters, and 256 KiB; password and file-input values are omitted. PNG viewport captures are limited to 512 KiB, require a pane that has been shown once, and never overwrite files. Reduce `--width` for a smaller capture. See `zshell +browser --help` for complete syntax.
+Automation accepts explicit HTTP/HTTPS URLs and `about:blank`. Other protocols, downloads, file pickers, and native dialogs require your interaction. A page remains under this protocol restriction until you navigate manually with the address bar or toolbar. Commands stay inside the calling terminal’s project and window. `--timeout` is 100–30000 milliseconds. Snapshots are limited to 200 elements, 32768 text characters, and 256 KiB; password and file-input values are omitted. PNG viewport captures are limited to 512 KiB, work even before a pane has been shown, using a 1024 × 768 viewport without changing focus, and never overwrite files. Reduce `--width` for a smaller capture. See `zshell +browser --help` for complete syntax.
+
+## Page scripts and saved logins [#page-scripts-and-saved-logins]
+
+```sh
+zshell +browser eval --browser BROWSER_ID --script 'Promise.resolve({title: document.title})'
+zshell +browser state save --browser BROWSER_ID --output /tmp/zshell-login.json
+zshell +browser state load --browser BROWSER_ID --input /tmp/zshell-login.json
+zshell +browser reload --browser BROWSER_ID --wait
+```
+
+`eval --script` runs in the real main-frame page, awaits a returned Promise, and returns JSON in `value`; `undefined` becomes `null`. Use an async function expression for `await`. Scripts are limited to 64 KiB; results to 256 KiB, 10000 values, and 64 levels. Existing DOM references expire after evaluation. A timeout stops waiting but does not cancel the script. Inspect the page before retrying a mutation; synchronous endless code can stall the page and require closing it. Single expressions, including IIFEs, are injected as native global Scripts. Multi-statement strings still follow the page’s CSP; if string evaluation is blocked, wrap the statements in an IIFE.
+
+`state save` writes Playwright storage-state JSON containing cookies applicable to the target host (including parent-domain and HttpOnly cookies) and the current origin’s localStorage. `state load` merges those cookies and replaces that origin’s localStorage; reload afterwards. localStorage origins must match scheme, host, and port exactly. Unrelated cookie domains, public suffixes, unsupported fields, and invalid types are rejected before changes. Secure cookies require HTTPS.
+
+Use `--format cookies` on both commands for Netscape `cookies.txt`; that format omits localStorage and SameSite. State files are limited to 256 KiB, contain credentials, and must stay private and out of Git. Imports require an owner-only regular file, such as mode `0600`; symlinks are rejected. Exports create a new private file and never overwrite an existing path. WebKit site data remains shared across browser panes. These commands retain the same project, window, and navigation restrictions.
 
 ## Ads and trackers
 

@@ -58,7 +58,22 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 
 Les instantanés renvoient le texte du cadre principal, les libellés accessibles et des références d’éléments. Ces références expirent après une modification ou une action : reprenez un instantané avant de les réutiliser. Un sélecteur CSS doit correspondre à un seul élément. Utilisez `navigate`, `back`, `forward`, `reload` et `stop` pour naviguer.
 
-Seuls les URL HTTP/HTTPS explicites et `about:blank` sont autorisés. Les autres protocoles, téléchargements, sélecteurs de fichiers et dialogues natifs nécessitent votre intervention. Cette restriction cesse après une navigation manuelle par la barre d’adresse ou d’outils. Les commandes restent dans le projet et la fenêtre du terminal appelant. `--timeout` vaut 100–30000 millisecondes. Les instantanés sont limités à 200 éléments, 32768 caractères et 256 KiB, sans valeurs de mot de passe ou de fichier. Les captures PNG de la zone visible sont limitées à 512 KiB, nécessitent un volet déjà affiché et n’écrasent aucun fichier. Réduisez `--width` si nécessaire. Voir `zshell +browser --help`.
+Seuls les URL HTTP/HTTPS explicites et `about:blank` sont autorisés. Les autres protocoles, téléchargements, sélecteurs de fichiers et dialogues natifs nécessitent votre intervention. Cette restriction cesse après une navigation manuelle par la barre d’adresse ou d’outils. Les commandes restent dans le projet et la fenêtre du terminal appelant. `--timeout` vaut 100–30000 millisecondes. Les instantanés sont limités à 200 éléments, 32768 caractères et 256 KiB, sans valeurs de mot de passe ou de fichier. Les captures PNG de la zone visible sont limitées à 512 KiB, fonctionnent aussi dans un volet jamais affiché avec une zone de 1024 × 768 sans changer le focus et n’écrasent aucun fichier. Réduisez `--width` si nécessaire. Voir `zshell +browser --help`.
+
+## Scripts et état de connexion [#page-scripts-and-saved-logins]
+
+```sh
+zshell +browser eval --browser BROWSER_ID --script 'Promise.resolve({title: document.title})'
+zshell +browser state save --browser BROWSER_ID --output /tmp/zshell-login.json
+zshell +browser state load --browser BROWSER_ID --input /tmp/zshell-login.json
+zshell +browser reload --browser BROWSER_ID --wait
+```
+
+`eval --script` s’exécute dans la véritable page principale, attend une Promise renvoyée et retourne du JSON dans `value` ; `undefined` devient `null`. Utilisez une expression de fonction asynchrone pour `await`. Limites : 64 KiB en entrée ; 256 KiB, 10000 valeurs et 64 niveaux en sortie. Les références DOM expirent après l’exécution. Un délai dépassé arrête l’attente, pas le script. Inspectez la page avant de répéter une modification ; une boucle synchrone infinie peut nécessiter de fermer la page. Les expressions uniques, y compris les IIFE, sont injectées comme Scripts globaux natifs. Les chaînes contenant plusieurs instructions restent soumises à la CSP de la page ; si leur évaluation est bloquée, placez les instructions dans une IIFE.
+
+`state save` enregistre les cookies applicables à l’hôte cible (y compris ceux du domaine parent et HttpOnly) et le localStorage de l’origine actuelle au format Playwright storage-state JSON. `state load` fusionne les cookies et remplace ce localStorage ; rechargez ensuite la page. Le schéma, l’hôte et le port doivent correspondre exactement. Les domaines sans rapport, suffixes publics, champs non pris en charge et types invalides sont refusés avant toute modification. Les cookies Secure exigent HTTPS.
+
+Ajoutez `--format cookies` aux deux commandes pour Netscape `cookies.txt`, sans localStorage ni SameSite. Les fichiers, limités à 256 KiB, contiennent des identifiants : gardez-les privés et hors de Git. L’import exige un fichier ordinaire accessible uniquement à son propriétaire (par exemple `0600`) et refuse les liens symboliques. L’export crée un fichier privé sans écraser de chemin existant. Les données WebKit restent partagées entre volets ; les restrictions de projet, fenêtre et navigation s’appliquent toujours.
 
 ## Publicités et traqueurs [#ads-and-trackers]
 

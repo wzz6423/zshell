@@ -12,15 +12,23 @@ enum ZshellBrowserAutomationCommandLine {
             printHelp()
             return
         }
-        let command = arguments[0]
-        let commands: Set<String> = ["list", "open", "get", "navigate", "back", "forward", "reload", "stop", "snapshot", "click", "fill", "wait", "screenshot"]
+        var command = arguments[0]
+        var index = 1
+        if command == "state" {
+            guard arguments.count > 1, ["save", "load"].contains(arguments[1]) else {
+                throw CLIError.message("Use `zshell +browser state save` or `zshell +browser state load`. Run `zshell +browser --help`.")
+            }
+            command += "." + arguments[1]
+            index = 2
+        }
+        let commands: Set<String> = ["list", "open", "get", "navigate", "back", "forward", "reload", "stop", "snapshot", "click", "fill", "wait", "screenshot", "eval", "state.save", "state.load"]
         guard commands.contains(command) else {
             throw CLIError.message("Unknown +browser command \(command). Run `zshell +browser --help`.")
         }
         var params: [String: ZshellJSONValue] = [:]
         var output: String?
+        var input: String?
         var wait = false
-        var index = 1
         var used = Set<String>()
         let targetOptions: Set<String> = ["--browser", "--pane"]
         let elementOptions: Set<String> = ["--ref", "--selector"]
@@ -33,12 +41,20 @@ enum ZshellBrowserAutomationCommandLine {
         case "fill": allowed.formUnion(elementOptions.union(["--text", "--value"]))
         case "wait": allowed.formUnion(elementOptions.union(["--state"]))
         case "screenshot": allowed.formUnion(["--output", "--width"])
+        case "eval": allowed.insert("--script")
+        case "state.save": allowed.formUnion(["--output", "--format"])
+        case "state.load": allowed.formUnion(["--input", "--format"])
         default: break
         }
         while index < arguments.count {
             let option = arguments[index]
             if !option.hasPrefix("--"), ["open", "navigate"].contains(command), params["url"] == nil {
                 params["url"] = .string(option)
+                index += 1
+                continue
+            }
+            if !option.hasPrefix("--"), command == "eval", params["script"] == nil {
+                params["script"] = .string(option)
                 index += 1
                 continue
             }
@@ -59,8 +75,9 @@ enum ZshellBrowserAutomationCommandLine {
                 params[keys[option]!] = .number(Double(value))
             default:
                 let value = try ZshellAutomationCommandLine.value(after: &index, in: arguments, option: option)
-                let keys = ["--browser": "browser_id", "--pane": "pane_id", "--url": "url", "--ref": "ref", "--selector": "selector", "--text": "value", "--value": "value", "--state": "state"]
+                let keys = ["--browser": "browser_id", "--pane": "pane_id", "--url": "url", "--ref": "ref", "--selector": "selector", "--text": "value", "--value": "value", "--state": "state", "--script": "script", "--format": "format"]
                 if option == "--output" { output = value }
+                else if option == "--input" { input = value }
                 else if let key = keys[option] {
                     guard params[key] == nil else { throw CLIError.message("Pass \(key) once.") }
                     params[key] = .string(value)
@@ -80,6 +97,23 @@ enum ZshellBrowserAutomationCommandLine {
         }
         if command == "fill", params["value"] == nil { throw CLIError.message("fill requires --text.") }
         if command == "screenshot", output == nil { throw CLIError.message("screenshot requires --output PATH.") }
+        if command == "eval" {
+            guard let script = params["script"]?.stringValue,
+                  !script.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  script.utf8.count <= BrowserAutomation.maximumScriptBytes else {
+                throw CLIError.message("eval requires a non-empty --script of at most 64 KiB.")
+            }
+        }
+        if command == "state.save", output == nil { throw CLIError.message("state save requires --output PATH.") }
+        if command.hasPrefix("state.") {
+            guard BrowserStorageState.Format(rawValue: params["format"]?.stringValue ?? "storage-state") != nil else {
+                throw CLIError.message("--format must be storage-state or cookies.")
+            }
+        }
+        if command == "state.load" {
+            guard let input else { throw CLIError.message("state load requires --input PATH.") }
+            params["data_base64"] = .string(try readState(path: input).base64EncodedString())
+        }
         let timeout = params["timeout_ms"]?.intValue ?? 5_000
         guard (100...30_000).contains(timeout) else { throw CLIError.message("Timeout must be between 100 and 30000 milliseconds.") }
         let connection = try AppConnection()
@@ -87,20 +121,24 @@ enum ZshellBrowserAutomationCommandLine {
         if wait, let browserID = result.objectValue?["browser_id"]?.stringValue {
             result = try connection.automationRequest(method: "browser.wait", params: ["browser_id": .string(browserID), "timeout_ms": .number(Double(timeout))], timeout: Double(timeout) / 1_000 + 2)
         }
-        if let output { result = try saveScreenshot(result, path: output) }
+        if let output {
+            result = try saveFile(result, path: output,
+                                  maximumBytes: command == "screenshot" ? BrowserAutomation.maximumImageBytes : BrowserStorageState.maximumBytes)
+        }
         try ZshellAutomationCommandLine.printJSON(result)
     }
 
-    private static func saveScreenshot(_ result: ZshellJSONValue, path: String) throws -> ZshellJSONValue {
+    private static func saveFile(_ result: ZshellJSONValue, path: String, maximumBytes: Int) throws -> ZshellJSONValue {
         guard var object = result.objectValue,
               let encoded = object["data_base64"]?.stringValue,
-              let data = Data(base64Encoded: encoded), data.count <= 524_288 else {
-            throw CLIError.message("Zshell returned an invalid or oversized screenshot.")
+              encoded.utf8.count <= (maximumBytes + 2) / 3 * 4,
+              let data = Data(base64Encoded: encoded), data.count <= maximumBytes else {
+            throw CLIError.message("Zshell returned an invalid or oversized browser file.")
         }
         let url = URL(fileURLWithPath: path).standardizedFileURL
-        let descriptor = Darwin.open(url.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)
+        let descriptor = Darwin.open(url.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0o600)
         guard descriptor >= 0 else {
-            throw CLIError.message("Could not create screenshot file (existing files are preserved): \(String(cString: strerror(errno)))")
+            throw CLIError.message("Could not create browser file (existing files are preserved): \(String(cString: strerror(errno)))")
         }
         let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
         do {
@@ -116,6 +154,23 @@ enum ZshellBrowserAutomationCommandLine {
         return .object(object)
     }
 
+    private static func readState(path: String) throws -> Data {
+        let descriptor = Darwin.open(URL(fileURLWithPath: path).standardizedFileURL.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
+        guard descriptor >= 0 else { throw CLIError.message("Could not open the private storage-state file.") }
+        let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        defer { try? file.close() }
+        var metadata = stat()
+        guard fstat(descriptor, &metadata) == 0,
+              metadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG),
+              metadata.st_uid == geteuid(), metadata.st_mode & 0o077 == 0,
+              metadata.st_nlink == 1, metadata.st_size > 0, metadata.st_size <= BrowserStorageState.maximumBytes,
+              let data = try file.read(upToCount: BrowserStorageState.maximumBytes + 1),
+              !data.isEmpty, data.count <= BrowserStorageState.maximumBytes else {
+            throw CLIError.message("Storage state must be an owner-only regular file of at most 256 KiB (for example, chmod 600 PATH).")
+        }
+        return data
+    }
+
     private static func printHelp() {
         print("""
         Usage:
@@ -129,6 +184,9 @@ enum ZshellBrowserAutomationCommandLine {
           zshell +browser fill [--browser ID | --pane ID] <--ref REF | --selector CSS> --text TEXT
           zshell +browser wait [--browser ID | --pane ID] [--selector CSS | --ref REF] [--state visible|attached]
           zshell +browser screenshot [--browser ID | --pane ID] --output PATH [--width N]
+          zshell +browser eval [--browser ID | --pane ID] --script JAVASCRIPT
+          zshell +browser state save [--browser ID | --pane ID] --output PATH [--format storage-state|cookies]
+          zshell +browser state load [--browser ID | --pane ID] --input PATH [--format storage-state|cookies]
 
         Commands run inside a Zshell terminal and return JSON. Targets stay in
         that terminal's project and window. Omit the target only when exactly
@@ -148,8 +206,30 @@ enum ZshellBrowserAutomationCommandLine {
         without a selector waits for page readiness. Snapshots contain up to
         200 elements and 32768 text characters, with a 256 KiB response limit.
         Password and file input values are omitted. Screenshots capture the
-        viewport as PNG, up to 512 KiB and 1600 points per side; show the pane
-        once before capturing it. Output files are private and never overwritten.
+        viewport as PNG, up to 512 KiB and 1600 points per side. Unshown panes
+        use a 1024 x 768 viewport without selecting a tab or changing focus.
+        Output files are private and never overwritten.
+
+        Eval runs a script in the real main-frame page, awaits a returned
+        Promise, and returns its JSON value (undefined becomes null). Use an
+        async function expression for await. Input is limited to 64 KiB; output
+        to 256 KiB, 10000 values, and 64 levels. A timeout stops waiting, not
+        page execution; inspect state before retrying. Synchronous endless code
+        can stall that page and require closing it. DOM refs expire after eval.
+        Single expressions and IIFEs use native global Script injection.
+        Multi-statement strings follow page CSP; wrap them in an IIFE if string
+        evaluation is blocked. The page's CSP is never relaxed.
+
+        State save/load handles only the current HTTP(S) origin's localStorage
+        and cookies applicable to its host (including HttpOnly and parent-domain
+        cookies). Unrelated domains, public suffixes, and Secure cookies on HTTP
+        are rejected. JSON uses Playwright
+        storage-state; cookies uses Netscape cookies.txt without localStorage
+        or SameSite. Imports require an owner-only regular file, up to 256 KiB;
+        other origins, invalid types, and unsupported fields are rejected before
+        changes. Load replaces this origin's localStorage and merges cookies;
+        reload afterwards. WebKit site data remains shared across browser panes.
+        State files contain credentials: keep them private and out of Git.
         """)
     }
 }

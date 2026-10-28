@@ -61,7 +61,22 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 
 Snapshot memberikan teks bingkai utama, label aksesibilitas, dan referensi elemen. Referensi kedaluwarsa setelah perubahan halaman atau tindakan; ambil snapshot baru sebelum memakainya lagi. Pemilih CSS harus cocok dengan tepat satu elemen. Gunakan `navigate`, `back`, `forward`, `reload`, dan `stop` untuk navigasi.
 
-Otomatisasi menerima URL HTTP/HTTPS lengkap dan `about:blank`. Protokol lain, unduhan, pemilih berkas, dan dialog native memerlukan interaksi Anda. Pembatasan berakhir setelah navigasi manual melalui bilah alamat atau toolbar. Perintah tetap berada dalam proyek dan jendela terminal pemanggil. `--timeout` adalah 100–30000 milidetik. Snapshot dibatasi 200 elemen, 32768 karakter, dan 256 KiB, tanpa nilai kata sandi atau berkas. PNG area terlihat dibatasi 512 KiB, memerlukan panel yang pernah ditampilkan, dan tidak menimpa berkas. Kurangi `--width` jika perlu. Lihat `zshell +browser --help`.
+Otomatisasi menerima URL HTTP/HTTPS lengkap dan `about:blank`. Protokol lain, unduhan, pemilih berkas, dan dialog native memerlukan interaksi Anda. Pembatasan berakhir setelah navigasi manual melalui bilah alamat atau toolbar. Perintah tetap berada dalam proyek dan jendela terminal pemanggil. `--timeout` adalah 100–30000 milidetik. Snapshot dibatasi 200 elemen, 32768 karakter, dan 256 KiB, tanpa nilai kata sandi atau berkas. PNG area terlihat dibatasi 512 KiB, bekerja sebelum panel ditampilkan dengan viewport 1024 × 768 tanpa mengubah fokus, dan tidak menimpa berkas. Kurangi `--width` jika perlu. Lihat `zshell +browser --help`.
+
+## Skrip halaman dan status login [#page-scripts-and-saved-logins]
+
+```sh
+zshell +browser eval --browser BROWSER_ID --script 'Promise.resolve({title: document.title})'
+zshell +browser state save --browser BROWSER_ID --output /tmp/zshell-login.json
+zshell +browser state load --browser BROWSER_ID --input /tmp/zshell-login.json
+zshell +browser reload --browser BROWSER_ID --wait
+```
+
+`eval --script` berjalan pada halaman utama yang sebenarnya, menunggu Promise yang dikembalikan, dan menghasilkan JSON dalam `value`; `undefined` menjadi `null`. Gunakan ekspresi fungsi asinkron untuk `await`. Batas: masukan 64 KiB; keluaran 256 KiB, 10000 nilai, dan 64 tingkat. Referensi DOM kedaluwarsa setelah eksekusi. Timeout hanya menghentikan penantian, bukan skrip. Periksa halaman sebelum mengulangi perubahan; loop sinkron tanpa akhir mungkin mengharuskan halaman ditutup. Ekspresi tunggal, termasuk IIFE, disisipkan sebagai Script global native. String dengan beberapa pernyataan tetap mengikuti CSP halaman; jika evaluasi string diblokir, bungkus pernyataan dalam IIFE.
+
+`state save` menyimpan Cookie yang berlaku untuk host tujuan (termasuk domain induk dan HttpOnly) serta localStorage origin saat ini sebagai Playwright storage-state JSON. `state load` menggabungkan Cookie dan mengganti localStorage origin itu; muat ulang setelahnya. Skema, host, dan port harus sama persis. Domain lain, sufiks publik, kolom tak didukung, dan tipe tidak valid ditolak sebelum perubahan. Cookie Secure memerlukan HTTPS.
+
+Gunakan `--format cookies` pada kedua perintah untuk Netscape `cookies.txt`, tanpa localStorage dan SameSite. Berkas dibatasi 256 KiB dan berisi kredensial: simpan secara privat dan di luar Git. Impor memerlukan berkas biasa yang hanya dapat diakses pemilik (misalnya `0600`), dan menolak symlink. Ekspor membuat berkas privat baru tanpa menimpa jalur yang ada. Data WebKit tetap dibagikan antar panel; batas proyek, jendela, dan navigasi tetap berlaku.
 
 ## Iklan dan pelacak [#ads-and-trackers]
 
