@@ -230,7 +230,7 @@
 			);
 			name = "Bundle remote server";
 			outputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/zshell-server",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/zshell-server",
 			);
 			shellPath = /bin/zsh;
 			shellScript = "\"${SRCROOT}/scripts/build-remote-server.sh\"";
