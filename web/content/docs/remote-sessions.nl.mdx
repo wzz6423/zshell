@@ -1,0 +1,48 @@
+---
+title: Gedeelde externe sessies
+description: Verbind via SSH of Tailscale met dezelfde externe terminal en behoud taken na het verbreken van de verbinding.
+---
+
+`zshell-server` houdt de shell en taken actief op een macOS- of Linux-host. Beide terminalbackends van Zshell kunnen verbinden. De client sluiten of netwerk verliezen beëindigt de taken niet. Opnieuw verbinden herstelt scherm, geschiedenis, cursor en terminalmodi.
+
+## Installeren [#install]
+
+Bouw de Zshell-repository op de host met een actuele Rust-toolchain. De Mac-client bevat de relay en heeft geen Cargo nodig. Een native Windows-server wordt niet ondersteund.
+
+```sh
+cargo build --locked --release --manifest-path remote/Cargo.toml
+install -d "$HOME/.local/bin"
+install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
+```
+
+## SSH [#ssh]
+
+Controleer eerst de hostsleutel en authenticatie met sleutel of agent:
+
+```sh
+ssh devbox true
+```
+
+Open externe hosts via het netwerkmenu in de zijbalk. Vul een naam, `ssh://me@devbox:22` of SSH-alias en `~/.local/bin/zshell-server` in. Verbinden laadt bestaande projecten en sessies. Vul een map zoals `~/repo` in en open het externe project om een shell te maken. Spaties in paden worden ondersteund; nieuwe tabbladen en splitsingen draaien ook op afstand.
+
+SSH start de daemon automatisch en gebruikt je OpenSSH-configuratie, sleutels, agent en vertrouwde hostsleutels. Onbekende sleutels en authenticatiefouten verschijnen als foutmelding. Bestanden en Git gebruiken SSH naar dezelfde host, ook als de terminal Tailscale gebruikt. Externe paden openen nooit Mac-bestanden. `ZSHELL_SSH_CONFIG_FILE` kan met een absoluut pad een apart leesbaar OpenSSH-bestand kiezen.
+
+## Tailscale [#tailscale]
+
+Meld beide apparaten aan bij Tailscale en start de privélistener voordat je sessies maakt:
+
+```sh
+zshell-server serve --listen tailscale://:7373
+```
+
+Voeg `tailscale://devbox:7373` toe. MagicDNS en Tailscale IPv4/IPv6 werken; openbare adressen worden geweigerd. Standaard zijn alleen apparaten zonder tags van de hosteigenaar toegestaan. `--allow-user` staat een andere exacte aanmeldnaam toe; clients met tags blijven geweigerd. Gebruik SSH op de server zelf. Tailnet-ACL’s blijven gelden. Toegelaten clients kunnen het Unix-account van de dienst bedienen.
+
+## Delen en beëindigen [#sharing]
+
+Iedereen ontvangt dezelfde uitvoer. De terminal focussen of de besturing overnemen geeft die client invoer en formaatbeheer. Bij verbreken neemt de oudste overgebleven client het over. Info toont status, aantal clients en besturing en biedt loskoppelen en opnieuw verbinden. Netwerkfouten worden automatisch opnieuw geprobeerd; offline invoer wordt weggegooid. De opgeslagen indeling verbindt dezelfde externe UUID opnieuw.
+
+Panelen, projecten of vensters sluiten en beide opties om de app te stoppen koppelen alleen los. Een externe sessie beëindigen vraagt bevestiging en stopt shell en taken voor iedereen. Op de host: `zshell-server terminate --project ~/repo --session UUID`.
+
+## Grenzen [#limits]
+
+Persistentie geldt zolang de daemon leeft, niet over herstarts van de host, crashes of daemonherstarts. Ontbrekende sessies geven een fout en worden nooit stil vervangen. Grenzen: 128 sessies, snapshot van 16 MiB en actieve wachtrij van 1 MiB per client. Langzame clients blokkeren anderen niet. Geschiedenis blijft in het hostgeheugen. Zie de [serverreferentie](https://github.com/wzz6423/zshell/tree/main/remote) voor diensten en CLI.

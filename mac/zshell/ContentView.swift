@@ -898,9 +898,9 @@ struct ContentView: View {
             git.sync(root: "")
             return
         }
-        if let endpoint = project.remoteEndpoint {
-            git.configureRemote(endpoint)
-            git.sync(root: project.remoteDirectory ?? "~")
+        if project.isRemote {
+            git.configureRemote(project.remoteEndpoint)
+            git.sync(root: project.remoteEndpoint == nil ? "" : project.remoteDirectory ?? "~")
             return
         }
         git.configureRemote(nil)

@@ -41,6 +41,7 @@ final class ZshellCLIService {
     }
 
     private let secret = UUID().uuidString
+    private let sessionControlToken = UUID().uuidString + UUID().uuidString
     private let directoryURL: URL
     private let stateURL: URL
     private let automationSocketPath: String
@@ -51,6 +52,7 @@ final class ZshellCLIService {
     private var automationServer: ZshellAutomationSocketServer?
     private var terminalCapabilities: [String: UUID] = [:]
     private var persistentTerminals = Set<UUID>()
+    private var sessionControlConnectionURL: URL?
 
     private init() {
         let fileManager = FileManager.default
@@ -83,6 +85,9 @@ final class ZshellCLIService {
                     reply(await ZshellCLIService.shared.handleAutomation(request))
                 }
             }
+            sessionControlConnectionURL = try ZshellSessionControlConnection.publish(
+                socketPath: automationSocketPath, token: sessionControlToken
+            )
         } catch {
             NSLog("zshell: failed to start automation socket: \(error)")
         }
@@ -170,6 +175,9 @@ final class ZshellCLIService {
                 code: "unsupported_version",
                 message: "Zshell supports automation protocol version 1."
             )
+        }
+        if request.token == sessionControlToken, request.terminalID == ZshellSessionControlConnection.callerID {
+            return await ZshellSessionAutomationRouter.routeExternal(request)
         }
         guard let terminalID = UUID(uuidString: request.terminalID),
               terminalCapabilities[request.token] == terminalID
@@ -372,6 +380,10 @@ final class ZshellCLIService {
         terminalCapabilities = [:]
         for id in persistentTerminals { PersistentCLIConnection.remove(for: id) }
         persistentTerminals = []
+        if let sessionControlConnectionURL {
+            try? FileManager.default.removeItem(at: sessionControlConnectionURL)
+            self.sessionControlConnectionURL = nil
+        }
         try? FileManager.default.removeItem(at: directoryURL)
     }
 }

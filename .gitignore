@@ -7,6 +7,7 @@
 # Rust build output for the Alacritty backend's bridge. Cargo.lock IS tracked:
 # the Xcode build phase passes --locked so a build is reproducible.
 /mac/Vendor/alacritty-bridge/target/
+/remote/target/
 
 # macOS
 .DS_Store

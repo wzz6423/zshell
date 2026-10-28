@@ -22,6 +22,8 @@ Le projet est l'unité principale de navigation dans Zshell :
 
 Le nom d'un projet est celui de sa session sélectionnée : il suit donc le terminal, comme le titre d'un onglet. Son menu contextuel propose **Renommer…**, **Utiliser le titre automatique** pour revenir au comportement initial, **Définir le répertoire du projet…** et **Fermer le projet**. Fermer un projet termine ses sessions sans modifier les fichiers sur disque.
 
+Pour les [sessions distantes partagées](/fr/docs/remote-sessions), fermer un panneau ou un projet détache seulement ce client ; le shell et ses tâches continuent sur l’hôte.
+
 ### Projets SSH enregistrés [#saved-ssh-projects]
 
 Ouvrez la palette de commandes (<kbd>Cmd</kbd>+<kbd>P</kbd>) et choisissez **Nouveau projet SSH…**. Renseignez l'hôte, éventuellement l'utilisateur et le port, puis le répertoire distant à ouvrir. Pour l'authentification, choisissez **Agent SSH**, **Mot de passe**, **Fichier de clé privée** ou **Texte de clé privée**, puis enregistrez la connexion et sélectionnez **Connecter**.

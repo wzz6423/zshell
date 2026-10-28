@@ -17,7 +17,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     nonisolated let id = UUID()
     var conversationHistoryProjectID = UUID()
 
-    let location: ProjectLocation
+    @Published private(set) var location: ProjectLocation
 
     /// User-assigned name; when nil the project title follows the
     /// selected session's terminal title.
@@ -98,6 +98,11 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     var isRemote: Bool { location.isRemote }
 
+    var sharedHost: RemoteHost? {
+        if case .shared(let host, _) = location { return host }
+        return nil
+    }
+
     /// The directory the project's sidebar group hands to new terminals
     /// (home for a plain group, its folder for a folder group); nil when the
     /// project is ungrouped or belongs to a group that no longer exists.
@@ -105,15 +110,23 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         manager?.projectGroup(id: groupID)?.sessionDirectory
     }
 
-    /// The declared endpoint for SSH projects, nil for local projects.
+    /// Files and Git keep using SSH, including on a Tailscale host. Its SSH
+    /// user and port come from the existing OpenSSH configuration.
     var remoteEndpoint: SSHEndpoint? {
         if case .ssh(let endpoint, _, _, _) = location { return endpoint }
+        if let host = sharedHost, let endpoint = try? host.endpoint() {
+            switch endpoint {
+            case .ssh(let endpoint): return endpoint
+            case .tailscale(let host, _): return try? SSHEndpoint(host: host)
+            }
+        }
         return nil
     }
 
     /// The directory sessions start in on the remote host, nil when unset.
     var remoteDirectory: String? {
         if case .ssh(_, let directory, _, _) = location { return directory }
+        if case .shared(_, let directory) = location { return directory }
         return nil
     }
 
@@ -302,13 +315,19 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         directory: String? = nil,
         commandArguments: [String]? = nil,
         environmentPath: String? = nil,
-        tabTitle: String? = nil
-    ) -> TerminalSession {
+        tabTitle: String? = nil,
+        worktree: SessionWorktree? = nil
+    ) -> TerminalSession? {
+        guard !TerminalManager.isRemovingWorktree(containing: sessionDirectory(directory)) else {
+            NSSound.beep()
+            return nil
+        }
         let session = makeSession(
             directory: directory,
             commandArguments: commandArguments,
             environmentPath: environmentPath,
-            launchSettings: launchSettings
+            launchSettings: launchSettings,
+            worktree: worktree
         )
         let tab = makeTab(content: .session(session))
         // Only a reopened session carries a title — the user-assigned name
@@ -357,12 +376,15 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         agentResume: AgentConversationIdentity? = nil,
         isRestoredSession: Bool = false,
         restoredSessionID: UUID? = nil,
-        explicitlyResumeConversation: Bool = false
+        explicitlyResumeConversation: Bool = false,
+        remoteSessionID: UUID? = nil,
+        worktree: SessionWorktree? = nil
     ) -> TerminalSession {
         let initialDirectory: String?
         let launchArguments: [String]?
         let additionalEnvironment: [String: String]
         let sshMaterial: SSHAuthenticationMaterial?
+        let remoteConnection: RemoteSessionConnection?
         switch location {
         case .local:
             initialDirectory = directory
@@ -372,16 +394,34 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             launchArguments = commandArguments
             additionalEnvironment = [:]
             sshMaterial = nil
+            remoteConnection = nil
+        case let .shared(host, directory):
+            initialDirectory = nil
+            additionalEnvironment = [:]
+            sshMaterial = nil
+            do {
+                let connection = try RemoteSessionConnection(
+                    host: host, directory: directory, sessionID: remoteSessionID ?? restoredSessionID ?? UUID(),
+                    createIfMissing: !isRestoredSession, command: commandArguments,
+                    launchSettings: launchSettings ?? self.launchSettings
+                )
+                remoteConnection = connection
+                launchArguments = connection.launchArguments
+            } catch {
+                remoteConnection = nil
+                launchArguments = ["/bin/sh", "-c", "printf '%s\\n' \"$1\" >&2; exit 1", "zshell", error.localizedDescription]
+            }
         case let .ssh(endpoint, remoteDirectory, authentication, credentialID):
             initialDirectory = nil
+            remoteConnection = nil
             do {
                 let material = try authentication.makeMaterial(credentialID: credentialID)
                 launchArguments = ["/usr/bin/ssh"]
-                    + endpoint.terminalArguments(
+                    + (try endpoint.terminalArguments(
                         remoteDirectory: remoteDirectory,
                         authentication: authentication,
                         identityFile: authentication.identityFile(material: material)
-                    )
+                    ))
                 var environment = material?.environment ?? [:]
                 if authentication == .password {
                     // Saved passwords must use askpass even though an SSH
@@ -412,8 +452,13 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             launchSettings: launchSettings ?? self.launchSettings,
             additionalEnvironment: additionalEnvironment,
             agentResume: isRemote ? nil : agentResume,
+            worktree: isRemote ? nil : worktree ?? selectedSession?.worktree.flatMap {
+                SessionWorktreeService.contains(initialDirectory ?? "", in: $0.path) ? $0 : nil
+            },
             isRestoredSession: isRestoredSession,
-            explicitlyResumeConversation: explicitlyResumeConversation
+            allowsPersistence: sharedHost == nil,
+            explicitlyResumeConversation: explicitlyResumeConversation,
+            remoteConnection: remoteConnection
         )
         register(session)
         if let sshMaterial {
@@ -428,10 +473,29 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         return session
     }
 
+    func attachRemoteSession(_ info: RemoteSessionInfo) {
+        guard sharedHost != nil, let id = UUID(uuidString: info.sessionId),
+              !sessions.contains(where: { $0.remoteConnection?.sessionID == id }) else { return }
+        let session = makeSession(isRestoredSession: true, remoteSessionID: id)
+        let tab = makeTab(content: .session(session))
+        append(tab)
+    }
+
+    func updateSharedHost(_ host: RemoteHost) throws {
+        guard case .shared(_, let directory) = location else { return }
+        for session in sessions { try session.remoteConnection?.update(host: host) }
+        location = .shared(host: host, directory: directory)
+    }
+
     func terminateAll() {
         for session in sessions {
             session.terminate()
         }
+    }
+
+    private func sessionDirectory(_ directory: String? = nil) -> String {
+        directory ?? customDirectory ?? groupSessionDirectory ?? selectedSession?.currentDirectoryPath
+            ?? FileManager.default.homeDirectoryForCurrentUser.path
     }
 
     // MARK: - Splits
@@ -445,7 +509,10 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// No-op while a diff is focused.
     func split(toward edge: PaneDropEdge) {
         guard let tab = selectedTab, tab.canSplit else { return }
+        let directory = selectedSession?.currentDirectoryPath ?? sessionDirectory()
+        guard !TerminalManager.isRemovingWorktree(containing: directory) else { NSSound.beep(); return }
         let session = makeSession(
+            directory: directory,
             launchSettings: launchSettings.applying(tab.launchSettingsOverride)
         )
         tab.split(Pane(content: .session(session)), toward: edge)
@@ -469,6 +536,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         case .session(let session): session.currentDirectoryPath
         default: tab.sessions.first?.currentDirectoryPath
             ?? tab.contextSession?.currentDirectoryPath
+        }
+        guard !TerminalManager.isRemovingWorktree(containing: directory ?? contextDirectory ?? sessionDirectory()) else {
+            return nil
         }
         let session = makeSession(
             directory: directory ?? contextDirectory,
@@ -765,15 +835,21 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// discarding a dirty file, then removes its pane (dropping the tab when
     /// that was its last pane). `terminate` is false when a shell has already
     /// exited on its own.
-    func closeContent(_ content: PaneContent, terminate: Bool = true) {
+    func closeContent(_ content: PaneContent, terminate: Bool = true, confirmWorktree: Bool = true, recordClosedSession: Bool = true) {
         switch content {
         case .session(let session):
+            if terminate, confirmWorktree, session.worktree != nil, let manager {
+                Task { @MainActor in
+                    _ = await manager.requestCloseWorktreeSession(session, in: self)
+                }
+                return
+            }
             if terminate {
                 // Capture while the shell is still alive. Only closes the
                 // user initiated reach the reopen stack; a shell that exits
                 // on its own (`terminate: false`) is not an action the
                 // command is meant to undo.
-                onSessionClosed?(closedSessionRecord(for: session))
+                if recordClosedSession { onSessionClosed?(closedSessionRecord(for: session)) }
                 session.terminate()
             }
             removePaneWithContent(content.id)
@@ -855,7 +931,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             customTitle: tabs.first { $0.paneID(forContent: session.id) != nil }?.customName,
             workingDirectory: session.currentDirectoryPath,
             closedAt: Date(),
-            tabGroupID: tabs.first { $0.paneID(forContent: session.id) != nil }?.tabGroupID
+            tabGroupID: tabs.first { $0.paneID(forContent: session.id) != nil }?.tabGroupID,
+            worktree: session.worktree
         )
     }
 
@@ -910,7 +987,11 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         let dirtyContents = targets.filter(\.isDirty)
         let cleanContents = targets.filter { !$0.isDirty }
 
-        guard !dirtyContents.isEmpty else {
+        let hasWorktrees = targets.contains {
+            if case .session(let session) = $0 { return session.worktree != nil }
+            return false
+        }
+        guard !dirtyContents.isEmpty || hasWorktrees else {
             cleanContents.forEach { closeContent($0) }
             return
         }
@@ -922,7 +1003,13 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 // unsaved panes not yet prompted, stay open.
                 if await confirmCloseUnsaved(content, in: window) { return }
             }
-            cleanContents.forEach { closeContent($0) }
+            for content in cleanContents {
+                if case .session(let session) = content, session.worktree != nil, let manager {
+                    if !(await manager.requestCloseWorktreeSession(session, in: self)) { return }
+                } else {
+                    closeContent(content, confirmWorktree: false)
+                }
+            }
         }
     }
 
@@ -1002,6 +1089,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     @discardableResult
     func newSession(inTabGroup groupID: UUID) -> TerminalSession? {
         guard tabGroup(id: groupID) != nil else { return nil }
+        guard !TerminalManager.isRemovingWorktree(containing: sessionDirectory()) else { NSSound.beep(); return nil }
         let session = makeSession(launchSettings: launchSettings)
         let tab = makeTab(content: .session(session))
         insertNextToSelected(tab)
@@ -1338,7 +1426,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 restoredHistory: restoredHistory,
                 launchSettings: launchSettings,
                 agentResume: pane.agentResume,
-                restoredSessionID: pane.terminalID
+                restoredSessionID: pane.terminalID,
+                remoteSessionID: pane.remoteSessionID,
+                worktree: pane.worktree
             )))
         case .split(let axis, let fraction, let first, let second):
             return .split(PaneSplit(
@@ -1363,7 +1453,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         restoredHistory: String? = nil,
         launchSettings: TerminalLaunchSettings,
         agentResume: AgentConversationIdentity? = nil,
-        restoredSessionID: UUID? = nil
+        restoredSessionID: UUID? = nil,
+        remoteSessionID: UUID? = nil,
+        worktree: SessionWorktree? = nil
     ) -> PaneContent {
         switch snap {
         case .session(let workingDirectory):
@@ -1373,7 +1465,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 launchSettings: launchSettings,
                 agentResume: agentResume,
                 isRestoredSession: true,
-                restoredSessionID: restoredSessionID
+                restoredSessionID: restoredSessionID,
+                remoteSessionID: remoteSessionID,
+                worktree: worktree
             ))
         case .file(let path, let editorState):
             let file = FileTab(path: path)

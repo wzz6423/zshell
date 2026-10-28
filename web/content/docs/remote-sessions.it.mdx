@@ -1,0 +1,48 @@
+---
+title: Sessioni remote condivise
+description: Collegati allo stesso terminale tramite SSH o Tailscale e conserva i processi dopo la disconnessione.
+---
+
+`zshell-server` mantiene shell e processi su un host macOS o Linux. Entrambi i motori di terminale di Zshell possono collegarsi. Chiudere il client o perdere la rete non termina i processi. La riconnessione ripristina schermo, cronologia, cursore e modalità del terminale.
+
+## Installazione [#install]
+
+Compila il repository Zshell sull’host con Rust aggiornato. Il client Mac include il relay e non richiede Cargo. Un server Windows nativo non è disponibile.
+
+```sh
+cargo build --locked --release --manifest-path remote/Cargo.toml
+install -d "$HOME/.local/bin"
+install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
+```
+
+## SSH [#ssh]
+
+Verifica prima la chiave host e l’autenticazione con chiave o agent:
+
+```sh
+ssh devbox true
+```
+
+Apri gli host remoti dal menu di rete nella barra laterale. Inserisci nome, `ssh://me@devbox:22` o alias SSH e `~/.local/bin/zshell-server`. La connessione carica progetti e sessioni esistenti. Per creare una shell, indica una directory come `~/repo` e apri il progetto remoto. Sono supportati percorsi con spazi; anche nuove schede e divisioni sono remote.
+
+SSH avvia automaticamente il daemon e usa configurazione OpenSSH, chiavi, agent e chiavi host attendibili. Chiavi sconosciute ed errori di autenticazione vengono segnalati. File e Git usano SSH verso lo stesso host anche se il terminale usa Tailscale. I percorsi remoti non accedono ai file del Mac. `ZSHELL_SSH_CONFIG_FILE` può selezionare un altro file OpenSSH leggibile tramite percorso assoluto.
+
+## Tailscale [#tailscale]
+
+Accedi a Tailscale sui due dispositivi e avvia l’ascolto privato prima di creare sessioni:
+
+```sh
+zshell-server serve --listen tailscale://:7373
+```
+
+Aggiungi `tailscale://devbox:7373`. Sono supportati MagicDNS e indirizzi Tailscale IPv4/IPv6, mentre quelli pubblici sono rifiutati. Per impostazione predefinita sono ammessi solo dispositivi senza tag del proprietario dell’host. `--allow-user` autorizza un altro nome di accesso esatto; i client con tag restano esclusi. Sul server stesso usa SSH. Si applicano anche le ACL del tailnet. I client autorizzati possono operare con l’account Unix del servizio.
+
+## Condivisione e chiusura [#sharing]
+
+Tutti ricevono lo stesso output. Mettere a fuoco il terminale o assumerne il controllo concede input e dimensioni a quel client. Se si disconnette, subentra il client rimasto collegato da più tempo. Informazioni mostra stato, numero di client e controllo e consente di separare o riconnettere. Le interruzioni di rete vengono ritentate automaticamente; l’input offline viene scartato. Il layout salvato riconnette lo stesso UUID remoto.
+
+Chiudere pannelli, progetti o finestre e usare una delle due opzioni di uscita separa soltanto il client. Terminare la sessione remota richiede conferma e arresta shell e processi per tutti. Sull’host: `zshell-server terminate --project ~/repo --session UUID`.
+
+## Limiti [#limits]
+
+La persistenza dura finché il daemon è attivo, senza superare riavvii dell’host, arresti o riavvii del daemon. Le sessioni mancanti sono segnalate e mai sostituite automaticamente. Limiti: 128 sessioni, snapshot di 16 MiB e coda attiva di 1 MiB per client. I client lenti non bloccano gli altri; la cronologia resta nella memoria dell’host. Servizi e CLI sono descritti nel [riferimento server](https://github.com/wzz6423/zshell/tree/main/remote).

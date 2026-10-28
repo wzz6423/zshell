@@ -11,10 +11,9 @@ input as separate actions.
 
 ## Check availability
 
-1. Pane, browser, and active-agent coordination require `ZSHELL_AUTOMATION=1`.
-   If it is absent, explain that these commands must run inside a newly opened
-   Zshell terminal. Saved conversation history also supports explicit external
-   access as described below.
+1. Pane, browser, and active-agent coordination require `ZSHELL_AUTOMATION=1`
+   in a newly opened Zshell terminal. Saved conversation history supports explicit
+   external access as described below; external session management uses `+session`.
 2. Run `zshell +pane protocol` before a multi-step workflow.
 3. Treat successful command output as JSON. Record returned `pane_id` values;
    do not infer pane IDs from titles or screen position.
@@ -22,7 +21,35 @@ input as separate actions.
    targets in other projects and windows.
 
 Use `zshell +agent explain` for the lifecycle and security contract, and use
-`zshell +agent --help`, `zshell +pane --help`, or `zshell +browser --help` for complete syntax.
+`zshell +agent --help`, `zshell +pane --help`, `zshell +browser --help`, or
+`zshell +session --help` for complete syntax.
+
+## Create and close worktree sessions
+
+An external terminal can discover open projects with `zshell +session projects`.
+Use the returned `project_id` explicitly; inside Zshell, session commands use the
+invoking terminal's project. Pane programs remain in that scope even when they
+clear the bridge environment. External session control grants no pane reads,
+terminal input, or agent commands.
+
+```sh
+zshell +session new --project PROJECT_ID --cwd /path/to/repo --branch feat/task
+zshell +session list --project PROJECT_ID
+zshell +session check --project PROJECT_ID --session TERMINAL_ID
+zshell +session close --project PROJECT_ID --session TERMINAL_ID --keep-worktree
+```
+
+Record `terminal_id` and the returned `worktree.path`. New branches start from
+the repository default branch; `--base HEAD` or `--base REF` chooses another
+baseline. Existing branches keep their commit. `--worktree NEW_DIR` chooses a
+directory that does not exist, and `--focus` selects the new session. Use
+`--connection FILE` to select a particular running instance.
+
+Closing keeps the checkout by default. For an explicitly requested cleanup,
+inspect `check` before using `--remove-worktree`. Cleanup refuses changed,
+untracked, ignored, unmerged, locked, replaced, or shared worktrees and preserves
+the Git branch. Native session close offers Keep Worktree, Remove Worktree, and
+Cancel; splits and saved layouts retain the association.
 
 ## Exercise a project page
 

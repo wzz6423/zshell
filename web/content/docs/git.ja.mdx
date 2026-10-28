@@ -74,6 +74,22 @@ Git パネルにはリポジトリに属する全ワークツリーを、ブラ�
 Detached HEAD のワークツリーはブランチ名の代わりに **Detached HEAD** と表示します。
 ベアリポジトリも一覧には含まれますが、作業ディレクトリがないためターミナルタブでは開けません。
 
+### ワークツリーのセッション [#worktree-sessions]
+
+ローカル Git リポジトリのターミナルで **ターミナル → ワークツリーで新しいセッション…** を選ぶか、<kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd> を押します。タブと **+** ボタンのコンテキストメニューからも実行できます。新規または既存のローカルブランチと、まだ存在しないディレクトリを選んでください。新しいブランチはリポジトリのデフォルトブランチから作成され、**現在の HEAD** も明示的に選べます。既存のブランチは現在のコミットを保持します。推奨ディレクトリは元のチェックアウトの隣にあります。
+
+分割したペインはセッションのワークツリーとの関連を継承し、保存したレイアウトからも復元されます。関連するセッションを閉じる際は **ワークツリーを保持**、**ワークツリーを削除**、**キャンセル** を選べます。変更済み・未追跡・無視されたファイル、記録した基準に未統合のコミット、ロック、または使用中の別セッションがある場合は削除できません。Git ブランチは常に保持されます。
+
+外部ターミナルでは `zshell +session` でセッションを作成・終了できます。`projects` が返す ID を `--project` に指定してください。Zshell 内では呼び出し元のプロジェクトが自動的に使われます。作成はバックグラウンドで行われ、`--focus` で新しいセッションに移動します。`--base HEAD` または `--base REF` で別の基準、`--worktree NEW_DIR` でディレクトリを指定できます。必要に応じて `--connection FILE` で実行中のインスタンスを選びます。終了時は明示的な `--remove-worktree` がなければワークツリーを保持し、`check` で現在の削除可否を確認できます。
+
+```sh
+zshell +session projects
+zshell +session new --project PROJECT_ID --cwd /path/to/repo --branch feat/task
+zshell +session list --project PROJECT_ID
+zshell +session check --project PROJECT_ID --session SESSION_ID
+zshell +session close --project PROJECT_ID --session SESSION_ID --remove-worktree
+```
+
 ## リモート [#remotes]
 
 **⋯** メニューにリモートとの通信操作をまとめています。

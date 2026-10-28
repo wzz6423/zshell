@@ -25,10 +25,12 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     @Published var hasExited = false
     @Published private(set) var commandLifecycle = TerminalCommandLifecycle()
     @Published private(set) var terminalCellSize: CGSize?
+    @Published private(set) var remoteStatus: RemoteRelayStatus?
     /// Recognized coding agent occupying this terminal, if any. The monitor
     /// reconciles foreground process identity with explicit lifecycle events.
     @Published var agentStatus: ZshellAgentStatus?
     @Published private(set) var agentResume: AgentConversationIdentity?
+    @Published var worktree: SessionWorktree?
     private(set) var agentConversationProcessID: pid_t?
     private(set) var agentConversationOwner: ZshellAgentProcessIdentity?
     var agentConversationHistoryID: UUID?
@@ -40,6 +42,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     let backend: TerminalBackend
     let surface: any TerminalBackendSurface
     let reconnectedToPersistentPTY: Bool
+    let remoteConnection: RemoteSessionConnection?
     let overlayScrollbar = OverlayScrollbarView()
     /// Find-in-terminal state for this session's pane (⌘F).
     let find: TerminalFind
@@ -66,6 +69,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// Session-scoped material such as SSH askpass files must survive pane
     /// transfers, then be released only after the terminal process ends.
     private var retainedSessionResources: [AnyObject] = []
+    private var remoteObservation: AnyCancellable?
     /// Alternate-screen transcript paging must begin at the live prompt, never
     /// from text the user has scrolled back to inspect.
     var terminalIsAtLiveBottom = true
@@ -89,13 +93,15 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         launchSettings: TerminalLaunchSettings = .init(),
         additionalEnvironment: [String: String] = [:],
         agentResume: AgentConversationIdentity? = nil,
+        worktree: SessionWorktree? = nil,
         isRestoredSession: Bool = false,
         allowsPersistence: Bool = true,
-        explicitlyResumeConversation: Bool = false
+        explicitlyResumeConversation: Bool = false,
+        remoteConnection: RemoteSessionConnection? = nil
     ) {
         let sessionID = restoredSessionID ?? UUID()
-        let existingPTY = restoredSessionID.flatMap { PersistentPTY.reconnect(id: $0) }
-        let preserve = allowsPersistence && (AppSettings.shared.preserveTerminalSessions || existingPTY != nil)
+        let existingPTY = remoteConnection == nil ? restoredSessionID.flatMap { PersistentPTY.reconnect(id: $0) } : nil
+        let preserve = remoteConnection == nil && allowsPersistence && (AppSettings.shared.preserveTerminalSessions || existingPTY != nil)
         let resumeLaunch = agentResume?.resumeLaunch(
             enabled: AppSettings.shared.aiEnabled
                 && (explicitlyResumeConversation || isRestoredSession && AppSettings.shared.resumeAgentConversations),
@@ -161,7 +167,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             commandLine: Self.ghosttyCommandLine(for: script),
             interactiveShell: directCommand == nil ? shellPath : nil,
             workingDirectory: directory,
-            environment: environment
+            environment: environment,
+            reportsLocalWorkingDirectory: remoteConnection == nil
         )
         var pty = existingPTY
         if pty == nil, canPersist {
@@ -189,6 +196,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         self.shellPath = shellPath
         self.backend = backend
         persistentPTY = pty
+        self.remoteConnection = remoteConnection
         reconnectedToPersistentPTY = existingPTY != nil
         cachedShellPid = pty?.shellPID
         launchWorkingDirectory = directory
@@ -199,12 +207,19 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         title = (shellPath as NSString).lastPathComponent
         agentStatus = nil
         self.agentResume = agentResume
+        if let remoteConnection {
+            title = remoteConnection.host.name + ":" + (remoteConnection.projectDirectory as NSString).lastPathComponent
+            workingDirectory = URL(fileURLWithPath: remoteConnection.projectDirectory).absoluteString
+        }
+        self.worktree = worktree
 
         let surface = Self.makeSurface(backend: backend, launch: pty?.relayLaunch(from: launch) ?? launch)
         self.surface = surface
         find = TerminalFind(surface: surface)
         lastHistorySnapshot = restoredHistory
         super.init()
+
+        remoteObservation = remoteConnection?.$status.sink { [weak self] in self?.remoteStatus = $0 }
 
         surface.events = self
         configureQuickCommandMenu()
@@ -215,7 +230,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
            let kind = ZshellAgentKind(rawValue: identity.provider.rawValue) {
             declareAutomationAgent(alias: identity.alias ?? kind.rawValue, kind: kind)
         }
-        AgentAutomationMonitor.shared.register(self)
+        if remoteConnection == nil { AgentAutomationMonitor.shared.register(self) }
         pty?.startMonitoring()
     }
 
@@ -302,14 +317,42 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     func terminate() {
         guard !isTerminating, !hasExited || persistentPTY != nil else { return }
         isTerminating = true
+        remoteConnection?.stopMonitoring()
         persistentPTY?.terminate()
         beginTeardown(processAlive: true, notifyExit: false)
+    }
+
+    func waitUntilStarted() async -> Bool {
+        for _ in 0..<50 {
+            if hasExited || isTerminating { return false }
+            if let pid = shellPid, Darwin.kill(pid, 0) == 0 {
+                // The launch shim writes its PID before exec; let immediate
+                // failures reach the backend before reporting a live session.
+                try? await Task.sleep(for: .milliseconds(100))
+                return !hasExited && !isTerminating && Darwin.kill(pid, 0) == 0
+            }
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        return false
+    }
+
+    func waitUntilTerminated() async -> Bool {
+        for _ in 0..<50 {
+            if hasExited, shellPid.map({ Darwin.kill($0, 0) != 0 && errno == ESRCH }) ?? true { return true }
+            try? await Task.sleep(for: .milliseconds(40))
+        }
+        return hasExited && (shellPid.map { Darwin.kill($0, 0) != 0 && errno == ESRCH } ?? true)
     }
 
     /// On quit the renderer and relay may go away while the daemon keeps the
     /// real PTY and its startup files. Closing a pane still calls terminate().
     func prepareForApplicationQuit(preserve: Bool) {
         guard !isTerminating else { return }
+        if let remoteConnection {
+            remoteConnection.detach()
+            terminate()
+            return
+        }
         if preserve, let persistentPTY {
             isTerminating = true
             preservesLaunchArtifacts = true
@@ -344,17 +387,17 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         surface.splitTarget.onRunQuickCommand = nil
         surface.splitTarget.onManageQuickCommands = nil
 
-        if processAlive, persistentPTY == nil {
-            _ = shellPid // Cache it before `hasExited` changes.
-            signalTerminalJob(SIGHUP)
-        }
+        // A backend can close its PTY before the delayed kill; its raw file
+        // descriptor may already belong to a newly opened terminal by then.
+        let processIDs = processAlive && persistentPTY == nil ? terminalJobPIDs() : []
+        if processAlive, persistentPTY == nil { signalTerminalJob(SIGHUP, processIDs: processIDs) }
 
         Task { @MainActor [self] in
             if processAlive, persistentPTY == nil {
                 // Give well-behaved shells a moment to unwind, then guarantee
                 // surface teardown cannot wait indefinitely.
                 try? await Task.sleep(for: .milliseconds(120))
-                signalTerminalJob(SIGKILL)
+                signalTerminalJob(SIGKILL, processIDs: processIDs)
             } else {
                 // Avoid freeing the surface reentrantly from the backend's
                 // process-close callback.
@@ -368,13 +411,17 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         }
     }
 
-    private func signalTerminalJob(_ signal: Int32) {
+    private func terminalJobPIDs() -> Set<pid_t> {
         var pids = Set<pid_t>()
         if let shellPid { pids.insert(shellPid) }
         if let foreground = surface.foregroundPid, foreground > 0 {
             pids.insert(foreground)
         }
-        for pid in pids where pid > 1 {
+        return pids
+    }
+
+    private func signalTerminalJob(_ signal: Int32, processIDs: Set<pid_t>) {
+        for pid in processIDs where pid > 1 {
             // Interactive shells and their foreground jobs normally lead
             // distinct process groups. Signal the group, then the leader as a
             // fallback for an unusual launch configuration.
@@ -405,6 +452,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             if let url = URL(string: dir), url.isFileURL { return url.path }
             if dir.hasPrefix("/") { return dir }
         }
+        if let remoteConnection { return remoteConnection.projectDirectory }
         if let shellPid, let path = processWorkingDirectory(pid: shellPid) {
             return path
         }
@@ -419,6 +467,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// keeps describing the old tree. This is deliberately a separate fact:
     /// `currentDirectoryPath` must stay true to the shell.
     var foregroundDirectoryPath: String? {
+        guard remoteConnection == nil else { return nil }
         guard let foreground = surface.foregroundPid, foreground > 0,
               foreground != shellPid
         else { return nil }
@@ -426,12 +475,16 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     }
 
     func sendCommand(_ text: String) {
+        remoteConnection?.takeControl()
         surface.sendText(text)
     }
 
     func sendEnter() {
+        remoteConnection?.takeControl()
         surface.sendEnter()
     }
+
+    func terminalDidBecomeFocused() { remoteConnection?.takeControl() }
 
     /// Clears the emulator's visible screen and scrollback, then asks the
     /// foreground shell to repaint its prompt at the top.
@@ -443,6 +496,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// scrollback/PID heuristic keeps a full-screen alternate buffer from
     /// replacing the last saved shell scrollback in normal shell/TUI use.
     func serializedHistory(captureLive: Bool) -> String? {
+        guard remoteConnection == nil else { return nil }
         guard AppSettings.shared.restoreTerminalHistory else { return nil }
         guard captureLive else { return lastHistorySnapshot }
 
@@ -1070,7 +1124,7 @@ extension TerminalSession: TerminalBackendEvents {
         let windowMiniaturized = surface.window?.isMiniaturized == true
         guard !surface.hasEffectiveTerminalFocus || windowMiniaturized else { return }
         TerminalNotificationService.shared.post(
-            message: announcement,
+            message: remoteNotification(announcement),
             sessionID: id
         )
         if !NSApp.isActive || windowMiniaturized {
@@ -1112,6 +1166,15 @@ extension TerminalSession: TerminalBackendEvents {
 
     func terminalDidClose(processAlive: Bool) {
         guard !isTerminating else { return }
+        if remoteConnection != nil {
+            Task { @MainActor [self] in
+                await Task.yield()
+                surface.events = nil
+                hasExited = true
+                ZshellCLIService.shared.revokeTerminal(id: id)
+            }
+            return
+        }
         // Losing a relay never sends signals to the daemon-owned job.
         if let persistentPTY {
             persistentPTY.stopMonitoring()
@@ -1140,7 +1203,11 @@ extension TerminalSession: TerminalBackendEvents {
         guard !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return
         }
-        TerminalNotificationService.shared.post(message: message, sessionID: id)
+        TerminalNotificationService.shared.post(message: remoteNotification(message), sessionID: id)
+    }
+
+    private func remoteNotification(_ message: String) -> String {
+        remoteConnection.map { "\($0.host.name): \(message)" } ?? message
     }
 
     func terminalDidRequestOpenURL(_ value: String) {
@@ -1220,6 +1287,7 @@ extension TerminalSession: TerminalBackendEvents {
     /// append `:line[:column]`, so try the literal path before peeling those
     /// numeric locations off.
     private func existingFileURL(from value: String) -> URL? {
+        guard remoteConnection == nil else { return nil }
         let candidate: URL
         if let url = URL(string: value), url.isFileURL {
             candidate = url

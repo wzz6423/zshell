@@ -71,6 +71,22 @@ Git 面板會列出這個儲存庫的所有工作樹，以及它們對應的分�
 
 處於 detached HEAD 狀態的工作樹會顯示 **Detached HEAD**，而不是分支名。裸儲存庫也會列出，但它沒有工作目錄，不能在終端機分頁中打開。
 
+### 工作樹工作階段 [#worktree-sessions]
+
+在本機 Git 儲存庫的終端機中，選擇 **終端機 → 在工作樹中新增工作階段…**，或按 <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>。分頁右鍵選單和 **+** 按鈕的右鍵選單也提供此入口。選擇新的或現有的本機分支，並指定尚不存在的目錄。新分支預設從儲存庫的預設分支建立，也可明確選擇 **目前 HEAD**；現有分支保留目前提交。建議目錄位於來源簽出旁邊。
+
+分割窗格會繼承工作階段的工作樹關聯，儲存的配置也會還原此關聯。關閉關聯工作階段時，可選擇 **保留工作樹**、**移除工作樹** 或 **取消**。只有簽出中沒有變更、未追蹤或忽略的檔案，沒有超出記錄基準的提交，沒有鎖定，且沒有其他已開啟的工作階段使用它時，才允許移除。Git 分支一律保留。
+
+外部終端機可透過 `zshell +session` 建立和關閉工作階段。使用 `projects` 傳回的 ID 指定 `--project`；在 Zshell 內則自動使用呼叫終端機所屬的專案。預設在背景建立工作階段，加入 `--focus` 可切換至新工作階段。`--base HEAD` 或 `--base REF` 指定其他基準，`--worktree NEW_DIR` 指定目錄。需要選擇特定執行個體時使用 `--connection FILE`。關閉預設保留工作樹，只有明確加入 `--remove-worktree` 才要求清理；`check` 會回報目前是否可以安全清理。
+
+```sh
+zshell +session projects
+zshell +session new --project PROJECT_ID --cwd /path/to/repo --branch feat/task
+zshell +session list --project PROJECT_ID
+zshell +session check --project PROJECT_ID --session SESSION_ID
+zshell +session close --project PROJECT_ID --session SESSION_ID --remove-worktree
+```
+
 ## 遠端 [#remotes]
 
 **⋯** 選單裡是所有和遠端打交道的操作：

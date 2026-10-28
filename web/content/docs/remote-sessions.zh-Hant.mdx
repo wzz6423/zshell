@@ -1,0 +1,48 @@
+---
+title: 遠端共用工作階段
+description: 透過 SSH 或 Tailscale 共用遠端終端，關閉用戶端後讓工作繼續執行。
+---
+
+`zshell-server` 在 macOS 或 Linux 主機上保留 shell 與工作。Zshell 的兩種終端後端都能連接；用戶端關閉、退出或斷線後，工作繼續執行。重新連接會還原畫面、捲動歷程、游標與終端模式。
+
+## 安裝 [#install]
+
+在主機使用目前的 Rust 工具鏈從 Zshell 原始碼建置。Mac 用戶端已內建 relay，無需 Cargo。不支援原生 Windows 主機。
+
+```sh
+cargo build --locked --release --manifest-path remote/Cargo.toml
+install -d "$HOME/.local/bin"
+install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
+```
+
+## SSH [#ssh]
+
+先使用一般 SSH 驗證主機金鑰與金鑰或 agent 認證：
+
+```sh
+ssh devbox true
+```
+
+從側欄網路選單開啟**遠端主機…**，填入名稱、`ssh://me@devbox:22` 或 SSH 別名，以及 `~/.local/bin/zshell-server`。**連接主機**會載入主機的專案並連接既有工作階段。填入 `~/repo` 等遠端目錄後，選擇**開啟遠端專案**建立 shell；支援含空格的路徑，新分頁與分割窗格也在遠端執行。
+
+SSH 自動啟動 daemon，沿用 OpenSSH 設定、金鑰、agent 與信任的主機金鑰。未知金鑰與認證失敗會顯示錯誤，請先用一般 SSH 驗證。檔案與 Git 使用同一主機的 SSH；即使終端透過 Tailscale 連接，這些面板仍需 SSH。遠端路徑不會存取 Mac 檔案。`ZSHELL_SSH_CONFIG_FILE` 可指定獨立且可讀的絕對設定檔路徑。
+
+## Tailscale [#tailscale]
+
+兩台機器登入 Tailscale，在建立工作階段前啟動私有監聽器：
+
+```sh
+zshell-server serve --listen tailscale://:7373
+```
+
+新增 `tailscale://devbox:7373`。支援 MagicDNS 與 Tailscale IPv4/IPv6，拒絕公開位址。預設僅允許主機擁有者的未標記裝置；`--allow-user` 允許另一個完整登入名稱，帶標記的用戶端仍被拒絕。同機用戶端請使用 SSH。Tailnet ACL 同樣生效；連接者可以操作服務所屬的 Unix 帳戶。
+
+## 共用與結束 [#sharing]
+
+所有用戶端接收相同輸出。聚焦終端或接管控制權後，該用戶端才能輸入及調整尺寸。控制者斷線後，最早連線的剩餘用戶端接管。資訊面板顯示狀態、用戶端數量與控制權；分離及重新連接按鈕可暫停或恢復連線。意外斷線自動重試，離線輸入會丟棄。儲存的配置會以遠端 UUID 重新連接原工作。
+
+關閉窗格、專案、視窗與兩種退出方式都只會分離。**結束遠端工作階段…**經確認後，會為所有用戶端終止 shell 與工作；主機也能執行 `zshell-server terminate --project ~/repo --session UUID`。
+
+## 限制 [#limits]
+
+持久化僅涵蓋 daemon 存活期間，不跨主機或 daemon 重新啟動。遺失的工作階段會報錯，不會自動替換。上限為 128 個工作階段、16 MiB 終端快照與每用戶端 1 MiB 即時佇列；慢用戶端不會阻塞其他用戶端。歷程保留於主機記憶體。systemd、LaunchAgent 與完整 CLI 見[服務端說明](https://github.com/wzz6423/zshell/tree/main/remote)；先設定服務，再建立工作階段。

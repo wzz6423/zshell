@@ -55,5 +55,5 @@ description: 把标签页切成多个窗格，在它们之间移动、调整大�
 <kbd>Cmd</kbd>+<kbd>W</kbd> 关闭当前窗格。关掉标签页里最后一个窗格，标签页也一起关掉。
 
 <Callout type="warn">
-关闭一个终端窗格会终止里面的 shell，以及它启动的所有东西。Zshell 不会先问一句——这和在别处关掉一个终端是一回事。
+关闭终端窗格会终止其中的 shell 和它启动的程序。对于关联 Git 工作树的会话，Zshell 会先让你选择 **保留工作树**、**移除工作树** 或 **取消**。清理条件见[工作树会话](/docs/git#worktree-sessions)。
 </Callout>

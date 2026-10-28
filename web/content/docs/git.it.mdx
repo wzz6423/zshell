@@ -67,6 +67,22 @@ Il pannello elenca tutti i worktree del repository, con branch e percorso del ch
 
 I worktree in detached HEAD mostrano **Detached HEAD** al posto del nome del branch. I repository bare sono elencati per completezza, ma non hanno directory di lavoro e non possono aprirsi in una scheda terminale.
 
+### Sessioni worktree [#worktree-sessions]
+
+Da un terminale in un repository Git locale, scegli **Terminale → Nuova sessione in un worktree…** o premi <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>. Anche i menu contestuali della scheda e del pulsante **+** offrono questa azione. Scegli un ramo locale nuovo o esistente e una cartella che non esiste ancora. I nuovi rami partono dal ramo predefinito del repository; **HEAD corrente** è una scelta esplicita. I rami esistenti mantengono il commit corrente. La cartella suggerita si trova accanto al checkout di origine.
+
+I pannelli divisi ereditano l’associazione al worktree, ripristinata anche dal layout salvato. Alla chiusura di una sessione associata, scegli **Mantieni worktree**, **Rimuovi worktree** o **Annulla**. La rimozione richiede l’assenza di file modificati, non tracciati o ignorati, commit fuori dal riferimento registrato, blocchi e altre sessioni aperte che usano il checkout. Il ramo Git viene sempre mantenuto.
+
+Un terminale esterno può creare e chiudere sessioni con `zshell +session`. Usa con `--project` un ID restituito da `projects`; in Zshell viene usato automaticamente il progetto del terminale chiamante. La creazione avviene in background salvo con `--focus`. `--base HEAD` o `--base REF` sceglie un altro riferimento e `--worktree NEW_DIR` imposta la cartella. Se necessario, `--connection FILE` seleziona un’istanza in esecuzione. La chiusura mantiene il worktree senza `--remove-worktree` esplicito; `check` indica se la pulizia è sicura.
+
+```sh
+zshell +session projects
+zshell +session new --project PROJECT_ID --cwd /path/to/repo --branch feat/task
+zshell +session list --project PROJECT_ID
+zshell +session check --project PROJECT_ID --session SESSION_ID
+zshell +session close --project PROJECT_ID --session SESSION_ID --remove-worktree
+```
+
 ## Remoti [#remotes]
 
 Il menu **⋯** raccoglie le operazioni verso i remoti:
