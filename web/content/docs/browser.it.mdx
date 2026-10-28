@@ -58,4 +58,19 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 
 Le istantanee restituiscono testo del frame principale, etichette accessibili e riferimenti agli elementi. I riferimenti scadono dopo modifiche o azioni: acquisisci una nuova istantanea prima di riutilizzarli. Un selettore CSS deve corrispondere a un solo elemento. Usa `navigate`, `back`, `forward`, `reload` e `stop` per navigare.
 
-L’automazione accetta URL HTTP/HTTPS completi e `about:blank`. Altri protocolli, download, selettori di file e finestre native richiedono il tuo intervento. Il limite termina dopo una navigazione manuale dalla barra degli indirizzi o degli strumenti. I comandi restano nel progetto e nella finestra del terminale chiamante. `--timeout` accetta 100–30000 millisecondi. Le istantanee hanno un massimo di 200 elementi, 32768 caratteri e 256 KiB, senza valori di password o file. Le catture PNG dell’area visibile hanno un massimo di 512 KiB, richiedono un pannello già mostrato e non sovrascrivono file. Riduci `--width` se necessario. Vedi `zshell +browser --help`.
+L’automazione accetta URL HTTP/HTTPS completi e `about:blank`. Altri protocolli, download, selettori di file e finestre native richiedono il tuo intervento. Il limite termina dopo una navigazione manuale dalla barra degli indirizzi o degli strumenti. I comandi restano nel progetto e nella finestra del terminale chiamante. `--timeout` accetta 100–30000 millisecondi. Le istantanee hanno un massimo di 200 elementi, 32768 caratteri e 256 KiB, senza valori di password o file. Le catture PNG dell’area visibile hanno un massimo di 512 KiB, funzionano anche prima di mostrare il pannello, con un viewport di 1024 × 768 senza cambiare il focus e non sovrascrivono file. Riduci `--width` se necessario. Vedi `zshell +browser --help`.
+
+## Script della pagina e accessi salvati [#page-scripts-and-saved-logins]
+
+```sh
+zshell +browser eval --browser BROWSER_ID --script 'Promise.resolve({title: document.title})'
+zshell +browser state save --browser BROWSER_ID --output /tmp/zshell-login.json
+zshell +browser state load --browser BROWSER_ID --input /tmp/zshell-login.json
+zshell +browser reload --browser BROWSER_ID --wait
+```
+
+`eval --script` viene eseguito nella pagina principale reale, attende una Promise restituita e fornisce JSON in `value`; `undefined` diventa `null`. Usa un’espressione di funzione asincrona per `await`. Limiti: 64 KiB in ingresso; 256 KiB, 10000 valori e 64 livelli in uscita. I riferimenti DOM scadono dopo l’esecuzione. Il timeout termina l’attesa, senza annullare lo script. Controlla la pagina prima di ripetere modifiche; un ciclo sincrono infinito può richiedere di chiuderla. Le singole espressioni, incluse le IIFE, vengono inserite come Script globali nativi. Le stringhe con più istruzioni rispettano la CSP della pagina; se la valutazione è bloccata, racchiudi le istruzioni in una IIFE.
+
+`state save` salva i cookie applicabili all’host di destinazione (inclusi dominio padre e HttpOnly) e il localStorage dell’origine corrente nel JSON storage-state di Playwright. `state load` unisce i cookie e sostituisce quel localStorage; poi ricarica. Schema, host e porta devono corrispondere esattamente. Domini estranei, suffissi pubblici, campi non supportati e tipi non validi vengono rifiutati prima delle modifiche. I cookie Secure richiedono HTTPS.
+
+Usa `--format cookies` in entrambi i comandi per Netscape `cookies.txt`, senza localStorage e SameSite. I file sono limitati a 256 KiB e contengono credenziali: tienili privati e fuori da Git. L’importazione richiede un file normale accessibile solo al proprietario (ad esempio `0600`) e rifiuta i collegamenti simbolici. L’esportazione crea un file privato senza sovrascrivere percorsi esistenti. I dati WebKit restano condivisi tra pannelli, con gli stessi limiti di progetto, finestra e navigazione.

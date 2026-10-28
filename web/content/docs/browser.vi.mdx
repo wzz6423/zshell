@@ -58,4 +58,19 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 
 Ảnh chụp DOM trả về văn bản khung chính, nhãn trợ năng và tham chiếu phần tử. Tham chiếu hết hạn sau khi trang thay đổi hoặc có thao tác; hãy chụp DOM mới trước khi dùng lại. Bộ chọn CSS phải khớp đúng một phần tử. Dùng `navigate`, `back`, `forward`, `reload` và `stop` để điều hướng.
 
-Tự động hóa chỉ nhận URL HTTP/HTTPS đầy đủ và `about:blank`. Giao thức khác, tải xuống, hộp chọn tệp và hộp thoại hệ thống cần bạn trực tiếp thao tác. Giới hạn được gỡ sau khi bạn điều hướng thủ công bằng thanh địa chỉ hoặc thanh công cụ. Lệnh chỉ hoạt động trong dự án và cửa sổ của terminal gọi lệnh. `--timeout` từ 100–30000 mili giây. Ảnh chụp DOM tối đa 200 phần tử, 32768 ký tự và 256 KiB, không gồm giá trị mật khẩu hoặc tệp. PNG chỉ chụp vùng hiển thị, tối đa 512 KiB, cần khung đã được hiển thị một lần và không ghi đè tệp. Giảm `--width` nếu cần. Xem `zshell +browser --help`.
+Tự động hóa chỉ nhận URL HTTP/HTTPS đầy đủ và `about:blank`. Giao thức khác, tải xuống, hộp chọn tệp và hộp thoại hệ thống cần bạn trực tiếp thao tác. Giới hạn được gỡ sau khi bạn điều hướng thủ công bằng thanh địa chỉ hoặc thanh công cụ. Lệnh chỉ hoạt động trong dự án và cửa sổ của terminal gọi lệnh. `--timeout` từ 100–30000 mili giây. Ảnh chụp DOM tối đa 200 phần tử, 32768 ký tự và 256 KiB, không gồm giá trị mật khẩu hoặc tệp. PNG chỉ chụp vùng hiển thị, tối đa 512 KiB, hoạt động cả trước khi khung được hiển thị, với viewport 1024 × 768 và không đổi tiêu điểm và không ghi đè tệp. Giảm `--width` nếu cần. Xem `zshell +browser --help`.
+
+## Mã trang và trạng thái đăng nhập [#page-scripts-and-saved-logins]
+
+```sh
+zshell +browser eval --browser BROWSER_ID --script 'Promise.resolve({title: document.title})'
+zshell +browser state save --browser BROWSER_ID --output /tmp/zshell-login.json
+zshell +browser state load --browser BROWSER_ID --input /tmp/zshell-login.json
+zshell +browser reload --browser BROWSER_ID --wait
+```
+
+`eval --script` chạy trong trang chính thật, chờ Promise được trả về và trả JSON trong `value`; `undefined` thành `null`. Dùng biểu thức hàm bất đồng bộ cho `await`. Giới hạn: đầu vào 64 KiB; kết quả 256 KiB, 10000 giá trị và 64 cấp. Tham chiếu DOM hết hạn sau khi chạy. Hết thời gian chỉ dừng chờ, không hủy mã. Kiểm tra trang trước khi lặp lại thay đổi; vòng lặp đồng bộ vô hạn có thể buộc bạn đóng trang. Biểu thức đơn, gồm IIFE, được chèn dưới dạng Script toàn cục gốc. Chuỗi nhiều câu lệnh vẫn tuân theo CSP của trang; nếu đánh giá chuỗi bị chặn, hãy bọc các câu lệnh trong IIFE.
+
+`state save` lưu Cookie áp dụng cho host đích (gồm miền cha và HttpOnly) cùng localStorage của origin hiện tại dưới dạng Playwright storage-state JSON. `state load` hợp nhất Cookie và thay thế localStorage của origin đó; sau đó tải lại trang. Giao thức, host và cổng phải khớp chính xác. Miền không liên quan, hậu tố công cộng, trường không hỗ trợ và kiểu sai bị từ chối trước mọi thay đổi. Cookie Secure yêu cầu HTTPS.
+
+Dùng `--format cookies` cho cả hai lệnh để dùng Netscape `cookies.txt`, không có localStorage và SameSite. Tệp tối đa 256 KiB và chứa thông tin đăng nhập: giữ riêng tư và ngoài Git. Nhập chỉ chấp nhận tệp thường mà chỉ chủ sở hữu truy cập được (ví dụ `0600`), từ chối liên kết tượng trưng. Xuất tạo tệp riêng tư mới và không ghi đè đường dẫn có sẵn. Dữ liệu WebKit vẫn dùng chung giữa các khung; giới hạn dự án, cửa sổ và điều hướng vẫn áp dụng.
