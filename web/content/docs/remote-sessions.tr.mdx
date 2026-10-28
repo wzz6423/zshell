@@ -1,0 +1,48 @@
+---
+title: Paylaşılan uzak oturumlar
+description: SSH veya Tailscale ile aynı uzak terminale bağlanın ve istemci ayrılsa da işleri çalışır tutun.
+---
+
+`zshell-server`, kabuğu ve işleri bir macOS veya Linux sunucusunda tutar. Zshell’in iki terminal arka ucu da bağlanabilir. İstemciyi kapatmak veya ağ bağlantısını kaybetmek işleri bitirmez. Yeniden bağlanmak ekranı, kaydırma geçmişini, imleci ve terminal kiplerini geri getirir.
+
+## Kurulum [#install]
+
+Sunucuda güncel Rust araç zinciriyle Zshell deposunu derleyin. Mac istemcisi relay içerir ve Cargo gerektirmez. Yerel Windows sunucusu desteklenmez.
+
+```sh
+cargo build --locked --release --manifest-path remote/Cargo.toml
+install -d "$HOME/.local/bin"
+install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
+```
+
+## SSH [#ssh]
+
+Önce sunucu anahtarını ve anahtar ya da agent kimlik doğrulamasını kontrol edin:
+
+```sh
+ssh devbox true
+```
+
+Kenar çubuğunun ağ menüsünden uzak sunucuları açın. Ad, `ssh://me@devbox:22` veya SSH takma adı ve `~/.local/bin/zshell-server` girin. Bağlanmak mevcut proje ve oturumları yükler. Yeni kabuk için `~/repo` gibi bir dizin girip uzak projeyi açın. Boşluk içeren yollar desteklenir; yeni sekmeler ve bölmeler de uzakta çalışır.
+
+SSH daemon’u otomatik başlatır ve OpenSSH yapılandırmanızı, anahtarları, agent’ı ve güvenilen sunucu anahtarlarını kullanır. Bilinmeyen anahtarlar ve kimlik doğrulama hataları gösterilir. Terminal Tailscale kullansa bile Dosyalar ve Git aynı sunucuya SSH kullanır. Uzak yollar Mac dosyalarına erişmez. `ZSHELL_SSH_CONFIG_FILE`, okunabilir ayrı bir OpenSSH dosyasının mutlak yolunu seçebilir.
+
+## Tailscale [#tailscale]
+
+İki cihazda da Tailscale’e giriş yapın ve oturum oluşturmadan özel dinleyiciyi başlatın:
+
+```sh
+zshell-server serve --listen tailscale://:7373
+```
+
+`tailscale://devbox:7373` ekleyin. MagicDNS ve Tailscale IPv4/IPv6 desteklenir; genel adresler reddedilir. Varsayılan olarak yalnızca sunucu sahibinin etiketsiz cihazlarına izin verilir. `--allow-user` tam eşleşen başka bir giriş adına izin verir; etiketli istemciler yine reddedilir. Sunucunun kendisinde SSH kullanın. Tailnet ACL kuralları da geçerlidir. İzin verilen istemciler hizmetin Unix hesabını kullanabilir.
+
+## Paylaşma ve bitirme [#sharing]
+
+Tüm istemciler aynı çıktıyı alır. Terminale odaklanmak veya denetimi almak giriş ve boyut denetimini o istemciye verir. Ayrıldığında kalan en eski istemci devralır. Bilgi paneli durumu, istemci sayısını ve denetimi gösterir; ayırma ve yeniden bağlanma sunar. Ağ hataları otomatik yeniden denenir, çevrimdışı giriş atılır. Kaydedilen düzen aynı uzak UUID’ye yeniden bağlanır.
+
+Bölme, proje veya pencereyi kapatmak ve uygulamanın iki çıkış seçeneği yalnızca istemciyi ayırır. Uzak oturumu bitirmek onay ister ve kabuk ile işleri herkes için durdurur. Sunucuda: `zshell-server terminate --project ~/repo --session UUID`.
+
+## Sınırlar [#limits]
+
+Kalıcılık yalnızca daemon çalışırken geçerlidir; sunucu yeniden başlatmaları, daemon çökmesi veya yeniden başlamasını aşmaz. Kaybolan oturum hata olarak bildirilir ve sessizce yenilenmez. Sınırlar 128 oturum, 16 MiB terminal görüntüsü ve istemci başına 1 MiB canlı kuyruktur. Yavaş istemciler diğerlerini engellemez; geçmiş sunucu belleğinde tutulur. Hizmetler ve CLI için [sunucu başvurusuna](https://github.com/wzz6423/zshell/tree/main/remote) bakın.

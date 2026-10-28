@@ -99,6 +99,12 @@ installed Zshell without clobbering it: settings go to
 `~/.config/zshell-dev/config.toml`, and the session snapshot, sidebar widths, and
 Sparkle preferences live under the separate bundle id.
 
+To verify SSH against an isolated test host without editing personal SSH files,
+launch the app with `ZSHELL_SSH_CONFIG_FILE` pointing to a readable absolute
+OpenSSH configuration. The terminal and remote Files/Git operations share this
+`-F` override; host-key verification remains enabled. Remote server and production
+CLI checks are documented in [remote/README.md](remote/README.md).
+
 ### Memory soak checks
 
 Use the PID-scoped sampler for long-running lifecycle or terminal memory checks:
@@ -242,6 +248,7 @@ A platform workflow only runs when the pull request touches the files it builds,
 | Workflow | Runs when the pull request touches |
 | --- | --- |
 | `macOS App` | `mac/zshell/**`, `mac/zshell.xcodeproj/**`, `mac/Vendor/**`, `mac/Config/**`, `mac/Makefile`, `Makefile`, `mac/scripts/build-alacritty-bridge.sh`, `.github/**` |
+| `Remote Sessions` | `remote/**`, `mac/Vendor/alacritty-bridge/**`, `.github/**` |
 | `Release Scripts` | `mac/scripts/**`, `mac/package.json`, `mac/bun.lock`, `mac/tsconfig.json`, `.github/**` |
 | `Web CI` website build | `web/**`, `.github/**` |
 | `Skill CI` | `skills/**`, `mac/zshell/Skills/**`, `.github/**` |

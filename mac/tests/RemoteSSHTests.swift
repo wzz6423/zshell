@@ -15,18 +15,20 @@ struct RemoteSSHTests {
             port: 2222
         )
         expect(endpoint.destination == "dev@example.com", "destination")
+        let quotedTerminal = try endpoint.terminalArguments(remoteDirectory: "/srv/a'b")
         expect(
-            endpoint.terminalArguments(remoteDirectory: "/srv/a'b").suffix(3)
+            quotedTerminal.suffix(3)
                 == ["-t", "dev@example.com", "cd -- '/srv/a'\\''b' && exec \"${SHELL:-/bin/sh}\" -l"],
             "terminal argv quotes the remote directory"
         )
         // A leading tilde must stay unquoted so the remote shell expands it.
+        let tildeTerminal = try endpoint.terminalArguments(remoteDirectory: "~/my repo")
         expect(
-            endpoint.terminalArguments(remoteDirectory: "~/my repo").suffix(3)
+            tildeTerminal.suffix(3)
                 == ["-t", "dev@example.com", "cd -- ~/'my repo' && exec \"${SHELL:-/bin/sh}\" -l"],
             "terminal argv expands a tilde remote directory"
         )
-        let transport = endpoint.transportArguments(
+        let transport = try endpoint.transportArguments(
             connectTimeout: 2.1,
             command: ["printf", "%s", "a'b"]
         )
@@ -37,7 +39,7 @@ struct RemoteSSHTests {
         expect(transport.suffix(2) == ["dev@example.com", "'printf' '%s' 'a'\\''b'"], "command quoted")
 
         let passwordAuthentication = SSHAuthentication.password
-        let passwordArguments = endpoint.transportArguments(
+        let passwordArguments = try endpoint.transportArguments(
             connectTimeout: 2,
             command: [":"],
             authentication: passwordAuthentication
@@ -47,7 +49,7 @@ struct RemoteSSHTests {
             passwordArguments.contains("PreferredAuthentications=password,keyboard-interactive"),
             "password auth is explicit"
         )
-        let privateKeyArguments = endpoint.terminalArguments(
+        let privateKeyArguments = try endpoint.terminalArguments(
             remoteDirectory: nil,
             authentication: .privateKeyPath("/tmp/id_ed25519"),
             identityFile: "/tmp/id_ed25519"
@@ -100,7 +102,7 @@ struct RemoteSSHTests {
         expect(SSHEndpoint.shellWord("~we ird/x") == "'~we ird/x'", "odd tilde user quoted")
         expect(SSHEndpoint.shellWord("plain path") == "'plain path'", "plain path quoted")
 
-        let gitCommand = endpoint.transportArguments(
+        let gitCommand = try endpoint.transportArguments(
             connectTimeout: 5,
             command: ["/usr/bin/git", "-C", "~/repo", "status"]
         )
@@ -108,6 +110,20 @@ struct RemoteSSHTests {
             gitCommand.last?.contains("~/'repo'") == true,
             "git -C keeps tilde expansion"
         )
+
+        let configuration = FileManager.default.temporaryDirectory.appendingPathComponent("zshell-ssh-config-\(UUID().uuidString)")
+        try Data("Host test-host\n    HostName example.com\n".utf8).write(to: configuration)
+        defer { try? FileManager.default.removeItem(at: configuration) }
+        let configurationArguments = try SSHEndpoint.configurationArguments(environment: ["ZSHELL_SSH_CONFIG_FILE": configuration.path])
+        expect(configurationArguments == ["-F", configuration.path], "an independent SSH configuration is passed as argv")
+        let defaultConfiguration = try SSHEndpoint.configurationArguments(environment: [:])
+        expect(defaultConfiguration.isEmpty, "ordinary SSH uses its existing configuration")
+        for path in ["relative/config", configuration.path + "\n", configuration.path + ".missing", configuration.deletingLastPathComponent().path] {
+            do {
+                _ = try SSHEndpoint.configurationArguments(environment: ["ZSHELL_SSH_CONFIG_FILE": path])
+                preconditionFailure("invalid SSH configuration accepted")
+            } catch { passed += 1 }
+        }
 
         let listing = SSHEndpoint.parseDirectoryListing("src/\nREADME.md\n.git/\n\nsub dir/\n")
         expect(

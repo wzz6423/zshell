@@ -198,3 +198,78 @@ Zshell installs SessionStart hooks for Claude Code and Codex, a Pi extension, an
 Only local root conversations reported by these integrations can be resumed. Codex requires an embedded local CLI (`--no-daemon`); shared daemons and remote connections are unsupported. OpenCode requires the TUI plugin API; older versions, headless server sessions, and `opencode attach` are unsupported. A child agent cannot replace the parent pane’s conversation. Pi requires its saved session file.
 
 No verified identity, a missing working directory, or an unavailable Pi file opens a new shell. An unavailable CLI also returns to a shell. Zshell does not replay an arbitrary startup command or pick a recent conversation. Provider errors such as a deleted conversation are displayed by the CLI.
+
+## Find and resume saved conversations [#saved-conversation-history]
+
+Open **Agents → Agent Conversation History**, click the clock button at the top of the project sidebar. Search across projects by title, provider, project, conversation ID, working directory, or configuration directory. Zshell keeps the newest 200 verified local conversations after agents and panes exit and across app restarts. **Recent** shows 20 unarchived matches; **All** includes archived records; **Archived** shows only archived records.
+
+Select **Show Conversation** for an open conversation or **Resume Conversation** for a saved one. Zshell reuses an open pane, reconnects a surviving PTY, or starts the provider's exact conversation with its original directory and configuration. Manual resume requires AI integration, even when automatic conversation restoration is off. Missing working or configuration directories and missing or mismatched Pi files show an error before a new pane is created.
+
+**Archive** hides a record from Recent; **Unarchive** brings it back. **Delete…** removes only the Zshell history record and keeps the provider's conversation files.
+
+Inside a Zshell pane, use `zshell +agent history --all` and `zshell +agent resume --id HISTORY_UUID` for that pane's project. From an ordinary external terminal, keep Zshell running, discover a project UUID, and select it explicitly:
+
+```sh
+zshell +agent history projects
+zshell +agent history --project PROJECT_UUID --all
+zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
+```
+
+CLI resume stays in the background unless you add `--focus`. For a project open in several windows, choose `--window WINDOW_UUID` from `history projects`. If several app instances are running, use `--connection PATH` with the absolute private descriptor path shown by the CLI. These target options are for external terminals; pane processes retain their original project scope.
+
+## Follow live project events [#live-events]
+
+Run `zshell +events` inside a Zshell terminal to subscribe to future changes in
+that terminal's project and window. It streams one JSON object per line over the
+same authenticated private socket as pane automation; it does not poll. There
+is no external-control fallback, and `--project` is not supported. Removing the
+terminal environment does not grant broader access.
+
+```sh
+zshell +events
+zshell +events --pane PANE_UUID --event agent.attention --once --timeout 30000
+zshell +events --event command.task.finished
+```
+
+`--pane` accepts an existing pane UUID in the caller's project. Repeat `--event`
+to combine names from the table below. `--once` stops after the first matching
+change, excluding `stream.ready`. `--timeout` is milliseconds, from 0 to 86400000;
+0 waits indefinitely. A timeout exits 0, or 124 with `--once` when no change
+matched. Interrupting the command cancels the subscription.
+
+| Event | Data |
+| --- | --- |
+| `session.created`, `session.closed` | Terminal session added to or removed from the project. |
+| `pane.created`, `pane.closed` | Pane added to or removed from the project, including nonterminal panes. |
+| `pane.updated` | The same pane moved to another tab or changed content. `from` contains its prior tab/terminal/content IDs; replacing a terminal also emits `session.closed` and `session.created`. |
+| `focus.changed` | `from` and `to` selection; `window_key` also reflects application/window activation. |
+| `agent.status`, `agent.progress`, `agent.attention`, `agent.finished` | Current `agent` snapshot from Zshell's existing status model. Screen inference is labelled and never emits `agent.finished`. |
+| `command.finished` | Shell integration's `exit_code`, `duration_ms`, and `completion_sequence`. Backend support follows the existing shell integration; an absent status is JSON null. |
+| `command.task.finished` | Automation `task_id`, `state`, `exit_code`, `duration_ms`, and `error_code`. Read the retained result with `+pane wait --task UUID`; terminal output is not copied into this stream. |
+
+Every output line uses this versioned NDJSON envelope:
+
+```json
+{"version":1,"event":"pane.created","stream_id":"UUID","sequence":1,"time":1793000000000,"project_id":"UUID","data":{"tab_id":"UUID","pane_id":"UUID","terminal_id":"UUID","content":"terminal"}}
+```
+
+`time` is Unix milliseconds. `data` contains event-specific fields; pane events
+include `tab_id`, `pane_id`, `terminal_id` (null for nonterminals), `content_id`, and `content`.
+The first line is `stream.ready` with sequence 0 and queue limits. Subsequent
+matching changes increase the sequence by one within that `stream_id`. The
+subscription starts atomically at `stream.ready`: earlier events are not
+replayed. Use pane/agent reads to inspect current state when reconnecting.
+
+The app allows at most 32 subscriptions. Each has a limit of 256 queued frames,
+1 MiB total, and 64 KiB per frame. A slow consumer receives `stream.lagged` when
+possible, followed by disconnect; its sequence jumps forward when queued changes
+are discarded and always exceeds previously delivered sequence numbers. A peer that cannot accept writes for 2 seconds is
+closed. Lag, unexpected EOF, authentication failure, or a sequence error makes
+the CLI exit nonzero. Reconnect and inspect current state; there is no replay or
+exactly-once delivery across connections.
+
+Closing the owning terminal, rotating its capability, or moving it to another
+project/window ends its existing subscriptions and discards queued events.
+Other projects/windows are never included, even if a caller supplies their pane
+UUID. A move of another terminal appears as removal in the source project and
+creation in the destination project.

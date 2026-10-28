@@ -59,7 +59,5 @@ Dividers between panes are draggable too.
 tab closes the tab as well.
 
 <Callout type="warn">
-Closing a terminal pane terminates the shell running in it, along with anything
-it started. Zshell doesn't ask first — it's the same as closing a terminal
-anywhere else.
+Closing a terminal pane terminates its shell and the programs it started. For a session associated with a Git worktree, Zshell first offers **Keep Worktree**, **Remove Worktree**, or **Cancel**. See [worktree sessions](/docs/git#worktree-sessions) for cleanup requirements.
 </Callout>

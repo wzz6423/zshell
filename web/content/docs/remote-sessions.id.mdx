@@ -1,0 +1,48 @@
+---
+title: Sesi jarak jauh bersama
+description: Hubungkan terminal yang sama melalui SSH atau Tailscale dan pertahankan pekerjaan setelah klien terputus.
+---
+
+`zshell-server` mempertahankan shell dan pekerjaannya pada host macOS atau Linux. Kedua backend terminal Zshell dapat terhubung. Menutup klien atau kehilangan jaringan tidak menghentikan pekerjaan. Koneksi ulang memulihkan layar, riwayat gulir, kursor, dan mode terminal.
+
+## Instalasi [#install]
+
+Bangun repositori Zshell pada host dengan toolchain Rust terkini. Klien Mac sudah menyertakan relay dan tidak memerlukan Cargo. Server Windows native belum didukung.
+
+```sh
+cargo build --locked --release --manifest-path remote/Cargo.toml
+install -d "$HOME/.local/bin"
+install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
+```
+
+## SSH [#ssh]
+
+Pastikan dahulu kunci host dan autentikasi kunci atau agent:
+
+```sh
+ssh devbox true
+```
+
+Buka host jarak jauh dari menu jaringan di bilah samping. Isi nama, `ssh://me@devbox:22` atau alias SSH, dan `~/.local/bin/zshell-server`. Menghubungkan host memuat proyek dan sesi yang ada. Masukkan direktori seperti `~/repo` lalu buka proyek jarak jauh untuk membuat shell. Jalur dengan spasi didukung; tab dan pemisahan baru juga berjalan pada host.
+
+SSH memulai daemon secara otomatis serta memakai konfigurasi OpenSSH, kunci, agent, dan kunci host tepercaya. Kunci tidak dikenal dan kegagalan autentikasi ditampilkan sebagai kesalahan. Berkas dan Git memakai SSH ke host yang sama, meskipun terminal memakai Tailscale. Jalur jarak jauh tidak mengakses berkas Mac. `ZSHELL_SSH_CONFIG_FILE` dapat memilih berkas OpenSSH terpisah yang dapat dibaca melalui jalur absolut.
+
+## Tailscale [#tailscale]
+
+Masuk ke Tailscale pada kedua perangkat lalu mulai listener privat sebelum membuat sesi:
+
+```sh
+zshell-server serve --listen tailscale://:7373
+```
+
+Tambahkan `tailscale://devbox:7373`. MagicDNS dan alamat Tailscale IPv4/IPv6 didukung; alamat publik ditolak. Secara bawaan hanya perangkat tanpa tag milik pemilik host yang diizinkan. `--allow-user` mengizinkan nama login lain yang persis sama; klien bertag tetap ditolak. Gunakan SSH dari mesin server itu sendiri. ACL tailnet tetap berlaku. Klien yang diizinkan dapat memakai akun Unix layanan.
+
+## Berbagi dan mengakhiri [#sharing]
+
+Semua klien menerima keluaran yang sama. Memfokuskan terminal atau mengambil kendali memberikan hak input dan ukuran kepada klien tersebut. Saat terputus, klien tersisa yang paling awal terhubung mengambil alih. Panel Info menampilkan status, jumlah klien, dan kendali serta menyediakan lepas dan hubungkan ulang. Gangguan jaringan dicoba ulang otomatis; input offline dibuang. Tata letak tersimpan menghubungkan UUID jarak jauh yang sama.
+
+Menutup panel, proyek, jendela, atau memakai kedua pilihan keluar hanya melepaskan klien. Mengakhiri sesi jarak jauh meminta konfirmasi dan menghentikan shell beserta pekerjaan untuk semua klien. Pada host: `zshell-server terminate --project ~/repo --session UUID`.
+
+## Batas [#limits]
+
+Persistensi hanya selama daemon hidup, bukan melewati reboot host, crash, atau restart daemon. Sesi hilang dilaporkan dan tidak diganti diam-diam. Batasnya 128 sesi, snapshot 16 MiB, dan antrean langsung 1 MiB per klien. Klien lambat tidak memblokir yang lain; riwayat tetap di memori host. Lihat [referensi server](https://github.com/wzz6423/zshell/tree/main/remote) untuk layanan dan CLI.

@@ -1,5 +1,9 @@
 import SwiftUI
 
+if RemoteSessionRelay.shouldRun {
+    RemoteSessionRelay.run()
+}
+
 if PTYMuxCommandLine.shouldRunChild {
     PTYMuxCommandLine.runChild()
 }

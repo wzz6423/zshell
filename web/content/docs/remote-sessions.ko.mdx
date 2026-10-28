@@ -1,0 +1,48 @@
+---
+title: 원격 세션 공유
+description: SSH 또는 Tailscale로 같은 원격 터미널에 연결하고 연결이 끊겨도 작업을 유지합니다.
+---
+
+`zshell-server`가 macOS 또는 Linux 호스트에서 셸과 작업을 유지합니다. Zshell의 두 터미널 백엔드에서 사용할 수 있으며 클라이언트를 닫거나 종료해도 작업은 계속됩니다. 다시 연결하면 화면, 스크롤 기록, 커서와 터미널 모드가 복원됩니다.
+
+## 설치 [#install]
+
+호스트에서 최신 Rust 도구 체인으로 Zshell 저장소를 빌드합니다. Mac 클라이언트에는 relay가 포함되어 Cargo가 필요하지 않습니다. 네이티브 Windows 호스트는 지원하지 않습니다.
+
+```sh
+cargo build --locked --release --manifest-path remote/Cargo.toml
+install -d "$HOME/.local/bin"
+install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
+```
+
+## SSH [#ssh]
+
+일반 SSH로 호스트 키와 키 또는 agent 인증을 먼저 확인합니다.
+
+```sh
+ssh devbox true
+```
+
+사이드바의 네트워크 메뉴에서 원격 호스트를 열고 이름, `ssh://me@devbox:22` 또는 SSH 별칭, `~/.local/bin/zshell-server`를 입력합니다. 호스트 연결은 기존 프로젝트와 세션을 불러옵니다. `~/repo` 같은 원격 디렉터리를 입력하고 원격 프로젝트를 열면 새 셸을 만듭니다. 공백이 있는 경로를 지원하며 새 탭과 분할 창도 원격으로 실행합니다.
+
+SSH는 daemon을 자동 시작하고 기존 OpenSSH 설정, 키, agent와 신뢰한 호스트 키를 사용합니다. 알 수 없는 키와 인증 실패는 오류로 표시되므로 일반 SSH에서 확인한 뒤 재시도하세요. 파일과 Git은 같은 호스트의 SSH를 사용하므로 Tailscale 터미널도 해당 패널에는 별도 SSH 인증이 필요합니다. 원격 경로는 Mac 파일을 가리키지 않습니다. `ZSHELL_SSH_CONFIG_FILE`로 읽을 수 있는 별도 설정 파일의 절대 경로를 지정할 수 있습니다.
+
+## Tailscale [#tailscale]
+
+두 장치를 Tailscale에 로그인하고 세션을 만들기 전에 비공개 리스너를 실행합니다.
+
+```sh
+zshell-server serve --listen tailscale://:7373
+```
+
+`tailscale://devbox:7373`를 추가합니다. MagicDNS와 Tailscale IPv4/IPv6를 지원하며 공개 주소는 거부합니다. 기본적으로 호스트 소유자의 태그 없는 장치만 허용합니다. `--allow-user`로 정확한 다른 로그인 이름을 허용할 수 있지만 태그가 있는 클라이언트는 거부합니다. 서버와 같은 장치에서는 SSH를 사용하세요. Tailnet ACL도 적용됩니다. 연결자는 서비스의 Unix 계정을 조작할 수 있습니다.
+
+## 공유와 종료 [#sharing]
+
+모든 클라이언트가 같은 출력을 받습니다. 터미널을 포커스하거나 제어권을 가져오면 해당 클라이언트만 입력과 크기를 제어합니다. 연결이 끊기면 가장 먼저 연결된 남은 클라이언트가 제어합니다. 정보 패널은 상태, 클라이언트 수와 제어권을 표시하며 분리와 재연결을 제공합니다. 네트워크 오류는 자동 재시도하고 오프라인 입력은 버립니다. 저장한 레이아웃은 원격 UUID로 같은 작업에 돌아갑니다.
+
+창, 프로젝트, 패널을 닫거나 두 종료 옵션 중 하나를 사용해도 원격 세션은 분리만 됩니다. 원격 세션 종료는 확인 후 모든 클라이언트의 셸과 작업을 끝냅니다. 호스트에서도 `zshell-server terminate --project ~/repo --session UUID`를 실행할 수 있습니다.
+
+## 제한 [#limits]
+
+daemon이 살아 있는 동안만 유지되며 호스트 재부팅, daemon 충돌이나 재시작은 넘길 수 없습니다. 사라진 세션은 새 셸로 대체하지 않고 오류를 표시합니다. 최대 128개 세션, 16 MiB 스냅샷, 클라이언트당 1 MiB 실시간 큐를 유지합니다. 느린 클라이언트는 다른 작업을 막지 않고 분리됩니다. 기록은 호스트 메모리에 보관됩니다. 서비스와 CLI는 [서버 설명](https://github.com/wzz6423/zshell/tree/main/remote)을 참고하세요.

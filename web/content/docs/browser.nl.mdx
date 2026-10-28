@@ -58,4 +58,27 @@ zshell +browser screenshot --browser BROWSER_ID --output /tmp/zshell-page.png
 
 Snapshots geven tekst van het hoofdframe, toegankelijke labels en elementverwijzingen terug. Verwijzingen verlopen na wijzigingen of acties; maak een nieuwe snapshot voordat je ze opnieuw gebruikt. Een CSS-selector moet precies één element vinden. Gebruik `navigate`, `back`, `forward`, `reload` en `stop` voor navigatie.
 
-Automatisering accepteert volledige HTTP/HTTPS-URL’s en `about:blank`. Andere protocollen, downloads, bestandskiezers en native dialoogvensters vereisen jouw interactie. De beperking eindigt na handmatige navigatie via adres- of werkbalk. Opdrachten blijven binnen het project en venster van de aanroepende terminal. `--timeout` is 100–30000 milliseconden. Snapshots bevatten maximaal 200 elementen, 32768 teksttekens en 256 KiB, zonder wachtwoord- of bestandswaarden. PNG-opnamen van het zichtbare deel zijn maximaal 512 KiB, vereisen een eerder getoond paneel en overschrijven geen bestanden. Verlaag zo nodig `--width`. Zie `zshell +browser --help`.
+Automatisering accepteert volledige HTTP/HTTPS-URL’s en `about:blank`. Andere protocollen, downloads, bestandskiezers en native dialoogvensters vereisen jouw interactie. De beperking eindigt na handmatige navigatie via adres- of werkbalk. Opdrachten blijven binnen het project en venster van de aanroepende terminal. `--timeout` is 100–30000 milliseconden. Snapshots bevatten maximaal 200 elementen, 32768 teksttekens en 256 KiB, zonder wachtwoord- of bestandswaarden. PNG-opnamen van het zichtbare deel zijn maximaal 512 KiB, werken ook vóór de eerste weergave met een viewport van 1024 × 768 zonder focuswijziging en overschrijven geen bestanden. Verlaag zo nodig `--width`. Zie `zshell +browser --help`.
+
+## Paginascripts en opgeslagen aanmeldingen [#page-scripts-and-saved-logins]
+
+```sh
+zshell +browser eval --browser BROWSER_ID --script 'Promise.resolve({title: document.title})'
+zshell +browser state save --browser BROWSER_ID --output /tmp/zshell-login.json
+zshell +browser state load --browser BROWSER_ID --input /tmp/zshell-login.json
+zshell +browser reload --browser BROWSER_ID --wait
+```
+
+`eval --script` draait in de echte hoofdpagina, wacht op een teruggegeven Promise en levert JSON in `value`; `undefined` wordt `null`. Gebruik een asynchrone functie-expressie voor `await`. Grenzen: 64 KiB invoer; 256 KiB, 10000 waarden en 64 niveaus uitvoer. DOM-verwijzingen verlopen daarna. Een time-out stopt alleen het wachten. Controleer de pagina voordat je wijzigingen herhaalt; een synchrone eindeloze lus kan het sluiten van de pagina vereisen. Losse expressies, inclusief IIFE’s, worden als native globale Scripts ingevoegd. Tekenreeksen met meerdere instructies blijven onder de CSP van de pagina vallen; verpak de instructies in een IIFE als tekenreeksevaluatie wordt geblokkeerd.
+
+`state save` bewaart cookies die gelden voor de doelhost (inclusief bovenliggende domeinen en HttpOnly) en localStorage van de huidige oorsprong als Playwright storage-state JSON. `state load` voegt cookies samen en vervangt die localStorage; laad daarna opnieuw. Schema, host en poort moeten exact overeenkomen. Vreemde domeinen, publieke suffixen, onbekende velden en ongeldige typen worden vóór wijzigingen geweigerd. Secure-cookies vereisen HTTPS.
+
+Gebruik `--format cookies` bij beide opdrachten voor Netscape `cookies.txt`, zonder localStorage en SameSite. Bestanden zijn maximaal 256 KiB en bevatten inloggegevens: houd ze privé en buiten Git. Import vereist een regulier bestand dat alleen de eigenaar kan lezen (zoals `0600`); symbolische links worden geweigerd. Export maakt een nieuw privébestand zonder bestaande paden te overschrijven. WebKit-gegevens blijven gedeeld tussen browserpanelen; project-, venster- en navigatiegrenzen blijven gelden.
+
+## Advertenties en trackers [#ads-and-trackers]
+
+**Instellingen → Browser** schakelt WebKit-blokkering standaard in met [EasyList](https://easylist.to/) en EasyPrivacy. Schakel lijsten apart uit of voeg één HTTP-/HTTPS-ABP-lijst-URL per regel toe en kies **Lijsten toepassen**. Maximaal 8 lijsten van elk 8 MiB. HTTP is niet versleuteld.
+
+Regels gelden voor nieuwe verzoeken in alle browserpanelen. Herlaad pagina’s na wijzigingen. **Lijsten nu bijwerken** forceert een update. Lijsten worden lokaal gecachet; na herstart controleert het openen van de browser lijsten ouder dan vier dagen. Instellingen tonen omgezette/overgeslagen filters, fouten en cachegebruik. Een mislukte lijstwissel hergebruikt niet stilzwijgend een andere uitgeschakelde lijst.
+
+Ondersteunt URL-jokertekens, ankers, gangbare typen, `@@`-uitzonderingen, eenvoudige domeinen en CSS `##`/`#@#`. Domeinen volgen de hoofdpagina; partijclassificatie volgt WebKit. Scriptlets, procedurele filters, omleidingen, reguliere expressies, volledige paginatoestemming en uitgesloten subdomeinen van ingesloten domeinen worden overgeslagen. Geen volledige uBlock Origin-compatibiliteit.

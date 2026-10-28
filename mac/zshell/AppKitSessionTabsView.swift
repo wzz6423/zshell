@@ -414,6 +414,7 @@ final class SessionTabsNSView: NSView {
     private let document = SessionStripDocumentView()
     private let overlayScroller = SessionStripOverlayScroller()
     private let addButton = WorkspaceChromeButton(symbol: "plus", label: AppCommand.newSession.title)
+    private let worktreeMenuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private var rows: [Item: WorkspaceItemView] = [:]
     private var order: [Item] = []
     private var contentObservations: [UUID: AnyCancellable] = [:]
@@ -445,6 +446,12 @@ final class SessionTabsNSView: NSView {
         document.scrollView = scrollView
         for view in [scrollView, overlayScroller, addButton] { addSubview(view) }
         addButton.onAction = { [weak self] in self?.project?.newSession() }
+        let addMenu = NSMenu()
+        addMenu.autoenablesItems = false
+        worktreeMenuItem.target = self
+        worktreeMenuItem.action = #selector(newSessionInWorktree)
+        addMenu.addItem(worktreeMenuItem)
+        addButton.menu = addMenu
         overlayScroller.onScroll = { [weak self] position in self?.scroll(to: position) }
         overlayScroller.onDragEnded = { [weak self] in self?.updateOverlayScroller() }
         scrollObservation = NotificationCenter.default.publisher(
@@ -542,6 +549,9 @@ final class SessionTabsNSView: NSView {
         if lastSelection != project.selectedTabID { lastSelection = project.selectedTabID; revealSelection = true }
         observeContent(in: project)
         addButton.configure(symbol: "plus", command: .newSession, pointSize: 11 * scale)
+        worktreeMenuItem.title = AppCommand.newSessionInWorktree.title
+        worktreeMenuItem.isEnabled = !project.isRemote
+        addButton.toolTip = (addButton.toolTip ?? "") + "\n" + AppCommand.newSessionInWorktree.title
         needsLayout = true
     }
 
@@ -851,6 +861,10 @@ final class SessionTabsNSView: NSView {
     private func tabMenu(_ tab: PaneTab) -> [AppKitContextMenuItem] {
         guard let project, let manager else { return [] }
         var items: [AppKitContextMenuItem] = [
+            .action(title: AppCommand.newSessionInWorktree.title, enabled: !project.isRemote) {
+                manager.promptForWorktreeSession(in: project)
+            },
+            .separator,
             .action(title: String(localized: tab.isPinned ? "Unpin Tab" : "Pin Tab")) { project.setPinned(!tab.isPinned, for: tab) },
             .action(title: String(localized: "Rename…")) { [weak self] in self?.rows[.tab(tab.id)]?.onRename?() },
         ]
@@ -918,5 +932,10 @@ final class SessionTabsNSView: NSView {
             .action(title: String(localized: "Close All")) { project.closeAll() },
         ]
         return items
+    }
+
+    @objc private func newSessionInWorktree() {
+        guard let project else { return }
+        manager?.promptForWorktreeSession(in: project)
     }
 }

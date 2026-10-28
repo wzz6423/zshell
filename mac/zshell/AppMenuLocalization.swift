@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 
 /// SwiftUI updates app commands; AppKit owns the standard menu titles and
 /// actions. Update those in place so their targets and keyboard bindings stay
@@ -7,13 +8,18 @@ import AppKit
 final class AppMenuLocalization: NSObject {
     static let shared = AppMenuLocalization()
     private var refreshScheduled = false
+    private var shortcutObservation: AnyCancellable?
+    private weak var applicationDelegate: ZshellApplicationDelegate?
 
-    func start() {
+    func start(applicationDelegate: ZshellApplicationDelegate) {
+        self.applicationDelegate = applicationDelegate
+        shortcutObservation = AppSettings.shared.$commandShortcuts.receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.refresh() }
         for name in [AppLocalization.didChange, NSMenu.didBeginTrackingNotification] {
             NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: name, object: nil)
         }
-        for name in [NSMenu.didAddItemNotification, NSMenu.didChangeItemNotification] {
-            NotificationCenter.default.addObserver(self, selector: #selector(scheduleRefresh), name: name, object: NSApp.mainMenu)
+        for name in [NSMenu.didAddItemNotification, NSMenu.didChangeItemNotification, NSMenu.didRemoveItemNotification] {
+            NotificationCenter.default.addObserver(self, selector: #selector(scheduleRefresh), name: name, object: nil)
         }
         refresh()
     }
@@ -28,7 +34,11 @@ final class AppMenuLocalization: NSObject {
     }
 
     @objc private func refresh() {
+        // SwiftUI rebuilds its menu tree after workspace changes. Restore the
+        // AppKit-owned commands after that reconciliation, including shortcuts.
+        applicationDelegate?.restoreTerminalMenus()
         guard let menu = NSApp.mainMenu else { return }
+        AgentConversationHistoryController.shared.installMenu(in: menu)
         let titles: [(String.LocalizationValue, String)] = [
             ("File", String(localized: "File")),
             ("Edit", String(localized: "Edit")),
@@ -36,6 +46,7 @@ final class AppMenuLocalization: NSObject {
             ("Window", String(localized: "Window")),
             ("Help", String(localized: "Help")),
             ("Terminal", String(localized: "Terminal")),
+            ("Agents", String(localized: "Agents")),
         ]
         let bundles = AppLanguage.localizationIdentifiers.compactMap {
             Bundle.main.url(forResource: $0, withExtension: "lproj").flatMap(Bundle.init(url:))
@@ -59,6 +70,11 @@ final class AppMenuLocalization: NSObject {
             if let action = item.action {
                 let title: String?
                 switch NSStringFromSelector(action) {
+                case "newSessionInWorktree":
+                    title = AppCommand.newSessionInWorktree.title
+                    let shortcut = AppSettings.shared.commandShortcut(for: .newSessionInWorktree)
+                    if item.keyEquivalent != String(shortcut.character) { item.keyEquivalent = String(shortcut.character) }
+                    if item.keyEquivalentModifierMask != shortcut.modifiers { item.keyEquivalentModifierMask = shortcut.modifiers }
                 case "orderFrontStandardAboutPanel:": title = String(localized: "About \(appName)")
                 case "hide:": title = String(localized: "Hide \(appName)")
                 case "hideOtherApplications:": title = String(localized: "Hide Others")

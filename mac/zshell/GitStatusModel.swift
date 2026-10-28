@@ -729,7 +729,13 @@ final class GitStatusModel: nonisolated ObservableObject {
         }
         perform(
             label: String(localized: "Create worktree"),
-            commands: [["worktree", "add", directory, trimmedBranch]],
+            commands: [],
+            worktreeOperation: { root in
+                let created = try await SessionWorktreeService().create(
+                    in: root, branch: trimmedBranch, at: directory, requiresExistingBranch: true
+                )
+                return created.path
+            },
             completion: completion
         )
     }
@@ -748,7 +754,12 @@ final class GitStatusModel: nonisolated ObservableObject {
         }
         perform(
             label: String(localized: "Remove worktree"),
-            commands: [["worktree", "remove", worktree.path]],
+            commands: [],
+            worktreeOperation: { root in
+                let association = try await SessionWorktreeService().association(at: worktree.path, sourceDirectory: root)
+                try await TerminalManager.removeWorktreeFromGitPanel(association)
+                return worktree.path
+            },
             completion: completion
         )
     }
@@ -838,6 +849,7 @@ final class GitStatusModel: nonisolated ObservableObject {
         directory: String? = nil,
         requiresStableHead: Bool = true,
         requiresStableUpstream: Bool = false,
+        worktreeOperation: (@Sendable (String) async throws -> String)? = nil,
         completion: (@MainActor (Bool) -> Void)? = nil
     ) {
         guard remoteEndpoint == nil else {
@@ -861,7 +873,7 @@ final class GitStatusModel: nonisolated ObservableObject {
         let expectedHeadOID = headOID
         let expectedBranch = branch
         let expectedUpstream = upstream
-        guard !dir.isEmpty, !isBusy, !commands.isEmpty else { return }
+        guard !dir.isEmpty, !isBusy, !commands.isEmpty || worktreeOperation != nil else { return }
 
         let operationID = UUID()
         invalidateStatusRefresh()
@@ -912,6 +924,13 @@ final class GitStatusModel: nonisolated ObservableObject {
                     }
                 }
 
+                if let worktreeOperation {
+                    do {
+                        return CommandBatchResult(output: try await worktreeOperation(dir), failureCode: nil, failureMessage: nil)
+                    } catch {
+                        return CommandBatchResult(output: error.localizedDescription, failureCode: -1, failureMessage: error.localizedDescription)
+                    }
+                }
                 for args in commands {
                     transcript.append("$ git " + Self.displayCommand(args))
                     let run = Self.runGit(args, in: dir)
@@ -1550,7 +1569,7 @@ final class GitStatusModel: nonisolated ObservableObject {
             result.branches = refs.stdout.split(separator: "\n").map(String.init).sorted()
         }
 
-        let worktreeRun = statusGit(["worktree", "list", "--porcelain"], in: repoRoot)
+        let worktreeRun = statusGit(["worktree", "list", "--porcelain", "-z"], in: repoRoot)
         if worktreeRun.status == 0 {
             result.worktrees = parseWorktrees(worktreeRun.stdout, currentRoot: repoRoot)
         }
@@ -1773,54 +1792,11 @@ final class GitStatusModel: nonisolated ObservableObject {
     nonisolated static func parseWorktrees(
         _ output: String, currentRoot: String
     ) -> [Worktree] {
-        let normalizedCurrentRoot = URL(
-            fileURLWithPath: currentRoot, isDirectory: true
-        ).standardizedFileURL.path
-        var worktrees: [Worktree] = []
-        var path: String?
-        var headOID: String?
-        var branch: String?
-        var isBare = false
-
-        func appendWorktree() {
-            guard let path, !path.isEmpty else { return }
-            let normalizedPath = URL(
-                fileURLWithPath: path, isDirectory: true
-            ).standardizedFileURL.path
-            worktrees.append(
-                Worktree(
-                    path: normalizedPath,
-                    headOID: headOID,
-                    branch: branch,
-                    isBare: isBare,
-                    isCurrent: normalizedPath == normalizedCurrentRoot
-                )
-            )
+        let current = SessionWorktreeService.canonical(currentRoot)
+        return SessionWorktreeService.parseWorktrees(output).map {
+            Worktree(path: $0.path, headOID: $0.headOID, branch: $0.branch,
+                     isBare: $0.isBare, isCurrent: $0.path == current)
         }
-
-        for rawLine in output.components(separatedBy: "\n") {
-            let line = rawLine.hasSuffix("\r") ? String(rawLine.dropLast()) : rawLine
-            if line.isEmpty {
-                appendWorktree()
-                path = nil
-                headOID = nil
-                branch = nil
-                isBare = false
-            } else if line.hasPrefix("worktree ") {
-                path = String(line.dropFirst("worktree ".count))
-            } else if line.hasPrefix("HEAD ") {
-                headOID = String(line.dropFirst("HEAD ".count))
-            } else if line.hasPrefix("branch ") {
-                let ref = String(line.dropFirst("branch ".count))
-                branch = ref.hasPrefix("refs/heads/")
-                    ? String(ref.dropFirst("refs/heads/".count))
-                    : ref
-            } else if line == "bare" {
-                isBare = true
-            }
-        }
-        appendWorktree()
-        return worktrees
     }
 
     /// Adds the numeric columns from `git diff --numstat`. Binary-file rows
