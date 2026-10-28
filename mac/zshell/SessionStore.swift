@@ -394,6 +394,17 @@ private struct AppSnapshot: Codable {
 
 enum SessionStore {
     private static let key = "sessionSnapshot"
+    private static let quickTerminalKey = "quickTerminalWorkspace"
+
+    static func saveQuickTerminalWorkspace(_ snapshot: SessionSnapshot.ProjectSnapshot.TabSnapshot?) {
+        UserDefaults.standard.set(snapshot.flatMap { try? JSONEncoder().encode($0) }, forKey: quickTerminalKey)
+    }
+
+    static func loadQuickTerminalWorkspace() -> SessionSnapshot.ProjectSnapshot.TabSnapshot? {
+        UserDefaults.standard.data(forKey: quickTerminalKey).flatMap {
+            try? JSONDecoder().decode(SessionSnapshot.ProjectSnapshot.TabSnapshot.self, from: $0)
+        }
+    }
 
     static func save(_ windows: [SessionSnapshot]) {
         guard let data = try? JSONEncoder().encode(AppSnapshot(windows: windows)) else { return }

@@ -35389,6 +35389,406 @@
         }
       }
     },
+    "Reuse workspace": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعادة استخدام مساحة العمل"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arbeitsbereich wiederverwenden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reutilizar espacio de trabajo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réutiliser l’espace de travail"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gunakan kembali ruang kerja"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riutilizza lo spazio di lavoro"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ワークスペースを再利用"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "작업 공간 재사용"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Werkruimte hergebruiken"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reutilizar espaço de trabalho"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторно использовать рабочую область"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ใช้พื้นที่ทำงานเดิม"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çalışma alanını yeniden kullan"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dùng lại không gian làm việc"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复用工作区"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重用工作區"
+          }
+        }
+      }
+    },
+    "New workspace each time": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مساحة عمل جديدة في كل مرة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jedes Mal neuer Arbeitsbereich"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Espacio nuevo cada vez"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nouvel espace à chaque ouverture"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruang kerja baru setiap kali"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuovo spazio a ogni apertura"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "毎回新しいワークスペース"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "매번 새 작업 공간"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elke keer een nieuwe werkruimte"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novo espaço a cada abertura"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новая рабочая область каждый раз"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "พื้นที่ทำงานใหม่ทุกครั้ง"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Her seferinde yeni çalışma alanı"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không gian làm việc mới mỗi lần"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每次新建工作区"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每次建立新工作區"
+          }
+        }
+      }
+    },
+    "Session behavior": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سلوك الجلسة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sitzungsverhalten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comportamiento de la sesión"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comportement des sessions"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perilaku sesi"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comportamento della sessione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セッションの動作"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "세션 동작"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sessiewerking"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comportamento da sessão"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поведение сеанса"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "การทำงานของเซสชัน"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oturum davranışı"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoạt động của phiên"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会话行为"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工作階段行為"
+          }
+        }
+      }
+    },
+    "Reuse keeps panes and tasks. New workspaces end when hidden. Mode changes apply on next show; the reusable workspace stays available when switching back. Shell history follows your shell configuration.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تحافظ إعادة الاستخدام على الأجزاء والمهام. تنتهي مساحات العمل الجديدة عند الإخفاء. يتغير الوضع عند العرض التالي، وتبقى المساحة السابقة متاحة عند العودة. يتبع سجل الأوامر إعدادات الصدفة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wiederverwendung erhält Bereiche und Aufgaben. Neue Arbeitsbereiche enden beim Ausblenden. Der Modus gilt ab dem nächsten Anzeigen; der bisherige Arbeitsbereich bleibt beim Zurückwechseln verfügbar. Der Befehlsverlauf folgt der Shell-Konfiguration."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reutilizar conserva paneles y tareas. Los espacios nuevos terminan al ocultarse. El modo cambia al volver a mostrar; el espacio reutilizable sigue disponible al regresar. El historial sigue la configuración del shell."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La réutilisation conserve les volets et tâches. Un nouvel espace se termine au masquage. Le mode change à la prochaine ouverture ; revenir permet de retrouver l’espace réutilisable. L’historique suit la configuration du shell."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penggunaan ulang mempertahankan panel dan tugas. Ruang baru berakhir saat disembunyikan. Mode berubah pada tampilan berikutnya; ruang yang digunakan ulang tetap tersedia saat beralih kembali. Riwayat mengikuti konfigurasi shell."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il riuso mantiene riquadri e attività. I nuovi spazi terminano quando vengono nascosti. Il modo cambia alla prossima apertura; tornando indietro lo spazio riutilizzabile resta disponibile. La cronologia segue la configurazione della shell."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再利用ではペインとタスクを保持します。新規ワークスペースは非表示時に終了します。モード変更は次の表示から適用され、切り替えて戻すと以前のワークスペースを再開できます。コマンド履歴はシェル設定に従います。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "재사용 모드는 창과 작업을 유지합니다. 새 작업 공간은 숨길 때 종료됩니다. 모드 변경은 다음 표시부터 적용되며 다시 전환하면 이전 작업 공간을 이어갈 수 있습니다. 명령 기록은 셸 설정을 따릅니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hergebruik bewaart panelen en taken. Nieuwe werkruimten stoppen bij verbergen. De modus wijzigt bij de volgende weergave; de herbruikbare werkruimte blijft bij terugschakelen beschikbaar. De geschiedenis volgt je shellconfiguratie."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reutilizar mantém painéis e tarefas. Espaços novos terminam ao serem ocultados. O modo muda na próxima exibição; o espaço reutilizável continua disponível ao voltar. O histórico segue a configuração do shell."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторное использование сохраняет панели и задачи. Новая область завершается при скрытии. Режим меняется при следующем показе; при возврате прежняя область остаётся доступной. История команд зависит от настроек оболочки."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "การใช้ซ้ำจะเก็บบานหน้าต่างและงาน พื้นที่ใหม่จะสิ้นสุดเมื่อซ่อน โหมดจะเปลี่ยนในการแสดงครั้งถัดไป และพื้นที่เดิมยังคงอยู่เมื่อสลับกลับ ประวัติคำสั่งเป็นไปตามการตั้งค่าเชลล์"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeniden kullanım bölmeleri ve görevleri korur. Yeni alanlar gizlenince sonlanır. Mod bir sonraki gösterimde değişir; geri döndüğünüzde yeniden kullanılabilir alan korunur. Komut geçmişi kabuk yapılandırmasını izler."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dùng lại giữ các ngăn và tác vụ. Không gian mới kết thúc khi ẩn. Chế độ thay đổi ở lần hiện tiếp theo; không gian dùng lại vẫn có sẵn khi chuyển về. Lịch sử lệnh theo cấu hình shell."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复用模式保留窗格和任务。新建模式在隐藏时结束工作区。模式更改在下次显示时生效；切回后仍可继续原来的复用工作区。命令历史遵从现有 Shell 配置。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重用模式保留窗格和工作。新建模式在隱藏時結束工作區。模式變更於下次顯示時生效；切回後仍可繼續原本的重用工作區。指令歷史依照既有 Shell 設定。"
+          }
+        }
+      }
+    },
     "Host": {
       "localizations": {
         "ar": {
@@ -54727,13 +55127,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "临时终端"
+            "value": "快捷终端"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "臨時終端機"
+            "value": "快速終端機"
           }
         }
       }

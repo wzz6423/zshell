@@ -147,13 +147,19 @@ Zshell JetBrains Mono ve Nerd Font simgelerini içerir. Kurulu herhangi bir eş 
 
 ## Genel Hızlı Terminal [#global-quick-terminal]
 
-Zshell çalışırken <kbd>Cmd</kbd>+<kbd>I</kbd> başka uygulamanın üzerinde bağımsız terminal açar; tekrar basmak kapatır. Proje sekmelerinin dışında geçici kabuğu vardır. Boyut, opaklık ve kısayolu **Ayarlar → Terminal → Hızlı Terminal**’de değiştirin.
+Zshell çalışırken <kbd>Cmd</kbd>+<kbd>I</kbd> veya **Terminal → Hızlı Terminal** bağımsız terminali gösterir ya da gizler. Boyut, opaklık ve kısayolu **Ayarlar → Terminal → Hızlı Terminal** altında değiştirin.
 
-- Uygulamalar arasında geçerken açık kalması için pencereyi sabitleyin.
-- Sabitlenmemiş pencere odağı kaybedince veya dışına tıklayınca kapanır.
-- **Zshell Komutlarını Engelle** kapalıysa <kbd>Esc</kbd> veya genel kısayol pencereyi kapatıp kabuğu ve çalışan görevleri sonlandırır. Tekrar açmak yeni oturum başlatır.
+**Oturum davranışı: Çalışma alanını yeniden kullan (varsayılan) / Her seferinde yeni çalışma alanı.** Yeniden kullanım bölmeleri ve görevleri korur. Yeni alanlar gizlenince sonlanır. Mod bir sonraki gösterimde değişir; geri döndüğünüzde yeniden kullanılabilir alan korunur. Komut geçmişi kabuk yapılandırmasını izler. Yeni alan her zaman tek bir boş terminalle başlar; önceki çıktı, bölme düzeni veya oturum durumu geri yüklenmez.
 
-Uzun süren hizmetler için proje terminali kullanın. Komut kaydedip çalıştıran [Hızlı Başlat](/tr/docs/quick-launch) ayrı özelliktir.
+**Sağa Böl** / **Aşağı Böl**, bağlam menüsü veya <kbd>Cmd</kbd>+<kbd>D</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> ile bölün. Aşağıdaki koruma, oranlar ve odak dahil yeniden kullanılan alanlara uygulanır.
+
+- Kısayol, <kbd>Esc</kbd>, dışarı tıklama veya odak kaybı yalnızca pencereyi gizler. Aynı kabuk, girdi, geçmiş ve görevler çalışmaya devam eder.
+- Uygulama değiştirirken görünür kalması için pencereyi sabitleyin. Boyut, opaklık ve sabitleme durumu gizlendiğinde korunur.
+- Oturumu bitirmek için `exit` çalıştırın; tekrar açmak yeni bir kabuk başlatır.
+
+Zshell’den normal çıkış sonrasında çalışmayı sürdürmek için yeni hızlı terminali açmadan önce `terminal.preserve-sessions` ayarını etkinleştirin. Yeniden açıldığında iki arka uç da aynı kabuğa bağlanır. **Zshell → Çık ve tüm oturumları sonlandır** gizli oturumları da bitirir. macOS’u yeniden başlatmak oturumları bitirir.
+
+Komut kaydedip çalıştıran [Hızlı Başlat](/tr/docs/quick-launch) ayrı bir özelliktir.
 
 ## Vim komut ipuçları [#vim-command-hints]
 

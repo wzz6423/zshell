@@ -44,6 +44,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     let backend: TerminalBackend
     let surface: any TerminalBackendSurface
     let reconnectedToPersistentPTY: Bool
+    var persistentSessionID: UUID? { persistentPTY == nil ? nil : id }
     let remoteConnection: RemoteSessionConnection?
     let overlayScrollbar = OverlayScrollbarView()
     /// Find-in-terminal state for this session's pane (⌘F).

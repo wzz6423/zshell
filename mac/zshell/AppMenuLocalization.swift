@@ -97,6 +97,8 @@ final class AppMenuLocalization: NSObject {
                         ? String(localized: "Exit Full Screen") : String(localized: "Enter Full Screen")
                 case "editProjectTerminalEnvironment": title = String(localized: "Project Terminal Environment…")
                 case "editTabTerminalEnvironment": title = String(localized: "Tab Terminal Environment…")
+                case "toggleQuickTerminal": title = String(localized: "Quick Terminal")
+                case "quitAndEndAllSessions": title = String(localized: "Quit and End All Sessions")
                 default: title = nil
                 }
                 if let title, item.title != title { item.title = title }

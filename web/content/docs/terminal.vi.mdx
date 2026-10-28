@@ -147,13 +147,19 @@ Zshell kèm JetBrains Mono và ký hiệu Nerd Font. Bất kỳ họ phông đơ
 
 ## Terminal nhanh toàn cục [#global-quick-terminal]
 
-Khi Zshell chạy, <kbd>Cmd</kbd>+<kbd>I</kbd> mở terminal độc lập phủ trên ứng dụng khác; nhấn lại để đóng. Nó có shell tạm ngoài các tab dự án. Điều chỉnh kích thước, độ mờ và phím tắt ở **Cài đặt → Terminal → Terminal nhanh**.
+Khi Zshell chạy, <kbd>Cmd</kbd>+<kbd>I</kbd> hoặc **Terminal → Terminal nhanh** hiện hoặc ẩn terminal độc lập. Điều chỉnh kích thước, độ mờ và phím tắt trong **Cài đặt → Terminal → Terminal nhanh**.
 
-- Ghim cửa sổ để giữ mở khi đổi ứng dụng.
-- Cửa sổ không ghim đóng khi mất tiêu điểm hoặc nhấn bên ngoài.
-- Khi **Chặn lệnh Zshell** tắt, <kbd>Esc</kbd> hoặc phím tắt toàn cục đóng cửa sổ, kết thúc shell và tác vụ đang chạy. Mở lại tạo phiên mới.
+**Hoạt động của phiên: Dùng lại không gian làm việc (mặc định) / Không gian làm việc mới mỗi lần.** Dùng lại giữ các ngăn và tác vụ. Không gian mới kết thúc khi ẩn. Chế độ thay đổi ở lần hiện tiếp theo; không gian dùng lại vẫn có sẵn khi chuyển về. Lịch sử lệnh theo cấu hình shell. Không gian mới luôn bắt đầu với một terminal trống, không khôi phục đầu ra, bố cục ngăn hay trạng thái phiên trước.
 
-Dùng terminal dự án cho dịch vụ chạy lâu. [Khởi chạy nhanh](/vi/docs/quick-launch), dùng lưu và chạy lệnh, là tính năng riêng.
+Chia ngăn bằng **Chia sang phải** / **Chia xuống dưới**, menu ngữ cảnh hoặc <kbd>Cmd</kbd>+<kbd>D</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>. Việc giữ lại bên dưới áp dụng cho không gian dùng lại, gồm tỷ lệ và tiêu điểm.
+
+- Phím tắt, <kbd>Esc</kbd>, nhấn bên ngoài hoặc mất tiêu điểm chỉ ẩn cửa sổ. Shell, nội dung nhập, lịch sử và tác vụ hiện tại vẫn chạy.
+- Ghim cửa sổ để giữ hiển thị khi chuyển ứng dụng. Kích thước, độ mờ và trạng thái ghim vẫn được giữ khi ẩn.
+- Chạy `exit` để kết thúc phiên; mở lại sẽ bắt đầu shell mới.
+
+Bật `terminal.preserve-sessions` trước khi mở terminal nhanh mới để tiếp tục chạy sau khi thoát Zshell bình thường. Khi mở lại, cả hai backend đều kết nối lại cùng shell. **Zshell → Thoát và kết thúc mọi phiên** cũng kết thúc phiên đang ẩn. Khởi động lại macOS sẽ kết thúc các phiên.
+
+[Khởi chạy nhanh](/vi/docs/quick-launch), dùng lưu và chạy lệnh, là tính năng riêng.
 
 ## Gợi ý lệnh Vim [#vim-command-hints]
 

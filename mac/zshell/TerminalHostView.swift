@@ -202,7 +202,7 @@ final class TerminalParkingContainerView: NSView {
 /// Focuses the terminal when its pane is the focused one — on first appearance
 /// and when navigation moves focus here. `TerminalHostView` drives the edge;
 /// this only performs the makeFirstResponder.
-private final class TerminalContainerView: NSView {
+final class TerminalContainerView: NSView {
     weak var terminal: NSView?
     private var materialBackground: NSVisualEffectView?
     var focusOnAppear = true {

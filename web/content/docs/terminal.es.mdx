@@ -147,14 +147,19 @@ Zshell incluye JetBrains Mono y símbolos de Nerd Font. Cualquier familia monoes
 
 ## Terminal rápido global [#global-quick-terminal]
 
-Mientras Zshell esté en ejecución, pulsa <kbd>Cmd</kbd>+<kbd>I</kbd> para abrir un terminal independiente sobre otra aplicación; vuelve a pulsarlo para cerrarlo.
-Tiene un shell temporal fuera de las pestañas de proyecto. Ajusta su tamaño, opacidad y atajo en **Ajustes → Terminal → Terminal rápido**.
+Mientras Zshell esté abierto, <kbd>Cmd</kbd>+<kbd>I</kbd> o **Terminal → Terminal rápido** muestra u oculta un terminal independiente. Ajusta tamaño, opacidad y atajo en **Ajustes → Terminal → Terminal rápido**.
 
-- Fija la ventana para mantenerla abierta al cambiar de aplicación.
-- Una ventana sin fijar se cierra cuando pierde el foco o haces clic fuera de ella.
-- Con **Bloquear comandos de Zshell** desactivado, <kbd>Esc</kbd> o el atajo global cierran la ventana y terminan su shell y las tareas en ejecución. Al abrirla de nuevo se inicia una sesión nueva.
+**Comportamiento de la sesión: Reutilizar espacio de trabajo (predeterminado) / Espacio nuevo cada vez.** Reutilizar conserva paneles y tareas. Los espacios nuevos terminan al ocultarse. El modo cambia al volver a mostrar; el espacio reutilizable sigue disponible al regresar. El historial sigue la configuración del shell. Un espacio nuevo empieza siempre con un terminal vacío, sin restaurar la salida, la distribución ni el estado anteriores.
 
-Usa un terminal de proyecto para servicios de larga duración. [Inicio rápido](/es/docs/quick-launch), que guarda y ejecuta comandos, es una función distinta.
+Divide con **Dividir hacia la derecha** / **Dividir hacia abajo**, el menú contextual o <kbd>Cmd</kbd>+<kbd>D</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>. La conservación siguiente se aplica a espacios reutilizables, incluidas proporciones y foco.
+
+- El atajo, <kbd>Esc</kbd>, un clic fuera o la pérdida de foco solo ocultan la ventana. Se conservan el mismo shell, la entrada, el historial y las tareas en ejecución.
+- Fija la ventana para mantenerla visible al cambiar de app. El tamaño, la opacidad y la fijación se conservan al ocultarla.
+- Ejecuta `exit` para terminar la sesión; al volver a abrirla se inicia un shell nuevo.
+
+Activa `terminal.preserve-sessions` antes de abrir un terminal rápido nuevo para mantenerlo tras salir normalmente de Zshell. Al reabrirlo, ambos motores se conectan al mismo shell. **Zshell → Salir y terminar todas las sesiones** también termina las sesiones ocultas. Reiniciar macOS termina las sesiones.
+
+[Inicio rápido](/es/docs/quick-launch), que guarda y ejecuta comandos, es una función distinta.
 
 ## Sugerencias de comandos de Vim [#vim-command-hints]
 

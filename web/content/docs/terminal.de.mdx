@@ -147,13 +147,19 @@ Zshell enthält JetBrains Mono und Nerd-Font-Symbole. Jede installierte dickteng
 
 ## Globales Schnellterminal [#global-quick-terminal]
 
-Solange Zshell läuft, öffnet <kbd>Cmd</kbd>+<kbd>I</kbd> ein unabhängiges Terminal über einer anderen Anwendung. Erneutes Drücken schließt es. Es besitzt eine temporäre Shell außerhalb der Projekt-Tabs. Größe, Deckkraft und Tastenkürzel ändern Sie unter **Einstellungen → Terminal → Schnellterminal**.
+Während Zshell läuft, zeigt oder verbirgt <kbd>Cmd</kbd>+<kbd>I</kbd> oder **Terminal → Schnellterminal** ein unabhängiges Terminal. Größe, Deckkraft und Tastenkürzel ändern Sie unter **Einstellungen → Terminal → Schnellterminal**.
 
-- Heften Sie das Fenster an, damit es beim App-Wechsel offen bleibt.
-- Ohne Anheftung schließt es bei Fokusverlust oder einem Klick außerhalb.
-- Ist **Zshell-Befehle blockieren** ausgeschaltet, schließen <kbd>Esc</kbd> oder das globale Kürzel das Fenster und beenden Shell und laufende Aufgaben. Erneutes Öffnen startet eine frische Sitzung.
+**Sitzungsverhalten: Arbeitsbereich wiederverwenden (Standard) / Jedes Mal neuer Arbeitsbereich.** Wiederverwendung erhält Bereiche und Aufgaben. Neue Arbeitsbereiche enden beim Ausblenden. Der Modus gilt ab dem nächsten Anzeigen; der bisherige Arbeitsbereich bleibt beim Zurückwechseln verfügbar. Der Befehlsverlauf folgt der Shell-Konfiguration. Ein neuer Arbeitsbereich beginnt immer mit einem leeren Terminal, ohne vorherige Ausgabe, Aufteilung oder Sitzungszustand wiederherzustellen.
 
-Verwenden Sie für langfristig laufende Dienste ein Projektterminal. Der [Schnellstart](/de/docs/quick-launch), der Befehle speichert und ausführt, ist eine eigene Funktion.
+Teilen Sie über **Nach rechts teilen** / **Nach unten teilen**, das Kontextmenü oder <kbd>Cmd</kbd>+<kbd>D</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>. Die folgende Erhaltung gilt für wiederverwendete Arbeitsbereiche, einschließlich Teilungsverhältnissen und Fokus.
+
+- Tastenkürzel, <kbd>Esc</kbd>, ein Klick außerhalb oder Fokusverlust blenden nur das Fenster aus. Dieselbe Shell, Eingabe, Verlauf und laufende Aufgaben bleiben erhalten.
+- Heften Sie das Fenster an, damit es beim App-Wechsel sichtbar bleibt. Größe, Deckkraft und Anheftung bleiben auch ausgeblendet erhalten.
+- `exit` beendet die Sitzung; beim nächsten Öffnen startet eine neue Shell.
+
+Aktivieren Sie `terminal.preserve-sessions`, bevor Sie ein neues Schnellterminal öffnen, damit es nach dem normalen Beenden von Zshell weiterläuft. Beim erneuten Öffnen verbinden sich beide Backends mit derselben Shell. **Zshell → Beenden und alle Sitzungen stoppen** beendet auch ausgeblendete Sitzungen. Ein macOS-Neustart beendet die Sitzungen.
+
+Der [Schnellstart](/de/docs/quick-launch), der Befehle speichert und ausführt, ist eine eigene Funktion.
 
 ## Vim-Befehlshinweise [#vim-command-hints]
 

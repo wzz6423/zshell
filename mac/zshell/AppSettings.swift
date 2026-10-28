@@ -368,6 +368,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var quickTerminalMode: QuickTerminalMode {
+        didSet { save() }
+    }
+
     /// Remapped menu shortcuts for the core commands in ``AppCommand``. Only
     /// bindings that differ from the command's default are stored, so the
     /// dictionary doubles as the "not at defaults" signal; menus read the
@@ -517,6 +521,7 @@ final class AppSettings: nonisolated ObservableObject {
         quickTerminalShortcut = QuickTerminalShortcut(
             persistedValue: toml["quick-terminal.shortcut"]?.string
         ) ?? Self.defaultQuickTerminalShortcut
+        quickTerminalMode = QuickTerminalMode(rawValue: toml["quick-terminal.mode"]?.string ?? "") ?? .reuse
         commandShortcuts = Self.parseCommandShortcuts(toml)
         showPaneFocusRing = toml["panes.show-focus-ring"]?.bool ?? true
         let paneFocusRingOpacity = toml["panes.focus-ring-opacity"]?.double
@@ -634,6 +639,7 @@ final class AppSettings: nonisolated ObservableObject {
             && quickTerminalSize == Self.defaultQuickTerminalSize
             && quickTerminalOpacity == Self.defaultQuickTerminalOpacity
             && quickTerminalShortcut == Self.defaultQuickTerminalShortcut
+            && quickTerminalMode == .reuse
             && showPaneFocusRing
             && Self.paneFocusRingOpacityMatchesDefault(paneFocusRingOpacity)
             && aiEnabled
@@ -673,6 +679,7 @@ final class AppSettings: nonisolated ObservableObject {
         quickTerminalSize = Self.defaultQuickTerminalSize
         quickTerminalOpacity = Self.defaultQuickTerminalOpacity
         quickTerminalShortcut = Self.defaultQuickTerminalShortcut
+        quickTerminalMode = .reuse
         resetCommandShortcuts()
         showPaneFocusRing = true
         paneFocusRingOpacity = Self.defaultPaneFocusRingOpacity
@@ -821,6 +828,7 @@ final class AppSettings: nonisolated ObservableObject {
         quickTerminalShortcut = QuickTerminalShortcut(
             persistedValue: toml["quick-terminal.shortcut"]?.string
         ) ?? Self.defaultQuickTerminalShortcut
+        quickTerminalMode = QuickTerminalMode(rawValue: toml["quick-terminal.mode"]?.string ?? "") ?? .reuse
         if let enabled = toml["ai.enabled"]?.bool, enabled != aiEnabled {
             do {
                 try setAIEnabled(enabled)
@@ -1001,6 +1009,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if quickTerminalShortcut != Self.defaultQuickTerminalShortcut {
             lines.append("quick-terminal.shortcut = \(TOML.quote(quickTerminalShortcut.persistedValue))")
+        }
+        if quickTerminalMode != .reuse {
+            lines.append("quick-terminal.mode = \(TOML.quote(quickTerminalMode.rawValue))")
         }
         for command in AppCommand.allCases.sorted(by: { $0.rawValue < $1.rawValue }) {
             if let shortcut = commandShortcuts[command] {

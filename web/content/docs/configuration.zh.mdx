@@ -149,7 +149,9 @@ regular/bold 区分及后备字体字重。
 有界的屏幕历史；macOS 重启后不会继续运行。原 PTY 已结束时，窗格会打开新的 Shell。
 
 关闭窗格、项目或窗口仍会结束其中的任务。选择 **Zshell → 退出并结束所有会话**，或在
-退出前关闭此选项，可以结束所有后台会话。快速终端不保留后台会话。
+退出前关闭此选项，可以结束所有后台会话，包括隐藏的快捷终端。复用模式下隐藏快捷终端会
+保留 Shell；此选项控制之后新开的复用窗格是否还能在退出 Zshell 后继续运行。
+新建模式在隐藏时结束本次工作区。
 
 保留 Shell 中的 CLI 会在 Zshell 重开后绑定到原终端；GUI 关闭期间不可用。稳定 CLI
 启动器在重连时更新，删除开发构建后，需要另一个 Zshell 构建重开会话才能再次使用 CLI。
@@ -240,6 +242,7 @@ regular/bold 区分及后备字体字重。
 | `terminal.background-blur` | `false` | 布尔值 | 半透明背景模糊 |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | 新建 zsh 终端中，运行至少该秒数的命令结束后通知；0 为关闭 |
 | `terminal.notify-on-error` | `false` | 布尔值 | 新建 zsh 终端中，命令失败时通知 |
+| `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | 复用工作区 / 每次新建工作区 |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | 快捷终端的屏幕占比 |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | 快捷终端背景不透明度 |
 | `quick-terminal.shortcut` | `Cmd+I` | 设置中录制 | 在设置中录制全局快捷键，自动保存按键编码 |
