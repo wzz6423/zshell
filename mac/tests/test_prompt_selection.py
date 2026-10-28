@@ -8,6 +8,7 @@ from pathlib import Path
 import pty
 import select
 import shlex
+import shutil
 import signal
 import subprocess
 import tempfile
@@ -58,10 +59,13 @@ class PromptSelectionTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="zshell-prompt-'")
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        self.launch = self.root / "launch"
+        self.launch.mkdir(mode=0o700)
         self.original = self.root / "user"
         self.original.mkdir()
         self.buffer_file = self.root / "buffer"
-        self.state_file = self.root / "prompt-selection.pid"
+        self.state_file = self.launch / "prompt-selection.pid"
+        self.queue_state_file = self.launch / "prompt-queue.pid"
         self.config = (
             "bindkey -e\nPROMPT='READY> '\nRPROMPT=''\n"
             "bindkey '^[[3~' delete-char\n"
@@ -77,7 +81,7 @@ class PromptSelectionTests(unittest.TestCase):
         )
         (self.original / ".zshrc").write_text(self.config)
         integration = subprocess.check_output(
-            [str(self.helper), "generate", str(self.root)], text=True).strip()
+            [str(self.helper), "generate", str(self.launch)], text=True).strip()
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
             os.environ.update(ZDOTDIR=integration, ZSHELL_ORIGINAL_ZDOTDIR=str(self.original),
@@ -104,26 +108,27 @@ class PromptSelectionTests(unittest.TestCase):
                 output += os.read(self.fd, 65536)
                 if b"READY> " in output:
                     # Let ZLE's line-init finish after the visible prompt.
-                    self.drain()
-                    return
+                    return output + self.drain()
         self.fail(f"No prompt: {output!r}")
 
     def drain(self):
+        output = b""
         while select.select([self.fd], [], [], .05)[0]:
-            os.read(self.fd, 65536)
+            output += os.read(self.fd, 65536)
+        return output
 
     def command(self, command):
         os.write(self.fd, command.encode() + b"\r")
-        self.wait_prompt()
+        return self.wait_prompt()
 
     def ready(self, pid=None):
         return subprocess.check_output(
-            [str(self.helper), "ready", str(self.root), str(pid or self.pid)],
+            [str(self.helper), "ready", str(self.launch), str(pid or self.pid)],
             text=True).strip() == "true"
 
     def queue_ready(self):
         return subprocess.check_output(
-            [str(self.helper), "queue", str(self.root), str(self.pid)],
+            [str(self.helper), "queue", str(self.launch), str(self.pid)],
             text=True).strip() == "true"
 
     def buffer(self, keys):
@@ -154,6 +159,101 @@ class PromptSelectionTests(unittest.TestCase):
         os.write(self.fd, b"answer\r")
         self.wait_prompt()
         self.assertTrue(self.queue_ready())
+
+    def test_deleted_launch_directory_recovers_on_command(self):
+        self.command("umask 022")
+        shutil.rmtree(self.launch)
+        self.assertFalse(self.ready())
+        output = self.command("umask")
+        self.assertNotIn(b"no such file or directory", output)
+        self.assertIn(b"022", output)
+        self.assertTrue(self.ready())
+        self.assertTrue(self.queue_ready())
+        self.assertEqual(self.launch.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(self.buffer(b"abcd\x1f\x1b[D\x1b[D\x1eX"), "abX")
+
+    def test_deleted_launch_directory_recovers_while_editing_a_draft(self):
+        self.assertEqual(self.buffer(b"abcd"), "abcd")
+        shutil.rmtree(self.launch)
+        os.write(self.fd, b"e\x14")
+        output = self.drain()
+        self.assertNotIn(b"no such file or directory", output)
+        self.assertEqual(self.buffer_file.read_text(), "abcde")
+        self.assertTrue(self.ready())
+        self.assertFalse(self.queue_ready())
+        self.assertEqual(self.buffer(b"\x15"), "")
+        self.assertTrue(self.queue_ready())
+
+    def test_deleted_readiness_files_recover_on_redraw(self):
+        for files in ((self.state_file,), (self.queue_state_file,),
+                      (self.state_file, self.queue_state_file)):
+            with self.subTest(files=[file.name for file in files]):
+                for file in files:
+                    file.unlink()
+                os.write(self.fd, b"\x0c")
+                output = self.drain()
+                self.assertNotIn(b"no such file or directory", output)
+                self.assertTrue(self.ready())
+                self.assertTrue(self.queue_ready())
+
+    def test_deleted_readiness_files_preserve_a_draft_on_redraw(self):
+        self.assertEqual(self.buffer(b"abcd"), "abcd")
+        for files in ((self.state_file,), (self.queue_state_file,),
+                      (self.state_file, self.queue_state_file)):
+            with self.subTest(files=[file.name for file in files]):
+                for file in files:
+                    file.unlink()
+                os.write(self.fd, b"\x0c")
+                output = self.drain()
+                self.assertNotIn(b"no such file or directory", output)
+                self.assertEqual(self.buffer(b""), "abcd")
+                self.assertTrue(self.ready())
+                self.assertFalse(self.queue_ready())
+        self.assertEqual(self.buffer(b"\x15"), "")
+        self.assertTrue(self.queue_ready())
+
+    def test_deleted_launch_directory_stays_unready_during_builtin_read(self):
+        shutil.rmtree(self.launch)
+        os.write(self.fd, b"read -r answer\r")
+        output = self.drain()
+        self.assertNotIn(b"no such file or directory", output)
+        self.assertFalse(self.ready())
+        self.assertFalse(self.queue_ready())
+        self.assertEqual(self.state_file.read_text(), "")
+        self.assertEqual(self.queue_state_file.read_text(), "")
+        os.write(self.fd, b"answer\r")
+        output = self.wait_prompt()
+        self.assertNotIn(b"no such file or directory", output)
+        self.assertTrue(self.ready())
+        self.assertTrue(self.queue_ready())
+
+    def test_deleted_launch_directory_stays_unready_in_nested_shell(self):
+        shutil.rmtree(self.launch)
+        output = self.command("zsh -di")
+        self.assertNotIn(b"no such file or directory", output)
+        self.assertFalse(self.ready())
+        self.assertFalse(self.queue_ready())
+        output = self.command("exit")
+        self.assertNotIn(b"no such file or directory", output)
+        self.assertTrue(self.ready())
+        self.assertTrue(self.queue_ready())
+
+    def test_unavailable_launch_directory_fails_closed_and_retries(self):
+        self.assertEqual(self.buffer(b"abcd"), "abcd")
+        shutil.rmtree(self.launch)
+        self.launch.write_text("blocked")
+        os.write(self.fd, b"e\x14")
+        output = self.drain()
+        self.assertNotIn(b"not a directory", output)
+        self.assertFalse(self.ready())
+        self.assertFalse(self.queue_ready())
+        self.assertEqual(self.buffer_file.read_text(), "abcde")
+        self.launch.unlink()
+        os.write(self.fd, b"f\x14")
+        self.drain()
+        self.assertEqual(self.buffer_file.read_text(), "abcdef")
+        self.assertTrue(self.ready())
+        self.assertFalse(self.queue_ready())
 
     def test_selection_replace_and_delete(self):
         # Place the mark at end, select the last two characters, then replace.
