@@ -67,6 +67,22 @@ Bảng Git liệt kê mọi worktree của kho, cùng nhánh và đường dẫn
 
 Worktree ở trạng thái tách HEAD hiện **Detached HEAD** thay tên nhánh. Kho bare vẫn được liệt kê đầy đủ nhưng không có thư mục làm việc nên không mở được bằng tab terminal.
 
+### Phiên worktree [#worktree-sessions]
+
+Trong terminal của kho Git cục bộ, chọn **Terminal → Phiên mới trong worktree…** hoặc nhấn <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>. Menu ngữ cảnh của tab và nút **+** cũng có thao tác này. Chọn nhánh cục bộ mới hoặc hiện có và thư mục chưa tồn tại. Nhánh mới bắt đầu từ nhánh mặc định của kho; có thể chọn rõ **HEAD hiện tại**. Nhánh hiện có giữ nguyên commit hiện tại. Thư mục đề xuất nằm cạnh bản checkout nguồn.
+
+Các ô được chia kế thừa liên kết worktree của phiên, và bố cục đã lưu cũng khôi phục liên kết này. Khi đóng phiên liên kết, chọn **Giữ worktree**, **Xóa worktree** hoặc **Hủy**. Chỉ được xóa khi không có tệp đã thay đổi, chưa được theo dõi hoặc bị bỏ qua, commit ngoài mốc đã ghi, khóa hay phiên đang mở khác dùng bản checkout. Nhánh Git luôn được giữ lại.
+
+Terminal bên ngoài có thể tạo và đóng phiên bằng `zshell +session`. Dùng ID do `projects` trả về với `--project`; trong Zshell, dự án của terminal gọi lệnh được dùng tự động. Phiên được tạo ở nền trừ khi thêm `--focus`. `--base HEAD` hoặc `--base REF` chọn mốc khác và `--worktree NEW_DIR` đặt thư mục. `--connection FILE` chọn phiên bản đang chạy khi cần. Đóng giữ lại worktree nếu không có `--remove-worktree` rõ ràng; `check` báo việc dọn dẹp hiện có an toàn không.
+
+```sh
+zshell +session projects
+zshell +session new --project PROJECT_ID --cwd /path/to/repo --branch feat/task
+zshell +session list --project PROJECT_ID
+zshell +session check --project PROJECT_ID --session SESSION_ID
+zshell +session close --project PROJECT_ID --session SESSION_ID --remove-worktree
+```
+
 ## Kho từ xa [#remotes]
 
 Menu **⋯** có mọi thao tác giao tiếp kho từ xa:

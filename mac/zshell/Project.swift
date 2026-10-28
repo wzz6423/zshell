@@ -314,13 +314,19 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         directory: String? = nil,
         commandArguments: [String]? = nil,
         environmentPath: String? = nil,
-        tabTitle: String? = nil
-    ) -> TerminalSession {
+        tabTitle: String? = nil,
+        worktree: SessionWorktree? = nil
+    ) -> TerminalSession? {
+        guard !TerminalManager.isRemovingWorktree(containing: sessionDirectory(directory)) else {
+            NSSound.beep()
+            return nil
+        }
         let session = makeSession(
             directory: directory,
             commandArguments: commandArguments,
             environmentPath: environmentPath,
-            launchSettings: launchSettings
+            launchSettings: launchSettings,
+            worktree: worktree
         )
         let tab = makeTab(content: .session(session))
         // Only a reopened session carries a title — the user-assigned name
@@ -343,7 +349,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         agentResume: AgentConversationIdentity? = nil,
         isRestoredSession: Bool = false,
         restoredSessionID: UUID? = nil,
-        remoteSessionID: UUID? = nil
+        remoteSessionID: UUID? = nil,
+        worktree: SessionWorktree? = nil
     ) -> TerminalSession {
         let initialDirectory: String?
         let launchArguments: [String]?
@@ -417,6 +424,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             launchSettings: launchSettings ?? self.launchSettings,
             additionalEnvironment: additionalEnvironment,
             agentResume: isRemote ? nil : agentResume,
+            worktree: isRemote ? nil : worktree ?? selectedSession?.worktree.flatMap {
+                SessionWorktreeService.contains(initialDirectory ?? "", in: $0.path) ? $0 : nil
+            },
             isRestoredSession: isRestoredSession,
             allowsPersistence: sharedHost == nil,
             remoteConnection: remoteConnection
@@ -454,6 +464,11 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         }
     }
 
+    private func sessionDirectory(_ directory: String? = nil) -> String {
+        directory ?? customDirectory ?? groupSessionDirectory ?? selectedSession?.currentDirectoryPath
+            ?? FileManager.default.homeDirectoryForCurrentUser.path
+    }
+
     // MARK: - Splits
 
     func splitRight() { split(toward: .right) }
@@ -465,7 +480,10 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// No-op while a diff is focused.
     func split(toward edge: PaneDropEdge) {
         guard let tab = selectedTab, tab.canSplit else { return }
+        let directory = selectedSession?.currentDirectoryPath ?? sessionDirectory()
+        guard !TerminalManager.isRemovingWorktree(containing: directory) else { NSSound.beep(); return }
         let session = makeSession(
+            directory: directory,
             launchSettings: launchSettings.applying(tab.launchSettingsOverride)
         )
         tab.split(Pane(content: .session(session)), toward: edge)
@@ -489,6 +507,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         case .session(let session): session.currentDirectoryPath
         default: tab.sessions.first?.currentDirectoryPath
             ?? tab.contextSession?.currentDirectoryPath
+        }
+        guard !TerminalManager.isRemovingWorktree(containing: directory ?? contextDirectory ?? sessionDirectory()) else {
+            return nil
         }
         let session = makeSession(
             directory: directory ?? contextDirectory,
@@ -785,15 +806,21 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// discarding a dirty file, then removes its pane (dropping the tab when
     /// that was its last pane). `terminate` is false when a shell has already
     /// exited on its own.
-    func closeContent(_ content: PaneContent, terminate: Bool = true) {
+    func closeContent(_ content: PaneContent, terminate: Bool = true, confirmWorktree: Bool = true, recordClosedSession: Bool = true) {
         switch content {
         case .session(let session):
+            if terminate, confirmWorktree, session.worktree != nil, let manager {
+                Task { @MainActor in
+                    _ = await manager.requestCloseWorktreeSession(session, in: self)
+                }
+                return
+            }
             if terminate {
                 // Capture while the shell is still alive. Only closes the
                 // user initiated reach the reopen stack; a shell that exits
                 // on its own (`terminate: false`) is not an action the
                 // command is meant to undo.
-                onSessionClosed?(closedSessionRecord(for: session))
+                if recordClosedSession { onSessionClosed?(closedSessionRecord(for: session)) }
                 session.terminate()
             }
             removePaneWithContent(content.id)
@@ -875,7 +902,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             customTitle: tabs.first { $0.paneID(forContent: session.id) != nil }?.customName,
             workingDirectory: session.currentDirectoryPath,
             closedAt: Date(),
-            tabGroupID: tabs.first { $0.paneID(forContent: session.id) != nil }?.tabGroupID
+            tabGroupID: tabs.first { $0.paneID(forContent: session.id) != nil }?.tabGroupID,
+            worktree: session.worktree
         )
     }
 
@@ -930,7 +958,11 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         let dirtyContents = targets.filter(\.isDirty)
         let cleanContents = targets.filter { !$0.isDirty }
 
-        guard !dirtyContents.isEmpty else {
+        let hasWorktrees = targets.contains {
+            if case .session(let session) = $0 { return session.worktree != nil }
+            return false
+        }
+        guard !dirtyContents.isEmpty || hasWorktrees else {
             cleanContents.forEach { closeContent($0) }
             return
         }
@@ -942,7 +974,13 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 // unsaved panes not yet prompted, stay open.
                 if await confirmCloseUnsaved(content, in: window) { return }
             }
-            cleanContents.forEach { closeContent($0) }
+            for content in cleanContents {
+                if case .session(let session) = content, session.worktree != nil, let manager {
+                    if !(await manager.requestCloseWorktreeSession(session, in: self)) { return }
+                } else {
+                    closeContent(content, confirmWorktree: false)
+                }
+            }
         }
     }
 
@@ -1022,6 +1060,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     @discardableResult
     func newSession(inTabGroup groupID: UUID) -> TerminalSession? {
         guard tabGroup(id: groupID) != nil else { return nil }
+        guard !TerminalManager.isRemovingWorktree(containing: sessionDirectory()) else { NSSound.beep(); return nil }
         let session = makeSession(launchSettings: launchSettings)
         let tab = makeTab(content: .session(session))
         insertNextToSelected(tab)
@@ -1342,7 +1381,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 launchSettings: launchSettings,
                 agentResume: pane.agentResume,
                 restoredSessionID: pane.terminalID,
-                remoteSessionID: pane.remoteSessionID
+                remoteSessionID: pane.remoteSessionID,
+                worktree: pane.worktree
             )))
         case .split(let axis, let fraction, let first, let second):
             return .split(PaneSplit(
@@ -1368,7 +1408,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         launchSettings: TerminalLaunchSettings,
         agentResume: AgentConversationIdentity? = nil,
         restoredSessionID: UUID? = nil,
-        remoteSessionID: UUID? = nil
+        remoteSessionID: UUID? = nil,
+        worktree: SessionWorktree? = nil
     ) -> PaneContent {
         switch snap {
         case .session(let workingDirectory):
@@ -1379,7 +1420,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 agentResume: agentResume,
                 isRestoredSession: true,
                 restoredSessionID: restoredSessionID,
-                remoteSessionID: remoteSessionID
+                remoteSessionID: remoteSessionID,
+                worktree: worktree
             ))
         case .file(let path, let editorState):
             let file = FileTab(path: path)

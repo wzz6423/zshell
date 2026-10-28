@@ -45,6 +45,7 @@ struct SessionSnapshot: Codable {
             /// Stable identity of a terminal, absent in pre-persistence snapshots.
             var terminalID: UUID?
             var remoteSessionID: UUID?
+            var worktree: SessionWorktree?
 
             init(
                 content: PaneContentSnapshot,
@@ -52,7 +53,8 @@ struct SessionSnapshot: Codable {
                 historyKey: String? = nil,
                 agentResume: AgentConversationIdentity? = nil,
                 terminalID: UUID? = nil,
-                remoteSessionID: UUID? = nil
+                remoteSessionID: UUID? = nil,
+                worktree: SessionWorktree? = nil
             ) {
                 self.content = content
                 self.weight = weight
@@ -60,10 +62,11 @@ struct SessionSnapshot: Codable {
                 self.agentResume = agentResume
                 self.terminalID = terminalID
                 self.remoteSessionID = remoteSessionID
+                self.worktree = worktree
             }
 
             private enum CodingKeys: String, CodingKey {
-                case content, weight, historyKey, agentResume, terminalID, remoteSessionID
+                case content, weight, historyKey, agentResume, terminalID, remoteSessionID, worktree
             }
 
             init(from decoder: any Decoder) throws {
@@ -73,6 +76,7 @@ struct SessionSnapshot: Codable {
                 historyKey = try container.decodeIfPresent(String.self, forKey: .historyKey)
                 terminalID = try container.decodeIfPresent(UUID.self, forKey: .terminalID)
                 remoteSessionID = try container.decodeIfPresent(UUID.self, forKey: .remoteSessionID)
+                worktree = try? container.decodeIfPresent(SessionWorktree.self, forKey: .worktree)
                 // Unknown providers or a corrupt ID must not discard the layout.
                 agentResume = try? container.decodeIfPresent(AgentConversationIdentity.self, forKey: .agentResume)
             }

@@ -67,6 +67,22 @@ Le panneau Git répertorie tous les arbres de travail du dépôt avec leur branc
 
 Un arbre avec une HEAD détachée affiche **HEAD détachée** à la place d'un nom de branche. Les dépôts nus figurent aussi dans la liste, mais ils n'ont pas de répertoire de travail et ne peuvent pas être ouverts dans un onglet de terminal.
 
+### Sessions de worktree [#worktree-sessions]
+
+Dans un terminal d’un dépôt Git local, choisissez **Terminal → Nouvelle session dans un worktree…** ou appuyez sur <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>. Les menus contextuels de l’onglet et du bouton **+** proposent aussi cette action. Choisissez une branche locale nouvelle ou existante et un dossier qui n’existe pas encore. Une nouvelle branche part de la branche par défaut du dépôt ; **HEAD actuel** reste un choix explicite. Une branche existante conserve son commit actuel. Le dossier proposé se trouve à côté du checkout source.
+
+Les volets divisés héritent de l’association au worktree, que la disposition enregistrée restaure également. Fermer une session associée propose **Conserver le worktree**, **Supprimer le worktree** ou **Annuler**. La suppression exige l’absence de fichiers modifiés, non suivis ou ignorés, de commits non intégrés à la référence enregistrée, de verrou et d’autres sessions ouvertes utilisant ce checkout. La branche Git est toujours conservée.
+
+Un terminal externe peut créer et fermer des sessions avec `zshell +session`. Passez à `--project` un ID renvoyé par `projects` ; dans Zshell, le projet du terminal appelant est utilisé automatiquement. La création se fait en arrière-plan, sauf avec `--focus`. `--base HEAD` ou `--base REF` choisit une autre référence, et `--worktree NEW_DIR` définit le dossier. `--connection FILE` sélectionne une instance en cours si nécessaire. La fermeture conserve le worktree sans `--remove-worktree` explicite ; `check` indique si le nettoyage est actuellement sûr.
+
+```sh
+zshell +session projects
+zshell +session new --project PROJECT_ID --cwd /path/to/repo --branch feat/task
+zshell +session list --project PROJECT_ID
+zshell +session check --project PROJECT_ID --session SESSION_ID
+zshell +session close --project PROJECT_ID --session SESSION_ID --remove-worktree
+```
+
 ## Dépôts distants [#remotes]
 
 Le menu **⋯** regroupe les opérations avec un dépôt distant :

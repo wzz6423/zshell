@@ -49,6 +49,7 @@ struct ClosedSessionRecord: Equatable {
     /// When the session was closed.
     let closedAt: Date
     var tabGroupID: UUID? = nil
+    var worktree: SessionWorktree? = nil
 }
 
 /// Owns the list of projects and the current selection. Each project holds
@@ -517,14 +518,14 @@ final class TerminalManager: nonisolated ObservableObject {
 
     /// Creates a project rooted at `directory`, with its first terminal
     /// launched there. Used by Zshell's Finder service.
-    private func newProject(directory: String) {
+    private func newProject(directory: String, worktree: SessionWorktree? = nil) {
         let project = makeProject(createInitialSession: false)
         project.customName = URL(
             fileURLWithPath: directory,
             isDirectory: true
         ).lastPathComponent
         project.customDirectory = directory
-        project.newSession(directory: directory)
+        project.newSession(directory: directory, worktree: worktree)
         insert(project)
     }
 
@@ -723,6 +724,16 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     func close(_ project: Project) {
+        if project.sessions.contains(where: { $0.worktree != nil }) {
+            Task { @MainActor in
+                for session in project.sessions where session.worktree != nil {
+                    if !(await requestCloseWorktreeSession(session, in: project)) { return }
+                }
+                project.terminateAll()
+                remove(project)
+            }
+            return
+        }
         project.terminateAll()
         remove(project)
     }
@@ -883,13 +894,17 @@ final class TerminalManager: nonisolated ObservableObject {
     /// command walks back through the close history.
     func reopenClosedSession() {
         guard let record = closedSessionRecords.popLast() else { return }
+        let worktree = record.worktree.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
+        let directory = record.worktree != nil && worktree == nil
+            ? record.worktree!.repositoryRoot : record.workingDirectory
         if let project = record.projectID.flatMap({ projectID in
             projects.first { $0.id == projectID }
         }) ?? selectedProject {
             selectedProjectID = project.id
             project.newSession(
-                directory: record.workingDirectory,
-                tabTitle: record.customTitle
+                directory: directory,
+                tabTitle: record.customTitle,
+                worktree: worktree
             )
             if let tab = project.selectedTab {
                 project.moveTab(tab.id, toGroup: project.tabGroup(id: record.tabGroupID)?.id)
@@ -898,7 +913,7 @@ final class TerminalManager: nonisolated ObservableObject {
             // No project left in this window: start one anchored at the
             // recorded directory. The tab title is only carried when a
             // project already exists to open the tab in.
-            newSession(directory: record.workingDirectory)
+            newProject(directory: directory, worktree: worktree)
         }
     }
 
@@ -1789,10 +1804,12 @@ final class TerminalManager: nonisolated ObservableObject {
             var agentResume: AgentConversationIdentity?
             var terminalID: UUID?
             var remoteSessionID: UUID?
+            var worktree: SessionWorktree?
             if case .session(let session) = pane.content {
                 agentResume = session.conversationIdentityForPersistence
                 terminalID = session.id
                 remoteSessionID = session.remoteConnection?.sessionID
+                worktree = session.worktree
             }
             if case .session(let session) = pane.content,
                let history = session.serializedHistory(
@@ -1808,7 +1825,8 @@ final class TerminalManager: nonisolated ObservableObject {
                 historyKey: historyKey,
                 agentResume: agentResume,
                 terminalID: terminalID,
-                remoteSessionID: remoteSessionID
+                remoteSessionID: remoteSessionID,
+                worktree: worktree
             ))
         case .split(let split):
             return .split(

@@ -67,6 +67,22 @@ Het Git-paneel toont alle worktrees van de repository met hun branch en checkout
 
 Worktrees met een losgekoppelde HEAD tonen **Detached HEAD** in plaats van een branchnaam. Bare repositories staan voor de volledigheid in de lijst, maar hebben geen werkmap en kunnen niet in een terminaltabblad worden geopend.
 
+### Worktree-sessies [#worktree-sessions]
+
+Kies in een terminal van een lokale Git-repository **Terminal → Nieuwe sessie in een worktree…** of druk op <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>. De contextmenu’s van de tab en de knop **+** bieden dezelfde actie. Kies een nieuwe of bestaande lokale tak en een map die nog niet bestaat. Nieuwe takken beginnen bij de standaardtak van de repository; **Huidige HEAD** is een expliciete keuze. Bestaande takken behouden hun huidige commit. De voorgestelde map staat naast de oorspronkelijke checkout.
+
+Gesplitste deelvensters erven de worktree-koppeling, die ook door de opgeslagen indeling wordt hersteld. Bij het sluiten van een gekoppelde sessie kies je **Worktree behouden**, **Worktree verwijderen** of **Annuleren**. Verwijderen kan alleen zonder gewijzigde, niet gevolgde of genegeerde bestanden, commits buiten de vastgelegde basisreferentie, vergrendeling of andere geopende sessies die de checkout gebruiken. De Git-tak blijft altijd behouden.
+
+Een externe terminal kan sessies maken en sluiten met `zshell +session`. Gebruik voor `--project` een ID van `projects`; binnen Zshell wordt automatisch het project van de aanroepende terminal gebruikt. Sessies worden op de achtergrond gemaakt, tenzij je `--focus` toevoegt. `--base HEAD` of `--base REF` kiest een andere basisreferentie en `--worktree NEW_DIR` stelt de map in. Met `--connection FILE` kies je zo nodig een actieve instantie. Sluiten behoudt de worktree zonder expliciet `--remove-worktree`; `check` geeft aan of veilig opruimen mogelijk is.
+
+```sh
+zshell +session projects
+zshell +session new --project PROJECT_ID --cwd /path/to/repo --branch feat/task
+zshell +session list --project PROJECT_ID
+zshell +session check --project PROJECT_ID --session SESSION_ID
+zshell +session close --project PROJECT_ID --session SESSION_ID --remove-worktree
+```
+
 ## Remotes [#remotes]
 
 Het menu **⋯** bevat alle acties die met een remote communiceren:
