@@ -32,6 +32,14 @@ Görüntü ve bildirim destekleyen CLI’lar yetenek işareti olarak kullandığ
 Zshell `~/.config/ghostty` veya Alacritty yapılandırmasını okumaz. Yazı tipleri, renkler, giriş davranışı ve arka uç Zshell’in kendi [ayarlarında](/tr/docs/configuration) yapılandırılır.
 </Callout>
 
+## Sistem izinleri [#system-permissions]
+
+Zshell terminalindeki yerel programlar kameraya veya mikrofona erişim ya da Apple Events ile başka bir uygulamayı denetleme izni isteyebilir.
+macOS bu istekleri Zshell ile ilişkilendirir; yalnızca güvendiğiniz programlara izin verin. Otomasyon izni her hedef uygulama için ayrı verilir.
+
+Erişimi **Sistem Ayarları → Gizlilik ve Güvenlik → Kamera, Mikrofon veya Otomasyon** bölümünden yönetin.
+İsteği reddetmek ilgili özelliği engeller. Zshell bu izinleri otomatik olarak vermez.
+
 ## Arama [#search]
 
 | İşlem | Kısayol |

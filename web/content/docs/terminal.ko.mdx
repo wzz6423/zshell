@@ -32,6 +32,14 @@ description: Zshell 터미널 백엔드, 셸 환경, 링크 처리, 알림과 �
 Zshell은 `~/.config/ghostty`나 Alacritty 설정을 읽지 않습니다. 글꼴, 색상, 입력 동작과 백엔드는 Zshell 자체 [설정](/ko/docs/configuration)에서 구성합니다.
 </Callout>
 
+## 시스템 권한 [#system-permissions]
+
+Zshell 터미널의 로컬 프로그램은 카메라나 마이크 접근 또는 Apple Events를 통한 다른 앱 제어를 요청할 수 있습니다.
+macOS는 이 요청을 Zshell의 요청으로 처리합니다. 신뢰하는 프로그램만 허용하세요. 자동화 권한은 제어할 대상 앱마다 따로 허용해야 합니다.
+
+**시스템 설정 → 개인정보 보호 및 보안 → 카메라, 마이크 또는 자동화**에서 접근 권한을 관리하세요.
+요청을 거부하면 해당 기능을 사용할 수 없습니다. Zshell은 이 권한을 자동으로 부여하지 않습니다.
+
 ## 검색 [#search]
 
 | 작업 | 단축키 |

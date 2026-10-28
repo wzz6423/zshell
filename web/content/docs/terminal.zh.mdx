@@ -38,6 +38,16 @@ Zshell 不读取 `~/.config/ghostty`，也不读取 Alacritty 配置。字体、
 自己的[设置](/docs/configuration)里配置。
 </Callout>
 
+<span id="系统权限" data-canonical-heading="system-permissions" />
+
+## 系统权限 [#system-permissions]
+
+Zshell 终端中的本地程序可以请求使用摄像头、麦克风，或通过 Apple Events 控制其他应用。
+macOS 会将这些请求归属于 Zshell；请只允许你信任的程序。自动化权限按被控制的目标应用分别授权。
+
+你可以在 **系统设置 → 隐私与安全性 → 摄像头、麦克风或自动化** 中管理权限。
+拒绝请求会阻止对应功能，Zshell 不会自动授予这些权限。
+
 <span id="搜索" data-canonical-heading="search" />
 
 ## 搜索 [#search]
