@@ -96,7 +96,7 @@ Khi bật **Tiếp tục cuộc trò chuyện của tác nhân**, ngăn không c
 
 Zshell cài hook SessionStart cho Claude Code và Codex, phần mở rộng Pi và plugin TUI OpenCode vào cấu hình nhà cung cấp hiện có. Các hook, plugin, cài đặt và chú thích JSONC khác được giữ lại. Khi nhà cung cấp yêu cầu, bật hook trong xác nhận tin cậy của Claude Code và duyệt hook Codex mới trong `/hooks`. Khởi động lại tác nhân đã chạy trước khi cài đặt.
 
-Chỉ tiếp tục cuộc trò chuyện gốc cục bộ được các tích hợp này báo cáo. Codex cần CLI cục bộ nhúng (`--no-daemon`); daemon dùng chung và kết nối từ xa không được hỗ trợ. OpenCode cần API plugin TUI; phiên bản cũ, phiên máy chủ không giao diện và `opencode attach` không được hỗ trợ. Tác nhân con không thể thay cuộc trò chuyện của ngăn cha. Pi cần tệp phiên đã lưu.
+Chỉ tiếp tục cuộc trò chuyện gốc đã xác minh được các tích hợp này báo cáo. Phiên app-server Codex dùng chung được hỗ trợ khi ID cuộc trò chuyện đã xác minh khớp với ngăn; kết quả không rõ ràng sẽ không được liên kết. Với cuộc trò chuyện trên máy từ xa, xem [phiên từ xa dùng chung](/vi/docs/remote-sessions#agents). OpenCode cần API plugin TUI; phiên bản cũ, phiên máy chủ không giao diện và `opencode attach` không được hỗ trợ. Tác nhân con không thể thay cuộc trò chuyện của ngăn cha. Pi cần tệp phiên đã lưu.
 
 Thiếu danh tính được xác minh, thư mục gốc hoặc tệp Pi sẽ mở shell mới. Không tìm thấy CLI cũng quay về shell. Zshell không chạy lại lệnh khởi động tùy ý hoặc chọn cuộc trò chuyện gần nhất. CLI hiển thị lỗi nhà cung cấp, như cuộc trò chuyện đã bị xóa.
 

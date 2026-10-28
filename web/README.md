@@ -147,10 +147,11 @@ page needs no config change.
 - Landing pages read the newest release from the Sparkle appcast through
   [`src/lib/release.ts`](src/lib/release.ts), while they are prerendered — the
   appcast is on another origin and sends no CORS headers, so a browser could not
-  read it anyway. A release therefore only reaches the site once it is rebuilt,
-  which `mac/scripts/release.ts` triggers for us (see
-  [RELEASING.md](../mac/RELEASING.md)). Keep the fallback release in that file
-  current: it is what a build advertises when the appcast is unreachable.
+  read it anyway. A release therefore only reaches the site once it is rebuilt.
+  After verifying both release hosts and their feeds, merge the website release PR
+  to trigger the Pages build (see [RELEASING.md](../mac/RELEASING.md)). Keep the
+  fallback release in `src/lib/release.ts` current: it is what a build advertises
+  when the appcast is unreachable.
 - [`public/zshell-icon.png`](public/zshell-icon.png) is the shared Logo,
   favicon, and Apple touch icon. It is used by the root route and the site,
   docs, and landing-page navigation — through `withBase()`, like every other

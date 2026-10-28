@@ -195,7 +195,7 @@ With **Resume agent conversations** enabled, reopening a terminal pane resumes i
 
 Zshell installs SessionStart hooks for Claude Code and Codex, a Pi extension, and an OpenCode TUI plugin in existing provider configuration. Your other hooks, plugins, settings, and JSONC comments are preserved. Enable the hooks in Claude Code’s trust prompt and approve new Codex hooks in `/hooks` when the provider asks. Restart an agent that was running before installation.
 
-Only local root conversations reported by these integrations can be resumed. Codex requires an embedded local CLI (`--no-daemon`); shared daemons and remote connections are unsupported. OpenCode requires the TUI plugin API; older versions, headless server sessions, and `opencode attach` are unsupported. A child agent cannot replace the parent pane’s conversation. Pi requires its saved session file.
+Only verified root conversations reported by these integrations can be resumed. Shared Codex app-server sessions are supported when a verified conversation ID matches the pane; ambiguous matches remain unbound. See [shared remote sessions](/en/docs/remote-sessions#agents) for conversations on remote hosts. OpenCode requires the TUI plugin API; older versions, headless server sessions, and `opencode attach` are unsupported. A child agent cannot replace the parent pane’s conversation. Pi requires its saved session file.
 
 No verified identity, a missing working directory, or an unavailable Pi file opens a new shell. An unavailable CLI also returns to a shell. Zshell does not replay an arbitrary startup command or pick a recent conversation. Provider errors such as a deleted conversation are displayed by the CLI.
 

@@ -104,7 +104,7 @@ Dengan **Lanjutkan percakapan agen**, panel yang PTY asalnya tidak tersedia mela
 
 Zshell memasang hook SessionStart untuk Claude Code dan Codex, ekstensi Pi, serta plugin TUI OpenCode pada konfigurasi penyedia yang sudah ada. Hook, plugin, pengaturan, dan komentar JSONC lain tetap tersimpan. Jika diminta penyedia, aktifkan hook dalam konfirmasi kepercayaan Claude Code dan setujui hook Codex baru melalui `/hooks`. Mulai ulang agen yang berjalan sebelum pemasangan.
 
-Hanya percakapan induk lokal yang dilaporkan integrasi ini dapat dilanjutkan. Codex memerlukan CLI lokal tertanam (`--no-daemon`); daemon bersama dan koneksi jarak jauh tidak didukung. OpenCode memerlukan API plugin TUI; versi lama, sesi server tanpa antarmuka, dan `opencode attach` tidak didukung. Agen anak tidak dapat mengganti percakapan panel induk. Pi memerlukan berkas sesi tersimpan.
+Hanya percakapan induk terverifikasi yang dilaporkan integrasi ini dapat dilanjutkan. Sesi app-server Codex bersama didukung jika ID percakapan terverifikasi cocok dengan panel; kecocokan ambigu tidak ditautkan. Untuk percakapan pada host jarak jauh, lihat [sesi jarak jauh bersama](/id/docs/remote-sessions#agents). OpenCode memerlukan API plugin TUI; versi lama, sesi server tanpa antarmuka, dan `opencode attach` tidak didukung. Agen anak tidak dapat mengganti percakapan panel induk. Pi memerlukan berkas sesi tersimpan.
 
 Tanpa identitas terverifikasi, direktori kerja asli, atau berkas Pi, shell baru terbuka. CLI yang tidak ditemukan juga kembali ke shell. Zshell tidak menjalankan ulang perintah awal sembarang atau memilih percakapan terbaru. Kesalahan penyedia, seperti percakapan yang dihapus, ditampilkan oleh CLI.
 
