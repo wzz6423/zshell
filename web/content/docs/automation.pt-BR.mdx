@@ -96,7 +96,7 @@ Com **Retomar conversas de agentes**, um painel cujo PTY original está indispon
 
 O Zshell instala hooks SessionStart para Claude Code e Codex, uma extensão Pi e um plugin TUI do OpenCode na configuração existente. Outros hooks, plugins, ajustes e comentários JSONC são preservados. Quando solicitado pelo provedor, ative os hooks na confirmação de confiança do Claude Code e aprove os novos hooks do Codex em `/hooks`. Reinicie agentes que já estavam em execução.
 
-Somente conversas raiz locais informadas pelas integrações são retomadas. O Codex requer CLI local integrado (`--no-daemon`); daemons compartilhados e conexões remotas não são suportados. O OpenCode requer a API de plugins TUI; versões antigas, sessões de servidor sem interface e `opencode attach` não são suportados. Um agente filho não substitui a conversa do painel pai. O Pi precisa do arquivo de sessão salvo.
+Somente conversas raiz verificadas informadas pelas integrações são retomadas. As sessões compartilhadas do app-server do Codex são suportadas quando um ID de conversa verificado corresponde ao painel; correspondências ambíguas ficam sem vínculo. Para conversas em hosts remotos, consulte [sessões remotas compartilhadas](/pt-BR/docs/remote-sessions#agents). O OpenCode requer a API de plugins TUI; versões antigas, sessões de servidor sem interface e `opencode attach` não são suportados. Um agente filho não substitui a conversa do painel pai. O Pi precisa do arquivo de sessão salvo.
 
 Sem identidade verificada, diretório original ou arquivo Pi, abre-se um novo shell. Se o CLI não for encontrado, também se retorna ao shell. O Zshell não repete comandos de início arbitrários nem escolhe a conversa mais recente. Erros do provedor, como conversas excluídas, aparecem no CLI.
 
