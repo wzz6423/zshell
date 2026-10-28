@@ -139,7 +139,7 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
     }
 
     /// One parsed row of a remote directory listing.
-    struct DirectoryEntry: Equatable, Sendable {
+    struct DirectoryEntry: Codable, Equatable, Sendable {
         let name: String
         let isDirectory: Bool
     }
@@ -540,7 +540,8 @@ nonisolated struct BoundedProcessRunner {
         arguments: [String],
         timeout: TimeInterval,
         outputLimit: Int,
-        environment: [String: String]? = nil
+        environment: [String: String]? = nil,
+        standardInput: Data? = nil
     ) throws -> BoundedProcessResult {
         let process = Process()
         let stdoutPipe = Pipe()
@@ -548,22 +549,60 @@ nonisolated struct BoundedProcessRunner {
         let collector = BoundedOutputCollector(limit: max(0, outputLimit))
         let readers = DispatchGroup()
         let termination = DispatchSemaphore(value: 0)
+        let inputPipe = standardInput.map { _ in Pipe() }
+        let inputWriter = DispatchGroup()
 
         process.executableURL = executableURL
         process.arguments = arguments
-        process.standardInput = FileHandle.nullDevice
+        process.standardInput = inputPipe ?? FileHandle.nullDevice
         process.standardOutput = stdoutPipe
         process.standardError = stderrPipe
         process.environment = environment
         process.terminationHandler = { _ in termination.signal() }
 
         try process.run()
+        inputPipe?.fileHandleForReading.closeFile()
+        if let inputPipe, let standardInput {
+            inputWriter.enter()
+            DispatchQueue.global(qos: .utility).async {
+                defer { try? inputPipe.fileHandleForWriting.close(); inputWriter.leave() }
+                let descriptor = inputPipe.fileHandleForWriting.fileDescriptor
+                let flags = fcntl(descriptor, F_GETFL, 0)
+                guard flags >= 0, fcntl(descriptor, F_SETFL, flags | O_NONBLOCK) == 0,
+                      fcntl(descriptor, F_SETNOSIGPIPE, 1) == 0 else { return }
+                let deadline = Date().addingTimeInterval(max(0, timeout))
+                standardInput.withUnsafeBytes { bytes in
+                    var offset = 0
+                    while offset < bytes.count, process.isRunning, deadline.timeIntervalSinceNow > 0 {
+                        var ready = pollfd(fd: descriptor, events: Int16(POLLOUT), revents: 0)
+                        let status = Darwin.poll(&ready, 1, 100)
+                        if status == 0 || status < 0 && errno == EINTR { continue }
+                        guard status > 0, ready.revents & Int16(POLLERR | POLLHUP | POLLNVAL) == 0 else { return }
+                        let written = Darwin.write(descriptor, bytes.baseAddress!.advanced(by: offset), bytes.count - offset)
+                        if written > 0 { offset += written }
+                        else if written < 0, errno == EINTR || errno == EAGAIN { continue }
+                        else { return }
+                    }
+                }
+            }
+        }
         drain(stdoutPipe.fileHandleForReading, stream: .stdout, into: collector, group: readers)
         drain(stderrPipe.fileHandleForReading, stream: .stderr, into: collector, group: readers)
 
         let deadline = DispatchTime.now() + max(0, timeout)
-        let timedOut = termination.wait(timeout: deadline) == .timedOut
-        if timedOut {
+        var cancelled = false
+        let timedOut: Bool
+        if standardInput != nil {
+            var finished = false
+            while DispatchTime.now() < deadline {
+                if termination.wait(timeout: min(deadline, .now() + 0.1)) == .success { finished = true; break }
+                if Task.isCancelled { cancelled = true; break }
+            }
+            timedOut = !finished && !cancelled
+        } else {
+            timedOut = termination.wait(timeout: deadline) == .timedOut
+        }
+        if timedOut || cancelled {
             process.terminate()
             if termination.wait(timeout: .now() + 0.25) == .timedOut, process.isRunning {
                 Darwin.kill(process.processIdentifier, SIGKILL)
@@ -579,6 +618,8 @@ nonisolated struct BoundedProcessRunner {
             stderrPipe.fileHandleForReading.closeFile()
             _ = readers.wait(timeout: .now() + 0.25)
         }
+        _ = inputWriter.wait(timeout: .now() + 1)
+        if cancelled { throw CancellationError() }
 
         return BoundedProcessResult(
             terminationStatus: process.terminationStatus,
@@ -627,11 +668,12 @@ nonisolated struct OpenSSHTransport {
         command: [String],
         authentication: SSHAuthentication = .agent,
         credentialID: UUID? = nil,
-        additionalEnvironment: [String: String] = [:]
+        additionalEnvironment: [String: String] = [:],
+        standardInput: Data? = nil
     ) throws -> BoundedProcessOutput {
         let material = try authentication.makeMaterial(credentialID: credentialID)
         defer { material?.cleanup() }
-        var environment = ProcessInfo.processInfo.environment
+        var environment = SSHAgentEnvironment.shared.resolvedEnvironment()
         environment.merge(material?.environment ?? [:], uniquingKeysWith: { _, materialValue in
             materialValue
         })
@@ -654,7 +696,8 @@ nonisolated struct OpenSSHTransport {
             ),
             timeout: timeout,
             outputLimit: outputLimit,
-            environment: environment
+            environment: environment,
+            standardInput: standardInput
         )
         if result.timedOut { throw TransportError.timedOut(result.output) }
         guard result.terminationStatus == 0 else {
@@ -680,6 +723,7 @@ nonisolated struct OpenSSHTransport {
         )
         return SSHEndpoint.parseDirectoryListing(output.stdout)
     }
+
 }
 
 private nonisolated final class BoundedOutputCollector: @unchecked Sendable {

@@ -32,6 +32,8 @@ Kedua backend menyatakan Ghostty lewat `TERM_PROGRAM` karena CLI yang memahami g
 Zshell tidak membaca `~/.config/ghostty` atau konfigurasi Alacritty. Font, warna, perilaku input, dan backend diatur melalui [pengaturan](/id/docs/configuration) Zshell sendiri.
 </Callout>
 
+Saat dibuka dari Dock atau Finder, Zshell membaca `SSH_AUTH_SOCK` dari login shell interaktif untuk memakai agent pilihan dotfiles. Peluncuran dari terminal mempertahankan agent warisan yang valid.
+
 ## Izin sistem [#system-permissions]
 
 Program lokal di terminal Zshell dapat meminta akses kamera atau mikrofon, atau mengontrol app lain melalui Apple Events.
@@ -39,6 +41,12 @@ macOS mengaitkan permintaan ini dengan Zshell; izinkan hanya program yang Anda p
 
 Kelola akses di **Pengaturan Sistem → Privasi & Keamanan → Kamera, Mikrofon, atau Otomatisasi**.
 Menolak permintaan akan memblokir kemampuan tersebut. Zshell tidak memberikan izin ini secara otomatis.
+
+## Fokus mengikuti mouse [#focus-follows-mouse]
+
+Aktifkan **Pengaturan → Terminal → Perilaku → Fokus mengikuti mouse** untuk memfokuskan panel saat penunjuk masuk. Nonaktif secara bawaan, berlaku pada kedua backend dan Terminal Cepat. Fokus tidak berpindah saat menyeret, dari editor, atau ketika menu atau dialog terbuka.
+
+`terminal.focus-follows-mouse = true`
 
 ## Pencarian [#search]
 
@@ -121,7 +129,7 @@ Program yang mengirim kemajuan `OSC 9;4` mendapat bilah tipis di atas terminal, 
 
 - **Pembacaan papan klip dikonfirmasi.** `OSC 52` dapat meminta papan klip macOS, termasuk dari host jarak jauh lewat SSH. Zshell meminta izin sebelum mengembalikannya.
 - **Tempelan berisiko ditandai.** Teks multibaris atau menyerupai perintah ditahan untuk konfirmasi, bukan langsung dikirim.
-- **Berkas menjadi jalur aman bagi shell.** Berkas yang disalin di Finder atau diseret dimasukkan sebagai jalur absolut berkutip. Gambar papan klip tetap diteruskan ke TUI yang mendukung gambar.
+- **Berkas dan tangkapan layar menjadi jalur aman bagi shell.** Berkas Finder dimasukkan sebagai jalur absolut berkutip. Gambar tunggal disimpan sebagai PNG sementara privat lalu jalurnya ditempel. Panel jarak jauh mengunggah berkas dan gambar ke host terlebih dahulu.
 
 ## Input tombol Option [#option-key-input]
 

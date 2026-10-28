@@ -17,11 +17,13 @@ Nieuwe configuraties schakelen Vim-opdrachthulp, herstel van sessiegeschiedenis 
 
 Handig om te weten voordat je handmatig bewerkt:
 
-- **Het wordt bij het starten gelezen.** Het bestand bewerken terwijl Zshell draait, heeft pas na een herstart effect. Wijzigingen via Instellingen gelden meteen, behalve wanneer het bedieningselement anders vermeldt.
+- **Wijzigingen worden tijdens het draaien gelezen.** Geldige externe wijzigingen gelden automatisch; instellingen voor nieuwe terminals vereisen nog een nieuw paneel. Onleesbare of ongeldige bestanden behouden de laatste geldige instellingen. Een bewust leeg bestand herstelt na korte tijd de standaardwaarden.
 - **Zshell herschrijft het wanneer een bestandsgebonden instelling verandert.** Het bestand wordt volledig opnieuw gegenereerd. Je opmerkingen en onbekende sleutels verdwijnen dus wanneer je de volgende keer een van die instellingen wijzigt. Kies één manier om het bestand te bewerken of houd een leidende kopie bij in je dotfiles.
 - **De meeste standaardwaarden worden weggelaten.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` worden altijd opgeslagen. Het verwijderen van een van deze drie terminalsleutels in een bestaand bestand schakelt de functie uit; bij andere sleutels wordt de standaard hersteld.
 - **De parser is bewust beperkt.** Hij ondersteunt platte sleutels, sleutels met punten, `[table]`-koppen, `#`-opmerkingen en tekenreeks-, getal- en booleaanse waarden. Arrays, inline-tabellen en tekenreeksen met meerdere regels worden niet ondersteund.
 - **Ongeldige waarden vallen veilig terug.** Een grootte buiten het bereik, onbekende backend of verkeerd gespeld thema verhindert niet dat Zshell start.
+
+Opslaan behoudt symbolische links naar bestanden en mappen, werkt het doel atomair bij en behoudt de rechten. Externe wijzigingen herschrijven geen opmerkingen of onbekende sleutels; later opslaan via Instellingen maakt het bestand nog steeds opnieuw zoals hierboven beschreven.
 
 ## Aanwezigheid van de app [#application-presence]
 
@@ -175,6 +177,8 @@ Laat ondersteunde programmeeragents Zshell-deelvensters op de achtergrond coörd
 
 De werkwijze voor gebruikers staat in [Werken met AI-agents](/nl/docs/automation).
 
+Bij een gedeelde Codex app-server koppelt Zshell geverifieerde gespreks-ID’s aan het voorgrondpaneel. Onduidelijke overeenkomsten blijven ongekoppeld. De beheerde integratie voegt `session-id` toe aan de Codex-titel en behoudt andere titelonderdelen.
+
 ### `ai.resume-conversations` [#airesume-conversations]
 
 boolean — standaard `true`
@@ -193,6 +197,7 @@ Gebruik **Instellingen → Automatisering → Agentgesprekken hervatten**. Deze 
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Vorm van de terminalcursor |
 | `terminal.cursor-blinking` | `true` | Booleaans | De cursor laten knipperen |
 | `terminal.copy-on-select` | `true` | Booleaans | Geselecteerde terminaltekst kopiëren |
+| `terminal.focus-follows-mouse` | `false` | Booleaans | Focus volgt de muis |
 | `terminal.shift-enter-newline` | `true` | Booleaans | Een uitgebreide nieuweregelreeks sturen met Shift+Enter; vereist ondersteuning van de applicatie |
 | `terminal.background-opacity` | `1` | 0.2–1 | Dekking van de terminalachtergrond |
 | `terminal.background-blur` | `false` | Booleaans | Doorschijnende achtergronden vervagen |
@@ -209,7 +214,7 @@ Gebruik **Instellingen → Automatisering → Agentgesprekken hervatten**. Deze 
 
 Gebruik **Zshell → Instellingen exporteren…** om een TOML-bestand op te slaan en **Instellingen importeren…** om het te laden. Importeren vraagt bevestiging voor het vervangen en probeert een back-up van het huidige bestand als `config.toml.bak` in dezelfde map te maken.
 
-De importfunctie herstelt momenteel een deelverzameling: thema's, hoofdlettertypeopties, cursorinstellingen, terminalbackend, geschiedenisherstel, kopiëren van selecties, snelle terminal en AI-ondersteuning. Niet elke geëxporteerde instelling wordt bij import hersteld. Controleer daarna interfaceschaal, app-pictogram, externe editor en terminalachtergrond. Voor een volledige configuratieoverdracht sluit je Zshell af, maak je een back-up en kopieer je `config.toml`, waarna je opnieuw start. De AI-schakelaar verandert alleen als het geïmporteerde bestand expliciet `ai.enabled` bevat; controleer die na het importeren. Omgevingsvariabelen voor projecten en tabbladen zijn sessiegegevens en staan niet in dit bestand.
+Importeren leest alle ondersteunde instellingen. Ontbrekende sleutels volgen de standaardwaarden van de lezer; zonder `ai.enabled` blijft de huidige AI-instelling behouden. Taal en omgevingsvariabelen van projecten en tabbladen worden apart opgeslagen.
 
 ## Een volledig voorbeeld [#a-complete-example]
 

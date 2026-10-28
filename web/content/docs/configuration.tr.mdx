@@ -17,11 +17,13 @@ Yeni yapılandırmalar Vim komut ipuçlarını, oturum geçmişini geri yükleme
 
 Elle düzenlemeden önce bilin:
 
-- **Açılışta okunur.** Zshell çalışırken dosyayı düzenlemek yeniden başlatana kadar etki etmez. Ayarlar’dan yapılan değişiklikler, denetim aksini söylemedikçe hemen uygulanır.
+- **Değişiklikler çalışırken okunur.** Geçerli dış düzenlemeler otomatik uygulanır; yeni terminallere yönelik ayarlar hâlâ yeni bölme ister. Okunamayan veya hatalı dosya son geçerli ayarları korur. Bilerek boş bırakılmış dosya kısa bir beklemeden sonra varsayılanları geri getirir.
 - **Dosyada tutulan ayar değişince Zshell dosyayı yeniden yazar.** Baştan oluşturulduğu için bu denetimleri sonraki kullanımınızda yorumlar ve bilinmeyen anahtarlar kaybolur. Dosya için tek düzenleyici seçin veya dotfile’larınızda esas kopya tutun.
 - **Varsayılan değerlerin çoğu yazılmaz.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` daima kaydedilir. Mevcut dosyada bu üç terminal anahtarından birini silmek ilgili özelliği kapatır; diğer anahtarları silmek varsayılanlarını geri getirir.
 - **Ayrıştırıcı bilinçli olarak küçüktür.** Düz/noktalı anahtarları, `[table]` başlıklarını, `#` yorumlarını ve metin/sayı/mantıksal değerleri destekler. Dizi, satır içi tablo ve çok satırlı metin desteklemez.
 - **Geçersiz değerler güvenle varsayılana döner.** Aralık dışı boyut, bilinmeyen arka uç veya yanlış yazılmış tema Zshell’in açılmasını engellemez.
+
+Kaydetme, dosya ve dizin sembolik bağlantılarını korur; hedefi atomik olarak güncelleyip izinleri saklar. Dış düzenlemeler yorumları ve bilinmeyen anahtarları yeniden yazmaz; daha sonra Ayarlar’dan kaydetmek dosyayı yukarıda açıklandığı gibi yeniden oluşturur.
 
 ## Uygulama görünürlüğü [#application-presence]
 
@@ -175,6 +177,8 @@ Doğal dille istediğinizde desteklenen kodlama ajanlarının arka plan bölmele
 
 Kullanım akışı [AI ajanlarıyla çalışma](/tr/docs/automation) bölümündedir.
 
+Codex app-server paylaşılırken Zshell doğrulanmış konuşma kimliklerini ön plandaki bölmeyle eşleştirir. Belirsiz eşleşmeler bağlanmaz. Yönetilen entegrasyon diğer başlık öğelerini koruyarak Codex terminal başlığına `session-id` ekler.
+
 ### `ai.resume-conversations` [#airesume-conversations]
 
 boole — varsayılan `true`
@@ -193,6 +197,7 @@ Terminal bölmeleri geri yüklenirken özgün PTY kullanılamıyorsa kaydedilmi�
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Terminal imleç biçimi |
 | `terminal.cursor-blinking` | `true` | mantıksal | İmleci yanıp söndürür |
 | `terminal.copy-on-select` | `true` | mantıksal | Seçili terminal metnini kopyalar |
+| `terminal.focus-follows-mouse` | `false` | mantıksal | Odak fareyi izler |
 | `terminal.shift-enter-newline` | `true` | mantıksal | Shift+Enter ile gelişmiş satır sonu dizisi gönderir; uygulama desteği gerekir |
 | `terminal.background-opacity` | `1` | 0.2–1 | Terminal arka plan opaklığı |
 | `terminal.background-blur` | `false` | mantıksal | Saydam arka planları bulanıklaştırır |
@@ -209,7 +214,7 @@ Terminal bölmeleri geri yüklenirken özgün PTY kullanılamıyorsa kaydedilmi�
 
 TOML kaydetmek için **Zshell → Ayarları Dışa Aktar…**, yüklemek için **Ayarları İçe Aktar…** kullanın. İçe aktarma değiştirmeyi onaylatır ve mevcut dosyayı aynı dizinde `config.toml.bak` olarak yedeklemeyi dener.
 
-İçe aktarıcı şu an yalnızca bir alt kümeyi geri yükler: temalar, ana yazı tipi seçenekleri, imleç ayarları, terminal arka ucu, geçmiş geri yükleme, seçim kopyalama, Hızlı Terminal ve AI desteği. Dışa aktarılan her ayarı geri getirmez. Sonrasında arayüz ölçeği, uygulama simgesi, harici düzenleyici ve terminal arka planını kontrol edin. Tam aktarım için Zshell’den çıkın, `config.toml` dosyasını yedekleyip kopyalayın ve yeniden açın. AI anahtarı yalnızca içe alınan dosya açıkça `ai.enabled` içeriyorsa güncellenir; aktarım sonrası kontrol edin. Proje ve sekme ortam değişkenleri oturum verisidir, bu dosyada bulunmaz.
+İçe aktarma desteklenen tüm ayarları okur. Atlanan anahtarlar yapılandırma okuyucusunun varsayılanlarını kullanır; `ai.enabled` yoksa mevcut yapay zekâ ayarı korunur. Dil ile proje ve sekme ortam değişkenleri ayrı saklanır.
 
 ## Tam örnek [#a-complete-example]
 

@@ -64,6 +64,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var directoryTimer: Timer?
     private var lastReportedDirectory: String?
     private var usesOSCWorkingDirectory = false
+    private var windowFocusObservers: [NSObjectProtocol] = []
     var reportsLocalWorkingDirectory = true
     private(set) var backgroundOpacity = 1.0
 
@@ -74,8 +75,6 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         for name in [
             NSApplication.didBecomeActiveNotification,
             NSApplication.didResignActiveNotification,
-            NSWindow.didBecomeKeyNotification,
-            NSWindow.didResignKeyNotification,
         ] {
             NotificationCenter.default.addObserver(
                 self,
@@ -97,6 +96,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     deinit {
         directoryTimer?.invalidate()
         selectionAutoscrollTimer?.invalidate()
+        windowFocusObservers.forEach(NotificationCenter.default.removeObserver)
         NotificationCenter.default.removeObserver(self)
     }
 
@@ -108,13 +108,38 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func setSurfaceVisible(_ visible: Bool) {
-        if !visible { stopSelectionAutoscroll() }
+        if !visible {
+            stopSelectionAutoscroll()
+            events?.terminalDidResignFocus()
+        }
         isSurfaceVisible = visible
         super.setSurfaceVisible(visible)
         updateDirectoryPolling()
     }
 
+    override func viewDidMoveToWindow() {
+        // Ghostty removes window observers while reparenting; attach ours
+        // after its lifecycle work so focus loss still cancels pending paste.
+        windowFocusObservers.forEach(NotificationCenter.default.removeObserver)
+        windowFocusObservers.removeAll()
+        super.viewDidMoveToWindow()
+        if let window {
+            for name in [NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification] {
+                windowFocusObservers.append(NotificationCenter.default.addObserver(
+                    forName: name, object: window, queue: .main
+                ) { [weak self] notification in
+                    MainActor.assumeIsolated { self?.effectiveFocusChanged(notification) }
+                })
+            }
+        }
+        updateDirectoryPolling()
+    }
+
     @objc private func effectiveFocusChanged(_ notification: Notification) {
+        if notification.name == NSWindow.didResignKeyNotification,
+           let notificationWindow = notification.object as? NSWindow, notificationWindow === window {
+            events?.terminalDidResignFocus()
+        }
         updateDirectoryPolling()
         GlobalTerminalOverlay.shared.scheduleHotkeyRegistrationRefresh()
     }
@@ -355,7 +380,9 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         pendingPromptSelectionActivation = false
         aiInputPointerActive = false
         GlobalTerminalOverlay.shared.scheduleHotkeyRegistrationRefresh()
-        return super.resignFirstResponder()
+        let resigned = super.resignFirstResponder()
+        if resigned { events?.terminalDidResignFocus() }
+        return resigned
     }
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {
@@ -568,6 +595,9 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         finalizePointerSelectionBeforeInput()
         recordPromptInputStart()
         if aiInputEditor.deferWhileBusy({ [weak self] in self?.paste(sender) }) { return }
+        if events?.terminalHandleUserPaste(NSPasteboard.general, paste: { [weak self] text in
+            self?.pasteAIInput(text)
+        }) == true { return }
         if aiInputEditor.hasSelection, let text = NSPasteboard.general.string(forType: .string) {
             if text.contains("\n") || text.contains("\r") {
                 events?.terminalDidRequestClipboardConfirmation(

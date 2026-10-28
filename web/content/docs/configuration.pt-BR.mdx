@@ -17,11 +17,13 @@ Novas configurações ativam as dicas de comandos Vim, a restauração do histó
 
 Antes de editar manualmente, considere:
 
-- **Ele é lido ao iniciar.** Editar durante a execução não muda nada até reiniciar. Mudanças pela janela Ajustes se aplicam imediatamente, exceto quando o controle informa o contrário.
+- **Mudanças são lidas durante a execução.** Edições externas válidas se aplicam automaticamente; ajustes para novos terminais ainda exigem um novo painel. Arquivos ilegíveis ou malformados mantêm os últimos ajustes válidos. Um arquivo intencionalmente vazio restaura os padrões após uma breve espera.
 - **O Zshell reescreve o arquivo quando muda um ajuste armazenado nele.** O arquivo é regenerado, então comentários e chaves desconhecidas se perdem na próxima utilização desses controles. Escolha uma forma principal de edição ou mantenha uma cópia oficial nos seus dotfiles.
 - **A maioria dos valores padrão é omitida.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` são sempre gravados. Remover uma dessas três chaves de terminal em um arquivo existente desativa o recurso; remover outras chaves restaura os valores padrão.
 - **O parser é propositalmente pequeno.** Suporta chaves simples, chaves com pontos, cabeçalhos `[table]`, comentários `#` e valores de texto, número e booleano. Não suporta arrays, tabelas em linha ou strings com múltiplas linhas.
 - **Valores inválidos usam um fallback seguro.** Tamanhos fora da faixa, backends desconhecidos e nomes de temas incorretos não impedem o aplicativo de abrir.
+
+Ao salvar, os links simbólicos de arquivos e diretórios são mantidos; o destino é atualizado atomicamente preservando as permissões. Edições externas não reescrevem comentários nem chaves desconhecidas; salvar depois em Ajustes ainda regenera o arquivo como descrito acima.
 
 ## Presença do aplicativo [#application-presence]
 
@@ -175,6 +177,8 @@ Permite que agentes compatíveis coordenem painéis de fundo quando você pede e
 
 O fluxo de uso está em [Trabalhar com agentes de IA](/pt-BR/docs/automation).
 
+Ao compartilhar o app-server do Codex, Zshell associa IDs de conversa verificados ao painel em primeiro plano. Correspondências ambíguas ficam sem vínculo. A integração gerenciada adiciona `session-id` ao título do Codex e preserva os demais itens.
+
 ### `ai.resume-conversations` [#airesume-conversations]
 
 booleano — padrão `true`
@@ -193,6 +197,7 @@ Controle em **Ajustes → Automação → Retomar conversas de agentes**. Esta o
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Forma do cursor |
 | `terminal.cursor-blinking` | `true` | Booleano | Piscar o cursor |
 | `terminal.copy-on-select` | `true` | Booleano | Copiar texto selecionado no terminal |
+| `terminal.focus-follows-mouse` | `false` | Booleano | O foco segue o mouse |
 | `terminal.shift-enter-newline` | `true` | Booleano | Enviar uma sequência de nova linha estendida com Shift+Enter; exige suporte do aplicativo |
 | `terminal.background-opacity` | `1` | 0.2–1 | Opacidade do fundo do terminal |
 | `terminal.background-blur` | `false` | Booleano | Desfocar fundos translúcidos |
@@ -209,7 +214,7 @@ Controle em **Ajustes → Automação → Retomar conversas de agentes**. Esta o
 
 Use **Zshell → Exportar Ajustes…** para salvar um TOML e **Importar Ajustes…** para carregá-lo. A importação pede confirmação para substituir e tenta criar `config.toml.bak` no mesmo diretório.
 
-O importador restaura hoje um subconjunto: temas, opções principais de fontes, cursor, backend, restauração do histórico, cópia da seleção, Terminal Rápido e suporte de IA. Nem toda opção exportada volta pela importação. Confira escala da interface, ícone, editor externo e fundo do terminal depois. Para transferir tudo, saia do Zshell, faça backup e copie `config.toml`, depois reabra. O controle de IA só muda quando o arquivo importado contém explicitamente `ai.enabled`; confira após importar. Variáveis de ambiente de projetos e abas são dados de sessão e não entram nesse arquivo.
+A importação lê todas as configurações aceitas. Chaves omitidas seguem os padrões do leitor; omitir `ai.enabled` mantém a opção atual de IA. O idioma e as variáveis de ambiente de projetos e abas são salvos separadamente.
 
 ## Exemplo completo [#a-complete-example]
 

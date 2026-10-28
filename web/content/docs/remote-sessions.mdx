@@ -7,7 +7,7 @@ description: Keep remote shells running and attach from several Zshell clients o
 
 ## Install on the host [#install]
 
-Build from the Zshell repository on the host using a current Rust toolchain. The macOS client already includes its relay and needs no Cargo installation.
+In **Remote Hosts…**, choose **Install / Update Server** over SSH. For a Mac with a matching architecture, Zshell uses its bundled executable. For Linux, choose the `zshell-server` executable built for that platform and architecture. The installer verifies the upload and compatibility before replacing the old executable. A running daemon keeps its current version until restarted, which ends its terminal sessions. You can also build directly on the host:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -15,7 +15,7 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-Run the server as the Unix account whose shell and files clients may access. Native Windows hosting is not supported.
+Run the server as the account whose shell and files clients may access. macOS and Linux are supported.
 
 ## Connect over SSH [#ssh]
 
@@ -27,7 +27,7 @@ ssh devbox true
 
 In the sidebar's network menu choose **Remote Hosts…**. Add a name, `ssh://me@devbox:22` or an SSH alias, and the server executable `~/.local/bin/zshell-server`. **Connect Host** loads the host's projects and attaches their existing sessions. To create a shell, enter a remote directory such as `~/repo` and choose **Open Remote Project**. Paths with spaces are supported. New tabs and splits in that project also run remotely.
 
-SSH starts the owner-only daemon automatically. It uses your existing OpenSSH configuration, keys, agent and trusted host keys. Unknown host keys and authentication failures appear as errors. Verify them through ordinary SSH before retrying. Zshell does not collect a password or install the server for you.
+SSH starts the owner-only daemon automatically. It uses your existing OpenSSH configuration, keys, agent and trusted host keys. Unknown host keys and authentication failures appear as errors. Verify them through ordinary SSH before retrying. Zshell does not collect a password. Use the installation action above to install or update the server.
 
 Files and Git use SSH to the same host; a direct Tailscale terminal still needs separate working SSH access for those panels. Remote paths never point at the Mac's files. An optional absolute `ZSHELL_SSH_CONFIG_FILE` selects a separate readable OpenSSH configuration for terminals, Files and Git.
 
@@ -39,7 +39,9 @@ Sign both machines into Tailscale. Before creating sessions, run the host daemon
 zshell-server serve --listen tailscale://:7373
 ```
 
-Add `tailscale://devbox:7373` in **Remote Hosts…**. MagicDNS and Tailscale IPv4/IPv6 addresses work; public addresses are rejected. Only the host owner's untagged devices are allowed by default. `--allow-user` permits another exact Tailscale login; tagged peers remain rejected. Use SSH for a client on the server machine itself. Tailnet ACLs also apply. Grant access only to people who may operate the server's Unix account.
+Add `tailscale://devbox:7373` in **Remote Hosts…**. MagicDNS and Tailscale IPv4/IPv6 addresses work; public addresses are rejected. Only the host owner's untagged devices are allowed by default. `--allow-user` permits another exact Tailscale login; tagged peers remain rejected. Use SSH for a client on the server machine itself. Tailnet ACLs also apply. Grant access only to people who may operate the server's account.
+
+To share this Mac, sign into Tailscale and choose **Share This Mac** in **Remote Hosts…**. Set a port and optional exact allowed login names. Sharing starts only when requested; **Stop Sharing** or quitting Zshell ends its shared sessions.
 
 ## Share, detach and reconnect [#sharing]
 
@@ -54,8 +56,16 @@ zshell-server list --project ~/repo
 zshell-server terminate --project ~/repo --session UUID
 ```
 
+## Files and screenshots [#paste]
+
+Copy regular files or a screenshot and paste in the remote pane. Zshell uploads them to a private host directory and inserts paths quoted for the session’s shell. A batch allows 32 files, 32 MiB per file and 64 MiB total; folders and symbolic links are rejected. Shared-session uploads remain available for seven days. Ordinary Unix SSH panes support the same file and screenshot paste.
+
+## Remote Agent conversations [#agents]
+
+Remote Agent activity, progress, approval requests and completion use the existing pane status and notifications. **Agent Conversation History** includes the host’s saved conversations for Claude Code, Codex, OpenCode and Pi. Resume reconnects a still-running conversation or starts that exact provider session on the original host and directory. Conversation history survives daemon restarts; live terminal jobs and scrollback do not. The provider and its original configuration or session file must still be available.
+
 ## Persistence limits [#limits]
 
-Persistence lasts while the host daemon is alive. Host reboots, daemon crashes and daemon restarts end it. An unavailable saved session is reported; it is never silently replaced by a new shell. The daemon keeps at most 128 sessions, a 16 MiB terminal snapshot and a 1 MiB live queue per client. Slow viewers disconnect without blocking other clients. History stays in host memory.
+Persistence lasts while the host daemon is alive. Host reboots, daemon crashes and daemon restarts end it. An unavailable saved session is reported; it is never silently replaced by a new shell. The daemon keeps at most 128 sessions, a 16 MiB terminal snapshot and a 1 MiB live queue per client. Slow viewers disconnect without blocking other clients. Terminal scrollback stays in host memory.
 
 For systemd, LaunchAgent, CLI and identity-policy details, see the [server reference](https://github.com/wzz6423/zshell/tree/main/remote). Configure the service before creating sessions; changing a running daemon's listener requires ending its sessions first.

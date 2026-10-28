@@ -48,7 +48,7 @@ CI 另外加 `-skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED
 
 | 工作流 | 触发路径 | 主要内容 |
 | --- | --- | --- |
-| `macOS App` | `mac/zshell/**`、`mac/zshell.xcodeproj/**`、`mac/Vendor/**`、`mac/Config/**`、`mac/Makefile`、`Makefile`、`mac/scripts/build-alacritty-bridge.sh`、`.github/**` | 桥的 `cargo test`/release 构建、Debug app 冒烟构建与 bundle 结构检查、Swift CodeQL |
+| `macOS App` | `mac/zshell/**`、`mac/zshell.xcodeproj/**`、`mac/Vendor/**`、`mac/Config/**`、`mac/Makefile`、`Makefile`、两个 `mac/scripts/build-*.sh`、`remote/**`、`.github/**` | 桥的 `cargo test`/release 构建、Debug app 冒烟构建与 bundle 结构检查、内置远端服务、Swift CodeQL |
 | `Release Scripts` | `mac/scripts/**`、`mac/package.json`、`mac/bun.lock`、`mac/tsconfig.json`、`.github/**` | `bunx tsc --noEmit`、Python 脚本可编译 |
 | `Web CI` | `web/**`、`.github/**` | `bun run typecheck`、`bun run build` |
 | `Skill CI` | `skills/**`、`mac/zshell/Skills/**`、`.github/**` | 每个 `SKILL.md` 的 frontmatter、本地引用与 release URL |

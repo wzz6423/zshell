@@ -32,6 +32,8 @@ Ambos anunciam Ghostty em `TERM_PROGRAM` porque CLIs com suporte a imagens e not
 O Zshell não lê `~/.config/ghostty` nem a configuração do Alacritty. Fontes, cores, entrada e backend são definidos nos [ajustes](/pt-BR/docs/configuration) do Zshell.
 </Callout>
 
+Ao iniciar pelo Dock ou Finder, Zshell lê `SSH_AUTH_SOCK` do shell de login interativo para usar o agente escolhido nos seus dotfiles. Ao iniciar por um terminal mantém o agente herdado válido.
+
 ## Permissões do sistema [#system-permissions]
 
 Programas locais em um terminal do Zshell podem solicitar acesso à câmera ou ao microfone, ou controlar outro app por Apple Events.
@@ -39,6 +41,12 @@ O macOS atribui essas solicitações ao Zshell; permita o acesso apenas a progra
 
 Gerencie o acesso em **Ajustes do Sistema → Privacidade e Segurança → Câmera, Microfone ou Automação**.
 Negar uma solicitação bloqueia o recurso correspondente. O Zshell não concede essas permissões automaticamente.
+
+## O foco segue o mouse [#focus-follows-mouse]
+
+Ative **Ajustes → Terminal → Comportamento → O foco segue o mouse** para focar o painel quando o ponteiro entrar. Desativado por padrão, funciona com ambos os backends e o terminal rápido. Não muda o foco durante arraste, a partir de um editor ou com menu ou diálogo aberto.
+
+`terminal.focus-follows-mouse = true`
 
 ## Busca [#search]
 
@@ -121,7 +129,7 @@ Programas que emitem progresso `OSC 9;4` ganham uma barra fina acima do terminal
 
 - **Leituras da área de transferência exigem confirmação.** `OSC 52` pode solicitar o conteúdo, inclusive de um host remoto via SSH. O Zshell pergunta antes de fornecer.
 - **Colagens arriscadas são sinalizadas.** Texto com várias linhas ou parecido com comandos aguarda confirmação em vez de ser enviado imediatamente.
-- **Arquivos viram caminhos seguros para o shell.** Arquivos copiados no Finder ou arrastados são inseridos como caminhos absolutos entre aspas. Imagens da área de transferência continuam chegando a TUIs compatíveis.
+- **Arquivos e capturas viram caminhos seguros para o shell.** Arquivos do Finder são inseridos como caminhos absolutos entre aspas. Uma imagem sozinha é salva como PNG temporário privado e seu caminho é colado. Painéis remotos enviam arquivos e capturas ao host primeiro.
 
 ## Entrada com Option [#option-key-input]
 

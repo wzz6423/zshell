@@ -7,13 +7,15 @@ description: Conéctate al mismo terminal por SSH o Tailscale y conserva los tra
 
 ## Instalación [#install]
 
-Compila el repositorio de Zshell en el servidor con Rust actualizado. El cliente Mac incluye su relay y no necesita Cargo. No hay servidor nativo para Windows.
+En **Hosts remotos…**, elige **Instalar / Actualizar servidor** por SSH. Un Mac con la misma arquitectura usa el ejecutable incluido. Para Linux, selecciona `zshell-server` compilado para su plataforma y arquitectura. Se verifica la carga y compatibilidad antes de reemplazar. El daemon activo mantiene su versión hasta reiniciarlo, lo que termina sus tareas. También puedes compilar en el host:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
 install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
+
+El cliente puede operar el shell y archivos de la cuenta del servidor. Se admiten macOS y Linux.
 
 ## SSH [#ssh]
 
@@ -37,11 +39,21 @@ zshell-server serve --listen tailscale://:7373
 
 Añade `tailscale://devbox:7373`. Se admiten MagicDNS y direcciones Tailscale IPv4/IPv6; se rechazan las públicas. Solo se permiten por defecto dispositivos sin etiquetas del propietario del host. `--allow-user` autoriza otro nombre de inicio de sesión exacto; los clientes etiquetados siguen rechazados. En el propio servidor usa SSH. También se aplican las ACL del tailnet. Los clientes autorizados pueden operar la cuenta Unix del servicio.
 
+Para compartir este Mac, conecta Tailscale y elige **Compartir este Mac** en **Hosts remotos…**. Define un puerto y nombres de inicio exactos permitidos. Solo se comparte al solicitarlo; **Dejar de compartir** o salir de Zshell termina las sesiones compartidas.
+
 ## Compartir y terminar [#sharing]
 
 Todos reciben la misma salida. Enfocar el terminal o tomar el control concede la entrada y el tamaño a ese cliente. Si se desconecta, toma el control el cliente restante más antiguo. Información muestra estado, número de clientes y control, con acciones para separar y reconectar. Los fallos de red se reintentan automáticamente; se descarta lo escrito sin conexión. El diseño guardado vuelve al mismo UUID remoto.
 
 Cerrar paneles, proyectos o ventanas y las dos opciones de salir de la aplicación solo separan al cliente. Terminar la sesión remota pide confirmación y detiene el shell y sus trabajos para todos. En el host: `zshell-server terminate --project ~/repo --session UUID`.
+
+## Archivos y capturas [#paste]
+
+Copia archivos normales o una captura y pega en el panel remoto. Se suben a un directorio privado del host y se insertan rutas entre comillas para su shell. Hasta 32 archivos, 32 MiB por archivo y 64 MiB total; se rechazan carpetas y enlaces simbólicos. Las cargas compartidas duran siete días. Los paneles SSH Unix normales también lo admiten.
+
+## Conversaciones Agent remotas [#agents]
+
+La actividad, progreso, solicitudes de aprobación y finalización del Agent remoto usan estados y notificaciones existentes. **Historial de conversaciones Agent** incluye Claude Code, Codex, OpenCode y Pi del host. Reanudar conecta una conversación activa o inicia su sesión exacta en el host y directorio originales. Las conversaciones sobreviven al reinicio del daemon; los trabajos y el historial del terminal no. El proveedor y su configuración o archivo de sesión deben seguir disponibles.
 
 ## Límites [#limits]
 

@@ -355,12 +355,16 @@ protocol TerminalBackendEvents: AnyObject {
     /// The child process is gone, or is about to be. `processAlive` is false
     /// when the backend has already reaped it.
     func terminalDidClose(processAlive: Bool)
+    func terminalDidResignFocus()
 
     func terminalDidRequestDesktopNotification(title: String, body: String)
     func terminalDidRequestOpenURL(_ url: String)
     func terminalLinkTarget(for value: String) -> TerminalLinkTarget?
     func terminalDidScroll(_ position: TerminalScrollPosition)
     func terminalDidRequestClipboardConfirmation(_ request: TerminalClipboardRequest)
+    /// User-initiated paste only; programmatic clipboard reads must never
+    /// upload files. The callback keeps the backend's prompt editing behavior.
+    func terminalHandleUserPaste(_ pasteboard: NSPasteboard, paste: @escaping (String) -> Void) -> Bool
 
     /// The backend started a find of its own accord — Zshell's ⌘E path resolves
     /// the needle from the grid selection, so the bar learns it from here.
@@ -368,6 +372,11 @@ protocol TerminalBackendEvents: AnyObject {
     func terminalDidEndFind()
     func terminalDidUpdateFindTotal(_ total: Int?)
     func terminalDidUpdateFindSelected(_ selected: Int?)
+}
+
+extension TerminalBackendEvents {
+    func terminalDidResignFocus() {}
+    func terminalHandleUserPaste(_ pasteboard: NSPasteboard, paste: @escaping (String) -> Void) -> Bool { false }
 }
 
 /// A Command-clickable terminal value after the owning session has resolved

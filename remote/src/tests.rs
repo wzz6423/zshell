@@ -17,7 +17,7 @@ impl Fixture {
         fs::create_dir_all(&project).unwrap();
         fs::create_dir(&other).unwrap();
         Self {
-            daemon: Daemon::new().unwrap(),
+            daemon: Daemon::new(&root.join("state")).unwrap(),
             root,
             project,
             other,
@@ -340,4 +340,143 @@ fn tailscale_owner_allowlist_and_local_identity_boundary() {
         .authorize("100.64.0.2:1234".parse().unwrap())
         .is_err());
     fs::remove_dir_all(root).unwrap();
+}
+
+fn paste_transport(fixture: &Fixture) -> Stream {
+    let (client, server) = UnixStream::pair().unwrap();
+    let daemon = fixture.daemon.clone();
+    thread::spawn(move || {
+        let _ = daemon.handle(Stream::Unix(server));
+    });
+    let mut stream = Stream::Unix(client);
+    stream
+        .deadlines(Duration::from_secs(4), Duration::from_secs(4))
+        .unwrap();
+    client_handshake(&mut stream).unwrap();
+    stream
+}
+
+fn paste_exchange(stream: &mut Stream, request: &Frame) -> Frame {
+    write_frame(stream, request).unwrap();
+    read_frame(stream).unwrap()
+}
+
+#[test]
+fn file_paste_is_bound_to_active_attachment_and_project() {
+    let fixture = Fixture::new();
+    let id = new_id().unwrap();
+    fixture.create(&id, vec!["/bin/sh", "-i"]);
+    let (first, _, client_id) = fixture.attach(&id, 80, 24);
+    let (mut second, _, second_id) = fixture.attach(&id, 80, 24);
+    let mut upload = paste_transport(&fixture);
+    let mut request = fixture.request("pasteStart", &id);
+    request.client_id = Some(second_id.clone());
+    request.paste_files = Some(vec![PasteFile {
+        name: "binary.png".into(),
+        size: 3,
+    }]);
+    assert!(paste_exchange(&mut upload, &request)
+        .error
+        .unwrap()
+        .contains("active client"));
+    request.client_id = Some(client_id.clone());
+    request.project = Some(fixture.other.to_str().unwrap().into());
+    assert!(paste_exchange(&mut upload, &request)
+        .error
+        .unwrap()
+        .contains("different project"));
+    request.project = Some(fixture.project.to_str().unwrap().into());
+    let started = paste_exchange(&mut upload, &request);
+    assert!(started.error.is_none(), "{started:?}");
+    let upload_id = started.result.unwrap()["uploadId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let pending = fixture
+        .root
+        .join("state/pastes")
+        .join(format!("pending-{upload_id}"));
+    assert!(pending.is_dir());
+    request.kind = "pasteChunk".into();
+    request.upload_id = Some(upload_id);
+    request.file_index = Some(0);
+    request.offset = Some(0);
+    request.data = Some(STANDARD.encode([0, 1, 255]));
+    assert!(paste_exchange(&mut upload, &request).error.is_none());
+    write_frame(&mut second, &Frame::new("claim")).unwrap();
+    collect_until(&mut second, |frame, _| {
+        frame.kind == "state"
+            && frame
+                .result
+                .as_ref()
+                .is_some_and(|value| value["activeClientId"] == second_id)
+    });
+    request.kind = "pasteCommit".into();
+    assert!(paste_exchange(&mut upload, &request)
+        .error
+        .unwrap()
+        .contains("active client"));
+    assert!(!pending.exists());
+    first.shutdown();
+    second.shutdown();
+    upload.shutdown();
+}
+
+#[test]
+fn file_paste_upload_commit_and_disconnect_cleanup() {
+    let fixture = Fixture::new();
+    let id = new_id().unwrap();
+    fixture.create(&id, vec!["/bin/sh", "-i"]);
+    let (client, _, client_id) = fixture.attach(&id, 80, 24);
+    let mut upload = paste_transport(&fixture);
+    let mut request = fixture.request("pasteStart", &id);
+    request.client_id = Some(client_id);
+    request.paste_files = Some(vec![PasteFile {
+        name: "image 'quoted'.png".into(),
+        size: 3,
+    }]);
+    let started = paste_exchange(&mut upload, &request);
+    request.upload_id = Some(
+        started.result.unwrap()["uploadId"]
+            .as_str()
+            .unwrap()
+            .to_owned(),
+    );
+    request.kind = "pasteChunk".into();
+    request.file_index = Some(0);
+    request.offset = Some(0);
+    request.data = Some(STANDARD.encode([0, 1, 255]));
+    assert!(paste_exchange(&mut upload, &request).error.is_none());
+    request.kind = "pasteCommit".into();
+    let committed = paste_exchange(&mut upload, &request);
+    assert!(committed.error.is_none(), "{committed:?}");
+    let paths = committed.result.unwrap();
+    let path = PathBuf::from(paths["paths"][0].as_str().unwrap());
+    assert_eq!(fs::read(&path).unwrap(), [0, 1, 255]);
+    assert_eq!(
+        fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+        0o600
+    );
+    upload.shutdown();
+    let mut partial = paste_transport(&fixture);
+    request.kind = "pasteStart".into();
+    request.upload_id = None;
+    let started = paste_exchange(&mut partial, &request);
+    let upload_id = started.result.unwrap()["uploadId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let pending = fixture
+        .root
+        .join("state/pastes")
+        .join(format!("pending-{upload_id}"));
+    assert!(pending.exists());
+    partial.shutdown();
+    let deadline = Instant::now() + Duration::from_secs(2);
+    while pending.exists() && Instant::now() < deadline {
+        thread::sleep(Duration::from_millis(10));
+    }
+    assert!(!pending.exists());
+    assert!(path.exists());
+    client.shutdown();
 }

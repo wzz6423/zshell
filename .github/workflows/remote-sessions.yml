@@ -59,6 +59,7 @@ jobs:
           persist-credentials: false
 
       - name: Use an isolated build directory
+        shell: bash
         run: printf 'CARGO_TARGET_DIR=%s/remote-target\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
 
       - name: Check the Rust toolchain
@@ -71,13 +72,20 @@ jobs:
         run: cargo build --locked --release --manifest-path remote/Cargo.toml
 
       - name: Exercise the production CLI and stdio bridge
-        if: runner.os != 'Linux'
+        if: runner.os == 'macOS'
         run: python3 remote/tests/test_cli.py --binary "$CARGO_TARGET_DIR/release/zshell-server"
 
       - name: Exercise the CLI and different-UID socket boundary on Linux
         if: runner.os == 'Linux'
         run: sudo -n python3 remote/tests/test_cli.py --binary "$CARGO_TARGET_DIR/release/zshell-server" --require-other-uid
 
+      - name: Exercise native Agent hooks and persistent exact conversation resume
+        run: python3 remote/tests/test_agents.py --binary "$CARGO_TARGET_DIR/release/zshell-server"
+
+      - name: Exercise shared Codex conversation ownership
+        run: python3 remote/tests/test_shared_codex.py --binary "$CARGO_TARGET_DIR/release/zshell-server"
+
       - name: Remove build artifacts
         if: always()
+        shell: bash
         run: rm -rf "$RUNNER_TEMP/remote-target"

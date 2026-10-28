@@ -285,6 +285,39 @@ final class AgentConversationHistoryStore: ObservableObject {
         return id
     }
 
+    func importRemote(_ conversations: [RemoteAgentConversation], host: RemoteHost, project: Project) {
+        guard project.sharedHost?.id == host.id, conversations.count <= Self.maximumRecords else { return }
+        for conversation in conversations {
+            guard conversation.project == project.remoteDirectory,
+                  let terminalID = UUID(uuidString: conversation.remoteSessionID),
+                  let identity = AgentConversationIdentity.remote(conversation.identity, hostID: host.id,
+                    project: conversation.project), conversation.startedAt.isFinite,
+                  conversation.updatedAt.isFinite, conversation.startedAt >= 0,
+                  conversation.updatedAt >= conversation.startedAt,
+                  conversation.endedAt.map({ $0.isFinite && $0 >= conversation.startedAt }) ?? true else { continue }
+            let started = Date(timeIntervalSince1970: conversation.startedAt)
+            let updated = Date(timeIntervalSince1970: conversation.updatedAt)
+            if let index = records.firstIndex(where: { $0.matches(identity) }) {
+                records[index].projectID = project.conversationHistoryProjectID
+                records[index].projectName = host.name + ": " + project.name
+                records[index].terminalID = terminalID
+                records[index].updatedAt = max(records[index].startedAt, updated)
+                records[index].endedAt = conversation.endedAt.map { max(records[index].startedAt, Date(timeIntervalSince1970: $0)) }
+                records[index].title = AgentConversationHistoryRecord.normalizedText(conversation.title) ?? records[index].title
+            } else {
+                var record = AgentConversationHistoryRecord(identity: identity,
+                    projectID: project.conversationHistoryProjectID, projectName: host.name + ": " + project.name,
+                    title: conversation.title, terminalID: terminalID, at: started)
+                record.updatedAt = updated
+                record.endedAt = conversation.endedAt.map { Date(timeIntervalSince1970: $0) }
+                records.append(record)
+            }
+        }
+        records.sort(by: Self.ranksBefore)
+        records = Array(records.prefix(Self.maximumRecords))
+        persistObservedRecords()
+    }
+
     func ended(id: UUID, terminalID: UUID, title: String? = nil, at: Date = Date()) {
         guard let index = records.firstIndex(where: { $0.id == id && $0.terminalID == terminalID }),
               records[index].endedAt == nil else { return }

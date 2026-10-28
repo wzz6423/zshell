@@ -13,7 +13,7 @@ base64 = "0.23"
 libc = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-zshell_alacritty = { path = "../mac/Vendor/alacritty-bridge" }
+zshell_alacritty = { path = "../mac/Vendor/alacritty-bridge", default-features = false }
 
 [profile.release]
 opt-level = 3

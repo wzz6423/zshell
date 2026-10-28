@@ -30,6 +30,7 @@ enum ZshellAgentSessionHooks {
         let provider: AgentConversationIdentity.Provider
         let commands: [String: String]
         let configFile: String?
+        var codexTitle: CodexTitleConfiguration.State? = nil
     }
 
     private struct Plan {
@@ -41,6 +42,7 @@ enum ZshellAgentSessionHooks {
         let manifestURL: URL
         let originalManifest: Data?
         let manifestData: Data?
+        var codexTitle: CodexTitleConfiguration.Plan? = nil
     }
 
     static func preflightInstallAvailable(
@@ -105,7 +107,7 @@ enum ZshellAgentSessionHooks {
             return try plan(
                 provider: provider, root: root,
                 sourceURL: try installing ? sourceURL(bundle: bundle ?? .main) : nil,
-                installing: installing, hooks: hooks
+                installing: installing, hooks: hooks, environment: environment
             )
         }
     }
@@ -115,7 +117,8 @@ enum ZshellAgentSessionHooks {
         root: URL,
         sourceURL: URL?,
         installing: Bool,
-        hooks requested: [Hook]
+        hooks requested: [Hook],
+        environment: [String: String]
     ) throws -> Plan? {
         let config = root.appendingPathComponent(provider == .claude ? "settings.json" : "hooks.json")
         let link = root.appendingPathComponent("hooks/\(resourceName).sh")
@@ -193,14 +196,18 @@ enum ZshellAgentSessionHooks {
                 updated = original
             } else { updated = serialized }
         } else { updated = original }
+        let title = provider == .codex
+            ? try CodexTitleConfiguration.plan(root: root, previous: manifest?.codexTitle,
+                                              installing: installing, environment: environment) : nil
         let manifestData = installing
-            ? try JSONEncoder().encode(Manifest(version: 1, provider: provider, commands: next, configFile: nil))
+            ? try JSONEncoder().encode(Manifest(version: 1, provider: provider, commands: next, configFile: nil,
+                                               codexTitle: title?.state))
             : nil
         return Plan(
             configURL: config, original: original, updated: updated,
             linkURL: link, sourceURL: sourceURL,
             manifestURL: manifestURL, originalManifest: try readFileIfPresent(manifestURL),
-            manifestData: manifestData
+            manifestData: manifestData, codexTitle: title
         )
     }
 
@@ -253,11 +260,20 @@ enum ZshellAgentSessionHooks {
               try readFileIfPresent(plan.manifestURL) == plan.originalManifest else {
             throw HookError.message(String(localized: "\(plan.configURL.path) changed while Zshell was updating hooks."))
         }
+        let titleURL = plan.configURL.deletingLastPathComponent().appendingPathComponent("config.toml")
+        if let title = plan.codexTitle,
+           try readFileIfPresent(titleURL) != title.original {
+            throw HookError.message(String(localized: "\(titleURL.path) changed while Zshell was updating hooks."))
+        }
         if installing, let source = plan.sourceURL {
             try replaceLink(at: plan.linkURL, sourceURL: source)
         }
         if let updated = plan.updated, updated != plan.original {
             try writeAtomic(updated, to: plan.configURL)
+        }
+        if let title = plan.codexTitle, title.updated != title.original {
+            if let updated = title.updated { try writeAtomic(updated, to: titleURL) }
+            else if itemExists(titleURL) { try FileManager.default.removeItem(at: titleURL) }
         }
         if let data = plan.manifestData {
             try writeAtomic(data, to: plan.manifestURL, permissions: 0o600)

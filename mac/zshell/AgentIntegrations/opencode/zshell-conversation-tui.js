@@ -2,6 +2,21 @@
 // ZSHELL_INTEGRATION_VERSION=1
 
 import net from "node:net";
+import { spawn } from "node:child_process";
+function remoteRequest(method, params) {
+  if (!process.env.ZSHELL_REMOTE_STATE || !process.env.ZSHELL_EXECUTABLE) return;
+  return new Promise((resolve) => {
+    const child = spawn(process.env.ZSHELL_EXECUTABLE, ["hook", params.provider ?? params.identity?.provider], {
+      stdio: ["pipe", "ignore", "ignore"],
+    });
+    const timeout = setTimeout(() => { child.kill(); resolve(false); }, 3_000);
+    child.on("error", () => { clearTimeout(timeout); resolve(false); });
+    child.on("exit", (code) => { clearTimeout(timeout); resolve(code === 0); });
+    child.stdin.on("error", () => {});
+    child.stdin.end(JSON.stringify({ method, params }));
+  });
+}
+
 import os from "node:os";
 import path from "node:path";
 
@@ -10,7 +25,8 @@ const token = process.env.ZSHELL_AUTOMATION_TOKEN;
 const terminalID = process.env.ZSHELL_TERMINAL_ID;
 
 function request(method, params) {
-  if (process.env.ZSHELL_AUTOMATION !== "1" || !socketPath || !token || !terminalID) {
+  if (process.env.ZSHELL_REMOTE_STATE) return remoteRequest(method, params);
+  if (process.env.ZSHELL_AUTOMATION !== "1" || (!socketPath && !process.env.ZSHELL_REMOTE_STATE) || !token || !terminalID) {
     return Promise.resolve(false);
   }
   return new Promise((resolve) => {
@@ -75,7 +91,7 @@ function rootIdentity(api) {
 }
 
 function setup(api) {
-  if (process.env.ZSHELL_AUTOMATION !== "1" || !socketPath || !token || !terminalID) return;
+  if (process.env.ZSHELL_AUTOMATION !== "1" || (!socketPath && !process.env.ZSHELL_REMOTE_STATE) || !token || !terminalID) return;
   let reported;
   let observedRoute;
   let needsClear = false;

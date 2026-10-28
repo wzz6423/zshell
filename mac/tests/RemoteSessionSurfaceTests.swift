@@ -38,7 +38,8 @@ struct RemoteSessionSurfaceTests {
         _ = NSApplication.shared
         let backend = CommandLine.arguments[1]
         let executable = CommandLine.arguments[2]
-        let host = try RemoteHost(name: "Linux shared fixture", address: CommandLine.arguments[3])
+        let host = try RemoteHost(name: "Shared SSH fixture", address: CommandLine.arguments[3],
+                                  serverPath: CommandLine.arguments.count > 5 ? CommandLine.arguments[5] : "~/.local/bin/zshell-server")
         let directory = CommandLine.arguments[4]
         let localDirectory = FileManager.default.homeDirectoryForCurrentUser
         AppSettings.shared.terminalBackend = backend == "ghostty" ? .libghostty : .alacritty

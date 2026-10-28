@@ -32,6 +32,8 @@ Cả hai backend khai báo Ghostty qua `TERM_PROGRAM` vì CLI hỗ trợ ảnh/t
 Zshell không đọc `~/.config/ghostty` hay cấu hình Alacritty. Phông, màu, hành vi nhập và backend được đặt trong [cài đặt](/vi/docs/configuration) riêng của Zshell.
 </Callout>
 
+Khi mở từ Dock hay Finder, Zshell đọc `SSH_AUTH_SOCK` từ shell đăng nhập tương tác để dùng agent được dotfile chọn. Mở từ terminal giữ agent kế thừa hợp lệ.
+
 ## Quyền hệ thống [#system-permissions]
 
 Chương trình cục bộ trong terminal Zshell có thể yêu cầu truy cập camera hoặc micrô, hay điều khiển ứng dụng khác qua Apple Events.
@@ -39,6 +41,12 @@ macOS quy các yêu cầu này cho Zshell; chỉ cấp quyền cho chương trì
 
 Quản lý quyền trong **Cài đặt hệ thống → Quyền riêng tư & Bảo mật → Camera, Micrô hoặc Tự động hóa**.
 Từ chối yêu cầu sẽ chặn tính năng tương ứng. Zshell không tự động cấp các quyền này.
+
+## Tiêu điểm theo chuột [#focus-follows-mouse]
+
+Bật **Cài đặt → Terminal → Hành vi → Tiêu điểm theo chuột** để chuyển tiêu điểm khi con trỏ vào khung. Mặc định tắt, hỗ trợ cả hai backend và terminal nhanh. Không chuyển khi kéo, từ trình soạn thảo hoặc khi mở menu hay hộp thoại.
+
+`terminal.focus-follows-mouse = true`
 
 ## Tìm kiếm [#search]
 
@@ -121,7 +129,7 @@ Chương trình phát `OSC 9;4` có thanh mảnh trên terminal, phân biệt b�
 
 - **Đọc bảng nhớ tạm cần xác nhận.** `OSC 52` có thể yêu cầu bảng nhớ macOS, kể cả từ máy SSH từ xa. Zshell hỏi trước khi trả dữ liệu.
 - **Đánh dấu thao tác dán rủi ro.** Văn bản nhiều dòng hoặc giống lệnh chờ xác nhận thay vì gửi ngay.
-- **Tệp thành đường dẫn an toàn cho shell.** Tệp kéo hoặc sao chép từ Finder được chèn bằng đường dẫn tuyệt đối trong dấu nháy. Ảnh bảng nhớ vẫn tới TUI có hỗ trợ ảnh.
+- **Tệp và ảnh chụp thành đường dẫn an toàn cho shell.** Tệp Finder được chèn dưới dạng đường dẫn tuyệt đối có trích dẫn. Ảnh riêng được lưu thành PNG tạm riêng tư rồi dán đường dẫn. Khung từ xa tải tệp và ảnh lên máy chủ trước.
 
 ## Nhập với phím Option [#option-key-input]
 

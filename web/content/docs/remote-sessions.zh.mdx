@@ -7,7 +7,7 @@ description: 通过 SSH 或 Tailscale 连接同一远程终端，断开客户端
 
 ## 在主机安装 [#install]
 
-在远程主机上使用当前 Rust 工具链，从 Zshell 仓库构建。Mac 客户端已包含 relay，无需安装 Cargo。
+在**远端主机…**通过 SSH 点击**安装 / 更新服务端**。同架构 Mac 使用应用内置程序；Linux 请选择为对应平台、架构构建的 `zshell-server`。上传及兼容性验证通过后才替换旧程序。已运行的 daemon 在重启前保持原版本，重启会结束其终端会话。也可以直接在主机构建：
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -15,7 +15,7 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-服务端使用哪个 Unix 账户运行，连接者就能操作该账户的 shell 和文件。目前不支持原生 Windows 服务端。
+服务端以哪个账户运行，连接者就能操作该账户的 shell 和文件。支持 macOS 和 Linux。
 
 ## 使用 SSH 连接 [#ssh]
 
@@ -27,7 +27,7 @@ ssh devbox true
 
 从侧栏底部的网络菜单打开**远端主机…**，填写名称、`ssh://me@devbox:22` 或已有 SSH 别名，服务端程序保留 `~/.local/bin/zshell-server`。**连接主机**会查询该主机上的项目并附着已有会话。填写 `~/repo` 等远程目录后，选择**打开远端项目**创建新 shell，路径可以包含空格。此项目中新建标签和分屏也运行在远程主机。
 
-SSH 会自动启动仅该账户可访问的 daemon，并沿用 OpenSSH 配置、密钥、agent 和已信任公钥。未知主机公钥或认证失败会显示错误，请先用普通 SSH 核实后重试。Zshell 不收集密码，也不代为安装服务端。
+SSH 会自动启动仅该账户可访问的 daemon，并沿用 OpenSSH 配置、密钥、agent 和已信任公钥。未知主机公钥或认证失败会显示错误，请先用普通 SSH 核实后重试。Zshell 不收集密码；可使用上述安装操作部署或更新服务端。
 
 文件和 Git 面板通过 SSH 访问同一主机；终端直接使用 Tailscale 时，这两个面板仍需要可用的 SSH 认证。远程路径不会指向 Mac 文件。高级用户可以在启动应用前设置绝对路径 `ZSHELL_SSH_CONFIG_FILE`，让终端、文件和 Git 使用独立的可读 OpenSSH 配置。
 
@@ -39,7 +39,9 @@ SSH 会自动启动仅该账户可访问的 daemon，并沿用 OpenSSH 配置、
 zshell-server serve --listen tailscale://:7373
 ```
 
-在**远端主机…**填写 `tailscale://devbox:7373`。支持 MagicDNS 和 Tailscale IPv4/IPv6 地址，拒绝公网地址。默认只允许主机所有者账户下的未打标签设备；`--allow-user` 可以明确允许另一个完整登录名，带标签的客户端仍会被拒绝。在服务端同机连接请使用 SSH。Tailnet ACL 同样生效；只向可以操作此 Unix 账户的人授权。
+在**远端主机…**填写 `tailscale://devbox:7373`。支持 MagicDNS 和 Tailscale IPv4/IPv6 地址，拒绝公网地址。默认只允许主机所有者账户下的未打标签设备；`--allow-user` 可以明确允许另一个完整登录名，带标签的客户端仍会被拒绝。在服务端同机连接请使用 SSH。Tailnet ACL 同样生效；只向可以操作此服务账户的人授权。
+
+共享这台 Mac 时，先登录 Tailscale，再在**远端主机…**点击**共享这台 Mac**。可设置端口和允许的完整登录名。只有主动开启才会共享；**停止共享**或退出 Zshell 会结束本机共享会话。
 
 ## 共享、分离和重连 [#sharing]
 
@@ -54,8 +56,16 @@ zshell-server list --project ~/repo
 zshell-server terminate --project ~/repo --session UUID
 ```
 
+## 文件与截图 [#paste]
+
+复制普通文件或截图后，在远程窗格粘贴。Zshell 先上传到主机私有目录，再按会话 shell 插入带引用的路径。每批最多 32 个文件，单文件 32 MiB，总计 64 MiB；不支持目录和符号链接。共享会话的上传保留七天。普通 Unix SSH 窗格也支持文件和截图粘贴。
+
+## 远端 Agent 对话 [#agents]
+
+远端 Agent 的活动、进度、审批请求和完成状态使用现有窗格状态与通知。**Agent 对话历史**包含主机保存的 Claude Code、Codex、OpenCode 和 Pi 对话。恢复会重新连接仍存活的对话，或在原主机、原目录启动指定的 provider 会话。对话历史可跨 daemon 重启，运行任务和滚动历史不能。主机仍需保留对应程序、原配置或会话文件。
+
 ## 持久化边界 [#limits]
 
-会话仅在主机 daemon 存活期间持久化，不能跨主机重启、daemon 崩溃或重启。保存的会话不可用时会明确报错，不会悄悄创建新 shell。每个 daemon 最多保留 128 个会话，每个终端快照最多 16 MiB，每个客户端实时队列最多 1 MiB；慢客户端会断开，不会阻塞其他客户端。历史保存在主机内存中。
+会话仅在主机 daemon 存活期间持久化，不能跨主机重启、daemon 崩溃或重启。保存的会话不可用时会明确报错，不会悄悄创建新 shell。每个 daemon 最多保留 128 个会话，每个终端快照最多 16 MiB，每个客户端实时队列最多 1 MiB；慢客户端会断开，不会阻塞其他客户端。终端滚动历史保存在主机内存中。
 
 systemd、LaunchAgent、CLI 和身份策略见[服务端说明](https://github.com/wzz6423/zshell/tree/main/remote)。应先配置服务再创建会话；修改已运行 daemon 的监听器需要先结束其中的会话。

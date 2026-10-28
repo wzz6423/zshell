@@ -458,6 +458,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             updateActiveTimers()
             updateFocusReport()
         } else {
+            events?.terminalDidResignFocus()
             stopSelectionAutoscroll()
             isPointerInside = false
             stopModifierMonitor()
@@ -1427,6 +1428,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     override func resignFirstResponder() -> Bool {
         let resigned = super.resignFirstResponder()
         if resigned {
+            events?.terminalDidResignFocus()
             if inputSelectionMouseEvent != nil {
                 suppressPointerEventsUntilMouseDown = true
                 selectionAnchor = nil
@@ -1474,6 +1476,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     @objc private func effectiveFocusChanged(_ notification: Notification) {
+        if notification.name == NSWindow.didResignKeyNotification,
+           let notificationWindow = notification.object as? NSWindow, notificationWindow === window {
+            events?.terminalDidResignFocus()
+        }
         GlobalTerminalOverlay.shared.scheduleHotkeyRegistrationRefresh()
         // App/window notifications can arrive before AppKit's active and key
         // flags have settled. Render from the final focus state next turn.
@@ -2235,6 +2241,9 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     @objc func paste(_ sender: Any?) {
         finalizePointerSelectionBeforeInput()
         if aiInputEditor.deferWhileBusy({ [weak self] in self?.paste(sender) }) { return }
+        if events?.terminalHandleUserPaste(NSPasteboard.general, paste: { [weak self] text in
+            self?.pasteAIInput(text)
+        }) == true { return }
         activatePendingPromptSelection()
         pendingPromptCaret = nil
         clearActivePromptSelection()

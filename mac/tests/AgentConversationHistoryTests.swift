@@ -304,6 +304,21 @@ struct AgentConversationHistoryTests {
         try PersistentCLIConnection.writePrivate(try JSONSerialization.data(withJSONObject: descriptor), to: descriptorURL)
         try rejects("descriptor rejects a reused PID with a different launch time") { _ = try AgentConversationHistoryConnection.load(from: descriptorURL) }
         try PersistentCLIConnection.writePrivate(originalDescriptor, to: descriptorURL)
+        do {
+            let siblingURL = descriptorURL.deletingLastPathComponent().appendingPathComponent("other-bundle.json")
+            defer { try? fileManager.removeItem(at: siblingURL) }
+            var sibling = try JSONSerialization.jsonObject(with: originalDescriptor) as! [String: Any]
+            sibling["bundleIdentifier"] = "sh.zshell.other-fixture"
+            try PersistentCLIConnection.writePrivate(try JSONSerialization.data(withJSONObject: sibling), to: siblingURL)
+            try check(try AgentConversationHistoryConnection.discover(bundleIdentifier: connection.bundleIdentifier).processID == getpid(),
+                      "native hooks select their own bundle when Debug and Release descriptors coexist")
+            try rejects("native hooks reject a different bundle identifier") {
+                _ = try AgentConversationHistoryConnection.discover(bundleIdentifier: "sh.zshell.absent-fixture")
+            }
+            try rejects("unscoped discovery still rejects several live descriptors") {
+                _ = try AgentConversationHistoryConnection.discover()
+            }
+        }
         for provider in AgentConversationIdentity.Provider.allCases {
             let sessionID = provider == .opencode ? "ses_" + UUID().uuidString : UUID().uuidString
             let cwd = fixtureRoot.appendingPathComponent("\(provider.rawValue)-cwd", isDirectory: true)
@@ -390,7 +405,7 @@ struct AgentConversationHistoryTests {
                       "\(provider.rawValue) pending resume is deduplicated")
             attach(resumed.context.session)
             try wait("\(provider.rawValue) resumed provider reports its exact history") { resumed.context.session.agentConversationOwner?.isAlive == true && launchInfo(resumed.context.session) != nil }
-            let expected = provider == .claude ? ["--resume", sessionID] : provider == .codex ? ["resume", "--no-daemon", sessionID]
+            let expected = provider == .claude ? ["--resume", sessionID] : provider == .codex ? ["resume", sessionID]
                 : provider == .pi ? ["--session", sessionFile.path] : ["--session", sessionID]
             let launched = launchInfo(resumed.context.session)!
             let launchedDirectory = (launched["cwd"] as? String).map { URL(fileURLWithPath: $0).standardizedFileURL.path }

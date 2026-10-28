@@ -120,7 +120,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         if let host = sharedHost, let endpoint = try? host.endpoint() {
             switch endpoint {
             case .ssh(let endpoint): return endpoint
-            case .tailscale(let host, _): return try? SSHEndpoint(host: host)
+            case .tailscale(let hostname, _): return try? SSHEndpoint(host: hostname)
             }
         }
         return nil
@@ -388,6 +388,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         let additionalEnvironment: [String: String]
         let sshMaterial: SSHAuthenticationMaterial?
         let remoteConnection: RemoteSessionConnection?
+        let remotePasteTarget: RemotePasteTarget?
         switch location {
         case .local:
             initialDirectory = directory
@@ -398,6 +399,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             additionalEnvironment = [:]
             sshMaterial = nil
             remoteConnection = nil
+            remotePasteTarget = nil
         case let .shared(host, directory):
             initialDirectory = nil
             additionalEnvironment = [:]
@@ -409,12 +411,15 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                     launchSettings: launchSettings ?? self.launchSettings
                 )
                 remoteConnection = connection
+                remotePasteTarget = nil
                 launchArguments = connection.launchArguments
             } catch {
                 remoteConnection = nil
+                remotePasteTarget = .unavailable
                 launchArguments = ["/bin/sh", "-c", "printf '%s\\n' \"$1\" >&2; exit 1", "zshell", error.localizedDescription]
             }
         case let .ssh(endpoint, remoteDirectory, authentication, credentialID):
+            remotePasteTarget = .ssh(endpoint: endpoint, authentication: authentication, credentialID: credentialID)
             initialDirectory = nil
             remoteConnection = nil
             do {
@@ -461,7 +466,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             isRestoredSession: isRestoredSession,
             allowsPersistence: sharedHost == nil,
             explicitlyResumeConversation: explicitlyResumeConversation,
-            remoteConnection: remoteConnection
+            remoteConnection: remoteConnection,
+            remotePasteTarget: remotePasteTarget,
+            resolvesSSHAgent: isRemote
         )
         register(session)
         if let sshMaterial {
@@ -1321,7 +1328,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     private func register(_ session: TerminalSession) {
         session.onAgentConversationChanged = { [weak self] session, identity in
-            guard let self, !self.isRemote else { return }
+            guard let self, !self.isRemote || self.sharedHost != nil else { return }
             let store = AgentConversationHistoryStore.shared
             let title = self.tabs.first(where: { $0.sessions.contains(where: { $0 === session }) })?.customName
                 ?? session.agentStatus?.alias
@@ -1341,7 +1348,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         sessionObservations[session.id] = session.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
-        if session.agentConversationOwner?.isAlive == true, let identity = session.agentResume {
+        if session.agentConversationOwner?.isAlive == true || session.remoteStatus?.state == .connected, let identity = session.agentResume {
             session.onAgentConversationChanged?(session, identity)
         }
     }

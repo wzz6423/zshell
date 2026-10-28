@@ -10,6 +10,7 @@ import AppKit
 @MainActor
 final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     func applicationWillFinishLaunching(_ notification: Notification) {
+        SSHAgentEnvironment.shared.warmUp()
         // AppSettings is first initialized from SwiftUI's App.init(), where
         // NSApp may not exist yet. Reapply the saved overrides once AppKit is
         // ready, before SwiftUI creates the first window.
@@ -90,6 +91,14 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         ApplicationPresenceController.shared.prepareForTermination()
         TerminalManager.prepareForApplicationQuit()
+        SSHAgentEnvironment.shared.cleanup()
+        if let stopped = LocalRemoteSharing.shared.stop() {
+            Task { @MainActor in
+                await stopped.value
+                sender.reply(toApplicationShouldTerminate: true)
+            }
+            return .terminateLater
+        }
         return .terminateNow
     }
 

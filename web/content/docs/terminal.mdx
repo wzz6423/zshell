@@ -44,6 +44,8 @@ input behavior, and the backend are configured in Zshell's own
 [settings](/en/docs/configuration).
 </Callout>
 
+When launched from the Dock or Finder, Zshell reads `SSH_AUTH_SOCK` from your interactive login shell so SSH connections use the agent selected by your dotfiles. A launch from a terminal keeps its valid inherited agent.
+
 ## System permissions
 
 Local programs in a Zshell terminal can request camera or microphone access, or
@@ -54,6 +56,12 @@ to each target app.
 Manage access in **System Settings → Privacy & Security → Camera, Microphone,
 or Automation**. Denying a request blocks that capability. Zshell does not grant
 these permissions automatically.
+
+## Focus follows mouse [#focus-follows-mouse]
+
+Enable **Settings → Terminal → Behavior → Focus follows mouse** to focus a terminal when the pointer enters it. It is off by default and works with both backends, including Quick Terminal. It does not take focus during a drag, from an editor, or while a menu or dialog is open.
+
+`terminal.focus-follows-mouse = true`
 
 ## Search
 
@@ -187,8 +195,7 @@ program reports progress, the pane shows it.
   including from a remote host over SSH. Zshell asks before returning it.
 - **Risky pastes are flagged.** Multi-line or command-like text is held behind
   a confirmation instead of being submitted immediately.
-- **Files become shell-safe paths.** Finder-copied or dragged files are inserted
-  as quoted absolute paths. Clipboard images still reach image-aware TUIs.
+- **Files and screenshots become shell-safe paths.** Finder files are inserted as quoted absolute paths. A clipboard containing only an image is saved as a private temporary PNG, then its path is pasted for the terminal program to read. Remote panes upload copied files and screenshots to their host before inserting remote paths.
 
 ## Option-key input
 

@@ -121,10 +121,7 @@ enum SettingsImportExport {
     /// import overwrites it. The backup stays for manual recovery — restoring
     /// it by hand is the escape hatch when an import turns out unwanted.
     private static func backUpCurrentConfig() {
-        let backupURL = AppSettings.configURL.deletingLastPathComponent()
-            .appendingPathComponent("config.toml.bak")
-        try? FileManager.default.removeItem(at: backupURL)
-        try? FileManager.default.copyItem(at: AppSettings.configURL, to: backupURL)
+        AppSettings.shared.backUpConfig()
     }
 
     private static func presentError(_ message: String, detail: String) {

@@ -1,11 +1,12 @@
 use crate::protocol::invalid;
 use serde_json::Value;
-use std::fs::{self, File, OpenOptions};
+use std::fs::OpenOptions;
+use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::net::{IpAddr, Shutdown, TcpStream};
 use std::os::fd::{AsRawFd, RawFd};
 use std::os::unix::fs::{FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt};
-use std::os::unix::net::UnixStream;
+use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::thread;
@@ -17,6 +18,12 @@ pub enum Stream {
 }
 
 impl Stream {
+    pub fn peer_pid(&self) -> Option<i32> {
+        match self {
+            Self::Unix(stream) => peer_pid(stream.as_raw_fd()).ok(),
+            Self::Tcp(_) => None,
+        }
+    }
     pub fn try_clone(&self) -> io::Result<Self> {
         match self {
             Self::Unix(s) => s.try_clone().map(Self::Unix),
@@ -24,10 +31,24 @@ impl Stream {
         }
     }
     pub fn shutdown(&self) {
-        let _ = match self {
-            Self::Unix(s) => s.shutdown(Shutdown::Both),
-            Self::Tcp(s) => s.shutdown(Shutdown::Both),
-        };
+        match self {
+            Self::Unix(s) => {
+                let _ = s.shutdown(Shutdown::Both);
+            }
+            Self::Tcp(s) => {
+                let _ = s.shutdown(Shutdown::Both);
+            }
+        }
+    }
+    pub fn shutdown_write(&self) {
+        match self {
+            Self::Unix(s) => {
+                let _ = s.shutdown(Shutdown::Write);
+            }
+            Self::Tcp(s) => {
+                let _ = s.shutdown(Shutdown::Write);
+            }
+        }
     }
     pub fn deadlines(&self, read: Duration, write: Duration) -> io::Result<()> {
         match self {
@@ -88,9 +109,14 @@ pub fn project_path(path: &str) -> io::Result<String> {
     if !path.is_dir() {
         return Err(invalid("Project is not a directory"));
     }
-    path.to_str()
-        .map(str::to_owned)
-        .ok_or_else(|| invalid("Project path must be valid UTF-8"))
+    shell_path(&path)
+}
+
+pub fn shell_path(path: &Path) -> io::Result<String> {
+    let text = path
+        .to_str()
+        .ok_or_else(|| invalid("Path must be valid UTF-8"))?;
+    Ok(text.to_owned())
 }
 
 pub fn prepare_state(path: &Path) -> io::Result<()> {
@@ -152,6 +178,84 @@ pub fn remove_stale_socket(path: &Path) -> io::Result<()> {
 
 pub fn same_user(stream: &UnixStream) -> bool {
     peer_uid(stream.as_raw_fd()).ok() == Some(unsafe { libc::geteuid() })
+}
+
+pub fn connect_control(state: &Path) -> io::Result<Stream> {
+    let path = state.join("control.sock");
+    let metadata = fs::symlink_metadata(&path)?;
+    if !metadata.file_type().is_socket()
+        || metadata.uid() != unsafe { libc::geteuid() }
+        || metadata.mode() & 0o777 != 0o600
+    {
+        return Err(invalid(
+            "Remote control socket must be an owner-only 0600 socket",
+        ));
+    }
+    let stream = UnixStream::connect(path)?;
+    if !same_user(&stream) {
+        return Err(invalid("Remote daemon belongs to a different user"));
+    }
+    Ok(Stream::Unix(stream))
+}
+
+pub struct LocalListener(UnixListener);
+impl LocalListener {
+    pub fn bind(state: &Path) -> io::Result<Self> {
+        let path = state.join("control.sock");
+        remove_stale_socket(&path)?;
+        let listener = UnixListener::bind(&path)?;
+        fs::set_permissions(path, fs::Permissions::from_mode(0o600))?;
+        Ok(Self(listener))
+    }
+    pub fn accept(&mut self) -> io::Result<Stream> {
+        loop {
+            let (stream, _) = self.0.accept()?;
+            if same_user(&stream) {
+                return Ok(Stream::Unix(stream));
+            }
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn peer_pid(fd: RawFd) -> io::Result<i32> {
+    let mut pid = 0i32;
+    let mut size = std::mem::size_of_val(&pid) as libc::socklen_t;
+    if unsafe {
+        libc::getsockopt(
+            fd,
+            0,
+            libc::LOCAL_PEERPID,
+            (&mut pid as *mut i32).cast(),
+            &mut size,
+        )
+    } != 0
+    {
+        return Err(io::Error::last_os_error());
+    }
+    if pid <= 1 {
+        return Err(invalid("Invalid local peer process"));
+    }
+    Ok(pid)
+}
+
+#[cfg(target_os = "linux")]
+fn peer_pid(fd: RawFd) -> io::Result<i32> {
+    let mut credentials = unsafe { std::mem::zeroed::<libc::ucred>() };
+    let mut size = std::mem::size_of_val(&credentials) as libc::socklen_t;
+    if unsafe {
+        libc::getsockopt(
+            fd,
+            libc::SOL_SOCKET,
+            libc::SO_PEERCRED,
+            (&mut credentials as *mut libc::ucred).cast(),
+            &mut size,
+        )
+    } != 0
+    {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(credentials.pid)
 }
 
 #[cfg(target_os = "macos")]

@@ -188,6 +188,20 @@ struct RemoteSSHTests {
         )
         expect(timedOut.timedOut, "process timeout")
 
+        let input = Data((0..<190_000).map { UInt8($0 % 251) })
+        let inputRoundTrip = try BoundedProcessRunner.run(
+            executableURL: URL(fileURLWithPath: "/usr/bin/base64"),
+            arguments: [], timeout: 3, outputLimit: 512_000, standardInput: input
+        )
+        expect(inputRoundTrip.terminationStatus == 0 && !inputRoundTrip.timedOut, "bounded stdin completes")
+        expect(Data(base64Encoded: inputRoundTrip.output.stdout, options: .ignoreUnknownCharacters) == input,
+               "bounded stdin preserves binary data")
+        let inputTimedOut = try BoundedProcessRunner.run(
+            executableURL: URL(fileURLWithPath: "/bin/sh"), arguments: ["-c", "sleep 2"],
+            timeout: 0.1, outputLimit: 32, standardInput: Data(repeating: 65, count: 1024 * 1024)
+        )
+        expect(inputTimedOut.timedOut, "stdin backpressure does not outlive the process timeout")
+
         print("Remote SSH tests: \(passed) passed, 0 failed")
     }
 }

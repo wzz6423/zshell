@@ -32,6 +32,8 @@ Ambos motores se anuncian como Ghostty mediante `TERM_PROGRAM` porque las CLI co
 Zshell no lee `~/.config/ghostty` ni una configuración de Alacritty. Las fuentes, los colores, el comportamiento de entrada y el motor se configuran en los [ajustes](/es/docs/configuration) de Zshell.
 </Callout>
 
+Al abrir desde Dock o Finder, Zshell lee `SSH_AUTH_SOCK` del shell de inicio interactivo para usar el agente elegido en tus dotfiles. Al iniciar desde un terminal conserva su agente heredado válido.
+
 ## Permisos del sistema [#system-permissions]
 
 Los programas locales de un terminal de Zshell pueden solicitar acceso a la cámara o al micrófono, o controlar otra app mediante Apple Events.
@@ -39,6 +41,12 @@ macOS atribuye estas solicitudes a Zshell; permite el acceso solo a programas de
 
 Gestiona el acceso en **Ajustes del Sistema → Privacidad y seguridad → Cámara, Micrófono o Automatización**.
 Rechazar una solicitud bloquea esa función. Zshell no concede estos permisos automáticamente.
+
+## El foco sigue al ratón [#focus-follows-mouse]
+
+Activa **Ajustes → Terminal → Comportamiento → El foco sigue al ratón** para enfocar un panel al entrar el puntero. Está desactivado por defecto y funciona con ambos motores y el terminal rápido. No cambia el foco durante un arrastre, desde un editor ni con un menú o diálogo abierto.
+
+`terminal.focus-follows-mouse = true`
 
 ## Búsqueda [#search]
 
@@ -121,7 +129,7 @@ Los programas que emiten progreso mediante `OSC 9;4` muestran una barra fina sob
 
 - **Las lecturas del portapapeles piden confirmación.** `OSC 52` puede solicitar el portapapeles de macOS, incluso desde un equipo remoto por SSH. Zshell pregunta antes de devolverlo.
 - **Los pegados arriesgados se señalan.** El texto multilínea o con aspecto de comando requiere confirmación en lugar de enviarse inmediatamente.
-- **Los archivos se convierten en rutas seguras para el shell.** Los archivos copiados o arrastrados desde Finder se insertan como rutas absolutas entre comillas. Las imágenes del portapapeles siguen llegando a las TUI compatibles con imágenes.
+- **Archivos y capturas se convierten en rutas seguras para el shell.** Los archivos de Finder se insertan como rutas absolutas entre comillas. Una imagen sola se guarda en un PNG temporal privado y se pega su ruta. Los paneles remotos suben primero los archivos y capturas al servidor.
 
 ## Entrada con la tecla Opción [#option-key-input]
 

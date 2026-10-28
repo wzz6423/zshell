@@ -21,9 +21,7 @@ default. Existing configurations and saved choices are preserved.
 
 Worth knowing before you hand-edit:
 
-- **It's read at launch.** Editing the file while Zshell is running changes
-  nothing until you relaunch. Changes made in Settings apply immediately,
-  except where the control says otherwise.
+- **Changes are read while Zshell is running.** Valid external edits apply automatically; settings marked for new terminals still need a new pane. Unreadable or malformed edits retain the last valid settings. An intentionally empty file restores defaults after a short delay.
 - **Zshell rewrites it whenever a file-backed setting changes.** The file is
   regenerated from scratch, so your comments and unknown keys are lost the
   next time you use one of those controls. Pick one editor for the file, or
@@ -37,6 +35,8 @@ Worth knowing before you hand-edit:
   support arrays, inline tables, or multi-line strings.
 - **Bad values fall back safely.** An out-of-range size, unknown backend, or
   misspelled theme does not stop Zshell from launching.
+
+Symbolic links to a file or directory are preserved when Settings saves: Zshell updates the target atomically and keeps its permissions. External edits do not rewrite comments or unknown keys; a subsequent Settings save still regenerates the file as described above.
 
 ## Application presence [#application-presence]
 
@@ -271,6 +271,8 @@ are left untouched.
 The human workflow is described in
 [Working with AI agents](/en/docs/automation).
 
+For shared Codex app-server sessions, Zshell matches verified conversation IDs to the foreground pane. Ambiguous matches remain unbound. Its managed integration adds `session-id` to Codex’s terminal title while preserving other title items.
+
 ### `ai.resume-conversations`
 
 boolean — default `true`
@@ -289,6 +291,7 @@ Control it with **Settings → Automation → Resume agent conversations**. This
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Terminal cursor shape |
 | `terminal.cursor-blinking` | `true` | boolean | Blink the cursor |
 | `terminal.copy-on-select` | `true` | boolean | Copy selected terminal text |
+| `terminal.focus-follows-mouse` | `false` | boolean | Focus follows mouse |
 | `terminal.shift-enter-newline` | `true` | boolean | Send an enhanced newline sequence with Shift+Enter; requires application support |
 | `terminal.background-opacity` | `1` | 0.2–1 | Terminal background opacity |
 | `terminal.background-blur` | `false` | boolean | Blur translucent backgrounds |
@@ -306,12 +309,7 @@ Control it with **Settings → Automation → Resume agent conversations**. This
 Use **Zshell → Export Settings…** to save a TOML file, and **Import Settings…** to load it.
 Import asks you to confirm replacement and attempts to back up the current file as `config.toml.bak` in the same directory.
 
-The importer currently restores a subset: themes, main font options, cursor settings, terminal backend,
-history restoration, selection copying, Quick Terminal, and AI support. It does not round-trip every
-exported setting. Check interface scale, app icon, external editor, and terminal background settings afterward.
-For a complete configuration transfer, quit Zshell, back up and copy `config.toml`, then relaunch.
-The AI toggle updates only when the imported file explicitly contains `ai.enabled`; check it after importing.
-Project and tab environment variables are session data and are not included in this file.
+Import reads every supported configuration key. Omitted keys use the configuration reader’s defaults; omitting `ai.enabled` preserves the current AI setting. Language and project or tab environment variables are stored separately.
 
 ## A complete example
 

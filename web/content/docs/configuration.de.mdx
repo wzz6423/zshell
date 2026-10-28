@@ -17,11 +17,13 @@ Neue Konfigurationen aktivieren Vim-Befehlshinweise, die Wiederherstellung des S
 
 Vor dem manuellen Bearbeiten sollten Sie Folgendes wissen:
 
-- **Die Datei wird beim Start gelesen.** Änderungen an der Datei während des Betriebs greifen erst nach einem Neustart. Änderungen im Einstellungsfenster wirken sofort, sofern das Steuerelement nichts anderes angibt.
+- **Änderungen werden im laufenden Betrieb gelesen.** Gültige externe Änderungen gelten automatisch; Einstellungen für neue Terminals benötigen weiterhin einen neuen Bereich. Unlesbare oder fehlerhafte Dateien lassen die letzten gültigen Einstellungen bestehen. Eine bewusst leere Datei stellt nach kurzer Verzögerung die Standardwerte wieder her.
 - **Zshell schreibt die Datei bei jeder darin gespeicherten Einstellungsänderung neu.** Dabei gehen Kommentare und unbekannte Schlüssel verloren. Bearbeiten Sie sie möglichst auf nur einem Weg oder halten Sie eine maßgebliche Kopie in Ihren Dotfiles vor.
 - **Die meisten Standardwerte werden weggelassen.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` werden immer gespeichert. Das Entfernen eines dieser drei Terminalschlüssel in einer vorhandenen Datei deaktiviert die Funktion; bei anderen Schlüsseln wird der Standard wiederhergestellt.
 - **Der Parser ist bewusst klein.** Er unterstützt einfache und punktgetrennte Schlüssel, `[table]`-Kopfzeilen, `#`-Kommentare sowie Zeichenketten, Zahlen und boolesche Werte. Arrays, Inline-Tabellen und mehrzeilige Zeichenketten werden nicht unterstützt.
 - **Ungültige Werte verwenden sichere Ersatzwerte.** Eine Größe außerhalb des Bereichs, ein unbekanntes Backend oder ein falsch geschriebener Themenname verhindert den Start nicht.
+
+Beim Speichern bleiben symbolische Datei- und Verzeichnislinks erhalten; ihr Ziel wird atomar und mit unveränderten Rechten aktualisiert. Externe Änderungen schreiben Kommentare und unbekannte Schlüssel nicht neu. Späteres Speichern in Einstellungen erzeugt die Datei weiterhin wie oben beschrieben neu.
 
 ## Anwendungspräsenz [#application-presence]
 
@@ -175,6 +177,8 @@ Ermöglicht unterstützten Programmieragenten, auf Ihre natürlichsprachliche Bi
 
 Den Ablauf beschreibt [Mit KI-Agenten arbeiten](/de/docs/automation).
 
+Bei gemeinsamem Codex app-server ordnet Zshell verifizierte Gesprächs-IDs dem Vordergrundbereich zu. Mehrdeutige Zuordnungen bleiben offen. Die verwaltete Integration ergänzt `session-id` im Codex-Terminaltitel und erhält andere Titelelemente.
+
 ### `ai.resume-conversations` [#airesume-conversations]
 
 Boolescher Wert — Standard `true`
@@ -193,6 +197,7 @@ Die Option steht unter **Einstellungen → Automatisierung → Agentengespräche
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Form des Terminalcursors |
 | `terminal.cursor-blinking` | `true` | Boolescher Wert | Cursor blinken lassen |
 | `terminal.copy-on-select` | `true` | Boolescher Wert | Markierten Terminaltext kopieren |
+| `terminal.focus-follows-mouse` | `false` | Boolescher Wert | Fokus folgt der Maus |
 | `terminal.shift-enter-newline` | `true` | Boolescher Wert | Erweiterte Zeilenumbruchsequenz mit Shift+Enter senden; erfordert Unterstützung des Programms |
 | `terminal.background-opacity` | `1` | 0.2–1 | Deckkraft des Terminalhintergrunds |
 | `terminal.background-blur` | `false` | Boolescher Wert | Durchscheinende Hintergründe weichzeichnen |
@@ -209,7 +214,7 @@ Die Option steht unter **Einstellungen → Automatisierung → Agentengespräche
 
 Mit **Zshell → Einstellungen exportieren…** speichern Sie eine TOML-Datei, mit **Einstellungen importieren…** laden Sie sie. Der Import fragt vor dem Ersetzen nach und versucht, die aktuelle Datei als `config.toml.bak` im selben Verzeichnis zu sichern.
 
-Der Import stellt derzeit eine Teilmenge wieder her: Themen, grundlegende Schriftoptionen, Cursor, Terminal-Backend, Verlaufswiederherstellung, Kopieren bei Auswahl, Schnellterminal und KI-Unterstützung. Nicht jede exportierte Einstellung lässt sich auf diesem Weg zurückspielen. Prüfen Sie danach Oberflächenskalierung, Anwendungssymbol, externen Editor und Terminalhintergrund. Für eine vollständige Übertragung beenden Sie Zshell, sichern und kopieren `config.toml` und starten Zshell erneut. Die KI-Einstellung wird nur geändert, wenn die importierte Datei ausdrücklich `ai.enabled` enthält; prüfen Sie sie nach dem Import. Umgebungsvariablen von Projekten und Tabs sind Sitzungsdaten und gehören nicht zu dieser Datei.
+Der Import liest alle unterstützten Einstellungen. Fehlende Schlüssel verwenden die Vorgaben des Konfigurationslesers; ohne `ai.enabled` bleibt die aktuelle KI-Einstellung erhalten. Sprache sowie Projekt- und Tab-Umgebungsvariablen werden separat gespeichert.
 
 ## Ein vollständiges Beispiel [#a-complete-example]
 

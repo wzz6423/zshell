@@ -103,5 +103,35 @@ class GitStatusParserTests(unittest.TestCase):
         subprocess.run(["/usr/bin/git", *args], cwd=repo, check=True)
 
 
+class GitDecorationPathTests(unittest.TestCase):
+    def test_posix_paths_keep_literal_backslashes(self):
+        source = SOURCE.read_text()
+        decoration = source[source.index("    nonisolated enum FileDecoration:"):
+                            source.index("    nonisolated struct RecentCommit:")]
+        method = source[source.index("    func fileDecoration(for absolutePath:"):
+                        source.index("    // MARK: - Remote projects")]
+        with tempfile.TemporaryDirectory(prefix="zshell-git-paths-") as temporary:
+            script = Path(temporary) / "main.swift"
+            script.write_text("import Foundation\n" + r'''
+struct GitStatusModel {
+    var isRepo = true
+    var topLevel: String
+    var fileDecorations: [String: FileDecoration]
+    var ignoredPaths: Set<String> = []
+''' + decoration + method + "}\n" + r'''
+let model = GitStatusModel(topLevel: "/repo",
+    fileDecorations: [#"literal\file.txt"#: .modified, "sub/file.txt": .added])
+precondition(model.fileDecoration(for: #"/repo/literal\file.txt"#, isDirectory: false) == .modified)
+precondition(model.fileDecoration(for: "/repo/literal/file.txt", isDirectory: false) == nil)
+precondition(model.fileDecoration(for: "/repo/sub", isDirectory: true) == .added)
+precondition(model.fileDecoration(for: #"/repo-other/literal\file.txt"#, isDirectory: false) == nil)
+print("Git path decorations: 4 passed, 0 failed")
+''')
+            binary = Path(temporary) / "git-path-decorations"
+            subprocess.run(["swiftc", str(script), "-o", str(binary)], check=True)
+            result = subprocess.run([str(binary)], capture_output=True, text=True, check=True)
+            self.assertIn("4 passed, 0 failed", result.stdout)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -6,7 +6,6 @@ nonisolated struct RemoteHost: Codable, Equatable, Identifiable, Sendable {
     var name: String
     var address: String
     var serverPath: String
-
     init(id: UUID = UUID(), name: String, address: String, serverPath: String = "~/.local/bin/zshell-server") throws {
         self.id = id
         self.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -31,6 +30,10 @@ nonisolated struct RemoteHost: Codable, Equatable, Identifiable, Sendable {
     enum Endpoint: Sendable {
         case ssh(SSHEndpoint)
         case tailscale(host: String, port: Int)
+    }
+
+    func serverCommand(_ arguments: [String]) -> [String] {
+        [serverPath] + arguments
     }
 
     func endpoint() throws -> Endpoint {
@@ -95,11 +98,44 @@ nonisolated struct RemoteSessionInfo: Codable, Sendable {
     let clientCount: Int
     let activeClientId: String?
     let totalOutputBytes: UInt64
+    var agentStatus: RemoteAgentStatus?
+    var conversation: ZshellJSONValue?
 }
 
 nonisolated struct RemoteProjectListing: Sendable {
     let directory: String
     let sessions: [RemoteSessionInfo]
+    var conversations: [RemoteAgentConversation] = []
+}
+
+nonisolated struct RemoteAgentStatus: Codable, Equatable, Sendable {
+    struct Record: Codable, Equatable, Sendable {
+        let id: String
+        let state: String
+        let app: String
+        let message: String
+        let title: String
+        let kind: String
+        let progress: Int?
+        let updatedAt: UInt64
+    }
+    let phase: String
+    let app: String
+    let message: String
+    let attention: String?
+    let progress: Int?
+    let records: [Record]
+    let generation: UInt64
+}
+
+nonisolated struct RemoteAgentConversation: Codable, Sendable {
+    let identity: ZshellJSONValue
+    let project: String
+    let remoteSessionID: String
+    let startedAt: Double
+    let updatedAt: Double
+    let endedAt: Double?
+    let title: String?
 }
 
 nonisolated struct RemoteFrame: Codable {
@@ -116,6 +152,12 @@ nonisolated struct RemoteFrame: Codable {
     var rows: Int?
     var data: String?
     var sequence: UInt64?
+    var pasteFiles: [RemotePasteFileInfo]?
+    var uploadId: String?
+    var fileIndex: Int?
+    var offset: UInt64?
+    var provider: String?
+    var conversationId: String?
     var result: ZshellJSONValue?
     var error: String?
     var exitCode: Int32?
@@ -144,8 +186,8 @@ nonisolated final class RemoteHostTransport: @unchecked Sendable {
             let outputPipe = Pipe()
             let errorPipe = Pipe()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
-            process.arguments = try endpoint.transportArguments(connectTimeout: 10, command: [host.serverPath, "bridge"])
-            var environment = ProcessInfo.processInfo.environment
+            process.arguments = try endpoint.transportArguments(connectTimeout: 10, command: host.serverCommand(["bridge"]))
+            var environment = SSHAgentEnvironment.shared.resolvedEnvironment()
             environment.removeValue(forKey: "ZSHELL_CLI_STATE")
             environment.removeValue(forKey: "ZSHELL_CLI_TOKEN")
             environment["SSH_ASKPASS_REQUIRE"] = "never"
@@ -183,7 +225,7 @@ nonisolated final class RemoteHostTransport: @unchecked Sendable {
     deinit { close() }
 
     func handshake() throws {
-        try PTYMuxWire.writeAll(Data("ZSRM0001".utf8), to: input)
+        try writeExactly(Data("ZSRM0001".utf8), timeout: 12)
         let response = try readExactly(8, timeout: 12)
         guard response == Data("ZSRM0001".utf8) else {
             throw RemoteHostError.message(String(localized: "The remote server uses an incompatible protocol."))
@@ -193,7 +235,14 @@ nonisolated final class RemoteHostTransport: @unchecked Sendable {
     func exchange(_ frame: RemoteFrame) throws -> RemoteFrame {
         var frame = frame
         frame.requestId = UUID().uuidString
-        try PTYMuxWire.writeFrame(frame, to: input)
+        let payload = try JSONEncoder().encode(frame)
+        guard payload.count <= PTYMuxConstants.maximumFrameBytes else {
+            throw RemoteHostError.message(String(localized: "The remote server returned an invalid response."))
+        }
+        var length = UInt32(payload.count).bigEndian
+        var wire = withUnsafeBytes(of: &length) { Data($0) }
+        wire.append(payload)
+        try writeExactly(wire, timeout: 12)
         let prefix = try readExactly(4, timeout: 12)
         let count = prefix.withUnsafeBytes { Int(UInt32(bigEndian: $0.loadUnaligned(as: UInt32.self))) }
         guard (1...PTYMuxConstants.maximumFrameBytes).contains(count) else {
@@ -213,11 +262,13 @@ nonisolated final class RemoteHostTransport: @unchecked Sendable {
         let deadline = Date().addingTimeInterval(timeout)
         try data.withUnsafeMutableBytes { bytes in
             while offset < count {
+                try Task.checkCancellation()
                 var descriptor = pollfd(fd: output, events: Int16(POLLIN), revents: 0)
                 let milliseconds = max(0, Int32(deadline.timeIntervalSinceNow * 1000))
                 guard milliseconds > 0 else { throw RemoteHostError.message(String(localized: "The remote host did not respond in time.")) }
-                let ready = Darwin.poll(&descriptor, 1, milliseconds)
+                let ready = Darwin.poll(&descriptor, 1, min(milliseconds, 250))
                 if ready < 0, errno == EINTR { continue }
+                if ready == 0 { continue }
                 guard ready > 0 else { throw RemoteHostError.message(String(localized: "The remote host did not respond in time.")) }
                 let received = Darwin.read(output, bytes.baseAddress!.advanced(by: offset), count - offset)
                 if received > 0 { offset += received }
@@ -226,6 +277,30 @@ nonisolated final class RemoteHostTransport: @unchecked Sendable {
             }
         }
         return data
+    }
+
+    private func writeExactly(_ data: Data, timeout: TimeInterval) throws {
+        let flags = fcntl(input, F_GETFL, 0)
+        guard flags >= 0, fcntl(input, F_SETFL, flags | O_NONBLOCK) == 0,
+              fcntl(input, F_SETNOSIGPIPE, 1) == 0 else { throw PTYMuxWire.errnoError("fcntl") }
+        defer { _ = fcntl(input, F_SETFL, flags) }
+        let deadline = Date().addingTimeInterval(timeout)
+        try data.withUnsafeBytes { bytes in
+            var offset = 0
+            while offset < bytes.count {
+                try Task.checkCancellation()
+                let milliseconds = max(0, Int32(deadline.timeIntervalSinceNow * 1000))
+                guard milliseconds > 0 else { throw RemoteHostError.message(String(localized: "The remote host did not respond in time.")) }
+                var descriptor = pollfd(fd: input, events: Int16(POLLOUT), revents: 0)
+                let ready = Darwin.poll(&descriptor, 1, min(milliseconds, 250))
+                if ready == 0 || ready < 0 && errno == EINTR { continue }
+                guard ready > 0 else { throw PTYMuxWire.errnoError("poll") }
+                let written = Darwin.write(input, bytes.baseAddress!.advanced(by: offset), bytes.count - offset)
+                if written > 0 { offset += written }
+                else if written < 0, errno == EINTR || errno == EAGAIN { continue }
+                else { throw RemoteHostError.message(diagnostic(fallback: String(localized: "The remote connection closed."))) }
+            }
+        }
     }
 
     func diagnostic(fallback: String) -> String {
@@ -305,6 +380,15 @@ nonisolated final class RemoteHostTransport: @unchecked Sendable {
         }
         return false
     }
+
+    static func isTailnetAddress(_ text: String) -> Bool {
+        var hints = addrinfo()
+        hints.ai_flags = AI_NUMERICHOST
+        var address: UnsafeMutablePointer<addrinfo>?
+        guard getaddrinfo(text, nil, &hints, &address) == 0, let address else { return false }
+        defer { freeaddrinfo(address) }
+        return isTailnet(address.pointee)
+    }
 }
 
 nonisolated enum RemoteHostClient {
@@ -315,7 +399,8 @@ nonisolated enum RemoteHostClient {
         let directories = try transport.exchange(RemoteFrame(kind: "projects")).decodedResult([String].self)
         return try directories.map { directory in
             let sessions = try transport.exchange(RemoteFrame(kind: "list", project: directory)).decodedResult([RemoteSessionInfo].self)
-            return RemoteProjectListing(directory: directory, sessions: sessions)
+            let conversations = try transport.exchange(RemoteFrame(kind: "agentHistory", project: directory)).decodedResult([RemoteAgentConversation].self)
+            return RemoteProjectListing(directory: directory, sessions: sessions, conversations: conversations)
         }
     }
 
@@ -331,5 +416,16 @@ nonisolated enum RemoteHostClient {
         defer { transport.close() }
         try transport.handshake()
         _ = try transport.exchange(RemoteFrame(kind: "terminate", project: directory, sessionId: sessionID.uuidString))
+    }
+
+    static func resume(host: RemoteHost, identity: AgentConversationIdentity) throws -> RemoteSessionInfo {
+        guard identity.remoteHostID == host.id, let project = identity.remoteProjectDirectory else {
+            throw AgentConversationHistoryError.differentProject
+        }
+        let transport = try RemoteHostTransport(host: host)
+        defer { transport.close() }
+        try transport.handshake()
+        return try transport.exchange(RemoteFrame(kind: "agentResume", project: project,
+            provider: identity.provider.rawValue, conversationId: identity.sessionID)).decodedResult(RemoteSessionInfo.self)
     }
 }

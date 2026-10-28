@@ -18,11 +18,15 @@ final class ZshellAutomationEventHub {
         let terminalID: UUID?
         let contentID: UUID
         let content: String
+        let remoteHostID: UUID?
+        let remoteSessionID: UUID?
 
         var data: [String: ZshellJSONValue] {
             ["tab_id": .string(tabID.uuidString), "pane_id": .string(paneID.uuidString),
              "terminal_id": terminalID.map { .string($0.uuidString) } ?? .null,
-             "content_id": .string(contentID.uuidString), "content": .string(content)]
+             "content_id": .string(contentID.uuidString), "content": .string(content),
+             "host_id": remoteHostID.map { .string($0.uuidString) } ?? .null,
+             "remote_session_id": remoteSessionID.map { .string($0.uuidString) } ?? .null]
         }
     }
 
@@ -269,7 +273,9 @@ final class ZshellAutomationEventHub {
         case .diff: "diff"
         }
         return PaneRecord(tabID: context.tab.id, paneID: context.pane.id, terminalID: context.session?.id,
-                          contentID: context.pane.content.id, content: content)
+                          contentID: context.pane.content.id, content: content,
+                          remoteHostID: context.session?.remoteConnection?.host.id,
+                          remoteSessionID: context.session?.remoteConnection?.sessionID)
     }
 
     private static func focus(_ caller: ZshellAutomationRouter.PaneContext) -> ZshellJSONValue {

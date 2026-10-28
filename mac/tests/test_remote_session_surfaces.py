@@ -12,6 +12,7 @@ import argparse
 import os
 from pathlib import Path
 import platform
+import plistlib
 import subprocess
 import tempfile
 import uuid
@@ -23,7 +24,12 @@ parser.add_argument("--derived-data", type=Path, default=Path(os.environ.get("ZS
 parser.add_argument("--address", required=True)
 parser.add_argument("--directory", required=True)
 parser.add_argument("--ssh-config", type=Path, required=True)
+parser.add_argument("--server-path", default="~/.local/bin/zshell-server")
 parser.add_argument("--backend", choices=("alacritty", "ghostty"), action="append")
+parser.add_argument("--paste", action="store_true", help="Run the remote file/image paste probe after session checks")
+parser.add_argument("--agent-root", type=Path, help="Run official Codex Agent probes with this prepared isolated fixture")
+parser.add_argument("--agent-provider", help="Absolute official Codex executable on the isolated SSH fixture")
+parser.add_argument("--agent-only", action="store_true", help="Run only the prepared Agent probe")
 options = parser.parse_args()
 build = options.derived_data / "Build"
 products = build / "Products/Debug"
@@ -54,13 +60,52 @@ with tempfile.TemporaryDirectory(prefix="zshell-remote-surfaces-", dir="/tmp") a
     subprocess.run(arguments + [str(ssh_source)], cwd=ROOT, check=True)
     subprocess.run([str(binary)], cwd=ROOT, check=True, timeout=30,
                    env={**os.environ, "CFFIXED_USER_HOME": directory})
-    subprocess.run(arguments + [str(ROOT / "mac/tests/RemoteSessionSurfaceTests.swift")], cwd=ROOT, check=True)
-    for backend in options.backend or ("alacritty", "ghostty"):
+    if not options.agent_only:
+        subprocess.run(arguments + [str(ROOT / "mac/tests/RemoteSessionSurfaceTests.swift")], cwd=ROOT, check=True)
+    for backend in (() if options.agent_only else options.backend or ("alacritty", "ghostty")):
         home = temporary / backend
         home.mkdir()
         environment = {key: value for key, value in os.environ.items() if key not in ("ZSHELL_CLI_STATE", "ZSHELL_CLI_TOKEN")}
         environment.update({"CFFIXED_USER_HOME": str(home), "HOME": str(home),
                             "ZSHELL_SSH_CONFIG_FILE": str(options.ssh_config.resolve()),
                             "ZSHELL_PTY_MUX_DIRECTORY": str(home / "mux")})
-        subprocess.run([str(binary), backend, str(executable), options.address, options.directory],
+        subprocess.run([str(binary), backend, str(executable), options.address, options.directory, options.server_path],
                        cwd=ROOT, check=True, timeout=120, env=environment)
+    if options.paste:
+        subprocess.run(arguments + [str(ROOT / "mac/tests/RemotePasteSurfaceTests.swift")], cwd=ROOT, check=True)
+        for backend in options.backend or ("alacritty", "ghostty"):
+            home = temporary / (backend + "-paste")
+            home.mkdir()
+            environment = {key: value for key, value in os.environ.items() if key not in ("ZSHELL_CLI_STATE", "ZSHELL_CLI_TOKEN")}
+            environment.update({"CFFIXED_USER_HOME": str(home), "HOME": str(home),
+                                "ZSHELL_SSH_CONFIG_FILE": str(options.ssh_config.resolve()),
+                                "ZSHELL_PTY_MUX_DIRECTORY": str(home / "mux")})
+            subprocess.run([str(binary), backend, str(executable), options.address, options.directory, options.server_path],
+                           cwd=ROOT, check=True, timeout=120, env=environment)
+    if options.agent_root:
+        if not options.agent_provider:
+            raise SystemExit("--agent-provider is required for the official Agent fixture")
+        contents = temporary / "RemoteAgentTests.app/Contents"
+        agent_binary = contents / "MacOS/zshell"
+        agent_binary.parent.mkdir(parents=True)
+        (contents / "Resources").symlink_to(executable.parent.parent / "Resources", target_is_directory=True)
+        (contents / "Info.plist").write_bytes(plistlib.dumps({
+            "CFBundleIdentifier": "sh.zshell.remote-agent-tests." + uuid.uuid4().hex,
+            "CFBundleExecutable": "zshell", "CFBundlePackageType": "APPL", "LSUIElement": True,
+        }))
+        agent_arguments = list(arguments)
+        agent_arguments += ["-module-name", "RemoteAgentSurfaceProbe"]
+        agent_arguments[agent_arguments.index("-o") + 1] = str(agent_binary)
+        subprocess.run(agent_arguments + [str(ROOT / "mac/tests/RemoteAgentSurfaceTests.swift")], cwd=ROOT, check=True)
+        for backend in options.backend or ("alacritty", "ghostty"):
+            home = temporary / (backend + "-agent")
+            home.mkdir()
+            config = home / ".config/zshell-dev/config.toml"
+            config.parent.mkdir(parents=True)
+            config.write_text("[ai]\nenabled = true\n[terminal]\npreserve-sessions = false\n")
+            environment = {key: value for key, value in os.environ.items() if not key.startswith("ZSHELL_")}
+            environment.update({"CFFIXED_USER_HOME": str(home), "HOME": str(home),
+                                "ZSHELL_SSH_CONFIG_FILE": str(options.ssh_config.resolve()),
+                                "ZSHELL_PTY_MUX_DIRECTORY": str(home / "mux")})
+            subprocess.run([str(agent_binary), backend, str(executable), options.address, options.directory, options.server_path,
+                            str(options.agent_root.resolve()), options.agent_provider], cwd=ROOT, check=True, timeout=160, env=environment)

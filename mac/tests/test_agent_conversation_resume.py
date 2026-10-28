@@ -154,6 +154,12 @@ REFRESH
 final class TerminalSession {
     struct AgentStatus { var alias: String? }
     struct Surface { var foregroundPid: pid_t? }
+    struct RemoteStatus {
+        enum State { case connected, failed }
+        var state: State
+    }
+    var remoteConnection: Bool?
+    var remoteStatus: RemoteStatus?
     var hasExited = false
     var shellPid: pid_t?
     var surface = Surface()
@@ -318,15 +324,21 @@ with tempfile.TemporaryDirectory(prefix="zshell-agent-resume-") as temporary:
     production = ["AgentConversationIdentity.swift", "AgentConversationBinding.swift",
                   "TerminalAgentConversation.swift", "ProcessWorkingDirectory.swift",
                   "ZshellAgentSessionHooks.swift", "ZshellAgentIntegrations.swift",
-                  "ZshellAutomationSkill.swift"]
+                  "ZshellAutomationSkill.swift", "CodexTitleConfiguration.swift",
+                  "ZshellAutomationProtocol.swift"]
     if has_lifecycle:
         production.append("ZshellAgentLifecycleHooks.swift")
-    sources = []
+    runner = source("AgentUsage.swift")
+    runner = "import Foundation\nimport Darwin\n" + runner[runner.index("nonisolated struct ProcessCommandResult") :]
+    runner_path = root / "ProcessRunner.swift"
+    runner_path.write_text(runner)
+    sources = [str(runner_path)]
     for filename in production:
         path = root / filename
         path.write_text(source(filename))
         sources.append(str(path))
     subprocess.run(["xcrun", "swiftc", "-parse-as-library", "-swift-version", "5",
+                    "-module-cache-path", str(root / "ModuleCache"),
                     *sources, str(helper), "-o", str(executable)], check=True)
     failures = []
     for mode in ("modified", "healthy", "disabled"):

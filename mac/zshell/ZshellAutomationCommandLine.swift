@@ -304,7 +304,10 @@ enum ZshellAutomationCommandLine {
               let provider = AgentConversationIdentity.Provider(rawValue: arguments[0])
         else { return }
         let environment = ProcessInfo.processInfo.environment
-        guard environment["ZSHELL_AUTOMATION"] == "1",
+        let isSharedCodex = provider == .codex && AgentConversationBinding.sharedCodexServicePID(
+            peerPID: getpid(), reporterPID: getpid(), process: TerminalSession.conversationProcessEvidence
+        ) != nil
+        guard (environment["ZSHELL_AUTOMATION"] == "1" || isSharedCodex),
               let data = try? FileHandle.standardInput.read(upToCount: 1_048_577),
               let event = AgentConversationSessionEvent.sessionStart(
                 provider: provider,
@@ -314,17 +317,15 @@ enum ZshellAutomationCommandLine {
                 currentDirectory: FileManager.default.currentDirectoryPath
               ),
               let identityData = try? JSONEncoder().encode(event.identity),
-              let identity = try? JSONDecoder().decode(ZshellJSONValue.self, from: identityData),
-              let connection = try? AppConnection()
+              let identity = try? JSONDecoder().decode(ZshellJSONValue.self, from: identityData)
         else { return }
-        _ = try? connection.automationRequest(
+        sendNativeHook(
             method: "agent.session.start",
             params: [
                 "identity": identity,
                 "reporter_pid": .number(Double(event.reporterPID)),
                 "source": event.source.map(ZshellJSONValue.string) ?? .null,
-            ],
-            timeout: 1
+            ], isSharedCodex: isSharedCodex
         )
     }
 
@@ -378,18 +379,32 @@ enum ZshellAutomationCommandLine {
               let object = value.objectValue,
               ZshellAgentLifecycleEvent.parse(provider: provider, payload: object) != nil
         else { return }
-        let fields: Set<String> = ["hook_event_name", "agent_id", "agent_type", "notification_type", "error", "tool_name"]
+        let fields: Set<String> = ["hook_event_name", "session_id", "parent_session_id", "agent_id", "agent_type", "notification_type", "error", "tool_name"]
         let event = object.filter { fields.contains($0.key) }
-        if let connection = try? AppConnection() {
-            _ = try? connection.automationRequest(
-                method: "agent.lifecycle",
-                params: ["provider": .string(provider.rawValue), "event": .object(event)],
-                timeout: 1
-            )
-        }
+        let isSharedCodex = provider == .codex && AgentConversationBinding.sharedCodexServicePID(
+            peerPID: getpid(), reporterPID: getpid(), process: TerminalSession.conversationProcessEvidence
+        ) != nil
+        sendNativeHook(
+            method: "agent.lifecycle",
+            params: ["provider": .string(provider.rawValue), "event": .object(event)],
+            isSharedCodex: isSharedCodex
+        )
         if provider == .codex,
            ["Stop", "SubagentStop"].contains(object["hook_event_name"]?.stringValue ?? "") {
             print("{}")
+        }
+    }
+
+    private static func sendNativeHook(
+        method: String, params: [String: ZshellJSONValue], isSharedCodex: Bool
+    ) {
+        if isSharedCodex {
+            if let bundleIdentifier = Bundle.main.bundleIdentifier,
+               let connection = try? AgentConversationHistoryConnection.discover(bundleIdentifier: bundleIdentifier) {
+                _ = try? connection.request(method: method, params: params, timeout: 1)
+            }
+        } else if let connection = try? AppConnection() {
+            _ = try? connection.automationRequest(method: method, params: params, timeout: 1)
         }
     }
 

@@ -19,6 +19,8 @@
         "mac/Makefile",
         "Makefile",
         "mac/scripts/build-alacritty-bridge.sh",
+        "mac/scripts/build-remote-server.sh",
+        "remote/**",
         ".github/**"
       ],
       "checks": ["Alacritty Bridge", "App Build Smoke Test", "CodeQL (swift)"]
