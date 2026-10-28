@@ -198,3 +198,21 @@ Zshell installs SessionStart hooks for Claude Code and Codex, a Pi extension, an
 Only local root conversations reported by these integrations can be resumed. Codex requires an embedded local CLI (`--no-daemon`); shared daemons and remote connections are unsupported. OpenCode requires the TUI plugin API; older versions, headless server sessions, and `opencode attach` are unsupported. A child agent cannot replace the parent pane’s conversation. Pi requires its saved session file.
 
 No verified identity, a missing working directory, or an unavailable Pi file opens a new shell. An unavailable CLI also returns to a shell. Zshell does not replay an arbitrary startup command or pick a recent conversation. Provider errors such as a deleted conversation are displayed by the CLI.
+
+## Find and resume saved conversations [#saved-conversation-history]
+
+Open **Agents → Agent Conversation History**, click the clock button at the top of the project sidebar. Search across projects by title, provider, project, conversation ID, working directory, or configuration directory. Zshell keeps the newest 200 verified local conversations after agents and panes exit and across app restarts. **Recent** shows 20 unarchived matches; **All** includes archived records; **Archived** shows only archived records.
+
+Select **Show Conversation** for an open conversation or **Resume Conversation** for a saved one. Zshell reuses an open pane, reconnects a surviving PTY, or starts the provider's exact conversation with its original directory and configuration. Manual resume requires AI integration, even when automatic conversation restoration is off. Missing working or configuration directories and missing or mismatched Pi files show an error before a new pane is created.
+
+**Archive** hides a record from Recent; **Unarchive** brings it back. **Delete…** removes only the Zshell history record and keeps the provider's conversation files.
+
+Inside a Zshell pane, use `zshell +agent history --all` and `zshell +agent resume --id HISTORY_UUID` for that pane's project. From an ordinary external terminal, keep Zshell running, discover a project UUID, and select it explicitly:
+
+```sh
+zshell +agent history projects
+zshell +agent history --project PROJECT_UUID --all
+zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
+```
+
+CLI resume stays in the background unless you add `--focus`. For a project open in several windows, choose `--window WINDOW_UUID` from `history projects`. If several app instances are running, use `--connection PATH` with the absolute private descriptor path shown by the CLI. These target options are for external terminals; pane processes retain their original project scope.

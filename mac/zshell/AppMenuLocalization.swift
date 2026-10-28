@@ -38,6 +38,7 @@ final class AppMenuLocalization: NSObject {
         // AppKit-owned commands after that reconciliation, including shortcuts.
         applicationDelegate?.restoreTerminalMenus()
         guard let menu = NSApp.mainMenu else { return }
+        AgentConversationHistoryController.shared.installMenu(in: menu)
         let titles: [(String.LocalizationValue, String)] = [
             ("File", String(localized: "File")),
             ("Edit", String(localized: "Edit")),
@@ -45,6 +46,7 @@ final class AppMenuLocalization: NSObject {
             ("Window", String(localized: "Window")),
             ("Help", String(localized: "Help")),
             ("Terminal", String(localized: "Terminal")),
+            ("Agents", String(localized: "Agents")),
         ]
         let bundles = AppLanguage.localizationIdentifiers.compactMap {
             Bundle.main.url(forResource: $0, withExtension: "lproj").flatMap(Bundle.init(url:))

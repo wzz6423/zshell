@@ -92,6 +92,8 @@ final class ZshellCLIService {
             NSLog("zshell: failed to start automation socket: \(error)")
         }
 
+        _ = AgentConversationHistoryControlService.shared
+
         notificationObserver = DistributedNotificationCenter.default()
             .addObserver(
                 forName: Self.notificationName,

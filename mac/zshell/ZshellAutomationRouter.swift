@@ -94,6 +94,9 @@ enum ZshellAutomationRouter {
                 }
             return success(request, .array(agents))
 
+        case let method where method.hasPrefix("agent.history."):
+            return AgentConversationHistoryRouter.scoped(request, caller: caller)
+
         case "agent.get":
             guard let target = targetAgent(request, caller: caller) else {
                 return failure(request, "agent_not_found", "No matching agent exists in this project.")

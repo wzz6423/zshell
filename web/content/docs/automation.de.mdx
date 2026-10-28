@@ -99,3 +99,21 @@ Zshell installiert SessionStart-Hooks für Claude Code und Codex, eine Pi-Erweit
 Nur von diesen Integrationen gemeldete lokale Hauptgespräche werden fortgesetzt. Codex benötigt eine eingebettete lokale CLI (`--no-daemon`); gemeinsame Daemons und Remote-Verbindungen werden nicht unterstützt. OpenCode benötigt die TUI-Plugin-API; ältere Versionen, Server ohne Oberfläche und `opencode attach` werden nicht unterstützt. Untergeordnete Agenten können das Gespräch des übergeordneten Bereichs nicht ersetzen. Pi benötigt die gespeicherte Sitzungsdatei.
 
 Fehlt eine bestätigte Identität, das ursprüngliche Verzeichnis oder die Pi-Datei, wird eine neue Shell geöffnet. Fehlt die CLI, kehrt der Bereich ebenfalls zur Shell zurück. Zshell führt keine beliebigen Startbefehle erneut aus und wählt kein letztes Gespräch. Anbieterfehler wie gelöschte Gespräche zeigt die CLI an.
+
+## Gespeicherte Unterhaltungen finden und fortsetzen [#saved-conversation-history]
+
+Öffnen Sie **Agenten → Agent-Unterhaltungsverlauf**, klicken Sie auf die Uhr oben in der Projektseitenleiste. Suchen Sie projektübergreifend nach Titel, Anbieter, Projekt, Gesprächs-ID sowie Arbeits- oder Konfigurationsverzeichnis. Zshell behält die neuesten 200 bestätigten lokalen Gespräche nach dem Schließen von Agenten und Bereichen und über App-Neustarts hinweg. **Zuletzt** zeigt 20 nicht archivierte Treffer, **Alle** auch archivierte Einträge und **Archiviert** nur diese.
+
+Wählen Sie **Unterhaltung anzeigen** für ein offenes oder **Unterhaltung fortsetzen** für ein gespeichertes Gespräch. Zshell verwendet einen offenen Bereich, verbindet ein noch laufendes PTY erneut oder setzt genau das Gespräch des Anbieters mit dem ursprünglichen Verzeichnis und der Konfiguration fort. Manuelles Fortsetzen benötigt die KI-Integration; die automatische Wiederherstellung darf deaktiviert sein. Fehlende Arbeits- oder Konfigurationsverzeichnisse sowie fehlende oder nicht passende Pi-Dateien führen vor dem Erstellen eines Bereichs zu einem Fehler.
+
+**Archivieren** blendet den Eintrag unter Zuletzt aus; **Archivierung aufheben** bringt ihn zurück. **Löschen…** entfernt nur den Zshell-Verlaufseintrag und behält die Gesprächsdateien des Anbieters.
+
+Im Zshell-Bereich gelten `zshell +agent history --all` und `zshell +agent resume --id HISTORY_UUID` für dessen Projekt. Lassen Sie Zshell in einem gewöhnlichen externen Terminal laufen, ermitteln Sie die Projekt-UUID und wählen Sie sie ausdrücklich:
+
+```sh
+zshell +agent history projects
+zshell +agent history --project PROJECT_UUID --all
+zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
+```
+
+Die CLI setzt ohne `--focus` im Hintergrund fort. Bei mehreren Projektfenstern wählen Sie `--window WINDOW_UUID` aus `history projects`. Bei mehreren App-Instanzen verwenden Sie `--connection PATH` mit dem von der CLI genannten absoluten privaten Verbindungspfad. Diese Ziele gelten nur für externe Terminals; Bereichsprozesse behalten ihren ursprünglichen Projektumfang.

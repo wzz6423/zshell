@@ -99,3 +99,21 @@ Zshell installeert SessionStart-hooks voor Claude Code en Codex, een Pi-extensie
 Alleen lokale hoofdgesprekken die deze integraties melden worden hervat. Codex vereist een ingebedde lokale CLI (`--no-daemon`); gedeelde daemons en externe verbindingen worden niet ondersteund. OpenCode vereist de TUI-plugin-API; oudere versies, serversessies zonder interface en `opencode attach` worden niet ondersteund. Een onderliggende agent vervangt het gesprek van het bovenliggende paneel niet. Pi vereist het opgeslagen sessiebestand.
 
 Zonder geverifieerde identiteit, oorspronkelijke map of Pi-bestand opent een nieuwe shell. Een ontbrekende CLI keert ook terug naar de shell. Zshell voert geen willekeurige opstartopdracht opnieuw uit en kiest geen recent gesprek. Providerfouten, zoals een verwijderd gesprek, verschijnen in de CLI.
+
+## Opgeslagen gesprekken vinden en hervatten [#saved-conversation-history]
+
+Open **Agents → Gespreksgeschiedenis van agents**, klik op de klok boven in de projectzijbalk. Zoek over projecten heen op titel, aanbieder, project, gespreks-ID, werkmap of configuratiemap. Zshell bewaart de nieuwste 200 geverifieerde lokale gesprekken nadat agents en panelen sluiten en de app opnieuw start. **Recente** toont 20 niet-gearchiveerde resultaten; **Alle** bevat ook het archief; **Gearchiveerd** toont alleen het archief.
+
+Kies **Gesprek tonen** als het openstaat of **Gesprek hervatten** als het opgeslagen is. Zshell gebruikt een open paneel, verbindt een nog actief PTY opnieuw of hervat het exacte gesprek van de aanbieder met de oorspronkelijke map en configuratie. Handmatig hervatten vereist AI-integratie, ook als automatisch herstellen uitstaat. Ontbrekende mappen en ontbrekende of niet-passende Pi-bestanden geven een fout voordat een paneel wordt gemaakt.
+
+**Archiveren** verbergt een item uit Recente; **Uit archief halen** zet het terug. **Verwijderen…** verwijdert alleen het Zshell-item en bewaart de gespreksbestanden van de aanbieder.
+
+Binnen een Zshell-paneel gelden `zshell +agent history --all` en `zshell +agent resume --id HISTORY_UUID` voor dat project. Houd Zshell vanuit een gewone externe terminal geopend, zoek de project-UUID en kies die expliciet:
+
+```sh
+zshell +agent history projects
+zshell +agent history --project PROJECT_UUID --all
+zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
+```
+
+De CLI hervat op de achtergrond tenzij je `--focus` toevoegt. Kies bij meerdere projectvensters `--window WINDOW_UUID` uit `history projects`. Gebruik bij meerdere app-instanties `--connection PATH` met het absolute pad naar het privéverbindingsbestand dat de CLI aangeeft. Deze doelen zijn voor externe terminals; paneelprocessen behouden hun oorspronkelijke projectbereik.
