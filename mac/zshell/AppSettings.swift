@@ -230,6 +230,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var applicationPresence: ApplicationPresence {
+        didSet { save() }
+    }
+
     /// Render terminal glyphs with slightly heavier strokes, like classic
     /// macOS font smoothing. Each backend maps this to its own rasterizer.
     /// Persisted as `terminal.font-thicken`; off by default so Zshell's text
@@ -428,6 +432,9 @@ final class AppSettings: nonisolated ObservableObject {
         applicationIcon = ApplicationIcon(
             rawValue: toml["app-icon"]?.string ?? ""
         ) ?? .defaultIcon
+        applicationPresence = ApplicationPresence(
+            rawValue: toml["app-presence"]?.string ?? ""
+        ) ?? .dockOnly
         theme = toml["theme"]?.string.flatMap(AppTheme.init(rawValue:)) ?? .system
         themeDark = Self.knownTheme(
             toml["theme-dark"]?.string,
@@ -594,6 +601,7 @@ final class AppSettings: nonisolated ObservableObject {
     /// default, so Settings can disable the reset button.
     var isAtDefaults: Bool {
         applicationIcon == .defaultIcon
+            && applicationPresence == .dockOnly
             && fontFamily.isEmpty
             && fontFallbackFamily.isEmpty
             && fontSize == Self.defaultFontSize
@@ -639,6 +647,7 @@ final class AppSettings: nonisolated ObservableObject {
 
     func resetToDefaults() {
         applicationIcon = .defaultIcon
+        applicationPresence = .dockOnly
         resetFont()
         language = .system
         theme = .system
@@ -758,6 +767,9 @@ final class AppSettings: nonisolated ObservableObject {
     /// `UserDefaults` (`AppleLanguages`), not config.toml, so it is neither
     /// exported nor imported.
     func applyImported(_ toml: [String: TOML.Value]) {
+        applicationPresence = ApplicationPresence(
+            rawValue: toml["app-presence"]?.string ?? ""
+        ) ?? .dockOnly
         browserContentBlocking = toml["browser.content-blocking"]?.bool ?? true
         browserFilterLists = toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults
         theme = toml["theme"]?.string.flatMap(AppTheme.init(rawValue:)) ?? .system
@@ -893,6 +905,9 @@ final class AppSettings: nonisolated ObservableObject {
         // Top-level like `theme`: the icon covers the whole app.
         if applicationIcon != .defaultIcon {
             lines.append("app-icon = \(TOML.quote(applicationIcon.rawValue))")
+        }
+        if applicationPresence != .dockOnly {
+            lines.append("app-presence = \(TOML.quote(applicationPresence.rawValue))")
         }
         if theme != .system {
             lines.append("theme = \(TOML.quote(theme.rawValue))")

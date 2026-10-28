@@ -262,7 +262,7 @@ final class GlobalTerminalOverlay: NSObject {
         hotkey = nil
     }
 
-    private func toggle() {
+    func toggle() {
         if terminalWindow?.isVisible == true {
             dismiss()
         } else {

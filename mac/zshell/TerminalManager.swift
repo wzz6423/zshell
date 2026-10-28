@@ -606,6 +606,7 @@ final class TerminalManager: nonisolated ObservableObject {
     /// launch-time Finder request may have been queued before that happened.
     func attach(to window: NSWindow) {
         self.window = window
+        ApplicationPresenceController.shared.attach(to: window)
         refreshTranslucency()
         if agentPaletteKeyMonitor == nil {
             agentPaletteKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) {
@@ -673,6 +674,16 @@ final class TerminalManager: nonisolated ObservableObject {
     static func registerWindowOpener(_ open: @escaping () -> Void) {
         windowOpener = open
         requestWindowForPendingDirectories()
+    }
+
+    static func showWorkspace() {
+        NSApp.activate()
+        if let window = activeWindowManager?.window {
+            if window.isMiniaturized { window.deminiaturize(nil) }
+            window.makeKeyAndOrderFront(nil)
+        } else {
+            windowOpener?()
+        }
     }
 
     private static func requestWindowForPendingDirectories() {

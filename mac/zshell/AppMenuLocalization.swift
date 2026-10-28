@@ -80,6 +80,7 @@ final class AppMenuLocalization: NSObject {
                 case "hideOtherApplications:": title = String(localized: "Hide Others")
                 case "unhideAllApplications:": title = String(localized: "Show All")
                 case "terminate:": title = String(localized: "Quit \(appName)")
+                case "quitAndEndAllSessions": title = String(localized: "Quit and End All Sessions")
                 case "undo:": title = String(localized: "Undo")
                 case "redo:": title = String(localized: "Redo")
                 case "cut:": title = String(localized: "Cut")

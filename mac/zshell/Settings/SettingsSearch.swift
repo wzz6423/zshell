@@ -61,6 +61,9 @@ enum SettingsSearchIndex {
             item(.browser, String(localized: "Update Lists Now")),
             item(.general, String(localized: "Language"),
                  keywords: AppLanguage.allCases.map(\.title).joined(separator: " ")),
+            item(.general, String(localized: "Show Zshell in"),
+                 description: String(localized: "With a menu bar icon, closing the last workspace window keeps its terminals running."),
+                 keywords: "app-presence Dock " + ApplicationPresence.allCases.map(\.title).joined(separator: " ")),
             item(.general, String(localized: "Toolbar"), description: [
                 String(localized: "Shows the toolbar only in Git repositories"),
                 String(localized: "Shows the toolbar in every project"),

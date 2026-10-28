@@ -21,6 +21,16 @@ Nên biết trước khi sửa tay:
 - **Bộ phân tích cố ý đơn giản.** Hỗ trợ khóa phẳng, khóa dấu chấm, tiêu đề `[table]`, chú thích `#`, giá trị chuỗi/số/boolean. Không hỗ trợ mảng, bảng nội tuyến hay chuỗi nhiều dòng.
 - **Giá trị sai có phương án dự phòng an toàn.** Kích thước ngoài khoảng, backend không rõ hay tên chủ đề sai không làm Zshell không khởi chạy được.
 
+## Vị trí hiển thị ứng dụng [#application-presence]
+
+### `app-presence`
+
+`"dock"` · `"dock-and-menu-bar"` · `"menu-bar"` — mặc định `"dock"`
+
+Chọn **Cài đặt → Chung → Hiển thị Zshell trong** để đổi ngay. `"dock"` chỉ hiện biểu tượng Dock, `"dock-and-menu-bar"` hiện cả hai và `"menu-bar"` chỉ hiện biểu tượng thanh menu.
+
+Thanh menu mở không gian làm việc hiện tại, Terminal nhanh, cài đặt và trình kiểm tra cập nhật. Ở cả hai chế độ có thanh menu, đóng cửa sổ không gian làm việc cuối cùng sẽ ẩn nó trong khi terminal và tác vụ vẫn chạy. **Mở không gian làm việc** trở về đúng cửa sổ, dự án và phiên đó. Đóng cửa sổ khác, bảng hoặc dự án vẫn kết thúc tác vụ của chúng. **Thoát** vẫn tuân theo `terminal.preserve-sessions`; **Thoát và kết thúc tất cả phiên** sẽ kết thúc chúng. Chế độ được lưu sau khi khởi động lại.
+
 ## Giao diện [#appearance]
 
 ### `theme` [#theme]

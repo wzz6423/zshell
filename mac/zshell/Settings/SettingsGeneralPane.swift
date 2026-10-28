@@ -24,6 +24,11 @@ final class SettingsGeneralPane: SettingsPaneViewController {
         onChange: { AppSettings.shared.toolbarVisibility = $0 }
     )
 
+    private let presencePopUp = SettingsPopUpButton<ApplicationPresence>(
+        items: ApplicationPresence.allCases.map { .value($0.title, $0) },
+        onChange: { AppSettings.shared.applicationPresence = $0 }
+    )
+
     private lazy var toolbarRow = SettingsRow(
         title: String(localized: "Toolbar"),
         description: Self.toolbarDescription(for: settings.toolbarVisibility),
@@ -33,6 +38,12 @@ final class SettingsGeneralPane: SettingsPaneViewController {
 
     private lazy var languageGroup = SettingsGroup(rows: [
         SettingsRow(title: String(localized: "Language"), control: languagePopUp, symbolName: "globe"),
+        SettingsRow(
+            title: String(localized: "Show Zshell in"),
+            description: String(localized: "With a menu bar icon, closing the last workspace window keeps its terminals running."),
+            control: presencePopUp,
+            symbolName: "menubar.rectangle"
+        ),
         toolbarRow,
     ])
 
@@ -55,6 +66,7 @@ final class SettingsGeneralPane: SettingsPaneViewController {
 
     override func syncFromSettings() {
         languagePopUp.select(settings.language)
+        presencePopUp.select(settings.applicationPresence)
         themePicker.select(settings.theme)
         themePicker.refreshPreviews()
         toolbarPopUp.select(settings.toolbarVisibility)

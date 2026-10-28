@@ -23,6 +23,7 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
         restoreTerminalMenus()
         AppMenuLocalization.shared.start(applicationDelegate: self)
         GlobalTerminalOverlay.shared.start()
+        ApplicationPresenceController.shared.start()
     }
 
     func restoreTerminalMenus() {
@@ -77,8 +78,14 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        ApplicationPresenceController.shared.prepareForTermination()
         TerminalManager.prepareForApplicationQuit()
         return .terminateNow
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        TerminalManager.showWorkspace()
+        return false
     }
 
     @objc private func editProjectTerminalEnvironment() {
@@ -117,6 +124,7 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
 
     func applicationWillTerminate(_ notification: Notification) {
         WindowScreenConstraint.shared.stop()
+        ApplicationPresenceController.shared.stop()
         GlobalTerminalOverlay.shared.stop()
     }
 

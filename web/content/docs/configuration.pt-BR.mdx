@@ -21,6 +21,16 @@ Antes de editar manualmente, considere:
 - **O parser é propositalmente pequeno.** Suporta chaves simples, chaves com pontos, cabeçalhos `[table]`, comentários `#` e valores de texto, número e booleano. Não suporta arrays, tabelas em linha ou strings com múltiplas linhas.
 - **Valores inválidos usam um fallback seguro.** Tamanhos fora da faixa, backends desconhecidos e nomes de temas incorretos não impedem o aplicativo de abrir.
 
+## Presença do aplicativo [#application-presence]
+
+### `app-presence`
+
+`"dock"` · `"dock-and-menu-bar"` · `"menu-bar"` — padrão `"dock"`
+
+Escolha **Ajustes → Geral → Mostrar Zshell em** para mudar imediatamente. `"dock"` exibe apenas o ícone do Dock, `"dock-and-menu-bar"` exibe ambos e `"menu-bar"` exibe apenas o ícone da barra de menus.
+
+A barra de menus abre o espaço de trabalho atual, o terminal rápido, os ajustes e a busca de atualizações. Nos dois modos com barra de menus, fechar a última janela a oculta e mantém seus terminais e tarefas em execução. **Abrir espaço de trabalho** retorna à mesma janela, projeto e sessão. Fechar outra janela, painel ou projeto continua encerrando suas tarefas. **Sair** segue `terminal.preserve-sessions`; **Sair e encerrar todas as sessões** encerra todas. O modo é mantido após reiniciar.
+
 ## Aparência [#appearance]
 
 ### `theme` [#theme]

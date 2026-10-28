@@ -22,6 +22,7 @@ CATEGORIES = (
     "recommendations", "updates",
 )
 CONFIGURATION_ITEMS = {
+    "app-presence": ("general", "Show Zshell in", ""),
     "browser.content-blocking": ("browser", "Block ads and trackers", ""),
     "browser.filter-lists": ("browser", "Filter Lists", "Filter Lists"),
     "toolbar.visibility": ("general", "Toolbar", ""),
@@ -176,6 +177,8 @@ class SettingsSearchTests(unittest.TestCase):
                           "AppCommand", "    var defaultShortcut:"),
             metadata_enum((sources / "TerminalBackend.swift").read_text(),
                           "TerminalBackend", "    var settingsHighlights:"),
+            metadata_enum((sources / "ApplicationPresenceController.swift").read_text(),
+                          "ApplicationPresence", "\n}"),
         ]))
         harness = root / "Harness.swift"
         harness.write_text(HARNESS)
