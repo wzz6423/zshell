@@ -4,12 +4,23 @@ import { uiCopy } from '@/lib/ui-copy'
 import { currentHeadingHash } from '@/lib/docs-anchors'
 
 /** Native select keeps all 17 languages usable with a keyboard and on small screens. */
-export function LanguageSelect({ lang, slug, onChange }: { lang: string; slug?: string; onChange?: () => void }) {
+export function LanguageSelect({
+  lang,
+  slug,
+  onChange,
+  size = 'default',
+}: {
+  lang: string
+  slug?: string
+  onChange?: () => void
+  size?: 'default' | 'compact'
+}) {
   const navigate = useNavigate()
   const hash = useRouterState({ select: (state) => state.location.hash })
   return (
     <select
       className="language-select"
+      data-size={size}
       aria-label={uiCopy(lang).language}
       value={language(lang)}
       onChange={(event) => {
