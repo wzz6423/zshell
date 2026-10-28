@@ -81,8 +81,8 @@ description: 从空窗口到能干活的项目——最值得先学的那些事�
 退出再打开，项目、标签页和窗格布局都还在原处。每个终端会在原来的目录里启动一个
 **全新的 shell**——不会有东西被偷偷留在后台继续跑。
 
-滚动历史默认不恢复。打开
-[`terminal.restore-history`](/docs/configuration#terminalrestore-history) 之后，重开的终端会在 `Session Contents Restored` 分隔线上方显示之前的输出，新 shell 在下方运行。
+新配置默认恢复滚动历史。开启
+[`terminal.restore-history`](/docs/configuration#terminalrestore-history) 时，重开的终端会在 `Session Contents Restored` 分隔线上方显示之前的输出，新 shell 在下方运行。
 
 <Callout type="info">
 恢复出来的就是文本本身。它是「当时发生过什么」的记录，不是一个还活着的会话，往回翻不会重新执行任何东西。

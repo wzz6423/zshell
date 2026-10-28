@@ -100,7 +100,7 @@ Zshell guarda instantáneas de la distribución mientras trabajas, de modo que a
 
 Si el PTY original no está disponible y **Reanudar conversaciones de agentes** y la IA están activados, Zshell retoma la conversación verificada de Claude Code, Codex, Pi u OpenCode. Los demás paneles abren **nuevas shells** en sus directorios anteriores. La conversación conserva su identidad; Zshell no recupera una compilación repitiendo comandos.
 
-El historial de salida anterior solo se restaura si lo solicitas mediante [`terminal.restore-history`](/es/docs/configuration#terminalrestore-history). Está desactivado de forma predeterminada porque el historial restaurado se guarda en disco.
+El historial de salida anterior se restaura cuando [`terminal.restore-history`](/es/docs/configuration#terminalrestore-history) está activado. Las nuevas configuraciones lo activan de forma predeterminada; el historial restaurado se guarda en disco.
 
 ## Entorno e inicialización del terminal [#terminal-environment-and-initialization]
 

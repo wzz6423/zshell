@@ -74,7 +74,7 @@ description: 空のウィンドウから作業できるプロジェクトへ。�
 終了して開き直すと、プロジェクト、タブ、ペイン配置が元に戻ります。
 各ターミナルは以前のディレクトリで**新しいシェル**を起動します。裏で密かに動作を続けるわけではありません。
 
-スクロールバックの復元は任意です。[`terminal.restore-history`](/ja/docs/configuration#terminalrestore-history) を有効にすると、開き直したターミナルで以前の出力が `Session Contents Restored` の区切りより上に表示され、その下で新しいシェルが動きます。
+新しい設定ではスクロールバックの復元が標準でオンです。[`terminal.restore-history`](/ja/docs/configuration#terminalrestore-history) が有効な場合、開き直したターミナルで以前の出力が `Session Contents Restored` の区切りより上に表示され、その下で新しいシェルが動きます。
 
 <Callout type="info">
 復元されるのはあくまでテキストです。過去の記録であり、稼働中のセッションではありません。さかのぼって読んでもコマンドが再実行されることはありません。

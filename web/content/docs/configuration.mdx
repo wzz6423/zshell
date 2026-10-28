@@ -13,6 +13,10 @@ The Settings window (<kbd>Cmd</kbd>+<kbd>,</kbd>) writes this same file. A few
 macOS-owned settings—language and automatic updates—live elsewhere and are
 listed at the end of this page.
 
+New configurations enable Vim command hints, session history restoration, and
+failed-command notifications. Automatic update downloads are also enabled by
+default. Existing configurations and saved choices are preserved.
+
 ## How the file behaves
 
 Worth knowing before you hand-edit:
@@ -24,8 +28,10 @@ Worth knowing before you hand-edit:
   regenerated from scratch, so your comments and unknown keys are lost the
   next time you use one of those controls. Pick one editor for the file, or
   keep an authoritative copy in your dotfiles.
-- **Only non-default values are written, with one exception.** `font-size` is
-  always present. Deleting any other key restores its default.
+- **Most default values are omitted.** `font-size`, `terminal.vim-command-hints`,
+  `terminal.restore-history`, and `terminal.notify-on-error` are always written.
+  Removing one of these three terminal keys disables that feature in an existing
+  file; removing other keys restores their defaults.
 - **The parser is deliberately small.** It supports flat keys, dotted keys,
   `[table]` headers, `#` comments, and string/number/boolean values. It does not
   support arrays, inline tables, or multi-line strings.
@@ -231,7 +237,7 @@ this setting.
 
 ### `terminal.vim-command-hints`
 
-boolean — default `false`
+boolean — default `true`
 
 Show mode-aware Vim / Neovim commands below the session information in the
 **Info** sidebar. Applies immediately on both terminal backends, including
@@ -240,13 +246,13 @@ for mode detection requirements.
 
 ### `terminal.restore-history`
 
-boolean — default `false`
+boolean — default `true`
 
 Restores each terminal's previous scrollback above a fresh shell after a
 relaunch. The restored content is static text, not a surviving process.
 
 Restored scrollback is stored on disk, so any secrets shown in the terminal may
-be included. This setting is off by default.
+be included.
 [Projects, tabs, and pane layout](/en/docs/projects#what-survives-a-relaunch) are
 restored either way.
 
@@ -287,7 +293,7 @@ Control it with **Settings → Automation → Resume agent conversations**. This
 | `terminal.background-opacity` | `1` | 0.2–1 | Terminal background opacity |
 | `terminal.background-blur` | `false` | boolean | Blur translucent backgrounds |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Notify after a command runs for at least this duration and finishes in new zsh terminals; 0 disables it |
-| `terminal.notify-on-error` | `false` | boolean | Notify on command failure in new zsh terminals |
+| `terminal.notify-on-error` | `true` | boolean | Notify on command failure in new zsh terminals |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Reuse workspace / New workspace each time |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Quick Terminal size relative to the screen |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Quick Terminal background opacity |

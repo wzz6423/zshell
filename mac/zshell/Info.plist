@@ -85,5 +85,7 @@
 	     Sparkle asks on first launch instead, and answers no until asked. -->
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<true/>
 </dict>
 </plist>

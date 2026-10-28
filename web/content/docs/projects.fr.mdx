@@ -100,7 +100,7 @@ Zshell enregistre des instantanés de votre disposition pendant le travail. À l
 
 Si le PTY d’origine est indisponible, Zshell reprend la conversation vérifiée de Claude Code, Codex, Pi ou OpenCode lorsque **Reprendre les conversations des agents** et l’IA sont activés. Les autres volets ouvrent de **nouveaux shells** dans leurs répertoires précédents. La conversation conserve son identité ; Zshell ne rétablit pas une compilation en rejouant des commandes.
 
-L'ancien historique de défilement n'est restauré que si vous activez [`terminal.restore-history`](/fr/docs/configuration#terminalrestore-history). Cette option est désactivée par défaut, car cet historique est enregistré sur disque.
+L’ancien historique est restauré lorsque [`terminal.restore-history`](/fr/docs/configuration#terminalrestore-history) est activé. Cette option est activée par défaut dans les nouvelles configurations et l’historique est enregistré sur disque.
 
 ## Environnement du terminal et initialisation [#terminal-environment-and-initialization]
 

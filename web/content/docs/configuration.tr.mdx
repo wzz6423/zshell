@@ -11,13 +11,15 @@ Zshell’in kalıcı ayarlarının çoğu tek dosyadadır:
 
 Ayarlar penceresi (<kbd>Cmd</kbd>+<kbd>,</kbd>) aynı dosyaya yazar. Dil ve otomatik güncelleme gibi macOS’in yönettiği birkaç ayar başka yerde saklanır; sayfanın sonunda listelenmiştir.
 
+Yeni yapılandırmalar Vim komut ipuçlarını, oturum geçmişini geri yüklemeyi ve başarısız komut bildirimlerini varsayılan olarak açar. Otomatik güncelleme indirmeleri de varsayılan olarak açıktır. Mevcut yapılandırmalar ve kaydedilmiş seçimler korunur.
+
 ## Dosyanın davranışı [#how-the-file-behaves]
 
 Elle düzenlemeden önce bilin:
 
 - **Açılışta okunur.** Zshell çalışırken dosyayı düzenlemek yeniden başlatana kadar etki etmez. Ayarlar’dan yapılan değişiklikler, denetim aksini söylemedikçe hemen uygulanır.
 - **Dosyada tutulan ayar değişince Zshell dosyayı yeniden yazar.** Baştan oluşturulduğu için bu denetimleri sonraki kullanımınızda yorumlar ve bilinmeyen anahtarlar kaybolur. Dosya için tek düzenleyici seçin veya dotfile’larınızda esas kopya tutun.
-- **Bir istisna dışında yalnızca varsayılan dışı değerler yazılır.** `font-size` daima bulunur; diğer anahtarları silmek varsayılana döndürür.
+- **Varsayılan değerlerin çoğu yazılmaz.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` daima kaydedilir. Mevcut dosyada bu üç terminal anahtarından birini silmek ilgili özelliği kapatır; diğer anahtarları silmek varsayılanlarını geri getirir.
 - **Ayrıştırıcı bilinçli olarak küçüktür.** Düz/noktalı anahtarları, `[table]` başlıklarını, `#` yorumlarını ve metin/sayı/mantıksal değerleri destekler. Dizi, satır içi tablo ve çok satırlı metin desteklemez.
 - **Geçersiz değerler güvenle varsayılana döner.** Aralık dışı boyut, bilinmeyen arka uç veya yanlış yazılmış tema Zshell’in açılmasını engellemez.
 
@@ -151,17 +153,17 @@ Terminal programı zil çalınca uyarı sesini ve macOS görsel dikkatini denetl
 
 ### `terminal.vim-command-hints` [#terminalvim-command-hints]
 
-mantıksal — varsayılan `false`
+mantıksal — varsayılan `true`
 
 **Bilgi** kenar çubuğunda oturum bilgisi altında moda duyarlı Vim/Neovim komutlarını gösterir. SSH’de tanınabilen düzenleyiciler dâhil iki arka uçta hemen uygulanır. Algılama koşulları için [Vim komut ipuçları](/tr/docs/terminal#vim-command-hints) bölümüne bakın.
 
 ### `terminal.restore-history` [#terminalrestore-history]
 
-mantıksal — varsayılan `false`
+mantıksal — varsayılan `true`
 
 Yeniden açılışta her terminalin eski çıktı geçmişini yeni kabuğun üstüne getirir. Geri yüklenen içerik sabit metindir; yaşayan işlem değildir.
 
-Geçmiş diskte saklandığından terminalde görünen sırlar da bulunabilir. Bu nedenle varsayılan kapalıdır. [Projeler, sekmeler ve bölme düzeni](/tr/docs/projects#what-survives-a-relaunch) her durumda geri yüklenir.
+Geçmiş diskte saklandığından terminalde görünen sırlar da bulunabilir. [Projeler, sekmeler ve bölme düzeni](/tr/docs/projects#what-survives-a-relaunch) her durumda geri yüklenir.
 
 ## Otomasyon [#automation]
 
@@ -195,7 +197,7 @@ Terminal bölmeleri geri yüklenirken özgün PTY kullanılamıyorsa kaydedilmi�
 | `terminal.background-opacity` | `1` | 0.2–1 | Terminal arka plan opaklığı |
 | `terminal.background-blur` | `false` | mantıksal | Saydam arka planları bulanıklaştırır |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Yeni zsh terminallerinde en az bu süre çalışıp biten komutu bildirir; 0 kapatır |
-| `terminal.notify-on-error` | `false` | mantıksal | Yeni zsh terminallerinde komut hatasını bildirir |
+| `terminal.notify-on-error` | `true` | mantıksal | Yeni zsh terminallerinde komut hatasını bildirir |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Çalışma alanını yeniden kullan / Her seferinde yeni çalışma alanı |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Hızlı Terminal’in ekrana göre boyutu |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Hızlı Terminal arka plan opaklığı |

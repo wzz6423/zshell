@@ -130,7 +130,7 @@ Zshell は作業中にレイアウトのスナップショットを保存する�
 
 元のターミナルの PTY が利用できず、**エージェントの会話を再開** と AI 連携が有効な場合、検証済みの Claude Code、Codex、Pi、OpenCode の元の会話を再開します。他のペインは元のディレクトリで**新しいシェル**を開きます。会話は元の ID で復元し、実行中のビルドをコマンドの再実行で復元することはありません。
 
-以前のスクロールバックは、[`terminal.restore-history`](/ja/docs/configuration#terminalrestore-history) で求めた場合にのみ復元します。復元用の履歴をディスクに保存するため、標準ではオフです。
+以前のスクロールバックは、[`terminal.restore-history`](/ja/docs/configuration#terminalrestore-history) が有効な場合に復元します。新しい設定では標準でオンになり、復元用の履歴はディスクに保存されます。
 
 ## ターミナルの環境と初期化 [#terminal-environment-and-initialization]
 

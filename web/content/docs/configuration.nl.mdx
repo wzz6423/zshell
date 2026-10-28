@@ -11,13 +11,15 @@ De meeste blijvende Zshell-instellingen staan in één bestand:
 
 Het instellingenvenster (<kbd>Cmd</kbd>+<kbd>,</kbd>) schrijft naar hetzelfde bestand. Enkele door macOS beheerde instellingen, zoals taal en automatische updates, staan elders en worden onderaan deze pagina vermeld.
 
+Nieuwe configuraties schakelen Vim-opdrachthulp, herstel van sessiegeschiedenis en meldingen van mislukte opdrachten standaard in. Automatische update-downloads staan ook standaard aan. Bestaande configuraties en opgeslagen keuzes blijven behouden.
+
 ## Hoe het bestand werkt [#how-the-file-behaves]
 
 Handig om te weten voordat je handmatig bewerkt:
 
 - **Het wordt bij het starten gelezen.** Het bestand bewerken terwijl Zshell draait, heeft pas na een herstart effect. Wijzigingen via Instellingen gelden meteen, behalve wanneer het bedieningselement anders vermeldt.
 - **Zshell herschrijft het wanneer een bestandsgebonden instelling verandert.** Het bestand wordt volledig opnieuw gegenereerd. Je opmerkingen en onbekende sleutels verdwijnen dus wanneer je de volgende keer een van die instellingen wijzigt. Kies één manier om het bestand te bewerken of houd een leidende kopie bij in je dotfiles.
-- **Alleen afwijkingen van de standaard worden geschreven, met één uitzondering.** `font-size` is altijd aanwezig. Elke andere sleutel verwijderen herstelt de standaardwaarde.
+- **De meeste standaardwaarden worden weggelaten.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` worden altijd opgeslagen. Het verwijderen van een van deze drie terminalsleutels in een bestaand bestand schakelt de functie uit; bij andere sleutels wordt de standaard hersteld.
 - **De parser is bewust beperkt.** Hij ondersteunt platte sleutels, sleutels met punten, `[table]`-koppen, `#`-opmerkingen en tekenreeks-, getal- en booleaanse waarden. Arrays, inline-tabellen en tekenreeksen met meerdere regels worden niet ondersteund.
 - **Ongeldige waarden vallen veilig terug.** Een grootte buiten het bereik, onbekende backend of verkeerd gespeld thema verhindert niet dat Zshell start.
 
@@ -151,17 +153,17 @@ Regelt het waarschuwingsgeluid en de visuele aandacht van macOS wanneer een term
 
 ### `terminal.vim-command-hints` [#terminalvim-command-hints]
 
-Booleaans — standaard `false`
+Booleaans — standaard `true`
 
 Toont modusafhankelijke Vim-/Neovim-opdrachten onder de sessiegegevens in de zijbalk **Info**. Dit geldt onmiddellijk op beide terminalbackends, ook voor herkenbare editors via SSH. Zie [Vim-opdrachthulp](/nl/docs/terminal#vim-command-hints) voor de voorwaarden van modusdetectie.
 
 ### `terminal.restore-history` [#terminalrestore-history]
 
-Booleaans — standaard `false`
+Booleaans — standaard `true`
 
 Herstelt na een herstart de eerdere uitvoergeschiedenis van elke terminal boven een nieuwe shell. De herstelde inhoud is statische tekst, geen proces dat is blijven draaien.
 
-Herstelde geschiedenis wordt op schijf opgeslagen en kan dus geheimen bevatten die in de terminal zijn weergegeven. Deze instelling staat standaard uit. [Projecten, tabbladen en deelvensterindeling](/nl/docs/projects#what-survives-a-relaunch) worden in beide gevallen hersteld.
+Herstelde geschiedenis wordt op schijf opgeslagen en kan dus geheimen bevatten die in de terminal zijn weergegeven. [Projecten, tabbladen en deelvensterindeling](/nl/docs/projects#what-survives-a-relaunch) worden in beide gevallen hersteld.
 
 ## Automatisering [#automation]
 
@@ -195,7 +197,7 @@ Gebruik **Instellingen → Automatisering → Agentgesprekken hervatten**. Deze 
 | `terminal.background-opacity` | `1` | 0.2–1 | Dekking van de terminalachtergrond |
 | `terminal.background-blur` | `false` | Booleaans | Doorschijnende achtergronden vervagen |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | In nieuwe zsh-terminals melden wanneer een opdracht na minstens deze duur eindigt; 0 schakelt dit uit |
-| `terminal.notify-on-error` | `false` | Booleaans | Mislukte opdrachten melden in nieuwe zsh-terminals |
+| `terminal.notify-on-error` | `true` | Booleaans | Mislukte opdrachten melden in nieuwe zsh-terminals |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Werkruimte hergebruiken / Elke keer een nieuwe werkruimte |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Grootte van de snelle terminal ten opzichte van het scherm |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Achtergronddekking van de snelle terminal |

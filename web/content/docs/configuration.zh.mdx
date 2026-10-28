@@ -11,6 +11,8 @@ Zshell 大多数持久化设置都在一个文件里：
 
 设置窗口（<kbd>Cmd</kbd>+<kbd>,</kbd>）写的也是这个文件。少数由 macOS 管理的设置——语言和自动更新——存在别处，列在本页末尾。
 
+新配置默认开启 Vim 命令提示、会话历史恢复和失败命令通知。自动下载更新也默认开启；已有配置和保存过的开关选择会保留。
+
 <span id="这个文件的行为" data-canonical-heading="how-the-file-behaves" />
 
 ## 这个文件的行为 [#how-the-file-behaves]
@@ -19,7 +21,7 @@ Zshell 大多数持久化设置都在一个文件里：
 
 - **启动时读取。** Zshell 运行中改文件不会立即生效，要重启。设置窗口里的改动通常立即生效，控件另有说明的除外。
 - **只要文件型设置有变化，Zshell 就会重写它。** 文件会从头生成，所以你的注释和未知键会在下次使用这些控件时丢失。最好只选一种方式维护它，或者把权威版本放在 dotfiles 里。
-- **通常只写非默认值。** 唯一例外是 `font-size`，它总会出现。删掉其他键就恢复默认值。
+- **通常只写非默认值。** `font-size`、`terminal.vim-command-hints`、`terminal.restore-history`、`terminal.notify-on-error` 总会保存。删除这三个终端键中的任何一个，会在已有文件中关闭对应功能；删除其他键则恢复默认值。
 - **解析器有意保持精简。** 支持扁平键、点号键、`[table]` 表头、`#` 注释，以及字符串、数字和布尔值；不支持数组、内联表和多行字符串。
 - **错误值会安全回退。** 超出范围的字号、未知后端或拼错的主题名不会让 Zshell 启动失败。
 
@@ -191,7 +193,7 @@ regular/bold 区分及后备字体字重。
 
 ### `terminal.vim-command-hints` [#terminalvim-command-hints]
 
-布尔值，默认 `false`。
+布尔值，默认 `true`。
 
 在右侧 **信息** 栏的会话信息下方显示按模式排序的 Vim / Neovim 常用命令。
 立即作用于两种终端后端，也支持识别 SSH 中的编辑器。
@@ -199,11 +201,11 @@ regular/bold 区分及后备字体字重。
 
 ### `terminal.restore-history` [#terminalrestore-history]
 
-布尔值——默认 `false`
+布尔值——默认 `true`
 
 重启后，在全新 shell 上方恢复每个终端之前的滚动历史。恢复的是静态文本，不是仍在运行的进程。
 
-恢复的滚动历史会保存在磁盘上，所以终端里显示过的密钥也可能包含在内。这个设置默认关闭。[项目、标签页和窗格布局](/docs/projects#what-survives-a-relaunch)无论如何都会恢复。
+恢复的滚动历史会保存在磁盘上，所以终端里显示过的密钥也可能包含在内。[项目、标签页和窗格布局](/docs/projects#what-survives-a-relaunch)无论如何都会恢复。
 
 <span id="自动化" data-canonical-heading="automation" />
 
@@ -241,7 +243,7 @@ regular/bold 区分及后备字体字重。
 | `terminal.background-opacity` | `1` | 0.2–1 | 终端背景不透明度 |
 | `terminal.background-blur` | `false` | 布尔值 | 半透明背景模糊 |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | 新建 zsh 终端中，运行至少该秒数的命令结束后通知；0 为关闭 |
-| `terminal.notify-on-error` | `false` | 布尔值 | 新建 zsh 终端中，命令失败时通知 |
+| `terminal.notify-on-error` | `true` | 布尔值 | 新建 zsh 终端中，命令失败时通知 |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | 复用工作区 / 每次新建工作区 |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | 快捷终端的屏幕占比 |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | 快捷终端背景不透明度 |

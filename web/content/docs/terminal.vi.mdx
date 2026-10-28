@@ -100,7 +100,7 @@ Thông báo có thể phát âm hệ thống. Nhấn thông báo kích hoạt Zs
 Mở **Cài đặt → Terminal → Thông báo lệnh** để nhận báo khi lệnh kết thúc:
 
 - **Lệnh chạy lâu**: chọn 5, 10, 30 hoặc 60 giây. Lệnh chạy ít nhất thời gian đó phát thông báo khi xong. Mặc định **Tắt**.
-- **Lệnh thất bại**: báo khi mã thoát khác không, bất kể thời gian. Cũng mặc định tắt và bật độc lập được.
+- **Lệnh thất bại**: báo khi mã thoát khác không, bất kể thời gian. Mặc định bật trong cấu hình mới và có thể tắt độc lập.
 
 Áp dụng terminal zsh tạo sau thay đổi, trên cả hai backend. Tính năng dùng sự kiện hoàn thành của shell gốc; lệnh chạy trong shell lồng nhau hoặc chương trình tương tác không báo từng lần hoàn thành qua tích hợp này.
 
@@ -163,7 +163,7 @@ Bật `terminal.preserve-sessions` trước khi mở terminal nhanh mới để 
 
 ## Gợi ý lệnh Vim [#vim-command-hints]
 
-Bật **Cài đặt → Terminal → Hành vi → Gợi ý lệnh Vim**, rồi mở tab **Thông tin** bên phải. Mục **LỆNH VIM** xuất hiện dưới thông tin phiên khi Vim, Vi hoặc Neovim hoạt động. Mặc định tắt, có hiệu lực ngay với terminal hiện có trên cả hai backend.
+Điều chỉnh gợi ý trong **Cài đặt → Terminal → Hành vi → Gợi ý lệnh Vim**, rồi mở tab **Thông tin** bên phải. Mục **LỆNH VIM** xuất hiện dưới thông tin phiên khi Vim, Vi hoặc Neovim hoạt động. Mặc định bật trong cấu hình mới, có hiệu lực ngay với terminal hiện có trên cả hai backend.
 
 Toàn bộ danh sách lệnh thông dụng luôn còn; chỉ ưu tiên thay đổi. Normal đưa `:w`, `:q`, `yy`, `p`/`P` lên trước; Visual Block ưu tiên `I`/`A`, thay đổi khối và di chuyển góc. Insert, Replace, Visual, Visual Line, Select, dòng lệnh và tìm kiếm có thứ tự riêng. Mỗi mục ghi chế độ áp dụng. Tìm theo phím, mô tả hoặc tên chế độ; mô tả và giao diện tìm theo bất kỳ ngôn ngữ nào trong 17 ngôn ngữ ứng dụng. Xóa truy vấn để trở về danh sách đầy đủ. Gợi ý chỉ để tham khảo, không gửi đầu vào cho trình soạn thảo.
 

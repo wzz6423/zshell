@@ -100,7 +100,7 @@ Zshell bewaart tijdens het werken momentopnamen van de indeling. Na afsluiten en
 
 Als het oorspronkelijke PTY niet beschikbaar is en **Agentgesprekken hervatten** en AI-ondersteuning zijn ingeschakeld, hervat Zshell het geverifieerde gesprek van Claude Code, Codex, Pi of OpenCode. Andere panelen openen **nieuwe shells** in hun vorige mappen. Het gesprek behoudt zijn identiteit; Zshell herstelt geen build door opdrachten opnieuw uit te voeren.
 
-Eerdere uitvoergeschiedenis wordt alleen hersteld als je dit instelt met [`terminal.restore-history`](/nl/docs/configuration#terminalrestore-history). Dit staat standaard uit, omdat de herstelde geschiedenis op schijf wordt opgeslagen.
+Eerdere uitvoergeschiedenis wordt hersteld als [`terminal.restore-history`](/nl/docs/configuration#terminalrestore-history) is ingeschakeld. Dit staat in nieuwe configuraties standaard aan; de herstelde geschiedenis wordt op schijf opgeslagen.
 
 ## Terminalomgeving en initialisatie [#terminal-environment-and-initialization]
 

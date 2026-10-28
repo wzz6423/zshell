@@ -65,7 +65,7 @@ La palette de commandes recherche dans tous les projets, toutes les sessions ouv
 
 Quittez puis rouvrez Zshell : vos projets, onglets et dispositions de volets retrouvent leur place. Chaque terminal démarre un **nouveau shell** dans son ancien répertoire. Aucun processus n'est maintenu discrètement en arrière-plan.
 
-La restauration de l'historique de défilement est facultative. Activez [`terminal.restore-history`](/fr/docs/configuration#terminalrestore-history) pour retrouver les anciennes sorties au-dessus d'un séparateur `Session Contents Restored`, tandis que le nouveau shell s'exécute en dessous.
+La restauration de l’historique est activée par défaut dans les nouvelles configurations. Lorsque [`terminal.restore-history`](/fr/docs/configuration#terminalrestore-history) est activé, les anciennes sorties apparaissent au-dessus d’un séparateur `Session Contents Restored`, tandis que le nouveau shell s’exécute en dessous.
 
 <Callout type="info">
 Le contenu restauré est uniquement du texte : c'est la trace de ce qui s'est passé, pas une session active. Faire défiler cet historique ne relance aucune commande.

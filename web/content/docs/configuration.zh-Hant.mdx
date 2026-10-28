@@ -11,13 +11,15 @@ Zshell 大多數持久化設定都在一個檔案裡：
 
 設定視窗（<kbd>Cmd</kbd>+<kbd>,</kbd>）寫的也是這個檔案。少數由 macOS 管理的設定——語言和自動更新——存在別處，列在本頁末尾。
 
+新配置預設開啟 Vim 指令提示、工作階段歷史恢復和失敗指令通知。自動下載更新也預設開啟；既有配置和已儲存的開關選擇會保留。
+
 ## 這個檔案的行為 [#how-the-file-behaves]
 
 手動改之前值得先知道：
 
 - **啟動時讀取。** Zshell 執行中改檔案不會立即生效，要重新啟動。設定視窗裡的改動通常立即生效，控件另有說明的除外。
 - **只要檔案型設定有變化，Zshell 就會重寫它。** 檔案會從頭生成，所以你的注釋和未知鍵會在下次使用這些控件時丟失。最好只選一種方式維護它，或者把權威版本放在 dotfiles 裡。
-- **通常只寫非預設值。** 唯一例外是 `font-size`，它總會出現。刪掉其他鍵就恢復預設值。
+- **通常只寫非預設值。** `font-size`、`terminal.vim-command-hints`、`terminal.restore-history`、`terminal.notify-on-error` 總會儲存。刪除這三個終端機鍵中的任何一個，會在既有檔案中關閉對應功能；刪除其他鍵則恢復預設值。
 - **解析器有意保持精簡。** 支持扁平鍵、點號鍵、`[table]` 表頭、`#` 注釋，以及字串、數字和布林值；不支持數組、行內表和多行字串。
 - **錯誤值會安全回退。** 超出範圍的字級、未知後端或拼錯的主題名不會讓 Zshell 啟動失敗。
 
@@ -164,7 +166,7 @@ regular/bold 區分及後備字型字重。
 
 ### `terminal.vim-command-hints` [#terminalvim-command-hints]
 
-布林值，預設 `false`。
+布林值，預設 `true`。
 
 在右側 **資訊** 欄的工作階段資訊下方顯示按模式排序的 Vim / Neovim 常用指令。
 立即作用於兩種終端機後端，也支持識別 SSH 中的編輯器。
@@ -172,11 +174,11 @@ regular/bold 區分及後備字型字重。
 
 ### `terminal.restore-history` [#terminalrestore-history]
 
-布林值——預設 `false`
+布林值——預設 `true`
 
 重新啟動後，在全新 shell 上方恢復每個終端機之前的捲動歷史。恢復的是靜態文本，不是仍在執行的程序。
 
-恢復的捲動歷史會儲存在磁碟上，所以終端機裡顯示過的密鑰也可能包含在內。這個設定預設關閉。[專案、分頁和窗格佈局](/zh-Hant/docs/projects#what-survives-a-relaunch)無論如何都會恢復。
+恢復的捲動歷史會儲存在磁碟上，所以終端機裡顯示過的密鑰也可能包含在內。[專案、分頁和窗格佈局](/zh-Hant/docs/projects#what-survives-a-relaunch)無論如何都會恢復。
 
 ## 自動化 [#automation]
 
@@ -210,7 +212,7 @@ regular/bold 區分及後備字型字重。
 | `terminal.background-opacity` | `1` | 0.2–1 | 終端機背景不透明度 |
 | `terminal.background-blur` | `false` | 布林值 | 半透明背景模糊 |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | 新建 zsh 終端機中，執行至少該秒數的指令結束後通知；0 為關閉 |
-| `terminal.notify-on-error` | `false` | 布林值 | 新建 zsh 終端機中，指令失敗時通知 |
+| `terminal.notify-on-error` | `true` | 布林值 | 新建 zsh 終端機中，指令失敗時通知 |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | 重用工作區 / 每次建立新工作區 |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | 快速終端機的螢幕佔比 |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | 快速終端機背景不透明度 |

@@ -100,7 +100,7 @@ As notificações podem tocar o som do sistema. Clicar ativa o Zshell e vai à s
 Abra **Ajustes → Terminal → Notificações de Comandos** para receber avisos ao terminar:
 
 - **Comandos demorados**: escolha 5, 10, 30 ou 60 segundos. Um comando que dure pelo menos isso gera aviso de conclusão. O padrão é **Desativado**.
-- **Comandos com falha**: avisar quando o código de saída não for zero, independentemente da duração. Também vem desativado e pode ser ativado separadamente.
+- **Comandos com falha**: avisar quando o código de saída não for zero, independentemente da duração. Vem ativado em novas configurações e pode ser desativado separadamente.
 
 As opções valem para terminais zsh criados após a mudança em ambos os backends. Elas usam o evento de conclusão do shell original; comandos dentro de shell aninhado ou programa interativo não informam conclusões individuais por essa integração.
 
@@ -163,7 +163,7 @@ Ative `terminal.preserve-sessions` antes de abrir um Terminal Rápido novo para 
 
 ## Dicas de comandos Vim [#vim-command-hints]
 
-Ative **Ajustes → Terminal → Comportamento → Dicas de comandos Vim** e abra **Info** na barra direita. Uma seção **COMANDOS VIM** aparece sob as informações da sessão enquanto Vim, Vi ou Neovim está ativo. A opção vem desativada e afeta imediatamente terminais existentes em ambos os backends.
+Gerencie as dicas em **Ajustes → Terminal → Comportamento → Dicas de comandos Vim** e abra **Info** na barra direita. Uma seção **COMANDOS VIM** aparece sob as informações da sessão enquanto Vim, Vi ou Neovim está ativo. A opção vem ativada em novas configurações e afeta imediatamente terminais existentes em ambos os backends.
 
 A lista completa de comandos comuns permanece disponível; só a prioridade muda. Normal prioriza `:w`, `:q`, `yy` e `p`/`P`; Visual Block prioriza `I`/`A`, alterações em bloco e movimento entre cantos. Insert, Replace, Visual, Visual Line, Select, linha de comando e busca têm sua própria ordem. Cada entrada identifica os modos aplicáveis. Pesquise por teclas, descrição ou nome do modo; descrições e interface de busca seguem qualquer um dos 17 idiomas. Limpe a busca para restaurar a lista completa. As dicas são uma referência e nunca enviam entrada ao editor.
 

@@ -158,7 +158,7 @@ when a command finishes:
 - **Long-running commands**: choose 5, 10, 30, or 60 seconds. A command that runs
   at least that long triggers a completion notification. The default is **Off**.
 - **Failed commands**: notify on a nonzero exit status, regardless of runtime.
-  This is also off by default and can be enabled independently.
+  This is on by default for new configurations and can be disabled independently.
 
 These settings apply to zsh terminals created after the change, on either
 terminal backend. They use the original shell's command completion event;
@@ -242,10 +242,10 @@ Enable [`terminal.preserve-sessions`](/en/docs/configuration#terminalpreserve-se
 
 ## Vim command hints
 
-Enable **Settings → Terminal → Behavior → Vim command hints**, then open the
-right sidebar's **Info** tab. A **VIM COMMANDS** section appears below the session
-information while Vim, Vi, or Neovim is active. It is off by default and applies
-immediately to existing terminals on both backends.
+Manage hints in **Settings → Terminal → Behavior → Vim command hints**, then
+open the right sidebar's **Info** tab. A **VIM COMMANDS** section appears below the
+session information while Vim, Vi, or Neovim is active. It is on by default for
+new configurations and applies immediately to existing terminals on both backends.
 
 The complete common-command list stays available; only its priority changes: Normal puts `:w`, `:q`, `yy`, and `p`/`P` first;
 Visual Block puts `I`/`A`, block changes, and corner movement first. Insert,

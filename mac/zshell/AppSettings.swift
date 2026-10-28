@@ -295,8 +295,8 @@ final class AppSettings: nonisolated ObservableObject {
     }
 
     /// Restore each terminal's previous scrollback (as static, styled text)
-    /// when the app relaunches, above the freshly started shell. Off by
-    /// default: opt-in, and it writes captured output to disk.
+    /// when the app relaunches, above the freshly started shell. Captured
+    /// output is written to disk while enabled.
     @Published var restoreTerminalHistory: Bool {
         didSet { save() }
     }
@@ -345,10 +345,8 @@ final class AppSettings: nonisolated ObservableObject {
     }
 
     /// Notify when a command exits with a failure, regardless of runtime.
-    /// Persisted as `terminal.notify-on-error`; off by default so a stream of
-    /// expected failures cannot surprise the user with banners. Shares the
-    /// shim plumbing and the new-terminals-only caveat with
-    /// ``notifyFinishSeconds``.
+    /// Persisted as `terminal.notify-on-error`; shares the shim plumbing and
+    /// the new-terminals-only caveat with ``notifyFinishSeconds``.
     @Published var notifyOnError: Bool {
         didSet { save() }
     }
@@ -486,14 +484,16 @@ final class AppSettings: nonisolated ObservableObject {
         ) ?? .bar
         cursorBlinking = toml["terminal.cursor-blinking"]?.bool ?? true
         macosOptionAsAlt = toml["terminal.macos-option-as-alt"]?.bool ?? false
-        vimCommandHints = toml["terminal.vim-command-hints"]?.bool ?? false
+        // Older configs omitted these preferences when disabled, so only a
+        // new config adopts their enabled defaults.
+        vimCommandHints = toml["terminal.vim-command-hints"]?.bool ?? (existing == nil)
         terminalBell = toml["terminal.bell"]?.bool ?? true
         shiftEnterNewline = toml["terminal.shift-enter-newline"]?.bool ?? true
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
         externalEditor = ExternalEditor.persisted(
             toml["editor.external-editor"]?.string
         )
-        restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? false
+        restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? (existing == nil)
         preserveTerminalSessions = toml["terminal.preserve-sessions"]?.bool ?? false
         copyOnSelect = toml["terminal.copy-on-select"]?.bool ?? true
         let terminalBackgroundOpacity = toml["terminal.background-opacity"]?.double
@@ -507,7 +507,7 @@ final class AppSettings: nonisolated ObservableObject {
         let notifyChoice = notifySeconds.isFinite ? Int(notifySeconds) : 0
         notifyFinishSeconds = Self.notifyFinishSecondChoices.contains(notifyChoice)
             ? notifyChoice : 0
-        notifyOnError = toml["terminal.notify-on-error"]?.bool ?? false
+        notifyOnError = toml["terminal.notify-on-error"]?.bool ?? (existing == nil)
         let quickTerminalSize = toml["quick-terminal.size"]?.double
             ?? Self.defaultQuickTerminalSize
         self.quickTerminalSize = Self.quickTerminalSizeRange.contains(quickTerminalSize)
@@ -625,17 +625,17 @@ final class AppSettings: nonisolated ObservableObject {
             && cursorBlinking
             && !macosOptionAsAlt
             && terminalBell
-            && !vimCommandHints
+            && vimCommandHints
             && shiftEnterNewline
             && wrapLines
             && externalEditor == .systemDefault
-            && !restoreTerminalHistory
+            && restoreTerminalHistory
             && !preserveTerminalSessions
             && copyOnSelect
             && terminalBackgroundOpacity == Self.defaultTerminalBackgroundOpacity
             && terminalBackgroundBlur == Self.defaultTerminalBackgroundBlur
             && notifyFinishSeconds == 0
-            && !notifyOnError
+            && notifyOnError
             && quickTerminalSize == Self.defaultQuickTerminalSize
             && quickTerminalOpacity == Self.defaultQuickTerminalOpacity
             && quickTerminalShortcut == Self.defaultQuickTerminalShortcut
@@ -665,17 +665,17 @@ final class AppSettings: nonisolated ObservableObject {
         cursorBlinking = true
         macosOptionAsAlt = false
         terminalBell = true
-        vimCommandHints = false
+        vimCommandHints = true
         shiftEnterNewline = true
         wrapLines = true
         externalEditor = .systemDefault
-        restoreTerminalHistory = false
+        restoreTerminalHistory = true
         preserveTerminalSessions = false
         copyOnSelect = true
         terminalBackgroundOpacity = Self.defaultTerminalBackgroundOpacity
         terminalBackgroundBlur = Self.defaultTerminalBackgroundBlur
         notifyFinishSeconds = 0
-        notifyOnError = false
+        notifyOnError = true
         quickTerminalSize = Self.defaultQuickTerminalSize
         quickTerminalOpacity = Self.defaultQuickTerminalOpacity
         quickTerminalShortcut = Self.defaultQuickTerminalShortcut
@@ -765,12 +765,12 @@ final class AppSettings: nonisolated ObservableObject {
     }
 
     /// Replaces the settings with values parsed from an imported config,
-    /// reading the same keys with the same fallbacks `init` does, then
-    /// persists them through the published properties' `didSet` saves.
+    /// preserving omitted preferences from older configs, then persists them
+    /// through the published properties' `didSet` saves.
     /// Assigning the published properties also refreshes the settings window
     /// through the panes' existing `objectWillChange` observation, so no
-    /// separate notification is needed. Keys the file omits fall back to
-    /// their defaults, and `language` is deliberately untouched: it lives in
+    /// separate notification is needed. Omitted keys retain their previous
+    /// defaults, and `language` is deliberately untouched: it lives in
     /// `UserDefaults` (`AppleLanguages`), not config.toml, so it is neither
     /// exported nor imported.
     func applyImported(_ toml: [String: TOML.Value]) {
@@ -812,6 +812,7 @@ final class AppSettings: nonisolated ObservableObject {
         vimCommandHints = toml["terminal.vim-command-hints"]?.bool ?? false
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
         restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? false
+        notifyOnError = toml["terminal.notify-on-error"]?.bool ?? false
         preserveTerminalSessions = toml["terminal.preserve-sessions"]?.bool ?? false
         copyOnSelect = toml["terminal.copy-on-select"]?.bool ?? true
         resumeAgentConversations = toml["ai.resume-conversations"]?.bool ?? true
@@ -905,9 +906,9 @@ final class AppSettings: nonisolated ObservableObject {
 
     /// The config.toml representation of the current settings, from the same
     /// writer that persists `config.toml`, so an exported file is byte for
-    /// byte what the app would have saved. Like `save()`, only values that
-    /// differ from their default are emitted — an absent key means "keep the
-    /// default", which is the contract the reader applies at launch.
+    /// byte what the app would have saved. Preferences whose defaults changed
+    /// are always emitted so older files retain their meaning; other values
+    /// are omitted when they match their default.
     func serializedConfig() -> String {
         var lines: [String] = []
         // Top-level like `theme`: the icon covers the whole app.
@@ -966,9 +967,7 @@ final class AppSettings: nonisolated ObservableObject {
         if !terminalBell {
             lines.append("terminal.bell = false")
         }
-        if vimCommandHints {
-            lines.append("terminal.vim-command-hints = true")
-        }
+        lines.append("terminal.vim-command-hints = \(vimCommandHints)")
         if !shiftEnterNewline {
             lines.append("terminal.shift-enter-newline = false")
         }
@@ -978,9 +977,7 @@ final class AppSettings: nonisolated ObservableObject {
         if externalEditor != .systemDefault {
             lines.append("editor.external-editor = \(TOML.quote(externalEditor.rawValue))")
         }
-        if restoreTerminalHistory {
-            lines.append("terminal.restore-history = true")
-        }
+        lines.append("terminal.restore-history = \(restoreTerminalHistory)")
         if preserveTerminalSessions {
             lines.append("terminal.preserve-sessions = true")
         }
@@ -998,9 +995,7 @@ final class AppSettings: nonisolated ObservableObject {
         if notifyFinishSeconds > 0 {
             lines.append("terminal.notify-finish-seconds = \(TOML.number(Double(notifyFinishSeconds)))")
         }
-        if notifyOnError {
-            lines.append("terminal.notify-on-error = true")
-        }
+        lines.append("terminal.notify-on-error = \(notifyOnError)")
         if quickTerminalSize != Self.defaultQuickTerminalSize {
             lines.append("quick-terminal.size = \(TOML.number(quickTerminalSize))")
         }

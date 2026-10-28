@@ -11,13 +11,15 @@ Die meisten dauerhaften Einstellungen stehen in einer Datei:
 
 Das Einstellungsfenster (<kbd>Cmd</kbd>+<kbd>,</kbd>) schreibt dieselbe Datei. Einige von macOS verwaltete Einstellungen, etwa Sprache und automatische Updates, werden anderswo gespeichert. Sie stehen am Ende dieser Seite.
 
+Neue Konfigurationen aktivieren Vim-Befehlshinweise, die Wiederherstellung des Sitzungsverlaufs und Mitteilungen bei fehlgeschlagenen Befehlen. Automatische Update-Downloads sind ebenfalls standardmäßig aktiviert. Bestehende Konfigurationen und gespeicherte Entscheidungen bleiben erhalten.
+
 ## Verhalten der Datei [#how-the-file-behaves]
 
 Vor dem manuellen Bearbeiten sollten Sie Folgendes wissen:
 
 - **Die Datei wird beim Start gelesen.** Änderungen an der Datei während des Betriebs greifen erst nach einem Neustart. Änderungen im Einstellungsfenster wirken sofort, sofern das Steuerelement nichts anderes angibt.
 - **Zshell schreibt die Datei bei jeder darin gespeicherten Einstellungsänderung neu.** Dabei gehen Kommentare und unbekannte Schlüssel verloren. Bearbeiten Sie sie möglichst auf nur einem Weg oder halten Sie eine maßgebliche Kopie in Ihren Dotfiles vor.
-- **Gespeichert werden nur vom Standard abweichende Werte, mit einer Ausnahme.** `font-size` steht immer in der Datei. Das Entfernen eines anderen Schlüssels stellt seinen Standardwert wieder her.
+- **Die meisten Standardwerte werden weggelassen.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` werden immer gespeichert. Das Entfernen eines dieser drei Terminalschlüssel in einer vorhandenen Datei deaktiviert die Funktion; bei anderen Schlüsseln wird der Standard wiederhergestellt.
 - **Der Parser ist bewusst klein.** Er unterstützt einfache und punktgetrennte Schlüssel, `[table]`-Kopfzeilen, `#`-Kommentare sowie Zeichenketten, Zahlen und boolesche Werte. Arrays, Inline-Tabellen und mehrzeilige Zeichenketten werden nicht unterstützt.
 - **Ungültige Werte verwenden sichere Ersatzwerte.** Eine Größe außerhalb des Bereichs, ein unbekanntes Backend oder ein falsch geschriebener Themenname verhindert den Start nicht.
 
@@ -151,17 +153,17 @@ Steuert Ton und visuelle Aufmerksamkeit unter macOS, wenn ein Terminalprogramm d
 
 ### `terminal.vim-command-hints` [#terminalvim-command-hints]
 
-Boolescher Wert – Standard: `false`
+Boolescher Wert – Standard: `true`
 
 Zeigt vom Modus abhängige Vim-/Neovim-Befehle unter den Sitzungsinformationen in der **Info**-Seitenleiste. Die Einstellung wirkt sofort bei beiden Backends, auch für erkennbare Editoren über SSH. Voraussetzungen für die Moduserkennung stehen unter [Vim-Befehlshinweise](/de/docs/terminal#vim-command-hints).
 
 ### `terminal.restore-history` [#terminalrestore-history]
 
-Boolescher Wert – Standard: `false`
+Boolescher Wert – Standard: `true`
 
 Stellt nach einem Neustart die bisherige Terminalausgabe über einer neuen Shell wieder her. Sie ist statischer Text, kein weiterlaufender Prozess.
 
-Der Verlauf wird auf dem Datenträger gespeichert und kann im Terminal angezeigte Geheimnisse enthalten. Darum ist die Einstellung standardmäßig ausgeschaltet. [Projekte, Tabs und Bereichsanordnung](/de/docs/projects#what-survives-a-relaunch) werden unabhängig davon wiederhergestellt.
+Der Verlauf wird auf dem Datenträger gespeichert und kann im Terminal angezeigte Geheimnisse enthalten. [Projekte, Tabs und Bereichsanordnung](/de/docs/projects#what-survives-a-relaunch) werden unabhängig davon wiederhergestellt.
 
 ## Automatisierung [#automation]
 
@@ -195,7 +197,7 @@ Die Option steht unter **Einstellungen → Automatisierung → Agentengespräche
 | `terminal.background-opacity` | `1` | 0.2–1 | Deckkraft des Terminalhintergrunds |
 | `terminal.background-blur` | `false` | Boolescher Wert | Durchscheinende Hintergründe weichzeichnen |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | In neuen zsh-Terminals nach Abschluss eines mindestens so lange laufenden Befehls benachrichtigen; 0 deaktiviert dies |
-| `terminal.notify-on-error` | `false` | Boolescher Wert | In neuen zsh-Terminals bei fehlgeschlagenen Befehlen benachrichtigen |
+| `terminal.notify-on-error` | `true` | Boolescher Wert | In neuen zsh-Terminals bei fehlgeschlagenen Befehlen benachrichtigen |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Arbeitsbereich wiederverwenden / Jedes Mal neuer Arbeitsbereich |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Größe des Schnellterminals relativ zum Bildschirm |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Hintergrunddeckkraft des Schnellterminals |

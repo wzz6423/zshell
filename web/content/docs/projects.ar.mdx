@@ -100,7 +100,7 @@ description: كيف ينظّم Zshell عملك في مشاريع بالشريط 
 
 إذا لم يعد PTY الأصلي متاحًا وكانت **استئناف محادثات الوكلاء** ودعم الذكاء الاصطناعي مفعّلين، يستأنف Zshell محادثة Claude Code أو Codex أو Pi أو OpenCode الموثقة. تفتح اللوحات الأخرى **صُدَفًا جديدة** في مجلداتها السابقة. تحتفظ المحادثة بهويتها؛ ولا يستعيد Zshell بناءً جاريًا بإعادة الأوامر.
 
-لا يُستعاد سجل المخرجات السابق إلا إذا طلبت ذلك باستخدام [`terminal.restore-history`](/ar/docs/configuration#terminalrestore-history). يكون معطّلًا افتراضيًا لأن السجل المستعاد يُخزّن على القرص.
+يُستعاد سجل المخرجات السابق عند تفعيل [`terminal.restore-history`](/ar/docs/configuration#terminalrestore-history). يكون مفعّلًا افتراضيًا في الإعدادات الجديدة؛ ويُخزّن السجل المستعاد على القرص.
 
 ## بيئة الطرفية والتهيئة [#terminal-environment-and-initialization]
 

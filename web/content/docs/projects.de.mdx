@@ -100,7 +100,7 @@ Zshell speichert während der Arbeit regelmäßig die Anordnung. Nach dem Beende
 
 Ist das ursprüngliche PTY nicht verfügbar und sind **Agentengespräche fortsetzen** sowie die KI-Unterstützung aktiv, setzt Zshell das bestätigte Gespräch mit Claude Code, Codex, Pi oder OpenCode fort. Andere Bereiche öffnen **neue Shells** im bisherigen Verzeichnis. Das Gespräch behält seine Identität; ein laufender Build wird nicht durch erneutes Ausführen von Befehlen wiederhergestellt.
 
-Die bisherige Ausgabe wird nur mit aktiviertem [`terminal.restore-history`](/de/docs/configuration#terminalrestore-history) wiederhergestellt. Standardmäßig ist dies ausgeschaltet, da der Verlauf auf dem Datenträger gespeichert wird.
+Die bisherige Ausgabe wird bei aktiviertem [`terminal.restore-history`](/de/docs/configuration#terminalrestore-history) wiederhergestellt. Neue Konfigurationen aktivieren dies standardmäßig; der Verlauf wird auf dem Datenträger gespeichert.
 
 ## Terminalumgebung und Initialisierung [#terminal-environment-and-initialization]
 

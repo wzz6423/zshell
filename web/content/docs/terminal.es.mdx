@@ -100,7 +100,7 @@ Las notificaciones pueden reproducir el sonido del sistema. Al hacer clic en una
 Abre **Ajustes → Terminal → Notificaciones de comandos** para que Zshell te avise cuando termine un comando:
 
 - **Comandos de larga duración**: elige 5, 10, 30 o 60 segundos. Un comando que dure al menos ese tiempo genera una notificación al terminar. El valor predeterminado es **Desactivado**.
-- **Comandos fallidos**: notifica cuando el estado de salida es distinto de cero, independientemente de la duración. También está desactivado de forma predeterminada y puede activarse por separado.
+- **Comandos fallidos**: notifica cuando el estado de salida es distinto de cero, independientemente de la duración. Está activado de forma predeterminada en las nuevas configuraciones y puede desactivarse por separado.
 
 Estos ajustes afectan a los terminales zsh creados después del cambio, con cualquiera de los motores. Usan el evento de finalización de comandos del shell original; los comandos ejecutados dentro de un shell anidado o un programa interactivo no informan de sus finalizaciones individuales mediante esta integración.
 
@@ -163,7 +163,7 @@ Activa `terminal.preserve-sessions` antes de abrir un terminal rápido nuevo par
 
 ## Sugerencias de comandos de Vim [#vim-command-hints]
 
-Activa **Ajustes → Terminal → Comportamiento → Sugerencias de comandos de Vim** y abre la pestaña **Información** de la barra lateral derecha. Aparece una sección **COMANDOS VIM** debajo de la información de sesión mientras Vim, Vi o Neovim están activos. Está desactivada de forma predeterminada y se aplica inmediatamente a los terminales existentes de ambos motores.
+Gestiona las sugerencias en **Ajustes → Terminal → Comportamiento → Sugerencias de comandos de Vim** y abre la pestaña **Información** de la barra lateral derecha. Aparece una sección **COMANDOS VIM** debajo de la información de sesión mientras Vim, Vi o Neovim están activos. Está activada de forma predeterminada en las nuevas configuraciones y se aplica inmediatamente a los terminales existentes de ambos motores.
 
 La lista completa de comandos habituales sigue disponible; solo cambia su prioridad: Normal coloca primero `:w`, `:q`, `yy` y `p`/`P`; Bloque visual coloca primero `I`/`A`, los cambios de bloque y los movimientos entre esquinas. Los modos Inserción, Reemplazo, Visual, Línea visual, Selección, línea de comandos y búsqueda tienen su propio orden. Cada entrada indica los modos a los que se aplica. Busca por teclas, descripción o nombre del modo; las descripciones y la interfaz de búsqueda siguen cualquiera de los 17 idiomas de la aplicación. Borra la consulta para recuperar la lista completa.
 Las sugerencias son una referencia; nunca envían entrada al editor.

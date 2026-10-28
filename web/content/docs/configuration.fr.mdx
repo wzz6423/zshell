@@ -11,13 +11,15 @@ La plupart des réglages persistants de Zshell sont enregistrés dans un seul fi
 
 La fenêtre Réglages (<kbd>Cmd</kbd>+<kbd>,</kbd>) écrit dans ce même fichier. Certains réglages gérés par macOS, comme la langue et les mises à jour automatiques, sont enregistrés ailleurs et décrits en fin de page.
 
+Les nouvelles configurations activent l’aide aux commandes Vim, la restauration de l’historique des sessions et les notifications de commandes en échec. Le téléchargement automatique des mises à jour est également activé par défaut. Les configurations existantes et les choix enregistrés sont conservés.
+
 ## Fonctionnement du fichier [#how-the-file-behaves]
 
 Avant de le modifier manuellement, retenez ces règles :
 
 - **Il est lu au lancement.** Une modification du fichier pendant l'exécution de Zshell ne prend effet qu'au prochain lancement. Les changements dans Réglages s'appliquent immédiatement, sauf indication contraire du contrôle.
 - **Zshell le réécrit à chaque changement d'un réglage enregistré dans ce fichier.** Il est régénéré intégralement ; vos commentaires et les clés inconnues disparaissent à la prochaine utilisation de ces contrôles. Choisissez une seule méthode d'édition ou conservez une copie de référence dans vos dotfiles.
-- **Seules les valeurs différentes des valeurs par défaut sont écrites, avec une exception.** `font-size` est toujours présent. Supprimer une autre clé rétablit sa valeur par défaut.
+- **La plupart des valeurs par défaut sont omises.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` sont toujours enregistrés. Supprimer une de ces trois clés de terminal dans un fichier existant désactive la fonction correspondante ; supprimer les autres clés rétablit leur valeur par défaut.
 - **Le parseur est volontairement limité.** Il accepte les clés simples, les clés à points, les en-têtes `[table]`, les commentaires `#` et les valeurs chaîne, nombre ou booléen. Il ne prend en charge ni les tableaux, ni les tables en ligne, ni les chaînes multilignes.
 - **Les valeurs incorrectes utilisent un repli sûr.** Une taille hors limites, un moteur inconnu ou un thème mal orthographié n'empêche pas Zshell de démarrer.
 
@@ -151,17 +153,17 @@ Contrôle le son d'alerte et les signaux visuels macOS lorsqu'un programme décl
 
 ### `terminal.vim-command-hints` [#terminalvim-command-hints]
 
-Booléen — valeur par défaut : `false`
+Booléen — valeur par défaut : `true`
 
 Affiche des commandes Vim et Neovim adaptées au mode sous les informations de session du panneau **Informations**. Le changement s'applique immédiatement aux deux moteurs, y compris aux éditeurs reconnaissables par SSH. Les conditions de détection sont détaillées dans [Aide aux commandes Vim](/fr/docs/terminal#vim-command-hints).
 
 ### `terminal.restore-history` [#terminalrestore-history]
 
-Booléen — valeur par défaut : `false`
+Booléen — valeur par défaut : `true`
 
 Restaure l'ancien historique de chaque terminal au-dessus d'un nouveau shell après un redémarrage. Ce contenu est du texte statique, pas un processus qui aurait survécu.
 
-Cet historique est stocké sur disque et peut donc contenir des secrets affichés dans le terminal. La fonction est désactivée par défaut. Les [projets, onglets et dispositions de volets](/fr/docs/projects#what-survives-a-relaunch) sont restaurés dans tous les cas.
+Cet historique est stocké sur disque et peut donc contenir des secrets affichés dans le terminal. Les [projets, onglets et dispositions de volets](/fr/docs/projects#what-survives-a-relaunch) sont restaurés dans tous les cas.
 
 ## Automatisation [#automation]
 
@@ -195,7 +197,7 @@ Activez cette option dans **Réglages → Automatisation → Reprendre les conve
 | `terminal.background-opacity` | `1` | 0.2–1 | Opacité du fond du terminal |
 | `terminal.background-blur` | `false` | Booléen | Flouter les fonds translucides |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Dans les nouveaux terminaux zsh, notifier la fin d'une commande ayant duré au moins ce nombre de secondes ; 0 désactive la fonction |
-| `terminal.notify-on-error` | `false` | Booléen | Notifier les échecs de commande dans les nouveaux terminaux zsh |
+| `terminal.notify-on-error` | `true` | Booléen | Notifier les échecs de commande dans les nouveaux terminaux zsh |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Réutiliser l’espace de travail / Nouvel espace à chaque ouverture |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Taille du terminal rapide par rapport à l'écran |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Opacité du fond du terminal rapide |
