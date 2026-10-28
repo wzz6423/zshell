@@ -279,6 +279,16 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
 
     @objc private func resumeSelection(_ sender: Any?) {
         guard let record = selected, let manager else { return }
+        if record.identity.remoteHostID != nil {
+            statusLabel.stringValue = String(localized: "Connecting…")
+            Task { @MainActor [weak self] in
+                do {
+                    _ = try await manager.resumeRemoteConversation(id: record.id, focus: true)
+                    self?.close()
+                } catch { self?.statusLabel.stringValue = error.localizedDescription }
+            }
+            return
+        }
         do {
             _ = try manager.resumeConversation(id: record.id, focus: true)
             close()

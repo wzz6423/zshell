@@ -19,6 +19,8 @@
         "mac/Makefile",
         "Makefile",
         "mac/scripts/build-alacritty-bridge.sh",
+        "mac/scripts/build-remote-server.sh",
+        "remote/**",
         ".github/**"
       ],
       "checks": ["Alacritty Bridge", "App Build Smoke Test", "CodeQL (swift)"]
@@ -28,7 +30,7 @@
       "file": "remote-sessions.yml",
       "aliases": ["remote", "remote-sessions", "server"],
       "paths": ["remote/**", "mac/Vendor/alacritty-bridge/**", ".github/**"],
-      "checks": ["Remote Server (Linux)", "Remote Server (macOS)"]
+      "checks": ["Remote Server (Linux)", "Remote Server (macOS)", "Remote Server (Windows)"]
     },
     {
       "name": "Release Scripts",

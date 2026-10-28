@@ -3,17 +3,19 @@ title: 遠端共用工作階段
 description: 透過 SSH 或 Tailscale 共用遠端終端，關閉用戶端後讓工作繼續執行。
 ---
 
-`zshell-server` 在 macOS 或 Linux 主機上保留 shell 與工作。Zshell 的兩種終端後端都能連接；用戶端關閉、退出或斷線後，工作繼續執行。重新連接會還原畫面、捲動歷程、游標與終端模式。
+`zshell-server` 在 macOS、Linux、Windows 或 WSL 主機上保留 shell 與工作。Zshell 的兩種終端後端都能連接；用戶端關閉、退出或斷線後，工作繼續執行。重新連接會還原畫面、捲動歷程、游標與終端模式。
 
 ## 安裝 [#install]
 
-在主機使用目前的 Rust 工具鏈從 Zshell 原始碼建置。Mac 用戶端已內建 relay，無需 Cargo。不支援原生 Windows 主機。
+在**遠端主機…**選擇主機平台，透過 SSH 按**安裝 / 更新服務端**。同架構 Mac 使用內建程式；Linux 與原生 Windows 請選擇為對應平台、架構建置的 `zshell-server`。WSL 使用所選發行版內的 Linux 程式。上傳及相容性驗證成功後才替換舊程式。執行中的 daemon 在重啟前維持原版本，重啟會結束終端工作階段。也可以直接在主機建置：
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
 install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
+
+服務端以哪個帳戶執行，連接者就能操作該帳戶的 shell 與檔案。支援 macOS、Linux、原生 Windows 和 WSL。Windows 使用 ConPTY；WSL 工作階段使用所選發行版的 Linux 路徑。Windows 產物為 `zshell-server.exe`。
 
 ## SSH [#ssh]
 
@@ -35,13 +37,23 @@ SSH 自動啟動 daemon，沿用 OpenSSH 設定、金鑰、agent 與信任的主
 zshell-server serve --listen tailscale://:7373
 ```
 
-新增 `tailscale://devbox:7373`。支援 MagicDNS 與 Tailscale IPv4/IPv6，拒絕公開位址。預設僅允許主機擁有者的未標記裝置；`--allow-user` 允許另一個完整登入名稱，帶標記的用戶端仍被拒絕。同機用戶端請使用 SSH。Tailnet ACL 同樣生效；連接者可以操作服務所屬的 Unix 帳戶。
+新增 `tailscale://devbox:7373`。支援 MagicDNS 與 Tailscale IPv4/IPv6，拒絕公開位址。預設僅允許主機擁有者的未標記裝置；`--allow-user` 允許另一個完整登入名稱，帶標記的用戶端仍被拒絕。同機用戶端請使用 SSH。Tailnet ACL 同樣生效；連接者可以操作服務所屬的帳戶。
+
+共用這台 Mac 時，先登入 Tailscale，再在**遠端主機…**按**共用這台 Mac**。可設定連接埠與允許的完整登入名稱。只有主動開啟才會共用；**停止共用**或退出 Zshell 會結束本機共用工作階段。
 
 ## 共用與結束 [#sharing]
 
 所有用戶端接收相同輸出。聚焦終端或接管控制權後，該用戶端才能輸入及調整尺寸。控制者斷線後，最早連線的剩餘用戶端接管。資訊面板顯示狀態、用戶端數量與控制權；分離及重新連接按鈕可暫停或恢復連線。意外斷線自動重試，離線輸入會丟棄。儲存的配置會以遠端 UUID 重新連接原工作。
 
 關閉窗格、專案、視窗與兩種退出方式都只會分離。**結束遠端工作階段…**經確認後，會為所有用戶端終止 shell 與工作；主機也能執行 `zshell-server terminate --project ~/repo --session UUID`。
+
+## 檔案與截圖 [#paste]
+
+複製一般檔案或截圖後，在遠端窗格貼上。Zshell 先上傳到主機私有目錄，再依工作階段 shell 插入加上引號的路徑。每批最多 32 個檔案，單檔 32 MiB，合計 64 MiB；不支援目錄與符號連結。共用工作階段的上傳保留七天。一般 Unix SSH 窗格也支援檔案與截圖貼上。
+
+## 遠端 Agent 對話 [#agents]
+
+遠端 Agent 的活動、進度、核准請求與完成狀態使用既有窗格狀態和通知。**Agent 對話歷程**包含主機儲存的 Claude Code、Codex、OpenCode 和 Pi 對話。繼續會重連仍執行的對話，或在原主機、原目錄啟動指定會話。對話歷程可跨 daemon 重啟，執行工作與捲動歷程不能。主機仍需保留對應程式、原設定或會話檔案。
 
 ## 限制 [#limits]
 

@@ -40,6 +40,8 @@ Zshell 不读取 `~/.config/ghostty`，也不读取 Alacritty 配置。字体、
 
 <span id="系统权限" data-canonical-heading="system-permissions" />
 
+从 Dock 或 Finder 启动时，Zshell 会读取登录交互 shell 的 `SSH_AUTH_SOCK`，让 SSH 使用 dotfiles 选定的 agent。从终端启动时保留有效的继承 agent。
+
 ## 系统权限 [#system-permissions]
 
 Zshell 终端中的本地程序可以请求使用摄像头、麦克风，或通过 Apple Events 控制其他应用。
@@ -49,6 +51,12 @@ macOS 会将这些请求归属于 Zshell；请只允许你信任的程序。自�
 拒绝请求会阻止对应功能，Zshell 不会自动授予这些权限。
 
 <span id="搜索" data-canonical-heading="search" />
+
+## 鼠标移入聚焦 [#focus-follows-mouse]
+
+启用 **设置 → 终端 → 行为 → 鼠标移入聚焦**，指针进入终端窗格时即可切换焦点。默认关闭，两个后端和快捷终端都适用。拖动时、编辑器持有焦点时、菜单或对话框打开时不会抢焦点。
+
+`terminal.focus-follows-mouse = true`
 
 ## 搜索 [#search]
 
@@ -166,7 +174,7 @@ terminal.notify-on-error = true
 
 - **读剪贴板要确认。** `OSC 52` 可以申请读取 macOS 剪贴板，包括通过 SSH 跑在远端的程序。Zshell 会先问你。
 - **有风险的粘贴会提示。** 多行或看起来会立即执行命令的文本，会先停在确认步骤。
-- **文件会变成 shell 安全路径。** 从 Finder 复制或拖进来的文件，会作为经过引用的绝对路径插入。剪贴板图片仍会交给支持图片的 TUI。
+- **文件和截图变成 shell 安全路径。** Finder 文件插入为带引用的绝对路径。剪贴板只有图片时，会保存到私有临时 PNG，再粘贴路径供终端程序读取。远程窗格先将复制的文件和截图上传到主机，再插入远端路径。
 
 <span id="option-键输入" data-canonical-heading="option-key-input" />
 

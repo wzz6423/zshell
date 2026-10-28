@@ -27,6 +27,9 @@ nonisolated struct RemoteRelayStatus: Codable, Equatable, Sendable {
     var exitCode: Int32?
     var clients = 0
     var activeClientID: String?
+    var agentStatus: RemoteAgentStatus?
+    var conversation: ZshellJSONValue?
+    var sessionCommand: [String]?
 
     var connectionState: RemoteConnectionState {
         switch state {
@@ -62,6 +65,7 @@ final class RemoteSessionConnection: ObservableObject {
     private var timer: Timer?
     private var statusReadTask: Task<RemoteRelayStatus?, Never>?
     private var monitoringGeneration: UInt64 = 0
+    private(set) var pasteGeneration: UInt64 = 0
     @Published private(set) var status = RemoteRelayStatus(state: .connecting)
 
     var host: RemoteHost { configuration.host }
@@ -104,10 +108,12 @@ final class RemoteSessionConnection: ObservableObject {
         try? FileManager.default.removeItem(at: directoryURL)
     }
 
-    func reconnect() { sendControl("reconnect") }
-    func detach() { sendControl("detach") }
+    func reconnect() { pasteGeneration &+= 1; sendControl("reconnect") }
+    func detach() { pasteGeneration &+= 1; sendControl("detach") }
     func takeControl() { sendControl("claim") }
+    func markAgentSeen() { sendControl("agentSeen") }
     func stopMonitoring() {
+        pasteGeneration &+= 1
         timer?.invalidate()
         timer = nil
         monitoringGeneration &+= 1
@@ -137,7 +143,12 @@ final class RemoteSessionConnection: ObservableObject {
             let current = await task.value
             guard let self, self.timer != nil, self.monitoringGeneration == generation else { return }
             self.statusReadTask = nil
-            if let current, current != self.status { self.status = current }
+            if let current, current != self.status {
+                if current.state != self.status.state || current.activeClientID != self.status.activeClientID {
+                    self.pasteGeneration &+= 1
+                }
+                self.status = current
+            }
             if current?.state == .exited { self.stopMonitoring() }
         }
     }

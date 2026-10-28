@@ -3,17 +3,19 @@ title: Gemeinsame Remote-Sitzungen
 description: Über SSH oder Tailscale denselben Remote-Terminal nutzen und Aufgaben nach dem Trennen weiterlaufen lassen.
 ---
 
-`zshell-server` hält Shell und Prozesse auf einem macOS- oder Linux-Host am Leben. Beide Terminal-Backends von Zshell können sich verbinden. Beim Schließen des Clients oder bei einem Netzwerkausfall laufen Aufgaben weiter. Eine erneute Verbindung stellt Bildschirm, Verlauf, Cursor und Terminalmodi wieder her.
+`zshell-server` hält Shell und Prozesse auf einem macOS- oder Linux / Windows / WSL-Host am Leben. Beide Terminal-Backends von Zshell können sich verbinden. Beim Schließen des Clients oder bei einem Netzwerkausfall laufen Aufgaben weiter. Eine erneute Verbindung stellt Bildschirm, Verlauf, Cursor und Terminalmodi wieder her.
 
 ## Installation [#install]
 
-Bauen Sie das Zshell-Repository auf dem Host mit einer aktuellen Rust-Toolchain. Der Mac-Client enthält den Relay und benötigt kein Cargo. Ein nativer Windows-Server wird nicht unterstützt.
+Wählen Sie in **Remote-Hosts…** die Plattform und **Server installieren / aktualisieren** über SSH. Für einen Mac gleicher Architektur wird das mitgelieferte Programm verwendet. Für Linux oder natives Windows wählen Sie das passende `zshell-server` für Plattform und Architektur. WSL nutzt das Linux-Programm in der gewählten Distribution. Upload und Kompatibilität werden vor dem Ersetzen geprüft. Ein aktiver Daemon behält seine Version bis zum Neustart, der seine Terminalaufgaben beendet. Ein Build direkt auf dem Host ist ebenfalls möglich:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
 install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
+
+Clients erhalten Zugriff auf Shell und Dateien des ausführenden Kontos. macOS, Linux, natives Windows und WSL werden unterstützt. Windows nutzt ConPTY; WSL nutzt Linux-Pfade der gewählten Distribution. Unter Windows entsteht `zshell-server.exe`.
 
 ## SSH [#ssh]
 
@@ -37,11 +39,21 @@ zshell-server serve --listen tailscale://:7373
 
 Fügen Sie `tailscale://devbox:7373` hinzu. MagicDNS und Tailscale-IPv4/IPv6 funktionieren, öffentliche Adressen werden abgelehnt. Standardmäßig sind nur unmarkierte Geräte des Hostbesitzers erlaubt. `--allow-user` erlaubt einen weiteren exakten Anmeldenamen; markierte Clients bleiben gesperrt. Auf dem Server selbst verwenden Sie SSH. Tailnet-ACLs gelten weiterhin. Berechtigte Clients können das Unix-Konto des Dienstes bedienen.
 
+Melden Sie Tailscale an und wählen Sie **Diesen Mac teilen** in **Remote-Hosts…**. Port und erlaubte exakte Anmeldenamen sind einstellbar. Teilen startet nur auf Anforderung; **Teilen beenden** oder Beenden von Zshell beendet die geteilten Sitzungen.
+
 ## Teilen und beenden [#sharing]
 
 Alle Clients erhalten dieselbe Ausgabe. Durch Fokussieren oder Übernehmen der Terminalsteuerung erhält ein Client Eingabe und Größensteuerung. Trennt er sich, übernimmt der älteste verbleibende Client. Das Info-Panel zeigt Zustand, Clientzahl und Steuerung und bietet Trennen und Wiederverbinden. Netzfehler werden automatisch erneut versucht; Offline-Eingaben werden verworfen. Gespeicherte Layouts verbinden dieselbe Remote-UUID erneut.
 
 Das Schließen von Bereich, Projekt oder Fenster sowie beide Optionen zum Beenden der App trennen nur die Verbindung. Das Beenden einer Remote-Sitzung verlangt Bestätigung und stoppt Shell und Aufgaben für alle Clients. Auf dem Host geht das mit `zshell-server terminate --project ~/repo --session UUID`.
+
+## Dateien und Bildschirmfotos [#paste]
+
+Kopieren Sie reguläre Dateien oder Bildschirmfotos und fügen Sie sie im Remote-Bereich ein. Nach dem Upload in ein privates Hostverzeichnis werden für dessen Shell zitierte Pfade eingefügt. Maximal 32 Dateien, je 32 MiB und insgesamt 64 MiB; Ordner und symbolische Links werden abgelehnt. Geteilte Uploads bleiben sieben Tage verfügbar. Normale Unix-SSH-Bereiche unterstützen dies ebenfalls.
+
+## Remote-Agent-Gespräche [#agents]
+
+Aktivität, Fortschritt, Freigabeanfragen und Abschluss von Remote-Agents nutzen vorhandene Statusanzeigen und Mitteilungen. **Agent-Gesprächsverlauf** enthält Hostgespräche von Claude Code, Codex, OpenCode und Pi. Fortsetzen verbindet ein lebendes Gespräch oder startet genau dessen Sitzung auf dem ursprünglichen Host und Verzeichnis. Gesprächsverlauf überlebt Daemon-Neustarts; Terminalaufgaben und Scrollverlauf nicht. Anbieterprogramm und ursprüngliche Konfiguration oder Sitzungsdatei müssen verfügbar sein.
 
 ## Grenzen [#limits]
 

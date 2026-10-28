@@ -11,6 +11,12 @@ pub const MAX_SNAPSHOT: usize = 16 * 1024 * 1024;
 pub const MAX_SESSIONS: usize = 128;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PasteFile {
+    pub name: String,
+    pub size: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Frame {
     pub version: u32,
@@ -19,6 +25,8 @@ pub struct Frame {
     pub request_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub working_directory: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub session_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -38,6 +46,20 @@ pub struct Frame {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sequence: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub paste_files: Option<Vec<PasteFile>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub upload_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file_index: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hook: Option<crate::agent_hooks::Hook>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub conversation_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub result: Option<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
@@ -52,6 +74,7 @@ impl Frame {
             kind: kind.into(),
             request_id: None,
             project: None,
+            working_directory: None,
             session_id: None,
             client_id: None,
             command: None,
@@ -61,6 +84,13 @@ impl Frame {
             rows: None,
             data: None,
             sequence: None,
+            paste_files: None,
+            upload_id: None,
+            file_index: None,
+            offset: None,
+            hook: None,
+            provider: None,
+            conversation_id: None,
             result: None,
             error: None,
             exit_code: None,
@@ -158,7 +188,25 @@ pub fn is_uuid(value: &str) -> bool {
 
 pub fn new_id() -> io::Result<String> {
     let mut bytes = [0; 16];
+    #[cfg(unix)]
     std::fs::File::open("/dev/urandom")?.read_exact(&mut bytes)?;
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::Security::Cryptography::{
+            BCryptGenRandom, BCRYPT_USE_SYSTEM_PREFERRED_RNG,
+        };
+        if unsafe {
+            BCryptGenRandom(
+                std::ptr::null_mut(),
+                bytes.as_mut_ptr(),
+                bytes.len() as u32,
+                BCRYPT_USE_SYSTEM_PREFERRED_RNG,
+            )
+        } < 0
+        {
+            return Err(invalid("Windows secure random generator failed"));
+        }
+    }
     bytes[6] = bytes[6] & 0x0f | 0x40;
     bytes[8] = bytes[8] & 0x3f | 0x80;
     Ok(format!("{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",

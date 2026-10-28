@@ -17,11 +17,13 @@ Zshell 大多數持久化設定都在一個檔案裡：
 
 手動改之前值得先知道：
 
-- **啟動時讀取。** Zshell 執行中改檔案不會立即生效，要重新啟動。設定視窗裡的改動通常立即生效，控件另有說明的除外。
+- **執行中自動讀取變更。** 有效的外部編輯會自動套用；標示只影響新終端的設定仍需新建窗格。檔案無法讀取或語法錯誤時保留最後有效設定。主動清空檔案會在短暫等待後還原預設值。
 - **只要檔案型設定有變化，Zshell 就會重寫它。** 檔案會從頭生成，所以你的注釋和未知鍵會在下次使用這些控件時丟失。最好只選一種方式維護它，或者把權威版本放在 dotfiles 裡。
 - **通常只寫非預設值。** `font-size`、`terminal.vim-command-hints`、`terminal.restore-history`、`terminal.notify-on-error` 總會儲存。刪除這三個終端機鍵中的任何一個，會在既有檔案中關閉對應功能；刪除其他鍵則恢復預設值。
 - **解析器有意保持精簡。** 支持扁平鍵、點號鍵、`[table]` 表頭、`#` 注釋，以及字串、數字和布林值；不支持數組、行內表和多行字串。
 - **錯誤值會安全回退。** 超出範圍的字級、未知後端或拼錯的主題名不會讓 Zshell 啟動失敗。
+
+設定儲存會保留檔案及目錄的符號連結，原子更新目標檔案並保留權限。外部編輯不會回寫註解或未知鍵；隨後透過設定視窗儲存時，仍會依上述規則重新產生檔案。
 
 ## 應用程式顯示位置 [#application-presence]
 
@@ -190,6 +192,8 @@ regular/bold 區分及後備字型字重。
 
 具體怎麼使用，見[與 AI Agent 協作](/zh-Hant/docs/automation)。
 
+多個終端共用 Codex app-server 時，Zshell 根據已驗證的對話 ID 配對前景窗格，有歧義時不綁定。託管整合會在 Codex 終端標題中加入 `session-id`，並保留其他標題項目。
+
 ### `ai.resume-conversations` [#airesume-conversations]
 
 布林值——預設 `true`
@@ -208,6 +212,7 @@ regular/bold 區分及後備字型字重。
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | 終端機游標形狀 |
 | `terminal.cursor-blinking` | `true` | 布林值 | 游標閃爍 |
 | `terminal.copy-on-select` | `true` | 布林值 | 選中終端機文本後複製 |
+| `terminal.focus-follows-mouse` | `false` | 布林值 | 滑鼠移入聚焦 |
 | `terminal.shift-enter-newline` | `true` | 布林值 | Shift+Enter 發送增強換行序列，需終端機程式支持 |
 | `terminal.background-opacity` | `1` | 0.2–1 | 終端機背景不透明度 |
 | `terminal.background-blur` | `false` | 布林值 | 半透明背景模糊 |
@@ -225,11 +230,7 @@ regular/bold 區分及後備字型字重。
 通過 **Zshell → Export Settings…** 匯出 TOML 檔案，使用 **Import Settings…** 匯入。
 匯入前會要求確認替換，並嘗試將當前配置備份為同目錄的 `config.toml.bak`。
 
-當前匯入支持主題、主要字型設定、游標、終端機後端、歷史恢復、選中複製、快速終端機和 AI 開關等設定，
-不會完整恢復所有匯出項。介面縮放、應用圖示、外部編輯器、終端機背景等需要在匯入後重新檢查。
-需要完整遷移時，退出 Zshell 後備份並複製 `config.toml`，再啟動應用。
-AI 開關只在匯入檔案明確包含 `ai.enabled` 時更新，匯入後請檢查。
-專案和分頁的環境變數屬於工作階段資料，不包含在此配置檔案中。
+匯入會讀取所有支援的設定項目。省略項目遵循設定讀取器的預設規則；未包含 `ai.enabled` 時保留目前的 AI 開關。語言及專案、分頁的環境變數另行儲存。
 
 ## 一份完整的例子 [#a-complete-example]
 

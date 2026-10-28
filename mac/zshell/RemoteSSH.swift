@@ -34,6 +34,8 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
     let host: String
     let user: String?
     let port: Int?
+    var hostPlatform: RemoteHost.Platform?
+    var wslDistribution: String?
 
     init(host: String, user: String? = nil, port: Int? = nil) throws {
         let host = host.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -52,10 +54,26 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
         self.host = host
         self.user = user.flatMap { $0.isEmpty ? nil : $0 }
         self.port = port
+        hostPlatform = nil
+        wslDistribution = nil
     }
 
     var destination: String {
         user.map { "\($0)@\(host)" } ?? host
+    }
+
+    var gitExecutable: String { hostPlatform == .windows ? "git.exe" : "/usr/bin/git" }
+
+    func routingCommands(for host: RemoteHost) -> Self {
+        var endpoint = self
+        endpoint.hostPlatform = host.platform
+        endpoint.wslDistribution = host.wslDistribution
+        return endpoint
+    }
+
+    func routedCommand(_ command: [String]) -> [String] {
+        guard hostPlatform == .wsl else { return command }
+        return ["wsl.exe"] + (wslDistribution.map { ["--distribution", $0] } ?? []) + ["--exec"] + command
     }
 
     func terminalArguments(
@@ -80,7 +98,8 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
         connectTimeout: TimeInterval,
         command: [String],
         authentication: SSHAuthentication = .agent,
-        identityFile: String? = nil
+        identityFile: String? = nil,
+        windowsShell: Bool = false
     ) throws -> [String] {
         let timeoutSeconds = max(1, Int(connectTimeout.rounded(.up)))
         return try connectionArguments + authentication.arguments(identityFile: identityFile) + [
@@ -89,8 +108,36 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
             "-o", "ConnectTimeout=\(timeoutSeconds)",
             "-T",
             destination,
-            command.map(Self.shellWord).joined(separator: " "),
+            windowsShell || hostPlatform == .windows || hostPlatform == .wsl
+                ? Self.powerShellCommand(routedCommand(command)) : command.map(Self.shellWord).joined(separator: " "),
         ]
+    }
+
+    static func powerShellLiteral(_ value: String) -> String {
+        // PowerShell treats curly single quotes as delimiters too, as Kero's
+        // quotePath regression cases cover. Keep every delimiter literal.
+        var literal = "'"
+        for scalar in value.unicodeScalars {
+            literal.unicodeScalars.append(scalar)
+            if "'‘’‚‛".unicodeScalars.contains(scalar) { literal.unicodeScalars.append(scalar) }
+        }
+        return literal + "'"
+    }
+
+    static func encodedPowerShell(_ script: String) -> String {
+        // Kero uses UTF-16LE EncodedCommand so both cmd and PowerShell carry
+        // remote paths as data. See THIRD_PARTY_NOTICES for the source revision.
+        let data = script.data(using: .utf16LittleEndian)!
+        return "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand " + data.base64EncodedString()
+    }
+
+    static func powerShellCommand(_ command: [String]) -> String {
+        let path = command[0]
+        let executable = path.hasPrefix("~/") || path.hasPrefix("~\\")
+            ? "(Join-Path $HOME \(powerShellLiteral(String(path.dropFirst(2)))))"
+            : powerShellLiteral(path)
+        let script = "& \(executable) \(command.dropFirst().map(powerShellLiteral).joined(separator: " ")); exit $LASTEXITCODE"
+        return encodedPowerShell(script)
     }
 
     private var connectionArguments: [String] {
@@ -139,7 +186,7 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
     }
 
     /// One parsed row of a remote directory listing.
-    struct DirectoryEntry: Equatable, Sendable {
+    struct DirectoryEntry: Codable, Equatable, Sendable {
         let name: String
         let isDirectory: Bool
     }
@@ -540,7 +587,8 @@ nonisolated struct BoundedProcessRunner {
         arguments: [String],
         timeout: TimeInterval,
         outputLimit: Int,
-        environment: [String: String]? = nil
+        environment: [String: String]? = nil,
+        standardInput: Data? = nil
     ) throws -> BoundedProcessResult {
         let process = Process()
         let stdoutPipe = Pipe()
@@ -548,22 +596,60 @@ nonisolated struct BoundedProcessRunner {
         let collector = BoundedOutputCollector(limit: max(0, outputLimit))
         let readers = DispatchGroup()
         let termination = DispatchSemaphore(value: 0)
+        let inputPipe = standardInput.map { _ in Pipe() }
+        let inputWriter = DispatchGroup()
 
         process.executableURL = executableURL
         process.arguments = arguments
-        process.standardInput = FileHandle.nullDevice
+        process.standardInput = inputPipe ?? FileHandle.nullDevice
         process.standardOutput = stdoutPipe
         process.standardError = stderrPipe
         process.environment = environment
         process.terminationHandler = { _ in termination.signal() }
 
         try process.run()
+        inputPipe?.fileHandleForReading.closeFile()
+        if let inputPipe, let standardInput {
+            inputWriter.enter()
+            DispatchQueue.global(qos: .utility).async {
+                defer { try? inputPipe.fileHandleForWriting.close(); inputWriter.leave() }
+                let descriptor = inputPipe.fileHandleForWriting.fileDescriptor
+                let flags = fcntl(descriptor, F_GETFL, 0)
+                guard flags >= 0, fcntl(descriptor, F_SETFL, flags | O_NONBLOCK) == 0,
+                      fcntl(descriptor, F_SETNOSIGPIPE, 1) == 0 else { return }
+                let deadline = Date().addingTimeInterval(max(0, timeout))
+                standardInput.withUnsafeBytes { bytes in
+                    var offset = 0
+                    while offset < bytes.count, process.isRunning, deadline.timeIntervalSinceNow > 0 {
+                        var ready = pollfd(fd: descriptor, events: Int16(POLLOUT), revents: 0)
+                        let status = Darwin.poll(&ready, 1, 100)
+                        if status == 0 || status < 0 && errno == EINTR { continue }
+                        guard status > 0, ready.revents & Int16(POLLERR | POLLHUP | POLLNVAL) == 0 else { return }
+                        let written = Darwin.write(descriptor, bytes.baseAddress!.advanced(by: offset), bytes.count - offset)
+                        if written > 0 { offset += written }
+                        else if written < 0, errno == EINTR || errno == EAGAIN { continue }
+                        else { return }
+                    }
+                }
+            }
+        }
         drain(stdoutPipe.fileHandleForReading, stream: .stdout, into: collector, group: readers)
         drain(stderrPipe.fileHandleForReading, stream: .stderr, into: collector, group: readers)
 
         let deadline = DispatchTime.now() + max(0, timeout)
-        let timedOut = termination.wait(timeout: deadline) == .timedOut
-        if timedOut {
+        var cancelled = false
+        let timedOut: Bool
+        if standardInput != nil {
+            var finished = false
+            while DispatchTime.now() < deadline {
+                if termination.wait(timeout: min(deadline, .now() + 0.1)) == .success { finished = true; break }
+                if Task.isCancelled { cancelled = true; break }
+            }
+            timedOut = !finished && !cancelled
+        } else {
+            timedOut = termination.wait(timeout: deadline) == .timedOut
+        }
+        if timedOut || cancelled {
             process.terminate()
             if termination.wait(timeout: .now() + 0.25) == .timedOut, process.isRunning {
                 Darwin.kill(process.processIdentifier, SIGKILL)
@@ -579,6 +665,8 @@ nonisolated struct BoundedProcessRunner {
             stderrPipe.fileHandleForReading.closeFile()
             _ = readers.wait(timeout: .now() + 0.25)
         }
+        _ = inputWriter.wait(timeout: .now() + 1)
+        if cancelled { throw CancellationError() }
 
         return BoundedProcessResult(
             terminationStatus: process.terminationStatus,
@@ -627,11 +715,13 @@ nonisolated struct OpenSSHTransport {
         command: [String],
         authentication: SSHAuthentication = .agent,
         credentialID: UUID? = nil,
-        additionalEnvironment: [String: String] = [:]
+        additionalEnvironment: [String: String] = [:],
+        windowsShell: Bool = false,
+        standardInput: Data? = nil
     ) throws -> BoundedProcessOutput {
         let material = try authentication.makeMaterial(credentialID: credentialID)
         defer { material?.cleanup() }
-        var environment = ProcessInfo.processInfo.environment
+        var environment = SSHAgentEnvironment.shared.resolvedEnvironment()
         environment.merge(material?.environment ?? [:], uniquingKeysWith: { _, materialValue in
             materialValue
         })
@@ -650,11 +740,13 @@ nonisolated struct OpenSSHTransport {
                 connectTimeout: timeout,
                 command: command,
                 authentication: authentication,
-                identityFile: authentication.identityFile(material: material)
+                identityFile: authentication.identityFile(material: material),
+                windowsShell: windowsShell
             ),
             timeout: timeout,
             outputLimit: outputLimit,
-            environment: environment
+            environment: environment,
+            standardInput: standardInput
         )
         if result.timedOut { throw TransportError.timedOut(result.output) }
         guard result.terminationStatus == 0 else {
@@ -673,12 +765,31 @@ nonisolated struct OpenSSHTransport {
     func listDirectory(
         endpoint: SSHEndpoint, directory: String
     ) throws -> [SSHEndpoint.DirectoryEntry] {
+        if endpoint.hostPlatform == .windows {
+            let script = Self.windowsDirectoryScript(directory)
+            let output = try run(endpoint: endpoint, command: ["powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", script.data(using: .utf16LittleEndian)!.base64EncodedString()])
+            let data = Data(output.stdout.utf8)
+            if let entries = try? JSONDecoder().decode([SSHEndpoint.DirectoryEntry].self, from: data) { return entries }
+            if let entry = try? JSONDecoder().decode(SSHEndpoint.DirectoryEntry.self, from: data) { return [entry] }
+            throw RemoteHostError.message(String(localized: "The remote host returned an invalid directory listing."))
+        }
         let output = try run(
             endpoint: endpoint,
             command: ["ls", "-1Ap", "--", directory],
             additionalEnvironment: ["QUOTING_STYLE": "literal"]
         )
         return SSHEndpoint.parseDirectoryListing(output.stdout)
+    }
+
+    static func windowsDirectoryScript(_ directory: String) -> String {
+        let path = directory == "~" ? "$HOME" : directory.hasPrefix("~/") || directory.hasPrefix("~\\")
+            ? "(Join-Path $HOME \(SSHEndpoint.powerShellLiteral(String(directory.dropFirst(2)))))" : SSHEndpoint.powerShellLiteral(directory)
+        return """
+            $ErrorActionPreference = 'Stop'
+            [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
+            $entries = @(Get-ChildItem -LiteralPath \(path) -Force | Where-Object { $_.Name -ne '.git' } | ForEach-Object { @{name=$_.Name; isDirectory=[bool]$_.PSIsContainer} })
+            ConvertTo-Json -InputObject $entries -Compress
+            """
     }
 }
 

@@ -127,6 +127,7 @@ class TerminalCursorSettingsTests(unittest.TestCase):
         subprocess.run([
             "swiftc", "-parse-as-library", "-module-cache-path", str(module_cache),
             "-I", str(directory), str(module_object), str(fixture), str(harness),
+            str(REPO / "mac/zshell/SettingsConfigFile.swift"),
             str(REPO / "mac/zshell/TerminalCursorSettings.swift"),
             str(REPO / "mac/zshell/TerminalCursorSettingsView.swift"),
             "-o", str(cls.binary),

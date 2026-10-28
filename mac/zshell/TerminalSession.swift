@@ -46,6 +46,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     let reconnectedToPersistentPTY: Bool
     var persistentSessionID: UUID? { persistentPTY == nil ? nil : id }
     let remoteConnection: RemoteSessionConnection?
+    let remotePasteTarget: RemotePasteTarget?
     let overlayScrollbar = OverlayScrollbarView()
     /// Find-in-terminal state for this session's pane (⌘F).
     let find: TerminalFind
@@ -73,6 +74,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// transfers, then be released only after the terminal process ends.
     private var retainedSessionResources: [AnyObject] = []
     private var remoteObservation: AnyCancellable?
+    var remoteAgentGeneration: UInt64?
+    var acknowledgedRemoteAgentGeneration: UInt64?
+    private var clipboardPasteTask: Task<Void, Never>?
+    private var clipboardPasteGeneration: UInt64 = 0
     /// Alternate-screen transcript paging must begin at the live prompt, never
     /// from text the user has scrolled back to inspect.
     var terminalIsAtLiveBottom = true
@@ -100,7 +105,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         isRestoredSession: Bool = false,
         allowsPersistence: Bool = true,
         explicitlyResumeConversation: Bool = false,
-        remoteConnection: RemoteSessionConnection? = nil
+        remoteConnection: RemoteSessionConnection? = nil,
+        remotePasteTarget: RemotePasteTarget? = nil,
+        resolvesSSHAgent: Bool = false
     ) {
         let sessionID = restoredSessionID ?? UUID()
         let existingPTY = remoteConnection == nil ? restoredSessionID.flatMap { PersistentPTY.reconnect(id: $0) } : nil
@@ -130,7 +137,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             shellPath: directCommand == nil ? shellPath : nil,
             persistentSessionID: preserve ? sessionID : nil
         )
-        let script = Self.makeLaunchScript(
+        let launchScript = Self.makeLaunchScript(
             backend: backend,
             shellPath: shellPath,
             commandArguments: directCommand,
@@ -144,6 +151,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                 && (explicitlyResumeConversation || isRestoredSession && AppSettings.shared.resumeAgentConversations)
                 && agentResume != nil && resumeLaunch == nil && existingPTY == nil
         )
+        let script = resolvesSSHAgent ? SSHAgentEnvironment.shared.terminalLaunchScript(launchScript) : launchScript
         let launchEnvironment = additionalEnvironment.merging(
             resumeLaunch?.environment ?? [:], uniquingKeysWith: { _, saved in saved }
         )
@@ -200,6 +208,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         self.backend = backend
         persistentPTY = pty
         self.remoteConnection = remoteConnection
+        self.remotePasteTarget = remotePasteTarget
         reconnectedToPersistentPTY = existingPTY != nil
         cachedShellPid = pty?.shellPID
         launchWorkingDirectory = directory
@@ -222,7 +231,13 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         lastHistorySnapshot = restoredHistory
         super.init()
 
-        remoteObservation = remoteConnection?.$status.sink { [weak self] in self?.remoteStatus = $0 }
+        remoteObservation = remoteConnection?.$status.sink { [weak self, weak remoteConnection] status in
+            self?.remoteStatus = status
+            self?.acceptRemoteAgentStatus(status)
+            if status.state != .connected || status.activeClientID != remoteConnection?.clientID.uuidString.lowercased() {
+                self?.cancelClipboardPaste()
+            }
+        }
 
         surface.events = self
         configureQuickCommandMenu()
@@ -246,6 +261,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     }
 
     deinit {
+        clipboardPasteTask?.cancel()
         if !preservesLaunchArtifacts, let launchDirectoryURL {
             try? FileManager.default.removeItem(at: launchDirectoryURL)
         }
@@ -373,6 +389,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// or been force-stopped. Detaching first can make a backend wait
     /// synchronously for a process that ignored SIGHUP.
     private func beginTeardown(processAlive: Bool, notifyExit: Bool) {
+        cancelClipboardPaste()
         recordAgentConversation(nil, processID: nil)
         AgentTurnReviewStore.shared.abort(sessionID: id)
         TerminalCommandTaskStore.shared.terminalClosed(in: self)
@@ -487,7 +504,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         surface.sendEnter()
     }
 
-    func terminalDidBecomeFocused() { remoteConnection?.takeControl() }
+    func terminalDidBecomeFocused() {
+        remoteConnection?.takeControl()
+        acknowledgeRemoteAgent()
+    }
 
     /// Clears the emulator's visible screen and scrollback, then asks the
     /// foreground shell to repaint its prompt at the top.
@@ -1058,11 +1078,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// Internal so Quick Launch entries build their launch argv around the
     /// same shell a plain session would get.
     static func loginShell() -> String {
-        if let pw = getpwuid(getuid()), let shell = pw.pointee.pw_shell {
-            let path = String(cString: shell)
-            if !path.isEmpty { return path }
-        }
-        return ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
+        SSHAgentEnvironment.loginShell()
     }
 }
 
@@ -1093,7 +1109,7 @@ extension TerminalSession: TerminalBackendEvents {
 
     func terminalDidChangeTitle(_ title: String) {
         guard !title.isEmpty else { return }
-        self.title = title
+        self.title = CodexDaemonBinding.titleChanged(in: self, title: title)
     }
 
     func terminalDidChangeWorkingDirectory(_ path: String) {
@@ -1347,6 +1363,110 @@ extension TerminalSession: TerminalBackendEvents {
 
     func terminalDidUpdateFindSelected(_ selected: Int?) {
         find.update(selected: selected)
+    }
+
+    func terminalDidResignFocus() {
+        cancelClipboardPaste()
+    }
+
+    private func cancelClipboardPaste() {
+        clipboardPasteGeneration &+= 1
+        clipboardPasteTask?.cancel()
+        clipboardPasteTask = nil
+    }
+
+    func terminalHandleUserPaste(_ pasteboard: NSPasteboard, paste: @escaping (String) -> Void) -> Bool {
+        let connection = remoteConnection
+        let target = remotePasteTarget
+        let isRemote = connection != nil || target != nil
+        // Local file URLs already have backend-specific quoting and drag/paste
+        // behavior. Only a clipboard image needs a new local file.
+        if !isRemote, pasteboard.types?.contains(.fileURL) == true { return false }
+        let input: RemotePasteInput
+        do {
+            guard let captured = try RemotePasteInput.capture(pasteboard) else { return false }
+            if !isRemote, case .files = captured { return false }
+            input = captured
+        } catch {
+            showClipboardPasteError(error, remote: isRemote)
+            return true
+        }
+        guard !isTerminating, !hasExited, surface.hasEffectiveTerminalFocus else { return true }
+        guard target != .unavailable,
+              connection == nil || connection?.status.state == .connected && connection?.isActiveClient == true else {
+            showClipboardPasteError(RemoteHostError.message(String(localized: "Reconnect and take control of the remote terminal before pasting files.")), remote: true)
+            return true
+        }
+        guard clipboardPasteTask == nil else { NSSound.beep(); return true }
+        let host = connection?.host
+        let project = connection?.projectDirectory
+        let sessionID = connection?.sessionID
+        let clientID = connection?.clientID
+        let generation = connection?.pasteGeneration
+        clipboardPasteGeneration &+= 1
+        let pasteGeneration = clipboardPasteGeneration
+        clipboardPasteTask = Task { @MainActor [weak self, weak connection] in
+            let worker = Task.detached(priority: .userInitiated) {
+                if let host, let project, let sessionID, let clientID {
+                    return try RemotePasteUpload.upload(input, host: host, project: project, sessionID: sessionID, clientID: clientID)
+                }
+                if case .ssh(let endpoint, let authentication, let credentialID) = target {
+                    return try RemotePasteUpload.uploadSSH(input, endpoint: endpoint, authentication: authentication, credentialID: credentialID)
+                }
+                if !isRemote, case .image(let bytes) = input {
+                    return [try LocalClipboardImageStore.save(bytes).path]
+                }
+                throw RemoteHostError.message(String(localized: "Reconnect and take control of the remote terminal before pasting files."))
+            }
+            do {
+                let paths = try await withTaskCancellationHandler(operation: { try await worker.value }, onCancel: { worker.cancel() })
+                var pasted = false
+                defer {
+                    if !isRemote, !pasted, let path = paths.first {
+                        Task.detached(priority: .utility) { LocalClipboardImageStore.discard(URL(fileURLWithPath: path)) }
+                    }
+                }
+                guard let self, self.clipboardPasteGeneration == pasteGeneration else { return }
+                self.clipboardPasteTask = nil
+                guard !Task.isCancelled, !self.isTerminating, !self.hasExited,
+                      self.remotePasteTarget == target, self.surface.hasEffectiveTerminalFocus else { return }
+                if let connection {
+                    guard self.remoteConnection === connection, connection.host == host,
+                          connection.pasteGeneration == generation, connection.status.state == .connected,
+                          connection.isActiveClient else { return }
+                } else {
+                    guard let pid = self.shellPid, Darwin.kill(pid, 0) == 0 else { return }
+                }
+                let platform: RemoteHost.Platform
+                if let host { platform = host.platform }
+                else if case .ssh(let endpoint, _, _) = target { platform = endpoint.hostPlatform ?? .unix }
+                else { platform = .unix }
+                let quoted = try paths.map {
+                    try RemotePasteUpload.quotePath($0, platform: platform, shell: connection?.status.sessionCommand?.first)
+                }
+                paste(quoted.joined(separator: " "))
+                pasted = true
+            } catch {
+                guard let self, self.clipboardPasteGeneration == pasteGeneration else { return }
+                self.clipboardPasteTask = nil
+                if !Task.isCancelled, !(error is CancellationError), !self.isTerminating {
+                    self.showClipboardPasteError(error, remote: isRemote)
+                }
+            }
+        }
+        return true
+    }
+
+    private func showClipboardPasteError(_ error: Error, remote: Bool) {
+        guard let window = surface.window else { NSSound.beep(); return }
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = remote
+            ? String(localized: "Couldn’t paste files to the remote terminal")
+            : String(localized: "Couldn’t paste the clipboard image")
+        alert.informativeText = error.localizedDescription
+        alert.addButton(withTitle: String(localized: "OK"))
+        alert.beginSheetModal(for: window)
     }
 
     func terminalDidRequestClipboardConfirmation(_ request: TerminalClipboardRequest) {

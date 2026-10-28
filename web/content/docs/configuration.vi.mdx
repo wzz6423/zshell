@@ -17,11 +17,13 @@ Cấu hình mới bật gợi ý lệnh Vim, khôi phục lịch sử phiên và
 
 Nên biết trước khi sửa tay:
 
-- **Được đọc lúc khởi chạy.** Sửa tệp khi Zshell đang chạy không có hiệu lực tới khi mở lại. Thay đổi trong Cài đặt áp dụng ngay, trừ nơi điều khiển nói khác.
+- **Đọc thay đổi khi ứng dụng đang chạy.** Chỉnh sửa bên ngoài hợp lệ tự áp dụng; cài đặt dành cho terminal mới vẫn cần khung mới. Tệp không đọc được hoặc sai cú pháp giữ cài đặt hợp lệ gần nhất. Tệp cố ý để trống khôi phục mặc định sau một khoảng chờ ngắn.
 - **Zshell ghi lại tệp mỗi khi một cài đặt lưu trong tệp thay đổi.** Tệp được tạo lại từ đầu, nên chú thích và khóa lạ mất vào lần dùng điều khiển đó tiếp theo. Chọn một nơi chỉnh sửa, hoặc giữ bản chuẩn trong dotfile của bạn.
 - **Hầu hết giá trị mặc định được bỏ qua.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` luôn được lưu. Xóa một trong ba khóa terminal này trong tệp hiện có sẽ tắt tính năng tương ứng; xóa các khóa khác sẽ khôi phục giá trị mặc định.
 - **Bộ phân tích cố ý đơn giản.** Hỗ trợ khóa phẳng, khóa dấu chấm, tiêu đề `[table]`, chú thích `#`, giá trị chuỗi/số/boolean. Không hỗ trợ mảng, bảng nội tuyến hay chuỗi nhiều dòng.
 - **Giá trị sai có phương án dự phòng an toàn.** Kích thước ngoài khoảng, backend không rõ hay tên chủ đề sai không làm Zshell không khởi chạy được.
+
+Lưu giữ liên kết tượng trưng tới tệp và thư mục, cập nhật tệp đích nguyên tử và giữ quyền. Chỉnh sửa bên ngoài không ghi lại chú thích hay khóa lạ; lần lưu sau qua Cài đặt vẫn tạo lại tệp như mô tả trên.
 
 ## Vị trí hiển thị ứng dụng [#application-presence]
 
@@ -175,6 +177,8 @@ Cho tác nhân lập trình được hỗ trợ phối hợp ô nền khi bạn 
 
 Quy trình sử dụng nằm ở [Làm việc với tác nhân AI](/vi/docs/automation).
 
+Khi dùng chung app-server Codex, Zshell ghép ID hội thoại đã xác minh với ngăn đang ở tiền cảnh. Kết quả không rõ ràng sẽ không được liên kết. Tích hợp được quản lý thêm `session-id` vào tiêu đề Codex và giữ các mục khác.
+
 ### `ai.resume-conversations` [#airesume-conversations]
 
 boolean — mặc định `true`
@@ -193,6 +197,7 @@ Khi khôi phục ngăn terminal và PTY gốc không còn khả dụng, tiếp t
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Hình con trỏ terminal |
 | `terminal.cursor-blinking` | `true` | boolean | Nhấp nháy con trỏ |
 | `terminal.copy-on-select` | `true` | boolean | Sao chép chữ terminal đã chọn |
+| `terminal.focus-follows-mouse` | `false` | boolean | Tiêu điểm theo chuột |
 | `terminal.shift-enter-newline` | `true` | boolean | Gửi chuỗi xuống dòng nâng cao bằng Shift+Enter; cần ứng dụng hỗ trợ |
 | `terminal.background-opacity` | `1` | 0.2–1 | Độ đục nền terminal |
 | `terminal.background-blur` | `false` | boolean | Làm mờ nền trong suốt |
@@ -209,7 +214,7 @@ Khi khôi phục ngăn terminal và PTY gốc không còn khả dụng, tiếp t
 
 Dùng **Zshell → Xuất cài đặt…** để lưu TOML và **Nhập cài đặt…** để nạp. Nhập yêu cầu xác nhận thay thế và cố sao lưu tệp hiện tại thành `config.toml.bak` trong cùng thư mục.
 
-Bộ nhập hiện chỉ khôi phục một phần: chủ đề, tùy chọn phông chính, con trỏ, backend terminal, khôi phục lịch sử, sao chép vùng chọn, Terminal nhanh và AI. Không phải mọi tùy chọn xuất ra đều được nhập lại. Kiểm tra tỷ lệ giao diện, biểu tượng ứng dụng, trình soạn thảo ngoài và nền terminal sau đó. Muốn chuyển toàn bộ, thoát Zshell, sao lưu và chép `config.toml`, rồi mở lại. Công tắc AI chỉ cập nhật nếu tệp nhập có rõ `ai.enabled`; hãy kiểm tra sau nhập. Biến môi trường dự án/tab là dữ liệu phiên, không nằm trong tệp này.
+Nhập cấu hình đọc mọi tùy chọn được hỗ trợ. Khóa bị bỏ qua dùng mặc định của trình đọc; bỏ `ai.enabled` sẽ giữ cài đặt AI hiện tại. Ngôn ngữ và biến môi trường của dự án hoặc thẻ được lưu riêng.
 
 ## Ví dụ đầy đủ [#a-complete-example]
 

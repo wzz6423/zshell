@@ -32,6 +32,8 @@ Görüntü ve bildirim destekleyen CLI’lar yetenek işareti olarak kullandığ
 Zshell `~/.config/ghostty` veya Alacritty yapılandırmasını okumaz. Yazı tipleri, renkler, giriş davranışı ve arka uç Zshell’in kendi [ayarlarında](/tr/docs/configuration) yapılandırılır.
 </Callout>
 
+Dock veya Finder’dan açılınca Zshell, dotfile seçiminizdeki agent için etkileşimli giriş kabuğundan `SSH_AUTH_SOCK` okur. Terminalden açılınca geçerli devralınmış agent korunur.
+
 ## Sistem izinleri [#system-permissions]
 
 Zshell terminalindeki yerel programlar kameraya veya mikrofona erişim ya da Apple Events ile başka bir uygulamayı denetleme izni isteyebilir.
@@ -39,6 +41,12 @@ macOS bu istekleri Zshell ile ilişkilendirir; yalnızca güvendiğiniz programl
 
 Erişimi **Sistem Ayarları → Gizlilik ve Güvenlik → Kamera, Mikrofon veya Otomasyon** bölümünden yönetin.
 İsteği reddetmek ilgili özelliği engeller. Zshell bu izinleri otomatik olarak vermez.
+
+## Odak fareyi izler [#focus-follows-mouse]
+
+**Ayarlar → Terminal → Davranış → Odak fareyi izler** seçeneği, işaretçi girdiğinde bölmeye odaklanır. Varsayılan kapalıdır; iki arka uç ve Hızlı Terminal ile çalışır. Sürükleme sırasında, düzenleyiciden veya açık menü ya da iletişim kutusundan odağı almaz.
+
+`terminal.focus-follows-mouse = true`
 
 ## Arama [#search]
 
@@ -121,7 +129,7 @@ Süreye bağlı bildirimi kapatmak için `terminal.notify-finish-seconds` değer
 
 - **Pano okuma onaylanır.** `OSC 52`, SSH üzerinden uzak sunucudan da macOS panosunu isteyebilir. Zshell vermeden önce sorar.
 - **Riskli yapıştırmalar işaretlenir.** Çok satırlı veya komuta benzeyen metin hemen gönderilmez, onay bekler.
-- **Dosyalar kabuk için güvenli yola dönüşür.** Finder’dan kopyalanan/sürüklenen dosyalar tırnaklı mutlak yol olarak eklenir. Pano görüntüleri görüntü destekleyen TUI’lara ulaşmaya devam eder.
+- **Dosya ve ekran görüntüleri güvenli kabuk yollarına dönüşür.** Finder dosyaları tırnaklı mutlak yol olarak eklenir. Tek görüntü özel geçici PNG olarak kaydedilip yolu yapıştırılır. Uzak bölmeler dosya ve görüntüleri önce sunucuya yükler.
 
 ## Option tuşu girişi [#option-key-input]
 

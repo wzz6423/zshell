@@ -265,8 +265,9 @@ final class GitStatusModel: nonisolated ObservableObject {
     /// file-tree appearance, even when their names resemble ignored paths.
     func fileDecoration(for absolutePath: String, isDirectory: Bool) -> FileDecoration? {
         guard isRepo, !topLevel.isEmpty else { return nil }
-        let repositoryPath = (topLevel as NSString).standardizingPath
-        let itemPath = (absolutePath as NSString).standardizingPath
+        let windows = remoteEndpoint?.hostPlatform == .windows
+        let repositoryPath = ((windows ? topLevel.replacingOccurrences(of: "\\", with: "/") : topLevel) as NSString).standardizingPath
+        let itemPath = ((windows ? absolutePath.replacingOccurrences(of: "\\", with: "/") : absolutePath) as NSString).standardizingPath
         let relativePath: String
         if itemPath == repositoryPath {
             relativePath = ""
@@ -1420,7 +1421,7 @@ final class GitStatusModel: nonisolated ObservableObject {
         do {
             let top = try transport.run(
                 endpoint: endpoint,
-                command: ["/usr/bin/git", "-C", root, "rev-parse", "--show-toplevel"]
+                command: [endpoint.gitExecutable, "-C", root, "rev-parse", "--show-toplevel"]
             )
             let resolvedRoot = strippingTrailingLineEnding(top.stdout)
             guard !resolvedRoot.isEmpty else {
@@ -1429,7 +1430,7 @@ final class GitStatusModel: nonisolated ObservableObject {
             let status = try transport.run(
                 endpoint: endpoint,
                 command: [
-                    "/usr/bin/git", "-C", resolvedRoot,
+                    endpoint.gitExecutable, "-C", resolvedRoot,
                     "status", "--porcelain=v2", "--branch", "-z", "--untracked-files=all",
                 ]
             )
@@ -1438,7 +1439,7 @@ final class GitStatusModel: nonisolated ObservableObject {
             let diff = try transport.run(
                 endpoint: endpoint,
                 command: [
-                    "/usr/bin/git", "-C", resolvedRoot, "diff", "--numstat",
+                    endpoint.gitExecutable, "-C", resolvedRoot, "diff", "--numstat",
                     result.hasHead ? "HEAD" : "--cached", "--",
                 ]
             )

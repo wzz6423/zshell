@@ -213,6 +213,12 @@ final class TerminalContainerView: NSView {
     private var pendingFocusRequest = false
     private var needsSurfaceActivation = false
     private var surfaceConstraints: [NSLayoutConstraint] = []
+    private var pointerTrackingArea: NSTrackingArea?
+    private var pointerWasInside = false
+    private var lastPointerLocation: NSPoint?
+    private var trackedSurfaceFrame = NSRect.zero
+    private var activeMenus = Set<ObjectIdentifier>()
+    private var activePopovers = Set<ObjectIdentifier>()
 
     func mount(_ terminal: NSView, scrollbar: NSView, queueBar: NSView? = nil) {
         NSLayoutConstraint.deactivate(surfaceConstraints)
@@ -261,6 +267,7 @@ final class TerminalContainerView: NSView {
         // A parked Metal surface has discarded its drawable pool. Activate it
         // only after Auto Layout assigns the real pane geometry.
         activateSurfaceAfterLayout()
+        synchronizePointerPresence()
     }
 
     func releaseTerminal(_ requested: NSView) {
@@ -268,6 +275,7 @@ final class TerminalContainerView: NSView {
         NSLayoutConstraint.deactivate(surfaceConstraints)
         surfaceConstraints.removeAll()
         terminal = nil
+        synchronizePointerPresence()
     }
 
     deinit {
@@ -277,11 +285,9 @@ final class TerminalContainerView: NSView {
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         updateMaterialState()
-        NotificationCenter.default.removeObserver(
-            self,
-            name: NSWindow.didBecomeKeyNotification,
-            object: nil
-        )
+        NotificationCenter.default.removeObserver(self)
+        activeMenus.removeAll()
+        activePopovers.removeAll()
         if let window {
             NotificationCenter.default.addObserver(
                 self,
@@ -289,10 +295,21 @@ final class TerminalContainerView: NSView {
                 name: NSWindow.didBecomeKeyNotification,
                 object: window
             )
+            for name in [NSMenu.didBeginTrackingNotification, NSMenu.didEndTrackingNotification] {
+                NotificationCenter.default.addObserver(
+                    self, selector: #selector(menuTrackingChanged(_:)), name: name, object: nil
+                )
+            }
+            for name in [NSPopover.willShowNotification, NSPopover.didCloseNotification] {
+                NotificationCenter.default.addObserver(
+                    self, selector: #selector(popoverVisibilityChanged(_:)), name: name, object: nil
+                )
+            }
             if needsSurfaceActivation {
                 needsLayout = true
             }
         }
+        synchronizePointerPresence()
         guard focusOnAppear else { return }
         requestTerminalFocus()
     }
@@ -331,6 +348,10 @@ final class TerminalContainerView: NSView {
 
     override func layout() {
         super.layout()
+        if trackedSurfaceFrame != terminal?.frame {
+            trackedSurfaceFrame = terminal?.frame ?? .zero
+            synchronizePointerPresence()
+        }
         guard needsSurfaceActivation,
               window != nil,
               bounds.width > 0, bounds.height > 0,
@@ -343,8 +364,103 @@ final class TerminalContainerView: NSView {
     }
 
     @objc private func windowDidBecomeKey(_ notification: Notification) {
+        synchronizePointerPresence()
         guard focusOnAppear, pendingFocusRequest else { return }
         focusTerminalIfPossible()
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let pointerTrackingArea { removeTrackingArea(pointerTrackingArea) }
+        let area = NSTrackingArea(
+            rect: .zero,
+            options: [.activeInKeyWindow, .mouseEnteredAndExited, .mouseMoved, .inVisibleRect],
+            owner: self
+        )
+        addTrackingArea(area)
+        pointerTrackingArea = area
+        synchronizePointerPresence()
+    }
+
+    override func viewDidHide() {
+        super.viewDidHide()
+        synchronizePointerPresence()
+    }
+
+    override func viewDidUnhide() {
+        super.viewDidUnhide()
+        synchronizePointerPresence()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        pointerWasInside = isPointerInsideTerminal(at: event.locationInWindow)
+        lastPointerLocation = event.locationInWindow
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        guard event.type == .mouseMoved, let window, event.window === window else { return }
+        let location = event.locationInWindow
+        let inside = isPointerInsideTerminal(at: location)
+        let entered = inside && !pointerWasInside && lastPointerLocation != location
+        pointerWasInside = inside
+        lastPointerLocation = location
+        guard entered,
+              AppSettings.shared.focusFollowsMouse,
+              window.isKeyWindow, window.isVisible, !window.isMiniaturized,
+              NSApp.isActive || window.styleMask.contains(.nonactivatingPanel),
+              window.attachedSheet == nil, window.sheetParent == nil, NSApp.modalWindow == nil,
+              activeMenus.isEmpty, activePopovers.isEmpty,
+              RunLoop.current.currentMode != .eventTracking,
+              NSEvent.pressedMouseButtons == 0,
+              event.modifierFlags.intersection([.command, .control, .option, .shift]).isEmpty,
+              !TerminalCommandRouting.isBlockingCommands(in: window),
+              let terminal, terminal.superview === self, terminal.window === window,
+              window.firstResponder !== terminal,
+              (window.firstResponder as? NSTextView)?.isEditable != true,
+              let root = window.contentView?.superview
+        else { return }
+        let point = root.superview?.convert(location, from: nil) ?? location
+        guard let hit = root.hitTest(point), hit === terminal || hit.isDescendant(of: terminal) else { return }
+        if window.makeFirstResponder(terminal) { pendingFocusRequest = false }
+    }
+
+    private func isPointerInsideTerminal(at location: NSPoint) -> Bool {
+        guard !isHiddenOrHasHiddenAncestor, alphaValue > 0.01,
+              let terminal, terminal.superview === self,
+              !terminal.isHiddenOrHasHiddenAncestor, terminal.alphaValue > 0.01
+        else { return false }
+        let point = convert(location, from: nil)
+        return NSIntersectionRect(bounds, visibleRect).contains(point) && terminal.frame.contains(point)
+    }
+
+    private func synchronizePointerPresence() {
+        // 窗格挂载、重新布局和 tracking 重建会产生合成 enter，不能让静止指针切走键盘焦点。
+        lastPointerLocation = window?.mouseLocationOutsideOfEventStream
+        guard let location = lastPointerLocation, let terminal, terminal.superview === self else {
+            pointerWasInside = false
+            return
+        }
+        // AppKit 在更新可见性前调用 viewDidUnhide；此处只记几何位置，事件处理再检查可见性。
+        let point = convert(location, from: nil)
+        pointerWasInside = bounds.contains(point) && terminal.frame.contains(point)
+    }
+
+    @objc private func menuTrackingChanged(_ notification: Notification) {
+        guard let menu = notification.object as? NSMenu else { return }
+        if notification.name == NSMenu.didBeginTrackingNotification {
+            activeMenus.insert(ObjectIdentifier(menu))
+        } else {
+            activeMenus.remove(ObjectIdentifier(menu))
+        }
+    }
+
+    @objc private func popoverVisibilityChanged(_ notification: Notification) {
+        guard let popover = notification.object as? NSPopover else { return }
+        if notification.name == NSPopover.willShowNotification {
+            activePopovers.insert(ObjectIdentifier(popover))
+        } else {
+            activePopovers.remove(ObjectIdentifier(popover))
+        }
     }
 
     func requestTerminalFocus() {

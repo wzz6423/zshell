@@ -32,6 +32,8 @@ Beide backends melden Ghostty via `TERM_PROGRAM`, omdat CLI's met ondersteuning 
 Zshell leest `~/.config/ghostty` noch een Alacritty-configuratie. Lettertypen, kleuren, invoergedrag en de backend stel je in via de eigen [instellingen](/nl/docs/configuration) van Zshell.
 </Callout>
 
+Bij starten via Dock of Finder leest Zshell `SSH_AUTH_SOCK` uit de interactieve login-shell en gebruikt de agent die je dotfiles kiezen. Starten vanuit een terminal behoudt de geldige geërfde agent.
+
 ## Systeemrechten [#system-permissions]
 
 Lokale programma’s in een Zshell-terminal kunnen toegang tot de camera of microfoon vragen, of een andere app via Apple Events aansturen.
@@ -39,6 +41,12 @@ macOS schrijft deze verzoeken toe aan Zshell; geef alleen vertrouwde programma�
 
 Beheer de toegang via **Systeeminstellingen → Privacy en beveiliging → Camera, Microfoon of Automatisering**.
 Een verzoek weigeren blokkeert die functie. Zshell verleent deze rechten niet automatisch.
+
+## Focus volgt de muis [#focus-follows-mouse]
+
+Schakel **Instellingen → Terminal → Gedrag → Focus volgt de muis** in om een paneel te focussen wanneer de aanwijzer binnenkomt. Standaard uit, voor beide backends en de snelle terminal. Tijdens slepen, vanuit een editor of met een geopend menu of dialoogvenster verandert de focus niet.
+
+`terminal.focus-follows-mouse = true`
 
 ## Zoeken [#search]
 
@@ -121,7 +129,7 @@ Programma's die voortgang via `OSC 9;4` doorgeven, krijgen een dunne balk boven 
 
 - **Lezen van het klembord vereist bevestiging.** `OSC 52` kan de inhoud van het macOS-klembord opvragen, ook vanaf een externe host via SSH. Zshell vraagt toestemming voordat het die terugstuurt.
 - **Riskante plakacties worden gemarkeerd.** Tekst met meerdere regels of tekst die op een opdracht lijkt, vereist bevestiging en wordt niet meteen ingevoerd.
-- **Bestanden worden shellveilige paden.** Bestanden die vanuit Finder zijn gekopieerd of gesleept, worden ingevoegd als absolute paden tussen aanhalingstekens. Klembordafbeeldingen bereiken nog steeds TUI's die afbeeldingen ondersteunen.
+- **Bestanden en schermafbeeldingen worden veilige shellpaden.** Finder-bestanden worden ingevoegd als absolute paden tussen aanhalingstekens. Een losse afbeelding wordt als privé tijdelijke PNG opgeslagen en het pad wordt geplakt. Externe panelen uploaden bestanden en afbeeldingen eerst naar de host.
 
 ## Invoer met Option [#option-key-input]
 

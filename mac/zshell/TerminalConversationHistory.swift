@@ -31,6 +31,7 @@ extension TerminalManager {
         guard let record = store.record(id: id, projectID: requestedProject?.conversationHistoryProjectID) else {
             throw AgentConversationHistoryError.notFound
         }
+        guard record.identity.remoteHostID == nil else { throw AgentConversationHistoryError.differentProject }
         if let live = Self.openConversation(record) {
             if let requestedProject,
                live.manager !== self || live.project !== requestedProject {
@@ -86,6 +87,7 @@ extension TerminalManager {
     }
 
     static func validateConversationResume(_ identity: AgentConversationIdentity) throws {
+        guard identity.remoteHostID == nil else { throw AgentConversationHistoryError.differentProject }
         func isDirectory(_ path: String) -> Bool {
             var directory: ObjCBool = false
             return FileManager.default.fileExists(atPath: path, isDirectory: &directory) && directory.boolValue
@@ -97,5 +99,50 @@ extension TerminalManager {
         guard identity.resumeLaunch(enabled: true) != nil else {
             throw AgentConversationHistoryError.unavailableSessionFile
         }
+    }
+
+    func resumeRemoteConversation(id: UUID, in requestedProject: Project? = nil, focus: Bool) async throws -> ConversationContext {
+        let store = AgentConversationHistoryStore.shared
+        guard let record = store.record(id: id, projectID: requestedProject?.conversationHistoryProjectID),
+              let hostID = record.identity.remoteHostID,
+              let directory = record.identity.remoteProjectDirectory else { throw AgentConversationHistoryError.notFound }
+        if let live = Self.openConversation(record) {
+            if let requestedProject, live.manager !== self || live.project !== requestedProject {
+                throw AgentConversationHistoryError.differentProject
+            }
+            if record.isArchived { try store.setArchived(false, id: id) }
+            if focus { Self.revealSession(id: live.session.id) }
+            return live
+        }
+        guard AppSettings.shared.aiEnabled else { throw AgentConversationHistoryError.disabled }
+        if let requestedProject, requestedProject.sharedHost?.id != hostID || requestedProject.remoteDirectory != directory {
+            throw AgentConversationHistoryError.differentProject
+        }
+        guard let host = requestedProject?.sharedHost
+            ?? projects.first(where: { $0.sharedHost?.id == hostID })?.sharedHost
+            ?? RemoteHostStore.shared.hosts.first(where: { $0.id == hostID }) else {
+            throw AgentConversationHistoryError.unavailableConfiguration
+        }
+        let info = try await Task.detached(priority: .userInitiated) {
+            try RemoteHostClient.resume(host: host, identity: record.identity)
+        }.value
+        guard store.record(id: id)?.identity == record.identity,
+              info.project == directory, let remoteID = UUID(uuidString: info.sessionId) else {
+            throw AgentConversationHistoryError.notFound
+        }
+        if let requestedProject, !projects.contains(where: { $0 === requestedProject }) {
+            throw AgentConversationHistoryError.differentProject
+        }
+        let previousSelection = selectedProjectID
+        let project = requestedProject ?? sharedProject(host: host, directory: directory)
+        project.attachRemoteSession(info)
+        guard let session = project.sessions.first(where: { $0.remoteConnection?.sessionID == remoteID }) else {
+            throw AgentConversationHistoryError.notFound
+        }
+        session.agentConversationHistoryID = record.id
+        if record.isArchived { try store.setArchived(false, id: id) }
+        if focus { Self.revealSession(id: session.id) }
+        else { selectedProjectID = previousSelection }
+        return .init(manager: self, project: project, session: session)
     }
 }

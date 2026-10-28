@@ -140,6 +140,10 @@ final class AppSettings: nonisolated ObservableObject {
     static let defaultPaneFocusRingOpacity: Double = 0.85
     static let paneFocusRingOpacityRange: ClosedRange<Double> = 0.05...1
 
+    private let configMonitor = SettingsConfigMonitor(url: AppSettings.configURL)
+    private var isApplyingConfig = false
+    private var configTerminationObserver: NSObjectProtocol?
+
     /// The minimum runtimes, in seconds, that Settings offers for
     /// `terminal.notify-finish-seconds`. A hand-edited config value outside
     /// this set reads as off — the alternative is a popup displaying a number
@@ -158,6 +162,8 @@ final class AppSettings: nonisolated ObservableObject {
     /// for this build configuration.
     @Published var applicationIcon: ApplicationIcon {
         didSet {
+            guard applicationIcon != oldValue else { return }
+            guard !isApplyingConfig else { return }
             applyApplicationIcon()
             save()
         }
@@ -166,6 +172,8 @@ final class AppSettings: nonisolated ObservableObject {
     /// Light/dark appearance override; `system` follows macOS.
     @Published var theme: AppTheme {
         didSet {
+            guard theme != oldValue else { return }
+            guard !isApplyingConfig else { return }
             applyAppearance()
             save()
         }
@@ -175,6 +183,8 @@ final class AppSettings: nonisolated ObservableObject {
     /// definitions (Zshell built-ins plus the Ghostty catalog).
     @Published var themeDark: String {
         didSet {
+            guard themeDark != oldValue else { return }
+            guard !isApplyingConfig else { return }
             reloadThemeSelection()
             save()
         }
@@ -182,6 +192,8 @@ final class AppSettings: nonisolated ObservableObject {
 
     @Published var themeLight: String {
         didSet {
+            guard themeLight != oldValue else { return }
+            guard !isApplyingConfig else { return }
             reloadThemeSelection()
             save()
         }
@@ -191,6 +203,8 @@ final class AppSettings: nonisolated ObservableObject {
     /// app uses Zshell's built-in light and dark palettes.
     @Published var terminalThemeOnly: Bool {
         didSet {
+            guard terminalThemeOnly != oldValue else { return }
+            guard !isApplyingConfig else { return }
             reloadThemeSelection()
             save()
         }
@@ -308,6 +322,10 @@ final class AppSettings: nonisolated ObservableObject {
     /// Copy terminal text to the clipboard after a pointer selection ends.
     /// Enabled by default to preserve Zshell's existing selection behavior.
     @Published var copyOnSelect: Bool {
+        didSet { save() }
+    }
+
+    @Published var focusFollowsMouse: Bool {
         didSet { save() }
     }
 
@@ -496,6 +514,7 @@ final class AppSettings: nonisolated ObservableObject {
         restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? (existing == nil)
         preserveTerminalSessions = toml["terminal.preserve-sessions"]?.bool ?? false
         copyOnSelect = toml["terminal.copy-on-select"]?.bool ?? true
+        focusFollowsMouse = toml["terminal.focus-follows-mouse"]?.bool ?? false
         let terminalBackgroundOpacity = toml["terminal.background-opacity"]?.double
             ?? Self.defaultTerminalBackgroundOpacity
         self.terminalBackgroundOpacity = Self.terminalBackgroundOpacityRange.contains(
@@ -504,7 +523,7 @@ final class AppSettings: nonisolated ObservableObject {
         terminalBackgroundBlur = toml["terminal.background-blur"]?.bool
             ?? Self.defaultTerminalBackgroundBlur
         let notifySeconds = toml["terminal.notify-finish-seconds"]?.double ?? 0
-        let notifyChoice = notifySeconds.isFinite ? Int(notifySeconds) : 0
+        let notifyChoice = Self.notifyFinishChoice(notifySeconds)
         notifyFinishSeconds = Self.notifyFinishSecondChoices.contains(notifyChoice)
             ? notifyChoice : 0
         notifyOnError = toml["terminal.notify-on-error"]?.bool ?? (existing == nil)
@@ -540,11 +559,30 @@ final class AppSettings: nonisolated ObservableObject {
         applyApplicationIcon()
         reloadThemeSelection()
         if existing == nil { save() }
+        configMonitor.start { [weak self] text, revision in
+            let parsed = TOML.parseStrictly(text: text)
+            guard parsed.malformed == nil else { return }
+            Task { @MainActor [weak self] in
+                guard let self, self.configMonitor.isCurrent(revision) else { return }
+                self.applyConfig(parsed.values)
+            }
+        }
+        configTerminationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification, object: nil, queue: .main
+        ) { [configMonitor] _ in
+            configMonitor.flush()
+        }
     }
 
     static func paneFocusRingOpacityMatchesDefault(_ value: Double) -> Bool {
         Int((value * 100).rounded())
             == Int((defaultPaneFocusRingOpacity * 100).rounded())
+    }
+
+    private static func notifyFinishChoice(_ seconds: Double) -> Int {
+        guard seconds.isFinite, seconds >= 0, seconds < 61 else { return 0 }
+        let choice = Int(seconds)
+        return notifyFinishSecondChoices.contains(choice) ? choice : 0
     }
 
     /// Pushes the current names into `Theme`, which resolves and caches the
@@ -632,6 +670,7 @@ final class AppSettings: nonisolated ObservableObject {
             && restoreTerminalHistory
             && !preserveTerminalSessions
             && copyOnSelect
+            && !focusFollowsMouse
             && terminalBackgroundOpacity == Self.defaultTerminalBackgroundOpacity
             && terminalBackgroundBlur == Self.defaultTerminalBackgroundBlur
             && notifyFinishSeconds == 0
@@ -672,6 +711,7 @@ final class AppSettings: nonisolated ObservableObject {
         restoreTerminalHistory = true
         preserveTerminalSessions = false
         copyOnSelect = true
+        focusFollowsMouse = false
         terminalBackgroundOpacity = Self.defaultTerminalBackgroundOpacity
         terminalBackgroundBlur = Self.defaultTerminalBackgroundBlur
         notifyFinishSeconds = 0
@@ -764,85 +804,143 @@ final class AppSettings: nonisolated ObservableObject {
         return result
     }
 
-    /// Replaces the settings with values parsed from an imported config,
-    /// preserving omitted preferences from older configs, then persists them
-    /// through the published properties' `didSet` saves.
-    /// Assigning the published properties also refreshes the settings window
-    /// through the panes' existing `objectWillChange` observation, so no
-    /// separate notification is needed. Omitted keys retain their previous
-    /// defaults, and `language` is deliberately untouched: it lives in
-    /// `UserDefaults` (`AppleLanguages`), not config.toml, so it is neither
-    /// exported nor imported.
+    /// Import and external edits use existing-file defaults. Language remains in
+    /// UserDefaults, outside config.toml. Import persists once; a file reload
+    /// never writes back while an editor may still be changing the file.
     func applyImported(_ toml: [String: TOML.Value]) {
-        applicationPresence = ApplicationPresence(
+        applyConfig(toml, defaultAIEnabled: aiEnabled)
+        save()
+    }
+
+    private func assign<Value: Equatable>(
+        _ keyPath: ReferenceWritableKeyPath<AppSettings, Value>, _ value: Value
+    ) {
+        if self[keyPath: keyPath] != value { self[keyPath: keyPath] = value }
+    }
+
+    private func applyConfig(_ toml: [String: TOML.Value], defaultAIEnabled: Bool = true) {
+        let oldIcon = applicationIcon
+        let oldTheme = theme
+        let oldThemeDark = themeDark
+        let oldThemeLight = themeLight
+        let oldTerminalThemeOnly = terminalThemeOnly
+        let oldShortcut = quickTerminalShortcut
+        isApplyingConfig = true
+        defer { isApplyingConfig = false }
+
+        assign(\.applicationIcon, ApplicationIcon(
+            rawValue: toml["app-icon"]?.string ?? ""
+        ) ?? .defaultIcon)
+        assign(\.applicationPresence, ApplicationPresence(
             rawValue: toml["app-presence"]?.string ?? ""
-        ) ?? .dockOnly
-        browserContentBlocking = toml["browser.content-blocking"]?.bool ?? true
-        browserFilterLists = toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults
-        theme = toml["theme"]?.string.flatMap(AppTheme.init(rawValue:)) ?? .system
-        themeDark = Self.knownTheme(
+        ) ?? .dockOnly)
+        assign(\.theme, toml["theme"]?.string.flatMap(AppTheme.init(rawValue:)) ?? .system)
+        assign(\.themeDark, Self.knownTheme(
             toml["theme-dark"]?.string,
             dark: true,
             fallback: Theme.defaultDarkThemeName
-        )
-        themeLight = Self.knownTheme(
+        ))
+        assign(\.themeLight, Self.knownTheme(
             toml["theme-light"]?.string,
             dark: false,
             fallback: Theme.defaultLightThemeName
-        )
-        fontFamily = toml["font-family"]?.string ?? ""
+        ))
+        assign(\.terminalThemeOnly, toml["terminal.theme-only"]?.bool ?? false)
+        assign(\.fontFamily, toml["font-family"]?.string ?? "")
+        assign(\.fontFallbackFamily, toml["terminal.font-fallback-family"]?.string ?? "")
         let size = toml["font-size"]?.double ?? Self.defaultFontSize
-        fontSize = Self.fontSizeRange.contains(size) ? size : Self.defaultFontSize
+        assign(\.fontSize, Self.fontSizeRange.contains(size) ? size : Self.defaultFontSize)
         let sidebarSize = toml["sidebar.font-size"]?.double
             ?? Self.defaultSidebarFontSize
-        sidebarFontSize = Self.sidebarFontSizeRange.contains(sidebarSize)
+        assign(\.sidebarFontSize, Self.sidebarFontSizeRange.contains(sidebarSize)
             ? sidebarSize
-            : Self.defaultSidebarFontSize
-        toolbarVisibility = ToolbarVisibility(
+            : Self.defaultSidebarFontSize)
+        let scale = toml["interface.scale"]?.double ?? Self.defaultInterfaceScale
+        assign(\.interfaceScale, Self.interfaceScaleRange.contains(scale)
+            ? scale : Self.defaultInterfaceScale)
+        assign(\.toolbarVisibility, ToolbarVisibility(
             rawValue: toml["toolbar.visibility"]?.string ?? ""
-        ) ?? Self.defaultToolbarVisibility
-        fontThicken = toml["terminal.font-thicken"]?.bool
+        ) ?? Self.defaultToolbarVisibility)
+        assign(\.fontThicken, toml["terminal.font-thicken"]?.bool
             ?? toml["font-thicken"]?.bool
-            ?? false
-        cursorShape = TerminalCursorShape(
+            ?? false)
+        let thickenStrength = toml["terminal.font-thicken-strength"]?.double
+            ?? Double(Self.defaultFontThickenStrength)
+        assign(\.fontThickenStrength, Self.fontThickenStrengthRange.contains(thickenStrength)
+            ? Int(thickenStrength.rounded()) : Self.defaultFontThickenStrength)
+        let lineHeight = toml["terminal.line-height"]?.double ?? Self.defaultTerminalLineHeight
+        assign(\.terminalLineHeight, Self.terminalLineHeightRange.contains(lineHeight)
+            ? lineHeight : Self.defaultTerminalLineHeight)
+        let cursorShape = TerminalCursorShape(
             rawValue: toml["terminal.cursor-shape"]?.string ?? ""
         ) ?? .bar
-        cursorBlinking = toml["terminal.cursor-blinking"]?.bool ?? true
-        macosOptionAsAlt = toml["terminal.macos-option-as-alt"]?.bool ?? false
-        vimCommandHints = toml["terminal.vim-command-hints"]?.bool ?? false
-        wrapLines = toml["editor.wrap-lines"]?.bool ?? true
-        restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? false
-        notifyOnError = toml["terminal.notify-on-error"]?.bool ?? false
-        preserveTerminalSessions = toml["terminal.preserve-sessions"]?.bool ?? false
-        copyOnSelect = toml["terminal.copy-on-select"]?.bool ?? true
-        resumeAgentConversations = toml["ai.resume-conversations"]?.bool ?? true
+        assign(\.cursorShape, cursorShape)
+        assign(\.cursorBlinking, toml["terminal.cursor-blinking"]?.bool ?? true)
+        assign(\.macosOptionAsAlt, toml["terminal.macos-option-as-alt"]?.bool ?? false)
+        assign(\.terminalBell, toml["terminal.bell"]?.bool ?? true)
+        assign(\.vimCommandHints, toml["terminal.vim-command-hints"]?.bool ?? false)
+        assign(\.shiftEnterNewline, toml["terminal.shift-enter-newline"]?.bool ?? true)
+        assign(\.wrapLines, toml["editor.wrap-lines"]?.bool ?? true)
+        assign(\.externalEditor, ExternalEditor.persisted(toml["editor.external-editor"]?.string))
+        assign(\.restoreTerminalHistory, toml["terminal.restore-history"]?.bool ?? false)
+        assign(\.preserveTerminalSessions, toml["terminal.preserve-sessions"]?.bool ?? false)
+        assign(\.copyOnSelect, toml["terminal.copy-on-select"]?.bool ?? true)
+        assign(\.focusFollowsMouse, toml["terminal.focus-follows-mouse"]?.bool ?? false)
+        let opacity = toml["terminal.background-opacity"]?.double
+            ?? Self.defaultTerminalBackgroundOpacity
+        assign(\.terminalBackgroundOpacity, Self.terminalBackgroundOpacityRange.contains(opacity)
+            ? opacity : Self.defaultTerminalBackgroundOpacity)
+        assign(\.terminalBackgroundBlur, toml["terminal.background-blur"]?.bool
+            ?? Self.defaultTerminalBackgroundBlur)
+        let notifySeconds = toml["terminal.notify-finish-seconds"]?.double ?? 0
+        assign(\.notifyFinishSeconds, Self.notifyFinishChoice(notifySeconds))
+        assign(\.notifyOnError, toml["terminal.notify-on-error"]?.bool ?? false)
         let quickTerminalSize = toml["quick-terminal.size"]?.double
             ?? Self.defaultQuickTerminalSize
-        self.quickTerminalSize = Self.quickTerminalSizeRange.contains(quickTerminalSize)
+        assign(\.quickTerminalSize, Self.quickTerminalSizeRange.contains(quickTerminalSize)
             ? quickTerminalSize
-            : Self.defaultQuickTerminalSize
+            : Self.defaultQuickTerminalSize)
         let quickTerminalOpacity = toml["quick-terminal.opacity"]?.double
             ?? Self.defaultQuickTerminalOpacity
-        self.quickTerminalOpacity = Self.quickTerminalOpacityRange.contains(quickTerminalOpacity)
+        assign(\.quickTerminalOpacity, Self.quickTerminalOpacityRange.contains(quickTerminalOpacity)
             ? quickTerminalOpacity
-            : Self.defaultQuickTerminalOpacity
-        quickTerminalShortcut = QuickTerminalShortcut(
+            : Self.defaultQuickTerminalOpacity)
+        assign(\.quickTerminalShortcut, QuickTerminalShortcut(
             persistedValue: toml["quick-terminal.shortcut"]?.string
-        ) ?? Self.defaultQuickTerminalShortcut
-        quickTerminalMode = QuickTerminalMode(rawValue: toml["quick-terminal.mode"]?.string ?? "") ?? .reuse
-        if let enabled = toml["ai.enabled"]?.bool, enabled != aiEnabled {
+        ) ?? Self.defaultQuickTerminalShortcut)
+        assign(\.quickTerminalMode, QuickTerminalMode(
+            rawValue: toml["quick-terminal.mode"]?.string ?? ""
+        ) ?? .reuse)
+        assign(\.commandShortcuts, Self.parseCommandShortcuts(toml))
+        assign(\.showPaneFocusRing, toml["panes.show-focus-ring"]?.bool ?? true)
+        let focusOpacity = toml["panes.focus-ring-opacity"]?.double
+            ?? Self.defaultPaneFocusRingOpacity
+        assign(\.paneFocusRingOpacity, Self.paneFocusRingOpacityRange.contains(focusOpacity)
+            ? focusOpacity : Self.defaultPaneFocusRingOpacity)
+        let enabled = toml["ai.enabled"]?.bool ?? defaultAIEnabled
+        if enabled != aiEnabled {
             do {
                 try setAIEnabled(enabled)
             } catch {
                 // Match resetToDefaults: the install steps are best effort,
                 // and the rest of the imported settings still apply.
-                NSLog("zshell: failed to apply imported AI support setting: \(error)")
+                NSLog("zshell: failed to apply AI support setting: \(error)")
             }
         }
-        terminalBackend = TerminalBackend(persisted: toml["terminal.backend"]?.string)
-        // The shortcut applies to the registered hotkey only through this
-        // reload, the same as resetToDefaults.
-        GlobalTerminalOverlay.shared.reloadHotkey()
+        assign(\.resumeAgentConversations, toml["ai.resume-conversations"]?.bool ?? true)
+        assign(\.terminalBackend, TerminalBackend(persisted: toml["terminal.backend"]?.string))
+        assign(\.terminalStartupProgram, toml["terminal.startup-program"]?.string ?? "")
+        assign(\.terminalStartupArguments, toml["terminal.startup-arguments"]?.string ?? "")
+        assign(\.browserContentBlocking, toml["browser.content-blocking"]?.bool ?? true)
+        assign(\.browserFilterLists, toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults)
+
+        if applicationIcon != oldIcon { applyApplicationIcon() }
+        if theme != oldTheme { applyAppearance() }
+        if themeDark != oldThemeDark || themeLight != oldThemeLight
+            || terminalThemeOnly != oldTerminalThemeOnly {
+            reloadThemeSelection()
+        }
+        if quickTerminalShortcut != oldShortcut { GlobalTerminalOverlay.shared.reloadHotkey() }
     }
 
     /// Persist the setting only after every requested destination operation
@@ -893,15 +991,12 @@ final class AppSettings: nonisolated ObservableObject {
     }
 
     private func save() {
-        let dir = Self.configURL.deletingLastPathComponent()
-        do {
-            try FileManager.default.createDirectory(
-                at: dir, withIntermediateDirectories: true)
-            try serializedConfig().write(
-                to: Self.configURL, atomically: true, encoding: .utf8)
-        } catch {
-            NSLog("zshell: failed to write \(Self.configURL.path): \(error)")
-        }
+        guard !isApplyingConfig else { return }
+        configMonitor.save(serializedConfig())
+    }
+
+    func backUpConfig() {
+        configMonitor.backUp()
     }
 
     /// The config.toml representation of the current settings, from the same
@@ -984,6 +1079,9 @@ final class AppSettings: nonisolated ObservableObject {
         if !copyOnSelect {
             lines.append("terminal.copy-on-select = false")
         }
+        if focusFollowsMouse {
+            lines.append("terminal.focus-follows-mouse = true")
+        }
         if terminalBackgroundOpacity != Self.defaultTerminalBackgroundOpacity {
             lines.append(
                 "terminal.background-opacity = \(TOML.number(terminalBackgroundOpacity))"
@@ -1061,8 +1159,8 @@ final class AppSettings: nonisolated ObservableObject {
 /// keys (`font-size = 15`, `terminal.restore-history = true`), string/number/
 /// bool values, and `#` comments. `[table]` headers are also accepted and
 /// flattened to `table.key`, matching the dotted form.
-enum TOML {
-    enum Value {
+nonisolated enum TOML {
+    enum Value: Equatable, Sendable {
         case string(String)
         case number(Double)
         case bool(Bool)
@@ -1084,7 +1182,7 @@ enum TOML {
     }
 
     /// A line the reader could not turn into a key/value pair.
-    struct MalformedLine {
+    struct MalformedLine: Sendable {
         /// 1-based position of the line in the file.
         let number: Int
         /// The line as written, for surfacing in an error message.
@@ -1106,15 +1204,27 @@ enum TOML {
         read(at: url, reportingMalformed: true)
     }
 
+    static func parseStrictly(
+        text: String
+    ) -> (values: [String: Value], malformed: MalformedLine?) {
+        read(text: text, reportingMalformed: true)
+    }
+
     /// Both entry points share one grammar so import validation accepts
     /// exactly what the launch-time reader accepts. Empty lines are kept in
     /// the split so line numbers stay true to the file.
     private static func read(
         at url: URL, reportingMalformed: Bool
     ) -> (values: [String: Value], malformed: MalformedLine?)? {
-        guard let text = try? String(contentsOf: url, encoding: .utf8) else {
+        guard let text = try? SettingsConfigFile.read(at: url) else {
             return nil
         }
+        return read(text: text, reportingMalformed: reportingMalformed)
+    }
+
+    private static func read(
+        text: String, reportingMalformed: Bool
+    ) -> (values: [String: Value], malformed: MalformedLine?) {
         var table = ""
         var result: [String: Value] = [:]
         for (index, rawLine) in text.split(
@@ -1125,6 +1235,11 @@ enum TOML {
             if line.hasPrefix("["), line.hasSuffix("]") {
                 table = String(line.dropFirst().dropLast())
                     .trimmingCharacters(in: .whitespaces)
+                if table.isEmpty || table.contains("[") || table.contains("]") {
+                    if reportingMalformed {
+                        return (result, MalformedLine(number: index + 1, text: line))
+                    }
+                }
                 continue
             }
             guard let eq = line.firstIndex(of: "=") else {
@@ -1136,7 +1251,7 @@ enum TOML {
             let key = line[..<eq].trimmingCharacters(in: .whitespaces)
             let rawValue = line[line.index(after: eq)...]
                 .trimmingCharacters(in: .whitespaces)
-            guard !key.isEmpty, let value = parseValue(rawValue) else {
+            guard !key.isEmpty, let value = parseValue(rawValue, strictly: reportingMalformed) else {
                 if reportingMalformed {
                     return (result, MalformedLine(number: index + 1, text: line))
                 }
@@ -1147,11 +1262,12 @@ enum TOML {
         return (result, nil)
     }
 
-    private static func parseValue(_ raw: String) -> Value? {
+    private static func parseValue(_ raw: String, strictly: Bool) -> Value? {
         if raw.hasPrefix("\"") {
             var out = ""
             var escaped = false
-            for ch in raw.dropFirst() {
+            for index in raw.indices.dropFirst() {
+                let ch = raw[index]
                 if escaped {
                     switch ch {
                     case "n": out.append("\n")
@@ -1162,6 +1278,11 @@ enum TOML {
                 } else if ch == "\\" {
                     escaped = true
                 } else if ch == "\"" {
+                    let trailing = raw[raw.index(after: index)...]
+                        .trimmingCharacters(in: .whitespaces)
+                    guard !strictly || trailing.isEmpty || trailing.hasPrefix("#") else {
+                        return nil
+                    }
                     return .string(out)
                 } else {
                     out.append(ch)
@@ -1180,7 +1301,9 @@ enum TOML {
         switch bare {
         case "true": return .bool(true)
         case "false": return .bool(false)
-        default: return Double(bare).map(Value.number)
+        default:
+            guard let number = Double(bare), number.isFinite else { return nil }
+            return .number(number)
         }
     }
 

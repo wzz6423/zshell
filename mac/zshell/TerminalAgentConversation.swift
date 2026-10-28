@@ -3,6 +3,7 @@ import Foundation
 
 extension TerminalSession {
     func refreshAgentConversationHistory() {
+        guard remoteConnection == nil else { return }
         if let owner = agentConversationOwner, !owner.isAlive {
             recordAgentConversation(nil, processID: nil)
         } else if let deadline = agentConversationResumeDeadline,
@@ -15,6 +16,7 @@ extension TerminalSession {
 
     func hasOpenConversation(_ identity: AgentConversationIdentity) -> Bool {
         guard !hasExited, let current = agentResume, current.matchesConversation(identity) else { return false }
+        if remoteConnection != nil { return remoteStatus?.state == .connected }
         if agentConversationOwner?.isAlive == true { return true }
         guard let deadline = agentConversationResumeDeadline else { return false }
         return Date() < deadline || ZshellAgentKind(rawValue: identity.provider.rawValue)
@@ -75,6 +77,9 @@ extension TerminalSession {
     /// An agent deliberately exited before quit must not reappear as a
     /// conversation merely because its last hook once occupied this shell.
     var conversationIdentityForPersistence: AgentConversationIdentity? {
+        if remoteConnection != nil {
+            return !hasExited && (remoteStatus?.state == .connected || remoteStatus?.state == .failed) ? agentResume : nil
+        }
         guard !hasExited, let identity = agentResume,
               let processID = agentConversationProcessID,
               let shellPID = shellPid,
@@ -96,7 +101,7 @@ extension TerminalSession {
         return operands.contains("attach")
     }
 
-    private static func conversationProcessEvidence(_ pid: pid_t) -> AgentConversationBinding.ProcessEvidence? {
+    static func conversationProcessEvidence(_ pid: pid_t) -> AgentConversationBinding.ProcessEvidence? {
         guard let parent = AgentConversationBinding.parentPID(pid) else { return nil }
         let kind = ZshellAgentKind.recognize(processID: pid)
         return .init(
@@ -105,6 +110,9 @@ extension TerminalSession {
             provider: kind.flatMap { AgentConversationIdentity.Provider(rawValue: $0.rawValue) },
             isProviderLauncher: kind == .codex && AgentConversationBinding.isCodexLauncher(
                 executablePath: processExecutablePath(pid: pid),
+                arguments: processArguments(pid: pid) ?? []
+            ),
+            isSharedService: kind == .codex && AgentConversationBinding.isSharedCodexService(
                 arguments: processArguments(pid: pid) ?? []
             )
         )

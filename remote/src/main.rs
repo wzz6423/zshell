@@ -1,20 +1,40 @@
-#![cfg(any(target_os = "macos", target_os = "linux"))]
+#![cfg(any(target_os = "macos", target_os = "linux", windows))]
 
 mod daemon;
+mod agent;
+mod agent_history;
+mod agent_hooks;
+mod agent_process;
+mod codex_binding;
+mod paste;
 mod protocol;
+mod pty;
 mod session;
 mod terminal;
 mod transport;
+#[cfg(windows)]
+mod windows;
+#[cfg(windows)]
+mod windows_pipe;
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use protocol::*;
-use std::fs::{self, File, OpenOptions};
+#[cfg(test)]
+use std::fs;
+#[cfg(unix)]
+use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Write};
-use std::net::{Shutdown, TcpStream, ToSocketAddrs};
+use std::net::{TcpStream, ToSocketAddrs};
+#[cfg(unix)]
 use std::os::fd::FromRawFd;
-use std::os::unix::fs::{FileTypeExt, MetadataExt, OpenOptionsExt};
+#[cfg(unix)]
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+#[cfg(all(test, unix))]
 use std::os::unix::net::UnixStream;
+#[cfg(unix)]
 use std::os::unix::process::CommandExt;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -72,11 +92,9 @@ impl Options {
                     })
             })
             .transpose()?;
-        let tailscale = PathBuf::from(
-            take_option(&mut args, "--tailscale")?
-                .map(PathBuf::from)
-                .unwrap_or_else(tailscale_executable),
-        );
+        let tailscale = take_option(&mut args, "--tailscale")?
+            .map(PathBuf::from)
+            .unwrap_or_else(tailscale_executable);
         let mut allow = Vec::new();
         while let Some(user) = take_option(&mut args, "--allow-user")? {
             if user.is_empty() || user == "*" || user.contains(char::is_whitespace) {
@@ -115,11 +133,53 @@ fn take_option(args: &mut Vec<String>, option: &str) -> io::Result<Option<String
 fn run() -> io::Result<i32> {
     let options = Options::parse()?;
     let command = options.args.first().map(String::as_str).unwrap_or("help");
+    if command == "--licenses" {
+        print!(
+            "{}",
+            include_str!("../../mac/zshell/ThirdPartyNotices/Kero.txt")
+        );
+        return Ok(0);
+    }
+    if matches!(command, "version" | "--version") {
+        let version = serde_json::json!({"version": env!("CARGO_PKG_VERSION"), "protocolVersion": VERSION,
+            "platform": std::env::consts::OS, "architecture": std::env::consts::ARCH});
+        if options.args.iter().any(|argument| argument == "--json") {
+            println!("{version}");
+        } else {
+            println!(
+                "zshell-server {} ({} {})",
+                env!("CARGO_PKG_VERSION"),
+                std::env::consts::OS,
+                std::env::consts::ARCH
+            );
+        }
+        return Ok(0);
+    }
     if command == "help" || command == "--help" {
-        println!("Zshell remote server (macOS / Linux)\n\nUsage: zshell-server COMMAND [--state PATH] [--project PATH] [--session UUID]\n\n  serve       Run the PTY daemon in the foreground\n  start       Start an owner-only daemon in the background\n  bridge      SSH stdio bridge; starts the daemon when needed\n  status      Inspect a running daemon without starting it\n  projects    List the daemon's project directories\n  list        List sessions in --project\n  create      Create a persistent shell; optional --session UUID and -- /absolute/program args\n  attach      Attach to --session in --project; Ctrl-] detaches\n  terminate   End --session and all its jobs in --project\n  stop        End all remote sessions and stop this daemon\n\nserve --listen tailscale://:7373 [--allow-user alice@example.com]\nClients can add --tcp devbox:7373 for a Tailscale connection.\nAll session operations require their project directory. SSH keeps ~/.ssh/config and agent authentication.");
+        println!("Zshell remote server (macOS / Linux / Windows)\n\nUsage: zshell-server COMMAND [--state PATH] [--project PATH] [--session UUID]\n\n  serve       Run the PTY daemon in the foreground\n  start       Start an owner-only daemon in the background\n  bridge      SSH stdio bridge; starts the daemon when needed\n  status      Inspect a running daemon without starting it\n  projects    List the daemon's project directories\n  list        List sessions in --project\n  create      Create a persistent shell; optional --session UUID and -- /absolute/program args\n  attach      Attach to --session in --project; Ctrl-] detaches\n  terminate   End --session and all its jobs in --project\n  stop        End all remote sessions and stop this daemon\n\nserve --listen tailscale://:7373 [--allow-user alice@example.com]\nClients can add --tcp devbox:7373 for a Tailscale connection.\nAll session operations require their project directory. SSH keeps ~/.ssh/config and agent authentication.");
         return Ok(0);
     }
     match command {
+        "agent-hooks" if options.args.get(1).map(String::as_str) == Some("install") => {
+            println!("{}", agent_hooks::install(&options.state)?);
+            return Ok(0);
+        }
+        "hook" => {
+            let provider = options.args.get(1).map(String::as_str).unwrap_or("");
+            if std::env::var("ZSHELL_AUTOMATION").ok().as_deref() != Some("1")
+                && !(provider == "codex" && agent_process::shared_codex_service(std::process::id() as i32, std::process::id() as i32).is_some()) { return Ok(0); }
+            let payload = agent_hooks::read_payload()?;
+            let environment = std::env::vars().collect();
+            let Some(frame) = agent_hooks::invocation(provider, &payload, &environment, std::process::id() as i32)? else { return Ok(0) };
+            // Hooks never start a daemon or fall back to a different host.
+            let mut stream = connect_local(&options.state, false)?;
+            stream.deadlines(Duration::from_secs(3), Duration::from_secs(3))?;
+            client_handshake(&mut stream)?;
+            write_frame(&mut stream, &frame)?;
+            let response = read_frame(&mut stream)?;
+            if let Some(error) = response.error { return Err(invalid(error)); }
+            return Ok(0);
+        }
         "serve" => {
             daemon::Daemon::serve(
                 &options.state,
@@ -181,40 +241,33 @@ fn run() -> io::Result<i32> {
 
 fn connect_local(state: &Path, start: bool) -> io::Result<Stream> {
     prepare_state(state)?;
-    let path = state.join("control.sock");
-    let connect = || -> io::Result<Stream> {
-        let metadata = fs::symlink_metadata(&path)?;
-        if !metadata.file_type().is_socket()
-            || metadata.uid() != unsafe { libc::geteuid() }
-            || metadata.mode() & 0o777 != 0o600
-        {
-            return Err(invalid(
-                "Remote control socket must be an owner-only 0600 socket",
-            ));
-        }
-        let stream = UnixStream::connect(&path)?;
-        if !same_user(&stream) {
-            return Err(invalid("Remote daemon belongs to a different user"));
-        }
-        Ok(Stream::Unix(stream))
-    };
+    let connect = || connect_control(state);
     if let Ok(stream) = connect() {
         return Ok(stream);
     }
     if !start {
         return connect();
     }
+    #[cfg(unix)]
     let log = OpenOptions::new()
         .append(true)
         .create(true)
         .mode(0o600)
         .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
         .open(state.join("daemon.log"))?;
+    #[cfg(unix)]
     if log.metadata()?.uid() != unsafe { libc::geteuid() }
         || log.metadata()?.mode() & 0o777 != 0o600
     {
         return Err(invalid("Remote daemon log must be an owner-only 0600 file"));
     }
+    #[cfg(windows)]
+    let log = {
+        use std::io::{Seek, SeekFrom};
+        let mut log = windows::private_file(&state.join("daemon.log"), false, false)?;
+        log.seek(SeekFrom::End(0))?;
+        log
+    };
     let mut launch = Command::new(std::env::current_exe()?);
     launch
         .arg("serve")
@@ -223,6 +276,7 @@ fn connect_local(state: &Path, start: bool) -> io::Result<Stream> {
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::from(log));
+    #[cfg(unix)]
     unsafe {
         launch.pre_exec(|| {
             if libc::setsid() < 0 {
@@ -232,6 +286,8 @@ fn connect_local(state: &Path, start: bool) -> io::Result<Stream> {
             }
         });
     }
+    #[cfg(windows)]
+    launch.creation_flags(windows_sys::Win32::System::Threading::CREATE_NO_WINDOW);
     let mut child = launch.spawn()?;
     let deadline = Instant::now() + Duration::from_secs(8);
     loop {
@@ -279,26 +335,51 @@ fn bridge(state: &Path) -> io::Result<()> {
     let close = input.try_clone()?;
     thread::spawn(move || {
         let _ = io::copy(&mut io::stdin().lock(), &mut input);
-        match close {
-            Stream::Unix(s) => {
-                let _ = s.shutdown(Shutdown::Write);
-            }
-            Stream::Tcp(s) => {
-                let _ = s.shutdown(Shutdown::Write);
-            }
-        }
+        close.shutdown_write();
     });
     // Stdout's line buffer would withhold a binary handshake until a newline.
-    let descriptor = unsafe { libc::fcntl(libc::STDOUT_FILENO, libc::F_DUPFD_CLOEXEC, 0) };
-    if descriptor < 0 {
-        return Err(io::Error::last_os_error());
-    }
-    let mut stdout = unsafe { File::from_raw_fd(descriptor) };
+    let mut stdout = unbuffered_stdout()?;
     io::copy(&mut output, &mut stdout)?;
     Ok(())
 }
 
+#[cfg(unix)]
+fn unbuffered_stdout() -> io::Result<File> {
+    let descriptor = unsafe { libc::fcntl(libc::STDOUT_FILENO, libc::F_DUPFD_CLOEXEC, 0) };
+    if descriptor < 0 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(unsafe { File::from_raw_fd(descriptor) })
+}
+
+#[cfg(windows)]
+fn unbuffered_stdout() -> io::Result<std::fs::File> {
+    use std::os::windows::io::FromRawHandle;
+    use windows_sys::Win32::{
+        Foundation::*,
+        System::{Console::*, Threading::*},
+    };
+    let mut duplicate = std::ptr::null_mut();
+    if unsafe {
+        DuplicateHandle(
+            GetCurrentProcess(),
+            GetStdHandle(STD_OUTPUT_HANDLE),
+            GetCurrentProcess(),
+            &mut duplicate,
+            0,
+            0,
+            DUPLICATE_SAME_ACCESS,
+        )
+    } == 0
+    {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(unsafe { std::fs::File::from_raw_handle(duplicate) })
+}
+
+#[cfg(unix)]
 struct RawTerminal(Option<libc::termios>);
+#[cfg(unix)]
 impl RawTerminal {
     fn new() -> io::Result<Self> {
         if unsafe { libc::isatty(0) } != 1 {
@@ -318,6 +399,7 @@ impl RawTerminal {
         Ok(Self(Some(original)))
     }
 }
+#[cfg(unix)]
 impl Drop for RawTerminal {
     fn drop(&mut self) {
         if let Some(original) = &self.0 {
@@ -328,12 +410,73 @@ impl Drop for RawTerminal {
     }
 }
 
+#[cfg(unix)]
 fn dimensions() -> (u16, u16) {
     let mut size = unsafe { std::mem::zeroed::<libc::winsize>() };
     unsafe {
         libc::ioctl(0, libc::TIOCGWINSZ as _, &mut size);
     }
     (size.ws_col.clamp(1, 512), size.ws_row.clamp(1, 128))
+}
+
+#[cfg(windows)]
+struct RawTerminal(Option<(u32, u32)>);
+#[cfg(windows)]
+impl RawTerminal {
+    fn new() -> io::Result<Self> {
+        use windows_sys::Win32::System::Console::*;
+        let mut input = 0;
+        let mut output = 0;
+        unsafe {
+            if GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &mut input) == 0 {
+                return Ok(Self(None));
+            }
+            if GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &mut output) == 0 {
+                return Err(io::Error::last_os_error());
+            }
+            if SetConsoleMode(
+                GetStdHandle(STD_INPUT_HANDLE),
+                (input & !(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT))
+                    | ENABLE_VIRTUAL_TERMINAL_INPUT,
+            ) == 0
+            {
+                return Err(io::Error::last_os_error());
+            }
+            if SetConsoleMode(
+                GetStdHandle(STD_OUTPUT_HANDLE),
+                output | ENABLE_VIRTUAL_TERMINAL_PROCESSING,
+            ) == 0
+            {
+                SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), input);
+                return Err(io::Error::last_os_error());
+            }
+        }
+        Ok(Self(Some((input, output))))
+    }
+}
+#[cfg(windows)]
+impl Drop for RawTerminal {
+    fn drop(&mut self) {
+        use windows_sys::Win32::System::Console::*;
+        if let Some((input, output)) = self.0 {
+            unsafe {
+                SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), input);
+                SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), output);
+            }
+        }
+    }
+}
+#[cfg(windows)]
+fn dimensions() -> (u16, u16) {
+    use windows_sys::Win32::System::Console::*;
+    let mut info: CONSOLE_SCREEN_BUFFER_INFO = unsafe { std::mem::zeroed() };
+    if unsafe { GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &mut info) } == 0 {
+        return (80, 24);
+    }
+    (
+        (info.srWindow.Right - info.srWindow.Left + 1).clamp(1, 512) as u16,
+        (info.srWindow.Bottom - info.srWindow.Top + 1).clamp(1, 128) as u16,
+    )
 }
 
 fn attach(mut stream: Stream, options: &Options) -> io::Result<i32> {
@@ -355,9 +498,11 @@ fn attach(mut stream: Stream, options: &Options) -> io::Result<i32> {
     }
     let writer = Arc::new(Mutex::new(stream.try_clone()?));
     write_frame(&mut *writer.lock().unwrap(), &Frame::new("claim"))?;
+    #[cfg(unix)]
     extern "C" fn resized(_: libc::c_int) {
         WINDOW_CHANGED.store(true, Ordering::Relaxed);
     }
+    #[cfg(unix)]
     unsafe {
         libc::signal(libc::SIGWINCH, resized as *const () as _);
     }
@@ -379,7 +524,7 @@ fn attach(mut stream: Stream, options: &Options) -> io::Result<i32> {
     thread::spawn(move || loop {
         thread::sleep(Duration::from_secs(1));
         let mut frame = Frame::new("ping");
-        if WINDOW_CHANGED.swap(false, Ordering::Relaxed) {
+        if WINDOW_CHANGED.swap(false, Ordering::Relaxed) || cfg!(windows) {
             let (columns, rows) = dimensions();
             frame.kind = "resize".into();
             frame.columns = Some(columns);
@@ -412,5 +557,7 @@ fn attach(mut stream: Stream, options: &Options) -> io::Result<i32> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
+#[cfg(all(test, windows))]
+mod tests_windows;

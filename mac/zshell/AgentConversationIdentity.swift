@@ -84,6 +84,8 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
     /// Pi can store sessions outside its normal directory via --session-dir.
     let sessionFile: String?
     let alias: String?
+    let remoteHostID: UUID?
+    let remoteProjectDirectory: String?
 
     init?(
         provider: Provider,
@@ -92,32 +94,42 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
         configDirectory: String? = nil,
         sessionFile: String? = nil,
         alias: String? = nil,
-        configurationEnvironment: [String: String]? = nil
+        configurationEnvironment: [String: String]? = nil,
+        remoteHostID: UUID? = nil,
+        remoteProjectDirectory: String? = nil
     ) {
+        let validPath = remoteHostID == nil ? Self.isAbsolutePath : Self.isRemoteAbsolutePath
         guard provider.accepts(sessionID: sessionID),
-              Self.isAbsolutePath(workingDirectory),
-              configDirectory.map(Self.isAbsolutePath) ?? true,
+              validPath(workingDirectory),
+              configDirectory.map(validPath) ?? true,
               configurationEnvironment.map({ values in
-                  values.allSatisfy { provider.configurationVariables.contains($0.key) && Self.isAbsolutePath($0.value) }
+                  values.allSatisfy { provider.configurationVariables.contains($0.key) && validPath($0.value) }
               }) ?? true,
               sessionFile.map({
-                  provider == .pi && Self.isAbsolutePath($0) && $0.hasSuffix(".jsonl")
+                  provider == .pi && validPath($0) && $0.hasSuffix(".jsonl")
               }) ?? true,
+              (remoteHostID == nil && remoteProjectDirectory == nil
+                || remoteHostID != nil && remoteProjectDirectory.map(validPath) == true),
               alias.map({ !$0.isEmpty && $0.utf8.count <= 128 && !Self.hasControlCharacters($0) }) ?? true
         else { return nil }
         self.provider = provider
         self.sessionID = sessionID
-        self.workingDirectory = URL(fileURLWithPath: workingDirectory).standardizedFileURL.path
-        self.configDirectory = configDirectory.map { URL(fileURLWithPath: $0).standardizedFileURL.path }
+        let normalize: (String) -> String = remoteHostID == nil
+            ? { URL(fileURLWithPath: $0).standardizedFileURL.path } : { $0 }
+        self.workingDirectory = normalize(workingDirectory)
+        self.configDirectory = configDirectory.map(normalize)
         self.configurationEnvironment = configurationEnvironment?.mapValues {
-            URL(fileURLWithPath: $0).standardizedFileURL.path
+            normalize($0)
         }
-        self.sessionFile = sessionFile.map { URL(fileURLWithPath: $0).standardizedFileURL.path }
+        self.sessionFile = sessionFile.map(normalize)
         self.alias = alias
+        self.remoteHostID = remoteHostID
+        self.remoteProjectDirectory = remoteProjectDirectory
     }
 
     private enum CodingKeys: String, CodingKey {
         case provider, sessionID, workingDirectory, configDirectory, sessionFile, alias, configurationEnvironment
+        case remoteHostID, remoteProjectDirectory
     }
 
     init(from decoder: any Decoder) throws {
@@ -129,7 +141,9 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
             configDirectory: try container.decodeIfPresent(String.self, forKey: .configDirectory),
             sessionFile: try container.decodeIfPresent(String.self, forKey: .sessionFile),
             alias: try container.decodeIfPresent(String.self, forKey: .alias),
-            configurationEnvironment: try container.decodeIfPresent([String: String].self, forKey: .configurationEnvironment)
+            configurationEnvironment: try container.decodeIfPresent([String: String].self, forKey: .configurationEnvironment),
+            remoteHostID: try container.decodeIfPresent(UUID.self, forKey: .remoteHostID),
+            remoteProjectDirectory: try container.decodeIfPresent(String.self, forKey: .remoteProjectDirectory)
         ) else {
             throw DecodingError.dataCorruptedError(
                 forKey: .sessionID,
@@ -149,6 +163,7 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
 
     func matchesConversation(_ other: Self) -> Bool {
         provider == other.provider && sessionID == other.sessionID
+            && remoteHostID == other.remoteHostID && remoteProjectDirectory == other.remoteProjectDirectory
             && workingDirectory == other.workingDirectory && configDirectory == other.configDirectory
             && (configurationEnvironment ?? [:]) == (other.configurationEnvironment ?? [:])
             && sessionFile == other.sessionFile
@@ -156,7 +171,7 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
 
     /// Called only after the terminal persistence layer cannot reconnect a PTY.
     func resumeLaunch(enabled: Bool, hasLiveTerminal: Bool = false) -> ResumeLaunch? {
-        guard enabled, !hasLiveTerminal else { return nil }
+        guard enabled, !hasLiveTerminal, remoteHostID == nil else { return nil }
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(
             atPath: workingDirectory, isDirectory: &isDirectory
@@ -165,9 +180,7 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
         let arguments: [String]
         switch provider {
         case .claude: arguments = ["claude", "--resume", sessionID]
-        // A shared app-server cannot report which terminal owns a hook. Keep
-        // resumed Codex threads embedded so later hooks retain this pane's PID.
-        case .codex: arguments = ["codex", "resume", "--no-daemon", sessionID]
+        case .codex: arguments = ["codex", "resume", sessionID]
         case .opencode: arguments = ["opencode", "--session", sessionID]
         case .pi:
             guard let sessionFile,
@@ -201,6 +214,22 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
 
     static func isAbsolutePath(_ path: String) -> Bool {
         path.hasPrefix("/") && path.utf8.count <= 4_096 && !hasControlCharacters(path)
+    }
+
+    static func isRemoteAbsolutePath(_ path: String) -> Bool {
+        guard path.utf8.count <= 4_096, !hasControlCharacters(path) else { return false }
+        if path.hasPrefix("/") || path.hasPrefix("\\\\") { return true }
+        let bytes = Array(path.utf8.prefix(3))
+        return bytes.count == 3 && ((65...90).contains(bytes[0]) || (97...122).contains(bytes[0]))
+            && bytes[1] == 58 && (bytes[2] == 92 || bytes[2] == 47)
+    }
+
+    static func remote(_ value: ZshellJSONValue, hostID: UUID, project: String) -> Self? {
+        guard var fields = value.objectValue else { return nil }
+        fields["remoteHostID"] = .string(hostID.uuidString)
+        fields["remoteProjectDirectory"] = .string(project)
+        guard let bytes = try? JSONEncoder().encode(ZshellJSONValue.object(fields)) else { return nil }
+        return try? JSONDecoder().decode(Self.self, from: bytes)
     }
 
     private static func hasControlCharacters(_ value: String) -> Bool {

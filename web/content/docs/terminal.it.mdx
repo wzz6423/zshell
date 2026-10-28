@@ -32,6 +32,8 @@ Entrambi i motori si presentano come Ghostty tramite `TERM_PROGRAM`, perché le 
 Zshell non legge `~/.config/ghostty` né una configurazione Alacritty. Caratteri, colori, comportamento dell'input e motore si configurano nelle [impostazioni](/it/docs/configuration) di Zshell.
 </Callout>
 
+Avviato dal Dock o dal Finder, Zshell legge `SSH_AUTH_SOCK` dalla shell di login interattiva per usare l’agent scelto nei dotfile. L’avvio da un terminale conserva l’agent ereditato valido.
+
 ## Permessi di sistema [#system-permissions]
 
 I programmi locali in un terminale Zshell possono richiedere l’accesso alla fotocamera o al microfono, oppure il controllo di un’altra app tramite Apple Events.
@@ -39,6 +41,12 @@ macOS attribuisce queste richieste a Zshell; consenti l’accesso solo ai progra
 
 Gestisci l’accesso in **Impostazioni di Sistema → Privacy e sicurezza → Fotocamera, Microfono o Automazione**.
 Rifiutare una richiesta blocca la funzionalità corrispondente. Zshell non concede questi permessi automaticamente.
+
+## Il focus segue il mouse [#focus-follows-mouse]
+
+Attiva **Impostazioni → Terminale → Comportamento → Il focus segue il mouse** per mettere a fuoco il pannello quando entra il puntatore. Disattivato per impostazione predefinita, vale per entrambi i motori e il terminale rapido. Non cambia durante un trascinamento, da un editor o con menu o finestre di dialogo aperti.
+
+`terminal.focus-follows-mouse = true`
 
 ## Ricerca [#search]
 
@@ -121,7 +129,7 @@ I programmi che emettono lo stato di avanzamento `OSC 9;4` mostrano una barra so
 
 - **Le letture degli appunti richiedono conferma.** `OSC 52` può richiedere gli appunti di macOS, anche da un host remoto via SSH. Zshell chiede prima di restituirli.
 - **I contenuti rischiosi da incollare vengono segnalati.** Il testo su più righe o simile a un comando viene trattenuto in attesa di conferma anziché essere inviato subito.
-- **I file diventano percorsi sicuri per la shell.** I file copiati dal Finder o trascinati vengono inseriti come percorsi assoluti tra virgolette. Le immagini negli appunti continuano a raggiungere le TUI che le supportano.
+- **File e schermate diventano percorsi sicuri per la shell.** I file Finder sono inseriti come percorsi assoluti tra virgolette. Un’immagine sola viene salvata come PNG temporaneo privato e ne viene incollato il percorso. I pannelli remoti caricano prima file e schermate sull’host.
 
 ## Input con il tasto Opzione [#option-key-input]
 

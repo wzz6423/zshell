@@ -222,6 +222,7 @@ final class ZshellAgentObservationState {
     var integrationPhase: ZshellAgentPhase?
     var integrationReason: String?
     var integrationOwner: ZshellAgentProcessIdentity?
+    var codexConversationEvidence: (title: CodexTitleSessionEvidence, owner: ZshellAgentProcessIdentity)?
     var integrationAttention: ZshellAgentAttention?
     var integrationTasks: [ZshellAgentTaskStatus] = []
     var programReport: ZshellAgentProgramObservation?
@@ -548,27 +549,36 @@ extension TerminalSession {
         peerProcessID: pid_t,
         attention: ZshellAgentAttention? = nil,
         task: ZshellAgentTaskStatus? = nil,
-        endsSession: Bool = false
+        endsSession: Bool = false,
+        daemonSessionID: String? = nil
     ) -> Bool {
-        guard !hasExited, let shell = shellPid,
-              ZshellAgentProcessIdentity.isDescendant(peerProcessID, of: shell)
-        else { return false }
-        var candidate = peerProcessID
+        guard !hasExited else { return false }
         var owner: ZshellAgentProcessIdentity?
-        var nearestProvider: ZshellAgentProcessIdentity?
-        for _ in 0..<64 {
-            if ZshellAgentKind.recognize(processID: candidate) == provider {
-                owner = ZshellAgentProcessIdentity(pid: candidate)
-                if nearestProvider == nil { nearestProvider = owner }
+        if let daemonSessionID {
+            guard provider == .codex,
+                  CodexDaemonBinding.lifecycleTarget(
+                    sessionID: daemonSessionID, peerPID: peerProcessID, reporterPID: peerProcessID
+                  )?.session === self else { return false }
+            owner = foregroundCodexConversationOwner
+        } else {
+            guard let shell = shellPid,
+                  ZshellAgentProcessIdentity.isDescendant(peerProcessID, of: shell) else { return false }
+            var candidate = peerProcessID
+            var nearestProvider: ZshellAgentProcessIdentity?
+            for _ in 0..<64 {
+                if Self.conversationProcessEvidence(candidate)?.isSharedService == true { return false }
+                if ZshellAgentKind.recognize(processID: candidate) == provider {
+                    owner = ZshellAgentProcessIdentity(pid: candidate)
+                    if nearestProvider == nil { nearestProvider = owner }
+                }
+                if candidate == shell { break }
+                guard let parent = ZshellAgentProcessIdentity.parent(of: candidate), parent > 1 else { break }
+                candidate = parent
             }
-            if candidate == shell { break }
-            guard let parent = ZshellAgentProcessIdentity.parent(of: candidate), parent > 1 else { break }
-            candidate = parent
+            // Nested invocations can update their own task, not the parent turn.
+            guard task != nil || nearestProvider == owner else { return false }
         }
-        // Nested invocations inherit the terminal capability too. Only the
-        // outer provider may change the parent lifecycle; identified children
-        // may update their own task entry instead.
-        guard let owner, task != nil || nearestProvider == owner else { return false }
+        guard let owner else { return false }
         if let foreground = surface.foregroundPid,
            let foregroundKind = ZshellAgentKind.recognize(processID: foreground),
            foregroundKind != provider { return false }
@@ -651,6 +661,7 @@ extension TerminalSession {
     }
 
     func markAutomationAgentSeen() {
+        if remoteConnection != nil { acknowledgeRemoteAgent(); return }
         guard let status = agentStatus, status.phase == .done || status.unseen else { return }
         if status.authority == .report {
             guard agentObservation.programReport?.isCurrent(at: Date()) == true else {
@@ -817,7 +828,7 @@ extension TerminalSession {
         agentObservation.commandGraceDeadline = nil
     }
 
-    private func updateAutomationAgentStatus(
+    func updateAutomationAgentStatus(
         alias: String,
         kind: ZshellAgentKind,
         phase: ZshellAgentPhase,

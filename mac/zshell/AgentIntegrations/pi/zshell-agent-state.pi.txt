@@ -4,6 +4,21 @@
 // @ts-nocheck
 
 import net from "node:net";
+import { spawn } from "node:child_process";
+function remoteRequest(method, params) {
+  if (!process.env.ZSHELL_REMOTE_STATE || !process.env.ZSHELL_EXECUTABLE) return;
+  return new Promise((resolve) => {
+    const child = spawn(process.env.ZSHELL_EXECUTABLE, ["hook", params.provider ?? params.identity?.provider], {
+      stdio: ["pipe", "ignore", "ignore"],
+    });
+    const timeout = setTimeout(() => { child.kill(); resolve(false); }, 3_000);
+    child.on("error", () => { clearTimeout(timeout); resolve(false); });
+    child.on("exit", (code) => { clearTimeout(timeout); resolve(code === 0); });
+    child.stdin.on("error", () => {});
+    child.stdin.end(JSON.stringify({ method, params }));
+  });
+}
+
 import os from "node:os";
 import path from "node:path";
 
@@ -16,12 +31,13 @@ let requestSequence = Date.now() * 1000;
 
 function enabled(): boolean {
   return process.env.ZSHELL_AUTOMATION === "1"
-    && !!socketPath
+    && (!!socketPath || !!process.env.ZSHELL_REMOTE_STATE)
     && !!token
     && !!terminalID;
 }
 
 function requestOnce(method: string, params): Promise<void> {
+  if (process.env.ZSHELL_REMOTE_STATE) return remoteRequest(method, params);
   if (!enabled()) return Promise.resolve();
 
   requestSequence += 1;

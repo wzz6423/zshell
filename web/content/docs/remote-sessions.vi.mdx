@@ -3,17 +3,19 @@ title: Phiên từ xa dùng chung
 description: Kết nối cùng một terminal qua SSH hoặc Tailscale và giữ tác vụ chạy sau khi máy khách ngắt kết nối.
 ---
 
-`zshell-server` giữ shell và các tác vụ trên máy macOS hoặc Linux. Cả hai bộ máy terminal của Zshell đều kết nối được. Đóng máy khách hay mất mạng không kết thúc tác vụ. Kết nối lại sẽ khôi phục màn hình, lịch sử cuộn, con trỏ và chế độ terminal.
+`zshell-server` giữ shell và các tác vụ trên máy macOS hoặc Linux / Windows / WSL. Cả hai bộ máy terminal của Zshell đều kết nối được. Đóng máy khách hay mất mạng không kết thúc tác vụ. Kết nối lại sẽ khôi phục màn hình, lịch sử cuộn, con trỏ và chế độ terminal.
 
 ## Cài đặt [#install]
 
-Biên dịch kho Zshell trên máy chủ bằng bộ công cụ Rust hiện tại. Máy khách Mac đã có relay và không cần Cargo. Chưa hỗ trợ máy chủ Windows nguyên bản.
+Trong **Máy chủ từ xa…**, chọn nền tảng rồi **Cài / Cập nhật máy chủ** qua SSH. Mac cùng kiến trúc dùng chương trình kèm ứng dụng. Với Linux hay Windows nguyên bản, chọn `zshell-server` được biên dịch cho nền tảng và kiến trúc tương ứng. WSL dùng chương trình Linux trong bản phân phối đã chọn. Kiểm tra tải lên và tương thích trước khi thay thế. Daemon đang chạy giữ phiên bản đến khi khởi động lại, sẽ kết thúc tác vụ. Cũng có thể biên dịch trên máy chủ:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
 install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
+
+Máy khách dùng shell và tệp của tài khoản chạy máy chủ. Hỗ trợ macOS, Linux, Windows nguyên bản và WSL. Windows dùng ConPTY, WSL dùng đường dẫn Linux trong bản phân phối chọn. Chương trình Windows là `zshell-server.exe`.
 
 ## SSH [#ssh]
 
@@ -37,11 +39,21 @@ zshell-server serve --listen tailscale://:7373
 
 Thêm `tailscale://devbox:7373`. Hỗ trợ MagicDNS và địa chỉ Tailscale IPv4/IPv6; từ chối địa chỉ công cộng. Mặc định chỉ cho phép thiết bị không gắn thẻ của chủ máy. `--allow-user` cho phép tên đăng nhập khác khớp chính xác; máy khách gắn thẻ vẫn bị từ chối. Dùng SSH trên chính máy chủ. ACL của tailnet vẫn có hiệu lực. Máy khách được cấp phép có thể thao tác tài khoản Unix của dịch vụ.
 
+Để chia sẻ Mac này, đăng nhập Tailscale rồi chọn **Chia sẻ Mac này** trong máy chủ từ xa. Đặt cổng và tên đăng nhập chính xác được phép. Chỉ chia sẻ khi yêu cầu; **Dừng chia sẻ** hay thoát Zshell kết thúc phiên chia sẻ.
+
 ## Chia sẻ và kết thúc [#sharing]
 
 Mọi máy khách nhận cùng đầu ra. Đưa tiêu điểm vào terminal hoặc giành quyền điều khiển sẽ cấp quyền nhập và đổi kích thước cho máy khách đó. Khi ngắt kết nối, máy còn lại kết nối sớm nhất sẽ tiếp quản. Bảng Thông tin hiển thị trạng thái, số máy khách và quyền điều khiển, cùng thao tác tách và kết nối lại. Lỗi mạng được thử lại tự động; dữ liệu nhập ngoại tuyến bị bỏ. Bố cục đã lưu kết nối lại cùng UUID từ xa.
 
 Đóng khung, dự án, cửa sổ hoặc dùng một trong hai lựa chọn thoát ứng dụng chỉ tách máy khách. Kết thúc phiên từ xa yêu cầu xác nhận rồi dừng shell và tác vụ cho tất cả. Trên máy chủ: `zshell-server terminate --project ~/repo --session UUID`.
+
+## Tệp và ảnh chụp [#paste]
+
+Sao chép tệp thường hoặc ảnh chụp rồi dán vào khung từ xa. Zshell tải lên thư mục riêng trên máy chủ rồi chèn đường dẫn có trích dẫn cho shell. Tối đa 32 tệp, 32 MiB mỗi tệp và 64 MiB tổng; từ chối thư mục và liên kết tượng trưng. Tải lên phiên chia sẻ giữ bảy ngày. Khung Unix SSH thường cũng hỗ trợ.
+
+## Trò chuyện Agent từ xa [#agents]
+
+Hoạt động, tiến độ, yêu cầu phê duyệt và hoàn tất Agent từ xa dùng trạng thái và thông báo hiện có. **Lịch sử trò chuyện Agent** gồm Claude Code, Codex, OpenCode và Pi trên máy chủ. Tiếp tục nối cuộc trò chuyện còn chạy hoặc khởi động đúng phiên trên máy và thư mục gốc. Lịch sử trò chuyện tồn tại sau khi khởi động lại daemon; tác vụ và cuộn terminal thì không. Nhà cung cấp cùng cấu hình hay tệp phiên gốc phải còn sẵn.
 
 ## Giới hạn [#limits]
 

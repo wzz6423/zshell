@@ -604,5 +604,6 @@ dependencies = [
  "libc",
  "serde",
  "serde_json",
+ "windows-sys 0.59.0",
  "zshell_alacritty",
 ]

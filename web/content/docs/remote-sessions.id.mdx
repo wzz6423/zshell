@@ -3,17 +3,19 @@ title: Sesi jarak jauh bersama
 description: Hubungkan terminal yang sama melalui SSH atau Tailscale dan pertahankan pekerjaan setelah klien terputus.
 ---
 
-`zshell-server` mempertahankan shell dan pekerjaannya pada host macOS atau Linux. Kedua backend terminal Zshell dapat terhubung. Menutup klien atau kehilangan jaringan tidak menghentikan pekerjaan. Koneksi ulang memulihkan layar, riwayat gulir, kursor, dan mode terminal.
+`zshell-server` mempertahankan shell dan pekerjaannya pada host macOS atau Linux / Windows / WSL. Kedua backend terminal Zshell dapat terhubung. Menutup klien atau kehilangan jaringan tidak menghentikan pekerjaan. Koneksi ulang memulihkan layar, riwayat gulir, kursor, dan mode terminal.
 
 ## Instalasi [#install]
 
-Bangun repositori Zshell pada host dengan toolchain Rust terkini. Klien Mac sudah menyertakan relay dan tidak memerlukan Cargo. Server Windows native belum didukung.
+Di **Host jarak jauh…**, pilih platform lalu **Instal / Perbarui Server** melalui SSH. Mac dengan arsitektur sama memakai program bawaan. Untuk Linux atau Windows native, pilih `zshell-server` yang dibangun untuk platform dan arsitektur tersebut. WSL memakai program Linux pada distribusi pilihan. Unggahan dan kompatibilitas diperiksa sebelum penggantian. Daemon aktif memakai versi lama hingga dimulai ulang, yang mengakhiri pekerjaannya. Anda juga dapat membangun di host:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
 install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
+
+Klien dapat memakai shell dan berkas akun server. macOS, Linux, Windows native dan WSL didukung. Windows memakai ConPTY; WSL memakai jalur Linux distribusi pilihan. Program Windows bernama `zshell-server.exe`.
 
 ## SSH [#ssh]
 
@@ -37,11 +39,21 @@ zshell-server serve --listen tailscale://:7373
 
 Tambahkan `tailscale://devbox:7373`. MagicDNS dan alamat Tailscale IPv4/IPv6 didukung; alamat publik ditolak. Secara bawaan hanya perangkat tanpa tag milik pemilik host yang diizinkan. `--allow-user` mengizinkan nama login lain yang persis sama; klien bertag tetap ditolak. Gunakan SSH dari mesin server itu sendiri. ACL tailnet tetap berlaku. Klien yang diizinkan dapat memakai akun Unix layanan.
 
+Untuk berbagi Mac ini, masuk Tailscale dan pilih **Bagikan Mac Ini** di host jarak jauh. Atur port dan nama login persis yang diizinkan. Berbagi hanya dimulai atas permintaan; **Hentikan Berbagi** atau keluar dari Zshell mengakhiri sesi bersama.
+
 ## Berbagi dan mengakhiri [#sharing]
 
 Semua klien menerima keluaran yang sama. Memfokuskan terminal atau mengambil kendali memberikan hak input dan ukuran kepada klien tersebut. Saat terputus, klien tersisa yang paling awal terhubung mengambil alih. Panel Info menampilkan status, jumlah klien, dan kendali serta menyediakan lepas dan hubungkan ulang. Gangguan jaringan dicoba ulang otomatis; input offline dibuang. Tata letak tersimpan menghubungkan UUID jarak jauh yang sama.
 
 Menutup panel, proyek, jendela, atau memakai kedua pilihan keluar hanya melepaskan klien. Mengakhiri sesi jarak jauh meminta konfirmasi dan menghentikan shell beserta pekerjaan untuk semua klien. Pada host: `zshell-server terminate --project ~/repo --session UUID`.
+
+## Berkas dan tangkapan layar [#paste]
+
+Salin berkas biasa atau tangkapan layar dan tempel di panel jarak jauh. Zshell mengunggah ke direktori privat host lalu memasukkan jalur berkutip untuk shell. Maksimal 32 berkas, masing-masing 32 MiB dan total 64 MiB; folder dan tautan simbolis ditolak. Unggahan bersama tersedia tujuh hari. Panel Unix SSH biasa juga mendukungnya.
+
+## Percakapan Agent jarak jauh [#agents]
+
+Aktivitas, kemajuan, permintaan persetujuan dan penyelesaian Agent jarak jauh memakai status dan notifikasi yang ada. **Riwayat Percakapan Agent** mencakup Claude Code, Codex, OpenCode dan Pi pada host. Lanjutkan menghubungkan percakapan hidup atau memulai sesi persis pada host dan direktori asal. Riwayat percakapan bertahan setelah restart daemon; pekerjaan dan guliran terminal tidak. Provider serta konfigurasi atau berkas sesi asal harus tersedia.
 
 ## Batas [#limits]
 

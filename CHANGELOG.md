@@ -24,7 +24,19 @@ the original feature bullet instead of adding separate entries for them.
   filter lists and custom ABP subscriptions in native Browser settings.
 - Share host-owned terminal sessions across machines over SSH or Tailscale,
   reconnect with their screen and history after quitting or a network outage,
-  and manage hosts and input control from the macOS app.
+  and manage hosts, server installation, Mac sharing and input control from the
+  macOS app. Host sessions on macOS, Linux, native Windows and WSL; paste local
+  files and screenshots into remote terminals as uploaded paths, and follow
+  remote Agent activity and saved conversations across reconnects.
+- Paste clipboard screenshots as private PNG file paths for local terminal
+  programs on either backend.
+- Track each Codex conversation in its own pane when multiple terminals share
+  an app-server daemon, and resume saved conversations in the correct pane.
+- Optionally focus terminal panes by moving the mouse into them, including
+  Quick Terminal.
+- Apply external configuration edits while Zshell is running, preserve linked
+  dotfiles and their permissions when saving, and use the login shell's SSH
+  agent when launching from the Dock or Finder.
 - Create isolated terminal sessions in Git worktrees, then choose whether to
   keep or safely remove the checkout when closing the session. Manage sessions
   from an external terminal with `zshell +session`.

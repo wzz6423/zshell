@@ -1,15 +1,24 @@
 # Zshell shared remote sessions
 
-`zshell-server` owns real PTYs on a macOS or Linux host. Zshell's macOS app
+`zshell-server` owns real PTYs on a macOS, Linux, Windows or WSL host. Zshell's macOS app
 attaches over SSH or Tailscale; closing a pane, quitting the app, or losing a
 connection leaves the remote shell and its jobs running. Reconnecting restores
 the terminal's current screen, alternate screen, scrollback, cursor and modes.
-The installed macOS app includes its relay and does not need Cargo on the client.
+The installed macOS app includes its relay and a host executable; the client
+does not need Cargo.
 
 ## Install on the host
 
-Install a current Rust toolchain and build from this repository, including its
-vendored Alacritty bridge:
+In **Remote Hosts…**, select the platform and choose **Install / Update Server**
+over SSH. A Mac with the same architecture uses the bundled executable; for
+Linux or Windows, choose a host executable built for its platform and architecture.
+WSL uses a Linux executable inside the selected distribution. Installation
+verifies SHA-256, platform, architecture, version and protocol before atomically
+replacing the existing executable. An active daemon keeps its old executable
+until restarted; restarting ends its terminal sessions.
+
+To build on a Unix host, install a current Rust toolchain and use this repository,
+including its vendored Alacritty terminal state implementation:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -17,10 +26,13 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-Run the server as the Unix account whose shell and files clients may access.
-Linux and macOS are supported; a native Windows server is not provided. The
-server has no renderer, display-server dependency, public login page or bearer
-token port. The repository's [license](../LICENSE.md) also applies to the server.
+On Windows, the same Cargo command produces `remote/target/release/zshell-server.exe`.
+Choose **Windows** and a native path in the host manager. The server uses ConPTY
+and an account-private named pipe; WSL uses the Unix server and Linux paths.
+Run it as the account whose shell and files clients may access. The server has
+no renderer or display-server dependency. The repository's [license](../LICENSE.md)
+also applies to the server. `zshell-server --licenses` prints the bundled Kero
+source attribution and MIT notice.
 
 ## Connect with SSH
 
@@ -43,7 +55,8 @@ automatically starts the account's owner-only daemon when needed, then forwards
 the framed terminal protocol through stdio. OpenSSH retains the account's
 existing configuration, host-key checks and agent; unknown host keys, missing
 keys or authentication failures are shown as connection errors. The host
-manager does not collect passwords or install software on the host.
+manager does not collect passwords. Its installation action also installs the
+existing provider integrations with `zshell-server agent-hooks install`.
 
 Files and Git reuse Zshell's existing SSH operations on the same host. They
 never resolve a remote path against the Mac's filesystem. Their SSH authentication
@@ -80,7 +93,11 @@ zshell-server serve --listen tailscale://:7373 --allow-user alice@example.com
 `--allow-user` can be repeated and does not accept wildcard logins. Tagged peers
 and peers without a user/device identity are rejected. A tagged server must
 use explicit allowed logins. Tailnet ACLs still apply. Keep this account-level
-access limited to people who may operate the server's Unix account.
+access limited to people who may operate the server's account.
+
+**Share This Mac** in the host manager starts a separate, explicit Tailscale
+listener with the selected port and exact allowed users. **Stop Sharing** or
+quitting Zshell ends only that sharing instance and its sessions.
 
 The server searches `PATH`, common Homebrew locations, `/usr/bin/tailscale`,
 and the macOS Tailscale app. `--tailscale /absolute/path` selects another CLI;
@@ -89,7 +106,8 @@ the app CLI is invoked with `TAILSCALE_BE_CLI=1`.
 For a client on the server itself, use SSH or the local CLI. Tailscale whois
 identifies a machine owner rather than a local process UID, so direct TCP from
 the server's own Tailscale address is rejected. Unix-socket peer credentials
-provide that same-machine boundary. Files and Git on a Tailscale project use
+provide that same-machine boundary on Unix; Windows verifies the named-pipe
+peer SID. Files and Git on a Tailscale project use
 SSH to the same hostname and the user/port in the client's OpenSSH configuration.
 
 ## CLI
@@ -102,6 +120,9 @@ zshell-server create --project ~/repo
 zshell-server list --project ~/repo
 zshell-server attach --project ~/repo --session UUID
 zshell-server terminate --project ~/repo --session UUID
+zshell-server agent-hooks install
+zshell-server --version --json
+zshell-server --licenses
 ```
 
 `create -- /absolute/program args` runs explicit argv instead of a login shell.
@@ -112,8 +133,11 @@ an ID from another project cannot be attached or terminated through that request
 
 The default daemon state is `~/.local/state/zshell-remote`. `--state /absolute/path`
 or `ZSHELL_REMOTE_STATE` selects another instance. State directories must be
-owned by the account, have mode 0700, and not be symlinks. The control socket,
-lock and log use 0600; the daemon also checks the Unix peer's UID.
+owned by the account, have mode 0700, and not be symlinks on Unix. The control
+socket, lock and log use 0600; the daemon also checks the Unix peer's UID.
+Windows restricts state and named-pipe access to the current account SID and
+rejects remote named-pipe clients. Child processes belong to the session's Job
+Object, so termination also ends its descendants.
 
 ## Sharing, reconnecting and ending sessions
 
@@ -141,13 +165,47 @@ remember the remote session UUID separately from the local terminal UUID.
 The server retains at most 128 sessions, a 16 MiB terminal snapshot and a 1 MiB
 live queue per client. A slow client is disconnected without blocking the job or
 other clients. Snapshots restore terminal state without repeating clipboard
-writes, bells, desktop notifications or terminal queries. History is kept in
-the host daemon's memory; the macOS client does not write a second history copy.
+writes, bells, desktop notifications or terminal queries. Terminal scrollback is
+kept in the host daemon's memory; the client does not write a second scrollback copy.
 
 Persistence covers client/GUI lifetimes and network outages while the host
 daemon remains alive. It does not promise survival across host reboots, daemon
 crashes or daemon restarts. An unavailable saved session is reported explicitly;
 create a new tab or remote project instead of silently replacing its job.
+
+## Files, screenshots and Agent conversations
+
+Pasting copied files or screenshots uploads them to a private host directory
+before inserting shell-quoted remote paths. Shared uploads are bound to the
+controlling attachment and project, use ordered chunks, and remain available
+for seven days after commit. Limits are 32 regular files, 32 MiB per file and
+64 MiB per batch; directories and symbolic links are rejected. Ordinary Unix
+SSH panes reuse the same clipboard capture and bounded SSH upload path.
+On Windows, path quoting follows the session's launch shell; `cmd.exe` paths
+containing `%` or `!` are rejected because those characters can expand. Starting
+a different shell inside that session does not update its quoting mode; create
+a session with the intended shell instead. Unknown launch shells are rejected.
+
+Remote Agent state and progress are forwarded to the existing pane status,
+event stream and notifications. Install the existing Claude Code, Codex,
+OpenCode and Pi integrations with `agent-hooks install`. Native hooks require
+trusted local peer/process ownership and the session identity; a remote TCP
+client cannot impersonate a provider hook. Program-reported OSC 7501 records
+remain a lower-priority status source.
+
+Shared Codex app-server hooks bind verified full conversation IDs to unique
+foreground TUI titles, including a client that attaches after the title was
+printed. The managed integration adds Codex's `session-id` title item without
+replacing other title items; ambiguous identities remain unbound.
+
+The account-private `conversations.json` retains up to 200 provider identities
+across daemon restarts, with a 2 MiB file limit. The app imports each host's
+project history into **Agent Conversation History**. Resume reuses a live
+conversation or launches the exact provider session ID, original directory
+and configuration on that host. It never resolves host paths against the Mac
+or chooses the latest conversation. Provider configuration and Pi session files
+must remain available. This persisted conversation history is independent of
+the live terminal and its in-memory scrollback.
 
 ## Run as a service
 
@@ -202,9 +260,12 @@ to a new listener requires ending its sessions and restarting it.
 cargo test --locked --manifest-path remote/Cargo.toml
 cargo build --locked --manifest-path remote/Cargo.toml
 python3 remote/tests/test_cli.py --binary remote/target/debug/zshell-server
+python3 remote/tests/test_agents.py --binary remote/target/debug/zshell-server
 ```
 
 The CLI probe uses temporary state, real PTYs and the production stdio bridge.
 An isolated Linux root run with `--require-other-uid` additionally proves rejection
 of a different UID even if the socket's filesystem permissions allow connecting.
 The macOS app surface probe is documented in `mac/tests/test_remote_session_surfaces.py`.
+Windows CI additionally runs `remote/tests/test_cli_windows.py` against the native
+executable to exercise ConPTY, named-pipe ownership and CLI lifecycle.

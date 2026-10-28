@@ -31,12 +31,14 @@ struct AgentConversationHistoryConnection: Codable {
         return connection
     }
 
-    static func discover() throws -> Self {
+    static func discover(bundleIdentifier: String? = nil) throws -> Self {
         let directory = AgentConversationHistoryPaths.connectionsURL
         try PersistentCLIConnection.verifyPrivateDirectory(directory)
         let urls = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
             .filter { $0.pathExtension == "json" }
-        let connections = urls.compactMap { try? load(from: $0) }
+        let connections = urls.compactMap { try? load(from: $0) }.filter {
+            bundleIdentifier == nil || $0.bundleIdentifier == bundleIdentifier
+        }
         guard connections.count == 1, let connection = connections.first else {
             throw CLIError.message(connections.isEmpty
                 ? "Open Zshell before using conversation history from an external terminal."
@@ -45,13 +47,13 @@ struct AgentConversationHistoryConnection: Codable {
         return connection
     }
 
-    func request(method: String, params: [String: ZshellJSONValue]) throws -> ZshellJSONValue {
+    func request(method: String, params: [String: ZshellJSONValue], timeout: TimeInterval = 5) throws -> ZshellJSONValue {
         guard processIsCurrent else { throw CLIError.message("The history control connection has expired.") }
         let request = ZshellAutomationRequest(
             version: 1, id: UUID().uuidString, method: method, token: token, terminalID: "", params: params
         )
         let response = try ZshellAutomationSocketServer.exchange(
-            path: socketPath, request: request, expectedPeerProcessID: processID
+            path: socketPath, request: request, timeout: timeout, expectedPeerProcessID: processID
         )
         guard response.version == 1, response.id == request.id else {
             throw CLIError.message("Zshell returned a mismatched history response.")
@@ -86,7 +88,7 @@ final class AgentConversationHistoryControlService {
                         reply(.failure(id: request.id, code: "unavailable", message: "History control is unavailable."))
                         return
                     }
-                    reply(self.handle(request))
+                    reply(await self.handle(request))
                 }
             }
             let descriptor = AgentConversationHistoryConnection(
@@ -106,18 +108,19 @@ final class AgentConversationHistoryControlService {
         }
     }
 
-    private func handle(_ request: ZshellAutomationRequest) -> ZshellAutomationResponse {
+    private func handle(_ request: ZshellAutomationRequest) async -> ZshellAutomationResponse {
         guard request.version == 1, request.terminalID.isEmpty, request.token == token,
               let peer = request.peerProcessID else {
             return .failure(id: request.id, code: "unauthorized", message: "The history control capability is invalid or expired.")
         }
+        if let response = await ZshellAutomationRouter.routeCodexNativeHook(request) { return response }
         // Scrubbing inherited variables must not give an in-pane agent the
         // user's cross-project history capability.
         guard !Self.isManagedTerminalProcess(peer) else {
             return .failure(id: request.id, code: "project_scope_required",
                             message: "Processes inside Zshell terminals must use their project-scoped automation capability.")
         }
-        return AgentConversationHistoryRouter.external(request)
+        return await AgentConversationHistoryRouter.external(request)
     }
 
     static func isManagedTerminalProcess(_ pid: pid_t) -> Bool {
@@ -135,7 +138,7 @@ final class AgentConversationHistoryControlService {
 enum AgentConversationHistoryRouter {
     static func scoped(
         _ request: ZshellAutomationRequest, caller: ZshellAutomationRouter.PaneContext
-    ) -> ZshellAutomationResponse {
+    ) async -> ZshellAutomationResponse {
         do {
             let method = String(request.method.dropFirst("agent.history.".count))
             if method == "projects" {
@@ -145,12 +148,12 @@ enum AgentConversationHistoryRouter {
             guard request.params["project_id"] == nil, request.params["window_id"] == nil else {
                 throw CLIError.message("In-pane history operations cannot select another project or window.")
             }
-            return try operate(request, method: method, manager: caller.manager, project: caller.project,
+            return try await operate(request, method: method, manager: caller.manager, project: caller.project,
                                projectID: caller.project.conversationHistoryProjectID)
         } catch { return failure(request, error) }
     }
 
-    static func external(_ request: ZshellAutomationRequest) -> ZshellAutomationResponse {
+    static func external(_ request: ZshellAutomationRequest) async -> ZshellAutomationResponse {
         do {
             guard request.method.hasPrefix("history.") else { throw CLIError.message("Unknown history control method.") }
             let method = String(request.method.dropFirst("history.".count))
@@ -162,7 +165,7 @@ enum AgentConversationHistoryRouter {
                 throw CLIError.message("External history operations require an explicit --project UUID from history projects.")
             }
             let candidates = TerminalManager.automationManagers.flatMap { manager in
-                manager.projects.filter { !$0.isRemote && $0.conversationHistoryProjectID == projectID }
+                manager.projects.filter { (!$0.isRemote || $0.sharedHost != nil) && $0.conversationHistoryProjectID == projectID }
                     .map { (manager: manager, project: $0) }
             }
             let requestedWindow: UUID?
@@ -181,14 +184,14 @@ enum AgentConversationHistoryRouter {
             guard candidates.count > 0 || AgentConversationHistoryStore.shared.records.contains(where: { $0.projectID == projectID }) else {
                 throw AgentConversationHistoryError.notFound
             }
-            return try operate(request, method: method, manager: manager, project: selected.first?.project, projectID: projectID)
+            return try await operate(request, method: method, manager: manager, project: selected.first?.project, projectID: projectID)
         } catch { return failure(request, error) }
     }
 
     private static func operate(
         _ request: ZshellAutomationRequest, method: String,
         manager: TerminalManager?, project: Project?, projectID: UUID
-    ) throws -> ZshellAutomationResponse {
+    ) async throws -> ZshellAutomationResponse {
         let store = AgentConversationHistoryStore.shared
         let targeting: Set<String> = method == "resume" ? ["project_id", "window_id"] : ["project_id"]
         if method == "list" {
@@ -241,6 +244,18 @@ enum AgentConversationHistoryRouter {
         case "resume":
             guard let manager else { throw AgentConversationHistoryError.noWindow }
             let focus = request.params["focus"]?.boolValue ?? false
+            if record.identity.remoteHostID != nil {
+                let context = try await manager.resumeRemoteConversation(id: id, in: project, focus: focus)
+                return .success(id: request.id, result: .object([
+                    "id": .string(record.id.uuidString), "action": .string("remote_resume"),
+                    "terminal_id": .string(context.session.id.uuidString),
+                    "project_id": .string(context.project.conversationHistoryProjectID.uuidString),
+                    "live_project_id": .string(context.project.id.uuidString),
+                    "window_id": .string(context.manager.conversationHistoryWindowID.uuidString),
+                    "host_id": .string(record.identity.remoteHostID!.uuidString),
+                    "remote_session_id": context.session.remoteConnection.map { .string($0.sessionID.uuidString) } ?? .null,
+                ]))
+            }
             let result = try manager.resumeConversation(id: id, in: project, focus: focus)
             let context = result.context
             return .success(id: request.id, result: .object([
@@ -261,6 +276,8 @@ enum AgentConversationHistoryRouter {
         return .object([
             "id": .string(record.id.uuidString), "provider": .string(record.identity.provider.rawValue),
             "session_id": .string(record.identity.sessionID), "project_id": .string(record.projectID.uuidString),
+            "host_id": record.identity.remoteHostID.map { .string($0.uuidString) } ?? .null,
+            "remote_project": record.identity.remoteProjectDirectory.map(ZshellJSONValue.string) ?? .null,
             "project_name": .string(record.projectName), "title": .string(record.displayTitle),
             "cwd": .string(record.identity.workingDirectory),
             "config_directory": record.identity.configDirectory.map(ZshellJSONValue.string) ?? .null,
@@ -278,7 +295,7 @@ enum AgentConversationHistoryRouter {
     private static func projects(only project: Project? = nil) -> ZshellJSONValue {
         let store = AgentConversationHistoryStore.shared
         let live = TerminalManager.automationManagers.flatMap { manager in
-            manager.projects.filter { !$0.isRemote && (project == nil || $0 === project) }.map { (manager, $0) }
+            manager.projects.filter { (!$0.isRemote || $0.sharedHost != nil) && (project == nil || $0 === project) }.map { (manager, $0) }
         }
         let ids = Set(live.map { $0.1.conversationHistoryProjectID })
             .union(store.records.filter { project == nil || $0.projectID == project?.conversationHistoryProjectID }.map(\.projectID))

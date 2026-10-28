@@ -12,6 +12,7 @@ nonisolated enum RemoteSessionRelay {
         var paused = false
         var reconnect = false
         var claim = false
+        var agentSeen = false
     }
 
     static func run() -> Never {
@@ -145,6 +146,10 @@ nonisolated enum RemoteSessionRelay {
                 try enqueue(RemoteFrame(kind: "claim"), into: &outgoing)
                 controls.claim = false
             }
+            if controls.agentSeen {
+                try enqueue(RemoteFrame(kind: "agentSeen"), into: &outgoing)
+                controls.agentSeen = false
+            }
             if remoteRelayWindowChanged {
                 remoteRelayWindowChanged = false
                 let size = dimensions()
@@ -184,6 +189,7 @@ nonisolated enum RemoteSessionRelay {
                             if next != status { status = next; try writeStatus(status, to: statusURL) }
                         }
                         if frame.kind == "exited" {
+                            if frame.result != nil { status = updatedStatus(status, from: try frame.decodedResult(RemoteSessionInfo.self)) }
                             exited = frame.exitCode ?? 1
                             status.state = .exited
                             status.exitCode = exited
@@ -249,6 +255,7 @@ nonisolated enum RemoteSessionRelay {
         case "detach": controls.paused = true
         case "reconnect": controls.paused = false; controls.reconnect = true
         case "claim": controls.claim = true
+        case "agentSeen": controls.agentSeen = true
         default: break
         }
     }
@@ -256,7 +263,8 @@ nonisolated enum RemoteSessionRelay {
     private static func updatedStatus(_ previous: RemoteRelayStatus, from info: RemoteSessionInfo) -> RemoteRelayStatus {
         RemoteRelayStatus(state: info.running ? .connected : .exited, relayPID: previous.relayPID,
                           remotePID: info.pid, exitCode: info.exitCode,
-                          clients: info.clientCount, activeClientID: info.activeClientId)
+                          clients: info.clientCount, activeClientID: info.activeClientId,
+                          agentStatus: info.agentStatus, conversation: info.conversation, sessionCommand: info.command)
     }
 
     private static func writeStatus(_ status: RemoteRelayStatus, to url: URL) throws {

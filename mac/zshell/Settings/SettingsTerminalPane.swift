@@ -25,6 +25,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     private let restoreHistorySwitch = SettingsSwitch { AppSettings.shared.restoreTerminalHistory = $0 }
     private let preserveSessionsSwitch = SettingsSwitch { AppSettings.shared.preserveTerminalSessions = $0 }
     private let copyOnSelectSwitch = SettingsSwitch { AppSettings.shared.copyOnSelect = $0 }
+    private let focusFollowsMouseSwitch = SettingsSwitch { AppSettings.shared.focusFollowsMouse = $0 }
     private let terminalBackgroundBlurSwitch = SettingsSwitch {
         AppSettings.shared.terminalBackgroundBlur = $0
     }
@@ -174,6 +175,11 @@ final class SettingsTerminalPane: SettingsPaneViewController {
                 description: String(localized: "Copies selected terminal text to the clipboard when you finish dragging"),
                 control: copyOnSelectSwitch
             ),
+            SettingsRow(
+                title: String(localized: "Focus follows mouse"),
+                description: String(localized: "Focuses a terminal pane when you move the pointer into it"),
+                control: focusFollowsMouseSwitch
+            ),
         ]))
 
         groups.append(SettingsGroup(header: String(localized: "Command Notifications"), rows: [
@@ -218,6 +224,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         restoreHistorySwitch.isOn = settings.restoreTerminalHistory
         preserveSessionsSwitch.isOn = settings.preserveTerminalSessions
         copyOnSelectSwitch.isOn = settings.copyOnSelect
+        focusFollowsMouseSwitch.isOn = settings.focusFollowsMouse
         terminalBackgroundOpacityRow.setValue(settings.terminalBackgroundOpacity)
         terminalBackgroundBlurSwitch.isOn = settings.terminalBackgroundBlur
         terminalBackgroundBlurSwitch.isEnabled = settings.terminalBackgroundOpacity < 1

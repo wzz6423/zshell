@@ -32,6 +32,8 @@ Les deux moteurs annoncent Ghostty via `TERM_PROGRAM`, car les outils prenant en
 Zshell ne lit ni `~/.config/ghostty` ni les réglages d'Alacritty. Les polices, couleurs, comportements de saisie et moteurs sont configurés dans les [réglages de Zshell](/fr/docs/configuration).
 </Callout>
 
+Depuis le Dock ou le Finder, Zshell lit `SSH_AUTH_SOCK` dans votre shell de connexion interactif pour utiliser l’agent choisi dans vos dotfiles. Un lancement depuis un terminal conserve son agent hérité valide.
+
 ## Autorisations système [#system-permissions]
 
 Les programmes locaux exécutés dans un terminal Zshell peuvent demander l’accès à la caméra ou au microphone, ou le contrôle d’une autre app via Apple Events.
@@ -39,6 +41,12 @@ macOS attribue ces demandes à Zshell ; n’autorisez que les programmes de conf
 
 Gérez les accès dans **Réglages Système → Confidentialité et sécurité → Caméra, Microphone ou Automatisation**.
 Refuser une demande bloque la fonctionnalité concernée. Zshell n’accorde pas ces autorisations automatiquement.
+
+## Le focus suit la souris [#focus-follows-mouse]
+
+Activez **Réglages → Terminal → Comportement → Le focus suit la souris** pour cibler un panneau lorsque le pointeur y entre. Désactivé par défaut, cela fonctionne avec les deux moteurs et le terminal rapide, sauf pendant un glissement, depuis un éditeur, ou avec un menu ou dialogue ouvert.
+
+`terminal.focus-follows-mouse = true`
 
 ## Recherche [#search]
 
@@ -121,7 +129,7 @@ Un programme émettant une progression `OSC 9;4` affiche une barre fine au-dessu
 
 - **La lecture du presse-papiers demande confirmation.** `OSC 52` peut demander son contenu, y compris depuis un hôte distant par SSH. Zshell vous demande votre accord avant de le renvoyer.
 - **Les collages risqués sont signalés.** Le texte multiligne ou ressemblant à une commande doit être confirmé avant son envoi.
-- **Les fichiers deviennent des chemins protégés pour le shell.** Les fichiers copiés ou glissés depuis le Finder sont insérés sous forme de chemins absolus correctement cités. Les images du presse-papiers sont toujours transmises aux interfaces de terminal qui les prennent en charge.
+- **Fichiers et captures deviennent des chemins protégés pour le shell.** Les fichiers Finder sont insérés comme chemins absolus entre guillemets. Une image seule est enregistrée dans un PNG temporaire privé, puis son chemin est collé. Les panneaux distants envoient d’abord fichiers et captures sur l’hôte.
 
 ## Saisie avec la touche Option [#option-key-input]
 

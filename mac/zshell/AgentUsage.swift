@@ -417,7 +417,20 @@ private nonisolated enum CodexUsageReader {
     }
 
     private static func resolveExecutable(_ name: String) -> URL? {
-        let environment = ProcessInfo.processInfo.environment
+        ProcessRunner.resolveExecutable(name)
+    }
+}
+
+nonisolated struct ProcessCommandResult {
+    let stdout: Data
+    let status: Int32
+    let timedOut: Bool
+}
+
+nonisolated enum ProcessRunner {
+    static func resolveExecutable(
+        _ name: String, environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> URL? {
         let path = environment["PATH"] ?? "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
         // Empty entries conventionally mean "the current directory"; the app
         // must never execute from an arbitrary working directory, so skip them.
@@ -432,15 +445,6 @@ private nonisolated enum CodexUsageReader {
         }
         return nil
     }
-}
-
-private nonisolated struct ProcessCommandResult {
-    let stdout: Data
-    let status: Int32
-    let timedOut: Bool
-}
-
-private nonisolated enum ProcessRunner {
     private struct ResponseEnvelope: Decodable {
         let id: Int?
     }
@@ -506,7 +510,9 @@ private nonisolated enum ProcessRunner {
         secondInput: Data,
         waitForResponseID: Int,
         secondResponseID: Int,
-        timeout: TimeInterval
+        timeout: TimeInterval,
+        environment: [String: String]? = nil,
+        workingDirectory: URL? = nil
     ) -> ProcessCommandResult {
         let process = Process()
         let stdin = Pipe()
@@ -514,6 +520,8 @@ private nonisolated enum ProcessRunner {
         let stderr = Pipe()
         process.executableURL = executable
         process.arguments = arguments
+        process.environment = environment
+        process.currentDirectoryURL = workingDirectory
         process.standardInput = stdin
         process.standardOutput = stdout
         process.standardError = stderr

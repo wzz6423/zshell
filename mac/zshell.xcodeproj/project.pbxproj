@@ -102,6 +102,7 @@
 				FF3FDD6F300B6A7400112486 /* Sources */,
 				FF3FDD70300B6A7400112486 /* Frameworks */,
 				FF3FDD71300B6A7400112486 /* Resources */,
+				AA40000000000000000000A1 /* Bundle remote server */,
 			);
 			buildRules = (
 			);
@@ -192,6 +193,52 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		AA40000000000000000000A1 /* Bundle remote server */ = {
+			isa = PBXShellScriptBuildPhase;
+			inputPaths = (
+				"$(SRCROOT)/../remote/Cargo.toml",
+				"$(SRCROOT)/../remote/Cargo.lock",
+				"$(SRCROOT)/../remote/src/agent.rs",
+				"$(SRCROOT)/../remote/src/agent_history.rs",
+				"$(SRCROOT)/../remote/src/agent_hooks.rs",
+				"$(SRCROOT)/../remote/src/agent_process.rs",
+				"$(SRCROOT)/../remote/src/codex_binding.rs",
+				"$(SRCROOT)/../remote/src/daemon.rs",
+				"$(SRCROOT)/../remote/src/main.rs",
+				"$(SRCROOT)/../remote/src/paste.rs",
+				"$(SRCROOT)/../remote/src/protocol.rs",
+				"$(SRCROOT)/../remote/src/pty.rs",
+				"$(SRCROOT)/../remote/src/pty_unix.rs",
+				"$(SRCROOT)/../remote/src/pty_windows.rs",
+				"$(SRCROOT)/../remote/src/session.rs",
+				"$(SRCROOT)/../remote/src/terminal.rs",
+				"$(SRCROOT)/../remote/src/tests.rs",
+				"$(SRCROOT)/../remote/src/tests_windows.rs",
+				"$(SRCROOT)/../remote/src/transport.rs",
+				"$(SRCROOT)/../remote/src/windows.rs",
+				"$(SRCROOT)/../remote/src/windows_pipe.rs",
+				"$(SRCROOT)/zshell/AgentIntegrations/opencode/zshell-agent-state.js",
+				"$(SRCROOT)/zshell/AgentIntegrations/opencode/zshell-conversation-tui.js",
+				"$(SRCROOT)/zshell/AgentIntegrations/pi/zshell-agent-state.pi.txt",
+				"$(SRCROOT)/zshell/ThirdPartyNotices/Kero.txt",
+				"$(SRCROOT)/Vendor/alacritty-bridge/Cargo.toml",
+				"$(SRCROOT)/Vendor/alacritty-bridge/Cargo.lock",
+				"$(SRCROOT)/Vendor/alacritty-bridge/src/graphics_event_loop.rs",
+				"$(SRCROOT)/Vendor/alacritty-bridge/src/kitty_graphics.rs",
+				"$(SRCROOT)/Vendor/alacritty-bridge/src/kitty_graphics_tracking.rs",
+				"$(SRCROOT)/Vendor/alacritty-bridge/src/lib.rs",
+				"$(SRCROOT)/Vendor/alacritty-bridge/src/persistent_terminal.rs",
+				"$(SRCROOT)/Vendor/alacritty-bridge/src/renderer.rs",
+				"$(SRCROOT)/Vendor/alacritty-bridge/src/vt_snapshot.rs",
+				"$(SRCROOT)/scripts/build-remote-server.sh",
+			);
+			name = "Bundle remote server";
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/zshell-server",
+			);
+			shellPath = /bin/zsh;
+			shellScript = "\"${SRCROOT}/scripts/build-remote-server.sh\"";
+		};
 		AA40000000000000000000A0 /* Build Alacritty bridge */ = {
 			isa = PBXShellScriptBuildPhase;
 			inputPaths = (
@@ -201,7 +248,9 @@
 				"$(SRCROOT)/Vendor/alacritty-bridge/src/kitty_graphics.rs",
 				"$(SRCROOT)/Vendor/alacritty-bridge/src/kitty_graphics_tracking.rs",
 				"$(SRCROOT)/Vendor/alacritty-bridge/src/lib.rs",
-                "$(SRCROOT)/Vendor/alacritty-bridge/src/persistent_terminal.rs",
+				"$(SRCROOT)/Vendor/alacritty-bridge/src/persistent_terminal.rs",
+				"$(SRCROOT)/Vendor/alacritty-bridge/src/renderer.rs",
+				"$(SRCROOT)/Vendor/alacritty-bridge/src/vt_snapshot.rs",
 				"$(SRCROOT)/scripts/build-alacritty-bridge.sh",
 			);
 			name = "Build Alacritty bridge";

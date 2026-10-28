@@ -3,17 +3,19 @@ title: Gedeelde externe sessies
 description: Verbind via SSH of Tailscale met dezelfde externe terminal en behoud taken na het verbreken van de verbinding.
 ---
 
-`zshell-server` houdt de shell en taken actief op een macOS- of Linux-host. Beide terminalbackends van Zshell kunnen verbinden. De client sluiten of netwerk verliezen beëindigt de taken niet. Opnieuw verbinden herstelt scherm, geschiedenis, cursor en terminalmodi.
+`zshell-server` houdt de shell en taken actief op een macOS- of Linux / Windows / WSL-host. Beide terminalbackends van Zshell kunnen verbinden. De client sluiten of netwerk verliezen beëindigt de taken niet. Opnieuw verbinden herstelt scherm, geschiedenis, cursor en terminalmodi.
 
 ## Installeren [#install]
 
-Bouw de Zshell-repository op de host met een actuele Rust-toolchain. De Mac-client bevat de relay en heeft geen Cargo nodig. Een native Windows-server wordt niet ondersteund.
+Kies in **Externe hosts…** het platform en **Server installeren / bijwerken** via SSH. Een Mac met dezelfde architectuur gebruikt het meegeleverde programma. Kies voor Linux of native Windows het `zshell-server` voor dat platform en die architectuur. WSL gebruikt het Linux-programma in de gekozen distributie. Upload en compatibiliteit worden vóór vervanging gecontroleerd. Een actieve daemon houdt zijn versie tot herstart; die beëindigt de terminaltaken. Je kunt ook op de host bouwen:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
 install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
+
+Een client krijgt toegang tot shell en bestanden van het serveraccount. macOS, Linux, native Windows en WSL worden ondersteund. Windows gebruikt ConPTY; WSL gebruikt Linux-paden van de gekozen distributie. Windows bouwt `zshell-server.exe`.
 
 ## SSH [#ssh]
 
@@ -37,11 +39,21 @@ zshell-server serve --listen tailscale://:7373
 
 Voeg `tailscale://devbox:7373` toe. MagicDNS en Tailscale IPv4/IPv6 werken; openbare adressen worden geweigerd. Standaard zijn alleen apparaten zonder tags van de hosteigenaar toegestaan. `--allow-user` staat een andere exacte aanmeldnaam toe; clients met tags blijven geweigerd. Gebruik SSH op de server zelf. Tailnet-ACL’s blijven gelden. Toegelaten clients kunnen het Unix-account van de dienst bedienen.
 
+Verbind Tailscale en kies **Deze Mac delen** in **Externe hosts…**. Stel een poort en eventueel exacte toegestane aanmeldnamen in. Delen begint alleen op verzoek; **Delen stoppen** of Zshell afsluiten beëindigt de gedeelde sessies.
+
 ## Delen en beëindigen [#sharing]
 
 Iedereen ontvangt dezelfde uitvoer. De terminal focussen of de besturing overnemen geeft die client invoer en formaatbeheer. Bij verbreken neemt de oudste overgebleven client het over. Info toont status, aantal clients en besturing en biedt loskoppelen en opnieuw verbinden. Netwerkfouten worden automatisch opnieuw geprobeerd; offline invoer wordt weggegooid. De opgeslagen indeling verbindt dezelfde externe UUID opnieuw.
 
 Panelen, projecten of vensters sluiten en beide opties om de app te stoppen koppelen alleen los. Een externe sessie beëindigen vraagt bevestiging en stopt shell en taken voor iedereen. Op de host: `zshell-server terminate --project ~/repo --session UUID`.
+
+## Bestanden en schermafbeeldingen [#paste]
+
+Kopieer gewone bestanden of een schermafbeelding en plak in het externe paneel. Zshell uploadt naar een privémappenlocatie en voegt geciteerde shellpaden in. Maximaal 32 bestanden, elk 32 MiB en samen 64 MiB; mappen en symbolische links worden geweigerd. Gedeelde uploads blijven zeven dagen. Gewone Unix-SSH-panelen ondersteunen dit ook.
+
+## Externe Agentgesprekken [#agents]
+
+Activiteit, voortgang, goedkeuringsverzoeken en afronding van externe Agents gebruiken bestaande status en meldingen. **Agentgespreksgeschiedenis** bevat Claude Code, Codex, OpenCode en Pi van de host. Hervatten verbindt een lopend gesprek of start precies die sessie op de oorspronkelijke host en map. Gesprekken overleven daemonherstarts; terminaltaken en scrollgeschiedenis niet. Provider en oorspronkelijke configuratie of sessiebestand moeten beschikbaar blijven.
 
 ## Grenzen [#limits]
 

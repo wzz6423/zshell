@@ -19,11 +19,13 @@ Zshell 大多数持久化设置都在一个文件里：
 
 手动改之前值得先知道：
 
-- **启动时读取。** Zshell 运行中改文件不会立即生效，要重启。设置窗口里的改动通常立即生效，控件另有说明的除外。
+- **运行中自动读取修改。** 有效的外部编辑会自动应用；标注只影响新终端的设置仍需新建窗格。文件不可读或语法错误时保留最后有效设置。主动清空文件会在短暂等待后恢复默认值。
 - **只要文件型设置有变化，Zshell 就会重写它。** 文件会从头生成，所以你的注释和未知键会在下次使用这些控件时丢失。最好只选一种方式维护它，或者把权威版本放在 dotfiles 里。
 - **通常只写非默认值。** `font-size`、`terminal.vim-command-hints`、`terminal.restore-history`、`terminal.notify-on-error` 总会保存。删除这三个终端键中的任何一个，会在已有文件中关闭对应功能；删除其他键则恢复默认值。
 - **解析器有意保持精简。** 支持扁平键、点号键、`[table]` 表头、`#` 注释，以及字符串、数字和布尔值；不支持数组、内联表和多行字符串。
 - **错误值会安全回退。** 超出范围的字号、未知后端或拼错的主题名不会让 Zshell 启动失败。
+
+设置保存会保留文件及目录的符号链接，原子更新目标文件并保留权限。外部编辑不会回写注释或未知键；随后通过设置窗口保存时，仍会按上述规则重新生成文件。
 
 ## 应用显示位置 [#application-presence]
 
@@ -219,6 +221,8 @@ regular/bold 区分及后备字体字重。
 
 具体怎么使用，见[与 AI Agent 协作](/docs/automation)。
 
+多个终端共享 Codex app-server 时，Zshell 根据已验证的对话 ID 匹配前台窗格，存在歧义时不绑定。托管集成会在 Codex 终端标题中加入 `session-id`，并保留其他标题项。
+
 ### `ai.resume-conversations` [#airesume-conversations]
 
 布尔值——默认 `true`
@@ -239,6 +243,7 @@ regular/bold 区分及后备字体字重。
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | 终端光标形状 |
 | `terminal.cursor-blinking` | `true` | 布尔值 | 光标闪烁 |
 | `terminal.copy-on-select` | `true` | 布尔值 | 选中终端文本后复制 |
+| `terminal.focus-follows-mouse` | `false` | 布尔值 | 鼠标移入聚焦 |
 | `terminal.shift-enter-newline` | `true` | 布尔值 | Shift+Enter 发送增强换行序列，需终端程序支持 |
 | `terminal.background-opacity` | `1` | 0.2–1 | 终端背景不透明度 |
 | `terminal.background-blur` | `false` | 布尔值 | 半透明背景模糊 |
@@ -258,11 +263,7 @@ regular/bold 区分及后备字体字重。
 通过 **Zshell → Export Settings…** 导出 TOML 文件，使用 **Import Settings…** 导入。
 导入前会要求确认替换，并尝试将当前配置备份为同目录的 `config.toml.bak`。
 
-当前导入支持主题、主要字体设置、光标、终端后端、历史恢复、选中复制、快捷终端和 AI 开关等设置，
-不会完整恢复所有导出项。界面缩放、应用图标、外部编辑器、终端背景等需要在导入后重新检查。
-需要完整迁移时，退出 Zshell 后备份并复制 `config.toml`，再启动应用。
-AI 开关只在导入文件明确包含 `ai.enabled` 时更新，导入后请检查。
-项目和标签页的环境变量属于会话数据，不包含在此配置文件中。
+导入会读取全部受支持的配置项。省略项遵循配置读取器的默认规则；未包含 `ai.enabled` 时保留当前 AI 开关。语言及项目、标签页的环境变量单独保存。
 
 <span id="一份完整的例子" data-canonical-heading="a-complete-example" />
 

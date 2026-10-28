@@ -3,17 +3,19 @@ title: Paylaşılan uzak oturumlar
 description: SSH veya Tailscale ile aynı uzak terminale bağlanın ve istemci ayrılsa da işleri çalışır tutun.
 ---
 
-`zshell-server`, kabuğu ve işleri bir macOS veya Linux sunucusunda tutar. Zshell’in iki terminal arka ucu da bağlanabilir. İstemciyi kapatmak veya ağ bağlantısını kaybetmek işleri bitirmez. Yeniden bağlanmak ekranı, kaydırma geçmişini, imleci ve terminal kiplerini geri getirir.
+`zshell-server`, kabuğu ve işleri bir macOS veya Linux / Windows / WSL sunucusunda tutar. Zshell’in iki terminal arka ucu da bağlanabilir. İstemciyi kapatmak veya ağ bağlantısını kaybetmek işleri bitirmez. Yeniden bağlanmak ekranı, kaydırma geçmişini, imleci ve terminal kiplerini geri getirir.
 
 ## Kurulum [#install]
 
-Sunucuda güncel Rust araç zinciriyle Zshell deposunu derleyin. Mac istemcisi relay içerir ve Cargo gerektirmez. Yerel Windows sunucusu desteklenmez.
+**Uzak sunucular…** içinde platformu seçip SSH ile **Sunucuyu Kur / Güncelle** kullanın. Aynı mimarili Mac paketlenmiş programı kullanır. Linux veya yerel Windows için platform ve mimariye uygun `zshell-server` seçin. WSL seçilen dağıtımdaki Linux programını kullanır. Yükleme ve uyumluluk değiştirmeden önce doğrulanır. Çalışan daemon yeniden başlatılana kadar sürümünü korur; yeniden başlatmak terminal işlerini bitirir. Sunucuda doğrudan derleyebilirsiniz:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
 install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
+
+İstemci sunucu hesabının kabuğunu ve dosyalarını kullanabilir. macOS, Linux, yerel Windows ve WSL desteklenir. Windows ConPTY, WSL seçilen dağıtımın Linux yollarını kullanır. Windows programı `zshell-server.exe` olur.
 
 ## SSH [#ssh]
 
@@ -37,11 +39,21 @@ zshell-server serve --listen tailscale://:7373
 
 `tailscale://devbox:7373` ekleyin. MagicDNS ve Tailscale IPv4/IPv6 desteklenir; genel adresler reddedilir. Varsayılan olarak yalnızca sunucu sahibinin etiketsiz cihazlarına izin verilir. `--allow-user` tam eşleşen başka bir giriş adına izin verir; etiketli istemciler yine reddedilir. Sunucunun kendisinde SSH kullanın. Tailnet ACL kuralları da geçerlidir. İzin verilen istemciler hizmetin Unix hesabını kullanabilir.
 
+Bu Mac’i paylaşmak için Tailscale’e giriş yapıp uzak sunucularda **Bu Mac’i Paylaş** seçin. Port ve tam eşleşen izinli giriş adlarını belirleyin. Yalnızca istekle başlar; **Paylaşmayı Durdur** veya Zshell’den çıkmak paylaşılan oturumları bitirir.
+
 ## Paylaşma ve bitirme [#sharing]
 
 Tüm istemciler aynı çıktıyı alır. Terminale odaklanmak veya denetimi almak giriş ve boyut denetimini o istemciye verir. Ayrıldığında kalan en eski istemci devralır. Bilgi paneli durumu, istemci sayısını ve denetimi gösterir; ayırma ve yeniden bağlanma sunar. Ağ hataları otomatik yeniden denenir, çevrimdışı giriş atılır. Kaydedilen düzen aynı uzak UUID’ye yeniden bağlanır.
 
 Bölme, proje veya pencereyi kapatmak ve uygulamanın iki çıkış seçeneği yalnızca istemciyi ayırır. Uzak oturumu bitirmek onay ister ve kabuk ile işleri herkes için durdurur. Sunucuda: `zshell-server terminate --project ~/repo --session UUID`.
+
+## Dosyalar ve görüntüler [#paste]
+
+Normal dosya veya ekran görüntüsü kopyalayıp uzak bölmeye yapıştırın. Zshell özel sunucu dizinine yükler ve kabuğa uygun tırnaklı yollar ekler. En çok 32 dosya, dosya başına 32 MiB, toplam 64 MiB; klasör ve sembolik bağlantı reddedilir. Paylaşılan yüklemeler yedi gün saklanır. Normal Unix SSH bölmeleri de desteklenir.
+
+## Uzak Agent konuşmaları [#agents]
+
+Uzak Agent etkinliği, ilerleme, onay istekleri ve tamamlanması mevcut durum ve bildirimleri kullanır. **Agent Konuşma Geçmişi**, sunucudaki Claude Code, Codex, OpenCode ve Pi konuşmalarını içerir. Sürdür canlı konuşmaya bağlanır veya tam oturumu özgün sunucu ve dizinde başlatır. Konuşma geçmişi daemon yeniden başlamasından sağ çıkar; terminal işleri ve kaydırma geçmişi çıkmaz. Sağlayıcı ve özgün yapılandırma ya da oturum dosyası bulunmalıdır.
 
 ## Sınırlar [#limits]
 

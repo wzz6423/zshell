@@ -3,6 +3,21 @@
 // ZSHELL_INTEGRATION_VERSION=1
 
 import net from "node:net";
+import { spawn } from "node:child_process";
+function remoteRequest(method, params) {
+  if (!process.env.ZSHELL_REMOTE_STATE || !process.env.ZSHELL_EXECUTABLE) return;
+  return new Promise((resolve) => {
+    const child = spawn(process.env.ZSHELL_EXECUTABLE, ["hook", params.provider ?? params.identity?.provider], {
+      stdio: ["pipe", "ignore", "ignore"],
+    });
+    const timeout = setTimeout(() => { child.kill(); resolve(false); }, 3_000);
+    child.on("error", () => { clearTimeout(timeout); resolve(false); });
+    child.on("exit", (code) => { clearTimeout(timeout); resolve(code === 0); });
+    child.stdin.on("error", () => {});
+    child.stdin.end(JSON.stringify({ method, params }));
+  });
+}
+
 
 const socketPath = process.env.ZSHELL_AUTOMATION_SOCKET;
 const token = process.env.ZSHELL_AUTOMATION_TOKEN;
@@ -13,7 +28,7 @@ let lastState;
 
 function enabled() {
   return process.env.ZSHELL_AUTOMATION === "1"
-    && !!socketPath
+    && (!!socketPath || !!process.env.ZSHELL_REMOTE_STATE)
     && !!token
     && !!terminalID;
 }
@@ -27,6 +42,7 @@ function report(state, reason, attention) {
 }
 
 function reportOnce(state, reason, attention) {
+  if (process.env.ZSHELL_REMOTE_STATE) return remoteRequest("agent.lifecycle", { provider: "opencode", state, attention, reason });
   if (!enabled()) return Promise.resolve();
 
   requestSequence += 1;

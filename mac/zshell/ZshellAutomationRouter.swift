@@ -28,6 +28,7 @@ enum ZshellAutomationRouter {
         _ request: ZshellAutomationRequest,
         callerTerminalID: UUID
     ) async -> ZshellAutomationResponse {
+        if let response = await routeCodexNativeHook(request) { return response }
         guard let caller = context(forSession: callerTerminalID) else {
             return failure(
                 request, "caller_closed",
@@ -96,7 +97,7 @@ enum ZshellAutomationRouter {
             return success(request, .array(agents))
 
         case let method where method.hasPrefix("agent.history."):
-            return AgentConversationHistoryRouter.scoped(request, caller: caller)
+            return await AgentConversationHistoryRouter.scoped(request, caller: caller)
 
         case "agent.get":
             guard let target = targetAgent(request, caller: caller) else {
@@ -186,6 +187,39 @@ enum ZshellAutomationRouter {
                 "Unknown automation method \(request.method)."
             )
         }
+    }
+
+    /// This is the only cross-pane daemon path. The private descriptor still
+    /// grants no general reads or input to a process carrying another pane's env.
+    static func routeCodexNativeHook(_ request: ZshellAutomationRequest) async -> ZshellAutomationResponse? {
+        guard ["agent.session.start", "agent.lifecycle"].contains(request.method),
+              let peer = request.peerProcessID,
+              CodexDaemonBinding.service(peerPID: peer, reporterPID: peer) != nil else { return nil }
+        if request.method == "agent.session.start" {
+            guard let value = request.params["identity"],
+                  let data = try? JSONEncoder().encode(value),
+                  let identity = try? JSONDecoder().decode(AgentConversationIdentity.self, from: data),
+                  identity.provider == .codex,
+                  let number = request.params["reporter_pid"]?.intValue,
+                  let reporter = pid_t(exactly: number), reporter > 1,
+                  CodexDaemonBinding.accept(.init(
+                    identity: identity, reporterPID: reporter,
+                    source: request.params["source"]?.stringValue
+                  ), peerPID: peer) else {
+                return failure(request, "invalid_agent_session", "A valid Codex daemon session identity and reporting process are required.")
+            }
+            return success(request, .object(["accepted": .bool(true)]))
+        }
+        guard request.params["provider"]?.stringValue == "codex",
+              let payload = request.params["event"]?.objectValue,
+              (payload["parent_session_id"]?.stringValue ?? "").isEmpty,
+              let sessionID = payload["session_id"]?.stringValue,
+              let target = CodexDaemonBinding.lifecycleTarget(
+                sessionID: sessionID, peerPID: peer, reporterPID: peer
+              ) else {
+            return failure(request, "agent_session_not_attached", "The Codex daemon event does not match one live foreground conversation.")
+        }
+        return await reportAgentLifecycle(request, caller: target, daemonSessionID: sessionID)
     }
 
     private static func splitPane(
@@ -623,7 +657,8 @@ enum ZshellAutomationRouter {
 
     private static func reportAgentLifecycle(
         _ request: ZshellAutomationRequest,
-        caller: PaneContext
+        caller: PaneContext,
+        daemonSessionID: String? = nil
     ) async -> ZshellAutomationResponse {
         guard let session = caller.session,
               let peer = request.peerProcessID,
@@ -664,7 +699,8 @@ enum ZshellAutomationRouter {
         }
         guard session.reportAutomationAgent(
             phase: phase, reason: reason, provider: provider, peerProcessID: peer,
-            attention: attention, task: task, endsSession: endsSession
+            attention: attention, task: task, endsSession: endsSession,
+            daemonSessionID: daemonSessionID
         ) else {
             return failure(
                 request, "agent_not_recognized",

@@ -32,6 +32,8 @@ Beide Backends melden über `TERM_PROGRAM` Ghostty, da CLIs mit Bild- und Mittei
 Zshell liest weder `~/.config/ghostty` noch eine Alacritty-Konfiguration. Schriften, Farben, Eingabeverhalten und Backend werden in Zshells eigenen [Einstellungen](/de/docs/configuration) festgelegt.
 </Callout>
 
+Beim Start über Dock oder Finder liest Zshell `SSH_AUTH_SOCK` aus Ihrer interaktiven Login-Shell und verwendet den in Ihren dotfiles gewählten Agent. Beim Terminalstart bleibt ein gültiger geerbter Agent erhalten.
+
 ## Systemberechtigungen [#system-permissions]
 
 Lokale Programme in einem Zshell-Terminal können Zugriff auf Kamera oder Mikrofon oder die Steuerung einer anderen App über Apple Events anfordern.
@@ -39,6 +41,12 @@ macOS ordnet diese Anfragen Zshell zu; erlauben Sie den Zugriff nur vertrauensw�
 
 Verwalten Sie den Zugriff unter **Systemeinstellungen → Datenschutz & Sicherheit → Kamera, Mikrofon oder Automation**.
 Eine abgelehnte Anfrage verhindert die entsprechende Funktion. Zshell erteilt diese Berechtigungen nicht automatisch.
+
+## Fokus folgt der Maus [#focus-follows-mouse]
+
+Aktivieren Sie **Einstellungen → Terminal → Verhalten → Fokus folgt der Maus**. Der Fokus wechselt beim Betreten eines Terminalbereichs. Standardmäßig aus, für beide Backends und das Schnellterminal. Beim Ziehen, aus einem Editor oder bei geöffnetem Menü oder Dialog bleibt der Fokus bestehen.
+
+`terminal.focus-follows-mouse = true`
 
 ## Suche [#search]
 
@@ -121,7 +129,7 @@ Programme, die `OSC 9;4`-Fortschritt senden, erhalten eine schmale Leiste über 
 
 - **Lesen der Zwischenablage wird bestätigt.** `OSC 52` kann die macOS-Zwischenablage anfordern, auch von einem entfernten Rechner über SSH. Zshell fragt vor der Herausgabe nach.
 - **Riskante Einfügungen werden markiert.** Mehrzeiliger oder befehlsähnlicher Text wartet auf eine Bestätigung, bevor er direkt übergeben wird.
-- **Dateien werden zu Shell-sicheren Pfaden.** Aus dem Finder kopierte oder gezogene Dateien werden als korrekt zitierte absolute Pfade eingefügt. Bilder aus der Zwischenablage erreichen weiterhin TUIs mit Bildunterstützung.
+- **Dateien und Bildschirmfotos werden zu sicheren Shell-Pfaden.** Finder-Dateien werden als zitierte absolute Pfade eingefügt. Ein reines Zwischenablagebild wird als private temporäre PNG gespeichert und sein Pfad eingefügt. Remote-Bereiche laden Dateien und Bilder zuerst auf den Host hoch.
 
 ## Eingabe mit der Option-Taste [#option-key-input]
 

@@ -17,11 +17,13 @@ Le nuove configurazioni attivano i suggerimenti per i comandi Vim, il ripristino
 
 Prima di modificarlo a mano, tieni presente che:
 
-- **Viene letto all'avvio.** Le modifiche al file mentre Zshell è in esecuzione hanno effetto solo dopo un riavvio. Quelle effettuate nelle Impostazioni si applicano subito, salvo diversa indicazione del controllo.
+- **Le modifiche vengono lette durante l’esecuzione.** Le modifiche esterne valide si applicano automaticamente; le impostazioni per nuovi terminali richiedono ancora un nuovo pannello. File illeggibili o malformati mantengono le ultime impostazioni valide. Un file volutamente vuoto ripristina i valori predefiniti dopo una breve attesa.
 - **Zshell lo riscrive quando cambia un'impostazione salvata nel file.** Il contenuto viene rigenerato da zero: commenti e chiavi sconosciute si perdono al successivo utilizzo di uno di questi controlli. Scegli un solo metodo per modificarlo oppure conserva una copia di riferimento nei tuoi dotfile.
 - **La maggior parte dei valori predefiniti viene omessa.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` vengono sempre salvati. Eliminando una di queste tre chiavi del terminale in un file esistente si disattiva la funzione; eliminando le altre chiavi si ripristinano i valori predefiniti.
 - **Il parser è volutamente limitato.** Supporta chiavi semplici, chiavi separate da punti, intestazioni `[table]`, commenti `#` e valori stringa, numero o booleano. Non supporta array, tabelle inline o stringhe su più righe.
 - **I valori non validi usano un ripiego sicuro.** Una dimensione fuori intervallo, un motore sconosciuto o un nome di tema errato non impedisce l'avvio di Zshell.
+
+Il salvataggio conserva i collegamenti simbolici a file e directory, aggiornando atomicamente la destinazione e preservandone i permessi. Le modifiche esterne non riscrivono commenti o chiavi sconosciute; un successivo salvataggio nelle Impostazioni rigenera comunque il file come descritto sopra.
 
 ## Presenza dell’app [#application-presence]
 
@@ -175,6 +177,8 @@ Consente agli agenti di programmazione supportati di coordinare pannelli Zshell 
 
 Il flusso di lavoro è descritto in [Lavorare con gli agenti IA](/it/docs/automation).
 
+Con un app-server Codex condiviso, Zshell associa gli ID di conversazione verificati al pannello in primo piano. Le corrispondenze ambigue restano scollegate. L’integrazione gestita aggiunge `session-id` al titolo Codex e mantiene gli altri elementi.
+
 ### `ai.resume-conversations` [#airesume-conversations]
 
 booleano — predefinito `true`
@@ -193,6 +197,7 @@ Si controlla in **Impostazioni → Automazione → Riprendi le conversazioni deg
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Forma del cursore del terminale |
 | `terminal.cursor-blinking` | `true` | booleano | Fa lampeggiare il cursore |
 | `terminal.copy-on-select` | `true` | booleano | Copia il testo selezionato nel terminale |
+| `terminal.focus-follows-mouse` | `false` | booleano | Il focus segue il mouse |
 | `terminal.shift-enter-newline` | `true` | booleano | Invia una sequenza avanzata di nuova riga con Maiusc+Invio; richiede il supporto dell'applicazione |
 | `terminal.background-opacity` | `1` | 0,2–1 | Opacità dello sfondo del terminale |
 | `terminal.background-blur` | `false` | booleano | Sfoca gli sfondi traslucidi |
@@ -209,7 +214,7 @@ Si controlla in **Impostazioni → Automazione → Riprendi le conversazioni deg
 
 Usa **Zshell → Esporta impostazioni…** per salvare un file TOML e **Importa impostazioni…** per caricarlo. L'importazione chiede di confermare la sostituzione e tenta di salvare una copia del file corrente come `config.toml.bak` nella stessa cartella.
 
-L'importazione attualmente ripristina un sottoinsieme: temi, opzioni principali dei caratteri, impostazioni del cursore, motore del terminale, ripristino della cronologia, copia della selezione, Terminale rapido e supporto IA. Non ripristina tutte le impostazioni esportate. Controlla poi scala dell'interfaccia, icona dell'app, editor esterno e sfondo del terminale. Per trasferire tutta la configurazione, esci da Zshell, esegui un backup e copia `config.toml`, quindi riapri l'app. L'interruttore IA viene aggiornato solo se il file importato contiene esplicitamente `ai.enabled`; controllalo dopo l'importazione. Le variabili d'ambiente di progetti e schede sono dati della sessione e non sono incluse nel file.
+L’importazione legge tutte le impostazioni supportate. Le chiavi omesse seguono i valori predefiniti del lettore; omettere `ai.enabled` mantiene l’impostazione IA attuale. Lingua e variabili d’ambiente di progetti e schede sono salvate separatamente.
 
 ## Un esempio completo [#a-complete-example]
 

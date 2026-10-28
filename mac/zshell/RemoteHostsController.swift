@@ -39,6 +39,10 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
     private let addressField = NSTextField(string: "")
     private let executableField = NSTextField(string: "~/.local/bin/zshell-server")
     private let directoryField = NSTextField(string: "~")
+    private let platformField = NSPopUpButton()
+    private let distributionField = NSTextField(string: "")
+    private let platformLabel = NSTextField(labelWithString: "")
+    private let distributionLabel = NSTextField(labelWithString: "")
     private let nameLabel = NSTextField(labelWithString: "")
     private let addressLabel = NSTextField(labelWithString: "")
     private let executableLabel = NSTextField(labelWithString: "")
@@ -51,20 +55,33 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
     private let connectButton = NSButton()
     private let openButton = NSButton()
     private let docsButton = NSButton()
+    private let installButton = NSButton()
+    private let shareButton = NSButton()
+    private let portField = NSTextField(string: "7373")
+    private let usersField = NSTextField(string: "")
+    private let portLabel = NSTextField(labelWithString: "")
+    private let usersLabel = NSTextField(labelWithString: "")
+    private let sharingLabel = NSTextField(wrappingLabelWithString: "")
+    private let sharing = LocalRemoteSharing.shared
+    private var sharingObservation: AnyCancellable?
+    private var sharingBusy = false
     private var editingID: UUID?
     private var busy = false
     private var observation: AnyCancellable?
     private var languageObservation: NSObjectProtocol?
 
     private init() {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 540),
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 700, height: 750),
                               styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
-        window.minSize = NSSize(width: 540, height: 500)
+        window.minSize = NSSize(width: 620, height: 740)
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()
         observation = store.$hosts.sink { [weak self] _ in
             DispatchQueue.main.async { [weak self] in self?.table.reloadData() }
+        }
+        sharingObservation = sharing.objectWillChange.sink { [weak self] _ in
+            DispatchQueue.main.async { [weak self] in self?.updateSharing() }
         }
         languageObservation = NotificationCenter.default.addObserver(forName: AppLocalization.didChange, object: nil, queue: .main) { [weak self] _ in
             guard let self else { return }
@@ -97,28 +114,45 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         scroll.hasVerticalScroller = true
         scroll.borderType = .bezelBorder
         scroll.heightAnchor.constraint(equalToConstant: 130).isActive = true
+        platformField.addItems(withTitles: ["macOS / Linux", "Windows", "WSL"])
+        platformField.target = self
+        platformField.action = #selector(platformChanged)
         let grid = NSGridView(views: [[nameLabel, nameField], [addressLabel, addressField],
+                                     [platformLabel, platformField], [distributionLabel, distributionField],
                                      [executableLabel, executableField], [directoryLabel, directoryField]])
         grid.rowSpacing = 10
         grid.columnSpacing = 14
         grid.column(at: 0).xPlacement = .trailing
-        for field in [nameField, addressField, executableField, directoryField] { field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal) }
-        for button in [newButton, saveButton, removeButton, connectButton, openButton, docsButton] { button.bezelStyle = .rounded; button.target = self }
+        for field in [nameField, addressField, executableField, directoryField, distributionField, usersField] { field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal) }
+        for button in [newButton, saveButton, removeButton, connectButton, openButton, docsButton, installButton, shareButton] { button.bezelStyle = .rounded; button.target = self }
         newButton.action = #selector(newHost)
         saveButton.action = #selector(saveHost)
         removeButton.action = #selector(removeHost)
         connectButton.action = #selector(connectHost)
         openButton.action = #selector(openProject)
         docsButton.action = #selector(openDocumentation)
+        installButton.action = #selector(installServer)
+        shareButton.action = #selector(toggleSharing)
         let editButtons = NSStackView(views: [newButton, saveButton, removeButton])
         editButtons.spacing = 8
-        let connectButtons = NSStackView(views: [connectButton, openButton, docsButton])
+        let connectButtons = NSStackView(views: [connectButton, openButton, installButton])
         connectButtons.spacing = 8
         explanation.font = .systemFont(ofSize: 11)
         explanation.textColor = .secondaryLabelColor
         statusLabel.font = .systemFont(ofSize: 11)
         statusLabel.textColor = .secondaryLabelColor
-        let stack = NSStackView(views: [scroll, editButtons, grid, explanation, connectButtons, statusLabel])
+        sharingLabel.font = .systemFont(ofSize: 11)
+        sharingLabel.textColor = .secondaryLabelColor
+        let shareGrid = NSGridView(views: [[portLabel, portField], [usersLabel, usersField]])
+        shareGrid.column(at: 0).xPlacement = .trailing
+        shareGrid.rowSpacing = 10
+        shareGrid.columnSpacing = 14
+        let separator = NSBox()
+        separator.boxType = .separator
+        let shareButtons = NSStackView(views: [shareButton, docsButton])
+        shareButtons.spacing = 8
+        let stack = NSStackView(views: [scroll, editButtons, grid, explanation, connectButtons, statusLabel,
+                                       separator, shareGrid, shareButtons, sharingLabel])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 14
@@ -133,6 +167,9 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
             grid.widthAnchor.constraint(equalTo: stack.widthAnchor),
             explanation.widthAnchor.constraint(equalTo: stack.widthAnchor),
             statusLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            separator.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            shareGrid.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            sharingLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
     }
 
@@ -142,6 +179,9 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         addressLabel.stringValue = String(localized: "Address")
         executableLabel.stringValue = String(localized: "Server Executable")
         directoryLabel.stringValue = String(localized: "Remote Directory")
+        platformLabel.stringValue = String(localized: "Platform")
+        distributionLabel.stringValue = String(localized: "WSL Distribution")
+        distributionField.placeholderString = String(localized: "Default distribution")
         addressField.placeholderString = String(localized: "ssh://me@devbox or tailscale://devbox:7373")
         newButton.title = String(localized: "Add Host")
         saveButton.title = String(localized: "Save")
@@ -149,13 +189,19 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         connectButton.title = String(localized: "Connect Host")
         openButton.title = String(localized: "Open Remote Project")
         docsButton.title = String(localized: "Setup Guide")
-        explanation.stringValue = String(localized: "Install zshell-server on the host first. SSH uses your existing keys, agent, and trusted host keys. Remote jobs keep running when Zshell closes.")
+        installButton.title = String(localized: "Install / Update Server")
+        portLabel.stringValue = String(localized: "Sharing Port")
+        usersLabel.stringValue = String(localized: "Allowed Tailscale Users")
+        usersField.placeholderString = String(localized: "Owner only, or comma-separated logins")
+        explanation.stringValue = String(localized: "SSH uses your existing keys and trusted host keys. Install the bundled server on a matching Mac, or choose a Linux or Windows server executable. WSL runs the Linux server inside the selected distribution.")
         table.setAccessibilityLabel(String(localized: "Remote Hosts"))
         for (field, label) in [(nameField, nameLabel), (addressField, addressLabel),
-                               (executableField, executableLabel), (directoryField, directoryLabel)] {
+                               (executableField, executableLabel), (directoryField, directoryLabel),
+                               (distributionField, distributionLabel), (portField, portLabel), (usersField, usersLabel)] {
             field.setAccessibilityLabel(label.stringValue)
         }
         updateButtons()
+        updateSharing()
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int { store.hosts.count }
@@ -176,6 +222,9 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         nameField.stringValue = host.name
         addressField.stringValue = host.address
         executableField.stringValue = host.serverPath
+        platformField.selectItem(at: RemoteHost.Platform.allCases.firstIndex(of: host.platform) ?? 0)
+        distributionField.stringValue = host.wslDistribution ?? ""
+        distributionField.isEnabled = host.platform == .wsl
         statusLabel.stringValue = ""
         statusLabel.textColor = .secondaryLabelColor
         updateButtons()
@@ -183,12 +232,122 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
 
     private func hostFromForm() throws -> RemoteHost {
         try RemoteHost(id: editingID ?? UUID(), name: nameField.stringValue,
-                       address: addressField.stringValue, serverPath: executableField.stringValue)
+                       address: addressField.stringValue, serverPath: executableField.stringValue,
+                       platform: selectedPlatform, wslDistribution: selectedPlatform == .wsl ? distributionField.stringValue : nil)
+    }
+
+    private var selectedPlatform: RemoteHost.Platform {
+        let index = platformField.indexOfSelectedItem
+        return RemoteHost.Platform.allCases.indices.contains(index) ? RemoteHost.Platform.allCases[index] : .unix
+    }
+
+    @objc private func platformChanged() {
+        if selectedPlatform == .windows, executableField.stringValue == "~/.local/bin/zshell-server" {
+            executableField.stringValue = "~/.local/bin/zshell-server.exe"
+        } else if selectedPlatform != .windows, executableField.stringValue == "~/.local/bin/zshell-server.exe" {
+            executableField.stringValue = "~/.local/bin/zshell-server"
+        }
+        updateButtons()
+    }
+
+    @objc private func installServer() {
+        do {
+            let host = try hostFromForm()
+            guard case .ssh = try host.endpoint() else {
+                throw RemoteHostError.message(String(localized: "Use SSH to install or update the remote server."))
+            }
+            busy = true
+            updateButtons()
+            statusLabel.stringValue = String(localized: "Checking server platform…")
+            statusLabel.textColor = .secondaryLabelColor
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                defer { busy = false; updateButtons() }
+                do {
+                    let target = try await Task.detached(priority: .userInitiated) { try RemoteServerInstaller.inspect(host: host) }.value
+                    let bundled = await Task.detached(priority: .utility) { RemoteServerInstaller.bundledExecutable(for: target) }.value
+                    let executable: URL
+                    if let bundled { executable = bundled }
+                    else {
+                        guard let window = self.window else { return }
+                        let panel = NSOpenPanel()
+                        panel.canChooseDirectories = false
+                        panel.allowsMultipleSelection = false
+                        panel.message = String(localized: "Choose the zshell-server executable for \(target.description).")
+                        guard await panel.beginSheetModal(for: window) == .OK, let url = panel.url else { return }
+                        executable = url
+                    }
+                    statusLabel.stringValue = String(localized: "Uploading and verifying server…")
+                    let version = try await Task.detached(priority: .userInitiated) {
+                        try RemoteServerInstaller.install(host: host, target: target, executable: executable)
+                    }.value
+                    try store.save(host)
+                    editingID = host.id
+                    statusLabel.stringValue = String(localized: "Setting up remote agent integrations…")
+                    do {
+                        try await Task.detached(priority: .userInitiated) { try RemoteServerInstaller.installAgentHooks(host: host) }.value
+                        statusLabel.stringValue = String(localized: "Installed zshell-server \(version.version) and agent integrations on \(host.name).")
+                    } catch {
+                        statusLabel.stringValue = String(localized: "Server installed. Agent setup failed: \(error.localizedDescription)")
+                        statusLabel.textColor = .systemRed
+                    }
+                } catch { showError(error) }
+            }
+        } catch { showError(error) }
+    }
+
+    @objc private func toggleSharing() {
+        if sharing.endpoint != nil {
+            sharingBusy = true
+            updateSharing()
+            let stopped = sharing.stop()
+            Task { @MainActor [weak self] in
+                await stopped?.value
+                self?.sharingBusy = false
+                self?.updateSharing()
+            }
+            return
+        }
+        guard let port = Int(portField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)), (1...65_535).contains(port) else {
+            sharingLabel.stringValue = String(localized: "Enter a port from 1 to 65535.")
+            sharingLabel.textColor = .systemRed
+            return
+        }
+        let users = usersField.stringValue.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        sharingBusy = true
+        updateSharing()
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { sharingBusy = false; updateSharing() }
+            do { try await sharing.start(port: port, allowedUsers: users) }
+            catch { sharingLabel.stringValue = error.localizedDescription; sharingLabel.textColor = .systemRed }
+        }
+    }
+
+    private func updateSharing() {
+        shareButton.title = sharing.endpoint == nil ? String(localized: "Share This Mac") : String(localized: "Stop Sharing")
+        shareButton.isEnabled = !sharingBusy
+        portField.isEnabled = !sharingBusy && sharing.endpoint == nil
+        usersField.isEnabled = portField.isEnabled
+        if sharingBusy {
+            sharingLabel.stringValue = String(localized: "Updating Tailscale sharing…")
+            sharingLabel.textColor = .secondaryLabelColor
+        } else if let endpoint = sharing.endpoint {
+            let address = endpoint.address.contains(":") ? "[\(endpoint.address)]" : endpoint.address
+            sharingLabel.stringValue = "tailscale://\(address):\(endpoint.port)"
+            sharingLabel.textColor = .secondaryLabelColor
+        } else {
+            sharingLabel.stringValue = sharing.message ?? String(localized: "Sharing is off. Tailscale verifies the machine owner and any allowed users. Stopping sharing ends its sessions.")
+            sharingLabel.textColor = sharing.message == nil ? .secondaryLabelColor : .systemRed
+        }
     }
 
     private func updateButtons() {
-        for button in [newButton, saveButton, connectButton, openButton] { button.isEnabled = !busy }
+        for button in [newButton, saveButton, connectButton, openButton, installButton] { button.isEnabled = !busy }
         removeButton.isEnabled = !busy && editingID != nil
+        for field in [nameField, addressField, executableField, directoryField] { field.isEnabled = !busy }
+        platformField.isEnabled = !busy
+        distributionField.isEnabled = !busy && selectedPlatform == .wsl
     }
 
     @objc private func newHost() {
@@ -197,6 +356,8 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         nameField.stringValue = ""
         addressField.stringValue = ""
         executableField.stringValue = "~/.local/bin/zshell-server"
+        platformField.selectItem(at: 0)
+        distributionField.stringValue = ""
         statusLabel.stringValue = ""
         updateButtons()
         window?.makeFirstResponder(nameField)

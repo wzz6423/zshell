@@ -438,6 +438,7 @@ final class TerminalManager: nonisolated ObservableObject {
         let selection = selectedProjectID
         for listing in listings {
             let project = sharedProject(host: host, directory: listing.directory)
+            AgentConversationHistoryStore.shared.importRemote(listing.conversations, host: host, project: project)
             for info in listing.sessions { project.attachRemoteSession(info) }
         }
         if let selection { selectedProjectID = selection }
@@ -449,7 +450,7 @@ final class TerminalManager: nonisolated ObservableObject {
         selectedProjectID = project.id
     }
 
-    private func sharedProject(host: RemoteHost, directory: String) -> Project {
+    func sharedProject(host: RemoteHost, directory: String) -> Project {
         if let project = projects.first(where: { $0.sharedHost?.id == host.id && $0.remoteDirectory == directory }) { return project }
         let project = makeProject(location: .shared(host: host, directory: directory), createInitialSession: false)
         project.customName = (directory as NSString).lastPathComponent

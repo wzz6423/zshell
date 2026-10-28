@@ -3,17 +3,19 @@ title: Sessioni remote condivise
 description: Collegati allo stesso terminale tramite SSH o Tailscale e conserva i processi dopo la disconnessione.
 ---
 
-`zshell-server` mantiene shell e processi su un host macOS o Linux. Entrambi i motori di terminale di Zshell possono collegarsi. Chiudere il client o perdere la rete non termina i processi. La riconnessione ripristina schermo, cronologia, cursore e modalità del terminale.
+`zshell-server` mantiene shell e processi su un host macOS o Linux / Windows / WSL. Entrambi i motori di terminale di Zshell possono collegarsi. Chiudere il client o perdere la rete non termina i processi. La riconnessione ripristina schermo, cronologia, cursore e modalità del terminale.
 
 ## Installazione [#install]
 
-Compila il repository Zshell sull’host con Rust aggiornato. Il client Mac include il relay e non richiede Cargo. Un server Windows nativo non è disponibile.
+In **Host remoti…**, scegli la piattaforma e **Installa / Aggiorna server** via SSH. Un Mac con la stessa architettura usa l’eseguibile incluso. Per Linux o Windows nativo, scegli il `zshell-server` compilato per piattaforma e architettura. WSL usa quello Linux nella distribuzione scelta. Trasferimento e compatibilità sono verificati prima della sostituzione. Il daemon attivo mantiene la versione fino al riavvio, che termina i suoi lavori. Puoi anche compilare sull’host:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
 install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
+
+Il client può operare sulla shell e sui file dell’account del server. Sono supportati macOS, Linux, Windows nativo e WSL. Windows usa ConPTY; WSL usa i percorsi Linux della distribuzione scelta. L’eseguibile Windows è `zshell-server.exe`.
 
 ## SSH [#ssh]
 
@@ -37,11 +39,21 @@ zshell-server serve --listen tailscale://:7373
 
 Aggiungi `tailscale://devbox:7373`. Sono supportati MagicDNS e indirizzi Tailscale IPv4/IPv6, mentre quelli pubblici sono rifiutati. Per impostazione predefinita sono ammessi solo dispositivi senza tag del proprietario dell’host. `--allow-user` autorizza un altro nome di accesso esatto; i client con tag restano esclusi. Sul server stesso usa SSH. Si applicano anche le ACL del tailnet. I client autorizzati possono operare con l’account Unix del servizio.
 
+Per condividere questo Mac, accedi a Tailscale e scegli **Condividi questo Mac** in **Host remoti…**. Imposta porta e nomi di accesso esatti autorizzati. La condivisione parte su richiesta; **Interrompi condivisione** o uscire da Zshell termina le sessioni condivise.
+
 ## Condivisione e chiusura [#sharing]
 
 Tutti ricevono lo stesso output. Mettere a fuoco il terminale o assumerne il controllo concede input e dimensioni a quel client. Se si disconnette, subentra il client rimasto collegato da più tempo. Informazioni mostra stato, numero di client e controllo e consente di separare o riconnettere. Le interruzioni di rete vengono ritentate automaticamente; l’input offline viene scartato. Il layout salvato riconnette lo stesso UUID remoto.
 
 Chiudere pannelli, progetti o finestre e usare una delle due opzioni di uscita separa soltanto il client. Terminare la sessione remota richiede conferma e arresta shell e processi per tutti. Sull’host: `zshell-server terminate --project ~/repo --session UUID`.
+
+## File e schermate [#paste]
+
+Copia file normali o una schermata e incolla nel pannello remoto. Zshell carica in una cartella privata dell’host e inserisce i percorsi citati per la shell. Massimo 32 file, 32 MiB ciascuno e 64 MiB totali; cartelle e link simbolici sono rifiutati. I caricamenti condivisi durano sette giorni. Anche i pannelli SSH Unix normali lo supportano.
+
+## Conversazioni Agent remote [#agents]
+
+Attività, avanzamento, richieste di approvazione e completamento dell’Agent remoto usano stati e notifiche esistenti. **Cronologia conversazioni Agent** include Claude Code, Codex, OpenCode e Pi dell’host. Riprendi riconnette una conversazione attiva o avvia la sessione esatta nell’host e directory originali. La cronologia sopravvive al riavvio del daemon; lavori e scorrimento del terminale no. Provider e configurazione o file di sessione originali devono essere disponibili.
 
 ## Limiti [#limits]
 

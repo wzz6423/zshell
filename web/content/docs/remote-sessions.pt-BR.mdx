@@ -3,17 +3,19 @@ title: Sessões remotas compartilhadas
 description: Use o mesmo terminal por SSH ou Tailscale e mantenha os trabalhos após desconectar o cliente.
 ---
 
-`zshell-server` mantém o shell e seus trabalhos em um host macOS ou Linux. Os dois mecanismos de terminal do Zshell podem se conectar. Fechar o cliente ou perder a rede não encerra os trabalhos. Ao reconectar, tela, histórico, cursor e modos do terminal são restaurados.
+`zshell-server` mantém o shell e seus trabalhos em um host macOS ou Linux / Windows / WSL. Os dois mecanismos de terminal do Zshell podem se conectar. Fechar o cliente ou perder a rede não encerra os trabalhos. Ao reconectar, tela, histórico, cursor e modos do terminal são restaurados.
 
 ## Instalação [#install]
 
-Compile o repositório do Zshell no host com uma versão atual do Rust. O cliente Mac já inclui o relay e não precisa do Cargo. Não há servidor nativo para Windows.
+Em **Hosts remotos…**, escolha a plataforma e **Instalar / Atualizar servidor** via SSH. Macs com a mesma arquitetura usam o executável incluído. Para Linux ou Windows nativo, selecione o `zshell-server` compilado para a plataforma e arquitetura. WSL usa o executável Linux na distribuição escolhida. Upload e compatibilidade são verificados antes da substituição. O daemon ativo conserva sua versão até reiniciar, o que encerra suas tarefas. Também é possível compilar no host:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
 install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
+
+O cliente pode operar o shell e os arquivos da conta do servidor. macOS, Linux, Windows nativo e WSL são suportados. Windows usa ConPTY; WSL usa caminhos Linux da distribuição escolhida. O executável Windows é `zshell-server.exe`.
 
 ## SSH [#ssh]
 
@@ -37,11 +39,21 @@ zshell-server serve --listen tailscale://:7373
 
 Adicione `tailscale://devbox:7373`. MagicDNS e endereços Tailscale IPv4/IPv6 são aceitos; endereços públicos são recusados. Por padrão, apenas dispositivos sem tags do proprietário do host são permitidos. `--allow-user` permite outro login exato; clientes com tags continuam recusados. No próprio servidor, use SSH. As ACLs do tailnet também se aplicam. Quem recebe acesso pode operar a conta Unix do serviço.
 
+Para compartilhar este Mac, conecte o Tailscale e escolha **Compartilhar este Mac** em **Hosts remotos…**. Configure porta e logins exatos permitidos. Só inicia por solicitação; **Parar compartilhamento** ou sair do Zshell encerra as sessões compartilhadas.
+
 ## Compartilhar e encerrar [#sharing]
 
 Todos recebem a mesma saída. Focar o terminal ou assumir o controle concede entrada e tamanho ao cliente. Quando ele desconecta, o cliente restante mais antigo assume. O painel Informações mostra estado, quantidade de clientes e controle, com ações para separar e reconectar. Falhas de rede são repetidas automaticamente; entradas offline são descartadas. O layout salvo reconecta o mesmo UUID remoto.
 
 Fechar painel, projeto, janela ou usar qualquer opção de sair apenas separa o cliente remoto. Encerrar a sessão remota pede confirmação e termina o shell e seus trabalhos para todos. No host: `zshell-server terminate --project ~/repo --session UUID`.
+
+## Arquivos e capturas [#paste]
+
+Copie arquivos comuns ou uma captura e cole no painel remoto. Zshell envia ao diretório privado do host e insere caminhos entre aspas para o shell. Até 32 arquivos, 32 MiB por arquivo e 64 MiB total; pastas e links simbólicos são recusados. Uploads compartilhados duram sete dias. Painéis SSH Unix comuns também oferecem isso.
+
+## Conversas Agent remotas [#agents]
+
+Atividade, progresso, pedidos de aprovação e conclusão do Agent remoto usam status e notificações existentes. **Histórico de conversas Agent** inclui Claude Code, Codex, OpenCode e Pi do host. Retomar conecta uma conversa ativa ou inicia sua sessão exata no host e diretório originais. O histórico de conversas sobrevive ao reinício do daemon; tarefas e histórico do terminal não. O provedor e sua configuração ou arquivo de sessão precisam continuar disponíveis.
 
 ## Limites [#limits]
 

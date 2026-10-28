@@ -17,11 +17,13 @@ Konfigurasi baru mengaktifkan petunjuk perintah Vim, pemulihan riwayat sesi, dan
 
 Sebelum menyunting secara manual, perhatikan:
 
-- **Dibaca saat aplikasi dimulai.** Menyunting berkas ketika Zshell berjalan tidak mengubah perilaku sampai aplikasi dibuka kembali. Perubahan dari Pengaturan berlaku segera, kecuali kontrolnya menyatakan lain.
+- **Perubahan dibaca saat aplikasi berjalan.** Suntingan eksternal yang valid diterapkan otomatis; pengaturan untuk terminal baru tetap memerlukan panel baru. Berkas tak terbaca atau sintaks salah mempertahankan pengaturan valid terakhir. Berkas yang sengaja kosong memulihkan nilai bawaan setelah jeda singkat.
 - **Zshell menulis ulang berkas saat pengaturan yang disimpan di dalamnya berubah.** Berkas dibuat ulang dari awal, sehingga komentar dan kunci yang tidak dikenali akan hilang ketika kontrol tersebut digunakan lagi. Pilih satu cara menyunting, atau simpan salinan utama di dotfiles Anda.
 - **Sebagian besar nilai bawaan tidak ditulis.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` selalu disimpan. Menghapus salah satu dari tiga kunci terminal tersebut dalam berkas yang ada mematikan fiturnya; menghapus kunci lain memulihkan nilai bawaan.
 - **Parser sengaja sederhana.** Parser mendukung kunci datar, kunci bertitik, judul `[table]`, komentar `#`, serta nilai string/angka/boolean. Array, tabel sebaris, dan string multibaris tidak didukung.
 - **Nilai salah menggunakan cadangan yang aman.** Ukuran di luar rentang, backend tidak dikenal, atau salah eja tema tidak menghalangi Zshell untuk dibuka.
+
+Penyimpanan mempertahankan tautan simbolis berkas dan direktori, memperbarui target secara atomik serta menjaga izinnya. Suntingan eksternal tidak menulis ulang komentar atau kunci tak dikenal; penyimpanan berikutnya dari Pengaturan tetap membuat ulang berkas seperti dijelaskan di atas.
 
 ## Tampilan aplikasi [#application-presence]
 
@@ -175,6 +177,8 @@ Memungkinkan agen pemrograman yang didukung mengoordinasikan panel Zshell di lat
 
 Alur pengguna dijelaskan dalam [Bekerja dengan agen AI](/id/docs/automation).
 
+Saat berbagi app-server Codex, Zshell mencocokkan ID percakapan terverifikasi dengan panel latar depan. Kecocokan ambigu tidak ditautkan. Integrasi terkelola menambahkan `session-id` ke judul terminal Codex tanpa menghapus item judul lain.
+
 ### `ai.resume-conversations` [#airesume-conversations]
 
 boolean — bawaan `true`
@@ -193,6 +197,7 @@ Atur melalui **Pengaturan → Otomatisasi → Lanjutkan percakapan agen**. Opsi 
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Bentuk kursor terminal |
 | `terminal.cursor-blinking` | `true` | Boolean | Kedipan kursor |
 | `terminal.copy-on-select` | `true` | Boolean | Salin teks terminal yang dipilih |
+| `terminal.focus-follows-mouse` | `false` | Boolean | Fokus mengikuti mouse |
 | `terminal.shift-enter-newline` | `true` | Boolean | Kirim urutan baris baru yang diperluas lewat Shift+Enter; memerlukan dukungan aplikasi |
 | `terminal.background-opacity` | `1` | 0.2–1 | Opasitas latar terminal |
 | `terminal.background-blur` | `false` | Boolean | Buramkan latar tembus pandang |
@@ -209,7 +214,7 @@ Atur melalui **Pengaturan → Otomatisasi → Lanjutkan percakapan agen**. Opsi 
 
 Gunakan **Zshell → Ekspor Pengaturan…** untuk menyimpan berkas TOML dan **Impor Pengaturan…** untuk memuatnya. Impor meminta konfirmasi penggantian dan mencoba mencadangkan berkas saat ini sebagai `config.toml.bak` di direktori yang sama.
 
-Saat ini pengimpor hanya memulihkan sebagian pengaturan: tema, opsi font utama, kursor, backend terminal, pemulihan riwayat, penyalinan pilihan, Terminal Cepat, dan dukungan AI. Tidak semua pengaturan yang diekspor dapat diimpor kembali. Periksa skala antarmuka, ikon aplikasi, editor eksternal, dan latar terminal setelahnya. Untuk pemindahan konfigurasi lengkap, tutup Zshell, cadangkan dan salin `config.toml`, lalu buka kembali. Sakelar AI berubah hanya jika berkas impor secara eksplisit memuat `ai.enabled`; periksa setelah impor. Variabel lingkungan proyek dan tab adalah data sesi dan tidak termasuk dalam berkas ini.
+Impor membaca semua pengaturan yang didukung. Kunci yang dihilangkan mengikuti nilai bawaan pembaca; tanpa `ai.enabled`, pengaturan AI saat ini tetap digunakan. Bahasa dan variabel lingkungan proyek atau tab disimpan terpisah.
 
 ## Contoh lengkap [#a-complete-example]
 

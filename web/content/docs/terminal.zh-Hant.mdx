@@ -34,6 +34,8 @@ Zshell 不讀取 `~/.config/ghostty`，也不讀取 Alacritty 配置。字型、
 自己的[設定](/zh-Hant/docs/configuration)裡配置。
 </Callout>
 
+從 Dock 或 Finder 啟動時，Zshell 會讀取登入互動 shell 的 `SSH_AUTH_SOCK`，讓 SSH 使用 dotfiles 選定的 agent。從終端啟動時保留有效的繼承 agent。
+
 ## 系統權限 [#system-permissions]
 
 Zshell 終端機中的本機程式可以要求使用相機、麥克風，或透過 Apple Events 控制其他 App。
@@ -41,6 +43,12 @@ macOS 會將這些要求歸屬於 Zshell；請只允許你信任的程式。自�
 
 你可以在 **系統設定 → 隱私權與安全性 → 相機、麥克風或自動化** 中管理權限。
 拒絕要求會阻止對應功能，Zshell 不會自動授予這些權限。
+
+## 滑鼠移入聚焦 [#focus-follows-mouse]
+
+啟用 **設定 → 終端 → 行為 → 滑鼠移入聚焦**，指標進入終端窗格時即可切換焦點。預設關閉，兩種後端和快速終端都適用。拖曳時、編輯器持有焦點時、選單或對話框開啟時不會搶焦點。
+
+`terminal.focus-follows-mouse = true`
 
 ## 搜尋 [#search]
 
@@ -142,7 +150,7 @@ terminal.notify-on-error = true
 
 - **讀剪貼簿要確認。** `OSC 52` 可以申請讀取 macOS 剪貼簿，包括通過 SSH 跑在遠端的程式。Zshell 會先問你。
 - **有風險的貼上會提示。** 多行或看起來會立即執行指令的文本，會先停在確認步驟。
-- **檔案會變成 shell 安全路徑。** 從 Finder 複製或拖進來的檔案，會作為經過引用的絕對路徑插入。剪貼簿圖片仍會交給支持圖片的 TUI。
+- **檔案與截圖變成 shell 安全路徑。** Finder 檔案插入為加上引號的絕對路徑。剪貼簿只有圖片時，會儲存到私有暫存 PNG，再貼上路徑供終端程式讀取。遠端窗格先將複製的檔案與截圖上傳到主機，再插入遠端路徑。
 
 ## Option 鍵輸入 [#option-key-input]
 

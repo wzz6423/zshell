@@ -3,17 +3,19 @@ title: Sessions distantes partagées
 description: Retrouvez le même terminal distant via SSH ou Tailscale, même après la fermeture du client.
 ---
 
-`zshell-server` conserve le shell et ses tâches sur un hôte macOS ou Linux. Les deux moteurs de terminal de Zshell peuvent s’y connecter. Fermer le client ou perdre le réseau ne termine pas les tâches. La reconnexion restaure l’écran, l’historique, le curseur et les modes du terminal.
+`zshell-server` conserve le shell et ses tâches sur un hôte macOS ou Linux / Windows / WSL. Les deux moteurs de terminal de Zshell peuvent s’y connecter. Fermer le client ou perdre le réseau ne termine pas les tâches. La reconnexion restaure l’écran, l’historique, le curseur et les modes du terminal.
 
 ## Installation [#install]
 
-Sur l’hôte, compilez le dépôt Zshell avec une version récente de Rust. Le client Mac inclut son relais et ne nécessite pas Cargo. L’hébergement natif sous Windows n’est pas disponible.
+Dans **Hôtes distants…**, choisissez la plateforme puis **Installer / Mettre à jour le serveur** via SSH. Un Mac de même architecture utilise l’exécutable inclus. Pour Linux ou Windows natif, choisissez le `zshell-server` compilé pour la plateforme et l’architecture. WSL utilise l’exécutable Linux dans la distribution choisie. Le transfert et la compatibilité sont vérifiés avant remplacement. Un daemon actif conserve sa version jusqu’au redémarrage, qui termine ses tâches. Vous pouvez aussi compiler sur l’hôte :
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
 install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
+
+Le client peut agir avec le compte qui exécute le serveur. macOS, Linux, Windows natif et WSL sont pris en charge. Windows utilise ConPTY ; WSL utilise les chemins Linux de la distribution choisie. Le binaire Windows est `zshell-server.exe`.
 
 ## SSH [#ssh]
 
@@ -37,11 +39,21 @@ zshell-server serve --listen tailscale://:7373
 
 Ajoutez `tailscale://devbox:7373`. MagicDNS et les adresses Tailscale IPv4/IPv6 sont acceptés, les adresses publiques sont refusées. Par défaut, seuls les appareils sans étiquette du propriétaire de l’hôte sont autorisés. `--allow-user` ajoute un identifiant exact ; les clients étiquetés restent refusés. Sur la machine serveur elle-même, utilisez SSH. Les ACL du tailnet s’appliquent aussi. Un client autorisé peut agir avec le compte Unix du service.
 
+Pour partager ce Mac, connectez Tailscale puis choisissez **Partager ce Mac** dans **Hôtes distants…**. Indiquez un port et, éventuellement, des identifiants exacts autorisés. Le partage démarre sur demande ; **Arrêter le partage** ou quitter Zshell termine les sessions partagées.
+
 ## Partage et fermeture [#sharing]
 
 Tous les clients reçoivent la même sortie. Donner le focus au terminal ou prendre le contrôle accorde la saisie et le redimensionnement à ce client. À sa déconnexion, le premier client restant prend la main. Le panneau Informations affiche l’état, le nombre de clients et le contrôle, et permet de détacher ou reconnecter. Les coupures réseau sont réessayées automatiquement ; la saisie hors ligne est abandonnée. La disposition enregistrée retrouve le même travail par son UUID distant.
 
 Fermer un panneau, projet ou une fenêtre, et les deux options de fermeture de l’application, détachent seulement les sessions distantes. Terminer la session distante demande confirmation puis arrête le shell et ses tâches pour tous. Sur l’hôte : `zshell-server terminate --project ~/repo --session UUID`.
+
+## Fichiers et captures [#paste]
+
+Copiez des fichiers ordinaires ou une capture et collez dans le panneau distant. Zshell les envoie dans un dossier privé de l’hôte puis insère les chemins protégés pour son shell. Limites : 32 fichiers, 32 MiB chacun et 64 MiB au total ; dossiers et liens symboliques refusés. Les transferts partagés restent sept jours. Les panneaux SSH Unix ordinaires offrent aussi ce collage.
+
+## Conversations Agent distantes [#agents]
+
+Activité, progression, demandes d’approbation et fin des Agents distants utilisent les états et notifications existants. **Historique des conversations Agent** inclut Claude Code, Codex, OpenCode et Pi sur l’hôte. Reprendre reconnecte une conversation active ou lance sa session exacte sur l’hôte et dans le dossier d’origine. Cet historique survit au redémarrage du daemon, contrairement aux tâches et à l’historique du terminal. Le fournisseur et sa configuration ou son fichier de session doivent rester disponibles.
 
 ## Limites [#limits]
 
