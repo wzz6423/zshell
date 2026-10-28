@@ -29,6 +29,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// reconciles foreground process identity with explicit lifecycle events.
     @Published var agentStatus: ZshellAgentStatus?
     @Published private(set) var agentResume: AgentConversationIdentity?
+    @Published var worktree: SessionWorktree?
     private(set) var agentConversationProcessID: pid_t?
 
     /// The emulator driving this session. Fixed for the session's lifetime —
@@ -85,6 +86,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         launchSettings: TerminalLaunchSettings = .init(),
         additionalEnvironment: [String: String] = [:],
         agentResume: AgentConversationIdentity? = nil,
+        worktree: SessionWorktree? = nil,
         isRestoredSession: Bool = false,
         allowsPersistence: Bool = true
     ) {
@@ -194,6 +196,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         title = (shellPath as NSString).lastPathComponent
         agentStatus = nil
         self.agentResume = agentResume
+        self.worktree = worktree
 
         let surface = Self.makeSurface(backend: backend, launch: pty?.relayLaunch(from: launch) ?? launch)
         self.surface = surface
@@ -299,6 +302,28 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         beginTeardown(processAlive: true, notifyExit: false)
     }
 
+    func waitUntilStarted() async -> Bool {
+        for _ in 0..<50 {
+            if hasExited || isTerminating { return false }
+            if let pid = shellPid, Darwin.kill(pid, 0) == 0 {
+                // The launch shim writes its PID before exec; let immediate
+                // failures reach the backend before reporting a live session.
+                try? await Task.sleep(for: .milliseconds(100))
+                return !hasExited && !isTerminating && Darwin.kill(pid, 0) == 0
+            }
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        return false
+    }
+
+    func waitUntilTerminated() async -> Bool {
+        for _ in 0..<50 {
+            if hasExited, shellPid.map({ Darwin.kill($0, 0) != 0 && errno == ESRCH }) ?? true { return true }
+            try? await Task.sleep(for: .milliseconds(40))
+        }
+        return hasExited && (shellPid.map { Darwin.kill($0, 0) != 0 && errno == ESRCH } ?? true)
+    }
+
     /// On quit the renderer and relay may go away while the daemon keeps the
     /// real PTY and its startup files. Closing a pane still calls terminate().
     func prepareForApplicationQuit(preserve: Bool) {
@@ -336,17 +361,17 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         surface.splitTarget.onRunQuickCommand = nil
         surface.splitTarget.onManageQuickCommands = nil
 
-        if processAlive, persistentPTY == nil {
-            _ = shellPid // Cache it before `hasExited` changes.
-            signalTerminalJob(SIGHUP)
-        }
+        // A backend can close its PTY before the delayed kill; its raw file
+        // descriptor may already belong to a newly opened terminal by then.
+        let processIDs = processAlive && persistentPTY == nil ? terminalJobPIDs() : []
+        if processAlive, persistentPTY == nil { signalTerminalJob(SIGHUP, processIDs: processIDs) }
 
         Task { @MainActor [self] in
             if processAlive, persistentPTY == nil {
                 // Give well-behaved shells a moment to unwind, then guarantee
                 // surface teardown cannot wait indefinitely.
                 try? await Task.sleep(for: .milliseconds(120))
-                signalTerminalJob(SIGKILL)
+                signalTerminalJob(SIGKILL, processIDs: processIDs)
             } else {
                 // Avoid freeing the surface reentrantly from the backend's
                 // process-close callback.
@@ -360,13 +385,17 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         }
     }
 
-    private func signalTerminalJob(_ signal: Int32) {
+    private func terminalJobPIDs() -> Set<pid_t> {
         var pids = Set<pid_t>()
         if let shellPid { pids.insert(shellPid) }
         if let foreground = surface.foregroundPid, foreground > 0 {
             pids.insert(foreground)
         }
-        for pid in pids where pid > 1 {
+        return pids
+    }
+
+    private func signalTerminalJob(_ signal: Int32, processIDs: Set<pid_t>) {
+        for pid in processIDs where pid > 1 {
             // Interactive shells and their foreground jobs normally lead
             // distinct process groups. Signal the group, then the leader as a
             // fallback for an unusual launch configuration.
