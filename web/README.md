@@ -131,8 +131,11 @@ page needs no config change.
   maps the shared palette through `fumadocs-ui/css/shadcn.css`; the landing page,
   documentation, and changelog use the same neutral black and gray dark theme.
 - Theme choices persist across pages and reloads. The single theme button cycles
-  through system, light, and dark modes. The docs sidebar footer shows language,
-  theme, and GitHub controls in one row.
+  through system, light, and dark modes. Language and theme controls keep 12px
+  corner radii in both light and dark modes. The docs sidebar footer shows
+  language, theme, and GitHub controls in one row, each 36px tall. The changelog
+  footer keeps its language selector beside the single three-state theme button,
+  with both controls 36px tall.
 - Add more components with `bunx shadcn@latest add <name>` — the project is
   already configured for Base UI (`components.json` → `"style": "base-nova"`).
 - Landing pages read the newest release from the Sparkle appcast through

@@ -95,6 +95,7 @@
   --chart-4: #89929b;
   --chart-5: #a4acb6;
   --radius: 0.75rem;
+  --control-radius: 0.75rem;
   --sidebar: #f6f8fa;
   --sidebar-foreground: #1f2328;
   --sidebar-primary: #1f2328;
@@ -414,7 +415,7 @@ html.reveal-ready .reveal:not(.is-visible) {
   padding-block: 8px;
   padding-inline: 12px 32px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--control-radius);
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
@@ -428,6 +429,13 @@ html.reveal-ready .reveal:not(.is-visible) {
 .language-select:hover { border-color: var(--brand); }
 .language-select:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
 .language-select:dir(rtl) { background-position: left 12px center; }
+.language-select[data-size='compact'] {
+  height: 36px;
+  padding-block: 6px;
+  padding-inline: 10px 28px;
+  background-position: right 10px center;
+}
+.language-select[data-size='compact']:dir(rtl) { background-position: left 10px center; }
 
 .docs-sidebar-footer {
   display: flex;

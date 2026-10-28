@@ -3,6 +3,7 @@ import { Airplay, Moon, Sun } from 'lucide-react'
 import { useTheme } from 'fumadocs-ui/provider/base'
 import { DEFAULT_LANGUAGE } from '@/lib/i18n'
 import { uiCopy } from '@/lib/ui-copy'
+import { cn } from '@/lib/utils'
 
 const noop = () => () => {}
 const themeOptions = {
@@ -11,7 +12,18 @@ const themeOptions = {
   dark: { label: 'themeDark', Icon: Moon, next: 'system' },
 } as const
 
-export function ThemeToggle({ lang = DEFAULT_LANGUAGE }: { lang?: string }) {
+const themeToggleSize = {
+  default: 'h-11 w-[62px]',
+  compact: 'size-9',
+} as const
+
+export function ThemeToggle({
+  lang = DEFAULT_LANGUAGE,
+  size = 'default',
+}: {
+  lang?: string
+  size?: keyof typeof themeToggleSize
+}) {
   const { theme, setTheme } = useTheme()
   const mounted = useSyncExternalStore(noop, () => true, () => false)
   const currentTheme = theme === 'light' || theme === 'dark' ? theme : 'system'
@@ -24,7 +36,10 @@ export function ThemeToggle({ lang = DEFAULT_LANGUAGE }: { lang?: string }) {
       type="button"
       data-theme-toggle=""
       onClick={() => setTheme(themeOptions[currentTheme].next)}
-      className="inline-flex h-11 w-[62px] shrink-0 items-center justify-center rounded-lg border border-border bg-background px-1 text-foreground transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+      className={cn(
+        'inline-flex shrink-0 items-center justify-center rounded-[var(--control-radius)] border border-border bg-background px-1 text-foreground transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2',
+        themeToggleSize[size],
+      )}
       aria-label={toggleLabel}
       title={toggleLabel}
     >
