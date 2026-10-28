@@ -1,6 +1,6 @@
 # Zshell shared remote sessions
 
-`zshell-server` owns real PTYs on a macOS, Linux, Windows or WSL host. Zshell's macOS app
+`zshell-server` owns real PTYs on a macOS or Linux host. Zshell's macOS app
 attaches over SSH or Tailscale; closing a pane, quitting the app, or losing a
 connection leaves the remote shell and its jobs running. Reconnecting restores
 the terminal's current screen, alternate screen, scrollback, cursor and modes.
@@ -9,11 +9,10 @@ does not need Cargo.
 
 ## Install on the host
 
-In **Remote Hosts…**, select the platform and choose **Install / Update Server**
-over SSH. A Mac with the same architecture uses the bundled executable; for
-Linux or Windows, choose a host executable built for its platform and architecture.
-WSL uses a Linux executable inside the selected distribution. Installation
-verifies SHA-256, platform, architecture, version and protocol before atomically
+In **Remote Hosts…**, choose **Install / Update Server** over SSH. A Mac with
+the same architecture uses the bundled executable; for Linux, choose a host
+executable built for its platform and architecture. Installation verifies
+SHA-256, platform, architecture, version and protocol before atomically
 replacing the existing executable. An active daemon keeps its old executable
 until restarted; restarting ends its terminal sessions.
 
@@ -26,9 +25,6 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-On Windows, the same Cargo command produces `remote/target/release/zshell-server.exe`.
-Choose **Windows** and a native path in the host manager. The server uses ConPTY
-and an account-private named pipe; WSL uses the Unix server and Linux paths.
 Run it as the account whose shell and files clients may access. The server has
 no renderer or display-server dependency. The repository's [license](../LICENSE.md)
 also applies to the server. `zshell-server --licenses` prints the bundled Kero
@@ -106,9 +102,9 @@ the app CLI is invoked with `TAILSCALE_BE_CLI=1`.
 For a client on the server itself, use SSH or the local CLI. Tailscale whois
 identifies a machine owner rather than a local process UID, so direct TCP from
 the server's own Tailscale address is rejected. Unix-socket peer credentials
-provide that same-machine boundary on Unix; Windows verifies the named-pipe
-peer SID. Files and Git on a Tailscale project use
-SSH to the same hostname and the user/port in the client's OpenSSH configuration.
+provide that same-machine boundary on macOS and Linux. Files and Git on a
+Tailscale project use SSH to the same hostname and the user/port in the client's
+OpenSSH configuration.
 
 ## CLI
 
@@ -133,11 +129,8 @@ an ID from another project cannot be attached or terminated through that request
 
 The default daemon state is `~/.local/state/zshell-remote`. `--state /absolute/path`
 or `ZSHELL_REMOTE_STATE` selects another instance. State directories must be
-owned by the account, have mode 0700, and not be symlinks on Unix. The control
+owned by the account, have mode 0700, and not be symlinks. The control
 socket, lock and log use 0600; the daemon also checks the Unix peer's UID.
-Windows restricts state and named-pipe access to the current account SID and
-rejects remote named-pipe clients. Child processes belong to the session's Job
-Object, so termination also ends its descendants.
 
 ## Sharing, reconnecting and ending sessions
 
@@ -179,12 +172,9 @@ Pasting copied files or screenshots uploads them to a private host directory
 before inserting shell-quoted remote paths. Shared uploads are bound to the
 controlling attachment and project, use ordered chunks, and remain available
 for seven days after commit. Limits are 32 regular files, 32 MiB per file and
-64 MiB per batch; directories and symbolic links are rejected. Ordinary Unix
-SSH panes reuse the same clipboard capture and bounded SSH upload path.
-On Windows, path quoting follows the session's launch shell; `cmd.exe` paths
-containing `%` or `!` are rejected because those characters can expand. Starting
-a different shell inside that session does not update its quoting mode; create
-a session with the intended shell instead. Unknown launch shells are rejected.
+64 MiB per batch; directories and symbolic links are rejected. Ordinary SSH
+panes on macOS and Linux reuse the same clipboard capture and bounded SSH
+upload path.
 
 Remote Agent state and progress are forwarded to the existing pane status,
 event stream and notifications. Install the existing Claude Code, Codex,
@@ -267,5 +257,3 @@ The CLI probe uses temporary state, real PTYs and the production stdio bridge.
 An isolated Linux root run with `--require-other-uid` additionally proves rejection
 of a different UID even if the socket's filesystem permissions allow connecting.
 The macOS app surface probe is documented in `mac/tests/test_remote_session_surfaces.py`.
-Windows CI additionally runs `remote/tests/test_cli_windows.py` against the native
-executable to exercise ConPTY, named-pipe ownership and CLI lifecycle.

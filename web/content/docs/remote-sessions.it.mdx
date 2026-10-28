@@ -3,11 +3,11 @@ title: Sessioni remote condivise
 description: Collegati allo stesso terminale tramite SSH o Tailscale e conserva i processi dopo la disconnessione.
 ---
 
-`zshell-server` mantiene shell e processi su un host macOS o Linux / Windows / WSL. Entrambi i motori di terminale di Zshell possono collegarsi. Chiudere il client o perdere la rete non termina i processi. La riconnessione ripristina schermo, cronologia, cursore e modalità del terminale.
+`zshell-server` mantiene shell e processi su un host macOS o Linux. Entrambi i motori di terminale di Zshell possono collegarsi. Chiudere il client o perdere la rete non termina i processi. La riconnessione ripristina schermo, cronologia, cursore e modalità del terminale.
 
 ## Installazione [#install]
 
-In **Host remoti…**, scegli la piattaforma e **Installa / Aggiorna server** via SSH. Un Mac con la stessa architettura usa l’eseguibile incluso. Per Linux o Windows nativo, scegli il `zshell-server` compilato per piattaforma e architettura. WSL usa quello Linux nella distribuzione scelta. Trasferimento e compatibilità sono verificati prima della sostituzione. Il daemon attivo mantiene la versione fino al riavvio, che termina i suoi lavori. Puoi anche compilare sull’host:
+In **Host remoti…**, scegli **Installa / Aggiorna server** via SSH. Un Mac con la stessa architettura usa l’eseguibile incluso. Per Linux, scegli il `zshell-server` compilato per piattaforma e architettura. Trasferimento e compatibilità sono verificati prima della sostituzione. Il daemon attivo mantiene la versione fino al riavvio, che termina i suoi lavori. Puoi anche compilare sull’host:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -15,7 +15,7 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-Il client può operare sulla shell e sui file dell’account del server. Sono supportati macOS, Linux, Windows nativo e WSL. Windows usa ConPTY; WSL usa i percorsi Linux della distribuzione scelta. L’eseguibile Windows è `zshell-server.exe`.
+Il client può operare sulla shell e sui file dell’account del server. Sono supportati macOS e Linux.
 
 ## SSH [#ssh]
 

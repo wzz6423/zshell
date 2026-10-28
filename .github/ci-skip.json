@@ -30,7 +30,7 @@
       "file": "remote-sessions.yml",
       "aliases": ["remote", "remote-sessions", "server"],
       "paths": ["remote/**", "mac/Vendor/alacritty-bridge/**", ".github/**"],
-      "checks": ["Remote Server (Linux)", "Remote Server (macOS)", "Remote Server (Windows)"]
+      "checks": ["Remote Server (Linux)", "Remote Server (macOS)"]
     },
     {
       "name": "Release Scripts",

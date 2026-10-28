@@ -27,29 +27,12 @@ nonisolated enum RemoteServerInstaller {
     }
 
     static func inspect(host: RemoteHost) throws -> RemoteServerTarget {
-        let output: String
-        if host.platform == .windows {
-            let path = windowsPath(host.serverPath)
-            output = try run(host: host, script: """
-                $ErrorActionPreference = 'Stop'
-                $architecture = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }
-                Write-Output 'ZSHELL_TARGET:windows'
-                Write-Output ('ZSHELL_ARCH:' + $architecture)
-                $path = \(path)
-                if (Test-Path -LiteralPath $path -PathType Leaf) {
-                    # A corrupt installed binary must not block its replacement.
-                    try { & $path --version --json } catch { }
-                }
-                exit 0
-                """).stdout
-        } else {
-            output = try run(host: host, script: """
-                printf 'ZSHELL_TARGET:%s\\n' "$(uname -s)"
-                printf 'ZSHELL_ARCH:%s\\n' "$(uname -m)"
-                if [ -x \(SSHEndpoint.shellWord(host.serverPath)) ]; then \(SSHEndpoint.shellWord(host.serverPath)) --version --json; fi
-                exit 0
-                """).stdout
-        }
+        let output = try run(host: host, script: """
+            printf 'ZSHELL_TARGET:%s\\n' "$(uname -s)"
+            printf 'ZSHELL_ARCH:%s\\n' "$(uname -m)"
+            if [ -x \(SSHEndpoint.shellWord(host.serverPath)) ]; then \(SSHEndpoint.shellWord(host.serverPath)) --version --json; fi
+            exit 0
+            """).stdout
         let lines = output.split(whereSeparator: \.isNewline).map(String.init)
         guard let rawPlatform = lines.first(where: { $0.hasPrefix("ZSHELL_TARGET:") })?.dropFirst(14),
               let rawArchitecture = lines.first(where: { $0.hasPrefix("ZSHELL_ARCH:") })?.dropFirst(12),
@@ -80,7 +63,7 @@ nonisolated enum RemoteServerInstaller {
             throw RemoteHostError.message(String(localized: "The server executable changed while reading it."))
         }
         let digest = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
-        let temporaryPath = host.serverPath + ".upload-" + UUID().uuidString.lowercased() + (host.platform == .windows ? ".exe" : "")
+        let temporaryPath = host.serverPath + ".upload-" + UUID().uuidString.lowercased()
         var encoded = Data()
         for offset in stride(from: 0, to: bytes.count, by: 48 * 1024) {
             encoded.append(bytes.subdata(in: offset..<min(bytes.count, offset + 48 * 1024)).base64EncodedData())
@@ -104,7 +87,7 @@ nonisolated enum RemoteServerInstaller {
         }
         do {
             _ = try OpenSSHTransport(timeout: 30, outputLimit: 64 * 1024).run(endpoint: endpoint,
-                command: host.serverCommand(["agent-hooks", "install"]), windowsShell: host.platform != .unix)
+                command: host.serverCommand(["agent-hooks", "install"]))
         } catch OpenSSHTransport.TransportError.failed(_, let output) {
             let text = output.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
             throw RemoteHostError.message(text.isEmpty ? String(localized: "Remote agent setup failed.") : text)
@@ -115,15 +98,10 @@ nonisolated enum RemoteServerInstaller {
         guard case .ssh(let endpoint) = try host.endpoint() else {
             throw RemoteHostError.message(String(localized: "Use SSH to install or update the remote server."))
         }
-        let command: [String]
-        switch host.platform {
-        case .unix: command = ["/bin/sh", "-c", script]
-        case .wsl: command = host.wslCommand(["/bin/sh", "-c", script])
-        case .windows: command = ["powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", script.data(using: .utf16LittleEndian)!.base64EncodedString()]
-        }
+        let command = ["/bin/sh", "-c", script]
         do {
             return try OpenSSHTransport(timeout: 60, outputLimit: 64 * 1024).run(
-                endpoint: endpoint, command: command, windowsShell: host.platform != .unix, standardInput: input)
+                endpoint: endpoint, command: command, standardInput: input)
         } catch OpenSSHTransport.TransportError.failed(_, let output) {
             let message = output.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
             throw RemoteHostError.message(message.isEmpty ? String(localized: "The remote server installation failed.") : message)
@@ -131,29 +109,6 @@ nonisolated enum RemoteServerInstaller {
     }
 
     private static func upload(host: RemoteHost, temporaryPath: String, digest: String) -> String {
-        if host.platform == .windows {
-            return """
-                $ErrorActionPreference = 'Stop'
-                $destination = \(windowsPath(host.serverPath))
-                $path = \(windowsPath(temporaryPath))
-                $parent = [IO.Path]::GetDirectoryName($path)
-                [IO.Directory]::CreateDirectory($parent) | Out-Null
-                if ((Test-Path -LiteralPath $destination) -and ((Get-Item -LiteralPath $destination).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'The destination must not be a reparse point.' }
-                $file = [IO.File]::Open($path, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
-                try {
-                    while ($null -ne ($line = [Console]::ReadLine())) {
-                        if ($line.Length -gt 65536) { throw 'Upload chunk too large.' }
-                        $bytes = [Convert]::FromBase64String($line)
-                        $file.Write($bytes, 0, $bytes.Length)
-                        if ($file.Length -gt \(maximumBinaryBytes)) { throw 'Upload too large.' }
-                    }
-                    $file.Flush($true)
-                } finally { $file.Dispose() }
-                if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne '\(digest)') { throw 'Server SHA256 mismatch.' }
-                & $path --version --json
-                exit $LASTEXITCODE
-                """
-        }
         let path = SSHEndpoint.shellWord(temporaryPath)
         return """
             set -eu
@@ -175,19 +130,6 @@ nonisolated enum RemoteServerInstaller {
     }
 
     private static func replace(host: RemoteHost, temporaryPath: String, digest: String) -> String {
-        if host.platform == .windows {
-            return """
-                $ErrorActionPreference = 'Stop'
-                $path = \(windowsPath(temporaryPath))
-                $destination = \(windowsPath(host.serverPath))
-                if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne '\(digest)') { throw 'Server SHA256 mismatch.' }
-                if (Test-Path -LiteralPath $destination) {
-                    if ((Get-Item -LiteralPath $destination).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'The destination must not be a reparse point.' }
-                    [IO.File]::Replace($path, $destination, $null)
-                } else { [IO.File]::Move($path, $destination) }
-                exit 0
-                """
-        }
         return """
             set -eu
             path=\(SSHEndpoint.shellWord(temporaryPath))
@@ -200,7 +142,6 @@ nonisolated enum RemoteServerInstaller {
     }
 
     private static func cleanup(host: RemoteHost, path: String) -> String {
-        if host.platform == .windows { return "Remove-Item -LiteralPath \(windowsPath(path)) -Force -ErrorAction SilentlyContinue; exit 0" }
         return "rm -f -- " + SSHEndpoint.shellWord(path)
     }
 
@@ -208,13 +149,8 @@ nonisolated enum RemoteServerInstaller {
         "if command -v sha256sum >/dev/null 2>&1; then actual=$(sha256sum \"\(path)\" | cut -d ' ' -f 1); else actual=$(shasum -a 256 \"\(path)\" | cut -d ' ' -f 1); fi\n[ \"$actual\" = '\(digest)' ] || { printf '%s\\n' 'Server SHA256 mismatch.' >&2; exit 1; }"
     }
 
-    private static func windowsPath(_ path: String) -> String {
-        if path.hasPrefix("~/") || path.hasPrefix("~\\") { return "(Join-Path $HOME \(SSHEndpoint.powerShellLiteral(String(path.dropFirst(2)))))" }
-        return SSHEndpoint.powerShellLiteral(path)
-    }
-
     static func normalizePlatform(_ value: String) -> String? {
-        switch value.lowercased() { case "darwin", "macos": "macos"; case "linux": "linux"; case "windows": "windows"; default: nil }
+        switch value.lowercased() { case "darwin", "macos": "macos"; case "linux": "linux"; default: nil }
     }
 
     static func normalizeArchitecture(_ value: String) -> String? {

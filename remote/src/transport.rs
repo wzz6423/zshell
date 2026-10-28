@@ -1,15 +1,11 @@
 use crate::protocol::invalid;
 use serde_json::Value;
-#[cfg(unix)]
 use std::fs::OpenOptions;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::net::{IpAddr, Shutdown, TcpStream};
-#[cfg(unix)]
 use std::os::fd::{AsRawFd, RawFd};
-#[cfg(unix)]
 use std::os::unix::fs::{FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt};
-#[cfg(unix)]
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -17,40 +13,28 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 pub enum Stream {
-    #[cfg(unix)]
     Unix(UnixStream),
-    #[cfg(windows)]
-    Pipe(crate::windows_pipe::Pipe),
     Tcp(TcpStream),
 }
 
 impl Stream {
     pub fn peer_pid(&self) -> Option<i32> {
         match self {
-            #[cfg(unix)]
             Self::Unix(stream) => peer_pid(stream.as_raw_fd()).ok(),
-            #[cfg(windows)]
-            Self::Pipe(pipe) => pipe.peer_pid(),
             Self::Tcp(_) => None,
         }
     }
     pub fn try_clone(&self) -> io::Result<Self> {
         match self {
-            #[cfg(unix)]
             Self::Unix(s) => s.try_clone().map(Self::Unix),
-            #[cfg(windows)]
-            Self::Pipe(s) => Ok(Self::Pipe(s.clone())),
             Self::Tcp(s) => s.try_clone().map(Self::Tcp),
         }
     }
     pub fn shutdown(&self) {
         match self {
-            #[cfg(unix)]
             Self::Unix(s) => {
                 let _ = s.shutdown(Shutdown::Both);
             }
-            #[cfg(windows)]
-            Self::Pipe(s) => s.shutdown(),
             Self::Tcp(s) => {
                 let _ = s.shutdown(Shutdown::Both);
             }
@@ -58,14 +42,9 @@ impl Stream {
     }
     pub fn shutdown_write(&self) {
         match self {
-            #[cfg(unix)]
             Self::Unix(s) => {
                 let _ = s.shutdown(Shutdown::Write);
             }
-            // Byte-mode Windows pipes have no half-close. The daemon's idle
-            // deadline closes the connection after the stdio input ends.
-            #[cfg(windows)]
-            Self::Pipe(_) => {}
             Self::Tcp(s) => {
                 let _ = s.shutdown(Shutdown::Write);
             }
@@ -73,15 +52,9 @@ impl Stream {
     }
     pub fn deadlines(&self, read: Duration, write: Duration) -> io::Result<()> {
         match self {
-            #[cfg(unix)]
             Self::Unix(s) => {
                 s.set_read_timeout(Some(read))?;
                 s.set_write_timeout(Some(write))
-            }
-            #[cfg(windows)]
-            Self::Pipe(s) => {
-                s.deadlines(read, write);
-                Ok(())
             }
             Self::Tcp(s) => {
                 s.set_nodelay(true)?;
@@ -95,10 +68,7 @@ impl Stream {
 impl Read for Stream {
     fn read(&mut self, b: &mut [u8]) -> io::Result<usize> {
         match self {
-            #[cfg(unix)]
             Self::Unix(s) => s.read(b),
-            #[cfg(windows)]
-            Self::Pipe(s) => s.read(b),
             Self::Tcp(s) => s.read(b),
         }
     }
@@ -106,37 +76,25 @@ impl Read for Stream {
 impl Write for Stream {
     fn write(&mut self, b: &[u8]) -> io::Result<usize> {
         match self {
-            #[cfg(unix)]
             Self::Unix(s) => s.write(b),
-            #[cfg(windows)]
-            Self::Pipe(s) => s.write(b),
             Self::Tcp(s) => s.write(b),
         }
     }
     fn flush(&mut self) -> io::Result<()> {
         match self {
-            #[cfg(unix)]
             Self::Unix(s) => s.flush(),
-            #[cfg(windows)]
-            Self::Pipe(_) => Ok(()),
             Self::Tcp(s) => s.flush(),
         }
     }
 }
 
 pub fn expand_path(path: &str) -> io::Result<PathBuf> {
-    let home = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
+    let home = std::env::var_os("HOME")
         .map(PathBuf::from)
         .ok_or_else(|| invalid("HOME is unavailable"))?;
     Ok(if path == "~" {
         home
-    } else if let Some(rest) = path.strip_prefix("~/").or_else(|| {
-        if cfg!(windows) {
-            path.strip_prefix("~\\")
-        } else {
-            None
-        }
-    }) {
+    } else if let Some(rest) = path.strip_prefix("~/") {
         home.join(rest)
     } else {
         PathBuf::from(path)
@@ -158,15 +116,9 @@ pub fn shell_path(path: &Path) -> io::Result<String> {
     let text = path
         .to_str()
         .ok_or_else(|| invalid("Path must be valid UTF-8"))?;
-    #[cfg(windows)]
-    let text = text
-        .strip_prefix(r"\\?\UNC\")
-        .map(|rest| format!(r"\\{rest}"))
-        .unwrap_or_else(|| text.strip_prefix(r"\\?\").unwrap_or(text).to_owned());
     Ok(text.to_owned())
 }
 
-#[cfg(unix)]
 pub fn prepare_state(path: &Path) -> io::Result<()> {
     if !path.exists() {
         fs::create_dir_all(path)?;
@@ -185,7 +137,6 @@ pub fn prepare_state(path: &Path) -> io::Result<()> {
     Ok(())
 }
 
-#[cfg(unix)]
 pub fn lock_state(path: &Path) -> io::Result<File> {
     prepare_state(path)?;
     let file = OpenOptions::new()
@@ -210,7 +161,6 @@ pub fn lock_state(path: &Path) -> io::Result<File> {
     Ok(file)
 }
 
-#[cfg(unix)]
 pub fn remove_stale_socket(path: &Path) -> io::Result<()> {
     match fs::symlink_metadata(path) {
         Ok(metadata)
@@ -226,23 +176,10 @@ pub fn remove_stale_socket(path: &Path) -> io::Result<()> {
     }
 }
 
-#[cfg(unix)]
 pub fn same_user(stream: &UnixStream) -> bool {
     peer_uid(stream.as_raw_fd()).ok() == Some(unsafe { libc::geteuid() })
 }
 
-#[cfg(windows)]
-pub fn prepare_state(path: &Path) -> io::Result<()> {
-    crate::windows::prepare_directory(path)
-}
-
-#[cfg(windows)]
-pub fn lock_state(path: &Path) -> io::Result<File> {
-    prepare_state(path)?;
-    crate::windows::private_file(&path.join("daemon.lock"), false, true)
-}
-
-#[cfg(unix)]
 pub fn connect_control(state: &Path) -> io::Result<Stream> {
     let path = state.join("control.sock");
     let metadata = fs::symlink_metadata(&path)?;
@@ -261,14 +198,7 @@ pub fn connect_control(state: &Path) -> io::Result<Stream> {
     Ok(Stream::Unix(stream))
 }
 
-#[cfg(windows)]
-pub fn connect_control(state: &Path) -> io::Result<Stream> {
-    crate::windows_pipe::Pipe::connect(state).map(Stream::Pipe)
-}
-
-#[cfg(unix)]
 pub struct LocalListener(UnixListener);
-#[cfg(unix)]
 impl LocalListener {
     pub fn bind(state: &Path) -> io::Result<Self> {
         let path = state.join("control.sock");
@@ -287,17 +217,25 @@ impl LocalListener {
     }
 }
 
-#[cfg(windows)]
-pub use crate::windows_pipe::LocalListener;
-
 #[cfg(target_os = "macos")]
 fn peer_pid(fd: RawFd) -> io::Result<i32> {
     let mut pid = 0i32;
     let mut size = std::mem::size_of_val(&pid) as libc::socklen_t;
-    if unsafe { libc::getsockopt(fd, 0, libc::LOCAL_PEERPID, (&mut pid as *mut i32).cast(), &mut size) } != 0 {
+    if unsafe {
+        libc::getsockopt(
+            fd,
+            0,
+            libc::LOCAL_PEERPID,
+            (&mut pid as *mut i32).cast(),
+            &mut size,
+        )
+    } != 0
+    {
         return Err(io::Error::last_os_error());
     }
-    if pid <= 1 { return Err(invalid("Invalid local peer process")); }
+    if pid <= 1 {
+        return Err(invalid("Invalid local peer process"));
+    }
     Ok(pid)
 }
 
@@ -305,7 +243,16 @@ fn peer_pid(fd: RawFd) -> io::Result<i32> {
 fn peer_pid(fd: RawFd) -> io::Result<i32> {
     let mut credentials = unsafe { std::mem::zeroed::<libc::ucred>() };
     let mut size = std::mem::size_of_val(&credentials) as libc::socklen_t;
-    if unsafe { libc::getsockopt(fd, libc::SOL_SOCKET, libc::SO_PEERCRED, (&mut credentials as *mut libc::ucred).cast(), &mut size) } != 0 {
+    if unsafe {
+        libc::getsockopt(
+            fd,
+            libc::SOL_SOCKET,
+            libc::SO_PEERCRED,
+            (&mut credentials as *mut libc::ucred).cast(),
+            &mut size,
+        )
+    } != 0
+    {
         return Err(io::Error::last_os_error());
     }
     Ok(credentials.pid)
@@ -361,13 +308,7 @@ pub fn tailscale_executable() -> PathBuf {
     let paths = std::env::var_os("PATH")
         .map(|path| {
             std::env::split_paths(&path)
-                .map(|directory| {
-                    directory.join(if cfg!(windows) {
-                        "tailscale.exe"
-                    } else {
-                        "tailscale"
-                    })
-                })
+                .map(|directory| directory.join("tailscale"))
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
@@ -378,28 +319,12 @@ pub fn tailscale_executable() -> PathBuf {
             PathBuf::from("/usr/local/bin/tailscale"),
             PathBuf::from("/usr/bin/tailscale"),
             PathBuf::from("/Applications/Tailscale.app/Contents/MacOS/Tailscale"),
-            PathBuf::from(std::env::var_os("ProgramFiles").unwrap_or_default())
-                .join("Tailscale/tailscale.exe"),
         ])
         .find(|path| {
-            path.metadata().is_ok_and(|metadata| {
-                #[cfg(unix)]
-                {
-                    metadata.is_file() && metadata.mode() & 0o111 != 0
-                }
-                #[cfg(windows)]
-                {
-                    metadata.is_file()
-                }
-            })
+            path.metadata()
+                .is_ok_and(|metadata| metadata.is_file() && metadata.mode() & 0o111 != 0)
         })
-        .unwrap_or_else(|| {
-            PathBuf::from(if cfg!(windows) {
-                "tailscale.exe"
-            } else {
-                "tailscale"
-            })
-        })
+        .unwrap_or_else(|| PathBuf::from("tailscale"))
 }
 
 impl TailnetPolicy {
@@ -513,7 +438,7 @@ impl TailnetPolicy {
     }
 }
 
-#[cfg(all(test, unix))]
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::protocol::new_id;

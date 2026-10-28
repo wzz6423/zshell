@@ -3,11 +3,11 @@ title: Paylaşılan uzak oturumlar
 description: SSH veya Tailscale ile aynı uzak terminale bağlanın ve istemci ayrılsa da işleri çalışır tutun.
 ---
 
-`zshell-server`, kabuğu ve işleri bir macOS veya Linux / Windows / WSL sunucusunda tutar. Zshell’in iki terminal arka ucu da bağlanabilir. İstemciyi kapatmak veya ağ bağlantısını kaybetmek işleri bitirmez. Yeniden bağlanmak ekranı, kaydırma geçmişini, imleci ve terminal kiplerini geri getirir.
+`zshell-server`, kabuğu ve işleri bir macOS veya Linux sunucusunda tutar. Zshell’in iki terminal arka ucu da bağlanabilir. İstemciyi kapatmak veya ağ bağlantısını kaybetmek işleri bitirmez. Yeniden bağlanmak ekranı, kaydırma geçmişini, imleci ve terminal kiplerini geri getirir.
 
 ## Kurulum [#install]
 
-**Uzak sunucular…** içinde platformu seçip SSH ile **Sunucuyu Kur / Güncelle** kullanın. Aynı mimarili Mac paketlenmiş programı kullanır. Linux veya yerel Windows için platform ve mimariye uygun `zshell-server` seçin. WSL seçilen dağıtımdaki Linux programını kullanır. Yükleme ve uyumluluk değiştirmeden önce doğrulanır. Çalışan daemon yeniden başlatılana kadar sürümünü korur; yeniden başlatmak terminal işlerini bitirir. Sunucuda doğrudan derleyebilirsiniz:
+**Uzak sunucular…** içinde SSH ile **Sunucuyu Kur / Güncelle** kullanın. Aynı mimarili Mac paketlenmiş programı kullanır. Linux için platform ve mimariye uygun `zshell-server` seçin. Yükleme ve uyumluluk değiştirmeden önce doğrulanır. Çalışan daemon yeniden başlatılana kadar sürümünü korur; yeniden başlatmak terminal işlerini bitirir. Sunucuda doğrudan derleyebilirsiniz:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -15,7 +15,7 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-İstemci sunucu hesabının kabuğunu ve dosyalarını kullanabilir. macOS, Linux, yerel Windows ve WSL desteklenir. Windows ConPTY, WSL seçilen dağıtımın Linux yollarını kullanır. Windows programı `zshell-server.exe` olur.
+İstemci sunucu hesabının kabuğunu ve dosyalarını kullanabilir. macOS ve Linux desteklenir.
 
 ## SSH [#ssh]
 

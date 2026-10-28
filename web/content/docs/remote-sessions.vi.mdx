@@ -3,11 +3,11 @@ title: Phiên từ xa dùng chung
 description: Kết nối cùng một terminal qua SSH hoặc Tailscale và giữ tác vụ chạy sau khi máy khách ngắt kết nối.
 ---
 
-`zshell-server` giữ shell và các tác vụ trên máy macOS hoặc Linux / Windows / WSL. Cả hai bộ máy terminal của Zshell đều kết nối được. Đóng máy khách hay mất mạng không kết thúc tác vụ. Kết nối lại sẽ khôi phục màn hình, lịch sử cuộn, con trỏ và chế độ terminal.
+`zshell-server` giữ shell và các tác vụ trên máy macOS hoặc Linux. Cả hai bộ máy terminal của Zshell đều kết nối được. Đóng máy khách hay mất mạng không kết thúc tác vụ. Kết nối lại sẽ khôi phục màn hình, lịch sử cuộn, con trỏ và chế độ terminal.
 
 ## Cài đặt [#install]
 
-Trong **Máy chủ từ xa…**, chọn nền tảng rồi **Cài / Cập nhật máy chủ** qua SSH. Mac cùng kiến trúc dùng chương trình kèm ứng dụng. Với Linux hay Windows nguyên bản, chọn `zshell-server` được biên dịch cho nền tảng và kiến trúc tương ứng. WSL dùng chương trình Linux trong bản phân phối đã chọn. Kiểm tra tải lên và tương thích trước khi thay thế. Daemon đang chạy giữ phiên bản đến khi khởi động lại, sẽ kết thúc tác vụ. Cũng có thể biên dịch trên máy chủ:
+Trong **Máy chủ từ xa…**, chọn **Cài / Cập nhật máy chủ** qua SSH. Mac cùng kiến trúc dùng chương trình kèm ứng dụng. Với Linux, chọn `zshell-server` được biên dịch cho nền tảng và kiến trúc tương ứng. Kiểm tra tải lên và tương thích trước khi thay thế. Daemon đang chạy giữ phiên bản đến khi khởi động lại, sẽ kết thúc tác vụ. Cũng có thể biên dịch trên máy chủ:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -15,7 +15,7 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-Máy khách dùng shell và tệp của tài khoản chạy máy chủ. Hỗ trợ macOS, Linux, Windows nguyên bản và WSL. Windows dùng ConPTY, WSL dùng đường dẫn Linux trong bản phân phối chọn. Chương trình Windows là `zshell-server.exe`.
+Máy khách dùng shell và tệp của tài khoản chạy máy chủ. Hỗ trợ macOS và Linux.
 
 ## SSH [#ssh]
 

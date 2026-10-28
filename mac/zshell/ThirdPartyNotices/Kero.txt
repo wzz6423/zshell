@@ -4,14 +4,12 @@ Source revision: 580bdfa8f6a43d71d145958ab76c1bbb45c465f0
 
 Zshell adapts Kero's clipboard image and remote paste behavior, shared-daemon
 agent ownership rules, OSC 7501 state scanning, remote server installation,
-Windows ConPTY lifecycle, SSH agent environment discovery, and linked
-configuration saving and watching. The source and regression cases consulted
-are paste.go, paste_test.go, internal/daemon/sessions.go,
+SSH agent environment discovery, and linked configuration saving and watching.
+The source and regression cases consulted are paste.go, paste_test.go,
+internal/daemon/sessions.go,
 internal/daemon/osc.go, internal/daemon/osc_test.go,
 internal/daemon/conversations.go,
 internal/daemon/proc_darwin.go, internal/daemon/proc_linux.go,
-internal/daemon/proc_windows.go,
-internal/daemon/pty_windows.go, internal/daemon/pty_windows_test.go,
 internal/cli/hook.go, internal/cli/hook_test.go, internal/remote/install.go,
 internal/remote/agent.go, internal/remote/agent_test.go,
 internal/settings/config.go, and internal/settings/config_test.go.

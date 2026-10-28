@@ -18,44 +18,16 @@ struct RemoteServerManagementTests {
         }
         let legacy = Data("{\"id\":\"\(UUID())\",\"name\":\"legacy\",\"address\":\"ssh://example.com\",\"serverPath\":\"~/.local/bin/zshell-server\"}".utf8)
         let decoded = try JSONDecoder().decode(RemoteHost.self, from: legacy)
-        expect(decoded.platform == .unix && decoded.wslDistribution == nil, "old host configurations retain Unix defaults")
-        let windows = try RemoteHost(name: "Windows", address: address, serverPath: "C:\\Users\\dev\\server.exe", platform: .windows)
-        let roundTrip = try JSONDecoder().decode(RemoteHost.self, from: JSONEncoder().encode(windows))
-        expect(roundTrip == windows, "Windows platform and absolute executable path persist")
+        expect(decoded.serverPath == "~/.local/bin/zshell-server", "old host configurations retain their server path")
+        let remote = try RemoteHost(name: "Remote", address: address, serverPath: "/home/dev/server")
+        let roundTrip = try JSONDecoder().decode(RemoteHost.self, from: JSONEncoder().encode(remote))
+        expect(roundTrip == remote, "host and absolute executable path persist")
         do {
-            _ = try RemoteHost(name: "invalid", address: address, serverPath: "relative.exe", platform: .windows)
-            preconditionFailure("relative Windows executable accepted")
+            _ = try RemoteHost(name: "invalid", address: address, serverPath: "relative")
+            preconditionFailure("relative executable accepted")
         } catch { checks += 1 }
-        let distro = "Ubuntu 中文 'quoted'; Write-Output injected"
-        let wsl = try RemoteHost(name: "WSL", address: address, platform: .wsl, wslDistribution: distro)
-        let arguments = wsl.serverCommand(["bridge"])
-        expect(arguments.prefix(3) == ["wsl.exe", "--distribution", distro], "WSL distribution is one argv value")
-        expect(arguments.dropFirst(3).prefix(4) == ["--exec", "/bin/sh", "-c", "exec ~/'.local/bin/zshell-server' 'bridge'"], "WSL server expands its Linux home inside its distribution")
-        let command = SSHEndpoint.powerShellCommand(arguments)
-        let encoded = String(command.split(separator: " ").last!)
-        let script = String(data: Data(base64Encoded: encoded)!, encoding: .utf16LittleEndian)!
-        expect(script.contains("'Ubuntu 中文 ''quoted''; Write-Output injected'"), "Windows SSH quotes data inside UTF16LE EncodedCommand")
-        let endpoint = try SSHEndpoint(host: "example.com")
-        let windowsEndpoint = endpoint.routingCommands(for: windows)
-        expect(windowsEndpoint.gitExecutable == "git.exe", "Windows Git uses its host executable")
-        let wslEndpoint = endpoint.routingCommands(for: wsl)
-        expect(wslEndpoint.routedCommand(["/usr/bin/git", "-C", "/home/dev/repo", "status"])
-            == ["wsl.exe", "--distribution", distro, "--exec", "/usr/bin/git", "-C", "/home/dev/repo", "status"],
-            "WSL Files and Git run inside the same distribution")
-        let directoryScript = OpenSSHTransport.windowsDirectoryScript("C:\\dev\\my 'repo'")
-        expect(directoryScript.contains("-LiteralPath 'C:\\dev\\my ''repo'''"), "Windows Files quote literal paths without wildcard expansion")
-        expect(directoryScript.contains("ConvertTo-Json -InputObject $entries"), "Windows Files use structured names and directory flags")
-        let curlyPath = #"C:\dev\it‘s’s‚s‛s\server.exe"#
-        let curlyLiteral = #"'C:\dev\it‘‘s’’s‚‚s‛‛s\server.exe'"#
-        expect(SSHEndpoint.powerShellLiteral(curlyPath) == curlyLiteral, "Windows literal paths keep every PowerShell quote delimiter")
-        let curlyCommand = SSHEndpoint.powerShellCommand([curlyPath, "bridge"])
-        let curlyEncoded = String(curlyCommand.split(separator: " ").last!)
-        let curlyScript = String(data: Data(base64Encoded: curlyEncoded)!, encoding: .utf16LittleEndian)!
-        expect(curlyScript == "& \(curlyLiteral) 'bridge'; exit $LASTEXITCODE", "Windows executable quoting survives UTF16LE transport")
-        expect(OpenSSHTransport.windowsDirectoryScript(curlyPath).contains("-LiteralPath " + curlyLiteral),
-               "Windows Files use the same literal quoting as the installer")
         let legacyEndpoint = try JSONDecoder().decode(SSHEndpoint.self, from: Data("{\"host\":\"example.com\"}".utf8))
-        expect(legacyEndpoint.hostPlatform == nil, "old SSH projects retain their command routing")
+        expect(legacyEndpoint.destination == "example.com", "old SSH projects retain their destination")
         expect(RemoteHostTransport.isTailnetAddress("100.64.0.10") && !RemoteHostTransport.isTailnetAddress("127.0.0.1"), "GUI sharing accepts only Tailscale numeric ranges")
 
         let installPath = root.appendingPathComponent("remote server 'quoted'/zshell-server").path
@@ -70,7 +42,7 @@ struct RemoteServerManagementTests {
         let sourceBytes = try Data(contentsOf: executable)
         expect(before == sourceBytes, "atomic installation preserves every executable byte")
         let bad = root.appendingPathComponent("incompatible-server")
-        try Data("#!/bin/sh\nprintf '%s\\n' '{\"version\":\"0.1.0\",\"protocolVersion\":1,\"platform\":\"windows\",\"architecture\":\"x86_64\"}'\n".utf8).write(to: bad)
+        try Data("#!/bin/sh\nprintf '%s\\n' '{\"version\":\"0.1.0\",\"protocolVersion\":1,\"platform\":\"linux\",\"architecture\":\"x86_64\"}'\n".utf8).write(to: bad)
         do {
             _ = try RemoteServerInstaller.install(host: host, target: target, executable: bad)
             preconditionFailure("incompatible server installed")

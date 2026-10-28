@@ -3,11 +3,11 @@ title: Gemeinsame Remote-Sitzungen
 description: Über SSH oder Tailscale denselben Remote-Terminal nutzen und Aufgaben nach dem Trennen weiterlaufen lassen.
 ---
 
-`zshell-server` hält Shell und Prozesse auf einem macOS- oder Linux / Windows / WSL-Host am Leben. Beide Terminal-Backends von Zshell können sich verbinden. Beim Schließen des Clients oder bei einem Netzwerkausfall laufen Aufgaben weiter. Eine erneute Verbindung stellt Bildschirm, Verlauf, Cursor und Terminalmodi wieder her.
+`zshell-server` hält Shell und Prozesse auf einem macOS- oder Linux-Host am Leben. Beide Terminal-Backends von Zshell können sich verbinden. Beim Schließen des Clients oder bei einem Netzwerkausfall laufen Aufgaben weiter. Eine erneute Verbindung stellt Bildschirm, Verlauf, Cursor und Terminalmodi wieder her.
 
 ## Installation [#install]
 
-Wählen Sie in **Remote-Hosts…** die Plattform und **Server installieren / aktualisieren** über SSH. Für einen Mac gleicher Architektur wird das mitgelieferte Programm verwendet. Für Linux oder natives Windows wählen Sie das passende `zshell-server` für Plattform und Architektur. WSL nutzt das Linux-Programm in der gewählten Distribution. Upload und Kompatibilität werden vor dem Ersetzen geprüft. Ein aktiver Daemon behält seine Version bis zum Neustart, der seine Terminalaufgaben beendet. Ein Build direkt auf dem Host ist ebenfalls möglich:
+Wählen Sie in **Remote-Hosts…** **Server installieren / aktualisieren** über SSH. Für einen Mac gleicher Architektur wird das mitgelieferte Programm verwendet. Für Linux wählen Sie das passende `zshell-server` für Plattform und Architektur. Upload und Kompatibilität werden vor dem Ersetzen geprüft. Ein aktiver Daemon behält seine Version bis zum Neustart, der seine Terminalaufgaben beendet. Ein Build direkt auf dem Host ist ebenfalls möglich:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -15,7 +15,7 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-Clients erhalten Zugriff auf Shell und Dateien des ausführenden Kontos. macOS, Linux, natives Windows und WSL werden unterstützt. Windows nutzt ConPTY; WSL nutzt Linux-Pfade der gewählten Distribution. Unter Windows entsteht `zshell-server.exe`.
+Clients erhalten Zugriff auf Shell und Dateien des ausführenden Kontos. macOS und Linux werden unterstützt.
 
 ## SSH [#ssh]
 

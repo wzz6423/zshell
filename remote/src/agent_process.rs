@@ -1,4 +1,4 @@
-// Process evidence follows Kero's proc_{darwin,linux,windows}.go at
+// Process evidence follows Kero's proc_{darwin,linux}.go at
 // 580bdfa8f6a43d71d145958ab76c1bbb45c465f0 (MIT), with Zshell's root-agent checks.
 use std::collections::HashSet;
 #[cfg(target_os = "linux")]
@@ -62,49 +62,19 @@ pub fn shared_codex_service(peer: i32, reporter: i32) -> Option<(i32, u64)> {
 }
 
 pub fn foreground_agent(shell: i32, foreground: Option<i32>, provider: &str) -> Option<(i32, u64)> {
-    #[cfg(unix)]
-    let pid = {
-        let foreground = foreground?;
-        root_agent(foreground, foreground, shell, Some(foreground), provider)?
-    };
-    #[cfg(windows)]
-    let pid = {
-        let _ = foreground;
-        let candidates: Vec<_> = windows_process_ids().into_iter().filter_map(|pid| {
-            let evidence = process(pid)?;
-            if recognize(&evidence) != Some(provider) || is_shared_codex(&evidence) { return None; }
-            root_agent(pid, pid, shell, None, provider)
-        }).collect::<HashSet<_>>().into_iter().collect();
-        if candidates.len() != 1 { return None; }
-        candidates[0]
-    };
+    let foreground = foreground?;
+    let pid = root_agent(foreground, foreground, shell, Some(foreground), provider)?;
     Some((pid, process(pid)?.started))
-}
-
-#[cfg(windows)]
-fn windows_process_ids() -> Vec<i32> {
-    use crate::windows::Handle;
-    use windows_sys::Win32::{Foundation::*, System::Diagnostics::ToolHelp::*};
-    let snapshot = Handle(unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) });
-    if snapshot.0 == INVALID_HANDLE_VALUE { return Vec::new(); }
-    let mut entry: PROCESSENTRY32W = unsafe { std::mem::zeroed() }; entry.dwSize = std::mem::size_of_val(&entry) as u32;
-    let mut result = unsafe { Process32FirstW(snapshot.0, &mut entry) };
-    let mut ids = Vec::new();
-    while result != 0 {
-        if entry.th32ProcessID <= i32::MAX as u32 { ids.push(entry.th32ProcessID as i32); }
-        result = unsafe { Process32NextW(snapshot.0, &mut entry) };
-    }
-    ids
 }
 
 pub fn recognize(process: &Process) -> Option<&'static str> {
     let name = |text: &str| -> Option<&'static str> {
-        let name = text.rsplit(['/', '\\']).next()?.to_ascii_lowercase();
-        let name = name.strip_suffix(".exe").or_else(|| name.strip_suffix(".js")).unwrap_or(&name);
+        let name = text.rsplit('/').next()?.to_ascii_lowercase();
+        let name = name.strip_suffix(".js").unwrap_or(&name);
         match name { "claude" => Some("claude"), "codex" => Some("codex"), "pi" => Some("pi"), "opencode" => Some("opencode"), _ => None }
     };
     if let Some(provider) = process.arguments.first().and_then(|argument| name(argument)).or_else(|| name(&process.executable)) { return Some(provider); }
-    let executable_name = process.executable.rsplit(['/', '\\']).next()?.trim_end_matches(".exe").to_ascii_lowercase();
+    let executable_name = process.executable.rsplit('/').next()?.to_ascii_lowercase();
     let executable = executable_name.as_str();
     if !["node", "nodejs", "bun", "sh", "bash", "zsh", "python"].contains(&executable)
         && !executable.starts_with("python3") { return None; }
@@ -113,16 +83,15 @@ pub fn recognize(process: &Process) -> Option<&'static str> {
         && process.arguments.iter().skip(1).any(|argument| argument.starts_with('-') && argument.contains('c')) { return None; }
     let script = process.arguments.iter().skip(1).take(8).find(|argument| !argument.starts_with('-') && argument.as_str() != "run")?;
     if let Some(provider) = name(script) { return Some(provider); }
-    let normalized = script.replace('\\', "/");
     [("/@openai/codex/", "codex"), ("/@anthropic-ai/claude-code/", "claude"),
         ("/pi-coding-agent/", "pi"), ("/opencode-ai/", "opencode")].into_iter()
-        .find_map(|(path, provider)| normalized.contains(path).then_some(provider))
+        .find_map(|(path, provider)| script.contains(path).then_some(provider))
 }
 
 fn is_codex_launcher(process: &Process) -> bool {
-    let executable = process.executable.rsplit(['/', '\\']).next().unwrap_or("").trim_end_matches(".exe");
+    let executable = process.executable.rsplit('/').next().unwrap_or("");
     ["node", "nodejs", "bun"].contains(&executable)
-        && process.arguments.get(1).is_some_and(|script| script.replace('\\', "/").ends_with("/@openai/codex/bin/codex.js"))
+        && process.arguments.get(1).is_some_and(|script| script.ends_with("/@openai/codex/bin/codex.js"))
 }
 
 #[cfg(target_os = "macos")]
@@ -162,62 +131,4 @@ pub fn process(pid: i32) -> Option<Process> {
     let arguments = bytes.split(|b| *b == 0).filter(|part| !part.is_empty()).map(|part| String::from_utf8_lossy(part).into_owned()).collect();
     Some(Process { parent: fields[1].parse().ok()?, group: fields[2].parse().ok()?, started: fields[19].parse().ok()?,
         executable: std::fs::read_link(format!("/proc/{pid}/exe")).ok()?.to_str()?.into(), arguments })
-}
-
-#[cfg(windows)]
-pub fn process(pid: i32) -> Option<Process> {
-    use crate::windows::Handle;
-    use windows_sys::Win32::{Foundation::*, System::{Diagnostics::ToolHelp::*, Threading::*}};
-    if pid <= 1 { return None; }
-    let handle = Handle(unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid as u32) });
-    if handle.0.is_null() { return None; }
-    let mut exit_code = 0;
-    if unsafe { GetExitCodeProcess(handle.0, &mut exit_code) } == 0 || exit_code != STILL_ACTIVE as u32 { return None; }
-    let mut created: FILETIME = unsafe { std::mem::zeroed() };
-    let mut exited = created; let mut kernel = created; let mut user = created;
-    if unsafe { GetProcessTimes(handle.0, &mut created, &mut exited, &mut kernel, &mut user) } == 0 { return None; }
-    let mut path = vec![0u16; 32768]; let mut length = path.len() as u32;
-    if unsafe { QueryFullProcessImageNameW(handle.0, 0, path.as_mut_ptr(), &mut length) } == 0 { return None; }
-    let snapshot = Handle(unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) });
-    if snapshot.0 == INVALID_HANDLE_VALUE { return None; }
-    let mut entry: PROCESSENTRY32W = unsafe { std::mem::zeroed() }; entry.dwSize = std::mem::size_of_val(&entry) as u32;
-    let mut result = unsafe { Process32FirstW(snapshot.0, &mut entry) };
-    while result != 0 && entry.th32ProcessID != pid as u32 { result = unsafe { Process32NextW(snapshot.0, &mut entry) }; }
-    if result == 0 { return None; }
-    Some(Process { parent: entry.th32ParentProcessID as i32, group: 0,
-        started: ((created.dwHighDateTime as u64) << 32) | created.dwLowDateTime as u64,
-        executable: String::from_utf16_lossy(&path[..length as usize]), arguments: windows_arguments(handle.0).unwrap_or_default() })
-}
-
-#[cfg(windows)]
-fn windows_arguments(handle: windows_sys::Win32::Foundation::HANDLE) -> Option<Vec<String>> {
-    use windows_sys::Win32::Foundation::*;
-    use windows_sys::Win32::UI::Shell::CommandLineToArgvW;
-    #[repr(C)]
-    struct UnicodeString { length: u16, maximum: u16, buffer: *const u16 }
-    #[link(name = "ntdll")]
-    extern "system" { fn NtQueryInformationProcess(handle: HANDLE, class: u32, buffer: *mut std::ffi::c_void, size: u32, returned: *mut u32) -> i32; }
-    let mut storage = vec![0usize; 512];
-    let mut returned = 0;
-    let result = unsafe { NtQueryInformationProcess(handle, 60, storage.as_mut_ptr().cast(), (storage.len() * std::mem::size_of::<usize>()) as u32, &mut returned) };
-    if result < 0 && returned as usize > storage.len() * std::mem::size_of::<usize>() && returned <= 128 * 1024 {
-        storage.resize((returned as usize).div_ceil(std::mem::size_of::<usize>()), 0);
-        if unsafe { NtQueryInformationProcess(handle, 60, storage.as_mut_ptr().cast(), (storage.len() * std::mem::size_of::<usize>()) as u32, &mut returned) } < 0 { return None; }
-    } else if result < 0 { return None; }
-    let line = unsafe { &*storage.as_ptr().cast::<UnicodeString>() };
-    let start = storage.as_ptr() as usize;
-    let end = start + storage.len() * std::mem::size_of::<usize>();
-    if line.buffer.is_null() || (line.buffer as usize) < start || (line.buffer as usize) + line.length as usize > end || line.length % 2 != 0 { return None; }
-    let mut terminated = unsafe { std::slice::from_raw_parts(line.buffer, line.length as usize / 2) }.to_vec(); terminated.push(0);
-    let mut count = 0;
-    let arguments = unsafe { CommandLineToArgvW(terminated.as_ptr(), &mut count) };
-    if arguments.is_null() || !(0..=512).contains(&count) { if !arguments.is_null() { unsafe { LocalFree(arguments.cast()); } } return None; }
-    let mut output = Vec::new();
-    for &argument in unsafe { std::slice::from_raw_parts(arguments, count as usize) } {
-        let mut length = 0;
-        while unsafe { *argument.add(length) } != 0 && length < 65536 { length += 1; }
-        output.push(String::from_utf16_lossy(unsafe { std::slice::from_raw_parts(argument, length) }));
-    }
-    unsafe { LocalFree(arguments.cast()); }
-    Some(output)
 }

@@ -3,11 +3,11 @@ title: リモートセッションの共有
 description: SSH または Tailscale で同じリモート端末に接続し、切断後もジョブを続行します。
 ---
 
-`zshell-server` は macOS または Linux / Windows / WSL ホスト上でシェルとジョブを保持します。Zshell の両方の端末バックエンドで利用でき、クライアントを終了しても処理は続きます。再接続すると画面、スクロール履歴、カーソル、端末モードが復元されます。
+`zshell-server` は macOS または Linux ホスト上でシェルとジョブを保持します。Zshell の両方の端末バックエンドで利用でき、クライアントを終了しても処理は続きます。再接続すると画面、スクロール履歴、カーソル、端末モードが復元されます。
 
 ## インストール [#install]
 
-**リモートホスト…**でプラットフォームを選び、SSH 経由で**サーバーをインストール / 更新**します。同じアーキテクチャの Mac は内蔵実行ファイルを使います。Linux またはネイティブ Windows は対応する `zshell-server` を選択してください。WSL は選んだディストリビューション内の Linux 実行ファイルを使います。転送と互換性を確認してから置き換えます。起動中の daemon は再起動まで旧版を使い、再起動で端末ジョブが終了します。ホストで直接ビルドもできます：
+**リモートホスト…**で SSH 経由で**サーバーをインストール / 更新**します。同じアーキテクチャの Mac は内蔵実行ファイルを使います。Linux は対応する `zshell-server` を選択してください。転送と互換性を確認してから置き換えます。起動中の daemon は再起動まで旧版を使い、再起動で端末ジョブが終了します。ホストで直接ビルドもできます：
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -15,7 +15,7 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-接続者はサーバーを実行するアカウントのシェルとファイルを操作できます。macOS、Linux、ネイティブ Windows、WSL に対応します。Windows は ConPTY、WSL は選んだ環境の Linux パスを使用します。Windows の出力は `zshell-server.exe` です。
+接続者はサーバーを実行するアカウントのシェルとファイルを操作できます。macOS と Linux に対応します。
 
 ## SSH [#ssh]
 

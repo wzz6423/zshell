@@ -119,8 +119,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         if case .ssh(let endpoint, _, _, _) = location { return endpoint }
         if let host = sharedHost, let endpoint = try? host.endpoint() {
             switch endpoint {
-            case .ssh(let endpoint): return endpoint.routingCommands(for: host)
-            case .tailscale(let hostname, _): return try? SSHEndpoint(host: hostname).routingCommands(for: host)
+            case .ssh(let endpoint): return endpoint
+            case .tailscale(let hostname, _): return try? SSHEndpoint(host: hostname)
             }
         }
         return nil

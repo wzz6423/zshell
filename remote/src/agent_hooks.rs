@@ -5,11 +5,8 @@ use crate::{agent_process, codex_binding};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
-use std::fs;
-#[cfg(unix)]
-use std::fs::OpenOptions;
+use std::fs::{self, OpenOptions};
 use std::io::{self, Read, Write};
-#[cfg(unix)]
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 
@@ -89,7 +86,7 @@ pub fn invocation(provider: &str, payload: &[u8], environment: &BTreeMap<String,
         } else {
             let session = fields.get("session_id").and_then(Value::as_str).ok_or_else(|| invalid("Missing provider session ID"))?;
             if provider == "codex" && !shared && environment.get("CODEX_THREAD_ID").is_some_and(|thread| !thread.is_empty() && thread != session) { return Ok(None); }
-            let home = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" }).map(PathBuf::from).ok_or_else(|| invalid("HOME is unavailable"))?;
+            let home = std::env::var_os("HOME").map(PathBuf::from).ok_or_else(|| invalid("HOME is unavailable"))?;
             let key = configuration_keys(provider)[0];
             let directory = environment.get(key).map(PathBuf::from).unwrap_or_else(|| home.join(match provider {
                 "claude" => ".claude", "codex" => ".codex", "pi" => ".pi/agent", _ => ".config",
@@ -132,7 +129,7 @@ pub fn invocation(provider: &str, payload: &[u8], environment: &BTreeMap<String,
 pub fn install(state: &Path) -> io::Result<Value> {
     let executable = std::env::current_exe()?;
     let state = if state.is_absolute() { state.to_path_buf() } else { std::env::current_dir()?.join(state) };
-    let home = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" }).map(PathBuf::from).ok_or_else(|| invalid("HOME is unavailable"))?;
+    let home = std::env::var_os("HOME").map(PathBuf::from).ok_or_else(|| invalid("HOME is unavailable"))?;
     let mut results = Vec::new();
     for provider in ["claude", "codex"] {
         let key = configuration_keys(provider)[0];
@@ -148,8 +145,7 @@ pub fn install(state: &Path) -> io::Result<Value> {
         let hooks = object.entry("hooks").or_insert_with(|| json!({})).as_object_mut().ok_or_else(|| invalid("Provider hooks must be a JSON object"))?;
         // A managed Codex daemon may predate every terminal and inherit no pane
         // environment. The installed hook still connects only to this server.
-        let command = if cfg!(windows) { format!("\"{}\" --state \"{}\" hook {provider}", executable.display(), state.display()) }
-            else { format!("'{}' --state '{}' hook {provider}", executable.to_string_lossy().replace('\'', "'\\''"), state.to_string_lossy().replace('\'', "'\\''")) };
+        let command = format!("'{}' --state '{}' hook {provider}", executable.to_string_lossy().replace('\'', "'\\''"), state.to_string_lossy().replace('\'', "'\\''"));
         for event in ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Stop", "SessionEnd", "SubagentStart", "SubagentStop", "Elicitation", "ElicitationResult", "StopFailure", "Notification", "Interrupt"] {
             if provider == "codex" && ["Elicitation", "ElicitationResult", "StopFailure", "Notification"].contains(&event) { continue; }
             if provider == "claude" && event == "Interrupt" { continue; }
@@ -198,7 +194,7 @@ fn install_plugin(path: &Path, source: &str) -> io::Result<()> {
 }
 
 fn file_url(path: &Path) -> io::Result<String> {
-    let text = path.to_str().ok_or_else(|| invalid("Plugin path must be UTF-8"))?.replace('\\', "/");
+    let text = path.to_str().ok_or_else(|| invalid("Plugin path must be UTF-8"))?;
     let mut url = if text.starts_with('/') { "file://".to_owned() } else { "file:///".to_owned() };
     for byte in text.bytes() {
         if byte.is_ascii_alphanumeric() || b"/:._~-".contains(&byte) { url.push(byte as char); }
@@ -268,16 +264,9 @@ pub(crate) fn write_settings(path: &Path, bytes: &[u8]) -> io::Result<()> {
     if fs::symlink_metadata(path).is_ok_and(|metadata| metadata.file_type().is_symlink()) { return Err(invalid("Refusing to replace symlinked provider hook settings")); }
     let staging = path.with_file_name(format!(".zshell-hooks-{}", new_id()?));
     let result = (|| {
-        #[cfg(unix)]
         let mut file = OpenOptions::new().write(true).create_new(true).mode(0o600).open(&staging)?;
-        #[cfg(windows)]
-        let mut file = crate::windows::private_file(&staging, true, false)?;
         file.write_all(bytes)?; file.sync_all()?; drop(file);
-        #[cfg(unix)]
         { if let Ok(metadata) = fs::metadata(path) { fs::set_permissions(&staging, fs::Permissions::from_mode(metadata.permissions().mode() & 0o777))?; } fs::rename(&staging, path)?; }
-        #[cfg(windows)]
-        if unsafe { windows_sys::Win32::Storage::FileSystem::MoveFileExW(crate::windows::wide(&staging).as_ptr(), crate::windows::wide(path).as_ptr(),
-            windows_sys::Win32::Storage::FileSystem::MOVEFILE_REPLACE_EXISTING | windows_sys::Win32::Storage::FileSystem::MOVEFILE_WRITE_THROUGH) } == 0 { return Err(io::Error::last_os_error()); }
         Ok(())
     })();
     if result.is_err() { let _ = fs::remove_file(staging); }

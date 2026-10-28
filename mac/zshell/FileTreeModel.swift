@@ -37,7 +37,7 @@ final class FileTreeModel: nonisolated ObservableObject {
     private var expanded: Set<String> = []
 
     var rootName: String {
-        ((remoteEndpoint?.hostPlatform == .windows ? rootPath.replacingOccurrences(of: "\\", with: "/") : rootPath) as NSString).lastPathComponent
+        (rootPath as NSString).lastPathComponent
     }
 
     func isExpanded(_ item: Item) -> Bool {
@@ -355,9 +355,7 @@ final class FileTreeModel: nonisolated ObservableObject {
         guard depth < 32 else { return }
         guard let listing = remoteListings[dir] else { return }
         for entry in listing {
-            let path = remoteEndpoint?.hostPlatform == .windows
-                ? dir + (dir.hasSuffix("\\") || dir.hasSuffix("/") ? "" : "\\") + entry.name
-                : (dir as NSString).appendingPathComponent(entry.name)
+            let path = (dir as NSString).appendingPathComponent(entry.name)
             let item = Item(
                 name: entry.name, path: path,
                 isDirectory: entry.isDirectory, depth: depth

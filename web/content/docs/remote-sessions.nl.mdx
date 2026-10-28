@@ -3,11 +3,11 @@ title: Gedeelde externe sessies
 description: Verbind via SSH of Tailscale met dezelfde externe terminal en behoud taken na het verbreken van de verbinding.
 ---
 
-`zshell-server` houdt de shell en taken actief op een macOS- of Linux / Windows / WSL-host. Beide terminalbackends van Zshell kunnen verbinden. De client sluiten of netwerk verliezen beëindigt de taken niet. Opnieuw verbinden herstelt scherm, geschiedenis, cursor en terminalmodi.
+`zshell-server` houdt de shell en taken actief op een macOS- of Linux-host. Beide terminalbackends van Zshell kunnen verbinden. De client sluiten of netwerk verliezen beëindigt de taken niet. Opnieuw verbinden herstelt scherm, geschiedenis, cursor en terminalmodi.
 
 ## Installeren [#install]
 
-Kies in **Externe hosts…** het platform en **Server installeren / bijwerken** via SSH. Een Mac met dezelfde architectuur gebruikt het meegeleverde programma. Kies voor Linux of native Windows het `zshell-server` voor dat platform en die architectuur. WSL gebruikt het Linux-programma in de gekozen distributie. Upload en compatibiliteit worden vóór vervanging gecontroleerd. Een actieve daemon houdt zijn versie tot herstart; die beëindigt de terminaltaken. Je kunt ook op de host bouwen:
+Kies in **Externe hosts…** **Server installeren / bijwerken** via SSH. Een Mac met dezelfde architectuur gebruikt het meegeleverde programma. Kies voor Linux het `zshell-server` voor dat platform en die architectuur. Upload en compatibiliteit worden vóór vervanging gecontroleerd. Een actieve daemon houdt zijn versie tot herstart; die beëindigt de terminaltaken. Je kunt ook op de host bouwen:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -15,7 +15,7 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-Een client krijgt toegang tot shell en bestanden van het serveraccount. macOS, Linux, native Windows en WSL worden ondersteund. Windows gebruikt ConPTY; WSL gebruikt Linux-paden van de gekozen distributie. Windows bouwt `zshell-server.exe`.
+Een client krijgt toegang tot shell en bestanden van het serveraccount. macOS en Linux worden ondersteund.
 
 ## SSH [#ssh]
 

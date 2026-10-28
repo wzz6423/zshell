@@ -39,10 +39,6 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
     private let addressField = NSTextField(string: "")
     private let executableField = NSTextField(string: "~/.local/bin/zshell-server")
     private let directoryField = NSTextField(string: "~")
-    private let platformField = NSPopUpButton()
-    private let distributionField = NSTextField(string: "")
-    private let platformLabel = NSTextField(labelWithString: "")
-    private let distributionLabel = NSTextField(labelWithString: "")
     private let nameLabel = NSTextField(labelWithString: "")
     private let addressLabel = NSTextField(labelWithString: "")
     private let executableLabel = NSTextField(labelWithString: "")
@@ -71,9 +67,9 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
     private var languageObservation: NSObjectProtocol?
 
     private init() {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 700, height: 750),
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 700, height: 680),
                               styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
-        window.minSize = NSSize(width: 620, height: 740)
+        window.minSize = NSSize(width: 620, height: 670)
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()
@@ -114,16 +110,12 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         scroll.hasVerticalScroller = true
         scroll.borderType = .bezelBorder
         scroll.heightAnchor.constraint(equalToConstant: 130).isActive = true
-        platformField.addItems(withTitles: ["macOS / Linux", "Windows", "WSL"])
-        platformField.target = self
-        platformField.action = #selector(platformChanged)
         let grid = NSGridView(views: [[nameLabel, nameField], [addressLabel, addressField],
-                                     [platformLabel, platformField], [distributionLabel, distributionField],
                                      [executableLabel, executableField], [directoryLabel, directoryField]])
         grid.rowSpacing = 10
         grid.columnSpacing = 14
         grid.column(at: 0).xPlacement = .trailing
-        for field in [nameField, addressField, executableField, directoryField, distributionField, usersField] { field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal) }
+        for field in [nameField, addressField, executableField, directoryField, usersField] { field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal) }
         for button in [newButton, saveButton, removeButton, connectButton, openButton, docsButton, installButton, shareButton] { button.bezelStyle = .rounded; button.target = self }
         newButton.action = #selector(newHost)
         saveButton.action = #selector(saveHost)
@@ -179,9 +171,6 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         addressLabel.stringValue = String(localized: "Address")
         executableLabel.stringValue = String(localized: "Server Executable")
         directoryLabel.stringValue = String(localized: "Remote Directory")
-        platformLabel.stringValue = String(localized: "Platform")
-        distributionLabel.stringValue = String(localized: "WSL Distribution")
-        distributionField.placeholderString = String(localized: "Default distribution")
         addressField.placeholderString = String(localized: "ssh://me@devbox or tailscale://devbox:7373")
         newButton.title = String(localized: "Add Host")
         saveButton.title = String(localized: "Save")
@@ -193,11 +182,11 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         portLabel.stringValue = String(localized: "Sharing Port")
         usersLabel.stringValue = String(localized: "Allowed Tailscale Users")
         usersField.placeholderString = String(localized: "Owner only, or comma-separated logins")
-        explanation.stringValue = String(localized: "SSH uses your existing keys and trusted host keys. Install the bundled server on a matching Mac, or choose a Linux or Windows server executable. WSL runs the Linux server inside the selected distribution.")
+        explanation.stringValue = String(localized: "SSH uses your existing keys and trusted host keys. Install the bundled server on a matching Mac, or choose a Linux server executable.")
         table.setAccessibilityLabel(String(localized: "Remote Hosts"))
         for (field, label) in [(nameField, nameLabel), (addressField, addressLabel),
                                (executableField, executableLabel), (directoryField, directoryLabel),
-                               (distributionField, distributionLabel), (portField, portLabel), (usersField, usersLabel)] {
+                               (portField, portLabel), (usersField, usersLabel)] {
             field.setAccessibilityLabel(label.stringValue)
         }
         updateButtons()
@@ -222,9 +211,6 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         nameField.stringValue = host.name
         addressField.stringValue = host.address
         executableField.stringValue = host.serverPath
-        platformField.selectItem(at: RemoteHost.Platform.allCases.firstIndex(of: host.platform) ?? 0)
-        distributionField.stringValue = host.wslDistribution ?? ""
-        distributionField.isEnabled = host.platform == .wsl
         statusLabel.stringValue = ""
         statusLabel.textColor = .secondaryLabelColor
         updateButtons()
@@ -232,22 +218,7 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
 
     private func hostFromForm() throws -> RemoteHost {
         try RemoteHost(id: editingID ?? UUID(), name: nameField.stringValue,
-                       address: addressField.stringValue, serverPath: executableField.stringValue,
-                       platform: selectedPlatform, wslDistribution: selectedPlatform == .wsl ? distributionField.stringValue : nil)
-    }
-
-    private var selectedPlatform: RemoteHost.Platform {
-        let index = platformField.indexOfSelectedItem
-        return RemoteHost.Platform.allCases.indices.contains(index) ? RemoteHost.Platform.allCases[index] : .unix
-    }
-
-    @objc private func platformChanged() {
-        if selectedPlatform == .windows, executableField.stringValue == "~/.local/bin/zshell-server" {
-            executableField.stringValue = "~/.local/bin/zshell-server.exe"
-        } else if selectedPlatform != .windows, executableField.stringValue == "~/.local/bin/zshell-server.exe" {
-            executableField.stringValue = "~/.local/bin/zshell-server"
-        }
-        updateButtons()
+                       address: addressField.stringValue, serverPath: executableField.stringValue)
     }
 
     @objc private func installServer() {
@@ -346,8 +317,6 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         for button in [newButton, saveButton, connectButton, openButton, installButton] { button.isEnabled = !busy }
         removeButton.isEnabled = !busy && editingID != nil
         for field in [nameField, addressField, executableField, directoryField] { field.isEnabled = !busy }
-        platformField.isEnabled = !busy
-        distributionField.isEnabled = !busy && selectedPlatform == .wsl
     }
 
     @objc private func newHost() {
@@ -356,8 +325,6 @@ final class RemoteHostsController: NSWindowController, NSTableViewDataSource, NS
         nameField.stringValue = ""
         addressField.stringValue = ""
         executableField.stringValue = "~/.local/bin/zshell-server"
-        platformField.selectItem(at: 0)
-        distributionField.stringValue = ""
         statusLabel.stringValue = ""
         updateButtons()
         window?.makeFirstResponder(nameField)

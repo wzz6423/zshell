@@ -3,11 +3,11 @@ title: 遠端共用工作階段
 description: 透過 SSH 或 Tailscale 共用遠端終端，關閉用戶端後讓工作繼續執行。
 ---
 
-`zshell-server` 在 macOS、Linux、Windows 或 WSL 主機上保留 shell 與工作。Zshell 的兩種終端後端都能連接；用戶端關閉、退出或斷線後，工作繼續執行。重新連接會還原畫面、捲動歷程、游標與終端模式。
+`zshell-server` 在 macOS 或 Linux 主機上保留 shell 與工作。Zshell 的兩種終端後端都能連接；用戶端關閉、退出或斷線後，工作繼續執行。重新連接會還原畫面、捲動歷程、游標與終端模式。
 
 ## 安裝 [#install]
 
-在**遠端主機…**選擇主機平台，透過 SSH 按**安裝 / 更新服務端**。同架構 Mac 使用內建程式；Linux 與原生 Windows 請選擇為對應平台、架構建置的 `zshell-server`。WSL 使用所選發行版內的 Linux 程式。上傳及相容性驗證成功後才替換舊程式。執行中的 daemon 在重啟前維持原版本，重啟會結束終端工作階段。也可以直接在主機建置：
+在**遠端主機…**透過 SSH 按**安裝 / 更新服務端**。同架構 Mac 使用內建程式；Linux 請選擇為對應平台、架構建置的 `zshell-server`。上傳及相容性驗證成功後才替換舊程式。執行中的 daemon 在重啟前維持原版本，重啟會結束終端工作階段。也可以直接在主機建置：
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -15,7 +15,7 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-服務端以哪個帳戶執行，連接者就能操作該帳戶的 shell 與檔案。支援 macOS、Linux、原生 Windows 和 WSL。Windows 使用 ConPTY；WSL 工作階段使用所選發行版的 Linux 路徑。Windows 產物為 `zshell-server.exe`。
+服務端以哪個帳戶執行，連接者就能操作該帳戶的 shell 與檔案。支援 macOS 與 Linux。
 
 ## SSH [#ssh]
 

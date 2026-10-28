@@ -41,43 +41,12 @@ struct RemotePasteSurfaceTests {
             checks += 1
             print("PASS \(label)")
         }
-        let windowsPath = #"C:\Users\my name\image 'quoted'.png"#
-        try check(RemotePasteUpload.validPath(windowsPath, platform: .windows), "Windows pasted files accept drive-absolute paths")
-        try check(RemotePasteUpload.validPath(#"C:/Users/me/image.png"#, platform: .windows), "Windows pasted files accept forward separators")
-        try check(RemotePasteUpload.validPath(#"\\server\share\image.png"#, platform: .windows), "Windows pasted files accept complete UNC paths")
-        for invalid in [#"C:relative.png"#, #"\root-relative.png"#, #"\\server\share"#, #"\\?\C:\image.png"#,
-                        "C:\\image.png\n", #"C:\file:stream"#, #"C:\image".png"#] {
-            try check(!RemotePasteUpload.validPath(invalid, platform: .windows), "Windows rejects ambiguous or invalid pasted path \(invalid.debugDescription)")
-        }
-        try check(!RemotePasteUpload.validPath(windowsPath, platform: .wsl), "WSL requires the Linux server's POSIX path")
-        let cmdQuoted = try RemotePasteUpload.quotePath(windowsPath, platform: .windows, shell: #"C:\Windows\System32\cmd.exe"#)
-        try check(cmdQuoted == "\"" + windowsPath + "\"", "cmd.exe pastes spaced paths inside double quotes")
-        let psQuoted = try RemotePasteUpload.quotePath(windowsPath, platform: .windows, shell: "pwsh.exe")
-        try check(psQuoted == #"'C:\Users\my name\image ''quoted''.png'"#, "PowerShell doubles apostrophes in pasted paths")
-        let curly = #"C:\Users\it‘s’s‚s‛s\image.png"#
-        let curlyQuoted = try RemotePasteUpload.quotePath(curly, platform: .windows, shell: "powershell.exe")
-        try check(curlyQuoted == #"'C:\Users\it‘‘s’’s‚‚s‛‛s\image.png'"#, "PowerShell keeps curly quote delimiters literal")
-        let expansion = #"C:\Users\%USERPROFILE%!name\image.png"#
-        for path in [#"C:\Users\%USERPROFILE%\image.png"#, #"C:\Users\!name!\image.png"#] {
-            do {
-                _ = try RemotePasteUpload.quotePath(path, platform: .windows, shell: "cmd.exe")
-                throw NSError(domain: "UnexpectedCmdExpansion", code: 1)
-            } catch is RemoteHostError { checks += 1; print("PASS cmd.exe rejects path expansion \(path.debugDescription)") }
-        }
-        let safePS = try RemotePasteUpload.quotePath(expansion, platform: .windows, shell: "powershell.exe")
-        try check(safePS == "'" + expansion + "'", "PowerShell paths containing cmd expansion symbols stay literal")
-        for shell in [nil, "unknown.exe"] as [String?] {
-            do {
-                _ = try RemotePasteUpload.quotePath(windowsPath, platform: .windows, shell: shell)
-                throw NSError(domain: "UnknownShellWasGuessed", code: 1)
-            } catch is RemoteHostError { checks += 1; print("PASS missing or unknown remote shell is rejected") }
-        }
-        let posixPath = "/tmp/it's $(printf injected);image.png"
-        let wslQuoted = try RemotePasteUpload.quotePath(posixPath, platform: .wsl, shell: "/bin/bash")
-        try check(wslQuoted == TerminalSession.shellQuote(posixPath), "WSL keeps POSIX argument quoting")
-        let bashQuoted = try RemotePasteUpload.quotePath(windowsPath, platform: .windows, shell: #"C:\Program Files\Git\bin\bash.exe"#)
-        try check(bashQuoted == TerminalSession.shellQuote(windowsPath), "Windows POSIX shell preserves backslashes and apostrophes")
-        for (path, quoted) in [(posixPath, wslQuoted), (windowsPath, bashQuoted)] {
+        let paths = ["/tmp/it's $(printf injected);image.png",
+                     #"/tmp/文件 with\backslash %! *? "`code`".png"#,
+                     "/home/me/image:<>|.png"]
+        for path in paths {
+            try check(RemotePasteUpload.validPath(path), "remote paste accepts an absolute POSIX path")
+            let quoted = try RemotePasteUpload.quotePath(path)
             let process = Process()
             let output = Pipe()
             process.executableURL = URL(fileURLWithPath: "/bin/sh")
@@ -89,6 +58,17 @@ struct RemotePasteSurfaceTests {
             try check(process.terminationStatus == 0 && String(decoding: bytes, as: UTF8.self) == path,
                       "POSIX shell reads the pasted path as one literal argument")
         }
+        for invalid in ["", "relative.png", "~/image.png", #"C:\Users\image.png"#,
+                        #"\\server\share\image.png"#, "/tmp/image.png\n", "/tmp/image\u{0}.png", "/tmp/\u{1b}image.png"] {
+            try check(!RemotePasteUpload.validPath(invalid), "remote paste rejects an invalid path \(invalid.debugDescription)")
+            do {
+                _ = try RemotePasteUpload.quotePath(invalid)
+                throw NSError(domain: "InvalidPastePathWasQuoted", code: 1)
+            } catch is RemoteHostError { checks += 1; print("PASS invalid pasted paths cannot reach the shell") }
+        }
+        try check(RemotePasteUpload.validPath("/" + String(repeating: "a", count: 16_383)), "remote path accepts the byte limit")
+        try check(!RemotePasteUpload.validPath("/" + String(repeating: "a", count: 16_384)), "remote path rejects bytes beyond the limit")
+        try check(!RemotePasteUpload.validPath("/" + String(repeating: "图", count: 5_462)), "remote path limits count UTF-8 bytes")
         print("\(checks) remote paste path checks passed")
     }
 

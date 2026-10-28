@@ -3,11 +3,11 @@ title: Sessions distantes partagées
 description: Retrouvez le même terminal distant via SSH ou Tailscale, même après la fermeture du client.
 ---
 
-`zshell-server` conserve le shell et ses tâches sur un hôte macOS ou Linux / Windows / WSL. Les deux moteurs de terminal de Zshell peuvent s’y connecter. Fermer le client ou perdre le réseau ne termine pas les tâches. La reconnexion restaure l’écran, l’historique, le curseur et les modes du terminal.
+`zshell-server` conserve le shell et ses tâches sur un hôte macOS ou Linux. Les deux moteurs de terminal de Zshell peuvent s’y connecter. Fermer le client ou perdre le réseau ne termine pas les tâches. La reconnexion restaure l’écran, l’historique, le curseur et les modes du terminal.
 
 ## Installation [#install]
 
-Dans **Hôtes distants…**, choisissez la plateforme puis **Installer / Mettre à jour le serveur** via SSH. Un Mac de même architecture utilise l’exécutable inclus. Pour Linux ou Windows natif, choisissez le `zshell-server` compilé pour la plateforme et l’architecture. WSL utilise l’exécutable Linux dans la distribution choisie. Le transfert et la compatibilité sont vérifiés avant remplacement. Un daemon actif conserve sa version jusqu’au redémarrage, qui termine ses tâches. Vous pouvez aussi compiler sur l’hôte :
+Dans **Hôtes distants…**, choisissez **Installer / Mettre à jour le serveur** via SSH. Un Mac de même architecture utilise l’exécutable inclus. Pour Linux, choisissez le `zshell-server` compilé pour la plateforme et l’architecture. Le transfert et la compatibilité sont vérifiés avant remplacement. Un daemon actif conserve sa version jusqu’au redémarrage, qui termine ses tâches. Vous pouvez aussi compiler sur l’hôte :
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -15,7 +15,7 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-Le client peut agir avec le compte qui exécute le serveur. macOS, Linux, Windows natif et WSL sont pris en charge. Windows utilise ConPTY ; WSL utilise les chemins Linux de la distribution choisie. Le binaire Windows est `zshell-server.exe`.
+Le client peut agir avec le compte qui exécute le serveur. macOS et Linux sont pris en charge.
 
 ## SSH [#ssh]
 

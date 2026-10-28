@@ -34,8 +34,6 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
     let host: String
     let user: String?
     let port: Int?
-    var hostPlatform: RemoteHost.Platform?
-    var wslDistribution: String?
 
     init(host: String, user: String? = nil, port: Int? = nil) throws {
         let host = host.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -54,26 +52,10 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
         self.host = host
         self.user = user.flatMap { $0.isEmpty ? nil : $0 }
         self.port = port
-        hostPlatform = nil
-        wslDistribution = nil
     }
 
     var destination: String {
         user.map { "\($0)@\(host)" } ?? host
-    }
-
-    var gitExecutable: String { hostPlatform == .windows ? "git.exe" : "/usr/bin/git" }
-
-    func routingCommands(for host: RemoteHost) -> Self {
-        var endpoint = self
-        endpoint.hostPlatform = host.platform
-        endpoint.wslDistribution = host.wslDistribution
-        return endpoint
-    }
-
-    func routedCommand(_ command: [String]) -> [String] {
-        guard hostPlatform == .wsl else { return command }
-        return ["wsl.exe"] + (wslDistribution.map { ["--distribution", $0] } ?? []) + ["--exec"] + command
     }
 
     func terminalArguments(
@@ -98,8 +80,7 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
         connectTimeout: TimeInterval,
         command: [String],
         authentication: SSHAuthentication = .agent,
-        identityFile: String? = nil,
-        windowsShell: Bool = false
+        identityFile: String? = nil
     ) throws -> [String] {
         let timeoutSeconds = max(1, Int(connectTimeout.rounded(.up)))
         return try connectionArguments + authentication.arguments(identityFile: identityFile) + [
@@ -108,36 +89,8 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
             "-o", "ConnectTimeout=\(timeoutSeconds)",
             "-T",
             destination,
-            windowsShell || hostPlatform == .windows || hostPlatform == .wsl
-                ? Self.powerShellCommand(routedCommand(command)) : command.map(Self.shellWord).joined(separator: " "),
+            command.map(Self.shellWord).joined(separator: " "),
         ]
-    }
-
-    static func powerShellLiteral(_ value: String) -> String {
-        // PowerShell treats curly single quotes as delimiters too, as Kero's
-        // quotePath regression cases cover. Keep every delimiter literal.
-        var literal = "'"
-        for scalar in value.unicodeScalars {
-            literal.unicodeScalars.append(scalar)
-            if "'‘’‚‛".unicodeScalars.contains(scalar) { literal.unicodeScalars.append(scalar) }
-        }
-        return literal + "'"
-    }
-
-    static func encodedPowerShell(_ script: String) -> String {
-        // Kero uses UTF-16LE EncodedCommand so both cmd and PowerShell carry
-        // remote paths as data. See THIRD_PARTY_NOTICES for the source revision.
-        let data = script.data(using: .utf16LittleEndian)!
-        return "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand " + data.base64EncodedString()
-    }
-
-    static func powerShellCommand(_ command: [String]) -> String {
-        let path = command[0]
-        let executable = path.hasPrefix("~/") || path.hasPrefix("~\\")
-            ? "(Join-Path $HOME \(powerShellLiteral(String(path.dropFirst(2)))))"
-            : powerShellLiteral(path)
-        let script = "& \(executable) \(command.dropFirst().map(powerShellLiteral).joined(separator: " ")); exit $LASTEXITCODE"
-        return encodedPowerShell(script)
     }
 
     private var connectionArguments: [String] {
@@ -716,7 +669,6 @@ nonisolated struct OpenSSHTransport {
         authentication: SSHAuthentication = .agent,
         credentialID: UUID? = nil,
         additionalEnvironment: [String: String] = [:],
-        windowsShell: Bool = false,
         standardInput: Data? = nil
     ) throws -> BoundedProcessOutput {
         let material = try authentication.makeMaterial(credentialID: credentialID)
@@ -740,8 +692,7 @@ nonisolated struct OpenSSHTransport {
                 connectTimeout: timeout,
                 command: command,
                 authentication: authentication,
-                identityFile: authentication.identityFile(material: material),
-                windowsShell: windowsShell
+                identityFile: authentication.identityFile(material: material)
             ),
             timeout: timeout,
             outputLimit: outputLimit,
@@ -765,14 +716,6 @@ nonisolated struct OpenSSHTransport {
     func listDirectory(
         endpoint: SSHEndpoint, directory: String
     ) throws -> [SSHEndpoint.DirectoryEntry] {
-        if endpoint.hostPlatform == .windows {
-            let script = Self.windowsDirectoryScript(directory)
-            let output = try run(endpoint: endpoint, command: ["powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", script.data(using: .utf16LittleEndian)!.base64EncodedString()])
-            let data = Data(output.stdout.utf8)
-            if let entries = try? JSONDecoder().decode([SSHEndpoint.DirectoryEntry].self, from: data) { return entries }
-            if let entry = try? JSONDecoder().decode(SSHEndpoint.DirectoryEntry.self, from: data) { return [entry] }
-            throw RemoteHostError.message(String(localized: "The remote host returned an invalid directory listing."))
-        }
         let output = try run(
             endpoint: endpoint,
             command: ["ls", "-1Ap", "--", directory],
@@ -781,16 +724,6 @@ nonisolated struct OpenSSHTransport {
         return SSHEndpoint.parseDirectoryListing(output.stdout)
     }
 
-    static func windowsDirectoryScript(_ directory: String) -> String {
-        let path = directory == "~" ? "$HOME" : directory.hasPrefix("~/") || directory.hasPrefix("~\\")
-            ? "(Join-Path $HOME \(SSHEndpoint.powerShellLiteral(String(directory.dropFirst(2)))))" : SSHEndpoint.powerShellLiteral(directory)
-        return """
-            $ErrorActionPreference = 'Stop'
-            [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
-            $entries = @(Get-ChildItem -LiteralPath \(path) -Force | Where-Object { $_.Name -ne '.git' } | ForEach-Object { @{name=$_.Name; isDirectory=[bool]$_.PSIsContainer} })
-            ConvertTo-Json -InputObject $entries -Compress
-            """
-    }
 }
 
 private nonisolated final class BoundedOutputCollector: @unchecked Sendable {

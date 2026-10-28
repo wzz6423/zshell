@@ -188,25 +188,7 @@ pub fn is_uuid(value: &str) -> bool {
 
 pub fn new_id() -> io::Result<String> {
     let mut bytes = [0; 16];
-    #[cfg(unix)]
     std::fs::File::open("/dev/urandom")?.read_exact(&mut bytes)?;
-    #[cfg(windows)]
-    {
-        use windows_sys::Win32::Security::Cryptography::{
-            BCryptGenRandom, BCRYPT_USE_SYSTEM_PREFERRED_RNG,
-        };
-        if unsafe {
-            BCryptGenRandom(
-                std::ptr::null_mut(),
-                bytes.as_mut_ptr(),
-                bytes.len() as u32,
-                BCRYPT_USE_SYSTEM_PREFERRED_RNG,
-            )
-        } < 0
-        {
-            return Err(invalid("Windows secure random generator failed"));
-        }
-    }
     bytes[6] = bytes[6] & 0x0f | 0x40;
     bytes[8] = bytes[8] & 0x3f | 0x80;
     Ok(format!("{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",

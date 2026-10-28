@@ -3,11 +3,11 @@ title: Sessões remotas compartilhadas
 description: Use o mesmo terminal por SSH ou Tailscale e mantenha os trabalhos após desconectar o cliente.
 ---
 
-`zshell-server` mantém o shell e seus trabalhos em um host macOS ou Linux / Windows / WSL. Os dois mecanismos de terminal do Zshell podem se conectar. Fechar o cliente ou perder a rede não encerra os trabalhos. Ao reconectar, tela, histórico, cursor e modos do terminal são restaurados.
+`zshell-server` mantém o shell e seus trabalhos em um host macOS ou Linux. Os dois mecanismos de terminal do Zshell podem se conectar. Fechar o cliente ou perder a rede não encerra os trabalhos. Ao reconectar, tela, histórico, cursor e modos do terminal são restaurados.
 
 ## Instalação [#install]
 
-Em **Hosts remotos…**, escolha a plataforma e **Instalar / Atualizar servidor** via SSH. Macs com a mesma arquitetura usam o executável incluído. Para Linux ou Windows nativo, selecione o `zshell-server` compilado para a plataforma e arquitetura. WSL usa o executável Linux na distribuição escolhida. Upload e compatibilidade são verificados antes da substituição. O daemon ativo conserva sua versão até reiniciar, o que encerra suas tarefas. Também é possível compilar no host:
+Em **Hosts remotos…**, escolha **Instalar / Atualizar servidor** via SSH. Macs com a mesma arquitetura usam o executável incluído. Para Linux, selecione o `zshell-server` compilado para a plataforma e arquitetura. Upload e compatibilidade são verificados antes da substituição. O daemon ativo conserva sua versão até reiniciar, o que encerra suas tarefas. Também é possível compilar no host:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -15,7 +15,7 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-O cliente pode operar o shell e os arquivos da conta do servidor. macOS, Linux, Windows nativo e WSL são suportados. Windows usa ConPTY; WSL usa caminhos Linux da distribuição escolhida. O executável Windows é `zshell-server.exe`.
+O cliente pode operar o shell e os arquivos da conta do servidor. macOS e Linux são suportados.
 
 ## SSH [#ssh]
 

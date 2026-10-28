@@ -1437,12 +1437,8 @@ extension TerminalSession: TerminalBackendEvents {
                 } else {
                     guard let pid = self.shellPid, Darwin.kill(pid, 0) == 0 else { return }
                 }
-                let platform: RemoteHost.Platform
-                if let host { platform = host.platform }
-                else if case .ssh(let endpoint, _, _) = target { platform = endpoint.hostPlatform ?? .unix }
-                else { platform = .unix }
                 let quoted = try paths.map {
-                    try RemotePasteUpload.quotePath($0, platform: platform, shell: connection?.status.sessionCommand?.first)
+                    try RemotePasteUpload.quotePath($0)
                 }
                 paste(quoted.joined(separator: " "))
                 pasted = true

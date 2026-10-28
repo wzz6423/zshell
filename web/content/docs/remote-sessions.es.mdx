@@ -3,11 +3,11 @@ title: Sesiones remotas compartidas
 description: Conéctate al mismo terminal por SSH o Tailscale y conserva los trabajos al desconectar el cliente.
 ---
 
-`zshell-server` mantiene el shell y sus trabajos en un equipo macOS o Linux / Windows / WSL. Funciona con ambos motores de terminal de Zshell. Cerrar el cliente o perder la red no termina los trabajos. Al volver, se restauran la pantalla, el historial, el cursor y los modos del terminal.
+`zshell-server` mantiene el shell y sus trabajos en un equipo macOS o Linux. Funciona con ambos motores de terminal de Zshell. Cerrar el cliente o perder la red no termina los trabajos. Al volver, se restauran la pantalla, el historial, el cursor y los modos del terminal.
 
 ## Instalación [#install]
 
-En **Hosts remotos…**, elige la plataforma y **Instalar / Actualizar servidor** por SSH. Un Mac con la misma arquitectura usa el ejecutable incluido. Para Linux o Windows nativo, selecciona `zshell-server` compilado para su plataforma y arquitectura. WSL usa el ejecutable Linux en la distribución elegida. Se verifica la carga y compatibilidad antes de reemplazar. El daemon activo mantiene su versión hasta reiniciarlo, lo que termina sus tareas. También puedes compilar en el host:
+En **Hosts remotos…**, elige **Instalar / Actualizar servidor** por SSH. Un Mac con la misma arquitectura usa el ejecutable incluido. Para Linux, selecciona `zshell-server` compilado para su plataforma y arquitectura. Se verifica la carga y compatibilidad antes de reemplazar. El daemon activo mantiene su versión hasta reiniciarlo, lo que termina sus tareas. También puedes compilar en el host:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -15,7 +15,7 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-El cliente puede operar el shell y archivos de la cuenta del servidor. Se admiten macOS, Linux, Windows nativo y WSL. Windows usa ConPTY y WSL las rutas Linux de la distribución elegida. El ejecutable Windows es `zshell-server.exe`.
+El cliente puede operar el shell y archivos de la cuenta del servidor. Se admiten macOS y Linux.
 
 ## SSH [#ssh]
 

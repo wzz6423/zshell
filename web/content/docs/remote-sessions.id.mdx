@@ -3,11 +3,11 @@ title: Sesi jarak jauh bersama
 description: Hubungkan terminal yang sama melalui SSH atau Tailscale dan pertahankan pekerjaan setelah klien terputus.
 ---
 
-`zshell-server` mempertahankan shell dan pekerjaannya pada host macOS atau Linux / Windows / WSL. Kedua backend terminal Zshell dapat terhubung. Menutup klien atau kehilangan jaringan tidak menghentikan pekerjaan. Koneksi ulang memulihkan layar, riwayat gulir, kursor, dan mode terminal.
+`zshell-server` mempertahankan shell dan pekerjaannya pada host macOS atau Linux. Kedua backend terminal Zshell dapat terhubung. Menutup klien atau kehilangan jaringan tidak menghentikan pekerjaan. Koneksi ulang memulihkan layar, riwayat gulir, kursor, dan mode terminal.
 
 ## Instalasi [#install]
 
-Di **Host jarak jauh…**, pilih platform lalu **Instal / Perbarui Server** melalui SSH. Mac dengan arsitektur sama memakai program bawaan. Untuk Linux atau Windows native, pilih `zshell-server` yang dibangun untuk platform dan arsitektur tersebut. WSL memakai program Linux pada distribusi pilihan. Unggahan dan kompatibilitas diperiksa sebelum penggantian. Daemon aktif memakai versi lama hingga dimulai ulang, yang mengakhiri pekerjaannya. Anda juga dapat membangun di host:
+Di **Host jarak jauh…**, pilih **Instal / Perbarui Server** melalui SSH. Mac dengan arsitektur sama memakai program bawaan. Untuk Linux, pilih `zshell-server` yang dibangun untuk platform dan arsitektur tersebut. Unggahan dan kompatibilitas diperiksa sebelum penggantian. Daemon aktif memakai versi lama hingga dimulai ulang, yang mengakhiri pekerjaannya. Anda juga dapat membangun di host:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -15,7 +15,7 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-Klien dapat memakai shell dan berkas akun server. macOS, Linux, Windows native dan WSL didukung. Windows memakai ConPTY; WSL memakai jalur Linux distribusi pilihan. Program Windows bernama `zshell-server.exe`.
+Klien dapat memakai shell dan berkas akun server. macOS dan Linux didukung.
 
 ## SSH [#ssh]
 

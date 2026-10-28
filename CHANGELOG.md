@@ -25,7 +25,7 @@ the original feature bullet instead of adding separate entries for them.
 - Share host-owned terminal sessions across machines over SSH or Tailscale,
   reconnect with their screen and history after quitting or a network outage,
   and manage hosts, server installation, Mac sharing and input control from the
-  macOS app. Host sessions on macOS, Linux, native Windows and WSL; paste local
+  macOS app. Host sessions on macOS and Linux; paste local
   files and screenshots into remote terminals as uploaded paths, and follow
   remote Agent activity and saved conversations across reconnects.
 - Paste clipboard screenshots as private PNG file paths for local terminal

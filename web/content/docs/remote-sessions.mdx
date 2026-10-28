@@ -3,11 +3,11 @@ title: Shared remote sessions
 description: Keep remote shells running and attach from several Zshell clients over SSH or Tailscale.
 ---
 
-`zshell-server` owns the shell and its jobs on a macOS, Linux, Windows or WSL host. Zshell renders it with either terminal backend. A client can close, quit or lose its connection while the remote work continues. Reattaching restores the current screen, scrollback, cursor and terminal modes.
+`zshell-server` owns the shell and its jobs on a macOS or Linux host. Zshell renders it with either terminal backend. A client can close, quit or lose its connection while the remote work continues. Reattaching restores the current screen, scrollback, cursor and terminal modes.
 
 ## Install on the host [#install]
 
-In **Remote Hosts…**, choose the host platform and **Install / Update Server** over SSH. For a Mac with a matching architecture, Zshell uses its bundled executable. For Linux or native Windows, choose the `zshell-server` executable built for that platform and architecture. WSL uses the Linux executable in the selected distribution. The installer verifies the upload and compatibility before replacing the old executable. A running daemon keeps its current version until restarted, which ends its terminal sessions. You can also build directly on the host:
+In **Remote Hosts…**, choose **Install / Update Server** over SSH. For a Mac with a matching architecture, Zshell uses its bundled executable. For Linux, choose the `zshell-server` executable built for that platform and architecture. The installer verifies the upload and compatibility before replacing the old executable. A running daemon keeps its current version until restarted, which ends its terminal sessions. You can also build directly on the host:
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -15,7 +15,7 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-Run the server as the account whose shell and files clients may access. macOS, Linux, native Windows, and WSL are supported. Windows uses ConPTY; WSL sessions use Linux paths and the chosen distribution. A Windows build produces `zshell-server.exe`.
+Run the server as the account whose shell and files clients may access. macOS and Linux are supported.
 
 ## Connect over SSH [#ssh]
 

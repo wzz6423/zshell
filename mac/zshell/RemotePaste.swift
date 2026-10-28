@@ -106,7 +106,7 @@ nonisolated enum RemotePasteUpload {
         try Task.checkCancellation()
         let committed = try transport.exchange(frame("pasteCommit", uploadID: started.uploadId)).decodedResult(Commit.self)
         guard committed.paths.count == sources.count,
-              committed.paths.allSatisfy({ validPath($0, platform: host.platform) }) else { throw invalidResponse() }
+              committed.paths.allSatisfy(validPath) else { throw invalidResponse() }
         return committed.paths
     }
 
@@ -123,7 +123,7 @@ nonisolated enum RemotePasteUpload {
         }
         let created = try run(["/bin/sh", "-c", "umask 077; mktemp -d \"${TMPDIR:-/tmp}/zshell-paste-\(token)-XXXXXXXX\""], input: Data())
         let directory = created.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !created.wasTruncated, validPath(directory, platform: .unix), directory.contains("/zshell-paste-\(token)-"),
+        guard !created.wasTruncated, validPath(directory), directory.contains("/zshell-paste-\(token)-"),
               !directory.contains("/../"), !directory.contains("/./") else { throw invalidResponse() }
         var complete = false
         defer {
@@ -226,40 +226,14 @@ nonisolated enum RemotePasteUpload {
         .message(String(localized: "A clipboard file changed while it was being uploaded."))
     }
 
-    static func validPath(_ path: String, platform: RemoteHost.Platform) -> Bool {
-        guard !path.isEmpty, path.utf8.count <= 16_384,
-              !path.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains) else { return false }
-        guard platform == .windows else { return path.hasPrefix("/") }
-        guard !path.contains(where: { "\"<>|?*".contains($0) }) else { return false }
-        let normalized = path.replacingOccurrences(of: "\\", with: "/")
-        let bytes = Array(normalized.utf8)
-        if bytes.count >= 3, (65...90).contains(bytes[0]) || (97...122).contains(bytes[0]),
-           bytes[1] == 58, bytes[2] == 47 {
-            return !normalized.dropFirst(2).contains(":")
-        }
-        guard normalized.hasPrefix("//"), !normalized.contains(":") else { return false }
-        let components = normalized.dropFirst(2).split(separator: "/", omittingEmptySubsequences: false)
-        return components.count >= 3 && components.allSatisfy { !$0.isEmpty && $0 != "." && $0 != ".." }
+    static func validPath(_ path: String) -> Bool {
+        path.hasPrefix("/") && path.utf8.count <= 16_384
+            && !path.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
     }
 
-    static func quotePath(_ path: String, platform: RemoteHost.Platform, shell: String?) throws -> String {
-        guard validPath(path, platform: platform) else { throw invalidResponse() }
-        guard platform == .windows else { return SSHEndpoint.shellWord(path) }
-        var name = shell?.split(whereSeparator: { $0 == "/" || $0 == "\\" }).last.map(String.init)?.lowercased()
-        if name?.hasSuffix(".exe") == true { name?.removeLast(4) }
-        // Kero classifies the actual pane shell: Windows defaults to cmd.exe
-        // here, while WSL receives paths from its Linux server.
-        switch name {
-        case "cmd":
-            guard !path.contains("%"), !path.contains("!") else {
-                throw RemoteHostError.message(String(localized: "The remote shell can’t safely paste paths containing % or !."))
-            }
-            return "\"" + path + "\""
-        case "pwsh", "powershell": return SSHEndpoint.powerShellLiteral(path)
-        case "sh", "bash", "zsh", "fish", "dash", "ksh", "mksh": return SSHEndpoint.shellWord(path)
-        default:
-            throw RemoteHostError.message(String(localized: "The remote shell couldn’t be identified for file paste."))
-        }
+    static func quotePath(_ path: String) throws -> String {
+        guard validPath(path) else { throw invalidResponse() }
+        return SSHEndpoint.shellWord(path)
     }
 
     static func sizeError() -> RemoteHostError {

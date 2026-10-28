@@ -2,11 +2,8 @@ use crate::protocol::{invalid, is_uuid, new_id, Frame, PasteFile};
 use crate::transport::{prepare_state, shell_path};
 use base64::{engine::general_purpose::STANDARD, Engine};
 use serde_json::{json, Value};
-use std::fs::{self, File, Metadata};
-#[cfg(unix)]
-use std::fs::{DirBuilder, OpenOptions};
+use std::fs::{self, DirBuilder, File, Metadata, OpenOptions};
 use std::io::{self, Write};
-#[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
@@ -42,9 +39,6 @@ impl PasteStore {
                 || info.name.len() > 220
                 || matches!(info.name.as_str(), "." | "..")
                 || info.name.contains(['/', '\\'])
-                || cfg!(windows)
-                    && (info.name.contains([':', '"', '<', '>', '|', '?', '*'])
-                        || info.name.ends_with(['.', ' ']))
                 || info.name.chars().any(char::is_control)
             {
                 return Err(invalid("Invalid paste file name"));
@@ -201,7 +195,7 @@ impl Drop for PasteBatch {
     }
 }
 
-#[cfg(all(test, unix))]
+#[cfg(test)]
 mod tests {
     use super::*;
     use std::os::unix::fs::{symlink, PermissionsExt};
@@ -350,14 +344,10 @@ mod tests {
     }
 }
 
-// Keep owner-only filesystem policy together so other server platforms can
-// implement their native permission model without changing upload handling.
-#[cfg(unix)]
 fn private_directory(path: &Path) -> io::Result<()> {
     DirBuilder::new().mode(0o700).create(path)
 }
 
-#[cfg(unix)]
 fn private_file(path: &Path) -> io::Result<File> {
     OpenOptions::new()
         .write(true)
@@ -367,7 +357,6 @@ fn private_file(path: &Path) -> io::Result<File> {
         .open(path)
 }
 
-#[cfg(unix)]
 fn private_metadata(_: &Path, metadata: &Metadata, directory: bool) -> bool {
     !metadata.file_type().is_symlink()
         && metadata.uid() == unsafe { libc::geteuid() }
@@ -376,34 +365,4 @@ fn private_metadata(_: &Path, metadata: &Metadata, directory: bool) -> bool {
         } else {
             metadata.is_file() && metadata.mode() & 0o777 == 0o600
         }
-}
-
-#[cfg(windows)]
-fn private_directory(path: &Path) -> io::Result<()> {
-    if path.exists() {
-        return Err(io::ErrorKind::AlreadyExists.into());
-    }
-    crate::windows::prepare_directory(path)
-}
-
-#[cfg(windows)]
-fn private_file(path: &Path) -> io::Result<File> {
-    crate::windows::private_file(path, true, false)
-}
-
-#[cfg(windows)]
-fn private_metadata(path: &Path, metadata: &Metadata, directory: bool) -> bool {
-    use std::os::windows::fs::MetadataExt;
-    use std::os::windows::io::AsRawHandle;
-    use windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT;
-    if metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
-        return false;
-    }
-    if directory {
-        crate::windows::prepare_directory(path).is_ok()
-    } else {
-        crate::windows::private_file(path, false, false).is_ok_and(|file| {
-            crate::windows::verify_private_handle(file.as_raw_handle(), false).is_ok()
-        })
-    }
 }

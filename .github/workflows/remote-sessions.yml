@@ -53,8 +53,6 @@ jobs:
             runner: ubuntu-latest
           - platform: macOS
             runner: macos-26
-          - platform: Windows
-            runner: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -81,16 +79,10 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo -n python3 remote/tests/test_cli.py --binary "$CARGO_TARGET_DIR/release/zshell-server" --require-other-uid
 
-      - name: Exercise the Windows CLI, ConPTY, owner ACL, and named pipe
-        if: runner.os == 'Windows'
-        run: python remote/tests/test_cli_windows.py --binary "$env:CARGO_TARGET_DIR/release/zshell-server.exe"
-
       - name: Exercise native Agent hooks and persistent exact conversation resume
-        if: runner.os != 'Windows'
         run: python3 remote/tests/test_agents.py --binary "$CARGO_TARGET_DIR/release/zshell-server"
 
       - name: Exercise shared Codex conversation ownership
-        if: runner.os != 'Windows'
         run: python3 remote/tests/test_shared_codex.py --binary "$CARGO_TARGET_DIR/release/zshell-server"
 
       - name: Remove build artifacts

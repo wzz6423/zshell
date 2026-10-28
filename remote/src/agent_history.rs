@@ -5,11 +5,8 @@ use crate::protocol::{invalid, is_uuid, new_id};
 use crate::transport::{prepare_state, project_path};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::fs::{self, File};
-#[cfg(unix)]
-use std::fs::OpenOptions;
+use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
-#[cfg(unix)]
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -93,16 +90,9 @@ pub fn configuration_keys(provider: &str) -> &'static [&'static str] {
 fn executable(name: &str) -> io::Result<String> {
     let paths = std::env::var_os("PATH").ok_or_else(|| invalid("PATH is unavailable"))?;
     for directory in std::env::split_paths(&paths) {
-        for suffix in if cfg!(windows) { vec![".exe", ".cmd", ""] } else { vec![""] } {
-            let path = directory.join(format!("{name}{suffix}"));
-            if !path.is_file() { continue; }
-            #[cfg(unix)]
-            if path.metadata()?.mode() & 0o111 == 0 { continue; }
-            // CreateProcess does not run .cmd files; the provider's native
-            // executable must be available when resuming a Windows session.
-            if cfg!(windows) && suffix == ".cmd" { continue; }
-            return path.to_str().map(str::to_owned).ok_or_else(|| invalid("Provider executable must be UTF-8"));
-        }
+        let path = directory.join(name);
+        if !path.is_file() || path.metadata()?.mode() & 0o111 == 0 { continue; }
+        return path.to_str().map(str::to_owned).ok_or_else(|| invalid("Provider executable must be UTF-8"));
     }
     Err(invalid(format!("{name} is not installed on this host")))
 }
@@ -197,7 +187,6 @@ impl History {
 
 pub fn timestamp() -> f64 { SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs_f64() }
 
-#[cfg(unix)]
 fn private_read(path: &Path) -> io::Result<Vec<u8>> {
     let file = OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC).open(path)?;
     let metadata = file.metadata()?;
@@ -205,12 +194,6 @@ fn private_read(path: &Path) -> io::Result<Vec<u8>> {
         return Err(invalid("Remote conversations must be an owner-only 0600 file"));
     }
     bounded_read(file)
-}
-
-#[cfg(windows)]
-fn private_read(path: &Path) -> io::Result<Vec<u8>> {
-    if !path.exists() { return Err(io::ErrorKind::NotFound.into()); }
-    bounded_read(crate::windows::private_file(path, false, false)?)
 }
 
 fn bounded_read(file: File) -> io::Result<Vec<u8>> {
@@ -225,19 +208,11 @@ fn private_write(path: &Path, bytes: &[u8]) -> io::Result<()> {
     if bytes.len() as u64 > MAX_BYTES { return Err(invalid("Remote conversation history exceeds 2 MiB")); }
     let temporary = path.with_file_name(format!(".conversations-{}", new_id()?));
     let result = (|| {
-        #[cfg(unix)]
         let mut file = OpenOptions::new().write(true).create_new(true).mode(0o600).open(&temporary)?;
-        #[cfg(windows)]
-        let mut file = crate::windows::private_file(&temporary, true, false)?;
         file.write_all(bytes)?;
         file.sync_all()?;
         drop(file);
-        #[cfg(unix)]
         fs::rename(&temporary, path)?;
-        #[cfg(windows)]
-        if unsafe { windows_sys::Win32::Storage::FileSystem::MoveFileExW(crate::windows::wide(&temporary).as_ptr(),
-            crate::windows::wide(path).as_ptr(), windows_sys::Win32::Storage::FileSystem::MOVEFILE_REPLACE_EXISTING
-                | windows_sys::Win32::Storage::FileSystem::MOVEFILE_WRITE_THROUGH) } == 0 { return Err(io::Error::last_os_error()); }
         Ok(())
     })();
     if result.is_err() { let _ = fs::remove_file(temporary); }

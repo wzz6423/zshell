@@ -6,42 +6,25 @@ nonisolated struct RemoteHost: Codable, Equatable, Identifiable, Sendable {
     var name: String
     var address: String
     var serverPath: String
-    enum Platform: String, Codable, Sendable, CaseIterable { case unix, windows, wsl }
-    var platform: Platform
-    var wslDistribution: String?
-
-    init(id: UUID = UUID(), name: String, address: String, serverPath: String = "~/.local/bin/zshell-server",
-         platform: Platform = .unix, wslDistribution: String? = nil) throws {
+    init(id: UUID = UUID(), name: String, address: String, serverPath: String = "~/.local/bin/zshell-server") throws {
         self.id = id
         self.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         self.address = address.trimmingCharacters(in: .whitespacesAndNewlines)
         self.serverPath = serverPath.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.platform = platform
-        self.wslDistribution = wslDistribution?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if self.wslDistribution?.isEmpty == true { self.wslDistribution = nil }
         _ = try endpoint()
         guard !self.serverPath.contains("\0"), !self.serverPath.contains(where: \Character.isNewline),
-              self.serverPath.hasPrefix("/") || self.serverPath.hasPrefix("~/")
-                || platform == .windows && (self.serverPath.hasPrefix("~\\") || Self.isWindowsAbsolute(self.serverPath)) else {
+              self.serverPath.hasPrefix("/") || self.serverPath.hasPrefix("~/") else {
             throw RemoteHostError.message(String(localized: "Use an absolute path or ~/ for the remote server executable."))
-        }
-        if let distribution = self.wslDistribution, distribution.utf8.count > 256 || distribution.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains) {
-            throw RemoteHostError.message(String(localized: "Enter a valid WSL distribution name."))
-        }
-        if platform == .wsl, case .tailscale = try endpoint() {
-            throw RemoteHostError.message(String(localized: "Use SSH to select a WSL distribution."))
         }
         if self.name.isEmpty { self.name = self.address }
     }
 
-    private enum CodingKeys: String, CodingKey { case id, name, address, serverPath, platform, wslDistribution }
+    private enum CodingKeys: String, CodingKey { case id, name, address, serverPath }
 
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         try self.init(id: values.decode(UUID.self, forKey: .id), name: values.decode(String.self, forKey: .name),
-                      address: values.decode(String.self, forKey: .address), serverPath: values.decode(String.self, forKey: .serverPath),
-                      platform: values.decodeIfPresent(Platform.self, forKey: .platform) ?? .unix,
-                      wslDistribution: values.decodeIfPresent(String.self, forKey: .wslDistribution))
+                      address: values.decode(String.self, forKey: .address), serverPath: values.decode(String.self, forKey: .serverPath))
     }
 
     enum Endpoint: Sendable {
@@ -49,19 +32,8 @@ nonisolated struct RemoteHost: Codable, Equatable, Identifiable, Sendable {
         case tailscale(host: String, port: Int)
     }
 
-    private static func isWindowsAbsolute(_ path: String) -> Bool {
-        let bytes = Array(path.utf8)
-        return bytes.count >= 3 && ((65...90).contains(bytes[0]) || (97...122).contains(bytes[0]))
-            && bytes[1] == 58 && (bytes[2] == 47 || bytes[2] == 92)
-    }
-
     func serverCommand(_ arguments: [String]) -> [String] {
-        if platform != .wsl { return [serverPath] + arguments }
-        return wslCommand(["/bin/sh", "-c", "exec " + ([serverPath] + arguments).map(SSHEndpoint.shellWord).joined(separator: " ")])
-    }
-
-    func wslCommand(_ arguments: [String]) -> [String] {
-        ["wsl.exe"] + (wslDistribution.map { ["--distribution", $0] } ?? []) + ["--exec"] + arguments
+        [serverPath] + arguments
     }
 
     func endpoint() throws -> Endpoint {
@@ -214,7 +186,7 @@ nonisolated final class RemoteHostTransport: @unchecked Sendable {
             let outputPipe = Pipe()
             let errorPipe = Pipe()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
-            process.arguments = try endpoint.transportArguments(connectTimeout: 10, command: host.serverCommand(["bridge"]), windowsShell: host.platform != .unix)
+            process.arguments = try endpoint.transportArguments(connectTimeout: 10, command: host.serverCommand(["bridge"]))
             var environment = SSHAgentEnvironment.shared.resolvedEnvironment()
             environment.removeValue(forKey: "ZSHELL_CLI_STATE")
             environment.removeValue(forKey: "ZSHELL_CLI_TOKEN")

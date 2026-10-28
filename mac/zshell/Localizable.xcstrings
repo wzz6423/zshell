@@ -127310,220 +127310,6 @@
         }
       }
     },
-    "Default distribution": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Default distribution"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "默认发行版"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "預設發行版"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "既定のディストリビューション"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "기본 배포판"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Distribution par défaut"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Standarddistribution"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Distribución predeterminada"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Distribuição padrão"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Distribuzione predefinita"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Standaarddistributie"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Дистрибутив по умолчанию"
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "التوزيعة الافتراضية"
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ดิสทริบิวชันเริ่มต้น"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Distribusi default"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bản phân phối mặc định"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Varsayılan dağıtım"
-          }
-        }
-      }
-    },
-    "Enter a valid WSL distribution name.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enter a valid WSL distribution name."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请输入有效的 WSL 发行版名称。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "請輸入有效的 WSL 發行版名稱。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "有効な WSL ディストリビューション名を入力してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "유효한 WSL 배포판 이름을 입력하세요."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saisissez un nom de distribution WSL valide."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Geben Sie einen gültigen Namen für die WSL-Distribution ein."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Introduce un nombre válido de distribución WSL."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Insira um nome válido de distribuição WSL."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inserisci un nome valido di distribuzione WSL."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voer een geldige naam voor de WSL-distributie in."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Введите допустимое имя дистрибутива WSL."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "أدخل اسم توزيعة WSL صالحًا."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ป้อนชื่อดิสทริบิวชัน WSL ที่ถูกต้อง"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Masukkan nama distribusi WSL yang valid."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nhập tên bản phân phối WSL hợp lệ."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Geçerli bir WSL dağıtım adı girin."
-          }
-        }
-      }
-    },
     "Focus follows mouse": {
       "extractionState": "manual",
       "localizations": {
@@ -128701,109 +128487,109 @@
         }
       }
     },
-    "SSH uses your existing keys and trusted host keys. Install the bundled server on a matching Mac, or choose a Linux or Windows server executable. WSL runs the Linux server inside the selected distribution.": {
+    "SSH uses your existing keys and trusted host keys. Install the bundled server on a matching Mac, or choose a Linux server executable.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "SSH uses your existing keys and trusted host keys. Install the bundled server on a matching Mac, or choose a Linux or Windows server executable. WSL runs the Linux server inside the selected distribution."
+            "value": "SSH uses your existing keys and trusted host keys. Install the bundled server on a matching Mac, or choose a Linux server executable."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "SSH 使用你现有的密钥和已信任的主机密钥。在兼容的 Mac 上安装内置服务端，或选择 Linux 或 Windows 服务端可执行文件。WSL 会在所选发行版中运行 Linux 服务端。"
+            "value": "SSH 使用你现有的密钥和已信任的主机密钥。在兼容的 Mac 上安装内置服务端，或选择 Linux 服务端可执行文件。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "SSH 使用你現有的金鑰和已信任的主機金鑰。在相容的 Mac 上安裝內建伺服器，或選擇 Linux 或 Windows 伺服器執行檔。WSL 會在所選發行版中執行 Linux 伺服器。"
+            "value": "SSH 使用你現有的金鑰和已信任的主機金鑰。在相容的 Mac 上安裝內建伺服器，或選擇 Linux 伺服器執行檔。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "SSH は既存の鍵と信頼済みのホスト鍵を使用します。互換性のある Mac に同梱サーバーをインストールするか、Linux または Windows 用のサーバー実行ファイルを選択してください。WSL は選択したディストリビューション内で Linux サーバーを実行します。"
+            "value": "SSH は既存の鍵と信頼済みのホスト鍵を使用します。互換性のある Mac に同梱サーバーをインストールするか、Linux 用のサーバー実行ファイルを選択してください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "SSH는 기존 키와 신뢰한 호스트 키를 사용합니다. 호환되는 Mac에 내장 서버를 설치하거나 Linux 또는 Windows 서버 실행 파일을 선택하세요. WSL은 선택한 배포판 안에서 Linux 서버를 실행합니다."
+            "value": "SSH는 기존 키와 신뢰한 호스트 키를 사용합니다. 호환되는 Mac에 내장 서버를 설치하거나 Linux 서버 실행 파일을 선택하세요."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "SSH utilise vos clés existantes et les clés d’hôtes de confiance. Installez le serveur fourni sur un Mac compatible, ou choisissez un exécutable de serveur Linux ou Windows. WSL exécute le serveur Linux dans la distribution sélectionnée."
+            "value": "SSH utilise vos clés existantes et les clés d’hôtes de confiance. Installez le serveur fourni sur un Mac compatible, ou choisissez un exécutable de serveur Linux."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "SSH verwendet Ihre vorhandenen Schlüssel und vertrauenswürdigen Hostschlüssel. Installieren Sie den mitgelieferten Server auf einem kompatiblen Mac oder wählen Sie eine Serverdatei für Linux oder Windows. WSL führt den Linux-Server innerhalb der ausgewählten Distribution aus."
+            "value": "SSH verwendet Ihre vorhandenen Schlüssel und vertrauenswürdigen Hostschlüssel. Installieren Sie den mitgelieferten Server auf einem kompatiblen Mac oder wählen Sie eine Serverdatei für Linux."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "SSH utiliza tus claves existentes y las claves de hosts de confianza. Instala el servidor incluido en un Mac compatible o elige un ejecutable de servidor para Linux o Windows. WSL ejecuta el servidor Linux en la distribución seleccionada."
+            "value": "SSH utiliza tus claves existentes y las claves de hosts de confianza. Instala el servidor incluido en un Mac compatible o elige un ejecutable de servidor para Linux."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O SSH usa suas chaves existentes e as chaves de hosts confiáveis. Instale o servidor incluído em um Mac compatível ou escolha um executável de servidor Linux ou Windows. O WSL executa o servidor Linux dentro da distribuição selecionada."
+            "value": "O SSH usa suas chaves existentes e as chaves de hosts confiáveis. Instale o servidor incluído em um Mac compatível ou escolha um executável de servidor Linux."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "SSH utilizza le chiavi esistenti e le chiavi host attendibili. Installa il server incluso su un Mac compatibile oppure scegli un eseguibile server per Linux o Windows. WSL esegue il server Linux nella distribuzione selezionata."
+            "value": "SSH utilizza le chiavi esistenti e le chiavi host attendibili. Installa il server incluso su un Mac compatibile oppure scegli un eseguibile server per Linux."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "SSH gebruikt je bestaande sleutels en vertrouwde hostsleutels. Installeer de meegeleverde server op een compatibele Mac of kies een uitvoerbaar serverbestand voor Linux of Windows. WSL voert de Linux-server uit in de geselecteerde distributie."
+            "value": "SSH gebruikt je bestaande sleutels en vertrouwde hostsleutels. Installeer de meegeleverde server op een compatibele Mac of kies een uitvoerbaar serverbestand voor Linux."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "SSH использует существующие ключи и доверенные ключи узлов. Установите встроенный сервер на совместимом Mac или выберите исполняемый файл сервера для Linux или Windows. WSL запускает сервер Linux внутри выбранного дистрибутива."
+            "value": "SSH использует существующие ключи и доверенные ключи узлов. Установите встроенный сервер на совместимом Mac или выберите исполняемый файл сервера для Linux."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "يستخدم SSH مفاتيحك الحالية ومفاتيح المضيفين الموثوق بها. ثبّت الخادم المرفق على جهاز Mac متوافق، أو اختر ملف خادم تنفيذيًا لنظام Linux أو Windows. يشغّل WSL خادم Linux داخل التوزيعة المحددة."
+            "value": "يستخدم SSH مفاتيحك الحالية ومفاتيح المضيفين الموثوق بها. ثبّت الخادم المرفق على جهاز Mac متوافق، أو اختر ملف خادم تنفيذيًا لنظام Linux."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "SSH ใช้คีย์ที่คุณมีอยู่และคีย์โฮสต์ที่เชื่อถือ ติดตั้งเซิร์ฟเวอร์ที่มาพร้อมแอปบน Mac ที่เข้ากันได้ หรือเลือกไฟล์เซิร์ฟเวอร์ที่เรียกใช้ได้สำหรับ Linux หรือ Windows ส่วน WSL จะเรียกใช้เซิร์ฟเวอร์ Linux ในดิสทริบิวชันที่เลือก"
+            "value": "SSH ใช้คีย์ที่คุณมีอยู่และคีย์โฮสต์ที่เชื่อถือ ติดตั้งเซิร์ฟเวอร์ที่มาพร้อมแอปบน Mac ที่เข้ากันได้ หรือเลือกไฟล์เซิร์ฟเวอร์ที่เรียกใช้ได้สำหรับ Linux"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "SSH menggunakan kunci Anda yang sudah ada dan kunci host tepercaya. Instal server bawaan pada Mac yang kompatibel, atau pilih berkas server yang dapat dieksekusi untuk Linux atau Windows. WSL menjalankan server Linux di dalam distribusi yang dipilih."
+            "value": "SSH menggunakan kunci Anda yang sudah ada dan kunci host tepercaya. Instal server bawaan pada Mac yang kompatibel, atau pilih berkas server yang dapat dieksekusi untuk Linux."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "SSH sử dụng các khóa hiện có và khóa máy chủ đáng tin cậy của bạn. Cài máy chủ đi kèm trên máy Mac tương thích, hoặc chọn tệp thực thi máy chủ cho Linux hay Windows. WSL chạy máy chủ Linux trong bản phân phối đã chọn."
+            "value": "SSH sử dụng các khóa hiện có và khóa máy chủ đáng tin cậy của bạn. Cài máy chủ đi kèm trên máy Mac tương thích, hoặc chọn tệp thực thi máy chủ cho Linux."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "SSH, mevcut anahtarlarınızı ve güvenilir ana makine anahtarlarını kullanır. Uyumlu bir Mac’e uygulamayla gelen sunucuyu kurun veya Linux ya da Windows için bir sunucu yürütülebilir dosyası seçin. WSL, Linux sunucusunu seçilen dağıtımın içinde çalıştırır."
+            "value": "SSH, mevcut anahtarlarınızı ve güvenilir ana makine anahtarlarını kullanır. Uyumlu bir Mac’e uygulamayla gelen sunucuyu kurun veya Linux için bir sunucu yürütülebilir dosyası seçin."
           }
         }
       }
@@ -130520,220 +130306,6 @@
         }
       }
     },
-    "The remote shell can’t safely paste paths containing % or !.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The remote shell can’t safely paste paths containing % or !."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "远程 shell 无法安全粘贴包含 % 或 ! 的路径。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "遠端 shell 無法安全貼上包含 % 或 ! 的路徑。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "リモートシェルでは % または ! を含むパスを安全に貼り付けられません。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "원격 셸에서는 % 또는 !가 포함된 경로를 안전하게 붙여 넣을 수 없습니다."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le shell distant ne peut pas coller de manière sûre des chemins contenant % ou !."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die entfernte Shell kann Pfade mit % oder ! nicht sicher einfügen."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "El shell remoto no puede pegar de forma segura rutas que contengan % o !."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O shell remoto não pode colar com segurança caminhos que contenham % ou !."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La shell remota non può incollare in sicurezza percorsi contenenti % o !."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "De externe shell kan paden met % of ! niet veilig plakken."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Удалённая оболочка не может безопасно вставить пути, содержащие % или !."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "لا تستطيع الصدفة البعيدة لصق مسارات تحتوي على % أو ! بأمان."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "เชลล์ระยะไกลไม่สามารถวางพาธที่มี % หรือ ! ได้อย่างปลอดภัย"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shell jarak jauh tidak dapat menempelkan jalur yang berisi % atau ! dengan aman."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shell từ xa không thể dán an toàn đường dẫn chứa % hoặc !."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uzak kabuk % veya ! içeren yolları güvenli biçimde yapıştıramaz."
-          }
-        }
-      }
-    },
-    "The remote shell couldn’t be identified for file paste.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The remote shell couldn’t be identified for file paste."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法识别远程 shell，不能粘贴文件。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "無法識別遠端 shell，不能貼上檔案。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ファイルの貼り付けに使用するリモートシェルを識別できませんでした。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "파일 붙여 넣기에 사용할 원격 셸을 식별할 수 없습니다."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impossible d’identifier le shell distant pour coller des fichiers."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die entfernte Shell zum Einfügen von Dateien konnte nicht ermittelt werden."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No se pudo identificar el shell remoto para pegar archivos."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não foi possível identificar o shell remoto para colar arquivos."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impossibile identificare la shell remota per incollare file."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "De externe shell voor het plakken van bestanden kon niet worden vastgesteld."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Не удалось определить удалённую оболочку для вставки файлов."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "تعذّر تحديد الصدفة البعيدة للصق الملفات."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ระบุเชลล์ระยะไกลสำหรับการวางไฟล์ไม่ได้"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shell jarak jauh untuk menempelkan berkas tidak dapat dikenali."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Không thể xác định shell từ xa để dán tệp."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dosya yapıştırmak için uzak kabuk belirlenemedi."
-          }
-        }
-      }
-    },
     "The server executable changed while reading it.": {
       "extractionState": "manual",
       "localizations": {
@@ -131479,220 +131051,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uzak ajan entegrasyonlarını kurmak için SSH kullanın."
-          }
-        }
-      }
-    },
-    "Use SSH to select a WSL distribution.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use SSH to select a WSL distribution."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用 SSH 选择 WSL 发行版。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用 SSH 選擇 WSL 發行版。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SSH を使用して WSL ディストリビューションを選択してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SSH로 WSL 배포판을 선택하세요."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Utilisez SSH pour sélectionner une distribution WSL."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Verwenden Sie SSH, um eine WSL-Distribution auszuwählen."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usa SSH para seleccionar una distribución WSL."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use SSH para selecionar uma distribuição WSL."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usa SSH per selezionare una distribuzione WSL."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gebruik SSH om een WSL-distributie te selecteren."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Используйте SSH для выбора дистрибутива WSL."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "استخدم SSH لاختيار توزيعة WSL."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ใช้ SSH เพื่อเลือกดิสทริบิวชัน WSL"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gunakan SSH untuk memilih distribusi WSL."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dùng SSH để chọn bản phân phối WSL."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "WSL dağıtımı seçmek için SSH kullanın."
-          }
-        }
-      }
-    },
-    "WSL Distribution": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "WSL Distribution"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "WSL 发行版"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "WSL 發行版"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "WSL ディストリビューション"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "WSL 배포판"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Distribution WSL"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "WSL-Distribution"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Distribución WSL"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Distribuição WSL"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Distribuzione WSL"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "WSL-distributie"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Дистрибутив WSL"
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "توزيعة WSL"
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ดิสทริบิวชัน WSL"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Distribusi WSL"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bản phân phối WSL"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "WSL Dağıtımı"
           }
         }
       }

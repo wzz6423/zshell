@@ -73,7 +73,9 @@ impl Pty {
         let pid = unsafe { libc::tcgetpgrp(self.master.as_raw_fd()) };
         (pid > 1).then_some(pid)
     }
-    pub fn owns_process(&self, _pid: i32) -> bool { true }
+    pub fn owns_process(&self, _pid: i32) -> bool {
+        true
+    }
     pub fn write(&self, bytes: &[u8]) -> io::Result<()> {
         write_pty(self.master.as_raw_fd(), bytes)
     }

@@ -3,11 +3,11 @@ title: 远程共享会话
 description: 通过 SSH 或 Tailscale 连接同一远程终端，断开客户端后继续运行任务。
 ---
 
-`zshell-server` 在 macOS、Linux、Windows 或 WSL 主机上持有 shell 和任务，Zshell 的两种终端后端都可以显示它。关闭客户端、退出应用或网络中断后，远程任务继续运行；重新附着会恢复当前屏幕、滚动历史、光标和终端模式。
+`zshell-server` 在 macOS 或 Linux 主机上持有 shell 和任务，Zshell 的两种终端后端都可以显示它。关闭客户端、退出应用或网络中断后，远程任务继续运行；重新附着会恢复当前屏幕、滚动历史、光标和终端模式。
 
 ## 在主机安装 [#install]
 
-在**远端主机…**选择主机平台，通过 SSH 点击**安装 / 更新服务端**。同架构 Mac 使用应用内置程序；Linux 和原生 Windows 请选择为对应平台、架构构建的 `zshell-server`。WSL 使用所选发行版内的 Linux 程序。上传及兼容性验证通过后才替换旧程序。已运行的 daemon 在重启前保持原版本，重启会结束其终端会话。也可以直接在主机构建：
+在**远端主机…**通过 SSH 点击**安装 / 更新服务端**。同架构 Mac 使用应用内置程序；Linux 请选择为对应平台、架构构建的 `zshell-server`。上传及兼容性验证通过后才替换旧程序。已运行的 daemon 在重启前保持原版本，重启会结束其终端会话。也可以直接在主机构建：
 
 ```sh
 cargo build --locked --release --manifest-path remote/Cargo.toml
@@ -15,7 +15,7 @@ install -d "$HOME/.local/bin"
 install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
 ```
 
-服务端以哪个账户运行，连接者就能操作该账户的 shell 和文件。支持 macOS、Linux、原生 Windows 和 WSL。Windows 使用 ConPTY；WSL 会话使用所选发行版的 Linux 路径。Windows 构建产物为 `zshell-server.exe`。
+服务端以哪个账户运行，连接者就能操作该账户的 shell 和文件。支持 macOS 和 Linux。
 
 ## 使用 SSH 连接 [#ssh]
 
