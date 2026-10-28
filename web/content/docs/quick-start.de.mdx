@@ -65,7 +65,7 @@ Die Befehlspalette durchsucht alle Projekte, geöffneten Sitzungen und Zshell-Be
 
 Nach dem Beenden und erneuten Öffnen finden Sie Projekte, Tabs und Bereichsanordnung wieder vor. Jedes Terminal startet eine **neue Shell** im bisherigen Verzeichnis. Es bleiben keine Prozesse unbemerkt im Hintergrund aktiv.
 
-Der Ausgabeverlauf wird nur auf Wunsch wiederhergestellt. Aktivieren Sie [`terminal.restore-history`](/de/docs/configuration#terminalrestore-history), damit frühere Ausgaben über einer Trennlinie `Session Contents Restored` erscheinen. Darunter läuft die neue Shell.
+Neue Konfigurationen aktivieren die Wiederherstellung des Ausgabeverlaufs standardmäßig. Wenn [`terminal.restore-history`](/de/docs/configuration#terminalrestore-history) aktiviert ist, erscheinen frühere Ausgaben über einer Trennlinie `Session Contents Restored`. Darunter läuft die neue Shell.
 
 <Callout type="info">
 Der wiederhergestellte Inhalt ist statischer Text: eine Aufzeichnung früherer Vorgänge, keine aktive Sitzung. Beim Zurückscrollen wird nichts erneut ausgeführt.

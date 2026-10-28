@@ -100,7 +100,7 @@ Le notifiche possono riprodurre il suono di sistema. Fare clic su una notifica a
 Apri **Impostazioni → Terminale → Notifiche dei comandi** per ricevere una notifica al termine di un comando:
 
 - **Comandi di lunga durata**: scegli 5, 10, 30 o 60 secondi. Un comando eseguito per almeno quel tempo genera una notifica di completamento. Il valore predefinito è **Disattivato**.
-- **Comandi non riusciti**: notifica uno stato di uscita diverso da zero, indipendentemente dalla durata. Anche questa opzione è disattivata per impostazione predefinita e si può attivare separatamente.
+- **Comandi non riusciti**: notifica uno stato di uscita diverso da zero, indipendentemente dalla durata. Questa opzione è attiva nelle nuove configurazioni e si può disattivare separatamente.
 
 Queste impostazioni si applicano ai terminali zsh creati dopo la modifica, su entrambi i motori. Usano l'evento di completamento dei comandi della shell originale; i comandi eseguiti in una shell annidata o in un programma interattivo non segnalano i singoli completamenti tramite questa integrazione.
 
@@ -163,7 +163,7 @@ Abilita `terminal.preserve-sessions` prima di aprire un nuovo terminale rapido p
 
 ## Suggerimenti per i comandi Vim [#vim-command-hints]
 
-Attiva **Impostazioni → Terminale → Comportamento → Suggerimenti per i comandi Vim**, poi apri la scheda **Info** della barra laterale destra. Una sezione **COMANDI VIM** compare sotto le informazioni della sessione mentre Vim, Vi o Neovim è attivo. È disattivata per impostazione predefinita e si applica subito ai terminali esistenti su entrambi i motori.
+Gestisci i suggerimenti in **Impostazioni → Terminale → Comportamento → Suggerimenti per i comandi Vim**, poi apri la scheda **Info** della barra laterale destra. Una sezione **COMANDI VIM** compare sotto le informazioni della sessione mentre Vim, Vi o Neovim è attivo. È attiva per impostazione predefinita nelle nuove configurazioni e si applica subito ai terminali esistenti su entrambi i motori.
 
 L'elenco completo dei comandi comuni resta disponibile; cambia solo la priorità: la modalità Normale mette per primi `:w`, `:q`, `yy` e `p`/`P`; Visuale a blocchi mette per primi `I`/`A`, le modifiche a blocchi e lo spostamento tra gli angoli. Inserimento, Sostituzione, Visuale, Visuale per righe, Selezione, riga di comando e ricerca hanno un proprio ordine. Ogni voce indica le modalità in cui si applica. Cerca per tasti, descrizione o nome della modalità; descrizioni e interfaccia di ricerca seguono una qualsiasi delle 17 lingue dell'app. Cancella la ricerca per ripristinare l'elenco completo. I suggerimenti sono un riferimento e non inviano mai input all'editor.
 

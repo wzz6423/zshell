@@ -100,7 +100,7 @@ Bildirimler sistem sesi çalabilir. Tıklamak Zshell’i etkinleştirir ve bildi
 Komut bitiş bildirimi için **Ayarlar → Terminal → Komut Bildirimleri**’ni açın:
 
 - **Uzun süren komutlar**: 5, 10, 30 veya 60 saniye seçin. En az bu süre çalışan komut bitince bildirim üretir. Varsayılan **Kapalı**.
-- **Başarısız komutlar**: süreden bağımsız sıfır dışı çıkış durumunda bildirir. Varsayılan kapalıdır, bağımsız açılabilir.
+- **Başarısız komutlar**: süreden bağımsız sıfır dışı çıkış durumunda bildirir. Yeni yapılandırmalarda varsayılan açıktır, bağımsız kapatılabilir.
 
 İki arka uçta da değişiklikten sonra oluşturulan zsh terminallerine uygulanır. Asıl kabuğun komut tamamlanma olayını kullanır; iç içe kabuk veya etkileşimli program içindeki komutlar bu entegrasyonla ayrı bitiş bildirmez.
 
@@ -163,7 +163,7 @@ Komut kaydedip çalıştıran [Hızlı Başlat](/tr/docs/quick-launch) ayrı bir
 
 ## Vim komut ipuçları [#vim-command-hints]
 
-**Ayarlar → Terminal → Davranış → Vim komut ipuçları** seçeneğini açıp sağ kenar çubuğunun **Bilgi** sekmesine gidin. Vim, Vi veya Neovim etkinken oturum bilgisinin altında **VIM KOMUTLARI** görünür. Varsayılan kapalıdır; iki arka uçtaki mevcut terminallere hemen uygulanır.
+**Ayarlar → Terminal → Davranış → Vim komut ipuçları** seçeneğini ayarlayıp sağ kenar çubuğunun **Bilgi** sekmesine gidin. Vim, Vi veya Neovim etkinken oturum bilgisinin altında **VIM KOMUTLARI** görünür. Yeni yapılandırmalarda varsayılan açıktır; iki arka uçtaki mevcut terminallere hemen uygulanır.
 
 Yaygın komutların tam listesi hep erişilebilirdir; yalnızca öncelik değişir. Normal modda `:w`, `:q`, `yy`, `p`/`P`; Görsel Blok’ta `I`/`A`, blok değişiklikleri ve köşe hareketleri başa gelir. Ekleme, Değiştirme, Görsel, Görsel Satır, Seçim, komut satırı ve arama modlarının kendi sıralaması vardır. Her kayıt geçerli modları belirtir. Tuş, açıklama veya mod adıyla arayın; açıklama ve arama arayüzü uygulamanın 17 dilini izler. Sorguyu temizlemek tam listeyi geri getirir. İpuçları başvuru içindir, düzenleyiciye giriş göndermez.
 

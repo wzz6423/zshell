@@ -11,13 +11,15 @@ Hầu hết cài đặt bền vững của Zshell nằm trong một tệp:
 
 Cửa sổ Cài đặt (<kbd>Cmd</kbd>+<kbd>,</kbd>) ghi cùng tệp này. Một số cài đặt do macOS quản lý, như ngôn ngữ và cập nhật tự động, nằm nơi khác và được liệt kê cuối trang.
 
+Cấu hình mới bật gợi ý lệnh Vim, khôi phục lịch sử phiên và thông báo lệnh thất bại theo mặc định. Tự động tải cập nhật cũng mặc định bật. Cấu hình hiện có và các lựa chọn đã lưu được giữ nguyên.
+
 ## Hành vi của tệp [#how-the-file-behaves]
 
 Nên biết trước khi sửa tay:
 
 - **Được đọc lúc khởi chạy.** Sửa tệp khi Zshell đang chạy không có hiệu lực tới khi mở lại. Thay đổi trong Cài đặt áp dụng ngay, trừ nơi điều khiển nói khác.
 - **Zshell ghi lại tệp mỗi khi một cài đặt lưu trong tệp thay đổi.** Tệp được tạo lại từ đầu, nên chú thích và khóa lạ mất vào lần dùng điều khiển đó tiếp theo. Chọn một nơi chỉnh sửa, hoặc giữ bản chuẩn trong dotfile của bạn.
-- **Chỉ ghi giá trị khác mặc định, trừ một ngoại lệ.** `font-size` luôn có. Xóa khóa khác trả về mặc định.
+- **Hầu hết giá trị mặc định được bỏ qua.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` luôn được lưu. Xóa một trong ba khóa terminal này trong tệp hiện có sẽ tắt tính năng tương ứng; xóa các khóa khác sẽ khôi phục giá trị mặc định.
 - **Bộ phân tích cố ý đơn giản.** Hỗ trợ khóa phẳng, khóa dấu chấm, tiêu đề `[table]`, chú thích `#`, giá trị chuỗi/số/boolean. Không hỗ trợ mảng, bảng nội tuyến hay chuỗi nhiều dòng.
 - **Giá trị sai có phương án dự phòng an toàn.** Kích thước ngoài khoảng, backend không rõ hay tên chủ đề sai không làm Zshell không khởi chạy được.
 
@@ -151,17 +153,17 @@ boolean — mặc định `true`
 
 ### `terminal.vim-command-hints` [#terminalvim-command-hints]
 
-boolean — mặc định `false`
+boolean — mặc định `true`
 
 Hiện lệnh Vim/Neovim theo chế độ dưới thông tin phiên ở thanh **Thông tin**. Có hiệu lực ngay trên cả hai backend, kể cả trình soạn thảo nhận diện được qua SSH. Xem [Gợi ý lệnh Vim](/vi/docs/terminal#vim-command-hints) cho điều kiện nhận diện.
 
 ### `terminal.restore-history` [#terminalrestore-history]
 
-boolean — mặc định `false`
+boolean — mặc định `true`
 
 Khôi phục đầu ra trước của từng terminal phía trên shell mới sau khi mở lại. Nội dung là văn bản tĩnh, không phải tiến trình được giữ sống.
 
-Đầu ra khôi phục lưu trên đĩa, nên có thể gồm bí mật từng hiển thị. Mặc định tắt. [Dự án, tab và bố cục ô](/vi/docs/projects#what-survives-a-relaunch) vẫn luôn được khôi phục.
+Đầu ra khôi phục lưu trên đĩa, nên có thể gồm bí mật từng hiển thị. [Dự án, tab và bố cục ô](/vi/docs/projects#what-survives-a-relaunch) vẫn luôn được khôi phục.
 
 ## Tự động hóa [#automation]
 
@@ -195,7 +197,7 @@ Khi khôi phục ngăn terminal và PTY gốc không còn khả dụng, tiếp t
 | `terminal.background-opacity` | `1` | 0.2–1 | Độ đục nền terminal |
 | `terminal.background-blur` | `false` | boolean | Làm mờ nền trong suốt |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Báo khi lệnh chạy ít nhất thời gian này rồi kết thúc trong terminal zsh mới; 0 tắt |
-| `terminal.notify-on-error` | `false` | boolean | Báo lệnh thất bại trong terminal zsh mới |
+| `terminal.notify-on-error` | `true` | boolean | Báo lệnh thất bại trong terminal zsh mới |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Dùng lại không gian làm việc / Không gian làm việc mới mỗi lần |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Kích thước Terminal nhanh so với màn hình |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Độ đục nền Terminal nhanh |

@@ -100,7 +100,7 @@ Notifikasi dapat memainkan suara sistem. Mengkliknya mengaktifkan Zshell dan lan
 Buka **Pengaturan → Terminal → Notifikasi Perintah** untuk menerima pemberitahuan ketika perintah selesai:
 
 - **Perintah berdurasi lama**: pilih 5, 10, 30, atau 60 detik. Perintah yang berjalan setidaknya selama durasi itu memicu notifikasi selesai. Bawaannya **Mati**.
-- **Perintah gagal**: beri notifikasi untuk status keluar bukan nol, berapa pun durasinya. Bawaannya juga mati dan dapat diaktifkan terpisah.
+- **Perintah gagal**: beri notifikasi untuk status keluar bukan nol, berapa pun durasinya. Aktif secara bawaan pada konfigurasi baru dan dapat dimatikan terpisah.
 
 Pengaturan berlaku untuk terminal zsh yang dibuat setelah perubahan pada kedua backend. Fitur memakai peristiwa penyelesaian dari shell awal; perintah dalam shell bersarang atau program interaktif tidak melaporkan penyelesaian satu per satu melalui integrasi ini.
 
@@ -163,7 +163,7 @@ Aktifkan `terminal.preserve-sessions` sebelum membuka Terminal Cepat baru agar t
 
 ## Petunjuk perintah Vim [#vim-command-hints]
 
-Aktifkan **Pengaturan → Terminal → Perilaku → Petunjuk perintah Vim**, lalu buka tab **Info** pada bilah samping kanan. Bagian **PERINTAH VIM** muncul di bawah informasi sesi saat Vim, Vi, atau Neovim aktif. Bawaannya mati dan perubahan langsung berlaku pada terminal yang ada di kedua backend.
+Kelola petunjuk di **Pengaturan → Terminal → Perilaku → Petunjuk perintah Vim**, lalu buka tab **Info** pada bilah samping kanan. Bagian **PERINTAH VIM** muncul di bawah informasi sesi saat Vim, Vi, atau Neovim aktif. Aktif secara bawaan pada konfigurasi baru dan perubahan langsung berlaku pada terminal yang ada di kedua backend.
 
 Daftar lengkap perintah umum tetap tersedia; hanya prioritasnya berubah. Normal menempatkan `:w`, `:q`, `yy`, dan `p`/`P` di awal; Visual Block mendahulukan `I`/`A`, perubahan blok, dan gerakan sudut. Insert, Replace, Visual, Visual Line, Select, baris perintah, dan pencarian memiliki urutan sendiri. Setiap entri menyebutkan mode yang sesuai. Cari berdasarkan tombol, deskripsi, atau nama mode; deskripsi dan antarmuka pencarian mengikuti 17 bahasa aplikasi. Kosongkan pencarian untuk mengembalikan daftar penuh. Petunjuk hanya referensi dan tidak pernah mengirim input ke editor.
 

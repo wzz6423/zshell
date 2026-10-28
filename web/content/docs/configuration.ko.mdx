@@ -11,13 +11,15 @@ description: Zshell의 모든 영구 설정, 각 설정의 동작과 저장 위�
 
 설정 창(<kbd>Cmd</kbd>+<kbd>,</kbd>)도 같은 파일에 씁니다. 언어와 자동 업데이트처럼 macOS가 관리하는 일부 설정은 다른 곳에 저장되며 이 페이지 끝에 정리되어 있습니다.
 
+새 설정에서는 Vim 명령 힌트, 세션 기록 복원, 실패한 명령 알림이 기본적으로 켜집니다. 업데이트 자동 다운로드도 기본적으로 켜집니다. 기존 설정과 저장한 선택은 유지됩니다.
+
 ## 설정 파일의 동작 [#how-the-file-behaves]
 
 직접 편집하기 전에 다음을 알아두세요.
 
 - **앱을 시작할 때 읽습니다.** Zshell 실행 중 파일을 편집해도 다시 실행하기 전까지는 반영되지 않습니다. 설정 창에서 변경한 내용은 컨트롤에 별도 안내가 있는 경우를 제외하고 즉시 적용됩니다.
 - **파일에 저장되는 설정이 바뀔 때마다 Zshell이 다시 씁니다.** 파일 전체를 다시 생성하므로 해당 컨트롤을 다음에 사용하면 주석과 알 수 없는 키가 사라집니다. 파일을 관리할 편집 방식을 하나로 정하거나 dotfile에 기준 복사본을 보관하세요.
-- **기본값이 아닌 값만 쓰지만 예외가 하나 있습니다.** `font-size`는 항상 기록합니다. 그 밖의 키를 삭제하면 기본값으로 돌아갑니다.
+- **대부분의 기본값은 생략합니다.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`는 항상 저장합니다. 기존 파일에서 이 세 터미널 키 중 하나를 삭제하면 해당 기능이 꺼집니다. 다른 키를 삭제하면 기본값으로 돌아갑니다.
 - **파서는 의도적으로 간단합니다.** 단순 키, 점으로 구분한 키, `[table]` 머리글, `#` 주석과 문자열/숫자/불리언 값을 지원합니다. 배열, 인라인 테이블과 여러 줄 문자열은 지원하지 않습니다.
 - **잘못된 값은 안전한 기본값으로 대체됩니다.** 범위를 벗어난 크기, 알 수 없는 백엔드나 오타가 있는 테마 때문에 Zshell을 시작하지 못하는 일은 없습니다.
 
@@ -151,17 +153,17 @@ true이면 Option 키 조합을 Alt/Meta 단축키로 터미널 프로그램에 
 
 ### `terminal.vim-command-hints` [#terminalvim-command-hints]
 
-불리언 — 기본값 `false`
+불리언 — 기본값 `true`
 
 **정보** 사이드바의 세션 정보 아래에 모드에 맞는 Vim / Neovim 명령을 표시합니다. 두 백엔드에 즉시 적용되며 SSH를 통해 인식할 수 있는 편집기도 포함됩니다. 모드 감지 조건은 [Vim 명령 힌트](/ko/docs/terminal#vim-command-hints)를 참고하세요.
 
 ### `terminal.restore-history` [#terminalrestore-history]
 
-불리언 — 기본값 `false`
+불리언 — 기본값 `true`
 
 재실행 후 새 셸 위에 각 터미널의 이전 스크롤 기록을 복원합니다. 복원 내용은 살아 있는 프로세스가 아닌 정적인 텍스트입니다.
 
-복원용 스크롤 기록은 디스크에 저장되므로 터미널에 표시된 비밀 정보가 포함될 수 있습니다. 따라서 기본적으로 꺼져 있습니다. 이 설정과 관계없이 [프로젝트, 탭과 분할 창 배치](/ko/docs/projects#what-survives-a-relaunch)는 복원됩니다.
+복원용 스크롤 기록은 디스크에 저장되므로 터미널에 표시된 비밀 정보가 포함될 수 있습니다. 이 설정과 관계없이 [프로젝트, 탭과 분할 창 배치](/ko/docs/projects#what-survives-a-relaunch)는 복원됩니다.
 
 ## 자동화 [#automation]
 
@@ -195,7 +197,7 @@ true이면 Option 키 조합을 Alt/Meta 단축키로 터미널 프로그램에 
 | `terminal.background-opacity` | `1` | 0.2–1 | 터미널 배경 불투명도 |
 | `terminal.background-blur` | `false` | 불리언 | 반투명 배경 흐림 효과 |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | 새 zsh 터미널에서 명령이 지정 시간 이상 실행된 뒤 종료되면 알림. 0은 끄기 |
-| `terminal.notify-on-error` | `false` | 불리언 | 새 zsh 터미널에서 명령 실패 시 알림 |
+| `terminal.notify-on-error` | `true` | 불리언 | 새 zsh 터미널에서 명령 실패 시 알림 |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | 작업 공간 재사용 / 매번 새 작업 공간 |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | 화면에 대한 빠른 터미널 크기 비율 |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | 빠른 터미널 배경 불투명도 |

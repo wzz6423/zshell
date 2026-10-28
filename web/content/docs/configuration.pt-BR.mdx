@@ -11,13 +11,15 @@ A maioria dos ajustes persistentes fica em um único arquivo:
 
 A janela Ajustes (<kbd>Cmd</kbd>+<kbd>,</kbd>) grava esse mesmo arquivo. Algumas preferências do macOS — idioma e atualizações automáticas — ficam em outro lugar e são listadas no final desta página.
 
+Novas configurações ativam as dicas de comandos Vim, a restauração do histórico de sessões e as notificações de comandos com falha. O download automático de atualizações também vem ativado. As configurações existentes e as escolhas salvas são preservadas.
+
 ## Como o arquivo funciona [#how-the-file-behaves]
 
 Antes de editar manualmente, considere:
 
 - **Ele é lido ao iniciar.** Editar durante a execução não muda nada até reiniciar. Mudanças pela janela Ajustes se aplicam imediatamente, exceto quando o controle informa o contrário.
 - **O Zshell reescreve o arquivo quando muda um ajuste armazenado nele.** O arquivo é regenerado, então comentários e chaves desconhecidas se perdem na próxima utilização desses controles. Escolha uma forma principal de edição ou mantenha uma cópia oficial nos seus dotfiles.
-- **Só valores diferentes do padrão são gravados, com uma exceção.** `font-size` sempre aparece. Excluir qualquer outra chave restaura o padrão.
+- **A maioria dos valores padrão é omitida.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` são sempre gravados. Remover uma dessas três chaves de terminal em um arquivo existente desativa o recurso; remover outras chaves restaura os valores padrão.
 - **O parser é propositalmente pequeno.** Suporta chaves simples, chaves com pontos, cabeçalhos `[table]`, comentários `#` e valores de texto, número e booleano. Não suporta arrays, tabelas em linha ou strings com múltiplas linhas.
 - **Valores inválidos usam um fallback seguro.** Tamanhos fora da faixa, backends desconhecidos e nomes de temas incorretos não impedem o aplicativo de abrir.
 
@@ -151,17 +153,17 @@ Controla o som e a solicitação visual de atenção do macOS quando um programa
 
 ### `terminal.vim-command-hints` [#terminalvim-command-hints]
 
-Booleano — padrão `false`
+Booleano — padrão `true`
 
 Mostra comandos Vim / Neovim conforme o modo abaixo das informações da sessão em **Info**. Aplica imediatamente nos dois backends, incluindo editores reconhecíveis por SSH. Veja [Dicas de comandos Vim](/pt-BR/docs/terminal#vim-command-hints) para os requisitos de detecção.
 
 ### `terminal.restore-history` [#terminalrestore-history]
 
-Booleano — padrão `false`
+Booleano — padrão `true`
 
 Restaura a saída anterior acima de um shell novo após reiniciar. O conteúdo é texto estático, não um processo sobrevivente.
 
-A saída restaurada fica no disco, portanto pode incluir segredos exibidos no terminal. A opção vem desativada. [Projetos, abas e layout](/pt-BR/docs/projects#what-survives-a-relaunch) são restaurados independentemente dela.
+A saída restaurada fica no disco, portanto pode incluir segredos exibidos no terminal. [Projetos, abas e layout](/pt-BR/docs/projects#what-survives-a-relaunch) são restaurados independentemente dela.
 
 ## Automação [#automation]
 
@@ -195,7 +197,7 @@ Controle em **Ajustes → Automação → Retomar conversas de agentes**. Esta o
 | `terminal.background-opacity` | `1` | 0.2–1 | Opacidade do fundo do terminal |
 | `terminal.background-blur` | `false` | Booleano | Desfocar fundos translúcidos |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Notificar ao concluir um comando que durou pelo menos esse tempo em terminais zsh novos; 0 desativa |
-| `terminal.notify-on-error` | `false` | Booleano | Notificar falhas de comandos em terminais zsh novos |
+| `terminal.notify-on-error` | `true` | Booleano | Notificar falhas de comandos em terminais zsh novos |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Reutilizar espaço de trabalho / Novo espaço a cada abertura |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Tamanho do Terminal Rápido relativo à tela |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Opacidade do fundo do Terminal Rápido |

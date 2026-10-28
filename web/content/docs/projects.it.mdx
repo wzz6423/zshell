@@ -100,7 +100,7 @@ Zshell salva snapshot della disposizione mentre lavori. Uscendo e riaprendo ritr
 
 Se il PTY originale non è disponibile e sono attivi **Riprendi le conversazioni degli agenti** e il supporto IA, Zshell riprende la conversazione verificata di Claude Code, Codex, Pi o OpenCode. Gli altri pannelli aprono **nuove shell** nelle cartelle precedenti. La conversazione mantiene la sua identità; Zshell non recupera una compilazione ripetendo comandi.
 
-L'output precedente viene ripristinato solo attivando [`terminal.restore-history`](/it/docs/configuration#terminalrestore-history). L'opzione è disattivata perché l'output da ripristinare viene conservato su disco.
+L’output precedente viene ripristinato quando [`terminal.restore-history`](/it/docs/configuration#terminalrestore-history) è attivo. Nelle nuove configurazioni è attivo per impostazione predefinita; l’output da ripristinare viene conservato su disco.
 
 ## Ambiente del terminale e inizializzazione [#terminal-environment-and-initialization]
 

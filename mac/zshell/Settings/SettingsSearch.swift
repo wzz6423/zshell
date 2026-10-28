@@ -24,7 +24,6 @@ enum SettingsSearchIndex {
     // Search must not construct panes: opening Recommendations starts tool
     // checks, and opening AI refreshes account usage.
     private static var entries: [SettingsSearchResult] {
-        let appearance = String(localized: "Appearance")
         let theme = String(localized: "Theme")
         let colors = String(localized: "Colors")
         let font = String(localized: "Font")
@@ -69,7 +68,6 @@ enum SettingsSearchIndex {
                 String(localized: "Shows the toolbar in every project"),
                 String(localized: "Keeps the toolbar hidden"),
             ].joined(separator: " "), keywords: "toolbar.visibility"),
-            item(.general, appearance, section: appearance, keywords: "theme"),
             item(.general, String(localized: "Reset to Defaults")),
             item(.appearance, theme, section: theme),
             item(.appearance, String(localized: "Dock icon"), section: String(localized: "App Icon"),
@@ -169,7 +167,6 @@ enum SettingsSearchIndex {
         ]
 
         for option in AppTheme.allCases {
-            result.append(item(.general, option.title, section: appearance, keywords: "theme"))
             result.append(item(.appearance, option.title, section: theme, keywords: "theme"))
         }
         if TerminalBackend.selectable.count > 1 {

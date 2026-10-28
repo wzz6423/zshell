@@ -100,7 +100,7 @@ Meldingen kunnen het systeemgeluid afspelen. Klikken op een melding activeert Zs
 Open **Instellingen → Terminal → Opdrachtmeldingen** om meldingen te krijgen wanneer een opdracht eindigt:
 
 - **Langlopende opdrachten**: kies 5, 10, 30 of 60 seconden. Een opdracht die minstens zo lang duurt, geeft een voltooiingsmelding. Standaard staat dit **Uit**.
-- **Mislukte opdrachten**: meld een afsluitstatus anders dan nul, ongeacht de looptijd. Ook dit staat standaard uit en kan onafhankelijk worden ingeschakeld.
+- **Mislukte opdrachten**: meld een afsluitstatus anders dan nul, ongeacht de looptijd. Dit staat in nieuwe configuraties standaard aan en kan onafhankelijk worden uitgeschakeld.
 
 Deze instellingen gelden voor zsh-terminals die na de wijziging worden gemaakt, op beide terminalbackends. Ze gebruiken de voltooiingsgebeurtenis van de oorspronkelijke shell; opdrachten binnen een geneste shell of interactief programma melden via deze integratie geen afzonderlijke voltooiingen.
 
@@ -163,7 +163,7 @@ Schakel `terminal.preserve-sessions` in voordat je een nieuwe snelle terminal op
 
 ## Vim-opdrachthulp [#vim-command-hints]
 
-Schakel **Instellingen → Terminal → Gedrag → Vim-opdrachthulp** in en open vervolgens **Info** in de rechterzijbalk. Onder de sessiegegevens verschijnt een gedeelte **VIM-OPDRACHTEN** zolang Vim, Vi of Neovim actief is. Dit staat standaard uit en geldt onmiddellijk voor bestaande terminals op beide backends.
+Beheer de hulp via **Instellingen → Terminal → Gedrag → Vim-opdrachthulp** en open vervolgens **Info** in de rechterzijbalk. Onder de sessiegegevens verschijnt een gedeelte **VIM-OPDRACHTEN** zolang Vim, Vi of Neovim actief is. Dit staat in nieuwe configuraties standaard aan en geldt onmiddellijk voor bestaande terminals op beide backends.
 
 De volledige lijst met veelgebruikte opdrachten blijft beschikbaar; alleen de prioriteit verandert. De normale modus zet `:w`, `:q`, `yy` en `p`/`P` vooraan; Visueel blok zet `I`/`A`, blokwijzigingen en beweging tussen hoeken vooraan. Invoegen, Vervangen, Visueel, Visuele regel, Selecteren, opdrachtregel- en zoekmodus hebben een eigen volgorde. Bij elke opdracht staan de toepasselijke modi. Zoek op toetsen, beschrijving of modusnaam; beschrijvingen en zoekinterface volgen elk van de 17 app-talen. Wis de zoekopdracht om de volledige lijst te herstellen. De hulp is naslagmateriaal en stuurt nooit invoer naar de editor.
 

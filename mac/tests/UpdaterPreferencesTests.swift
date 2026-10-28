@@ -51,16 +51,18 @@ struct UpdaterPreferencesTests {
         switch phase {
         case "fresh":
             expect(!updater.automaticallyInstallsUpdates, "automatic installation requires a separate opt-in")
-            try await expectState(checks: true, downloads: false, allowed: true)
+            try await expectState(checks: true, downloads: true, allowed: true)
             expect(defaults.object(forKey: "SUAutomaticallyUpdate") == nil,
-                   "initialization must preserve Sparkle's opt-in default without writing a preference")
+                   "initialization must enable downloads without writing over a user's preference")
 
+            updater.automaticallyDownloadsUpdates = false
+            try await expectState(checks: true, downloads: false, allowed: true)
+            expect(!defaults.bool(forKey: "SUAutomaticallyUpdate"), "user opt-out is stored by Sparkle")
             updater.automaticallyDownloadsUpdates = true
             try await expectState(checks: true, downloads: true, allowed: true)
             expect(defaults.bool(forKey: "SUAutomaticallyUpdate"), "user opt-in is stored by Sparkle")
             updater.automaticallyDownloadsUpdates = false
             try await expectState(checks: true, downloads: false, allowed: true)
-            expect(!defaults.bool(forKey: "SUAutomaticallyUpdate"), "user opt-out is stored by Sparkle")
 
             updater.automaticallyInstallsUpdates = true
             expect(!updater.automaticallyDownloadsUpdates, "installation preference must not enable downloads")

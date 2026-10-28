@@ -65,7 +65,7 @@ Het opdrachtenpalet doorzoekt alle projecten, alle geopende sessies en elke opdr
 
 Sluit de app en open haar opnieuw: je projecten, tabbladen en deelvensterindeling staan waar je ze hebt achtergelaten. Elke terminal start een **nieuwe shell** in de vorige map. Er blijft niets ongemerkt op de achtergrond draaien.
 
-Uitvoergeschiedenis herstel je alleen als je dit inschakelt. Zet [`terminal.restore-history`](/nl/docs/configuration#terminalrestore-history) aan. Heropende terminals tonen dan de eerdere uitvoer boven de scheidingsregel `Session Contents Restored`, met de nieuwe shell eronder.
+Nieuwe configuraties schakelen herstel van uitvoergeschiedenis standaard in. Als [`terminal.restore-history`](/nl/docs/configuration#terminalrestore-history) aanstaat, tonen heropende terminals de eerdere uitvoer boven de scheidingsregel `Session Contents Restored`, met de nieuwe shell eronder.
 
 <Callout type="info">
 De herstelde inhoud is alleen tekst: een verslag van wat er is gebeurd, geen actieve sessie. Terugscrollen voert dus niets opnieuw uit.

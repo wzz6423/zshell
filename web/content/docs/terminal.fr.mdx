@@ -100,7 +100,7 @@ Une notification peut jouer le son système. Cliquer dessus active Zshell et ouv
 Ouvrez **Réglages → Terminal → Notifications de commandes** pour être averti à la fin d'une commande :
 
 - **Commandes longues** : choisissez 5, 10, 30 ou 60 secondes. Une commande ayant duré au moins ce temps déclenche une notification lorsqu'elle se termine. La valeur par défaut est **Désactivé**.
-- **Commandes en échec** : être averti lorsque le code de sortie est non nul, quelle que soit la durée. Cette option est aussi désactivée par défaut et peut être activée indépendamment.
+- **Commandes en échec** : être averti lorsque le code de sortie est non nul, quelle que soit la durée. Cette option est activée par défaut dans les nouvelles configurations et peut être désactivée indépendamment.
 
 Ces options concernent les terminaux zsh créés après le changement, sur les deux moteurs. Elles utilisent les événements de fin de commande du shell d'origine. Les commandes lancées dans un shell imbriqué ou un programme interactif ne signalent pas individuellement leur fin par cette intégration.
 
@@ -163,7 +163,7 @@ Le [Lancement rapide](/fr/docs/quick-launch), qui enregistre et lance des comman
 
 ## Aide aux commandes Vim [#vim-command-hints]
 
-Activez **Réglages → Terminal → Comportement → Aide aux commandes Vim**, puis ouvrez l'onglet **Informations** de la barre latérale droite. Une section **COMMANDES VIM** apparaît sous les informations de session lorsque Vim, Vi ou Neovim est actif. Désactivée par défaut, cette fonction s'applique immédiatement aux terminaux existants des deux moteurs.
+Gérez les suggestions dans **Réglages → Terminal → Comportement → Aide aux commandes Vim**, puis ouvrez l'onglet **Informations** de la barre latérale droite. Une section **COMMANDES VIM** apparaît sous les informations de session lorsque Vim, Vi ou Neovim est actif. Activée par défaut dans les nouvelles configurations, cette fonction s'applique immédiatement aux terminaux existants des deux moteurs.
 
 La liste complète des commandes courantes reste disponible ; seul leur ordre de priorité change. Le mode Normal place `:w`, `:q`, `yy` et `p`/`P` en premier ; le mode Bloc visuel privilégie `I`/`A`, les modifications de bloc et les déplacements entre coins. Les modes Insertion, Remplacement, Visuel, Ligne visuelle, Sélection, Ligne de commande et Recherche disposent de leur propre classement. Chaque entrée indique ses modes applicables. Recherchez par touches, description ou nom de mode : les descriptions et l'interface de recherche suivent les 17 langues de l'application. Effacez la recherche pour retrouver la liste complète. Les indications servent uniquement de référence et n'envoient aucune saisie à l'éditeur.
 

@@ -100,7 +100,7 @@ Mitteilungen können den Systemton abspielen. Ein Klick aktiviert Zshell und spr
 Unter **Einstellungen → Terminal → Befehlsmitteilungen** aktivieren Sie Mitteilungen zum Befehlsende:
 
 - **Lange laufende Befehle**: Wählen Sie 5, 10, 30 oder 60 Sekunden. Ein mindestens so lange laufender Befehl löst beim Abschluss eine Mitteilung aus. Standardmäßig ist dies **Aus**.
-- **Fehlgeschlagene Befehle**: Benachrichtigt unabhängig von der Laufzeit bei einem Exit-Status ungleich null. Auch dies ist standardmäßig aus und lässt sich separat aktivieren.
+- **Fehlgeschlagene Befehle**: Benachrichtigt unabhängig von der Laufzeit bei einem Exit-Status ungleich null. Dies ist in neuen Konfigurationen standardmäßig an und lässt sich separat deaktivieren.
 
 Die Einstellungen gelten auf beiden Backends für zsh-Terminals, die danach erstellt werden. Sie verwenden das Abschlussereignis der ursprünglichen Shell. Befehle innerhalb einer verschachtelten Shell oder eines interaktiven Programms melden über diese Integration keine einzelnen Abschlüsse.
 
@@ -163,7 +163,7 @@ Der [Schnellstart](/de/docs/quick-launch), der Befehle speichert und ausführt, 
 
 ## Vim-Befehlshinweise [#vim-command-hints]
 
-Aktivieren Sie **Einstellungen → Terminal → Verhalten → Vim-Befehlshinweise** und öffnen Sie den Tab **Info** in der rechten Seitenleiste. Solange Vim, Vi oder Neovim aktiv ist, erscheint unter den Sitzungsinformationen der Abschnitt **VIM-BEFEHLE**. Die Funktion ist standardmäßig aus und wirkt bei beiden Backends sofort auf bestehende Terminals.
+Verwalten Sie die Hinweise unter **Einstellungen → Terminal → Verhalten → Vim-Befehlshinweise** und öffnen Sie den Tab **Info** in der rechten Seitenleiste. Solange Vim, Vi oder Neovim aktiv ist, erscheint unter den Sitzungsinformationen der Abschnitt **VIM-BEFEHLE**. Die Funktion ist in neuen Konfigurationen standardmäßig an und wirkt bei beiden Backends sofort auf bestehende Terminals.
 
 Die vollständige Liste gängiger Befehle bleibt verfügbar; nur die Reihenfolge ändert sich. Im Normal-Modus stehen `:w`, `:q`, `yy` und `p`/`P` zuerst, im Visual-Block-Modus `I`/`A`, Blockänderungen und Bewegungen zwischen Ecken. Insert, Replace, Visual, Visual Line, Select, Befehlszeilen- und Suchmodus besitzen eigene Reihenfolgen. Jeder Eintrag nennt seine anwendbaren Modi. Sie können nach Tasten, Beschreibung oder Modusnamen suchen; Beschreibungen und Suchoberfläche unterstützen alle 17 Anwendungssprachen. Leeren Sie die Suche für die vollständige Liste. Die Hinweise dienen nur als Referenz und senden keine Eingabe an den Editor.
 

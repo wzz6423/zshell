@@ -112,8 +112,8 @@ Zshell 會隨著你的操作持續快照佈局，所以退出再打開會拿回�
 
 原終端 PTY 不可用時，若啟用了 **恢復 Agent 對話** 和 AI 支援，Zshell 會繼續已驗證的 Claude Code、Codex、Pi 或 OpenCode 原對話。其他窗格在原目錄開啟**新 shell**。對話依原身分恢復；Zshell 不會重播命令來恢復執行中的建置。
 
-之前的捲動歷史只有你主動要求才會恢復，開關是
-[`terminal.restore-history`](/zh-Hant/docs/configuration#terminalrestore-history)。它預設關著，因為恢復的捲動歷史會儲存在磁碟上。
+開啟 [`terminal.restore-history`](/zh-Hant/docs/configuration#terminalrestore-history) 時會恢復之前的捲動歷史。
+新配置預設開啟；恢復的捲動歷史會儲存在磁碟上。
 
 ## 終端機環境與初始化指令 [#terminal-environment-and-initialization]
 

@@ -65,7 +65,7 @@ description: 빈 창에서 작업 가능한 프로젝트까지, 먼저 알아두
 
 앱을 종료했다 다시 열면 프로젝트, 탭과 분할 창 배치가 그대로 돌아옵니다. 각 터미널은 이전 디렉터리에서 **새 셸**을 시작합니다. 백그라운드에 몰래 실행 중인 프로세스를 남겨 두지 않습니다.
 
-스크롤 기록 복원은 직접 켜야 합니다. [`terminal.restore-history`](/ko/docs/configuration#terminalrestore-history)를 켜면 다시 연 터미널에서 이전 출력이 `Session Contents Restored`(세션 내용 복원됨) 구분선 위에 표시되고, 그 아래에서 새 셸이 실행됩니다.
+새 설정에서는 스크롤 기록 복원이 기본적으로 켜집니다. [`terminal.restore-history`](/ko/docs/configuration#terminalrestore-history)가 켜져 있으면 다시 연 터미널에서 이전 출력이 `Session Contents Restored`(세션 내용 복원됨) 구분선 위에 표시되고, 그 아래에서 새 셸이 실행됩니다.
 
 <Callout type="info">
 복원된 텍스트는 이전 작업의 기록일 뿐 실행 중인 세션이 아닙니다. 과거 출력으로 스크롤해도 명령이 다시 실행되지는 않습니다.
