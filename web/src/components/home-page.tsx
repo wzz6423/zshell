@@ -178,6 +178,22 @@ function DownloadSection({ copy, release }: { copy: HomeCopy; release: Release }
             </button>
           </div>
         </div>
+        {release.architecturePackages && <div className="mt-4 space-y-2 font-mono text-xs text-muted-foreground">
+          {(['github', 'gitee'] as const).map((host) => (
+            <div key={host} className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+              <span>{host === 'github' ? 'GitHub' : copy.download.mirror}</span>
+              {RELEASE_ARCHITECTURES.filter((arch) => host === 'gitee' || arch !== 'universal').map((arch) => (
+                <a
+                  key={arch}
+                  href={dmgUrl(release.version, arch, host)}
+                  className="text-brand transition-opacity hover:opacity-75"
+                >
+                  {arch === 'arm64' ? 'Apple Silicon' : arch === 'x86_64' ? 'Intel' : 'Universal'}
+                </a>
+              ))}
+            </div>
+          ))}
+        </div>}
       </div>
     </MinimalSection>
   )
@@ -626,54 +642,6 @@ function Shortcuts({ lang, copy }: { lang: string; copy: HomeCopy }) {
     </section>
   )
 }
-
-function Download({ copy, release }: { copy: HomeCopy; release: Release }) {
-  return (
-    <section id="download" className="home-section">
-      <div className="home-container">
-        <Reveal>
-          <div>
-            <h2 className="home-section-title">{copy.download.title}</h2>
-            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-              <span>v{release.version}</span>
-              <span>macOS {release.minSystem}+</span>
-              <span>{copy.download.license}</span>
-              <Link to="/changelog" className="home-text-link text-brand">{copy.download.changelog}<span aria-hidden>↗</span></Link>
-            </div>
-            <div className="mt-5 flex flex-wrap items-stretch gap-3">
-              <a
-                href={release.dmg}
-                download
-                className="home-cta"
-              >
-                <span aria-hidden className="i-mingcute-apple-fill size-4" />
-                {copy.download.dmg}
-              </a>
-              <CopyCommand command={BREW_COMMAND} label={copy.copy} copiedLabel={copy.copied} aria={copy.copyAria.replace('{command}', BREW_COMMAND)} />
-            </div>
-            {release.architecturePackages && <div className="mt-4 space-y-2 font-mono text-[12px] text-muted-foreground">
-              {(['github', 'gitee'] as const).map((host) => (
-                <div key={host} className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                  <span>{host === 'github' ? 'GitHub' : copy.download.mirror}</span>
-                  {RELEASE_ARCHITECTURES.filter((arch) => host === 'gitee' || arch !== 'universal').map((arch) => (
-                    <a
-                      key={arch}
-                      href={dmgUrl(release.version, arch, host)}
-                      className="text-brand transition-opacity hover:opacity-75"
-                    >
-                      {arch === 'arm64' ? 'Apple Silicon' : arch === 'x86_64' ? 'Intel' : 'Universal'}
-                    </a>
-                  ))}
-                </div>
-              ))}
-            </div>}
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  )
-}
-
 function Faq({ copy }: { copy: HomeCopy }) {
   return (
     <section id="faq" className="home-section">
