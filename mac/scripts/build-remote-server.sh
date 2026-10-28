@@ -4,7 +4,8 @@ set -euo pipefail
 ROOT_DIR="${SRCROOT}/.."
 WORK_DIR="${TARGET_TEMP_DIR}/remote-server"
 BUILD_DIR="${WORK_DIR}/source"
-OUTPUT_DIR="${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
+# Archives install the app outside BUILT_PRODUCTS_DIR; declare the real destination.
+OUTPUT_DIR="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
 OUTPUT="${OUTPUT_DIR}/zshell-server"
 export CARGO_TARGET_DIR="${WORK_DIR}/target"
 

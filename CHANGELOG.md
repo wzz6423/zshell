@@ -14,40 +14,61 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
-## [Unreleased]
+## [0.1.11]
 
 ### Added
 
-- Let terminal programs request camera access and permission to control other
-  apps, with localized macOS permission prompts.
-- Block browser ads and trackers with EasyList and EasyPrivacy, and manage
-  filter lists and custom ABP subscriptions in native Browser settings.
-- Share host-owned terminal sessions across machines over SSH or Tailscale,
-  reconnect with their screen and history after quitting or a network outage,
-  and manage hosts, server installation, Mac sharing and input control from the
-  macOS app. Host sessions on macOS and Linux; paste local
-  files and screenshots into remote terminals as uploaded paths, and follow
-  remote Agent activity and saved conversations across reconnects.
-- Paste clipboard screenshots as private PNG file paths for local terminal
-  programs on either backend.
+- Optionally keep local shells, agents, and development servers running after
+  quitting Zshell, then reconnect to their original terminal state on reopening.
+  Use Quit and End All Sessions to stop all background work.
+- Share host-owned terminal sessions over SSH or Tailscale and reconnect after
+  the client quits or loses its connection. Manage connections, server installation,
+  Mac sharing, and input control in the app, with remote hosts on macOS or Linux.
+- Keep Quick Terminal workspaces with split panes and running jobs between
+  openings, or choose a fresh workspace each time.
+- Choose Dock only, Dock and menu bar, or menu bar only. In menu bar modes,
+  closing the last workspace window keeps its terminals available when reopened.
+- Manage branches and Git worktrees from the Git panel, create terminal sessions
+  in isolated worktrees, and choose whether to keep or safely remove the checkout
+  when closing. Manage sessions from an external terminal with `zshell +session`.
+- Search, archive, and resume saved Claude Code, Codex, Pi, and OpenCode
+  conversations after closing their panes or restarting Zshell. Follow remote
+  Agent activity and resume saved conversations on their original host.
 - Track each Codex conversation in its own pane when multiple terminals share
-  an app-server daemon, and resume saved conversations in the correct pane.
+  an app-server daemon, and resume the verified conversation in the correct pane.
+- See Agent progress, waiting reasons, and subtasks from supported integrations
+  or explicit program reports.
+- Review changes from an Agent's latest turn, all uncommitted changes, or a
+  branch. Keep or revert individual text hunks from the latest turn without
+  changing the staging area.
+- Inspect and operate project browser panes through the CLI, capture background
+  pages, evaluate page scripts, and save or restore site cookies and local storage.
+- Block browser ads and trackers with EasyList and EasyPrivacy, and manage
+  filter lists and custom ABP subscriptions in Browser settings.
+- Run commands in background panes and wait for each task's exit status,
+  duration, and saved recent output, including waiting again after a timeout.
+- Follow live project, pane, Agent, and command events through `zshell +events`.
+- Paste clipboard screenshots as private PNG paths in local terminals, and
+  upload local files or screenshots when pasting into remote terminals on either
+  backend.
 - Optionally focus terminal panes by moving the mouse into them, including
   Quick Terminal.
 - Apply external configuration edits while Zshell is running, preserve linked
   dotfiles and their permissions when saving, and use the login shell's SSH
   agent when launching from the Dock or Finder.
-- Create isolated terminal sessions in Git worktrees, then choose whether to
-  keep or safely remove the checkout when closing the session. Manage sessions
-  from an external terminal with `zshell +session`.
-- Optionally keep shell, agent, and development server sessions running when
-  quitting Zshell, then reconnect to their original terminal state on reopening.
-  Closing a pane, project, or window ends its sessions; use Quit and End All
-  Sessions to stop all background work when exiting.
-- Run commands in background panes and wait for a task's own exit status,
-  duration, and saved recent output, including waiting again after a timeout.
-- Capture browser panes before showing them, evaluate page scripts, and save
-  or restore a site's cookies and local storage through the project-scoped CLI.
+- Let terminal programs request camera access and permission to control other
+  apps, with localized macOS permission prompts.
+
+### Changed
+
+- Find settings through a searchable sidebar, grouped cards, navigation history,
+  and appearance previews.
+- Enable Vim command hints, terminal history restoration, failed-command
+  notifications, and automatic update downloads by default for new
+  configurations, while preserving existing choices.
+- Refresh the website, documentation, and changelog with a shared appearance,
+  persistent theme controls, and a particle background that respects reduced
+  motion.
 
 ## [0.1.10]
 
