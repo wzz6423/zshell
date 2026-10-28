@@ -368,3 +368,24 @@ reply with that path, then read the file directly.
   the delegated workflow.
 - Treat `blocked` as a handoff to the user, not an invitation to bypass the
   blocker.
+
+## Live event subscriptions
+
+Use `zshell +events` inside the owning terminal to receive future changes in its
+project and window as NDJSON. Optional `--pane UUID` and repeatable `--event NAME`
+filters apply before delivery. `--once --timeout 30000` waits for one matching
+change (exit 124 on timeout); `stream.ready` is only the handshake.
+
+Events cover session/pane creation and closing, focus, Agent status/progress/
+attention/finish, shell completion and `command.task.finished`. See
+`zshell +events --help` for names. Agent events preserve source authority; screen
+inference never proves completion or grants approval. Read the actual result.
+
+Each line has `version`, `event`, `stream_id`, `sequence`, `time` (Unix ms),
+`project_id`, and `data`. Sequence starts at 0 for `stream.ready`. There is no
+replay. Queues are bounded (32 subscribers, 256 frames/1 MiB per connection,
+64 KiB per frame). `stream.lagged`, a sequence error, or unexpected EOF means
+reconnect and inspect current state. Closing or moving the caller to a different
+project/window, or rotating its token, ends the old subscription. No external
+control or `--project` fallback exists. Do not remove environment variables to
+try to gain broader scope.

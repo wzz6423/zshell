@@ -124,3 +124,17 @@ zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
 ```
 
 CLI の再開はバックグラウンドが既定です。フォーカスを移すには `--focus` を付けます。複数ウィンドウで開いたプロジェクトには `history projects` の `--window WINDOW_UUID` を指定します。複数のアプリが起動中なら CLI が示す専用接続ファイルの絶対パスを `--connection PATH` に指定します。これらの指定は外部ターミナル用で、ペイン内のプロセスは元のプロジェクト範囲を維持します。
+
+## プロジェクトのイベントを購読する [#live-events]
+
+Zshell のターミナル内で `zshell +events` を実行すると、そのプロジェクトとウインドウの変更を NDJSON で購読できます。--pane UUID、繰り返し指定できる --event NAME、--once、--timeout MS（0 は無期限）に対応します。ポーリングは行いません。
+
+セッションやペインの作成・終了、フォーカス、Agent の進捗・注意・完了、コマンド終了を通知します。最初の stream.ready は sequence 0、以降は一致したイベントごとに増加します。各行は version、event、stream_id、sequence、Unix ミリ秒の time、project_id、data を含みます。履歴の再送はありません。タスク結果は +pane wait --task UUID で確認できます。
+
+上限は 32 購読、各キュー 256 フレーム・1 MiB、各フレーム 64 KiB です。遅延時は可能なら stream.lagged を送信して切断し、2 秒書き込めない接続も閉じます。遅延・予期しない切断・連番エラーは非ゼロ終了です。再購読して現在の状態を確認してください。所有ターミナルの終了、トークン更新、別プロジェクト／ウインドウへの移動で購読は終了します。外部制御と --project は非対応です。環境変数を削除しても権限は広がりません。--once の未一致タイムアウトは 124、それ以外は 0 です。
+
+```sh
+zshell +events --event command.task.finished --once --timeout 30000
+```
+
+`pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).

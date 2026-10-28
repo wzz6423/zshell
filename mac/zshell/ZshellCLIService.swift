@@ -79,7 +79,12 @@ final class ZshellCLIService {
 
         do {
             automationServer = try ZshellAutomationSocketServer(
-                path: automationSocketPath
+                path: automationSocketPath,
+                streamHandler: { request, connection in
+                    Task { @MainActor in
+                        ZshellCLIService.shared.subscribeToEvents(request, connection: connection)
+                    }
+                }
             ) { request, reply in
                 Task { @MainActor in
                     reply(await ZshellCLIService.shared.handleAutomation(request))
@@ -120,6 +125,7 @@ final class ZshellCLIService {
     /// prepended to the inherited PATH, making `zshell` available without
     /// modifying a user's dotfiles or installing a global symlink.
     func terminalEnvironment(for sessionID: UUID) -> [String: String] {
+        revokeTerminal(id: sessionID)
         let capability = UUID().uuidString + UUID().uuidString
         terminalCapabilities[capability] = sessionID
         var environment = [
@@ -145,6 +151,7 @@ final class ZshellCLIService {
     }
 
     func revokeTerminal(id: UUID) {
+        ZshellAutomationEventHub.shared.revoke(terminalID: id)
         terminalCapabilities = terminalCapabilities.filter { $0.value != id }
         if persistentTerminals.remove(id) != nil { PersistentCLIConnection.remove(for: id) }
     }
@@ -166,31 +173,39 @@ final class ZshellCLIService {
         return environment
     }
 
+    private func authorizationFailure(_ request: ZshellAutomationRequest) -> ZshellAutomationResponse? {
+        guard request.version == 1 else {
+            return .failure(id: request.id, code: "unsupported_version",
+                            message: "Zshell supports automation protocol version 1.")
+        }
+        guard let terminalID = UUID(uuidString: request.terminalID),
+              terminalCapabilities[request.token] == terminalID else {
+            return .failure(id: request.id, code: "unauthorized",
+                            message: "The terminal automation capability is invalid or expired.")
+        }
+        return nil
+    }
+
+    private func subscribeToEvents(
+        _ request: ZshellAutomationRequest, connection: ZshellAutomationEventConnection
+    ) {
+        if let failure = authorizationFailure(request) { connection.finish(failure); return }
+        ZshellAutomationEventHub.shared.subscribe(request, connection: connection)
+    }
+
     private func handleAutomation(
         _ request: ZshellAutomationRequest
     ) async -> ZshellAutomationResponse {
         guard request.version == 1 else {
-            return .failure(
-                id: request.id,
-                code: "unsupported_version",
-                message: "Zshell supports automation protocol version 1."
-            )
+            return .failure(id: request.id, code: "unsupported_version",
+                            message: "Zshell supports automation protocol version 1.")
         }
         if request.token == sessionControlToken, request.terminalID == ZshellSessionControlConnection.callerID {
             return await ZshellSessionAutomationRouter.routeExternal(request)
         }
-        guard let terminalID = UUID(uuidString: request.terminalID),
-              terminalCapabilities[request.token] == terminalID
-        else {
-            return .failure(
-                id: request.id,
-                code: "unauthorized",
-                message: "The terminal automation capability is invalid or expired."
-            )
-        }
+        if let failure = authorizationFailure(request) { return failure }
         return await ZshellAutomationRouter.route(
-            request,
-            callerTerminalID: terminalID
+            request, callerTerminalID: UUID(uuidString: request.terminalID)!
         )
     }
 

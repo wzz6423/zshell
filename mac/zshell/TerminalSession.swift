@@ -28,7 +28,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     @Published private(set) var remoteStatus: RemoteRelayStatus?
     /// Recognized coding agent occupying this terminal, if any. The monitor
     /// reconciles foreground process identity with explicit lifecycle events.
-    @Published var agentStatus: ZshellAgentStatus?
+    @Published var agentStatus: ZshellAgentStatus? {
+        didSet { ZshellAutomationEventHub.shared.agentChanged(in: self, previous: oldValue) }
+    }
     @Published private(set) var agentResume: AgentConversationIdentity?
     @Published var worktree: SessionWorktree?
     private(set) var agentConversationProcessID: pid_t?
@@ -1161,6 +1163,7 @@ extension TerminalSession: TerminalBackendEvents {
         commandLifecycle = lifecycle
         if case .commandFinished = event {
             TerminalCommandTaskStore.shared.observeCompletion(in: self)
+            ZshellAutomationEventHub.shared.commandFinished(in: self)
         }
     }
 

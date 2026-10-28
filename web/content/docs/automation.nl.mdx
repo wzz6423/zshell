@@ -117,3 +117,17 @@ zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
 ```
 
 De CLI hervat op de achtergrond tenzij je `--focus` toevoegt. Kies bij meerdere projectvensters `--window WINDOW_UUID` uit `history projects`. Gebruik bij meerdere app-instanties `--connection PATH` met het absolute pad naar het privéverbindingsbestand dat de CLI aangeeft. Deze doelen zijn voor externe terminals; paneelprocessen behouden hun oorspronkelijke projectbereik.
+
+## Live projectgebeurtenissen volgen [#live-events]
+
+Voer `zshell +events` uit in een Zshell-terminal om toekomstige wijzigingen van het eigen project en venster als NDJSON te volgen, zonder polling. Opties: --pane UUID, herhaalbaar --event NAME, --once en --timeout MS (0 wacht onbeperkt).
+
+Meldingen omvatten aanmaken en sluiten van sessies en panelen, focus, voortgang, aandacht en voltooiing van agents, en afgeronde opdrachten. stream.ready begint met sequence 0; elke passende gebeurtenis verhoogt het nummer. Elke regel bevat version, event, stream_id, sequence, time in Unix-milliseconden, project_id en data. Geen herhaling van geschiedenis. Lees resultaten met +pane wait --task UUID.
+
+Limieten: 32 abonnementen, 256 frames en 1 MiB per wachtrij, 64 KiB per frame. Een trage lezer ontvangt indien mogelijk stream.lagged en wordt verbroken; 2 seconden zonder schrijven sluit de verbinding ook. Achterstand, onverwachte verbreking of volgordefouten geven een foutcode. Abonneer opnieuw en lees de huidige toestand. Terminal sluiten, token vernieuwen of naar een ander project/venster verplaatsen beëindigt het abonnement. Geen externe besturing of --project; omgevingsvariabelen verwijderen verruimt geen rechten. --once zonder overeenkomst geeft bij timeout 124, anders 0.
+
+```sh
+zshell +events --event command.task.finished --once --timeout 30000
+```
+
+`pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).

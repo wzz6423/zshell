@@ -117,3 +117,17 @@ zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
 ```
 
 CLI tiếp tục ở nền trừ khi thêm `--focus`. Với dự án mở trong nhiều cửa sổ, chọn `--window WINDOW_UUID` từ `history projects`. Nếu có nhiều phiên bản ứng dụng đang chạy, dùng `--connection PATH` với đường dẫn tuyệt đối của tệp kết nối riêng do CLI chỉ ra. Các tùy chọn này dành cho terminal bên ngoài; tiến trình trong ngăn vẫn giữ phạm vi dự án ban đầu.
+
+## Theo dõi sự kiện dự án trực tiếp [#live-events]
+
+Chạy `zshell +events` trong terminal Zshell để nhận thay đổi tiếp theo của dự án và cửa sổ đó dưới dạng NDJSON, không thăm dò định kỳ. Tùy chọn: --pane UUID, --event NAME có thể lặp lại, --once và --timeout MS (0 chờ vô hạn).
+
+Bao gồm tạo và đóng phiên, ngăn, tiêu điểm, tiến độ, yêu cầu chú ý và hoàn thành của agent, cùng lệnh hoàn tất. stream.ready bắt đầu ở sequence 0; mỗi sự kiện khớp tăng thứ tự. Mỗi dòng gồm version, event, stream_id, sequence, time theo mili giây Unix, project_id và data. Không phát lại lịch sử. Đọc kết quả bằng +pane wait --task UUID.
+
+Giới hạn: 32 đăng ký, 256 khung và 1 MiB mỗi hàng đợi, 64 KiB mỗi khung. Bên đọc chậm nhận stream.lagged nếu có thể rồi ngắt; không ghi được trong 2 giây cũng đóng kết nối. Chậm, ngắt bất ngờ hoặc sai thứ tự trả mã khác 0. Đăng ký lại và đọc trạng thái hiện tại. Đóng terminal, đổi token hoặc chuyển sang dự án/cửa sổ khác kết thúc đăng ký. Không có điều khiển bên ngoài hay --project; xóa biến môi trường không tăng quyền. --once hết giờ không khớp trả 124; hết giờ thông thường trả 0.
+
+```sh
+zshell +events --event command.task.finished --once --timeout 30000
+```
+
+`pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).

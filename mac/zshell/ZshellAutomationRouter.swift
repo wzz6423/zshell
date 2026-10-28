@@ -47,6 +47,7 @@ enum ZshellAutomationRouter {
                 "split_focus_default": .bool(false),
                 "agent_report_lifetime_seconds": .number(ZshellAgentReport.lifetime),
                 "agent_report_max_tasks": .number(Double(ZshellAgentReport.maximumTasks)),
+                "event_stream": .bool(true),
                 "browser_automation": .bool(true),
                 "browser_max_timeout_ms": .number(Double(BrowserAutomation.maximumTimeoutMS)),
             ]))
@@ -778,7 +779,7 @@ enum ZshellAutomationRouter {
         return .object(object)
     }
 
-    private static func agentSnapshot(_ status: ZshellAgentStatus) -> ZshellJSONValue {
+    static func agentSnapshot(_ status: ZshellAgentStatus) -> ZshellJSONValue {
         .object([
             "alias": .string(status.alias),
             "kind": .string(status.kind.rawValue),

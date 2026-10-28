@@ -117,3 +117,17 @@ zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
 ```
 
 CLI 재개는 기본적으로 백그라운드에서 진행되며 `--focus`를 추가해야 포커스가 바뀝니다. 프로젝트가 여러 창에 열려 있으면 `history projects`의 `--window WINDOW_UUID`로 선택하세요. 앱 인스턴스가 여러 개라면 CLI가 안내하는 비공개 연결 파일의 절대 경로를 `--connection PATH`로 지정하세요. 이 대상 옵션은 외부 터미널용이며 분할 창 프로세스는 원래 프로젝트 범위를 유지합니다.
+
+## 프로젝트 실시간 이벤트 구독 [#live-events]
+
+Zshell 터미널에서 `zshell +events`를 실행하면 해당 프로젝트와 창의 이후 변경을 NDJSON으로 받습니다. --pane UUID, 반복 가능한 --event NAME, --once, --timeout MS(0은 무제한)를 지원하며 폴링하지 않습니다.
+
+세션과 창의 생성·종료, 포커스, Agent 진행률·주의·완료 및 명령 완료를 알립니다. 첫 stream.ready는 sequence 0이며 일치하는 이벤트마다 증가합니다. 각 줄에는 version, event, stream_id, sequence, Unix 밀리초 time, project_id, data가 있습니다. 과거 이벤트를 재생하지 않습니다. 작업 결과는 +pane wait --task UUID로 읽습니다.
+
+최대 32개 구독, 큐당 256프레임·1 MiB, 프레임당 64 KiB입니다. 지연되면 가능할 경우 stream.lagged를 보낸 후 연결을 끊고, 2초 동안 쓰지 못해도 닫습니다. 지연·예기치 않은 연결 종료·순서 오류는 0이 아닌 코드로 종료합니다. 다시 구독하고 현재 상태를 읽으세요. 소유 터미널 종료, 토큰 교체, 다른 프로젝트나 창으로 이동 시 구독이 끝납니다. 외부 제어와 --project는 지원하지 않으며 환경 변수를 지워도 권한이 커지지 않습니다. --once의 불일치 시간 초과는 124, 일반 시간 초과는 0입니다.
+
+```sh
+zshell +events --event command.task.finished --once --timeout 30000
+```
+
+`pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).

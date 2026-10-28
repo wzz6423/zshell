@@ -37,11 +37,14 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// Launch configuration inherited by terminals created after it changes.
     /// Existing PTYs intentionally keep the environment they started with.
     @Published var launchSettings = TerminalLaunchSettings()
-    @Published var tabs: [PaneTab] = []
+    @Published var tabs: [PaneTab] = [] {
+        didSet { ZshellAutomationEventHub.shared.topologyChanged() }
+    }
     @Published private(set) var tabGroups: [SessionTabGroup] = []
     private var isRestoringTabs = false
     @Published var selectedTabID: UUID? {
         didSet {
+            ZshellAutomationEventHub.shared.topologyChanged()
             if !isRestoringTabs { revealSelectedTabGroup() }
             guard selectedTabID != oldValue, let selectedTabID else { return }
             recentTabIDs.removeAll { $0 == selectedTabID }
@@ -1182,6 +1185,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// editor state, and browser state are never torn down during the transfer.
     @discardableResult
     func extractPaneAsAdjacentTab(_ paneID: UUID, from sourceTabID: UUID) -> PaneTab? {
+        ZshellAutomationEventHub.shared.beginTopologyChange()
+        defer { ZshellAutomationEventHub.shared.endTopologyChange() }
         guard let sourceIndex = tabs.firstIndex(where: { $0.id == sourceTabID }) else {
             return nil
         }
@@ -1230,6 +1235,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         toward edge: PaneDropEdge,
         beside targetPaneID: UUID
     ) -> Bool {
+        ZshellAutomationEventHub.shared.beginTopologyChange()
+        defer { ZshellAutomationEventHub.shared.endTopologyChange() }
         guard draggedID != targetTabID,
               let draggedIndex = tabs.firstIndex(where: { $0.id == draggedID }),
               let draggedTab = tabs.first(where: { $0.id == draggedID }),

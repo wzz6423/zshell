@@ -182,3 +182,17 @@ zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
 ```
 
 CLI 恢复默认在后台进行，添加 `--focus` 才切换焦点。项目在多个窗口中打开时，用 `history projects` 返回的 `--window WINDOW_UUID` 明确选择；多个应用实例运行时，用 `--connection PATH` 指向 CLI 提示的绝对私有连接文件路径。这些目标选项仅用于外部终端，窗格进程始终保留原项目范围。
+
+## 订阅项目实时事件 [#live-events]
+
+在 Zshell 面板内运行 `zshell +events`，以 NDJSON 接收当前终端所属项目和窗口的后续变化。支持 `--pane UUID`、可重复的 `--event NAME`、`--once` 和 `--timeout MS`（0 为无限等待）。无需轮询。
+
+事件包括 `session.created/closed`、`pane.created/closed/updated`、`focus.changed`、`agent.status/progress/attention/finished`、`command.finished` 和 `command.task.finished`。首行 `stream.ready` 的 `sequence` 为 0，之后每条匹配事件递增，包含 `version`、`event`、`stream_id`、`sequence`、Unix 毫秒 `time`、`project_id` 和事件 `data`。不重放历史；命令任务事件只提供元数据，结果用 `+pane wait --task UUID` 读取。
+
+最多 32 个订阅，每个队列最多 256 帧、1 MiB，单帧最多 64 KiB。处理滞后会发送 `stream.lagged` 并断开；连续 2 秒无法写入也会关闭。滞后、意外断线或序号错误会非零退出，请重新订阅并读取当前状态。关闭所属终端、轮换令牌或转移到另一项目/窗口会终止原订阅并清空排队事件。不支持外部控制或 `--project`；清除环境变量不会扩大权限。`--once` 未匹配而超时返回 124，普通超时返回 0。
+
+```sh
+zshell +events --event command.task.finished --once --timeout 30000
+```
+
+`pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).
