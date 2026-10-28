@@ -3,21 +3,21 @@ import { Link } from '@tanstack/react-router'
 import { DocsLink, HomeLink } from '@/components/site-links'
 import type { HomeCopy, Row } from '@/lib/home-copy'
 import { LanguageSelect } from '@/components/language-select'
-import { BREW_COMMAND, GITHUB_URL, RELEASE_ARCHITECTURES, dmgUrl, type Release } from '@/lib/release'
+import { BREW_COMMAND, dmgUrl, GITHUB_URL, RELEASE_ARCHITECTURES, type Release } from '@/lib/release'
 import { cn, withBase } from '@/lib/utils'
+import { ModernHero } from '@/components/modern-hero'
+import { MinimalFeature, MinimalSection } from '@/components/minimal-components'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { AnimatedFeatureCard, AnimatedSection, CodeWindow } from '@/components/animated-components'
 
 /** The landing page, rendered once per language from `homeCopy`. */
 export function HomePage({ lang, release, copy }: { lang: string; release: Release; copy: HomeCopy }) {
-  useRevealMotion()
-
-  // The landing page always opens at the top. The browser and router otherwise
-  // restore a returning visitor's previous scroll position on reload (e.g. the
-  // shortcuts section); an explicit hash deep-link (#features …) still wins.
+  // The landing page always opens at the top
   useEffect(() => {
     if (window.location.hash) return
     const html = document.documentElement
     const previous = html.style.scrollBehavior
-    html.style.scrollBehavior = 'auto' // override the global smooth so the reset is instant
+    html.style.scrollBehavior = 'auto'
     window.scrollTo(0, 0)
     const raf = requestAnimationFrame(() => {
       window.scrollTo(0, 0)
@@ -27,23 +27,196 @@ export function HomePage({ lang, release, copy }: { lang: string; release: Relea
   }, [])
 
   return (
-    <div className="home-page min-h-screen bg-background font-sans text-base leading-relaxed text-foreground">
-      <a href="#main" className="skip-link">{copy.skipLink}</a>
-      <Header lang={lang} copy={copy} release={release} />
-      <SectionProgress copy={copy} />
+    <div className="home-page min-h-screen bg-background font-sans text-base leading-relaxed">
+      <MinimalHeader lang={lang} copy={copy} release={release} />
 
       <main id="main">
-        <Hero lang={lang} copy={copy} release={release} />
-        <Features lang={lang} copy={copy} />
-        <Shortcuts lang={lang} copy={copy} />
-        <div className="home-support-grid">
-          <Download copy={copy} release={release} />
-          <Faq copy={copy} />
-        </div>
+        <ModernHero lang={lang} copy={copy} release={release} />
+        <MinimalFeatures />
+        <DownloadSection copy={copy} release={release} />
       </main>
 
-      <Footer lang={lang} copy={copy} />
+      <MinimalFooter lang={lang} />
     </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Header                                                              */
+/* ------------------------------------------------------------------ */
+
+function MinimalHeader({ lang, copy, release }: { lang: string; copy: HomeCopy; release: Release }) {
+  return (
+    <header className="fixed top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+        <HomeLink lang={lang} className="flex items-center gap-2 text-lg font-medium text-foreground">
+          <img
+            src={withBase('/zshell-icon.png')}
+            alt=""
+            width={24}
+            height={24}
+            className="rounded"
+          />
+          zshell
+        </HomeLink>
+
+        <div className="flex items-center gap-6">
+          <DocsLink lang={lang} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+            文档
+          </DocsLink>
+          <Link to="/changelog" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+            更新日志
+          </Link>
+          <ThemeToggle lang={lang} />
+          <LanguageSelect lang={lang} />
+        </div>
+      </div>
+    </header>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Features                                                            */
+/* ------------------------------------------------------------------ */
+
+function MinimalFeatures() {
+  const features = [
+    {
+      number: '01',
+      title: '项目与会话管理',
+      description: '原生 AppKit 界面管理项目、标签页和分屏窗格。快速切换项目，每个项目保持独立的终端会话和工作环境。',
+      icon: 'i-mingcute-folder-open-fill',
+    },
+    {
+      number: '02',
+      title: '灵活的分屏布局',
+      description: '原生分屏系统，支持标签页和多窗格布局。在同一窗口并排查看多个终端会话、文件或浏览器。',
+      icon: 'i-mingcute-layout-grid-fill',
+    },
+    {
+      number: '03',
+      title: 'Git 集成与文件管理',
+      description: '内置文件树、Git 状态查看和可编辑的差异对比。快速检查代码变更、暂存文件和提交历史。',
+      icon: 'i-mingcute-git-branch-fill',
+    },
+    {
+      number: '04',
+      title: '命令面板与文件搜索',
+      description: '项目范围的文件搜索、命令面板和本地路径链接。快速导航到任何文件或执行命令。',
+      icon: 'i-mingcute-search-line',
+    },
+    {
+      number: '05',
+      title: '集成浏览器面板',
+      description: '内置浏览器标签页和窗格，方便查看文档、调试 Web 应用或预览开发结果。',
+      icon: 'i-mingcute-compass-line',
+    },
+    {
+      number: '06',
+      title: 'AI Agent 集成',
+      description: 'AI 智能体可以委托后台工作、跨 Zshell 窗格协调，提供状态报告和人工审批控制。',
+      icon: 'i-mingcute-magic-2-line',
+    },
+    {
+      number: '07',
+      title: '多终端后端支持',
+      description: '默认使用 libghostty，可选 Alacritty 后端。灵活选择最适合你的终端引擎。',
+      icon: 'i-mingcute-terminal-box-line',
+    },
+    {
+      number: '08',
+      title: '原生 macOS 体验',
+      description: '原生 AppKit 应用，完美集成 macOS 系统。流畅运行，低资源占用，支持 macOS 15.6+。',
+      icon: 'i-mingcute-apple-fill',
+    },
+  ]
+
+  return (
+    <MinimalSection>
+      {features.map((feature) => (
+        <MinimalFeature key={feature.number} {...feature} />
+      ))}
+    </MinimalSection>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Download                                                            */
+/* ------------------------------------------------------------------ */
+
+function DownloadSection({ copy, release }: { copy: HomeCopy; release: Release }) {
+  return (
+    <MinimalSection className="border-t border-border">
+      <div className="text-center">
+        <h2 className="mb-6 text-4xl font-light text-foreground">立即开始</h2>
+        <p className="mb-8 text-lg text-muted-foreground">
+          v{release.version} · macOS {release.minSystem}+
+        </p>
+
+        <div className="flex flex-col items-center gap-4">
+          <a
+            href={release.dmg}
+            download
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3 text-base font-medium text-primary-foreground transition-all hover:bg-primary/90"
+          >
+            下载 macOS 版本
+          </a>
+
+          <div className="mt-4 inline-flex max-w-xl items-stretch overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+            <div className="flex items-center gap-3 px-5 py-3 font-mono text-sm">
+              <span className="text-muted-foreground">$</span>
+              <code className="text-foreground select-all">{BREW_COMMAND}</code>
+            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(BREW_COMMAND)
+              }}
+              className="flex items-center justify-center border-l border-border px-4 transition-colors hover:bg-muted"
+              aria-label="复制命令"
+            >
+              <span className="i-mingcute-copy-2-line text-muted-foreground" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </MinimalSection>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Footer                                                              */
+/* ------------------------------------------------------------------ */
+
+function MinimalFooter({ lang }: { lang: string }) {
+  return (
+    <footer className="border-t border-border bg-background">
+      <div className="mx-auto max-w-6xl px-6 py-12">
+        <div className="flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground sm:flex-row">
+          <div className="flex items-center gap-2">
+            <img
+              src={withBase('/zshell-icon.png')}
+              alt=""
+              width={20}
+              height={20}
+              className="rounded"
+            />
+            <span>zshell</span>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="hover:text-foreground">
+              GitHub
+            </a>
+            <DocsLink lang={lang} className="hover:text-foreground">
+              文档
+            </DocsLink>
+            <Link to="/changelog" className="hover:text-foreground">
+              更新日志
+            </Link>
+          </div>
+        </div>
+      </div>
+    </footer>
   )
 }
 
@@ -630,6 +803,130 @@ function CopyCommand({
         </span>
       </button>
     </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Modern Features Section                                             */
+/* ------------------------------------------------------------------ */
+
+function ModernFeatures({ lang, copy }: { lang: string; copy: HomeCopy }) {
+  const features = [
+    {
+      title: '项目管理',
+      description: '轻松管理多个项目，快速切换工作环境，提高开发效率',
+      icon: 'i-mingcute-folder-open-fill',
+      gradient: 'bg-gradient-to-br from-neutral-500/10 to-transparent',
+    },
+    {
+      title: '分屏布局',
+      description: '灵活的窗格布局系统，支持多种分屏方式，并排查看多个终端',
+      icon: 'i-mingcute-layout-grid-fill',
+      gradient: 'bg-gradient-to-br from-neutral-500/10 to-transparent',
+    },
+    {
+      title: 'Git 集成',
+      description: '内置 Git 面板，可视化管理代码变更、分支和提交历史',
+      icon: 'i-mingcute-git-branch-fill',
+      gradient: 'bg-gradient-to-br from-neutral-500/10 to-transparent',
+    },
+    {
+      title: '文件浏览器',
+      description: '内置文件树浏览器，快速导航项目文件，支持文件搜索',
+      icon: 'i-mingcute-file-search-fill',
+      gradient: 'bg-gradient-to-br from-neutral-500/10 to-transparent',
+    },
+    {
+      title: '代码编辑器',
+      description: '集成轻量级代码编辑器，快速编辑文件无需切换应用',
+      icon: 'i-mingcute-code-fill',
+      gradient: 'bg-gradient-to-br from-neutral-500/10 to-transparent',
+    },
+    {
+      title: '原生性能',
+      description: '原生 macOS 应用，流畅运行，低资源占用，完美集成系统',
+      icon: 'i-mingcute-flash-fill',
+      gradient: 'bg-gradient-to-br from-neutral-500/10 to-transparent',
+    },
+  ]
+
+  return (
+    <AnimatedSection id="features" className="scroll-mt-24 bg-black py-24">
+      <div className="home-container">
+        <div className="mb-16 text-center">
+          <h2 className="mb-4 text-4xl font-bold text-white md:text-5xl">
+            强大的功能特性
+          </h2>
+          <p className="mx-auto max-w-2xl text-lg text-neutral-400">
+            为开发者打造的现代化终端工作空间
+          </p>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {features.map((feature, index) => (
+            <AnimatedFeatureCard
+              key={feature.title}
+              {...feature}
+              delay={index * 100}
+            />
+          ))}
+        </div>
+      </div>
+    </AnimatedSection>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Code Showcase Section                                              */
+/* ------------------------------------------------------------------ */
+
+function CodeShowcase({ copy }: { copy: HomeCopy }) {
+  const codeExample = `❯ cd ~/code/zshell
+
+❯ git status
+M  src/workspace.ts
+M  src/theme.css
+?? docs/quick-start.md
+
+❯ git add .
+❯ git commit -m "feat: add workspace management"
+
+❯ bun run dev
+✓ Server running at localhost:3000`
+
+  return (
+    <AnimatedSection className="bg-gradient-to-b from-black to-neutral-900 py-24">
+      <div className="home-container">
+        <div className="grid items-center gap-12 lg:grid-cols-2">
+          <div>
+            <h2 className="mb-6 text-4xl font-bold text-white md:text-5xl">
+              流畅的开发体验
+            </h2>
+            <p className="mb-8 text-lg text-neutral-400">
+              原生 macOS 终端，结合现代化的项目管理功能，让你的开发工作更加高效和愉悦。
+            </p>
+
+            <ul className="space-y-4">
+              {[
+                '智能命令补全和历史记录',
+                '自定义主题和配色方案',
+                '快捷键驱动的高效操作',
+                'SSH 远程服务器管理',
+              ].map((item, index) => (
+                <li key={index} className="flex items-center gap-3 text-neutral-300">
+                  <span className="i-mingcute-check-circle-fill text-xl text-neutral-200" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <CodeWindow code={codeExample} />
+          </div>
+        </div>
+      </div>
+    </AnimatedSection>
   )
 }
 
