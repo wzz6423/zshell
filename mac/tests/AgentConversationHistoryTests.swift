@@ -323,7 +323,9 @@ struct AgentConversationHistoryTests {
             if provider == .opencode {
                 project.launchSettings.environmentVariables += [.init(name: "XDG_DATA_HOME", value: configuration.path + "/data")]
             }
-            let session = project.newSession(directory: cwd.path)
+            guard let session = project.newSession(directory: cwd.path) else {
+                throw HistoryTestFailure.failed("The provider fixture session did not start.")
+            }
             attach(session)
             try wait("\(provider.rawValue) shell starts") { session.shellPid != nil && session.surface.foregroundPid == session.shellPid }
             session.surface.sendText("/usr/bin/python3 \(TerminalSession.shellQuote(providerBin.appendingPathComponent(provider.rawValue).path))\r")
@@ -469,7 +471,9 @@ struct AgentConversationHistoryTests {
             .init(name: "CLAUDE_CONFIG_DIR", value: configuration.path),
         ]
         AppSettings.shared.preserveTerminalSessions = true
-        let original = project.newSession(directory: cwd.path, commandArguments: [providerBin.appendingPathComponent("claude").path])
+        guard let original = project.newSession(directory: cwd.path, commandArguments: [providerBin.appendingPathComponent("claude").path]) else {
+            throw HistoryTestFailure.failed("The persistent provider fixture session did not start.")
+        }
         attach(original)
         try wait("persistent provider reports a verified conversation") { original.agentConversationOwner?.isAlive == true }
         try check(PersistentPTY.reconnect(id: original.id) != nil, "history fixture uses a real persistent PTY")
