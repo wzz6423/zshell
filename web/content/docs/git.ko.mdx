@@ -67,6 +67,22 @@ Git 패널은 저장소에 속한 모든 작업 트리와 각 브랜치, 체크�
 
 HEAD가 분리된 작업 트리는 브랜치 이름 대신 **분리된 HEAD**를 표시합니다. 베어 저장소도 목록에는 표시되지만 작업 디렉터리가 없으므로 터미널 탭에서 열 수 없습니다.
 
+### 워크트리 세션 [#worktree-sessions]
+
+로컬 Git 저장소의 터미널에서 **터미널 → 워크트리에 새 세션…**을 선택하거나 <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>를 누르세요. 탭과 **+** 버튼의 컨텍스트 메뉴에도 같은 작업이 있습니다. 새 브랜치 또는 기존 로컬 브랜치와 아직 없는 디렉터리를 선택합니다. 새 브랜치는 저장소의 기본 브랜치에서 시작하며 **현재 HEAD**를 명시적으로 선택할 수도 있습니다. 기존 브랜치는 현재 커밋을 유지합니다. 제안된 디렉터리는 원본 체크아웃 옆에 있습니다.
+
+분할 창은 세션의 워크트리 연결을 상속하며 저장된 레이아웃에서도 복원됩니다. 연결된 세션을 닫으면 **워크트리 유지**, **워크트리 제거**, **취소**를 선택할 수 있습니다. 변경되거나 추적되지 않거나 무시된 파일, 기록된 기준에 병합되지 않은 커밋, 잠금 또는 이를 사용하는 다른 열린 세션이 있으면 제거할 수 없습니다. Git 브랜치는 항상 유지됩니다.
+
+외부 터미널에서 `zshell +session`으로 세션을 만들고 닫을 수 있습니다. `projects`가 반환한 ID를 `--project`에 지정하세요. Zshell 내부에서는 호출 터미널의 프로젝트를 자동으로 사용합니다. 세션은 기본적으로 백그라운드에서 생성하며 `--focus`로 전환할 수 있습니다. `--base HEAD` 또는 `--base REF`로 다른 기준을, `--worktree NEW_DIR`로 디렉터리를 지정합니다. 필요하면 `--connection FILE`로 실행 중인 인스턴스를 선택하세요. 명시적인 `--remove-worktree` 없이 닫으면 워크트리를 유지하며 `check`로 현재 정리 가능 여부를 확인합니다.
+
+```sh
+zshell +session projects
+zshell +session new --project PROJECT_ID --cwd /path/to/repo --branch feat/task
+zshell +session list --project PROJECT_ID
+zshell +session check --project PROJECT_ID --session SESSION_ID
+zshell +session close --project PROJECT_ID --session SESSION_ID --remove-worktree
+```
+
 ## 원격 저장소 [#remotes]
 
 **⋯** 메뉴에는 원격 저장소와 통신하는 작업이 모여 있습니다.

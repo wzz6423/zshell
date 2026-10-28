@@ -1,7 +1,7 @@
 import Darwin
 import Foundation
 
-enum PTYMuxConstants {
+nonisolated enum PTYMuxConstants {
     static let protocolVersion = 2
     static let maximumFrameBytes = 256 * 1024
     static let maximumBacklogBytes = 1024 * 1024
@@ -52,7 +52,7 @@ struct PTYMuxResponse: Codable {
     }
 }
 
-enum PTYMuxError: Error, CustomStringConvertible {
+nonisolated enum PTYMuxError: Error, CustomStringConvertible {
     case message(String)
 
     var description: String {
@@ -128,13 +128,13 @@ enum PTYMuxPaths {
 }
 
 private extension Data {
-    mutating func appendUInt32(_ value: UInt32) {
+    nonisolated mutating func appendUInt32(_ value: UInt32) {
         var encoded = value.bigEndian
         Swift.withUnsafeBytes(of: &encoded) { append(contentsOf: $0) }
     }
 }
 
-enum PTYMuxWire {
+nonisolated enum PTYMuxWire {
     static func configureSocket(
         _ descriptor: Int32,
         timeout: TimeInterval = PTYMuxConstants.socketTimeout

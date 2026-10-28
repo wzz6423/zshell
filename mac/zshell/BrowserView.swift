@@ -181,6 +181,8 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     private let contextMenuBridge: BrowserContextMenuBridge
     private var faviconTask: Task<Void, Never>?
     private var faviconRevision: UInt = 0
+    private var contentRulesObservation: AnyCancellable?
+    private(set) var isClosed = false
 
     private static let maximumFaviconBytes = 2 * 1_024 * 1_024
     /// WKWebView's default macOS user agent has no browser/version token, so
@@ -248,6 +250,13 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         webView.allowsBackForwardNavigationGestures = true
         webView.allowsMagnification = true
         observeWebView()
+        contentRulesObservation = BrowserContentBlocker.shared.$ruleLists
+            .sink { [weak self] rules in
+                guard let self, !self.isClosed else { return }
+                let controller = self.webView.configuration.userContentController
+                controller.removeAllContentRuleLists()
+                for rule in rules { controller.add(rule) }
+            }
 
         if let initialURL, !initialURL.isEmpty {
             navigate(to: initialURL)
@@ -342,6 +351,14 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         case "stop": webView.stopLoading()
         default: break
         }
+    }
+
+    func close() {
+        isClosed = true
+        contentRulesObservation = nil
+        faviconTask?.cancel()
+        automation.invalidateDocument()
+        webView.stopLoading()
     }
 
     func stopLoading() {

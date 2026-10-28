@@ -99,3 +99,35 @@ O Zshell instala hooks SessionStart para Claude Code e Codex, uma extensão Pi e
 Somente conversas raiz locais informadas pelas integrações são retomadas. O Codex requer CLI local integrado (`--no-daemon`); daemons compartilhados e conexões remotas não são suportados. O OpenCode requer a API de plugins TUI; versões antigas, sessões de servidor sem interface e `opencode attach` não são suportados. Um agente filho não substitui a conversa do painel pai. O Pi precisa do arquivo de sessão salvo.
 
 Sem identidade verificada, diretório original ou arquivo Pi, abre-se um novo shell. Se o CLI não for encontrado, também se retorna ao shell. O Zshell não repete comandos de início arbitrários nem escolhe a conversa mais recente. Erros do provedor, como conversas excluídas, aparecem no CLI.
+
+## Encontrar e retomar conversas salvas [#saved-conversation-history]
+
+Abra **Agentes → Histórico de conversas dos agentes**, clique no relógio no topo da barra lateral de projetos. Pesquise entre projetos por título, provedor, projeto, ID da conversa ou diretórios de trabalho e configuração. O Zshell mantém as 200 conversas locais verificadas mais recentes após fechar agentes e painéis e reiniciar o app. **Recentes** mostra 20 resultados não arquivados; **Todas** inclui os arquivados; **Arquivadas** mostra somente estes.
+
+Escolha **Mostrar conversa** se ela estiver aberta ou **Retomar conversa** se estiver salva. O Zshell reutiliza um painel aberto, reconecta um PTY ainda ativo ou retoma a conversa exata do provedor com seu diretório e configuração originais. A retomada manual requer integração de IA, mesmo com a restauração automática desativada. Diretórios ausentes e arquivos Pi ausentes ou que não correspondem à conversa geram um erro antes da criação de um painel.
+
+**Arquivar** oculta o registro em Recentes; **Desarquivar** o traz de volta. **Excluir…** remove apenas o registro do Zshell e mantém os arquivos do provedor.
+
+Em um painel Zshell, `zshell +agent history --all` e `zshell +agent resume --id HISTORY_UUID` se limitam ao projeto do painel. Em um terminal externo comum, mantenha o Zshell aberto, encontre o UUID do projeto e selecione-o explicitamente:
+
+```sh
+zshell +agent history projects
+zshell +agent history --project PROJECT_UUID --all
+zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID --focus
+```
+
+A CLI retoma em segundo plano, a menos que você acrescente `--focus`. Para um projeto em várias janelas, escolha `--window WINDOW_UUID` retornado por `history projects`. Com várias instâncias do app, use `--connection PATH` com o caminho absoluto do arquivo privado de conexão informado pela CLI. Essas opções são para terminais externos; processos dos painéis mantêm seu projeto original.
+
+## Acompanhar eventos do projeto [#live-events]
+
+Execute `zshell +events` em um terminal Zshell para receber em NDJSON as mudanças futuras do projeto e da janela desse terminal, sem consultas periódicas. Opções: --pane UUID, --event NAME repetível, --once e --timeout MS (0 aguarda indefinidamente).
+
+Inclui criação e fechamento de sessões e painéis, foco, progresso, atenção e conclusão de agentes e comandos concluídos. stream.ready começa em sequence 0; cada evento correspondente incrementa a sequência. Cada linha contém version, event, stream_id, sequence, time em milissegundos Unix, project_id e data. Não há repetição do histórico. Leia os resultados com +pane wait --task UUID.
+
+Limites: 32 assinaturas, 256 quadros e 1 MiB por fila, 64 KiB por quadro. Um leitor lento recebe stream.lagged quando possível e é desconectado; dois segundos sem escrita também fecham a conexão. Atraso, desconexão inesperada ou erro de sequência encerram com código diferente de zero. Assine novamente e leia o estado atual. Fechar o terminal, renovar o token ou mover para outro projeto ou janela encerra a assinatura. Sem controle externo nem --project; remover variáveis não amplia permissões. --once sem correspondência retorna 124 no tempo limite; o limite normal retorna 0.
+
+```sh
+zshell +events --event command.task.finished --once --timeout 30000
+```
+
+`pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).

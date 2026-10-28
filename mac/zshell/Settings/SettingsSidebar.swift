@@ -284,7 +284,7 @@ private enum SettingsSidebarSection: CaseIterable {
     var categories: [SettingsCategory] {
         switch self {
         case .basics: [.general, .appearance, .shortcuts]
-        case .workspace: [.terminal, .editor]
+        case .workspace: [.terminal, .editor, .browser]
         case .tools: [.automation, .recommendations]
         case .about: [.updates]
         }

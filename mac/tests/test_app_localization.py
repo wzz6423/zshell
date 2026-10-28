@@ -104,6 +104,21 @@ class AppLocalizationTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
             for language in LANGUAGES:
                 self.assertTrue((resources / f"{language}.lproj").is_dir(), language)
+            privacy = json.loads((mac / "zshell/InfoPlist.xcstrings").read_text())["strings"]
+            info = plistlib.loads((mac / "zshell/Info.plist").read_bytes())
+            for key in ("NSAppleEventsUsageDescription", "NSCameraUsageDescription",
+                        "NSMicrophoneUsageDescription"):
+                self.assertEqual(info[key], privacy[key]["localizations"]["en"]["stringUnit"]["value"])
+                for language in LANGUAGES:
+                    with self.subTest(privacy=key, language=language):
+                        compiled = subprocess.check_output([
+                            "plutil", "-convert", "xml1", "-o", "-",
+                            str(resources / f"{language}.lproj/InfoPlist.strings"),
+                        ])
+                        self.assertEqual(
+                            plistlib.loads(compiled)[key],
+                            privacy[key]["localizations"][language]["stringUnit"]["value"],
+                        )
             source = root / "Probe.swift"
             source.write_text(r'''
 import Foundation

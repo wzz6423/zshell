@@ -44,6 +44,17 @@ input behavior, and the backend are configured in Zshell's own
 [settings](/en/docs/configuration).
 </Callout>
 
+## System permissions
+
+Local programs in a Zshell terminal can request camera or microphone access, or
+control of another app through Apple Events. macOS attributes these requests to
+Zshell; allow access only for programs you trust. Automation approval is specific
+to each target app.
+
+Manage access in **System Settings → Privacy & Security → Camera, Microphone,
+or Automation**. Denying a request blocks that capability. Zshell does not grant
+these permissions automatically.
+
 ## Search
 
 | Action | Shortcut |

@@ -1,0 +1,48 @@
+---
+title: Phiên từ xa dùng chung
+description: Kết nối cùng một terminal qua SSH hoặc Tailscale và giữ tác vụ chạy sau khi máy khách ngắt kết nối.
+---
+
+`zshell-server` giữ shell và các tác vụ trên máy macOS hoặc Linux. Cả hai bộ máy terminal của Zshell đều kết nối được. Đóng máy khách hay mất mạng không kết thúc tác vụ. Kết nối lại sẽ khôi phục màn hình, lịch sử cuộn, con trỏ và chế độ terminal.
+
+## Cài đặt [#install]
+
+Biên dịch kho Zshell trên máy chủ bằng bộ công cụ Rust hiện tại. Máy khách Mac đã có relay và không cần Cargo. Chưa hỗ trợ máy chủ Windows nguyên bản.
+
+```sh
+cargo build --locked --release --manifest-path remote/Cargo.toml
+install -d "$HOME/.local/bin"
+install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
+```
+
+## SSH [#ssh]
+
+Trước tiên xác minh khóa máy chủ và xác thực bằng khóa hoặc agent:
+
+```sh
+ssh devbox true
+```
+
+Mở máy chủ từ xa trong menu mạng ở thanh bên. Nhập tên, `ssh://me@devbox:22` hoặc bí danh SSH và `~/.local/bin/zshell-server`. Kết nối sẽ tải các dự án và phiên hiện có. Nhập thư mục như `~/repo` rồi mở dự án từ xa để tạo shell. Hỗ trợ đường dẫn có khoảng trắng; tab và khung chia mới cũng chạy từ xa.
+
+SSH tự khởi động daemon và dùng cấu hình OpenSSH, khóa, agent cùng khóa máy chủ đã tin cậy. Khóa chưa biết và lỗi xác thực sẽ được báo. Tệp và Git dùng SSH đến cùng máy chủ kể cả khi terminal dùng Tailscale. Đường dẫn từ xa không truy cập tệp Mac. `ZSHELL_SSH_CONFIG_FILE` cho phép chọn tệp OpenSSH riêng có thể đọc bằng đường dẫn tuyệt đối.
+
+## Tailscale [#tailscale]
+
+Đăng nhập Tailscale trên cả hai máy rồi khởi động bộ lắng nghe riêng trước khi tạo phiên:
+
+```sh
+zshell-server serve --listen tailscale://:7373
+```
+
+Thêm `tailscale://devbox:7373`. Hỗ trợ MagicDNS và địa chỉ Tailscale IPv4/IPv6; từ chối địa chỉ công cộng. Mặc định chỉ cho phép thiết bị không gắn thẻ của chủ máy. `--allow-user` cho phép tên đăng nhập khác khớp chính xác; máy khách gắn thẻ vẫn bị từ chối. Dùng SSH trên chính máy chủ. ACL của tailnet vẫn có hiệu lực. Máy khách được cấp phép có thể thao tác tài khoản Unix của dịch vụ.
+
+## Chia sẻ và kết thúc [#sharing]
+
+Mọi máy khách nhận cùng đầu ra. Đưa tiêu điểm vào terminal hoặc giành quyền điều khiển sẽ cấp quyền nhập và đổi kích thước cho máy khách đó. Khi ngắt kết nối, máy còn lại kết nối sớm nhất sẽ tiếp quản. Bảng Thông tin hiển thị trạng thái, số máy khách và quyền điều khiển, cùng thao tác tách và kết nối lại. Lỗi mạng được thử lại tự động; dữ liệu nhập ngoại tuyến bị bỏ. Bố cục đã lưu kết nối lại cùng UUID từ xa.
+
+Đóng khung, dự án, cửa sổ hoặc dùng một trong hai lựa chọn thoát ứng dụng chỉ tách máy khách. Kết thúc phiên từ xa yêu cầu xác nhận rồi dừng shell và tác vụ cho tất cả. Trên máy chủ: `zshell-server terminate --project ~/repo --session UUID`.
+
+## Giới hạn [#limits]
+
+Phiên chỉ tồn tại khi daemon còn sống, không qua lần khởi động lại máy, sự cố hay khởi động lại daemon. Phiên bị mất được báo lỗi, không âm thầm thay bằng shell mới. Giới hạn: 128 phiên, ảnh trạng thái 16 MiB và hàng đợi trực tiếp 1 MiB mỗi máy khách. Máy chậm không chặn máy khác; lịch sử ở trong bộ nhớ máy chủ. Xem [tài liệu máy chủ](https://github.com/wzz6423/zshell/tree/main/remote) về dịch vụ và CLI.

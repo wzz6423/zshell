@@ -56,6 +56,9 @@ enum SettingsSearchIndex {
 
         var result = SettingsCategory.allCases.filter { $0 != .automation }.map { item($0, $0.title) }
         result += [
+            item(.browser, String(localized: "Block ads and trackers"), keywords: "browser.content-blocking ads trackers privacy"),
+            item(.browser, String(localized: "Filter Lists"), section: String(localized: "Filter Lists"), keywords: "browser.filter-lists EasyList EasyPrivacy ABP custom URL"),
+            item(.browser, String(localized: "Update Lists Now")),
             item(.general, String(localized: "Language"),
                  keywords: AppLanguage.allCases.map(\.title).joined(separator: " ")),
             item(.general, String(localized: "Show Zshell in"),

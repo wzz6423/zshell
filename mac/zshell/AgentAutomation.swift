@@ -257,6 +257,12 @@ final class AgentAutomationMonitor {
 
     private init() {}
 
+    func ownsTerminalProcess(_ pid: pid_t) -> Bool {
+        sessions.allObjects.contains { session in
+            session.shellPid.map { ZshellAgentProcessIdentity.isDescendant(pid, of: $0) } == true
+        }
+    }
+
     func register(_ session: TerminalSession) {
         AgentTurnReviewStore.shared.activeAgentCheck = { root in
             TerminalManager.automationManagers.contains { manager in
@@ -270,6 +276,11 @@ final class AgentAutomationMonitor {
                     }
                 }
             }
+        }
+        // Reconnecting a PTY reuses its ID while the detached renderer can
+        // still be retained by the closing window.
+        for previous in sessions.allObjects where previous.id == session.id {
+            sessions.remove(previous)
         }
         sessions.add(session)
         guard !pendingSessionIDs.contains(session.id) else { return }
@@ -314,6 +325,7 @@ final class AgentAutomationMonitor {
         }
 
         for session in refreshBatch {
+            session.refreshAgentConversationHistory()
             session.refreshAutomationAgentState(isFocused: session.id == focusedSessionID)
         }
     }
@@ -610,6 +622,8 @@ extension TerminalSession {
               ZshellAgentProcessIdentity.isDescendant(ownerPID, of: shell),
               let owner = ZshellAgentProcessIdentity(pid: ownerPID)
         else { return false }
+        let finished = report.activityPhase == .done
+            && agentObservation.programReport?.report.activityPhase != .done
         if agentStatus?.authority == .report,
            agentObservation.programReport?.report.phase != report.phase {
             agentStatus = nil
@@ -619,6 +633,7 @@ extension TerminalSession {
         )
         agentObservation.lastProgramReportAt = Date()
         refreshAutomationAgentState(isFocused: TerminalManager.automationIsSessionFocused(id))
+        if finished { ZshellAutomationEventHub.shared.agentReportFinished(in: self) }
         return true
     }
 
