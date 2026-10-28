@@ -785,6 +785,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             withIntermediateDirectories: false,
             attributes: [.posixPermissions: 0o700]
         )
+        let stateDirectoryPath = shellQuote(directory.path)
         let selectionStatePath = shellQuote(directory.appendingPathComponent("prompt-selection.pid").path)
         let promptQueueStatePath = shellQuote(directory.appendingPathComponent("prompt-queue.pid").path)
         var files = [
@@ -814,15 +815,25 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             }
             _zshell_selection_active=0
             _zshell_prompt_queue_empty=0
-            _zshell_prompt_queue_ready() {
-              local _zshell_queue_now_empty=$(( ${#BUFFER} == 0 ))
-              (( _zshell_queue_now_empty == _zshell_prompt_queue_empty )) && return
-              _zshell_prompt_queue_empty=$_zshell_queue_now_empty
-              if (( _zshell_queue_now_empty )); then
-                builtin print -r -- "$$" >| \(promptQueueStatePath)
-              else
-                builtin print -rn -- '' >| \(promptQueueStatePath)
+            _zshell_write_prompt_state() {
+              # 临时目录可能在 shell 仍存活时被清理；仅在丢失时重建，且不改变用户的 umask。
+              if [[ ! -d \(stateDirectoryPath) ]]; then
+                (umask 077; /bin/mkdir -m 700 -p -- \(stateDirectoryPath)) 2>/dev/null || return 1
               fi
+              builtin print -rn -- "$2" 2>/dev/null >| "$1"
+            }
+            _zshell_prompt_queue_ready() {
+              [[ -f \(selectionStatePath) ]] || _zshell_selection_ready || return
+              local _zshell_queue_now_empty=$(( ${#BUFFER} == 0 ))
+              if (( _zshell_queue_now_empty == _zshell_prompt_queue_empty )) && [[ -f \(promptQueueStatePath) ]]; then
+                return
+              fi
+              if (( _zshell_queue_now_empty )); then
+                _zshell_write_prompt_state \(promptQueueStatePath) "$$" || return
+              else
+                _zshell_write_prompt_state \(promptQueueStatePath) '' || return
+              fi
+              _zshell_prompt_queue_empty=$_zshell_queue_now_empty
             }
             _zshell_begin_selection() {
               MARK=$CURSOR
@@ -898,11 +909,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                 bindkey -M "$_zshell_keymap" $'\\x1e' _zshell_activate_selection || return
                 bindkey -M "$_zshell_keymap" $'\\e[27;2;27~' _zshell_cancel_selection || return
               done
-              builtin print -r -- "$$" >| \(selectionStatePath)
+              _zshell_write_prompt_state \(selectionStatePath) "$$"
             }
             _zshell_selection_finished() {
-              builtin print -rn -- '' >| \(selectionStatePath)
-              builtin print -rn -- '' >| \(promptQueueStatePath)
+              _zshell_write_prompt_state \(selectionStatePath) ''
+              _zshell_write_prompt_state \(promptQueueStatePath) ''
               _zshell_prompt_queue_empty=0
             }
             add-zsh-hook precmd _zshell_prompt_marker
