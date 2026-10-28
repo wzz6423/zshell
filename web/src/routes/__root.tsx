@@ -10,6 +10,7 @@ import { RootProvider } from "fumadocs-ui/provider/base";
 import appCss from "@/styles/app.css?url";
 import { languageFromPath, languageTag, languageDirection } from "@/lib/i18n";
 import { withBase } from "@/lib/utils";
+import { SiteParticles } from "@/components/site-particles";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -66,7 +67,8 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
       </head>
       <body>
         <RootProvider dir={languageDirection(language)} theme={{ hotKey: false }} search={{ enabled: false }}>
-          {children}
+          <SiteParticles />
+          <div className="site-content">{children}</div>
         </RootProvider>
         <Scripts />
       </body>
