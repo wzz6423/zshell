@@ -30,8 +30,15 @@ final class RemoteProjectInfoNSView: NSView {
     private let userValue = NSTextField(labelWithString: "")
     private let portValue = NSTextField(labelWithString: "")
     private let directoryValue = NSTextField(labelWithString: "")
+    private let reconnectButton = NSButton()
+    private let controlButton = NSButton()
+    private let detachButton = NSButton()
+    private let remoteControls = NSStackView()
     private weak var project: Project?
+    private weak var observedSession: TerminalSession?
     private var connectionObservation: AnyCancellable?
+    private var languageObservation: AnyCancellable?
+    private var fieldLabels: [NSTextField] = []
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -56,7 +63,19 @@ final class RemoteProjectInfoNSView: NSView {
             row.widthAnchor.constraint(equalTo: fields.widthAnchor).isActive = true
         }
 
-        let stack = NSStackView(views: [fields, statusDetail])
+        remoteControls.orientation = .vertical
+        remoteControls.alignment = .leading
+        remoteControls.spacing = 6
+        for button in [reconnectButton, controlButton, detachButton] {
+            button.bezelStyle = .rounded
+            button.target = self
+            remoteControls.addArrangedSubview(button)
+        }
+        reconnectButton.action = #selector(reconnectSession)
+        controlButton.action = #selector(takeControl)
+        detachButton.action = #selector(detachSession)
+        remoteControls.isHidden = true
+        let stack = NSStackView(views: [fields, statusDetail, remoteControls])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
@@ -70,6 +89,13 @@ final class RemoteProjectInfoNSView: NSView {
             fields.widthAnchor.constraint(equalTo: stack.widthAnchor),
             statusDetail.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
+        languageObservation = NotificationCenter.default.publisher(for: AppLocalization.didChange)
+            .receive(on: DispatchQueue.main).sink { [weak self] _ in
+                guard let self else { return }
+                self.refreshLabels()
+                if let project = self.project { self.configure(project: project) }
+            }
+        refreshLabels()
     }
 
     required init?(coder: NSCoder) {
@@ -77,9 +103,36 @@ final class RemoteProjectInfoNSView: NSView {
     }
 
     func configure(project: Project) {
+        if case .shared(let host, let directory) = project.location {
+            self.project = project
+            if observedSession !== project.selectedSession {
+                observedSession = project.selectedSession
+                connectionObservation = project.selectedSession?.$remoteStatus.receive(on: DispatchQueue.main)
+                    .sink { [weak self] in self?.refreshSharedStatus($0) }
+            }
+            hostValue.stringValue = host.name
+            switch try? host.endpoint() {
+            case .ssh(let endpoint):
+                userValue.stringValue = endpoint.user ?? "—"
+                portValue.stringValue = endpoint.port.map(String.init) ?? "—"
+            case .tailscale(_, let port):
+                userValue.stringValue = "Tailscale"
+                portValue.stringValue = String(port)
+            case nil:
+                userValue.stringValue = "—"
+                portValue.stringValue = "—"
+            }
+            directoryValue.stringValue = directory
+            hostValue.toolTip = host.address
+            directoryValue.toolTip = directory
+            remoteControls.isHidden = false
+            refreshSharedStatus(project.selectedSession?.remoteStatus)
+            return
+        }
         guard case .ssh(let endpoint, let remoteDirectory, _, _) = project.location else {
             return
         }
+        remoteControls.isHidden = true
         if self.project !== project {
             self.project = project
             connectionObservation = project.$remoteConnectionState
@@ -97,6 +150,38 @@ final class RemoteProjectInfoNSView: NSView {
 
         refreshConnectionState(project.remoteConnectionState)
     }
+
+    private func refreshLabels() {
+        let titles = [String(localized: "Status"), String(localized: "Host"), String(localized: "User"),
+                      String(localized: "Port"), String(localized: "Remote Directory")]
+        for (label, title) in zip(fieldLabels, titles) { label.stringValue = title }
+        reconnectButton.title = String(localized: "Reconnect")
+        controlButton.title = String(localized: "Take Terminal Control")
+        detachButton.title = String(localized: "Detach Remote Session")
+    }
+
+    private func refreshSharedStatus(_ status: RemoteRelayStatus?) {
+        statusValue.stringValue = status?.label ?? String(localized: "Connecting…")
+        statusValue.textColor = status?.state == .connected ? .systemGreen : .secondaryLabelColor
+        let isActive = project?.selectedSession?.remoteConnection?.isActiveClient == true
+        if status?.state == .connected {
+            let control = isActive
+                ? String(localized: "This client controls terminal input and size.")
+                : String(localized: "Another client controls terminal input and size.")
+            statusDetail.stringValue = String(localized: "Connected clients: \(status?.clients ?? 0)") + "\n" + control
+        } else {
+            statusDetail.stringValue = status?.message ?? ""
+        }
+        statusDetail.isHidden = false
+        let exited = project?.selectedSession?.hasExited == true
+        reconnectButton.isEnabled = !exited
+        controlButton.isEnabled = !exited && status?.state == .connected && !isActive
+        detachButton.isEnabled = !exited && status?.state != .detached
+    }
+
+    @objc private func reconnectSession() { project?.selectedSession?.remoteConnection?.reconnect() }
+    @objc private func takeControl() { project?.selectedSession?.remoteConnection?.takeControl() }
+    @objc private func detachSession() { project?.selectedSession?.remoteConnection?.detach() }
 
     private func refreshConnectionState(_ state: RemoteConnectionState) {
         switch state {
@@ -118,6 +203,7 @@ final class RemoteProjectInfoNSView: NSView {
 
     private func row(_ title: String, _ value: NSTextField) -> NSStackView {
         let label = NSTextField(labelWithString: title)
+        fieldLabels.append(label)
         label.font = .systemFont(ofSize: 11)
         label.textColor = .secondaryLabelColor
         label.lineBreakMode = .byTruncatingTail

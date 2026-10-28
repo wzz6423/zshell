@@ -1,0 +1,48 @@
+---
+title: リモートセッションの共有
+description: SSH または Tailscale で同じリモート端末に接続し、切断後もジョブを続行します。
+---
+
+`zshell-server` は macOS または Linux ホスト上でシェルとジョブを保持します。Zshell の両方の端末バックエンドで利用でき、クライアントを終了しても処理は続きます。再接続すると画面、スクロール履歴、カーソル、端末モードが復元されます。
+
+## インストール [#install]
+
+ホストで現在の Rust ツールチェーンを使い、Zshell リポジトリからビルドします。Mac クライアントには relay が含まれ、Cargo は不要です。Windows のネイティブホストは未対応です。
+
+```sh
+cargo build --locked --release --manifest-path remote/Cargo.toml
+install -d "$HOME/.local/bin"
+install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
+```
+
+## SSH [#ssh]
+
+通常の SSH でホスト鍵と公開鍵または agent 認証を確認します。
+
+```sh
+ssh devbox true
+```
+
+サイドバーのネットワークメニューからリモートホストを開き、名前、`ssh://me@devbox:22` または SSH エイリアス、`~/.local/bin/zshell-server` を入力します。ホストへの接続は既存のプロジェクトとセッションを読み込みます。`~/repo` などのディレクトリを指定してリモートプロジェクトを開くと、新しいシェルが作成されます。空白を含むパス、新規タブ、分割ペインにも対応します。
+
+daemon は SSH 経由で自動起動します。OpenSSH 設定、鍵、agent、信頼済みホスト鍵を使用し、未知の鍵や認証失敗はエラーになります。ファイルと Git は同じホストへの SSH を使用するため、Tailscale 端末でも別途 SSH 接続が必要です。リモートパスで Mac のファイルにアクセスすることはありません。`ZSHELL_SSH_CONFIG_FILE` には別の読み取り可能な設定ファイルの絶対パスを指定できます。
+
+## Tailscale [#tailscale]
+
+両方の端末を Tailscale に接続し、セッション作成前にプライベートリスナーを起動します。
+
+```sh
+zshell-server serve --listen tailscale://:7373
+```
+
+`tailscale://devbox:7373` を追加します。MagicDNS と Tailscale IPv4/IPv6 に対応し、公開アドレスは拒否します。既定ではホスト所有者のタグなし端末のみ許可します。`--allow-user` は完全一致する別のログイン名を許可しますが、タグ付きクライアントは拒否します。同一マシンからは SSH を使用してください。Tailnet ACL も適用され、接続者はサービスの Unix アカウントを操作できます。
+
+## 共有と終了 [#sharing]
+
+全クライアントが同じ出力を受信します。端末にフォーカスするか制御権を取得すると、そのクライアントが入力とサイズを制御します。切断時は最も早く接続した残りのクライアントに移ります。情報パネルで状態、接続数、制御権を確認し、切り離しと再接続を操作できます。通信障害は自動再試行し、切断中の入力は破棄します。保存済みレイアウトはリモート UUID を使って同じジョブに戻ります。
+
+ペイン、プロジェクト、ウインドウを閉じる操作と、両方のアプリ終了操作は接続だけを切り離します。リモートセッション終了は確認後、全クライアントのシェルとジョブを停止します。ホストでは `zshell-server terminate --project ~/repo --session UUID` も使えます。
+
+## 制限 [#limits]
+
+daemon の生存中だけ保持され、ホスト再起動や daemon の再起動・クラッシュには対応しません。失われたセッションはエラーを表示し、新しいシェルに置き換えません。上限は 128 セッション、16 MiB のスナップショット、クライアントごとに 1 MiB のライブキューです。遅い接続は他を妨げず切断され、履歴はホストのメモリ内に残ります。サービスの設定と CLI は[サーバーの説明](https://github.com/wzz6423/zshell/tree/main/remote)を参照してください。

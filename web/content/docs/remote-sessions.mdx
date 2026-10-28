@@ -1,0 +1,61 @@
+---
+title: Shared remote sessions
+description: Keep remote shells running and attach from several Zshell clients over SSH or Tailscale.
+---
+
+`zshell-server` owns the shell and its jobs on a macOS or Linux host. Zshell renders it with either terminal backend. A client can close, quit or lose its connection while the remote work continues. Reattaching restores the current screen, scrollback, cursor and terminal modes.
+
+## Install on the host [#install]
+
+Build from the Zshell repository on the host using a current Rust toolchain. The macOS client already includes its relay and needs no Cargo installation.
+
+```sh
+cargo build --locked --release --manifest-path remote/Cargo.toml
+install -d "$HOME/.local/bin"
+install -m 755 remote/target/release/zshell-server "$HOME/.local/bin/zshell-server"
+```
+
+Run the server as the Unix account whose shell and files clients may access. Native Windows hosting is not supported.
+
+## Connect over SSH [#ssh]
+
+First verify the host key and key or agent authentication in an ordinary terminal:
+
+```sh
+ssh devbox true
+```
+
+In the sidebar's network menu choose **Remote Hosts…**. Add a name, `ssh://me@devbox:22` or an SSH alias, and the server executable `~/.local/bin/zshell-server`. **Connect Host** loads the host's projects and attaches their existing sessions. To create a shell, enter a remote directory such as `~/repo` and choose **Open Remote Project**. Paths with spaces are supported. New tabs and splits in that project also run remotely.
+
+SSH starts the owner-only daemon automatically. It uses your existing OpenSSH configuration, keys, agent and trusted host keys. Unknown host keys and authentication failures appear as errors. Verify them through ordinary SSH before retrying. Zshell does not collect a password or install the server for you.
+
+Files and Git use SSH to the same host; a direct Tailscale terminal still needs separate working SSH access for those panels. Remote paths never point at the Mac's files. An optional absolute `ZSHELL_SSH_CONFIG_FILE` selects a separate readable OpenSSH configuration for terminals, Files and Git.
+
+## Connect over Tailscale [#tailscale]
+
+Sign both machines into Tailscale. Before creating sessions, run the host daemon with its private listener:
+
+```sh
+zshell-server serve --listen tailscale://:7373
+```
+
+Add `tailscale://devbox:7373` in **Remote Hosts…**. MagicDNS and Tailscale IPv4/IPv6 addresses work; public addresses are rejected. Only the host owner's untagged devices are allowed by default. `--allow-user` permits another exact Tailscale login; tagged peers remain rejected. Use SSH for a client on the server machine itself. Tailnet ACLs also apply. Grant access only to people who may operate the server's Unix account.
+
+## Share, detach and reconnect [#sharing]
+
+All attached clients receive the same output. Focusing a terminal or choosing **Take Terminal Control** grants that client input and resize control. Other clients remain viewers. When the controller disconnects, the earliest remaining client takes over.
+
+The Info panel shows the connection state, client count and controller. **Detach Remote Session** pauses this client; **Reconnect** attaches it again. An unexpected network loss retries automatically. Input typed while disconnected is discarded. Saved layouts remember the remote UUID independently from the local pane, so a relaunch attaches the same remote job.
+
+Closing a pane, project or window, and either app quit option, only detach remote sessions. **End Remote Session…** asks for confirmation and ends the shared shell and its jobs for every client. The host CLI can also terminate a session:
+
+```sh
+zshell-server list --project ~/repo
+zshell-server terminate --project ~/repo --session UUID
+```
+
+## Persistence limits [#limits]
+
+Persistence lasts while the host daemon is alive. Host reboots, daemon crashes and daemon restarts end it. An unavailable saved session is reported; it is never silently replaced by a new shell. The daemon keeps at most 128 sessions, a 16 MiB terminal snapshot and a 1 MiB live queue per client. Slow viewers disconnect without blocking other clients. History stays in host memory.
+
+For systemd, LaunchAgent, CLI and identity-policy details, see the [server reference](https://github.com/wzz6423/zshell/tree/main/remote). Configure the service before creating sessions; changing a running daemon's listener requires ending its sessions first.

@@ -9,7 +9,7 @@ import Foundation
 /// JSON values used by the local automation protocol. Keeping the wire model
 /// concrete avoids accepting arbitrary Foundation object graphs at the app
 /// boundary and lets both the app and bundled CLI share one Codable contract.
-enum ZshellJSONValue: Codable, Equatable, Sendable {
+nonisolated enum ZshellJSONValue: Codable, Equatable, Sendable {
     case string(String)
     case number(Double)
     case bool(Bool)
