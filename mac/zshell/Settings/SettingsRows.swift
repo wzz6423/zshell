@@ -351,7 +351,7 @@ final class SettingsSwitch: NSSwitch {
     init(onChange: @escaping (Bool) -> Void) {
         self.onChange = onChange
         super.init(frame: .zero)
-        controlSize = .regular
+        controlSize = .small
         target = self
         action = #selector(toggled)
     }
