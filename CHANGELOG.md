@@ -19,6 +19,8 @@ the original feature bullet instead of adding separate entries for them.
 ### Fixed
 
 - Use a consistent compact switch size throughout Settings.
+- Return keyboard focus to the previous pane when the command palette opened
+  over the agent palette is closed.
 
 ## [0.1.11]
 

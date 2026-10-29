@@ -1551,15 +1551,17 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     func toggleCommandPalette() {
-        if agentPalette.isPresented {
-            agentPalette.dismiss(restoreFocus: false)
-        }
+        let displacedResponder = agentPalette.isPresented
+            ? agentPalette.dismissForHandoff()
+            : nil
         if isCommandPaletteVisible {
             dismissCommandPalette()
         } else {
             commandPaletteWindow = NSApp.keyWindow
-            if let responder = commandPaletteWindow?.firstResponder,
-               Self.isStableWorkspaceResponder(responder) {
+            if let displacedResponder {
+                commandPalettePreviousResponder = displacedResponder
+            } else if let responder = commandPaletteWindow?.firstResponder,
+                      Self.isStableWorkspaceResponder(responder) {
                 commandPalettePreviousResponder = responder
             } else {
                 commandPalettePreviousResponder = nil
