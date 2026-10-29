@@ -273,3 +273,7 @@ project/window ends its existing subscriptions and discards queued events.
 Other projects/windows are never included, even if a caller supplies their pane
 UUID. A move of another terminal appears as removal in the source project and
 creation in the destination project.
+
+## Fork a conversation [#fork-a-conversation]
+
+Open **Agents → Agent Conversation History**, select a conversation, then choose **Fork Conversation in New Pane** from its context menu or the branch button. Zshell uses the provider’s native fork to preserve its conversation context in an independent new conversation; the source pane and saved conversation remain unchanged. Codex, Claude Code, OpenCode and Pi require a CLI version with native fork support; Pi also requires its saved session file. Remote conversations use the same action through an updated Zshell server. A missing or older CLI is rejected before creating a pane. If sign-in or a native hook prevents confirmation, check the new pane’s output before continuing. From a Zshell pane, `zshell +agent fork --id UUID [--focus]` uses that pane’s project. External terminals also require `--project UUID`, as with resume.

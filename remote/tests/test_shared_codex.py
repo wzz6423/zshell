@@ -37,11 +37,15 @@ def main(binary):
                             "AGENT_FIXTURE": str(root), "AGENT_SERVER": binary,
                             "PATH": str(providers) + os.pathsep + environment.get("PATH", "/usr/bin:/bin")})
         environment.pop("CODEX_THREAD_ID", None)
+        (home / ".codex").mkdir()
         provider = providers / "codex"
         provider.write_text("#!/usr/bin/env python3\n" + r'''
 import json, os, socket, struct, subprocess, sys, time, uuid
 from pathlib import Path
 root=Path(os.environ["AGENT_FIXTURE"])
+if "--help" in sys.argv:
+    print("Usage: codex fork [OPTIONS] [SESSION_ID]")
+    sys.exit(0)
 state=root/"state"
 def receive(stream, count):
     data=b""
@@ -83,11 +87,13 @@ if "--managed-daemon" in sys.argv:
             (root/"shared-response.json").write_text(json.dumps(response))
         time.sleep(0.01)
 else:
-    slot=sys.argv[sys.argv.index("--tui")+1]
-    identity=sys.argv[-1]
-    (root/(slot+"-ready.json")).write_text(json.dumps({"pid":os.getpid()}))
+    forking="fork" in sys.argv
+    slot="fork" if forking else sys.argv[sys.argv.index("--tui")+1]
+    identity=str(uuid.uuid4()) if forking else sys.argv[-1]
+    (root/(slot+"-ready.json")).write_text(json.dumps({"pid":os.getpid(),"identity":identity}))
     def title(text):print("\x1b]2;"+text+"\x07",end="",flush=True)
-    if identity!="pending":title(identity)
+    if forking:title(sys.argv[-1])
+    elif identity!="pending":title(identity)
     while True:
         path=root/(slot+"-command.json")
         if path.exists():
@@ -184,6 +190,28 @@ else:
             title("c", third[:29] + "...")
             wait(lambda: conversation(pane_c) == third)
             check(info(pane_c)["agentStatus"]["phase"] == "working", "hook-before-title preserves lifecycle and binds the verified full UUID")
+            original = next(item for item in bridge.call("agentHistory", project)["result"]
+                            if item["identity"]["sessionID"] == first)
+            fork = bridge.call("agentFork", project, provider="codex", conversationId=first)
+            assert "result" in fork, fork
+            fork = fork["result"]
+            fork_terminal = fork["sessionId"]
+            remote_ids.append(fork_terminal)
+            ready = wait(lambda: json.loads((root / "fork-ready.json").read_text())
+                         if (root / "fork-ready.json").exists() else None)
+            wait(lambda: info(fork_terminal)["totalOutputBytes"] > 0)
+            check(conversation(pane_a) == first and conversation(fork_terminal) is None,
+                  "pending native fork source title cannot revoke the source shared binding")
+            check(next(item for item in bridge.call("agentHistory", project)["result"]
+                       if item["identity"]["sessionID"] == first) == original,
+                  "pending native fork preserves source history byte for byte")
+            fork_identity = ready["identity"]
+            title("fork", fork_identity)
+            check(report(fork_identity)["status"] == 0, "shared native fork hook accepts the independent full ID")
+            wait(lambda: conversation(fork_terminal) == fork_identity)
+            check(conversation(pane_a) == first and info(pane_a)["running"] and fork_identity != first,
+                  "shared native fork keeps source and independent new PTYs alive")
+            bridge.call("terminate", project, sessionId=fork_terminal)
             title("b", first)
             wait(lambda: conversation(pane_a) is None and conversation(pane_b) is None)
             check(True, "a duplicate thread title revokes both ambiguous pane bindings")

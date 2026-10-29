@@ -41,17 +41,20 @@ struct AgentConversationHistoryTests {
             } else {
                 let app = NSApplication.shared
                 app.setActivationPolicy(.prohibited)
+                QuickTerminalOffscreen.install()
                 defer {
+                    AgentConversationHistoryController.shared.close()
                     managers.forEach { $0.windowClosed() }
                     pump(0.5)
                     windows.forEach { $0.contentView = nil; $0.close() }
                     NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: app)
                     _ = try? PTYMuxCommandLine.exchange(method: "shutdown")
                 }
-                AppSettings.shared.terminalBackend = CommandLine.arguments[1] == "ghostty" ? .libghostty : .alacritty
+                AppSettings.shared.terminalBackend = CommandLine.arguments[1].hasSuffix("ghostty") ? .libghostty : .alacritty
                 AppSettings.shared.resumeAgentConversations = false
                 AppSettings.shared.preserveTerminalSessions = false
-                try terminals(providerBin: URL(fileURLWithPath: CommandLine.arguments[2]))
+                if CommandLine.arguments[1].hasPrefix("native-pi-") { try nativePi() }
+                else { try terminals(providerBin: URL(fileURLWithPath: CommandLine.arguments[2])) }
             }
             print("Conversation history \(CommandLine.arguments[1]): \(checks) checks passed")
         } catch {
@@ -70,6 +73,18 @@ struct AgentConversationHistoryTests {
         var rejected = false
         do { try operation() } catch { rejected = true }
         try check(rejected, message)
+    }
+
+    private static func awaitOperation<T>(_ operation: @escaping @MainActor () async throws -> T) throws -> T {
+        var result: Result<T, Error>?
+        let task = Task { @MainActor in
+            do { result = .success(try await operation()) }
+            catch { result = .failure(error) }
+        }
+        let deadline = Date().addingTimeInterval(45)
+        while result == nil && Date() < deadline { pump(0.01) }
+        guard let result else { task.cancel(); throw HistoryTestFailure.failed("Async history operation timed out") }
+        return try result.get()
     }
 
     private static func pump(_ duration: TimeInterval) {
@@ -194,11 +209,15 @@ struct AgentConversationHistoryTests {
         try check(recent.filter == "recent" && recent.query == "fix", "CLI defaults to Recent")
         let resume = try AgentConversationHistoryCommandLine.parse(["resume", "--id", id, "--focus"])
         try check(resume.focus && resume.id?.uuidString == id, "CLI accepts explicit history ID and focus")
+        let fork = try AgentConversationHistoryCommandLine.parse(["fork", "--id", id, "--focus", "--project", id, "--window", id])
+        try check(fork.method == "fork" && fork.focus && fork.params["focus"]?.boolValue == true,
+                  "fork CLI preserves explicit identity, project, window and focus")
         for values in [["resume", "--id", id, "--all"], ["archive", "--id", id, "--focus"],
                        ["history", "--all", "--archived"], ["history", "--query", "a\nb"],
                        ["history", "--query", String(repeating: "a", count: 1_025)],
                        ["delete"], ["resume", "--id", "latest"], ["history", "--connection", "relative"],
-                       ["resume", "--id", id, "--id", id], ["history", "projects", "--project", id]] {
+                       ["resume", "--id", id, "--id", id], ["history", "projects", "--project", id],
+                       ["fork"], ["fork", "--id", "latest"], ["fork", "--id", id, "--all"]] {
             try rejects("CLI rejects invalid history options \(values.first!)") { _ = try AgentConversationHistoryCommandLine.parse(values) }
         }
         for key in ["ZSHELL_CLI_STATE", "ZSHELL_CLI_TOKEN", "ZSHELL_TERMINAL_ID", "ZSHELL_AUTOMATION_SOCKET", "ZSHELL_PERSISTENT_CONNECTION"] {
@@ -211,6 +230,9 @@ struct AgentConversationHistoryTests {
         managers.append(manager)
         manager.projects.forEach { manager.close($0) }
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 850, height: 520), styleMask: [.titled], backing: .buffered, defer: false)
+        window.identifier = NSUserInterfaceItemIdentifier("main-history-\(UUID())")
+        window.isReleasedWhenClosed = false
+        window.orderFront(nil)
         windows.append(window)
         manager.attach(to: window)
         let project = Project(fallbackName: "History fixture", manager: manager, createInitialSession: false)
@@ -222,6 +244,7 @@ struct AgentConversationHistoryTests {
 
     private static func attach(_ session: TerminalSession) {
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 440), styleMask: [.titled], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
         window.contentView = session.surface
         session.surface.frame = NSRect(x: 0, y: 0, width: 800, height: 440)
         session.surface.setSurfaceVisible(true)
@@ -234,7 +257,8 @@ struct AgentConversationHistoryTests {
         return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
     }
 
-    private static func runCLI(_ arguments: [String], environment extra: [String: String] = [:]) throws -> (status: Int32, output: String, error: String) {
+    private static func runCLI(_ arguments: [String], environment extra: [String: String] = [:],
+                               whileRunning: (() -> Void)? = nil) throws -> (status: Int32, output: String, error: String) {
         let output = fixtureRoot.appendingPathComponent("stdout-\(UUID()).txt")
         let error = fixtureRoot.appendingPathComponent("stderr-\(UUID()).txt")
         fileManager.createFile(atPath: output.path, contents: nil)
@@ -248,8 +272,8 @@ struct AgentConversationHistoryTests {
         process.standardOutput = stdout
         process.standardError = stderr
         try process.run()
-        let deadline = Date().addingTimeInterval(12)
-        while process.isRunning && Date() < deadline { pump(0.01) }
+        let deadline = Date().addingTimeInterval(45)
+        while process.isRunning && Date() < deadline { whileRunning?(); pump(0.01) }
         if process.isRunning { process.terminate(); throw HistoryTestFailure.failed("CLI timed out: \(arguments)") }
         process.waitUntilExit()
         return (process.terminationStatus, try String(contentsOf: output, encoding: .utf8), try String(contentsOf: error, encoding: .utf8))
@@ -338,6 +362,9 @@ struct AgentConversationHistoryTests {
             if provider == .opencode {
                 project.launchSettings.environmentVariables += [.init(name: "XDG_DATA_HOME", value: configuration.path + "/data")]
             }
+            if provider == .codex {
+                project.launchSettings.environmentVariables += [.init(name: "CODEX_THREAD_ID", value: sessionID)]
+            }
             guard let session = project.newSession(directory: cwd.path) else {
                 throw HistoryTestFailure.failed("The provider fixture session did not start.")
             }
@@ -352,6 +379,8 @@ struct AgentConversationHistoryTests {
             try check(record.identity.sessionID == sessionID && record.identity.configDirectory == configuration.path,
                       "\(provider.rawValue) history keeps exact session and configuration")
             try check(TerminalManager.openConversation(record)?.session === session, "\(provider.rawValue) reports the actual live terminal")
+            try forks(manager: manager, project: project, source: session, record: record,
+                      sessionFile: sessionFile, providerBin: providerBin)
             let sessionCount = project.sessions.count
             let revealed = try manager.resumeConversation(id: id, in: project, focus: false)
             try check(revealed.context.session === session && project.sessions.count == sessionCount, "\(provider.rawValue) resume reveals a live conversation without duplicating it")
@@ -449,6 +478,272 @@ struct AgentConversationHistoryTests {
         TerminalManager.prepareForApplicationQuit(endAll: true)
         try check(AgentConversationHistoryStore(url: AgentConversationHistoryPaths.recordsURL).record(id: pendingID) != nil,
                   "application quit flushes its pending background history write")
+    }
+
+    private static func forks(manager: TerminalManager, project: Project, source: TerminalSession,
+                              record: AgentConversationHistoryRecord, sessionFile: URL, providerBin: URL) throws {
+        let store = AgentConversationHistoryStore.shared
+        let provider = record.identity.provider
+        let sourcePID = source.agentConversationProcessID!
+        let original = store.record(id: record.id)!
+        let originalFile = provider == .pi ? try Data(contentsOf: sessionFile) : nil
+        let previousTab = project.selectedTabID
+        let sessions = Set(project.sessions.map(\.id))
+        let task = Task { @MainActor in try await manager.forkConversation(id: record.id, in: project, focus: false) }
+        try wait("\(provider.rawValue) native fork creates a new terminal") { project.sessions.contains { !sessions.contains($0.id) } }
+        let newSession = project.sessions.first { !sessions.contains($0.id) }!
+        try check(newSession.agentResume?.sessionID != record.identity.sessionID && newSession.agentConversationHistoryID != record.id,
+                  "\(provider.rawValue) pending fork never pre-registers the source")
+        attach(newSession)
+        let context = try awaitOperation { try await task.value }
+        let forked = store.record(id: context.session.agentConversationHistoryID!)!
+        let launched = launchInfo(newSession)!
+        let expected = provider == .claude ? ["--resume", record.identity.sessionID, "--fork-session"]
+            : provider == .codex ? ["fork", record.identity.sessionID]
+            : provider == .pi ? ["--fork", sessionFile.path] : ["--session", record.identity.sessionID, "--fork"]
+        try check(launched["argv"] as? [String] == expected && record.identity.acceptsFork(forked.identity),
+                  "\(provider.rawValue) native argv produces an independent provider identity")
+        try check(forked.id != record.id && forked.terminalID == newSession.id && project.selectedTabID == previousTab,
+                  "\(provider.rawValue) fork records a distinct background pane without stealing focus")
+        try check(store.record(id: record.id) == original && source.agentConversationProcessID == sourcePID && kill(sourcePID, 0) == 0,
+                  "\(provider.rawValue) fork leaves the source record and running process intact")
+        let profile = launched["configuration"] as? [String: String]
+        try check(profile?[provider.configurationVariable] == record.identity.configDirectory,
+                  "\(provider.rawValue) fork restores the original provider profile")
+        if provider == .codex {
+            try check((launched["inherited_codex_thread"] as? String).map(\.isEmpty) ?? true,
+                      "Codex fork does not inherit the source thread ID")
+        }
+        if let originalFile { try check(try Data(contentsOf: sessionFile) == originalFile, "Pi native fork leaves its source file unchanged") }
+        project.closeContent(.session(newSession))
+
+        if provider == .claude {
+            try forkControls(manager: manager, project: project, source: source, record: record)
+            try AppSettings.shared.setAIEnabled(false)
+            try rejects("disabled AI integration rejects native fork before creating a pane") {
+                _ = try awaitOperation { try await manager.forkConversation(id: record.id, in: project, focus: false) }
+            }
+            try AppSettings.shared.setAIEnabled(true)
+            let unsupported = fixtureRoot.appendingPathComponent("unsupported-fork")
+            try Data().write(to: unsupported)
+            let before = project.sessions.count
+            try rejects("old provider CLI fails before creating a pane") {
+                _ = try awaitOperation { try await manager.forkConversation(id: record.id, in: project, focus: false) }
+            }
+            try check(project.sessions.count == before && kill(sourcePID, 0) == 0, "unsupported fork keeps the source and pane count intact")
+            try fileManager.removeItem(at: unsupported)
+            let slow = fixtureRoot.appendingPathComponent("slow-fork-help")
+            try Data().write(to: slow)
+            try rejects("native fork capability check is bounded") {
+                _ = try awaitOperation { try await TerminalManager.validateConversationFork(record.identity, launchSettings: project.launchSettings, timeout: 0.2) }
+            }
+            try fileManager.removeItem(at: slow)
+
+            let paneEnvironment = ZshellCLIService.shared.terminalEnvironment(for: source.id)
+            var scopedSession: TerminalSession?
+            let response = try runCLI(["+agent", "fork", "--id", record.id.uuidString], environment: paneEnvironment) {
+                if scopedSession == nil, let created = project.sessions.first(where: { $0 !== source }) {
+                    scopedSession = created
+                    attach(created)
+                }
+            }
+            let value = try json(response.output).objectValue
+            try check(response.status == 0 && value?["source_id"]?.stringValue == record.id.uuidString
+                      && value?["id"]?.stringValue != record.id.uuidString && value?["terminal_id"]?.stringValue == scopedSession?.id.uuidString,
+                      "scoped CLI reports the confirmed new history record and source ID")
+            project.closeContent(.session(scopedSession!))
+            var externalSession: TerminalSession?
+            let external = try runCLI(["+agent", "fork", "--project", project.conversationHistoryProjectID.uuidString,
+                                       "--id", record.id.uuidString, "--window", manager.conversationHistoryWindowID.uuidString]) {
+                if externalSession == nil, let created = project.sessions.first(where: { $0 !== source }) {
+                    externalSession = created
+                    attach(created)
+                }
+            }
+            try check(external.status == 0 && (try json(external.output)).objectValue?["terminal_id"]?.stringValue == externalSession?.id.uuidString,
+                      "external CLI fork preserves explicit project and window scope")
+            project.closeContent(.session(externalSession!))
+
+            project.launchSettings.environmentVariables.append(.init(name: "HISTORY_TEST_NO_FORK_HOOK", value: "1"))
+            let pending = Task { @MainActor in try await manager.forkConversation(id: record.id, in: project, focus: false, timeout: 0.5) }
+            try wait("unconfirmed fork creates an inspectable pane") { project.sessions.count > before }
+            let pendingSession = project.sessions.first { $0 !== source }!
+            attach(pendingSession)
+            try rejects("an unconfirmed native fork never reports success") { _ = try awaitOperation { try await pending.value } }
+            try check(pendingSession.agentResume == nil && pendingSession.agentConversationHistoryID == nil
+                      && store.record(id: record.id) == original && kill(sourcePID, 0) == 0,
+                      "an unconfirmed fork keeps a separate pane without rebinding source history")
+            project.closeContent(.session(pendingSession))
+            project.launchSettings.environmentVariables.removeAll { $0.name == "HISTORY_TEST_NO_FORK_HOOK" }
+
+            let cancelled = Task { @MainActor in try await manager.forkConversation(id: record.id, in: project, focus: false) }
+            cancelled.cancel()
+            try rejects("cancelled fork does not create a pane") { _ = try awaitOperation { try await cancelled.value } }
+            try check(project.sessions.count == before, "cancellation preserves topology")
+        }
+        if provider == .pi {
+            try fileManager.removeItem(at: sessionFile)
+            defer { if let originalFile { try? originalFile.write(to: sessionFile) } }
+            let count = project.sessions.count
+            try rejects("Pi missing source file fails before creating a fork pane") {
+                _ = try awaitOperation { try await manager.forkConversation(id: record.id, in: project, focus: false) }
+            }
+            try check(project.sessions.count == count, "missing Pi source preserves pane topology")
+        }
+    }
+
+    private static func nativePi() throws {
+        let environment = ProcessInfo.processInfo.environment
+        let pi = environment["HISTORY_TEST_NATIVE_PI"]!
+        let sourceFile = URL(fileURLWithPath: environment["HISTORY_TEST_SESSION_FILE"]!)
+        try ZshellAgentIntegrations.installAvailable()
+        let store = AgentConversationHistoryStore.shared
+        let (manager, project) = newManager()
+        guard let source = project.newSession(directory: fixtureRoot.path,
+            commandArguments: [pi, "--session", sourceFile.path]) else {
+            throw HistoryTestFailure.failed("The native Pi source pane did not start")
+        }
+        attach(source)
+        try wait("installed Pi TUI reports its native session through the production integration", timeout: 20) {
+            source.agentResume?.sessionID == environment["HISTORY_TEST_SESSION"]
+                && source.agentConversationOwner?.isAlive == true
+        }
+        let sourceIdentity = source.agentResume!
+        let original = try Data(contentsOf: sourceFile)
+        let record = store.record(id: source.agentConversationHistoryID!)!
+        let sourcePID = source.agentConversationProcessID!
+        let previousTab = project.selectedTabID
+        let before = Set(project.sessions.map(\.id))
+        let operation = Task { @MainActor in
+            try await manager.forkConversation(id: record.id, in: project, focus: false)
+        }
+        try wait("installed Pi native fork creates its own pane") {
+            project.sessions.contains { !before.contains($0.id) }
+        }
+        let forked = project.sessions.first { !before.contains($0.id) }!
+        attach(forked)
+        let context = try awaitOperation { try await operation.value }
+        let forkIdentity = context.session.agentResume!
+        try check(sourceIdentity.acceptsFork(forkIdentity) && context.session === forked,
+            "actual Pi TUI confirms an independent session ID and file")
+        let sourceEntries = String(decoding: original, as: UTF8.self).split(separator: "\n")
+            .map { Data($0.utf8) }
+        let forkEntries = try Data(contentsOf: URL(fileURLWithPath: forkIdentity.sessionFile!))
+        let forkLines = String(decoding: forkEntries, as: UTF8.self).split(separator: "\n").map { Data($0.utf8) }
+        let retained = try zip(sourceEntries.dropFirst(), forkLines.dropFirst()).allSatisfy {
+            let source = try JSONSerialization.jsonObject(with: $0.0) as! NSDictionary
+            let fork = try JSONSerialization.jsonObject(with: $0.1) as! NSDictionary
+            return source.isEqual(fork)
+        }
+        try check(forkLines.count >= sourceEntries.count && retained,
+            "actual Pi pane retains native tree entries, thinking, tools and extension data")
+        let sourceData = try Data(contentsOf: sourceFile)
+        try check(sourceData == original && source.agentResume == sourceIdentity
+            && source.agentConversationProcessID == sourcePID && kill(sourcePID, 0) == 0
+            && store.record(id: record.id) == record,
+            "actual Pi fork preserves the original conversation file, binding and running TUI")
+        try check(project.selectedTabID == previousTab && store.record(id: forked.agentConversationHistoryID!)?.id != record.id,
+            "actual Pi background fork keeps selection and owns a separate history record")
+        try check(QuickTerminalOffscreen.isSafe(), "actual Pi TUI probes stay offscreen and preserve user focus")
+    }
+
+    private static func descendants(_ view: NSView) -> [NSView] {
+        [view] + view.subviews.flatMap(descendants)
+    }
+
+    private static func historyControls(manager: TerminalManager, record: AgentConversationHistoryRecord)
+        throws -> (panel: NSWindow, table: NSTableView, button: NSButton, menu: NSMenu) {
+        manager.showConversationHistory(all: true)
+        guard let panel = NSApp.windows.first(where: { $0.identifier?.rawValue == "agent-conversation-history" }),
+              let content = panel.contentView,
+              let search = descendants(content).compactMap({ $0 as? NSSearchField }).first,
+              let table = descendants(content).compactMap({ $0 as? NSTableView }).first,
+              let button = descendants(content).compactMap({ $0 as? NSButton }).first(where: {
+                  $0.accessibilityLabel() == String(localized: "Fork Conversation in New Pane")
+              }), let menu = table.menu else {
+            throw HistoryTestFailure.failed("The AppKit fork controls are missing")
+        }
+        search.stringValue = record.identity.sessionID
+        search.delegate?.controlTextDidChange?(Notification(name: NSControl.textDidChangeNotification, object: search))
+        try check(table.numberOfRows == 1 && button.isEnabled, "AppKit history selects the exact source conversation")
+        return (panel, table, button, menu)
+    }
+
+    private static func forkControls(manager: TerminalManager, project: Project, source: TerminalSession,
+                                     record: AgentConversationHistoryRecord) throws {
+        let store = AgentConversationHistoryStore.shared
+        let original = store.record(id: record.id)!
+        let sourcePID = source.agentConversationProcessID!
+        for useMenu in [false, true] {
+            let controls = try historyControls(manager: manager, record: record)
+            let sessions = Set(project.sessions.map(\.id))
+            if useMenu {
+                controls.table.deselectAll(nil)
+                controls.menu.update()
+                try check(!controls.menu.items[0].isEnabled, "AppKit fork context menu rejects empty selection")
+                controls.table.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+                controls.menu.update()
+                try check(controls.menu.items[0].isEnabled, "AppKit fork context menu validates the selected conversation")
+                controls.menu.performActionForItem(at: 0)
+            } else { controls.button.performClick(nil) }
+            controls.menu.update()
+            try check(!controls.button.isEnabled && !controls.menu.items[0].isEnabled,
+                      "AppKit disables repeated fork actions while native launch is pending")
+            _ = NSApp.sendAction(controls.table.doubleAction!, to: controls.table.target, from: controls.table)
+            try check(controls.panel.isVisible && project.sessions.count <= sessions.count + 1,
+                      "AppKit double-click resume cannot interrupt a pending fork")
+            try wait("AppKit \(useMenu ? "context menu" : "branch button") creates a fork pane") {
+                project.sessions.contains { !sessions.contains($0.id) }
+            }
+            let session = project.sessions.first { !sessions.contains($0.id) }!
+            attach(session)
+            try wait("AppKit fork waits for an independent identity before closing history") {
+                session.agentConversationHistoryID != nil && !controls.panel.isVisible
+            }
+            try check(record.identity.acceptsFork(session.agentResume!)
+                      && project.selectedSession === session && source.agentConversationProcessID == sourcePID
+                      && store.record(id: record.id) == original && kill(sourcePID, 0) == 0,
+                      "AppKit fork focuses the new conversation and preserves the live source")
+            project.closeContent(.session(session))
+        }
+
+        project.launchSettings.environmentVariables.append(.init(name: "HISTORY_TEST_NO_FORK_HOOK", value: "1"))
+        let pendingControls = try historyControls(manager: manager, record: record)
+        let sessions = Set(project.sessions.map(\.id))
+        pendingControls.button.performClick(nil)
+        try wait("AppKit cancellable fork creates an inspectable pane") {
+            project.sessions.contains { !sessions.contains($0.id) }
+        }
+        let pending = project.sessions.first { !sessions.contains($0.id) }!
+        attach(pending)
+        try wait("unconfirmed AppKit fixture reports its source hook") { launchInfo(pending) != nil }
+        AgentConversationHistoryController.shared.close(ifOwnedBy: manager)
+        project.launchSettings.environmentVariables.removeAll { $0.name == "HISTORY_TEST_NO_FORK_HOOK" }
+        let nextControls = try historyControls(manager: manager, record: record)
+        let nextSessions = Set(project.sessions.map(\.id))
+        let hookGate = fixtureRoot.appendingPathComponent("pause-fork-hook")
+        try Data().write(to: hookGate)
+        defer { try? fileManager.removeItem(at: hookGate) }
+        nextControls.button.performClick(nil)
+        pump(0.2)
+        try check(!nextControls.button.isEnabled && nextControls.panel.isVisible,
+                  "a cancelled AppKit callback cannot clear a newly reopened fork operation")
+        try wait("reopened AppKit fork creates its own pane") {
+            project.sessions.contains { !nextSessions.contains($0.id) }
+        }
+        let next = project.sessions.first { !nextSessions.contains($0.id) }!
+        attach(next)
+        try wait("reopened AppKit fork reaches the native hook gate") { launchInfo(next) != nil }
+        try fileManager.removeItem(at: hookGate)
+        try wait("reopened AppKit fork confirms its independent identity") {
+            next.agentConversationHistoryID != nil && !nextControls.panel.isVisible
+        }
+        try check(pending.agentConversationHistoryID == nil && pending.agentResume == nil
+                  && store.record(id: record.id) == original && kill(sourcePID, 0) == 0,
+                  "closing history cancels confirmation without rebinding source history")
+        project.closeContent(.session(pending))
+        project.closeContent(.session(next))
+        try check(QuickTerminalOffscreen.isSafe(), "AppKit fork probes stay offscreen and preserve user focus")
     }
 
     private static func unscopedTerminal(project: Project, providerBin: URL, descriptorURL: URL) throws {

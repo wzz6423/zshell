@@ -225,7 +225,7 @@ impl Daemon {
         match request.kind.as_str() {
             "hello" => Ok(
                 json!({ "instanceID": self.instance_id, "protocolVersion": VERSION, "platform": std::env::consts::OS,
-                    "daemonPID": std::process::id(), "capabilities": ["agentHistory", "agentResume"] }),
+                    "daemonPID": std::process::id(), "capabilities": ["agentHistory", "agentResume", "agentFork"] }),
             ),
             "projects" => {
                 let sessions = self.sessions.lock().unwrap();
@@ -258,23 +258,34 @@ impl Daemon {
                 let project = project_path(request.project.as_deref().ok_or_else(|| invalid("A project directory is required"))?)?;
                 Ok(json!(self.history.list(&project)))
             }
-            "agentResume" => {
+            "agentResume" | "agentFork" => {
                 let project = project_path(request.project.as_deref().ok_or_else(|| invalid("A project directory is required"))?)?;
                 let provider = request.provider.as_deref().ok_or_else(|| invalid("A provider is required"))?;
                 let id = request.conversation_id.as_deref().ok_or_else(|| invalid("An exact provider conversation ID is required"))?;
                 let record = self.history.find(&project, provider, id)?;
+                let fork = request.kind == "agentFork";
+                let fork_launch = if fork { Some(record.identity.fork()?) } else { None };
                 let mut sessions = self.sessions.lock().unwrap();
-                if let Some(session) = sessions.values().find(|session| {
-                    let info = session.info();
-                    info.project == project && info.running && info.conversation.as_ref() == Some(&record.identity)
-                }) { return Ok(json!(session.info())); }
-                let (command, environment) = record.identity.resume()?;
+                if !fork {
+                    if let Some(session) = sessions.values().find(|session| {
+                        let info = session.info();
+                        info.project == project && info.running && info.conversation.as_ref() == Some(&record.identity)
+                    }) { return Ok(json!(session.info())); }
+                }
+                let (command, environment) = match fork_launch {
+                    Some(launch) => launch,
+                    None => record.identity.resume()?,
+                };
                 let mut create = Frame::new("create");
                 create.project = Some(project);
                 create.working_directory = Some(record.identity.working_directory.clone());
                 create.session_id = Some(new_id()?);
                 create.command = Some(command);
                 create.environment = Some(environment);
+                if fork {
+                    create.provider = Some(record.identity.provider.clone());
+                    create.conversation_id = Some(record.identity.session_id.clone());
+                }
                 if sessions.len() >= MAX_SESSIONS { return Err(invalid("Remote session limit reached")); }
                 let session = Session::spawn(&create, &self.state_path, self.history.clone(), self.bindings.clone(), Arc::downgrade(&self.sessions))?;
                 let info = session.info();

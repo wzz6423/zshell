@@ -29,6 +29,17 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
                 : [configurationVariable]
         }
 
+        var forkHelpArguments: [String] {
+            self == .codex ? [rawValue, "fork", "--help"] : [rawValue, "--help"]
+        }
+
+        func supportsNativeFork(help: String) -> Bool {
+            if self == .codex { return help.contains("Usage: codex fork") && help.contains("SESSION_ID") }
+            return help.split(whereSeparator: { $0.isWhitespace }).contains(
+                self == .claude ? "--fork-session" : "--fork"
+            )
+        }
+
         func configurationDirectory(
             homeURL: URL,
             environment: [String: String]
@@ -154,7 +165,7 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
         self = identity
     }
 
-    struct ResumeLaunch: Equatable {
+    struct ResumeLaunch: Equatable, Sendable {
         let arguments: [String]
         let workingDirectory: String
         let environment: [String: String]
@@ -195,6 +206,31 @@ nonisolated struct AgentConversationIdentity: Codable, Equatable, Sendable {
             arguments: arguments, workingDirectory: workingDirectory,
             environment: environment, configurationVariables: provider.configurationVariables
         )
+    }
+
+    func forkLaunch() -> ResumeLaunch? {
+        guard let launch = resumeLaunch(enabled: true) else { return nil }
+        let arguments: [String]
+        switch provider {
+        case .claude: arguments = ["claude", "--resume", sessionID, "--fork-session"]
+        case .codex: arguments = ["codex", "fork", sessionID]
+        case .opencode: arguments = ["opencode", "--session", sessionID, "--fork"]
+        case .pi:
+            guard let sessionFile else { return nil }
+            arguments = ["pi", "--fork", sessionFile]
+        }
+        return ResumeLaunch(arguments: arguments, workingDirectory: launch.workingDirectory,
+                            environment: launch.environment, configurationVariables: launch.configurationVariables)
+    }
+
+    func acceptsFork(_ identity: Self) -> Bool {
+        provider == identity.provider
+            && (provider == .opencode ? sessionID != identity.sessionID : sessionID.lowercased() != identity.sessionID.lowercased())
+            && workingDirectory == identity.workingDirectory
+            && (configDirectory == nil || configDirectory == identity.configDirectory)
+            && (configurationEnvironment ?? [:]).allSatisfy { identity.configurationEnvironment?[$0.key] == $0.value }
+            && remoteHostID == identity.remoteHostID && remoteProjectDirectory == identity.remoteProjectDirectory
+            && (provider != .pi || identity.sessionFile != nil && sessionFile != identity.sessionFile)
     }
 
     static func piSessionFileMatches(path: String, sessionID: String, directory: String) -> Bool {

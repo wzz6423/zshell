@@ -131,3 +131,7 @@ zshell +events --event command.task.finished --once --timeout 30000
 ```
 
 `pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).
+
+## Bifurcar una conversación [#fork-a-conversation]
+
+En **Agents → Agent Conversation History**, selecciona una conversación y **Bifurcar conversación en un panel nuevo** desde el menú contextual o el botón de bifurcación. La función nativa del proveedor conserva el contexto en una conversación independiente y mantiene intactos el panel y la conversación originales. Codex, Claude Code, OpenCode y Pi requieren una versión CLI compatible; Pi también necesita su archivo de sesión guardado. Para conversaciones remotas, actualiza el servidor Zshell. Si faltan el CLI, el inicio de sesión o los hooks, revisa la salida del panel nuevo antes de continuar. En un panel usa `zshell +agent fork --id UUID [--focus]`; desde un terminal externo añade `--project UUID`.

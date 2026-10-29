@@ -131,3 +131,7 @@ zshell +events --event command.task.finished --once --timeout 30000
 ```
 
 `pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).
+
+## แยกการสนทนา [#fork-a-conversation]
+
+เปิด **Agents → Agent Conversation History** เลือกการสนทนา แล้วเลือก **แยกการสนทนาในบานหน้าต่างใหม่** จากเมนูคลิกขวาหรือปุ่มแยก การแยกแบบเนทีฟของผู้ให้บริการจะเก็บบริบทในบทสนทนาใหม่ที่เป็นอิสระ โดยบานหน้าต่างและบทสนทนาเดิมไม่เปลี่ยนแปลง Codex, Claude Code, OpenCode และ Pi ต้องใช้ CLI ที่รองรับ และ Pi ต้องมีไฟล์เซสชันที่บันทึกไว้ด้วย อัปเดตเซิร์ฟเวอร์ Zshell สำหรับบทสนทนาระยะไกล หากไม่มี CLI การเข้าสู่ระบบ หรือ hooks ให้ตรวจสอบผลลัพธ์ในบานหน้าต่างใหม่ก่อนดำเนินการต่อ ใช้ `zshell +agent fork --id UUID [--focus]` ในบานหน้าต่าง และเพิ่ม `--project UUID` เมื่อใช้เทอร์มินัลภายนอก

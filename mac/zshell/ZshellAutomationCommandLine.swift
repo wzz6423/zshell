@@ -39,7 +39,7 @@ enum ZshellAutomationCommandLine {
             return 0
         }
         if namespace == "+agent", let command = arguments.first,
-           ["history", "resume", "archive", "unarchive", "delete"].contains(command) {
+           ["history", "resume", "fork", "archive", "unarchive", "delete"].contains(command) {
             try AgentConversationHistoryCommandLine.run(arguments: arguments)
             return 0
         }
@@ -1229,6 +1229,7 @@ enum ZshellAutomationCommandLine {
           zshell +agent clear
           zshell +agent history [projects | --all | --archived] [--query TEXT]
           zshell +agent resume --id UUID [--focus]
+          zshell +agent fork --id UUID [--focus]
           zshell +agent archive|unarchive|delete --id UUID
           zshell +agent skill <path|print|status|install|uninstall> [options]
           zshell +agent explain

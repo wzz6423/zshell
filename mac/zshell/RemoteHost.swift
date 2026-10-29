@@ -419,13 +419,27 @@ nonisolated enum RemoteHostClient {
     }
 
     static func resume(host: RemoteHost, identity: AgentConversationIdentity) throws -> RemoteSessionInfo {
+        try launchConversation(host: host, identity: identity, kind: "agentResume")
+    }
+
+    static func fork(host: RemoteHost, identity: AgentConversationIdentity) throws -> RemoteSessionInfo {
+        try launchConversation(host: host, identity: identity, kind: "agentFork")
+    }
+
+    private static func launchConversation(host: RemoteHost, identity: AgentConversationIdentity, kind: String) throws -> RemoteSessionInfo {
         guard identity.remoteHostID == host.id, let project = identity.remoteProjectDirectory else {
             throw AgentConversationHistoryError.differentProject
         }
         let transport = try RemoteHostTransport(host: host)
         defer { transport.close() }
         try transport.handshake()
-        return try transport.exchange(RemoteFrame(kind: "agentResume", project: project,
+        if kind == "agentFork" {
+            let hello = try transport.exchange(RemoteFrame(kind: "hello"))
+            guard hello.result?.objectValue?["capabilities"]?.arrayValue?.contains(.string("agentFork")) == true else {
+                throw RemoteHostError.message(String(localized: "Update the remote Zshell server to fork agent conversations."))
+            }
+        }
+        return try transport.exchange(RemoteFrame(kind: kind, project: project,
             provider: identity.provider.rawValue, conversationId: identity.sessionID)).decodedResult(RemoteSessionInfo.self)
     }
 }

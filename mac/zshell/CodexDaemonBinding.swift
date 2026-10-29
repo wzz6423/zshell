@@ -47,6 +47,13 @@ enum CodexDaemonBinding {
             session.agentObservation.codexConversationEvidence = nil
             return title
         }
+        // A native fork may briefly display its source ID. It cannot compete
+        // with the source pane while waiting for its independent identity.
+        if let source = session.agentConversationForkSource,
+           evidence.matches(sessionID: source.sessionID) {
+            session.agentObservation.codexConversationEvidence = nil
+            return title
+        }
         if let previous = session.agentObservation.codexConversationEvidence,
            previous.owner != owner || previous.title.sessionPrefix != evidence.sessionPrefix {
             clearBinding(in: session)

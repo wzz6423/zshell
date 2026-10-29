@@ -380,6 +380,7 @@ final class AgentConversationHistoryStore: ObservableObject {
 
 enum AgentConversationHistoryError: Error, LocalizedError {
     case notFound, disabled, unavailableDirectory, unavailableConfiguration, unavailableSessionFile, differentProject, noWindow
+    case forkDisabled, forkUnavailable, forkCheckTimedOut, forkUnconfirmed
 
     var errorDescription: String? {
         switch self {
@@ -390,6 +391,10 @@ enum AgentConversationHistoryError: Error, LocalizedError {
         case .unavailableSessionFile: String(localized: "The Pi session file is missing or does not match this conversation.")
         case .differentProject: String(localized: "This conversation is already open in another project or window.")
         case .noWindow: String(localized: "Open a Zshell window before resuming a conversation.")
+        case .forkDisabled: String(localized: "Enable AI integration before forking a conversation.")
+        case .forkUnavailable: String(localized: "The provider CLI could not confirm native fork support. Check that it is installed and supports the fork command or option.")
+        case .forkCheckTimedOut: String(localized: "Checking the provider’s native fork support timed out. Check its CLI and shell configuration.")
+        case .forkUnconfirmed: String(localized: "The new pane has not reported an independent conversation. Check its provider output, sign-in, and native hooks before continuing.")
         }
     }
 }

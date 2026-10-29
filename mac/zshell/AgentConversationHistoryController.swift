@@ -17,11 +17,15 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
     private let statusLabel = NSTextField(wrappingLabelWithString: "")
     private let countLabel = NSTextField(labelWithString: "")
     private let resumeButton = NSButton()
+    private let forkButton = NSButton()
+    private let forkMenuItem = NSMenuItem()
     private let archiveButton = NSButton()
     private let deleteButton = NSButton()
     private var entries: [AgentConversationHistoryRecord] = []
     private var observations: [AnyCancellable] = []
     private var managerObservation: AnyCancellable?
+    private var forkTask: Task<Void, Never>?
+    private var forkTaskID: UUID?
 
     private override init() {
         super.init()
@@ -72,6 +76,7 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
         if panel == nil { configure() }
         guard let panel else { return }
         hostWindow?.removeChildWindow(panel)
+        if self.manager !== manager { forkTask?.cancel(); forkTask = nil; forkTaskID = nil }
         self.manager = manager
         hostWindow = host
         managerObservation = manager.objectWillChange.receive(on: DispatchQueue.main).sink { [weak self] _ in
@@ -91,6 +96,9 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
 
     func close(ifOwnedBy manager: TerminalManager? = nil) {
         if let manager, self.manager !== manager { return }
+        forkTask?.cancel()
+        forkTask = nil
+        forkTaskID = nil
         if let panel { hostWindow?.removeChildWindow(panel); panel.close() }
         self.manager = nil
         hostWindow = nil
@@ -98,6 +106,9 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
     }
 
     func windowWillClose(_ notification: Notification) {
+        forkTask?.cancel()
+        forkTask = nil
+        forkTaskID = nil
         if let panel { hostWindow?.removeChildWindow(panel) }
         managerObservation = nil
         manager = nil
@@ -131,6 +142,11 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
         table.dataSource = self
         table.target = self
         table.doubleAction = #selector(resumeSelection(_:))
+        let menu = NSMenu()
+        forkMenuItem.target = self
+        forkMenuItem.action = #selector(forkSelection(_:))
+        menu.addItem(forkMenuItem)
+        table.menu = menu
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("conversation"))
         column.resizingMask = .autoresizingMask
         table.addTableColumn(column)
@@ -152,6 +168,7 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
         countLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         countLabel.lineBreakMode = .byTruncatingTail
         for (button, action) in [(resumeButton, #selector(resumeSelection(_:))),
+                                 (forkButton, #selector(forkSelection(_:))),
                                  (archiveButton, #selector(archiveSelection(_:))),
                                  (deleteButton, #selector(deleteSelection(_:)))] {
             button.bezelStyle = .rounded
@@ -159,7 +176,9 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
             button.action = action
         }
         resumeButton.keyEquivalent = "\r"
-        let actions = NSStackView(views: [countLabel, NSView(), deleteButton, archiveButton, resumeButton])
+        forkButton.image = NSImage(systemSymbolName: "arrow.branch", accessibilityDescription: nil)
+        forkButton.imagePosition = .imageOnly
+        let actions = NSStackView(views: [countLabel, NSView(), forkButton, deleteButton, archiveButton, resumeButton])
         actions.orientation = .horizontal
         actions.alignment = .centerY
         actions.spacing = 8
@@ -209,6 +228,10 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
         filters.setAccessibilityLabel(String(localized: "Conversation history filter"))
         table.setAccessibilityLabel(String(localized: "Agent Conversation History"))
         deleteButton.title = String(localized: "Delete…")
+        let forkTitle = String(localized: "Fork Conversation in New Pane")
+        forkButton.toolTip = forkTitle
+        forkButton.setAccessibilityLabel(forkTitle)
+        forkMenuItem.title = forkTitle
         reload()
     }
 
@@ -239,9 +262,10 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
 
     private func updateSelection() {
         let record = selected
-        resumeButton.isEnabled = record != nil
-        archiveButton.isEnabled = record != nil
-        deleteButton.isEnabled = record != nil
+        resumeButton.isEnabled = record != nil && forkTask == nil
+        forkButton.isEnabled = record != nil && forkTask == nil
+        archiveButton.isEnabled = record != nil && forkTask == nil
+        deleteButton.isEnabled = record != nil && forkTask == nil
         resumeButton.title = record.flatMap(TerminalManager.openConversation) == nil
             ? String(localized: "Resume Conversation") : String(localized: "Show Conversation")
         archiveButton.title = record?.isArchived == true ? String(localized: "Unarchive") : String(localized: "Archive")
@@ -271,14 +295,44 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
     }
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem === forkMenuItem {
+            let row = table.clickedRow >= 0 ? table.clickedRow : table.selectedRow
+            return entries.indices.contains(row) && forkTask == nil && manager != nil
+        }
         if menuItem.action == #selector(focusNextAgent(_:)) {
             return TerminalManager.activeWindowManager?.hasAgentAttention == true
         }
         return TerminalManager.activeWindowManager != nil
     }
 
+    @objc private func forkSelection(_ sender: Any?) {
+        if sender as? NSMenuItem === forkMenuItem, entries.indices.contains(table.clickedRow) {
+            table.selectRowIndexes(IndexSet(integer: table.clickedRow), byExtendingSelection: false)
+        }
+        guard forkTask == nil, let record = selected, let manager else { return }
+        statusLabel.stringValue = String(localized: "Forking conversation…")
+        let taskID = UUID()
+        forkTaskID = taskID
+        forkTask = Task { @MainActor [weak self] in
+            do {
+                _ = try await manager.forkConversation(id: record.id, focus: true)
+                guard !Task.isCancelled, self?.forkTaskID == taskID else { return }
+                self?.close()
+            } catch is CancellationError {
+            } catch {
+                guard let self, !Task.isCancelled, self.forkTaskID == taskID else { return }
+                self.statusLabel.stringValue = error.localizedDescription
+            }
+            guard let self, self.forkTaskID == taskID else { return }
+            self.forkTaskID = nil
+            self.forkTask = nil
+            self.updateSelection()
+        }
+        updateSelection()
+    }
+
     @objc private func resumeSelection(_ sender: Any?) {
-        guard let record = selected, let manager else { return }
+        guard forkTask == nil, let record = selected, let manager else { return }
         if record.identity.remoteHostID != nil {
             statusLabel.stringValue = String(localized: "Connecting…")
             Task { @MainActor [weak self] in

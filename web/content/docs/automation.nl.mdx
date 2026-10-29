@@ -131,3 +131,7 @@ zshell +events --event command.task.finished --once --timeout 30000
 ```
 
 `pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).
+
+## Een gesprek vertakken [#fork-a-conversation]
+
+Selecteer in **Agents → Agent Conversation History** een gesprek en kies **Gesprek vertakken in een nieuw paneel** via het contextmenu of de vertakkingsknop. De native functie van de provider behoudt de context in een zelfstandig gesprek; het oorspronkelijke paneel en gesprek blijven ongewijzigd. Codex, Claude Code, OpenCode en Pi vereisen een geschikte CLI-versie; Pi heeft ook het opgeslagen sessiebestand nodig. Werk voor externe gesprekken de Zshell-server bij. Controleer de uitvoer van het nieuwe paneel als de CLI, aanmelding of hooks ontbreken. Gebruik in een paneel `zshell +agent fork --id UUID [--focus]`; voeg in een externe terminal `--project UUID` toe.

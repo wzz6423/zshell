@@ -131,3 +131,7 @@ zshell +events --event command.task.finished --once --timeout 30000
 ```
 
 `pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).
+
+## 대화 분기 [#fork-a-conversation]
+
+**Agents → Agent Conversation History**에서 대화를 선택하고 상황에 맞는 메뉴나 분기 버튼의 **새 창으로 대화 분기**를 사용하세요. 제공자의 기본 분기 기능으로 컨텍스트를 보존하는 독립된 대화를 만들며 원래 창과 대화는 변경되지 않습니다. Codex, Claude Code, OpenCode, Pi는 기본 분기를 지원하는 CLI가 필요하며 Pi는 저장된 세션 파일도 필요합니다. 원격 대화는 업데이트된 Zshell 서버에서 지원됩니다. CLI가 없거나 분기를 지원하지 않으면 창을 만들기 전에 오류가 표시됩니다. 로그인이나 기본 훅 때문에 확인되지 않으면 새 창의 출력을 확인하세요. 창 안에서는 `zshell +agent fork --id UUID [--focus]`를 사용하며 외부 터미널에서는 `--project UUID`도 지정합니다.

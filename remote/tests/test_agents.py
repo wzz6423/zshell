@@ -208,3 +208,5 @@ if __name__ == "__main__":
     parser.add_argument("--binary", type=Path, required=True)
     options = parser.parse_args()
     main(str(options.binary.resolve()))
+    from test_agent_fork import main as fork_checks
+    fork_checks(str(options.binary.resolve()))

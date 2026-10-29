@@ -49,8 +49,7 @@ extension TerminalSession {
         guard let identity,
               identity.provider != .opencode || !Self.openCodeIsAttached(agentPID)
         else { return false }
-        recordAgentConversation(identity, processID: agentPID)
-        return true
+        return recordAgentConversation(identity, processID: agentPID)
     }
 
     func clearAgentConversation(

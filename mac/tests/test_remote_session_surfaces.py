@@ -96,7 +96,8 @@ with tempfile.TemporaryDirectory(prefix="zshell-remote-surfaces-", dir="/tmp") a
         agent_arguments = list(arguments)
         agent_arguments += ["-module-name", "RemoteAgentSurfaceProbe"]
         agent_arguments[agent_arguments.index("-o") + 1] = str(agent_binary)
-        subprocess.run(agent_arguments + [str(ROOT / "mac/tests/RemoteAgentSurfaceTests.swift")], cwd=ROOT, check=True)
+        subprocess.run(agent_arguments + [str(ROOT / "mac/tests/RemoteAgentSurfaceTests.swift"),
+                                         str(ROOT / "mac/tests/QuickTerminalOffscreen.swift")], cwd=ROOT, check=True)
         for backend in options.backend or ("alacritty", "ghostty"):
             home = temporary / (backend + "-agent")
             home.mkdir()

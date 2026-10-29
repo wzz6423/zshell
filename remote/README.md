@@ -257,3 +257,7 @@ The CLI probe uses temporary state, real PTYs and the production stdio bridge.
 An isolated Linux root run with `--require-other-uid` additionally proves rejection
 of a different UID even if the socket's filesystem permissions allow connecting.
 The macOS app surface probe is documented in `mac/tests/test_remote_session_surfaces.py`.
+
+### Fork an Agent conversation
+
+The app’s history menu and `zshell +agent fork` use `agentFork` with an exact project, provider and conversation ID from remote history. The server always creates a new PTY and invokes `codex fork ID`, `claude --resume ID --fork-session`, `opencode --session ID --fork`, or `pi --fork FILE`. The source PTY and history record are preserved. The app confirms success only after the new pane reports a different, verified provider identity. Update the server and provider CLI when native fork support is unavailable; review provider output and hook trust if the fork remains unconfirmed.

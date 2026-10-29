@@ -9,8 +9,10 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 const MAX_CONVERSATIONS: usize = 200;
 const MAX_BYTES: u64 = 2 * 1024 * 1024;
@@ -76,6 +78,86 @@ impl Identity {
             environment.entry(configuration_keys(&self.provider)[0].into()).or_insert(directory.clone());
         }
         Ok((arguments, environment))
+    }
+
+    pub fn fork(&self) -> io::Result<(Vec<String>, BTreeMap<String, String>)> {
+        let (resume, environment) = self.resume()?;
+        self.check_fork_support(&resume[0], &environment, Duration::from_secs(8))?;
+        let mut arguments = vec![resume[0].clone()];
+        match self.provider.as_str() {
+            "claude" => arguments.extend(["--resume".into(), self.session_id.clone(), "--fork-session".into()]),
+            "codex" => arguments.extend(["fork".into(), self.session_id.clone()]),
+            "opencode" => arguments.extend(["--session".into(), self.session_id.clone(), "--fork".into()]),
+            "pi" => arguments.extend(["--fork".into(), self.session_file.clone().unwrap()]),
+            _ => return Err(invalid("Unsupported provider")),
+        }
+        Ok((arguments, environment))
+    }
+
+    pub fn accepts_fork(&self, identity: &Self) -> bool {
+        self.provider == identity.provider
+            && (if self.provider == "opencode" { self.session_id != identity.session_id }
+                else { !self.session_id.eq_ignore_ascii_case(&identity.session_id) })
+            && self.working_directory == identity.working_directory
+            && self.config_directory.as_ref().is_none_or(|directory| identity.config_directory.as_ref() == Some(directory))
+            && self.configuration_environment.as_ref().is_none_or(|values| values.iter().all(|(key, value)|
+                identity.configuration_environment.as_ref().and_then(|environment| environment.get(key)) == Some(value)))
+            && (self.provider != "pi" || identity.session_file.is_some() && self.session_file != identity.session_file)
+    }
+
+    fn check_fork_support(&self, executable: &str, environment: &BTreeMap<String, String>, timeout: Duration) -> io::Result<()> {
+        let mut command = Command::new(executable);
+        if self.provider == "codex" { command.arg("fork"); }
+        for key in configuration_keys(&self.provider) { command.env_remove(key); }
+        let mut child = command.arg("--help").envs(environment).env_remove("CODEX_THREAD_ID")
+            .current_dir(&self.working_directory).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn()?;
+        let (sender, receiver) = mpsc::channel();
+        let stdout = child.stdout.take().unwrap();
+        let stderr = child.stderr.take().unwrap();
+        for stream in [Box::new(stdout) as Box<dyn Read + Send>, Box::new(stderr)] {
+            let sender = sender.clone();
+            std::thread::spawn(move || {
+                let mut bytes = Vec::new();
+                let result = stream.take(65_537).read_to_end(&mut bytes).map(|_| bytes);
+                let _ = sender.send(result);
+            });
+        }
+        drop(sender);
+        let deadline = Instant::now() + timeout;
+        let result = (|| {
+            loop {
+                if let Some(status) = child.try_wait()? {
+                    if !status.success() { return Err(invalid("The provider CLI could not confirm native fork support; check its installation and fork command or option")); }
+                    break;
+                }
+                if Instant::now() >= deadline { return Err(invalid("Checking the provider's native fork support timed out")); }
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            let mut output = Vec::new();
+            for _ in 0..2 {
+                let bytes = receiver.recv_timeout(deadline.saturating_duration_since(Instant::now()))
+                    .map_err(|_| invalid("Checking the provider's native fork support timed out"))??;
+                output.extend(bytes);
+                output.push(b'\n');
+                if output.len() > 65_536 { return Err(invalid("The provider's fork help exceeded the output limit")); }
+            }
+            if !supports_native_fork(&self.provider, &String::from_utf8_lossy(&output)) {
+                return Err(invalid("The provider CLI does not advertise native fork support; update its installation"));
+            }
+            Ok(())
+        })();
+        let _ = child.kill();
+        let _ = child.wait();
+        result
+    }
+}
+
+fn supports_native_fork(provider: &str, help: &str) -> bool {
+    match provider {
+        "codex" => help.contains("Usage: codex fork") && help.contains("SESSION_ID"),
+        "claude" => help.split_whitespace().any(|word| word == "--fork-session"),
+        "opencode" | "pi" => help.split_whitespace().any(|word| word == "--fork"),
+        _ => false,
     }
 }
 
@@ -217,4 +299,44 @@ fn private_write(path: &Path, bytes: &[u8]) -> io::Result<()> {
     })();
     if result.is_err() { let _ = fs::remove_file(temporary); }
     result
+}
+
+#[cfg(test)]
+mod fork_tests {
+    use super::*;
+
+    #[test]
+    fn native_fork_help_requires_exact_command_or_option() {
+        assert!(supports_native_fork("codex", "Usage: codex fork [OPTIONS] [SESSION_ID]"));
+        assert!(!supports_native_fork("codex", "Usage: codex resume [SESSION_ID]"));
+        assert!(supports_native_fork("claude", "Options:\n --fork-session Use a new session ID"));
+        assert!(!supports_native_fork("claude", "Options:\n --resume [id]"));
+        for provider in ["pi", "opencode"] {
+            assert!(supports_native_fork(provider, " --fork <path|id>"));
+            assert!(!supports_native_fork(provider, " --fork-other <path|id>"));
+        }
+    }
+
+    #[test]
+    fn fork_identity_requires_independent_id_and_original_scope() {
+        let source = Identity { provider: "claude".into(), session_id: "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa".into(),
+            working_directory: "/tmp/project".into(), config_directory: Some("/tmp/profile".into()),
+            session_file: None, alias: None, configuration_environment: None };
+        let mut fork = source.clone();
+        assert!(!source.accepts_fork(&fork));
+        fork.session_id = source.session_id.to_uppercase();
+        assert!(!source.accepts_fork(&fork));
+        fork.session_id = "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb".into();
+        assert!(source.accepts_fork(&fork));
+        fork.working_directory = "/tmp/other".into();
+        assert!(!source.accepts_fork(&fork));
+        fork.working_directory = source.working_directory.clone();
+        fork.config_directory = None;
+        assert!(!source.accepts_fork(&fork));
+        let source = Identity { provider: "pi".into(), session_file: Some("/tmp/source.jsonl".into()), ..source };
+        let mut fork = Identity { session_id: fork.session_id, ..source.clone() };
+        assert!(!source.accepts_fork(&fork));
+        fork.session_file = Some("/tmp/fork.jsonl".into());
+        assert!(source.accepts_fork(&fork));
+    }
 }

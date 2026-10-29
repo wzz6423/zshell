@@ -34,7 +34,7 @@ refresh = settings[
 ]
 session = source("TerminalSession.swift")
 record = session[
-    session.index("    func recordAgentConversation("):
+    session.index("    @discardableResult\n    func recordAgentConversation("):
     session.index("    deinit {", session.index("    func recordAgentConversation("))
 ]
 snapshot = source("SessionStore.swift")
@@ -77,7 +77,7 @@ enum ResumeStartupProbe {
     static func validWorkingDirectory(_ path: String?) -> String { path ?? "/" }
     static func launch(
         initialDirectory: String?, commandArguments: [String]? = nil,
-        restoredSessionID: UUID?, agentResume: AgentConversationIdentity?,
+        restoredSessionID: UUID?, agentResume: AgentConversationIdentity?, agentFork: AgentConversationIdentity? = nil,
         isRestoredSession: Bool = true, allowsPersistence: Bool = true,
         explicitlyResumeConversation: Bool = false, remoteConnection: Bool? = nil
     ) -> (id: UUID, resume: AgentConversationIdentity.ResumeLaunch?,
@@ -168,6 +168,7 @@ final class TerminalSession {
     var agentConversationProcessID: pid_t?
     var agentConversationOwner: ZshellAgentProcessIdentity?
     var agentConversationResumeDeadline: Date?
+    var agentConversationForkSource: AgentConversationIdentity?
     var onAgentConversationChanged: ((TerminalSession, AgentConversationIdentity?) -> Void)?
     func isAutomationAgentRunning(kind: ZshellAgentKind) -> Bool {
         surface.foregroundPid.flatMap(ZshellAgentKind.recognize(processID:)) == kind
@@ -265,6 +266,23 @@ LIFECYCLE_CHECKS
         check(restored?.resumeLaunch(enabled: false) == nil, "disabled resume does not launch a saved conversation")
         check(restored?.resumeLaunch(enabled: true, hasLiveTerminal: true) == nil,
               "a reconnected live terminal does not launch a duplicate agent")
+        check(restored?.forkLaunch()?.arguments == ["claude", "--resume", event.identity.sessionID, "--fork-session"],
+              "Claude forks through its native resume operation")
+        let forkTerminal = TerminalSession()
+        forkTerminal.shellPid = getpid()
+        forkTerminal.surface.foregroundPid = agent.processIdentifier
+        forkTerminal.agentConversationForkSource = event.identity
+        check(!forkTerminal.acceptAgentConversation(event, peerProcessID: agent.processIdentifier)
+              && forkTerminal.agentResume == nil && forkTerminal.agentConversationProcessID == nil,
+              "a pending fork cannot claim the source conversation")
+        let forkIdentity = AgentConversationIdentity(provider: .claude, sessionID: UUID().uuidString,
+            workingDirectory: event.identity.workingDirectory, configDirectory: event.identity.configDirectory)!
+        let forkEvent = AgentConversationSessionEvent(identity: forkIdentity, reporterPID: agent.processIdentifier, source: "resume")
+        check(forkTerminal.acceptAgentConversation(forkEvent, peerProcessID: agent.processIdentifier)
+              && forkTerminal.agentResume == forkIdentity && forkTerminal.agentConversationForkSource == nil,
+              "a verified independent fork uses its own identity")
+        check(terminal.agentResume == event.identity && terminal.agentConversationOwner?.isAlive == true,
+              "fork binding leaves the original live conversation unchanged")
 STARTUP_CHECKS
         let ordinary = TerminalSession()
         ordinary.shellPid = getpid()
