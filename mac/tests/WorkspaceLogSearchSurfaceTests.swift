@@ -171,6 +171,18 @@ struct WorkspaceLogSearchSurfaceTests {
         }
         guard let target else { throw Failure.check("old match in pane B missing") }
         table.selectRowIndexes(IndexSet(integer: target), byExtendingSelection: false)
+        a.surface.sendText("refresh-check\n")
+        let rescanDeadline = Date().addingTimeInterval(6)
+        while table.numberOfRows == 9, Date() < rescanDeadline {
+            _ = RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.01))
+        }
+        guard table.numberOfRows < 9 else { throw Failure.check("results did not rescan after terminal output") }
+        try wait("rescanned results keep the selected match") {
+            table.numberOfRows == 9 && table.selectedRow >= 0
+                && table.view(atColumn: 0, row: table.selectedRow, makeIfNecessary: true).map {
+                    descendants($0).compactMap { $0 as? NSTextField }.contains { $0.stringValue.contains("OLD-B-needle") }
+                } == true
+        }
         _ = controller.control(field, textView: NSTextView(), doCommandBy: #selector(NSResponder.insertNewline(_:)))
         try wait("clicking old result focuses its pane and scrollback") {
             tab1.focusedPaneID == paneB.id && b.surface.readVisibleText(maxLines: 100, maxColumns: 500)?.contains("OLD-B-needle") == true
