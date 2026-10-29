@@ -334,17 +334,18 @@ fn processes_lists_only_the_sessions_own_descendants() {
 #[test]
 fn processes_report_the_full_linux_executable() {
     let fixture = Fixture::new();
-    let worker = fixture.root.join("long-running-process-worker");
-    fs::copy("/bin/sleep", &worker).unwrap();
-    let worker = fs::canonicalize(worker).unwrap();
+    let worker = fs::canonicalize(&fixture.root).unwrap().join("long-running-process-worker");
     let id = new_id().unwrap();
-    let script = format!("'{}' 30; exit 0", worker.display());
+    // The session copies the binary itself: a copy written here can still be
+    // open in a child another test thread just forked, and exec then fails
+    // with ETXTBSY.
+    let script = format!("cp /bin/sleep '{0}' && '{0}' 30; exit 0", worker.display());
     fixture.create(&id, vec!["/bin/sh", "-c", &script]);
     let request = fixture.request("processes", &id);
     let mut result = Value::Null;
-    for _ in 0..50 {
+    for _ in 0..100 {
         result = fixture.daemon.request(&request).unwrap();
-        if !result.as_array().unwrap().is_empty() { break; }
+        if result[0]["name"] == "long-running-process-worker" { break; }
         thread::sleep(Duration::from_millis(50));
     }
     assert_eq!(result[0]["name"], "long-running-process-worker");
