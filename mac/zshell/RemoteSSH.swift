@@ -93,6 +93,27 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
         ]
     }
 
+    func forwardingArguments(
+        controlPath: String,
+        connectTimeout: TimeInterval,
+        authentication: SSHAuthentication = .agent,
+        identityFile: String? = nil
+    ) throws -> [String] {
+        try connectionArguments + authentication.arguments(identityFile: identityFile) + [
+            "-o", "StrictHostKeyChecking=yes",
+            "-o", "ConnectionAttempts=1",
+            "-o", "ConnectTimeout=\(max(1, Int(connectTimeout.rounded(.up))))",
+            "-o", "ControlMaster=yes",
+            "-o", "ControlPersist=no",
+            // User-configured forwards belong to their terminal, not this browser.
+            "-o", "ClearAllForwardings=yes",
+            "-o", "ExitOnForwardFailure=yes",
+            "-o", "ServerAliveInterval=15",
+            "-o", "ServerAliveCountMax=2",
+            "-S", controlPath, "-N", destination,
+        ]
+    }
+
     private var connectionArguments: [String] {
         get throws {
             var arguments = try Self.configurationArguments()
@@ -673,19 +694,9 @@ nonisolated struct OpenSSHTransport {
     ) throws -> BoundedProcessOutput {
         let material = try authentication.makeMaterial(credentialID: credentialID)
         defer { material?.cleanup() }
-        var environment = SSHAgentEnvironment.shared.resolvedEnvironment()
-        environment.merge(material?.environment ?? [:], uniquingKeysWith: { _, materialValue in
-            materialValue
-        })
-        for (key, value) in additionalEnvironment {
-            environment[key] = value
-        }
-        if authentication == .password {
-            environment["SSH_ASKPASS_REQUIRE"] = "force"
-            environment["DISPLAY"] = "zshell"
-        } else {
-            environment["SSH_ASKPASS_REQUIRE"] = "never"
-        }
+        let environment = Self.environment(
+            authentication: authentication, material: material, additional: additionalEnvironment
+        )
         let result = try BoundedProcessRunner.run(
             executableURL: executableURL,
             arguments: try endpoint.transportArguments(
@@ -709,6 +720,33 @@ nonisolated struct OpenSSHTransport {
         return result.output
     }
 
+    /// OpenSSH owns SOCKS and TCP forwarding, including HTTP upgrades. Keeping
+    /// the original origin avoids rewriting page resources, cookies and CSP.
+    func startDynamicForwarding(
+        endpoint: SSHEndpoint,
+        authentication: SSHAuthentication = .agent,
+        credentialID: UUID? = nil
+    ) throws -> OpenSSHDynamicForward {
+        let material = try authentication.makeMaterial(credentialID: credentialID)
+        defer { material?.cleanup() }
+        return try OpenSSHDynamicForward(
+            executableURL: executableURL, endpoint: endpoint, timeout: timeout,
+            authentication: authentication, identityFile: authentication.identityFile(material: material),
+            environment: Self.environment(authentication: authentication, material: material)
+        )
+    }
+
+    private static func environment(
+        authentication: SSHAuthentication, material: SSHAuthenticationMaterial?, additional: [String: String] = [:]
+    ) -> [String: String] {
+        var environment = SSHAgentEnvironment.shared.resolvedEnvironment()
+        environment.merge(material?.environment ?? [:], uniquingKeysWith: { _, value in value })
+        environment.merge(additional, uniquingKeysWith: { _, value in value })
+        environment["SSH_ASKPASS_REQUIRE"] = authentication == .password ? "force" : "never"
+        if authentication == .password { environment["DISPLAY"] = "zshell" }
+        return environment
+    }
+
     /// Lists `directory` on the remote host with `ls -1Ap`. GNU ls escapes
     /// or quotes names by default since coreutils 8.25, which would corrupt
     /// the parsed listing, so `QUOTING_STYLE=literal` is requested; BSD and
@@ -724,6 +762,133 @@ nonisolated struct OpenSSHTransport {
         return SSHEndpoint.parseDirectoryListing(output.stdout)
     }
 
+}
+
+nonisolated final class OpenSSHDynamicForward: @unchecked Sendable {
+    private let process: Process
+    private let directory: URL
+    private let errorHandle: FileHandle
+    private let lock = NSLock()
+    private var closed = false
+    private(set) var port: UInt16 = 0
+
+    var isRunning: Bool { process.isRunning }
+    var processID: Int32 { process.processIdentifier }
+
+    fileprivate init(
+        executableURL: URL, endpoint: SSHEndpoint, timeout: TimeInterval,
+        authentication: SSHAuthentication, identityFile: String?, environment: [String: String]
+    ) throws {
+        directory = URL(fileURLWithPath: "/tmp", isDirectory: true)
+            .appendingPathComponent("zsb-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false,
+                                               attributes: [.posixPermissions: 0o700])
+        let controlPath = directory.appendingPathComponent("control").path
+        process = Process()
+        let errors = Pipe()
+        errorHandle = errors.fileHandleForReading
+        let collector = BoundedOutputCollector(limit: 16_384)
+        process.executableURL = executableURL
+        process.standardInput = FileHandle.nullDevice
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = errors
+        process.environment = environment
+        do {
+            process.arguments = try endpoint.forwardingArguments(
+                controlPath: controlPath, connectTimeout: timeout,
+                authentication: authentication, identityFile: identityFile
+            )
+            try process.run()
+            errors.fileHandleForWriting.closeFile()
+            DispatchQueue.global(qos: .utility).async { [handle = errorHandle] in
+                while let bytes = try? handle.read(upToCount: 4096), !bytes.isEmpty {
+                    collector.append(bytes, to: .stderr)
+                }
+            }
+            let deadline = Date().addingTimeInterval(timeout)
+            // Control commands address this authenticated master directly;
+            // loading the user's config here could add unrelated forwards.
+            let controlArguments = ["-F", "/dev/null", "-S", controlPath]
+            while true {
+                try Task.checkCancellation()
+                guard process.isRunning else {
+                    throw OpenSSHTransport.TransportError.failed(status: process.terminationStatus, output: collector.output)
+                }
+                if FileManager.default.fileExists(atPath: controlPath) {
+                    let check = try BoundedProcessRunner.run(
+                        executableURL: executableURL, arguments: controlArguments + ["-O", "check", endpoint.destination],
+                        timeout: 1, outputLimit: 4096, environment: environment
+                    )
+                    if !check.timedOut, check.terminationStatus == 0 { break }
+                }
+                guard deadline.timeIntervalSinceNow > 0 else {
+                    throw OpenSSHTransport.TransportError.timedOut(collector.output)
+                }
+                Thread.sleep(forTimeInterval: 0.05)
+            }
+            for attempt in 0..<3 {
+                try Task.checkCancellation()
+                let candidate = try Self.availableLoopbackPort()
+                let forward = try BoundedProcessRunner.run(
+                    executableURL: executableURL,
+                    arguments: controlArguments + ["-O", "forward", "-D", "127.0.0.1:\(candidate)", endpoint.destination],
+                    timeout: 2, outputLimit: 4096, environment: environment
+                )
+                if !forward.timedOut, forward.terminationStatus == 0 {
+                    port = candidate
+                    return
+                }
+                if attempt == 2 {
+                    throw OpenSSHTransport.TransportError.failed(status: forward.terminationStatus, output: forward.output)
+                }
+            }
+        } catch {
+            close()
+            throw error
+        }
+    }
+
+    deinit { close() }
+
+    func close() {
+        lock.lock()
+        guard !closed else { lock.unlock(); return }
+        closed = true
+        lock.unlock()
+        if process.isRunning { process.terminate() }
+        // The app can exit before the reaper runs; the master is already told to stop.
+        try? FileManager.default.removeItem(at: directory)
+        // Reaping an SSH process must not block the browser's main actor.
+        DispatchQueue.global(qos: .utility).async { [process, handle = errorHandle] in
+            let deadline = Date().addingTimeInterval(1)
+            while process.isRunning, deadline.timeIntervalSinceNow > 0 { Thread.sleep(forTimeInterval: 0.02) }
+            if process.isRunning { _ = Darwin.kill(process.processIdentifier, SIGKILL) }
+            if process.processIdentifier > 0 { process.waitUntilExit() }
+            try? handle.close()
+        }
+    }
+
+    private static func availableLoopbackPort() throws -> UInt16 {
+        let descriptor = Darwin.socket(AF_INET, SOCK_STREAM, 0)
+        guard descriptor >= 0 else { throw POSIXError(.ENOBUFS) }
+        defer { Darwin.close(descriptor) }
+        var address = sockaddr_in()
+        address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_addr.s_addr = inet_addr("127.0.0.1")
+        let result = withUnsafePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                Darwin.bind(descriptor, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        guard result == 0 else { throw POSIXError(.EADDRINUSE) }
+        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let named = withUnsafeMutablePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { getsockname(descriptor, $0, &length) }
+        }
+        guard named == 0 else { throw POSIXError(.EADDRNOTAVAIL) }
+        return UInt16(bigEndian: address.sin_port)
+    }
 }
 
 private nonisolated final class BoundedOutputCollector: @unchecked Sendable {

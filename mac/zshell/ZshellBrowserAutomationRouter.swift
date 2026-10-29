@@ -131,7 +131,7 @@ extension ZshellAutomationRouter {
                 if let error = browser.errorMessage {
                     throw browserError("navigation_failed", String(error.prefix(1_024)))
                 }
-                if !browser.webView.isLoading {
+                if !browser.navigationIsLoading {
                     let remaining = max(1, Int(deadline.timeIntervalSinceNow * 1_000))
                     do {
                         let result = try await browser.automation.perform(hasElement ? "wait" : "ready", in: browser.webView, params: options, timeoutMS: remaining, scopeIsValid: scopeIsValid)
@@ -269,7 +269,7 @@ extension ZshellAutomationRouter {
     }
 
     private static func requireLoaded(_ browser: BrowserTab) throws {
-        guard !browser.webView.isLoading else {
+        guard !browser.navigationIsLoading else {
             throw browserError("page_loading", "The page is loading. Use +browser wait before interacting with it.")
         }
     }
@@ -300,7 +300,7 @@ extension ZshellAutomationRouter {
             "pane_id": .string(context.pane.id.uuidString),
             "title": .string(String(browser.title.prefix(512))),
             "url": .string(String(browser.urlString.prefix(8_192))),
-            "is_loading": .bool(browser.webView.isLoading),
+            "is_loading": .bool(browser.navigationIsLoading),
             "can_go_back": .bool(browser.canGoBack),
             "can_go_forward": .bool(browser.canGoForward),
             "navigation_blocked": .bool(browser.automation.navigationWasRejected),

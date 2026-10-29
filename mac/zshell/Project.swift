@@ -69,6 +69,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// Re-publish it through the project just like a terminal's live title and
     /// working directory.
     private var browserObservations: [UUID: AnyCancellable] = [:]
+    private var browserConnectionObservations: [UUID: AnyCancellable] = [:]
+    private var browserRouting: BrowserRemoteRouting?
 
     /// Set by the owning `TerminalManager`. Invoked when a user action closes
     /// a terminal session — ⌘W, a tab close, Close Others / to the Right /
@@ -140,6 +142,24 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// Records the connectivity probe result (see `TerminalManager`).
     func finishRemoteConnectionProbe(_ state: RemoteConnectionState) {
         remoteConnectionState = state
+    }
+
+    private func routingForBrowser() -> BrowserRemoteRouting? {
+        guard isRemote else { return nil }
+        if browserRouting == nil {
+            browserRouting = BrowserRemoteRouting(location: location, storageID: conversationHistoryProjectID)
+        }
+        return browserRouting
+    }
+
+    private func updateBrowserConnection() {
+        guard sharedHost != nil else { return }
+        let statuses = sessions.compactMap(\.remoteStatus)
+        let available = statuses.isEmpty || statuses.contains { $0.state == .connected }
+        browserRouting?.setAvailable(available, projectID: id)
+        for browser in tabs.flatMap(\.browsers) {
+            browser.remoteRouting?.setAvailable(available, projectID: id)
+        }
     }
 
     var name: String {
@@ -495,6 +515,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         guard case .shared(_, let directory) = location else { return }
         for session in sessions { try session.remoteConnection?.update(host: host) }
         location = .shared(host: host, directory: directory)
+        browserRouting?.update(location: location)
+        for browser in tabs.flatMap(\.browsers) { browser.remoteRouting?.update(location: location) }
     }
 
     func terminateAll() {
@@ -733,7 +755,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     ) -> BrowserTab {
         let browser = BrowserTab(
             initialURL: initialURL,
-            initialFocus: initialFocus
+            initialFocus: initialFocus,
+            remoteRouting: routingForBrowser(),
+            projectID: id
         )
         manager.map { browser.transferHost(to: $0) }
         register(browser)
@@ -1302,6 +1326,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         }
         tab.sessions.forEach { $0.transferHost(to: manager) }
         tab.browsers.forEach { $0.transferHost(to: manager) }
+        tab.browsers.forEach { $0.bind(projectID: id) }
         tab.tabGroupID = nil
         registerTransferOwnership(of: tab)
         tabs.append(tab)
@@ -1320,6 +1345,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         for session in tab.sessions {
             session.onExited = nil
             sessionObservations[session.id] = nil
+            browserConnectionObservations[session.id] = nil
         }
         for browser in tab.browsers {
             browserObservations[browser.id] = nil
@@ -1348,12 +1374,19 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         sessionObservations[session.id] = session.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
+        if sharedHost != nil {
+            browserConnectionObservations[session.id] = session.$remoteStatus
+                .receive(on: DispatchQueue.main).sink { [weak self] _ in
+                    self?.updateBrowserConnection()
+                }
+        }
         if session.agentConversationOwner?.isAlive == true || session.remoteStatus?.state == .connected, let identity = session.agentResume {
             session.onAgentConversationChanged?(session, identity)
         }
     }
 
     private func register(_ browser: BrowserTab) {
+        updateBrowserConnection()
         browserObservations[browser.id] = browser.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
@@ -1541,10 +1574,12 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             guard let paneID = tab.paneID(forContent: contentID) else { continue }
             // Keyed by content id; no-ops for the other content kinds.
             sessionObservations[contentID] = nil
+            browserConnectionObservations[contentID] = nil
             browserObservations[contentID] = nil
             if !tab.removePane(paneID) {
                 remove(tabID: tab.id)
             }
+            updateBrowserConnection()
             return
         }
     }
@@ -1554,6 +1589,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         let tab = tabs[index]
         for session in tab.sessions {
             sessionObservations[session.id] = nil
+            browserConnectionObservations[session.id] = nil
         }
         for browser in tab.browsers {
             browserObservations[browser.id] = nil
