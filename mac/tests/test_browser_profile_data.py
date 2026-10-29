@@ -67,8 +67,9 @@ def prepare(home):
     with sqlite3.connect(firefox / "cookies.sqlite") as db:
         db.executescript('''CREATE TABLE moz_cookies (host TEXT,name TEXT,value TEXT,path TEXT,expiry INTEGER,
           isSecure INTEGER,isHttpOnly INTEGER,sameSite INTEGER,originAttributes TEXT);
-          INSERT INTO moz_cookies VALUES ('example.test','login','fixture-only','/',2000000000,1,1,2,'');
-          INSERT INTO moz_cookies VALUES ('example.test','partition','fixture-only','/',2000000000,1,1,2,'^userContextId=1');''')
+          INSERT INTO moz_cookies VALUES ('example.test','login','fixture-only','/',2000000000000,1,1,2,'');
+          INSERT INTO moz_cookies VALUES ('example.test','partition','fixture-only','/',2000000000000,1,1,2,'^userContextId=1');
+          PRAGMA user_version = 17;''')
     with sqlite3.connect(firefox / "places.sqlite") as db:
         db.executescript("CREATE TABLE moz_places (url TEXT,title TEXT,last_visit_date INTEGER); INSERT INTO moz_places VALUES ('https://example.test/firefox','Fixture',1700000000000000),('https://example.test/bookmark','Unvisited',NULL);")
     (firefox / "sessionstore.jsonlz4").write_bytes(FIREFOX_SESSION)
@@ -82,4 +83,8 @@ with tempfile.TemporaryDirectory(prefix="zshell-browser-profile-test-", dir="/tm
                     str(ROOT / "mac/zshell/BrowserProfileSessions.swift"),
                     str(ROOT / "mac/zshell/BrowserProfileData.swift"),
                     str(ROOT / "mac/tests/BrowserProfileDataTests.swift"), "-o", str(binary)], check=True)
+    subprocess.run([str(binary), str(root)], check=True)
+    # Cookie schemas before 16 store expiry in seconds.
+    with sqlite3.connect(root / "Library/Application Support/Firefox/Profiles/fixture/cookies.sqlite") as db:
+        db.executescript("UPDATE moz_cookies SET expiry = expiry / 1000; PRAGMA user_version = 15;")
     subprocess.run([str(binary), str(root)], check=True)

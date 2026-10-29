@@ -67,7 +67,8 @@ with tempfile.TemporaryDirectory(prefix='zshell-browser-integration-', dir='/tmp
     with sqlite3.connect(profile / 'cookies.sqlite') as db:
         db.executescript('''CREATE TABLE moz_cookies (host TEXT,name TEXT,value TEXT,path TEXT,expiry INTEGER,
           isSecure INTEGER,isHttpOnly INTEGER,sameSite INTEGER,originAttributes TEXT);
-          INSERT INTO moz_cookies VALUES ('127.0.0.1','fixture_login','fixture-secret','/',2000000000,0,1,1,'');''')
+          INSERT INTO moz_cookies VALUES ('127.0.0.1','fixture_login','fixture-secret','/',2000000000000,0,1,1,'');
+          PRAGMA user_version = 17;''')
     with sqlite3.connect(profile / 'places.sqlite') as db:
         db.execute('CREATE TABLE moz_places (url TEXT,title TEXT,last_visit_date INTEGER)')
         db.execute('INSERT INTO moz_places VALUES (?,?,?)', (url, 'History fixture', 1700000000000000))

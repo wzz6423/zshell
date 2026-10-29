@@ -170,6 +170,10 @@ nonisolated enum BrowserProfileData {
                 let columns = try db.columns("moz_cookies")
                 let attributes = columns.contains("originAttributes") ? "originAttributes" : "''"
                 let sameSite = columns.contains("sameSite") ? "sameSite" : "0"
+                // Firefox 142 (cookie schema 16) migrated expiry from seconds to milliseconds.
+                var schema: Int32 = 0
+                try db.rows("PRAGMA user_version") { schema = sqlite3_column_int($0, 0) }
+                let expiryScale: Double = schema >= 16 ? 1_000 : 1
                 try db.rows("SELECT host,name,value,path,expiry,isSecure,isHttpOnly,\(sameSite),\(attributes) FROM moz_cookies") { row in
                     result.total += 1
                     let attributes = Database.text(row, 8)
@@ -178,7 +182,7 @@ nonisolated enum BrowserProfileData {
                     guard same != 0 || sqlite3_column_int(row, 5) != 0 else { result.skipped += 1; return }
                     result.values.append(BrowserProfileCookie(name: Database.text(row, 1), value: Database.text(row, 2),
                         domain: Database.text(row, 0), path: Database.text(row, 3),
-                        expires: Double(sqlite3_column_int64(row, 4)), secure: sqlite3_column_int(row, 5) != 0,
+                        expires: Double(sqlite3_column_int64(row, 4)) / expiryScale, secure: sqlite3_column_int(row, 5) != 0,
                         httpOnly: sqlite3_column_int(row, 6) != 0, sameSite: same == 2 ? "Strict" : same == 0 && sqlite3_column_int(row, 5) != 0 ? "None" : "Lax"))
                 }
                 do {

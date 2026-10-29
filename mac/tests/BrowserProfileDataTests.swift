@@ -26,7 +26,7 @@ struct BrowserProfileDataTests {
         precondition(second.sessions.values.map(\.url) == ["https://example.test/two"])
         let firefoxCookies = BrowserProfileData.cookies(firefox)
         precondition(firefoxCookies.values.count == 2 && firefoxCookies.skipped == 2)
-        precondition(firefoxCookies.values[0].sameSite == "Strict")
+        precondition(firefoxCookies.values[0].sameSite == "Strict" && firefoxCookies.values[0].expires == 2_000_000_000)
         precondition(firefoxCookies.values[1].name == "session" && firefoxCookies.values[1].expires == -1)
         let bad = firefox.directory.appendingPathComponent("broken.jsonlz4")
         try Data("bad".utf8).write(to: bad)
