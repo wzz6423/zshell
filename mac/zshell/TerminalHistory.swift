@@ -18,6 +18,37 @@ enum TerminalHistorySerializer {
 
     private static let reset = "\u{1b}[0m"
 
+    nonisolated struct LogCapture: Sendable {
+        private let file: CaptureFile
+
+        fileprivate init(file: CaptureFile) { self.file = file }
+
+        /// The emulator has already interpreted VT. Only its styled dump is
+        /// normalized here, on the search worker rather than the UI thread.
+        func read() -> String? {
+            defer { removeCaptureFile(file) }
+            guard let data = try? Data(contentsOf: file.fileURL),
+                  let text = String(data: data, encoding: .utf8)
+            else { return nil }
+            return plainLogText(in: text)
+        }
+
+        func discard() { removeCaptureFile(file) }
+    }
+
+    @MainActor
+    static func takeLogCapture(from surface: any TerminalBackendSurface) -> LogCapture? {
+        validatedCaptureFile(for: surface.exportScreenFile()).map { LogCapture(file: $0) }
+    }
+
+    nonisolated static func plainLogText(in text: String) -> String {
+        text.replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { visibleText(in: String($0)) }
+            .joined(separator: "\n")
+    }
+
     /// Captures the screen and scrollback a backend exports, keeping at most
     /// the last `maxLines` rows.
     @MainActor
@@ -254,7 +285,7 @@ enum TerminalHistorySerializer {
 
     /// Finds a complete OSC introduced by either ESC ] or the C1 OSC scalar.
     /// BEL, ESC \\, and the C1 ST scalar are all accepted terminators.
-    private static func oscSequence(
+    nonisolated private static func oscSequence(
         in scalars: [Unicode.Scalar], at index: Int
     ) -> (payload: Range<Int>, end: Int)? {
         let payloadStart: Int
@@ -295,7 +326,7 @@ enum TerminalHistorySerializer {
 
     /// Drops non-printing OSC and CSI sequences for comparisons only. The
     /// original line, including SGR and hyperlinks, is retained in the capture.
-    private static func visibleText(in input: String) -> String {
+    nonisolated private static func visibleText(in input: String) -> String {
         let scalars = Array(input.unicodeScalars)
         var output = ""
         var index = 0
@@ -319,7 +350,7 @@ enum TerminalHistorySerializer {
         return output
     }
 
-    private static func csiSequenceEnd(
+    nonisolated private static func csiSequenceEnd(
         in scalars: [Unicode.Scalar], at index: Int
     ) -> Int? {
         let parameterStart: Int
@@ -359,7 +390,7 @@ enum TerminalHistorySerializer {
             || string.hasSuffix("\u{9b}0m") || string.hasSuffix("\u{9b}m")
     }
 
-    private struct CaptureFile {
+    nonisolated fileprivate struct CaptureFile: Sendable {
         let fileURL: URL
         let parentURL: URL
     }
@@ -400,7 +431,7 @@ enum TerminalHistorySerializer {
         return CaptureFile(fileURL: fileURL, parentURL: parentURL)
     }
 
-    private static func removeCaptureFile(_ capture: CaptureFile) {
+    nonisolated private static func removeCaptureFile(_ capture: CaptureFile) {
         let manager = FileManager.default
         guard (try? manager.removeItem(at: capture.fileURL)) != nil else { return }
 

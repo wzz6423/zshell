@@ -110,6 +110,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     )
     private var selectionAutoscrollTimer: Timer?
     private let findState = AlacrittyFind()
+    private(set) var logContentRevision: UInt64 = 0
     private var hoveredURL: URLHit?
 
     private struct URLHit: Equatable {
@@ -428,6 +429,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     func detach() {
+        logContentRevision &+= 1
         foregroundProcessProvider = nil
         directoryTimer?.invalidate()
         directoryTimer = nil
@@ -576,6 +578,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         let geometry = gridGeometry(for: bounds.size)
         guard geometry != gridGeometry else { return }
         gridGeometry = geometry
+        logContentRevision &+= 1
         zshell_alacritty_resize(
             handle,
             UInt16(geometry.columns), UInt16(geometry.rows),
@@ -1015,6 +1018,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
         switch kind {
         case ZSHELL_EVENT_WAKEUP:
+            logContentRevision &+= 1
             updateFocusReport()
             if isPointerInside, isCommandPressed {
                 refreshURLHover(modifierFlags: NSEvent.modifierFlags)
@@ -1224,6 +1228,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     func clearScreen() {
+        logContentRevision &+= 1
         guard let handle else { return }
         zshell_alacritty_clear(handle)
         // Ask the foreground shell to repaint its prompt at the top.
@@ -1281,6 +1286,15 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         let needle = String(decoding: buffer[..<written], as: UTF8.self)
         events?.terminalDidBeginFind(needle: needle)
         beginFind(needle)
+    }
+
+    func revealLogMatch(needle: String, occurrence: Int, total: Int) -> Bool? {
+        guard let handle else { return false }
+        let revealed = needle.withCString {
+            zshell_alacritty_reveal_log_match(handle, $0, occurrence, total)
+        }
+        if revealed { scheduleRender(force: true); reportScroll() }
+        return revealed
     }
 
     func exportScreenFile() -> String? {
@@ -1347,14 +1361,21 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     /// validates before it reads.
     private func exportFile(scrollbackOnly: Bool) -> String? {
         guard let handle else { return nil }
-        let needed = zshell_alacritty_buffer_text(handle, scrollbackOnly, nil, 0)
+        var needed = zshell_alacritty_buffer_text(handle, scrollbackOnly, nil, 0)
         guard needed > 0 else { return nil }
-
-        var buffer = [UInt8](repeating: 0, count: needed)
-        let written = buffer.withUnsafeMutableBufferPointer { pointer in
-            zshell_alacritty_buffer_text(handle, scrollbackOnly, pointer.baseAddress, needed)
+        var buffer: [UInt8] = []
+        var written = 0
+        // The PTY may grow the grid between the size query and the copy.
+        for _ in 0..<3 {
+            buffer = [UInt8](repeating: 0, count: needed)
+            written = buffer.withUnsafeMutableBufferPointer { pointer in
+                zshell_alacritty_buffer_text(handle, scrollbackOnly, pointer.baseAddress, needed)
+            }
+            guard written > 0 else { return nil }
+            if written <= buffer.count { break }
+            needed = written
         }
-        guard written > 0 else { return nil }
+        guard written <= buffer.count else { return nil }
 
         let manager = FileManager.default
         let directory = manager.temporaryDirectory

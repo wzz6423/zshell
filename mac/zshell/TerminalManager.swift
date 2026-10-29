@@ -1696,6 +1696,7 @@ final class TerminalManager: nonisolated ObservableObject {
     func windowClosed() {
         guard !Self.isQuitting else { return }
         AgentConversationHistoryController.shared.close(ifOwnedBy: self)
+        WorkspaceLogSearchController.shared.close(ifOwnedBy: self)
         agentPalette.dismiss(restoreFocus: false)
         if let agentPaletteKeyMonitor {
             NSEvent.removeMonitor(agentPaletteKeyMonitor)

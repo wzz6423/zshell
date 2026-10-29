@@ -26,6 +26,10 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     /// Held strongly for the surface's lifetime; ``detach()`` drops it.
     var ghosttyController: TerminalController?
+    private(set) var logContentRevision: UInt64 = 0
+    var findMatchesNewestFirst: Bool { true }
+
+    func invalidateLogContents() { logContentRevision &+= 1 }
     /// The `/bin/sh -c …` line this surface launched, kept so a live
     /// re-configure can restate it rather than start a second shell.
     var launchCommand = ""
@@ -188,6 +192,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     func clearScreen() {
+        invalidateLogContents()
         performBindingAction("clear_screen")
         // Ask the foreground shell to repaint its prompt at the top.
         performBindingAction("text:\\x0c")

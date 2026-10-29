@@ -49,6 +49,10 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
             action: #selector(toggleQuickTerminal),
             keyEquivalent: ""
         ))
+        let search = NSMenuItem(title: String(localized: "Search Terminal Logs"),
+                                action: #selector(searchTerminalLogs), keyEquivalent: "f")
+        search.keyEquivalentModifierMask = [.command, .shift]
+        submenu.addItem(search)
         submenu.addItem(.separator())
         submenu.addItem(NSMenuItem(
             title: String(localized: "Project Terminal Environment…"),
@@ -115,6 +119,11 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
         TerminalEnvironmentEditorController.show(project: project)
     }
 
+    @objc private func searchTerminalLogs() {
+        guard let manager = TerminalManager.activeWindowManager else { return }
+        WorkspaceLogSearchController.shared.show(for: manager)
+    }
+
     @objc private func newSessionInWorktree() {
         TerminalManager.activeWindowManager?.promptForWorktreeSession()
     }
@@ -134,6 +143,8 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
             TerminalManager.activeWindowManager?.selectedProject?.isRemote == false
         case #selector(editProjectTerminalEnvironment):
             TerminalManager.activeWindowManager?.selectedProject != nil
+        case #selector(searchTerminalLogs):
+            TerminalManager.activeWindowManager != nil
         case #selector(editTabTerminalEnvironment):
             TerminalManager.activeWindowManager?.selectedProject?.selectedTab != nil
         default:
