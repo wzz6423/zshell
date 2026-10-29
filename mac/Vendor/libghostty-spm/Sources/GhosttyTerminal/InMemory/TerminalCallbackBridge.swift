@@ -57,6 +57,7 @@ final class TerminalCallbackBridge {
         case GHOSTTY_ACTION_RENDER:
             TerminalDebugLog.log(.render, "callback action=render")
             onRenderRequest?()
+            (delegate as? any TerminalSurfaceCommandRecordsDelegate)?.terminalCommandRecordsDidChange()
 
         case GHOSTTY_ACTION_CONFIG_CHANGE:
             // Colors/theme may have changed (e.g. on system appearance

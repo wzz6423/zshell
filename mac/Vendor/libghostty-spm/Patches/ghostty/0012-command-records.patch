@@ -1,0 +1,602 @@
+diff --git a/include/ghostty.h b/include/ghostty.h
+--- a/include/ghostty.h
++++ b/include/ghostty.h
+@@ -1157,6 +1157,15 @@
+                                                                void*,
+                                                                bool);
+ GHOSTTY_API bool ghostty_surface_has_selection(ghostty_surface_t);
++typedef struct { uint64_t row; uint32_t column; } ghostty_command_position_s;
++typedef struct { ghostty_command_position_s prompt, input, output, end; } ghostty_command_region_s;
++GHOSTTY_API uint64_t ghostty_surface_command_revision(ghostty_surface_t);
++GHOSTTY_API bool ghostty_surface_command_records(ghostty_surface_t, ghostty_text_s*);
++GHOSTTY_API bool ghostty_surface_command_region(ghostty_surface_t, uint64_t, ghostty_command_region_s*);
++GHOSTTY_API bool ghostty_surface_command_text(ghostty_surface_t, uint64_t, uint8_t, ghostty_text_s*);
++GHOSTTY_API bool ghostty_surface_command_reveal(ghostty_surface_t, uint64_t, bool);
++GHOSTTY_API uint64_t ghostty_surface_command_at(ghostty_surface_t, double, double);
++
+ GHOSTTY_API bool ghostty_surface_read_selection(ghostty_surface_t, ghostty_text_s*);
+ GHOSTTY_API bool ghostty_surface_read_text(ghostty_surface_t,
+                                               ghostty_selection_s,
+diff --git a/src/Surface.zig b/src/Surface.zig
+--- a/src/Surface.zig
++++ b/src/Surface.zig
+@@ -1127,6 +1127,7 @@
+ 
+         .start_command => {
+             self.command_timer = try .now();
++            _ = try self.rt_app.performAction(.{ .surface = self }, .render, {});
+         },
+ 
+         .stop_command => |v| timer: {
+@@ -5162,6 +5163,11 @@
+         },
+ 
+         .clear_screen => {
++            {
++                self.renderer_state.mutex.lock();
++                self.io.terminal.screens.active.command_blocks.invalidate(self.io.terminal.screens.active);
++                self.renderer_state.mutex.unlock();
++            }
+             // This is a duplicate of some of the logic in termio.clearScreen
+             // but we need to do this here so we can know the answer before
+             // we send the message. If the currently active screen is on the
+diff --git a/src/apprt/embedded.zig b/src/apprt/embedded.zig
+--- a/src/apprt/embedded.zig
++++ b/src/apprt/embedded.zig
+@@ -1626,6 +1626,111 @@
+ 
+         // Read the text from the selection.
+         return readTextLocked(surface, core_sel, result);
++    }
++
++    const CommandPosition = extern struct { row: u64, column: u32 };
++    const CommandRegion = extern struct { prompt: CommandPosition, input: CommandPosition, output: CommandPosition, end: CommandPosition };
++
++    fn commandPosition(screen: *terminal.Screen, pin: terminal.Pin) ?CommandPosition {
++        const position = screen.pages.pointFromPin(.screen, pin) orelse return null;
++        return .{ .row = position.screen.y, .column = position.screen.x };
++    }
++
++    export fn ghostty_surface_command_revision(surface: *Surface) u64 {
++        surface.core_surface.renderer_state.mutex.lock();
++        defer surface.core_surface.renderer_state.mutex.unlock();
++        return surface.core_surface.io.terminal.screens.get(.primary).?.command_blocks.revision;
++    }
++
++    export fn ghostty_surface_command_records(surface: *Surface, result: *Text) bool {
++        surface.core_surface.renderer_state.mutex.lock();
++        defer surface.core_surface.renderer_state.mutex.unlock();
++        const screen = surface.core_surface.io.terminal.screens.get(.primary).?;
++        const Snapshot = struct {
++            blockID: u64, command: []const u8, workingDirectory: ?[]const u8,
++            startedAtMilliseconds: i64, finishedAtMilliseconds: ?i64, durationNanos: ?u64,
++            exitCode: ?i32, hasLocation: bool,
++        };
++        var records: std.ArrayList(Snapshot) = .empty;
++        defer records.deinit(global.alloc);
++        for (screen.command_blocks.records.items) |record| {
++            records.append(global.alloc, .{
++                .blockID = record.blockID, .command = record.command, .workingDirectory = record.workingDirectory,
++                .startedAtMilliseconds = record.startedAtMilliseconds, .finishedAtMilliseconds = record.finishedAtMilliseconds,
++                .durationNanos = record.durationNanos, .exitCode = record.exitCode, .hasLocation = record.hasLocation,
++            }) catch return false;
++        }
++        const json = std.json.Stringify.valueAlloc(global.alloc, records.items, .{}) catch return false;
++        defer global.alloc.free(json);
++        const text = global.alloc.dupeZ(u8, json) catch return false;
++        result.* = .{ .tl_px_x = -1, .tl_px_y = -1, .offset_start = 0, .offset_len = 0, .text = text.ptr, .text_len = text.len };
++        return true;
++    }
++
++    export fn ghostty_surface_command_region(surface: *Surface, id: u64, result: *CommandRegion) bool {
++        surface.core_surface.renderer_state.mutex.lock();
++        defer surface.core_surface.renderer_state.mutex.unlock();
++        const term = &surface.core_surface.io.terminal;
++        if (term.screens.active_key != .primary) return false;
++        const screen = term.screens.active;
++        const region = screen.command_blocks.region(screen, id) orelse return false;
++        result.* = .{ .prompt = commandPosition(screen, region.prompt) orelse return false,
++            .input = commandPosition(screen, region.input) orelse return false,
++            .output = commandPosition(screen, region.output) orelse return false,
++            .end = commandPosition(screen, region.end) orelse return false };
++        return true;
++    }
++
++    export fn ghostty_surface_command_text(surface: *Surface, id: u64, part: u8, result: *Text) bool {
++        surface.core_surface.renderer_state.mutex.lock();
++        defer surface.core_surface.renderer_state.mutex.unlock();
++        const term = &surface.core_surface.io.terminal;
++        if (term.screens.active_key != .primary or part > 2) return false;
++        const screen = term.screens.active;
++        const region = screen.command_blocks.region(screen, id) orelse return false;
++        const text = if (part == 0)
++            global.alloc.dupeZ(u8, screen.command_blocks.find(id).?.command) catch return false
++        else if (@import("../terminal/CommandBlocks.zig").selection(if (part == 1) region.output else region.prompt, region.end)) |selection|
++            screen.selectionString(global.alloc, .{ .sel = selection, .trim = false }) catch return false
++        else global.alloc.dupeZ(u8, "") catch return false;
++        result.* = .{ .tl_px_x = -1, .tl_px_y = -1, .offset_start = 0, .offset_len = 0, .text = text.ptr, .text_len = text.len };
++        return true;
++    }
++
++    export fn ghostty_surface_command_reveal(surface: *Surface, id: u64, select: bool) bool {
++        const core = &surface.core_surface;
++        core.renderer_state.mutex.lock();
++        defer core.renderer_state.mutex.unlock();
++        const term = &core.io.terminal;
++        if (term.screens.active_key != .primary) return false;
++        const screen = term.screens.active;
++        const region = screen.command_blocks.region(screen, id) orelse return false;
++        screen.pages.scroll(.{ .pin = region.output });
++        term.flags.dirty.clear = true;
++        if (select) {
++            const selection = @import("../terminal/CommandBlocks.zig").selection(region.output, region.end);
++            screen.select(selection) catch return false;
++        }
++        core.refreshCallback() catch return false;
++        return true;
++    }
++
++    export fn ghostty_surface_command_at(surface: *Surface, x: f64, y: f64) u64 {
++        const core = &surface.core_surface;
++        core.renderer_state.mutex.lock();
++        defer core.renderer_state.mutex.unlock();
++        if (core.io.terminal.screens.active_key != .primary) return 0;
++        const screen = core.io.terminal.screens.active;
++        const position = core.posToViewport(x, y);
++        const pin = screen.pages.pin(.{ .viewport = .{ .x = position.x, .y = position.y } }) orelse return 0;
++        var index = screen.command_blocks.records.items.len;
++        while (index > 0) {
++            index -= 1;
++            const record = screen.command_blocks.records.items[index];
++            const region = screen.command_blocks.region(screen, record.blockID) orelse continue;
++            if (!pin.before(region.prompt) and pin.before(region.end)) return record.blockID;
++        }
++        return 0;
+     }
+ 
+     /// Read some arbitrary text from the surface.
+diff --git a/src/terminal/CommandBlocks.zig b/src/terminal/CommandBlocks.zig
+new file mode 100644
+--- /dev/null
++++ b/src/terminal/CommandBlocks.zig
+@@ -0,0 +1,205 @@
++const std = @import("std");
++const Screen = @import("Screen.zig");
++const PageList = @import("PageList.zig");
++const Selection = @import("Selection.zig");
++const SemanticPrompt = @import("osc/parsers/semantic_prompt.zig");
++const Pin = PageList.Pin;
++const Allocator = std.mem.Allocator;
++const Self = @This();
++
++pub const Record = struct {
++    blockID: u64,
++    command: [:0]const u8,
++    workingDirectory: ?[]const u8,
++    startedAtMilliseconds: i64,
++    finishedAtMilliseconds: ?i64 = null,
++    durationNanos: ?u64 = null,
++    exitCode: ?i32 = null,
++    hasLocation: bool = true,
++    started: ?std.time.Instant,
++    prompt: *Pin,
++    input: *Pin,
++    output: *Pin,
++    end: ?*Pin = null,
++
++    pub fn deinit(self: *Record, screen: *Screen) void {
++        screen.alloc.free(self.command);
++        if (self.workingDirectory) |directory| screen.alloc.free(directory);
++        screen.pages.untrackPin(self.prompt);
++        screen.pages.untrackPin(self.input);
++        screen.pages.untrackPin(self.output);
++        if (self.end) |end| screen.pages.untrackPin(end);
++    }
++};
++
++pub const Region = struct { prompt: Pin, input: Pin, output: Pin, end: Pin };
++
++records: std.ArrayList(Record) = .empty,
++pending_prompt: ?*Pin = null,
++pending_input: ?*Pin = null,
++active_id: ?u64 = null,
++next_id: u64 = 0,
++revision: u64 = 0,
++
++pub fn deinit(self: *Self, screen: *Screen) void {
++    for (self.records.items) |*record| record.deinit(screen);
++    self.records.deinit(screen.alloc);
++    self.clearPending(screen);
++    self.* = .{};
++}
++
++fn clearPending(self: *Self, screen: *Screen) void {
++    if (self.pending_prompt) |pin| screen.pages.untrackPin(pin);
++    if (self.pending_input) |pin| screen.pages.untrackPin(pin);
++    self.pending_prompt = null;
++    self.pending_input = null;
++}
++
++pub fn invalidate(self: *Self, screen: *Screen) void {
++    self.clearPending(screen);
++    for (self.records.items) |*record| record.hasLocation = false;
++    self.revision +%= 1;
++}
++
++pub fn find(self: *Self, id: u64) ?*Record {
++    for (self.records.items) |*record| if (record.blockID == id) return record;
++    return null;
++}
++
++pub fn region(self: *Self, screen: *Screen, id: u64) ?Region {
++    const record = self.find(id) orelse return null;
++    return recordRegion(screen, record);
++}
++
++fn recordRegion(screen: *Screen, record: *const Record) ?Region {
++    if (!record.hasLocation or record.prompt.garbage or record.input.garbage or record.output.garbage) return null;
++    const end = if (record.end) |pin| blk: {
++        if (pin.garbage) return null;
++        break :blk pin.*;
++    } else screen.cursor.page_pin.*;
++    const result: Region = .{ .prompt = record.prompt.*, .input = record.input.*, .output = record.output.*, .end = end };
++    if (result.input.before(result.prompt) or result.output.before(result.input) or result.end.before(result.output)) return null;
++    return result;
++}
++
++pub fn selection(start: Pin, end: Pin) ?Selection {
++    if (start.eql(end) or end.before(start)) return null;
++    return Selection.init(start, end.leftWrap(1) orelse return null, false);
++}
++
++fn boundedUtf8(value: []const u8, max: usize) []const u8 {
++    var length = @min(value.len, max);
++    while (length > 0 and !std.unicode.utf8ValidateSlice(value[0..length])) : (length -= 1) {}
++    return value[0..length];
++}
++
++pub fn invalidateRange(self: *Self, screen: *Screen, start: Pin, end: Pin) void {
++    var changed = false;
++    for (self.records.items) |*record| {
++        if (record.finishedAtMilliseconds == null) continue;
++        const bounds = recordRegion(screen, record) orelse continue;
++        if (!end.before(bounds.prompt) and start.before(bounds.end)) {
++            record.hasLocation = false;
++            changed = true;
++        }
++    }
++    if (changed) self.revision +%= 1;
++}
++
++pub fn invalidateWrittenRow(self: *Self, screen: *Screen) void {
++    // Normal output is after the last completed block; only cursor rewrites
++    // need to inspect old records, keeping the print path constant time.
++    var index = self.records.items.len;
++    while (index > 0) {
++        index -= 1;
++        const record = &self.records.items[index];
++        if (record.end) |end| {
++            const cursor = screen.cursor.page_pin.*;
++            if (!end.garbage and cursor.before(end.*)) {
++                var right = cursor;
++                right.x = screen.pages.cols - 1;
++                self.invalidateRange(screen, cursor, right);
++            }
++            return;
++        }
++    }
++}
++
++fn decodedCommand(alloc: Allocator, encoded: []const u8) ![:0]const u8 {
++    if (encoded.len > 49_152) return error.OutOfMemory;
++    const buffer = try alloc.dupe(u8, encoded);
++    defer alloc.free(buffer);
++    const decoded = std.Uri.percentDecodeInPlace(buffer);
++    var length = @min(decoded.len, 16_384);
++    while (length > 0 and !std.unicode.utf8ValidateSlice(decoded[0..length])) : (length -= 1) {}
++    return alloc.dupeZ(u8, decoded[0..length]);
++}
++
++pub fn observe(self: *Self, screen: *Screen, cmd: SemanticPrompt.Command, directory: ?[:0]const u8) !void {
++    switch (cmd.action) {
++        .fresh_line_new_prompt => {
++            if (self.active_id != null) self.active_id = null;
++            self.clearPending(screen);
++            self.pending_prompt = try screen.pages.trackPin(screen.cursor.page_pin.*);
++        },
++        .end_prompt_start_input, .end_prompt_start_input_terminate_eol => {
++            if (self.pending_prompt == null) return;
++            if (self.pending_input) |pin| screen.pages.untrackPin(pin);
++            self.pending_input = try screen.pages.trackPin(screen.cursor.page_pin.*);
++        },
++        .end_input_start_output => {
++            if (self.active_id != null) return;
++            const prompt = self.pending_prompt orelse return;
++            const input = self.pending_input orelse return;
++            if (prompt.garbage or input.garbage) {
++                self.clearPending(screen);
++                return;
++            }
++            const output = try screen.pages.trackPin(screen.cursor.page_pin.*);
++            errdefer screen.pages.untrackPin(output);
++            const command = if (cmd.readOption(.cmdline_url)) |encoded|
++                try decodedCommand(screen.alloc, encoded)
++            else if (selection(input.*, output.*)) |sel|
++                try screen.selectionString(screen.alloc, .{ .sel = sel, .trim = true })
++            else
++                try screen.alloc.dupeZ(u8, "");
++            errdefer screen.alloc.free(command);
++            const pwd: ?[]const u8 = if (directory) |value| try screen.alloc.dupe(u8, boundedUtf8(value, 4_096)) else null;
++            errdefer if (pwd) |value| screen.alloc.free(value);
++            self.next_id +%= 1;
++            if (self.next_id == 0) self.next_id = 1;
++            try self.records.append(screen.alloc, .{
++                .blockID = self.next_id,
++                .command = command,
++                .workingDirectory = pwd,
++                .startedAtMilliseconds = std.time.milliTimestamp(),
++                .started = std.time.Instant.now() catch null,
++                .prompt = prompt,
++                .input = input,
++                .output = output,
++            });
++            self.active_id = self.next_id;
++            self.pending_prompt = null;
++            self.pending_input = null;
++            if (self.records.items.len > 2_000) {
++                var old = self.records.orderedRemove(0);
++                old.deinit(screen);
++            }
++            self.revision +%= 1;
++        },
++        .end_command => {
++            const id = self.active_id orelse return;
++            const record = self.find(id) orelse return;
++            if (record.end) |pin| screen.pages.untrackPin(pin);
++            record.end = try screen.pages.trackPin(screen.cursor.page_pin.*);
++            record.finishedAtMilliseconds = std.time.milliTimestamp();
++            if (record.started) |start| {
++                if (std.time.Instant.now() catch null) |end| record.durationNanos = end.since(start);
++            }
++            record.exitCode = cmd.readOption(.exit_code);
++            self.active_id = null;
++            self.revision +%= 1;
++        },
++        else => {},
++    }
++}
+diff --git a/src/terminal/Screen.zig b/src/terminal/Screen.zig
+--- a/src/terminal/Screen.zig
++++ b/src/terminal/Screen.zig
+@@ -1,4 +1,5 @@
+ const Screen = @This();
++const CommandBlocks = @import("CommandBlocks.zig");
+ 
+ const std = @import("std");
+ const build_options = @import("terminal_options");
+@@ -77,6 +78,7 @@
+ 
+ /// Semantic prompt (OSC133) state.
+ semantic_prompt: SemanticPrompt = .disabled,
++command_blocks: CommandBlocks = .{},
+ 
+ /// Dirty flags for the renderer.
+ dirty: Dirty = .{},
+@@ -330,6 +332,7 @@
+ }
+ 
+ pub fn deinit(self: *Screen) void {
++    self.command_blocks.deinit(self);
+     if (comptime build_options.kitty_graphics) {
+         self.kitty_images.deinit(self.alloc, self);
+     }
+@@ -376,6 +379,7 @@
+ /// - Disables protection mode
+ ///
+ pub fn reset(self: *Screen) void {
++    self.command_blocks.invalidate(self);
+     // Reset our pages
+     self.pages.reset();
+ 
+@@ -1514,6 +1518,10 @@
+ ) void {
+     defer self.assertIntegrity();
+ 
++    if (self.pages.pin(tl)) |start| {
++        const end = if (bl) |bottom| self.pages.pin(bottom) else self.pages.getBottomRight(.screen);
++        if (end) |limit| self.command_blocks.invalidateRange(self, start, limit);
++    }
+     var it = self.pages.pageIterator(.right_down, tl, bl);
+     while (it.next()) |chunk| {
+         for (chunk.rows()) |*row| {
+diff --git a/src/terminal/Terminal.zig b/src/terminal/Terminal.zig
+--- a/src/terminal/Terminal.zig
++++ b/src/terminal/Terminal.zig
+@@ -551,6 +551,7 @@
+     allow_unicode: bool,
+ ) !usize {
+     const screen: *Screen = self.screens.active;
++    screen.command_blocks.invalidateWrittenRow(screen);
+ 
+     // Our fast path can only handle "simple" cells. A simple cell is
+     // a codepoint cell (no grapheme data or bg-color tag), narrow, and
+@@ -1239,6 +1240,7 @@
+     wide: Cell.Wide,
+ ) void {
+     defer self.screens.active.assertIntegrity();
++    self.screens.active.command_blocks.invalidateWrittenRow(self.screens.active);
+ 
+     // TODO: spacers should use a bgcolor only cell
+ 
+@@ -1844,6 +1846,9 @@
+             // state but the spec doesn't really say what to do.
+             self.screens.active.cursorSetSemanticContent(.output);
+         },
++    }
++    if (self.screens.active_key == .primary) {
++        try self.screens.active.command_blocks.observe(self.screens.active, cmd, self.getPwd());
+     }
+ }
+ 
+@@ -2477,6 +2482,13 @@
+     // Remaining rows from our cursor to the bottom of the scroll region.
+     const rem = self.scrolling_region.bottom - self.screens.active.cursor.y + 1;
+ 
++    var first = self.screens.active.cursor.page_pin.*;
++    first.x = self.scrolling_region.left;
++    const last = self.screens.active.pages.pin(.{ .active = .{
++        .x = self.scrolling_region.right, .y = self.scrolling_region.bottom,
++    } }).?;
++    self.screens.active.command_blocks.invalidateRange(self.screens.active, first, last);
++
+     // We can only insert lines up to our remaining lines in the scroll
+     // region. So we take whichever is smaller.
+     const adjusted_count = @min(count, rem);
+@@ -2677,6 +2689,13 @@
+     // Remaining rows from our cursor to the bottom of the scroll region.
+     const rem = self.scrolling_region.bottom - self.screens.active.cursor.y + 1;
+ 
++    var first = self.screens.active.cursor.page_pin.*;
++    first.x = self.scrolling_region.left;
++    const last = self.screens.active.pages.pin(.{ .active = .{
++        .x = self.scrolling_region.right, .y = self.scrolling_region.bottom,
++    } }).?;
++    self.screens.active.command_blocks.invalidateRange(self.screens.active, first, last);
++
+     // We can only insert lines up to our remaining lines in the scroll
+     // region. So we take whichever is smaller.
+     const adjusted_count = @min(count, rem);
+@@ -2853,6 +2872,11 @@
+     // }
+ 
+     // left is just the cursor position but as a multi-pointer
++    const first = self.screens.active.cursor.page_pin.*;
++    var last = first;
++    last.x = self.scrolling_region.right;
++    self.screens.active.command_blocks.invalidateRange(self.screens.active, first, last);
++
+     const left: [*]Cell = @ptrCast(self.screens.active.cursor.page_cell);
+     var page = self.screens.active.cursor.page_pin.node.page();
+ 
+@@ -2945,6 +2969,11 @@
+     // We can only insert blanks up to our remaining cols
+     const count = @min(count_req, rem);
+ 
++    const first = self.screens.active.cursor.page_pin.*;
++    var last = first;
++    last.x = self.scrolling_region.right;
++    self.screens.active.command_blocks.invalidateRange(self.screens.active, first, last);
++
+     self.screens.active.splitCellBoundary(self.screens.active.cursor.x);
+     self.screens.active.splitCellBoundary(self.screens.active.cursor.x + count);
+     self.screens.active.splitCellBoundary(self.scrolling_region.right + 1);
+@@ -2997,6 +3026,11 @@
+     // TODO(qwerasd): This isn't actually correct if you take in to account
+     // protected modes. We need to figure out how to make `clearCells` or at
+     // least `clearUnprotectedCells` handle boundary conditions...
++    const first = self.screens.active.cursor.page_pin.*;
++    var last = first;
++    last.x = self.scrolling_region.right;
++    self.screens.active.command_blocks.invalidateRange(self.screens.active, first, last);
++
+     self.screens.active.splitCellBoundary(self.screens.active.cursor.x);
+     self.screens.active.splitCellBoundary(self.screens.active.cursor.x + count);
+ 
+@@ -3071,6 +3105,12 @@
+             return;
+         },
+     };
++
++    var first = self.screens.active.cursor.page_pin.*;
++    first.x = start;
++    var last = first;
++    last.x = end - 1;
++    self.screens.active.command_blocks.invalidateRange(self.screens.active, first, last);
+ 
+     // All modes will clear the pending wrap state and we know we have
+     // a valid mode at this point.
+@@ -14268,3 +14308,60 @@
+     t.fullReset();
+     try testing.expect(!t.glyph_glossary.contains(0xE0A0));
+ }
++
++test "zshell command blocks preserve metadata and native reflow locations" {
++    var term = try Terminal.init(testing.allocator, .{ .cols = 24, .rows = 4, .max_scrollback = 64_000 });
++    defer term.deinit(testing.allocator);
++    try term.setPwd("/tmp/first directory");
++    var stream = term.vtStream();
++    defer stream.deinit();
++    stream.nextSlice("\x1b]133;A\x07> \x1b]133;B\x07echo abcdefghijklmnop\r\n\x1b]133;C;cmdline_url=printf%20%27hello%3B%E4%BD%A0%E5%A5%BD%27%0Afalse\x07abcdefghijklmnop\r\n\x1b]133;D;7\x07");
++    const screen = term.screens.active;
++    const record = screen.command_blocks.records.items[0];
++    try testing.expectEqualStrings("printf 'hello;你好'\nfalse", record.command);
++    try testing.expectEqualStrings("/tmp/first directory", record.workingDirectory.?);
++    try testing.expectEqual(@as(?i32, 7), record.exitCode);
++    try testing.expect(record.durationNanos != null);
++    stream.nextSlice("one\r\ntwo\r\nthree\r\nfour\r\nfive\r\n");
++    for ([_]u16{ 8, 40, 12, 24 }) |columns| {
++        try term.resize(testing.allocator, columns, 4);
++        const region = screen.command_blocks.region(screen, record.blockID).?;
++        const selection = @import("CommandBlocks.zig").selection(region.output, region.end).?;
++        const text = try screen.selectionString(testing.allocator, .{ .sel = selection });
++        defer testing.allocator.free(text);
++        try testing.expectEqualStrings("abcdefghijklmnop", text);
++    }
++    screen.command_blocks.invalidate(screen);
++    try testing.expect(screen.command_blocks.region(screen, record.blockID) == null);
++}
++
++test "zshell command blocks invalidate overwritten and erased output" {
++    var term = try Terminal.init(testing.allocator, .{ .cols = 24, .rows = 4 });
++    defer term.deinit(testing.allocator);
++    var stream = term.vtStream();
++    defer stream.deinit();
++    stream.nextSlice("\x1b]133;A\x07> \x1b]133;B\x07echo one\r\n\x1b]133;C\x07result\r\n\x1b]133;D;0\x07");
++    const screen = term.screens.active;
++    const id = screen.command_blocks.records.items[0].blockID;
++    try testing.expect(screen.command_blocks.region(screen, id) != null);
++    stream.nextSlice("\x1b[2;1H\x1b[2Kreplacement");
++    try testing.expect(screen.command_blocks.region(screen, id) == null);
++    try testing.expectEqualStrings("echo one", screen.command_blocks.records.items[0].command);
++}
++
++test "zshell command blocks accept bounded long Unicode metadata" {
++    var term = try Terminal.init(testing.allocator, .{ .cols = 24, .rows = 4 });
++    defer term.deinit(testing.allocator);
++    var stream = term.vtStream();
++    defer stream.deinit();
++    const encoded = try testing.allocator.alloc(u8, 36_000);
++    defer testing.allocator.free(encoded);
++    for (0..4_000) |offset| @memcpy(encoded[offset * 9 ..][0..9], "%E4%BD%A0");
++    stream.nextSlice("\x1b]133;A\x07> \x1b]133;B\x07long\r\n\x1b]133;C;cmdline_url=");
++    stream.nextSlice(encoded);
++    stream.nextSlice("\x07\x1b]133;D;0\x07");
++    const records = term.screens.active.command_blocks.records.items;
++    try testing.expectEqual(@as(usize, 1), records.len);
++    try testing.expectEqual(@as(usize, 12_000), records[0].command.len);
++    try testing.expect(std.unicode.utf8ValidateSlice(records[0].command));
++}
+diff --git a/src/terminal/osc.zig b/src/terminal/osc.zig
+--- a/src/terminal/osc.zig
++++ b/src/terminal/osc.zig
+@@ -551,6 +551,11 @@
+         // If a writer has been initialized, we just accumulate the rest of the
+         // OSC sequence in the writer's buffer and skip the state machine.
+         if (self.capture) |*cap| {
++            // Bound percent-encoded command metadata without limiting other OSCs.
++            if (self.state == .@"133" and cap.writer.buffered().len >= 49_200) {
++                self.state = .invalid;
++                return;
++            }
+             cap.writer.writeByte(c) catch |err| switch (err) {
+                 // We have overflowed our buffer or had some other error, set the
+                 // state to invalid so that we discard any further input.
+@@ -718,7 +723,7 @@
+ 
+             .@"133",
+             => switch (c) {
+-                ';' => self.captureTrailing(.fixed),
++                ';' => self.captureTrailing(.allocating),
+                 '7' => self.state = .@"1337",
+                 else => self.state = .invalid,
+             },

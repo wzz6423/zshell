@@ -17,7 +17,9 @@ import GhosttyTerminal
 /// see `ZshellTerminalView+Ghostty.swift`.
 final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     /// The session listening to this surface. Weak: the session owns the view.
-    weak var events: (any TerminalBackendEvents)?
+    weak var events: (any TerminalBackendEvents)? {
+        didSet { events?.terminalDidUpdateCommandRecords(commandRecordState.records) }
+    }
 
     /// Fired whenever direct interaction makes this pane the active one.
     var onBecomeFirstResponder: (() -> Void)?
@@ -25,6 +27,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     let commandRouting = TerminalCommandRouting()
 
     /// Held strongly for the surface's lifetime; ``detach()`` drops it.
+    var commandRecordState = TerminalCommandRecords()
+    var lastCommandRevision: UInt64?
     var ghosttyController: TerminalController?
     /// The `/bin/sh -c …` line this surface launched, kept so a live
     /// re-configure can restate it rather than start a second shell.
@@ -187,8 +191,13 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         performBindingAction("text:\\x0d")
     }
 
+    func sendPaste(_ text: String) {
+        sendText(text)
+    }
+
     func clearScreen() {
         performBindingAction("clear_screen")
+        refreshCommandRecords()
         // Ask the foreground shell to repaint its prompt at the top.
         performBindingAction("text:\\x0c")
     }

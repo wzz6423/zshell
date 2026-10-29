@@ -45,6 +45,7 @@ pub const ZSHELL_EVENT_SHELL_COMMAND_START: u32 = 10;
 pub const ZSHELL_EVENT_SHELL_COMMAND_EXECUTING: u32 = 11;
 pub const ZSHELL_EVENT_SHELL_COMMAND_FINISHED: u32 = 12;
 pub const ZSHELL_EVENT_MOUSE_SHAPE: u32 = 13;
+pub const ZSHELL_EVENT_COMMAND_RECORDS: u32 = 14;
 
 /// Nothing changed; the host can drop the frame entirely.
 pub const ZSHELL_DAMAGE_NONE: u32 = 0;
@@ -308,6 +309,10 @@ impl OscInterceptor {
     fn finish(&mut self, output: &mut Vec<u8>, events: &mut Vec<OscEvent>) {
         if let Some(event) = self.parse_payload() {
             events.push(event);
+            // Native command anchors must observe these after the preceding cells.
+            if self.buffer.starts_with(b"7;") || self.buffer.starts_with(b"133;") {
+                self.emit_passthrough(output);
+            }
         } else if !self.should_consume_payload() {
             // Alacritty still needs titles, colors, OSC 8 links, OSC 52, and
             // every other sequence it already implements.
@@ -734,13 +739,10 @@ impl Proxy {
             OscEvent::Notification(message) => {
                 self.emit(ZSHELL_EVENT_NOTIFICATION, message.as_bytes())
             }
-            OscEvent::ShellPromptStart => self.emit(ZSHELL_EVENT_SHELL_PROMPT_START, &[]),
-            OscEvent::ShellCommandStart => self.emit(ZSHELL_EVENT_SHELL_COMMAND_START, &[]),
-            OscEvent::ShellCommandExecuting => self.emit(ZSHELL_EVENT_SHELL_COMMAND_EXECUTING, &[]),
-            OscEvent::ShellCommandFinished(exit_code) => self.emit(
-                ZSHELL_EVENT_SHELL_COMMAND_FINISHED,
-                &exit_code.unwrap_or(-1).to_le_bytes(),
-            ),
+            OscEvent::ShellPromptStart => {}
+            OscEvent::ShellCommandStart => {}
+            OscEvent::ShellCommandExecuting => {}
+            OscEvent::ShellCommandFinished(_) => {}
             OscEvent::MouseShape(name) => self.emit(ZSHELL_EVENT_MOUSE_SHAPE, name.as_bytes()),
         }
     }
@@ -879,6 +881,17 @@ impl OnResize for OscPty {
 impl EventListener for Proxy {
     fn send_event(&self, event: Event) {
         match event {
+            Event::CommandRecordsChanged => self.emit(ZSHELL_EVENT_COMMAND_RECORDS, &[]),
+            Event::SemanticPrompt { action, exit_code } => match action {
+                b'A' => self.emit(ZSHELL_EVENT_SHELL_PROMPT_START, &[]),
+                b'B' => self.emit(ZSHELL_EVENT_SHELL_COMMAND_START, &[]),
+                b'C' => self.emit(ZSHELL_EVENT_SHELL_COMMAND_EXECUTING, &[]),
+                b'D' => self.emit(
+                    ZSHELL_EVENT_SHELL_COMMAND_FINISHED,
+                    &exit_code.unwrap_or(-1).to_le_bytes(),
+                ),
+                _ => {}
+            },
             Event::Wakeup => {
                 self.finish_synchronized_update_if_ready();
                 self.emit(ZSHELL_EVENT_WAKEUP, &[]);
@@ -1825,6 +1838,7 @@ pub unsafe extern "C" fn zshell_alacritty_clear(handle: *mut ZshellTerminal) {
         return;
     }
     let mut term = (*handle).term.lock();
+    term.invalidate_command_locations();
     term.grid_mut().clear_viewport();
     term.grid_mut().clear_history();
     let mut graphics = (*handle).kitty_graphics.lock();
@@ -1850,6 +1864,7 @@ pub unsafe extern "C" fn zshell_alacritty_synchronized_update(handle: *mut Zshel
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::kitty_graphics_tracking::{advance_text, KittyGraphicsCursorTracker};
     use alacritty_terminal::event::VoidListener;
     use alacritty_terminal::vte::ansi::Processor;
 
@@ -2262,7 +2277,10 @@ mod tests {
         );
         let (output, events) = intercept(&mut interceptor, input.as_bytes());
 
-        assert_eq!(output, b"beforeafter");
+        assert_eq!(output, concat!(
+            "before\x1b]7;file://host/Users/wzz6423/My%20Project\x07",
+            "\x1b]133;A\x07\x1b]133;B\x07\x1b]133;C\x07\x1b]133;D;0\x07after"
+        ).as_bytes());
         assert_eq!(
             events,
             vec![
@@ -2310,7 +2328,7 @@ mod tests {
         );
         let (output, events) = intercept(&mut interceptor, input.as_bytes());
 
-        assert!(output.is_empty());
+        assert_eq!(output, input.as_bytes());
         assert_eq!(
             events,
             vec![
@@ -2358,7 +2376,7 @@ mod tests {
     fn osc_interceptor_handles_every_chunk_boundary() {
         let input = b"left\x1b]133;D;17\x1b\\right";
         let expected = (
-            b"leftright".to_vec(),
+            b"left\x1b]133;D;17\x07right".to_vec(),
             vec![OscEvent::ShellCommandFinished(Some(17))],
         );
 
@@ -2370,6 +2388,27 @@ mod tests {
             output.extend(second_output);
             events.extend(second_events);
             assert_eq!((output, events), expected, "split at {split}");
+        }
+    }
+
+    #[test]
+    fn native_command_records_receive_intercepted_osc_in_grid_order() {
+        let input = b"\x1b]7;file://host/tmp/original\x07\x1b]133;A\x07> \x1b]133;B\x07false\r\n\x1b]133;C;cmdline_url=false\x07result\r\n\x1b]133;D;7\x07";
+        for split in 0..=input.len() {
+            let size = TermSize { columns: 40, screen_lines: 4 };
+            let mut term = Term::new(Config::default(), &size, VoidListener);
+            let mut parser = Processor::new();
+            let mut tracker = KittyGraphicsCursorTracker::default();
+            let mut interceptor = OscInterceptor::default();
+            for bytes in [&input[..split], &input[split..]] {
+                let (output, _) = interceptor.process(bytes);
+                advance_text(&mut tracker, &mut parser, &mut term, &output, false);
+            }
+            let record = &term.command_records()[0];
+            assert_eq!(record.command, "false", "split={split}");
+            assert_eq!(record.working_directory.as_deref(), Some("/tmp/original"));
+            assert_eq!(record.exit_code, Some(7));
+            assert_eq!(term.command_text(record.id, 1).as_deref(), Some("result"));
         }
     }
 
@@ -2763,4 +2802,169 @@ pub unsafe extern "C" fn zshell_alacritty_mark_exited(handle: *mut ZshellTermina
         return;
     }
     (*handle).exited = true;
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct ZshellCommandPosition {
+    pub row: u64,
+    pub column: u32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct ZshellCommandRegion {
+    pub prompt: ZshellCommandPosition,
+    pub input: ZshellCommandPosition,
+    pub output: ZshellCommandPosition,
+    pub end: ZshellCommandPosition,
+}
+
+fn command_position(point: Point, history: usize) -> ZshellCommandPosition {
+    ZshellCommandPosition {
+        row: (point.line.0 as i64 + history as i64).max(0) as u64,
+        column: point.column.0 as u32,
+    }
+}
+
+/// Copies an owned, bounded JSON snapshot; callers free it with zshell_alacritty_string_free.
+/// # Safety
+/// `handle` must be live; any result pointer must be valid for this call.
+#[no_mangle]
+pub unsafe extern "C" fn zshell_alacritty_command_records(
+    handle: *mut ZshellTerminal,
+) -> *mut c_char {
+    let Some(handle) = handle.as_ref() else {
+        return std::ptr::null_mut();
+    };
+    let term = handle.term.lock();
+    let records: Vec<_> = term.command_records().iter().map(|record| serde_json::json!({
+        "blockID": record.id, "command": record.command, "workingDirectory": record.working_directory,
+        "startedAtMilliseconds": record.started_at_ms, "finishedAtMilliseconds": record.finished_at_ms,
+        "durationNanos": record.duration_ns, "exitCode": record.exit_code,
+        "hasLocation": record.location_valid,
+    })).collect();
+    std::ffi::CString::new(serde_json::to_string(&records).unwrap_or_default())
+        .map_or(std::ptr::null_mut(), std::ffi::CString::into_raw)
+}
+
+/// # Safety
+/// `handle` must be live; any result pointer must be valid for this call.
+#[no_mangle]
+pub unsafe extern "C" fn zshell_alacritty_command_revision(handle: *mut ZshellTerminal) -> u64 {
+    handle
+        .as_ref()
+        .map_or(0, |handle| handle.term.lock().command_revision())
+}
+
+/// # Safety
+/// `handle` must be live; any result pointer must be valid for this call.
+#[no_mangle]
+pub unsafe extern "C" fn zshell_alacritty_command_region(
+    handle: *mut ZshellTerminal,
+    id: u64,
+    result: *mut ZshellCommandRegion,
+) -> bool {
+    let (Some(handle), Some(result)) = (handle.as_ref(), result.as_mut()) else {
+        return false;
+    };
+    let term = handle.term.lock();
+    let Some(region) = term.command_region(id) else {
+        return false;
+    };
+    let history = term.grid().history_size();
+    *result = ZshellCommandRegion {
+        prompt: command_position(region.prompt, history),
+        input: command_position(region.input, history),
+        output: command_position(region.output, history),
+        end: command_position(region.end, history),
+    };
+    true
+}
+
+/// # Safety
+/// `handle` must be live; any result pointer must be valid for this call.
+#[no_mangle]
+pub unsafe extern "C" fn zshell_alacritty_command_text(
+    handle: *mut ZshellTerminal,
+    id: u64,
+    part: u8,
+) -> *mut c_char {
+    let Some(handle) = handle.as_ref() else {
+        return std::ptr::null_mut();
+    };
+    if part > 2 {
+        return std::ptr::null_mut();
+    }
+    handle
+        .term
+        .lock()
+        .command_text(id, part)
+        .and_then(|text| std::ffi::CString::new(text).ok())
+        .map_or(std::ptr::null_mut(), std::ffi::CString::into_raw)
+}
+
+/// # Safety
+/// `handle` must be live; any result pointer must be valid for this call.
+#[no_mangle]
+pub unsafe extern "C" fn zshell_alacritty_command_reveal(
+    handle: *mut ZshellTerminal,
+    id: u64,
+    select: bool,
+) -> bool {
+    let Some(handle) = handle.as_ref() else {
+        return false;
+    };
+    let mut term = handle.term.lock();
+    let Some(region) = term.command_region(id) else {
+        return false;
+    };
+    let offset = (-region.output.line.0)
+        .max(0)
+        .min(term.grid().history_size() as i32);
+    let current = term.grid().display_offset() as i32;
+    term.scroll_display(Scroll::Delta(offset - current));
+    if select && region.output != region.end {
+        let mut selection = Selection::new(SelectionType::Simple, region.output, Side::Left);
+        selection.update(region.end, Side::Left);
+        term.selection = Some(selection);
+    }
+    true
+}
+
+/// # Safety
+/// `handle` must be live; any result pointer must be valid for this call.
+#[no_mangle]
+pub unsafe extern "C" fn zshell_alacritty_command_at(
+    handle: *mut ZshellTerminal,
+    line: i32,
+    column: u32,
+) -> u64 {
+    let Some(handle) = handle.as_ref() else {
+        return 0;
+    };
+    let term = handle.term.lock();
+    let point = Point::new(
+        Line(line - term.grid().display_offset() as i32),
+        Column(column as usize),
+    );
+    term.command_records()
+        .iter()
+        .rev()
+        .find_map(|record| {
+            let region = term.command_region(record.id)?;
+            ((region.prompt.line, region.prompt.column) <= (point.line, point.column)
+                && (point.line, point.column) < (region.end.line, region.end.column))
+                .then_some(record.id)
+        })
+        .unwrap_or(0)
+}
+
+/// # Safety
+/// `text` must be an owned pointer returned by this bridge, freed exactly once.
+#[no_mangle]
+pub unsafe extern "C" fn zshell_alacritty_string_free(text: *mut c_char) {
+    if !text.is_null() {
+        drop(std::ffi::CString::from_raw(text));
+    }
 }
