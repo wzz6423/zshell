@@ -116,6 +116,7 @@ zshell-server create --project ~/repo
 zshell-server list --project ~/repo
 zshell-server attach --project ~/repo --session UUID
 zshell-server terminate --project ~/repo --session UUID
+zshell-server processes --project ~/repo --session UUID
 zshell-server agent-hooks install
 zshell-server --version --json
 zshell-server --licenses

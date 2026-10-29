@@ -125,7 +125,7 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
         }
         // Process samples change every two seconds. Mode polling updates only
         // the hint rows, preserving the directory and process controls.
-        let signature = "\(model.rootPath)|\(model.projectRootPath)|\(model.projectRootSource)|\(model.shellPid)|\(model.shellName)|\(model.processes)|\(model.ports)|\(fontScale)|\(editor)|\(remoteProject?.id.uuidString ?? "")|\(String(describing: remoteProject?.remoteConnectionState))|\(effectiveAppearance.name)"
+        let signature = "\(model.rootPath)|\(model.projectRootPath)|\(model.projectRootSource)|\(model.shellPid)|\(model.shellName)|\(model.processes)|\(model.ports)|\(String(describing: model.remoteSource))|\(model.remoteError ?? "")|\(fontScale)|\(editor)|\(remoteProject?.id.uuidString ?? "")|\(String(describing: remoteProject?.remoteConnectionState))|\(effectiveAppearance.name)"
         renderInformation = { [weak self, weak model, weak remoteProject] in
             guard let self, let model else { return }
             self.rebuildInformation(model: model, remoteProject: remoteProject, editor: editor)
@@ -256,6 +256,7 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
             let remote = RemoteProjectInfoNSView()
             remote.configure(project: remoteProject)
             add(remote, to: information)
+            if model.remoteSource != nil { processSection(model: model, isRemote: true) }
             return
         }
         let header = NSStackView()
@@ -288,8 +289,33 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
                 directory(model.projectRootPath, editor: editor)
             }
         }
+        processSection(model: model, isRemote: false)
+        section("ports", title: String(localized: "PORTS"), count: model.ports.count, in: information) {
+            if model.ports.isEmpty {
+                add(label(String(localized: "No listening ports"), size: 11, color: .secondaryLabelColor), to: information)
+            }
+            for port in model.ports {
+                let urlString = "http://localhost:\(port.port)"
+                let open = { if let url = port.url { NSWorkspace.shared.open(url) } }
+                let row = button("\(port.port)  \(port.processName)", symbol: "network",
+                                 help: String(localized: "Open \(urlString)"), action: open)
+                row.menu = menu([
+                    (String(localized: "Open in Browser"), open),
+                    (String(localized: "Copy URL"), { Self.copy(urlString) }),
+                    (String(localized: "Kill Process (\(port.processName))"), { [weak model] in model?.kill(port.pid) }),
+                ])
+                add(row, to: information)
+            }
+        }
+    }
+
+    /// Remote rows come from the host's `zshell-server` and are read-only:
+    /// signalling a pid on another machine needs its own trust decision.
+    private func processSection(model: SessionInfoModel, isRemote: Bool) {
         section("processes", title: String(localized: "PROCESSES"), count: model.processes.count, in: information) {
-            if model.processes.isEmpty {
+            if let error = model.remoteError, isRemote {
+                add(label(error, size: 11, color: .secondaryLabelColor), to: information)
+            } else if model.processes.isEmpty {
                 add(label(String(localized: "No running processes"), size: 11, color: .secondaryLabelColor), to: information)
             }
             for process in model.processes {
@@ -305,32 +331,22 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
                 let usage = label("\(Int(process.cpu))% · \(process.memoryLabel)", size: 10, color: .secondaryLabelColor)
                 usage.maximumNumberOfLines = 1
                 row.addArrangedSubview(usage)
+                let copies: [(String, () -> Void)] = [
+                    (String(localized: "Copy PID"), { Self.copy(String(process.pid)) }),
+                    (String(localized: "Copy Executable Path"), { Self.copy(process.executable) }),
+                ]
+                guard !isRemote else {
+                    row.menu = menu(copies)
+                    add(row, to: information)
+                    continue
+                }
                 row.menu = menu([
                     (String(localized: "Terminate"), { [weak model] in model?.kill(process.pid) }),
                     (String(localized: "Force Kill"), { [weak model] in model?.kill(process.pid, force: true) }),
-                    (String(localized: "Copy PID"), { Self.copy(String(process.pid)) }),
-                    (String(localized: "Copy Executable Path"), { Self.copy(process.executable) }),
-                ])
+                ] + copies)
                 row.actionButton = button("", symbol: "xmark", help: String(localized: "Terminate Process")) { [weak model] in
                     model?.kill(process.pid)
                 }
-                add(row, to: information)
-            }
-        }
-        section("ports", title: String(localized: "PORTS"), count: model.ports.count, in: information) {
-            if model.ports.isEmpty {
-                add(label(String(localized: "No listening ports"), size: 11, color: .secondaryLabelColor), to: information)
-            }
-            for port in model.ports {
-                let urlString = "http://localhost:\(port.port)"
-                let open = { if let url = port.url { NSWorkspace.shared.open(url) } }
-                let row = button("\(port.port)  \(port.processName)", symbol: "network",
-                                 help: String(localized: "Open \(urlString)"), action: open)
-                row.menu = menu([
-                    (String(localized: "Open in Browser"), open),
-                    (String(localized: "Copy URL"), { Self.copy(urlString) }),
-                    (String(localized: "Kill Process (\(port.processName))"), { [weak model] in model?.kill(port.pid) }),
-                ])
                 add(row, to: information)
             }
         }

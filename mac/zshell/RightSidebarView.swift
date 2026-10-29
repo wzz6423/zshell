@@ -284,10 +284,16 @@ struct RightSidebarView: View {
             // with a local root would clobber that.
             fileTree.configureRemote(project.remoteEndpoint)
             fileTree.sync(root: project.remoteEndpoint == nil ? "" : project.remoteDirectory ?? "~")
+            // A shared session's processes live on its host; a plain SSH
+            // terminal only runs the local ssh client, so it has none to list.
+            let remote = session.remoteConnection.map {
+                SessionInfoModel.RemoteSource(host: $0.host, directory: $0.projectDirectory, sessionID: $0.sessionID)
+            }
             info.sync(
                 root: "", projectRoot: "",
                 projectRootSource: .shell,
-                shellName: "", shellPid: nil
+                shellName: "", shellPid: nil,
+                remote: manager.panelTab == .info ? remote : nil
             )
             return
         }

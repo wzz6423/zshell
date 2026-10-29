@@ -16,6 +16,10 @@ the original feature bullet instead of adding separate entries for them.
 
 ## [Unreleased]
 
+### Added
+
+- Show the processes running in a shared remote session in the Info panel.
+
 ### Fixed
 
 - Use a consistent compact switch size throughout Settings.

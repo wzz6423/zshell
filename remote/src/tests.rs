@@ -307,6 +307,30 @@ fn project_scoping_and_invalid_launches_are_rejected() {
 }
 
 #[test]
+fn processes_lists_only_the_sessions_own_descendants() {
+    let fixture = Fixture::new();
+    let id = new_id().unwrap();
+    fixture.create(&id, vec!["/bin/sh", "-c", "sleep 30; exit 0"]);
+    let request = fixture.request("processes", &id);
+    let mut names = Vec::new();
+    for _ in 0..50 {
+        let result = fixture.daemon.request(&request).unwrap();
+        names = result.as_array().unwrap().iter().map(|item| item["name"].as_str().unwrap().to_owned()).collect();
+        if !names.is_empty() { break; }
+        thread::sleep(Duration::from_millis(50));
+    }
+    assert_eq!(names, ["sleep"]);
+    let result = fixture.daemon.request(&request).unwrap();
+    assert!(result[0]["pid"].as_i64().unwrap() > 1);
+    assert!(result[0]["memoryKB"].is_u64());
+    let mut other = request.clone();
+    other.project = Some(fixture.other.to_str().unwrap().into());
+    assert!(fixture.daemon.request(&other).is_err());
+    fixture.daemon.request(&fixture.request("terminate", &id)).unwrap();
+    assert!(fixture.daemon.request(&request).is_err());
+}
+
+#[test]
 fn tailscale_owner_allowlist_and_local_identity_boundary() {
     let root =
         std::env::temp_dir().join(format!("zshell-remote-tailnet-test-{}", new_id().unwrap()));

@@ -225,7 +225,7 @@ impl Daemon {
         match request.kind.as_str() {
             "hello" => Ok(
                 json!({ "instanceID": self.instance_id, "protocolVersion": VERSION, "platform": std::env::consts::OS,
-                    "daemonPID": std::process::id(), "capabilities": ["agentHistory", "agentResume"] }),
+                    "daemonPID": std::process::id(), "capabilities": ["agentHistory", "agentResume", "processes"] }),
             ),
             "projects" => {
                 let sessions = self.sessions.lock().unwrap();
@@ -314,6 +314,13 @@ impl Daemon {
                 Ok(json!(info))
             }
             "get" => Ok(json!(self.session(request)?.info())),
+            "processes" => {
+                let info = self.session(request)?.info();
+                if !info.running {
+                    return Ok(json!([]));
+                }
+                Ok(json!(crate::processes::descendants(info.pid)?))
+            }
             "terminate" => {
                 let session = self.session(request)?;
                 session.terminate();

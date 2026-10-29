@@ -8,10 +8,11 @@ import Darwin
 import Foundation
 
 /// Polls `ps`/`lsof` for the active session's shell: the processes running
-/// under it and any TCP ports those processes are listening on.
+/// under it and any TCP ports those processes are listening on. A shared
+/// remote session asks its host's `zshell-server` for the processes instead.
 @MainActor
 final class SessionInfoModel: nonisolated ObservableObject {
-    nonisolated struct ProcessItem: Identifiable, Equatable, Sendable {
+    nonisolated struct ProcessItem: Identifiable, Equatable, Sendable, Decodable {
         var id: pid_t { pid }
         let pid: pid_t
         /// Executable name, e.g. "node".
@@ -40,6 +41,13 @@ final class SessionInfoModel: nonisolated ObservableObject {
         var url: URL? { URL(string: "http://localhost:\(port)/") }
     }
 
+    /// The shared remote session whose host owns the processes.
+    nonisolated struct RemoteSource: Equatable, Sendable {
+        let host: RemoteHost
+        let directory: String
+        let sessionID: UUID
+    }
+
     @Published private(set) var rootPath = ""
     /// The project directory the file tree and git panels anchor to —
     /// shown alongside the live cwd so both are visible at a glance.
@@ -51,15 +59,21 @@ final class SessionInfoModel: nonisolated ObservableObject {
     @Published private(set) var shellPid: pid_t = 0
     @Published private(set) var processes: [ProcessItem] = []
     @Published private(set) var ports: [PortItem] = []
+    @Published private(set) var remoteSource: RemoteSource?
+    @Published private(set) var remoteError: String?
 
     private var isRefreshing = false
+    /// Each remote sample opens its own SSH or Tailscale connection, so the
+    /// sidebar's two-second tick only re-polls a host this often.
+    private var lastRemoteRefresh = Date.distantPast
 
     func sync(
         root: String,
         projectRoot: String,
         projectRootSource: Project.PanelRootSource,
         shellName: String,
-        shellPid: pid_t?
+        shellPid: pid_t?,
+        remote: RemoteSource? = nil
     ) {
         if rootPath != root { rootPath = root }
         if projectRootPath != projectRoot { projectRootPath = projectRoot }
@@ -69,10 +83,22 @@ final class SessionInfoModel: nonisolated ObservableObject {
         if self.shellName != shellName { self.shellName = shellName }
         let pid = shellPid ?? 0
         if self.shellPid != pid { self.shellPid = pid }
+        if remoteSource != remote {
+            remoteSource = remote
+            remoteError = nil
+            processes = []
+            ports = []
+            lastRemoteRefresh = .distantPast
+        }
+        if remote != nil, Date().timeIntervalSince(lastRemoteRefresh) < 5 { return }
         refresh()
     }
 
     func refresh() {
+        if let remoteSource {
+            refreshRemote(remoteSource)
+            return
+        }
         let pid = shellPid
         guard pid > 0 else {
             if !processes.isEmpty { processes = [] }
@@ -91,6 +117,32 @@ final class SessionInfoModel: nonisolated ObservableObject {
                 guard self.shellPid == pid else { return }
                 if self.processes != processes { self.processes = processes }
                 if self.ports != ports { self.ports = ports }
+            }
+        }
+    }
+
+    private func refreshRemote(_ source: RemoteSource) {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        lastRemoteRefresh = Date()
+        Task.detached(priority: .utility) { [weak self] in
+            let result = Result {
+                try RemoteHostClient.processes(host: source.host, directory: source.directory,
+                                               sessionID: source.sessionID)
+            }
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                self.isRefreshing = false
+                guard self.remoteSource == source else { return }
+                switch result {
+                case .success(let processes):
+                    if self.processes != processes { self.processes = processes }
+                    if self.remoteError != nil { self.remoteError = nil }
+                case .failure(let error):
+                    if !self.processes.isEmpty { self.processes = [] }
+                    let message = error.localizedDescription
+                    if self.remoteError != message { self.remoteError = message }
+                }
             }
         }
     }

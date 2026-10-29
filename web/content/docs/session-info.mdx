@@ -30,6 +30,8 @@ resident memory. Right-click a process to:
 Exited children still waiting to be reaped (`<defunct>`) are left out — there's
 nothing to see or kill there.
 
+In a shared remote session, the list comes from the host's zshell-server and refreshes every few seconds. Those rows only offer **Copy PID** / **Copy Executable Path**; plain SSH terminals have no list, since only the local `ssh` client runs there.
+
 ## Ports
 
 Any TCP port those processes are listening on, with the process that owns it.
