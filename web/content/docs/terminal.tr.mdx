@@ -16,6 +16,14 @@ Her terminal bölmesi gerçek giriş kabuğunuzu ve GPU hızlandırmalı iki yer
 
 İkisi de GPU hızlandırma, görüntü oluşturma, Zshell’in ortak tema kataloğu, arama, fare raporlama, bildirim ve ilerleme raporlarını destekler. Değişim yalnızca yeni terminallere uygulanır; mevcut bölmeler başladıkları emülatörü korur.
 
+## Komut geçmişi [#command-history]
+
+Zshell’de çalıştırılan komutları metin veya dizine göre aramak için **Terminal → Komut geçmişi…** seçeneğini açın. Her satır özgün dizini, başlangıç zamanını, süreyi ve çıkış durumunu gösterir. Özgün bölmeye ve çıktıya dönmek için satıra veya **Çıktıyı göster** düğmesine tıklayın. Bölme kapalıysa veya çıktı temizlendiyse gezinme kullanılamaz; **Komutu kopyala** yine çalışır.
+
+**Terminale ekle**, komutu çalıştırmadan özgün bölmenin boş zsh istemine yerleştirir; hazır olduğunuzda Return tuşuna basın. Bölme meşgulse veya taslak içeriyorsa ekleme devre dışıdır. Çok satırlı komutlar korunur. Liste Ghostty ve Alacritty komut bloğu entegrasyonunu kullanır; desteklenmeyen veya iç içe kabuklardaki komutlar görünmeyebilir.
+
+Geçmiş arka planda yerel olarak, en fazla 2.000 komut ve 8 MiB sınırıyla kaydedilir. **Sil** seçili kaydı, **Geçmişi temizle…** kayıtlı listeyi kaldırır. Terminal çıktısı ve kabuğun kendi geçmişi korunur.
+
 ## Kabuğunuz değişmez [#your-shell-unchanged]
 
 Her oturum hesabınızın giriş kabuğunu başlatır; istem, takma adlar, işlevler ve dotfile’lar diğer terminallerdeki gibi yüklenir. Zshell yetenek ve kimlik değişkenleri ekler:

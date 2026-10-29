@@ -1696,6 +1696,7 @@ final class TerminalManager: nonisolated ObservableObject {
     func windowClosed() {
         guard !Self.isQuitting else { return }
         AgentConversationHistoryController.shared.close(ifOwnedBy: self)
+        TerminalCommandHistoryController.shared.close(ifOwnedBy: self, restoreFocus: false)
         agentPalette.dismiss(restoreFocus: false)
         if let agentPaletteKeyMonitor {
             NSEvent.removeMonitor(agentPaletteKeyMonitor)
@@ -1757,6 +1758,7 @@ final class TerminalManager: nonisolated ObservableObject {
             _ = try? PTYMuxCommandLine.exchange(method: "terminateAll", timeout: 0.5)
         }
         AgentConversationHistoryStore.shared.flush()
+        TerminalCommandHistoryStore.shared.flush()
     }
 
     /// Builds this window's layout snapshot and, alongside it, the scrollback

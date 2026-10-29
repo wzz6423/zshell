@@ -16,6 +16,14 @@ Wählen Sie unter **Einstellungen → Terminal → Backend**:
 
 Beide unterstützen GPU-Beschleunigung, Bilder, Zshells gemeinsamen Themenkatalog, Suche, Mausmeldungen, Mitteilungen und Fortschrittsmeldungen. Ein Backend-Wechsel betrifft nur neue Terminals; bestehende Bereiche behalten ihren ursprünglichen Emulator.
 
+## Befehlsverlauf [#command-history]
+
+Unter **Terminal → Befehlsverlauf…** suchen Sie ausgeführte Zshell-Befehle nach Text oder Verzeichnis. Jede Zeile zeigt das ursprüngliche Verzeichnis, die Startzeit, die Dauer und den Exit-Status. Klicken Sie auf eine Zeile oder **Ausgabe anzeigen**, um zum ursprünglichen Bereich und dessen Ausgabe zurückzukehren. Bei geschlossenem Bereich oder gelöschter Ausgabe ist kein Sprung möglich; **Befehl kopieren** bleibt verfügbar.
+
+**In Terminal einfügen** füllt die leere zsh-Eingabe des ursprünglichen Bereichs, ohne den Befehl auszuführen. Drücken Sie anschließend Return. Bei laufenden Aufgaben oder vorhandenem Entwurf ist Einfügen deaktiviert. Mehrzeilige Befehle bleiben erhalten. Die Liste nutzt die Befehlsblockintegration von Ghostty und Alacritty; nicht unterstützte oder verschachtelte Shells können fehlen.
+
+Der Verlauf wird im Hintergrund lokal gespeichert, begrenzt auf 2.000 Befehle und 8 MiB. **Löschen** entfernt den gewählten Eintrag; **Verlauf löschen…** entfernt die gespeicherte Liste. Terminalausgabe und Shell-Verlauf bleiben erhalten.
+
 ## Ihre Shell bleibt unverändert [#your-shell-unchanged]
 
 Jede Sitzung startet die Login-Shell Ihres Kontos. Prompt, Aliasse, Funktionen und Dotfiles werden wie in jedem anderen Terminal geladen. Zshell ergänzt Variablen für Fähigkeiten und Identität:
