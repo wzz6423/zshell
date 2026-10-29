@@ -275,6 +275,32 @@ fn exit_status_is_preserved_for_a_later_attachment() {
 }
 
 #[test]
+fn exited_sessions_make_room_for_new_sessions() {
+    let fixture = Fixture::new();
+    let watched = new_id().unwrap();
+    fixture.create(&watched, vec!["/bin/sh", "-c", "exit 3"]);
+    let (stream, _, _) = fixture.attach(&watched, 80, 24);
+    let exited: Vec<_> = (1..MAX_SESSIONS)
+        .map(|_| {
+            let id = new_id().unwrap();
+            fixture.create(&id, vec!["/bin/sh", "-c", "exit 0"]);
+            id
+        })
+        .collect();
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while [&watched].into_iter().chain(&exited).any(|id| fixture.get(id)["running"] == true) {
+        assert!(Instant::now() < deadline, "Sessions did not exit");
+        thread::sleep(Duration::from_millis(20));
+    }
+    let fresh = new_id().unwrap();
+    assert_eq!(fixture.create(&fresh, vec!["/bin/sh", "-i"])["running"], true);
+    assert_eq!(fixture.get(&watched)["exitCode"], 3);
+    assert!(fixture.daemon.request(&fixture.request("get", &exited[0])).is_err());
+    assert_eq!(fixture.get(&exited[1])["running"], false);
+    stream.shutdown();
+}
+
+#[test]
 fn project_scoping_and_invalid_launches_are_rejected() {
     let fixture = Fixture::new();
     let id = new_id().unwrap();

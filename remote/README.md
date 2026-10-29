@@ -152,7 +152,9 @@ Closing a remote pane/project/window or quitting Zshell only detaches that
 client, including **Quit and End All Sessions** in the local app. To end shared
 work for everyone, choose **End Remote Session…** and confirm, or use the host
 CLI's `terminate`. `stop` ends all sessions in that daemon. Exited sessions keep
-their final output and exit status until explicitly terminated. Saved layouts
+their final output and exit status until explicitly terminated, or until a new
+session needs room under the session limit; the oldest exited session that no
+client is viewing is released first. Saved layouts
 remember the remote session UUID separately from the local terminal UUID.
 
 The server retains at most 128 sessions, a 16 MiB terminal snapshot and a 1 MiB

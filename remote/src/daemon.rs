@@ -275,7 +275,7 @@ impl Daemon {
                 create.session_id = Some(new_id()?);
                 create.command = Some(command);
                 create.environment = Some(environment);
-                if sessions.len() >= MAX_SESSIONS { return Err(invalid("Remote session limit reached")); }
+                if !make_room(&mut sessions, 1) { return Err(invalid("Remote session limit reached")); }
                 let session = Session::spawn(&create, &self.state_path, self.history.clone(), self.bindings.clone(), Arc::downgrade(&self.sessions))?;
                 let info = session.info();
                 sessions.insert(info.session_id.clone(), session);
@@ -303,7 +303,7 @@ impl Daemon {
                     }
                     return Ok(json!(session.info()));
                 }
-                if sessions.len() >= MAX_SESSIONS {
+                if !make_room(&mut sessions, 1) {
                     return Err(invalid(
                         "Remote session limit reached; end an unused session first",
                     ));
@@ -359,4 +359,22 @@ impl Daemon {
         }
         Ok(session)
     }
+}
+
+// Exited sessions keep their output for a later attachment only until their slot
+// is needed: the oldest one that no client is viewing makes room first.
+fn make_room(sessions: &mut HashMap<String, Arc<Session>>, starting: usize) -> bool {
+    while sessions.len() + starting > MAX_SESSIONS {
+        let Some(id) = sessions
+            .values()
+            .map(|session| session.info())
+            .filter(|info| !info.running && info.client_count == 0)
+            .min_by(|first, second| first.started_at.total_cmp(&second.started_at))
+            .map(|info| info.session_id)
+        else {
+            return false;
+        };
+        sessions.remove(&id);
+    }
+    true
 }
