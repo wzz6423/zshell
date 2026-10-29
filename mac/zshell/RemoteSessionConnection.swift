@@ -30,6 +30,7 @@ nonisolated struct RemoteRelayStatus: Codable, Equatable, Sendable {
     var agentStatus: RemoteAgentStatus?
     var conversation: ZshellJSONValue?
     var sessionCommand: [String]?
+    var profileContext: TerminalProfileContext?
 
     var connectionState: RemoteConnectionState {
         switch state {

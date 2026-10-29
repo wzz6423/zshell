@@ -125,6 +125,11 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         }
 
         var groups: [NSView] = [SettingsGroup(rows: startupRows)]
+        groups.append(SettingsGroup(rows: [
+            SettingsButtonRow(title: String(localized: "Manage Terminal Profiles…")) { [weak self] in
+                TerminalProfileEditor.show(relativeTo: self?.view.window)
+            },
+        ]))
         groups.append(SettingsGroup(header: String(localized: "Cursor"), rows: [
             SettingsCustomRow(cursorShapeView),
             SettingsCustomRow(cursorBlinkingView),

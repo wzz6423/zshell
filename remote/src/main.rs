@@ -8,6 +8,7 @@ mod codex_binding;
 mod daemon;
 mod paste;
 mod protocol;
+mod profile_context;
 mod pty;
 mod session;
 mod terminal;

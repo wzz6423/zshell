@@ -443,6 +443,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var terminalProfiles: [TerminalProfile] {
+        didSet { save() }
+    }
+
     private init() {
         let savedLanguage = AppLanguage.saved
         language = savedLanguage
@@ -555,6 +559,7 @@ final class AppSettings: nonisolated ObservableObject {
         terminalStartupArguments = toml["terminal.startup-arguments"]?.string ?? ""
         browserContentBlocking = toml["browser.content-blocking"]?.bool ?? true
         browserFilterLists = toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults
+        terminalProfiles = TerminalProfile.read(toml)
         applyAppearance()
         applyApplicationIcon()
         reloadThemeSelection()
@@ -688,6 +693,7 @@ final class AppSettings: nonisolated ObservableObject {
             && terminalStartupArguments.isEmpty
             && browserContentBlocking
             && browserFilterLists == BrowserFilterSource.defaults
+            && terminalProfiles.isEmpty
     }
 
     func resetToDefaults() {
@@ -734,6 +740,7 @@ final class AppSettings: nonisolated ObservableObject {
         terminalBackend = .fallback
         terminalStartupProgram = ""
         terminalStartupArguments = ""
+        terminalProfiles = []
         browserContentBlocking = true
         browserFilterLists = BrowserFilterSource.defaults
         resumeAgentConversations = true
@@ -933,6 +940,7 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.terminalStartupArguments, toml["terminal.startup-arguments"]?.string ?? "")
         assign(\.browserContentBlocking, toml["browser.content-blocking"]?.bool ?? true)
         assign(\.browserFilterLists, toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults)
+        assign(\.terminalProfiles, TerminalProfile.read(toml))
 
         if applicationIcon != oldIcon { applyApplicationIcon() }
         if theme != oldTheme { applyAppearance() }
@@ -1138,6 +1146,7 @@ final class AppSettings: nonisolated ObservableObject {
         if browserFilterLists != BrowserFilterSource.defaults {
             lines.append("browser.filter-lists = \(TOML.quote(browserFilterLists))")
         }
+        lines.append(contentsOf: TerminalProfile.configLines(terminalProfiles))
         return lines.joined(separator: "\n") + "\n"
     }
 

@@ -389,6 +389,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         let sshMaterial: SSHAuthenticationMaterial?
         let remoteConnection: RemoteSessionConnection?
         let remotePasteTarget: RemotePasteTarget?
+        var initialTerminalProfile: TerminalProfile?
         switch location {
         case .local:
             initialDirectory = directory
@@ -405,10 +406,31 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             additionalEnvironment = [:]
             sshMaterial = nil
             do {
+                let context: TerminalProfileContext
+                switch try host.endpoint() {
+                case .ssh(let endpoint):
+                    context = .init(host: endpoint.host, user: endpoint.user, directory: directory)
+                case .tailscale(let name, _):
+                    context = .init(host: name, directory: directory)
+                }
+                initialTerminalProfile = TerminalProfile.firstMatch(
+                    in: AppSettings.shared.terminalProfiles, context: context
+                )
+                let base = launchSettings ?? self.launchSettings
+                let configuredLaunch = initialTerminalProfile?.applyingLaunchSettings(to: base) ?? base
+                let remoteStartup = initialTerminalProfile.flatMap { profile -> [String]? in
+                    guard !isRestoredSession, commandArguments == nil,
+                          case .success(let startup?) = TerminalStartupCommand.resolve(
+                            program: profile.startupProgram, arguments: profile.startupArguments,
+                            requireLocalExecutable: false
+                          )
+                    else { return nil }
+                    return startup.argv
+                }
                 let connection = try RemoteSessionConnection(
                     host: host, directory: directory, sessionID: remoteSessionID ?? restoredSessionID ?? UUID(),
-                    createIfMissing: !isRestoredSession, command: commandArguments,
-                    launchSettings: launchSettings ?? self.launchSettings
+                    createIfMissing: !isRestoredSession, command: commandArguments ?? remoteStartup,
+                    launchSettings: configuredLaunch
                 )
                 remoteConnection = connection
                 remotePasteTarget = nil
@@ -458,6 +480,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             restoredSessionID: restoredSessionID,
             environmentPath: environmentPath,
             launchSettings: launchSettings ?? self.launchSettings,
+            initialTerminalProfile: initialTerminalProfile,
             additionalEnvironment: additionalEnvironment,
             agentResume: isRemote ? nil : agentResume,
             worktree: isRemote ? nil : worktree ?? selectedSession?.worktree.flatMap {
