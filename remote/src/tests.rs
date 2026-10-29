@@ -301,6 +301,29 @@ fn exited_sessions_make_room_for_new_sessions() {
 }
 
 #[test]
+fn concurrent_creates_spawn_one_session_per_id() {
+    let fixture = Arc::new(Fixture::new());
+    let id = new_id().unwrap();
+    let workers: Vec<_> = (0..8)
+        .map(|_| {
+            let fixture = fixture.clone();
+            let id = id.clone();
+            thread::spawn(move || {
+                let mut frame = fixture.request("create", &id);
+                frame.command = Some(vec!["/bin/sh".into(), "-i".into()]);
+                fixture.daemon.request(&frame).ok().map(|info| info["pid"].as_i64())
+            })
+        })
+        .collect();
+    let pids: Vec<_> = workers.into_iter().filter_map(|worker| worker.join().unwrap()).collect();
+    assert!(!pids.is_empty());
+    assert!(pids.iter().all(|pid| *pid == pids[0]));
+    let mut list = Frame::new("list");
+    list.project = fixture.request("list", &id).project;
+    assert_eq!(fixture.daemon.request(&list).unwrap().as_array().unwrap().len(), 1);
+}
+
+#[test]
 fn project_scoping_and_invalid_launches_are_rejected() {
     let fixture = Fixture::new();
     let id = new_id().unwrap();

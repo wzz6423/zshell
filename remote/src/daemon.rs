@@ -2,10 +2,10 @@ use crate::paste::{PasteBatch, PasteStore};
 use crate::agent_history::History;
 use crate::codex_binding::Bindings;
 use crate::protocol::*;
-use crate::session::{Attachment, Session};
+use crate::session::{Attachment, Session, SessionInfo};
 use crate::transport::*;
 use serde_json::{json, Value};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io;
 use std::net::{SocketAddr, TcpListener};
 use std::path::Path;
@@ -15,6 +15,7 @@ use std::time::Duration;
 
 pub struct Daemon {
     sessions: Arc<Mutex<HashMap<String, Arc<Session>>>>,
+    starting: Mutex<HashSet<String>>,
     instance_id: String,
     paste_store: PasteStore,
     state_path: std::path::PathBuf,
@@ -33,6 +34,7 @@ impl Daemon {
     pub fn new(state: &Path) -> io::Result<Arc<Self>> {
         Ok(Arc::new(Self {
             sessions: Arc::new(Mutex::new(HashMap::new())),
+            starting: Mutex::new(HashSet::new()),
             instance_id: new_id()?,
             paste_store: PasteStore::new(state)?,
             state_path: state.into(),
@@ -263,23 +265,18 @@ impl Daemon {
                 let provider = request.provider.as_deref().ok_or_else(|| invalid("A provider is required"))?;
                 let id = request.conversation_id.as_deref().ok_or_else(|| invalid("An exact provider conversation ID is required"))?;
                 let record = self.history.find(&project, provider, id)?;
-                let mut sessions = self.sessions.lock().unwrap();
-                if let Some(session) = sessions.values().find(|session| {
-                    let info = session.info();
-                    info.project == project && info.running && info.conversation.as_ref() == Some(&record.identity)
-                }) { return Ok(json!(session.info())); }
                 let (command, environment) = record.identity.resume()?;
                 let mut create = Frame::new("create");
-                create.project = Some(project);
+                create.project = Some(project.clone());
                 create.working_directory = Some(record.identity.working_directory.clone());
                 create.session_id = Some(new_id()?);
                 create.command = Some(command);
                 create.environment = Some(environment);
-                if !make_room(&mut sessions, 1) { return Err(invalid("Remote session limit reached")); }
-                let session = Session::spawn(&create, &self.state_path, self.history.clone(), self.bindings.clone(), Arc::downgrade(&self.sessions))?;
-                let info = session.info();
-                sessions.insert(info.session_id.clone(), session);
-                Ok(json!(info))
+                self.start_session(&create, format!("{provider}:{id}@{project}"), |sessions| {
+                    Ok(sessions.values().map(|session| session.info()).find(|info| {
+                        info.project == project && info.running && info.conversation.as_ref() == Some(&record.identity)
+                    }))
+                })
             }
             "create" => {
                 let id = request
@@ -296,22 +293,15 @@ impl Daemon {
                         .as_deref()
                         .ok_or_else(|| invalid("A project directory is required"))?,
                 )?;
-                let mut sessions = self.sessions.lock().unwrap();
-                if let Some(session) = sessions.get(&id) {
-                    if session.info().project != project {
+                self.start_session(request, id.clone(), |sessions| {
+                    let Some(info) = sessions.get(&id).map(|session| session.info()) else {
+                        return Ok(None);
+                    };
+                    if info.project != project {
                         return Err(invalid("Session belongs to a different project"));
                     }
-                    return Ok(json!(session.info()));
-                }
-                if !make_room(&mut sessions, 1) {
-                    return Err(invalid(
-                        "Remote session limit reached; end an unused session first",
-                    ));
-                }
-                let session = Session::spawn(request, &self.state_path, self.history.clone(), self.bindings.clone(), Arc::downgrade(&self.sessions))?;
-                let info = session.info();
-                sessions.insert(id, session);
-                Ok(json!(info))
+                    Ok(Some(info))
+                })
             }
             "get" => Ok(json!(self.session(request)?.info())),
             "terminate" => {
@@ -331,6 +321,39 @@ impl Daemon {
             }
             _ => Err(invalid("Unknown remote request")),
         }
+    }
+
+    fn start_session(
+        &self,
+        request: &Frame,
+        reservation: String,
+        existing: impl Fn(&HashMap<String, Arc<Session>>) -> io::Result<Option<SessionInfo>>,
+    ) -> io::Result<Value> {
+        {
+            let mut sessions = self.sessions.lock().unwrap();
+            if let Some(info) = existing(&sessions)? {
+                return Ok(json!(info));
+            }
+            let mut starting = self.starting.lock().unwrap();
+            if !starting.insert(reservation.clone()) {
+                return Err(invalid("This remote session is still starting"));
+            }
+            if !make_room(&mut sessions, starting.len()) {
+                starting.remove(&reservation);
+                return Err(invalid(
+                    "Remote session limit reached; end an unused session first",
+                ));
+            }
+        }
+        // Spawning waits for the child to enter its directory and exec, which can
+        // stall on a slow filesystem; other clients must still reach their sessions.
+        let session = Session::spawn(request, &self.state_path, self.history.clone(), self.bindings.clone(), Arc::downgrade(&self.sessions));
+        let mut sessions = self.sessions.lock().unwrap();
+        self.starting.lock().unwrap().remove(&reservation);
+        let session = session?;
+        let info = session.info();
+        sessions.insert(info.session_id.clone(), session);
+        Ok(json!(info))
     }
 
     fn session(&self, request: &Frame) -> io::Result<Arc<Session>> {
