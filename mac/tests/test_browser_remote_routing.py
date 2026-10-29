@@ -136,6 +136,12 @@ LogLevel DEBUG3
                 if self.path.startswith("/socket"):
                     self.websocket()
                     return
+                if self.path == "/favicon-redirect":
+                    self.send_response(302)
+                    self.send_header("Location", f"http://127.0.0.1:{self.server.server_port}/favicon-target.png?via={self.headers.get('Host')}")
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                    return
                 if self.path.startswith("/redirect"):
                     self.send_response(302)
                     self.send_header("Location", f"http://localhost:{fixture.secondary.server_port}/page/next?from=redirect&encoded=%2F#fragment")
@@ -148,13 +154,13 @@ LogLevel DEBUG3
                 elif self.path.startswith("/api"):
                     body = json.dumps({"server": label, "path": self.path, "host": self.headers.get("Host")}).encode()
                     content_type = "application/json"
-                elif self.path.startswith("/pixel") or self.path == "/favicon.ico":
+                elif self.path.startswith("/pixel") or self.path == "/favicon.ico" or self.path.startswith("/favicon-target.png"):
                     body = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+afoQAAAAASUVORK5CYII=")
                     content_type = "image/png"
                 elif self.path.startswith("/page"):
                     other = fixture.primary.server_port if label == "secondary" else fixture.secondary.server_port
                     body = f"""<!doctype html><html><head><title>{label} remote preview</title>
-<link rel="icon" href="/favicon.ico"><script src="http://localhost:{other}/script.js"></script>
+<link rel="icon" href="/favicon-redirect"><script src="http://localhost:{other}/script.js"></script>
 <style>body{{background:#16324f;color:white;font:18px system-ui;padding:24px}} img{{width:32px;height:32px}}</style></head>
 <body><h1>{label} remote preview</h1><a id="next" href="/page/navigation?value=%2F#link">Next page</a>
 <input id="field" aria-label="Test value"><img id="pixel" src="http://127.0.0.1:{other}/pixel.png">
@@ -366,6 +372,9 @@ def main():
                             assert any(request[2] == f"zshell-remote.localhost:{port}"
                                        for request in fixture.requests[request_offset:]), fixture.requests[request_offset:]
                         paths = {request[1] for request in fixture.requests[request_offset:]}
+                        favicons = [request for request in fixture.requests[request_offset:]
+                                    if request[1].startswith("/favicon-target.png?via=zshell-remote.localhost:")]
+                        assert favicons and all(request[2].startswith("zshell-remote.localhost:") for request in favicons), favicons
                         assert {"/script.js", "/pixel.png", "/frame", "/api?cross=port", "/socket?hmr=1"} <= paths, paths
                         marker = f"/must-not-reach-local-{backend}"
                         marker_requests = [request for request in fixture.requests[request_offset:] if request[1] == marker]

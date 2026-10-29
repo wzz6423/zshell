@@ -78,6 +78,9 @@ struct BrowserRemoteRoutingTests {
               browser.snapshotURL == browser.urlString else {
             throw failure("The browser lost the original remote URL or did not establish SSH forwarding")
         }
+        let faviconDeadline = Date().addingTimeInterval(10)
+        while browser.favicon == nil, Date() < faviconDeadline { try await Task.sleep(for: .milliseconds(50)) }
+        guard browser.favicon != nil else { throw failure("The redirected remote favicon did not load") }
         let waited = await request("browser.wait", caller: caller.id, params: ["browser_id": .string(id), "timeout_ms": .number(10_000)])
         guard waited.ok else { throw failure("Automation wait failed: \(String(describing: waited.error))") }
         _ = try await browser.webView.evaluateJavaScript("document.cookie='remote_scope=only; path=/'; localStorage.setItem('remote_scope','only'); true")

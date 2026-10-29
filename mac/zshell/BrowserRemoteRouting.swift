@@ -59,13 +59,13 @@ final class BrowserRemoteRouting: ObservableObject {
     /// CFNetwork connects localhost, 127.0.0.0/8 and ::1 directly even when a
     /// proxy is configured, so remote pages load them through a proxied
     /// *.localhost alias. Common dev servers accept *.localhost hosts.
-    static let aliasHost = "zshell-remote.localhost"
+    nonisolated static let aliasHost = "zshell-remote.localhost"
 
     static func isLoopback(_ url: URL) -> Bool {
         isDirectLoopback(url) || url.host?.lowercased().hasSuffix(".localhost") == true
     }
 
-    static func routedURL(_ url: URL) -> URL {
+    nonisolated static func routedURL(_ url: URL) -> URL {
         guard isDirectLoopback(url), var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
         components.host = aliasHost
         return components.url ?? url
@@ -78,7 +78,7 @@ final class BrowserRemoteRouting: ObservableObject {
         return components.url ?? url
     }
 
-    private static func isDirectLoopback(_ url: URL) -> Bool {
+    nonisolated private static func isDirectLoopback(_ url: URL) -> Bool {
         guard let host = url.host?.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "[].")) else { return false }
         return host == "localhost" || host == "::1" || host == "0.0.0.0" || host.hasPrefix("::ffff:7f")
             || (host.hasPrefix("127.") && IPv4Address(host) != nil)
@@ -246,7 +246,9 @@ final class BrowserRemoteRouting: ObservableObject {
     func faviconData(for request: URLRequest) async throws -> (Data, URLResponse) {
         try await ensureConnected()
         guard let faviconSession else { throw CancellationError() }
-        return try await faviconSession.data(for: request)
+        var request = request
+        request.url = request.url.map(Self.routedURL)
+        return try await faviconSession.data(for: request, delegate: FaviconRedirects())
     }
 
     private func disconnect(to state: State) {
@@ -270,6 +272,17 @@ final class BrowserRemoteRouting: ObservableObject {
         proxy.matchDomains = ["localhost"]
         proxy.allowFailover = false
         return proxy
+    }
+}
+
+/// URLSession follows favicon redirects itself, outside WebKit's content
+/// rules, so a remote page could otherwise redirect it to the Mac's localhost.
+nonisolated private final class FaviconRedirects: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+                    newRequest request: URLRequest, completionHandler: @escaping @Sendable (URLRequest?) -> Void) {
+        var request = request
+        request.url = request.url.map(BrowserRemoteRouting.routedURL)
+        completionHandler(request)
     }
 }
 
