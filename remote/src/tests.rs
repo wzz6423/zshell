@@ -324,6 +324,51 @@ fn concurrent_creates_spawn_one_session_per_id() {
 }
 
 #[test]
+fn shutdown_ends_sessions_that_are_still_starting() {
+    let mut raced = 0;
+    for _ in 0..20 {
+        let fixture = Arc::new(Fixture::new());
+        let id = new_id().unwrap();
+        let create = {
+            let fixture = fixture.clone();
+            let id = id.clone();
+            thread::spawn(move || {
+                let mut frame = fixture.request("create", &id);
+                frame.command = Some(["/bin/sh", "-c", "trap '' HUP; exec sleep 5"].map(str::to_owned).to_vec());
+                loop {
+                    // The probe below may win the reservation for a moment.
+                    if let Ok(info) = fixture.daemon.request(&frame) {
+                        return info["pid"].as_i64().unwrap() as i32;
+                    }
+                }
+            })
+        };
+        // A probe for the same ID reports the first create while it is spawning;
+        // its relative command makes it fail fast if it wins the reservation.
+        let mut probe = fixture.request("create", &id);
+        probe.command = Some(vec!["sh".into()]);
+        let spawning = loop {
+            match fixture.daemon.request(&probe) {
+                Err(error) if error.to_string().contains("still starting") => break true,
+                Ok(_) => break false,
+                Err(_) => thread::yield_now(),
+            }
+        };
+        if spawning {
+            fixture.daemon.request(&Frame::new("shutdown")).unwrap();
+        }
+        let pid = create.join().unwrap();
+        if !spawning { continue; }
+        raced += 1;
+        thread::sleep(Duration::from_millis(700));
+        let alive = unsafe { libc::kill(pid, 0) } == 0;
+        if alive { unsafe { libc::kill(pid, libc::SIGKILL); } }
+        assert!(!alive, "A session that was starting during shutdown outlived it");
+    }
+    assert!(raced > 0);
+}
+
+#[test]
 fn project_scoping_and_invalid_launches_are_rejected() {
     let fixture = Fixture::new();
     let id = new_id().unwrap();

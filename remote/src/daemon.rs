@@ -314,8 +314,18 @@ impl Daemon {
                 Ok(json!({ "terminated": true }))
             }
             "shutdown" => {
-                for session in self.sessions.lock().unwrap().values() {
-                    session.terminate();
+                // Sessions spawn outside the session lock; wait until every one
+                // reserved under it is listed, so none outlives the daemon.
+                loop {
+                    let sessions = self.sessions.lock().unwrap();
+                    if self.starting.lock().unwrap().is_empty() {
+                        for session in sessions.values() {
+                            session.terminate();
+                        }
+                        break;
+                    }
+                    drop(sessions);
+                    thread::sleep(Duration::from_millis(10));
                 }
                 Ok(json!({ "stopped": true }))
             }
