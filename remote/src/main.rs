@@ -10,6 +10,7 @@ mod paste;
 mod protocol;
 mod pty;
 mod session;
+mod shell_completions;
 mod terminal;
 mod transport;
 
@@ -128,6 +129,9 @@ fn run() -> io::Result<i32> {
             "{}",
             include_str!("../../mac/zshell/ThirdPartyNotices/Kero.txt")
         );
+        print!("{}", include_str!("../../mac/zshell/ShellIntegration/TerminalCompletions/SOURCES.txt"));
+        print!("{}", include_str!("../../mac/zshell/ShellIntegration/TerminalCompletions/LICENSE-zsh-autosuggestions.txt"));
+        print!("{}", include_str!("../../mac/zshell/ShellIntegration/TerminalCompletions/LICENSE-zsh-completions.txt"));
         return Ok(0);
     }
     if matches!(command, "version" | "--version") {

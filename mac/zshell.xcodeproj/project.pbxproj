@@ -38,6 +38,9 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		FF3FDD75300B6A7400112486 /* zshell */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			explicitFolders = (
+				ShellIntegration,
+			);
 			exceptions = (
 				AA10000000000000000000F0 /* Exceptions for "zshell" folder in "zshell" target */,
 			);
@@ -195,9 +198,13 @@
 /* Begin PBXShellScriptBuildPhase section */
 		AA40000000000000000000A1 /* Bundle remote server */ = {
 			isa = PBXShellScriptBuildPhase;
+			inputFileListPaths = (
+				"$(SRCROOT)/scripts/terminal-completions.xcfilelist",
+			);
 			inputPaths = (
 				"$(SRCROOT)/../remote/Cargo.toml",
 				"$(SRCROOT)/../remote/Cargo.lock",
+				"$(SRCROOT)/../remote/build.rs",
 				"$(SRCROOT)/../remote/src/agent.rs",
 				"$(SRCROOT)/../remote/src/agent_history.rs",
 				"$(SRCROOT)/../remote/src/agent_hooks.rs",
@@ -210,6 +217,7 @@
 				"$(SRCROOT)/../remote/src/pty.rs",
 				"$(SRCROOT)/../remote/src/pty_unix.rs",
 				"$(SRCROOT)/../remote/src/session.rs",
+				"$(SRCROOT)/../remote/src/shell_completions.rs",
 				"$(SRCROOT)/../remote/src/terminal.rs",
 				"$(SRCROOT)/../remote/src/tests.rs",
 				"$(SRCROOT)/../remote/src/transport.rs",

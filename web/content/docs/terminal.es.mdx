@@ -179,3 +179,9 @@ Las sugerencias son una referencia; nunca envían entrada al editor.
 Los editores locales se identifican por su ejecutable en primer plano. Dentro de SSH, Mosh o un multiplexor de terminal, la detección usa la línea visible de modo o estado de Vim y la distribución de pantalla, sin instalar un complemento remoto. Mantén activado `showmode` de Vim o una línea de estado reconocible. Las configuraciones que ocultan o renombran las etiquetas de modo pueden mostrar las sugerencias de Normal o impedir la detección remota; no se interpretan asignaciones de teclas personalizadas. Solo se examina el panel Información activo, y las sugerencias desaparecen cuando cambia el programa en primer plano o el editor deja de ser reconocible.
 
 También puedes activarlas en el archivo de configuración con `terminal.vim-command-hints = true`.
+
+## Autocompletado del shell
+
+Activa **Ajustes → Terminal → Comportamiento → Autocompletado del shell** (activado por defecto) y abre una terminal zsh nueva. Comandos, subcomandos, argumentos y rutas usan funciones del shell con sugerencias grises. **Flecha derecha** acepta al final de la entrada; **Tab** abre opciones, las flechas seleccionan y **Return** acepta sin ejecutar. **Esc** o **Ctrl+G** cancela el menú; **Esc** también cierra la sugerencia. Se conservan plugins y atajos existentes.
+
+Los plugins incluidos no modifican `.zshrc`. Los programas de pantalla completa reciben su propia entrada. Con zshell-server compatible y zsh, los proyectos remotos usan comandos y rutas remotos; otros shells mantienen su autocompletado nativo. Se aplica a nuevos shells y sesiones remotas. `terminal.shell-completions = false` desactiva la función.

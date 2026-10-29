@@ -178,3 +178,9 @@ L'elenco completo dei comandi comuni resta disponibile; cambia solo la priorità
 Gli editor locali vengono identificati tramite l'eseguibile in primo piano. Dentro SSH, Mosh o un multiplexer del terminale, il rilevamento usa la riga visibile di modalità/stato di Vim e la disposizione dello schermo, senza installare plugin remoti. Mantieni attivo `showmode` di Vim o una riga di stato riconoscibile. Le configurazioni che nascondono o rinominano le etichette delle modalità possono mostrare i suggerimenti della modalità Normale o impedire il rilevamento remoto; le mappature personalizzate non vengono interpretate. Viene campionato solo il pannello Info attivo e i suggerimenti scompaiono quando cambia il programma in primo piano o l'editor non è più riconoscibile.
 
 Puoi attivare la funzione anche nel file di configurazione con `terminal.vim-command-hints = true`.
+
+## Completamento della shell
+
+Attiva **Impostazioni → Terminale → Comportamento → Completamento della shell** (attivo per impostazione predefinita) e apri un nuovo terminale zsh. Comandi, sottocomandi, argomenti e percorsi usano le funzioni della shell, con suggerimenti grigi. **Freccia destra** accetta a fine input; **Tab** apre le opzioni, le frecce selezionano, **Invio** accetta senza eseguire, **Esc** o **Ctrl+G** annulla il menu. **Esc** chiude anche il suggerimento. Plugin e scorciatoie esistenti sono conservati.
+
+I plugin inclusi non modificano `.zshrc`. I programmi a schermo intero mantengono il proprio input. Con zshell-server compatibile e zsh, i progetti remoti usano comandi e percorsi remoti; le altre shell mantengono il completamento nativo. Si applica a nuove shell e sessioni remote. Disattiva con `terminal.shell-completions = false`.

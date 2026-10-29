@@ -945,6 +945,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             fi
             """,
         ]
+        TerminalShellCompletions.configure(&files)
         // Command-completion notifications ride the same zsh-only shim: bash
         // and fish never see ZDOTDIR, so this script is the only place the
         // app can hear a command's start and exit. Both opt-in settings are

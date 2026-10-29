@@ -178,3 +178,9 @@ La liste complète des commandes courantes reste disponible ; seul leur ordre de
 Les éditeurs locaux sont reconnus par leur exécutable au premier plan. Dans SSH, Mosh ou un multiplexeur, la détection utilise la ligne de mode ou d'état visible de Vim et la disposition de l'écran, sans installer de module distant. Conservez `showmode` ou une ligne d'état reconnaissable. Masquer ou renommer les indications de mode peut ramener l'aide au mode Normal ou empêcher la détection distante ; les raccourcis personnalisés ne sont pas interprétés. Seul le panneau Informations actif effectue la détection. Les indications disparaissent lorsque le programme au premier plan change ou que l'éditeur n'est plus reconnaissable.
 
 La fonction peut aussi être activée avec `terminal.vim-command-hints = true` dans le fichier de configuration.
+
+## Complétion du shell
+
+Activez **Réglages → Terminal → Comportement → Complétion du shell** (activée par défaut), puis ouvrez un nouveau terminal zsh. Les commandes, sous-commandes, arguments et chemins utilisent les fonctions du shell et apparaissent en gris. **Flèche droite** accepte la suggestion en fin de saisie ; **Tab** ouvre les choix, les flèches sélectionnent, **Retour** accepte sans exécuter, **Esc** ou **Ctrl+G** annule le menu. **Esc** ferme aussi la suggestion. Les plugins et raccourcis existants sont conservés.
+
+Les plugins intégrés ne modifient pas `.zshrc`. Les applications plein écran gardent leur saisie. Avec un zshell-server compatible et zsh, les projets distants utilisent les commandes et chemins distants ; les autres shells gardent leur complétion native. Ce réglage concerne les nouveaux shells et sessions distantes. Désactivez avec `terminal.shell-completions = false`.

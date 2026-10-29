@@ -178,3 +178,9 @@ Yaygın komutların tam listesi hep erişilebilirdir; yalnızca öncelik değiş
 Yerel düzenleyici öndeki çalıştırılabilir dosyadan tanınır. SSH, Mosh veya terminal çoklayıcısında uzak eklenti kurulmadan görünür Vim mod/durum satırı ve ekran düzeni kullanılır. Vim `showmode` veya tanınabilir durum satırını açık tutun. Mod etiketlerini gizleyen/değiştiren ayarlar Normal ipuçlarına düşebilir veya uzak algılamayı engelleyebilir; özel eşlemeler yorumlanmaz. Yalnızca etkin Bilgi paneli örneklenir; öndeki program değişince veya düzenleyici tanınamaz olunca ipuçları kaybolur.
 
 Yapılandırmada `terminal.vim-command-hints = true` ile de açabilirsiniz.
+
+## Kabuk tamamlama
+
+**Ayarlar → Terminal → Davranış → Kabuk tamamlama** seçeneğini açın (varsayılan açık) ve yeni zsh terminali açın. Komutlar, alt komutlar, argümanlar ve yollar kabuk işlevlerinden gelir; öneriler gri görünür. Girdi sonunda **Sağ ok** kabul eder; **Tab** adayları açar, oklar seçer, **Return** çalıştırmadan kabul eder, **Esc** veya **Ctrl+G** menüyü iptal eder. **Esc** öneriyi de kapatır. Mevcut eklentiler ve kısayollar korunur.
+
+Birlikte gelen eklentiler `.zshrc` dosyasını değiştirmez. Tam ekran programları kendi girdilerini alır. Uyumlu zshell-server ve zsh ile uzak projeler uzak komutları ve yolları kullanır; diğer kabuklar kendi tamamlamalarını korur. Yeni kabuklara ve uzak oturumlara uygulanır. Kapatmak için `terminal.shell-completions = false` kullanın.
