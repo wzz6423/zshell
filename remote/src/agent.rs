@@ -56,7 +56,10 @@ impl Scanner {
                         self.state = 1;
                         self.buffer.clear();
                         if byte == b']' { self.begin(); }
-                        else if byte != 0x1b { self.state = 0; }
+                        else if byte != 0x1b {
+                            self.state = 0;
+                            if byte == b'c' { output.push(Osc::Reset); }
+                        }
                     }
                 }
                 _ => unreachable!(),
@@ -237,6 +240,9 @@ mod tests {
         }
         assert_eq!(output, vec![Osc::Title(b"ignore".to_vec()), Osc::Body(b"7501;state=working".to_vec()), Osc::Body(b"133;A".to_vec()),
             Osc::Reset, Osc::Body(b"9;4;1;50".to_vec())]);
+        let truncated: Vec<_> = b"\x1b]7501;state=working\x1bc\x1b]7501;state=blocked\x1b\x1b]133;A\x07".iter()
+            .flat_map(|byte| scanner.scan(&[*byte])).collect();
+        assert_eq!(truncated, vec![Osc::Reset, Osc::Body(b"133;A".to_vec())]);
         let oversized = format!("\x1b]7501;{}\x07", "a".repeat(MAX_OSC + 1));
         assert!(scanner.scan(oversized.as_bytes()).is_empty());
         assert!(scanner.buffer.len() <= MAX_OSC);
