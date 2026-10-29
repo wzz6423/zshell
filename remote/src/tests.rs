@@ -318,6 +318,20 @@ fn tailscale_owner_allowlist_and_local_identity_boundary() {
             format!(r#"{{"Node":{{"Tags":{tags}}},"UserProfile":{{"LoginName":"{login}"}}}}"#);
         fs::write(&program, format!("#!/bin/sh\ncase \"$1\" in\nstatus) printf '%s' '{status}' ;;\nwhois) printf '%s' '{who}' ;;\nesac\n")).unwrap();
         fs::set_permissions(&program, fs::Permissions::from_mode(0o700)).unwrap();
+        // A child another test thread forks while the write fd above is open
+        // keeps it until that child execs, and exec here fails with ETXTBSY
+        // meanwhile. Wait until the script can run before using it.
+        for attempt in 0.. {
+            match std::process::Command::new(&program).status() {
+                Err(error) if error.raw_os_error() == Some(26) && attempt < 100 => {
+                    thread::sleep(Duration::from_millis(20))
+                }
+                result => {
+                    result.unwrap();
+                    break;
+                }
+            }
+        }
     };
     let mut policy = TailnetPolicy {
         executable: program.clone(),
