@@ -437,7 +437,7 @@ mod tests {
 
     #[test]
     fn overwritten_and_erased_output_cannot_keep_a_live_token() {
-        for rewrite in [b"\x1b[2;1Hreplacement".as_slice(), b"\x1b[2;1H\x1b[2K".as_slice(), b"\x1b[2;1H\x1b[J".as_slice(), b"\x1b[2;6H\x1b[1J".as_slice()] {
+        for rewrite in [b"\x1b[2;1Hreplacement".as_slice(), b"\x1b[2;1H\x1b[2K".as_slice(), b"\x1b[2;1H\x1b[J".as_slice(), b"\x1b[2;6H\x1b[1J".as_slice(), b"\x1b[2;3H\x1b[2P".as_slice(), b"\x1b[2;3H\x1b[2@".as_slice(), b"\x1b[2;1H\x1b[M".as_slice(), b"\x1b[2;1H\x1b[L".as_slice()] {
             let (mut term, mut parser) = terminal();
             parser.advance(&mut term, b"\x1b]133;A\x07> \x1b]133;B\x07echo one\r\n\x1b]133;C\x07result\r\n\x1b]133;D;0\x07");
             let id = term.command_records()[0].id;

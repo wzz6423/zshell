@@ -1210,6 +1210,9 @@ impl<T: EventListener> Handler for Term<T> {
         let num_cells = self.columns() - destination;
 
         let line = cursor.point.line;
+        self.invalidate_command_range(Point::new(line, source), Point::new(line, self.last_column()));
+        // Shifted cells carry their anchors, so cached positions are stale.
+        self.command_blocks.grid_revision = self.command_blocks.grid_revision.wrapping_add(1);
         self.damage.damage_line(line.0 as usize, 0, self.columns() - 1);
 
         let row = &mut self.grid[line][..];
@@ -1513,6 +1516,8 @@ impl<T: EventListener> Handler for Term<T> {
 
         let origin = self.grid.cursor.point.line;
         if self.scroll_region.contains(&origin) {
+            let bottom = Point::new(self.scroll_region.end - 1, self.last_column());
+            self.invalidate_command_range(Point::new(origin, Column(0)), bottom);
             self.scroll_down_relative(origin, lines);
         }
     }
@@ -1525,6 +1530,8 @@ impl<T: EventListener> Handler for Term<T> {
         trace!("Deleting {lines} lines");
 
         if lines > 0 && self.scroll_region.contains(&origin) {
+            let bottom = Point::new(self.scroll_region.end - 1, self.last_column());
+            self.invalidate_command_range(Point::new(origin, Column(0)), bottom);
             self.scroll_up_relative(origin, lines);
         }
     }
@@ -1563,6 +1570,9 @@ impl<T: EventListener> Handler for Term<T> {
         let num_cells = columns - end;
 
         let line = cursor.point.line;
+        self.invalidate_command_range(Point::new(line, Column(start)), Point::new(line, self.last_column()));
+        // Shifted cells carry their anchors, so cached positions are stale.
+        self.command_blocks.grid_revision = self.command_blocks.grid_revision.wrapping_add(1);
         self.damage.damage_line(line.0 as usize, 0, self.columns() - 1);
         let row = &mut self.grid[line][..];
 
