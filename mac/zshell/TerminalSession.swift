@@ -47,6 +47,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     var persistentSessionID: UUID? { persistentPTY == nil ? nil : id }
     let remoteConnection: RemoteSessionConnection?
     let remotePasteTarget: RemotePasteTarget?
+    let startupCommandForTemplate: [String]?
+    let initializationCommandForTemplate: String?
     let overlayScrollbar = OverlayScrollbarView()
     /// Find-in-terminal state for this session's pane (⌘F).
     let find: TerminalFind
@@ -107,7 +109,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         explicitlyResumeConversation: Bool = false,
         remoteConnection: RemoteSessionConnection? = nil,
         remotePasteTarget: RemotePasteTarget? = nil,
-        resolvesSSHAgent: Bool = false
+        resolvesSSHAgent: Bool = false,
+        usesConfiguredStartupCommand: Bool = true
     ) {
         let sessionID = restoredSessionID ?? UUID()
         let existingPTY = remoteConnection == nil ? restoredSessionID.flatMap { PersistentPTY.reconnect(id: $0) } : nil
@@ -119,7 +122,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         )
         let directCommand = resumeLaunch?.arguments
             ?? commandArguments.flatMap { $0.isEmpty ? nil : $0 }
-            ?? (isRestoredSession ? nil : Self.configuredStartupCommand())
+            ?? (isRestoredSession || !usesConfiguredStartupCommand ? nil : Self.configuredStartupCommand())
         let shellPath = directCommand?.first ?? Self.loginShell()
         let directory = Self.validWorkingDirectory(
             existingPTY?.workingDirectory ?? resumeLaunch?.workingDirectory ?? initialDirectory
@@ -209,6 +212,12 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         persistentPTY = pty
         self.remoteConnection = remoteConnection
         self.remotePasteTarget = remotePasteTarget
+        // Provider resume argv and SSH relay configuration carry live identities,
+        // unlike the launch configuration a user chose for a fresh local shell.
+        startupCommandForTemplate = agentResume == nil && remotePasteTarget == nil
+            && remoteConnection == nil && !isRestoredSession ? directCommand : nil
+        initializationCommandForTemplate = directCommand == nil && !isRestoredSession
+            ? launchSettings.initializationCommand : nil
         reconnectedToPersistentPTY = existingPTY != nil
         cachedShellPid = pty?.shellPID
         launchWorkingDirectory = directory
@@ -785,12 +794,19 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             withIntermediateDirectories: false,
             attributes: [.posixPermissions: 0o700]
         )
+        let integrationDirectoryPath = shellQuote(integrationDirectory.path)
         let stateDirectoryPath = shellQuote(directory.path)
         let selectionStatePath = shellQuote(directory.appendingPathComponent("prompt-selection.pid").path)
         let promptQueueStatePath = shellQuote(directory.appendingPathComponent("prompt-queue.pid").path)
         var files = [
             ".zshenv": """
             [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\"
+            if [[ -n \"$ZSHELL_INIT_COMMAND\" ]]; then
+              if [[ \"${ZDOTDIR:-$HOME}\" != \(integrationDirectoryPath) ]]; then
+                export ZSHELL_ORIGINAL_ZDOTDIR=\"${ZDOTDIR:-$HOME}\"
+              fi
+              export ZDOTDIR=\(integrationDirectoryPath)
+            fi
             """,
             ".zprofile": """
             [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zprofile\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zprofile\"
@@ -938,7 +954,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             unset _zshell_keymap
             """,
             ".zlogin": """
-            [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zlogin\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zlogin\"
+            _zshell_login_zdotdir=\"${_zshell_init_zdotdir:-$ZSHELL_ORIGINAL_ZDOTDIR}\"
+            unset _zshell_init_zdotdir
+            export ZDOTDIR=\"$_zshell_login_zdotdir\"
+            unset _zshell_login_zdotdir
+            [[ -r \"$ZDOTDIR/.zlogin\" ]] && source \"$ZDOTDIR/.zlogin\"
             if [[ -n \"$ZSHELL_INIT_COMMAND\" ]]; then
               eval -- \"$ZSHELL_INIT_COMMAND\" || builtin print -u2 -- \"zshell: initialization command failed ($?)\"
               unset ZSHELL_INIT_COMMAND
@@ -1026,7 +1046,17 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             // reliable injection point after the user's configuration loads.
             let taskIntegration = name == ".zshrc"
                 ? TerminalCommandTaskShellIntegration.script(in: directory) : ""
-            try Data((contents + taskIntegration + "\n").utf8).write(to: file, options: .atomic)
+            // The user's rc needs its real ZDOTDIR, but zsh must return to the
+            // proxy for .zlogin so initialization runs after the user's login file.
+            let initializationIntegration = name == ".zshrc" ? """
+
+            if [[ -n \"$ZSHELL_INIT_COMMAND\" ]]; then
+              _zshell_init_zdotdir=\"${ZDOTDIR:-$HOME}\"
+              [[ \"$_zshell_init_zdotdir\" == \(integrationDirectoryPath) ]] && _zshell_init_zdotdir=\"$ZSHELL_ORIGINAL_ZDOTDIR\"
+              export ZDOTDIR=\(integrationDirectoryPath)
+            fi
+            """ : ""
+            try Data((contents + taskIntegration + initializationIntegration + "\n").utf8).write(to: file, options: .atomic)
             try FileManager.default.setAttributes(
                 [.posixPermissions: 0o600], ofItemAtPath: file.path
             )

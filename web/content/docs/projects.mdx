@@ -149,6 +149,36 @@ Absolute Path** for the session's directory. **Close Files** and **Close Diffs**
 clear those content types across the project while leaving terminals and
 browser panes alone.
 
+## Workspace templates
+
+Use **File → Workspace Templates → Save Project as Template…** to save the
+current project's tabs, nested split directions and proportions, pane
+directories, startup programs and initialization commands, and browser pages.
+Open **Workspace Templates…** in the same menu to select, rename, edit, delete,
+import or export a template as JSON.
+
+Review the pane preview, choose **Project Root**, then click **Apply Template**.
+Zshell creates a new project with fresh terminals. Saving, importing and editing
+never execute commands; applying runs the startup commands shown in the preview.
+All directories and startup executables are checked before creation.
+
+Directories inside the source project's root are saved as relative paths (`.`
+for the root, `api` for a child); they resolve under the chosen root. Other
+directories remain absolute and must exist on this Mac. Use **Edit…** to change
+directories, program `arguments` arrays, initialization commands, browser URLs
+and split `fraction` values. Each fraction is the first child's share, between
+0 and 1. A terminal uses either a program with its arguments or a login-shell
+initialization command. Import errors, unsupported versions and unavailable
+target paths appear in the template window.
+
+Editor and diff panes become fresh terminals at Project Root while retaining
+their places in the split layout. Source tabs, unsaved edits, running PTYs,
+scrollback, agent identities, worktree ownership and browser authentication are
+kept out of the template. Saved browser URLs omit embedded credentials, query
+strings and fragments; edit the JSON to include a public query if needed.
+Templates use the existing browser profile on the target Mac; they never copy
+browser cookies or storage. Remote projects cannot be saved as templates.
+
 ## Windows
 
 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> opens another window. Windows are

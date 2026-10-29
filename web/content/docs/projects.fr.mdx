@@ -82,6 +82,17 @@ Les titres proviennent du terminal : séquence d'échappement de l'invite du she
 
 Les autres actions sont **Fermer**, **Fermer les autres**, **Fermer les onglets à droite** et **Tout fermer**, ainsi qu'**Afficher dans le Finder** et **Copier le chemin absolu** pour le répertoire de la session. **Fermer les fichiers** et **Fermer les diffs** retirent ces contenus de tout le projet tout en conservant les terminaux et les volets de navigateur.
 
+## Modèles d’espace de travail [#workspace-templates]
+
+Choisissez **Fichier → Modèles d’espace de travail → Enregistrer le projet comme modèle…** pour conserver les onglets, divisions imbriquées et proportions, dossiers des volets, programmes de démarrage, commandes d’initialisation et pages du navigateur. **Modèles d’espace de travail…** permet de sélectionner, renommer, modifier le JSON, supprimer, importer et exporter.
+
+Vérifiez les chemins et commandes dans l’aperçu, choisissez la **Racine du projet**, puis **Appliquer le modèle**. Un nouveau projet avec de nouveaux terminaux est créé et les commandes affichées sont exécutées. Enregistrer, importer et modifier n’exécute aucune commande. Tous les dossiers et exécutables sont vérifiés avant la création.
+
+Les chemins du projet source sont relatifs à la racine choisie (`.` ou `api`, par exemple) ; les autres restent absolus et doivent exister sur ce Mac. **Modifier…** permet de changer `arguments`, les commandes d’initialisation, les URL et `fraction` dans le JSON. La fraction représente la part du premier enfant, strictement entre 0 et 1. Choisissez un programme avec arguments ou une commande d’initialisation du shell de connexion. Les erreurs de fichier, version ou chemin s’affichent dans la fenêtre.
+
+Les volets d’éditeur et de diff deviennent des terminaux à la racine en gardant leur emplacement. Le projet source, ses modifications et PTY actifs restent intacts. L’historique, les identités d’agent, la propriété des worktrees et l’authentification du navigateur sont exclus. Les URL enregistrées omettent les identifiants, requêtes et fragments ; une requête publique peut être ajoutée au JSON. Les pages utilisent le profil existant du Mac cible sans copier les cookies ni le stockage. Les projets distants ne peuvent pas être enregistrés comme modèles.
+
+
 ## Fenêtres [#windows]
 
 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> ouvre une autre fenêtre. Chaque fenêtre possède ses projets et l'état de ses barres latérales ; leur restauration est indépendante.

@@ -82,6 +82,17 @@ Tiêu đề do terminal báo: chuỗi điều khiển của dấu nhắc shell h
 
 Menu còn có **Đóng**, **Đóng các tab khác**, **Đóng tab bên phải**, **Đóng tất cả**, **Hiển thị trong Finder** và **Sao chép đường dẫn tuyệt đối** của thư mục phiên. **Đóng tệp** và **Đóng diff** xóa các loại nội dung đó trong toàn dự án, giữ nguyên terminal và ô trình duyệt.
 
+## Mẫu không gian làm việc [#workspace-templates]
+
+Dùng **Tệp → Mẫu không gian làm việc → Lưu dự án thành mẫu…** để lưu các thẻ, cách chia lồng nhau và tỷ lệ, thư mục ngăn, chương trình khởi động, lệnh khởi tạo và trang trình duyệt. **Mẫu không gian làm việc…** cho phép chọn, đổi tên, chỉnh sửa JSON, xóa, nhập và xuất.
+
+Kiểm tra đường dẫn và lệnh, chọn **Thư mục gốc dự án**, rồi bấm **Áp dụng mẫu**. Dự án mới với terminal mới được tạo và chạy các lệnh hiển thị. Lưu, nhập và chỉnh sửa không chạy lệnh. Mọi thư mục và chương trình được kiểm tra trước khi tạo.
+
+Đường dẫn trong dự án nguồn là tương đối với gốc đã chọn (`.` hoặc `api`); các đường dẫn khác vẫn tuyệt đối và phải tồn tại trên Mac này. Dùng **Chỉnh sửa…** để thay đổi `arguments`, lệnh khởi tạo, URL và `fraction` trong JSON. Fraction là phần của nhánh đầu, lớn hơn 0 và nhỏ hơn 1. Dùng chương trình với đối số hoặc lệnh khởi tạo shell đăng nhập. Lỗi tệp, phiên bản và đường dẫn hiện trong cửa sổ.
+
+Ngăn trình chỉnh sửa và diff trở thành terminal ở gốc, giữ nguyên vị trí. Dự án nguồn, chỉnh sửa chưa lưu và PTY đang chạy không đổi. Lịch sử, ID agent, quyền sở hữu worktree và xác thực trình duyệt không được lưu. URL đã lưu bỏ thông tin xác thực, truy vấn và đoạn URL; có thể thêm truy vấn công khai trong JSON. Trang dùng hồ sơ sẵn có trên Mac đích, không sao chép cookie hoặc dữ liệu lưu trữ. Không thể lưu dự án từ xa thành mẫu.
+
+
 ## Cửa sổ [#windows]
 
 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> mở cửa sổ khác. Mỗi cửa sổ có dự án và trạng thái thanh bên độc lập, được khôi phục riêng.

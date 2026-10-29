@@ -82,6 +82,17 @@ Tabbladen krijgen de titel die de terminal doorgeeft, bijvoorbeeld via de escape
 
 De rest van het tabbladmenu bevat de gebruikelijke opties: **Sluiten**, **Andere sluiten**, **Tabbladen rechts sluiten**, **Alles sluiten**, plus **Toon in Finder** en **Absoluut pad kopiëren** voor de sessiemap. **Bestanden sluiten** en **Diffs sluiten** sluiten die inhoudstypen in het hele project, terwijl terminals en browserdeelvensters open blijven.
 
+## Werkruimtesjablonen [#workspace-templates]
+
+Gebruik **Archief → Werkruimtesjablonen → Project als sjabloon bewaren…** om tabbladen, geneste splitsingen en verhoudingen, mappen, startprogramma’s, initialisatieopdrachten en browserpagina’s te bewaren. **Werkruimtesjablonen…** biedt selectie, hernoemen, JSON bewerken, verwijderen, importeren en exporteren.
+
+Controleer paden en opdrachten, kies de **Projecthoofdmap** en klik op **Sjabloon toepassen**. Er wordt een nieuw project met nieuwe terminals gemaakt en de getoonde opdrachten worden uitgevoerd. Bewaren, importeren en bewerken voeren geen opdrachten uit. Alle mappen en programma’s worden vooraf gecontroleerd.
+
+Paden binnen het bronproject zijn relatief aan de gekozen hoofdmap (`.` of `api`); andere blijven absoluut en moeten op deze Mac bestaan. Met **Bewerken…** wijzigt u `arguments`, initialisatieopdrachten, URL’s en `fraction` in JSON. De fractie is het aandeel van het eerste kind, groter dan 0 en kleiner dan 1. Gebruik een programma met argumenten of een initialisatieopdracht voor de aanmeldshell. Bestands-, versie- en padfouten verschijnen in het venster.
+
+Editor- en diffpanelen worden terminals in de hoofdmap met dezelfde positie. Het bronproject, onbewaarde wijzigingen en actieve PTY’s blijven intact. Geschiedenis, agentidentiteiten, worktree-eigendom en browseraanmelding worden niet opgenomen. Bewaarde URL’s bevatten geen inloggegevens, query’s of fragmenten; een openbare query kan in JSON worden toegevoegd. Pagina’s gebruiken het bestaande profiel van de doel-Mac zonder cookies of opslag te kopiëren. Externe projecten kunnen niet als sjabloon worden bewaard.
+
+
 ## Vensters [#windows]
 
 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> opent een ander venster. Vensters zijn onafhankelijk, met eigen projecten en zijbalkinstellingen, en worden afzonderlijk hersteld.

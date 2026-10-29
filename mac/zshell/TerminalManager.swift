@@ -378,6 +378,26 @@ final class TerminalManager: nonisolated ObservableObject {
         return project
     }
 
+    @discardableResult
+    func applyWorkspaceTemplate(_ template: WorkspaceTemplate, projectRoot: String) throws -> Project {
+        let resolved = try template.resolved(forProjectRoot: projectRoot)
+        for tab in resolved.tabs {
+            for content in WorkspaceTemplate.contents(in: tab.layout) {
+                if case .session(let directory) = content,
+                   Self.isRemovingWorktree(containing: directory) {
+                    throw WorkspaceTemplateError.missingDirectory(directory)
+                }
+            }
+        }
+        let project = makeProject(createInitialSession: false)
+        project.customName = resolved.name
+        project.customDirectory = URL(fileURLWithPath: projectRoot, isDirectory: true).standardizedFileURL.path
+        for tab in resolved.tabs { project.appendTemplateTab(tab) }
+        project.select(index: resolved.selectedTabIndex)
+        insert(project)
+        return project
+    }
+
     /// The sidebar group with `id`, if it still exists.
     func projectGroup(id: UUID?) -> ProjectGroup? {
         ProjectGroupStore.shared.group(id: id)
@@ -1696,6 +1716,7 @@ final class TerminalManager: nonisolated ObservableObject {
     func windowClosed() {
         guard !Self.isQuitting else { return }
         AgentConversationHistoryController.shared.close(ifOwnedBy: self)
+        WorkspaceTemplateController.shared.close(ifOwnedBy: self)
         agentPalette.dismiss(restoreFocus: false)
         if let agentPaletteKeyMonitor {
             NSEvent.removeMonitor(agentPaletteKeyMonitor)
