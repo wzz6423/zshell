@@ -330,6 +330,28 @@ fn processes_lists_only_the_sessions_own_descendants() {
     assert!(fixture.daemon.request(&request).is_err());
 }
 
+#[cfg(target_os = "linux")]
+#[test]
+fn processes_report_the_full_linux_executable() {
+    let fixture = Fixture::new();
+    let worker = fixture.root.join("long-running-process-worker");
+    fs::copy("/bin/sleep", &worker).unwrap();
+    let worker = fs::canonicalize(worker).unwrap();
+    let id = new_id().unwrap();
+    let script = format!("'{}' 30; exit 0", worker.display());
+    fixture.create(&id, vec!["/bin/sh", "-c", &script]);
+    let request = fixture.request("processes", &id);
+    let mut result = Value::Null;
+    for _ in 0..50 {
+        result = fixture.daemon.request(&request).unwrap();
+        if !result.as_array().unwrap().is_empty() { break; }
+        thread::sleep(Duration::from_millis(50));
+    }
+    assert_eq!(result[0]["name"], "long-running-process-worker");
+    assert_eq!(result[0]["executable"], worker.to_str().unwrap());
+    fixture.daemon.request(&fixture.request("terminate", &id)).unwrap();
+}
+
 #[test]
 fn tailscale_owner_allowlist_and_local_identity_boundary() {
     let root =

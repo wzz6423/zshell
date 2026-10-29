@@ -27,7 +27,22 @@ pub fn descendants(shell: i32) -> io::Result<Vec<ProcessItem>> {
     if !output.status.success() {
         return Err(io::Error::other("ps failed on the remote host"));
     }
-    Ok(parse(&String::from_utf8_lossy(&output.stdout), shell))
+    #[allow(unused_mut)]
+    let mut items = parse(&String::from_utf8_lossy(&output.stdout), shell);
+    // procps `comm` is the kernel's 15-byte task name, not a path; the
+    // executable comes from /proc. The name stays the task name when it is
+    // not a cut-off of that file, e.g. for busybox applets or scripts.
+    #[cfg(target_os = "linux")]
+    for item in &mut items {
+        let Ok(path) = std::fs::read_link(format!("/proc/{}/exe", item.pid)) else { continue };
+        let path = path.to_string_lossy().into_owned();
+        let file = path.rsplit('/').next().unwrap_or(&path);
+        if file.starts_with(&item.name) {
+            item.name = file.into();
+        }
+        item.executable = path;
+    }
+    Ok(items)
 }
 
 fn parse(text: &str, shell: i32) -> Vec<ProcessItem> {
