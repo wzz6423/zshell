@@ -150,6 +150,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     private let shortcutLabel = NSTextField(labelWithString: "")
     private let badge = AgentStatusBadgeView(frame: .zero)
     private let actionButton = WorkspaceChromeButton(symbol: "xmark", label: String(localized: "Close"))
+    let pullRequestButton = WorkspaceChromeButton(symbol: "arrow.triangle.pull", label: "")
     private let renameField = NSTextField()
     private let menuPresenter = AppKitContextMenuMonitorView()
 
@@ -191,6 +192,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     private var hasAction = false
     var isDropTarget = false { didSet { if oldValue != isDropTarget { needsDisplay = true } } }
     var isRenaming: Bool { renameCommit != nil }
+    var showsPullRequest: Bool { !pullRequestButton.isHidden }
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
@@ -215,8 +217,11 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         renameField.isBordered = false
         renameField.drawsBackground = false
         renameField.focusRingType = .none
+        pullRequestButton.imagePosition = .imageLeading
+        pullRequestButton.alignment = .left
+        pullRequestButton.isHidden = true
         for view in [disclosureView, iconView, pinView, titleLabel, subtitleLabel,
-                     countLabel, shortcutLabel, badge, actionButton, renameField] {
+                     countLabel, shortcutLabel, badge, actionButton, pullRequestButton, renameField] {
             addSubview(view)
         }
         setAccessibilityElement(true)
@@ -327,6 +332,17 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         return min(260 * scale, max(68 * scale, leading + min(titleWidth, 160 * scale) + trailing))
     }
 
+    func applyPullRequest(label: String?, help: String, action: (() -> Void)?) {
+        pullRequestButton.configure(symbol: "arrow.triangle.pull", label: help, pointSize: 10 * scale)
+        pullRequestButton.font = .systemFont(ofSize: 10 * scale)
+        pullRequestButton.title = label ?? ""
+        pullRequestButton.isHidden = label == nil || isGroup || !isSidebar
+        pullRequestButton.isEnabled = action != nil
+        pullRequestButton.onAction = action
+        setAccessibilityChildren(pullRequestButton.isHidden ? [] : [pullRequestButton])
+        needsLayout = true
+    }
+
     private var actionSlotWidth: CGFloat { hasAction || !shortcutLabel.stringValue.isEmpty ? 24 * max(1, scale) : 0 }
     private var compactGroupControlScale: CGFloat {
         min(1.1, max(0.9, groupControlScale))
@@ -395,6 +411,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
             countLabel.frame = .zero
             badge.frame = .zero
             subtitleLabel.frame = .zero
+            pullRequestButton.frame = .zero
             iconView.frame = .zero
             pinView.frame = .zero
             if showsTitle {
@@ -441,15 +458,21 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         let titleSpace = max(0, right - visibleBadgeWidth - countWidth - x - 3 * scale)
         let titleHeight = ceil((titleLabel.font?.ascender ?? 12) - (titleLabel.font?.descender ?? -3)) + 2
         let subtitleHeight = subtitleLabel.isHidden ? 0 : 13 * scale
-        let titleY = (bounds.height - titleHeight - subtitleHeight) / 2
+        let prHeight = pullRequestButton.isHidden ? 0 : 22 * max(1, scale)
+        let titleY = max(0, (bounds.height - titleHeight - subtitleHeight - prHeight) / 2)
         titleLabel.frame = NSRect(x: x, y: titleY, width: titleSpace, height: titleHeight)
         subtitleLabel.frame = NSRect(x: x, y: titleY + titleHeight, width: titleSpace, height: subtitleHeight)
+        // Give metadata the full second/third line even when an agent badge
+        // occupies the title line in the narrow sidebar.
+        pullRequestButton.frame = NSRect(x: x, y: titleY + titleHeight + subtitleHeight,
+            width: max(0, right - x), height: prHeight)
         renameField.frame = titleLabel.frame
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
         guard let hit = super.hitTest(point) else { return nil }
         if hit === actionButton || hit.isDescendant(of: actionButton) { return actionButton }
+        if !pullRequestButton.isHidden, hit === pullRequestButton || hit.isDescendant(of: pullRequestButton) { return pullRequestButton }
         if hit === renameField || hit.isDescendant(of: renameField) { return hit }
         return self
     }
