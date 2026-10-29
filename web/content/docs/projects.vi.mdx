@@ -90,7 +90,9 @@ Kiểm tra đường dẫn và lệnh, chọn **Thư mục gốc dự án**, r�
 
 Đường dẫn trong dự án nguồn là tương đối với gốc đã chọn (`.` hoặc `api`); các đường dẫn khác vẫn tuyệt đối và phải tồn tại trên Mac này. Dùng **Chỉnh sửa…** để thay đổi `arguments`, lệnh khởi tạo, URL và `fraction` trong JSON. Fraction là phần của nhánh đầu, lớn hơn 0 và nhỏ hơn 1. Dùng chương trình với đối số hoặc lệnh khởi tạo shell đăng nhập. Lỗi tệp, phiên bản và đường dẫn hiện trong cửa sổ.
 
-Ngăn trình chỉnh sửa và diff trở thành terminal ở gốc, giữ nguyên vị trí. Dự án nguồn, chỉnh sửa chưa lưu và PTY đang chạy không đổi. Lịch sử, ID agent, quyền sở hữu worktree và xác thực trình duyệt không được lưu. URL đã lưu bỏ thông tin xác thực, truy vấn và đoạn URL; có thể thêm truy vấn công khai trong JSON. Trang dùng hồ sơ sẵn có trên Mac đích, không sao chép cookie hoặc dữ liệu lưu trữ. Không thể lưu dự án từ xa thành mẫu.
+Ngăn trình chỉnh sửa và diff trở thành terminal ở gốc, giữ nguyên vị trí. Dự án nguồn, chỉnh sửa chưa lưu và PTY đang chạy không đổi. Lịch sử, ID agent, quyền sở hữu worktree và xác thực trình duyệt không được lưu. URL đã lưu bỏ thông tin xác thực, truy vấn và đoạn URL; có thể thêm truy vấn công khai trong JSON. Trang dùng hồ sơ sẵn có trên Mac đích, không sao chép cookie hoặc dữ liệu lưu trữ.
+
+Dự án trên máy chủ từ xa đã lưu có thể được lưu thành mẫu từ xa. JSON chỉ lưu tên đã lưu của máy chủ trong `remote.host` và thư mục dự án trong `remote.directory` (tuyệt đối hoặc bắt đầu bằng `~/`); mọi ngăn terminal dùng `.`. Địa chỉ, đường dẫn máy chủ, thông tin xác thực và ID phiên từ xa không bao giờ được lưu, và các tệp nhập chứa chúng sẽ bị từ chối. Khi áp dụng mẫu từ xa, hãy chọn một máy chủ đã lưu (máy chủ cùng tên được chọn sẵn; nếu không có, cửa sổ sẽ yêu cầu chọn máy chủ khác hoặc thêm nó trong **Máy chủ từ xa**) và xác nhận **Thư mục từ xa**. Zshell kết nối, tạo dự án dùng chung mới và bắt đầu các phiên từ xa mới; không bao giờ kết nối lại các phiên hiện có. Nếu kết nối hoặc thư mục thất bại, sẽ không có dự án nào được tạo. Không thể lưu dự án mở bằng biểu mẫu SSH cũ thành mẫu.
 
 
 ## Cửa sổ [#windows]

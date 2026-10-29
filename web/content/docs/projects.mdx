@@ -177,7 +177,19 @@ scrollback, agent identities, worktree ownership and browser authentication are
 kept out of the template. Saved browser URLs omit embedded credentials, query
 strings and fragments; edit the JSON to include a public query if needed.
 Templates use the existing browser profile on the target Mac; they never copy
-browser cookies or storage. Remote projects cannot be saved as templates.
+browser cookies or storage.
+
+Projects on a saved remote host can be saved as remote templates. The JSON
+stores only the host's saved name under `remote.host` and the project directory
+under `remote.directory` (absolute or starting with `~/`); every terminal pane
+uses `.`. Addresses, server paths, credentials and remote session IDs are never
+saved, and imports that contain them are rejected. When you apply a remote
+template, pick a saved host (the matching name is preselected; if none matches,
+the window asks you to choose one or add it in **Remote Hosts**) and confirm the
+**Remote Directory**. Zshell connects, creates a new shared project and starts
+new remote sessions there; it never reattaches existing sessions. If the
+connection or directory fails, no project is created. Projects opened through
+the legacy SSH form cannot be saved as templates.
 
 ## Windows
 

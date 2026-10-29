@@ -214,10 +214,15 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         self.remotePasteTarget = remotePasteTarget
         // Provider resume argv and SSH relay configuration carry live identities,
         // unlike the launch configuration a user chose for a fresh local shell.
-        startupCommandForTemplate = agentResume == nil && remotePasteTarget == nil
-            && remoteConnection == nil && !isRestoredSession ? directCommand : nil
-        initializationCommandForTemplate = directCommand == nil && !isRestoredSession
-            ? launchSettings.initializationCommand : nil
+        if let remoteConnection {
+            startupCommandForTemplate = isRestoredSession ? nil : remoteConnection.command
+            initializationCommandForTemplate = isRestoredSession ? nil : remoteConnection.initializationCommand
+        } else {
+            startupCommandForTemplate = agentResume == nil && remotePasteTarget == nil
+                && !isRestoredSession ? directCommand : nil
+            initializationCommandForTemplate = directCommand == nil && !isRestoredSession
+                ? launchSettings.initializationCommand : nil
+        }
         reconnectedToPersistentPTY = existingPTY != nil
         cachedShellPid = pty?.shellPID
         launchWorkingDirectory = directory

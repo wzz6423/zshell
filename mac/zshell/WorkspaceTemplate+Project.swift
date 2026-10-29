@@ -1,10 +1,20 @@
 import Foundation
 
 extension WorkspaceTemplate {
+    @MainActor static func canCapture(_ project: Project) -> Bool {
+        !project.tabs.isEmpty && (!project.isRemote || project.sharedHost != nil)
+    }
+
     @MainActor static func capture(project: Project, name: String) throws -> WorkspaceTemplate {
-        guard !project.isRemote else { throw WorkspaceTemplateError.runtimeState }
+        var remote: Remote?
+        if project.isRemote {
+            guard let host = project.sharedHost, let directory = project.remoteDirectory else {
+                throw WorkspaceTemplateError.unsupportedRemoteProject
+            }
+            remote = Remote(host: host.name, directory: directory)
+        }
         let directory = project.selectedSession?.currentDirectoryPath ?? NSHomeDirectory()
-        let root = project.panelRoot(followingSessionAt: directory).root
+        let root = remote == nil ? project.panelRoot(followingSessionAt: directory).root : directory
         var simplified = 0
         let tabs = project.tabs.map { tab -> Tab in
             var terminals: [Terminal] = []
@@ -17,7 +27,7 @@ extension WorkspaceTemplate {
                     let content: Content
                     switch pane.content {
                     case .session(let session):
-                        content = .session(workingDirectory: relativeDirectory(session.currentDirectoryPath, to: root))
+                        content = .session(workingDirectory: remote == nil ? relativeDirectory(session.currentDirectoryPath, to: root) : ".")
                         let hasAgentIdentity = session.agentResume != nil
                         let argv = hasAgentIdentity ? nil : session.startupCommandForTemplate
                         terminals.append(Terminal(paneIndex: index, program: argv?.first,
@@ -42,7 +52,7 @@ extension WorkspaceTemplate {
         }
         let template = WorkspaceTemplate(name: name, tabs: tabs,
                                          selectedTabIndex: project.tabs.firstIndex { $0.id == project.selectedTabID } ?? 0,
-                                         simplifiedPaneCount: simplified)
+                                         simplifiedPaneCount: simplified, remote: remote)
         try template.validate()
         return template
     }

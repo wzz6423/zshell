@@ -321,6 +321,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         tabTitle: String? = nil,
         worktree: SessionWorktree? = nil,
         launchSettings: TerminalLaunchSettings? = nil,
+        remoteSessionID: UUID? = nil,
         usesConfiguredStartupCommand: Bool = true
     ) -> TerminalSession? {
         guard !TerminalManager.isRemovingWorktree(containing: sessionDirectory(directory)) else {
@@ -332,6 +333,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             commandArguments: commandArguments,
             environmentPath: environmentPath,
             launchSettings: launchSettings ?? self.launchSettings,
+            remoteSessionID: remoteSessionID,
             worktree: worktree,
             usesConfiguredStartupCommand: usesConfiguredStartupCommand
         )
@@ -1389,7 +1391,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     /// Uses the normal creation path for the first leaf, then wires its
     /// siblings without inserting temporary tabs or reconnecting saved PTYs.
-    func appendTemplateTab(_ recipe: WorkspaceTemplate.Tab) {
+    /// `remoteSessionIDs` names remote sessions created moments ago by the
+    /// application preflight, keyed by pane position.
+    func appendTemplateTab(_ recipe: WorkspaceTemplate.Tab, remoteSessionIDs: [Int: UUID] = [:]) {
         let contents = WorkspaceTemplate.contents(in: recipe.layout)
         let commands = Dictionary(uniqueKeysWithValues: recipe.terminals.map { ($0.paneIndex, $0) })
         guard let first = contents.first else { return }
@@ -1398,7 +1402,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             guard newSession(
                 directory: directory, commandArguments: commands[0]?.argv,
                 launchSettings: TerminalLaunchSettings(initializationCommand: commands[0]?.initializationCommand),
-                usesConfiguredStartupCommand: false
+                remoteSessionID: remoteSessionIDs[0], usesConfiguredStartupCommand: false
             ) != nil else { return }
         case .browser(let url):
             newBrowserTab(initialURL: url, initialFocus: .none)
@@ -1418,7 +1422,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                     content = .session(makeSession(
                         directory: directory, commandArguments: commands[paneIndex]?.argv,
                         launchSettings: TerminalLaunchSettings(initializationCommand: commands[paneIndex]?.initializationCommand),
-                        usesConfiguredStartupCommand: false
+                        remoteSessionID: remoteSessionIDs[paneIndex], usesConfiguredStartupCommand: false
                     ))
                 case .browser(let url): content = .browser(makeBrowser(initialURL: url, initialFocus: .none))
                 case .file, .diff, .commitDiff: preconditionFailure("Template layouts are validated before application")

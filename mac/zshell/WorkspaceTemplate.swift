@@ -16,6 +16,13 @@ struct WorkspaceTemplate: Codable {
         var argv: [String]? { program.map { [$0] + arguments } }
     }
 
+    /// A saved remote host is referenced by its display name only. Its address,
+    /// credentials and live sessions stay on the Mac that applies the template.
+    struct Remote: Codable, Equatable {
+        var host: String
+        var directory: String
+    }
+
     struct Tab: Codable {
         var name: String?
         var layout: Layout
@@ -35,6 +42,7 @@ struct WorkspaceTemplate: Codable {
     var tabs: [Tab]
     var selectedTabIndex: Int
     var simplifiedPaneCount = 0
+    var remote: Remote?
 
     var paneCount: Int { tabs.reduce(0) { $0 + Self.contents(in: $1.layout).count } }
 
@@ -114,12 +122,33 @@ struct WorkspaceTemplate: Codable {
             }
         }
         guard (0...totalPanes).contains(simplifiedPaneCount) else { throw WorkspaceTemplateError.invalidLayout }
+        if let remote {
+            // Remote sessions share one project directory, so terminals cannot
+            // carry their own working directories.
+            let sessions = tabs.flatMap { Self.contents(in: $0.layout) }.compactMap { content -> String? in
+                if case .session(let directory) = content { return directory }
+                return nil
+            }
+            guard Self.validName(remote.host), !remote.host.contains(where: \.isNewline),
+                  Self.validRemoteDirectory(remote.directory),
+                  !sessions.isEmpty, sessions.allSatisfy({ $0 == "." }) else {
+                throw WorkspaceTemplateError.invalidRemote
+            }
+        }
+    }
+
+    static func validRemoteDirectory(_ directory: String) -> Bool {
+        validText(directory, maximum: 4096)
+            && !directory.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
+            && (directory.hasPrefix("/") || directory == "~" || directory.hasPrefix("~/"))
+            && !directory.split(separator: "/").contains("..")
     }
 
     /// Resolves all paths and executables before the caller creates any pane.
     /// Importing remains portable when an executable only exists on its target.
     func resolved(forProjectRoot root: String) throws -> WorkspaceTemplate {
         try validate()
+        guard remote == nil else { throw WorkspaceTemplateError.invalidRemote }
         guard root.hasPrefix("/"), Self.validText(root, maximum: 4096) else {
             throw WorkspaceTemplateError.missingDirectory(root)
         }
@@ -241,7 +270,7 @@ struct WorkspaceTemplate: Codable {
             let runtimeKeys: Set<String> = [
                 "terminalID", "remoteSessionID", "historyKey", "agentResume", "worktree",
                 "conversationHistoryProjectID", "contextSessionIndex", "credentialID",
-                "authID", "cookies", "localStorage", "storageState",
+                "authID", "cookies", "localStorage", "storageState", "address", "serverPath",
             ]
             guard runtimeKeys.isDisjoint(with: object.keys) else { throw WorkspaceTemplateError.runtimeState }
             for value in object.values { try checkJSONDepth(value, depth: depth + 1) }
@@ -253,8 +282,8 @@ struct WorkspaceTemplate: Codable {
 
 enum WorkspaceTemplateError: LocalizedError {
     case invalidFile, fileTooLarge, invalidName, invalidLayout, runtimeState, invalidDirectory
-    case invalidCommand, invalidBrowserURL, libraryUnavailable
-    case unsupportedVersion(Int), missingDirectory(String), programNotExecutable(String)
+    case invalidCommand, invalidBrowserURL, libraryUnavailable, invalidRemote, unsupportedRemoteProject
+    case unsupportedVersion(Int), missingDirectory(String), programNotExecutable(String), remoteHostUnavailable(String)
 
     var errorDescription: String? {
         switch self {
@@ -269,6 +298,9 @@ enum WorkspaceTemplateError: LocalizedError {
         case .invalidCommand: return String(localized: "Use a valid startup program and arguments, or a login-shell initialization command.")
         case .programNotExecutable(let program): return String(localized: "The startup program “\(program)” is not an executable file on this Mac.")
         case .invalidBrowserURL: return String(localized: "Template browser pages must use HTTP or HTTPS URLs without embedded credentials.")
+        case .invalidRemote: return String(localized: "Remote templates need a saved host name, an absolute or ~/ remote directory and at least one terminal. Every terminal starts in that directory (“.”).")
+        case .unsupportedRemoteProject: return String(localized: "Only local projects and projects on saved remote hosts can be saved as templates.")
+        case .remoteHostUnavailable(let name): return String(localized: "The saved remote host “\(name)” is not on this Mac. Choose another saved host, or add it in Remote Hosts.")
         case .libraryUnavailable: return String(localized: "The workspace template library could not be loaded. Restore or remove the library file before saving templates.")
         }
     }

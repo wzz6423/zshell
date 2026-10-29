@@ -14,6 +14,14 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
     private let noticeLabel = NSTextField(wrappingLabelWithString: "")
     private let rootLabel = NSTextField(labelWithString: "")
     private let rootField = NSTextField()
+    private let hostLabel = NSTextField(labelWithString: "")
+    private let hostPopup = NSPopUpButton()
+    private let remoteDirectoryLabel = NSTextField(labelWithString: "")
+    private let remoteDirectoryField = NSTextField()
+    private var applying = false
+    private var remoteNotice: String?
+    private var localBox: NSStackView?
+    private var remoteBox: NSStackView?
     private let saveButton = NSButton()
     private let importButton = NSButton()
     private let renameButton = NSButton()
@@ -104,7 +112,7 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         guard let manager = TerminalManager.activeWindowManager else { return false }
         if menuItem.action == #selector(saveFromMenu(_:)) {
-            return manager.selectedProject.map { !$0.isRemote && !$0.tabs.isEmpty } ?? false
+            return manager.selectedProject.map(WorkspaceTemplate.canCapture) ?? false
         }
         return true
     }
@@ -139,6 +147,9 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         applyButton.keyEquivalent = "\r"
         rootField.lineBreakMode = .byTruncatingMiddle
         rootField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        remoteDirectoryField.lineBreakMode = .byTruncatingMiddle
+        hostPopup.target = self
+        hostPopup.action = #selector(hostChanged(_:))
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("template-name"))
         column.resizingMask = .autoresizingMask
         table.addTableColumn(column)
@@ -174,7 +185,11 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         let rootRow = stack([rootField, chooseButton], vertical: false)
         let applyRow = stack([NSView(), applyButton], vertical: false)
         let left = stack([listScroll, listActions], vertical: true)
-        let right = stack([noticeLabel, detailScroll, detailActions, rootLabel, rootRow, statusLabel, applyRow], vertical: true)
+        let localBox = stack([rootLabel, rootRow], vertical: true)
+        let remoteBox = stack([hostLabel, hostPopup, remoteDirectoryLabel, remoteDirectoryField], vertical: true)
+        let right = stack([noticeLabel, detailScroll, detailActions, localBox, remoteBox, statusLabel, applyRow], vertical: true)
+        self.localBox = localBox
+        self.remoteBox = remoteBox
         let body = stack([left, right], vertical: false)
         body.alignment = .top
         let all = stack([toolbar, body], vertical: true)
@@ -188,6 +203,7 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
             left.widthAnchor.constraint(equalToConstant: 240),
             left.heightAnchor.constraint(equalTo: body.heightAnchor),
             right.heightAnchor.constraint(equalTo: body.heightAnchor),
+            right.trailingAnchor.constraint(equalTo: body.trailingAnchor),
             noticeLabel.widthAnchor.constraint(equalTo: right.widthAnchor),
             statusLabel.widthAnchor.constraint(equalTo: right.widthAnchor),
             statusLabel.heightAnchor.constraint(greaterThanOrEqualToConstant: 30),
@@ -219,6 +235,10 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         applyButton.title = String(localized: "Apply Template")
         rootLabel.stringValue = String(localized: "Project Root")
         rootField.setAccessibilityLabel(rootLabel.stringValue)
+        hostLabel.stringValue = String(localized: "Remote Host")
+        hostPopup.setAccessibilityLabel(hostLabel.stringValue)
+        remoteDirectoryLabel.stringValue = String(localized: "Remote Directory")
+        remoteDirectoryField.setAccessibilityLabel(remoteDirectoryLabel.stringValue)
         table.setAccessibilityLabel(String(localized: "Workspace Templates"))
         details.setAccessibilityLabel(String(localized: "Template Preview"))
         noticeLabel.stringValue = String(localized: "Applying creates a new project and runs the listed startup commands. Importing and editing do not run commands.")
@@ -245,18 +265,56 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         let template = selected?.template
         for button in [renameButton, editButton, exportButton, deleteButton, applyButton] { button.isEnabled = template != nil }
         updateSaveAvailability()
-        applyButton.isEnabled = template != nil && manager != nil
+        applyButton.isEnabled = template != nil && manager != nil && !applying
         details.string = template.map(preview) ?? String(localized: "Save a project or import a template to get started.")
+        let remote = template?.remote
+        localBox?.isHidden = remote != nil
+        remoteBox?.isHidden = remote == nil
+        if let remoteNotice, statusLabel.stringValue == remoteNotice { statusLabel.stringValue = "" }
+        remoteNotice = nil
+        guard let remote, !applying else { return }
+        remoteDirectoryField.stringValue = remote.directory
+        hostPopup.removeAllItems()
+        let hosts = RemoteHostStore.shared.hosts
+        for host in hosts {
+            hostPopup.addItem(withTitle: host.name)
+            hostPopup.lastItem?.representedObject = host.id
+        }
+        if let index = hosts.firstIndex(where: { $0.name == remote.host }) {
+            hostPopup.selectItem(at: index)
+        } else {
+            hostPopup.insertItem(withTitle: String(localized: "Choose a Saved Host"), at: 0)
+            hostPopup.selectItem(at: 0)
+            showRemoteNotice(WorkspaceTemplateError.remoteHostUnavailable(remote.host).localizedDescription)
+        }
+    }
+
+    private func showRemoteNotice(_ message: String) {
+        statusLabel.textColor = .systemRed
+        statusLabel.stringValue = message
+        remoteNotice = message
+    }
+
+    @objc private func hostChanged(_ sender: Any?) {
+        if hostPopup.selectedItem?.representedObject != nil, let remoteNotice, statusLabel.stringValue == remoteNotice {
+            statusLabel.stringValue = ""
+        }
     }
 
     private func updateSaveAvailability() {
-        let enabled = manager?.selectedProject.map { !$0.isRemote && !$0.tabs.isEmpty } ?? false
+        let enabled = manager?.selectedProject.map(WorkspaceTemplate.canCapture) ?? false
         if saveButton.isEnabled != enabled { saveButton.isEnabled = enabled }
     }
 
     private func preview(_ template: WorkspaceTemplate) -> String {
-        var lines = [template.name, "", String(localized: "Paths inside the source project are relative to Project Root. Other directories keep their absolute paths."),
-                     String(localized: "Editor and diff panes become new terminals at Project Root. Browser credentials, query strings and fragments are omitted when saving."), ""]
+        var lines = [template.name, ""]
+        if let remote = template.remote {
+            lines += [String(localized: "Remote Host") + ": " + remote.host, String(localized: "Remote Directory") + ": " + remote.directory,
+                      String(localized: "Applying connects to the chosen saved host and starts new remote sessions in the remote directory. Existing remote sessions are never reattached.")]
+        } else {
+            lines.append(String(localized: "Paths inside the source project are relative to Project Root. Other directories keep their absolute paths."))
+        }
+        lines += [String(localized: "Editor and diff panes become new terminals at Project Root. Browser credentials, query strings and fragments are omitted when saving."), ""]
         for (index, tab) in template.tabs.enumerated() {
             lines.append(String(localized: "Tab \(index + 1)") + (tab.name.map { " · " + $0 } ?? ""))
             var paneIndex = 0
@@ -393,7 +451,31 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
     }
 
     @objc private func applyTemplate(_ sender: Any?) {
-        guard let selected, let manager else { return }
+        guard let selected, let manager, !applying else { return }
+        if let remote = selected.template.remote {
+            guard let id = hostPopup.selectedItem?.representedObject as? UUID,
+                  let host = RemoteHostStore.shared.hosts.first(where: { $0.id == id }) else {
+                showRemoteNotice(WorkspaceTemplateError.remoteHostUnavailable(remote.host).localizedDescription)
+                return
+            }
+            applying = true
+            applyButton.isEnabled = false
+            statusLabel.textColor = .secondaryLabelColor
+            statusLabel.stringValue = String(localized: "Connecting…")
+            let directory = remoteDirectoryField.stringValue
+            Task { @MainActor [weak self] in
+                var failure: Error?
+                do { try await manager.applyRemoteWorkspaceTemplate(selected.template, host: host, directory: directory) }
+                catch { failure = error }
+                guard let self else { return }
+                self.applying = false
+                self.statusLabel.textColor = .systemRed
+                self.statusLabel.stringValue = failure?.localizedDescription ?? ""
+                self.applyButton.isEnabled = self.selected != nil && self.manager != nil
+                if failure == nil { self.close() }
+            }
+            return
+        }
         do { try manager.applyWorkspaceTemplate(selected.template, projectRoot: rootField.stringValue); close() }
         catch { statusLabel.stringValue = error.localizedDescription }
     }

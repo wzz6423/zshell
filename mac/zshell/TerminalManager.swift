@@ -398,6 +398,36 @@ final class TerminalManager: nonisolated ObservableObject {
         return project
     }
 
+    /// Creates the first template terminal on the host before any project
+    /// exists. That proves the host and directory, and yields the canonical
+    /// project path the host uses to group its sessions. Every pane is a new
+    /// remote session; saved session IDs are never reused.
+    @discardableResult
+    func applyRemoteWorkspaceTemplate(_ template: WorkspaceTemplate, host: RemoteHost, directory: String) async throws -> Project {
+        var recipe = template
+        guard recipe.remote != nil else { throw WorkspaceTemplateError.invalidRemote }
+        recipe.remote?.directory = directory.trimmingCharacters(in: .whitespacesAndNewlines)
+        try recipe.validate()
+        guard let remote = recipe.remote,
+              let (tabIndex, terminal) = recipe.tabs.enumerated().lazy
+                  .compactMap({ index, tab in tab.terminals.min { $0.paneIndex < $1.paneIndex }.map { (index, $0) } }).first
+        else { throw WorkspaceTemplateError.invalidRemote }
+        let sessionID = UUID()
+        let directory = remote.directory, command = terminal.argv, initializationCommand = terminal.initializationCommand
+        let info = try await Task.detached(priority: .userInitiated) {
+            try RemoteHostClient.create(host: host, directory: directory, sessionID: sessionID,
+                                        command: command, initializationCommand: initializationCommand)
+        }.value
+        let project = makeProject(location: .shared(host: host, directory: info.project), createInitialSession: false)
+        project.customName = recipe.name
+        for (index, tab) in recipe.tabs.enumerated() {
+            project.appendTemplateTab(tab, remoteSessionIDs: index == tabIndex ? [terminal.paneIndex: sessionID] : [:])
+        }
+        project.select(index: recipe.selectedTabIndex)
+        insert(project)
+        return project
+    }
+
     /// The sidebar group with `id`, if it still exists.
     func projectGroup(id: UUID?) -> ProjectGroup? {
         ProjectGroupStore.shared.group(id: id)
@@ -459,15 +489,22 @@ final class TerminalManager: nonisolated ObservableObject {
         for listing in listings {
             let project = sharedProject(host: host, directory: listing.directory)
             AgentConversationHistoryStore.shared.importRemote(listing.conversations, host: host, project: project)
-            for info in listing.sessions { project.attachRemoteSession(info) }
+            for info in listing.sessions where projectContaining(info) == nil { project.attachRemoteSession(info) }
         }
         if let selection { selectedProjectID = selection }
     }
 
     func openSharedProject(host: RemoteHost, session: RemoteSessionInfo) {
-        let project = sharedProject(host: host, directory: session.project)
+        let project = projectContaining(session) ?? sharedProject(host: host, directory: session.project)
         project.attachRemoteSession(session)
         selectedProjectID = project.id
+    }
+
+    /// Template projects can share a host directory with another project, so
+    /// a remote session already open anywhere is never attached twice.
+    private func projectContaining(_ session: RemoteSessionInfo) -> Project? {
+        guard let id = UUID(uuidString: session.sessionId) else { return nil }
+        return projects.first { $0.sessions.contains { $0.remoteConnection?.sessionID == id } }
     }
 
     func sharedProject(host: RemoteHost, directory: String) -> Project {

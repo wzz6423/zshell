@@ -257,6 +257,7 @@ struct WorkspaceTemplateSurfaceTests {
         let snapshotViews = descendants(panel.contentView!)
         try check(snapshotViews.compactMap { $0 as? NSButton }.allSatisfy { !$0.hasAmbiguousLayout && $0.frame.width > 0 && $0.frame.height > 0 },
                   "management buttons have concrete frames at minimum window width")
+        try check(rootField.frame.width > 300, "the project root field uses the full detail column")
         if let bitmap = panel.contentView!.bitmapImageRepForCachingDisplay(in: panel.contentView!.bounds) {
             panel.contentView!.cacheDisplay(in: panel.contentView!.bounds, to: bitmap)
             try bitmap.representation(using: .png, properties: [:])?.write(to: resultDirectory.appendingPathComponent("templates-\(backend).png"))

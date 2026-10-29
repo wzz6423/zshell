@@ -147,6 +147,49 @@ struct WorkspaceTemplateTests {
         for _ in 0..<20 { deep = .split(axis: .horizontal, fraction: 0.5, first: terminal("."), second: deep) }
         rejects("excessive recursive layout depth is rejected") { try mutated { $0.tabs[1].layout = deep } }
 
+        check(!(String(data: encoded, encoding: .utf8) ?? "").contains("\"remote\""), "local templates encode without a remote section")
+        let remoteRecipe = WorkspaceTemplate(name: "Remote", tabs: [
+            .init(name: "Shell", layout: .split(axis: .horizontal, fraction: 0.5, first: terminal("."),
+                second: .pane(Snapshot.PaneSnapshot(content: .browser(url: "https://example.test"), weight: 1))),
+                focusedPaneIndex: 0, terminals: [.init(paneIndex: 0, program: "/bin/sh", arguments: ["-c", "exec sh -i"])]),
+            .init(layout: terminal("."), focusedPaneIndex: 0, terminals: [.init(paneIndex: 0, initializationCommand: "echo ready")]),
+        ], selectedTabIndex: 1, remote: .init(host: "Build Box", directory: "~/src/app"))
+        let remoteEncoded = try remoteRecipe.encoded()
+        let remoteDecoded = try WorkspaceTemplate.decode(remoteEncoded)
+        let remoteRoundTrip = try remoteDecoded.encoded()
+        check(remoteRoundTrip == remoteEncoded && remoteDecoded.remote == remoteRecipe.remote, "remote template round trip keeps only the host name and directory")
+        let remoteJSON = String(data: remoteEncoded, encoding: .utf8) ?? ""
+        check(!remoteJSON.contains("address") && !remoteJSON.contains("serverPath") && !remoteJSON.contains("remoteSessionID"), "remote templates carry no address, server path or session identity")
+        rejects("remote templates cannot resolve against a local project root") { _ = try remoteDecoded.resolved(forProjectRoot: project.path) }
+        func remoteMutated(_ operation: (inout WorkspaceTemplate) -> Void) throws {
+            var value = remoteRecipe
+            operation(&value)
+            try value.validate()
+        }
+        try remoteMutated { $0.remote?.directory = "/srv/app" }
+        try remoteMutated { $0.remote?.directory = "~" }
+        check(true, "absolute, home and home-relative remote directories are accepted")
+        for directory in ["", "src/app", "~user/app", "/srv/../etc", "~/a/..", "/srv/a\u{7}b", "/srv\nnext"] {
+            rejects("invalid remote directory \(directory.debugDescription) is rejected") { try remoteMutated { $0.remote?.directory = directory } }
+        }
+        for host in ["", "   ", "two\nlines"] {
+            rejects("invalid remote host name \(host.debugDescription) is rejected") { try remoteMutated { $0.remote?.host = host } }
+        }
+        rejects("remote terminals must start in the remote directory") { try remoteMutated { $0.tabs[1].layout = terminal("api") } }
+        rejects("browser-only remote templates are rejected") {
+            try remoteMutated {
+                $0.tabs = [.init(layout: .pane(Snapshot.PaneSnapshot(content: .browser(url: "https://example.test"), weight: 1)), focusedPaneIndex: 0, terminals: [])]
+                $0.selectedTabIndex = 0
+            }
+        }
+        for key in ["address", "serverPath", "remoteSessionID", "credentialID"] {
+            var object = try JSONSerialization.jsonObject(with: remoteEncoded) as! [String: Any]
+            var remote = object["remote"] as! [String: Any]
+            remote[key] = key == "remoteSessionID" ? UUID().uuidString : "secret"
+            object["remote"] = remote
+            rejects("remote import rejects \(key)") { _ = try WorkspaceTemplate.decode(JSONSerialization.data(withJSONObject: object)) }
+        }
+
         let libraryURL = root.appendingPathComponent("library/templates.json")
         let store = WorkspaceTemplateStore(url: libraryURL)
         let id = try store.add(recipe)

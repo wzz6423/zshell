@@ -70,6 +70,8 @@ final class RemoteSessionConnection: ObservableObject {
 
     var host: RemoteHost { configuration.host }
     var projectDirectory: String { configuration.project }
+    var command: [String]? { configuration.command }
+    var initializationCommand: String? { configuration.initializationCommand }
     var isActiveClient: Bool { status.activeClientID == clientID.uuidString.lowercased() }
     var launchArguments: [String] {
         [Bundle.main.executableURL?.path ?? CommandLine.arguments[0], RemoteSessionRelay.argument, configurationURL.path]

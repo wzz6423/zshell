@@ -134588,6 +134588,648 @@
           }
         }
       }
+    },
+    "Remote Host": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remote Host"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "远端主机"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "遠端主機"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リモートホスト"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원격 호스트"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hôte distant"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remote-Host"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Host remoto"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Host remoto"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Host remoto"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Externe host"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалённый хост"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المضيف البعيد"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "โฮสต์ระยะไกล"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Host jarak jauh"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Máy chủ từ xa"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uzak ana makine"
+          }
+        }
+      }
+    },
+    "Choose a Saved Host": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a Saved Host"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择已保存的主机"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選擇已儲存的主機"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存済みのホストを選択"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "저장된 호스트 선택"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir un hôte enregistré"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gespeicherten Host auswählen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige un host guardado"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha um host salvo"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli un host salvato"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kies een bewaarde host"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите сохранённый хост"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر مضيفًا محفوظًا"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เลือกโฮสต์ที่บันทึกไว้"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pilih host tersimpan"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chọn máy chủ đã lưu"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kayıtlı bir ana makine seçin"
+          }
+        }
+      }
+    },
+    "Applying connects to the chosen saved host and starts new remote sessions in the remote directory. Existing remote sessions are never reattached.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applying connects to the chosen saved host and starts new remote sessions in the remote directory. Existing remote sessions are never reattached."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用时会连接所选的已保存主机，并在远程目录中启动新的远端会话。不会重新连接已有的远端会话。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "套用時會連線到所選的已儲存主機，並在遠端目錄中啟動新的遠端工作階段。不會重新連接既有的遠端工作階段。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "適用すると選択した保存済みホストに接続し、リモートディレクトリで新しいリモートセッションを開始します。既存のリモートセッションに再接続することはありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "적용하면 선택한 저장된 호스트에 연결하고 원격 디렉터리에서 새 원격 세션을 시작합니다. 기존 원격 세션에는 다시 연결하지 않습니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’application se connecte à l’hôte enregistré choisi et démarre de nouvelles sessions distantes dans le répertoire distant. Les sessions distantes existantes ne sont jamais rattachées."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beim Anwenden wird eine Verbindung zum ausgewählten gespeicherten Host hergestellt und es werden neue Remote-Sitzungen im entfernten Verzeichnis gestartet. Bestehende Remote-Sitzungen werden nie erneut verbunden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al aplicarla se conecta al host guardado elegido y se inician nuevas sesiones remotas en el directorio remoto. Nunca se vuelven a conectar sesiones remotas existentes."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao aplicar, o Zshell conecta ao host salvo escolhido e inicia novas sessões remotas no diretório remoto. Sessões remotas existentes nunca são reconectadas."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’applicazione si connette all’host salvato scelto e avvia nuove sessioni remote nella directory remota. Le sessioni remote esistenti non vengono mai ricollegate."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toepassen maakt verbinding met de gekozen bewaarde host en start nieuwe externe sessies in de externe map. Bestaande externe sessies worden nooit opnieuw gekoppeld."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "При применении выполняется подключение к выбранному сохранённому хосту и запускаются новые удалённые сеансы в удалённом каталоге. К существующим удалённым сеансам повторное подключение не выполняется."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عند التطبيق يتصل التطبيق بالمضيف المحفوظ المختار ويبدأ جلسات بعيدة جديدة في المجلد البعيد. لا تتم إعادة الاتصال بالجلسات البعيدة الحالية أبدًا."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "การนำไปใช้จะเชื่อมต่อกับโฮสต์ที่บันทึกไว้ที่เลือกและเริ่มเซสชันระยะไกลใหม่ในไดเรกทอรีระยะไกล จะไม่เชื่อมต่อกลับไปยังเซสชันระยะไกลที่มีอยู่"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menerapkan akan terhubung ke host tersimpan yang dipilih dan memulai sesi jarak jauh baru di direktori jarak jauh. Sesi jarak jauh yang ada tidak pernah disambungkan ulang."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi áp dụng, ứng dụng kết nối tới máy chủ đã lưu được chọn và bắt đầu các phiên từ xa mới trong thư mục từ xa. Các phiên từ xa hiện có sẽ không bao giờ được kết nối lại."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uygulamak, seçilen kayıtlı ana makineye bağlanır ve uzak dizinde yeni uzak oturumlar başlatır. Mevcut uzak oturumlara asla yeniden bağlanılmaz."
+          }
+        }
+      }
+    },
+    "Remote templates need a saved host name, an absolute or ~/ remote directory and at least one terminal. Every terminal starts in that directory (“.”).": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remote templates need a saved host name, an absolute or ~/ remote directory and at least one terminal. Every terminal starts in that directory (“.”)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "远端模板需要已保存的主机名称、以 / 或 ~/ 开头的远程目录以及至少一个终端。每个终端都从该目录（“.”）启动。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "遠端範本需要已儲存的主機名稱、以 / 或 ~/ 開頭的遠端目錄，以及至少一個終端機。每個終端機都從該目錄（「.」）啟動。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リモートテンプレートには、保存済みのホスト名、/ または ~/ で始まるリモートディレクトリ、および 1 つ以上のターミナルが必要です。すべてのターミナルはそのディレクトリ（「.」）で開始します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원격 템플릿에는 저장된 호스트 이름, / 또는 ~/로 시작하는 원격 디렉터리, 하나 이상의 터미널이 필요합니다. 모든 터미널은 해당 디렉터리(“.”)에서 시작합니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les modèles distants nécessitent le nom d’un hôte enregistré, un répertoire distant absolu ou commençant par ~/ et au moins un terminal. Chaque terminal démarre dans ce répertoire (« . »)."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remote-Vorlagen benötigen den Namen eines gespeicherten Hosts, ein absolutes oder mit ~/ beginnendes entferntes Verzeichnis und mindestens ein Terminal. Jedes Terminal startet in diesem Verzeichnis („.“)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las plantillas remotas necesitan el nombre de un host guardado, un directorio remoto absoluto o que empiece por ~/ y al menos un terminal. Cada terminal se inicia en ese directorio («.»)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modelos remotos precisam do nome de um host salvo, de um diretório remoto absoluto ou iniciado por ~/ e de pelo menos um terminal. Cada terminal inicia nesse diretório (“.”)."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I modelli remoti richiedono il nome di un host salvato, una directory remota assoluta o che inizia con ~/ e almeno un terminale. Ogni terminale si avvia in quella directory (“.”)."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Externe sjablonen hebben de naam van een bewaarde host nodig, een absolute of met ~/ beginnende externe map en minstens één terminal. Elke terminal start in die map (“.”)."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Для удалённого шаблона нужны имя сохранённого хоста, удалённый каталог, начинающийся с / или ~/, и хотя бы один терминал. Каждый терминал запускается в этом каталоге («.»)."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تحتاج القوالب البعيدة إلى اسم مضيف محفوظ ومجلد بعيد يبدأ بـ / أو ~/ وطرفية واحدة على الأقل. تبدأ كل طرفية في ذلك المجلد («.»)."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เทมเพลตระยะไกลต้องมีชื่อโฮสต์ที่บันทึกไว้ ไดเรกทอรีระยะไกลที่ขึ้นต้นด้วย / หรือ ~/ และเทอร์มินัลอย่างน้อยหนึ่งรายการ ทุกเทอร์มินัลจะเริ่มในไดเรกทอรีนั้น (“.”)"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Templat jarak jauh memerlukan nama host tersimpan, direktori jarak jauh yang absolut atau diawali ~/, dan setidaknya satu terminal. Setiap terminal dimulai di direktori tersebut (“.”)."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mẫu từ xa cần tên máy chủ đã lưu, thư mục từ xa tuyệt đối hoặc bắt đầu bằng ~/ và ít nhất một terminal. Mọi terminal đều bắt đầu trong thư mục đó (“.”)."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uzak şablonlar kayıtlı bir ana makine adı, mutlak ya da ~/ ile başlayan bir uzak dizin ve en az bir terminal gerektirir. Her terminal bu dizinde (“.”) başlar."
+          }
+        }
+      }
+    },
+    "Only local projects and projects on saved remote hosts can be saved as templates.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only local projects and projects on saved remote hosts can be saved as templates."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有本地项目和已保存远端主机上的项目可以保存为模板。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有本機專案和已儲存遠端主機上的專案可以儲存為範本。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テンプレートとして保存できるのは、ローカルプロジェクトと保存済みリモートホスト上のプロジェクトのみです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "로컬 프로젝트와 저장된 원격 호스트의 프로젝트만 템플릿으로 저장할 수 있습니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seuls les projets locaux et les projets sur des hôtes distants enregistrés peuvent être enregistrés comme modèles."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur lokale Projekte und Projekte auf gespeicherten Remote-Hosts können als Vorlagen gesichert werden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo los proyectos locales y los proyectos en hosts remotos guardados pueden guardarse como plantillas."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Somente projetos locais e projetos em hosts remotos salvos podem ser salvos como modelos."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo i progetti locali e i progetti su host remoti salvati possono essere salvati come modelli."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alleen lokale projecten en projecten op bewaarde externe hosts kunnen als sjabloon worden bewaard."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранять как шаблоны можно только локальные проекты и проекты на сохранённых удалённых хостах."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يمكن حفظ المشاريع المحلية والمشاريع على المضيفين البعيدين المحفوظين فقط كقوالب."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "บันทึกเป็นเทมเพลตได้เฉพาะโปรเจ็กต์ภายในเครื่องและโปรเจ็กต์บนโฮสต์ระยะไกลที่บันทึกไว้เท่านั้น"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hanya proyek lokal dan proyek di host jarak jauh tersimpan yang dapat disimpan sebagai templat."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ dự án cục bộ và dự án trên máy chủ từ xa đã lưu mới có thể được lưu thành mẫu."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yalnızca yerel projeler ve kayıtlı uzak ana makinelerdeki projeler şablon olarak kaydedilebilir."
+          }
+        }
+      }
+    },
+    "The saved remote host “%@” is not on this Mac. Choose another saved host, or add it in Remote Hosts.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The saved remote host “%@” is not on this Mac. Choose another saved host, or add it in Remote Hosts."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此 Mac 上没有已保存的远端主机“%@”。请选择其他已保存的主机，或在“远端主机”中添加它。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此 Mac 上沒有已儲存的遠端主機「%@」。請選擇其他已儲存的主機，或在「遠端主機」中加入它。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存済みのリモートホスト「%@」はこの Mac にありません。別の保存済みホストを選ぶか、「リモートホスト」で追加してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "저장된 원격 호스트 “%@”이(가) 이 Mac에 없습니다. 다른 저장된 호스트를 선택하거나 원격 호스트에서 추가하세요."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’hôte distant enregistré « %@ » n’existe pas sur ce Mac. Choisissez un autre hôte enregistré ou ajoutez-le dans Hôtes distants."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der gespeicherte Remote-Host „%@“ ist auf diesem Mac nicht vorhanden. Wählen Sie einen anderen gespeicherten Host oder fügen Sie ihn unter Remote-Hosts hinzu."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El host remoto guardado «%@» no está en este Mac. Elige otro host guardado o añádelo en Hosts remotos."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O host remoto salvo “%@” não está neste Mac. Escolha outro host salvo ou adicione-o em Hosts remotos."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’host remoto salvato “%@” non è presente su questo Mac. Scegli un altro host salvato o aggiungilo in Host remoti."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De bewaarde externe host “%@” staat niet op deze Mac. Kies een andere bewaarde host of voeg hem toe in Externe hosts."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранённого удалённого хоста «%@» нет на этом Mac. Выберите другой сохранённый хост или добавьте его в разделе «Удалённые хосты»."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المضيف البعيد المحفوظ «%@» غير موجود على هذا الـ Mac. اختر مضيفًا محفوظًا آخر أو أضفه في المضيفون البعيدون."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ไม่มีโฮสต์ระยะไกลที่บันทึกไว้ “%@” บน Mac เครื่องนี้ เลือกโฮสต์ที่บันทึกไว้อื่น หรือเพิ่มในโฮสต์ระยะไกล"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Host jarak jauh tersimpan “%@” tidak ada di Mac ini. Pilih host tersimpan lain atau tambahkan di Host jarak jauh."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Máy chủ từ xa đã lưu “%@” không có trên máy Mac này. Chọn máy chủ đã lưu khác hoặc thêm nó trong Máy chủ từ xa."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kayıtlı uzak ana makine “%@” bu Mac’te yok. Başka bir kayıtlı ana makine seçin veya Uzak ana makineler bölümünden ekleyin."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
