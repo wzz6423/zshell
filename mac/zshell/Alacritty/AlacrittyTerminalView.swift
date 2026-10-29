@@ -1079,9 +1079,12 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             let percent = payload[2] == 0 ? nil : Int(payload[1])
             progressBar.applyReport(state: state, percent: percent)
         case ZSHELL_EVENT_NOTIFICATION:
-            let message = String(decoding: payload, as: UTF8.self)
-            guard !message.isEmpty else { return }
-            events?.terminalDidRequestDesktopNotification(title: "", body: message)
+            let fields = payload.split(separator: 0, maxSplits: 1, omittingEmptySubsequences: false)
+            guard fields.count == 2 else { return }
+            let title = String(decoding: fields[0], as: UTF8.self)
+            let body = String(decoding: fields[1], as: UTF8.self)
+            guard !title.isEmpty || !body.isEmpty else { return }
+            events?.terminalDidRequestDesktopNotification(title: title, body: body)
         case ZSHELL_EVENT_SHELL_PROMPT_START:
             isShellInputActive = false
             pendingPromptCaret = nil

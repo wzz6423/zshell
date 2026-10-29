@@ -103,6 +103,13 @@ Zshell transmet deux types d'événements au centre de notifications :
 
 Une notification peut jouer le son système. Cliquer dessus active Zshell et ouvre précisément la session concernée. macOS ne demande l'autorisation que lorsqu'un terminal tente d'envoyer sa première notification, pas au lancement de Zshell.
 
+### Historique des avis [#notification-history]
+
+Ouvrez **Avis → Historique des avis…** pour consulter les notifications récentes du terminal et des agents. Filtrez par **Non lus**, **Échecs** ou **À traiter**. Cliquez sur un avis ou sur **Afficher le volet** pour retrouver son projet, son onglet et son volet actuels, même dans une autre fenêtre. Un volet fermé reste dans l’historique avec la mention indisponible.
+
+Utilisez **Marquer comme lu**, **Tout marquer comme lu**, **Retirer** ou **Effacer l’historique**. La lecture n’approuve aucune demande d’un agent. Un élément quitte le filtre À traiter lorsque l’agent reprend ou termine, que le volet ferme ou que sa connexion distante devient indisponible. Les états reposent sur les rapports explicites du cycle de vie et les résultats de sortie des commandes. Les 200 derniers avis restent après un redémarrage, même si les notifications macOS sont désactivées.
+
+
 ### Fin d'une commande [#command-completion]
 
 Ouvrez **Réglages → Terminal → Notifications de commandes** pour être averti à la fin d'une commande :

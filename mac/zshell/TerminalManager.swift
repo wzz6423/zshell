@@ -1229,6 +1229,83 @@ final class TerminalManager: nonisolated ObservableObject {
         }
     }
 
+    static func notificationContext(for target: TerminalNotificationTarget) -> ZshellAutomationRouter.PaneContext? {
+        var remoteFallback: ZshellAutomationRouter.PaneContext?
+        for manager in registry {
+            for project in manager.projects {
+                for context in ZshellAutomationRouter.projectContexts(project, manager: manager) {
+                    guard let session = context.session, !session.hasExited else { continue }
+                    if let hostID = target.remoteHostID, let remoteID = target.remoteSessionID {
+                        if session.remoteConnection?.host.id == hostID && session.remoteConnection?.sessionID == remoteID {
+                            if session.id == target.terminalID { return context }
+                            if remoteFallback == nil { remoteFallback = context }
+                        }
+                    } else if session.id == target.terminalID { return context }
+                }
+            }
+        }
+        return remoteFallback
+    }
+
+    static func connectedRemoteNotificationSession(
+        for target: TerminalNotificationTarget, excluding excludedID: UUID? = nil
+    ) -> TerminalSession? {
+        guard let hostID = target.remoteHostID, let remoteID = target.remoteSessionID else { return nil }
+        for manager in registry {
+            for project in manager.projects {
+                for context in ZshellAutomationRouter.projectContexts(project, manager: manager) {
+                    guard let session = context.session, session.id != excludedID, !session.hasExited,
+                          session.remoteConnection?.host.id == hostID,
+                          session.remoteConnection?.sessionID == remoteID,
+                          session.remoteStatus?.state == .connected else { continue }
+                    return session
+                }
+            }
+        }
+        return nil
+    }
+
+    static func notificationSession(for target: TerminalNotificationTarget) -> TerminalSession? {
+        if let session = notificationContext(for: target)?.session {
+            if session.remoteConnection != nil, session.remoteStatus?.state != .connected {
+                return connectedRemoteNotificationSession(for: target) ?? session
+            }
+            return session
+        }
+        guard target.remoteHostID == nil, let id = target.terminalID else { return nil }
+        return GlobalTerminalOverlay.shared.notificationPane(for: id)?.session
+    }
+
+    static func notificationAvailable(for target: TerminalNotificationTarget) -> Bool {
+        if notificationContext(for: target) != nil { return true }
+        guard target.remoteHostID == nil, let id = target.terminalID else { return false }
+        return GlobalTerminalOverlay.shared.canRevealNotification(sessionID: id)
+    }
+
+    @discardableResult
+    static func revealNotification(target: TerminalNotificationTarget) -> Bool {
+        guard let context = notificationContext(for: target), let session = context.session else {
+            guard target.remoteHostID == nil, let id = target.terminalID else { return false }
+            return GlobalTerminalOverlay.shared.revealNotification(sessionID: id)
+        }
+        NSApp.activate()
+        context.manager.revealSession(session)
+        let window = context.manager.window
+        if window?.isMiniaturized == true { window?.deminiaturize(nil) }
+        window?.makeKeyAndOrderFront(nil)
+        // The project/tab selection reparents the surface on the next UI pass.
+        // Recheck focus so a second click cannot be undone by this deferred work.
+        DispatchQueue.main.async { [weak window, weak session] in
+            guard let session, let current = notificationContext(for: target),
+                  current.project.selectedTabID == current.tab.id,
+                  current.manager.selectedProjectID == current.project.id,
+                  current.tab.focusedPaneID == current.pane.id else { return }
+            window?.makeFirstResponder(session.surface)
+        }
+        session.markAutomationAgentSeen()
+        return true
+    }
+
     /// "Seen" is a model focus decision, not an API read. A background CLI can
     /// inspect output repeatedly without clearing a finished badge; selecting
     /// the pane through any UI path clears it on the next monitor tick.

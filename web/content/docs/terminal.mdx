@@ -158,6 +158,23 @@ Notifications can play the system sound. Clicking one activates Zshell and jumps
 to the exact session that emitted it. macOS asks for permission only when a
 terminal first tries to notify you, not when Zshell launches.
 
+### Notification history
+
+Open **Notifications → Notification History…** to view recent terminal and agent
+notifications. Choose **Unread**, **Failed**, or **Pending** to filter the list.
+Click a notification or choose **Show Pane** to select its current project, tab,
+and pane, including another window. A closed pane stays in history and is shown
+as unavailable.
+
+Use **Mark as Read**, **Mark All as Read**, **Remove**, or **Clear History** to
+manage the list. Reading a notification does not approve an agent request.
+Pending items leave that filter when the agent resumes or ends, the pane closes,
+or its remote connection is unavailable. Only explicit agent lifecycle reports
+and command exit results determine attention and failure states. History keeps
+up to 200 entries across app restarts and remains available when macOS
+notification permission is disabled.
+
+
 ### Command completion
 
 Open **Settings → Terminal → Command Notifications** to have Zshell notify you

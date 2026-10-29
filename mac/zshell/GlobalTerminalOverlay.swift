@@ -305,9 +305,40 @@ final class GlobalTerminalOverlay: NSObject {
         }
     }
 
-    private func show() {
+    func notificationPane(for sessionID: UUID) -> (tab: PaneTab, pane: Pane, session: TerminalSession)? {
+        for tab in [workspace, reusableWorkspace].compactMap({ $0 }) {
+            for pane in tab.allPanes {
+                guard case .session(let session) = pane.content,
+                      session.id == sessionID, !session.hasExited else { continue }
+                return (tab, pane, session)
+            }
+        }
+        return nil
+    }
+
+    func canRevealNotification(sessionID: UUID) -> Bool {
+        guard let match = notificationPane(for: sessionID) else { return false }
+        return terminalWindow?.isVisible != true || workspace === match.tab
+    }
+
+    @discardableResult
+    func revealNotification(sessionID: UUID) -> Bool {
+        guard let match = notificationPane(for: sessionID),
+              canRevealNotification(sessionID: sessionID) else { return false }
+        match.tab.focusedPaneID = match.pane.id
+        if terminalWindow?.isVisible != true {
+            show(modeOverride: match.tab === reusableWorkspace ? .reuse : workspaceMode)
+        }
+        guard workspace === match.tab, terminalWindow?.isVisible == true else { return false }
+        terminalWindow?.makeKey()
+        terminalWindow?.revealTerminal()
+        match.session.markAutomationAgentSeen()
+        return true
+    }
+
+    private func show(modeOverride: QuickTerminalMode? = nil) {
         guard !isQuitting, let screen = screenAtPointer() else { return }
-        let mode = AppSettings.shared.quickTerminalMode
+        let mode = modeOverride ?? AppSettings.shared.quickTerminalMode
         if mode != workspaceMode {
             workspace = nil
             terminalWindow = nil
