@@ -14,6 +14,12 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
+## [Unreleased]
+
+### Fixed
+
+- Use a consistent compact switch size throughout Settings.
+
 ## [0.1.11]
 
 ### Added
