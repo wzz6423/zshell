@@ -338,8 +338,9 @@ fn processes_report_the_full_linux_executable() {
     let id = new_id().unwrap();
     // The session copies the binary itself: a copy written here can still be
     // open in a child another test thread just forked, and exec then fails
-    // with ETXTBSY.
-    let script = format!("cp /bin/sleep '{0}' && '{0}' 30; exit 0", worker.display());
+    // with ETXTBSY. A shell is copied, not `sleep`: a multi-call coreutils
+    // (uutils on Ubuntu 26.04) refuses to run under an unknown name.
+    let script = format!("cp /bin/sh '{0}' && '{0}' -c \"sleep 30; exit 0\"; exit 0", worker.display());
     fixture.create(&id, vec!["/bin/sh", "-c", &script]);
     let request = fixture.request("processes", &id);
     let mut result = Value::Null;
