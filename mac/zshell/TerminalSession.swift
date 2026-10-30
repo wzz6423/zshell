@@ -1369,6 +1369,17 @@ extension TerminalSession: TerminalBackendEvents {
         while let last = candidate.last, trailingSentencePunctuation.contains(last) {
             candidate.removeLast()
         }
+        // IP hints share the same host action as Command-clicked URLs.
+        // URLComponents requires brackets around a bare IPv6 address.
+        let octets = candidate.split(separator: ".", omittingEmptySubsequences: false)
+        if octets.count == 4, octets.allSatisfy({ Int($0).map { (0...255).contains($0) } == true }) {
+            return URL(string: "http://\(candidate)")
+        }
+        if candidate.contains(":"), !candidate.contains("/"),
+           candidate.unicodeScalars.allSatisfy({ CharacterSet(charactersIn: "0123456789abcdefABCDEF:").contains($0) }),
+           let components = URLComponents(string: "http://[\(candidate)]"), components.host != nil {
+            return components.url
+        }
         guard let pattern = bareWebAddressPattern,
               let match = pattern.firstMatch(in: candidate, range: NSRange(candidate.startIndex..., in: candidate)),
               match.range.length == candidate.utf16.count,

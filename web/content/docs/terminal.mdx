@@ -170,6 +170,14 @@ or relative to the pane's live working directory. A diagnostic suffix such as
 This gives compiler output and agent transcripts a direct route back into the
 same project. Browser behavior is covered in [Browser panes](/en/docs/browser).
 
+## Keyboard hints [#keyboard-hints]
+
+Focus a terminal and choose **Terminal → Copy Terminal Hint…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) or **Open Terminal Hint…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>). Letter labels appear directly over visible paths, URLs, IP addresses and commit hashes. Type the label to select it; longer labels narrow the choices as you type.
+
+<kbd>Tab</kbd> switches between copying and opening. <kbd>Backspace</kbd> removes a letter; <kbd>Esc</kbd> cancels and returns typing to the terminal. Hint keys are never sent to the terminal program. Copying keeps diagnostic suffixes such as `:42:7`. Opening uses the same Finder/default-browser route as Command-click; values without an openable destination can still be copied.
+
+Hints scan the current visible screen on both backends, including soft-wrapped text. Resize or changed output refreshes the labels. The mode works in read-only panes for copying and host actions.
+
 ## Notifications
 
 Zshell forwards two terminal events to Notification Center:

@@ -112,6 +112,14 @@ Zshell 能識別終端機程式打印出來的網頁 URL 和確實存在的本�
 這樣一來，編譯器輸出和 agent 對話就能直接回到同一個專案裡。網頁相關行為見
 [瀏覽器窗格](/zh-Hant/docs/browser)。
 
+## 鍵盤字母提示 [#keyboard-hints]
+
+聚焦終端，選擇 **終端 → 複製終端提示…**（<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>）或 **開啟終端提示…**（<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>）。可見路徑、URL、IP 位址和 commit hash 上會直接顯示字母標籤。輸入標籤即可選擇；多字母標籤會逐步篩選。
+
+<kbd>Tab</kbd> 切換複製與開啟，<kbd>Backspace</kbd> 刪除一個字母，<kbd>Esc</kbd> 取消並恢復終端輸入。提示按鍵不會傳送給終端程式。複製保留 `:42:7` 等診斷定位；開啟沿用 Command-click 的 Finder／預設瀏覽器路由，無法開啟的值仍可複製。
+
+兩個後端都只掃描目前可見畫面，包括軟折行文字。尺寸或輸出變更會更新標籤。唯讀窗格仍可複製及執行主機開啟操作。
+
 ## 通知 [#notifications]
 
 Zshell 會把兩類終端機事件轉給通知中心：
