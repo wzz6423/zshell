@@ -6,6 +6,7 @@
 import AppKit
 import Combine
 import Foundation
+import WebKit
 
 /// A project groups tabs and appears as one row in the left sidebar. Each tab
 /// is a recursive split layout of terminal, file, browser, and diff panes; see
@@ -143,6 +144,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     func finishRemoteConnectionProbe(_ state: RemoteConnectionState) {
         remoteConnectionState = state
     }
+
+    var browserDataStore: WKWebsiteDataStore { routingForBrowser()?.dataStore ?? .default() }
 
     private func routingForBrowser() -> BrowserRemoteRouting? {
         guard isRemote else { return nil }

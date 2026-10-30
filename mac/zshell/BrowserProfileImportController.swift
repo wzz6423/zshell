@@ -298,42 +298,64 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         revision += 1
         let current = revision
         let categories = selection
-        // Keep the ID rather than a weak reference: a closed project can be
-        // released while cookies import, and must not fall back to its neighbor.
-        let projectID = manager.selectedProject?.id
+        let destination: Project? = if categories.contains(.cookies) || categories.contains(.sessions) {
+            manager.selectedProject ?? manager.newProject()
+        } else { manager.selectedProject }
+        // Pin the project and store before any suspension so switching or
+        // closing the project never redirects credentials to its neighbor.
+        let projectID = destination?.id
+        let dataStore = categories.contains(.cookies) ? destination?.browserDataStore : nil
+        let isRemote = destination?.isRemote == true
         status.stringValue = String(localized: "Importing…")
         setBusy(true)
         Task { [weak self, weak manager] in
+            guard let self, self.revision == current else { return }
             var results: [String] = []
-            if categories.contains(.cookies), prepared.cookieError == nil {
+            @MainActor func hasDestination() -> Bool {
+                guard self.revision == current else { return false }
+                guard let projectID, manager?.projects.contains(where: { $0.id == projectID }) == true else {
+                    self.finishImport(prepared, results: results + [String(localized: "The destination project is no longer available.")])
+                    return false
+                }
+                return true
+            }
+            if categories.contains(.cookies), prepared.cookieError == nil, let dataStore {
                 let cookies = await Task.detached(priority: .userInitiated) { BrowserProfileData.cookies(profile) }.value
-                guard let self, self.revision == current else { return }
+                guard hasDestination() else { return }
                 var attempted: [HTTPCookie] = []
                 var identities = Set<String>()
                 var skipped = cookies.skipped
-                let store = WKWebsiteDataStore.default().httpCookieStore
+                let store = dataStore.httpCookieStore
                 for (index, item) in cookies.values.enumerated() {
-                    guard self.revision == current else { return }
                     if index % 32 == 0 { await Task.yield() }
+                    guard hasDestination() else { return }
                     let host = item.domain.hasPrefix(".") ? String(item.domain.dropFirst()) : item.domain
-                    guard let url = URL(string: "\(item.secure ? "https" : "http")://\(host)/"),
+                    let urlHost = host.contains(":") && !host.hasPrefix("[") ? "[\(host)]" : host
+                    guard let url = URL(string: "\(item.secure ? "https" : "http")://\(urlHost)/"),
                           BrowserImportedPage.safeURL(url.absoluteString),
                           item.expires == -1 || item.expires > Date().timeIntervalSince1970 else { skipped += 1; continue }
-                    let value: ZshellJSONValue = .object([
+                    var fields: [String: ZshellJSONValue] = [
                         "name": .string(item.name), "value": .string(item.value), "domain": .string(item.domain),
                         "path": .string(item.path), "expires": .number(item.expires), "httpOnly": .bool(item.httpOnly),
                         "secure": .bool(item.secure), "sameSite": .string(item.sameSite),
-                    ])
-                    guard let cookie = try? BrowserStorageState.decodeCookie(value, for: url) else { skipped += 1; continue }
+                    ]
+                    guard var cookie = try? BrowserStorageState.decodeCookie(.object(fields), for: url) else { skipped += 1; continue }
+                    let routedURL = isRemote ? BrowserRemoteRouting.routedURL(url) : url
+                    if let routedHost = routedURL.host, routedHost != url.host {
+                        fields["domain"] = .string((cookie.domain.hasPrefix(".") ? "." : "") + routedHost)
+                        guard let routedCookie = try? BrowserStorageState.decodeCookie(.object(fields), for: routedURL) else { skipped += 1; continue }
+                        cookie = routedCookie
+                    }
                     let identity = "\(cookie.domain.lowercased())\n\(cookie.path)\n\(cookie.name)"
                     guard identities.insert(identity).inserted else { skipped += 1; continue }
                     await withCheckedContinuation { continuation in store.setCookie(cookie) { continuation.resume() } }
+                    guard hasDestination() else { return }
                     attempted.append(cookie)
                 }
                 let actual: [HTTPCookie] = await withCheckedContinuation { continuation in
                     store.getAllCookies { continuation.resume(returning: $0) }
                 }
-                guard self.revision == current else { return }
+                guard hasDestination() else { return }
                 let stored = Dictionary(actual.map { ("\($0.domain.lowercased())\n\($0.path)\n\($0.name)", $0.value) },
                                         uniquingKeysWith: { _, newer in newer })
                 let imported = attempted.filter { stored["\($0.domain.lowercased())\n\($0.path)\n\($0.name)"] == $0.value }.count
@@ -341,7 +363,7 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
                 results.append(String(localized: "Cookies imported: \(imported), skipped: \(skipped)"))
                 if let error = cookies.error { results.append(error) }
             } else if categories.contains(.cookies), let error = prepared.cookieError { results.append(error) }
-            guard let self, self.revision == current, let manager else { return }
+            guard self.revision == current, let manager else { return }
             if categories.contains(.history) {
                 if let error = prepared.history.error { results.append(error) }
                 if prepared.history.error == nil || !prepared.history.values.isEmpty {
@@ -356,10 +378,8 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
                 if let error = prepared.sessions.error { results.append(error) }
                 let pages = Array(prepared.sessions.values.prefix(100))
                 if !pages.isEmpty {
-                    let destination: Project? = if let projectID {
-                        manager.projects.first { $0.id == projectID }
-                    } else { manager.selectedProject ?? manager.newProject() }
-                    if let destination {
+                    guard hasDestination() else { return }
+                    if let destination = manager.projects.first(where: { $0.id == projectID }) {
                         for page in pages.reversed() { destination.newBrowserTab(initialURL: page.url, initialFocus: .none, focus: false) }
                         let count = pages.count
                         let skipped = prepared.sessions.values.count - count + prepared.sessions.skipped
@@ -371,12 +391,16 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
                     results.append(String(localized: "Tabs opened: \(count), skipped: \(skipped)"))
                 }
             }
-            self.lastSummary = results.joined(separator: "\n")
-            self.render(prepared)
-            self.status.stringValue = self.discoveryStatus
-            self.prepared = nil
-            self.setBusy(false)
+            self.finishImport(prepared, results: results)
         }
+    }
+
+    private func finishImport(_ preview: BrowserProfilePreview, results: [String]) {
+        lastSummary = results.joined(separator: "\n")
+        render(preview)
+        status.stringValue = discoveryStatus
+        prepared = nil
+        setBusy(false)
     }
 
     @objc private func close(_ sender: Any?) { panel?.close() }
