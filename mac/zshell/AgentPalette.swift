@@ -126,6 +126,12 @@ final class AgentPaletteController: NSObject {
         }
     }
 
+    func dismissForHandoff() -> NSResponder? {
+        let responder = previousResponder
+        dismiss(restoreFocus: false)
+        return responder
+    }
+
     private func configureViews() {
         overlay.addSubview(panel)
         panel.translatesAutoresizingMaskIntoConstraints = false

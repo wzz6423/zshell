@@ -326,6 +326,7 @@ final class AgentAutomationMonitor {
         }
 
         for session in refreshBatch {
+            session.refreshTerminalProfile()
             session.refreshAgentConversationHistory()
             session.refreshAutomationAgentState(isFocused: session.id == focusedSessionID)
         }
