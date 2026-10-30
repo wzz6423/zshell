@@ -7,7 +7,6 @@ final class WorkspaceTemplateEditorController: NSObject {
     private let panel: NSPanel
     private let textView = NSTextView()
     private let errorLabel = NSTextField(wrappingLabelWithString: "")
-    private let noticeLabel = NSTextField(wrappingLabelWithString: "")
     private let saveButton = NSButton()
     private let cancelButton = NSButton()
     private var localizationObservation: NSObjectProtocol?
@@ -33,12 +32,13 @@ final class WorkspaceTemplateEditorController: NSObject {
         scroll.hasVerticalScroller = true
         scroll.borderType = .bezelBorder
         scroll.documentView = textView
+        textView.frame = NSRect(x: 0, y: 0, width: 560, height: 300)
+        textView.minSize = NSSize(width: 0, height: 0)
+        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.autoresizingMask = [.width]
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
         textView.textContainer?.widthTracksTextView = true
-        noticeLabel.textColor = .secondaryLabelColor
-        noticeLabel.font = .systemFont(ofSize: 12)
         errorLabel.textColor = .systemRed
         errorLabel.font = .systemFont(ofSize: 12)
         for (button, action) in [(saveButton, #selector(save(_:))), (cancelButton, #selector(cancel(_:)))] {
@@ -51,17 +51,15 @@ final class WorkspaceTemplateEditorController: NSObject {
         cancelButton.keyEquivalent = "\u{1b}"
         let actions = NSStackView(views: [NSView(), cancelButton, saveButton])
         actions.spacing = 8
-        for view in [noticeLabel, scroll, errorLabel, actions] {
+        for view in [scroll, errorLabel, actions] {
             view.translatesAutoresizingMaskIntoConstraints = false
             content.addSubview(view)
             view.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 16).isActive = true
             view.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -16).isActive = true
         }
         NSLayoutConstraint.activate([
-            noticeLabel.topAnchor.constraint(equalTo: content.topAnchor, constant: 16),
-            scroll.topAnchor.constraint(equalTo: noticeLabel.bottomAnchor, constant: 10),
+            scroll.topAnchor.constraint(equalTo: content.topAnchor, constant: 16),
             scroll.bottomAnchor.constraint(equalTo: errorLabel.topAnchor, constant: -8),
-            errorLabel.heightAnchor.constraint(greaterThanOrEqualToConstant: 30),
             errorLabel.bottomAnchor.constraint(equalTo: actions.topAnchor, constant: -8),
             actions.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -16),
         ])
@@ -87,7 +85,6 @@ final class WorkspaceTemplateEditorController: NSObject {
 
     private func localize() {
         panel.title = String(localized: "Edit Workspace Template")
-        noticeLabel.stringValue = String(localized: "Edit directories, startup commands, browser URLs and split fractions in JSON. Saving validates the template and does not run commands.")
         textView.setAccessibilityLabel(String(localized: "Workspace Template JSON"))
         saveButton.title = String(localized: "Save")
         cancelButton.title = String(localized: "Cancel")

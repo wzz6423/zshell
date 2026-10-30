@@ -11,7 +11,6 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
     private let table = NSTableView()
     private let details = NSTextView()
     private let statusLabel = NSTextField(wrappingLabelWithString: "")
-    private let noticeLabel = NSTextField(wrappingLabelWithString: "")
     private let rootLabel = NSTextField(labelWithString: "")
     private let rootField = NSTextField()
     private let hostLabel = NSTextField(labelWithString: "")
@@ -171,12 +170,13 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         detailScroll.hasVerticalScroller = true
         detailScroll.borderType = .bezelBorder
         detailScroll.documentView = details
+        details.frame = NSRect(x: 0, y: 0, width: 560, height: 300)
+        details.minSize = NSSize(width: 0, height: 0)
+        details.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         details.autoresizingMask = [.width]
         details.isVerticallyResizable = true
         details.isHorizontallyResizable = false
         details.textContainer?.widthTracksTextView = true
-        noticeLabel.textColor = .secondaryLabelColor
-        noticeLabel.font = .systemFont(ofSize: 12)
         statusLabel.textColor = .systemRed
         statusLabel.font = .systemFont(ofSize: 12)
         let toolbar = stack([saveButton, importButton, NSView()], vertical: false)
@@ -187,7 +187,7 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         let left = stack([listScroll, listActions], vertical: true)
         let localBox = stack([rootLabel, rootRow], vertical: true)
         let remoteBox = stack([hostLabel, hostPopup, remoteDirectoryLabel, remoteDirectoryField], vertical: true)
-        let right = stack([noticeLabel, detailScroll, detailActions, localBox, remoteBox, statusLabel, applyRow], vertical: true)
+        let right = stack([detailScroll, detailActions, localBox, remoteBox, statusLabel, applyRow], vertical: true)
         self.localBox = localBox
         self.remoteBox = remoteBox
         let body = stack([left, right], vertical: false)
@@ -204,9 +204,7 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
             left.heightAnchor.constraint(equalTo: body.heightAnchor),
             right.heightAnchor.constraint(equalTo: body.heightAnchor),
             right.trailingAnchor.constraint(equalTo: body.trailingAnchor),
-            noticeLabel.widthAnchor.constraint(equalTo: right.widthAnchor),
             statusLabel.widthAnchor.constraint(equalTo: right.widthAnchor),
-            statusLabel.heightAnchor.constraint(greaterThanOrEqualToConstant: 30),
             detailScroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 140),
         ])
     }
@@ -241,7 +239,6 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         remoteDirectoryField.setAccessibilityLabel(remoteDirectoryLabel.stringValue)
         table.setAccessibilityLabel(String(localized: "Workspace Templates"))
         details.setAccessibilityLabel(String(localized: "Template Preview"))
-        noticeLabel.stringValue = String(localized: "Applying creates a new project and runs the listed startup commands. Importing and editing do not run commands.")
         reload()
     }
 
@@ -309,12 +306,8 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
     private func preview(_ template: WorkspaceTemplate) -> String {
         var lines = [template.name, ""]
         if let remote = template.remote {
-            lines += [String(localized: "Remote Host") + ": " + remote.host, String(localized: "Remote Directory") + ": " + remote.directory,
-                      String(localized: "Applying connects to the chosen saved host and starts new remote sessions in the remote directory. Existing remote sessions are never reattached.")]
-        } else {
-            lines.append(String(localized: "Paths inside the source project are relative to Project Root. Other directories keep their absolute paths."))
+            lines += [String(localized: "Remote Host") + ": " + remote.host, String(localized: "Remote Directory") + ": " + remote.directory, ""]
         }
-        lines += [String(localized: "Editor and diff panes become new terminals at Project Root. Browser credentials, query strings and fragments are omitted when saving."), ""]
         for (index, tab) in template.tabs.enumerated() {
             lines.append(String(localized: "Tab \(index + 1)") + (tab.name.map { " · " + $0 } ?? ""))
             var paneIndex = 0
@@ -353,7 +346,6 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         guard let project = manager?.selectedProject, let panel else { return }
         let alert = NSAlert()
         alert.messageText = String(localized: "Save Project as Template…")
-        alert.informativeText = String(localized: "Editor and diff panes become new terminals at Project Root. Browser credentials, query strings and fragments are omitted when saving.")
         let name = NSTextField(string: project.name)
         name.frame = NSRect(x: 0, y: 0, width: 360, height: 24)
         name.setAccessibilityLabel(String(localized: "Template Name"))
