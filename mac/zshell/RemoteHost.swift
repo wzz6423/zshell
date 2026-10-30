@@ -421,6 +421,14 @@ nonisolated enum RemoteHostClient {
         _ = try transport.exchange(RemoteFrame(kind: "terminate", project: directory, sessionId: sessionID.uuidString))
     }
 
+    static func processes(host: RemoteHost, directory: String, sessionID: UUID) throws -> [SessionInfoModel.ProcessItem] {
+        let transport = try RemoteHostTransport(host: host)
+        defer { transport.close() }
+        try transport.handshake()
+        return try transport.exchange(RemoteFrame(kind: "processes", project: directory, sessionId: sessionID.uuidString))
+            .decodedResult([SessionInfoModel.ProcessItem].self)
+    }
+
     static func resume(host: RemoteHost, identity: AgentConversationIdentity) throws -> RemoteSessionInfo {
         try launchConversation(host: host, identity: identity, kind: "agentResume")
     }

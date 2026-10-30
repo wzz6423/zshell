@@ -24,6 +24,8 @@ Semua proses di bawah shell sesi ditampilkan bersama PID, persentase CPU, dan me
 
 Proses anak yang sudah keluar tetapi menunggu dikumpulkan (`<defunct>`) tidak disertakan; tidak ada lagi yang perlu dilihat atau dihentikan.
 
+Di sesi remote bersama, daftar ini berasal dari zshell-server di host dan diperbarui setiap beberapa detik. Baris tersebut hanya menawarkan **Salin PID (Copy PID)** / **Salin Jalur Program (Copy Executable Path)**; terminal SSH biasa tidak punya daftar karena yang berjalan secara lokal hanya klien `ssh`.
+
 ## Port [#ports]
 
 Port TCP yang didengarkan proses tersebut ditampilkan bersama proses pemiliknya.

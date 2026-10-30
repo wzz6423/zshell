@@ -77,16 +77,19 @@ impl PasteStore {
     }
 
     fn prune(&self, stale_pending: bool) -> io::Result<()> {
-        for entry in fs::read_dir(&self.root)? {
-            let entry = entry?;
+        // Other connections commit or abort their batches concurrently, so an
+        // entry can vanish mid-scan; cleanup must not fail an unrelated paste.
+        for entry in fs::read_dir(&self.root)?.flatten() {
             let name = entry.file_name();
             let name = name.to_string_lossy();
-            let metadata = fs::symlink_metadata(entry.path())?;
+            let Ok(metadata) = fs::symlink_metadata(entry.path()) else {
+                continue;
+            };
             if !private_metadata(&entry.path(), &metadata, true) {
                 continue;
             }
             if stale_pending && name.strip_prefix("pending-").is_some_and(is_uuid) {
-                fs::remove_dir_all(entry.path())?;
+                let _ = fs::remove_dir_all(entry.path());
             } else if is_uuid(&name) {
                 let Ok(marker) = fs::symlink_metadata(entry.path().join(".complete")) else {
                     continue;
@@ -98,7 +101,7 @@ impl PasteStore {
                         .and_then(|time| SystemTime::now().duration_since(time).ok())
                         .is_some_and(|age| age > RETENTION)
                 {
-                    fs::remove_dir_all(entry.path())?;
+                    let _ = fs::remove_dir_all(entry.path());
                 }
             }
         }
@@ -341,6 +344,29 @@ mod tests {
         assert!(linked.symlink_metadata().unwrap().file_type().is_symlink());
         assert!(outside.join("keep").exists());
         drop(current);
+    }
+
+    #[test]
+    fn paste_cleanup_tolerates_concurrent_batches() {
+        let fixture = Fixture::new();
+        let store = std::sync::Arc::new(PasteStore::new(&fixture.0).unwrap());
+        let file = [PasteFile { name: "racing".into(), size: 0 }];
+        let churn = {
+            let store = store.clone();
+            let file = file.clone();
+            std::thread::spawn(move || {
+                for _ in 0..300 {
+                    let mut batch = store.begin(&file).unwrap();
+                    batch.prepare_commit().unwrap();
+                    batch.commit().unwrap();
+                    drop(store.begin(&file).unwrap());
+                }
+            })
+        };
+        for _ in 0..300 {
+            store.begin(&file).unwrap();
+        }
+        churn.join().unwrap();
     }
 }
 
