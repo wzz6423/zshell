@@ -147,7 +147,7 @@ struct BrowserStorageState {
         return storage
     }
 
-    private static func decodeCookie(_ value: ZshellJSONValue, for url: URL) throws -> HTTPCookie {
+    static func decodeCookie(_ value: ZshellJSONValue, for url: URL) throws -> HTTPCookie {
         guard let object = value.objectValue,
               Set(object.keys) == ["name", "value", "domain", "path", "expires", "httpOnly", "secure", "sameSite"],
               let name = object["name"]?.stringValue, !name.isEmpty, name.utf8.count <= 4_096,

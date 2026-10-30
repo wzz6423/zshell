@@ -55,6 +55,26 @@ the current URL and layout, but not the full back/forward history.
 Browser panes keep cookies, logins, and other site data across tabs and
 launches. This is not a private-browsing mode.
 
+## Import browser data
+
+Choose **Browser → Import Browser Data…**, select a Chrome or Firefox profile
+and the data categories, then choose **Preview** and **Import**. The preview
+shows counts and examples without revealing cookie values. Chrome may ask for
+Keychain permission when encrypted cookies are imported. The final report shows
+imported and skipped items and any access errors. Import runs locally; matching
+Zshell cookies may be replaced.
+
+On macOS 27 and later, the system protects each browser's data folder. If the
+window asks for access, choose **Allow Access**, then **Open**. If access is
+still blocked, allow Zshell in **System Settings → Privacy & Security → Full
+Disk Access**, then reopen the window.
+
+Imported history is saved privately and can be searched from **Browser →
+Imported Browser History**. Up to 50,000 history entries are retained, and up to
+100 session tabs open in the current project. Partitioned cookies and Firefox
+container cookies or tabs are skipped. Tabs restore their current HTTP or HTTPS page, not their back/forward
+history. Local storage is not transferred, so some sites may require a new login.
+
 ## Let an agent test the page
 
 Ask your coding agent to inspect the page already open in this project, fill a form, check a result, or capture its viewport. The agent uses the existing browser session and keeps focus in your terminal. It can also open a background browser pane for a local development URL.

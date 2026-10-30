@@ -24,6 +24,8 @@ La liste présente tous les processus exécutés sous le shell de la session, av
 
 Les processus enfants terminés qui attendent encore d'être récupérés (`<defunct>`) sont exclus : il n'y a plus de contenu à consulter ni de processus à arrêter.
 
+Dans une session distante partagée, la liste provient du zshell-server de l'hôte et se met à jour toutes les quelques secondes. Ces lignes proposent seulement **Copier le PID** ou **Copier le chemin de l'exécutable** ; les terminaux SSH simples n'ont pas de liste, car seul le client `ssh` local y tourne.
+
 ## Ports [#ports]
 
 La liste affiche les ports TCP sur lesquels ces processus écoutent et le processus qui les détient. Elle permet de savoir quel port le serveur de développement a choisi ou quel programme occupe encore le port 3000.
