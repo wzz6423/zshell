@@ -163,6 +163,13 @@ struct WorkspaceTemplateRemoteSurfaceTests {
         catch { }
         try check(manager.projects.count == projectCount, "invalid or unavailable remote directories create no project")
 
+        // Template panes keep their saved commands even when a host profile
+        // configures a startup program.
+        var profile = TerminalProfile(name: "Remote template fixture")
+        profile.directory = "*/target-\(backend)"
+        profile.startupProgram = "/usr/bin/touch"
+        profile.startupArguments = targetDirectory + "/profile-startup-sentinel"
+        AppSettings.shared.terminalProfiles = [profile]
         let homeRelative = "~/" + (targetDirectory as NSString).lastPathComponent
         let applied = try awaiting { try await manager.applyRemoteWorkspaceTemplate(ready, host: host, directory: homeRelative) }
         applied.sessions.forEach(mount)
@@ -177,6 +184,9 @@ struct WorkspaceTemplateRemoteSurfaceTests {
             text(applied.sessions[1]).contains("REMOTE_INIT")
                 && FileManager.default.fileExists(atPath: targetDirectory + "/initialization-sentinel")
         }
+        try check(!FileManager.default.fileExists(atPath: targetDirectory + "/profile-startup-sentinel"),
+                  "a host profile's startup program never replaces template commands")
+        AppSettings.shared.terminalProfiles = []
         let appliedIDs = remoteIDs(applied)
         try check(applied.tabs.count == 2 && appliedIDs.count == 2 && appliedIDs.isDisjoint(with: sourceIDs),
                   "application starts new remote sessions instead of reconnecting saved ones")

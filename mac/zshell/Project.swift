@@ -425,7 +425,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 let base = launchSettings ?? self.launchSettings
                 let configuredLaunch = initialTerminalProfile?.applyingLaunchSettings(to: base) ?? base
                 let remoteStartup = initialTerminalProfile.flatMap { profile -> [String]? in
-                    guard !isRestoredSession, commandArguments == nil,
+                    guard !isRestoredSession, usesConfiguredStartupCommand, commandArguments == nil,
                           case .success(let startup?) = TerminalStartupCommand.resolve(
                             program: profile.startupProgram, arguments: profile.startupArguments,
                             requireLocalExecutable: false
