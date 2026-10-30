@@ -56,10 +56,66 @@ private actor Counter {
     func increment() { calls += 1 }
 }
 
+/// Runs real Git with the environments Zshell builds, so the proxy is checked
+/// the way Git resolves it rather than by inspecting dictionary keys.
+private func gitProxy(_ environment: [String: String], in directory: String) -> String {
+    let process = Process(), pipe = Pipe()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+    process.arguments = ["config", "--get-all", "http.proxy"]
+    process.currentDirectoryURL = URL(fileURLWithPath: directory)
+    process.environment = environment
+    process.standardOutput = pipe
+    try! process.run()
+    process.waitUntilExit()
+    return String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+}
+
+private func checkGitProxy(_ repo: String) {
+    let base = ["PATH": "/usr/bin:/bin", "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null"]
+    for valid in ["http://127.0.0.1:7897", " socks5h://user:pass@proxy.example:1080 ", "https://[::1]:8443",
+                  "http://proxy.example", "socks5://proxy.example:1", "https://proxy.example:65535"] {
+        require(GitProxy.normalized(valid) == valid.trimmingCharacters(in: .whitespaces), "valid proxy \(valid)")
+    }
+    for invalid in ["", "127.0.0.1:7897", "ftp://127.0.0.1:21", "http://", "http://a b:1", "http://h:1/?x=1", "http://h\n:1",
+                    "socks4://127.0.0.1:1080", "SOCKS4A://127.0.0.1:1080", "http://127.0.0.1:0",
+                    "http://127.0.0.1:65536", "https://[::1]:99999"] {
+        require(GitProxy.normalized(invalid) == nil, "invalid proxy \(invalid.debugDescription)")
+    }
+    require(GitProxy.defaultEnabled == false && GitProxy.defaultAddress == "http://127.0.0.1:7897", "proxy defaults")
+    GitProxy.update(enabled: false, address: GitProxy.defaultAddress)
+    require(GitProxy.processEnvironment(inheriting: base) == base, "a disabled proxy must not touch app processes")
+    require(GitProxy.terminalEnvironment(inheriting: base).isEmpty, "a disabled proxy must not touch terminals")
+    GitProxy.update(enabled: true, address: "not a proxy")
+    require(GitProxy.address == nil, "an invalid address must disable the proxy")
+    GitProxy.update(enabled: true, address: " http://127.0.0.1:7897 ")
+    let app = GitProxy.processEnvironment(inheriting: base)
+    require(app["HTTPS_PROXY"] == "http://127.0.0.1:7897" && app["https_proxy"] == "http://127.0.0.1:7897"
+            && app["all_proxy"] == "http://127.0.0.1:7897", "gh must see the proxy")
+    require(gitProxy(app, in: repo) == "http://127.0.0.1:7897", "app Git must use the proxy")
+    let runner = GitCommandRunner.processEnvironment()
+    require(runner["GIT_TERMINAL_PROMPT"] == "0" && runner["HTTPS_PROXY"] == "http://127.0.0.1:7897", "runner environment")
+    let terminal = GitProxy.terminalEnvironment(inheriting: base)
+    require(Set(terminal.keys) == ["GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0"],
+            "terminals must get only Git configuration")
+    require(gitProxy(base.merging(terminal) { $1 }, in: repo) == "http://127.0.0.1:7897", "terminal Git must use the proxy")
+    let existing = base.merging(["GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.pager", "GIT_CONFIG_VALUE_0": "cat"]) { $1 }
+    let appended = existing.merging(GitProxy.terminalEnvironment(inheriting: existing)) { $1 }
+    require(appended["GIT_CONFIG_COUNT"] == "2" && appended["GIT_CONFIG_KEY_0"] == "core.pager"
+            && gitProxy(appended, in: repo) == "http://127.0.0.1:7897", "existing GIT_CONFIG entries must be kept")
+    // A reused PTY daemon applies the overrides to an environment without the
+    // GUI's inherited entries, so the overrides alone must stay complete.
+    let staleDaemon = base.merging(GitProxy.terminalEnvironment(inheriting: existing)) { $1 }
+    require(staleDaemon["GIT_CONFIG_KEY_0"] == "core.pager" && staleDaemon["GIT_CONFIG_VALUE_0"] == "cat"
+            && gitProxy(staleDaemon, in: repo) == "http://127.0.0.1:7897", "terminal overrides must carry inherited entries")
+    GitProxy.update(enabled: false, address: GitProxy.defaultAddress)
+}
+
 @main
 struct ProjectPullRequestTests {
     @MainActor static func main() async {
         let repo = CommandLine.arguments[1], worktree = CommandLine.arguments[2]
+        checkGitProxy(repo)
         let first = snapshot(repo), second = snapshot(worktree)
         require(first.branch == "feature/one", "main checkout branch")
         require(second.branch == "feature/two", "linked worktree branch")

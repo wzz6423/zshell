@@ -8,8 +8,10 @@ import os
 from pathlib import Path
 import platform
 import plistlib
+import shutil
 import subprocess
 import tempfile
+import time
 
 ROOT = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser(description=__doc__)
@@ -58,7 +60,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-pr-status-") as directory:
     subprocess.run([
         "xcrun", "swiftc", "-parse-as-library", "-swift-version", "5",
         "-default-isolation", "MainActor", "-module-cache-path", str(temporary / "modules"),
-        str(support), str(ROOT / "mac/zshell/GitCommandRunner.swift"),
+        str(support), str(ROOT / "mac/zshell/GitCommandRunner.swift"), str(ROOT / "mac/zshell/GitProxy.swift"),
         str(ROOT / "mac/zshell/ProjectPullRequest.swift"),
         str(ROOT / "mac/tests/ProjectPullRequestTests.swift"), "-o", str(binary),
     ], cwd=ROOT, check=True)
@@ -105,7 +107,8 @@ with tempfile.TemporaryDirectory(prefix="zshell-pr-status-") as directory:
         bindir = temporary / "bin"
         bindir.mkdir()
         fake_gh = bindir / "gh"
-        fake_gh.write_text("#!/bin/sh\nprintf . >> \"$ZSHELL_PR_COUNT_FILE\"\ncase \"$*\" in\n"
+        fake_gh.write_text("#!/bin/sh\nprintf . >> \"$ZSHELL_PR_COUNT_FILE\"\n"
+                           + "printf '%s\\n' \"${HTTPS_PROXY:-none}\" >> \"$ZSHELL_PR_PROXY_FILE\"\ncase \"$*\" in\n"
                            + "*branch=feature/other*) printf '%s\\n' '" + response("feature/other", 2) + "' ;;\n"
                            + "*) printf '%s\\n' '" + response("feature/one", 1) + "' ;;\nesac\n")
         fake_gh.chmod(0o755)
@@ -116,13 +119,26 @@ with tempfile.TemporaryDirectory(prefix="zshell-pr-status-") as directory:
             git(temporary, "clone", "-q", str(repo), str(checkout))
             git(checkout, "remote", "set-url", "origin", "git@github.com:example/fork.git")
             git(checkout, "remote", "add", "upstream", "https://github.com/example/base.git")
+            # An inherited proxy would hide whether the Settings proxy is applied.
             env = {key: value for key, value in os.environ.items()
-                   if not key.startswith("ZSHELL_") and not key.startswith("GH_")}
+                   if not key.startswith(("ZSHELL_", "GH_", "GIT_CONFIG_"))
+                   and key.lower() not in ("http_proxy", "https_proxy", "all_proxy")}
             env.update({"HOME": str(fixture), "CFFIXED_USER_HOME": str(fixture), "ZDOTDIR": str(fixture),
                         "PATH": f"{bindir}:/usr/bin:/bin:/usr/sbin:/sbin",
                         "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null",
                         "ZSHELL_PTY_MUX_DIRECTORY": str(fixture / "mux"),
-                        "ZSHELL_PR_COUNT_FILE": str(fixture / "queries")})
+                        "ZSHELL_PR_COUNT_FILE": str(fixture / "queries"),
+                        "ZSHELL_PR_PROXY_FILE": str(fixture / "proxies"),
+                        "ZSHELL_PR_TERMINAL_DIRECTORY": str(fixture)})
             if backend == "ghostty" and "ZSHELL_PR_TEST_SCREENSHOT" in os.environ:
                 env["ZSHELL_PR_TEST_SCREENSHOT"] = os.environ["ZSHELL_PR_TEST_SCREENSHOT"]
             subprocess.run([str(binary), backend, str(checkout)], cwd=ROOT, env=env, check=True, timeout=45)
+            # Hung-up shells may still write their history just after the app exits.
+            for attempt in range(50):
+                try:
+                    shutil.rmtree(fixture)
+                    break
+                except OSError:
+                    if attempt == 49:
+                        raise
+                    time.sleep(0.1)

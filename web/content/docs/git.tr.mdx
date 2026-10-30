@@ -105,6 +105,14 @@ Aynı menüde **Değişen Yolları Kopyala**, **Depo Yolunu Kopyala** ve **Depoy
 Pull bilinçli olarak yalnızca fast-forward yapar. Gerçek merge veya rebase gerekirse Git söyler; kararı terminalde siz verirsiniz. Panel sizin yerinize strateji seçmez.
 </Callout>
 
+### Pull request durumu [#pull-request-status]
+
+Yerel bir deponun Git panelinde geçerli dalın pull request numarasını ve durumunu görmek için GitHub CLI yükleyip `gh auth login` ile oturum açın. Açmak için tıklayın veya sağ tıklayıp **Pull request durumunu yenile** seçeneğini kullanın. GitHub dışındaki uzak depolarda pull request gösterilmez.
+
+### Proxy [#proxy]
+
+Git trafiğini bir proxy üzerinden göndermek için **Ayarlar → Genel** altında **Git için proxy kullan** seçeneğini açın ve `http://127.0.0.1:7897` ile önceden doldurulan **Proxy adresi**ni kontrol edin. Proxy varsayılan olarak kapalıdır. Paneldeki fetch, pull ve push işlemlerine, pull request durumuna ve bundan sonra açılan terminallerdeki `git`e uygulanır; açık terminaller ve uzak SSH projeleri değişmez. Yalnızca HTTP(S) uzak depolar kullanır; `git@` SSH uzak depoları doğrudan bağlanmaya devam eder. Yapılandırma dosyasında: `git.proxy-enabled = true` ve `git.proxy = "<url>"`.
+
 ## Henüz depo değilse [#not-a-repository-yet]
 
 Proje dizininde depo yoksa panel o klasörde `git init` çalıştıran **Depoyu Başlat** seçeneğini sunar. O zamana kadar önünüze çıkmaz.

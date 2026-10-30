@@ -145,6 +145,14 @@ says so and you decide in the terminal — the panel won't pick a strategy for
 you.
 </Callout>
 
+### Pull request status [#pull-request-status]
+
+Install and sign in to GitHub CLI (`gh auth login`) to see the current branch’s pull request number and status in the panel of a local repository. Click it to open the pull request, or right-click it and choose **Refresh Pull Request Status** to check again. Non-GitHub remotes do not show a pull request.
+
+### Proxy [#proxy]
+
+To route Git traffic through a proxy, turn on **Use proxy for Git** under **Settings → General** and check the **Proxy address**, which is prefilled with `http://127.0.0.1:7897`. The proxy is off by default. It applies to the panel’s fetch, pull, and push, to pull request status, and to `git` in terminals opened afterwards; open terminals and remote SSH projects are unchanged. Only HTTP(S) remotes use it, so `git@` SSH remotes still connect directly. In the config file, set `git.proxy-enabled = true` and `git.proxy = "<url>"`.
+
 ## Not a repository yet
 
 If the project directory has no repository, the panel offers **Initialize

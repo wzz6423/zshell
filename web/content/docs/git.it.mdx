@@ -105,6 +105,14 @@ Lo stesso menu contiene **Copia percorsi modificati**, **Copia percorso reposito
 Il pull è volutamente solo fast-forward. Se serve un vero merge o rebase, Git lo segnala e decidi nel terminale; il pannello non sceglie una strategia al posto tuo.
 </Callout>
 
+### Stato della pull request [#pull-request-status]
+
+Installa GitHub CLI e accedi con `gh auth login` per vedere nel pannello Git di un repository locale numero e stato della pull request del ramo corrente. Fai clic per aprirla oppure fai clic destro e scegli **Aggiorna stato della pull request**. I remoti diversi da GitHub non mostrano una pull request.
+
+### Proxy [#proxy]
+
+Per far passare il traffico Git da un proxy, attiva **Usa proxy per Git** in **Impostazioni → Generali** e controlla l’**Indirizzo proxy**, precompilato con `http://127.0.0.1:7897`. Il proxy è disattivato per impostazione predefinita. Si applica a fetch, pull e push del pannello, allo stato della pull request e a `git` nei terminali aperti in seguito; i terminali già aperti e i progetti SSH remoti non cambiano. Lo usano solo i remoti HTTP(S); i remoti SSH `git@` continuano a collegarsi direttamente. Nel file di configurazione: `git.proxy-enabled = true` e `git.proxy = "<url>"`.
+
 ## Non è ancora un repository [#not-a-repository-yet]
 
 Se la directory del progetto non contiene un repository, il pannello offre **Inizializza repository**, che esegue `git init` nella cartella. Fino ad allora rimane discreto.

@@ -159,7 +159,7 @@ nonisolated enum GitHubPullRequestWorker {
 
     static func query(
         _ context: ProjectPullRequestContext,
-        environment: [String: String] = ProcessInfo.processInfo.environment,
+        environment: [String: String] = GitProxy.processEnvironment(inheriting: ProcessInfo.processInfo.environment),
         locate: @Sendable ([String: String]) -> URL? = { ProcessRunner.resolveExecutable("gh", environment: $0) },
         command: Command = {
             try BoundedProcessRunner.run(executableURL: $0, arguments: $1, timeout: $2,
