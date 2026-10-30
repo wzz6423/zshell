@@ -34,7 +34,7 @@ extension TerminalSession {
         return .init(
             host: ProcessInfo.processInfo.hostName,
             user: pid.flatMap(processEffectiveUser(pid:)),
-            directory: foregroundDirectoryPath ?? currentDirectoryPath,
+            directory: pid.flatMap(processWorkingDirectory(pid:)) ?? currentDirectoryPath,
             program: pid.flatMap(processExecutablePath(pid:)),
             hostAlias: "localhost"
         )

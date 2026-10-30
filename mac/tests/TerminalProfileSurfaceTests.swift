@@ -140,7 +140,11 @@ struct TerminalProfileSurfaceTests {
         try wait("automatic selection") { first.activeTerminalProfileID == base.id }
 
         command(first, "cd " + quote(secondDirectory.path))
+        try wait("shell directory changes") { processWorkingDirectory(pid: firstPID) == secondDirectory.path }
+        first.terminalDidChangeWorkingDirectory(firstDirectory.path)
         try wait("directory mismatch restores original") { first.activeTerminalProfileID == nil }
+        try check(first.terminalProfileContext.directory == secondDirectory.path,
+                  "profile matching uses the live directory with a stale OSC 7 report")
         try check(first.surface.profileAppearance.fontSize == nil, "unmatched profile restores appearance")
         command(first, "cd " + quote(firstDirectory.path))
         try wait("directory match returns") { first.activeTerminalProfileID == base.id }
