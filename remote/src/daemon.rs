@@ -5,17 +5,18 @@ use crate::protocol::*;
 use crate::session::{Attachment, Session, SessionInfo};
 use crate::transport::*;
 use serde_json::{json, Value};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::io;
 use std::net::{SocketAddr, TcpListener};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 pub struct Daemon {
     sessions: Arc<Mutex<HashMap<String, Arc<Session>>>>,
-    starting: Mutex<HashSet<String>>,
+    /// Reservation key to the session ID it is spawning.
+    starting: Mutex<HashMap<String, String>>,
     instance_id: String,
     paste_store: PasteStore,
     state_path: std::path::PathBuf,
@@ -34,7 +35,7 @@ impl Daemon {
     pub fn new(state: &Path) -> io::Result<Arc<Self>> {
         Ok(Arc::new(Self {
             sessions: Arc::new(Mutex::new(HashMap::new())),
-            starting: Mutex::new(HashSet::new()),
+            starting: Mutex::new(HashMap::new()),
             instance_id: new_id()?,
             paste_store: PasteStore::new(state)?,
             state_path: state.into(),
@@ -138,6 +139,7 @@ impl Daemon {
                 result
             } else {
                 if request.kind == "agentHook" {
+                    self.wait_until_started(&request);
                     let hook = request.hook.as_ref().ok_or_else(|| invalid("A native Agent hook is required"));
                     hook.and_then(|hook| {
                         if hook.provider == "codex" && stream.peer_pid().and_then(|peer| crate::agent_process::shared_codex_service(peer, hook.reporter_pid)).is_some() {
@@ -265,6 +267,16 @@ impl Daemon {
                 let provider = request.provider.as_deref().ok_or_else(|| invalid("A provider is required"))?;
                 let id = request.conversation_id.as_deref().ok_or_else(|| invalid("An exact provider conversation ID is required"))?;
                 let record = self.history.find(&project, provider, id)?;
+                let live = |sessions: &HashMap<String, Arc<Session>>| {
+                    Ok(sessions.values().map(|session| session.info()).find(|info| {
+                        info.project == project && info.running && info.conversation.as_ref() == Some(&record.identity)
+                    }))
+                };
+                // A running conversation is reattached even if its provider has
+                // since left PATH; only a new launch needs the executable.
+                if let Some(info) = live(&self.sessions.lock().unwrap())? {
+                    return Ok(json!(info));
+                }
                 let (command, environment) = record.identity.resume()?;
                 let mut create = Frame::new("create");
                 create.project = Some(project.clone());
@@ -272,11 +284,7 @@ impl Daemon {
                 create.session_id = Some(new_id()?);
                 create.command = Some(command);
                 create.environment = Some(environment);
-                self.start_session(&create, format!("{provider}:{id}@{project}"), |sessions| {
-                    Ok(sessions.values().map(|session| session.info()).find(|info| {
-                        info.project == project && info.running && info.conversation.as_ref() == Some(&record.identity)
-                    }))
-                })
+                self.start_session(&create, format!("{provider}:{id}@{project}"), live)
             }
             "create" => {
                 let id = request
@@ -339,31 +347,60 @@ impl Daemon {
         reservation: String,
         existing: impl Fn(&HashMap<String, Arc<Session>>) -> io::Result<Option<SessionInfo>>,
     ) -> io::Result<Value> {
-        {
+        let evicted = {
             let mut sessions = self.sessions.lock().unwrap();
             if let Some(info) = existing(&sessions)? {
                 return Ok(json!(info));
             }
             let mut starting = self.starting.lock().unwrap();
-            if !starting.insert(reservation.clone()) {
+            if starting.contains_key(&reservation) {
                 return Err(invalid("This remote session is still starting"));
             }
-            if !make_room(&mut sessions, starting.len()) {
-                starting.remove(&reservation);
-                return Err(invalid(
-                    "Remote session limit reached; end an unused session first",
-                ));
+            let session_id = request.session_id.as_deref().unwrap_or_default().to_ascii_lowercase();
+            starting.insert(reservation.clone(), session_id);
+            match make_room(&mut sessions, starting.len()) {
+                Some(evicted) => evicted,
+                None => {
+                    starting.remove(&reservation);
+                    return Err(invalid(
+                        "Remote session limit reached; end an unused session first",
+                    ));
+                }
             }
-        }
+        };
         // Spawning waits for the child to enter its directory and exec, which can
         // stall on a slow filesystem; other clients must still reach their sessions.
         let session = Session::spawn(request, &self.state_path, self.history.clone(), self.bindings.clone(), Arc::downgrade(&self.sessions));
         let mut sessions = self.sessions.lock().unwrap();
         self.starting.lock().unwrap().remove(&reservation);
-        let session = session?;
+        let session = match session {
+            Ok(session) => session,
+            Err(error) => {
+                // The new session never existed: give the exited ones their slots back.
+                for (id, session) in evicted {
+                    if sessions.contains_key(&id) { session.terminate(); } else { sessions.insert(id, session); }
+                }
+                return Err(error);
+            }
+        };
+        // An exited shell may leave a child that ignored SIGHUP holding the PTY;
+        // end it with the session instead of leaving it unreachable.
+        for (_, session) in evicted {
+            session.terminate();
+        }
         let info = session.info();
         sessions.insert(info.session_id.clone(), session);
         Ok(json!(info))
+    }
+
+    /// An Agent can report SessionStart before its spawning session is listed;
+    /// hold the hook until the spawn settles (within the hook's 3s deadline).
+    fn wait_until_started(&self, request: &Frame) {
+        let Some(id) = request.session_id.as_deref().map(str::to_ascii_lowercase) else { return };
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while Instant::now() < deadline && self.starting.lock().unwrap().values().any(|starting| *starting == id) {
+            thread::sleep(Duration::from_millis(10));
+        }
     }
 
     fn session(&self, request: &Frame) -> io::Result<Arc<Session>> {
@@ -395,8 +432,10 @@ impl Daemon {
 }
 
 // Exited sessions keep their output for a later attachment only until their slot
-// is needed: the oldest one that no client is viewing makes room first.
-fn make_room(sessions: &mut HashMap<String, Arc<Session>>, starting: usize) -> bool {
+// is needed: the oldest one that no client is viewing makes room first. The
+// evicted sessions are returned so a failed spawn can restore them.
+fn make_room(sessions: &mut HashMap<String, Arc<Session>>, starting: usize) -> Option<Vec<(String, Arc<Session>)>> {
+    let mut evicted = Vec::new();
     while sessions.len() + starting > MAX_SESSIONS {
         let Some(id) = sessions
             .values()
@@ -405,9 +444,11 @@ fn make_room(sessions: &mut HashMap<String, Arc<Session>>, starting: usize) -> b
             .min_by(|first, second| first.started_at.total_cmp(&second.started_at))
             .map(|info| info.session_id)
         else {
-            return false;
+            sessions.extend(evicted);
+            return None;
         };
-        sessions.remove(&id);
+        let session = sessions.remove(&id).unwrap();
+        evicted.push((id, session));
     }
-    true
+    Some(evicted)
 }

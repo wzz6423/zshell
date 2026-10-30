@@ -344,10 +344,13 @@ fn exited_sessions_make_room_for_new_sessions() {
     let watched = new_id().unwrap();
     fixture.create(&watched, vec!["/bin/sh", "-c", "exit 3"]);
     let (stream, _, _) = fixture.attach(&watched, 80, 24);
+    // The oldest evictable shell leaves a child that ignores SIGHUP on its PTY.
+    let survivor = fixture.root.join("survivor.pid");
+    let script = format!("(trap '' HUP; exec sleep 30) & echo $! > '{}'; exit 0", survivor.display());
     let exited: Vec<_> = (1..MAX_SESSIONS)
-        .map(|_| {
+        .map(|index| {
             let id = new_id().unwrap();
-            fixture.create(&id, vec!["/bin/sh", "-c", "exit 0"]);
+            fixture.create(&id, if index == 1 { vec!["/bin/sh", "-c", &script] } else { vec!["/bin/sh", "-c", "exit 0"] });
             id
         })
         .collect();
@@ -356,10 +359,22 @@ fn exited_sessions_make_room_for_new_sessions() {
         assert!(Instant::now() < deadline, "Sessions did not exit");
         thread::sleep(Duration::from_millis(20));
     }
+    let survivor: i32 = fs::read_to_string(&survivor).unwrap().trim().parse().unwrap();
+    assert_eq!(unsafe { libc::kill(survivor, 0) }, 0);
+    // A launch that fails after reserving a slot keeps the exited sessions.
+    let mut failing = fixture.request("create", &new_id().unwrap());
+    failing.command = Some(vec!["/bin/sh".into()]);
+    failing.environment = Some([("ZSHELL_CLI_TOKEN".into(), "secret".into())].into());
+    assert!(fixture.daemon.request(&failing).is_err());
+    assert_eq!(fixture.get(&exited[0])["running"], false);
     let fresh = new_id().unwrap();
     assert_eq!(fixture.create(&fresh, vec!["/bin/sh", "-i"])["running"], true);
     assert_eq!(fixture.get(&watched)["exitCode"], 3);
     assert!(fixture.daemon.request(&fixture.request("get", &exited[0])).is_err());
+    thread::sleep(Duration::from_millis(700));
+    let alive = unsafe { libc::kill(survivor, 0) } == 0;
+    if alive { unsafe { libc::kill(survivor, libc::SIGKILL); } }
+    assert!(!alive, "An evicted session left its SIGHUP-ignoring child running");
     assert_eq!(fixture.get(&exited[1])["running"], false);
     stream.shutdown();
 }

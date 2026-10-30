@@ -180,6 +180,12 @@ sys.exit(result.returncode)
             check(mode == 0o600, "remote history is an owner-only file")
             reused = bridge.call("agentResume", project, provider="claude", conversationId=session_id)["result"]
             check(reused["sessionId"] == terminal_id, "resume keeps an existing live Agent PTY")
+            fixture.rename(providers / "claude.off")
+            try:
+                reused = bridge.call("agentResume", project, provider="claude", conversationId=session_id)
+            finally:
+                (providers / "claude.off").rename(fixture)
+            check(reused.get("result", {}).get("sessionId") == terminal_id, "resume keeps a live Agent PTY after the provider leaves PATH")
             check("error" in bridge.call("agentResume", other, provider="claude", conversationId=session_id), "resume cannot cross remote project boundaries")
 
             def scripted(script):
