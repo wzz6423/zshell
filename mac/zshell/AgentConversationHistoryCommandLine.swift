@@ -20,7 +20,7 @@ enum AgentConversationHistoryCommandLine {
                 values["query"] = .string(query)
                 values["filter"] = .string(filter)
             }
-            if method == "resume" { values["focus"] = .bool(focus) }
+            if method == "resume" || method == "fork" { values["focus"] = .bool(focus) }
             return values
         }
     }
@@ -42,21 +42,23 @@ enum AgentConversationHistoryCommandLine {
                 throw CLIError.message("History operations inside a Zshell pane use only that pane’s project. Remove --project, --window, and --connection.")
             }
             let connection = try AppConnection(environment: environment)
-            result = try connection.automationRequest(method: "agent.history.\(options.method)", params: options.params)
+            result = try connection.automationRequest(method: "agent.history.\(options.method)", params: options.params,
+                timeout: options.method == "fork" ? 45 : 5)
         } else {
             guard options.method == "projects" || options.projectID != nil else {
                 throw CLIError.message("External history operations require --project UUID. Run `zshell +agent history projects` first.")
             }
             let connection = try options.connectionURL.map { try AgentConversationHistoryConnection.load(from: $0) }
                 ?? AgentConversationHistoryConnection.discover()
-            result = try connection.request(method: "history.\(options.method)", params: options.params)
+            result = try connection.request(method: "history.\(options.method)", params: options.params,
+                timeout: options.method == "fork" ? 45 : 5)
         }
         try ZshellAutomationCommandLine.printJSON(result)
     }
 
     static func parse(_ arguments: [String]) throws -> Options {
         guard let command = arguments.first,
-              ["history", "resume", "archive", "unarchive", "delete"].contains(command) else {
+              ["history", "resume", "fork", "archive", "unarchive", "delete"].contains(command) else {
             throw CLIError.message("Unknown conversation history command.")
         }
         var result = Options()
@@ -75,7 +77,7 @@ enum AgentConversationHistoryCommandLine {
                 result.id = try uuid(after: &index, in: arguments, option: option)
             case "--project" where result.method != "projects":
                 result.projectID = try uuid(after: &index, in: arguments, option: option)
-            case "--window" where result.method == "resume":
+            case "--window" where result.method == "resume" || result.method == "fork":
                 result.windowID = try uuid(after: &index, in: arguments, option: option)
             case "--connection":
                 let path = try ZshellAutomationCommandLine.value(after: &index, in: arguments, option: option)
@@ -90,7 +92,7 @@ enum AgentConversationHistoryCommandLine {
             case "--all" where result.method == "list", "--archived" where result.method == "list":
                 guard result.filter == "recent" else { throw CLIError.message("Choose only one of --all and --archived.") }
                 result.filter = option == "--all" ? "all" : "archived"
-            case "--focus" where result.method == "resume": result.focus = true
+            case "--focus" where result.method == "resume" || result.method == "fork": result.focus = true
             default: throw CLIError.message("Unknown option \(option) for conversation history. Run `zshell +agent history --help`.")
             }
             index += 1
@@ -113,6 +115,7 @@ enum AgentConversationHistoryCommandLine {
           zshell +agent history [--all | --archived] [--query TEXT]
           zshell +agent history projects
           zshell +agent resume --id UUID [--focus]
+          zshell +agent fork --id UUID [--focus]
           zshell +agent archive --id UUID
           zshell +agent unarchive --id UUID
           zshell +agent delete --id UUID
@@ -121,6 +124,7 @@ enum AgentConversationHistoryCommandLine {
           zshell +agent history projects [--connection PATH]
           zshell +agent history --project UUID [--all | --archived] [--query TEXT] [--connection PATH]
           zshell +agent resume --project UUID --id UUID [--window UUID] [--focus] [--connection PATH]
+          zshell +agent fork --project UUID --id UUID [--window UUID] [--focus] [--connection PATH]
           zshell +agent archive|unarchive|delete --project UUID --id UUID [--connection PATH]
         """)
         print(String(localized: "History keeps the last 200 verified conversations; Recent shows 20 matches. All includes archived records. Deleting a record keeps the provider’s conversation files."))

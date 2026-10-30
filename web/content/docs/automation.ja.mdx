@@ -138,3 +138,7 @@ zshell +events --event command.task.finished --once --timeout 30000
 ```
 
 `pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).
+
+## 会話を分岐する [#fork-a-conversation]
+
+**Agents → Agent Conversation History** で会話を選び、コンテキストメニューまたは分岐ボタンから **新しいペインに会話を分岐** を選択します。プロバイダーのネイティブ分岐で元のコンテキストを引き継ぐ独立した会話を作成し、元のペインと会話は変更しません。Codex、Claude Code、OpenCode、Pi はネイティブ分岐に対応する CLI が必要です。Pi は保存済みセッションファイルも必要です。リモートでは Zshell サーバーを更新してください。CLI がないか分岐に対応していない場合は、ペインを作成する前にエラーが表示されます。ログインやネイティブフックにより確認できない場合は、新しいペインの出力を確認します。ペイン内では `zshell +agent fork --id UUID [--focus]`、外部ターミナルではさらに `--project UUID` を指定します。

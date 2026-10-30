@@ -236,6 +236,21 @@ user asks to see it; only `--focus` changes selection. The returned `action`
 describes what Zshell did. `resume_started` does not prove provider startup or
 task completion; inspect the returned terminal and actual outcome.
 
+When the user asks to branch that conversation while retaining its native
+context, fork the selected history UUID into a new pane:
+
+```sh
+zshell +agent fork --id HISTORY_UUID
+```
+
+This uses the provider's native fork operation with the saved working directory
+and profile. It keeps the source conversation and agent alive. `forked` returns
+the new history `id`, `terminal_id`, `record`, and the original `source_id` only
+after a native hook confirms a different provider session. A missing or older
+CLI, failed sign-in, or absent native hook must remain an explicit failure or
+unconfirmed result; never replace context with a summary. Add `--focus` only
+when the user asks to reveal the new pane.
+
 Archive, unarchive, or delete only the record the user selected:
 
 ```sh
@@ -255,6 +270,7 @@ project scope before reading or resuming history:
 zshell +agent history projects
 zshell +agent history --project PROJECT_UUID --all
 zshell +agent resume --project PROJECT_UUID --id HISTORY_UUID
+zshell +agent fork --project PROJECT_UUID --id HISTORY_UUID
 ```
 
 For a project open in several windows, select `--window WINDOW_UUID` returned by

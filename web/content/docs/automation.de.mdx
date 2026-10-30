@@ -131,3 +131,7 @@ zshell +events --event command.task.finished --once --timeout 30000
 ```
 
 `pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).
+
+## Eine Unterhaltung verzweigen [#fork-a-conversation]
+
+Wählen Sie unter **Agents → Agent Conversation History** eine Unterhaltung und im Kontextmenü oder über die Verzweigungsschaltfläche **Unterhaltung in einem neuen Bereich verzweigen**. Die native Funktion des Anbieters erhält den Kontext in einer neuen, eigenständigen Unterhaltung; der ursprüngliche Bereich und die Unterhaltung bleiben unverändert. Codex, Claude Code, OpenCode und Pi benötigen eine CLI mit nativer Verzweigung, Pi außerdem die gespeicherte Sitzungsdatei. Für entfernte Unterhaltungen muss der Zshell-Server aktualisiert sein. Fehlen CLI, Anmeldung oder Hooks, prüfen Sie die Ausgabe des neuen Bereichs. Im Bereich verwenden Sie `zshell +agent fork --id UUID [--focus]`, extern zusätzlich `--project UUID`.

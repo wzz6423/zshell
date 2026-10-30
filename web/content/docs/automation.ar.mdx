@@ -131,3 +131,7 @@ zshell +events --event command.task.finished --once --timeout 30000
 ```
 
 `pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).
+
+## إنشاء فرع للمحادثة [#fork-a-conversation]
+
+افتح **Agents → Agent Conversation History** وحدّد محادثة ثم اختر **إنشاء فرع للمحادثة في لوحة جديدة** من القائمة السياقية أو زر التفرّع. تستخدم الميزة الأصلية للمزوّد للحفاظ على السياق في محادثة مستقلة، وتبقى اللوحة والمحادثة الأصلية دون تغيير. تتطلّب Codex وClaude Code وOpenCode وPi إصدار CLI يدعم التفرّع؛ وتتطلّب Pi ملف جلسة محفوظًا أيضًا. حدّث خادم Zshell للمحادثات البعيدة. إذا غاب CLI أو تسجيل الدخول أو الخطافات، راجع مخرجات اللوحة الجديدة قبل المتابعة. استخدم `zshell +agent fork --id UUID [--focus]` داخل اللوحة، وأضف `--project UUID` في الطرفيات الخارجية.

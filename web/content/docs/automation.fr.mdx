@@ -131,3 +131,7 @@ zshell +events --event command.task.finished --once --timeout 30000
 ```
 
 `pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).
+
+## Dériver une conversation [#fork-a-conversation]
+
+Dans **Agents → Agent Conversation History**, sélectionnez une conversation puis **Dériver la conversation dans un nouveau volet** dans le menu contextuel ou avec le bouton de branchement. La dérivation native du fournisseur conserve le contexte dans une nouvelle conversation indépendante ; le volet et la conversation d’origine restent inchangés. Codex, Claude Code, OpenCode et Pi nécessitent une version CLI compatible ; Pi nécessite aussi son fichier de session enregistré. Pour les conversations distantes, mettez à jour le serveur Zshell. Si le CLI, la connexion ou les hooks manquent, vérifiez la sortie du nouveau volet avant de continuer. Dans un volet, utilisez `zshell +agent fork --id UUID [--focus]` ; depuis un terminal externe, ajoutez `--project UUID`.

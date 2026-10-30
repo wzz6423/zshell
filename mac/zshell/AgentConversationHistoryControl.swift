@@ -193,7 +193,8 @@ enum AgentConversationHistoryRouter {
         manager: TerminalManager?, project: Project?, projectID: UUID
     ) async throws -> ZshellAutomationResponse {
         let store = AgentConversationHistoryStore.shared
-        let targeting: Set<String> = method == "resume" ? ["project_id", "window_id"] : ["project_id"]
+        let launching = method == "resume" || method == "fork"
+        let targeting: Set<String> = launching ? ["project_id", "window_id"] : ["project_id"]
         if method == "list" {
             guard Set(request.params.keys).isSubset(of: targeting.union(["query", "filter"])) else {
                 throw CLIError.message("Unknown history list parameter.")
@@ -221,7 +222,7 @@ enum AgentConversationHistoryRouter {
                 "maximum_records": .number(Double(AgentConversationHistoryStore.maximumRecords)),
             ]))
         }
-        let options: Set<String> = method == "resume" ? ["id", "focus"] : ["id"]
+        let options: Set<String> = launching ? ["id", "focus"] : ["id"]
         guard Set(request.params.keys).isSubset(of: targeting.union(options)) else {
             throw CLIError.message("Unknown history operation parameter.")
         }
@@ -234,6 +235,19 @@ enum AgentConversationHistoryRouter {
             throw AgentConversationHistoryError.notFound
         }
         switch method {
+        case "fork":
+            guard let manager else { throw AgentConversationHistoryError.noWindow }
+            let context = try await manager.forkConversation(id: id, in: project,
+                focus: request.params["focus"]?.boolValue ?? false)
+            guard let historyID = context.session.agentConversationHistoryID,
+                  let forked = store.record(id: historyID) else { throw AgentConversationHistoryError.forkUnconfirmed }
+            return .success(id: request.id, result: .object([
+                "id": .string(forked.id.uuidString), "source_id": .string(record.id.uuidString),
+                "action": .string("forked"), "terminal_id": .string(context.session.id.uuidString),
+                "project_id": .string(context.project.conversationHistoryProjectID.uuidString),
+                "window_id": .string(context.manager.conversationHistoryWindowID.uuidString),
+                "record": recordJSON(forked),
+            ]))
         case "archive", "unarchive":
             try store.setArchived(method == "archive", id: id, projectID: projectID)
             guard let updated = store.record(id: id) else { throw AgentConversationHistoryError.notFound }

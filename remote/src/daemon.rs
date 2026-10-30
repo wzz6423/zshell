@@ -232,7 +232,7 @@ impl Daemon {
         match request.kind.as_str() {
             "hello" => Ok(
                 json!({ "instanceID": self.instance_id, "protocolVersion": VERSION, "platform": std::env::consts::OS,
-                    "daemonPID": std::process::id(), "capabilities": ["agentHistory", "agentResume", "processes"] }),
+                    "daemonPID": std::process::id(), "capabilities": ["agentHistory", "agentResume", "agentFork", "processes"] }),
             ),
             "projects" => {
                 let sessions = self.sessions.lock().unwrap();
@@ -265,12 +265,14 @@ impl Daemon {
                 let project = project_path(request.project.as_deref().ok_or_else(|| invalid("A project directory is required"))?)?;
                 Ok(json!(self.history.list(&project)))
             }
-            "agentResume" => {
+            "agentResume" | "agentFork" => {
                 let project = project_path(request.project.as_deref().ok_or_else(|| invalid("A project directory is required"))?)?;
                 let provider = request.provider.as_deref().ok_or_else(|| invalid("A provider is required"))?;
                 let id = request.conversation_id.as_deref().ok_or_else(|| invalid("An exact provider conversation ID is required"))?;
                 let record = self.history.find(&project, provider, id)?;
+                let fork = request.kind == "agentFork";
                 let live = |sessions: &HashMap<String, Arc<Session>>| {
+                    if fork { return Ok(None); }
                     Ok(sessions.values().map(|session| session.info()).find(|info| {
                         info.project == project && info.running && info.conversation.as_ref() == Some(&record.identity)
                     }))
@@ -280,14 +282,20 @@ impl Daemon {
                 if let Some(info) = live(&self.sessions.lock().unwrap())? {
                     return Ok(json!(info));
                 }
-                let (command, environment) = record.identity.resume()?;
+                let (command, environment) = if fork { record.identity.fork()? } else { record.identity.resume()? };
                 let mut create = Frame::new("create");
                 create.project = Some(project.clone());
                 create.working_directory = Some(record.identity.working_directory.clone());
-                create.session_id = Some(new_id()?);
+                let session_id = new_id()?;
+                create.session_id = Some(session_id.clone());
                 create.command = Some(command);
                 create.environment = Some(environment);
-                self.start_session(&create, format!("{provider}:{id}@{project}"), live)
+                if fork {
+                    create.provider = Some(record.identity.provider.clone());
+                    create.conversation_id = Some(record.identity.session_id.clone());
+                }
+                let reservation = if fork { session_id } else { format!("{provider}:{id}@{project}") };
+                self.start_session(&create, reservation, live)
             }
             "create" => {
                 let id = request

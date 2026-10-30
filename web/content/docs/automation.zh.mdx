@@ -196,3 +196,7 @@ zshell +events --event command.task.finished --once --timeout 30000
 ```
 
 `pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).
+
+## 分叉对话 [#fork-a-conversation]
+
+打开 **Agent → Agent 对话历史**，选中对话，在右键菜单或分叉按钮中选择 **在新窗格中分叉对话**。Zshell 调用 provider 原生分叉，保留其对话上下文并创建独立的新对话；源窗格和原对话保持不变。Codex、Claude Code、OpenCode 和 Pi 需要支持原生分叉的 CLI 版本，Pi 还需要已保存的会话文件。远程对话通过已更新的 Zshell 服务使用同一操作。CLI 缺失或版本不支持时，会在创建窗格前报错；登录或原生 hook 未能确认独立对话时，请先检查新窗格输出。窗格内可使用 `zshell +agent fork --id UUID [--focus]`，范围限定为该窗格项目；外部终端还须传入 `--project UUID`，与恢复对话相同。

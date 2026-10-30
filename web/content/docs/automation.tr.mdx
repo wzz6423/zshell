@@ -131,3 +131,7 @@ zshell +events --event command.task.finished --once --timeout 30000
 ```
 
 `pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).
+
+## Konuşmayı çatallama [#fork-a-conversation]
+
+**Agents → Agent Conversation History** içinde konuşmayı seçin ve bağlam menüsünden veya çatallama düğmesinden **Konuşmayı yeni bölmede çatalla** seçeneğini kullanın. Sağlayıcının yerel işlevi bağlamı bağımsız bir konuşmada korur; kaynak bölme ve konuşma değişmez. Codex, Claude Code, OpenCode ve Pi uyumlu CLI gerektirir; Pi ayrıca kaydedilmiş oturum dosyası gerektirir. Uzak konuşmalar için Zshell sunucusunu güncelleyin. CLI, oturum açma veya kancalar eksikse devam etmeden önce yeni bölmenin çıktısını kontrol edin. Bölmede `zshell +agent fork --id UUID [--focus]`, dış terminalde ayrıca `--project UUID` kullanın.

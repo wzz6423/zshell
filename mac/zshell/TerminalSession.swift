@@ -44,6 +44,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     private(set) var agentConversationOwner: ZshellAgentProcessIdentity?
     var agentConversationHistoryID: UUID?
     var agentConversationResumeDeadline: Date?
+    var agentConversationForkSource: AgentConversationIdentity?
+    /// The native fork's provider process once observed. Its exit without a
+    /// confirmed identity retires `agentConversationForkSource`.
+    var agentConversationForkProcess: ZshellAgentProcessIdentity?
     var onAgentConversationChanged: ((TerminalSession, AgentConversationIdentity?) -> Void)?
 
     /// The emulator driving this session. Fixed for the session's lifetime —
@@ -113,6 +117,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         initialTerminalProfile: TerminalProfile? = nil,
         additionalEnvironment: [String: String] = [:],
         agentResume: AgentConversationIdentity? = nil,
+        agentFork: AgentConversationIdentity? = nil,
         worktree: SessionWorktree? = nil,
         isRestoredSession: Bool = false,
         allowsPersistence: Bool = true,
@@ -125,7 +130,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         let sessionID = restoredSessionID ?? UUID()
         let existingPTY = remoteConnection == nil ? restoredSessionID.flatMap { PersistentPTY.reconnect(id: $0) } : nil
         let preserve = remoteConnection == nil && allowsPersistence && (AppSettings.shared.preserveTerminalSessions || existingPTY != nil)
-        let resumeLaunch = agentResume?.resumeLaunch(
+        let resumeLaunch = agentFork?.forkLaunch() ?? agentResume?.resumeLaunch(
             enabled: AppSettings.shared.aiEnabled
                 && (explicitlyResumeConversation || isRestoredSession && AppSettings.shared.resumeAgentConversations),
             hasLiveTerminal: existingPTY != nil
@@ -179,6 +184,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             replayFileURL: artifacts.replayFileURL,
             shellIntegrationDirectoryURL: artifacts.shellIntegrationDirectoryURL,
             resumeLaunch: resumeLaunch,
+            conversationFork: agentFork != nil,
             resumeFailed: AppSettings.shared.aiEnabled
                 && (explicitlyResumeConversation || isRestoredSession && AppSettings.shared.resumeAgentConversations)
                 && agentResume != nil && resumeLaunch == nil && existingPTY == nil
@@ -249,7 +255,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             startupCommandForTemplate = isRestoredSession ? nil : remoteConnection.command
             initializationCommandForTemplate = isRestoredSession ? nil : remoteConnection.initializationCommand
         } else {
-            startupCommandForTemplate = agentResume == nil && remotePasteTarget == nil
+            startupCommandForTemplate = agentResume == nil && agentFork == nil && remotePasteTarget == nil
                 && !isRestoredSession ? directCommand : nil
             initializationCommandForTemplate = directCommand == nil && !isRestoredSession
                 ? launchSettings.initializationCommand : nil
@@ -264,6 +270,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         title = (shellPath as NSString).lastPathComponent
         agentStatus = nil
         self.agentResume = agentResume
+        agentConversationForkSource = agentFork
         if let remoteConnection {
             title = remoteConnection.host.name + ":" + (remoteConnection.projectDirectory as NSString).lastPathComponent
             workingDirectory = URL(fileURLWithPath: remoteConnection.projectDirectory).absoluteString
@@ -309,12 +316,25 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         pty?.startMonitoring()
     }
 
-    func recordAgentConversation(_ identity: AgentConversationIdentity?, processID: pid_t?) {
+    @discardableResult
+    func recordAgentConversation(_ identity: AgentConversationIdentity?, processID: pid_t?) -> Bool {
+        if let source = agentConversationForkSource, let identity {
+            guard source.acceptsFork(identity) else {
+                // A provider is alive while it reports, so its exit is observable.
+                if agentConversationForkProcess == nil {
+                    agentConversationForkProcess = processID.flatMap(ZshellAgentProcessIdentity.init(pid:))
+                }
+                return false
+            }
+            agentConversationForkSource = nil
+            agentConversationForkProcess = nil
+        }
         agentConversationProcessID = processID
         agentConversationOwner = processID.flatMap(ZshellAgentProcessIdentity.init(pid:))
         agentConversationResumeDeadline = nil
         if agentResume != identity { agentResume = identity }
         onAgentConversationChanged?(self, identity)
+        return true
     }
 
     deinit {
@@ -787,6 +807,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         replayFileURL: URL?,
         shellIntegrationDirectoryURL: URL?,
         resumeLaunch: AgentConversationIdentity.ResumeLaunch? = nil,
+        conversationFork: Bool = false,
         resumeFailed: Bool = false
     ) -> String {
         var commands: [String] = []
@@ -805,7 +826,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             let path = shellQuote(replayFileURL.path)
             commands.append("if [ -r \(path) ]; then /bin/cat \(path); /bin/rm -f \(path); fi")
         }
-        let resumeFailure = String(localized: "Could not resume the recorded agent conversation. Opening a new shell.")
+        let resumeFailure = conversationFork
+            ? String(localized: "Could not fork the recorded agent conversation. Check the provider’s output above.")
+            : String(localized: "Could not resume the recorded agent conversation. Opening a new shell.")
         if resumeFailed {
             commands.append("printf '%s\\n' \(shellQuote(resumeFailure)) >&2")
         }
@@ -830,17 +853,32 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                 // User CLI paths often come from interactive dotfiles, not
                 // the GUI's PATH. Reapply the original profile after dotfiles.
                 let resumeShell = Self.loginShell()
-                let unset = resumeLaunch.configurationVariables.subtracting(resumeLaunch.environment.keys)
+                var variables = resumeLaunch.configurationVariables
+                if conversationFork, commandArguments[0] == "codex" { variables.insert("CODEX_THREAD_ID") }
+                let unset = variables.subtracting(resumeLaunch.environment.keys)
                     .sorted().map { "-u \(shellQuote($0))" }.joined(separator: " ")
                 let environment = resumeLaunch.environment.sorted { $0.key < $1.key }
                     .map { shellQuote("\($0.key)=\($0.value)") }.joined(separator: " ")
                 let fallback = "printf '%s\\n' \(shellQuote(resumeFailure)) >&2; exec \(shellQuote(resumeShell)) -l"
+                let invocation = "/usr/bin/env \(unset) -- \(environment) \(argv)"
+                // Keep failed native forks visible; a failed CLI must not close
+                // the new pane or make it look like the source was resumed.
+                // The wrapper outlives the provider, so job control makes the
+                // provider the terminal's foreground process group: pane state
+                // reads the agent, and ^C stops only the agent. TSTP stays
+                // ignored because nothing can resume a stopped agent here.
+                let run = conversationFork
+                    ? "set -m; trap '' TSTP; \(invocation); result=$?; trap - TSTP; set +m; if [ \"$result\" -ne 0 ]; then printf '%s\\n' \(shellQuote(resumeFailure)) >&2; fi; exec \(shellQuote(resumeShell)) -l"
+                    : "exec \(invocation)"
                 let restore = "if command -v \(shellQuote(commandArguments[0])) >/dev/null 2>&1 "
                     + "&& cd \(shellQuote(resumeLaunch.workingDirectory)); then "
-                    + "exec /usr/bin/env \(unset) -- \(environment) \(argv); else \(fallback); fi"
+                    + "\(run); else \(fallback); fi"
                 commands.append("if [ -n \"$ZSHELL_ORIGINAL_ZDOTDIR\" ]; then export ZDOTDIR=\"$ZSHELL_ORIGINAL_ZDOTDIR\"; fi")
                 commands.append("unset ZSHELL_INIT_COMMAND")
-                commands.append("exec \(shellQuote(resumeShell)) -l -i -c \(shellQuote("exec /bin/sh -c \(shellQuote(restore))"))")
+                // /bin/sh may be zsh, which never hands its `set -m` job the
+                // terminal, or dash, which dies with the agent on ^C.
+                let wrapper = conversationFork ? "/bin/bash" : "/bin/sh"
+                commands.append("exec \(shellQuote(resumeShell)) -l -i -c \(shellQuote("exec \(wrapper) -c \(shellQuote(restore))"))")
             } else {
                 commands.append("exec /usr/bin/env -- \(argv)")
             }
