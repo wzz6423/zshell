@@ -58,13 +58,21 @@ nonisolated enum GitProxy {
     }
 
     /// `GIT_CONFIG_COUNT` entries are numbered, so append after any the
-    /// environment already defines rather than replacing them.
+    /// environment already defines. The earlier entries are repeated because a
+    /// reused PTY daemon merges these overrides into its own older environment,
+    /// where a raised count without them would make every Git command fail.
     private static func gitConfiguration(_ address: String, inheriting environment: [String: String]) -> [String: String] {
         let index = environment["GIT_CONFIG_COUNT"].flatMap(Int.init).map { max(0, $0) } ?? 0
-        return [
+        var result = [
             "GIT_CONFIG_COUNT": String(index + 1),
             "GIT_CONFIG_KEY_\(index)": "http.proxy",
             "GIT_CONFIG_VALUE_\(index)": address,
         ]
+        for inherited in 0..<index {
+            for key in ["GIT_CONFIG_KEY_\(inherited)", "GIT_CONFIG_VALUE_\(inherited)"] {
+                result[key] = environment[key]
+            }
+        }
+        return result
     }
 }

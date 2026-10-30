@@ -51,7 +51,8 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
     private lazy var gitProxyAddressRow = SettingsRow(
         title: String(localized: "Proxy address"),
         description: Self.gitProxyAddressDescription(isValid: true),
-        control: gitProxyField
+        control: gitProxyField,
+        symbolName: "link"
     )
 
     private lazy var gitGroup = SettingsGroup(header: String(localized: "Git"), rows: [

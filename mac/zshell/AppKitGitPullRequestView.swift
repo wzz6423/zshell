@@ -12,8 +12,9 @@ import SwiftUI
 final class GitPullRequestBarView: NSView {
     let button = WorkspaceChromeButton(symbol: "arrow.triangle.pull", label: "")
     private let model = ProjectPullRequestModel()
-    private var observation: AnyCancellable?
+    private var observations: [AnyCancellable] = []
     private var fontScale: CGFloat = 1
+    private var directory: String?
 
     override var isFlipped: Bool { true }
 
@@ -29,10 +30,22 @@ final class GitPullRequestBarView: NSView {
         menu = NSMenu()
         menu?.addItem(refresh)
         button.menu = menu
-        observation = model.$state.removeDuplicates().sink { [weak self] _ in
-            // `@Published` fires before the stored value changes.
-            DispatchQueue.main.async { self?.apply() }
-        }
+        observations = [
+            model.$state.removeDuplicates().sink { [weak self] _ in
+                // `@Published` fires before the stored value changes.
+                DispatchQueue.main.async { self?.apply() }
+            },
+            NotificationCenter.default.publisher(for: AppLocalization.didChange)
+                .sink { [weak self] _ in self?.apply() },
+            // An idle Git panel does not poll, so a PR merged or closed
+            // remotely would otherwise keep its old status; the model only
+            // queries GitHub again once its last lookup is a minute old.
+            Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+                .sink { [weak self] _ in
+                    guard let self, self.window != nil else { return }
+                    self.model.sync(directory: self.directory)
+                },
+        ]
         apply()
     }
 
@@ -43,6 +56,7 @@ final class GitPullRequestBarView: NSView {
             self.fontScale = fontScale
             apply()
         }
+        self.directory = directory
         model.sync(directory: directory)
     }
 

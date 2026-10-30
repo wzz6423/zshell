@@ -100,6 +100,11 @@ private func checkGitProxy(_ repo: String) {
     let appended = existing.merging(GitProxy.terminalEnvironment(inheriting: existing)) { $1 }
     require(appended["GIT_CONFIG_COUNT"] == "2" && appended["GIT_CONFIG_KEY_0"] == "core.pager"
             && gitProxy(appended, in: repo) == "http://127.0.0.1:7897", "existing GIT_CONFIG entries must be kept")
+    // A reused PTY daemon applies the overrides to an environment without the
+    // GUI's inherited entries, so the overrides alone must stay complete.
+    let staleDaemon = base.merging(GitProxy.terminalEnvironment(inheriting: existing)) { $1 }
+    require(staleDaemon["GIT_CONFIG_KEY_0"] == "core.pager" && staleDaemon["GIT_CONFIG_VALUE_0"] == "cat"
+            && gitProxy(staleDaemon, in: repo) == "http://127.0.0.1:7897", "terminal overrides must carry inherited entries")
     GitProxy.update(enabled: false, address: GitProxy.defaultAddress)
 }
 
