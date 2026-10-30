@@ -46,7 +46,8 @@ with tempfile.TemporaryDirectory(prefix="zshell-log-surfaces-", dir="/tmp") as t
         "-I", str(root / "mac/Vendor/tree-sitter/lib/include"), str(library),
         "-Xlinker", "-rpath", "-Xlinker", str(products),
         "-Xlinker", "-rpath", "-Xlinker", str(library.parent),
-        str(root / "mac/tests/WorkspaceLogSearchSurfaceTests.swift"), "-o", str(binary),
+        str(root / "mac/tests/WorkspaceLogSearchSurfaceTests.swift"),
+        str(root / "mac/tests/QuickTerminalOffscreen.swift"), "-o", str(binary),
     ]
     subprocess.run(arguments, cwd=root, check=True)
     for backend in ("alacritty", "ghostty"):

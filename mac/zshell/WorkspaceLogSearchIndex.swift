@@ -1,5 +1,4 @@
 import Foundation
-import CryptoKit
 
 nonisolated enum WorkspaceLogSearchIndex {
     struct Match: Sendable {
@@ -11,7 +10,6 @@ nonisolated enum WorkspaceLogSearchIndex {
         let matches: [Match]
         let total: Int
         let cancelled: Bool
-        let fingerprint: Data
     }
 
     /// Ghostty compares ASCII case-insensitively while leaving UTF-8 bytes
@@ -22,14 +20,14 @@ nonisolated enum WorkspaceLogSearchIndex {
         let original = Array(text.utf8)
         let needle = Data(query.utf8.map(foldASCII))
         guard !needle.isEmpty, limit >= 0 else {
-            return Result(matches: [], total: 0, cancelled: false, fingerprint: fingerprint(text))
+            return Result(matches: [], total: 0, cancelled: false)
         }
         let searchable = Data(original.map(foldASCII))
         var cursor = searchable.startIndex
         var total = 0
         var matches: [Match] = []
         while cursor < searchable.endIndex {
-            if isCancelled() { return Result(matches: [], total: 0, cancelled: true, fingerprint: Data()) }
+            if isCancelled() { return Result(matches: [], total: 0, cancelled: true) }
             guard let range = searchable.range(of: needle, in: cursor..<searchable.endIndex) else { break }
             if matches.count < limit {
                 matches.append(Match(occurrence: total, snippet: snippet(original, range: range)))
@@ -37,11 +35,7 @@ nonisolated enum WorkspaceLogSearchIndex {
             total += 1
             cursor = range.upperBound
         }
-        return Result(matches: matches, total: total, cancelled: false, fingerprint: fingerprint(text))
-    }
-
-    static func fingerprint(_ text: String) -> Data {
-        Data(SHA256.hash(data: Data(text.utf8)))
+        return Result(matches: matches, total: total, cancelled: false)
     }
 
     private static func foldASCII(_ byte: UInt8) -> UInt8 {

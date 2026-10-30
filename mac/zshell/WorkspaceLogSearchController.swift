@@ -47,8 +47,8 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
         let context: String
         let snippet: String
         let occurrence: Int
-        let total: Int
-        let fingerprint: Data
+        // Activation reopens the query this row came from, not the field's current text.
+        let query: String
         var selectionKey: (sessionID: UUID, occurrence: Int, snippet: String) { (sessionID, occurrence, snippet) }
     }
     private var cache: [UUID: Cache] = [:]
@@ -262,7 +262,7 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
                     let start = self.rows.count
                     self.rows.append(contentsOf: result.matches.map {
                         Row(sessionID: sessionID, context: source.context, snippet: $0.snippet,
-                            occurrence: $0.occurrence, total: result.total, fingerprint: result.fingerprint)
+                            occurrence: $0.occurrence, query: query)
                     })
                     // reloadData drops the table selection; inserting keeps a row picked mid-scan.
                     self.table.insertRows(at: IndexSet(start..<self.rows.count))
@@ -283,7 +283,6 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
         guard let session = manager.projects.flatMap(\.sessions).first(where: { $0.id == row.sessionID }) else {
             beginSearch(); return
         }
-        let query = searchField.stringValue
         cancelNavigation()
         isNavigating = true
         navigatingSession = session
@@ -299,16 +298,23 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
                 return
             }
             self.worker.async { [weak self, weak session] in
-                let fingerprint = capture.read().map(WorkspaceLogSearchIndex.fingerprint)
+                // Busy panes keep appending output, so validate only the picked
+                // match: it must still be the same occurrence with the same line.
+                let total = capture.read().flatMap { text -> Int? in
+                    let fresh = WorkspaceLogSearchIndex.search(text: text, query: row.query, limit: row.occurrence + 1)
+                    guard let match = fresh.matches.last, match.occurrence == row.occurrence,
+                          match.snippet == row.snippet else { return nil }
+                    return fresh.total
+                }
                 DispatchQueue.main.async { [weak self, weak session] in
                     guard let self, self.navigation == currentNavigation else { return }
                     guard let session else { self.isNavigating = false; return }
-                    guard fingerprint == row.fingerprint else {
+                    guard let total else {
                         self.isNavigating = false
                         self.beginSearch()
                         return
                     }
-                    session.find.revealLogMatch(needle: query, occurrence: row.occurrence, total: row.total) { [weak self, weak session] success in
+                    session.find.revealLogMatch(needle: row.query, occurrence: row.occurrence, total: total) { [weak self, weak session] success in
                         guard let self, self.navigation == currentNavigation else { return }
                         self.isNavigating = false
                         self.navigatingSession = nil
@@ -333,6 +339,9 @@ extension WorkspaceLogSearchController: NSSearchFieldDelegate, NSTableViewDataSo
         cancellation.cancel()
         cancelNavigation()
         reselect = nil
+        // Old rows belong to the previous query; none stays clickable during the debounce.
+        rows.removeAll()
+        table.reloadData()
         debounce?.cancel()
         let work = DispatchWorkItem { [weak self] in
             self?.debounce = nil

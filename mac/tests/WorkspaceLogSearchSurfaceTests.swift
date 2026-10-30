@@ -27,6 +27,7 @@ struct WorkspaceLogSearchSurfaceTests {
         setbuf(stdout, nil)
         let app = NSApplication.shared
         app.setActivationPolicy(.prohibited)
+        QuickTerminalOffscreen.install()
         let backend = CommandLine.arguments[1]
         let fixture = CommandLine.arguments[2]
         AppSettings.shared.terminalBackend = backend == "ghostty" ? .libghostty : .alacritty
@@ -43,6 +44,23 @@ struct WorkspaceLogSearchSurfaceTests {
             while !condition(), Date() < deadline { pump(0.03) }
             guard condition() else { throw Failure.check(message) }
             print("PASS \(backend): \(message)")
+        }
+        func check(_ condition: Bool, _ message: String) throws {
+            guard condition else { throw Failure.check(message) }
+            print("PASS \(backend): \(message)")
+        }
+        // LogTestWindow reports itself key and visible, so check what the
+        // window server actually placed instead of QuickTerminalOffscreen.isSafe().
+        func offscreen() -> Bool {
+            let displays = NSScreen.screens.compactMap { screen -> CGRect? in
+                (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber).map { CGDisplayBounds($0.uint32Value) }
+            }
+            let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+            return !NSApp.isActive && windows.filter { ($0[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == getpid() }.allSatisfy { record in
+                guard let bounds = record[kCGWindowBounds as String] as? [String: Any],
+                      let frame = CGRect(dictionaryRepresentation: bounds as CFDictionary) else { return false }
+                return frame.isEmpty || !displays.contains { $0.intersects(frame) }
+            }
         }
         func session(_ name: String) -> TerminalSession {
             TerminalSession(initialDirectory: NSTemporaryDirectory(),
@@ -102,6 +120,7 @@ struct WorkspaceLogSearchSurfaceTests {
         let window = LogTestWindow(contentRect: NSRect(x: 0, y: 0, width: 900, height: 480),
                                    styleMask: [.titled], backing: .buffered, defer: false)
         window.identifier = NSUserInterfaceItemIdentifier("main-log-fixture")
+        QuickTerminalOffscreen.prepare(window)
         let content = NSView(frame: window.contentRect(forFrameRect: window.frame))
         window.contentView = content
         for (index, session) in [a, b, c].enumerated() {
@@ -151,8 +170,10 @@ struct WorkspaceLogSearchSurfaceTests {
         controller.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
         try wait("panel lists all matching panes") { table.numberOfRows == 9 }
         guard a.surface.hasSelection else { throw Failure.check("scanning changed the terminal selection") }
+        try check(offscreen(), "search panel and fixture window stay offscreen")
         field.stringValue = "filler"
         controller.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
+        try check(table.numberOfRows == 0, "editing the query leaves no old result clickable")
         pump(0.3)
         field.stringValue = "NEEDLE"
         controller.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
@@ -230,6 +251,30 @@ struct WorkspaceLogSearchSurfaceTests {
         field.stringValue = "NEEDLE"
         controller.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
         try wait("all panes are searchable after reopening") { table.numberOfRows == 9 }
+        // Pane A appends an unrelated line every 100 ms, so its buffer never
+        // matches the indexed capture again; the unchanged match must still open.
+        let busy = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+            MainActor.assumeIsolated { a.surface.sendText("busy\n") }
+        }
+        try wait("busy pane is producing output") { capture(a).contains("INPUT-A-busy") }
+        var busyTarget: Int?
+        for row in 0..<table.numberOfRows {
+            guard let cell = table.view(atColumn: 0, row: row, makeIfNecessary: true) else { continue }
+            if descendants(cell).compactMap({ $0 as? NSTextField }).contains(where: { $0.stringValue.contains("OLD-A-needle") }) {
+                busyTarget = row
+                break
+            }
+        }
+        guard let busyTarget else { throw Failure.check("old match in busy pane A missing") }
+        table.selectRowIndexes(IndexSet(integer: busyTarget), byExtendingSelection: false)
+        _ = controller.control(field, textView: NSTextView(), doCommandBy: #selector(NSResponder.insertNewline(_:)))
+        try wait("unchanged match in a busy pane opens") { tab1.focusedPaneID == paneA.id && !panel.isVisible }
+        busy.invalidate()
+        try check(offscreen(), "revealed terminal window stays offscreen")
+        controller.show(for: manager)
+        field.stringValue = "NEEDLE"
+        controller.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
+        try wait("results return after the busy pane settles") { table.numberOfRows == 9 }
         project.tabs.removeAll { $0.id == tab2.id }
         c.terminate()
         try wait("closing a tab removes its matches") { table.numberOfRows == 6 }
