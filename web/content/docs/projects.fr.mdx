@@ -24,6 +24,10 @@ Le nom d'un projet est celui de sa session sélectionnée : il suit donc le term
 
 Pour les [sessions distantes partagées](/fr/docs/remote-sessions), fermer un panneau ou un projet détache seulement ce client ; le shell et ses tâches continuent sur l’hôte.
 
+### État des pull requests [#pull-request-status]
+
+Installez GitHub CLI et connectez-vous avec `gh auth login` pour voir le numéro et l’état de la pull request de la branche courante dans la barre latérale. Cliquez dessus pour l’ouvrir, ou faites un clic droit sur le projet et choisissez **Actualiser l’état de la pull request**. Les dépôts distants hors GitHub ne l’affichent pas.
+
 ### Projets SSH enregistrés [#saved-ssh-projects]
 
 Ouvrez la palette de commandes (<kbd>Cmd</kbd>+<kbd>P</kbd>) et choisissez **Nouveau projet SSH…**. Renseignez l'hôte, éventuellement l'utilisateur et le port, puis le répertoire distant à ouvrir. Pour l'authentification, choisissez **Agent SSH**, **Mot de passe**, **Fichier de clé privée** ou **Texte de clé privée**, puis enregistrez la connexion et sélectionnez **Connecter**.
