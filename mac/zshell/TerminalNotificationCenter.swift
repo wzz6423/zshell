@@ -111,7 +111,10 @@ final class TerminalNotificationCenterViewController: NSViewController, NSTableV
         table.allowsEmptySelection = true
         table.allowsMultipleSelection = false
         table.selectionHighlightStyle = .regular
-        table.addTableColumn(NSTableColumn(identifier: NSUserInterfaceItemIdentifier("notification")))
+        let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("notification"))
+        column.resizingMask = .autoresizingMask
+        table.addTableColumn(column)
+        table.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
         table.delegate = self
         table.dataSource = self
         table.target = self
