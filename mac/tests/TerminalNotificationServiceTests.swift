@@ -181,5 +181,56 @@ struct TerminalNotificationServiceTests {
         precondition(focusDelivery.delivered.count == 1 && focusHistory.records.count == 2)
         await focusHistory.flush()
         print("PASS minimized focused pane delivers a banner while a visible focused pane only records history")
+
+        let burstHistory = TerminalNotificationHistoryStore(url: root.appendingPathComponent("burst/records.json"))
+        let burstDelivery = NotificationDeliveryFixture()
+        burstDelivery.current = .init(status: .allowed)
+        let burstService = TerminalNotificationService(history: burstHistory, delivery: burstDelivery)
+        await burstHistory.flush()
+        burstService.post(message: "First command finished", sessionID: UUID())
+        burstService.post(message: "Second command finished", sessionID: UUID())
+        await settle()
+        precondition(burstDelivery.delivered.map(\.message) == ["First command finished", "Second command finished"])
+        await burstHistory.flush()
+        print("PASS granted permission delivers every banner posted during one settings lookup")
+
+        let staleHistory = TerminalNotificationHistoryStore(url: root.appendingPathComponent("stale/records.json"))
+        var staleService = TerminalNotificationService(history: staleHistory, delivery: NotificationDeliveryFixture())
+        await staleHistory.flush()
+        let staleID = UUID()
+        let leading = TerminalSession(), lagging = TerminalSession()
+        func remote(_ session: TerminalSession, _ phase: ZshellAgentPhase, generation: UInt64) {
+            let previous = session.agentStatus
+            session.remoteConnection = RemoteConnection(host: host, sessionID: staleID)
+            session.remoteStatus = RemoteRelayStatus(state: .connected,
+                agentStatus: RemoteAgentStatus(generation: generation, phase: phase.rawValue), exitCode: nil)
+            session.agentStatus = ZshellAgentStatus(alias: "Remote agent", kind: .codex, phase: phase,
+                authority: .report, reason: "fixture", updatedAt: Date(), processID: nil,
+                unseen: phase == .done, progress: nil, attention: nil, tasks: [])
+            staleService.agentChanged(in: session, previous: previous)
+        }
+        remote(leading, .done, generation: 4)
+        let finished = staleHistory.records.first!
+        staleService.markRead(id: finished.id)
+        remote(leading, .working, generation: 5)
+        remote(lagging, .done, generation: 4)
+        precondition(staleHistory.records.count == 1 && staleHistory.records[0].isRead)
+        staleService.clear()
+        remote(leading, .done, generation: 4)
+        precondition(staleHistory.records.isEmpty)
+        remote(leading, .done, generation: 6)
+        precondition(staleHistory.records.count == 1 && !staleHistory.records[0].isRead)
+        staleService.clear()
+        await staleHistory.flush()
+        // A relaunched app has no generation watermark; the stable key still
+        // keeps a replayed, already-cleared completion from coming back.
+        let relaunchedHistory = TerminalNotificationHistoryStore(url: root.appendingPathComponent("stale/records.json"))
+        staleService = TerminalNotificationService(history: relaunchedHistory, delivery: NotificationDeliveryFixture())
+        await relaunchedHistory.flush()
+        remote(lagging, .working, generation: 3)
+        remote(lagging, .done, generation: 4)
+        precondition(relaunchedHistory.records.isEmpty)
+        await relaunchedHistory.flush()
+        print("PASS stale remote generations from another pane neither resurrect read nor cleared completions")
     }
 }

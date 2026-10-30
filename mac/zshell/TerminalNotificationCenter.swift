@@ -45,7 +45,7 @@ final class TerminalNotificationCenterController: NSObject {
 
     func show(filter: TerminalNotificationHistoryStore.Filter = .all) {
         if windowController == nil {
-            let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 660, height: 520),
+            let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 680, height: 520),
                 styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
             panel.isReleasedWhenClosed = false
             panel.minSize = NSSize(width: 680, height: 420)
@@ -158,7 +158,14 @@ final class TerminalNotificationCenterViewController: NSViewController, NSTableV
             button.setContentCompressionResistancePriority(.required, for: .horizontal)
         }
         countLabel.alignment = .right
-        for child in [filters, countLabel, scroll, emptyLabel, detailsLabel, errorLabel, actionsRow] {
+        // Status lines take space only while they have something to say, so the
+        // list sits directly above the buttons in the common case.
+        let statusLines = NSStackView(views: [detailsLabel, errorLabel])
+        statusLines.orientation = .vertical
+        statusLines.alignment = .leading
+        statusLines.spacing = 4
+        statusLines.detachesHiddenViews = true
+        for child in [filters, countLabel, scroll, emptyLabel, statusLines, actionsRow] {
             child.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview(child)
         }
@@ -171,18 +178,15 @@ final class TerminalNotificationCenterViewController: NSViewController, NSTableV
             scroll.topAnchor.constraint(equalTo: filters.bottomAnchor, constant: 12),
             scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
             scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
-            scroll.bottomAnchor.constraint(equalTo: detailsLabel.topAnchor, constant: -8),
+            scroll.bottomAnchor.constraint(equalTo: statusLines.topAnchor, constant: -8),
             emptyLabel.centerXAnchor.constraint(equalTo: scroll.centerXAnchor),
             emptyLabel.centerYAnchor.constraint(equalTo: scroll.centerYAnchor),
             emptyLabel.widthAnchor.constraint(lessThanOrEqualTo: scroll.widthAnchor, constant: -40),
-            detailsLabel.leadingAnchor.constraint(equalTo: scroll.leadingAnchor),
-            detailsLabel.trailingAnchor.constraint(equalTo: scroll.trailingAnchor),
-            detailsLabel.heightAnchor.constraint(equalToConstant: 34),
-            detailsLabel.bottomAnchor.constraint(equalTo: errorLabel.topAnchor, constant: -4),
-            errorLabel.leadingAnchor.constraint(equalTo: scroll.leadingAnchor),
-            errorLabel.trailingAnchor.constraint(equalTo: scroll.trailingAnchor),
-            errorLabel.heightAnchor.constraint(equalToConstant: 28),
-            errorLabel.bottomAnchor.constraint(equalTo: actionsRow.topAnchor, constant: -8),
+            statusLines.leadingAnchor.constraint(equalTo: scroll.leadingAnchor),
+            statusLines.trailingAnchor.constraint(equalTo: scroll.trailingAnchor),
+            detailsLabel.widthAnchor.constraint(equalTo: statusLines.widthAnchor),
+            errorLabel.widthAnchor.constraint(equalTo: statusLines.widthAnchor),
+            statusLines.bottomAnchor.constraint(equalTo: actionsRow.topAnchor, constant: -8),
             actionsRow.leadingAnchor.constraint(equalTo: scroll.leadingAnchor),
             actionsRow.trailingAnchor.constraint(lessThanOrEqualTo: scroll.trailingAnchor),
             actionsRow.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -14),
@@ -242,6 +246,7 @@ final class TerminalNotificationCenterViewController: NSViewController, NSTableV
         countLabel.stringValue = String(localized: "Notifications: \(records.count)")
         errorLabel.stringValue = service.history.persistenceError == nil ? ""
             : String(localized: "Notification history could not be loaded or saved.")
+        errorLabel.isHidden = errorLabel.stringValue.isEmpty
         allReadButton.isEnabled = service.history.records.contains { !$0.isRead }
         clearButton.isEnabled = !service.history.records.isEmpty
         updateSelection()
@@ -259,13 +264,15 @@ final class TerminalNotificationCenterViewController: NSViewController, NSTableV
         updateDetails()
     }
 
+    // The row already shows host, project and tab; only say what the row cannot.
     private func updateDetails() {
-        guard let record = selected else { detailsLabel.stringValue = ""; return }
-        let unavailable = !TerminalManager.notificationAvailable(for: record.target)
-        let context = [record.target.remoteHostName, record.target.projectName, record.target.tabName]
-            .compactMap { $0 }.joined(separator: " · ")
-        detailsLabel.stringValue = [context, unavailable ? String(localized: "This pane is closed or unavailable.") : ""]
-            .filter { !$0.isEmpty }.joined(separator: "\n")
+        let unavailable = selected.map { !TerminalManager.notificationAvailable(for: $0.target) } ?? false
+        setDetails(unavailable ? String(localized: "This pane is closed or unavailable.") : "")
+    }
+
+    private func setDetails(_ text: String) {
+        detailsLabel.stringValue = text
+        detailsLabel.isHidden = text.isEmpty
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int { records.count }
@@ -287,7 +294,7 @@ final class TerminalNotificationCenterViewController: NSViewController, NSTableV
     @objc private func openSelection(_ sender: Any?) {
         guard let record = selected else { return }
         if service.open(id: record.id) { view.window?.orderOut(nil) }
-        else { detailsLabel.stringValue = String(localized: "This pane is closed or unavailable.") }
+        else { setDetails(String(localized: "This pane is closed or unavailable.")) }
     }
 
     @objc private func markSelectionRead(_ sender: Any?) {

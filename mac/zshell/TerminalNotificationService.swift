@@ -73,9 +73,12 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
     private var isConfigured = false
     private var isCheckingSettings = false
     private var isRequestingAuthorization = false
-    private var deliveryCandidate: UUID?
+    private var deliveryCandidates: [UUID] = []
     private var waitingForHistory: String?
     private var loadingAgents: [String: AgentSample] = [:]
+    /// Separate windows can attach to one remote session and poll its status
+    /// independently, so a lagging pane may still report an older generation.
+    private var remoteGenerations: [String: UInt64] = [:]
 
     private struct AgentSample {
         let target: TerminalNotificationTarget
@@ -160,7 +163,9 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
             reportedPhase: session.remoteStatus?.agentStatus.flatMap { ZshellAgentPhase(rawValue: $0.phase) }
                 ?? session.agentObservation.programReport?.report.activityPhase)
         if history.isLoading {
-            if loadingAgents.count < TerminalNotificationHistoryStore.maximumEpisodes || loadingAgents[sample.target.sourceKey] != nil {
+            let existing = loadingAgents[sample.target.sourceKey]
+            if let generation = sample.remoteGeneration, let latest = existing?.remoteGeneration, generation < latest { return }
+            if loadingAgents.count < TerminalNotificationHistoryStore.maximumEpisodes || existing != nil {
                 loadingAgents[sample.target.sourceKey] = sample
             }
             return
@@ -170,6 +175,10 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
 
     private func observe(_ sample: AgentSample) {
         let source = sample.target.sourceKey
+        if let generation = sample.remoteGeneration {
+            if let latest = remoteGenerations[source], generation < latest { return }
+            remoteGenerations[source] = generation
+        }
         guard let status = sample.status else { history.resolvePending(sourceKey: source); return }
         guard status.authority == .integration || status.authority == .report || status.authority == .command else {
             history.resolvePending(sourceKey: source)
@@ -191,7 +200,10 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
         let taskID = status.tasks.first(where: { $0.phase == .blocked })?.id ?? ""
         let remoteCompletion = phase == .done ? sample.remoteGeneration.map { ":\($0)" } ?? "" : ""
         let signature = "\(sample.owner):\(status.kind.rawValue):\(phase.rawValue):\(attention?.rawValue ?? ""):\(taskID)\(remoteCompletion)"
-        let key = history.agentEventKey(sourceKey: source, signature: signature)
+        // A remote completion is identified by its generation, so replaying it
+        // from another pane maps to the same record instead of a fresh alert.
+        let stableKey = phase == .done ? sample.remoteGeneration.map { "\(source):done:\($0)" } : nil
+        let key = history.agentEventKey(sourceKey: source, signature: signature, stableKey: stableKey)
         history.resolvePending(sourceKey: source, exceptEventKey: key)
         let message = phase == .blocked ? String(localized: "\(status.alias) needs attention")
             : String(localized: "\(status.alias) finished")
@@ -208,6 +220,7 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
         if let other = TerminalManager.connectedRemoteNotificationSession(for: target, excluding: session.id) {
             agentChanged(in: other, previous: other.agentStatus)
         } else {
+            remoteGenerations[target.sourceKey] = nil
             history.resolvePending(sourceKey: target.sourceKey)
         }
         if status.state == .exited, let exitCode = status.exitCode, exitCode != 0 {
@@ -222,6 +235,7 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
         if let other = TerminalManager.connectedRemoteNotificationSession(for: target, excluding: session.id) {
             agentChanged(in: other, previous: other.agentStatus)
         } else {
+            remoteGenerations[target.sourceKey] = nil
             history.resolvePending(sourceKey: target.sourceKey)
         }
     }
@@ -245,7 +259,10 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
     }
 
     private func requestDelivery(id: UUID) {
-        deliveryCandidate = id
+        // Only an open permission prompt coalesces to the latest banner; events
+        // that arrive during a settings lookup are all still eligible.
+        if isRequestingAuthorization { deliveryCandidates = [id] }
+        else { deliveryCandidates = Array((deliveryCandidates + [id]).suffix(TerminalNotificationHistoryStore.maximumRecords)) }
         guard !isCheckingSettings, !isRequestingAuthorization else { return }
         isCheckingSettings = true
         delivery.settings { [weak self] settings in
@@ -255,9 +272,9 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
                 switch settings.status {
                 case .allowed:
                     if settings.needsSoundUpgrade { self.requestAuthorization() }
-                    else { self.deliverCandidate() }
+                    else { self.deliverCandidates() }
                 case .undetermined: self.requestAuthorization()
-                case .denied: self.deliveryCandidate = nil
+                case .denied: self.deliveryCandidates.removeAll()
                 }
             }
         }
@@ -266,20 +283,24 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
     private func requestAuthorization() {
         guard !isRequestingAuthorization else { return }
         isRequestingAuthorization = true
+        deliveryCandidates = Array(deliveryCandidates.suffix(1))
         delivery.authorize { [weak self] granted in
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.isRequestingAuthorization = false
-                if granted { self.deliverCandidate() }
-                else { self.deliveryCandidate = nil }
+                if granted { self.deliverCandidates() }
+                else { self.deliveryCandidates.removeAll() }
             }
         }
     }
 
-    private func deliverCandidate() {
-        defer { deliveryCandidate = nil }
-        guard let id = deliveryCandidate, let record = history.record(id: id), !record.isRead else { return }
-        delivery.deliver(record)
+    private func deliverCandidates() {
+        let ids = deliveryCandidates
+        deliveryCandidates.removeAll()
+        for id in ids {
+            guard let record = history.record(id: id), !record.isRead else { continue }
+            delivery.deliver(record)
+        }
     }
 
     @discardableResult

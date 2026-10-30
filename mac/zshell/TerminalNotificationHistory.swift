@@ -250,10 +250,10 @@ final class TerminalNotificationHistoryStore: ObservableObject {
     /// The last actionable episode survives relaunch and clearing the list.
     /// Replaying a remote generation or reconnecting the same local agent must
     /// not turn a dismissed notification into a new unread alert.
-    func agentEventKey(sourceKey: String, signature: String) -> String {
+    func agentEventKey(sourceKey: String, signature: String, stableKey: String? = nil) -> String {
         if let previous = episodes.last(where: { $0.sourceKey == sourceKey }),
            previous.signature == signature { return previous.eventKey }
-        let key = UUID().uuidString
+        let key = stableKey ?? UUID().uuidString
         episodes.removeAll { $0.sourceKey == sourceKey }
         episodes.append(AgentEpisode(sourceKey: sourceKey, signature: signature, eventKey: key))
         episodes = Array(episodes.suffix(Self.maximumEpisodes))
