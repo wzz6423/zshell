@@ -393,7 +393,9 @@ def main():
                         favicons = [request for request in fixture.requests[request_offset:]
                                     if request[1].startswith("/favicon-target.png?via=zshell-remote.localhost:")]
                         assert favicons and all(request[2].startswith("127-0-0-1.zshell-remote.localhost:") for request in favicons), favicons
-                        assert {"/script.js", "/dynamic.js", "/pixel.png", "/frame", "/api?cross=port", "/socket?hmr=1"} <= paths, paths
+                        assert {"/script.js", "/dynamic.js", "/pixel.png", "/frame", "/api?cross=port", "/socket?hmr=1",
+                                f"/api?early={backend}", f"/socket?early={backend}",
+                                f"/api?early-xhr={backend}", f"/pixel.png?early={backend}"} <= paths, paths
                         marker = f"/must-not-reach-local-{backend}"
                         marker_requests = [request for request in fixture.requests[request_offset:] if request[1] == marker]
                         assert len(marker_requests) == 1, marker_requests

@@ -153,6 +153,32 @@ final class BrowserRemoteRouting: ObservableObject {
     {"trigger":{"url-filter":"^[a-z]+://\\[::ffff:7f"},"action":{"type":"block"}}]
     """#
 
+    static let loopbackMessageName = "zshellRemoteLoopback"
+
+    /// Lets the bridge start forwarding for a page that did not need it to load.
+    func loopbackMessageHandler() -> WKScriptMessageHandlerWithReply { LoopbackMessageHandler(routing: self) }
+
+    private final class LoopbackMessageHandler: NSObject, WKScriptMessageHandlerWithReply {
+        weak var routing: BrowserRemoteRouting?
+        init(routing: BrowserRemoteRouting) { self.routing = routing }
+
+        func userContentController(
+            _ userContentController: WKUserContentController,
+            didReceive message: WKScriptMessage,
+            replyHandler: @escaping @MainActor @Sendable (Any?, String?) -> Void
+        ) {
+            Task { @MainActor [weak routing] in
+                do {
+                    guard let routing else { throw CancellationError() }
+                    try await routing.ensureConnected()
+                    replyHandler(true, nil)
+                } catch {
+                    replyHandler(nil, error.localizedDescription)
+                }
+            }
+        }
+    }
+
     static let bridgeScript = """
     (() => {
       const alias = '\(aliasHost)';
@@ -178,21 +204,94 @@ final class BrowserRemoteRouting: ObservableObject {
           return url.href;
         } catch { return value; }
       };
-      const wrap = (name, Native) => {
+      // A public page can request loopback before the tunnel exists: start it
+      // and hold routed requests until it is ready. If it cannot start, they
+      // still go out and fail on the closed proxy.
+      const tunnel = window.webkit.messageHandlers.\(loopbackMessageName);
+      let connected = location.hostname === alias || location.hostname.endsWith('.' + alias);
+      let readiness;
+      const settle = () => readiness ||= tunnel.postMessage(null).then(() => { connected = true; }, () => { readiness = undefined; });
+      const deferred = (Native, url, rest, events) => {
+        const target = new EventTarget();
+        Object.setPrototypeOf(target, Native.prototype);
+        let native, closing;
+        let binaryType = 'blob';
+        const handlers = {}, forwarded = new Set(events);
+        const forward = type => native.addEventListener(type, event => {
+          const copy = new event.constructor(event.type, event);
+          target.dispatchEvent(copy);
+          if (handlers[type]) handlers[type].call(target, copy);
+        });
+        for (const type of events) {
+          Object.defineProperty(target, 'on' + type, { get: () => handlers[type] || null,
+            set: handler => { handlers[type] = typeof handler === 'function' ? handler : null; } });
+        }
+        const add = EventTarget.prototype.addEventListener;
+        Object.defineProperty(target, 'addEventListener', { value(type, ...options) {
+          type = String(type);
+          if (!forwarded.has(type)) { forwarded.add(type); if (native) forward(type); }
+          return add.call(this, type, ...options);
+        } });
+        const property = (name, fallback) => Object.defineProperty(target, name, { get: () => native ? native[name] : fallback() });
+        property('url', () => url);
+        property('readyState', () => closing ? 2 : 0);
+        for (const name of ['protocol', 'extensions']) property(name, () => '');
+        property('bufferedAmount', () => 0);
+        if ('withCredentials' in Native.prototype) property('withCredentials', () => !!(rest[0] && rest[0].withCredentials));
+        Object.defineProperty(target, 'binaryType', { get: () => native ? native.binaryType : binaryType,
+          set: value => { if (native) native.binaryType = value; else binaryType = String(value); } });
+        Object.defineProperty(target, 'send', { value(data) {
+          if (!native) throw new DOMException('Still connecting', 'InvalidStateError');
+          return native.send(data);
+        } });
+        Object.defineProperty(target, 'close', { value(...args) { if (native) native.close(...args); else closing = args; } });
+        settle().then(() => {
+          native = new Native(url, ...rest);
+          if ('binaryType' in native) native.binaryType = binaryType;
+          forwarded.forEach(forward);
+          if (closing) native.close(...closing);
+        });
+        return target;
+      };
+      const wrap = (name, Native, events) => {
         if (!Native) return;
-        const Routed = function (url, ...rest) { return new Native(route(url), ...rest); };
+        const Routed = function (url, ...rest) {
+          const routed = route(url);
+          return routed === url || connected ? new Native(routed, ...rest) : deferred(Native, routed, rest, events);
+        };
         Routed.prototype = Native.prototype;
         Object.setPrototypeOf(Routed, Native);
         window[name] = Routed;
       };
-      wrap('WebSocket', window.WebSocket);
-      wrap('EventSource', window.EventSource);
+      wrap('WebSocket', window.WebSocket, ['open', 'message', 'error', 'close']);
+      wrap('EventSource', window.EventSource, ['open', 'message', 'error']);
       const fetch = window.fetch;
       window.fetch = function (input, init) {
-        return fetch.call(this, input instanceof Request ? new Request(route(input.url), input) : route(input), init);
+        const request = input instanceof Request, value = request ? input.url : input, routed = route(value);
+        const issue = () => fetch.call(this, request ? new Request(routed, input) : routed, init);
+        return routed === value || connected ? issue() : settle().then(issue);
       };
-      const open = XMLHttpRequest.prototype.open;
-      XMLHttpRequest.prototype.open = function (method, url, ...rest) { return open.call(this, method, route(url), ...rest); };
+      const open = XMLHttpRequest.prototype.open, send = XMLHttpRequest.prototype.send;
+      const held = new WeakSet();
+      XMLHttpRequest.prototype.open = function (method, url, ...rest) {
+        const routed = route(url);
+        if (routed !== url && !connected && rest[0] !== false) held.add(this); else held.delete(this);
+        return open.call(this, method, routed, ...rest);
+      };
+      XMLHttpRequest.prototype.send = function (body) {
+        if (!held.has(this)) return send.call(this, body);
+        held.delete(this);
+        settle().then(() => send.call(this, body));
+      };
+      // The latest assignment wins, including one made while an earlier
+      // routed value waits for the tunnel.
+      const pending = new WeakMap();
+      const assign = (element, value, set) => {
+        const routed = route(value), token = {};
+        pending.set(element, token);
+        if (routed === value || connected) return set(routed);
+        settle().then(() => { if (pending.get(element) === token) set(routed); });
+      };
       const attributes = { SCRIPT: 'src', IMG: 'src', IFRAME: 'src', LINK: 'href', SOURCE: 'src', VIDEO: 'src', AUDIO: 'src', EMBED: 'src' };
       // Script and media elements start fetching as soon as they are inserted
       // or assigned, before a MutationObserver runs, so route the value as it
@@ -203,12 +302,12 @@ final class BrowserRemoteRouting: ObservableObject {
         const prototype = window[type] && window[type].prototype;
         const descriptor = prototype && Object.getOwnPropertyDescriptor(prototype, name);
         if (!descriptor || !descriptor.set) continue;
-        Object.defineProperty(prototype, name, { ...descriptor, set(value) { descriptor.set.call(this, route(value)); } });
+        Object.defineProperty(prototype, name, { ...descriptor, set(value) { assign(this, value, routed => descriptor.set.call(this, routed)); } });
       }
       const setAttribute = Element.prototype.setAttribute;
       Element.prototype.setAttribute = function (name, value) {
-        const routes = attributes[this.tagName] === String(name).toLowerCase();
-        return setAttribute.call(this, name, routes ? route(value) : value);
+        if (attributes[this.tagName] !== String(name).toLowerCase()) return setAttribute.call(this, name, value);
+        assign(this, value, routed => setAttribute.call(this, name, routed));
       };
       const patch = node => {
         const name = attributes[node.tagName];

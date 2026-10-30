@@ -272,7 +272,10 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
             contentWorld: contextWorld,
             name: BrowserContextMenuSupport.messageName
         )
-        if routing != nil {
+        if let routing {
+            configuration.userContentController.addScriptMessageHandler(
+                routing.loopbackMessageHandler(), contentWorld: .page, name: BrowserRemoteRouting.loopbackMessageName
+            )
             configuration.userContentController.addUserScript(WKUserScript(
                 source: BrowserRemoteRouting.bridgeScript,
                 injectionTime: .atDocumentStart,

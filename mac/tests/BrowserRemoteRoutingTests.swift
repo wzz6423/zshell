@@ -153,6 +153,18 @@ struct BrowserRemoteRoutingTests {
               fresh.remoteRouting?.localProxyPort == nil else {
             throw failure("A public remote-project page loaded without loopback rules or started forwarding")
         }
+        // Its first loopback requests start forwarding and wait for it.
+        fresh.navigate(to: "data:text/html,<script>fetch('http://localhost:\(primaryPort)/api?early=\(backend)').then(r=>r.json()).then(v=>window.early=v.path);const ws=new WebSocket('ws://localhost:\(primaryPort)/socket?early=\(backend)');ws.onopen=()=>ws.send('early-echo');ws.onmessage=e=>window.earlySocket=e.data;const x=new XMLHttpRequest();x.open('GET','http://localhost:\(primaryPort)/api?early-xhr=\(backend)');x.onload=()=>window.earlyXHR=JSON.parse(x.responseText).path;x.send();const i=new Image();i.onload=()=>window.earlyImage='loaded';i.src='http://127.0.0.1:\(primaryPort)/pixel.png?early=\(backend)'</script>")
+        let earlyDeadline = Date().addingTimeInterval(10)
+        var early: [String] = []
+        while Date() < earlyDeadline {
+            early = try await fresh.webView.evaluateJavaScript("[String(window.early), String(window.earlySocket), String(window.earlyXHR), String(window.earlyImage)]") as? [String] ?? []
+            if early == ["/api?early=\(backend)", "early-echo", "/api?early-xhr=\(backend)", "loaded"] { break }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        guard early == ["/api?early=\(backend)", "early-echo", "/api?early-xhr=\(backend)", "loaded"], fresh.remoteRouting?.localProxyPort != nil else {
+            throw failure("A public page's first loopback fetch, WebSocket, XHR or image did not reach the tunnel: \(early)")
+        }
         fresh.close()
 
         other.remoteRouting!.setAvailable(false, projectID: otherProject.id)
