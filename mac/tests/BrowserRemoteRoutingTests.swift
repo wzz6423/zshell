@@ -57,10 +57,11 @@ struct BrowserRemoteRoutingTests {
         let deadline = Date().addingTimeInterval(10)
         var values: [String: Any] = [:]
         repeat {
-            values = try await browser.webView.evaluateJavaScript("({state:window.fixtureState,script:window.fixtureScript,pixel:document.querySelector('#pixel').complete && document.querySelector('#pixel').naturalWidth > 0,frame:!!document.querySelector('#child').contentWindow})") as? [String: Any] ?? [:]
+            values = try await browser.webView.evaluateJavaScript("({state:window.fixtureState,script:window.fixtureScript,dynamic:window.fixtureDynamic,pixel:document.querySelector('#pixel').complete && document.querySelector('#pixel').naturalWidth > 0,frame:!!document.querySelector('#child').contentWindow})") as? [String: Any] ?? [:]
             if let state = values["state"] as? [String: Any],
                state["websocket"] as? String == "hmr-echo", state["api"] != nil,
-               values["script"] as? String == "loaded", values["pixel"] as? Bool == true { break }
+               values["script"] as? String == "loaded", values["dynamic"] as? String == "loaded",
+               values["pixel"] as? Bool == true { break }
             try await Task.sleep(for: .milliseconds(50))
         } while Date() < deadline
         guard let state = values["state"] as? [String: Any],
@@ -69,8 +70,8 @@ struct BrowserRemoteRoutingTests {
               state["hash"] as? String == "#fragment",
               state["websocket"] as? String == "hmr-echo",
               let api = state["api"] as? [String: Any], api["server"] as? String == "primary",
-              values["script"] as? String == "loaded", values["pixel"] as? Bool == true,
-              values["frame"] as? Bool == true else {
+              values["script"] as? String == "loaded", values["dynamic"] as? String == "loaded",
+              values["pixel"] as? Bool == true, values["frame"] as? Bool == true else {
             throw failure("Redirect, resources, fetch or WebSocket did not load: \(values)")
         }
         guard browser.webView.url?.port == secondaryPort, routing.localProxyPort != nil,
@@ -106,6 +107,28 @@ struct BrowserRemoteRoutingTests {
         guard other.remoteRouting !== routing,
               try await other.webView.evaluateJavaScript("document.cookie.includes('remote_scope=only')") as? Bool == false else {
             throw failure("Separate remote projects shared site data")
+        }
+
+        guard let secondTab = project.tabs.first(where: { $0.browsers.contains { $0 === second } }),
+              manager.moveTab(id: secondTab.id, from: project.id, to: otherProject.id, in: ObjectIdentifier(manager)).failure == nil else {
+            throw failure("Moving the remote browser tab failed")
+        }
+        try await waitForPage(second, expectedPath: "/page/second")
+        guard second.remoteRouting === other.remoteRouting,
+              try await second.webView.evaluateJavaScript("document.cookie.includes('remote_scope=only')") as? Bool == false else {
+            throw failure("Moved remote browser kept the source project's routing or site data")
+        }
+
+        other.remoteRouting!.setAvailable(false, projectID: otherProject.id)
+        other.navigate(to: "data:text/html,<title>public</title><p>public</p>")
+        let publicDeadline = Date().addingTimeInterval(5)
+        while other.webView.url?.scheme != "data" || other.webView.isLoading, Date() < publicDeadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        try await Task.sleep(for: .milliseconds(300))
+        guard other.webView.url?.scheme == "data", other.errorMessage == nil, !other.isPreparingNavigation,
+              other.remoteRouting?.localProxyPort == nil else {
+            throw failure("A public page waited for or failed on remote forwarding")
         }
 
         let oldPort = routing.localProxyPort!

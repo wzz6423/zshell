@@ -1333,7 +1333,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         }
         tab.sessions.forEach { $0.transferHost(to: manager) }
         tab.browsers.forEach { $0.transferHost(to: manager) }
-        tab.browsers.forEach { $0.bind(projectID: id) }
+        tab.browsers.forEach { $0.bind(projectID: id, routing: routingForBrowser()) }
         tab.tabGroupID = nil
         registerTransferOwnership(of: tab)
         tabs.append(tab)

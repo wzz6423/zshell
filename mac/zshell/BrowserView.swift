@@ -172,7 +172,9 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         didSet { isLoading = isPreparingNavigation || webView.isLoading }
     }
 
-    let webView: BrowserWebView
+    /// Replaced only when a move changes the project's website data store,
+    /// which WebKit fixes when a web view is created.
+    private(set) var webView: BrowserWebView
     let automation = BrowserAutomation()
     /// Identity of the manager currently allowed to host this web view. Moving
     /// a tab updates it before SwiftUI can reconcile either window.
@@ -181,7 +183,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     private var pageTitle: String?
     private var observations: Set<AnyCancellable> = []
     private var initialFocus: InitialFocus?
-    private let contextMenuBridge: BrowserContextMenuBridge
+    private let contextMenuBridge = BrowserContextMenuBridge()
     private var faviconTask: Task<Void, Never>?
     private var faviconRevision: UInt = 0
     private var contentRulesObservation: AnyCancellable?
@@ -233,11 +235,31 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         remoteRouting: BrowserRemoteRouting? = nil,
         projectID: UUID? = nil
     ) {
+        self.remoteRouting = remoteRouting
+        self.projectID = projectID
+        webView = Self.makeWebView(routing: remoteRouting, contextMenuBridge: contextMenuBridge)
+        self.initialFocus = initialFocus
+        super.init()
+        remoteRouting?.retain(id, projectID: projectID ?? id)
+        attachWebView()
+
+        if let initialURL, !initialURL.isEmpty {
+            navigate(to: initialURL)
+        }
+    }
+
+    deinit {
+        faviconTask?.cancel()
+        navigationTask?.cancel()
+    }
+
+    private static func makeWebView(
+        routing: BrowserRemoteRouting?, contextMenuBridge: BrowserContextMenuBridge
+    ) -> BrowserWebView {
         let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = remoteRouting?.dataStore ?? .default()
+        configuration.websiteDataStore = routing?.dataStore ?? .default()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.preferences.isElementFullscreenEnabled = true
-        let contextMenuBridge = BrowserContextMenuBridge()
         let contextWorld = WKContentWorld.defaultClient
         configuration.userContentController.addUserScript(WKUserScript(
             source: BrowserContextMenuSupport.script,
@@ -250,7 +272,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
             contentWorld: contextWorld,
             name: BrowserContextMenuSupport.messageName
         )
-        if remoteRouting != nil {
+        if routing != nil {
             configuration.userContentController.addUserScript(WKUserScript(
                 source: BrowserRemoteRouting.bridgeScript,
                 injectionTime: .atDocumentStart,
@@ -258,16 +280,11 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
                 in: .page
             ))
         }
+        return BrowserWebView(frame: .zero, configuration: configuration)
+    }
 
-        self.contextMenuBridge = contextMenuBridge
-        self.remoteRouting = remoteRouting
-        self.projectID = projectID
-        webView = BrowserWebView(frame: .zero, configuration: configuration)
-        self.initialFocus = initialFocus
-        super.init()
-        remoteRouting?.retain(id, projectID: projectID ?? id)
+    private func attachWebView() {
         observeRouting()
-
         webView.customUserAgent = Self.userAgent
         contextMenuBridge.webView = webView
         webView.navigationDelegate = self
@@ -283,22 +300,35 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
                 controller.removeAllContentRuleLists()
                 for rule in rules + [loopbackRules].compactMap({ $0 }) { controller.add(rule) }
             }
-
-        if let initialURL, !initialURL.isEmpty {
-            navigate(to: initialURL)
-        }
     }
 
-    deinit {
-        faviconTask?.cancel()
-        navigationTask?.cancel()
-    }
-
-    func bind(projectID: UUID) {
+    /// Moves are restricted to compatible project locations, but each remote
+    /// project keeps its own site data. A browser joining another project's
+    /// routing reopens its page in that project's data store, so cookies and
+    /// storage follow the destination instead of the source.
+    func bind(projectID: UUID, routing: BrowserRemoteRouting?) {
         self.projectID = projectID
-        // Transfers are restricted to compatible project locations. Keep the
-        // live data store while rebinding connection availability and scope.
-        remoteRouting?.retain(id, projectID: projectID)
+        guard routing !== remoteRouting else {
+            remoteRouting?.retain(id, projectID: projectID)
+            return
+        }
+        let url = (pendingURL ?? webView.url).map(displayed)
+        stopLoading()
+        observations.removeAll()
+        contentRulesObservation = nil
+        routingObservation = nil
+        webView.navigationDelegate = nil
+        webView.uiDelegate = nil
+        webView.configuration.userContentController.removeAllScriptMessageHandlers()
+        remoteRouting?.release(id)
+        remoteRouting = routing
+        pendingURL = nil
+        wasWebViewLoading = false
+        webView = Self.makeWebView(routing: routing, contextMenuBridge: contextMenuBridge)
+        routing?.retain(id, projectID: projectID)
+        attachWebView()
+        objectWillChange.send()
+        if let url { load(URLRequest(url: url)) }
     }
 
     var navigationIsLoading: Bool { isPreparingNavigation || webView.isLoading }
@@ -347,13 +377,13 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     func goBack() {
         guard webView.canGoBack else { return }
         automation.releaseNavigationRestriction()
-        performNavigation { [webView] in webView.goBack() }
+        performNavigation(to: webView.backForwardList.backItem?.url) { [webView] in webView.goBack() }
     }
 
     func goForward() {
         guard webView.canGoForward else { return }
         automation.releaseNavigationRestriction()
-        performNavigation { [webView] in webView.goForward() }
+        performNavigation(to: webView.backForwardList.forwardItem?.url) { [webView] in webView.goForward() }
     }
 
     func reloadOrStop() {
@@ -371,7 +401,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         if pendingURL != nil {
             load(URLRequest(url: url))
         } else {
-            performNavigation { [webView] in webView.reload() }
+            performNavigation(to: webView.url) { [webView] in webView.reload() }
         }
     }
 
@@ -382,12 +412,12 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         errorMessage = nil
         switch operation {
         case "navigate": if let url { load(URLRequest(url: url)) }
-        case "back": performNavigation { [webView] in webView.goBack() }
-        case "forward": performNavigation { [webView] in webView.goForward() }
+        case "back": performNavigation(to: webView.backForwardList.backItem?.url) { [webView] in webView.goBack() }
+        case "forward": performNavigation(to: webView.backForwardList.forwardItem?.url) { [webView] in webView.goForward() }
         case "reload":
             if let url = pendingURL {
                 load(URLRequest(url: url))
-            } else { performNavigation { [webView] in webView.reload() } }
+            } else { performNavigation(to: webView.url) { [webView] in webView.reload() } }
         case "stop": stopLoading()
         default: break
         }
@@ -414,16 +444,20 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     private func load(_ request: URLRequest) {
         var request = request
         if remoteRouting != nil { request.url = request.url.map(BrowserRemoteRouting.routedURL) }
-        pendingURL = request.url
+        let routed = remoteRouting != nil && request.url.map(BrowserRemoteRouting.isLoopback) == true
+        pendingURL = routed ? request.url : nil
         if let url = request.url { urlString = displayAddress(for: url) }
-        performNavigation { [webView] in webView.load(request) }
+        performNavigation(to: request.url) { [webView] in webView.load(request) }
     }
 
-    private func performNavigation(_ action: @escaping () -> WKNavigation?) {
+    /// Only loopback targets travel over SSH; public pages load directly even
+    /// while the remote session is disconnected.
+    private func performNavigation(to target: URL?, _ action: @escaping () -> WKNavigation?) {
         navigationRevision &+= 1
         navigationTask?.cancel()
         errorMessage = nil
-        guard let remoteRouting else {
+        guard let remoteRouting, let target, BrowserRemoteRouting.isLoopback(target) else {
+            isPreparingNavigation = false
             pendingURL = nil
             _ = action()
             return
@@ -451,6 +485,9 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
                 guard let self, !self.isClosed else { return }
                 switch state {
                 case .unavailable:
+                    // A public page needs no forwarding, so it keeps running.
+                    guard let url = self.pendingURL ?? self.webView.url,
+                          BrowserRemoteRouting.isLoopback(url) else { return }
                     self.stopLoading()
                     self.errorMessage = String(localized: "Reconnect the remote session to preview localhost.")
                 case .idle:
@@ -687,6 +724,20 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
             decisionHandler(.cancel)
         } else {
             decisionHandler(.allow)
+        }
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping @MainActor @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        guard remoteRouting != nil else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+        BrowserRemoteRouting.evaluateLoopbackTrust(challenge) { credential in
+            completionHandler(credential == nil ? .performDefaultHandling : .useCredential, credential)
         }
     }
 

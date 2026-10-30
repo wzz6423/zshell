@@ -151,6 +151,9 @@ LogLevel DEBUG3
                 if self.path.startswith("/script.js"):
                     body = b"window.fixtureScript='loaded';"
                     content_type = "text/javascript"
+                elif self.path.startswith("/dynamic.js"):
+                    body = b"window.fixtureDynamic='loaded';"
+                    content_type = "text/javascript"
                 elif self.path.startswith("/api"):
                     body = json.dumps({"server": label, "path": self.path, "host": self.headers.get("Host")}).encode()
                     content_type = "application/json"
@@ -171,6 +174,7 @@ fetch('http://localhost:{other}/api?cross=port').then(r=>r.json()).then(v=>windo
 const ws=new WebSocket('ws://localhost:{other}/socket?hmr=1');
 ws.onopen=()=>ws.send('hmr-echo');ws.onmessage=e=>{{window.fixtureState.websocket=e.data;document.querySelector('#result').textContent=e.data}};
 window.fixtureState.cookie=document.cookie;
+const dynamic=document.createElement('script');dynamic.src='http://localhost:{other}/dynamic.js';document.head.appendChild(dynamic);
 </script></body></html>""".encode()
                     content_type = "text/html"
                 elif self.path == "/frame":
@@ -375,7 +379,7 @@ def main():
                         favicons = [request for request in fixture.requests[request_offset:]
                                     if request[1].startswith("/favicon-target.png?via=zshell-remote.localhost:")]
                         assert favicons and all(request[2].startswith("zshell-remote.localhost:") for request in favicons), favicons
-                        assert {"/script.js", "/pixel.png", "/frame", "/api?cross=port", "/socket?hmr=1"} <= paths, paths
+                        assert {"/script.js", "/dynamic.js", "/pixel.png", "/frame", "/api?cross=port", "/socket?hmr=1"} <= paths, paths
                         marker = f"/must-not-reach-local-{backend}"
                         marker_requests = [request for request in fixture.requests[request_offset:] if request[1] == marker]
                         assert len(marker_requests) == 1, marker_requests

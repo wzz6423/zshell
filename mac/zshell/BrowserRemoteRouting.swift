@@ -84,6 +84,35 @@ final class BrowserRemoteRouting: ObservableObject {
             || (host.hasPrefix("127.") && IPv4Address(host) != nil)
     }
 
+    /// The alias is only the proxy's routing name; the page really talks to
+    /// the remote host's loopback, so a dev certificate is checked against the
+    /// loopback names the alias stands in for. Evaluation can block, so it
+    /// runs off the main thread and reports back on it.
+    nonisolated static func evaluateLoopbackTrust(
+        _ challenge: URLAuthenticationChallenge,
+        completion: @escaping @MainActor @Sendable (URLCredential?) -> Void
+    ) {
+        let space = challenge.protectionSpace
+        guard space.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+              space.host.lowercased() == aliasHost, let trust = space.serverTrust else {
+            DispatchQueue.main.async { completion(nil) }
+            return
+        }
+        nonisolated(unsafe) let unsafeTrust = trust
+        DispatchQueue.global(qos: .userInitiated).async {
+            var credential: URLCredential?
+            for name in ["localhost", "127.0.0.1", "::1"] {
+                SecTrustSetPolicies(unsafeTrust, SecPolicyCreateSSL(true, name as CFString))
+                if SecTrustEvaluateWithError(unsafeTrust, nil) {
+                    credential = URLCredential(trust: unsafeTrust)
+                    break
+                }
+            }
+            let result = credential
+            DispatchQueue.main.async { completion(result) }
+        }
+    }
+
     /// Fail closed for loopback URLs that page scripts or redirects produce
     /// outside the bridge below.
     private static let loopbackRuleSource = #"""
@@ -123,6 +152,22 @@ final class BrowserRemoteRouting: ObservableObject {
       const open = XMLHttpRequest.prototype.open;
       XMLHttpRequest.prototype.open = function (method, url, ...rest) { return open.call(this, method, route(url), ...rest); };
       const attributes = { SCRIPT: 'src', IMG: 'src', IFRAME: 'src', LINK: 'href', SOURCE: 'src', VIDEO: 'src', AUDIO: 'src', EMBED: 'src' };
+      // Script and media elements start fetching as soon as they are inserted
+      // or assigned, before a MutationObserver runs, so route the value as it
+      // is written.
+      const routedProperties = [['HTMLScriptElement', 'src'], ['HTMLImageElement', 'src'], ['HTMLIFrameElement', 'src'],
+        ['HTMLLinkElement', 'href'], ['HTMLSourceElement', 'src'], ['HTMLMediaElement', 'src'], ['HTMLEmbedElement', 'src']];
+      for (const [type, name] of routedProperties) {
+        const prototype = window[type] && window[type].prototype;
+        const descriptor = prototype && Object.getOwnPropertyDescriptor(prototype, name);
+        if (!descriptor || !descriptor.set) continue;
+        Object.defineProperty(prototype, name, { ...descriptor, set(value) { descriptor.set.call(this, route(value)); } });
+      }
+      const setAttribute = Element.prototype.setAttribute;
+      Element.prototype.setAttribute = function (name, value) {
+        const routes = attributes[this.tagName] === String(name).toLowerCase();
+        return setAttribute.call(this, name, routes ? route(value) : value);
+      };
       const patch = node => {
         const name = attributes[node.tagName];
         const value = name && node.getAttribute(name);
@@ -283,6 +328,13 @@ nonisolated private final class FaviconRedirects: NSObject, URLSessionTaskDelega
         var request = request
         request.url = request.url.map(BrowserRemoteRouting.routedURL)
         completionHandler(request)
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge,
+                    completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        BrowserRemoteRouting.evaluateLoopbackTrust(challenge) { credential in
+            completionHandler(credential == nil ? .performDefaultHandling : .useCredential, credential)
+        }
     }
 }
 
