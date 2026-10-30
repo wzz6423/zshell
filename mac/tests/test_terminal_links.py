@@ -27,6 +27,7 @@ class TerminalLinkTests(unittest.TestCase):
             "enum TerminalLinkTarget { case file(URL), url(URL) }\n"
             "struct Session {\n"
             "var foregroundDirectoryPath: String? = nil\n"
+            "var remoteConnection: String? = nil\n"
             "let currentDirectoryPath: String\n"
             + classifier + "\n}\n"
             'let session = Session(currentDirectoryPath: CommandLine.arguments[1])\n'
@@ -66,6 +67,15 @@ class TerminalLinkTests(unittest.TestCase):
         self.assertEqual(self.classify("main.swift:12:3"), {
             "kind": "file", "value": str(path),
         })
+
+    def test_ip_hints_share_the_web_route(self):
+        for value, expected in [
+            ("127.0.0.1", "http://127.0.0.1"),
+            ("192.168.1.2", "http://192.168.1.2"),
+            ("2001:db8::1", "http://[2001:db8::1]"),
+        ]:
+            with self.subTest(value=value):
+                self.assertEqual(self.classify(value), {"kind": "url", "value": expected})
 
     def test_literal_colon_path_takes_precedence(self):
         path = self.root / "name:12"

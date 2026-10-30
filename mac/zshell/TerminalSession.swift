@@ -24,6 +24,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     @Published var workingDirectory: String?
     @Published var hasExited = false
     @Published private(set) var commandLifecycle = TerminalCommandLifecycle()
+    @Published private(set) var commandRecords: [TerminalCommandRecord] = []
     @Published private(set) var terminalCellSize: CGSize?
     @Published private(set) var remoteStatus: RemoteRelayStatus?
     /// Recognized coding agent occupying this terminal, if any. The monitor
@@ -47,6 +48,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     var persistentSessionID: UUID? { persistentPTY == nil ? nil : id }
     let remoteConnection: RemoteSessionConnection?
     let remotePasteTarget: RemotePasteTarget?
+    let startupCommandForTemplate: [String]?
+    let initializationCommandForTemplate: String?
     let overlayScrollbar = OverlayScrollbarView()
     /// Find-in-terminal state for this session's pane (⌘F).
     let find: TerminalFind
@@ -107,7 +110,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         explicitlyResumeConversation: Bool = false,
         remoteConnection: RemoteSessionConnection? = nil,
         remotePasteTarget: RemotePasteTarget? = nil,
-        resolvesSSHAgent: Bool = false
+        resolvesSSHAgent: Bool = false,
+        usesConfiguredStartupCommand: Bool = true
     ) {
         let sessionID = restoredSessionID ?? UUID()
         let existingPTY = remoteConnection == nil ? restoredSessionID.flatMap { PersistentPTY.reconnect(id: $0) } : nil
@@ -119,7 +123,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         )
         let directCommand = resumeLaunch?.arguments
             ?? commandArguments.flatMap { $0.isEmpty ? nil : $0 }
-            ?? (isRestoredSession ? nil : Self.configuredStartupCommand())
+            ?? (isRestoredSession || !usesConfiguredStartupCommand ? nil : Self.configuredStartupCommand())
         let shellPath = directCommand?.first ?? Self.loginShell()
         let directory = Self.validWorkingDirectory(
             existingPTY?.workingDirectory ?? resumeLaunch?.workingDirectory ?? initialDirectory
@@ -209,6 +213,17 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         persistentPTY = pty
         self.remoteConnection = remoteConnection
         self.remotePasteTarget = remotePasteTarget
+        // Provider resume argv and SSH relay configuration carry live identities,
+        // unlike the launch configuration a user chose for a fresh local shell.
+        if let remoteConnection {
+            startupCommandForTemplate = isRestoredSession ? nil : remoteConnection.command
+            initializationCommandForTemplate = isRestoredSession ? nil : remoteConnection.initializationCommand
+        } else {
+            startupCommandForTemplate = agentResume == nil && remotePasteTarget == nil
+                && !isRestoredSession ? directCommand : nil
+            initializationCommandForTemplate = directCommand == nil && !isRestoredSession
+                ? launchSettings.initializationCommand : nil
+        }
         reconnectedToPersistentPTY = existingPTY != nil
         cachedShellPid = pty?.shellPID
         launchWorkingDirectory = directory
@@ -494,9 +509,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         return processWorkingDirectory(pid: foreground)
     }
 
-    func sendCommand(_ text: String) {
+    func sendCommand(_ text: String, asPaste: Bool = false) {
         remoteConnection?.takeControl()
-        surface.sendText(text)
+        if asPaste { surface.sendPaste(text) }
+        else { surface.sendText(text) }
     }
 
     func sendEnter() {
@@ -785,12 +801,19 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             withIntermediateDirectories: false,
             attributes: [.posixPermissions: 0o700]
         )
+        let integrationDirectoryPath = shellQuote(integrationDirectory.path)
         let stateDirectoryPath = shellQuote(directory.path)
         let selectionStatePath = shellQuote(directory.appendingPathComponent("prompt-selection.pid").path)
         let promptQueueStatePath = shellQuote(directory.appendingPathComponent("prompt-queue.pid").path)
         var files = [
             ".zshenv": """
             [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\"
+            if [[ -n \"$ZSHELL_INIT_COMMAND\" ]]; then
+              if [[ \"${ZDOTDIR:-$HOME}\" != \(integrationDirectoryPath) ]]; then
+                export ZSHELL_ORIGINAL_ZDOTDIR=\"${ZDOTDIR:-$HOME}\"
+              fi
+              export ZDOTDIR=\(integrationDirectoryPath)
+            fi
             """,
             ".zprofile": """
             [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zprofile\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zprofile\"
@@ -938,13 +961,18 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             unset _zshell_keymap
             """,
             ".zlogin": """
-            [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zlogin\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zlogin\"
+            _zshell_login_zdotdir=\"${_zshell_init_zdotdir:-$ZSHELL_ORIGINAL_ZDOTDIR}\"
+            unset _zshell_init_zdotdir
+            export ZDOTDIR=\"$_zshell_login_zdotdir\"
+            unset _zshell_login_zdotdir
+            [[ -r \"$ZDOTDIR/.zlogin\" ]] && source \"$ZDOTDIR/.zlogin\"
             if [[ -n \"$ZSHELL_INIT_COMMAND\" ]]; then
               eval -- \"$ZSHELL_INIT_COMMAND\" || builtin print -u2 -- \"zshell: initialization command failed ($?)\"
               unset ZSHELL_INIT_COMMAND
             fi
             """,
         ]
+        TerminalShellCompletions.configure(&files)
         // Command-completion notifications ride the same zsh-only shim: bash
         // and fish never see ZDOTDIR, so this script is the only place the
         // app can hear a command's start and exit. Both opt-in settings are
@@ -1026,7 +1054,17 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             // reliable injection point after the user's configuration loads.
             let taskIntegration = name == ".zshrc"
                 ? TerminalCommandTaskShellIntegration.script(in: directory) : ""
-            try Data((contents + taskIntegration + "\n").utf8).write(to: file, options: .atomic)
+            // The user's rc needs its real ZDOTDIR, but zsh must return to the
+            // proxy for .zlogin so initialization runs after the user's login file.
+            let initializationIntegration = name == ".zshrc" ? """
+
+            if [[ -n \"$ZSHELL_INIT_COMMAND\" ]]; then
+              _zshell_init_zdotdir=\"${ZDOTDIR:-$HOME}\"
+              [[ \"$_zshell_init_zdotdir\" == \(integrationDirectoryPath) ]] && _zshell_init_zdotdir=\"$ZSHELL_ORIGINAL_ZDOTDIR\"
+              export ZDOTDIR=\(integrationDirectoryPath)
+            fi
+            """ : ""
+            try Data((contents + taskIntegration + initializationIntegration + "\n").utf8).write(to: file, options: .atomic)
             try FileManager.default.setAttributes(
                 [.posixPermissions: 0o600], ofItemAtPath: file.path
             )
@@ -1195,6 +1233,12 @@ extension TerminalSession: TerminalBackendEvents {
         }
     }
 
+    func terminalDidUpdateCommandRecords(_ records: [TerminalCommandRecord]) {
+        guard commandRecords != records else { return }
+        TerminalCommandHistoryStore.shared.observe(records, previous: commandRecords, terminalID: id)
+        commandRecords = records
+    }
+
     func terminalDidClose(processAlive: Bool) {
         guard !isTerminating else { return }
         if remoteConnection != nil {
@@ -1301,6 +1345,17 @@ extension TerminalSession: TerminalBackendEvents {
         var candidate = value
         while let last = candidate.last, trailingSentencePunctuation.contains(last) {
             candidate.removeLast()
+        }
+        // IP hints share the same host action as Command-clicked URLs.
+        // URLComponents requires brackets around a bare IPv6 address.
+        let octets = candidate.split(separator: ".", omittingEmptySubsequences: false)
+        if octets.count == 4, octets.allSatisfy({ Int($0).map { (0...255).contains($0) } == true }) {
+            return URL(string: "http://\(candidate)")
+        }
+        if candidate.contains(":"), !candidate.contains("/"),
+           candidate.unicodeScalars.allSatisfy({ CharacterSet(charactersIn: "0123456789abcdefABCDEF:").contains($0) }),
+           let components = URLComponents(string: "http://[\(candidate)]"), components.host != nil {
+            return components.url
         }
         guard let pattern = bareWebAddressPattern,
               let match = pattern.firstMatch(in: candidate, range: NSRange(candidate.startIndex..., in: candidate)),

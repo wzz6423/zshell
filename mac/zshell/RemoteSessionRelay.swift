@@ -91,7 +91,8 @@ nonisolated enum RemoteSessionRelay {
                         kind: "create", project: configuration.project,
                         sessionId: configuration.sessionID.uuidString,
                         command: configuration.command, environment: configuration.environment,
-                        initializationCommand: configuration.initializationCommand
+                        initializationCommand: configuration.initializationCommand,
+                        shellCompletions: configuration.shellCompletions
                     )).decodedResult(RemoteSessionInfo.self)
                     shouldCreate = false
                 }
