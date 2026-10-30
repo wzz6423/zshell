@@ -20,7 +20,7 @@ LANGUAGES = (
 SHARED_TEXT = {
     "%@ — %@", "%@%% · %@", "%@, %@", "%@: %@", "%@…", "+%lld, −%lld",
     "%lld fps", "%lld pt", "%lld sessions", "AI", "Agents", "Arguments", "Backend", "Block",
-    "Branches", "Browser", "Conflict", "Cursor", "Detached HEAD", "Editor", "File", "Font",
+    "Branches", "Browser", "Cookies", "Cookies: %lld", "Conflict", "Cursor", "Detached HEAD", "Editor", "File", "Font",
     "General", "Git", "Git (⇧⌘G)", "Help", "Host", "Info", "Info (⇧⌘I)",
     "Interface", "Name", "Normal", "OK", "Optional", "Options", "PORTS",
     "Password", "Port", "Program", "Services", "Session", "Sessions", "Status",

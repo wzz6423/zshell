@@ -149,6 +149,7 @@ struct State {
     shared_codex: bool,
     shared_codex_revision: Option<u64>,
     shared_codex_service: Option<(i32, u64)>,
+    evicted: bool,
 }
 
 pub struct Session {
@@ -272,6 +273,7 @@ impl Session {
                 shared_codex: false,
                 shared_codex_revision: None,
                 shared_codex_service: None,
+                evicted: false,
             }),
             pty,
             input_sender,
@@ -466,9 +468,23 @@ impl Session {
         action(&client.attachment)
     }
 
+    /// Claims an exited, unviewed session for eviction under the same lock that
+    /// attach registers clients with, so no client can join it afterwards.
+    pub fn try_evict(&self) -> bool {
+        let mut state = self.state.lock().unwrap();
+        if state.info.running || !state.clients.is_empty() || state.evicted { return false; }
+        state.evicted = true;
+        true
+    }
+
+    pub fn restore_eviction(&self) { self.state.lock().unwrap().evicted = false; }
+
     pub fn attach(&self, attachment: Arc<Attachment>, request: &Frame) -> io::Result<()> {
         let (columns, rows) = request.dimensions()?;
         let mut state = self.state.lock().unwrap();
+        if state.evicted {
+            return Err(invalid("Remote session is unavailable; create a new session explicitly"));
+        }
         if let Some(previous) = state.clients.remove(&attachment.id) {
             previous.attachment.disconnect();
         }

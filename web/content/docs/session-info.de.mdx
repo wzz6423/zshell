@@ -24,6 +24,8 @@ Angezeigt werden die Prozesse unterhalb der Sitzungsshell mit PID, CPU-Auslastun
 
 Bereits beendete Kindprozesse, die noch auf ihre Übernahme warten (`<defunct>`), werden ausgeblendet. Bei ihnen gibt es keine Ausgabe mehr zu prüfen und keinen laufenden Prozess zu beenden.
 
+In einer geteilten Remote-Sitzung stammt die Liste vom zshell-server des Hosts und wird alle paar Sekunden aktualisiert. Diese Zeilen bieten nur **PID kopieren** oder **Pfad der ausführbaren Datei kopieren**. Einfache SSH-Terminals zeigen keine Liste, weil dort lokal nur der `ssh`-Client läuft.
+
 ## Ports [#ports]
 
 Hier stehen die TCP-Ports, auf denen diese Prozesse lauschen, mit dem jeweils zugehörigen Prozess. So finden Sie etwa den Port des Entwicklungsservers oder das Programm, das Port 3000 noch belegt.
