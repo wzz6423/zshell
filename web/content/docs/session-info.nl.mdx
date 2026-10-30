@@ -24,6 +24,8 @@ Alles wat onder de shell van de sessie draait, met PID, CPU-percentage en reside
 
 Afgesloten kindprocessen die nog op opruimen wachten (`<defunct>`) worden weggelaten. Daar valt niets meer te bekijken of te stoppen.
 
+In een gedeelde externe sessie komt de lijst van de zshell-server op de host en wordt die om de paar seconden vernieuwd. Die rijen bieden alleen **PID kopiëren** / **Pad van uitvoerbaar bestand kopiëren**; gewone SSH-terminals hebben geen lijst, omdat daar lokaal alleen de `ssh`-client draait.
+
 ## Poorten [#ports]
 
 Alle TCP-poorten waarop die processen luisteren, met het bijbehorende proces. Handig voor dagelijkse vragen: *welke poort koos de ontwikkelserver deze keer* en *wat houdt poort 3000 nog bezet*.

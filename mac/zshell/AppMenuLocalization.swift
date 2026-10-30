@@ -39,6 +39,7 @@ final class AppMenuLocalization: NSObject {
         applicationDelegate?.restoreTerminalMenus()
         guard let menu = NSApp.mainMenu else { return }
         AgentConversationHistoryController.shared.installMenu(in: menu)
+        BrowserProfileImportController.shared.installMenu(in: menu)
         WorkspaceTemplateController.shared.installMenu(in: menu)
         TerminalCommandHistoryController.shared.installMenu(in: menu)
         TerminalHintMenu.shared.install(in: menu)
