@@ -23,6 +23,10 @@ fi
 
 mkdir -p "${BUILD_DIR}/remote" "${BUILD_DIR}/mac/Vendor/alacritty-bridge" "${BUILD_DIR}/mac/zshell/ThirdPartyNotices" "${OUTPUT_DIR}"
 cp "${ROOT_DIR}/remote/Cargo.toml" "${ROOT_DIR}/remote/Cargo.lock" "${BUILD_DIR}/remote/"
+cp "${ROOT_DIR}/remote/build.rs" "${BUILD_DIR}/remote/"
+mkdir -p "${BUILD_DIR}/mac/zshell/ShellIntegration"
+rm -rf "${BUILD_DIR}/mac/zshell/ShellIntegration/TerminalCompletions"
+cp -R "${SRCROOT}/zshell/ShellIntegration/TerminalCompletions" "${BUILD_DIR}/mac/zshell/ShellIntegration/"
 cp "${SRCROOT}/Vendor/alacritty-bridge/Cargo.toml" "${SRCROOT}/Vendor/alacritty-bridge/Cargo.lock" "${BUILD_DIR}/mac/Vendor/alacritty-bridge/"
 cp "${SRCROOT}/zshell/ThirdPartyNotices/Kero.txt" "${BUILD_DIR}/mac/zshell/ThirdPartyNotices/"
 mkdir -p "${BUILD_DIR}/mac/zshell/AgentIntegrations/opencode" "${BUILD_DIR}/mac/zshell/AgentIntegrations/pi"

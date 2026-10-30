@@ -16,6 +16,14 @@ Pilih backend di **Pengaturan → Terminal → Backend**:
 
 Keduanya mendukung akselerasi GPU, gambar, katalog tema bersama Zshell, pencarian, pelaporan mouse, notifikasi, dan laporan kemajuan. Perubahan backend hanya berlaku untuk terminal baru; panel yang sudah ada mempertahankan emulator awalnya.
 
+## Riwayat perintah [#command-history]
+
+Pilih **Terminal → Riwayat perintah…** untuk mencari perintah yang dijalankan di Zshell berdasarkan teks atau direktori. Setiap baris menampilkan direktori asli, waktu mulai, durasi, dan status keluar. Klik baris atau **Tampilkan keluaran** untuk kembali ke panel dan keluaran asli. Jika panel ditutup atau keluaran dihapus, navigasi tidak tersedia; **Salin perintah** tetap berfungsi.
+
+**Sisipkan ke terminal** mengisi prompt zsh kosong pada panel asli tanpa menjalankan perintah; tekan Return saat siap. Penyisipan dinonaktifkan jika panel sibuk atau memiliki draf. Perintah multibaris dipertahankan. Daftar memakai integrasi blok perintah Ghostty dan Alacritty; perintah dalam shell yang tidak didukung atau bertingkat mungkin tidak muncul.
+
+Riwayat disimpan secara lokal di latar belakang, maksimal 2.000 perintah dan 8 MiB. **Hapus** menghapus catatan terpilih; **Hapus riwayat…** menghapus daftar tersimpan. Keluaran terminal dan riwayat shell sendiri tetap disimpan.
+
 ## Shell Anda tetap sama [#your-shell-unchanged]
 
 Setiap sesi memulai shell login akun Anda. Prompt, alias, fungsi, dan dotfiles dimuat seperti di terminal lain. Zshell menambahkan variabel kemampuan dan identitas:
@@ -193,3 +201,9 @@ Daftar lengkap perintah umum tetap tersedia; hanya prioritasnya berubah. Normal 
 Editor lokal dikenali melalui executable latar depan. Dalam SSH, Mosh, atau multiplexer terminal, deteksi memakai baris mode/status Vim yang terlihat dan tata letak layar tanpa memasang plugin jarak jauh. Pertahankan `showmode` atau baris status Vim yang dikenali. Konfigurasi yang menyembunyikan atau mengganti nama label mode dapat kembali ke petunjuk Normal atau menghalangi deteksi jarak jauh; pemetaan khusus tidak ditafsirkan. Hanya panel Info aktif yang diperiksa, dan petunjuk hilang saat program latar depan berubah atau editor tak lagi dikenali.
 
 Fitur ini juga dapat diaktifkan dalam konfigurasi dengan `terminal.vim-command-hints = true`.
+
+## Pelengkapan shell
+
+Aktifkan **Pengaturan → Terminal → Perilaku → Pelengkapan shell** (aktif secara bawaan), lalu buka terminal zsh baru. Perintah, subperintah, argumen, dan jalur menggunakan fungsi shell dengan saran abu-abu. **Panah kanan** menerima di akhir input; **Tab** membuka pilihan, panah memilih, **Return** menerima tanpa menjalankan, dan **Esc** atau **Ctrl+G** membatalkan menu. **Esc** juga menutup saran. Plugin dan pintasan yang ada tetap dipertahankan.
+
+Plugin bawaan tidak mengubah `.zshrc`. Program layar penuh menerima inputnya sendiri. Dengan zshell-server yang kompatibel dan zsh, proyek jarak jauh menggunakan perintah dan jalur jarak jauh; shell lain mempertahankan pelengkapan aslinya. Berlaku untuk shell dan sesi jarak jauh baru. Nonaktifkan dengan `terminal.shell-completions = false`.
