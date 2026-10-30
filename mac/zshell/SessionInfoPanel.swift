@@ -256,7 +256,7 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
             let remote = RemoteProjectInfoNSView()
             remote.configure(project: remoteProject)
             add(remote, to: information)
-            if model.remoteSource != nil { processSection(model: model, isRemote: true) }
+            if model.remoteSource != nil { processSection(model: model) }
             return
         }
         let header = NSStackView()
@@ -289,7 +289,7 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
                 directory(model.projectRootPath, editor: editor)
             }
         }
-        processSection(model: model, isRemote: false)
+        processSection(model: model)
         section("ports", title: String(localized: "PORTS"), count: model.ports.count, in: information) {
             if model.ports.isEmpty {
                 add(label(String(localized: "No listening ports"), size: 11, color: .secondaryLabelColor), to: information)
@@ -311,7 +311,10 @@ final class SessionInfoPanelView: NSView, NSSearchFieldDelegate {
 
     /// Remote rows come from the host's `zshell-server` and are read-only:
     /// signalling a pid on another machine needs its own trust decision.
-    private func processSection(model: SessionInfoModel, isRemote: Bool) {
+    /// Read-only follows the rows' source, not the selected project, so a
+    /// stale remote sample can never be signalled as local PIDs.
+    private func processSection(model: SessionInfoModel) {
+        let isRemote = model.remoteSource != nil
         section("processes", title: String(localized: "PROCESSES"), count: model.processes.count, in: information) {
             if let error = model.remoteError, isRemote {
                 add(label(error, size: 11, color: .secondaryLabelColor), to: information)

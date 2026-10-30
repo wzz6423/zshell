@@ -49,9 +49,18 @@ fn parse(text: &str, shell: i32) -> Vec<ProcessItem> {
     let mut items = HashMap::new();
     let mut children: HashMap<i32, Vec<i32>> = HashMap::new();
     for line in text.lines() {
-        let mut fields = line.split_whitespace();
+        // Split off the five fixed columns only; the rest is the executable
+        // verbatim, since a path may contain runs of spaces.
+        let mut rest = line;
+        let mut column = || {
+            let trimmed = rest.trim_start();
+            let end = trimmed.find(char::is_whitespace).unwrap_or(trimmed.len());
+            let (field, tail) = trimmed.split_at(end);
+            rest = tail;
+            (!field.is_empty()).then_some(field)
+        };
         let (Some(pid), Some(parent), Some(stat), Some(cpu), Some(rss)) =
-            (fields.next(), fields.next(), fields.next(), fields.next(), fields.next())
+            (column(), column(), column(), column(), column())
         else {
             continue;
         };
@@ -63,7 +72,7 @@ fn parse(text: &str, shell: i32) -> Vec<ProcessItem> {
         if stat.starts_with('Z') {
             continue;
         }
-        let executable = fields.collect::<Vec<_>>().join(" ");
+        let executable = rest.trim_start().trim_end_matches('\r').to_string();
         if executable.is_empty() {
             continue;
         }
@@ -93,14 +102,14 @@ mod tests {
 
     #[test]
     fn lists_live_descendants_breadth_first() {
-        let sample = "  10     1 Ss    0.0  2048 /bin/zsh\n  11    10 S+    1.5  4096 /usr/bin/node\n  12    11 Z     0.0     0 <defunct>\n  13    12 R     9.0  8192 /opt/My Tools/worker\n  14    10 S     0.2  1024 sleep\n  15     1 S     0.0   512 /usr/sbin/sshd\n";
+        let sample = "  10     1 Ss    0.0  2048 /bin/zsh\n  11    10 S+    1.5  4096 /usr/bin/node\n  12    11 Z     0.0     0 <defunct>\n  13    12 R     9.0  8192 /opt/My  Tools/worker\n  14    10 S     0.2  1024 sleep\n  15     1 S     0.0   512 /usr/sbin/sshd\n";
         let items = parse(sample, 10);
         let pids: Vec<_> = items.iter().map(|item| item.pid).collect();
         assert_eq!(pids, [11, 14, 13]);
         assert_eq!(items[0].name, "node");
         assert_eq!(items[0].memory_kb, 4096);
         assert_eq!(items[2].name, "worker");
-        assert_eq!(items[2].executable, "/opt/My Tools/worker");
+        assert_eq!(items[2].executable, "/opt/My  Tools/worker");
         assert!(parse(sample, 99).is_empty());
     }
 }

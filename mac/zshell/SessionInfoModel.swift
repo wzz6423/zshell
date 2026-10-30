@@ -150,6 +150,8 @@ final class SessionInfoModel: nonisolated ObservableObject {
     /// SIGTERM (or SIGKILL when `force`), then a delayed re-poll so the
     /// row disappears once the process is actually gone.
     func kill(_ pid: pid_t, force: Bool = false) {
+        // Remote PIDs belong to another machine; never signal them locally.
+        guard remoteSource == nil else { return }
         Darwin.kill(pid, force ? SIGKILL : SIGTERM)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
             self?.refresh()

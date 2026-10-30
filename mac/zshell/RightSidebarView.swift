@@ -272,10 +272,17 @@ struct RightSidebarView: View {
     }
 
     private func syncModels() {
-        guard manager.isPanelVisible,
-              let project = manager.selectedProject,
+        guard manager.isPanelVisible else { return }
+        guard let project = manager.selectedProject,
               let session = project.selectedSession
-        else { return }
+        else {
+            // An empty project has no shell to describe; drop whatever the
+            // previous selection left behind, so a remote host's PIDs never
+            // show up as signalable local rows.
+            info.sync(root: "", projectRoot: "", projectRootSource: .shell,
+                      shellName: "", shellPid: nil)
+            return
+        }
         guard !project.isRemote else {
             // Remote projects: the file tree runs `ls` over SSH against the
             // declared endpoint, rooted at the project's remote directory.
