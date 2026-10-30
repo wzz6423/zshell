@@ -4,7 +4,9 @@ macOS 应用使用本目录内的第三方源码和 XCFramework。普通构建�
 
 | 依赖 | 固定版本 / revision | 本地目录 |
 | --- | --- | --- |
-| GhosttyKit | storage.1.3.7 | `libghostty-spm/GhosttyKit.xcframework` |
+| GhosttyKit | storage.1.3.7 + macOS command records（上游 `35e1a0160c4f6797e1bb1ef8e7a2b8c6b114ab58`） | `libghostty-spm/GhosttyKit.xcframework` |
+| alacritty_terminal | 0.26.0 + 本地 OSC 7/133 与命令锚点 | `alacritty-bridge/src/alacritty_terminal` |
+| vte | 0.15.0 + 本地 OSC 回调 | `alacritty-bridge/src/vte` |
 | Sparkle | 2.9.4 | `Sparkle/Sparkle.xcframework` |
 | swift-markdown | `27b7fc1a19068bcea3d2072db0ce86360d1400ed` | `swift-markdown` |
 | swift-cmark | gfm 分支 / `7898f1b3e4befeecee56cb4a3bc8eebd2cb63219` | `swift-cmark` |
@@ -19,6 +21,21 @@ macOS 应用使用本目录内的第三方源码和 XCFramework。普通构建�
 | MSDisplayLink | 2.1.0 / `1ba3e769b734e456317fa7e45321fa7f53eefb67` | `MSDisplayLink` |
 | STTextKitPlus | 0.3.0 / `2ee74906f4d753458eeaa9a2f6d4538aacb86a1d` | `STTextKitPlus` |
 | CoreTextSwift | 0.2.0 / `833177201d6421e6322296f39fce6ff6ae52618a` | `CoreTextSwift` |
+
+## 终端命令记录
+
+Ghostty 的 macOS arm64、arm64e、x86_64 静态库由 `libghostty-spm/Ghostty.ref`
+固定的上游源码和 `Patches/ghostty/` 内补丁重建。`0012-command-records.patch` 添加
+有界 OSC 133 命令元数据、原生 tracked-pin 定位及 C 接口；其余平台仍使用 storage.1.3.7
+的原始 slices。macOS 重建保留固定库中未修改的 Metal shader payload（SHA-256
+`ef09de8917aaa15f0ebb4847555234b10f938c04d8e17457fe3c90d80a5a2e9d`）。
+`Script/build-platform.sh <source> macos <output>` 可重建 macOS 库，产出库与头文件须一起
+替换对应 slice。Ghostty 上游许可证与 Swift 包许可证保留在 `libghostty-spm/` 中。
+
+Alacritty core 和 VTE 从固定 crates.io 版本复制，改为桥内的 path 依赖，remote 也复用同一
+源码。改动说明见各自 `ZSHELL_PATCHES.md`；core 保留 Apache-2.0，VTE 保留 MIT 和
+Apache-2.0。命令锚点随已有 grid reflow 移动，清除或覆盖输出后失效；没有新增第二套
+VT 解析器或终端渲染器。
 
 ## swift-markdown / swift-cmark
 

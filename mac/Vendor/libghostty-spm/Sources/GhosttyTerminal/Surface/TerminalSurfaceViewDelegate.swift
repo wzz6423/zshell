@@ -199,3 +199,8 @@ public protocol TerminalSurfaceLifecycleDelegate: TerminalSurfaceViewDelegate {
     func terminalDidAttachSurface(_ surface: TerminalSurface)
     func terminalDidDetachSurface()
 }
+
+@MainActor
+public protocol TerminalSurfaceCommandRecordsDelegate: TerminalSurfaceViewDelegate {
+    func terminalCommandRecordsDidChange()
+}

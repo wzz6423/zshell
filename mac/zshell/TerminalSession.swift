@@ -24,6 +24,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     @Published var workingDirectory: String?
     @Published var hasExited = false
     @Published private(set) var commandLifecycle = TerminalCommandLifecycle()
+    @Published private(set) var commandRecords: [TerminalCommandRecord] = []
     @Published private(set) var terminalCellSize: CGSize?
     @Published private(set) var remoteStatus: RemoteRelayStatus?
     /// Recognized coding agent occupying this terminal, if any. The monitor
@@ -504,9 +505,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         return processWorkingDirectory(pid: foreground)
     }
 
-    func sendCommand(_ text: String) {
+    func sendCommand(_ text: String, asPaste: Bool = false) {
         remoteConnection?.takeControl()
-        surface.sendText(text)
+        if asPaste { surface.sendPaste(text) }
+        else { surface.sendText(text) }
     }
 
     func sendEnter() {
@@ -1214,6 +1216,12 @@ extension TerminalSession: TerminalBackendEvents {
             TerminalCommandTaskStore.shared.observeCompletion(in: self)
             ZshellAutomationEventHub.shared.commandFinished(in: self)
         }
+    }
+
+    func terminalDidUpdateCommandRecords(_ records: [TerminalCommandRecord]) {
+        guard commandRecords != records else { return }
+        TerminalCommandHistoryStore.shared.observe(records, previous: commandRecords, terminalID: id)
+        commandRecords = records
     }
 
     func terminalDidClose(processAlive: Bool) {

@@ -104,6 +104,8 @@ final class ProjectSidebarNSView: NSView {
     private let menuPresenter = AppKitContextMenuMonitorView()
     private var footerButtons: [WorkspaceChromeButton] = []
     private var rows: [Item: WorkspaceItemView] = [:]
+    private var pullRequests: [UUID: ProjectPullRequestModel] = [:]
+    private var pullRequestObservations: [UUID: AnyCancellable] = [:]
     private var order: [Item] = []
     private var observations: [AnyCancellable] = []
     private var refreshScheduled = false
@@ -172,6 +174,10 @@ final class ProjectSidebarNSView: NSView {
             .store(in: &observations)
         NotificationCenter.default.publisher(for: NSView.boundsDidChangeNotification, object: scrollView.contentView)
             .sink { [weak self] _ in self?.publishDropFrames() }.store(in: &observations)
+        NotificationCenter.default.publisher(for: AppLocalization.didChange)
+            .sink { [weak self] _ in self?.scheduleRefresh() }.store(in: &observations)
+        Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+            .sink { [weak self] _ in if self?.window != nil { self?.refresh() } }.store(in: &observations)
         fpsCounter.$fps.sink { [weak self] fps in self?.fpsLabel.stringValue = "\(fps) fps" }.store(in: &observations)
         registerForDraggedTypes([.fileURL])
         setAccessibilityElement(false)
@@ -200,6 +206,14 @@ final class ProjectSidebarNSView: NSView {
         }
         let valid = Set(items)
         for key in rows.keys where !valid.contains(key) { rows.removeValue(forKey: key)?.removeFromSuperview() }
+        let visibleProjects = Set(items.compactMap { item -> UUID? in
+            if case .project(let id) = item { return id }
+            return nil
+        })
+        for id in Array(pullRequests.keys) where !visibleProjects.contains(id) {
+            pullRequests.removeValue(forKey: id)?.detach()
+            pullRequestObservations[id] = nil
+        }
         order = items
         let shortcuts = Dictionary(uniqueKeysWithValues: manager.visibleSidebarProjects.prefix(9).enumerated().map {
             ($0.element.id, "⌘\($0.offset + 1)")
@@ -268,6 +282,28 @@ final class ProjectSidebarNSView: NSView {
                   actionLabel: String(localized: "Close Project"), action: { [weak manager, weak project] in
                       if let project { manager?.close(project) }
                   })
+        let model = pullRequestModel(for: project.id)
+        let directory: String?
+        if project.isRemote || window == nil {
+            directory = nil
+        } else if let session = project.selectedSession {
+            directory = project.panelRoot(followingSessionAt: session.currentDirectoryPath,
+                                          foregroundAt: session.foregroundDirectoryPath).root
+        } else {
+            directory = project.customDirectory
+        }
+        model.sync(directory: directory)
+        let action: (() -> Void)?
+        switch model.state {
+        case .pullRequest:
+            action = { [weak model] in model?.open { NSWorkspace.shared.open($0) } }
+        case .failed, .none:
+            action = { [weak model] in model?.refresh() }
+        case .hidden, .loading:
+            action = nil
+        }
+        row.applyPullRequest(label: model.state == .hidden ? nil : model.state.label,
+                             help: model.state.help, action: action)
         row.toolTip = [project.name, project.customDirectory ?? subtitle].compactMap { $0 }.joined(separator: "\n")
         row.onSelect = { [weak manager, weak project] in if let project { manager?.selectedProjectID = project.id } }
         row.onRename = { [weak row, weak project] in
@@ -278,6 +314,15 @@ final class ProjectSidebarNSView: NSView {
             guard let self, let project else { return [] }
             return self.projectMenu(project, row: row)
         }
+    }
+
+    private func pullRequestModel(for id: UUID) -> ProjectPullRequestModel {
+        if let model = pullRequests[id] { return model }
+        let model = ProjectPullRequestModel()
+        pullRequests[id] = model
+        pullRequestObservations[id] = model.$state.dropFirst().removeDuplicates()
+            .receive(on: DispatchQueue.main).sink { [weak self] _ in self?.scheduleRefresh() }
+        return model
     }
 
     private func configure(_ row: WorkspaceItemView, group: ProjectGroup) {
@@ -370,7 +415,7 @@ final class ProjectSidebarNSView: NSView {
             let x: CGFloat
             switch item {
             case .project:
-                height = max(38, ceil(31 * fontScale + 8))
+                height = max(38, ceil(31 * fontScale + 8)) + (row.showsPullRequest ? 22 * max(1, fontScale) : 0)
                 width = rowWidth
                 x = 8
             case .group:
@@ -403,6 +448,9 @@ final class ProjectSidebarNSView: NSView {
 
     func detach() {
         fpsCounter.stop()
+        pullRequests.values.forEach { $0.detach() }
+        pullRequests.removeAll()
+        pullRequestObservations.removeAll()
         draggedItem = nil
         dropItem = nil
         isUngroupedWorkspaceDropTarget = false
@@ -665,6 +713,11 @@ final class ProjectSidebarNSView: NSView {
             .action(title: String(localized: project.isPinned ? "Unpin Project" : "Pin Project")) { [weak manager] in manager?.setPinned(!project.isPinned, for: project) },
             .action(title: String(localized: "Rename…")) { [weak row] in row?.onRename?() },
         ]
+        if !project.isRemote, pullRequests[project.id] != nil {
+            items.append(.action(title: String(localized: "Refresh Pull Request Status")) { [weak self] in
+                self?.pullRequests[project.id]?.refresh()
+            })
+        }
         if project.sharedHost != nil {
             items += [
                 .separator,
