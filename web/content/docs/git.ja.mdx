@@ -112,6 +112,14 @@ zshell +session close --project PROJECT_ID --session SESSION_ID --remove-worktre
 プルを早送りのみにしているのは意図的です。実際のマージやリベースが必要なら Git が知らせるので、ターミナルで判断してください。パネルが代わりに方法を選ぶことはありません。
 </Callout>
 
+### Pull Request の状態 [#pull-request-status]
+
+GitHub CLI をインストールして `gh auth login` でログインすると、ローカルリポジトリの Git パネルに現在のブランチの Pull Request 番号と状態が表示されます。クリックして開くか、右クリックして **Pull Request の状態を更新** を選びます。GitHub 以外のリモートには表示されません。
+
+### プロキシ [#proxy]
+
+Git の通信をプロキシ経由にするには、**設定 → 一般** で **Git でプロキシを使用** をオンにし、**プロキシアドレス**（初期値 `http://127.0.0.1:7897`）を確認します。プロキシは既定でオフです。パネルのフェッチ、プル、プッシュ、Pull Request の状態、およびこの後に開くターミナルの `git` に適用されます。開いているターミナルとリモート SSH プロジェクトは変わりません。HTTP(S) リモートだけが使用し、`git@` 形式の SSH リモートは直接接続します。設定ファイルでは `git.proxy-enabled = true` と `git.proxy = "<url>"` です。
+
 ## まだリポジトリでない場合 [#not-a-repository-yet]
 
 プロジェクトディレクトリにリポジトリがなければ、<strong>リポジトリを初期化（Initialize Repository）</strong>を表示します。実行するとそのフォルダで `git init` を行います。それまでは余計な操作をしません。

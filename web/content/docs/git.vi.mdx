@@ -105,6 +105,14 @@ Menu còn có **Sao chép đường dẫn thay đổi**, **Sao chép đường d
 Pull chỉ fast-forward là có chủ đích. Nếu cần merge hoặc rebase thực sự, Git sẽ báo và bạn quyết định ở terminal; bảng không chọn chiến lược thay bạn.
 </Callout>
 
+### Trạng thái pull request [#pull-request-status]
+
+Cài GitHub CLI và đăng nhập bằng `gh auth login` để xem số và trạng thái pull request của nhánh hiện tại trong bảng Git của kho cục bộ. Nhấp để mở hoặc nhấp chuột phải và chọn **Làm mới trạng thái pull request**. Remote không thuộc GitHub không hiển thị pull request.
+
+### Proxy [#proxy]
+
+Để chuyển lưu lượng Git qua proxy, bật **Dùng proxy cho Git** trong **Cài đặt → Chung** và kiểm tra **Địa chỉ proxy**, được điền sẵn `http://127.0.0.1:7897`. Proxy mặc định tắt. Proxy áp dụng cho fetch, pull và push trong bảng, trạng thái pull request và `git` trong các terminal mở sau đó; terminal đang mở và dự án SSH từ xa không thay đổi. Chỉ remote HTTP(S) dùng proxy; remote SSH dạng `git@` vẫn kết nối trực tiếp. Trong tệp cấu hình: `git.proxy-enabled = true` và `git.proxy = "<url>"`.
+
 ## Chưa phải kho mã [#not-a-repository-yet]
 
 Nếu thư mục dự án chưa có kho, bảng cung cấp **Khởi tạo kho**, chạy `git init` tại đó. Trước khi ấy bảng không làm phiền.

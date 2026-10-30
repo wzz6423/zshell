@@ -110,6 +110,14 @@ in Finder**。
 拉取只做 fast-forward 是有意的。如果真需要 merge 或 rebase，git 會說出來，由你在終端機裡決定——面板不會替你挑策略。
 </Callout>
 
+### Pull Request 狀態 [#pull-request-status]
+
+安裝 GitHub CLI 並使用 `gh auth login` 登入後，本機儲存庫的 Git 面板會顯示目前分支的 Pull Request 編號和狀態。按一下即可開啟；也可以按右鍵選擇 **重新整理 Pull Request 狀態**。非 GitHub 遠端不顯示 Pull Request。
+
+### 代理 [#proxy]
+
+要讓 Git 流量經過代理，請在 **設定 → 一般** 中開啟 **Git 使用代理**，並確認 **代理位址**（預先填入 `http://127.0.0.1:7897`）。代理預設為關閉。它適用於面板的擷取、Pull 和推送、Pull Request 狀態，以及之後新開啟終端機中的 `git`；已開啟的終端機和遠端 SSH 專案不受影響。只有 HTTP(S) 遠端會使用代理，`git@` 形式的 SSH 遠端仍然直接連線。設定檔中對應 `git.proxy-enabled = true` 和 `git.proxy = "<url>"`。
+
 ## 還不是一個儲存庫 [#not-a-repository-yet]
 
 如果專案目錄裡沒有儲存庫，面板會提供 **Initialize Repository**，它在那個資料夾裡執行

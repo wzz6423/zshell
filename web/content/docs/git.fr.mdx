@@ -105,6 +105,14 @@ Ce même menu propose **Copier les chemins modifiés**, **Copier le chemin du d�
 Le tirage est volontairement limité à l'avance rapide. Si une fusion ou un rebase est nécessaire, Git vous l'indique et vous choisissez la marche à suivre dans le terminal. Le panneau ne choisit pas cette stratégie à votre place.
 </Callout>
 
+### État des pull requests [#pull-request-status]
+
+Installez GitHub CLI et connectez-vous avec `gh auth login` pour voir le numéro et l’état de la pull request de la branche courante dans le panneau Git d’un dépôt local. Cliquez dessus pour l’ouvrir, ou faites un clic droit et choisissez **Actualiser l’état de la pull request**. Les dépôts distants hors GitHub ne l’affichent pas.
+
+### Proxy [#proxy]
+
+Pour faire passer le trafic Git par un proxy, activez **Utiliser un proxy pour Git** dans **Réglages → Général** et vérifiez l’**Adresse du proxy**, préremplie avec `http://127.0.0.1:7897`. Le proxy est désactivé par défaut. Il s’applique aux fetch, pull et push du panneau, à l’état des pull requests et à `git` dans les terminaux ouverts ensuite ; les terminaux déjà ouverts et les projets SSH distants ne changent pas. Seuls les dépôts distants HTTP(S) l’utilisent ; les remotes SSH `git@` se connectent directement. Dans le fichier de configuration : `git.proxy-enabled = true` et `git.proxy = "<url>"`.
+
 ## Aucun dépôt pour le moment [#not-a-repository-yet]
 
 Si le répertoire du projet ne contient pas de dépôt, le panneau propose **Initialiser le dépôt**, qui exécute `git init` dans ce dossier. Il reste discret tant que le dépôt n'est pas initialisé.

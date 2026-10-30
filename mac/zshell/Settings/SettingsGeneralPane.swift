@@ -6,8 +6,8 @@
 import AppKit
 
 /// App-wide preferences that belong to no single surface: the language Zshell
-/// uses, whether projects show the toolbar, and the reset escape hatch.
-final class SettingsGeneralPane: SettingsPaneViewController {
+/// uses, whether projects show the toolbar, the Git proxy, and the reset escape hatch.
+final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate {
     private let languagePopUp = SettingsPopUpButton<AppLanguage>(
         items: AppLanguage.allCases.map { .value($0.title, $0) },
         onChange: { AppSettings.shared.language = $0 }
@@ -45,6 +45,25 @@ final class SettingsGeneralPane: SettingsPaneViewController {
         toolbarRow,
     ])
 
+    private let gitProxySwitch = SettingsSwitch { AppSettings.shared.gitProxyEnabled = $0 }
+    private let gitProxyField = NSTextField()
+
+    private lazy var gitProxyAddressRow = SettingsRow(
+        title: String(localized: "Proxy address"),
+        description: Self.gitProxyAddressDescription(isValid: true),
+        control: gitProxyField
+    )
+
+    private lazy var gitGroup = SettingsGroup(header: String(localized: "Git"), rows: [
+        SettingsRow(
+            title: String(localized: "Use proxy for Git"),
+            description: String(localized: "Applies to Git panel actions, pull request status, and Git in terminals opened afterwards."),
+            control: gitProxySwitch,
+            symbolName: "network"
+        ),
+        gitProxyAddressRow,
+    ])
+
     private lazy var resetRow = SettingsButtonRow(
         title: String(localized: "Reset to Defaults")
     ) { [weak self] in
@@ -55,7 +74,11 @@ final class SettingsGeneralPane: SettingsPaneViewController {
         // The reset button stands on its own rather than inside a group: it is
         // an action, not a setting, and hairlines around a lone button read as
         // an empty group.
-        [languageGroup, resetRow]
+        gitProxyField.controlSize = .small
+        gitProxyField.placeholderString = GitProxy.defaultAddress
+        gitProxyField.delegate = self
+        gitProxyField.widthAnchor.constraint(equalToConstant: 200).isActive = true
+        return [languageGroup, gitGroup, resetRow]
     }
 
     override func syncFromSettings() {
@@ -63,7 +86,30 @@ final class SettingsGeneralPane: SettingsPaneViewController {
         presencePopUp.select(settings.applicationPresence)
         toolbarPopUp.select(settings.toolbarVisibility)
         toolbarRow.setDescription(Self.toolbarDescription(for: settings.toolbarVisibility))
+        gitProxySwitch.isOn = settings.gitProxyEnabled
+        if !isEditing(gitProxyField) {
+            gitProxyField.stringValue = settings.gitProxyAddress
+            gitProxyAddressRow.setDescription(Self.gitProxyAddressDescription(
+                isValid: GitProxy.normalized(settings.gitProxyAddress) != nil))
+        }
         resetRow.button.isEnabled = !settings.isAtDefaults
+    }
+
+    func controlTextDidChange(_ notification: Notification) {
+        // Keep the last valid address in effect while the user is mid-edit.
+        let isValid = GitProxy.normalized(gitProxyField.stringValue) != nil
+        gitProxyAddressRow.setDescription(Self.gitProxyAddressDescription(isValid: isValid))
+        if isValid { settings.gitProxyAddress = gitProxyField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines) }
+    }
+
+    private func isEditing(_ field: NSTextField) -> Bool {
+        field.currentEditor() != nil && view.window?.firstResponder === field.currentEditor()
+    }
+
+    private static func gitProxyAddressDescription(isValid: Bool) -> String {
+        isValid
+            ? String(localized: "HTTP, HTTPS, or SOCKS proxy URL. Changes apply to terminals opened afterwards.")
+            : String(localized: "Enter a proxy URL such as http://127.0.0.1:7897.")
     }
 
     private static func toolbarDescription(for visibility: ToolbarVisibility) -> String {

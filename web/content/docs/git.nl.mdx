@@ -105,6 +105,14 @@ Hetzelfde menu bevat **Gewijzigde paden kopiëren**, **Repositorypad kopiëren**
 Pullen is bewust beperkt tot fast-forward. Als een echte merge of rebase nodig is, meldt Git dat en beslis je in de terminal. Het paneel kiest geen strategie voor je.
 </Callout>
 
+### Pullrequeststatus [#pull-request-status]
+
+Installeer GitHub CLI en meld je aan met `gh auth login` om in het Git-paneel van een lokale repository het nummer en de status van de pullrequest voor de huidige branch te zien. Klik om deze te openen of klik met de rechtermuisknop en kies **Pullrequeststatus vernieuwen**. Andere remotes dan GitHub tonen geen pullrequest.
+
+### Proxy [#proxy]
+
+Om Git-verkeer via een proxy te laten lopen, zet je **Proxy gebruiken voor Git** aan onder **Instellingen → Algemeen** en controleer je het **Proxyadres**, vooraf ingevuld met `http://127.0.0.1:7897`. De proxy staat standaard uit. Hij geldt voor fetch, pull en push in het paneel, voor de pullrequeststatus en voor `git` in terminals die daarna worden geopend; open terminals en externe SSH-projecten veranderen niet. Alleen HTTP(S)-remotes gebruiken hem; `git@`-SSH-remotes maken nog steeds direct verbinding. In het configuratiebestand: `git.proxy-enabled = true` en `git.proxy = "<url>"`.
+
 ## Nog geen repository [#not-a-repository-yet]
 
 Als de projectmap geen repository bevat, biedt het paneel **Repository initialiseren** aan. Dit voert `git init` in die map uit. Tot dan blijft het paneel op de achtergrond.

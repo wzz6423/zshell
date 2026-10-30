@@ -16,6 +16,11 @@ the original feature bullet instead of adding separate entries for them.
 
 ## [Unreleased]
 
+### Added
+
+- Show the current branch’s GitHub pull request number and status in the Git panel; click it to open the pull request.
+- Add an optional Git proxy under Settings → General for Git panel actions, pull request status, and Git in newly opened terminals.
+
 ### Fixed
 
 - Use a consistent compact switch size throughout Settings.

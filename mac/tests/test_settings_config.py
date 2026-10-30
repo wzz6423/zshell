@@ -50,6 +50,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-settings-config-") as temporary:
         str(ROOT / "mac/zshell/ExternalEditor.swift"),
         str(ROOT / "mac/zshell/CommandShortcuts.swift"),
         str(ROOT / "mac/zshell/AppLocalization.swift"),
+        str(ROOT / "mac/zshell/GitProxy.swift"),
         str(source_path), str(ROOT / "mac/tests/SettingsReloadTests.swift"),
         "-o", str(reload_binary),
     ], check=True, cwd=ROOT)

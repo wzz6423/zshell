@@ -990,6 +990,8 @@ private struct GitPanel: View {
             } else {
                 trackingBar
                 if !isRemote {
+                    GitPullRequestBar(directory: model.rootPath, fontScale: sidebarFontScale)
+                        .fixedSize(horizontal: false, vertical: true)
                     worktreeBranchSearchBar
                     branchesSection
                     worktreesSection

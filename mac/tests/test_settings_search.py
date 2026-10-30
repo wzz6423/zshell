@@ -26,6 +26,8 @@ CONFIGURATION_ITEMS = {
     "browser.content-blocking": ("browser", "Block ads and trackers", ""),
     "browser.filter-lists": ("browser", "Filter Lists", "Filter Lists"),
     "toolbar.visibility": ("general", "Toolbar", ""),
+    "git.proxy-enabled": ("general", "Use proxy for Git", "Git"),
+    "git.proxy": ("general", "Proxy address", "Git"),
     "app-icon": ("appearance", "Dock icon", "App Icon"),
     "theme-dark": ("appearance", "Dark theme", "Colors"),
     "theme-light": ("appearance", "Light theme", "Colors"),
@@ -65,6 +67,8 @@ CONFIGURATION_ITEMS = {
 }
 DESCRIPTION_ITEMS = {
     "Keeps the toolbar hidden": ("general", "Toolbar", ""),
+    "Applies to Git panel actions, pull request status, and Git in terminals opened afterwards.":
+        ("general", "Use proxy for Git", "Git"),
     "Keep the window, sidebars, and editor on Zshell’s default colors":
         ("appearance", "Terminal theme only", "Colors"),
     "Used after the Latin family and before the bundled symbol font":

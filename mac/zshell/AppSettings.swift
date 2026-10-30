@@ -443,6 +443,16 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    /// Proxy for Git and GitHub CLI traffic. Terminals opened afterwards pass
+    /// it to Git only; already running shells keep their environment.
+    @Published var gitProxyEnabled: Bool {
+        didSet { applyGitProxy(); save() }
+    }
+
+    @Published var gitProxyAddress: String {
+        didSet { applyGitProxy(); save() }
+    }
+
     private init() {
         let savedLanguage = AppLanguage.saved
         language = savedLanguage
@@ -555,6 +565,9 @@ final class AppSettings: nonisolated ObservableObject {
         terminalStartupArguments = toml["terminal.startup-arguments"]?.string ?? ""
         browserContentBlocking = toml["browser.content-blocking"]?.bool ?? true
         browserFilterLists = toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults
+        gitProxyEnabled = toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled
+        gitProxyAddress = toml["git.proxy"]?.string ?? GitProxy.defaultAddress
+        applyGitProxy()
         applyAppearance()
         applyApplicationIcon()
         reloadThemeSelection()
@@ -688,6 +701,8 @@ final class AppSettings: nonisolated ObservableObject {
             && terminalStartupArguments.isEmpty
             && browserContentBlocking
             && browserFilterLists == BrowserFilterSource.defaults
+            && gitProxyEnabled == GitProxy.defaultEnabled
+            && gitProxyAddress == GitProxy.defaultAddress
     }
 
     func resetToDefaults() {
@@ -736,6 +751,8 @@ final class AppSettings: nonisolated ObservableObject {
         terminalStartupArguments = ""
         browserContentBlocking = true
         browserFilterLists = BrowserFilterSource.defaults
+        gitProxyEnabled = GitProxy.defaultEnabled
+        gitProxyAddress = GitProxy.defaultAddress
         resumeAgentConversations = true
     }
 
@@ -933,6 +950,8 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.terminalStartupArguments, toml["terminal.startup-arguments"]?.string ?? "")
         assign(\.browserContentBlocking, toml["browser.content-blocking"]?.bool ?? true)
         assign(\.browserFilterLists, toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults)
+        assign(\.gitProxyEnabled, toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled)
+        assign(\.gitProxyAddress, toml["git.proxy"]?.string ?? GitProxy.defaultAddress)
 
         if applicationIcon != oldIcon { applyApplicationIcon() }
         if theme != oldTheme { applyAppearance() }
@@ -988,6 +1007,10 @@ final class AppSettings: nonisolated ObservableObject {
         } catch {
             NSLog("zshell: failed to refresh AI support: \(error)")
         }
+    }
+
+    private func applyGitProxy() {
+        GitProxy.update(enabled: gitProxyEnabled, address: gitProxyAddress)
     }
 
     private func save() {
@@ -1137,6 +1160,12 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if browserFilterLists != BrowserFilterSource.defaults {
             lines.append("browser.filter-lists = \(TOML.quote(browserFilterLists))")
+        }
+        if gitProxyEnabled != GitProxy.defaultEnabled {
+            lines.append("git.proxy-enabled = \(gitProxyEnabled)")
+        }
+        if gitProxyAddress != GitProxy.defaultAddress {
+            lines.append("git.proxy = \(TOML.quote(gitProxyAddress))")
         }
         return lines.joined(separator: "\n") + "\n"
     }
