@@ -25,6 +25,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     var onBecomeFirstResponder: (() -> Void)?
     let splitTarget = SplitMenuTarget()
     let commandRouting = TerminalCommandRouting()
+    lazy var hintMode = TerminalHintMode(surface: self)
 
     /// Matches the window padding Zshell's Ghostty panes use, so a pane looks
     /// the same whichever backend drew it.
@@ -428,6 +429,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     func detach() {
+        hintMode.dismiss(restoringFocus: false)
         foregroundProcessProvider = nil
         directoryTimer?.invalidate()
         directoryTimer = nil
@@ -444,6 +446,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     func setSurfaceVisible(_ visible: Bool) {
+        if !visible { hintMode.dismiss(restoringFocus: false) }
         // The flag stops wakeups from scheduling frames nothing will
         // composite; parking also drops renderer-owned GPU allocations below.
         let changed = visible != isSurfaceVisible
@@ -1318,12 +1321,37 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         return lines.joined(separator: "\n")
     }
 
+    func readVisibleSnapshot() -> TerminalViewportSnapshot? {
+        guard let handle else { return nil }
+        var snapshot = ZshellSnapshot()
+        zshell_alacritty_snapshot(handle, &snapshot)
+        guard snapshot.columns > 0, snapshot.rows > 0,
+              snapshot.columns <= TerminalViewportSnapshot.maximumCells / snapshot.rows,
+              let cells = snapshot.cells else { return nil }
+        var rows: [TerminalViewportRow] = []
+        for row in 0..<snapshot.rows {
+            var copied: [TerminalViewportCell] = []
+            for column in 0..<snapshot.columns {
+                let cell = cells[row * snapshot.columns + column]
+                if cell.flags & UInt16(ZSHELL_CELL_WIDE_SPACER) != 0 { continue }
+                let width = cell.flags & UInt16(ZSHELL_CELL_WIDE) != 0 ? 2 : 1
+                let text = viewportRowText(row, columns: column + 1, snapshot: snapshot,
+                                           cells: cells, firstColumn: column)
+                copied.append(.init(text: text, column: column, width: width))
+            }
+            let wraps = cells[(row + 1) * snapshot.columns - 1].flags & UInt16(ZSHELL_CELL_WRAPPED) != 0
+            rows.append(TerminalViewportRow(cells: copied, wraps: wraps))
+        }
+        return TerminalViewportSnapshot(rows: rows, columns: snapshot.columns, origin: Self.padding,
+                                        cellSize: CGSize(width: metrics.cellWidth, height: metrics.cellHeight))
+    }
+
     private func viewportRowText(
-        _ row: Int, columns: Int, snapshot: ZshellSnapshot, cells: UnsafePointer<ZshellCell>
+        _ row: Int, columns: Int, snapshot: ZshellSnapshot, cells: UnsafePointer<ZshellCell>, firstColumn: Int = 0
     ) -> String {
         var line = ""
         line.reserveCapacity(columns)
-        for column in 0..<columns {
+        for column in firstColumn..<columns {
             let cell = cells[row * snapshot.columns + column]
             if cell.flags & UInt16(ZSHELL_CELL_WIDE_SPACER) != 0 { continue }
             if cell.flags & UInt16(ZSHELL_CELL_HIDDEN) != 0 {
@@ -1511,6 +1539,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func keyDown(with event: NSEvent) {
+        if hintMode.consumesKeyDown(event) { return }
         finalizePointerSelectionBeforeInput()
         if !hasMarkedText(),
            aiInputEditor.handleKeyDown(event, replay: { [weak self] in self?.keyDown(with: event) }) { return }
@@ -1570,6 +1599,11 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             return
         }
         interpretKeyEvents([event])
+    }
+
+    override func keyUp(with event: NSEvent) {
+        if hintMode.handleKeyUp(event) { return }
+        super.keyUp(with: event)
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -2356,6 +2390,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         menu.addItem(contextItem(String(localized: "Select All"), #selector(selectAll(_:))))
         menu.addItem(.separator())
         menu.addItem(commandRouting.contextMenuItem())
+        for item in TerminalHintMenu.shared.items(for: self) { menu.addItem(item) }
         menu.addItem(.separator())
         menu.addItem(splitTarget.quickCommandMenuItem())
         if let linkTarget {
@@ -2509,6 +2544,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 /// cursor and only committed text reaches the PTY.
 extension AlacrittyTerminalView: NSTextInputClient {
     func insertText(_ string: Any, replacementRange: NSRange) {
+        guard !hintMode.isPresented else { return }
         let text = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""
         if !text.isEmpty { finalizePointerSelectionBeforeInput() }
         if !text.isEmpty, aiInputEditor.isBusy || aiInputEditor.hasSelection {

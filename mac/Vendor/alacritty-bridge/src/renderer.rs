@@ -2599,6 +2599,9 @@ pub unsafe extern "C" fn zshell_alacritty_snapshot(
         if source.contains(Flags::WIDE_CHAR) {
             flags |= ZSHELL_CELL_WIDE;
         }
+        if source.contains(Flags::WRAPLINE) {
+            flags |= ZSHELL_CELL_WRAPPED;
+        }
         if source.intersects(Flags::WIDE_CHAR_SPACER | Flags::LEADING_WIDE_CHAR_SPACER) {
             flags |= ZSHELL_CELL_WIDE_SPACER;
         }

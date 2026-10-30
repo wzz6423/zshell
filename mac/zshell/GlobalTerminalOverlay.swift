@@ -645,7 +645,8 @@ private final class GlobalTerminalOverlayWindow: NSPanel {
     override func sendEvent(_ event: NSEvent) {
         if event.type == .keyDown, content.handleKeyEquivalent(event) { return }
         if event.type == .keyDown, event.keyCode == UInt16(kVK_Escape),
-           !TerminalCommandRouting.isBlockingCommands(in: self) {
+           !TerminalCommandRouting.isBlockingCommands(in: self),
+           !TerminalHintMode.isPresented(in: self) {
             GlobalTerminalOverlay.shared.dismissFromWindow()
             return
         }
