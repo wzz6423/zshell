@@ -19,6 +19,7 @@ the original feature bullet instead of adding separate entries for them.
 ### Fixed
 
 - Use a consistent compact switch size throughout Settings.
+- Stop the menu bar from flickering while zshell is in front, and keep the Terminal menu before Window and Help.
 
 ## [0.1.11]
 
