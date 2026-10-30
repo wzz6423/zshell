@@ -30,6 +30,7 @@ extension ZshellTerminalView {
             terminalConfiguration: terminalConfiguration(command: launch.commandLine)
         )
         ghosttyController = controller
+        controller.onBufferMayChange = { [weak self] in self?.invalidateLogContents() }
         delegate = self
         configuration = TerminalSurfaceOptions(
             backend: .exec,
@@ -58,6 +59,8 @@ extension ZshellTerminalView {
     /// Releases the surface. The view itself stays in the layout so teardown
     /// never pulls a pane out from under SwiftUI mid-frame.
     func detach() {
+        invalidateLogContents()
+        ghosttyController?.onBufferMayChange = nil
         hintMode.dismiss(restoringFocus: false)
         foregroundProcessProvider = nil
         stopSelectionAutoscroll()
@@ -228,6 +231,7 @@ extension ZshellTerminalView: TerminalSurfacePwdDelegate {
 
 extension ZshellTerminalView: TerminalSurfaceGridResizeDelegate {
     func terminalDidResize(_ size: TerminalGridMetrics) {
+        invalidateLogContents()
         let scale = window?.backingScaleFactor
             ?? NSScreen.main?.backingScaleFactor
             ?? 2

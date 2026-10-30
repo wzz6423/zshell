@@ -31,6 +31,10 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     var commandRecordState = TerminalCommandRecords()
     var lastCommandRevision: UInt64?
     var ghosttyController: TerminalController?
+    private(set) var logContentRevision: UInt64 = 0
+    var findMatchesNewestFirst: Bool { true }
+
+    func invalidateLogContents() { logContentRevision &+= 1 }
     /// The `/bin/sh -c …` line this surface launched, kept so a live
     /// re-configure can restate it rather than start a second shell.
     var launchCommand = ""
@@ -199,6 +203,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     func clearScreen() {
+        invalidateLogContents()
         performBindingAction("clear_screen")
         refreshCommandRecords()
         // Ask the foreground shell to repaint its prompt at the top.
