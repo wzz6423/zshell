@@ -13,6 +13,8 @@ Zshell permite integrar un navegador en cualquier pestaña o panel dividido. Res
 
 Las pestañas de navegador pertenecen al proyecto seleccionado y forman parte de su disposición normal de pestañas y paneles. Si no hay un proyecto abierto, Zshell crea uno para alojar el navegador.
 
+En un proyecto SSH o remoto compartido, abre `http://localhost:3000` para previsualizar el servidor de desarrollo de ese host. Zshell usa reenvío SSH; si se interrumpe la conexión, vuelve a conectarte y recarga la página. Los datos del sitio se comparten entre los paneles de ese proyecto remoto y se guardan separados de los proyectos locales y otros proyectos remotos.
+
 ## Dirección y búsqueda [#address-and-search]
 
 El campo superior acepta una URL completa, un nombre de host o términos de búsqueda:
@@ -39,6 +41,8 @@ En un terminal, un clic normal con Command abre una URL web detectada en el nave
 Al cambiar de pestaña o proyecto, la página permanece como la dejaste, incluido el historial, la posición de desplazamiento, los formularios y el estado interno de la página. Cuando Zshell vuelve a iniciarse, restaura la URL actual y la disposición, pero no todo el historial de navegación.
 
 Los paneles de navegador conservan las cookies, las sesiones iniciadas y otros datos de los sitios entre pestañas y reinicios. No es un modo de navegación privada.
+
+En **Browser → Import Browser Data…**, las cookies se importan al almacenamiento del navegador del proyecto seleccionado al pulsar **Import**. Los proyectos remotos tienen almacenamiento independiente; los locales comparten el predeterminado. Cambiar de proyecto no cambia el destino. Cerrar el proyecto de destino detiene el resto de la importación sin escribir en otro proyecto. Si no hay un proyecto abierto, Zshell crea uno local al empezar a importar cookies o pestañas.
 
 ## Pedir a un agente que pruebe la página [#let-an-agent-test-the-page]
 

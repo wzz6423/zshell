@@ -13,6 +13,8 @@ Zshell đặt được trình duyệt tích hợp trong bất kỳ tab hoặc ô
 
 Tab trình duyệt thuộc dự án đang chọn và dùng chung bố cục tab/ô bình thường. Nếu chưa có dự án, Zshell tạo một dự án chứa trình duyệt.
 
+Trong dự án SSH hoặc dự án từ xa được chia sẻ, mở `http://localhost:3000` để xem trước máy chủ phát triển trên máy đó. Zshell dùng chuyển tiếp SSH; nếu mất kết nối, hãy kết nối lại và tải lại trang. Dữ liệu trang được chia sẻ giữa các ô trình duyệt trong dự án từ xa đó và tách biệt với dự án cục bộ và các dự án từ xa khác.
+
 ## Địa chỉ và tìm kiếm [#address-and-search]
 
 Ô trên cùng nhận URL đầy đủ, tên máy chủ hoặc từ khóa:
@@ -39,6 +41,8 @@ Trong terminal, Command-nhấp bình thường mở URL web đã nhận diện b
 Đổi tab hoặc dự án giữ nguyên trang, gồm lịch sử, vị trí cuộn, biểu mẫu và trạng thái bên trong. Khi mở lại Zshell, URL hiện tại và bố cục được khôi phục, nhưng toàn bộ lịch sử tiến/lùi thì không.
 
 Ô trình duyệt giữ cookie, đăng nhập và dữ liệu trang khác qua các tab và lần mở ứng dụng. Đây không phải chế độ riêng tư.
+
+Qua **Browser → Import Browser Data…**, cookie được nhập vào bộ nhớ trình duyệt của dự án đang được chọn khi bấm **Import**. Các dự án từ xa có bộ nhớ riêng; dự án cục bộ dùng chung bộ nhớ mặc định. Chuyển dự án không đổi nơi nhập. Đóng dự án đích sẽ dừng phần nhập còn lại mà không ghi vào dự án khác. Nếu chưa có dự án nào mở, Zshell tạo một dự án cục bộ khi bắt đầu nhập cookie hoặc tab.
 
 ## Nhờ Agent kiểm thử trang [#let-an-agent-test-the-page]
 

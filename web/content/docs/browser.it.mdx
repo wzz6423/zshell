@@ -13,6 +13,8 @@ Zshell può inserire un browser integrato in qualsiasi scheda o pannello diviso.
 
 Le schede browser appartengono al progetto selezionato e partecipano alla normale disposizione di schede e pannelli. Se non è aperto alcun progetto, Zshell ne crea uno per il browser.
 
+In un progetto SSH o remoto condiviso, apri `http://localhost:3000` per visualizzare il server di sviluppo di quell’host. Zshell usa l’inoltro SSH; se la connessione si interrompe, riconnettiti e ricarica la pagina. I dati del sito sono condivisi tra i pannelli di quel progetto remoto e separati dai progetti locali e dagli altri progetti remoti.
+
 ## Indirizzo e ricerca [#address-and-search]
 
 Il campo superiore accetta URL completi, nomi host o termini di ricerca:
@@ -39,6 +41,8 @@ Nel terminale, un normale Command-clic apre l'URL rilevato nel browser predefini
 Passare tra schede o progetti conserva la pagina, inclusi cronologia, posizione di scorrimento, moduli e stato interno. Al riavvio, Zshell ripristina URL corrente e disposizione, ma non tutta la cronologia avanti/indietro.
 
 I pannelli browser conservano cookie, accessi e altri dati dei siti tra schede e avvii. Non si tratta di navigazione privata.
+
+Da **Browser → Import Browser Data…**, i cookie vengono importati nello spazio di archiviazione del browser del progetto selezionato quando si preme **Import**. I progetti remoti hanno spazi separati; quelli locali condividono lo spazio predefinito. Cambiare progetto non modifica la destinazione. Chiudere il progetto di destinazione interrompe il resto dell’importazione senza scrivere in un altro progetto. Se non ci sono progetti aperti, Zshell ne crea uno locale all’avvio dell’importazione di cookie o schede.
 
 ## Far testare la pagina a un agente [#let-an-agent-test-the-page]
 

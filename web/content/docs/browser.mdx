@@ -18,6 +18,8 @@ the terminal that is using it.
 Browser tabs belong to the selected project and participate in its normal tab
 and pane layout. If no project is open, Zshell creates one to hold the browser.
 
+In an SSH or shared remote project, open `http://localhost:3000` to preview the development server on that host. Zshell uses SSH forwarding; if the connection drops, reconnect and reload the page. Site data is shared by browser panes in that remote project and kept separate from local and other remote projects.
+
 ## Address and search
 
 The field at the top accepts a full URL, a hostname, or search terms:
@@ -63,6 +65,8 @@ shows counts and examples without revealing cookie values. Chrome may ask for
 Keychain permission when encrypted cookies are imported. The final report shows
 imported and skipped items and any access errors. Import runs locally; matching
 Zshell cookies may be replaced.
+
+Cookies are imported into the browser storage of the project selected when you choose **Import**. Remote projects keep separate storage; local projects share the default storage. Switching projects does not change the destination. Closing that project stops the remaining import without writing to another project. If no project is open, Zshell creates a local project when you start importing cookies or tabs.
 
 On macOS 27 and later, the system protects each browser's data folder. If the
 window asks for access, choose **Allow Access**, then **Open**. If access is

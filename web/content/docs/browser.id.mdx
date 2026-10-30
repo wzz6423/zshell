@@ -13,6 +13,8 @@ Zshell dapat menempatkan browser bawaan dalam tab atau panel terbagi mana pun. C
 
 Tab browser milik proyek yang dipilih dan mengikuti tata letak tab serta panel normalnya. Jika belum ada proyek terbuka, Zshell membuat proyek untuk menampung browser.
 
+Dalam proyek SSH atau proyek jarak jauh bersama, buka `http://localhost:3000` untuk melihat server pengembangan pada host tersebut. Zshell menggunakan penerusan SSH; jika koneksi terputus, sambungkan kembali dan muat ulang halaman. Data situs dibagikan antar panel browser dalam proyek jarak jauh tersebut dan dipisahkan dari proyek lokal maupun proyek jarak jauh lain.
+
 ## Alamat dan pencarian [#address-and-search]
 
 Kolom di atas menerima URL lengkap, nama host, atau kata pencarian:
@@ -42,6 +44,8 @@ Berpindah tab atau proyek mempertahankan halaman, termasuk riwayat, posisi gulir
 Saat Zshell dimulai ulang, URL aktif dan tata letak dipulihkan, tetapi bukan seluruh riwayat mundur/maju.
 
 Panel browser menyimpan cookie, login, dan data situs lainnya lintas tab dan peluncuran. Ini bukan mode penjelajahan privat.
+
+Melalui **Browser → Import Browser Data…**, cookie diimpor ke penyimpanan browser proyek yang dipilih saat menekan **Import**. Setiap proyek jarak jauh memiliki penyimpanan terpisah; proyek lokal berbagi penyimpanan bawaan. Beralih proyek tidak mengubah tujuan impor. Menutup proyek tujuan menghentikan sisa impor tanpa menulis ke proyek lain. Jika tidak ada proyek terbuka, Zshell membuat proyek lokal saat mulai mengimpor cookie atau tab.
 
 ## Meminta agen menguji halaman [#let-an-agent-test-the-page]
 

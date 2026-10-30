@@ -13,6 +13,8 @@ Zshell kann in jedem Tab oder geteilten Bereich einen integrierten Browser anzei
 
 Browser-Tabs gehören zum ausgewählten Projekt und sind Teil seiner normalen Tab- und Bereichsanordnung. Ist noch kein Projekt geöffnet, legt Zshell eines für den Browser an.
 
+Öffnen Sie in einem SSH- oder freigegebenen Remote-Projekt `http://localhost:3000`, um den Entwicklungsserver dieses Hosts anzuzeigen. Zshell verwendet SSH-Weiterleitung; verbinden Sie sich nach einem Verbindungsabbruch erneut und laden Sie die Seite neu. Websitedaten werden innerhalb dieses Remote-Projekts zwischen Browserbereichen geteilt und getrennt von lokalen und anderen Remote-Projekten gespeichert.
+
 ## Adresse und Suche [#address-and-search]
 
 Das obere Eingabefeld akzeptiert vollständige URLs, Hostnamen und Suchbegriffe:
@@ -39,6 +41,8 @@ Im Terminal öffnet ein normaler Command-Klick eine erkannte Webadresse im Stand
 Beim Wechsel zwischen Tabs oder Projekten bleiben Verlauf, Scrollposition, Formulare und interner Zustand der Seite erhalten. Beim erneuten Start von Zshell werden aktuelle URL und Anordnung wiederhergestellt, jedoch nicht der vollständige Vor- und Zurückverlauf.
 
 Browserbereiche speichern Cookies, Anmeldungen und andere Websitedaten über Tabs und Neustarts hinweg. Es handelt sich nicht um einen privaten Browsermodus.
+
+Über **Browser → Import Browser Data…** werden Cookies in den Browserspeicher des Projekts importiert, das beim Klick auf **Import** ausgewählt ist. Remote-Projekte haben getrennte Speicher; lokale Projekte teilen den Standardspeicher. Ein Projektwechsel ändert das Ziel nicht. Das Schließen des Zielprojekts stoppt den restlichen Import, ohne in ein anderes Projekt zu schreiben. Ist kein Projekt geöffnet, erstellt Zshell beim Import von Cookies oder Tabs ein lokales Projekt.
 
 ## Die Seite von einem Agent testen lassen [#let-an-agent-test-the-page]
 

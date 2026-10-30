@@ -140293,6 +140293,112 @@
         }
       }
     },
+    "Reconnect the remote session to preview localhost.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reconnect the remote session to preview localhost."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请重新连接远程会话以预览 localhost。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請重新連線遠端工作階段以預覽 localhost。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "localhost をプレビューするにはリモートセッションに再接続してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "localhost를 미리 보려면 원격 세션을 다시 연결하세요."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reconnectez la session distante pour prévisualiser localhost."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbinden Sie die Remote-Sitzung erneut, um localhost anzuzeigen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vuelve a conectar la sesión remota para previsualizar localhost."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reconecte a sessão remota para visualizar localhost."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riconnetti la sessione remota per visualizzare localhost."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbind de externe sessie opnieuw om localhost te bekijken."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторно подключите удалённую сессию для просмотра localhost."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أعِد الاتصال بالجلسة البعيدة لمعاينة localhost."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เชื่อมต่อเซสชันระยะไกลอีกครั้งเพื่อดูตัวอย่าง localhost"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sambungkan kembali sesi jarak jauh untuk melihat localhost."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kết nối lại phiên từ xa để xem trước localhost."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "localhost önizlemesi için uzak oturuma yeniden bağlanın."
+          }
+        }
+      }
+    },
     "Browser profile": {
       "extractionState": "manual",
       "localizations": {

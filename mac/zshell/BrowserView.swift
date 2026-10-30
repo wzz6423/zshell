@@ -168,8 +168,13 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     /// Incremented by the app-level Focus Address Bar command. A sequence is
     /// used instead of a Bool so repeated ⌘L presses are never coalesced.
     @Published private(set) var focusAddressRequest: UInt = 0
+    @Published private(set) var isPreparingNavigation = false {
+        didSet { isLoading = isPreparingNavigation || webView.isLoading }
+    }
 
-    let webView: BrowserWebView
+    /// Replaced only when a move changes the project's website data store,
+    /// which WebKit fixes when a web view is created.
+    private(set) var webView: BrowserWebView
     let automation = BrowserAutomation()
     /// Identity of the manager currently allowed to host this web view. Moving
     /// a tab updates it before SwiftUI can reconcile either window.
@@ -178,10 +183,18 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     private var pageTitle: String?
     private var observations: Set<AnyCancellable> = []
     private var initialFocus: InitialFocus?
-    private let contextMenuBridge: BrowserContextMenuBridge
+    private let contextMenuBridge = BrowserContextMenuBridge()
     private var faviconTask: Task<Void, Never>?
     private var faviconRevision: UInt = 0
     private var contentRulesObservation: AnyCancellable?
+    private(set) var remoteRouting: BrowserRemoteRouting?
+    private(set) var projectID: UUID?
+    private var routingObservation: AnyCancellable?
+    private var navigationTask: Task<Void, Never>?
+    private var navigationRevision: UInt = 0
+    private var pendingURL: URL?
+    private var wasWebViewLoading = false
+    private var reroutedNavigation = false
     private(set) var isClosed = false
 
     private static let maximumFaviconBytes = 2 * 1_024 * 1_024
@@ -218,13 +231,35 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
 
     init(
         initialURL: String? = nil,
-        initialFocus: InitialFocus = .addressBar
+        initialFocus: InitialFocus = .addressBar,
+        remoteRouting: BrowserRemoteRouting? = nil,
+        projectID: UUID? = nil
     ) {
+        self.remoteRouting = remoteRouting
+        self.projectID = projectID
+        webView = Self.makeWebView(routing: remoteRouting, contextMenuBridge: contextMenuBridge)
+        self.initialFocus = initialFocus
+        super.init()
+        remoteRouting?.retain(id, projectID: projectID ?? id)
+        attachWebView()
+
+        if let initialURL, !initialURL.isEmpty {
+            navigate(to: initialURL)
+        }
+    }
+
+    deinit {
+        faviconTask?.cancel()
+        navigationTask?.cancel()
+    }
+
+    private static func makeWebView(
+        routing: BrowserRemoteRouting?, contextMenuBridge: BrowserContextMenuBridge
+    ) -> BrowserWebView {
         let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = .default()
+        configuration.websiteDataStore = routing?.dataStore ?? .default()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.preferences.isElementFullscreenEnabled = true
-        let contextMenuBridge = BrowserContextMenuBridge()
         let contextWorld = WKContentWorld.defaultClient
         configuration.userContentController.addUserScript(WKUserScript(
             source: BrowserContextMenuSupport.script,
@@ -237,12 +272,22 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
             contentWorld: contextWorld,
             name: BrowserContextMenuSupport.messageName
         )
+        if let routing {
+            configuration.userContentController.addScriptMessageHandler(
+                routing.loopbackMessageHandler(), contentWorld: .page, name: BrowserRemoteRouting.loopbackMessageName
+            )
+            configuration.userContentController.addUserScript(WKUserScript(
+                source: BrowserRemoteRouting.bridgeScript,
+                injectionTime: .atDocumentStart,
+                forMainFrameOnly: false,
+                in: .page
+            ))
+        }
+        return BrowserWebView(frame: .zero, configuration: configuration)
+    }
 
-        self.contextMenuBridge = contextMenuBridge
-        webView = BrowserWebView(frame: .zero, configuration: configuration)
-        self.initialFocus = initialFocus
-        super.init()
-
+    private func attachWebView() {
+        observeRouting()
         webView.customUserAgent = Self.userAgent
         contextMenuBridge.webView = webView
         webView.navigationDelegate = self
@@ -250,22 +295,46 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         webView.allowsBackForwardNavigationGestures = true
         webView.allowsMagnification = true
         observeWebView()
-        contentRulesObservation = BrowserContentBlocker.shared.$ruleLists
-            .sink { [weak self] rules in
+        let loopbackRules = remoteRouting?.$loopbackRules.eraseToAnyPublisher() ?? Just(nil).eraseToAnyPublisher()
+        contentRulesObservation = BrowserContentBlocker.shared.$ruleLists.combineLatest(loopbackRules)
+            .sink { [weak self] rules, loopbackRules in
                 guard let self, !self.isClosed else { return }
                 let controller = self.webView.configuration.userContentController
                 controller.removeAllContentRuleLists()
-                for rule in rules { controller.add(rule) }
+                for rule in rules + [loopbackRules].compactMap({ $0 }) { controller.add(rule) }
             }
+    }
 
-        if let initialURL, !initialURL.isEmpty {
-            navigate(to: initialURL)
+    /// Moves are restricted to compatible project locations, but each remote
+    /// project keeps its own site data. A browser joining another project's
+    /// routing reopens its page in that project's data store, so cookies and
+    /// storage follow the destination instead of the source.
+    func bind(projectID: UUID, routing: BrowserRemoteRouting?) {
+        self.projectID = projectID
+        guard routing !== remoteRouting else {
+            remoteRouting?.retain(id, projectID: projectID)
+            return
         }
+        let url = (pendingURL ?? webView.url).map(displayed)
+        stopLoading()
+        observations.removeAll()
+        contentRulesObservation = nil
+        routingObservation = nil
+        webView.navigationDelegate = nil
+        webView.uiDelegate = nil
+        webView.configuration.userContentController.removeAllScriptMessageHandlers()
+        remoteRouting?.release(id)
+        remoteRouting = routing
+        pendingURL = nil
+        wasWebViewLoading = false
+        webView = Self.makeWebView(routing: routing, contextMenuBridge: contextMenuBridge)
+        routing?.retain(id, projectID: projectID)
+        attachWebView()
+        objectWillChange.send()
+        if let url { load(URLRequest(url: url)) }
     }
 
-    deinit {
-        faviconTask?.cancel()
-    }
+    var navigationIsLoading: Bool { isPreparingNavigation || webView.isLoading }
 
     func transferHost(to manager: TerminalManager) {
         automation.invalidateDocument()
@@ -277,7 +346,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     }
 
     var snapshotURL: String? {
-        urlString.isEmpty ? nil : urlString
+        pendingURL.map { displayed($0).absoluteString } ?? (urlString.isEmpty ? nil : urlString)
     }
 
     var shareURL: URL? {
@@ -285,7 +354,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
               let scheme = url.scheme?.lowercased(),
               scheme == "http" || scheme == "https"
         else { return nil }
-        return url
+        return displayed(url)
     }
 
     var isBlank: Bool {
@@ -305,37 +374,38 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         let trimmed = address.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let url = Self.destination(for: trimmed) else { return }
         automation.releaseNavigationRestriction()
-        errorMessage = nil
-        webView.load(URLRequest(url: url))
+        load(URLRequest(url: url))
     }
 
     func goBack() {
         guard webView.canGoBack else { return }
         automation.releaseNavigationRestriction()
-        webView.goBack()
+        performNavigation(to: webView.backForwardList.backItem?.url) { [webView] in webView.goBack() }
     }
 
     func goForward() {
         guard webView.canGoForward else { return }
         automation.releaseNavigationRestriction()
-        webView.goForward()
+        performNavigation(to: webView.backForwardList.forwardItem?.url) { [webView] in webView.goForward() }
     }
 
     func reloadOrStop() {
         automation.releaseNavigationRestriction()
-        if webView.isLoading {
-            webView.stopLoading()
+        if navigationIsLoading {
+            stopLoading()
         } else if !isBlank {
-            errorMessage = nil
-            webView.reload()
+            reload()
         }
     }
 
     func reload() {
-        guard !isBlank else { return }
+        guard let url = pendingURL ?? webView.url else { return }
         automation.releaseNavigationRestriction()
-        errorMessage = nil
-        webView.reload()
+        if pendingURL != nil {
+            load(URLRequest(url: url))
+        } else {
+            performNavigation(to: webView.url) { [webView] in webView.reload() }
+        }
     }
 
     func automationNavigate(_ operation: String, url: URL? = nil) {
@@ -344,11 +414,14 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         automation.invalidateDocument()
         errorMessage = nil
         switch operation {
-        case "navigate": if let url { webView.load(URLRequest(url: url)) }
-        case "back": webView.goBack()
-        case "forward": webView.goForward()
-        case "reload": webView.reload()
-        case "stop": webView.stopLoading()
+        case "navigate": if let url { load(URLRequest(url: url)) }
+        case "back": performNavigation(to: webView.backForwardList.backItem?.url) { [webView] in webView.goBack() }
+        case "forward": performNavigation(to: webView.backForwardList.forwardItem?.url) { [webView] in webView.goForward() }
+        case "reload":
+            if let url = pendingURL {
+                load(URLRequest(url: url))
+            } else { performNavigation(to: webView.url) { [webView] in webView.reload() } }
+        case "stop": stopLoading()
         default: break
         }
     }
@@ -358,11 +431,77 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         contentRulesObservation = nil
         faviconTask?.cancel()
         automation.invalidateDocument()
-        webView.stopLoading()
+        stopLoading()
+        routingObservation = nil
+        remoteRouting?.release(id)
     }
 
     func stopLoading() {
+        navigationRevision &+= 1
+        navigationTask?.cancel()
+        navigationTask = nil
+        isPreparingNavigation = false
         webView.stopLoading()
+    }
+
+    private func load(_ request: URLRequest) {
+        var request = request
+        if remoteRouting != nil { request.url = request.url.map(BrowserRemoteRouting.routedURL) }
+        let routed = remoteRouting != nil && request.url.map(BrowserRemoteRouting.isLoopback) == true
+        pendingURL = routed ? request.url : nil
+        if let url = request.url { urlString = displayAddress(for: url) }
+        performNavigation(to: request.url) { [webView] in webView.load(request) }
+    }
+
+    /// Only loopback targets travel over SSH; public pages load without it,
+    /// even while the remote session is disconnected, but never before the
+    /// loopback blocking rules are installed.
+    private func performNavigation(to target: URL?, _ action: @escaping () -> WKNavigation?) {
+        navigationRevision &+= 1
+        navigationTask?.cancel()
+        errorMessage = nil
+        let forwards = target.map(BrowserRemoteRouting.isLoopback) == true
+        guard let remoteRouting, forwards || remoteRouting.loopbackRules == nil else {
+            isPreparingNavigation = false
+            pendingURL = nil
+            _ = action()
+            return
+        }
+        let revision = navigationRevision
+        isPreparingNavigation = true
+        navigationTask = Task { @MainActor [weak self] in
+            do {
+                if forwards { try await remoteRouting.ensureConnected() } else { try await remoteRouting.ensureLoopbackRules() }
+                guard let self, !self.isClosed, self.navigationRevision == revision, !Task.isCancelled else { return }
+                self.isPreparingNavigation = false
+                self.pendingURL = nil
+                _ = action()
+            } catch {
+                guard let self, !self.isClosed, self.navigationRevision == revision, !Task.isCancelled else { return }
+                self.isPreparingNavigation = false
+                self.errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func observeRouting() {
+        routingObservation = remoteRouting?.$state.dropFirst().receive(on: DispatchQueue.main)
+            .sink { [weak self] state in
+                guard let self, !self.isClosed else { return }
+                switch state {
+                case .unavailable:
+                    // A public page needs no forwarding, so it keeps running.
+                    guard let url = self.pendingURL ?? self.webView.url,
+                          BrowserRemoteRouting.isLoopback(url) else { return }
+                    self.stopLoading()
+                    self.errorMessage = String(localized: "Reconnect the remote session to preview localhost.")
+                case .idle:
+                    if let url = self.pendingURL ?? self.webView.url, BrowserRemoteRouting.isLoopback(url) {
+                        self.load(URLRequest(url: url))
+                    }
+                case .connecting, .connected, .failed: break
+                }
+            }
     }
 
     func openInDefaultBrowser() {
@@ -381,7 +520,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         webView.publisher(for: \.url, options: [.initial, .new])
             .sink { [weak self] url in
                 guard let self else { return }
-                self.urlString = Self.displayAddress(for: url)
+                if self.pendingURL == nil { self.urlString = self.displayAddress(for: url) }
                 self.refreshTitle()
             }
             .store(in: &observations)
@@ -397,8 +536,9 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         webView.publisher(for: \.isLoading, options: [.initial, .new])
             .sink { [weak self] isLoading in
                 guard let self else { return }
-                let startedLoading = isLoading && !self.isLoading
-                self.isLoading = isLoading
+                let startedLoading = isLoading && !self.wasWebViewLoading
+                self.wasWebViewLoading = isLoading
+                self.isLoading = isLoading || self.isPreparingNavigation
                 if startedLoading {
                     self.prepareForFaviconNavigation()
                 } else if !isLoading, self.webView.url != nil {
@@ -416,19 +556,23 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         if let pageTitle = pageTitle?.trimmingCharacters(in: .whitespacesAndNewlines),
            !pageTitle.isEmpty {
             title = pageTitle
-        } else if let host = webView.url?.host, !host.isEmpty {
+        } else if let host = webView.url.map(displayed)?.host, !host.isEmpty {
             title = host
         } else {
             title = String(localized: "New Tab")
         }
     }
 
-    private static func displayAddress(for url: URL?) -> String {
+    private func displayAddress(for url: URL?) -> String {
         guard let url,
               url.absoluteString != "about:blank",
               url.scheme != nil
         else { return "" }
-        return url.absoluteString
+        return displayed(url).absoluteString
+    }
+
+    private func displayed(_ url: URL) -> URL {
+        remoteRouting == nil ? url : BrowserRemoteRouting.displayURL(url)
     }
 
     /// Turns the Safari-style combined address/search field into a request.
@@ -445,7 +589,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
 
         if !input.contains(where: \.isWhitespace), looksLikeHost(input) {
             let host = host(in: input).lowercased()
-            let useHTTP = host == "localhost"
+            let useHTTP = host == "localhost" || host.hasSuffix(".localhost")
                 || host.hasSuffix(".local")
                 || isIPv4(host)
                 || host.hasPrefix("[::")
@@ -556,6 +700,13 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
             decisionHandler(.cancel)
             return
         }
+        if remoteRouting != nil, navigationAction.targetFrame?.isMainFrame == true,
+           BrowserRemoteRouting.routedURL(url) != url {
+            reroutedNavigation = true
+            decisionHandler(.cancel)
+            load(navigationAction.request)
+            return
+        }
         let handledSchemes = ["http", "https", "file", "about", "data", "blob"]
         if handledSchemes.contains(scheme) {
             decisionHandler(.allow)
@@ -581,9 +732,28 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         }
     }
 
+    func webView(
+        _ webView: WKWebView,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping @MainActor @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        guard remoteRouting != nil else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+        BrowserRemoteRouting.evaluateLoopbackTrust(challenge) { credential in
+            completionHandler(credential == nil ? .performDefaultHandling : .useCredential, credential)
+        }
+    }
+
     private func showNavigationError(_ error: any Error) {
         let nsError = error as NSError
         guard nsError.code != NSURLErrorCancelled else { return }
+        // Cancelling a loopback redirect to reload it through the alias.
+        if reroutedNavigation, nsError.domain == "WebKitErrorDomain", nsError.code == 102 {
+            reroutedNavigation = false
+            return
+        }
         errorMessage = nsError.localizedDescription
     }
 
@@ -613,7 +783,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
             for candidate in candidates where seen.insert(candidate.absoluteString).inserted {
                 guard !Task.isCancelled else { return }
 
-                if candidate.scheme?.lowercased() != "data",
+                if self?.remoteRouting == nil, candidate.scheme?.lowercased() != "data",
                    let cached = Self.faviconCache.object(
                        forKey: candidate as NSURL
                    ) {
@@ -622,12 +792,12 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
                     return
                 }
 
-                guard let data = await Self.faviconData(from: candidate),
+                guard let data = await Self.faviconData(from: candidate, routing: self?.remoteRouting),
                       !Task.isCancelled,
                       let image = Self.faviconImage(from: data)
                 else { continue }
 
-                if candidate.scheme?.lowercased() != "data" {
+                if self?.remoteRouting == nil, candidate.scheme?.lowercased() != "data" {
                     Self.faviconCache.setObject(
                         image,
                         forKey: candidate as NSURL,
@@ -641,7 +811,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         }
     }
 
-    private static func faviconData(from url: URL) async -> Data? {
+    private static func faviconData(from url: URL, routing: BrowserRemoteRouting?) async -> Data? {
         switch url.scheme?.lowercased() {
         case "data":
             return faviconData(fromDataURL: url)
@@ -655,9 +825,10 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
                 "image/avif,image/webp,image/svg+xml,image/*,*/*;q=0.8",
                 forHTTPHeaderField: "Accept"
             )
-            guard let (data, response) = try? await URLSession.shared.data(
-                for: request
-            ),
+            let result: (Data, URLResponse)?
+            if let routing { result = try? await routing.faviconData(for: request) }
+            else { result = try? await URLSession.shared.data(for: request) }
+            guard let (data, response) = result,
             let response = response as? HTTPURLResponse,
             (200..<300).contains(response.statusCode),
             data.count <= maximumFaviconBytes
@@ -721,7 +892,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         windowFeatures: WKWindowFeatures
     ) -> WKWebView? {
         if navigationAction.targetFrame == nil {
-            webView.load(navigationAction.request)
+            load(navigationAction.request)
         }
         return nil
     }

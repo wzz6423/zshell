@@ -13,6 +13,8 @@ Zshell peut afficher un navigateur intégré dans n'importe quel onglet ou volet
 
 Les onglets de navigateur appartiennent au projet sélectionné et participent à sa disposition habituelle d'onglets et de volets. Si aucun projet n'est ouvert, Zshell en crée un pour accueillir le navigateur.
 
+Dans un projet SSH ou distant partagé, ouvrez `http://localhost:3000` pour prévisualiser le serveur de développement de cet hôte. Zshell utilise une redirection SSH ; en cas de déconnexion, reconnectez-vous et rechargez la page. Les données du site sont partagées entre les volets de ce projet distant et séparées des projets locaux et des autres projets distants.
+
 ## Adresse et recherche [#address-and-search]
 
 Le champ supérieur accepte une URL complète, un nom d'hôte ou des mots à rechercher :
@@ -39,6 +41,8 @@ Dans un terminal, un simple clic avec Command ouvre l'URL reconnue dans votre na
 Changer d'onglet ou de projet conserve la page, son historique, sa position de défilement, ses formulaires et son état interne. Au redémarrage de Zshell, l'URL actuelle et la disposition sont restaurées, mais pas l'historique complet des navigations arrière et avant.
 
 Les volets conservent les cookies, les connexions et les autres données des sites entre les onglets et les lancements. Il ne s'agit pas d'un mode de navigation privée.
+
+Avec **Browser → Import Browser Data…**, les cookies sont importés dans le stockage du navigateur du projet sélectionné au clic sur **Import**. Chaque projet distant possède un stockage séparé ; les projets locaux partagent le stockage par défaut. Changer de projet ne modifie pas la destination. Fermer le projet cible arrête le reste de l’import sans écrire dans un autre projet. Si aucun projet n’est ouvert, Zshell crée un projet local au début de l’import des cookies ou des onglets.
 
 ## Faire tester la page par un agent [#let-an-agent-test-the-page]
 

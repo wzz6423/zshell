@@ -13,6 +13,8 @@ Zshell kan een ingebouwde browser in elk tabblad of gesplitst deelvenster plaats
 
 Browsertabbladen horen bij het geselecteerde project en gebruiken de gewone tabblad- en deelvensterindeling. Als er geen project open is, maakt Zshell er een voor de browser.
 
+Open in een SSH- of gedeeld extern project `http://localhost:3000` om de ontwikkelserver op die host te bekijken. Zshell gebruikt SSH-doorsturing; maak na een verbroken verbinding opnieuw verbinding en laad de pagina opnieuw. Sitegegevens worden gedeeld tussen browserdeelvensters van dat externe project en apart gehouden van lokale en andere externe projecten.
+
 ## Adres en zoeken [#address-and-search]
 
 Het veld bovenaan accepteert een volledige URL, hostnaam of zoektermen:
@@ -39,6 +41,8 @@ In een terminal opent een gewone Command-klik een herkende web-URL in je standaa
 Als je van tabblad of project wisselt, blijft de pagina zoals je haar achterliet, inclusief geschiedenis, scrollpositie, formulieren en interne paginastatus. Bij een herstart herstelt Zshell de huidige URL en indeling, maar niet de volledige terug-/vooruitgeschiedenis.
 
 Browserdeelvensters bewaren cookies, aanmeldingen en andere websitegegevens tussen tabbladen en starts. Dit is geen privémodus.
+
+Via **Browser → Import Browser Data…** worden cookies geïmporteerd in de browseropslag van het project dat is geselecteerd wanneer je op **Import** klikt. Externe projecten hebben afzonderlijke opslag; lokale projecten delen de standaardopslag. Wisselen van project verandert de bestemming niet. Het sluiten van het doelproject stopt de resterende import zonder naar een ander project te schrijven. Als er geen project open is, maakt Zshell een lokaal project wanneer de import van cookies of tabbladen begint.
 
 ## Een agent de pagina laten testen [#let-an-agent-test-the-page]
 
