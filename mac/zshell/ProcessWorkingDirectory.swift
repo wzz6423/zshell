@@ -38,6 +38,20 @@ func processExecutablePath(pid: pid_t) -> String? {
     return path.isEmpty ? nil : path
 }
 
+/// A foreground sudo/su job can have a different effective user from Zshell.
+func processEffectiveUser(pid: pid_t) -> String? {
+    guard pid > 0 else { return nil }
+    var info = proc_bsdinfo()
+    let size = Int32(MemoryLayout<proc_bsdinfo>.size)
+    guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size else { return nil }
+    var account = passwd()
+    var buffer = [CChar](repeating: 0, count: 16 * 1024)
+    var result: UnsafeMutablePointer<passwd>?
+    guard getpwuid_r(info.pbi_uid, &account, &buffer, buffer.count, &result) == 0,
+          result != nil, let name = account.pw_name else { return nil }
+    return String(cString: name)
+}
+
 /// Kernel-reported argv for a live process. This is the companion to
 /// `processExecutablePath(pid:)` for script-backed CLIs: macOS reports `node`
 /// or `python` as their executable image, while argv still identifies the

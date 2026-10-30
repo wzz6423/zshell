@@ -457,6 +457,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { applyGitProxy(); save() }
     }
 
+    @Published var terminalProfiles: [TerminalProfile] {
+        didSet { save() }
+    }
+
     private init() {
         let savedLanguage = AppLanguage.saved
         language = savedLanguage
@@ -572,6 +576,7 @@ final class AppSettings: nonisolated ObservableObject {
         browserFilterLists = toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults
         gitProxyEnabled = toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled
         gitProxyAddress = toml["git.proxy"]?.string ?? GitProxy.defaultAddress
+        terminalProfiles = TerminalProfile.read(toml)
         applyGitProxy()
         applyAppearance()
         applyApplicationIcon()
@@ -708,6 +713,7 @@ final class AppSettings: nonisolated ObservableObject {
             && browserFilterLists == BrowserFilterSource.defaults
             && gitProxyEnabled == GitProxy.defaultEnabled
             && gitProxyAddress == GitProxy.defaultAddress
+            && terminalProfiles.isEmpty
     }
 
     func resetToDefaults() {
@@ -755,6 +761,7 @@ final class AppSettings: nonisolated ObservableObject {
         terminalBackend = .fallback
         terminalStartupProgram = ""
         terminalStartupArguments = ""
+        terminalProfiles = []
         browserContentBlocking = true
         browserFilterLists = BrowserFilterSource.defaults
         gitProxyEnabled = GitProxy.defaultEnabled
@@ -959,6 +966,7 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.browserFilterLists, toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults)
         assign(\.gitProxyEnabled, toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled)
         assign(\.gitProxyAddress, toml["git.proxy"]?.string ?? GitProxy.defaultAddress)
+        assign(\.terminalProfiles, TerminalProfile.read(toml))
 
         if applicationIcon != oldIcon { applyApplicationIcon() }
         if theme != oldTheme { applyAppearance() }
@@ -1175,6 +1183,7 @@ final class AppSettings: nonisolated ObservableObject {
         if gitProxyAddress != GitProxy.defaultAddress {
             lines.append("git.proxy = \(TOML.quote(gitProxyAddress))")
         }
+        lines.append(contentsOf: TerminalProfile.configLines(terminalProfiles))
         return lines.joined(separator: "\n") + "\n"
     }
 

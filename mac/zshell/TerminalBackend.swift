@@ -208,6 +208,9 @@ protocol TerminalBackendSurface: NSView {
     /// to pick up a new font, color theme, or input setting in place.
     func applyAppearance()
 
+    /// Stored per surface; applying it never changes another pane's defaults.
+    var profileAppearance: TerminalProfileAppearance { get set }
+
     /// Adjusts only the terminal background's alpha. Main-window panes use the
     /// shared terminal setting; the quick terminal overrides it per surface.
     func setBackgroundOpacity(_ opacity: CGFloat)

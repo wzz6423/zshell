@@ -102,6 +102,47 @@ fn input(stream: &mut Stream, text: &str) {
 }
 
 #[test]
+fn profile_context_tracks_the_real_foreground_process_and_directory() {
+    let fixture = Fixture::new();
+    let id = new_id().unwrap();
+    fixture.create(&id, vec!["/bin/sh", "-i"]);
+    let (mut stream, _, _) = fixture.attach(&id, 80, 24);
+    input(&mut stream, "cd ../other; printf '\\nPROFILE_READY\\n'\r");
+    collect_until(&mut stream, |_, output| {
+        output.windows(15).any(|bytes| bytes == b"PROFILE_READY\r\n")
+    });
+    let context = fixture.get(&id)["profileContext"].clone();
+    assert!(context["host"].as_str().is_some_and(|value| !value.is_empty()));
+    assert!(context["user"].as_str().is_some_and(|value| !value.is_empty()));
+    assert_eq!(
+        fs::canonicalize(context["directory"].as_str().unwrap()).unwrap(),
+        fs::canonicalize(&fixture.other).unwrap()
+    );
+
+    input(&mut stream, "/bin/sleep 3\r");
+    let mut foreground = false;
+    for _ in 0..30 {
+        let context = fixture.get(&id)["profileContext"].clone();
+        if context["program"].as_str().is_some_and(|value| value.ends_with("/sleep")) {
+            foreground = true;
+            break;
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
+    assert!(foreground, "foreground executable was not reported");
+    write_frame(&mut stream, &Frame::new("ping")).unwrap();
+    loop {
+        let frame = read_frame(&mut stream).unwrap();
+        if frame.kind == "pong" {
+            assert!(frame.result.unwrap()["profileContext"]["program"]
+                .as_str().is_some_and(|value| value.ends_with("/sleep")));
+            break;
+        }
+    }
+    stream.shutdown();
+}
+
+#[test]
 fn zsh_completions_use_remote_pty_and_clean_up_after_exit() {
     if !crate::pty::login_shell().ends_with("/zsh") {
         eprintln!("Skipping zsh completion session test: login shell is not zsh");
@@ -549,6 +590,20 @@ fn tailscale_owner_allowlist_and_local_identity_boundary() {
             format!(r#"{{"Node":{{"Tags":{tags}}},"UserProfile":{{"LoginName":"{login}"}}}}"#);
         fs::write(&program, format!("#!/bin/sh\ncase \"$1\" in\nstatus) printf '%s' '{status}' ;;\nwhois) printf '%s' '{who}' ;;\nesac\n")).unwrap();
         fs::set_permissions(&program, fs::Permissions::from_mode(0o700)).unwrap();
+        // A child another test thread forks while the write fd above is open
+        // keeps it until that child execs, and exec here fails with ETXTBSY
+        // meanwhile. Wait until the script can run before using it.
+        for attempt in 0.. {
+            match std::process::Command::new(&program).status() {
+                Err(error) if error.raw_os_error() == Some(26) && attempt < 100 => {
+                    thread::sleep(Duration::from_millis(20))
+                }
+                result => {
+                    result.unwrap();
+                    break;
+                }
+            }
+        }
     };
     let mut policy = TailnetPolicy {
         executable: program.clone(),
