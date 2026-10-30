@@ -155,7 +155,8 @@ struct TerminalNotificationSurfaceTests {
         }
         content.view.layoutSubtreeIfNeeded()
         let bounds = content.view.bounds.insetBy(dx: -1, dy: -1)
-        for control in [filter, showPane, markRead, allRead, remove, clear] as [NSView] {
+        try check(remove.isHidden, "remove stays hidden until a notification is selected")
+        for control in [filter, showPane, markRead, allRead, clear] as [NSView] {
             let frame = control.convert(control.bounds, to: content.view)
             try check(!control.isHidden && frame.width > 0 && frame.height > 0 && bounds.contains(frame),
                       "native control remains visible inside the panel: \(control.identifier?.rawValue ?? "unknown")")
@@ -171,6 +172,7 @@ struct TerminalNotificationSurfaceTests {
         }
         let originalRow = history.filtered(.failed).firstIndex { $0.id == record.id }!
         content.table.selectRowIndexes(IndexSet(integer: originalRow), byExtendingSelection: false)
+        try check(!remove.isHidden, "remove appears once a notification is selected")
         markRead.performClick(nil)
         try wait("mark read did not update the selected record") { history.record(id: record.id)?.isRead == true }
         try check(history.record(id: record.id)?.isRead == true, "native mark-read action updates the selected record")

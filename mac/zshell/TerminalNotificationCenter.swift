@@ -48,7 +48,7 @@ final class TerminalNotificationCenterController: NSObject {
             let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 660, height: 520),
                 styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
             panel.isReleasedWhenClosed = false
-            panel.minSize = NSSize(width: 560, height: 420)
+            panel.minSize = NSSize(width: 680, height: 420)
             panel.level = .normal
             panel.identifier = NSUserInterfaceItemIdentifier("notification-history")
             panel.contentViewController = TerminalNotificationCenterViewController(service: service)
@@ -149,17 +149,25 @@ final class TerminalNotificationCenterViewController: NSViewController, NSTableV
             button.identifier = NSUserInterfaceItemIdentifier(id)
         }
         openButton.keyEquivalent = "\r"
-        let primary = NSStackView(views: [openButton, readButton, NSView(), countLabel])
-        primary.spacing = 8
-        let cleanup = NSStackView(views: [allReadButton, removeButton, clearButton])
-        cleanup.spacing = 8
-        for child in [filters, scroll, emptyLabel, detailsLabel, errorLabel, primary, cleanup] {
+        // One left-aligned row; the panel's minimum width keeps every button at its natural size.
+        let actionsRow = NSStackView(views: [openButton, readButton, allReadButton, removeButton, clearButton])
+        actionsRow.spacing = 8
+        actionsRow.detachesHiddenViews = true
+        actionsRow.setHuggingPriority(.required, for: .horizontal)
+        for button in [openButton, readButton, allReadButton, removeButton, clearButton] {
+            button.setContentCompressionResistancePriority(.required, for: .horizontal)
+        }
+        countLabel.alignment = .right
+        for child in [filters, countLabel, scroll, emptyLabel, detailsLabel, errorLabel, actionsRow] {
             child.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview(child)
         }
         NSLayoutConstraint.activate([
             filters.topAnchor.constraint(equalTo: view.topAnchor, constant: 14),
             filters.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
+            countLabel.centerYAnchor.constraint(equalTo: filters.centerYAnchor),
+            countLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
+            countLabel.leadingAnchor.constraint(greaterThanOrEqualTo: filters.trailingAnchor, constant: 12),
             scroll.topAnchor.constraint(equalTo: filters.bottomAnchor, constant: 12),
             scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
             scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
@@ -174,13 +182,10 @@ final class TerminalNotificationCenterViewController: NSViewController, NSTableV
             errorLabel.leadingAnchor.constraint(equalTo: scroll.leadingAnchor),
             errorLabel.trailingAnchor.constraint(equalTo: scroll.trailingAnchor),
             errorLabel.heightAnchor.constraint(equalToConstant: 28),
-            errorLabel.bottomAnchor.constraint(equalTo: primary.topAnchor, constant: -8),
-            primary.leadingAnchor.constraint(equalTo: scroll.leadingAnchor),
-            primary.trailingAnchor.constraint(equalTo: scroll.trailingAnchor),
-            primary.bottomAnchor.constraint(equalTo: cleanup.topAnchor, constant: -8),
-            cleanup.leadingAnchor.constraint(equalTo: scroll.leadingAnchor),
-            cleanup.trailingAnchor.constraint(equalTo: scroll.trailingAnchor),
-            cleanup.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -14),
+            errorLabel.bottomAnchor.constraint(equalTo: actionsRow.topAnchor, constant: -8),
+            actionsRow.leadingAnchor.constraint(equalTo: scroll.leadingAnchor),
+            actionsRow.trailingAnchor.constraint(lessThanOrEqualTo: scroll.trailingAnchor),
+            actionsRow.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -14),
         ])
         service.history.objectWillChange.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.reload() }
             .store(in: &observations)
@@ -230,6 +235,8 @@ final class TerminalNotificationCenterViewController: NSViewController, NSTableV
             table.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
         } else { table.deselectAll(nil) }
         emptyLabel.isHidden = !records.isEmpty
+        // Alternating stripes behind an empty list read as a stray gray block under the empty-state text.
+        table.usesAlternatingRowBackgroundColors = !records.isEmpty
         emptyLabel.stringValue = service.history.isLoading ? String(localized: "Loading notifications…")
             : String(localized: "No notifications in this filter.")
         countLabel.stringValue = String(localized: "Notifications: \(records.count)")
@@ -243,7 +250,7 @@ final class TerminalNotificationCenterViewController: NSViewController, NSTableV
     private func updateSelection() {
         let record = selected
         readButton.isEnabled = record?.isRead == false
-        removeButton.isEnabled = record != nil
+        removeButton.isHidden = record == nil
         openButton.isEnabled = record != nil
         topologyObservation = record.flatMap { TerminalManager.notificationContext(for: $0.target)?.manager }
             .map { manager in
