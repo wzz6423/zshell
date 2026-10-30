@@ -102,6 +102,70 @@ fn input(stream: &mut Stream, text: &str) {
 }
 
 #[test]
+fn zsh_completions_use_remote_pty_and_clean_up_after_exit() {
+    if !crate::pty::login_shell().ends_with("/zsh") {
+        eprintln!("Skipping zsh completion session test: login shell is not zsh");
+        return;
+    }
+    let fixture = Fixture::new();
+    let home = fixture.root.join("shell ' home");
+    fs::create_dir(&home).unwrap();
+    let dump = home.join("buffer");
+    let sentinel = home.join("executed");
+    let quote = |path: &Path| format!("'{}'", path.to_string_lossy().replace('\'', "'\\''"));
+    let config = format!(
+        "bindkey -e; PROMPT='READY> '; RPROMPT=''; HISTFILE=/dev/null\n\
+         autoload -Uz compinit; compinit -D -i\n\
+         _fixture() {{ compadd alpha bravo; }}; compdef _fixture zfixture\n\
+         zfixture() {{ print ran >| {}; }}\n\
+         _dump() {{ print -rn -- \"$BUFFER\" >| {}; }}; zle -N _dump; bindkey '^T' _dump\n",
+        quote(&sentinel), quote(&dump)
+    );
+    fs::write(home.join(".zshrc"), &config).unwrap();
+    let id = new_id().unwrap();
+    let mut request = fixture.request("create", &id);
+    request.shell_completions = Some(true);
+    request.environment = Some([
+        ("HOME".into(), home.to_string_lossy().into_owned()),
+        ("ZDOTDIR".into(), home.to_string_lossy().into_owned()),
+        ("LC_ALL".into(), "en_US.UTF-8".into()),
+    ].into());
+    fixture.daemon.request(&request).unwrap();
+    let state = fixture.root.join("state");
+    let integration = fs::read_dir(&state).unwrap()
+        .map(|entry| entry.unwrap().path())
+        .find(|path| path.file_name().unwrap().to_string_lossy().starts_with("shell-completions-"))
+        .expect("private completion integration exists while the shell is running");
+    assert_eq!(fs::metadata(&integration).unwrap().permissions().mode() & 0o777, 0o700);
+
+    let (mut active, snapshot, _) = fixture.attach(&id, 80, 24);
+    if !String::from_utf8_lossy(&snapshot).contains("READY> ") {
+        collect_until(&mut active, |_, output| String::from_utf8_lossy(output).contains("READY> "));
+    }
+    input(&mut active, "zfixture ");
+    collect_until(&mut active, |_, output| String::from_utf8_lossy(output).contains("alpha"));
+    let (mut inactive, _, _) = fixture.attach(&id, 80, 24);
+    input(&mut inactive, "UNWANTED");
+    write_frame(&mut inactive, &Frame::new("ping")).unwrap();
+    collect_until(&mut inactive, |frame, _| frame.kind == "pong");
+    input(&mut active, "\t");
+    collect_until(&mut active, |_, output| String::from_utf8_lossy(output).contains("bravo"));
+    input(&mut active, "\u{1b}[C\r\u{14}");
+    let deadline = Instant::now() + Duration::from_secs(4);
+    while !dump.exists() && Instant::now() < deadline { thread::sleep(Duration::from_millis(10)); }
+    assert_eq!(fs::read_to_string(&dump).unwrap(), "zfixture bravo ");
+    assert!(!sentinel.exists(), "accepting a completion must not execute it");
+    assert_eq!(fs::read_to_string(home.join(".zshrc")).unwrap(), config);
+
+    input(&mut active, "\u{15}exit\r");
+    let deadline = Instant::now() + Duration::from_secs(4);
+    while integration.exists() && Instant::now() < deadline { thread::sleep(Duration::from_millis(10)); }
+    assert!(!integration.exists(), "session resources must be removed after shell exit");
+    inactive.shutdown();
+    active.shutdown();
+}
+
+#[test]
 fn real_pty_survives_disconnect_replays_and_accepts_input() {
     let fixture = Fixture::new();
     let id = new_id().unwrap();
