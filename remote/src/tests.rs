@@ -339,6 +339,125 @@ fn exit_status_is_preserved_for_a_later_attachment() {
 }
 
 #[test]
+fn exited_sessions_make_room_for_new_sessions() {
+    let fixture = Fixture::new();
+    let watched = new_id().unwrap();
+    fixture.create(&watched, vec!["/bin/sh", "-c", "exit 3"]);
+    let (stream, _, _) = fixture.attach(&watched, 80, 24);
+    // The oldest evictable shell leaves a child that ignores SIGHUP on its PTY.
+    let survivor = fixture.root.join("survivor.pid");
+    let script = format!("(trap '' HUP; exec sleep 30) & echo $! > '{}'; exit 0", survivor.display());
+    let exited: Vec<_> = (1..MAX_SESSIONS)
+        .map(|index| {
+            let id = new_id().unwrap();
+            fixture.create(&id, if index == 1 { vec!["/bin/sh", "-c", &script] } else { vec!["/bin/sh", "-c", "exit 0"] });
+            id
+        })
+        .collect();
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while [&watched].into_iter().chain(&exited).any(|id| fixture.get(id)["running"] == true) {
+        assert!(Instant::now() < deadline, "Sessions did not exit");
+        thread::sleep(Duration::from_millis(20));
+    }
+    let survivor: i32 = fs::read_to_string(&survivor).unwrap().trim().parse().unwrap();
+    assert_eq!(unsafe { libc::kill(survivor, 0) }, 0);
+    // A launch that fails after reserving a slot keeps the exited sessions.
+    let mut failing = fixture.request("create", &new_id().unwrap());
+    failing.command = Some(vec!["/bin/sh".into()]);
+    failing.environment = Some([("ZSHELL_CLI_TOKEN".into(), "secret".into())].into());
+    assert!(fixture.daemon.request(&failing).is_err());
+    assert_eq!(fixture.get(&exited[0])["running"], false);
+    let fresh = new_id().unwrap();
+    assert_eq!(fixture.create(&fresh, vec!["/bin/sh", "-i"])["running"], true);
+    assert_eq!(fixture.get(&watched)["exitCode"], 3);
+    assert!(fixture.daemon.request(&fixture.request("get", &exited[0])).is_err());
+    thread::sleep(Duration::from_millis(700));
+    let alive = unsafe { libc::kill(survivor, 0) } == 0;
+    if alive { unsafe { libc::kill(survivor, libc::SIGKILL); } }
+    assert!(!alive, "An evicted session left its SIGHUP-ignoring child running");
+    assert_eq!(fixture.get(&exited[1])["running"], false);
+    stream.shutdown();
+}
+
+#[test]
+fn concurrent_creates_spawn_one_session_per_id() {
+    let fixture = Arc::new(Fixture::new());
+    let id = new_id().unwrap();
+    let workers: Vec<_> = (0..8)
+        .map(|_| {
+            let fixture = fixture.clone();
+            let id = id.clone();
+            thread::spawn(move || {
+                let mut frame = fixture.request("create", &id);
+                frame.command = Some(vec!["/bin/sh".into(), "-i".into()]);
+                fixture.daemon.request(&frame).ok().map(|info| info["pid"].as_i64())
+            })
+        })
+        .collect();
+    let pids: Vec<_> = workers.into_iter().filter_map(|worker| worker.join().unwrap()).collect();
+    assert!(!pids.is_empty());
+    assert!(pids.iter().all(|pid| *pid == pids[0]));
+    let mut list = Frame::new("list");
+    list.project = fixture.request("list", &id).project;
+    assert_eq!(fixture.daemon.request(&list).unwrap().as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn shutdown_rejects_new_sessions() {
+    let fixture = Fixture::new();
+    fixture.daemon.request(&Frame::new("shutdown")).unwrap();
+    let mut create = fixture.request("create", &new_id().unwrap());
+    create.command = Some(vec!["/bin/sh".into(), "-i".into()]);
+    let error = fixture.daemon.request(&create).unwrap_err();
+    assert!(error.to_string().contains("shutting down"));
+}
+
+#[test]
+fn shutdown_ends_sessions_that_are_still_starting() {
+    let mut raced = 0;
+    for _ in 0..20 {
+        let fixture = Arc::new(Fixture::new());
+        let id = new_id().unwrap();
+        let create = {
+            let fixture = fixture.clone();
+            let id = id.clone();
+            thread::spawn(move || {
+                let mut frame = fixture.request("create", &id);
+                frame.command = Some(["/bin/sh", "-c", "trap '' HUP; exec sleep 5"].map(str::to_owned).to_vec());
+                loop {
+                    // The probe below may win the reservation for a moment.
+                    if let Ok(info) = fixture.daemon.request(&frame) {
+                        return info["pid"].as_i64().unwrap() as i32;
+                    }
+                }
+            })
+        };
+        // A probe for the same ID reports the first create while it is spawning;
+        // its relative command makes it fail fast if it wins the reservation.
+        let mut probe = fixture.request("create", &id);
+        probe.command = Some(vec!["sh".into()]);
+        let spawning = loop {
+            match fixture.daemon.request(&probe) {
+                Err(error) if error.to_string().contains("still starting") => break true,
+                Ok(_) => break false,
+                Err(_) => thread::yield_now(),
+            }
+        };
+        if spawning {
+            fixture.daemon.request(&Frame::new("shutdown")).unwrap();
+        }
+        let pid = create.join().unwrap();
+        if !spawning { continue; }
+        raced += 1;
+        thread::sleep(Duration::from_millis(700));
+        let alive = unsafe { libc::kill(pid, 0) } == 0;
+        if alive { unsafe { libc::kill(pid, libc::SIGKILL); } }
+        assert!(!alive, "A session that was starting during shutdown outlived it");
+    }
+    assert!(raced > 0);
+}
+
+#[test]
 fn project_scoping_and_invalid_launches_are_rejected() {
     let fixture = Fixture::new();
     let id = new_id().unwrap();

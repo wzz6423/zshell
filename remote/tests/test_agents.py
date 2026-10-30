@@ -180,7 +180,35 @@ sys.exit(result.returncode)
             check(mode == 0o600, "remote history is an owner-only file")
             reused = bridge.call("agentResume", project, provider="claude", conversationId=session_id)["result"]
             check(reused["sessionId"] == terminal_id, "resume keeps an existing live Agent PTY")
+            fixture.rename(providers / "claude.off")
+            try:
+                reused = bridge.call("agentResume", project, provider="claude", conversationId=session_id)
+            finally:
+                (providers / "claude.off").rename(fixture)
+            check(reused.get("result", {}).get("sessionId") == terminal_id, "resume keeps a live Agent PTY after the provider leaves PATH")
             check("error" in bridge.call("agentResume", other, provider="claude", conversationId=session_id), "resume cannot cross remote project boundaries")
+
+            def scripted(script):
+                scripted_id = str(uuid.uuid4())
+                bridge.call("create", project, sessionId=scripted_id, command=["/bin/sh", "-c",
+                            script + r"; printf '\033]7501;state=idle:id=sentinel\007'; exec sleep 30"])
+                status = wait(lambda: next((status for status in [bridge.call("get", project, sessionId=scripted_id)["result"]["agentStatus"]]
+                                            if any(record["id"] == "sentinel" for record in status["records"])), None))
+                bridge.call("terminate", project, sessionId=scripted_id)
+                return status, {record["id"]: record for record in status["records"]}
+
+            status, records = scripted(r"printf '\033]7501;state=work'; sleep 0.2; printf 'ing:id=split\007'")
+            check(records.get("split", {}).get("state") == "working", "OSC 7501 split across PTY reads is reassembled")
+            status, records = scripted(r"printf '\033]7501;state=blocked:id=cut\033]7501;state=working:id=next\007'")
+            check("cut" not in records and records.get("next", {}).get("state") == "working", "truncated OSC 7501 is dropped and the next sequence still applies")
+            status, records = scripted(r"printf '\033]7501;state=working:id=old\007\033]7501;state=blocked:id=cut\033c'")
+            check(set(records) == {"sentinel"}, "terminal reset after a truncated OSC 7501 clears earlier records")
+            status, records = scripted(r"printf '\033]133;A\007\033]7501;state=working:id=late\007'")
+            check(status["phase"] == "working" and "late" in records, "an earlier OSC 133 prompt does not drop later work")
+            status, records = scripted(r"printf '\033]7501;state=working:id=live\007\033]7501;state=done:id=finished\007\033]133;A\007'")
+            check("live" not in records and records.get("finished", {}).get("state") == "done", "OSC 133 prompt drops live work but keeps completion")
+            status, records = scripted(r"printf '\033]7501;state=clear:id=ghost\007\033]7501;state=working:id=p/c\007\033]7501;state=done:id=p:app=codex\007'")
+            check(status["phase"] == "working" and records.get("p/c", {}).get("app") == "codex", "out-of-order child and parent records resolve the parent app")
             bridge.call("shutdown", project)
             bridge.close()
             time.sleep(0.8)
