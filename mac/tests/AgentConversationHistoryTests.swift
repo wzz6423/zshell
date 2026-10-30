@@ -819,6 +819,13 @@ struct AgentConversationHistoryTests {
 
     private static func menus() throws {
         let main = NSMenu(title: "Main")
+        // Mirror the app's leading application and File menus; other
+        // controllers install their own commands into File, not Agents.
+        for title in ["zshell", "File"] {
+            let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+            item.submenu = NSMenu(title: title)
+            main.addItem(item)
+        }
         NSApp.mainMenu = main
         let applicationDelegate = ZshellApplicationDelegate()
         AppMenuLocalization.shared.start(applicationDelegate: applicationDelegate)

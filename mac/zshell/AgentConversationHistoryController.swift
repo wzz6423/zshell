@@ -227,7 +227,7 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
         }
         filters.setAccessibilityLabel(String(localized: "Conversation history filter"))
         table.setAccessibilityLabel(String(localized: "Agent Conversation History"))
-        deleteButton.title = String(localized: "Delete…")
+        deleteButton.title = String(localized: "Delete")
         let forkTitle = String(localized: "Fork Conversation in New Pane")
         forkButton.toolTip = forkTitle
         forkButton.setAccessibilityLabel(forkTitle)

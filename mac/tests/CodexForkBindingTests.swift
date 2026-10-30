@@ -32,10 +32,18 @@ enum CodexTitleConfiguration {
         switch pid {
         case 10, 11: .init(parentPID: 1, groupID: pid, provider: nil)
         case 20: .init(parentPID: 10, groupID: 20, provider: .codex)
-        case 30: .init(parentPID: 11, groupID: 30, provider: .codex)
+        // The fork's /bin/sh wrapper (11) stays the job leader around Codex.
+        case 30: .init(parentPID: 11, groupID: 11, provider: .codex)
         case 40: .init(parentPID: 1, groupID: 40, provider: .codex, isSharedService: true)
         case 50: .init(parentPID: 40, groupID: 40, provider: nil)
         default: nil
+        }
+    }
+    nonisolated static func conversationChildPIDs(_ pid: pid_t) -> [pid_t] {
+        switch pid {
+        case 10: [20]
+        case 11: [30]
+        default: []
         }
     }
     var hasExited = false
@@ -83,7 +91,7 @@ struct CodexForkBindingTests {
         let forked = AgentConversationIdentity(provider: .codex, sessionID: UUID().uuidString,
             workingDirectory: directory, configDirectory: directory)!
         let source = TerminalSession(shell: 10, foreground: 20)
-        let fork = TerminalSession(shell: 11, foreground: 30)
+        let fork = TerminalSession(shell: 11, foreground: 11)
         fork.agentConversationForkSource = original
         TerminalManager.automationManagers = [TerminalManager(sessions: [source, fork])]
         var sourceObservations = 0, forkObservations = 0

@@ -204,9 +204,9 @@ extension TerminalSession {
     var foregroundCodexConversationOwner: ZshellAgentProcessIdentity? {
         guard !hasExited, remoteConnection == nil, let shell = shellPid,
               let foreground = surface.foregroundPid,
-              let root = AgentConversationBinding.rootAgentPID(
-                reporterPID: foreground, shellPID: shell, foregroundPID: foreground,
-                provider: .codex, process: Self.conversationProcessEvidence
+              let root = AgentConversationBinding.foregroundAgentPID(
+                shellPID: shell, foregroundPID: foreground, provider: .codex,
+                children: Self.conversationChildPIDs, process: Self.conversationProcessEvidence
               ) else { return nil }
         return ZshellAgentProcessIdentity(pid: root)
     }

@@ -100,6 +100,10 @@ extension TerminalSession {
         return operands.contains("attach")
     }
 
+    static func conversationChildPIDs(_ pid: pid_t) -> [pid_t] {
+        AgentConversationBinding.childPIDs(pid)
+    }
+
     static func conversationProcessEvidence(_ pid: pid_t) -> AgentConversationBinding.ProcessEvidence? {
         guard let parent = AgentConversationBinding.parentPID(pid) else { return nil }
         let kind = ZshellAgentKind.recognize(processID: pid)
