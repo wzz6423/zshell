@@ -134,7 +134,16 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         guard case .text = content, isDirty else { return }
         invalidateReload()
         do {
-            try text.write(toFile: path, atomically: true, encoding: .utf8)
+            // Atomic writes replace the final path entry, so follow links while
+            // keeping the tab's displayed path and rename identity unchanged.
+            let destination = URL(fileURLWithPath: path).resolvingSymlinksInPath()
+            let type = try? FileManager.default.attributesOfItem(atPath: destination.path)[.type] as? FileAttributeType
+            // Resolution leaves dangling or cyclic links unchanged; replacing
+            // one would silently turn the link into a regular file.
+            guard type != .typeSymbolicLink else {
+                throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: path])
+            }
+            try text.write(to: destination, atomically: true, encoding: .utf8)
             savedText = text
             isDirty = false
             saveError = nil
