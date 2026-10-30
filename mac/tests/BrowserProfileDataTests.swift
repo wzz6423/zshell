@@ -4,6 +4,7 @@ import Foundation
 struct BrowserProfileDataTests {
     static func main() throws {
         let home = URL(fileURLWithPath: CommandLine.arguments[1])
+        try discoveryDistinguishesMissingFromDenied(scratch: URL(fileURLWithPath: CommandLine.arguments[1]))
         let found = BrowserProfileData.discover(home: home)
         precondition(found.blocked.isEmpty && found.profiles.count == 2)
         let chrome = found.profiles.first { $0.kind == .chrome }!
@@ -40,5 +41,26 @@ struct BrowserProfileDataTests {
         precondition(BrowserProfileData.cookies(invalid).error != nil)
         precondition(BrowserProfileData.preview(invalid, selection: [.sessions]).sessions.error != nil)
         print("Profile discovery, Chromium encryption/domain binding, partition skips, Firefox LZ4, history and sessions passed")
+    }
+
+    /// An untraversable browser folder must surface as blocked; a missing one must not.
+    static func discoveryDistinguishesMissingFromDenied(scratch: URL) throws {
+        let manager = FileManager.default
+        let home = scratch.appendingPathComponent("discovery-home-\(UUID().uuidString)", isDirectory: true)
+        let support = home.appendingPathComponent("Library/Application Support", isDirectory: true)
+        try manager.createDirectory(at: support, withIntermediateDirectories: true)
+        defer { try? manager.removeItem(at: home) }
+        let missing = BrowserProfileData.discover(home: home)
+        precondition(missing.blocked.isEmpty && missing.profiles.isEmpty)
+        let firefox = support.appendingPathComponent("Firefox", isDirectory: true)
+        let google = support.appendingPathComponent("Google", isDirectory: true)
+        try manager.createDirectory(at: firefox, withIntermediateDirectories: true)
+        try Data("[Profile0]\nPath=Profiles/x\nIsRelative=1\n".utf8).write(to: firefox.appendingPathComponent("profiles.ini"))
+        try manager.createDirectory(at: google.appendingPathComponent("Chrome"), withIntermediateDirectories: true)
+        for folder in [firefox, google] { try manager.setAttributes([.posixPermissions: 0], ofItemAtPath: folder.path) }
+        defer { for folder in [firefox, google] { try? manager.setAttributes([.posixPermissions: 0o700], ofItemAtPath: folder.path) } }
+        let denied = BrowserProfileData.discover(home: home)
+        precondition(Set(denied.blocked) == [.chrome, .firefox] && denied.profiles.isEmpty, "\(denied.blocked)")
+        print("Untraversable Chrome and Firefox folders are reported as blocked; missing folders are not")
     }
 }

@@ -66,48 +66,53 @@ nonisolated enum BrowserProfileData {
         var profiles: [BrowserProfile] = []
         var blocked: [BrowserProfile.Kind] = []
         let manager = FileManager.default
-        if manager.fileExists(atPath: chrome.path) {
-            do {
-                let state = try? Data(contentsOf: chrome.appendingPathComponent("Local State"))
-                let json = state.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
-                let cache = (json?["profile"] as? [String: Any])?["info_cache"] as? [String: [String: Any]] ?? [:]
-                for directory in try manager.contentsOfDirectory(at: chrome, includingPropertiesForKeys: nil)
-                    where directory.lastPathComponent == "Default" || directory.lastPathComponent.hasPrefix("Profile ") {
-                    guard manager.fileExists(atPath: directory.appendingPathComponent("History").path)
-                            || manager.fileExists(atPath: directory.appendingPathComponent("Cookies").path)
-                            || manager.fileExists(atPath: directory.appendingPathComponent("Network/Cookies").path) else { continue }
-                    let name = cache[directory.lastPathComponent]?["name"] as? String ?? directory.lastPathComponent
-                    profiles.append(BrowserProfile(kind: .chrome, name: name, directory: directory))
-                }
-            } catch { blocked.append(.chrome) }
-        }
+        // Read instead of checking existence first: an untraversable folder makes
+        // `fileExists` report false, which would hide the browser from `blocked`.
+        do {
+            let state = try? Data(contentsOf: chrome.appendingPathComponent("Local State"))
+            let json = state.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+            let cache = (json?["profile"] as? [String: Any])?["info_cache"] as? [String: [String: Any]] ?? [:]
+            for directory in try manager.contentsOfDirectory(at: chrome, includingPropertiesForKeys: nil)
+                where directory.lastPathComponent == "Default" || directory.lastPathComponent.hasPrefix("Profile ") {
+                guard manager.fileExists(atPath: directory.appendingPathComponent("History").path)
+                        || manager.fileExists(atPath: directory.appendingPathComponent("Cookies").path)
+                        || manager.fileExists(atPath: directory.appendingPathComponent("Network/Cookies").path) else { continue }
+                let name = cache[directory.lastPathComponent]?["name"] as? String ?? directory.lastPathComponent
+                profiles.append(BrowserProfile(kind: .chrome, name: name, directory: directory))
+            }
+        } catch { if !isMissing(error) { blocked.append(.chrome) } }
         let ini = firefox.appendingPathComponent("profiles.ini")
-        if manager.fileExists(atPath: ini.path) {
-            do {
-                let text = try String(contentsOf: ini, encoding: .utf8)
-                var sections: [[String: String]] = []
-                var current: [String: String]?
-                for raw in text.components(separatedBy: .newlines) {
-                    let line = raw.trimmingCharacters(in: .whitespaces)
-                    if line.hasPrefix("[") {
-                        if let current { sections.append(current) }
-                        current = line.hasPrefix("[Profile") ? [:] : nil
-                    } else if let split = line.firstIndex(of: "="), current != nil {
-                        current?[String(line[..<split])] = String(line[line.index(after: split)...])
-                    }
+        do {
+            let text = try String(contentsOf: ini, encoding: .utf8)
+            var sections: [[String: String]] = []
+            var current: [String: String]?
+            for raw in text.components(separatedBy: .newlines) {
+                let line = raw.trimmingCharacters(in: .whitespaces)
+                if line.hasPrefix("[") {
+                    if let current { sections.append(current) }
+                    current = line.hasPrefix("[Profile") ? [:] : nil
+                } else if let split = line.firstIndex(of: "="), current != nil {
+                    current?[String(line[..<split])] = String(line[line.index(after: split)...])
                 }
-                if let current { sections.append(current) }
-                for section in sections {
-                    guard let path = section["Path"], !path.isEmpty else { continue }
-                    let directory = section["IsRelative"] == "1"
-                        ? firefox.appendingPathComponent(path, isDirectory: true)
-                        : URL(fileURLWithPath: (path as NSString).expandingTildeInPath, isDirectory: true)
-                    guard manager.fileExists(atPath: directory.path) else { continue }
-                    profiles.append(BrowserProfile(kind: .firefox, name: section["Name"] ?? directory.lastPathComponent, directory: directory))
-                }
-            } catch { blocked.append(.firefox) }
-        }
+            }
+            if let current { sections.append(current) }
+            for section in sections {
+                guard let path = section["Path"], !path.isEmpty else { continue }
+                let directory = section["IsRelative"] == "1"
+                    ? firefox.appendingPathComponent(path, isDirectory: true)
+                    : URL(fileURLWithPath: (path as NSString).expandingTildeInPath, isDirectory: true)
+                guard manager.fileExists(atPath: directory.path) else { continue }
+                profiles.append(BrowserProfile(kind: .firefox, name: section["Name"] ?? directory.lastPathComponent, directory: directory))
+            }
+        } catch { if !isMissing(error) { blocked.append(.firefox) } }
         return (profiles.sorted { ($0.browserName, $0.name) < ($1.browserName, $1.name) }, blocked)
+    }
+
+    private static func isMissing(_ error: Error) -> Bool {
+        let error = error as NSError
+        if error.domain == NSCocoaErrorDomain, [NSFileNoSuchFileError, NSFileReadNoSuchFileError].contains(error.code) { return true }
+        let posix = error.userInfo[NSUnderlyingErrorKey] as? NSError ?? error
+        return posix.domain == NSPOSIXErrorDomain && [Int(ENOENT), Int(ENOTDIR)].contains(posix.code)
     }
 
     static func preview(_ profile: BrowserProfile, selection: BrowserProfileSelection) -> BrowserProfilePreview {
