@@ -1591,7 +1591,8 @@ fn log_match<T: EventListener>(
             let cell = &row[Column(column)];
             if cell.flags.intersects(Flags::WIDE_CHAR_SPACER | Flags::LEADING_WIDE_CHAR_SPACER) { continue; }
             positions.push((line.len(), Point::new(Line(line_number), Column(column))));
-            line.push(cell.c);
+            // Matches the log index, which reads a tab cell as the blank it draws.
+            line.push(if cell.c == '\t' { ' ' } else { cell.c });
             for mark in cell.zerowidth().into_iter().flatten() { line.push(*mark); }
         }
         if !wrapped || line_number == term.bottommost_line().0 {

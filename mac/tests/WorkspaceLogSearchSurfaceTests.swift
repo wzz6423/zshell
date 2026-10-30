@@ -207,6 +207,26 @@ struct WorkspaceLogSearchSurfaceTests {
             tab1.focusedPaneID == paneA.id && a.surface.readVisibleText(maxLines: 100, maxColumns: 500)?.contains("OLD-A-needle") == true
         }
         controller.show(for: manager)
+        field.stringValue = "7TAB-"
+        controller.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
+        pump(0.6)
+        try wait("a tab is not indexed as adjacent text") { table.numberOfRows == 0 }
+        field.stringValue = "7 TAB-"
+        controller.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
+        try wait("a tab is indexed as the blank it draws") { table.numberOfRows == 3 }
+        var tabTarget: Int?
+        for row in 0..<table.numberOfRows {
+            guard let cell = table.view(atColumn: 0, row: row, makeIfNecessary: true) else { continue }
+            if descendants(cell).compactMap({ $0 as? NSTextField }).contains(where: { $0.stringValue.contains("TAB-B") }) {
+                tabTarget = row
+                break
+            }
+        }
+        guard let tabTarget else { throw Failure.check("tab result in pane B missing") }
+        table.selectRowIndexes(IndexSet(integer: tabTarget), byExtendingSelection: false)
+        _ = controller.control(field, textView: NSTextView(), doCommandBy: #selector(NSResponder.insertNewline(_:)))
+        try wait("tab result reveals its terminal row") { tab1.focusedPaneID == paneB.id && !panel.isVisible }
+        controller.show(for: manager)
         field.stringValue = "NEEDLE"
         controller.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
         try wait("all panes are searchable after reopening") { table.numberOfRows == 9 }

@@ -45,7 +45,9 @@ enum TerminalHistorySerializer {
         text.replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
             .split(separator: "\n", omittingEmptySubsequences: false)
-            .map { visibleText(in: String($0)) }
+            // Alacritty keeps a printed tab as one '\t' cell before the blank
+            // cells it skips; index it as the blank it draws, like its reveal.
+            .map { visibleText(in: String($0).replacingOccurrences(of: "\t", with: " ")) }
             .joined(separator: "\n")
     }
 
