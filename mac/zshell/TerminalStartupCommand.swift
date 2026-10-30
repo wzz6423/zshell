@@ -20,13 +20,14 @@ struct TerminalStartupCommand: Equatable {
 
     static func resolve(
         program rawProgram: String,
-        arguments rawArguments: String
+        arguments rawArguments: String,
+        requireLocalExecutable: Bool = true
     ) -> Result<TerminalStartupCommand?, ConfigurationError> {
         let program = rawProgram.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !program.isEmpty else { return .success(nil) }
         guard program.hasPrefix("/"),
               !program.contains("\0"),
-              isExecutableFile(atPath: program)
+              !requireLocalExecutable || isExecutableFile(atPath: program)
         else {
             return .failure(.programNotExecutable)
         }

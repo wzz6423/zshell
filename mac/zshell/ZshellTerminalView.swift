@@ -76,6 +76,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var windowFocusObservers: [NSObjectProtocol] = []
     var reportsLocalWorkingDirectory = true
     private(set) var backgroundOpacity = 1.0
+    var profileAppearance = TerminalProfileAppearance()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -912,6 +913,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         for item in TerminalHintMenu.shared.items(for: self) { menu.addItem(item) }
         menu.addItem(.separator())
         menu.addItem(splitTarget.quickCommandMenuItem())
+        menu.addItem(splitTarget.profileMenuTarget.menuItem())
         if let linkTarget {
             menu.addItem(.separator())
             switch linkTarget {
@@ -1156,6 +1158,7 @@ final class SplitMenuTarget: NSObject {
     var onRunQuickCommand: ((QuickCommandPreset) -> Void)?
     var onManageQuickCommands: (() -> Void)?
     private let quickCommandTarget = QuickCommandMenuTarget()
+    let profileMenuTarget = TerminalProfileMenuTarget()
 
     func browserMenuItems(initialURL: String) -> [NSMenuItem] {
         let tabItem = item(

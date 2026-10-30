@@ -276,7 +276,10 @@ enum ZshellAutomationRouter {
             beside: target.pane.id,
             toward: edge,
             directory: directory,
-            focus: focus
+            focus: focus,
+            // A requested argv needs the integrated shell; a matching
+            // profile's startup program would leave the task unsupported.
+            usesConfiguredStartupCommand: argv == nil
         ) else {
             return failure(request, "pane_not_splittable", "The target pane could not be split.")
         }

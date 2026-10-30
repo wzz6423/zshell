@@ -214,6 +214,7 @@
 				"$(SRCROOT)/../remote/src/daemon.rs",
 				"$(SRCROOT)/../remote/src/main.rs",
 				"$(SRCROOT)/../remote/src/paste.rs",
+				"$(SRCROOT)/../remote/src/profile_context.rs",
 				"$(SRCROOT)/../remote/src/protocol.rs",
 				"$(SRCROOT)/../remote/src/pty.rs",
 				"$(SRCROOT)/../remote/src/pty_unix.rs",
