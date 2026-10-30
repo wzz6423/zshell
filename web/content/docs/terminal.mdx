@@ -71,6 +71,30 @@ Enable **Settings → Terminal → Behavior → Focus follows mouse** to focus a
 
 `terminal.focus-follows-mouse = true`
 
+## Terminal profiles
+
+Open **Settings → Terminal → Manage Terminal Profiles…** to create and order
+profiles. Each enabled profile can match a host, user, working directory, and
+foreground program. Filled conditions must all match; `*` matches any text and
+`?` matches one character. Zshell uses the first matching profile. If none
+matches, the pane returns to its original appearance.
+
+Right-click a terminal and choose **Terminal Profiles** to use automatic
+matching, select a profile for that pane, or restore its original settings.
+Theme, font, and cursor changes apply to the current pane without restarting
+its process. Environment variables, initialization commands, and startup
+programs apply only when a new terminal is created; switching a profile never
+runs a command. Initialization commands run when starting the login shell; a
+configured startup program runs directly. Profile environment values are
+stored as plain text in `config.toml`.
+
+For shared remote sessions, matching uses the remote server's reported process
+and directory. With an older server, unavailable fields cannot match. A plain
+SSH pane can match its configured host and user, but cannot inspect the remote
+foreground program or directory; its remote launch environment is controlled
+by SSH and the remote shell. A startup program must be an absolute path and
+must exist on the machine where the new terminal runs.
+
 ## Search
 
 | Action | Shortcut |

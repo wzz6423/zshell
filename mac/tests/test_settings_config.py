@@ -46,6 +46,8 @@ with tempfile.TemporaryDirectory(prefix="zshell-settings-config-") as temporary:
         "xcrun", "swiftc", "-parse-as-library", "-default-isolation", "MainActor",
         "-D", "DEBUG", "-module-cache-path", str(directory / "modules"),
         str(ROOT / "mac/zshell/AppSettings.swift"),
+        str(ROOT / "mac/zshell/TerminalProfiles.swift"),
+        str(ROOT / "mac/zshell/TerminalEnvironmentSettings.swift"),
         str(ROOT / "mac/zshell/SettingsConfigFile.swift"),
         str(ROOT / "mac/zshell/ExternalEditor.swift"),
         str(ROOT / "mac/zshell/CommandShortcuts.swift"),

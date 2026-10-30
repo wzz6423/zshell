@@ -146,6 +146,11 @@ struct SettingsReloadTests {
         terminal.startup-arguments = "-l"
         browser.content-blocking = false
         browser.filter-lists = "https://example.test/filter.txt"
+        terminal.profiles.0.id = "71DA4706-872C-4D96-ACDC-3FC8201F86B7"
+        terminal.profiles.0.name = "Fixture profile"
+        terminal.profiles.0.directory = "/tmp/*"
+        terminal.profiles.0.font-size = 18
+        terminal.profiles.0.environment.MODE = "profile"
 
         """
         let parsed = TOML.parseStrictly(text: configuration)
@@ -157,6 +162,10 @@ struct SettingsReloadTests {
         let imported = settings.serializedConfig()
         let written = try SettingsConfigFile.read(at: url)
         check(written == imported, "import saves final state once")
+        check(settings.terminalProfiles.first?.appearance.fontSize == 18,
+              "profiles import through production settings")
+        check(settings.terminalProfiles.first?.launchSettings.environment["MODE"] == "profile",
+              "profile launch settings round trip through config")
         let roundTrip = TOML.parseStrictly(text: imported).values
         check(settings.focusFollowsMouse && !settings.isAtDefaults, "pointer focus imports and changes default state")
         for (key, value) in parsed.values {
