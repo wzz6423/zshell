@@ -50,6 +50,7 @@ extern "C" {
 #define ZSHELL_CELL_WIDE (1u << 7)
 #define ZSHELL_CELL_WIDE_SPACER (1u << 8)
 #define ZSHELL_CELL_SELECTED (1u << 9)
+#define ZSHELL_CELL_WRAPPED (1u << 10)
 
 /// Bits returned by `zshell_alacritty_mode`.
 #define ZSHELL_MODE_APP_CURSOR (1u << 0)
