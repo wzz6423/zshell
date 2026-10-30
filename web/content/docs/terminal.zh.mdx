@@ -136,6 +136,14 @@ Zshell 能识别终端程序打印出来的网页 URL 和确实存在的本地�
 这样一来，编译器输出和 agent 对话就能直接回到同一个项目里。网页相关行为见
 [浏览器窗格](/docs/browser)。
 
+## 键盘字母提示 [#keyboard-hints]
+
+聚焦终端，选择 **终端 → 复制终端提示…**（<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>）或 **打开终端提示…**（<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>）。可见路径、URL、IP 地址和 commit hash 上会直接显示字母标签。输入标签即可选择；多字母标签会逐步筛选。
+
+<kbd>Tab</kbd> 切换复制与打开，<kbd>Backspace</kbd> 删除一个字母，<kbd>Esc</kbd> 取消并恢复终端输入。提示按键不会发送给终端程序。复制保留 `:42:7` 等诊断定位；打开复用 Command-click 的 Finder／默认浏览器路由，无法打开的值仍可复制。
+
+两个后端都只扫描当前可见屏幕，包括软折行文本。尺寸或输出变化会刷新标签。只读窗格仍能复制和执行主机打开操作。
+
 <span id="通知" data-canonical-heading="notifications" />
 
 ## 通知 [#notifications]

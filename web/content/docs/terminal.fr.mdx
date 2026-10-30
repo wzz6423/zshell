@@ -102,6 +102,14 @@ Zshell reconnaît les URL web et les chemins locaux existants imprimés par les 
 
 Les diagnostics du compilateur et les conversations des agents peuvent ainsi mener directement au même projet. Consultez [Volets de navigateur](/fr/docs/browser) pour les fonctions web.
 
+## Repères au clavier [#keyboard-hints]
+
+Placez le focus dans un terminal, puis choisissez **Terminal → Copier un repère du terminal…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) ou **Ouvrir un repère du terminal…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>). Des lettres apparaissent sur les chemins, URL, adresses IP et hashes de commit visibles. Tapez le repère pour le sélectionner ; plusieurs lettres affinent les choix.
+
+<kbd>Tab</kbd> bascule entre copie et ouverture. <kbd>Backspace</kbd> retire une lettre ; <kbd>Esc</kbd> annule et rend la saisie au terminal. Ces touches ne sont jamais envoyées au programme. La copie conserve les positions comme `:42:7`. L’ouverture utilise Finder ou le navigateur par défaut, comme Command-click ; une valeur sans destination peut être copiée.
+
+Les deux moteurs analysent uniquement l’écran visible, y compris les lignes repliées. Un redimensionnement ou une nouvelle sortie actualise les repères. Les volets en lecture seule permettent aussi la copie et les actions sur l’hôte.
+
 ## Notifications [#notifications]
 
 Zshell transmet deux types d'événements au centre de notifications :

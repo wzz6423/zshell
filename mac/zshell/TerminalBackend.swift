@@ -180,6 +180,8 @@ protocol TerminalBackendSurface: NSView {
     /// Per-pane command routing, retained when the surface is reparented.
     var commandRouting: TerminalCommandRouting { get }
 
+    var hintMode: TerminalHintMode { get }
+
     /// True only while Zshell is active, its window is key, and this exact
     /// surface owns the first responder.
     var hasEffectiveTerminalFocus: Bool { get }
@@ -233,6 +235,10 @@ protocol TerminalBackendSurface: NSView {
     /// bounded and avoid walking full scrollback; use an in-memory snapshot
     /// when the backend exposes one and a bounded screen export otherwise.
     func readVisibleText(maxLines: Int, maxColumns: Int) -> String?
+
+    /// An owned copy of the visible grid, including the emulator's Unicode
+    /// cell layout. Never includes scrollback outside the current viewport.
+    func readVisibleSnapshot() -> TerminalViewportSnapshot?
 
     /// Clears the screen and scrollback, then repaints the shell's prompt at
     /// the top.

@@ -102,6 +102,14 @@ Zshell erkennt Web-URLs und vorhandene lokale Pfade in der Programmausgabe. Loka
 
 So führen Compilerausgaben und Agentenprotokolle direkt zurück in dasselbe Projekt. Das Browserverhalten beschreibt [Browserbereiche](/de/docs/browser).
 
+## Tastaturhinweise [#keyboard-hints]
+
+Fokussiere ein Terminal und wähle **Terminal → Terminalhinweis kopieren…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) oder **Terminalhinweis öffnen…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>). Buchstaben erscheinen direkt über sichtbaren Pfaden, URLs, IP-Adressen und Commit-Hashes. Tippe das Label zur Auswahl; längere Labels grenzen die Treffer ein.
+
+<kbd>Tab</kbd> wechselt zwischen Kopieren und Öffnen, <kbd>Backspace</kbd> entfernt einen Buchstaben und <kbd>Esc</kbd> bricht ab und gibt die Eingabe ans Terminal zurück. Hinweistasten erreichen das Terminalprogramm nie. Kopieren behält Positionen wie `:42:7`. Öffnen nutzt wie Command-click Finder oder den Standardbrowser; andere Werte lassen sich kopieren.
+
+Beide Backends prüfen nur den sichtbaren Bildschirm einschließlich umgebrochener Zeilen. Größen- oder Ausgabeänderungen aktualisieren die Labels. Auch schreibgeschützte Bereiche erlauben Kopieren und Host-Aktionen.
+
 ## Mitteilungen [#notifications]
 
 Zshell leitet zwei Terminalereignisse an die Mitteilungszentrale weiter:

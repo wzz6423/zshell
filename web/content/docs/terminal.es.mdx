@@ -102,6 +102,14 @@ Zshell reconoce las URL web y las rutas locales existentes que imprimen los prog
 
 Esto permite volver directamente desde la salida del compilador y las conversaciones de agentes al mismo proyecto. El comportamiento del navegador se explica en [Paneles de navegador](/es/docs/browser).
 
+## Pistas con teclado [#keyboard-hints]
+
+Enfoca un terminal y elige **Terminal → Copiar pista del terminal…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) o **Abrir pista del terminal…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>). Aparecen letras sobre rutas, URL, direcciones IP y hashes de commit visibles. Escribe la etiqueta para elegir; las etiquetas largas filtran las opciones.
+
+<kbd>Tab</kbd> alterna copiar y abrir. <kbd>Backspace</kbd> borra una letra; <kbd>Esc</kbd> cancela y devuelve la entrada al terminal. Estas teclas nunca llegan al programa. Al copiar se conservan posiciones como `:42:7`. Abrir usa Finder o el navegador predeterminado como Command-click; los demás valores pueden copiarse.
+
+Ambos motores analizan solo la pantalla visible, incluidas las líneas ajustadas. El tamaño o la salida nuevos actualizan las etiquetas. Los paneles de solo lectura también permiten copiar y abrir en el equipo.
+
 ## Notificaciones [#notifications]
 
 Zshell envía dos eventos de terminal al Centro de Notificaciones:
