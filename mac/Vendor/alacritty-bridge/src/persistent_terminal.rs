@@ -6,7 +6,8 @@ use alacritty_terminal::grid::Dimensions;
 use alacritty_terminal::term::cell::{Cell, Flags};
 use alacritty_terminal::term::{Config, Osc52, Term, TermMode};
 use alacritty_terminal::vte::ansi::{
-    self, Handler, KeyboardModes, NamedPrivateMode, PrivateMode, Processor,
+    self, CursorShape, CursorStyle, Handler, KeyboardModes, NamedPrivateMode, PrivateMode,
+    Processor,
 };
 use alacritty_terminal::vte::{Parser, Perform};
 use unicode_width::UnicodeWidthChar;
@@ -19,6 +20,12 @@ const MAX_CONTROL_BYTES: usize = 64 * 1024;
 const MAX_COMBINING_MARKS: usize = 16;
 const MAX_HYPERLINK_BYTES: usize = 4096;
 const MAX_KEYBOARD_MODES: usize = 64;
+// DECSCUSR never selects a hollow block, so it marks a style no program set
+// and the restored GUI keeps the user's configured cursor.
+const UNSET_CURSOR_STYLE: CursorStyle = CursorStyle {
+    shape: CursorShape::HollowBlock,
+    blinking: false,
+};
 
 #[derive(Default)]
 struct OutputBoundary {
@@ -408,6 +415,7 @@ fn terminal_config(columns: usize) -> Config {
         scrolling_history: (MAX_SCROLLBACK_CELLS / columns).min(10_000),
         kitty_keyboard: true,
         osc52: Osc52::CopyPaste,
+        default_cursor_style: UNSET_CURSOR_STYLE,
         ..Config::default()
     }
 }
@@ -578,10 +586,11 @@ fn append_cursor(
     append_cursor_position(output, term, &term.grid().cursor, theme, origin);
     let style = term.cursor_style();
     let shape = match style.shape {
-        alacritty_terminal::vte::ansi::CursorShape::Underline => 3,
-        alacritty_terminal::vte::ansi::CursorShape::Beam => 5,
-        _ => 1,
-    } + u8::from(!style.blinking);
+        CursorShape::HollowBlock => 0,
+        CursorShape::Underline => 3 + u8::from(!style.blinking),
+        CursorShape::Beam => 5 + u8::from(!style.blinking),
+        _ => 1 + u8::from(!style.blinking),
+    };
     output.extend_from_slice(format!("\x1b[{shape} q").as_bytes());
 }
 
@@ -825,6 +834,20 @@ mod tests {
         original.feed(b" reply\x1b[?1049l", false);
         restored.feed(b" reply\x1b[?1049l", false);
         equal_screen(&original, &restored);
+    }
+
+    #[test]
+    fn snapshot_restores_only_program_cursor_styles() {
+        let mut original = terminal();
+        assert!(original.snapshot().ends_with(b"\x1b[0 q"));
+        for (bytes, style) in [
+            (b"\x1b[2 q".as_slice(), b"\x1b[2 q".as_slice()),
+            (b"\x1b[5 q", b"\x1b[5 q"),
+            (b"\x1b[0 q", b"\x1b[0 q"),
+        ] {
+            original.feed(bytes, false);
+            assert!(original.snapshot().ends_with(style));
+        }
     }
 
     #[test]
