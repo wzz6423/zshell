@@ -50,6 +50,14 @@ Zshell 可以在任意标签页或分屏里放一个内置浏览器。它适合�
 
 浏览器窗格会跨标签页、跨启动保留 Cookie、登录状态和其他站点数据；这不是无痕浏览模式。
 
+## 导入浏览器数据 [#import-browser-data]
+
+选择 **Browser → Import Browser Data…**，选定 Chrome 或 Firefox 的配置及数据类别，再选择 **Preview** 和 **Import**。预览显示数量和示例，不显示 Cookie 值。导入 Chrome 加密 Cookie 时，系统可能请求钥匙串权限；完成后会显示导入、跳过数量和访问错误。数据仅在本机处理，同名的 Zshell Cookie 可能被替换。
+
+macOS 27 起，系统会保护各浏览器的数据文件夹。窗口提示需要授权时，选择 **Allow Access**，再选择 **Open**；如果仍被阻止，请在 **系统设置 → 隐私与安全性 → 完全磁盘访问权限** 中允许 Zshell，然后重新打开窗口。
+
+导入的历史记录会以私有文件保存，可从 **Browser → Imported Browser History** 搜索并打开。最多保留 50,000 条历史记录，最多在当前项目打开 100 个会话标签页。分区 Cookie 以及 Firefox 容器中的 Cookie 和标签页会被跳过。标签页只恢复当前的 HTTP 或 HTTPS 页面，不恢复前进 / 后退历史；本地存储不会迁移，因此部分网站可能需要重新登录。
+
 ## 让 Agent 测试页面 [#let-an-agent-test-the-page]
 
 可以让编程 Agent 检查当前项目中已经打开的页面、填写表单、核对结果或截取可见区域。Agent 复用现有浏览器会话，默认保持终端焦点，也可以为本地开发地址新建后台浏览器面板。
