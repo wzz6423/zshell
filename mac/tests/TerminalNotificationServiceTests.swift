@@ -232,5 +232,29 @@ struct TerminalNotificationServiceTests {
         precondition(relaunchedHistory.records.isEmpty)
         await relaunchedHistory.flush()
         print("PASS stale remote generations from another pane neither resurrect read nor cleared completions")
+
+        let reportedHistory = TerminalNotificationHistoryStore(url: root.appendingPathComponent("reported/records.json"))
+        let reportedService = TerminalNotificationService(history: reportedHistory, delivery: NotificationDeliveryFixture())
+        await reportedHistory.flush()
+        let reported = TerminalSession()
+        reported.agentObservation.programReport = Observation(owner: ProcessIdentity(pid: 41, startedSeconds: 1, startedMicroseconds: 0),
+                                                              report: Report(activityPhase: .done))
+        func native(_ phase: ZshellAgentPhase, authority: ZshellAgentStateAuthority = .integration, attention: ZshellAgentAttention? = nil) {
+            let previous = reported.agentStatus
+            reported.agentStatus = ZshellAgentStatus(alias: "Native Agent", kind: .codex, phase: phase,
+                authority: authority, reason: "fixture", updatedAt: Date(), processID: 41,
+                unseen: false, progress: nil, attention: attention, tasks: [])
+            reportedService.agentChanged(in: reported, previous: previous)
+        }
+        native(.working)
+        native(.blocked, attention: .approval)
+        precondition(reportedHistory.filtered(.pending).count == 1)
+        precondition(!reportedHistory.records.contains { $0.message.contains("finished") })
+        native(.working)
+        precondition(reportedHistory.filtered(.pending).isEmpty && reportedHistory.records.count == 1)
+        native(.working, authority: .report)
+        precondition(reportedHistory.records.contains { $0.message.contains("finished") })
+        await reportedHistory.flush()
+        print("PASS a live program report does not turn a native agent's working or blocked states into completions")
     }
 }

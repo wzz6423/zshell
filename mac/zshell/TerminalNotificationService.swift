@@ -155,13 +155,17 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
         let owner = session.agentObservation.integrationOwner ?? session.agentObservation.programReport?.owner
         let identity = owner.map { "\($0.pid):\($0.startedSeconds):\($0.startedMicroseconds)" }
             ?? session.agentStatus?.processID.map { String($0) } ?? "agent"
+        // A stale program report can outlive a native agent started in the same
+        // pane; its done phase only applies while the report owns the status.
+        let localReportPhase = session.agentStatus?.authority == .report
+            ? session.agentObservation.programReport?.report.activityPhase : nil
         let sample = AgentSample(target: Self.target(for: session), status: session.agentStatus, previous: previous,
             isFocused: (TerminalManager.automationIsSessionFocused(session.id) || session.surface.hasEffectiveTerminalFocus)
                 && session.surface.window?.isMiniaturized != true,
             owner: identity,
             remoteGeneration: session.remoteStatus?.agentStatus?.generation,
             reportedPhase: session.remoteStatus?.agentStatus.flatMap { ZshellAgentPhase(rawValue: $0.phase) }
-                ?? session.agentObservation.programReport?.report.activityPhase)
+                ?? localReportPhase)
         if history.isLoading {
             let existing = loadingAgents[sample.target.sourceKey]
             if let generation = sample.remoteGeneration, let latest = existing?.remoteGeneration, generation < latest { return }
