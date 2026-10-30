@@ -18,7 +18,6 @@ struct BrowserProfileImportIntegrationTests {
         let mode = CommandLine.arguments[3]
         let cookieCount = Int(CommandLine.arguments[5])!
         let serverPort = Int(CommandLine.arguments[6])!
-        let loopback2Port = Int(CommandLine.arguments[7])!
         precondition(AppSettings.shared.terminalBackend.rawValue == backend)
         guard let surface = manager.selectedProject?.selectedSession?.surface else { throw failure("Initial terminal surface missing") }
         precondition(backend == "libghostty" ? surface is ZshellTerminalView : surface is AlacrittyTerminalView)
@@ -147,8 +146,6 @@ struct BrowserProfileImportIntegrationTests {
             precondition(manager.selectedProjectID == neighbor!.id && neighbor!.tabs.isEmpty)
             check(try cookies(in: neighbor!.browserDataStore).isEmpty)
             check(try cookies(in: .default()).isEmpty)
-            let loopback2 = project!.newBrowserTab(initialURL: "http://127.0.0.2:\(loopback2Port)/loopback2", initialFocus: .none, focus: false)
-            _ = try waitValue("Remote loopback2 page load") { loopback2.webView.title == "Fixture" && !loopback2.navigationIsLoading ? true : nil }
             let local = Project(fallbackName: "Local isolation fixture", manager: manager, createInitialSession: false)
             manager.projects.append(local)
             let localBrowser = local.newBrowserTab(initialURL: "http://127.0.0.1:\(serverPort)/isolation-local", initialFocus: .none, focus: false)

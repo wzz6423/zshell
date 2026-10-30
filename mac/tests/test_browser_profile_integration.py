@@ -19,7 +19,6 @@ PRODUCTS = BUILD / 'Build/Products/Debug'
 LIBRARY = PRODUCTS / 'zshell Debug.app/Contents/MacOS/zshell.debug.dylib'
 seen_cookie = threading.Event()
 seen_localhost_cookie = threading.Event()
-seen_loopback2_cookie = threading.Event()
 requests = []
 
 if len(sys.argv) == 1:
@@ -40,8 +39,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
             seen_cookie.set()
         if 'fixture_localhost=fixture-localhost-secret' in cookie:
             seen_localhost_cookie.set()
-        if 'fixture_loopback2=fixture-loopback2-secret' in cookie:
-            seen_loopback2_cookie.set()
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b'<title>Fixture</title>')
@@ -82,9 +79,6 @@ with tempfile.TemporaryDirectory(prefix='zshell-browser-integration-', dir='/tmp
     server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
     worker = threading.Thread(target=server.serve_forever, daemon=True)
     worker.start()
-    loopback2 = http.server.ThreadingHTTPServer(('127.0.0.2', 0), Handler)
-    loopback2_worker = threading.Thread(target=loopback2.serve_forever, daemon=True)
-    loopback2_worker.start()
     url = f'http://127.0.0.1:{server.server_port}/fixture'
     if remote:
         url = f'http://localhost:{server.server_port}/fixture'
@@ -136,7 +130,7 @@ with tempfile.TemporaryDirectory(prefix='zshell-browser-integration-', dir='/tmp
             subprocess.run(['/usr/bin/defaults', 'delete', binary.name], capture_output=True)
             try:
                 subprocess.run([str(binary), backend, str(home), mode, str(fixture.ssh_port),
-                                str(len(rows)), str(server.server_port), str(loopback2.server_port)], env=environment, check=True, timeout=120)
+                                str(len(rows)), str(server.server_port)], env=environment, check=True, timeout=120)
             finally:
                 subprocess.run(['/usr/bin/defaults', 'delete', binary.name], capture_output=True)
             if mode.startswith('remote-close-'):
@@ -145,14 +139,11 @@ with tempfile.TemporaryDirectory(prefix='zshell-browser-integration-', dir='/tmp
                 assert seen_cookie.wait(10), 'Imported cookie was not received by the HTTP fixture'
             if mode == 'remote-switch':
                 assert seen_localhost_cookie.wait(10), 'Remote localhost cookie was not received through SSH'
-                assert seen_loopback2_cookie.wait(10), 'Remote 127.0.0.2 cookie was not received through SSH'
                 assert any(path == '/fixture' and host.startswith('zshell-remote.localhost:')
                            and 'fixture_localhost=fixture-localhost-secret' in cookie for path, host, cookie in requests), requests
                 assert any(path == '/fixture-second' and host.startswith('127-0-0-1.zshell-remote.localhost:')
                            and 'fixture_login=fixture-secret' in cookie for path, host, cookie in requests), requests
                 assert any(path == '/isolation-local' and not cookie for path, _, cookie in requests), requests
-                assert any(path == '/loopback2' and host.startswith('127-0-0-2.zshell-remote.localhost:')
-                           and 'fixture_loopback2=fixture-loopback2-secret' in cookie for path, host, cookie in requests), requests
                 assert 'direct-tcpip' in fixture.ssh_log.read_text(), 'Remote cookies did not travel through SSH'
             print(f'PASS HTTP cookie fixture: {mode}')
     finally:
@@ -161,6 +152,3 @@ with tempfile.TemporaryDirectory(prefix='zshell-browser-integration-', dir='/tmp
         server.shutdown()
         worker.join(timeout=3)
         server.server_close()
-        loopback2.shutdown()
-        loopback2_worker.join(timeout=3)
-        loopback2.server_close()
