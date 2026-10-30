@@ -138,6 +138,8 @@ final class BrowserImportedHistoryController: NSObject, NSWindowDelegate, NSTabl
         pages = query.isEmpty ? allPages : allPages.filter {
             $0.title.localizedCaseInsensitiveContains(query) || $0.url.localizedCaseInsensitiveContains(query)
         }
+        // An empty list should not paint alternating stripes over the whole panel.
+        table.usesAlternatingRowBackgroundColors = !pages.isEmpty
         table.reloadData()
         openButton.isEnabled = false
     }

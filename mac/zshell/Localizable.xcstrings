@@ -142004,216 +142004,216 @@
         }
       }
     },
-    "Allow Access…": {
+    "Allow Access": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Allow Access…"
+            "value": "Allow Access"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "授权访问…"
+            "value": "授权访问"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "授權存取…"
+            "value": "授權存取"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "アクセスを許可…"
+            "value": "アクセスを許可"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "접근 허용…"
+            "value": "접근 허용"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Autoriser l’accès…"
+            "value": "Autoriser l’accès"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zugriff erlauben…"
+            "value": "Zugriff erlauben"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Permitir acceso…"
+            "value": "Permitir acceso"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Permitir acesso…"
+            "value": "Permitir acesso"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Consenti accesso…"
+            "value": "Consenti accesso"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Toegang toestaan…"
+            "value": "Toegang toestaan"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Разрешить доступ…"
+            "value": "Разрешить доступ"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "السماح بالوصول…"
+            "value": "السماح بالوصول"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "อนุญาตการเข้าถึง…"
+            "value": "อนุญาตการเข้าถึง"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Izinkan Akses…"
+            "value": "Izinkan Akses"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cho phép truy cập…"
+            "value": "Cho phép truy cập"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Erişime İzin Ver…"
+            "value": "Erişime İzin Ver"
           }
         }
       }
     },
-    "To read %@ data, choose Allow Access…, then Open.": {
+    "To read %@ data, choose Allow Access, then Open.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "To read %@ data, choose Allow Access…, then Open."
+            "value": "To read %@ data, choose Allow Access, then Open."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "要读取 %@ 的数据，请点“授权访问…”，再点“打开”。"
+            "value": "要读取 %@ 的数据，请点“授权访问”，再点“打开”。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "若要讀取 %@ 的資料，請按「授權存取…」，再按「打開」。"
+            "value": "若要讀取 %@ 的資料，請按「授權存取」，再按「打開」。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ のデータを読み込むには、「アクセスを許可…」を選んでから「開く」を選んでください。"
+            "value": "%@ のデータを読み込むには、「アクセスを許可」を選んでから「開く」を選んでください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ 데이터를 읽으려면 [접근 허용…]을 선택한 다음 [열기]를 선택하세요."
+            "value": "%@ 데이터를 읽으려면 [접근 허용]을 선택한 다음 [열기]를 선택하세요."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pour lire les données de %@, choisissez Autoriser l’accès…, puis Ouvrir."
+            "value": "Pour lire les données de %@, choisissez Autoriser l’accès, puis Ouvrir."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Um %@-Daten zu lesen, wählen Sie „Zugriff erlauben…“ und dann „Öffnen“."
+            "value": "Um %@-Daten zu lesen, wählen Sie „Zugriff erlauben“ und dann „Öffnen“."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Para leer los datos de %@, elige Permitir acceso… y luego Abrir."
+            "value": "Para leer los datos de %@, elige Permitir acceso y luego Abrir."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Para ler os dados do %@, escolha Permitir acesso… e depois Abrir."
+            "value": "Para ler os dados do %@, escolha Permitir acesso e depois Abrir."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Per leggere i dati di %@, scegli Consenti accesso…, poi Apri."
+            "value": "Per leggere i dati di %@, scegli Consenti accesso, poi Apri."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kies Toegang toestaan… en daarna Open om gegevens van %@ te lezen."
+            "value": "Kies Toegang toestaan en daarna Open om gegevens van %@ te lezen."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Чтобы прочитать данные %@, нажмите «Разрешить доступ…», затем «Открыть»."
+            "value": "Чтобы прочитать данные %@, нажмите «Разрешить доступ», затем «Открыть»."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "لقراءة بيانات %@، اختر «السماح بالوصول…» ثم «فتح»."
+            "value": "لقراءة بيانات %@، اختر «السماح بالوصول» ثم «فتح»."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "หากต้องการอ่านข้อมูล %@ ให้เลือก “อนุญาตการเข้าถึง…” แล้วเลือก “เปิด”"
+            "value": "หากต้องการอ่านข้อมูล %@ ให้เลือก “อนุญาตการเข้าถึง” แล้วเลือก “เปิด”"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Untuk membaca data %@, pilih Izinkan Akses…, lalu Buka."
+            "value": "Untuk membaca data %@, pilih Izinkan Akses, lalu Buka."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Để đọc dữ liệu %@, chọn Cho phép truy cập…, rồi chọn Mở."
+            "value": "Để đọc dữ liệu %@, chọn Cho phép truy cập, rồi chọn Mở."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ verilerini okumak için Erişime İzin Ver… seçeneğini, ardından Aç’ı seçin."
+            "value": "%@ verilerini okumak için Erişime İzin Ver seçeneğini, ardından Aç’ı seçin."
           }
         }
       }

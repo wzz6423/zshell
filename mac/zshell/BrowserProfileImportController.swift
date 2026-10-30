@@ -65,6 +65,11 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
 
     private func reloadProfiles() {
         revision += 1
+        // The popup is rebuilt and resets to the first profile, so a preview
+        // of the previous selection must not feed the next import.
+        prepared = nil
+        lastSummary = nil
+        previewText.string = ""
         status.stringValue = ""
         profiles = []
         blocked = []
@@ -87,7 +92,7 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         let pending = blocked.filter { !requested.contains($0) }
         if !pending.isEmpty {
             let names = pending.map(\.browserName).formatted()
-            return String(localized: "To read \(names) data, choose Allow Access…, then Open.")
+            return String(localized: "To read \(names) data, choose Allow Access, then Open.")
         }
         if !blocked.isEmpty {
             let names = blocked.map(\.browserName).formatted()
@@ -209,7 +214,7 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         previewButton.title = String(localized: "Preview")
         importButton.title = String(localized: "Import")
         closeButton.title = String(localized: "Close")
-        accessButton.title = String(localized: "Allow Access…")
+        accessButton.title = String(localized: "Allow Access")
         previewText.setAccessibilityLabel(String(localized: "Import Preview"))
         if let prepared { render(prepared) }
     }
@@ -293,10 +298,12 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         revision += 1
         let current = revision
         let categories = selection
-        let project = manager.selectedProject
+        // Keep the ID rather than a weak reference: a closed project can be
+        // released while cookies import, and must not fall back to its neighbor.
+        let projectID = manager.selectedProject?.id
         status.stringValue = String(localized: "Importing…")
         setBusy(true)
-        Task { [weak self, weak manager, weak project] in
+        Task { [weak self, weak manager] in
             var results: [String] = []
             if categories.contains(.cookies), prepared.cookieError == nil {
                 let cookies = await Task.detached(priority: .userInitiated) { BrowserProfileData.cookies(profile) }.value
@@ -349,8 +356,9 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
                 if let error = prepared.sessions.error { results.append(error) }
                 let pages = Array(prepared.sessions.values.prefix(100))
                 if !pages.isEmpty {
-                    let destination = project.flatMap { candidate in manager.projects.contains(where: { $0 === candidate }) ? candidate : nil }
-                        ?? (project == nil ? manager.selectedProject ?? manager.newProject() : nil)
+                    let destination: Project? = if let projectID {
+                        manager.projects.first { $0.id == projectID }
+                    } else { manager.selectedProject ?? manager.newProject() }
                     if let destination {
                         for page in pages.reversed() { destination.newBrowserTab(initialURL: page.url, initialFocus: .none, focus: false) }
                         let count = pages.count
