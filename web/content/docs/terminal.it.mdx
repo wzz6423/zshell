@@ -16,6 +16,14 @@ Scegli un motore in **Impostazioni → Terminale → Motore**:
 
 Entrambi supportano accelerazione GPU, immagini, catalogo di temi condiviso di Zshell, ricerca, eventi del mouse, notifiche e indicazioni di avanzamento. Cambiare motore ha effetto solo sui nuovi terminali; i pannelli esistenti mantengono l'emulatore con cui sono stati avviati.
 
+## Cronologia comandi [#command-history]
+
+Apri **Terminale → Cronologia comandi…** per cercare i comandi eseguiti in Zshell per testo o cartella. Ogni riga mostra cartella originale, ora di avvio, durata e stato di uscita. Fai clic su una riga o su **Mostra output** per tornare al riquadro e all’output originali. Se il riquadro è chiuso o l’output è stato cancellato, la navigazione non è disponibile; **Copia comando** resta utilizzabile.
+
+**Inserisci nel terminale** compila il prompt zsh vuoto del riquadro originale senza eseguire il comando; premi Return quando sei pronto. L’inserimento è disabilitato se il riquadro è occupato o contiene una bozza. I comandi su più righe vengono conservati. La lista usa l’integrazione dei blocchi di Ghostty e Alacritty; i comandi di shell non supportate o annidate potrebbero non comparire.
+
+La cronologia viene salvata localmente in background, fino a 2.000 comandi e 8 MiB. **Elimina** rimuove il record selezionato; **Cancella cronologia…** rimuove la lista salvata. L’output del terminale e la cronologia della shell restano disponibili.
+
 ## La tua shell, invariata [#your-shell-unchanged]
 
 Ogni sessione avvia la shell di login del tuo account, quindi prompt, alias, funzioni e dotfile vengono caricati come in qualsiasi terminale. Zshell aggiunge variabili che ne indicano identità e capacità:
@@ -95,6 +103,14 @@ Zshell riconosce gli URL web e i percorsi locali esistenti stampati dai programm
 - I programmi a schermo intero che abilitano gli eventi del mouse ricevono il normale clic destro. Tieni premuto **Maiusc** durante il clic destro per aprire il menu del terminale e del pannello di Zshell.
 
 In questo modo, l'output dei compilatori e le trascrizioni degli agenti offrono un accesso diretto allo stesso progetto. Il comportamento del browser è descritto in [Pannelli browser](/it/docs/browser).
+
+## Suggerimenti da tastiera [#keyboard-hints]
+
+Metti a fuoco un terminale e scegli **Terminal → Copia suggerimento del terminale…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) o **Apri suggerimento del terminale…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>). Le lettere compaiono sui percorsi, URL, indirizzi IP e hash di commit visibili. Digita l’etichetta per scegliere; più lettere restringono i risultati.
+
+<kbd>Tab</kbd> alterna copia e apertura, <kbd>Backspace</kbd> elimina una lettera e <kbd>Esc</kbd> annulla restituendo la digitazione al terminale. I tasti non raggiungono il programma. La copia mantiene posizioni come `:42:7`. L’apertura usa Finder o il browser predefinito come Command-click; gli altri valori si possono copiare.
+
+Entrambi i motori analizzano solo lo schermo visibile, incluse le righe a capo. Dimensioni o output nuovi aggiornano le etichette. Anche i riquadri in sola lettura consentono copia e apertura sul sistema.
 
 ## Notifiche [#notifications]
 
@@ -180,3 +196,9 @@ L'elenco completo dei comandi comuni resta disponibile; cambia solo la priorità
 Gli editor locali vengono identificati tramite l'eseguibile in primo piano. Dentro SSH, Mosh o un multiplexer del terminale, il rilevamento usa la riga visibile di modalità/stato di Vim e la disposizione dello schermo, senza installare plugin remoti. Mantieni attivo `showmode` di Vim o una riga di stato riconoscibile. Le configurazioni che nascondono o rinominano le etichette delle modalità possono mostrare i suggerimenti della modalità Normale o impedire il rilevamento remoto; le mappature personalizzate non vengono interpretate. Viene campionato solo il pannello Info attivo e i suggerimenti scompaiono quando cambia il programma in primo piano o l'editor non è più riconoscibile.
 
 Puoi attivare la funzione anche nel file di configurazione con `terminal.vim-command-hints = true`.
+
+## Completamento della shell
+
+Attiva **Impostazioni → Terminale → Comportamento → Completamento della shell** (attivo per impostazione predefinita) e apri un nuovo terminale zsh. Comandi, sottocomandi, argomenti e percorsi usano le funzioni della shell, con suggerimenti grigi. **Freccia destra** accetta a fine input; **Tab** apre le opzioni, le frecce selezionano, **Invio** accetta senza eseguire, **Esc** o **Ctrl+G** annulla il menu. **Esc** chiude anche il suggerimento. Plugin e scorciatoie esistenti sono conservati.
+
+I plugin inclusi non modificano `.zshrc`. I programmi a schermo intero mantengono il proprio input. Con zshell-server compatibile e zsh, i progetti remoti usano comandi e percorsi remoti; le altre shell mantengono il completamento nativo. Si applica a nuove shell e sessioni remote. Disattiva con `terminal.shell-completions = false`.

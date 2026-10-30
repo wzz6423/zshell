@@ -37,6 +37,7 @@ extern "C" {
 #define ZSHELL_EVENT_SHELL_COMMAND_FINISHED 12u
 /// UTF-8 OSC 22 pointer-shape name — a CSS cursor keyword such as "pointer".
 #define ZSHELL_EVENT_MOUSE_SHAPE 13u
+#define ZSHELL_EVENT_COMMAND_RECORDS 14u
 
 /// Per-cell attributes in `ZshellCell.flags`.
 #define ZSHELL_CELL_INVERSE (1u << 0)
@@ -49,6 +50,7 @@ extern "C" {
 #define ZSHELL_CELL_WIDE (1u << 7)
 #define ZSHELL_CELL_WIDE_SPACER (1u << 8)
 #define ZSHELL_CELL_SELECTED (1u << 9)
+#define ZSHELL_CELL_WRAPPED (1u << 10)
 
 /// Bits returned by `zshell_alacritty_mode`.
 #define ZSHELL_MODE_APP_CURSOR (1u << 0)
@@ -292,6 +294,18 @@ void zshell_alacritty_kitty_snapshot(ZshellTerminal *handle, ZshellKittySnapshot
 uint32_t zshell_alacritty_mode(ZshellTerminal *handle);
 
 void zshell_alacritty_mark_exited(ZshellTerminal *handle);
+
+typedef struct { uint64_t row; uint32_t column; } ZshellCommandPosition;
+typedef struct {
+    ZshellCommandPosition prompt, input, output, end;
+} ZshellCommandRegion;
+char *zshell_alacritty_command_records(ZshellTerminal *);
+uint64_t zshell_alacritty_command_revision(ZshellTerminal *);
+bool zshell_alacritty_command_region(ZshellTerminal *, uint64_t, ZshellCommandRegion *);
+char *zshell_alacritty_command_text(ZshellTerminal *, uint64_t, uint8_t);
+bool zshell_alacritty_command_reveal(ZshellTerminal *, uint64_t, bool);
+uint64_t zshell_alacritty_command_at(ZshellTerminal *, int32_t, uint32_t);
+void zshell_alacritty_string_free(char *);
 
 #ifdef __cplusplus
 }

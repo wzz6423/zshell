@@ -11,6 +11,7 @@ nonisolated struct RemoteRelayConfiguration: Codable {
     let command: [String]?
     let environment: [String: String]
     let initializationCommand: String?
+    let shellCompletions: Bool
 }
 
 nonisolated struct RemoteRelayControl: Codable {
@@ -87,7 +88,8 @@ final class RemoteSessionConnection: ObservableObject {
             host: host, project: directory, sessionID: sessionID, clientID: clientID,
             createIfMissing: createIfMissing, command: command,
             environment: launchSettings.environment.filter { !TerminalLaunchSettings.isProtectedEnvironmentVariable($0.key) },
-            initializationCommand: command == nil ? launchSettings.initializationCommand : nil
+            initializationCommand: command == nil ? launchSettings.initializationCommand : nil,
+            shellCompletions: AppSettings.shared.shellCompletions
         )
         do {
             try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])

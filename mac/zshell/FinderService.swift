@@ -68,7 +68,8 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
 
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         item.submenu = submenu
-        mainMenu.addItem(item)
+        let index = mainMenu.items.firstIndex { $0.submenu === NSApp.windowsMenu } ?? mainMenu.items.count
+        mainMenu.insertItem(item, at: index)
     }
 
     private func installEndAllSessionsMenu() {

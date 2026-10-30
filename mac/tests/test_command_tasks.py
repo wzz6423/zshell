@@ -165,7 +165,7 @@ final class AppConnection {
         command = shlex.join(["_zshell_command_task", task] + argv)
         os.write(self.fd, command.encode() + b"\r")
         output = self.read_until(lambda data: b"TASK-READY> " in data)
-        self.assertIn(b"\x1b]133;C\x07", output)
+        self.assertIn(b"\x1b]133;C;cmdline_url=", output)
         self.assertIn(f"\x1b]133;D;{status}\x07".encode(), output)
         snapshot = json.loads(subprocess.check_output([
             str(self.reader), task, str(self.pid), str(self.root / "command-tasks"),
@@ -215,7 +215,7 @@ final class AppConnection {
         self.start_shell("alacritty")
         task = str(uuid.uuid4()).upper()
         os.write(self.fd, shlex.join(["_zshell_command_task", task, "/bin/sleep", "10"]).encode() + b"\r")
-        self.read_until(lambda data: b"\x1b]133;C\x07" in data)
+        self.read_until(lambda data: b"\x1b]133;C;cmdline_url=" in data)
         os.write(self.fd, b"\x03")
         output = self.read_until(lambda data: b"TASK-READY> " in data)
         self.assertIn(b"\x1b]133;D;130\x07", output)

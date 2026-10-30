@@ -24,6 +24,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     @Published var workingDirectory: String?
     @Published var hasExited = false
     @Published private(set) var commandLifecycle = TerminalCommandLifecycle()
+    @Published private(set) var commandRecords: [TerminalCommandRecord] = []
     @Published private(set) var terminalCellSize: CGSize?
     @Published private(set) var remoteStatus: RemoteRelayStatus?
     /// Recognized coding agent occupying this terminal, if any. The monitor
@@ -494,9 +495,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         return processWorkingDirectory(pid: foreground)
     }
 
-    func sendCommand(_ text: String) {
+    func sendCommand(_ text: String, asPaste: Bool = false) {
         remoteConnection?.takeControl()
-        surface.sendText(text)
+        if asPaste { surface.sendPaste(text) }
+        else { surface.sendText(text) }
     }
 
     func sendEnter() {
@@ -945,6 +947,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             fi
             """,
         ]
+        TerminalShellCompletions.configure(&files)
         // Command-completion notifications ride the same zsh-only shim: bash
         // and fish never see ZDOTDIR, so this script is the only place the
         // app can hear a command's start and exit. Both opt-in settings are
@@ -1195,6 +1198,12 @@ extension TerminalSession: TerminalBackendEvents {
         }
     }
 
+    func terminalDidUpdateCommandRecords(_ records: [TerminalCommandRecord]) {
+        guard commandRecords != records else { return }
+        TerminalCommandHistoryStore.shared.observe(records, previous: commandRecords, terminalID: id)
+        commandRecords = records
+    }
+
     func terminalDidClose(processAlive: Bool) {
         guard !isTerminating else { return }
         if remoteConnection != nil {
@@ -1301,6 +1310,17 @@ extension TerminalSession: TerminalBackendEvents {
         var candidate = value
         while let last = candidate.last, trailingSentencePunctuation.contains(last) {
             candidate.removeLast()
+        }
+        // IP hints share the same host action as Command-clicked URLs.
+        // URLComponents requires brackets around a bare IPv6 address.
+        let octets = candidate.split(separator: ".", omittingEmptySubsequences: false)
+        if octets.count == 4, octets.allSatisfy({ Int($0).map { (0...255).contains($0) } == true }) {
+            return URL(string: "http://\(candidate)")
+        }
+        if candidate.contains(":"), !candidate.contains("/"),
+           candidate.unicodeScalars.allSatisfy({ CharacterSet(charactersIn: "0123456789abcdefABCDEF:").contains($0) }),
+           let components = URLComponents(string: "http://[\(candidate)]"), components.host != nil {
+            return components.url
         }
         guard let pattern = bareWebAddressPattern,
               let match = pattern.firstMatch(in: candidate, range: NSRange(candidate.startIndex..., in: candidate)),

@@ -346,6 +346,8 @@ impl<T: EventListener> Handler for TrackingHandler<'_, T> {
     }
 
     forward_handler_methods! {
+        fn semantic_prompt(params: &[&[u8]]);
+        fn report_pwd(uri: &str);
         fn set_title(title: Option<String>);
         fn set_cursor_style(style: Option<ansi::CursorStyle>);
         fn set_cursor_shape(shape: ansi::CursorShape);

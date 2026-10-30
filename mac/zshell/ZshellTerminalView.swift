@@ -17,14 +17,19 @@ import GhosttyTerminal
 /// see `ZshellTerminalView+Ghostty.swift`.
 final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     /// The session listening to this surface. Weak: the session owns the view.
-    weak var events: (any TerminalBackendEvents)?
+    weak var events: (any TerminalBackendEvents)? {
+        didSet { events?.terminalDidUpdateCommandRecords(commandRecordState.records) }
+    }
 
     /// Fired whenever direct interaction makes this pane the active one.
     var onBecomeFirstResponder: (() -> Void)?
     let splitTarget = SplitMenuTarget()
     let commandRouting = TerminalCommandRouting()
+    lazy var hintMode = TerminalHintMode(surface: self)
 
     /// Held strongly for the surface's lifetime; ``detach()`` drops it.
+    var commandRecordState = TerminalCommandRecords()
+    var lastCommandRevision: UInt64?
     var ghosttyController: TerminalController?
     private(set) var logContentRevision: UInt64 = 0
     var findMatchesNewestFirst: Bool { true }
@@ -113,6 +118,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     override func setSurfaceVisible(_ visible: Bool) {
         if !visible {
+            hintMode.dismiss(restoringFocus: false)
             stopSelectionAutoscroll()
             events?.terminalDidResignFocus()
         }
@@ -191,9 +197,14 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         performBindingAction("text:\\x0d")
     }
 
+    func sendPaste(_ text: String) {
+        sendText(text)
+    }
+
     func clearScreen() {
         invalidateLogContents()
         performBindingAction("clear_screen")
+        refreshCommandRecords()
         // Ask the foreground shell to repaint its prompt at the top.
         performBindingAction("text:\\x0c")
     }
@@ -213,6 +224,71 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
 
     func readVisibleText(maxLines: Int, maxColumns: Int) -> String? {
         readViewportText(maxLines: maxLines, maxColumns: maxColumns)
+    }
+
+    func readVisibleSnapshot() -> TerminalViewportSnapshot? {
+        guard let size = viewportGridMetrics,
+              size.columns > 0, size.rows > 0,
+              Int(size.columns) * Int(size.rows) <= TerminalViewportSnapshot.maximumCells
+        else { return nil }
+        let columns = Int(size.columns)
+        let scale = window?.backingScaleFactor ?? 1
+        let cellSize = CGSize(width: CGFloat(size.cellWidthPixels) / scale,
+                              height: CGFloat(size.cellHeightPixels) / scale)
+        guard cellSize.width > 0, cellSize.height > 0,
+              let first = readViewportText(row: 0, columns: 0..<1) else { return nil }
+        // Ghostty balances the padding and the fractional cell remainder.
+        // Its read_text origin is a baseline; the centered grid stays valid
+        // even when scrolling hides the live cursor from imePoint.
+        let origin = CGPoint(x: first.origin.x,
+                             y: (bounds.height - CGFloat(size.rows) * cellSize.height) / 2)
+        var rows: [TerminalViewportRow] = []
+        for row in 0..<Int(size.rows) {
+            guard let full = readViewportText(row: row, columns: 0..<columns) else { return nil }
+            var cells: [TerminalViewportCell] = []
+            var column = 0
+            for character in full.text {
+                if character.unicodeScalars.count == 1, character.asciiValue != nil {
+                    cells.append(.init(text: String(character), column: column, width: 1))
+                    column += 1
+                } else {
+                    // Ask the engine for Unicode cells instead of using a
+                    // second wcwidth table that can disagree on emoji/ZWJ.
+                    break
+                }
+            }
+            if column < full.text.utf16.count {
+                while column < columns {
+                    guard let cell = readViewportText(row: row, columns: column..<(column + 1)) else { return nil }
+                    var width = 1
+                    if !cell.text.isEmpty, !cell.text.unicodeScalars.allSatisfy({ $0.isASCII }), column + 1 < columns,
+                       let next = readViewportText(row: row, columns: (column + 1)..<(column + 2)), next.text == cell.text,
+                       let prefix = readViewportText(row: row, columns: 0..<(column + 1)),
+                       let withNext = readViewportText(row: row, columns: 0..<(column + 2)), prefix.text == withNext.text {
+                        // Selecting a wide tail returns its head's text too.
+                        // Equal prefixes prove it is one glyph, rather than
+                        // two adjacent identical narrow Unicode characters.
+                        width = 2
+                    }
+                    cells.append(.init(text: cell.text.isEmpty ? " " : cell.text, column: column, width: width))
+                    column += width
+                }
+            } else {
+                while column < columns {
+                    cells.append(.init(text: " ", column: column, width: 1))
+                    column += 1
+                }
+            }
+            // A cross-row selection omits LF only when Ghostty marks the row
+            // as soft-wrapped. Read two edge cells, never the whole buffer.
+            var wraps = false
+            if row + 1 < Int(size.rows),
+               let edge = readViewportText(fromRow: row, column: columns - 1, toRow: row + 1, column: 1) {
+                wraps = !edge.contains("\n")
+            }
+            rows.append(TerminalViewportRow(cells: cells, wraps: wraps))
+        }
+        return TerminalViewportSnapshot(rows: rows, columns: columns, origin: origin, cellSize: cellSize)
     }
 
     func sendApplicationScroll(lines: Int) -> Bool {
@@ -564,6 +640,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func keyDown(with event: NSEvent) {
+        if hintMode.consumesKeyDown(event) { return }
         finalizePointerSelectionBeforeInput()
         recordPromptInputStart()
         if !hasMarkedText(),
@@ -577,6 +654,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func insertText(_ string: Any, replacementRange range: NSRange) {
+        guard !hintMode.isPresented else { return }
         let text = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""
         if !text.isEmpty { finalizePointerSelectionBeforeInput() }
         recordPromptInputStart()
@@ -589,6 +667,11 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         }
         activatePendingPromptSelection()
         super.insertText(string, replacementRange: range)
+    }
+
+    override func keyUp(with event: NSEvent) {
+        if hintMode.handleKeyUp(event) { return }
+        super.keyUp(with: event)
     }
 
     override func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
@@ -826,6 +909,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         menu.addItem(contextItem(String(localized: "Select All"), #selector(selectAll(_:))))
         menu.addItem(.separator())
         menu.addItem(commandRouting.contextMenuItem())
+        for item in TerminalHintMenu.shared.items(for: self) { menu.addItem(item) }
         menu.addItem(.separator())
         menu.addItem(splitTarget.quickCommandMenuItem())
         if let linkTarget {
