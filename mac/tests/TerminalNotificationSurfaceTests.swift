@@ -173,6 +173,24 @@ struct TerminalNotificationSurfaceTests {
         let originalRow = history.filtered(.failed).firstIndex { $0.id == record.id }!
         content.table.selectRowIndexes(IndexSet(integer: originalRow), byExtendingSelection: false)
         try check(!remove.isHidden, "remove appears once a notification is selected")
+        let originalFrame = panel.frame
+        for language in AppLanguage.allCases where language != .system {
+            AppLocalization.apply(language)
+            pump(0.05)
+            panel.setContentSize(NSSize(width: 680, height: 420))
+            content.view.layoutSubtreeIfNeeded()
+            for control in [filter, showPane, markRead, allRead, remove, clear] as [NSView] {
+                let frame = control.convert(control.bounds, to: content.view)
+                guard frame.width > 0 && content.view.bounds.insetBy(dx: -1, dy: -1).contains(frame) else {
+                    throw NSError(domain: "NotificationSurface", code: 2, userInfo: [NSLocalizedDescriptionKey:
+                        "Minimum-size panel clips \(language.rawValue) control: \(control.identifier?.rawValue ?? "unknown")"])
+                }
+            }
+        }
+        try check(true, "minimum-size notification panel fits all controls in 17 languages")
+        AppLocalization.apply(.english)
+        pump(0.05)
+        panel.setFrame(originalFrame, display: false)
         markRead.performClick(nil)
         try wait("mark read did not update the selected record") { history.record(id: record.id)?.isRead == true }
         try check(history.record(id: record.id)?.isRead == true, "native mark-read action updates the selected record")
@@ -183,7 +201,9 @@ struct TerminalNotificationSurfaceTests {
         let removeRow = history.filtered(.failed).firstIndex { $0.id == removable.id }!
         content.table.selectRowIndexes(IndexSet(integer: removeRow), byExtendingSelection: false)
         remove.performClick(nil)
-        try wait("remove did not delete the selected record") { history.record(id: removable.id) == nil }
+        try wait("remove did not delete the selected record") {
+            history.record(id: removable.id) == nil && content.table.numberOfRows == history.filtered(.failed).count
+        }
         try check(history.record(id: removable.id) == nil, "native remove action deletes the selected record")
         let otherProject = first.newProject()
         try check(first.selectedProjectID == otherProject.id, "fixture switched to another project")
