@@ -105,6 +105,14 @@ Dasselbe Menü enthält **Geänderte Pfade kopieren**, **Repository-Pfad kopiere
 Pull verwendet bewusst nur Fast-Forward. Ist ein echter Merge oder Rebase nötig, meldet Git das, und Sie entscheiden im Terminal über die Strategie.
 </Callout>
 
+### Pull-Request-Status [#pull-request-status]
+
+Installieren Sie GitHub CLI und melden Sie sich mit `gh auth login` an. Der Git-Bereich eines lokalen Repositorys zeigt dann Nummer und Status des Pull Requests für den aktuellen Branch. Ein Klick öffnet ihn; per Rechtsklick lässt sich **Pull-Request-Status aktualisieren** wählen. Für andere Remotes als GitHub wird kein Pull Request angezeigt.
+
+### Proxy [#proxy]
+
+Um Git-Verkehr über einen Proxy zu leiten, aktivieren Sie unter **Einstellungen → Allgemein** **Proxy für Git verwenden** und prüfen Sie die **Proxy-Adresse**, vorausgefüllt mit `http://127.0.0.1:7897`. Der Proxy ist standardmäßig aus. Er gilt für Fetch, Pull und Push im Bereich, für den Pull-Request-Status und für `git` in danach geöffneten Terminals; bereits offene Terminals und entfernte SSH-Projekte bleiben unverändert. Nur HTTP(S)-Remotes nutzen ihn, `git@`-SSH-Remotes verbinden sich weiterhin direkt. In der Konfigurationsdatei: `git.proxy-enabled = true` und `git.proxy = "<url>"`.
+
 ## Noch kein Repository [#not-a-repository-yet]
 
 Enthält das Projektverzeichnis noch kein Repository, bietet das Panel **Repository initialisieren** an. Damit wird `git init` in diesem Ordner ausgeführt. Bis dahin bleibt das Panel zurückhaltend.

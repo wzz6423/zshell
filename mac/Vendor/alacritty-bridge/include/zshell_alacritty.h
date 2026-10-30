@@ -250,6 +250,10 @@ size_t zshell_alacritty_find(ZshellTerminal *handle, const char *needle);
 /// index, or -1 when there are none.
 intptr_t zshell_alacritty_find_step(ZshellTerminal *handle, bool forward);
 
+/// Reveals one buffer-order match only when the native total still agrees.
+bool zshell_alacritty_reveal_log_match(ZshellTerminal *handle, const char *needle,
+                                      size_t occurrence, size_t expected_total);
+
 void zshell_alacritty_find_end(ZshellTerminal *handle);
 
 /// Whether the primary screen has rows above the viewport.

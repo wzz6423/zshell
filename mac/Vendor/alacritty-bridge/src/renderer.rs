@@ -1562,6 +1562,72 @@ pub unsafe extern "C" fn zshell_alacritty_find_step(
     terminal.match_index as isize
 }
 
+/// # Safety
+/// `handle` must be live and `needle` a valid C string.
+#[no_mangle]
+pub unsafe extern "C" fn zshell_alacritty_reveal_log_match(
+    handle: *mut ZshellTerminal,
+    needle: *const c_char,
+    occurrence: usize,
+    expected_total: usize,
+) -> bool {
+    if handle.is_null() || occurrence >= expected_total {
+        return false;
+    }
+    let Some(needle) = cstr(needle).filter(|value| !value.is_empty()) else {
+        return false;
+    };
+    let terminal = &mut *handle;
+    let mut term = terminal.term.lock();
+    let Some((start, end)) = log_match(&term, &needle, occurrence, expected_total) else { return false };
+    let mut selection = Selection::new(SelectionType::Simple, start, Side::Left);
+    selection.update(end, Side::Right);
+    term.selection = Some(selection);
+    term.scroll_to_point(start);
+    true
+}
+
+fn log_match<T: EventListener>(
+    term: &Term<T>, needle: &str, occurrence: usize, expected_total: usize,
+) -> Option<(Point, Point)> {
+    if needle.is_empty() || needle.contains(['\r', '\n']) { return None; }
+    let needle = needle.to_ascii_lowercase();
+    let mut line = String::new();
+    let mut positions: Vec<(usize, Point)> = Vec::new();
+    let mut selected = None;
+    let mut total = 0;
+    for line_number in term.topmost_line().0..=term.bottommost_line().0 {
+        let row = &term.grid()[Line(line_number)];
+        let wrapped = row[Column(term.columns() - 1)].flags.contains(Flags::WRAPLINE);
+        let length = if wrapped { term.columns() } else {
+            row[..].iter().rposition(cell_has_visible_content).map_or(0, |column| column + 1)
+        };
+        for column in 0..length {
+            let cell = &row[Column(column)];
+            if cell.flags.intersects(Flags::WIDE_CHAR_SPACER | Flags::LEADING_WIDE_CHAR_SPACER) { continue; }
+            positions.push((line.len(), Point::new(Line(line_number), Column(column))));
+            // Matches the log index, which reads a tab cell as the blank it draws.
+            line.push(if cell.c == '\t' { ' ' } else { cell.c });
+            for mark in cell.zerowidth().into_iter().flatten() { line.push(*mark); }
+        }
+        if !wrapped || line_number == term.bottommost_line().0 {
+            let folded = line.to_ascii_lowercase();
+            for (offset, _) in folded.match_indices(&needle) {
+                if total == occurrence {
+                    let first = positions.partition_point(|(start, _)| *start <= offset).checked_sub(1)?;
+                    let last = positions.partition_point(|(start, _)| *start < offset + needle.len()).checked_sub(1)?;
+                    selected = Some((positions[first].1, positions[last].1));
+                }
+                total += 1;
+                if total > expected_total { return None; }
+            }
+            line.clear();
+            positions.clear();
+        }
+    }
+    selected.filter(|_| total == expected_total)
+}
+
 /// Clears the find and its selection.
 ///
 /// # Safety
@@ -2124,6 +2190,32 @@ mod tests {
             );
             assert_eq!(url_in(&term, point), None, "{content}");
         }
+    }
+
+    #[test]
+    fn workspace_log_reveal_checks_count_and_duplicate_order() {
+        let term = parse("first ERROR\r\nsecond error\r\nthird ERROR".as_bytes());
+        let first = log_match(&term, "error", 0, 3).unwrap();
+        let second = log_match(&term, "error", 1, 3).unwrap();
+        let third = log_match(&term, "error", 2, 3).unwrap();
+        assert!(first.0.line < second.0.line && second.0.line < third.0.line);
+        assert!(log_match(&term, "error", 1, 2).is_none());
+        assert!(log_match(&term, "error", 3, 3).is_none());
+    }
+
+    #[test]
+    fn workspace_log_reveal_finds_combining_text() {
+        let term = parse("中文 e\u{301} test".as_bytes());
+        assert!(log_match(&term, "e\u{301}", 0, 1).is_some());
+        let long = format!("{}Wide界e\u{301}nd", "x".repeat(34));
+        let term = parse(long.as_bytes());
+        let (start, end) = log_match(&term, "界e\u{301}n", 0, 1).unwrap();
+        assert!(start.line < end.line);
+        let term = parse("foo foo foo".as_bytes());
+        let first = log_match(&term, "FOO", 0, 3).unwrap();
+        let second = log_match(&term, "FOO", 1, 3).unwrap();
+        let third = log_match(&term, "FOO", 2, 3).unwrap();
+        assert_eq!((first.0.column.0, second.0.column.0, third.0.column.0), (0, 4, 8));
     }
 
     #[test]
