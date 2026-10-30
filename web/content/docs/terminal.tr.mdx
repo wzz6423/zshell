@@ -16,6 +16,14 @@ Her terminal bölmesi gerçek giriş kabuğunuzu ve GPU hızlandırmalı iki yer
 
 İkisi de GPU hızlandırma, görüntü oluşturma, Zshell’in ortak tema kataloğu, arama, fare raporlama, bildirim ve ilerleme raporlarını destekler. Değişim yalnızca yeni terminallere uygulanır; mevcut bölmeler başladıkları emülatörü korur.
 
+## Komut geçmişi [#command-history]
+
+Zshell’de çalıştırılan komutları metin veya dizine göre aramak için **Terminal → Komut geçmişi…** seçeneğini açın. Her satır özgün dizini, başlangıç zamanını, süreyi ve çıkış durumunu gösterir. Özgün bölmeye ve çıktıya dönmek için satıra veya **Çıktıyı göster** düğmesine tıklayın. Bölme kapalıysa veya çıktı temizlendiyse gezinme kullanılamaz; **Komutu kopyala** yine çalışır.
+
+**Terminale ekle**, komutu çalıştırmadan özgün bölmenin boş zsh istemine yerleştirir; hazır olduğunuzda Return tuşuna basın. Bölme meşgulse veya taslak içeriyorsa ekleme devre dışıdır. Çok satırlı komutlar korunur. Liste Ghostty ve Alacritty komut bloğu entegrasyonunu kullanır; desteklenmeyen veya iç içe kabuklardaki komutlar görünmeyebilir.
+
+Geçmiş arka planda yerel olarak, en fazla 2.000 komut ve 8 MiB sınırıyla kaydedilir. **Sil** seçili kaydı, **Geçmişi temizle…** kayıtlı listeyi kaldırır. Terminal çıktısı ve kabuğun kendi geçmişi korunur.
+
 ## Kabuğunuz değişmez [#your-shell-unchanged]
 
 Her oturum hesabınızın giriş kabuğunu başlatır; istem, takma adlar, işlevler ve dotfile’lar diğer terminallerdeki gibi yüklenir. Zshell yetenek ve kimlik değişkenleri ekler:
@@ -93,6 +101,14 @@ Zshell terminal programlarının yazdırdığı web URL’lerini ve mevcut yerel
 - Fare raporlamasını açan tam ekran programlar değiştiricisiz sağ tıklamayı alır. Zshell terminal/bölme menüsü için **Shift** basılıyken sağ tıklayın.
 
 Böylece derleyici çıktısından ve ajan konuşmasından aynı projeye doğrudan dönersiniz. Tarayıcı davranışı [Tarayıcı bölmeleri](/tr/docs/browser) bölümündedir.
+
+## Klavye ipuçları [#keyboard-hints]
+
+Terminale odaklanıp **Terminal → Terminal ipucunu kopyala…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) veya **Terminal ipucunu aç…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>) seçin. Görünür yollar, URL’ler, IP adresleri ve commit hash’leri üzerinde harf etiketleri belirir. Seçmek için etiketi yazın; uzun etiketler seçenekleri daraltır.
+
+<kbd>Tab</kbd> kopyalama ve açmayı değiştirir. <kbd>Backspace</kbd> bir harfi siler; <kbd>Esc</kbd> iptal edip girişi terminale geri verir. İpucu tuşları programa gönderilmez. Kopyalama `:42:7` gibi konumları korur. Açma, Command-click gibi Finder veya varsayılan tarayıcıyı kullanır; diğer değerler kopyalanabilir.
+
+İki arka uç da yalnız görünür ekranı, sarılan satırlar dahil tarar. Boyut veya çıktı değişince etiketler yenilenir. Salt okunur bölmeler de kopyalama ve ana makinede açmayı destekler.
 
 ## Bildirimler [#notifications]
 
@@ -178,3 +194,9 @@ Yaygın komutların tam listesi hep erişilebilirdir; yalnızca öncelik değiş
 Yerel düzenleyici öndeki çalıştırılabilir dosyadan tanınır. SSH, Mosh veya terminal çoklayıcısında uzak eklenti kurulmadan görünür Vim mod/durum satırı ve ekran düzeni kullanılır. Vim `showmode` veya tanınabilir durum satırını açık tutun. Mod etiketlerini gizleyen/değiştiren ayarlar Normal ipuçlarına düşebilir veya uzak algılamayı engelleyebilir; özel eşlemeler yorumlanmaz. Yalnızca etkin Bilgi paneli örneklenir; öndeki program değişince veya düzenleyici tanınamaz olunca ipuçları kaybolur.
 
 Yapılandırmada `terminal.vim-command-hints = true` ile de açabilirsiniz.
+
+## Kabuk tamamlama
+
+**Ayarlar → Terminal → Davranış → Kabuk tamamlama** seçeneğini açın (varsayılan açık) ve yeni zsh terminali açın. Komutlar, alt komutlar, argümanlar ve yollar kabuk işlevlerinden gelir; öneriler gri görünür. Girdi sonunda **Sağ ok** kabul eder; **Tab** adayları açar, oklar seçer, **Return** çalıştırmadan kabul eder, **Esc** veya **Ctrl+G** menüyü iptal eder. **Esc** öneriyi de kapatır. Mevcut eklentiler ve kısayollar korunur.
+
+Birlikte gelen eklentiler `.zshrc` dosyasını değiştirmez. Tam ekran programları kendi girdilerini alır. Uyumlu zshell-server ve zsh ile uzak projeler uzak komutları ve yolları kullanır; diğer kabuklar kendi tamamlamalarını korur. Yeni kabuklara ve uzak oturumlara uygulanır. Kapatmak için `terminal.shell-completions = false` kullanın.
