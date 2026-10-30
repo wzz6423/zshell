@@ -108,6 +108,9 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         previewText.font = .systemFont(ofSize: 12)
         previewText.isVerticallyResizable = true
         previewText.isHorizontallyResizable = false
+        previewText.frame = NSRect(x: 0, y: 0, width: 660, height: 300)
+        previewText.minSize = NSSize(width: 0, height: 0)
+        previewText.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         previewText.autoresizingMask = [.width]
         previewText.textContainer?.widthTracksTextView = true
         previewText.textContainerInset = NSSize(width: 8, height: 8)

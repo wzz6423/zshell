@@ -94,6 +94,7 @@ final class BrowserImportedHistoryController: NSObject, NSWindowDelegate, NSTabl
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("page"))
         column.resizingMask = .autoresizingMask
         table.addTableColumn(column)
+        table.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
         let scroll = NSScrollView()
         scroll.documentView = table
         scroll.hasVerticalScroller = true
