@@ -24,6 +24,8 @@ Todo lo que se ejecuta bajo el shell de la sesión, con su PID, porcentaje de CP
 
 Se omiten los procesos hijos que ya han terminado pero aún esperan a que se recoja su estado (`<defunct>`): ya no hay nada que consultar ni finalizar.
 
+En una sesión remota compartida, la lista viene del zshell-server del host y se actualiza cada pocos segundos. Esas filas solo ofrecen **Copiar PID** / **Copiar ruta del ejecutable**; los terminales SSH simples no tienen lista, porque localmente solo se ejecuta el cliente `ssh`.
+
 ## Puertos [#ports]
 
 Los puertos TCP en los que escuchan esos procesos, junto con el proceso al que pertenece cada uno. Útil para las preguntas de cada día: *qué puerto ha elegido esta vez el servidor de desarrollo* y *qué sigue ocupando el 3000*.

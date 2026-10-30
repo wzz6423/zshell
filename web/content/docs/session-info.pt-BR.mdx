@@ -24,6 +24,8 @@ Tudo o que roda sob o shell da sessão aparece com PID, porcentagem de CPU e mem
 
 Processos filhos já encerrados que aguardam coleta (`<defunct>`) são omitidos: não há nada para examinar ou encerrar neles.
 
+Em uma sessão remota compartilhada, a lista vem do zshell-server do host e é atualizada a cada poucos segundos. Essas linhas oferecem apenas **Copiar PID** / **Copiar Caminho do Executável**; terminais SSH simples não têm lista, pois localmente só roda o cliente `ssh`.
+
 ## Portas [#ports]
 
 O painel mostra todas as portas TCP em que esses processos escutam, junto do processo responsável. Isso responde a perguntas comuns como *qual porta o servidor de desenvolvimento escolheu* e *o que ainda está ocupando a 3000*.
