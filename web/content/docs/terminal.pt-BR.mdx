@@ -16,6 +16,14 @@ Escolha em **Ajustes → Terminal → Backend**:
 
 Ambos suportam aceleração por GPU, imagens, o catálogo compartilhado de temas, busca, eventos de mouse, notificações e relatórios de progresso. Trocar o backend só afeta terminais novos; painéis existentes mantêm o emulador inicial.
 
+## Histórico de comandos [#command-history]
+
+Escolha **Terminal → Histórico de comandos…** para buscar comandos executados no Zshell por texto ou diretório. Cada linha mostra o diretório original, o horário de início, a duração e o status de saída. Clique na linha ou em **Mostrar saída** para voltar ao painel e à saída originais. Se o painel estiver fechado ou a saída apagada, a navegação fica indisponível; **Copiar comando** continua funcionando.
+
+**Inserir no terminal** preenche o prompt zsh vazio do painel original sem executar o comando; pressione Return quando estiver pronto. A ação fica desativada quando o painel está ocupado ou contém um rascunho. Comandos com várias linhas são preservados. A lista usa a integração de blocos de comandos do Ghostty e Alacritty; shells incompatíveis ou aninhados podem não aparecer.
+
+O histórico é salvo localmente em segundo plano, limitado a 2.000 comandos e 8 MiB. **Excluir** remove o registro selecionado; **Limpar histórico…** remove a lista salva. A saída do terminal e o histórico próprio do shell são mantidos.
+
 ## Seu shell, sem alterações [#your-shell-unchanged]
 
 Cada sessão inicia o shell de login da conta. Prompt, aliases, funções e dotfiles carregam como em qualquer terminal. O Zshell acrescenta variáveis de capacidade e identidade:

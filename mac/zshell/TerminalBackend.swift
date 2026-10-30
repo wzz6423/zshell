@@ -192,6 +192,13 @@ protocol TerminalBackendSurface: NSView {
     /// Whether anything is selected in the grid.
     var hasSelection: Bool { get }
 
+    var commandRecords: [TerminalCommandRecord] { get }
+    func commandRegion(at location: TerminalCommandOutputLocation) -> TerminalCommandRegion?
+    func commandText(at location: TerminalCommandOutputLocation, part: TerminalCommandTextPart) -> String?
+    @discardableResult func revealCommand(at location: TerminalCommandOutputLocation) -> Bool
+    @discardableResult func selectCommand(at location: TerminalCommandOutputLocation) -> Bool
+    func commandLocation(for event: NSEvent?) -> TerminalCommandOutputLocation?
+
     /// Whether this pane draws. Parked panes stay attached so PTY events keep
     /// draining, but should release renderer memory while nothing composites
     /// them.
@@ -211,6 +218,9 @@ protocol TerminalBackendSurface: NSView {
     func detach()
 
     func sendText(_ text: String)
+
+    /// Let each backend apply its existing bracketed-paste encoding once.
+    func sendPaste(_ text: String)
 
     /// Submits the current terminal input as a Return key rather than pasted text.
     func sendEnter()
@@ -357,6 +367,7 @@ protocol TerminalBackendEvents: AnyObject {
     func terminalDidChangeCellSize(_ size: CGSize)
     func terminalDidRingBell()
     func terminalDidReportShellIntegration(_ event: TerminalShellIntegrationEvent)
+    func terminalDidUpdateCommandRecords(_ records: [TerminalCommandRecord])
 
     /// The child process is gone, or is about to be. `processAlive` is false
     /// when the backend has already reaped it.
@@ -381,6 +392,7 @@ protocol TerminalBackendEvents: AnyObject {
 }
 
 extension TerminalBackendEvents {
+    func terminalDidUpdateCommandRecords(_ records: [TerminalCommandRecord]) {}
     func terminalDidResignFocus() {}
     func terminalHandleUserPaste(_ pasteboard: NSPasteboard, paste: @escaping (String) -> Void) -> Bool { false }
 }

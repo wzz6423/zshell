@@ -16,6 +16,14 @@ Chọn ở **Cài đặt → Terminal → Backend**:
 
 Cả hai hỗ trợ tăng tốc GPU, kết xuất ảnh, bộ chủ đề chung của Zshell, tìm kiếm, báo cáo chuột, thông báo và báo tiến độ. Đổi backend chỉ tác động terminal mới; ô hiện tại giữ backend lúc bắt đầu.
 
+## Lịch sử lệnh [#command-history]
+
+Chọn **Terminal → Lịch sử lệnh…** để tìm các lệnh đã chạy trong Zshell theo nội dung hoặc thư mục. Mỗi dòng hiển thị thư mục ban đầu, thời gian bắt đầu, thời lượng và trạng thái thoát. Nhấp vào dòng hoặc **Hiện đầu ra** để quay lại ngăn và đầu ra ban đầu. Nếu ngăn đã đóng hoặc đầu ra đã bị xóa, không thể điều hướng; bạn vẫn có thể **Sao chép lệnh**.
+
+**Chèn vào terminal** điền lệnh vào dấu nhắc zsh trống ở ngăn ban đầu mà không chạy; nhấn Return khi sẵn sàng. Không thể chèn khi ngăn đang bận hoặc đã có bản nháp. Lệnh nhiều dòng được giữ nguyên. Danh sách dùng tích hợp khối lệnh của Ghostty và Alacritty; lệnh trong shell không được hỗ trợ hoặc lồng nhau có thể không xuất hiện.
+
+Lịch sử được lưu cục bộ ở nền, tối đa 2.000 lệnh và 8 MiB. **Xóa** bỏ bản ghi đã chọn; **Xóa lịch sử…** bỏ danh sách đã lưu. Đầu ra terminal và lịch sử riêng của shell được giữ lại.
+
 ## Shell của bạn không đổi [#your-shell-unchanged]
 
 Mỗi phiên mở shell đăng nhập của tài khoản, nên dấu nhắc, alias, hàm và dotfile nạp như trong terminal khác. Zshell thêm biến nhận diện và khả năng:

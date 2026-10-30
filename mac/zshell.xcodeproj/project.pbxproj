@@ -200,6 +200,7 @@
 			isa = PBXShellScriptBuildPhase;
 			inputFileListPaths = (
 				"$(SRCROOT)/scripts/terminal-completions.xcfilelist",
+				"$(SRCROOT)/Vendor/alacritty-bridge/vendored-inputs.xcfilelist",
 			);
 			inputPaths = (
 				"$(SRCROOT)/../remote/Cargo.toml",
@@ -245,6 +246,9 @@
 		};
 		AA40000000000000000000A0 /* Build Alacritty bridge */ = {
 			isa = PBXShellScriptBuildPhase;
+			inputFileListPaths = (
+				"$(SRCROOT)/Vendor/alacritty-bridge/vendored-inputs.xcfilelist",
+			);
 			inputPaths = (
 				"$(SRCROOT)/Vendor/alacritty-bridge/Cargo.lock",
 				"$(SRCROOT)/Vendor/alacritty-bridge/Cargo.toml",
