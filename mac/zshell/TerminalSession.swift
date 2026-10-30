@@ -39,6 +39,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     var agentConversationHistoryID: UUID?
     var agentConversationResumeDeadline: Date?
     var agentConversationForkSource: AgentConversationIdentity?
+    /// The native fork's provider process once observed. Its exit without a
+    /// confirmed identity retires `agentConversationForkSource`.
+    var agentConversationForkProcess: ZshellAgentProcessIdentity?
     var onAgentConversationChanged: ((TerminalSession, AgentConversationIdentity?) -> Void)?
 
     /// The emulator driving this session. Fixed for the session's lifetime —
@@ -222,7 +225,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             startupCommandForTemplate = isRestoredSession ? nil : remoteConnection.command
             initializationCommandForTemplate = isRestoredSession ? nil : remoteConnection.initializationCommand
         } else {
-            startupCommandForTemplate = agentResume == nil && remotePasteTarget == nil
+            startupCommandForTemplate = agentResume == nil && agentFork == nil && remotePasteTarget == nil
                 && !isRestoredSession ? directCommand : nil
             initializationCommandForTemplate = directCommand == nil && !isRestoredSession
                 ? launchSettings.initializationCommand : nil
@@ -274,8 +277,15 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     @discardableResult
     func recordAgentConversation(_ identity: AgentConversationIdentity?, processID: pid_t?) -> Bool {
         if let source = agentConversationForkSource, let identity {
-            guard source.acceptsFork(identity) else { return false }
+            guard source.acceptsFork(identity) else {
+                // A provider is alive while it reports, so its exit is observable.
+                if agentConversationForkProcess == nil {
+                    agentConversationForkProcess = processID.flatMap(ZshellAgentProcessIdentity.init(pid:))
+                }
+                return false
+            }
             agentConversationForkSource = nil
+            agentConversationForkProcess = nil
         }
         agentConversationProcessID = processID
         agentConversationOwner = processID.flatMap(ZshellAgentProcessIdentity.init(pid:))
@@ -762,15 +772,22 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                 let invocation = "/usr/bin/env \(unset) -- \(environment) \(argv)"
                 // Keep failed native forks visible; a failed CLI must not close
                 // the new pane or make it look like the source was resumed.
+                // The wrapper outlives the provider, so job control makes the
+                // provider the terminal's foreground process group: pane state
+                // reads the agent, and ^C stops only the agent. TSTP stays
+                // ignored because nothing can resume a stopped agent here.
                 let run = conversationFork
-                    ? "\(invocation); result=$?; if [ \"$result\" -ne 0 ]; then printf '%s\\n' \(shellQuote(resumeFailure)) >&2; fi; exec \(shellQuote(resumeShell)) -l"
+                    ? "set -m; trap '' TSTP; \(invocation); result=$?; trap - TSTP; set +m; if [ \"$result\" -ne 0 ]; then printf '%s\\n' \(shellQuote(resumeFailure)) >&2; fi; exec \(shellQuote(resumeShell)) -l"
                     : "exec \(invocation)"
                 let restore = "if command -v \(shellQuote(commandArguments[0])) >/dev/null 2>&1 "
                     + "&& cd \(shellQuote(resumeLaunch.workingDirectory)); then "
                     + "\(run); else \(fallback); fi"
                 commands.append("if [ -n \"$ZSHELL_ORIGINAL_ZDOTDIR\" ]; then export ZDOTDIR=\"$ZSHELL_ORIGINAL_ZDOTDIR\"; fi")
                 commands.append("unset ZSHELL_INIT_COMMAND")
-                commands.append("exec \(shellQuote(resumeShell)) -l -i -c \(shellQuote("exec /bin/sh -c \(shellQuote(restore))"))")
+                // /bin/sh may be zsh, which never hands its `set -m` job the
+                // terminal, or dash, which dies with the agent on ^C.
+                let wrapper = conversationFork ? "/bin/bash" : "/bin/sh"
+                commands.append("exec \(shellQuote(resumeShell)) -l -i -c \(shellQuote("exec \(wrapper) -c \(shellQuote(restore))"))")
             } else {
                 commands.append("exec /usr/bin/env -- \(argv)")
             }

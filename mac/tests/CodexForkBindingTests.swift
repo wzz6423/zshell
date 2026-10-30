@@ -32,18 +32,10 @@ enum CodexTitleConfiguration {
         switch pid {
         case 10, 11: .init(parentPID: 1, groupID: pid, provider: nil)
         case 20: .init(parentPID: 10, groupID: 20, provider: .codex)
-        // The fork's /bin/sh wrapper (11) stays the job leader around Codex.
-        case 30: .init(parentPID: 11, groupID: 11, provider: .codex)
+        case 30: .init(parentPID: 11, groupID: 30, provider: .codex)
         case 40: .init(parentPID: 1, groupID: 40, provider: .codex, isSharedService: true)
         case 50: .init(parentPID: 40, groupID: 40, provider: nil)
         default: nil
-        }
-    }
-    nonisolated static func conversationChildPIDs(_ pid: pid_t) -> [pid_t] {
-        switch pid {
-        case 10: [20]
-        case 11: [30]
-        default: []
         }
     }
     var hasExited = false
@@ -52,6 +44,7 @@ enum CodexTitleConfiguration {
     var surface: Surface
     var agentResume: AgentConversationIdentity?
     var agentConversationForkSource: AgentConversationIdentity?
+    var agentConversationForkProcess: ZshellAgentProcessIdentity?
     var agentConversationProcessID: pid_t?
     var agentConversationOwner: ZshellAgentProcessIdentity?
     var agentConversationResumeDeadline: Date?
@@ -91,7 +84,7 @@ struct CodexForkBindingTests {
         let forked = AgentConversationIdentity(provider: .codex, sessionID: UUID().uuidString,
             workingDirectory: directory, configDirectory: directory)!
         let source = TerminalSession(shell: 10, foreground: 20)
-        let fork = TerminalSession(shell: 11, foreground: 11)
+        let fork = TerminalSession(shell: 11, foreground: 30)
         fork.agentConversationForkSource = original
         TerminalManager.automationManagers = [TerminalManager(sessions: [source, fork])]
         var sourceObservations = 0, forkObservations = 0
@@ -110,7 +103,7 @@ struct CodexForkBindingTests {
         _ = CodexDaemonBinding.titleChanged(in: fork, title: forked.sessionID)
         precondition(CodexDaemonBinding.accept(.init(identity: forked, reporterPID: 50, source: nil), peerPID: 50))
         precondition(fork.agentResume == forked && fork.agentConversationOwner?.pid == 30
-                     && fork.agentConversationForkSource == nil && forkObservations == 1)
+                     && fork.agentConversationForkSource == nil && fork.agentConversationForkProcess == nil && forkObservations == 1)
         precondition(source.agentResume == original && source.agentConversationOwner?.pid == 20 && sourceObservations == 1)
         print("PASS shared Codex fork confirms an independent identity without modifying its source")
     }

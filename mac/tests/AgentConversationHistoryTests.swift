@@ -503,6 +503,14 @@ struct AgentConversationHistoryTests {
             : provider == .pi ? ["--fork", sessionFile.path] : ["--session", record.identity.sessionID, "--fork"]
         try check(launched["argv"] as? [String] == expected && record.identity.acceptsFork(forked.identity),
                   "\(provider.rawValue) native argv produces an independent provider identity")
+        let launchedPID = (launched["pid"] as? Int).map(pid_t.init)
+        try check(launchedPID != nil && launched["pgid"] as? Int == launched["pid"] as? Int
+                  && newSession.surface.foregroundPid == launchedPID
+                  && ZshellAgentKind(rawValue: provider.rawValue).map(newSession.isAutomationAgentRunning(kind:)) == true
+                  && !newSession.isShellAvailableForAutomation,
+                  "\(provider.rawValue) native fork runs as the pane's foreground job")
+        try check(newSession.startupCommandForTemplate == nil,
+                  "\(provider.rawValue) fork argv is not captured as a template startup command")
         try check(forked.id != record.id && forked.terminalID == newSession.id && project.selectedTabID == previousTab,
                   "\(provider.rawValue) fork records a distinct background pane without stealing focus")
         try check(store.record(id: record.id) == original && source.agentConversationProcessID == sourcePID && kill(sourcePID, 0) == 0,
@@ -573,6 +581,12 @@ struct AgentConversationHistoryTests {
             try check(pendingSession.agentResume == nil && pendingSession.agentConversationHistoryID == nil
                       && store.record(id: record.id) == original && kill(sourcePID, 0) == 0,
                       "an unconfirmed fork keeps a separate pane without rebinding source history")
+            try Data().write(to: fixtureRoot.appendingPathComponent("stop-\(pendingSession.id)"))
+            try wait("an unconfirmed fork's exit retires its source restriction") {
+                pendingSession.refreshAgentConversationHistory()
+                return pendingSession.agentConversationForkSource == nil
+            }
+            try check(!pendingSession.hasExited, "an exited unconfirmed fork leaves its fallback shell")
             project.closeContent(.session(pendingSession))
             project.launchSettings.environmentVariables.removeAll { $0.name == "HISTORY_TEST_NO_FORK_HOOK" }
 

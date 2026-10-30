@@ -103,41 +103,6 @@ nonisolated enum AgentConversationBinding {
         )
     }
 
-    /// A native fork keeps its `/bin/sh` wrapper as the job leader so a failed
-    /// CLI can report and fall back to a shell. The agent is then a child in
-    /// the wrapper's job instead of the foreground leader itself.
-    static func foregroundAgentPID(
-        shellPID: Int32,
-        foregroundPID: Int32,
-        provider: AgentConversationIdentity.Provider,
-        children: (Int32) -> [Int32],
-        process: (Int32) -> ProcessEvidence?
-    ) -> Int32? {
-        if let root = rootAgentPID(
-            reporterPID: foregroundPID, shellPID: shellPID, foregroundPID: foregroundPID,
-            provider: provider, process: process
-        ) { return root }
-        guard foregroundPID == shellPID else { return nil }
-        let roots = children(shellPID).compactMap { child -> Int32? in
-            guard process(child)?.groupID == foregroundPID else { return nil }
-            return rootAgentPID(
-                reporterPID: child, shellPID: shellPID, foregroundPID: foregroundPID,
-                provider: provider, process: process
-            )
-        }
-        return roots.count == 1 ? roots[0] : nil
-    }
-
-    static func childPIDs(_ pid: pid_t) -> [pid_t] {
-        guard pid > 1 else { return [] }
-        var buffer = [pid_t](repeating: 0, count: 64)
-        let count = buffer.withUnsafeMutableBytes {
-            proc_listchildpids(pid, $0.baseAddress, Int32($0.count))
-        }
-        guard count > 0 else { return [] }
-        return Array(buffer.prefix(Int(min(count, Int32(buffer.count)))))
-    }
-
     static func parentPID(_ pid: pid_t) -> pid_t? {
         guard pid > 1 else { return nil }
         var info = proc_bsdinfo()

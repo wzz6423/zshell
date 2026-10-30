@@ -4,6 +4,16 @@ import Foundation
 extension TerminalSession {
     func refreshAgentConversationHistory() {
         guard remoteConnection == nil else { return }
+        if let source = agentConversationForkSource {
+            // The fork wrapper falls back to a shell; once the unconfirmed
+            // fork exits, another provider here must record its own history.
+            if let fork = agentConversationForkProcess {
+                if !fork.isAlive { agentConversationForkSource = nil; agentConversationForkProcess = nil }
+            } else if ZshellAgentKind(rawValue: source.provider.rawValue).map(isAutomationAgentRunning(kind:)) == true,
+                      let foreground = surface.foregroundPid {
+                agentConversationForkProcess = ZshellAgentProcessIdentity(pid: foreground)
+            }
+        }
         if let owner = agentConversationOwner, !owner.isAlive {
             recordAgentConversation(nil, processID: nil)
         } else if let deadline = agentConversationResumeDeadline,
@@ -98,10 +108,6 @@ extension TerminalSession {
         let arguments = processArguments(pid: pid) ?? []
         let operands = arguments.dropFirst().prefix { $0 != "--" }
         return operands.contains("attach")
-    }
-
-    static func conversationChildPIDs(_ pid: pid_t) -> [pid_t] {
-        AgentConversationBinding.childPIDs(pid)
     }
 
     static func conversationProcessEvidence(_ pid: pid_t) -> AgentConversationBinding.ProcessEvidence? {
