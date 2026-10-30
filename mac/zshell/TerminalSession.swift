@@ -33,7 +33,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// Recognized coding agent occupying this terminal, if any. The monitor
     /// reconciles foreground process identity with explicit lifecycle events.
     @Published var agentStatus: ZshellAgentStatus? {
-        didSet { ZshellAutomationEventHub.shared.agentChanged(in: self, previous: oldValue) }
+        didSet {
+            ZshellAutomationEventHub.shared.agentChanged(in: self, previous: oldValue)
+            TerminalNotificationService.shared.agentChanged(in: self, previous: oldValue)
+        }
     }
     @Published private(set) var agentResume: AgentConversationIdentity?
     @Published var worktree: SessionWorktree?
@@ -293,6 +296,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         remoteObservation = remoteConnection?.$status.sink { [weak self, weak remoteConnection] status in
             self?.remoteStatus = status
             self?.acceptRemoteAgentStatus(status)
+            if let self { TerminalNotificationService.shared.remoteChanged(in: self, status: status) }
             self?.refreshTerminalProfile()
             if status.state != .connected || status.activeClientID != remoteConnection?.clientID.uuidString.lowercased() {
                 self?.cancelClipboardPaste()
@@ -443,6 +447,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// close signal they received before the backend migration.
     func terminate() {
         guard !isTerminating, !hasExited || persistentPTY != nil else { return }
+        TerminalNotificationService.shared.terminalClosed(self)
         isTerminating = true
         remoteConnection?.stopMonitoring()
         persistentPTY?.terminate()
@@ -497,6 +502,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// or been force-stopped. Detaching first can make a backend wait
     /// synchronously for a process that ignored SIGHUP.
     private func beginTeardown(processAlive: Bool, notifyExit: Bool) {
+        TerminalNotificationService.shared.terminalClosed(self)
         terminalProfileObservation = nil
         surface.splitTarget.profileMenuTarget.session = nil
         cancelClipboardPaste()
@@ -1117,12 +1123,16 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             _zshell_notify_on_error=\(AppSettings.shared.notifyOnError ? 1 : 0)
             _zshell_notify_stamp=0
             _zshell_notify_word=''
+            _zshell_notify_id='\(UUID().uuidString)'
+            _zshell_notify_sequence=0
             zmodload -i zsh/datetime 2>/dev/null
             if (( $+EPOCHSECONDS )); then
               _zshell_notify_preexec() {
                 local _zshell_notify_prev=$?
                 _zshell_notify_stamp=$EPOCHSECONDS
-                _zshell_notify_word=${${=1}[1]}
+                local -a _zshell_notify_words
+                _zshell_notify_words=(${(z)1})
+                _zshell_notify_word=${_zshell_notify_words[1]}
                 return $_zshell_notify_prev
               }
               # Runs ahead of every other precmd hook: prompt frameworks
@@ -1155,7 +1165,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                     if [[ -n $_zshell_notify_name ]]; then
                       local _zshell_notify_outcome=finished
                       (( _zshell_notify_status != 0 )) && _zshell_notify_outcome=failed
-                      printf '\\e]777;notify;%s;%s\\e\\\\' "$_zshell_notify_name $_zshell_notify_outcome" "$_zshell_notify_name $_zshell_notify_outcome — ${_zshell_notify_elapsed}s, exit $_zshell_notify_status"
+                      local _zshell_notify_message="$_zshell_notify_name $_zshell_notify_outcome — ${_zshell_notify_elapsed}s, exit $_zshell_notify_status"
+                      (( ++_zshell_notify_sequence ))
+                      # Both backends forward this typed title alongside the
+                      # body; each result stays paired with its own message.
+                      printf '\\e]777;notify;zshell-command:%s:%s:%s;%s\\e\\\\' "$_zshell_notify_id" "$_zshell_notify_sequence" "$_zshell_notify_status" "$_zshell_notify_message"
                     fi
                   fi
                 fi
@@ -1315,8 +1329,9 @@ extension TerminalSession: TerminalBackendEvents {
         let windowMiniaturized = surface.window?.isMiniaturized == true
         guard !surface.hasEffectiveTerminalFocus || windowMiniaturized else { return }
         TerminalNotificationService.shared.post(
-            message: remoteNotification(announcement),
-            sessionID: id
+            message: announcement,
+            sessionID: id,
+            kind: .bell
         )
         if !NSApp.isActive || windowMiniaturized {
             NSApp.requestUserAttention(.informationalRequest)
@@ -1364,6 +1379,7 @@ extension TerminalSession: TerminalBackendEvents {
 
     func terminalDidClose(processAlive: Bool) {
         guard !isTerminating else { return }
+        TerminalNotificationService.shared.terminalClosed(self)
         if remoteConnection != nil {
             Task { @MainActor [self] in
                 await Task.yield()
@@ -1401,11 +1417,11 @@ extension TerminalSession: TerminalBackendEvents {
         guard !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return
         }
-        TerminalNotificationService.shared.post(message: remoteNotification(message), sessionID: id)
-    }
-
-    private func remoteNotification(_ message: String) -> String {
-        remoteConnection.map { "\($0.host.name): \(message)" } ?? message
+        let result = TerminalCommandNotificationResult.parse(title: title)
+        TerminalNotificationService.shared.post(message: message, sessionID: id,
+            kind: result == nil ? .terminal : .command,
+            eventKey: result.map { "command:\($0.id):\($0.sequence)" },
+            isFailure: result.map { $0.exitCode != 0 } ?? false)
     }
 
     func terminalDidRequestOpenURL(_ value: String) {

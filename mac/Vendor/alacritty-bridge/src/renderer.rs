@@ -216,7 +216,7 @@ fn configured_cursor_style(shape: u8, blinking: bool) -> CursorStyle {
 enum OscEvent {
     WorkingDirectory(String),
     Progress { state: u8, percent: Option<u8> },
-    Notification(String),
+    Notification { title: String, body: String },
     ShellPromptStart,
     ShellCommandStart,
     ShellCommandExecuting,
@@ -374,7 +374,10 @@ impl OscInterceptor {
                 .map(OscEvent::WorkingDirectory);
         }
 
-        clean_terminal_text(rest, 4096).map(OscEvent::Notification)
+        clean_terminal_text(rest, 4096).map(|body| OscEvent::Notification {
+            title: String::new(),
+            body,
+        })
     }
 }
 
@@ -573,12 +576,19 @@ fn parse_progress(value: &str) -> Option<OscEvent> {
 }
 
 /// Rxvt/VTE/Ghostty desktop notifications use
-/// `OSC 777 ; notify ; title ; body ST`. Zshell presents its own app title, so
-/// prefer the body and fall back to the protocol title when no body is sent.
+/// `OSC 777 ; notify ; title ; body ST`. Keep both fields together: the
+/// original shell uses a typed title to attach command exit metadata.
 fn parse_osc777_notification(value: &str) -> Option<OscEvent> {
     let (title, body) = value.split_once(';').unwrap_or((value, ""));
-    let message = if body.is_empty() { title } else { body };
-    clean_terminal_text(message, 4096).map(OscEvent::Notification)
+    if body.is_empty() {
+        return clean_terminal_text(title, 4096).map(|title| OscEvent::Notification {
+            title,
+            body: String::new(),
+        });
+    }
+    let body = clean_terminal_text(body, 4096)?;
+    let title = clean_terminal_text(title, 512).unwrap_or_default();
+    Some(OscEvent::Notification { title, body })
 }
 
 /// FinalTerm semantic prompt markers, also emitted by modern shell
@@ -736,8 +746,13 @@ impl Proxy {
                 ZSHELL_EVENT_PROGRESS,
                 &[state, percent.unwrap_or(0), u8::from(percent.is_some())],
             ),
-            OscEvent::Notification(message) => {
-                self.emit(ZSHELL_EVENT_NOTIFICATION, message.as_bytes())
+            OscEvent::Notification { title, body } => {
+                // OSC text rejects NUL, so one separator preserves the pair
+                // without exposing an emulator-specific payload to sessions.
+                let mut payload = title.into_bytes();
+                payload.push(0);
+                payload.extend_from_slice(body.as_bytes());
+                self.emit(ZSHELL_EVENT_NOTIFICATION, &payload)
             }
             OscEvent::ShellPromptStart => {}
             OscEvent::ShellCommandStart => {}
@@ -2381,8 +2396,14 @@ mod tests {
                     state: 1,
                     percent: Some(100),
                 },
-                OscEvent::Notification("Build complete".to_owned()),
-                OscEvent::Notification("Turn complete".to_owned()),
+                OscEvent::Notification {
+                    title: String::new(),
+                    body: "Build complete".to_owned(),
+                },
+                OscEvent::Notification {
+                    title: "Grok".to_owned(),
+                    body: "Turn complete".to_owned(),
+                },
                 OscEvent::ShellPromptStart,
                 OscEvent::ShellCommandStart,
                 OscEvent::ShellCommandExecuting,
@@ -2404,8 +2425,42 @@ mod tests {
         assert_eq!(
             events,
             vec![
-                OscEvent::Notification("Approval required".to_owned()),
-                OscEvent::Notification("Task complete".to_owned()),
+                OscEvent::Notification {
+                    title: "Grok".to_owned(),
+                    body: "Approval required".to_owned(),
+                },
+                OscEvent::Notification {
+                    title: "Task complete".to_owned(),
+                    body: String::new(),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn command_notification_metadata_stays_paired_with_its_body_across_reads() {
+        let mut interceptor = OscInterceptor::default();
+        let input = concat!(
+            "\x1b]777;notify;zshell-command:abc:1:0;first finished; with detail\x1b\\",
+            "\x1b]777;notify;zshell-command:abc:2:7;second failed\x07",
+        );
+        let mut events = Vec::new();
+        for byte in input.bytes() {
+            let (output, current) = intercept(&mut interceptor, &[byte]);
+            assert!(output.is_empty());
+            events.extend(current);
+        }
+        assert_eq!(
+            events,
+            vec![
+                OscEvent::Notification {
+                    title: "zshell-command:abc:1:0".into(),
+                    body: "first finished; with detail".into(),
+                },
+                OscEvent::Notification {
+                    title: "zshell-command:abc:2:7".into(),
+                    body: "second failed".into(),
+                },
             ]
         );
     }
