@@ -27,6 +27,9 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
     private var generation = 0
     private var isScanning = false
     private var isNavigating = false
+    // Bumped whenever a navigation is abandoned, so a late reveal from an
+    // earlier activation can neither close the panel nor leave isNavigating set.
+    private var navigation = 0
     private weak var navigatingSession: TerminalSession?
 
     private struct Source {
@@ -82,18 +85,17 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
     func close(ifOwnedBy manager: TerminalManager? = nil) {
         if let manager, self.manager !== manager { return }
         generation += 1
-        navigatingSession?.find.cancelLogReveal()
-        navigatingSession = nil
+        cancelNavigation()
         reselect = nil
         cancellation.cancel()
         debounce?.cancel()
+        debounce = nil
         timer?.invalidate()
         timer = nil
         if let panel { hostWindow?.removeChildWindow(panel); panel.orderOut(nil) }
         self.manager = nil
         hostWindow = nil
         isScanning = false
-        isNavigating = false
         cache.removeAll()
         rows.removeAll()
         scannedRevisions.removeAll()
@@ -178,8 +180,17 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
         }
     }
 
+    private func cancelNavigation() {
+        navigation += 1
+        isNavigating = false
+        navigatingSession?.find.cancelLogReveal()
+        navigatingSession = nil
+    }
+
     private func beginSearch() {
         generation += 1
+        // The rows a pending navigation came from are about to be replaced.
+        cancelNavigation()
         cancellation.cancel()
         cancellation = WorkspaceLogCancellation()
         rows.removeAll()
@@ -273,13 +284,14 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
             beginSearch(); return
         }
         let query = searchField.stringValue
+        cancelNavigation()
         isNavigating = true
         navigatingSession = session
         manager.revealSession(session)
         status.stringValue = String(localized: "Searching…")
-        let currentGeneration = generation
+        let currentNavigation = navigation
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self, weak session] in
-            guard let self, self.generation == currentGeneration else { return }
+            guard let self, self.navigation == currentNavigation else { return }
             guard let session, self.manager?.projects.flatMap(\.sessions).contains(where: { $0 === session }) == true,
                   let capture = TerminalHistorySerializer.takeLogCapture(from: session.surface) else {
                 self.isNavigating = false
@@ -289,14 +301,15 @@ final class WorkspaceLogSearchController: NSObject, NSWindowDelegate {
             self.worker.async { [weak self, weak session] in
                 let fingerprint = capture.read().map(WorkspaceLogSearchIndex.fingerprint)
                 DispatchQueue.main.async { [weak self, weak session] in
-                    guard let self, let session, self.generation == currentGeneration else { return }
+                    guard let self, self.navigation == currentNavigation else { return }
+                    guard let session else { self.isNavigating = false; return }
                     guard fingerprint == row.fingerprint else {
                         self.isNavigating = false
                         self.beginSearch()
                         return
                     }
                     session.find.revealLogMatch(needle: query, occurrence: row.occurrence, total: row.total) { [weak self, weak session] success in
-                        guard let self, self.generation == currentGeneration else { return }
+                        guard let self, self.navigation == currentNavigation else { return }
                         self.isNavigating = false
                         self.navigatingSession = nil
                         if success {
@@ -318,12 +331,13 @@ extension WorkspaceLogSearchController: NSSearchFieldDelegate, NSTableViewDataSo
     func controlTextDidChange(_ notification: Notification) {
         generation += 1
         cancellation.cancel()
-        isNavigating = false
-        navigatingSession?.find.cancelLogReveal()
-        navigatingSession = nil
+        cancelNavigation()
         reselect = nil
         debounce?.cancel()
-        let work = DispatchWorkItem { [weak self] in self?.beginSearch() }
+        let work = DispatchWorkItem { [weak self] in
+            self?.debounce = nil
+            self?.beginSearch()
+        }
         debounce = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: work)
     }
@@ -332,6 +346,14 @@ extension WorkspaceLogSearchController: NSSearchFieldDelegate, NSTableViewDataSo
         switch command {
         case #selector(NSResponder.cancelOperation(_:)): close(); return true
         case #selector(NSResponder.insertNewline(_:)):
+            // The rows still belong to the previous query until the debounced
+            // search runs; search now instead of opening a stale result.
+            if let pending = debounce {
+                pending.cancel()
+                debounce = nil
+                beginSearch()
+                return true
+            }
             if table.selectedRow < 0, !rows.isEmpty { table.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false) }
             openSelection(nil)
             return true
