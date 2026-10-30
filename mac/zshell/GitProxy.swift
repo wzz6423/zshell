@@ -34,6 +34,7 @@ nonisolated enum GitProxy {
               let scheme = components.scheme?.lowercased(),
               ["http", "https", "socks5", "socks5h"].contains(scheme),
               let host = components.host, !host.isEmpty,
+              components.port.map({ (1...65535).contains($0) }) ?? true,
               components.query == nil, components.fragment == nil,
               !value.unicodeScalars.contains(where: { CharacterSet.whitespacesAndNewlines.contains($0)
                   || CharacterSet.controlCharacters.contains($0) })

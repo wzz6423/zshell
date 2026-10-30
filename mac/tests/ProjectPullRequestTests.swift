@@ -73,11 +73,13 @@ private func gitProxy(_ environment: [String: String], in directory: String) -> 
 
 private func checkGitProxy(_ repo: String) {
     let base = ["PATH": "/usr/bin:/bin", "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null"]
-    for valid in ["http://127.0.0.1:7897", " socks5h://user:pass@proxy.example:1080 ", "https://[::1]:8443"] {
+    for valid in ["http://127.0.0.1:7897", " socks5h://user:pass@proxy.example:1080 ", "https://[::1]:8443",
+                  "http://proxy.example", "socks5://proxy.example:1", "https://proxy.example:65535"] {
         require(GitProxy.normalized(valid) == valid.trimmingCharacters(in: .whitespaces), "valid proxy \(valid)")
     }
     for invalid in ["", "127.0.0.1:7897", "ftp://127.0.0.1:21", "http://", "http://a b:1", "http://h:1/?x=1", "http://h\n:1",
-                    "socks4://127.0.0.1:1080", "SOCKS4A://127.0.0.1:1080"] {
+                    "socks4://127.0.0.1:1080", "SOCKS4A://127.0.0.1:1080", "http://127.0.0.1:0",
+                    "http://127.0.0.1:65536", "https://[::1]:99999"] {
         require(GitProxy.normalized(invalid) == nil, "invalid proxy \(invalid.debugDescription)")
     }
     require(GitProxy.defaultEnabled == false && GitProxy.defaultAddress == "http://127.0.0.1:7897", "proxy defaults")
