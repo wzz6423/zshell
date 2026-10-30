@@ -378,7 +378,7 @@ impl Daemon {
             Err(error) => {
                 // The new session never existed: give the exited ones their slots back.
                 for (id, session) in evicted {
-                    if sessions.contains_key(&id) { session.terminate(); } else { sessions.insert(id, session); }
+                    if sessions.contains_key(&id) { session.terminate(); } else { session.restore_eviction(); sessions.insert(id, session); }
                 }
                 return Err(error);
             }
@@ -390,6 +390,10 @@ impl Daemon {
         }
         let info = session.info();
         sessions.insert(info.session_id.clone(), session);
+        // Its first Codex title may have been read before it was listed here.
+        let snapshot: Vec<_> = sessions.values().cloned().collect();
+        drop(sessions);
+        self.bindings.reconcile(&snapshot);
         Ok(json!(info))
     }
 
@@ -435,15 +439,17 @@ impl Daemon {
 // is needed: the oldest one that no client is viewing makes room first. The
 // evicted sessions are returned so a failed spawn can restore them.
 fn make_room(sessions: &mut HashMap<String, Arc<Session>>, starting: usize) -> Option<Vec<(String, Arc<Session>)>> {
-    let mut evicted = Vec::new();
+    let mut evicted: Vec<(String, Arc<Session>)> = Vec::new();
     while sessions.len() + starting > MAX_SESSIONS {
-        let Some(id) = sessions
+        let mut candidates: Vec<_> = sessions
             .values()
             .map(|session| session.info())
             .filter(|info| !info.running && info.client_count == 0)
-            .min_by(|first, second| first.started_at.total_cmp(&second.started_at))
-            .map(|info| info.session_id)
-        else {
+            .collect();
+        candidates.sort_by(|first, second| first.started_at.total_cmp(&second.started_at));
+        // An attach may register a client after the snapshot; try_evict rechecks.
+        let Some(id) = candidates.into_iter().map(|info| info.session_id).find(|id| sessions[id].try_evict()) else {
+            for (_, session) in &evicted { session.restore_eviction(); }
             sessions.extend(evicted);
             return None;
         };
