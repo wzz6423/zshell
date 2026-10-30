@@ -16,6 +16,14 @@ Scegli un motore in **Impostazioni → Terminale → Motore**:
 
 Entrambi supportano accelerazione GPU, immagini, catalogo di temi condiviso di Zshell, ricerca, eventi del mouse, notifiche e indicazioni di avanzamento. Cambiare motore ha effetto solo sui nuovi terminali; i pannelli esistenti mantengono l'emulatore con cui sono stati avviati.
 
+## Cronologia comandi [#command-history]
+
+Apri **Terminale → Cronologia comandi…** per cercare i comandi eseguiti in Zshell per testo o cartella. Ogni riga mostra cartella originale, ora di avvio, durata e stato di uscita. Fai clic su una riga o su **Mostra output** per tornare al riquadro e all’output originali. Se il riquadro è chiuso o l’output è stato cancellato, la navigazione non è disponibile; **Copia comando** resta utilizzabile.
+
+**Inserisci nel terminale** compila il prompt zsh vuoto del riquadro originale senza eseguire il comando; premi Return quando sei pronto. L’inserimento è disabilitato se il riquadro è occupato o contiene una bozza. I comandi su più righe vengono conservati. La lista usa l’integrazione dei blocchi di Ghostty e Alacritty; i comandi di shell non supportate o annidate potrebbero non comparire.
+
+La cronologia viene salvata localmente in background, fino a 2.000 comandi e 8 MiB. **Elimina** rimuove il record selezionato; **Cancella cronologia…** rimuove la lista salvata. L’output del terminale e la cronologia della shell restano disponibili.
+
 ## La tua shell, invariata [#your-shell-unchanged]
 
 Ogni sessione avvia la shell di login del tuo account, quindi prompt, alias, funzioni e dotfile vengono caricati come in qualsiasi terminale. Zshell aggiunge variabili che ne indicano identità e capacità:

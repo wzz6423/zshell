@@ -1211,6 +1211,7 @@ extension TerminalSession: TerminalBackendEvents {
 
     func terminalDidUpdateCommandRecords(_ records: [TerminalCommandRecord]) {
         guard commandRecords != records else { return }
+        TerminalCommandHistoryStore.shared.observe(records, previous: commandRecords, terminalID: id)
         commandRecords = records
     }
 
