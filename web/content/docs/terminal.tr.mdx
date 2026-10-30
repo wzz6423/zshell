@@ -58,6 +58,8 @@ Erişimi **Sistem Ayarları → Gizlilik ve Güvenlik → Kamera, Mikrofon veya 
 
 ## Arama [#search]
 
+
+Geçerli penceredeki proje, sekme ve bölmelerin saklanan terminal arabelleklerinde arama yapmak için <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> tuşlarına basın veya **Terminal → Terminal günlüklerinde ara** seçeneğini kullanın. Terminale dönmek için bir sonuç seçin. Liste en fazla 1.000 sonuç gösterir; tam ekran programlarda yalnızca geçerli terminal arabelleği aranır.
 | İşlem | Kısayol |
 | --- | --- |
 | Bul | <kbd>Cmd</kbd>+<kbd>F</kbd> |
@@ -118,6 +120,13 @@ Zshell Bildirim Merkezi’ne iki terminal olayı iletir:
 - uzun derleme veya kodlama ajanı gibi programdan gelen `OSC 777;notify` isteği.
 
 Bildirimler sistem sesi çalabilir. Tıklamak Zshell’i etkinleştirir ve bildirimi gönderen tam oturuma gider. macOS izni Zshell açılırken değil, terminal ilk kez bildirim istediğinde sorar.
+
+### Bildirim geçmişi [#notification-history]
+
+Son terminal ve ajan bildirimleri için **Bildirimler → Bildirim geçmişi…** menüsünü açın. **Okunmamış**, **Başarısız** veya **Bekleyen** ile filtreleyin. Bildirime veya **Bölmeyi göster** düğmesine tıklamak, başka bir pencerede olsa bile geçerli proje, sekme ve bölmeyi seçer. Kapatılan bölmeler geçmişte kullanılamaz olarak kalır.
+
+**Okundu olarak işaretle**, **Tümünü okundu olarak işaretle**, **Kaldır** veya **Geçmişi temizle** ile listeyi yönetin. Okumak ajan isteğini onaylamaz. Ajan devam ettiğinde veya bittiğinde, bölme kapandığında ya da uzak bağlantı kullanılamadığında bildirim bekleyen filtresinden çıkar. Durumlar açık yaşam döngüsü raporlarına ve komut çıkış sonuçlarına dayanır. Son 200 kayıt yeniden başlatmalar arasında korunur ve macOS bildirim izni kapalıyken de kullanılabilir.
+
 
 ### Komut tamamlanması [#command-completion]
 

@@ -26,10 +26,11 @@ extension ZshellTerminalView {
         supportsInputSelection = launch.usesZsh
         let controller = TerminalController(
             configSource: .none,
-            theme: Self.ghosttyTheme(),
+            theme: ghosttyTheme(),
             terminalConfiguration: terminalConfiguration(command: launch.commandLine)
         )
         ghosttyController = controller
+        controller.onBufferMayChange = { [weak self] in self?.invalidateLogContents() }
         delegate = self
         configuration = TerminalSurfaceOptions(
             backend: .exec,
@@ -48,7 +49,7 @@ extension ZshellTerminalView {
         _ = ghosttyController.setTerminalConfiguration(
             terminalConfiguration(command: launchCommand)
         )
-        _ = ghosttyController.setTheme(Self.ghosttyTheme())
+        _ = ghosttyController.setTheme(ghosttyTheme())
         let isDark = NSApp.effectiveAppearance.bestMatch(
             from: [.darkAqua, .aqua]
         ) == .darkAqua
@@ -58,6 +59,8 @@ extension ZshellTerminalView {
     /// Releases the surface. The view itself stays in the layout so teardown
     /// never pulls a pane out from under SwiftUI mid-frame.
     func detach() {
+        invalidateLogContents()
+        ghosttyController?.onBufferMayChange = nil
         hintMode.dismiss(restoringFocus: false)
         foregroundProcessProvider = nil
         stopSelectionAutoscroll()
@@ -78,8 +81,8 @@ extension ZshellTerminalView {
 
     private func terminalConfiguration(command: String) -> TerminalConfiguration {
         let settings = AppSettings.shared
-        let family = settings.fontFamily.isEmpty
-            ? TerminalFont.bundledFamily : settings.fontFamily
+        let family = profileAppearance.effectiveFontFamily.isEmpty
+            ? TerminalFont.bundledFamily : profileAppearance.effectiveFontFamily
         return TerminalConfiguration { builder in
             builder.withCustom("font-family", "")
             builder.withFontFamily(family)
@@ -91,7 +94,7 @@ extension ZshellTerminalView {
             // chain. The leading reset prevents the wrapper base config from
             // contributing an implicit family before the user's ordered list.
             builder.withCustom("font-family", "Symbols Nerd Font Mono")
-            builder.withFontSize(Float(settings.fontSize))
+            builder.withFontSize(Float(profileAppearance.effectiveFontSize))
             // Always set explicitly: the wrapper's ConfigSource.none base
             // config injects the package default `font-thicken = true`, and
             // only a later entry in the rendered config overrides it.
@@ -101,8 +104,8 @@ extension ZshellTerminalView {
                 ((settings.terminalLineHeight - 1) * 100).rounded()
             )
             builder.withCustom("adjust-cell-height", "\(lineHeightAdjustment)%")
-            builder.withCursorStyle(settings.cursorShape.ghosttyValue)
-            builder.withCursorStyleBlink(settings.cursorBlinking)
+            builder.withCursorStyle(profileAppearance.effectiveCursorShape.ghosttyValue)
+            builder.withCursorStyleBlink(profileAppearance.effectiveCursorBlinking)
             // Zshell's insets around the grid live inside ghostty as
             // window-padding so that window-padding-color=extend can flood
             // them with the nearest cell's background — full-screen TUIs
@@ -203,10 +206,10 @@ extension ZshellTerminalView {
         }
     }
 
-    private static func ghosttyTheme() -> GhosttyTerminal.TerminalTheme {
+    private func ghosttyTheme() -> GhosttyTerminal.TerminalTheme {
         GhosttyTerminal.TerminalTheme(
-            light: Theme.terminal(dark: false).toTerminalConfiguration(),
-            dark: Theme.terminal(dark: true).toTerminalConfiguration()
+            light: profileAppearance.theme(dark: false).toTerminalConfiguration(),
+            dark: profileAppearance.theme(dark: true).toTerminalConfiguration()
         )
     }
 }
@@ -228,6 +231,7 @@ extension ZshellTerminalView: TerminalSurfacePwdDelegate {
 
 extension ZshellTerminalView: TerminalSurfaceGridResizeDelegate {
     func terminalDidResize(_ size: TerminalGridMetrics) {
+        invalidateLogContents()
         let scale = window?.backingScaleFactor
             ?? NSScreen.main?.backingScaleFactor
             ?? 2

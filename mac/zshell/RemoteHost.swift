@@ -100,6 +100,7 @@ nonisolated struct RemoteSessionInfo: Codable, Sendable {
     let totalOutputBytes: UInt64
     var agentStatus: RemoteAgentStatus?
     var conversation: ZshellJSONValue?
+    var profileContext: TerminalProfileContext?
 }
 
 nonisolated struct RemoteProjectListing: Sendable {

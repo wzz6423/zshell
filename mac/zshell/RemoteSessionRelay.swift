@@ -265,7 +265,8 @@ nonisolated enum RemoteSessionRelay {
         RemoteRelayStatus(state: info.running ? .connected : .exited, relayPID: previous.relayPID,
                           remotePID: info.pid, exitCode: info.exitCode,
                           clients: info.clientCount, activeClientID: info.activeClientId,
-                          agentStatus: info.agentStatus, conversation: info.conversation, sessionCommand: info.command)
+                          agentStatus: info.agentStatus, conversation: info.conversation,
+                          sessionCommand: info.command, profileContext: info.profileContext)
     }
 
     private static func writeStatus(_ status: RemoteRelayStatus, to url: URL) throws {

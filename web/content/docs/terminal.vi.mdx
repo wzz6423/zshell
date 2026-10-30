@@ -58,6 +58,8 @@ Bật **Cài đặt → Terminal → Hành vi → Tiêu điểm theo chuột** �
 
 ## Tìm kiếm [#search]
 
+
+Nhấn <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> hoặc chọn **Terminal → Tìm trong nhật ký terminal** để tìm trong bộ đệm terminal được giữ lại của các dự án, thẻ và khung trong cửa sổ hiện tại. Chọn kết quả để trở lại terminal tương ứng. Danh sách hiển thị tối đa 1.000 kết quả; ứng dụng toàn màn hình chỉ cung cấp bộ đệm terminal hiện tại.
 | Thao tác | Phím tắt |
 | --- | --- |
 | Tìm | <kbd>Cmd</kbd>+<kbd>F</kbd> |
@@ -118,6 +120,13 @@ Zshell chuyển hai sự kiện terminal tới Trung tâm thông báo:
 - yêu cầu `OSC 777;notify` từ chương trình như build dài hoặc tác nhân lập trình.
 
 Thông báo có thể phát âm hệ thống. Nhấn thông báo kích hoạt Zshell và tới đúng phiên phát ra nó. macOS chỉ xin quyền khi terminal lần đầu muốn thông báo, không phải khi Zshell mở.
+
+### Lịch sử thông báo [#notification-history]
+
+Mở **Thông báo → Lịch sử thông báo…** để xem thông báo gần đây của terminal và tác nhân. Lọc theo **Chưa đọc**, **Thất bại** hoặc **Chờ xử lý**. Nhấp thông báo hoặc **Hiện ngăn** để chọn dự án, thẻ và ngăn hiện tại, kể cả ở cửa sổ khác. Ngăn đã đóng vẫn ở trong lịch sử và được đánh dấu không khả dụng.
+
+Dùng **Đánh dấu đã đọc**, **Đánh dấu tất cả đã đọc**, **Loại bỏ** hoặc **Xóa lịch sử**. Đọc thông báo không chấp thuận yêu cầu của tác nhân. Thông báo rời bộ lọc chờ xử lý khi tác nhân tiếp tục hoặc kết thúc, ngăn đóng hoặc kết nối từ xa không khả dụng. Trạng thái dựa trên báo cáo vòng đời rõ ràng và kết quả thoát lệnh. Lịch sử giữ 200 mục gần nhất sau khi khởi động lại, kể cả khi tắt quyền thông báo macOS.
+
 
 ### Hoàn thành lệnh [#command-completion]
 

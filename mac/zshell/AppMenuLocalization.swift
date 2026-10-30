@@ -39,6 +39,7 @@ final class AppMenuLocalization: NSObject {
         applicationDelegate?.restoreTerminalMenus()
         guard let menu = NSApp.mainMenu else { return }
         AgentConversationHistoryController.shared.installMenu(in: menu)
+        TerminalNotificationCenterController.shared.installMenu(in: menu)
         BrowserProfileImportController.shared.installMenu(in: menu)
         WorkspaceTemplateController.shared.installMenu(in: menu)
         TerminalCommandHistoryController.shared.installMenu(in: menu)
@@ -102,6 +103,7 @@ final class AppMenuLocalization: NSObject {
                 case "editProjectTerminalEnvironment": title = String(localized: "Project Terminal Environment…")
                 case "editTabTerminalEnvironment": title = String(localized: "Tab Terminal Environment…")
                 case "toggleQuickTerminal": title = String(localized: "Quick Terminal")
+                case "searchTerminalLogs": title = String(localized: "Search Terminal Logs")
                 case "quitAndEndAllSessions": title = String(localized: "Quit and End All Sessions")
                 default: title = nil
                 }

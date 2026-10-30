@@ -58,6 +58,8 @@ Aktifkan **Pengaturan → Terminal → Perilaku → Fokus mengikuti mouse** untu
 
 ## Pencarian [#search]
 
+
+Tekan <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> atau pilih **Terminal → Cari log terminal** untuk mencari buffer terminal yang tersimpan di seluruh proyek, tab, dan panel pada jendela saat ini. Pilih hasil untuk kembali ke terminalnya. Daftar menampilkan maksimal 1.000 hasil; program layar penuh hanya menyediakan buffer terminal saat ini.
 | Tindakan | Pintasan |
 | --- | --- |
 | Cari | <kbd>Cmd</kbd>+<kbd>F</kbd> |
@@ -118,6 +120,13 @@ Zshell meneruskan dua peristiwa terminal ke Pusat Notifikasi:
 - permintaan `OSC 777;notify` dari program, misalnya build lama atau agen pemrograman.
 
 Notifikasi dapat memainkan suara sistem. Mengkliknya mengaktifkan Zshell dan langsung membuka sesi pengirim. macOS meminta izin saat terminal pertama kali mencoba mengirim notifikasi, bukan saat Zshell dibuka.
+
+### Riwayat notifikasi [#notification-history]
+
+Buka **Notifikasi → Riwayat notifikasi…** untuk melihat pemberitahuan terminal dan agen terbaru. Filter menurut **Belum dibaca**, **Gagal**, atau **Menunggu tindakan**. Klik notifikasi atau **Tampilkan panel** untuk memilih proyek, tab, dan panel saat ini, termasuk di jendela lain. Panel yang ditutup tetap ada dalam riwayat sebagai tidak tersedia.
+
+Gunakan **Tandai sudah dibaca**, **Tandai semua sudah dibaca**, **Hapus**, atau **Hapus riwayat**. Membaca tidak menyetujui permintaan agen. Notifikasi keluar dari filter menunggu saat agen melanjutkan atau selesai, panel ditutup, atau koneksi jarak jauh tidak tersedia. Status berasal dari laporan siklus hidup eksplisit dan hasil keluar perintah. Riwayat menyimpan 200 entri terbaru setelah mulai ulang, bahkan jika izin notifikasi macOS dinonaktifkan.
+
 
 ### Penyelesaian perintah [#command-completion]
 

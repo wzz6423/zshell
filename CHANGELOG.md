@@ -18,11 +18,15 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Show the current branch’s GitHub pull request number and status in the Git panel; click it to open the pull request.
+- Add an optional Git proxy under Settings → General for Git panel actions, pull request status, and Git in newly opened terminals.
 - Show the processes running in a shared remote session in the Info panel.
 
 ### Fixed
 
 - Use a consistent compact switch size throughout Settings.
+- Return keyboard focus to the previous pane when the command palette opened
+  over the agent palette is closed.
 - Stop the menu bar from flickering while zshell is in front, and keep the Terminal menu before Window and Help.
 - Keep the configured cursor shape in Alacritty terminals restored from
   background sessions instead of always showing a block.

@@ -508,11 +508,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
         process.arguments = args
         process.currentDirectoryURL = URL(fileURLWithPath: root, isDirectory: true)
-        var environment = ProcessInfo.processInfo.environment
-        environment["GIT_OPTIONAL_LOCKS"] = "0"
-        environment["GIT_TERMINAL_PROMPT"] = "0"
-        environment["LC_ALL"] = "C"
-        process.environment = environment
+        process.environment = GitCommandRunner.processEnvironment()
 
         let stdout = Pipe()
         let stderr = Pipe()

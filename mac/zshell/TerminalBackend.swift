@@ -208,6 +208,9 @@ protocol TerminalBackendSurface: NSView {
     /// to pick up a new font, color theme, or input setting in place.
     func applyAppearance()
 
+    /// Stored per surface; applying it never changes another pane's defaults.
+    var profileAppearance: TerminalProfileAppearance { get set }
+
     /// Adjusts only the terminal background's alpha. Main-window panes use the
     /// shared terminal setting; the quick terminal overrides it per surface.
     func setBackgroundOpacity(_ opacity: CGFloat)
@@ -267,6 +270,17 @@ protocol TerminalBackendSurface: NSView {
     /// needle backend-side so Zshell never has to read it out and re-escape it.
     func findSelection()
 
+    /// A possible buffer change, used to coalesce log captures independently
+    /// of query edits. This includes parked panes whose PTY keeps draining.
+    var logContentRevision: UInt64 { get }
+
+    /// Native find indices need not follow the exported buffer's order.
+    var findMatchesNewestFirst: Bool { get }
+
+    /// Backends with an indexed reveal can select directly. Nil asks
+    /// TerminalFind to navigate the backend's asynchronous native search.
+    func revealLogMatch(needle: String, occurrence: Int, total: Int) -> Bool?
+
     /// Writes the screen and scrollback to a temporary file as a VT stream and
     /// returns its path, for `TerminalHistorySerializer`.
     ///
@@ -279,6 +293,12 @@ protocol TerminalBackendSurface: NSView {
     /// viewport alone. Nil when there is none — which is also how Zshell tells a
     /// scrolled shell from a full-screen TUI.
     func exportScrollbackFile() -> String?
+}
+
+extension TerminalBackendSurface {
+    var logContentRevision: UInt64 { 0 }
+    var findMatchesNewestFirst: Bool { false }
+    func revealLogMatch(needle: String, occurrence: Int, total: Int) -> Bool? { nil }
 }
 
 /// Sends command chords to the focused terminal before AppKit can resolve

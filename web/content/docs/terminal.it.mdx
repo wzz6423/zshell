@@ -58,6 +58,8 @@ Attiva **Impostazioni → Terminale → Comportamento → Il focus segue il mous
 
 ## Ricerca [#search]
 
+
+Premi <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> o scegli **Terminale → Cerca nei registri del terminale** per cercare nei buffer conservati di progetti, schede e riquadri della finestra corrente. Seleziona un risultato per tornare al terminale. La lista mostra al massimo 1.000 risultati; i programmi a schermo intero espongono solo il buffer corrente.
 | Azione | Scorciatoia |
 | --- | --- |
 | Trova | <kbd>Cmd</kbd>+<kbd>F</kbd> |
@@ -118,6 +120,13 @@ Zshell inoltra due eventi del terminale al Centro Notifiche:
 - una richiesta `OSC 777;notify` da un programma, ad esempio una compilazione lunga o un agente di programmazione.
 
 Le notifiche possono riprodurre il suono di sistema. Fare clic su una notifica attiva Zshell e apre la sessione precisa che l'ha emessa. macOS chiede il permesso solo quando un terminale tenta per la prima volta di inviare una notifica, non all'avvio di Zshell.
+
+### Cronologia notifiche [#notification-history]
+
+Apri **Notifiche → Cronologia notifiche…** per vedere gli avvisi recenti del terminale e degli agenti. Filtra per **Non lette**, **Non riuscite** o **In attesa**. Fai clic su un avviso o su **Mostra riquadro** per selezionare il progetto, la scheda e il riquadro attuali, anche in un’altra finestra. I riquadri chiusi restano nella cronologia come non disponibili.
+
+Usa **Segna come letta**, **Segna tutte come lette**, **Rimuovi** o **Cancella cronologia**. La lettura non approva richieste dell’agente. Un avviso esce da In attesa quando l’agente riprende o termina, il riquadro chiude o la connessione remota non è disponibile. Gli stati derivano da rapporti espliciti del ciclo di vita e dai risultati di uscita dei comandi. Gli ultimi 200 avvisi restano dopo il riavvio, anche con il permesso di notifiche macOS disattivato.
+
 
 ### Completamento dei comandi [#command-completion]
 

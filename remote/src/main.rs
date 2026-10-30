@@ -9,6 +9,7 @@ mod daemon;
 mod paste;
 mod processes;
 mod protocol;
+mod profile_context;
 mod pty;
 mod session;
 mod shell_completions;

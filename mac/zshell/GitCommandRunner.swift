@@ -34,6 +34,20 @@ nonisolated struct GitCommandRunner: GitCommandRunning {
         )
     }
 
+    /// Every Git process Zshell launches starts from this environment so the
+    /// Settings proxy reaches the Git panel, diffs, and worktree actions alike.
+    static func processEnvironment() -> [String: String] {
+        var environment = GitProxy.processEnvironment(inheriting: ProcessInfo.processInfo.environment)
+        environment["GIT_OPTIONAL_LOCKS"] = "0"
+        // Fail rather than hanging on a credential prompt behind the app.
+        environment["GIT_TERMINAL_PROMPT"] = "0"
+        // Git diagnostics are parsed only to distinguish an ordinary folder
+        // from a broken repository. Pinning the locale makes that safe and
+        // also keeps relative dates stable in the compact history list.
+        environment["LC_ALL"] = "C"
+        return environment
+    }
+
     func run(_ args: [String], in directory: String) async -> GitCommandResult {
         let state = GitProcessState()
         return await withTaskCancellationHandler {
@@ -85,10 +99,7 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
         process.arguments = args
         process.currentDirectoryURL = URL(fileURLWithPath: directory, isDirectory: true)
-        var environment = ProcessInfo.processInfo.environment
-        environment["GIT_OPTIONAL_LOCKS"] = "0"
-        environment["GIT_TERMINAL_PROMPT"] = "0"
-        environment["LC_ALL"] = "C"
+        var environment = GitCommandRunner.processEnvironment()
         environment.merge(additionalEnvironment, uniquingKeysWith: { _, value in value })
         process.environment = environment
 

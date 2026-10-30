@@ -113,6 +113,8 @@ struct SettingsReloadTests {
         sidebar.font-size = 18
         interface.scale = 1.3
         toolbar.visibility = "always"
+        git.proxy-enabled = true
+        git.proxy = "socks5h://127.0.0.1:1080"
         terminal.font-thicken = true
         terminal.font-thicken-strength = 99
         terminal.line-height = 1.4
@@ -146,6 +148,11 @@ struct SettingsReloadTests {
         terminal.startup-arguments = "-l"
         browser.content-blocking = false
         browser.filter-lists = "https://example.test/filter.txt"
+        terminal.profiles.0.id = "71DA4706-872C-4D96-ACDC-3FC8201F86B7"
+        terminal.profiles.0.name = "Fixture profile"
+        terminal.profiles.0.directory = "/tmp/*"
+        terminal.profiles.0.font-size = 18
+        terminal.profiles.0.environment.MODE = "profile"
 
         """
         let parsed = TOML.parseStrictly(text: configuration)
@@ -157,8 +164,13 @@ struct SettingsReloadTests {
         let imported = settings.serializedConfig()
         let written = try SettingsConfigFile.read(at: url)
         check(written == imported, "import saves final state once")
+        check(settings.terminalProfiles.first?.appearance.fontSize == 18,
+              "profiles import through production settings")
+        check(settings.terminalProfiles.first?.launchSettings.environment["MODE"] == "profile",
+              "profile launch settings round trip through config")
         let roundTrip = TOML.parseStrictly(text: imported).values
         check(settings.focusFollowsMouse && !settings.isAtDefaults, "pointer focus imports and changes default state")
+        check(GitProxy.address == "socks5h://127.0.0.1:1080", "imported Git proxy reaches Git processes")
         for (key, value) in parsed.values {
             check(roundTrip[key] == value, "all persisted keys import and serialize: \(key)")
         }
@@ -222,6 +234,8 @@ struct SettingsReloadTests {
         check(!settings.vimCommandHints && !settings.restoreTerminalHistory && !settings.notifyOnError,
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
+        check(!settings.gitProxyEnabled && settings.gitProxyAddress == GitProxy.defaultAddress && GitProxy.address == nil,
+              "Git proxy resets to off with the default address prefilled")
         check(try SettingsConfigFile.read(at: url) == "", "default reload leaves empty source unchanged")
 
         for size in 8...32 { settings.fontSize = Double(size) }

@@ -58,6 +58,8 @@ Activa **Ajustes → Terminal → Comportamiento → El foco sigue al ratón** p
 
 ## Búsqueda [#search]
 
+
+Pulsa <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> o elige **Terminal → Buscar en registros de terminal** para buscar en los búferes conservados de los proyectos, pestañas y paneles de la ventana actual. Selecciona un resultado para volver al terminal. La lista muestra hasta 1.000 resultados; los programas a pantalla completa solo exponen su búfer actual.
 | Acción | Atajo |
 | --- | --- |
 | Buscar | <kbd>Cmd</kbd>+<kbd>F</kbd> |
@@ -118,6 +120,13 @@ Zshell envía dos eventos de terminal al Centro de Notificaciones:
 - Una solicitud `OSC 777;notify` de un programa, como una compilación larga o un agente de programación.
 
 Las notificaciones pueden reproducir el sonido del sistema. Al hacer clic en una, se activa Zshell y se abre la sesión exacta que la emitió. macOS pide permiso la primera vez que un terminal intenta notificarte, no cuando se inicia Zshell.
+
+### Historial de notificaciones [#notification-history]
+
+Abre **Notificaciones → Historial de notificaciones…** para ver avisos recientes del terminal y los agentes. Filtra por **Sin leer**, **Fallidas** o **Pendientes**. Haz clic en un aviso o en **Mostrar panel** para seleccionar su proyecto, pestaña y panel actuales, incluso en otra ventana. Los paneles cerrados siguen en el historial como no disponibles.
+
+Usa **Marcar como leída**, **Marcar todas como leídas**, **Eliminar** o **Borrar historial**. Leer no aprueba solicitudes de un agente. Los avisos dejan de estar pendientes cuando el agente continúa o termina, se cierra el panel o su conexión remota no está disponible. Los estados se basan en informes explícitos del ciclo de vida y resultados de salida de comandos. Se conservan los últimos 200 avisos al reiniciar, incluso con el permiso de notificaciones de macOS desactivado.
+
 
 ### Finalización de comandos [#command-completion]
 

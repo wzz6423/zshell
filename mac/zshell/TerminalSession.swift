@@ -27,10 +27,16 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     @Published private(set) var commandRecords: [TerminalCommandRecord] = []
     @Published private(set) var terminalCellSize: CGSize?
     @Published private(set) var remoteStatus: RemoteRelayStatus?
+    @Published private(set) var activeTerminalProfileID: UUID?
+    @Published private(set) var terminalProfileSelection = TerminalProfileSelection.automatic
+    let launchTerminalProfileID: UUID?
     /// Recognized coding agent occupying this terminal, if any. The monitor
     /// reconciles foreground process identity with explicit lifecycle events.
     @Published var agentStatus: ZshellAgentStatus? {
-        didSet { ZshellAutomationEventHub.shared.agentChanged(in: self, previous: oldValue) }
+        didSet {
+            ZshellAutomationEventHub.shared.agentChanged(in: self, previous: oldValue)
+            TerminalNotificationService.shared.agentChanged(in: self, previous: oldValue)
+        }
     }
     @Published private(set) var agentResume: AgentConversationIdentity?
     @Published var worktree: SessionWorktree?
@@ -77,6 +83,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// transfers, then be released only after the terminal process ends.
     private var retainedSessionResources: [AnyObject] = []
     private var remoteObservation: AnyCancellable?
+    private var terminalProfileObservation: AnyCancellable?
+    private var lastTerminalProfileContext: TerminalProfileContext?
     var remoteAgentGeneration: UInt64?
     var acknowledgedRemoteAgentGeneration: UInt64?
     private var clipboardPasteTask: Task<Void, Never>?
@@ -102,6 +110,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         restoredSessionID: UUID? = nil,
         environmentPath: String? = nil,
         launchSettings: TerminalLaunchSettings = .init(),
+        initialTerminalProfile: TerminalProfile? = nil,
         additionalEnvironment: [String: String] = [:],
         agentResume: AgentConversationIdentity? = nil,
         worktree: SessionWorktree? = nil,
@@ -121,13 +130,32 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                 && (explicitlyResumeConversation || isRestoredSession && AppSettings.shared.resumeAgentConversations),
             hasLiveTerminal: existingPTY != nil
         )
-        let directCommand = resumeLaunch?.arguments
-            ?? commandArguments.flatMap { $0.isEmpty ? nil : $0 }
-            ?? (isRestoredSession || !usesConfiguredStartupCommand ? nil : Self.configuredStartupCommand())
-        let shellPath = directCommand?.first ?? Self.loginShell()
         let directory = Self.validWorkingDirectory(
             existingPTY?.workingDirectory ?? resumeLaunch?.workingDirectory ?? initialDirectory
         )
+        let requestedCommand = resumeLaunch?.arguments
+            ?? commandArguments.flatMap { $0.isEmpty ? nil : $0 }
+            ?? (isRestoredSession || !usesConfiguredStartupCommand ? nil : Self.configuredStartupCommand())
+        let initialProfile = initialTerminalProfile ?? (remoteConnection == nil && remotePasteTarget == nil
+            ? TerminalProfile.firstMatch(in: AppSettings.shared.terminalProfiles, context: .init(
+                host: ProcessInfo.processInfo.hostName, user: NSUserName(), directory: directory,
+                program: requestedCommand?.first ?? Self.loginShell(), hostAlias: "localhost"
+            )) : nil)
+        let launchSettings = remoteConnection == nil
+            ? initialProfile?.applyingLaunchSettings(to: launchSettings) ?? launchSettings : launchSettings
+        let profileCommand = initialProfile.flatMap { profile -> [String]? in
+            guard !isRestoredSession, usesConfiguredStartupCommand, commandArguments == nil, resumeLaunch == nil,
+                  case .success(let startup?) = TerminalStartupCommand.resolve(
+                    program: profile.startupProgram, arguments: profile.startupArguments
+                  ) else { return nil }
+            return startup.argv
+        }
+        let directCommand = resumeLaunch?.arguments
+            ?? commandArguments.flatMap { $0.isEmpty ? nil : $0 }
+            ?? profileCommand ?? requestedCommand
+        let shellPath = directCommand?.first ?? Self.loginShell()
+        let initialAppearance = initialProfile?.appearance ?? TerminalProfileAppearance()
+        launchTerminalProfileID = initialProfile?.id
         let backend = AppSettings.shared.terminalBackend
         let artifacts = existingPTY.map {
             let integration = $0.launchDirectoryURL?.appendingPathComponent("zsh-integration", isDirectory: true)
@@ -161,7 +189,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         )
         var environment = Self.surfaceEnvironment(
             pathOverride: environmentPath, configuredEnvironment: launchSettings.environment,
-            sessionID: sessionID, additionalEnvironment: launchEnvironment
+            sessionID: sessionID, additionalEnvironment: launchEnvironment,
+            usesGitProxy: remoteConnection == nil
         )
         var canPersist = preserve
         if preserve {
@@ -190,12 +219,13 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             do {
                 pty = try PersistentPTY.create(id: sessionID, launch: launch,
                                               launchDirectoryURL: artifacts.directoryURL,
-                                              theme: AlacrittyTheme.current())
+                                              theme: AlacrittyTheme.current(initialAppearance))
             } catch {
                 ZshellCLIService.shared.revokeTerminal(id: sessionID)
                 var fallback = Self.surfaceEnvironment(
                     pathOverride: environmentPath, configuredEnvironment: launchSettings.environment,
-                    sessionID: sessionID, additionalEnvironment: launchEnvironment
+                    sessionID: sessionID, additionalEnvironment: launchEnvironment,
+                    usesGitProxy: remoteConnection == nil
                 )
                 for key in ["ZSHELL_PERSISTENT_CONNECTION", "ZSHELL_PERSISTENT_TOKEN"] { fallback.removeValue(forKey: key) }
                 launch = TerminalLaunch(
@@ -246,9 +276,21 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         lastHistorySnapshot = restoredHistory
         super.init()
 
+        surface.profileAppearance = initialAppearance
+        activeTerminalProfileID = initialProfile?.id
+        surface.splitTarget.profileMenuTarget.session = self
+        terminalProfileObservation = AppSettings.shared.$terminalProfiles
+            .dropFirst().receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.lastTerminalProfileContext = nil
+                self?.refreshTerminalProfile()
+            }
+
         remoteObservation = remoteConnection?.$status.sink { [weak self, weak remoteConnection] status in
             self?.remoteStatus = status
             self?.acceptRemoteAgentStatus(status)
+            if let self { TerminalNotificationService.shared.remoteChanged(in: self, status: status) }
+            self?.refreshTerminalProfile()
             if status.state != .connected || status.activeClientID != remoteConnection?.clientID.uuidString.lowercased() {
                 self?.cancelClipboardPaste()
             }
@@ -341,8 +383,43 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                 ?? (settings.isTerminalBackgroundBlurActive
                     ? CGFloat(settings.effectiveTerminalBackgroundOpacity) : 1)
         )
+        applyProfileAppearance()
+    }
+
+    /// Profile switches keep the opacity the hosting window last applied: a
+    /// translucent Quick Terminal must not fall back to the main window's value.
+    private func applyProfileAppearance() {
         surface.applyAppearance()
-        persistentPTY?.updateTheme(AlacrittyTheme.current())
+        persistentPTY?.updateTheme(AlacrittyTheme.current(surface.profileAppearance))
+    }
+
+    func selectTerminalProfile(_ selection: TerminalProfileSelection) {
+        terminalProfileSelection = selection
+        lastTerminalProfileContext = nil
+        refreshTerminalProfile()
+    }
+
+    func refreshTerminalProfile() {
+        guard !hasExited, !isTerminating else { return }
+        let profiles = AppSettings.shared.terminalProfiles
+        if profiles.isEmpty && activeTerminalProfileID == nil { return }
+        let profile: TerminalProfile?
+        switch terminalProfileSelection {
+        case .automatic:
+            let context = terminalProfileContext
+            guard context != lastTerminalProfileContext else { return }
+            lastTerminalProfileContext = context
+            profile = TerminalProfile.firstMatch(in: profiles, context: context)
+        case .original:
+            profile = nil
+        case .profile(let id):
+            profile = profiles.first { $0.id == id }
+        }
+        if activeTerminalProfileID != profile?.id { activeTerminalProfileID = profile?.id }
+        let appearance = profile?.appearance ?? TerminalProfileAppearance()
+        guard surface.profileAppearance != appearance else { return }
+        surface.profileAppearance = appearance
+        applyProfileAppearance()
     }
 
     /// Stops the whole PTY job before releasing the surface. The backend's
@@ -350,6 +427,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// close signal they received before the backend migration.
     func terminate() {
         guard !isTerminating, !hasExited || persistentPTY != nil else { return }
+        TerminalNotificationService.shared.terminalClosed(self)
         isTerminating = true
         remoteConnection?.stopMonitoring()
         persistentPTY?.terminate()
@@ -404,6 +482,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// or been force-stopped. Detaching first can make a backend wait
     /// synchronously for a process that ignored SIGHUP.
     private func beginTeardown(processAlive: Bool, notifyExit: Bool) {
+        TerminalNotificationService.shared.terminalClosed(self)
+        terminalProfileObservation = nil
+        surface.splitTarget.profileMenuTarget.session = nil
         cancelClipboardPaste()
         recordAgentConversation(nil, processID: nil)
         AgentTurnReviewStore.shared.abort(sessionID: id)
@@ -597,7 +678,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         pathOverride: String?,
         configuredEnvironment: [String: String],
         sessionID: UUID,
-        additionalEnvironment: [String: String]
+        additionalEnvironment: [String: String],
+        usesGitProxy: Bool
     ) -> [String: String] {
         var environment = [
             "TERM": "xterm-256color",
@@ -619,6 +701,15 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         environment.merge(additionalEnvironment, uniquingKeysWith: { _, additionalValue in
             additionalValue
         })
+        // A remote shell resolves the proxy's loopback address on its own host,
+        // so only local shells inherit the Settings proxy, and only for Git.
+        if usesGitProxy {
+            environment.merge(
+                GitProxy.terminalEnvironment(inheriting: ProcessInfo.processInfo.environment
+                    .merging(environment, uniquingKeysWith: { _, launchValue in launchValue })),
+                uniquingKeysWith: { _, proxyValue in proxyValue }
+            )
+        }
         // Locale belongs to the user's shell environment. Zshell's app language
         // must never synthesize or override LANG/LC_* for terminal processes.
         return environment
@@ -994,12 +1085,16 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             _zshell_notify_on_error=\(AppSettings.shared.notifyOnError ? 1 : 0)
             _zshell_notify_stamp=0
             _zshell_notify_word=''
+            _zshell_notify_id='\(UUID().uuidString)'
+            _zshell_notify_sequence=0
             zmodload -i zsh/datetime 2>/dev/null
             if (( $+EPOCHSECONDS )); then
               _zshell_notify_preexec() {
                 local _zshell_notify_prev=$?
                 _zshell_notify_stamp=$EPOCHSECONDS
-                _zshell_notify_word=${${=1}[1]}
+                local -a _zshell_notify_words
+                _zshell_notify_words=(${(z)1})
+                _zshell_notify_word=${_zshell_notify_words[1]}
                 return $_zshell_notify_prev
               }
               # Runs ahead of every other precmd hook: prompt frameworks
@@ -1032,7 +1127,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                     if [[ -n $_zshell_notify_name ]]; then
                       local _zshell_notify_outcome=finished
                       (( _zshell_notify_status != 0 )) && _zshell_notify_outcome=failed
-                      printf '\\e]777;notify;%s;%s\\e\\\\' "$_zshell_notify_name $_zshell_notify_outcome" "$_zshell_notify_name $_zshell_notify_outcome — ${_zshell_notify_elapsed}s, exit $_zshell_notify_status"
+                      local _zshell_notify_message="$_zshell_notify_name $_zshell_notify_outcome — ${_zshell_notify_elapsed}s, exit $_zshell_notify_status"
+                      (( ++_zshell_notify_sequence ))
+                      # Both backends forward this typed title alongside the
+                      # body; each result stays paired with its own message.
+                      printf '\\e]777;notify;zshell-command:%s:%s:%s;%s\\e\\\\' "$_zshell_notify_id" "$_zshell_notify_sequence" "$_zshell_notify_status" "$_zshell_notify_message"
                     fi
                   fi
                 fi
@@ -1192,8 +1291,9 @@ extension TerminalSession: TerminalBackendEvents {
         let windowMiniaturized = surface.window?.isMiniaturized == true
         guard !surface.hasEffectiveTerminalFocus || windowMiniaturized else { return }
         TerminalNotificationService.shared.post(
-            message: remoteNotification(announcement),
-            sessionID: id
+            message: announcement,
+            sessionID: id,
+            kind: .bell
         )
         if !NSApp.isActive || windowMiniaturized {
             NSApp.requestUserAttention(.informationalRequest)
@@ -1241,6 +1341,7 @@ extension TerminalSession: TerminalBackendEvents {
 
     func terminalDidClose(processAlive: Bool) {
         guard !isTerminating else { return }
+        TerminalNotificationService.shared.terminalClosed(self)
         if remoteConnection != nil {
             Task { @MainActor [self] in
                 await Task.yield()
@@ -1278,11 +1379,11 @@ extension TerminalSession: TerminalBackendEvents {
         guard !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return
         }
-        TerminalNotificationService.shared.post(message: remoteNotification(message), sessionID: id)
-    }
-
-    private func remoteNotification(_ message: String) -> String {
-        remoteConnection.map { "\($0.host.name): \(message)" } ?? message
+        let result = TerminalCommandNotificationResult.parse(title: title)
+        TerminalNotificationService.shared.post(message: message, sessionID: id,
+            kind: result == nil ? .terminal : .command,
+            eventKey: result.map { "command:\($0.id):\($0.sequence)" },
+            isFailure: result.map { $0.exitCode != 0 } ?? false)
     }
 
     func terminalDidRequestOpenURL(_ value: String) {
