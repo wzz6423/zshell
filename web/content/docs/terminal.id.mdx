@@ -16,6 +16,14 @@ Pilih backend di **Pengaturan → Terminal → Backend**:
 
 Keduanya mendukung akselerasi GPU, gambar, katalog tema bersama Zshell, pencarian, pelaporan mouse, notifikasi, dan laporan kemajuan. Perubahan backend hanya berlaku untuk terminal baru; panel yang sudah ada mempertahankan emulator awalnya.
 
+## Riwayat perintah [#command-history]
+
+Pilih **Terminal → Riwayat perintah…** untuk mencari perintah yang dijalankan di Zshell berdasarkan teks atau direktori. Setiap baris menampilkan direktori asli, waktu mulai, durasi, dan status keluar. Klik baris atau **Tampilkan keluaran** untuk kembali ke panel dan keluaran asli. Jika panel ditutup atau keluaran dihapus, navigasi tidak tersedia; **Salin perintah** tetap berfungsi.
+
+**Sisipkan ke terminal** mengisi prompt zsh kosong pada panel asli tanpa menjalankan perintah; tekan Return saat siap. Penyisipan dinonaktifkan jika panel sibuk atau memiliki draf. Perintah multibaris dipertahankan. Daftar memakai integrasi blok perintah Ghostty dan Alacritty; perintah dalam shell yang tidak didukung atau bertingkat mungkin tidak muncul.
+
+Riwayat disimpan secara lokal di latar belakang, maksimal 2.000 perintah dan 8 MiB. **Hapus** menghapus catatan terpilih; **Hapus riwayat…** menghapus daftar tersimpan. Keluaran terminal dan riwayat shell sendiri tetap disimpan.
+
 ## Shell Anda tetap sama [#your-shell-unchanged]
 
 Setiap sesi memulai shell login akun Anda. Prompt, alias, fungsi, dan dotfiles dimuat seperti di terminal lain. Zshell menambahkan variabel kemampuan dan identitas:

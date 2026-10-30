@@ -16,6 +16,14 @@ Kies een backend onder **Instellingen → Terminal → Backend**:
 
 Beide ondersteunen GPU-versnelling, afbeeldingen, de gedeelde themacatalogus van Zshell, zoeken, muisrapportage, meldingen en voortgangsrapportage. Een backendwijziging geldt alleen voor nieuwe terminals; bestaande deelvensters houden de emulator waarmee ze zijn gestart.
 
+## Opdrachtgeschiedenis [#command-history]
+
+Kies **Terminal → Opdrachtgeschiedenis…** om in Zshell uitgevoerde opdrachten op tekst of map te zoeken. Elke rij toont de oorspronkelijke map, starttijd, duur en afsluitstatus. Klik op een rij of **Uitvoer tonen** om naar het oorspronkelijke deelvenster en de uitvoer terug te gaan. Als het deelvenster is gesloten of de uitvoer gewist, is navigatie niet beschikbaar; **Opdracht kopiëren** blijft werken.
+
+**In terminal invoegen** vult de lege zsh-prompt van het oorspronkelijke deelvenster zonder de opdracht uit te voeren; druk op Return als u klaar bent. Invoegen is uitgeschakeld bij een lopende taak of bestaande invoer. Opdrachten met meerdere regels blijven behouden. De lijst gebruikt opdrachtblokken van Ghostty en Alacritty; opdrachten uit niet ondersteunde of geneste shells kunnen ontbreken.
+
+De geschiedenis wordt lokaal op de achtergrond opgeslagen, tot 2.000 opdrachten en 8 MiB. **Verwijderen** verwijdert de gekozen regel; **Geschiedenis wissen…** verwijdert de opgeslagen lijst. Terminaluitvoer en de eigen shellgeschiedenis blijven bewaard.
+
 ## Je shell blijft hetzelfde [#your-shell-unchanged]
 
 Elke sessie start de inlogshell van je account, zodat je prompt, aliassen, functies en dotfiles worden geladen zoals in elke andere terminal. Zshell voegt variabelen toe voor mogelijkheden en identificatie:
