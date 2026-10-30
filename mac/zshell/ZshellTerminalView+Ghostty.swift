@@ -21,7 +21,7 @@ extension ZshellTerminalView {
         foregroundProcessProvider = launch.foregroundProcessProvider
         reportsLocalWorkingDirectory = launch.reportsLocalWorkingDirectory
         launchCommand = launch.commandLine
-        launchShellIntegration = launch.foregroundProcessProvider == nil
+        launchShellIntegration = launch.foregroundProcessProvider == nil && !launch.usesZsh
             ? Self.shellIntegration(for: launch.interactiveShell) : "none"
         supportsInputSelection = launch.usesZsh
         let controller = TerminalController(
@@ -268,6 +268,7 @@ extension ZshellTerminalView: TerminalSurfaceProgressReportDelegate {
 extension ZshellTerminalView: TerminalSurfaceCommandFinishedDelegate {
     func terminalDidFinishCommand(exitCode: Int?, durationNanos: UInt64) {
         resetPromptInputStart()
+        refreshCommandRecords()
         events?.terminalDidReportShellIntegration(
             .commandFinished(exitCode: exitCode, durationNanos: durationNanos)
         )
@@ -338,5 +339,51 @@ extension ZshellTerminalView: TerminalSurfaceClipboardConfirmationDelegate {
                 }
             }
         )
+    }
+}
+
+
+extension ZshellTerminalView: TerminalSurfaceCommandRecordsDelegate {
+    func terminalCommandRecordsDidChange() { refreshCommandRecords() }
+
+    func refreshCommandRecords() {
+        let revision = semanticCommandRevision
+        guard revision != lastCommandRevision, let data = semanticCommandRecords() else { return }
+        lastCommandRevision = revision
+        if commandRecordState.update(data) {
+            events?.terminalDidUpdateCommandRecords(commandRecordState.records)
+        }
+    }
+
+    var commandRecords: [TerminalCommandRecord] { commandRecordState.records }
+
+    func commandRegion(at location: TerminalCommandOutputLocation) -> TerminalCommandRegion? {
+        guard commandRecordState.owns(location), let region = semanticCommandRegion(id: location.blockID) else { return nil }
+        return .init(promptStart: .init(row: region.prompt.row, column: region.prompt.column),
+                     inputStart: .init(row: region.input.row, column: region.input.column),
+                     outputStart: .init(row: region.output.row, column: region.output.column),
+                     outputEnd: .init(row: region.end.row, column: region.end.column))
+    }
+
+    func commandText(at location: TerminalCommandOutputLocation, part: TerminalCommandTextPart) -> String? {
+        guard commandRecordState.owns(location) else { return nil }
+        return semanticCommandText(id: location.blockID, part: part.nativeValue)
+    }
+
+    @discardableResult
+    func revealCommand(at location: TerminalCommandOutputLocation) -> Bool {
+        commandRecordState.owns(location) && revealSemanticCommand(id: location.blockID, select: false)
+    }
+
+    @discardableResult
+    func selectCommand(at location: TerminalCommandOutputLocation) -> Bool {
+        commandRecordState.owns(location) && revealSemanticCommand(id: location.blockID, select: true)
+    }
+
+    func commandLocation(for event: NSEvent?) -> TerminalCommandOutputLocation? {
+        if let event, let id = semanticCommandID(at: event) {
+            return .init(surfaceID: commandRecordState.surfaceID, blockID: id)
+        }
+        return event == nil ? commandRecords.last?.outputLocation : nil
     }
 }

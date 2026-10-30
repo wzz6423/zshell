@@ -20,7 +20,7 @@ import QuartzCore
 /// this view snapshots the visible grid each time it draws.
 final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfaceValidations {
     weak var events: (any TerminalBackendEvents)? {
-        didSet { flushPendingEvents() }
+        didSet { flushPendingEvents(); refreshCommandRecords() }
     }
     var onBecomeFirstResponder: (() -> Void)?
     let splitTarget = SplitMenuTarget()
@@ -42,6 +42,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         let cellHeight: UInt16
     }
 
+    private var commandRecordState = TerminalCommandRecords()
+    private var lastCommandRevision: UInt64?
     private var handle: OpaquePointer?
     private var foregroundProcessProvider: (() -> pid_t?)?
     private var reportsLocalWorkingDirectory = true
@@ -998,6 +1000,62 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     // MARK: - Events from the PTY thread
 
     /// Always called on the main thread; `alacrittyEventCallback` bounces.
+    private func refreshCommandRecords() {
+        guard let handle else { return }
+        let revision = zshell_alacritty_command_revision(handle)
+        guard revision != lastCommandRevision, let text = zshell_alacritty_command_records(handle) else { return }
+        defer { zshell_alacritty_string_free(text) }
+        lastCommandRevision = revision
+        if commandRecordState.update(Data(String(cString: text).utf8)) {
+            events?.terminalDidUpdateCommandRecords(commandRecordState.records)
+        }
+    }
+
+    var commandRecords: [TerminalCommandRecord] { commandRecordState.records }
+
+    func commandRegion(at location: TerminalCommandOutputLocation) -> TerminalCommandRegion? {
+        guard commandRecordState.owns(location), let handle else { return nil }
+        var region = ZshellCommandRegion()
+        guard zshell_alacritty_command_region(handle, location.blockID, &region) else { return nil }
+        return .init(promptStart: .init(row: region.prompt.row, column: region.prompt.column),
+                     inputStart: .init(row: region.input.row, column: region.input.column),
+                     outputStart: .init(row: region.output.row, column: region.output.column),
+                     outputEnd: .init(row: region.end.row, column: region.end.column))
+    }
+
+    func commandText(at location: TerminalCommandOutputLocation, part: TerminalCommandTextPart) -> String? {
+        guard commandRecordState.owns(location), let handle,
+              let text = zshell_alacritty_command_text(handle, location.blockID, part.nativeValue) else { return nil }
+        defer { zshell_alacritty_string_free(text) }
+        return String(cString: text)
+    }
+
+    @discardableResult
+    func revealCommand(at location: TerminalCommandOutputLocation) -> Bool {
+        guard commandRecordState.owns(location), let handle,
+              zshell_alacritty_command_reveal(handle, location.blockID, false) else { return false }
+        scheduleRender(force: true)
+        reportScroll()
+        return true
+    }
+
+    @discardableResult
+    func selectCommand(at location: TerminalCommandOutputLocation) -> Bool {
+        guard commandRecordState.owns(location), let handle,
+              zshell_alacritty_command_reveal(handle, location.blockID, true) else { return false }
+        scheduleRender(force: true)
+        reportScroll()
+        return true
+    }
+
+    func commandLocation(for event: NSEvent?) -> TerminalCommandOutputLocation? {
+        guard let event else { return commandRecords.last?.outputLocation }
+        guard let handle else { return nil }
+        let point = gridPoint(for: event)
+        let id = zshell_alacritty_command_at(handle, Int32(clamping: point.line), UInt32(clamping: point.column))
+        return id == 0 ? nil : .init(surfaceID: commandRecordState.surfaceID, blockID: id)
+    }
+
     func handleEvent(kind: UInt32, payload: Data) {
         if events == nil,
            kind == ZSHELL_EVENT_TITLE
@@ -1009,7 +1067,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             || kind == ZSHELL_EVENT_SHELL_PROMPT_START
             || kind == ZSHELL_EVENT_SHELL_COMMAND_START
             || kind == ZSHELL_EVENT_SHELL_COMMAND_EXECUTING
-            || kind == ZSHELL_EVENT_SHELL_COMMAND_FINISHED {
+            || kind == ZSHELL_EVENT_SHELL_COMMAND_FINISHED
+            || kind == ZSHELL_EVENT_COMMAND_RECORDS {
             if pendingEvents.count < 64 {
                 pendingEvents.append((kind, payload))
             }
@@ -1017,7 +1076,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         }
 
         switch kind {
+        case ZSHELL_EVENT_COMMAND_RECORDS:
+            refreshCommandRecords()
         case ZSHELL_EVENT_WAKEUP:
+            refreshCommandRecords()
             updateFocusReport()
             if isPointerInside, isCommandPressed {
                 refreshURLHover(modifierFlags: NSEvent.modifierFlags)
@@ -1196,6 +1258,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         write(Array(text.utf8))
     }
 
+    func sendPaste(_ text: String) {
+        write(AlacrittyKeyMap.paste(text, mode: terminalMode))
+    }
+
     func sendEnter() {
         write([0x0d])
     }
@@ -1229,6 +1295,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     func clearScreen() {
         guard let handle else { return }
         zshell_alacritty_clear(handle)
+        refreshCommandRecords()
         // Ask the foreground shell to repaint its prompt at the top.
         write([0x0c])
         scheduleRender(force: true)

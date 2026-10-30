@@ -15,11 +15,12 @@ default = ["renderer"]
 renderer = []
 
 [dependencies]
-alacritty_terminal = { version = "0.26", default-features = false }
+alacritty_terminal = { path = "src/alacritty_terminal", default-features = false }
 base64 = "0.23"
 flate2 = "1.1"
 polling = "3.11"
 png = "0.18"
+serde_json = "1"
 unicode-width = "0.2"
 
 [profile.release]
