@@ -97,14 +97,13 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
         ApplicationPresenceController.shared.prepareForTermination()
         TerminalManager.prepareForApplicationQuit()
         SSHAgentEnvironment.shared.cleanup()
-        if let stopped = LocalRemoteSharing.shared.stop() {
-            Task { @MainActor in
-                await stopped.value
-                sender.reply(toApplicationShouldTerminate: true)
-            }
-            return .terminateLater
+        let stopped = LocalRemoteSharing.shared.stop()
+        Task { @MainActor in
+            await stopped?.value
+            await TerminalNotificationService.shared.history.flush()
+            sender.reply(toApplicationShouldTerminate: true)
         }
-        return .terminateNow
+        return .terminateLater
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

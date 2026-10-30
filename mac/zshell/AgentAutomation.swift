@@ -857,7 +857,6 @@ extension TerminalSession {
             return
         }
 
-        let previousPhase = agentStatus?.phase
         agentStatus = ZshellAgentStatus(
             alias: alias,
             kind: kind,
@@ -872,16 +871,6 @@ extension TerminalSession {
             tasks: tasks
         )
 
-        guard authority != .screen, phase != previousPhase,
-              phase == .blocked || phase == .done,
-              !TerminalManager.automationIsSessionFocused(id)
-        else { return }
-        TerminalNotificationService.shared.post(
-            message: phase == .blocked
-                ? String(localized: "\(alias) needs attention")
-                : String(localized: "\(alias) finished"),
-            sessionID: id
-        )
     }
 }
 
