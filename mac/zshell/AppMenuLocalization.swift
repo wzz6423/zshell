@@ -102,6 +102,7 @@ final class AppMenuLocalization: NSObject {
                 case "editProjectTerminalEnvironment": title = String(localized: "Project Terminal Environment…")
                 case "editTabTerminalEnvironment": title = String(localized: "Tab Terminal Environment…")
                 case "toggleQuickTerminal": title = String(localized: "Quick Terminal")
+                case "searchTerminalLogs": title = String(localized: "Search Terminal Logs")
                 case "quitAndEndAllSessions": title = String(localized: "Quit and End All Sessions")
                 default: title = nil
                 }

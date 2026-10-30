@@ -1755,6 +1755,7 @@ final class TerminalManager: nonisolated ObservableObject {
     func windowClosed() {
         guard !Self.isQuitting else { return }
         AgentConversationHistoryController.shared.close(ifOwnedBy: self)
+        WorkspaceLogSearchController.shared.close(ifOwnedBy: self)
         WorkspaceTemplateController.shared.close(ifOwnedBy: self)
         TerminalCommandHistoryController.shared.close(ifOwnedBy: self, restoreFocus: false)
         agentPalette.dismiss(restoreFocus: false)
