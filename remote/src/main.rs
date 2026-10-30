@@ -7,6 +7,7 @@ mod agent_process;
 mod codex_binding;
 mod daemon;
 mod paste;
+mod processes;
 mod protocol;
 mod pty;
 mod session;
@@ -150,7 +151,7 @@ fn run() -> io::Result<i32> {
         return Ok(0);
     }
     if command == "help" || command == "--help" {
-        println!("Zshell remote server (macOS / Linux)\n\nUsage: zshell-server COMMAND [--state PATH] [--project PATH] [--session UUID]\n\n  serve       Run the PTY daemon in the foreground\n  start       Start an owner-only daemon in the background\n  bridge      SSH stdio bridge; starts the daemon when needed\n  status      Inspect a running daemon without starting it\n  projects    List the daemon's project directories\n  list        List sessions in --project\n  create      Create a persistent shell; optional --session UUID and -- /absolute/program args\n  attach      Attach to --session in --project; Ctrl-] detaches\n  terminate   End --session and all its jobs in --project\n  stop        End all remote sessions and stop this daemon\n\nserve --listen tailscale://:7373 [--allow-user alice@example.com]\nClients can add --tcp devbox:7373 for a Tailscale connection.\nAll session operations require their project directory. SSH keeps ~/.ssh/config and agent authentication.");
+        println!("Zshell remote server (macOS / Linux)\n\nUsage: zshell-server COMMAND [--state PATH] [--project PATH] [--session UUID]\n\n  serve       Run the PTY daemon in the foreground\n  start       Start an owner-only daemon in the background\n  bridge      SSH stdio bridge; starts the daemon when needed\n  status      Inspect a running daemon without starting it\n  projects    List the daemon's project directories\n  list        List sessions in --project\n  create      Create a persistent shell; optional --session UUID and -- /absolute/program args\n  attach      Attach to --session in --project; Ctrl-] detaches\n  terminate   End --session and all its jobs in --project\n  processes   List the processes running under --session in --project\n  stop        End all remote sessions and stop this daemon\n\nserve --listen tailscale://:7373 [--allow-user alice@example.com]\nClients can add --tcp devbox:7373 for a Tailscale connection.\nAll session operations require their project directory. SSH keeps ~/.ssh/config and agent authentication.");
         return Ok(0);
     }
     match command {
@@ -222,7 +223,7 @@ fn run() -> io::Result<i32> {
     let method = match command {
         "status" => "hello",
         "stop" => "shutdown",
-        "projects" | "list" | "create" | "terminate" => command,
+        "projects" | "list" | "create" | "terminate" | "processes" => command,
         "attach" => return attach(stream, &options),
         _ => return Err(invalid("Unknown command; use zshell-server help")),
     };

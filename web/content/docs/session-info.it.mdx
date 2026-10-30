@@ -24,6 +24,8 @@ Tutti i processi sotto la shell della sessione, con PID, percentuale CPU e memor
 
 I processi figli già terminati ma ancora in attesa di essere raccolti (`<defunct>`) sono esclusi: non c'è nulla da esaminare o terminare.
 
+In una sessione remota condivisa, l'elenco arriva dallo zshell-server dell'host e si aggiorna ogni pochi secondi. Quelle righe offrono solo **Copia PID** / **Copia percorso eseguibile**; i terminali SSH semplici non hanno elenco, perché in locale gira solo il client `ssh`.
+
 ## Porte [#ports]
 
 Sono elencate le porte TCP su cui ascoltano questi processi, insieme al proprietario. Serve per rispondere a domande quotidiane come *quale porta ha scelto stavolta il server di sviluppo* o *cosa occupa ancora la 3000*.
