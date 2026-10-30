@@ -194,3 +194,9 @@ A lista completa de comandos comuns permanece disponível; só a prioridade muda
 Editores locais são identificados pelo executável em primeiro plano. Em SSH, Mosh ou multiplexadores, a detecção usa a linha visível de modo/status e o layout da tela sem instalar plugin remoto. Mantenha `showmode` ou uma linha de status reconhecível. Configurações que ocultam ou renomeiam modos podem retornar às dicas Normal ou impedir a detecção remota; mapeamentos personalizados não são interpretados. Apenas o painel Info ativo é amostrado; as dicas somem quando muda o programa em primeiro plano ou o editor deixa de ser reconhecível.
 
 Você também pode ativar no arquivo com `terminal.vim-command-hints = true`.
+
+## Autocompletar do shell
+
+Ative **Ajustes → Terminal → Comportamento → Autocompletar do shell** (ativado por padrão) e abra um novo terminal zsh. Comandos, subcomandos, argumentos e caminhos usam funções do shell com sugestões cinzas. **Seta direita** aceita no fim da entrada; **Tab** abre opções, as setas selecionam, **Return** aceita sem executar e **Esc** ou **Ctrl+G** cancela o menu. **Esc** também fecha a sugestão. Plugins e atalhos existentes são preservados.
+
+Os plugins incluídos não alteram `.zshrc`. Programas em tela cheia recebem sua própria entrada. Com zshell-server compatível e zsh, projetos remotos usam comandos e caminhos remotos; outros shells mantêm sua conclusão nativa. Aplica-se a novos shells e sessões remotas. Desative com `terminal.shell-completions = false`.

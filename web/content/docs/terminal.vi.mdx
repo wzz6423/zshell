@@ -194,3 +194,9 @@ Toàn bộ danh sách lệnh thông dụng luôn còn; chỉ ưu tiên thay đ�
 Trình soạn thảo cục bộ được nhận diện qua chương trình tiền cảnh. Trong SSH, Mosh hoặc bộ ghép terminal, việc phát hiện dùng dòng chế độ/trạng thái Vim nhìn thấy và bố cục màn hình, không cài plugin từ xa. Giữ `showmode` hoặc dòng trạng thái dễ nhận diện. Cấu hình giấu/đổi nhãn chế độ có thể trở về gợi ý Normal hoặc ngăn nhận diện từ xa; ánh xạ phím tùy chỉnh không được diễn giải. Chỉ bảng Thông tin đang hoạt động được lấy mẫu; gợi ý biến mất khi chương trình tiền cảnh đổi hoặc không còn nhận ra trình soạn thảo.
 
 Cũng có thể bật bằng `terminal.vim-command-hints = true` trong cấu hình.
+
+## Hoàn thành lệnh shell
+
+Bật **Cài đặt → Terminal → Hành vi → Hoàn thành lệnh shell** (mặc định bật), rồi mở terminal zsh mới. Lệnh, lệnh con, tham số và đường dẫn dùng hàm hoàn thành của shell với gợi ý màu xám. **Mũi tên phải** chấp nhận ở cuối đầu vào; **Tab** mở lựa chọn, mũi tên chọn, **Return** chấp nhận mà không chạy, **Esc** hoặc **Ctrl+G** hủy menu. **Esc** cũng đóng gợi ý. Plugin và phím tắt hiện có được giữ nguyên.
+
+Plugin đi kèm không sửa `.zshrc`. Chương trình toàn màn hình nhận đầu vào riêng. Với zshell-server tương thích và zsh, dự án từ xa dùng lệnh và đường dẫn từ xa; shell khác giữ hoàn thành gốc. Áp dụng cho shell và phiên từ xa mới. Tắt bằng `terminal.shell-completions = false`.

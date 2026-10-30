@@ -89,8 +89,16 @@ struct SettingsReloadTests {
         withExtendedLifetime(observation) {}
         wait({ FileManager.default.fileExists(atPath: url.path) }, "initial config save")
         check(!settings.focusFollowsMouse, "pointer focus is disabled by default")
+        check(settings.shellCompletions, "shell completions are enabled by default")
         check(settings.vimCommandHints && settings.restoreTerminalHistory && settings.notifyOnError,
               "new configurations use the enabled preference defaults")
+        settings.shellCompletions = false
+        wait({ (try? String(contentsOf: url, encoding: .utf8))?.contains("terminal.shell-completions = false") == true },
+             "completion preference persists")
+        var completionConfig = TOML.parse(at: url) ?? [:]
+        completionConfig["terminal.shell-completions"] = .bool(true)
+        settings.applyImported(completionConfig)
+        check(settings.shellCompletions, "import restores the completion preference")
         spin(0.4)
         let configuration = """
         app-icon = "light"

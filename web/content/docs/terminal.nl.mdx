@@ -194,3 +194,9 @@ De volledige lijst met veelgebruikte opdrachten blijft beschikbaar; alleen de pr
 Lokale editors worden herkend aan hun uitvoerbare voorgrondprogramma. Binnen SSH, Mosh of een terminalmultiplexer gebruikt de detectie de zichtbare Vim-modus- of statusregel en schermindeling, zonder een externe plug-in te installeren. Houd Vim's `showmode` of een herkenbare statusregel ingeschakeld. Configuraties die moduslabels verbergen of hernoemen, kunnen terugvallen op hulp voor de normale modus of externe detectie verhinderen; aangepaste toetsbindingen worden niet geïnterpreteerd. Alleen het actieve Info-paneel wordt bemonsterd. De hulp verdwijnt wanneer het voorgrondprogramma verandert of de editor niet meer herkenbaar is.
 
 Je kunt dit ook in het configuratiebestand inschakelen met `terminal.vim-command-hints = true`.
+
+## Shell-aanvulling
+
+Schakel **Instellingen → Terminal → Gedrag → Shell-aanvulling** in (standaard aan) en open een nieuwe zsh-terminal. Opdrachten, subopdrachten, argumenten en paden gebruiken shellfuncties met grijze suggesties. **Pijl-rechts** accepteert aan het einde; **Tab** opent kandidaten, pijlen kiezen, **Return** accepteert zonder uit te voeren en **Esc** of **Ctrl+G** annuleert het menu. **Esc** sluit ook de suggestie. Bestaande plug-ins en sneltoetsen blijven behouden.
+
+De meegeleverde plug-ins wijzigen `.zshrc` niet. Schermvullende programma’s ontvangen hun eigen invoer. Met een compatibele zshell-server en zsh gebruiken externe projecten externe opdrachten en paden; andere shells behouden hun eigen aanvulling. Geldt voor nieuwe shells en externe sessies. Uitschakelen: `terminal.shell-completions = false`.

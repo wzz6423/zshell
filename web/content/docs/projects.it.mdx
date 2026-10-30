@@ -82,6 +82,19 @@ I titoli seguono ciò che riporta il terminale: la sequenza di escape del prompt
 
 Il resto del menu comprende **Chiudi**, **Chiudi altre**, **Chiudi schede a destra**, **Chiudi tutte**, più **Mostra nel Finder** e **Copia percorso assoluto** per la directory della sessione. **Chiudi file** e **Chiudi diff** rimuovono quei tipi di contenuto dall'intero progetto lasciando intatti terminali e browser.
 
+## Modelli di area di lavoro [#workspace-templates]
+
+Usa **File → Modelli di area di lavoro → Salva progetto come modello…** per salvare schede, divisioni annidate e proporzioni, directory, programmi di avvio, comandi di inizializzazione e pagine del browser. **Modelli di area di lavoro…** permette di selezionare, rinominare, modificare il JSON, eliminare, importare ed esportare.
+
+Controlla percorsi e comandi, scegli la **Radice del progetto** e premi **Applica modello**. Viene creato un nuovo progetto con nuovi terminali e vengono eseguiti i comandi mostrati. Salvataggio, importazione e modifica non eseguono comandi. Tutte le directory e gli eseguibili vengono controllati prima della creazione.
+
+I percorsi del progetto di origine sono relativi alla radice scelta (`.` o `api`); gli altri restano assoluti e devono esistere su questo Mac. **Modifica…** permette di cambiare `arguments`, comandi di inizializzazione, URL e `fraction` nel JSON. La frazione è la quota del primo figlio, maggiore di 0 e minore di 1. Usa un programma con argomenti oppure un comando di inizializzazione della shell di login. Gli errori di file, versione o percorso appaiono nella finestra.
+
+I riquadri di editor e diff diventano terminali alla radice, mantenendo la posizione. Progetto originale, modifiche non salvate e PTY attivi restano intatti. Cronologia, identità degli agenti, proprietà dei worktree e autenticazione del browser sono esclusi. Gli URL salvati omettono credenziali, query e frammenti; puoi aggiungere una query pubblica nel JSON. Le pagine usano il profilo esistente sul Mac di destinazione senza copiare cookie o archiviazione.
+
+I progetti su un host remoto salvato possono essere salvati come modelli remoti. Il JSON conserva solo il nome salvato dell’host in `remote.host` e la directory del progetto in `remote.directory` (assoluta o che inizia con `~/`); ogni riquadro di terminale usa `.`. Indirizzi, percorsi del server, credenziali e ID delle sessioni remote non vengono mai salvati e le importazioni che li contengono vengono rifiutate. Per applicare un modello remoto scegli un host salvato (quello con lo stesso nome è preselezionato; se manca, la finestra ti chiede di sceglierne un altro o di aggiungerlo in **Host remoti**) e conferma la **Directory remota**. Zshell si connette, crea un nuovo progetto condiviso e avvia nuove sessioni remote; non ricollega mai le sessioni esistenti. Se la connessione o la directory non riescono, non viene creato alcun progetto. I progetti aperti con il vecchio modulo SSH non possono essere salvati come modelli.
+
+
 ## Finestre [#windows]
 
 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> apre un'altra finestra. Le finestre sono indipendenti, ciascuna con progetti e stato laterale propri, e vengono ripristinate separatamente.

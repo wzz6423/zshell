@@ -82,6 +82,19 @@ Tab-Titel stammen aus den Meldungen des Terminals: aus der Escape-Sequenz Ihres 
 
 Weitere Einträge sind **Schließen**, **Andere schließen**, **Tabs rechts schließen**, **Alle schließen** sowie **Im Finder zeigen** und **Absoluten Pfad kopieren** für das Sitzungsverzeichnis. **Dateien schließen** und **Diffs schließen** entfernen diese Inhalte im gesamten Projekt; Terminals und Browserbereiche bleiben offen.
 
+## Arbeitsbereichsvorlagen [#workspace-templates]
+
+Mit **Ablage → Arbeitsbereichsvorlagen → Projekt als Vorlage sichern…** sichern Sie Tabs, verschachtelte Teilungen und Verhältnisse, Bereichsverzeichnisse, Startprogramme, Initialisierungsbefehle und Browserseiten. In **Arbeitsbereichsvorlagen…** können Sie Vorlagen auswählen, umbenennen, als JSON bearbeiten, löschen, importieren und exportieren.
+
+Prüfen Sie Pfade und Befehle in der Vorschau, wählen Sie die **Projektwurzel** und klicken Sie auf **Vorlage anwenden**. Ein neues Projekt mit neuen Terminals wird erstellt und die angezeigten Befehle werden gestartet. Sichern, Importieren und Bearbeiten führen keine Befehle aus. Alle Verzeichnisse und Programme werden vor der Erstellung geprüft.
+
+Pfade innerhalb des Quellprojekts sind relativ zur gewählten Wurzel (`.` oder etwa `api`); andere bleiben absolut und müssen auf diesem Mac existieren. Mit **Bearbeiten…** ändern Sie `arguments`, Initialisierungsbefehle, URLs und `fraction` im JSON. Die Fraction ist der Anteil des ersten Kindes und muss größer als 0 und kleiner als 1 sein. Verwenden Sie ein Programm mit Argumenten oder einen Initialisierungsbefehl der Login-Shell. Datei-, Versions- und Pfadfehler erscheinen im Fenster.
+
+Editor- und Diff-Bereiche werden bei gleicher Position zu neuen Terminals an der Wurzel. Quellprojekt, ungesicherte Änderungen und laufende PTYs bleiben erhalten. Verlauf, Agent-Identitäten, Worktree-Zuordnung und Browseranmeldung werden ausgelassen. Gesicherte URLs enthalten keine Zugangsdaten, Abfragezeichenfolgen oder Fragmente; öffentliche Abfragen können im JSON ergänzt werden. Seiten nutzen das vorhandene Profil des Ziel-Macs, ohne Cookies oder Speicher zu kopieren.
+
+Projekte auf einem gespeicherten Remote-Host können als Remote-Vorlagen gesichert werden. Das JSON speichert nur den gespeicherten Namen des Hosts in `remote.host` und das Projektverzeichnis in `remote.directory` (absolut oder mit `~/` beginnend); jedes Terminal nutzt `.`. Adressen, Serverpfade, Zugangsdaten und Remote-Sitzungs-IDs werden nie gespeichert, und Importe mit solchen Feldern werden abgelehnt. Wählen Sie beim Anwenden einen gespeicherten Host (ein Host mit gleichem Namen ist vorausgewählt; fehlt er, fordert das Fenster Sie auf, einen anderen zu wählen oder ihn unter **Remote-Hosts** hinzuzufügen) und bestätigen Sie das **Entfernte Verzeichnis**. Zshell verbindet sich, erstellt ein neues gemeinsames Projekt und startet dort neue Remote-Sitzungen; bestehende Sitzungen werden nie erneut verbunden. Schlagen Verbindung oder Verzeichnis fehl, wird kein Projekt erstellt. Über das alte SSH-Formular geöffnete Projekte können nicht als Vorlagen gesichert werden.
+
+
 ## Fenster [#windows]
 
 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> öffnet ein weiteres Fenster. Jedes Fenster hat unabhängige Projekte und Seitenleisteneinstellungen und wird separat wiederhergestellt.
