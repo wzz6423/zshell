@@ -119,8 +119,10 @@ with tempfile.TemporaryDirectory(prefix="zshell-pr-status-") as directory:
             git(temporary, "clone", "-q", str(repo), str(checkout))
             git(checkout, "remote", "set-url", "origin", "git@github.com:example/fork.git")
             git(checkout, "remote", "add", "upstream", "https://github.com/example/base.git")
+            # An inherited proxy would hide whether the Settings proxy is applied.
             env = {key: value for key, value in os.environ.items()
-                   if not key.startswith("ZSHELL_") and not key.startswith("GH_")}
+                   if not key.startswith(("ZSHELL_", "GH_", "GIT_CONFIG_"))
+                   and key.lower() not in ("http_proxy", "https_proxy", "all_proxy")}
             env.update({"HOME": str(fixture), "CFFIXED_USER_HOME": str(fixture), "ZDOTDIR": str(fixture),
                         "PATH": f"{bindir}:/usr/bin:/bin:/usr/sbin:/sbin",
                         "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null",
