@@ -403,6 +403,16 @@ fn concurrent_creates_spawn_one_session_per_id() {
 }
 
 #[test]
+fn shutdown_rejects_new_sessions() {
+    let fixture = Fixture::new();
+    fixture.daemon.request(&Frame::new("shutdown")).unwrap();
+    let mut create = fixture.request("create", &new_id().unwrap());
+    create.command = Some(vec!["/bin/sh".into(), "-i".into()]);
+    let error = fixture.daemon.request(&create).unwrap_err();
+    assert!(error.to_string().contains("shutting down"));
+}
+
+#[test]
 fn shutdown_ends_sessions_that_are_still_starting() {
     let mut raced = 0;
     for _ in 0..20 {

@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::io;
 use std::net::{SocketAddr, TcpListener};
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -17,6 +18,7 @@ pub struct Daemon {
     sessions: Arc<Mutex<HashMap<String, Arc<Session>>>>,
     /// Reservation key to the session ID it is spawning.
     starting: Mutex<HashMap<String, String>>,
+    shutting_down: AtomicBool,
     instance_id: String,
     paste_store: PasteStore,
     state_path: std::path::PathBuf,
@@ -36,6 +38,7 @@ impl Daemon {
         Ok(Arc::new(Self {
             sessions: Arc::new(Mutex::new(HashMap::new())),
             starting: Mutex::new(HashMap::new()),
+            shutting_down: AtomicBool::new(false),
             instance_id: new_id()?,
             paste_store: PasteStore::new(state)?,
             state_path: state.into(),
@@ -326,6 +329,7 @@ impl Daemon {
                 // reserved under it is listed, so none outlives the daemon.
                 loop {
                     let sessions = self.sessions.lock().unwrap();
+                    self.shutting_down.store(true, Ordering::Release);
                     if self.starting.lock().unwrap().is_empty() {
                         for session in sessions.values() {
                             session.terminate();
@@ -349,6 +353,11 @@ impl Daemon {
     ) -> io::Result<Value> {
         let evicted = {
             let mut sessions = self.sessions.lock().unwrap();
+            // Share the reservation lock with shutdown so no shell starts after
+            // its final termination scan and outlives the daemon.
+            if self.shutting_down.load(Ordering::Acquire) {
+                return Err(invalid("Remote server is shutting down"));
+            }
             if let Some(info) = existing(&sessions)? {
                 return Ok(json!(info));
             }
