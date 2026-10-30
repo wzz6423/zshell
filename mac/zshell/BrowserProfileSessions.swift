@@ -53,7 +53,8 @@ nonisolated enum BrowserProfileSessionReader {
                 result.total += 1
                 guard (tab["userContextId"] as? Int ?? 0) == 0,
                       let entries = tab["entries"] as? [[String: Any]], !entries.isEmpty else { result.skipped += 1; continue }
-                let index = max(0, min((tab["index"] as? Int ?? entries.count) - 1, entries.count - 1))
+                let selected = tab["index"] as? Int ?? entries.count
+                let index = min(max(1, selected), entries.count) - 1
                 let entry = entries[index]
                 guard let url = entry["url"] as? String, BrowserImportedPage.safeURL(url) else { result.skipped += 1; continue }
                 result.values.append(BrowserImportedPage(url: url, title: entry["title"] as? String ?? "", visitedAt: 0))

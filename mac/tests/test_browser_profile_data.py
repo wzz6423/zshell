@@ -1,6 +1,7 @@
 """Exercise browser profile parsing with disposable data; no real browser files or keychains."""
 import base64
 import hashlib
+import json
 from pathlib import Path
 import sqlite3
 import struct
@@ -73,6 +74,17 @@ def prepare(home):
     with sqlite3.connect(firefox / "places.sqlite") as db:
         db.executescript("CREATE TABLE moz_places (url TEXT,title TEXT,last_visit_date INTEGER); INSERT INTO moz_places VALUES ('https://example.test/firefox','Fixture',1700000000000000),('https://example.test/bookmark','Unvisited',NULL);")
     (firefox / "sessionstore.jsonlz4").write_bytes(FIREFOX_SESSION)
+    for name, index in (("minimum-index", -(2**63)), ("maximum-index", 2**63 - 1)):
+        payload = json.dumps({"windows": [{"tabs": [{"entries": [{"url": "https://example.test/boundary"}],
+                                                   "index": index}]}]}).encode()
+        remaining = len(payload) - 15
+        block = bytearray([15 << 4])
+        while remaining >= 255:
+            block.append(255)
+            remaining -= 255
+        block.append(remaining)
+        block.extend(payload)
+        (firefox / f"{name}.jsonlz4").write_bytes(b"mozLz40\0" + len(payload).to_bytes(4, "little") + block)
 
 
 with tempfile.TemporaryDirectory(prefix="zshell-browser-profile-test-", dir="/tmp") as temporary:

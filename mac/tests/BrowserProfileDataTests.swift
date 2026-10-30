@@ -33,6 +33,12 @@ struct BrowserProfileDataTests {
         try Data("bad".utf8).write(to: bad)
         do { _ = try BrowserProfileSessionReader.firefox(bad); fatalError("Invalid LZ4 accepted") }
         catch BrowserProfileSessionReader.ReadError.invalidFile { }
+        let minimumIndex = firefox.directory.appendingPathComponent("minimum-index.jsonlz4")
+        let maximumIndex = firefox.directory.appendingPathComponent("maximum-index.jsonlz4")
+        for file in [minimumIndex, maximumIndex] {
+            let boundary = try BrowserProfileSessionReader.firefox(file)
+            precondition(boundary.values.map(\.url) == ["https://example.test/boundary"])
+        }
         let invalidDirectory = home.appendingPathComponent("invalid-profile")
         try FileManager.default.createDirectory(at: invalidDirectory, withIntermediateDirectories: true)
         try Data("invalid SQLite".utf8).write(to: invalidDirectory.appendingPathComponent("cookies.sqlite"))
