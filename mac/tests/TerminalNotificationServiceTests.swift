@@ -256,5 +256,43 @@ struct TerminalNotificationServiceTests {
         precondition(reportedHistory.records.contains { $0.message.contains("finished") })
         await reportedHistory.flush()
         print("PASS a live program report does not turn a native agent's working or blocked states into completions")
+
+        let clearedHistory = TerminalNotificationHistoryStore(url: root.appendingPathComponent("cleared/records.json"))
+        let clearedDelivery = NotificationDeliveryFixture()
+        clearedDelivery.current = .init(status: .allowed)
+        let clearedService = TerminalNotificationService(history: clearedHistory, delivery: clearedDelivery)
+        await clearedHistory.flush()
+        let program = TerminalSession()
+        func report(_ phase: ZshellAgentPhase?) {
+            let previous = program.agentStatus
+            program.agentStatus = phase.map { ZshellAgentStatus(alias: "Program", kind: .codex, phase: $0,
+                authority: .report, reason: "fixture", updatedAt: Date(), processID: 42,
+                unseen: false, progress: nil, attention: .input, tasks: []) }
+            clearedService.agentChanged(in: program, previous: previous)
+        }
+        report(.blocked)
+        await settle()
+        let firstRequest = clearedHistory.filtered(.pending).first!
+        clearedService.markRead(id: firstRequest.id)
+        report(nil)
+        report(.blocked)
+        await settle()
+        let secondRequest = clearedHistory.filtered(.pending).first!
+        precondition(secondRequest.id != firstRequest.id && !secondRequest.isRead)
+        precondition(clearedDelivery.delivered.map(\.id) == [firstRequest.id, secondRequest.id])
+        await clearedHistory.flush()
+        print("PASS clearing a program report ends its episode so an identical new request alerts again")
+
+        let loadingDelivery = NotificationDeliveryFixture()
+        loadingDelivery.current = .init(status: .allowed)
+        let loadingHistory = TerminalNotificationHistoryStore(url: root.appendingPathComponent("loading/records.json"))
+        let loadingService = TerminalNotificationService(history: loadingHistory, delivery: loadingDelivery)
+        precondition(loadingHistory.isLoading)
+        for index in 0..<3 { loadingService.post(message: "Before load \(index)", sessionID: UUID()) }
+        await loadingHistory.flush()
+        await settle()
+        precondition(Set(loadingDelivery.delivered.map(\.message)) == ["Before load 0", "Before load 1", "Before load 2"],
+                     "\(loadingDelivery.delivered.map(\.message))")
+        print("PASS every banner posted before history finishes loading is delivered after it loads")
     }
 }

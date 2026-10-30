@@ -74,7 +74,7 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
     private var isCheckingSettings = false
     private var isRequestingAuthorization = false
     private var deliveryCandidates: [UUID] = []
-    private var waitingForHistory: String?
+    private var waitingForHistory: [String] = []
     private var loadingAgents: [String: AgentSample] = [:]
     /// Separate windows can attach to one remote session and poll its status
     /// independently, so a lagging pane may still report an older generation.
@@ -143,7 +143,9 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
         let result = history.note(message: message, target: target, kind: kind, eventKey: eventKey,
                                   isFailure: isFailure, isPending: isPending)
         guard notify, result.isNew, let record = result.record else { return }
-        if history.isLoading { waitingForHistory = record.eventKey }
+        if history.isLoading {
+            waitingForHistory = Array((waitingForHistory + [record.eventKey]).suffix(TerminalNotificationHistoryStore.maximumRecords))
+        }
         else { requestDelivery(id: record.id) }
     }
 
@@ -183,7 +185,15 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
             if let latest = remoteGenerations[source], generation < latest { return }
             remoteGenerations[source] = generation
         }
-        guard let status = sample.status else { history.resolvePending(sourceKey: source); return }
+        guard let status = sample.status else {
+            history.resolvePending(sourceKey: source)
+            // The local report was cleared or expired; remote agents keep their
+            // generation-keyed episodes for replay deduplication.
+            if sample.previous?.authority == .report, sample.remoteGeneration == nil {
+                history.endAgentEpisode(sourceKey: source)
+            }
+            return
+        }
         guard status.authority == .integration || status.authority == .report || status.authority == .command else {
             history.resolvePending(sourceKey: source)
             return
@@ -257,9 +267,11 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
                 continue
             }
         }
-        if let key = waitingForHistory, !history.wasRestored(eventKey: key),
-           let record = history.records.first(where: { $0.eventKey == key }) { requestDelivery(id: record.id) }
-        waitingForHistory = nil
+        let keys = waitingForHistory
+        waitingForHistory.removeAll()
+        for key in keys where !history.wasRestored(eventKey: key) {
+            if let record = history.records.first(where: { $0.eventKey == key }) { requestDelivery(id: record.id) }
+        }
     }
 
     private func requestDelivery(id: UUID) {

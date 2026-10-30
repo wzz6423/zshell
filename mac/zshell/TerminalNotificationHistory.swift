@@ -261,6 +261,14 @@ final class TerminalNotificationHistoryStore: ObservableObject {
         return key
     }
 
+    /// An explicitly cleared report ends its episode, so a later identical
+    /// request is a new event rather than the dismissed one.
+    func endAgentEpisode(sourceKey: String) {
+        guard episodes.contains(where: { $0.sourceKey == sourceKey }) else { return }
+        episodes.removeAll { $0.sourceKey == sourceKey }
+        persist()
+    }
+
     @discardableResult
     func note(message: String, target: TerminalNotificationTarget, kind: TerminalNotificationRecord.Kind = .terminal,
               eventKey: String? = nil, isFailure: Bool = false, isPending: Bool = false,
