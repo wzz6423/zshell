@@ -149,6 +149,7 @@ nonisolated struct RemoteFrame: Codable {
     var command: [String]?
     var environment: [String: String]?
     var initializationCommand: String?
+    var shellCompletions: Bool?
     var columns: Int?
     var rows: Int?
     var data: String?
@@ -405,11 +406,13 @@ nonisolated enum RemoteHostClient {
         }
     }
 
-    static func create(host: RemoteHost, directory: String) throws -> RemoteSessionInfo {
+    static func create(host: RemoteHost, directory: String, sessionID: UUID = UUID(),
+                       command: [String]? = nil, initializationCommand: String? = nil) throws -> RemoteSessionInfo {
         let transport = try RemoteHostTransport(host: host)
         defer { transport.close() }
         try transport.handshake()
-        return try transport.exchange(RemoteFrame(kind: "create", project: directory, sessionId: UUID().uuidString)).decodedResult(RemoteSessionInfo.self)
+        return try transport.exchange(RemoteFrame(kind: "create", project: directory, sessionId: sessionID.uuidString, command: command,
+                                                  initializationCommand: initializationCommand)).decodedResult(RemoteSessionInfo.self)
     }
 
     static func terminate(host: RemoteHost, directory: String, sessionID: UUID) throws {

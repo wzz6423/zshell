@@ -20,6 +20,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
 
     private let optionAsAltSwitch = SettingsSwitch { AppSettings.shared.macosOptionAsAlt = $0 }
     private let vimCommandHintsSwitch = SettingsSwitch { AppSettings.shared.vimCommandHints = $0 }
+    private let shellCompletionsSwitch = SettingsSwitch { AppSettings.shared.shellCompletions = $0 }
     private let terminalBellSwitch = SettingsSwitch { AppSettings.shared.terminalBell = $0 }
     private let shiftEnterNewlineSwitch = SettingsSwitch { AppSettings.shared.shiftEnterNewline = $0 }
     private let restoreHistorySwitch = SettingsSwitch { AppSettings.shared.restoreTerminalHistory = $0 }
@@ -146,6 +147,11 @@ final class SettingsTerminalPane: SettingsPaneViewController {
 
         groups.append(SettingsGroup(header: String(localized: "Behavior"), rows: [
             SettingsRow(
+                title: String(localized: "Shell completions"),
+                description: String(localized: "Suggest commands and arguments in new zsh terminals. Tab shows candidates; Right accepts a suggestion; Esc dismisses it. Existing shell plugins keep their bindings."),
+                control: shellCompletionsSwitch
+            ),
+            SettingsRow(
                 title: String(localized: "Keep sessions running after quitting"),
                 description: String(localized: "New terminals keep shells, agents, and servers running when Zshell quits. Closing a pane ends its tasks. Turn this off before quitting to end all sessions."),
                 control: preserveSessionsSwitch
@@ -224,6 +230,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         cursorBlinkingView.apply(isBlinking: settings.cursorBlinking)
         optionAsAltSwitch.isOn = settings.macosOptionAsAlt
         vimCommandHintsSwitch.isOn = settings.vimCommandHints
+        shellCompletionsSwitch.isOn = settings.shellCompletions
         terminalBellSwitch.isOn = settings.terminalBell
         shiftEnterNewlineSwitch.isOn = settings.shiftEnterNewline
         restoreHistorySwitch.isOn = settings.restoreTerminalHistory

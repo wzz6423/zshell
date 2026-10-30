@@ -16,6 +16,14 @@ Kies een backend onder **Instellingen → Terminal → Backend**:
 
 Beide ondersteunen GPU-versnelling, afbeeldingen, de gedeelde themacatalogus van Zshell, zoeken, muisrapportage, meldingen en voortgangsrapportage. Een backendwijziging geldt alleen voor nieuwe terminals; bestaande deelvensters houden de emulator waarmee ze zijn gestart.
 
+## Opdrachtgeschiedenis [#command-history]
+
+Kies **Terminal → Opdrachtgeschiedenis…** om in Zshell uitgevoerde opdrachten op tekst of map te zoeken. Elke rij toont de oorspronkelijke map, starttijd, duur en afsluitstatus. Klik op een rij of **Uitvoer tonen** om naar het oorspronkelijke deelvenster en de uitvoer terug te gaan. Als het deelvenster is gesloten of de uitvoer gewist, is navigatie niet beschikbaar; **Opdracht kopiëren** blijft werken.
+
+**In terminal invoegen** vult de lege zsh-prompt van het oorspronkelijke deelvenster zonder de opdracht uit te voeren; druk op Return als u klaar bent. Invoegen is uitgeschakeld bij een lopende taak of bestaande invoer. Opdrachten met meerdere regels blijven behouden. De lijst gebruikt opdrachtblokken van Ghostty en Alacritty; opdrachten uit niet ondersteunde of geneste shells kunnen ontbreken.
+
+De geschiedenis wordt lokaal op de achtergrond opgeslagen, tot 2.000 opdrachten en 8 MiB. **Verwijderen** verwijdert de gekozen regel; **Geschiedenis wissen…** verwijdert de opgeslagen lijst. Terminaluitvoer en de eigen shellgeschiedenis blijven bewaard.
+
 ## Je shell blijft hetzelfde [#your-shell-unchanged]
 
 Elke sessie start de inlogshell van je account, zodat je prompt, aliassen, functies en dotfiles worden geladen zoals in elke andere terminal. Zshell voegt variabelen toe voor mogelijkheden en identificatie:
@@ -186,3 +194,9 @@ De volledige lijst met veelgebruikte opdrachten blijft beschikbaar; alleen de pr
 Lokale editors worden herkend aan hun uitvoerbare voorgrondprogramma. Binnen SSH, Mosh of een terminalmultiplexer gebruikt de detectie de zichtbare Vim-modus- of statusregel en schermindeling, zonder een externe plug-in te installeren. Houd Vim's `showmode` of een herkenbare statusregel ingeschakeld. Configuraties die moduslabels verbergen of hernoemen, kunnen terugvallen op hulp voor de normale modus of externe detectie verhinderen; aangepaste toetsbindingen worden niet geïnterpreteerd. Alleen het actieve Info-paneel wordt bemonsterd. De hulp verdwijnt wanneer het voorgrondprogramma verandert of de editor niet meer herkenbaar is.
 
 Je kunt dit ook in het configuratiebestand inschakelen met `terminal.vim-command-hints = true`.
+
+## Shell-aanvulling
+
+Schakel **Instellingen → Terminal → Gedrag → Shell-aanvulling** in (standaard aan) en open een nieuwe zsh-terminal. Opdrachten, subopdrachten, argumenten en paden gebruiken shellfuncties met grijze suggesties. **Pijl-rechts** accepteert aan het einde; **Tab** opent kandidaten, pijlen kiezen, **Return** accepteert zonder uit te voeren en **Esc** of **Ctrl+G** annuleert het menu. **Esc** sluit ook de suggestie. Bestaande plug-ins en sneltoetsen blijven behouden.
+
+De meegeleverde plug-ins wijzigen `.zshrc` niet. Schermvullende programma’s ontvangen hun eigen invoer. Met een compatibele zshell-server en zsh gebruiken externe projecten externe opdrachten en paden; andere shells behouden hun eigen aanvulling. Geldt voor nieuwe shells en externe sessies. Uitschakelen: `terminal.shell-completions = false`.

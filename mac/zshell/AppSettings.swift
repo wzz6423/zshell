@@ -292,6 +292,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var shellCompletions: Bool {
+        didSet { save() }
+    }
+
     /// Send Shift-Return as LF so coding agents can insert a line without
     /// changing plain Return's submit behavior.
     @Published var shiftEnterNewline: Bool {
@@ -509,6 +513,7 @@ final class AppSettings: nonisolated ObservableObject {
         // Older configs omitted these preferences when disabled, so only a
         // new config adopts their enabled defaults.
         vimCommandHints = toml["terminal.vim-command-hints"]?.bool ?? (existing == nil)
+        shellCompletions = toml["terminal.shell-completions"]?.bool ?? true
         terminalBell = toml["terminal.bell"]?.bool ?? true
         shiftEnterNewline = toml["terminal.shift-enter-newline"]?.bool ?? true
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
@@ -711,6 +716,7 @@ final class AppSettings: nonisolated ObservableObject {
         macosOptionAsAlt = false
         terminalBell = true
         vimCommandHints = true
+        shellCompletions = true
         shiftEnterNewline = true
         wrapLines = true
         externalEditor = .systemDefault
@@ -886,6 +892,7 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.macosOptionAsAlt, toml["terminal.macos-option-as-alt"]?.bool ?? false)
         assign(\.terminalBell, toml["terminal.bell"]?.bool ?? true)
         assign(\.vimCommandHints, toml["terminal.vim-command-hints"]?.bool ?? false)
+        assign(\.shellCompletions, toml["terminal.shell-completions"]?.bool ?? true)
         assign(\.shiftEnterNewline, toml["terminal.shift-enter-newline"]?.bool ?? true)
         assign(\.wrapLines, toml["editor.wrap-lines"]?.bool ?? true)
         assign(\.externalEditor, ExternalEditor.persisted(toml["editor.external-editor"]?.string))
@@ -1071,6 +1078,7 @@ final class AppSettings: nonisolated ObservableObject {
             lines.append("terminal.bell = false")
         }
         lines.append("terminal.vim-command-hints = \(vimCommandHints)")
+        lines.append("terminal.shell-completions = \(shellCompletions)")
         if !shiftEnterNewline {
             lines.append("terminal.shift-enter-newline = false")
         }

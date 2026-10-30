@@ -319,7 +319,10 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         commandArguments: [String]? = nil,
         environmentPath: String? = nil,
         tabTitle: String? = nil,
-        worktree: SessionWorktree? = nil
+        worktree: SessionWorktree? = nil,
+        launchSettings: TerminalLaunchSettings? = nil,
+        remoteSessionID: UUID? = nil,
+        usesConfiguredStartupCommand: Bool = true
     ) -> TerminalSession? {
         guard !TerminalManager.isRemovingWorktree(containing: sessionDirectory(directory)) else {
             NSSound.beep()
@@ -329,8 +332,10 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             directory: directory,
             commandArguments: commandArguments,
             environmentPath: environmentPath,
-            launchSettings: launchSettings,
-            worktree: worktree
+            launchSettings: launchSettings ?? self.launchSettings,
+            remoteSessionID: remoteSessionID,
+            worktree: worktree,
+            usesConfiguredStartupCommand: usesConfiguredStartupCommand
         )
         let tab = makeTab(content: .session(session))
         // Only a reopened session carries a title — the user-assigned name
@@ -381,7 +386,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         restoredSessionID: UUID? = nil,
         explicitlyResumeConversation: Bool = false,
         remoteSessionID: UUID? = nil,
-        worktree: SessionWorktree? = nil
+        worktree: SessionWorktree? = nil,
+        usesConfiguredStartupCommand: Bool = true
     ) -> TerminalSession {
         let initialDirectory: String?
         let launchArguments: [String]?
@@ -491,7 +497,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             explicitlyResumeConversation: explicitlyResumeConversation,
             remoteConnection: remoteConnection,
             remotePasteTarget: remotePasteTarget,
-            resolvesSSHAgent: isRemote
+            resolvesSSHAgent: isRemote,
+            usesConfiguredStartupCommand: usesConfiguredStartupCommand
         )
         register(session)
         if let sshMaterial {
@@ -1404,6 +1411,55 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     }
 
     // MARK: - Layout mutation plumbing
+
+    /// Uses the normal creation path for the first leaf, then wires its
+    /// siblings without inserting temporary tabs or reconnecting saved PTYs.
+    /// `remoteSessionIDs` names remote sessions created moments ago by the
+    /// application preflight, keyed by pane position.
+    func appendTemplateTab(_ recipe: WorkspaceTemplate.Tab, remoteSessionIDs: [Int: UUID] = [:]) {
+        let contents = WorkspaceTemplate.contents(in: recipe.layout)
+        let commands = Dictionary(uniqueKeysWithValues: recipe.terminals.map { ($0.paneIndex, $0) })
+        guard let first = contents.first else { return }
+        switch first {
+        case .session(let directory):
+            guard newSession(
+                directory: directory, commandArguments: commands[0]?.argv,
+                launchSettings: TerminalLaunchSettings(initializationCommand: commands[0]?.initializationCommand),
+                remoteSessionID: remoteSessionIDs[0], usesConfiguredStartupCommand: false
+            ) != nil else { return }
+        case .browser(let url):
+            newBrowserTab(initialURL: url, initialFocus: .none)
+        case .file, .diff, .commitDiff: return
+        }
+        guard let tab = selectedTab, let firstPane = tab.allPanes.first else { return }
+        var index = 0
+        func rebuild(_ snapshot: WorkspaceTemplate.Layout) -> PaneNode {
+            switch snapshot {
+            case .pane(let pane):
+                let paneIndex = index
+                index += 1
+                if paneIndex == 0 { return .pane(firstPane) }
+                let content: PaneContent
+                switch pane.content {
+                case .session(let directory):
+                    content = .session(makeSession(
+                        directory: directory, commandArguments: commands[paneIndex]?.argv,
+                        launchSettings: TerminalLaunchSettings(initializationCommand: commands[paneIndex]?.initializationCommand),
+                        remoteSessionID: remoteSessionIDs[paneIndex], usesConfiguredStartupCommand: false
+                    ))
+                case .browser(let url): content = .browser(makeBrowser(initialURL: url, initialFocus: .none))
+                case .file, .diff, .commitDiff: preconditionFailure("Template layouts are validated before application")
+                }
+                return .pane(Pane(content: content))
+            case .split(let axis, let fraction, let first, let second):
+                return .split(PaneSplit(axis: axis, fraction: CGFloat(fraction),
+                                       first: rebuild(first), second: rebuild(second)))
+            }
+        }
+        tab.layout = rebuild(recipe.layout)
+        tab.focusedPaneID = tab.allPanes[recipe.focusedPaneIndex].id
+        tab.customName = recipe.name
+    }
 
     private func makeTab(
         content: PaneContent,

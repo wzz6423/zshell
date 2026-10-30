@@ -16,6 +16,14 @@ Elige un motor en **Ajustes → Terminal → Motor**:
 
 Ambos admiten aceleración por GPU, imágenes, el catálogo de temas compartido de Zshell, búsqueda, notificación de eventos del ratón, notificaciones e informes de progreso. Cambiar de motor solo afecta a los terminales nuevos; los paneles existentes conservan el emulador con el que se iniciaron.
 
+## Historial de comandos [#command-history]
+
+Abre **Terminal → Historial de comandos…** para buscar comandos ejecutados en Zshell por texto o directorio. Cada fila muestra el directorio original, la hora de inicio, la duración y el estado de salida. Haz clic en una fila o en **Mostrar salida** para volver al panel y la salida originales. Si el panel está cerrado o la salida se ha borrado, no podrás saltar a ella; **Copiar comando** sigue disponible.
+
+**Insertar en el terminal** rellena el prompt zsh vacío del panel original sin ejecutar el comando; pulsa Return cuando estés listo. Se desactiva si el panel está ocupado o contiene un borrador. Los comandos multilínea se conservan. La lista usa la integración de bloques de Ghostty y Alacritty, por lo que pueden faltar comandos de shells no compatibles o anidados.
+
+El historial se guarda localmente en segundo plano, con un límite de 2.000 comandos y 8 MiB. **Eliminar** quita el registro seleccionado; **Borrar historial…** quita la lista guardada. Se conservan la salida del terminal y el historial propio del shell.
+
 ## Tu shell, sin cambios [#your-shell-unchanged]
 
 Cada sesión inicia el shell de inicio de sesión de tu cuenta, así que el prompt, los alias, las funciones y los archivos de configuración se cargan igual que en cualquier terminal. Zshell añade variables de capacidades e identidad:
@@ -187,3 +195,9 @@ Las sugerencias son una referencia; nunca envían entrada al editor.
 Los editores locales se identifican por su ejecutable en primer plano. Dentro de SSH, Mosh o un multiplexor de terminal, la detección usa la línea visible de modo o estado de Vim y la distribución de pantalla, sin instalar un complemento remoto. Mantén activado `showmode` de Vim o una línea de estado reconocible. Las configuraciones que ocultan o renombran las etiquetas de modo pueden mostrar las sugerencias de Normal o impedir la detección remota; no se interpretan asignaciones de teclas personalizadas. Solo se examina el panel Información activo, y las sugerencias desaparecen cuando cambia el programa en primer plano o el editor deja de ser reconocible.
 
 También puedes activarlas en el archivo de configuración con `terminal.vim-command-hints = true`.
+
+## Autocompletado del shell
+
+Activa **Ajustes → Terminal → Comportamiento → Autocompletado del shell** (activado por defecto) y abre una terminal zsh nueva. Comandos, subcomandos, argumentos y rutas usan funciones del shell con sugerencias grises. **Flecha derecha** acepta al final de la entrada; **Tab** abre opciones, las flechas seleccionan y **Return** acepta sin ejecutar. **Esc** o **Ctrl+G** cancela el menú; **Esc** también cierra la sugerencia. Se conservan plugins y atajos existentes.
+
+Los plugins incluidos no modifican `.zshrc`. Los programas de pantalla completa reciben su propia entrada. Con zshell-server compatible y zsh, los proyectos remotos usan comandos y rutas remotos; otros shells mantienen su autocompletado nativo. Se aplica a nuevos shells y sesiones remotas. `terminal.shell-completions = false` desactiva la función.

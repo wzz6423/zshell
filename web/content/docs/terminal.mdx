@@ -22,6 +22,14 @@ find, mouse reporting, notifications, and progress reports. A backend change
 applies to new terminals only—existing panes keep the emulator they started
 with.
 
+## Command history [#command-history]
+
+Choose **Terminal → Command History…** to search commands run in Zshell by command text or directory. Each row shows the original directory, start time, duration and exit status. Click a row or use **Show Output** to return to its original pane and command output. If the pane is closed or that output has been cleared, navigation is unavailable; **Copy Command** still works.
+
+**Insert into Terminal** fills the original pane’s empty zsh prompt without running the command; press Return when ready. It is disabled while that pane is busy or has draft input. Multiline commands remain multiline. The list uses Zshell’s command-block integration on Ghostty and Alacritty, so commands in unsupported or nested shells may not appear.
+
+History is saved locally in the background, with a limit of 2,000 commands and 8 MiB. **Delete** removes the selected record; **Clear History…** removes the saved list. These actions leave terminal output and the shell’s own history in place.
+
 ## Your shell, unchanged
 
 Each session starts your account's login shell, so your prompt, aliases,
@@ -304,3 +312,9 @@ when the foreground program changes or the editor is no longer recognizable.
 
 You can also enable it in the configuration file with
 `terminal.vim-command-hints = true`.
+
+## Shell completions
+
+Enable **Settings → Terminal → Behavior → Shell completions** (on by default) and open a new zsh terminal. Commands, subcommands, arguments, and paths use the shell’s completion functions, with gray inline suggestions. **Right** accepts an inline suggestion at the end of the input; **Tab** opens candidates, arrow keys select, **Return** accepts a candidate without running it, and **Esc** or **Ctrl+G** cancels the menu. **Esc** dismisses an inline suggestion. Existing completion plugins and custom keys keep their behavior.
+
+Zshell loads bundled zsh-completions and zsh-autosuggestions without editing `.zshrc`. Full-screen programs receive their own input. Remote projects use the remote shell’s commands and paths when a compatible zshell-server and zsh are installed; other shells retain their native completion. Changes apply to new shells, including new remote sessions. Set `terminal.shell-completions = false` to disable the bundled support.

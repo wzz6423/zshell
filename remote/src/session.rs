@@ -222,6 +222,11 @@ impl Session {
         {
             return Err(invalid("Invalid remote terminal environment"));
         }
+        let completion_integration = if request.shell_completions == Some(true)
+            && request.command.as_ref().is_none_or(Vec::is_empty)
+        {
+            crate::shell_completions::Integration::prepare(state_path, &mut environment)?
+        } else { None };
         let hook_token = new_id()? + &new_id()?;
         for (key, value) in [("ZSHELL_AUTOMATION", "1".into()), ("ZSHELL_AUTOMATION_TOKEN", hook_token.clone()),
             ("ZSHELL_TERMINAL_ID", id.to_ascii_lowercase()), ("ZSHELL_REMOTE_PROJECT", project.clone()),
@@ -299,6 +304,7 @@ impl Session {
         let reaper_session = session.clone();
         thread::spawn(move || {
             let code = child.wait();
+            drop(completion_integration);
             let _ = drained_receiver.recv_timeout(Duration::from_secs(2));
             let mut state = reaper_session.state.lock().unwrap();
             state.info.running = false;

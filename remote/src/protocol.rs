@@ -38,6 +38,8 @@ pub struct Frame {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub initialization_command: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shell_completions: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub columns: Option<u16>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rows: Option<u16>,
@@ -80,6 +82,7 @@ impl Frame {
             command: None,
             environment: None,
             initialization_command: None,
+            shell_completions: None,
             columns: None,
             rows: None,
             data: None,

@@ -37,22 +37,26 @@ class PromptSelectionTests(unittest.TestCase):
                           "struct AppSettings {\n"
                           "static var shared = AppSettings()\n"
                           "var notifyFinishSeconds = 0\n"
-                          "var notifyOnError = false\n}\n"
+                          "var notifyOnError = false\n"
+                          "var shellCompletions = false\n}\n"
                           "struct Surface { var foregroundPid: pid_t? }\n"
                           "struct Session {\nvar hasExited = false\n"
                           "var launchDirectoryURL: URL?\nvar surface: Surface\n"
                           + generator.replace("private static func", "static func")
                           + readiness + "\n}\n"
                           'let directory = URL(fileURLWithPath: CommandLine.arguments[2])\n'
-                          'if CommandLine.arguments[1] == "generate" {\n'
+                          'if CommandLine.arguments[1].hasPrefix("generate") {\n'
+                          'AppSettings.shared.shellCompletions = CommandLine.arguments[1] == "generate-completions"\n'
                           'print(try Session.makeShellIntegrationArtifacts(in: directory, shellPath: "/bin/zsh")!.path)\n'
                           '} else if CommandLine.arguments[1] == "queue" {\n'
                           'print(Session(launchDirectoryURL: directory, surface: Surface(foregroundPid: pid_t(CommandLine.arguments[3]))).terminalPromptQueueIsReady)\n'
                           '} else {\n'
                           'print(Session(launchDirectoryURL: directory, surface: Surface(foregroundPid: pid_t(CommandLine.arguments[3]))).terminalPromptSelectionIsReady)\n}\n')
         cls.helper = Path(cls.build.name) / "integration"
+        shutil.copytree(SOURCE.parent / "ShellIntegration", Path(cls.build.name) / "ShellIntegration")
         subprocess.run(["swiftc", str(helper),
                         str(SOURCE.parent / "TerminalCommandTaskShellIntegration.swift"),
+                        str(SOURCE.parent / "TerminalShellCompletions.swift"),
                         "-o", str(cls.helper)], check=True)
 
     def setUp(self):
