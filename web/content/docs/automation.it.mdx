@@ -131,3 +131,7 @@ zshell +events --event command.task.finished --once --timeout 30000
 ```
 
 `pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).
+
+## Diramare una conversazione [#fork-a-conversation]
+
+In **Agents → Agent Conversation History**, seleziona una conversazione e **Dirama conversazione in un nuovo pannello** dal menu contestuale o dal pulsante di diramazione. La funzione nativa del provider conserva il contesto in una conversazione indipendente, lasciando invariati il pannello e la conversazione originali. Codex, Claude Code, OpenCode e Pi richiedono una CLI compatibile; Pi richiede anche il file di sessione salvato. Per le conversazioni remote aggiorna il server Zshell. Se mancano CLI, accesso o hook, controlla l’output del nuovo pannello prima di continuare. Usa `zshell +agent fork --id UUID [--focus]` nel pannello e aggiungi `--project UUID` da un terminale esterno.

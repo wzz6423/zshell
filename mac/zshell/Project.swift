@@ -395,6 +395,17 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         return session
     }
 
+    @discardableResult
+    func forkConversation(_ record: AgentConversationHistoryRecord, focus: Bool) -> TerminalSession {
+        let previousSelection = selectedTabID
+        let session = makeSession(directory: record.identity.workingDirectory, agentFork: record.identity)
+        let tab = makeTab(content: .session(session))
+        tab.customName = Self.normalizedCustomName(record.title)
+        insertNextToSelected(tab)
+        selectedTabID = focus ? tab.id : previousSelection
+        return session
+    }
+
     /// Builds a session wired for exit + change observation, without placing
     /// it in a tab — shared by new tabs and splits. `restoredHistory` seeds the
     /// scrollback when reopening a saved session.
@@ -405,6 +416,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         environmentPath: String? = nil,
         launchSettings: TerminalLaunchSettings? = nil,
         agentResume: AgentConversationIdentity? = nil,
+        agentFork: AgentConversationIdentity? = nil,
         isRestoredSession: Bool = false,
         restoredSessionID: UUID? = nil,
         explicitlyResumeConversation: Bool = false,
@@ -512,6 +524,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             initialTerminalProfile: initialTerminalProfile,
             additionalEnvironment: additionalEnvironment,
             agentResume: isRemote ? nil : agentResume,
+            agentFork: isRemote ? nil : agentFork,
             worktree: isRemote ? nil : worktree ?? selectedSession?.worktree.flatMap {
                 SessionWorktreeService.contains(initialDirectory ?? "", in: $0.path) ? $0 : nil
             },

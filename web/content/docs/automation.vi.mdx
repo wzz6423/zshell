@@ -131,3 +131,7 @@ zshell +events --event command.task.finished --once --timeout 30000
 ```
 
 `pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).
+
+## Phân nhánh hội thoại [#fork-a-conversation]
+
+Trong **Agents → Agent Conversation History**, chọn hội thoại rồi **Phân nhánh hội thoại trong ngăn mới** từ menu ngữ cảnh hoặc nút phân nhánh. Chức năng gốc của nhà cung cấp giữ ngữ cảnh trong hội thoại độc lập; ngăn và hội thoại nguồn không thay đổi. Codex, Claude Code, OpenCode và Pi cần CLI hỗ trợ phân nhánh; Pi cũng cần tệp phiên đã lưu. Cập nhật máy chủ Zshell cho hội thoại từ xa. Nếu thiếu CLI, đăng nhập hoặc hook, kiểm tra đầu ra của ngăn mới trước khi tiếp tục. Trong ngăn dùng `zshell +agent fork --id UUID [--focus]`; từ terminal bên ngoài thêm `--project UUID`.

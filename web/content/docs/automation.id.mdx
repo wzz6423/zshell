@@ -139,3 +139,7 @@ zshell +events --event command.task.finished --once --timeout 30000
 ```
 
 `pane.updated`: `data.from` → `data` (`tab_id`, `pane_id`, `terminal_id`, `content`).
+
+## Mencabangkan percakapan [#fork-a-conversation]
+
+Di **Agents → Agent Conversation History**, pilih percakapan lalu **Cabangkan percakapan di panel baru** dari menu konteks atau tombol cabang. Fork native penyedia mempertahankan konteks dalam percakapan mandiri; panel dan percakapan asal tetap utuh. Codex, Claude Code, OpenCode dan Pi memerlukan CLI yang mendukung fork, dan Pi juga memerlukan file sesi tersimpan. Perbarui server Zshell untuk percakapan jarak jauh. Jika CLI, login atau hook tidak tersedia, periksa keluaran panel baru sebelum melanjutkan. Di panel gunakan `zshell +agent fork --id UUID [--focus]`; dari terminal eksternal tambahkan `--project UUID`.

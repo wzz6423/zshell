@@ -149,6 +149,7 @@ struct State {
     shared_codex: bool,
     shared_codex_revision: Option<u64>,
     shared_codex_service: Option<(i32, u64)>,
+    fork_source: Option<Identity>,
     evicted: bool,
 }
 
@@ -182,6 +183,8 @@ impl Session {
         )?;
         let working_directory = request.working_directory.as_deref().map(project_path).transpose()?.unwrap_or_else(|| project.clone());
         if !std::path::Path::new(&working_directory).starts_with(&project) { return Err(invalid("Remote working directory belongs to a different project")); }
+        let fork_source = request.provider.as_deref().zip(request.conversation_id.as_deref())
+            .map(|(provider, id)| history.find(&project, provider, id).map(|record| record.identity)).transpose()?;
         let (columns, rows) = request.dimensions()?;
         let mut command = request
             .command
@@ -211,6 +214,11 @@ impl Session {
             ));
         }
         let mut environment = request.environment.clone().unwrap_or_default();
+        if fork_source.as_ref().is_some_and(|identity| identity.provider == "codex") {
+            // A server may inherit its parent's thread ID; the new native
+            // fork owns a different thread and must report that identity.
+            environment.insert("CODEX_THREAD_ID".into(), String::new());
+        }
         if environment.len() > 512
             || environment.iter().any(|(key, value)| {
                 key.is_empty()
@@ -273,6 +281,7 @@ impl Session {
                 shared_codex: false,
                 shared_codex_revision: None,
                 shared_codex_service: None,
+                fork_source,
                 evicted: false,
             }),
             pty,
@@ -359,6 +368,10 @@ impl Session {
             if identity.provider != hook.provider || !std::path::Path::new(&directory).starts_with(&state.info.project) {
                 return Err(invalid("Agent conversation belongs to a different project"));
             }
+            if state.fork_source.as_ref().is_some_and(|source| !source.accepts_fork(identity)) {
+                return Err(invalid("The fork must report an independent provider conversation"));
+            }
+            state.fork_source = None;
             if let Some(previous) = &state.info.conversation {
                 if previous != identity { self.history.ended(previous, &state.info.session_id)?; }
             }
@@ -379,6 +392,7 @@ impl Session {
     pub fn codex_title_evidence(&self) -> Option<TitleEvidence> {
         let state = self.state.lock().unwrap();
         let (title, owner) = state.codex_title.as_ref()?;
+        if state.fork_source.as_ref().is_some_and(|source| title.matches(&source.session_id)) { return None; }
         (state.info.running
             && agent_process::foreground_agent(state.info.pid, self.pty.foreground_pid(), "codex").as_ref() == Some(owner)
             && self.pty.owns_process(owner.0)).then(|| title.clone())
@@ -393,6 +407,10 @@ impl Session {
             || !self.pty.owns_process(owner.0) { return Err(invalid("Remote Codex TUI no longer owns its title")); }
         let directory = project_path(&identity.working_directory)?;
         if !std::path::Path::new(&directory).starts_with(&state.info.project) { return Err(invalid("Shared Agent conversation belongs to a different project")); }
+        if state.fork_source.as_ref().is_some_and(|source| !source.accepts_fork(identity)) {
+            return Err(invalid("The fork must report an independent provider conversation"));
+        }
+        state.fork_source = None;
         if state.info.conversation.as_ref() != Some(identity) || state.agent_owner != Some(owner) {
             if let Some(previous) = &state.info.conversation { self.history.ended(previous, &state.info.session_id)?; }
             self.history.note(identity.clone(), &state.info.project, &state.info.session_id)?;

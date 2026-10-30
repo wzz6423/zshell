@@ -70,6 +70,7 @@ struct RemoteAgentSurfaceTests {
         setbuf(stdout, nil)
         _ = RemoteAgentApplication.shared
         NSApp.setActivationPolicy(.prohibited)
+        QuickTerminalOffscreen.install()
         let backend = CommandLine.arguments[1]
         let host = try RemoteHost(name: "Official Codex SSH fixture", address: CommandLine.arguments[3], serverPath: CommandLine.arguments[5])
         let directory = CommandLine.arguments[4]
@@ -98,6 +99,7 @@ struct RemoteAgentSurfaceTests {
             surface.frame = NSRect(x: 0, y: 0, width: 1000, height: 600)
             let window = RemoteAgentWindow(contentRect: surface.frame, styleMask: [.titled], backing: .buffered, defer: false)
             window.isReleasedWhenClosed = false
+            QuickTerminalOffscreen.prepare(window)
             window.identifier = NSUserInterfaceItemIdentifier("main-remote-agent-probe")
             window.contentView = surface
             surface.setSurfaceVisible(true)
@@ -236,6 +238,55 @@ struct RemoteAgentSurfaceTests {
         restarted.sendCommand("zshell isolated exact resume verification"); pump(0.35); restarted.sendEnter()
         try wait("official resumed Codex did not rebind its identity") { restarted.agentResume?.sessionID == firstIdentity.sessionID }
         try check(restarted.remoteConnection?.sessionID != originalRemote, "ended PTY resumes the exact official provider UUID")
+
+        let sourceRecord = store.record(id: firstRecord.id)!
+        let sourceRemote = restarted.remoteConnection!.sessionID
+        let sourcePID = restarted.remoteStatus!.remotePID
+        let beforeFork = Set(project.sessions.map(\.id))
+        manager.showConversationHistory(all: true)
+        guard let forkPanel = NSApp.windows.first(where: { window in
+            window.contentView.map { descendants($0).contains { $0 is NSSearchField } } ?? false
+        }), let forkContent = forkPanel.contentView,
+              let forkSearch = descendants(forkContent).compactMap({ $0 as? NSSearchField }).first,
+              let forkTable = descendants(forkContent).compactMap({ $0 as? NSTableView }).first,
+              let forkButton = descendants(forkContent).compactMap({ $0 as? NSButton }).first(where: {
+                  $0.accessibilityLabel() == String(localized: "Fork Conversation in New Pane")
+              }) else { throw NSError(domain: "RemoteForkAppKitMissing", code: 1) }
+        forkSearch.stringValue = firstIdentity.sessionID
+        forkSearch.delegate?.controlTextDidChange?(Notification(name: NSControl.textDidChangeNotification, object: forkSearch))
+        try wait("AppKit fork query did not select the remote source") { forkTable.numberOfRows == 1 }
+        forkTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+        forkButton.performClick(nil)
+        try check(!forkButton.isEnabled && forkPanel.isVisible, "AppKit remote fork remains pending until native identity confirmation")
+        try wait("AppKit native fork did not create a separate remote pane", timeout: 25) {
+            project.sessions.contains { !beforeFork.contains($0.id) }
+        }
+        let forked = project.sessions.first { !beforeFork.contains($0.id) }!
+        remoteIDs.insert(forked.remoteConnection!.sessionID)
+        mount(forked)
+        try wait("official forked Codex TUI did not connect", timeout: 25) {
+            forked.remoteStatus?.state == .connected && forked.title.contains("...")
+        }
+        try check(forked.agentResume?.sessionID != firstIdentity.sessionID,
+            "pending remote fork cannot bind to the source conversation")
+        forked.sendCommand("zshell isolated native SSH fork verification"); pump(0.35); forked.sendEnter()
+        try wait("official forked Codex did not confirm an independent identity", timeout: 30) {
+            forked.agentResume.map(firstIdentity.acceptsFork) == true && !forkPanel.isVisible
+        }
+        try check(forked.remoteConnection?.sessionID != sourceRemote && project.selectedSession === forked,
+            "AppKit remote fork focuses its independent provider conversation and PTY")
+        try check(restarted.agentResume == firstIdentity && restarted.remoteConnection?.sessionID == sourceRemote
+            && restarted.remoteStatus?.remotePID == sourcePID && store.record(id: firstRecord.id) == sourceRecord,
+            "native remote fork preserves the source pane, process and history")
+        let forkRecord = store.record(id: forked.agentConversationHistoryID!)!
+        try check(forkRecord.id != sourceRecord.id && forkRecord.projectID == sourceRecord.projectID
+            && forkRecord.identity.configDirectory == firstIdentity.configDirectory
+            && forkRecord.identity.remoteHostID == host.id && forkRecord.identity.remoteProjectDirectory == directory,
+            "remote fork records an independent history entry in the original profile and SSH project")
+        try check(NSWorkspace.shared.frontmostApplication?.processIdentifier != getpid()
+            && NSApp.windows.filter(\.isVisible).allSatisfy { window in
+                window.ignoresMouseEvents && NSScreen.screens.allSatisfy { !$0.frame.intersects(window.frame) }
+            }, "native SSH fork surface probes preserve the user's app focus")
         completed = true
         print("\(checks) \(backend) official Codex SSH Agent surface checks passed")
     }

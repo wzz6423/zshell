@@ -49,3 +49,16 @@ with tempfile.TemporaryDirectory(prefix="zshell-codex-binding-", dir="/tmp") as 
     environment = {key: value for key, value in os.environ.items()
                    if key not in {"CODEX_HOME", "CODEX_THREAD_ID"} and not key.startswith("ZSHELL_")}
     subprocess.run([str(binary)], check=True, env=environment, timeout=60)
+    session = (root / "mac/zshell/TerminalSession.swift").read_text()
+    record = session[session.index("    @discardableResult\n    func recordAgentConversation("):
+                     session.index("    deinit {", session.index("    func recordAgentConversation("))]
+    record_source = directory / "RecordConversation.swift"
+    record_source.write_text("import Foundation\n@MainActor extension TerminalSession {\n" + record + "}\n")
+    fork_binary = directory / "fork-binding-tests"
+    subprocess.run(["xcrun", "swiftc", "-parse-as-library", "-swift-version", "5",
+                    "-module-cache-path", str(directory / "ModuleCache"),
+                    *[str(root / "mac/zshell" / name) for name in (
+                        "AgentConversationIdentity.swift", "AgentConversationBinding.swift", "CodexDaemonBinding.swift",
+                        "ZshellAutomationProtocol.swift")],
+                    str(record_source), str(root / "mac/tests/CodexForkBindingTests.swift"), "-o", str(fork_binary)], check=True)
+    subprocess.run([str(fork_binary)], check=True, env=environment, timeout=10)
