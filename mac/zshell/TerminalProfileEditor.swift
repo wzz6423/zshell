@@ -34,6 +34,7 @@ final class TerminalProfileEditorWindowController: NSWindowController,
     private let cursor = NSPopUpButton()
     private let blinking = NSPopUpButton()
     private let error = NSTextField(wrappingLabelWithString: "")
+    private let emptyList = NSTextField(wrappingLabelWithString: "")
     private let add = NSButton()
     private let remove = NSButton()
     private let up = NSButton()
@@ -129,6 +130,10 @@ final class TerminalProfileEditorWindowController: NSWindowController,
         list.documentView = table
         list.hasVerticalScroller = true
         list.borderType = .bezelBorder
+        emptyList.stringValue = String(localized: "No terminal profiles yet. Click Add to create one.")
+        emptyList.alignment = .center
+        emptyList.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        emptyList.textColor = .secondaryLabelColor
 
         for field in textFields {
             field.delegate = self
@@ -209,11 +214,17 @@ final class TerminalProfileEditorWindowController: NSWindowController,
         form.spacing = 12
         form.translatesAutoresizingMaskIntoConstraints = false
         let formScroll = NSScrollView()
-        let document = NSView()
+        let document = TerminalProfileFormDocumentView()
+        // A frame-based document view turns its initial zero frame into
+        // required constraints, which collapses the form and the whole sheet.
+        document.translatesAutoresizingMaskIntoConstraints = false
         formScroll.documentView = document
         formScroll.hasVerticalScroller = true
+        formScroll.drawsBackground = false
         document.addSubview(form)
         NSLayoutConstraint.activate([
+            document.leadingAnchor.constraint(equalTo: formScroll.contentView.leadingAnchor),
+            document.topAnchor.constraint(equalTo: formScroll.contentView.topAnchor),
             document.widthAnchor.constraint(equalTo: formScroll.contentView.widthAnchor),
             form.leadingAnchor.constraint(equalTo: document.leadingAnchor, constant: 4),
             form.trailingAnchor.constraint(equalTo: document.trailingAnchor, constant: -8),
@@ -239,7 +250,7 @@ final class TerminalProfileEditorWindowController: NSWindowController,
         let footer = NSStackView(views: [add, remove, up, down, NSView(), cancel, save])
         footer.orientation = .horizontal
         footer.spacing = 8
-        for view in [list, formScroll, error, footer] {
+        for view in [list, emptyList, formScroll, error, footer] {
             view.translatesAutoresizingMaskIntoConstraints = false
             content.addSubview(view)
         }
@@ -248,6 +259,9 @@ final class TerminalProfileEditorWindowController: NSWindowController,
             list.topAnchor.constraint(equalTo: content.topAnchor, constant: 20),
             list.widthAnchor.constraint(equalToConstant: 175),
             list.bottomAnchor.constraint(equalTo: error.topAnchor, constant: -12),
+            emptyList.centerYAnchor.constraint(equalTo: list.centerYAnchor),
+            emptyList.leadingAnchor.constraint(equalTo: list.leadingAnchor, constant: 12),
+            emptyList.trailingAnchor.constraint(equalTo: list.trailingAnchor, constant: -12),
             formScroll.leadingAnchor.constraint(equalTo: list.trailingAnchor, constant: 16),
             formScroll.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20),
             formScroll.topAnchor.constraint(equalTo: list.topAnchor),
@@ -281,6 +295,7 @@ final class TerminalProfileEditorWindowController: NSWindowController,
         defer { isSelecting = false }
         selected = profiles.indices.contains(row) ? row : -1
         table.reloadData()
+        emptyList.isHidden = !profiles.isEmpty
         let profile = selected >= 0 ? profiles[selected] : TerminalProfile(name: "")
         if selected >= 0 { table.selectRowIndexes(IndexSet(integer: selected), byExtendingSelection: false) }
         else { table.deselectAll(nil) }
@@ -403,4 +418,9 @@ final class TerminalProfileEditorWindowController: NSWindowController,
         if let parent = window.sheetParent { parent.endSheet(window) }
         else { close() }
     }
+}
+
+/// Flipped so the form starts at the top of its scroll view.
+private final class TerminalProfileFormDocumentView: NSView {
+    override var isFlipped: Bool { true }
 }
