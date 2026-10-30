@@ -450,13 +450,15 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         performNavigation(to: request.url) { [webView] in webView.load(request) }
     }
 
-    /// Only loopback targets travel over SSH; public pages load directly even
-    /// while the remote session is disconnected.
+    /// Only loopback targets travel over SSH; public pages load without it,
+    /// even while the remote session is disconnected, but never before the
+    /// loopback blocking rules are installed.
     private func performNavigation(to target: URL?, _ action: @escaping () -> WKNavigation?) {
         navigationRevision &+= 1
         navigationTask?.cancel()
         errorMessage = nil
-        guard let remoteRouting, let target, BrowserRemoteRouting.isLoopback(target) else {
+        let forwards = target.map(BrowserRemoteRouting.isLoopback) == true
+        guard let remoteRouting, forwards || remoteRouting.loopbackRules == nil else {
             isPreparingNavigation = false
             pendingURL = nil
             _ = action()
@@ -466,7 +468,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         isPreparingNavigation = true
         navigationTask = Task { @MainActor [weak self] in
             do {
-                try await remoteRouting.ensureConnected()
+                if forwards { try await remoteRouting.ensureConnected() } else { try await remoteRouting.ensureLoopbackRules() }
                 guard let self, !self.isClosed, self.navigationRevision == revision, !Task.isCancelled else { return }
                 self.isPreparingNavigation = false
                 self.pendingURL = nil

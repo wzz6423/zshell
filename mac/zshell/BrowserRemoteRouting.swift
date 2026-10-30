@@ -66,15 +66,16 @@ final class BrowserRemoteRouting: ObservableObject {
     }
 
     nonisolated static func routedURL(_ url: URL) -> URL {
-        guard isDirectLoopback(url), var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
-        components.host = aliasHost
+        guard let target = directLoopbackTarget(url),
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+        components.host = alias(for: target)
         return components.url ?? url
     }
 
     static func displayURL(_ url: URL) -> URL {
-        guard url.host?.lowercased() == aliasHost,
+        guard let target = url.host.flatMap(loopbackTarget(forAlias:)),
               var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
-        components.host = "localhost"
+        components.host = target.contains(":") ? "[\(target)]" : target
         return components.url ?? url
     }
 
@@ -82,6 +83,42 @@ final class BrowserRemoteRouting: ObservableObject {
         guard let host = url.host?.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "[].")) else { return false }
         return host == "localhost" || host == "::1" || host == "0.0.0.0" || host.hasPrefix("::ffff:7f")
             || (host.hasPrefix("127.") && IPv4Address(host) != nil)
+    }
+
+    /// The remote address a direct loopback URL asks for. The alias keeps it,
+    /// so a service bound only to 127.0.0.2 or ::1 is still the one reached.
+    nonisolated private static func directLoopbackTarget(_ url: URL) -> String? {
+        guard isDirectLoopback(url), let host = url.host?.lowercased()
+            .trimmingCharacters(in: CharacterSet(charactersIn: "[].")) else { return nil }
+        if host == "localhost" || host == "::1" { return host }
+        // A wildcard listener answers on localhost; 0.0.0.0 names no address.
+        if host == "0.0.0.0" { return "localhost" }
+        if let mapped = IPv6Address(host) {
+            let bytes = Array(mapped.rawValue)
+            guard bytes[10] == 0xff, bytes[11] == 0xff else { return nil }
+            return bytes[12...].map(String.init).joined(separator: ".")
+        }
+        return IPv4Address(host).map { Array($0.rawValue).map(String.init).joined(separator: ".") }
+    }
+
+    nonisolated private static func alias(for target: String) -> String {
+        switch target {
+        case "localhost": aliasHost
+        case "::1": "ipv6-1.\(aliasHost)"
+        default: target.replacingOccurrences(of: ".", with: "-") + "." + aliasHost
+        }
+    }
+
+    /// The remote loopback address an alias stands for, or nil for other hosts.
+    nonisolated static func loopbackTarget(forAlias host: String) -> String? {
+        let host = host.lowercased()
+        if host == aliasHost { return "localhost" }
+        guard host.hasSuffix("." + aliasHost) else { return nil }
+        let label = String(host.dropLast(aliasHost.count + 1))
+        if label == "ipv6-1" { return "::1" }
+        let address = label.replacingOccurrences(of: "-", with: ".")
+        guard let ipv4 = IPv4Address(address), ipv4.rawValue.first == 127 else { return nil }
+        return address
     }
 
     /// The alias is only the proxy's routing name; the page really talks to
@@ -94,21 +131,14 @@ final class BrowserRemoteRouting: ObservableObject {
     ) {
         let space = challenge.protectionSpace
         guard space.authenticationMethod == NSURLAuthenticationMethodServerTrust,
-              space.host.lowercased() == aliasHost, let trust = space.serverTrust else {
+              let target = loopbackTarget(forAlias: space.host), let trust = space.serverTrust else {
             DispatchQueue.main.async { completion(nil) }
             return
         }
         nonisolated(unsafe) let unsafeTrust = trust
         DispatchQueue.global(qos: .userInitiated).async {
-            var credential: URLCredential?
-            for name in ["localhost", "127.0.0.1", "::1"] {
-                SecTrustSetPolicies(unsafeTrust, SecPolicyCreateSSL(true, name as CFString))
-                if SecTrustEvaluateWithError(unsafeTrust, nil) {
-                    credential = URLCredential(trust: unsafeTrust)
-                    break
-                }
-            }
-            let result = credential
+            SecTrustSetPolicies(unsafeTrust, SecPolicyCreateSSL(true, target as CFString))
+            let result = SecTrustEvaluateWithError(unsafeTrust, nil) ? URLCredential(trust: unsafeTrust) : nil
             DispatchQueue.main.async { completion(result) }
         }
     }
@@ -128,11 +158,23 @@ final class BrowserRemoteRouting: ObservableObject {
       const alias = '\(aliasHost)';
       const direct = host => host === 'localhost' || host === 'localhost.' || host === '[::1]' || host === '0.0.0.0'
         || host.startsWith('[::ffff:7f') || /^127\\.\\d+\\.\\d+\\.\\d+$/.test(host);
+      // Keep the requested loopback address in the alias, matching routedURL().
+      const aliasFor = host => {
+        host = host.replace(/^\\[|\\]$/g, '').replace(/\\.$/, '');
+        if (host === 'localhost' || host === '0.0.0.0') return alias;
+        if (host === '::1') return 'ipv6-1.' + alias;
+        const mapped = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(host);
+        if (mapped) {
+          const high = parseInt(mapped[1], 16), low = parseInt(mapped[2], 16);
+          host = [high >> 8, high & 255, low >> 8, low & 255].join('.');
+        }
+        return host.replace(/\\./g, '-') + '.' + alias;
+      };
       const route = value => {
         try {
           const url = new URL(String(value), document.baseURI);
           if (!direct(url.hostname)) return value;
-          url.hostname = alias;
+          url.hostname = aliasFor(url.hostname);
           return url.href;
         } catch { return value; }
       };
@@ -214,11 +256,7 @@ final class BrowserRemoteRouting: ObservableObject {
         guard isAvailable, !users.isEmpty else {
             throw RemoteHostError.message(String(localized: "Reconnect the remote session to preview localhost."))
         }
-        if loopbackRules == nil {
-            loopbackRules = try await WKContentRuleListStore.default().compileContentRuleList(
-                forIdentifier: "zshell-remote-loopback", encodedContentRuleList: Self.loopbackRuleSource
-            )
-        }
+        try await ensureLoopbackRules()
         if let forward, forward.isRunning { return }
         if connecting == nil {
             let location = location
@@ -288,6 +326,17 @@ final class BrowserRemoteRouting: ObservableObject {
         }
     }
 
+    /// Every document in a remote project, public ones included, must load
+    /// with these rules: they are the only guard for loopback loads the bridge
+    /// does not rewrite (srcset, CSS), so they never wait for SSH.
+    func ensureLoopbackRules() async throws {
+        guard loopbackRules == nil else { return }
+        let rules = try await WKContentRuleListStore.default().compileContentRuleList(
+            forIdentifier: "zshell-remote-loopback", encodedContentRuleList: Self.loopbackRuleSource
+        )
+        if loopbackRules == nil { loopbackRules = rules }
+    }
+
     func faviconData(for request: URLRequest) async throws -> (Data, URLResponse) {
         try await ensureConnected()
         guard let faviconSession else { throw CancellationError() }
@@ -339,7 +388,8 @@ nonisolated private final class FaviconRedirects: NSObject, URLSessionTaskDelega
 }
 
 /// SOCKS5 front for `ssh -D`. It only accepts *.localhost names and connects
-/// them to the remote host's own localhost, which may not resolve aliases.
+/// them to the remote loopback address their alias names (else localhost),
+/// because the remote host may not resolve aliases.
 nonisolated final class BrowserLoopbackRelay: @unchecked Sendable {
     let port: UInt16
     private let listener: NWListener
@@ -395,12 +445,20 @@ nonisolated final class BrowserLoopbackRelay: @unchecked Sendable {
                         guard let tail else { return client.cancel() }
                         let name = String(decoding: tail.dropLast(2), as: UTF8.self).lowercased()
                         guard name == "localhost" || name.hasSuffix(".localhost") else { return refuse() }
+                        let target = BrowserRemoteRouting.loopbackTarget(forAlias: name)
+                        if name.hasSuffix(".\(BrowserRemoteRouting.aliasHost)"), target == nil { return refuse() }
+                        let address: Data
+                        switch target.map({ ($0, IPv4Address($0)) }) {
+                        case ("::1", _)?: address = Data([4]) + IPv6Address.loopback.rawValue
+                        case (_, let ipv4?)?: address = Data([1]) + ipv4.rawValue
+                        default: address = Data([3, 9]) + Data("localhost".utf8)
+                        }
                         let remote = NWConnection(host: "127.0.0.1", port: upstream, using: .tcp)
                         remote.start(queue: queue)
                         remote.send(content: Data([5, 1, 0]), completion: .idempotent)
                         read(remote, 2) { choice in
                             guard choice == [5, 0] else { remote.cancel(); return refuse() }
-                            remote.send(content: Data([5, 1, 0, 3, 9]) + Data("localhost".utf8) + Data(tail.suffix(2)), completion: .idempotent)
+                            remote.send(content: Data([5, 1, 0]) + address + Data(tail.suffix(2)), completion: .idempotent)
                             let pair = Pair(client, remote)
                             pipe(client, to: remote, pair: pair)
                             pipe(remote, to: client, pair: pair)

@@ -108,6 +108,15 @@ LogLevel DEBUG3
             capture_output=True, timeout=5)
         self.primary = self.http_server("primary")
         self.secondary = self.http_server("secondary")
+        # One port served separately on 127.0.0.1 and ::1 shows which loopback
+        # address a routed URL really reached.
+        while True:
+            self.loopback4 = self.http_server("loopback4")
+            try:
+                self.loopback6 = self.http_server("loopback6", ("::1", self.loopback4.server_port))
+                break
+            except OSError:
+                pass
         return self
 
     def __exit__(self, *_):
@@ -125,7 +134,7 @@ LogLevel DEBUG3
                     process.kill()
                     process.wait(timeout=3)
 
-    def http_server(self, label):
+    def http_server(self, label, address=("127.0.0.1", 0)):
         fixture = self
 
         class Handler(http.server.BaseHTTPRequestHandler):
@@ -135,6 +144,8 @@ LogLevel DEBUG3
                 fixture.requests.append((label, self.path, self.headers.get("Host"), self.headers.get("Cookie")))
                 if self.path.startswith("/socket"):
                     self.websocket()
+                    # Unread close-frame bytes must not be parsed as a request.
+                    self.close_connection = True
                     return
                 if self.path == "/favicon-redirect":
                     self.send_response(302)
@@ -223,7 +234,10 @@ const dynamic=document.createElement('script');dynamic.src='http://localhost:{ot
             def log_message(self, *_):
                 pass
 
-        server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        class Server(http.server.ThreadingHTTPServer):
+            address_family = socket.AF_INET6 if ":" in address[0] else socket.AF_INET
+
+        server = Server(address, Handler)
         server.daemon_threads = True
         self.servers.append(server)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -355,7 +369,7 @@ def main():
                                             "ZSHELL_SSH_CONFIG_FILE": str(fixture.config), "ZSHELL_SSH_AGENT_RESOLVED": "1",
                                             "ZSHELL_PTY_MUX_DIRECTORY": str(home / "mux")})
                         arguments = [str(binary), backend, str(fixture.ssh_port), str(fixture.primary.server_port),
-                                     str(fixture.secondary.server_port)]
+                                     str(fixture.secondary.server_port), str(fixture.loopback4.server_port)]
                         if options.artifacts:
                             arguments.append(str(options.artifacts.resolve()))
                         log_offset = fixture.ssh_log.stat().st_size
@@ -370,7 +384,7 @@ def main():
                             log.seek(log_offset)
                             forwarded = log.read().decode(errors="replace")
                         targets = re.findall(r"server_request_direct_tcpip:.*target (\S+) port (\d+)", forwarded)
-                        assert targets and all(host == "localhost" for host, _ in targets), targets
+                        assert targets and {host for host, _ in targets} == {"localhost", "127.0.0.1", "::1"}, targets
                         for port in (fixture.primary.server_port, fixture.secondary.server_port):
                             assert str(port) in {port for _, port in targets}, forwarded
                             assert any(request[2] == f"zshell-remote.localhost:{port}"
@@ -378,12 +392,12 @@ def main():
                         paths = {request[1] for request in fixture.requests[request_offset:]}
                         favicons = [request for request in fixture.requests[request_offset:]
                                     if request[1].startswith("/favicon-target.png?via=zshell-remote.localhost:")]
-                        assert favicons and all(request[2].startswith("zshell-remote.localhost:") for request in favicons), favicons
+                        assert favicons and all(request[2].startswith("127-0-0-1.zshell-remote.localhost:") for request in favicons), favicons
                         assert {"/script.js", "/dynamic.js", "/pixel.png", "/frame", "/api?cross=port", "/socket?hmr=1"} <= paths, paths
                         marker = f"/must-not-reach-local-{backend}"
                         marker_requests = [request for request in fixture.requests[request_offset:] if request[1] == marker]
                         assert len(marker_requests) == 1, marker_requests
-                        blocked = {f"/blocked-fetch-{backend}", f"/socket?blocked={backend}"}
+                        blocked = {f"/blocked-fetch-{backend}", f"/socket?blocked={backend}", f"/srcset-{backend}"}
                         assert paths.isdisjoint(blocked), paths.intersection(blocked)
         finally:
             fixture.__exit__()

@@ -29,6 +29,13 @@ struct BrowserRemoteRoutingTests {
         let sshPort = Int(arguments[2])!
         let primaryPort = Int(arguments[3])!
         let secondaryPort = Int(arguments[4])!
+        let dualPort = Int(arguments[5])!
+        guard BrowserRemoteRouting.routedURL(URL(string: "http://127.0.0.2:3000/a")!).host == "127-0-0-2.zshell-remote.localhost",
+              BrowserRemoteRouting.loopbackTarget(forAlias: "127-0-0-2.zshell-remote.localhost") == "127.0.0.2",
+              BrowserRemoteRouting.displayURL(URL(string: "http://ipv6-1.zshell-remote.localhost:3000/a")!).absoluteString == "http://[::1]:3000/a",
+              BrowserRemoteRouting.loopbackTarget(forAlias: "8-8-8-8.zshell-remote.localhost") == nil else {
+            throw failure("Routing lost the requested loopback address")
+        }
         AppSettings.shared.preserveTerminalSessions = false
         AppSettings.shared.restoreTerminalHistory = false
         AppSettings.shared.terminalBackend = backend == "ghostty" ? .libghostty : .alacritty
@@ -109,6 +116,15 @@ struct BrowserRemoteRoutingTests {
             throw failure("Separate remote projects shared site data")
         }
 
+        for (host, label) in [("127.0.0.1", "loopback4"), ("[::1]", "loopback6")] {
+            other.navigate(to: "http://\(host):\(dualPort)/api?address")
+            try await waitForPage(other, expectedPath: "/api")
+            let body = try await other.webView.evaluateJavaScript("document.body.innerText") as? String ?? ""
+            guard body.contains("\"server\": \"\(label)\""), other.urlString == "http://\(host):\(dualPort)/api?address" else {
+                throw failure("http://\(host) reached the wrong remote loopback service: \(body) \(other.urlString)")
+            }
+        }
+
         guard let secondTab = project.tabs.first(where: { $0.browsers.contains { $0 === second } }),
               manager.moveTab(id: secondTab.id, from: project.id, to: otherProject.id, in: ObjectIdentifier(manager)).failure == nil else {
             throw failure("Moving the remote browser tab failed")
@@ -118,6 +134,26 @@ struct BrowserRemoteRoutingTests {
               try await second.webView.evaluateJavaScript("document.cookie.includes('remote_scope=only')") as? Bool == false else {
             throw failure("Moved remote browser kept the source project's routing or site data")
         }
+
+        // A fresh remote project's first, public document must already block
+        // direct loopback loads the bridge does not rewrite.
+        manager.newSSHProject(endpoint: endpoint, remoteDirectory: nil)
+        guard let freshProject = manager.projects.last(where: { $0.isRemote && $0 !== project && $0 !== otherProject }) else {
+            throw failure("Third remote project missing")
+        }
+        let fresh = freshProject.newBrowserTab(initialURL: nil, initialFocus: .none, focus: false)
+        guard fresh.remoteRouting?.loopbackRules == nil else { throw failure("Fresh routing already had rules") }
+        fresh.navigate(to: "data:text/html,<img srcset='http://127.0.0.1:\(primaryPort)/srcset-\(backend) 1x'>")
+        let freshDeadline = Date().addingTimeInterval(5)
+        while fresh.webView.url?.scheme != "data" || fresh.navigationIsLoading, Date() < freshDeadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        try await Task.sleep(for: .milliseconds(500))
+        guard fresh.webView.url?.scheme == "data", fresh.remoteRouting?.loopbackRules != nil,
+              fresh.remoteRouting?.localProxyPort == nil else {
+            throw failure("A public remote-project page loaded without loopback rules or started forwarding")
+        }
+        fresh.close()
 
         other.remoteRouting!.setAvailable(false, projectID: otherProject.id)
         other.navigate(to: "data:text/html,<title>public</title><p>public</p>")
