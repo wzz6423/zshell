@@ -28,9 +28,9 @@ def source(name):
 
 
 settings = source("AppSettings.swift")
+refresh_start = settings.index("    func reconcileAIEnabled() {")
 refresh = settings[
-    settings.index("    func reconcileAIEnabled() {"):
-    settings.index("    private func save() {", settings.index("    func reconcileAIEnabled() {"))
+    refresh_start:settings.index("\n    }\n", refresh_start) + len("\n    }\n")
 ]
 session = source("TerminalSession.swift")
 record = session[
@@ -54,11 +54,13 @@ process_identity = process_identity[
     process_identity.index("struct ZshellAgentReport:")
 ]
 has_lifecycle = "ZshellAgentLifecycleHooks" in refresh
+has_profiles = False
 startup_fixture = ""
 startup_checks = ""
 if "PersistentPTY.reconnect" in session:
     startup = session[session.index("        let sessionID ="):
                       session.index("        let backend =", session.index("        let sessionID ="))]
+    has_profiles = "TerminalProfile.firstMatch" in startup
     startup_fixture = r'''
 @MainActor
 struct PersistentPTY {
@@ -80,14 +82,24 @@ enum ResumeStartupProbe {
         restoredSessionID: UUID?, agentResume: AgentConversationIdentity?, agentFork: AgentConversationIdentity? = nil,
         isRestoredSession: Bool = true, allowsPersistence: Bool = true,
         explicitlyResumeConversation: Bool = false, remoteConnection: Bool? = nil,
-        usesConfiguredStartupCommand: Bool = true
+        usesConfiguredStartupCommand: Bool = true__PROFILE_PARAMETERS__
     ) -> (id: UUID, resume: AgentConversationIdentity.ResumeLaunch?,
-          command: [String]?, shell: String, directory: String, preserve: Bool) {
+          command: [String]?, shell: String, directory: String, preserve: Bool__PROFILE_RESULT_TYPES__) {
+__PROFILE_LOCAL_STATE__
 STARTUP
-        return (sessionID, resumeLaunch, directCommand, shellPath, directory, preserve)
+        return (sessionID, resumeLaunch, directCommand, shellPath, directory, preserve__PROFILE_RESULT_VALUES__)
     }
 }
-'''.replace("STARTUP", startup)
+'''.replace("STARTUP", startup).replace("__PROFILE_PARAMETERS__", r''',
+        launchSettings: TerminalLaunchSettings = .init(),
+        initialTerminalProfile: TerminalProfile? = nil, remotePasteTarget: Bool? = nil
+''' if has_profiles else "").replace("__PROFILE_RESULT_TYPES__", r''',
+          profileID: UUID?, settings: TerminalLaunchSettings, appearance: TerminalProfileAppearance
+''' if has_profiles else "").replace("__PROFILE_LOCAL_STATE__",
+    "        var launchTerminalProfileID: UUID?" if has_profiles else ""
+).replace("__PROFILE_RESULT_VALUES__",
+    ", launchTerminalProfileID, launchSettings, initialAppearance" if has_profiles else ""
+)
     startup_checks = r'''
         let terminalID = UUID()
         PersistentPTY.fixture = .init(workingDirectory: home.appendingPathComponent("live").path)
@@ -138,6 +150,106 @@ STARTUP
               "a remote session keeps its remote directory instead of a local PTY directory")
         PersistentPTY.fixture = nil
 '''
+    if has_profiles:
+        startup_checks += r'''
+        let baseSettings = TerminalLaunchSettings(environmentVariables: [
+            .init(name: "PROFILE_CASE", value: "base"), .init(name: "BASE_ONLY", value: "retained"),
+        ], initializationCommand: "printf base-init")
+        var profile = TerminalProfile(name: "resume fixture")
+        profile.directory = home.path
+        profile.startupProgram = "/bin/sh"
+        profile.startupArguments = "-c 'printf profile-started'"
+        profile.appearance.fontSize = 18
+        profile.launchSettings = .init(environmentVariables: [
+            .init(name: "PROFILE_CASE", value: "matched"),
+        ], initializationCommand: "printf profile-init")
+        AppSettings.shared.terminalProfiles = [profile]
+        let profileArguments = ["/bin/sh", "-c", "printf profile-started"]
+        let fresh = ResumeStartupProbe.launch(
+            initialDirectory: home.path, restoredSessionID: nil, agentResume: nil,
+            isRestoredSession: false, launchSettings: baseSettings
+        )
+        check(fresh.command == profileArguments && fresh.profileID == profile.id,
+              "a new terminal uses its matched profile startup instead of the global startup command")
+        check(fresh.settings.environment == ["PROFILE_CASE": "matched", "BASE_ONLY": "retained"]
+              && fresh.settings.initializationCommand == "printf profile-init"
+              && fresh.appearance == profile.appearance,
+              "production startup merges profile settings and keeps its appearance")
+        let integrated = ResumeStartupProbe.launch(
+            initialDirectory: home.path, restoredSessionID: nil, agentResume: nil,
+            isRestoredSession: false, usesConfiguredStartupCommand: false, launchSettings: baseSettings
+        )
+        check(integrated.command == nil && integrated.shell == "/bin/zsh",
+              "an integrated shell suppresses both profile and global startup commands")
+        check(integrated.profileID == profile.id && integrated.settings == fresh.settings
+              && integrated.appearance == profile.appearance,
+              "suppressing startup commands still applies matched profile settings and appearance")
+        let explicitArguments = ["/bin/echo", "explicit-started"]
+        let explicit = ResumeStartupProbe.launch(
+            initialDirectory: home.path, commandArguments: explicitArguments,
+            restoredSessionID: nil, agentResume: nil, isRestoredSession: false
+        )
+        check(explicit.command == explicitArguments && explicit.profileID == profile.id,
+              "explicit argv takes priority over a matched profile startup command")
+        let restoredShell = ResumeStartupProbe.launch(
+            initialDirectory: home.path, restoredSessionID: nil, agentResume: nil
+        )
+        check(restoredShell.command == nil && restoredShell.shell == "/bin/zsh"
+              && restoredShell.profileID == profile.id,
+              "restoring an ordinary shell never launches its matched profile startup command")
+        let profileResume = ResumeStartupProbe.launch(
+            initialDirectory: "/", restoredSessionID: nil, agentResume: restored,
+            launchSettings: baseSettings
+        )
+        check(profileResume.command == ["claude", "--resume", event.identity.sessionID]
+              && profileResume.directory == home.path && profileResume.profileID == profile.id,
+              "exact agent resume wins over profile startup and matches the resume working directory")
+        let explicitResume = ResumeStartupProbe.launch(
+            initialDirectory: "/", commandArguments: explicitArguments,
+            restoredSessionID: nil, agentResume: restored, isRestoredSession: false,
+            explicitlyResumeConversation: true
+        )
+        check(explicitResume.command == ["claude", "--resume", event.identity.sessionID]
+              && explicitResume.profileID == profile.id,
+              "an explicit conversation resume also takes priority over explicit argv and profile startup")
+        let profileFork = ResumeStartupProbe.launch(
+            initialDirectory: "/", commandArguments: explicitArguments,
+            restoredSessionID: nil, agentResume: restored, agentFork: restored,
+            isRestoredSession: false
+        )
+        check(profileFork.command == ["claude", "--resume", event.identity.sessionID, "--fork-session"]
+              && profileFork.directory == home.path && profileFork.profileID == profile.id,
+              "agent fork takes priority over ordinary resume, explicit argv, and profile startup")
+        PersistentPTY.fixture = .init(workingDirectory: home.path)
+        let profileAttached = ResumeStartupProbe.launch(
+            initialDirectory: "/", restoredSessionID: terminalID, agentResume: restored,
+            launchSettings: baseSettings
+        )
+        check(profileAttached.resume == nil && profileAttached.command == nil
+              && profileAttached.profileID == profile.id && profileAttached.settings == fresh.settings,
+              "matching a profile during PTY reconnect never relaunches its startup or saved agent")
+        PersistentPTY.fixture = nil
+        let profileRemote = ResumeStartupProbe.launch(
+            initialDirectory: home.path, restoredSessionID: nil, agentResume: nil,
+            remoteConnection: true, launchSettings: baseSettings
+        )
+        check(profileRemote.profileID == nil && profileRemote.settings == baseSettings,
+              "remote terminals never automatically apply a matching local profile")
+        let profileSSH = ResumeStartupProbe.launch(
+            initialDirectory: home.path, restoredSessionID: nil, agentResume: nil,
+            launchSettings: baseSettings, remotePasteTarget: true
+        )
+        check(profileSSH.profileID == nil && profileSSH.settings == baseSettings,
+              "SSH paste targets also bypass automatic local profile selection")
+        let explicitRemoteProfile = ResumeStartupProbe.launch(
+            initialDirectory: home.path, restoredSessionID: nil, agentResume: nil,
+            remoteConnection: true, launchSettings: baseSettings, initialTerminalProfile: profile
+        )
+        check(explicitRemoteProfile.profileID == profile.id && explicitRemoteProfile.settings == baseSettings
+              && explicitRemoteProfile.appearance == profile.appearance,
+              "an explicit remote profile keeps appearance without replacing the supplied remote launch settings")
+        AppSettings.shared.terminalProfiles = []
+'''
 fixture = r'''
 import Darwin
 import Foundation
@@ -148,6 +260,7 @@ final class AppSettings {
     var aiEnabled = true
     var resumeAgentConversations = true
     var preserveTerminalSessions = false
+__PROFILE_SETTINGS__
 REFRESH
 }
 
@@ -303,6 +416,8 @@ STARTUP_CHECKS
 }
 '''.replace("REFRESH", refresh).replace("RECORD", record).replace(
     "STARTUP_FIXTURE", startup_fixture
+).replace("__PROFILE_SETTINGS__",
+    "    var terminalProfiles: [TerminalProfile] = []" if has_profiles else ""
 ).replace("STARTUP_CHECKS", startup_checks).replace("LIFECYCLE_CHECKS", r'''
         let lifecycleLink = home.appendingPathComponent(".claude/hooks/zshell-lifecycle-hook.sh")
         check(FileManager.default.fileExists(atPath: lifecycleLink.path) == shouldInstall,
@@ -353,6 +468,15 @@ with tempfile.TemporaryDirectory(prefix="zshell-agent-resume-") as temporary:
     runner_path = root / "ProcessRunner.swift"
     runner_path.write_text(runner)
     sources = [str(runner_path)]
+    if has_profiles:
+        production.extend(["TerminalProfiles.swift", "TerminalEnvironmentSettings.swift",
+                           "TerminalStartupCommand.swift"])
+        toml = "import Foundation\n" + settings[settings.index("nonisolated enum TOML {"):]
+        toml_path = root / "TOML.swift"
+        toml_path.write_text(toml)
+        sources.append(str(toml_path))
+        if "SettingsConfigFile." in toml:
+            production.append("SettingsConfigFile.swift")
     for filename in production:
         path = root / filename
         path.write_text(source(filename))
