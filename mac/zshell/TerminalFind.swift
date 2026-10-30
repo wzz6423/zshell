@@ -53,6 +53,15 @@ final class TerminalFind: nonisolated ObservableObject {
     private var searchGeneration = 0
     /// Whether the current needle has already jumped to a match.
     private var hasRevealedMatch = false
+    private struct LogReveal {
+        let generation: Int
+        let target: Int
+        let total: Int
+        let forward: Bool
+        let completion: (Bool) -> Void
+        var started = false
+    }
+    private var logReveal: LogReveal?
 
     init(surface: any TerminalBackendSurface) {
         self.surface = surface
@@ -87,6 +96,7 @@ final class TerminalFind: nonisolated ObservableObject {
     /// to the terminal.
     func dismiss() {
         guard isPresented else { return }
+        finishLogReveal(false)
         isPresented = false
         clearCounts()
         surface.endFind()
@@ -110,6 +120,7 @@ final class TerminalFind: nonisolated ObservableObject {
 
     func navigate(forward: Bool) {
         guard !query.isEmpty else { return }
+        finishLogReveal(false)
         // ⌘G with the bar closed resumes the last search rather than doing
         // nothing, matching how Find Next behaves elsewhere on macOS.
         guard isPresented else {
@@ -146,18 +157,78 @@ final class TerminalFind: nonisolated ObservableObject {
     /// The backend ended the search on its own. Mirror it without sending
     /// an end straight back at it.
     func ended() {
+        if logReveal != nil { return }
         isPresented = false
         clearCounts()
     }
 
     func update(total: Int?) {
         self.total = total
+        if let reveal = logReveal {
+            if reveal.started, total != reveal.total { finishLogReveal(false); return }
+            guard !reveal.started, total == reveal.total else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                guard let self, var pending = self.logReveal,
+                      pending.generation == reveal.generation, !pending.started,
+                      self.total == pending.total else { return }
+                pending.started = true
+                self.logReveal = pending
+                self.surface.stepFind(forward: pending.forward)
+            }
+            return
+        }
         revealFirstMatchIfNeeded()
     }
 
     func update(selected: Int?) {
         self.selected = selected
+        guard let reveal = logReveal, reveal.started, let selected else { return }
+        if selected == reveal.target {
+            finishLogReveal(true)
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.logReveal?.generation == reveal.generation else { return }
+                self.surface.stepFind(forward: reveal.forward)
+            }
+        }
     }
+
+    /// The snapshot is checked by the workspace controller before this runs.
+    /// Ghostty reports its matches asynchronously and numbers newest first.
+    func revealLogMatch(needle: String, occurrence: Int, total: Int, completion: @escaping (Bool) -> Void) {
+        finishLogReveal(false)
+        guard occurrence >= 0, occurrence < total else { completion(false); return }
+        if let result = surface.revealLogMatch(needle: needle, occurrence: occurrence, total: total) {
+            completion(result)
+            return
+        }
+        isPresented = true
+        let target = surface.findMatchesNewestFirst ? total - occurrence - 1 : occurrence
+        let forward = target <= total / 2
+        searchGeneration += 1
+        let generation = searchGeneration
+        logReveal = LogReveal(generation: generation, target: target, total: total,
+                              forward: forward, completion: completion)
+        isApplyingReportedNeedle = true
+        query = needle
+        isApplyingReportedNeedle = false
+        hasRevealedMatch = true
+        clearCounts()
+        surface.endFind()
+        surface.beginFind(needle)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
+            guard self?.logReveal?.generation == generation else { return }
+            self?.finishLogReveal(false)
+        }
+    }
+
+    private func finishLogReveal(_ succeeded: Bool) {
+        let completion = logReveal?.completion
+        logReveal = nil
+        completion?(succeeded)
+    }
+
+    func cancelLogReveal() { finishLogReveal(false) }
 
     /// A backend tallies matches but selects none until asked, so the first
     /// non-empty result for a needle jumps to one — typing in the find bar is
@@ -181,6 +252,7 @@ final class TerminalFind: nonisolated ObservableObject {
     /// term.
     private func runSearch() {
         guard isPresented else { return }
+        finishLogReveal(false)
         searchGeneration += 1
         hasRevealedMatch = false
         clearCounts()

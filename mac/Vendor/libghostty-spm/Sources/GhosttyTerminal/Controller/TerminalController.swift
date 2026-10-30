@@ -57,6 +57,9 @@ public final class TerminalController {
 
     public internal(set) var lastConfigurationIssue: String?
     var onWakeup: (() -> Void)?
+    /// Hosts can invalidate cached buffer reads without replacing the
+    /// coordinator's own wakeup handler. The notification is coalescible.
+    public var onBufferMayChange: (@MainActor () -> Void)?
     var shouldProcessWakeup: (() -> Bool)?
 
     // MARK: - Config Resolution State
@@ -295,6 +298,7 @@ public final class TerminalController {
 
         tick()
         onWakeup?()
+        onBufferMayChange?()
     }
 
     private static func initializeRuntimeIfNeeded() {

@@ -50,6 +50,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     private let token = AlacrittyRegistry.shared.nextToken()
     private var metrics: AlacrittyMetrics
     private var backgroundOpacity: CGFloat = 1
+    var profileAppearance = TerminalProfileAppearance()
     private var gridGeometry = GridGeometry(
         columns: 0, rows: 0, cellWidth: 0, cellHeight: 0
     )
@@ -113,6 +114,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     )
     private var selectionAutoscrollTimer: Timer?
     private let findState = AlacrittyFind()
+    private(set) var logContentRevision: UInt64 = 0
     private var hoveredURL: URLHit?
 
     private struct URLHit: Equatable {
@@ -153,12 +155,12 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     /// and a per-pane device would duplicate the glyph atlas too.
     private static let sharedDevice = MTLCreateSystemDefaultDevice()
 
-    private static func currentMetrics() -> AlacrittyMetrics {
+    private static func currentMetrics(_ appearance: TerminalProfileAppearance = .init()) -> AlacrittyMetrics {
         let settings = AppSettings.shared
         return AlacrittyMetrics(
-            family: settings.fontFamily,
+            family: appearance.effectiveFontFamily,
             fallbackFamily: settings.fontFallbackFamily,
-            size: CGFloat(settings.fontSize),
+            size: CGFloat(appearance.effectiveFontSize),
             fontThicken: settings.fontThicken,
             fontThickenStrength: settings.fontThickenStrength,
             lineHeight: CGFloat(settings.terminalLineHeight)
@@ -431,6 +433,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     func detach() {
+        logContentRevision &+= 1
         hintMode.dismiss(restoringFocus: false)
         foregroundProcessProvider = nil
         directoryTimer?.invalidate()
@@ -496,15 +499,15 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     func applyAppearance() {
-        metrics = Self.currentMetrics()
+        metrics = Self.currentMetrics(profileAppearance)
         presentationCoverLayer.backgroundColor = terminalBackgroundColor
-        var theme = AlacrittyTheme.current()
+        var theme = AlacrittyTheme.current(profileAppearance)
         if let handle {
             withUnsafePointer(to: &theme) { zshell_alacritty_set_theme(handle, $0) }
             zshell_alacritty_set_cursor_style(
                 handle,
-                AppSettings.shared.cursorShape.alacrittyValue,
-                AppSettings.shared.cursorBlinking
+                profileAppearance.effectiveCursorShape.alacrittyValue,
+                profileAppearance.effectiveCursorBlinking
             )
         }
         // A new cell size means a different column count.
@@ -581,6 +584,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         let geometry = gridGeometry(for: bounds.size)
         guard geometry != gridGeometry else { return }
         gridGeometry = geometry
+        logContentRevision &+= 1
         zshell_alacritty_resize(
             handle,
             UInt16(geometry.columns), UInt16(geometry.rows),
@@ -822,7 +826,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         let isDark = effectiveAppearance.bestMatch(
             from: [.darkAqua, .aqua]
         ) == .darkAqua
-        return Theme.terminal(dark: isDark).backgroundNSColor
+        return profileAppearance.theme(dark: isDark).backgroundNSColor
             .withAlphaComponent(backgroundOpacity)
             .cgColor
     }
@@ -1079,6 +1083,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         case ZSHELL_EVENT_COMMAND_RECORDS:
             refreshCommandRecords()
         case ZSHELL_EVENT_WAKEUP:
+            logContentRevision &+= 1
             refreshCommandRecords()
             updateFocusReport()
             if isPointerInside, isCommandPressed {
@@ -1293,6 +1298,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     func clearScreen() {
+        logContentRevision &+= 1
         guard let handle else { return }
         zshell_alacritty_clear(handle)
         refreshCommandRecords()
@@ -1351,6 +1357,15 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         let needle = String(decoding: buffer[..<written], as: UTF8.self)
         events?.terminalDidBeginFind(needle: needle)
         beginFind(needle)
+    }
+
+    func revealLogMatch(needle: String, occurrence: Int, total: Int) -> Bool? {
+        guard let handle else { return false }
+        let revealed = needle.withCString {
+            zshell_alacritty_reveal_log_match(handle, $0, occurrence, total)
+        }
+        if revealed { scheduleRender(force: true); reportScroll() }
+        return revealed
     }
 
     func exportScreenFile() -> String? {
@@ -1442,14 +1457,21 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     /// validates before it reads.
     private func exportFile(scrollbackOnly: Bool) -> String? {
         guard let handle else { return nil }
-        let needed = zshell_alacritty_buffer_text(handle, scrollbackOnly, nil, 0)
+        var needed = zshell_alacritty_buffer_text(handle, scrollbackOnly, nil, 0)
         guard needed > 0 else { return nil }
-
-        var buffer = [UInt8](repeating: 0, count: needed)
-        let written = buffer.withUnsafeMutableBufferPointer { pointer in
-            zshell_alacritty_buffer_text(handle, scrollbackOnly, pointer.baseAddress, needed)
+        var buffer: [UInt8] = []
+        var written = 0
+        // The PTY may grow the grid between the size query and the copy.
+        for _ in 0..<3 {
+            buffer = [UInt8](repeating: 0, count: needed)
+            written = buffer.withUnsafeMutableBufferPointer { pointer in
+                zshell_alacritty_buffer_text(handle, scrollbackOnly, pointer.baseAddress, needed)
+            }
+            guard written > 0 else { return nil }
+            if written <= buffer.count { break }
+            needed = written
         }
-        guard written > 0 else { return nil }
+        guard written <= buffer.count else { return nil }
 
         let manager = FileManager.default
         let directory = manager.temporaryDirectory
@@ -2457,6 +2479,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         for item in TerminalHintMenu.shared.items(for: self) { menu.addItem(item) }
         menu.addItem(.separator())
         menu.addItem(splitTarget.quickCommandMenuItem())
+        menu.addItem(splitTarget.profileMenuTarget.menuItem())
         if let linkTarget {
             menu.addItem(.separator())
             switch linkTarget {
@@ -2801,9 +2824,9 @@ extension TerminalLaunch {
 enum AlacrittyTheme {
     /// Zshell's active terminal theme in the flat form the bridge resolves
     /// colors against, so Alacritty panes match Ghostty panes exactly.
-    static func current() -> ZshellTheme {
+    static func current(_ appearance: TerminalProfileAppearance = .init()) -> ZshellTheme {
         let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        let definition = Theme.terminal(dark: isDark)
+        let definition = appearance.theme(dark: isDark)
 
         var theme = ZshellTheme()
         withUnsafeMutableBytes(of: &theme.palette) { raw in

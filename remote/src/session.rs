@@ -33,6 +33,7 @@ pub struct SessionInfo {
     pub total_output_bytes: u64,
     pub agent_status: Status,
     pub conversation: Option<Identity>,
+    pub profile_context: crate::profile_context::ProfileContext,
 }
 
 struct QueuedFrame {
@@ -262,6 +263,7 @@ impl Session {
             total_output_bytes: 0,
             agent_status: Status { phase: "idle".into(), ..Status::default() },
             conversation: None,
+            profile_context: crate::profile_context::snapshot(pty.pid()),
         };
         let (input_sender, input_receiver) = mpsc::sync_channel::<Vec<u8>>(64);
         let input_pending = Arc::new(AtomicUsize::new(0));
@@ -337,7 +339,16 @@ impl Session {
     pub fn info(&self) -> SessionInfo {
         let mut state = self.state.lock().unwrap();
         self.refresh_agent_owner(&mut state);
+        self.refresh_profile_context(&mut state);
         state.info.clone()
+    }
+
+    fn refresh_profile_context(&self, state: &mut State) {
+        if state.info.running {
+            state.info.profile_context = crate::profile_context::snapshot(
+                self.pty.foreground_pid().unwrap_or(state.info.pid)
+            );
+        }
     }
 
     pub fn accept_hook(&self, hook: &Hook, peer_pid: Option<i32>) -> io::Result<()> {
@@ -614,6 +625,7 @@ impl Session {
                 }
             }
             "ping" => {
+                self.refresh_profile_context(&mut state);
                 let mut pong = Frame::new("pong");
                 pong.result = Some(serde_json::to_value(&state.info).unwrap());
                 attachment.send(pong, false);

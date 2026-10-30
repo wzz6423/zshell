@@ -1608,15 +1608,17 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     func toggleCommandPalette() {
-        if agentPalette.isPresented {
-            agentPalette.dismiss(restoreFocus: false)
-        }
+        let displacedResponder = agentPalette.isPresented
+            ? agentPalette.dismissForHandoff()
+            : nil
         if isCommandPaletteVisible {
             dismissCommandPalette()
         } else {
             commandPaletteWindow = NSApp.keyWindow
-            if let responder = commandPaletteWindow?.firstResponder,
-               Self.isStableWorkspaceResponder(responder) {
+            if let displacedResponder {
+                commandPalettePreviousResponder = displacedResponder
+            } else if let responder = commandPaletteWindow?.firstResponder,
+                      Self.isStableWorkspaceResponder(responder) {
                 commandPalettePreviousResponder = responder
             } else {
                 commandPalettePreviousResponder = nil
@@ -1753,6 +1755,7 @@ final class TerminalManager: nonisolated ObservableObject {
     func windowClosed() {
         guard !Self.isQuitting else { return }
         AgentConversationHistoryController.shared.close(ifOwnedBy: self)
+        WorkspaceLogSearchController.shared.close(ifOwnedBy: self)
         WorkspaceTemplateController.shared.close(ifOwnedBy: self)
         TerminalCommandHistoryController.shared.close(ifOwnedBy: self, restoreFocus: false)
         agentPalette.dismiss(restoreFocus: false)

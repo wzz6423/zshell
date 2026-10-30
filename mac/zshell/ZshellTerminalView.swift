@@ -31,6 +31,10 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     var commandRecordState = TerminalCommandRecords()
     var lastCommandRevision: UInt64?
     var ghosttyController: TerminalController?
+    private(set) var logContentRevision: UInt64 = 0
+    var findMatchesNewestFirst: Bool { true }
+
+    func invalidateLogContents() { logContentRevision &+= 1 }
     /// The `/bin/sh -c …` line this surface launched, kept so a live
     /// re-configure can restate it rather than start a second shell.
     var launchCommand = ""
@@ -72,6 +76,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var windowFocusObservers: [NSObjectProtocol] = []
     var reportsLocalWorkingDirectory = true
     private(set) var backgroundOpacity = 1.0
+    var profileAppearance = TerminalProfileAppearance()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -198,6 +203,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     func clearScreen() {
+        invalidateLogContents()
         performBindingAction("clear_screen")
         refreshCommandRecords()
         // Ask the foreground shell to repaint its prompt at the top.
@@ -907,6 +913,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         for item in TerminalHintMenu.shared.items(for: self) { menu.addItem(item) }
         menu.addItem(.separator())
         menu.addItem(splitTarget.quickCommandMenuItem())
+        menu.addItem(splitTarget.profileMenuTarget.menuItem())
         if let linkTarget {
             menu.addItem(.separator())
             switch linkTarget {
@@ -1151,6 +1158,7 @@ final class SplitMenuTarget: NSObject {
     var onRunQuickCommand: ((QuickCommandPreset) -> Void)?
     var onManageQuickCommands: (() -> Void)?
     private let quickCommandTarget = QuickCommandMenuTarget()
+    let profileMenuTarget = TerminalProfileMenuTarget()
 
     func browserMenuItems(initialURL: String) -> [NSMenuItem] {
         let tabItem = item(
