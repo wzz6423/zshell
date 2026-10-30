@@ -56,7 +56,7 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
         if item.submenu == nil { item.submenu = menu }
         if menu.title != title { menu.title = title }
         for (id, title, action) in [
-            ("workspace-template-save", String(localized: "Save Project as Template…"), #selector(saveFromMenu(_:))),
+            ("workspace-template-save", String(localized: "Save Project as Template"), #selector(saveFromMenu(_:))),
             ("workspace-template-manage", String(localized: "Workspace Templates…"), #selector(showFromMenu(_:))),
         ] {
             let identifier = NSUserInterfaceItemIdentifier(id)
@@ -223,13 +223,13 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
     private func localize() {
         guard panel != nil else { return }
         panel?.title = String(localized: "Workspace Templates")
-        saveButton.title = String(localized: "Save Project as Template…")
-        importButton.title = String(localized: "Import…")
-        renameButton.title = String(localized: "Rename…")
-        deleteButton.title = String(localized: "Delete…")
-        editButton.title = String(localized: "Edit…")
-        exportButton.title = String(localized: "Export…")
-        chooseButton.title = String(localized: "Choose…")
+        saveButton.title = String(localized: "Save Project as Template")
+        importButton.title = String(localized: "Import")
+        renameButton.title = String(localized: "Rename")
+        deleteButton.title = String(localized: "Delete")
+        editButton.title = String(localized: "Edit")
+        exportButton.title = String(localized: "Export")
+        chooseButton.title = String(localized: "Choose")
         applyButton.title = String(localized: "Apply Template")
         rootLabel.stringValue = String(localized: "Project Root")
         rootField.setAccessibilityLabel(rootLabel.stringValue)
@@ -345,7 +345,7 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
     @objc private func saveCurrentProject(_ sender: Any?) {
         guard let project = manager?.selectedProject, let panel else { return }
         let alert = NSAlert()
-        alert.messageText = String(localized: "Save Project as Template…")
+        alert.messageText = String(localized: "Save Project as Template")
         let name = NSTextField(string: project.name)
         name.frame = NSRect(x: 0, y: 0, width: 360, height: 24)
         name.setAccessibilityLabel(String(localized: "Template Name"))
@@ -393,7 +393,7 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
     @objc private func renameTemplate(_ sender: Any?) {
         guard let selected, let panel else { return }
         let alert = NSAlert()
-        alert.messageText = String(localized: "Template Name")
+        alert.messageText = String(localized: "Rename")
         let field = NSTextField(string: selected.template.name)
         field.frame = NSRect(x: 0, y: 0, width: 360, height: 24)
         field.setAccessibilityLabel(String(localized: "Template Name"))
@@ -417,7 +417,7 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
     @objc private func deleteTemplate(_ sender: Any?) {
         guard let selected, let panel else { return }
         let alert = NSAlert()
-        alert.messageText = String(localized: "Delete Template?")
+        alert.messageText = String(localized: "Delete")
         alert.informativeText = selected.template.name
         alert.addButton(withTitle: String(localized: "Delete"))
         alert.addButton(withTitle: String(localized: "Cancel"))

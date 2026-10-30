@@ -218,10 +218,10 @@ struct WorkspaceTemplateRemoteSurfaceTests {
         let directoryField = views().compactMap { $0 as? NSTextField }.first { $0.isEditable && !$0.isHiddenOrHasHiddenAncestor }!
         try check(popup.titleOfSelectedItem == host.name && directoryField.stringValue == sourceDirectory,
                   "the template window preselects the saved host and remote directory")
-        try check(!views().contains { ($0 as? NSButton)?.title == String(localized: "Choose…") && !$0.isHiddenOrHasHiddenAncestor },
+        try check(!views().contains { ($0 as? NSButton)?.title == String(localized: "Choose") && !$0.isHiddenOrHasHiddenAncestor },
                   "remote templates hide the local project root chooser")
         select(localID)
-        try check(popup.isHiddenOrHasHiddenAncestor && views().contains { ($0 as? NSButton)?.title == String(localized: "Choose…") && !$0.isHiddenOrHasHiddenAncestor },
+        try check(popup.isHiddenOrHasHiddenAncestor && views().contains { ($0 as? NSButton)?.title == String(localized: "Choose") && !$0.isHiddenOrHasHiddenAncestor },
                   "local templates show the project root chooser instead of the host picker")
         select(readyID)
         panel.contentView!.layoutSubtreeIfNeeded()
