@@ -32,9 +32,9 @@ struct ProjectTabMarkerColor {
     var nsColor: NSColor { .systemBlue }
     var displayValue: String { "Blue" }
 }
-struct ZshellAgentRollup { var phase = 0; var count = 0 }
+struct ZshellAgentRollup { var phase = 0; var count = 0; var detail = ""; var progress: Int? = nil }
 final class AgentStatusBadgeView: NSView {
-    func apply(phase: Int, count: Int) {}
+    func apply(phase: Int, count: Int, detail: String = "", progress: Int? = nil) {}
 }
 enum AppKitContextMenuItem {}
 final class AppKitContextMenuMonitorView: NSView {

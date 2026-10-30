@@ -16,6 +16,14 @@ Chọn ở **Cài đặt → Terminal → Backend**:
 
 Cả hai hỗ trợ tăng tốc GPU, kết xuất ảnh, bộ chủ đề chung của Zshell, tìm kiếm, báo cáo chuột, thông báo và báo tiến độ. Đổi backend chỉ tác động terminal mới; ô hiện tại giữ backend lúc bắt đầu.
 
+## Lịch sử lệnh [#command-history]
+
+Chọn **Terminal → Lịch sử lệnh…** để tìm các lệnh đã chạy trong Zshell theo nội dung hoặc thư mục. Mỗi dòng hiển thị thư mục ban đầu, thời gian bắt đầu, thời lượng và trạng thái thoát. Nhấp vào dòng hoặc **Hiện đầu ra** để quay lại ngăn và đầu ra ban đầu. Nếu ngăn đã đóng hoặc đầu ra đã bị xóa, không thể điều hướng; bạn vẫn có thể **Sao chép lệnh**.
+
+**Chèn vào terminal** điền lệnh vào dấu nhắc zsh trống ở ngăn ban đầu mà không chạy; nhấn Return khi sẵn sàng. Không thể chèn khi ngăn đang bận hoặc đã có bản nháp. Lệnh nhiều dòng được giữ nguyên. Danh sách dùng tích hợp khối lệnh của Ghostty và Alacritty; lệnh trong shell không được hỗ trợ hoặc lồng nhau có thể không xuất hiện.
+
+Lịch sử được lưu cục bộ ở nền, tối đa 2.000 lệnh và 8 MiB. **Xóa** bỏ bản ghi đã chọn; **Xóa lịch sử…** bỏ danh sách đã lưu. Đầu ra terminal và lịch sử riêng của shell được giữ lại.
+
 ## Shell của bạn không đổi [#your-shell-unchanged]
 
 Mỗi phiên mở shell đăng nhập của tài khoản, nên dấu nhắc, alias, hàm và dotfile nạp như trong terminal khác. Zshell thêm biến nhận diện và khả năng:
@@ -93,6 +101,14 @@ Zshell nhận URL web và đường dẫn cục bộ tồn tại do chương tr�
 - Chương trình toàn màn hình bật báo cáo chuột nhận nhấp phải không bổ trợ. Giữ **Shift** khi nhấp phải để mở menu terminal/ô của Zshell.
 
 Nhờ vậy đầu ra trình biên dịch và hội thoại tác nhân nối thẳng về cùng dự án. Xem hành vi trình duyệt ở [Ô trình duyệt](/vi/docs/browser).
+
+## Gợi ý bằng bàn phím [#keyboard-hints]
+
+Đặt tiêu điểm vào terminal rồi chọn **Terminal → Sao chép gợi ý terminal…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) hoặc **Mở gợi ý terminal…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>). Nhãn chữ xuất hiện trên đường dẫn, URL, địa chỉ IP và mã commit đang hiển thị. Nhập nhãn để chọn; nhãn nhiều chữ lọc dần các lựa chọn.
+
+<kbd>Tab</kbd> đổi giữa sao chép và mở. <kbd>Backspace</kbd> xóa một chữ; <kbd>Esc</kbd> hủy và trả nhập liệu về terminal. Các phím này không được gửi đến chương trình. Sao chép giữ vị trí như `:42:7`. Mở dùng Finder hoặc trình duyệt mặc định như Command-click; giá trị khác vẫn có thể sao chép.
+
+Cả hai backend chỉ quét màn hình đang hiển thị, gồm cả dòng tự xuống hàng. Đổi kích thước hoặc đầu ra sẽ cập nhật nhãn. Ngăn chỉ đọc vẫn cho phép sao chép và mở trên máy chủ.
 
 ## Thông báo [#notifications]
 
@@ -178,3 +194,9 @@ Toàn bộ danh sách lệnh thông dụng luôn còn; chỉ ưu tiên thay đ�
 Trình soạn thảo cục bộ được nhận diện qua chương trình tiền cảnh. Trong SSH, Mosh hoặc bộ ghép terminal, việc phát hiện dùng dòng chế độ/trạng thái Vim nhìn thấy và bố cục màn hình, không cài plugin từ xa. Giữ `showmode` hoặc dòng trạng thái dễ nhận diện. Cấu hình giấu/đổi nhãn chế độ có thể trở về gợi ý Normal hoặc ngăn nhận diện từ xa; ánh xạ phím tùy chỉnh không được diễn giải. Chỉ bảng Thông tin đang hoạt động được lấy mẫu; gợi ý biến mất khi chương trình tiền cảnh đổi hoặc không còn nhận ra trình soạn thảo.
 
 Cũng có thể bật bằng `terminal.vim-command-hints = true` trong cấu hình.
+
+## Hoàn thành lệnh shell
+
+Bật **Cài đặt → Terminal → Hành vi → Hoàn thành lệnh shell** (mặc định bật), rồi mở terminal zsh mới. Lệnh, lệnh con, tham số và đường dẫn dùng hàm hoàn thành của shell với gợi ý màu xám. **Mũi tên phải** chấp nhận ở cuối đầu vào; **Tab** mở lựa chọn, mũi tên chọn, **Return** chấp nhận mà không chạy, **Esc** hoặc **Ctrl+G** hủy menu. **Esc** cũng đóng gợi ý. Plugin và phím tắt hiện có được giữ nguyên.
+
+Plugin đi kèm không sửa `.zshrc`. Chương trình toàn màn hình nhận đầu vào riêng. Với zshell-server tương thích và zsh, dự án từ xa dùng lệnh và đường dẫn từ xa; shell khác giữ hoàn thành gốc. Áp dụng cho shell và phiên từ xa mới. Tắt bằng `terminal.shell-completions = false`.
