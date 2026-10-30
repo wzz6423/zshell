@@ -6,44 +6,42 @@
 import AppKit
 import SwiftUI
 
+final class GitPanelSearchField: NSSearchField, NSSearchFieldDelegate {
+    var onChange: ((String) -> Void)?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        delegate = self
+        controlSize = .small
+        sendsSearchStringImmediately = true
+        sendsWholeSearchString = false
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func update(text: String, placeholder: String, fontScale: CGFloat) {
+        font = .systemFont(ofSize: 11 * fontScale)
+        placeholderString = placeholder
+        setAccessibilityLabel(placeholder)
+        if stringValue != text {
+            stringValue = text
+            currentEditor()?.string = text
+        }
+    }
+
+    func controlTextDidChange(_ notification: Notification) { onChange?(stringValue) }
+}
+
 struct GitChangedFilesSearchField: NSViewRepresentable {
     @Binding var text: String
     let fontScale: CGFloat
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
+    func makeNSView(context: Context) -> GitPanelSearchField {
+        GitPanelSearchField()
     }
 
-    func makeNSView(context: Context) -> NSSearchField {
-        let field = NSSearchField()
-        field.delegate = context.coordinator
-        field.controlSize = .small
-        field.sendsSearchStringImmediately = true
-        field.sendsWholeSearchString = false
-        return field
-    }
-
-    func updateNSView(_ field: NSSearchField, context: Context) {
-        context.coordinator.parent = self
-        field.font = .systemFont(ofSize: 11 * fontScale)
-        field.placeholderString = String(localized: "Filter changed files")
-        field.setAccessibilityLabel(field.placeholderString)
-        if field.stringValue != text {
-            field.stringValue = text
-            field.currentEditor()?.string = text
-        }
-    }
-
-    final class Coordinator: NSObject, NSSearchFieldDelegate {
-        var parent: GitChangedFilesSearchField
-
-        init(parent: GitChangedFilesSearchField) {
-            self.parent = parent
-        }
-
-        func controlTextDidChange(_ notification: Notification) {
-            guard let field = notification.object as? NSSearchField else { return }
-            parent.text = field.stringValue
-        }
+    func updateNSView(_ field: GitPanelSearchField, context: Context) {
+        field.onChange = { text = $0 }
+        field.update(text: text, placeholder: String(localized: "Filter changed files"), fontScale: fontScale)
     }
 }

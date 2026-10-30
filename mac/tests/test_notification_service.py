@@ -14,6 +14,11 @@ with tempfile.TemporaryDirectory(prefix="zshell-notification-service-", dir="/tm
     exec(support_section)
     support.write_text(support.read_text() + r'''
 import AppKit
+@MainActor final class AppSettings {
+    static let shared = AppSettings()
+    var notifyOnAgentAttention = true
+    var notifyOnAgentCompletion = true
+}
 enum ZshellAgentKind: String { case codex }
 enum ZshellAgentPhase: String { case working, blocked, done, idle, created }
 enum ZshellAgentStateAuthority { case integration, report, command, screen }

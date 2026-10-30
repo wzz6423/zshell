@@ -24,6 +24,8 @@ with.
 
 ## Command history [#command-history]
 
+In **Settings → Terminal → History**, **Record command history** is on by default (`terminal.command-history = true`). Turning it off stops recording new commands; saved history remains available to view or clear. Terminal output and your shell’s own history are kept.
+
 Choose **Terminal → Command History…** to search commands run in Zshell by command text or directory. Each row shows the original directory, start time, duration and exit status. Click a row or use **Show Output** to return to its original pane and command output. If the pane is closed or that output has been cleared, navigation is unavailable; **Copy Command** still works.
 
 **Insert into Terminal** fills the original pane’s empty zsh prompt without running the command; press Return when ready. It is disabled while that pane is busy or has draft input. Multiline commands remain multiline. The list uses Zshell’s command-block integration on Ghostty and Alacritty, so commands in unsupported or nested shells may not appear.
@@ -67,13 +69,15 @@ these permissions automatically.
 
 ## Focus follows mouse [#focus-follows-mouse]
 
-Enable **Settings → Terminal → Behavior → Focus follows mouse** to focus a terminal when the pointer enters it. It is off by default and works with both backends, including Quick Terminal. It does not take focus during a drag, from an editor, or while a menu or dialog is open.
+Enable **Settings → Terminal → Input → Focus follows mouse** to focus a terminal when the pointer enters it. It is off by default and works with both backends, including Quick Terminal. It does not take focus during a drag, from an editor, or while a menu or dialog is open.
 
 `terminal.focus-follows-mouse = true`
 
 ## Terminal profiles
 
-Open **Settings → Terminal → Manage Terminal Profiles…** to create and order
+**Apply terminal profiles automatically** is on by default (`terminal.auto-profiles = true`). Turn it off to stop automatic matching; manual profile selection remains available.
+
+Open **Settings → Terminal → Terminal Profiles → Manage Terminal Profiles…** to create and order
 profiles. Each enabled profile can match a host, user, working directory, and
 foreground program. Filled conditions must all match; `*` matches any text and
 `?` matches one character. Zshell uses the first matching profile. If none
@@ -182,6 +186,8 @@ same project. Browser behavior is covered in [Browser panes](/en/docs/browser).
 
 ## Keyboard hints [#keyboard-hints]
 
+**Show terminal text hints** in **Settings → Terminal → Input** is on by default (`terminal.text-hints = true`). Turn it off to hide the hint commands and shortcuts and stop the visible-text hint mode.
+
 Focus a terminal and choose **Terminal → Copy Terminal Hint…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) or **Open Terminal Hint…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>). Letter labels appear directly over visible paths, URLs, IP addresses and commit hashes. Type the label to select it; longer labels narrow the choices as you type.
 
 <kbd>Tab</kbd> switches between copying and opening. <kbd>Backspace</kbd> removes a letter; <kbd>Esc</kbd> cancels and returns typing to the terminal. Hint keys are never sent to the terminal program. Copying keeps diagnostic suffixes such as `:42:7`. Opening uses the same Finder/default-browser route as Command-click; values without an openable destination can still be copied.
@@ -189,6 +195,8 @@ Focus a terminal and choose **Terminal → Copy Terminal Hint…** (<kbd>Cmd</kb
 Hints scan the current visible screen on both backends, including soft-wrapped text. Resize or changed output refreshes the labels. The mode works in read-only panes for copying and host actions.
 
 ## Notifications
+
+In **Settings → Automation → Notifications**, **Notify when agents need attention** and **Notify when agents finish** are both on by default (`ai.notify-on-attention` and `ai.notify-on-completion`). Each controls macOS delivery of that agent event; notification history still records it when delivery is off.
 
 Zshell forwards two terminal events to Notification Center:
 
@@ -201,6 +209,8 @@ to the exact session that emitted it. macOS asks for permission only when a
 terminal first tries to notify you, not when Zshell launches.
 
 ### Notification history
+
+The same history is available from **Settings → Terminal → Notifications**.
 
 Open **Notifications → Notification History…** to view recent terminal and agent
 notifications. Choose **Unread**, **Failed**, or **Pending** to filter the list.
@@ -219,7 +229,7 @@ notification permission is disabled.
 
 ### Command completion
 
-Open **Settings → Terminal → Command Notifications** to have Zshell notify you
+Open **Settings → Terminal → Notifications** to have Zshell notify you
 when a command finishes:
 
 - **Long-running commands**: choose 5, 10, 30, or 60 seconds. A command that runs
@@ -292,6 +302,8 @@ before the symbol and system fallbacks. See
 
 ## Global Quick Terminal
 
+**Enable Quick Terminal** in **Settings → Terminal → Quick Terminal** is on by default (`quick-terminal.enabled = true`). Turning it off hides the window and entry points and unregisters the global shortcut, while keeping the current workspace and running tasks. Notifications cannot reopen it while disabled. Its size, opacity, mode, and shortcut controls reappear when enabled again.
+
 While Zshell is running, press <kbd>Cmd</kbd>+<kbd>I</kbd> or choose **Terminal → Quick Terminal** to show or hide its independent shell. Adjust size, opacity, and the global shortcut in **Settings → Terminal → Quick Terminal**.
 
 **Session behavior: Reuse workspace (default) / New workspace each time.** Reuse keeps panes and tasks. New workspaces end when hidden. Mode changes apply on next show; the reusable workspace stays available when switching back. Shell history follows your shell configuration. A new workspace always starts with one empty terminal, without the previous output, pane layout or session state.
@@ -308,7 +320,7 @@ Enable [`terminal.preserve-sessions`](/en/docs/configuration#terminalpreserve-se
 
 ## Vim command hints
 
-Manage hints in **Settings → Terminal → Behavior → Vim command hints**, then
+Manage hints in **Settings → Terminal → Input → Vim command hints**, then
 open the right sidebar's **Info** tab. A **VIM COMMANDS** section appears below the
 session information while Vim, Vi, or Neovim is active. It is on by default for
 new configurations and applies immediately to existing terminals on both backends.
@@ -334,6 +346,6 @@ You can also enable it in the configuration file with
 
 ## Shell completions
 
-Enable **Settings → Terminal → Behavior → Shell completions** (on by default) and open a new zsh terminal. Commands, subcommands, arguments, and paths use the shell’s completion functions, with gray inline suggestions. **Right** accepts an inline suggestion at the end of the input; **Tab** opens candidates, arrow keys select, **Return** accepts a candidate without running it, and **Esc** or **Ctrl+G** cancels the menu. **Esc** dismisses an inline suggestion. Existing completion plugins and custom keys keep their behavior.
+Enable **Settings → Terminal → Input → Shell completions** (on by default) and open a new zsh terminal. Commands, subcommands, arguments, and paths use the shell’s completion functions, with gray inline suggestions. **Right** accepts an inline suggestion at the end of the input; **Tab** opens candidates, arrow keys select, **Return** accepts a candidate without running it, and **Esc** or **Ctrl+G** cancels the menu. **Esc** dismisses an inline suggestion. Existing completion plugins and custom keys keep their behavior.
 
 Zshell loads bundled zsh-completions and zsh-autosuggestions without editing `.zshrc`. Full-screen programs receive their own input. Remote projects use the remote shell’s commands and paths when a compatible zshell-server and zsh are installed; other shells retain their native completion. Changes apply to new shells, including new remote sessions. Set `terminal.shell-completions = false` to disable the bundled support.

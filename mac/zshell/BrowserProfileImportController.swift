@@ -47,8 +47,12 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
     }
 
     @objc private func showImport(_ sender: Any?) {
-        guard let manager = TerminalManager.activeWindowManager,
-              let host = AppWindowPresentation.hostWindow(relativeTo: manager.presentationWindow) else { return }
+        guard let manager = TerminalManager.activeWindowManager else { return }
+        show(for: manager)
+    }
+
+    func show(for manager: TerminalManager) {
+        guard let host = AppWindowPresentation.hostWindow(relativeTo: manager.presentationWindow) else { return }
         if panel == nil { configure() }
         guard let panel else { return }
         self.manager = manager

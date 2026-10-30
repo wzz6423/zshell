@@ -31,14 +31,17 @@ pub struct Identity {
 }
 
 impl Identity {
-    pub fn validate(&self) -> io::Result<()> {
-        let id_valid = match self.provider.as_str() {
-            "claude" | "codex" | "pi" => is_uuid(&self.session_id),
-            "opencode" => self.session_id.starts_with("ses_") && (5..=128).contains(&self.session_id.len())
-                && self.session_id[4..].bytes().all(|b| b.is_ascii_alphanumeric() || b"_-".contains(&b)),
+    pub fn accepts_session_id(provider: &str, session_id: &str) -> bool {
+        match provider {
+            "claude" | "codex" | "pi" => is_uuid(session_id),
+            "opencode" => session_id.starts_with("ses_") && (5..=128).contains(&session_id.len())
+                && session_id[4..].bytes().all(|b| b.is_ascii_alphanumeric() || b"_-".contains(&b)),
             _ => false,
-        };
-        if !id_valid || !absolute_path(&self.working_directory)
+        }
+    }
+
+    pub fn validate(&self) -> io::Result<()> {
+        if !Self::accepts_session_id(&self.provider, &self.session_id) || !absolute_path(&self.working_directory)
             || self.config_directory.as_deref().is_some_and(|p| !absolute_path(p))
             || self.session_file.as_deref().is_some_and(|p| self.provider != "pi" || !absolute_path(p) || !p.ends_with(".jsonl"))
             || self.alias.as_deref().is_some_and(|s| s.is_empty() || !valid_text(s, 128))

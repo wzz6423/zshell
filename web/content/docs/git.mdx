@@ -95,9 +95,7 @@ The search field filters both lists, and each list can be collapsed independentl
 The Git panel lists every worktree belonging to the repository, together with its
 branch and checkout path. The active checkout is marked **Current**. Click a
 worktree to open a new terminal tab in that directory, so each checkout keeps its
-own shell context while remaining part of the same project. Longer worktree lists
-scroll inside their own bounded area; the section header, commit controls, and
-changed-file list stay in place. Click the worktree header to collapse or expand it.
+own shell context while remaining part of the same project. The Git panel scrolls vertically as one page, with worktrees, changed files, commit controls, and recent commits moving together. Click the worktree header to collapse or expand it.
 
 Detached HEAD worktrees show **Detached HEAD** instead of a branch name. Bare
 repositories are listed for completeness, but they do not have a working
@@ -107,7 +105,7 @@ directory and cannot be opened in a terminal tab.
 
 From a terminal in a local Git repository, choose **Terminal → New Session in Worktree…** or press <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>. The tab context menu and the **+** button’s context menu offer the same action. Choose a new or existing local branch and a directory that does not exist yet. New branches start from the repository’s default branch; **Current HEAD** is an explicit choice. Existing branches keep their current commit. The suggested directory sits beside the source checkout.
 
-Splits inherit the session’s worktree association, and the saved layout restores it. Closing an associated session offers **Keep Worktree**, **Remove Worktree**, or **Cancel**. Removal is available only when the checkout has no changed, untracked, or ignored files, no commits outside the recorded baseline, no lock, and no other open session using it. The Git branch is always kept.
+Splits inherit the session’s worktree association, and the saved layout restores it. Closing an associated session offers **Keep Worktree**, **Remove Worktree**, or **Cancel**. Removal is available only when the checkout has no changed, untracked, or ignored files, no commits outside the recorded baseline, no lock, and no other open session using it. The Git branch is always kept. Sessions in the independent Quick Terminal also count as users of a worktree and prevent its removal while open.
 
 An external terminal can create and close sessions with `zshell +session`. Use `--project` with an ID returned by `projects`; inside Zshell, the invoking terminal’s project is used automatically. Creation opens a background session unless you add `--focus`. `--base HEAD` or `--base REF` selects another baseline, and `--worktree NEW_DIR` sets the directory. `--connection FILE` selects a particular running instance when needed. Closing keeps the worktree unless `--remove-worktree` is explicit; `check` reports whether cleanup is currently safe.
 
@@ -146,6 +144,8 @@ you.
 </Callout>
 
 ### Pull request status [#pull-request-status]
+
+**Show pull request status** under **Settings → General → Git** is on by default (`git.pull-request-status = true`). Turn it off to hide pull request status in the Git panel.
 
 Install and sign in to GitHub CLI (`gh auth login`) to see the current branch’s pull request number and status in the panel of a local repository. Click it to open the pull request, or right-click it and choose **Refresh Pull Request Status** to check again. Non-GitHub remotes do not show a pull request.
 

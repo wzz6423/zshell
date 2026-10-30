@@ -18,6 +18,7 @@ LANGUAGES = (
 # These are names, format-only strings, or words shared by the target languages.
 # Keeping an explicit list catches English fallback copied into a new entry.
 SHARED_TEXT = {
+    "Input",
     "%@ — %@", "%@%% · %@", "%@, %@", "%@: %@", "%@…", "+%lld, −%lld",
     "%lld fps", "%lld pt", "%lld sessions", "AI", "Agents", "Arguments", "Backend", "Block",
     "Branches", "Browser", "Cookies", "Cookies: %lld", "Conflict", "Cursor", "Detached HEAD", "Editor", "File", "Font",

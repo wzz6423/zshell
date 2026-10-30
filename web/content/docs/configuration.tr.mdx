@@ -13,6 +13,10 @@ Ayarlar penceresi (<kbd>Cmd</kbd>+<kbd>,</kbd>) aynı dosyaya yazar. Dil ve otom
 
 Yeni yapılandırmalar Vim komut ipuçlarını, oturum geçmişini geri yüklemeyi ve başarısız komut bildirimlerini varsayılan olarak açar. Otomatik güncelleme indirmeleri de varsayılan olarak açıktır. Mevcut yapılandırmalar ve kaydedilmiş seçimler korunur.
 
+**Ayarlar → Terminal** içinde girdi denetimleri **Girdi**, komut kaydı ve geçmişe erişim **Geçmiş**, komut bildirimleri ve bildirim geçmişi **Bildirimler** altındadır. **İmleç** ve **Arka Plan**, **Ayarlar → Görünüm** içindedir.
+
+Ana özellik kapalıyken ona bağlı denetimler gizlenir; kaydedilmiş değerler korunur. Bu, Hızlı Terminal denetimleri, ajan konuşmalarını sürdürme ve bildirimler, yazı kalınlaştırma gücü, odak çerçevesi opaklığı, Git proxy adresi ve tarayıcı filtre listeleriyle durumunu kapsar. Arka plan bulanıklığı yalnızca arka plan yarı saydamken ve macOS Saydamlığı azalt seçeneği kapalıyken görünür.
+
 ## Dosyanın davranışı [#how-the-file-behaves]
 
 Elle düzenlemeden önce bilin:
@@ -194,6 +198,9 @@ Terminal bölmeleri geri yüklenirken özgün PTY kullanılamıyorsa kaydedilmi�
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Uygulama simgesi |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Dosya ve klasörlerin harici düzenleyicisi |
 | `terminal.theme-only` | `false` | mantıksal | Paleti yalnızca terminale uygular |
+| `terminal.command-history` | `true` | mantıksal | Yeni komutları kaydet; kapalıyken kayıtlı geçmiş kullanılabilir |
+| `terminal.text-hints` | `true` | mantıksal | Görünür terminal metni için klavye ipuçlarını etkinleştir |
+| `terminal.auto-profiles` | `true` | mantıksal | Terminal profillerini otomatik eşleştir; elle seçim kullanılabilir |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Terminal imleç biçimi |
 | `terminal.cursor-blinking` | `true` | mantıksal | İmleci yanıp söndürür |
 | `terminal.copy-on-select` | `true` | mantıksal | Seçili terminal metnini kopyalar |
@@ -203,12 +210,16 @@ Terminal bölmeleri geri yüklenirken özgün PTY kullanılamıyorsa kaydedilmi�
 | `terminal.background-blur` | `false` | mantıksal | Saydam arka planları bulanıklaştırır |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Yeni zsh terminallerinde en az bu süre çalışıp biten komutu bildirir; 0 kapatır |
 | `terminal.notify-on-error` | `true` | mantıksal | Yeni zsh terminallerinde komut hatasını bildirir |
+| `ai.notify-on-attention` | `true` | mantıksal | Ajan ilgilenme bildirimlerini gönder; geçmiş kaydı sürer |
+| `ai.notify-on-completion` | `true` | mantıksal | Ajan tamamlanma bildirimlerini gönder; geçmiş kaydı sürer |
+| `quick-terminal.enabled` | `true` | mantıksal | Hızlı Terminali göster ve genel kısayolunu kaydet; kapatmak çalışan görevleri korur |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Çalışma alanını yeniden kullan / Her seferinde yeni çalışma alanı |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Hızlı Terminal’in ekrana göre boyutu |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Hızlı Terminal arka plan opaklığı |
 | `quick-terminal.shortcut` | `Cmd+I` | Ayarlar’da kaydedilir | Genel kısayolu Ayarlar’da kaydedin; tuş kodları otomatik saklanır |
 | `panes.show-focus-ring` | `true` | mantıksal | Etkin bölme çevresinde odak halkası |
 | `panes.focus-ring-opacity` | `0.85` | 0.05–1 | Odak halkasının opaklığı |
+| `git.pull-request-status` | `true` | mantıksal | Git panelinde pull request durumunu göster |
 
 ## Yedekleme ve taşıma [#backup-and-migration]
 
@@ -251,6 +262,6 @@ Temel komuta yeni kısayol kaydetmek için **Ayarlar → Kısayollar**’ı aç�
 ## Bu dosyanın dışındaki ayarlar [#settings-outside-this-file]
 
 - **Dil.** Ayarlar, web sitesiyle aynı 17 dili ve Sistem Varsayılanı’nı sunar. Terminal oturumları çalışmaya devam ederken değişiklik hemen uygulanır. macOS’in uygulamaya özel dil tercihini kullanır; TOML yerine Zshell tercihlerindedir. Sistem Varsayılanı macOS dil sırasını izler.
-- **Otomatik güncellemeler.** **Ayarlar → Güncellemeler**’deki otomatik denetim, indirme ve kurulum anahtarları TOML dışındaki uygulama tercihlerindedir; açılışlar arasında hatırlanır. Kurulum yalnızca otomatik indirme açıkken gösterilir. [Kurulum](/tr/docs/installation#updates) bölümüne bakın.
+- **Otomatik güncellemeler.** **Ayarlar → Güncellemeler**’deki otomatik denetim, indirme ve kurulum anahtarları TOML dışındaki uygulama tercihlerindedir; açılışlar arasında hatırlanır. İndirme denetimleri yalnızca otomatik denetim açıkken ve otomatik güncellemeler kullanılabilirken görünür; kurulum için otomatik indirme de açık olmalıdır. [Kurulum](/tr/docs/installation#updates) bölümüne bakın.
 - **Pencere ve düzen durumu.** Pencere boyutu, kenar çubuğu genişlikleri, seçili paneller, projeler, sekmeler, bölmeler, tarayıcı URL’leri ve fark denetimi tercihleri macOS tercihleri ve oturum anlık görüntüsünde saklanır.
 - **Arka uç yapılandırma dosyaları.** Zshell `~/.config/ghostty` veya Alacritty yapılandırması okumaz. Her iki arka uç için desteklenen yapılandırma yeri Zshell ayarlarıdır.

@@ -75,7 +75,10 @@ struct WorktreeHoverRegression {
             window.isReleasedWhenClosed = false
             window.appearance = NSAppearance(named: appearance)
             let section = GitRepositorySectionNSView(frame: NSRect(x: 0, y: 0, width: 320, height: 200))
-            window.contentView = section
+            let scroll = NSScrollView(frame: section.frame)
+            scroll.drawsBackground = false
+            scroll.documentView = section
+            window.contentView = scroll
             let worktrees = (0..<12).map {
                 GitStatusModel.Worktree(path: "/fixture/worktree-\($0)", headOID: "abc",
                     branch: "feature/\($0)", isBare: false, isCurrent: $0 == 0)
@@ -83,9 +86,9 @@ struct WorktreeHoverRegression {
             section.apply(worktrees: worktrees, isCollapsed: false, fontScale: 1,
                 openWorktree: { _ in }, createWorktree: {}, removeWorktree: { _ in },
                 deleteBranch: { _ in }, toggleCollapsed: {})
+            section.frame.size.height = section.intrinsicContentSize.height
             section.layoutSubtreeIfNeeded()
-            let scroll = section.subviews.compactMap { $0 as? NSScrollView }.first!
-            let table = scroll.documentView as! NSTableView
+            let table = section.subviews.compactMap { $0 as? NSTableView }.first!
             table.layoutSubtreeIfNeeded()
             func row(_ index: Int) -> GitRepositoryRowButton {
                 let button = table.view(atColumn: 0, row: index, makeIfNecessary: true) as! GitRepositoryRowButton

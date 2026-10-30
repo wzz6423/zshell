@@ -14,6 +14,20 @@ final class SettingsAutomationPane: SettingsPaneViewController {
     private let resumeConversationsSwitch = SettingsSwitch {
         AppSettings.shared.resumeAgentConversations = $0
     }
+    private let notifyAttentionSwitch = SettingsSwitch { AppSettings.shared.notifyOnAgentAttention = $0 }
+    private let notifyCompletionSwitch = SettingsSwitch { AppSettings.shared.notifyOnAgentCompletion = $0 }
+    private lazy var integrationGroup = SettingsGroup(rows: [
+        SettingsCustomRow(supportView),
+        SettingsRow(title: String(localized: "Resume agent conversations"), control: resumeConversationsSwitch),
+        SettingsButtonRow(title: String(localized: "Agent Conversation History")) {
+            guard let manager = TerminalManager.activeWindowManager else { return }
+            AgentConversationHistoryController.shared.show(for: manager, filter: .all)
+        },
+    ])
+    private lazy var notificationGroup = SettingsGroup(header: String(localized: "Notifications"), rows: [
+        SettingsRow(title: String(localized: "Notify when agents need attention"), control: notifyAttentionSwitch),
+        SettingsRow(title: String(localized: "Notify when agents finish"), control: notifyCompletionSwitch),
+    ])
     private lazy var usageGroup = SettingsGroup(
         header: String(localized: "Account Usage"),
         rows: [SettingsCustomRow(usageView)]
@@ -40,23 +54,17 @@ final class SettingsAutomationPane: SettingsPaneViewController {
     }
 
     override func makeGroups() -> [NSView] {
-        [
-            SettingsGroup(rows: [
-                SettingsCustomRow(supportView),
-                SettingsRow(
-                    title: String(localized: "Resume agent conversations"),
-                    description: String(localized: "Resume recorded Claude Code, Codex, Pi, and OpenCode conversations when restoring terminal panes."),
-                    control: resumeConversationsSwitch
-                ),
-            ]),
-            usageGroup,
-        ]
+        [integrationGroup, notificationGroup, usageGroup]
     }
 
     override func syncFromSettings() {
+        let visibility = SettingsVisibility.current
         supportView.apply(isEnabled: settings.aiEnabled)
         resumeConversationsSwitch.isOn = settings.resumeAgentConversations
-        resumeConversationsSwitch.isEnabled = settings.aiEnabled
+        integrationGroup.setRowHidden(!visibility.aiEnabled, at: 1)
+        notifyAttentionSwitch.isOn = settings.notifyOnAgentAttention
+        notifyCompletionSwitch.isOn = settings.notifyOnAgentCompletion
+        notificationGroup.isHidden = !visibility.aiEnabled
         syncUsage()
     }
 

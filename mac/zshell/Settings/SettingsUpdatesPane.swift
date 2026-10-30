@@ -45,13 +45,6 @@ final class SettingsUpdatesPane: SettingsPaneViewController {
 
     override func makeGroups() -> [NSView] { [updateGroup] }
 
-    override func revealSearchResult(_ title: String, in section: String? = nil) -> Bool {
-        // Automatic installation is hidden until its download prerequisite is enabled.
-        let target = title == String(localized: "Automatically install updates") && !updater.automaticallyDownloadsUpdates
-            ? String(localized: "Automatically download updates") : title
-        return super.revealSearchResult(target, in: section)
-    }
-
     override func viewDidLoad() {
         super.viewDidLoad()
         automaticSwitch.setAccessibilityLabel(String(localized: "Automatically check for updates"))
@@ -66,11 +59,12 @@ final class SettingsUpdatesPane: SettingsPaneViewController {
     }
 
     private func syncFromUpdater() {
+        let visibility = SettingsVisibility.current
         automaticSwitch.isOn = updater.automaticallyChecksForUpdates
         automaticDownloadSwitch.isOn = updater.automaticallyDownloadsUpdates
-        automaticDownloadSwitch.isEnabled = updater.automaticallyChecksForUpdates && updater.allowsAutomaticUpdates
+        updateGroup.setRowHidden(!visibility.automaticUpdateDownloads, at: 1)
         automaticInstallSwitch.isOn = updater.automaticallyInstallsUpdates
-        updateGroup.setRowHidden(!updater.automaticallyDownloadsUpdates, at: 2)
+        updateGroup.setRowHidden(!visibility.automaticUpdateInstallation, at: 2)
         checkRow.button.title = updater.updateActionTitle
         checkRow.button.isEnabled = updater.canCheckForUpdates && !updater.isUpdating
     }

@@ -71,7 +71,7 @@ Nama cabang di header adalah menu. Pilih cabang lain untuk berpindah, atau **Bua
 
 Panel Git menampilkan semua pohon kerja repositori, beserta cabang dan jalur checkout-nya. Checkout aktif ditandai **Saat Ini (Current)**.
 Klik pohon kerja untuk membuka tab terminal baru pada direktorinya, sehingga setiap checkout memiliki konteks shell sendiri sambil tetap dalam proyek yang sama.
-Daftar panjang bergulir dalam area terbatasnya sendiri; header bagian, kontrol commit, dan daftar berkas berubah tetap pada tempatnya. Klik header pohon kerja untuk menciutkan atau membukanya.
+Seluruh panel Git bergulir secara vertikal; pohon kerja, berkas yang berubah, kontrol commit, dan commit terbaru bergerak bersama. Klik header pohon kerja untuk menciutkan atau membukanya.
 
 Pohon kerja dengan HEAD terlepas menampilkan **Detached HEAD** sebagai pengganti nama cabang.
 Repositori bare tetap dicantumkan, tetapi tidak memiliki direktori kerja sehingga tidak dapat dibuka dalam tab terminal.
@@ -80,7 +80,7 @@ Repositori bare tetap dicantumkan, tetapi tidak memiliki direktori kerja sehingg
 
 Dari terminal dalam repositori Git lokal, pilih **Terminal → Sesi Baru di Worktree…** atau tekan <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>. Menu konteks tab dan tombol **+** menyediakan tindakan yang sama. Pilih cabang lokal baru atau yang sudah ada serta direktori yang belum ada. Cabang baru dimulai dari cabang bawaan repositori; **HEAD Saat Ini** dapat dipilih secara eksplisit. Cabang yang ada mempertahankan commit saat ini. Direktori yang disarankan berada di sebelah checkout sumber.
 
-Panel yang dibagi mewarisi hubungan worktree sesi, dan tata letak tersimpan memulihkannya. Saat menutup sesi terkait, pilih **Pertahankan Worktree**, **Hapus Worktree**, atau **Batal**. Penghapusan hanya tersedia tanpa file yang diubah, tidak dilacak, atau diabaikan, commit di luar referensi tercatat, kunci, dan sesi terbuka lain yang memakai checkout. Cabang Git selalu dipertahankan.
+Panel yang dibagi mewarisi hubungan worktree sesi, dan tata letak tersimpan memulihkannya. Saat menutup sesi terkait, pilih **Pertahankan Worktree**, **Hapus Worktree**, atau **Batal**. Penghapusan hanya tersedia tanpa file yang diubah, tidak dilacak, atau diabaikan, commit di luar referensi tercatat, kunci, dan sesi terbuka lain yang memakai checkout. Cabang Git selalu dipertahankan. Sesi terbuka di Terminal Cepat yang independen juga dihitung sebagai pengguna worktree dan mencegah penghapusannya.
 
 Terminal eksternal dapat membuat dan menutup sesi dengan `zshell +session`. Gunakan ID dari `projects` untuk `--project`; di dalam Zshell, proyek terminal pemanggil digunakan secara otomatis. Sesi dibuat di latar belakang kecuali Anda menambahkan `--focus`. `--base HEAD` atau `--base REF` memilih referensi lain dan `--worktree NEW_DIR` menentukan direktori. `--connection FILE` memilih instans yang berjalan jika diperlukan. Penutupan mempertahankan worktree tanpa `--remove-worktree` eksplisit; `check` melaporkan apakah pembersihan saat ini aman.
 
@@ -115,6 +115,8 @@ Pull sengaja dibatasi pada fast-forward. Jika merge atau rebase sungguhan diperl
 </Callout>
 
 ### Status pull request [#pull-request-status]
+
+**Tampilkan status pull request** di **Pengaturan → Umum → Git** aktif secara bawaan (`git.pull-request-status = true`). Menonaktifkannya menyembunyikan status pull request di panel Git.
 
 Instal GitHub CLI dan masuk dengan `gh auth login` untuk melihat nomor dan status pull request cabang saat ini di panel Git repositori lokal. Klik untuk membukanya, atau klik kanan dan pilih **Segarkan status pull request**. Remote selain GitHub tidak menampilkan pull request.
 

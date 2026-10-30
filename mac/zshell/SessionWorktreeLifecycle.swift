@@ -13,12 +13,14 @@ extension TerminalManager {
     }
 
     static func worktreeIsInUse(_ path: String, excluding sessionID: UUID? = nil) -> Bool {
-        automationManagers.flatMap(\.projects).flatMap(\.sessions).contains { session in
+        let sessions = automationManagers.flatMap(\.projects).flatMap(\.sessions)
+            + GlobalTerminalOverlay.shared.allSessions
+        return sessions.contains { session in
             guard session.id != sessionID else { return false }
             return session.worktree?.path == path
                 || SessionWorktreeService.contains(session.currentDirectoryPath, in: path)
                 || session.foregroundDirectoryPath.map { SessionWorktreeService.contains($0, in: path) } == true
-        }
+        } || GlobalTerminalOverlay.shared.pendingSessionsUseWorktree(path, excluding: sessionID)
     }
 
     static func removeWorktreeFromGitPanel(_ worktree: SessionWorktree) async throws {

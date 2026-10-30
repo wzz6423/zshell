@@ -148,6 +148,19 @@ struct TerminalProfileSurfaceTests {
         try check(first.surface.profileAppearance.fontSize == nil, "unmatched profile restores appearance")
         command(first, "cd " + quote(firstDirectory.path))
         try wait("directory match returns") { first.activeTerminalProfileID == base.id }
+        settings.automaticallyApplyTerminalProfiles = false
+        try wait("disabling automatic profiles clears the live match") { first.activeTerminalProfileID == nil }
+        first.selectTerminalProfile(.profile(base.id))
+        try check(first.activeTerminalProfileID == base.id, "manual profile selection works with matching disabled")
+        first.selectTerminalProfile(.automatic)
+        try check(first.activeTerminalProfileID == nil, "automatic selection respects the disabled preference")
+        let disabledProfileSession = TerminalSession(initialDirectory: firstDirectory.path, additionalEnvironment: environment)
+        try check(disabledProfileSession.launchTerminalProfileID == nil
+                  && disabledProfileSession.surface.profileAppearance.fontSize == nil,
+                  "new terminals skip automatic profile launch and appearance overrides")
+        disabledProfileSession.terminate()
+        settings.automaticallyApplyTerminalProfiles = true
+        try wait("enabling matching restores existing sessions") { first.activeTerminalProfileID == base.id }
         command(first, "/bin/sleep 3")
         try wait("foreground program match", timeout: 2) { first.activeTerminalProfileID == foreground.id }
         try wait("foreground program exits", timeout: 6) { first.activeTerminalProfileID == base.id }

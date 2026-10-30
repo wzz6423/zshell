@@ -42,6 +42,7 @@ final class SettingsRecommendationsPane: SettingsPaneViewController {
         let actions = NSStackView(views: [refreshButton, installAllButton, updateAllButton])
         actions.orientation = .horizontal
         actions.spacing = 6
+        actions.detachesHiddenViews = true
         let management = SettingsGroup(header: String(localized: "Manage Tools"), rows: [
             SettingsRow(
                 title: String(localized: "\(RecommendedTool.allCases.count) recommended tools"),
@@ -98,12 +99,19 @@ final class SettingsRecommendationsPane: SettingsPaneViewController {
     }
 
     private func sync() {
+        let recommendations = SettingsVisibility.Recommendations(
+            homebrewAvailable: service.homebrewURL != nil,
+            hasMissingTools: !service.missingTools.isEmpty,
+            hasUpdatableTools: !service.updatableTools.isEmpty
+        )
         refreshButton.isEnabled = !service.isBusy
-        installAllButton.isEnabled = !service.isBusy && service.homebrewURL != nil && !service.missingTools.isEmpty
-        updateAllButton.isEnabled = !service.isBusy && service.homebrewURL != nil && !service.updatableTools.isEmpty
+        installAllButton.isHidden = !recommendations.installMissing
+        updateAllButton.isHidden = !recommendations.updateAll
+        installAllButton.isEnabled = !service.isBusy
+        updateAllButton.isEnabled = !service.isBusy
         installAllButton.toolTip = String(localized: "Download and install every missing recommended tool with Homebrew.")
         updateAllButton.toolTip = String(localized: "Update recommended tools managed by Homebrew that have a newer version.")
-        homebrewButton.isHidden = service.homebrewURL != nil
+        homebrewButton.isHidden = recommendations.homebrewAvailable
         homebrewRow.setDescription(service.homebrewURL == nil
             ? String(localized: "Install Homebrew, then click Refresh to enable one-click installation.")
             : String(localized: "Tools are downloaded, installed, and updated through your Homebrew installation."))
@@ -143,10 +151,12 @@ final class SettingsRecommendationsPane: SettingsPaneViewController {
             button.title = state.location == .external ? String(localized: "Use Homebrew")
                 : state.location == .homebrew ? (state.hasUpdate ? String(localized: "Update") : String(localized: "Recheck"))
                 : String(localized: "Install")
-            button.isEnabled = !service.isBusy && service.homebrewURL != nil
+            button.isHidden = !recommendations.homebrewAvailable
+            button.isEnabled = !service.isBusy
             button.toolTip = state.error ?? (state.location == .external
                 ? String(localized: "Install a Homebrew-managed copy. Your existing installation may take precedence in PATH.")
                 : String(localized: "Download and install with Homebrew."))
         }
+        SettingsVisibility.updateRecommendations(recommendations)
     }
 }

@@ -864,7 +864,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         }
         isForwardingRightMouseButton = false
         NSMenu.popUpContextMenu(
-            contextMenu(linkTarget: linkTarget(for: event)),
+            TerminalContextMenu.make(for: self, linkTarget: linkTarget(for: event)),
             with: event,
             for: self
         )
@@ -884,7 +884,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     override func menu(for event: NSEvent) -> NSMenu? {
         guard !shouldForwardRightMouse(event) else { return nil }
         focusForInteraction()
-        return contextMenu(linkTarget: linkTarget(for: event))
+        return TerminalContextMenu.make(for: self, linkTarget: linkTarget(for: event))
     }
 
     private func shouldForwardRightMouse(_ event: NSEvent) -> Bool {
@@ -900,42 +900,6 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
             return target
         }
         return text.flatMap { events?.terminalLinkTarget(for: $0) }
-    }
-
-    private func contextMenu(linkTarget: TerminalLinkTarget?) -> NSMenu {
-        let menu = NSMenu()
-        menu.addItem(contextItem(String(localized: "Copy"), #selector(copy(_:))))
-        menu.addItem(contextItem(String(localized: "Paste"), #selector(NSText.paste(_:))))
-        menu.addItem(.separator())
-        menu.addItem(contextItem(String(localized: "Select All"), #selector(selectAll(_:))))
-        menu.addItem(.separator())
-        menu.addItem(commandRouting.contextMenuItem())
-        for item in TerminalHintMenu.shared.items(for: self) { menu.addItem(item) }
-        menu.addItem(.separator())
-        menu.addItem(splitTarget.quickCommandMenuItem())
-        menu.addItem(splitTarget.profileMenuTarget.menuItem())
-        if let linkTarget {
-            menu.addItem(.separator())
-            switch linkTarget {
-            case .url(let url):
-                for item in splitTarget.browserMenuItems(initialURL: url.absoluteString) {
-                    menu.addItem(item)
-                }
-            case .file(let url):
-                for item in splitTarget.fileMenuItems(path: url.path) {
-                    menu.addItem(item)
-                }
-            }
-        }
-        menu.addItem(.separator())
-        for item in splitTarget.menuItems() { menu.addItem(item) }
-        return menu
-    }
-
-    private func contextItem(_ title: String, _ action: Selector) -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
-        item.target = self
-        return item
     }
 
     // MARK: - File drops
@@ -1192,13 +1156,15 @@ final class SplitMenuTarget: NSObject {
         quickCommandTarget.onInsertPreset = onInsertQuickCommand
         quickCommandTarget.onRunPreset = onRunQuickCommand
         quickCommandTarget.onManagePresets = onManageQuickCommands
+        let items = quickCommandTarget.menuItems()
+        if items.count == 1 { return items[0] }
         let parent = NSMenuItem(
             title: String(localized: "Quick Commands"),
             action: nil,
             keyEquivalent: ""
         )
         let menu = NSMenu(title: parent.title)
-        quickCommandTarget.menuItems().forEach(menu.addItem)
+        items.forEach(menu.addItem)
         parent.submenu = menu
         return parent
     }

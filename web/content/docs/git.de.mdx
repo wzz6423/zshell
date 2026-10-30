@@ -63,7 +63,7 @@ Der Branchname in der Kopfzeile ist ein Menü. Wählen Sie einen anderen Branch 
 
 ## Worktrees [#worktrees]
 
-Das Git-Panel listet alle Worktrees des Repositorys mit Branch und Checkout-Pfad auf. Der aktive Checkout ist mit **Aktuell** markiert. Ein Klick öffnet einen neuen Terminal-Tab in diesem Verzeichnis. So behält jeder Checkout seinen eigenen Shell-Kontext und bleibt Teil desselben Projekts. Lange Worktree-Listen scrollen in einem begrenzten Bereich; Abschnittskopf, Commit-Steuerung und Liste geänderter Dateien bleiben an ihrem Platz. Klicken Sie auf den Worktree-Abschnittskopf, um die Liste ein- oder auszuklappen.
+Das Git-Panel listet alle Worktrees des Repositorys mit Branch und Checkout-Pfad auf. Der aktive Checkout ist mit **Aktuell** markiert. Ein Klick öffnet einen neuen Terminal-Tab in diesem Verzeichnis. So behält jeder Checkout seinen eigenen Shell-Kontext und bleibt Teil desselben Projekts. Das gesamte Git-Panel scrollt vertikal; Worktrees, geänderte Dateien, Commit-Steuerung und letzte Commits bewegen sich gemeinsam. Klicken Sie auf den Worktree-Abschnittskopf, um die Liste ein- oder auszuklappen.
 
 Worktrees mit losgelöstem HEAD zeigen **Detached HEAD** statt eines Branchnamens. Bare-Repositorys werden der Vollständigkeit halber aufgeführt, haben aber kein Arbeitsverzeichnis und können nicht in einem Terminal-Tab geöffnet werden.
 
@@ -71,7 +71,7 @@ Worktrees mit losgelöstem HEAD zeigen **Detached HEAD** statt eines Branchnamen
 
 Wählen Sie in einem Terminal eines lokalen Git-Repositorys **Terminal → Neue Sitzung im Worktree…** oder drücken Sie <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>. Die Kontextmenüs des Tabs und der **+**-Schaltfläche bieten dieselbe Aktion. Wählen Sie einen neuen oder vorhandenen lokalen Zweig und ein noch nicht vorhandenes Verzeichnis. Neue Zweige beginnen am Standardzweig des Repositorys; **Aktueller HEAD** ist eine ausdrückliche Auswahl. Vorhandene Zweige behalten ihren aktuellen Commit. Das vorgeschlagene Verzeichnis liegt neben dem Quell-Checkout.
 
-Geteilte Bereiche übernehmen die Worktree-Zuordnung, und die gespeicherte Anordnung stellt sie wieder her. Beim Schließen einer zugeordneten Sitzung wählen Sie **Worktree behalten**, **Worktree entfernen** oder **Abbrechen**. Das Entfernen ist nur ohne geänderte, nicht verfolgte oder ignorierte Dateien, nicht integrierte Commits gegenüber der gespeicherten Basisreferenz, Sperre und andere offene Sitzungen im Checkout möglich. Der Git-Zweig bleibt immer erhalten.
+Geteilte Bereiche übernehmen die Worktree-Zuordnung, und die gespeicherte Anordnung stellt sie wieder her. Beim Schließen einer zugeordneten Sitzung wählen Sie **Worktree behalten**, **Worktree entfernen** oder **Abbrechen**. Das Entfernen ist nur ohne geänderte, nicht verfolgte oder ignorierte Dateien, nicht integrierte Commits gegenüber der gespeicherten Basisreferenz, Sperre und andere offene Sitzungen im Checkout möglich. Der Git-Zweig bleibt immer erhalten. Offene Sitzungen im unabhängigen Schnellterminal zählen ebenfalls als Nutzung und verhindern das Entfernen des Worktrees.
 
 Ein externes Terminal kann mit `zshell +session` Sitzungen erstellen und schließen. Verwenden Sie eine von `projects` zurückgegebene ID für `--project`; in Zshell wird automatisch das Projekt des aufrufenden Terminals verwendet. Neue Sitzungen bleiben ohne `--focus` im Hintergrund. `--base HEAD` oder `--base REF` wählt eine andere Basisreferenz, `--worktree NEW_DIR` legt das Verzeichnis fest. Bei Bedarf wählt `--connection FILE` eine laufende Instanz aus. Das Schließen behält den Worktree ohne ausdrückliches `--remove-worktree`; `check` zeigt, ob eine sichere Bereinigung möglich ist.
 
@@ -106,6 +106,8 @@ Pull verwendet bewusst nur Fast-Forward. Ist ein echter Merge oder Rebase nötig
 </Callout>
 
 ### Pull-Request-Status [#pull-request-status]
+
+**Pull-Request-Status anzeigen** unter **Einstellungen → Allgemein → Git** ist standardmäßig eingeschaltet (`git.pull-request-status = true`). Ausschalten verbirgt den Pull-Request-Status im Git-Panel.
 
 Installieren Sie GitHub CLI und melden Sie sich mit `gh auth login` an. Der Git-Bereich eines lokalen Repositorys zeigt dann Nummer und Status des Pull Requests für den aktuellen Branch. Ein Klick öffnet ihn; per Rechtsklick lässt sich **Pull-Request-Status aktualisieren** wählen. Für andere Remotes als GitHub wird kein Pull Request angezeigt.
 

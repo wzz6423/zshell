@@ -63,7 +63,7 @@ Tên nhánh ở đầu là menu: chọn nhánh khác để chuyển hoặc **T�
 
 ## Worktree [#worktrees]
 
-Bảng Git liệt kê mọi worktree của kho, cùng nhánh và đường dẫn checkout. Checkout hoạt động có nhãn **Hiện tại**. Nhấn worktree để mở tab terminal trong thư mục đó; mỗi checkout giữ ngữ cảnh shell riêng nhưng vẫn cùng dự án. Danh sách dài cuộn trong vùng giới hạn riêng; đầu mục, điều khiển commit và danh sách tệp thay đổi giữ nguyên. Nhấn tiêu đề worktree để thu gọn/mở rộng.
+Bảng Git liệt kê mọi worktree của kho, cùng nhánh và đường dẫn checkout. Checkout hoạt động có nhãn **Hiện tại**. Nhấn worktree để mở tab terminal trong thư mục đó; mỗi checkout giữ ngữ cảnh shell riêng nhưng vẫn cùng dự án. Toàn bộ bảng Git cuộn theo chiều dọc; worktree, tệp thay đổi, điều khiển commit và commit gần đây di chuyển cùng nhau. Nhấn tiêu đề worktree để thu gọn/mở rộng.
 
 Worktree ở trạng thái tách HEAD hiện **Detached HEAD** thay tên nhánh. Kho bare vẫn được liệt kê đầy đủ nhưng không có thư mục làm việc nên không mở được bằng tab terminal.
 
@@ -71,7 +71,7 @@ Worktree ở trạng thái tách HEAD hiện **Detached HEAD** thay tên nhánh.
 
 Trong terminal của kho Git cục bộ, chọn **Terminal → Phiên mới trong worktree…** hoặc nhấn <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>. Menu ngữ cảnh của tab và nút **+** cũng có thao tác này. Chọn nhánh cục bộ mới hoặc hiện có và thư mục chưa tồn tại. Nhánh mới bắt đầu từ nhánh mặc định của kho; có thể chọn rõ **HEAD hiện tại**. Nhánh hiện có giữ nguyên commit hiện tại. Thư mục đề xuất nằm cạnh bản checkout nguồn.
 
-Các ô được chia kế thừa liên kết worktree của phiên, và bố cục đã lưu cũng khôi phục liên kết này. Khi đóng phiên liên kết, chọn **Giữ worktree**, **Xóa worktree** hoặc **Hủy**. Chỉ được xóa khi không có tệp đã thay đổi, chưa được theo dõi hoặc bị bỏ qua, commit ngoài mốc đã ghi, khóa hay phiên đang mở khác dùng bản checkout. Nhánh Git luôn được giữ lại.
+Các ô được chia kế thừa liên kết worktree của phiên, và bố cục đã lưu cũng khôi phục liên kết này. Khi đóng phiên liên kết, chọn **Giữ worktree**, **Xóa worktree** hoặc **Hủy**. Chỉ được xóa khi không có tệp đã thay đổi, chưa được theo dõi hoặc bị bỏ qua, commit ngoài mốc đã ghi, khóa hay phiên đang mở khác dùng bản checkout. Nhánh Git luôn được giữ lại. Các phiên đang mở trong terminal nhanh độc lập cũng được tính là đang dùng worktree và ngăn việc xóa.
 
 Terminal bên ngoài có thể tạo và đóng phiên bằng `zshell +session`. Dùng ID do `projects` trả về với `--project`; trong Zshell, dự án của terminal gọi lệnh được dùng tự động. Phiên được tạo ở nền trừ khi thêm `--focus`. `--base HEAD` hoặc `--base REF` chọn mốc khác và `--worktree NEW_DIR` đặt thư mục. `--connection FILE` chọn phiên bản đang chạy khi cần. Đóng giữ lại worktree nếu không có `--remove-worktree` rõ ràng; `check` báo việc dọn dẹp hiện có an toàn không.
 
@@ -106,6 +106,8 @@ Pull chỉ fast-forward là có chủ đích. Nếu cần merge hoặc rebase th
 </Callout>
 
 ### Trạng thái pull request [#pull-request-status]
+
+**Hiển thị trạng thái pull request** trong **Cài đặt → Chung → Git** được bật mặc định (`git.pull-request-status = true`). Tắt tùy chọn này sẽ ẩn trạng thái pull request trong bảng Git.
 
 Cài GitHub CLI và đăng nhập bằng `gh auth login` để xem số và trạng thái pull request của nhánh hiện tại trong bảng Git của kho cục bộ. Nhấp để mở hoặc nhấp chuột phải và chọn **Làm mới trạng thái pull request**. Remote không thuộc GitHub không hiển thị pull request.
 

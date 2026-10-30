@@ -63,7 +63,7 @@ Başlıktaki dal adı bir menüdür: geçmek için başka dal seçin veya bulund
 
 ## Çalışma ağaçları [#worktrees]
 
-Git paneli deponun tüm çalışma ağaçlarını dal ve çalışma kopyası yollarıyla listeler. Etkin kopya **Geçerli** işaretlidir. Birine tıklamak o dizinde yeni terminal sekmesi açar; her kopya aynı projede kalırken kendi kabuk bağlamını korur. Uzun listeler sınırlandırılmış kendi alanında kaydırılır; bölüm başlığı, commit denetimleri ve değişmiş dosya listesi yerinde kalır. Başlığa tıklamak bölümü daraltır/genişletir.
+Git paneli deponun tüm çalışma ağaçlarını dal ve çalışma kopyası yollarıyla listeler. Etkin kopya **Geçerli** işaretlidir. Birine tıklamak o dizinde yeni terminal sekmesi açar; her kopya aynı projede kalırken kendi kabuk bağlamını korur. Git panelinin tamamı dikey kaydırılır; çalışma ağaçları, değişen dosyalar, commit denetimleri ve son commitler birlikte hareket eder. Başlığa tıklamak bölümü daraltır/genişletir.
 
 Detached HEAD çalışma ağaçlarında dal adı yerine **Detached HEAD** görünür. Bare depolar da bütünlük için listelenir; çalışma dizinleri olmadığından terminal sekmesinde açılamaz.
 
@@ -71,7 +71,7 @@ Detached HEAD çalışma ağaçlarında dal adı yerine **Detached HEAD** görü
 
 Yerel Git deposundaki terminalde **Terminal → Worktree içinde yeni oturum…** seçeneğini kullanın veya <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd> tuşlarına basın. Sekmenin ve **+** düğmesinin bağlam menülerinde de aynı işlem bulunur. Yeni veya mevcut bir yerel dal ve henüz var olmayan bir dizin seçin. Yeni dallar deponun varsayılan dalından başlar; **Geçerli HEAD** açıkça seçilebilir. Mevcut dallar geçerli commit’lerini korur. Önerilen dizin kaynak checkout’un yanındadır.
 
-Bölünmüş paneller oturumun worktree ilişkisini devralır; kaydedilen yerleşim de bu ilişkiyi geri yükler. İlişkili oturumu kapatırken **Worktree’yi koru**, **Worktree’yi kaldır** veya **İptal** seçilir. Kaldırma için değiştirilmiş, izlenmeyen veya yok sayılan dosya, kaydedilen temel referans dışında commit, kilit ve checkout’u kullanan başka açık oturum bulunmamalıdır. Git dalı her zaman korunur.
+Bölünmüş paneller oturumun worktree ilişkisini devralır; kaydedilen yerleşim de bu ilişkiyi geri yükler. İlişkili oturumu kapatırken **Worktree’yi koru**, **Worktree’yi kaldır** veya **İptal** seçilir. Kaldırma için değiştirilmiş, izlenmeyen veya yok sayılan dosya, kaydedilen temel referans dışında commit, kilit ve checkout’u kullanan başka açık oturum bulunmamalıdır. Git dalı her zaman korunur. Bağımsız Hızlı Terminalde açık oturumlar da worktree kullanımı sayılır ve kaldırılmasını engeller.
 
 Dış terminal, `zshell +session` ile oturum oluşturup kapatabilir. `--project` için `projects` tarafından döndürülen kimliği kullanın; Zshell içinde çağıran terminalin projesi otomatik kullanılır. `--focus` eklenmedikçe oturum arka planda oluşturulur. `--base HEAD` veya `--base REF` başka bir temel referans seçer, `--worktree NEW_DIR` dizini ayarlar. Gerektiğinde `--connection FILE` çalışan bir örneği seçer. Açık `--remove-worktree` olmadan kapatma worktree’yi korur; `check` temizliğin o anda güvenli olup olmadığını bildirir.
 
@@ -106,6 +106,8 @@ Pull bilinçli olarak yalnızca fast-forward yapar. Gerçek merge veya rebase ge
 </Callout>
 
 ### Pull request durumu [#pull-request-status]
+
+**Ayarlar → Genel → Git** içindeki **Çekme isteği durumunu göster** varsayılan olarak açıktır (`git.pull-request-status = true`). Kapatmak Git panelindeki pull request durumunu gizler.
 
 Yerel bir deponun Git panelinde geçerli dalın pull request numarasını ve durumunu görmek için GitHub CLI yükleyip `gh auth login` ile oturum açın. Açmak için tıklayın veya sağ tıklayıp **Pull request durumunu yenile** seçeneğini kullanın. GitHub dışındaki uzak depolarda pull request gösterilmez.
 

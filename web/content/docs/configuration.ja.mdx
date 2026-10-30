@@ -14,6 +14,10 @@ Zshell の永続設定の多くは、次の 1 ファイルに保存されます�
 
 新しい設定では Vim コマンドヒント、セッション履歴の復元、失敗したコマンドの通知が標準で有効です。更新の自動ダウンロードも標準で有効です。既存の設定と保存済みの選択は保持されます。
 
+**設定 → ターミナル**では入力関連は**入力**、コマンドの記録と履歴への入口は**履歴**、コマンド通知と通知履歴は**通知**にあります。**カーソル**と**背景**は**設定 → 外観**にあります。
+
+親機能を無効にすると依存する設定項目を隠し、保存済みの値は保持します。対象はクイックターミナル、エージェントの再開と通知、フォントの太さの強度、フォーカスリングの不透明度、Git プロキシのアドレス、ブラウザーのフィルターリストと状態です。背景のぼかしは、背景が半透明で macOS の「透明度を下げる」が無効な場合だけ表示します。
+
 ## ファイルの動作 [#how-the-file-behaves]
 
 手動編集の前に、次の点を確認してください。
@@ -214,6 +218,9 @@ Codex app-server を共有する場合、検証済みの会話 ID を前面の�
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | アプリのアイコン |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | ファイル・フォルダ用の外部エディタ |
 | `terminal.theme-only` | `false` | 真偽値 | 選んだ配色をターミナルだけに適用 |
+| `terminal.command-history` | `true` | 真偽値 | 新しいコマンド履歴を記録。無効時も保存済み履歴は利用可能 |
+| `terminal.text-hints` | `true` | 真偽値 | 表示中の端末テキストにキーボードヒントを表示 |
+| `terminal.auto-profiles` | `true` | 真偽値 | プロファイルを自動照合。手動選択も利用可能 |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | ターミナルのカーソル形状 |
 | `terminal.cursor-blinking` | `true` | 真偽値 | カーソルを点滅 |
 | `terminal.copy-on-select` | `true` | 真偽値 | 選択したターミナル文字をコピー |
@@ -223,12 +230,16 @@ Codex app-server を共有する場合、検証済みの会話 ID を前面の�
 | `terminal.background-blur` | `false` | 真偽値 | 半透明の背景をぼかす |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | 新しい zsh で指定時間以上かかったコマンドの完了を通知。0 は無効 |
 | `terminal.notify-on-error` | `true` | 真偽値 | 新しい zsh でコマンド失敗を通知 |
+| `ai.notify-on-attention` | `true` | 真偽値 | エージェントの対応要求を通知。履歴は引き続き記録 |
+| `ai.notify-on-completion` | `true` | 真偽値 | エージェントの完了を通知。履歴は引き続き記録 |
+| `quick-terminal.enabled` | `true` | 真偽値 | クイックターミナルを表示し全体ショートカットを登録。無効時もタスクを保持 |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | ワークスペースを再利用 / 毎回新しいワークスペース |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | 画面に対するクイックターミナルのサイズ |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | クイックターミナル背景の不透明度 |
 | `quick-terminal.shortcut` | `Cmd+I` | 設定で登録 | グローバルショートカットを設定で登録し、キーコードは自動保存 |
 | `panes.show-focus-ring` | `true` | 真偽値 | アクティブなペインにフォーカスリングを表示 |
 | `panes.focus-ring-opacity` | `0.85` | 0.05–1 | フォーカスリングの不透明度 |
+| `git.pull-request-status` | `true` | 真偽値 | Git パネルに Pull Request の状態を表示 |
 
 ## バックアップと移行 [#backup-and-migration]
 
@@ -274,6 +285,6 @@ ai.resume-conversations = true
 ## このファイル以外にある設定 [#settings-outside-this-file]
 
 - **言語。** 設定にはシステム既定と Web サイトと同じ 17 言語があります。変更は即座に適用され、ターミナルセッションは動作を続けます。macOS のアプリ別言語設定を使うため TOML ではなく Zshell の環境設定に保存されます。システム既定は macOS の言語順序に従います。
-- **自動更新。** **設定 → 更新**の自動確認・ダウンロード・インストールは TOML 外のアプリ環境設定に保存され、起動をまたいで保持します。インストールは自動ダウンロードが有効な間だけ表示します。[インストール](/ja/docs/installation#updates)を参照してください。
+- **自動更新。** **設定 → 更新**の自動確認・ダウンロード・インストールは TOML 外のアプリ環境設定に保存され、起動をまたいで保持します。ダウンロード設定は自動確認が有効で自動更新が利用可能な場合だけ表示します。インストール設定はさらに自動ダウンロードが有効な場合に表示します。[インストール](/ja/docs/installation#updates)を参照してください。
 - **ウィンドウとレイアウト。** ウィンドウサイズ、サイドバー幅、選択パネル、プロジェクト、タブ、ペイン、ブラウザ URL、差分表示の設定は macOS の環境設定とセッションスナップショットに保存します。
 - **バックエンドの設定ファイル。** `~/.config/ghostty` や Alacritty の設定は読み込みません。両方とも Zshell の設定で管理します。

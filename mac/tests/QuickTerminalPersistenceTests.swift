@@ -127,7 +127,7 @@ struct QuickTerminalPersistenceTests {
             return app.mainMenu.map(flatten) ?? []
         }
         func menuToggle() throws {
-            let item = try require(menuItems().first { $0.action.map(NSStringFromSelector) == "toggleQuickTerminal" }, "native Quick Terminal menu")
+            let item = try require(menuItems().first { !$0.isHidden && $0.action.map(NSStringFromSelector) == "toggleQuickTerminal" }, "native Quick Terminal menu")
             _ = app.sendAction(try require(item.action, "menu action"), to: item.target, from: item)
         }
         func carbonToggle() throws {
@@ -153,6 +153,99 @@ struct QuickTerminalPersistenceTests {
             send("printf '%s\\n%s\\n%s\\n' $$ \"$ZQ_TOKEN\" \"$ZQ_JOB\" > \(TerminalSession.shellQuote(url.path))", to: terminal)
             try wait("shell state written") { read(url).count == 3 }
             return read(url)
+        }
+        func startPendingForegroundWorktreeJob(_ session: TerminalSession) throws {
+            let directory = root.appendingPathComponent("pending-foreground-worktree", isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            send("(cd " + TerminalSession.shellQuote(directory.path) + "; exec /bin/sleep 240)", to: session.surface)
+            try wait("foreground worktree job starts before preserving the GUI") {
+                guard let pid = session.surface.foregroundPid, pid != session.shellPid,
+                      let path = processWorkingDirectory(pid: pid) else { return false }
+                return SessionWorktreeService.canonical(path) == SessionWorktreeService.canonical(directory.path)
+            }
+            let pid = try require(session.surface.foregroundPid, "foreground worktree job PID")
+            try String(pid).write(to: root.appendingPathComponent("pending-foreground.pid"), atomically: true, encoding: .utf8)
+        }
+        func pendingWorktreeProtectionRegression(_ ids: [UUID]) throws {
+            try check(overlay.workspace == nil && overlay.allSessions.isEmpty,
+                      "restarted Quick Terminal stays unmounted before its first show")
+            let snapshot = try require(SessionStore.loadQuickTerminalWorkspace(), "pending reusable workspace")
+            let windowCount = app.windows.count
+            func daemonIDs() throws -> Set<String> {
+                Set(try PTYMuxCommandLine.exchange(method: "list").result?.arrayValue?.compactMap {
+                    $0.objectValue?["id"]?.stringValue
+                } ?? [])
+            }
+            let before = try daemonIDs()
+            let first = try require(ids.first, "pending first terminal ID")
+            try check(TerminalManager.worktreeIsInUse(root.path),
+                      "unopened persistent Quick Terminal protects its live shell directory")
+            try check(TerminalManager.worktreeIsInUse(root.path, excluding: first) == (ids.count > 1),
+                      "pending protection excludes only the requested terminal in single and split workspaces")
+            let foregroundDirectory = root.appendingPathComponent("pending-foreground-worktree", isDirectory: true)
+            let foregroundPID = try require(Int32(String(contentsOf: root.appendingPathComponent("pending-foreground.pid"),
+                                                        encoding: .utf8)), "preserved foreground PID")
+            try check(TerminalManager.worktreeIsInUse(foregroundDirectory.path)
+                      && !TerminalManager.worktreeIsInUse(foregroundDirectory.path, excluding: first),
+                      "unopened protection also follows the foreground job's own worktree and honors exclusion")
+            func reload(_ value: QuickTerminalWorkspaceSnapshot.Snapshot) {
+                overlay.stop()
+                SessionStore.saveQuickTerminalWorkspace(value)
+                overlay.start()
+            }
+            defer { reload(snapshot) }
+            let staleDirectory = root.appendingPathComponent("stale-saved-worktree")
+            func stale(_ node: QuickTerminalWorkspaceSnapshot.Layout) -> QuickTerminalWorkspaceSnapshot.Layout {
+                switch node {
+                case .pane(var pane):
+                    pane.content = .session(workingDirectory: staleDirectory.path)
+                    return .pane(pane)
+                case .split(let axis, let fraction, let first, let second):
+                    return .split(axis: axis, fraction: fraction, first: stale(first), second: stale(second))
+                }
+            }
+            var outdated = snapshot
+            outdated.layout = stale(outdated.layout)
+            reload(outdated)
+            try check(TerminalManager.worktreeIsInUse(root.path) && !TerminalManager.worktreeIsInUse(staleDirectory.path),
+                      "pending protection reads the real cwd instead of an outdated saved directory")
+            reload(.init(layout: .pane(.init(content: .session(workingDirectory: root.path), weight: 1,
+                                             terminalID: UUID())), focusedPaneIndex: 0))
+            try check(!TerminalManager.worktreeIsInUse(root.path), "an unavailable saved PTY cannot keep a checkout busy")
+            try check(try daemonIDs() == before && overlay.workspace == nil && overlay.allSessions.isEmpty
+                      && app.windows.count == windowCount,
+                      "usage queries create no PTY, renderer or native window")
+            let live = try require(PersistentPTY.reconnect(id: first), "preserved terminal for foreground cleanup")
+            try check(live.foregroundPID == foregroundPID
+                      && processWorkingDirectory(pid: foregroundPID).map {
+                          SessionWorktreeService.canonical($0) == SessionWorktreeService.canonical(foregroundDirectory.path)
+                      } == true, "foreground cleanup belongs to this disposable terminal")
+            kill(-foregroundPID, SIGTERM)
+            kill(foregroundPID, SIGTERM)
+            try wait("the temporary foreground job ends before later restore checks") { kill(foregroundPID, 0) != 0 }
+            if offscreen { try check(QuickTerminalOffscreen.isSafe(), "pending PTY checks remain offscreen without input capture") }
+        }
+        func disabledQuickTerminalRegression(_ tab: PaneTab, state: [String]) throws {
+            settings.quickTerminalEnabled = false
+            pump(0.2)
+            try check(quickWindow() == nil && overlay.workspace === tab,
+                      "disabling Quick Terminal hides its window and preserves the workspace")
+            try check(menuItems().allSatisfy { $0.isHidden || $0.action.map(NSStringFromSelector) != "toggleQuickTerminal" },
+                      "disabled Quick Terminal is absent from the app menu")
+            overlay.toggle()
+            pump(0.1)
+            try check(quickWindow() == nil, "direct toggle cannot show disabled Quick Terminal")
+            try check(!overlay.canRevealNotification(sessionID: tab.sessions[0].id)
+                      && !overlay.revealNotification(sessionID: tab.sessions[0].id),
+                      "notifications cannot reopen disabled Quick Terminal")
+            try check(alive(state[0]) && alive(state[2]), "disabling preserves the shell and its running job")
+            settings.quickTerminalEnabled = true
+            pump(0.2)
+            try menuToggle()
+            try wait("re-enabled Quick Terminal appears") { quickWindow() != nil }
+            try check(overlay.workspace === tab
+                      && (try capture(tab.sessions[0].surface, to: checkURL)) == state,
+                      "re-enabling restores the same workspace, shell, variable and job")
         }
         func repeatedToggleRegression(_ expectedWindow: NSWindow, _ tab: PaneTab) throws {
             if expectedWindow.isVisible { overlay.toggle() }
@@ -202,6 +295,7 @@ struct QuickTerminalPersistenceTests {
             let metadata = try splitMetadata()
             let processes = metadata["pids"] as! [String]
             try check(processes.allSatisfy(alive), "all split shells survive GUI exit")
+            try pendingWorktreeProtectionRegression((metadata["ids"] as! [String]).compactMap(UUID.init(uuidString:)))
             TerminalManager.prepareForApplicationQuit()
             overlay.stop()
             UserDefaults.standard.synchronize()
@@ -212,6 +306,7 @@ struct QuickTerminalPersistenceTests {
             let old = read(stateURL)
             try check(old.count == 3 && alive(old[0]) && alive(old[2]), "daemon shell and job survive first GUI exit")
             let id = savedSessionID()
+            try pendingWorktreeProtectionRegression([try require(id, "saved persistent terminal ID")])
             TerminalManager.prepareForApplicationQuit()
             overlay.stop()
             UserDefaults.standard.synchronize()
@@ -327,6 +422,7 @@ struct QuickTerminalPersistenceTests {
             try check(tab.focusedPaneID == focused, "hide/show retains focused pane")
             try check(states.flatMap { [$0[0], $0[2]] }.allSatisfy(alive), "every hidden split shell and job keeps running")
             try repeatedToggleRegression(window, tab)
+            if phase == "split-create" { try startPendingForegroundWorktreeJob(sessions[0]) }
             TerminalManager.prepareForApplicationQuit(endAll: phase == "split-restore-end-all")
             overlay.stop()
             UserDefaults.standard.synchronize()
@@ -348,6 +444,7 @@ struct QuickTerminalPersistenceTests {
             let state = try capture(terminal, to: stateURL)
             overlay.split(toward: .right)
             pump(0.2)
+            try disabledQuickTerminalRegression(reusable, state: state)
             overlay.toggle()
             settings.quickTerminalMode = .fresh
             try menuToggle()
@@ -356,6 +453,9 @@ struct QuickTerminalPersistenceTests {
             try check(fresh !== reusable && fresh.sessions.count == 1,
                       "fresh mode starts one pane without restoring the reusable split layout")
             try check(alive(state[0]) && alive(state[2]), "switching modes keeps the parked reusable shell and job")
+            send("ZQ_TOKEN=fresh_mode; sleep 240 & ZQ_JOB=$!", to: fresh.sessions[0].surface)
+            let freshState = try capture(fresh.sessions[0].surface, to: root.appendingPathComponent("fresh-state"))
+            try disabledQuickTerminalRegression(fresh, state: freshState)
             overlay.split(toward: .bottom)
             pump(0.2)
             let freshPIDs = try fresh.sessions.enumerated().map { index, session in
@@ -366,10 +466,28 @@ struct QuickTerminalPersistenceTests {
                           "fresh mode keeps the configured HISTFILE")
                 return read(url)[0]
             }
+            let freshWindow = try require(quickWindow(), "fresh workspace window before disabling")
+            var freshWindowClosed = false
+            let closeObserver = NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification, object: freshWindow, queue: nil
+            ) { _ in freshWindowClosed = true }
+            defer { NotificationCenter.default.removeObserver(closeObserver) }
+            settings.quickTerminalEnabled = false
+            pump(0.2)
+            try check(!freshWindow.isVisible && overlay.workspace === fresh
+                      && freshPIDs.allSatisfy(alive) && alive(freshState[2]),
+                      "disabling preserves every transient pane and its task before a mode change")
             settings.quickTerminalMode = .reuse
-            overlay.toggle()
-            try wait("hiding fresh workspace ends every transient pane") { freshPIDs.allSatisfy { !alive($0) } }
+            pump(0.1)
+            try check(overlay.workspace === fresh && freshPIDs.allSatisfy(alive),
+                      "changing the disabled mode waits until the next show before replacing fresh sessions")
+            settings.quickTerminalEnabled = true
+            pump(0.1)
             try menuToggle()
+            try wait("switching the disabled fresh workspace to reuse ends every discarded pane and task") {
+                freshPIDs.allSatisfy { !alive($0) } && !alive(freshState[2])
+            }
+            try check(freshWindowClosed && !freshWindow.isVisible, "mode switching closes the discarded fresh window")
             pump(0.2)
             try check(overlay.workspace === reusable && reusable.sessions.count == 2,
                       "switching back resumes the original reusable split workspace")
@@ -565,6 +683,7 @@ struct QuickTerminalPersistenceTests {
         try repeatedToggleRegression(window, try require(overlay.workspace, "reused workspace for repeated toggles"))
 
         if phase == "preserve" {
+            try startPendingForegroundWorktreeJob(try require(overlay.workspace?.sessions.first, "preserved quick session"))
             TerminalManager.prepareForApplicationQuit()
             overlay.stop()
             UserDefaults.standard.synchronize()

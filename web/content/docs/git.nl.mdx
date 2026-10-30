@@ -63,7 +63,7 @@ De branchnaam in de kop is een menu. Kies een andere branch om ernaartoe te wiss
 
 ## Worktrees [#worktrees]
 
-Het Git-paneel toont alle worktrees van de repository met hun branch en checkoutpad. De actieve checkout is gemarkeerd als **Huidig**. Klik op een worktree om een nieuw terminaltabblad in die map te openen. Elke checkout houdt zo zijn eigen shellcontext binnen hetzelfde project. Lange worktreelijsten scrollen binnen hun eigen begrensde gebied; de sectiekop, commitbediening en lijst met gewijzigde bestanden blijven staan. Klik op de worktreekop om de sectie in of uit te klappen.
+Het Git-paneel toont alle worktrees van de repository met hun branch en checkoutpad. De actieve checkout is gemarkeerd als **Huidig**. Klik op een worktree om een nieuw terminaltabblad in die map te openen. Elke checkout houdt zo zijn eigen shellcontext binnen hetzelfde project. Het hele Git-paneel scrolt verticaal; worktrees, gewijzigde bestanden, commitbediening en recente commits bewegen samen. Klik op de worktreekop om de sectie in of uit te klappen.
 
 Worktrees met een losgekoppelde HEAD tonen **Detached HEAD** in plaats van een branchnaam. Bare repositories staan voor de volledigheid in de lijst, maar hebben geen werkmap en kunnen niet in een terminaltabblad worden geopend.
 
@@ -71,7 +71,7 @@ Worktrees met een losgekoppelde HEAD tonen **Detached HEAD** in plaats van een b
 
 Kies in een terminal van een lokale Git-repository **Terminal → Nieuwe sessie in een worktree…** of druk op <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>. De contextmenu’s van de tab en de knop **+** bieden dezelfde actie. Kies een nieuwe of bestaande lokale tak en een map die nog niet bestaat. Nieuwe takken beginnen bij de standaardtak van de repository; **Huidige HEAD** is een expliciete keuze. Bestaande takken behouden hun huidige commit. De voorgestelde map staat naast de oorspronkelijke checkout.
 
-Gesplitste deelvensters erven de worktree-koppeling, die ook door de opgeslagen indeling wordt hersteld. Bij het sluiten van een gekoppelde sessie kies je **Worktree behouden**, **Worktree verwijderen** of **Annuleren**. Verwijderen kan alleen zonder gewijzigde, niet gevolgde of genegeerde bestanden, commits buiten de vastgelegde basisreferentie, vergrendeling of andere geopende sessies die de checkout gebruiken. De Git-tak blijft altijd behouden.
+Gesplitste deelvensters erven de worktree-koppeling, die ook door de opgeslagen indeling wordt hersteld. Bij het sluiten van een gekoppelde sessie kies je **Worktree behouden**, **Worktree verwijderen** of **Annuleren**. Verwijderen kan alleen zonder gewijzigde, niet gevolgde of genegeerde bestanden, commits buiten de vastgelegde basisreferentie, vergrendeling of andere geopende sessies die de checkout gebruiken. De Git-tak blijft altijd behouden. Open sessies in de onafhankelijke snelle terminal tellen ook als gebruik van de worktree en voorkomen verwijdering.
 
 Een externe terminal kan sessies maken en sluiten met `zshell +session`. Gebruik voor `--project` een ID van `projects`; binnen Zshell wordt automatisch het project van de aanroepende terminal gebruikt. Sessies worden op de achtergrond gemaakt, tenzij je `--focus` toevoegt. `--base HEAD` of `--base REF` kiest een andere basisreferentie en `--worktree NEW_DIR` stelt de map in. Met `--connection FILE` kies je zo nodig een actieve instantie. Sluiten behoudt de worktree zonder expliciet `--remove-worktree`; `check` geeft aan of veilig opruimen mogelijk is.
 
@@ -106,6 +106,8 @@ Pullen is bewust beperkt tot fast-forward. Als een echte merge of rebase nodig i
 </Callout>
 
 ### Pullrequeststatus [#pull-request-status]
+
+**Status van pull requests tonen** onder **Instellingen → Algemeen → Git** staat standaard aan (`git.pull-request-status = true`). Uitschakelen verbergt de pullrequeststatus in het Git-paneel.
 
 Installeer GitHub CLI en meld je aan met `gh auth login` om in het Git-paneel van een lokale repository het nummer en de status van de pullrequest voor de huidige branch te zien. Klik om deze te openen of klik met de rechtermuisknop en kies **Pullrequeststatus vernieuwen**. Andere remotes dan GitHub tonen geen pullrequest.
 

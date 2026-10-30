@@ -14,6 +14,7 @@ import Combine
 @MainActor final class AppSettings: ObservableObject {
     static let shared = AppSettings()
     @Published var applicationPresence = ApplicationPresence.dockOnly
+    var quickTerminalEnabled = true
 }
 @MainActor enum TerminalManager {
     static var opens = 0
@@ -119,6 +120,12 @@ import Combine
         Updater.shared.canCheckForUpdates = false
         precondition(!owner.validateMenuItem(menu.item(at: 4)!))
         precondition(owner.validateMenuItem(menu.item(at: 0)!))
+        AppSettings.shared.quickTerminalEnabled = false
+        owner.menuNeedsUpdate(menu)
+        precondition(!menu.items.contains { $0.title == "Quick Terminal" })
+        AppSettings.shared.quickTerminalEnabled = true
+        owner.menuNeedsUpdate(menu)
+        precondition(menu.items.contains { $0.title == "Quick Terminal" })
 
         AppSettings.shared.applicationPresence = .dockOnly
         settle()

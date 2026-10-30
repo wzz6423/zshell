@@ -154,6 +154,11 @@ final class BrowserRemoteRouting: ObservableObject {
     """#
 
     static let loopbackMessageName = "zshellRemoteLoopback"
+    static let loopbackInvalidationName = "zshellRemoteLoopbackInvalidated"
+
+    var loopbackInvalidationScript: String {
+        "window.dispatchEvent(new CustomEvent('\(Self.loopbackInvalidationName)', {detail: \(generation)}));"
+    }
 
     /// Lets the bridge start forwarding for a page that did not need it to load.
     func loopbackMessageHandler() -> WKScriptMessageHandlerWithReply { LoopbackMessageHandler(routing: self) }
@@ -171,7 +176,7 @@ final class BrowserRemoteRouting: ObservableObject {
                 do {
                     guard let routing else { throw CancellationError() }
                     try await routing.ensureConnected()
-                    replyHandler(true, nil)
+                    replyHandler(routing.generation, nil)
                 } catch {
                     replyHandler(nil, error.localizedDescription)
                 }
@@ -209,8 +214,32 @@ final class BrowserRemoteRouting: ObservableObject {
       // still go out and fail on the closed proxy.
       const tunnel = window.webkit.messageHandlers.\(loopbackMessageName);
       let connected = location.hostname === alias || location.hostname.endsWith('.' + alias);
-      let readiness;
-      const settle = () => readiness ||= tunnel.postMessage(null).then(() => { connected = true; }, () => { readiness = undefined; });
+      let readiness, generation = -1, revision = 0;
+      const invalidation = '\(loopbackInvalidationName)';
+      const invalidate = next => {
+        if (!Number.isSafeInteger(next) || next < 0) return;
+        if (next > generation) {
+          generation = next;
+          revision++;
+          connected = false;
+          readiness = undefined;
+        }
+        for (let index = 0; index < window.frames.length; index++) {
+          window.frames[index].postMessage({ [invalidation]: next }, '*');
+        }
+      };
+      window.addEventListener(invalidation, event => invalidate(event.detail));
+      window.addEventListener('message', event => {
+        if (event.source === window.parent) invalidate(event.data && event.data[invalidation]);
+      });
+      const settle = () => {
+        if (readiness) return readiness;
+        const current = revision;
+        const pending = tunnel.postMessage(null).then(next => {
+          if (current === revision && next >= generation) { generation = next; connected = true; }
+        }, () => { if (readiness === pending) readiness = undefined; });
+        return readiness = pending;
+      };
       const deferred = (Native, url, rest, events) => {
         const target = new EventTarget();
         Object.setPrototypeOf(target, Native.prototype);

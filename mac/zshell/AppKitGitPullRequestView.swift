@@ -10,6 +10,7 @@ import SwiftUI
 /// The current branch's pull request in the local Git panel. Clicking opens
 /// it; a failed or empty lookup retries instead.
 final class GitPullRequestBarView: NSView {
+    var onHeightChanged: (() -> Void)?
     let button = WorkspaceChromeButton(symbol: "arrow.triangle.pull", label: "")
     private let model = ProjectPullRequestModel()
     private var observations: [AnyCancellable] = []
@@ -42,7 +43,7 @@ final class GitPullRequestBarView: NSView {
             // queries GitHub again once its last lookup is a minute old.
             Timer.publish(every: 60, on: .main, in: .common).autoconnect()
                 .sink { [weak self] _ in
-                    guard let self, self.window != nil else { return }
+                    guard let self, self.window != nil, self.directory != nil else { return }
                     self.model.sync(directory: self.directory)
                 },
         ]
@@ -60,7 +61,10 @@ final class GitPullRequestBarView: NSView {
         model.sync(directory: directory)
     }
 
-    func detach() { model.detach() }
+    func detach() {
+        directory = nil
+        model.detach()
+    }
 
     @objc func refreshStatus() { model.refresh() }
 
@@ -81,6 +85,7 @@ final class GitPullRequestBarView: NSView {
         isHidden = state == .hidden
         invalidateIntrinsicContentSize()
         needsLayout = true
+        onHeightChanged?()
     }
 
     override var intrinsicContentSize: NSSize {

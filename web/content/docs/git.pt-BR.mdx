@@ -63,7 +63,7 @@ O nome da branch no cabeçalho é um menu. Selecione outra para alternar ou **Cr
 
 ## Worktrees [#worktrees]
 
-O painel lista todos os worktrees do repositório, com branch e caminho do checkout. O checkout ativo é marcado como **Atual**. Clique em um worktree para abrir uma nova aba de terminal naquele diretório, mantendo o contexto de shell próprio no mesmo projeto. Listas longas rolam em uma área limitada; o cabeçalho, os controles de commit e a lista de arquivos permanecem no lugar. Clique no cabeçalho dos worktrees para recolher ou expandir.
+O painel lista todos os worktrees do repositório, com branch e caminho do checkout. O checkout ativo é marcado como **Atual**. Clique em um worktree para abrir uma nova aba de terminal naquele diretório, mantendo o contexto de shell próprio no mesmo projeto. O painel Git inteiro rola verticalmente; worktrees, arquivos alterados, controles de commit e commits recentes se movem juntos. Clique no cabeçalho dos worktrees para recolher ou expandir.
 
 Worktrees em detached HEAD mostram **Detached HEAD** no lugar da branch. Repositórios bare aparecem para completar a lista, mas não têm diretório de trabalho e não podem ser abertos em uma aba de terminal.
 
@@ -71,7 +71,7 @@ Worktrees em detached HEAD mostram **Detached HEAD** no lugar da branch. Reposit
 
 Em um terminal de um repositório Git local, escolha **Terminal → Nova sessão em um worktree…** ou pressione <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>. Os menus de contexto da aba e do botão **+** oferecem a mesma ação. Escolha uma ramificação local nova ou existente e um diretório que ainda não exista. Novas ramificações começam na ramificação padrão do repositório; **HEAD atual** é uma escolha explícita. Ramificações existentes mantêm seu commit atual. O diretório sugerido fica ao lado do checkout de origem.
 
-Painéis divididos herdam a associação com o worktree, também restaurada pelo layout salvo. Ao fechar uma sessão associada, escolha **Manter worktree**, **Remover worktree** ou **Cancelar**. A remoção exige que não haja arquivos alterados, não rastreados ou ignorados, commits fora da referência registrada, bloqueio ou outras sessões abertas usando o checkout. A ramificação Git sempre é mantida.
+Painéis divididos herdam a associação com o worktree, também restaurada pelo layout salvo. Ao fechar uma sessão associada, escolha **Manter worktree**, **Remover worktree** ou **Cancelar**. A remoção exige que não haja arquivos alterados, não rastreados ou ignorados, commits fora da referência registrada, bloqueio ou outras sessões abertas usando o checkout. A ramificação Git sempre é mantida. Sessões abertas no terminal rápido independente também contam como uso do worktree e impedem sua remoção.
 
 Um terminal externo pode criar e fechar sessões com `zshell +session`. Use em `--project` um ID retornado por `projects`; dentro do Zshell, o projeto do terminal chamador é usado automaticamente. As sessões são criadas em segundo plano, a menos que você adicione `--focus`. `--base HEAD` ou `--base REF` escolhe outra referência e `--worktree NEW_DIR` define o diretório. `--connection FILE` seleciona uma instância em execução quando necessário. Fechar mantém o worktree sem `--remove-worktree` explícito; `check` informa se a limpeza é segura no momento.
 
@@ -106,6 +106,8 @@ O pull é somente fast-forward de propósito. Se for necessário merge ou rebase
 </Callout>
 
 ### Estado da pull request [#pull-request-status]
+
+**Mostrar status dos pull requests** em **Ajustes → Geral → Git** vem ativado (`git.pull-request-status = true`). Desativar oculta o estado da pull request no painel Git.
 
 Instale o GitHub CLI e entre com `gh auth login` para ver no painel Git de um repositório local o número e o estado da pull request da ramificação atual. Clique para abri-la ou clique com o botão direito e escolha **Atualizar estado da pull request**. Remotos que não são do GitHub não exibem uma pull request.
 
