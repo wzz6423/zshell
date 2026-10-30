@@ -266,3 +266,9 @@ Vim 模式行、状态栏和屏幕布局识别，无需安装远端插件。请�
 或编辑器不再可识别时，提示会消失。
 
 也可在配置文件中设置 `terminal.vim-command-hints = true`。
+
+## Shell 补全
+
+打开 **设置 → 终端 → 行为 → Shell 补全**（默认开启），再新建 zsh 终端。命令、子命令、参数和路径使用 Shell 的补全函数，并显示灰色行内建议。在输入末尾按 **右方向键**接受建议；按 **Tab**打开候选，方向键选择，**Return**接受候选但不执行，**Esc**或 **Ctrl+G**取消菜单。**Esc**也可关闭行内建议。已有补全插件和自定义按键保留原有行为。
+
+Zshell 加载内置 zsh-completions 和 zsh-autosuggestions，不修改 `.zshrc`。全屏程序接收自身输入。远程项目在兼容的 zshell-server 和 zsh 上使用远端命令与路径；其他 Shell 保持原生补全。设置只影响新建的 Shell，包括新的远端会话。可用 `terminal.shell-completions = false`关闭内置支持。
