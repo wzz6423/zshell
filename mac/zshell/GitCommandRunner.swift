@@ -27,10 +27,10 @@ nonisolated struct GitCommandRunner: GitCommandRunning {
     static func runData(
         _ args: [String], in directory: String,
         environment: [String: String] = [:], input: Data? = nil,
-        limit: Int = 10 << 20
+        limit: Int = 10 << 20, timeout: TimeInterval? = nil
     ) -> GitCommandDataResult {
         GitProcessState().runData(
-            args, in: directory, environment: environment, input: input, limit: limit
+            args, in: directory, environment: environment, input: input, limit: limit, timeout: timeout
         )
     }
 
@@ -79,7 +79,7 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
     func runData(
         _ args: [String], in directory: String,
         environment additionalEnvironment: [String: String] = [:],
-        input: Data? = nil, limit: Int = .max
+        input: Data? = nil, limit: Int = .max, timeout: TimeInterval? = nil
     ) -> GitCommandDataResult {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
@@ -98,6 +98,8 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
         process.standardError = stderr
         let stdin = input == nil ? nil : Pipe()
         process.standardInput = stdin.map { $0 as Any } ?? FileHandle.nullDevice
+        let termination = DispatchSemaphore(value: 0)
+        process.terminationHandler = { _ in termination.signal() }
 
         let cancelledBeforeLaunch = lock.withLock { () -> Bool in
             guard !isCancelled else { return true }
@@ -147,19 +149,36 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
         stdoutReader.start()
         readers.enter()
         let stderrReader = Thread {
-            errorOutput.value = stderr.fileHandleForReading.readDataToEndOfFile()
+            while let chunk = try? stderr.fileHandleForReading.read(upToCount: 64 * 1024),
+                  !chunk.isEmpty {
+                let remaining = max(0, limit - errorOutput.value.count)
+                if remaining > 0 { errorOutput.value.append(chunk.prefix(remaining)) }
+                if chunk.count > remaining { errorOutput.truncated = true }
+            }
             readers.leave()
         }
         stderrReader.qualityOfService = Thread.current.qualityOfService
         stderrReader.start()
 
+        let timedOut: Bool
+        if let timeout {
+            timedOut = termination.wait(timeout: .now() + max(0, timeout)) == .timedOut
+            if timedOut, process.isRunning {
+                process.terminate()
+                if termination.wait(timeout: .now() + 0.2) == .timedOut, process.isRunning {
+                    Darwin.kill(process.processIdentifier, SIGKILL)
+                }
+            }
+        } else {
+            timedOut = false
+        }
         process.waitUntilExit()
         readers.wait()
         return GitCommandDataResult(
-            status: lock.withLock { isCancelled } ? -3 : process.terminationStatus,
+            status: lock.withLock { isCancelled } ? -3 : (timedOut ? -2 : process.terminationStatus),
             stdout: output.value,
             stderr: String(data: errorOutput.value, encoding: .utf8) ?? "",
-            truncated: output.truncated
+            truncated: output.truncated || errorOutput.truncated
         )
     }
 }

@@ -16,6 +16,14 @@ Choisissez le moteur dans **Réglages → Terminal → Moteur** :
 
 Les deux prennent en charge l'accélération GPU, les images, le catalogue de thèmes commun de Zshell, la recherche, les événements de souris, les notifications et la progression. Un changement de moteur ne concerne que les nouveaux terminaux ; les volets existants conservent leur émulateur initial.
 
+## Historique des commandes [#command-history]
+
+Choisissez **Terminal → Historique des commandes…** pour rechercher les commandes exécutées dans Zshell par texte ou dossier. Chaque ligne indique le dossier d’origine, l’heure de début, la durée et le code de sortie. Cliquez sur une ligne ou sur **Afficher la sortie** pour retrouver le volet et la sortie d’origine. Si le volet est fermé ou la sortie effacée, la navigation est indisponible ; **Copier la commande** reste possible.
+
+**Insérer dans le terminal** remplit l’invite zsh vide du volet d’origine sans exécuter la commande ; appuyez sur Return lorsque vous êtes prêt. L’insertion est désactivée si le volet est occupé ou contient un brouillon. Les commandes multilignes sont conservées. La liste utilise l’intégration des blocs de commandes de Ghostty et Alacritty ; les shells non pris en charge ou imbriqués peuvent ne pas fournir de commandes.
+
+L’historique est enregistré localement en arrière-plan, dans la limite de 2 000 commandes et 8 MiB. **Supprimer** retire la ligne sélectionnée ; **Effacer l’historique…** retire la liste enregistrée. La sortie du terminal et l’historique propre au shell sont conservés.
+
 ## Votre shell, tel quel [#your-shell-unchanged]
 
 Chaque session démarre le shell de connexion de votre compte. Votre invite, vos alias, fonctions et dotfiles sont donc chargés comme dans tout autre terminal. Zshell ajoute les variables de capacités et d'identité suivantes :
@@ -93,6 +101,14 @@ Zshell reconnaît les URL web et les chemins locaux existants imprimés par les 
 - Les applications plein écran activant le signalement de la souris reçoivent le clic droit normal. Maintenez **Shift** pendant le clic droit pour ouvrir le menu de terminal et de volet Zshell.
 
 Les diagnostics du compilateur et les conversations des agents peuvent ainsi mener directement au même projet. Consultez [Volets de navigateur](/fr/docs/browser) pour les fonctions web.
+
+## Repères au clavier [#keyboard-hints]
+
+Placez le focus dans un terminal, puis choisissez **Terminal → Copier un repère du terminal…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) ou **Ouvrir un repère du terminal…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>). Des lettres apparaissent sur les chemins, URL, adresses IP et hashes de commit visibles. Tapez le repère pour le sélectionner ; plusieurs lettres affinent les choix.
+
+<kbd>Tab</kbd> bascule entre copie et ouverture. <kbd>Backspace</kbd> retire une lettre ; <kbd>Esc</kbd> annule et rend la saisie au terminal. Ces touches ne sont jamais envoyées au programme. La copie conserve les positions comme `:42:7`. L’ouverture utilise Finder ou le navigateur par défaut, comme Command-click ; une valeur sans destination peut être copiée.
+
+Les deux moteurs analysent uniquement l’écran visible, y compris les lignes repliées. Un redimensionnement ou une nouvelle sortie actualise les repères. Les volets en lecture seule permettent aussi la copie et les actions sur l’hôte.
 
 ## Notifications [#notifications]
 

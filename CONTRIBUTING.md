@@ -2,9 +2,8 @@
 
 **English** | [简体中文](CONTRIBUTING.zh-CN.md)
 
-For anything larger than a fix, open an issue first —
-Zshell says no to features that fit some other tool better, and it's kinder to find
-that out before the work.
+You can implement a change and submit a pull request directly. Opening an issue
+before starting work is optional.
 
 ## Issue
 

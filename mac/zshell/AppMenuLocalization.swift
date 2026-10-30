@@ -40,6 +40,8 @@ final class AppMenuLocalization: NSObject {
         guard let menu = NSApp.mainMenu else { return }
         AgentConversationHistoryController.shared.installMenu(in: menu)
         WorkspaceTemplateController.shared.installMenu(in: menu)
+        TerminalCommandHistoryController.shared.installMenu(in: menu)
+        TerminalHintMenu.shared.install(in: menu)
         let titles: [(String.LocalizationValue, String)] = [
             ("File", String(localized: "File")),
             ("Edit", String(localized: "Edit")),
