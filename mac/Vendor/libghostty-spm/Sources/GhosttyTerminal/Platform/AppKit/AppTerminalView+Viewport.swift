@@ -18,6 +18,9 @@
     }
 
     extension AppTerminalView {
+        /// Read-only grid geometry for host overlays, independent of cursor visibility.
+        public var viewportGridMetrics: TerminalGridMetrics? { surface?.size() }
+
         /// Reads visible rows without exporting a file or altering selection.
         public func readViewportTextSnapshot() -> TerminalViewportTextSnapshot? {
             guard let surface, let size = surface.size(),

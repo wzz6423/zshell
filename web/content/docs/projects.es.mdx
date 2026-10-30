@@ -24,6 +24,10 @@ El proyecto recibe el nombre de su sesión seleccionada: sigue al terminal igual
 
 En las [sesiones remotas compartidas](/es/docs/remote-sessions), cerrar un panel o proyecto solo separa este cliente; el shell y sus trabajos siguen en el host.
 
+### Estado de la pull request [#pull-request-status]
+
+Instala GitHub CLI e inicia sesión con `gh auth login` para ver en la barra lateral el número y el estado de la pull request de la rama actual. Haz clic para abrirla o usa **Actualizar estado de la pull request** en el menú contextual del proyecto. Los remotos que no son de GitHub no muestran una pull request.
+
 ### Proyectos SSH guardados [#saved-ssh-projects]
 
 Abre la paleta de comandos (<kbd>Cmd</kbd>+<kbd>P</kbd>) y elige **Nuevo proyecto SSH…**. Añade un servidor, un usuario y un puerto opcionales, y el directorio remoto que quieres abrir. Elige **Agente SSH**, **Contraseña**, **Archivo de clave privada** o **Texto de clave privada** como autenticación; después guarda la conexión y selecciona **Conectar**.
@@ -81,6 +85,19 @@ También puedes soltar una pestaña sobre un proyecto de la barra lateral o sobr
 Las pestañas toman el título que comunica el terminal: la secuencia de escape del prompt o el programa en ejecución. Haz clic derecho para **Renombrar…** una pestaña manualmente y elige **Usar título automático** para volver a seguir al terminal.
 
 El resto del menú ofrece las opciones habituales: **Cerrar**, **Cerrar los demás**, **Cerrar pestañas a la derecha**, **Cerrar todas**, además de **Mostrar en Finder** y **Copiar ruta absoluta** para el directorio de la sesión. **Cerrar archivos** y **Cerrar diferencias** eliminan esos tipos de contenido de todo el proyecto sin cerrar terminales ni paneles de navegador.
+
+## Plantillas de espacio de trabajo [#workspace-templates]
+
+Usa **Archivo → Plantillas de espacio de trabajo → Guardar proyecto como plantilla…** para guardar pestañas, divisiones anidadas y proporciones, directorios, programas de inicio, comandos de inicialización y páginas del navegador. **Plantillas de espacio de trabajo…** permite seleccionar, renombrar, editar el JSON, eliminar, importar y exportar.
+
+Revisa las rutas y comandos, elige la **Raíz del proyecto** y pulsa **Aplicar plantilla**. Se crea un proyecto nuevo con terminales nuevas y se ejecutan los comandos mostrados. Guardar, importar y editar no ejecuta comandos. Todos los directorios y ejecutables se comprueban antes de crear el proyecto.
+
+Las rutas del proyecto de origen son relativas a la raíz elegida (`.` o `api`); otras siguen siendo absolutas y deben existir en este Mac. **Editar…** permite cambiar `arguments`, comandos de inicialización, URL y `fraction` en JSON. La fracción es la parte del primer hijo y debe estar entre 0 y 1, sin incluir los extremos. Usa un programa con argumentos o un comando de inicialización del shell de inicio de sesión. Los errores de archivo, versión o ruta aparecen en la ventana.
+
+Los paneles del editor y de diferencias se convierten en terminales en la raíz y conservan su posición. El proyecto de origen, cambios sin guardar y PTY activos siguen intactos. Se excluyen historial, identidades de agentes, propiedad de worktrees y autenticación del navegador. Las URL guardadas omiten credenciales, consultas y fragmentos; puedes añadir una consulta pública en JSON. Las páginas usan el perfil existente del Mac de destino sin copiar cookies ni almacenamiento.
+
+Los proyectos en un host remoto guardado se pueden guardar como plantillas remotas. El JSON solo guarda el nombre del host en `remote.host` y el directorio del proyecto en `remote.directory` (absoluto o que empiece por `~/`); cada panel de terminal usa `.`. Nunca se guardan direcciones, rutas del servidor, credenciales ni ID de sesiones remotas, y se rechazan las importaciones que los incluyan. Al aplicar una plantilla remota, elige un host guardado (se preselecciona el que tenga el mismo nombre; si no existe, la ventana te pide elegir otro o añadirlo en **Hosts remotos**) y confirma el **Directorio remoto**. Zshell se conecta, crea un proyecto compartido nuevo e inicia sesiones remotas nuevas; nunca vuelve a conectar sesiones existentes. Si la conexión o el directorio fallan, no se crea ningún proyecto. Los proyectos abiertos con el formulario SSH antiguo no se pueden guardar como plantillas.
+
 
 ## Ventanas [#windows]
 

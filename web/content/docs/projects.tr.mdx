@@ -24,6 +24,10 @@ Proje adı seçili oturumdan gelir; sekme başlığı gibi terminali izler. Kena
 
 [Paylaşılan uzak oturumlarda](/tr/docs/remote-sessions) bölme veya projeyi kapatmak yalnızca bu istemciyi ayırır; kabuk ve işler sunucuda çalışmayı sürdürür.
 
+### Pull request durumu [#pull-request-status]
+
+Geçerli dalın pull request numarasını ve durumunu kenar çubuğunda görmek için GitHub CLI yükleyip `gh auth login` ile oturum açın. Açmak için tıklayın veya proje menüsünden **Pull request durumunu yenile** seçeneğini kullanın. GitHub dışındaki uzak depolarda pull request gösterilmez.
+
 ### Kaydedilmiş SSH projeleri [#saved-ssh-projects]
 
 Komut paletini (<kbd>Cmd</kbd>+<kbd>P</kbd>) açıp **Yeni SSH Projesi…**’ni seçin. Sunucu, isteğe bağlı kullanıcı ve port ile açılacak uzak dizini girin. Kimlik doğrulama için **SSH Agent**, **Parola**, **Özel Anahtar Dosyası** veya **Özel Anahtar Metni**’ni seçin; bağlantıyı kaydedip **Bağlan**’a basın.
@@ -81,6 +85,19 @@ Sekme kenar çubuğundaki projeye veya grup başlığına da bırakılabilir; ik
 Başlık, terminalin bildirdiği değerdir: kabuğun istem kaçış dizisi veya çalışan program. Sağ tıklayıp **Yeniden Adlandır…** ile elle belirleyin; **Otomatik Başlık Kullan** ile terminali izlemeye dönün.
 
 Menüde ayrıca **Kapat**, **Diğerlerini Kapat**, **Sağdaki Sekmeleri Kapat**, **Tümünü Kapat**, oturum dizini için **Finder’da Göster** ve **Mutlak Yolu Kopyala** bulunur. **Dosyaları Kapat** ve **Farkları Kapat**, proje genelinde o içerikleri temizler; terminallere ve tarayıcı bölmelerine dokunmaz.
+
+## Çalışma alanı şablonları [#workspace-templates]
+
+**Dosya → Çalışma Alanı Şablonları → Projeyi Şablon Olarak Kaydet…** ile sekmeleri, iç içe bölmeleri ve oranlarını, dizinleri, başlangıç programlarını, başlatma komutlarını ve tarayıcı sayfalarını kaydedin. **Çalışma Alanı Şablonları…** seçme, yeniden adlandırma, JSON düzenleme, silme, içe ve dışa aktarma sunar.
+
+Yolları ve komutları inceleyin, **Proje Kökü** seçin ve **Şablonu Uygula** düğmesine basın. Yeni terminallerle yeni bir proje oluşturulur ve gösterilen komutlar çalışır. Kaydetme, içe aktarma ve düzenleme komut çalıştırmaz. Tüm dizinler ve programlar oluşturma öncesinde denetlenir.
+
+Kaynak proje içindeki yollar seçilen köke göre görecelidir (`.` veya `api`); diğerleri mutlak kalır ve bu Mac’te bulunmalıdır. **Düzenle…** ile JSON’daki `arguments`, başlatma komutları, URL’ler ve `fraction` değerlerini değiştirin. Fraction ilk çocuğun payıdır, 0’dan büyük ve 1’den küçük olmalıdır. Bağımsız değişkenleriyle bir program veya oturum açma kabuğu başlatma komutu kullanın. Dosya, sürüm ve yol hataları pencerede gösterilir.
+
+Düzenleyici ve diff bölmeleri konumlarını koruyarak kökte yeni terminallere dönüşür. Kaynak proje, kaydedilmemiş düzenlemeler ve çalışan PTY’ler korunur. Geçmiş, aracı kimlikleri, worktree sahipliği ve tarayıcı kimlik doğrulaması kaydedilmez. Kaydedilen URL’lerden kimlik bilgileri, sorgular ve parçalar çıkarılır; açık sorgular JSON’da eklenebilir. Sayfalar çerez veya depolama kopyalamadan hedef Mac’in mevcut profilini kullanır.
+
+Kayıtlı bir uzak ana makinedeki projeler uzak şablon olarak kaydedilebilir. JSON yalnızca ana makinenin kayıtlı adını `remote.host` alanında ve proje dizinini `remote.directory` alanında (mutlak ya da `~/` ile başlayan) saklar; her terminal bölmesi `.` kullanır. Adresler, sunucu yolları, kimlik bilgileri ve uzak oturum kimlikleri asla kaydedilmez; bunları içeren içe aktarmalar reddedilir. Uzak şablonu uygularken kayıtlı bir ana makine seçin (aynı adlı makine önceden seçilir; yoksa pencere başka birini seçmenizi veya **Uzak ana makineler** bölümünden eklemenizi ister) ve **Uzak Dizin** değerini onaylayın. Zshell bağlanır, yeni bir paylaşılan proje oluşturur ve orada yeni uzak oturumlar başlatır; mevcut oturumlara asla yeniden bağlanmaz. Bağlantı veya dizin başarısız olursa proje oluşturulmaz. Eski SSH formuyla açılan projeler şablon olarak kaydedilemez.
+
 
 ## Pencereler [#windows]
 

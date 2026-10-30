@@ -817,7 +817,9 @@ extension TerminalSession {
 
     func clearAutomationAgentStatus() {
         AgentTurnReviewStore.shared.abort(sessionID: id)
-        agentStatus = nil
+        // The monitor clears idle shells on every tick; republishing nil makes
+        // SwiftUI rebuild the main menu, which drops and re-adds AppKit menus.
+        if agentStatus != nil { agentStatus = nil }
         agentObservation.alias = nil
         agentObservation.declaredKind = nil
         clearNativeAgentObservation()

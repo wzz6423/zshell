@@ -24,6 +24,10 @@ Le nom d'un projet est celui de sa session sélectionnée : il suit donc le term
 
 Pour les [sessions distantes partagées](/fr/docs/remote-sessions), fermer un panneau ou un projet détache seulement ce client ; le shell et ses tâches continuent sur l’hôte.
 
+### État des pull requests [#pull-request-status]
+
+Installez GitHub CLI et connectez-vous avec `gh auth login` pour voir le numéro et l’état de la pull request de la branche courante dans la barre latérale. Cliquez dessus pour l’ouvrir, ou faites un clic droit sur le projet et choisissez **Actualiser l’état de la pull request**. Les dépôts distants hors GitHub ne l’affichent pas.
+
 ### Projets SSH enregistrés [#saved-ssh-projects]
 
 Ouvrez la palette de commandes (<kbd>Cmd</kbd>+<kbd>P</kbd>) et choisissez **Nouveau projet SSH…**. Renseignez l'hôte, éventuellement l'utilisateur et le port, puis le répertoire distant à ouvrir. Pour l'authentification, choisissez **Agent SSH**, **Mot de passe**, **Fichier de clé privée** ou **Texte de clé privée**, puis enregistrez la connexion et sélectionnez **Connecter**.
@@ -81,6 +85,19 @@ Un onglet peut également être déposé sur un projet de la barre latérale, ou
 Les titres proviennent du terminal : séquence d'échappement de l'invite du shell ou programme en cours. Le menu contextuel permet de **Renommer…** manuellement l'onglet, puis d'**Utiliser le titre automatique** pour revenir au suivi du terminal.
 
 Les autres actions sont **Fermer**, **Fermer les autres**, **Fermer les onglets à droite** et **Tout fermer**, ainsi qu'**Afficher dans le Finder** et **Copier le chemin absolu** pour le répertoire de la session. **Fermer les fichiers** et **Fermer les diffs** retirent ces contenus de tout le projet tout en conservant les terminaux et les volets de navigateur.
+
+## Modèles d’espace de travail [#workspace-templates]
+
+Choisissez **Fichier → Modèles d’espace de travail → Enregistrer le projet comme modèle…** pour conserver les onglets, divisions imbriquées et proportions, dossiers des volets, programmes de démarrage, commandes d’initialisation et pages du navigateur. **Modèles d’espace de travail…** permet de sélectionner, renommer, modifier le JSON, supprimer, importer et exporter.
+
+Vérifiez les chemins et commandes dans l’aperçu, choisissez la **Racine du projet**, puis **Appliquer le modèle**. Un nouveau projet avec de nouveaux terminaux est créé et les commandes affichées sont exécutées. Enregistrer, importer et modifier n’exécute aucune commande. Tous les dossiers et exécutables sont vérifiés avant la création.
+
+Les chemins du projet source sont relatifs à la racine choisie (`.` ou `api`, par exemple) ; les autres restent absolus et doivent exister sur ce Mac. **Modifier…** permet de changer `arguments`, les commandes d’initialisation, les URL et `fraction` dans le JSON. La fraction représente la part du premier enfant, strictement entre 0 et 1. Choisissez un programme avec arguments ou une commande d’initialisation du shell de connexion. Les erreurs de fichier, version ou chemin s’affichent dans la fenêtre.
+
+Les volets d’éditeur et de diff deviennent des terminaux à la racine en gardant leur emplacement. Le projet source, ses modifications et PTY actifs restent intacts. L’historique, les identités d’agent, la propriété des worktrees et l’authentification du navigateur sont exclus. Les URL enregistrées omettent les identifiants, requêtes et fragments ; une requête publique peut être ajoutée au JSON. Les pages utilisent le profil existant du Mac cible sans copier les cookies ni le stockage.
+
+Les projets sur un hôte distant enregistré peuvent être enregistrés comme modèles distants. Le JSON ne conserve que le nom enregistré de l’hôte dans `remote.host` et le répertoire du projet dans `remote.directory` (absolu ou commençant par `~/`) ; chaque volet de terminal utilise `.`. Les adresses, chemins du serveur, identifiants et ID de session distante ne sont jamais enregistrés, et les imports qui les contiennent sont refusés. Pour appliquer un modèle distant, choisissez un hôte enregistré (celui du même nom est présélectionné ; sinon la fenêtre vous invite à en choisir un autre ou à l’ajouter dans **Hôtes distants**) et confirmez le **Répertoire distant**. Zshell se connecte, crée un nouveau projet partagé et y démarre de nouvelles sessions distantes ; il ne rattache jamais les sessions existantes. Si la connexion ou le répertoire échoue, aucun projet n’est créé. Les projets ouverts avec l’ancien formulaire SSH ne peuvent pas être enregistrés comme modèles.
+
 
 ## Fenêtres [#windows]
 

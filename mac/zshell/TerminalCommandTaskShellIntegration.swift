@@ -39,9 +39,6 @@ enum TerminalCommandTaskShellIntegration {
           local _zshell_task_id=$1
           shift
           local _zshell_task_start=${EPOCHREALTIME:-0}
-          # Alacritty's preexec already emitted C; Ghostty may have no
-          # injected hooks when its launcher is the sh proxy.
-          [[ "$ZSHELL_TERM" == alacritty ]] || builtin print -n $'\\e]133;C\\a'
           local _zshell_task_status
           local _zshell_task_returned=0
           {
@@ -70,14 +67,34 @@ enum TerminalCommandTaskShellIntegration {
           return $_zshell_task_status
         }
         builtin print -r -- "$$" >| \(ready)
-        # Ghostty already injects these hooks. Only the Alacritty path needs
-        # them here, or a single command would be reported twice.
-        if [[ "$ZSHELL_TERM" == alacritty ]]; then
+        # Both backends use the injected zsh shim. Byte-wise encoding keeps
+        # delimiters and multiline Unicode inside the OSC 133 option value.
+        _zshell_urlencode() {
+          setopt localoptions nomultibyte
+          local LC_ALL=C
+          local _zshell_byte _zshell_character
+          REPLY=''
+          local _zshell_index=0
+          local _zshell_limit=${2:-0}
+          for _zshell_character in ${(s::)1}; do
+            (( ++_zshell_index ))
+            if (( _zshell_limit > 0 && _zshell_index > _zshell_limit )); then break; fi
+            case "$_zshell_character" in
+              [a-zA-Z0-9/._~-]) REPLY+="$_zshell_character" ;;
+              *) builtin printf -v _zshell_byte '%%%02X' "'$_zshell_character"; REPLY+="$_zshell_byte" ;;
+            esac
+          done
+        }
+        {
           _zshell_command_active=0
           _zshell_command_preexec() {
             local _zshell_command_previous=$?
             _zshell_command_active=1
-            builtin print -n $'\\e]133;C\\a'
+            local REPLY
+            _zshell_urlencode "$PWD"
+            builtin printf '\\e]7;file://localhost%s\\a' "$REPLY"
+            _zshell_urlencode "$1" 16384
+            builtin printf '\\e]133;C;cmdline_url=%s\\a' "$REPLY"
             return $_zshell_command_previous
           }
           _zshell_command_precmd() {
@@ -90,7 +107,7 @@ enum TerminalCommandTaskShellIntegration {
           }
           preexec_functions=(_zshell_command_preexec ${preexec_functions:#_zshell_command_preexec})
           precmd_functions=(_zshell_command_precmd ${precmd_functions:#_zshell_command_precmd})
-        fi
+        }
         """
     }
 
