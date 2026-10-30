@@ -79,7 +79,8 @@ enum ResumeStartupProbe {
         initialDirectory: String?, commandArguments: [String]? = nil,
         restoredSessionID: UUID?, agentResume: AgentConversationIdentity?, agentFork: AgentConversationIdentity? = nil,
         isRestoredSession: Bool = true, allowsPersistence: Bool = true,
-        explicitlyResumeConversation: Bool = false, remoteConnection: Bool? = nil
+        explicitlyResumeConversation: Bool = false, remoteConnection: Bool? = nil,
+        usesConfiguredStartupCommand: Bool = true
     ) -> (id: UUID, resume: AgentConversationIdentity.ResumeLaunch?,
           command: [String]?, shell: String, directory: String, preserve: Bool) {
 STARTUP
@@ -169,6 +170,7 @@ final class TerminalSession {
     var agentConversationOwner: ZshellAgentProcessIdentity?
     var agentConversationResumeDeadline: Date?
     var agentConversationForkSource: AgentConversationIdentity?
+    var agentConversationForkProcess: ZshellAgentProcessIdentity?
     var onAgentConversationChanged: ((TerminalSession, AgentConversationIdentity?) -> Void)?
     func isAutomationAgentRunning(kind: ZshellAgentKind) -> Bool {
         surface.foregroundPid.flatMap(ZshellAgentKind.recognize(processID:)) == kind
