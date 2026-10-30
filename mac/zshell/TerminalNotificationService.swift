@@ -73,8 +73,13 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
     private var isConfigured = false
     private var isCheckingSettings = false
     private var isRequestingAuthorization = false
-    private var deliveryCandidates: [UUID] = []
-    private var waitingForHistory: [String] = []
+    private enum DeliveryPreference { case unrestricted, agentAttention, agentCompletion }
+    private struct DeliveryCandidate {
+        let id: UUID
+        let preference: DeliveryPreference
+    }
+    private var deliveryCandidates: [DeliveryCandidate] = []
+    private var waitingForHistory: [(eventKey: String, preference: DeliveryPreference)] = []
     private var loadingAgents: [String: AgentSample] = [:]
     /// Separate windows can attach to one remote session and poll its status
     /// independently, so a lagging pane may still report an older generation.
@@ -103,7 +108,9 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
         delivery.configure(delegate: self)
         delivery.settings { [weak self] settings in
             Task { @MainActor [weak self] in
-                if settings.status == .allowed, settings.needsSoundUpgrade { self?.requestAuthorization() }
+                if settings.status == .allowed, settings.needsSoundUpgrade {
+                    self?.requestAuthorization(upgradingExistingAuthorization: true)
+                }
             }
         }
     }
@@ -143,10 +150,14 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
         let result = history.note(message: message, target: target, kind: kind, eventKey: eventKey,
                                   isFailure: isFailure, isPending: isPending)
         guard notify, result.isNew, let record = result.record else { return }
+        let preference: DeliveryPreference = kind == .agent
+            ? (isPending ? .agentAttention : .agentCompletion) : .unrestricted
+        guard allowsDelivery(preference) else { return }
         if history.isLoading {
-            waitingForHistory = Array((waitingForHistory + [record.eventKey]).suffix(TerminalNotificationHistoryStore.maximumRecords))
+            waitingForHistory = Array((waitingForHistory + [(record.eventKey, preference)])
+                .suffix(TerminalNotificationHistoryStore.maximumRecords))
         }
-        else { requestDelivery(id: record.id) }
+        else { requestDelivery(.init(id: record.id, preference: preference)) }
     }
 
     func agentChanged(in session: TerminalSession, previous: ZshellAgentStatus?) {
@@ -269,16 +280,27 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
         }
         let keys = waitingForHistory
         waitingForHistory.removeAll()
-        for key in keys where !history.wasRestored(eventKey: key) {
-            if let record = history.records.first(where: { $0.eventKey == key }) { requestDelivery(id: record.id) }
+        for candidate in keys where !history.wasRestored(eventKey: candidate.eventKey) {
+            if let record = history.records.first(where: { $0.eventKey == candidate.eventKey }) {
+                requestDelivery(.init(id: record.id, preference: candidate.preference))
+            }
         }
     }
 
-    private func requestDelivery(id: UUID) {
+    private func allowsDelivery(_ preference: DeliveryPreference) -> Bool {
+        switch preference {
+        case .unrestricted: true
+        case .agentAttention: AppSettings.shared.notifyOnAgentAttention
+        case .agentCompletion: AppSettings.shared.notifyOnAgentCompletion
+        }
+    }
+
+    private func requestDelivery(_ candidate: DeliveryCandidate) {
+        guard allowsDelivery(candidate.preference) else { return }
         // Only an open permission prompt coalesces to the latest banner; events
         // that arrive during a settings lookup are all still eligible.
-        if isRequestingAuthorization { deliveryCandidates = [id] }
-        else { deliveryCandidates = Array((deliveryCandidates + [id]).suffix(TerminalNotificationHistoryStore.maximumRecords)) }
+        if isRequestingAuthorization { deliveryCandidates = [candidate] }
+        else { deliveryCandidates = Array((deliveryCandidates + [candidate]).suffix(TerminalNotificationHistoryStore.maximumRecords)) }
         guard !isCheckingSettings, !isRequestingAuthorization else { return }
         isCheckingSettings = true
         delivery.settings { [weak self] settings in
@@ -296,8 +318,10 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
         }
     }
 
-    private func requestAuthorization() {
+    private func requestAuthorization(upgradingExistingAuthorization: Bool = false) {
         guard !isRequestingAuthorization else { return }
+        deliveryCandidates.removeAll { !allowsDelivery($0.preference) }
+        guard upgradingExistingAuthorization || !deliveryCandidates.isEmpty else { return }
         isRequestingAuthorization = true
         deliveryCandidates = Array(deliveryCandidates.suffix(1))
         delivery.authorize { [weak self] granted in
@@ -313,8 +337,9 @@ final class TerminalNotificationService: NSObject, UNUserNotificationCenterDeleg
     private func deliverCandidates() {
         let ids = deliveryCandidates
         deliveryCandidates.removeAll()
-        for id in ids {
-            guard let record = history.record(id: id), !record.isRead else { continue }
+        for candidate in ids {
+            guard allowsDelivery(candidate.preference), let record = history.record(id: candidate.id),
+                  !record.isRead else { continue }
             delivery.deliver(record)
         }
     }

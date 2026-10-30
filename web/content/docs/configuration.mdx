@@ -17,6 +17,10 @@ New configurations enable Vim command hints, session history restoration, and
 failed-command notifications. Automatic update downloads are also enabled by
 default. Existing configurations and saved choices are preserved.
 
+In **Settings → Terminal**, input controls are under **Input**, recording and history access under **History**, and command alerts and notification history under **Notifications**. **Cursor** and **Background** are in **Settings → Appearance**.
+
+Dependent controls are hidden while their parent feature is off; saved values are kept. This applies to Quick Terminal controls, agent resume and notifications, font stroke strength, focus-ring opacity, Git proxy address, and browser filter lists and status. Background blur appears only with a translucent background while macOS Reduce Transparency is off.
+
 ## How the file behaves
 
 Worth knowing before you hand-edit:
@@ -288,6 +292,9 @@ Control it with **Settings → Automation → Resume agent conversations**. This
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Application icon |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | External editor for files and folders |
 | `terminal.theme-only` | `false` | boolean | Apply the selected palette to the terminal only |
+| `terminal.command-history` | `true` | boolean | Record new command history; saved entries remain available when off |
+| `terminal.text-hints` | `true` | boolean | Enable keyboard hints for visible terminal text |
+| `terminal.auto-profiles` | `true` | boolean | Match terminal profiles automatically; manual selection remains available |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Terminal cursor shape |
 | `terminal.cursor-blinking` | `true` | boolean | Blink the cursor |
 | `terminal.copy-on-select` | `true` | boolean | Copy selected terminal text |
@@ -298,12 +305,16 @@ Control it with **Settings → Automation → Resume agent conversations**. This
 | `terminal.background-blur` | `false` | boolean | Blur translucent backgrounds |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Notify after a command runs for at least this duration and finishes in new zsh terminals; 0 disables it |
 | `terminal.notify-on-error` | `true` | boolean | Notify on command failure in new zsh terminals |
+| `ai.notify-on-attention` | `true` | boolean | Deliver agent attention notifications; history is still recorded |
+| `ai.notify-on-completion` | `true` | boolean | Deliver agent completion notifications; history is still recorded |
+| `quick-terminal.enabled` | `true` | boolean | Show Quick Terminal and register its global shortcut; disabling keeps running tasks |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Reuse workspace / New workspace each time |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Quick Terminal size relative to the screen |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Quick Terminal background opacity |
 | `quick-terminal.shortcut` | `Cmd+I` | Record in Settings | Record the global shortcut in Settings; key codes are saved automatically |
 | `panes.show-focus-ring` | `true` | boolean | Show a focus ring around the active pane |
 | `panes.focus-ring-opacity` | `0.85` | 0.05–1 | Focus-ring opacity |
+| `git.pull-request-status` | `true` | boolean | Show pull request status in the Git panel |
 
 ## Backup and migration
 
@@ -355,8 +366,7 @@ them. **Restore Default Shortcuts** resets all overrides. The
   preferences rather than TOML. System Default follows the macOS language order.
 - **Automatic updates.** The automatic check, download, and installation
   switches in **Settings → Updates** use app preferences outside TOML and
-  remember your choices across launches. Installation is shown only while
-  automatic downloads are enabled. See [Installation](/en/docs/installation#updates).
+  remember your choices across launches. Download controls appear only while automatic checks are enabled and automatic updates are available; installation also requires automatic downloads to be enabled. See [Installation](/en/docs/installation#updates).
 - **Window and layout state.** Window size, sidebar widths, selected panels,
   projects, tabs, panes, browser URLs, and diff control preferences live in
   Zshell's macOS preferences and session snapshot.

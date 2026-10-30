@@ -155,6 +155,8 @@ struct WorkspaceTemplateRemoteSurfaceTests {
         var ready = try WorkspaceTemplate.decode(Data(json.utf8))
         ready.tabs[0].terminals[0].arguments = ["-c", "printf 'REMOTE_APPLIED\\n'; : > applied-sentinel; exec /bin/sh -i"]
         ready.tabs[1].terminals[0].initializationCommand = "printf 'REMOTE_INIT\\n'; : > initialization-sentinel"
+        ready.tabs.append(.init(layout: .pane(.init(content: .session(workingDirectory: "."), weight: 1)),
+                                focusedPaneIndex: 0, terminals: [.init(paneIndex: 0)]))
         let projectCount = manager.projects.count
         do { _ = try awaiting { try await manager.applyRemoteWorkspaceTemplate(ready, host: host, directory: "relative/path") }; throw failure("relative remote directory applied") }
         catch WorkspaceTemplateError.invalidRemote { }
@@ -164,11 +166,15 @@ struct WorkspaceTemplateRemoteSurfaceTests {
         try check(manager.projects.count == projectCount, "invalid or unavailable remote directories create no project")
 
         // Template panes keep their saved commands even when a host profile
-        // configures a startup program.
+        // configures startup and initialization commands.
         var profile = TerminalProfile(name: "Remote template fixture")
         profile.directory = "*/target-\(backend)"
         profile.startupProgram = "/usr/bin/touch"
         profile.startupArguments = targetDirectory + "/profile-startup-sentinel"
+        profile.appearance.fontSize = 17
+        profile.launchSettings = .init(environmentVariables: [.init(name: "TEMPLATE_PROFILE", value: "matched")],
+                                       initializationCommand: ": > " + TerminalSession.shellQuote(targetDirectory + "/profile-initialization-sentinel"))
+        AppSettings.shared.automaticallyApplyTerminalProfiles = true
         AppSettings.shared.terminalProfiles = [profile]
         let homeRelative = "~/" + (targetDirectory as NSString).lastPathComponent
         let applied = try awaiting { try await manager.applyRemoteWorkspaceTemplate(ready, host: host, directory: homeRelative) }
@@ -186,9 +192,27 @@ struct WorkspaceTemplateRemoteSurfaceTests {
         }
         try check(!FileManager.default.fileExists(atPath: targetDirectory + "/profile-startup-sentinel"),
                   "a host profile's startup program never replaces template commands")
+        for (index, session) in applied.sessions.enumerated().dropFirst() {
+            let marker = URL(fileURLWithPath: targetDirectory).appendingPathComponent("profile-env-\(index)")
+            session.sendCommand("printf '%s' \"$TEMPLATE_PROFILE\" > " + TerminalSession.shellQuote(marker.path))
+            session.sendEnter()
+            try wait("remote template pane \(index) retains the profile environment") {
+                (try? String(contentsOf: marker, encoding: .utf8)) == "matched"
+            }
+            try wait("remote template pane \(index) refreshes its connected profile appearance") {
+                session.surface.profileAppearance == profile.appearance
+            }
+            try check(session.surface.profileAppearance == profile.appearance,
+                      "remote template pane \(index) retains the profile appearance")
+        }
+        try check(!FileManager.default.fileExists(atPath: targetDirectory + "/profile-initialization-sentinel"),
+                  "a host profile never replaces template initialization or adds an unlisted command to plain panes")
+        try check(applied.sessions[1].initializationCommandForTemplate == ready.tabs[1].terminals[0].initializationCommand
+                  && applied.sessions[2].initializationCommandForTemplate == nil,
+                  "remote initialization metadata retains both explicit and absent template commands")
         AppSettings.shared.terminalProfiles = []
         let appliedIDs = remoteIDs(applied)
-        try check(applied.tabs.count == 2 && appliedIDs.count == 2 && appliedIDs.isDisjoint(with: sourceIDs),
+        try check(applied.tabs.count == 3 && appliedIDs.count == 3 && appliedIDs.isDisjoint(with: sourceIDs),
                   "application starts new remote sessions instead of reconnecting saved ones")
         let catalogIDs = Set(try RemoteHostClient.catalog(host: host).first { $0.directory == canonicalTarget }?.sessions
             .compactMap { UUID(uuidString: $0.sessionId) } ?? [])

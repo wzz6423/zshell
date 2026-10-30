@@ -18,6 +18,8 @@ Entrambi supportano accelerazione GPU, immagini, catalogo di temi condiviso di Z
 
 ## Cronologia comandi [#command-history]
 
+**Registra la cronologia dei comandi** in **Impostazioni → Terminale → Cronologia** è attivo per impostazione predefinita (`terminal.command-history = true`). Disattivarlo interrompe i nuovi record; la cronologia salvata resta consultabile e cancellabile. Output del terminale e cronologia della shell sono conservati.
+
 Apri **Terminale → Cronologia comandi…** per cercare i comandi eseguiti in Zshell per testo o cartella. Ogni riga mostra cartella originale, ora di avvio, durata e stato di uscita. Fai clic su una riga o su **Mostra output** per tornare al riquadro e all’output originali. Se il riquadro è chiuso o l’output è stato cancellato, la navigazione non è disponibile; **Copia comando** resta utilizzabile.
 
 **Inserisci nel terminale** compila il prompt zsh vuoto del riquadro originale senza eseguire il comando; premi Return quando sei pronto. L’inserimento è disabilitato se il riquadro è occupato o contiene una bozza. I comandi su più righe vengono conservati. La lista usa l’integrazione dei blocchi di Ghostty e Alacritty; i comandi di shell non supportate o annidate potrebbero non comparire.
@@ -52,9 +54,17 @@ Rifiutare una richiesta blocca la funzionalità corrispondente. Zshell non conce
 
 ## Il focus segue il mouse [#focus-follows-mouse]
 
-Attiva **Impostazioni → Terminale → Comportamento → Il focus segue il mouse** per mettere a fuoco il pannello quando entra il puntatore. Disattivato per impostazione predefinita, vale per entrambi i motori e il terminale rapido. Non cambia durante un trascinamento, da un editor o con menu o finestre di dialogo aperti.
+Attiva **Impostazioni → Terminale → Input → Il focus segue il mouse** per mettere a fuoco il pannello quando entra il puntatore. Disattivato per impostazione predefinita, vale per entrambi i motori e il terminale rapido. Non cambia durante un trascinamento, da un editor o con menu o finestre di dialogo aperti.
 
 `terminal.focus-follows-mouse = true`
+
+## Profili terminale [#terminal-profiles]
+
+Crea e ordina i profili in **Impostazioni → Terminale → Profili terminale → Gestisci profili terminale…**. Possono corrispondere a host, utente, directory di lavoro e programma in primo piano. Tutte le condizioni compilate devono corrispondere; `*` accetta qualsiasi testo e `?` un carattere. Si usa il primo profilo corrispondente; senza corrispondenza, il pannello torna all’aspetto originale. **Applica automaticamente i profili terminale** è attivo per impostazione predefinita (`terminal.auto-profiles = true`); disattivandolo resta disponibile la scelta manuale.
+
+Fai clic destro sul terminale e scegli **Profili terminale** per usare la corrispondenza automatica, un profilo specifico o le impostazioni originali. Tema, carattere e cursore cambiano il pannello corrente immediatamente. Variabili d’ambiente, comandi di inizializzazione e programmi di avvio valgono solo per nuovi terminali; cambiare profilo non esegue comandi. L’inizializzazione accompagna la shell di login; il programma di avvio viene eseguito direttamente. I valori d’ambiente sono salvati in chiaro in `config.toml`.
+
+Le sessioni remote condivise usano processo e directory segnalati dal server; i campi non disponibili sui vecchi server non possono corrispondere. Un pannello SSH semplice può verificare host e utente configurati, ma non programma o directory remoti. SSH e la shell remota controllano l’ambiente di avvio. Il programma di avvio deve essere un percorso assoluto esistente sulla macchina che esegue il terminale.
 
 ## Ricerca [#search]
 
@@ -106,6 +116,8 @@ In questo modo, l'output dei compilatori e le trascrizioni degli agenti offrono 
 
 ## Suggerimenti da tastiera [#keyboard-hints]
 
+**Mostra suggerimenti di testo del terminale** in **Impostazioni → Terminale → Input** è attivo per impostazione predefinita (`terminal.text-hints = true`). Disattivarlo nasconde comandi e scorciatoie dei suggerimenti e arresta la modalità per il testo visibile.
+
 Metti a fuoco un terminale e scegli **Terminal → Copia suggerimento del terminale…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) o **Apri suggerimento del terminale…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>). Le lettere compaiono sui percorsi, URL, indirizzi IP e hash di commit visibili. Digita l’etichetta per scegliere; più lettere restringono i risultati.
 
 <kbd>Tab</kbd> alterna copia e apertura, <kbd>Backspace</kbd> elimina una lettera e <kbd>Esc</kbd> annulla restituendo la digitazione al terminale. I tasti non raggiungono il programma. La copia mantiene posizioni come `:42:7`. L’apertura usa Finder o il browser predefinito come Command-click; gli altri valori si possono copiare.
@@ -113,6 +125,8 @@ Metti a fuoco un terminale e scegli **Terminal → Copia suggerimento del termin
 Entrambi i motori analizzano solo lo schermo visibile, incluse le righe a capo. Dimensioni o output nuovi aggiornano le etichette. Anche i riquadri in sola lettura consentono copia e apertura sul sistema.
 
 ## Notifiche [#notifications]
+
+In **Impostazioni → Automazione → Notifiche**, **Notifica quando gli agenti richiedono attenzione** e **Notifica quando gli agenti terminano** sono attivi per impostazione predefinita (`ai.notify-on-attention` e `ai.notify-on-completion`). Ogni opzione controlla l’invio a macOS del relativo evento; la cronologia lo registra anche con l’invio disattivato.
 
 Zshell inoltra due eventi del terminale al Centro Notifiche:
 
@@ -123,6 +137,8 @@ Le notifiche possono riprodurre il suono di sistema. Fare clic su una notifica a
 
 ### Cronologia notifiche [#notification-history]
 
+La stessa cronologia è accessibile da **Impostazioni → Terminale → Notifiche**.
+
 Apri **Notifiche → Cronologia notifiche…** per vedere gli avvisi recenti del terminale e degli agenti. Filtra per **Non lette**, **Non riuscite** o **In attesa**. Fai clic su un avviso o su **Mostra riquadro** per selezionare il progetto, la scheda e il riquadro attuali, anche in un’altra finestra. I riquadri chiusi restano nella cronologia come non disponibili.
 
 Usa **Segna come letta**, **Segna tutte come lette**, **Rimuovi** o **Cancella cronologia**. La lettura non approva richieste dell’agente. Un avviso esce da In attesa quando l’agente riprende o termina, il riquadro chiude o la connessione remota non è disponibile. Gli stati derivano da rapporti espliciti del ciclo di vita e dai risultati di uscita dei comandi. Gli ultimi 200 avvisi restano dopo il riavvio, anche con il permesso di notifiche macOS disattivato.
@@ -130,7 +146,7 @@ Usa **Segna come letta**, **Segna tutte come lette**, **Rimuovi** o **Cancella c
 
 ### Completamento dei comandi [#command-completion]
 
-Apri **Impostazioni → Terminale → Notifiche dei comandi** per ricevere una notifica al termine di un comando:
+Apri **Impostazioni → Terminale → Notifiche** per ricevere una notifica al termine di un comando:
 
 - **Comandi di lunga durata**: scegli 5, 10, 30 o 60 secondi. Un comando eseguito per almeno quel tempo genera una notifica di completamento. Il valore predefinito è **Disattivato**.
 - **Comandi non riusciti**: notifica uno stato di uscita diverso da zero, indipendentemente dalla durata. Questa opzione è attiva nelle nuove configurazioni e si può disattivare separatamente.
@@ -180,6 +196,8 @@ Zshell include JetBrains Mono e i simboli Nerd Font. Qualsiasi famiglia monospaz
 
 ## Terminale rapido globale [#global-quick-terminal]
 
+**Abilita terminale rapido** in **Impostazioni → Terminale → Terminale rapido** è attivo per impostazione predefinita (`quick-terminal.enabled = true`). Disattivarlo nasconde finestra e accessi e annulla la scorciatoia globale, conservando lo spazio di lavoro corrente e le attività in corso. Neanche le notifiche possono riaprirlo. I controlli di dimensione, opacità, modalità e scorciatoia ricompaiono alla riattivazione.
+
 Mentre Zshell è aperto, <kbd>Cmd</kbd>+<kbd>I</kbd> o **Terminale → Terminale rapido** mostra o nasconde un terminale indipendente. Regola dimensione, opacità e scorciatoia in **Impostazioni → Terminale → Terminale rapido**.
 
 **Comportamento della sessione: Riutilizza lo spazio di lavoro (predefinito) / Nuovo spazio a ogni apertura.** Il riuso mantiene riquadri e attività. I nuovi spazi terminano quando vengono nascosti. Il modo cambia alla prossima apertura; tornando indietro lo spazio riutilizzabile resta disponibile. La cronologia segue la configurazione della shell. Un nuovo spazio inizia sempre con un solo terminale vuoto, senza ripristinare output, disposizione o stato precedenti.
@@ -196,7 +214,7 @@ Abilita `terminal.preserve-sessions` prima di aprire un nuovo terminale rapido p
 
 ## Suggerimenti per i comandi Vim [#vim-command-hints]
 
-Gestisci i suggerimenti in **Impostazioni → Terminale → Comportamento → Suggerimenti per i comandi Vim**, poi apri la scheda **Info** della barra laterale destra. Una sezione **COMANDI VIM** compare sotto le informazioni della sessione mentre Vim, Vi o Neovim è attivo. È attiva per impostazione predefinita nelle nuove configurazioni e si applica subito ai terminali esistenti su entrambi i motori.
+Gestisci i suggerimenti in **Impostazioni → Terminale → Input → Suggerimenti per i comandi Vim**, poi apri la scheda **Info** della barra laterale destra. Una sezione **COMANDI VIM** compare sotto le informazioni della sessione mentre Vim, Vi o Neovim è attivo. È attiva per impostazione predefinita nelle nuove configurazioni e si applica subito ai terminali esistenti su entrambi i motori.
 
 L'elenco completo dei comandi comuni resta disponibile; cambia solo la priorità: la modalità Normale mette per primi `:w`, `:q`, `yy` e `p`/`P`; Visuale a blocchi mette per primi `I`/`A`, le modifiche a blocchi e lo spostamento tra gli angoli. Inserimento, Sostituzione, Visuale, Visuale per righe, Selezione, riga di comando e ricerca hanno un proprio ordine. Ogni voce indica le modalità in cui si applica. Cerca per tasti, descrizione o nome della modalità; descrizioni e interfaccia di ricerca seguono una qualsiasi delle 17 lingue dell'app. Cancella la ricerca per ripristinare l'elenco completo. I suggerimenti sono un riferimento e non inviano mai input all'editor.
 
@@ -206,6 +224,6 @@ Puoi attivare la funzione anche nel file di configurazione con `terminal.vim-com
 
 ## Completamento della shell
 
-Attiva **Impostazioni → Terminale → Comportamento → Completamento della shell** (attivo per impostazione predefinita) e apri un nuovo terminale zsh. Comandi, sottocomandi, argomenti e percorsi usano le funzioni della shell, con suggerimenti grigi. **Freccia destra** accetta a fine input; **Tab** apre le opzioni, le frecce selezionano, **Invio** accetta senza eseguire, **Esc** o **Ctrl+G** annulla il menu. **Esc** chiude anche il suggerimento. Plugin e scorciatoie esistenti sono conservati.
+Attiva **Impostazioni → Terminale → Input → Completamento della shell** (attivo per impostazione predefinita) e apri un nuovo terminale zsh. Comandi, sottocomandi, argomenti e percorsi usano le funzioni della shell, con suggerimenti grigi. **Freccia destra** accetta a fine input; **Tab** apre le opzioni, le frecce selezionano, **Invio** accetta senza eseguire, **Esc** o **Ctrl+G** annulla il menu. **Esc** chiude anche il suggerimento. Plugin e scorciatoie esistenti sono conservati.
 
 I plugin inclusi non modificano `.zshrc`. I programmi a schermo intero mantengono il proprio input. Con zshell-server compatibile e zsh, i progetti remoti usano comandi e percorsi remoti; le altre shell mantengono il completamento nativo. Si applica a nuove shell e sessioni remote. Disattiva con `terminal.shell-completions = false`.

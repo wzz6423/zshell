@@ -13,7 +13,11 @@ final class AppMenuLocalization: NSObject {
 
     func start(applicationDelegate: ZshellApplicationDelegate) {
         self.applicationDelegate = applicationDelegate
-        shortcutObservation = AppSettings.shared.$commandShortcuts.receive(on: DispatchQueue.main)
+        shortcutObservation = Publishers.CombineLatest3(
+            AppSettings.shared.$commandShortcuts,
+            AppSettings.shared.$terminalTextHints.removeDuplicates(),
+            AppSettings.shared.$quickTerminalEnabled.removeDuplicates()
+        ).receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.refresh() }
         for name in [AppLocalization.didChange, NSMenu.didBeginTrackingNotification] {
             NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: name, object: nil)
@@ -102,9 +106,11 @@ final class AppMenuLocalization: NSObject {
                         ? String(localized: "Exit Full Screen") : String(localized: "Enter Full Screen")
                 case "editProjectTerminalEnvironment": title = String(localized: "Project Terminal Environment…")
                 case "editTabTerminalEnvironment": title = String(localized: "Tab Terminal Environment…")
-                case "toggleQuickTerminal": title = String(localized: "Quick Terminal")
+                case "toggleQuickTerminal":
+                    title = String(localized: "Quick Terminal")
+                    let hidden = !AppSettings.shared.quickTerminalEnabled
+                    if item.isHidden != hidden { item.isHidden = hidden }
                 case "searchTerminalLogs": title = String(localized: "Search Terminal Logs")
-                case "quitAndEndAllSessions": title = String(localized: "Quit and End All Sessions")
                 default: title = nil
                 }
                 if let title, item.title != title { item.title = title }

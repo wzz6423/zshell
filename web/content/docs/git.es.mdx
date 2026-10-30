@@ -63,7 +63,7 @@ El nombre de la rama en la cabecera es un menú: elige otra rama para cambiar a 
 
 ## Árboles de trabajo [#worktrees]
 
-El panel de Git enumera todos los árboles de trabajo del repositorio, con su rama y la ruta de la copia de trabajo. La copia activa aparece marcada como **Actual**. Haz clic en un árbol de trabajo para abrir una pestaña de terminal nueva en ese directorio; cada copia conserva así su propio contexto de shell dentro del mismo proyecto. Las listas largas se desplazan dentro de su propia área delimitada; la cabecera de sección, los controles de commit y la lista de archivos modificados permanecen en su sitio. Haz clic en la cabecera de árboles de trabajo para contraerla o expandirla.
+El panel de Git enumera todos los árboles de trabajo del repositorio, con su rama y la ruta de la copia de trabajo. La copia activa aparece marcada como **Actual**. Haz clic en un árbol de trabajo para abrir una pestaña de terminal nueva en ese directorio; cada copia conserva así su propio contexto de shell dentro del mismo proyecto. Todo el panel de Git se desplaza verticalmente; árboles de trabajo, archivos modificados, controles de commit y commits recientes se mueven juntos. Haz clic en la cabecera de árboles de trabajo para contraerla o expandirla.
 
 Los árboles de trabajo con HEAD separado muestran **HEAD separado** en lugar del nombre de una rama. Los repositorios bare también se enumeran para que la lista sea completa, pero no tienen directorio de trabajo y no pueden abrirse en una pestaña de terminal.
 
@@ -71,7 +71,7 @@ Los árboles de trabajo con HEAD separado muestran **HEAD separado** en lugar de
 
 En un terminal de un repositorio Git local, elige **Terminal → Nueva sesión en un worktree…** o pulsa <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>. Los menús contextuales de la pestaña y del botón **+** ofrecen la misma acción. Elige una rama local nueva o existente y un directorio que aún no exista. Las ramas nuevas parten de la rama predeterminada del repositorio; **HEAD actual** es una elección explícita. Las ramas existentes conservan su commit actual. El directorio sugerido está junto al checkout de origen.
 
-Los paneles divididos heredan la asociación con el worktree, y la disposición guardada la restaura. Al cerrar una sesión asociada, puedes elegir **Conservar worktree**, **Eliminar worktree** o **Cancelar**. Solo se permite eliminarlo sin archivos modificados, no seguidos o ignorados, commits fuera de la referencia registrada, bloqueo u otras sesiones abiertas que usen el checkout. La rama Git siempre se conserva.
+Los paneles divididos heredan la asociación con el worktree, y la disposición guardada la restaura. Al cerrar una sesión asociada, puedes elegir **Conservar worktree**, **Eliminar worktree** o **Cancelar**. Solo se permite eliminarlo sin archivos modificados, no seguidos o ignorados, commits fuera de la referencia registrada, bloqueo u otras sesiones abiertas que usen el checkout. La rama Git siempre se conserva. Las sesiones abiertas en el terminal rápido independiente también cuentan como uso del worktree e impiden su eliminación.
 
 Un terminal externo puede crear y cerrar sesiones con `zshell +session`. Usa en `--project` un ID devuelto por `projects`; dentro de Zshell se usa automáticamente el proyecto del terminal que invoca el comando. Las sesiones se crean en segundo plano salvo con `--focus`. `--base HEAD` o `--base REF` elige otra referencia y `--worktree NEW_DIR` define el directorio. `--connection FILE` selecciona una instancia en ejecución cuando sea necesario. Cerrar conserva el worktree salvo con `--remove-worktree` explícito; `check` informa de si la limpieza es segura.
 
@@ -106,6 +106,8 @@ La actualización usa exclusivamente avance rápido de forma deliberada. Si hace
 </Callout>
 
 ### Estado de la pull request [#pull-request-status]
+
+**Mostrar estado de las solicitudes de incorporación** en **Ajustes → General → Git** está activado por defecto (`git.pull-request-status = true`). Desactivarlo oculta el estado de la pull request en el panel de Git.
 
 Instala GitHub CLI e inicia sesión con `gh auth login` para ver en el panel Git de un repositorio local el número y el estado de la pull request de la rama actual. Haz clic para abrirla o haz clic derecho y elige **Actualizar estado de la pull request**. Los remotos que no son de GitHub no muestran una pull request.
 

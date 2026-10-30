@@ -93,7 +93,9 @@ final class ApplicationPresenceController: NSObject, NSMenuDelegate, NSMenuItemV
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         addItem(String(localized: "Open Workspace"), action: #selector(openWorkspace), to: menu)
-        addItem(String(localized: "Quick Terminal"), action: #selector(toggleQuickTerminal), to: menu)
+        if AppSettings.shared.quickTerminalEnabled {
+            addItem(String(localized: "Quick Terminal"), action: #selector(toggleQuickTerminal), to: menu)
+        }
         menu.addItem(.separator())
         addItem(String(localized: "Settings…"), action: #selector(showSettings), to: menu)
         addItem(Updater.shared.updateActionTitle, action: #selector(checkForUpdates), to: menu)

@@ -193,6 +193,13 @@ struct WorkspaceTemplateSurfaceTests {
         try check(manager.projects.count == projectCount && !FileManager.default.fileExists(atPath: sentinel.path), "failed preflight creates no project and runs no command")
         AppSettings.shared.terminalStartupProgram = "/bin/sh"
         AppSettings.shared.terminalStartupArguments = "-c ': > GLOBAL_STARTUP_SENTINEL; exec /bin/sh -i'"
+        var profile = TerminalProfile(name: "Template initialization fixture")
+        profile.directory = "*/target*"
+        profile.appearance.fontSize = 17
+        profile.launchSettings = .init(environmentVariables: [.init(name: "TEMPLATE_PROFILE", value: "matched")],
+                                       initializationCommand: ": > PROFILE_INITIALIZATION_SENTINEL")
+        AppSettings.shared.automaticallyApplyTerminalProfiles = true
+        AppSettings.shared.terminalProfiles = [profile]
         let applied = try manager.applyWorkspaceTemplate(ready, projectRoot: targetRoot.path)
         applied.sessions.forEach(mount)
         try wait("applied startup program did not execute") { FileManager.default.fileExists(atPath: sentinel.path) && text(applied.sessions[0]).contains("APPLIED_START") }
@@ -208,6 +215,22 @@ struct WorkspaceTemplateSurfaceTests {
                   && resolved(applied.sessions[1].currentDirectoryPath) == resolved(targetRoot.appendingPathComponent("web").path), "real PTYs start in remapped project-relative directories")
         try check(applied.sessions.dropFirst(2).allSatisfy { resolved($0.currentDirectoryPath) == resolved(targetRoot.path) }, "converted editor and diff panes start at the target root")
         try check(!FileManager.default.fileExists(atPath: targetRoot.appendingPathComponent("GLOBAL_STARTUP_SENTINEL").path), "unlisted global startup commands are not applied to template terminals")
+        for (index, session) in applied.sessions.enumerated() {
+            let marker = home.appendingPathComponent("template-profile-env-\(index)")
+            session.sendCommand("printf '%s' \"$TEMPLATE_PROFILE\" > " + TerminalSession.shellQuote(marker.path))
+            session.sendEnter()
+            try wait("template pane \(index) retains the profile environment") {
+                (try? String(contentsOf: marker, encoding: .utf8)) == "matched"
+            }
+            try check(session.surface.profileAppearance == profile.appearance, "template pane \(index) retains the profile appearance")
+        }
+        try check([targetRoot, targetRoot.appendingPathComponent("api"), targetRoot.appendingPathComponent("web")].allSatisfy {
+            !FileManager.default.fileExists(atPath: $0.appendingPathComponent("PROFILE_INITIALIZATION_SENTINEL").path)
+        }, "a matching profile never replaces template initialization or adds a command to plain template panes")
+        try check(applied.sessions[1].initializationCommandForTemplate == ready.tabs[0].terminals[1].initializationCommand
+                  && applied.sessions.dropFirst(2).allSatisfy { $0.initializationCommandForTemplate == nil },
+                  "template initialization metadata keeps the explicit command and absent commands")
+        AppSettings.shared.terminalProfiles = []
         try check(first.shellPid == originalPID && !first.hasExited && text(first).contains("PRIVATE_SCROLLBACK"), "applying leaves the source PTY and scrollback alive")
         try check(source.tabs.contains { $0 === fileTab } && file.isDirty, "applying keeps source tabs and unsaved edits")
         if case .split(let outer) = applied.tabs[0].layout, case .split(let inner) = outer.second {

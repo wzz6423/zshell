@@ -18,6 +18,8 @@ Her terminal bölmesi gerçek giriş kabuğunuzu ve GPU hızlandırmalı iki yer
 
 ## Komut geçmişi [#command-history]
 
+**Ayarlar → Terminal → Geçmiş** içindeki **Komut geçmişini kaydet** varsayılan olarak açıktır (`terminal.command-history = true`). Kapatmak yeni komutların kaydını durdurur; kayıtlı geçmiş görüntülenebilir veya temizlenebilir. Terminal çıktısı ve kabuğun kendi geçmişi korunur.
+
 Zshell’de çalıştırılan komutları metin veya dizine göre aramak için **Terminal → Komut geçmişi…** seçeneğini açın. Her satır özgün dizini, başlangıç zamanını, süreyi ve çıkış durumunu gösterir. Özgün bölmeye ve çıktıya dönmek için satıra veya **Çıktıyı göster** düğmesine tıklayın. Bölme kapalıysa veya çıktı temizlendiyse gezinme kullanılamaz; **Komutu kopyala** yine çalışır.
 
 **Terminale ekle**, komutu çalıştırmadan özgün bölmenin boş zsh istemine yerleştirir; hazır olduğunuzda Return tuşuna basın. Bölme meşgulse veya taslak içeriyorsa ekleme devre dışıdır. Çok satırlı komutlar korunur. Liste Ghostty ve Alacritty komut bloğu entegrasyonunu kullanır; desteklenmeyen veya iç içe kabuklardaki komutlar görünmeyebilir.
@@ -52,9 +54,17 @@ Erişimi **Sistem Ayarları → Gizlilik ve Güvenlik → Kamera, Mikrofon veya 
 
 ## Odak fareyi izler [#focus-follows-mouse]
 
-**Ayarlar → Terminal → Davranış → Odak fareyi izler** seçeneği, işaretçi girdiğinde bölmeye odaklanır. Varsayılan kapalıdır; iki arka uç ve Hızlı Terminal ile çalışır. Sürükleme sırasında, düzenleyiciden veya açık menü ya da iletişim kutusundan odağı almaz.
+**Ayarlar → Terminal → Girdi → Odak fareyi izler** seçeneği, işaretçi girdiğinde bölmeye odaklanır. Varsayılan kapalıdır; iki arka uç ve Hızlı Terminal ile çalışır. Sürükleme sırasında, düzenleyiciden veya açık menü ya da iletişim kutusundan odağı almaz.
 
 `terminal.focus-follows-mouse = true`
+
+## Terminal profilleri [#terminal-profiles]
+
+Profilleri **Ayarlar → Terminal → Terminal profilleri → Terminal profillerini yönet…** üzerinden oluşturup sıralayın. Etkin bir profil ana makineyi, kullanıcıyı, çalışma dizinini ve ön plan programını eşleştirebilir. Doldurulan koşulların tümü eşleşmelidir; `*` herhangi bir metinle, `?` tek bir karakterle eşleşir. İlk eşleşen profil kullanılır; eşleşme yoksa bölme özgün görünümüne döner. **Terminal profillerini otomatik uygula** varsayılan olarak açıktır (`terminal.auto-profiles = true`). Kapatıldığında elle profil seçimi kullanılabilir.
+
+Terminale sağ tıklayıp **Terminal profilleri** seçerek otomatik eşleştirme, belirli bir profil veya özgün ayarları kullanın. Tema, yazı tipi ve imleç, süreç yeniden başlatılmadan geçerli bölmeye hemen uygulanır. Ortam değişkenleri, başlatma komutları ve başlangıç programları yalnızca yeni terminaller için geçerlidir; profil değiştirmek komut çalıştırmaz. Başlatma komutları oturum açma kabuğu başlarken, başlangıç programı ise doğrudan çalışır. Ortam değerleri `config.toml` içinde düz metin olarak saklanır.
+
+Paylaşılan uzak oturumlar sunucunun bildirdiği süreç ve dizini kullanır; eski sunucunun bildirmediği alanlar eşleşemez. Normal bir SSH bölmesi yapılandırılmış ana makine ve kullanıcıyı eşleştirebilir, ancak uzak ön plan programını veya dizini inceleyemez. Başlangıç ortamını SSH ve uzak kabuk denetler. Başlangıç programı, terminalin çalıştığı makinede bulunan mutlak bir yol olmalıdır.
 
 ## Arama [#search]
 
@@ -106,6 +116,8 @@ Böylece derleyici çıktısından ve ajan konuşmasından aynı projeye doğrud
 
 ## Klavye ipuçları [#keyboard-hints]
 
+**Ayarlar → Terminal → Girdi** içindeki **Terminal metin ipuçlarını göster** varsayılan olarak açıktır (`terminal.text-hints = true`). Kapatmak ipucu komutlarını ve kısayollarını gizler, görünür metin için ipucu modunu durdurur.
+
 Terminale odaklanıp **Terminal → Terminal ipucunu kopyala…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) veya **Terminal ipucunu aç…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>) seçin. Görünür yollar, URL’ler, IP adresleri ve commit hash’leri üzerinde harf etiketleri belirir. Seçmek için etiketi yazın; uzun etiketler seçenekleri daraltır.
 
 <kbd>Tab</kbd> kopyalama ve açmayı değiştirir. <kbd>Backspace</kbd> bir harfi siler; <kbd>Esc</kbd> iptal edip girişi terminale geri verir. İpucu tuşları programa gönderilmez. Kopyalama `:42:7` gibi konumları korur. Açma, Command-click gibi Finder veya varsayılan tarayıcıyı kullanır; diğer değerler kopyalanabilir.
@@ -113,6 +125,8 @@ Terminale odaklanıp **Terminal → Terminal ipucunu kopyala…** (<kbd>Cmd</kbd
 İki arka uç da yalnız görünür ekranı, sarılan satırlar dahil tarar. Boyut veya çıktı değişince etiketler yenilenir. Salt okunur bölmeler de kopyalama ve ana makinede açmayı destekler.
 
 ## Bildirimler [#notifications]
+
+**Ayarlar → Otomasyon → Bildirimler** içindeki **Ajanlar ilgilenmenizi gerektirdiğinde bildir** ve **Ajanlar tamamladığında bildir** varsayılan olarak açıktır (`ai.notify-on-attention` ve `ai.notify-on-completion`). Her biri ilgili ajan olayı için macOS bildirim gönderimini denetler; gönderim kapalıyken de olay geçmişe kaydedilir.
 
 Zshell Bildirim Merkezi’ne iki terminal olayı iletir:
 
@@ -123,6 +137,8 @@ Bildirimler sistem sesi çalabilir. Tıklamak Zshell’i etkinleştirir ve bildi
 
 ### Bildirim geçmişi [#notification-history]
 
+Aynı bildirim geçmişi **Ayarlar → Terminal → Bildirimler** üzerinden de açılabilir.
+
 Son terminal ve ajan bildirimleri için **Bildirimler → Bildirim geçmişi…** menüsünü açın. **Okunmamış**, **Başarısız** veya **Bekleyen** ile filtreleyin. Bildirime veya **Bölmeyi göster** düğmesine tıklamak, başka bir pencerede olsa bile geçerli proje, sekme ve bölmeyi seçer. Kapatılan bölmeler geçmişte kullanılamaz olarak kalır.
 
 **Okundu olarak işaretle**, **Tümünü okundu olarak işaretle**, **Kaldır** veya **Geçmişi temizle** ile listeyi yönetin. Okumak ajan isteğini onaylamaz. Ajan devam ettiğinde veya bittiğinde, bölme kapandığında ya da uzak bağlantı kullanılamadığında bildirim bekleyen filtresinden çıkar. Durumlar açık yaşam döngüsü raporlarına ve komut çıkış sonuçlarına dayanır. Son 200 kayıt yeniden başlatmalar arasında korunur ve macOS bildirim izni kapalıyken de kullanılabilir.
@@ -130,7 +146,7 @@ Son terminal ve ajan bildirimleri için **Bildirimler → Bildirim geçmişi…*
 
 ### Komut tamamlanması [#command-completion]
 
-Komut bitiş bildirimi için **Ayarlar → Terminal → Komut Bildirimleri**’ni açın:
+Komut bitiş bildirimi için **Ayarlar → Terminal → Bildirimler**’ni açın:
 
 - **Uzun süren komutlar**: 5, 10, 30 veya 60 saniye seçin. En az bu süre çalışan komut bitince bildirim üretir. Varsayılan **Kapalı**.
 - **Başarısız komutlar**: süreden bağımsız sıfır dışı çıkış durumunda bildirir. Yeni yapılandırmalarda varsayılan açıktır, bağımsız kapatılabilir.
@@ -180,6 +196,8 @@ Zshell JetBrains Mono ve Nerd Font simgelerini içerir. Kurulu herhangi bir eş 
 
 ## Genel Hızlı Terminal [#global-quick-terminal]
 
+**Ayarlar → Terminal → Hızlı Terminal** içindeki **Hızlı Terminali etkinleştir** varsayılan olarak açıktır (`quick-terminal.enabled = true`). Kapatmak pencereyi ve açma seçeneklerini gizler, genel kısayol kaydını kaldırır; geçerli çalışma alanı ve çalışan görevler korunur. Kapalıyken bildirimler de pencereyi açamaz. Yeniden açıldığında boyut, opaklık, mod ve kısayol denetimleri görünür.
+
 Zshell çalışırken <kbd>Cmd</kbd>+<kbd>I</kbd> veya **Terminal → Hızlı Terminal** bağımsız terminali gösterir ya da gizler. Boyut, opaklık ve kısayolu **Ayarlar → Terminal → Hızlı Terminal** altında değiştirin.
 
 **Oturum davranışı: Çalışma alanını yeniden kullan (varsayılan) / Her seferinde yeni çalışma alanı.** Yeniden kullanım bölmeleri ve görevleri korur. Yeni alanlar gizlenince sonlanır. Mod bir sonraki gösterimde değişir; geri döndüğünüzde yeniden kullanılabilir alan korunur. Komut geçmişi kabuk yapılandırmasını izler. Yeni alan her zaman tek bir boş terminalle başlar; önceki çıktı, bölme düzeni veya oturum durumu geri yüklenmez.
@@ -196,7 +214,7 @@ Komut kaydedip çalıştıran [Hızlı Başlat](/tr/docs/quick-launch) ayrı bir
 
 ## Vim komut ipuçları [#vim-command-hints]
 
-**Ayarlar → Terminal → Davranış → Vim komut ipuçları** seçeneğini ayarlayıp sağ kenar çubuğunun **Bilgi** sekmesine gidin. Vim, Vi veya Neovim etkinken oturum bilgisinin altında **VIM KOMUTLARI** görünür. Yeni yapılandırmalarda varsayılan açıktır; iki arka uçtaki mevcut terminallere hemen uygulanır.
+**Ayarlar → Terminal → Girdi → Vim komut ipuçları** seçeneğini ayarlayıp sağ kenar çubuğunun **Bilgi** sekmesine gidin. Vim, Vi veya Neovim etkinken oturum bilgisinin altında **VIM KOMUTLARI** görünür. Yeni yapılandırmalarda varsayılan açıktır; iki arka uçtaki mevcut terminallere hemen uygulanır.
 
 Yaygın komutların tam listesi hep erişilebilirdir; yalnızca öncelik değişir. Normal modda `:w`, `:q`, `yy`, `p`/`P`; Görsel Blok’ta `I`/`A`, blok değişiklikleri ve köşe hareketleri başa gelir. Ekleme, Değiştirme, Görsel, Görsel Satır, Seçim, komut satırı ve arama modlarının kendi sıralaması vardır. Her kayıt geçerli modları belirtir. Tuş, açıklama veya mod adıyla arayın; açıklama ve arama arayüzü uygulamanın 17 dilini izler. Sorguyu temizlemek tam listeyi geri getirir. İpuçları başvuru içindir, düzenleyiciye giriş göndermez.
 
@@ -206,6 +224,6 @@ Yapılandırmada `terminal.vim-command-hints = true` ile de açabilirsiniz.
 
 ## Kabuk tamamlama
 
-**Ayarlar → Terminal → Davranış → Kabuk tamamlama** seçeneğini açın (varsayılan açık) ve yeni zsh terminali açın. Komutlar, alt komutlar, argümanlar ve yollar kabuk işlevlerinden gelir; öneriler gri görünür. Girdi sonunda **Sağ ok** kabul eder; **Tab** adayları açar, oklar seçer, **Return** çalıştırmadan kabul eder, **Esc** veya **Ctrl+G** menüyü iptal eder. **Esc** öneriyi de kapatır. Mevcut eklentiler ve kısayollar korunur.
+**Ayarlar → Terminal → Girdi → Kabuk tamamlama** seçeneğini açın (varsayılan açık) ve yeni zsh terminali açın. Komutlar, alt komutlar, argümanlar ve yollar kabuk işlevlerinden gelir; öneriler gri görünür. Girdi sonunda **Sağ ok** kabul eder; **Tab** adayları açar, oklar seçer, **Return** çalıştırmadan kabul eder, **Esc** veya **Ctrl+G** menüyü iptal eder. **Esc** öneriyi de kapatır. Mevcut eklentiler ve kısayollar korunur.
 
 Birlikte gelen eklentiler `.zshrc` dosyasını değiştirmez. Tam ekran programları kendi girdilerini alır. Uyumlu zshell-server ve zsh ile uzak projeler uzak komutları ve yolları kullanır; diğer kabuklar kendi tamamlamalarını korur. Yeni kabuklara ve uzak oturumlara uygulanır. Kapatmak için `terminal.shell-completions = false` kullanın.

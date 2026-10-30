@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import Combine
 
 /// Categories and setting search share native buttons so keyboard and
 /// accessibility activation follow the same path as a click.
@@ -27,6 +28,7 @@ final class SettingsSidebarViewController: NSViewController, NSSearchFieldDelega
     private var selected: SettingsCategory?
     private var selectedResult: String?
     private(set) var searchResults: [SettingsSearchResult] = []
+    private var observations: Set<AnyCancellable> = []
 
     var isSearching: Bool {
         !searchField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -133,6 +135,19 @@ final class SettingsSidebarViewController: NSViewController, NSSearchFieldDelega
         ])
         view = container
         refreshLanguage()
+        Publishers.Merge4(
+            AppSettings.shared.objectWillChange,
+            Updater.shared.objectWillChange,
+            NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification)
+                .map { _ in () },
+            SettingsVisibility.recommendationsDidChange
+        )
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] _ in
+            guard let self, self.isSearching else { return }
+            self.updateSearchResults(onlyIfChanged: true)
+        }
+        .store(in: &observations)
     }
 
     override func viewDidAppear() {
@@ -206,8 +221,10 @@ final class SettingsSidebarViewController: NSViewController, NSSearchFieldDelega
         return false
     }
 
-    private func updateSearchResults() {
-        searchResults = isSearching ? SettingsSearchIndex.results(for: searchField.stringValue) : []
+    private func updateSearchResults(onlyIfChanged: Bool = false) {
+        let results = isSearching ? SettingsSearchIndex.results(for: searchField.stringValue) : []
+        guard !onlyIfChanged || results != searchResults else { return }
+        searchResults = results
         for row in resultRows {
             resultStack.removeArrangedSubview(row)
             row.removeFromSuperview()

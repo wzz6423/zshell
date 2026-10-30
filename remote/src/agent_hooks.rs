@@ -29,6 +29,7 @@ pub struct Hook {
 impl Hook {
     pub fn record(&self, previous: &str) -> io::Result<Record> {
         if configuration_keys(&self.provider).is_empty()
+            || self.conversation_id.as_deref().is_some_and(|id| !Identity::accepts_session_id(&self.provider, id))
             || self.task_id.as_deref().is_some_and(|text| text.is_empty() || !valid_text(text, 128))
             || self.task_title.as_deref().is_some_and(|text| !valid_text(text, 256))
             || self.reason.as_deref().is_some_and(|text| !valid_text(text, 1024)) { return Err(invalid("Invalid native Agent event")); }
@@ -76,6 +77,15 @@ pub fn invocation(provider: &str, payload: &[u8], environment: &BTreeMap<String,
         match fields.get("method").and_then(Value::as_str) { Some("agent.session.start") => "SessionStart", Some("agent.session.clear") => "SessionEnd", _ => "Lifecycle" }
     });
     if params.get("provider").and_then(Value::as_str).is_some_and(|reported| reported != provider) { return Ok(None); }
+    let conversation_id = |key: &str| -> io::Result<Option<&str>> {
+        match fields.get(key) {
+            None => Ok(None),
+            Some(Value::String(id)) if Identity::accepts_session_id(provider, id) => Ok(Some(id)),
+            _ => Err(invalid("Invalid provider conversation ID")),
+        }
+    };
+    let session_id = conversation_id("session_id")?;
+    let parent_session_id = conversation_id("parent_session_id")?;
     let task = fields.get("agent_id").and_then(Value::as_str).filter(|id| !id.is_empty());
     if event == "SessionStart" && (task.is_some() || fields.get("parent_session_id").and_then(Value::as_str).is_some_and(|id| !id.is_empty())) { return Ok(None); }
     let identity = if event == "SessionStart" {
@@ -118,7 +128,8 @@ pub fn invocation(provider: &str, payload: &[u8], environment: &BTreeMap<String,
         phase = Some("blocked".into()); attention = Some("login".into());
     }
     let hook = Hook { provider: provider.into(), token: token.cloned().unwrap_or_default(), reporter_pid, event: event.into(), identity,
-        conversation_id: fields.get("session_id").and_then(Value::as_str).map(str::to_owned),
+        // 共享 Codex 的旧版子任务 hook 仅携带所属会话的 session_id。
+        conversation_id: (if task.is_some() { parent_session_id.or(if shared { session_id } else { None }) } else { session_id }).map(str::to_owned),
         phase, attention, task_id: task.map(str::to_owned), task_title: fields.get("agent_type").and_then(Value::as_str).map(str::to_owned),
         reason: params.get("reason").and_then(Value::as_str).map(str::to_owned) };
     let mut frame = Frame::new("agentHook"); frame.request_id = Some(new_id()?);

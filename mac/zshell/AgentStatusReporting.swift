@@ -188,10 +188,24 @@ struct ZshellAgentLifecycleEvent {
     let reason: String
     let task: ZshellAgentTaskStatus?
     let endsSession: Bool
+    let conversationID: String?
+    let startsSession: Bool
+
+    func belongs(to identity: AgentConversationIdentity?, provider: ZshellAgentKind) -> Bool {
+        guard !startsSession, let conversationID, let identity else { return true }
+        return identity.provider.rawValue == provider.rawValue && identity.sessionID == conversationID
+    }
 
     static func parse(provider: ZshellAgentKind, payload: [String: ZshellJSONValue]) -> Self? {
         guard provider == .codex || provider == .claude,
               let event = payload["hook_event_name"]?.stringValue else { return nil }
+        for key in ["session_id", "parent_session_id"] {
+            if let value = payload[key] {
+                guard let id = value.stringValue,
+                      AgentConversationIdentity.Provider(rawValue: provider.rawValue)?.accepts(sessionID: id) == true
+                else { return nil }
+            }
+        }
         var phase: ZshellAgentPhase = .working
         var attention: ZshellAgentAttention?
         var task: ZshellAgentTaskStatus?
@@ -244,7 +258,10 @@ struct ZshellAgentLifecycleEvent {
             task = ZshellAgentTaskStatus(id: id, title: title, phase: phase, progress: nil, attention: attention)
         }
         if task != nil { endsSession = false }
-        return Self(phase: phase, attention: attention, reason: "\(provider.displayName): \(event)", task: task, endsSession: endsSession)
+        let conversationID = payload[task == nil ? "session_id" : "parent_session_id"]?.stringValue
+        return Self(phase: phase, attention: attention, reason: "\(provider.displayName): \(event)",
+                    task: task, endsSession: endsSession, conversationID: conversationID,
+                    startsSession: event == "SessionStart" && task == nil)
     }
 }
 

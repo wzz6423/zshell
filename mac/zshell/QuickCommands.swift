@@ -58,15 +58,7 @@ final class QuickCommandMenuTarget: NSObject {
     func menuItems() -> [NSMenuItem] {
         let store = QuickCommandStore.shared
         var items: [NSMenuItem] = []
-        if store.presets.isEmpty {
-            let empty = NSMenuItem(
-                title: String(localized: "No Quick Commands"),
-                action: nil,
-                keyEquivalent: ""
-            )
-            empty.isEnabled = false
-            items.append(empty)
-        } else {
+        if !store.presets.isEmpty {
             for preset in store.presets {
                 let parent = NSMenuItem(title: preset.name, action: nil, keyEquivalent: "")
                 let submenu = NSMenu(title: preset.name)
@@ -92,7 +84,7 @@ final class QuickCommandMenuTarget: NSObject {
                 items.append(parent)
             }
         }
-        items.append(.separator())
+        if !items.isEmpty { items.append(.separator()) }
         let manage = NSMenuItem(
             title: String(localized: "Manage Quick Commands…"),
             action: #selector(managePresets),

@@ -63,7 +63,7 @@ Le nom de la branche dans l'en-tête ouvre un menu. Choisissez une autre branche
 
 ## Arbres de travail [#worktrees]
 
-Le panneau Git répertorie tous les arbres de travail du dépôt avec leur branche et le chemin de leur copie de travail. La copie active porte la mention **Actuel**. Cliquez sur un arbre pour ouvrir un nouvel onglet de terminal dans son répertoire : chaque copie conserve ainsi son contexte de shell tout en appartenant au même projet. Les longues listes défilent dans leur propre zone de hauteur limitée ; l'en-tête, les commandes de commit et la liste des fichiers modifiés restent en place. Cliquez sur le titre des arbres de travail pour réduire ou développer la liste.
+Le panneau Git répertorie tous les arbres de travail du dépôt avec leur branche et le chemin de leur copie de travail. La copie active porte la mention **Actuel**. Cliquez sur un arbre pour ouvrir un nouvel onglet de terminal dans son répertoire : chaque copie conserve ainsi son contexte de shell tout en appartenant au même projet. Le panneau Git défile verticalement comme une seule page : arbres de travail, fichiers modifiés, commandes de commit et commits récents se déplacent ensemble. Cliquez sur le titre des arbres de travail pour réduire ou développer la liste.
 
 Un arbre avec une HEAD détachée affiche **HEAD détachée** à la place d'un nom de branche. Les dépôts nus figurent aussi dans la liste, mais ils n'ont pas de répertoire de travail et ne peuvent pas être ouverts dans un onglet de terminal.
 
@@ -71,7 +71,7 @@ Un arbre avec une HEAD détachée affiche **HEAD détachée** à la place d'un n
 
 Dans un terminal d’un dépôt Git local, choisissez **Terminal → Nouvelle session dans un worktree…** ou appuyez sur <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>T</kbd>. Les menus contextuels de l’onglet et du bouton **+** proposent aussi cette action. Choisissez une branche locale nouvelle ou existante et un dossier qui n’existe pas encore. Une nouvelle branche part de la branche par défaut du dépôt ; **HEAD actuel** reste un choix explicite. Une branche existante conserve son commit actuel. Le dossier proposé se trouve à côté du checkout source.
 
-Les volets divisés héritent de l’association au worktree, que la disposition enregistrée restaure également. Fermer une session associée propose **Conserver le worktree**, **Supprimer le worktree** ou **Annuler**. La suppression exige l’absence de fichiers modifiés, non suivis ou ignorés, de commits non intégrés à la référence enregistrée, de verrou et d’autres sessions ouvertes utilisant ce checkout. La branche Git est toujours conservée.
+Les volets divisés héritent de l’association au worktree, que la disposition enregistrée restaure également. Fermer une session associée propose **Conserver le worktree**, **Supprimer le worktree** ou **Annuler**. La suppression exige l’absence de fichiers modifiés, non suivis ou ignorés, de commits non intégrés à la référence enregistrée, de verrou et d’autres sessions ouvertes utilisant ce checkout. La branche Git est toujours conservée. Les sessions ouvertes dans le terminal rapide indépendant protègent aussi le worktree utilisé et empêchent sa suppression.
 
 Un terminal externe peut créer et fermer des sessions avec `zshell +session`. Passez à `--project` un ID renvoyé par `projects` ; dans Zshell, le projet du terminal appelant est utilisé automatiquement. La création se fait en arrière-plan, sauf avec `--focus`. `--base HEAD` ou `--base REF` choisit une autre référence, et `--worktree NEW_DIR` définit le dossier. `--connection FILE` sélectionne une instance en cours si nécessaire. La fermeture conserve le worktree sans `--remove-worktree` explicite ; `check` indique si le nettoyage est actuellement sûr.
 
@@ -106,6 +106,8 @@ Le tirage est volontairement limité à l'avance rapide. Si une fusion ou un reb
 </Callout>
 
 ### État des pull requests [#pull-request-status]
+
+**Afficher l’état des demandes de fusion** dans **Réglages → Général → Git** est activé par défaut (`git.pull-request-status = true`). Le désactiver masque l’état de la pull request dans le panneau Git.
 
 Installez GitHub CLI et connectez-vous avec `gh auth login` pour voir le numéro et l’état de la pull request de la branche courante dans le panneau Git d’un dépôt local. Cliquez dessus pour l’ouvrir, ou faites un clic droit et choisissez **Actualiser l’état de la pull request**. Les dépôts distants hors GitHub ne l’affichent pas.
 

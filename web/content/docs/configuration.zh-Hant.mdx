@@ -13,6 +13,10 @@ Zshell 大多數持久化設定都在一個檔案裡：
 
 新配置預設開啟 Vim 指令提示、工作階段歷史恢復和失敗指令通知。自動下載更新也預設開啟；既有配置和已儲存的開關選擇會保留。
 
+**設定 → 終端機**中，輸入行為位於**輸入**，命令記錄與歷史入口位於**歷史記錄**，命令提醒與通知歷史位於**通知**。**游標**和**背景**位於**設定 → 外觀**。
+
+關閉上層功能後，相依控制項會隱藏，已儲存的值會保留：包括快速終端機附屬控制項、Agent 工作階段恢復與通知、字型加粗強度、焦點環不透明度、Git 代理位址，以及瀏覽器過濾清單和狀態。背景模糊只在背景半透明且 macOS 未開啟「降低透明度」時顯示。
+
 ## 這個檔案的行為 [#how-the-file-behaves]
 
 手動改之前值得先知道：
@@ -209,6 +213,9 @@ regular/bold 區分及後備字型字重。
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | 應用圖示 |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | 檔案和目錄使用的外部編輯器 |
 | `terminal.theme-only` | `false` | 布林值 | 只將所選配色應用於終端機 |
+| `terminal.command-history` | `true` | 布林值 | 記錄新命令，關閉後仍可查看既有歷史 |
+| `terminal.text-hints` | `true` | 布林值 | 啟用可見終端機文字的鍵盤提示 |
+| `terminal.auto-profiles` | `true` | 布林值 | 自動比對終端機設定方案，仍可手動選擇 |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | 終端機游標形狀 |
 | `terminal.cursor-blinking` | `true` | 布林值 | 游標閃爍 |
 | `terminal.copy-on-select` | `true` | 布林值 | 選中終端機文本後複製 |
@@ -218,12 +225,16 @@ regular/bold 區分及後備字型字重。
 | `terminal.background-blur` | `false` | 布林值 | 半透明背景模糊 |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | 新建 zsh 終端機中，執行至少該秒數的指令結束後通知；0 為關閉 |
 | `terminal.notify-on-error` | `true` | 布林值 | 新建 zsh 終端機中，指令失敗時通知 |
+| `ai.notify-on-attention` | `true` | 布林值 | 傳送 Agent 需關注通知，關閉後仍記錄歷史 |
+| `ai.notify-on-completion` | `true` | 布林值 | 傳送 Agent 完成通知，關閉後仍記錄歷史 |
+| `quick-terminal.enabled` | `true` | 布林值 | 顯示快速終端機並註冊全域快速鍵，關閉時保留執行中的任務 |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | 重用工作區 / 每次建立新工作區 |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | 快速終端機的螢幕佔比 |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | 快速終端機背景不透明度 |
 | `quick-terminal.shortcut` | `Cmd+I` | 設定中錄制 | 在設定中錄制全局快速鍵，自動儲存按鍵編碼 |
 | `panes.show-focus-ring` | `true` | 布林值 | 顯示當前窗格焦點邊框 |
 | `panes.focus-ring-opacity` | `0.85` | 0.05–1 | 焦點邊框不透明度 |
+| `git.pull-request-status` | `true` | 布林值 | 在 Git 面板顯示 Pull Request 狀態 |
 
 ## 備份與遷移 [#backup-and-migration]
 
@@ -269,7 +280,7 @@ Zshell 會拒絕此次修改並顯示佔用它的指令。點擊 **恢復預設�
 ## 不在這個檔案裡的設定 [#settings-outside-this-file]
 
 - **語言。** 設定裡可選「跟隨系統」及與官網一致的 17 種語言。切換立即生效，終端機工作階段繼續執行。它使用 macOS 的單應用語言偏好，所以不存進 TOML。「跟隨系統」會按 macOS 的語言優先級選擇。
-- **自動更新。** **設定 → 更新**中的自動檢查、自動下載和自動安裝使用 TOML 之外的應用偏好，重新啟動後會保留選擇。開啟自動下載後才顯示自動安裝。見[安裝](/zh-Hant/docs/installation#updates)。
+- **自動更新。** **設定 → 更新**中的自動檢查、自動下載和自動安裝使用 TOML 之外的應用偏好，重新啟動後會保留選擇。開啟自動檢查且支援自動更新時才顯示下載控制項；自動安裝還要求開啟自動下載。見[安裝](/zh-Hant/docs/installation#updates)。
 - **視窗與佈局狀態。** 視窗尺寸、側邊欄寬度、當前面板、專案、分頁、窗格、瀏覽器 URL 和
   diff 控件偏好，都存在 Zshell 的 macOS 偏好設定或工作階段快照裡。
 - **後端自己的配置檔案。** Zshell 不讀取 `~/.config/ghostty`，也不讀取 Alacritty 配置。Zshell 的設定就是兩個後端共同支持的配置面。

@@ -490,18 +490,25 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
                 guard let self, !self.isClosed else { return }
                 switch state {
                 case .unavailable:
+                    self.invalidateLoopbackRouting()
                     // A public page needs no forwarding, so it keeps running.
                     guard let url = self.pendingURL ?? self.webView.url,
                           BrowserRemoteRouting.isLoopback(url) else { return }
                     self.stopLoading()
                     self.errorMessage = String(localized: "Reconnect the remote session to preview localhost.")
                 case .idle:
+                    self.invalidateLoopbackRouting()
                     if let url = self.pendingURL ?? self.webView.url, BrowserRemoteRouting.isLoopback(url) {
                         self.load(URLRequest(url: url))
                     }
                 case .connecting, .connected, .failed: break
                 }
             }
+    }
+
+    private func invalidateLoopbackRouting() {
+        guard webView.url != nil, let remoteRouting else { return }
+        webView.evaluateJavaScript(remoteRouting.loopbackInvalidationScript, completionHandler: nil)
     }
 
     func openInDefaultBrowser() {

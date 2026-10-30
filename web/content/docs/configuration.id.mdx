@@ -13,6 +13,10 @@ Jendela Pengaturan (<kbd>Cmd</kbd>+<kbd>,</kbd>) menulis berkas yang sama. Beber
 
 Konfigurasi baru mengaktifkan petunjuk perintah Vim, pemulihan riwayat sesi, dan notifikasi perintah gagal. Unduhan pembaruan otomatis juga aktif secara bawaan. Konfigurasi yang ada dan pilihan tersimpan tetap dipertahankan.
 
+Di **Pengaturan → Terminal**, kontrol input ada di **Input**, pencatatan dan akses riwayat di **Riwayat**, serta peringatan perintah dan riwayat notifikasi di **Notifikasi**. **Kursor** dan **Latar Belakang** ada di **Pengaturan → Tampilan**.
+
+Kontrol yang bergantung pada fitur utama disembunyikan saat fitur itu nonaktif; nilai tersimpan tetap dipertahankan. Ini mencakup kontrol Terminal Cepat, pelanjutan dan notifikasi agen, kekuatan penebalan font, opasitas bingkai fokus, alamat proxy Git, serta daftar dan status filter browser. Pemburaman latar hanya muncul dengan latar tembus pandang dan opsi Kurangi Transparansi macOS nonaktif.
+
 ## Perilaku berkas [#how-the-file-behaves]
 
 Sebelum menyunting secara manual, perhatikan:
@@ -194,6 +198,9 @@ Atur melalui **Pengaturan → Otomatisasi → Lanjutkan percakapan agen**. Opsi 
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Ikon aplikasi |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Editor eksternal untuk berkas dan folder |
 | `terminal.theme-only` | `false` | Boolean | Terapkan palet hanya pada terminal |
+| `terminal.command-history` | `true` | Boolean | Mencatat perintah baru; riwayat tersimpan tetap tersedia saat nonaktif |
+| `terminal.text-hints` | `true` | Boolean | Mengaktifkan petunjuk papan ketik untuk teks terminal yang terlihat |
+| `terminal.auto-profiles` | `true` | Boolean | Mencocokkan profil otomatis; pilihan manual tetap tersedia |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Bentuk kursor terminal |
 | `terminal.cursor-blinking` | `true` | Boolean | Kedipan kursor |
 | `terminal.copy-on-select` | `true` | Boolean | Salin teks terminal yang dipilih |
@@ -203,12 +210,16 @@ Atur melalui **Pengaturan → Otomatisasi → Lanjutkan percakapan agen**. Opsi 
 | `terminal.background-blur` | `false` | Boolean | Buramkan latar tembus pandang |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Beri notifikasi saat perintah yang berjalan minimal selama durasi ini selesai di terminal zsh baru; 0 menonaktifkan |
 | `terminal.notify-on-error` | `true` | Boolean | Notifikasi kegagalan perintah di terminal zsh baru |
+| `ai.notify-on-attention` | `true` | Boolean | Mengirim notifikasi saat agen perlu perhatian; riwayat tetap dicatat |
+| `ai.notify-on-completion` | `true` | Boolean | Mengirim notifikasi saat agen selesai; riwayat tetap dicatat |
+| `quick-terminal.enabled` | `true` | Boolean | Menampilkan Terminal Cepat dan mendaftarkan pintasan global; tugas tetap berjalan saat nonaktif |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Gunakan kembali ruang kerja / Ruang kerja baru setiap kali |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Ukuran Terminal Cepat relatif terhadap layar |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Opasitas latar Terminal Cepat |
 | `quick-terminal.shortcut` | `Cmd+I` | Rekam di Pengaturan | Rekam pintasan global di Pengaturan; kode tombol disimpan otomatis |
 | `panes.show-focus-ring` | `true` | Boolean | Tampilkan bingkai fokus di panel aktif |
 | `panes.focus-ring-opacity` | `0.85` | 0.05–1 | Opasitas bingkai fokus |
+| `git.pull-request-status` | `true` | Boolean | Menampilkan status pull request di panel Git |
 
 ## Pencadangan dan migrasi [#backup-and-migration]
 
@@ -251,6 +262,6 @@ Buka **Pengaturan → Pintasan** untuk merekam pintasan baru bagi perintah inti.
 ## Pengaturan di luar berkas ini [#settings-outside-this-file]
 
 - **Bahasa.** Pengaturan menyediakan Bawaan Sistem dan 17 bahasa yang sama dengan situs. Perubahan berlaku langsung sambil sesi terminal tetap berjalan. Pilihan menggunakan preferensi bahasa per aplikasi macOS, sehingga disimpan dalam preferensi Zshell, bukan TOML. Bawaan Sistem mengikuti urutan bahasa macOS.
-- **Pembaruan otomatis.** Sakelar pemeriksaan, unduhan, dan pemasangan otomatis di **Pengaturan → Pembaruan** memakai preferensi aplikasi di luar TOML dan mengingat pilihan antarpeluncuran. Pemasangan hanya ditampilkan selama unduhan otomatis aktif. Lihat [Instalasi](/id/docs/installation#updates).
+- **Pembaruan otomatis.** Sakelar pemeriksaan, unduhan, dan pemasangan otomatis di **Pengaturan → Pembaruan** memakai preferensi aplikasi di luar TOML dan mengingat pilihan antarpeluncuran. Kontrol unduhan muncul saat pemeriksaan otomatis aktif dan pembaruan otomatis tersedia; pemasangan juga memerlukan unduhan otomatis aktif. Lihat [Instalasi](/id/docs/installation#updates).
 - **Status jendela dan tata letak.** Ukuran jendela, lebar bilah samping, panel yang dipilih, proyek, tab, panel konten, URL browser, dan preferensi kontrol perbedaan tersimpan dalam preferensi macOS dan cuplikan sesi Zshell.
 - **Berkas konfigurasi backend.** Zshell tidak membaca `~/.config/ghostty` atau konfigurasi Alacritty. Pengaturan Zshell adalah cara yang didukung untuk keduanya.

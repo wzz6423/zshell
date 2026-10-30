@@ -165,6 +165,34 @@ struct BrowserRemoteRoutingTests {
         guard early == ["/api?early=\(backend)", "early-echo", "/api?early-xhr=\(backend)", "loaded"], fresh.remoteRouting?.localProxyPort != nil else {
             throw failure("A public page's first loopback fetch, WebSocket, XHR or image did not reach the tunnel: \(early)")
         }
+        let freshRouting = fresh.remoteRouting!
+        let publicURL = fresh.webView.url
+        _ = try await fresh.webView.evaluateJavaScript("window.publicPageToken='preserved';window.routingInvalidations=0;window.addEventListener('\(BrowserRemoteRouting.loopbackInvalidationName)',()=>window.routingInvalidations++);true")
+        for available in [false, true] {
+            freshRouting.setAvailable(available, projectID: freshProject.id)
+            let deadline = Date().addingTimeInterval(5)
+            let expected = available ? 2 : 1
+            while Date() < deadline,
+                  (try await fresh.webView.evaluateJavaScript("window.routingInvalidations") as? Int ?? 0) < expected {
+                try await Task.sleep(for: .milliseconds(20))
+            }
+            guard (try await fresh.webView.evaluateJavaScript("window.routingInvalidations") as? Int ?? 0) >= expected,
+                  fresh.webView.url == publicURL, freshRouting.localProxyPort == nil else {
+                throw failure("Public-page routing invalidation reloaded the document or kept stale forwarding")
+            }
+        }
+        _ = try await fresh.webView.evaluateJavaScript("(()=>{fetch('http://localhost:\(primaryPort)/api?reconnected=\(backend)').then(r=>r.json()).then(v=>window.reconnected=v.path);const ws=new WebSocket('ws://localhost:\(primaryPort)/socket?reconnected=\(backend)');ws.onopen=()=>ws.send('reconnected-echo');ws.onmessage=e=>window.reconnectedSocket=e.data;const x=new XMLHttpRequest();x.open('GET','http://localhost:\(primaryPort)/api?reconnected-xhr=\(backend)');x.onload=()=>window.reconnectedXHR=JSON.parse(x.responseText).path;x.send();const i=new Image();i.onload=()=>window.reconnectedImage='loaded';i.src='http://127.0.0.1:\(primaryPort)/pixel.png?reconnected=\(backend)';return true})()")
+        let reconnectedDeadline = Date().addingTimeInterval(10)
+        var reconnected: [String] = []
+        repeat {
+            reconnected = try await fresh.webView.evaluateJavaScript("[String(window.reconnected),String(window.reconnectedSocket),String(window.reconnectedXHR),String(window.reconnectedImage),window.publicPageToken]") as? [String] ?? []
+            if reconnected == ["/api?reconnected=\(backend)", "reconnected-echo", "/api?reconnected-xhr=\(backend)", "loaded", "preserved"] { break }
+            try await Task.sleep(for: .milliseconds(50))
+        } while Date() < reconnectedDeadline
+        guard reconnected == ["/api?reconnected=\(backend)", "reconnected-echo", "/api?reconnected-xhr=\(backend)", "loaded", "preserved"],
+              fresh.webView.url == publicURL, freshRouting.localProxyPort != nil else {
+            throw failure("Public-page loopback requests did not reconnect without reloading: \(reconnected)")
+        }
         fresh.close()
 
         other.remoteRouting!.setAvailable(false, projectID: otherProject.id)

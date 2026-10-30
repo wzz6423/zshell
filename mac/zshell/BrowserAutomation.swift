@@ -445,7 +445,7 @@ final class BrowserAutomation {
         if (!node.matches('a[href],button,input:not([type="hidden"]),textarea,select,summary,[role],h1,h2,h3,h4,h5,h6,[contenteditable="true"],[tabindex]') || !visible(node)) continue;
         const reference = token + ':' + elements.length;
         state.refs.set(reference, node);
-        const entry = {ref: reference, tag: node.tagName.toLowerCase(), role: role(node), name: name(node), disabled: !!node.disabled || node.getAttribute('aria-disabled') === 'true'};
+        const entry = {ref: reference, tag: node.tagName.toLowerCase(), role: role(node), name: name(node), disabled: node.matches(':disabled') || node.getAttribute('aria-disabled') === 'true'};
         if (node.id) entry.id = node.id.slice(0, 256);
         if (node.href) entry.href = String(node.href).slice(0, 2048);
         if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA' || node.tagName === 'SELECT') {
@@ -489,7 +489,7 @@ final class BrowserAutomation {
       return {matched: wait_state === 'attached' || visible(element), state: visible(element) ? 'visible' : 'attached'};
     }
     if (!visible(element)) return fail('element_not_visible', 'The target element is hidden.');
-    if (element.disabled || element.getAttribute('aria-disabled') === 'true' || element.closest('[inert]')) return fail('element_disabled', 'The target element is disabled.');
+    if (element.matches(':disabled') || element.getAttribute('aria-disabled') === 'true' || element.closest('[inert]')) return fail('element_disabled', 'The target element is disabled.');
     if (operation === 'click') {
       const link = element.closest('a[href],area[href]');
       if ((link && (!allowedURL(link.href) || link.hasAttribute('download'))) || element.matches('input[type="file"]')) {
@@ -504,9 +504,12 @@ final class BrowserAutomation {
     if (operation === 'fill') {
       if (element.readOnly) return fail('element_readonly', 'The target element is read-only.');
       if (element.matches('input[type="file"],input[type="hidden"],input[type="button"],input[type="submit"],input[type="reset"],input[type="checkbox"],input[type="radio"]')) return fail('unsupported_action', 'Use fill for editable text fields, textareas, selects, or contenteditable elements.');
-      if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) {
-        if (element instanceof HTMLSelectElement && !Array.from(element.options).some(option => option.value === value && !option.disabled)) return fail('invalid_value', 'No enabled select option has this value.');
-        const prototype = element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : element instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+      if (element instanceof HTMLSelectElement) {
+        const index = Array.from(element.options).findIndex(option => option.value === value && !option.matches(':disabled'));
+        if (index < 0) return fail('invalid_value', 'No enabled select option has this value.');
+        Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'selectedIndex').set.call(element, index);
+      } else if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+        const prototype = element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
         Object.getOwnPropertyDescriptor(prototype, 'value').set.call(element, value);
       } else if (element.isContentEditable) element.textContent = value;
       else return fail('unsupported_action', 'The target element is not editable.');

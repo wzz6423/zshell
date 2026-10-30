@@ -150,9 +150,26 @@ struct TerminalHintSurfaceTests {
         app.mainMenu = mainMenu
         TerminalHintMenu.shared.install(in: mainMenu)
         defer { app.mainMenu = previousMenu }
+        AppSettings.shared.terminalTextHints = false
+        TerminalHintMenu.shared.install(in: mainMenu)
+        try check(TerminalHintMenu.shared.items(for: view).isEmpty
+                  && !terminalMenu.items.contains { $0.identifier?.rawValue == "zshell-copy-terminal-hint" },
+                  "disabled hints remove context and main menu entries")
+        mode.present(action: .copy)
+        try check(!mode.isPresented, "disabled hints reject direct presentation")
+        AppSettings.shared.terminalTextHints = true
+        TerminalHintMenu.shared.install(in: mainMenu)
+        try check(TerminalHintMenu.shared.items(for: view).count == 2,
+                  "enabling hints restores both menu actions")
         try wait("PTY fixture reaches visible grid") {
             view.readVisibleSnapshot()?.rows.contains(where: { $0.text.contains("READY_HINTS") }) == true
         }
+        try present()
+        AppSettings.shared.terminalTextHints = false
+        mode.refreshSnapshot()
+        try check(!mode.isPresented && window.firstResponder === view,
+                  "disabling active hints restores the terminal responder")
+        AppSettings.shared.terminalTextHints = true
         let initial = try snapshot()
         let all = TerminalHintMatcher.matches(in: initial)
         let unicode = all.first { $0.value == "https://example.com/unicode" }

@@ -676,7 +676,8 @@ enum ZshellAutomationRouter {
         var endsSession = false
         if provider == .codex || provider == .claude {
             guard let payload = request.params["event"]?.objectValue,
-                  let event = ZshellAgentLifecycleEvent.parse(provider: provider, payload: payload) else {
+                  let event = ZshellAgentLifecycleEvent.parse(provider: provider, payload: payload),
+                  event.belongs(to: session.agentResume, provider: provider) else {
                 return failure(request, "invalid_lifecycle", "Unsupported provider lifecycle event.")
             }
             phase = event.phase
@@ -709,6 +710,9 @@ enum ZshellAutomationRouter {
                 request, "agent_not_recognized",
                 "Native lifecycle reports require a live matching provider ancestor in this terminal."
             )
+        }
+        guard task == nil else {
+            return success(request, paneSnapshot(caller, caller: caller))
         }
         if phase == .working, let status = session.agentStatus {
             await AgentTurnReviewStore.shared.begin(

@@ -191,9 +191,31 @@ final class GlobalTerminalOverlay: NSObject {
         reusableWorkspace = nil
     }
 
-    private var allSessions: [TerminalSession] {
+    var allSessions: [TerminalSession] {
         var seen = Set<UUID>()
         return ((workspace?.sessions ?? []) + (reusableWorkspace?.sessions ?? [])).filter { seen.insert($0.id).inserted }
+    }
+
+    func pendingSessionsUseWorktree(_ path: String, excluding sessionID: UUID? = nil) -> Bool {
+        guard let pendingSnapshot else { return false }
+        var seen = Set<UUID>()
+        func usesWorktree(_ layout: QuickTerminalWorkspaceSnapshot.Layout) -> Bool {
+            switch layout {
+            case .pane(let pane):
+                guard case .session = pane.content, let id = pane.terminalID,
+                      id != sessionID, seen.insert(id).inserted,
+                      let pty = PersistentPTY.reconnect(id: id) else { return false }
+                // A saved PTY can stay live before its renderer is restored.
+                // Persisted directories may be stale, so only kernel paths count.
+                return [processWorkingDirectory(pid: pty.shellPID),
+                        pty.foregroundPID.flatMap(processWorkingDirectory(pid:))].compactMap { $0 }.contains {
+                    SessionWorktreeService.contains($0, in: path)
+                }
+            case .split(_, _, let first, let second):
+                return usesWorktree(first) || usesWorktree(second)
+            }
+        }
+        return usesWorktree(pendingSnapshot.layout)
     }
 
     func prepareForApplicationQuit(preserve: Bool, endAll: Bool = false) {
@@ -224,6 +246,7 @@ final class GlobalTerminalOverlay: NSObject {
     }
 
     func reloadHotkey() {
+        if !AppSettings.shared.quickTerminalEnabled { dismiss(preserveWorkspace: true) }
         guard hotkeyHandlerRef != nil else { return }
         unregisterHotkey()
         refreshHotkeyRegistration()
@@ -246,7 +269,7 @@ final class GlobalTerminalOverlay: NSObject {
         // Carbon hotkeys are consumed before AppKit's local event monitors.
         // Unregister while the focused pane blocks commands so the original
         // key-down, repeats, and key-up reach its terminal input path.
-        if isRecordingHotkey || (
+        if !AppSettings.shared.quickTerminalEnabled || isRecordingHotkey || (
             NSApp.keyWindow?.isKeyWindow == true
                 && TerminalCommandRouting.isBlockingCommands(in: NSApp.keyWindow)
         ) {
@@ -257,7 +280,7 @@ final class GlobalTerminalOverlay: NSObject {
     }
 
     func setHotkey(_ shortcut: QuickTerminalShortcut) -> Bool {
-        guard hotkeyHandlerRef != nil else {
+        guard hotkeyHandlerRef != nil, AppSettings.shared.quickTerminalEnabled else {
             AppSettings.shared.quickTerminalShortcut = shortcut
             return true
         }
@@ -300,7 +323,7 @@ final class GlobalTerminalOverlay: NSObject {
     func toggle() {
         if terminalWindow?.isVisible == true {
             dismiss()
-        } else {
+        } else if AppSettings.shared.quickTerminalEnabled {
             show()
         }
     }
@@ -317,7 +340,8 @@ final class GlobalTerminalOverlay: NSObject {
     }
 
     func canRevealNotification(sessionID: UUID) -> Bool {
-        guard let match = notificationPane(for: sessionID) else { return false }
+        guard AppSettings.shared.quickTerminalEnabled,
+              let match = notificationPane(for: sessionID) else { return false }
         return terminalWindow?.isVisible != true || workspace === match.tab
     }
 
@@ -337,9 +361,14 @@ final class GlobalTerminalOverlay: NSObject {
     }
 
     private func show(modeOverride: QuickTerminalMode? = nil) {
-        guard !isQuitting, let screen = screenAtPointer() else { return }
+        guard AppSettings.shared.quickTerminalEnabled, !isQuitting,
+              let screen = screenAtPointer() else { return }
         let mode = modeOverride ?? AppSettings.shared.quickTerminalMode
         if mode != workspaceMode {
+            if workspaceMode == .fresh {
+                for session in workspace?.sessions ?? [] { session.terminate() }
+                terminalWindow?.close()
+            }
             workspace = nil
             terminalWindow = nil
         }
@@ -404,7 +433,7 @@ final class GlobalTerminalOverlay: NSObject {
         updateBackdrop(on: screen)
     }
 
-    private func dismiss(restorePreviousApplication: Bool = true) {
+    private func dismiss(restorePreviousApplication: Bool = true, preserveWorkspace: Bool = false) {
         guard let terminalWindow, terminalWindow.isVisible else { return }
 
         backdropWindow?.orderOut(nil)
@@ -414,7 +443,7 @@ final class GlobalTerminalOverlay: NSObject {
 
         let application = previousApplication
         previousApplication = nil
-        if workspaceMode == .fresh {
+        if workspaceMode == .fresh, !preserveWorkspace {
             for session in workspace?.sessions ?? [] { session.terminate() }
             terminalWindow.close()
             self.terminalWindow = nil

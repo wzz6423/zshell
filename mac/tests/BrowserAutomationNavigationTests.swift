@@ -66,6 +66,7 @@ struct BrowserAutomationNavigationTests {
         }
         if CommandLine.arguments.count > 2 { try png.write(to: URL(fileURLWithPath: CommandLine.arguments[2]).appendingPathComponent("unmounted-viewport.png")) }
         try await verifyEvaluation(browser, snapshot: snapshot)
+        try await verifyDisabledControls(browser)
         try await verifyStrictCSP()
         try await verifyStorage(browser)
         try await verifyRouterScope()
@@ -140,6 +141,58 @@ struct BrowserAutomationNavigationTests {
         } catch let error as BrowserAutomationError { guard error.code == "browser_scope_changed" else { throw error } }
         let untouched = try await evaluate("typeof window.scopeLeak", browser)
         guard untouched.objectValue?["value"]?.stringValue == "undefined" else { throw failure("Out-of-scope script reached the page.") }
+    }
+
+    @MainActor private static func verifyDisabledControls(_ browser: BrowserTab) async throws {
+        _ = try await browser.webView.evaluateJavaScript("""
+        (() => {
+          const fixture = document.createElement('div');
+          fixture.id = 'fixture-disabled-controls';
+          fixture.innerHTML = '<fieldset disabled><legend><input id="fixture-legend" value="before"></legend><input id="fixture-fieldset" value="before"></fieldset><select id="fixture-select"><option value="first" selected>First</option><optgroup disabled><option value="group">Group</option><option value="duplicate">Disabled duplicate</option></optgroup><option value="duplicate">Enabled duplicate</option><option disabled value="own">Disabled</option></select>';
+          document.body.append(fixture);
+        })()
+        """)
+        defer { browser.webView.evaluateJavaScript("document.getElementById('fixture-disabled-controls').remove()") { _, _ in } }
+        let snapshot = try await browser.automation.perform("snapshot", in: browser.webView,
+            params: ["max_elements": .number(100), "max_text": .number(1_000)],
+            timeoutMS: 1_000, scopeIsValid: { true })
+        let controls = snapshot.objectValue?["elements"]?.arrayValue ?? []
+        func disabled(_ id: String) -> Bool? {
+            controls.first { $0.objectValue?["id"]?.stringValue == id }?.objectValue?["disabled"]?.boolValue
+        }
+        guard disabled("fixture-fieldset") == true, disabled("fixture-legend") == false else {
+            throw failure("Snapshot lost disabled fieldset inheritance or its first legend exception.")
+        }
+        for (selector, value, code) in [("#fixture-fieldset", "after", "element_disabled"),
+                                         ("#fixture-select", "group", "invalid_value"),
+                                         ("#fixture-select", "own", "invalid_value")] {
+            do {
+                _ = try await browser.automation.perform("fill", in: browser.webView,
+                    params: ["selector": .string(selector), "value": .string(value)],
+                    timeoutMS: 1_000, scopeIsValid: { true })
+                throw failure("Fill changed a disabled control or option.")
+            } catch let error as BrowserAutomationError { guard error.code == code else { throw error } }
+        }
+        let retained = try await browser.webView.evaluateJavaScript("document.getElementById('fixture-select').value === 'first' && document.getElementById('fixture-fieldset').value === 'before'") as? Bool
+        guard retained == true else { throw failure("Rejected fill changed a previous control value.") }
+        _ = try await browser.automation.perform("fill", in: browser.webView,
+            params: ["selector": .string("#fixture-legend"), "value": .string("after")],
+            timeoutMS: 1_000, scopeIsValid: { true })
+        let legend = try await browser.webView.evaluateJavaScript("document.getElementById('fixture-legend').value") as? String
+        guard legend == "after" else { throw failure("Fill rejected the enabled first legend control.") }
+        _ = try await browser.automation.perform("fill", in: browser.webView,
+            params: ["selector": .string("#fixture-select"), "value": .string("duplicate")],
+            timeoutMS: 1_000, scopeIsValid: { true })
+        let duplicate = try await browser.webView.evaluateJavaScript("document.getElementById('fixture-select').selectedIndex") as? Int
+        guard duplicate == 3 else { throw failure("A duplicate value selected the earlier disabled option.") }
+        _ = try await browser.webView.evaluateJavaScript("document.querySelector('#fixture-select optgroup').disabled = false")
+        let filled = try await browser.automation.perform("fill", in: browser.webView,
+            params: ["selector": .string("#fixture-select"), "value": .string("group")],
+            timeoutMS: 1_000, scopeIsValid: { true })
+        let selected = try await browser.webView.evaluateJavaScript("document.getElementById('fixture-select').value") as? String
+        guard filled.objectValue?["filled"]?.boolValue == true, selected == "group" else {
+            throw failure("Fill rejected the option after its optgroup was enabled.")
+        }
     }
 
     @MainActor private static func verifyStrictCSP() async throws {

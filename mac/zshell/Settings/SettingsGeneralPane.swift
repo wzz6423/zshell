@@ -29,7 +29,6 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
 
     private lazy var toolbarRow = SettingsRow(
         title: String(localized: "Toolbar"),
-        description: Self.toolbarDescription(for: settings.toolbarVisibility),
         control: toolbarPopUp,
         symbolName: "macwindow"
     )
@@ -46,6 +45,7 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
     ])
 
     private let gitProxySwitch = SettingsSwitch { AppSettings.shared.gitProxyEnabled = $0 }
+    private let pullRequestStatusSwitch = SettingsSwitch { AppSettings.shared.showPullRequestStatus = $0 }
     private let gitProxyField = NSTextField()
 
     private lazy var gitProxyAddressRow = SettingsRow(
@@ -56,6 +56,7 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
     )
 
     private lazy var gitGroup = SettingsGroup(header: String(localized: "Git"), rows: [
+        SettingsRow(title: String(localized: "Show pull request status"), control: pullRequestStatusSwitch),
         SettingsRow(
             title: String(localized: "Use proxy for Git"),
             description: String(localized: "Applies to Git panel actions, pull request status, and Git in terminals opened afterwards."),
@@ -86,8 +87,9 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
         languagePopUp.select(settings.language)
         presencePopUp.select(settings.applicationPresence)
         toolbarPopUp.select(settings.toolbarVisibility)
-        toolbarRow.setDescription(Self.toolbarDescription(for: settings.toolbarVisibility))
+        pullRequestStatusSwitch.isOn = settings.showPullRequestStatus
         gitProxySwitch.isOn = settings.gitProxyEnabled
+        gitGroup.setRowHidden(!SettingsVisibility.current.gitProxyEnabled, at: 2)
         if !isEditing(gitProxyField) {
             gitProxyField.stringValue = settings.gitProxyAddress
             gitProxyAddressRow.setDescription(Self.gitProxyAddressDescription(
@@ -111,17 +113,6 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
         isValid
             ? String(localized: "HTTP, HTTPS, or SOCKS proxy URL. Changes apply to terminals opened afterwards.")
             : String(localized: "Enter a proxy URL such as http://127.0.0.1:7897.")
-    }
-
-    private static func toolbarDescription(for visibility: ToolbarVisibility) -> String {
-        switch visibility {
-        case .auto:
-            String(localized: "Shows the toolbar only in Git repositories")
-        case .always:
-            String(localized: "Shows the toolbar in every project")
-        case .hide:
-            String(localized: "Keeps the toolbar hidden")
-        }
     }
 
 }

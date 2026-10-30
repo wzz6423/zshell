@@ -860,11 +860,13 @@ final class SessionTabsNSView: NSView {
 
     private func tabMenu(_ tab: PaneTab) -> [AppKitContextMenuItem] {
         guard let project, let manager else { return [] }
-        var items: [AppKitContextMenuItem] = [
-            .action(title: AppCommand.newSessionInWorktree.title, enabled: !project.isRemote) {
+        var items: [AppKitContextMenuItem] = []
+        if !project.isRemote {
+            items += [.action(title: AppCommand.newSessionInWorktree.title) {
                 manager.promptForWorktreeSession(in: project)
-            },
-            .separator,
+            }, .separator]
+        }
+        items += [
             .action(title: String(localized: tab.isPinned ? "Unpin Tab" : "Pin Tab")) { project.setPinned(!tab.isPinned, for: tab) },
             .action(title: String(localized: "Rename…")) { [weak self] in self?.rows[.tab(tab.id)]?.onRename?() },
         ]
@@ -875,15 +877,19 @@ final class SessionTabsNSView: NSView {
                 self?.refresh()
             },
         ]
-        if !project.tabGroups.isEmpty { groupItems.append(.separator) }
-        groupItems += project.tabGroups.map { group in
-            .action(title: group.name, enabled: tab.tabGroupID != group.id) { project.moveTab(tab.id, toGroup: group.id) }
+        let otherGroups = project.tabGroups.filter { tab.tabGroupID != $0.id }
+        if !otherGroups.isEmpty { groupItems.append(.separator) }
+        groupItems += otherGroups.map { group in
+            .action(title: group.name) { project.moveTab(tab.id, toGroup: group.id) }
         }
         if tab.tabGroupID != nil {
             groupItems.append(.separator)
             groupItems.append(.action(title: String(localized: "Remove from Group")) { project.moveTab(tab.id, toGroup: nil) })
         }
-        items += [.separator, .submenu(title: String(localized: "Move to Group"), items: groupItems), .separator]
+        items.append(.separator)
+        if groupItems.count == 1 { items += groupItems }
+        else { items.append(.submenu(title: String(localized: "Move to Group"), items: groupItems)) }
+        items.append(.separator)
         items.append(.action(title: String(localized: "Set Color Marker…")) {
             ProjectTabColorPanelController.shared.present(
                 tab: tab,
@@ -891,7 +897,7 @@ final class SessionTabsNSView: NSView {
             )
         })
         if tab.markerColor != nil { items.append(.action(title: String(localized: "Remove Color Marker")) { tab.markerColor = nil }) }
-        if case .file(let file) = tab.focusedContent {
+        if case .file(let file) = tab.focusedContent, !project.isRemote {
             items.append(.action(title: String(localized: "Reveal in Finder")) { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: file.path)]) })
             items.append(.action(title: String(localized: "Copy Absolute Path")) {
                 NSPasteboard.general.clearContents()
@@ -899,38 +905,47 @@ final class SessionTabsNSView: NSView {
             })
         }
         if case .browser(let browser) = tab.focusedContent, !browser.urlString.isEmpty {
-            items.append(.action(title: String(localized: "Open in Default Browser"), enabled: browser.shareURL != nil) { browser.openInDefaultBrowser() })
+            if browser.shareURL != nil {
+                items.append(.action(title: String(localized: "Open in Default Browser")) { browser.openInDefaultBrowser() })
+            }
             items.append(.action(title: String(localized: "Copy Address")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(browser.urlString, forType: .string)
             })
         }
-        let destinations = manager.tabMoveDestinations(for: tab.id, in: project.id)
-        var moveItems: [AppKitContextMenuItem] = [
-            .action(title: String(localized: "New Ungrouped Project"), enabled: tab.diffs.isEmpty) { [weak self] in
-                let result = manager.moveTabToNewProject(id: tab.id, from: project.id, in: nil)
-                if let failure = result.failure { self?.tabDrag?.presentMoveFailure(failure) }
-            },
-        ]
-        if !destinations.isEmpty { moveItems.append(.separator) }
-        moveItems += destinations.map { destination in
-            let title = destination.windowTitle.map { "\(destination.title) — \($0)" } ?? destination.title
-            return .action(title: title, enabled: destination.isEnabled) { [weak self] in
-                let result = manager.moveTab(id: tab.id, from: project.id, to: destination.projectID, in: destination.managerID)
-                if let failure = result.failure { self?.tabDrag?.presentMoveFailure(failure) }
+        if tab.diffs.isEmpty {
+            let destinations = manager.tabMoveDestinations(for: tab.id, in: project.id).filter(\.isEnabled)
+            var moveItems: [AppKitContextMenuItem] = [
+                .action(title: String(localized: "New Ungrouped Project")) { [weak self] in
+                    let result = manager.moveTabToNewProject(id: tab.id, from: project.id, in: nil)
+                    if let failure = result.failure { self?.tabDrag?.presentMoveFailure(failure) }
+                },
+            ]
+            if !destinations.isEmpty { moveItems.append(.separator) }
+            moveItems += destinations.map { destination in
+                let title = destination.windowTitle.map { "\(destination.title) — \($0)" } ?? destination.title
+                return .action(title: title) { [weak self] in
+                    let result = manager.moveTab(id: tab.id, from: project.id, to: destination.projectID, in: destination.managerID)
+                    if let failure = result.failure { self?.tabDrag?.presentMoveFailure(failure) }
+                }
             }
+            items += [.separator, .submenu(title: String(localized: "Move Tab to Project"), items: moveItems), .separator]
+        } else { items.append(.separator) }
+        items.append(.action(title: String(localized: "Close")) { project.close(tab) })
+        if project.tabs.count > 1 {
+            items.append(.action(title: String(localized: "Close Others")) { project.closeOthers(tab) })
         }
-        items += [.separator, .submenu(title: String(localized: "Move Tab to Project"), items: moveItems), .separator]
-        items += [
-            .action(title: String(localized: "Close")) { project.close(tab) },
-            .action(title: String(localized: "Close Others"), enabled: project.tabs.count > 1) { project.closeOthers(tab) },
-            .action(title: String(localized: "Close Tabs to the Right"), enabled: project.tabs.last?.id != tab.id) { project.closeToRight(of: tab) },
-            .separator,
-            .action(title: String(localized: "Close Files"), enabled: project.hasFiles) { project.closeFiles() },
-            .action(title: String(localized: "Close Diffs"), enabled: project.hasDiffs) { project.closeDiffs() },
-            .separator,
-            .action(title: String(localized: "Close All")) { project.closeAll() },
-        ]
+        if project.tabs.last?.id != tab.id {
+            items.append(.action(title: String(localized: "Close Tabs to the Right")) { project.closeToRight(of: tab) })
+        }
+        if project.hasFiles || project.hasDiffs {
+            items.append(.separator)
+            if project.hasFiles { items.append(.action(title: String(localized: "Close Files")) { project.closeFiles() }) }
+            if project.hasDiffs { items.append(.action(title: String(localized: "Close Diffs")) { project.closeDiffs() }) }
+        }
+        if project.tabs.count > 1 {
+            items += [.separator, .action(title: String(localized: "Close All")) { project.closeAll() }]
+        }
         return items
     }
 

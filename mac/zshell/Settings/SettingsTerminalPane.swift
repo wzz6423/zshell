@@ -4,10 +4,8 @@
 //
 
 import AppKit
-import Combine
 
-/// Everything that shapes a terminal pane: which emulator draws it, how the
-/// cursor looks, how keys and history behave, and the global quick terminal.
+/// Startup, input, history, notifications, and the global quick terminal.
 final class SettingsTerminalPane: SettingsPaneViewController {
     private let startupView = TerminalStartupSettingsView { program, arguments in
         AppSettings.shared.terminalStartupProgram = program
@@ -15,9 +13,10 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     }
     private let backendPicker = SettingsBackendPicker { AppSettings.shared.terminalBackend = $0 }
 
-    private let cursorShapeView = TerminalCursorShapeSettingsView(frame: .zero)
-    private let cursorBlinkingView = TerminalCursorBlinkingSettingsView(frame: .zero)
-
+    private let automaticProfilesSwitch = SettingsSwitch { AppSettings.shared.automaticallyApplyTerminalProfiles = $0 }
+    private let commandHistorySwitch = SettingsSwitch { AppSettings.shared.commandHistoryEnabled = $0 }
+    private let textHintsSwitch = SettingsSwitch { AppSettings.shared.terminalTextHints = $0 }
+    private let quickTerminalSwitch = SettingsSwitch { AppSettings.shared.quickTerminalEnabled = $0 }
     private let optionAsAltSwitch = SettingsSwitch { AppSettings.shared.macosOptionAsAlt = $0 }
     private let vimCommandHintsSwitch = SettingsSwitch { AppSettings.shared.vimCommandHints = $0 }
     private let shellCompletionsSwitch = SettingsSwitch { AppSettings.shared.shellCompletions = $0 }
@@ -27,20 +26,6 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     private let preserveSessionsSwitch = SettingsSwitch { AppSettings.shared.preserveTerminalSessions = $0 }
     private let copyOnSelectSwitch = SettingsSwitch { AppSettings.shared.copyOnSelect = $0 }
     private let focusFollowsMouseSwitch = SettingsSwitch { AppSettings.shared.focusFollowsMouse = $0 }
-    private let terminalBackgroundBlurSwitch = SettingsSwitch {
-        AppSettings.shared.terminalBackgroundBlur = $0
-    }
-
-    private let terminalBackgroundOpacityRow = SettingsSliderRow(
-        title: String(localized: "Opacity"),
-        range: AppSettings.terminalBackgroundOpacityRange,
-        format: .percent,
-        step: 0.05,
-        showsStepper: false,
-        accessibilityLabel: String(localized: "Terminal background opacity"),
-        onChange: { AppSettings.shared.terminalBackgroundOpacity = $0 }
-    )
-
     private let notifyOnErrorSwitch = SettingsSwitch { AppSettings.shared.notifyOnError = $0 }
     private let notifyFinishPopup = SettingsPopUpButton<Int>(
         items: SettingsTerminalPane.notifyFinishItems,
@@ -87,20 +72,20 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         onChange: { AppSettings.shared.quickTerminalOpacity = $0 }
     )
 
+    private lazy var quickTerminalGroup = SettingsGroup(header: String(localized: "Quick Terminal"), rows: [
+        SettingsRow(title: String(localized: "Enable Quick Terminal"), control: quickTerminalSwitch),
+        SettingsRow(title: String(localized: "Session behavior"), description: QuickTerminalMode.explanation,
+                    control: quickTerminalModePopup),
+        SettingsRow(title: String(localized: "Shortcut"), control: shortcutRecorder),
+        quickTerminalSizeRow,
+        quickTerminalOpacityRow,
+    ])
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        cursorShapeView.changeHandler = { AppSettings.shared.cursorShape = $0 }
-        cursorBlinkingView.changeHandler = { AppSettings.shared.cursorBlinking = $0 }
         // The overlay owns the live hotkey registration and rejects a shortcut
         // it cannot claim, so the recorder keeps the old one on false.
         shortcutRecorder.onShortcutChanged = { GlobalTerminalOverlay.shared.setHotkey($0) }
-        observe(
-            NSWorkspace.shared.notificationCenter.publisher(
-                for: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification
-            )
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.syncFromSettings() }
-        )
     }
 
     override func makeGroups() -> [NSView] {
@@ -125,109 +110,100 @@ final class SettingsTerminalPane: SettingsPaneViewController {
             )
         }
 
+        startupRows.append(SettingsRow(
+            title: String(localized: "Keep sessions running after quitting"),
+            description: String(localized: "New terminals keep shells, agents, and servers running when Zshell quits. Closing a pane ends its tasks. Turn this off before quitting to end all sessions."),
+            control: preserveSessionsSwitch
+        ))
+        startupRows.append(SettingsButtonRow(title: String(localized: "Workspace Templates…")) {
+            guard let manager = TerminalManager.activeWindowManager else { return }
+            WorkspaceTemplateController.shared.show(for: manager)
+        })
+
         var groups: [NSView] = [SettingsGroup(rows: startupRows)]
-        groups.append(SettingsGroup(rows: [
+        groups.append(SettingsGroup(header: String(localized: "Terminal Profiles"), rows: [
+            SettingsRow(title: String(localized: "Apply terminal profiles automatically"), control: automaticProfilesSwitch),
             SettingsButtonRow(title: String(localized: "Manage Terminal Profiles…")) { [weak self] in
                 TerminalProfileEditor.show(relativeTo: self?.view.window)
             },
         ]))
-        groups.append(SettingsGroup(header: String(localized: "Cursor"), rows: [
-            SettingsCustomRow(cursorShapeView),
-            SettingsCustomRow(cursorBlinkingView),
-        ]))
-
-        groups.append(SettingsGroup(header: String(localized: "Background"), rows: [
-            terminalBackgroundOpacityRow,
-            SettingsRow(
-                title: String(localized: "Blur behind window"),
-                description: String(localized: "Adds frosted material behind translucent terminal backgrounds"),
-                control: terminalBackgroundBlurSwitch
-            ),
-        ]))
-
-        groups.append(SettingsGroup(header: String(localized: "Behavior"), rows: [
+        groups.append(SettingsGroup(header: String(localized: "Input"), rows: [
             SettingsRow(
                 title: String(localized: "Shell completions"),
-                description: String(localized: "Suggest commands and arguments in new zsh terminals. Tab shows candidates; Right accepts a suggestion; Esc dismisses it. Existing shell plugins keep their bindings."),
                 control: shellCompletionsSwitch
             ),
-            SettingsRow(
-                title: String(localized: "Keep sessions running after quitting"),
-                description: String(localized: "New terminals keep shells, agents, and servers running when Zshell quits. Closing a pane ends its tasks. Turn this off before quitting to end all sessions."),
-                control: preserveSessionsSwitch
-            ),
+            SettingsRow(title: String(localized: "Show terminal text hints"), control: textHintsSwitch),
             SettingsRow(
                 title: String(localized: "Vim command hints"),
-                description: String(localized: "Show common Vim and Neovim commands in Info, ordered by the visible editor mode, including over SSH."),
                 control: vimCommandHintsSwitch
             ),
             SettingsRow(
                 title: String(localized: "Use Option as Alt/Meta"),
-                description: String(localized: "Sends Option-key combinations to terminal programs as Meta shortcuts instead of macOS text input"),
                 control: optionAsAltSwitch
             ),
             SettingsRow(
-                title: String(localized: "Terminal bell"),
-                description: String(localized: "Plays the alert sound and uses macOS visual alerts when terminal programs ring the bell"),
-                control: terminalBellSwitch
-            ),
-            SettingsRow(
                 title: String(localized: "Shift+Enter inserts a newline"),
-                description: String(localized: "Lets coding agents insert a new line with Shift+Enter while Enter still submits the prompt"),
                 control: shiftEnterNewlineSwitch
             ),
+            SettingsRow(
+                title: String(localized: "Copy on select"),
+                control: copyOnSelectSwitch
+            ),
+            SettingsRow(
+                title: String(localized: "Focus follows mouse"),
+                control: focusFollowsMouseSwitch
+            ),
+        ]))
+
+        groups.append(SettingsGroup(header: String(localized: "History"), rows: [
+            SettingsRow(title: String(localized: "Record command history"), control: commandHistorySwitch),
             SettingsRow(
                 title: String(localized: "Restore session history on relaunch"),
                 description: String(localized: "Reopened terminals show their previous scrollback above a fresh shell"),
                 control: restoreHistorySwitch
             ),
-            SettingsRow(
-                title: String(localized: "Copy on select"),
-                description: String(localized: "Copies selected terminal text to the clipboard when you finish dragging"),
-                control: copyOnSelectSwitch
-            ),
-            SettingsRow(
-                title: String(localized: "Focus follows mouse"),
-                description: String(localized: "Focuses a terminal pane when you move the pointer into it"),
-                control: focusFollowsMouseSwitch
-            ),
+            SettingsButtonRow(title: String(localized: "Command History…")) {
+                guard let manager = TerminalManager.activeWindowManager else { return }
+                TerminalCommandHistoryController.shared.show(for: manager)
+            },
         ]))
 
-        groups.append(SettingsGroup(header: String(localized: "Command Notifications"), rows: [
+        let notificationScope = NSTextField(wrappingLabelWithString: String(localized: "Changes apply to new zsh terminals."))
+        notificationScope.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        notificationScope.textColor = .secondaryLabelColor
+        notificationScope.maximumNumberOfLines = 0
+        groups.append(SettingsGroup(header: String(localized: "Notifications"), rows: [
             SettingsRow(
                 title: String(localized: "Long-running commands"),
-                description: String(localized: "Notify when a command runs at least this long and then finishes. Changes apply to zsh terminals opened afterwards."),
                 control: notifyFinishPopup
             ),
             SettingsRow(
                 title: String(localized: "Failed commands"),
-                description: String(localized: "Notify when a command exits with a failure, no matter how briefly it ran. Changes apply to zsh terminals opened afterwards."),
                 control: notifyOnErrorSwitch
             ),
+            SettingsCustomRow(notificationScope),
+            SettingsRow(title: String(localized: "Terminal bell"), control: terminalBellSwitch),
+            SettingsButtonRow(title: String(localized: "Notification History…")) {
+                TerminalNotificationCenterController.shared.show()
+            },
         ]))
-
-        groups.append(SettingsGroup(header: String(localized: "Quick Terminal"), rows: [
-            SettingsRow(
-                title: String(localized: "Session behavior"),
-                description: QuickTerminalMode.explanation,
-                control: quickTerminalModePopup
-            ),
-            SettingsRow(title: String(localized: "Shortcut"), control: shortcutRecorder),
-            quickTerminalSizeRow,
-            quickTerminalOpacityRow,
-        ]))
+        groups.append(quickTerminalGroup)
 
         return groups
     }
 
     override func syncFromSettings() {
+        let visibility = SettingsVisibility.current
         startupView.apply(
             program: settings.terminalStartupProgram,
             arguments: settings.terminalStartupArguments
         )
         backendPicker.select(settings.terminalBackend)
-        cursorShapeView.apply(shape: settings.cursorShape)
-        cursorBlinkingView.apply(isBlinking: settings.cursorBlinking)
+        automaticProfilesSwitch.isOn = settings.automaticallyApplyTerminalProfiles
+        commandHistorySwitch.isOn = settings.commandHistoryEnabled
+        textHintsSwitch.isOn = settings.terminalTextHints
+        quickTerminalSwitch.isOn = settings.quickTerminalEnabled
+        for index in 1...4 { quickTerminalGroup.setRowHidden(!visibility.quickTerminalEnabled, at: index) }
         optionAsAltSwitch.isOn = settings.macosOptionAsAlt
         vimCommandHintsSwitch.isOn = settings.vimCommandHints
         shellCompletionsSwitch.isOn = settings.shellCompletions
@@ -237,10 +213,6 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         preserveSessionsSwitch.isOn = settings.preserveTerminalSessions
         copyOnSelectSwitch.isOn = settings.copyOnSelect
         focusFollowsMouseSwitch.isOn = settings.focusFollowsMouse
-        terminalBackgroundOpacityRow.setValue(settings.terminalBackgroundOpacity)
-        terminalBackgroundBlurSwitch.isOn = settings.terminalBackgroundBlur
-        terminalBackgroundBlurSwitch.isEnabled = settings.terminalBackgroundOpacity < 1
-            && !NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
         notifyFinishPopup.select(settings.notifyFinishSeconds)
         notifyOnErrorSwitch.isOn = settings.notifyOnError
         shortcutRecorder.setShortcut(settings.quickTerminalShortcut)

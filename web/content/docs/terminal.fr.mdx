@@ -18,6 +18,8 @@ Les deux prennent en charge l'accélération GPU, les images, le catalogue de th
 
 ## Historique des commandes [#command-history]
 
+Dans **Réglages → Terminal → Historique**, **Enregistrer l’historique des commandes** est activé par défaut (`terminal.command-history = true`). Le désactiver arrête les nouveaux enregistrements ; l’historique sauvegardé reste consultable et effaçable. La sortie du terminal et l’historique du shell sont conservés.
+
 Choisissez **Terminal → Historique des commandes…** pour rechercher les commandes exécutées dans Zshell par texte ou dossier. Chaque ligne indique le dossier d’origine, l’heure de début, la durée et le code de sortie. Cliquez sur une ligne ou sur **Afficher la sortie** pour retrouver le volet et la sortie d’origine. Si le volet est fermé ou la sortie effacée, la navigation est indisponible ; **Copier la commande** reste possible.
 
 **Insérer dans le terminal** remplit l’invite zsh vide du volet d’origine sans exécuter la commande ; appuyez sur Return lorsque vous êtes prêt. L’insertion est désactivée si le volet est occupé ou contient un brouillon. Les commandes multilignes sont conservées. La liste utilise l’intégration des blocs de commandes de Ghostty et Alacritty ; les shells non pris en charge ou imbriqués peuvent ne pas fournir de commandes.
@@ -52,9 +54,17 @@ Refuser une demande bloque la fonctionnalité concernée. Zshell n’accorde pas
 
 ## Le focus suit la souris [#focus-follows-mouse]
 
-Activez **Réglages → Terminal → Comportement → Le focus suit la souris** pour cibler un panneau lorsque le pointeur y entre. Désactivé par défaut, cela fonctionne avec les deux moteurs et le terminal rapide, sauf pendant un glissement, depuis un éditeur, ou avec un menu ou dialogue ouvert.
+Activez **Réglages → Terminal → Saisie → Le focus suit la souris** pour cibler un panneau lorsque le pointeur y entre. Désactivé par défaut, cela fonctionne avec les deux moteurs et le terminal rapide, sauf pendant un glissement, depuis un éditeur, ou avec un menu ou dialogue ouvert.
 
 `terminal.focus-follows-mouse = true`
+
+## Profils de terminal [#terminal-profiles]
+
+Créez et ordonnez les profils dans **Réglages → Terminal → Profils de terminal → Gérer les profils de terminal…**. Ils peuvent correspondre à l’hôte, l’utilisateur, le répertoire de travail et le programme au premier plan. Toutes les conditions renseignées doivent correspondre ; `*` accepte tout texte et `?` un caractère. Le premier profil correspondant est utilisé, sinon le volet retrouve son apparence initiale. **Appliquer automatiquement les profils de terminal** est activé par défaut (`terminal.auto-profiles = true`) ; la sélection manuelle reste disponible si vous le désactivez.
+
+Faites un clic droit sur le terminal et choisissez **Profils de terminal** pour utiliser la correspondance automatique, un profil précis ou les réglages initiaux. Thème, police et curseur s’appliquent immédiatement au volet. Variables d’environnement, commandes d’initialisation et programme de démarrage ne concernent que les nouveaux terminaux ; changer de profil n’exécute aucune commande. L’initialisation accompagne le shell de connexion et le programme de démarrage s’exécute directement. Les valeurs d’environnement sont stockées en clair dans `config.toml`.
+
+Les sessions distantes partagées utilisent le processus et le répertoire signalés par le serveur ; les champs absents d’un ancien serveur ne peuvent pas correspondre. Un volet SSH simple peut vérifier l’hôte et l’utilisateur configurés, mais pas le programme ni le répertoire distant. SSH et le shell distant contrôlent son environnement de lancement. Le programme de démarrage doit être un chemin absolu existant sur la machine qui exécute le terminal.
 
 ## Recherche [#search]
 
@@ -106,6 +116,8 @@ Les diagnostics du compilateur et les conversations des agents peuvent ainsi men
 
 ## Repères au clavier [#keyboard-hints]
 
+**Afficher les indications de texte du terminal** dans **Réglages → Terminal → Saisie** est activé par défaut (`terminal.text-hints = true`). Le désactiver masque les commandes et raccourcis de repères et arrête le mode de repères sur le texte visible.
+
 Placez le focus dans un terminal, puis choisissez **Terminal → Copier un repère du terminal…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) ou **Ouvrir un repère du terminal…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>). Des lettres apparaissent sur les chemins, URL, adresses IP et hashes de commit visibles. Tapez le repère pour le sélectionner ; plusieurs lettres affinent les choix.
 
 <kbd>Tab</kbd> bascule entre copie et ouverture. <kbd>Backspace</kbd> retire une lettre ; <kbd>Esc</kbd> annule et rend la saisie au terminal. Ces touches ne sont jamais envoyées au programme. La copie conserve les positions comme `:42:7`. L’ouverture utilise Finder ou le navigateur par défaut, comme Command-click ; une valeur sans destination peut être copiée.
@@ -113,6 +125,8 @@ Placez le focus dans un terminal, puis choisissez **Terminal → Copier un repè
 Les deux moteurs analysent uniquement l’écran visible, y compris les lignes repliées. Un redimensionnement ou une nouvelle sortie actualise les repères. Les volets en lecture seule permettent aussi la copie et les actions sur l’hôte.
 
 ## Notifications [#notifications]
+
+Dans **Réglages → Automatisation → Avis**, **Avertir lorsque les agents ont besoin d’attention** et **Avertir lorsque les agents terminent** sont activés par défaut (`ai.notify-on-attention` et `ai.notify-on-completion`). Chaque option contrôle l’envoi macOS de cet événement ; l’historique continue de l’enregistrer si l’envoi est désactivé.
 
 Zshell transmet deux types d'événements au centre de notifications :
 
@@ -123,6 +137,8 @@ Une notification peut jouer le son système. Cliquer dessus active Zshell et ouv
 
 ### Historique des avis [#notification-history]
 
+Le même historique est accessible depuis **Réglages → Terminal → Avis**.
+
 Ouvrez **Avis → Historique des avis…** pour consulter les notifications récentes du terminal et des agents. Filtrez par **Non lus**, **Échecs** ou **À traiter**. Cliquez sur un avis ou sur **Afficher le volet** pour retrouver son projet, son onglet et son volet actuels, même dans une autre fenêtre. Un volet fermé reste dans l’historique avec la mention indisponible.
 
 Utilisez **Marquer comme lu**, **Tout marquer comme lu**, **Retirer** ou **Effacer l’historique**. La lecture n’approuve aucune demande d’un agent. Un élément quitte le filtre À traiter lorsque l’agent reprend ou termine, que le volet ferme ou que sa connexion distante devient indisponible. Les états reposent sur les rapports explicites du cycle de vie et les résultats de sortie des commandes. Les 200 derniers avis restent après un redémarrage, même si les notifications macOS sont désactivées.
@@ -130,7 +146,7 @@ Utilisez **Marquer comme lu**, **Tout marquer comme lu**, **Retirer** ou **Effac
 
 ### Fin d'une commande [#command-completion]
 
-Ouvrez **Réglages → Terminal → Notifications de commandes** pour être averti à la fin d'une commande :
+Ouvrez **Réglages → Terminal → Avis** pour être averti à la fin d'une commande :
 
 - **Commandes longues** : choisissez 5, 10, 30 ou 60 secondes. Une commande ayant duré au moins ce temps déclenche une notification lorsqu'elle se termine. La valeur par défaut est **Désactivé**.
 - **Commandes en échec** : être averti lorsque le code de sortie est non nul, quelle que soit la durée. Cette option est activée par défaut dans les nouvelles configurations et peut être désactivée indépendamment.
@@ -180,6 +196,8 @@ Zshell fournit JetBrains Mono et les symboles Nerd Font. Toute famille monospace
 
 ## Terminal rapide global [#global-quick-terminal]
 
+**Activer le terminal rapide** dans **Réglages → Terminal → Terminal rapide** est activé par défaut (`quick-terminal.enabled = true`). Le désactiver masque la fenêtre et ses points d’accès et libère le raccourci global, tout en conservant l’espace de travail et les tâches en cours. Les notifications ne peuvent pas le rouvrir. Les réglages de taille, d’opacité, de mode et de raccourci réapparaissent à la réactivation.
+
 Pendant que Zshell est ouvert, <kbd>Cmd</kbd>+<kbd>I</kbd> ou **Terminal → Terminal rapide** affiche ou masque un terminal indépendant. Réglez taille, opacité et raccourci dans **Réglages → Terminal → Terminal rapide**.
 
 **Comportement des sessions: Réutiliser l’espace de travail (par défaut) / Nouvel espace à chaque ouverture.** La réutilisation conserve les volets et tâches. Un nouvel espace se termine au masquage. Le mode change à la prochaine ouverture ; revenir permet de retrouver l’espace réutilisable. L’historique suit la configuration du shell. Un nouvel espace commence toujours avec un seul terminal vide, sans restaurer la sortie, la disposition ni l’état précédents.
@@ -196,7 +214,7 @@ Le [Lancement rapide](/fr/docs/quick-launch), qui enregistre et lance des comman
 
 ## Aide aux commandes Vim [#vim-command-hints]
 
-Gérez les suggestions dans **Réglages → Terminal → Comportement → Aide aux commandes Vim**, puis ouvrez l'onglet **Informations** de la barre latérale droite. Une section **COMMANDES VIM** apparaît sous les informations de session lorsque Vim, Vi ou Neovim est actif. Activée par défaut dans les nouvelles configurations, cette fonction s'applique immédiatement aux terminaux existants des deux moteurs.
+Gérez les suggestions dans **Réglages → Terminal → Saisie → Aide aux commandes Vim**, puis ouvrez l'onglet **Informations** de la barre latérale droite. Une section **COMMANDES VIM** apparaît sous les informations de session lorsque Vim, Vi ou Neovim est actif. Activée par défaut dans les nouvelles configurations, cette fonction s'applique immédiatement aux terminaux existants des deux moteurs.
 
 La liste complète des commandes courantes reste disponible ; seul leur ordre de priorité change. Le mode Normal place `:w`, `:q`, `yy` et `p`/`P` en premier ; le mode Bloc visuel privilégie `I`/`A`, les modifications de bloc et les déplacements entre coins. Les modes Insertion, Remplacement, Visuel, Ligne visuelle, Sélection, Ligne de commande et Recherche disposent de leur propre classement. Chaque entrée indique ses modes applicables. Recherchez par touches, description ou nom de mode : les descriptions et l'interface de recherche suivent les 17 langues de l'application. Effacez la recherche pour retrouver la liste complète. Les indications servent uniquement de référence et n'envoient aucune saisie à l'éditeur.
 
@@ -206,6 +224,6 @@ La fonction peut aussi être activée avec `terminal.vim-command-hints = true` d
 
 ## Complétion du shell
 
-Activez **Réglages → Terminal → Comportement → Complétion du shell** (activée par défaut), puis ouvrez un nouveau terminal zsh. Les commandes, sous-commandes, arguments et chemins utilisent les fonctions du shell et apparaissent en gris. **Flèche droite** accepte la suggestion en fin de saisie ; **Tab** ouvre les choix, les flèches sélectionnent, **Retour** accepte sans exécuter, **Esc** ou **Ctrl+G** annule le menu. **Esc** ferme aussi la suggestion. Les plugins et raccourcis existants sont conservés.
+Activez **Réglages → Terminal → Saisie → Complétion du shell** (activée par défaut), puis ouvrez un nouveau terminal zsh. Les commandes, sous-commandes, arguments et chemins utilisent les fonctions du shell et apparaissent en gris. **Flèche droite** accepte la suggestion en fin de saisie ; **Tab** ouvre les choix, les flèches sélectionnent, **Retour** accepte sans exécuter, **Esc** ou **Ctrl+G** annule le menu. **Esc** ferme aussi la suggestion. Les plugins et raccourcis existants sont conservés.
 
 Les plugins intégrés ne modifient pas `.zshrc`. Les applications plein écran gardent leur saisie. Avec un zshell-server compatible et zsh, les projets distants utilisent les commandes et chemins distants ; les autres shells gardent leur complétion native. Ce réglage concerne les nouveaux shells et sessions distantes. Désactivez avec `terminal.shell-completions = false`.
