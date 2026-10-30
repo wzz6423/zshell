@@ -134265,113 +134265,6 @@
         }
       }
     },
-    "Review the preview, then choose Import.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Review the preview, then choose Import."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请检查预览，然后选择导入。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "請檢查預覽，然後選擇匯入。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "プレビューを確認してから「読み込む」を選択してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "미리보기를 확인한 다음 가져오기를 선택하세요."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vérifiez l’aperçu, puis choisissez Importer."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Prüfe die Vorschau und wähle dann Importieren."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Revisa la vista previa y selecciona Importar."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Confira a prévia e selecione Importar."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Controlla l’anteprima, poi scegli Importa."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bekijk het voorbeeld en kies daarna Importeren."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Проверьте предпросмотр и выберите «Импортировать»."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "راجع المعاينة ثم اختر استيراد."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ตรวจสอบตัวอย่างแล้วเลือกนำเข้า"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Periksa pratinjau, lalu pilih Impor."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Xem bản xem trước, rồi chọn Nhập."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Önizlemeyi inceleyip İçe Aktar’ı seçin."
-          }
-        }
-      }
-    },
     "Importing…": {
       "extractionState": "manual",
       "localizations": {
@@ -134475,220 +134368,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "İçe aktarılıyor…"
-          }
-        }
-      }
-    },
-    "Import finished. Review any skipped items or errors above.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Import finished. Review any skipped items or errors above."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "导入完成。请检查上方跳过的项目或错误。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "匯入完成。請檢查上方略過的項目或錯誤。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "読み込みが完了しました。上記のスキップ項目やエラーを確認してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "가져오기가 완료되었습니다. 위의 건너뛴 항목이나 오류를 확인하세요."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importation terminée. Vérifiez les éléments ignorés et les erreurs ci-dessus."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Import abgeschlossen. Prüfe die übersprungenen Einträge und Fehler oben."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importación terminada. Revisa los elementos omitidos o los errores anteriores."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importação concluída. Confira os itens ignorados ou erros acima."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importazione completata. Controlla gli elementi ignorati o gli errori sopra."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Import voltooid. Controleer overgeslagen onderdelen en fouten hierboven."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Импорт завершён. Проверьте пропущенные элементы и ошибки выше."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "اكتمل الاستيراد. راجع العناصر المتخطاة أو الأخطاء أعلاه."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "นำเข้าเสร็จแล้ว ตรวจสอบรายการที่ข้ามหรือข้อผิดพลาดด้านบน"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impor selesai. Periksa item yang dilewati atau kesalahan di atas."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đã nhập xong. Kiểm tra các mục bị bỏ qua hoặc lỗi ở trên."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "İçe aktarma tamamlandı. Yukarıdaki atlanan öğeleri veya hataları inceleyin."
-          }
-        }
-      }
-    },
-    "Import stays on this Mac. Matching cookies may be replaced. Local storage and tab navigation history are not imported.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Import stays on this Mac. Matching cookies may be replaced. Local storage and tab navigation history are not imported."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "数据仅在此 Mac 上导入。同名 Cookie 可能被替换。本地存储和标签页导航历史不会导入。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "資料只會在此 Mac 上匯入。相同的 Cookie 可能會被取代。本機儲存和分頁瀏覽歷史不會匯入。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "データはこの Mac 内で読み込まれます。同じ Cookie は置き換えられる場合があります。ローカルストレージとタブの移動履歴は読み込まれません。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "데이터는 이 Mac에서만 가져옵니다. 일치하는 쿠키가 대체될 수 있습니다. 로컬 저장소와 탭 탐색 기록은 가져오지 않습니다."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les données restent sur ce Mac. Les cookies correspondants peuvent être remplacés. Le stockage local et l’historique de navigation des onglets ne sont pas importés."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Import bleibt auf diesem Mac. Gleiche Cookies können ersetzt werden. Lokaler Speicher und der Navigationsverlauf der Tabs werden nicht importiert."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La importación permanece en este Mac. Las cookies coincidentes pueden reemplazarse. No se importan el almacenamiento local ni el historial de navegación de las pestañas."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A importação permanece neste Mac. Cookies correspondentes podem ser substituídos. O armazenamento local e o histórico de navegação das abas não são importados."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "L’importazione resta su questo Mac. I cookie corrispondenti potrebbero essere sostituiti. L’archiviazione locale e la cronologia di navigazione delle schede non vengono importate."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "De import blijft op deze Mac. Overeenkomende cookies kunnen worden vervangen. Lokale opslag en de navigatiegeschiedenis van tabbladen worden niet geïmporteerd."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Импорт выполняется только на этом Mac. Совпадающие файлы cookie могут быть заменены. Локальное хранилище и история переходов вкладок не импортируются."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "يبقى الاستيراد على هذا الـ Mac. قد تُستبدل ملفات تعريف الارتباط المطابقة. لا يُستورد التخزين المحلي أو سجل تنقل علامات التبويب."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "การนำเข้าจะอยู่บน Mac เครื่องนี้ คุกกี้ที่ตรงกันอาจถูกแทนที่ ระบบจะไม่นำเข้าที่เก็บข้อมูลในเครื่องและประวัติการนำทางของแท็บ"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impor tetap di Mac ini. Cookie yang cocok dapat diganti. Penyimpanan lokal dan riwayat navigasi tab tidak diimpor."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Việc nhập chỉ diễn ra trên máy Mac này. Cookie trùng khớp có thể bị thay thế. Bộ nhớ cục bộ và lịch sử điều hướng của thẻ không được nhập."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "İçe aktarma bu Mac’te kalır. Eşleşen çerezler değiştirilebilir. Yerel depolama ve sekme gezinme geçmişi içe aktarılmaz."
           }
         }
       }
@@ -136080,6 +135759,434 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tarayıcı verilerini içe aktar"
+          }
+        }
+      }
+    },
+    "Allow Access…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow Access…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "授权访问…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "授權存取…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アクセスを許可…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "접근 허용…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autoriser l’accès…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zugriff erlauben…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir acceso…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir acesso…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consenti accesso…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toegang toestaan…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разрешить доступ…"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "السماح بالوصول…"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "อนุญาตการเข้าถึง…"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Izinkan Akses…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cho phép truy cập…"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erişime İzin Ver…"
+          }
+        }
+      }
+    },
+    "To read %@ data, choose Allow Access…, then Open.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To read %@ data, choose Allow Access…, then Open."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要读取 %@ 的数据，请点“授权访问…”，再点“打开”。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "若要讀取 %@ 的資料，請按「授權存取…」，再按「打開」。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ のデータを読み込むには、「アクセスを許可…」を選んでから「開く」を選んでください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 데이터를 읽으려면 [접근 허용…]을 선택한 다음 [열기]를 선택하세요."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pour lire les données de %@, choisissez Autoriser l’accès…, puis Ouvrir."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um %@-Daten zu lesen, wählen Sie „Zugriff erlauben…“ und dann „Öffnen“."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para leer los datos de %@, elige Permitir acceso… y luego Abrir."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para ler os dados do %@, escolha Permitir acesso… e depois Abrir."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per leggere i dati di %@, scegli Consenti accesso…, poi Apri."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kies Toegang toestaan… en daarna Open om gegevens van %@ te lezen."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чтобы прочитать данные %@, нажмите «Разрешить доступ…», затем «Открыть»."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لقراءة بيانات %@، اختر «السماح بالوصول…» ثم «فتح»."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "หากต้องการอ่านข้อมูล %@ ให้เลือก “อนุญาตการเข้าถึง…” แล้วเลือก “เปิด”"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Untuk membaca data %@, pilih Izinkan Akses…, lalu Buka."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Để đọc dữ liệu %@, chọn Cho phép truy cập…, rồi chọn Mở."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ verilerini okumak için Erişime İzin Ver… seçeneğini, ardından Aç’ı seçin."
+          }
+        }
+      }
+    },
+    "macOS still blocks %@ data. Allow zshell in System Settings › Privacy & Security › Full Disk Access, then reopen this window.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS still blocks %@ data. Allow zshell in System Settings › Privacy & Security › Full Disk Access, then reopen this window."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 仍阻止读取 %@ 的数据。请在“系统设置 › 隐私与安全性 › 完全磁盘访问权限”中允许 zshell，然后重新打开此窗口。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 仍阻擋讀取 %@ 的資料。請在「系統設定 › 隱私權與安全性 › 完整磁碟取用權限」中允許 zshell，然後重新打開此視窗。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS により %@ のデータへのアクセスがまだブロックされています。「システム設定 › プライバシーとセキュリティ › フルディスクアクセス」で zshell を許可してから、このウインドウを開き直してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS가 여전히 %@ 데이터를 차단하고 있습니다. [시스템 설정 › 개인정보 보호 및 보안 › 전체 디스크 접근 권한]에서 zshell을 허용한 다음 이 윈도우를 다시 여세요."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS bloque toujours les données de %@. Autorisez zshell dans Réglages Système › Confidentialité et sécurité › Accès complet au disque, puis rouvrez cette fenêtre."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS blockiert weiterhin %@-Daten. Erlauben Sie zshell unter Systemeinstellungen › Datenschutz & Sicherheit › Festplattenvollzugriff und öffnen Sie dieses Fenster erneut."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS sigue bloqueando los datos de %@. Permite zshell en Ajustes del Sistema › Privacidad y seguridad › Acceso total al disco y vuelve a abrir esta ventana."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O macOS ainda bloqueia os dados do %@. Permita o zshell em Ajustes do Sistema › Privacidade e Segurança › Acesso Total ao Disco e reabra esta janela."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS blocca ancora i dati di %@. Consenti zshell in Impostazioni di Sistema › Privacy e sicurezza › Accesso completo al disco, poi riapri questa finestra."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS blokkeert nog steeds gegevens van %@. Sta zshell toe in Systeeminstellingen › Privacy en beveiliging › Volledige schijftoegang en open dit venster opnieuw."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS по-прежнему блокирует данные %@. Разрешите zshell в разделе «Системные настройки › Конфиденциальность и безопасность › Доступ к диску», затем снова откройте это окно."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يزال macOS يحظر بيانات %@. اسمح لـ zshell في «إعدادات النظام › الخصوصية والأمن › الوصول الكامل إلى القرص»، ثم أعد فتح هذه النافذة."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS ยังคงบล็อกข้อมูล %@ ให้อนุญาต zshell ใน การตั้งค่าระบบ › ความเป็นส่วนตัวและความปลอดภัย › การเข้าถึงดิสก์เต็มรูปแบบ แล้วเปิดหน้าต่างนี้อีกครั้ง"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS masih memblokir data %@. Izinkan zshell di Pengaturan Sistem › Privasi & Keamanan › Akses Disk Penuh, lalu buka kembali jendela ini."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS vẫn chặn dữ liệu %@. Hãy cho phép zshell trong Cài đặt hệ thống › Quyền riêng tư & Bảo mật › Truy cập toàn bộ ổ đĩa, rồi mở lại cửa sổ này."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS hâlâ %@ verilerini engelliyor. Sistem Ayarları › Gizlilik ve Güvenlik › Tam Disk Erişimi’nde zshell’e izin verin, ardından bu pencereyi yeniden açın."
+          }
+        }
+      }
+    },
+    "Choose Open to let zshell read %@ data.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose Open to let zshell read %@ data."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点“打开”以允许 zshell 读取 %@ 的数据。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按「打開」以允許 zshell 讀取 %@ 的資料。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「開く」を選ぶと、zshell が %@ のデータを読み込めるようになります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[열기]를 선택하면 zshell이 %@ 데이터를 읽을 수 있습니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez Ouvrir pour autoriser zshell à lire les données de %@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wählen Sie „Öffnen“, damit zshell %@-Daten lesen kann."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige Abrir para que zshell pueda leer los datos de %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha Abrir para permitir que o zshell leia os dados do %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli Apri per consentire a zshell di leggere i dati di %@."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kies Open zodat zshell gegevens van %@ kan lezen."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите «Открыть», чтобы zshell мог прочитать данные %@."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر «فتح» للسماح لـ zshell بقراءة بيانات %@."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เลือก “เปิด” เพื่อให้ zshell อ่านข้อมูล %@ ได้"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pilih Buka agar zshell dapat membaca data %@."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chọn Mở để zshell có thể đọc dữ liệu %@."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "zshell’in %@ verilerini okuyabilmesi için Aç’ı seçin."
           }
         }
       }

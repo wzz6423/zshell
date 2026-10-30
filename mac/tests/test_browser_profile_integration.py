@@ -60,6 +60,10 @@ with tempfile.TemporaryDirectory(prefix='zshell-browser-integration-', dir='/tmp
     profile = firefox / 'Profiles/fixture'
     profile.mkdir(parents=True)
     (firefox / 'profiles.ini').write_text('[Profile0]\nName=Fixture Firefox\nIsRelative=1\nPath=Profiles/fixture\n')
+    # An unreadable Chrome folder stands in for macOS App Data Protection; Firefox must still be listed.
+    chrome = home / 'Library/Application Support/Google/Chrome'
+    chrome.mkdir(parents=True)
+    chrome.chmod(0)
     server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
     worker = threading.Thread(target=server.serve_forever, daemon=True)
     worker.start()
@@ -99,6 +103,7 @@ with tempfile.TemporaryDirectory(prefix='zshell-browser-integration-', dir='/tmp
         assert seen_cookie.wait(10), 'Imported cookie was not received by the local HTTP fixture'
         print('Local HTTP server received the imported fixture cookie')
     finally:
+        chrome.chmod(0o700)
         server.shutdown()
         worker.join(timeout=3)
         server.server_close()

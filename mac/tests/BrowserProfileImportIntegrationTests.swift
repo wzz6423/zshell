@@ -41,6 +41,9 @@ struct BrowserProfileImportIntegrationTests {
         let panel = try waitValue("Import window") { app.windows.compactMap { $0 as? NSPanel }.first { $0.title == "Browser Data Import" && $0.isVisible } }
         let popup = try waitValue("Profile discovery") { descendants(panel.contentView).compactMap { $0 as? NSPopUpButton }.first { $0.numberOfItems > 0 } }
         precondition(popup.titleOfSelectedItem?.contains("Fixture Firefox") == true)
+        let access = try button("Allow Access…", in: panel)
+        precondition(!access.isHidden && popup.numberOfItems == 1)
+        precondition(descendants(panel.contentView).contains { ($0 as? NSTextField)?.stringValue == "To read Google Chrome data, choose Allow Access…, then Open." })
         let preview = try button("Preview", in: panel)
         let importButton = try button("Import", in: panel)
         precondition(!importButton.isEnabled)

@@ -5,7 +5,7 @@ struct BrowserProfileDataTests {
     static func main() throws {
         let home = URL(fileURLWithPath: CommandLine.arguments[1])
         let found = BrowserProfileData.discover(home: home)
-        precondition(found.errors.isEmpty && found.profiles.count == 2)
+        precondition(found.blocked.isEmpty && found.profiles.count == 2)
         let chrome = found.profiles.first { $0.kind == .chrome }!
         let firefox = found.profiles.first { $0.kind == .firefox }!
         precondition(chrome.name == "Fixture Chrome" && firefox.name == "Fixture Firefox")

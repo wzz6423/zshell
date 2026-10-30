@@ -5,12 +5,19 @@ import Security
 import SQLite3
 
 nonisolated struct BrowserProfile: Sendable {
-    enum Kind: Sendable { case chrome, firefox }
+    enum Kind: Sendable {
+        case chrome, firefox
+        var browserName: String { self == .chrome ? "Google Chrome" : "Firefox" }
+        func root(home: URL) -> URL {
+            home.appendingPathComponent(self == .chrome ? "Library/Application Support/Google/Chrome"
+                                                        : "Library/Application Support/Firefox", isDirectory: true)
+        }
+    }
     let kind: Kind
     let name: String
     let directory: URL
 
-    var browserName: String { kind == .chrome ? "Google Chrome" : "Firefox" }
+    var browserName: String { kind.browserName }
 }
 
 nonisolated struct BrowserProfileCookie: Sendable {
@@ -51,12 +58,13 @@ nonisolated enum BrowserProfileData {
     private static let historyLimit = 50_000
     private static let chromeEpoch = 11_644_473_600.0
 
-    static func discover(home: URL) -> (profiles: [BrowserProfile], errors: [String]) {
-        let support = home.appendingPathComponent("Library/Application Support", isDirectory: true)
-        let chrome = support.appendingPathComponent("Google/Chrome", isDirectory: true)
-        let firefox = support.appendingPathComponent("Firefox", isDirectory: true)
+    /// macOS 27 App Data Protection lets only the browser itself list these folders; `blocked` names each
+    /// browser whose folder exists but could not be read, so one denial never hides the other browser.
+    static func discover(home: URL) -> (profiles: [BrowserProfile], blocked: [BrowserProfile.Kind]) {
+        let chrome = BrowserProfile.Kind.chrome.root(home: home)
+        let firefox = BrowserProfile.Kind.firefox.root(home: home)
         var profiles: [BrowserProfile] = []
-        var errors: [String] = []
+        var blocked: [BrowserProfile.Kind] = []
         let manager = FileManager.default
         if manager.fileExists(atPath: chrome.path) {
             do {
@@ -71,7 +79,7 @@ nonisolated enum BrowserProfileData {
                     let name = cache[directory.lastPathComponent]?["name"] as? String ?? directory.lastPathComponent
                     profiles.append(BrowserProfile(kind: .chrome, name: name, directory: directory))
                 }
-            } catch { errors.append(error.localizedDescription) }
+            } catch { blocked.append(.chrome) }
         }
         let ini = firefox.appendingPathComponent("profiles.ini")
         if manager.fileExists(atPath: ini.path) {
@@ -97,9 +105,9 @@ nonisolated enum BrowserProfileData {
                     guard manager.fileExists(atPath: directory.path) else { continue }
                     profiles.append(BrowserProfile(kind: .firefox, name: section["Name"] ?? directory.lastPathComponent, directory: directory))
                 }
-            } catch { errors.append(error.localizedDescription) }
+            } catch { blocked.append(.firefox) }
         }
-        return (profiles.sorted { ($0.browserName, $0.name) < ($1.browserName, $1.name) }, errors)
+        return (profiles.sorted { ($0.browserName, $0.name) < ($1.browserName, $1.name) }, blocked)
     }
 
     static func preview(_ profile: BrowserProfile, selection: BrowserProfileSelection) -> BrowserProfilePreview {

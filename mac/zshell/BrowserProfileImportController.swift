@@ -11,12 +11,14 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
     private let previewButton = NSButton()
     private let importButton = NSButton()
     private let closeButton = NSButton()
-    private let explanation = NSTextField(wrappingLabelWithString: "")
+    private let accessButton = NSButton()
     private let status = NSTextField(wrappingLabelWithString: "")
     private let previewText = NSTextView()
     private var panel: NSPanel?
     private weak var manager: TerminalManager?
     private var profiles: [BrowserProfile] = []
+    private var blocked: [BrowserProfile.Kind] = []
+    private var requested = Set<BrowserProfile.Kind>()
     private var prepared: BrowserProfilePreview?
     private var revision = 0
     private var busy = false
@@ -54,10 +56,19 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         prepared = nil
         lastSummary = nil
         previewText.string = ""
+        requested = []
+        localize()
+        reloadProfiles()
+        AppWindowPresentation.attach(panel, to: host, placement: .centered)
+        panel.makeKeyAndOrderFront(nil)
+    }
+
+    private func reloadProfiles() {
+        revision += 1
         status.stringValue = ""
         profiles = []
+        blocked = []
         profilePopUp.removeAllItems()
-        localize()
         setBusy(true)
         let current = revision
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -65,13 +76,41 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
             let found = await Task.detached(priority: .userInitiated) { BrowserProfileData.discover(home: home) }.value
             guard let self, self.revision == current else { return }
             self.profiles = found.profiles
+            self.blocked = found.blocked
             self.profilePopUp.addItems(withTitles: found.profiles.map { "\($0.browserName) — \($0.name)" })
-            if !found.errors.isEmpty { self.status.stringValue = found.errors.joined(separator: "\n") }
-            else if found.profiles.isEmpty { self.status.stringValue = String(localized: "No supported browser profiles were found.") }
+            self.status.stringValue = self.discoveryStatus
             self.setBusy(false)
         }
-        AppWindowPresentation.attach(panel, to: host, placement: .centered)
-        panel.makeKeyAndOrderFront(nil)
+    }
+
+    private var discoveryStatus: String {
+        let pending = blocked.filter { !requested.contains($0) }
+        if !pending.isEmpty {
+            let names = pending.map(\.browserName).formatted()
+            return String(localized: "To read \(names) data, choose Allow Access…, then Open.")
+        }
+        if !blocked.isEmpty {
+            let names = blocked.map(\.browserName).formatted()
+            return String(localized: "macOS still blocks \(names) data. Allow zshell in System Settings › Privacy & Security › Full Disk Access, then reopen this window.")
+        }
+        return profiles.isEmpty ? String(localized: "No supported browser profiles were found.") : ""
+    }
+
+    // A folder the user picks in the system open panel is the only per-app grant macOS offers for
+    // protected browser data; without it, only Full Disk Access lets zshell list the profiles.
+    @objc private func requestAccess(_ sender: Any?) {
+        guard let panel, let kind = blocked.first(where: { !requested.contains($0) }) ?? blocked.first else { return }
+        let open = NSOpenPanel()
+        open.canChooseDirectories = true
+        open.canChooseFiles = false
+        open.allowsMultipleSelection = false
+        open.directoryURL = kind.root(home: FileManager.default.homeDirectoryForCurrentUser)
+        open.message = String(localized: "Choose Open to let zshell read \(kind.browserName) data.")
+        open.beginSheetModal(for: panel) { [weak self] response in
+            guard let self, response == .OK else { return }
+            self.requested.insert(kind)
+            self.reloadProfiles()
+        }
     }
 
     @objc private func showHistory(_ sender: Any?) {
@@ -82,10 +121,10 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool { TerminalManager.activeWindowManager != nil }
 
     private func configure() {
-        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 700, height: 540),
+        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 720, height: 500),
                             styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.isReleasedWhenClosed = false
-        panel.minSize = NSSize(width: 520, height: 430)
+        panel.minSize = NSSize(width: 600, height: 360)
         panel.delegate = self
         self.panel = panel
         guard let content = panel.contentView else { return }
@@ -99,8 +138,10 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         let categories = NSStackView(views: [cookiesButton, historyButton, sessionsButton])
         categories.orientation = .horizontal
         categories.spacing = 16
-        explanation.textColor = .secondaryLabelColor
-        explanation.maximumNumberOfLines = 0
+        categories.setContentCompressionResistancePriority(.required, for: .horizontal)
+        categories.setHuggingPriority(.required, for: .horizontal)
+        profilePopUp.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        profilePopUp.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         status.maximumNumberOfLines = 0
         status.textColor = .secondaryLabelColor
         previewText.isEditable = false
@@ -127,34 +168,34 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         closeButton.target = self
         closeButton.action = #selector(close(_:))
         closeButton.keyEquivalent = "\u{1b}"
-        for button in [previewButton, importButton, closeButton] { button.bezelStyle = .rounded }
-        let actions = NSStackView(views: [previewButton, NSView(), closeButton, importButton])
+        accessButton.target = self
+        accessButton.action = #selector(requestAccess(_:))
+        accessButton.isHidden = true
+        for button in [previewButton, accessButton, importButton, closeButton] { button.bezelStyle = .rounded }
+        let actions = NSStackView(views: [previewButton, accessButton, NSView(), closeButton, importButton])
         actions.orientation = .horizontal
         actions.spacing = 8
-        for view in [profilePopUp, categories, explanation, scroll, status, actions] {
+        for view in [profilePopUp, categories, scroll, status, actions] {
             view.translatesAutoresizingMaskIntoConstraints = false
             content.addSubview(view)
         }
         NSLayoutConstraint.activate([
             profilePopUp.topAnchor.constraint(equalTo: content.topAnchor, constant: 16),
             profilePopUp.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 16),
-            profilePopUp.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -16),
-            categories.topAnchor.constraint(equalTo: profilePopUp.bottomAnchor, constant: 12),
-            categories.leadingAnchor.constraint(equalTo: profilePopUp.leadingAnchor),
-            categories.trailingAnchor.constraint(lessThanOrEqualTo: profilePopUp.trailingAnchor),
-            explanation.topAnchor.constraint(equalTo: categories.bottomAnchor, constant: 12),
-            explanation.leadingAnchor.constraint(equalTo: profilePopUp.leadingAnchor),
-            explanation.trailingAnchor.constraint(equalTo: profilePopUp.trailingAnchor),
-            scroll.topAnchor.constraint(equalTo: explanation.bottomAnchor, constant: 12),
+            profilePopUp.widthAnchor.constraint(greaterThanOrEqualToConstant: 200),
+            categories.centerYAnchor.constraint(equalTo: profilePopUp.centerYAnchor),
+            categories.leadingAnchor.constraint(equalTo: profilePopUp.trailingAnchor, constant: 16),
+            categories.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -16),
+            scroll.topAnchor.constraint(equalTo: profilePopUp.bottomAnchor, constant: 12),
             scroll.leadingAnchor.constraint(equalTo: profilePopUp.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: profilePopUp.trailingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: categories.trailingAnchor),
             scroll.bottomAnchor.constraint(equalTo: status.topAnchor, constant: -8),
             status.leadingAnchor.constraint(equalTo: profilePopUp.leadingAnchor),
-            status.trailingAnchor.constraint(equalTo: profilePopUp.trailingAnchor),
+            status.trailingAnchor.constraint(equalTo: categories.trailingAnchor),
             status.heightAnchor.constraint(greaterThanOrEqualToConstant: 20),
             status.bottomAnchor.constraint(equalTo: actions.topAnchor, constant: -8),
             actions.leadingAnchor.constraint(equalTo: profilePopUp.leadingAnchor),
-            actions.trailingAnchor.constraint(equalTo: profilePopUp.trailingAnchor),
+            actions.trailingAnchor.constraint(equalTo: categories.trailingAnchor),
             actions.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -14),
         ])
     }
@@ -168,8 +209,8 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         previewButton.title = String(localized: "Preview")
         importButton.title = String(localized: "Import")
         closeButton.title = String(localized: "Close")
+        accessButton.title = String(localized: "Allow Access…")
         previewText.setAccessibilityLabel(String(localized: "Import Preview"))
-        explanation.stringValue = String(localized: "Import stays on this Mac. Matching cookies may be replaced. Local storage and tab navigation history are not imported.")
         if let prepared { render(prepared) }
     }
 
@@ -188,6 +229,8 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
     private func setBusy(_ value: Bool) {
         busy = value
         profilePopUp.isEnabled = !value && !profiles.isEmpty
+        accessButton.isHidden = blocked.isEmpty
+        accessButton.isEnabled = !value
         for button in [cookiesButton, historyButton, sessionsButton] { button.isEnabled = !value }
         previewButton.isEnabled = !value && selectedProfile != nil && !selection.isEmpty
         importButton.isEnabled = !value && prepared != nil && selectedProfile != nil && !selection.isEmpty
@@ -198,7 +241,7 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         prepared = nil
         lastSummary = nil
         previewText.string = ""
-        status.stringValue = ""
+        status.stringValue = discoveryStatus
         setBusy(false)
     }
 
@@ -218,7 +261,7 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
             guard let self, self.revision == current else { return }
             self.prepared = data
             self.render(data)
-            self.status.stringValue = String(localized: "Review the preview, then choose Import.")
+            self.status.stringValue = self.discoveryStatus
             self.setBusy(false)
         }
     }
@@ -322,7 +365,7 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
             }
             self.lastSummary = results.joined(separator: "\n")
             self.render(prepared)
-            self.status.stringValue = String(localized: "Import finished. Review any skipped items or errors above.")
+            self.status.stringValue = self.discoveryStatus
             self.prepared = nil
             self.setBusy(false)
         }
