@@ -29,6 +29,8 @@ description: 看清一个会话到底在跑什么，以及它开了哪些端口�
 
 已经退出、还在等待回收的子进程（`<defunct>`）不会列出来——那里既没有输出可看，也没有东西可杀。
 
+共享远程会话的列表来自主机上的 zshell-server，每隔几秒刷新一次。这些行只提供 **Copy PID** / **Copy Executable Path**；普通 SSH 终端没有列表，因为本地只跑着 `ssh` 客户端。
+
 <span id="端口" data-canonical-heading="ports" />
 
 ## 端口 [#ports]
