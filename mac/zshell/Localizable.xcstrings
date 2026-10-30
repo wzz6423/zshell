@@ -135765,6 +135765,220 @@
         }
       }
     },
+    "Shell completions": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shell completions"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shell 补全"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shell 補全"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シェル補完"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "셸 자동 완성"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complétion du shell"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shell-Vervollständigung"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autocompletado del shell"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autocompletar do shell"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completamento della shell"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shell-aanvulling"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дополнение команд оболочки"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إكمال أوامر الصدفة"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "การเติมคำสั่งเชลล์"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pelengkapan shell"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoàn thành lệnh shell"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kabuk tamamlama"
+          }
+        }
+      }
+    },
+    "Suggest commands and arguments in new zsh terminals. Tab shows candidates; Right accepts a suggestion; Esc dismisses it. Existing shell plugins keep their bindings.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggest commands and arguments in new zsh terminals. Tab shows candidates; Right accepts a suggestion; Esc dismisses it. Existing shell plugins keep their bindings."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在新建的 zsh 终端中建议命令和参数。Tab 显示候选，右方向键接受建议，Esc 关闭建议。现有 Shell 插件保留原按键绑定。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在新建的 zsh 終端機中建議指令與參數。Tab 顯示候選，右方向鍵接受建議，Esc 關閉建議。現有 Shell 外掛保留原按鍵設定。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しい zsh ターミナルでコマンドと引数を提案します。Tab で候補を表示、右矢印で採用、Esc で閉じます。既存のシェルプラグインのキー設定は維持されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새 zsh 터미널에서 명령과 인수를 제안합니다. Tab은 후보 표시, 오른쪽 화살표는 제안 수락, Esc는 닫기입니다. 기존 셸 플러그인의 키 바인딩은 유지됩니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Propose des commandes et arguments dans les nouveaux terminaux zsh. Tab affiche les choix, la flèche droite accepte et Esc ferme la suggestion. Les raccourcis des plugins existants sont conservés."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schlägt Befehle und Argumente in neuen zsh-Terminals vor. Tab zeigt Kandidaten, Rechtspfeil übernimmt einen Vorschlag und Esc verwirft ihn. Bestehende Shell-Plugins behalten ihre Tastenbelegung."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sugiere comandos y argumentos en nuevas terminales zsh. Tab muestra opciones, la flecha derecha acepta y Esc descarta la sugerencia. Los plugins existentes conservan sus atajos."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sugere comandos e argumentos em novos terminais zsh. Tab mostra opções, a seta direita aceita e Esc fecha a sugestão. Os plugins existentes mantêm seus atalhos."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggerisce comandi e argomenti nei nuovi terminali zsh. Tab mostra le opzioni, la freccia destra accetta ed Esc chiude il suggerimento. I plugin esistenti mantengono le loro scorciatoie."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stelt opdrachten en argumenten voor in nieuwe zsh-terminals. Tab toont kandidaten, pijl-rechts accepteert en Esc sluit de suggestie. Bestaande shell-plug-ins behouden hun sneltoetsen."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Предлагает команды и аргументы в новых терминалах zsh. Tab показывает варианты, стрелка вправо принимает подсказку, Esc закрывает её. Сочетания клавиш существующих плагинов сохраняются."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يقترح أوامر ومعاملات في طرفيات zsh الجديدة. يعرض Tab الخيارات، ويقبل السهم الأيمن الاقتراح، ويغلقه Esc. تحتفظ إضافات الصدفة الحالية باختصاراتها."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "แนะนำคำสั่งและอาร์กิวเมนต์ในเทอร์มินัล zsh ใหม่ Tab แสดงตัวเลือก ลูกศรขวารับคำแนะนำ และ Esc ปิดคำแนะนำ ปลั๊กอินเชลล์เดิมยังใช้ปุ่มลัดเดิม"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menyarankan perintah dan argumen di terminal zsh baru. Tab menampilkan pilihan, panah kanan menerima saran, dan Esc menutupnya. Plugin shell yang ada tetap memakai pintasan semula."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gợi ý lệnh và tham số trong terminal zsh mới. Tab hiện lựa chọn, mũi tên phải chấp nhận và Esc đóng gợi ý. Các plugin shell hiện có giữ nguyên phím tắt."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni zsh terminallerinde komut ve argüman önerir. Tab adayları gösterir, Sağ ok öneriyi kabul eder, Esc kapatır. Mevcut kabuk eklentileri tuş atamalarını korur."
+          }
+        }
+      }
+    },
     "Workspace Templates": {
       "extractionState": "manual",
       "localizations": {

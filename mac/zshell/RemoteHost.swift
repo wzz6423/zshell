@@ -148,6 +148,7 @@ nonisolated struct RemoteFrame: Codable {
     var command: [String]?
     var environment: [String: String]?
     var initializationCommand: String?
+    var shellCompletions: Bool?
     var columns: Int?
     var rows: Int?
     var data: String?
