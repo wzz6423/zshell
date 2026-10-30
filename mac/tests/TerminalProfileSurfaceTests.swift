@@ -151,6 +151,17 @@ struct TerminalProfileSurfaceTests {
                   "profile switches keep the shell processes alive")
         try check(!FileManager.default.fileExists(atPath: unexpectedCommand.path),
                   "switching profiles never runs a startup command")
+        func opacity(_ session: TerminalSession) -> Double? {
+            Mirror(reflecting: session.surface).children.first { $0.label == "backgroundOpacity" }
+                .flatMap { ($0.value as? Double) ?? ($0.value as? CGFloat).map(Double.init) }
+        }
+        first.applyTheme(backgroundOpacity: 0.4)
+        first.selectTerminalProfile(.profile(base.id))
+        first.selectTerminalProfile(.profile(foreground.id))
+        try check(opacity(first).map { abs($0 - 0.4) < 0.001 } == true, "profile switches keep host background opacity")
+        first.applyTheme()
+        first.selectTerminalProfile(.automatic)
+        try wait("automatic selection after opacity") { first.activeTerminalProfileID == foreground.id || first.activeTerminalProfileID == base.id }
         let currentEnvironment = root.appendingPathComponent("current-environment")
         command(first, "builtin print -r -- ${PROFILE_CASE:-none} > " + quote(currentEnvironment.path))
         try wait("live environment") {
@@ -176,7 +187,20 @@ struct TerminalProfileSurfaceTests {
             (try? String(contentsOf: startupMarker, encoding: .utf8)) == "profile-started"
         }
         try check(true, "startup command runs when a matching terminal is created")
-        settings.terminalProfiles = [foreground, base]
+        let plainMarker = root.appendingPathComponent("plain-startup-command")
+        startupProfile.startupArguments = "-c 'printf profile-started > \(plainMarker.path)'"
+        settings.terminalProfiles = [foreground, base, startupProfile]
+        let plainSession = TerminalSession(initialDirectory: secondDirectory.path, additionalEnvironment: environment,
+                                           usesConfiguredStartupCommand: false)
+        defer { plainSession.terminate() }
+        try check(plainSession.supportsCommandTaskShellIntegration,
+                  "automation command panes skip the profile startup command")
+        pumpProfiles(1)
+        try check(!FileManager.default.fileExists(atPath: plainMarker.path),
+                  "plain shell pane never runs the profile startup command")
+        var multiline = base
+        multiline.launchSettings.environmentVariables = [.init(name: "MULTI", value: "first\nBAR=second\\n\\")]
+        settings.terminalProfiles = [foreground, multiline]
 
         TerminalProfileEditor.show(relativeTo: windows[0])
         try wait("profile editor sheet") { windows[0].attachedSheet != nil }
@@ -197,5 +221,8 @@ struct TerminalProfileSurfaceTests {
         try wait("profile editor save") { windows[0].attachedSheet == nil }
         try check(settings.terminalProfiles.contains { $0.startupProgram == "/remote-only/profile-executable" },
                   "editor saves a remote-only executable")
+        try check(settings.terminalProfiles.first { $0.id == base.id }?.launchSettings.environmentVariables
+                    == multiline.launchSettings.environmentVariables,
+                  "editor keeps multiline environment values intact")
     }
 }

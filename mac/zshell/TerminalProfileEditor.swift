@@ -207,7 +207,7 @@ final class TerminalProfileEditorWindowController: NSWindowController,
 
         let rules = detail(String(localized: "Rules are checked from top to bottom. All filled conditions must match. * matches any text; ? matches one character."))
         let scope = detail(String(localized: "Appearance changes apply immediately to this pane. Environment and startup settings apply only to new terminals; switching profiles never runs a command."))
-        let environmentHelp = detail(String(localized: "Enter one NAME=value per line. Values are saved as plain text in config.toml."))
+        let environmentHelp = detail(String(localized: "Enter one NAME=value per line; write a line break in a value as \\n. Values are saved as plain text in config.toml."))
         let form = NSStackView(views: [rules, enabled, grid, environmentHelp, scope])
         form.orientation = .vertical
         form.alignment = .leading
@@ -244,6 +244,7 @@ final class TerminalProfileEditorWindowController: NSWindowController,
         save.keyEquivalent = "\r"
         let cancel = NSButton(title: String(localized: "Cancel"), target: self, action: #selector(cancelEditing))
         cancel.bezelStyle = .rounded
+        cancel.controlSize = .small
         cancel.keyEquivalent = "\u{1b}"
         error.textColor = .systemRed
         error.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
@@ -310,7 +311,8 @@ final class TerminalProfileEditorWindowController: NSWindowController,
         startup.stringValue = profile.startupProgram
         arguments.stringValue = profile.startupArguments
         initialization.stringValue = profile.launchSettings.initializationCommand ?? ""
-        environment.string = profile.launchSettings.environmentVariables.map { $0.name + "=" + $0.value }.joined(separator: "\n")
+        environment.string = profile.launchSettings.environmentVariables
+            .map { $0.name + "=" + Self.escapedEnvironmentValue($0.value) }.joined(separator: "\n")
         select(darkTheme, value: profile.appearance.themeDark)
         select(lightTheme, value: profile.appearance.themeLight)
         select(cursor, value: profile.appearance.cursorShape)
@@ -355,7 +357,10 @@ final class TerminalProfileEditorWindowController: NSWindowController,
         var variables: [TerminalEnvironmentVariable] = []
         for line in environment.string.split(separator: "\n") {
             guard let separator = line.firstIndex(of: "=") else { return nil }
-            variables.append(.init(name: String(line[..<separator]), value: String(line[line.index(after: separator)...])))
+            variables.append(.init(
+                name: String(line[..<separator]),
+                value: Self.unescapedEnvironmentValue(line[line.index(after: separator)...])
+            ))
         }
         candidate.launchSettings.environmentVariables = variables
         guard candidate.isValid,
@@ -366,6 +371,36 @@ final class TerminalProfileEditorWindowController: NSWindowController,
               )
         else { return nil }
         return candidate
+    }
+
+    /// One variable per line: newlines inside a value are written as `\n`
+    /// (and `\` as `\\`) so saving never splits a value into new variables.
+    static func escapedEnvironmentValue(_ value: String) -> String {
+        value.replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\n", with: "\\n")
+            .replacingOccurrences(of: "\r", with: "\\r")
+    }
+
+    static func unescapedEnvironmentValue(_ text: Substring) -> String {
+        var result = ""
+        var escaping = false
+        for character in text {
+            if escaping {
+                switch character {
+                case "n": result.append("\n")
+                case "r": result.append("\r")
+                case "\\": result.append("\\")
+                default: result.append("\\"); result.append(character)
+                }
+                escaping = false
+            } else if character == "\\" {
+                escaping = true
+            } else {
+                result.append(character)
+            }
+        }
+        if escaping { result.append("\\") }
+        return result
     }
 
     @discardableResult

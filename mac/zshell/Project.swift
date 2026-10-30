@@ -566,7 +566,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         beside targetPaneID: UUID,
         toward edge: PaneDropEdge,
         directory: String?,
-        focus: Bool
+        focus: Bool,
+        usesConfiguredStartupCommand: Bool = true
     ) -> (tab: PaneTab, pane: Pane, session: TerminalSession)? {
         guard let tab = tabs.first(where: { $0.layout.contains(targetPaneID) }),
               let target = tab.allPanes.first(where: { $0.id == targetPaneID }),
@@ -583,7 +584,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         }
         let session = makeSession(
             directory: directory ?? contextDirectory,
-            launchSettings: launchSettings.applying(tab.launchSettingsOverride)
+            launchSettings: launchSettings.applying(tab.launchSettingsOverride),
+            usesConfiguredStartupCommand: usesConfiguredStartupCommand
         )
         let pane = Pane(content: .session(session))
         tab.split(

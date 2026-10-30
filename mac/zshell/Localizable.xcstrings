@@ -140399,109 +140399,109 @@
         }
       }
     },
-    "Enter one NAME=value per line. Values are saved as plain text in config.toml.": {
+    "Enter one NAME=value per line; write a line break in a value as \\n. Values are saved as plain text in config.toml.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Enter one NAME=value per line. Values are saved as plain text in config.toml."
+            "value": "Enter one NAME=value per line; write a line break in a value as \\n. Values are saved as plain text in config.toml."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "每行输入一项 NAME=value，值会以纯文本保存到 config.toml。"
+            "value": "每行输入一项 NAME=value，值中的换行写作 \\n。值会以纯文本保存到 config.toml。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "每行輸入一項 NAME=value，值會以純文字儲存至 config.toml。"
+            "value": "每行輸入一項 NAME=value，值中的換行寫作 \\n。值會以純文字儲存至 config.toml。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "1行に1つの NAME=value を入力してください。値は config.toml にプレーンテキストで保存されます。"
+            "value": "1行に1つの NAME=value を入力してください。値の中の改行は \\n と書きます。値は config.toml にプレーンテキストで保存されます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "줄마다 NAME=value 항목을 하나씩 입력하세요. 값은 config.toml에 일반 텍스트로 저장됩니다."
+            "value": "줄마다 NAME=value 항목을 하나씩 입력하세요. 값 안의 줄바꿈은 \\n으로 쓰세요. 값은 config.toml에 일반 텍스트로 저장됩니다."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Saisissez une entrée NAME=value par ligne. Les valeurs sont enregistrées en texte brut dans config.toml."
+            "value": "Saisissez une entrée NAME=value par ligne ; écrivez un saut de ligne dans une valeur sous la forme \\n. Les valeurs sont enregistrées en texte brut dans config.toml."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Geben Sie pro Zeile einen Eintrag NAME=value ein. Werte werden als Klartext in config.toml gespeichert."
+            "value": "Geben Sie pro Zeile einen Eintrag NAME=value ein; schreiben Sie einen Zeilenumbruch in einem Wert als \\n. Werte werden als Klartext in config.toml gespeichert."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Introduzca una entrada NAME=value por línea. Los valores se guardan como texto sin formato en config.toml."
+            "value": "Introduzca una entrada NAME=value por línea; escriba un salto de línea dentro de un valor como \\n. Los valores se guardan como texto sin formato en config.toml."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Insira um NAME=value por linha. Os valores são salvos como texto simples em config.toml."
+            "value": "Insira um NAME=value por linha; escreva uma quebra de linha em um valor como \\n. Os valores são salvos como texto simples em config.toml."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Inserisci un NAME=value per riga. I valori vengono salvati come testo semplice in config.toml."
+            "value": "Inserisci un NAME=value per riga; scrivi un a capo in un valore come \\n. I valori vengono salvati come testo semplice in config.toml."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Voer één NAME=value per regel in. Waarden worden als platte tekst opgeslagen in config.toml."
+            "value": "Voer één NAME=value per regel in; schrijf een regeleinde in een waarde als \\n. Waarden worden als platte tekst opgeslagen in config.toml."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Введите по одному NAME=value в строке. Значения сохраняются в config.toml обычным текстом."
+            "value": "Введите по одному NAME=value в строке; перенос строки в значении записывайте как \\n. Значения сохраняются в config.toml обычным текстом."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "أدخل NAME=value واحدًا في كل سطر. تُحفظ القيم كنص عادي في config.toml."
+            "value": "أدخل NAME=value واحدًا في كل سطر، واكتب فاصل الأسطر داخل القيمة بالشكل \\n. تُحفظ القيم كنص عادي في config.toml."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "กรอก NAME=value หนึ่งรายการต่อบรรทัด ค่าจะบันทึกเป็นข้อความธรรมดาใน config.toml"
+            "value": "กรอก NAME=value หนึ่งรายการต่อบรรทัด และเขียนการขึ้นบรรทัดใหม่ในค่าเป็น \\n ค่าจะบันทึกเป็นข้อความธรรมดาใน config.toml"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Masukkan satu NAME=value per baris. Nilai disimpan sebagai teks biasa di config.toml."
+            "value": "Masukkan satu NAME=value per baris; tulis jeda baris dalam nilai sebagai \\n. Nilai disimpan sebagai teks biasa di config.toml."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nhập một NAME=value trên mỗi dòng. Giá trị được lưu dạng văn bản thuần trong config.toml."
+            "value": "Nhập một NAME=value trên mỗi dòng; viết dấu xuống dòng trong giá trị là \\n. Giá trị được lưu dạng văn bản thuần trong config.toml."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Her satıra bir NAME=value girin. Değerler config.toml dosyasına düz metin olarak kaydedilir."
+            "value": "Her satıra bir NAME=value girin; bir değerdeki satır sonunu \\n olarak yazın. Değerler config.toml dosyasına düz metin olarak kaydedilir."
           }
         }
       }

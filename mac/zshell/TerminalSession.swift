@@ -377,6 +377,12 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                 ?? (settings.isTerminalBackgroundBlurActive
                     ? CGFloat(settings.effectiveTerminalBackgroundOpacity) : 1)
         )
+        applyProfileAppearance()
+    }
+
+    /// Profile switches keep the opacity the hosting window last applied: a
+    /// translucent Quick Terminal must not fall back to the main window's value.
+    private func applyProfileAppearance() {
         surface.applyAppearance()
         persistentPTY?.updateTheme(AlacrittyTheme.current(surface.profileAppearance))
     }
@@ -407,7 +413,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         let appearance = profile?.appearance ?? TerminalProfileAppearance()
         guard surface.profileAppearance != appearance else { return }
         surface.profileAppearance = appearance
-        applyTheme()
+        applyProfileAppearance()
     }
 
     /// Stops the whole PTY job before releasing the surface. The backend's
