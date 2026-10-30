@@ -194,3 +194,9 @@ Die vollständige Liste gängiger Befehle bleibt verfügbar; nur die Reihenfolge
 Lokale Editoren werden am Vordergrundprogramm erkannt. Innerhalb von SSH, Mosh oder einem Terminalmultiplexer nutzt die Erkennung die sichtbare Vim-Modus-/Statuszeile und Bildschirmanordnung, ohne ein entferntes Plugin zu installieren. Lassen Sie Vims `showmode` oder eine erkennbare Statuszeile aktiv. Verborgene oder umbenannte Modusnamen können zu Normal-Hinweisen führen oder die entfernte Erkennung verhindern; eigene Tastenzuordnungen werden nicht ausgewertet. Nur das aktive Infopanel wird abgetastet. Die Hinweise verschwinden, wenn das Vordergrundprogramm wechselt oder der Editor nicht mehr erkennbar ist.
 
 Alternativ aktivieren Sie die Funktion mit `terminal.vim-command-hints = true` in der Konfigurationsdatei.
+
+## Shell-Vervollständigung
+
+Aktivieren Sie **Einstellungen → Terminal → Verhalten → Shell-Vervollständigung** (standardmäßig an) und öffnen Sie ein neues zsh-Terminal. Befehle, Unterbefehle, Argumente und Pfade stammen aus den Shell-Funktionen und erscheinen als graue Vorschläge. **Rechtspfeil** übernimmt am Eingabeende, **Tab** zeigt Kandidaten, Pfeile wählen, **Return** übernimmt ohne Ausführung, **Esc** oder **Ctrl+G** bricht das Menü ab. **Esc** schließt auch den Inline-Vorschlag. Vorhandene Plugins und Tastenbelegungen bleiben erhalten.
+
+Die gebündelten Plugins ändern `.zshrc` nicht. Vollbildprogramme erhalten ihre eigene Eingabe. Remote-Projekte nutzen mit kompatiblem zshell-server und zsh die entfernten Befehle und Pfade; andere Shells behalten ihre native Vervollständigung. Gilt für neue Shells und Remote-Sitzungen. `terminal.shell-completions = false` deaktiviert die Unterstützung.

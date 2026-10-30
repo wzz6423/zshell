@@ -194,3 +194,9 @@ Daftar lengkap perintah umum tetap tersedia; hanya prioritasnya berubah. Normal 
 Editor lokal dikenali melalui executable latar depan. Dalam SSH, Mosh, atau multiplexer terminal, deteksi memakai baris mode/status Vim yang terlihat dan tata letak layar tanpa memasang plugin jarak jauh. Pertahankan `showmode` atau baris status Vim yang dikenali. Konfigurasi yang menyembunyikan atau mengganti nama label mode dapat kembali ke petunjuk Normal atau menghalangi deteksi jarak jauh; pemetaan khusus tidak ditafsirkan. Hanya panel Info aktif yang diperiksa, dan petunjuk hilang saat program latar depan berubah atau editor tak lagi dikenali.
 
 Fitur ini juga dapat diaktifkan dalam konfigurasi dengan `terminal.vim-command-hints = true`.
+
+## Pelengkapan shell
+
+Aktifkan **Pengaturan → Terminal → Perilaku → Pelengkapan shell** (aktif secara bawaan), lalu buka terminal zsh baru. Perintah, subperintah, argumen, dan jalur menggunakan fungsi shell dengan saran abu-abu. **Panah kanan** menerima di akhir input; **Tab** membuka pilihan, panah memilih, **Return** menerima tanpa menjalankan, dan **Esc** atau **Ctrl+G** membatalkan menu. **Esc** juga menutup saran. Plugin dan pintasan yang ada tetap dipertahankan.
+
+Plugin bawaan tidak mengubah `.zshrc`. Program layar penuh menerima inputnya sendiri. Dengan zshell-server yang kompatibel dan zsh, proyek jarak jauh menggunakan perintah dan jalur jarak jauh; shell lain mempertahankan pelengkapan aslinya. Berlaku untuk shell dan sesi jarak jauh baru. Nonaktifkan dengan `terminal.shell-completions = false`.

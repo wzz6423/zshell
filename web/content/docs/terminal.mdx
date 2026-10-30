@@ -288,3 +288,9 @@ when the foreground program changes or the editor is no longer recognizable.
 
 You can also enable it in the configuration file with
 `terminal.vim-command-hints = true`.
+
+## Shell completions
+
+Enable **Settings → Terminal → Behavior → Shell completions** (on by default) and open a new zsh terminal. Commands, subcommands, arguments, and paths use the shell’s completion functions, with gray inline suggestions. **Right** accepts an inline suggestion at the end of the input; **Tab** opens candidates, arrow keys select, **Return** accepts a candidate without running it, and **Esc** or **Ctrl+G** cancels the menu. **Esc** dismisses an inline suggestion. Existing completion plugins and custom keys keep their behavior.
+
+Zshell loads bundled zsh-completions and zsh-autosuggestions without editing `.zshrc`. Full-screen programs receive their own input. Remote projects use the remote shell’s commands and paths when a compatible zshell-server and zsh are installed; other shells retain their native completion. Changes apply to new shells, including new remote sessions. Set `terminal.shell-completions = false` to disable the bundled support.
