@@ -25,12 +25,14 @@ nonisolated enum GitProxy {
         lock.withLock { activeAddress = value }
     }
 
-    /// Returns the trimmed address when Git and curl can both use it, or `nil`.
+    /// Returns the trimmed address when Git and `gh` can both use it, or `nil`.
+    /// SOCKS4 is left out: Git accepts it, but `gh`'s Go transport does not, so
+    /// Git would work while every pull request lookup failed.
     static func normalized(_ address: String) -> String? {
         let value = address.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let components = URLComponents(string: value),
               let scheme = components.scheme?.lowercased(),
-              ["http", "https", "socks4", "socks4a", "socks5", "socks5h"].contains(scheme),
+              ["http", "https", "socks5", "socks5h"].contains(scheme),
               let host = components.host, !host.isEmpty,
               components.query == nil, components.fragment == nil,
               !value.unicodeScalars.contains(where: { CharacterSet.whitespacesAndNewlines.contains($0)
