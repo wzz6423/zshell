@@ -1980,3 +1980,72 @@ final class GitStatusModel: nonisolated ObservableObject {
         return nil
     }
 }
+
+extension GitStatusModel {
+    nonisolated struct BranchSnapshot: Equatable, Sendable {
+        let root: String
+        let gitDirectory: String
+        let commonGitDirectory: String
+        let branch: String?
+        let configuration: [String: [String]]
+
+        var watchPaths: [String] {
+            Array(Set([gitDirectory, commonGitDirectory,
+                       gitDirectory + "/HEAD", commonGitDirectory + "/config"]))
+        }
+    }
+
+    nonisolated enum BranchSnapshotResult: Sendable {
+        case repository(BranchSnapshot)
+        case notRepository
+        case unavailable
+    }
+
+    /// Sidebar metadata needs the branch and remotes, not a diff/history scan
+    /// for every project. Check HEAD again so a concurrent checkout cannot
+    /// pair one branch with another branch's remote configuration.
+    nonisolated static func branchSnapshot(
+        in directory: String,
+        commandRunner: @Sendable ([String], String) -> GitCommandDataResult = {
+            GitCommandRunner.runData($0, in: $1, limit: 65_536, timeout: 3)
+        }
+    ) -> BranchSnapshotResult {
+        func run(_ arguments: [String]) -> GitCommandResult {
+            let result = commandRunner(arguments, directory)
+            return GitCommandResult(status: result.truncated ? -4 : result.status,
+                                    stdout: String(decoding: result.stdout, as: UTF8.self),
+                                    stderr: result.stderr)
+        }
+        let root = run(["rev-parse", "--show-toplevel"])
+        guard root.status == 0 else {
+            if root.status == 128, root.stderr.contains("not a git repository"),
+               !containsGitMetadata(atOrAbove: directory) { return .notRepository }
+            return .unavailable
+        }
+        let paths = run(["rev-parse", "--path-format=absolute", "--git-dir", "--git-common-dir"])
+        let directories = paths.stdout.split(separator: "\n").map(String.init)
+        guard paths.status == 0, directories.count == 2 else { return .unavailable }
+        let head = run(["symbolic-ref", "--quiet", "--short", "HEAD"])
+        guard head.status == 0 || head.status == 1 else { return .unavailable }
+        let configuration = run([
+            "config", "--null", "--get-regexp",
+            "^(remote\\..*\\.(url|gh-resolved)|branch\\..*\\.(remote|pushremote|merge)|remote\\.pushdefault)$",
+        ])
+        guard configuration.status == 0 || configuration.status == 1 else { return .unavailable }
+        let verifiedHead = run(["symbolic-ref", "--quiet", "--short", "HEAD"])
+        guard head.status == verifiedHead.status, head.stdout == verifiedHead.stdout else { return .unavailable }
+        var values: [String: [String]] = [:]
+        for record in configuration.stdout.split(separator: "\0") {
+            guard let separator = record.firstIndex(of: "\n") else { continue }
+            let key = String(record[..<separator])
+            values[key, default: []].append(String(record[record.index(after: separator)...]))
+        }
+        return .repository(BranchSnapshot(
+            root: strippingTrailingLineEnding(root.stdout),
+            gitDirectory: directories[0], commonGitDirectory: directories[1],
+            branch: head.status == 0 ? strippingTrailingLineEnding(head.stdout) : nil,
+            configuration: values
+        ))
+    }
+
+}

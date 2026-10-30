@@ -22,6 +22,14 @@ find, mouse reporting, notifications, and progress reports. A backend change
 applies to new terminals only—existing panes keep the emulator they started
 with.
 
+## Command history [#command-history]
+
+Choose **Terminal → Command History…** to search commands run in Zshell by command text or directory. Each row shows the original directory, start time, duration and exit status. Click a row or use **Show Output** to return to its original pane and command output. If the pane is closed or that output has been cleared, navigation is unavailable; **Copy Command** still works.
+
+**Insert into Terminal** fills the original pane’s empty zsh prompt without running the command; press Return when ready. It is disabled while that pane is busy or has draft input. Multiline commands remain multiline. The list uses Zshell’s command-block integration on Ghostty and Alacritty, so commands in unsupported or nested shells may not appear.
+
+History is saved locally in the background, with a limit of 2,000 commands and 8 MiB. **Delete** removes the selected record; **Clear History…** removes the saved list. These actions leave terminal output and the shell’s own history in place.
+
 ## Your shell, unchanged
 
 Each session starts your account's login shell, so your prompt, aliases,
@@ -145,6 +153,14 @@ or relative to the pane's live working directory. A diagnostic suffix such as
 
 This gives compiler output and agent transcripts a direct route back into the
 same project. Browser behavior is covered in [Browser panes](/en/docs/browser).
+
+## Keyboard hints [#keyboard-hints]
+
+Focus a terminal and choose **Terminal → Copy Terminal Hint…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) or **Open Terminal Hint…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>). Letter labels appear directly over visible paths, URLs, IP addresses and commit hashes. Type the label to select it; longer labels narrow the choices as you type.
+
+<kbd>Tab</kbd> switches between copying and opening. <kbd>Backspace</kbd> removes a letter; <kbd>Esc</kbd> cancels and returns typing to the terminal. Hint keys are never sent to the terminal program. Copying keeps diagnostic suffixes such as `:42:7`. Opening uses the same Finder/default-browser route as Command-click; values without an openable destination can still be copied.
+
+Hints scan the current visible screen on both backends, including soft-wrapped text. Resize or changed output refreshes the labels. The mode works in read-only panes for copying and host actions.
 
 ## Notifications
 

@@ -16,6 +16,14 @@ Elige un motor en **Ajustes → Terminal → Motor**:
 
 Ambos admiten aceleración por GPU, imágenes, el catálogo de temas compartido de Zshell, búsqueda, notificación de eventos del ratón, notificaciones e informes de progreso. Cambiar de motor solo afecta a los terminales nuevos; los paneles existentes conservan el emulador con el que se iniciaron.
 
+## Historial de comandos [#command-history]
+
+Abre **Terminal → Historial de comandos…** para buscar comandos ejecutados en Zshell por texto o directorio. Cada fila muestra el directorio original, la hora de inicio, la duración y el estado de salida. Haz clic en una fila o en **Mostrar salida** para volver al panel y la salida originales. Si el panel está cerrado o la salida se ha borrado, no podrás saltar a ella; **Copiar comando** sigue disponible.
+
+**Insertar en el terminal** rellena el prompt zsh vacío del panel original sin ejecutar el comando; pulsa Return cuando estés listo. Se desactiva si el panel está ocupado o contiene un borrador. Los comandos multilínea se conservan. La lista usa la integración de bloques de Ghostty y Alacritty, por lo que pueden faltar comandos de shells no compatibles o anidados.
+
+El historial se guarda localmente en segundo plano, con un límite de 2.000 comandos y 8 MiB. **Eliminar** quita el registro seleccionado; **Borrar historial…** quita la lista guardada. Se conservan la salida del terminal y el historial propio del shell.
+
 ## Tu shell, sin cambios [#your-shell-unchanged]
 
 Cada sesión inicia el shell de inicio de sesión de tu cuenta, así que el prompt, los alias, las funciones y los archivos de configuración se cargan igual que en cualquier terminal. Zshell añade variables de capacidades e identidad:
@@ -93,6 +101,14 @@ Zshell reconoce las URL web y las rutas locales existentes que imprimen los prog
 - Los programas a pantalla completa que activan la notificación de eventos del ratón reciben el clic derecho sin modificadores. Mantén pulsado **Shift** al hacer clic derecho para abrir el menú de terminal y panel de Zshell.
 
 Esto permite volver directamente desde la salida del compilador y las conversaciones de agentes al mismo proyecto. El comportamiento del navegador se explica en [Paneles de navegador](/es/docs/browser).
+
+## Pistas con teclado [#keyboard-hints]
+
+Enfoca un terminal y elige **Terminal → Copiar pista del terminal…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) o **Abrir pista del terminal…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>). Aparecen letras sobre rutas, URL, direcciones IP y hashes de commit visibles. Escribe la etiqueta para elegir; las etiquetas largas filtran las opciones.
+
+<kbd>Tab</kbd> alterna copiar y abrir. <kbd>Backspace</kbd> borra una letra; <kbd>Esc</kbd> cancela y devuelve la entrada al terminal. Estas teclas nunca llegan al programa. Al copiar se conservan posiciones como `:42:7`. Abrir usa Finder o el navegador predeterminado como Command-click; los demás valores pueden copiarse.
+
+Ambos motores analizan solo la pantalla visible, incluidas las líneas ajustadas. El tamaño o la salida nuevos actualizan las etiquetas. Los paneles de solo lectura también permiten copiar y abrir en el equipo.
 
 ## Notificaciones [#notifications]
 

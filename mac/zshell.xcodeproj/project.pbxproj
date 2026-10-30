@@ -195,6 +195,9 @@
 /* Begin PBXShellScriptBuildPhase section */
 		AA40000000000000000000A1 /* Bundle remote server */ = {
 			isa = PBXShellScriptBuildPhase;
+			inputFileListPaths = (
+				"$(SRCROOT)/Vendor/alacritty-bridge/vendored-inputs.xcfilelist",
+			);
 			inputPaths = (
 				"$(SRCROOT)/../remote/Cargo.toml",
 				"$(SRCROOT)/../remote/Cargo.lock",
@@ -237,6 +240,9 @@
 		};
 		AA40000000000000000000A0 /* Build Alacritty bridge */ = {
 			isa = PBXShellScriptBuildPhase;
+			inputFileListPaths = (
+				"$(SRCROOT)/Vendor/alacritty-bridge/vendored-inputs.xcfilelist",
+			);
 			inputPaths = (
 				"$(SRCROOT)/Vendor/alacritty-bridge/Cargo.lock",
 				"$(SRCROOT)/Vendor/alacritty-bridge/Cargo.toml",

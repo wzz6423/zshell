@@ -18,6 +18,14 @@ description: Zshell 的终端后端、shell 环境、链接处理、通知与安
 
 两者都支持 GPU 加速、图片渲染、Zshell 的共享主题目录、查找、鼠标上报、通知和进度。后端改动只影响之后新建的终端；已有窗格继续使用启动时的模拟器。
 
+## 命令历史 [#command-history]
+
+选择 **终端 → 命令历史…**，可按命令文本或目录搜索 Zshell 中执行过的命令。每条记录显示原目录、开始时间、耗时和退出状态。点击记录或使用 **显示输出**，即可回到原窗格的命令输出。原窗格关闭或输出被清除后，定位不可用，仍可 **复制命令**。
+
+**重新输入**（Insert into Terminal）把命令填入原窗格的空 zsh 提示符，不立即执行；确认后再按 Return。窗格忙碌或已有草稿时该操作不可用。多行命令会保留换行。列表复用 Ghostty 和 Alacritty 的命令块集成，因此不受支持或嵌套 Shell 中的命令可能不会出现。
+
+历史在后台保存到本机，最多保留 2,000 条和 8 MiB。**删除**移除所选记录，**清空历史…**移除保存的列表；两者都会保留终端输出和 Shell 自身的历史。
+
 <span id="你的-shell原封不动" data-canonical-heading="your-shell-unchanged" />
 
 ## 你的 shell，原封不动 [#your-shell-unchanged]
@@ -127,6 +135,14 @@ Zshell 能识别终端程序打印出来的网页 URL 和确实存在的本地�
 
 这样一来，编译器输出和 agent 对话就能直接回到同一个项目里。网页相关行为见
 [浏览器窗格](/docs/browser)。
+
+## 键盘字母提示 [#keyboard-hints]
+
+聚焦终端，选择 **终端 → 复制终端提示…**（<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>）或 **打开终端提示…**（<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>）。可见路径、URL、IP 地址和 commit hash 上会直接显示字母标签。输入标签即可选择；多字母标签会逐步筛选。
+
+<kbd>Tab</kbd> 切换复制与打开，<kbd>Backspace</kbd> 删除一个字母，<kbd>Esc</kbd> 取消并恢复终端输入。提示按键不会发送给终端程序。复制保留 `:42:7` 等诊断定位；打开复用 Command-click 的 Finder／默认浏览器路由，无法打开的值仍可复制。
+
+两个后端都只扫描当前可见屏幕，包括软折行文本。尺寸或输出变化会刷新标签。只读窗格仍能复制和执行主机打开操作。
 
 <span id="通知" data-canonical-heading="notifications" />
 

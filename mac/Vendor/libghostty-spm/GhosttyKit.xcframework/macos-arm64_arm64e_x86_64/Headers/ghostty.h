@@ -1175,6 +1175,15 @@ GHOSTTY_API void ghostty_surface_complete_clipboard_request(ghostty_surface_t,
                                                                void*,
                                                                bool);
 GHOSTTY_API bool ghostty_surface_has_selection(ghostty_surface_t);
+typedef struct { uint64_t row; uint32_t column; } ghostty_command_position_s;
+typedef struct { ghostty_command_position_s prompt, input, output, end; } ghostty_command_region_s;
+GHOSTTY_API uint64_t ghostty_surface_command_revision(ghostty_surface_t);
+GHOSTTY_API bool ghostty_surface_command_records(ghostty_surface_t, ghostty_text_s*);
+GHOSTTY_API bool ghostty_surface_command_region(ghostty_surface_t, uint64_t, ghostty_command_region_s*);
+GHOSTTY_API bool ghostty_surface_command_text(ghostty_surface_t, uint64_t, uint8_t, ghostty_text_s*);
+GHOSTTY_API bool ghostty_surface_command_reveal(ghostty_surface_t, uint64_t, bool);
+GHOSTTY_API uint64_t ghostty_surface_command_at(ghostty_surface_t, double, double);
+
 GHOSTTY_API bool ghostty_surface_read_selection(ghostty_surface_t, ghostty_text_s*);
 GHOSTTY_API bool ghostty_surface_read_text(ghostty_surface_t,
                                               ghostty_selection_s,
