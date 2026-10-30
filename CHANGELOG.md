@@ -18,6 +18,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Show the current branch’s GitHub pull request number and status in the Git panel; click it to open the pull request.
+- Add an optional Git proxy under Settings → General for Git panel actions, pull request status, and Git in newly opened terminals.
 - Show the processes running in a shared remote session in the Info panel.
 
 ### Fixed

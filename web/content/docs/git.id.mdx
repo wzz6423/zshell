@@ -114,6 +114,14 @@ Menu yang sama menyediakan **Salin Jalur Berubah (Copy Changed Paths)**, **Salin
 Pull sengaja dibatasi pada fast-forward. Jika merge atau rebase sungguhan diperlukan, Git memberi tahu dan Anda memutuskan di terminal; panel tidak memilih strategi untuk Anda.
 </Callout>
 
+### Status pull request [#pull-request-status]
+
+Instal GitHub CLI dan masuk dengan `gh auth login` untuk melihat nomor dan status pull request cabang saat ini di panel Git repositori lokal. Klik untuk membukanya, atau klik kanan dan pilih **Segarkan status pull request**. Remote selain GitHub tidak menampilkan pull request.
+
+### Proxy [#proxy]
+
+Untuk mengarahkan lalu lintas Git melalui proxy, aktifkan **Gunakan proxy untuk Git** di **Pengaturan → Umum** dan periksa **Alamat proxy**, yang sudah terisi `http://127.0.0.1:7897`. Proxy nonaktif secara default. Proxy berlaku untuk fetch, pull, dan push di panel, status pull request, dan `git` di terminal yang dibuka setelahnya; terminal yang sudah terbuka dan proyek SSH jarak jauh tidak berubah. Hanya remote HTTP(S) yang memakainya; remote SSH `git@` tetap terhubung langsung. Di file konfigurasi: `git.proxy-enabled = true` dan `git.proxy = "<url>"`.
+
 ## Belum menjadi repositori [#not-a-repository-yet]
 
 Jika direktori proyek belum memiliki repositori, panel menawarkan **Inisialisasi Repositori (Initialize Repository)** yang menjalankan `git init` dalam folder itu. Sebelum itu, panel tidak mengganggu pekerjaan Anda.

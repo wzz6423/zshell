@@ -186,7 +186,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         )
         var environment = Self.surfaceEnvironment(
             pathOverride: environmentPath, configuredEnvironment: launchSettings.environment,
-            sessionID: sessionID, additionalEnvironment: launchEnvironment
+            sessionID: sessionID, additionalEnvironment: launchEnvironment,
+            usesGitProxy: remoteConnection == nil
         )
         var canPersist = preserve
         if preserve {
@@ -220,7 +221,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                 ZshellCLIService.shared.revokeTerminal(id: sessionID)
                 var fallback = Self.surfaceEnvironment(
                     pathOverride: environmentPath, configuredEnvironment: launchSettings.environment,
-                    sessionID: sessionID, additionalEnvironment: launchEnvironment
+                    sessionID: sessionID, additionalEnvironment: launchEnvironment,
+                    usesGitProxy: remoteConnection == nil
                 )
                 for key in ["ZSHELL_PERSISTENT_CONNECTION", "ZSHELL_PERSISTENT_TOKEN"] { fallback.removeValue(forKey: key) }
                 launch = TerminalLaunch(
@@ -670,7 +672,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         pathOverride: String?,
         configuredEnvironment: [String: String],
         sessionID: UUID,
-        additionalEnvironment: [String: String]
+        additionalEnvironment: [String: String],
+        usesGitProxy: Bool
     ) -> [String: String] {
         var environment = [
             "TERM": "xterm-256color",
@@ -692,6 +695,15 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         environment.merge(additionalEnvironment, uniquingKeysWith: { _, additionalValue in
             additionalValue
         })
+        // A remote shell resolves the proxy's loopback address on its own host,
+        // so only local shells inherit the Settings proxy, and only for Git.
+        if usesGitProxy {
+            environment.merge(
+                GitProxy.terminalEnvironment(inheriting: ProcessInfo.processInfo.environment
+                    .merging(environment, uniquingKeysWith: { _, launchValue in launchValue })),
+                uniquingKeysWith: { _, proxyValue in proxyValue }
+            )
+        }
         // Locale belongs to the user's shell environment. Zshell's app language
         // must never synthesize or override LANG/LC_* for terminal processes.
         return environment
