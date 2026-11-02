@@ -56,6 +56,14 @@ async function verifyArchitecture(app: string, arch: Architecture): Promise<void
   }
 }
 
+export async function verifyCodeSignatures(app: string): Promise<void> {
+  await $`codesign --verify --deep --strict --all-architectures ${app}`.quiet();
+  // --deep skips executables stored as resources, including the bundled server.
+  for (const binary of files(app).filter(isMachO)) {
+    await $`codesign --verify --strict --all-architectures ${binary}`.quiet();
+  }
+}
+
 async function main(): Promise<void> {
   process.chdir(join(import.meta.dir, ".."));
   const args = process.argv.slice(2).filter((arg) => arg !== "--");
@@ -124,8 +132,9 @@ async function main(): Promise<void> {
         chmodSync(binary, mode);
       }
     }
+    await $`codesign --force --sign ${identity} --keychain ${keychain} ${join(app, "Contents/Resources/zshell-server")}`;
     await $`codesign --force --deep --sign ${identity} --keychain ${keychain} ${app}`;
-    await $`codesign --verify --deep --strict --all-architectures ${app}`;
+    await verifyCodeSignatures(app);
     const requirement = (await $`codesign -d -r- ${app}`.quiet().text()).split("designated => ")[1]?.trim();
     if (!requirement?.includes("certificate") || requirement.includes("cdhash")) die("Release signing did not produce a stable certificate requirement");
     requirements.push(requirement);
@@ -148,12 +157,13 @@ async function main(): Promise<void> {
     rmSync(feedStage, { recursive: true, force: true });
     mkdirSync(feedStage, { recursive: true });
     await $`ln ${zip} ${join(feedStage, `${base}.zip`)}`;
+    await Bun.write(join(feedStage, `${base}.md`), readFileSync(join(output, "notes.md"), "utf8"));
     for (const host of ["github", "gitee"]) {
       const feedDirectory = join(output, host);
       mkdirSync(feedDirectory, { recursive: true });
       const feed = join(feedDirectory, feedName(arch));
       if (existsSync(feed)) rmSync(feed);
-      await $`${generator} --ed-key-file ${keyPath} --download-url-prefix ${`https://${host}.com/wzz6423/zshell/releases/download/v${version}/`} -o ${feed} ${feedStage}`;
+      await $`${generator} --ed-key-file ${keyPath} --embed-release-notes --download-url-prefix ${`https://${host}.com/wzz6423/zshell/releases/download/v${version}/`} -o ${feed} ${feedStage}`;
       await $`${signUpdate} --verify --ed-key-file ${keyPath} ${feed}`;
     }
   }

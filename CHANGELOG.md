@@ -14,22 +14,57 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
-## [Unreleased]
+## [0.1.12]
 
 ### Added
 
-- Show the current branch’s GitHub pull request number and status in the Git panel; click it to open the pull request.
-- Add an optional Git proxy under Settings → General for Git panel actions, pull request status, and Git in newly opened terminals.
+- Search saved command history by command or directory, inspect execution time,
+  duration and exit status, and return to the original terminal output. Copy a
+  command or insert it into an empty prompt without running it.
+- Complete zsh commands, arguments and paths with inline suggestions and a
+  keyboard-controlled candidate menu in new local and supported remote shells.
+- Use keyboard hints to copy or open paths, URLs and other visible terminal
+  text on either terminal backend.
+- Automatically apply terminal profiles by host, user, directory and foreground
+  program, or select a profile manually for a pane.
+- Save, edit and share workspace templates containing tabs, splits, terminal
+  startup commands and browser pages. Apply local or saved remote-host templates
+  to create fresh workspaces.
+- Fork saved Codex, Claude Code, OpenCode and Pi conversations into independent
+  new panes with their native context, locally or on supported remote hosts.
+- Import Chrome and Firefox cookies, history and session tabs, with a preview,
+  browser data access controls and project-specific remote browser storage.
+- Browse persistent terminal and Agent notification history, filter unread,
+  failed or pending items, and return to the pane that emitted a notification.
+- Show the current branch's GitHub pull request number and status in the Git
+  panel, open its page, and read review comments beside the corresponding diff.
+- Add an optional Git proxy under Settings → General for Git panel actions,
+  pull request status and Git in newly opened terminals.
 - Show the processes running in a shared remote session in the Info panel.
+- Preview a remote project's localhost development pages through SSH in its
+  browser panes, including their local resources and connections.
+
+### Changed
+
+- Group feature switches and management actions in Settings for Quick Terminal,
+  command history, hints, profiles, templates, browser import, pull requests and
+  Agent notifications.
 
 ### Fixed
 
 - Use a consistent compact switch size throughout Settings.
 - Return keyboard focus to the previous pane when the command palette opened
   over the agent palette is closed.
-- Stop the menu bar from flickering while zshell is in front, and keep the Terminal menu before Window and Help.
-- Keep the configured cursor shape in Alacritty terminals restored from
-  background sessions instead of always showing a block.
+- Stop the menu bar from flickering while Zshell is in front, and keep the
+  Terminal menu before Window and Help.
+- Preserve symbolic links and update their targets when saving in the editor.
+- Restore the configured cursor when a terminal program returns to the shell,
+  including Alacritty sessions restored from the background.
+- Restore the architecture-specific downloads and Gitee mirror links on the
+  website.
+- Recover unhealthy shared remote connections after wake without restarting
+  their jobs, and let exited remote sessions make room for new ones.
+- Recover the zsh prompt after the current directory is removed.
 
 ## [0.1.11]
 
