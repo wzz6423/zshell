@@ -9,11 +9,10 @@ import AppKit
 /// Info.plist; AppKit forwards matching service requests to this object.
 @MainActor
 final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
+    private var workspaceWindows: [ZshellWorkspaceWindowController] = []
+
     func applicationWillFinishLaunching(_ notification: Notification) {
         SSHAgentEnvironment.shared.warmUp()
-        // AppSettings is first initialized from SwiftUI's App.init(), where
-        // NSApp may not exist yet. Reapply the saved overrides once AppKit is
-        // ready, before SwiftUI creates the first window.
         AppSettings.shared.applyAppearance()
         AppSettings.shared.applyApplicationIcon()
     }
@@ -21,10 +20,29 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.servicesProvider = self
         WindowScreenConstraint.shared.start()
+        AppMenuController.shared.install()
+        let open: () -> Void = { [weak self] in self?.openWorkspaceWindow() }
+        AppMenuController.shared.openWindow = open
+        TerminalManager.registerWindowOpener(open)
         restoreTerminalMenus()
         AppMenuLocalization.shared.start(applicationDelegate: self)
         GlobalTerminalOverlay.shared.start()
         ApplicationPresenceController.shared.start()
+        openWorkspaceWindow()
+        TerminalManager.openRestoredWindows(open)
+    }
+
+    private func openWorkspaceWindow() {
+        let names = Set(workspaceWindows.compactMap { $0.window?.identifier?.rawValue })
+        let number = (1...).first { !names.contains("main-AppWindow-\($0)") }!
+        let controller = ZshellWorkspaceWindowController(number: number)
+        workspaceWindows.append(controller)
+        controller.onClose = { [weak self, weak controller] in
+            self?.workspaceWindows.removeAll { $0 === controller }
+        }
+        controller.showWindow(nil)
+        controller.window?.makeKeyAndOrderFront(nil)
+        AppMenuController.shared.refresh()
     }
 
     func restoreTerminalMenus() {

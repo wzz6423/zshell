@@ -8,6 +8,7 @@ struct BrowserProfileDataTests {
         _ = NSApplication.shared
         let home = URL(fileURLWithPath: CommandLine.arguments[1])
         precondition(FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL.path == home.standardizedFileURL.path)
+        try activeChromeHistory(scratch: home)
         try discoveryDistinguishesMissingFromDenied(scratch: URL(fileURLWithPath: CommandLine.arguments[1]))
         let found = BrowserProfileData.discover(home: home)
         precondition(found.blocked.isEmpty && found.profiles.count == 2)
@@ -52,6 +53,26 @@ struct BrowserProfileDataTests {
         precondition(BrowserProfileData.preview(invalid, selection: [.sessions]).sessions.error != nil)
         try await firefoxSameSite(scratch: home, expires: Double(CommandLine.arguments[2])!)
         print("Profile discovery, Chromium encryption/domain binding, partition skips, Firefox LZ4, history and sessions passed")
+    }
+
+    static func activeChromeHistory(scratch: URL) throws {
+        for name in ["history-exclusive", "history-journal", "history-wal"] {
+            let profile = BrowserProfile(kind: .chrome, name: name, directory: scratch.appendingPathComponent(name))
+            let preview = BrowserProfileData.preview(profile, selection: [.history])
+            let expected = name == "history-wal"
+                ? ["https://example.test/wal", "https://example.test/committed"]
+                : ["https://example.test/committed"]
+            guard preview.history.error == nil, preview.history.values.map(\.url) == expected,
+                  preview.history.values.allSatisfy({ $0.title == "Committed" }) else {
+                throw NSError(domain: "HistoryTest", code: 1, userInfo: [NSLocalizedDescriptionKey:
+                    "\(name): committed history unavailable: \(preview.history.error ?? "unexpected rows")"])
+            }
+        }
+        let temporary = FileManager.default.temporaryDirectory
+        let leftovers = try FileManager.default.contentsOfDirectory(at: temporary, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.hasPrefix("zshell-browser-database-") }
+        precondition(leftovers.isEmpty, "Private database snapshots were not removed")
+        print("Active Chrome history: exclusive lock, rollback recovery, committed WAL and snapshot cleanup passed")
     }
 
     @MainActor static func firefoxSameSite(scratch: URL, expires: Double) async throws {

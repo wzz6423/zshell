@@ -62,6 +62,8 @@ Cookie 会写入点击 **Import** 时选中项目的浏览器存储。远程项�
 
 导入的历史记录会以私有文件保存，可从 **Browser → Imported Browser History** 搜索并打开。最多保留 50,000 条历史记录，最多在当前项目打开 100 个会话标签页。分区 Cookie 以及 Firefox 容器中的 Cookie 和标签页会被跳过。标签页只恢复当前的 HTTP 或 HTTPS 页面，不恢复前进 / 后退历史；本地存储不会迁移，因此部分网站可能需要重新登录。
 
+导入历史记录时可以保持 Chrome 开启，Chrome 原有的历史记录不会被修改。
+
 Firefox 未设置 SameSite 的 Cookie 会按 Lax 导入，也支持旧配置和保存的会话。显式设置 SameSite=None 的 Cookie 仍须带有 Secure。
 
 ## 让 Agent 测试页面 [#let-an-agent-test-the-page]

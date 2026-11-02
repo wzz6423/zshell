@@ -1,9 +1,7 @@
 import AppKit
 import Combine
 
-/// SwiftUI updates app commands; AppKit owns the standard menu titles and
-/// actions. Update those in place so their targets and keyboard bindings stay
-/// intact. User-named project/tab items are never used as localization keys.
+/// 原位更新 AppKit 菜单，保留动作与快捷键；项目和标签页名称直接显示原值。
 @MainActor
 final class AppMenuLocalization: NSObject {
     static let shared = AppMenuLocalization()
@@ -38,8 +36,7 @@ final class AppMenuLocalization: NSObject {
     }
 
     @objc private func refresh() {
-        // SwiftUI rebuilds its menu tree after workspace changes. Restore the
-        // AppKit-owned commands after that reconciliation, including shortcuts.
+        AppMenuController.shared.refresh()
         applicationDelegate?.restoreTerminalMenus()
         guard let menu = NSApp.mainMenu else { return }
         AgentConversationHistoryController.shared.installMenu(in: menu)

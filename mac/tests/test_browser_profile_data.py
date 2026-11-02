@@ -119,10 +119,42 @@ def prepare(home, expires):
                        ("127.0.0.1", "legacy_" + name, "fixture-only", "/", expires, 0, 1))
 
 
+def active_history(home):
+    connections = []
+    for name in ("history-exclusive", "history-journal", "history-wal"):
+        directory = home / name
+        directory.mkdir()
+        database = sqlite3.connect(directory / "History")
+        connections.append(database)
+        database.execute("PRAGMA locking_mode=EXCLUSIVE")
+        database.execute("PRAGMA cache_size=1")
+        if name == "history-wal":
+            database.execute("PRAGMA journal_mode=WAL")
+            database.execute("PRAGMA wal_autocheckpoint=0")
+        database.executescript("CREATE TABLE urls (url TEXT,title TEXT,last_visit_time INTEGER);"
+                              "INSERT INTO urls VALUES ('https://example.test/committed','Committed',13300000000000000);")
+        if name == "history-journal":
+            database.execute("CREATE TABLE spill (payload TEXT)")
+            database.execute("INSERT INTO spill VALUES (?)", ("original" * 50_000,))
+            database.commit()
+            database.execute("BEGIN EXCLUSIVE")
+            database.execute("UPDATE urls SET title='Uncommitted'")
+            database.execute("UPDATE spill SET payload=?", ("modified" * 50_000,))
+        elif name == "history-wal":
+            database.execute("INSERT INTO urls VALUES ('https://example.test/wal','Committed',13300000000000001)")
+            database.commit()
+            database.execute("BEGIN EXCLUSIVE")
+            database.execute("INSERT INTO urls VALUES ('https://example.test/uncommitted','Uncommitted',13300000000000002)")
+    return connections
+
+
 with tempfile.TemporaryDirectory(prefix="zshell-browser-profile-test-", dir="/tmp") as temporary:
     root = Path(temporary).resolve()
     expires = int(time.time()) + 30 * 24 * 60 * 60
     prepare(root, expires)
+    connections = active_history(root)
+    originals = {file: file.read_bytes() for name in ("history-exclusive", "history-journal", "history-wal")
+                 for file in (root / name).iterdir()}
     binary = root / "browser-profile-tests"
     runtime_tmp = root / "tmp"
     runtime_tmp.mkdir()
@@ -133,8 +165,13 @@ with tempfile.TemporaryDirectory(prefix="zshell-browser-profile-test-", dir="/tm
                     str(ROOT / "mac/zshell/BrowserProfileSessions.swift"),
                     str(ROOT / "mac/zshell/BrowserProfileData.swift"),
                     str(ROOT / "mac/tests/BrowserProfileDataTests.swift"), "-o", str(binary)], env=environment, check=True)
-    subprocess.run([str(binary), str(root), str(expires)], env=environment, cwd=root, check=True, timeout=60)
-    # Cookie schemas before 16 store expiry in seconds.
-    with sqlite3.connect(root / "Library/Application Support/Firefox/Profiles/fixture/cookies.sqlite") as db:
-        db.executescript("UPDATE moz_cookies SET expiry = expiry / 1000; PRAGMA user_version = 15;")
-    subprocess.run([str(binary), str(root), str(expires)], env=environment, cwd=root, check=True, timeout=60)
+    try:
+        subprocess.run([str(binary), str(root), str(expires)], env=environment, cwd=root, check=True, timeout=60)
+        # Cookie schemas before 16 store expiry in seconds.
+        with sqlite3.connect(root / "Library/Application Support/Firefox/Profiles/fixture/cookies.sqlite") as db:
+            db.executescript("UPDATE moz_cookies SET expiry = expiry / 1000; PRAGMA user_version = 15;")
+        subprocess.run([str(binary), str(root), str(expires)], env=environment, cwd=root, check=True, timeout=60)
+        assert all(file.read_bytes() == data for file, data in originals.items()), "Import changed the live browser database"
+    finally:
+        for database in connections:
+            database.close()

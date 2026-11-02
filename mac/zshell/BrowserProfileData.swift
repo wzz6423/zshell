@@ -216,7 +216,7 @@ nonisolated enum BrowserProfileData {
         var result = BrowserProfileResult<BrowserImportedPage>()
         do {
             let file = profile.directory.appendingPathComponent(profile.kind == .chrome ? "History" : "places.sqlite")
-            let db = try Database(file)
+            let db = try Database(file, snapshot: profile.kind == .chrome)
             let table = profile.kind == .chrome ? "urls" : "moz_places"
             let time = profile.kind == .chrome ? "last_visit_time" : "last_visit_date"
             try db.rows("SELECT COUNT(*) FROM \(table) WHERE \(time) > 0") { result.total = Int(sqlite3_column_int64($0, 0)) }
@@ -330,17 +330,70 @@ nonisolated enum BrowserProfileData {
 
     private final class Database {
         private var handle: OpaquePointer?
-        init(_ file: URL) throws {
-            let status = sqlite3_open_v2(file.path, &handle, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nil)
+        private var snapshotDirectory: URL?
+
+        init(_ file: URL, snapshot: Bool = false) throws {
+            let source: URL
+            if snapshot {
+                let manager = FileManager.default
+                let directory = manager.temporaryDirectory.appendingPathComponent("zshell-browser-database-\(UUID().uuidString)", isDirectory: true)
+                try manager.createDirectory(at: directory, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
+                do {
+                    source = try Self.copySnapshot(file, into: directory)
+                    snapshotDirectory = directory
+                } catch {
+                    try? manager.removeItem(at: directory)
+                    throw error
+                }
+            } else { source = file }
+            // Chrome 的历史库持有独占锁；只在私有副本恢复日志，原浏览器文件始终只读。
+            let flags = (snapshot ? SQLITE_OPEN_READWRITE : SQLITE_OPEN_READONLY) | SQLITE_OPEN_NOMUTEX
+            let status = sqlite3_open_v2(source.path, &handle, flags, nil)
             guard status == SQLITE_OK else {
                 let message = handle.flatMap { sqlite3_errmsg($0) }.map(String.init(cString:)) ?? "SQLite open failed."
                 if let handle { sqlite3_close(handle) }
                 handle = nil
+                if let snapshotDirectory { try? FileManager.default.removeItem(at: snapshotDirectory) }
                 throw NSError(domain: "SQLite", code: Int(status), userInfo: [NSLocalizedDescriptionKey: message])
             }
             sqlite3_busy_timeout(handle, 2_000)
         }
-        deinit { sqlite3_close(handle) }
+        deinit {
+            sqlite3_close(handle)
+            if let snapshotDirectory { try? FileManager.default.removeItem(at: snapshotDirectory) }
+        }
+
+        private static func copySnapshot(_ file: URL, into directory: URL) throws -> URL {
+            let manager = FileManager.default
+            let files = [file, URL(fileURLWithPath: file.path + "-journal"), URL(fileURLWithPath: file.path + "-wal")]
+            func versions() throws -> [FileVersion?] {
+                try files.enumerated().map { index, file in
+                    do {
+                        let attributes = try manager.attributesOfItem(atPath: file.path)
+                        return FileVersion(size: (attributes[.size] as? NSNumber)?.uint64Value ?? 0,
+                                           modified: attributes[.modificationDate] as? Date ?? .distantPast,
+                                           inode: (attributes[.systemFileNumber] as? NSNumber)?.uint64Value ?? 0)
+                    } catch where index > 0 && BrowserProfileData.isMissing(error) { return nil }
+                }
+            }
+            for _ in 0..<3 {
+                let before = try versions()
+                for (index, file) in files.enumerated() where before[index] != nil {
+                    try manager.copyItem(at: file, to: directory.appendingPathComponent(file.lastPathComponent))
+                }
+                if try before == versions() { return directory.appendingPathComponent(file.lastPathComponent) }
+                for copy in try manager.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) {
+                    try manager.removeItem(at: copy)
+                }
+            }
+            throw NSError(domain: "SQLite", code: Int(SQLITE_BUSY), userInfo: [NSLocalizedDescriptionKey: "database is locked"])
+        }
+
+        private struct FileVersion: Equatable {
+            let size: UInt64
+            let modified: Date
+            let inode: UInt64
+        }
         func rows(_ sql: String, _ body: (OpaquePointer) -> Void) throws {
             var statement: OpaquePointer?
             guard sqlite3_prepare_v2(handle, sql, -1, &statement, nil) == SQLITE_OK, let statement else { throw error() }
