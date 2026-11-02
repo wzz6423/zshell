@@ -166,7 +166,23 @@ nonisolated enum GitHubPullRequestWorker {
                                          outputLimit: 262_144, environment: $3)
         }
     ) -> ProjectPullRequestState {
-        var environment = environment
+        let environment = processEnvironment(environment)
+        guard let executable = locate(environment) else { return .failed(.missingCLI) }
+        let deadline = Date().addingTimeInterval(12)
+        func run(_ arguments: [String]) throws -> Data {
+            let remaining = deadline.timeIntervalSinceNow
+            guard remaining > 0 else { throw QueryFailure.unavailable }
+            let result = try command(executable, arguments, remaining, environment)
+            guard !result.timedOut, !result.output.wasTruncated else { throw QueryFailure.unavailable }
+            if result.terminationStatus == 4 { throw QueryFailure.notSignedIn }
+            guard result.terminationStatus == 0 else { throw QueryFailure.unavailable }
+            return Data(result.output.stdout.utf8)
+        }
+        return query(context, run: run)
+    }
+
+    static func processEnvironment(_ inherited: [String: String]) -> [String: String] {
+        var environment = inherited
         let path = (environment["PATH"] ?? "").split(separator: ":").filter { $0.hasPrefix("/") }.map(String.init)
         environment["PATH"] = (path + ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"]).joined(separator: ":")
         for key in ["GH_DEBUG", "GH_REPO", "ZSHELL_CLI_STATE", "ZSHELL_CLI_TOKEN"] { environment.removeValue(forKey: key) }
@@ -175,31 +191,57 @@ nonisolated enum GitHubPullRequestWorker {
         environment["GH_NO_UPDATE_NOTIFIER"] = "1"
         environment["GH_NO_EXTENSION_UPDATE_NOTIFIER"] = "1"
         environment["GH_PAGER"] = "/bin/cat"
-        guard let executable = locate(environment) else { return .failed(.missingCLI) }
-        let deadline = Date().addingTimeInterval(12)
+        return environment
+    }
+
+    private static func query(_ context: ProjectPullRequestContext, run: ([String]) throws -> Data) -> ProjectPullRequestState {
         func load(_ repository: GitHubRepository) throws -> RepositoryResponse.Repository {
             let parts = repository.nameWithOwner.split(separator: "/")
-            let result = try command(executable, ["api", "graphql", "--hostname", "github.com",
+            let data = try run(["api", "graphql", "--hostname", "github.com",
                 "-f", "query=" + queryText, "-f", "owner=" + parts[0], "-f", "name=" + parts[1],
-                "-f", "branch=" + context.headBranch], max(0, deadline.timeIntervalSinceNow), environment)
-            guard !result.timedOut, !result.output.wasTruncated else { throw QueryFailure.unavailable }
-            if result.terminationStatus == 4 { throw QueryFailure.notSignedIn }
-            guard result.terminationStatus == 0,
-                  let response = try? JSONDecoder().decode(RepositoryResponse.self, from: Data(result.output.stdout.utf8)),
+                "-f", "branch=" + context.headBranch])
+            guard let response = try? JSONDecoder().decode(RepositoryResponse.self, from: data),
                   response.errors?.isEmpty != false, let repository = response.data?.repository else {
                 throw QueryFailure.unavailable
             }
             return repository
         }
+        func filtered(_ repository: GitHubRepository, state: String) throws -> RepositoryResponse.Repository.PullRequest? {
+            let owner = context.headRepository.nameWithOwner.split(separator: "/")[0]
+            var selected: RepositoryResponse.Repository.PullRequest?
+            for page in 1...10 {
+                let data = try run(["api", "repos/\(repository.nameWithOwner)/pulls", "--hostname", "github.com",
+                    "--method", "GET", "-f", "head=\(owner):\(context.headBranch)", "-f", "state=" + state,
+                    "-f", "sort=updated", "-f", "direction=desc", "-F", "per_page=50", "-F", "page=\(page)",
+                    "--jq", filteredFields])
+                guard let nodes = try? JSONDecoder().decode([RepositoryResponse.Repository.PullRequest].self, from: data) else {
+                    throw QueryFailure.unavailable
+                }
+                for node in nodes where node.matches(context, in: repository) {
+                    if selected == nil || node.updatedAt > selected!.updatedAt ||
+                        (node.updatedAt == selected!.updatedAt && node.number > selected!.number) { selected = node }
+                }
+                if nodes.count < 50 { return selected }
+                if let selected, let last = nodes.last, last.updatedAt < selected.updatedAt { return selected }
+            }
+            throw QueryFailure.unavailable
+        }
+        func matches(_ response: RepositoryResponse.Repository, in repository: GitHubRepository) throws -> [RepositoryResponse.Repository.PullRequest] {
+            guard response.pullRequests.pageInfo.hasNextPage else { return response.matches(context, in: repository) }
+            // REST filters the head owner before paging, so popular branches
+            // do not require scanning every unrelated fork in the repository.
+            if let open = try filtered(repository, state: "open") { return [open] }
+            return try filtered(repository, state: "closed").map { [$0] } ?? []
+        }
         do {
             let base = context.baseRepository ?? context.headRepository
             let response = try load(base)
-            var candidates = try response.matches(context, in: base)
+            var candidates = try matches(response, in: base)
             if base != context.headRepository {
-                candidates += try load(context.headRepository).matches(context, in: context.headRepository)
+                candidates += try matches(load(context.headRepository), in: context.headRepository)
             } else if context.baseRepository == nil, let parent = response.parent,
                let parentRepository = GitHubRepository(parent.nameWithOwner), parentRepository != base {
-                candidates += try load(parentRepository).matches(context, in: parentRepository)
+                candidates += try matches(load(parentRepository), in: parentRepository)
             }
             let selected = candidates.sorted {
                 let lhsOpen = $0.state == "OPEN", rhsOpen = $1.state == "OPEN"
@@ -222,6 +264,10 @@ nonisolated enum GitHubPullRequestWorker {
         orderBy:{field:UPDATED_AT,direction:DESC}){pageInfo{hasNextPage} nodes{number url state isDraft
         headRefName headRepository{nameWithOwner} updatedAt}}}}
         """
+    private static let filteredFields = """
+        [.[] | {number,url:.html_url,state:(if .state == "open" then "OPEN" elif .merged_at != null then "MERGED" else "CLOSED" end),
+        isDraft:(.draft // false),headRefName:.head.ref,headRepository:(if .head.repo then {nameWithOwner:.head.repo.full_name} else null end),updatedAt:.updated_at}]
+        """
 
     private struct RepositoryResponse: Decodable {
         struct Repository: Decodable {
@@ -234,6 +280,13 @@ nonisolated enum GitHubPullRequestWorker {
                 let headRefName: String
                 let headRepository: Reference?
                 let updatedAt: String
+
+                func matches(_ context: ProjectPullRequestContext, in base: GitHubRepository) -> Bool {
+                    number > 0 && headRefName == context.headBranch
+                        && headRepository.flatMap { GitHubRepository($0.nameWithOwner) } == context.headRepository
+                        && ProjectPullRequest.Status(rawValue: state) != nil
+                        && url.lowercased() == "https://github.com/\(base.nameWithOwner)/pull/\(number)"
+                }
             }
             struct Connection: Decodable {
                 struct PageInfo: Decodable { let hasNextPage: Bool }
@@ -243,16 +296,9 @@ nonisolated enum GitHubPullRequestWorker {
             let parent: Reference?
             let pullRequests: Connection
 
-            func matches(_ context: ProjectPullRequestContext, in base: GitHubRepository) throws -> [PullRequest] {
+            func matches(_ context: ProjectPullRequestContext, in base: GitHubRepository) -> [PullRequest] {
                 // A same-named branch in another fork is not this project's PR.
-                let matching = pullRequests.nodes.filter {
-                    $0.number > 0 && $0.headRefName == context.headBranch
-                        && $0.headRepository.flatMap { GitHubRepository($0.nameWithOwner) } == context.headRepository
-                        && ProjectPullRequest.Status(rawValue: $0.state) != nil
-                        && $0.url.lowercased() == "https://github.com/\(base.nameWithOwner)/pull/\($0.number)"
-                }
-                guard !pullRequests.pageInfo.hasNextPage else { throw QueryFailure.unavailable }
-                return matching
+                pullRequests.nodes.filter { $0.matches(context, in: base) }
             }
         }
         struct Payload: Decodable { let repository: Repository? }
@@ -328,6 +374,11 @@ final class ProjectPullRequestModel: ObservableObject {
     private var isProbing = false
     private var refreshPending = false
     private var forceLookupPending = false
+
+    var context: ProjectPullRequestContext? {
+        guard let snapshot, case .context(let context) = ProjectPullRequestContext.resolve(snapshot) else { return nil }
+        return context
+    }
 
     init(cache: ProjectPullRequestCache = .shared,
          probe: @escaping @Sendable (String) -> GitStatusModel.BranchSnapshotResult = { GitStatusModel.branchSnapshot(in: $0) }) {

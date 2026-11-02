@@ -56,6 +56,8 @@ zshell-server list --project ~/repo
 zshell-server terminate --project ~/repo --session UUID
 ```
 
+Mac 从睡眠唤醒后，共享远程会话会检查连接，并在需要时重连原来的远程任务。手动分离的会话仍保持分离。
+
 ## 文件与截图 [#paste]
 
 复制普通文件或截图后，在远程窗格粘贴。Zshell 先上传到主机私有目录，再按会话 shell 插入带引用的路径。每批最多 32 个文件，单文件 32 MiB，总计 64 MiB；不支持目录和符号链接。共享会话的上传保留七天。普通 Unix SSH 窗格也支持文件和截图粘贴。

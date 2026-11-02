@@ -13,7 +13,7 @@ Zshell peut afficher un navigateur intégré dans n'importe quel onglet ou volet
 
 Les onglets de navigateur appartiennent au projet sélectionné et participent à sa disposition habituelle d'onglets et de volets. Si aucun projet n'est ouvert, Zshell en crée un pour accueillir le navigateur.
 
-Dans un projet SSH ou distant partagé, ouvrez `http://localhost:3000` pour prévisualiser le serveur de développement de cet hôte. Zshell utilise une redirection SSH ; en cas de déconnexion, reconnectez-vous et rechargez la page. Les données du site sont partagées entre les volets de ce projet distant et séparées des projets locaux et des autres projets distants.
+Dans un projet SSH ou distant partagé, ouvrez `http://localhost:3000` pour prévisualiser le serveur de développement de cet hôte. Zshell utilise une redirection SSH ; en cas de déconnexion, reconnectez-vous et rechargez la page. Les données du site sont partagées entre les volets de ce projet distant et séparées des projets locaux et des autres projets distants. Une adresse affichée par un serveur de développement, comme `http://[::]:8000/`, s’ouvre aussi via SSH dans un projet distant.
 
 ## Adresse et recherche [#address-and-search]
 
@@ -43,6 +43,8 @@ Changer d'onglet ou de projet conserve la page, son historique, sa position de d
 Les volets conservent les cookies, les connexions et les autres données des sites entre les onglets et les lancements. Il ne s'agit pas d'un mode de navigation privée.
 
 Avec **Browser → Import Browser Data…**, les cookies sont importés dans le stockage du navigateur du projet sélectionné au clic sur **Import**. Chaque projet distant possède un stockage séparé ; les projets locaux partagent le stockage par défaut. Changer de projet ne modifie pas la destination. Fermer le projet cible arrête le reste de l’import sans écrire dans un autre projet. Si aucun projet n’est ouvert, Zshell crée un projet local au début de l’import des cookies ou des onglets.
+
+Les cookies Firefox sans réglage SameSite sont importés en Lax, y compris depuis les anciens profils et sessions enregistrées. Les cookies avec SameSite=None explicite exigent toujours Secure.
 
 ## Faire tester la page par un agent [#let-an-agent-test-the-page]
 

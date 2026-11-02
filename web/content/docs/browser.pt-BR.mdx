@@ -13,7 +13,7 @@ O Zshell pode colocar um navegador integrado em qualquer aba ou painel dividido.
 
 As abas de navegador pertencem ao projeto selecionado e participam do layout normal de abas e painéis. Se não houver um projeto aberto, o Zshell cria um para o navegador.
 
-Em um projeto SSH ou remoto compartilhado, abra `http://localhost:3000` para visualizar o servidor de desenvolvimento desse host. O Zshell usa encaminhamento SSH; se a conexão cair, reconecte e recarregue a página. Os dados do site são compartilhados entre os painéis desse projeto remoto e mantidos separados dos projetos locais e de outros projetos remotos.
+Em um projeto SSH ou remoto compartilhado, abra `http://localhost:3000` para visualizar o servidor de desenvolvimento desse host. O Zshell usa encaminhamento SSH; se a conexão cair, reconecte e recarregue a página. Os dados do site são compartilhados entre os painéis desse projeto remoto e mantidos separados dos projetos locais e de outros projetos remotos. Endereços exibidos pelo servidor de desenvolvimento, como `http://[::]:8000/`, também abrem via SSH em um projeto remoto.
 
 ## Endereço e busca [#address-and-search]
 
@@ -43,6 +43,8 @@ Alternar abas ou projetos mantém a página como estava, incluindo histórico, p
 Os painéis de navegador mantêm cookies, sessões de login e outros dados de sites entre abas e inicializações. Este não é um modo de navegação privada.
 
 Em **Browser → Import Browser Data…**, os cookies são importados para o armazenamento do navegador do projeto selecionado ao clicar em **Import**. Cada projeto remoto tem armazenamento separado; os projetos locais compartilham o armazenamento padrão. Trocar de projeto não altera o destino. Fechar o projeto de destino interrompe o restante da importação sem gravar em outro projeto. Se nenhum projeto estiver aberto, o Zshell cria um projeto local ao iniciar a importação de cookies ou abas.
+
+Cookies do Firefox sem SameSite são importados como Lax, inclusive de perfis antigos e sessões salvas. Cookies com SameSite=None explícito ainda exigem Secure.
 
 ## Pedir a um agente para testar a página [#let-an-agent-test-the-page]
 

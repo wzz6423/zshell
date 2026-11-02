@@ -18,6 +18,8 @@ struct BrowserProfileImportIntegrationTests {
         let mode = CommandLine.arguments[3]
         let cookieCount = Int(CommandLine.arguments[5])!
         let serverPort = Int(CommandLine.arguments[6])!
+        let skippedCookies = Int(CommandLine.arguments[7])!
+        let expires = Double(CommandLine.arguments[8])!
         precondition(AppSettings.shared.terminalBackend.rawValue == backend)
         guard let surface = manager.selectedProject?.selectedSession?.surface else { throw failure("Initial terminal surface missing") }
         precondition(backend == "libghostty" ? surface is ZshellTerminalView : surface is AlacrittyTerminalView)
@@ -71,7 +73,7 @@ struct BrowserProfileImportIntegrationTests {
         preview.performClick(nil)
         _ = try waitValue("Preview completion") { importButton.isEnabled ? true : nil }
         let text = try waitValue("Preview content") { descendants(panel.contentView).compactMap { $0 as? NSTextView }.first }
-        precondition(text.string.contains("Cookies: \(cookieCount)") && text.string.contains("History: 1") && text.string.contains("Open tabs: 2"))
+        precondition(text.string.contains("Cookies: \(cookieCount + skippedCookies)") && text.string.contains("History: 1") && text.string.contains("Open tabs: 2"))
         precondition(!text.string.contains("fixture-secret"))
         let destinationStore = project?.browserDataStore
         if remote {
@@ -119,7 +121,7 @@ struct BrowserProfileImportIntegrationTests {
             return
         }
         _ = try waitValue("Import completion") { text.string.contains("Tabs opened: 2") ? true : nil }
-        precondition(text.string.contains("Cookies imported: \(cookieCount), skipped: 0"))
+        precondition(text.string.contains("Cookies imported: \(cookieCount), skipped: \(skippedCookies)"))
         precondition(text.string.contains("History imported: 1, skipped: 0"))
         let history = try BrowserImportedHistoryStore.load()
         precondition(history.count == 1 && history[0].title == "History fixture")
@@ -153,7 +155,29 @@ struct BrowserProfileImportIntegrationTests {
             check(try cookies(in: local.browserDataStore).isEmpty)
         } else {
             let shared = Project(fallbackName: "Shared local fixture", manager: manager, createInitialSession: false)
-            check(try cookies(in: shared.browserDataStore).contains { $0.name == "fixture_login" && $0.value == "fixture-secret" && $0.domain == "127.0.0.1" })
+            let stored = try cookies(in: shared.browserDataStore)
+            precondition(stored.contains { $0.name == "fixture_login" && $0.value == "fixture-secret" && $0.domain == "127.0.0.1" })
+            if mode.hasPrefix("firefox-samesite") {
+                precondition(stored.count == cookieCount)
+                let byName = Dictionary(uniqueKeysWithValues: stored.map { ($0.name, $0) })
+                precondition(byName["fixture_login"]?.sameSitePolicy?.rawValue.lowercased() == "lax")
+                precondition(byName["fixture_login"]?.expiresDate?.timeIntervalSince1970 == expires,
+                             "Cookie expiry: \(String(describing: byName["fixture_login"]?.expiresDate?.timeIntervalSince1970))")
+                for name in ["fixture_session_missing", "fixture_session_null"] {
+                    let cookie = byName[name]!
+                    precondition(cookie.sameSitePolicy?.rawValue.lowercased() == "lax" && cookie.expiresDate == nil && cookie.isHTTPOnly)
+                }
+                if mode == "firefox-samesite" {
+                    for name in ["fixture_null", "fixture_unknown", "fixture_session_unset"] {
+                        precondition(byName[name]?.sameSitePolicy?.rawValue.lowercased() == "lax")
+                    }
+                    for prefix in ["fixture_", "fixture_session_"] {
+                        precondition(byName[prefix + "none_insecure"] == nil)
+                        let cookie = byName[prefix + "none_secure"]!
+                        precondition(cookie.isSecure && cookie.isHTTPOnly && cookie.sameSitePolicy?.rawValue.lowercased() == "none")
+                    }
+                }
+            }
             if let neighbor {
                 precondition(neighbor.tabs.isEmpty && manager.selectedProjectID == neighbor.id)
                 check(try cookies(in: neighbor.browserDataStore).isEmpty)

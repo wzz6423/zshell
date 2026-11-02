@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 
 sys.dont_write_bytecode = True
 from test_browser_remote_routing import Fixture
@@ -19,11 +20,14 @@ PRODUCTS = BUILD / 'Build/Products/Debug'
 LIBRARY = PRODUCTS / 'zshell Debug.app/Contents/MacOS/zshell.debug.dylib'
 seen_cookie = threading.Event()
 seen_localhost_cookie = threading.Event()
+seen_session_missing_cookie = threading.Event()
+seen_session_null_cookie = threading.Event()
 requests = []
 
 if len(sys.argv) == 1:
     for backend in ('libghostty', 'alacritty'):
-        for mode in ('local', 'no-project', 'remote-switch', 'remote-close-before', 'remote-close-writing'):
+        for mode in ('local', 'no-project', 'remote-switch', 'remote-close-before', 'remote-close-writing',
+                     'firefox-samesite', 'firefox-samesite-missing', 'firefox-samesite-null'):
             environment = os.environ.copy()
             environment.update(ZSHELL_PROFILE_TEST_BACKEND=backend, ZSHELL_PROFILE_TEST_MODE=mode)
             print(f'Testing browser import with {backend}: {mode}', flush=True)
@@ -39,6 +43,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             seen_cookie.set()
         if 'fixture_localhost=fixture-localhost-secret' in cookie:
             seen_localhost_cookie.set()
+        if 'fixture_session_missing=fixture-session-secret' in cookie:
+            seen_session_missing_cookie.set()
+        if 'fixture_session_null=fixture-session-secret' in cookie:
+            seen_session_null_cookie.set()
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b'<title>Fixture</title>')
@@ -65,6 +73,7 @@ with tempfile.TemporaryDirectory(prefix='zshell-browser-integration-', dir='/tmp
     backend = os.environ['ZSHELL_PROFILE_TEST_BACKEND']
     mode = os.environ['ZSHELL_PROFILE_TEST_MODE']
     remote = mode.startswith('remote-')
+    same_site = mode.startswith('firefox-samesite')
     configuration = home / '.config/zshell-dev/config.toml'
     configuration.parent.mkdir(parents=True)
     configuration.write_text(f'ai.enabled = false\nterminal.backend = "{backend}"\n')
@@ -82,25 +91,49 @@ with tempfile.TemporaryDirectory(prefix='zshell-browser-integration-', dir='/tmp
     url = f'http://127.0.0.1:{server.server_port}/fixture'
     if remote:
         url = f'http://localhost:{server.server_port}/fixture'
-    rows = [('127.0.0.1', 'fixture_login', 'fixture-secret', '/', 2000000000000, 0, 1, 1, '')]
+    expires = int(time.time()) + 30 * 24 * 60 * 60
+    rows = [('127.0.0.1', 'fixture_login', 'fixture-secret', '/', expires * 1000, 0, 1, 256 if same_site else 1, '')]
+    if mode == 'firefox-samesite':
+        rows += [('127.0.0.1', 'fixture_null', 'fixture-secret', '/', expires * 1000, 0, 1, None, ''),
+                 ('127.0.0.1', 'fixture_unknown', 'fixture-secret', '/', expires * 1000, 0, 1, 99, ''),
+                 ('127.0.0.1', 'fixture_none_insecure', 'fixture-secret', '/', expires * 1000, 0, 1, 0, ''),
+                 ('127.0.0.1', 'fixture_none_secure', 'fixture-secret', '/', expires * 1000, 1, 1, 0, '')]
     if remote:
-        rows += [('localhost', 'fixture_localhost', 'fixture-localhost-secret', '/', 2000000000000, 0, 1, 1, ''),
-                 ('127.0.0.2', 'fixture_loopback2', 'fixture-loopback2-secret', '/', 2000000000000, 0, 1, 1, ''),
-                 ('.example.test', 'fixture_public', 'fixture-public-secret', '/', 2000000000000, 0, 0, 1, ''),
-                 ('localhost', '__Host-fixture_secure', 'fixture-secure-secret', '/', 2000000000000, 1, 1, 0, '')]
+        rows += [('localhost', 'fixture_localhost', 'fixture-localhost-secret', '/', expires * 1000, 0, 1, 1, ''),
+                 ('127.0.0.2', 'fixture_loopback2', 'fixture-loopback2-secret', '/', expires * 1000, 0, 1, 1, ''),
+                 ('.example.test', 'fixture_public', 'fixture-public-secret', '/', expires * 1000, 0, 0, 1, ''),
+                 ('localhost', '__Host-fixture_secure', 'fixture-secure-secret', '/', expires * 1000, 1, 1, 0, '')]
     if mode == 'remote-close-writing':
-        rows += [('localhost', f'fixture_batch_{index}', 'fixture-batch-secret', '/', 2000000000000, 0, 1, 1, '')
+        rows += [('localhost', f'fixture_batch_{index}', 'fixture-batch-secret', '/', expires * 1000, 0, 1, 1, '')
                  for index in range(256)]
     with sqlite3.connect(profile / 'cookies.sqlite') as db:
-        db.executescript('''CREATE TABLE moz_cookies (host TEXT,name TEXT,value TEXT,path TEXT,expiry INTEGER,
-          isSecure INTEGER,isHttpOnly INTEGER,sameSite INTEGER,originAttributes TEXT);
-          PRAGMA user_version = 17;''')
-        db.executemany('INSERT INTO moz_cookies VALUES (?,?,?,?,?,?,?,?,?)', rows)
+        same_column = '' if mode == 'firefox-samesite-missing' else ',sameSite INTEGER'
+        schema = 8 if mode == 'firefox-samesite-missing' else 9 if mode == 'firefox-samesite-null' else 17
+        db.executescript(f'''CREATE TABLE moz_cookies (host TEXT,name TEXT,value TEXT,path TEXT,expiry INTEGER,
+          isSecure INTEGER,isHttpOnly INTEGER{same_column},originAttributes TEXT);
+          PRAGMA user_version = {schema};''')
+        if schema < 16:
+            rows = [row[:4] + (row[4] // 1000,) + row[5:7] + (None,) + row[8:] for row in rows]
+        if not same_column:
+            rows = [row[:7] + row[8:] for row in rows]
+        placeholders = ','.join('?' for _ in rows[0])
+        db.executemany(f'INSERT INTO moz_cookies VALUES ({placeholders})', rows)
     with sqlite3.connect(profile / 'places.sqlite') as db:
         db.execute('CREATE TABLE moz_places (url TEXT,title TEXT,last_visit_date INTEGER)')
         db.execute('INSERT INTO moz_places VALUES (?,?,?)', (url, 'History fixture', 1700000000000000))
     session = {'windows': [{'tabs': [{'entries': [{'url': url, 'title': 'Fixture'}], 'index': 1},
                                      {'entries': [{'url': (f'http://127.0.0.1:{server.server_port}/fixture-second' if remote else url + '-second'), 'title': 'Second'}], 'index': 1}]}]}
+    if same_site:
+        session['cookies'] = [{'host': '127.0.0.1', 'name': 'fixture_session_' + name,
+                               'value': 'fixture-session-secret', 'path': '/', 'secure': False, 'httponly': True,
+                               **fields} for name, fields in (('missing', {}), ('null', {'sameSite': None}))]
+        if mode == 'firefox-samesite':
+            session['cookies'] += [{'host': '127.0.0.1', 'name': 'fixture_session_' + name,
+                                    'value': 'fixture-session-secret', 'path': '/', 'secure': secure,
+                                    'httponly': True, 'sameSite': value}
+                                   for name, value, secure in (('unset', 256, False), ('none_insecure', 0, False), ('none_secure', 0, True))]
+    skipped = 2 if mode == 'firefox-samesite' else 0
+    cookie_count = len(rows) + len(session.get('cookies', [])) - skipped
     (profile / 'sessionstore.jsonlz4').write_bytes(raw_lz4(json.dumps(session).encode()))
     binary = tmp / 'integration-tests'
     args = ['xcrun', 'swiftc', '-parse-as-library', '-swift-version', '5',
@@ -118,25 +151,35 @@ with tempfile.TemporaryDirectory(prefix='zshell-browser-integration-', dir='/tmp
              '-Xlinker', '-rpath', '-Xlinker', str(LIBRARY.parent),
              str(ROOT / 'mac/tests/BrowserProfileImportIntegrationTests.swift'), '-o', str(binary)]
     environment = {key: value for key, value in os.environ.items() if not key.startswith('ZSHELL_')}
+    runtime_tmp = tmp / 'tmp'
+    runtime_tmp.mkdir()
     environment.update(HOME=str(home), CFFIXED_USER_HOME=str(home), LC_ALL='en_US.UTF-8',
-                       ZSHELL_PTY_MUX_DIRECTORY=str(tmp / 'pty'))
+                       TMPDIR=str(runtime_tmp), ZSHELL_PTY_MUX_DIRECTORY=str(tmp / 'pty'))
     fixture_directory = tmp / 'ssh-fixture'
     fixture_directory.mkdir()
     fixture = Fixture(fixture_directory)
     try:
-        subprocess.run(args, check=True, cwd=ROOT)
+        subprocess.run(args, env=environment, check=True, cwd=tmp)
         with fixture:
             environment.update(ZSHELL_SSH_CONFIG_FILE=str(fixture.config), ZSHELL_SSH_AGENT_RESOLVED='1')
-            subprocess.run(['/usr/bin/defaults', 'delete', binary.name], capture_output=True)
+            subprocess.run(['/usr/bin/defaults', 'delete', binary.name], env=environment, capture_output=True)
             try:
                 subprocess.run([str(binary), backend, str(home), mode, str(fixture.ssh_port),
-                                str(len(rows)), str(server.server_port)], env=environment, check=True, timeout=120)
+                                str(cookie_count), str(server.server_port), str(skipped), str(expires)], env=environment, cwd=tmp, check=True, timeout=120)
             finally:
-                subprocess.run(['/usr/bin/defaults', 'delete', binary.name], capture_output=True)
+                subprocess.run(['/usr/bin/defaults', 'delete', binary.name], env=environment, capture_output=True)
             if mode.startswith('remote-close-'):
                 assert not requests, 'A closed destination opened an imported browser tab'
             else:
                 assert seen_cookie.wait(10), 'Imported cookie was not received by the HTTP fixture'
+            if same_site:
+                assert seen_session_missing_cookie.wait(10), 'Session cookie with missing SameSite was not sent'
+                assert seen_session_null_cookie.wait(10), 'Session cookie with NULL SameSite was not sent'
+                assert all('fixture_none_insecure=' not in cookie and 'fixture_session_none_insecure=' not in cookie
+                           for _, _, cookie in requests), 'Explicit insecure SameSite=None reached HTTP'
+                if mode == 'firefox-samesite':
+                    assert any('fixture_null=fixture-secret' in cookie and 'fixture_unknown=fixture-secret' in cookie
+                               for _, _, cookie in requests), 'Persistent default SameSite cookies were not sent'
             if mode == 'remote-switch':
                 assert seen_localhost_cookie.wait(10), 'Remote localhost cookie was not received through SSH'
                 assert any(path == '/fixture' and host.startswith('zshell-remote.localhost:')

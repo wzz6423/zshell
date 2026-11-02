@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Darwin
 import Foundation
@@ -17,6 +18,7 @@ nonisolated struct RemoteRelayConfiguration: Codable {
 nonisolated struct RemoteRelayControl: Codable {
     let sequence: UInt64
     let action: String
+    var wakeSequence: UInt64? = nil
 }
 
 nonisolated struct RemoteRelayStatus: Codable, Equatable, Sendable {
@@ -64,7 +66,11 @@ final class RemoteSessionConnection: ObservableObject {
     private let controlURL: URL
     private var configuration: RemoteRelayConfiguration
     private var controlSequence: UInt64 = 0
+    private var controlAction = ""
+    private var wakeSequence: UInt64 = 0
     private var timer: Timer?
+    private var wakeObserver: NSObjectProtocol?
+    private var isDetached = false
     private var statusReadTask: Task<RemoteRelayStatus?, Never>?
     private var monitoringGeneration: UInt64 = 0
     private(set) var pasteGeneration: UInt64 = 0
@@ -105,16 +111,23 @@ final class RemoteSessionConnection: ObservableObject {
             guard let self else { return }
             assumeMainActor { self.readStatus() }
         }
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            let connection = self
+            assumeMainActor { connection?.checkAfterWake() }
+        }
     }
 
     deinit {
         timer?.invalidate()
         statusReadTask?.cancel()
+        if let wakeObserver { NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver) }
         try? FileManager.default.removeItem(at: directoryURL)
     }
 
-    func reconnect() { pasteGeneration &+= 1; sendControl("reconnect") }
-    func detach() { pasteGeneration &+= 1; sendControl("detach") }
+    func reconnect() { isDetached = false; pasteGeneration &+= 1; sendControl("reconnect") }
+    func detach() { isDetached = true; pasteGeneration &+= 1; sendControl("detach") }
     func takeControl() { sendControl("claim") }
     func markAgentSeen() { sendControl("agentSeen") }
     func stopMonitoring() {
@@ -124,6 +137,8 @@ final class RemoteSessionConnection: ObservableObject {
         monitoringGeneration &+= 1
         statusReadTask?.cancel()
         statusReadTask = nil
+        if let wakeObserver { NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver) }
+        wakeObserver = nil
     }
 
     func update(host: RemoteHost) throws {
@@ -134,8 +149,24 @@ final class RemoteSessionConnection: ObservableObject {
 
     private func sendControl(_ action: String) {
         controlSequence &+= 1
-        do { try Self.writePrivate(RemoteRelayControl(sequence: controlSequence, action: action), to: controlURL) }
+        controlAction = action
+        writeControl()
+    }
+
+    private func writeControl() {
+        do {
+            try Self.writePrivate(RemoteRelayControl(sequence: controlSequence, action: controlAction,
+                                                    wakeSequence: wakeSequence), to: controlURL)
+        }
         catch { status = RemoteRelayStatus(state: .failed, message: error.localizedDescription) }
+    }
+
+    private func checkAfterWake() {
+        guard timer != nil, !isDetached, status.state == .connected || status.state == .failed else { return }
+        // 唤醒不能覆盖 relay 尚未读到的主动重连、控制权或 detach 指令。
+        wakeSequence &+= 1
+        writeControl()
+        readStatus()
     }
 
     private func readStatus() {

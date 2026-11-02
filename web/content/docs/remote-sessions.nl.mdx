@@ -47,6 +47,8 @@ Iedereen ontvangt dezelfde uitvoer. De terminal focussen of de besturing overnem
 
 Panelen, projecten of vensters sluiten en beide opties om de app te stoppen koppelen alleen los. Een externe sessie beëindigen vraagt bevestiging en stopt shell en taken voor iedereen. Op de host: `zshell-server terminate --project ~/repo --session UUID`.
 
+Na het ontwaken van de Mac controleren gedeelde externe sessies de verbinding en verbinden ze zo nodig opnieuw met dezelfde externe taak. Handmatig losgekoppelde sessies blijven losgekoppeld.
+
 ## Bestanden en schermafbeeldingen [#paste]
 
 Kopieer gewone bestanden of een schermafbeelding en plak in het externe paneel. Zshell uploadt naar een privémappenlocatie en voegt geciteerde shellpaden in. Maximaal 32 bestanden, elk 32 MiB en samen 64 MiB; mappen en symbolische links worden geweigerd. Gedeelde uploads blijven zeven dagen. Gewone Unix-SSH-panelen ondersteunen dit ook.

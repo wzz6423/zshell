@@ -39,6 +39,7 @@ public struct PierreDiffFile: Codable, Sendable, Equatable, Identifiable {
   /// Editing is opt-in and applies only to real diff rows. Note-only entries
   /// remain read-only even when this value is true.
   public let isEditable: Bool
+  public let annotations: [DiffAnnotation]?
 
   /// Stand-in text rendered instead of a diff. When set, `oldContents` and
   /// `newContents` are ignored.
@@ -52,6 +53,7 @@ public struct PierreDiffFile: Codable, Sendable, Equatable, Identifiable {
     newContents: String = "",
     lang: String? = nil,
     isEditable: Bool = false,
+    annotations: [DiffAnnotation] = [],
     note: String? = nil
   ) {
     self.id = id
@@ -61,6 +63,7 @@ public struct PierreDiffFile: Codable, Sendable, Equatable, Identifiable {
     self.newContents = newContents
     self.lang = lang
     self.isEditable = isEditable
+    self.annotations = annotations
     self.note = note
   }
 

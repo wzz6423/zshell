@@ -9,8 +9,10 @@ nonisolated enum RemoteSessionRelay {
 
     private struct Controls {
         var sequence: UInt64 = 0
+        var wakeSequence: UInt64 = 0
         var paused = false
         var reconnect = false
+        var wake = false
         var claim = false
         var agentSeen = false
     }
@@ -71,6 +73,7 @@ nonisolated enum RemoteSessionRelay {
         while true {
             readControls(controlURL, into: &controls)
             controls.reconnect = false
+            controls.wake = false
             if controls.paused {
                 status.state = .detached
                 try writeStatus(status, to: statusURL)
@@ -122,7 +125,7 @@ nonisolated enum RemoteSessionRelay {
                 transport?.close()
                 try writeStatus(status, to: statusURL)
                 failures = min(failures + 1, 4)
-                let delay = controls.reconnect ? 0.0 : min(15.0, pow(2, Double(failures - 1)))
+                let delay = controls.reconnect || controls.wake ? 0.0 : min(15.0, pow(2, Double(failures - 1)))
                 guard try idle(until: Date().addingTimeInterval(delay), output: &output,
                                controlURL: controlURL, controls: &controls) else { return 0 }
             }
@@ -134,8 +137,15 @@ nonisolated enum RemoteSessionRelay {
         var incoming = Data()
         var outgoing = Data()
         var exited: Int32?
-        var lastIncoming = Date()
-        var lastHeartbeat = Date.distantPast
+        // 睡眠期间不计超时，先让唤醒检查确认旧连接是否仍健康。
+        let clock = SuspendingClock()
+        var lastIncoming = clock.now
+        var lastIteration = lastIncoming
+        var lastHeartbeat = lastIncoming.advanced(by: .seconds(-5))
+        var heartbeatsSent: UInt64 = 0
+        var heartbeatsReceived: UInt64 = 0
+        var wakeHeartbeat: UInt64?
+        var wakeDeadline: SuspendingClock.Instant?
         var buffer = [UInt8](repeating: 0, count: 16 * 1024)
         while exited == nil || !output.isEmpty {
             readControls(controlURL, into: &controls)
@@ -156,12 +166,25 @@ nonisolated enum RemoteSessionRelay {
                 let size = dimensions()
                 try enqueue(RemoteFrame(kind: "resize", columns: size.columns, rows: size.rows), into: &outgoing)
             }
-            if exited == nil, Date().timeIntervalSince(lastHeartbeat) >= 5 {
-                try enqueue(RemoteFrame(kind: "ping"), into: &outgoing)
-                lastHeartbeat = Date()
+            let now = clock.now
+            // 调度恢复可能早于 GUI 的唤醒通知，先探测再处理旧超时。
+            if lastIteration.duration(to: now) > .seconds(1) {
+                controls.wake = true
+                wakeDeadline = nil
+                wakeHeartbeat = nil
             }
-            if exited == nil, Date().timeIntervalSince(lastIncoming) > 20 {
-                throw RemoteHostError.message(String(localized: "The remote host did not respond in time."))
+            lastIteration = now
+            if exited == nil, controls.wake, wakeDeadline == nil {
+                try enqueue(RemoteFrame(kind: "ping"), into: &outgoing)
+                heartbeatsSent &+= 1
+                wakeHeartbeat = heartbeatsSent
+                wakeDeadline = now.advanced(by: .seconds(3))
+                lastHeartbeat = now
+            }
+            if exited == nil, lastHeartbeat.duration(to: now) >= .seconds(5) {
+                try enqueue(RemoteFrame(kind: "ping"), into: &outgoing)
+                heartbeatsSent &+= 1
+                lastHeartbeat = now
             }
             var descriptors = [
                 pollfd(fd: transport.output, events: Int16(exited == nil && output.count < PTYMuxConstants.maximumSnapshotBytes ? POLLIN : 0), revents: 0),
@@ -175,7 +198,7 @@ nonisolated enum RemoteSessionRelay {
                 let count = Darwin.read(transport.output, &buffer, buffer.count)
                 if count > 0 {
                     incoming.append(contentsOf: buffer.prefix(count))
-                    lastIncoming = Date()
+                    lastIncoming = clock.now
                     while let frame = try takeFrame(from: &incoming) {
                         if let error = frame.error { throw RemoteHostError.message(error) }
                         if frame.kind == "snapshot" || frame.kind == "output" {
@@ -188,6 +211,15 @@ nonisolated enum RemoteSessionRelay {
                         if frame.kind == "state" || frame.kind == "pong" {
                             let next = updatedStatus(status, from: try frame.decodedResult(RemoteSessionInfo.self))
                             if next != status { status = next; try writeStatus(status, to: statusURL) }
+                        }
+                        if frame.kind == "pong" {
+                            heartbeatsReceived &+= 1
+                            // 同一附件按序回应 ping，睡前积压的 pong 不能通过本次检查。
+                            if let required = wakeHeartbeat, heartbeatsReceived >= required {
+                                controls.wake = false
+                                wakeDeadline = nil
+                                wakeHeartbeat = nil
+                            }
                         }
                         if frame.kind == "exited" {
                             if frame.result != nil { status = updatedStatus(status, from: try frame.decodedResult(RemoteSessionInfo.self)) }
@@ -221,6 +253,15 @@ nonisolated enum RemoteSessionRelay {
             }
             if descriptors[2].revents & Int16(POLLERR | POLLNVAL) != 0
                 || descriptors[3].revents & Int16(POLLHUP | POLLERR | POLLNVAL) != 0 { status.state = .detached; return 0 }
+            // 先排空已到达的回复，避免调度停顿把健康连接误判成超时。
+            let checkedAt = clock.now
+            if lastIteration.duration(to: checkedAt) > .seconds(1) { continue }
+            if exited == nil, let wakeDeadline, checkedAt >= wakeDeadline {
+                throw RemoteHostError.message(String(localized: "The remote host did not respond in time."))
+            }
+            if exited == nil, wakeDeadline == nil, lastIncoming.duration(to: checkedAt) > .seconds(20) {
+                throw RemoteHostError.message(String(localized: "The remote host did not respond in time."))
+            }
         }
         return exited
     }
@@ -229,7 +270,7 @@ nonisolated enum RemoteSessionRelay {
         var buffer = [UInt8](repeating: 0, count: 4096)
         repeat {
             readControls(controlURL, into: &controls)
-            if controls.reconnect { return true }
+            if controls.reconnect || controls.wake && !controls.paused { return true }
             var descriptors = [pollfd(fd: STDIN_FILENO, events: Int16(POLLIN), revents: 0),
                                pollfd(fd: STDOUT_FILENO, events: Int16(!output.isEmpty ? POLLOUT : 0), revents: 0)]
             let ready = Darwin.poll(&descriptors, 2, 100)
@@ -250,14 +291,20 @@ nonisolated enum RemoteSessionRelay {
 
     private static func readControls(_ url: URL, into controls: inout Controls) {
         guard let bytes = try? Data(contentsOf: url), bytes.count < 8192,
-              let command = try? JSONDecoder().decode(RemoteRelayControl.self, from: bytes), command.sequence > controls.sequence else { return }
-        controls.sequence = command.sequence
-        switch command.action {
-        case "detach": controls.paused = true
-        case "reconnect": controls.paused = false; controls.reconnect = true
-        case "claim": controls.claim = true
-        case "agentSeen": controls.agentSeen = true
-        default: break
+              let command = try? JSONDecoder().decode(RemoteRelayControl.self, from: bytes) else { return }
+        if command.sequence > controls.sequence {
+            controls.sequence = command.sequence
+            switch command.action {
+            case "detach": controls.paused = true; controls.wake = false
+            case "reconnect": controls.paused = false; controls.reconnect = true; controls.wake = false
+            case "claim": controls.claim = true
+            case "agentSeen": controls.agentSeen = true
+            default: break
+            }
+        }
+        if let sequence = command.wakeSequence, sequence > controls.wakeSequence {
+            controls.wakeSequence = sequence
+            if !controls.paused { controls.wake = true }
         }
     }
 

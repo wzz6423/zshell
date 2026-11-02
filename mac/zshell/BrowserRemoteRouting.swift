@@ -81,7 +81,7 @@ final class BrowserRemoteRouting: ObservableObject {
 
     nonisolated private static func isDirectLoopback(_ url: URL) -> Bool {
         guard let host = url.host?.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "[].")) else { return false }
-        return host == "localhost" || host == "::1" || host == "0.0.0.0" || host.hasPrefix("::ffff:7f")
+        return host == "localhost" || host == "::1" || host == "::" || host == "0.0.0.0" || host.hasPrefix("::ffff:7f")
             || (host.hasPrefix("127.") && IPv4Address(host) != nil)
     }
 
@@ -91,8 +91,8 @@ final class BrowserRemoteRouting: ObservableObject {
         guard isDirectLoopback(url), let host = url.host?.lowercased()
             .trimmingCharacters(in: CharacterSet(charactersIn: "[].")) else { return nil }
         if host == "localhost" || host == "::1" { return host }
-        // A wildcard listener answers on localhost; 0.0.0.0 names no address.
-        if host == "0.0.0.0" { return "localhost" }
+        // Wildcard listeners answer on localhost; their bind addresses name no host.
+        if host == "0.0.0.0" || host == "::" { return "localhost" }
         if let mapped = IPv6Address(host) {
             let bytes = Array(mapped.rawValue)
             guard bytes[10] == 0xff, bytes[11] == 0xff else { return nil }
@@ -149,7 +149,7 @@ final class BrowserRemoteRouting: ObservableObject {
     [{"trigger":{"url-filter":"^[a-z]+://localhost\\.?[:/]"},"action":{"type":"block"}},
     {"trigger":{"url-filter":"^[a-z]+://127\\."},"action":{"type":"block"}},
     {"trigger":{"url-filter":"^[a-z]+://0\\.0\\.0\\.0[:/]"},"action":{"type":"block"}},
-    {"trigger":{"url-filter":"^[a-z]+://\\[::1\\]"},"action":{"type":"block"}},
+    {"trigger":{"url-filter":"^[a-z]+://\\[::1?\\]"},"action":{"type":"block"}},
     {"trigger":{"url-filter":"^[a-z]+://\\[::ffff:7f"},"action":{"type":"block"}}]
     """#
 
@@ -187,12 +187,12 @@ final class BrowserRemoteRouting: ObservableObject {
     static let bridgeScript = """
     (() => {
       const alias = '\(aliasHost)';
-      const direct = host => host === 'localhost' || host === 'localhost.' || host === '[::1]' || host === '0.0.0.0'
+      const direct = host => host === 'localhost' || host === 'localhost.' || host === '[::1]' || host === '[::]' || host === '0.0.0.0'
         || host.startsWith('[::ffff:7f') || /^127\\.\\d+\\.\\d+\\.\\d+$/.test(host);
       // Keep the requested loopback address in the alias, matching routedURL().
       const aliasFor = host => {
         host = host.replace(/^\\[|\\]$/g, '').replace(/\\.$/, '');
-        if (host === 'localhost' || host === '0.0.0.0') return alias;
+        if (host === 'localhost' || host === '0.0.0.0' || host === '::') return alias;
         if (host === '::1') return 'ipv6-1.' + alias;
         const mapped = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(host);
         if (mapped) {

@@ -78,7 +78,8 @@ nonisolated enum BrowserProfileSessionReader {
                 return true
             }
             let secure = record["secure"] as? Bool ?? false
-            let sameSite = record["sameSite"] as? Int ?? 0
+            // Older session stores omit SameSite, which must not become explicit None.
+            let sameSite = record["sameSite"] as? Int ?? 256
             guard (record["originAttributes"] == nil || record["originAttributes"] is [String: Any]),
                   !scoped, record["isPartitioned"] as? Bool != true,
                   sameSite != 0 || secure,

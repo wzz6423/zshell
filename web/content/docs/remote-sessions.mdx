@@ -56,6 +56,8 @@ zshell-server list --project ~/repo
 zshell-server terminate --project ~/repo --session UUID
 ```
 
+After your Mac wakes, shared remote sessions check the connection and reconnect the same remote job if needed. Sessions you explicitly detached remain detached.
+
 ## Files and screenshots [#paste]
 
 Copy regular files or a screenshot and paste in the remote pane. Zshell uploads them to a private host directory and inserts paths quoted for the session’s shell. A batch allows 32 files, 32 MiB per file and 64 MiB total; folders and symbolic links are rejected. Shared-session uploads remain available for seven days. Ordinary Unix SSH panes support the same file and screenshot paste.

@@ -18,7 +18,7 @@ private func context(_ snapshot: GitStatusModel.BranchSnapshot) -> ProjectPullRe
     return result
 }
 
-private func response(_ nodes: [[String: Any]], hasNext: Bool = false) -> String {
+private nonisolated func response(_ nodes: [[String: Any]], hasNext: Bool = false) -> String {
     let payload: [String: Any] = ["data": ["repository": [
         "parent": NSNull(),
         "pullRequests": ["pageInfo": ["hasNextPage": hasNext], "nodes": nodes],
@@ -41,6 +41,107 @@ private func query(_ context: ProjectPullRequestContext, output: String, status:
             return BoundedProcessResult(terminationStatus: status, timedOut: timedOut,
                 output: BoundedProcessOutput(stdout: output, stderr: "", wasTruncated: truncated))
         })
+}
+
+private nonisolated func filteredResponse(_ nodes: [[String: Any]]) -> String {
+    String(decoding: try! JSONSerialization.data(withJSONObject: nodes), as: UTF8.self)
+}
+
+private nonisolated final class QueryLog: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: [[String]] = []
+    func append(_ value: [String]) { lock.withLock { stored.append(value) } }
+    func calls() -> [[String]] { lock.withLock { stored } }
+}
+
+private func checkFilteredLookup(_ context: ProjectPullRequestContext) {
+    let crowded = response((1...50).map { node($0, repo: "other/fork") }, hasNext: true)
+    let firstPage = filteredResponse((1...50).map { node($0, repo: "example/another-fork") })
+    let secondPage = filteredResponse([node(87), node(88)])
+    let log = QueryLog()
+    let paged = GitHubPullRequestWorker.query(context,
+        locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: { _, arguments, timeout, _ in
+            log.append(arguments)
+            require(timeout > 0 && timeout <= 12, "all query stages must share the total deadline")
+            let output: String
+            if arguments.contains("repos/example/base/pulls") {
+                require(arguments.contains("head=example:feature/one") && arguments.contains("GET"),
+                        "large connections must filter the head owner on the server")
+                require(arguments.contains("state=open"), "an open PR must take priority over a closed PR")
+                output = arguments.contains("page=1") ? firstPage : secondPage
+            } else { output = arguments.contains("name=base") ? crowded : response([]) }
+            return BoundedProcessResult(terminationStatus: 0, timedOut: false,
+                output: BoundedProcessOutput(stdout: output, stderr: "", wasTruncated: false))
+        })
+    guard case .pullRequest(let pr) = paged, pr.number == 88, pr.status == .open else {
+        fatalError("owner-filtered paging must find the exact fork on later pages and break timestamp ties")
+    }
+    require(log.calls().filter { $0.contains("repos/example/base/pulls") }.count == 2,
+            "lookup must stop once the best exact-fork match is known")
+
+    for state in ["MERGED", "CLOSED"] {
+        let closed = filteredResponse([node(90, state: state)])
+        let result = GitHubPullRequestWorker.query(context,
+            locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: { _, arguments, _, _ in
+                let output: String
+                if arguments.contains("repos/example/base/pulls") {
+                    output = arguments.contains("state=open") ? filteredResponse([]) : closed
+                } else { output = arguments.contains("name=base") ? crowded : response([]) }
+                return BoundedProcessResult(terminationStatus: 0, timedOut: false,
+                    output: BoundedProcessOutput(stdout: output, stderr: "", wasTruncated: false))
+            })
+        guard case .pullRequest(let pr) = result, pr.number == 90, pr.status.rawValue == state else {
+            fatalError("filtered lookup must retain \(state) state when no open PR exists")
+        }
+    }
+
+    let empty = GitHubPullRequestWorker.query(context,
+        locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: { _, arguments, _, _ in
+            let output = arguments.contains("repos/example/base/pulls") ? filteredResponse([])
+                : arguments.contains("name=base") ? crowded : response([])
+            return BoundedProcessResult(terminationStatus: 0, timedOut: false,
+                output: BoundedProcessOutput(stdout: output, stderr: "", wasTruncated: false))
+        })
+    require(empty == .none, "a crowded branch with no exact-fork PR must report no PR")
+
+    let withoutUpstream = ProjectPullRequestContext(root: context.root, gitDirectory: context.gitDirectory,
+        localBranch: context.localBranch, headBranch: context.headBranch,
+        headRepository: context.headRepository, baseRepository: nil)
+    let forkResponse = "{\"data\":{\"repository\":{\"parent\":{\"nameWithOwner\":\"example/base\"},\"pullRequests\":{\"nodes\":[],\"pageInfo\":{\"hasNextPage\":false}}}}}"
+    let parent = GitHubPullRequestWorker.query(withoutUpstream,
+        locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: { _, arguments, _, _ in
+            let output = arguments.contains("repos/example/base/pulls") ? secondPage
+                : arguments.contains("name=base") ? crowded : forkResponse
+            return BoundedProcessResult(terminationStatus: 0, timedOut: false,
+                output: BoundedProcessOutput(stdout: output, stderr: "", wasTruncated: false))
+        })
+    guard case .pullRequest(let parentPR) = parent, parentPR.number == 88 else {
+        fatalError("a fork without an upstream remote must also filter crowded parent PR connections")
+    }
+
+    let boundedLog = QueryLog()
+    let bounded = GitHubPullRequestWorker.query(context,
+        locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: { _, arguments, _, _ in
+            boundedLog.append(arguments)
+            let output = arguments.contains("graphql") ? crowded : firstPage
+            return BoundedProcessResult(terminationStatus: 0, timedOut: false,
+                output: BoundedProcessOutput(stdout: output, stderr: "", wasTruncated: false))
+        })
+    require(bounded == .failed(.unavailable) && boundedLog.calls().count == 11,
+            "ambiguous owner-filtered pages must be bounded and cannot claim no PR")
+
+    for (status, timedOut, truncated, expected) in [(Int32(4), false, false, ProjectPullRequestState.failed(.notSignedIn)),
+                                                    (0, true, false, .failed(.unavailable)),
+                                                    (0, false, true, .failed(.unavailable))] {
+        let failed = GitHubPullRequestWorker.query(context,
+            locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: { _, arguments, _, _ in
+                let filtering = !arguments.contains("graphql")
+                return BoundedProcessResult(terminationStatus: filtering ? status : 0,
+                    timedOut: filtering && timedOut,
+                    output: BoundedProcessOutput(stdout: crowded, stderr: "", wasTruncated: filtering && truncated))
+            })
+        require(failed == expected, "filtered requests must preserve authentication, timeout and output failures")
+    }
 }
 
 private nonisolated final class SnapshotBox: @unchecked Sendable {
@@ -172,6 +273,7 @@ struct ProjectPullRequestTests {
         }
         require(query(firstContext, output: response([], hasNext: true)) == .failed(.unavailable),
                 "incomplete results must not claim no PR")
+        checkFilteredLookup(firstContext)
         require(query(firstContext, output: "", status: 4) == .failed(.notSignedIn), "authentication error")
         require(query(firstContext, output: "", timedOut: true) == .failed(.unavailable), "timeout")
         require(query(firstContext, output: "", truncated: true) == .failed(.unavailable), "truncated output")
@@ -225,6 +327,6 @@ struct ProjectPullRequestTests {
             }
             print("Live GitHub PR lookup passed")
         }
-        print("Project PR status: Git worktrees, four states, remote safety, errors, cache and branch race passed")
+        print("Project PR status: Git worktrees, four states, filtered pagination, remote safety, errors, cache and branch race passed")
     }
 }

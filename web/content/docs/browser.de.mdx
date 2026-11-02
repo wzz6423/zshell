@@ -13,7 +13,7 @@ Zshell kann in jedem Tab oder geteilten Bereich einen integrierten Browser anzei
 
 Browser-Tabs gehören zum ausgewählten Projekt und sind Teil seiner normalen Tab- und Bereichsanordnung. Ist noch kein Projekt geöffnet, legt Zshell eines für den Browser an.
 
-Öffnen Sie in einem SSH- oder freigegebenen Remote-Projekt `http://localhost:3000`, um den Entwicklungsserver dieses Hosts anzuzeigen. Zshell verwendet SSH-Weiterleitung; verbinden Sie sich nach einem Verbindungsabbruch erneut und laden Sie die Seite neu. Websitedaten werden innerhalb dieses Remote-Projekts zwischen Browserbereichen geteilt und getrennt von lokalen und anderen Remote-Projekten gespeichert.
+Öffnen Sie in einem SSH- oder freigegebenen Remote-Projekt `http://localhost:3000`, um den Entwicklungsserver dieses Hosts anzuzeigen. Zshell verwendet SSH-Weiterleitung; verbinden Sie sich nach einem Verbindungsabbruch erneut und laden Sie die Seite neu. Websitedaten werden innerhalb dieses Remote-Projekts zwischen Browserbereichen geteilt und getrennt von lokalen und anderen Remote-Projekten gespeichert. Auch vom Entwicklungsserver ausgegebene Adressen wie `http://[::]:8000/` öffnen sich in einem Remote-Projekt über SSH.
 
 ## Adresse und Suche [#address-and-search]
 
@@ -43,6 +43,8 @@ Beim Wechsel zwischen Tabs oder Projekten bleiben Verlauf, Scrollposition, Formu
 Browserbereiche speichern Cookies, Anmeldungen und andere Websitedaten über Tabs und Neustarts hinweg. Es handelt sich nicht um einen privaten Browsermodus.
 
 Über **Browser → Import Browser Data…** werden Cookies in den Browserspeicher des Projekts importiert, das beim Klick auf **Import** ausgewählt ist. Remote-Projekte haben getrennte Speicher; lokale Projekte teilen den Standardspeicher. Ein Projektwechsel ändert das Ziel nicht. Das Schließen des Zielprojekts stoppt den restlichen Import, ohne in ein anderes Projekt zu schreiben. Ist kein Projekt geöffnet, erstellt Zshell beim Import von Cookies oder Tabs ein lokales Projekt.
+
+Firefox-Cookies ohne SameSite-Einstellung werden als Lax importiert, auch aus älteren Profilen und gespeicherten Sitzungen. Explizites SameSite=None erfordert weiterhin Secure.
 
 ## Die Seite von einem Agent testen lassen [#let-an-agent-test-the-page]
 

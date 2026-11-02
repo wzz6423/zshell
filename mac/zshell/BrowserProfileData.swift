@@ -182,7 +182,8 @@ nonisolated enum BrowserProfileData {
             } else {
                 let columns = try db.columns("moz_cookies")
                 let attributes = columns.contains("originAttributes") ? "originAttributes" : "''"
-                let sameSite = columns.contains("sameSite") ? "sameSite" : "0"
+                // Firefox's UNSET is 256; old schemas can omit the attribute instead of storing it.
+                let sameSite = columns.contains("sameSite") ? "COALESCE(sameSite, 256)" : "256"
                 // Firefox 142 (cookie schema 16) migrated expiry from seconds to milliseconds.
                 var schema: Int32 = 0
                 try db.rows("PRAGMA user_version") { schema = sqlite3_column_int($0, 0) }

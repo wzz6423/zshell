@@ -1,9 +1,13 @@
+import AppKit
 import Foundation
+import WebKit
 
 @main
 struct BrowserProfileDataTests {
-    static func main() throws {
+    @MainActor static func main() async throws {
+        _ = NSApplication.shared
         let home = URL(fileURLWithPath: CommandLine.arguments[1])
+        precondition(FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL.path == home.standardizedFileURL.path)
         try discoveryDistinguishesMissingFromDenied(scratch: URL(fileURLWithPath: CommandLine.arguments[1]))
         let found = BrowserProfileData.discover(home: home)
         precondition(found.blocked.isEmpty && found.profiles.count == 2)
@@ -46,7 +50,64 @@ struct BrowserProfileDataTests {
         precondition(BrowserProfileData.preview(invalid, selection: [.cookies, .sessions]).cookieError != nil)
         precondition(BrowserProfileData.cookies(invalid).error != nil)
         precondition(BrowserProfileData.preview(invalid, selection: [.sessions]).sessions.error != nil)
+        try await firefoxSameSite(scratch: home, expires: Double(CommandLine.arguments[2])!)
         print("Profile discovery, Chromium encryption/domain binding, partition skips, Firefox LZ4, history and sessions passed")
+    }
+
+    @MainActor static func firefoxSameSite(scratch: URL, expires: Double) async throws {
+        let profile = BrowserProfile(kind: .firefox, name: "SameSite", directory: scratch.appendingPathComponent("same-site-current"))
+        let result = BrowserProfileData.cookies(profile)
+        precondition(result.error == nil && result.total == 17 && result.skipped == 2 && result.values.count == 15)
+        let cookies = Dictionary(uniqueKeysWithValues: result.values.map { ($0.name, $0) })
+        for prefix in ["persistent_", "session_"] {
+            precondition(cookies[prefix + "unset"]?.sameSite == "Lax")
+            precondition(cookies[prefix + "unset_secure"]?.sameSite == "Lax")
+            precondition(cookies[prefix + "none_insecure"] == nil, "Explicit None without Secure must stay rejected")
+            precondition(cookies[prefix + "none_secure"]?.sameSite == "None")
+            precondition(cookies[prefix + "lax"]?.sameSite == "Lax")
+            precondition(cookies[prefix + "strict"]?.sameSite == "Strict")
+            precondition(cookies[prefix + "null"]?.sameSite == "Lax")
+            precondition(cookies[prefix + "unknown"]?.sameSite == "Lax")
+        }
+        precondition(cookies["session_missing"]?.sameSite == "Lax")
+        var imported = result.values
+        for kind in ["missing", "null"] {
+            let legacy = BrowserProfile(kind: .firefox, name: "Legacy", directory: scratch.appendingPathComponent("same-site-" + kind))
+            let records = BrowserProfileData.cookies(legacy)
+            precondition(records.error == nil && records.total == 1 && records.skipped == 0 && records.values.count == 1)
+            precondition(records.values[0].sameSite == "Lax" && records.values[0].expires == expires)
+            imported.append(contentsOf: records.values)
+        }
+        let dataStore = WKWebsiteDataStore.nonPersistent()
+        let store = dataStore.httpCookieStore
+        for item in imported {
+            var properties: [HTTPCookiePropertyKey: Any] = [
+                .name: item.name, .value: item.value, .domain: item.domain, .path: item.path,
+                .sameSitePolicy: item.sameSite.lowercased(),
+            ]
+            if item.secure { properties[.secure] = "TRUE" }
+            if item.httpOnly { properties[HTTPCookiePropertyKey("HttpOnly")] = "TRUE" }
+            if item.expires == -1 { properties[.discard] = "TRUE" }
+            else { properties[.expires] = Date(timeIntervalSince1970: item.expires) }
+            let cookie = HTTPCookie(properties: properties)!
+            await withCheckedContinuation { continuation in store.setCookie(cookie) { continuation.resume() } }
+        }
+        let stored = await withCheckedContinuation { continuation in
+            store.getAllCookies { continuation.resume(returning: $0) }
+        }
+        precondition(stored.count == imported.count,
+                     "WebKit retained \(stored.map(\.name)); expected \(imported.map(\.name))")
+        for item in imported {
+            let cookie = stored.first { $0.name == item.name }!
+            precondition(cookie.value == item.value && cookie.isSecure == item.secure && cookie.isHTTPOnly == item.httpOnly)
+            precondition(cookie.domain == item.domain && cookie.path == item.path)
+            if item.expires == -1 { precondition(cookie.expiresDate == nil) }
+            else { precondition(abs(cookie.expiresDate!.timeIntervalSince1970 - item.expires) < 1,
+                                "\(item.name) expiry \(cookie.expiresDate!.timeIntervalSince1970), source \(item.expires)") }
+            precondition(cookie.sameSitePolicy?.rawValue.lowercased() == item.sameSite.lowercased())
+        }
+        withExtendedLifetime(dataStore) {}
+        print("Firefox missing/NULL/UNSET/unknown SameSite and explicit None restrictions passed; \(stored.count) cookies retained in real WebKit")
     }
 
     /// An untraversable browser folder must surface as blocked; a missing one must not.

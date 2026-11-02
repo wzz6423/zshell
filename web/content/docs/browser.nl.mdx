@@ -13,7 +13,7 @@ Zshell kan een ingebouwde browser in elk tabblad of gesplitst deelvenster plaats
 
 Browsertabbladen horen bij het geselecteerde project en gebruiken de gewone tabblad- en deelvensterindeling. Als er geen project open is, maakt Zshell er een voor de browser.
 
-Open in een SSH- of gedeeld extern project `http://localhost:3000` om de ontwikkelserver op die host te bekijken. Zshell gebruikt SSH-doorsturing; maak na een verbroken verbinding opnieuw verbinding en laad de pagina opnieuw. Sitegegevens worden gedeeld tussen browserdeelvensters van dat externe project en apart gehouden van lokale en andere externe projecten.
+Open in een SSH- of gedeeld extern project `http://localhost:3000` om de ontwikkelserver op die host te bekijken. Zshell gebruikt SSH-doorsturing; maak na een verbroken verbinding opnieuw verbinding en laad de pagina opnieuw. Sitegegevens worden gedeeld tussen browserdeelvensters van dat externe project en apart gehouden van lokale en andere externe projecten. Adressen die een ontwikkelserver toont, zoals `http://[::]:8000/`, openen in een extern project ook via SSH.
 
 ## Adres en zoeken [#address-and-search]
 
@@ -43,6 +43,8 @@ Als je van tabblad of project wisselt, blijft de pagina zoals je haar achterliet
 Browserdeelvensters bewaren cookies, aanmeldingen en andere websitegegevens tussen tabbladen en starts. Dit is geen privémodus.
 
 Via **Browser → Import Browser Data…** worden cookies geïmporteerd in de browseropslag van het project dat is geselecteerd wanneer je op **Import** klikt. Externe projecten hebben afzonderlijke opslag; lokale projecten delen de standaardopslag. Wisselen van project verandert de bestemming niet. Het sluiten van het doelproject stopt de resterende import zonder naar een ander project te schrijven. Als er geen project open is, maakt Zshell een lokaal project wanneer de import van cookies of tabbladen begint.
+
+Firefox-cookies zonder SameSite worden als Lax geïmporteerd, ook uit oudere profielen en opgeslagen sessies. Expliciete SameSite=None-cookies vereisen nog steeds Secure.
 
 ## Een agent de pagina laten testen [#let-an-agent-test-the-page]
 

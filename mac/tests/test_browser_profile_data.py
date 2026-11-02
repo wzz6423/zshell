@@ -2,11 +2,13 @@
 import base64
 import hashlib
 import json
+import os
 from pathlib import Path
 import sqlite3
 import struct
 import subprocess
 import tempfile
+import time
 
 ROOT = Path(__file__).resolve().parents[2]
 FIREFOX_SESSION = base64.b64decode(
@@ -31,7 +33,18 @@ def encrypted_cookie(host, value):
     return b"v10" + result.stdout
 
 
-def prepare(home):
+def raw_lz4(data):
+    remaining = max(0, len(data) - 15)
+    block = bytearray([min(len(data), 15) << 4])
+    if len(data) >= 15:
+        while remaining >= 255:
+            block.append(255)
+            remaining -= 255
+        block.append(remaining)
+    return b"mozLz40\0" + len(data).to_bytes(4, "little") + block + data
+
+
+def prepare(home, expires):
     support = home / "Library/Application Support"
     chrome = support / "Google/Chrome/Default"
     firefox_root = support / "Firefox"
@@ -77,26 +90,51 @@ def prepare(home):
     for name, index in (("minimum-index", -(2**63)), ("maximum-index", 2**63 - 1)):
         payload = json.dumps({"windows": [{"tabs": [{"entries": [{"url": "https://example.test/boundary"}],
                                                    "index": index}]}]}).encode()
-        remaining = len(payload) - 15
-        block = bytearray([15 << 4])
-        while remaining >= 255:
-            block.append(255)
-            remaining -= 255
-        block.append(remaining)
-        block.extend(payload)
-        (firefox / f"{name}.jsonlz4").write_bytes(b"mozLz40\0" + len(payload).to_bytes(4, "little") + block)
+        (firefox / f"{name}.jsonlz4").write_bytes(raw_lz4(payload))
+    same_site = [("unset", 256, False), ("unset_secure", 256, True),
+                 ("none_insecure", 0, False), ("none_secure", 0, True),
+                 ("lax", 1, False), ("strict", 2, False), ("null", None, False), ("unknown", 99, False)]
+    current = home / "same-site-current"
+    current.mkdir()
+    with sqlite3.connect(current / "cookies.sqlite") as db:
+        db.executescript('''CREATE TABLE moz_cookies (host TEXT,name TEXT,value TEXT,path TEXT,expiry INTEGER,
+          isSecure INTEGER,isHttpOnly INTEGER,sameSite INTEGER,originAttributes TEXT);
+          PRAGMA user_version = 17;''')
+        db.executemany("INSERT INTO moz_cookies VALUES (?,?,?,?,?,?,?,?,?)",
+                       [("127.0.0.1", "persistent_" + name, "fixture-only", "/", expires * 1000,
+                         secure, 1, same, "") for name, same, secure in same_site])
+    records = [{"host": "127.0.0.1", "name": "session_" + name, "value": "fixture-only",
+                "path": "/", "secure": secure, "httponly": True, "sameSite": same}
+               for name, same, secure in same_site]
+    records.append({"host": "127.0.0.1", "name": "session_missing", "value": "fixture-only",
+                    "path": "/", "secure": False, "httponly": True})
+    (current / "sessionstore.jsonlz4").write_bytes(raw_lz4(json.dumps({"cookies": records}).encode()))
+    for name, same_column, schema in (("null", ",sameSite INTEGER", 9), ("missing", "", 8)):
+        legacy = home / f"same-site-{name}"
+        legacy.mkdir()
+        with sqlite3.connect(legacy / "cookies.sqlite") as db:
+            db.executescript(f'''CREATE TABLE moz_cookies (host TEXT,name TEXT,value TEXT,path TEXT,expiry INTEGER,
+              isSecure INTEGER,isHttpOnly INTEGER{same_column}); PRAGMA user_version = {schema};''')
+            db.execute("INSERT INTO moz_cookies (host,name,value,path,expiry,isSecure,isHttpOnly) VALUES (?,?,?,?,?,?,?)",
+                       ("127.0.0.1", "legacy_" + name, "fixture-only", "/", expires, 0, 1))
 
 
 with tempfile.TemporaryDirectory(prefix="zshell-browser-profile-test-", dir="/tmp") as temporary:
-    root = Path(temporary)
-    prepare(root)
+    root = Path(temporary).resolve()
+    expires = int(time.time()) + 30 * 24 * 60 * 60
+    prepare(root, expires)
     binary = root / "browser-profile-tests"
+    runtime_tmp = root / "tmp"
+    runtime_tmp.mkdir()
+    environment = os.environ.copy()
+    environment.update(HOME=str(root), CFFIXED_USER_HOME=str(root), TMPDIR=str(runtime_tmp))
     subprocess.run(["xcrun", "swiftc", "-parse-as-library", "-swift-version", "5",
+                    "-module-cache-path", str(root / "ModuleCache"),
                     str(ROOT / "mac/zshell/BrowserProfileSessions.swift"),
                     str(ROOT / "mac/zshell/BrowserProfileData.swift"),
-                    str(ROOT / "mac/tests/BrowserProfileDataTests.swift"), "-o", str(binary)], check=True)
-    subprocess.run([str(binary), str(root)], check=True)
+                    str(ROOT / "mac/tests/BrowserProfileDataTests.swift"), "-o", str(binary)], env=environment, check=True)
+    subprocess.run([str(binary), str(root), str(expires)], env=environment, cwd=root, check=True, timeout=60)
     # Cookie schemas before 16 store expiry in seconds.
     with sqlite3.connect(root / "Library/Application Support/Firefox/Profiles/fixture/cookies.sqlite") as db:
         db.executescript("UPDATE moz_cookies SET expiry = expiry / 1000; PRAGMA user_version = 15;")
-    subprocess.run([str(binary), str(root)], check=True)
+    subprocess.run([str(binary), str(root), str(expires)], env=environment, cwd=root, check=True, timeout=60)
