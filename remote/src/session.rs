@@ -362,6 +362,10 @@ impl Session {
             .ok_or_else(|| invalid("Only the foreground root Agent can report this terminal"))?;
         let owner = agent_process::process(root).ok_or_else(|| invalid("Remote Agent process has exited"))?;
         let record = hook.record(&state.info.agent_status.phase)?;
+        if hook.event != "SessionStart" && hook.conversation_id.as_deref().is_some_and(|id|
+            state.info.conversation.as_ref().is_some_and(|identity| identity.provider != hook.provider || identity.session_id != id)) {
+            return Err(invalid("Agent lifecycle belongs to a different conversation"));
+        }
         if let Some(identity) = &hook.identity {
             identity.validate()?;
             let directory = project_path(&identity.working_directory)?;

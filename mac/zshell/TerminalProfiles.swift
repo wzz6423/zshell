@@ -76,10 +76,12 @@ nonisolated struct TerminalProfile: Equatable, Identifiable {
             && startupArguments.utf8.count <= 4096 && !startupArguments.contains("\0")
     }
 
-    func applyingLaunchSettings(to base: TerminalLaunchSettings) -> TerminalLaunchSettings {
+    func applyingLaunchSettings(
+        to base: TerminalLaunchSettings, usesConfiguredInitializationCommand: Bool = true
+    ) -> TerminalLaunchSettings {
         base.applying(TerminalLaunchSettingsOverride(
             environmentVariables: launchSettings.environmentVariables,
-            initializationMode: launchSettings.initializationCommand == nil ? .inherit : .replace,
+            initializationMode: usesConfiguredInitializationCommand && launchSettings.initializationCommand != nil ? .replace : .inherit,
             initializationCommand: launchSettings.initializationCommand
         ))
     }

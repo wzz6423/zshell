@@ -18,6 +18,8 @@ Beide ondersteunen GPU-versnelling, afbeeldingen, de gedeelde themacatalogus van
 
 ## Opdrachtgeschiedenis [#command-history]
 
+**Opdrachtgeschiedenis vastleggen** onder **Instellingen → Terminal → Geschiedenis** staat standaard aan (`terminal.command-history = true`). Uitschakelen stopt nieuwe registraties; opgeslagen geschiedenis blijft beschikbaar om te bekijken of te wissen. Terminaluitvoer en de eigen shellgeschiedenis blijven behouden.
+
 Kies **Terminal → Opdrachtgeschiedenis…** om in Zshell uitgevoerde opdrachten op tekst of map te zoeken. Elke rij toont de oorspronkelijke map, starttijd, duur en afsluitstatus. Klik op een rij of **Uitvoer tonen** om naar het oorspronkelijke deelvenster en de uitvoer terug te gaan. Als het deelvenster is gesloten of de uitvoer gewist, is navigatie niet beschikbaar; **Opdracht kopiëren** blijft werken.
 
 **In terminal invoegen** vult de lege zsh-prompt van het oorspronkelijke deelvenster zonder de opdracht uit te voeren; druk op Return als u klaar bent. Invoegen is uitgeschakeld bij een lopende taak of bestaande invoer. Opdrachten met meerdere regels blijven behouden. De lijst gebruikt opdrachtblokken van Ghostty en Alacritty; opdrachten uit niet ondersteunde of geneste shells kunnen ontbreken.
@@ -52,9 +54,17 @@ Een verzoek weigeren blokkeert die functie. Zshell verleent deze rechten niet au
 
 ## Focus volgt de muis [#focus-follows-mouse]
 
-Schakel **Instellingen → Terminal → Gedrag → Focus volgt de muis** in om een paneel te focussen wanneer de aanwijzer binnenkomt. Standaard uit, voor beide backends en de snelle terminal. Tijdens slepen, vanuit een editor of met een geopend menu of dialoogvenster verandert de focus niet.
+Schakel **Instellingen → Terminal → Invoer → Focus volgt de muis** in om een paneel te focussen wanneer de aanwijzer binnenkomt. Standaard uit, voor beide backends en de snelle terminal. Tijdens slepen, vanuit een editor of met een geopend menu of dialoogvenster verandert de focus niet.
 
 `terminal.focus-follows-mouse = true`
+
+## Terminalprofielen [#terminal-profiles]
+
+Maak en orden profielen onder **Instellingen → Terminal → Terminalprofielen → Terminalprofielen beheren…**. Ze kunnen host, gebruiker, werkmap en voorgrondprogramma vergelijken. Alle ingevulde voorwaarden moeten passen; `*` past bij elke tekst en `?` bij één teken. Het eerste passende profiel wordt gebruikt; zonder match keert het paneel terug naar zijn oorspronkelijke uiterlijk. **Terminalprofielen automatisch toepassen** staat standaard aan (`terminal.auto-profiles = true`); handmatig kiezen blijft mogelijk na uitschakelen.
+
+Klik met rechts op een terminal en kies **Terminalprofielen** voor automatische koppeling, een specifiek profiel of de oorspronkelijke instellingen. Thema, lettertype en cursor veranderen het huidige paneel meteen. Omgevingsvariabelen, initialisatieopdrachten en startprogramma’s gelden alleen voor nieuwe terminals; wisselen van profiel voert geen opdrachten uit. Initialisatie loopt bij het starten van de login-shell; een startprogramma loopt rechtstreeks. Omgevingswaarden staan als gewone tekst in `config.toml`.
+
+Gedeelde externe sessies gebruiken het proces en de map die de server meldt; ontbrekende velden van oudere servers kunnen niet overeenkomen. Een gewoon SSH-paneel kan de ingestelde host en gebruiker vergelijken, maar niet het externe voorgrondprogramma of de map inspecteren. SSH en de externe shell bepalen de startomgeving. Het startprogramma moet een absoluut pad zijn dat bestaat op de machine waarop de terminal draait.
 
 ## Zoeken [#search]
 
@@ -106,6 +116,8 @@ Zo bieden compileruitvoer en agentgesprekken een directe weg terug naar hetzelfd
 
 ## Toetsenbordhints [#keyboard-hints]
 
+**Teksthints in terminal tonen** onder **Instellingen → Terminal → Invoer** staat standaard aan (`terminal.text-hints = true`). Uitschakelen verbergt hintopdrachten en sneltoetsen en stopt de hintmodus voor zichtbare tekst.
+
 Focus een terminal en kies **Terminal → Terminalhint kopiëren…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) of **Terminalhint openen…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>). Letters verschijnen op zichtbare paden, URL’s, IP-adressen en commit-hashes. Typ het label om te kiezen; langere labels beperken de opties.
 
 <kbd>Tab</kbd> wisselt kopiëren en openen. <kbd>Backspace</kbd> verwijdert een letter; <kbd>Esc</kbd> annuleert en geeft de invoer terug aan de terminal. Hinttoetsen bereiken het programma nooit. Kopiëren behoudt posities zoals `:42:7`. Openen gebruikt Finder of de standaardbrowser zoals Command-click; andere waarden kunnen worden gekopieerd.
@@ -113,6 +125,8 @@ Focus een terminal en kies **Terminal → Terminalhint kopiëren…** (<kbd>Cmd<
 Beide backends doorzoeken alleen het zichtbare scherm, inclusief afgebroken regels. Grootte- of uitvoerwijzigingen verversen de labels. Ook alleen-lezen panelen kunnen kopiëren en op de host openen.
 
 ## Meldingen [#notifications]
+
+Onder **Instellingen → Automatisering → Meldingen** staan **Melden wanneer agents aandacht vereisen** en **Melden wanneer agents klaar zijn** standaard aan (`ai.notify-on-attention` en `ai.notify-on-completion`). Elke optie regelt de macOS-bezorging van dat agentgebeurtenis; de geschiedenis blijft het registreren als bezorging uitstaat.
 
 Zshell stuurt twee terminalgebeurtenissen door naar het Berichtencentrum:
 
@@ -123,6 +137,8 @@ Meldingen kunnen het systeemgeluid afspelen. Klikken op een melding activeert Zs
 
 ### Meldingsgeschiedenis [#notification-history]
 
+Dezelfde geschiedenis is ook beschikbaar via **Instellingen → Terminal → Meldingen**.
+
 Open **Meldingen → Meldingsgeschiedenis…** voor recente terminal- en agentmeldingen. Filter op **Ongelezen**, **Mislukt** of **In afwachting**. Klik op een melding of op **Paneel tonen** om het huidige project, tabblad en paneel te selecteren, ook in een ander venster. Gesloten panelen blijven als niet beschikbaar in de geschiedenis.
 
 Gebruik **Als gelezen markeren**, **Alles als gelezen markeren**, **Verwijderen** of **Geschiedenis wissen**. Lezen keurt geen agentverzoek goed. Meldingen verdwijnen uit In afwachting wanneer de agent hervat of stopt, het paneel sluit of de externe verbinding niet beschikbaar is. Statussen komen uit expliciete levenscyclusrapporten en afsluitresultaten van opdrachten. De laatste 200 meldingen blijven na een herstart beschikbaar, ook als macOS-meldingen zijn uitgeschakeld.
@@ -130,7 +146,7 @@ Gebruik **Als gelezen markeren**, **Alles als gelezen markeren**, **Verwijderen*
 
 ### Voltooide opdrachten [#command-completion]
 
-Open **Instellingen → Terminal → Opdrachtmeldingen** om meldingen te krijgen wanneer een opdracht eindigt:
+Open **Instellingen → Terminal → Meldingen** om meldingen te krijgen wanneer een opdracht eindigt:
 
 - **Langlopende opdrachten**: kies 5, 10, 30 of 60 seconden. Een opdracht die minstens zo lang duurt, geeft een voltooiingsmelding. Standaard staat dit **Uit**.
 - **Mislukte opdrachten**: meld een afsluitstatus anders dan nul, ongeacht de looptijd. Dit staat in nieuwe configuraties standaard aan en kan onafhankelijk worden uitgeschakeld.
@@ -180,6 +196,8 @@ Zshell levert JetBrains Mono en Nerd Font-symbolen mee. Elk geïnstalleerd monos
 
 ## Algemene snelle terminal [#global-quick-terminal]
 
+**Snelle terminal inschakelen** onder **Instellingen → Terminal → Snelle terminal** staat standaard aan (`quick-terminal.enabled = true`). Uitschakelen verbergt het venster en de toegangen en heft de globale sneltoets op, terwijl de huidige werkruimte en lopende taken behouden blijven. Meldingen kunnen het ook niet heropenen. Regelaars voor grootte, dekking, modus en sneltoets verschijnen weer bij inschakelen.
+
 Terwijl Zshell draait, toont of verbergt <kbd>Cmd</kbd>+<kbd>I</kbd> of **Terminal → Snelle terminal** een onafhankelijke terminal. Pas grootte, dekking en sneltoets aan onder **Instellingen → Terminal → Snelle terminal**.
 
 **Sessiewerking: Werkruimte hergebruiken (standaard) / Elke keer een nieuwe werkruimte.** Hergebruik bewaart panelen en taken. Nieuwe werkruimten stoppen bij verbergen. De modus wijzigt bij de volgende weergave; de herbruikbare werkruimte blijft bij terugschakelen beschikbaar. De geschiedenis volgt je shellconfiguratie. Een nieuwe werkruimte begint steeds met één lege terminal, zonder eerdere uitvoer, paneelindeling of sessiestatus.
@@ -196,7 +214,7 @@ Schakel `terminal.preserve-sessions` in voordat je een nieuwe snelle terminal op
 
 ## Vim-opdrachthulp [#vim-command-hints]
 
-Beheer de hulp via **Instellingen → Terminal → Gedrag → Vim-opdrachthulp** en open vervolgens **Info** in de rechterzijbalk. Onder de sessiegegevens verschijnt een gedeelte **VIM-OPDRACHTEN** zolang Vim, Vi of Neovim actief is. Dit staat in nieuwe configuraties standaard aan en geldt onmiddellijk voor bestaande terminals op beide backends.
+Beheer de hulp via **Instellingen → Terminal → Invoer → Vim-opdrachthulp** en open vervolgens **Info** in de rechterzijbalk. Onder de sessiegegevens verschijnt een gedeelte **VIM-OPDRACHTEN** zolang Vim, Vi of Neovim actief is. Dit staat in nieuwe configuraties standaard aan en geldt onmiddellijk voor bestaande terminals op beide backends.
 
 De volledige lijst met veelgebruikte opdrachten blijft beschikbaar; alleen de prioriteit verandert. De normale modus zet `:w`, `:q`, `yy` en `p`/`P` vooraan; Visueel blok zet `I`/`A`, blokwijzigingen en beweging tussen hoeken vooraan. Invoegen, Vervangen, Visueel, Visuele regel, Selecteren, opdrachtregel- en zoekmodus hebben een eigen volgorde. Bij elke opdracht staan de toepasselijke modi. Zoek op toetsen, beschrijving of modusnaam; beschrijvingen en zoekinterface volgen elk van de 17 app-talen. Wis de zoekopdracht om de volledige lijst te herstellen. De hulp is naslagmateriaal en stuurt nooit invoer naar de editor.
 
@@ -206,6 +224,6 @@ Je kunt dit ook in het configuratiebestand inschakelen met `terminal.vim-command
 
 ## Shell-aanvulling
 
-Schakel **Instellingen → Terminal → Gedrag → Shell-aanvulling** in (standaard aan) en open een nieuwe zsh-terminal. Opdrachten, subopdrachten, argumenten en paden gebruiken shellfuncties met grijze suggesties. **Pijl-rechts** accepteert aan het einde; **Tab** opent kandidaten, pijlen kiezen, **Return** accepteert zonder uit te voeren en **Esc** of **Ctrl+G** annuleert het menu. **Esc** sluit ook de suggestie. Bestaande plug-ins en sneltoetsen blijven behouden.
+Schakel **Instellingen → Terminal → Invoer → Shell-aanvulling** in (standaard aan) en open een nieuwe zsh-terminal. Opdrachten, subopdrachten, argumenten en paden gebruiken shellfuncties met grijze suggesties. **Pijl-rechts** accepteert aan het einde; **Tab** opent kandidaten, pijlen kiezen, **Return** accepteert zonder uit te voeren en **Esc** of **Ctrl+G** annuleert het menu. **Esc** sluit ook de suggestie. Bestaande plug-ins en sneltoetsen blijven behouden.
 
 De meegeleverde plug-ins wijzigen `.zshrc` niet. Schermvullende programma’s ontvangen hun eigen invoer. Met een compatibele zshell-server en zsh gebruiken externe projecten externe opdrachten en paden; andere shells behouden hun eigen aanvulling. Geldt voor nieuwe shells en externe sessies. Uitschakelen: `terminal.shell-completions = false`.

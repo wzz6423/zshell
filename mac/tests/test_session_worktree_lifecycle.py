@@ -1,7 +1,8 @@
 """Run production session, split, close, and process-restart paths for both backends.
 
 Build Debug first; ZSHELL_TEST_DERIVED_DATA selects an isolated build.
-All windows stay hidden. Git fixtures, defaults, homes, binaries, and PTYs are disposable.
+Project windows stay hidden; Quick Terminal windows remain offscreen without input capture.
+Git fixtures, defaults, homes, binaries, and PTYs are disposable.
 """
 import argparse
 import os
@@ -46,7 +47,8 @@ with tempfile.TemporaryDirectory(prefix="zshell-worktree-lifecycle-", dir="/tmp"
         "-I", str(ROOT / "mac/Vendor/tree-sitter/lib/include"), str(library),
         "-Xlinker", "-rpath", "-Xlinker", str(products),
         "-Xlinker", "-rpath", "-Xlinker", str(library.parent),
-        str(ROOT / "mac/tests/SessionWorktreeLifecycleTests.swift"), "-o", str(binary),
+        str(ROOT / "mac/tests/SessionWorktreeLifecycleTests.swift"),
+        str(ROOT / "mac/tests/QuickTerminalOffscreen.swift"), "-o", str(binary),
     ]
     subprocess.run(arguments, cwd=ROOT, check=True)
     for backend in ([options.backend] if options.backend else ("libghostty", "alacritty")):

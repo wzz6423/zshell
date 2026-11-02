@@ -92,13 +92,30 @@ struct SettingsReloadTests {
         check(settings.shellCompletions, "shell completions are enabled by default")
         check(settings.vimCommandHints && settings.restoreTerminalHistory && settings.notifyOnError,
               "new configurations use the enabled preference defaults")
+        check(settings.quickTerminalEnabled && settings.commandHistoryEnabled && settings.terminalTextHints
+              && settings.automaticallyApplyTerminalProfiles && settings.notifyOnAgentAttention
+              && settings.notifyOnAgentCompletion && settings.showPullRequestStatus,
+              "feature switches preserve existing behavior by default")
+        check(settings.isAtDefaults, "fresh settings expose the correct reset state")
         settings.shellCompletions = false
+        check(!settings.isAtDefaults, "disabled completions enable reset")
         wait({ (try? String(contentsOf: url, encoding: .utf8))?.contains("terminal.shell-completions = false") == true },
              "completion preference persists")
         var completionConfig = TOML.parse(at: url) ?? [:]
         completionConfig["terminal.shell-completions"] = .bool(true)
         settings.applyImported(completionConfig)
         check(settings.shellCompletions, "import restores the completion preference")
+        check(settings.isAtDefaults, "restored completions restore default state")
+        settings.commandShortcuts[.newSession] = CommandShortcut(persistedValue: "u7a:cmd+shift")!
+        check(!settings.isAtDefaults, "shortcut overrides enable reset")
+        settings.resetCommandShortcuts()
+        check(settings.isAtDefaults, "reset shortcuts restore default state")
+        settings.quickTerminalEnabled = false
+        check(settings.setCommandShortcut(CommandShortcut(character: "i", modifiers: [.command]),
+                                          for: .newSession) == .quickTerminal,
+              "disabled Quick Terminal still reserves its chord for re-enabling")
+        check(settings.commandShortcuts.isEmpty, "conflicting recording preserves core shortcuts")
+        settings.quickTerminalEnabled = true
         spin(0.4)
         let configuration = """
         app-icon = "light"
@@ -134,6 +151,10 @@ struct SettingsReloadTests {
         terminal.background-blur = true
         terminal.notify-finish-seconds = 30
         terminal.notify-on-error = true
+        terminal.command-history = false
+        terminal.text-hints = false
+        terminal.auto-profiles = false
+        quick-terminal.enabled = false
         quick-terminal.size = 0.5
         quick-terminal.opacity = 0.8
         quick-terminal.shortcut = "40:256"
@@ -143,6 +164,9 @@ struct SettingsReloadTests {
         panes.focus-ring-opacity = 0.4
         ai.enabled = false
         ai.resume-conversations = false
+        ai.notify-on-attention = false
+        ai.notify-on-completion = false
+        git.pull-request-status = false
         terminal.backend = "alacritty"
         terminal.startup-program = "/bin/zsh"
         terminal.startup-arguments = "-l"
@@ -237,6 +261,24 @@ struct SettingsReloadTests {
         check(!settings.gitProxyEnabled && settings.gitProxyAddress == GitProxy.defaultAddress && GitProxy.address == nil,
               "Git proxy resets to off with the default address prefilled")
         check(try SettingsConfigFile.read(at: url) == "", "default reload leaves empty source unchanged")
+        check(settings.quickTerminalEnabled && settings.commandHistoryEnabled && settings.terminalTextHints
+              && settings.automaticallyApplyTerminalProfiles && settings.notifyOnAgentAttention
+              && settings.notifyOnAgentCompletion && settings.showPullRequestStatus,
+              "omitted feature switches restore compatible defaults on external reload")
+
+        settings.resetToDefaults()
+        check(settings.isAtDefaults, "reset covers every configurable preference")
+        let featureSwitches: [ReferenceWritableKeyPath<AppSettings, Bool>] = [
+            \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints,
+            \.automaticallyApplyTerminalProfiles, \.notifyOnAgentAttention,
+            \.notifyOnAgentCompletion, \.showPullRequestStatus,
+        ]
+        for keyPath in featureSwitches {
+            settings[keyPath: keyPath] = false
+            check(!settings.isAtDefaults, "each feature switch enables reset")
+            settings[keyPath: keyPath] = true
+        }
+        check(settings.isAtDefaults, "restored feature switches restore default state")
 
         for size in 8...32 { settings.fontSize = Double(size) }
         NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: nil)

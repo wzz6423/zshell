@@ -13,6 +13,10 @@ La ventana Ajustes (<kbd>Cmd</kbd>+<kbd>,</kbd>) escribe en este mismo archivo. 
 
 Las nuevas configuraciones activan las sugerencias de comandos de Vim, la restauración del historial de sesiones y las notificaciones de comandos fallidos. Las descargas automáticas de actualizaciones también están activadas de forma predeterminada. Se conservan las configuraciones existentes y las elecciones guardadas.
 
+En **Ajustes → Terminal**, las opciones de entrada están en **Entrada**, el registro y acceso al historial en **Historial**, y los avisos de comandos e historial de notificaciones en **Notificaciones**. **Cursor** y **Fondo** están en **Ajustes → Apariencia**.
+
+Los controles dependientes se ocultan al desactivar su función principal; los valores guardados se conservan. Esto incluye el terminal rápido, la reanudación y notificaciones de agentes, la intensidad del trazo de fuente, la opacidad del marco de foco, la dirección del proxy de Git y las listas y estado de filtros del navegador. El desenfoque solo aparece con un fondo translúcido y Reducir transparencia de macOS desactivado.
+
 ## Cómo se comporta el archivo [#how-the-file-behaves]
 
 Antes de editarlo a mano, ten en cuenta lo siguiente:
@@ -194,6 +198,9 @@ Se controla en **Ajustes → Automatización → Reanudar conversaciones de agen
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Icono de la aplicación |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Editor externo para archivos y carpetas |
 | `terminal.theme-only` | `false` | booleano | Aplicar la paleta seleccionada solo al terminal |
+| `terminal.command-history` | `true` | booleano | Registrar comandos nuevos; el historial guardado sigue disponible si se desactiva |
+| `terminal.text-hints` | `true` | booleano | Activar pistas de teclado sobre texto visible del terminal |
+| `terminal.auto-profiles` | `true` | booleano | Asignar perfiles automáticamente; selección manual disponible |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Forma del cursor del terminal |
 | `terminal.cursor-blinking` | `true` | booleano | Hacer parpadear el cursor |
 | `terminal.copy-on-select` | `true` | booleano | Copiar el texto seleccionado en el terminal |
@@ -203,12 +210,16 @@ Se controla en **Ajustes → Automatización → Reanudar conversaciones de agen
 | `terminal.background-blur` | `false` | booleano | Desenfocar los fondos translúcidos |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Notificar cuando un comando haya durado al menos este tiempo y termine en un terminal zsh nuevo; 0 lo desactiva |
 | `terminal.notify-on-error` | `true` | booleano | Notificar errores de comandos en terminales zsh nuevos |
+| `ai.notify-on-attention` | `true` | booleano | Enviar avisos de atención de agentes; el historial se conserva |
+| `ai.notify-on-completion` | `true` | booleano | Enviar avisos de finalización de agentes; el historial se conserva |
+| `quick-terminal.enabled` | `true` | booleano | Mostrar el terminal rápido y registrar su atajo global; desactivarlo conserva las tareas |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Reutilizar espacio de trabajo / Espacio nuevo cada vez |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Tamaño del terminal rápido relativo a la pantalla |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Opacidad del fondo del terminal rápido |
 | `quick-terminal.shortcut` | `Cmd+I` | Registrar en Ajustes | Registrar el atajo global en Ajustes; los códigos de tecla se guardan automáticamente |
 | `panes.show-focus-ring` | `true` | booleano | Mostrar un contorno de foco alrededor del panel activo |
 | `panes.focus-ring-opacity` | `0.85` | 0.05–1 | Opacidad del contorno de foco |
+| `git.pull-request-status` | `true` | booleano | Mostrar el estado de las pull requests en el panel de Git |
 
 ## Copias de seguridad y migración [#backup-and-migration]
 
@@ -252,6 +263,6 @@ Abre **Ajustes → Atajos** para registrar un atajo nuevo para un comando princi
 ## Ajustes fuera de este archivo [#settings-outside-this-file]
 
 - **Idioma.** Ajustes ofrece Predeterminado del sistema y 17 idiomas, los mismos que el sitio web. Los cambios se aplican inmediatamente y las sesiones de terminal siguen en ejecución. La selección usa la preferencia de idioma por aplicación de macOS, por lo que se guarda en las preferencias de Zshell y no en TOML. Predeterminado del sistema sigue el orden de idiomas de macOS.
-- **Actualizaciones automáticas.** Los interruptores de comprobación, descarga e instalación automáticas de **Ajustes → Actualizaciones** usan preferencias de la aplicación fuera de TOML y recuerdan tus elecciones entre inicios. La opción de instalación solo se muestra cuando las descargas automáticas están activadas. Consulta [Instalación](/es/docs/installation#updates).
+- **Actualizaciones automáticas.** Los interruptores de comprobación, descarga e instalación automáticas de **Ajustes → Actualizaciones** usan preferencias de la aplicación fuera de TOML y recuerdan tus elecciones entre inicios. Los controles de descarga aparecen si la comprobación automática está activada y hay actualizaciones automáticas disponibles; la instalación también requiere activar las descargas automáticas. Consulta [Instalación](/es/docs/installation#updates).
 - **Estado de ventanas y distribución.** El tamaño de ventana, los anchos de las barras laterales, los paneles seleccionados, los proyectos, pestañas, paneles, URL del navegador y preferencias de controles de diferencias se guardan en las preferencias de macOS de Zshell y en la instantánea de sesión.
 - **Archivos de configuración de los motores.** Zshell no lee `~/.config/ghostty` ni una configuración de Alacritty. Los ajustes de Zshell son la interfaz admitida para ambos.

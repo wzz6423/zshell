@@ -13,6 +13,10 @@ Het instellingenvenster (<kbd>Cmd</kbd>+<kbd>,</kbd>) schrijft naar hetzelfde be
 
 Nieuwe configuraties schakelen Vim-opdrachthulp, herstel van sessiegeschiedenis en meldingen van mislukte opdrachten standaard in. Automatische update-downloads staan ook standaard aan. Bestaande configuraties en opgeslagen keuzes blijven behouden.
 
+Onder **Instellingen → Terminal** staan invoeropties in **Invoer**, registratie en toegang tot geschiedenis in **Geschiedenis**, en opdrachtmeldingen en meldingsgeschiedenis in **Meldingen**. **Cursor** en **Achtergrond** staan onder **Instellingen → Uiterlijk**.
+
+Afhankelijke regelaars zijn verborgen als de hoofdfunctie uitstaat; opgeslagen waarden blijven behouden. Dit geldt voor de snelle terminal, hervatten en meldingen van agents, lettertypestreepdikte, dekking van de focusrand, het Git-proxyadres en browserfilterlijsten en hun status. Achtergrondvervaging verschijnt alleen bij een doorschijnende achtergrond als Verminder transparantie in macOS uitstaat.
+
 ## Hoe het bestand werkt [#how-the-file-behaves]
 
 Handig om te weten voordat je handmatig bewerkt:
@@ -194,6 +198,9 @@ Gebruik **Instellingen → Automatisering → Agentgesprekken hervatten**. Deze 
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | App-pictogram |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Externe editor voor bestanden en mappen |
 | `terminal.theme-only` | `false` | Booleaans | Het gekozen palet alleen op de terminal toepassen |
+| `terminal.command-history` | `true` | Booleaans | Nieuwe opdrachten registreren; opgeslagen geschiedenis blijft beschikbaar bij uit |
+| `terminal.text-hints` | `true` | Booleaans | Toetsenbordhints voor zichtbare terminaltekst inschakelen |
+| `terminal.auto-profiles` | `true` | Booleaans | Terminalprofielen automatisch koppelen; handmatige keuze blijft beschikbaar |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Vorm van de terminalcursor |
 | `terminal.cursor-blinking` | `true` | Booleaans | De cursor laten knipperen |
 | `terminal.copy-on-select` | `true` | Booleaans | Geselecteerde terminaltekst kopiëren |
@@ -203,12 +210,16 @@ Gebruik **Instellingen → Automatisering → Agentgesprekken hervatten**. Deze 
 | `terminal.background-blur` | `false` | Booleaans | Doorschijnende achtergronden vervagen |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | In nieuwe zsh-terminals melden wanneer een opdracht na minstens deze duur eindigt; 0 schakelt dit uit |
 | `terminal.notify-on-error` | `true` | Booleaans | Mislukte opdrachten melden in nieuwe zsh-terminals |
+| `ai.notify-on-attention` | `true` | Booleaans | Aandachtsmeldingen van agents bezorgen; geschiedenis blijft behouden |
+| `ai.notify-on-completion` | `true` | Booleaans | Voltooiingsmeldingen van agents bezorgen; geschiedenis blijft behouden |
+| `quick-terminal.enabled` | `true` | Booleaans | Snelle terminal tonen en globale sneltoets registreren; uitschakelen behoudt lopende taken |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Werkruimte hergebruiken / Elke keer een nieuwe werkruimte |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Grootte van de snelle terminal ten opzichte van het scherm |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Achtergronddekking van de snelle terminal |
 | `quick-terminal.shortcut` | `Cmd+I` | Vastleggen in Instellingen | De algemene sneltoets vastleggen in Instellingen; toetscodes worden automatisch opgeslagen |
 | `panes.show-focus-ring` | `true` | Booleaans | Een focusrand om het actieve deelvenster tonen |
 | `panes.focus-ring-opacity` | `0.85` | 0.05–1 | Dekking van de focusrand |
+| `git.pull-request-status` | `true` | Booleaans | Pullrequeststatus in het Git-paneel tonen |
 
 ## Back-up en migratie [#backup-and-migration]
 
@@ -251,6 +262,6 @@ Open **Instellingen → Sneltoetsen** om een nieuwe sneltoets voor een kernopdra
 ## Instellingen buiten dit bestand [#settings-outside-this-file]
 
 - **Taal.** Instellingen biedt Systeemstandaard en 17 talen, net als de website. Wijzigingen gelden onmiddellijk terwijl terminalsessies blijven draaien. De keuze gebruikt de macOS-taalvoorkeur per app en staat daarom in de voorkeuren van Zshell, niet in TOML. Systeemstandaard volgt de macOS-taalvolgorde.
-- **Automatische updates.** De schakelaars voor automatisch controleren, downloaden en installeren onder **Instellingen → Updates** gebruiken app-voorkeuren buiten TOML en onthouden je keuzes na herstarts. Installeren verschijnt alleen als automatisch downloaden aanstaat. Zie [Installatie](/nl/docs/installation#updates).
+- **Automatische updates.** De schakelaars voor automatisch controleren, downloaden en installeren onder **Instellingen → Updates** gebruiken app-voorkeuren buiten TOML en onthouden je keuzes na herstarts. Downloadregelaars verschijnen bij ingeschakelde automatische controle en beschikbare automatische updates; installatie vereist ook automatisch downloaden. Zie [Installatie](/nl/docs/installation#updates).
 - **Venster- en indelingsstatus.** Venstergrootte, zijbalkbreedtes, geselecteerde panelen, projecten, tabbladen, deelvensters, browser-URL's en diffvoorkeuren staan in de macOS-voorkeuren van Zshell en de sessiemomentopname.
 - **Backendconfiguraties.** Zshell leest `~/.config/ghostty` noch een Alacritty-configuratie. De instellingen van Zshell vormen de ondersteunde configuratie voor beide.

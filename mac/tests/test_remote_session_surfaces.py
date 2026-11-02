@@ -26,6 +26,7 @@ parser.add_argument("--directory", required=True)
 parser.add_argument("--ssh-config", type=Path, required=True)
 parser.add_argument("--server-path", default="~/.local/bin/zshell-server")
 parser.add_argument("--backend", choices=("alacritty", "ghostty"), action="append")
+parser.add_argument("--wake-fixture", type=Path, help="Transparent bridge controls from test_remote_session_wake.py")
 parser.add_argument("--paste", action="store_true", help="Run the remote file/image paste probe after session checks")
 parser.add_argument("--agent-root", type=Path, help="Run official Codex Agent probes with this prepared isolated fixture")
 parser.add_argument("--agent-provider", help="Absolute official Codex executable on the isolated SSH fixture")
@@ -65,11 +66,20 @@ with tempfile.TemporaryDirectory(prefix="zshell-remote-surfaces-", dir="/tmp") a
     for backend in (() if options.agent_only else options.backend or ("alacritty", "ghostty")):
         home = temporary / backend
         home.mkdir()
+        (home / "tmp").mkdir()
+        settings = home / ".config/zshell-dev"
+        settings.mkdir(parents=True)
+        (settings / "config.toml").write_text("[ai]\nenabled = false\n")
         environment = {key: value for key, value in os.environ.items() if key not in ("ZSHELL_CLI_STATE", "ZSHELL_CLI_TOKEN")}
         environment.update({"CFFIXED_USER_HOME": str(home), "HOME": str(home),
+                            "TMPDIR": str(home / "tmp") + "/",
                             "ZSHELL_SSH_CONFIG_FILE": str(options.ssh_config.resolve()),
+                            "ZSHELL_SSH_AGENT_RESOLVED": "1",
                             "ZSHELL_PTY_MUX_DIRECTORY": str(home / "mux")})
-        subprocess.run([str(binary), backend, str(executable), options.address, options.directory, options.server_path],
+        command = [str(binary), backend, str(executable), options.address, options.directory, options.server_path]
+        if options.wake_fixture:
+            command.append(str(options.wake_fixture.resolve()))
+        subprocess.run(command,
                        cwd=ROOT, check=True, timeout=120, env=environment)
     if options.paste:
         subprocess.run(arguments + [str(ROOT / "mac/tests/RemotePasteSurfaceTests.swift")], cwd=ROOT, check=True)

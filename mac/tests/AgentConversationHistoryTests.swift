@@ -379,6 +379,10 @@ struct AgentConversationHistoryTests {
             try check(record.identity.sessionID == sessionID && record.identity.configDirectory == configuration.path,
                       "\(provider.rawValue) history keeps exact session and configuration")
             try check(TerminalManager.openConversation(record)?.session === session, "\(provider.rawValue) reports the actual live terminal")
+            if provider == .claude {
+                try reviewLifecycle(session: session, identity: record.identity)
+                if CommandLine.arguments[1].hasPrefix("review-") { return }
+            }
             try forks(manager: manager, project: project, source: session, record: record,
                       sessionFile: sessionFile, providerBin: providerBin)
             let sessionCount = project.sessions.count
@@ -478,6 +482,63 @@ struct AgentConversationHistoryTests {
         TerminalManager.prepareForApplicationQuit(endAll: true)
         try check(AgentConversationHistoryStore(url: AgentConversationHistoryPaths.recordsURL).record(id: pendingID) != nil,
                   "application quit flushes its pending background history write")
+    }
+
+    private static func reviewLifecycle(session: TerminalSession, identity: AgentConversationIdentity) throws {
+        let root = identity.workingDirectory
+        let fileURL = URL(fileURLWithPath: root).appendingPathComponent("review.txt")
+        _ = try AgentReviewGit.command(["init", "-q", "-b", "main"], in: root)
+        try Data("before\n".utf8).write(to: fileURL)
+        _ = try AgentReviewGit.command(["add", "review.txt"], in: root)
+        _ = try AgentReviewGit.command([
+            "-c", "user.name=Review Tests", "-c", "user.email=review@example.invalid", "commit", "-qm", "fixture",
+        ], in: root)
+        let environment = ZshellCLIService.shared.terminalEnvironment(for: session.id)
+        func lifecycle(_ name: String, child: Bool = false) throws {
+            var event: [String: ZshellJSONValue] = [
+                "hook_event_name": .string(name), "session_id": .string(identity.sessionID),
+            ]
+            if child {
+                event["agent_id"] = .string("review-child")
+                event["parent_session_id"] = .string(identity.sessionID)
+            }
+            let params: [String: ZshellJSONValue] = [
+                "provider": .string(identity.provider.rawValue), "event": .object(event),
+            ]
+            let arguments = ["--history-wire", environment["ZSHELL_AUTOMATION_SOCKET"]!,
+                environment["ZSHELL_AUTOMATION_TOKEN"]!, session.id.uuidString, "agent.lifecycle",
+                String(decoding: try JSONEncoder().encode(params), as: UTF8.self)]
+            let output = try requestProvider(session, values: ["arguments": arguments])
+            guard output["status"] as? Int == 0, let text = output["stdout"] as? String else {
+                throw HistoryTestFailure.failed("Lifecycle fixture failed: \(output)")
+            }
+            let response = try JSONDecoder().decode(ZshellAutomationResponse.self, from: Data(text.utf8))
+            try check(response.ok, "authenticated \(child ? "child" : "root") \(name) reaches the review router")
+        }
+        let store = AgentTurnReviewStore.shared
+        try lifecycle("UserPromptSubmit")
+        guard let started = store.records(in: root).first(where: { $0.sessionID == session.id }) else {
+            throw HistoryTestFailure.failed("Root prompt did not start its review")
+        }
+        try check(started.isActive && started.before != nil, "root prompt captures its review baseline")
+        try Data("child edit\n".utf8).write(to: fileURL)
+        try lifecycle("Stop", child: true)
+        let active = store.records(in: root).first { $0.sessionID == session.id }
+        try check(active?.id == started.id && active?.isActive == true && active?.after == nil,
+                  "child Stop keeps the parent review active")
+        try check(session.agentStatus?.phase == .working, "child Stop preserves the parent working status")
+        try Data("parent edit after child Stop\n".utf8).write(to: fileURL)
+        try lifecycle("Stop")
+        guard let completed = store.records(in: root).first(where: { $0.sessionID == session.id }),
+              let before = completed.before, let after = completed.after,
+              let file = try AgentReviewGit.files(from: before, to: after).first(where: { $0.path == "review.txt" }) else {
+            throw HistoryTestFailure.failed("Root Stop did not capture its completed review")
+        }
+        let contents = try AgentReviewGit.contents(for: file, before: before, after: after)
+        try check(!completed.isActive && completed.id == started.id
+                  && contents.before == Data("before\n".utf8)
+                  && contents.after == Data("parent edit after child Stop\n".utf8),
+                  "root Stop includes edits made after the child finished")
     }
 
     private static func forks(manager: TerminalManager, project: Project, source: TerminalSession,

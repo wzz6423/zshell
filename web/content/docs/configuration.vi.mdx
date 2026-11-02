@@ -13,6 +13,10 @@ Cửa sổ Cài đặt (<kbd>Cmd</kbd>+<kbd>,</kbd>) ghi cùng tệp này. Một
 
 Cấu hình mới bật gợi ý lệnh Vim, khôi phục lịch sử phiên và thông báo lệnh thất bại theo mặc định. Tự động tải cập nhật cũng mặc định bật. Cấu hình hiện có và các lựa chọn đã lưu được giữ nguyên.
 
+Trong **Cài đặt → Terminal**, điều khiển nhập liệu nằm ở **Nhập liệu**, ghi lệnh và truy cập lịch sử ở **Lịch sử**, thông báo lệnh và lịch sử thông báo ở **Thông báo**. **Con trỏ** và **Nền** nằm trong **Cài đặt → Giao diện**.
+
+Các điều khiển phụ thuộc sẽ ẩn khi tắt tính năng chính; giá trị đã lưu được giữ lại. Điều này áp dụng cho terminal nhanh, tiếp tục hội thoại và thông báo của tác nhân, độ đậm nét phông chữ, độ mờ viền tiêu điểm, địa chỉ proxy Git, danh sách bộ lọc và trạng thái của trình duyệt. Tùy chọn làm mờ nền chỉ xuất hiện khi nền trong mờ và tùy chọn Giảm độ trong suốt của macOS bị tắt.
+
 ## Hành vi của tệp [#how-the-file-behaves]
 
 Nên biết trước khi sửa tay:
@@ -194,6 +198,9 @@ Khi khôi phục ngăn terminal và PTY gốc không còn khả dụng, tiếp t
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Biểu tượng ứng dụng |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Trình soạn thảo ngoài cho tệp/thư mục |
 | `terminal.theme-only` | `false` | boolean | Chỉ áp dụng bảng màu cho terminal |
+| `terminal.command-history` | `true` | boolean | Ghi lệnh mới; lịch sử đã lưu vẫn có thể xem khi tắt |
+| `terminal.text-hints` | `true` | boolean | Bật gợi ý bàn phím cho văn bản terminal đang hiển thị |
+| `terminal.auto-profiles` | `true` | boolean | Tự động khớp hồ sơ terminal; vẫn có thể chọn thủ công |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Hình con trỏ terminal |
 | `terminal.cursor-blinking` | `true` | boolean | Nhấp nháy con trỏ |
 | `terminal.copy-on-select` | `true` | boolean | Sao chép chữ terminal đã chọn |
@@ -203,12 +210,16 @@ Khi khôi phục ngăn terminal và PTY gốc không còn khả dụng, tiếp t
 | `terminal.background-blur` | `false` | boolean | Làm mờ nền trong suốt |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Báo khi lệnh chạy ít nhất thời gian này rồi kết thúc trong terminal zsh mới; 0 tắt |
 | `terminal.notify-on-error` | `true` | boolean | Báo lệnh thất bại trong terminal zsh mới |
+| `ai.notify-on-attention` | `true` | boolean | Gửi thông báo khi tác nhân cần chú ý; vẫn ghi lịch sử |
+| `ai.notify-on-completion` | `true` | boolean | Gửi thông báo khi tác nhân hoàn tất; vẫn ghi lịch sử |
+| `quick-terminal.enabled` | `true` | boolean | Hiện terminal nhanh và đăng ký phím tắt toàn cục; tắt vẫn giữ tác vụ đang chạy |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Dùng lại không gian làm việc / Không gian làm việc mới mỗi lần |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Kích thước Terminal nhanh so với màn hình |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Độ đục nền Terminal nhanh |
 | `quick-terminal.shortcut` | `Cmd+I` | Ghi trong Cài đặt | Ghi phím tắt toàn cục; mã phím tự lưu |
 | `panes.show-focus-ring` | `true` | boolean | Hiện viền tiêu điểm quanh ô hoạt động |
 | `panes.focus-ring-opacity` | `0.85` | 0.05–1 | Độ đục viền tiêu điểm |
+| `git.pull-request-status` | `true` | boolean | Hiện trạng thái pull request trong bảng Git |
 
 ## Sao lưu và chuyển cấu hình [#backup-and-migration]
 
@@ -251,6 +262,6 @@ Mở **Cài đặt → Phím tắt** để ghi phím mới cho lệnh cốt lõi
 ## Cài đặt ngoài tệp này [#settings-outside-this-file]
 
 - **Ngôn ngữ.** Cài đặt có Mặc định hệ thống và 17 ngôn ngữ như website. Đổi áp dụng ngay, phiên terminal tiếp tục chạy. Lựa chọn dùng tùy chọn ngôn ngữ theo ứng dụng của macOS, nên nằm trong preferences Zshell thay vì TOML. Mặc định hệ thống theo thứ tự ngôn ngữ macOS.
-- **Cập nhật tự động.** Công tắc tự kiểm tra, tải và cài ở **Cài đặt → Cập nhật** dùng preferences ngoài TOML và nhớ lựa chọn qua lần mở. Cài đặt chỉ hiện khi tự tải bật. Xem [Cài đặt](/vi/docs/installation#updates).
+- **Cập nhật tự động.** Công tắc tự kiểm tra, tải và cài ở **Cài đặt → Cập nhật** dùng preferences ngoài TOML và nhớ lựa chọn qua lần mở. Điều khiển tải xuống chỉ hiện khi bật tự kiểm tra và có thể cập nhật tự động; điều khiển cài đặt còn yêu cầu bật tự tải xuống. Xem [Cài đặt](/vi/docs/installation#updates).
 - **Cửa sổ và bố cục.** Kích thước cửa sổ, độ rộng thanh bên, bảng đã chọn, dự án, tab, ô, URL trình duyệt và tùy chọn điều khiển diff nằm trong preferences macOS và ảnh chụp phiên của Zshell.
 - **Tệp cấu hình backend.** Zshell không đọc `~/.config/ghostty` hay cấu hình Alacritty. Cài đặt Zshell là nơi cấu hình được hỗ trợ cho cả hai.

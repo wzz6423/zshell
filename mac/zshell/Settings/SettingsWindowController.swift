@@ -167,6 +167,12 @@ final class SettingsWindowController: NSWindowController, NSToolbarDelegate {
         NSApp.activate()
     }
 
+    func show(category: SettingsCategory) {
+        sidebar.clearSearch()
+        select(category)
+        show()
+    }
+
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
         [.flexibleSpace, Self.sidebarIdentifier, .sidebarTrackingSeparator, Self.navigationIdentifier, .flexibleSpace]
     }

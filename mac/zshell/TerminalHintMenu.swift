@@ -9,6 +9,12 @@ final class TerminalHintMenu: NSObject, NSMenuItemValidation {
         guard let menu = mainMenu.items.compactMap(\.submenu).first(where: { menu in
             menu.items.contains { $0.action.map(NSStringFromSelector) == "toggleQuickTerminal" }
         }) else { return }
+        if !AppSettings.shared.terminalTextHints {
+            for item in menu.items where ["zshell-copy-terminal-hint", "zshell-open-terminal-hint"].contains(item.identifier?.rawValue ?? "") {
+                menu.removeItem(item)
+            }
+            return
+        }
         for item in items(for: nil) {
             if let existing = menu.items.first(where: { $0.identifier == item.identifier }) {
                 if existing.title != item.title { existing.title = item.title }
@@ -18,6 +24,7 @@ final class TerminalHintMenu: NSObject, NSMenuItemValidation {
     }
 
     func items(for surface: (any TerminalBackendSurface)?) -> [NSMenuItem] {
+        guard AppSettings.shared.terminalTextHints else { return [] }
         let copy = NSMenuItem(title: String(localized: "Copy Terminal Hint…"), action: #selector(copyHint(_:)), keyEquivalent: surface == nil ? "h" : "")
         copy.identifier = .init("zshell-copy-terminal-hint")
         copy.keyEquivalentModifierMask = [.command, .shift]
@@ -33,7 +40,9 @@ final class TerminalHintMenu: NSObject, NSMenuItemValidation {
         return [copy, open]
     }
 
-    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool { surface(for: menuItem) != nil }
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        AppSettings.shared.terminalTextHints && surface(for: menuItem) != nil
+    }
     @objc private func copyHint(_ sender: NSMenuItem) { surface(for: sender)?.hintMode.present(action: .copy) }
     @objc private func openHint(_ sender: NSMenuItem) { surface(for: sender)?.hintMode.present(action: .open) }
 
@@ -49,7 +58,8 @@ final class TerminalHintMenu: NSObject, NSMenuItemValidation {
         shortcutMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             assumeMainActor {
                 let flags = event.modifierFlags.intersection([.command, .option, .control, .shift])
-                guard event.charactersIgnoringModifiers?.lowercased() == "h",
+                guard AppSettings.shared.terminalTextHints,
+                      event.charactersIgnoringModifiers?.lowercased() == "h",
                       flags == [.command, .shift] || flags == [.command, .option],
                       let surface = (event.window ?? NSApp.keyWindow)?.firstResponder as? any TerminalBackendSurface,
                       !surface.commandRouting.blocksCommands else { return event }

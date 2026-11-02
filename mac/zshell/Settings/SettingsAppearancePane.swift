@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import Combine
 import GhosttyTheme
 
 /// Light/dark appearance, the color theme for each, and the fonts the terminal
@@ -115,6 +116,46 @@ final class SettingsAppearancePane: SettingsPaneViewController {
     )
 
     private let preview = FontThickenPreviewView(frame: .zero)
+    private let cursorShapeView = TerminalCursorShapeSettingsView(frame: .zero)
+    private let cursorBlinkingView = TerminalCursorBlinkingSettingsView(frame: .zero)
+    private let terminalBackgroundBlurSwitch = SettingsSwitch { AppSettings.shared.terminalBackgroundBlur = $0 }
+    private let terminalBackgroundOpacityRow = SettingsSliderRow(
+        title: String(localized: "Opacity"),
+        range: AppSettings.terminalBackgroundOpacityRange,
+        format: .percent,
+        step: 0.05,
+        showsStepper: false,
+        accessibilityLabel: String(localized: "Terminal background opacity"),
+        onChange: { AppSettings.shared.terminalBackgroundOpacity = $0 }
+    )
+    private lazy var backgroundGroup = SettingsGroup(header: String(localized: "Background"), rows: [
+        terminalBackgroundOpacityRow,
+        SettingsRow(title: String(localized: "Blur behind window"), control: terminalBackgroundBlurSwitch),
+    ])
+    private lazy var fontGroup = SettingsGroup(header: String(localized: "Font"), rows: [
+        SettingsRow(title: String(localized: "Latin family"), control: familyPopUp),
+        SettingsRow(title: String(localized: "CJK fallback"), control: fallbackFamilyPopUp),
+        fontSizeRow,
+        lineHeightRow,
+        SettingsRow(title: String(localized: "Thicken font strokes"), control: thickenSwitch),
+        thickenStrengthRow,
+        SettingsCustomRow(preview),
+    ])
+    private lazy var panesGroup = SettingsGroup(header: String(localized: "Panes"), rows: [
+        SettingsRow(title: String(localized: "Show focus ring on active pane"), control: paneFocusRingSwitch),
+        paneFocusRingOpacityRow,
+    ])
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        cursorShapeView.changeHandler = { AppSettings.shared.cursorShape = $0 }
+        cursorBlinkingView.changeHandler = { AppSettings.shared.cursorBlinking = $0 }
+        observe(
+            NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification)
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in self?.syncFromSettings() }
+        )
+    }
 
     override func makeGroups() -> [NSView] {
         [
@@ -134,41 +175,22 @@ final class SettingsAppearancePane: SettingsPaneViewController {
                     symbolName: "terminal"
                 ),
             ]),
-            SettingsGroup(header: String(localized: "Font"), rows: [
-                SettingsRow(title: String(localized: "Latin family"), control: familyPopUp),
-                SettingsRow(
-                    title: String(localized: "CJK fallback"),
-                    description: String(localized: "Used after the Latin family and before the bundled symbol font"),
-                    control: fallbackFamilyPopUp
-                ),
-                fontSizeRow,
-                lineHeightRow,
-                SettingsRow(
-                    title: String(localized: "Thicken font strokes"),
-                    description: String(localized: "Renders terminal text with slightly heavier strokes, like classic macOS font smoothing"),
-                    control: thickenSwitch
-                ),
-                thickenStrengthRow,
-                SettingsCustomRow(preview),
+            fontGroup,
+            SettingsGroup(header: String(localized: "Cursor"), rows: [
+                SettingsCustomRow(cursorShapeView),
+                SettingsCustomRow(cursorBlinkingView),
             ]),
+            backgroundGroup,
             SettingsGroup(header: String(localized: "Interface"), rows: [
                 interfaceScaleRow,
                 sidebarFontSizeRow,
             ]),
-            SettingsGroup(header: String(localized: "Panes"), rows: [
-                SettingsRow(
-                    title: String(localized: "Show focus ring on active pane"),
-                    description: String(
-                        localized: "Draws an accent outline around the focused pane when a tab is split"
-                    ),
-                    control: paneFocusRingSwitch
-                ),
-                paneFocusRingOpacityRow,
-            ]),
+            panesGroup,
         ]
     }
 
     override func syncFromSettings() {
+        let visibility = SettingsVisibility.current
         themePicker.select(settings.theme)
         // The previews paint the resolved palettes, which follow the theme
         // names rather than the light/dark selection.
@@ -184,11 +206,16 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         interfaceScaleRow.setValue(settings.interfaceScale)
         thickenSwitch.isOn = settings.fontThicken
         thickenStrengthRow.setValue(Double(settings.fontThickenStrength))
-        thickenStrengthRow.setEnabled(settings.fontThicken)
+        fontGroup.setRowHidden(!visibility.fontThicken, at: 5)
         lineHeightRow.setValue(settings.terminalLineHeight)
+        cursorShapeView.apply(shape: settings.cursorShape)
+        cursorBlinkingView.apply(isBlinking: settings.cursorBlinking)
+        terminalBackgroundOpacityRow.setValue(settings.terminalBackgroundOpacity)
+        terminalBackgroundBlurSwitch.isOn = settings.terminalBackgroundBlur
+        backgroundGroup.setRowHidden(!visibility.terminalBackgroundBlur, at: 1)
         paneFocusRingSwitch.isOn = settings.showPaneFocusRing
         paneFocusRingOpacityRow.setValue(settings.paneFocusRingOpacity)
-        paneFocusRingOpacityRow.setEnabled(settings.showPaneFocusRing)
+        panesGroup.setRowHidden(!visibility.showPaneFocusRing, at: 1)
         preview.configure(
             font: TerminalFont.resolve(
                 family: settings.fontFamily,

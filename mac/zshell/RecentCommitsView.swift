@@ -250,7 +250,8 @@ final class RecentCommitsNSView: NSView {
     }
 
     private func evaluateAutoLoadIfNeeded() {
-        guard let snapshot,
+        guard window != nil, !isHiddenOrHasHiddenAncestor,
+              let snapshot,
               snapshot.hasMoreCommits,
               !snapshot.isLoadingMore,
               !autoLoadRequestPending,

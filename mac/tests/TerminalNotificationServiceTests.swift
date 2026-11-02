@@ -194,6 +194,50 @@ struct TerminalNotificationServiceTests {
         await burstHistory.flush()
         print("PASS granted permission delivers every banner posted during one settings lookup")
 
+        let preferenceHistory = TerminalNotificationHistoryStore(url: root.appendingPathComponent("preferences/records.json"))
+        let preferenceDelivery = NotificationDeliveryFixture()
+        preferenceDelivery.current = .init(status: .allowed)
+        let preferenceService = TerminalNotificationService(history: preferenceHistory, delivery: preferenceDelivery)
+        await preferenceHistory.flush()
+        let preferenceSession = TerminalSession()
+        func preferenceEvent(_ phase: ZshellAgentPhase) {
+            let previous = preferenceSession.agentStatus
+            preferenceSession.agentStatus = ZshellAgentStatus(alias: "Preference agent", kind: .codex, phase: phase,
+                authority: .integration, reason: "fixture", updatedAt: Date(), processID: nil,
+                unseen: phase == .done, progress: nil, attention: phase == .blocked ? .approval : nil, tasks: [])
+            preferenceService.agentChanged(in: preferenceSession, previous: previous)
+        }
+        AppSettings.shared.notifyOnAgentAttention = false
+        preferenceEvent(.working)
+        preferenceEvent(.blocked)
+        await settle()
+        precondition(preferenceHistory.filtered(.pending).count == 1 && preferenceDelivery.settingsRequests == 0)
+        preferenceEvent(.working)
+        preferenceEvent(.done)
+        await settle()
+        precondition(preferenceDelivery.delivered.count == 1 && preferenceHistory.records.count == 2)
+        AppSettings.shared.notifyOnAgentAttention = true
+        AppSettings.shared.notifyOnAgentCompletion = false
+        preferenceEvent(.working)
+        preferenceEvent(.blocked)
+        await settle()
+        precondition(preferenceDelivery.delivered.count == 2)
+        preferenceEvent(.working)
+        preferenceEvent(.done)
+        await settle()
+        precondition(preferenceDelivery.delivered.count == 2 && preferenceHistory.records.count == 4)
+        preferenceEvent(.working)
+        preferenceEvent(.blocked)
+        AppSettings.shared.notifyOnAgentAttention = false
+        preferenceEvent(.working)
+        await settle()
+        precondition(preferenceDelivery.delivered.count == 2,
+                     "queued attention keeps its type after its pending record resolves")
+        AppSettings.shared.notifyOnAgentAttention = true
+        AppSettings.shared.notifyOnAgentCompletion = true
+        await preferenceHistory.flush()
+        print("PASS independent agent notification switches preserve history and suppress queued banners after settings change")
+
         let staleHistory = TerminalNotificationHistoryStore(url: root.appendingPathComponent("stale/records.json"))
         var staleService = TerminalNotificationService(history: staleHistory, delivery: NotificationDeliveryFixture())
         await staleHistory.flush()

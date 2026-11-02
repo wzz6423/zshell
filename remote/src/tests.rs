@@ -385,9 +385,13 @@ fn exited_sessions_make_room_for_new_sessions() {
     let watched = new_id().unwrap();
     fixture.create(&watched, vec!["/bin/sh", "-c", "exit 3"]);
     let (stream, _, _) = fixture.attach(&watched, 80, 24);
-    // The oldest evictable shell leaves a child that ignores SIGHUP on its PTY.
+    // The parent must wait for the child to ignore SIGHUP before leaving its PTY.
     let survivor = fixture.root.join("survivor.pid");
-    let script = format!("(trap '' HUP; exec sleep 30) & echo $! > '{}'; exit 0", survivor.display());
+    let ready = fixture.root.join("survivor.ready");
+    let script = format!(
+        "(trap '' HUP; : > '{0}'; exec sleep 30) & echo $! > '{1}'; while [ ! -f '{0}' ]; do sleep 0.01; done; exit 0",
+        ready.display(), survivor.display()
+    );
     let exited: Vec<_> = (1..MAX_SESSIONS)
         .map(|index| {
             let id = new_id().unwrap();

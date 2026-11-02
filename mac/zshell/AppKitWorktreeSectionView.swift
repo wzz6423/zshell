@@ -6,8 +6,7 @@
 import AppKit
 import SwiftUI
 
-/// Only the mounting boundary is SwiftUI; AppKit owns the header, rows, and
-/// bounded scroll viewport, independently of the Git change list below it.
+/// AppKit owns the rows; the Git panel supplies their shared scroll viewport.
 struct GitWorktreeSectionView: NSViewRepresentable {
     let worktrees: [GitStatusModel.Worktree]
     @Binding var isCollapsed: Bool
@@ -80,7 +79,7 @@ struct GitRepositorySectionMetrics {
         sidebar.lineHeight(designedFontSize: 11, weight: .medium, minimum: 14) + 10
     }
     func listHeight(count: Int, branchRows: Bool = false) -> CGFloat {
-        min(CGFloat(max(0, count)) * (branchRows ? branchRowHeight : rowHeight), 160 * sidebar.growthScale)
+        CGFloat(max(0, count)) * (branchRows ? branchRowHeight : rowHeight)
     }
     func height(count: Int, collapsed: Bool, branchRows: Bool = false) -> CGFloat {
         count == 0 ? 0 : headerHeight + (collapsed ? 0 : listHeight(count: count, branchRows: branchRows))
@@ -91,7 +90,6 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
     private let header = NSButton(title: String(localized: "WORKTREES"), target: nil, action: nil)
     private let addButton = NSButton(title: "", target: nil, action: nil)
     private let countLabel = NSTextField(labelWithString: "")
-    private let scrollView = GitRepositoryScrollView()
     private let tableView = RowButtonTableView()
     private enum Rows: Equatable {
         case worktrees([GitStatusModel.Worktree])
@@ -155,17 +153,7 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("worktree"))
         column.minWidth = 0
         tableView.addTableColumn(column)
-        scrollView.documentView = tableView
-        scrollView.drawsBackground = false
-        scrollView.borderType = .noBorder
-        scrollView.hasVerticalScroller = true
-        scrollView.hasHorizontalScroller = false
-        scrollView.autohidesScrollers = true
-        scrollView.scrollerStyle = .overlay
-        scrollView.verticalScrollElasticity = .none
-        scrollView.horizontalScrollElasticity = .none
-        scrollView.automaticallyAdjustsContentInsets = false
-        for view in [header, addButton, countLabel, scrollView] { addSubview(view) }
+        for view in [header, addButton, countLabel, tableView] { addSubview(view) }
         setAccessibilityElement(false)
         setContentHuggingPriority(.required, for: .vertical)
         setContentCompressionResistancePriority(.required, for: .vertical)
@@ -246,11 +234,11 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
         addButton.isEnabled = !isBusy
         countLabel.font = .monospacedDigitSystemFont(ofSize: 9 * scale, weight: .medium)
         countLabel.stringValue = String(rows.count)
-        scrollView.isHidden = isCollapsed || rows.count == 0
+        tableView.isHidden = isCollapsed || rows.count == 0
         tableView.rowHeight = rows.isBranches ? metrics.branchRowHeight : metrics.rowHeight
         if changed { tableView.reloadData() }
         else { updateVisibleRows() }
-        if changedRepository { scrollView.contentView.scroll(to: .zero) }
+        if changedRepository { tableView.deselectAll(nil) }
         invalidateIntrinsicContentSize()
         needsLayout = true
     }
@@ -265,20 +253,9 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
                                   width: actionWidth, height: labelHeight + 4)
         countLabel.frame = NSRect(x: max(8, bounds.width - countWidth - 8), y: 8,
                                  width: countWidth, height: labelHeight)
-        let listHeight = isCollapsed ? 0 : min(
-            metrics.listHeight(count: rows.count, branchRows: rows.isBranches),
-            max(0, bounds.height - metrics.headerHeight)
-        )
-        scrollView.frame = NSRect(x: 0, y: metrics.headerHeight, width: bounds.width, height: listHeight)
-        let contentWidth = max(0, scrollView.contentSize.width)
-        let contentHeight = max(listHeight, CGFloat(rows.count) * tableView.rowHeight)
-        tableView.frame = NSRect(x: 0, y: 0, width: contentWidth, height: contentHeight)
-        tableView.tableColumns.first?.width = contentWidth
-        // A shorter refreshed list must not leave an empty viewport at the old offset.
-        let maximum = max(0, contentHeight - scrollView.contentSize.height)
-        let offset = min(max(0, scrollView.contentView.bounds.minY), maximum)
-        scrollView.contentView.scroll(to: NSPoint(x: 0, y: offset))
-        scrollView.reflectScrolledClipView(scrollView.contentView)
+        let listHeight = isCollapsed ? 0 : metrics.listHeight(count: rows.count, branchRows: rows.isBranches)
+        tableView.frame = NSRect(x: 0, y: metrics.headerHeight, width: bounds.width, height: listHeight)
+        tableView.tableColumns.first?.width = bounds.width
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int { rows.count }
@@ -356,20 +333,7 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
     }
 }
 
-/// Consume boundary scrolls here rather than handing them to a parent scroll
-/// view, including when a refresh leaves too few rows to need scrolling.
-private final class GitRepositoryScrollView: NSScrollView {
-    override func scrollWheel(with event: NSEvent) {
-        let maximum = max(0, (documentView?.bounds.height ?? 0) - contentSize.height)
-        let offset = contentView.bounds.minY
-        guard maximum > 0,
-              !(offset <= 0 && event.scrollingDeltaY > 0),
-              !(offset >= maximum && event.scrollingDeltaY < 0) else { return }
-        super.scrollWheel(with: event)
-    }
-}
-
-private final class GitRepositoryTableRowView: NSTableRowView {
+final class GitRepositoryTableRowView: NSTableRowView {
     override func drawSelection(in dirtyRect: NSRect) {
         // A neutral selection keeps the embedded button labels legible in both appearances.
         NSColor.labelColor.withAlphaComponent(0.09).setFill()

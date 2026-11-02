@@ -333,19 +333,21 @@ function createAnnotationDOM(annotation) {
     header.appendChild(subtitleSpan);
   }
 
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'pierre-annotation-delete';
-  deleteBtn.textContent = '\u00D7';
-  deleteBtn.title = 'Delete annotation';
-  deleteBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    postToSwift('annotationDeleteRequested', {
-      id: metadata.id || '',
-      side: annotation.side || '',
-      lineNumber: annotation.lineNumber || 0,
+  if (metadata.isReadOnly !== true) {
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'pierre-annotation-delete';
+    deleteBtn.textContent = '\u00D7';
+    deleteBtn.title = 'Delete annotation';
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      postToSwift('annotationDeleteRequested', {
+        id: metadata.id || '',
+        side: annotation.side || '',
+        lineNumber: annotation.lineNumber || 0,
+      });
     });
-  });
-  header.appendChild(deleteBtn);
+    header.appendChild(deleteBtn);
+  }
 
   const body = document.createElement('div');
   body.className = 'pierre-annotation-body';
@@ -356,6 +358,17 @@ function createAnnotationDOM(annotation) {
   row.appendChild(avatar);
   row.appendChild(content);
   container.appendChild(row);
+  if (metadata.isReadOnly === true) {
+    container.tabIndex = 0;
+    container.setAttribute('role', 'link');
+    container.setAttribute('aria-label', metadata.subtitle || metadata.author || '');
+    container.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        container.click();
+      }
+    });
+  }
 
   // Post click event to Swift
   container.addEventListener('click', (e) => {
@@ -510,8 +523,11 @@ function createCodeViewItem(file) {
   return {
     id,
     type: 'diff',
-    version: versions.itemVersion,
+    version: file.annotations?.length
+      ? `${versions.itemVersion}~${JSON.stringify(file.annotations)}`
+      : versions.itemVersion,
     edit: file.isEditable === true,
+    annotations: file.annotations || [],
     fileDiff,
   };
 }
@@ -800,7 +816,7 @@ window.pierreBridge = {
         seen.add(item.id);
         items.push(item);
       }
-      currentCodeView.setItems(items);
+      preservingScrollPosition(() => currentCodeView.setItems(items));
       flushPendingScroll();
       primeHighlighting(items);
 

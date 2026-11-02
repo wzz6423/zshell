@@ -73,6 +73,11 @@ with tempfile.TemporaryDirectory(prefix="zshell-quick-tests-", dir="/tmp") as di
     )
     if os.environ.get("ZSHELL_QUICK_TEST_MENU_ONLY"):
         scenarios = (("menu", ("menu-lifecycle",)),)
+    if selected := os.environ.get("ZSHELL_QUICK_TEST_SCENARIOS"):
+        names = set(selected.split(","))
+        if names - {name for name, _ in scenarios}:
+            raise SystemExit(f"Unknown Quick Terminal scenarios: {selected}")
+        scenarios = tuple(scenario for scenario in scenarios if scenario[0] in names)
     for backend in ("alacritty", "ghostty"):
         for scenario, phases in scenarios:
             home = temporary / backend / scenario

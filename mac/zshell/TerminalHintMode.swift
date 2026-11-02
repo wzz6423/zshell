@@ -46,7 +46,7 @@ final class TerminalHintMode: NSObject {
     }
 
     func present(action: Action, triggeredBy event: NSEvent? = nil) {
-        guard let surface, let window = surface.window else { return }
+        guard AppSettings.shared.terminalTextHints, let surface, let window = surface.window else { return }
         dismiss(restoringFocus: false)
         self.action = action
         prefix = ""
@@ -89,6 +89,10 @@ final class TerminalHintMode: NSObject {
     @objc private func localize() { overlay.needsDisplay = true }
 
     func refreshSnapshot() {
+        guard AppSettings.shared.terminalTextHints else {
+            dismiss()
+            return
+        }
         guard isPresented, let surface, surface.window != nil,
               surface.window?.firstResponder === overlay else {
             dismiss(restoringFocus: false)

@@ -125,7 +125,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         remoteConnection: RemoteSessionConnection? = nil,
         remotePasteTarget: RemotePasteTarget? = nil,
         resolvesSSHAgent: Bool = false,
-        usesConfiguredStartupCommand: Bool = true
+        usesConfiguredStartupCommand: Bool = true,
+        usesConfiguredInitializationCommand: Bool = true
     ) {
         let sessionID = restoredSessionID ?? UUID()
         let existingPTY = remoteConnection == nil ? restoredSessionID.flatMap { PersistentPTY.reconnect(id: $0) } : nil
@@ -141,13 +142,16 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         let requestedCommand = resumeLaunch?.arguments
             ?? commandArguments.flatMap { $0.isEmpty ? nil : $0 }
             ?? (isRestoredSession || !usesConfiguredStartupCommand ? nil : Self.configuredStartupCommand())
-        let initialProfile = initialTerminalProfile ?? (remoteConnection == nil && remotePasteTarget == nil
+        let initialProfile = initialTerminalProfile ?? (AppSettings.shared.automaticallyApplyTerminalProfiles
+            && remoteConnection == nil && remotePasteTarget == nil
             ? TerminalProfile.firstMatch(in: AppSettings.shared.terminalProfiles, context: .init(
                 host: ProcessInfo.processInfo.hostName, user: NSUserName(), directory: directory,
                 program: requestedCommand?.first ?? Self.loginShell(), hostAlias: "localhost"
             )) : nil)
         let launchSettings = remoteConnection == nil
-            ? initialProfile?.applyingLaunchSettings(to: launchSettings) ?? launchSettings : launchSettings
+            ? initialProfile?.applyingLaunchSettings(
+                to: launchSettings, usesConfiguredInitializationCommand: usesConfiguredInitializationCommand
+            ) ?? launchSettings : launchSettings
         let profileCommand = initialProfile.flatMap { profile -> [String]? in
             guard !isRestoredSession, usesConfiguredStartupCommand, commandArguments == nil, resumeLaunch == nil,
                   case .success(let startup?) = TerminalStartupCommand.resolve(
@@ -286,7 +290,10 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         surface.profileAppearance = initialAppearance
         activeTerminalProfileID = initialProfile?.id
         surface.splitTarget.profileMenuTarget.session = self
-        terminalProfileObservation = AppSettings.shared.$terminalProfiles
+        terminalProfileObservation = Publishers.CombineLatest(
+            AppSettings.shared.$terminalProfiles,
+            AppSettings.shared.$automaticallyApplyTerminalProfiles.removeDuplicates()
+        )
             .dropFirst().receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.lastTerminalProfileContext = nil
@@ -426,10 +433,14 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         let profile: TerminalProfile?
         switch terminalProfileSelection {
         case .automatic:
-            let context = terminalProfileContext
-            guard context != lastTerminalProfileContext else { return }
-            lastTerminalProfileContext = context
-            profile = TerminalProfile.firstMatch(in: profiles, context: context)
+            if AppSettings.shared.automaticallyApplyTerminalProfiles {
+                let context = terminalProfileContext
+                guard context != lastTerminalProfileContext else { return }
+                lastTerminalProfileContext = context
+                profile = TerminalProfile.firstMatch(in: profiles, context: context)
+            } else {
+                profile = nil
+            }
         case .original:
             profile = nil
         case .profile(let id):
@@ -1074,7 +1085,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
               REGION_ACTIVE=0
               _zshell_selection_ready
               _zshell_prompt_queue_ready
-              builtin print -n $'\\e]133;P;k=i\\a\\e]133;B\\a'
+              # 程序退出后恢复用户的默认光标，不让 TUI 的 DECSCUSR 样式留在提示符里。
+              builtin print -n $'\\e[0 q\\e]133;P;k=i\\a\\e]133;B\\a'
             }
             add-zle-hook-widget line-init _zshell_line_init
             add-zle-hook-widget line-finish _zshell_selection_finished
@@ -1373,7 +1385,9 @@ extension TerminalSession: TerminalBackendEvents {
 
     func terminalDidUpdateCommandRecords(_ records: [TerminalCommandRecord]) {
         guard commandRecords != records else { return }
-        TerminalCommandHistoryStore.shared.observe(records, previous: commandRecords, terminalID: id)
+        if AppSettings.shared.commandHistoryEnabled {
+            TerminalCommandHistoryStore.shared.observe(records, previous: commandRecords, terminalID: id)
+        }
         commandRecords = records
     }
 

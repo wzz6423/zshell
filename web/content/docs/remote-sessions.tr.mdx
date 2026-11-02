@@ -47,6 +47,8 @@ Tüm istemciler aynı çıktıyı alır. Terminale odaklanmak veya denetimi alma
 
 Bölme, proje veya pencereyi kapatmak ve uygulamanın iki çıkış seçeneği yalnızca istemciyi ayırır. Uzak oturumu bitirmek onay ister ve kabuk ile işleri herkes için durdurur. Sunucuda: `zshell-server terminate --project ~/repo --session UUID`.
 
+Mac uyandığında paylaşılan uzak oturumlar bağlantıyı denetler ve gerekirse aynı uzak işe yeniden bağlanır. Elle ayrılan oturumlar ayrılmış olarak kalır.
+
 ## Dosyalar ve görüntüler [#paste]
 
 Normal dosya veya ekran görüntüsü kopyalayıp uzak bölmeye yapıştırın. Zshell özel sunucu dizinine yükler ve kabuğa uygun tırnaklı yollar ekler. En çok 32 dosya, dosya başına 32 MiB, toplam 64 MiB; klasör ve sembolik bağlantı reddedilir. Paylaşılan yüklemeler yedi gün saklanır. Normal Unix SSH bölmeleri de desteklenir.

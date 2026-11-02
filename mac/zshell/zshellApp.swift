@@ -3,23 +3,26 @@
 //  zshell
 //
 
+import AppKit
 import SwiftUI
 
-struct zshellApp: App {
-    @NSApplicationDelegateAdaptor(ZshellApplicationDelegate.self)
-    private var applicationDelegate
+@MainActor
+enum zshellApp {
+    nonisolated static func main() {
+        MainActor.assumeIsolated { run() }
+    }
 
-    // Held here so Sparkle starts at launch and background checks run even if
-    // the menu is never opened.
-    @StateObject private var updater = Updater.shared
-    @ObservedObject private var settings = AppSettings.shared
-
-    init() {
+    private static func run() {
+        let application = NSApplication.shared
+        let delegate = ZshellApplicationDelegate()
+        application.delegate = delegate
         TerminalFont.registerBundledFonts()
         TerminalNotificationService.shared.configure()
         AppSettings.shared.reconcileAIEnabled()
         Self.migrateDefaultWindowFrame()
         Self.migrateDefaultWindowFrameToScreenshotSize()
+        application.run()
+        withExtendedLifetime(delegate) {}
     }
 
     private static func migrateDefaultWindowFrame() {
@@ -77,447 +80,62 @@ struct zshellApp: App {
         defaults.set(true, forKey: migrationKey)
     }
 
-    var body: some Scene {
-        WindowGroup("zshell", id: "main") {
-            WindowRootView()
-        }
-        .windowStyle(.hiddenTitleBar)
-        // Keep title-bar dragging away from interactive tabs. The empty
-        // header surfaces opt in explicitly through WindowDragArea.
-        .windowBackgroundDragBehavior(.disabled)
-        .defaultSize(width: 1260, height: 706)
-        .commands {
-            CommandGroup(after: .appInfo) {
-                CheckForUpdatesView(updater: updater)
-            }
-            // The settings window is AppKit, so it replaces SwiftUI's Settings
-            // scene along with the menu item that scene would have supplied.
-            CommandGroup(replacing: .appSettings) {
-                Button(String(localized: "Settings…")) {
-                    SettingsWindowController.shared.show()
-                }
-                .keyboardShortcut(",", modifiers: .command)
-
-                Divider()
-
-                Button(String(localized: "Export Settings…")) {
-                    SettingsImportExport.exportSettings()
-                }
-
-                Button(String(localized: "Import Settings…")) {
-                    SettingsImportExport.importSettings()
-                }
-            }
-            ZshellCommands()
-        }
-    }
 }
 
-/// The "Check for Updates…" application-menu command.
-private struct CheckForUpdatesView: View {
-    @ObservedObject var updater: Updater
-    @ObservedObject private var settings = AppSettings.shared
-
-    var body: some View {
-        Button(updater.updateActionTitle) {
-            updater.checkForUpdates()
-        }
-        .disabled(!updater.canCheckForUpdates || updater.isUpdating)
-    }
-}
-
-/// Root of one terminal window. Each window owns its own manager, which
-/// claims the next unclaimed window snapshot; the first window to appear
-/// reopens windows for any snapshots left over.
-private struct WindowRootView: View {
-    @StateObject private var manager = TerminalManager()
-    @ObservedObject private var settings = AppSettings.shared
-    @Environment(\.openWindow) private var openWindow
-
-    var body: some View {
-        ContentView(manager: manager)
-            .environment(\.locale, AppLocalization.current.locale)
-            .focusedSceneObject(manager)
-            .onAppear {
-                TerminalManager.openRestoredWindows {
-                    openWindow(id: "main")
-                }
-            }
-            .onDisappear {
-                manager.windowClosed()
-            }
-    }
-}
-
-/// Menu commands routed to the focused window's manager.
-private struct ZshellCommands: Commands {
-    @FocusedObject private var manager: TerminalManager?
-    // Observing AppSettings here re-renders the affected menu items whenever a
-    // shortcut is remapped in Settings, so the new binding — and its key
-    // equivalent in the menu bar — takes effect immediately.
-    @ObservedObject private var settings = AppSettings.shared
-    @Environment(\.openWindow) private var openWindow
-
-    var body: some Commands {
-        let _ = TerminalManager.registerWindowOpener {
-            openWindow(id: "main")
-        }
-
-        CommandGroup(replacing: .newItem) {
-            Button(String(localized: "New Project")) {
-                manager?.newProject()
-            }
-            .keyboardShortcut(settings.keyboardShortcut(for: .newProject))
-            .disabled(manager == nil)
-
-            Button(String(localized: "New SSH Project…")) {
-                manager?.promptForSSHProject()
-            }
-            .disabled(manager == nil)
-
-            Button(String(localized: "New Session")) {
-                manager?.newSession()
-            }
-            .keyboardShortcut(settings.keyboardShortcut(for: .newSession))
-            .disabled(manager == nil)
-
-            // The browser "reopen closed tab" convention. History is scoped
-            // to the window: ⇧⌘T walks back through what this window closed.
-            Button(String(localized: "Reopen Closed Session")) {
-                manager?.reopenClosedSession()
-            }
-            .keyboardShortcut("t", modifiers: [.command, .shift])
-            .disabled(manager?.canReopenClosedSession != true)
-
-            Button(String(localized: "Toggle Prompt Queue")) {
-                manager?.togglePromptQueue()
-            }
-            .keyboardShortcut("m", modifiers: [.command, .shift])
-            .disabled(manager?.canTogglePromptQueue != true)
-
-            Button(String(localized: "New Browser Tab")) {
-                manager?.newBrowserTab()
-            }
-            .disabled(manager == nil)
-
-            Button(String(localized: "New Window")) {
-                openWindow(id: "main")
-            }
-            .keyboardShortcut(settings.keyboardShortcut(for: .newWindow))
-
-            Button(String(localized: "Close Pane")) {
-                // Cmd-W is app-wide: close a pane only when a main window with
-                // an open project is key. Otherwise close the key window
-                // itself — a non-main window (e.g. Settings), or a main window
-                // showing the empty "No open projects" state with no tab left.
-                if let manager, manager.selectedProject != nil,
-                   NSApp.keyWindow?.identifier?.rawValue.hasPrefix("main") == true {
-                    manager.closeSelectedTab()
-                } else {
-                    NSApp.keyWindow?.performClose(nil)
-                }
-            }
-            .keyboardShortcut(settings.keyboardShortcut(for: .closePane))
-        }
-
-        CommandGroup(replacing: .saveItem) {
-            Button(String(localized: "Save")) {
-                manager?.saveSelectedFile()
-            }
-            .keyboardShortcut("s", modifiers: .command)
-            .disabled(manager == nil)
-        }
-
-        CommandGroup(after: .pasteboard) {
-            // SwiftUI's Edit menu ships no Find submenu, so Zshell owns these
-            // outright. They act on the focused pane — Ghostty's search in a
-            // terminal, STTextView's find bar in a file editor — rather than on
-            // the first responder, which keeps them live while the find bar's
-            // text field has keyboard focus. ⇧⌘G is already Toggle Git Panel,
-            // so Find Previous is reachable by ⇧↩ in the bar instead.
-            Menu(String(localized: "Find")) {
-                Button(String(localized: "Find…")) {
-                    manager?.performFindAction(.show)
-                }
-                .keyboardShortcut("f", modifiers: .command)
-                .disabled(manager?.canFind != true)
-
-                Button(String(localized: "Find and Replace…")) {
-                    manager?.performFindAction(.replace)
-                }
-                .keyboardShortcut("f", modifiers: [.command, .option])
-                .disabled(manager?.canReplace != true)
-
-                Button(String(localized: "Find Next")) {
-                    manager?.performFindAction(.next)
-                }
-                .keyboardShortcut("g", modifiers: .command)
-                .disabled(manager?.canFind != true)
-
-                Button(String(localized: "Find Previous")) {
-                    manager?.performFindAction(.previous)
-                }
-                .disabled(manager?.canFind != true)
-
-                Button(String(localized: "Use Selection for Find")) {
-                    manager?.performFindAction(.useSelection)
-                }
-                .keyboardShortcut("e", modifiers: .command)
-                .disabled(manager?.canFind != true)
-            }
-
-            Divider()
-
-            Button(String(localized: "Clear Terminal")) {
-                manager?.clearActiveTerminal()
-            }
-            .keyboardShortcut(settings.keyboardShortcut(for: .clearTerminal))
-            .disabled(manager?.canClearActiveTerminal != true)
-        }
-
-        // Frees ⌘P from the default Print item for the command palette.
-        CommandGroup(replacing: .printItem) {}
-
-        CommandGroup(after: .sidebar) {
-            Button(String(localized: "Command Palette…")) {
-                manager?.toggleCommandPalette()
-            }
-            .keyboardShortcut(settings.keyboardShortcut(for: .commandPalette))
-            .disabled(manager == nil)
-
-            Button(String(localized: "Quick Launch…")) {
-                manager?.toggleQuickLaunch()
-            }
-            .keyboardShortcut("o", modifiers: .command)
-            .disabled(manager == nil)
-
-            Divider()
-
-            Button(String(localized: "Toggle Left Sidebar")) {
-                manager?.toggleLeftSidebar()
-            }
-            .keyboardShortcut(settings.keyboardShortcut(for: .toggleLeftSidebar))
-            .disabled(manager == nil)
-
-            Button(String(localized: "Toggle Right Sidebar")) {
-                manager?.toggleSidebar()
-            }
-            .keyboardShortcut(settings.keyboardShortcut(for: .toggleRightSidebar))
-            .disabled(manager?.selectedProject == nil)
-
-            Button(String(localized: "Toggle Files Panel")) {
-                manager?.togglePanel(.files)
-            }
-            .keyboardShortcut(settings.keyboardShortcut(for: .toggleFilesPanel))
-            .disabled(manager?.selectedProject == nil)
-
-            Button(String(localized: "Toggle Git Panel")) {
-                manager?.togglePanel(.git)
-            }
-            .keyboardShortcut(settings.keyboardShortcut(for: .toggleGitPanel))
-            .disabled(manager?.selectedProject == nil)
-
-            Button(String(localized: "Toggle Info Panel")) {
-                manager?.togglePanel(.info)
-            }
-            .keyboardShortcut("i", modifiers: [.command, .shift])
-            .disabled(manager?.selectedProject == nil)
-
-            Divider()
-
-            Button(String(localized: "Toggle Markdown Preview")) {
-                manager?.toggleMarkdownPreview()
-            }
-            .keyboardShortcut("v", modifiers: [.command, .shift])
-            .disabled(manager?.canToggleMarkdownPreview != true)
-        }
-
-        CommandMenu(String(localized: "Projects")) {
-            Button(String(localized: "Next Project")) {
-                manager?.selectNextProject()
-            }
-            .keyboardShortcut(settings.keyboardShortcut(for: .nextProject))
-            .disabled(manager == nil)
-
-            Button(String(localized: "Previous Project")) {
-                manager?.selectPreviousProject()
-            }
-            .keyboardShortcut(settings.keyboardShortcut(for: .previousProject))
-            .disabled(manager == nil)
-
-            Divider()
-
-            ForEach(Array((manager?.visibleSidebarProjects ?? []).prefix(9).enumerated()), id: \.element.id) { index, project in
-                Button(project.name) {
-                    manager?.selectProject(index: index)
-                }
-                .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
-            }
-        }
-
-        CommandMenu(String(localized: "Browser")) {
-            Button(String(localized: "Focus Address Bar")) {
-                manager?.focusBrowserAddressBar()
-            }
-            .keyboardShortcut("l", modifiers: .command)
-            .disabled(manager?.hasSelectedBrowser != true)
-
-            Button(String(localized: "Reload Page")) {
-                manager?.reloadSelectedBrowser()
-            }
-            .keyboardShortcut("r", modifiers: .command)
-            .disabled(manager?.hasSelectedBrowser != true)
-
-            Button(String(localized: "Stop Loading")) {
-                manager?.stopSelectedBrowser()
-            }
-            .disabled(manager?.hasSelectedBrowser != true)
-
-            Divider()
-
-            Button(String(localized: "Open in Default Browser")) {
-                manager?.openSelectedPageInDefaultBrowser()
-            }
-            .disabled(manager?.hasSelectedBrowser != true)
-        }
-
-        CommandMenu(String(localized: "Tabs")) {
-            Button(String(localized: "Split Right")) {
-                manager?.splitRight()
-            }
-            .keyboardShortcut("d", modifiers: .command)
-            .disabled(manager?.canSplit != true)
-
-            Button(String(localized: "Split Down")) {
-                manager?.splitDown()
-            }
-            .keyboardShortcut("d", modifiers: [.command, .shift])
-            .disabled(manager?.canSplit != true)
-
-            Button(String(localized: "Split Left")) {
-                manager?.splitLeft()
-            }
-            .disabled(manager?.canSplit != true)
-
-            Button(String(localized: "Split Up")) {
-                manager?.splitUp()
-            }
-            .disabled(manager?.canSplit != true)
-
-            Divider()
-
-            Button(String(localized: "Focus Pane Left")) {
-                manager?.focusPaneLeft()
-            }
-            .keyboardShortcut(.leftArrow, modifiers: [.command, .option])
-            .disabled(manager == nil)
-
-            Button(String(localized: "Focus Pane Right")) {
-                manager?.focusPaneRight()
-            }
-            .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
-            .disabled(manager == nil)
-
-            Button(String(localized: "Focus Pane Up")) {
-                manager?.focusPaneUp()
-            }
-            .keyboardShortcut(.upArrow, modifiers: [.command, .option])
-            .disabled(manager == nil)
-
-            Button(String(localized: "Focus Pane Down")) {
-                manager?.focusPaneDown()
-            }
-            .keyboardShortcut(.downArrow, modifiers: [.command, .option])
-            .disabled(manager == nil)
-
-            Button(String(localized: "Focus Previous Pane")) {
-                manager?.focusPreviousPane()
-            }
-            .keyboardShortcut("[", modifiers: .command)
-            .disabled(manager == nil)
-
-            Button(String(localized: "Focus Next Pane")) {
-                manager?.focusNextPane()
-            }
-            .keyboardShortcut("]", modifiers: .command)
-            .disabled(manager == nil)
-
-            Divider()
-
-            Button(String(localized: "Toggle Pane Zoom")) {
-                manager?.togglePaneZoom()
-            }
-            .keyboardShortcut(.return, modifiers: [.command, .shift])
-            .disabled(manager?.hasSplitPanes != true)
-
-            Button(String(localized: "Equalize Panes")) {
-                manager?.equalizePanes()
-            }
-            .keyboardShortcut("=", modifiers: [.command, .control])
-            .disabled(manager?.hasSplitPanes != true)
-
-            Menu(String(localized: "Resize Pane")) {
-                Button(String(localized: "Up")) {
-                    manager?.resizePaneUp()
-                }
-                .keyboardShortcut(.upArrow, modifiers: [.command, .control])
-                .disabled(manager?.hasSplitPanes != true)
-
-                Button(String(localized: "Down")) {
-                    manager?.resizePaneDown()
-                }
-                .keyboardShortcut(.downArrow, modifiers: [.command, .control])
-                .disabled(manager?.hasSplitPanes != true)
-
-                Button(String(localized: "Left")) {
-                    manager?.resizePaneLeft()
-                }
-                .keyboardShortcut(.leftArrow, modifiers: [.command, .control])
-                .disabled(manager?.hasSplitPanes != true)
-
-                Button(String(localized: "Right")) {
-                    manager?.resizePaneRight()
-                }
-                .keyboardShortcut(.rightArrow, modifiers: [.command, .control])
-                .disabled(manager?.hasSplitPanes != true)
-            }
-
-            Divider()
-
-            Button(String(localized: "Next Tab")) {
-                manager?.selectNextTab()
-            }
-            .keyboardShortcut("]", modifiers: [.command, .shift])
-            .disabled(manager == nil)
-
-            Button(String(localized: "Previous Tab")) {
-                manager?.selectPreviousTab()
-            }
-            .keyboardShortcut("[", modifiers: [.command, .shift])
-            .disabled(manager == nil)
-
-            Divider()
-
-            ForEach(Array((manager?.selectedProject?.tabs ?? []).prefix(9).enumerated()), id: \.element.id) { index, tab in
-                Button(tab.displayTitle ?? String(localized: "Tab \(index + 1)")) {
-                    manager?.selectTab(index: index)
-                }
-                .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .control)
+@MainActor
+final class ZshellWorkspaceWindowController: NSWindowController, NSWindowDelegate {
+    let manager = TerminalManager()
+    var onClose: (() -> Void)?
+    private var localizationObservation: NSObjectProtocol?
+
+    init(number: Int) {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1260, height: 706),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            backing: .buffered, defer: false
+        )
+        super.init(window: window)
+        window.isReleasedWhenClosed = false
+        window.identifier = NSUserInterfaceItemIdentifier("main-AppWindow-\(number)")
+        window.title = "zshell"
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.toolbarStyle = .unified
+        window.isMovableByWindowBackground = false
+        window.collectionBehavior.insert(.fullScreenPrimary)
+        window.delegate = self
+        let content = NSHostingView(rootView: ContentView(manager: manager)
+            .environment(\.locale, AppLocalization.current.locale))
+        window.contentView = content
+        window.setContentSize(NSSize(width: 1260, height: 706))
+        let frameName = "main-AppWindow-\(number)"
+        if !window.setFrameUsingName(frameName) { window.center() }
+        window.setFrameAutosaveName(frameName)
+        // 内容桥保留原视图；窗口与菜单生命周期不再进入 SwiftUI AppGraph。
+        manager.attach(to: window)
+        NSApp.addWindowsItem(window, title: window.title, filename: false)
+        localizationObservation = NotificationCenter.default.addObserver(
+            forName: AppLocalization.didChange, object: nil, queue: .main
+        ) { [weak content, weak manager] _ in
+            MainActor.assumeIsolated {
+                guard let content, let manager else { return }
+                content.rootView = ContentView(manager: manager)
+                    .environment(\.locale, AppLocalization.current.locale)
             }
         }
     }
-}
 
-extension AppSettings {
-    /// The SwiftUI keyboard shortcut for a command's current binding, so the
-    /// menu bar shows and matches whatever Settings recorded.
-    func keyboardShortcut(for command: AppCommand) -> KeyboardShortcut {
-        let shortcut = commandShortcut(for: command)
-        var modifiers: EventModifiers = []
-        if shortcut.modifiers.contains(.command) { modifiers.insert(.command) }
-        if shortcut.modifiers.contains(.option) { modifiers.insert(.option) }
-        if shortcut.modifiers.contains(.control) { modifiers.insert(.control) }
-        if shortcut.modifiers.contains(.shift) { modifiers.insert(.shift) }
-        return KeyboardShortcut(KeyEquivalent(shortcut.character), modifiers: modifiers)
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func windowWillClose(_ notification: Notification) {
+        if let localizationObservation { NotificationCenter.default.removeObserver(localizationObservation) }
+        localizationObservation = nil
+        manager.windowClosed()
+        if let window {
+            window.saveFrame(usingName: window.frameAutosaveName)
+            NSApp.removeWindowsItem(window)
+            window.contentView = nil
+        }
+        onClose?()
     }
 }

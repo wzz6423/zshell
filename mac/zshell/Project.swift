@@ -345,7 +345,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         worktree: SessionWorktree? = nil,
         launchSettings: TerminalLaunchSettings? = nil,
         remoteSessionID: UUID? = nil,
-        usesConfiguredStartupCommand: Bool = true
+        usesConfiguredStartupCommand: Bool = true,
+        usesConfiguredInitializationCommand: Bool = true
     ) -> TerminalSession? {
         guard !TerminalManager.isRemovingWorktree(containing: sessionDirectory(directory)) else {
             NSSound.beep()
@@ -358,7 +359,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             launchSettings: launchSettings ?? self.launchSettings,
             remoteSessionID: remoteSessionID,
             worktree: worktree,
-            usesConfiguredStartupCommand: usesConfiguredStartupCommand
+            usesConfiguredStartupCommand: usesConfiguredStartupCommand,
+            usesConfiguredInitializationCommand: usesConfiguredInitializationCommand
         )
         let tab = makeTab(content: .session(session))
         // Only a reopened session carries a title — the user-assigned name
@@ -422,7 +424,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         explicitlyResumeConversation: Bool = false,
         remoteSessionID: UUID? = nil,
         worktree: SessionWorktree? = nil,
-        usesConfiguredStartupCommand: Bool = true
+        usesConfiguredStartupCommand: Bool = true,
+        usesConfiguredInitializationCommand: Bool = true
     ) -> TerminalSession {
         let initialDirectory: String?
         let launchArguments: [String]?
@@ -454,11 +457,13 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 case .tailscale(let name, _):
                     context = .init(host: name, directory: directory)
                 }
-                initialTerminalProfile = TerminalProfile.firstMatch(
+                initialTerminalProfile = AppSettings.shared.automaticallyApplyTerminalProfiles ? TerminalProfile.firstMatch(
                     in: AppSettings.shared.terminalProfiles, context: context
-                )
+                ) : nil
                 let base = launchSettings ?? self.launchSettings
-                let configuredLaunch = initialTerminalProfile?.applyingLaunchSettings(to: base) ?? base
+                let configuredLaunch = initialTerminalProfile?.applyingLaunchSettings(
+                    to: base, usesConfiguredInitializationCommand: usesConfiguredInitializationCommand
+                ) ?? base
                 let remoteStartup = initialTerminalProfile.flatMap { profile -> [String]? in
                     guard !isRestoredSession, usesConfiguredStartupCommand, commandArguments == nil,
                           case .success(let startup?) = TerminalStartupCommand.resolve(
@@ -534,7 +539,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             remoteConnection: remoteConnection,
             remotePasteTarget: remotePasteTarget,
             resolvesSSHAgent: isRemote,
-            usesConfiguredStartupCommand: usesConfiguredStartupCommand
+            usesConfiguredStartupCommand: usesConfiguredStartupCommand,
+            usesConfiguredInitializationCommand: usesConfiguredInitializationCommand
         )
         register(session)
         if let sshMaterial {
@@ -1476,7 +1482,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             guard newSession(
                 directory: directory, commandArguments: commands[0]?.argv,
                 launchSettings: TerminalLaunchSettings(initializationCommand: commands[0]?.initializationCommand),
-                remoteSessionID: remoteSessionIDs[0], usesConfiguredStartupCommand: false
+                remoteSessionID: remoteSessionIDs[0], usesConfiguredStartupCommand: false,
+                usesConfiguredInitializationCommand: false
             ) != nil else { return }
         case .browser(let url):
             newBrowserTab(initialURL: url, initialFocus: .none)
@@ -1496,7 +1503,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                     content = .session(makeSession(
                         directory: directory, commandArguments: commands[paneIndex]?.argv,
                         launchSettings: TerminalLaunchSettings(initializationCommand: commands[paneIndex]?.initializationCommand),
-                        remoteSessionID: remoteSessionIDs[paneIndex], usesConfiguredStartupCommand: false
+                        remoteSessionID: remoteSessionIDs[paneIndex], usesConfiguredStartupCommand: false,
+                        usesConfiguredInitializationCommand: false
                     ))
                 case .browser(let url): content = .browser(makeBrowser(initialURL: url, initialFocus: .none))
                 case .file, .diff, .commitDiff: preconditionFailure("Template layouts are validated before application")

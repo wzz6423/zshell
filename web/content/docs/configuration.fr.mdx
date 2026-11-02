@@ -13,6 +13,10 @@ La fenêtre Réglages (<kbd>Cmd</kbd>+<kbd>,</kbd>) écrit dans ce même fichier
 
 Les nouvelles configurations activent l’aide aux commandes Vim, la restauration de l’historique des sessions et les notifications de commandes en échec. Le téléchargement automatique des mises à jour est également activé par défaut. Les configurations existantes et les choix enregistrés sont conservés.
 
+Dans **Réglages → Terminal**, les commandes de saisie sont sous **Saisie**, l’enregistrement et l’accès à l’historique sous **Historique**, et les alertes de commandes et l’historique des avis sous **Avis**. **Curseur** et **Arrière-plan** se trouvent dans **Réglages → Apparence**.
+
+Les réglages dépendants sont masqués quand leur fonction principale est désactivée ; leurs valeurs enregistrées sont conservées. Cela concerne le terminal rapide, la reprise et les notifications des agents, l’intensité des traits de police, l’opacité du cadre de focus, l’adresse du proxy Git et les listes et l’état des filtres du navigateur. Le flou du fond apparaît seulement avec un fond translucide et l’option macOS Réduire la transparence désactivée.
+
 ## Fonctionnement du fichier [#how-the-file-behaves]
 
 Avant de le modifier manuellement, retenez ces règles :
@@ -194,6 +198,9 @@ Activez cette option dans **Réglages → Automatisation → Reprendre les conve
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Icône de l'application |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Éditeur externe pour les fichiers et dossiers |
 | `terminal.theme-only` | `false` | Booléen | Appliquer la palette sélectionnée au terminal uniquement |
+| `terminal.command-history` | `true` | Booléen | Enregistrer les nouvelles commandes ; l’historique sauvegardé reste accessible si désactivé |
+| `terminal.text-hints` | `true` | Booléen | Activer les repères clavier sur le texte visible du terminal |
+| `terminal.auto-profiles` | `true` | Booléen | Associer automatiquement les profils ; sélection manuelle disponible |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Forme du curseur du terminal |
 | `terminal.cursor-blinking` | `true` | Booléen | Faire clignoter le curseur |
 | `terminal.copy-on-select` | `true` | Booléen | Copier le texte sélectionné dans le terminal |
@@ -203,12 +210,16 @@ Activez cette option dans **Réglages → Automatisation → Reprendre les conve
 | `terminal.background-blur` | `false` | Booléen | Flouter les fonds translucides |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | Dans les nouveaux terminaux zsh, notifier la fin d'une commande ayant duré au moins ce nombre de secondes ; 0 désactive la fonction |
 | `terminal.notify-on-error` | `true` | Booléen | Notifier les échecs de commande dans les nouveaux terminaux zsh |
+| `ai.notify-on-attention` | `true` | Booléen | Envoyer les avis de demande d’attention des agents ; historique conservé |
+| `ai.notify-on-completion` | `true` | Booléen | Envoyer les avis de fin des agents ; historique conservé |
+| `quick-terminal.enabled` | `true` | Booléen | Afficher le terminal rapide et enregistrer son raccourci global ; tâches conservées si désactivé |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Réutiliser l’espace de travail / Nouvel espace à chaque ouverture |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Taille du terminal rapide par rapport à l'écran |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Opacité du fond du terminal rapide |
 | `quick-terminal.shortcut` | `Cmd+I` | Enregistrer dans Réglages | Enregistrer le raccourci global ; les codes de touches sont sauvegardés automatiquement |
 | `panes.show-focus-ring` | `true` | Booléen | Afficher une bordure autour du volet actif |
 | `panes.focus-ring-opacity` | `0.85` | 0.05–1 | Opacité de cette bordure |
+| `git.pull-request-status` | `true` | Booléen | Afficher l’état des pull requests dans le panneau Git |
 
 ## Sauvegarde et migration [#backup-and-migration]
 
@@ -251,6 +262,6 @@ Ouvrez **Réglages → Raccourcis** pour enregistrer une combinaison pour une co
 ## Réglages enregistrés ailleurs [#settings-outside-this-file]
 
 - **Langue.** Réglages propose la langue du système et 17 langues, comme le site web. Le changement s'applique immédiatement sans interrompre les sessions de terminal. Ce choix utilise la préférence de langue par application de macOS et se trouve donc dans les préférences de Zshell, pas dans TOML. Le choix système suit l'ordre des langues de macOS.
-- **Mises à jour automatiques.** Les options de vérification, de téléchargement et d'installation dans **Réglages → Mises à jour** utilisent des préférences hors TOML et restent enregistrées après redémarrage. L'installation n'est affichée que lorsque le téléchargement automatique est activé. Consultez [Installation](/fr/docs/installation#updates).
+- **Mises à jour automatiques.** Les options de vérification, de téléchargement et d'installation dans **Réglages → Mises à jour** utilisent des préférences hors TOML et restent enregistrées après redémarrage. Les réglages de téléchargement apparaissent si la vérification automatique est activée et les mises à jour automatiques disponibles ; l’installation exige aussi le téléchargement automatique. Consultez [Installation](/fr/docs/installation#updates).
 - **Fenêtres et disposition.** La taille des fenêtres, la largeur des barres latérales, les panneaux sélectionnés, les projets, onglets, volets, URL du navigateur et préférences des diffs sont stockés dans les préférences macOS de Zshell et l'instantané de session.
 - **Configuration des moteurs.** Zshell ne lit ni `~/.config/ghostty` ni la configuration d'Alacritty. Ses propres réglages constituent l'interface prise en charge pour les deux moteurs.

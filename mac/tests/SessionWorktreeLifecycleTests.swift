@@ -41,8 +41,69 @@ struct SessionWorktreeLifecycleTests {
         throw SessionWorktreeError(message: "The foreground job did not start.")
     }
 
+    @MainActor private static func checkQuickTerminalProtection(
+        manager: TerminalManager, project: Project, repo: URL, root: URL
+    ) async throws {
+        let worktree = try await SessionWorktreeService().create(in: repo.path, branch: "quick-protection")
+        let overlay = GlobalTerminalOverlay.shared
+        AppSettings.shared.quickTerminalEnabled = true
+        AppSettings.shared.quickTerminalMode = .reuse
+        overlay.start()
+        overlay.toggle()
+        guard let reusable = overlay.workspace, let quick = reusable.sessions.first else {
+            throw SessionWorktreeError(message: "The reusable Quick Terminal did not start.")
+        }
+        try check(await quick.waitUntilStarted(), "the real Quick Terminal shell starts with the requested backend")
+        quick.sendCommand("cd " + TerminalSession.shellQuote(worktree.path))
+        quick.sendEnter()
+        let path = try await shellDirectory(quick, marker: root.appendingPathComponent("quick-directory.txt"))
+        try check(SessionWorktreeService.canonical(path) == worktree.path, "Quick Terminal enters the linked checkout")
+        for _ in 0..<50 where SessionWorktreeService.canonical(quick.currentDirectoryPath) != worktree.path {
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        overlay.toggle()
+        try check(overlay.allSessions.filter { $0.id == quick.id }.count == 1,
+                  "the hidden reusable workspace contributes one deduplicated session")
+        try check(TerminalManager.worktreeIsInUse(worktree.path), "hidden reusable Quick Terminal protects its checkout")
+        try check(!TerminalManager.worktreeIsInUse(worktree.path, excluding: quick.id),
+                  "excluding the only Quick Terminal user does not keep the checkout busy")
+        try await rejects("Git panel cleanup refuses the hidden Quick Terminal checkout") {
+            try await TerminalManager.removeWorktreeFromGitPanel(worktree)
+        }
+        guard let local = project.newSession(directory: worktree.path, worktree: worktree) else {
+            throw SessionWorktreeError(message: "The associated local session did not start.")
+        }
+        try check(await local.waitUntilStarted(), "the associated main-window session starts")
+        try await rejects("session cleanup cannot exclude another hidden Quick Terminal user") {
+            _ = try await manager.closeWorktreeSession(local, in: project, removeWorktree: true)
+        }
+        try check(project.sessions.contains { $0 === local } && FileManager.default.fileExists(atPath: worktree.path),
+                  "refused Quick Terminal cleanup preserves the checkout and main-window session")
+        _ = try await manager.closeWorktreeSession(local, in: project, removeWorktree: false)
+        _ = await local.waitUntilTerminated()
+        AppSettings.shared.quickTerminalMode = .fresh
+        overlay.toggle()
+        try check(overlay.workspace !== reusable && overlay.allSessions.contains { $0 === quick },
+                  "switching to a fresh workspace retains the hidden reusable session in usage checks")
+        try check(TerminalManager.worktreeIsInUse(worktree.path)
+                  && !TerminalManager.worktreeIsInUse(worktree.path, excluding: quick.id),
+                  "hidden reusable cwd protection and exclusion survive a mode switch")
+        try await rejects("Git panel cleanup still refuses after switching Quick Terminal modes") {
+            try await TerminalManager.removeWorktreeFromGitPanel(worktree)
+        }
+        let sessions = overlay.allSessions
+        overlay.stop()
+        for session in sessions { _ = await session.waitUntilTerminated() }
+        try check(!TerminalManager.worktreeIsInUse(worktree.path), "closing Quick Terminal releases its worktree usage")
+        try await TerminalManager.removeWorktreeFromGitPanel(worktree)
+        try check(!FileManager.default.fileExists(atPath: worktree.path),
+                  "Git panel cleanup removes the checkout after all Quick Terminal users stop")
+        try check(QuickTerminalOffscreen.isSafe(), "Quick Terminal verification stays offscreen without activating or capturing input")
+    }
+
     @MainActor static func main() async {
         setbuf(stdout, nil)
+        QuickTerminalOffscreen.install()
         NSApplication.shared.setActivationPolicy(.prohibited)
         var windows: [UUID: NSWindow] = [:]
         let mounting = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { _ in
@@ -68,6 +129,8 @@ struct SessionWorktreeLifecycleTests {
         }
         mounting.invalidate()
         let sessions = TerminalManager.automationManagers.flatMap(\.projects).flatMap(\.sessions)
+            + GlobalTerminalOverlay.shared.allSessions
+        GlobalTerminalOverlay.shared.stop()
         sessions.forEach { $0.terminate() }
         for session in sessions { _ = await session.waitUntilTerminated() }
         NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: NSApp)
@@ -136,6 +199,8 @@ struct SessionWorktreeLifecycleTests {
         try check(Darwin.kill(foregroundPID, 0) != 0 && errno == ESRCH,
                   "the captured foreground job is force-stopped when it ignores HUP")
         try check(!FileManager.default.fileExists(atPath: worktree.path), "cleanup removes the checkout directory")
+
+        try await checkQuickTerminalProtection(manager: manager, project: project, repo: repo, root: root)
 
         let kept = try await manager.newWorktreeSession(in: project, branch: "kept", sourceDirectory: repo.path)
         _ = try await manager.closeWorktreeSession(kept, in: project, removeWorktree: false)

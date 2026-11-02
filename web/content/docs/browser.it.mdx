@@ -13,7 +13,7 @@ Zshell può inserire un browser integrato in qualsiasi scheda o pannello diviso.
 
 Le schede browser appartengono al progetto selezionato e partecipano alla normale disposizione di schede e pannelli. Se non è aperto alcun progetto, Zshell ne crea uno per il browser.
 
-In un progetto SSH o remoto condiviso, apri `http://localhost:3000` per visualizzare il server di sviluppo di quell’host. Zshell usa l’inoltro SSH; se la connessione si interrompe, riconnettiti e ricarica la pagina. I dati del sito sono condivisi tra i pannelli di quel progetto remoto e separati dai progetti locali e dagli altri progetti remoti.
+In un progetto SSH o remoto condiviso, apri `http://localhost:3000` per visualizzare il server di sviluppo di quell’host. Zshell usa l’inoltro SSH; se la connessione si interrompe, riconnettiti e ricarica la pagina. I dati del sito sono condivisi tra i pannelli di quel progetto remoto e separati dai progetti locali e dagli altri progetti remoti. Anche gli indirizzi mostrati dal server di sviluppo, come `http://[::]:8000/`, si aprono tramite SSH in un progetto remoto.
 
 ## Indirizzo e ricerca [#address-and-search]
 
@@ -43,6 +43,12 @@ Passare tra schede o progetti conserva la pagina, inclusi cronologia, posizione 
 I pannelli browser conservano cookie, accessi e altri dati dei siti tra schede e avvii. Non si tratta di navigazione privata.
 
 Da **Browser → Import Browser Data…**, i cookie vengono importati nello spazio di archiviazione del browser del progetto selezionato quando si preme **Import**. I progetti remoti hanno spazi separati; quelli locali condividono lo spazio predefinito. Cambiare progetto non modifica la destinazione. Chiudere il progetto di destinazione interrompe il resto dell’importazione senza scrivere in un altro progetto. Se non ci sono progetti aperti, Zshell ne crea uno locale all’avvio dell’importazione di cookie o schede.
+
+I permessi per i dati del browser sono in **Impostazioni → Browser → Accesso ai dati del browser…**. La finestra di importazione offre anche **Consenti accesso**, **Impostazioni di Sistema…** e **Aggiorna**. Scegli la cartella dei dati del browser indicata nel dialogo. Se macOS blocca ancora l’accesso, consenti l’app in esecuzione, **zshell** o **zshell Debug**, in **Impostazioni di Sistema → Privacy e sicurezza → Accesso completo al disco**, poi fai clic su **Aggiorna**. Riavvia l’app se macOS lo richiede. L’elenco dei profili si aggiorna dopo la ricerca; un elenco vuoto non consente anteprima né importazione.
+
+Chrome può restare aperto durante l’importazione della cronologia; la cronologia salvata non viene modificata.
+
+I cookie Firefox senza SameSite vengono importati come Lax, anche da profili precedenti e sessioni salvate. I cookie con SameSite=None esplicito richiedono ancora Secure.
 
 ## Far testare la pagina a un agente [#let-an-agent-test-the-page]
 

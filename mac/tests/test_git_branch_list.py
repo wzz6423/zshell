@@ -53,7 +53,9 @@ struct GitStatusModel {
         let view = GitRepositorySectionNSView(frame: NSRect(x: 0, y: 0, width: 180, height: 240))
         let window = NSWindow(contentRect: view.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
-        window.contentView = view
+        let scroll = NSScrollView(frame: view.frame)
+        scroll.documentView = view
+        window.contentView = scroll
         var switched: [String] = []
         var createdWorktrees: [String] = []
         var deleted: [String] = []
@@ -64,11 +66,11 @@ struct GitStatusModel {
                 repositoryID: repository, isBusy: busy, switchBranch: { switched.append($0) },
                 createBranch: { createRequests += 1 }, createWorktree: { createdWorktrees.append($0) },
                 deleteBranch: { deleted.append($0) }, toggleCollapsed: { collapseRequests += 1 })
+            view.frame.size.height = view.intrinsicContentSize.height
             view.layoutSubtreeIfNeeded()
         }
         apply(model.branchesWithoutWorktrees)
-        let scroll = view.subviews.compactMap { $0 as? NSScrollView }.first!
-        let table = scroll.documentView as! NSTableView
+        let table = view.subviews.compactMap { $0 as? NSTableView }.first!
         func row(_ index: Int) -> NSButton {
             table.layoutSubtreeIfNeeded()
             return table.view(atColumn: 0, row: index, makeIfNecessary: true) as! NSButton
@@ -107,21 +109,21 @@ struct GitStatusModel {
         check(createdWorktrees == ["test1"] && deleted == ["test1"], "busy context actions cannot mutate the previous target")
         let many = (0..<30).map { "feature/\($0)" }
         apply(many)
-        check(table.frame.height > scroll.contentSize.height && scroll.frame.height <= 160,
-              "long branch lists use their own bounded scroll viewport")
+        check(table.frame.height == CGFloat(many.count) * table.rowHeight && table.enclosingScrollView === scroll,
+              "long branch lists use the complete page viewport")
         scroll.contentView.scroll(to: NSPoint(x: 0, y: table.bounds.height - scroll.contentSize.height))
         scroll.reflectScrolledClipView(scroll.contentView)
         apply(["only-match"])
-        check(table.numberOfRows == 1 && scroll.contentView.bounds.minY == 0,
-              "searching from the bottom does not leave the matching branch outside the viewport")
+        check(table.numberOfRows == 1 && view.bounds.height == view.intrinsicContentSize.height,
+              "searching shrinks the section to its matching branch")
         row(0).performClick(nil)
         check(switched.last == "only-match", "reused rows activate the refreshed branch")
         apply(many)
         scroll.contentView.scroll(to: NSPoint(x: 0, y: 100))
         apply(many, repository: "second")
-        check(scroll.contentView.bounds.minY == 0, "switching repositories resets the branch scroll position")
+        check(table.selectedRow == -1, "switching repositories resets the native branch selection")
         apply(many, collapsed: true)
-        check(scroll.isHidden && view.intrinsicContentSize.height == GitRepositorySectionMetrics(fontScale: 1).headerHeight,
+        check(table.isHidden && view.intrinsicContentSize.height == GitRepositorySectionMetrics(fontScale: 1).headerHeight,
               "collapsing branches keeps the section header and count")
         apply([])
         check(table.numberOfRows == 0 && view.intrinsicContentSize.height == 0,

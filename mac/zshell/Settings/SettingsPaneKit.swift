@@ -170,6 +170,7 @@ final class SettingsGroup: NSView {
 
     private func updateVisibleRows() {
         let visible = wrappers.filter { !$0.isHidden }
+        isHidden = visible.isEmpty
         for (index, wrapper) in visible.enumerated() {
             wrapper.setVisiblePosition(isFirst: index == 0, isLast: index == visible.count - 1)
         }

@@ -47,6 +47,8 @@ Mọi máy khách nhận cùng đầu ra. Đưa tiêu điểm vào terminal ho�
 
 Đóng khung, dự án, cửa sổ hoặc dùng một trong hai lựa chọn thoát ứng dụng chỉ tách máy khách. Kết thúc phiên từ xa yêu cầu xác nhận rồi dừng shell và tác vụ cho tất cả. Trên máy chủ: `zshell-server terminate --project ~/repo --session UUID`.
 
+Khi Mac thức dậy, các phiên từ xa được chia sẻ kiểm tra kết nối và kết nối lại đúng tác vụ từ xa nếu cần. Các phiên được tách thủ công vẫn giữ trạng thái tách.
+
 ## Tệp và ảnh chụp [#paste]
 
 Sao chép tệp thường hoặc ảnh chụp rồi dán vào khung từ xa. Zshell tải lên thư mục riêng trên máy chủ rồi chèn đường dẫn có trích dẫn cho shell. Tối đa 32 tệp, 32 MiB mỗi tệp và 64 MiB tổng; từ chối thư mục và liên kết tượng trưng. Tải lên phiên chia sẻ giữ bảy ngày. Khung Unix SSH thường cũng hỗ trợ.

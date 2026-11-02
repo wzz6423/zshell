@@ -47,6 +47,8 @@ Todos reciben la misma salida. Enfocar el terminal o tomar el control concede la
 
 Cerrar paneles, proyectos o ventanas y las dos opciones de salir de la aplicación solo separan al cliente. Terminar la sesión remota pide confirmación y detiene el shell y sus trabajos para todos. En el host: `zshell-server terminate --project ~/repo --session UUID`.
 
+Al despertar el Mac, las sesiones remotas compartidas comprueban la conexión y vuelven al mismo trabajo remoto si hace falta. Las sesiones separadas manualmente siguen separadas.
+
 ## Archivos y capturas [#paste]
 
 Copia archivos normales o una captura y pega en el panel remoto. Se suben a un directorio privado del host y se insertan rutas entre comillas para su shell. Hasta 32 archivos, 32 MiB por archivo y 64 MiB total; se rechazan carpetas y enlaces simbólicos. Las cargas compartidas duran siete días. Los paneles SSH Unix normales también lo admiten.

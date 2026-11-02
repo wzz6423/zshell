@@ -107,6 +107,40 @@ struct AgentStatusReportingTests {
             check(event("SubagentStop", ["agent_id": .string("child"), "agent_type": .string("Explore")])?.task?.phase == .done, "Child completion was lost")
             check(event("Stop", ["agent_id": .string("child")])?.task != nil, "Child Stop became parent completion")
             check(event("SubagentStart", ["agent_id": .string(String(repeating: "x", count: 129))]) == nil, "Unbounded child id accepted")
+            let currentID = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa"
+            let staleID = "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb"
+            let identity = AgentConversationIdentity(provider: .init(rawValue: provider.rawValue)!,
+                sessionID: currentID, workingDirectory: "/tmp/project")!
+            for name in ["UserPromptSubmit", "Stop", "SessionEnd", "PermissionRequest"] {
+                check(event(name, ["session_id": .string(currentID)])?.belongs(to: identity, provider: provider) == true,
+                      "Current conversation lifecycle was rejected")
+                check(event(name, ["session_id": .string(staleID)])?.belongs(to: identity, provider: provider) == false,
+                      "Stale conversation changed the current lifecycle")
+                check(event(name)?.belongs(to: identity, provider: provider) == true, "Legacy lifecycle lost process-based compatibility")
+                let other = AgentConversationIdentity(provider: provider == .claude ? .codex : .claude,
+                    sessionID: currentID, workingDirectory: "/tmp/project")!
+                check(event(name, ["session_id": .string(currentID)])?.belongs(to: other, provider: provider) == false,
+                      "Another provider borrowed the current conversation")
+            }
+            check(event("SessionStart", ["session_id": .string(staleID)])?.belongs(to: identity, provider: provider) == true,
+                  "A root SessionStart could not establish its new identity")
+            check(event("SessionStart", ["session_id": .string(currentID)])?.belongs(to: nil, provider: provider) == true,
+                  "Initial SessionStart required an existing identity")
+            for value in [ZshellJSONValue.string(""), .string("invalid"), .number(1), .null] {
+                check(event("Stop", ["session_id": value]) == nil, "Malformed conversation ID bypassed lifecycle ownership")
+                check(event("SubagentStop", ["agent_id": .string("child"), "parent_session_id": value]) == nil,
+                      "Malformed parent ID bypassed child ownership")
+            }
+            let child: [String: ZshellJSONValue] = ["agent_id": .string("child"), "session_id": .string(staleID),
+                                                  "parent_session_id": .string(currentID)]
+            check(event("SubagentStop", child)?.belongs(to: identity, provider: provider) == true,
+                  "Child lifecycle did not use its explicit parent identity")
+            var staleChild = child
+            staleChild["parent_session_id"] = .string(staleID)
+            check(event("SubagentStop", staleChild)?.belongs(to: identity, provider: provider) == false,
+                  "Child lifecycle updated a different parent conversation")
+            check(event("Stop", ["agent_id": .string("child"), "session_id": .string(staleID)])?
+                .belongs(to: identity, provider: provider) == true, "Child without a parent ID lost task-based compatibility")
         }
         check(ZshellAgentLifecycleEvent.parse(provider: .claude, payload: [
             "hook_event_name": .string("StopFailure"), "error": .string("authentication_failed"),

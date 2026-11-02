@@ -18,6 +18,8 @@ Beide unterstützen GPU-Beschleunigung, Bilder, Zshells gemeinsamen Themenkatalo
 
 ## Befehlsverlauf [#command-history]
 
+Unter **Einstellungen → Terminal → Verlauf** ist **Befehlsverlauf aufzeichnen** standardmäßig eingeschaltet (`terminal.command-history = true`). Ausschalten stoppt neue Aufzeichnungen; gespeicherte Einträge bleiben einsehbar und löschbar. Terminalausgabe und Shell-Verlauf bleiben erhalten.
+
 Unter **Terminal → Befehlsverlauf…** suchen Sie ausgeführte Zshell-Befehle nach Text oder Verzeichnis. Jede Zeile zeigt das ursprüngliche Verzeichnis, die Startzeit, die Dauer und den Exit-Status. Klicken Sie auf eine Zeile oder **Ausgabe anzeigen**, um zum ursprünglichen Bereich und dessen Ausgabe zurückzukehren. Bei geschlossenem Bereich oder gelöschter Ausgabe ist kein Sprung möglich; **Befehl kopieren** bleibt verfügbar.
 
 **In Terminal einfügen** füllt die leere zsh-Eingabe des ursprünglichen Bereichs, ohne den Befehl auszuführen. Drücken Sie anschließend Return. Bei laufenden Aufgaben oder vorhandenem Entwurf ist Einfügen deaktiviert. Mehrzeilige Befehle bleiben erhalten. Die Liste nutzt die Befehlsblockintegration von Ghostty und Alacritty; nicht unterstützte oder verschachtelte Shells können fehlen.
@@ -52,9 +54,17 @@ Eine abgelehnte Anfrage verhindert die entsprechende Funktion. Zshell erteilt di
 
 ## Fokus folgt der Maus [#focus-follows-mouse]
 
-Aktivieren Sie **Einstellungen → Terminal → Verhalten → Fokus folgt der Maus**. Der Fokus wechselt beim Betreten eines Terminalbereichs. Standardmäßig aus, für beide Backends und das Schnellterminal. Beim Ziehen, aus einem Editor oder bei geöffnetem Menü oder Dialog bleibt der Fokus bestehen.
+Aktivieren Sie **Einstellungen → Terminal → Eingabe → Fokus folgt der Maus**. Der Fokus wechselt beim Betreten eines Terminalbereichs. Standardmäßig aus, für beide Backends und das Schnellterminal. Beim Ziehen, aus einem Editor oder bei geöffnetem Menü oder Dialog bleibt der Fokus bestehen.
 
 `terminal.focus-follows-mouse = true`
+
+## Terminalprofile [#terminal-profiles]
+
+Erstellen und sortieren Sie Profile unter **Einstellungen → Terminal → Terminalprofile → Terminalprofile verwalten…**. Sie können Host, Benutzer, Arbeitsverzeichnis und Vordergrundprogramm abgleichen. Alle ausgefüllten Bedingungen müssen passen; `*` steht für beliebigen Text, `?` für ein Zeichen. Das erste passende Profil gilt; ohne Treffer erhält der Bereich seine ursprüngliche Darstellung. **Terminalprofile automatisch anwenden** ist standardmäßig eingeschaltet (`terminal.auto-profiles = true`). Manuelle Auswahl bleibt auch nach dem Ausschalten verfügbar.
+
+Wählen Sie per Rechtsklick **Terminalprofile**, um automatische Zuordnung, ein bestimmtes Profil oder die ursprünglichen Einstellungen zu nutzen. Theme, Schrift und Cursor ändern den aktuellen Bereich sofort. Umgebungsvariablen, Initialisierungsbefehle und Startprogramme gelten nur für neue Terminals; ein Profilwechsel führt keine Befehle aus. Initialisierung erfolgt beim Start der Login-Shell, ein Startprogramm wird direkt ausgeführt. Umgebungswerte stehen im Klartext in `config.toml`.
+
+Geteilte Remote-Sitzungen verwenden den vom Server gemeldeten Prozess und das Verzeichnis. Felder, die ältere Server nicht melden, können nicht passen. Ein einfacher SSH-Bereich gleicht den konfigurierten Host und Benutzer ab, kann aber das entfernte Vordergrundprogramm oder Verzeichnis nicht untersuchen. SSH und die entfernte Shell steuern seine Startumgebung. Das Startprogramm braucht einen absoluten Pfad auf dem Rechner, auf dem das Terminal läuft.
 
 ## Suche [#search]
 
@@ -106,6 +116,8 @@ So führen Compilerausgaben und Agentenprotokolle direkt zurück in dasselbe Pro
 
 ## Tastaturhinweise [#keyboard-hints]
 
+**Texthinweise im Terminal anzeigen** unter **Einstellungen → Terminal → Eingabe** ist standardmäßig eingeschaltet (`terminal.text-hints = true`). Ausschalten blendet Hinweisbefehle und Tastenkürzel aus und beendet den Hinweismodus für sichtbaren Text.
+
 Fokussiere ein Terminal und wähle **Terminal → Terminalhinweis kopieren…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) oder **Terminalhinweis öffnen…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>). Buchstaben erscheinen direkt über sichtbaren Pfaden, URLs, IP-Adressen und Commit-Hashes. Tippe das Label zur Auswahl; längere Labels grenzen die Treffer ein.
 
 <kbd>Tab</kbd> wechselt zwischen Kopieren und Öffnen, <kbd>Backspace</kbd> entfernt einen Buchstaben und <kbd>Esc</kbd> bricht ab und gibt die Eingabe ans Terminal zurück. Hinweistasten erreichen das Terminalprogramm nie. Kopieren behält Positionen wie `:42:7`. Öffnen nutzt wie Command-click Finder oder den Standardbrowser; andere Werte lassen sich kopieren.
@@ -113,6 +125,8 @@ Fokussiere ein Terminal und wähle **Terminal → Terminalhinweis kopieren…** 
 Beide Backends prüfen nur den sichtbaren Bildschirm einschließlich umgebrochener Zeilen. Größen- oder Ausgabeänderungen aktualisieren die Labels. Auch schreibgeschützte Bereiche erlauben Kopieren und Host-Aktionen.
 
 ## Mitteilungen [#notifications]
+
+Unter **Einstellungen → Automatisierung → Benachrichtigungen** sind **Benachrichtigen, wenn Agenten Aufmerksamkeit benötigen** und **Benachrichtigen, wenn Agenten fertig sind** standardmäßig eingeschaltet (`ai.notify-on-attention` und `ai.notify-on-completion`). Sie steuern jeweils die macOS-Zustellung des Agentenereignisses; der Verlauf zeichnet es auch ohne Zustellung auf.
 
 Zshell leitet zwei Terminalereignisse an die Mitteilungszentrale weiter:
 
@@ -123,6 +137,8 @@ Mitteilungen können den Systemton abspielen. Ein Klick aktiviert Zshell und spr
 
 ### Benachrichtigungsverlauf [#notification-history]
 
+Derselbe Benachrichtigungsverlauf ist unter **Einstellungen → Terminal → Benachrichtigungen** erreichbar.
+
 Öffnen Sie **Benachrichtigungen → Benachrichtigungsverlauf…** für aktuelle Terminal- und Agentenmeldungen. Filtern Sie nach **Ungelesen**, **Fehlgeschlagen** oder **Ausstehend**. Ein Klick auf eine Meldung oder **Bereich anzeigen** wählt das aktuelle Projekt, den Tab und den Bereich auch in einem anderen Fenster. Geschlossene Bereiche bleiben als nicht verfügbar im Verlauf.
 
 Verwenden Sie **Als gelesen markieren**, **Alle als gelesen markieren**, **Entfernen** oder **Verlauf leeren**. Lesen genehmigt keine Agentenanfrage. Ausstehende Meldungen verlassen den Filter, wenn der Agent fortfährt oder endet, der Bereich geschlossen wird oder die Remote-Verbindung nicht verfügbar ist. Zustände beruhen auf ausdrücklichen Lebenszyklusmeldungen und Befehls-Exitcodes. Die letzten 200 Einträge bleiben nach Neustarts erhalten und sind auch bei deaktivierter macOS-Benachrichtigungsberechtigung verfügbar.
@@ -130,7 +146,7 @@ Verwenden Sie **Als gelesen markieren**, **Alle als gelesen markieren**, **Entfe
 
 ### Befehlsabschluss [#command-completion]
 
-Unter **Einstellungen → Terminal → Befehlsmitteilungen** aktivieren Sie Mitteilungen zum Befehlsende:
+Unter **Einstellungen → Terminal → Benachrichtigungen** aktivieren Sie Mitteilungen zum Befehlsende:
 
 - **Lange laufende Befehle**: Wählen Sie 5, 10, 30 oder 60 Sekunden. Ein mindestens so lange laufender Befehl löst beim Abschluss eine Mitteilung aus. Standardmäßig ist dies **Aus**.
 - **Fehlgeschlagene Befehle**: Benachrichtigt unabhängig von der Laufzeit bei einem Exit-Status ungleich null. Dies ist in neuen Konfigurationen standardmäßig an und lässt sich separat deaktivieren.
@@ -180,6 +196,8 @@ Zshell enthält JetBrains Mono und Nerd-Font-Symbole. Jede installierte dickteng
 
 ## Globales Schnellterminal [#global-quick-terminal]
 
+**Schnellterminal aktivieren** unter **Einstellungen → Terminal → Schnellterminal** ist standardmäßig eingeschaltet (`quick-terminal.enabled = true`). Ausschalten verbirgt Fenster und Zugänge und hebt die Registrierung des globalen Tastenkürzels auf. Arbeitsbereich und laufende Aufgaben bleiben erhalten; Benachrichtigungen können das Fenster nicht öffnen. Größen-, Deckkraft-, Modus- und Tastenkürzelregler erscheinen beim Einschalten wieder.
+
 Während Zshell läuft, zeigt oder verbirgt <kbd>Cmd</kbd>+<kbd>I</kbd> oder **Terminal → Schnellterminal** ein unabhängiges Terminal. Größe, Deckkraft und Tastenkürzel ändern Sie unter **Einstellungen → Terminal → Schnellterminal**.
 
 **Sitzungsverhalten: Arbeitsbereich wiederverwenden (Standard) / Jedes Mal neuer Arbeitsbereich.** Wiederverwendung erhält Bereiche und Aufgaben. Neue Arbeitsbereiche enden beim Ausblenden. Der Modus gilt ab dem nächsten Anzeigen; der bisherige Arbeitsbereich bleibt beim Zurückwechseln verfügbar. Der Befehlsverlauf folgt der Shell-Konfiguration. Ein neuer Arbeitsbereich beginnt immer mit einem leeren Terminal, ohne vorherige Ausgabe, Aufteilung oder Sitzungszustand wiederherzustellen.
@@ -196,7 +214,7 @@ Der [Schnellstart](/de/docs/quick-launch), der Befehle speichert und ausführt, 
 
 ## Vim-Befehlshinweise [#vim-command-hints]
 
-Verwalten Sie die Hinweise unter **Einstellungen → Terminal → Verhalten → Vim-Befehlshinweise** und öffnen Sie den Tab **Info** in der rechten Seitenleiste. Solange Vim, Vi oder Neovim aktiv ist, erscheint unter den Sitzungsinformationen der Abschnitt **VIM-BEFEHLE**. Die Funktion ist in neuen Konfigurationen standardmäßig an und wirkt bei beiden Backends sofort auf bestehende Terminals.
+Verwalten Sie die Hinweise unter **Einstellungen → Terminal → Eingabe → Vim-Befehlshinweise** und öffnen Sie den Tab **Info** in der rechten Seitenleiste. Solange Vim, Vi oder Neovim aktiv ist, erscheint unter den Sitzungsinformationen der Abschnitt **VIM-BEFEHLE**. Die Funktion ist in neuen Konfigurationen standardmäßig an und wirkt bei beiden Backends sofort auf bestehende Terminals.
 
 Die vollständige Liste gängiger Befehle bleibt verfügbar; nur die Reihenfolge ändert sich. Im Normal-Modus stehen `:w`, `:q`, `yy` und `p`/`P` zuerst, im Visual-Block-Modus `I`/`A`, Blockänderungen und Bewegungen zwischen Ecken. Insert, Replace, Visual, Visual Line, Select, Befehlszeilen- und Suchmodus besitzen eigene Reihenfolgen. Jeder Eintrag nennt seine anwendbaren Modi. Sie können nach Tasten, Beschreibung oder Modusnamen suchen; Beschreibungen und Suchoberfläche unterstützen alle 17 Anwendungssprachen. Leeren Sie die Suche für die vollständige Liste. Die Hinweise dienen nur als Referenz und senden keine Eingabe an den Editor.
 
@@ -206,6 +224,6 @@ Alternativ aktivieren Sie die Funktion mit `terminal.vim-command-hints = true` i
 
 ## Shell-Vervollständigung
 
-Aktivieren Sie **Einstellungen → Terminal → Verhalten → Shell-Vervollständigung** (standardmäßig an) und öffnen Sie ein neues zsh-Terminal. Befehle, Unterbefehle, Argumente und Pfade stammen aus den Shell-Funktionen und erscheinen als graue Vorschläge. **Rechtspfeil** übernimmt am Eingabeende, **Tab** zeigt Kandidaten, Pfeile wählen, **Return** übernimmt ohne Ausführung, **Esc** oder **Ctrl+G** bricht das Menü ab. **Esc** schließt auch den Inline-Vorschlag. Vorhandene Plugins und Tastenbelegungen bleiben erhalten.
+Aktivieren Sie **Einstellungen → Terminal → Eingabe → Shell-Vervollständigung** (standardmäßig an) und öffnen Sie ein neues zsh-Terminal. Befehle, Unterbefehle, Argumente und Pfade stammen aus den Shell-Funktionen und erscheinen als graue Vorschläge. **Rechtspfeil** übernimmt am Eingabeende, **Tab** zeigt Kandidaten, Pfeile wählen, **Return** übernimmt ohne Ausführung, **Esc** oder **Ctrl+G** bricht das Menü ab. **Esc** schließt auch den Inline-Vorschlag. Vorhandene Plugins und Tastenbelegungen bleiben erhalten.
 
 Die gebündelten Plugins ändern `.zshrc` nicht. Vollbildprogramme erhalten ihre eigene Eingabe. Remote-Projekte nutzen mit kompatiblem zshell-server und zsh die entfernten Befehle und Pfade; andere Shells behalten ihre native Vervollständigung. Gilt für neue Shells und Remote-Sitzungen. `terminal.shell-completions = false` deaktiviert die Unterstützung.

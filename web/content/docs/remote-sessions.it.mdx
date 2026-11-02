@@ -47,6 +47,8 @@ Tutti ricevono lo stesso output. Mettere a fuoco il terminale o assumerne il con
 
 Chiudere pannelli, progetti o finestre e usare una delle due opzioni di uscita separa soltanto il client. Terminare la sessione remota richiede conferma e arresta shell e processi per tutti. Sull’host: `zshell-server terminate --project ~/repo --session UUID`.
 
+Al risveglio del Mac, le sessioni remote condivise verificano la connessione e si ricollegano allo stesso lavoro remoto se necessario. Le sessioni scollegate manualmente restano scollegate.
+
 ## File e schermate [#paste]
 
 Copia file normali o una schermata e incolla nel pannello remoto. Zshell carica in una cartella privata dell’host e inserisce i percorsi citati per la shell. Massimo 32 file, 32 MiB ciascuno e 64 MiB totali; cartelle e link simbolici sono rifiutati. I caricamenti condivisi durano sette giorni. Anche i pannelli SSH Unix normali lo supportano.

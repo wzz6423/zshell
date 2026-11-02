@@ -46,6 +46,10 @@ final class TerminalProfileMenuTarget: NSObject {
     weak var session: TerminalSession?
 
     func menuItem() -> NSMenuItem {
+        let profiles = AppSettings.shared.terminalProfiles
+        if profiles.isEmpty {
+            return item(String(localized: "Manage Terminal Profiles…"), #selector(manageProfiles))
+        }
         let parent = NSMenuItem(title: String(localized: "Terminal Profiles"), action: nil, keyEquivalent: "")
         let menu = NSMenu(title: parent.title)
         menu.autoenablesItems = false
@@ -56,7 +60,7 @@ final class TerminalProfileMenuTarget: NSObject {
         original.state = session?.terminalProfileSelection == .original ? .on : .off
         menu.addItem(original)
         menu.addItem(.separator())
-        for profile in AppSettings.shared.terminalProfiles {
+        for profile in profiles {
             let entry = item(profile.name, #selector(selectProfile(_:)))
             entry.representedObject = profile.id.uuidString
             entry.state = session?.activeTerminalProfileID == profile.id ? .on : .off

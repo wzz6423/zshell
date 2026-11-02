@@ -81,7 +81,7 @@ final class BrowserRemoteRouting: ObservableObject {
 
     nonisolated private static func isDirectLoopback(_ url: URL) -> Bool {
         guard let host = url.host?.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "[].")) else { return false }
-        return host == "localhost" || host == "::1" || host == "0.0.0.0" || host.hasPrefix("::ffff:7f")
+        return host == "localhost" || host == "::1" || host == "::" || host == "0.0.0.0" || host.hasPrefix("::ffff:7f")
             || (host.hasPrefix("127.") && IPv4Address(host) != nil)
     }
 
@@ -91,8 +91,8 @@ final class BrowserRemoteRouting: ObservableObject {
         guard isDirectLoopback(url), let host = url.host?.lowercased()
             .trimmingCharacters(in: CharacterSet(charactersIn: "[].")) else { return nil }
         if host == "localhost" || host == "::1" { return host }
-        // A wildcard listener answers on localhost; 0.0.0.0 names no address.
-        if host == "0.0.0.0" { return "localhost" }
+        // Wildcard listeners answer on localhost; their bind addresses name no host.
+        if host == "0.0.0.0" || host == "::" { return "localhost" }
         if let mapped = IPv6Address(host) {
             let bytes = Array(mapped.rawValue)
             guard bytes[10] == 0xff, bytes[11] == 0xff else { return nil }
@@ -149,11 +149,16 @@ final class BrowserRemoteRouting: ObservableObject {
     [{"trigger":{"url-filter":"^[a-z]+://localhost\\.?[:/]"},"action":{"type":"block"}},
     {"trigger":{"url-filter":"^[a-z]+://127\\."},"action":{"type":"block"}},
     {"trigger":{"url-filter":"^[a-z]+://0\\.0\\.0\\.0[:/]"},"action":{"type":"block"}},
-    {"trigger":{"url-filter":"^[a-z]+://\\[::1\\]"},"action":{"type":"block"}},
+    {"trigger":{"url-filter":"^[a-z]+://\\[::1?\\]"},"action":{"type":"block"}},
     {"trigger":{"url-filter":"^[a-z]+://\\[::ffff:7f"},"action":{"type":"block"}}]
     """#
 
     static let loopbackMessageName = "zshellRemoteLoopback"
+    static let loopbackInvalidationName = "zshellRemoteLoopbackInvalidated"
+
+    var loopbackInvalidationScript: String {
+        "window.dispatchEvent(new CustomEvent('\(Self.loopbackInvalidationName)', {detail: \(generation)}));"
+    }
 
     /// Lets the bridge start forwarding for a page that did not need it to load.
     func loopbackMessageHandler() -> WKScriptMessageHandlerWithReply { LoopbackMessageHandler(routing: self) }
@@ -171,7 +176,7 @@ final class BrowserRemoteRouting: ObservableObject {
                 do {
                     guard let routing else { throw CancellationError() }
                     try await routing.ensureConnected()
-                    replyHandler(true, nil)
+                    replyHandler(routing.generation, nil)
                 } catch {
                     replyHandler(nil, error.localizedDescription)
                 }
@@ -182,12 +187,12 @@ final class BrowserRemoteRouting: ObservableObject {
     static let bridgeScript = """
     (() => {
       const alias = '\(aliasHost)';
-      const direct = host => host === 'localhost' || host === 'localhost.' || host === '[::1]' || host === '0.0.0.0'
+      const direct = host => host === 'localhost' || host === 'localhost.' || host === '[::1]' || host === '[::]' || host === '0.0.0.0'
         || host.startsWith('[::ffff:7f') || /^127\\.\\d+\\.\\d+\\.\\d+$/.test(host);
       // Keep the requested loopback address in the alias, matching routedURL().
       const aliasFor = host => {
         host = host.replace(/^\\[|\\]$/g, '').replace(/\\.$/, '');
-        if (host === 'localhost' || host === '0.0.0.0') return alias;
+        if (host === 'localhost' || host === '0.0.0.0' || host === '::') return alias;
         if (host === '::1') return 'ipv6-1.' + alias;
         const mapped = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(host);
         if (mapped) {
@@ -209,8 +214,32 @@ final class BrowserRemoteRouting: ObservableObject {
       // still go out and fail on the closed proxy.
       const tunnel = window.webkit.messageHandlers.\(loopbackMessageName);
       let connected = location.hostname === alias || location.hostname.endsWith('.' + alias);
-      let readiness;
-      const settle = () => readiness ||= tunnel.postMessage(null).then(() => { connected = true; }, () => { readiness = undefined; });
+      let readiness, generation = -1, revision = 0;
+      const invalidation = '\(loopbackInvalidationName)';
+      const invalidate = next => {
+        if (!Number.isSafeInteger(next) || next < 0) return;
+        if (next > generation) {
+          generation = next;
+          revision++;
+          connected = false;
+          readiness = undefined;
+        }
+        for (let index = 0; index < window.frames.length; index++) {
+          window.frames[index].postMessage({ [invalidation]: next }, '*');
+        }
+      };
+      window.addEventListener(invalidation, event => invalidate(event.detail));
+      window.addEventListener('message', event => {
+        if (event.source === window.parent) invalidate(event.data && event.data[invalidation]);
+      });
+      const settle = () => {
+        if (readiness) return readiness;
+        const current = revision;
+        const pending = tunnel.postMessage(null).then(next => {
+          if (current === revision && next >= generation) { generation = next; connected = true; }
+        }, () => { if (readiness === pending) readiness = undefined; });
+        return readiness = pending;
+      };
       const deferred = (Native, url, rest, events) => {
         const target = new EventTarget();
         Object.setPrototypeOf(target, Native.prototype);

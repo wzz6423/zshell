@@ -168,6 +168,30 @@ sys.exit(result.returncode)
             check(status["phase"] == "blocked" and status["attention"] == "approval", "remote approval uses the existing attention vocabulary")
             check(report({"hook_event_name": "Stop"})["status"] == 0, "native completion lifecycle is accepted")
             check(bridge.call("get", project, sessionId=terminal_id)["result"]["agentStatus"]["phase"] == "done", "completion is retained until acknowledged")
+            stale_id = str(uuid.uuid4())
+            stale_status = report({"hook_event_name": "PermissionRequest", "session_id": stale_id})["status"]
+            current = bridge.call("get", project, sessionId=terminal_id)["result"]
+            check(stale_status != 0 and current["conversation"]["sessionID"] == session_id
+                  and current["agentStatus"]["phase"] == "done",
+                  "a stale conversation lifecycle cannot change the current Agent state")
+            stale_status = report({"hook_event_name": "SessionEnd", "session_id": stale_id})["status"]
+            current = bridge.call("get", project, sessionId=terminal_id)["result"]
+            check(stale_status != 0 and current["conversation"]["sessionID"] == session_id,
+                  "an old SessionEnd never clears the currently bound conversation")
+            check(report({"hook_event_name": "UserPromptSubmit", "session_id": session_id})["status"] == 0,
+                  "the exact current conversation lifecycle remains accepted")
+            check(report({"hook_event_name": "Stop"})["status"] == 0,
+                  "legacy lifecycle events without a conversation ID remain accepted")
+            for invalid_id in ("", "invalid", None, 1):
+                check(report({"hook_event_name": "Stop", "session_id": invalid_id})["status"] != 0,
+                      "an invalid explicit conversation ID never falls back to legacy lifecycle handling")
+            child = {"hook_event_name": "SubagentStop", "agent_id": "child", "session_id": stale_id,
+                     "parent_session_id": session_id}
+            check(report(child)["status"] == 0, "a child lifecycle uses its explicit parent conversation ID")
+            child["parent_session_id"] = stale_id
+            check(report(child)["status"] != 0, "a child lifecycle never updates a different parent conversation")
+            check(report({"hook_event_name": "SubagentStop", "agent_id": "child", "session_id": stale_id})["status"] == 0,
+                  "legacy child events without a parent ID retain task-based handling")
             check(report({"nested": True})["status"] != 0, "nested provider cannot impersonate the foreground root")
             forged = {"hook_event_name": "SessionStart", "session_id": session_id, "cwd": str(other)}
             check(report(forged)["status"] != 0, "hook rejects a conversation in another project")
@@ -222,6 +246,21 @@ sys.exit(result.returncode)
             check(resumed["sessionId"] != terminal_id and started["argv"] == ["--resume", session_id]
                   and started["session"] == session_id and started["cwd"] == str(project), "restarted daemon invokes the exact provider resume ID and directory")
             check(started["status"] == 0, "resumed foreground Agent rebinds through the production hook")
+            current_id = str(uuid.uuid4())
+            check(report({"hook_event_name": "SessionStart", "session_id": current_id, "cwd": str(project)})["status"] == 0,
+                  "the same root Agent can establish a new provider conversation")
+            check(report({"hook_event_name": "UserPromptSubmit", "session_id": current_id})["status"] == 0,
+                  "work events follow the newly established conversation")
+            check(report({"hook_event_name": "Stop", "session_id": session_id})["status"] != 0,
+                  "a previous conversation Stop never completes the new turn")
+            current = bridge.call("get", project, sessionId=resumed["sessionId"])["result"]
+            check(current["conversation"]["sessionID"] == current_id and current["agentStatus"]["phase"] == "working",
+                  "rejecting a previous Stop keeps the new identity and work state")
+            check(report({"hook_event_name": "SessionEnd", "session_id": session_id})["status"] != 0,
+                  "a previous conversation SessionEnd never clears the new session")
+            check(report({"hook_event_name": "SessionEnd", "session_id": current_id})["status"] == 0
+                  and bridge.call("get", project, sessionId=resumed["sessionId"])["result"]["conversation"] is None,
+                  "the exact current SessionEnd still ends its own conversation")
         finally:
             try:
                 bridge.call("shutdown", project)

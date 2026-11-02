@@ -47,6 +47,8 @@ Semua klien menerima keluaran yang sama. Memfokuskan terminal atau mengambil ken
 
 Menutup panel, proyek, jendela, atau memakai kedua pilihan keluar hanya melepaskan klien. Mengakhiri sesi jarak jauh meminta konfirmasi dan menghentikan shell beserta pekerjaan untuk semua klien. Pada host: `zshell-server terminate --project ~/repo --session UUID`.
 
+Setelah Mac bangun dari tidur, sesi jarak jauh bersama memeriksa koneksi dan tersambung kembali ke tugas yang sama jika diperlukan. Sesi yang dipisahkan secara manual tetap terpisah.
+
 ## Berkas dan tangkapan layar [#paste]
 
 Salin berkas biasa atau tangkapan layar dan tempel di panel jarak jauh. Zshell mengunggah ke direktori privat host lalu memasukkan jalur berkutip untuk shell. Maksimal 32 berkas, masing-masing 32 MiB dan total 64 MiB; folder dan tautan simbolis ditolak. Unggahan bersama tersedia tujuh hari. Panel Unix SSH biasa juga mendukungnya.

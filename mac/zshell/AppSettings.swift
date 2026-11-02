@@ -296,6 +296,14 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var commandHistoryEnabled: Bool {
+        didSet { save() }
+    }
+
+    @Published var terminalTextHints: Bool {
+        didSet { save() }
+    }
+
     /// Send Shift-Return as LF so coding agents can insert a line without
     /// changing plain Return's submit behavior.
     @Published var shiftEnterNewline: Bool {
@@ -373,6 +381,13 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var quickTerminalEnabled: Bool {
+        didSet {
+            guard quickTerminalEnabled != oldValue, !isApplyingConfig else { return }
+            GlobalTerminalOverlay.shared.reloadHotkey()
+            save()
+        }
+    }
 
     /// Initial area and translucency for the global quick terminal. Per-use
     /// adjustments stay with the overlay rather than changing these defaults.
@@ -421,6 +436,14 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var notifyOnAgentAttention: Bool {
+        didSet { save() }
+    }
+
+    @Published var notifyOnAgentCompletion: Bool {
+        didSet { save() }
+    }
+
     /// Which emulator drives terminal panes. Only ever holds a backend this
     /// build ships a surface for — see `TerminalBackend` — and a session binds
     /// its backend at creation, so a change here reaches terminals opened
@@ -455,6 +478,14 @@ final class AppSettings: nonisolated ObservableObject {
 
     @Published var gitProxyAddress: String {
         didSet { applyGitProxy(); save() }
+    }
+
+    @Published var showPullRequestStatus: Bool {
+        didSet { save() }
+    }
+
+    @Published var automaticallyApplyTerminalProfiles: Bool {
+        didSet { save() }
     }
 
     @Published var terminalProfiles: [TerminalProfile] {
@@ -524,6 +555,8 @@ final class AppSettings: nonisolated ObservableObject {
         // new config adopts their enabled defaults.
         vimCommandHints = toml["terminal.vim-command-hints"]?.bool ?? (existing == nil)
         shellCompletions = toml["terminal.shell-completions"]?.bool ?? true
+        commandHistoryEnabled = toml["terminal.command-history"]?.bool ?? true
+        terminalTextHints = toml["terminal.text-hints"]?.bool ?? true
         terminalBell = toml["terminal.bell"]?.bool ?? true
         shiftEnterNewline = toml["terminal.shift-enter-newline"]?.bool ?? true
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
@@ -546,6 +579,7 @@ final class AppSettings: nonisolated ObservableObject {
         notifyFinishSeconds = Self.notifyFinishSecondChoices.contains(notifyChoice)
             ? notifyChoice : 0
         notifyOnError = toml["terminal.notify-on-error"]?.bool ?? (existing == nil)
+        quickTerminalEnabled = toml["quick-terminal.enabled"]?.bool ?? true
         let quickTerminalSize = toml["quick-terminal.size"]?.double
             ?? Self.defaultQuickTerminalSize
         self.quickTerminalSize = Self.quickTerminalSizeRange.contains(quickTerminalSize)
@@ -569,6 +603,8 @@ final class AppSettings: nonisolated ObservableObject {
         ) ? paneFocusRingOpacity : Self.defaultPaneFocusRingOpacity
         aiEnabled = toml["ai.enabled"]?.bool ?? true
         resumeAgentConversations = toml["ai.resume-conversations"]?.bool ?? true
+        notifyOnAgentAttention = toml["ai.notify-on-attention"]?.bool ?? true
+        notifyOnAgentCompletion = toml["ai.notify-on-completion"]?.bool ?? true
         terminalBackend = TerminalBackend(persisted: toml["terminal.backend"]?.string)
         terminalStartupProgram = toml["terminal.startup-program"]?.string ?? ""
         terminalStartupArguments = toml["terminal.startup-arguments"]?.string ?? ""
@@ -576,6 +612,8 @@ final class AppSettings: nonisolated ObservableObject {
         browserFilterLists = toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults
         gitProxyEnabled = toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled
         gitProxyAddress = toml["git.proxy"]?.string ?? GitProxy.defaultAddress
+        showPullRequestStatus = toml["git.pull-request-status"]?.bool ?? true
+        automaticallyApplyTerminalProfiles = toml["terminal.auto-profiles"]?.bool ?? true
         terminalProfiles = TerminalProfile.read(toml)
         applyGitProxy()
         applyAppearance()
@@ -687,6 +725,9 @@ final class AppSettings: nonisolated ObservableObject {
             && !macosOptionAsAlt
             && terminalBell
             && vimCommandHints
+            && shellCompletions
+            && commandHistoryEnabled
+            && terminalTextHints
             && shiftEnterNewline
             && wrapLines
             && externalEditor == .systemDefault
@@ -698,14 +739,18 @@ final class AppSettings: nonisolated ObservableObject {
             && terminalBackgroundBlur == Self.defaultTerminalBackgroundBlur
             && notifyFinishSeconds == 0
             && notifyOnError
+            && quickTerminalEnabled
             && quickTerminalSize == Self.defaultQuickTerminalSize
             && quickTerminalOpacity == Self.defaultQuickTerminalOpacity
             && quickTerminalShortcut == Self.defaultQuickTerminalShortcut
             && quickTerminalMode == .reuse
+            && commandShortcuts.isEmpty
             && showPaneFocusRing
             && Self.paneFocusRingOpacityMatchesDefault(paneFocusRingOpacity)
             && aiEnabled
             && resumeAgentConversations
+            && notifyOnAgentAttention
+            && notifyOnAgentCompletion
             && terminalBackend == .fallback
             && terminalStartupProgram.isEmpty
             && terminalStartupArguments.isEmpty
@@ -713,6 +758,8 @@ final class AppSettings: nonisolated ObservableObject {
             && browserFilterLists == BrowserFilterSource.defaults
             && gitProxyEnabled == GitProxy.defaultEnabled
             && gitProxyAddress == GitProxy.defaultAddress
+            && showPullRequestStatus
+            && automaticallyApplyTerminalProfiles
             && terminalProfiles.isEmpty
     }
 
@@ -732,6 +779,8 @@ final class AppSettings: nonisolated ObservableObject {
         terminalBell = true
         vimCommandHints = true
         shellCompletions = true
+        commandHistoryEnabled = true
+        terminalTextHints = true
         shiftEnterNewline = true
         wrapLines = true
         externalEditor = .systemDefault
@@ -743,6 +792,7 @@ final class AppSettings: nonisolated ObservableObject {
         terminalBackgroundBlur = Self.defaultTerminalBackgroundBlur
         notifyFinishSeconds = 0
         notifyOnError = true
+        quickTerminalEnabled = true
         quickTerminalSize = Self.defaultQuickTerminalSize
         quickTerminalOpacity = Self.defaultQuickTerminalOpacity
         quickTerminalShortcut = Self.defaultQuickTerminalShortcut
@@ -767,6 +817,10 @@ final class AppSettings: nonisolated ObservableObject {
         gitProxyEnabled = GitProxy.defaultEnabled
         gitProxyAddress = GitProxy.defaultAddress
         resumeAgentConversations = true
+        notifyOnAgentAttention = true
+        notifyOnAgentCompletion = true
+        showPullRequestStatus = true
+        automaticallyApplyTerminalProfiles = true
     }
 
     /// The effective shortcut for a command: its recorded binding, or the
@@ -791,9 +845,8 @@ final class AppSettings: nonisolated ObservableObject {
     func setCommandShortcut(
         _ shortcut: CommandShortcut, for command: AppCommand
     ) -> CommandShortcutConflict? {
-        // The Quick Terminal's hotkey is registered system-wide, so a menu
-        // chord matching it would never reach the menu bar. Key codes are
-        // only comparable when the chord's character maps to one.
+        // Reserve the global chord even while Quick Terminal is disabled so
+        // re-enabling it cannot swallow a core command's shortcut.
         if let keyCode = shortcut.ansiKeyCode,
            keyCode == quickTerminalShortcut.keyCode,
            shortcut.carbonModifiers == quickTerminalShortcut.modifiers {
@@ -855,6 +908,7 @@ final class AppSettings: nonisolated ObservableObject {
         let oldThemeLight = themeLight
         let oldTerminalThemeOnly = terminalThemeOnly
         let oldShortcut = quickTerminalShortcut
+        let oldQuickTerminalEnabled = quickTerminalEnabled
         isApplyingConfig = true
         defer { isApplyingConfig = false }
 
@@ -910,6 +964,8 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.terminalBell, toml["terminal.bell"]?.bool ?? true)
         assign(\.vimCommandHints, toml["terminal.vim-command-hints"]?.bool ?? false)
         assign(\.shellCompletions, toml["terminal.shell-completions"]?.bool ?? true)
+        assign(\.commandHistoryEnabled, toml["terminal.command-history"]?.bool ?? true)
+        assign(\.terminalTextHints, toml["terminal.text-hints"]?.bool ?? true)
         assign(\.shiftEnterNewline, toml["terminal.shift-enter-newline"]?.bool ?? true)
         assign(\.wrapLines, toml["editor.wrap-lines"]?.bool ?? true)
         assign(\.externalEditor, ExternalEditor.persisted(toml["editor.external-editor"]?.string))
@@ -926,6 +982,7 @@ final class AppSettings: nonisolated ObservableObject {
         let notifySeconds = toml["terminal.notify-finish-seconds"]?.double ?? 0
         assign(\.notifyFinishSeconds, Self.notifyFinishChoice(notifySeconds))
         assign(\.notifyOnError, toml["terminal.notify-on-error"]?.bool ?? false)
+        assign(\.quickTerminalEnabled, toml["quick-terminal.enabled"]?.bool ?? true)
         let quickTerminalSize = toml["quick-terminal.size"]?.double
             ?? Self.defaultQuickTerminalSize
         assign(\.quickTerminalSize, Self.quickTerminalSizeRange.contains(quickTerminalSize)
@@ -959,6 +1016,8 @@ final class AppSettings: nonisolated ObservableObject {
             }
         }
         assign(\.resumeAgentConversations, toml["ai.resume-conversations"]?.bool ?? true)
+        assign(\.notifyOnAgentAttention, toml["ai.notify-on-attention"]?.bool ?? true)
+        assign(\.notifyOnAgentCompletion, toml["ai.notify-on-completion"]?.bool ?? true)
         assign(\.terminalBackend, TerminalBackend(persisted: toml["terminal.backend"]?.string))
         assign(\.terminalStartupProgram, toml["terminal.startup-program"]?.string ?? "")
         assign(\.terminalStartupArguments, toml["terminal.startup-arguments"]?.string ?? "")
@@ -966,6 +1025,8 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.browserFilterLists, toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults)
         assign(\.gitProxyEnabled, toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled)
         assign(\.gitProxyAddress, toml["git.proxy"]?.string ?? GitProxy.defaultAddress)
+        assign(\.showPullRequestStatus, toml["git.pull-request-status"]?.bool ?? true)
+        assign(\.automaticallyApplyTerminalProfiles, toml["terminal.auto-profiles"]?.bool ?? true)
         assign(\.terminalProfiles, TerminalProfile.read(toml))
 
         if applicationIcon != oldIcon { applyApplicationIcon() }
@@ -974,7 +1035,9 @@ final class AppSettings: nonisolated ObservableObject {
             || terminalThemeOnly != oldTerminalThemeOnly {
             reloadThemeSelection()
         }
-        if quickTerminalShortcut != oldShortcut { GlobalTerminalOverlay.shared.reloadHotkey() }
+        if quickTerminalShortcut != oldShortcut || quickTerminalEnabled != oldQuickTerminalEnabled {
+            GlobalTerminalOverlay.shared.reloadHotkey()
+        }
     }
 
     /// Persist the setting only after every requested destination operation
@@ -1102,6 +1165,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         lines.append("terminal.vim-command-hints = \(vimCommandHints)")
         lines.append("terminal.shell-completions = \(shellCompletions)")
+        if !commandHistoryEnabled { lines.append("terminal.command-history = false") }
+        if !terminalTextHints { lines.append("terminal.text-hints = false") }
+        if !automaticallyApplyTerminalProfiles { lines.append("terminal.auto-profiles = false") }
         if !shiftEnterNewline {
             lines.append("terminal.shift-enter-newline = false")
         }
@@ -1133,6 +1199,7 @@ final class AppSettings: nonisolated ObservableObject {
             lines.append("terminal.notify-finish-seconds = \(TOML.number(Double(notifyFinishSeconds)))")
         }
         lines.append("terminal.notify-on-error = \(notifyOnError)")
+        if !quickTerminalEnabled { lines.append("quick-terminal.enabled = false") }
         if quickTerminalSize != Self.defaultQuickTerminalSize {
             lines.append("quick-terminal.size = \(TOML.number(quickTerminalSize))")
         }
@@ -1162,6 +1229,8 @@ final class AppSettings: nonisolated ObservableObject {
         if !resumeAgentConversations {
             lines.append("ai.resume-conversations = false")
         }
+        if !notifyOnAgentAttention { lines.append("ai.notify-on-attention = false") }
+        if !notifyOnAgentCompletion { lines.append("ai.notify-on-completion = false") }
         if terminalBackend != .fallback {
             lines.append("terminal.backend = \(TOML.quote(terminalBackend.rawValue))")
         }
@@ -1183,6 +1252,7 @@ final class AppSettings: nonisolated ObservableObject {
         if gitProxyAddress != GitProxy.defaultAddress {
             lines.append("git.proxy = \(TOML.quote(gitProxyAddress))")
         }
+        if !showPullRequestStatus { lines.append("git.pull-request-status = false") }
         lines.append(contentsOf: TerminalProfile.configLines(terminalProfiles))
         return lines.joined(separator: "\n") + "\n"
     }

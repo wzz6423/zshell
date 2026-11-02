@@ -656,11 +656,13 @@ final class ProjectSidebarNSView: NSView {
     }
 
     private func projectMenu(_ project: Project, row: WorkspaceItemView?) -> [AppKitContextMenuItem] {
-        var groups: [AppKitContextMenuItem] = groupStore.groups.map { group in
-            .action(title: group.name, enabled: project.groupID != group.id) { [weak manager] in manager?.moveProject(project, to: group) }
+        var groups: [AppKitContextMenuItem] = groupStore.groups.filter { project.groupID != $0.id }.map { group in
+            .action(title: group.name) { [weak manager] in manager?.moveProject(project, to: group) }
         }
-        if !groups.isEmpty { groups.append(.separator) }
-        groups.append(.action(title: String(localized: "Remove from Group"), enabled: project.groupID != nil) { [weak manager] in manager?.moveProject(project, to: nil) })
+        if project.groupID != nil {
+            if !groups.isEmpty { groups.append(.separator) }
+            groups.append(.action(title: String(localized: "Remove from Group")) { [weak manager] in manager?.moveProject(project, to: nil) })
+        }
         var items: [AppKitContextMenuItem] = [
             .action(title: String(localized: project.isPinned ? "Unpin Project" : "Pin Project")) { [weak manager] in manager?.setPinned(!project.isPinned, for: project) },
             .action(title: String(localized: "Rename…")) { [weak row] in row?.onRename?() },
@@ -671,26 +673,29 @@ final class ProjectSidebarNSView: NSView {
                 .action(title: String(localized: "Reconnect Remote Host")) { project.sessions.forEach { $0.remoteConnection?.reconnect() } },
                 .action(title: String(localized: "Remote Hosts…")) { [weak manager] in manager?.promptForRemoteHosts() },
             ]
-            if let session = project.selectedSession, let connection = session.remoteConnection {
+            if let session = project.selectedSession, !session.hasExited, let connection = session.remoteConnection {
                 items += [
-                    .action(title: String(localized: "Take Terminal Control"), enabled: !session.hasExited) { connection.takeControl() },
-                    .action(title: String(localized: "Detach Remote Session"), enabled: !session.hasExited) { connection.detach() },
+                    .action(title: String(localized: "Take Terminal Control")) { connection.takeControl() },
+                    .action(title: String(localized: "Detach Remote Session")) { connection.detach() },
                     .action(title: String(localized: "End Remote Session…")) { [weak row] in RemoteHostsController.endSession(session, relativeTo: row?.window) },
                 ]
             }
         }
         if project.customName != nil { items.append(.action(title: String(localized: "Use Automatic Title")) { project.customName = nil }) }
-        items += [.separator, .submenu(title: String(localized: "Move to Group"), items: groups), .separator]
+        if !groups.isEmpty { items += [.separator, .submenu(title: String(localized: "Move to Group"), items: groups)] }
+        items.append(.separator)
         items.append(.action(title: String(localized: "Set Color Marker…")) {
             ProjectTabColorPanelController.shared.present(project: project, hostWindow: row?.window)
         })
         if project.markerColor != nil { items.append(.action(title: String(localized: "Remove Color Marker")) { project.markerColor = nil }) }
-        items += [.separator, .action(title: String(localized: "Set Project Directory…"), enabled: !project.isRemote) { [weak self] in
-            self?.pickFolder(initial: project.customDirectory ?? project.selectedSession?.currentDirectoryPath) { path in
-                if let path { project.customDirectory = path }
-            }
-        }]
-        if project.customDirectory != nil { items.append(.action(title: String(localized: "Use Automatic Directory")) { project.customDirectory = nil }) }
+        if !project.isRemote {
+            items += [.separator, .action(title: String(localized: "Set Project Directory…")) { [weak self] in
+                self?.pickFolder(initial: project.customDirectory ?? project.selectedSession?.currentDirectoryPath) { path in
+                    if let path { project.customDirectory = path }
+                }
+            }]
+            if project.customDirectory != nil { items.append(.action(title: String(localized: "Use Automatic Directory")) { project.customDirectory = nil }) }
+        }
         items += [.separator, .action(title: String(localized: "Close Project")) { [weak manager] in manager?.close(project) }]
         return items
     }

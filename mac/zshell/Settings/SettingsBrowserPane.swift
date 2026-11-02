@@ -9,6 +9,8 @@ final class SettingsBrowserPane: SettingsPaneViewController, NSTextViewDelegate 
     private let statusLabel = NSTextField(wrappingLabelWithString: "")
     private let validationLabel = NSTextField(wrappingLabelWithString: "")
     private var isEditingLists = false
+    private var blockingGroup: SettingsGroup?
+    private var filterGroup: SettingsGroup?
     private lazy var applyButton = SettingsActionButton(title: String(localized: "Apply Lists")) { [weak self] in self?.applyLists() }
     private lazy var updateButton = SettingsActionButton(title: String(localized: "Update Lists Now")) { BrowserContentBlocker.shared.refresh() }
 
@@ -28,13 +30,16 @@ final class SettingsBrowserPane: SettingsPaneViewController, NSTextViewDelegate 
         customLists.delegate = self
         customLists.setAccessibilityLabel(String(localized: "Custom ABP list URLs"))
         let scroll = NSScrollView()
-        scroll.borderType = .bezelBorder
+        scroll.borderType = .noBorder
+        scroll.drawsBackground = false
+        scroll.contentView.drawsBackground = false
         scroll.hasVerticalScroller = true
         scroll.documentView = customLists
-        scroll.heightAnchor.constraint(equalToConstant: 110).isActive = true
         customLists.autoresizingMask = [.width]
         customLists.minSize = NSSize(width: 0, height: 110)
         customLists.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        let listEditor = SettingsBrowserListEditor(scroll)
+        listEditor.heightAnchor.constraint(equalToConstant: 110).isActive = true
 
         let explanation = NSTextField(wrappingLabelWithString: String(localized: "One HTTP or HTTPS ABP list URL per line. Up to 8 lists total. HTTP lists are unencrypted."))
         let limitations = NSTextField(wrappingLabelWithString: String(localized: "Supports common network and CSS hiding filters. Scriptlets, procedural filters, redirects, regular expressions, and complex domain exceptions are skipped. This is not full uBlock Origin compatibility."))
@@ -46,32 +51,51 @@ final class SettingsBrowserPane: SettingsPaneViewController, NSTextViewDelegate 
         }
         validationLabel.textColor = .systemRed
         validationLabel.isHidden = true
-        let editor = NSStackView(views: [explanation, scroll, validationLabel, applyButton])
+        let editor = NSStackView(views: [explanation, listEditor, validationLabel, applyButton])
         editor.orientation = .vertical
         editor.alignment = .leading
         editor.spacing = 8
-        for view in [explanation, scroll, validationLabel] { view.widthAnchor.constraint(equalTo: editor.widthAnchor).isActive = true }
+        for view in [explanation, listEditor, validationLabel] { view.widthAnchor.constraint(equalTo: editor.widthAnchor).isActive = true }
         let status = NSStackView(views: [statusLabel, updateButton, limitations])
         status.orientation = .vertical
         status.alignment = .leading
         status.spacing = 8
         for label in [statusLabel, limitations] { label.widthAnchor.constraint(equalTo: status.widthAnchor).isActive = true }
         observe(BrowserContentBlocker.shared.$status.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.syncFromSettings() })
+        let filters = SettingsGroup(header: String(localized: "Filter Lists"), rows: [
+            SettingsRow(title: "EasyList", control: easyListSwitch),
+            SettingsRow(title: "EasyPrivacy", control: easyPrivacySwitch),
+            SettingsCustomRow(editor),
+        ])
+        filterGroup = filters
+        let blocking = SettingsGroup(rows: [
+            SettingsRow(title: String(localized: "Block ads and trackers"), description: String(localized: "Applies to future page requests in every browser pane. Reload open pages after changing rules."), control: enabledSwitch, symbolName: "hand.raised.fill"),
+            SettingsCustomRow(status),
+        ])
+        blockingGroup = blocking
         return [
             SettingsGroup(rows: [
-                SettingsRow(title: String(localized: "Block ads and trackers"), description: String(localized: "Applies to future page requests in every browser pane. Reload open pages after changing rules."), control: enabledSwitch, symbolName: "hand.raised.fill"),
-                SettingsCustomRow(status),
+                SettingsButtonRow(title: String(localized: "Import Browser Data…")) {
+                    guard let manager = TerminalManager.activeWindowManager else { return }
+                    BrowserProfileImportController.shared.show(for: manager)
+                },
+                SettingsButtonRow(title: String(localized: "Browser Data Access…")) {
+                    BrowserProfileImportController.shared.openAccessSettings()
+                },
+                SettingsButtonRow(title: String(localized: "Imported Browser History")) {
+                    guard let manager = TerminalManager.activeWindowManager else { return }
+                    BrowserImportedHistoryController.shared.show(manager: manager)
+                },
             ]),
-            SettingsGroup(header: String(localized: "Filter Lists"), rows: [
-                SettingsRow(title: "EasyList", control: easyListSwitch),
-                SettingsRow(title: "EasyPrivacy", control: easyPrivacySwitch),
-                SettingsCustomRow(editor),
-            ]),
+            blocking,
+            filters,
         ]
     }
 
     override func syncFromSettings() {
         enabledSwitch.isOn = settings.browserContentBlocking
+        blockingGroup?.setRowHidden(!settings.browserContentBlocking, at: 1)
+        filterGroup?.isHidden = !settings.browserContentBlocking
         let lists = settings.browserFilterLists.split(whereSeparator: \.isNewline).map(String.init)
         easyListSwitch.isOn = lists.contains(BrowserFilterSource.catalog[0].url.absoluteString)
         easyPrivacySwitch.isOn = lists.contains(BrowserFilterSource.catalog[1].url.absoluteString)
@@ -100,6 +124,48 @@ final class SettingsBrowserPane: SettingsPaneViewController, NSTextViewDelegate 
             isEditingLists = true
             validationLabel.stringValue = String(localized: "Enter valid HTTP or HTTPS URLs without credentials or fragments, with at most 8 lists total.")
             validationLabel.isHidden = false
+        }
+    }
+}
+
+private final class SettingsBrowserListEditor: NSView {
+    init(_ scrollView: NSScrollView) {
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.cornerRadius = 6
+        layer?.cornerCurve = .continuous
+        layer?.masksToBounds = true
+        layer?.borderWidth = 1
+        updateAppearanceColors()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(scrollView)
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: topAnchor, constant: 1),
+            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 1),
+            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -1),
+            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -1),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateAppearanceColors()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearanceColors()
+    }
+
+    private func updateAppearanceColors() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = NSColor.textBackgroundColor.cgColor
+            layer?.borderColor = NSColor.separatorColor.cgColor
         }
     }
 }

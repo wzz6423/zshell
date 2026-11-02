@@ -47,6 +47,8 @@ Todos recebem a mesma saída. Focar o terminal ou assumir o controle concede ent
 
 Fechar painel, projeto, janela ou usar qualquer opção de sair apenas separa o cliente remoto. Encerrar a sessão remota pede confirmação e termina o shell e seus trabalhos para todos. No host: `zshell-server terminate --project ~/repo --session UUID`.
 
+Quando o Mac desperta, as sessões remotas compartilhadas verificam a conexão e retomam o mesmo trabalho remoto se necessário. Sessões desconectadas manualmente permanecem desconectadas.
+
 ## Arquivos e capturas [#paste]
 
 Copie arquivos comuns ou uma captura e cole no painel remoto. Zshell envia ao diretório privado do host e insere caminhos entre aspas para o shell. Até 32 arquivos, 32 MiB por arquivo e 64 MiB total; pastas e links simbólicos são recusados. Uploads compartilhados duram sete dias. Painéis SSH Unix comuns também oferecem isso.

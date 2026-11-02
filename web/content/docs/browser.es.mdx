@@ -13,7 +13,7 @@ Zshell permite integrar un navegador en cualquier pestaña o panel dividido. Res
 
 Las pestañas de navegador pertenecen al proyecto seleccionado y forman parte de su disposición normal de pestañas y paneles. Si no hay un proyecto abierto, Zshell crea uno para alojar el navegador.
 
-En un proyecto SSH o remoto compartido, abre `http://localhost:3000` para previsualizar el servidor de desarrollo de ese host. Zshell usa reenvío SSH; si se interrumpe la conexión, vuelve a conectarte y recarga la página. Los datos del sitio se comparten entre los paneles de ese proyecto remoto y se guardan separados de los proyectos locales y otros proyectos remotos.
+En un proyecto SSH o remoto compartido, abre `http://localhost:3000` para previsualizar el servidor de desarrollo de ese host. Zshell usa reenvío SSH; si se interrumpe la conexión, vuelve a conectarte y recarga la página. Los datos del sitio se comparten entre los paneles de ese proyecto remoto y se guardan separados de los proyectos locales y otros proyectos remotos. Las direcciones que muestra un servidor de desarrollo, como `http://[::]:8000/`, también se abren mediante SSH en un proyecto remoto.
 
 ## Dirección y búsqueda [#address-and-search]
 
@@ -43,6 +43,12 @@ Al cambiar de pestaña o proyecto, la página permanece como la dejaste, incluid
 Los paneles de navegador conservan las cookies, las sesiones iniciadas y otros datos de los sitios entre pestañas y reinicios. No es un modo de navegación privada.
 
 En **Browser → Import Browser Data…**, las cookies se importan al almacenamiento del navegador del proyecto seleccionado al pulsar **Import**. Los proyectos remotos tienen almacenamiento independiente; los locales comparten el predeterminado. Cambiar de proyecto no cambia el destino. Cerrar el proyecto de destino detiene el resto de la importación sin escribir en otro proyecto. Si no hay un proyecto abierto, Zshell crea uno local al empezar a importar cookies o pestañas.
+
+Los permisos para los datos del navegador están en **Ajustes → Navegador → Acceso a los datos del navegador…**. La ventana de importación también ofrece **Permitir acceso**, **Ajustes del Sistema…** y **Actualizar**. Elige la carpeta de datos del navegador que indica el diálogo. Si macOS sigue bloqueando el acceso, autoriza la app que se está ejecutando, **zshell** o **zshell Debug**, en **Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco**, y pulsa **Actualizar**. Reinicia la app si macOS lo solicita. La lista de perfiles se actualiza tras la búsqueda; si está vacía, no se puede previsualizar ni importar.
+
+Chrome puede permanecer abierto al importar el historial; su historial guardado no se modifica.
+
+Las cookies de Firefox sin SameSite se importan como Lax, también desde perfiles antiguos y sesiones guardadas. Las cookies con SameSite=None explícito siguen necesitando Secure.
 
 ## Pedir a un agente que pruebe la página [#let-an-agent-test-the-page]
 

@@ -13,6 +13,10 @@ Das Einstellungsfenster (<kbd>Cmd</kbd>+<kbd>,</kbd>) schreibt dieselbe Datei. E
 
 Neue Konfigurationen aktivieren Vim-Befehlshinweise, die Wiederherstellung des Sitzungsverlaufs und Mitteilungen bei fehlgeschlagenen Befehlen. Automatische Update-Downloads sind ebenfalls standardmäßig aktiviert. Bestehende Konfigurationen und gespeicherte Entscheidungen bleiben erhalten.
 
+Unter **Einstellungen → Terminal** stehen Eingabeoptionen in **Eingabe**, Aufzeichnung und Verlauf in **Verlauf**, Befehlsmeldungen und Benachrichtigungsverlauf in **Benachrichtigungen**. **Cursor** und **Hintergrund** stehen unter **Einstellungen → Erscheinungsbild**.
+
+Abhängige Steuerelemente werden ausgeblendet, wenn ihre Hauptfunktion ausgeschaltet ist; gespeicherte Werte bleiben erhalten. Dies betrifft Schnellterminal, Agentenfortsetzung und -meldungen, Schriftverstärkungsstärke, Fokusrahmen-Deckkraft, Git-Proxyadresse und Browserfilterlisten samt Status. Hintergrundunschärfe erscheint nur bei durchscheinendem Hintergrund und ausgeschalteter macOS-Option Transparenz reduzieren.
+
 ## Verhalten der Datei [#how-the-file-behaves]
 
 Vor dem manuellen Bearbeiten sollten Sie Folgendes wissen:
@@ -194,6 +198,9 @@ Die Option steht unter **Einstellungen → Automatisierung → Agentengespräche
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Anwendungssymbol |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Externer Editor für Dateien und Ordner |
 | `terminal.theme-only` | `false` | Boolescher Wert | Gewählte Palette nur auf das Terminal anwenden |
+| `terminal.command-history` | `true` | Boolescher Wert | Neue Befehle aufzeichnen; gespeicherter Verlauf bleibt bei Aus verfügbar |
+| `terminal.text-hints` | `true` | Boolescher Wert | Tastaturhinweise für sichtbaren Terminaltext einschalten |
+| `terminal.auto-profiles` | `true` | Boolescher Wert | Terminalprofile automatisch zuordnen; manuelle Auswahl bleibt verfügbar |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Form des Terminalcursors |
 | `terminal.cursor-blinking` | `true` | Boolescher Wert | Cursor blinken lassen |
 | `terminal.copy-on-select` | `true` | Boolescher Wert | Markierten Terminaltext kopieren |
@@ -203,12 +210,16 @@ Die Option steht unter **Einstellungen → Automatisierung → Agentengespräche
 | `terminal.background-blur` | `false` | Boolescher Wert | Durchscheinende Hintergründe weichzeichnen |
 | `terminal.notify-finish-seconds` | `0` | `0` / `5` / `10` / `30` / `60` | In neuen zsh-Terminals nach Abschluss eines mindestens so lange laufenden Befehls benachrichtigen; 0 deaktiviert dies |
 | `terminal.notify-on-error` | `true` | Boolescher Wert | In neuen zsh-Terminals bei fehlgeschlagenen Befehlen benachrichtigen |
+| `ai.notify-on-attention` | `true` | Boolescher Wert | Agenten-Aufmerksamkeitsmeldungen zustellen; Verlauf bleibt erhalten |
+| `ai.notify-on-completion` | `true` | Boolescher Wert | Agenten-Abschlussmeldungen zustellen; Verlauf bleibt erhalten |
+| `quick-terminal.enabled` | `true` | Boolescher Wert | Schnellterminal anzeigen und globales Tastenkürzel registrieren; laufende Aufgaben bleiben bei Aus erhalten |
 | `quick-terminal.mode` | `"reuse"` | `"reuse"`, `"fresh"` | Arbeitsbereich wiederverwenden / Jedes Mal neuer Arbeitsbereich |
 | `quick-terminal.size` | `0.75` | 0.35–0.95 | Größe des Schnellterminals relativ zum Bildschirm |
 | `quick-terminal.opacity` | `0.5` | 0.05–1 | Hintergrunddeckkraft des Schnellterminals |
 | `quick-terminal.shortcut` | `Cmd+I` | In den Einstellungen aufzeichnen | Globales Kürzel aufzeichnen; Tastencodes werden automatisch gespeichert |
 | `panes.show-focus-ring` | `true` | Boolescher Wert | Fokusring um den aktiven Bereich anzeigen |
 | `panes.focus-ring-opacity` | `0.85` | 0.05–1 | Deckkraft des Fokusrings |
+| `git.pull-request-status` | `true` | Boolescher Wert | Pull-Request-Status im Git-Panel anzeigen |
 
 ## Sicherung und Übertragung [#backup-and-migration]
 
@@ -251,6 +262,6 @@ Unter **Einstellungen → Tastenkürzel** zeichnen Sie neue Kürzel für zentral
 ## Einstellungen außerhalb dieser Datei [#settings-outside-this-file]
 
 - **Sprache.** Die Einstellungen bieten den Systemstandard und dieselben 17 Sprachen wie die Website. Änderungen wirken sofort, während Terminalsitzungen weiterlaufen. Die Auswahl verwendet die macOS-Sprachpräferenz pro Anwendung und liegt deshalb in Zshells Voreinstellungen statt in TOML. Der Systemstandard folgt der macOS-Sprachreihenfolge.
-- **Automatische Updates.** Die Schalter für automatische Prüfung, Download und Installation unter **Einstellungen → Updates** liegen ebenfalls außerhalb von TOML und bleiben über Neustarts erhalten. Die Installationsoption erscheint nur bei aktivierten automatischen Downloads. Siehe [Installation](/de/docs/installation#updates).
+- **Automatische Updates.** Die Schalter für automatische Prüfung, Download und Installation unter **Einstellungen → Updates** liegen ebenfalls außerhalb von TOML und bleiben über Neustarts erhalten. Downloadregler erscheinen nur bei aktiver automatischer Prüfung und verfügbaren automatischen Updates; die Installation benötigt zusätzlich automatische Downloads. Siehe [Installation](/de/docs/installation#updates).
 - **Fenster und Anordnung.** Fenstergröße, Seitenleistenbreiten, ausgewählte Panels, Projekte, Tabs, Bereiche, Browser-URLs und Diff-Voreinstellungen liegen in Zshells macOS-Voreinstellungen und Sitzungsabbild.
 - **Backend-Konfigurationsdateien.** Zshell liest weder `~/.config/ghostty` noch eine Alacritty-Konfiguration. Für beide Backends sind Zshells Einstellungen maßgeblich.

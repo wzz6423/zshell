@@ -180,6 +180,36 @@ else:
             check(report(second)["status"] == 0, "second native conversation in the same cwd is accepted")
             wait(lambda: conversation(pane_b) == second)
             check(conversation(pane_a) == first, "same-cwd dual panes retain distinct full provider IDs")
+            check(report(first, "SubagentStart", agent_id="legacy-child", agent_type="Explore")["status"] == 0,
+                  "shared child hooks without a parent ID retain the exact bound session ID")
+            wait(lambda: any(record["id"] == "native/legacy-child" and record["state"] == "working"
+                             for record in info(pane_a)["agentStatus"]["records"]))
+            check(conversation(pane_a) == first and info(pane_b)["agentStatus"]["phase"] == "idle",
+                  "legacy shared child work stays in its owning pane")
+            check(report(first, "SubagentStop", agent_id="legacy-child")["status"] == 0
+                  and any(record["id"] == "native/legacy-child" and record["state"] == "done"
+                          for record in info(pane_a)["agentStatus"]["records"]),
+                  "legacy shared child completion updates its existing task")
+            child_id = str(uuid.uuid4())
+            check(report(child_id, "SubagentStart", agent_id="parent-child", parent_session_id=first)["status"] == 0
+                  and any(record["id"] == "native/parent-child" and record["state"] == "working"
+                          for record in info(pane_a)["agentStatus"]["records"]),
+                  "an explicit parent ID takes precedence over the child session ID")
+            before = info(pane_a)["agentStatus"]
+            check(report(first, "SubagentStop", agent_id="parent-child", parent_session_id=child_id)["status"] != 0
+                  and info(pane_a)["agentStatus"] == before,
+                  "an unbound explicit parent ID never falls back to the current session ID")
+            for invalid_parent in ("", "invalid", None, 1):
+                check(report(first, "SubagentStop", agent_id="parent-child", parent_session_id=invalid_parent)["status"] != 0
+                      and info(pane_a)["agentStatus"] == before,
+                      "an invalid explicit parent ID never falls back to legacy shared handling")
+            check(report(child_id, "SubagentStart", agent_id="unbound-child")["status"] != 0
+                  and info(pane_a)["agentStatus"] == before and info(pane_b)["agentStatus"]["phase"] == "idle",
+                  "legacy shared child hooks cannot guess a parent from an unbound session ID")
+            check(report(child_id, "SubagentStop", agent_id="parent-child", parent_session_id=first)["status"] == 0
+                  and any(record["id"] == "native/parent-child" and record["state"] == "done"
+                          for record in info(pane_a)["agentStatus"]["records"]),
+                  "an exact explicit parent ID still accepts its child's completion")
             report(first, "UserPromptSubmit")
             wait(lambda: info(pane_a)["agentStatus"]["phase"] == "working")
             check(info(pane_b)["agentStatus"]["phase"] == "idle", "shared lifecycle reaches only the exact bound conversation")

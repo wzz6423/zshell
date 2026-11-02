@@ -90,7 +90,7 @@ final class AppKitContextMenuMonitorView: NSView {
         for item in items {
             switch item {
             case .separator:
-                menu.addItem(.separator())
+                if let previous = menu.items.last, !previous.isSeparatorItem { menu.addItem(.separator()) }
             case .action(let title, let enabled, let handler):
                 let menuItem = NSMenuItem(
                     title: title,
@@ -104,12 +104,15 @@ final class AppKitContextMenuMonitorView: NSView {
                 activeHandlers[menuItem.tag] = handler
                 menu.addItem(menuItem)
             case .submenu(let title, let enabled, let subItems):
+                let submenu = makeMenu(items: subItems)
+                guard !submenu.items.isEmpty else { continue }
                 let menuItem = NSMenuItem(title: title, action: nil, keyEquivalent: "")
                 menuItem.isEnabled = enabled
-                menuItem.submenu = makeMenu(items: subItems)
+                menuItem.submenu = submenu
                 menu.addItem(menuItem)
             }
         }
+        if let last = menu.items.last, last.isSeparatorItem { menu.removeItem(last) }
         return menu
     }
 

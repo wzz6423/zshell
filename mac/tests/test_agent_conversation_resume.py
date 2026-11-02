@@ -91,6 +91,7 @@ STARTUP
     }
 }
 '''.replace("STARTUP", startup).replace("__PROFILE_PARAMETERS__", r''',
+        usesConfiguredInitializationCommand: Bool = true,
         launchSettings: TerminalLaunchSettings = .init(),
         initialTerminalProfile: TerminalProfile? = nil, remotePasteTarget: Bool? = nil
 ''' if has_profiles else "").replace("__PROFILE_RESULT_TYPES__", r''',
@@ -184,6 +185,23 @@ STARTUP
         check(integrated.profileID == profile.id && integrated.settings == fresh.settings
               && integrated.appearance == profile.appearance,
               "suppressing startup commands still applies matched profile settings and appearance")
+        let template = ResumeStartupProbe.launch(
+            initialDirectory: home.path, restoredSessionID: nil, agentResume: nil,
+            isRestoredSession: false, usesConfiguredStartupCommand: false,
+            usesConfiguredInitializationCommand: false, launchSettings: baseSettings
+        )
+        check(template.settings.initializationCommand == baseSettings.initializationCommand
+              && template.settings.environment == fresh.settings.environment
+              && template.appearance == profile.appearance,
+              "template initialization takes priority while profile environment and appearance remain applied")
+        let plainTemplate = ResumeStartupProbe.launch(
+            initialDirectory: home.path, restoredSessionID: nil, agentResume: nil,
+            isRestoredSession: false, usesConfiguredStartupCommand: false,
+            usesConfiguredInitializationCommand: false
+        )
+        check(plainTemplate.settings.initializationCommand == nil
+              && plainTemplate.settings.environment["PROFILE_CASE"] == "matched",
+              "a template with no initialization never inherits an unlisted profile command")
         let explicitArguments = ["/bin/echo", "explicit-started"]
         let explicit = ResumeStartupProbe.launch(
             initialDirectory: home.path, commandArguments: explicitArguments,
@@ -417,7 +435,7 @@ STARTUP_CHECKS
 '''.replace("REFRESH", refresh).replace("RECORD", record).replace(
     "STARTUP_FIXTURE", startup_fixture
 ).replace("__PROFILE_SETTINGS__",
-    "    var terminalProfiles: [TerminalProfile] = []" if has_profiles else ""
+    "    var terminalProfiles: [TerminalProfile] = []\n    var automaticallyApplyTerminalProfiles = true" if has_profiles else ""
 ).replace("STARTUP_CHECKS", startup_checks).replace("LIFECYCLE_CHECKS", r'''
         let lifecycleLink = home.appendingPathComponent(".claude/hooks/zshell-lifecycle-hook.sh")
         check(FileManager.default.fileExists(atPath: lifecycleLink.path) == shouldInstall,

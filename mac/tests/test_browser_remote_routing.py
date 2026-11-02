@@ -395,11 +395,23 @@ def main():
                         assert favicons and all(request[2].startswith("127-0-0-1.zshell-remote.localhost:") for request in favicons), favicons
                         assert {"/script.js", "/dynamic.js", "/pixel.png", "/frame", "/api?cross=port", "/socket?hmr=1",
                                 f"/api?early={backend}", f"/socket?early={backend}",
-                                f"/api?early-xhr={backend}", f"/pixel.png?early={backend}"} <= paths, paths
+                                f"/api?early-xhr={backend}", f"/pixel.png?early={backend}",
+                                f"/api?wildcard={backend}", f"/api?wildcard-fetch={backend}",
+                                f"/socket?wildcard={backend}", f"/api?wildcard-xhr={backend}",
+                                f"/pixel.png?wildcard={backend}"} <= paths, paths
+                        wildcard_requests = [request for request in fixture.requests[request_offset:]
+                                             if f"wildcard={backend}" in request[1] or
+                                             f"wildcard-fetch={backend}" in request[1] or
+                                             f"wildcard-xhr={backend}" in request[1]]
+                        assert wildcard_requests and all(
+                            request[2] == f"zshell-remote.localhost:{fixture.primary.server_port}"
+                            for request in wildcard_requests), wildcard_requests
                         marker = f"/must-not-reach-local-{backend}"
                         marker_requests = [request for request in fixture.requests[request_offset:] if request[1] == marker]
                         assert len(marker_requests) == 1, marker_requests
-                        blocked = {f"/blocked-fetch-{backend}", f"/socket?blocked={backend}", f"/srcset-{backend}"}
+                        blocked = {f"/blocked-fetch-{backend}", f"/socket?blocked={backend}", f"/srcset-{backend}",
+                                   f"/blocked-ipv6-fetch-{backend}", f"/socket?blocked-ipv6={backend}",
+                                   f"/srcset-ipv6-{backend}"}
                         assert paths.isdisjoint(blocked), paths.intersection(blocked)
         finally:
             fixture.__exit__()

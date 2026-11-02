@@ -47,6 +47,8 @@ Tous les clients reçoivent la même sortie. Donner le focus au terminal ou pren
 
 Fermer un panneau, projet ou une fenêtre, et les deux options de fermeture de l’application, détachent seulement les sessions distantes. Terminer la session distante demande confirmation puis arrête le shell et ses tâches pour tous. Sur l’hôte : `zshell-server terminate --project ~/repo --session UUID`.
 
+Au réveil du Mac, les sessions distantes partagées vérifient la connexion et retrouvent le même travail distant si une reconnexion est nécessaire. Les sessions détachées manuellement le restent.
+
 ## Fichiers et captures [#paste]
 
 Copiez des fichiers ordinaires ou une capture et collez dans le panneau distant. Zshell les envoie dans un dossier privé de l’hôte puis insère les chemins protégés pour son shell. Limites : 32 fichiers, 32 MiB chacun et 64 MiB au total ; dossiers et liens symboliques refusés. Les transferts partagés restent sept jours. Les panneaux SSH Unix ordinaires offrent aussi ce collage.

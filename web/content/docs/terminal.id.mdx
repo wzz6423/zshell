@@ -18,6 +18,8 @@ Keduanya mendukung akselerasi GPU, gambar, katalog tema bersama Zshell, pencaria
 
 ## Riwayat perintah [#command-history]
 
+**Simpan riwayat perintah** di **Pengaturan → Terminal → Riwayat** aktif secara bawaan (`terminal.command-history = true`). Menonaktifkannya menghentikan pencatatan perintah baru; riwayat tersimpan tetap dapat dilihat atau dihapus. Keluaran terminal dan riwayat shell sendiri tetap ada.
+
 Pilih **Terminal → Riwayat perintah…** untuk mencari perintah yang dijalankan di Zshell berdasarkan teks atau direktori. Setiap baris menampilkan direktori asli, waktu mulai, durasi, dan status keluar. Klik baris atau **Tampilkan keluaran** untuk kembali ke panel dan keluaran asli. Jika panel ditutup atau keluaran dihapus, navigasi tidak tersedia; **Salin perintah** tetap berfungsi.
 
 **Sisipkan ke terminal** mengisi prompt zsh kosong pada panel asli tanpa menjalankan perintah; tekan Return saat siap. Penyisipan dinonaktifkan jika panel sibuk atau memiliki draf. Perintah multibaris dipertahankan. Daftar memakai integrasi blok perintah Ghostty dan Alacritty; perintah dalam shell yang tidak didukung atau bertingkat mungkin tidak muncul.
@@ -52,9 +54,17 @@ Menolak permintaan akan memblokir kemampuan tersebut. Zshell tidak memberikan iz
 
 ## Fokus mengikuti mouse [#focus-follows-mouse]
 
-Aktifkan **Pengaturan → Terminal → Perilaku → Fokus mengikuti mouse** untuk memfokuskan panel saat penunjuk masuk. Nonaktif secara bawaan, berlaku pada kedua backend dan Terminal Cepat. Fokus tidak berpindah saat menyeret, dari editor, atau ketika menu atau dialog terbuka.
+Aktifkan **Pengaturan → Terminal → Input → Fokus mengikuti mouse** untuk memfokuskan panel saat penunjuk masuk. Nonaktif secara bawaan, berlaku pada kedua backend dan Terminal Cepat. Fokus tidak berpindah saat menyeret, dari editor, atau ketika menu atau dialog terbuka.
 
 `terminal.focus-follows-mouse = true`
+
+## Profil terminal [#terminal-profiles]
+
+Buat dan urutkan profil di **Pengaturan → Terminal → Profil terminal → Kelola profil terminal…**. Profil yang aktif dapat mencocokkan host, pengguna, direktori kerja, dan program latar depan. Semua kondisi yang diisi harus cocok; `*` cocok dengan teks apa pun dan `?` dengan satu karakter. Zshell memakai profil pertama yang cocok; jika tidak ada, panel kembali ke tampilan awalnya. **Terapkan profil terminal secara otomatis** aktif secara bawaan (`terminal.auto-profiles = true`). Pilihan manual tetap tersedia saat dinonaktifkan.
+
+Klik kanan terminal dan pilih **Profil terminal** untuk memakai pencocokan otomatis, memilih profil, atau memulihkan pengaturan awal. Tema, font, dan kursor langsung berlaku pada panel saat ini tanpa memulai ulang proses. Variabel lingkungan, perintah inisialisasi, dan program awal hanya berlaku pada terminal baru; mengganti profil tidak menjalankan perintah. Inisialisasi berjalan saat shell login dimulai, sedangkan program awal dijalankan langsung. Nilai lingkungan disimpan sebagai teks biasa di `config.toml`.
+
+Sesi jarak jauh bersama menggunakan proses dan direktori yang dilaporkan server. Kolom yang tidak dilaporkan server lama tidak dapat dicocokkan. Panel SSH biasa dapat mencocokkan host dan pengguna yang dikonfigurasi, tetapi tidak memeriksa program latar depan atau direktori jarak jauh; lingkungan awalnya diatur SSH dan shell jarak jauh. Program awal harus berupa jalur absolut yang ada pada mesin yang menjalankan terminal.
 
 ## Pencarian [#search]
 
@@ -106,6 +116,8 @@ Ini memberi keluaran compiler dan percakapan agen jalan langsung kembali ke proy
 
 ## Petunjuk papan ketik [#keyboard-hints]
 
+**Tampilkan petunjuk teks terminal** di **Pengaturan → Terminal → Input** aktif secara bawaan (`terminal.text-hints = true`). Menonaktifkannya menyembunyikan perintah dan pintasan petunjuk serta menghentikan mode petunjuk untuk teks yang terlihat.
+
 Fokuskan terminal lalu pilih **Terminal → Salin petunjuk terminal…** (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) atau **Buka petunjuk terminal…** (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>H</kbd>). Label huruf muncul di atas jalur, URL, alamat IP, dan hash commit yang terlihat. Ketik label untuk memilih; label panjang menyaring pilihan.
 
 <kbd>Tab</kbd> beralih antara salin dan buka. <kbd>Backspace</kbd> menghapus huruf; <kbd>Esc</kbd> membatalkan dan mengembalikan masukan ke terminal. Tombol ini tidak dikirim ke program. Salin mempertahankan lokasi seperti `:42:7`. Buka memakai Finder atau peramban bawaan seperti Command-click; nilai lain masih bisa disalin.
@@ -113,6 +125,8 @@ Fokuskan terminal lalu pilih **Terminal → Salin petunjuk terminal…** (<kbd>C
 Kedua backend memindai layar yang terlihat saja, termasuk baris terbungkus. Perubahan ukuran atau keluaran memperbarui label. Panel hanya baca juga mendukung salin dan buka pada host.
 
 ## Notifikasi [#notifications]
+
+Di **Pengaturan → Otomatisasi → Notifikasi**, **Beri tahu saat agen perlu perhatian** dan **Beri tahu saat agen selesai** aktif secara bawaan (`ai.notify-on-attention` dan `ai.notify-on-completion`). Masing-masing mengatur pengiriman notifikasi macOS untuk peristiwa agen terkait; riwayat tetap mencatatnya saat pengiriman dinonaktifkan.
 
 Zshell meneruskan dua peristiwa terminal ke Pusat Notifikasi:
 
@@ -123,6 +137,8 @@ Notifikasi dapat memainkan suara sistem. Mengkliknya mengaktifkan Zshell dan lan
 
 ### Riwayat notifikasi [#notification-history]
 
+Riwayat yang sama juga dapat dibuka dari **Pengaturan → Terminal → Notifikasi**.
+
 Buka **Notifikasi → Riwayat notifikasi…** untuk melihat pemberitahuan terminal dan agen terbaru. Filter menurut **Belum dibaca**, **Gagal**, atau **Menunggu tindakan**. Klik notifikasi atau **Tampilkan panel** untuk memilih proyek, tab, dan panel saat ini, termasuk di jendela lain. Panel yang ditutup tetap ada dalam riwayat sebagai tidak tersedia.
 
 Gunakan **Tandai sudah dibaca**, **Tandai semua sudah dibaca**, **Hapus**, atau **Hapus riwayat**. Membaca tidak menyetujui permintaan agen. Notifikasi keluar dari filter menunggu saat agen melanjutkan atau selesai, panel ditutup, atau koneksi jarak jauh tidak tersedia. Status berasal dari laporan siklus hidup eksplisit dan hasil keluar perintah. Riwayat menyimpan 200 entri terbaru setelah mulai ulang, bahkan jika izin notifikasi macOS dinonaktifkan.
@@ -130,7 +146,7 @@ Gunakan **Tandai sudah dibaca**, **Tandai semua sudah dibaca**, **Hapus**, atau 
 
 ### Penyelesaian perintah [#command-completion]
 
-Buka **Pengaturan → Terminal → Notifikasi Perintah** untuk menerima pemberitahuan ketika perintah selesai:
+Buka **Pengaturan → Terminal → Notifikasi** untuk menerima pemberitahuan ketika perintah selesai:
 
 - **Perintah berdurasi lama**: pilih 5, 10, 30, atau 60 detik. Perintah yang berjalan setidaknya selama durasi itu memicu notifikasi selesai. Bawaannya **Mati**.
 - **Perintah gagal**: beri notifikasi untuk status keluar bukan nol, berapa pun durasinya. Aktif secara bawaan pada konfigurasi baru dan dapat dimatikan terpisah.
@@ -180,6 +196,8 @@ Zshell menyertakan JetBrains Mono dan simbol Nerd Font. Keluarga monospace terpa
 
 ## Terminal Cepat global [#global-quick-terminal]
 
+**Aktifkan Terminal Cepat** di **Pengaturan → Terminal → Terminal Cepat** aktif secara bawaan (`quick-terminal.enabled = true`). Menonaktifkannya menyembunyikan jendela dan aksesnya serta membatalkan pendaftaran pintasan global, sambil mempertahankan ruang kerja saat ini dan tugas yang berjalan. Notifikasi juga tidak dapat membukanya saat dinonaktifkan. Kontrol ukuran, opasitas, mode, dan pintasan muncul kembali saat diaktifkan.
+
 Saat Zshell berjalan, <kbd>Cmd</kbd>+<kbd>I</kbd> atau **Terminal → Terminal Cepat** menampilkan atau menyembunyikan terminal mandiri. Atur ukuran, opasitas, dan pintasan di **Pengaturan → Terminal → Terminal Cepat**.
 
 **Perilaku sesi: Gunakan kembali ruang kerja (bawaan) / Ruang kerja baru setiap kali.** Penggunaan ulang mempertahankan panel dan tugas. Ruang baru berakhir saat disembunyikan. Mode berubah pada tampilan berikutnya; ruang yang digunakan ulang tetap tersedia saat beralih kembali. Riwayat mengikuti konfigurasi shell. Ruang baru selalu dimulai dengan satu terminal kosong tanpa memulihkan keluaran, tata letak panel, atau keadaan sesi sebelumnya.
@@ -196,7 +214,7 @@ Aktifkan `terminal.preserve-sessions` sebelum membuka Terminal Cepat baru agar t
 
 ## Petunjuk perintah Vim [#vim-command-hints]
 
-Kelola petunjuk di **Pengaturan → Terminal → Perilaku → Petunjuk perintah Vim**, lalu buka tab **Info** pada bilah samping kanan. Bagian **PERINTAH VIM** muncul di bawah informasi sesi saat Vim, Vi, atau Neovim aktif. Aktif secara bawaan pada konfigurasi baru dan perubahan langsung berlaku pada terminal yang ada di kedua backend.
+Kelola petunjuk di **Pengaturan → Terminal → Input → Petunjuk perintah Vim**, lalu buka tab **Info** pada bilah samping kanan. Bagian **PERINTAH VIM** muncul di bawah informasi sesi saat Vim, Vi, atau Neovim aktif. Aktif secara bawaan pada konfigurasi baru dan perubahan langsung berlaku pada terminal yang ada di kedua backend.
 
 Daftar lengkap perintah umum tetap tersedia; hanya prioritasnya berubah. Normal menempatkan `:w`, `:q`, `yy`, dan `p`/`P` di awal; Visual Block mendahulukan `I`/`A`, perubahan blok, dan gerakan sudut. Insert, Replace, Visual, Visual Line, Select, baris perintah, dan pencarian memiliki urutan sendiri. Setiap entri menyebutkan mode yang sesuai. Cari berdasarkan tombol, deskripsi, atau nama mode; deskripsi dan antarmuka pencarian mengikuti 17 bahasa aplikasi. Kosongkan pencarian untuk mengembalikan daftar penuh. Petunjuk hanya referensi dan tidak pernah mengirim input ke editor.
 
@@ -206,6 +224,6 @@ Fitur ini juga dapat diaktifkan dalam konfigurasi dengan `terminal.vim-command-h
 
 ## Pelengkapan shell
 
-Aktifkan **Pengaturan → Terminal → Perilaku → Pelengkapan shell** (aktif secara bawaan), lalu buka terminal zsh baru. Perintah, subperintah, argumen, dan jalur menggunakan fungsi shell dengan saran abu-abu. **Panah kanan** menerima di akhir input; **Tab** membuka pilihan, panah memilih, **Return** menerima tanpa menjalankan, dan **Esc** atau **Ctrl+G** membatalkan menu. **Esc** juga menutup saran. Plugin dan pintasan yang ada tetap dipertahankan.
+Aktifkan **Pengaturan → Terminal → Input → Pelengkapan shell** (aktif secara bawaan), lalu buka terminal zsh baru. Perintah, subperintah, argumen, dan jalur menggunakan fungsi shell dengan saran abu-abu. **Panah kanan** menerima di akhir input; **Tab** membuka pilihan, panah memilih, **Return** menerima tanpa menjalankan, dan **Esc** atau **Ctrl+G** membatalkan menu. **Esc** juga menutup saran. Plugin dan pintasan yang ada tetap dipertahankan.
 
 Plugin bawaan tidak mengubah `.zshrc`. Program layar penuh menerima inputnya sendiri. Dengan zshell-server yang kompatibel dan zsh, proyek jarak jauh menggunakan perintah dan jalur jarak jauh; shell lain mempertahankan pelengkapan aslinya. Berlaku untuk shell dan sesi jarak jauh baru. Nonaktifkan dengan `terminal.shell-completions = false`.

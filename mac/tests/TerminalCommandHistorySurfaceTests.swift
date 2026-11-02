@@ -72,6 +72,18 @@ struct TerminalCommandHistorySurfaceTests {
         }
         try wait("root zsh reaches an empty prompt") { session.isShellAvailableForAutomation && session.terminalPromptQueueIsReady }
 
+        let previousHistory = store.entries
+        let previousCommands = Set(session.commandRecords.map(\.id))
+        AppSettings.shared.commandHistoryEnabled = false
+        send("printf 'UNRECORDED_COMMAND\\n'", to: session)
+        session.sendEnter()
+        try wait("disabled history still reports command blocks") {
+            session.commandRecords.contains { !previousCommands.contains($0.id) && $0.finishedAt != nil }
+                && session.terminalPromptQueueIsReady
+        }
+        try check(store.entries == previousHistory, "disabled command history does not persist new records")
+        AppSettings.shared.commandHistoryEnabled = true
+
         func text() -> String { session.surface.readVisibleText(maxLines: 250, maxColumns: 1_000) ?? "" }
         func run(_ command: String) throws -> TerminalCommandHistoryEntry {
             try wait("shell accepts \(command.prefix(50))") { session.terminalPromptQueueIsReady }
@@ -186,7 +198,12 @@ struct TerminalCommandHistorySurfaceTests {
         try check((view("command-history-insert", in: content) as? NSButton)?.isEnabled == false,
                   "\(backend) the panel refuses to overwrite a live draft")
         controller.close()
+        pump(0.1)
+        print("DIAGNOSTIC reset responder=\(String(describing: window.firstResponder)) phase=\(session.commandLifecycle.phase) ready=\(session.terminalPromptQueueIsReady)")
         control("\u{12}", in: session)
+        control("\u{14}", in: session)
+        pump(0.3)
+        print("DIAGNOSTIC reset buffer=\(String(reflecting: (try? String(contentsOf: draft, encoding: .utf8)) ?? "<missing>")) phase=\(session.commandLifecycle.phase) ready=\(session.terminalPromptQueueIsReady) available=\(session.isShellAvailableForAutomation)")
         try wait("draft reset restores insertion eligibility") { TerminalCommandHistoryActions.canInsert(multiline) }
         session.promptQueue.enqueue("echo queued")
         try check(!TerminalCommandHistoryActions.canInsert(multiline), "\(backend) history does not race queued commands")

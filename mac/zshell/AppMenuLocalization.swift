@@ -1,9 +1,7 @@
 import AppKit
 import Combine
 
-/// SwiftUI updates app commands; AppKit owns the standard menu titles and
-/// actions. Update those in place so their targets and keyboard bindings stay
-/// intact. User-named project/tab items are never used as localization keys.
+/// 原位更新 AppKit 菜单，保留动作与快捷键；项目和标签页名称直接显示原值。
 @MainActor
 final class AppMenuLocalization: NSObject {
     static let shared = AppMenuLocalization()
@@ -13,7 +11,11 @@ final class AppMenuLocalization: NSObject {
 
     func start(applicationDelegate: ZshellApplicationDelegate) {
         self.applicationDelegate = applicationDelegate
-        shortcutObservation = AppSettings.shared.$commandShortcuts.receive(on: DispatchQueue.main)
+        shortcutObservation = Publishers.CombineLatest3(
+            AppSettings.shared.$commandShortcuts,
+            AppSettings.shared.$terminalTextHints.removeDuplicates(),
+            AppSettings.shared.$quickTerminalEnabled.removeDuplicates()
+        ).receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.refresh() }
         for name in [AppLocalization.didChange, NSMenu.didBeginTrackingNotification] {
             NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: name, object: nil)
@@ -34,8 +36,7 @@ final class AppMenuLocalization: NSObject {
     }
 
     @objc private func refresh() {
-        // SwiftUI rebuilds its menu tree after workspace changes. Restore the
-        // AppKit-owned commands after that reconciliation, including shortcuts.
+        AppMenuController.shared.refresh()
         applicationDelegate?.restoreTerminalMenus()
         guard let menu = NSApp.mainMenu else { return }
         AgentConversationHistoryController.shared.installMenu(in: menu)
@@ -102,9 +103,11 @@ final class AppMenuLocalization: NSObject {
                         ? String(localized: "Exit Full Screen") : String(localized: "Enter Full Screen")
                 case "editProjectTerminalEnvironment": title = String(localized: "Project Terminal Environment…")
                 case "editTabTerminalEnvironment": title = String(localized: "Tab Terminal Environment…")
-                case "toggleQuickTerminal": title = String(localized: "Quick Terminal")
+                case "toggleQuickTerminal":
+                    title = String(localized: "Quick Terminal")
+                    let hidden = !AppSettings.shared.quickTerminalEnabled
+                    if item.isHidden != hidden { item.isHidden = hidden }
                 case "searchTerminalLogs": title = String(localized: "Search Terminal Logs")
-                case "quitAndEndAllSessions": title = String(localized: "Quit and End All Sessions")
                 default: title = nil
                 }
                 if let title, item.title != title { item.title = title }

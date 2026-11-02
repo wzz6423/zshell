@@ -13,7 +13,7 @@ Zshell her sekmeye veya bölünmüş bölmeye yerleşik tarayıcı koyabilir. Ye
 
 Tarayıcı sekmeleri seçili projeye aittir ve normal sekme/bölme düzenine katılır. Açık proje yoksa Zshell tarayıcı için bir proje oluşturur.
 
-SSH veya paylaşılan uzak projede, o ana bilgisayardaki geliştirme sunucusunu önizlemek için `http://localhost:3000` adresini açın. Zshell SSH yönlendirmesi kullanır; bağlantı koparsa yeniden bağlanıp sayfayı yenileyin. Site verileri bu uzak projenin tarayıcı bölmeleri arasında paylaşılır ve yerel projelerden ve diğer uzak projelerden ayrı tutulur.
+SSH veya paylaşılan uzak projede, o ana bilgisayardaki geliştirme sunucusunu önizlemek için `http://localhost:3000` adresini açın. Zshell SSH yönlendirmesi kullanır; bağlantı koparsa yeniden bağlanıp sayfayı yenileyin. Site verileri bu uzak projenin tarayıcı bölmeleri arasında paylaşılır ve yerel projelerden ve diğer uzak projelerden ayrı tutulur. Geliştirme sunucusunun gösterdiği `http://[::]:8000/` gibi adresler de uzak projede SSH üzerinden açılır.
 
 ## Adres ve arama [#address-and-search]
 
@@ -43,6 +43,12 @@ Sekme veya proje değiştirmek sayfanın geçmişini, kaydırma konumunu, formla
 Tarayıcı bölmeleri çerezleri, girişleri ve diğer site verilerini sekmeler ve uygulama açılışları arasında saklar. Bu, özel gezinme modu değildir.
 
 **Browser → Import Browser Data…** ile çerezler, **Import** seçildiğinde etkin olan projenin tarayıcı deposuna aktarılır. Uzak projelerin depoları ayrıdır; yerel projeler varsayılan depoyu paylaşır. Proje değiştirmek aktarım hedefini değiştirmez. Hedef projeyi kapatmak kalan aktarımı durdurur ve başka bir projeye yazılmaz. Açık proje yoksa Zshell, çerez veya sekme aktarımının başında yerel bir proje oluşturur.
+
+Tarayıcı verisi izinleri **Ayarlar → Tarayıcı → Tarayıcı Verilerine Erişim…** bölümündedir. İçe aktarma penceresinde **Erişime İzin Ver**, **Sistem Ayarları…** ve **Yenile** de bulunur. İletişim kutusunda gösterilen tarayıcı veri klasörünü seçin. macOS erişimi hâlâ engelliyorsa çalışan uygulamaya, **zshell** veya **zshell Debug**, **Sistem Ayarları → Gizlilik ve Güvenlik → Tam Disk Erişimi** bölümünde izin verin ve **Yenile**’ye tıklayın. macOS isterse uygulamayı yeniden başlatın. Arama bittiğinde profil listesi güncellenir; boş listede önizleme veya içe aktarma yapılamaz.
+
+Geçmişi içe aktarırken Chrome açık kalabilir; Chrome’un kayıtlı geçmişi değiştirilmez.
+
+SameSite ayarı olmayan Firefox çerezleri, eski profiller ve kaydedilmiş oturumlar dahil, Lax olarak içe aktarılır. Açık SameSite=None çerezleri yine Secure gerektirir.
 
 ## Sayfayı bir Agent ile test etme [#let-an-agent-test-the-page]
 
