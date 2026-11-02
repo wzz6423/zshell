@@ -148,6 +148,20 @@ class PromptSelectionTests(unittest.TestCase):
     def test_repeated_click_preserves_text(self):
         self.assertEqual(self.buffer("abc中文".encode() + CLICK * 10), "abc中文")
 
+    def test_prompt_restores_default_cursor_after_program_style(self):
+        output = self.command("printf '\\033[2 q'")
+        self.assertIn(b"\x1b[2 q", output)
+        self.assertGreater(output.rfind(b"\x1b[0 q"), output.rfind(b"\x1b[2 q"))
+
+    def test_program_cursor_is_not_reset_while_command_is_running(self):
+        os.write(self.fd, b"printf '\\033[2 q'; read -r answer\r")
+        output = self.drain()
+        self.assertIn(b"\x1b[2 q", output)
+        self.assertNotIn(b"\x1b[0 q", output)
+        self.assertFalse(self.ready())
+        os.write(self.fd, b"answer\r")
+        self.assertIn(b"\x1b[0 q", self.wait_prompt())
+
     def test_prompt_queue_does_not_append_to_a_draft(self):
         self.assertTrue(self.queue_ready())
         self.assertEqual(self.buffer(b"echo unfinished-draft"), "echo unfinished-draft")

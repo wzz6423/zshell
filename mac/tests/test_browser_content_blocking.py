@@ -11,10 +11,12 @@ import json
 import os
 from pathlib import Path
 import platform
+import plistlib
 import subprocess
 import tempfile
 import threading
 import time
+import uuid
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -96,7 +98,14 @@ class Fixture(http.server.BaseHTTPRequestHandler):
 
 with tempfile.TemporaryDirectory(prefix="zshell-content-test-") as temporary:
     temporary = Path(temporary)
-    binary = temporary / "content-tests"
+    contents = temporary / "ContentTests.app/Contents"
+    binary = contents / "MacOS/content-tests"
+    binary.parent.mkdir(parents=True)
+    info = plistlib.loads((LIBRARY.parents[1] / "Info.plist").read_bytes())
+    domain = "sh.zshell.content-test." + uuid.uuid4().hex
+    info.update(CFBundleIdentifier=domain, CFBundleExecutable=binary.name, LSUIElement=True)
+    (contents / "Info.plist").write_bytes(plistlib.dumps(info))
+    (contents / "Resources").symlink_to(LIBRARY.parents[1] / "Resources")
     arguments = [
         "xcrun", "swiftc", "-parse-as-library", "-swift-version", "5",
         "-target", f"{platform.machine()}-apple-macos15.6",
@@ -142,3 +151,4 @@ with tempfile.TemporaryDirectory(prefix="zshell-content-test-") as temporary:
     finally:
         server.shutdown()
         server.server_close()
+        subprocess.run(["defaults", "delete", domain], env=environment, capture_output=True)

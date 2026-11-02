@@ -63,6 +63,7 @@ enum SettingsSearchIndex {
         result += [
             item(.browser, String(localized: "Block ads and trackers"), keywords: "browser.content-blocking ads trackers privacy"),
             item(.browser, String(localized: "Import Browser Data…"), keywords: "browser import cookies Chrome Firefox"),
+            item(.browser, String(localized: "Browser Data Access…"), keywords: "browser data access permissions privacy Full Disk Access Chrome Firefox"),
             item(.browser, String(localized: "Imported Browser History"), keywords: "browser imported history"),
             item(.general, String(localized: "Language"),
                  keywords: AppLanguage.allCases.map(\.title).joined(separator: " ")),

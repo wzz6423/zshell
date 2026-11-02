@@ -12,6 +12,9 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
     private let importButton = NSButton()
     private let closeButton = NSButton()
     private let accessButton = NSButton()
+    private let accessSettingsButton = NSButton()
+    private let refreshButton = NSButton()
+    private let accessActions = NSStackView()
     private let status = NSTextField(wrappingLabelWithString: "")
     private let previewText = NSTextView()
     private var panel: NSPanel?
@@ -22,6 +25,9 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
     private var prepared: BrowserProfilePreview?
     private var revision = 0
     private var busy = false
+    private var discovering = false
+    private var discoveryTask: Task<(profiles: [BrowserProfile], blocked: [BrowserProfile.Kind]), Never>?
+    private var incorrectAccessFolder: BrowserProfile.Kind?
     private var lastSummary: String?
 
     private override init() {
@@ -55,10 +61,15 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         guard let host = AppWindowPresentation.hostWindow(relativeTo: manager.presentationWindow) else { return }
         if panel == nil { configure() }
         guard let panel else { return }
+        if panel.isVisible && busy {
+            panel.makeKeyAndOrderFront(nil)
+            return
+        }
         self.manager = manager
         revision += 1
         prepared = nil
         lastSummary = nil
+        incorrectAccessFolder = nil
         previewText.string = ""
         requested = []
         localize()
@@ -73,26 +84,54 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         // of the previous selection must not feed the next import.
         prepared = nil
         lastSummary = nil
+        incorrectAccessFolder = nil
         previewText.string = ""
         status.stringValue = ""
         profiles = []
         blocked = []
-        profilePopUp.removeAllItems()
+        discovering = true
+        updateProfileItems()
         setBusy(true)
         let current = revision
         let home = FileManager.default.homeDirectoryForCurrentUser
+        let previous = discoveryTask
+        let discovery = Task.detached(priority: .userInitiated) {
+            // A closed window can be reopened before the previous filesystem scan returns.
+            _ = await previous?.value
+            return BrowserProfileData.discover(home: home)
+        }
+        discoveryTask = discovery
         Task { [weak self] in
-            let found = await Task.detached(priority: .userInitiated) { BrowserProfileData.discover(home: home) }.value
+            let found = await discovery.value
             guard let self, self.revision == current else { return }
+            self.discoveryTask = nil
+            self.discovering = false
             self.profiles = found.profiles
             self.blocked = found.blocked
-            self.profilePopUp.addItems(withTitles: found.profiles.map { "\($0.browserName) — \($0.name)" })
+            self.updateProfileItems()
             self.status.stringValue = self.discoveryStatus
             self.setBusy(false)
         }
     }
 
+    private func updateProfileItems() {
+        let selected = profilePopUp.indexOfSelectedItem
+        profilePopUp.removeAllItems()
+        if discovering {
+            profilePopUp.addItem(withTitle: String(localized: "Finding browser profiles…"))
+        } else if profiles.isEmpty {
+            profilePopUp.addItem(withTitle: String(localized: "No browser profiles available"))
+        } else {
+            profilePopUp.addItems(withTitles: profiles.map { "\($0.browserName) — \($0.name)" })
+            if profiles.indices.contains(selected) { profilePopUp.selectItem(at: selected) }
+        }
+    }
+
     private var discoveryStatus: String {
+        if let kind = incorrectAccessFolder {
+            let path = kind.root(home: FileManager.default.homeDirectoryForCurrentUser).path
+            return String(localized: "Choose the \(kind.browserName) data folder: \(path)")
+        }
         let pending = blocked.filter { !requested.contains($0) }
         if !pending.isEmpty {
             let names = pending.map(\.browserName).formatted()
@@ -100,7 +139,8 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         }
         if !blocked.isEmpty {
             let names = blocked.map(\.browserName).formatted()
-            return String(localized: "macOS still blocks \(names) data. Allow zshell in System Settings › Privacy & Security › Full Disk Access, then reopen this window.")
+            let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Zshell"
+            return String(localized: "macOS still blocks \(names) data. Enable \(appName) in System Settings › Privacy & Security › Full Disk Access, then click Refresh. Restart it if macOS asks.")
         }
         return profiles.isEmpty ? String(localized: "No supported browser profiles were found.") : ""
     }
@@ -108,18 +148,43 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
     // A folder the user picks in the system open panel is the only per-app grant macOS offers for
     // protected browser data; without it, only Full Disk Access lets zshell list the profiles.
     @objc private func requestAccess(_ sender: Any?) {
-        guard let panel, let kind = blocked.first(where: { !requested.contains($0) }) ?? blocked.first else { return }
+        guard !busy, let panel, let kind = blocked.first(where: { !requested.contains($0) }) ?? blocked.first else { return }
+        let root = kind.root(home: FileManager.default.homeDirectoryForCurrentUser)
+        let current = revision
+        incorrectAccessFolder = nil
+        status.stringValue = discoveryStatus
+        setBusy(true)
         let open = NSOpenPanel()
         open.canChooseDirectories = true
         open.canChooseFiles = false
         open.allowsMultipleSelection = false
-        open.directoryURL = kind.root(home: FileManager.default.homeDirectoryForCurrentUser)
+        open.canCreateDirectories = false
+        open.directoryURL = root
         open.message = String(localized: "Choose Open to let zshell read \(kind.browserName) data.")
         open.beginSheetModal(for: panel) { [weak self] response in
-            guard let self, response == .OK else { return }
+            guard let self, self.revision == current else { return }
+            self.setBusy(false)
+            self.status.stringValue = self.discoveryStatus
+            guard response == .OK, let selected = open.url else { return }
+            guard selected.resolvingSymlinksInPath().standardizedFileURL.path
+                    == root.resolvingSymlinksInPath().standardizedFileURL.path else {
+                self.incorrectAccessFolder = kind
+                self.status.stringValue = self.discoveryStatus
+                return
+            }
             self.requested.insert(kind)
             self.reloadProfiles()
         }
+    }
+
+    @objc func openAccessSettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles") else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    @objc private func refreshProfiles(_ sender: Any?) {
+        guard !busy else { return }
+        reloadProfiles()
     }
 
     @objc private func showHistory(_ sender: Any?) {
@@ -180,11 +245,24 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         accessButton.target = self
         accessButton.action = #selector(requestAccess(_:))
         accessButton.isHidden = true
-        for button in [previewButton, accessButton, importButton, closeButton] { button.bezelStyle = .rounded }
-        let actions = NSStackView(views: [previewButton, accessButton, NSView(), closeButton, importButton])
+        accessSettingsButton.target = self
+        accessSettingsButton.action = #selector(openAccessSettings)
+        refreshButton.target = self
+        refreshButton.action = #selector(refreshProfiles(_:))
+        for button in [previewButton, accessButton, accessSettingsButton, refreshButton, importButton, closeButton] { button.bezelStyle = .rounded }
+        accessActions.addArrangedSubview(accessButton)
+        accessActions.addArrangedSubview(accessSettingsButton)
+        accessActions.orientation = .horizontal
+        accessActions.spacing = 8
+        let feedback = NSStackView(views: [status, accessActions])
+        feedback.orientation = .vertical
+        feedback.alignment = .leading
+        feedback.spacing = 8
+        status.widthAnchor.constraint(equalTo: feedback.widthAnchor).isActive = true
+        let actions = NSStackView(views: [previewButton, refreshButton, NSView(), closeButton, importButton])
         actions.orientation = .horizontal
         actions.spacing = 8
-        for view in [profilePopUp, categories, scroll, status, actions] {
+        for view in [profilePopUp, categories, scroll, feedback, actions] {
             view.translatesAutoresizingMaskIntoConstraints = false
             content.addSubview(view)
         }
@@ -198,11 +276,11 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
             scroll.topAnchor.constraint(equalTo: profilePopUp.bottomAnchor, constant: 12),
             scroll.leadingAnchor.constraint(equalTo: profilePopUp.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: categories.trailingAnchor),
-            scroll.bottomAnchor.constraint(equalTo: status.topAnchor, constant: -8),
-            status.leadingAnchor.constraint(equalTo: profilePopUp.leadingAnchor),
-            status.trailingAnchor.constraint(equalTo: categories.trailingAnchor),
+            scroll.bottomAnchor.constraint(equalTo: feedback.topAnchor, constant: -8),
+            feedback.leadingAnchor.constraint(equalTo: profilePopUp.leadingAnchor),
+            feedback.trailingAnchor.constraint(equalTo: categories.trailingAnchor),
             status.heightAnchor.constraint(greaterThanOrEqualToConstant: 20),
-            status.bottomAnchor.constraint(equalTo: actions.topAnchor, constant: -8),
+            feedback.bottomAnchor.constraint(equalTo: actions.topAnchor, constant: -8),
             actions.leadingAnchor.constraint(equalTo: profilePopUp.leadingAnchor),
             actions.trailingAnchor.constraint(equalTo: categories.trailingAnchor),
             actions.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -14),
@@ -219,7 +297,11 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         importButton.title = String(localized: "Import")
         closeButton.title = String(localized: "Close")
         accessButton.title = String(localized: "Allow Access")
+        accessSettingsButton.title = String(localized: "System Settings…")
+        refreshButton.title = String(localized: "Refresh")
         previewText.setAccessibilityLabel(String(localized: "Import Preview"))
+        updateProfileItems()
+        if !busy { status.stringValue = discoveryStatus }
         if let prepared { render(prepared) }
     }
 
@@ -240,6 +322,9 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
         profilePopUp.isEnabled = !value && !profiles.isEmpty
         accessButton.isHidden = blocked.isEmpty
         accessButton.isEnabled = !value
+        accessSettingsButton.isEnabled = !value
+        accessActions.isHidden = blocked.isEmpty
+        refreshButton.isEnabled = !value
         for button in [cookiesButton, historyButton, sessionsButton] { button.isEnabled = !value }
         previewButton.isEnabled = !value && selectedProfile != nil && !selection.isEmpty
         importButton.isEnabled = !value && prepared != nil && selectedProfile != nil && !selection.isEmpty
@@ -255,7 +340,7 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
     }
 
     @objc private func preview(_ sender: Any?) {
-        guard let profile = selectedProfile else { return }
+        guard !busy, let profile = selectedProfile else { return }
         revision += 1
         let current = revision
         let categories = selection
@@ -410,6 +495,7 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
     @objc private func close(_ sender: Any?) { panel?.close() }
     func windowWillClose(_ notification: Notification) {
         revision += 1
+        discovering = false
         if let panel { panel.parent?.removeChildWindow(panel) }
         manager = nil
         setBusy(false)

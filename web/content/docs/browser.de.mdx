@@ -44,6 +44,8 @@ Browserbereiche speichern Cookies, Anmeldungen und andere Websitedaten über Tab
 
 Über **Browser → Import Browser Data…** werden Cookies in den Browserspeicher des Projekts importiert, das beim Klick auf **Import** ausgewählt ist. Remote-Projekte haben getrennte Speicher; lokale Projekte teilen den Standardspeicher. Ein Projektwechsel ändert das Ziel nicht. Das Schließen des Zielprojekts stoppt den restlichen Import, ohne in ein anderes Projekt zu schreiben. Ist kein Projekt geöffnet, erstellt Zshell beim Import von Cookies oder Tabs ein lokales Projekt.
 
+Die Berechtigungen für Browserdaten finden Sie unter **Einstellungen → Browser → Zugriff auf Browserdaten…**. Das Importfenster bietet auch **Zugriff erlauben**, **Systemeinstellungen…** und **Aktualisieren**. Wählen Sie den im Dialog angezeigten Browserdatenordner. Falls macOS den Zugriff weiterhin blockiert, erlauben Sie die laufende App, **zshell** oder **zshell Debug**, unter **Systemeinstellungen → Datenschutz & Sicherheit → Festplattenvollzugriff** und klicken Sie auf **Aktualisieren**. Starten Sie die App neu, falls macOS dazu auffordert. Nach der Suche wird die Profilliste aktualisiert; bei einer leeren Liste sind Vorschau und Import deaktiviert.
+
 Firefox-Cookies ohne SameSite-Einstellung werden als Lax importiert, auch aus älteren Profilen und gespeicherten Sitzungen. Explizites SameSite=None erfordert weiterhin Secure.
 
 ## Die Seite von einem Agent testen lassen [#let-an-agent-test-the-page]

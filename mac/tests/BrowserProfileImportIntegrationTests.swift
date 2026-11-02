@@ -62,7 +62,7 @@ struct BrowserProfileImportIntegrationTests {
               let action = item.action else { throw failure("Import menu was not installed") }
         app.sendAction(action, to: item.target, from: item)
         let panel = try waitValue("Import window") { app.windows.compactMap { $0 as? NSPanel }.first { $0.title == "Browser Data Import" && $0.isVisible } }
-        let popup = try waitValue("Profile discovery") { descendants(panel.contentView).compactMap { $0 as? NSPopUpButton }.first { $0.numberOfItems > 0 } }
+        let popup = try waitValue("Profile discovery") { descendants(panel.contentView).compactMap { $0 as? NSPopUpButton }.first { $0.isEnabled } }
         precondition(popup.titleOfSelectedItem?.contains("Fixture Firefox") == true)
         let access = try button("Allow Access", in: panel)
         precondition(!access.isHidden && popup.numberOfItems == 1)

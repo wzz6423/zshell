@@ -1085,7 +1085,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
               REGION_ACTIVE=0
               _zshell_selection_ready
               _zshell_prompt_queue_ready
-              builtin print -n $'\\e]133;P;k=i\\a\\e]133;B\\a'
+              # 程序退出后恢复用户的默认光标，不让 TUI 的 DECSCUSR 样式留在提示符里。
+              builtin print -n $'\\e[0 q\\e]133;P;k=i\\a\\e]133;B\\a'
             }
             add-zle-hook-widget line-init _zshell_line_init
             add-zle-hook-widget line-finish _zshell_selection_finished

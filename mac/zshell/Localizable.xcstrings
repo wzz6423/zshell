@@ -150776,6 +150776,648 @@
           }
         }
       }
+    },
+    "Browser Data Access…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browser Data Access…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "浏览器数据访问权限…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "瀏覽器資料存取權限…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブラウザーデータへのアクセス…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "브라우저 데이터 접근 권한…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accès aux données du navigateur…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zugriff auf Browserdaten…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acceso a los datos del navegador…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acesso aos dados do navegador…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accesso ai dati del browser…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toegang tot browsergegevens…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступ к данным браузера…"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الوصول إلى بيانات المتصفح…"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "สิทธิ์เข้าถึงข้อมูลเบราว์เซอร์…"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Akses Data Browser…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quyền truy cập dữ liệu trình duyệt…"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarayıcı Verilerine Erişim…"
+          }
+        }
+      }
+    },
+    "Finding browser profiles…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finding browser profiles…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在查找浏览器配置…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在尋找瀏覽器設定檔…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブラウザープロファイルを検索中…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "브라우저 프로필을 찾는 중…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recherche des profils de navigateur…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browserprofile werden gesucht…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscando perfiles del navegador…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procurando perfis do navegador…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ricerca dei profili del browser…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browserprofielen zoeken…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поиск профилей браузера…"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ البحث عن ملفات تعريف المتصفح…"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "กำลังค้นหาโปรไฟล์เบราว์เซอร์…"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mencari profil browser…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang tìm hồ sơ trình duyệt…"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarayıcı profilleri aranıyor…"
+          }
+        }
+      }
+    },
+    "No browser profiles available": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No browser profiles available"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无可用浏览器配置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有可用的瀏覽器設定檔"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "利用可能なブラウザープロファイルがありません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사용 가능한 브라우저 프로필이 없습니다"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun profil de navigateur disponible"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Browserprofile verfügbar"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay perfiles de navegador disponibles"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum perfil de navegador disponível"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun profilo del browser disponibile"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen browserprofielen beschikbaar"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет доступных профилей браузера"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد ملفات تعريف متصفح متاحة"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ไม่มีโปรไฟล์เบราว์เซอร์ที่ใช้ได้"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tidak ada profil browser yang tersedia"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có hồ sơ trình duyệt khả dụng"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kullanılabilir tarayıcı profili yok"
+          }
+        }
+      }
+    },
+    "Choose the %@ data folder: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the %@ data folder: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择 %@ 的数据文件夹：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請選擇 %@ 的資料檔案夾：%@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ のデータフォルダを選択してください：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 데이터 폴더를 선택하세요: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez le dossier de données de %@ : %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wählen Sie den Datenordner von %@: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige la carpeta de datos de %@: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha a pasta de dados de %@: %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli la cartella dei dati di %@: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kies de gegevensmap van %@: %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите папку данных %@: %@"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر مجلد بيانات %@: %@"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เลือกโฟลเดอร์ข้อมูลของ %@: %@"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pilih folder data %@: %@"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chọn thư mục dữ liệu của %@: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ veri klasörünü seçin: %@"
+          }
+        }
+      }
+    },
+    "System Settings…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System Settings…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统设置…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統設定…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システム設定…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시스템 설정…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réglages Système…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Systemeinstellungen…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes del Sistema…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes do Sistema…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impostazioni di Sistema…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Systeeminstellingen…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Системные настройки…"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعدادات النظام…"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "การตั้งค่าระบบ…"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pengaturan Sistem…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cài đặt hệ thống…"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sistem Ayarları…"
+          }
+        }
+      }
+    },
+    "macOS still blocks %@ data. Enable %@ in System Settings › Privacy & Security › Full Disk Access, then click Refresh. Restart it if macOS asks.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS still blocks %@ data. Enable %@ in System Settings › Privacy & Security › Full Disk Access, then click Refresh. Restart it if macOS asks."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 仍阻止访问 %@ 的数据。请在“系统设置 › 隐私与安全性 › 完全磁盘访问权限”中允许 %@，然后点击“刷新”。如果系统要求，请重启应用。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 仍阻擋存取 %@ 的資料。請在「系統設定 › 隱私權與安全性 › 完整磁碟存取權」中允許 %@，然後按「重新整理」。如果系統要求，請重新啟動應用程式。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS が %@ のデータへのアクセスを引き続きブロックしています。「システム設定 › プライバシーとセキュリティ › フルディスクアクセス」で %@ を許可してから「更新」をクリックしてください。macOS に求められた場合はアプリを再起動してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS가 여전히 %@ 데이터 접근을 차단하고 있습니다. 시스템 설정 › 개인정보 보호 및 보안 › 전체 디스크 접근 권한에서 %@을 허용한 다음 새로 고침을 클릭하세요. macOS가 요청하면 앱을 재시작하세요."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS bloque toujours les données de %@. Autorisez %@ dans Réglages Système › Confidentialité et sécurité › Accès complet au disque, puis cliquez sur Actualiser. Redémarrez l’app si macOS le demande."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS blockiert weiterhin die Daten von %@. Erlauben Sie %@ unter Systemeinstellungen › Datenschutz & Sicherheit › Festplattenvollzugriff und klicken Sie dann auf Aktualisieren. Starten Sie die App neu, falls macOS dazu auffordert."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS sigue bloqueando los datos de %@. Autoriza %@ en Ajustes del Sistema › Privacidad y seguridad › Acceso total al disco y pulsa Actualizar. Reinicia la app si macOS lo solicita."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O macOS ainda bloqueia os dados de %@. Permita %@ em Ajustes do Sistema › Privacidade e Segurança › Acesso Total ao Disco e clique em Atualizar. Reinicie o app se o macOS solicitar."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS blocca ancora i dati di %@. Consenti %@ in Impostazioni di Sistema › Privacy e sicurezza › Accesso completo al disco, poi fai clic su Aggiorna. Riavvia l’app se macOS lo richiede."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS blokkeert de gegevens van %@ nog steeds. Sta %@ toe in Systeeminstellingen › Privacy en beveiliging › Volledige schijftoegang en klik op Ververs. Herstart de app als macOS daarom vraagt."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS по-прежнему блокирует данные %@. Разрешите %@ в Системные настройки › Конфиденциальность и безопасность › Полный доступ к диску, затем нажмите «Обновить». Перезапустите приложение, если macOS попросит."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يزال macOS يمنع الوصول إلى بيانات %@. اسمح لـ %@ في إعدادات النظام › الخصوصية والأمن › الوصول الكامل إلى القرص، ثم انقر على تحديث. أعد تشغيل التطبيق إذا طلب macOS ذلك."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS ยังบล็อกข้อมูลของ %@ อยู่ โปรดอนุญาต %@ ในการตั้งค่าระบบ › ความเป็นส่วนตัวและความปลอดภัย › การเข้าถึงดิสก์แบบเต็ม แล้วคลิกรีเฟรช หาก macOS ขอให้เริ่มแอปใหม่ ให้ทำตามคำขอ"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS masih memblokir data %@. Izinkan %@ di Pengaturan Sistem › Privasi & Keamanan › Akses Disk Penuh, lalu klik Segarkan. Mulai ulang aplikasi jika diminta macOS."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS vẫn chặn dữ liệu của %@. Cho phép %@ trong Cài đặt hệ thống › Quyền riêng tư & Bảo mật › Truy cập toàn bộ ổ đĩa, rồi bấm Làm mới. Khởi động lại ứng dụng nếu macOS yêu cầu."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS hâlâ %@ verilerini engelliyor. Sistem Ayarları › Gizlilik ve Güvenlik › Tam Disk Erişimi bölümünde %@ için izin verin, ardından Yenile’ye tıklayın. macOS isterse uygulamayı yeniden başlatın."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

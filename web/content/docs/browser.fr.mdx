@@ -44,6 +44,8 @@ Les volets conservent les cookies, les connexions et les autres données des sit
 
 Avec **Browser → Import Browser Data…**, les cookies sont importés dans le stockage du navigateur du projet sélectionné au clic sur **Import**. Chaque projet distant possède un stockage séparé ; les projets locaux partagent le stockage par défaut. Changer de projet ne modifie pas la destination. Fermer le projet cible arrête le reste de l’import sans écrire dans un autre projet. Si aucun projet n’est ouvert, Zshell crée un projet local au début de l’import des cookies ou des onglets.
 
+Les autorisations des données du navigateur sont accessibles dans **Réglages → Navigateur → Accès aux données du navigateur…**. La fenêtre d’import propose aussi **Autoriser l’accès**, **Réglages Système…** et **Actualiser**. Choisissez le dossier de données du navigateur indiqué dans le dialogue. Si macOS bloque toujours l’accès, autorisez l’app en cours, **zshell** ou **zshell Debug**, dans **Réglages Système → Confidentialité et sécurité → Accès complet au disque**, puis cliquez sur **Actualiser**. Redémarrez l’app si macOS le demande. La liste des profils est mise à jour après la recherche ; une liste vide ne permet ni l’aperçu ni l’import.
+
 Les cookies Firefox sans réglage SameSite sont importés en Lax, y compris depuis les anciens profils et sessions enregistrées. Les cookies avec SameSite=None explicite exigent toujours Secure.
 
 ## Faire tester la page par un agent [#let-an-agent-test-the-page]

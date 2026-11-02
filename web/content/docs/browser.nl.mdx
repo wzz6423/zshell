@@ -44,6 +44,8 @@ Browserdeelvensters bewaren cookies, aanmeldingen en andere websitegegevens tuss
 
 Via **Browser → Import Browser Data…** worden cookies geïmporteerd in de browseropslag van het project dat is geselecteerd wanneer je op **Import** klikt. Externe projecten hebben afzonderlijke opslag; lokale projecten delen de standaardopslag. Wisselen van project verandert de bestemming niet. Het sluiten van het doelproject stopt de resterende import zonder naar een ander project te schrijven. Als er geen project open is, maakt Zshell een lokaal project wanneer de import van cookies of tabbladen begint.
 
+De rechten voor browsergegevens staan onder **Instellingen → Browser → Toegang tot browsergegevens…**. Het importvenster biedt ook **Toegang toestaan**, **Systeeminstellingen…** en **Ververs**. Kies de browsergegevensmap die het dialoogvenster aangeeft. Als macOS de toegang blijft blokkeren, sta dan de actieve app, **zshell** of **zshell Debug**, toe in **Systeeminstellingen → Privacy en beveiliging → Volledige schijftoegang** en klik op **Ververs**. Herstart de app als macOS daarom vraagt. De profielenlijst wordt na het zoeken bijgewerkt; een lege lijst staat geen voorbeeld of import toe.
+
 Firefox-cookies zonder SameSite worden als Lax geïmporteerd, ook uit oudere profielen en opgeslagen sessies. Expliciete SameSite=None-cookies vereisen nog steeds Secure.
 
 ## Een agent de pagina laten testen [#let-an-agent-test-the-page]
