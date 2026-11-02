@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { createPrivateKey, createPublicKey, randomBytes } from "node:crypto";
-import { chmodSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { architectures, feedName, packageName, validateRelease, verifyKeyPair } from "./release";
+import { architectures, feedName, packageName, validateRelease, verifyCodeSignatures, verifyKeyPair } from "./release";
 
 describe("stable release preflight", () => {
   test("refuses ad-hoc and invalid release metadata", () => {
@@ -33,4 +33,33 @@ describe("stable release preflight", () => {
       expect(() => verifyKeyPair(path, publicKey)).toThrow("permissions");
     } finally { rmSync(dir, { recursive: true }); }
   });
+});
+
+test.skipIf(process.platform !== "darwin")("rejects an unsigned executable hidden from deep bundle verification", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "zshell-signature-test-"));
+  try {
+    const app = join(dir, "Fixture.app");
+    mkdirSync(join(app, "Contents/MacOS"), { recursive: true });
+    mkdirSync(join(app, "Contents/Resources"), { recursive: true });
+    copyFileSync("/usr/bin/true", join(app, "Contents/MacOS/Fixture"));
+    writeFileSync(join(app, "Contents/Info.plist"), `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+<key>CFBundleIdentifier</key><string>sh.zshell.signature-test</string>
+<key>CFBundleExecutable</key><string>Fixture</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+</dict></plist>`);
+    const server = join(app, "Contents/Resources/zshell-server");
+    const run = (args: string[]) => {
+      const result = Bun.spawnSync(args, { stdout: "pipe", stderr: "pipe" });
+      if (result.exitCode !== 0) throw new Error(result.stderr.toString());
+    };
+    run(["lipo", "/usr/bin/true", "-thin", "x86_64", "-output", server]);
+    run(["codesign", "--remove-signature", server]);
+    run(["codesign", "--force", "--deep", "--sign", "-", app]);
+    run(["codesign", "--verify", "--deep", "--strict", "--all-architectures", app]);
+    await expect(verifyCodeSignatures(app)).rejects.toThrow();
+    run(["codesign", "--force", "--sign", "-", server]);
+    run(["codesign", "--force", "--deep", "--sign", "-", app]);
+    await verifyCodeSignatures(app);
+  } finally { rmSync(dir, { recursive: true }); }
 });
