@@ -78,6 +78,8 @@ Diff 上方的控件会全局记住两组选择：
 
 没有工作树的本地分支显示在“工作树”上方的“分支”列表中。点击分支可切换，右键可为它创建工作树或删除分支。上方搜索框同时筛选两组列表，两组也可以分别折叠。
 
+**删除分支…** 也支持删除有未合并提交的分支。删除前，Zshell 会将分支提交保存在 `refs/zshell/deleted-branches/` 下，并用 stash 保存本地改动，包括未跟踪文件。操作输出会显示备份 ref，也可用 `git for-each-ref refs/zshell/deleted-branches/` 查找，再用 `git branch BRANCH BACKUP_REF` 恢复分支；通过 `git stash list` 找到保存的改动后，用 `git stash apply --index STASH` 恢复。删除当前分支后，工作区会停留在 detached HEAD。
+
 <span id="工作树" data-canonical-heading="worktrees" />
 
 ## 工作树 [#worktrees]

@@ -114600,108 +114600,108 @@
         }
       }
     },
-    "A stash snapshot including untracked files will be created before deleting %@.": {
+    "Delete %@ even if it has unmerged commits? Its commits will be backed up, and local changes including untracked files will be stashed.": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "سيتم إنشاء لقطة stash تتضمن الملفات غير المتتبعة قبل حذف %@."
+            "value": "هل تريد حذف %@ حتى إن كان يحتوي على التزامات لم تُدمج؟ ستُحفظ التزاماته في نسخة احتياطية، وستُحفظ التغييرات المحلية، بما فيها الملفات غير المتتبعة، في stash."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vor dem Löschen von %@ wird ein Stash-Snapshot einschließlich nicht versionierter Dateien erstellt."
+            "value": "Soll %@ auch mit nicht zusammengeführten Commits gelöscht werden? Die Commits werden gesichert und lokale Änderungen einschließlich nicht versionierter Dateien in einem Stash gespeichert."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "A stash snapshot including untracked files will be created before deleting %@."
+            "value": "Delete %@ even if it has unmerged commits? Its commits will be backed up, and local changes including untracked files will be stashed."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Antes de eliminar %@ se creará una instantánea stash que incluye los archivos sin seguimiento."
+            "value": "¿Eliminar %@ aunque tenga commits sin fusionar? Sus commits se guardarán en una copia de seguridad y los cambios locales, incluidos los archivos sin seguimiento, se guardarán en un stash."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Un instantané stash incluant les fichiers non suivis sera créé avant la suppression de %@."
+            "value": "Supprimer %@ même s’il contient des commits non fusionnés ? Ses commits seront sauvegardés et les modifications locales, y compris les fichiers non suivis, seront placées dans un stash."
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Snapshot stash termasuk file yang belum dilacak akan dibuat sebelum menghapus %@."
+            "value": "Hapus %@ meskipun memiliki commit yang belum digabungkan? Commit-nya akan dicadangkan, dan perubahan lokal termasuk file yang belum dilacak akan disimpan dalam stash."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Prima di eliminare %@ verrà creata un’istantanea stash che include i file non tracciati."
+            "value": "Eliminare %@ anche se contiene commit non uniti? I commit verranno salvati in una copia di backup e le modifiche locali, inclusi i file non tracciati, verranno salvate in uno stash."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ を削除する前に、未追跡ファイルを含む stash スナップショットが作成されます。"
+            "value": "%@ に未マージのコミットがあっても削除しますか？コミットはバックアップされ、未追跡ファイルを含むローカルの変更は stash に保存されます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@을(를) 삭제하기 전에 추적되지 않은 파일을 포함하는 stash 스냅샷이 생성됩니다."
+            "value": "%@에 병합되지 않은 커밋이 있어도 삭제하시겠습니까? 커밋은 백업되며, 추적되지 않은 파일을 포함한 로컬 변경 사항은 stash에 저장됩니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Voordat %@ wordt verwijderd, wordt een stash-snapshot gemaakt met niet-gevolgde bestanden."
+            "value": "%@ verwijderen, ook als de branch niet-samengevoegde commits bevat? De commits worden geback-upt en lokale wijzigingen, inclusief niet-gevolgde bestanden, worden in een stash opgeslagen."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Um snapshot stash, incluindo arquivos não rastreados, será criado antes de excluir %@."
+            "value": "Excluir %@ mesmo com commits não mesclados? Os commits serão salvos em um backup, e as alterações locais, incluindo arquivos não rastreados, serão guardadas em um stash."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Перед удалением %@ будет создан снимок stash, включающий неотслеживаемые файлы."
+            "value": "Удалить %@, даже если в ветке есть неслитые коммиты? Коммиты будут сохранены в резервной копии, а локальные изменения, включая неотслеживаемые файлы, — в stash."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "ระบบจะสร้างสแนปช็อต stash ที่รวมไฟล์ที่ยังไม่ได้ติดตามก่อนลบ %@"
+            "value": "ลบ %@ แม้จะมีคอมมิตที่ยังไม่ได้ผสานหรือไม่? ระบบจะสำรองคอมมิต และเก็บการเปลี่ยนแปลงในเครื่องรวมถึงไฟล์ที่ยังไม่ได้ติดตามไว้ใน stash"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ silinmeden önce izlenmeyen dosyaları da içeren bir stash anlık görüntüsü oluşturulacak."
+            "value": "%@ birleştirilmemiş commit’ler içerse bile silinsin mi? Commit’ler yedeklenecek ve izlenmeyen dosyalar dahil yerel değişiklikler stash’e kaydedilecek."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Một bản chụp stash bao gồm các tệp chưa được theo dõi sẽ được tạo trước khi xóa %@."
+            "value": "Xóa %@ ngay cả khi có các commit chưa được hợp nhất? Các commit sẽ được sao lưu, còn các thay đổi cục bộ, bao gồm tệp chưa được theo dõi, sẽ được lưu trong stash."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "删除 %@ 前，将创建包含未跟踪文件的 stash 快照。"
+            "value": "即使 %@ 有未合并的提交，也要删除吗？将备份其提交，并用 stash 保存本地改动，包括未跟踪文件。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "刪除 %@ 前，將建立包含未追蹤檔案的 stash 快照。"
+            "value": "即使 %@ 有未合併的提交，也要刪除嗎？將備份其提交，並用 stash 儲存本機改動，包括未追蹤檔案。"
           }
         }
       }

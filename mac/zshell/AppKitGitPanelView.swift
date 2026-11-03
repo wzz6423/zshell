@@ -803,7 +803,7 @@ private extension GitPanelNSView {
 
     func requestDeleteBranch(_ branch: String) {
         confirm(title: String(localized: "Delete Branch?"),
-                message: String(localized: "A stash snapshot including untracked files will be created before deleting \(branch)."),
+                message: String(localized: "Delete \(branch) even if it has unmerged commits? Its commits will be backed up, and local changes including untracked files will be stashed."),
                 actionTitle: String(localized: "Delete Branch")) { [weak self] in
             guard let self else { return }; self.performOperation(.branchMenu) { self.model.deleteBranch(named: branch) }
         }

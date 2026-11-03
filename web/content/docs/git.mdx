@@ -92,6 +92,14 @@ Local branches without a worktree appear in a **Branches** list above **Worktree
 Click a branch to switch to it, or right-click to create its worktree or delete it.
 The search field filters both lists, and each list can be collapsed independently.
 
+**Delete Branch…** also works for branches with unmerged commits. Before deletion,
+Zshell saves the branch's commits under `refs/zshell/deleted-branches/` and stashes
+local changes, including untracked files. The operation output shows the backup
+ref, which you can also find with `git for-each-ref refs/zshell/deleted-branches/`.
+Restore the branch with `git branch BRANCH BACKUP_REF`. Use `git stash list`
+to find the saved changes and `git stash apply --index STASH` to restore them.
+Deleting the current branch leaves the checkout at detached HEAD.
+
 ## Worktrees
 
 The Git panel lists every worktree belonging to the repository, together with its
