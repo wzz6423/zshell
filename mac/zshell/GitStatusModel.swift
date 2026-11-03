@@ -777,10 +777,14 @@ final class GitStatusModel: nonisolated ObservableObject {
             failImmediately(String(localized: "A branch checked out in another worktree cannot be deleted"), completion: completion)
             return
         }
-        // Always keep a recoverable snapshot before changing refs. Git exits
-        // successfully with a clear message when the worktree is already clean.
+        // A stash only preserves the current checkout, so keep the target
+        // branch's commits reachable even when it has unmerged work.
         let snapshotMessage = "Zshell snapshot before deleting branch \(trimmed)"
-        var commands = [["stash", "push", "--include-untracked", "-m", snapshotMessage]]
+        let backupRef = "refs/zshell/deleted-branches/\(UUID().uuidString)/\(trimmed)"
+        var commands = [
+            ["update-ref", "--create-reflog", "-m", snapshotMessage, backupRef, "refs/heads/\(trimmed)"],
+            ["stash", "push", "--include-untracked", "-m", snapshotMessage],
+        ]
         if branch == trimmed {
             guard hasHead else {
                 failImmediately(String(localized: "The current branch has no commit to preserve"), completion: completion)
@@ -790,7 +794,7 @@ final class GitStatusModel: nonisolated ObservableObject {
             // keeps the checked-out files and lets the explicit delete finish.
             commands.append(["switch", "--detach", "HEAD"])
         }
-        commands.append(["branch", "-d", trimmed])
+        commands.append(["branch", "-D", trimmed])
         perform(
             label: String(localized: "Delete branch"),
             commands: commands,
