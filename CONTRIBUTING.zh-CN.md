@@ -72,6 +72,7 @@ xcodebuild -project mac/zshell.xcodeproj -scheme zshell -configuration Debug -de
 `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer`。
 
 `make run` 一步完成构建和启动 Debug 应用，`make update` 会重启已在运行的实例。
+Rust 构建阶段按内容同步临时构建目录中的输入，让 Cargo 能复用未改动的依赖。
 用下面的命令验证产出的 bundle：
 
 ```bash

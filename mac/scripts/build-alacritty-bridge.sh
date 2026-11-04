@@ -67,9 +67,9 @@ rust_target_is_installed() {
 mkdir -p "${BUILD_DIR}" "${OUTPUT_DIR}"
 # Copy rather than symlink: cargo resolves the manifest's real path, and a
 # symlinked manifest lands back in the read-only source tree.
-cp "${CRATE_DIR}/Cargo.toml" "${CRATE_DIR}/Cargo.lock" "${BUILD_DIR}/"
-rm -rf "${BUILD_DIR}/src"
-cp -R "${CRATE_DIR}/src" "${BUILD_DIR}/src"
+# Compare contents so unchanged files keep their mtimes and Cargo stays incremental.
+rsync -c "${CRATE_DIR}/Cargo.toml" "${CRATE_DIR}/Cargo.lock" "${BUILD_DIR}/"
+rsync -rlc --delete "${CRATE_DIR}/src/" "${BUILD_DIR}/src/"
 
 slices=()
 for arch in ${=ARCHS}; do
