@@ -22,19 +22,17 @@ if ! command -v cargo >/dev/null 2>&1; then
 fi
 
 mkdir -p "${BUILD_DIR}/remote" "${BUILD_DIR}/mac/Vendor/alacritty-bridge" "${BUILD_DIR}/mac/zshell/ThirdPartyNotices" "${OUTPUT_DIR}"
-cp "${ROOT_DIR}/remote/Cargo.toml" "${ROOT_DIR}/remote/Cargo.lock" "${BUILD_DIR}/remote/"
-cp "${ROOT_DIR}/remote/build.rs" "${BUILD_DIR}/remote/"
+# Compare contents so unchanged files keep their mtimes and Cargo stays incremental.
+rsync -c "${ROOT_DIR}/remote/Cargo.toml" "${ROOT_DIR}/remote/Cargo.lock" "${ROOT_DIR}/remote/build.rs" "${BUILD_DIR}/remote/"
 mkdir -p "${BUILD_DIR}/mac/zshell/ShellIntegration"
-rm -rf "${BUILD_DIR}/mac/zshell/ShellIntegration/TerminalCompletions"
-cp -R "${SRCROOT}/zshell/ShellIntegration/TerminalCompletions" "${BUILD_DIR}/mac/zshell/ShellIntegration/"
-cp "${SRCROOT}/Vendor/alacritty-bridge/Cargo.toml" "${SRCROOT}/Vendor/alacritty-bridge/Cargo.lock" "${BUILD_DIR}/mac/Vendor/alacritty-bridge/"
-cp "${SRCROOT}/zshell/ThirdPartyNotices/Kero.txt" "${BUILD_DIR}/mac/zshell/ThirdPartyNotices/"
+rsync -rlc --delete "${SRCROOT}/zshell/ShellIntegration/TerminalCompletions/" "${BUILD_DIR}/mac/zshell/ShellIntegration/TerminalCompletions/"
+rsync -c "${SRCROOT}/Vendor/alacritty-bridge/Cargo.toml" "${SRCROOT}/Vendor/alacritty-bridge/Cargo.lock" "${BUILD_DIR}/mac/Vendor/alacritty-bridge/"
+rsync -c "${SRCROOT}/zshell/ThirdPartyNotices/Kero.txt" "${BUILD_DIR}/mac/zshell/ThirdPartyNotices/"
 mkdir -p "${BUILD_DIR}/mac/zshell/AgentIntegrations/opencode" "${BUILD_DIR}/mac/zshell/AgentIntegrations/pi"
-cp "${SRCROOT}/zshell/AgentIntegrations/opencode/zshell-agent-state.js" "${SRCROOT}/zshell/AgentIntegrations/opencode/zshell-conversation-tui.js" "${BUILD_DIR}/mac/zshell/AgentIntegrations/opencode/"
-cp "${SRCROOT}/zshell/AgentIntegrations/pi/zshell-agent-state.pi.txt" "${BUILD_DIR}/mac/zshell/AgentIntegrations/pi/"
-rm -rf "${BUILD_DIR}/remote/src" "${BUILD_DIR}/mac/Vendor/alacritty-bridge/src"
-cp -R "${ROOT_DIR}/remote/src" "${BUILD_DIR}/remote/src"
-cp -R "${SRCROOT}/Vendor/alacritty-bridge/src" "${BUILD_DIR}/mac/Vendor/alacritty-bridge/src"
+rsync -c "${SRCROOT}/zshell/AgentIntegrations/opencode/zshell-agent-state.js" "${SRCROOT}/zshell/AgentIntegrations/opencode/zshell-conversation-tui.js" "${BUILD_DIR}/mac/zshell/AgentIntegrations/opencode/"
+rsync -c "${SRCROOT}/zshell/AgentIntegrations/pi/zshell-agent-state.pi.txt" "${BUILD_DIR}/mac/zshell/AgentIntegrations/pi/"
+rsync -rlc --delete "${ROOT_DIR}/remote/src/" "${BUILD_DIR}/remote/src/"
+rsync -rlc --delete "${SRCROOT}/Vendor/alacritty-bridge/src/" "${BUILD_DIR}/mac/Vendor/alacritty-bridge/src/"
 
 slices=()
 for arch in ${=ARCHS}; do

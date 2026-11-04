@@ -80,7 +80,9 @@ xcodebuild -project mac/zshell.xcodeproj -scheme zshell -configuration Debug -de
 Add `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer` if you only have Xcode beta.
 
 `make run` builds and launches the Debug app in one step, and `make update`
-restarts a running one. Verify the resulting bundle with:
+restarts a running one. The Rust build phases synchronize changed input contents
+into their sandboxed build directories so Cargo can reuse unchanged dependencies.
+Verify the resulting bundle with:
 
 ```bash
 make run
