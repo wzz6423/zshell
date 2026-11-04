@@ -117,6 +117,9 @@ jobs:
       - name: Test pull request quality gate
         run: ruby .github/scripts/pr-quality-test.rb
 
+      - name: Test pull request review configuration
+        run: ruby .github/scripts/pr-review-config-test.rb
+
       - name: Test project status routing
         run: ruby .github/scripts/project-status-test.rb
 

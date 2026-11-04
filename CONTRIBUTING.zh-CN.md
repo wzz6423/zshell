@@ -173,6 +173,16 @@ Zshell 的开发语言是英文，应用和官网支持相同的 17 种语言，
 - 不要提交 `mac/build/`、`mac/Vendor/alacritty-bridge/target`、`node_modules`、`dist`、下载的文件、日志、token、签名材料或个人数据。`Repository Hygiene` 会因此失败。
 - `main` 和 `publish-v*` 受保护，只能通过经过评审且检查通过的 Pull Request 更新。
 
+## 自动评审 Pull Request
+
+CodeRabbit 会评审 Pull Request，包括草稿以及以其他功能分支为目标的 Pull Request。
+保留模板 `Summary` 中的 `@coderabbitai summary`，用于生成英文摘要。
+仓库配置位于 `.coderabbit.yaml`。
+
+维护者需要为此仓库安装 CodeRabbit GitHub App。公开仓库评审使用其开源免费方案。
+评审与 CI 并行启动，后续推送也会继续评审。按模板填写项目日期、验证报告、风险评估
+和署名。评审发现按正常流程处理，构建和行为检查结果记录在 `Validation` 中。
+
 ## 跳过 CI
 
 维护者和被请求的评审者可以跳过某个改动不可能影响到的检查，例如纯文档修复。把指令

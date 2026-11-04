@@ -222,6 +222,18 @@ Thank you for opening a pull request. Check these requirements while it is await
 - Do not commit `mac/build/`, `mac/Vendor/alacritty-bridge/target`, `node_modules`, `dist`, downloaded files, logs, tokens, signing materials, or personal data. `Repository Hygiene` fails on them.
 - `main` and `publish-v*` are protected and can only be updated through a reviewed pull request that passes its checks.
 
+## Automated pull request reviews
+
+CodeRabbit reviews pull requests, including drafts and pull requests targeting another
+feature branch. Keep `@coderabbitai summary` in the template's `Summary` section for
+its generated English summary. Its repository settings live in `.coderabbit.yaml`.
+
+A maintainer must install the CodeRabbit GitHub App for this repository. Public
+repository reviews use CodeRabbit's free open-source offering. Reviews start
+alongside CI and continue on subsequent pushes. Keep the project dates, validation
+reports, risk assessment, and attribution filled in as usual. Handle findings through
+the normal review process and record build and behavior checks in `Validation`.
+
 ## Skipping CI
 
 Maintainers and requested reviewers can skip checks that a change cannot affect, for example a documentation-only fix. Write the directive on its own line in a pull request comment:
