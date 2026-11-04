@@ -65,6 +65,33 @@ class PullRequestQualityTest < Minitest::Test
     assert_rejected(@body.sub(/## GitHub Project\n.*?(?=## PR Type)/m, ''), '## GitHub Project')
   end
 
+  def test_later_validation_reports_fail_the_actual_quality_step_when_incomplete
+    {
+      '- Status: skipped' => 'one exact status',
+      "- Status: passed\n- Result: Passed." => 'Command',
+      "- Status: failed\n- Command: bun test" => 'Result',
+      '- Status: not run' => 'Reason'
+    }.each do |report, error|
+      body = @body.sub('## Risk and Rollback', "#{report}\n\n## Risk and Rollback")
+
+      assert_rejected(body, error)
+    end
+  end
+
+  def test_fenced_metadata_does_not_supply_required_fields_to_the_actual_quality_step
+    body = @body.sub(/^- Target date:.*$/, "```markdown\n- Target date: 2026-10-10\n```")
+
+    assert_rejected(body, 'Target date')
+  end
+
+  def test_web_ci_runs_the_existing_test_script
+    workflow = YAML.load_file(File.join(ROOT, '.github/workflows/web-ci.yml'))
+    steps = workflow.fetch('jobs').fetch('build').fetch('steps')
+
+    assert steps.any? { |step| step['working-directory'] == 'web' && step['run'] == 'bun run test' },
+           'Web Build & Test must run the website test script.'
+  end
+
   def test_ci_runs_the_quality_regressions
     ci = YAML.load_file(File.join(ROOT, '.github/workflows/ci-lint.yml'))
     assert ci.fetch('jobs').fetch('scripts').fetch('steps').any? { |step| step['run'] == 'ruby .github/scripts/pr-quality-test.rb' }

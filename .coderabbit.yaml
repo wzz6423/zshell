@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+tone_instructions: >-
+  Focus on reproducible bugs, regressions, and violations of the repository's
+  documented constraints. Explain the failing scenario and prefer a minimal fix.
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_in_walkthrough: false
+  high_level_summary_instructions: |
+    Write a concise English summary of the change, followed by a "### Change flow"
+    subsection containing exactly one fenced ```mermaid diagram in the PR description.
+    Use a small flowchart or sequence diagram to explain the changed behavior and
+    its affected components. For documentation or CI changes, illustrate the
+    documentation or automation flow that changed. Base every node and connection
+    on the actual diff and repository context. Quote flowchart labels and keep
+    the diagram small enough to read on the PR page.
+    Preserve the author's text and the GitHub Project, PR Type, Validation,
+    Risk and Rollback, Related Issue, and AI Attribution sections. Use only
+    level-three headings inside the generated summary.
+  sequence_diagrams: false
+  poem: false
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 0
+    drafts: true
+    base_branches:
+      - ".*"
+  path_filters:
+    - "!mac/zshell/MaterialFileIcons/**"
+    - "!**/*.xcassets/**"
+    - "!**/*.xcframework/**"
+    - "!**/*.framework/**"
+    - "!**/*.a"
+  path_instructions:
+    - path: "mac/**"
+      instructions: >-
+        Check AppKit and main-thread correctness, cancellation and resource
+        lifetimes, and compatibility of Ghostty and Alacritty through the shared
+        terminal interfaces. Preserve local Vendor patches. Check that user-facing
+        strings use the existing localization system and all supported languages.
+    - path: "remote/**"
+      instructions: >-
+        Check protocol compatibility, session ownership, PTY lifecycle, and
+        disconnect/reconnect behavior, including existing persisted sessions.
+  tools:
+    # Start reviews alongside the macOS checks instead of waiting for them.
+    github-checks:
+      enabled: false
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "AGENTS.md"
+      - "CONTRIBUTING.md"
+      - "skills/zshell-app-development/SKILL.md"

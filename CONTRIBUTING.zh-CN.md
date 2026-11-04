@@ -166,11 +166,23 @@ Zshell 的开发语言是英文，应用和官网支持相同的 17 种语言，
   ```
 
 - `PR Quality` 检查会校验这个格式；检查失败时 Pull Request 无法合并。随后 `PR Automation` 会打标签并指派 Pull Request。
-- 项目没有单元测试 target：应用改动靠构建、运行 Zshell 并实际操作来证明，所以请在 `Validation` 里写清楚你做了什么及验证结果。桥接层改动请在 `mac/Vendor/alacritty-bridge` 运行 `cargo test --locked`，站点改动请在 `web/` 运行 `bun run typecheck && bun run build`，`mac/scripts/` 下的改动请在 `mac/` 运行 `bunx tsc --noEmit`。运行 Bun 检查前先在各自的包里用 `bun install --frozen-lockfile` 安装依赖。
+- 项目没有单元测试 target：应用改动靠构建、运行 Zshell 并实际操作来证明，所以请在 `Validation` 里写清楚你做了什么及验证结果。桥接层改动请在 `mac/Vendor/alacritty-bridge` 运行 `cargo test --locked`，站点改动请在 `web/` 运行 `bun run typecheck && bun run build && bun run test`，`mac/scripts/` 下的改动请在 `mac/` 运行 `bunx tsc --noEmit`。运行 Bun 检查前先在各自的包里用 `bun install --frozen-lockfile` 安装依赖。
 - 所有新 UI 都用 AppKit 写。SwiftUI 属于遗留代码，不得引入也不得扩大；对现有 SwiftUI 视图做实质性修改时，要把受影响的 UI 迁移到 AppKit。
 - 改变用户可见行为、构建说明或发布流程时，请同步更新相关文档。[CHANGELOG.md](CHANGELOG.md) 是写给最终用户的，因此只记录最终交付的结果，而不是过程中的修复和重构；版本号只由发布流程提升，绝不在 Pull Request 里改。
 - 不要提交 `mac/build/`、`mac/Vendor/alacritty-bridge/target`、`node_modules`、`dist`、下载的文件、日志、token、签名材料或个人数据。`Repository Hygiene` 会因此失败。
 - `main` 和 `publish-v*` 受保护，只能通过经过评审且检查通过的 Pull Request 更新。
+
+## 自动评审 Pull Request
+
+CodeRabbit 会评审 Pull Request，包括草稿以及以其他功能分支为目标的 Pull Request。
+保留模板 `Summary` 中的 `@coderabbitai summary`，CodeRabbit 会将它替换为英文摘要和
+描述本次改动的 Mermaid 图示。生成内容使用子标题，保留 PR 必填小节的结构。
+按模板填写项目日期、验证报告、风险评估和署名。每组验证报告都会单独校验，
+元数据解析会跳过代码围栏。
+
+仓库配置位于 `.coderabbit.yaml`。维护者需要先为此仓库安装 CodeRabbit GitHub App，
+自动评审才能运行。评审与 CI 并行启动，后续推送也会继续评审。
+评审发现按正常流程处理，构建和行为检查结果记录在 `Validation` 中。
 
 ## 跳过 CI
 

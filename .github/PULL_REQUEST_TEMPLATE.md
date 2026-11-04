@@ -2,6 +2,8 @@
 
 <!-- Describe the purpose and implementation in English. -->
 
+@coderabbitai summary
+
 ## GitHub Project
 
 <!-- Keep the exact project name so CI can place this pull request on the shared board. -->

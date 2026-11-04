@@ -19,7 +19,7 @@
 | 桥的发布构型 | `(cd mac/Vendor/alacritty-bridge && cargo build --locked --release)` | 与 app 实际链接的 profile 一致（`panic = "abort"` 只在 release 生效） |
 | `mac/scripts/**` | `cd mac && bunx tsc --noEmit` | 无类型错误（`mac/tsconfig.json` 的 `include` 就是 `scripts`） |
 | `mac/scripts/make-dev-icon.py` | `python3 -m py_compile mac/scripts/make-dev-icon.py` 后删掉 `__pycache__` | 可编译 |
-| `web/**` | `cd web && bun run typecheck && bun run build` | 类型与静态构建都通过 |
+| `web/**` | `cd web && bun run typecheck && bun run build && bun run test` | 类型、静态构建和本地化回归都通过 |
 | `skills/**`、`mac/zshell/Skills/**` | `ruby .github/scripts/validate-skills.rb` | 每个 `SKILL.md` 都通过；名字必须与目录同名，本地引用不能越出 skill 目录 |
 | 签名 / entitlements / bundle id | `codesign --verify --deep --strict --verbose=2 'mac/build/debug/Build/Products/Debug/zshell Debug.app'` | 校验通过，且 Debug 与已安装正式版仍能并存 |
 | 自动化 CLI | 在 Zshell 面板内跑 `zshell +pane list`、`zshell +agent list` | 命令返回 JSON，跨项目目标仍被拒绝 |
@@ -50,7 +50,7 @@ CI 另外加 `-skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED
 | --- | --- | --- |
 | `macOS App` | `mac/zshell/**`、`mac/zshell.xcodeproj/**`、`mac/Vendor/**`、`mac/Config/**`、`mac/Makefile`、`Makefile`、两个 `mac/scripts/build-*.sh`、`remote/**`、`.github/**` | 桥的 `cargo test`/release 构建、Debug app 冒烟构建与 bundle 结构检查、内置远端服务、Swift CodeQL |
 | `Release Scripts` | `mac/scripts/**`、`mac/package.json`、`mac/bun.lock`、`mac/tsconfig.json`、`.github/**` | `bunx tsc --noEmit`、Python 脚本可编译 |
-| `Web CI` | `web/**`、`.github/**` | `bun run typecheck`、`bun run build` |
+| `Web CI` | `web/**`、`.github/**` | `bun run typecheck`、`bun run build`、`bun run test` |
 | `Skill CI` | `skills/**`、`mac/zshell/Skills/**`、`.github/**` | 每个 `SKILL.md` 的 frontmatter、本地引用与 release URL |
 | `CI Lint`、`Repository Hygiene`、`PR Quality Gates`、`CodeQL`、`Dependency Review` | 无作用域 | 每个 PR 都跑 |
 
