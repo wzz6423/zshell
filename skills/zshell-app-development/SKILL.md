@@ -108,7 +108,7 @@ codesign --verify --deep --strict --verbose=2 \
   'mac/build/debug/Build/Products/Debug/zshell Debug.app'
 (cd mac/Vendor/alacritty-bridge && cargo test --locked)   # 改桥时
 (cd mac && bunx tsc --noEmit)                             # 改 mac/scripts 时
-(cd web && bun run typecheck && bun run build && bun run test) # Website changes
+(cd web && bun run typecheck && bun run build)            # 改站点时
 ```
 
 风险相关改动追加验证：

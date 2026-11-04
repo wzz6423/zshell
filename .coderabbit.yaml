@@ -8,18 +8,6 @@ reviews:
   request_changes_workflow: false
   high_level_summary: true
   high_level_summary_in_walkthrough: false
-  high_level_summary_instructions: |
-    Write a concise English summary of the change, followed by a "### Change flow"
-    subsection containing exactly one fenced ```mermaid diagram in the PR description.
-    Use a small flowchart or sequence diagram to explain the changed behavior and
-    its affected components. For documentation or CI changes, illustrate the
-    documentation or automation flow that changed. Base every node and connection
-    on the actual diff and repository context. Quote flowchart labels and keep
-    the diagram small enough to read on the PR page.
-    Preserve the author's text and the GitHub Project, PR Type, Validation,
-    Risk and Rollback, Related Issue, and AI Attribution sections. Use only
-    level-three headings inside the generated summary.
-  sequence_diagrams: false
   poem: false
   auto_review:
     enabled: true

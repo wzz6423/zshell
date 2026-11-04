@@ -214,7 +214,7 @@ Thank you for opening a pull request. Check these requirements while it is await
   ```
 
 - The `PR Quality` check validates this format; a pull request cannot be merged while the check is failing. `PR Automation` then applies the labels and assigns the pull request.
-- There is no unit test target: app changes are proven by building and running Zshell and exercising the change, so describe what you did and the results in `Validation`. Run `cargo test --locked` in `mac/Vendor/alacritty-bridge` for bridge changes, `bun run typecheck && bun run build && bun run test` in `web/` for site changes, and `bunx tsc --noEmit` in `mac/` for anything under `mac/scripts/`. Install dependencies with `bun install --frozen-lockfile` in each package before running Bun checks.
+- There is no unit test target: app changes are proven by building and running Zshell and exercising the change, so describe what you did and the results in `Validation`. Run `cargo test --locked` in `mac/Vendor/alacritty-bridge` for bridge changes, `bun run typecheck && bun run build` in `web/` for site changes, and `bunx tsc --noEmit` in `mac/` for anything under `mac/scripts/`. Install dependencies with `bun install --frozen-lockfile` in each package before running Bun checks.
 - Build all new UI in AppKit. SwiftUI is legacy and must not be introduced or expanded; materially changing an existing SwiftUI view means migrating the affected UI to AppKit.
 - Update the relevant documentation when changing user-visible behavior, build instructions, or the release process. [CHANGELOG.md](CHANGELOG.md) is written for end users, so it records the shipped outcome rather than the fixes and refactors on the way there, and the version is bumped only by a release, never by a pull request.
 - Do not commit `mac/build/`, `mac/Vendor/alacritty-bridge/target`, `node_modules`, `dist`, downloaded files, logs, tokens, signing materials, or personal data. `Repository Hygiene` fails on them.
@@ -223,18 +223,14 @@ Thank you for opening a pull request. Check these requirements while it is await
 ## Automated pull request reviews
 
 CodeRabbit reviews pull requests, including drafts and pull requests targeting another
-feature branch. Keep `@coderabbitai summary` in the template's `Summary` section so
-CodeRabbit can replace it with an English summary and a Mermaid diagram of the
-change. The generated content uses subheadings to preserve the required PR sections.
-Keep the project dates, validation reports, risk assessment, and attribution filled in
-as usual. Each validation report is checked separately. Metadata parsing skips
-fenced code blocks.
+feature branch. Keep `@coderabbitai summary` in the template's `Summary` section for
+its generated English summary. Its repository settings live in `.coderabbit.yaml`.
 
-The repository settings live in `.coderabbit.yaml`. A maintainer must install the
-CodeRabbit GitHub App for this repository before automatic reviews can run.
-Reviews start alongside CI and continue on subsequent pushes. Review findings are
-handled through the normal review process, with build and behavior checks recorded
-in `Validation`.
+A maintainer must install the CodeRabbit GitHub App for this repository. Public
+repository reviews use CodeRabbit's free open-source offering. Reviews start
+alongside CI and continue on subsequent pushes. Keep the project dates, validation
+reports, risk assessment, and attribution filled in as usual. Handle findings through
+the normal review process and record build and behavior checks in `Validation`.
 
 ## Skipping CI
 
