@@ -2,7 +2,7 @@
 
 <!-- Describe the purpose and implementation in English. -->
 
-<!-- CodeRabbit generates the summary and change-flow diagram here. -->
+<!-- CodeRabbit maintains the generated pull request summary here. -->
 @coderabbitai summary
 
 ## GitHub Project
