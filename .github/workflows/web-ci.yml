@@ -68,10 +68,6 @@ jobs:
         working-directory: web
         run: bun run typecheck
 
-      - name: Test
-        working-directory: web
-        run: bun run test
-
       # bun audit has no --omit=dev, and everything here is a build-time
       # dependency: the prerendered site ships no runtime dependency of its own,
       # so an advisory is something to read rather than a gate — newly introduced

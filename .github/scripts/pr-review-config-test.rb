@@ -6,7 +6,7 @@ require 'yaml'
 require 'open3'
 require_relative 'pr-metadata'
 
-class CodeRabbitConfigTest < Minitest::Test
+class PullRequestReviewConfigTest < Minitest::Test
   ROOT = File.expand_path('../..', __dir__)
 
   def setup
@@ -26,14 +26,13 @@ class CodeRabbitConfigTest < Minitest::Test
     refute reviews.fetch('tools').fetch('github-checks').fetch('enabled')
   end
 
-  def test_diagram_summary_targets_the_pull_request_description
+  def test_coderabbit_summary_targets_the_pull_request_description
     reviews = @config.fetch('reviews')
     placeholder = reviews.fetch('high_level_summary_placeholder', '@coderabbitai summary')
     summary = PullRequestMetadata.sections(@template).fetch('Summary').join("\n")
 
     assert reviews.fetch('high_level_summary')
     refute reviews.fetch('high_level_summary_in_walkthrough')
-    assert_includes reviews.fetch('high_level_summary_instructions'), '```mermaid'
     assert_includes summary, placeholder
     assert_equal 1, @template.scan(placeholder).length
   end
@@ -46,26 +45,20 @@ class CodeRabbitConfigTest < Minitest::Test
     end
   end
 
-  def test_generated_diagram_preserves_the_existing_pull_request_contract
+  def test_generated_summary_preserves_the_existing_pull_request_contract
     output, status = Open3.capture2e('bash', '.github/scripts/render-contributor-welcome.sh', 'pr', chdir: ROOT)
     assert status.success?, output
     example = output[/^  ```markdown\n(.*?)^  ```/m, 1]
     refute_nil example
     body = example.lines.map { |line| line.sub(/^  /, '') }.join
-    diagram = <<~MARKDOWN
+    summary = <<~MARKDOWN
       <!-- coderabbit-ai-generated:v1 -->
       ## Summary by CodeRabbit
 
-      ### Change flow
-
-      ```mermaid
-      flowchart TD
-        opened["PR opened or updated"] --> review["Review changed code"]
-        review --> summary["Update PR summary and diagram"]
-      ```
+      - Enable automatic pull request reviews.
       <!-- end of auto-generated comment: release notes by coderabbit.ai -->
     MARKDOWN
-    generated_body = body.sub("## Summary\n", "## Summary\n\n#{diagram}\n")
+    generated_body = body.sub("## Summary\n", "## Summary\n\n#{summary}\n")
     contract = PullRequestMetadata::Contract.load(File.join(ROOT, '.github/pr-automation.json'))
 
     assert_empty PullRequestMetadata.validate(title: 'ci: add a repository hygiene check', body: generated_body, contract: contract)

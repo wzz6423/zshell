@@ -74,20 +74,8 @@ module PullRequestMetadata
 
   def self.sections(body)
     current = nil
-    closing_fence = nil
     body.to_s.gsub("\r\n", "\n").gsub(COMMENT, '').each_line.each_with_object({}) do |raw_line, map|
       line = raw_line.chomp
-      if closing_fence
-        closing_fence = nil if closing_fence.match?(line)
-        next
-      end
-      # Code examples and diagrams must never supply metadata or section headings.
-      opening_fence = line.match(/\A {0,3}(`{3,}|~{3,})(.*)\z/)
-      if opening_fence && (opening_fence[1].start_with?('~') || !opening_fence[2].include?('`'))
-        marker = opening_fence[1]
-        closing_fence = /\A {0,3}#{Regexp.escape(marker[0])}{#{marker.length},}[ \t]*\z/
-        next
-      end
       heading = line.match(/\A##[[:space:]]+(.+?)[[:space:]]*\z/)
       if heading
         current = heading[1]
@@ -221,20 +209,14 @@ module PullRequestMetadata
     lines = metadata['sections']['Validation']
     return [] if lines.nil?
 
-    blocks = lines.slice_before { |line| line.match?(/\A[[:space:]]*-[[:space:]]*Status:/i) }
-                  .reject { |block| field_values(block, 'Status', include_empty: true).empty? }
-    return ['Validation must declare one exact status: passed, failed, or not run.'] if blocks.empty?
+    status = field(lines, 'Status')
+    unless ['passed', 'failed', 'not run'].include?(status)
+      return ['Validation must declare one exact status: passed, failed, or not run.']
+    end
 
-    blocks.flat_map do |block|
-      status = field(block, 'Status')
-      unless ['passed', 'failed', 'not run'].include?(status)
-        next ['Validation must declare one exact status: passed, failed, or not run.']
-      end
-
-      required = status == 'not run' ? ['Reason'] : %w[Command Result]
-      required.filter_map do |key|
-        "Validation must include a non-empty #{key} field." if field(block, key).nil?
-      end
+    required = status == 'not run' ? ['Reason'] : %w[Command Result]
+    required.filter_map do |key|
+      "Validation must include a non-empty #{key} field." if field(lines, key).nil?
     end
   end
 
