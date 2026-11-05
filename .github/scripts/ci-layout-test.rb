@@ -85,12 +85,12 @@ class CiLayoutTest < Minitest::Test
     refute_includes server_commands, 'cargo test'
   end
 
-  def test_native_swift_analysis_preserves_the_query_suite_and_arm_app_build
+  def test_swift_analysis_preserves_the_query_suite_and_arm_app_build
     jobs = workflow_jobs('macos-app.yml')
     codeql = jobs.fetch('codeql')
     init = codeql.fetch('steps').find { |step| step.fetch('uses', '').start_with?('github/codeql-action/init@') }
 
-    assert_equal 'macos-26-intel', codeql.fetch('runs-on')
+    assert_equal 'macos-26', codeql.fetch('runs-on')
     assert_equal 'macos-26', jobs.fetch('app-smoke').fetch('runs-on')
     assert_equal 'swift', init.fetch('with').fetch('languages')
     assert_equal 'manual', init.fetch('with').fetch('build-mode')
