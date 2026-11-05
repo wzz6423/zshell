@@ -33,48 +33,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          sparse-checkout: .github
       - id: gate
         uses: ./.github/actions/ci-skip-gate
         with:
           workflow-name: Release Scripts
           github-token: ${{ github.token }}
 
-  shell:
-    name: Check Shell Scripts
-    needs: gate
-    if: needs.gate.outputs.skip != 'true' && needs.gate.outputs.relevant != 'false'
-    runs-on: macos-26
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      # zsh, not bash: build-alacritty-bridge.sh uses `${=ARCHS}` word splitting,
-      # which bash rejects. The shebang decides which parser gets the file.
-      - name: Syntax check release and build scripts
-        run: |
-          for script in mac/scripts/*.sh; do
-            case "$(head -n 1 "$script")" in
-              "#!/bin/zsh") zsh -n "$script" ;;
-              "#!/usr/bin/env bash") bash -n "$script" ;;
-              *) echo "Unsupported shell in $script" >&2; exit 1 ;;
-            esac
-          done
-
-      - name: Check the dev icon generator
-        run: python3 -m py_compile mac/scripts/make-dev-icon.py
-
-      - name: Test updater architecture and fallback behavior
-        working-directory: mac
-        run: python3 scripts/test-updater.py
-
-      - name: Remove compile artifacts
-        if: always()
-        run: rm -rf mac/scripts/__pycache__
-
   typecheck:
-    name: Typecheck Release Scripts
+    name: Validate Release Scripts
     needs: gate
     if: needs.gate.outputs.skip != 'true' && needs.gate.outputs.relevant != 'false'
     runs-on: macos-26
@@ -100,6 +67,28 @@ jobs:
         working-directory: mac
         run: bun test scripts/*.test.ts
 
-      - name: Remove installed dependencies
+      # zsh, not bash: build-alacritty-bridge.sh uses `${=ARCHS}` word splitting,
+      # which bash rejects. The shebang decides which parser gets the file.
+      - name: Syntax check release and build scripts
+        if: ${{ !cancelled() }}
+        run: |
+          for script in mac/scripts/*.sh; do
+            case "$(head -n 1 "$script")" in
+              "#!/bin/zsh") zsh -n "$script" ;;
+              "#!/usr/bin/env bash") bash -n "$script" ;;
+              *) echo "Unsupported shell in $script" >&2; exit 1 ;;
+            esac
+          done
+
+      - name: Check the dev icon generator
+        if: ${{ !cancelled() }}
+        run: python3 -m py_compile mac/scripts/make-dev-icon.py
+
+      - name: Test updater architecture and fallback behavior
+        if: ${{ !cancelled() }}
+        working-directory: mac
+        run: python3 scripts/test-updater.py
+
+      - name: Remove build and compile artifacts
         if: always()
-        run: rm -rf mac/node_modules
+        run: rm -rf mac/node_modules mac/scripts/__pycache__

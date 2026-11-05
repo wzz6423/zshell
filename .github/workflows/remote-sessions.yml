@@ -33,11 +33,46 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          sparse-checkout: .github
       - id: gate
         uses: ./.github/actions/ci-skip-gate
         with:
           workflow-name: Remote Sessions
           github-token: ${{ github.token }}
+
+  protocol:
+    name: Remote Protocol (${{ matrix.platform }})
+    needs: gate
+    if: needs.gate.outputs.skip != 'true' && needs.gate.outputs.relevant != 'false'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux
+            runner: ubuntu-latest
+          - platform: macOS
+            runner: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Use an isolated build directory
+        shell: bash
+        run: printf 'CARGO_TARGET_DIR=%s/remote-tests-target\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+
+      - name: Check the Rust toolchain
+        run: cargo --version && rustc --version
+
+      - name: Run protocol and real PTY regressions
+        run: cargo test --locked --manifest-path remote/Cargo.toml
+
+      - name: Remove build artifacts
+        if: always()
+        shell: bash
+        run: rm -rf "$RUNNER_TEMP/remote-tests-target"
 
   server:
     name: Remote Server (${{ matrix.platform }})
@@ -64,9 +99,6 @@ jobs:
 
       - name: Check the Rust toolchain
         run: cargo --version && rustc --version
-
-      - name: Run protocol and real PTY regressions
-        run: cargo test --locked --manifest-path remote/Cargo.toml
 
       - name: Build the host executable
         run: cargo build --locked --release --manifest-path remote/Cargo.toml

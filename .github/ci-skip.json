@@ -5,7 +5,7 @@
       "name": "CI Lint",
       "file": "ci-lint.yml",
       "aliases": ["lint", "actionlint"],
-      "checks": ["Lint Workflows", "Audit Workflow Security", "Test CI Scripts"]
+      "checks": ["Test CI Scripts"]
     },
     {
       "name": "macOS App",
@@ -30,14 +30,14 @@
       "file": "remote-sessions.yml",
       "aliases": ["remote", "remote-sessions", "server"],
       "paths": ["remote/**", "mac/Vendor/alacritty-bridge/**", ".github/**"],
-      "checks": ["Remote Server (Linux)", "Remote Server (macOS)"]
+      "checks": ["Remote Protocol (Linux)", "Remote Protocol (macOS)", "Remote Server (Linux)", "Remote Server (macOS)"]
     },
     {
       "name": "Release Scripts",
       "file": "release-scripts.yml",
       "aliases": ["scripts", "release"],
       "paths": ["mac/scripts/**", "mac/package.json", "mac/bun.lock", "mac/tsconfig.json", ".github/**"],
-      "checks": ["Check Shell Scripts", "Typecheck Release Scripts"]
+      "checks": ["Validate Release Scripts"]
     },
     {
       "name": "Web CI",
