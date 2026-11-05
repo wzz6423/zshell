@@ -49,8 +49,8 @@ export function HomePage({ lang, release, copy }: { lang: string; release: Relea
 function MinimalHeader({ lang, copy, release }: { lang: string; copy: HomeCopy; release: Release }) {
   return (
     <header className="fixed top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <HomeLink lang={lang} className="flex items-center gap-2 text-lg font-medium text-foreground">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
+        <HomeLink lang={lang} className="flex shrink-0 items-center gap-2 text-lg font-medium text-foreground">
           <img
             src={withBase('/zshell-icon.png')}
             alt=""
@@ -61,11 +61,11 @@ function MinimalHeader({ lang, copy, release }: { lang: string; copy: HomeCopy; 
           zshell
         </HomeLink>
 
-        <div className="flex items-center gap-6">
-          <DocsLink lang={lang} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+        <div className="flex items-center gap-3 sm:gap-6">
+          <DocsLink lang={lang} className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:block">
             {copy.nav.docs}
           </DocsLink>
-          <Link to="/changelog" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+          <Link to="/changelog" className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:block">
             {copy.footerChangelog}
           </Link>
           <ThemeToggle lang={lang} />
