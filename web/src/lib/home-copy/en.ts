@@ -48,6 +48,8 @@ const copy: HomeCopy = {
           { name: 'Quick Launch', detail: 'Save and group commands or SSH connections. Open them in a fresh project from the app or the zshell CLI.' },
           { name: 'Sessions that stay organized', detail: 'Rename, color, pin, and group tabs. Move sessions between compatible projects or windows with their running terminals and splits.' },
           { name: 'Split and restore', detail: 'Keep terminals and browser panes side by side. Restore layouts on relaunch; scrollback returns when history restoration is enabled.' },
+          { name: "Persistent and shared sessions", detail: "Optionally keep local jobs running after quitting. Reconnect to host-owned sessions over SSH or Tailscale, and inspect their processes in the Info panel." },
+          { name: "Workspace templates", detail: "Save, edit, import and export tabs, splits, startup commands and browser URLs. Apply a template to create fresh local or saved remote-host workspaces." },
         ],
       },
       {
@@ -56,7 +58,9 @@ const copy: HomeCopy = {
           { name: 'Project search', detail: 'Search file contents in the current local project, or find files by name and path across open local projects.' },
           { name: 'Editor and Markdown preview', detail: 'Edit with syntax highlighting and preview Markdown without switching apps.' },
           { name: 'Git review', detail: 'Inspect unified or split diffs, edit unstaged changes, and stage, commit, or push from the Git panel.' },
-          { name: 'Branches and worktrees', detail: 'Create and switch branches, manage stashes, and open an existing worktree in a new terminal tab.' },
+          { name: 'Branches and worktrees', detail: "Create and switch branches, manage stashes and isolated worktree sessions. Delete unmerged local branches after confirmation, with commit recovery references and stashed local changes." },
+          { name: "Pull requests and Git proxy", detail: "See the current branch’s GitHub pull request status and review comments beside diffs. Configure a proxy for Git actions and new terminals." },
+          { name: "Project browser", detail: "Preview remote localhost pages through SSH, import Chrome or Firefox cookies, history and tabs, and block ads and trackers." },
         ],
       },
       {
@@ -65,7 +69,9 @@ const copy: HomeCopy = {
           { name: 'Agent coordination', detail: 'Let coding agents coordinate across panes while you follow status and requests for attention.' },
           { name: 'Usage and limits', detail: 'View available Claude Code and Codex account usage and reset times in Settings when the provider reports them.' },
           { name: 'Prompt queue', detail: 'Queue follow-up prompts per session. Send them manually, or let supported shell integration dispatch them when the shell is ready.' },
-          { name: 'Long-command notifications', detail: 'Enable completion or failure notifications for new zsh terminals, and see progress when a program reports it.' },
+          { name: 'Long-command notifications', detail: "Keep terminal and Agent notification history, filter unread, failed or pending items, and return to the originating pane. See progress when a program reports it." },
+          { name: "Conversation history and forks", detail: "Search, archive, resume or fork saved Codex, Claude Code, OpenCode and Pi conversations with native context, locally or on supported remote hosts." },
+          { name: "Background tasks and browser automation", detail: "Wait for background command results, follow live workspace events, and let agents inspect, interact with or capture project browser pages and save logins." },
         ],
       },
       {
@@ -75,6 +81,8 @@ const copy: HomeCopy = {
           { name: 'Recommended tools', detail: 'Browse development tools and desktop apps in Settings, with supported install, update, and batch actions.' },
           { name: 'Settings that travel', detail: 'Remap shortcuts, adjust interface scale and selection copying, and import or export your settings.' },
           { name: 'Updates you control', detail: 'Choose automatic checks and installation. Updates prefer Gitee in mainland China and GitHub elsewhere, with a fallback source.' },
+          { name: "Command history, completion and hints", detail: "Search saved commands with duration and exit status, return to their output, insert commands without running them, complete zsh commands and paths, and copy or open text with keyboard hints." },
+          { name: "Profiles and Quick Terminal", detail: "Apply terminal profiles by host, user, directory or program. Reuse Quick Terminal workspaces or start fresh, and choose Dock or menu bar presence." },
         ],
       },
     ],
@@ -128,7 +136,7 @@ const copy: HomeCopy = {
       },
       {
         q: 'What happens to my sessions when I quit?',
-        a: 'Projects, tabs, browser URLs, and pane layout come back on relaunch. Each terminal reopens as a fresh shell in its old directory; previous scrollback returns only when history restoration is enabled.',
+        a: "Workspace layouts return on relaunch. With session persistence enabled, local shells and jobs keep running; shared remote sessions remain on their host. Otherwise, panes resume verified agent conversations or open fresh shells. Scrollback returns when history restoration is enabled.",
       },
       {
         q: 'Is this an IDE?',

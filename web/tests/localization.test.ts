@@ -43,7 +43,7 @@ describe('complete static translations', () => {
       expect(copy.languageName).toBe(languageNames[locale])
       const translated = leaves(copy)
       expect(Object.keys(translated).sort()).toEqual(Object.keys(english).sort())
-      expect(copy.features.groups.map((group) => group.rows.length)).toEqual([4, 4, 4, 4])
+      expect(copy.features.groups.map((group) => group.rows.length)).toEqual([6, 6, 6, 6])
       expect(copy.shortcuts.rows).toHaveLength(19)
       expect(copy.faq.items).toHaveLength(5)
       expect(copy.copyAria.match(/\{command\}/g)).toHaveLength(1)

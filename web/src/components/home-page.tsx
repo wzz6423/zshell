@@ -6,7 +6,7 @@ import { LanguageSelect } from '@/components/language-select'
 import { BREW_COMMAND, dmgUrl, GITHUB_URL, RELEASE_ARCHITECTURES, type Release } from '@/lib/release'
 import { cn, withBase } from '@/lib/utils'
 import { ModernHero } from '@/components/modern-hero'
-import { MinimalFeature, MinimalSection } from '@/components/minimal-components'
+import { MinimalSection } from '@/components/minimal-components'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { AnimatedFeatureCard, AnimatedSection, CodeWindow } from '@/components/animated-components'
 
@@ -32,11 +32,12 @@ export function HomePage({ lang, release, copy }: { lang: string; release: Relea
 
       <main id="main">
         <ModernHero lang={lang} copy={copy} release={release} />
-        <MinimalFeatures />
+        <Features lang={lang} copy={copy} />
         <DownloadSection copy={copy} release={release} />
+        <Faq copy={copy} />
       </main>
 
-      <MinimalFooter lang={lang} />
+      <MinimalFooter lang={lang} copy={copy} />
     </div>
   )
 }
@@ -62,81 +63,16 @@ function MinimalHeader({ lang, copy, release }: { lang: string; copy: HomeCopy; 
 
         <div className="flex items-center gap-6">
           <DocsLink lang={lang} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-            文档
+            {copy.nav.docs}
           </DocsLink>
           <Link to="/changelog" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-            更新日志
+            {copy.footerChangelog}
           </Link>
           <ThemeToggle lang={lang} />
           <LanguageSelect lang={lang} />
         </div>
       </div>
     </header>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* Features                                                            */
-/* ------------------------------------------------------------------ */
-
-function MinimalFeatures() {
-  const features = [
-    {
-      number: '01',
-      title: '项目与会话管理',
-      description: '原生 AppKit 界面管理项目、标签页和分屏窗格。快速切换项目，每个项目保持独立的终端会话和工作环境。',
-      icon: 'i-mingcute-folder-open-fill',
-    },
-    {
-      number: '02',
-      title: '灵活的分屏布局',
-      description: '原生分屏系统，支持标签页和多窗格布局。在同一窗口并排查看多个终端会话、文件或浏览器。',
-      icon: 'i-mingcute-layout-grid-fill',
-    },
-    {
-      number: '03',
-      title: 'Git 集成与文件管理',
-      description: '内置文件树、Git 状态查看和可编辑的差异对比。快速检查代码变更、暂存文件和提交历史。',
-      icon: 'i-mingcute-git-branch-fill',
-    },
-    {
-      number: '04',
-      title: '命令面板与文件搜索',
-      description: '项目范围的文件搜索、命令面板和本地路径链接。快速导航到任何文件或执行命令。',
-      icon: 'i-mingcute-search-line',
-    },
-    {
-      number: '05',
-      title: '集成浏览器面板',
-      description: '内置浏览器标签页和窗格，方便查看文档、调试 Web 应用或预览开发结果。',
-      icon: 'i-mingcute-compass-line',
-    },
-    {
-      number: '06',
-      title: 'AI Agent 集成',
-      description: 'AI 智能体可以委托后台工作、跨 Zshell 窗格协调，提供状态报告和人工审批控制。',
-      icon: 'i-mingcute-magic-2-line',
-    },
-    {
-      number: '07',
-      title: '多终端后端支持',
-      description: '默认使用 libghostty，可选 Alacritty 后端。灵活选择最适合你的终端引擎。',
-      icon: 'i-mingcute-terminal-box-line',
-    },
-    {
-      number: '08',
-      title: '原生 macOS 体验',
-      description: '原生 AppKit 应用，完美集成 macOS 系统。流畅运行，低资源占用，支持 macOS 15.6+。',
-      icon: 'i-mingcute-apple-fill',
-    },
-  ]
-
-  return (
-    <MinimalSection>
-      {features.map((feature) => (
-        <MinimalFeature key={feature.number} {...feature} />
-      ))}
-    </MinimalSection>
   )
 }
 
@@ -148,7 +84,7 @@ function DownloadSection({ copy, release }: { copy: HomeCopy; release: Release }
   return (
     <MinimalSection className="border-t border-border">
       <div className="text-center">
-        <h2 className="mb-6 text-4xl font-light text-foreground">立即开始</h2>
+        <h2 className="mb-6 text-4xl font-light text-foreground">{copy.download.title}</h2>
         <p className="mb-8 text-lg text-muted-foreground">
           v{release.version} · macOS {release.minSystem}+
         </p>
@@ -159,7 +95,7 @@ function DownloadSection({ copy, release }: { copy: HomeCopy; release: Release }
             download
             className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3 text-base font-medium text-primary-foreground transition-all hover:bg-primary/90"
           >
-            下载 macOS 版本
+            {copy.download.dmg}
           </a>
 
           <div className="mt-4 inline-flex max-w-xl items-stretch overflow-hidden rounded-lg border border-border bg-card shadow-sm">
@@ -172,7 +108,7 @@ function DownloadSection({ copy, release }: { copy: HomeCopy; release: Release }
                 navigator.clipboard.writeText(BREW_COMMAND)
               }}
               className="flex items-center justify-center border-l border-border px-4 transition-colors hover:bg-muted"
-              aria-label="复制命令"
+              aria-label={copy.copyAria.replace('{command}', BREW_COMMAND)}
             >
               <span className="i-mingcute-copy-2-line text-muted-foreground" />
             </button>
@@ -203,7 +139,7 @@ function DownloadSection({ copy, release }: { copy: HomeCopy; release: Release }
 /* Footer                                                              */
 /* ------------------------------------------------------------------ */
 
-function MinimalFooter({ lang }: { lang: string }) {
+function MinimalFooter({ lang, copy }: { lang: string; copy: HomeCopy }) {
   return (
     <footer className="border-t border-border">
       <div className="mx-auto max-w-6xl px-6 py-12">
@@ -224,10 +160,10 @@ function MinimalFooter({ lang }: { lang: string }) {
               GitHub
             </a>
             <DocsLink lang={lang} className="hover:text-foreground">
-              文档
+              {copy.footerDocs}
             </DocsLink>
             <Link to="/changelog" className="hover:text-foreground">
-              更新日志
+              {copy.footerChangelog}
             </Link>
           </div>
         </div>

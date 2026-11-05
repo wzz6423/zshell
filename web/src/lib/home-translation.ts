@@ -12,7 +12,7 @@ type HomeTranslation = {
   actions: { skip: string; copy: string; copied: string; copyAria: string }
   featureTitle: string
   groups: Tuple<string, 4>
-  features: Tuple<Pair, 16>
+  features: Tuple<Pair, 24>
   shortcutsTitle: string
   allShortcuts: string
   shortcuts: Tuple<string, 19>
@@ -35,7 +35,7 @@ export function defineHomeCopy(lang: Language, t: HomeTranslation, changelog: st
     hero: { eyebrow, titleBefore, titleHighlight, titleAfter, lede, download: heroDownload, docs: docsAction },
     preview: { label: t.preview.label, tabs: t.preview.tabs, captions: t.preview.captions, projects, local, remote, files, changes, agents, running, attention, queue, prompts: t.preview.prompts },
     skipLink: t.actions.skip, copy: t.actions.copy, copied: t.actions.copied, copyAria: t.actions.copyAria,
-    features: { title: t.featureTitle, docsLink: docs, groups: t.groups.map((name, index) => ({ name, slug: slugs[index], rows: t.features.slice(index * 4, index * 4 + 4).map(([name, detail]) => ({ name, detail })) })) },
+    features: { title: t.featureTitle, docsLink: docs, groups: t.groups.map((name, index) => ({ name, slug: slugs[index], rows: t.features.slice(index * 6, index * 6 + 6).map(([name, detail]) => ({ name, detail })) })) },
     shortcuts: { title: t.shortcutsTitle, docsLink: t.allShortcuts, rows: t.shortcuts.map((detail, index) => ({ name: keys[index], detail })) },
     download: { ...t.download, changelog },
     faq: { title: faq, items: t.faq.map(([q, a]) => ({ q, a })) },
