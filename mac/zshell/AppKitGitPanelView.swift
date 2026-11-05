@@ -1149,7 +1149,7 @@ final class GitPanelSectionHeaderView: NSView {
     override func layout() {
         super.layout()
         let height = requiredHeight - 11
-        let countWidth = ceil(count.intrinsicContentSize.width)
+        let countWidth = ceil(count.fittingSize.width)
         let slot = metrics.slotSize(18)
         let toggleWidth = max(0, bounds.width - countWidth - CGFloat(buttons.count) * (slot + 2) - 22)
         toggle.frame = NSRect(x: 8, y: 8, width: toggleWidth, height: height)

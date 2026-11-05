@@ -334,13 +334,15 @@ private final class CommitGraphRowView: NSView {
         self.metrics = metrics
         super.init(frame: .zero)
         focusRingType = .default
-        toolTip = "\(commit.shortHash) · \(commit.author) · \(commit.relativeDate)"
+        toolTip = (["\(commit.shortHash) · \(commit.author) · \(commit.relativeDate)"]
+            + commit.references).joined(separator: "\n")
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
-        setAccessibilityLabel(String(
+        let accessibilityLabel = String(
             localized: "\(commit.subject), \(commit.shortHash), by \(commit.author), \(commit.relativeDate)",
             comment: "Commit summary, short hash, author, and relative date for accessibility."
-        ))
+        )
+        setAccessibilityLabel(([accessibilityLabel] + commit.references).joined(separator: ", "))
         setAccessibilityHelp(String(localized: "Shows files changed in this commit"))
         setAccessibilityValue(isExpanded ? String(localized: "Expanded") : String(localized: "Collapsed"))
     }
@@ -495,7 +497,7 @@ private final class CommitGraphRowView: NSView {
     }
 
     private var primaryReference: String? {
-        commit.references.first {
+        commit.references.first { $0.hasPrefix("tag: ") } ?? commit.references.first {
             $0.contains("/") && !$0.hasPrefix("HEAD -> ") && !$0.contains("/HEAD")
         } ?? commit.references.first.map {
             $0.hasPrefix("HEAD -> ") ? String($0.dropFirst("HEAD -> ".count)) : $0
