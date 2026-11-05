@@ -14,6 +14,19 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
+## [0.1.13]
+
+### Changed
+
+- Delete local branches with unmerged commits from the Git panel after
+  confirmation. Zshell keeps a recovery reference for the branch's commits and
+  stashes local changes, including untracked files, before deletion.
+
+### Fixed
+
+- Keep Git section counts readable and show tag badges ahead of branch names
+  in the commit list, with all references available on hover.
+
 ## [0.1.12]
 
 ### Added
