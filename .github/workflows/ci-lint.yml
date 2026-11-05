@@ -62,6 +62,9 @@ jobs:
       - name: Test CI skip directives
         run: ruby .github/scripts/ci-skip-directives-test.rb
 
+      - name: Test CI job scheduling
+        run: ruby .github/scripts/ci-layout-test.rb
+
       - name: Test pull request metadata
         run: ruby .github/scripts/pr-metadata-test.rb
 
