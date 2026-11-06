@@ -1,6 +1,6 @@
 ---
 name: zshell-release
-description: Zshell 正式 macOS 发布工作流：固定自签名证书、Sparkle Ed25519、arm64/x86_64/Universal 三套包、GitHub 和 Gitee 双端发布与验证。正式发布需要用户明确授权。
+description: Zshell 正式 macOS 发布工作流：固定自签名证书、Sparkle Ed25519、arm64/x86_64/Universal 三套包、GitHub 和 Gitee 双端发布与验证。用户明确授权正式发布后，Zshell、官网与 Homebrew tap 的发版改动直接在 main 提交推送，无需 PR。
 ---
 
 # Zshell 正式发布
@@ -18,20 +18,27 @@ description: Zshell 正式 macOS 发布工作流：固定自签名证书、Spark
   私钥、PEM 证书、P12，权限 `600`。已有身份要恢复和复用，不能默默重建。
 - 私钥、令牌、Keychain 密码和用户私人绝对路径不能出现在终端日志、PR 或 Release 正文中。
 - 构建号每次正式发版递增，普通功能 PR 不改版本；已发布资产不可静默换成另一份构建。
-- tap 和官网修改提 PR 交用户合并；发布脚本不直接推 tap 主分支、不自动部署官网。
+- 正式发版是直接更新 `main` 的特例：Zshell、官网与 `wzz6423/homebrew-tap` 的发版改动
+  在各仓库最新 `main` 上提交并推送，不创建发布分支或 PR、不等待合并。仅包含发布所需的
+  版本、构建号、最终 CHANGELOG、发布修复、cask 与官网更新；普通开发及 skill 修改仍走 PR。
 
 ## 执行
 
 1. 先读 [preflight](references/preflight.md)，核对工具、已有签名身份、版本、双端权限。
-2. 使用同一已提交源码生成 `arm64`、`x86_64`、`universal` 三套 DMG/ZIP，分别写 SHA-256。
-3. 各架构 app 的全部 Mach-O 都须符合目标架构，嵌套代码签名完整，三个包使用同一稳定
+2. 在干净且已同步的 Zshell `main` 准备版本、构建号与最终 CHANGELOG，验证本次发布修复后
+   仅提交发版文件，直接推送 `origin main` 与 `gitee main`。确认同一源码 commit 两端可访问后再构建。
+3. 使用同一已提交源码生成 `arm64`、`x86_64`、`universal` 三套 DMG/ZIP，分别写 SHA-256。
+4. 各架构 app 的全部 Mach-O 都须符合目标架构，嵌套代码签名完整，三个包使用同一稳定
    designated requirement，包含 Sparkle installer 和正式版白底图标。
-4. 为 GitHub 和 Gitee 各生成三份完整签名 appcast。每份恰好一个条目，ZIP 链接属于本站、
+5. 为 GitHub 和 Gitee 各生成三份完整签名 appcast。每份恰好一个条目，ZIP 链接属于本站、
    本版本、本架构，并有 enclosure Ed25519 签名。`SURequireSignedFeed` 必须启用。
-5. 两端版本 Release 各上传 15 份必需资产；Gitee 永久 `update-release` 仅放三份 appcast。
+6. 两端版本 Release 各上传 15 份必需资产；Gitee 永久 `update-release` 仅放三份 appcast。
    先上传和验证两端包，再切 feed；Gitee 永久 feed 必须早于实际版本 Release 创建。
-6. 验证双端资产哈希和六份匿名 feed；官网提供 Universal 主下载、Apple Silicon、Intel 和镜像入口。
-7. 更新 tap 的本机架构 ZIP URL、两个 SHA-256、最低系统版本，并与官网一起交 PR。
+7. 验证双端资产哈希和六份匿名 feed。
+8. 更新 Zshell 仓库的 cask 副本、官网 fallback 版本和安装文档，运行相关验证后直接在 `main`
+   提交并推送双端；在 tap 最新 `main` 更新本机架构 ZIP URL、两个 SHA-256、最低系统版本，
+   验证后提交并推送。等待官网 `Web Pages` 成功，核对 Universal、Apple Silicon、Intel 与镜像入口。
+   后续官网/cask 提交不改变本次产物记录的 `<source-commit>`，发布和恢复仍使用该 commit。
 
 从 `mac/` 执行：
 

@@ -12,11 +12,12 @@
 | 目标架构或签名不符 | 修复 archive/裁剪/嵌套签名问题后，重新生成三套完整资产；不把单个错误包上传到有效 feed。 |
 | archive 已存在 | 同 source commit 用 `--package-only`；源码变化则使用新的 `RELEASE_OUTPUT_DIRECTORY`。 |
 | GitHub 或 Gitee 认证失败 | 修复对应凭据或仓库权限；不要在日志打印 token，不因一端成功跳过另一端。 |
+| `main` 推送被拒绝 | 非 fast-forward 时先获取远端更新并说明分叉；权限或保护阻塞时说明所需维护者权限并询问。不强推、不放宽保护、不自行改走发布 PR。 |
 | 上传中断或重复文件名 | 用相同产物重新执行 `publish-release.ts --publish`，发布器比对 SHA-256 后只补缺失或不同资产。 |
 | ZIP 已上线但 feed 未更新 | 先验证两端完整包，再上传与这些 ZIP 对应的三份本站签名 feed；不要单独手改签名后的 XML。 |
 | Gitee latest 指向永久 feed | `update-release` 创建晚于版本 Release。先保留完整资产与证据；修正创建顺序需要明确处理已有发布，单纯 PATCH 不会改变顺序。 |
-| 官网仍显示旧版本 | 官网预渲染缓存了构建时的 feed；先确认官网 PR 已合并和 `Web Pages` 成功，再核对匿名下载链接。 |
-| Homebrew 版本落后 | 更新 tap PR 的版本和本机架构 ZIP 校验值；不要直接跑旧 `bump-cask.ts` 去推 main。 |
+| 官网仍显示旧版本 | 官网预渲染缓存了构建时的 feed；验证公开 feed 并确认发版提交已推到 `main` 后，按 `mac/RELEASING.md` 手动触发 `main` 上的新 `Web Pages` 构建，再核对本次部署和匿名下载链接。 |
+| Homebrew 版本落后 | 双端发布验证后，用 `bump-cask.ts` 准备版本和本机架构 ZIP 校验值，同步仓库 cask 副本与 tap；验证后在各自 `main` 提交推送，不等待 PR。 |
 | 旧 ad-hoc 0.1.0 无法升级 | 保留原 Sparkle Ed25519 key 和旧 `updates` feed；用真实旧版验证到新 build 的迁移，不能只测试新版本自己的主/fallback feed。 |
 
 恢复命令（从 `mac/`）：
