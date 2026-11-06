@@ -27,9 +27,11 @@ library = products / "zshell Debug.app/Contents/MacOS/zshell.debug.dylib"
 if not library.is_file():
     raise SystemExit(f"Build the Debug app in {options.derived_data} first")
 
+git_environment = dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL="/dev/null")
+
 
 def git(directory, *arguments):
-    return subprocess.check_output(["/usr/bin/git", *arguments], cwd=directory).decode().strip()
+    return subprocess.check_output(["/usr/bin/git", *arguments], cwd=directory, env=git_environment).decode().strip()
 
 
 with tempfile.TemporaryDirectory(prefix="zshell-pr-review-", dir="/tmp") as directory:

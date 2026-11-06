@@ -18,8 +18,9 @@ with tempfile.TemporaryDirectory(prefix="zshell-pr-actions-", dir="/tmp") as dir
     temporary = Path(directory)
     repo = temporary / "repo"
     repo.mkdir()
+    environment = dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL="/dev/null")
     def git(*args):
-        subprocess.run(["git", *args], cwd=repo, check=True, stdout=subprocess.DEVNULL)
+        subprocess.run(["git", *args], cwd=repo, env=environment, check=True, stdout=subprocess.DEVNULL)
     git("init", "-q", "-b", "feature/review")
     git("config", "user.name", "Review Fixture")
     git("config", "user.email", "test@example.invalid")
@@ -28,7 +29,6 @@ with tempfile.TemporaryDirectory(prefix="zshell-pr-actions-", dir="/tmp") as dir
     git("remote", "add", "upstream", "https://github.com/example/base.git")
     git("config", "branch.feature/review.remote", "origin")
     git("config", "branch.feature/review.merge", "refs/heads/feature/review")
-    environment = dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL="/dev/null")
     source = (ROOT / "mac/zshell/GitStatusModel.swift").read_text()
     start = source.index("    nonisolated struct BranchSnapshot:")
     snapshot = source[start:source.index("\n}\n", start)]

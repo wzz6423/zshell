@@ -2005,7 +2005,7 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "أرسل مراجعتك لطلب السحب هذا. ستُربط المراجعة بالتثبيت المعروض."
+            "value": "أرسل مراجعتك لطلب السحب هذا. ستُربط المراجعة بالالتزام المعروض."
           }
         },
         "th": {
@@ -2029,7 +2029,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bu çekme isteği için incelemenizi gönderin. İnceleme görüntülenen işleme bağlanır."
+            "value": "Bu çekme isteği için incelemenizi gönderin. İnceleme görüntülenen commit’e bağlanır."
           }
         }
       }
