@@ -4,13 +4,16 @@ Uses the production binary and real PTYs. Provider fixtures and private HOME,
 configuration, daemon state and processes are removed after the run.
 """
 import argparse
+import fcntl
 import json
 import os
+import pty
 from pathlib import Path
 import shlex
 import struct
 import subprocess
 import tempfile
+import termios
 import time
 import uuid
 
@@ -80,7 +83,7 @@ def main(binary):
             environment.pop(key, None)
         fixture = providers / "claude"
         fixture.write_text("#!/usr/bin/env python3\n" + r'''
-import json, os, subprocess, sys, time
+import json, os, select, subprocess, sys, time, tty
 from pathlib import Path
 root=Path(os.environ["AGENT_FIXTURE"])
 session=sys.argv[sys.argv.index("--resume")+1] if "--resume" in sys.argv else os.environ["AGENT_ID"]
@@ -92,11 +95,19 @@ def hook(fields, environment=None):
 result=hook(payload)
 (root/"started.json").write_text(json.dumps({"session":session,"argv":sys.argv[1:],"cwd":os.getcwd(),"status":result["status"],"stderr":result["stderr"]}))
 print("AGENT_READY",flush=True)
+tty.setraw(sys.stdin.fileno())
+interrupt_behavior="idle"
+def screen(busy):
+    print("\x1b[2J\x1b[H\x1b[20;1H"+"\r\n".join(["", "────────────────────────────────────────", "❯ restored prompt", "────────────────────────────────────────", "  esc to interrupt" if busy else "  ⏵⏵ bypass permissions on"]),end="",flush=True)
 while True:
     command=root/"command.json"
     if command.exists():
         fields=json.loads(command.read_text());command.unlink()
-        if fields.get("nested"):
+        if "screen" in fields:
+            interrupt_behavior=fields.get("interrupt_behavior","idle")
+            screen(fields["screen"]=="busy")
+            response={"status":0}
+        elif fields.get("nested"):
             child=root/"providers"/"codex"
             result=subprocess.run([str(child)],text=True,capture_output=True)
             response={"status":result.returncode,"stderr":result.stderr}
@@ -105,6 +116,12 @@ while True:
             env.update(fields.pop("environment",{}))
             response=hook(fields,env)
         (root/"response.json").write_text(json.dumps(response))
+    if select.select([sys.stdin],[],[],0)[0]:
+        data=os.read(sys.stdin.fileno(),256)
+        if data in (b"\x1b",b"\x03",b"\x1b[27u"):
+            if interrupt_behavior=="new-turn":hook({"hook_event_name":"UserPromptSubmit","session_id":session})
+            print("\x1b]7501;state=idle:app=claude-code\x07",end="",flush=True)
+            screen(interrupt_behavior=="busy")
     if (root/"stop").exists():break
     time.sleep(0.01)
 ''')
@@ -160,6 +177,49 @@ sys.exit(result.returncode)
                 response_path.unlink(missing_ok=True)
                 (root / "command.json").write_text(json.dumps(fields))
                 return wait(lambda: json.loads(response_path.read_text()) if response_path.exists() else None)
+
+            master, slave = pty.openpty()
+            fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
+            attached = subprocess.Popen([binary, "attach", "--state", str(state), "--project", str(project),
+                                         "--session", terminal_id], stdin=slave, stdout=slave, stderr=slave,
+                                        env=environment, start_new_session=True)
+            os.close(slave)
+            try:
+                wait(lambda: bridge.call("get", project, sessionId=terminal_id)["result"]["clientCount"] == 1)
+                def interrupt(behavior="idle", data=b"\x1b"):
+                    report({"hook_event_name": "UserPromptSubmit", "session_id": session_id})
+                    report({"screen": "busy", "interrupt_behavior": behavior})
+                    time.sleep(0.15)
+                    os.write(master, data)
+
+                interrupt()
+                settled = wait(lambda: (info if (info := bridge.call("get", project, sessionId=terminal_id)["result"])
+                                        ["agentStatus"]["phase"] == "idle" else None))
+                check(settled["conversation"]["sessionID"] == session_id,
+                      "real Esc without Stop settles native Claude and retains its conversation")
+                interrupt(data=b"\x03")
+                check(wait(lambda: bridge.call("get", project, sessionId=terminal_id)["result"]
+                           ["agentStatus"]["phase"] == "idle"), "real Ctrl-C also settles only after the input returns")
+                interrupt("busy")
+                time.sleep(0.3)
+                check(bridge.call("get", project, sessionId=terminal_id)["result"]["agentStatus"]["phase"] == "working",
+                      "Esc that leaves the busy footer never settles the Agent")
+                interrupt("new-turn")
+                time.sleep(0.3)
+                check(bridge.call("get", project, sessionId=terminal_id)["result"]["agentStatus"]["phase"] == "working",
+                      "a newer UserPromptSubmit invalidates old interrupt evidence")
+                interrupt(data=b"\x1b[27u")
+                check(wait(lambda: bridge.call("get", project, sessionId=terminal_id)["result"]
+                           ["agentStatus"]["phase"] == "idle"), "kitty-encoded Escape keeps interrupt semantics")
+            finally:
+                attached.terminate()
+                try:
+                    attached.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    attached.kill()
+                    attached.wait(timeout=3)
+                os.close(master)
+                wait(lambda: bridge.call("get", project, sessionId=terminal_id)["result"]["clientCount"] == 0)
 
             check(report({"hook_event_name": "UserPromptSubmit"})["status"] == 0, "native work lifecycle is accepted")
             check(bridge.call("get", project, sessionId=terminal_id)["result"]["agentStatus"]["phase"] == "working", "work status reaches the remote state stream")

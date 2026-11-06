@@ -1628,6 +1628,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func keyDown(with event: NSEvent) {
+        events?.terminalDidCancelAgentInterrupt()
         if hintMode.consumesKeyDown(event) { return }
         finalizePointerSelectionBeforeInput()
         if !hasMarkedText(),
@@ -1669,6 +1670,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             return
         }
 
+        events?.terminalWillSendKey(event)
         // Ctrl / enabled Option-as-Alt / special keys encode as terminal
         // sequences. Text returns nil from the key map so macOS input sources
         // can compose before committed Unicode reaches `insertText`.
@@ -2598,6 +2600,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 /// cursor and only committed text reaches the PTY.
 extension AlacrittyTerminalView: NSTextInputClient {
     func insertText(_ string: Any, replacementRange: NSRange) {
+        events?.terminalDidCancelAgentInterrupt()
         guard !hintMode.isPresented else { return }
         let text = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""
         if !text.isEmpty { finalizePointerSelectionBeforeInput() }
@@ -2617,6 +2620,7 @@ extension AlacrittyTerminalView: NSTextInputClient {
     }
 
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+        events?.terminalDidCancelAgentInterrupt()
         finalizePointerSelectionBeforeInput()
         markedText = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""
         preeditChanged = true

@@ -393,6 +393,8 @@ protocol TerminalBackendEvents: AnyObject {
     /// when the backend has already reaped it.
     func terminalDidClose(processAlive: Bool)
     func terminalDidResignFocus()
+    func terminalDidCancelAgentInterrupt()
+    func terminalWillSendKey(_ event: NSEvent)
 
     func terminalDidRequestDesktopNotification(title: String, body: String)
     func terminalDidRequestOpenURL(_ url: String)
@@ -414,6 +416,8 @@ protocol TerminalBackendEvents: AnyObject {
 extension TerminalBackendEvents {
     func terminalDidUpdateCommandRecords(_ records: [TerminalCommandRecord]) {}
     func terminalDidResignFocus() {}
+    func terminalDidCancelAgentInterrupt() {}
+    func terminalWillSendKey(_ event: NSEvent) {}
     func terminalHandleUserPaste(_ pasteboard: NSPasteboard, paste: @escaping (String) -> Void) -> Bool { false }
 }
 

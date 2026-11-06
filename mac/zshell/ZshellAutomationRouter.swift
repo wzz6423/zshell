@@ -674,6 +674,7 @@ enum ZshellAutomationRouter {
         var attention: ZshellAgentAttention?
         var task: ZshellAgentTaskStatus?
         var endsSession = false
+        var interrupted = false
         if provider == .codex || provider == .claude {
             guard let payload = request.params["event"]?.objectValue,
                   let event = ZshellAgentLifecycleEvent.parse(provider: provider, payload: payload),
@@ -685,6 +686,7 @@ enum ZshellAutomationRouter {
             attention = event.attention
             task = event.task
             endsSession = event.endsSession
+            interrupted = event.interrupted
         } else {
             guard [.pi, .opencode, .grok].contains(provider),
                   let name = request.params["state"]?.stringValue,
@@ -704,7 +706,7 @@ enum ZshellAutomationRouter {
         guard session.reportAutomationAgent(
             phase: phase, reason: reason, provider: provider, peerProcessID: peer,
             attention: attention, task: task, endsSession: endsSession,
-            daemonSessionID: daemonSessionID
+            daemonSessionID: daemonSessionID, interrupted: interrupted
         ) else {
             return failure(
                 request, "agent_not_recognized",
@@ -714,7 +716,9 @@ enum ZshellAutomationRouter {
         guard task == nil else {
             return success(request, paneSnapshot(caller, caller: caller))
         }
-        if phase == .working, let status = session.agentStatus {
+        if interrupted {
+            AgentTurnReviewStore.shared.abort(sessionID: session.id)
+        } else if phase == .working, let status = session.agentStatus {
             await AgentTurnReviewStore.shared.begin(
                 sessionID: session.id, alias: status.alias,
                 directory: session.currentDirectoryPath

@@ -1,6 +1,6 @@
 use crate::protocol::*;
 use crate::pty::{default_command, Pty};
-use crate::agent::{self, Osc, Records, Report, Scanner, Status};
+use crate::agent::{self, InterruptEvidence, Osc, Records, Report, Scanner, Status};
 use crate::agent_history::{History, Identity, timestamp};
 use crate::agent_hooks::Hook;
 use crate::agent_process;
@@ -14,7 +14,7 @@ use std::io;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -151,6 +151,15 @@ struct State {
     shared_codex_service: Option<(i32, u64)>,
     fork_source: Option<Identity>,
     evicted: bool,
+    pending_interrupt: Option<PendingInterrupt>,
+}
+
+struct PendingInterrupt {
+    owner: (i32, u64),
+    conversation_id: Option<String>,
+    generation: u64,
+    deadline: Instant,
+    evidence: InterruptEvidence,
 }
 
 pub struct Session {
@@ -283,6 +292,7 @@ impl Session {
                 shared_codex_service: None,
                 fork_source,
                 evicted: false,
+                pending_interrupt: None,
             }),
             pty,
             input_sender,
@@ -339,6 +349,7 @@ impl Session {
     pub fn info(&self) -> SessionInfo {
         let mut state = self.state.lock().unwrap();
         self.refresh_agent_owner(&mut state);
+        self.refresh_agent_interrupt(&mut state);
         self.refresh_profile_context(&mut state);
         state.info.clone()
     }
@@ -388,6 +399,7 @@ impl Session {
         state.agent_owner = Some((root, owner.started));
         state.shared_codex = false;
         state.records.apply(record);
+        state.pending_interrupt = None;
         state.info.agent_status = state.records.status();
         broadcast_state(&state);
         Ok(())
@@ -605,7 +617,25 @@ impl Session {
                 if state.info.running
                     && state.info.active_client_id.as_deref() == Some(&attachment.id)
                 {
-                    self.queue_input(bytes)?;
+                    state.pending_interrupt = None;
+                    let owner = state.agent_owner.filter(|owner|
+                        InterruptEvidence::is_interrupt_input(&bytes)
+                        && !state.shared_codex && state.records.has_working_native("claude")
+                        && state.info.agent_status.phase != "blocked"
+                        && agent_process::foreground_agent(state.info.pid, self.pty.foreground_pid(), "claude") == Some(*owner));
+                    if let Some(owner) = owner {
+                        if InterruptEvidence::claude_working(&state.terminal.viewport_footer()) {
+                            state.pending_interrupt = Some(PendingInterrupt {
+                                owner, conversation_id: state.info.conversation.as_ref().map(|identity| identity.session_id.clone()),
+                                generation: state.records.native_generation(), deadline: Instant::now() + Duration::from_secs(10),
+                                evidence: InterruptEvidence::default(),
+                            });
+                        }
+                    }
+                    if let Err(error) = self.queue_input(bytes) {
+                        state.pending_interrupt = None;
+                        return Err(error);
+                    }
                 }
             }
             "resize" => {
@@ -629,6 +659,7 @@ impl Session {
                 }
             }
             "ping" => {
+                self.refresh_agent_interrupt(&mut state);
                 self.refresh_profile_context(&mut state);
                 let mut pong = Frame::new("pong");
                 pong.result = Some(serde_json::to_value(&state.info).unwrap());
@@ -672,6 +703,21 @@ impl Session {
             return Err(invalid("Remote terminal input queue is full"));
         }
         Ok(())
+    }
+
+    fn refresh_agent_interrupt(&self, state: &mut State) {
+        let Some(mut pending) = state.pending_interrupt.take() else { return; };
+        if Instant::now() >= pending.deadline || state.shared_codex
+            || state.agent_owner != Some(pending.owner)
+            || state.records.native_generation() != pending.generation
+            || state.info.conversation.as_ref().map(|identity| &identity.session_id) != pending.conversation_id.as_ref()
+            || agent_process::foreground_agent(state.info.pid, self.pty.foreground_pid(), "claude") != Some(pending.owner) { return; }
+        if pending.evidence.confirms_claude_idle(&state.terminal.viewport_footer(), Instant::now()) {
+            if state.records.interrupt_native("claude", pending.generation) {
+                state.info.agent_status = state.records.status();
+                broadcast_state(state);
+            }
+        } else { state.pending_interrupt = Some(pending); }
     }
 
     fn read_output(&self) {
@@ -727,6 +773,7 @@ impl Session {
                 state.info.agent_status = state.records.status();
                 let detached = state.clients.is_empty();
                 let replies = state.terminal.feed(bytes, detached);
+                self.refresh_agent_interrupt(&mut state);
                 let _ = self.queue_input(replies);
                 state.info.total_output_bytes += count as u64;
                 let mut frame = Frame::new("output");

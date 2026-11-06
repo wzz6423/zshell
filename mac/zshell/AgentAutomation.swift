@@ -216,6 +216,13 @@ enum ZshellAutomationReadError: Error {
 /// trees.
 @MainActor
 final class ZshellAgentObservationState {
+    struct PendingInterrupt {
+        let owner: ZshellAgentProcessIdentity
+        let conversationID: String?
+        let deadline: Date
+        var evidence = ZshellAgentInterruptEvidence()
+    }
+
     var declaredKind: ZshellAgentKind?
     var alias: String?
     var lastForegroundPID: pid_t?
@@ -234,6 +241,7 @@ final class ZshellAgentObservationState {
     /// a turn. Track active-turn evidence so launching an already-idle CLI in
     /// the background never looks like a newly finished task.
     var integrationTurnActive = false
+    var integrationInterrupted = false
     var isCollectingAlternateScreenHistory = false
     /// A Zshell-launched process is `created` until its first guarded prompt.
     /// This lifecycle fact does not require guessing how the CLI renders UI.
@@ -242,6 +250,7 @@ final class ZshellAgentObservationState {
     /// briefly so the monitor cannot mistake the still-foreground shell for
     /// an agent that already exited before it has consumed the command.
     var commandGraceDeadline: Date?
+    var pendingInterrupt: PendingInterrupt?
 }
 
 @MainActor
@@ -334,6 +343,55 @@ final class AgentAutomationMonitor {
 }
 
 extension TerminalSession {
+    func terminalDidCancelAgentInterrupt() { agentObservation.pendingInterrupt = nil }
+
+    func terminalWillSendKey(_ event: NSEvent) {
+        agentObservation.pendingInterrupt = nil
+        let flags = event.modifierFlags.intersection([.command, .control, .option, .shift])
+        let escape = event.keyCode == 53 && flags.isEmpty
+        let controlC = flags == .control && event.charactersIgnoringModifiers?.lowercased() == "c"
+        guard escape || controlC, remoteConnection == nil,
+              agentObservation.declaredKind == .claude,
+              agentObservation.integrationPhase == .working,
+              let owner = agentObservation.integrationOwner, owner.isAlive,
+              surface.foregroundPid == owner.pid, terminalIsAtLiveBottom,
+              agentObservation.integrationTasks.allSatisfy({ $0.phase != .blocked }),
+              !agentObservation.isCollectingAlternateScreenHistory else { return }
+        guard ZshellAgentInterruptEvidence.isClaudeWorking(
+                automationVisibleText(maxLines: 16, maxColumns: 240)
+              ) else { return }
+        // Claude does not emit Stop on Escape. The key only starts a bounded
+        // check; a restored input must remain stable before native state moves.
+        agentObservation.pendingInterrupt = .init(
+            owner: owner, conversationID: agentResume?.sessionID, deadline: Date().addingTimeInterval(10)
+        )
+    }
+
+    private func refreshAutomationAgentInterrupt(at now: Date) {
+        guard var pending = agentObservation.pendingInterrupt else { return }
+        guard now < pending.deadline, pending.owner == agentObservation.integrationOwner,
+              pending.owner.isAlive, surface.foregroundPid == pending.owner.pid,
+              pending.conversationID == agentResume?.sessionID,
+              agentObservation.integrationPhase == .working, terminalIsAtLiveBottom,
+              !agentObservation.isCollectingAlternateScreenHistory else {
+            agentObservation.pendingInterrupt = nil
+            return
+        }
+        guard pending.evidence.confirmsClaudeIdle(
+            automationVisibleText(maxLines: 16, maxColumns: 240), at: now
+        ) else {
+            agentObservation.pendingInterrupt = pending
+            return
+        }
+        agentObservation.pendingInterrupt = nil
+        agentObservation.integrationPhase = .idle
+        agentObservation.integrationReason = "Claude Code: user interrupt confirmed in terminal"
+        agentObservation.integrationAttention = nil
+        agentObservation.integrationTurnActive = false
+        agentObservation.integrationInterrupted = true
+        AgentTurnReviewStore.shared.abort(sessionID: id)
+    }
+
     var isShellAvailableForAutomation: Bool {
         guard !hasExited, let shellPid, shellPid > 0 else { return false }
         return surface.foregroundPid == shellPid
@@ -551,7 +609,8 @@ extension TerminalSession {
         attention: ZshellAgentAttention? = nil,
         task: ZshellAgentTaskStatus? = nil,
         endsSession: Bool = false,
-        daemonSessionID: String? = nil
+        daemonSessionID: String? = nil,
+        interrupted: Bool = false
     ) -> Bool {
         guard !hasExited else { return false }
         var owner: ZshellAgentProcessIdentity?
@@ -583,6 +642,7 @@ extension TerminalSession {
         if let foreground = surface.foregroundPid,
            let foregroundKind = ZshellAgentKind.recognize(processID: foreground),
            foregroundKind != provider { return false }
+        agentObservation.pendingInterrupt = nil
         if agentObservation.integrationOwner != owner {
             agentObservation.integrationTasks.removeAll()
             agentObservation.integrationTurnActive = false
@@ -615,12 +675,14 @@ extension TerminalSession {
         } else {
             agentObservation.integrationPhase = phase
             agentObservation.integrationAttention = attention
+            agentObservation.integrationInterrupted = interrupted
         }
         agentObservation.integrationReason = reason
         if phase == .working || phase == .blocked {
             agentObservation.integrationTurnActive = true
             agentObservation.awaitingInitialPrompt = false
         }
+        if interrupted { agentObservation.integrationTurnActive = false }
         presentNativeAgentStatus(isFocused: TerminalManager.automationIsSessionFocused(id))
         return true
     }
@@ -704,7 +766,8 @@ extension TerminalSession {
         else if phase == .idle || phase == .done {
             // Preserve a previously acknowledged completion when focus changes.
             let unseenCompletion = agentStatus?.authority == .integration && agentStatus?.unseen == true
-            phase = !isFocused && (completedTurn || unseenCompletion) ? .done : .idle
+            phase = !agentObservation.integrationInterrupted && !isFocused && (completedTurn || unseenCompletion)
+                ? .done : .idle
             agentObservation.integrationTurnActive = false
         }
         updateAutomationAgentStatus(
@@ -730,6 +793,7 @@ extension TerminalSession {
             if agentStatus?.authority == .report { agentStatus = nil }
         }
         if agentObservation.integrationOwner != nil, agentObservation.integrationPhase != nil {
+            refreshAutomationAgentInterrupt(at: now)
             presentNativeAgentStatus(isFocused: isFocused)
             return
         }
@@ -808,12 +872,14 @@ extension TerminalSession {
     }
 
     private func clearNativeAgentObservation() {
+        agentObservation.pendingInterrupt = nil
         agentObservation.integrationPhase = nil
         agentObservation.integrationReason = nil
         agentObservation.integrationOwner = nil
         agentObservation.integrationAttention = nil
         agentObservation.integrationTasks.removeAll()
         agentObservation.integrationTurnActive = false
+        agentObservation.integrationInterrupted = false
     }
 
     func clearAutomationAgentStatus() {

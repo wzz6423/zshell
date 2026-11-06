@@ -190,6 +190,7 @@ struct ZshellAgentLifecycleEvent {
     let endsSession: Bool
     let conversationID: String?
     let startsSession: Bool
+    let interrupted: Bool
 
     func belongs(to identity: AgentConversationIdentity?, provider: ZshellAgentKind) -> Bool {
         guard !startsSession, let conversationID, let identity else { return true }
@@ -261,7 +262,58 @@ struct ZshellAgentLifecycleEvent {
         let conversationID = payload[task == nil ? "session_id" : "parent_session_id"]?.stringValue
         return Self(phase: phase, attention: attention, reason: "\(provider.displayName): \(event)",
                     task: task, endsSession: endsSession, conversationID: conversationID,
-                    startsSession: event == "SessionStart" && task == nil)
+                    startsSession: event == "SessionStart" && task == nil,
+                    interrupted: event == "Interrupt" && task == nil)
+    }
+}
+
+struct ZshellAgentInterruptEvidence {
+    private var previousInput: String?
+    private var samples = 0
+    private var previousSampleAt: Date?
+
+    static func isClaudeWorking(_ text: String) -> Bool {
+        footer(text)?.contains(where: { $0.lowercased().contains("esc to interrupt") }) == true
+    }
+
+    mutating func confirmsClaudeIdle(_ text: String, at now: Date) -> Bool {
+        guard let lines = Self.footer(text), !Self.isClaudeWorking(text),
+              !lines.contains(where: {
+                  let line = $0.lowercased()
+                  return line.contains("esc to cancel") || line.contains("press enter to confirm")
+              }),
+              let prompt = lines.indices.last(where: { lines[$0].trimmingCharacters(in: .whitespaces).hasPrefix("❯") }), prompt > 0,
+              Self.isRule(lines[prompt - 1]),
+              let bottom = lines.indices.first(where: { $0 > prompt && Self.isRule(lines[$0]) }),
+              lines[(prompt + 1)..<bottom].allSatisfy({ $0.isEmpty || $0.hasPrefix("  ") }) else {
+            previousInput = nil
+            samples = 0
+            previousSampleAt = nil
+            return false
+        }
+        let input = lines[prompt..<bottom].joined(separator: "\n")
+        if input == previousInput, let previousSampleAt, now.timeIntervalSince(previousSampleAt) < 0.25 {
+            return false
+        }
+        samples = input == previousInput ? samples + 1 : 1
+        previousInput = input
+        previousSampleAt = now
+        return samples >= 2
+    }
+
+    private static func footer(_ text: String) -> [String]? {
+        guard text.utf8.count <= 32_768 else { return nil }
+        return text.components(separatedBy: .newlines).suffix(16)
+            .map { line in
+                var line = line
+                while line.last.map({ " \t\r\u{a0}".contains($0) }) == true { line.removeLast() }
+                return line
+            }
+    }
+
+    private static func isRule(_ text: String) -> Bool {
+        let text = text.trimmingCharacters(in: .whitespaces)
+        return text.count >= 10 && text.allSatisfy { $0 == "─" }
     }
 }
 

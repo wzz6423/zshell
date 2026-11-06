@@ -641,6 +641,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func keyDown(with event: NSEvent) {
+        events?.terminalDidCancelAgentInterrupt()
         if hintMode.consumesKeyDown(event) { return }
         finalizePointerSelectionBeforeInput()
         recordPromptInputStart()
@@ -651,10 +652,12 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
             || (event.modifierFlags.contains(.control) && event.charactersIgnoringModifiers == "c") {
             promptInputStart = nil
         }
+        if !hasMarkedText() { events?.terminalWillSendKey(event) }
         super.keyDown(with: event)
     }
 
     override func insertText(_ string: Any, replacementRange range: NSRange) {
+        events?.terminalDidCancelAgentInterrupt()
         guard !hintMode.isPresented else { return }
         let text = (string as? NSAttributedString)?.string ?? (string as? String) ?? ""
         if !text.isEmpty { finalizePointerSelectionBeforeInput() }
@@ -676,6 +679,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+        events?.terminalDidCancelAgentInterrupt()
         finalizePointerSelectionBeforeInput()
         super.setMarkedText(string, selectedRange: selectedRange, replacementRange: replacementRange)
     }

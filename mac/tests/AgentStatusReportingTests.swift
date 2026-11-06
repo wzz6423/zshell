@@ -38,6 +38,7 @@ struct AgentStatusReportingTests {
         try reports()
         lifecycle()
         screens()
+        interrupts()
         try processes()
         try hooks(bundle: bundle, root: root)
         try wireAndCLI(bundle: bundle, root: root)
@@ -159,6 +160,28 @@ struct AgentStatusReportingTests {
         }
         let oldPrompt = approval + String(repeating: "\nunrelated output", count: 17)
         check(ZshellAgentScreenEvidence.detect(kind: .codex, text: oldPrompt) == nil, "Old transcript became live status")
+    }
+
+    private static func interrupts() {
+        let idle = "────────────────────────\n❯ restored prompt\n────────────────────────\n  ⏵⏵ bypass permissions on"
+        let busy = idle + "\n  esc to interrupt"
+        check(ZshellAgentInterruptEvidence.isClaudeWorking(busy), "Claude busy footer was not recognized")
+        var evidence = ZshellAgentInterruptEvidence()
+        let now = Date()
+        check(!evidence.confirmsClaudeIdle(busy, at: now), "Working input became idle")
+        check(!evidence.confirmsClaudeIdle(idle, at: now), "One screen sample settled an interrupt")
+        check(!evidence.confirmsClaudeIdle(idle, at: now.addingTimeInterval(0.001)), "Immediate refresh settled an interrupt")
+        check(evidence.confirmsClaudeIdle(idle, at: now.addingTimeInterval(0.25)), "Stable restored input did not settle")
+        check(!evidence.confirmsClaudeIdle(idle + "\nEsc to cancel", at: now), "Dialog cancellation settled the turn")
+        check(!evidence.confirmsClaudeIdle("❯ quoted prompt", at: now), "Quoted prompt became idle")
+        check(!evidence.confirmsClaudeIdle(idle, at: now), "Invalid screen retained a previous sample")
+        check(!evidence.confirmsClaudeIdle(idle.replacingOccurrences(of: "restored", with: "changed"), at: now), "Changed input reused idle evidence")
+        check(ZshellAgentLifecycleEvent.parse(provider: .codex, payload: ["hook_event_name": .string("Interrupt")])?.interrupted == true,
+              "Native Codex interrupt lost cancellation semantics")
+        check(ZshellAgentLifecycleEvent.parse(provider: .codex, payload: ["hook_event_name": .string("Interrupt"), "agent_id": .string("child")])?.interrupted == false,
+              "Child interrupt cancelled its parent")
+        check(ZshellAgentLifecycleEvent.parse(provider: .claude, payload: ["hook_event_name": .string("Interrupt")]) == nil,
+              "An unsupported Claude hook became the interrupt signal")
     }
 
     private static func processes() throws {
