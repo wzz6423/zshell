@@ -14,6 +14,25 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
+## [0.1.14]
+
+### Added
+
+- Install compatible local WebExtensions from a directory or ZIP in browser
+  panes. Review permissions, manage extensions, and open their actions and
+  options while keeping remote project data separate.
+- Reply to GitHub pull request discussions beside their diffs, resolve or reopen
+  threads, and submit a comment, approval, or change request for the displayed
+  commit. Failed submissions keep their drafts, and uncertain results require
+  checking GitHub before retrying.
+
+### Fixed
+
+- Restore idle Agent status after a confirmed user interruption in local and
+  supported remote terminals.
+- Load a file's pull request review comments even when unrelated files exceed
+  the review size limits.
+
 ## [0.1.13]
 
 ### Changed
