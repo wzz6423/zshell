@@ -75,6 +75,9 @@ final class SettingsBrowserPane: SettingsPaneViewController, NSTextViewDelegate 
         blockingGroup = blocking
         return [
             SettingsGroup(rows: [
+                SettingsButtonRow(title: String(localized: "Manage Extensions…")) { [weak self] in
+                    BrowserWebExtensionManager.shared.show(relativeTo: self?.view.window)
+                },
                 SettingsButtonRow(title: String(localized: "Import Browser Data…")) {
                     guard let manager = TerminalManager.activeWindowManager else { return }
                     BrowserProfileImportController.shared.show(for: manager)

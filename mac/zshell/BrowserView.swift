@@ -42,6 +42,7 @@ private final class BrowserContextMenuBridge: NSObject, WKScriptMessageHandler {
 /// WebKit's actual first responder is a private descendant view, so observing
 /// the outer SwiftUI host is not enough to keep pane focus in sync.
 final class BrowserWebView: WKWebView {
+    weak var browserTab: BrowserTab?
     var onFocused: (() -> Void)?
     var onNewBrowserTab: ((String?) -> Void)?
     var onNewBrowserPane: ((String?) -> Void)?
@@ -67,17 +68,25 @@ final class BrowserWebView: WKWebView {
 
     override func mouseDown(with event: NSEvent) {
         onFocused?()
+        browserTab.map { $0.webExtensions.focused($0) }
         super.mouseDown(with: event)
     }
 
     override func rightMouseDown(with event: NSEvent) {
         contextMenuLink = nil
         onFocused?()
+        browserTab.map { $0.webExtensions.focused($0) }
         super.rightMouseDown(with: event)
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        browserTab.map { $0.webExtensions.move($0) }
     }
 
     override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
         super.willOpenMenu(menu, with: event)
+        if let browserTab { browserTab.webExtensions.menu(for: browserTab, into: menu) }
         guard let linkURL = contextMenuLinkURL else { return }
 
         removeDefaultOpenInNewWindow(from: menu)
@@ -175,6 +184,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     /// Replaced only when a move changes the project's website data store,
     /// which WebKit fixes when a web view is created.
     private(set) var webView: BrowserWebView
+    private(set) var webExtensions: BrowserWebExtensionRuntime
     let automation = BrowserAutomation()
     /// Identity of the manager currently allowed to host this web view. Moving
     /// a tab updates it before SwiftUI can reconcile either window.
@@ -237,10 +247,12 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     ) {
         self.remoteRouting = remoteRouting
         self.projectID = projectID
-        webView = Self.makeWebView(routing: remoteRouting, contextMenuBridge: contextMenuBridge)
+        webExtensions = BrowserWebExtensionStore.shared.runtime(for: remoteRouting?.dataStore ?? .default(), routing: remoteRouting)
+        webView = Self.makeWebView(routing: remoteRouting, contextMenuBridge: contextMenuBridge, extensions: webExtensions)
         self.initialFocus = initialFocus
         super.init()
         remoteRouting?.retain(id, projectID: projectID ?? id)
+        webExtensions.register(self)
         attachWebView()
 
         if let initialURL, !initialURL.isEmpty {
@@ -254,10 +266,11 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     }
 
     private static func makeWebView(
-        routing: BrowserRemoteRouting?, contextMenuBridge: BrowserContextMenuBridge
+        routing: BrowserRemoteRouting?, contextMenuBridge: BrowserContextMenuBridge, extensions: BrowserWebExtensionRuntime
     ) -> BrowserWebView {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = routing?.dataStore ?? .default()
+        configuration.webExtensionController = extensions.controller
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.preferences.isElementFullscreenEnabled = true
         let contextWorld = WKContentWorld.defaultClient
@@ -289,6 +302,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     private func attachWebView() {
         observeRouting()
         webView.customUserAgent = Self.userAgent
+        webView.browserTab = self
         contextMenuBridge.webView = webView
         webView.navigationDelegate = self
         webView.uiDelegate = self
@@ -322,12 +336,16 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         routingObservation = nil
         webView.navigationDelegate = nil
         webView.uiDelegate = nil
+        webView.browserTab = nil
         webView.configuration.userContentController.removeAllScriptMessageHandlers()
         remoteRouting?.release(id)
+        webExtensions.remove(self)
         remoteRouting = routing
         pendingURL = nil
         wasWebViewLoading = false
-        webView = Self.makeWebView(routing: routing, contextMenuBridge: contextMenuBridge)
+        webExtensions = BrowserWebExtensionStore.shared.runtime(for: routing?.dataStore ?? .default(), routing: routing)
+        webView = Self.makeWebView(routing: routing, contextMenuBridge: contextMenuBridge, extensions: webExtensions)
+        webExtensions.register(self)
         routing?.retain(id, projectID: projectID)
         attachWebView()
         objectWillChange.send()
@@ -339,6 +357,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     func transferHost(to manager: TerminalManager) {
         automation.invalidateDocument()
         hostManagerID = ObjectIdentifier(manager)
+        webExtensions.move(self)
     }
 
     func belongs(to manager: TerminalManager) -> Bool {
@@ -434,6 +453,13 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
         stopLoading()
         routingObservation = nil
         remoteRouting?.release(id)
+        webExtensions.remove(self)
+        webView.browserTab = nil
+    }
+
+    func navigateFromExtension(_ url: URL) {
+        guard !isClosed, !automation.restrictsNavigation || BrowserAutomation.isAllowedURL(url, isMainFrame: true) else { return }
+        load(URLRequest(url: url))
     }
 
     func stopLoading() {
@@ -521,6 +547,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
             .sink { [weak self] title in
                 self?.pageTitle = title
                 self?.refreshTitle()
+                self.map { $0.webExtensions.changed($0, properties: .title) }
             }
             .store(in: &observations)
 
@@ -529,6 +556,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
                 guard let self else { return }
                 if self.pendingURL == nil { self.urlString = self.displayAddress(for: url) }
                 self.refreshTitle()
+                self.webExtensions.changed(self, properties: .URL)
             }
             .store(in: &observations)
 
@@ -546,6 +574,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
                 let startedLoading = isLoading && !self.wasWebViewLoading
                 self.wasWebViewLoading = isLoading
                 self.isLoading = isLoading || self.isPreparingNavigation
+                self.webExtensions.changed(self, properties: .loading)
                 if startedLoading {
                     self.prepareForFaviconNavigation()
                 } else if !isLoading, self.webView.url != nil {
