@@ -59,8 +59,8 @@ const copy: HomeCopy = {
           { name: '编辑器与 Markdown 预览', detail: '通过语法高亮阅读、编辑文件，直接预览 Markdown，无需切换应用。' },
           { name: 'Git 审阅', detail: '查看单栏或左右 diff，编辑未暂存改动，在 Git 面板中暂存、提交与推送。' },
           { name: '分支与 Worktree', detail: "新建、切换分支，管理 stash 和独立 worktree 会话；确认后删除未合并的本地分支，自动保留提交恢复引用并暂存本地改动。" },
-          { name: "Pull Request 与 Git 代理", detail: "查看当前分支的 GitHub PR 状态，在 diff 旁阅读审阅评论；为 Git 操作和新建终端配置代理。" },
-          { name: "项目浏览器", detail: "通过 SSH 预览远程 localhost 页面，导入 Chrome 或 Firefox 的 Cookie、历史和标签页，并拦截广告与跟踪器。" },
+          { name: "Pull Request 与 Git 代理", detail: "查看 GitHub PR 状态，在 diff 旁阅读、回复及解决或重开讨论，提交评论、批准或请求修改；为 Git 和新建终端配置代理。" },
+          { name: "项目浏览器", detail: "通过 SSH 预览远程 localhost，导入 Chrome 或 Firefox 的 Cookie、历史和标签页，拦截广告与跟踪器；审阅权限后，从文件夹或 ZIP 安装兼容的本地 WebExtensions 扩展。" },
         ],
       },
       {

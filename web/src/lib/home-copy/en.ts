@@ -59,8 +59,8 @@ const copy: HomeCopy = {
           { name: 'Editor and Markdown preview', detail: 'Edit with syntax highlighting and preview Markdown without switching apps.' },
           { name: 'Git review', detail: 'Inspect unified or split diffs, edit unstaged changes, and stage, commit, or push from the Git panel.' },
           { name: 'Branches and worktrees', detail: "Create and switch branches, manage stashes and isolated worktree sessions. Delete unmerged local branches after confirmation, with commit recovery references and stashed local changes." },
-          { name: "Pull requests and Git proxy", detail: "See the current branch’s GitHub pull request status and review comments beside diffs. Configure a proxy for Git actions and new terminals." },
-          { name: "Project browser", detail: "Preview remote localhost pages through SSH, import Chrome or Firefox cookies, history and tabs, and block ads and trackers." },
+          { name: "Pull requests and Git proxy", detail: "See GitHub PR status, read and reply to discussions beside diffs, resolve or reopen threads, and submit comments, approvals or change requests. Configure a proxy for Git and new terminals." },
+          { name: "Project browser", detail: "Preview remote localhost through SSH, import Chrome or Firefox cookies, history and tabs, block ads and trackers, and install compatible local WebExtensions from a directory or ZIP after reviewing permissions." },
         ],
       },
       {
