@@ -130,6 +130,9 @@ with tempfile.TemporaryDirectory(prefix="zshell-pr-review-", dir="/tmp") as dire
 
     pr = {"number": 1, "url": "https://github.com/example/base/pull/1", "headRefName": "feature/review",
           "headRepository": {"nameWithOwner": "example/fork"}, "baseRefOid": base, "headRefOid": head}
+    action_pr = dict(pr, id="PR_1", state="OPEN", viewerDidAuthor=False)
+    action_thread = dict(thread("right", "RIGHT", 30), pullRequest=action_pr,
+                         viewerCanReply=True, viewerCanResolve=True, viewerCanUnresolve=True)
     responses = {
         "status": {"data": {"repository": {"parent": None, "pullRequests": connection([
             dict(pr, state="OPEN", isDraft=True, updatedAt="2026-01-01T00:00:00Z")])}}},
@@ -139,6 +142,8 @@ with tempfile.TemporaryDirectory(prefix="zshell-pr-review-", dir="/tmp") as dire
         "version": {"data": {"repository": {"pullRequest": pr}}},
         "reply": {"data": {"node": {"id": "right", "pullRequest": pr,
                  "comments": connection([comment("reply", "分页回复：保留原讨论")])}}},
+        "action_access": {"data": {"repository": {"pullRequest": action_pr}}},
+        "action_thread": {"data": {"node": action_thread}},
     }
     for name, response in responses.items():
         (temporary / f"{name}.json").write_text(json.dumps(response))
@@ -146,6 +151,12 @@ with tempfile.TemporaryDirectory(prefix="zshell-pr-review-", dir="/tmp") as dire
     bindir.mkdir()
     fake_gh = bindir / "gh"
     fake_gh.write_text("#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$ZSHELL_PR_REVIEW_QUERY_LOG\"\n"
+                       "case \"$*\" in\n*--input*) payload=$(cat); case \"$payload\" in\n"
+                       "*mutation*) printf '%s' '{\"errors\":[{\"type\":\"FORBIDDEN\"}]}' ;;\n"
+                       "*PullRequestReviewThread*) if [ -f \"$ZSHELL_PR_REVIEW_FIXTURES/action-thread-delay\" ]; then\n"
+                       "touch \"$ZSHELL_PR_REVIEW_FIXTURES/action-thread-started\"; sleep 0.4; fi\n"
+                       "cat \"$ZSHELL_PR_REVIEW_FIXTURES/action_thread.json\" ;;\n"
+                       "*) cat \"$ZSHELL_PR_REVIEW_FIXTURES/action_access.json\" ;;\nesac; exit 0 ;;\nesac\n"
                        "case \"$*\" in\n"
                        "*reviewThreads*) cat \"$ZSHELL_PR_REVIEW_FIXTURES/review.json\" ;;\n"
                        "*PullRequestReviewThread*) cat \"$ZSHELL_PR_REVIEW_FIXTURES/reply.json\" ;;\n"

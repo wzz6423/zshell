@@ -69,7 +69,9 @@ rather than files Zshell can safely write. Switching one diff to Edit or Split
 updates the preference for other open diffs without making an ineligible diff
 editable.
 
-Choose **PR Comments** in a file diff to read the current branch’s GitHub review discussions on the comparison reviewed there. This view is read-only and hides outdated comments. **Back to Changes** returns to your local changes.
+Choose **PR Comments** in a file diff to read the current branch’s GitHub review discussions on the comparison reviewed there. The diff stays read-only and hides outdated comments. Click a comment to open its full discussion, reply, or use **Resolve Discussion** / **Reopen Discussion** when you have permission. **Back to Changes** returns to your local changes.
+
+Use **Review Pull Request…** in the PR Comments toolbar to submit **Comment** (the default), **Approve**, or **Request Changes** for the displayed commit. These actions require a local GitHub repository and a signed-in GitHub CLI (`gh auth login`). A changed branch or pull request revision blocks submission; a failed submission keeps your draft. If the result is uncertain, use **Open on GitHub** to check it, then **Refresh** and **I Checked GitHub** before submitting again.
 
 ## Committing
 

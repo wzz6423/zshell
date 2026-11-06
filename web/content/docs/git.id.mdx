@@ -52,7 +52,9 @@ Kontrol di atas diff mengingat dua pilihan secara global:
 Diff yang sudah di-stage dan diff commit historis tetap hanya baca karena merupakan snapshot, bukan berkas yang aman ditulis Zshell.
 Mengalihkan satu diff ke Edit atau Terpisah memperbarui preferensi diff terbuka lainnya tanpa membuat diff yang tidak memenuhi syarat menjadi dapat diedit.
 
-Pilih **Komentar PR** pada diff berkas untuk membaca diskusi GitHub cabang saat ini pada perbandingan yang ditinjau. Tampilan ini hanya baca dan menyembunyikan komentar usang. **Kembali ke perubahan** mengembalikan diff lokal.
+Pilih **Komentar PR** pada diff berkas untuk membaca diskusi GitHub cabang saat ini pada perbandingan yang ditinjau. Diff tetap hanya baca dan menyembunyikan komentar usang. Klik komentar untuk membuka seluruh diskusi, membalas, atau memilih **Selesaikan Diskusi** / **Buka Kembali Diskusi** jika memiliki izin. **Kembali ke Perubahan** mengembalikan diff lokal.
+
+Gunakan **Tinjau Pull Request…** di bilah komentar PR untuk mengirim **Komentar** (default), **Setujui**, atau **Minta Perubahan** untuk commit yang ditampilkan. Diperlukan repositori GitHub lokal dan GitHub CLI yang sudah masuk (`gh auth login`). Perubahan cabang atau versi PR memblokir pengiriman; kegagalan pengiriman menyimpan draf. Jika hasilnya tidak pasti, periksa melalui **Buka di GitHub**, lalu pilih **Segarkan** dan **Saya Sudah Memeriksa GitHub** sebelum mengirim lagi.
 
 ## Commit [#committing]
 

@@ -470,4 +470,11 @@ actor ProjectPullRequestReviewCache {
         }
         return result
     }
+
+    func invalidate(_ identity: ProjectPullRequestReviewIdentity) {
+        entries = entries.filter { $0.key.identity.url != identity.url }
+        for key in pending.keys.filter({ $0.identity.url == identity.url }) {
+            pending.removeValue(forKey: key)?.task.cancel()
+        }
+    }
 }

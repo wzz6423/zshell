@@ -46,7 +46,9 @@ Os controles acima do diff lembram duas escolhas globalmente:
 
 Diffs preparados e de commits históricos são somente leitura porque são snapshots, não arquivos que o Zshell possa alterar com segurança. Trocar um diff para Edição ou Dividido atualiza a preferência dos outros diffs abertos sem tornar editável um diff não elegível.
 
-No diff de um arquivo, escolha **Comentários do PR** para ler as discussões do GitHub da branch atual na comparação revisada. Essa visualização é somente leitura e oculta comentários desatualizados. **Voltar às alterações** retorna ao diff local.
+No diff de um arquivo, escolha **Comentários do PR** para ler as discussões do GitHub da branch atual na comparação revisada. O diff continua somente leitura e oculta comentários desatualizados. Clique em um comentário para abrir a discussão completa, responder ou escolher **Resolver discussão** / **Reabrir discussão** quando tiver permissão. **Voltar às alterações** retorna ao diff local.
+
+Na barra dos comentários do PR, **Revisar pull request…** permite enviar **Comentar** (padrão), **Aprovar** ou **Solicitar alterações** para o commit exibido. É necessário um repositório GitHub local e uma sessão no GitHub CLI (`gh auth login`). Uma mudança de branch ou de versão do PR bloqueia o envio; se ele falhar, o rascunho é mantido. Se o resultado for incerto, confira em **Abrir no GitHub** e escolha **Atualizar** e **Verifiquei o GitHub** antes de enviar novamente.
 
 ## Fazer commit [#committing]
 

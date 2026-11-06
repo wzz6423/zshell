@@ -130,8 +130,68 @@ struct ProjectPullRequestReviewSurfaceTests {
         precondition((left["slot"] as? String)?.contains("deletions-10") == true
             && (right["slot"] as? String)?.contains("additions-30") == true, "评论slot必须对应LEFT旧10行和RIGHT新30行")
         _ = evaluate(reviewWeb, "Array.from(document.querySelectorAll('diffs-container')).flatMap(node => Array.from(node.querySelectorAll('[data-annotation-id]'))).find(node => node.dataset.annotationId === 'right')?.click()")
-        wait("点击行内评论未打开对应GitHub讨论") { ReviewOpenFixture.opened?.fragment == "discussion_right" }
+        wait("点击行内评论未打开原生讨论") { app.windows.contains { $0.title == String(localized: "Pull Request Review") && $0.isVisible } }
+        let discussionWindow = app.windows.first { $0.title == String(localized: "Pull Request Review") && $0.isVisible }!
+        let discussionViews = descendants(discussionWindow.contentView!)
+        let replyButton = discussionViews.compactMap { $0 as? NSButton }.first { $0.title == String(localized: "Reply") }!
+        let replyEditor = discussionViews.compactMap { $0 as? NSTextView }.first { $0.isEditable }!
+        wait("讨论未加载或权限缺失") {
+            discussionViews.compactMap { $0 as? NSTextView }.contains { $0.string.contains("当前行的意见") }
+                && discussionViews.compactMap { $0 as? NSButton }.contains { $0.title == String(localized: "Resolve Discussion") && $0.isEnabled }
+        }
+        precondition(ReviewOpenFixture.opened == nil, "查看讨论不得自动跳转GitHub或提交")
+        precondition(!replyButton.isEnabled, "空回复不得提交")
+        replyEditor.string = "Unsent reply <script>quoted()</script>"
+        NotificationCenter.default.post(name: NSText.didChangeNotification, object: replyEditor)
+        wait("非空回复未启用") { replyButton.isEnabled }
+        replyButton.performClick(nil)
+        wait("权限错误未展示") {
+            discussionViews.compactMap { $0 as? NSTextField }.contains { $0.stringValue == ProjectPullRequestReviewActionError.forbidden.message }
+        }
+        precondition(replyEditor.string.contains("Unsent reply"), "提交失败必须保留回复草稿")
+        for language in AppLanguage.allCases where language != .system {
+            AppLocalization.apply(language)
+            wait("语言切换未刷新评审错误或回复按钮") {
+                discussionViews.compactMap { $0 as? NSTextField }.contains { $0.stringValue == ProjectPullRequestReviewActionError.forbidden.message }
+                    && replyButton.title == String(localized: "Reply")
+            }
+            precondition(replyEditor.string.contains("Unsent reply"), "语言切换必须保留回复草稿")
+        }
+        AppLocalization.apply(.english)
+        wait("恢复英文后评审控件未刷新") {
+            discussionViews.compactMap { $0 as? NSButton }.contains { $0.title == String(localized: "Open on GitHub") }
+                && replyButton.title == String(localized: "Reply")
+        }
+        replyEditor.string = ""
+        NotificationCenter.default.post(name: NSText.didChangeNotification, object: replyEditor)
+        let openButton = discussionViews.compactMap { $0 as? NSButton }.first { $0.title == String(localized: "Open on GitHub") }!
+        openButton.performClick(nil)
+        wait("讨论外链未打开对应GitHub讨论") { ReviewOpenFixture.opened?.fragment == "discussion_right" }
         precondition(ReviewOpenFixture.opened?.host == "github.com", "评论链接必须由原PR身份核验")
+        discussionWindow.close()
+        diff.showPullRequestReview()
+        wait("评审提交窗口未显示") { discussionWindow.isVisible }
+        let decision = discussionViews.compactMap { $0 as? NSPopUpButton }.first!
+        wait("评审权限未加载") { decision.isEnabled }
+        precondition(decision.indexOfSelectedItem == 0 && decision.numberOfItems == 3,
+                     "评审必须默认Comment，提供Approve和Request Changes")
+        let fixtures = URL(fileURLWithPath: ProcessInfo.processInfo.environment["ZSHELL_PR_REVIEW_FIXTURES"]!)
+        let actionDelay = fixtures.appendingPathComponent("action-thread-delay")
+        let actionStarted = fixtures.appendingPathComponent("action-thread-started")
+        try! Data().write(to: actionDelay)
+        diff.showPullRequestReview(threadID: "right")
+        wait("延迟讨论查询未开始") { FileManager.default.fileExists(atPath: actionStarted.path) }
+        diff.showPullRequestReview()
+        precondition(!discussionViews.compactMap { $0 as? NSTextView }.contains { $0.string.contains("当前行的意见") },
+                     "切换评审目标必须立即清除旧讨论")
+        wait("切换后评审权限未加载") { decision.isEnabled }
+        pump(0.6)
+        precondition(discussionViews.compactMap { $0 as? NSTextView }.contains {
+            $0.string == String(localized: "Submit your review of this pull request. The review is attached to the displayed commit.")
+        }, "旧讨论的异步响应不得覆盖新的评审目标")
+        try! FileManager.default.removeItem(at: actionDelay)
+        try! FileManager.default.removeItem(at: actionStarted)
+        discussionWindow.close()
 
         let statusDelay = URL(fileURLWithPath: ProcessInfo.processInfo.environment["ZSHELL_PR_REVIEW_FIXTURES"]!)
             .appendingPathComponent("status-delay")
@@ -218,6 +278,6 @@ struct ProjectPullRequestReviewSurfaceTests {
         pump(0.1)
         precondition(ReviewOpenFixture.opened == nil, "分支切换后不得打开旧讨论")
         diff.setEditing(false)
-        print("真实AppKit/WebKit PR评论：懒加载、左右对应行、分页、纯文本只读、链接、窄布局、刷新、双视图编辑滚动保留及分支切换失效通过")
+        print("真实AppKit/WebKit PR评论：懒加载、左右对应行、分页、纯文本、原生讨论回复与失败草稿、评审选择、链接、窄布局、刷新、双视图编辑滚动保留及分支切换失效通过")
     }
 }

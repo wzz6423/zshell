@@ -129,6 +129,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     private var pullRequestObservation: AnyCancellable?
     private var pullRequestIdentity: ProjectPullRequestReviewIdentity?
     private var pullRequestGeneration: UInt = 0
+    private var pullRequestReviewController: ProjectPullRequestReviewController?
 
     /// Image bytes remain in their original Git representation until AppKit
     /// decodes them on the main actor. Git loading stays detached, while image
@@ -187,11 +188,9 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         }
         pullRequestWeb.onAnnotationClick = { [weak self] id in
             guard let self, case .ready(let file) = self.pullRequestReviewState,
-                  let url = file.annotationURLs[id] else { return }
-            self.pullRequest.open { current in
-                guard current.absoluteString == file.identity.url else { return }
-                NSWorkspace.shared.open(url)
-            }
+                  file.identity == self.currentPullRequestIdentity,
+                  let thread = file.threads.first(where: { $0.comments.nodes.contains { $0.id == id } }) else { return }
+            self.showPullRequestReview(threadID: thread.id)
         }
         reload()
     }
@@ -435,6 +434,14 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     func hidePullRequestComments() {
         pullRequestGeneration &+= 1
         showsPullRequestComments = false
+    }
+
+    func showPullRequestReview(threadID: String? = nil) {
+        guard case .ready(let file) = pullRequestReviewState,
+              file.identity == currentPullRequestIdentity else { return }
+        if let controller = pullRequestReviewController { controller.select(file: file, threadID: threadID) }
+        else { pullRequestReviewController = ProjectPullRequestReviewController(diff: self, file: file, threadID: threadID) }
+        pullRequestReviewController?.present(from: pullRequestWebHostView?.window)
     }
 
     /// Accepts the updated side emitted by Pierre's editor. The web view owns
@@ -1139,6 +1146,7 @@ final class DiffViewerNSView: NSView {
             reviewed: snapshot.map(DiffReviewStore.shared.isReviewed) ?? false,
             commentsAvailable: diff.canShowPullRequestComments,
             showsComments: prMode,
+            reviewActionsAvailable: prMode && { if case .ready = diff.pullRequestReviewState { true } else { false } }(),
             onDiffStyleChange: { [weak diff] in diff?.setDiffStyle($0) },
             onEditingChange: { [weak diff] in diff?.setEditing($0) },
             onReviewChange: { reviewed in
@@ -1150,7 +1158,8 @@ final class DiffViewerNSView: NSView {
                 if diff.showsPullRequestComments { diff.hidePullRequestComments() }
                 else { diff.showPullRequestComments() }
             },
-            onRefreshComments: { [weak diff] in diff?.showPullRequestComments(force: true) })
+            onRefreshComments: { [weak diff] in diff?.showPullRequestComments(force: true) },
+            onPullRequestReview: { [weak diff] in diff?.showPullRequestReview() })
         conflict.isHidden = prMode || !diff.isUnmerged
         conflict.stringValue = String(localized: "Unresolved merge conflict")
         saveError.isHidden = diff.saveError == nil
@@ -1252,6 +1261,7 @@ private final class DiffControlsNSView: NSView {
     private let reviewButton = DiffReviewButton()
     private let commentsButton = NSButton(title: "", target: nil, action: nil)
     private let refreshButton = WorkspaceChromeButton(symbol: "arrow.clockwise", label: "")
+    private let pullRequestReviewButton = WorkspaceChromeButton(symbol: "checkmark.bubble", label: "")
     private let leadingControls = NSStackView()
     private let trailingControls = NSStackView()
     private let modeControl = NSSegmentedControl(
@@ -1278,6 +1288,7 @@ private final class DiffControlsNSView: NSView {
     private var onReviewChange: ((Bool) -> Void)?
     private var onComments: (() -> Void)?
     private var onRefreshComments: (() -> Void)?
+    private var onPullRequestReview: (() -> Void)?
     private var reviewTitle = ""
     private var commentsTitle = ""
 
@@ -1290,7 +1301,7 @@ private final class DiffControlsNSView: NSView {
         leadingControls.spacing = 8
         leadingControls.translatesAutoresizingMaskIntoConstraints = false
         addSubview(leadingControls)
-        for button in [reviewButton, commentsButton, refreshButton] { leadingControls.addArrangedSubview(button) }
+        for button in [reviewButton, commentsButton, refreshButton, pullRequestReviewButton] { leadingControls.addArrangedSubview(button) }
         reviewButton.onToggle = { [weak self] in self?.onReviewChange?($0) }
         commentsButton.bezelStyle = .accessoryBarAction
         commentsButton.controlSize = .small
@@ -1298,6 +1309,7 @@ private final class DiffControlsNSView: NSView {
         commentsButton.target = self
         commentsButton.action = #selector(commentsClicked)
         refreshButton.onAction = { [weak self] in self?.onRefreshComments?() }
+        pullRequestReviewButton.onAction = { [weak self] in self?.onPullRequestReview?() }
 
         trailingControls.orientation = .horizontal
         trailingControls.alignment = .centerY
@@ -1325,6 +1337,8 @@ private final class DiffControlsNSView: NSView {
             leadingControls.trailingAnchor.constraint(lessThanOrEqualTo: trailingControls.leadingAnchor, constant: -8),
             refreshButton.widthAnchor.constraint(equalToConstant: 24),
             refreshButton.heightAnchor.constraint(equalToConstant: 24),
+            pullRequestReviewButton.widthAnchor.constraint(equalToConstant: 24),
+            pullRequestReviewButton.heightAnchor.constraint(equalToConstant: 24),
             trailingControls.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
             trailingControls.centerYAnchor.constraint(equalTo: centerYAnchor),
             divider.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -1348,17 +1362,20 @@ private final class DiffControlsNSView: NSView {
         reviewed: Bool,
         commentsAvailable: Bool,
         showsComments: Bool,
+        reviewActionsAvailable: Bool,
         onDiffStyleChange: @escaping (DiffStyle) -> Void,
         onEditingChange: @escaping (Bool) -> Void,
         onReviewChange: @escaping (Bool) -> Void,
         onComments: @escaping () -> Void,
-        onRefreshComments: @escaping () -> Void
+        onRefreshComments: @escaping () -> Void,
+        onPullRequestReview: @escaping () -> Void
     ) {
         self.onDiffStyleChange = onDiffStyleChange
         self.onEditingChange = onEditingChange
         self.onReviewChange = onReviewChange
         self.onComments = onComments
         self.onRefreshComments = onRefreshComments
+        self.onPullRequestReview = onPullRequestReview
         updateAppearanceColors()
         reviewButton.update(reviewed: reviewed, available: reviewAvailable)
         reviewTitle = reviewButton.title
@@ -1371,6 +1388,9 @@ private final class DiffControlsNSView: NSView {
         commentsButton.toolTip = commentsButton.title
         refreshButton.isHidden = !showsComments || !commentsAvailable
         refreshButton.configure(symbol: "arrow.clockwise", label: String(localized: "Refresh PR Comments"))
+        pullRequestReviewButton.isHidden = !showsComments
+        pullRequestReviewButton.isEnabled = reviewActionsAvailable
+        pullRequestReviewButton.configure(symbol: "checkmark.bubble", label: String(localized: "Review Pull Request…"))
 
         modeControl.setLabel(String(localized: "Review", comment: "Read-only mode for a diff."), forSegment: 0)
         modeControl.setLabel(String(localized: "Edit", comment: "Editable mode for a diff."), forSegment: 1)
@@ -1393,7 +1413,8 @@ private final class DiffControlsNSView: NSView {
         }
         let expandedWidth = width(reviewTitle, hidden: reviewButton.isHidden)
             + width(commentsTitle, hidden: commentsButton.isHidden)
-            + (refreshButton.isHidden ? 0 : 32) + trailingControls.fittingSize.width + 36
+            + (refreshButton.isHidden ? 0 : 32) + (pullRequestReviewButton.isHidden ? 0 : 32)
+            + trailingControls.fittingSize.width + 36
         let compact = bounds.width < expandedWidth
         let review = compact ? "" : reviewTitle, comments = compact ? "" : commentsTitle
         if reviewButton.title != review { reviewButton.title = review }
