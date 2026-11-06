@@ -162,7 +162,7 @@ export/import workflow both work; contributors do not need to edit Swift.
 - Create branches from the latest `main` and prefix them with the type the pull request will declare — `feat/` (or `feature/`), `fix/`, `docs/`, `style/`, `refactor/`, `perf/`, `test/`, `chore/`, `build/`, `ci/`, or `revert/` — such as `fix/pane-focus-loss` or `ci/skip-directive-timing`.
 - Use the English [Conventional Commits](https://www.conventionalcommits.org/) format, such as `type(scope): description` or `fix(terminal): restore focus after closing the git panel`.
 - Keep one branch and one pull request focused on one clear goal; avoid formatting-only changes and unrelated refactors.
-- `publish-v*` branches are reserved for release maintenance. Submit all other contributions to `main`.
+- Ordinary contributions target `main` through a pull request. Maintainer-authorized releases commit and push release changes directly on the latest `main`, including Zshell's website and cask copy and the Homebrew tap; no release branch or PR is required. Development and skill edits still use PRs.
 
 ## Pull Request
 
@@ -220,7 +220,7 @@ Thank you for opening a pull request. Check these requirements while it is await
 - Build all new UI in AppKit. SwiftUI is legacy and must not be introduced or expanded; materially changing an existing SwiftUI view means migrating the affected UI to AppKit.
 - Update the relevant documentation when changing user-visible behavior, build instructions, or the release process. [CHANGELOG.md](CHANGELOG.md) is written for end users, so it records the shipped outcome rather than the fixes and refactors on the way there, and the version is bumped only by a release, never by a pull request.
 - Do not commit `mac/build/`, `mac/Vendor/alacritty-bridge/target`, `node_modules`, `dist`, downloaded files, logs, tokens, signing materials, or personal data. `Repository Hygiene` fails on them.
-- `main` and `publish-v*` are protected and can only be updated through a reviewed pull request that passes its checks.
+- Protected branches use reviewed pull requests with passing checks for ordinary contributions. Maintainer-authorized releases are the sole direct-push exception on `main`, using the maintainer's existing permissions as described in [RELEASING.md](mac/RELEASING.md).
 
 ## Automated pull request reviews
 

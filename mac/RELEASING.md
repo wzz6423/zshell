@@ -7,8 +7,13 @@ Preview, Windows, or Linux builds.
 
 Run commands from `mac/`. Publishing requires the maintainer's authorization.
 Once that authorization is given, complete this release without asking again.
-Homebrew and website changes are submitted as pull requests for the maintainer to
-merge; the release command does not push the tap or deploy the website.
+An authorized release is the exception to the pull-request workflow: commit and
+push release changes directly on the latest `main` in Zshell (including its
+website and cask copy) and `wzz6423/homebrew-tap`. Do not create release branches
+or PRs or wait for a merge. This covers release versions, changelog, release
+fixes, casks, and website updates; ordinary development and skill edits still
+use PRs. The release scripts prepare packages and recipes; the release workflow
+performs the Git commits and pushes and verifies the website deployment.
 
 Release-time verification covers building, packaging, signing, publishing, and
 the update path. Do not re-test the features added or changed in this release or
@@ -58,19 +63,26 @@ are consumed privately; do not echo them to test authentication.
 
 ## Prepare and build
 
-The next aligned 0.1.0 rebuild is pending the maintainer's separate bug-fix merge.
-Prepare and review the release PR first; do not rebuild or publish before that
-prerequisite is satisfied.
+The next aligned 0.1.0 rebuild is pending the maintainer's separate bug-fix merge;
+do not rebuild or publish before that prerequisite is satisfied.
 
 1. Read [the release preflight](../skills/zshell-release/references/preflight.md).
-2. Set the maintainer's intended `MARKETING_VERSION` and increment
+2. Start from a clean Zshell `main` synchronized with the latest remote `main`
+   using fast-forward only. If another worktree owns `main`, use that clean
+   checkout without overriding other work. Report uncommitted changes, divergence,
+   or permission failures and ask the maintainer; do not force-push, weaken branch
+   protection, or substitute a release PR.
+3. Set the maintainer's intended `MARKETING_VERSION` and increment
    `CURRENT_PROJECT_VERSION` in `zshell.xcodeproj/project.pbxproj`. Sparkle uses
    the build number to decide which version is newer. Ordinary feature PRs must
    not change release versions.
-3. Ensure the matching version section in the root `CHANGELOG.md` describes the
-   final user-visible release. Commit the release source and make the same commit
-   available to both hosts before publishing.
-4. Build and validate locally:
+4. Ensure the matching version section in the root `CHANGELOG.md` describes the
+   final user-visible release. Validate any release fixes, stage only release
+   files, and commit them on `main`. Push `git push origin main` and
+   `git push gitee main`, then confirm the source commit is accessible on both
+   hosts before building or publishing. Record that commit for this release;
+   later cask or website commits do not change the packages' `<source-commit>`.
+5. Build and validate locally:
 
 ```sh
 SPARKLE_ED_KEY_FILE=/path/to/zshell-update-key \
@@ -144,13 +156,16 @@ app running under Rosetta migrates to Apple Silicon. Debug does not start
 Sparkle and cannot substitute for this test. Record any unavailable test machine
 or incomplete installation test explicitly.
 
-## Homebrew and website PRs
+## Homebrew and website updates
 
-After both releases verify, update `Casks/zshell.rb` in `wzz6423/homebrew-tap`
-through a PR. The cask selects the native architecture's **ZIP**, uses its exact
+After both releases verify, use `scripts/bump-cask.ts` to prepare `Casks/zshell.rb`
+in Zshell and copy the validated recipe to `wzz6423/homebrew-tap`. The cask selects
+the native architecture's **ZIP**, uses its exact
 SHA-256, and preserves `#{version}` and `#{arch}` URL interpolation. Keep
 `auto_updates true` and the app's minimum macOS requirement. Run cask syntax and
-Homebrew validation before submitting; do not push the tap's default branch.
+Homebrew validation before committing. Synchronize the tap's clean `main` using
+fast-forward only, commit just the release cask, and push `origin main` directly.
+No tap PR or merge is required for this authorized release.
 
 Direct and Homebrew installations both use Sparkle. A manual
 `brew upgrade --cask --greedy-auto-updates zshell` remains available for an
@@ -165,9 +180,12 @@ download remains the fallback. The canonical package URL is:
 https://<github|gitee>.com/wzz6423/zshell/releases/download/v<version>/zshell-v<version>-macOS-<architecture>.dmg
 ```
 
-Update the fallback version and installation documentation in the website PR.
-Run `bun run build` and `bun run typecheck` from `web/`. The website deploys after
-the maintainer merges the PR; do not deploy unmerged website changes.
+Update the fallback version and installation documentation on Zshell `main`,
+alongside the repository's cask copy. Run `bun run build` and `bun run typecheck`
+from `web/`, then commit only these release updates and push `origin main` and
+`gitee main`. The GitHub push triggers `Web Pages`; wait for that deployment to
+succeed and verify the public download links. If no website files need changing,
+dispatch `Web Pages` on the pushed `main` to refresh its prerendered release feed.
 
 ## Release notes, compatibility, and cleanup
 

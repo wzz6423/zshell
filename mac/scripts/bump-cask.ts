@@ -47,7 +47,7 @@ end
 `;
 }
 
-/** Prepare the reviewed recipe without committing or pushing the shared tap. */
+/** Prepare the release recipe without committing or pushing the shared tap. */
 export async function bumpCask(version: string, directory: string, caskPath: string): Promise<void> {
   const manifest = await validateManifest({ directory, version });
   const hashes = ["arm64", "x86_64"].map(arch => {
@@ -58,7 +58,7 @@ export async function bumpCask(version: string, directory: string, caskPath: str
   });
   mkdirSync(dirname(caskPath), { recursive: true });
   await Bun.write(caskPath, renderCask(version, hashes[0]!, hashes[1]!));
-  console.log(`Prepared ${caskPath}; submit this recipe and its tap copy as PRs after verifying both release hosts.`);
+  console.log(`Prepared ${caskPath}; after both release hosts verify successfully, validate, commit, and push this recipe and its tap copy directly on each repository's main branch.`);
 }
 
 if (import.meta.main) {

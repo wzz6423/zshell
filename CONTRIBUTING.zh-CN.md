@@ -113,7 +113,7 @@ Zshell 的开发语言是英文，应用和官网支持相同的 17 种语言，
 - 从最新的 `main` 创建分支，并以 Pull Request 将要声明的类型作为前缀 —— `feat/`（或 `feature/`）、`fix/`、`docs/`、`style/`、`refactor/`、`perf/`、`test/`、`chore/`、`build/`、`ci/` 或 `revert/` —— 例如 `fix/pane-focus-loss` 或 `ci/skip-directive-timing`。
 - 使用英文的 [Conventional Commits](https://www.conventionalcommits.org/) 格式，例如 `type(scope): description` 或 `fix(terminal): restore focus after closing the git panel`。
 - 一个分支、一个 Pull Request 只围绕一个明确目标；不要夹带纯格式改动和无关重构。
-- `publish-v*` 分支保留给发布维护使用。其他贡献一律提交到 `main`。
+- 普通贡献通过 Pull Request 提交到 `main`。维护者明确授权的正式发版直接在最新 `main` 提交推送，包括 Zshell 的官网、cask 副本和 Homebrew tap；不创建发布分支或 PR。功能开发和 skill 修改仍走 PR。
 
 ## Pull Request
 
@@ -171,7 +171,7 @@ Zshell 的开发语言是英文，应用和官网支持相同的 17 种语言，
 - 所有新 UI 都用 AppKit 写。SwiftUI 属于遗留代码，不得引入也不得扩大；对现有 SwiftUI 视图做实质性修改时，要把受影响的 UI 迁移到 AppKit。
 - 改变用户可见行为、构建说明或发布流程时，请同步更新相关文档。[CHANGELOG.md](CHANGELOG.md) 是写给最终用户的，因此只记录最终交付的结果，而不是过程中的修复和重构；版本号只由发布流程提升，绝不在 Pull Request 里改。
 - 不要提交 `mac/build/`、`mac/Vendor/alacritty-bridge/target`、`node_modules`、`dist`、下载的文件、日志、token、签名材料或个人数据。`Repository Hygiene` 会因此失败。
-- `main` 和 `publish-v*` 受保护，只能通过经过评审且检查通过的 Pull Request 更新。
+- 受保护分支的普通贡献仍须通过经过评审且检查通过的 Pull Request。维护者明确授权的正式发版是 `main` 直推的唯一特例，使用维护者现有权限，流程见 [RELEASING.md](mac/RELEASING.md)。
 
 ## 自动评审 Pull Request
 

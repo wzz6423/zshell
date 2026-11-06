@@ -173,7 +173,7 @@ async function main(): Promise<void> {
   await validateManifest({ directory: output, version });
   if (!args.includes("--local")) await publishRelease({ directory: output, version, sourceCommit, notes: readFileSync(join(output, "notes.md"), "utf8") });
   say(`All three architecture packages validated at ${output}`);
-  say("Submit the cask and website changes as PRs after both release hosts verify successfully.");
+  say("After both release hosts verify successfully, validate, commit, and push the cask and website release updates directly on each repository's main branch.");
 }
 
 if (import.meta.main) await main();
