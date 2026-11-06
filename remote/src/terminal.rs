@@ -66,6 +66,10 @@ impl Terminal {
             zshell_persistent_terminal_resize(self.0, columns, rows, 8, 16);
         }
     }
+
+    pub fn viewport_footer(&self) -> String {
+        unsafe { (&*self.0).viewport_footer() }
+    }
 }
 
 impl Drop for Terminal {

@@ -3,6 +3,7 @@
 use base64::{engine::general_purpose::{STANDARD, STANDARD_NO_PAD}, Engine};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::time::{Duration, Instant};
 
 const MAX_OSC: usize = 4096;
 const MAX_RECORDS: usize = 64;
@@ -166,14 +167,38 @@ pub struct Status {
 pub struct Records {
     records: BTreeMap<String, Record>,
     generation: u64,
+    native_generation: u64,
 }
 
 impl Records {
+    pub fn native_generation(&self) -> u64 { self.native_generation }
+
+    pub fn has_working_native(&self, provider: &str) -> bool {
+        self.records.get("native").is_some_and(|record| record.app == provider && record.state == "working")
+    }
+
+    pub fn interrupt_native(&mut self, provider: &str, generation: u64) -> bool {
+        if generation != self.native_generation || !self.has_working_native(provider) { return false; }
+        let record = self.records.get_mut("native").unwrap();
+        record.state = "idle".into();
+        record.message = format!("{provider}: user interrupt confirmed in terminal");
+        record.kind.clear();
+        record.progress = None;
+        self.generation = self.generation.wrapping_add(1);
+        self.native_generation = self.native_generation.wrapping_add(1);
+        true
+    }
+
     pub fn replace(&mut self, records: &Records) {
         self.records = records.records.clone();
         self.generation = self.generation.wrapping_add(1);
+        self.native_generation = self.native_generation.wrapping_add(1);
     }
     pub fn apply(&mut self, record: Record) {
+        if record.id == "native" || record.id.starts_with("native/")
+            || record.state == "clear" && record.id.is_empty() {
+            self.native_generation = self.native_generation.wrapping_add(1);
+        }
         if record.state == "clear" {
             self.records.retain(|id, _| !record.id.is_empty()
                 && id != &record.id && !id.starts_with(&format!("{}/", record.id)));
@@ -187,7 +212,10 @@ impl Records {
         }
         self.generation = self.generation.wrapping_add(1);
     }
-    pub fn reset(&mut self) { self.records.clear(); self.generation = self.generation.wrapping_add(1); }
+    pub fn reset(&mut self) {
+        self.records.clear(); self.generation = self.generation.wrapping_add(1);
+        self.native_generation = self.native_generation.wrapping_add(1);
+    }
     pub fn drop_live(&mut self) {
         let count = self.records.len();
         self.records.retain(|_, record| !["idle", "working", "blocked"].contains(&record.state.as_str()));
@@ -222,6 +250,52 @@ impl Records {
         }
         status.records = records;
         status
+    }
+}
+
+#[derive(Default)]
+pub struct InterruptEvidence {
+    previous_input: Option<String>,
+    samples: u8,
+    last_sample: Option<Instant>,
+}
+
+impl InterruptEvidence {
+    pub fn is_interrupt_input(bytes: &[u8]) -> bool {
+        matches!(bytes, [0x1b] | [0x03])
+            || [b"\x1b[27u".as_slice(), b"\x1b[27;1u", b"\x1b[99;5u", b"\x1b[27;5;99~"]
+                .contains(&bytes)
+    }
+
+    pub fn claude_working(text: &str) -> bool {
+        text.len() <= 32_768 && text.lines().rev().take(16).any(|line| line.to_ascii_lowercase().contains("esc to interrupt"))
+    }
+
+    pub fn confirms_claude_idle(&mut self, text: &str, now: Instant) -> bool {
+        let input = Self::claude_input(text);
+        let Some(input) = input else { self.previous_input = None; self.samples = 0; self.last_sample = None; return false; };
+        if self.previous_input.as_ref() == Some(&input)
+            && self.last_sample.is_some_and(|previous| now.duration_since(previous) < Duration::from_millis(250)) { return false; }
+        self.samples = if self.previous_input.as_ref() == Some(&input) { self.samples.saturating_add(1) } else { 1 };
+        self.previous_input = Some(input);
+        self.last_sample = Some(now);
+        self.samples >= 2
+    }
+
+    fn claude_input(text: &str) -> Option<String> {
+        if text.len() > 32_768 || Self::claude_working(text) { return None; }
+        let lines: Vec<_> = text.lines().rev().take(16).collect::<Vec<_>>().into_iter().rev()
+            .map(|line| line.trim_end_matches([' ', '\t', '\r', '\u{a0}'])).collect();
+        if lines.iter().any(|line| {
+            let line = line.to_ascii_lowercase();
+            line.contains("esc to cancel") || line.contains("press enter to confirm")
+        }) { return None; }
+        let prompt = lines.iter().rposition(|line| line.trim_start().starts_with('❯'))?;
+        let rule = |line: &str| line.trim().chars().count() >= 10 && line.trim().chars().all(|c| c == '─');
+        if prompt == 0 || !rule(lines[prompt - 1]) { return None; }
+        let bottom = (prompt + 1..lines.len()).find(|&index| rule(lines[index]))?;
+        if !lines[prompt + 1..bottom].iter().all(|line| line.is_empty() || line.starts_with("  ")) { return None; }
+        Some(lines[prompt..bottom].join("\n"))
     }
 }
 
@@ -279,5 +353,45 @@ mod tests {
         assert_eq!(records.status().records.len(), MAX_RECORDS);
         records.apply(record("state=clear", 100));
         assert_eq!(records.status().phase, "idle");
+    }
+
+    #[test]
+    fn interrupt_requires_stable_claude_input_and_current_native_generation() {
+        let idle = "────────────────────────\n❯ restored prompt\n────────────────────────\n  ⏵⏵ bypass permissions on";
+        let busy = format!("{idle}\n  esc to interrupt");
+        assert!(InterruptEvidence::claude_working(&busy));
+        let mut evidence = InterruptEvidence::default();
+        let now = Instant::now();
+        assert!(!evidence.confirms_claude_idle(&busy, now));
+        assert!(!evidence.confirms_claude_idle(idle, now));
+        assert!(!evidence.confirms_claude_idle(idle, now + Duration::from_millis(1)));
+        assert!(evidence.confirms_claude_idle(idle, now + Duration::from_millis(250)));
+        assert!(!evidence.confirms_claude_idle(&format!("{idle}\nEsc to cancel"), now));
+        assert!(!evidence.confirms_claude_idle("❯ quoted prompt", now));
+        assert!(!evidence.confirms_claude_idle(idle, now));
+        assert!(!evidence.confirms_claude_idle(&idle.replace("restored", "changed"), now));
+        for bytes in [b"\x1b".as_slice(), b"\x03", b"\x1b[27u", b"\x1b[99;5u"] {
+            assert!(InterruptEvidence::is_interrupt_input(bytes));
+        }
+        for bytes in [b"\x1b[A".as_slice(), b"\x1b[27;1:3u", b"\x1btext", b"\x1b[200~\x03\x1b[201~"] {
+            assert!(!InterruptEvidence::is_interrupt_input(bytes));
+        }
+        let mut records = Records::default();
+        records.apply(record("state=working:id=native:app=claude", 1));
+        records.apply(record("state=done:id=finished:app=claude", 2));
+        let generation = records.native_generation();
+        assert!(!records.interrupt_native("codex", generation));
+        assert!(records.interrupt_native("claude", generation));
+        assert_eq!(records.status().records.iter().find(|r| r.id == "finished").unwrap().state, "done");
+        records.apply(record("state=working:id=native:app=claude", 3));
+        assert!(!records.interrupt_native("claude", generation));
+        let generation = records.native_generation();
+        records.apply(record("state=idle:app=claude-code", 4));
+        assert_eq!(records.native_generation(), generation);
+        assert!(records.interrupt_native("claude", generation));
+        records.apply(record("state=working:id=native:app=claude", 5));
+        records.apply(record("state=working:id=native/child:app=claude", 4));
+        assert!(records.interrupt_native("claude", records.native_generation()));
+        assert_eq!(records.status().phase, "working");
     }
 }

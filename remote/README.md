@@ -186,6 +186,15 @@ trusted local peer/process ownership and the session identity; a remote TCP
 client cannot impersonate a provider hook. Program-reported OSC 7501 records
 remain a lower-priority status source.
 
+Claude Code does not emit a completion hook when you interrupt a turn. After
+Esc or Ctrl-C from its busy screen, the daemon waits for a stable restored
+input before returning the parent turn to idle. A new hook or input cancels
+that check; active child tasks and completed records keep their own state.
+The local app uses the same guarded check on both terminal backends, including
+direct launches that inherit Ghostty's foreground process group. Reproduce the
+local native-provider paths with `mac/tests/test_native_agent_interrupts.py`;
+its header lists the isolated build and installed-CLI environment variables.
+
 Shared Codex app-server hooks bind verified full conversation IDs to unique
 foreground TUI titles, including a client that attaches after the title was
 printed. The managed integration adds Codex's `session-id` title item without

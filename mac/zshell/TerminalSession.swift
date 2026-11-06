@@ -622,12 +622,14 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     }
 
     func sendCommand(_ text: String, asPaste: Bool = false) {
+        agentObservation.pendingInterrupt = nil
         remoteConnection?.takeControl()
         if asPaste { surface.sendPaste(text) }
         else { surface.sendText(text) }
     }
 
     func sendEnter() {
+        agentObservation.pendingInterrupt = nil
         remoteConnection?.takeControl()
         surface.sendEnter()
     }
@@ -1595,6 +1597,7 @@ extension TerminalSession: TerminalBackendEvents {
     }
 
     func terminalHandleUserPaste(_ pasteboard: NSPasteboard, paste: @escaping (String) -> Void) -> Bool {
+        agentObservation.pendingInterrupt = nil
         let connection = remoteConnection
         let target = remotePasteTarget
         let isRemote = connection != nil || target != nil
