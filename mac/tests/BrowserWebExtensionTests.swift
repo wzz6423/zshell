@@ -35,6 +35,10 @@ struct BrowserWebExtensionTests {
             print("Extension installation and disabled state survive restart: passed")
             return
         }
+        if CommandLine.arguments.count > 3, CommandLine.arguments[3] == "ssh" {
+            try await verifySSH(fixture)
+            return
+        }
         let malformed = fixture.appendingPathComponent("malformed")
         do { _ = try await store.prepare(malformed); throw error("Invalid manifest installed") }
         catch BrowserWebExtensionStore.StoreError.invalid { }
@@ -59,7 +63,7 @@ struct BrowserWebExtensionTests {
                               styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.identifier = NSUserInterfaceItemIdentifier("main-webextensions-test")
         window.contentView = browser.webView
-        window.orderFront(nil)
+        window.makeKeyAndOrderFront(nil)
         defer { browser.close(); second.close(); window.orderOut(nil); window.contentView = nil }
         try require(browser.webView.configuration.webExtensionController === browser.webExtensions.controller,
                     "BrowserTab does not use the production extension controller")
@@ -104,8 +108,25 @@ struct BrowserWebExtensionTests {
         try require(popupResult == "Extension popup", "Extension popup did not load")
         let localNetwork = try await network(popup, base + "/extension-network?local-background", background: true)
         try require(localNetwork == "served", "Local extension background fetch failed")
+        try await optionalPermission(context, tab: tab, window: window, script: "return await browser.permissions.request({permissions:['cookies']});", allowing: false)
+        try require(!context.hasPermission(.init(rawValue: "cookies")), "Rejected optional API permission was granted")
+        try await optionalPermission(context, tab: tab, window: window, script: "return await browser.permissions.request({origins:['http://optional.invalid/*']});", allowing: false)
+        try require(!context.hasAccess(to: URL(string: "http://optional.invalid/")!), "Rejected optional website permission was granted")
+        try await optionalPermission(context, tab: tab, window: window, script: "return await browser.permissions.request({permissions:['cookies']});", allowing: true)
+        try require(context.hasPermission(.init(rawValue: "cookies")), "Accepted optional API permission was not applied")
+        try await optionalPermission(context, tab: tab, window: window, script: "return await browser.permissions.request({origins:['http://optional.invalid/*']});", allowing: true)
+        try require(context.hasAccess(to: URL(string: "http://optional.invalid/")!), "Accepted optional website permission was not applied")
         action.closePopup()
-        print("Native action menu, tab/window adapter, permission grants and real WebKit popup: passed")
+        print("Native action menu, real WebKit popup and optional API/website permission Cancel/Allow: passed")
+
+        let (dnrEntry, _) = try await store.prepare(fixture.appendingPathComponent("dnr"))
+        try store.install(dnrEntry)
+        try await until { browser.webExtensions.controller.extensionContexts.count == 2 }
+        try require(try await network(browser.webView, base + "/dnr-allowed?enabled", background: false) == "served", "DNR blocked an unrelated request")
+        try require(try await network(browser.webView, base + "/dnr-blocked?enabled", background: false) == "blocked", "DNR did not block the matching real request")
+        try await store.remove(id: dnrEntry.id)
+        try require(try await network(browser.webView, base + "/dnr-blocked?disabled", background: false) == "served", "Removing DNR extension left its rule active")
+        print("Real DNR blocks matching HTTP request, allows unrelated request and unloads on remove: passed")
 
         let (activeEntry, _) = try await store.prepare(fixture.appendingPathComponent("active-tab"))
         try store.install(activeEntry)
@@ -169,6 +190,9 @@ struct BrowserWebExtensionTests {
         try require(disabled == nil, "Disabled extension still injects new pages")
         try store.setEnabled(true, id: entry.id)
         try await until { browser.webExtensions.controller.extensionContexts.count == 1 }
+        let resetContext = browser.webExtensions.controller.extensionContexts.first!
+        try require(!resetContext.hasPermission(.init(rawValue: "cookies")) && !resetContext.hasAccess(to: URL(string: "http://optional.invalid/")!),
+                    "Reloading an extension retained optional grants without a new request")
         try await load(browser, base + "/page?reenabled")
         try await injected(browser)
         try await store.remove(id: entry.id)
@@ -197,6 +221,134 @@ struct BrowserWebExtensionTests {
         try require(managerWindow.isVisible && descendants(managerWindow.contentView!).contains { ($0 as? NSButton)?.title == String(localized: "Install Extension…") }, "Extension manager's native controls missing")
         managerWindow.close()
         print("AppKit browser settings and extension manager presentation: passed")
+
+        try store.setEnabled(true, id: archive.id)
+        try await until { browser.webExtensions.controller.extensionContexts.count == 1 }
+        let originalRuntime = browser.webExtensions
+        let originalContext = originalRuntime.controller.extensionContexts.first!
+        let oldTab = originalRuntime.tabs.first { $0.browser === browser }!
+        oldTab.performAction(originalContext)
+        try await until { originalContext.action(for: oldTab)?.popupPopover?.isShown == true }
+        let closingPopup = originalContext.action(for: oldTab)?.popupPopover
+        manager.showOptions(originalContext, relativeTo: window, runtime: originalRuntime)
+        let closingOptions = window.childWindows?.first(where: { $0.title == archive.name })
+        try require(closingOptions != nil, "Options window missing before last-pane close")
+        browser.close()
+        second.close()
+        window.contentView = nil
+        try require(originalRuntime.tabs.isEmpty && originalRuntime.controller.extensionContexts.isEmpty,
+                    "Closing the last local pane kept extension contexts running")
+        try await until { closingOptions?.isVisible == false && closingPopup?.isShown != true }
+        try require(closingOptions?.isVisible == false && closingPopup?.isShown != true,
+                    "Closing the last pane kept popup or options alive")
+        let reopened = BrowserTab(initialFocus: .none)
+        defer { reopened.close(); window.contentView = nil }
+        window.contentView = reopened.webView
+        try require(reopened.webExtensions !== originalRuntime, "Reopening reused a stopped runtime")
+        try await until { reopened.webExtensions.controller.extensionContexts.count == 1 }
+        try await load(reopened, base + "/page?reopened")
+        try await injected(reopened)
+        try store.setEnabled(false, id: archive.id)
+        try require(reopened.webExtensions.controller.extensionContexts.isEmpty, "Disabling reopened runtime left extension loaded")
+        print("Last-pane close unloads contexts/popup/options, reopen creates working runtime, disable still applies: passed")
+    }
+
+    @MainActor private static func verifySSH(_ fixture: URL) async throws {
+        let store = BrowserWebExtensionStore.shared
+        let (entry, _) = try await store.prepare(fixture.appendingPathComponent("ssh-extension"))
+        try store.install(entry)
+        let projectID = UUID()
+        let endpoint = try SSHEndpoint(host: "127.0.0.1", port: Int(CommandLine.arguments[4])!)
+        let routing = BrowserRemoteRouting(location: .ssh(endpoint: endpoint, remoteDirectory: "/tmp"), storageID: projectID)
+        let browser = BrowserTab(initialFocus: .none, remoteRouting: routing, projectID: projectID)
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 600), styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        window.identifier = .init("main-extension-ssh-test")
+        window.isReleasedWhenClosed = false
+        window.contentView = browser.webView
+        window.orderFront(nil)
+        defer { browser.close(); window.contentView = nil; window.close() }
+        try await until { browser.webExtensions.controller.extensionContexts.count == 1 }
+        let port = CommandLine.arguments[5]
+        browser.navigate(to: "http://[::1]:\(port)/page?extension-ssh")
+        do { try await until { browser.webView.url?.path == "/page" && !browser.navigationIsLoading } }
+        catch { throw Self.error("SSH page failed: \(browser.errorMessage ?? "none"), \(routing.state), \(String(describing: browser.webView.url))") }
+        try await result(in: browser.webView, script: "document.body.dataset.extensionRemote", server: "extension-remote", port: port)
+        try await result(in: browser.webView, script: "document.body.dataset.extensionRemoteBackground", server: "extension-remote", port: port)
+        try await until {
+            browser.webView.url?.host == "ipv6-1.zshell-remote.localhost" && routing.localProxyPort != nil
+        }
+        let pageDeadline = Date().addingTimeInterval(10)
+        var page: [String: Any] = [:]
+        while Date() < pageDeadline {
+            page = try await browser.webView.evaluateJavaScript("({script:window.fixtureScript,dynamic:window.fixtureDynamic,api:window.fixtureState?.api?.server,websocket:window.fixtureState?.websocket,pixel:document.querySelector('#pixel').naturalWidth>0})") as? [String: Any] ?? [:]
+            if page["script"] as? String == "loaded", page["dynamic"] as? String == "loaded",
+               page["api"] as? String == "secondary", page["websocket"] as? String == "hmr-echo", page["pixel"] as? Bool == true { break }
+            try await Task.sleep(for: .milliseconds(30))
+        }
+        try require(page["script"] as? String == "loaded" && page["dynamic"] as? String == "loaded"
+                    && page["api"] as? String == "secondary" && page["websocket"] as? String == "hmr-echo" && page["pixel"] as? Bool == true,
+                    "Existing remote page scripts/fetch/WebSocket/images failed with extension loaded: \(page)")
+        let context = browser.webExtensions.controller.extensionContexts.first!
+        let tab = browser.webExtensions.tabs.first!
+        tab.performAction(context)
+        guard let action = context.action(for: tab), let popup = action.popupWebView else { throw error("SSH popup missing") }
+        try await until { action.popupPopover?.isShown == true && popup.url != nil && !popup.isLoading }
+        let alias = "http://ipv6-1.zshell-remote.localhost:\(port)"
+        for (value, background) in [(alias + "/api?extension-background", true), (alias + "/api?extension-popup", false),
+                                    ("http://[::1]:\(port)/api?extension-popup-direct", false)] {
+            let response = try await network(popup, value, background: background)
+            try checkRemote(response, server: "extension-remote", port: port)
+        }
+        for value in ["http://127.0.0.1:\(port)/must-not-reach-local", "http://[::1]:\(port)/must-not-reach-direct"] {
+            try require(try await network(popup, value, background: true) == "blocked", "Worker bypassed remote loopback protection")
+        }
+        action.closePopup()
+        browser.close()
+        try require(routing.localProxyPort == nil && browser.webExtensions.controller.extensionContexts.isEmpty,
+                    "Closing SSH pane kept extension or forwarding running")
+        try await store.remove(id: entry.id)
+        print("Private real SSH: content script/background/popup reach remote target, direct worker loopback stays blocked, closing tears down forwarding: passed")
+    }
+
+    @MainActor private static func optionalPermission(_ context: WKWebExtensionContext, tab: BrowserWebExtensionTab, window: NSWindow, script: String, allowing: Bool) async throws {
+        tab.performAction(context)
+        guard let action = context.action(for: tab), let webView = action.popupWebView else { throw error("Optional permission popup missing") }
+        try await until { action.popupPopover?.isShown == true && webView.url != nil && !webView.isLoading }
+        var complete = false
+        let request = Task { @MainActor in
+            defer { complete = true }
+            return try await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: .page)
+        }
+        try await until { window.attachedSheet != nil || complete }
+        if complete { throw error("Optional permission did not show a sheet: \(String(describing: try await request.value)); host key=\(window.isKeyWindow)") }
+        let title = allowing ? String(localized: "Allow") : String(localized: "Cancel")
+        guard let sheet = window.attachedSheet, let button = descendants(sheet.contentView!).compactMap({ $0 as? NSButton })
+            .first(where: { $0.title == title }) else { throw error("Optional permission button missing: \(title)") }
+        button.performClick(nil)
+        let result = try await request.value
+        try require(result as? Bool == allowing, "Optional permission result did not match selected response")
+        try await until { window.attachedSheet == nil }
+        action.closePopup()
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    @MainActor private static func result(in webView: WKWebView, script: String, server: String, port: String) async throws {
+        let deadline = Date().addingTimeInterval(10)
+        while Date() < deadline {
+            if let value = try? await webView.evaluateJavaScript(script) as? String {
+                try checkRemote(value, server: server, port: port)
+                return
+            }
+            try await Task.sleep(for: .milliseconds(30))
+        }
+        throw error("SSH extension content script timed out: \(script)")
+    }
+    private static func checkRemote(_ value: String?, server: String, port: String) throws {
+        guard let value, let data = value.data(using: .utf8),
+              let response = try JSONSerialization.jsonObject(with: data) as? [String: String],
+              response["server"] == server, response["host"] == "ipv6-1.zshell-remote.localhost:\(port)" else {
+            throw error("Extension request missed SSH remote target: \(value ?? "nil")")
+        }
     }
 
     @MainActor private static func load(_ browser: BrowserTab, _ value: String) async throws {

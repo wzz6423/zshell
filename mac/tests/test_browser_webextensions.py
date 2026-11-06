@@ -11,10 +11,14 @@ from pathlib import Path
 import platform
 import plistlib
 import subprocess
+import sys
 import tempfile
 import threading
 import uuid
 import zipfile
+
+sys.dont_write_bytecode = True
+from test_browser_remote_routing import Fixture
 
 ROOT = Path(__file__).resolve().parents[2]
 BUILD = Path(os.environ.get("ZSHELL_TEST_DERIVED_DATA", ROOT / "mac/build/debug"))
@@ -27,7 +31,7 @@ class Page(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         self.requests.append(self.path)
-        body = b"served" if self.path.startswith("/extension-network") else b"<!doctype html><title>Extension fixture</title><body><p>Page</p></body>"
+        body = b"served" if self.path.startswith(("/extension-network", "/dnr-")) else b"<!doctype html><title>Extension fixture</title><body><p>Page</p></body>"
         self.send_response(200)
         self.send_header("Content-Type", "text/html")
         self.send_header("Cache-Control", "no-store")
@@ -50,6 +54,8 @@ with tempfile.TemporaryDirectory(prefix="zshell-webextensions-", dir="/tmp") as 
     info = plistlib.loads((LIBRARY.parents[1] / "Info.plist").read_bytes())
     domain = "sh.zshell.webextensions-test." + uuid.uuid4().hex
     info.update(CFBundleIdentifier=domain, CFBundleExecutable=binary.name, LSUIElement=True)
+    assert info["NSAppTransportSecurity"] == {"NSExceptionDomains": {"zshell-remote.localhost": {
+        "NSIncludesSubdomains": True, "NSExceptionAllowsInsecureHTTPLoads": True}}}, "Production app must allow only its private SSH preview HTTP alias"
     (contents / "Info.plist").write_bytes(plistlib.dumps(info))
     (contents / "Resources").symlink_to(LIBRARY.parents[1] / "Resources")
     arguments = ["xcrun", "swiftc", "-parse-as-library", "-swift-version", "5",
@@ -72,7 +78,9 @@ with tempfile.TemporaryDirectory(prefix="zshell-webextensions-", dir="/tmp") as 
     extension = fixture / "extension"
     extension.mkdir(parents=True)
     manifest = {"manifest_version": 3, "name": "Fixture Extension", "description": "Disposable browser extension fixture", "version": "1.0",
-                "permissions": ["storage"], "host_permissions": ["http://127.0.0.1/*"],
+                "permissions": ["storage"], "optional_permissions": ["cookies"],
+                "optional_host_permissions": ["http://optional.invalid/*"],
+                "host_permissions": ["http://127.0.0.1/*"],
                 "content_scripts": [{"matches": ["http://127.0.0.1/*"], "js": ["content.js"]}],
                 "background": {"service_worker": "background.js"},
                 "action": {"default_title": "Open fixture", "default_popup": "popup.html"},
@@ -85,6 +93,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-webextensions-", dir="/tmp") as 
         try { return await (await fetch(message.network, {signal:AbortSignal.timeout(2000)})).text(); }
         catch { return 'blocked'; }
       }
+      if (message.storage) return await browser.storage.local.get();
       if (!message.visit) return null;
       const old = await browser.storage.local.get('visits');
       const visits = (old.visits || 0) + 1;
@@ -93,6 +102,29 @@ with tempfile.TemporaryDirectory(prefix="zshell-webextensions-", dir="/tmp") as 
     });""")
     (extension / "popup.html").write_text('<!doctype html><body><p id="popup">Extension popup</p></body>')
     (extension / "options.html").write_text('<!doctype html><body><p>Extension options</p></body>')
+    dnr = fixture / "dnr"
+    dnr.mkdir()
+    (dnr / "manifest.json").write_text(json.dumps({"manifest_version": 3, "name": "DNR Fixture",
+       "description": "Disposable network blocking fixture", "version": "1.0",
+       "permissions": ["declarativeNetRequest"], "host_permissions": ["http://127.0.0.1/*"],
+       "declarative_net_request": {"rule_resources": [{"id": "fixture_rules", "enabled": True, "path": "rules.json"}]}}))
+    (dnr / "rules.json").write_text(json.dumps([{"id": 1, "priority": 1, "action": {"type": "block"},
+       "condition": {"urlFilter": "/dnr-blocked", "resourceTypes": ["xmlhttprequest"]}}]))
+    ssh_extension = fixture / "ssh-extension"
+    ssh_extension.mkdir()
+    ssh_manifest = dict(manifest, name="SSH Extension Fixture")
+    ssh_manifest["host_permissions"] = ["<all_urls>"]
+    ssh_manifest["content_scripts"] = [{"matches": ["http://*.zshell-remote.localhost/*"], "js": ["content.js"]}]
+    (ssh_extension / "manifest.json").write_text(json.dumps(ssh_manifest))
+    (ssh_extension / "background.js").write_text((extension / "background.js").read_text())
+    (ssh_extension / "popup.html").write_text((extension / "popup.html").read_text())
+    (ssh_extension / "options.html").write_text((extension / "options.html").read_text())
+    (ssh_extension / "content.js").write_text("""(async () => {
+      const response = await fetch('/api?extension-content-script');
+      document.body.dataset.extensionRemote = JSON.stringify(await response.json());
+      const background = await browser.runtime.sendMessage({network:location.origin + '/api?extension-content-background'});
+      document.body.dataset.extensionRemoteBackground = background;
+    })().catch(error => {document.body.dataset.extensionRemoteError = String(error);});""")
     active = fixture / "active-tab"
     active.mkdir()
     (active / "manifest.json").write_text(json.dumps({"manifest_version": 3, "name": "Active Tab Fixture", "description": "Disposable action fixture", "version": "1.0",
@@ -142,7 +174,32 @@ with tempfile.TemporaryDirectory(prefix="zshell-webextensions-", dir="/tmp") as 
     try:
         subprocess.run([str(binary), base, str(fixture)], cwd=ROOT, env=environment, check=True, timeout=100)
         assert not any("remote-background" in path or "remote-popup" in path for path in Page.requests), Page.requests
+        assert not any(path.startswith("/dnr-blocked?enabled") for path in Page.requests), Page.requests
+        assert any(path.startswith("/dnr-blocked?disabled") for path in Page.requests), Page.requests
         subprocess.run([str(binary), base, str(fixture), "persistence"], cwd=ROOT, env=environment, check=True, timeout=20)
+        ssh_directory = temporary / "ssh"
+        ssh_directory.mkdir()
+        ssh = Fixture(ssh_directory)
+        try:
+            ssh.__enter__()
+            remote_server = ssh.http_server("extension-remote", ("::1", 0))
+            ssh.http_server("mac-trap", ("127.0.0.1", remote_server.server_port))
+            ssh_environment = dict(environment, ZSHELL_SSH_CONFIG_FILE=str(ssh.config), ZSHELL_SSH_AGENT_RESOLVED="1")
+            subprocess.run([str(binary), base, str(fixture), "ssh", str(ssh.ssh_port), str(remote_server.server_port)],
+                           cwd=ROOT, env=ssh_environment, check=True, timeout=100)
+            paths = {path for label, path, *_ in ssh.requests if label == "extension-remote"}
+            assert {"/api?extension-content-script", "/api?extension-content-background", "/api?extension-background",
+                    "/api?extension-popup", "/api?extension-popup-direct"} <= paths, paths
+            requests = [request for request in ssh.requests if "extension-" in request[1]]
+            assert all(request[2] == f"ipv6-1.zshell-remote.localhost:{remote_server.server_port}" for request in requests), requests
+            assert not any(label == "mac-trap" and path.startswith(("/api", "/must-not")) for label, path, *_ in ssh.requests), ssh.requests
+            assert all(host is not None and host.endswith(".zshell-remote.localhost:" + str(remote_server.server_port))
+                       for label, _, host, _ in ssh.requests if label == "mac-trap"), ssh.requests
+            log = ssh.ssh_log.read_text()
+            assert f"target ::1 port {remote_server.server_port}" in log and "direct-tcpip" in log, log
+            print("Private SSH evidence: extension requests use direct-tcpip and project alias; raw loopback extension requests to local trap = 0")
+        finally:
+            ssh.__exit__()
     finally:
         server.shutdown()
         server.server_close()

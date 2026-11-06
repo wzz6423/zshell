@@ -488,7 +488,10 @@ final class BrowserWebExtensionRuntime: NSObject, WKWebExtensionControllerDelega
     }
 
     private func prompt(_ context: WKWebExtensionContext, details: [String], in tab: (any WKWebExtensionTab)?, completion: @escaping (Bool) -> Void) {
+        let popupHost = popup?.webExtensionContext === context
+            ? (popup?.associatedTab as? BrowserWebExtensionTab)?.browser?.webView.window : nil
         guard !prompting, let host = (tab as? BrowserWebExtensionTab)?.browser?.webView.window
+            ?? popupHost
             ?? windows.values.compactMap(\.nativeWindow).first(where: \.isKeyWindow),
               host.isVisible, host.attachedSheet == nil, details.count <= 256,
               details.reduce(0, { $0 + $1.utf8.count }) <= 32_768 else { completion(false); return }
@@ -519,7 +522,7 @@ final class BrowserWebExtensionRuntime: NSObject, WKWebExtensionControllerDelega
             completionHandler(BrowserWebExtensionStore.StoreError.unavailable)
             return
         }
-        popup?.closePopup()
+        if popup !== action { popup?.closePopup() }
         popup = action
         popover.behavior = .transient
         popover.show(relativeTo: NSRect(x: browser.webView.bounds.midX, y: browser.webView.bounds.maxY - 12, width: 1, height: 1),
