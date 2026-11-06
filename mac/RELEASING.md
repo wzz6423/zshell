@@ -158,13 +158,14 @@ or incomplete installation test explicitly.
 
 ## Homebrew and website updates
 
-After both releases verify, use `scripts/bump-cask.ts` to prepare `Casks/zshell.rb`
+After both releases verify, synchronize the tap's clean `main` using
+fast-forward only. Use `scripts/bump-cask.ts` to prepare `Casks/zshell.rb`
 in Zshell and copy the validated recipe to `wzz6423/homebrew-tap`. The cask selects
 the native architecture's **ZIP**, uses its exact
 SHA-256, and preserves `#{version}` and `#{arch}` URL interpolation. Keep
 `auto_updates true` and the app's minimum macOS requirement. Run cask syntax and
-Homebrew validation before committing. Synchronize the tap's clean `main` using
-fast-forward only, commit just the release cask, and push `origin main` directly.
+Homebrew validation before committing. Commit just the release cask, and push
+`origin main` directly.
 No tap PR or merge is required for this authorized release.
 
 Direct and Homebrew installations both use Sparkle. A manual

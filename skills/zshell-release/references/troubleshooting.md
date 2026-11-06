@@ -16,7 +16,7 @@
 | 上传中断或重复文件名 | 用相同产物重新执行 `publish-release.ts --publish`，发布器比对 SHA-256 后只补缺失或不同资产。 |
 | ZIP 已上线但 feed 未更新 | 先验证两端完整包，再上传与这些 ZIP 对应的三份本站签名 feed；不要单独手改签名后的 XML。 |
 | Gitee latest 指向永久 feed | `update-release` 创建晚于版本 Release。先保留完整资产与证据；修正创建顺序需要明确处理已有发布，单纯 PATCH 不会改变顺序。 |
-| 官网仍显示旧版本 | 官网预渲染缓存了构建时的 feed；先确认官网发版提交已推到 `main` 且 `Web Pages` 成功，再核对匿名下载链接。 |
+| 官网仍显示旧版本 | 官网预渲染缓存了构建时的 feed；验证公开 feed 并确认发版提交已推到 `main` 后，按 `mac/RELEASING.md` 手动触发 `main` 上的新 `Web Pages` 构建，再核对本次部署和匿名下载链接。 |
 | Homebrew 版本落后 | 双端发布验证后，用 `bump-cask.ts` 准备版本和本机架构 ZIP 校验值，同步仓库 cask 副本与 tap；验证后在各自 `main` 提交推送，不等待 PR。 |
 | 旧 ad-hoc 0.1.0 无法升级 | 保留原 Sparkle Ed25519 key 和旧 `updates` feed；用真实旧版验证到新 build 的迁移，不能只测试新版本自己的主/fallback feed。 |
 
