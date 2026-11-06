@@ -50,6 +50,14 @@ Geçmişi içe aktarırken Chrome açık kalabilir; Chrome’un kayıtlı geçmi
 
 SameSite ayarı olmayan Firefox çerezleri, eski profiller ve kaydedilmiş oturumlar dahil, Lax olarak içe aktarılır. Açık SameSite=None çerezleri yine Secure gerektirir.
 
+## Yerel tarayıcı uzantıları [#local-browser-extensions]
+
+**Ayarlar → Tarayıcı → Uzantıları yönet…** yolunu açın, **Uzantı yükle…** ile kök dizininde `manifest.json` olan uyumlu bir WebExtension klasörü veya ZIP seçin. **Yükle** demeden önce API ve site izinlerini inceleyin. Zshell uzantıyı yerel olarak kopyalar; kaynak klasörü düzenlemek kurulu uzantıyı güncellemez.
+
+Bir sayfaya sağ tıklayıp **Uzantılar** menüsünden bir işlem çalıştırın veya **Seçenekler** sayfasını açın. İşlemler açılır pencere gösterebilir. `activeTab` yalnızca işlemi çalıştırdığınız sayfaya erişim verir. Yönetici izinleri gösterir ve uzantıları etkinleştirmenizi, devre dışı bırakmanızı veya kaldırmanızı sağlar. Değişikliklerden sonra sayfaları yeniden yükleyin. İsteğe bağlı izinler ayrı sorulur ve uygulama yeniden açılınca tekrar istenebilir.
+
+WebKit’in desteklediği WebExtensions API’leri kullanılır. Kurulumlar ortaktır; arka plan durumu, depolama ve çerezler uzak proje başına ayrılır. Uzak uzantıların doğrudan loopback istekleri projenin SSH yönlendirmesini kullanamıyorsa engellenir. Chrome Web Store kurulumu, native messaging, uzantı kısayolları, yeni sekme değiştirme ve sekme oluşturma veya kapatma desteklenmez. Parola yöneticileri dâhil uyumluluk uzantıya bağlıdır. Sayfa ve sistem geçiş anahtarları WebKit ve site desteğine bağlıdır.
+
 ## Sayfayı bir Agent ile test etme [#let-an-agent-test-the-page]
 
 Kodlama Agent’ınızdan bu projede açık olan sayfayı incelemesini, bir formu doldurmasını, sonucu kontrol etmesini veya görünür alanı yakalamasını isteyin. Mevcut tarayıcı oturumunu kullanır ve varsayılan olarak odağı terminalde tutar. Yerel geliştirme URL’sini arka plandaki bir tarayıcı bölmesinde de açabilir.

@@ -50,6 +50,14 @@ Bạn có thể giữ Chrome mở khi nhập lịch sử; lịch sử đã lưu 
 
 Cookie Firefox không có SameSite được nhập dưới dạng Lax, kể cả hồ sơ cũ và phiên đã lưu. Cookie có SameSite=None rõ ràng vẫn cần Secure.
 
+## Tiện ích trình duyệt cục bộ [#local-browser-extensions]
+
+Mở **Cài đặt → Trình duyệt → Quản lý tiện ích…**, chọn **Cài tiện ích…**, rồi thư mục WebExtension tương thích hoặc ZIP có `manifest.json` ở thư mục gốc. Kiểm tra quyền API và trang web trước khi chọn **Cài đặt**. Zshell sao chép tiện ích vào máy; sửa thư mục gốc không cập nhật tiện ích đã cài.
+
+Nhấp chuột phải vào trang và mở **Tiện ích** để chạy thao tác hoặc mở **Tùy chọn**. Thao tác có thể hiển thị cửa sổ bật lên. `activeTab` chỉ cấp quyền cho trang nơi bạn chạy thao tác. Trình quản lý cho phép xem quyền, bật, tắt hoặc xóa tiện ích. Tải lại trang sau khi thay đổi. Quyền tùy chọn được hỏi riêng và có thể được hỏi lại sau khi khởi động lại.
+
+Các API WebExtensions theo hỗ trợ của WebKit. Cài đặt được dùng chung, nhưng trạng thái nền, bộ nhớ và cookie tách riêng cho từng dự án từ xa. Yêu cầu loopback trực tiếp của tiện ích từ xa bị chặn nếu không dùng được định tuyến SSH của dự án. Không hỗ trợ Chrome Web Store, native messaging, phím tắt tiện ích, thay trang tab mới, tạo hoặc đóng tab. Khả năng tương thích, kể cả trình quản lý mật khẩu, tùy từng tiện ích. Passkey của trang và hệ thống phụ thuộc vào WebKit và trang web.
+
 ## Nhờ Agent kiểm thử trang [#let-an-agent-test-the-page]
 
 Bạn có thể nhờ Agent lập trình kiểm tra trang đang mở trong dự án này, điền biểu mẫu, xác minh kết quả hoặc chụp vùng đang hiển thị. Agent dùng lại phiên trình duyệt hiện tại và mặc định giữ tiêu điểm ở terminal. Agent cũng có thể mở URL phát triển cục bộ trong khung trình duyệt nền.

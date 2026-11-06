@@ -53,6 +53,14 @@ Chrome dapat tetap terbuka saat mengimpor riwayat; riwayat Chrome yang tersimpan
 
 Cookie Firefox tanpa SameSite diimpor sebagai Lax, termasuk dari profil lama dan sesi tersimpan. Cookie dengan SameSite=None eksplisit tetap memerlukan Secure.
 
+## Ekstensi browser lokal [#local-browser-extensions]
+
+Buka **Pengaturan → Browser → Kelola ekstensi…**, pilih **Instal ekstensi…**, lalu folder WebExtension yang kompatibel atau ZIP dengan `manifest.json` di root. Tinjau izin API dan situs sebelum memilih **Instal**. Zshell menyalin ekstensi secara lokal; perubahan pada folder asal tidak memperbaruinya.
+
+Klik kanan halaman dan buka **Ekstensi** untuk menjalankan tindakan atau membuka **Opsi**. Tindakan dapat menampilkan popup. `activeTab` hanya memberi akses ke halaman tempat tindakan dijalankan. Pengelola menampilkan izin serta memungkinkan pengaktifan, penonaktifan, dan penghapusan ekstensi. Muat ulang halaman setelah perubahan. Izin opsional diminta terpisah dan mungkin diminta lagi setelah aplikasi dimulai ulang.
+
+API WebExtensions yang tersedia mengikuti dukungan WebKit. Instalasi dibagikan, tetapi status latar belakang, penyimpanan, dan cookie dipisahkan per proyek jarak jauh. Permintaan loopback langsung dari ekstensi jarak jauh diblokir jika tidak dapat memakai rute SSH proyek. Instalasi Chrome Web Store, native messaging, pintasan ekstensi, penggantian tab baru, serta pembuatan dan penutupan tab tidak didukung. Kompatibilitas, termasuk pengelola kata sandi, bergantung pada ekstensi. Passkey halaman dan sistem bergantung pada WebKit dan situs.
+
 ## Meminta agen menguji halaman [#let-an-agent-test-the-page]
 
 Minta agen pemrograman memeriksa halaman yang sudah terbuka dalam proyek ini, mengisi formulir, memeriksa hasil, atau menangkap area yang terlihat. Agen memakai sesi browser yang ada dan mempertahankan fokus terminal secara default. URL pengembangan lokal juga dapat dibuka di panel browser latar belakang.

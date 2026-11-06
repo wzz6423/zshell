@@ -50,6 +50,14 @@ Chrome kan open blijven tijdens het importeren van de geschiedenis; de opgeslage
 
 Firefox-cookies zonder SameSite worden als Lax geïmporteerd, ook uit oudere profielen en opgeslagen sessies. Expliciete SameSite=None-cookies vereisen nog steeds Secure.
 
+## Lokale browserextensies [#local-browser-extensions]
+
+Open **Instellingen → Browser → Extensies beheren…**, kies **Extensie installeren…** en selecteer een compatibele WebExtension-map of ZIP met `manifest.json` in de hoofdmap. Controleer de API- en websitemachtigingen voordat je **Installeren** kiest. Zshell kopieert de extensie lokaal; wijzigingen in de oorspronkelijke map werken de installatie niet bij.
+
+Klik met rechts op een pagina en open **Extensies** om een actie uit te voeren of **Opties** te openen. Acties kunnen een pop-up tonen. `activeTab` geeft alleen toegang tot de pagina waarop je de actie uitvoert. In de beheerder kun je machtigingen bekijken en extensies inschakelen, uitschakelen of verwijderen. Herlaad pagina’s na wijzigingen. Optionele machtigingen worden apart gevraagd en mogelijk opnieuw na een herstart.
+
+De ondersteunde WebExtensions-API’s zijn die van WebKit. Installaties worden gedeeld, maar achtergrondstatus, opslag en cookies zijn per extern project gescheiden. Directe loopbackverzoeken van externe extensies worden geblokkeerd als ze de SSH-route van het project niet kunnen gebruiken. Chrome Web Store-installatie, native messaging, extensiesneltoetsen, vervanging van nieuwe tabbladen en het maken of sluiten van tabbladen zijn niet ondersteund. Compatibiliteit, ook van wachtwoordbeheerders, hangt van de extensie af. Passkeys van pagina’s en het systeem hangen af van WebKit en de website.
+
 ## Een agent de pagina laten testen [#let-an-agent-test-the-page]
 
 Vraag je programmeeragent om de pagina die al in dit project openstaat te controleren, een formulier in te vullen, een resultaat na te kijken of het zichtbare deel vast te leggen. De bestaande browsersessie wordt gebruikt en de focus blijft standaard in de terminal. Een lokale ontwikkel-URL kan ook in een browserpaneel op de achtergrond worden geopend.

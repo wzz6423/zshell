@@ -50,6 +50,14 @@ O Chrome pode continuar aberto durante a importação do histórico; seu histór
 
 Cookies do Firefox sem SameSite são importados como Lax, inclusive de perfis antigos e sessões salvas. Cookies com SameSite=None explícito ainda exigem Secure.
 
+## Extensões locais do navegador [#local-browser-extensions]
+
+Abra **Ajustes → Navegador → Gerenciar extensões…**, escolha **Instalar extensão…** e selecione uma pasta WebExtension compatível ou um ZIP com `manifest.json` na raiz. Revise as permissões de APIs e sites antes de **Instalar**. Zshell copia a extensão localmente; editar a pasta original não a atualiza.
+
+Clique com o botão direito em uma página e abra **Extensões** para executar uma ação ou abrir **Opções**. As ações podem mostrar pop-ups. `activeTab` dá acesso apenas à página onde a ação é executada. O gerenciador mostra as permissões e permite ativar, desativar ou remover extensões. Recarregue as páginas após as alterações. Permissões opcionais são solicitadas separadamente e podem ser pedidas novamente após reiniciar.
+
+São usadas as APIs WebExtensions compatíveis com WebKit. As instalações são compartilhadas, mas o estado em segundo plano, o armazenamento e os cookies ficam separados por projeto remoto. Requisições diretas de loopback de extensões remotas são bloqueadas se não puderem usar o roteamento SSH do projeto. Instalação pela Chrome Web Store, mensagens nativas, atalhos de extensões, substituição de nova aba e criação ou fechamento de abas não são suportados. A compatibilidade, inclusive de gerenciadores de senhas, depende de cada extensão. Passkeys de páginas e do sistema dependem do WebKit e do site.
+
 ## Pedir a um agente para testar a página [#let-an-agent-test-the-page]
 
 Peça ao agente de programação para verificar a página já aberta neste projeto, preencher um formulário, conferir um resultado ou capturar a área visível. Ele reutiliza a sessão do navegador e mantém o foco no terminal por padrão. Também pode abrir uma URL de desenvolvimento em um painel em segundo plano.

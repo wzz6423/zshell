@@ -50,6 +50,14 @@ Chrome può restare aperto durante l’importazione della cronologia; la cronolo
 
 I cookie Firefox senza SameSite vengono importati come Lax, anche da profili precedenti e sessioni salvate. I cookie con SameSite=None esplicito richiedono ancora Secure.
 
+## Estensioni locali del browser [#local-browser-extensions]
+
+Apri **Impostazioni → Browser → Gestisci estensioni…**, scegli **Installa estensione…** e seleziona una cartella WebExtension compatibile o un ZIP con `manifest.json` nella radice. Controlla le autorizzazioni per API e siti prima di **Installa**. Zshell copia l’estensione localmente; modificare la cartella originale non la aggiorna.
+
+Fai clic destro su una pagina e apri **Estensioni** per eseguire un’azione o aprire **Opzioni**. Le azioni possono mostrare popup. `activeTab` concede accesso solo alla pagina in cui esegui l’azione. Il gestore mostra le autorizzazioni e consente di attivare, disattivare o rimuovere estensioni. Ricarica le pagine dopo le modifiche. Le autorizzazioni facoltative vengono richieste separatamente e possono essere richieste di nuovo dopo il riavvio.
+
+Sono disponibili le API WebExtensions supportate da WebKit. Le installazioni sono condivise, mentre lo stato in background, l’archiviazione e i cookie sono separati per progetto remoto. Le richieste dirette di loopback delle estensioni remote sono bloccate se non possono usare il routing SSH del progetto. Non sono supportati Chrome Web Store, messaggistica nativa, scorciatoie delle estensioni, sostituzione della nuova scheda, creazione o chiusura di schede. La compatibilità, anche dei gestori di password, dipende dall’estensione. Le passkey delle pagine e del sistema dipendono da WebKit e dal sito.
+
 ## Far testare la pagina a un agente [#let-an-agent-test-the-page]
 
 Chiedi al tuo agente di programmazione di controllare la pagina già aperta in questo progetto, compilare un modulo, verificare un risultato o acquisire l’area visibile. Riutilizza la sessione del browser e mantiene il focus nel terminale per impostazione predefinita. Può anche aprire un URL di sviluppo in un pannello in background.

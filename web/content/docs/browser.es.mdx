@@ -50,6 +50,14 @@ Chrome puede permanecer abierto al importar el historial; su historial guardado 
 
 Las cookies de Firefox sin SameSite se importan como Lax, también desde perfiles antiguos y sesiones guardadas. Las cookies con SameSite=None explícito siguen necesitando Secure.
 
+## Extensiones locales del navegador [#local-browser-extensions]
+
+Abre **Ajustes → Navegador → Administrar extensiones…**, elige **Instalar extensión…** y selecciona una carpeta WebExtension compatible o un ZIP con `manifest.json` en la raíz. Revisa los permisos de API y sitios antes de **Instalar**. Zshell copia la extensión localmente; editar la carpeta original no la actualiza.
+
+Haz clic derecho en una página y abre **Extensiones** para ejecutar una acción o abrir **Opciones**. Las acciones pueden mostrar ventanas emergentes. `activeTab` solo permite acceder a la página donde ejecutas la acción. El administrador muestra los permisos y permite activar, desactivar o eliminar extensiones. Recarga las páginas tras los cambios. Los permisos opcionales se solicitan aparte y pueden volver a pedirse al reiniciar.
+
+Se usan las API WebExtensions compatibles con WebKit. Las instalaciones se comparten, pero el estado en segundo plano, el almacenamiento y las cookies se separan por proyecto remoto. Las peticiones directas de bucle local desde extensiones remotas se bloquean si no pueden usar la ruta SSH del proyecto. No se admite instalar desde Chrome Web Store, mensajería nativa, atajos de extensiones, reemplazar la nueva pestaña ni crear o cerrar pestañas. La compatibilidad, incluidos los gestores de contraseñas, depende de cada extensión. Las claves de acceso de páginas y del sistema dependen de WebKit y del sitio.
+
 ## Pedir a un agente que pruebe la página [#let-an-agent-test-the-page]
 
 Pide al agente de programación que revise la página ya abierta en este proyecto, rellene un formulario, compruebe un resultado o capture el área visible. Reutiliza la sesión del navegador y mantiene el foco en el terminal de forma predeterminada. También puede abrir una URL de desarrollo en un panel en segundo plano.

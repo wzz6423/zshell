@@ -35,6 +35,22 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 
+	<!-- Remote previews use a private localhost alias behind authenticated SSH,
+	     including HTTP development servers on the remote host. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>zshell-remote.localhost</key>
+			<dict>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+
 	<!-- Finder exposes this app service in a folder's context menu. AppKit
 	     forwards the selected paths to ZshellApplicationDelegate.openInZshell. -->
 	<key>NSServices</key>

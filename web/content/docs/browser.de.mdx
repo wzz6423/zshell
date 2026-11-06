@@ -50,6 +50,14 @@ Chrome kann beim Import des Verlaufs geöffnet bleiben; der gespeicherte Chrome-
 
 Firefox-Cookies ohne SameSite-Einstellung werden als Lax importiert, auch aus älteren Profilen und gespeicherten Sitzungen. Explizites SameSite=None erfordert weiterhin Secure.
 
+## Lokale Browsererweiterungen [#local-browser-extensions]
+
+Öffne **Einstellungen → Browser → Erweiterungen verwalten…** und wähle mit **Erweiterung installieren…** einen kompatiblen WebExtension-Ordner oder ein ZIP mit `manifest.json` im Stammverzeichnis. Prüfe die API- und Website-Berechtigungen und wähle **Installieren**. Zshell kopiert die Erweiterung lokal; Änderungen am Originalordner aktualisieren sie nicht.
+
+Klicke mit der rechten Maustaste auf eine Seite und öffne **Erweiterungen**, um eine Aktion auszuführen oder **Optionen** zu öffnen. Aktionen können Popups anzeigen. `activeTab` gewährt Zugriff nur auf die Seite, auf der du die Aktion ausführst. Im Manager kannst du Berechtigungen prüfen sowie Erweiterungen aktivieren, deaktivieren und entfernen. Lade offene Seiten nach Änderungen neu. Optionale Berechtigungen werden getrennt abgefragt und nach einem Neustart eventuell erneut angefordert.
+
+Unterstützt werden die WebExtensions-APIs von WebKit. Installationen sind gemeinsam, Hintergrundzustand, Speicher und Cookies sind pro Remoteprojekt getrennt. Direkte Loopback-Anfragen einer Remoteerweiterung werden blockiert, wenn sie nicht über das SSH-Routing des Projekts laufen können. Chrome-Web-Store-Installation, Native Messaging, Erweiterungskürzel, neue-Tab-Überschreibungen sowie das Erstellen und Schließen von Tabs werden nicht unterstützt. Die Kompatibilität, auch von Passwortmanagern, hängt von der Erweiterung ab. Passkeys auf Seiten und im System hängen von WebKit und der Website ab.
+
 ## Die Seite von einem Agent testen lassen [#let-an-agent-test-the-page]
 
 Bitte deinen Coding-Agent, eine bereits in diesem Projekt geöffnete Seite zu prüfen, ein Formular auszufüllen, ein Ergebnis zu kontrollieren oder den sichtbaren Bereich aufzunehmen. Er nutzt die vorhandene Browsersitzung und lässt den Fokus standardmäßig im Terminal. Eine lokale Entwicklungs-URL kann auch in einem Browserbereich im Hintergrund geöffnet werden.

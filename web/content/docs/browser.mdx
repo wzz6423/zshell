@@ -80,6 +80,14 @@ Chrome can stay open during history import; its saved history is left unchanged.
 
 Firefox cookies without a SameSite setting are imported as Lax, including older profiles and saved sessions. Explicit SameSite=None cookies still require Secure.
 
+## Local browser extensions
+
+Open **Settings → Browser → Manage Extensions…**, choose **Install Extension…**, and select a compatible WebExtension directory or ZIP with `manifest.json` at its root. Review the requested API and website permissions before choosing **Install**. Zshell copies the extension locally; editing the original directory does not update it.
+
+Right-click a page and open **Extensions** to run an extension action or open its **Options** page. Actions may show a popup. An extension with `activeTab` receives access only to the page where you invoke its action. The manager lets you view installation permissions, enable, disable, or remove extensions. Reload open pages after changes. Additional optional permissions prompt separately and may be requested again after relaunch.
+
+Extensions use WebKit’s supported WebExtensions APIs. Installation choices are shared, while extension background state, storage, and cookies stay separate for each remote project. A remote extension’s direct loopback requests are blocked unless they can use that project’s SSH routing. Chrome Web Store installation, native messaging, extension keyboard shortcuts, new-tab overrides, and creating or closing tabs are not supported; compatibility depends on each extension, including password managers. Built-in page and system passkey support still depends on WebKit and the website.
+
 ## Let an agent test the page
 
 Ask your coding agent to inspect the page already open in this project, fill a form, check a result, or capture its viewport. The agent uses the existing browser session and keeps focus in your terminal. It can also open a background browser pane for a local development URL.
