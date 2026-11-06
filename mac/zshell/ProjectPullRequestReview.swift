@@ -56,7 +56,8 @@ nonisolated struct ProjectPullRequestReviewThread: Decodable, Equatable, Sendabl
         guard !isOutdated, subjectType == "LINE", let line, line > 0,
               !comments.nodes.isEmpty else { return false }
         if let startLine {
-            return startLine > 0 && startLine <= line && startDiffSide == diffSide
+            return startLine > 0 && startLine <= line
+                && (startDiffSide == diffSide || (startLine == line && startDiffSide == nil))
         }
         return true
     }
@@ -437,7 +438,7 @@ actor ProjectPullRequestReviewCache {
     struct Key: Hashable, Sendable { let identity: ProjectPullRequestReviewIdentity; let path: String }
     typealias Lookup = @Sendable (ProjectPullRequestReviewIdentity, String) async -> ProjectPullRequestReviewState
     private struct Entry { let state: ProjectPullRequestReviewState; let expires: Date; var used: Date }
-    private struct Pending { let id: UUID; let task: Task<ProjectPullRequestReviewState, Never> }
+    private struct Pending { let id: UUID; let task: Task<ProjectPullRequestReviewState, Never>; var readers: Int }
     private let lookup: Lookup
     private let now: @Sendable () -> Date
     private var entries: [Key: Entry] = [:]
@@ -455,20 +456,31 @@ actor ProjectPullRequestReviewCache {
             return entry.state
         }
         let request: Pending
-        if let existing = pending[key] { request = existing }
+        if var existing = pending[key] {
+            existing.readers += 1
+            pending[key] = existing
+            request = existing
+        }
         else {
             guard pending.count < 8 else { return .failed(.unavailable) }
             let lookup = lookup
-            request = Pending(id: UUID(), task: Task { await lookup(identity, path) })
+            request = Pending(id: UUID(), task: Task { await lookup(identity, path) }, readers: 1)
             pending[key] = request
         }
         let result = await request.task.value
-        if pending[key]?.id == request.id {
-            pending[key] = nil
-            let lifetime: TimeInterval = if case .failed = result { 10 } else { 60 }
-            entries[key] = Entry(state: result, expires: now().addingTimeInterval(lifetime), used: now())
-            while entries.count > 8, let oldest = entries.min(by: { $0.value.used < $1.value.used })?.key { entries[oldest] = nil }
-        }
+        guard var current = pending[key], current.id == request.id else { return .failed(.changed) }
+        current.readers -= 1
+        pending[key] = current.readers == 0 ? nil : current
+        let lifetime: TimeInterval = if case .failed = result { 10 } else { 60 }
+        entries[key] = Entry(state: result, expires: now().addingTimeInterval(lifetime), used: now())
+        while entries.count > 8, let oldest = entries.min(by: { $0.value.used < $1.value.used })?.key { entries[oldest] = nil }
         return result
+    }
+
+    func invalidate(_ identity: ProjectPullRequestReviewIdentity) {
+        entries = entries.filter { $0.key.identity.url != identity.url }
+        for key in pending.keys.filter({ $0.identity.url == identity.url }) {
+            pending.removeValue(forKey: key)?.task.cancel()
+        }
     }
 }

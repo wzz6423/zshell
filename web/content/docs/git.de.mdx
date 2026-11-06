@@ -46,7 +46,9 @@ Die Steuerelemente über dem Diff speichern zwei Einstellungen global:
 
 Gestagte Diffs und Diffs früherer Commits bleiben schreibgeschützt, da sie Momentaufnahmen sind. Wenn Sie einen Diff auf Bearbeiten oder Geteilt umstellen, übernehmen andere geöffnete Diffs diese Voreinstellung. Schreibgeschützte Diffs werden dadurch nicht bearbeitbar.
 
-Wählen Sie im Datei-Diff **PR-Kommentare**, um die GitHub-Diskussionen des aktuellen Branchs anhand des geprüften Vergleichs zu lesen. Diese Ansicht ist schreibgeschützt und blendet veraltete Kommentare aus. **Zurück zu Änderungen** zeigt wieder Ihre lokalen Änderungen.
+Wählen Sie im Datei-Diff **PR-Kommentare**, um die GitHub-Diskussionen des aktuellen Branchs anhand des geprüften Vergleichs zu lesen. Der Diff bleibt schreibgeschützt und blendet veraltete Kommentare aus. Klicken Sie auf einen Kommentar, um die ganze Diskussion zu öffnen, zu antworten oder mit entsprechender Berechtigung **Diskussion lösen** / **Diskussion wieder öffnen** zu wählen. **Zurück zu Änderungen** zeigt wieder Ihre lokalen Änderungen.
+
+Mit **Pull Request prüfen…** in der Symbolleiste der PR-Kommentare senden Sie **Kommentieren** (Standard), **Genehmigen** oder **Änderungen anfordern** zum angezeigten Commit. Dafür brauchen Sie ein lokales GitHub-Repository und eine Anmeldung im GitHub CLI (`gh auth login`). Ein geänderter Branch oder PR-Stand verhindert das Senden; bei einem Fehler bleibt der Entwurf erhalten. Ist das Ergebnis unklar, prüfen Sie es über **Auf GitHub öffnen** und wählen Sie anschließend **Aktualisieren** und **Ich habe GitHub geprüft**, bevor Sie erneut senden.
 
 ## Commits erstellen [#committing]
 

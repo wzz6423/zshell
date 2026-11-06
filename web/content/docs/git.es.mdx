@@ -46,7 +46,9 @@ Los controles sobre la vista de diferencias recuerdan dos preferencias globales:
 
 Las diferencias preparadas y las de commits históricos siguen siendo de solo lectura porque son instantáneas, no archivos que Zshell pueda escribir con seguridad. Cambiar una vista a Editar o Dividido actualiza la preferencia de otras vistas abiertas, sin convertir en editable una que no cumpla los requisitos.
 
-En el diff de un archivo, elige **Comentarios de PR** para leer las discusiones de GitHub de la rama actual sobre la comparación revisada. Esta vista es de solo lectura y oculta los comentarios obsoletos. **Volver a los cambios** restaura el diff local.
+En el diff de un archivo, elige **Comentarios del PR** para leer las discusiones de GitHub de la rama actual sobre la comparación revisada. El diff sigue siendo de solo lectura y oculta los comentarios obsoletos. Haz clic en un comentario para abrir toda la discusión, responder o elegir **Resolver discusión** / **Reabrir discusión** si tienes permiso. **Volver a los cambios** restaura el diff local.
+
+En la barra de comentarios de PR, **Revisar solicitud…** permite enviar **Comentar** (por defecto), **Aprobar** o **Solicitar cambios** para el commit mostrado. Necesitas un repositorio GitHub local y una sesión en GitHub CLI (`gh auth login`). Un cambio de rama o de versión de la PR bloquea el envío; si falla, se conserva el borrador. Si el resultado es incierto, compruébalo con **Abrir en GitHub** y luego elige **Actualizar** y **He comprobado GitHub** antes de volver a enviar.
 
 ## Crear commits [#committing]
 
