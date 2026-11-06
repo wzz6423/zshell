@@ -6,8 +6,11 @@ private nonisolated func require(_ value: @autoclosure () -> Bool, _ message: St
 
 private actor DelayedReviewFixture {
     var calls = 0
+    let state: ProjectPullRequestReviewState
     private var started: CheckedContinuation<Void, Never>?
     private var release: CheckedContinuation<Void, Never>?
+
+    init(state: ProjectPullRequestReviewState = .failed(.unavailable)) { self.state = state }
 
     func waitForStart() async {
         if calls > 0 { return }
@@ -25,7 +28,7 @@ private actor DelayedReviewFixture {
     func complete() { release?.resume(); release = nil }
     func lookup() async -> ProjectPullRequestReviewState {
         await run()
-        return .failed(calls == 1 ? .changed : .unavailable)
+        return state
     }
     func write() async -> Result<Void, ProjectPullRequestReviewActionError> {
         await run()
@@ -71,6 +74,8 @@ private nonisolated final class ActionFixture: @unchecked Sendable {
             require(environment["GH_REPO"] == nil && environment["GH_DEBUG"] == nil && environment["GH_HOST"] == "github.com", "Inherited overrides must be stripped")
             let payload = try JSONSerialization.jsonObject(with: input) as! [String: Any]
             let query = payload["query"] as! String
+            require(query.filter { $0 == "{" }.count == query.filter { $0 == "}" }.count,
+                    "Production GraphQL selection sets must be balanced")
             let variables = payload["variables"] as! [String: Any]
             let mutation = query.hasPrefix("mutation")
             if mutation { self.lock.withLock { self.mutations.append(payload) } }
@@ -137,6 +142,20 @@ struct ProjectPullRequestReviewActionTests {
         let root = CommandLine.arguments[1]
         let fixture = ActionFixture(root: root)
         let body = "Quoted \"reply\"\n`code` $HOME $(safe) 你好"
+        func mappedThread(startLine: Int, startSide: ProjectPullRequestReviewThread.Side?) -> ProjectPullRequestReviewThread {
+            ProjectPullRequestReviewThread(id: "THREAD_1", path: fixture.target.path, line: 2, startLine: startLine,
+                diffSide: .right, startDiffSide: startSide, isResolved: false, isOutdated: false, subjectType: "LINE",
+                comments: .init(nodes: [.init(id: "C1", author: nil, body: body,
+                    url: fixture.target.identity.url + "#discussion_r1", commit: nil, originalCommit: nil)],
+                    pageInfo: .init(hasNextPage: false, endCursor: nil)))
+        }
+        require(mappedThread(startLine: 2, startSide: nil).isCurrent,
+                "GitHub single-line comments may include the same startLine without startDiffSide")
+        require(mappedThread(startLine: 1, startSide: .right).isCurrent,
+                "A multi-line comment must match the displayed side")
+        require(!mappedThread(startLine: 1, startSide: nil).isCurrent
+            && !mappedThread(startLine: 2, startSide: .left).isCurrent,
+                "Missing multi-line sides and mismatched explicit sides stay rejected")
         require(GitHubPullRequestReviewActions.currentContext(fixture.target.identity.context), "Actual Git context resolves")
         let loaded = GitHubPullRequestReviewActions.query(fixture.target, threadID: "THREAD_1", environment: [:],
             locate: { _ in URL(fileURLWithPath: "/usr/bin/true") }, command: fixture.command())
@@ -229,14 +248,22 @@ struct ProjectPullRequestReviewActionTests {
         let accepted = await exclusive.perform(otherTarget, action: .review(.approve, body: ""))
         require(accepted.failure == nil, "Completing a write releases the shared PR lock")
 
-        let delayedRead = DelayedReviewFixture()
+        let oldFile = ProjectPullRequestReviewFile(identity: otherIdentity,
+            baseOID: fixture.target.baseOID, headOID: fixture.target.headOID, mergeBaseOID: fixture.target.baseOID,
+            path: fixture.target.path, oldPath: fixture.target.path, oldContents: "old", newContents: "old",
+            threads: [], outdatedThreadCount: 0)
+        let delayedRead = DelayedReviewFixture(state: .ready(oldFile))
         let cache = ProjectPullRequestReviewCache(lookup: { _, _ in await delayedRead.lookup() })
         let pendingRead = Task { await cache.value(for: otherIdentity, path: fixture.target.path) }
+        let sharedRead = Task { await cache.value(for: otherIdentity, path: fixture.target.path) }
         await delayedRead.waitForStart()
+        try? await Task.sleep(nanoseconds: 20_000_000)
         await cache.invalidate(fixture.target.identity)
         await delayedRead.complete()
         let staleResult = await pendingRead.value
-        require(staleResult == .failed(.changed), "An old reader may finish after invalidation")
+        let sharedStaleResult = await sharedRead.value
+        require(staleResult == .failed(.changed) && sharedStaleResult == .failed(.changed),
+                "All in-flight readers reject old ready snapshots after a write in another worktree")
         _ = await cache.value(for: otherIdentity, path: fixture.target.path)
         let reloaded = await delayedRead.calls
         require(reloaded == 2, "An invalidated in-flight read cannot repopulate another worktree’s cache")
@@ -244,6 +271,18 @@ struct ProjectPullRequestReviewActionTests {
         _ = await cache.value(for: otherIdentity, path: fixture.target.path)
         let invalidated = await delayedRead.calls
         require(invalidated == 3, "Completed caches for the same PR are invalidated across worktrees")
+
+        let sharedFixture = DelayedReviewFixture(state: .ready(oldFile))
+        let sharedCache = ProjectPullRequestReviewCache(lookup: { _, _ in await sharedFixture.lookup() })
+        let firstReader = Task { await sharedCache.value(for: otherIdentity, path: fixture.target.path) }
+        let secondReader = Task { await sharedCache.value(for: otherIdentity, path: fixture.target.path) }
+        await sharedFixture.waitForStart()
+        try? await Task.sleep(nanoseconds: 20_000_000)
+        await sharedFixture.complete()
+        let firstResult = await firstReader.value, secondResult = await secondReader.value
+        let sharedCalls = await sharedFixture.calls
+        require(firstResult == .ready(oldFile) && secondResult == .ready(oldFile) && sharedCalls == 1,
+                "Both callers of one valid pending lookup receive its ready result")
         print("PR review actions: full discussion, literal JSON reply, resolve/unresolve, three review decisions, permissions, exact revision, branch races, uncertain writes and cross-worktree coordination passed")
     }
 }

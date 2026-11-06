@@ -10,6 +10,7 @@ final class ProjectPullRequestReviewController: NSWindowController, NSWindowDele
     private var loading = false
     private var writing = false
     private var uncertain = false
+    private var reloadWhenReady = false
     private var generation: UInt = 0
     private var feedback = Feedback.none
     private var observations: [AnyCancellable] = []
@@ -57,8 +58,8 @@ final class ProjectPullRequestReviewController: NSWindowController, NSWindowDele
         panel.delegate = self
         makeContent()
         observations = [
-            diff.objectWillChange.sink { [weak self] _ in DispatchQueue.main.async { self?.refreshControls() } },
-            diff.pullRequest.objectWillChange.sink { [weak self] _ in DispatchQueue.main.async { self?.refreshControls() } },
+            diff.objectWillChange.sink { [weak self] _ in DispatchQueue.main.async { self?.diffDidChange() } },
+            diff.pullRequest.objectWillChange.sink { [weak self] _ in DispatchQueue.main.async { self?.diffDidChange() } },
             NotificationCenter.default.publisher(for: AppLocalization.didChange).sink { [weak self] _ in self?.localize() },
         ]
         localize()
@@ -97,6 +98,22 @@ final class ProjectPullRequestReviewController: NSWindowController, NSWindowDele
         reviewPicker.selectItem(at: 0)
         localize()
         load()
+    }
+
+    func discussionDidChange() {
+        generation &+= 1
+        loading = false
+        access = nil
+        reloadWhenReady = true
+        feedback = .loading
+        renderDiscussion()
+    }
+
+    private func diffDidChange() {
+        if reloadWhenReady && isCurrent && !writing {
+            reloadWhenReady = false
+            load()
+        } else { refreshControls() }
     }
 
     private func makeContent() {
@@ -216,6 +233,7 @@ final class ProjectPullRequestReviewController: NSWindowController, NSWindowDele
 
     private func load() {
         guard isCurrent, !writing else { refreshControls(); return }
+        reloadWhenReady = false
         generation &+= 1
         let current = generation, target = target, threadID = threadID
         loading = true
@@ -249,6 +267,11 @@ final class ProjectPullRequestReviewController: NSWindowController, NSWindowDele
         let target = target
         Task { [weak self] in
             let result = await ProjectPullRequestReviewActionCoordinator.shared.perform(target, action: action)
+            if case .success = result {
+                NotificationCenter.default.post(name: DiffTab.pullRequestReviewDidChange, object: target.identity.url)
+            } else if case .failure(.outcomeUnknown) = result {
+                NotificationCenter.default.post(name: DiffTab.pullRequestReviewDidChange, object: target.identity.url)
+            }
             guard let self else { return }
             self.writing = false
             switch result {
@@ -257,13 +280,12 @@ final class ProjectPullRequestReviewController: NSWindowController, NSWindowDele
                 if case .review = action { self.editor.string = "" }
                 self.feedback = .submitted
                 if case .review = action { self.window?.close() }
-                else { self.load() }
-                self.diff?.showPullRequestComments(force: true)
             case .failure(let error):
                 self.uncertain = error == .outcomeUnknown
                 self.feedback = .failure(error)
                 self.refreshControls()
             }
+            self.diffDidChange()
         }
     }
 

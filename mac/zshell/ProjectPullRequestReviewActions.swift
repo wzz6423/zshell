@@ -342,7 +342,7 @@ nonisolated enum GitHubPullRequestReviewActions {
         query($id:ID!,$cursor:String){node(id:$id){...on PullRequestReviewThread{
         id path line startLine diffSide startDiffSide isResolved isOutdated subjectType
         viewerCanReply viewerCanResolve viewerCanUnresolve pullRequest{\(identityFields)}
-        comments(first:100,after:$cursor){pageInfo{hasNextPage endCursor} nodes{id author{login} body url commit{oid} originalCommit{oid}}}}}
+        comments(first:100,after:$cursor){pageInfo{hasNextPage endCursor} nodes{id author{login} body url commit{oid} originalCommit{oid}}}}}}
         """
 }
 

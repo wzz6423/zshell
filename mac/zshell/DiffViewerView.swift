@@ -86,6 +86,7 @@ final class DiffWebModel: nonisolated ObservableObject {
 /// reloads when the view reappears.
 @MainActor
 final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
+    static let pullRequestReviewDidChange = Notification.Name("zshell.pullRequestReviewDidChange")
     nonisolated struct TreeComparison: Sendable {
         let before: String
         let after: String
@@ -127,6 +128,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     @Published private(set) var pullRequestReviewState: ProjectPullRequestReviewState = .idle
     @Published private(set) var pullRequestWebHostView: NSView?
     private var pullRequestObservation: AnyCancellable?
+    private var reviewActionObservation: AnyCancellable?
     private var pullRequestIdentity: ProjectPullRequestReviewIdentity?
     private var pullRequestGeneration: UInt = 0
     private var pullRequestReviewController: ProjectPullRequestReviewController?
@@ -186,6 +188,19 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         pullRequestObservation = pullRequest.$state.removeDuplicates().sink { [weak self] _ in
             DispatchQueue.main.async { self?.pullRequestChanged() }
         }
+        reviewActionObservation = NotificationCenter.default.publisher(for: Self.pullRequestReviewDidChange)
+            .sink { [weak self] notification in
+                guard let self, let url = notification.object as? String,
+                      self.currentPullRequestIdentity?.url == url else { return }
+                self.pullRequestReviewController?.discussionDidChange()
+                if self.showsPullRequestComments || self.pullRequestReviewController?.window?.isVisible == true {
+                    self.showPullRequestComments(force: true, preserveVisibility: true)
+                }
+                else {
+                    self.pullRequestGeneration &+= 1
+                    self.pullRequestReviewState = .idle
+                }
+            }
         pullRequestWeb.onAnnotationClick = { [weak self] id in
             guard let self, case .ready(let file) = self.pullRequestReviewState,
                   file.identity == self.currentPullRequestIdentity,
@@ -393,10 +408,10 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         if showsPullRequestComments { pullRequestReviewState = .failed(.changed) }
     }
 
-    func showPullRequestComments(force: Bool = false) {
+    func showPullRequestComments(force: Bool = false, preserveVisibility: Bool = false) {
         pullRequestChanged()
         guard canShowPullRequestComments, let identity = currentPullRequestIdentity else { return }
-        showsPullRequestComments = true
+        if !preserveVisibility { showsPullRequestComments = true }
         pullRequestGeneration &+= 1
         let generation = pullRequestGeneration
         pullRequestReviewState = .loading
