@@ -317,7 +317,7 @@ final class BrowserWebExtensionRuntime: NSObject, WKWebExtensionControllerDelega
         }
         let previous = tab.hostWindow
         tab.hostWindow = windows[windowKey]
-        if previous !== tab.hostWindow { controller.didMoveTab(tab, from: 0, in: previous) }
+        if let previous, previous !== tab.hostWindow { controller.didMoveTab(tab, from: 0, in: previous) }
         removeEmptyWindows()
         notifyFocus()
     }
@@ -349,7 +349,7 @@ final class BrowserWebExtensionRuntime: NSObject, WKWebExtensionControllerDelega
     func refresh() {
         guard let store else { return }
         let enabled = store.entries.filter(\.isEnabled)
-        guard requestedEntries != enabled else { return }
+        guard requestedEntries != enabled || loading == nil && enabled.contains(where: { contexts[$0.id] == nil }) else { return }
         requestedEntries = enabled
         revision &+= 1
         loading?.cancel()

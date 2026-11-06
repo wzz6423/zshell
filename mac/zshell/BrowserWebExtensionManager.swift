@@ -190,7 +190,7 @@ final class BrowserWebExtensionManager: NSObject, NSWindowDelegate, NSTableViewD
     static func permissionAlert(name: String, details: [String], installing: Bool) -> NSAlert {
         let alert = NSAlert()
         alert.messageText = name
-        alert.informativeText = String(localized: "This extension can use the listed APIs and read or change pages on the listed websites. Only install extensions you trust.")
+        alert.informativeText = String(localized: "This extension can use the listed APIs and read or change pages on the listed websites. With activeTab, it can read or change the current page when you invoke its action. Only install extensions you trust.")
         let text = NSTextView(frame: NSRect(x: 0, y: 0, width: 440, height: 150))
         text.isEditable = false
         text.isRichText = false

@@ -39,6 +39,10 @@ struct BrowserWebExtensionTests {
             try await verifySSH(fixture)
             return
         }
+        if CommandLine.arguments.count > 3, ["events", "retry", "warning"].contains(CommandLine.arguments[3]) {
+            try await verifyReviewBoundaries(base, fixture: fixture, mode: CommandLine.arguments[3])
+            return
+        }
         let malformed = fixture.appendingPathComponent("malformed")
         do { _ = try await store.prepare(malformed); throw error("Invalid manifest installed") }
         catch BrowserWebExtensionStore.StoreError.invalid { }
@@ -251,6 +255,80 @@ struct BrowserWebExtensionTests {
         try store.setEnabled(false, id: archive.id)
         try require(reopened.webExtensions.controller.extensionContexts.isEmpty, "Disabling reopened runtime left extension loaded")
         print("Last-pane close unloads contexts/popup/options, reopen creates working runtime, disable still applies: passed")
+    }
+
+    @MainActor private static func verifyReviewBoundaries(_ base: String, fixture: URL, mode: String) async throws {
+        let store = BrowserWebExtensionStore.shared
+        if mode == "warning" {
+            for language in AppLanguage.allCases where language != .system {
+                AppLocalization.apply(language)
+                let alert = BrowserWebExtensionManager.permissionAlert(name: "Active Tab Fixture", details: ["activeTab", "scripting"], installing: true)
+                try require(alert.informativeText.contains("activeTab"), "Installation warning does not explain activeTab page access: \(language.rawValue)")
+                if language == .english { try require(alert.informativeText.contains("current page when you invoke its action"), "English activeTab warning is unclear") }
+            }
+            print("Installation warning explains activeTab access on explicit action in all 17 languages: passed")
+            return
+        }
+        let browser = BrowserTab(initialFocus: .none)
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 600), styleMask: [.titled], backing: .buffered, defer: false)
+        window.identifier = .init("main-extension-review-test")
+        window.contentView = browser.webView
+        defer { browser.close(); window.contentView = nil; window.orderOut(nil) }
+        let (entry, _) = try await store.prepare(fixture.appendingPathComponent("events"))
+        try store.install(entry)
+        try await until { browser.webExtensions.controller.extensionContexts.count == 1 }
+        let context = browser.webExtensions.controller.extensionContexts.first!
+        let tab = browser.webExtensions.tabs.first!
+        guard let popup = context.action(for: tab)?.popupWebView else { throw error("Event reporter popup missing") }
+        try await until { popup.url != nil && !popup.isLoading }
+        _ = try await popup.callAsyncJavaScript("return await browser.runtime.sendMessage({eventReset:true});", arguments: [:], in: nil, contentWorld: .page)
+        if mode == "events" {
+            let opened = BrowserTab(initialFocus: .none)
+            defer { opened.close() }
+            let events = try await tabEvents(popup, expecting: 1)
+            print("New-pane WebExtension tab events:", events)
+            try require(events.count == 1 && events[0]["type"] as? String == "created", "New browser pane emits move/detach before creation: \(events)")
+            AppSettings.shared.preserveTerminalSessions = false
+            AppSettings.shared.restoreTerminalHistory = false
+            let destination = TerminalManager()
+            defer { destination.projects.forEach { $0.terminateAll() } }
+            opened.transferHost(to: destination)
+            let moved = try await tabEvents(popup, expecting: 3)
+            try require(moved[0]["type"] as? String == "created" && moved.dropFirst().allSatisfy { ["detached", "attached", "moved"].contains($0["type"] as? String ?? "") },
+                        "A known-window move did not follow creation: \(moved)")
+            print("Known-window WebExtension tab events:", moved)
+        } else {
+            let (transient, _) = try await store.prepare(fixture.appendingPathComponent("transient"))
+            let resource = store.resourceURL(for: transient)
+            let unavailable = resource.deletingLastPathComponent().appendingPathComponent("unavailable")
+            try FileManager.default.moveItem(at: resource, to: unavailable)
+            try store.install(transient)
+            try await until { store.error != nil }
+            try require(browser.webExtensions.controller.extensionContexts.count == 1, "A failed extension removed the successful context")
+            try FileManager.default.moveItem(at: unavailable, to: resource)
+            browser.webExtensions.refresh()
+            browser.webExtensions.refresh()
+            try await until { browser.webExtensions.controller.extensionContexts.count == 2 }
+            try require(browser.webExtensions.controller.extensionContexts.contains(context), "Retry replaced an already loaded context")
+            let events = try await tabEvents(popup, expecting: 0)
+            try require(events.isEmpty, "Retry re-emitted existing tab events: \(events)")
+            try await load(browser, base + "/page?retry")
+            try await injected(browser)
+            try await store.remove(id: transient.id)
+            print("Transient load recovers on refresh without replacing successful context or duplicating tab events: passed")
+        }
+        context.action(for: tab)?.closePopup()
+        try await store.remove(id: entry.id)
+    }
+
+    @MainActor private static func tabEvents(_ popup: WKWebView, expecting count: Int) async throws -> [[String: Any]] {
+        let deadline = Date().addingTimeInterval(8)
+        while Date() < deadline {
+            let values = try await popup.callAsyncJavaScript("return await browser.runtime.sendMessage({eventList:true});", arguments: [:], in: nil, contentWorld: .page) as? [[String: Any]] ?? []
+            if values.count >= count { return values }
+            try await Task.sleep(for: .milliseconds(30))
+        }
+        throw error("WebExtension tab event callback timed out")
     }
 
     @MainActor private static func verifySSH(_ fixture: URL) async throws {

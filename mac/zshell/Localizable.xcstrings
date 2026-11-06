@@ -153024,109 +153024,109 @@
         }
       }
     },
-    "This extension can use the listed APIs and read or change pages on the listed websites. Only install extensions you trust.": {
+    "This extension can use the listed APIs and read or change pages on the listed websites. With activeTab, it can read or change the current page when you invoke its action. Only install extensions you trust.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This extension can use the listed APIs and read or change pages on the listed websites. Only install extensions you trust."
+            "value": "This extension can use the listed APIs and read or change pages on the listed websites. With activeTab, it can read or change the current page when you invoke its action. Only install extensions you trust."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此扩展可以使用列出的 API，并读取或更改列出网站中的页面。请只安装你信任的扩展。"
+            "value": "此扩展可以使用列出的 API，并读取或更改列出网站中的页面。如果有 activeTab 权限，它可以在你执行扩展动作时读取或更改当前页面。请只安装你信任的扩展。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "此擴充功能可以使用列出的 API，並讀取或變更列出網站中的頁面。請只安裝你信任的擴充功能。"
+            "value": "此擴充功能可以使用列出的 API，並讀取或變更列出網站中的頁面。若有 activeTab 權限，它可以在你執行擴充功能動作時讀取或變更目前頁面。請只安裝你信任的擴充功能。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "この拡張機能は、表示された API を使用し、表示されたウェブサイトのページを読み取ったり変更したりできます。信頼できる拡張機能のみインストールしてください。"
+            "value": "この拡張機能は、表示された API を使用し、表示されたウェブサイトのページを読み取ったり変更したりできます。activeTab 権限がある場合、アクションを実行すると現在のページを読み取ったり変更したりできます。信頼できる拡張機能のみインストールしてください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 확장 프로그램은 표시된 API를 사용하고 표시된 웹사이트의 페이지를 읽거나 변경할 수 있습니다. 신뢰하는 확장 프로그램만 설치하세요."
+            "value": "이 확장 프로그램은 표시된 API를 사용하고 표시된 웹사이트의 페이지를 읽거나 변경할 수 있습니다. activeTab 권한이 있으면 확장 동작을 실행할 때 현재 페이지를 읽거나 변경할 수 있습니다. 신뢰하는 확장 프로그램만 설치하세요."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cette extension peut utiliser les API indiquées et lire ou modifier les pages des sites indiqués. Installez uniquement des extensions de confiance."
+            "value": "Cette extension peut utiliser les API indiquées et lire ou modifier les pages des sites indiqués. Avec activeTab, elle peut lire ou modifier la page actuelle lorsque vous lancez son action. Installez uniquement des extensions de confiance."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diese Erweiterung kann die aufgeführten APIs verwenden und Seiten der aufgeführten Websites lesen oder ändern. Installiere nur Erweiterungen, denen du vertraust."
+            "value": "Diese Erweiterung kann die aufgeführten APIs verwenden und Seiten der aufgeführten Websites lesen oder ändern. Mit activeTab kann sie die aktuelle Seite lesen oder ändern, wenn du ihre Aktion ausführst. Installiere nur Erweiterungen, denen du vertraust."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esta extensión puede usar las API indicadas y leer o modificar páginas de los sitios indicados. Instala solo extensiones de confianza."
+            "value": "Esta extensión puede usar las API indicadas y leer o modificar páginas de los sitios indicados. Con activeTab, puede leer o modificar la página actual cuando ejecutas su acción. Instala solo extensiones de confianza."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esta extensão pode usar as APIs listadas e ler ou alterar páginas dos sites listados. Instale apenas extensões confiáveis."
+            "value": "Esta extensão pode usar as APIs listadas e ler ou alterar páginas dos sites listados. Com activeTab, ela pode ler ou alterar a página atual quando você executa sua ação. Instale apenas extensões confiáveis."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Questa estensione può usare le API elencate e leggere o modificare le pagine dei siti elencati. Installa solo estensioni di cui ti fidi."
+            "value": "Questa estensione può usare le API elencate e leggere o modificare le pagine dei siti elencati. Con activeTab, può leggere o modificare la pagina attuale quando esegui la sua azione. Installa solo estensioni di cui ti fidi."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deze extensie kan de genoemde API’s gebruiken en pagina’s op de genoemde websites lezen of wijzigen. Installeer alleen extensies die je vertrouwt."
+            "value": "Deze extensie kan de genoemde API’s gebruiken en pagina’s op de genoemde websites lezen of wijzigen. Met activeTab kan de extensie de huidige pagina lezen of wijzigen wanneer je de actie uitvoert. Installeer alleen extensies die je vertrouwt."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Это расширение может использовать перечисленные API и читать или изменять страницы перечисленных сайтов. Устанавливайте только расширения, которым доверяете."
+            "value": "Это расширение может использовать перечисленные API и читать или изменять страницы перечисленных сайтов. С activeTab оно может читать или изменять текущую страницу, когда вы вызываете его действие. Устанавливайте только расширения, которым доверяете."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "يمكن لهذه الإضافة استخدام واجهات API المدرجة وقراءة صفحات المواقع المدرجة أو تغييرها. ثبّت الإضافات التي تثق بها فقط."
+            "value": "يمكن لهذه الإضافة استخدام واجهات API المدرجة وقراءة صفحات المواقع المدرجة أو تغييرها. مع activeTab، يمكنها قراءة الصفحة الحالية أو تغييرها عند تشغيل إجراء الإضافة. ثبّت الإضافات التي تثق بها فقط."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "ส่วนขยายนี้สามารถใช้ API ที่ระบุและอ่านหรือเปลี่ยนแปลงหน้าเว็บของเว็บไซต์ที่ระบุ ติดตั้งเฉพาะส่วนขยายที่คุณไว้วางใจ"
+            "value": "ส่วนขยายนี้สามารถใช้ API ที่ระบุและอ่านหรือเปลี่ยนแปลงหน้าเว็บของเว็บไซต์ที่ระบุ เมื่อมีสิทธิ์ activeTab ส่วนขยายสามารถอ่านหรือเปลี่ยนแปลงหน้าปัจจุบันได้เมื่อคุณเรียกการทำงาน ติดตั้งเฉพาะส่วนขยายที่คุณไว้วางใจ"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ekstensi ini dapat menggunakan API yang tercantum serta membaca atau mengubah halaman di situs yang tercantum. Instal hanya ekstensi yang Anda percayai."
+            "value": "Ekstensi ini dapat menggunakan API yang tercantum serta membaca atau mengubah halaman di situs yang tercantum. Dengan activeTab, ekstensi dapat membaca atau mengubah halaman saat ini ketika Anda menjalankan tindakannya. Instal hanya ekstensi yang Anda percayai."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tiện ích này có thể dùng các API được liệt kê và đọc hoặc thay đổi trang trên các trang web được liệt kê. Chỉ cài tiện ích mà bạn tin cậy."
+            "value": "Tiện ích này có thể dùng các API được liệt kê và đọc hoặc thay đổi trang trên các trang web được liệt kê. Với activeTab, tiện ích có thể đọc hoặc thay đổi trang hiện tại khi bạn chạy thao tác của nó. Chỉ cài tiện ích mà bạn tin cậy."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bu uzantı listelenen API’leri kullanabilir ve listelenen sitelerdeki sayfaları okuyabilir veya değiştirebilir. Yalnızca güvendiğiniz uzantıları yükleyin."
+            "value": "Bu uzantı listelenen API’leri kullanabilir ve listelenen sitelerdeki sayfaları okuyabilir veya değiştirebilir. activeTab ile, işlemini çalıştırdığınızda geçerli sayfayı okuyabilir veya değiştirebilir. Yalnızca güvendiğiniz uzantıları yükleyin."
           }
         }
       }

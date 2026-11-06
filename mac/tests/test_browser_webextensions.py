@@ -102,6 +102,26 @@ with tempfile.TemporaryDirectory(prefix="zshell-webextensions-", dir="/tmp") as 
     });""")
     (extension / "popup.html").write_text('<!doctype html><body><p id="popup">Extension popup</p></body>')
     (extension / "options.html").write_text('<!doctype html><body><p>Extension options</p></body>')
+    events = fixture / "events"
+    events.mkdir()
+    (events / "manifest.json").write_text(json.dumps({"manifest_version": 3, "name": "Tab Events Fixture",
+        "description": "Disposable tab event fixture", "version": "1.0", "permissions": ["tabs", "storage"],
+        "background": {"service_worker": "background.js"}, "action": {"default_popup": "popup.html"}}))
+    (events / "popup.html").write_text((extension / "popup.html").read_text())
+    (events / "background.js").write_text("""let events = [];
+      for (const [name, event] of [['created', browser.tabs.onCreated], ['moved', browser.tabs.onMoved],
+                                  ['detached', browser.tabs.onDetached], ['attached', browser.tabs.onAttached]]) {
+        event.addListener((tab, detail) => { events.push({type:name,id:name === 'created' ? tab.id : tab}); });
+      }
+      browser.runtime.onMessage.addListener(message => {
+        if (message.eventReset) { events = []; return Promise.resolve(true); }
+        return Promise.resolve(events);
+      });""")
+    transient = fixture / "transient"
+    transient.mkdir()
+    (transient / "manifest.json").write_text(json.dumps(dict(manifest, name="Transient Load Fixture")))
+    for resource in ["content.js", "background.js", "popup.html", "options.html"]:
+        (transient / resource).write_text((extension / resource).read_text())
     dnr = fixture / "dnr"
     dnr.mkdir()
     (dnr / "manifest.json").write_text(json.dumps({"manifest_version": 3, "name": "DNR Fixture",
@@ -172,6 +192,12 @@ with tempfile.TemporaryDirectory(prefix="zshell-webextensions-", dir="/tmp") as 
     threading.Thread(target=server.serve_forever, daemon=True).start()
     base = f"http://127.0.0.1:{server.server_port}"
     try:
+        for mode in ["retry", "warning", "events"]:
+            review_home = temporary / mode
+            (review_home / ".config/zshell-dev").mkdir(parents=True)
+            (review_home / ".config/zshell-dev/config.toml").write_text("ai.enabled = false\nbrowser.content-blocking = false\n")
+            review_environment = dict(environment, HOME=str(review_home), CFFIXED_USER_HOME=str(review_home))
+            subprocess.run([str(binary), base, str(fixture), mode], cwd=ROOT, env=review_environment, check=True, timeout=100)
         subprocess.run([str(binary), base, str(fixture)], cwd=ROOT, env=environment, check=True, timeout=100)
         assert not any("remote-background" in path or "remote-popup" in path for path in Page.requests), Page.requests
         assert not any(path.startswith("/dnr-blocked?enabled") for path in Page.requests), Page.requests
