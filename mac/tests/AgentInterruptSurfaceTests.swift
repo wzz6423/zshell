@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 import GhosttyTerminal
 @testable import zshell
 
@@ -35,6 +36,7 @@ struct AgentInterruptSurfaceTests {
         app.setActivationPolicy(.prohibited)
         let backend = CommandLine.arguments[1]
         let root = URL(fileURLWithPath: CommandLine.arguments[2])
+        let inheritsProcessGroup = CommandLine.arguments.count > 3 && CommandLine.arguments[3] == "inherited"
         let fixture = root.appendingPathComponent("claude.py")
         AppSettings.shared.terminalBackend = backend == "ghostty" ? .libghostty : .alacritty
         AppSettings.shared.terminalStartupProgram = ""
@@ -84,10 +86,18 @@ struct AgentInterruptSurfaceTests {
         }
         try wait("real Claude fixture owns the foreground PTY") {
             session.surface.foregroundPid != nil && session.shellPid != nil
-                && ZshellAgentKind.recognize(processID: session.surface.foregroundPid!) == .claude
+                && ZshellAgentKind.recognize(processID: session.shellPid!) == .claude
                 && text().contains("❯ restored prompt")
         }
-        let owner = session.surface.foregroundPid!
+        let owner = session.shellPid!
+        if inheritsProcessGroup {
+            try check(session.surface.foregroundPid != owner && getpgid(owner) == session.surface.foregroundPid,
+                      "direct Ghostty launch inherits its exited leader's foreground group")
+            try check(ZshellAgentProcessIdentity(pid: session.surface.foregroundPid!) == nil,
+                      "the inherited foreground leader is no longer a live owner")
+        } else {
+            try check(session.surface.foregroundPid == owner, "job-controlled provider owns its foreground group")
+        }
         let identity = AgentConversationIdentity(provider: .claude, sessionID: UUID().uuidString,
                                                   workingDirectory: root.path)!
         try check(session.recordAgentConversation(identity, processID: owner), "provider conversation is retained")
@@ -159,6 +169,29 @@ struct AgentInterruptSurfaceTests {
                   "an active child stays working after its parent is interrupted")
         try hook("SubagentStop", child: "active-child")
 
+        try hook("PermissionRequest", child: "waiting-child")
+        try working()
+        key("\u{1b}", code: 53)
+        try check(session.agentObservation.pendingInterrupt == nil, "a waiting child prevents parent interrupt inference")
+        try hook("SubagentStop", child: "waiting-child")
+
+        try working(restore: false)
+        try escape()
+        try JSONSerialization.data(withJSONObject: ["busy": true, "foregroundChild": true])
+            .write(to: root.appendingPathComponent("command.json"), options: .atomic)
+        try wait("a different live child becomes foreground") {
+            session.surface.foregroundPid != owner
+                && session.surface.foregroundPid.map { ZshellAgentProcessIdentity(pid: $0) != nil } == true
+        }
+        try wait("foreground ownership change cancels the candidate") { session.agentObservation.pendingInterrupt == nil }
+        try check(session.agentObservation.integrationPhase == .working,
+                  "a live foreground child cannot settle its parent's turn")
+        key("\u{1b}", code: 53)
+        try check(session.agentObservation.pendingInterrupt == nil, "a foreground child cannot start a parent candidate")
+        try JSONSerialization.data(withJSONObject: ["busy": true, "foregroundChild": false])
+            .write(to: root.appendingPathComponent("command.json"), options: .atomic)
+        try wait("provider regains its foreground group") { session.surface.foregroundPid == getpgid(owner) }
+
         try working(restore: false)
         try escape()
         try remainsWorking()
@@ -203,10 +236,28 @@ struct AgentInterruptSurfaceTests {
         try remainsWorking()
 
         try working()
+        try escape()
+        let replacementIdentity = AgentConversationIdentity(provider: .claude, sessionID: UUID().uuidString,
+                                                             workingDirectory: root.path)!
+        try check(session.recordAgentConversation(replacementIdentity, processID: owner),
+                  "the same process can bind a newer conversation")
+        try wait("a conversation change cancels the candidate") { session.agentObservation.pendingInterrupt == nil }
+        try remainsWorking()
+        try check(session.recordAgentConversation(identity, processID: owner), "the fixture restores its original conversation")
+
+        try working()
         session.terminalIsAtLiveBottom = false
         key("\u{1b}", code: 53)
         try check(session.agentObservation.pendingInterrupt == nil, "scrollback never becomes interrupt evidence")
         session.terminalIsAtLiveBottom = true
+
+        try working(restore: false)
+        try escape()
+        Darwin.kill(owner, SIGTERM)
+        try wait("exiting owner clears the pending candidate and native status") {
+            session.agentObservation.pendingInterrupt == nil
+                && session.agentObservation.integrationOwner == nil && session.agentStatus == nil
+        }
         print("\(checks) local \(backend) Agent interrupt production checks passed")
     }
 }

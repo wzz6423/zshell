@@ -57,18 +57,31 @@ with tempfile.TemporaryDirectory(prefix="zshell-interrupt-surfaces-", dir="/tmp"
         "-o", str(binary), str(root / "mac/tests/AgentInterruptSurfaceTests.swift"),
     ]
     subprocess.run(arguments, cwd=root, check=True)
-    for backend in ("alacritty", "ghostty"):
-        home = temporary / backend
+    for backend, group in (("alacritty", "owned"), ("ghostty", "owned"), ("ghostty", "inherited")):
+        home = temporary / f"{backend}-{group}"
         home.mkdir()
         fixture = home / "claude.py"
         fixture.write_text(r'''
-import json, os, select, signal, sys, tty
+import json, os, select, signal, subprocess, sys, tty
 from pathlib import Path
 root = Path(sys.argv[1])
 signal.signal(signal.SIGTTOU, signal.SIG_IGN)
-if os.getpid() != os.getpgrp(): os.setpgid(0, 0)
-os.tcsetpgrp(0, os.getpgrp())
+if os.environ.get("INTERRUPT_TEST_GROUP") != "inherited":
+    if os.getpid() != os.getpgrp(): os.setpgid(0, 0)
+    os.tcsetpgrp(0, os.getpgrp())
 tty.setraw(0)
+foreground_child = None
+def close_child():
+    global foreground_child
+    if foreground_child:
+        foreground_child.terminate()
+        foreground_child.wait(timeout=3)
+        foreground_child = None
+    os.tcsetpgrp(0, os.getpgrp())
+def stop(*args):
+    close_child()
+    raise SystemExit
+signal.signal(signal.SIGTERM, stop)
 busy = False
 restore_on_interrupt = True
 def draw():
@@ -88,10 +101,16 @@ while True:
     command = root / "command.json"
     if command.exists():
         value = json.loads(command.read_text()); command.unlink()
+        if "foregroundChild" in value:
+            if value["foregroundChild"]:
+                foreground_child = subprocess.Popen(["/bin/sleep", "30"], preexec_fn=lambda: os.setpgid(0, 0))
+                os.tcsetpgrp(0, foreground_child.pid)
+            else:
+                close_child()
         busy = value["busy"]
         restore_on_interrupt = value.get("restore", True)
         draw(); state()
-    if select.select([0], [], [], .01)[0]:
+    if foreground_child is None and select.select([0], [], [], .01)[0]:
         data = os.read(0, 4096)
         if not data: break
         with (root / "input.bin").open("ab") as output: output.write(data)
@@ -104,9 +123,10 @@ while True:
         environment.update({
             "HOME": str(home), "CFFIXED_USER_HOME": str(home),
             "XDG_CONFIG_HOME": str(home / ".config"), "XDG_DATA_HOME": str(home / ".local/share"),
+            "INTERRUPT_TEST_GROUP": group,
         })
         try:
-            subprocess.run([str(binary), backend, str(home)], cwd=root, env=environment,
+            subprocess.run([str(binary), backend, str(home), group], cwd=root, env=environment,
                            check=True, timeout=90)
         finally:
             state = home / "state.json"

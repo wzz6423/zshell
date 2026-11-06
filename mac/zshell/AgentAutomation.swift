@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import Darwin
 import Foundation
 
 enum ZshellAgentKind: String, CaseIterable, Codable, Sendable {
@@ -345,6 +346,15 @@ final class AgentAutomationMonitor {
 extension TerminalSession {
     func terminalDidCancelAgentInterrupt() { agentObservation.pendingInterrupt = nil }
 
+    private func agentInterruptOwnsForeground(_ owner: ZshellAgentProcessIdentity) -> Bool {
+        guard let foreground = surface.foregroundPid, foreground > 1 else { return false }
+        if foreground == owner.pid { return true }
+        // Ghostty's direct launch can inherit a group whose leader has exited.
+        // Only the verified root occupying our launch PID may use that group.
+        return owner.pid == shellPid && getpgid(owner.pid) == foreground
+            && ZshellAgentProcessIdentity(pid: foreground) == nil
+    }
+
     func terminalWillSendKey(_ event: NSEvent) {
         agentObservation.pendingInterrupt = nil
         let flags = event.modifierFlags.intersection([.command, .control, .option, .shift])
@@ -354,7 +364,7 @@ extension TerminalSession {
               agentObservation.declaredKind == .claude,
               agentObservation.integrationPhase == .working,
               let owner = agentObservation.integrationOwner, owner.isAlive,
-              surface.foregroundPid == owner.pid, terminalIsAtLiveBottom,
+              agentInterruptOwnsForeground(owner), terminalIsAtLiveBottom,
               agentObservation.integrationTasks.allSatisfy({ $0.phase != .blocked }),
               !agentObservation.isCollectingAlternateScreenHistory else { return }
         guard ZshellAgentInterruptEvidence.isClaudeWorking(
@@ -370,7 +380,7 @@ extension TerminalSession {
     private func refreshAutomationAgentInterrupt(at now: Date) {
         guard var pending = agentObservation.pendingInterrupt else { return }
         guard now < pending.deadline, pending.owner == agentObservation.integrationOwner,
-              pending.owner.isAlive, surface.foregroundPid == pending.owner.pid,
+              pending.owner.isAlive, agentInterruptOwnsForeground(pending.owner),
               pending.conversationID == agentResume?.sessionID,
               agentObservation.integrationPhase == .working, terminalIsAtLiveBottom,
               !agentObservation.isCollectingAlternateScreenHistory else {
