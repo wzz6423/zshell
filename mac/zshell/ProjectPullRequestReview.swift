@@ -207,7 +207,7 @@ nonisolated enum GitHubPullRequestReviewWorker {
         do {
             let initial = try pullRequest()
             var pr = initial
-            var threads: [ProjectPullRequestReviewThread] = []
+            var fileThreads: [ProjectPullRequestReviewThread] = []
             var seenThreadIDs = Set<String>(), seenCursors = Set<String>()
             var totalComments = 0, totalBodyBytes = 0
             func account(_ comments: [ProjectPullRequestReviewComment]) throws {
@@ -217,11 +217,11 @@ nonisolated enum GitHubPullRequestReviewWorker {
                     throw ProjectPullRequestReviewState.Failure.unavailable
                 }
             }
-            for page in 0..<10 {
+            while true {
                 guard pr.headRefOid == initial.headRefOid, pr.baseRefOid == initial.baseRefOid,
                       let connection = pr.reviewThreads else { throw ProjectPullRequestReviewState.Failure.changed }
                 for var thread in connection.nodes {
-                    guard seenThreadIDs.insert(thread.id).inserted, validPath(thread.path), threads.count < threadLimit else {
+                    guard seenThreadIDs.insert(thread.id).inserted, validPath(thread.path) else {
                         throw ProjectPullRequestReviewState.Failure.unavailable
                     }
                     let initialCommentIDs = thread.comments.nodes.map(\.id)
@@ -229,8 +229,11 @@ nonisolated enum GitHubPullRequestReviewWorker {
                           Set(initialCommentIDs).count == initialCommentIDs.count else {
                         throw ProjectPullRequestReviewState.Failure.unavailable
                     }
+                    // File quotas must not be consumed by discussions on unrelated files.
+                    guard thread.path == path else { continue }
+                    guard fileThreads.count < threadLimit else { throw ProjectPullRequestReviewState.Failure.unavailable }
                     try account(thread.comments.nodes)
-                    if thread.path == path, thread.isCurrent {
+                    if thread.isCurrent {
                         var commentCursors = Set<String>()
                         var info = thread.comments.pageInfo
                         var commentIDs = Set(thread.comments.nodes.map(\.id))
@@ -253,10 +256,9 @@ nonisolated enum GitHubPullRequestReviewWorker {
                             info = node.comments.pageInfo
                         }
                     }
-                    threads.append(thread)
+                    fileThreads.append(thread)
                 }
                 guard let cursor = try nextCursor(connection.pageInfo, seen: &seenCursors) else { break }
-                guard page < 9 else { throw ProjectPullRequestReviewState.Failure.unavailable }
                 pr = try pullRequest(cursor: cursor)
             }
             let localBase = try local(["merge-base", "--all", initial.baseRefOid, initial.headRefOid], limit: 1_024)
@@ -334,7 +336,6 @@ nonisolated enum GitHubPullRequestReviewWorker {
             guard verified.headRefOid == initial.headRefOid, verified.baseRefOid == initial.baseRefOid else {
                 throw ProjectPullRequestReviewState.Failure.changed
             }
-            let fileThreads = threads.filter { $0.path == path }
             let visible = fileThreads.filter { thread in
                 let contents = thread.diffSide == .left ? old : new
                 return thread.isCurrent && thread.line! <= lineCount(contents)

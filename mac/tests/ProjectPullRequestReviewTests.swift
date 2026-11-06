@@ -42,10 +42,10 @@ private nonisolated struct ReviewFixture: Sendable {
         ["nodes": comments, "pageInfo": ["hasNextPage": cursor != nil, "endCursor": cursor as Any? ?? NSNull()]]
     }
 
-    func thread(_ id: String, side: String = "RIGHT", line: Int = 30,
+    func thread(_ id: String, path: String = "Review.swift", side: String = "RIGHT", line: Int = 30,
                 outdated: Bool = false, subject: String = "LINE", startLine: Int? = nil,
                 startSide: String? = nil, cursor: String? = nil) -> [String: Any] {
-        ["id": id, "path": "Review.swift", "line": line, "startLine": startLine as Any? ?? NSNull(),
+        ["id": id, "path": path, "line": line, "startLine": startLine as Any? ?? NSNull(),
          "diffSide": side, "startDiffSide": startSide as Any? ?? NSNull(), "isResolved": id == "left",
          "isOutdated": outdated, "subjectType": subject, "comments": connection([comment(id)], cursor: cursor)]
     }
@@ -71,12 +71,36 @@ private nonisolated struct ReviewFixture: Sendable {
                     "PR评论加载必须只读")
             var output = ""
             if arguments.contains(where: { $0.hasPrefix("query=") && $0.contains("reviewThreads") }) {
-                if mode == "duplicate" {
+                if ["many-files", "other-comments", "file-threads", "request-limit"].contains(mode) {
+                    let page = arguments.first { $0.hasPrefix("cursor=page-") }
+                        .flatMap { Int($0.dropFirst("cursor=page-".count)) } ?? 0
+                    let count = mode == "many-files" ? 601 : mode == "other-comments" ? 251 : mode == "file-threads" ? 501 : 3_100
+                    let start = page * 50, end = min(start + 50, count)
+                    let threads = (start..<end).map { index -> [String: Any] in
+                        if index == count - 1, mode != "file-threads", mode != "request-limit" { return thread("right") }
+                        var value = thread("thread-\(index)", path: mode == "file-threads" ? "Review.swift" : "Other.swift")
+                        if mode == "other-comments" {
+                            value["comments"] = connection((0..<10).map { comment("\(index)-\($0)") }, cursor: "unrelated-replies")
+                        }
+                        return value
+                    }
+                    output = response(pullRequest(threads: threads, cursor: end < count ? "page-\(page + 1)" : nil))
+                } else if mode == "other-body" || mode == "file-body" {
+                    var large = thread("large", path: mode == "other-body" ? "Other.swift" : "Review.swift")
+                    large["comments"] = connection([comment("large", body: String(repeating: "x", count: (2 << 20) + 1))])
+                    output = response(pullRequest(threads: [large, thread("right")]))
+                } else if mode == "file-comments" {
+                    output = response(pullRequest(threads: [thread("right", cursor: "comments-0")]))
+                } else if mode == "thread-duplicate" || mode == "thread-changed" {
+                    let next = arguments.contains("cursor=threads-next")
+                    output = response(pullRequest(threads: [thread(mode == "thread-duplicate" ? "same" : next ? "next" : "first", path: "Other.swift")],
+                        cursor: next ? nil : "threads-next", head: next && mode == "thread-changed" ? base : nil))
+                } else if mode == "duplicate" {
                     var duplicate = thread("right")
                     duplicate["comments"] = connection([comment("right"), comment("right")])
                     output = response(pullRequest(threads: [duplicate]))
                 } else if mode == "cursor" {
-                    output = response(pullRequest(threads: [thread("right")], cursor: "same"))
+                    output = response(pullRequest(threads: [thread("right-\(log.calls.count)")], cursor: "same"))
                 } else if arguments.contains("cursor=threads-next") {
                     output = response(pullRequest(threads: [thread("range", line: 82, startLine: 80, startSide: "RIGHT")]))
                 } else {
@@ -86,8 +110,11 @@ private nonisolated struct ReviewFixture: Sendable {
                         thread("out-of-range", line: 99_999)], cursor: "threads-next"))
                 }
             } else if arguments.contains(where: { $0.hasPrefix("query=") && $0.contains("...on PullRequestReviewThread") }) {
-                let comments = mode == "reply-duplicate" ? [comment("right")] : [comment(arguments.contains("cursor=comments-next") ? "reply-1" : "reply-2")]
-                let next = arguments.contains("cursor=comments-next") ? "comments-last" : nil
+                let page = arguments.first { $0.hasPrefix("cursor=comments-") }
+                    .flatMap { Int($0.dropFirst("cursor=comments-".count)) } ?? 0
+                let comments = mode == "file-comments" ? (0..<100).map { comment("reply-\(page)-\($0)") }
+                    : mode == "reply-duplicate" ? [comment("right")] : [comment(arguments.contains("cursor=comments-next") ? "reply-1" : "reply-2")]
+                let next = mode == "file-comments" ? "comments-\(page + 1)" : arguments.contains("cursor=comments-next") ? "comments-last" : nil
                 output = json(["data": ["node": ["id": "right", "pullRequest": pullRequest(head: mode == "reply-changed" ? base : nil),
                                                 "comments": connection(comments, cursor: next)]]])
             } else if arguments.contains(where: { $0.hasPrefix("query=") }) {
@@ -155,6 +182,27 @@ struct ProjectPullRequestReviewTests {
         require(fixture.query(mode: "duplicate") == .failed(.unavailable), "初页重复评论ID必须失败")
         require(fixture.query(mode: "reply-duplicate") == .failed(.unavailable), "跨页重复回复必须失败")
         require(fixture.query(mode: "cursor") == .failed(.unavailable), "重复cursor必须终止")
+        for mode in ["many-files", "other-comments", "other-body"] {
+            let scopeLog = ReviewQueryLog()
+            guard case .ready(let scoped) = fixture.query(mode: mode, log: scopeLog) else {
+                fatalError("无关文件讨论不得耗尽目标文件配额：\(mode)")
+            }
+            require(scoped.threads.map(\.id) == ["right"] && scoped.annotations.count == 1,
+                    "仅保留目标文件的讨论和评论")
+            require(!scopeLog.calls.contains { $0.contains("cursor=unrelated-replies") }, "无关文件回复不得额外查询")
+            if mode == "many-files" {
+                require(scopeLog.calls.filter { $0.contains(where: { $0.contains("reviewThreads") }) }.count == 13,
+                        "目标文件在第13页时必须继续读取，不能在500条讨论处失败")
+            }
+        }
+        for mode in ["file-threads", "file-comments", "file-body", "thread-duplicate"] {
+            require(fixture.query(mode: mode) == .failed(.unavailable), "单文件配额及跨页重复ID保护必须保留：\(mode)")
+        }
+        require(fixture.query(mode: "thread-changed") == .failed(.changed), "无关文件分页发生版本变化也必须拒绝显示")
+        let limitLog = ReviewQueryLog()
+        require(fixture.query(mode: "request-limit", log: limitLog) == .failed(.unavailable), "全PR扫描仍须受请求预算约束")
+        require(limitLog.calls.filter { $0.contains(where: { $0.contains("reviewThreads") }) }.count == 60,
+                "全PR扫描最多发出60次请求，不得返回不完整评论")
         let remoteLog = ReviewQueryLog()
         guard case .ready(let fallback) = fixture.query(remote: true, log: remoteLog) else { fatalError("缺本地对象时GitHub只读回退失败") }
         require(fallback.oldPath == "Before.swift" && fallback.annotations.count == 5, "回退必须保留重命名及评论")
@@ -205,6 +253,6 @@ struct ProjectPullRequestReviewTests {
             }
             print("真实GitHub PR #\(live.identity.number)：精确版本文件和评论读取通过，当前\(live.annotations.count)条评论")
         }
-        print("PR评论生产查询：merge-base/head、重命名、左右行、旧提交讨论、线程与回复分页、只读回退、失败边界和缓存通过")
+        print("PR评论生产查询：merge-base/head、重命名、左右行、旧提交讨论、线程与回复分页、单文件配额、请求预算、只读回退、失败边界和缓存通过")
     }
 }
