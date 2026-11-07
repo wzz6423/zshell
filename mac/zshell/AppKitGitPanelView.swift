@@ -69,6 +69,7 @@ final class GitPanelNSView: NSView {
     private let worktrees = GitRepositorySectionNSView()
     private let failure = GitPanelFailureView()
     private let repositoryOperation = GitPanelMessageView()
+    private let detailFailure = GitPanelMessageView()
     private let repositoryState = GitPanelPlaceholderView()
     private let commitBox = GitPanelCommitView()
     private let reviewSummary = DiffReviewSummaryNSView()
@@ -124,7 +125,7 @@ final class GitPanelNSView: NSView {
         addSubview(scrollView)
         pullRequestContainer.addSubview(pullRequest)
         for view in [header, tracking, pullRequestContainer, branchSearch, branches, worktrees,
-                     failure, repositoryOperation, repositoryState, commitBox, reviewSummary,
+                     failure, repositoryOperation, detailFailure, repositoryState, commitBox, reviewSummary,
                      fileFilter, cleanState, mergeHeader, stagedHeader, changesHeader,
                      historyHeader, mergeList, stagedList, changesList, history] {
             document.addSubview(view)
@@ -294,6 +295,10 @@ final class GitPanelNSView: NSView {
             }
             addRepositoryState()
         } else {
+            if let message = model.detailError {
+                detailFailure.configure(title: String(localized: "Git Status Unavailable"), detail: message, scale: scale)
+                addPageItem(detailFailure, inset: 10, gap: 7) { [weak detailFailure] width in detailFailure?.height(for: width) ?? 0 }
+            }
             if let branch = model.branch {
                 tracking.configure(branch: branch, upstream: model.upstream, hasUpstream: model.hasUpstream,
                                    ahead: model.ahead, behind: model.behind, scale: scale)

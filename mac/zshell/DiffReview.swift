@@ -6,6 +6,7 @@
 import AppKit
 import Combine
 import CryptoKit
+import Darwin
 import SwiftUI
 
 enum DiffReviewLayer: String, Codable, Sendable {
@@ -24,20 +25,21 @@ struct DiffReviewSnapshot: Hashable, Sendable {
     let fingerprint: String
 
     nonisolated static func fingerprint(path: String, payload: String) -> String {
-        let input = "\(path)\u{0}\(payload)"
-        return SHA256.hash(data: Data(input.utf8))
+        fingerprint(path: path, payload: Data(payload.utf8))
+    }
+
+    nonisolated static func fingerprint(path: String, payload: Data) -> String {
+        var input = Data("\(path)\u{0}".utf8)
+        input.append(payload)
+        return SHA256.hash(data: input)
             .map { String(format: "%02x", $0) }
             .joined()
     }
 }
 
 enum DiffReviewFingerprint {
-    typealias GitRunner = (_ args: [String], _ directory: String) -> (
-        status: Int32, stdout: String, stderr: String
-    )
+    typealias GitRunner = (_ args: [String], _ directory: String) -> GitCommandDataResult
 
-    /// Uses Git's binary patch representation so text, binary, mode-only,
-    /// rename, and deletion changes all receive an exact content identity.
     nonisolated static func load(
         path: String,
         originalPath: String? = nil,
@@ -47,24 +49,136 @@ enum DiffReviewFingerprint {
         in repositoryRoot: String,
         runGit: GitRunner
     ) -> String? {
+        if layer == .worktree && untracked {
+            return untrackedFingerprint(path: path, in: repositoryRoot)
+        }
+        let paths = [originalPath, path].compactMap { $0 }
+        guard let patches = trackedPatches(
+            for: paths, layer: layer, hasHead: hasHead,
+            in: repositoryRoot, runGit: runGit
+        ) else { return nil }
+        return fingerprint(path: path, originalPath: originalPath, patches: patches)
+    }
+
+    /// Raw NUL-delimited paths identify the following patches without decoding
+    /// Git's quoted headers. Batches also keep large path lists below ARG_MAX.
+    nonisolated static func trackedPatches(
+        for paths: [String], layer: DiffReviewLayer, hasHead: Bool,
+        in repositoryRoot: String, runGit: GitRunner
+    ) -> [String: Data]? {
         var args = [
-            "--literal-pathspecs", "diff", "--binary", "--no-ext-diff", "--no-textconv",
+            "--literal-pathspecs", "diff", "--raw", "-z", "--patch", "--binary",
+            "--full-index", "--no-abbrev", "--no-renames", "--no-color",
+            "--no-ext-diff", "--no-textconv", "--src-prefix=a/", "--dst-prefix=b/",
         ]
-        let usesNoIndex = layer == .worktree && untracked
         if layer == .staged {
             args.append("--cached")
             if hasHead { args.append("HEAD") }
-        } else if usesNoIndex {
-            args.append("--no-index")
         }
         args.append("--")
-        if usesNoIndex { args.append("/dev/null") }
-        if let originalPath, originalPath != path { args.append(originalPath) }
-        args.append(path)
 
-        let patch = runGit(args, repositoryRoot)
-        guard patch.status == 0 || (usesNoIndex && patch.status == 1) else { return nil }
-        return DiffReviewSnapshot.fingerprint(path: path, payload: patch.stdout)
+        var patches: [String: Data] = [:]
+        var batch: [String] = []
+        var bytes = 0
+        func flush() -> Bool {
+            guard !batch.isEmpty else { return true }
+            let output = runGit(args + batch, repositoryRoot)
+            guard output.status == 0, !output.truncated,
+                  let parsed = parsePatches(output.stdout) else { return false }
+            patches.merge(parsed, uniquingKeysWith: { _, latest in latest })
+            batch.removeAll(keepingCapacity: true)
+            bytes = 0
+            return true
+        }
+        for path in Set(paths).sorted() {
+            if bytes + path.utf8.count + 1 > 32_768, !flush() { return nil }
+            batch.append(path)
+            bytes += path.utf8.count + 1
+        }
+        return flush() ? patches : nil
+    }
+
+    nonisolated static func fingerprint(
+        path: String, originalPath: String?, patches: [String: Data]
+    ) -> String? {
+        let originalPath = originalPath == path ? nil : originalPath
+        let paths = Set([originalPath, path].compactMap { $0 }).sorted()
+        let payloads = paths.compactMap { patches[$0] }
+        guard !payloads.isEmpty else { return nil }
+        // Rename/copy metadata remains part of the identity even when the
+        // source has no patch, as in a copy from an unchanged staged file.
+        var payload = Data((originalPath.map { "original\u{0}\($0)\u{0}" } ?? "").utf8)
+        for patch in payloads { payload.append(patch) }
+        return DiffReviewSnapshot.fingerprint(path: path, payload: payload)
+    }
+
+    private nonisolated static func parsePatches(_ output: Data) -> [String: Data]? {
+        guard !output.isEmpty else { return [:] }
+        guard let separator = output.range(of: Data([0, 0])),
+              let raw = String(data: output[..<separator.lowerBound], encoding: .utf8) else { return nil }
+        let records = raw.split(separator: "\u{0}", omittingEmptySubsequences: false)
+        guard records.count.isMultiple(of: 2) else { return nil }
+        var paths: [String] = []
+        for index in stride(from: 0, to: records.count, by: 2) {
+            let fields = records[index].split(separator: " ")
+            guard fields.count == 5, fields[0].first == ":", !fields[0].hasPrefix("::"),
+                  !["R", "C", "U"].contains(fields[4]), !records[index + 1].isEmpty else { return nil }
+            paths.append(String(records[index + 1]))
+        }
+        // Git can emit non-UTF-8 text patches. Decode only the raw path table
+        // so one file's encoding cannot discard the other files in its batch.
+        let patch = output[separator.upperBound...]
+        var starts: [Data.Index] = []
+        var cursor = patch.startIndex
+        while cursor < patch.endIndex {
+            if patch[cursor...].starts(with: "diff --git ".utf8) { starts.append(cursor) }
+            guard let newline = patch[cursor...].firstIndex(of: 10) else { break }
+            cursor = patch.index(after: newline)
+        }
+        guard starts.first == patch.startIndex, starts.count == paths.count,
+              Set(paths).count == paths.count else { return nil }
+        return Dictionary(uniqueKeysWithValues: paths.enumerated().map { index, path in
+            let end = index + 1 < starts.count ? starts[index + 1] : patch.endIndex
+            return (path, Data(patch[starts[index]..<end]))
+        })
+    }
+
+    /// Untracked files have no index blob. Hash their bytes and Git mode
+    /// directly instead of launching a no-index Git process for every file.
+    private nonisolated static func untrackedFingerprint(path: String, in root: String) -> String? {
+        let components = path.split(separator: "/", omittingEmptySubsequences: false)
+        guard !path.hasPrefix("/"), components.allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." }) else { return nil }
+        let rootURL = URL(fileURLWithPath: root, isDirectory: true).resolvingSymlinksInPath()
+        let url = rootURL.appendingPathComponent(path)
+        let parent = url.deletingLastPathComponent().resolvingSymlinksInPath().path
+        guard parent == rootURL.path || parent.hasPrefix(rootURL.path + "/") else { return nil }
+        var initial = stat()
+        guard lstat(url.path, &initial) == 0 else { return nil }
+        let data: Data
+        let mode: String
+        if initial.st_mode & S_IFMT == S_IFLNK {
+            guard initial.st_size >= 0, initial.st_size <= AgentReviewGit.maxFileBytes else { return nil }
+            var target = [UInt8](repeating: 0, count: Int(initial.st_size) + 1)
+            let count = readlink(url.path, &target, target.count)
+            guard count == initial.st_size else { return nil }
+            data = Data(target.prefix(count))
+            mode = "120000"
+        } else {
+            guard let file = try? AgentReviewGit.readFile(root: rootURL.path, path: path) else { return nil }
+            data = file.data
+            mode = file.permissions & S_IXUSR == 0 ? "100644" : "100755"
+        }
+        var final = stat()
+        guard lstat(url.path, &final) == 0,
+              initial.st_dev == final.st_dev, initial.st_ino == final.st_ino,
+              initial.st_mode == final.st_mode, initial.st_size == final.st_size,
+              initial.st_mtimespec.tv_sec == final.st_mtimespec.tv_sec,
+              initial.st_mtimespec.tv_nsec == final.st_mtimespec.tv_nsec,
+              initial.st_ctimespec.tv_sec == final.st_ctimespec.tv_sec,
+              initial.st_ctimespec.tv_nsec == final.st_ctimespec.tv_nsec else { return nil }
+        var input = Data("untracked\u{0}\(path)\u{0}\(mode)\u{0}".utf8)
+        input.append(data)
+        return SHA256.hash(data: input).map { String(format: "%02x", $0) }.joined()
     }
 }
 
