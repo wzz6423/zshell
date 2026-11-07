@@ -31,6 +31,8 @@ SSH 会自动启动仅该账户可访问的 daemon，并沿用 OpenSSH 配置、
 
 文件和 Git 面板通过 SSH 访问同一主机；终端直接使用 Tailscale 时，这两个面板仍需要可用的 SSH 认证。远程路径不会指向 Mac 文件。高级用户可以在启动应用前设置绝对路径 `ZSHELL_SSH_CONFIG_FILE`，让终端、文件和 Git 使用独立的可读 OpenSSH 配置。
 
+文件面板可见且应用处于活跃状态时，文件树会更新根目录和已展开的文件夹。刷新失败会保留最后成功加载的内容；点击**重试**可立即再次尝试。
+
 ## 使用 Tailscale 连接 [#tailscale]
 
 两台机器登录 Tailscale，在创建会话前启动带私有监听器的主机 daemon：

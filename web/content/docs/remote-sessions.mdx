@@ -31,6 +31,8 @@ SSH starts the owner-only daemon automatically. It uses your existing OpenSSH co
 
 Files and Git use SSH to the same host; a direct Tailscale terminal still needs separate working SSH access for those panels. Remote paths never point at the Mac's files. An optional absolute `ZSHELL_SSH_CONFIG_FILE` selects a separate readable OpenSSH configuration for terminals, Files and Git.
 
+While Files is visible and the app is active, the tree refreshes its root and expanded folders. A failed refresh keeps the last successful contents; use **Retry** to try again immediately.
+
 ## Connect over Tailscale [#tailscale]
 
 Sign both machines into Tailscale. Before creating sessions, run the host daemon with its private listener:
