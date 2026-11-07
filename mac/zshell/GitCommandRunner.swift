@@ -118,6 +118,7 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
             var buffer = [UInt8](repeating: 0, count: 64 * 1024)
             var inputOffset = 0
             var exitStatus: Int32?
+            var shortExitPolls = 5
             var ownsChild = true
             var interruption: Int32?
             var killDeadline: DispatchTime?
@@ -163,11 +164,15 @@ private nonisolated final class GitProcessState: @unchecked Sendable {
                    stderr.readDescriptor < 0, (stdin?.writeDescriptor ?? -1) < 0,
                    killDeadline == nil { break }
 
+                let pollingForExit = ownsChild && exitStatus == nil && pipesClosed
+                    && interruption == nil && shortExitPolls > 0
+                let pollInterval: UInt64 = pollingForExit ? 5_000_000 : 50_000_000
+                if pollingForExit { shortExitPolls -= 1 }
                 let nextDeadline = interruption == nil ? deadline : (killDeadline ?? reapDeadline)
                 let remaining = nextDeadline.map {
                     $0.uptimeNanoseconds > now.uptimeNanoseconds
-                        ? min(50_000_000, $0.uptimeNanoseconds - now.uptimeNanoseconds) : 0
-                } ?? 50_000_000
+                        ? min(pollInterval, $0.uptimeNanoseconds - now.uptimeNanoseconds) : 0
+                } ?? pollInterval
                 var descriptors = [
                     pollfd(fd: stdout.readDescriptor, events: Int16(POLLIN), revents: 0),
                     pollfd(fd: stderr.readDescriptor, events: Int16(POLLIN), revents: 0),
