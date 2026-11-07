@@ -155,6 +155,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// editing so a keystroke does not rebuild the CodeView item that owns the
     /// editor, selection, and undo stack.
     private var editedNewContent = ""
+    var unsavedText: String? { isDirty ? editedNewContent : nil }
     private var reloadGeneration: UInt = 0
 
     init(

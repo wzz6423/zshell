@@ -127,6 +127,10 @@ final class ZshellWorkspaceWindowController: NSWindowController, NSWindowDelegat
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        manager.windowShouldClose(sender)
+    }
+
     func windowWillClose(_ notification: Notification) {
         if let localizationObservation { NotificationCenter.default.removeObserver(localizationObservation) }
         localizationObservation = nil
