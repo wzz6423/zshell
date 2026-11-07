@@ -58,13 +58,16 @@ import Darwin
         var commands = 0
         let start = Date()
         func snapshot(failing failedCommand: String? = nil) -> GitStatusModel.StatusResult {
-            let load = GitStatusModel.runGitStatus(in: root, recentCommitLimit: 30) { arguments, directory, timeout in
+            let load = GitStatusModel.runGitStatus(in: root, recentCommitLimit: 30, commandRunner: { arguments, directory, timeout in
                 commands += 1
                 if arguments.first == failedCommand {
                     return (-2, "", "fixture detail timeout")
                 }
                 return GitStatusModel.runGit(arguments, in: directory, timeout: timeout)
-            }
+            }, reviewCommandRunner: { arguments, directory, timeout in
+                commands += 1
+                return GitCommandRunner.runData(arguments, in: directory, limit: .max, timeout: timeout)
+            })
             guard case .repository(let value) = load else { fatalError("Status failed: \(load)") }
             return value
         }
@@ -101,7 +104,7 @@ import Darwin
             let digest = DiffReviewFingerprint.load(path: path, originalPath: original, layer: layer,
                 hasHead: hasHead, untracked: untracked, in: root) { args, directory in
                     commands += 1
-                    return GitStatusModel.runGit(args, in: directory)
+                    return GitCommandRunner.runData(args, in: directory, limit: .max)
                 }
             output = ["commands": commands]
             output["fingerprint"] = digest
@@ -170,21 +173,99 @@ import Darwin
             model.applyRepository(snapshot())
             precondition(DiffReviewStore.shared.isReviewed(before) == layer, "layer invalidation was incorrect")
             output = ["stableBeforeEdit": true, "reviewedAfterWorktreeEdit": layer]
+        } else if action == "mixedReview" {
+            let model = GitStatusModel()
+            model.applyRepository(snapshot())
+            let layer = CommandLine.arguments[3] == "staged"
+            let entries = layer ? model.stagedEntries : model.changedEntries
+            let normal = entries.first { $0.path == "normal.txt" }!.reviewSnapshot(staged: layer)!
+            DiffReviewStore.shared.setReviewed(true, for: normal)
+            let latinURL = URL(fileURLWithPath: root).appendingPathComponent("latin1.txt")
+            try (Data("modified latin".utf8) + Data([0xe9, 10])).write(to: latinURL)
+            if layer {
+                precondition(GitStatusModel.runGit(["add", "latin1.txt"], in: root).status == 0)
+            }
+            model.applyRepository(snapshot())
+            let mixed = layer ? model.stagedEntries : model.changedEntries
+            let latinBefore = mixed.first { $0.path == "latin1.txt" }!.reviewSnapshot(staged: layer)!
+            precondition(DiffReviewStore.shared.isReviewed(normal), "another file's encoding erased a review")
+            DiffReviewStore.shared.setReviewed(true, for: latinBefore)
+            try (Data("modified latin".utf8) + Data([0xe8, 10])).write(to: latinURL)
+            if layer {
+                precondition(GitStatusModel.runGit(["add", "latin1.txt"], in: root).status == 0)
+            }
+            model.applyRepository(snapshot())
+            let after = layer ? model.stagedEntries : model.changedEntries
+            let latinAfter = after.first { $0.path == "latin1.txt" }!.reviewSnapshot(staged: layer)!
+            precondition(latinBefore.fingerprint != latinAfter.fingerprint, "different invalid bytes collided")
+            precondition(!DiffReviewStore.shared.isReviewed(latinBefore))
+            precondition(DiffReviewStore.shared.isReviewed(normal))
+            let run = GitCommandRunner.runData(["--literal-pathspecs", "diff", "--binary", "--full-index",
+                "--no-abbrev", "--no-renames", "--no-color", "--no-ext-diff", "--no-textconv",
+                "--src-prefix=a/", "--dst-prefix=b/"] + (layer ? ["--cached", "HEAD"] : []) + ["--", "normal.txt"],
+                in: root, limit: .max)
+            precondition(run.status == 0)
+            let text = String(data: run.stdout, encoding: .utf8)!
+            precondition(DiffReviewSnapshot.fingerprint(path: "normal.txt", payload: text) == normal.fingerprint,
+                "valid UTF-8 fingerprints changed")
+            output = ["normalReviewPreserved": true, "distinctByteFingerprints": true, "utf8Stable": true]
+        } else if action == "renameBatch" {
+            let paths = CommandLine.arguments.dropFirst(3).map { String($0) }
+            let original = paths.first!
+            let destination = paths.last!
+            var batchCalls = 0
+            var sawOriginal = false
+            var sawDestination = false
+            let patches = DiffReviewFingerprint.trackedPatches(for: paths, layer: .staged, hasHead: true,
+                in: root, runGit: { arguments, directory in
+                    batchCalls += 1
+                    let boundary = arguments.firstIndex(of: "--")!
+                    let batch = arguments[arguments.index(after: boundary)...]
+                    if batch.contains(original) { sawOriginal = true; precondition(!batch.contains(destination)) }
+                    if batch.contains(destination) { sawDestination = true; precondition(!batch.contains(original)) }
+                    return GitCommandRunner.runData(arguments, in: directory, limit: .max)
+                })!
+            precondition(batchCalls > 1 && sawOriginal && sawDestination)
+            precondition(patches[original] != nil && patches[destination] != nil)
+            let fingerprint = DiffReviewFingerprint.fingerprint(path: destination, originalPath: original, patches: patches)!
+            let single = DiffReviewFingerprint.load(path: destination, originalPath: original,
+                layer: .staged, hasHead: true, untracked: false, in: root,
+                runGit: { GitCommandRunner.runData($0, in: $1, limit: .max) })
+            precondition(fingerprint == single)
+            for truncated in [false, true] {
+                let partial = DiffReviewFingerprint.trackedPatches(for: paths, layer: .staged, hasHead: true,
+                    in: root, runGit: { arguments, directory in
+                        let boundary = arguments.firstIndex(of: "--")!
+                        if arguments[arguments.index(after: boundary)...].contains(destination) {
+                            let output = GitCommandRunner.runData(arguments, in: directory, limit: .max)
+                            return GitCommandDataResult(status: truncated ? 0 : -2, stdout: output.stdout,
+                                stderr: "fixture batch failure", truncated: truncated)
+                        }
+                        return GitCommandRunner.runData(arguments, in: directory, limit: .max)
+                    })
+                precondition(partial == nil, "a failed rename batch returned only its deletion half")
+            }
+            output = ["completeRename": true, "partialBatchesRejected": true, "batchCalls": batchCalls]
         } else if action == "malformed" {
             let outputWithExtraSection = ":100644 100644 abc 000 M\0one.txt\0\0diff --git a/one.txt b/one.txt\n+text\ndiff --git a/two.txt b/two.txt\n"
             let parsed = DiffReviewFingerprint.trackedPatches(for: ["one.txt"], layer: .worktree, hasHead: true,
-                in: root, runGit: { _, _ in (0, outputWithExtraSection, "") })
+                in: root, runGit: { _, _ in
+                    GitCommandDataResult(status: 0, stdout: Data(outputWithExtraSection.utf8), stderr: "", truncated: false)
+                })
             precondition(parsed == nil, "malformed patch sections were accepted")
             output = ["rejected": true]
         } else if action == "invalidUTF8" {
             let bytes = Data("# branch.oid abc\0# branch.head main\0? invalid-".utf8) + Data([0xff, 0])
             let decoded = String(data: bytes, encoding: .utf8) ?? ""
-            let result = GitStatusModel.runGitStatus(in: root, recentCommitLimit: 30) { arguments, _, _ in
+            let result = GitStatusModel.runGitStatus(in: root, recentCommitLimit: 30, commandRunner: { arguments, _, _ in
                 arguments.first == "rev-parse" ? (0, root + "\n", "") : (0, decoded, "")
-            }
+            })
             guard case .failed = result else { fatalError("An undecodable status was accepted") }
             let patches = DiffReviewFingerprint.trackedPatches(for: ["safe.txt"], layer: .worktree,
-                hasHead: true, in: root, runGit: { _, _ in (0, decoded, "") })
+                hasHead: true, in: root, runGit: { _, _ in
+                    let raw = Data(":100644 100644 abc 000 M\0invalid-".utf8) + Data([0xff, 0, 0])
+                    return GitCommandDataResult(status: 0, stdout: raw, stderr: "", truncated: false)
+                })
             precondition(DiffReviewFingerprint.fingerprint(path: "safe.txt", originalPath: nil,
                 patches: patches ?? [:]) == nil)
             output = ["rejected": true]
@@ -249,6 +330,7 @@ import Darwin
                 self.git("commit", "-qm", "files")
                 for index in range(600):
                     self.write(f"file-{index:03}.txt", "changed contents\n")
+                self.write("file-299.txt", b"changed Latin1 caf\xe9\n")
             elif mode == "staged":
                 self.git("add", ".")
             snapshot = self.probe()
@@ -284,6 +366,45 @@ import Darwin
         self.assertTrue(self.probe("review", "both.txt", "staged")["reviewedAfterWorktreeEdit"])
         self.write("both.txt", "fresh worktree again\n")
         self.assertFalse(self.probe("review", "both.txt", "worktree")["reviewedAfterWorktreeEdit"])
+
+    def test_mixed_utf8_and_latin1_patches_keep_other_files_reviewed(self):
+        self.write("normal.txt", "base normal\n")
+        self.write("latin1.txt", b"base caf\xe9\n")
+        self.commit_fixture()
+        self.write("normal.txt", "edited normal\n")
+        self.write("latin1.txt", b"edited caf\xe9\n")
+        patch = self.git("diff", "--binary", "--", "normal.txt", "latin1.txt")
+        self.assertIn(b"\xe9", patch)
+        self.assertNotIn(b"GIT binary patch", patch)
+        with self.assertRaises(UnicodeDecodeError):
+            patch.decode("utf8")
+        for layer in ("worktree", "staged"):
+            if layer == "staged":
+                self.git("add", ".")
+            entries = self.fingerprints()
+            for path in ("normal.txt", "latin1.txt"):
+                digest = self.probe("fingerprint", path, layer, "false")
+                self.assertEqual(entries[path][layer + "Fingerprint"], digest["fingerprint"])
+            result = self.probe("mixedReview", layer)
+            self.assertTrue(result["normalReviewPreserved"])
+            self.assertTrue(result["distinctByteFingerprints"])
+            self.assertTrue(result["utf8Stable"])
+
+    def test_rename_across_batches_requires_complete_raw_byte_patches(self):
+        original = "a-original.txt"
+        destination = "z-destination.txt"
+        self.write(original, b"rename caf\xe9\n")
+        self.commit_fixture()
+        self.git("mv", original, destination)
+        self.write(destination, b"rename caf\xe8\n")
+        self.git("add", destination)
+        # Long literal pathspecs force the rename deletion and addition into
+        # separate batches without creating hundreds of extra files.
+        fillers = [f"m-{index:03}-" + "x" * 100 + ".txt" for index in range(350)]
+        result = self.probe("renameBatch", original, *fillers, destination)
+        self.assertTrue(result["completeRename"])
+        self.assertTrue(result["partialBatchesRejected"])
+        self.assertGreater(result["batchCalls"], 1)
 
     def test_paths_binary_rename_and_git_configuration(self):
         names = ['a"quoted\tline\nfile.txt', "目录/é.txt", "literal\\file.txt", ":(glob)*.txt"]

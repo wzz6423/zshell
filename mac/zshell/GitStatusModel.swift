@@ -1504,6 +1504,9 @@ final class GitStatusModel: nonisolated ObservableObject {
         recentCommitLimit: Int,
         commandRunner: ([String], String, TimeInterval) -> (status: Int32, stdout: String, stderr: String) = {
             runGit($0, in: $1, timeout: $2)
+        },
+        reviewCommandRunner: ([String], String, TimeInterval) -> GitCommandDataResult = {
+            GitCommandRunner.runData($0, in: $1, limit: .max, timeout: $2)
         }
     ) -> StatusLoadResult {
         // A filesystem, Git helper, or corrupt repository must not leave the
@@ -1518,6 +1521,13 @@ final class GitStatusModel: nonisolated ObservableObject {
             let remaining = deadline.timeIntervalSinceNow
             guard remaining > 0 else { return (-2, "", timeoutMessage) }
             return commandRunner(args, directory, remaining)
+        }
+        func reviewGit(_ args: [String], _ directory: String) -> GitCommandDataResult {
+            let remaining = deadline.timeIntervalSinceNow
+            guard remaining > 0 else {
+                return GitCommandDataResult(status: -2, stdout: Data(), stderr: timeoutMessage, truncated: false)
+            }
+            return reviewCommandRunner(args, directory, remaining)
         }
 
         let top = statusGit(["rev-parse", "--show-toplevel"], in: root)
@@ -1684,7 +1694,7 @@ final class GitStatusModel: nonisolated ObservableObject {
         // must not make valid branch/history data look like successful emptiness.
         result.reviewFingerprints = reviewFingerprints(
             for: result.entries, hasHead: result.hasHead, in: resolvedRoot,
-            deadline: deadline, runGit: statusGit
+            deadline: deadline, runGit: reviewGit
         )
         return .repository(result)
     }

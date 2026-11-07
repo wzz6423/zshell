@@ -25,17 +25,20 @@ struct DiffReviewSnapshot: Hashable, Sendable {
     let fingerprint: String
 
     nonisolated static func fingerprint(path: String, payload: String) -> String {
-        let input = "\(path)\u{0}\(payload)"
-        return SHA256.hash(data: Data(input.utf8))
+        fingerprint(path: path, payload: Data(payload.utf8))
+    }
+
+    nonisolated static func fingerprint(path: String, payload: Data) -> String {
+        var input = Data("\(path)\u{0}".utf8)
+        input.append(payload)
+        return SHA256.hash(data: input)
             .map { String(format: "%02x", $0) }
             .joined()
     }
 }
 
 enum DiffReviewFingerprint {
-    typealias GitRunner = (_ args: [String], _ directory: String) -> (
-        status: Int32, stdout: String, stderr: String
-    )
+    typealias GitRunner = (_ args: [String], _ directory: String) -> GitCommandDataResult
 
     nonisolated static func load(
         path: String,
@@ -62,7 +65,7 @@ enum DiffReviewFingerprint {
     nonisolated static func trackedPatches(
         for paths: [String], layer: DiffReviewLayer, hasHead: Bool,
         in repositoryRoot: String, runGit: GitRunner
-    ) -> [String: String]? {
+    ) -> [String: Data]? {
         var args = [
             "--literal-pathspecs", "diff", "--raw", "-z", "--patch", "--binary",
             "--full-index", "--no-abbrev", "--no-renames", "--no-color",
@@ -74,13 +77,14 @@ enum DiffReviewFingerprint {
         }
         args.append("--")
 
-        var patches: [String: String] = [:]
+        var patches: [String: Data] = [:]
         var batch: [String] = []
         var bytes = 0
         func flush() -> Bool {
             guard !batch.isEmpty else { return true }
             let output = runGit(args + batch, repositoryRoot)
-            guard output.status == 0, let parsed = parsePatches(output.stdout) else { return false }
+            guard output.status == 0, !output.truncated,
+                  let parsed = parsePatches(output.stdout) else { return false }
             patches.merge(parsed, uniquingKeysWith: { _, latest in latest })
             batch.removeAll(keepingCapacity: true)
             bytes = 0
@@ -95,7 +99,7 @@ enum DiffReviewFingerprint {
     }
 
     nonisolated static func fingerprint(
-        path: String, originalPath: String?, patches: [String: String]
+        path: String, originalPath: String?, patches: [String: Data]
     ) -> String? {
         let originalPath = originalPath == path ? nil : originalPath
         let paths = Set([originalPath, path].compactMap { $0 }).sorted()
@@ -103,14 +107,16 @@ enum DiffReviewFingerprint {
         guard !payloads.isEmpty else { return nil }
         // Rename/copy metadata remains part of the identity even when the
         // source has no patch, as in a copy from an unchanged staged file.
-        let metadata = originalPath.map { "original\u{0}\($0)\u{0}" } ?? ""
-        return DiffReviewSnapshot.fingerprint(path: path, payload: metadata + payloads.joined())
+        var payload = Data((originalPath.map { "original\u{0}\($0)\u{0}" } ?? "").utf8)
+        for patch in payloads { payload.append(patch) }
+        return DiffReviewSnapshot.fingerprint(path: path, payload: payload)
     }
 
-    private nonisolated static func parsePatches(_ output: String) -> [String: String]? {
+    private nonisolated static func parsePatches(_ output: Data) -> [String: Data]? {
         guard !output.isEmpty else { return [:] }
-        guard let separator = output.range(of: "\u{0}\u{0}") else { return nil }
-        let records = output[..<separator.lowerBound].split(separator: "\u{0}", omittingEmptySubsequences: false)
+        guard let separator = output.range(of: Data([0, 0])),
+              let raw = String(data: output[..<separator.lowerBound], encoding: .utf8) else { return nil }
+        let records = raw.split(separator: "\u{0}", omittingEmptySubsequences: false)
         guard records.count.isMultiple(of: 2) else { return nil }
         var paths: [String] = []
         for index in stride(from: 0, to: records.count, by: 2) {
@@ -119,8 +125,10 @@ enum DiffReviewFingerprint {
                   !["R", "C", "U"].contains(fields[4]), !records[index + 1].isEmpty else { return nil }
             paths.append(String(records[index + 1]))
         }
-        let patch = output[separator.upperBound...].utf8
-        var starts: [String.UTF8View.Index] = []
+        // Git can emit non-UTF-8 text patches. Decode only the raw path table
+        // so one file's encoding cannot discard the other files in its batch.
+        let patch = output[separator.upperBound...]
+        var starts: [Data.Index] = []
         var cursor = patch.startIndex
         while cursor < patch.endIndex {
             if patch[cursor...].starts(with: "diff --git ".utf8) { starts.append(cursor) }
@@ -131,7 +139,7 @@ enum DiffReviewFingerprint {
               Set(paths).count == paths.count else { return nil }
         return Dictionary(uniqueKeysWithValues: paths.enumerated().map { index, path in
             let end = index + 1 < starts.count ? starts[index + 1] : patch.endIndex
-            return (path, String(decoding: patch[starts[index]..<end], as: UTF8.self))
+            return (path, Data(patch[starts[index]..<end]))
         })
     }
 

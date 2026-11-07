@@ -297,7 +297,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
                         hasHead: head.status == 0,
                         untracked: untracked,
                         in: root,
-                        runGit: { GitStatusModel.runGit($0, in: $1) }
+                        runGit: { GitCommandRunner.runData($0, in: $1, limit: .max) }
                     )
                 } else {
                     fingerprint = nil
