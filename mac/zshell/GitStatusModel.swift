@@ -1134,10 +1134,6 @@ final class GitStatusModel: nonisolated ObservableObject {
         let failure: String?
     }
 
-    private nonisolated final class PipeData: @unchecked Sendable {
-        var value = Data()
-    }
-
     private func invalidateStatusRefresh() {
         statusRequestID &+= 1
         isRefreshing = false
@@ -1325,84 +1321,21 @@ final class GitStatusModel: nonisolated ObservableObject {
         var loadedDetails = false
     }
 
-    /// Runs Git while draining stdout and stderr concurrently. Dedicated
-    /// reader threads are intentional: several restored diff tabs can call
-    /// this from Swift's cooperative executor at once, and dispatching the
-    /// readers back onto the shared pool can starve every pipe drain.
+    /// Runs Git while draining stdout and stderr without blocking pipe readers.
     nonisolated static func runGit(
         _ args: [String], in dir: String, timeout: TimeInterval? = nil
     ) -> (status: Int32, stdout: String, stderr: String) {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-        process.arguments = args
-        process.currentDirectoryURL = URL(fileURLWithPath: dir, isDirectory: true)
-        process.environment = GitCommandRunner.processEnvironment()
-
-        let stdout = Pipe()
-        let stderr = Pipe()
-        process.standardOutput = stdout
-        process.standardError = stderr
-        process.standardInput = FileHandle.nullDevice
-        let processExited = DispatchSemaphore(value: 0)
-        process.terminationHandler = { _ in processExited.signal() }
-
-        do {
-            try process.run()
-        } catch {
-            return (-1, "", error.localizedDescription)
-        }
-        let outData = PipeData()
-        let errData = PipeData()
-        let readers = DispatchGroup()
-        // These readers are on the synchronous completion path below. Match
-        // the caller so a user-initiated Git request never waits on utility
-        // threads, while background refreshes keep their lower priority.
-        let readerQualityOfService = Thread.current.qualityOfService
-        readers.enter()
-        let stdoutReader = Thread {
-            outData.value = stdout.fileHandleForReading.readDataToEndOfFile()
-            readers.leave()
-        }
-        stdoutReader.qualityOfService = readerQualityOfService
-        stdoutReader.start()
-        readers.enter()
-        let stderrReader = Thread {
-            errData.value = stderr.fileHandleForReading.readDataToEndOfFile()
-            readers.leave()
-        }
-        stderrReader.qualityOfService = readerQualityOfService
-        stderrReader.start()
-        var timedOut = false
-        if let timeout {
-            timedOut = processExited.wait(timeout: .now() + timeout) == .timedOut
-            if timedOut {
-                process.terminate()
-                if processExited.wait(timeout: .now() + 1) == .timedOut {
-                    // Git can launch a helper that ignores SIGTERM. It is our
-                    // child, so force it down before waiting for pipe EOF.
-                    Darwin.kill(process.processIdentifier, SIGKILL)
-                    process.waitUntilExit()
-                }
-            }
-        } else {
-            process.waitUntilExit()
-        }
-        readers.wait()
-        let output = String(data: outData.value, encoding: .utf8) ?? ""
-        var errorOutput = String(data: errData.value, encoding: .utf8) ?? ""
-        if timedOut {
+        let result = GitCommandRunner.runData(args, in: dir, limit: .max, timeout: timeout)
+        let output = String(data: result.stdout, encoding: .utf8) ?? ""
+        var errorOutput = result.stderr
+        if result.status == -2 {
             let timeoutMessage = String(localized: "Git did not respond in time.")
             if !errorOutput.isEmpty, !errorOutput.hasSuffix("\n") {
                 errorOutput += "\n"
             }
             errorOutput += timeoutMessage
-            return (-2, output, errorOutput)
         }
-        return (
-            process.terminationStatus,
-            output,
-            errorOutput
-        )
+        return (result.status, output, errorOutput)
     }
 
     /// Runs Git over SSH for an SSH project. Three bounded commands replace
