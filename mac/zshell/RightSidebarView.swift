@@ -278,6 +278,8 @@ struct RightSidebarView: View {
         guard let project = manager.selectedProject,
               let session = project.selectedSession
         else {
+            fileTree.configureRemote(nil)
+            fileTree.sync(root: "")
             // An empty project has no shell to describe; drop whatever the
             // previous selection left behind, so a remote host's PIDs never
             // show up as signalable local rows.
@@ -306,6 +308,7 @@ struct RightSidebarView: View {
             )
             return
         }
+        fileTree.configureRemote(nil)
         let cwd = session.currentDirectoryPath
         // Files and Git anchor to the project directory — pinned when the
         // user set one, else the repository the session is working in — so
