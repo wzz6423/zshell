@@ -165,6 +165,7 @@ final class PTYMuxSession: @unchecked Sendable {
                 "command": .array(command.map(ZshellJSONValue.string)),
                 "bindingToken": .string(bindingToken),
                 "launchDirectory": launchDirectoryURL.map { .string($0.path) } ?? .null,
+                "restoresDefaultCursor": .bool(true),
                 "totalOutputBytes": .number(Double(totalBytes)),
                 "tailBase64": .string(Data(tail.suffix(tailBytes)).base64EncodedString()),
             ])

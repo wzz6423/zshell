@@ -52,6 +52,13 @@ enum PTYMuxRelay {
         guard response.ok, response.id == request.id, response.version == request.version else {
             throw PTYMuxError.message(response.error?.message ?? "Could not attach the PTY relay.")
         }
+        let info = response.result?.objectValue
+        var cursorRestore = PTYMuxCursorRestore(
+            shellPID: info?["pid"]?.intValue.flatMap { pid_t(exactly: $0) },
+            foregroundPID: info?["foregroundPid"]?.intValue.flatMap { pid_t(exactly: $0) },
+            launchDirectoryURL: info?["launchDirectory"]?.stringValue.map { URL(fileURLWithPath: $0) },
+            restoresDefaultCursor: info?["restoresDefaultCursor"]?.boolValue == true
+        )
         var original = termios()
         guard tcgetattr(STDIN_FILENO, &original) == 0 else { throw PTYMuxWire.errnoError("tcgetattr") }
         var raw = original
@@ -86,8 +93,8 @@ enum PTYMuxRelay {
             if ready < 0 { if errno == EINTR { continue }; throw PTYMuxWire.errnoError("poll") }
             if descriptors[0].revents & Int16(POLLIN | POLLHUP) != 0 && !ended && output.count < maximum {
                 let count = Darwin.read(socket, &buffer, buffer.count)
-                if count > 0 { output.append(contentsOf: buffer.prefix(count)) }
-                else if count == 0 { ended = true }
+                if count > 0 { output.append(cursorRestore.process(Data(buffer.prefix(count)))) }
+                else if count == 0 { ended = true; output.append(cursorRestore.finish()) }
                 else if errno != EINTR && errno != EAGAIN { throw PTYMuxWire.errnoError("read") }
             }
             if descriptors[1].revents & Int16(POLLIN | POLLHUP) != 0 && !ended {
@@ -98,7 +105,10 @@ enum PTYMuxRelay {
             }
             if descriptors[0].revents & Int16(POLLOUT) != 0 { try flush(&input, to: socket) }
             if descriptors[2].revents & Int16(POLLOUT) != 0 { try flush(&output, to: STDOUT_FILENO) }
-            if descriptors[0].revents & Int16(POLLERR | POLLNVAL) != 0 { ended = true }
+            if descriptors[0].revents & Int16(POLLERR | POLLNVAL) != 0 {
+                ended = true
+                output.append(cursorRestore.finish())
+            }
             if descriptors[1].revents & Int16(POLLERR | POLLNVAL) != 0
                 || descriptors[2].revents & Int16(POLLHUP | POLLERR | POLLNVAL) != 0 { return }
         }
