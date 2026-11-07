@@ -7,6 +7,8 @@ Druk op <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> voor de bestandsboom. Net a
 
 ## De boomstructuur [#the-tree]
 
+Als het Bestanden-paneel zichtbaar en Zshell actief is, worden lokale mappen op de achtergrond vernieuwd. Bij SSH-projecten leest Zshell regelmatig de externe hoofdmap en uitgeklapte mappen opnieuw.
+
 Klik op een bestand om het in het deelvenster met focus te openen. Klik met de rechtermuisknop voor de andere opties:
 
 | Optie | Functie |
@@ -40,6 +42,8 @@ Een bestand openen geeft je een echte editor in een deelvenster, met syntaxisacc
 | Zoeken | <kbd>Cmd</kbd>+<kbd>F</kbd> |
 | Zoeken en vervangen | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
 | Volgende zoeken | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+Bij het sluiten van een bestand, diff, project of werkvenster, of bij het afsluiten van Zshell, wordt gevraagd of je niet-opgeslagen wijzigingen wilt opslaan. **Annuleren** of een mislukte opslag houdt de betreffende werkruimte en terminals open. In de menubalkmodus wordt het laatste venster bij sluiten alleen verborgen en blijven de wijzigingen behouden; afsluiten vraagt nog steeds of je wilt opslaan.
 
 Lange regels worden standaard afgebroken op de breedte van het deelvenster. Schakel [`editor.wrap-lines`](/nl/docs/configuration#editorwrap-lines) uit om horizontaal te scrollen.
 

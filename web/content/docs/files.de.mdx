@@ -7,6 +7,8 @@ description: Projektübergreifend Dateien finden, Inhalte durchsuchen, Code bear
 
 ## Dateibaum [#the-tree]
 
+Bei sichtbarem Dateibereich und aktivem Zshell werden lokale Verzeichnisse im Hintergrund aktualisiert. In SSH-Projekten liest Zshell das entfernte Stammverzeichnis und aufgeklappte Ordner regelmäßig neu ein.
+
 Ein Klick öffnet eine Datei im fokussierten Bereich. Das Kontextmenü enthält weitere Aktionen:
 
 | Aktion | Wirkung |
@@ -40,6 +42,8 @@ Eine geöffnete Datei erscheint in einem vollwertigen Editorbereich mit Syntaxhe
 | Suchen | <kbd>Cmd</kbd>+<kbd>F</kbd> |
 | Suchen und ersetzen | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
 | Nächsten Treffer suchen | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+Beim Schließen einer Datei, eines Diffs, Projekts oder Arbeitsbereichsfensters sowie beim Beenden von Zshell wirst du gefragt, ob ungespeicherte Änderungen gespeichert werden sollen. **Abbrechen** oder ein fehlgeschlagener Speichervorgang lässt den betroffenen Arbeitsbereich und seine Terminals geöffnet. Im Menüleistenmodus wird das letzte Fenster beim Schließen nur ausgeblendet und behält seine Änderungen; beim Beenden wird weiterhin nach dem Speichern gefragt.
 
 Lange Zeilen werden standardmäßig an der Bereichsbreite umgebrochen. Deaktivieren Sie [`editor.wrap-lines`](/de/docs/configuration#editorwrap-lines), um horizontal zu scrollen.
 

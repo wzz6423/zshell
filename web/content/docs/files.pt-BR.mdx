@@ -7,6 +7,8 @@ Pressione <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> para abrir a árvore de a
 
 ## A árvore [#the-tree]
 
+Com o painel Arquivos visível e o Zshell ativo, os diretórios locais são atualizados em segundo plano. Em projetos SSH, o Zshell relê periodicamente a raiz remota e as pastas expandidas.
+
 Clique em um arquivo para abri-lo no painel em foco. Clique com o botão direito para as demais ações:
 
 | Item | Função |
@@ -40,6 +42,8 @@ Abrir um arquivo oferece um editor real em um painel, com destaque de sintaxe.
 | Buscar | <kbd>Cmd</kbd>+<kbd>F</kbd> |
 | Buscar e substituir | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
 | Buscar próxima ocorrência | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+Ao fechar um arquivo, diff, projeto ou janela de trabalho, ou sair do Zshell, você pode escolher se deseja salvar as alterações pendentes. **Cancelar** ou uma falha ao salvar mantém abertos o espaço de trabalho e os terminais envolvidos. No modo de barra de menus, fechar a última janela apenas a oculta e preserva as alterações; sair do aplicativo ainda pergunta se deseja salvá-las.
 
 Linhas longas se ajustam à largura do painel por padrão. Desative [`editor.wrap-lines`](/pt-BR/docs/configuration#editorwrap-lines) para rolar horizontalmente.
 

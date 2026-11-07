@@ -7,6 +7,8 @@ Pulsa <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> para abrir el árbol de archi
 
 ## El árbol [#the-tree]
 
+Con el panel de archivos visible y Zshell activo, los directorios locales se actualizan en segundo plano. En los proyectos SSH, Zshell vuelve a leer periódicamente la raíz remota y las carpetas expandidas.
+
 Haz clic en un archivo para abrirlo en el panel con el foco. Haz clic derecho para acceder al resto de opciones:
 
 | Opción | Qué hace |
@@ -40,6 +42,8 @@ Al abrir un archivo obtienes un editor real en un panel, con resaltado de sintax
 | Buscar | <kbd>Cmd</kbd>+<kbd>F</kbd> |
 | Buscar y reemplazar | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
 | Buscar siguiente | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+Al cerrar un archivo, diff, proyecto o ventana de trabajo, o al salir de Zshell, se pregunta si quieres guardar los cambios pendientes. **Cancelar** o un fallo al guardar mantiene abiertos el espacio de trabajo y sus terminales. En el modo de barra de menús, cerrar la última ventana solo la oculta y conserva los cambios; al salir se sigue preguntando si quieres guardarlos.
 
 Las líneas largas se ajustan al ancho del panel de forma predeterminada. Desactiva [`editor.wrap-lines`](/es/docs/configuration#editorwrap-lines) para desplazarte horizontalmente.
 

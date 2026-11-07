@@ -7,6 +7,8 @@ Tekan <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> untuk pohon berkas. Seperti p
 
 ## Pohon berkas [#the-tree]
 
+Saat panel Berkas terlihat dan Zshell aktif, direktori lokal diperbarui di latar belakang. Untuk proyek SSH, Zshell secara berkala membaca ulang akar jarak jauh dan folder yang diperluas.
+
 Klik berkas untuk membukanya dalam panel aktif. Klik kanan untuk tindakan lainnya:
 
 | Item | Kegunaan |
@@ -42,6 +44,8 @@ Membuka berkas menghadirkan editor sungguhan dalam panel, dengan penyorotan sint
 | Cari | <kbd>Cmd</kbd>+<kbd>F</kbd> |
 | Cari dan ganti | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
 | Cari berikutnya | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+Menutup berkas, diff, proyek, atau jendela ruang kerja, maupun keluar dari Zshell, akan meminta konfirmasi untuk menyimpan perubahan. **Batal** atau kegagalan penyimpanan membuat ruang kerja dan terminal terkait tetap terbuka. Dalam mode bar menu, menutup jendela terakhir hanya menyembunyikannya dan mempertahankan perubahan; keluar dari aplikasi tetap meminta konfirmasi penyimpanan.
 
 Baris panjang dibungkus sesuai lebar panel secara bawaan. Nonaktifkan [`editor.wrap-lines`](/id/docs/configuration#editorwrap-lines) untuk menggulir secara horizontal.
 

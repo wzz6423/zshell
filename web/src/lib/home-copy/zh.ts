@@ -55,8 +55,8 @@ const copy: HomeCopy = {
       {
         name: '文件与 Git', slug: 'files',
         rows: [
-          { name: '项目搜索', detail: '在当前本地项目内搜索文件内容，或在打开的本地项目间按名称和路径查找文件。' },
-          { name: '编辑器与 Markdown 预览', detail: '通过语法高亮阅读、编辑文件，直接预览 Markdown，无需切换应用。' },
+          { name: "项目文件", detail: "浏览在后台刷新的本地与 SSH 文件树；在当前本地项目内搜索文件内容，或在打开的本地项目间按名称和路径查找文件。" },
+          { name: "编辑器与 Markdown 预览", detail: "通过语法高亮编辑文件，直接预览 Markdown；如有未保存的修改，关闭或退出前会先询问是否保存。" },
           { name: 'Git 审阅', detail: '查看单栏或左右 diff，编辑未暂存改动，在 Git 面板中暂存、提交与推送。' },
           { name: '分支与 Worktree', detail: "新建、切换分支，管理 stash 和独立 worktree 会话；确认后删除未合并的本地分支，自动保留提交恢复引用并暂存本地改动。" },
           { name: "Pull Request 与 Git 代理", detail: "查看 GitHub PR 状态，在 diff 旁阅读、回复及解决或重开讨论，提交评论、批准或请求修改；为 Git 和新建终端配置代理。" },

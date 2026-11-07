@@ -55,8 +55,8 @@ const copy: HomeCopy = {
       {
         name: 'Files and Git', slug: 'files',
         rows: [
-          { name: 'Project search', detail: 'Search file contents in the current local project, or find files by name and path across open local projects.' },
-          { name: 'Editor and Markdown preview', detail: 'Edit with syntax highlighting and preview Markdown without switching apps.' },
+          { name: "Project files", detail: "Browse local and SSH file trees refreshed in the background. Search file contents in the current local project, or find files by name and path across open local projects." },
+          { name: "Editor and Markdown preview", detail: "Edit with syntax highlighting and preview Markdown without switching apps. Unsaved edits prompt you to save before closing or quitting." },
           { name: 'Git review', detail: 'Inspect unified or split diffs, edit unstaged changes, and stage, commit, or push from the Git panel.' },
           { name: 'Branches and worktrees', detail: "Create and switch branches, manage stashes and isolated worktree sessions. Delete unmerged local branches after confirmation, with commit recovery references and stashed local changes." },
           { name: "Pull requests and Git proxy", detail: "See GitHub PR status, read and reply to discussions beside diffs, resolve or reopen threads, and submit comments, approvals or change requests. Configure a proxy for Git and new terminals." },

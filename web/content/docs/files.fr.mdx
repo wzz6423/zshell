@@ -7,6 +7,8 @@ description: Retrouvez des fichiers dans vos projets, recherchez leur contenu, m
 
 ## Arborescence [#the-tree]
 
+Lorsque le panneau Fichiers est visible et Zshell actif, les dossiers locaux sont actualisés en arrière-plan. Pour les projets SSH, Zshell relit régulièrement la racine distante et les dossiers dépliés.
+
 Cliquez sur un fichier pour l'ouvrir dans le volet actif. Les autres actions sont accessibles par clic droit :
 
 | Action | Effet |
@@ -40,6 +42,8 @@ Ouvrir un fichier affiche un véritable éditeur dans un volet, avec coloration 
 | Rechercher | <kbd>Cmd</kbd>+<kbd>F</kbd> |
 | Rechercher et remplacer | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
 | Occurrence suivante | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+
+Lors de la fermeture d’un fichier, d’un diff, d’un projet ou d’une fenêtre de travail, ou lorsque vous quittez Zshell, l’application demande s’il faut enregistrer les modifications. **Annuler** ou un échec d’enregistrement garde l’espace de travail et ses terminaux ouverts. En mode barre des menus, fermer la dernière fenêtre la masque simplement en conservant les modifications ; quitter l’application demande toujours de les enregistrer.
 
 Par défaut, les longues lignes reviennent à la ligne selon la largeur du volet. Désactivez [`editor.wrap-lines`](/fr/docs/configuration#editorwrap-lines) pour utiliser le défilement horizontal.
 
