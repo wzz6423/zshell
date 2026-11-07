@@ -14,10 +14,24 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
-## [Unreleased]
+## [0.1.15]
+
+### Changed
+
+- Refresh local project files in the background and reduce Git panel and review
+  refresh work to keep large repositories responsive.
 
 ### Fixed
 
+- Ask to save unsaved file and diff edits before closing panes, projects or
+  workspace windows, or quitting. Cancelling or a failed save keeps the
+  affected workspace open.
+- Refresh visible SSH directories to show files changed outside Zshell, and
+  restore local file operations when switching from a remote project.
+- Keep Git change details accurate and end stalled commands when their timeout
+  expires, including commands with lingering child processes.
+- Keep Alacritty text rendering stable during rapid output and recover visible
+  characters after long sessions without unbounded glyph cache growth.
 - Use the configured cursor immediately when reopening a preserved shell
   session, including sessions kept running through an app update.
 
