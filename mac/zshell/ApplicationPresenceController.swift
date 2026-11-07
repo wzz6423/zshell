@@ -125,12 +125,11 @@ final class ApplicationPresenceController: NSObject, NSMenuDelegate, NSMenuItemV
     }
     @objc private func quit() { NSApp.terminate(nil) }
     @objc private func quitAndEndAllSessions() {
-        TerminalManager.prepareForApplicationQuit(endAll: true)
-        NSApp.terminate(nil)
+        TerminalManager.requestApplicationQuit(endAll: true)
     }
 }
 
-/// SwiftUI owns the main window delegate. Forward every other selector so its
+/// Forward every other selector to the workspace window delegate so its
 /// restoration, sizing, fullscreen, and focus callbacks keep their owner.
 @MainActor
 private final class PresenceWindowDelegate: NSObject, NSWindowDelegate {
@@ -153,10 +152,12 @@ private final class PresenceWindowDelegate: NSObject, NSWindowDelegate {
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        guard original?.windowShouldClose?(sender) != false else { return false }
-        guard owner?.shouldKeepWindow(sender) == true else { return true }
-        sender.orderOut(nil)
-        return false
+        if owner?.shouldKeepWindow(sender) == true {
+            guard sender.attachedSheet == nil else { return false }
+            sender.orderOut(nil)
+            return false
+        }
+        return original?.windowShouldClose?(sender) != false
     }
 
     func windowWillClose(_ notification: Notification) {

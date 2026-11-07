@@ -947,7 +947,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 removePaneWithContent(content.id)
                 return
             }
-            let window = NSApp.keyWindow ?? NSApp.mainWindow
+            let window = manager?.presentationWindow ?? NSApp.keyWindow ?? NSApp.mainWindow
             Task { @MainActor in
                 _ = await confirmCloseUnsaved(content, in: window)
             }
@@ -959,7 +959,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 removePaneWithContent(content.id)
                 return
             }
-            let window = NSApp.keyWindow ?? NSApp.mainWindow
+            let window = manager?.presentationWindow ?? NSApp.keyWindow ?? NSApp.mainWindow
             Task { @MainActor in
                 _ = await confirmCloseUnsaved(content, in: window)
             }
@@ -1026,47 +1026,40 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         )
     }
 
-    /// Asks whether to save before discarding an edited file, matching the
-    /// standard macOS Save / Don't Save / Cancel prompt. Presented as a sheet
-    /// on the owning Zshell window so it doesn't block the whole app. If no
-    /// owning window is available, leave the content open and report a
-    /// cancellation. Returns `true` if the user backed out — Cancel, or a save
-    /// that failed — so a batch close can stop before tearing down other panes.
-    ///
-    /// This is `async` on purpose: awaiting the sheet means each prompt in a
-    /// batch is presented only after the previous one has fully dismissed.
+    var hasUnsavedChanges: Bool { tabs.flatMap(\.allContents).contains(where: \.isDirty) }
+
+    func needsUnsavedConfirmation(_ confirmation: UnsavedChangesConfirmation) -> Bool {
+        tabs.flatMap(\.allContents).contains { confirmation.requiresConfirmation($0) }
+    }
+
+    /// Keep every pane mounted until the complete project/window/quit request
+    /// succeeds. A later cancellation also retains buffers approved for discard.
+    func confirmUnsavedChanges(using confirmation: UnsavedChangesConfirmation, in window: NSWindow?) async -> Bool {
+        while let content = tabs.flatMap(\.allContents).first(where: { confirmation.requiresConfirmation($0) }) {
+            manager?.selectedProjectID = id
+            if let tab = tabs.first(where: { $0.paneID(forContent: content.id) != nil }),
+               let paneID = tab.paneID(forContent: content.id) {
+                selectedTabID = tab.id
+                tab.focusedPaneID = paneID
+            }
+            if let window {
+                if window.isMiniaturized { window.deminiaturize(nil) }
+                window.makeKeyAndOrderFront(nil)
+            }
+            guard await confirmation.confirm(content, in: window) else { return false }
+        }
+        return true
+    }
+
+    /// Single-pane closes still remove the pane after Save or Don't Save.
+    /// Returning true stops an existing batch on Cancel or a failed write.
     @discardableResult
     private func confirmCloseUnsaved(_ content: PaneContent, in window: NSWindow?) async -> Bool {
-        let alert = NSAlert()
-        alert.alertStyle = .warning
-        alert.messageText = String(
-            localized: "Do you want to save the changes you made to \(content.title)?",
-            comment: "Unsaved file or diff confirmation. The placeholder is a file name."
-        )
-        alert.informativeText = String(localized: "Your changes will be lost if you don't save them.")
-        alert.addButton(withTitle: String(localized: "Save"))
-        let dontSave = alert.addButton(withTitle: String(localized: "Don’t Save"))
-        dontSave.keyEquivalent = "d"
-        dontSave.keyEquivalentModifierMask = .command
-        let cancel = alert.addButton(withTitle: String(localized: "Cancel"))
-        cancel.keyEquivalent = "\u{1b}"
-
-        guard let host = AppWindowPresentation.hostWindow(relativeTo: window) else { return true }
-        let response = await alert.beginSheetModal(for: host)
-
-        switch response {
-        case .alertFirstButtonReturn: // Save
-            content.save()
-            // Keep the pane open if the write failed; the error bar shows why.
-            guard content.saveError == nil else { return true }
-            removePaneWithContent(content.id)
-            return false
-        case .alertSecondButtonReturn: // Don't Save
-            removePaneWithContent(content.id)
-            return false
-        default: // Cancel
-            return true
-        }
+        guard let confirmation = UnsavedChangesConfirmation() else { return true }
+        guard await confirmation.confirm(content, in: window),
+              !confirmation.requiresConfirmation(content) else { return true }
+        removePaneWithContent(content.id)
+        return false
     }
 
     /// Closes several pieces of content at once. Any unsaved files are
@@ -1086,7 +1079,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             return
         }
 
-        let window = NSApp.keyWindow ?? NSApp.mainWindow
+        let window = manager?.presentationWindow ?? NSApp.keyWindow ?? NSApp.mainWindow
         Task { @MainActor in
             for content in dirtyContents where content.isDirty {
                 // Bail the moment the user backs out — the clean panes, and any

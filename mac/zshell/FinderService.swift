@@ -10,6 +10,7 @@ import AppKit
 @MainActor
 final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     private var workspaceWindows: [ZshellWorkspaceWindowController] = []
+    private var isTerminationPending = false
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         SSHAgentEnvironment.shared.warmUp()
@@ -103,8 +104,7 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
     }
 
     @objc private func quitAndEndAllSessions() {
-        TerminalManager.prepareForApplicationQuit(endAll: true)
-        NSApp.terminate(nil)
+        TerminalManager.requestApplicationQuit(endAll: true)
     }
 
     @objc private func toggleQuickTerminal() {
@@ -112,12 +112,18 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        ApplicationPresenceController.shared.prepareForTermination()
-        TerminalManager.prepareForApplicationQuit()
-        SSHAgentEnvironment.shared.cleanup()
-        let stopped = LocalRemoteSharing.shared.stop()
+        guard !isTerminationPending else { return .terminateLater }
+        isTerminationPending = true
         Task { @MainActor in
-            await stopped?.value
+            guard await TerminalManager.confirmApplicationQuit() else {
+                isTerminationPending = false
+                sender.reply(toApplicationShouldTerminate: false)
+                return
+            }
+            ApplicationPresenceController.shared.prepareForTermination()
+            TerminalManager.prepareForApplicationQuit()
+            SSHAgentEnvironment.shared.cleanup()
+            await LocalRemoteSharing.shared.stop()?.value
             await TerminalNotificationService.shared.history.flush()
             sender.reply(toApplicationShouldTerminate: true)
         }

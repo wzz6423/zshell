@@ -190,6 +190,8 @@ final class TerminalManager: nonisolated ObservableObject {
     /// Window hosting this manager, once SwiftUI has attached its content.
     /// Finder service requests use it to target the active Zshell window.
     private weak var window: NSWindow?
+    private var isConfirmingWindowClose = false
+    private var windowCloseIsApproved = false
     /// The host window for singleton panels opened by this manager.
     var presentationWindow: NSWindow? { window }
     /// The untouched project created before the first window appears. A Finder
@@ -240,6 +242,8 @@ final class TerminalManager: nonisolated ObservableObject {
     /// Set on app termination so window teardown can't re-save a partial
     /// snapshot over the final full one.
     private static var isQuitting = false
+    private static var isConfirmingApplicationQuit = false
+    private static var quitEndsAllSessions = false
     private static var didReopenWindows = false
 
     init() {
@@ -808,18 +812,39 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     func close(_ project: Project) {
-        if project.sessions.contains(where: { $0.worktree != nil }) {
-            Task { @MainActor in
-                for session in project.sessions where session.worktree != nil {
-                    if !(await requestCloseWorktreeSession(session, in: project)) { return }
-                }
-                project.terminateAll()
-                remove(project)
-            }
+        guard projects.contains(where: { $0 === project }), !Self.isQuitting,
+              !Self.isConfirmingApplicationQuit, !isConfirmingWindowClose,
+              !UnsavedChangesConfirmation.isPending else { return }
+        let worktreeSessions = project.sessions.filter { $0.worktree != nil }
+        guard project.hasUnsavedChanges || !worktreeSessions.isEmpty else {
+            project.terminateAll()
+            remove(project)
             return
         }
-        project.terminateAll()
-        remove(project)
+        guard let confirmation = UnsavedChangesConfirmation() else { return }
+        Task { @MainActor in
+            guard await project.confirmUnsavedChanges(using: confirmation, in: window) else { return }
+            var choices: [(session: TerminalSession, removeWorktree: Bool)] = []
+            for session in worktreeSessions where project.sessions.contains(where: { $0 === session }) {
+                guard let remove = await confirmCloseWorktreeSession(session, in: project) else { return }
+                choices.append((session, remove))
+            }
+            // Git inspection and other windows can let more edits arrive while
+            // the worktree sheets are open. Approve those before teardown too.
+            guard projects.contains(where: { $0 === project }),
+                  await project.confirmUnsavedChanges(using: confirmation, in: window) else { return }
+            for choice in choices where project.sessions.contains(where: { $0 === choice.session }) {
+                do {
+                    _ = try await closeWorktreeSession(choice.session, in: project, removeWorktree: choice.removeWorktree)
+                } catch {
+                    await showWorktreeError(error, in: window)
+                    return
+                }
+            }
+            guard await project.confirmUnsavedChanges(using: confirmation, in: window) else { return }
+            project.terminateAll()
+            remove(project)
+        }
     }
 
     private func remove(_ project: Project) {
@@ -1825,6 +1850,35 @@ final class TerminalManager: nonisolated ObservableObject {
         }
     }
 
+    var hasUnsavedChanges: Bool { projects.contains(where: \.hasUnsavedChanges) }
+
+    private func confirmUnsavedChanges(using confirmation: UnsavedChangesConfirmation) async -> Bool {
+        while let project = projects.first(where: { $0.needsUnsavedConfirmation(confirmation) }) {
+            guard await project.confirmUnsavedChanges(using: confirmation, in: window) else { return false }
+        }
+        return true
+    }
+
+    /// AppKit retries the close only after every project's edits are approved.
+    /// The presence delegate handles a retained last window before reaching here.
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        if windowCloseIsApproved || Self.isQuitting { return true }
+        guard !isConfirmingWindowClose, !Self.isConfirmingApplicationQuit,
+              !UnsavedChangesConfirmation.isPending else { return false }
+        guard hasUnsavedChanges else { return true }
+        guard let confirmation = UnsavedChangesConfirmation() else { return false }
+        isConfirmingWindowClose = true
+        Task { @MainActor in
+            defer { isConfirmingWindowClose = false }
+            guard await confirmUnsavedChanges(using: confirmation),
+                  Self.registry.contains(where: { $0 === self }), !Self.isQuitting else { return }
+            windowCloseIsApproved = true
+            defer { windowCloseIsApproved = false }
+            sender.performClose(nil)
+        }
+        return false
+    }
+
     /// Called when this manager's window closes: drop it from the
     /// persisted set — except for the last window, whose snapshot is kept
     /// saved and queued so reopening (or relaunching) restores it — and
@@ -1881,10 +1935,36 @@ final class TerminalManager: nonisolated ObservableObject {
         TerminalHistoryStore.save(histories)
     }
 
+    static func requestApplicationQuit(endAll: Bool = false) {
+        guard !isQuitting, !isConfirmingApplicationQuit else { return }
+        quitEndsAllSessions = endAll
+        NSApp.terminate(nil)
+    }
+
+    static func confirmApplicationQuit() async -> Bool {
+        guard !isConfirmingApplicationQuit, let confirmation = UnsavedChangesConfirmation() else {
+            quitEndsAllSessions = false
+            return false
+        }
+        isConfirmingApplicationQuit = true
+        defer { isConfirmingApplicationQuit = false }
+        while let manager = registry.first(where: { manager in
+            manager.projects.contains { $0.needsUnsavedConfirmation(confirmation) }
+        }) {
+            guard await manager.confirmUnsavedChanges(using: confirmation) else {
+                quitEndsAllSessions = false
+                return false
+            }
+        }
+        return true
+    }
+
     static func prepareForApplicationQuit(endAll: Bool = false) {
         guard !isQuitting else { return }
         isQuitting = true
         saveAll(captureTerminalHistory: true)
+        let endAll = endAll || quitEndsAllSessions
+        quitEndsAllSessions = false
         let preserve = AppSettings.shared.preserveTerminalSessions && !endAll
         GlobalTerminalOverlay.shared.prepareForApplicationQuit(preserve: preserve, endAll: endAll)
         for manager in registry {

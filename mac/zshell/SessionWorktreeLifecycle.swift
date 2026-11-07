@@ -123,14 +123,16 @@ extension TerminalManager {
         }
     }
 
-    @discardableResult
-    func requestCloseWorktreeSession(_ session: TerminalSession, in project: Project) async -> Bool {
-        guard let worktree = session.worktree else {
-            project.closeContent(.session(session), confirmWorktree: false)
-            return true
-        }
-        guard WorktreeLifecycle.closingSessions.insert(session.id).inserted else { return false }
+    /// Whole-project closes collect these choices before ending any session.
+    /// Nil means cancellation; true requests removal of the worktree.
+    func confirmCloseWorktreeSession(_ session: TerminalSession, in project: Project) async -> Bool? {
+        guard WorktreeLifecycle.closingSessions.insert(session.id).inserted else { return nil }
         defer { WorktreeLifecycle.closingSessions.remove(session.id) }
+        return await worktreeCloseChoice(session, in: project)
+    }
+
+    private func worktreeCloseChoice(_ session: TerminalSession, in project: Project) async -> Bool? {
+        guard let worktree = session.worktree else { return false }
         var refusal: String?
         do { refusal = try await SessionWorktreeService().inspect(worktree).refusal }
         catch { refusal = error.localizedDescription }
@@ -138,7 +140,8 @@ extension TerminalManager {
             refusal = String(localized: "Other open sessions still use this worktree. Close them before removing it.")
         }
         guard projects.contains(where: { $0 === project }), project.sessions.contains(where: { $0.id == session.id }),
-              let host = AppWindowPresentation.hostWindow(relativeTo: presentationWindow) else { return false }
+              let host = AppWindowPresentation.hostWindow(relativeTo: presentationWindow),
+              host.attachedSheet == nil else { return nil }
         let alert = NSAlert()
         alert.messageText = String(localized: "Close Session in Worktree?")
         let detail = String(localized: "\(worktree.path)\nThe Git branch will be kept.")
@@ -150,13 +153,21 @@ extension TerminalManager {
         cancel.keyEquivalent = "\u{1b}"
         let response = await alert.beginSheetModal(for: host)
         guard response == .alertFirstButtonReturn || response == .alertSecondButtonReturn,
-              project.sessions.contains(where: { $0.id == session.id }) else { return false }
+              project.sessions.contains(where: { $0.id == session.id }) else { return nil }
+        return response == .alertSecondButtonReturn
+    }
+
+    @discardableResult
+    func requestCloseWorktreeSession(_ session: TerminalSession, in project: Project) async -> Bool {
+        guard !UnsavedChangesConfirmation.isPending,
+              WorktreeLifecycle.closingSessions.insert(session.id).inserted else { return false }
+        defer { WorktreeLifecycle.closingSessions.remove(session.id) }
+        guard let removeWorktree = await worktreeCloseChoice(session, in: project) else { return false }
         do {
-            _ = try await closeWorktreeSession(session, in: project,
-                                              removeWorktree: response == .alertSecondButtonReturn)
+            _ = try await closeWorktreeSession(session, in: project, removeWorktree: removeWorktree)
             return true
         } catch {
-            await showWorktreeError(error, in: host)
+            await showWorktreeError(error, in: presentationWindow)
             return !project.sessions.contains(where: { $0.id == session.id })
         }
     }

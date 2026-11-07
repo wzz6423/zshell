@@ -19,7 +19,8 @@ import Combine
 @MainActor enum TerminalManager {
     static var opens = 0
     static func showWorkspace() { opens += 1 }
-    static func prepareForApplicationQuit(endAll: Bool = false) {}
+    static var quitRequests: [Bool] = []
+    static func requestApplicationQuit(endAll: Bool = false) { quitRequests.append(endAll) }
 }
 @MainActor final class GlobalTerminalOverlay {
     static let shared = GlobalTerminalOverlay()
@@ -42,8 +43,9 @@ import Combine
 @MainActor final class OriginalDelegate: NSObject, NSWindowDelegate {
     var allowsClose = true
     var closes = 0
+    var closeRequests = 0
     var resizes = 0
-    func windowShouldClose(_ window: NSWindow) -> Bool { allowsClose }
+    func windowShouldClose(_ window: NSWindow) -> Bool { closeRequests += 1; return allowsClose }
     func windowWillClose(_ notification: Notification) { closes += 1 }
     func windowDidResize(_ notification: Notification) { resizes += 1 }
     func windowWillResize(_ sender: NSWindow, to size: NSSize) -> NSSize {
@@ -90,7 +92,7 @@ import Combine
         precondition(statusItem.button?.window?.isVisible == true)
         precondition(statusItem.button?.image?.isTemplate == true)
         precondition(proxy.windowShouldClose?(first) == false)
-        precondition(firstDelegate.closes == 0)
+        precondition(firstDelegate.closes == 0 && firstDelegate.closeRequests == 0)
 
         let secondDelegate = OriginalDelegate()
         let second = makeWindow(owner, secondDelegate)
@@ -105,10 +107,15 @@ import Combine
         AppSettings.shared.applicationPresence = .menuBarOnly
         settle()
         precondition(NSApp.activationPolicy() == .accessory)
+        secondDelegate.allowsClose = false
         precondition(second.delegate?.windowShouldClose?(second) == false)
+        precondition(secondDelegate.closeRequests == 0)
+        secondDelegate.allowsClose = true
         let menu = statusItem.menu!
         owner.menuNeedsUpdate(menu)
         precondition(menu.items.count == 8)
+        menu.performActionForItem(at: 6)
+        precondition(TerminalManager.quitRequests == [true])
         for index in [0, 1, 3, 4] { menu.performActionForItem(at: index) }
         precondition(TerminalManager.opens == 1)
         precondition(GlobalTerminalOverlay.shared.toggles == 1)

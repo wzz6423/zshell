@@ -54,6 +54,11 @@ Opening a file gives you a real editor in a pane, with syntax highlighting.
 | Find and replace | <kbd>Opt</kbd>+<kbd>Cmd</kbd>+<kbd>F</kbd> |
 | Find next | <kbd>Cmd</kbd>+<kbd>G</kbd> |
 
+Closing a file, diff, project, or workspace window, or quitting Zshell, asks
+whether to save unsaved edits. **Cancel** or a failed save keeps the affected
+workspace and terminals open. In menu-bar mode, closing the last window only
+hides it and keeps its edits; quitting still asks before discarding them.
+
 Long lines wrap to the pane width by default. Disable
 [`editor.wrap-lines`](/en/docs/configuration#editorwrap-lines) to scroll horizontally.
 

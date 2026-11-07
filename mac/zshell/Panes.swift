@@ -80,6 +80,15 @@ extension PaneContent {
         }
     }
 
+    @MainActor var unsavedText: String? {
+        guard isDirty else { return nil }
+        switch self {
+        case .file(let file): return file.text
+        case .diff(let diff): return diff.unsavedText
+        case .session, .browser: return nil
+        }
+    }
+
     @MainActor var saveError: String? {
         switch self {
         case .file(let file): return file.saveError
