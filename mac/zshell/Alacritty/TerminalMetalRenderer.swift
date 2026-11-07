@@ -19,7 +19,7 @@ struct TerminalMarkedText {
 
 /// GPU renderer for a terminal grid.
 ///
-/// One instanced draw call covers a frame: every cell background, glyph,
+/// One instanced draw call normally covers a frame: every cell background, glyph,
 /// underline, strikethrough and the cursor becomes a quad in a single buffer.
 /// Quad corners are generated in the vertex shader from `vertex_id`, so there
 /// is no geometry to upload — only the per-instance array.
@@ -40,13 +40,20 @@ final class TerminalMetalRenderer {
         /// 0 solid, 1 foreground-tinted glyph, 2 intrinsic-color glyph,
         /// 3 Kitty graphics texture.
         var kind: UInt32
-        var padding: UInt32 = 0
+        var atlasPage: UInt32 = 0
     }
 
     private struct RowInstances {
         var instances: [Instance]
         var backgroundCount: Int
     }
+
+    private struct VisibleGlyph: Hashable {
+        let page: UInt32
+        let uvOrigin: SIMD2<Float>
+    }
+
+    private static let texturesPerDraw = 4
 
     private let device: MTLDevice
     private let queue: MTLCommandQueue
@@ -130,36 +137,14 @@ final class TerminalMetalRenderer {
         onPresented: (@Sendable () -> Void)? = nil,
         waitUntilCompleted: Bool = false
     ) -> Bool {
-        if atlas == nil {
-            atlas = TerminalGlyphAtlas(device: device, metrics: metrics, scale: scale)
-        }
-        guard let atlas else { return false }
-        let generationBeforeReset = atlas.generation
-        atlas.reset(metrics: metrics, scale: scale)
-        let resetAtlas = atlas.generation != generationBeforeReset
-
-        let atlasGenerationBeforeBuild = atlas.generation
-        build(
+        guard prepare(
             snapshot: snapshot, markedText: markedText,
             metrics: metrics, padding: padding,
-            atlas: atlas,
+            scale: scale,
             backgroundOpacity: backgroundOpacity,
-            dirtyRows: resetAtlas ? nil : dirtyRows,
+            dirtyRows: dirtyRows,
             viewportSize: viewportSize
-        )
-        if atlas.generation != atlasGenerationBeforeBuild {
-            // The atlas outgrew its initial texture while building this
-            // frame. Its old UVs are invalid, including those in cached clean
-            // rows, so rebuild the complete grid once against the new atlas.
-            build(
-                snapshot: snapshot, markedText: markedText,
-                metrics: metrics, padding: padding,
-                atlas: atlas,
-                backgroundOpacity: backgroundOpacity,
-                dirtyRows: nil,
-                viewportSize: viewportSize
-            )
-        }
+        ), let atlas else { return false }
 
         let pass = MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture = drawable.texture
@@ -191,14 +176,8 @@ final class TerminalMetalRenderer {
             encoder.setRenderPipelineState(pipeline)
             encoder.setVertexBuffer(buffer, offset: 0, index: 0)
             encoder.setVertexBytes(&viewport, length: MemoryLayout<SIMD2<Float>>.stride, index: 1)
-            encoder.setFragmentTexture(atlas.texture, index: 0)
             encoder.setFragmentSamplerState(sampler, index: 0)
-            encoder.drawPrimitives(
-                type: .triangle,
-                vertexStart: 0,
-                vertexCount: 6,
-                instanceCount: instances.count
-            )
+            drawInstances(atlas: atlas, with: encoder)
         }
         drawKittyGraphics(
             kittyPlacements.filter { $0.zIndex >= 0 },
@@ -221,6 +200,114 @@ final class TerminalMetalRenderer {
             return commands.status != .error
         }
         return true
+    }
+
+    private func prepare(
+        snapshot: ZshellSnapshot,
+        markedText: TerminalMarkedText?,
+        metrics: AlacrittyMetrics,
+        padding: CGPoint,
+        scale: CGFloat,
+        backgroundOpacity: CGFloat,
+        dirtyRows: [Int]?,
+        viewportSize: CGSize
+    ) -> Bool {
+        if atlas == nil {
+            atlas = TerminalGlyphAtlas(device: device, metrics: metrics, scale: scale)
+        }
+        guard let atlas else { return false }
+        let generationBeforeReset = atlas.generation
+        guard atlas.reset(metrics: metrics, scale: scale) else { return false }
+        let resetAtlas = atlas.generation != generationBeforeReset
+
+        let generationBeforeBuild = atlas.generation
+        build(
+            snapshot: snapshot, markedText: markedText,
+            metrics: metrics, padding: padding, atlas: atlas,
+            backgroundOpacity: backgroundOpacity,
+            dirtyRows: resetAtlas ? nil : dirtyRows,
+            viewportSize: viewportSize
+        )
+        if atlas.generation != generationBeforeBuild {
+            // Growth changes UVs, including those in retained clean rows.
+            // It happens at most once, from the initial page to the final size.
+            build(
+                snapshot: snapshot, markedText: markedText,
+                metrics: metrics, padding: padding, atlas: atlas,
+                backgroundOpacity: backgroundOpacity,
+                dirtyRows: nil, viewportSize: viewportSize
+            )
+        }
+
+        let visibleArea = atlas.pageCount > 2 ? visibleGlyphArea() : 0
+        if atlas.needsRebuild || atlas.shouldCompact(visibleGlyphArea: visibleArea) {
+            // Repack the complete visible grid and IME, not just dirty rows.
+            // Unlike history caching, this pass may add the pages the frame
+            // actually needs. Fresh textures leave in-flight frames untouched.
+            guard atlas.beginRebuild() else { return false }
+            build(
+                snapshot: snapshot, markedText: markedText,
+                metrics: metrics, padding: padding, atlas: atlas,
+                backgroundOpacity: backgroundOpacity,
+                dirtyRows: nil, viewportSize: viewportSize
+            )
+            atlas.finishRebuild(visibleGlyphArea: visibleGlyphArea())
+        }
+        return !atlas.needsRebuild
+    }
+
+    private func visibleGlyphArea() -> Float {
+        var visible: Set<VisibleGlyph> = []
+        var area: Float = 0
+        // Include retained clean rows and transient preedit, deduplicating
+        // glyphs whose rasterized bitmap is shared by many cells.
+        for instance in instances where instance.kind == 1 || instance.kind == 2 {
+            if visible.insert(VisibleGlyph(
+                page: instance.atlasPage, uvOrigin: instance.uvOrigin
+            )).inserted {
+                area += instance.uvSize.x * instance.uvSize.y
+            }
+        }
+        return area
+    }
+
+    /// Consecutive ranges keep backgrounds, overlapping glyphs, decorations
+    /// and the cursor in their original order when a grid needs >4 pages.
+    private func instanceRanges() -> [(range: Range<Int>, firstPage: Int)] {
+        guard !instances.isEmpty else { return [] }
+        var ranges: [(range: Range<Int>, firstPage: Int)] = []
+        var start = 0
+        var firstPage = 0
+        for (index, instance) in instances.enumerated()
+            where instance.kind == 1 || instance.kind == 2
+        {
+            let group = Int(instance.atlasPage) / Self.texturesPerDraw * Self.texturesPerDraw
+            if group != firstPage {
+                if index > start { ranges.append((start..<index, firstPage)) }
+                start = index
+                firstPage = group
+            }
+        }
+        ranges.append((start..<instances.count, firstPage))
+        return ranges
+    }
+
+    private func drawInstances(atlas: TerminalGlyphAtlas, with encoder: MTLRenderCommandEncoder) {
+        let textures = atlas.textures
+        let batches = textures.count <= Self.texturesPerDraw
+            ? [(range: 0..<instances.count, firstPage: 0)] : instanceRanges()
+        for batch in batches {
+            // Populate every shader binding, including unused slots. Solid
+            // instances can start a batch before its first glyph arrives.
+            for slot in 0..<Self.texturesPerDraw {
+                let page = batch.firstPage + slot
+                encoder.setFragmentTexture(textures[page < textures.count ? page : 0], index: slot)
+            }
+            encoder.drawPrimitives(
+                type: .triangle, vertexStart: 0, vertexCount: 6,
+                instanceCount: batch.range.count, baseInstance: batch.range.lowerBound
+            )
+        }
     }
 
     private func drawKittyGraphics(
@@ -278,7 +365,9 @@ final class TerminalMetalRenderer {
                 length: MemoryLayout<Instance>.stride,
                 index: 0
             )
-            encoder.setFragmentTexture(texture, index: 0)
+            for slot in 0..<Self.texturesPerDraw {
+                encoder.setFragmentTexture(texture, index: slot)
+            }
             encoder.drawPrimitives(
                 type: .triangle,
                 vertexStart: 0,
@@ -439,7 +528,8 @@ final class TerminalMetalRenderer {
                     color: color,
                     uvOrigin: entry.uvOrigin,
                     uvSize: entry.uvSize,
-                    kind: entry.isColor ? 2 : 1
+                    kind: entry.isColor ? 2 : 1,
+                    atlasPage: UInt32(entry.page)
                 ))
             }
             instances.append(Instance(
@@ -560,7 +650,8 @@ final class TerminalMetalRenderer {
                         color: color,
                         uvOrigin: entry.uvOrigin,
                         uvSize: entry.uvSize,
-                        kind: entry.isColor ? 2 : 1
+                        kind: entry.isColor ? 2 : 1,
+                        atlasPage: UInt32(entry.page)
                     ))
                 }
             }
@@ -682,7 +773,7 @@ final class TerminalMetalRenderer {
         float2 uvOrigin;
         float2 uvSize;
         uint kind;
-        uint padding;
+        uint atlasPage;
     };
 
     struct VertexOut {
@@ -690,6 +781,7 @@ final class TerminalMetalRenderer {
         float4 color;
         float2 uv;
         uint kind;
+        uint atlasPage [[flat]];
     };
 
     // Quad corners come from vertex_id, so only the instance array is uploaded.
@@ -717,18 +809,19 @@ final class TerminalMetalRenderer {
         out.color = instance.color;
         out.uv = instance.uvOrigin + corner * instance.uvSize;
         out.kind = instance.kind;
+        out.atlasPage = instance.atlasPage;
         return out;
     }
 
     fragment float4 zshell_terminal_fragment(
         VertexOut in [[stage_in]],
-        texture2d<float> atlas [[texture(0)]],
+        array<texture2d<float>, 4> atlas [[texture(0)]],
         sampler atlasSampler [[sampler(0)]]
     ) {
         if (in.kind == 0) {
             return in.color;
         }
-        float4 sample = atlas.sample(atlasSampler, in.uv);
+        float4 sample = atlas[in.atlasPage % 4].sample(atlasSampler, in.uv);
         if (in.kind == 3) {
             return sample;
         }
