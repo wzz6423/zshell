@@ -53,11 +53,11 @@ final class TerminalMetalRenderer {
     private let pipeline: MTLRenderPipelineState
     private let sampler: MTLSamplerState
     private let textureLoader: MTKTextureLoader
+    private let instanceBuffers: TerminalInstanceBufferPool
     private var atlas: TerminalGlyphAtlas?
     private var kittyTextures: [AlacrittyKittyImageKey: MTLTexture] = [:]
 
     private var instances: [Instance] = []
-    private var instanceBuffer: MTLBuffer?
 
     /// Draw instances per grid row, kept between frames.
     ///
@@ -75,6 +75,7 @@ final class TerminalMetalRenderer {
         self.device = device
         self.queue = queue
         textureLoader = MTKTextureLoader(device: device)
+        instanceBuffers = TerminalInstanceBufferPool(device: device)
 
         guard let library = try? device.makeLibrary(source: Self.shaderSource, options: nil),
               let vertexFunction = library.makeFunction(name: "zshell_terminal_vertex"),
@@ -128,6 +129,7 @@ final class TerminalMetalRenderer {
         in drawable: CAMetalDrawable,
         viewportSize: CGSize,
         onPresented: (@Sendable () -> Void)? = nil,
+        onBufferAvailable: (@Sendable () -> Void)? = nil,
         waitUntilCompleted: Bool = false
     ) -> Bool {
         if atlas == nil {
@@ -161,6 +163,17 @@ final class TerminalMetalRenderer {
             )
         }
 
+        let instanceLease: TerminalInstanceBufferPool.Lease?
+        if instances.isEmpty {
+            instanceLease = nil
+        } else {
+            guard let lease = uploadInstances(
+                waitUntilAvailable: waitUntilCompleted,
+                onAvailable: onBufferAvailable
+            ) else { return false }
+            instanceLease = lease
+        }
+
         let pass = MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture = drawable.texture
         pass.colorAttachments[0].loadAction = .clear
@@ -186,7 +199,7 @@ final class TerminalMetalRenderer {
             viewportSize: viewportSize,
             with: encoder
         )
-        if !instances.isEmpty, let buffer = uploadInstances() {
+        if let buffer = instanceLease?.buffer {
             var viewport = SIMD2<Float>(Float(viewportSize.width), Float(viewportSize.height))
             encoder.setRenderPipelineState(pipeline)
             encoder.setVertexBuffer(buffer, offset: 0, index: 0)
@@ -215,6 +228,7 @@ final class TerminalMetalRenderer {
             drawable.addPresentedHandler { _ in onPresented() }
         }
         commands.present(drawable)
+        instanceLease?.releaseWhenCompleted(by: commands)
         commands.commit()
         if waitUntilCompleted {
             commands.waitUntilCompleted()
@@ -305,18 +319,20 @@ final class TerminalMetalRenderer {
         return texture
     }
 
-    private func uploadInstances() -> MTLBuffer? {
+    private func uploadInstances(
+        waitUntilAvailable: Bool,
+        onAvailable: (@Sendable () -> Void)?
+    ) -> TerminalInstanceBufferPool.Lease? {
         let length = MemoryLayout<Instance>.stride * instances.count
-        // Grow only: a terminal's instance count is bounded by its grid, so
-        // the buffer settles after the first few frames.
-        if instanceBuffer == nil || instanceBuffer!.length < length {
-            instanceBuffer = device.makeBuffer(length: length, options: .storageModeShared)
-        }
-        guard let buffer = instanceBuffer else { return nil }
+        guard let lease = instanceBuffers.acquire(
+            length: length,
+            waitUntilAvailable: waitUntilAvailable,
+            onAvailable: onAvailable
+        ) else { return nil }
         instances.withUnsafeBytes { raw in
-            buffer.contents().copyMemory(from: raw.baseAddress!, byteCount: length)
+            lease.buffer.contents().copyMemory(from: raw.baseAddress!, byteCount: length)
         }
-        return buffer
+        return lease
     }
 
     // MARK: - Instance building

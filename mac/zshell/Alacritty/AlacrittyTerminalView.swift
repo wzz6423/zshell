@@ -787,6 +787,19 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         } else {
             onPresented = nil
         }
+        let rendererID = ObjectIdentifier(renderer)
+        let onBufferAvailable: @Sendable () -> Void = {
+            DispatchQueue.main.async {
+                guard let view = AlacrittyRegistry.shared.view(for: presentationToken),
+                      view.presentationGeneration == generation,
+                      view.layer is CAMetalLayer,
+                      view.needsUnconditionalRedraw,
+                      let currentRenderer = view.metalRenderer,
+                      ObjectIdentifier(currentRenderer) == rendererID
+                else { return }
+                view.scheduleRender()
+            }
+        }
         let submitted = renderer.render(
             snapshot: snapshot,
             markedText: preedit,
@@ -799,6 +812,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             in: drawable,
             viewportSize: size,
             onPresented: onPresented,
+            onBufferAvailable: onBufferAvailable,
             waitUntilCompleted: waitUntilCompleted
         )
         if submitted {
@@ -809,6 +823,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
                 preeditChanged = false
             }
             lastPresentedSurface = drawableSurface
+        } else {
+            needsUnconditionalRedraw = true
         }
         if submitted, waitUntilCompleted {
             lastPresentedSize = size
