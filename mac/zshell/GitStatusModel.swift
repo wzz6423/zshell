@@ -201,6 +201,7 @@ final class GitStatusModel: nonisolated ObservableObject {
     /// instead of flashing a loading placeholder.
     @Published private(set) var hasResolvedStatus = false
     @Published private(set) var statusError: String?
+    @Published private(set) var detailError: String?
     /// True while a user-initiated Git operation runs.
     @Published private(set) var isBusy = false
     @Published private(set) var operation: Operation?
@@ -387,7 +388,13 @@ final class GitStatusModel: nonisolated ObservableObject {
             // queued refresh using the larger limit finishes.
             self.isLoadingMoreCommits = commitLimit < self.recentCommitLimit
             switch result {
-            case .repository, .notRepository:
+            case .repository(var snapshot):
+                if case .repository(let previous) = self.cachedStatusByRoot[root],
+                   previous.topLevel == snapshot.topLevel {
+                    snapshot.preserveUnavailableDetails(from: previous)
+                }
+                self.cachedStatusByRoot[root] = .repository(snapshot)
+            case .notRepository:
                 self.cachedStatusByRoot[root] = result
             case .failed:
                 break
@@ -1195,6 +1202,7 @@ final class GitStatusModel: nonisolated ObservableObject {
         operation = failedOperation
         lastError = failedError
         statusError = nil
+        detailError = nil
         statusRequestID &+= 1
         if !preserveIdentity { repositoryIdentity = "" }
     }
@@ -1234,6 +1242,7 @@ final class GitStatusModel: nonisolated ObservableObject {
     }
 
     private func applyRepository(_ result: StatusResult) {
+        let sameRepository = topLevel == result.topLevel
         isRepo = true
         branch = result.branch
         headOID = result.headOID
@@ -1246,16 +1255,17 @@ final class GitStatusModel: nonisolated ObservableObject {
         lineDeletions = result.lineDeletions
         topLevel = result.topLevel
         repositoryIdentity = result.topLevel
-        if result.loadedDetails {
-            branches = result.branches
-            defaultBranch = result.defaultBranch
-            worktrees = result.worktrees
-            remotes = result.remotes
+        if !sameRepository || result.loadedDetails.contains(.branches) { branches = result.branches }
+        if !sameRepository || result.loadedDetails.contains(.defaultBranch) { defaultBranch = result.defaultBranch }
+        if !sameRepository || result.loadedDetails.contains(.worktrees) { worktrees = result.worktrees }
+        if !sameRepository || result.loadedDetails.contains(.remotes) { remotes = result.remotes }
+        if !sameRepository || result.loadedDetails.contains(.history) {
             recentCommits = result.recentCommits
             hasMoreRecentCommits = result.hasMoreRecentCommits
-            repositoryOperation = result.repositoryOperation
-            stashCount = result.stashCount
         }
+        if !sameRepository || result.loadedDetails.contains(.operation) { repositoryOperation = result.repositoryOperation }
+        if !sameRepository || result.loadedDetails.contains(.stash) { stashCount = result.stashCount }
+        detailError = result.detailError
 
         let entries = result.entries.map { entry in
             var entry = entry
@@ -1302,6 +1312,10 @@ final class GitStatusModel: nonisolated ObservableObject {
     }
 
     nonisolated struct StatusResult: Equatable, Sendable {
+        enum Detail: Hashable, Sendable {
+            case branches, defaultBranch, worktrees, remotes, history, operation, stash
+        }
+
         var branch: String?
         var headOID: String?
         var hasHead = true
@@ -1322,7 +1336,26 @@ final class GitStatusModel: nonisolated ObservableObject {
         var hasMoreRecentCommits = false
         var repositoryOperation: String?
         var stashCount = 0
-        var loadedDetails = false
+        var loadedDetails: Set<Detail> = []
+        var detailError: String?
+
+        mutating func preserveUnavailableDetails(from previous: StatusResult) {
+            guard topLevel == previous.topLevel else { return }
+            for detail in previous.loadedDetails.subtracting(loadedDetails) {
+                switch detail {
+                case .branches: branches = previous.branches
+                case .defaultBranch: defaultBranch = previous.defaultBranch
+                case .worktrees: worktrees = previous.worktrees
+                case .remotes: remotes = previous.remotes
+                case .history:
+                    recentCommits = previous.recentCommits
+                    hasMoreRecentCommits = previous.hasMoreRecentCommits
+                case .operation: repositoryOperation = previous.repositoryOperation
+                case .stash: stashCount = previous.stashCount
+                }
+                loadedDetails.insert(detail)
+            }
+        }
     }
 
     /// Runs Git while draining stdout and stderr concurrently. Dedicated
@@ -1468,7 +1501,10 @@ final class GitStatusModel: nonisolated ObservableObject {
     /// directory from an actual Git failure that the UI should surface.
     private nonisolated static func runGitStatus(
         in root: String,
-        recentCommitLimit: Int
+        recentCommitLimit: Int,
+        commandRunner: ([String], String, TimeInterval) -> (status: Int32, stdout: String, stderr: String) = {
+            runGit($0, in: $1, timeout: $2)
+        }
     ) -> StatusLoadResult {
         // A filesystem, Git helper, or corrupt repository must not leave the
         // initial sidebar spinner running forever. Share one deadline across
@@ -1481,7 +1517,7 @@ final class GitStatusModel: nonisolated ObservableObject {
         ) -> (status: Int32, stdout: String, stderr: String) {
             let remaining = deadline.timeIntervalSinceNow
             guard remaining > 0 else { return (-2, "", timeoutMessage) }
-            return runGit(args, in: directory, timeout: remaining)
+            return commandRunner(args, directory, remaining)
         }
 
         let top = statusGit(["rev-parse", "--show-toplevel"], in: root)
@@ -1508,7 +1544,7 @@ final class GitStatusModel: nonisolated ObservableObject {
             ],
             in: resolvedRoot
         )
-        guard status.status == 0 else {
+        guard status.status == 0, status.stdout.hasPrefix("# branch.") else {
             return .failed(
                 gitFailureMessage(
                     status,
@@ -1518,12 +1554,6 @@ final class GitStatusModel: nonisolated ObservableObject {
         }
         var result = parseStatus(status.stdout)
         result.topLevel = resolvedRoot
-        result.reviewFingerprints = reviewFingerprints(
-            for: result.entries,
-            hasHead: result.hasHead,
-            in: resolvedRoot,
-            runGit: statusGit
-        )
 
         let diff = statusGit(
             result.hasHead
@@ -1555,30 +1585,46 @@ final class GitStatusModel: nonisolated ObservableObject {
             in: resolvedRoot
         )
 
-        result.loadedDetails = true
         let repoRoot = resolvedRoot
+        func recordFailure(_ output: (status: Int32, stdout: String, stderr: String)) {
+            if result.detailError == nil {
+                result.detailError = gitFailureMessage(
+                    output, fallback: String(localized: "Unable to read Git status.")
+                )
+            }
+        }
 
         let refs = statusGit(
             ["for-each-ref", "--format=%(refname:short)", "refs/heads"], in: repoRoot
         )
         if refs.status == 0 {
             result.branches = refs.stdout.split(separator: "\n").map(String.init).sorted()
+            result.loadedDetails.insert(.branches)
+        } else {
+            recordFailure(refs)
         }
 
         let worktreeRun = statusGit(["worktree", "list", "--porcelain", "-z"], in: repoRoot)
         if worktreeRun.status == 0 {
             result.worktrees = parseWorktrees(worktreeRun.stdout, currentRoot: repoRoot)
+            result.loadedDetails.insert(.worktrees)
+        } else {
+            recordFailure(worktreeRun)
         }
 
         let remoteRun = statusGit(["remote"], in: repoRoot)
         if remoteRun.status == 0 {
             result.remotes = remoteRun.stdout.split(separator: "\n").map(String.init).sorted()
+            result.loadedDetails.insert(.remotes)
+        } else {
+            recordFailure(remoteRun)
         }
 
         // A clone records its remote's default branch as a symbolic HEAD.
         // Prefer origin when more than one remote is present because that is
         // the repository the local branch list conventionally belongs to.
-        if let remote = result.remotes.contains("origin") ? "origin" : result.remotes.first {
+        if result.loadedDetails.contains(.branches), result.loadedDetails.contains(.remotes),
+           let remote = result.remotes.contains("origin") ? "origin" : result.remotes.first {
             let remoteHead = statusGit(
                 ["symbolic-ref", "--quiet", "--short", "refs/remotes/\(remote)/HEAD"],
                 in: repoRoot
@@ -1591,42 +1637,65 @@ final class GitStatusModel: nonisolated ObservableObject {
                     result.defaultBranch = branch
                 }
             }
+            if remoteHead.status == 0 || remoteHead.status == 1 {
+                result.loadedDetails.insert(.defaultBranch)
+            } else {
+                recordFailure(remoteHead)
+            }
+        } else if result.loadedDetails.contains(.remotes), result.remotes.isEmpty {
+            result.loadedDetails.insert(.defaultBranch)
         }
 
         // NUL-delimited name-status records preserve every valid path while
         // supplying the nested file rows used by the native commit graph.
-        let log = statusGit([
+        let log = result.hasHead ? statusGit([
             "log", "-n", "\(recentCommitLimit + 1)", "--decorate=short",
             "--pretty=format:%x1e%H%x1f%h%x1f%s%x1f%an%x1f%ct%x1f%P%x1f%D",
             "--name-status", "-z",
-        ], in: repoRoot)
+        ], in: repoRoot) : (status: Int32(0), stdout: "", stderr: "")
         if log.status == 0 {
             let commits = parseRecentCommits(log.stdout)
             result.hasMoreRecentCommits = commits.count > recentCommitLimit
             result.recentCommits = Array(commits.prefix(recentCommitLimit))
+            result.loadedDetails.insert(.history)
+        } else {
+            recordFailure(log)
         }
 
         let stash = statusGit(
-            ["rev-list", "--walk-reflogs", "--count", "refs/stash"], in: repoRoot
+            ["rev-list", "--walk-reflogs", "--count", "--ignore-missing", "refs/stash"], in: repoRoot
         )
         if stash.status == 0 {
             result.stashCount = Int(stash.stdout.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+            result.loadedDetails.insert(.stash)
+        } else {
+            recordFailure(stash)
         }
 
         let gitDir = statusGit(["rev-parse", "--absolute-git-dir"], in: repoRoot)
         if gitDir.status == 0 {
             let path = strippingTrailingLineEnding(gitDir.stdout)
             result.repositoryOperation = detectRepositoryOperation(gitDirectory: path)
+            result.loadedDetails.insert(.operation)
+        } else {
+            recordFailure(gitDir)
         }
+        // Details must get their budget before review metadata; a costly diff
+        // must not make valid branch/history data look like successful emptiness.
+        result.reviewFingerprints = reviewFingerprints(
+            for: result.entries, hasHead: result.hasHead, in: resolvedRoot,
+            deadline: deadline, runGit: statusGit
+        )
         return .repository(result)
     }
 
-    /// Hashes each reviewable staged/worktree layer independently. Git's binary
-    /// patch output captures exact content and metadata without loading files here.
+    /// Hashes staged/worktree layers in batches rather than spawning one Git
+    /// process per file. Untracked files are read directly under the same deadline.
     private nonisolated static func reviewFingerprints(
         for entries: [Entry],
         hasHead: Bool,
         in root: String,
+        deadline: Date,
         runGit: DiffReviewFingerprint.GitRunner
     ) -> [String: ReviewFingerprints] {
         var fingerprints: [String: ReviewFingerprints] = [:]
@@ -1638,16 +1707,33 @@ final class GitStatusModel: nonisolated ObservableObject {
         }
 
         func load(_ entries: [Entry], layer: DiffReviewLayer) {
+            let tracked = entries.filter { !($0.isUntracked && layer == .worktree) }
+            let paths = tracked.flatMap { entry in
+                [entry.path] + (layer == .staged || entry.isWorktreeRename || entry.isWorktreeCopy
+                    ? entry.origPath.map { [$0] } ?? [] : [])
+            }
+            let patches = DiffReviewFingerprint.trackedPatches(
+                for: paths, layer: layer, hasHead: hasHead, in: root, runGit: runGit
+            )
             for entry in entries {
-                guard let digest = DiffReviewFingerprint.load(
-                    path: entry.path,
-                    originalPath: entry.origPath,
-                    layer: layer,
-                    hasHead: hasHead,
-                    untracked: entry.isUntracked,
-                    in: root,
-                    runGit: runGit
-                ) else { continue }
+                guard Date() < deadline else { break }
+                let digest: String?
+                if layer == .worktree && entry.isUntracked {
+                    digest = DiffReviewFingerprint.load(
+                        path: entry.path, layer: layer, hasHead: hasHead,
+                        untracked: true, in: root, runGit: runGit
+                    )
+                } else if let patches {
+                    digest = DiffReviewFingerprint.fingerprint(
+                        path: entry.path,
+                        originalPath: layer == .staged || entry.isWorktreeRename || entry.isWorktreeCopy
+                            ? entry.origPath : nil,
+                        patches: patches
+                    )
+                } else {
+                    digest = nil
+                }
+                guard let digest else { continue }
                 var value = fingerprints[entry.path] ?? ReviewFingerprints()
                 switch layer {
                 case .staged: value.staged = digest

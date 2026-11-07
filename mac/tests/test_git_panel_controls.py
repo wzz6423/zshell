@@ -93,6 +93,7 @@ final class ProjectPullRequestModel: ObservableObject {
 @MainActor final class GitStatusModel: ObservableObject {
     MODEL_TYPES
     @Published var rootPath = "/fixture/repo"
+    @Published var detailError: String?
     @Published var repositoryIdentity = "/fixture/repo"
     @Published var isRepo = true
     @Published var branch: String? = "main"
