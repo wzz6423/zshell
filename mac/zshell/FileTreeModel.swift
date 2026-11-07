@@ -5,12 +5,13 @@
 
 import AppKit
 import Combine
+import Darwin
 import Foundation
 
 /// Flattened, lazily-expanded view of a directory tree.
 @MainActor
 final class FileTreeModel: nonisolated ObservableObject {
-    struct Item: Identifiable, Equatable {
+    nonisolated struct Item: Identifiable, Equatable, Sendable {
         var id: String { path }
         let name: String
         let path: String
@@ -23,7 +24,7 @@ final class FileTreeModel: nonisolated ObservableObject {
 
     /// A pending inline "new file/folder": an input row shown inside
     /// `parentDir` until the user names it (Enter) or cancels (Escape/blur).
-    struct Draft: Equatable {
+    nonisolated struct Draft: Equatable, Sendable {
         let parentDir: String
         let isDirectory: Bool
     }
@@ -35,6 +36,14 @@ final class FileTreeModel: nonisolated ObservableObject {
     /// The pending new-file/folder input row, if any.
     @Published private(set) var draft: Draft?
     private var expanded: Set<String> = []
+    private var localListings: [String: LocalListing] = [:]
+    private var localRefreshTask: Task<Void, Never>?
+    private var localRefreshPending = false
+    private var localGeneration = 0
+    private var localRevision = 0
+    private var localInvalidatedDirectories: Set<String> = []
+
+    deinit { localRefreshTask?.cancel() }
 
     var rootName: String {
         (rootPath as NSString).lastPathComponent
@@ -70,6 +79,7 @@ final class FileTreeModel: nonisolated ObservableObject {
 
     func configureRemote(_ endpoint: SSHEndpoint?) {
         guard endpoint != remoteEndpoint else { return }
+        invalidateLocalRefresh()
         remoteEndpoint = endpoint
         remoteGeneration &+= 1
         remoteListings = [:]
@@ -133,12 +143,13 @@ final class FileTreeModel: nonisolated ObservableObject {
     /// trees fetch their listings over SSH instead.
     func sync(root: String) {
         if root != rootPath {
+            invalidateLocalRefresh()
             rootPath = root
             expanded = []
             // Any in-progress inline edit belonged to the old tree.
             renamingPath = nil
             draft = nil
-            if root.isEmpty, !items.isEmpty { items = [] }
+            if !items.isEmpty { items = [] }
             if remoteEndpoint != nil {
                 remoteGeneration &+= 1
                 remoteListings = [:]
@@ -156,7 +167,7 @@ final class FileTreeModel: nonisolated ObservableObject {
             loadRemoteListing(rootPath)
             return
         }
-        rebuild()
+        refreshLocal()
     }
 
     func toggle(_ item: Item) {
@@ -177,6 +188,7 @@ final class FileTreeModel: nonisolated ObservableObject {
                 at: URL(fileURLWithPath: item.path), resultingItemURL: nil
             )
             expanded.remove(item.path)
+            localInvalidatedDirectories.insert((item.path as NSString).deletingLastPathComponent)
         } catch {
             presentError(
                 String(
@@ -231,6 +243,7 @@ final class FileTreeModel: nonisolated ObservableObject {
         do {
             try fm.moveItem(atPath: item.path, toPath: dest)
             remapExpanded(from: item.path, to: dest)
+            localInvalidatedDirectories.insert(dir)
         } catch {
             presentError(String(localized: "Couldn’t rename to “\(trimmed)”."), error.localizedDescription)
             return nil
@@ -270,12 +283,14 @@ final class FileTreeModel: nonisolated ObservableObject {
         draft = Draft(parentDir: directory, isDirectory: isDirectory)
         // Reveal the folder's contents so the input row is visible.
         expanded.insert(directory)
+        if remoteEndpoint == nil { showDraftRow() }
         rebuild()
     }
 
     func cancelDraft() {
         guard draft != nil else { return }
         draft = nil
+        if remoteEndpoint == nil { removeDraftRow() }
         rebuild()
     }
 
@@ -286,6 +301,7 @@ final class FileTreeModel: nonisolated ObservableObject {
     func commitDraft(name: String) -> String? {
         guard let draft else { return nil }
         self.draft = nil
+        if remoteEndpoint == nil { removeDraftRow() }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { rebuild(); return nil }
         guard !trimmed.contains("/"), trimmed != ".", trimmed != ".." else {
@@ -321,6 +337,7 @@ final class FileTreeModel: nonisolated ObservableObject {
                 String(localized: "It could not be written to disk.")
             )
         }
+        localInvalidatedDirectories.insert(draft.parentDir)
         rebuild()
         return createdFile
     }
@@ -336,12 +353,14 @@ final class FileTreeModel: nonisolated ObservableObject {
 
     private func rebuild() {
         guard !rootPath.isEmpty else { return }
-        var out: [Item] = []
-        if remoteEndpoint != nil {
-            appendRemoteChildren(of: rootPath, depth: 0, into: &out)
-        } else {
-            appendChildren(of: rootPath, depth: 0, into: &out)
+        guard remoteEndpoint != nil else {
+            localRevision &+= 1
+            localRefreshTask?.cancel()
+            refreshLocal()
+            return
         }
+        var out: [Item] = []
+        appendRemoteChildren(of: rootPath, depth: 0, into: &out)
         if out != items {
             items = out
         }
@@ -367,9 +386,138 @@ final class FileTreeModel: nonisolated ObservableObject {
         }
     }
 
-    private func appendChildren(of dir: String, depth: Int, into out: inout [Item]) {
+    private func showDraftRow() {
+        removeDraftRow()
+        guard let draft else { return }
+        let index: Int
+        let depth: Int
+        if draft.parentDir == rootPath {
+            index = 0
+            depth = 0
+        } else if let parent = items.firstIndex(where: { $0.path == draft.parentDir }) {
+            index = parent + 1
+            depth = items[parent].depth + 1
+        } else {
+            return
+        }
+        items.insert(Item(name: "", path: draft.parentDir + "/\u{1}draft",
+                          isDirectory: draft.isDirectory, depth: depth, isDraft: true), at: index)
+    }
+
+    private func removeDraftRow() {
+        if let index = items.firstIndex(where: \.isDraft) { items.remove(at: index) }
+    }
+
+    // MARK: - Local background refresh
+
+    private func invalidateLocalRefresh() {
+        localGeneration &+= 1
+        localRefreshTask?.cancel()
+        localRefreshPending = false
+        localListings = [:]
+        localInvalidatedDirectories = []
+    }
+
+    private func refreshLocal() {
+        guard remoteEndpoint == nil, !rootPath.isEmpty else { return }
+        guard localRefreshTask == nil else {
+            localRefreshPending = true
+            return
+        }
+        localRefreshPending = false
+        let root = rootPath
+        let generation = localGeneration
+        let revision = localRevision
+        let expanded = expanded
+        let draft = draft
+        let listings = localListings
+        let invalidated = localInvalidatedDirectories
+        let previousItems = items
+        localRefreshTask = Task.detached(priority: .utility) { [weak self] in
+            let result = Self.buildLocalTree(root: root, expanded: expanded, draft: draft,
+                                            listings: listings, invalidated: invalidated,
+                                            previousItems: previousItems)
+            await MainActor.run { [weak self] in
+                self?.finishLocalRefresh(result, root: root, generation: generation, revision: revision)
+            }
+        }
+    }
+
+    private func finishLocalRefresh(_ result: LocalTreeResult, root: String, generation: Int, revision: Int) {
+        localRefreshTask = nil
+        if generation == localGeneration, root == rootPath, remoteEndpoint == nil {
+            localListings = result.listings
+            if revision == localRevision, result.isComplete {
+                localInvalidatedDirectories = []
+                if let rows = result.items { items = rows }
+            }
+        }
+        if localRefreshPending {
+            localRefreshPending = false
+            refreshLocal()
+        }
+    }
+
+    private nonisolated struct LocalEntry: Sendable {
+        let name: String
+        let path: String
+        var isDirectory: Bool
+        let needsTypeCheck: Bool
+    }
+
+    private nonisolated struct DirectoryStamp: Equatable, Sendable {
+        let device: dev_t
+        let inode: ino_t
+        let modifiedSeconds: time_t
+        let modifiedNanoseconds: Int
+        let changedSeconds: time_t
+        let changedNanoseconds: Int
+
+        init?(_ path: String) {
+            var metadata = stat()
+            guard stat(path, &metadata) == 0, metadata.st_mode & S_IFMT == S_IFDIR else { return nil }
+            device = metadata.st_dev
+            inode = metadata.st_ino
+            modifiedSeconds = metadata.st_mtimespec.tv_sec
+            modifiedNanoseconds = metadata.st_mtimespec.tv_nsec
+            changedSeconds = metadata.st_ctimespec.tv_sec
+            changedNanoseconds = metadata.st_ctimespec.tv_nsec
+        }
+    }
+
+    private nonisolated struct LocalListing: Sendable {
+        let stamp: DirectoryStamp?
+        let children: [LocalEntry]
+    }
+
+    private nonisolated struct LocalTreeResult: Sendable {
+        let listings: [String: LocalListing]
+        let items: [Item]?
+        let isComplete: Bool
+    }
+
+    private nonisolated static func buildLocalTree(
+        root: String, expanded: Set<String>, draft: Draft?, listings: [String: LocalListing],
+        invalidated: Set<String>, previousItems: [Item]
+    ) -> LocalTreeResult {
+        var nextListings: [String: LocalListing] = [:]
+        var rows: [Item] = []
+        let complete = appendLocalChildren(of: root, depth: 0, expanded: expanded, draft: draft,
+                                           listings: listings, invalidated: invalidated,
+                                           nextListings: &nextListings, into: &rows)
+            && !Task.isCancelled
+        return LocalTreeResult(listings: nextListings,
+                               items: complete && rows != previousItems ? rows : nil, isComplete: complete)
+    }
+
+    private nonisolated static func appendLocalChildren(
+        of dir: String, depth: Int, expanded: Set<String>, draft: Draft?,
+        listings: [String: LocalListing], invalidated: Set<String>,
+        nextListings: inout [String: LocalListing], into out: inout [Item]
+    ) -> Bool {
         // Guard against runaway recursion through symlink cycles.
-        guard depth < 32 else { return }
+        guard depth < 32 else { return true }
+        guard !Task.isCancelled else { return false }
         // Show the inline new-file/folder input at the top of its folder.
         if let draft, draft.parentDir == dir {
             out.append(
@@ -379,27 +527,79 @@ final class FileTreeModel: nonisolated ObservableObject {
                 )
             )
         }
-        let fm = FileManager.default
-        guard let names = try? fm.contentsOfDirectory(atPath: dir) else { return }
-
-        let children = names
-            .filter { $0 != ".git" }
-            .map { name -> Item in
-                let path = (dir as NSString).appendingPathComponent(name)
-                var isDir: ObjCBool = false
-                fm.fileExists(atPath: path, isDirectory: &isDir)
-                return Item(name: name, path: path, isDirectory: isDir.boolValue, depth: depth)
-            }
-            .sorted { a, b in
-                if a.isDirectory != b.isDirectory { return a.isDirectory }
-                return a.name.localizedStandardCompare(b.name) == .orderedAscending
-            }
-
-        for child in children {
+        guard let listing = readLocalListing(dir, cached: invalidated.contains(dir) ? nil : listings[dir])
+        else { return false }
+        nextListings[dir] = listing
+        for entry in listing.children {
+            guard !Task.isCancelled else { return false }
+            let child = Item(name: entry.name, path: entry.path, isDirectory: entry.isDirectory, depth: depth)
             out.append(child)
             if child.isDirectory, expanded.contains(child.path) {
-                appendChildren(of: child.path, depth: depth + 1, into: &out)
+                guard appendLocalChildren(of: child.path, depth: depth + 1, expanded: expanded, draft: draft,
+                                          listings: listings, invalidated: invalidated,
+                                          nextListings: &nextListings, into: &out) else { return false }
             }
+        }
+        return true
+    }
+
+    private nonisolated static func readLocalListing(_ dir: String, cached: LocalListing?) -> LocalListing? {
+        guard !Task.isCancelled else { return nil }
+        guard let stamp = DirectoryStamp(dir) else { return LocalListing(stamp: nil, children: []) }
+        let fm = FileManager.default
+        if let cached, cached.stamp == stamp {
+            var children = cached.children
+            var changed = false
+            // A symlink's target can change type without changing its parent directory.
+            for index in children.indices where children[index].needsTypeCheck {
+                guard !Task.isCancelled else { return nil }
+                var isDirectory: ObjCBool = false
+                fm.fileExists(atPath: children[index].path, isDirectory: &isDirectory)
+                if children[index].isDirectory != isDirectory.boolValue {
+                    children[index].isDirectory = isDirectory.boolValue
+                    changed = true
+                }
+            }
+            if changed { sortLocalEntries(&children) }
+            return LocalListing(stamp: DirectoryStamp(dir) == stamp ? stamp : nil, children: children)
+        }
+        guard let directory = opendir(dir) else { return LocalListing(stamp: nil, children: []) }
+        defer { closedir(directory) }
+        var children: [LocalEntry] = []
+        while true {
+            guard !Task.isCancelled else { return nil }
+            errno = 0
+            guard let entry = readdir(directory) else {
+                guard errno == 0 else { return LocalListing(stamp: nil, children: []) }
+                break
+            }
+            let name = withUnsafePointer(to: &entry.pointee.d_name) {
+                $0.withMemoryRebound(to: CChar.self, capacity: Int(entry.pointee.d_namlen) + 1) {
+                    fm.string(withFileSystemRepresentation: $0, length: Int(entry.pointee.d_namlen))
+                }
+            }
+            guard name != ".", name != "..", name != ".git" else { continue }
+            let path = (dir as NSString).appendingPathComponent(name)
+            let type = Int32(entry.pointee.d_type)
+            var isDirectory = type == DT_DIR
+            if type == DT_LNK || type == DT_UNKNOWN {
+                var isDir: ObjCBool = false
+                fm.fileExists(atPath: path, isDirectory: &isDir)
+                isDirectory = isDir.boolValue
+            }
+            children.append(LocalEntry(name: name, path: path, isDirectory: isDirectory,
+                                       needsTypeCheck: type == DT_LNK || type == DT_UNKNOWN))
+        }
+        guard !Task.isCancelled else { return nil }
+        sortLocalEntries(&children)
+        // Never reuse a listing if the directory changed while it was being scanned.
+        return LocalListing(stamp: DirectoryStamp(dir) == stamp ? stamp : nil, children: children)
+    }
+
+    private nonisolated static func sortLocalEntries(_ entries: inout [LocalEntry]) {
+        entries.sort { a, b in
+            if a.isDirectory != b.isDirectory { return a.isDirectory }
+            return a.name.localizedStandardCompare(b.name) == .orderedAscending
         }
     }
 }
