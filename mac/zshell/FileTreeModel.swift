@@ -53,11 +53,32 @@ final class FileTreeModel: nonisolated ObservableObject {
     /// Entries per remote directory, keyed by absolute remote path. Built
     /// lazily like the local tree expands directories.
     private var remoteListings: [String: [SSHEndpoint.DirectoryEntry]] = [:]
-    private var remoteInFlight: Set<String> = []
+    private var remoteLastAttempt: [String: TimeInterval] = [:]
+    /// A forced retry survives waiting for a free connection; syncs coalesce
+    /// into one pending entry per visible directory.
+    private var remotePending: [String: Bool] = [:]
+    /// Old generations keep their connection slots until they finish, so
+    /// switching projects cannot pile up SSH processes.
+    private var remoteInFlight: [String: Int] = [:]
+    private var remoteErrors: [String: String] = [:]
+    private static let remoteRefreshInterval: TimeInterval = 5
+    private static let remoteConcurrencyLimit = 2
+    private let remoteListing: @Sendable (SSHEndpoint, String) throws -> [SSHEndpoint.DirectoryEntry]
+    private let remoteNow: () -> TimeInterval
     /// Invalidates in-flight listings after the endpoint or root changes.
     private var remoteGeneration = 0
     @Published private(set) var remoteError: String?
     @Published private(set) var isRemoteLoading = false
+
+    init(
+        remoteListing: @escaping @Sendable (SSHEndpoint, String) throws -> [SSHEndpoint.DirectoryEntry] = {
+            try OpenSSHTransport().listDirectory(endpoint: $0, directory: $1)
+        },
+        remoteNow: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
+    ) {
+        self.remoteListing = remoteListing
+        self.remoteNow = remoteNow
+    }
 
     var isRemote: Bool { remoteEndpoint != nil }
 
@@ -73,7 +94,9 @@ final class FileTreeModel: nonisolated ObservableObject {
         remoteEndpoint = endpoint
         remoteGeneration &+= 1
         remoteListings = [:]
-        remoteInFlight = []
+        remoteLastAttempt = [:]
+        remotePending = [:]
+        remoteErrors = [:]
         remoteError = nil
         isRemoteLoading = false
         expanded = []
@@ -82,29 +105,69 @@ final class FileTreeModel: nonisolated ObservableObject {
         items = []
     }
 
-    /// Retries the root listing after a failure surfaced in the panel.
+    /// Retries the root and failed visible directories without waiting for
+    /// the next throttled refresh.
     func retryRemoteRoot() {
-        remoteError = nil
-        loadRemoteListing(rootPath)
+        refreshRemoteListings(force: true)
     }
 
-    private func loadRemoteListing(_ directory: String) {
-        guard let endpoint = remoteEndpoint,
-              remoteListings[directory] == nil,
-              !remoteInFlight.contains(directory),
-              !directory.isEmpty else { return }
-        remoteInFlight.insert(directory)
-        isRemoteLoading = true
-        let generation = remoteGeneration
-        Task.detached(priority: .userInitiated) { [weak self] in
-            let transport = OpenSSHTransport()
-            let listing = Result {
-                try transport.listDirectory(endpoint: endpoint, directory: directory)
+    private var visibleRemoteDirectories: Set<String> {
+        guard remoteEndpoint != nil, !rootPath.isEmpty else { return [] }
+        var directories: Set<String> = [rootPath]
+        for item in items where item.isDirectory && item.depth < 31 && expanded.contains(item.path) {
+            directories.insert(item.path)
+        }
+        return directories
+    }
+
+    private func refreshRemoteListings(force: Bool = false) {
+        let now = remoteNow()
+        for directory in visibleRemoteDirectories {
+            guard remoteInFlight[directory] != remoteGeneration || remoteLastAttempt[directory] == nil else { continue }
+            let forced = force && (directory == rootPath || remoteErrors[directory] != nil)
+            if let last = remoteLastAttempt[directory], !forced, now - last < Self.remoteRefreshInterval {
+                continue
             }
-            await MainActor.run { [weak self] in
-                self?.finishRemoteListing(directory, listing, generation: generation)
+            remotePending[directory] = (remotePending[directory] ?? false) || forced
+            if forced { remoteErrors.removeValue(forKey: directory) }
+        }
+        startRemoteListings()
+    }
+
+    private func startRemoteListings() {
+        let visible = visibleRemoteDirectories
+        remotePending = remotePending.filter { visible.contains($0.key) }
+        remoteErrors = remoteErrors.filter { visible.contains($0.key) }
+        if let endpoint = remoteEndpoint {
+            while remoteInFlight.count < Self.remoteConcurrencyLimit {
+                let directory = remotePending.keys.filter { remoteInFlight[$0] == nil }.min { a, b in
+                    if remotePending[a] != remotePending[b] { return remotePending[a] == true }
+                    let first = remoteLastAttempt[a] ?? -.infinity
+                    let second = remoteLastAttempt[b] ?? -.infinity
+                    if first != second { return first < second }
+                    if (a == rootPath) != (b == rootPath) { return a == rootPath }
+                    return a < b
+                }
+                guard let directory else { break }
+                remotePending.removeValue(forKey: directory)
+                remoteLastAttempt[directory] = remoteNow()
+                let generation = remoteGeneration
+                remoteInFlight[directory] = generation
+                let remoteListing = remoteListing
+                Task.detached(priority: .userInitiated) { [weak self] in
+                    let listing = Result { try remoteListing(endpoint, directory) }
+                    await MainActor.run { [weak self] in
+                        self?.finishRemoteListing(directory, listing, generation: generation)
+                    }
+                }
             }
         }
+        let loading = !remotePending.isEmpty || remoteInFlight.contains {
+            $0.value == remoteGeneration && visible.contains($0.key)
+        }
+        if isRemoteLoading != loading { isRemoteLoading = loading }
+        let error = remoteErrors[rootPath] ?? remoteErrors.keys.sorted().first.flatMap { remoteErrors[$0] }
+        if remoteError != error { remoteError = error }
     }
 
     private func finishRemoteListing(
@@ -112,20 +175,44 @@ final class FileTreeModel: nonisolated ObservableObject {
         _ result: Result<[SSHEndpoint.DirectoryEntry], Error>,
         generation: Int
     ) {
-        guard generation == remoteGeneration else { return }
-        remoteInFlight.remove(directory)
-        isRemoteLoading = !remoteInFlight.isEmpty
+        guard remoteInFlight[directory] == generation else { return }
+        remoteInFlight.removeValue(forKey: directory)
+        guard generation == remoteGeneration, remoteLastAttempt[directory] != nil,
+              visibleRemoteDirectories.contains(directory) else {
+            startRemoteListings()
+            return
+        }
         switch result {
         case .success(let entries):
-            remoteError = nil
+            remoteErrors.removeValue(forKey: directory)
+            invalidateRemovedRemoteDirectories(in: directory, entries: entries)
             remoteListings[directory] = entries.sorted { a, b in
                 if a.isDirectory != b.isDirectory { return a.isDirectory }
                 return a.name.localizedStandardCompare(b.name) == .orderedAscending
             }
         case .failure(let error):
-            remoteError = error.localizedDescription
+            remoteErrors[directory] = error.localizedDescription
         }
         rebuild()
+        startRemoteListings()
+    }
+
+    private func invalidateRemovedRemoteDirectories(in directory: String, entries: [SSHEndpoint.DirectoryEntry]) {
+        let previous = Set((remoteListings[directory] ?? []).filter(\.isDirectory).map(\.name))
+        let removed = previous.subtracting(entries.filter(\.isDirectory).map(\.name))
+        guard !removed.isEmpty else { return }
+        let prefix = directory.hasSuffix("/") ? directory : directory + "/"
+        func keep(_ path: String) -> Bool {
+            guard path.hasPrefix(prefix),
+                  let child = path.dropFirst(prefix.count).split(separator: "/").first else { return true }
+            return !removed.contains(String(child))
+        }
+        remoteListings = remoteListings.filter { keep($0.key) }
+        // Clearing the attempt also rejects a removed directory's in-flight
+        // result if a replacement appears at the same path before it finishes.
+        remoteLastAttempt = remoteLastAttempt.filter { keep($0.key) }
+        remotePending = remotePending.filter { keep($0.key) }
+        remoteErrors = remoteErrors.filter { keep($0.key) }
     }
 
     /// Points the tree at `root` (collapsing everything if it moved) and
@@ -142,7 +229,9 @@ final class FileTreeModel: nonisolated ObservableObject {
             if remoteEndpoint != nil {
                 remoteGeneration &+= 1
                 remoteListings = [:]
-                remoteInFlight = []
+                remoteLastAttempt = [:]
+                remotePending = [:]
+                remoteErrors = [:]
                 remoteError = nil
                 isRemoteLoading = false
             }
@@ -153,7 +242,7 @@ final class FileTreeModel: nonisolated ObservableObject {
                 return
             }
             rebuild()
-            loadRemoteListing(rootPath)
+            refreshRemoteListings()
             return
         }
         rebuild()
@@ -164,10 +253,14 @@ final class FileTreeModel: nonisolated ObservableObject {
         if !expanded.insert(item.path).inserted {
             expanded.remove(item.path)
         }
-        if remoteEndpoint != nil {
-            loadRemoteListing(item.path)
-        }
         rebuild()
+        if remoteEndpoint != nil {
+            if expanded.contains(item.path) {
+                refreshRemoteListings()
+            } else {
+                startRemoteListings()
+            }
+        }
     }
 
     /// Moves `item` to the Trash, then rebuilds so it drops out of the tree.
@@ -349,7 +442,7 @@ final class FileTreeModel: nonisolated ObservableObject {
 
     /// Builds the visible rows from cached remote listings. A directory
     /// without a listing yet renders as an empty, expandable row; its
-    /// contents arrive when `loadRemoteListing` completes.
+    /// contents arrive when its listing completes.
     private func appendRemoteChildren(of dir: String, depth: Int, into out: inout [Item]) {
         // Guard against runaway recursion through symlink cycles.
         guard depth < 32 else { return }
