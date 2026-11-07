@@ -8,7 +8,7 @@ import CoreText
 import Metal
 import simd
 
-/// Rasterized glyphs packed into one Metal texture.
+/// Rasterized glyphs packed into Metal texture pages.
 ///
 /// The GPU renderer draws a textured quad per cell, so every glyph has to
 /// exist somewhere in a texture first. CoreText does the rasterizing — the
@@ -17,10 +17,10 @@ import simd
 /// compositing moves to the GPU.
 ///
 /// Packing is a shelf allocator: glyphs are appended along a row until it is
-/// full, then a new row starts below. A monospace grid draws from a small,
-/// quickly-saturating set of glyphs, so the simplest scheme that never
-/// fragments badly is enough — there is no eviction, and a full atlas simply
-/// stops accepting new glyphs rather than thrashing.
+/// full, then a new row starts below. A full cache is rebuilt from the visible
+/// grid, with enough pages for that working set and one page of cache headroom.
+/// Scrollback can therefore introduce new glyphs without retaining every
+/// character the session has ever printed.
 final class TerminalGlyphAtlas {
     enum Content: Hashable {
         case scalar(UInt32)
@@ -44,6 +44,7 @@ final class TerminalGlyphAtlas {
 
     /// Where a glyph lives in the atlas, and how to place it in its cell.
     struct Entry {
+        let page: Int
         /// Normalized texture coordinates.
         let uvOrigin: SIMD2<Float>
         let uvSize: SIMD2<Float>
@@ -60,22 +61,42 @@ final class TerminalGlyphAtlas {
     private static let maximumDimension = 2048
 
     private let device: MTLDevice
-    private(set) var texture: MTLTexture
+    var textures: [MTLTexture] { pages.map(\.texture) }
+    var pageCount: Int { pages.count }
     private(set) var generation: UInt64 = 0
+    private(set) var needsRebuild = false
     private var dimension: Int
     private var scale: CGFloat
     private var entries: [Key: Entry] = [:]
 
-    /// Shelf state, in device pixels.
-    private var shelfX = 0
-    private var shelfY = 0
-    private var shelfHeight = 0
-    private var isFull = false
+    private struct Page {
+        let texture: MTLTexture
+        /// Shelf state, in device pixels.
+        var shelfX = 0
+        var shelfY = 0
+        var shelfHeight = 0
+    }
+
+    private var pages: [Page]
+    private var maximumPages = 2
+    private var rebuildingVisibleGlyphs = false
+    private var rebuiltVisibleGlyphArea: Float = 0
 
     private var metrics: AlacrittyMetrics
 
     init?(device: MTLDevice, metrics: AlacrittyMetrics, scale: CGFloat) {
         let dimension = Self.initialDimension
+        guard let texture = Self.makeTexture(device: device, dimension: dimension) else {
+            return nil
+        }
+        self.device = device
+        pages = [Page(texture: texture)]
+        self.dimension = dimension
+        self.metrics = metrics
+        self.scale = max(scale, 1)
+    }
+
+    private static func makeTexture(device: MTLDevice, dimension: Int) -> MTLTexture? {
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(
             pixelFormat: .bgra8Unorm,
             width: dimension,
@@ -84,39 +105,67 @@ final class TerminalGlyphAtlas {
         )
         descriptor.usage = .shaderRead
         descriptor.storageMode = .managed
-        guard let texture = device.makeTexture(descriptor: descriptor) else { return nil }
-        self.device = device
-        self.texture = texture
-        self.dimension = dimension
-        self.metrics = metrics
-        self.scale = max(scale, 1)
+        return device.makeTexture(descriptor: descriptor)
     }
 
     /// Drops every glyph. Called when the font or the backing scale changes,
     /// since both invalidate the rasterization.
-    func reset(metrics: AlacrittyMetrics, scale: CGFloat) {
+    @discardableResult
+    func reset(metrics: AlacrittyMetrics, scale: CGFloat) -> Bool {
+        let scale = max(scale, 1)
         guard metrics.cellWidth != self.metrics.cellWidth
             || metrics.cellHeight != self.metrics.cellHeight
             || metrics.regular != self.metrics.regular
             || metrics.fontThicken != self.metrics.fontThicken
             || metrics.fontThickenStrength != self.metrics.fontThickenStrength
             || scale != self.scale
-        else { return }
+        else { return true }
+        guard let texture = Self.makeTexture(device: device, dimension: Self.initialDimension)
+        else { return false }
         self.metrics = metrics
-        self.scale = max(scale, 1)
-        entries.removeAll(keepingCapacity: true)
-        shelfX = 0
-        shelfY = 0
-        shelfHeight = 0
-        isFull = false
+        self.scale = scale
+        replacePages(with: texture, dimension: Self.initialDimension)
+        maximumPages = 2
+        rebuiltVisibleGlyphArea = 0
+        return true
+    }
+
+    /// Replacing textures preserves pages already sampled by in-flight
+    /// command buffers. Reusing their storage would change an older frame.
+    func beginRebuild() -> Bool {
+        guard let texture = Self.makeTexture(device: device, dimension: Self.maximumDimension)
+        else { return false }
+        replacePages(with: texture, dimension: Self.maximumDimension)
+        rebuildingVisibleGlyphs = true
+        return true
+    }
+
+    func finishRebuild(visibleGlyphArea: Float) {
+        rebuildingVisibleGlyphs = false
+        maximumPages = pages.count + 1
+        rebuiltVisibleGlyphArea = visibleGlyphArea
+    }
+
+    /// A much smaller visible working set releases surplus pages once. The
+    /// new baseline prevents a steady small frame from compacting repeatedly.
+    func shouldCompact(visibleGlyphArea: Float) -> Bool {
+        pages.count > 2 && visibleGlyphArea < rebuiltVisibleGlyphArea / 2
+    }
+
+    private func replacePages(with texture: MTLTexture, dimension: Int) {
+        pages = [Page(texture: texture)]
+        self.dimension = dimension
+        entries.removeAll()
+        needsRebuild = false
+        rebuildingVisibleGlyphs = false
         generation &+= 1
     }
 
     /// The atlas entry for a glyph, rasterizing it on first use. Nil for a
-    /// glyph with no ink (a space) or once the atlas is full.
+    /// glyph with no ink (a space), or while a full cache awaits rebuilding.
     func entry(for key: Key) -> Entry? {
         if let cached = entries[key] { return cached }
-        guard !isFull, let text = key.content.string else { return nil }
+        guard !needsRebuild, let text = key.content.string else { return nil }
         guard let rasterized = rasterize(text: text, bold: key.bold, italic: key.italic)
         else { return nil }
         entries[key] = rasterized
@@ -192,7 +241,7 @@ final class TerminalGlyphAtlas {
         context.textPosition = CGPoint(x: -bounds.minX + padding, y: -bounds.minY + padding)
         CTLineDraw(line, context)
 
-        texture.replace(
+        pages[origin.page].texture.replace(
             region: MTLRegionMake2D(origin.x, origin.y, pixelWidth, pixelHeight),
             mipmapLevel: 0,
             withBytes: pixels,
@@ -201,6 +250,7 @@ final class TerminalGlyphAtlas {
 
         let atlasDimension = Float(dimension)
         return Entry(
+            page: origin.page,
             uvOrigin: SIMD2(
                 Float(origin.x) / atlasDimension,
                 Float(origin.y) / atlasDimension
@@ -231,23 +281,32 @@ final class TerminalGlyphAtlas {
         return false
     }
 
-    private func allocate(width: Int, height: Int) -> (x: Int, y: Int)? {
-        if shelfX + width > dimension {
+    private func allocate(width: Int, height: Int) -> (page: Int, x: Int, y: Int)? {
+        var page = pages.count - 1
+        if pages[page].shelfX + width > dimension {
             // Start a new shelf below the tallest glyph on this one.
-            shelfX = 0
-            shelfY += shelfHeight
-            shelfHeight = 0
+            pages[page].shelfX = 0
+            pages[page].shelfY += pages[page].shelfHeight
+            pages[page].shelfHeight = 0
         }
-        if shelfY + height > dimension, grow() {
+        if pages[page].shelfY + height > dimension, grow() {
             return allocate(width: width, height: height)
         }
-        guard shelfY + height <= dimension else {
-            isFull = true
-            return nil
+        if pages[page].shelfY + height > dimension {
+            // Only a complete visible-grid rebuild may exceed the cache
+            // budget. Its page count is bounded by visible glyphs, not history.
+            guard rebuildingVisibleGlyphs || pages.count < maximumPages,
+                  let texture = Self.makeTexture(device: device, dimension: dimension)
+            else {
+                needsRebuild = true
+                return nil
+            }
+            pages.append(Page(texture: texture))
+            page += 1
         }
-        let origin = (x: shelfX, y: shelfY)
-        shelfX += width
-        shelfHeight = max(shelfHeight, height)
+        let origin = (page: page, x: pages[page].shelfX, y: pages[page].shelfY)
+        pages[page].shelfX += width
+        pages[page].shelfHeight = max(pages[page].shelfHeight, height)
         return origin
     }
 
@@ -260,26 +319,10 @@ final class TerminalGlyphAtlas {
     private func grow() -> Bool {
         guard dimension < Self.maximumDimension else { return false }
         let nextDimension = min(dimension * 2, Self.maximumDimension)
-        let descriptor = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: .bgra8Unorm,
-            width: nextDimension,
-            height: nextDimension,
-            mipmapped: false
-        )
-        descriptor.usage = .shaderRead
-        descriptor.storageMode = .managed
-        guard let nextTexture = device.makeTexture(descriptor: descriptor) else {
+        guard let nextTexture = Self.makeTexture(device: device, dimension: nextDimension) else {
             return false
         }
-
-        texture = nextTexture
-        dimension = nextDimension
-        entries.removeAll(keepingCapacity: true)
-        shelfX = 0
-        shelfY = 0
-        shelfHeight = 0
-        isFull = false
-        generation &+= 1
+        replacePages(with: nextTexture, dimension: nextDimension)
         return true
     }
 }
