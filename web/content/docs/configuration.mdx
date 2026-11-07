@@ -176,8 +176,10 @@ boolean — default `false`
 
 Keeps shells, coding agents, and development servers in newly opened terminals
 running after you quit Zshell. Reopening connects to the same live process and
-restores its terminal screen and input modes with either backend. The daemon
-keeps bounded screen history in memory; it does not survive a macOS restart. If
+restores its terminal screen and input modes with either backend. Restored shell
+prompts use the configured cursor immediately, including when the background
+daemon has remained running through an app update. The daemon keeps bounded
+screen history in memory; it does not survive a macOS restart. If
 the PTY is no longer alive, the pane opens a fresh shell instead.
 
 Closing a pane, project, or window still ends its tasks, except for the last
