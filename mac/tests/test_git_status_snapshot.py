@@ -29,7 +29,9 @@ class GitStatusSnapshotTests(unittest.TestCase):
         types = slice_between(model, "    nonisolated struct Entry:", "    @Published private(set) var rootPath")
         state = slice_between(model, "    @Published private(set) var rootPath", "    /// Branches checked out by a worktree")
         state += '    private var topLevel = ""\n'
-        state += slice_between(model, "    private nonisolated final class PipeData:", "    private func invalidateStatusRefresh()")
+        pipe_data = "    private nonisolated final class PipeData:"
+        if pipe_data in model:
+            state += slice_between(model, pipe_data, "    private func invalidateStatusRefresh()")
         state += slice_between(model, "    /// Runs Git while draining stdout", "    /// Runs Git over SSH")
         result = slice_between(model, "    nonisolated enum StatusLoadResult:", "    /// Runs Git while draining stdout")
         pipeline = model[model.index("    /// Resolves the active repository and distinguishes"):model.index("\nextension GitStatusModel {")]
