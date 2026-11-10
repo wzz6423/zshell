@@ -125,6 +125,12 @@ Entier, 0–255 — valeur par défaut : `255`
 
 Contrôle l'épaississement lorsque `terminal.font-thicken` vaut `true`. Zéro correspond à l'épaississement minimal disponible, pas à sa désactivation. Ghostty utilise son intensité macOS native ; Alacritty applique la même plage à un contour CoreText. Le sens et les extrémités de la plage correspondent, mais les pixels rendus peuvent différer.
 
+### `terminal.cell-width` [#terminalcell-width]
+
+nombre, 0.75–2 — valeur par défaut `1`
+
+Règle l’espacement des colonnes du terminal dans **Réglages → Apparence → Police → Largeur des cellules**. La valeur par défaut est 100 %, enregistrée en pourcentages entiers. Les deux moteurs mettent immédiatement à jour les terminaux ouverts, y compris le nombre de colonnes du PTY, le curseur, la sélection et les repères clavier. La taille des glyphes reste identique et les caractères larges occupent toujours deux colonnes. L’arrondi aux pixels peut donner des pas effectifs différents selon le moteur. Les valeurs invalides rétablissent 100 %. L’espacement de l’éditeur et des diffs ne change pas.
+
 ### `terminal.line-height` [#terminalline-height]
 
 Nombre, 0.75–2 — valeur par défaut : `1`
@@ -253,6 +259,7 @@ toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.bell = false
