@@ -1,30 +1,49 @@
 """Exercise content search and bounded line reveals without opening app windows.
 
 Run: python3 mac/tests/test_file_content_search.py
+Run against a built Debug app: ZSHELL_TEST_DERIVED_DATA=/tmp/derived python3 mac/tests/test_file_content_search.py
 """
 import json
 import os
 from pathlib import Path
+import platform
+import plistlib
 import select
 import subprocess
+import sys
 import tempfile
 import unittest
+import uuid
 
 MAC = Path(__file__).resolve().parents[1]
+BUILT_APP = "--built-app" in sys.argv or bool(os.environ.get("ZSHELL_TEST_DERIVED_DATA"))
+if "--built-app" in sys.argv:
+    sys.argv.remove("--built-app")
 
 
 class FileContentSearchTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.build = tempfile.TemporaryDirectory(prefix="zshell-search-test-")
+        cls.build = tempfile.TemporaryDirectory(prefix="zshell-search-test-", dir="/tmp")
         cls.addClassCleanup(cls.build.cleanup)
         helper = Path(cls.build.name) / "SearchHarness.swift"
         helper.write_text(r'''
 import Darwin
 import Foundation
+#if ZSHELL_BUILT_APP
+import AppKit
+import STTextView
+@testable import zshell
+#endif
 
 @main struct SearchHarness {
     @MainActor static func main() async throws {
+        #if ZSHELL_BUILT_APP
+        if CommandLine.arguments[1] == "--open-result" {
+            try await openResult(root: CommandLine.arguments[2], query: CommandLine.arguments[3])
+            return
+        }
+        #endif
         if CommandLine.arguments[1] == "--reveal" {
             let task = Task {
                 await FileContentSearchModel.lineStartLocation(
@@ -37,6 +56,7 @@ import Foundation
                 await Task.detached {
                     _ = try? FileHandle.standardInput.read(upToCount: 1)
                     task.cancel()
+                    fputs("cancelled\n", stderr)
                 }.value
             }
             let location = await task.value
@@ -71,17 +91,98 @@ import Foundation
         ]
         print(String(decoding: try JSONSerialization.data(withJSONObject: result), as: UTF8.self))
     }
+
+    #if ZSHELL_BUILT_APP
+    @MainActor static func openResult(root: String, query: String) async throws {
+        NSApplication.shared.setActivationPolicy(.prohibited)
+        let model = FileContentSearchModel()
+        model.sync(root: root)
+        model.query = query
+        model.run()
+        for _ in 0..<500 {
+            if !model.isRunning { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        precondition(!model.isRunning && model.matches.count == 1)
+
+        let match = model.matches[0]
+        let path = (root as NSString).appendingPathComponent(match.path)
+        let location = await FileContentSearchModel.lineStartLocation(line: match.line, filePath: path)
+        let file = FileTab(path: path)
+        if let location { file.revealSelection(at: location) }
+        for _ in 0..<500 {
+            if file.reloadRevision > 0 { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        guard file.reloadRevision > 0 else {
+            throw NSError(domain: "SearchHarness", code: 1)
+        }
+        let viewer = FileViewerContainerView(file: file)
+        viewer.update(font: .monospacedSystemFont(ofSize: 12, weight: .regular),
+                      palette: .theme(dark: true), wrapLines: false, isFocused: false,
+                      showsSource: true, onFocused: {}, onSplit: { _ in })
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 700, height: 500),
+                              styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = viewer
+        defer { window.contentView = nil }
+        viewer.layoutSubtreeIfNeeded()
+        let editor = (file.editorView as? NSScrollView)?.documentView as? STTextView
+        let reason: String?
+        if case .unavailable(let message) = file.content { reason = message } else { reason = nil }
+        var usage = rusage()
+        precondition(getrusage(RUSAGE_SELF, &usage) == 0)
+        let result: [String: Any] = [
+            "path": file.path, "line": match.line,
+            "location": location as Any? ?? NSNull(),
+            "selection": editor?.textSelection.location as Any? ?? NSNull(),
+            "hasEditor": editor != nil, "text": file.text,
+            "unavailable": reason as Any? ?? NSNull(), "windowVisible": window.isVisible,
+            "tooLarge": reason == String(localized: "File is too large to open"),
+            "peakRSSMiB": Double(usage.ru_maxrss) / 1_048_576,
+        ]
+        print(String(decoding: try JSONSerialization.data(withJSONObject: result), as: UTF8.self))
+    }
+    #endif
 }
 ''')
         cls.helper = Path(cls.build.name) / "search"
-        subprocess.run([
+        command = [
             "swiftc", "-parse-as-library", "-swift-version", "5",
             "-default-isolation", "MainActor",
             "-module-cache-path", str(Path(cls.build.name) / "modules"),
-            str(MAC / "zshell/FileContentSearchModel.swift"),
-            str(MAC / "zshell/MainActorIsolation.swift"),
-            str(helper), "-o", str(cls.helper),
-        ], check=True)
+        ]
+        if BUILT_APP:
+            build = Path(os.environ.get("ZSHELL_TEST_DERIVED_DATA", MAC / "build/debug")) / "Build"
+            products = build / "Products/Debug"
+            app = products / "zshell Debug.app"
+            library = app / "Contents/MacOS/zshell.debug.dylib"
+            if not library.is_file():
+                raise RuntimeError(f"Build the Debug app in {build.parent} before using --built-app")
+            bundle = Path(cls.build.name) / "Search Probe.app/Contents"
+            cls.helper = bundle / "MacOS/probe"
+            cls.helper.parent.mkdir(parents=True)
+            (bundle / "Info.plist").write_bytes(plistlib.dumps({
+                "CFBundleIdentifier": f"sh.zshell.test.search.{uuid.uuid4().hex}",
+                "CFBundleExecutable": "probe", "CFBundlePackageType": "APPL",
+                "CFBundleDevelopmentRegion": "en", "LSBackgroundOnly": True,
+            }))
+            (bundle / "Resources").symlink_to(app / "Contents/Resources")
+            command += ["-D", "ZSHELL_BUILT_APP", "-target", f"{platform.machine()}-apple-macos15.6",
+                        "-I", str(products), "-I", str(products / "include"), "-F", str(products)]
+            for modulemap in (build / "Intermediates.noindex/GeneratedModuleMaps").glob("*.modulemap"):
+                command += ["-Xcc", f"-fmodule-map-file={modulemap}"]
+            for include in ("STTextView/Sources/STObjCLandShim/include", "swift-cmark/src/include",
+                            "swift-cmark/extensions/include", "swift-markdown/Sources/CAtomic/include"):
+                path = MAC / "Vendor" / include
+                command += ["-I", str(path), "-Xcc", f"-fmodule-map-file={path / 'module.modulemap'}"]
+            command += ["-I", str(MAC / "Vendor/alacritty-bridge/include"),
+                        "-I", str(MAC / "Vendor/tree-sitter/lib/include"), str(library),
+                        "-Xlinker", "-rpath", "-Xlinker", str(products),
+                        "-Xlinker", "-rpath", "-Xlinker", str(library.parent)]
+        else:
+            command += [str(MAC / "zshell/FileContentSearchModel.swift"),
+                        str(MAC / "zshell/MainActorIsolation.swift")]
+        subprocess.run(command + [str(helper), "-o", str(cls.helper)], check=True)
         interposer = Path(cls.build.name) / "ReadFixtures.c"
         interposer.write_text(r'''
 #include <fcntl.h>
@@ -110,7 +211,10 @@ static ssize_t fixture_read(int descriptor, void *buffer, size_t count) {
     }
     if (read_calls == 1 && strcmp(mode, "pause") == 0) {
         write(STDERR_FILENO, "read-started\n", 13);
-        usleep(300000);
+        int gate = open(getenv("ZSHELL_TEST_READ_GATE"), O_RDONLY);
+        char released;
+        if (gate < 0 || read(gate, &released, 1) != 1) abort();
+        close(gate);
     }
     ssize_t result = read(descriptor, buffer, count);
     if (result > 0) read_bytes += (size_t)result;
@@ -141,18 +245,27 @@ __attribute__((destructor)) static void report_reads(void) {
         self.fixture = tempfile.TemporaryDirectory(prefix="zshell-search-fixture-")
         self.addCleanup(self.fixture.cleanup)
         self.root = Path(self.fixture.name)
+        home = self.root / "home"
+        config = home / ".config/zshell-dev"
+        config.mkdir(parents=True)
+        (home / "tmp").mkdir()
+        (config / "config.toml").write_text("ai.enabled = false\nquick-terminal.enabled = false\n")
+        self.environment = {key: value for key, value in os.environ.items()
+                            if not key.startswith("ZSHELL_") and key != "DYLD_INSERT_LIBRARIES"}
+        self.environment.update(HOME=str(home), CFFIXED_USER_HOME=str(home), ZDOTDIR=str(home),
+                                TMPDIR=str(home / "tmp"), XDG_CONFIG_HOME=str(home / ".config"))
 
     def search(self, query="needle", replacement=None):
         args = [str(self.helper), str(self.root), query]
         if replacement is not None:
             args.append(replacement)
-        result = json.loads(subprocess.check_output(args, text=True, timeout=8))
+        result = json.loads(subprocess.check_output(args, text=True, timeout=8, env=self.environment))
         self.assertFalse(result["running"], "grep did not complete")
         self.assertFalse(result["failed"], "grep failed")
         return result
 
     def read_environment(self, path, mode):
-        return dict(os.environ, DYLD_INSERT_LIBRARIES=str(self.interposer),
+        return dict(self.environment, DYLD_INSERT_LIBRARIES=str(self.interposer),
                     ZSHELL_TEST_READ_PATH=str(path.resolve()), ZSHELL_TEST_READ_MODE=mode)
 
     def reveal(self, path, line=1, *, mode=None, cancel=False):
@@ -161,7 +274,7 @@ __attribute__((destructor)) static void report_reads(void) {
             args.append("--cancel")
         completed = subprocess.run(
             args, text=True, capture_output=True, check=True, timeout=3,
-            env=self.read_environment(path, mode) if mode else None,
+            env=self.read_environment(path, mode) if mode else self.environment,
         )
         result = json.loads(completed.stdout)
         if mode:
@@ -294,16 +407,28 @@ __attribute__((destructor)) static void report_reads(void) {
     def test_reveal_cancellation_stops_an_active_reader(self):
         path = self.root / "cancelled.txt"
         path.write_bytes(b"a" * (1 << 20))
+        gate = self.root / "read-gate"
+        os.mkfifo(gate)
+        release = os.open(gate, os.O_RDWR | os.O_NONBLOCK)
+        self.addCleanup(os.close, release)
+        environment = self.read_environment(path, "pause")
+        environment["ZSHELL_TEST_READ_GATE"] = str(gate)
         process = subprocess.Popen(
             [str(self.helper), "--reveal", str(path), "1", "--cancel-after-read"],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, env=self.read_environment(path, "pause"),
+            text=True, env=environment,
         )
         try:
             ready, _, _ = select.select([process.stderr], [], [], 3)
             self.assertTrue(ready, "file read did not start")
             self.assertEqual(process.stderr.readline(), "read-started\n")
-            output, errors = process.communicate("x", timeout=3)
+            process.stdin.write("x")
+            process.stdin.flush()
+            ready, _, _ = select.select([process.stderr], [], [], 3)
+            self.assertTrue(ready, "reader cancellation did not complete")
+            self.assertEqual(process.stderr.readline(), "cancelled\n")
+            os.write(release, b"x")
+            output, errors = process.communicate(timeout=3)
             self.assertEqual(process.returncode, 0)
             self.assertIsNone(json.loads(output)["location"])
             stats = next(line for line in errors.splitlines() if line.startswith("read-stats "))
@@ -315,6 +440,52 @@ __attribute__((destructor)) static void report_reads(void) {
             if process.poll() is None:
                 process.kill()
                 process.communicate()
+
+    @unittest.skipUnless(BUILT_APP, "Use --built-app or ZSHELL_TEST_DERIVED_DATA for AppKit integration")
+    def test_search_result_opens_unicode_line_in_the_production_editor(self):
+        path = self.root / "unicode.txt"
+        text = "é😀\r\nneedle\n最後"
+        path.write_text(text)
+        completed = subprocess.run(
+            [str(self.helper), "--open-result", str(self.root), "needle"],
+            env=self.environment, text=True, capture_output=True, check=True, timeout=12,
+        )
+        result = json.loads(completed.stdout)
+        self.assertEqual(result["path"], str(path))
+        self.assertEqual(result["line"], 2)
+        self.assertEqual(result["location"], 5)
+        self.assertEqual(result["selection"], 5)
+        self.assertEqual(result["text"], text)
+        self.assertTrue(result["hasEditor"])
+        self.assertIsNone(result["unavailable"])
+        self.assertFalse(result["windowVisible"])
+
+    @unittest.skipUnless(BUILT_APP, "Use --built-app or ZSHELL_TEST_DERIVED_DATA for AppKit integration")
+    def test_search_result_opens_an_oversized_file_without_loading_its_bytes(self):
+        path = self.root / "oversized.txt"
+        limit = 5 << 20
+        with path.open("wb") as file:
+            chunk = b"a\n" * (32 << 10)
+            for _ in range(limit // len(chunk)):
+                file.write(chunk)
+            file.write(b"needle\n")
+        completed = subprocess.run(
+            [str(self.helper), "--open-result", str(self.root), "needle"],
+            env=self.read_environment(path, "count"), text=True, capture_output=True,
+            check=True, timeout=20,
+        )
+        result = json.loads(completed.stdout)
+        self.assertGreater(path.stat().st_size, limit)
+        self.assertEqual(result["path"], str(path))
+        self.assertEqual(result["line"], limit // 2 + 1)
+        self.assertIsNone(result["location"])
+        self.assertIsNone(result["selection"])
+        self.assertFalse(result["hasEditor"])
+        self.assertEqual(result["text"], "")
+        self.assertTrue(result["tooLarge"], result["unavailable"])
+        self.assertFalse(result["windowVisible"])
+        stats = next(line for line in completed.stderr.splitlines() if line.startswith("read-stats "))
+        self.assertEqual(int(stats.split()[2]), 0)
 
 
 if __name__ == "__main__":
