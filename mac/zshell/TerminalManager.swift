@@ -1980,7 +1980,7 @@ final class TerminalManager: nonisolated ObservableObject {
     }
 
     /// Builds this window's layout snapshot and, alongside it, the scrollback
-    /// to persist for its sessions. Each captured session gets a fresh
+    /// to persist for its sessions. Each captured session keeps a stable
     /// `historyKey` stored on both sides so restore can pair them; sessions
     /// with no history (feature off, empty, or unserializable) get no key.
     private func makeWindowSnapshot(
@@ -2067,7 +2067,7 @@ final class TerminalManager: nonisolated ObservableObject {
                let history = session.serializedHistory(
                    captureLive: captureTerminalHistory
                ), !history.isEmpty {
-                let key = UUID().uuidString
+                let key = session.id.uuidString
                 histories[key] = history
                 historyKey = key
             }
