@@ -40,9 +40,10 @@ final class SettingsRow: NSView {
 
         var views: [NSView] = [textStack, control]
         if let symbolName {
-            views.insert(SettingsRowSymbolView(
+            views.insert(SettingsIconView(
                 symbolName: symbolName,
-                color: symbolColor ?? SettingsIconColors.color(for: symbolName)
+                color: symbolColor ?? SettingsIconColors.color(for: symbolName),
+                size: 32
             ), at: 0)
         }
         let stack = NSStackView(views: views)
@@ -75,49 +76,6 @@ final class SettingsRow: NSView {
     /// the value they show.
     func setDescription(_ text: String) {
         descriptionLabel?.stringValue = text
-    }
-}
-
-private final class SettingsRowSymbolView: NSView {
-    private let color: NSColor
-
-    init(symbolName: String, color: NSColor) {
-        self.color = color
-        super.init(frame: .zero)
-
-        let symbol = NSImageView(image: NSImage(
-            systemSymbolName: symbolName,
-            accessibilityDescription: nil
-        )?.withSymbolConfiguration(.init(pointSize: 17, weight: .regular)) ?? NSImage())
-        symbol.contentTintColor = .white
-        symbol.imageScaling = .scaleProportionallyDown
-        symbol.setAccessibilityElement(false)
-        symbol.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(symbol)
-        NSLayoutConstraint.activate([
-            widthAnchor.constraint(equalToConstant: 32),
-            heightAnchor.constraint(equalToConstant: 32),
-            symbol.widthAnchor.constraint(equalToConstant: 20),
-            symbol.heightAnchor.constraint(equalToConstant: 20),
-            symbol.centerXAnchor.constraint(equalTo: centerXAnchor),
-            symbol.centerYAnchor.constraint(equalTo: centerYAnchor),
-        ])
-        setAccessibilityElement(false)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func draw(_ dirtyRect: NSRect) {
-        color.setFill()
-        NSBezierPath(roundedRect: bounds, xRadius: 8, yRadius: 8).fill()
-    }
-
-    override func viewDidChangeEffectiveAppearance() {
-        super.viewDidChangeEffectiveAppearance()
-        needsDisplay = true
     }
 }
 

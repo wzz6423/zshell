@@ -48,11 +48,9 @@ enum SettingsCategory: String, CaseIterable {
 
     var iconColor: NSColor {
         switch self {
-        case .general, .shortcuts, .terminal: .systemGray
-        case .appearance: .systemPurple
-        case .editor: .systemOrange
+        case .general, .shortcuts, .appearance: .systemGray
+        case .terminal, .editor, .automation, .recommendations: .systemIndigo
         case .browser: .systemBlue
-        case .automation, .recommendations: .systemIndigo
         case .updates: .systemGreen
         }
     }
