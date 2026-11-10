@@ -51,7 +51,9 @@ Al despertar el Mac, las sesiones remotas compartidas comprueban la conexión y 
 
 ## Archivos y capturas [#paste]
 
-Copia archivos normales o una captura y pega en el panel remoto. Se suben a un directorio privado del host y se insertan rutas entre comillas para su shell. Hasta 32 archivos, 32 MiB por archivo y 64 MiB total; se rechazan carpetas y enlaces simbólicos. Las cargas compartidas duran siete días. Los paneles SSH Unix normales también lo admiten.
+Copia archivos normales o una imagen y pega en el panel remoto, o arrastra archivos hasta él. Zshell los sube a un directorio privado del host e inserta rutas remotas entre comillas sin ejecutar comandos. Las imágenes PNG, TIFF, JPEG, GIF y WebP se guardan como PNG; las animaciones usan el primer fotograma. Hasta 32 archivos, 32 MiB por archivo y 64 MiB total; se rechazan carpetas y enlaces simbólicos. Las cargas compartidas duran siete días. Los paneles SSH Unix normales admiten las mismas cargas.
+
+En **Ajustes → Terminal → Archivos remotos**, **Subir archivos e imágenes copiados** (`terminal.remote-paste-upload`) y **Subir archivos arrastrados** (`terminal.remote-drop-upload`) están activados por defecto. Desactiva una opción para detener esa carga automática; no se insertan rutas locales. **Subir archivos…** en el menú contextual del terminal remoto permite seleccionar archivos explícitamente. Reconecta y toma el control de una sesión compartida antes de subir. Salir del panel, perder el control o desconectarse cancela la inserción pendiente.
 
 ## Conversaciones Agent remotas [#agents]
 

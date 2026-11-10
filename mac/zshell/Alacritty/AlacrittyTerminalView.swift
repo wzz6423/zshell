@@ -2492,22 +2492,25 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     // MARK: - File drops
 
     override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
-        fileURLs(sender) != nil ? .copy : []
+        events?.terminalAllowsFileDrop != false && fileURLs(sender) != nil ? .copy : []
     }
 
     override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
-        fileURLs(sender) != nil ? .copy : []
+        events?.terminalAllowsFileDrop != false && fileURLs(sender) != nil ? .copy : []
     }
 
     override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
         guard let urls = fileURLs(sender), !urls.isEmpty else { return false }
         focusForInteraction()
+        if events?.terminalHandleFileDrop(urls, paste: { [weak self] text in
+            self?.sendPaste(text + " ")
+        }) == true { return true }
         let text = urls.map { AlacrittyTerminalView.shellToken(for: $0.path) }
             .joined(separator: " ")
         // A drop is semantically a paste, not simulated typing. Image-aware
         // TUIs such as Grok only inspect dropped paths when bracketed paste
         // identifies the complete payload as one event.
-        write(AlacrittyKeyMap.paste(text + " ", mode: terminalMode))
+        sendPaste(text + " ")
         return true
     }
 

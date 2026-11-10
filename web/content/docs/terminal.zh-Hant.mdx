@@ -193,6 +193,8 @@ terminal.notify-on-error = true
 - **有風險的貼上會提示。** 多行或看起來會立即執行指令的文本，會先停在確認步驟。
 - **檔案與截圖變成 shell 安全路徑。** Finder 檔案插入為加上引號的絕對路徑。剪貼簿只有圖片時，會儲存到私有暫存 PNG，再貼上路徑供終端程式讀取。遠端窗格先將複製的檔案與截圖上傳到主機，再插入遠端路徑。
 
+剪貼簿支援 PNG、TIFF、JPEG、GIF 與 WebP，統一儲存為 PNG，動畫圖片使用第一影格。拖入遠端窗格的檔案會先上傳再插入遠端路徑。**設定 → 終端機 → 遠端檔案**可分別關閉兩種自動上傳，關閉後仍可使用遠端終端機快顯選單的**上傳檔案…**。見[遠端上傳](/zh-Hant/docs/remote-sessions#paste)。
+
 ## Option 鍵輸入 [#option-key-input]
 
 預設情況下，Option 交給當前 macOS 輸入源，因此 Polish Pro 之類的佈局可以輸入組合字符。如果終端機程式需要把 Option 組合鍵當成 Meta 快速鍵，打開設定裡的 **Use Option as Alt/Meta**。對應配置鍵是

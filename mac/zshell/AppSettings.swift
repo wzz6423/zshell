@@ -341,6 +341,14 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var remotePasteUpload: Bool {
+        didSet { save() }
+    }
+
+    @Published var remoteDropUpload: Bool {
+        didSet { save() }
+    }
+
     @Published var focusFollowsMouse: Bool {
         didSet { save() }
     }
@@ -571,6 +579,8 @@ final class AppSettings: nonisolated ObservableObject {
         restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? (existing == nil)
         preserveTerminalSessions = toml["terminal.preserve-sessions"]?.bool ?? false
         copyOnSelect = toml["terminal.copy-on-select"]?.bool ?? true
+        remotePasteUpload = toml["terminal.remote-paste-upload"]?.bool ?? true
+        remoteDropUpload = toml["terminal.remote-drop-upload"]?.bool ?? true
         focusFollowsMouse = toml["terminal.focus-follows-mouse"]?.bool ?? false
         let terminalBackgroundOpacity = toml["terminal.background-opacity"]?.double
             ?? Self.defaultTerminalBackgroundOpacity
@@ -740,6 +750,8 @@ final class AppSettings: nonisolated ObservableObject {
             && restoreTerminalHistory
             && !preserveTerminalSessions
             && copyOnSelect
+            && remotePasteUpload
+            && remoteDropUpload
             && !focusFollowsMouse
             && terminalBackgroundOpacity == Self.defaultTerminalBackgroundOpacity
             && terminalBackgroundBlur == Self.defaultTerminalBackgroundBlur
@@ -794,6 +806,8 @@ final class AppSettings: nonisolated ObservableObject {
         restoreTerminalHistory = true
         preserveTerminalSessions = false
         copyOnSelect = true
+        remotePasteUpload = true
+        remoteDropUpload = true
         focusFollowsMouse = false
         terminalBackgroundOpacity = Self.defaultTerminalBackgroundOpacity
         terminalBackgroundBlur = Self.defaultTerminalBackgroundBlur
@@ -980,6 +994,8 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.restoreTerminalHistory, toml["terminal.restore-history"]?.bool ?? false)
         assign(\.preserveTerminalSessions, toml["terminal.preserve-sessions"]?.bool ?? false)
         assign(\.copyOnSelect, toml["terminal.copy-on-select"]?.bool ?? true)
+        assign(\.remotePasteUpload, toml["terminal.remote-paste-upload"]?.bool ?? true)
+        assign(\.remoteDropUpload, toml["terminal.remote-drop-upload"]?.bool ?? true)
         assign(\.focusFollowsMouse, toml["terminal.focus-follows-mouse"]?.bool ?? false)
         let opacity = toml["terminal.background-opacity"]?.double
             ?? Self.defaultTerminalBackgroundOpacity
@@ -1195,6 +1211,8 @@ final class AppSettings: nonisolated ObservableObject {
         if !copyOnSelect {
             lines.append("terminal.copy-on-select = false")
         }
+        if !remotePasteUpload { lines.append("terminal.remote-paste-upload = false") }
+        if !remoteDropUpload { lines.append("terminal.remote-drop-upload = false") }
         if focusFollowsMouse {
             lines.append("terminal.focus-follows-mouse = true")
         }

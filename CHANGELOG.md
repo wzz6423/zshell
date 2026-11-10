@@ -18,6 +18,9 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Upload files dropped onto remote terminals and paste PNG, TIFF, JPEG, GIF and
+  WebP clipboard images as remote PNG paths. Control automatic uploads in
+  Settings, or choose Upload Files… from the remote terminal menu.
 - Keep the Mac awake while Zshell is running or while a local agent works in
   any terminal pane. Choose the mode from Settings or the application menu;
   displays and manual sleep keep following macOS settings.

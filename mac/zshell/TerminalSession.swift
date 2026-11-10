@@ -377,6 +377,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// Changes which window may host this session without restarting or
     /// replacing its backend surface.
     func transferHost(to manager: TerminalManager) {
+        if hostManagerID != ObjectIdentifier(manager) { cancelClipboardPaste() }
         hostManagerID = ObjectIdentifier(manager)
     }
 
@@ -1291,7 +1292,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
 
 // MARK: - Terminal surface callbacks
 
-extension TerminalSession: TerminalBackendEvents {
+extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        menuItem.action != #selector(uploadFiles(_:)) || canUploadFiles
+    }
+
     var terminalPromptSelectionIsReady: Bool {
         guard !hasExited, let launchDirectoryURL, let foregroundPID = surface.foregroundPid,
               let value = try? String(
@@ -1606,9 +1611,7 @@ extension TerminalSession: TerminalBackendEvents {
 
     func terminalHandleUserPaste(_ pasteboard: NSPasteboard, paste: @escaping (String) -> Void) -> Bool {
         agentObservation.pendingInterrupt = nil
-        let connection = remoteConnection
-        let target = remotePasteTarget
-        let isRemote = connection != nil || target != nil
+        let isRemote = remoteConnection != nil || remotePasteTarget != nil
         // Local file URLs already have backend-specific quoting and drag/paste
         // behavior. Only a clipboard image needs a new local file.
         if !isRemote, pasteboard.types?.contains(.fileURL) == true { return false }
@@ -1618,9 +1621,75 @@ extension TerminalSession: TerminalBackendEvents {
             if !isRemote, case .files = captured { return false }
             input = captured
         } catch {
+            if isRemote, !AppSettings.shared.remotePasteUpload { return true }
             showClipboardPasteError(error, remote: isRemote)
             return true
         }
+        if isRemote, !AppSettings.shared.remotePasteUpload { return true }
+        return performFileUpload(input, paste: paste)
+    }
+
+    var terminalAllowsFileDrop: Bool {
+        remoteConnection == nil && remotePasteTarget == nil
+            || AppSettings.shared.remoteDropUpload && canUploadFiles
+    }
+
+    func terminalHandleFileDrop(_ urls: [URL], paste: @escaping (String) -> Void) -> Bool {
+        guard remoteConnection != nil || remotePasteTarget != nil else { return false }
+        guard AppSettings.shared.remoteDropUpload else { return true }
+        agentObservation.pendingInterrupt = nil
+        return performFileUpload(.files(urls), paste: paste)
+    }
+
+    var terminalFileUploadMenuItem: NSMenuItem? {
+        guard remoteConnection != nil || remotePasteTarget != nil else { return nil }
+        let item = NSMenuItem(title: String(localized: "Upload Files…"), action: #selector(uploadFiles(_:)), keyEquivalent: "")
+        item.target = self
+        item.isEnabled = canUploadFiles
+        return item
+    }
+
+    private var canUploadFiles: Bool {
+        !isTerminating && !hasExited && clipboardPasteTask == nil && remotePasteTarget != .unavailable
+            && (remoteConnection != nil || remotePasteTarget != nil)
+            && (remoteConnection == nil || remoteConnection?.status.state == .connected && remoteConnection?.isActiveClient == true)
+    }
+
+    @objc private func uploadFiles(_ sender: NSMenuItem) {
+        guard canUploadFiles, let window = surface.window, window.attachedSheet == nil else { return }
+        let connection = remoteConnection
+        let generation = connection?.pasteGeneration
+        let managerID = hostManagerID
+        let panel = NSOpenPanel()
+        panel.title = String(localized: "Upload Files…")
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = true
+        panel.resolvesAliases = false
+        panel.beginSheetModal(for: window) { [weak self, weak window] response in
+            guard response == .OK else { return }
+            let urls = panel.urls
+            // Wait until AppKit restores the terminal's window after the sheet.
+            DispatchQueue.main.async {
+                guard let self, let window, self.surface.window === window, window.isKeyWindow,
+                      self.hostManagerID == managerID, self.canUploadFiles,
+                      self.remoteConnection === connection, connection?.pasteGeneration == generation else { return }
+                window.makeFirstResponder(self.surface)
+                self.agentObservation.pendingInterrupt = nil
+                _ = self.uploadSelectedFiles(urls, paste: { [weak self] text in self?.surface.sendPaste(text + " ") })
+            }
+        }
+    }
+
+    func uploadSelectedFiles(_ urls: [URL], paste: @escaping (String) -> Void) -> Bool {
+        guard canUploadFiles else { return true }
+        return performFileUpload(.files(urls), paste: paste)
+    }
+
+    private func performFileUpload(_ input: RemotePasteInput, paste: @escaping (String) -> Void) -> Bool {
+        let connection = remoteConnection
+        let target = remotePasteTarget
+        let isRemote = connection != nil || target != nil
         guard !isTerminating, !hasExited, surface.hasEffectiveTerminalFocus else { return true }
         guard target != .unavailable,
               connection == nil || connection?.status.state == .connected && connection?.isActiveClient == true else {
@@ -1633,6 +1702,7 @@ extension TerminalSession: TerminalBackendEvents {
         let sessionID = connection?.sessionID
         let clientID = connection?.clientID
         let generation = connection?.pasteGeneration
+        let managerID = hostManagerID
         clipboardPasteGeneration &+= 1
         let pasteGeneration = clipboardPasteGeneration
         clipboardPasteTask = Task { @MainActor [weak self, weak connection] in
@@ -1659,7 +1729,8 @@ extension TerminalSession: TerminalBackendEvents {
                 guard let self, self.clipboardPasteGeneration == pasteGeneration else { return }
                 self.clipboardPasteTask = nil
                 guard !Task.isCancelled, !self.isTerminating, !self.hasExited,
-                      self.remotePasteTarget == target, self.surface.hasEffectiveTerminalFocus else { return }
+                      self.hostManagerID == managerID, self.remotePasteTarget == target,
+                      self.surface.hasEffectiveTerminalFocus else { return }
                 if let connection {
                     guard self.remoteConnection === connection, connection.host == host,
                           connection.pasteGeneration == generation, connection.status.state == .connected,
@@ -1688,7 +1759,7 @@ extension TerminalSession: TerminalBackendEvents {
         let alert = NSAlert()
         alert.alertStyle = .warning
         alert.messageText = remote
-            ? String(localized: "Couldn’t paste files to the remote terminal")
+            ? String(localized: "Couldn’t upload files to the remote terminal")
             : String(localized: "Couldn’t paste the clipboard image")
         alert.informativeText = error.localizedDescription
         alert.addButton(withTitle: String(localized: "OK"))

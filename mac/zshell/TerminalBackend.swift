@@ -404,6 +404,9 @@ protocol TerminalBackendEvents: AnyObject {
     /// User-initiated paste only; programmatic clipboard reads must never
     /// upload files. The callback keeps the backend's prompt editing behavior.
     func terminalHandleUserPaste(_ pasteboard: NSPasteboard, paste: @escaping (String) -> Void) -> Bool
+    var terminalAllowsFileDrop: Bool { get }
+    var terminalFileUploadMenuItem: NSMenuItem? { get }
+    func terminalHandleFileDrop(_ urls: [URL], paste: @escaping (String) -> Void) -> Bool
 
     /// The backend started a find of its own accord — Zshell's ⌘E path resolves
     /// the needle from the grid selection, so the bar learns it from here.
@@ -419,6 +422,9 @@ extension TerminalBackendEvents {
     func terminalDidCancelAgentInterrupt() {}
     func terminalWillSendKey(_ event: NSEvent) {}
     func terminalHandleUserPaste(_ pasteboard: NSPasteboard, paste: @escaping (String) -> Void) -> Bool { false }
+    var terminalAllowsFileDrop: Bool { true }
+    var terminalFileUploadMenuItem: NSMenuItem? { nil }
+    func terminalHandleFileDrop(_ urls: [URL], paste: @escaping (String) -> Void) -> Bool { false }
 }
 
 /// A Command-clickable terminal value after the owning session has resolved

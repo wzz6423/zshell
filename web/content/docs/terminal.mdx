@@ -266,6 +266,8 @@ program reports progress, the pane shows it.
   a confirmation instead of being submitted immediately.
 - **Files and screenshots become shell-safe paths.** Finder files are inserted as quoted absolute paths. A clipboard containing only an image is saved as a private temporary PNG, then its path is pasted for the terminal program to read. Remote panes upload copied files and screenshots to their host before inserting remote paths.
 
+Clipboard images support PNG, TIFF, JPEG, GIF and WebP and are saved as PNG; animated images use their first frame. Remote file drops upload before inserting remote paths. The two automatic upload switches are in **Settings → Terminal → Remote files**; **Upload Files…** in a remote terminal’s context menu stays available when they are off. See [remote uploads](/en/docs/remote-sessions#paste).
+
 ## Option-key input
 
 By default, Option stays with the active macOS input source so layouts such as

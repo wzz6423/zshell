@@ -90,6 +90,7 @@ struct SettingsReloadTests {
         wait({ FileManager.default.fileExists(atPath: url.path) }, "initial config save")
         check(!settings.focusFollowsMouse, "pointer focus is disabled by default")
         check(settings.shellCompletions, "shell completions are enabled by default")
+        check(settings.remotePasteUpload && settings.remoteDropUpload, "remote file uploads are enabled by default")
         check(settings.vimCommandHints && settings.restoreTerminalHistory && settings.notifyOnError,
               "new configurations use the enabled preference defaults")
         check(settings.quickTerminalEnabled && settings.commandHistoryEnabled && settings.terminalTextHints
@@ -97,6 +98,17 @@ struct SettingsReloadTests {
               && settings.notifyOnAgentCompletion && settings.showPullRequestStatus,
               "feature switches preserve existing behavior by default")
         check(settings.isAtDefaults, "fresh settings expose the correct reset state")
+        settings.remotePasteUpload = false
+        settings.remoteDropUpload = false
+        check(!settings.isAtDefaults, "remote upload switches enable reset")
+        wait({ (try? String(contentsOf: url, encoding: .utf8))?.contains("terminal.remote-drop-upload = false") == true },
+             "remote upload switches persist")
+        let uploadConfig = TOML.parseStrictly(text: settings.serializedConfig()).values
+        check(uploadConfig["terminal.remote-paste-upload"]?.bool == false
+              && uploadConfig["terminal.remote-drop-upload"]?.bool == false, "remote upload preferences export as booleans")
+        settings.remotePasteUpload = true
+        settings.remoteDropUpload = true
+        check(settings.isAtDefaults, "restoring remote upload switches clears reset state")
         check(settings.keepAwakeMode == .off, "sleep prevention is off by default")
         settings.keepAwakeMode = .whileRunning
         check(!settings.isAtDefaults, "sleep prevention enables reset")
@@ -159,6 +171,8 @@ struct SettingsReloadTests {
         terminal.restore-history = true
         terminal.preserve-sessions = true
         terminal.copy-on-select = false
+        terminal.remote-paste-upload = false
+        terminal.remote-drop-upload = false
         terminal.focus-follows-mouse = true
         terminal.background-opacity = 0.6
         terminal.background-blur = true
@@ -207,6 +221,7 @@ struct SettingsReloadTests {
               "profile launch settings round trip through config")
         let roundTrip = TOML.parseStrictly(text: imported).values
         check(settings.focusFollowsMouse && !settings.isAtDefaults, "pointer focus imports and changes default state")
+        check(!settings.remotePasteUpload && !settings.remoteDropUpload, "import applies both remote upload preferences")
         check(GitProxy.address == "socks5h://127.0.0.1:1080", "imported Git proxy reaches Git processes")
         for (key, value) in parsed.values {
             check(roundTrip[key] == value, "all persisted keys import and serialize: \(key)")
@@ -271,6 +286,7 @@ struct SettingsReloadTests {
         check(!settings.vimCommandHints && !settings.restoreTerminalHistory && !settings.notifyOnError,
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
+        check(settings.remotePasteUpload && settings.remoteDropUpload, "omitted remote upload preferences restore compatible defaults")
         check(!settings.gitProxyEnabled && settings.gitProxyAddress == GitProxy.defaultAddress && GitProxy.address == nil,
               "Git proxy resets to off with the default address prefilled")
         check(try SettingsConfigFile.read(at: url) == "", "default reload leaves empty source unchanged")
@@ -285,6 +301,7 @@ struct SettingsReloadTests {
             \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints,
             \.automaticallyApplyTerminalProfiles, \.notifyOnAgentAttention,
             \.notifyOnAgentCompletion, \.showPullRequestStatus,
+            \.remotePasteUpload, \.remoteDropUpload,
         ]
         for keyPath in featureSwitches {
             settings[keyPath: keyPath] = false

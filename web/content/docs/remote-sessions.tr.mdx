@@ -51,7 +51,9 @@ Mac uyandığında paylaşılan uzak oturumlar bağlantıyı denetler ve gerekir
 
 ## Dosyalar ve görüntüler [#paste]
 
-Normal dosya veya ekran görüntüsü kopyalayıp uzak bölmeye yapıştırın. Zshell özel sunucu dizinine yükler ve kabuğa uygun tırnaklı yollar ekler. En çok 32 dosya, dosya başına 32 MiB, toplam 64 MiB; klasör ve sembolik bağlantı reddedilir. Paylaşılan yüklemeler yedi gün saklanır. Normal Unix SSH bölmeleri de desteklenir.
+Normal dosya veya görüntü kopyalayıp uzak bölmeye yapıştırın ya da dosyaları sürükleyin. Zshell özel sunucu dizinine yükler ve komut çalıştırmadan kabuğa uygun tırnaklı uzak yollar ekler. PNG, TIFF, JPEG, GIF ve WebP panosu PNG olarak kaydedilir; animasyonların ilk karesi kullanılır. En çok 32 dosya, dosya başına 32 MiB, toplam 64 MiB; klasör ve sembolik bağlantı reddedilir. Paylaşılan yüklemeler yedi gün saklanır. Normal Unix SSH bölmeleri aynı yüklemeleri destekler.
+
+**Ayarlar → Terminal → Uzak dosyalar** altındaki **Kopyalanan dosya ve görüntüleri yükle** (`terminal.remote-paste-upload`) ve **Sürüklenen dosyaları yükle** (`terminal.remote-drop-upload`) varsayılan olarak açıktır. Kapatmak ilgili otomatik yüklemeyi durdurur; yerel yol eklenmez. Uzak terminalin bağlam menüsündeki **Dosya Yükle…** ile dosyalar açıkça seçilebilir. Paylaşılan oturuma yeniden bağlanıp kontrolü alın. Bölmeden ayrılma, kontrol kaybı veya bağlantı kesilmesi bekleyen yol eklemesini iptal eder.
 
 ## Uzak Agent konuşmaları [#agents]
 

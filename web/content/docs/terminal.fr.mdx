@@ -172,6 +172,8 @@ Un programme émettant une progression `OSC 9;4` affiche une barre fine au-dessu
 - **Les collages risqués sont signalés.** Le texte multiligne ou ressemblant à une commande doit être confirmé avant son envoi.
 - **Fichiers et captures deviennent des chemins protégés pour le shell.** Les fichiers Finder sont insérés comme chemins absolus entre guillemets. Une image seule est enregistrée dans un PNG temporaire privé, puis son chemin est collé. Les panneaux distants envoient d’abord fichiers et captures sur l’hôte.
 
+Les images PNG, TIFF, JPEG, GIF et WebP sont enregistrées en PNG ; les animations utilisent leur première image. Les fichiers déposés à distance sont envoyés avant l’insertion des chemins. Les deux options se trouvent dans **Réglages → Terminal → Fichiers distants** ; **Envoyer des fichiers…** reste disponible dans le menu contextuel lorsqu’elles sont désactivées. Voir les [transferts distants](/fr/docs/remote-sessions#paste).
+
 ## Saisie avec la touche Option [#option-key-input]
 
 Par défaut, Option reste géré par la source de saisie macOS active pour permettre les caractères composés de dispositions comme Polish Pro. Activez **Utiliser Option comme Alt/Meta** dans Réglages si un programme doit recevoir ces combinaisons comme des raccourcis Meta. Consultez [`terminal.macos-option-as-alt`](/fr/docs/configuration#terminalmacos-option-as-alt).

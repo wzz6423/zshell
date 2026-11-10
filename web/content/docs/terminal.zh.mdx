@@ -217,6 +217,8 @@ terminal.notify-on-error = true
 - **有风险的粘贴会提示。** 多行或看起来会立即执行命令的文本，会先停在确认步骤。
 - **文件和截图变成 shell 安全路径。** Finder 文件插入为带引用的绝对路径。剪贴板只有图片时，会保存到私有临时 PNG，再粘贴路径供终端程序读取。远程窗格先将复制的文件和截图上传到主机，再插入远端路径。
 
+剪贴板支持 PNG、TIFF、JPEG、GIF 和 WebP，统一保存为 PNG，动画图片使用首帧。拖入远程窗格的文件会先上传再插入远端路径。**设置 → 终端 → 远程文件**可分别关闭两种自动上传，关闭后仍可使用远程终端右键菜单的**上传文件…**。见[远程上传](/docs/remote-sessions#paste)。
+
 <span id="option-键输入" data-canonical-heading="option-key-input" />
 
 ## Option 键输入 [#option-key-input]

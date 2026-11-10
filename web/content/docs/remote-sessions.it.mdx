@@ -51,7 +51,9 @@ Al risveglio del Mac, le sessioni remote condivise verificano la connessione e s
 
 ## File e schermate [#paste]
 
-Copia file normali o una schermata e incolla nel pannello remoto. Zshell carica in una cartella privata dell’host e inserisce i percorsi citati per la shell. Massimo 32 file, 32 MiB ciascuno e 64 MiB totali; cartelle e link simbolici sono rifiutati. I caricamenti condivisi durano sette giorni. Anche i pannelli SSH Unix normali lo supportano.
+Copia file normali o un’immagine e incolla nel pannello remoto, oppure trascina i file. Zshell carica in una cartella privata dell’host e inserisce percorsi remoti citati per la shell senza eseguire comandi. PNG, TIFF, JPEG, GIF e WebP diventano PNG; le animazioni usano il primo fotogramma. Massimo 32 file, 32 MiB ciascuno e 64 MiB totali; cartelle e link simbolici sono rifiutati. I caricamenti condivisi durano sette giorni. Anche i pannelli SSH Unix normali offrono gli stessi caricamenti.
+
+In **Impostazioni → Terminale → File remoti**, **Carica file e immagini copiati** (`terminal.remote-paste-upload`) e **Carica file trascinati** (`terminal.remote-drop-upload`) sono attivi per impostazione predefinita. Disattiva un’opzione per interrompere quel caricamento automatico; non vengono inseriti percorsi locali. **Carica file…** nel menu contestuale del terminale remoto permette sempre di scegliere file. Riconnettiti e prendi il controllo di una sessione condivisa prima del caricamento. Lasciare il pannello, perdere il controllo o disconnettersi annulla l’inserimento in attesa.
 
 ## Conversazioni Agent remote [#agents]
 

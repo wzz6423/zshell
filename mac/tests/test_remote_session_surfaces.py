@@ -28,6 +28,7 @@ parser.add_argument("--server-path", default="~/.local/bin/zshell-server")
 parser.add_argument("--backend", choices=("alacritty", "ghostty"), action="append")
 parser.add_argument("--wake-fixture", type=Path, help="Transparent bridge controls from test_remote_session_wake.py")
 parser.add_argument("--paste", action="store_true", help="Run the remote file/image paste probe after session checks")
+parser.add_argument("--paste-only", action="store_true", help="Run only the remote paste/drop probe")
 parser.add_argument("--agent-root", type=Path, help="Run official Codex Agent probes with this prepared isolated fixture")
 parser.add_argument("--agent-provider", help="Absolute official Codex executable on the isolated SSH fixture")
 parser.add_argument("--agent-only", action="store_true", help="Run only the prepared Agent probe")
@@ -61,9 +62,9 @@ with tempfile.TemporaryDirectory(prefix="zshell-remote-surfaces-", dir="/tmp") a
     subprocess.run(arguments + [str(ssh_source)], cwd=ROOT, check=True)
     subprocess.run([str(binary)], cwd=ROOT, check=True, timeout=30,
                    env={**os.environ, "CFFIXED_USER_HOME": directory})
-    if not options.agent_only:
+    if not options.agent_only and not options.paste_only:
         subprocess.run(arguments + [str(ROOT / "mac/tests/RemoteSessionSurfaceTests.swift")], cwd=ROOT, check=True)
-    for backend in (() if options.agent_only else options.backend or ("alacritty", "ghostty")):
+    for backend in (() if options.agent_only or options.paste_only else options.backend or ("alacritty", "ghostty")):
         home = temporary / backend
         home.mkdir()
         (home / "tmp").mkdir()
@@ -81,17 +82,33 @@ with tempfile.TemporaryDirectory(prefix="zshell-remote-surfaces-", dir="/tmp") a
             command.append(str(options.wake_fixture.resolve()))
         subprocess.run(command,
                        cwd=ROOT, check=True, timeout=120, env=environment)
-    if options.paste:
-        subprocess.run(arguments + [str(ROOT / "mac/tests/RemotePasteSurfaceTests.swift")], cwd=ROOT, check=True)
+    if options.paste or options.paste_only:
+        contents = temporary / "RemotePasteTests.app/Contents"
+        paste_binary = contents / "MacOS/zshell"
+        paste_binary.parent.mkdir(parents=True)
+        (contents / "Resources").symlink_to(executable.parent.parent / "Resources", target_is_directory=True)
+        (contents / "Info.plist").write_bytes(plistlib.dumps({
+            "CFBundleIdentifier": "sh.zshell.remote-paste-tests." + uuid.uuid4().hex,
+            "CFBundleExecutable": "zshell", "CFBundlePackageType": "APPL", "LSUIElement": True,
+        }))
+        paste_arguments = list(arguments)
+        paste_arguments += ["-module-name", "RemotePasteSurfaceProbe"]
+        paste_arguments[paste_arguments.index("-o") + 1] = str(paste_binary)
+        subprocess.run(paste_arguments + [str(ROOT / "mac/tests/RemotePasteSurfaceTests.swift")], cwd=ROOT, check=True)
         for backend in options.backend or ("alacritty", "ghostty"):
             home = temporary / (backend + "-paste")
             home.mkdir()
+            (home / "tmp").mkdir()
+            settings = home / ".config/zshell-dev"
+            settings.mkdir(parents=True)
+            (settings / "config.toml").write_text("[ai]\nenabled = false\n")
             environment = {key: value for key, value in os.environ.items() if key not in ("ZSHELL_CLI_STATE", "ZSHELL_CLI_TOKEN")}
             environment.update({"CFFIXED_USER_HOME": str(home), "HOME": str(home),
+                                "TMPDIR": str(home / "tmp") + "/",
                                 "ZSHELL_SSH_CONFIG_FILE": str(options.ssh_config.resolve()),
                                 "ZSHELL_PTY_MUX_DIRECTORY": str(home / "mux")})
-            subprocess.run([str(binary), backend, str(executable), options.address, options.directory, options.server_path],
-                           cwd=ROOT, check=True, timeout=120, env=environment)
+            subprocess.run([str(paste_binary), backend, str(executable), options.address, options.directory, options.server_path],
+                           cwd=ROOT, check=True, timeout=180, env=environment)
     if options.agent_root:
         if not options.agent_provider:
             raise SystemExit("--agent-provider is required for the official Agent fixture")

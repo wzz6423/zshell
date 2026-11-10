@@ -909,11 +909,11 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     // MARK: - File drops
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-        canReadFileURLs(sender) ? .copy : []
+        events?.terminalAllowsFileDrop != false && canReadFileURLs(sender) ? .copy : []
     }
 
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        canReadFileURLs(sender) ? .copy : []
+        events?.terminalAllowsFileDrop != false && canReadFileURLs(sender) ? .copy : []
     }
 
     /// Inserts dropped absolute paths, shell-escaped and space-separated, at
@@ -921,8 +921,11 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         guard let urls = fileURLs(sender), !urls.isEmpty else { return false }
         focusForInteraction()
+        if events?.terminalHandleFileDrop(urls, paste: { [weak self] text in
+            self?.sendPaste(text + " ")
+        }) == true { return true }
         let text = urls.map { Self.shellToken(for: $0.path) }.joined(separator: " ")
-        sendText(text + " ")
+        sendPaste(text + " ")
         return true
     }
 

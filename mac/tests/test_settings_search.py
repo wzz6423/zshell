@@ -62,6 +62,8 @@ CONFIGURATION_ITEMS = {
     "terminal.restore-history": ("terminal", "Restore session history on relaunch", "History"),
     "terminal.preserve-sessions": ("terminal", "Keep sessions running after quitting", ""),
     "terminal.copy-on-select": ("terminal", "Copy on select", "Input"),
+    "terminal.remote-paste-upload": ("terminal", "Upload copied files and images", "Remote files"),
+    "terminal.remote-drop-upload": ("terminal", "Upload dropped files", "Remote files"),
     "terminal.focus-follows-mouse": ("terminal", "Focus follows mouse", "Input"),
     "terminal.notify-finish-seconds": ("terminal", "Long-running commands", "Notifications"),
     "terminal.notify-on-error": ("terminal", "Failed commands", "Notifications"),
@@ -78,6 +80,8 @@ CONFIGURATION_ITEMS = {
     "ai.notify-on-completion": ("automation", "Notify when agents finish", "Notifications"),
 }
 DESCRIPTION_ITEMS = {
+    "Turn these off to stop automatic uploads. You can still choose Upload Files… from a remote terminal’s context menu.":
+        ("terminal", "Upload copied files and images", "Remote files"),
     "Applies to Git panel actions, pull request status, and Git in terminals opened afterwards.":
         ("general", "Use proxy for Git", "Git"),
     "HTTP, HTTPS, or SOCKS proxy URL. Changes apply to terminals opened afterwards.":
@@ -249,7 +253,7 @@ class SettingsSearchTests(unittest.TestCase):
             if not (resources / f"{language}.lproj").is_dir():
                 raise AssertionError(f"missing compiled {language} resources")
         metadata = root / "SearchMetadata.swift"
-        metadata.write_text("import Foundation\n" + "\n".join([
+        metadata.write_text("import AppKit\n" + "\n".join([
             metadata_enum((sources / "Settings/SettingsWindowController.swift").read_text(),
                           "SettingsCategory", "    func makePane()"),
             metadata_enum((sources / "Theme.swift").read_text(), "AppTheme", "    var nsAppearance:"),

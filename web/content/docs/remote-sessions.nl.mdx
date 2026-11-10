@@ -51,7 +51,9 @@ Na het ontwaken van de Mac controleren gedeelde externe sessies de verbinding en
 
 ## Bestanden en schermafbeeldingen [#paste]
 
-Kopieer gewone bestanden of een schermafbeelding en plak in het externe paneel. Zshell uploadt naar een privémappenlocatie en voegt geciteerde shellpaden in. Maximaal 32 bestanden, elk 32 MiB en samen 64 MiB; mappen en symbolische links worden geweigerd. Gedeelde uploads blijven zeven dagen. Gewone Unix-SSH-panelen ondersteunen dit ook.
+Kopieer gewone bestanden of een afbeelding en plak in het externe paneel, of sleep bestanden ernaartoe. Zshell uploadt naar een privémappenlocatie en voegt geciteerde externe shellpaden in zonder een opdracht uit te voeren. PNG, TIFF, JPEG, GIF en WebP worden PNG-bestanden; animaties gebruiken het eerste frame. Maximaal 32 bestanden, elk 32 MiB en samen 64 MiB; mappen en symbolische links worden geweigerd. Gedeelde uploads blijven zeven dagen. Gewone Unix-SSH-panelen bieden dezelfde uploads.
+
+In **Instellingen → Terminal → Externe bestanden** staan **Gekopieerde bestanden en afbeeldingen uploaden** (`terminal.remote-paste-upload`) en **Gesleepte bestanden uploaden** (`terminal.remote-drop-upload`) standaard aan. Schakel een optie uit om die automatische upload te stoppen; er wordt geen lokaal pad ingevoegd. **Bestanden uploaden…** in het contextmenu van de externe terminal blijft beschikbaar voor een expliciete keuze. Maak opnieuw verbinding en neem de controle over een gedeelde sessie. Het paneel verlaten, controle verliezen of verbreken annuleert de wachtende invoeging.
 
 ## Externe Agentgesprekken [#agents]
 

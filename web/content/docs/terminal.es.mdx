@@ -172,6 +172,8 @@ Los programas que emiten progreso mediante `OSC 9;4` muestran una barra fina sob
 - **Los pegados arriesgados se señalan.** El texto multilínea o con aspecto de comando requiere confirmación en lugar de enviarse inmediatamente.
 - **Archivos y capturas se convierten en rutas seguras para el shell.** Los archivos de Finder se insertan como rutas absolutas entre comillas. Una imagen sola se guarda en un PNG temporal privado y se pega su ruta. Los paneles remotos suben primero los archivos y capturas al servidor.
 
+El portapapeles admite PNG, TIFF, JPEG, GIF y WebP y los guarda como PNG; las animaciones usan el primer fotograma. Los archivos arrastrados a un panel remoto se suben antes de insertar rutas. Las dos opciones están en **Ajustes → Terminal → Archivos remotos**; **Subir archivos…** sigue disponible en el menú contextual cuando están desactivadas. Consulta las [cargas remotas](/es/docs/remote-sessions#paste).
+
 ## Entrada con la tecla Opción [#option-key-input]
 
 De forma predeterminada, Opción permanece bajo el control de la fuente de entrada activa de macOS para que distribuciones como Polish Pro puedan escribir caracteres compuestos. Activa **Usar Opción como Alt/Meta** en Ajustes cuando quieras que un programa de terminal reciba esas combinaciones como atajos Meta. Consulta [`terminal.macos-option-as-alt`](/es/docs/configuration#terminalmacos-option-as-alt).

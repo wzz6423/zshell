@@ -51,7 +51,9 @@ Nach dem Aufwachen des Macs prüfen geteilte Remote-Sitzungen die Verbindung und
 
 ## Dateien und Bildschirmfotos [#paste]
 
-Kopieren Sie reguläre Dateien oder Bildschirmfotos und fügen Sie sie im Remote-Bereich ein. Nach dem Upload in ein privates Hostverzeichnis werden für dessen Shell zitierte Pfade eingefügt. Maximal 32 Dateien, je 32 MiB und insgesamt 64 MiB; Ordner und symbolische Links werden abgelehnt. Geteilte Uploads bleiben sieben Tage verfügbar. Normale Unix-SSH-Bereiche unterstützen dies ebenfalls.
+Kopieren Sie reguläre Dateien oder ein Bild in den Remote-Bereich oder legen Sie Dateien dort ab. Zshell lädt sie in ein privates Hostverzeichnis und fügt für die Shell zitierte Remote-Pfade ein, ohne einen Befehl auszuführen. PNG, TIFF, JPEG, GIF und WebP aus der Zwischenablage werden als PNG gespeichert; bei Animationen wird das erste Bild verwendet. Maximal 32 Dateien, je 32 MiB und insgesamt 64 MiB; Ordner und symbolische Links werden abgelehnt. Geteilte Uploads bleiben sieben Tage verfügbar. Normale Unix-SSH-Bereiche unterstützen dieselben Uploads.
+
+Unter **Einstellungen → Terminal → Remote-Dateien** sind **Kopierte Dateien und Bilder hochladen** (`terminal.remote-paste-upload`) und **Abgelegte Dateien hochladen** (`terminal.remote-drop-upload`) standardmäßig aktiviert. Deaktivieren beendet den jeweiligen automatischen Upload; lokale Pfade werden nicht eingefügt. **Dateien hochladen…** im Kontextmenü des Remote-Terminals erlaubt weiterhin eine ausdrückliche Dateiauswahl. Verbinden Sie eine geteilte Sitzung erneut und übernehmen Sie die Kontrolle. Ein Bereichswechsel, Kontrollverlust oder Verbindungsabbruch verwirft die ausstehende Pfadeinfügung.
 
 ## Remote-Agent-Gespräche [#agents]
 

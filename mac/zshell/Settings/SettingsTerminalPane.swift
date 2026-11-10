@@ -25,6 +25,8 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     private let restoreHistorySwitch = SettingsSwitch { AppSettings.shared.restoreTerminalHistory = $0 }
     private let preserveSessionsSwitch = SettingsSwitch { AppSettings.shared.preserveTerminalSessions = $0 }
     private let copyOnSelectSwitch = SettingsSwitch { AppSettings.shared.copyOnSelect = $0 }
+    private let remotePasteUploadSwitch = SettingsSwitch { AppSettings.shared.remotePasteUpload = $0 }
+    private let remoteDropUploadSwitch = SettingsSwitch { AppSettings.shared.remoteDropUpload = $0 }
     private let focusFollowsMouseSwitch = SettingsSwitch { AppSettings.shared.focusFollowsMouse = $0 }
     private let notifyOnErrorSwitch = SettingsSwitch { AppSettings.shared.notifyOnError = $0 }
     private let notifyFinishPopup = SettingsPopUpButton<Int>(
@@ -80,6 +82,15 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         quickTerminalSizeRow,
         quickTerminalOpacityRow,
     ])
+
+    private lazy var remoteUploadExplanation: NSTextField = {
+        let text = NSTextField(wrappingLabelWithString:
+            String(localized: "Turn these off to stop automatic uploads. You can still choose Upload Files… from a remote terminal’s context menu."))
+        text.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        text.textColor = .secondaryLabelColor
+        text.maximumNumberOfLines = 0
+        return text
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -155,6 +166,18 @@ final class SettingsTerminalPane: SettingsPaneViewController {
             ),
         ]))
 
+        groups.append(SettingsGroup(header: String(localized: "Remote files"), rows: [
+            SettingsRow(
+                title: String(localized: "Upload copied files and images"),
+                control: remotePasteUploadSwitch
+            ),
+            SettingsRow(
+                title: String(localized: "Upload dropped files"),
+                control: remoteDropUploadSwitch
+            ),
+            SettingsCustomRow(remoteUploadExplanation),
+        ]))
+
         groups.append(SettingsGroup(header: String(localized: "History"), rows: [
             SettingsRow(title: String(localized: "Record command history"), control: commandHistorySwitch),
             SettingsRow(
@@ -212,6 +235,8 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         restoreHistorySwitch.isOn = settings.restoreTerminalHistory
         preserveSessionsSwitch.isOn = settings.preserveTerminalSessions
         copyOnSelectSwitch.isOn = settings.copyOnSelect
+        remotePasteUploadSwitch.isOn = settings.remotePasteUpload
+        remoteDropUploadSwitch.isOn = settings.remoteDropUpload
         focusFollowsMouseSwitch.isOn = settings.focusFollowsMouse
         notifyFinishPopup.select(settings.notifyFinishSeconds)
         notifyOnErrorSwitch.isOn = settings.notifyOnError
