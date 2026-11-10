@@ -18,6 +18,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Changed
 
+- Give settings categories distinct colored icons and a clearer selection that
+  follows the window's focus.
 - Refresh local project files in the background and reduce Git panel and review
   refresh work to keep large repositories responsive.
 

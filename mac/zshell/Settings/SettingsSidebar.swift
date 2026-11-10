@@ -142,10 +142,13 @@ final class SettingsSidebarViewController: NSViewController, NSSearchFieldDelega
                 .map { _ in () },
             SettingsVisibility.recommendationsDidChange
         )
+        .merge(with: NotificationCenter.default.publisher(for: NSColor.systemColorsDidChangeNotification)
+            .map { _ in () })
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in
-            guard let self, self.isSearching else { return }
-            self.updateSearchResults(onlyIfChanged: true)
+            guard let self else { return }
+            for row in self.rows + self.resultRows { row.needsDisplay = true }
+            if self.isSearching { self.updateSearchResults(onlyIfChanged: true) }
         }
         .store(in: &observations)
     }
@@ -312,8 +315,8 @@ private final class SettingsSidebarDocumentView: NSView {
     override var isFlipped: Bool { true }
 }
 
-/// A full-width category or search result, with the source-list selection
-/// material following the window's key state.
+/// A full-width category or search result. Category colors stay recognizable
+/// while selection emphasis follows the window's key state.
 private final class SettingsSidebarRow: NSButton {
     let category: SettingsCategory
     var onActivate: (() -> Void)?
@@ -322,7 +325,7 @@ private final class SettingsSidebarRow: NSButton {
     var isSelectedRow = false {
         didSet {
             guard isSelectedRow != oldValue else { return }
-            selectionView.isHidden = !isSelectedRow
+            needsDisplay = true
             updateTint()
             setAccessibilityValue(isSelectedRow)
         }
@@ -331,12 +334,10 @@ private final class SettingsSidebarRow: NSButton {
     var isEmphasized = false {
         didSet {
             guard isEmphasized != oldValue else { return }
-            selectionView.isEmphasized = isEmphasized
-            updateTint()
+            needsDisplay = true
         }
     }
 
-    private let selectionView = NSVisualEffectView()
     private let symbolView = NSImageView()
     private let titleLabel: NSTextField
     private let subtitleLabel: NSTextField?
@@ -359,15 +360,6 @@ private final class SettingsSidebarRow: NSButton {
         target = self
         action = #selector(invoke)
 
-        selectionView.material = .selection
-        selectionView.blendingMode = .withinWindow
-        selectionView.state = .active
-        selectionView.isHidden = true
-        selectionView.wantsLayer = true
-        selectionView.layer?.cornerRadius = 7
-        selectionView.layer?.cornerCurve = .continuous
-        selectionView.setAccessibilityElement(false)
-
         titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize)
         titleLabel.lineBreakMode = .byTruncatingTail
         titleLabel.setAccessibilityElement(false)
@@ -388,22 +380,20 @@ private final class SettingsSidebarRow: NSButton {
         symbolView.image = NSImage(
             systemSymbolName: category.symbolName,
             accessibilityDescription: nil
-        )?.withSymbolConfiguration(.init(pointSize: 15, weight: .regular))
+        )?.withSymbolConfiguration(.init(pointSize: 14, weight: .medium))
         symbolView.imageScaling = .scaleNone
+        symbolView.contentTintColor = .white
         symbolView.setAccessibilityElement(false)
 
-        for subview in [selectionView, symbolView, labels] as [NSView] {
+        for subview in [symbolView, labels] as [NSView] {
             subview.translatesAutoresizingMaskIntoConstraints = false
             addSubview(subview)
         }
         NSLayoutConstraint.activate([
-            selectionView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            selectionView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            selectionView.topAnchor.constraint(equalTo: topAnchor),
-            selectionView.bottomAnchor.constraint(equalTo: bottomAnchor),
             heightAnchor.constraint(equalToConstant: subtitleLabel == nil ? SettingsMetrics.sidebarRowHeight : 48),
             symbolView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
             symbolView.widthAnchor.constraint(equalToConstant: SettingsMetrics.sidebarSymbolWidth),
+            symbolView.heightAnchor.constraint(equalTo: symbolView.widthAnchor),
             symbolView.centerYAnchor.constraint(equalTo: centerYAnchor),
             labels.leadingAnchor.constraint(equalTo: symbolView.trailingAnchor, constant: 8),
             labels.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
@@ -423,6 +413,27 @@ private final class SettingsSidebarRow: NSButton {
 
     override var acceptsFirstResponder: Bool { true }
     override var focusRingMaskBounds: NSRect { bounds }
+
+    override func draw(_ dirtyRect: NSRect) {
+        // NSButtonCell would paint its own pressed state over the row's colors.
+        if isSelectedRow {
+            let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: 7, yRadius: 7)
+            let tint: NSColor = isEmphasized ? .controlAccentColor : .labelColor
+            tint.withAlphaComponent(isEmphasized ? 0.16 : 0.09).setFill()
+            path.fill()
+            let highContrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+            tint.withAlphaComponent(highContrast ? 1 : 0.3).setStroke()
+            path.lineWidth = highContrast ? 1 : 0.5
+            path.stroke()
+        }
+        category.iconColor.setFill()
+        NSBezierPath(roundedRect: symbolView.frame, xRadius: 6, yRadius: 6).fill()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
 
     override func drawFocusRingMask() {
         NSBezierPath(roundedRect: bounds, xRadius: 7, yRadius: 7).fill()
@@ -448,9 +459,8 @@ private final class SettingsSidebarRow: NSButton {
     }
 
     private func updateTint() {
-        let onAccent = isSelectedRow && isEmphasized
-        titleLabel.textColor = onAccent ? .white : .labelColor
-        subtitleLabel?.textColor = onAccent ? .white.withAlphaComponent(0.85) : .secondaryLabelColor
-        symbolView.contentTintColor = onAccent ? .white : .controlAccentColor
+        titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize, weight: isSelectedRow ? .semibold : .regular)
+        titleLabel.textColor = .labelColor
+        subtitleLabel?.textColor = .secondaryLabelColor
     }
 }

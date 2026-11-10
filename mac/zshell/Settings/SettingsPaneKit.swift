@@ -21,7 +21,7 @@ enum SettingsMetrics {
     /// Sidebar row height and the width reserved for its symbol, so titles line
     /// up whatever glyph precedes them.
     static let sidebarRowHeight: CGFloat = 36
-    static let sidebarSymbolWidth: CGFloat = 22
+    static let sidebarSymbolWidth: CGFloat = 24
 }
 
 // MARK: - Chrome
