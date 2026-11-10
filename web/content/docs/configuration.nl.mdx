@@ -39,6 +39,18 @@ Kies **Instellingen → Algemeen → Zshell weergeven in** om direct te wisselen
 
 De menubalk opent de huidige werkruimte, de snelle terminal, instellingen en de updatecontrole. In beide menubalkmodi wordt het laatste werkruimtevenster bij sluiten verborgen terwijl terminals en taken actief blijven. **Werkruimte openen** keert terug naar hetzelfde venster, project en dezelfde sessie. Andere vensters, panelen of projecten sluiten beëindigt hun taken nog steeds. **Stop** volgt `terminal.preserve-sessions`; **Stop en beëindig alle sessies** beëindigt ze. De modus blijft na opnieuw starten bewaard.
 
+## Computer wakker houden [#keep-computer-awake]
+
+### `keep-awake`
+
+`"off"` · `"on"` · `"agents"` — standaard `"off"`
+
+Kies **Instellingen → Algemeen → Computer wakker houden** of **Zshell → Computer wakker houden**. `"off"` staat automatisch sluimeren toe, `"on"` voorkomt het terwijl Zshell actief is en `"agents"` alleen terwijl een lokale agent werkt.
+
+Alle lokale terminaldeelvensters tellen mee, inclusief achtergrondprojecten, andere vensters en verborgen of ingezoomde deelvensters. Externe agents tellen niet mee. Wachtende, inactieve en voltooide agents staan sluimeren toe als geen andere lokale agent werkt. Het laatste actieve deelvenster sluiten, Uit kiezen of Zshell afsluiten heft de blokkering op, ook als sessies behouden blijven.
+
+De instellingsregel toont of de blokkering actief of niet beschikbaar is. Het scherm mag sluimeren; handmatig sluimeren, het deksel sluiten en een bijna lege batterij blijven macOS volgen.
+
 ## Weergave [#appearance]
 
 ### `theme` [#theme]

@@ -70,6 +70,8 @@ enum SettingsSearchIndex {
             item(.general, String(localized: "Show Zshell in"),
                  description: String(localized: "With a menu bar icon, closing the last workspace window keeps its terminals running."),
                  keywords: "app-presence Dock " + ApplicationPresence.allCases.map(\.title).joined(separator: " ")),
+            item(.general, String(localized: "Keep computer awake"),
+                 keywords: "keep-awake sleep caffeinate " + KeepAwakeMode.allCases.map(\.title).joined(separator: " ")),
             item(.general, String(localized: "Toolbar"), keywords: "toolbar.visibility"),
             item(.general, String(localized: "Use proxy for Git"), section: String(localized: "Git"),
                  description: String(localized: "Applies to Git panel actions, pull request status, and Git in terminals opened afterwards."),

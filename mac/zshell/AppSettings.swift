@@ -248,6 +248,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var keepAwakeMode: KeepAwakeMode {
+        didSet { save() }
+    }
+
     /// Render terminal glyphs with slightly heavier strokes, like classic
     /// macOS font smoothing. Each backend maps this to its own rasterizer.
     /// Persisted as `terminal.font-thicken`; off by default so Zshell's text
@@ -504,6 +508,7 @@ final class AppSettings: nonisolated ObservableObject {
         applicationPresence = ApplicationPresence(
             rawValue: toml["app-presence"]?.string ?? ""
         ) ?? .dockOnly
+        keepAwakeMode = KeepAwakeMode(persisted: toml["keep-awake"]?.string)
         theme = toml["theme"]?.string.flatMap(AppTheme.init(rawValue:)) ?? .system
         themeDark = Self.knownTheme(
             toml["theme-dark"]?.string,
@@ -706,6 +711,7 @@ final class AppSettings: nonisolated ObservableObject {
     var isAtDefaults: Bool {
         applicationIcon == .defaultIcon
             && applicationPresence == .dockOnly
+            && keepAwakeMode == .off
             && fontFamily.isEmpty
             && fontFallbackFamily.isEmpty
             && fontSize == Self.defaultFontSize
@@ -766,6 +772,7 @@ final class AppSettings: nonisolated ObservableObject {
     func resetToDefaults() {
         applicationIcon = .defaultIcon
         applicationPresence = .dockOnly
+        keepAwakeMode = .off
         resetFont()
         language = .system
         theme = .system
@@ -918,6 +925,7 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.applicationPresence, ApplicationPresence(
             rawValue: toml["app-presence"]?.string ?? ""
         ) ?? .dockOnly)
+        assign(\.keepAwakeMode, KeepAwakeMode(persisted: toml["keep-awake"]?.string))
         assign(\.theme, toml["theme"]?.string.flatMap(AppTheme.init(rawValue:)) ?? .system)
         assign(\.themeDark, Self.knownTheme(
             toml["theme-dark"]?.string,
@@ -1113,6 +1121,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if applicationPresence != .dockOnly {
             lines.append("app-presence = \(TOML.quote(applicationPresence.rawValue))")
+        }
+        if keepAwakeMode != .off {
+            lines.append("keep-awake = \(TOML.quote(keepAwakeMode.rawValue))")
         }
         if theme != .system {
             lines.append("theme = \(TOML.quote(theme.rawValue))")

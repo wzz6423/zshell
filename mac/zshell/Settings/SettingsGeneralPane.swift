@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import Combine
 
 /// App-wide preferences that belong to no single surface: the language Zshell
 /// uses, whether projects show the toolbar, the Git proxy, and the reset escape hatch.
@@ -27,6 +28,18 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
         onChange: { AppSettings.shared.applicationPresence = $0 }
     )
 
+    private let keepAwakePopUp = SettingsPopUpButton<KeepAwakeMode>(
+        items: KeepAwakeMode.allCases.map { .value($0.title, $0) },
+        onChange: { AppSettings.shared.keepAwakeMode = $0 }
+    )
+
+    private lazy var keepAwakeRow = SettingsRow(
+        title: String(localized: "Keep computer awake"),
+        description: KeepAwakeController.shared.statusDescription,
+        control: keepAwakePopUp,
+        symbolName: "moon.zzz"
+    )
+
     private lazy var toolbarRow = SettingsRow(
         title: String(localized: "Toolbar"),
         control: toolbarPopUp,
@@ -42,6 +55,7 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
             symbolName: "menubar.rectangle"
         ),
         toolbarRow,
+        keepAwakeRow,
     ])
 
     private let gitProxySwitch = SettingsSwitch { AppSettings.shared.gitProxyEnabled = $0 }
@@ -83,9 +97,17 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
         return [languageGroup, gitGroup, resetRow]
     }
 
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        observe(KeepAwakeController.shared.objectWillChange.receive(on: DispatchQueue.main).sink { [weak self] _ in
+            self?.syncKeepAwake()
+        })
+    }
+
     override func syncFromSettings() {
         languagePopUp.select(settings.language)
         presencePopUp.select(settings.applicationPresence)
+        syncKeepAwake()
         toolbarPopUp.select(settings.toolbarVisibility)
         pullRequestStatusSwitch.isOn = settings.showPullRequestStatus
         gitProxySwitch.isOn = settings.gitProxyEnabled
@@ -96,6 +118,11 @@ final class SettingsGeneralPane: SettingsPaneViewController, NSTextFieldDelegate
                 isValid: GitProxy.normalized(settings.gitProxyAddress) != nil))
         }
         resetRow.button.isEnabled = !settings.isAtDefaults
+    }
+
+    private func syncKeepAwake() {
+        keepAwakePopUp.select(settings.keepAwakeMode)
+        keepAwakeRow.setDescription(KeepAwakeController.shared.statusDescription)
     }
 
     func controlTextDidChange(_ notification: Notification) {

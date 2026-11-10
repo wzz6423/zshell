@@ -39,6 +39,18 @@ Choisissez **Réglages → Général → Afficher Zshell dans** pour changer imm
 
 La barre des menus ouvre l’espace de travail actuel, le terminal rapide, les réglages et la recherche de mises à jour. Dans les deux modes avec barre des menus, fermer la dernière fenêtre de travail la masque et laisse ses terminaux et tâches actifs. **Ouvrir l’espace de travail** retrouve la même fenêtre, le même projet et la même session. Fermer une autre fenêtre, un volet ou un projet termine toujours ses tâches. **Quitter** respecte `terminal.preserve-sessions` ; **Quitter et terminer toutes les sessions** les arrête. Le mode est conservé au prochain lancement.
 
+## Garder l’ordinateur éveillé [#keep-computer-awake]
+
+### `keep-awake`
+
+`"off"` · `"on"` · `"agents"` — valeur par défaut : `"off"`
+
+Choisissez **Réglages → Général → Garder l’ordinateur éveillé** ou **Zshell → Garder l’ordinateur éveillé**. `"off"` autorise la veille automatique, `"on"` empêche la veille automatique du système pendant l’exécution de Zshell, et `"agents"` uniquement pendant le travail d’un agent local.
+
+Tous les terminaux locaux sont pris en compte, y compris les projets en arrière-plan, les autres fenêtres et les panneaux masqués ou agrandis. Les agents distants sont exclus. Les agents en attente, inactifs ou terminés permettent la veille si aucun autre agent local ne travaille. Fermer le dernier panneau actif, choisir Désactivé ou quitter Zshell libère la prévention de la veille, même si les sessions sont conservées.
+
+La ligne de réglage indique si la prévention est active ou indisponible. La veille de l’écran, la veille manuelle, la fermeture du capot et la batterie faible suivent toujours macOS.
+
 ## Apparence [#appearance]
 
 ### `theme` [#theme]

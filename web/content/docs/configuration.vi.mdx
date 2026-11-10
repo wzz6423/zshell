@@ -39,6 +39,18 @@ Chọn **Cài đặt → Chung → Hiển thị Zshell trong** để đổi ngay
 
 Thanh menu mở không gian làm việc hiện tại, Terminal nhanh, cài đặt và trình kiểm tra cập nhật. Ở cả hai chế độ có thanh menu, đóng cửa sổ không gian làm việc cuối cùng sẽ ẩn nó trong khi terminal và tác vụ vẫn chạy. **Mở không gian làm việc** trở về đúng cửa sổ, dự án và phiên đó. Đóng cửa sổ khác, bảng hoặc dự án vẫn kết thúc tác vụ của chúng. **Thoát** vẫn tuân theo `terminal.preserve-sessions`; **Thoát và kết thúc tất cả phiên** sẽ kết thúc chúng. Chế độ được lưu sau khi khởi động lại.
 
+## Giữ máy tính hoạt động [#keep-computer-awake]
+
+### `keep-awake`
+
+`"off"` · `"on"` · `"agents"` — mặc định `"off"`
+
+Chọn **Cài đặt → Chung → Giữ máy tính hoạt động** hoặc **Zshell → Giữ máy tính hoạt động**. `"off"` cho phép tự động ngủ, `"on"` ngăn ngủ khi Zshell đang chạy và `"agents"` chỉ ngăn khi tác nhân cục bộ làm việc.
+
+Mọi ô terminal cục bộ đều được tính, gồm dự án chạy nền, cửa sổ khác và ô bị ẩn hoặc phóng to. Tác nhân từ xa không được tính. Tác nhân đang chờ, nhàn rỗi hoặc hoàn tất cho phép ngủ nếu không còn tác nhân cục bộ nào làm việc. Đóng ô cuối cùng đang làm việc, chọn Tắt hoặc thoát Zshell sẽ bỏ ngăn ngủ ngay cả khi giữ lại phiên.
+
+Hàng Cài đặt hiển thị trạng thái hoạt động hoặc không khả dụng. Màn hình có thể ngủ; ngủ thủ công, đóng nắp và pin yếu vẫn theo chính sách macOS.
+
 ## Giao diện [#appearance]
 
 ### `theme` [#theme]

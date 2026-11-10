@@ -32,6 +32,14 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         }) { Updater.shared.checkForUpdates() }
         application.addItem(.separator())
         command(application, title: { String(localized: "Settings…") }, key: ",") { SettingsWindowController.shared.show() }
+        let keepAwake = addMenu(to: application, title: { String(localized: "Keep computer awake") })
+        for mode in KeepAwakeMode.allCases {
+            let item = command(keepAwake, title: { mode.title }) { AppSettings.shared.keepAwakeMode = mode }
+            titleUpdates.append {
+                let state: NSControl.StateValue = AppSettings.shared.keepAwakeMode == mode ? .on : .off
+                if item.state != state { item.state = state }
+            }
+        }
         application.addItem(.separator())
         command(application, title: { String(localized: "Export Settings…") }) { SettingsImportExport.exportSettings() }
         command(application, title: { String(localized: "Import Settings…") }) { SettingsImportExport.importSettings() }

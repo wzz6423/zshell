@@ -22,7 +22,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
 
     @Published var title: String
     @Published var workingDirectory: String?
-    @Published var hasExited = false
+    @Published var hasExited = false {
+        didSet {
+            if hasExited { AgentAutomationMonitor.shared.unregister(self) }
+        }
+    }
     @Published private(set) var commandLifecycle = TerminalCommandLifecycle()
     @Published private(set) var commandRecords: [TerminalCommandRecord] = []
     @Published private(set) var terminalCellSize: CGSize?
@@ -36,6 +40,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         didSet {
             ZshellAutomationEventHub.shared.agentChanged(in: self, previous: oldValue)
             TerminalNotificationService.shared.agentChanged(in: self, previous: oldValue)
+            if agentStatus?.phase != oldValue?.phase { AgentAutomationMonitor.shared.agentActivityChanged() }
         }
     }
     @Published private(set) var agentResume: AgentConversationIdentity?
@@ -491,6 +496,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// real PTY and its startup files. Closing a pane still calls terminate().
     func prepareForApplicationQuit(preserve: Bool) {
         guard !isTerminating else { return }
+        AgentAutomationMonitor.shared.unregister(self)
         if let remoteConnection {
             remoteConnection.detach()
             terminate()
@@ -513,6 +519,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// or been force-stopped. Detaching first can make a backend wait
     /// synchronously for a process that ignored SIGHUP.
     private func beginTeardown(processAlive: Bool, notifyExit: Bool) {
+        AgentAutomationMonitor.shared.unregister(self)
         TerminalNotificationService.shared.terminalClosed(self)
         terminalProfileObservation = nil
         surface.splitTarget.profileMenuTarget.session = nil
@@ -1395,6 +1402,7 @@ extension TerminalSession: TerminalBackendEvents {
 
     func terminalDidClose(processAlive: Bool) {
         guard !isTerminating else { return }
+        AgentAutomationMonitor.shared.unregister(self)
         TerminalNotificationService.shared.terminalClosed(self)
         if remoteConnection != nil {
             Task { @MainActor [self] in

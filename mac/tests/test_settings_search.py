@@ -23,6 +23,7 @@ CATEGORIES = (
 )
 CONFIGURATION_ITEMS = {
     "app-presence": ("general", "Show Zshell in", ""),
+    "keep-awake": ("general", "Keep computer awake", ""),
     "browser.content-blocking": ("browser", "Block ads and trackers", ""),
     "browser.filter-lists": ("browser", "Filter Lists", "Filter Lists"),
     "toolbar.visibility": ("general", "Toolbar", ""),
@@ -264,6 +265,7 @@ class SettingsSearchTests(unittest.TestCase):
         subprocess.run([
             "swiftc", "-parse-as-library", "-module-cache-path", str(root / "modules"),
             str(sources / "AppLocalization.swift"), str(sources / "RecommendedTool.swift"),
+            str(sources / "KeepAwakeMode.swift"),
             str(sources / "Settings/SettingsSearch.swift"),
             str(sources / "Settings/SettingsVisibility.swift"), str(metadata), str(harness),
             "-o", str(cls.binary),
@@ -341,6 +343,15 @@ class SettingsSearchTests(unittest.TestCase):
 
     def test_conditional_usage_status_is_not_offered_as_a_setting(self):
         self.assertEqual(self.query(["Account Usage"]), [[]])
+
+    def test_keep_awake_is_visible_without_ai(self):
+        for language in LANGUAGES:
+            samples = self.evaluate([{
+                "language": language, "queries": ["keep-awake"], "disabled": ["aiEnabled"],
+            }])
+            rows = samples[0]["queries"][0]
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["category"], "general")
 
     def test_dependent_controls_follow_live_visibility_changes(self):
         cases = [
