@@ -224,7 +224,7 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
             else {
                 // Keep the field editor during a background listing. Reload
                 // only when row identity changes, then restore an active edit.
-                let editText = activeEdit?.field.stringValue
+                let editText = activeEdit.map { $0.field.currentEditor()?.string ?? $0.field.stringValue }
                 let editItem = activeEdit?.item
                 activeEdit = nil
                 updatingSelection = true
@@ -483,14 +483,13 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
             guard let self else { return }
             self.editFocusScheduled = false
             guard let field, self.activeEdit?.field === field else { return }
-            self.window?.makeFirstResponder(field)
             field.selectText(nil)
         }
     }
 
     private func endEditing(commit: Bool) {
         guard let edit = activeEdit, let model else { return }
-        let name = edit.field.stringValue
+        let name = edit.field.currentEditor()?.string ?? edit.field.stringValue
         activeEdit = nil
         edit.field.delegate = nil
         let currentEdit = model.renamingPath == edit.item.path || (edit.item.isDraft && model.draft != nil)
