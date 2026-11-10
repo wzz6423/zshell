@@ -2,6 +2,9 @@ import AppKit
 import Combine
 import Darwin
 import Foundation
+#if ZSHELL_FILE_TREE_BUILT_APP
+@testable import zshell
+#endif
 
 private struct TestFailure: Error, CustomStringConvertible {
     let description: String
@@ -114,12 +117,19 @@ private func ms(_ start: ContinuousClock.Instant) -> Double {
     @MainActor static func main() async throws {
         setbuf(stdout, nil)
         setbuf(stderr, nil)
+#if ZSHELL_FILE_TREE_BUILT_APP
+        NSApplication.shared.setActivationPolicy(.prohibited)
+#endif
         let fm = FileManager.default
         try require(CommandLine.arguments.count == 2, "Pass a temporary fixture directory")
         let root = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
         try fm.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: root) }
         try await draftCreationSafety(in: root.appendingPathComponent("creation-safety", isDirectory: true))
+#if ZSHELL_FILE_TREE_BUILT_APP
+        print("PASS creation safety against the built zshell module and real AppKit dependencies")
+        return
+#else
         let large = root.appendingPathComponent("large", isDirectory: true)
         let small = root.appendingPathComponent("small", isDirectory: true)
         let nested = small.appendingPathComponent("folder2", isDirectory: true)
@@ -307,7 +317,7 @@ private func ms(_ start: ContinuousClock.Instant) -> Double {
         try require(mismatchedRoots == 0, "Old worker never publishes against a new root")
         try require(cacheCount(model) <= 2, "No historical roots retained")
         model.sync(root: large.path)
-        model.configureRemote(SSHEndpoint(destination: "test.example"))
+        model.configureRemote(SSHEndpoint(host: "test.example"))
         model.sync(root: "/remote")
         try await eventually("switch to remote during local scan") { model.items.map(\.name) == ["remote-file.txt"] && !isRefreshing(model) }
         try require(model.isRemote, "Remote source remains selected")
@@ -321,6 +331,7 @@ private func ms(_ start: ContinuousClock.Instant) -> Double {
         try require(model.items.isEmpty && cacheCount(model) == 0, "Empty root stays empty")
         try require(heartbeat.maximumGap < 250, "Background transitions must not stall the main actor")
         print("PASS: background I/O/sort, unchanged no publish, burst coalescing, .git/hidden/unicode/natural ordering, nested refresh/cache pruning, rapid toggle, draft immediate/late cancellation, create/rename/trash, symlink type, file replacement, unreadable recovery, root/remote/empty transitions")
+#endif
     }
 
     private nonisolated static func requireFile(_ created: Bool) {
