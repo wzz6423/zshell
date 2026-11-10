@@ -1681,6 +1681,7 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
         }
     }
 
+    /// Explicit file selection is independent of the automatic paste/drop settings.
     func uploadSelectedFiles(_ urls: [URL], paste: @escaping (String) -> Void) -> Bool {
         guard canUploadFiles else { return true }
         return performFileUpload(.files(urls), paste: paste)
@@ -1726,6 +1727,8 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
                         Task.detached(priority: .utility) { LocalClipboardImageStore.discard(URL(fileURLWithPath: path)) }
                     }
                 }
+                // Cancellation can race with a finished upload. Match the original
+                // pane and control generation before inserting into a prompt.
                 guard let self, self.clipboardPasteGeneration == pasteGeneration else { return }
                 self.clipboardPasteTask = nil
                 guard !Task.isCancelled, !self.isTerminating, !self.hasExited,

@@ -61,7 +61,9 @@ nonisolated enum RemotePasteInput: Sendable {
             throw RemoteHostError.message(String(localized: "The clipboard image couldn’t be read."))
         }
         try Task.checkCancellation()
-        if CGImageSourceGetType(source) == UTType.png.identifier as CFString { return bytes }
+        // APNG shares PNG's type identifier; only a single frame can bypass conversion.
+        if CGImageSourceGetType(source) == UTType.png.identifier as CFString,
+           CGImageSourceGetCount(source) == 1 { return bytes }
         let png = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(png, UTType.png.identifier as CFString, 1, nil) else {
             throw RemoteHostError.message(String(localized: "The clipboard image couldn’t be read."))

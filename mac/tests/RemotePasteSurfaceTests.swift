@@ -93,7 +93,7 @@ struct RemotePasteSurfaceTests {
     @MainActor private static func imageFixtures() throws -> [(NSPasteboard.PasteboardType, Data, String)] {
         let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 3, pixelsHigh: 2, bitsPerSample: 8,
             samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 12, bitsPerPixel: 32)!
-        for y in 0..<2 { for x in 0..<3 { bitmap.setColor(.red, atX: x, y: y) } }
+        for pixel in 0..<6 { bitmap.bitmapData!.advanced(by: pixel * 4).update(from: [255, 0, 0, 255], count: 4) }
         let png = bitmap.representation(using: .png, properties: [:])!
         let tiff = bitmap.tiffRepresentation!
         let jpeg = bitmap.representation(using: .jpeg, properties: [:])!
@@ -102,19 +102,63 @@ struct RemotePasteSurfaceTests {
         guard let destination = CGImageDestinationCreateWithData(gif, UTType.gif.identifier as CFString, 2, nil) else {
             throw NSError(domain: "GIFDestination", code: 1)
         }
-        CGImageDestinationAddImage(destination, firstImage, nil)
-        for y in 0..<2 { for x in 0..<3 { bitmap.setColor(.blue, atX: x, y: y) } }
+        let gifProperties = [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: 0.1]] as CFDictionary
+        CGImageDestinationAddImage(destination, firstImage, gifProperties)
+        for pixel in 0..<6 { bitmap.bitmapData!.advanced(by: pixel * 4).update(from: [0, 0, 255, 255], count: 4) }
         let secondPNG = bitmap.representation(using: .png, properties: [:])!
         let secondImage = CGImageSourceCreateImageAtIndex(CGImageSourceCreateWithData(secondPNG as CFData, nil)!, 0, nil)!
-        CGImageDestinationAddImage(destination, secondImage, nil)
+        CGImageDestinationAddImage(destination, secondImage, gifProperties)
         guard CGImageDestinationFinalize(destination) else { throw NSError(domain: "GIFEncoding", code: 1) }
         let webP = Data(base64Encoded: "UklGRh4AAABXRUJQVlA4TBEAAAAvAkAAAAdQo1oWpf+BiOh/AAA=")!
+        let apng = NSMutableData()
+        guard let apngDestination = CGImageDestinationCreateWithData(apng, UTType.png.identifier as CFString, 2, nil) else {
+            throw NSError(domain: "APNGDestination", code: 1)
+        }
+        let frameProperties = [kCGImagePropertyPNGDictionary: [kCGImagePropertyAPNGDelayTime: 0.1]] as CFDictionary
+        CGImageDestinationAddImage(apngDestination, firstImage, frameProperties)
+        CGImageDestinationAddImage(apngDestination, secondImage, frameProperties)
+        guard CGImageDestinationFinalize(apngDestination) else { throw NSError(domain: "APNGEncoding", code: 1) }
         return [(.png, png, "PNG"),
+                (.png, apng as Data, "APNG"),
                 (.tiff, tiff, "TIFF"),
                 (.init(UTType.jpeg.identifier), jpeg, "JPEG"),
                 (.init(UTType.gif.identifier), gif as Data, "GIF"),
                 (.init(UTType.webP.identifier), webP, "WebP"),
                 (.init("public.webp"), webP, "WebP alias")]
+    }
+
+    private static func rgbaPixels(_ image: CGImage) throws -> [UInt8] {
+        var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
+        let rendered = pixels.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(data: buffer.baseAddress, width: image.width, height: image.height,
+                bitsPerComponent: 8, bytesPerRow: image.width * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+            return true
+        }
+        guard rendered else { throw NSError(domain: "ImagePixels", code: 1) }
+        return pixels
+    }
+
+    private static func checkNormalizedImage(_ png: Data, original: Data, label: String) throws {
+        guard let source = CGImageSourceCreateWithData(png as CFData, nil),
+              CGImageSourceGetType(source) == UTType.png.identifier as CFString,
+              CGImageSourceGetCount(source) == 1,
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil), image.width == 3, image.height == 2 else {
+            throw NSError(domain: "ImageConversion", code: 1, userInfo: [NSLocalizedDescriptionKey: label])
+        }
+        if label == "PNG", png != original { throw NSError(domain: "PNGBytesChanged", code: 1) }
+        if label == "GIF" || label == "APNG" {
+            guard let animation = CGImageSourceCreateWithData(original as CFData, nil), CGImageSourceGetCount(animation) == 2,
+                  let first = CGImageSourceCreateImageAtIndex(animation, 0, nil),
+                  let second = CGImageSourceCreateImageAtIndex(animation, 1, nil) else {
+                throw NSError(domain: "AnimationFixture", code: 1, userInfo: [NSLocalizedDescriptionKey: label])
+            }
+            let firstPixels = try rgbaPixels(first)
+            guard try rgbaPixels(image) == firstPixels, try rgbaPixels(second) != firstPixels else {
+                throw NSError(domain: "AnimationFirstFrame", code: 1, userInfo: [NSLocalizedDescriptionKey: label])
+            }
+        }
     }
 
     @MainActor private static func runImageCapture() throws {
@@ -128,20 +172,7 @@ struct RemotePasteSurfaceTests {
                 throw NSError(domain: "ImageCapture", code: 1, userInfo: [NSLocalizedDescriptionKey: label])
             }
             let png = try RemotePasteInput.pngData(from: captured)
-            guard let source = CGImageSourceCreateWithData(png as CFData, nil),
-                  CGImageSourceGetType(source) == UTType.png.identifier as CFString,
-                  CGImageSourceGetCount(source) == 1,
-                  let image = CGImageSourceCreateImageAtIndex(source, 0, nil), image.width == 3, image.height == 2 else {
-                throw NSError(domain: "ImageConversion", code: 1, userInfo: [NSLocalizedDescriptionKey: label])
-            }
-            if label == "GIF" {
-                let expected = CGImageSourceCreateImageAtIndex(CGImageSourceCreateWithData(captured as CFData, nil)!, 0, nil)!
-                let actualPixels = [UInt8](Data(NSBitmapImageRep(cgImage: image).tiffRepresentation!))
-                let expectedPixels = [UInt8](Data(NSBitmapImageRep(cgImage: expected).tiffRepresentation!))
-                guard actualPixels == expectedPixels else {
-                    throw NSError(domain: "GIFFirstFrame", code: 1)
-                }
-            }
+            try checkNormalizedImage(png, original: bytes, label: label)
             pasteboard.setString("ordinary text", forType: .string)
             guard try RemotePasteInput.capture(pasteboard) == nil else { throw NSError(domain: "ImageTextPriority", code: 1) }
             print("PASS \(label) captures, decodes to a single PNG frame, and preserves text priority")
@@ -392,23 +423,33 @@ struct RemotePasteSurfaceTests {
             let received = try OpenSSHTransport().run(endpoint: endpoint,
                 command: ["/bin/sh", "-c", "base64 < \"$1\"", "paste-read", imagePath])
             let normalized = try RemotePasteInput.pngData(from: bytes)
-            try check(Data(base64Encoded: received.stdout, options: .ignoreUnknownCharacters) == normalized && imagePath.hasSuffix(".png"),
+            let receivedPNG = Data(base64Encoded: received.stdout, options: .ignoreUnknownCharacters)
+            try check(receivedPNG == normalized && imagePath.hasSuffix(".png"),
                 "\(label) upload preserves the converted PNG on the host")
+            try checkNormalizedImage(receivedPNG!, original: bytes, label: label)
+            try check(true, "\(label) upload retains dimensions, original PNG bytes, and animation first-frame pixels as applicable")
         }
-        var sshPaths: [String]?
-        var sshFailure: Error?
-        Task { @MainActor in
-            do {
-                sshPaths = try await Task.detached {
-                    try RemotePasteUpload.uploadSSH(.image(png), endpoint: endpoint, authentication: .agent, credentialID: nil)
-                }.value
-            } catch { sshFailure = error }
+        for (_, bytes, label) in try imageFixtures() where label == "PNG" || label == "APNG" {
+            var sshPaths: [String]?
+            var sshFailure: Error?
+            Task { @MainActor in
+                do {
+                    sshPaths = try await Task.detached {
+                        try RemotePasteUpload.uploadSSH(.image(bytes), endpoint: endpoint, authentication: .agent, credentialID: nil)
+                    }.value
+                } catch { sshFailure = error }
+            }
+            try waitPaste("direct SSH \(label) upload did not finish") { sshPaths != nil || sshFailure != nil }
+            if let sshFailure { throw sshFailure }
+            uploaded += sshPaths!
+            let received = try OpenSSHTransport().run(endpoint: endpoint,
+                command: ["/bin/sh", "-c", "base64 < \"$1\"", "paste-read", sshPaths![0]])
+            guard let sshPNG = Data(base64Encoded: received.stdout, options: .ignoreUnknownCharacters) else {
+                throw NSError(domain: "SSHImageBytes", code: 1)
+            }
+            try checkNormalizedImage(sshPNG, original: bytes, label: label)
+            try check(true, "ordinary SSH \(label) upload preserves original static bytes or first-frame pixels")
         }
-        try waitPaste("direct SSH screenshot upload did not finish") { sshPaths != nil || sshFailure != nil }
-        if let sshFailure { throw sshFailure }
-        uploaded += sshPaths!
-        let sshPNG = try OpenSSHTransport().run(endpoint: endpoint, command: ["/bin/sh", "-c", "base64 < \"$1\"", "paste-read", sshPaths![0]])
-        try check(Data(base64Encoded: sshPNG.stdout, options: .ignoreUnknownCharacters) == png, "ordinary SSH connections upload clipboard screenshots")
 
         let sshSession = TerminalSession(initialDirectory: local.path,
             commandArguments: ["/usr/bin/ssh"] + (try endpoint.terminalArguments(remoteDirectory: project)),

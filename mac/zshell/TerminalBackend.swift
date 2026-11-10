@@ -406,6 +406,8 @@ protocol TerminalBackendEvents: AnyObject {
     func terminalHandleUserPaste(_ pasteboard: NSPasteboard, paste: @escaping (String) -> Void) -> Bool
     var terminalAllowsFileDrop: Bool { get }
     var terminalFileUploadMenuItem: NSMenuItem? { get }
+    /// Consume remote drops even when upload is disabled, so the backend cannot
+    /// insert an unusable local path into the remote prompt.
     func terminalHandleFileDrop(_ urls: [URL], paste: @escaping (String) -> Void) -> Bool
 
     /// The backend started a find of its own accord — Zshell's ⌘E path resolves
