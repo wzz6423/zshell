@@ -144,6 +144,9 @@ enum SettingsSearchIndex {
                  description: String(localized: "Lets agents delegate work and coordinate across Zshell panes"),
                  keywords: "ai.enabled Claude Codex"),
             item(.automation, String(localized: "Agent Conversation History"), keywords: "agent conversations Claude Codex Pi OpenCode history"),
+            item(.automation, String(localized: "Use custom recognition rules"), section: String(localized: "Agent Recognition"), keywords: "agents.toml ai.custom-recognition-rules aliases executable"),
+            item(.automation, String(localized: "Infer agent state from the screen"), section: String(localized: "Agent Recognition"), keywords: "ai.screen-inference footer detection status"),
+            item(.automation, String(localized: "Manage Agent Rules…"), section: String(localized: "Agent Recognition"), keywords: "agents.toml custom aliases import export screen rules"),
             item(.recommendations, "Homebrew", section: tools,
                  description: [
                     String(localized: "Tools are downloaded, installed, and updated through your Homebrew installation."),

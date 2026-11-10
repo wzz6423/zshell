@@ -14,7 +14,8 @@ extension TerminalSession {
                 agentConversationForkProcess = ZshellAgentProcessIdentity(pid: foreground)
             }
         }
-        if let owner = agentConversationOwner, !owner.isAlive {
+        if let owner = agentConversationOwner,
+           !owner.isAlive || ZshellAgentKind.recognizeBuiltin(processID: owner.pid)?.rawValue != agentResume?.provider.rawValue {
             recordAgentConversation(nil, processID: nil)
         } else if let deadline = agentConversationResumeDeadline,
                   Date() >= deadline, let identity = agentResume,
@@ -27,7 +28,8 @@ extension TerminalSession {
     func hasOpenConversation(_ identity: AgentConversationIdentity) -> Bool {
         guard !hasExited, let current = agentResume, current.matchesConversation(identity) else { return false }
         if remoteConnection != nil { return remoteStatus?.state == .connected }
-        if agentConversationOwner?.isAlive == true { return true }
+        if let owner = agentConversationOwner, owner.isAlive,
+           ZshellAgentKind.recognizeBuiltin(processID: owner.pid)?.rawValue == identity.provider.rawValue { return true }
         guard let deadline = agentConversationResumeDeadline else { return false }
         return Date() < deadline || ZshellAgentKind(rawValue: identity.provider.rawValue)
             .map(isAutomationAgentRunning(kind:)) == true
@@ -112,7 +114,7 @@ extension TerminalSession {
 
     static func conversationProcessEvidence(_ pid: pid_t) -> AgentConversationBinding.ProcessEvidence? {
         guard let parent = AgentConversationBinding.parentPID(pid) else { return nil }
-        let kind = ZshellAgentKind.recognize(processID: pid)
+        let kind = ZshellAgentKind.recognizeBuiltin(processID: pid)
         return .init(
             parentPID: parent,
             groupID: getpgid(pid),

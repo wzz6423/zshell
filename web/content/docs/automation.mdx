@@ -277,3 +277,38 @@ creation in the destination project.
 ## Fork a conversation [#fork-a-conversation]
 
 Open **Agents → Agent Conversation History**, select a conversation, then choose **Fork Conversation in New Pane** from its context menu or the branch button. Zshell uses the provider’s native fork to preserve its conversation context in an independent new conversation; the source pane and saved conversation remain unchanged. Codex, Claude Code, OpenCode and Pi require a CLI version with native fork support; Pi also requires its saved session file. Remote conversations use the same action through an updated Zshell server. A missing or older CLI is rejected before creating a pane. If sign-in or a native hook prevents confirmation, check the new pane’s output before continuing. From a Zshell pane, `zshell +agent fork --id UUID [--focus]` uses that pane’s project. External terminals also require `--project UUID`, as with resume.
+
+
+## Agent recognition rules [#agent-recognition-rules]
+
+Open **Settings → AI → Agent Recognition** or **Agents → Manage Agent Rules…** to add, edit, delete, import, export, or reset local rules. **Use custom recognition rules** and **Infer agent state from the screen** are separate switches; both default to on. Switching either off clears its existing screen evidence immediately. Native lifecycle events and explicit program reports keep priority.
+
+Rules live in `agents.toml` beside `config.toml` (`~/.config/zshell/agents.toml`, or `zshell-dev` in Debug). Valid edits reload automatically; invalid edits keep the last valid rules and show an error in the manager. An empty or deleted file restores built-ins.
+
+A new `id` adds an agent. A built-in `id` such as `claude` or `codex` replaces its screen rules, while `executables` and `aliases` add exact command names. Names are matched only against the executable or interpreter’s script operand, never later prompts or paths. Set `screen_enabled = false` to retain process recognition, or `enabled = false` on one rule. Built-in command aliases retain native integrations; custom agents use their raw `name` and cannot claim native provider authority.
+
+The highest-priority matching rule wins; ties keep file order. `contains` is case-insensitive; every `regex` and `line_regex` must match, all `all` groups must match, at least one `any` group must match, and no `not` group may match. `skip_state_update = true` retains prior evidence. States are `idle`, `working`, `blocked`, or `unknown`; `attention` for a blocked rule is `approval`, `input`, `login`, or `error`.
+
+Zshell reads only the live bottom 16 rows, twice, and skips scrolled history. Regions are `whole_recent`, `bottom_lines(1…16)`, `bottom_non_empty_lines(1…16)`, `prompt_box_body`, `above_prompt_box`, `last_non_empty_above_prompt_box`, and `after_last_horizontal_rule`. Other Kero/herdr regions are rejected. The file is bounded to 256 KiB, 64 agents, 32 rules per agent, and four condition nesting levels. Invalid or unsafe regular expressions, duplicate IDs, conflicting command names, and unknown keys are rejected. Inference never proves completion, sends notifications, or approves input.
+
+```toml title="agents.toml"
+[[agents]]
+id = "frog"
+name = "Frog"
+executables = ["frog", "frog-cli"]
+aliases = ["frog-wrapper"]
+
+[[agents.rules]]
+id = "approval"
+state = "blocked"
+priority = 200
+region = "bottom_non_empty_lines(6)"
+attention = "approval"
+line_regex = ['^Allow .+\? \[y/n\]$']
+
+[[agents.rules]]
+id = "activity"
+state = "working"
+priority = 100
+contains = ["hopping…"]
+```

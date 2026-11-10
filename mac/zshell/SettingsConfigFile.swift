@@ -134,9 +134,11 @@ nonisolated final class SettingsConfigMonitor: @unchecked Sendable {
     private let lock = NSLock()
     private var revision: UInt64 = 0
     private var writePending = false
+    private let missingText: String?
 
-    init(url: URL) {
+    init(url: URL, missingText: String? = nil) {
         self.url = url
+        self.missingText = missingText
     }
 
     deinit {
@@ -158,7 +160,7 @@ nonisolated final class SettingsConfigMonitor: @unchecked Sendable {
         return expectedRevision == revision && !writePending
     }
 
-    func save(_ text: String) {
+    func save(_ text: String, completion: (@Sendable (String?) -> Void)? = nil) {
         lock.lock()
         revision &+= 1
         let expectedRevision = revision
@@ -166,17 +168,20 @@ nonisolated final class SettingsConfigMonitor: @unchecked Sendable {
         lock.unlock()
         queue.async { [weak self] in
             guard let self else { return }
+            var failure: String?
             do {
                 try SettingsConfigFile.write(text, at: self.url)
                 self.lastText = text
                 self.emptySince = nil
             } catch {
                 NSLog("zshell: failed to write \(self.url.path): \(error)")
+                failure = error.localizedDescription
             }
             self.lock.lock()
             if self.revision == expectedRevision { self.writePending = false }
             self.lock.unlock()
             self.refreshSources()
+            completion?(failure)
         }
     }
 
@@ -211,7 +216,12 @@ nonisolated final class SettingsConfigMonitor: @unchecked Sendable {
         let readRevision = revision
         let pending = writePending
         lock.unlock()
-        guard !pending, let text = try? SettingsConfigFile.read(at: url) else {
+        guard !pending else { return }
+        let contents: String?
+        do { contents = try SettingsConfigFile.read(at: url) }
+        catch let error as POSIXError where error.code == .ENOENT { contents = missingText }
+        catch { contents = nil }
+        guard let text = contents else {
             emptySince = nil
             return
         }

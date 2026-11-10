@@ -71,7 +71,7 @@ extension ZshellTerminalView {
     // MARK: - Configuration
 
     func updateCursorClickToMove() {
-        let enabled = foregroundPid.map { ZshellAgentKind.recognize(processID: $0) != .claude } ?? true
+        let enabled = foregroundPid.map { ZshellAgentKind.recognizeBuiltin(processID: $0) != .claude } ?? true
         guard enabled != nativeCursorClickToMove else { return }
         // Shell prompt marks can survive inside a TUI. Let the AI editor own
         // movement there, or Ghostty's mouse-up emits a second set of arrows.

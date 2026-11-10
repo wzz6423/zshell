@@ -58,6 +58,11 @@ import Foundation
     }
 }
 
+@MainActor final class AgentAutomationMonitor {
+    static let shared = AgentAutomationMonitor()
+    func recognitionSettingsChanged(invalidateAliases: Bool = true) {}
+}
+
 @main
 struct SettingsReloadTests {
     @MainActor static func check(_ condition: Bool, _ message: String) {
@@ -94,7 +99,8 @@ struct SettingsReloadTests {
               "new configurations use the enabled preference defaults")
         check(settings.quickTerminalEnabled && settings.commandHistoryEnabled && settings.terminalTextHints
               && settings.automaticallyApplyTerminalProfiles && settings.notifyOnAgentAttention
-              && settings.notifyOnAgentCompletion && settings.showPullRequestStatus,
+              && settings.notifyOnAgentCompletion && settings.showPullRequestStatus
+              && settings.customAgentRecognitionRules && settings.agentScreenInference,
               "feature switches preserve existing behavior by default")
         check(settings.isAtDefaults, "fresh settings expose the correct reset state")
         check(settings.keepAwakeMode == .off, "sleep prevention is off by default")
@@ -177,6 +183,8 @@ struct SettingsReloadTests {
         panes.focus-ring-opacity = 0.4
         ai.enabled = false
         ai.resume-conversations = false
+        ai.custom-recognition-rules = false
+        ai.screen-inference = false
         ai.notify-on-attention = false
         ai.notify-on-completion = false
         git.pull-request-status = false
@@ -276,7 +284,8 @@ struct SettingsReloadTests {
         check(try SettingsConfigFile.read(at: url) == "", "default reload leaves empty source unchanged")
         check(settings.quickTerminalEnabled && settings.commandHistoryEnabled && settings.terminalTextHints
               && settings.automaticallyApplyTerminalProfiles && settings.notifyOnAgentAttention
-              && settings.notifyOnAgentCompletion && settings.showPullRequestStatus,
+              && settings.notifyOnAgentCompletion && settings.showPullRequestStatus
+              && settings.customAgentRecognitionRules && settings.agentScreenInference,
               "omitted feature switches restore compatible defaults on external reload")
 
         settings.resetToDefaults()
@@ -285,6 +294,7 @@ struct SettingsReloadTests {
             \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints,
             \.automaticallyApplyTerminalProfiles, \.notifyOnAgentAttention,
             \.notifyOnAgentCompletion, \.showPullRequestStatus,
+            \.customAgentRecognitionRules, \.agentScreenInference,
         ]
         for keyPath in featureSwitches {
             settings[keyPath: keyPath] = false

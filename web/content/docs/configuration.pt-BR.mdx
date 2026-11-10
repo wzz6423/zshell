@@ -189,7 +189,7 @@ A saída restaurada fica no disco, portanto pode incluir segredos exibidos no te
 
 Booleano — padrão `true`
 
-Permite que agentes compatíveis coordenem painéis de fundo quando você pede em linguagem natural e mostra o estado de ciclo de vida informado pelo provedor. O Zshell não deduz estado pelo texto do terminal. Recomenda-se usar o controle dos Ajustes: erros são mostrados junto dele e configurações existentes conflitantes não são alteradas.
+Permite que agentes compatíveis coordenem painéis de fundo quando você pede em linguagem natural e mostra o estado de ciclo de vida informado pelo provedor. Recomenda-se usar o controle dos Ajustes: erros são mostrados junto dele e configurações existentes conflitantes não são alteradas.
 
 O fluxo de uso está em [Trabalhar com agentes de IA](/pt-BR/docs/automation).
 
@@ -277,3 +277,12 @@ Abra **Ajustes → Atalhos** para gravar uma combinação para um comando princi
 - **Atualizações automáticas.** As opções de verificar, baixar e instalar em **Ajustes → Atualizações** usam preferências fora do TOML e persistem entre inicializações. Os controles de download aparecem com a verificação automática ativada e atualizações automáticas disponíveis; instalar exige também download automático ativado. Veja [Instalação](/pt-BR/docs/installation#updates).
 - **Estado de janelas e layout.** Tamanho da janela, larguras laterais, painéis selecionados, projetos, abas, painéis de conteúdo, URLs e preferências de diffs ficam nas preferências macOS e no snapshot de sessão.
 - **Configurações dos backends.** O Zshell não lê `~/.config/ghostty` nem configurações Alacritty. Os Ajustes Zshell são a interface suportada para ambos.
+
+
+## Regras de reconhecimento de agentes [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, padrão `true`
+
+Abra **Ajustes → AI → Reconhecimento de agentes** ou **Agents → Gerenciar regras de agentes…** para adicionar, editar, excluir, importar, exportar ou redefinir regras locais. O reconhecimento personalizado e a inferência pela tela são controles independentes, ativados por padrão. Desativá-los remove imediatamente as evidências antigas da tela. Eventos nativos e relatórios do programa têm prioridade.
+
+[agents.toml](/pt-BR/docs/automation#agent-recognition-rules)

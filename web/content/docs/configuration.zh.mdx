@@ -234,7 +234,7 @@ regular/bold 区分及后备字体字重。
 
 布尔值——默认 `true`
 
-让受支持的编码 agent 按照你的自然语言要求协调 Zshell 后台窗格，并在界面里显示 provider 报告的生命周期状态。Zshell 不会根据终端文字推断状态。推荐用设置窗口的开关，因为错误会直接显示出来，而且冲突的现有配置会保持原样。
+让受支持的编码 agent 按照你的自然语言要求协调 Zshell 后台窗格，并在界面里显示 provider 报告的生命周期状态。推荐用设置窗口的开关，因为错误会直接显示出来，而且冲突的现有配置会保持原样。
 
 具体怎么使用，见[与 AI Agent 协作](/docs/automation)。
 
@@ -336,3 +336,12 @@ Zshell 会拒绝此次修改并显示占用它的命令。点击 **恢复默认�
 - **窗口与布局状态。** 窗口尺寸、侧边栏宽度、当前面板、项目、标签页、窗格、浏览器 URL 和
   diff 控件偏好，都存在 Zshell 的 macOS 偏好设置或会话快照里。
 - **后端自己的配置文件。** Zshell 不读取 `~/.config/ghostty`，也不读取 Alacritty 配置。Zshell 的设置就是两个后端共同支持的配置面。
+
+
+## Agent 识别规则 [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, 默认 `true`
+
+打开 **设置 → AI → Agent 识别** 或 **Agents → 管理 Agent 规则…**，可以添加、编辑、删除、导入、导出或重置本地规则。**使用自定义识别规则** 和 **根据屏幕推断 Agent 状态** 是两个独立开关，默认均开启。关闭开关会立即清除相关旧屏幕证据。原生生命周期事件和程序主动报告仍优先。
+
+[agents.toml](/zh/docs/automation#agent-recognition-rules)

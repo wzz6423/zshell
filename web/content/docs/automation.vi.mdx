@@ -135,3 +135,38 @@ zshell +events --event command.task.finished --once --timeout 30000
 ## Phân nhánh hội thoại [#fork-a-conversation]
 
 Trong **Agents → Agent Conversation History**, chọn hội thoại rồi **Phân nhánh hội thoại trong ngăn mới** từ menu ngữ cảnh hoặc nút phân nhánh. Chức năng gốc của nhà cung cấp giữ ngữ cảnh trong hội thoại độc lập; ngăn và hội thoại nguồn không thay đổi. Codex, Claude Code, OpenCode và Pi cần CLI hỗ trợ phân nhánh; Pi cũng cần tệp phiên đã lưu. Cập nhật máy chủ Zshell cho hội thoại từ xa. Nếu thiếu CLI, đăng nhập hoặc hook, kiểm tra đầu ra của ngăn mới trước khi tiếp tục. Trong ngăn dùng `zshell +agent fork --id UUID [--focus]`; từ terminal bên ngoài thêm `--project UUID`.
+
+
+## Quy tắc nhận diện agent [#agent-recognition-rules]
+
+Mở **Cài đặt → AI → Nhận diện agent** hoặc **Agents → Quản lý quy tắc agent…** để thêm, sửa, xóa, nhập, xuất hoặc đặt lại quy tắc cục bộ. Nhận diện tùy chỉnh và suy luận từ màn hình là hai công tắc riêng, mặc định đều bật. Tắt sẽ xóa ngay bằng chứng màn hình cũ. Sự kiện gốc và báo cáo chương trình được ưu tiên.
+
+Quy tắc nằm trong `agents.toml` cạnh `config.toml` (`~/.config/zshell/agents.toml`, hoặc `zshell-dev` trong Debug). Sửa đổi hợp lệ tự tải lại; sửa đổi sai giữ quy tắc hợp lệ cuối cùng và hiển thị lỗi. Tệp rỗng hoặc bị xóa khôi phục quy tắc tích hợp.
+
+`id` mới thêm agent. `id` tích hợp như `claude` hay `codex` thay thế quy tắc màn hình; `executables`, `aliases` thêm tên lệnh khớp chính xác. Chỉ kiểm tra tệp thực thi và đối số kịch bản của trình thông dịch, không đọc prompt hoặc đường dẫn phía sau. `screen_enabled = false` chỉ giữ nhận diện tiến trình; `enabled = false` tắt một quy tắc. Bí danh tích hợp giữ tích hợp gốc, agent tùy chỉnh hiển thị `name` nguyên bản.
+
+Quy tắc khớp có ưu tiên cao nhất thắng; bằng nhau theo thứ tự tệp. `contains` không phân biệt chữ hoa. Tất cả `regex`, `line_regex`, `all`, ít nhất một `any` và không có `not` phải khớp. `skip_state_update = true` giữ bằng chứng cũ. Trạng thái: `idle`, `working`, `blocked`, `unknown`; `attention` cho blocked: `approval`, `input`, `login`, `error`.
+
+Chỉ đọc hai lần 16 dòng cuối màn hình hiện tại, không đọc lịch sử. Vùng: `whole_recent`, `bottom_lines(1…16)`, `bottom_non_empty_lines(1…16)`, `prompt_box_body`, `above_prompt_box`, `last_non_empty_above_prompt_box`, `after_last_horizontal_rule`. Vùng Kero/herdr khác bị từ chối. Giới hạn: 256 KiB, 64 agent, 32 quy tắc mỗi agent, bốn cấp điều kiện. Regex nguy hiểm, ID trùng, tên xung đột và khóa lạ bị từ chối. Suy luận không chứng minh hoàn thành, không thông báo hay phê duyệt nhập liệu.
+
+```toml title="agents.toml"
+[[agents]]
+id = "frog"
+name = "Frog"
+executables = ["frog", "frog-cli"]
+aliases = ["frog-wrapper"]
+
+[[agents.rules]]
+id = "approval"
+state = "blocked"
+priority = 200
+region = "bottom_non_empty_lines(6)"
+attention = "approval"
+line_regex = ['^Allow .+\? \[y/n\]$']
+
+[[agents.rules]]
+id = "activity"
+state = "working"
+priority = 100
+contains = ["hopping…"]
+```

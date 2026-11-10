@@ -189,7 +189,7 @@ Khôi phục đầu ra trước của từng terminal phía trên shell mới sa
 
 boolean — mặc định `true`
 
-Cho tác nhân lập trình được hỗ trợ phối hợp ô nền khi bạn yêu cầu bằng ngôn ngữ thường, và hiện trạng thái vòng đời do nhà cung cấp báo. Zshell không suy ra trạng thái từ chữ terminal. Nên dùng công tắc Cài đặt vì lỗi hiện tại chỗ và thiết lập hiện có bị xung đột được giữ nguyên.
+Cho tác nhân lập trình được hỗ trợ phối hợp ô nền khi bạn yêu cầu bằng ngôn ngữ thường, và hiện trạng thái vòng đời do nhà cung cấp báo. Nên dùng công tắc Cài đặt vì lỗi hiện tại chỗ và thiết lập hiện có bị xung đột được giữ nguyên.
 
 Quy trình sử dụng nằm ở [Làm việc với tác nhân AI](/vi/docs/automation).
 
@@ -277,3 +277,12 @@ Mở **Cài đặt → Phím tắt** để ghi phím mới cho lệnh cốt lõi
 - **Cập nhật tự động.** Công tắc tự kiểm tra, tải và cài ở **Cài đặt → Cập nhật** dùng preferences ngoài TOML và nhớ lựa chọn qua lần mở. Điều khiển tải xuống chỉ hiện khi bật tự kiểm tra và có thể cập nhật tự động; điều khiển cài đặt còn yêu cầu bật tự tải xuống. Xem [Cài đặt](/vi/docs/installation#updates).
 - **Cửa sổ và bố cục.** Kích thước cửa sổ, độ rộng thanh bên, bảng đã chọn, dự án, tab, ô, URL trình duyệt và tùy chọn điều khiển diff nằm trong preferences macOS và ảnh chụp phiên của Zshell.
 - **Tệp cấu hình backend.** Zshell không đọc `~/.config/ghostty` hay cấu hình Alacritty. Cài đặt Zshell là nơi cấu hình được hỗ trợ cho cả hai.
+
+
+## Quy tắc nhận diện agent [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, mặc định `true`
+
+Mở **Cài đặt → AI → Nhận diện agent** hoặc **Agents → Quản lý quy tắc agent…** để thêm, sửa, xóa, nhập, xuất hoặc đặt lại quy tắc cục bộ. Nhận diện tùy chỉnh và suy luận từ màn hình là hai công tắc riêng, mặc định đều bật. Tắt sẽ xóa ngay bằng chứng màn hình cũ. Sự kiện gốc và báo cáo chương trình được ưu tiên.
+
+[agents.toml](/vi/docs/automation#agent-recognition-rules)

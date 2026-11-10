@@ -1336,6 +1336,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         let fromTop = Int((Double(history) * fraction).rounded())
         zshell_alacritty_scroll_to_offset(handle, history - min(fromTop, history))
         scheduleRender(force: true)
+        reportScroll()
     }
 
     var hasSelection: Bool {
@@ -2231,7 +2232,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // accepts gestures while the next frame is pending.
         guard let handle, !hasMarkedText(),
               hasEffectiveTerminalFocus,
-              let foregroundPid, ZshellAgentKind.recognize(processID: foregroundPid) == .claude
+              let foregroundPid, ZshellAgentKind.recognizeBuiltin(processID: foregroundPid) == .claude
         else { return nil }
         var viewport = ZshellSnapshot()
         zshell_alacritty_snapshot(handle, &viewport)

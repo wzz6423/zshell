@@ -189,7 +189,7 @@ Questo contenuto viene salvato su disco e può quindi includere segreti visualiz
 
 booleano — predefinito `true`
 
-Consente agli agenti di programmazione supportati di coordinare pannelli Zshell in background quando lo chiedi in linguaggio naturale e mostra nell'interfaccia gli stati del ciclo di vita comunicati dal fornitore. Zshell non deduce lo stato dal testo del terminale. È consigliabile usare l'interruttore nelle Impostazioni: gli errori sono mostrati accanto al controllo e le configurazioni esistenti in conflitto vengono lasciate intatte.
+Consente agli agenti di programmazione supportati di coordinare pannelli Zshell in background quando lo chiedi in linguaggio naturale e mostra nell'interfaccia gli stati del ciclo di vita comunicati dal fornitore. È consigliabile usare l'interruttore nelle Impostazioni: gli errori sono mostrati accanto al controllo e le configurazioni esistenti in conflitto vengono lasciate intatte.
 
 Il flusso di lavoro è descritto in [Lavorare con gli agenti IA](/it/docs/automation).
 
@@ -277,3 +277,12 @@ Apri **Impostazioni → Scorciatoie** per registrare una nuova combinazione per 
 - **Aggiornamenti automatici.** Gli interruttori per controllo, download e installazione automatici in **Impostazioni → Aggiornamenti** usano preferenze dell'app esterne al TOML e mantengono le scelte tra un avvio e l'altro. I controlli di download appaiono con verifica automatica attiva e aggiornamenti automatici disponibili; l’installazione richiede anche i download automatici attivi. Vedi [Installazione](/it/docs/installation#updates).
 - **Stato di finestre e disposizione.** Dimensioni delle finestre, larghezze delle barre laterali, pannelli selezionati, progetti, schede, pannelli, URL del browser e preferenze dei controlli diff risiedono nelle preferenze macOS di Zshell e nell'istantanea della sessione.
 - **File di configurazione dei motori.** Zshell non legge `~/.config/ghostty` né una configurazione Alacritty. Per entrambi si usano le impostazioni di Zshell.
+
+
+## Regole di riconoscimento agenti [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, predefinito `true`
+
+Apri **Impostazioni → AI → Riconoscimento agenti** o **Agents → Gestisci regole agenti…** per aggiungere, modificare, eliminare, importare, esportare o reimpostare le regole locali. Riconoscimento personalizzato e deduzione dallo schermo sono interruttori indipendenti, attivi per impostazione predefinita. Disattivarli cancella subito le vecchie evidenze dello schermo. Eventi nativi e rapporti del programma hanno priorità.
+
+[agents.toml](/it/docs/automation#agent-recognition-rules)

@@ -135,3 +135,38 @@ zshell +events --event command.task.finished --once --timeout 30000
 ## 대화 분기 [#fork-a-conversation]
 
 **Agents → Agent Conversation History**에서 대화를 선택하고 상황에 맞는 메뉴나 분기 버튼의 **새 창으로 대화 분기**를 사용하세요. 제공자의 기본 분기 기능으로 컨텍스트를 보존하는 독립된 대화를 만들며 원래 창과 대화는 변경되지 않습니다. Codex, Claude Code, OpenCode, Pi는 기본 분기를 지원하는 CLI가 필요하며 Pi는 저장된 세션 파일도 필요합니다. 원격 대화는 업데이트된 Zshell 서버에서 지원됩니다. CLI가 없거나 분기를 지원하지 않으면 창을 만들기 전에 오류가 표시됩니다. 로그인이나 기본 훅 때문에 확인되지 않으면 새 창의 출력을 확인하세요. 창 안에서는 `zshell +agent fork --id UUID [--focus]`를 사용하며 외부 터미널에서는 `--project UUID`도 지정합니다.
+
+
+## Agent 인식 규칙 [#agent-recognition-rules]
+
+**설정 → AI → Agent 인식** 또는 **Agents → Agent 규칙 관리…**에서 로컬 규칙을 추가, 편집, 삭제, 가져오기, 내보내기, 초기화할 수 있습니다. 사용자 정의 인식과 화면 상태 추론은 독립된 스위치이며 기본값은 둘 다 켜짐입니다. 끄면 기존 화면 증거가 즉시 제거됩니다. 기본 수명 주기 이벤트와 프로그램 보고가 우선합니다.
+
+규칙은 `config.toml` 옆의 `agents.toml`(`~/.config/zshell/agents.toml`, Debug는 `zshell-dev`)에 저장됩니다. 올바른 수정은 자동 반영되고 잘못된 수정은 마지막 유효한 규칙을 유지하며 오류를 표시합니다. 파일을 비우거나 삭제하면 기본 규칙이 복원됩니다.
+
+새 `id`는 Agent를 추가합니다. `claude`, `codex` 같은 기본 `id`는 화면 규칙을 교체하고 `executables`, `aliases`는 정확한 명령 이름을 추가합니다. 실행 파일과 인터프리터의 스크립트 인수만 검사하며 이후 프롬프트나 경로는 검사하지 않습니다. `screen_enabled = false`는 프로세스 인식만 유지하고 `enabled = false`는 개별 규칙을 끕니다. 기본 별칭은 네이티브 통합을 유지하며 사용자 정의 Agent는 원래 `name`을 표시합니다.
+
+우선순위가 가장 높은 일치 규칙을 사용하며 같으면 파일 순서를 따릅니다. `contains`는 대소문자를 구분하지 않습니다. 모든 `regex`, `line_regex`, `all`, 최소 하나의 `any`가 일치하고 `not`은 일치하지 않아야 합니다. `skip_state_update = true`는 기존 증거를 유지합니다. 상태는 `idle`, `working`, `blocked`, `unknown`이며 blocked의 `attention`은 `approval`, `input`, `login`, `error`입니다.
+
+현재 화면 하단 16행을 두 번 확인하고 스크롤 기록은 읽지 않습니다. 영역은 `whole_recent`, `bottom_lines(1…16)`, `bottom_non_empty_lines(1…16)`, `prompt_box_body`, `above_prompt_box`, `last_non_empty_above_prompt_box`, `after_last_horizontal_rule`이며 다른 Kero/herdr 영역은 거부합니다. 제한은 256 KiB, Agent 64개, Agent당 규칙 32개, 조건 중첩 4단계입니다. 잘못되거나 위험한 정규식, 중복 ID, 명령 충돌, 알 수 없는 키는 거부됩니다. 추론은 완료를 증명하거나 알림을 보내거나 입력을 승인하지 않습니다.
+
+```toml title="agents.toml"
+[[agents]]
+id = "frog"
+name = "Frog"
+executables = ["frog", "frog-cli"]
+aliases = ["frog-wrapper"]
+
+[[agents.rules]]
+id = "approval"
+state = "blocked"
+priority = 200
+region = "bottom_non_empty_lines(6)"
+attention = "approval"
+line_regex = ['^Allow .+\? \[y/n\]$']
+
+[[agents.rules]]
+id = "activity"
+state = "working"
+priority = 100
+contains = ["hopping…"]
+```

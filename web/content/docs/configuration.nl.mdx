@@ -189,7 +189,7 @@ Herstelde geschiedenis wordt op schijf opgeslagen en kan dus geheimen bevatten d
 
 Booleaans — standaard `true`
 
-Laat ondersteunde programmeeragents Zshell-deelvensters op de achtergrond coördineren wanneer je dat in gewone taal vraagt, en toont door de aanbieder gemelde levenscyclusstatus in de interface. Zshell leidt geen status af uit terminaltekst. Gebruik bij voorkeur de schakelaar in Instellingen: fouten worden daar direct getoond en conflicterende bestaande configuraties blijven intact.
+Laat ondersteunde programmeeragents Zshell-deelvensters op de achtergrond coördineren wanneer je dat in gewone taal vraagt, en toont door de aanbieder gemelde levenscyclusstatus in de interface. Gebruik bij voorkeur de schakelaar in Instellingen: fouten worden daar direct getoond en conflicterende bestaande configuraties blijven intact.
 
 De werkwijze voor gebruikers staat in [Werken met AI-agents](/nl/docs/automation).
 
@@ -277,3 +277,12 @@ Open **Instellingen → Sneltoetsen** om een nieuwe sneltoets voor een kernopdra
 - **Automatische updates.** De schakelaars voor automatisch controleren, downloaden en installeren onder **Instellingen → Updates** gebruiken app-voorkeuren buiten TOML en onthouden je keuzes na herstarts. Downloadregelaars verschijnen bij ingeschakelde automatische controle en beschikbare automatische updates; installatie vereist ook automatisch downloaden. Zie [Installatie](/nl/docs/installation#updates).
 - **Venster- en indelingsstatus.** Venstergrootte, zijbalkbreedtes, geselecteerde panelen, projecten, tabbladen, deelvensters, browser-URL's en diffvoorkeuren staan in de macOS-voorkeuren van Zshell en de sessiemomentopname.
 - **Backendconfiguraties.** Zshell leest `~/.config/ghostty` noch een Alacritty-configuratie. De instellingen van Zshell vormen de ondersteunde configuratie voor beide.
+
+
+## Agentherkenningsregels [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, standaard `true`
+
+Open **Instellingen → AI → Agentherkenning** of **Agents → Agentregels beheren…** om lokale regels toe te voegen, te bewerken, te verwijderen, te importeren, te exporteren of te herstellen. Aangepaste herkenning en afleiding uit het scherm zijn onafhankelijke schakelaars die standaard aanstaan. Uitschakelen wist oude schermgegevens meteen. Native gebeurtenissen en programmarapporten hebben voorrang.
+
+[agents.toml](/nl/docs/automation#agent-recognition-rules)

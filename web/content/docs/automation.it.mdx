@@ -135,3 +135,38 @@ zshell +events --event command.task.finished --once --timeout 30000
 ## Diramare una conversazione [#fork-a-conversation]
 
 In **Agents → Agent Conversation History**, seleziona una conversazione e **Dirama conversazione in un nuovo pannello** dal menu contestuale o dal pulsante di diramazione. La funzione nativa del provider conserva il contesto in una conversazione indipendente, lasciando invariati il pannello e la conversazione originali. Codex, Claude Code, OpenCode e Pi richiedono una CLI compatibile; Pi richiede anche il file di sessione salvato. Per le conversazioni remote aggiorna il server Zshell. Se mancano CLI, accesso o hook, controlla l’output del nuovo pannello prima di continuare. Usa `zshell +agent fork --id UUID [--focus]` nel pannello e aggiungi `--project UUID` da un terminale esterno.
+
+
+## Regole di riconoscimento agenti [#agent-recognition-rules]
+
+Apri **Impostazioni → AI → Riconoscimento agenti** o **Agents → Gestisci regole agenti…** per aggiungere, modificare, eliminare, importare, esportare o reimpostare le regole locali. Riconoscimento personalizzato e deduzione dallo schermo sono interruttori indipendenti, attivi per impostazione predefinita. Disattivarli cancella subito le vecchie evidenze dello schermo. Eventi nativi e rapporti del programma hanno priorità.
+
+Le regole sono in `agents.toml` accanto a `config.toml` (`~/.config/zshell/agents.toml`, oppure `zshell-dev` in Debug). Le modifiche valide si ricaricano automaticamente; quelle non valide conservano le ultime regole e mostrano un errore. Un file vuoto o eliminato ripristina le regole integrate.
+
+Un nuovo `id` aggiunge un agente. Un `id` integrato come `claude` o `codex` sostituisce le regole dello schermo; `executables` e `aliases` aggiungono nomi esatti. Si controllano solo eseguibile e argomento di script dell’interprete, mai prompt o percorsi successivi. `screen_enabled = false` mantiene il riconoscimento del processo; `enabled = false` disattiva una regola. Gli alias integrati mantengono integrazioni native e gli agenti personalizzati mostrano il `name` originale.
+
+Vince la regola corrispondente con priorità maggiore; i pareggi seguono l’ordine del file. `contains` ignora le maiuscole. Devono corrispondere tutti i `regex`, `line_regex`, `all`, almeno un `any` e nessun `not`. `skip_state_update = true` conserva le evidenze precedenti. Stati: `idle`, `working`, `blocked`, `unknown`; `attention` per blocked: `approval`, `input`, `login`, `error`.
+
+Si leggono due volte solo le ultime 16 righe dello schermo attuale, non la cronologia. Regioni: `whole_recent`, `bottom_lines(1…16)`, `bottom_non_empty_lines(1…16)`, `prompt_box_body`, `above_prompt_box`, `last_non_empty_above_prompt_box`, `after_last_horizontal_rule`. Le altre regioni Kero/herdr sono rifiutate. Limiti: 256 KiB, 64 agenti, 32 regole per agente, quattro livelli di condizioni. Regex non sicure, ID duplicati, nomi in conflitto e chiavi sconosciute sono rifiutati. La deduzione non prova il completamento, non notifica né approva input.
+
+```toml title="agents.toml"
+[[agents]]
+id = "frog"
+name = "Frog"
+executables = ["frog", "frog-cli"]
+aliases = ["frog-wrapper"]
+
+[[agents.rules]]
+id = "approval"
+state = "blocked"
+priority = 200
+region = "bottom_non_empty_lines(6)"
+attention = "approval"
+line_regex = ['^Allow .+\? \[y/n\]$']
+
+[[agents.rules]]
+id = "activity"
+state = "working"
+priority = 100
+contains = ["hopping…"]
+```

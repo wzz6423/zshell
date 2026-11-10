@@ -135,3 +135,38 @@ zshell +events --event command.task.finished --once --timeout 30000
 ## แยกการสนทนา [#fork-a-conversation]
 
 เปิด **Agents → Agent Conversation History** เลือกการสนทนา แล้วเลือก **แยกการสนทนาในบานหน้าต่างใหม่** จากเมนูคลิกขวาหรือปุ่มแยก การแยกแบบเนทีฟของผู้ให้บริการจะเก็บบริบทในบทสนทนาใหม่ที่เป็นอิสระ โดยบานหน้าต่างและบทสนทนาเดิมไม่เปลี่ยนแปลง Codex, Claude Code, OpenCode และ Pi ต้องใช้ CLI ที่รองรับ และ Pi ต้องมีไฟล์เซสชันที่บันทึกไว้ด้วย อัปเดตเซิร์ฟเวอร์ Zshell สำหรับบทสนทนาระยะไกล หากไม่มี CLI การเข้าสู่ระบบ หรือ hooks ให้ตรวจสอบผลลัพธ์ในบานหน้าต่างใหม่ก่อนดำเนินการต่อ ใช้ `zshell +agent fork --id UUID [--focus]` ในบานหน้าต่าง และเพิ่ม `--project UUID` เมื่อใช้เทอร์มินัลภายนอก
+
+
+## กฎการรู้จำ Agent [#agent-recognition-rules]
+
+เปิด **การตั้งค่า → AI → การรู้จำ Agent** หรือ **Agents → จัดการกฎ Agent…** เพื่อเพิ่ม แก้ไข ลบ นำเข้า ส่งออก หรือรีเซ็ตกฎในเครื่อง การรู้จำที่กำหนดเองและการอนุมานจากหน้าจอเป็นสวิตช์แยกกัน โดยเปิดทั้งสองไว้ตามค่าเริ่มต้น เมื่อปิดจะล้างหลักฐานหน้าจอเก่าทันที เหตุการณ์ดั้งเดิมและรายงานโปรแกรมมีความสำคัญก่อน
+
+กฎอยู่ใน `agents.toml` ข้าง `config.toml` (`~/.config/zshell/agents.toml` หรือ `zshell-dev` ใน Debug) การแก้ไขที่ถูกต้องโหลดใหม่อัตโนมัติ การแก้ไขที่ผิดจะเก็บกฎล่าสุดที่ใช้ได้และแสดงข้อผิดพลาด ไฟล์ว่างหรือถูกลบจะคืนกฎที่มีมาให้
+
+`id` ใหม่เพิ่ม Agent ส่วน `id` ที่มีมาให้ เช่น `claude` หรือ `codex` จะแทนที่กฎหน้าจอ `executables` และ `aliases` เพิ่มชื่อคำสั่งที่ตรงกันเท่านั้น ตรวจเฉพาะโปรแกรมและอาร์กิวเมนต์สคริปต์ของตัวแปลภาษา ไม่ตรวจข้อความหรือพาธถัดไป `screen_enabled = false` เก็บการรู้จำโปรเซสเท่านั้น และ `enabled = false` ปิดกฎหนึ่งข้อ ชื่อแทนของ Agent ที่มีมาให้ยังใช้การผสานดั้งเดิม ส่วน Agent กำหนดเองแสดง `name` เดิม
+
+กฎที่ตรงกันและมีความสำคัญสูงสุดชนะ ถ้าเท่ากันใช้ลำดับในไฟล์ `contains` ไม่แยกตัวพิมพ์ ทุก `regex`, `line_regex`, `all` อย่างน้อยหนึ่ง `any` และไม่มี `not` ต้องตรงกัน `skip_state_update = true` เก็บหลักฐานเดิม สถานะคือ `idle`, `working`, `blocked`, `unknown` และ `attention` สำหรับ blocked คือ `approval`, `input`, `login`, `error`
+
+อ่านเฉพาะ 16 บรรทัดล่างของหน้าจอปัจจุบันสองครั้ง ไม่อ่านประวัติ พื้นที่คือ `whole_recent`, `bottom_lines(1…16)`, `bottom_non_empty_lines(1…16)`, `prompt_box_body`, `above_prompt_box`, `last_non_empty_above_prompt_box`, `after_last_horizontal_rule` พื้นที่ Kero/herdr อื่นถูกปฏิเสธ ขีดจำกัดคือ 256 KiB, 64 Agent, 32 กฎต่อ Agent และเงื่อนไขซ้อนสี่ระดับ ปฏิเสธ regex ไม่ปลอดภัย ID ซ้ำ ชื่อขัดกัน และคีย์ที่ไม่รู้จัก การอนุมานไม่ยืนยันงานเสร็จ ไม่แจ้งเตือน และไม่อนุมัติการป้อนข้อมูล
+
+```toml title="agents.toml"
+[[agents]]
+id = "frog"
+name = "Frog"
+executables = ["frog", "frog-cli"]
+aliases = ["frog-wrapper"]
+
+[[agents.rules]]
+id = "approval"
+state = "blocked"
+priority = 200
+region = "bottom_non_empty_lines(6)"
+attention = "approval"
+line_regex = ['^Allow .+\? \[y/n\]$']
+
+[[agents.rules]]
+id = "activity"
+state = "working"
+priority = 100
+contains = ["hopping…"]
+```

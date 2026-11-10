@@ -135,3 +135,38 @@ zshell +events --event command.task.finished --once --timeout 30000
 ## Konuşmayı çatallama [#fork-a-conversation]
 
 **Agents → Agent Conversation History** içinde konuşmayı seçin ve bağlam menüsünden veya çatallama düğmesinden **Konuşmayı yeni bölmede çatalla** seçeneğini kullanın. Sağlayıcının yerel işlevi bağlamı bağımsız bir konuşmada korur; kaynak bölme ve konuşma değişmez. Codex, Claude Code, OpenCode ve Pi uyumlu CLI gerektirir; Pi ayrıca kaydedilmiş oturum dosyası gerektirir. Uzak konuşmalar için Zshell sunucusunu güncelleyin. CLI, oturum açma veya kancalar eksikse devam etmeden önce yeni bölmenin çıktısını kontrol edin. Bölmede `zshell +agent fork --id UUID [--focus]`, dış terminalde ayrıca `--project UUID` kullanın.
+
+
+## Ajan tanıma kuralları [#agent-recognition-rules]
+
+Yerel kuralları eklemek, düzenlemek, silmek, içe veya dışa aktarmak ya da sıfırlamak için **Ayarlar → AI → Ajan Tanıma** veya **Agents → Ajan Kurallarını Yönet…** bölümünü açın. Özel tanıma ve ekrandan çıkarım bağımsız anahtarlardır, ikisi de varsayılan olarak açıktır. Kapatma eski ekran kanıtlarını hemen siler. Yerel olaylar ve program raporları önceliklidir.
+
+Kurallar `config.toml` yanındaki `agents.toml` içindedir (`~/.config/zshell/agents.toml`, Debug için `zshell-dev`). Geçerli düzenlemeler otomatik yüklenir; geçersiz olanlar son geçerli kuralları korur ve hata gösterir. Boş veya silinmiş dosya yerleşik kuralları geri yükler.
+
+Yeni `id` bir ajan ekler. `claude` veya `codex` gibi yerleşik `id` ekran kurallarını değiştirir; `executables` ve `aliases` tam eşleşen komut adları ekler. Yalnızca çalıştırılabilir dosya ve yorumlayıcının betik argümanı incelenir, sonraki istemler veya yollar incelenmez. `screen_enabled = false` süreç tanımayı korur; `enabled = false` tek kuralı kapatır. Yerleşik takma adlar yerel entegrasyonları korur, özel ajanlar ham `name` değerini gösterir.
+
+Eşleşen en yüksek öncelikli kural kazanır; eşitlikte dosya sırası izlenir. `contains` harf büyüklüğünü yok sayar. Tüm `regex`, `line_regex`, `all`, en az bir `any` ve hiçbir `not` eşleşmelidir. `skip_state_update = true` önceki kanıtı korur. Durumlar: `idle`, `working`, `blocked`, `unknown`; blocked için `attention`: `approval`, `input`, `login`, `error`.
+
+Yalnızca canlı ekranın alt 16 satırı iki kez okunur, geçmiş okunmaz. Bölgeler: `whole_recent`, `bottom_lines(1…16)`, `bottom_non_empty_lines(1…16)`, `prompt_box_body`, `above_prompt_box`, `last_non_empty_above_prompt_box`, `after_last_horizontal_rule`. Diğer Kero/herdr bölgeleri reddedilir. Sınırlar: 256 KiB, 64 ajan, ajan başına 32 kural, dört koşul seviyesi. Güvensiz regex, yinelenen kimlikler, çakışan adlar ve bilinmeyen anahtarlar reddedilir. Çıkarım tamamlanmayı kanıtlamaz, bildirim göndermez veya girdiyi onaylamaz.
+
+```toml title="agents.toml"
+[[agents]]
+id = "frog"
+name = "Frog"
+executables = ["frog", "frog-cli"]
+aliases = ["frog-wrapper"]
+
+[[agents.rules]]
+id = "approval"
+state = "blocked"
+priority = 200
+region = "bottom_non_empty_lines(6)"
+attention = "approval"
+line_regex = ['^Allow .+\? \[y/n\]$']
+
+[[agents.rules]]
+id = "activity"
+state = "working"
+priority = 100
+contains = ["hopping…"]
+```

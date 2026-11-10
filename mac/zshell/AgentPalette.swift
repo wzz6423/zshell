@@ -13,6 +13,7 @@ final class AgentPaletteController: NSObject {
         let sessionID: UUID
         let alias: String
         let kind: ZshellAgentKind
+        let displayName: String
         let phase: ZshellAgentPhase
         let detail: String
         let summary: String
@@ -25,7 +26,7 @@ final class AgentPaletteController: NSObject {
         var searchText: String {
             [
                 alias,
-                kind.displayName,
+                displayName,
                 kind.rawValue,
                 phase.rawValue,
                 phase.paletteDescription,
@@ -198,6 +199,7 @@ final class AgentPaletteController: NSObject {
                     sessionID: session.id,
                     alias: status.alias,
                     kind: status.kind,
+                    displayName: status.displayName,
                     phase: status.phase,
                     detail: status.detail,
                     summary: status.authority.displayName
@@ -366,7 +368,7 @@ extension AgentPaletteController: NSTableViewDataSource, NSTableViewDelegate {
         view.isPaletteSelected = row == tableView.selectedRow
         view.apply(
             alias: entry.alias,
-            kind: entry.kind.displayName,
+            kind: entry.displayName,
             phase: entry.phase,
             detail: entry.detail,
             summary: entry.summary,

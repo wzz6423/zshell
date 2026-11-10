@@ -189,7 +189,7 @@ Der Verlauf wird auf dem Datenträger gespeichert und kann im Terminal angezeigt
 
 Boolescher Wert – Standard: `true`
 
-Ermöglicht unterstützten Programmieragenten, auf Ihre natürlichsprachliche Bitte Hintergrundbereiche zu koordinieren, und zeigt den vom Anbieter gemeldeten Lebenszyklusstatus an. Zshell leitet den Status nicht aus Terminaltext ab. Ändern Sie dies vorzugsweise im Einstellungsfenster: Dort erscheinen Fehler direkt, und widersprüchliche bestehende Konfigurationen bleiben unangetastet.
+Ermöglicht unterstützten Programmieragenten, auf Ihre natürlichsprachliche Bitte Hintergrundbereiche zu koordinieren, und zeigt den vom Anbieter gemeldeten Lebenszyklusstatus an. Ändern Sie dies vorzugsweise im Einstellungsfenster: Dort erscheinen Fehler direkt, und widersprüchliche bestehende Konfigurationen bleiben unangetastet.
 
 Den Ablauf beschreibt [Mit KI-Agenten arbeiten](/de/docs/automation).
 
@@ -277,3 +277,12 @@ Unter **Einstellungen → Tastenkürzel** zeichnen Sie neue Kürzel für zentral
 - **Automatische Updates.** Die Schalter für automatische Prüfung, Download und Installation unter **Einstellungen → Updates** liegen ebenfalls außerhalb von TOML und bleiben über Neustarts erhalten. Downloadregler erscheinen nur bei aktiver automatischer Prüfung und verfügbaren automatischen Updates; die Installation benötigt zusätzlich automatische Downloads. Siehe [Installation](/de/docs/installation#updates).
 - **Fenster und Anordnung.** Fenstergröße, Seitenleistenbreiten, ausgewählte Panels, Projekte, Tabs, Bereiche, Browser-URLs und Diff-Voreinstellungen liegen in Zshells macOS-Voreinstellungen und Sitzungsabbild.
 - **Backend-Konfigurationsdateien.** Zshell liest weder `~/.config/ghostty` noch eine Alacritty-Konfiguration. Für beide Backends sind Zshells Einstellungen maßgeblich.
+
+
+## Agent-Erkennungsregeln [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, Standard `true`
+
+Öffnen Sie **Einstellungen → AI → Agent-Erkennung** oder **Agents → Agent-Regeln verwalten…**, um lokale Regeln hinzuzufügen, zu bearbeiten, zu löschen, zu importieren, zu exportieren oder zurückzusetzen. Benutzerdefinierte Erkennung und Bildschirmableitung sind unabhängige, standardmäßig aktive Schalter. Abschalten löscht alte Bildschirmbelege sofort. Native Ereignisse und Programmberichte haben Vorrang.
+
+[agents.toml](/de/docs/automation#agent-recognition-rules)

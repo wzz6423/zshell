@@ -135,3 +135,38 @@ zshell +events --event command.task.finished --once --timeout 30000
 ## Eine Unterhaltung verzweigen [#fork-a-conversation]
 
 Wählen Sie unter **Agents → Agent Conversation History** eine Unterhaltung und im Kontextmenü oder über die Verzweigungsschaltfläche **Unterhaltung in einem neuen Bereich verzweigen**. Die native Funktion des Anbieters erhält den Kontext in einer neuen, eigenständigen Unterhaltung; der ursprüngliche Bereich und die Unterhaltung bleiben unverändert. Codex, Claude Code, OpenCode und Pi benötigen eine CLI mit nativer Verzweigung, Pi außerdem die gespeicherte Sitzungsdatei. Für entfernte Unterhaltungen muss der Zshell-Server aktualisiert sein. Fehlen CLI, Anmeldung oder Hooks, prüfen Sie die Ausgabe des neuen Bereichs. Im Bereich verwenden Sie `zshell +agent fork --id UUID [--focus]`, extern zusätzlich `--project UUID`.
+
+
+## Agent-Erkennungsregeln [#agent-recognition-rules]
+
+Öffnen Sie **Einstellungen → AI → Agent-Erkennung** oder **Agents → Agent-Regeln verwalten…**, um lokale Regeln hinzuzufügen, zu bearbeiten, zu löschen, zu importieren, zu exportieren oder zurückzusetzen. Benutzerdefinierte Erkennung und Bildschirmableitung sind unabhängige, standardmäßig aktive Schalter. Abschalten löscht alte Bildschirmbelege sofort. Native Ereignisse und Programmberichte haben Vorrang.
+
+Die Regeln stehen in `agents.toml` neben `config.toml` (`~/.config/zshell/agents.toml`, in Debug `zshell-dev`). Gültige Änderungen werden automatisch geladen; ungültige behalten die letzten gültigen Regeln und zeigen einen Fehler. Eine leere oder gelöschte Datei stellt integrierte Regeln wieder her.
+
+Eine neue `id` ergänzt einen Agenten. Integrierte IDs wie `claude` oder `codex` ersetzen Bildschirmregeln; `executables` und `aliases` ergänzen exakte Befehlsnamen. Nur Programmname und Skriptoperand des Interpreters werden geprüft, keine späteren Prompts oder Pfade. `screen_enabled = false` behält nur die Prozesserkennung; `enabled = false` deaktiviert eine Regel. Integrierte Aliasse behalten native Integrationen, eigene Agenten zeigen den unveränderten `name`.
+
+Die passende Regel mit höchster Priorität gewinnt; Gleichstände folgen der Dateireihenfolge. `contains` ignoriert Großschreibung. Alle `regex`, `line_regex`, `all`, mindestens ein `any` und kein `not` müssen passen. `skip_state_update = true` behält vorherige Belege. Zustände: `idle`, `working`, `blocked`, `unknown`; `attention` bei blocked: `approval`, `input`, `login`, `error`.
+
+Nur die unteren 16 Zeilen des Live-Bildschirms werden zweimal gelesen, kein Verlauf. Bereiche: `whole_recent`, `bottom_lines(1…16)`, `bottom_non_empty_lines(1…16)`, `prompt_box_body`, `above_prompt_box`, `last_non_empty_above_prompt_box`, `after_last_horizontal_rule`. Andere Kero/herdr-Bereiche werden abgelehnt. Grenzen: 256 KiB, 64 Agenten, 32 Regeln je Agent, vier Verschachtelungsebenen. Unsichere Regex, doppelte IDs, kollidierende Namen und unbekannte Schlüssel werden abgelehnt. Ableitung beweist keinen Abschluss, sendet keine Benachrichtigungen und genehmigt keine Eingabe.
+
+```toml title="agents.toml"
+[[agents]]
+id = "frog"
+name = "Frog"
+executables = ["frog", "frog-cli"]
+aliases = ["frog-wrapper"]
+
+[[agents.rules]]
+id = "approval"
+state = "blocked"
+priority = 200
+region = "bottom_non_empty_lines(6)"
+attention = "approval"
+line_regex = ['^Allow .+\? \[y/n\]$']
+
+[[agents.rules]]
+id = "activity"
+state = "working"
+priority = 100
+contains = ["hopping…"]
+```
