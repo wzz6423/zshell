@@ -451,8 +451,9 @@ enum TerminalHistorySerializer {
 /// string that the session layout snapshot (in `UserDefaults`) references. Kept
 /// out of the snapshot itself so `UserDefaults` never holds large blobs.
 ///
-/// Each save rewrites the whole file from the live set of sessions, so keys
+/// Changed history rewrites the file from the live set of sessions, so keys
 /// belonging to sessions that no longer exist are pruned automatically.
+@MainActor
 enum TerminalHistoryStore {
     /// Debug builds keep their state under `zshell-dev`, matching `AppSettings`
     /// and the separate `sh.zshell.dev` bundle id, so a dev build never clobbers
@@ -471,18 +472,25 @@ enum TerminalHistoryStore {
             .appendingPathComponent("terminal-history.json")
     }()
 
+    // Layout autosaves reuse the sessions' cached strings. Sharing those values
+    // avoids encoding and replacing the same history on every selection change.
+    private static var savedHistories: [String: String]?
+
     static func save(_ histories: [String: String]) {
-        // Nothing to persist: remove the file so a later restore finds nothing
-        // rather than replaying stale output.
-        guard !histories.isEmpty else {
-            try? FileManager.default.removeItem(at: fileURL)
-            return
-        }
-        guard let data = try? JSONEncoder().encode(histories) else { return }
+        guard histories != savedHistories else { return }
         do {
-            try FileManager.default.createDirectory(
-                at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try data.write(to: fileURL, options: .atomic)
+            if histories.isEmpty {
+                // Remove stale output when history restore is disabled or no
+                // remaining session has a saved capture.
+                do { try FileManager.default.removeItem(at: fileURL) }
+                catch let error as CocoaError where error.code == .fileNoSuchFile { }
+            } else {
+                let data = try JSONEncoder().encode(histories)
+                try FileManager.default.createDirectory(
+                    at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try data.write(to: fileURL, options: .atomic)
+            }
+            savedHistories = histories
         } catch {
             NSLog("zshell: failed to write \(fileURL.path): \(error)")
         }
@@ -491,7 +499,11 @@ enum TerminalHistoryStore {
     static func load() -> [String: String] {
         guard let data = try? Data(contentsOf: fileURL),
               let histories = try? JSONDecoder().decode([String: String].self, from: data)
-        else { return [:] }
+        else {
+            savedHistories = nil
+            return [:]
+        }
+        savedHistories = histories
         return histories
     }
 }
