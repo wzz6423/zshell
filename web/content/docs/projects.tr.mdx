@@ -95,6 +95,14 @@ Düzenleyici ve diff bölmeleri konumlarını koruyarak kökte yeni terminallere
 Kayıtlı bir uzak ana makinedeki projeler uzak şablon olarak kaydedilebilir. JSON yalnızca ana makinenin kayıtlı adını `remote.host` alanında ve proje dizinini `remote.directory` alanında (mutlak ya da `~/` ile başlayan) saklar; her terminal bölmesi `.` kullanır. Adresler, sunucu yolları, kimlik bilgileri ve uzak oturum kimlikleri asla kaydedilmez; bunları içeren içe aktarmalar reddedilir. Uzak şablonu uygularken kayıtlı bir ana makine seçin (aynı adlı makine önceden seçilir; yoksa pencere başka birini seçmenizi veya **Uzak ana makineler** bölümünden eklemenizi ister) ve **Uzak Dizin** değerini onaylayın. Zshell bağlanır, yeni bir paylaşılan proje oluşturur ve orada yeni uzak oturumlar başlatır; mevcut oturumlara asla yeniden bağlanmaz. Bağlantı veya dizin başarısız olursa proje oluşturulmaz. Eski SSH formuyla açılan projeler şablon olarak kaydedilemez.
 
 
+<span data-canonical-heading="sidebar-sessions-and-panes" />
+
+## Kenar çubuğunda oturumlar ve bölmeler [#sidebar-sessions-and-panes]
+
+**Ayarlar → Görünüm → Proje Kenar Çubuğu** altında **Oturum ve bölme listesini göster** seçeneğini açın. Projenin oku sekmeleri, bölünmüş sekmenin oku tüm bölmeleri gösterir. Her bölme güncel başlık, program, dal ve aracı durumunu gösterir. Bir bölmeye tıklamak projesini ve sekmesini seçip odaklar; sağ tık menüsü odaklama, yakınlaştırma ve kapatma sunar. Genişletme durumu çalışma alanıyla geri yüklenir.
+
+**Kompakt kenar çubuğu** tek satırlı öğeler kullanır; program, dal ve dizin ayrıntıları için kapatın. Boş alana çift tıklamak seçili projede oturum, proje seçili değilse yeni proje oluşturur. Bu hareket aynı ayarlarda kapatılabilir. Menülerde de **Yeni Oturum**, liste görünürlüğü ve satır yoğunluğu bulunur. Oklar gezinir, genişletir veya daraltır; Return veya Boşluk satıra odaklanır.
+
 ## Pencereler [#windows]
 
 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> başka pencere açar. Pencerelerin projeleri ve kenar çubuğu durumları bağımsızdır; her biri ayrı geri yüklenir.

@@ -145,6 +145,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     private let subtitleLabel = NSTextField(labelWithString: "")
     private let iconView = NSImageView()
     private let disclosureView = NSImageView()
+    private let disclosureButton = WorkspaceChromeButton(symbol: "chevron.right", label: "")
     private let pinView = NSImageView()
     private let countLabel = NSTextField(labelWithString: "")
     private let shortcutLabel = NSTextField(labelWithString: "")
@@ -155,6 +156,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
 
     var onSelect: (() -> Void)?
     var onRename: (() -> Void)?
+    var onDisclosure: (() -> Void)?
     var onDrag: ((NSEvent) -> Void)?
     var onDragEnded: ((NSEvent) -> Void)?
     var onDragCancelled: (() -> Void)?
@@ -189,6 +191,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     private var titleWidth: CGFloat = 0
     private var countWidth: CGFloat = 0
     private var hasAction = false
+    private var controlScale: CGFloat { isSidebar ? min(scale, 1.5) : scale }
     var isDropTarget = false { didSet { if oldValue != isDropTarget { needsDisplay = true } } }
     var isRenaming: Bool { renameCommit != nil }
     override var isFlipped: Bool { true }
@@ -216,9 +219,11 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         renameField.drawsBackground = false
         renameField.focusRingType = .none
         for view in [disclosureView, iconView, pinView, titleLabel, subtitleLabel,
-                     countLabel, shortcutLabel, badge, actionButton, renameField] {
+                     countLabel, shortcutLabel, badge, actionButton, disclosureButton, renameField] {
             addSubview(view)
         }
+        disclosureButton.isHidden = true
+        disclosureButton.onAction = { [weak self] in self?.onDisclosure?() }
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
     }
@@ -231,6 +236,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         grouped: Bool = false, pinned: Bool = false, marker: ProjectTabMarkerColor? = nil,
         count: Int? = nil, rollup: ZshellAgentRollup? = nil, dirty: Bool = false,
         sidebar: Bool = false, compactGroup: Bool = false, fillsGroupRow: Bool = false,
+        compactRow: Bool = false, expanded: Bool? = nil, disclosureLabel: String? = nil,
         showsGroupTitle: Bool = false,
         indent: CGFloat = 0, scale: CGFloat = 1, groupControlScale: CGFloat? = nil,
         tabStrip: Bool = false,
@@ -267,10 +273,15 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         subtitleLabel.font = .systemFont(ofSize: 10 * scale)
         subtitleLabel.textColor = .secondaryLabelColor
         subtitleLabel.stringValue = subtitle ?? ""
-        subtitleLabel.isHidden = subtitle?.isEmpty != false
+        subtitleLabel.isHidden = compactRow || subtitle?.isEmpty != false
         iconView.image = icon
         iconView.contentTintColor = icon?.isTemplate == true ? (selected ? Theme.accent : .secondaryLabelColor) : nil
         disclosureView.isHidden = !group
+        disclosureButton.isHidden = expanded == nil
+        if let expanded {
+            disclosureButton.configure(symbol: expanded ? "chevron.down" : "chevron.right",
+                label: disclosureLabel ?? String(localized: expanded ? "Collapse" : "Expand"), pointSize: 9 * controlScale)
+        }
         disclosureView.image = NSImage(systemSymbolName: collapsed ? "chevron.right" : "chevron.down", accessibilityDescription: nil)
         disclosureView.contentTintColor = (isCompactGroup || fillsGroupRow)
             ? groupControlColor
@@ -279,21 +290,21 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         pinView.image = NSImage(systemSymbolName: "pin.fill", accessibilityDescription: nil)
         pinView.contentTintColor = .secondaryLabelColor
         markerColor = group ? nil : marker?.nsColor
-        countLabel.font = .monospacedDigitSystemFont(ofSize: 9 * scale, weight: .medium)
+        countLabel.font = .monospacedDigitSystemFont(ofSize: 9 * controlScale, weight: .medium)
         countLabel.textColor = .secondaryLabelColor
         countLabel.stringValue = (isCompactGroup || fillsGroupRow) ? "" : (count.map(String.init) ?? "")
         countLabel.isHidden = isCompactGroup || fillsGroupRow || count == nil
         countWidth = isCompactGroup || fillsGroupRow || count == nil
             ? 0
-            : ceil(countLabel.attributedStringValue.size().width) + 6 * scale
+            : ceil(countLabel.attributedStringValue.size().width) + 6 * controlScale
         shortcutLabel.font = .systemFont(ofSize: 10 * scale)
         shortcutLabel.textColor = .secondaryLabelColor
         shortcutLabel.stringValue = shortcut ?? ""
-        actionButton.configure(symbol: actionSymbol, label: actionLabel, pointSize: 9 * scale)
+        actionButton.configure(symbol: actionSymbol, label: actionLabel, pointSize: 9 * controlScale)
         actionButton.onAction = { action?() }
         if let rollup {
             badge.apply(phase: rollup.phase, count: rollup.count, detail: rollup.detail, progress: rollup.progress)
-            badgeWidth = badge.intrinsicContentSize.width + 4 * scale
+            badgeWidth = badge.intrinsicContentSize.width + 4 * controlScale
             badge.isHidden = false
         } else {
             badgeWidth = 0
@@ -302,11 +313,12 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         renameField.font = titleLabel.font
         renameField.textColor = .labelColor
         setAccessibilityLabel(subtitle.map { "\(title), \($0)" } ?? title)
-        let state = group
-            ? String(localized: collapsed ? "Collapsed" : "Expanded")
+        let state = group || expanded != nil
+            ? String(localized: (expanded.map { !$0 } ?? collapsed) ? "Collapsed" : "Expanded")
             : (selected ? String(localized: "Selected") : "")
         let markerDescription = marker.map { String(localized: "Color marker \($0.displayValue)") }
-        setAccessibilityValue([state, markerDescription].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", "))
+        setAccessibilityValue([state, markerDescription, rollup.map { $0.phase.statusDescription + "\n" + $0.detail }]
+            .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", "))
         updateActionVisibility()
         needsLayout = true
         needsDisplay = true
@@ -327,7 +339,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         return min(260 * scale, max(68 * scale, leading + min(titleWidth, 160 * scale) + trailing))
     }
 
-    private var actionSlotWidth: CGFloat { hasAction || !shortcutLabel.stringValue.isEmpty ? 24 * max(1, scale) : 0 }
+    private var actionSlotWidth: CGFloat { hasAction || !shortcutLabel.stringValue.isEmpty ? 24 * max(1, controlScale) : 0 }
     private var compactGroupControlScale: CGFloat {
         min(1.1, max(0.9, groupControlScale))
     }
@@ -416,29 +428,34 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
             renameField.frame = titleLabel.frame
             return
         }
-        var x = 8 * scale + indent
-        let iconSize = min(14 * scale, bounds.height - 8)
+        var x = 8 * controlScale + indent
+        let iconSize = min(14 * controlScale, bounds.height - 8)
+        if !disclosureButton.isHidden {
+            let side = max(18, 18 * min(scale, 1.3))
+            disclosureButton.frame = NSRect(x: x - 3, y: (bounds.height - side) / 2, width: side, height: side)
+            x += side
+        }
         for view in [disclosureView, iconView, pinView] where !view.isHidden {
             guard view !== iconView || iconView.image != nil else { continue }
-            let width = view === disclosureView ? 10 * scale : iconSize
+            let width = view === disclosureView ? 10 * controlScale : iconSize
             view.frame = NSRect(x: x, y: (bounds.height - iconSize) / 2, width: width, height: iconSize)
-            x += width + 4 * scale
+            x += width + 4 * controlScale
         }
         if isGroup {
             x = max(x, groupControlFrame.maxX + 4 * scale)
         }
-        let right = max(x, bounds.width - 5 * scale - actionSlotWidth)
-        actionButton.frame = NSRect(x: right, y: (bounds.height - 24 * max(1, scale)) / 2,
-                                    width: actionSlotWidth, height: 24 * max(1, scale))
+        let right = max(x, bounds.width - 5 * controlScale - actionSlotWidth)
+        actionButton.frame = NSRect(x: right, y: (bounds.height - 24 * max(1, controlScale)) / 2,
+                                    width: actionSlotWidth, height: 24 * max(1, controlScale))
         shortcutLabel.frame = NSRect(x: right, y: (bounds.height - 16 * scale) / 2,
                                      width: actionSlotWidth, height: 16 * scale)
-        let visibleBadgeWidth = bounds.width - x - actionSlotWidth > 80 * scale ? badgeWidth : 0
+        let visibleBadgeWidth = isSidebar || bounds.width - x - actionSlotWidth > 80 * scale ? badgeWidth : 0
         badge.isHidden = visibleBadgeWidth == 0
         badge.frame = NSRect(x: right - visibleBadgeWidth, y: (bounds.height - 15) / 2,
-                             width: max(0, visibleBadgeWidth - 4 * scale), height: 15)
+                             width: max(0, visibleBadgeWidth - 4 * controlScale), height: 15)
         countLabel.frame = NSRect(x: right - visibleBadgeWidth - countWidth,
-                                  y: (bounds.height - 14 * scale) / 2, width: countWidth, height: 14 * scale)
-        let titleSpace = max(0, right - visibleBadgeWidth - countWidth - x - 3 * scale)
+                                  y: (bounds.height - 14 * controlScale) / 2, width: countWidth, height: 14 * controlScale)
+        let titleSpace = max(0, right - visibleBadgeWidth - countWidth - x - 3 * controlScale)
         let titleHeight = ceil((titleLabel.font?.ascender ?? 12) - (titleLabel.font?.descender ?? -3)) + 2
         let subtitleHeight = subtitleLabel.isHidden ? 0 : 13 * scale
         let titleY = (bounds.height - titleHeight - subtitleHeight) / 2
@@ -450,6 +467,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     override func hitTest(_ point: NSPoint) -> NSView? {
         guard let hit = super.hitTest(point) else { return nil }
         if hit === actionButton || hit.isDescendant(of: actionButton) { return actionButton }
+        if !disclosureButton.isHidden, hit === disclosureButton || hit.isDescendant(of: disclosureButton) { return disclosureButton }
         if hit === renameField || hit.isDescendant(of: renameField) { return hit }
         return self
     }
@@ -579,6 +597,7 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
     }
 
     override func mouseDragged(with event: NSEvent) {
+        guard onDrag != nil else { return }
         guard !isRenaming, let mouseOrigin else { return }
         if !hasDragged {
             guard hypot(event.locationInWindow.x - mouseOrigin.x, event.locationInWindow.y - mouseOrigin.y) >= 4 else { return }

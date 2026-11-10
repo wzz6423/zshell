@@ -34,6 +34,10 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         AppSettings.shared.terminalThemeOnly = $0
     }
 
+    private let sidebarSessionsSwitch = SettingsSwitch { AppSettings.shared.showSidebarSessions = $0 }
+    private let compactSidebarSwitch = SettingsSwitch { AppSettings.shared.compactSidebar = $0 }
+    private let sidebarDoubleClickSwitch = SettingsSwitch { AppSettings.shared.sidebarDoubleClickNewSession = $0 }
+
     private lazy var familyPopUp = SettingsPopUpButton<String>(
         items: [
             // The empty tag is the bundled family: a config naming no family
@@ -185,6 +189,11 @@ final class SettingsAppearancePane: SettingsPaneViewController {
                 interfaceScaleRow,
                 sidebarFontSizeRow,
             ]),
+            SettingsGroup(header: String(localized: "Project Sidebar"), rows: [
+                SettingsRow(title: String(localized: "Show session and pane list"), control: sidebarSessionsSwitch, symbolName: "sidebar.left"),
+                SettingsRow(title: String(localized: "Compact sidebar"), control: compactSidebarSwitch, symbolName: "list.bullet"),
+                SettingsRow(title: String(localized: "Double-click empty space to create a session"), control: sidebarDoubleClickSwitch, symbolName: "plus.rectangle"),
+            ]),
             panesGroup,
         ]
     }
@@ -203,6 +212,9 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         fallbackFamilyPopUp.select(settings.fontFallbackFamily)
         fontSizeRow.setValue(settings.fontSize)
         sidebarFontSizeRow.setValue(settings.sidebarFontSize)
+        sidebarSessionsSwitch.isOn = settings.showSidebarSessions
+        compactSidebarSwitch.isOn = settings.compactSidebar
+        sidebarDoubleClickSwitch.isOn = settings.sidebarDoubleClickNewSession
         interfaceScaleRow.setValue(settings.interfaceScale)
         thickenSwitch.isOn = settings.fontThicken
         thickenStrengthRow.setValue(Double(settings.fontThickenStrength))

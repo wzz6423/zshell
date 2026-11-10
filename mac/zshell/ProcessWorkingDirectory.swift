@@ -11,7 +11,7 @@ import Foundation
 /// A backend that reports OSC 7 tells Zshell where the shell thinks it is, which
 /// is authoritative and free. This is the fallback while a backend is waiting
 /// for its first report, and the backstop for shells with no OSC 7 integration.
-func processWorkingDirectory(pid: pid_t) -> String? {
+nonisolated func processWorkingDirectory(pid: pid_t) -> String? {
     guard pid > 0 else { return nil }
     var info = proc_vnodepathinfo()
     let size = Int32(MemoryLayout<proc_vnodepathinfo>.size)
@@ -27,7 +27,7 @@ func processWorkingDirectory(pid: pid_t) -> String? {
 /// Absolute executable path for a live process. Agent recognition intentionally
 /// uses the kernel-reported image rather than tab titles or shell command text,
 /// both of which are user-controlled terminal output.
-func processExecutablePath(pid: pid_t) -> String? {
+nonisolated func processExecutablePath(pid: pid_t) -> String? {
     guard pid > 0 else { return nil }
     // PROC_PIDPATHINFO_MAXSIZE is a C arithmetic macro Swift does not import;
     // Darwin defines it as four MAXPATHLEN buffers (4096 bytes).

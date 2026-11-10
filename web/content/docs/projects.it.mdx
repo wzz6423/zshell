@@ -95,6 +95,14 @@ I riquadri di editor e diff diventano terminali alla radice, mantenendo la posiz
 I progetti su un host remoto salvato possono essere salvati come modelli remoti. Il JSON conserva solo il nome salvato dell’host in `remote.host` e la directory del progetto in `remote.directory` (assoluta o che inizia con `~/`); ogni riquadro di terminale usa `.`. Indirizzi, percorsi del server, credenziali e ID delle sessioni remote non vengono mai salvati e le importazioni che li contengono vengono rifiutate. Per applicare un modello remoto scegli un host salvato (quello con lo stesso nome è preselezionato; se manca, la finestra ti chiede di sceglierne un altro o di aggiungerlo in **Host remoti**) e conferma la **Directory remota**. Zshell si connette, crea un nuovo progetto condiviso e avvia nuove sessioni remote; non ricollega mai le sessioni esistenti. Se la connessione o la directory non riescono, non viene creato alcun progetto. I progetti aperti con il vecchio modulo SSH non possono essere salvati come modelli.
 
 
+<span data-canonical-heading="sidebar-sessions-and-panes" />
+
+## Sessioni e pannelli nella barra laterale [#sidebar-sessions-and-panes]
+
+Attiva **Mostra elenco di sessioni e pannelli** in **Impostazioni → Aspetto → Barra laterale dei progetti**. La freccia del progetto mostra le schede; quella di una scheda divisa mostra tutti i pannelli. Ogni pannello indica titolo attuale, programma, ramo e stato dell’agente. Un clic seleziona progetto e scheda e attiva il pannello; il menu consente di attivarlo, ingrandirlo o chiuderlo. L’espansione viene ripristinata con lo spazio di lavoro.
+
+La **barra laterale compatta** usa una riga per elemento; disattivala per vedere programma, ramo e cartella. Un doppio clic nello spazio vuoto crea una sessione nel progetto selezionato o un progetto se non ne è selezionato alcuno. Il gesto si disattiva nelle stesse impostazioni. I menu offrono anche **Nuova sessione**, visibilità e densità. Le frecce spostano, espandono o comprimono; Invio o Spazio attiva la riga.
+
 ## Finestre [#windows]
 
 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> apre un'altra finestra. Le finestre sono indipendenti, ciascuna con progetti e stato laterale propri, e vengono ripristinate separatamente.

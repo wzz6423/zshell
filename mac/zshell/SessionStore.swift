@@ -112,6 +112,7 @@ struct SessionSnapshot: Codable {
             /// Fixed tabs stay before regular tabs. Defaults to false when
             /// loading snapshots written before tab pinning was available.
             var isPinned: Bool
+            var isSidebarExpanded = false
             /// Opaque sRGB marker color. Stored as a string so unknown future
             /// values do not invalidate the containing session snapshot.
             var markerColorHex: String?
@@ -129,6 +130,7 @@ struct SessionSnapshot: Codable {
                 focusedPaneIndex: Int,
                 customName: String? = nil,
                 isPinned: Bool = false,
+                isSidebarExpanded: Bool = false,
                 markerColorHex: String? = nil,
                 tabGroupID: UUID? = nil,
                 launchSettingsOverride: TerminalLaunchSettingsOverride = .init(),
@@ -138,6 +140,7 @@ struct SessionSnapshot: Codable {
                 self.focusedPaneIndex = focusedPaneIndex
                 self.customName = customName
                 self.isPinned = isPinned
+                self.isSidebarExpanded = isSidebarExpanded
                 self.markerColorHex = markerColorHex
                 self.tabGroupID = tabGroupID
                 self.launchSettingsOverride = launchSettingsOverride
@@ -146,6 +149,7 @@ struct SessionSnapshot: Codable {
 
             enum CodingKeys: String, CodingKey {
                 case layout, focusedPaneIndex, customName, isPinned, markerColorHex, tabGroupID
+                case isSidebarExpanded
                 case launchSettingsOverride
                 case contextSessionIndex, columns, focusedColumn, focusedRow
             }
@@ -158,6 +162,7 @@ struct SessionSnapshot: Codable {
                         (try? container.decode(Int.self, forKey: .focusedPaneIndex)) ?? 0
                     customName = try? container.decode(String.self, forKey: .customName)
                     isPinned = (try? container.decode(Bool.self, forKey: .isPinned)) ?? false
+                    isSidebarExpanded = (try? container.decode(Bool.self, forKey: .isSidebarExpanded)) ?? false
                     markerColorHex = try? container.decode(String.self, forKey: .markerColorHex)
                     tabGroupID = try? container.decode(UUID.self, forKey: .tabGroupID)
                     launchSettingsOverride =
@@ -223,6 +228,7 @@ struct SessionSnapshot: Codable {
                 if isPinned {
                     try container.encode(true, forKey: .isPinned)
                 }
+                if isSidebarExpanded { try container.encode(true, forKey: .isSidebarExpanded) }
                 try container.encodeIfPresent(markerColorHex, forKey: .markerColorHex)
                 try container.encodeIfPresent(tabGroupID, forKey: .tabGroupID)
                 if launchSettingsOverride != .init() {
@@ -280,6 +286,7 @@ struct SessionSnapshot: Codable {
         /// Fixed projects stay before regular projects. Older snapshots omit
         /// this field and decode as unpinned.
         var isPinned = false
+        var isSidebarExpanded = false
         /// Opaque sRGB marker color; optional for pre-color snapshots.
         var markerColorHex: String?
         /// User-pinned project directory; nil when the directory is
@@ -303,11 +310,13 @@ struct SessionSnapshot: Codable {
 
         enum CodingKeys: String, CodingKey {
             case customName, isPinned, markerColorHex, customDirectory, groupID, conversationHistoryProjectID, tabGroups, launchSettings, location, tabs, selectedTabIndex
+            case isSidebarExpanded
         }
 
         init(
             customName: String?,
             isPinned: Bool = false,
+            isSidebarExpanded: Bool = false,
             markerColorHex: String? = nil,
             customDirectory: String?,
             groupID: UUID? = nil,
@@ -320,6 +329,7 @@ struct SessionSnapshot: Codable {
         ) {
             self.customName = customName
             self.isPinned = isPinned
+            self.isSidebarExpanded = isSidebarExpanded
             self.markerColorHex = markerColorHex
             self.customDirectory = customDirectory
             self.groupID = groupID
@@ -335,6 +345,7 @@ struct SessionSnapshot: Codable {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             customName = try container.decodeIfPresent(String.self, forKey: .customName)
             isPinned = try container.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
+            isSidebarExpanded = (try? container.decodeIfPresent(Bool.self, forKey: .isSidebarExpanded)) ?? false
             markerColorHex = try container.decodeIfPresent(String.self, forKey: .markerColorHex)
             customDirectory = try container.decodeIfPresent(
                 String.self, forKey: .customDirectory
@@ -360,6 +371,7 @@ struct SessionSnapshot: Codable {
             if isPinned {
                 try container.encode(true, forKey: .isPinned)
             }
+            if isSidebarExpanded { try container.encode(true, forKey: .isSidebarExpanded) }
             try container.encodeIfPresent(markerColorHex, forKey: .markerColorHex)
             try container.encodeIfPresent(customDirectory, forKey: .customDirectory)
             try container.encodeIfPresent(groupID, forKey: .groupID)

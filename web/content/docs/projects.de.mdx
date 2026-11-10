@@ -95,6 +95,14 @@ Editor- und Diff-Bereiche werden bei gleicher Position zu neuen Terminals an der
 Projekte auf einem gespeicherten Remote-Host können als Remote-Vorlagen gesichert werden. Das JSON speichert nur den gespeicherten Namen des Hosts in `remote.host` und das Projektverzeichnis in `remote.directory` (absolut oder mit `~/` beginnend); jedes Terminal nutzt `.`. Adressen, Serverpfade, Zugangsdaten und Remote-Sitzungs-IDs werden nie gespeichert, und Importe mit solchen Feldern werden abgelehnt. Wählen Sie beim Anwenden einen gespeicherten Host (ein Host mit gleichem Namen ist vorausgewählt; fehlt er, fordert das Fenster Sie auf, einen anderen zu wählen oder ihn unter **Remote-Hosts** hinzuzufügen) und bestätigen Sie das **Entfernte Verzeichnis**. Zshell verbindet sich, erstellt ein neues gemeinsames Projekt und startet dort neue Remote-Sitzungen; bestehende Sitzungen werden nie erneut verbunden. Schlagen Verbindung oder Verzeichnis fehl, wird kein Projekt erstellt. Über das alte SSH-Formular geöffnete Projekte können nicht als Vorlagen gesichert werden.
 
 
+<span data-canonical-heading="sidebar-sessions-and-panes" />
+
+## Sitzungen und Bereiche in der Seitenleiste [#sidebar-sessions-and-panes]
+
+Aktivieren Sie **Sitzungs- und Bereichsliste anzeigen** unter **Einstellungen → Erscheinungsbild → Projektseitenleiste**. Der Pfeil am Projekt zeigt dessen Tabs; der Pfeil an einem geteilten Tab zeigt alle Bereiche. Jeder Bereich zeigt den aktuellen Titel, das Programm, den Branch und den Agentenstatus. Ein Klick wählt Projekt und Tab aus und fokussiert den Bereich. Das Kontextmenü bietet Fokus, Zoom und Schließen. Der aufgeklappte Zustand wird mit dem Arbeitsbereich wiederhergestellt.
+
+Die **kompakte Seitenleiste** verwendet einzeilige Zeilen. Schalten Sie sie aus, um Programm, Branch und Verzeichnis zu sehen. Ein Doppelklick auf leeren Platz erstellt eine Sitzung im ausgewählten Projekt oder ein neues Projekt, wenn keines ausgewählt ist. Die Geste lässt sich dort deaktivieren. Auch die Kontextmenüs bieten **Neue Sitzung**, Listenanzeige und Zeilendichte. Pfeiltasten navigieren und klappen Zeilen auf oder zu; Return oder Leertaste fokussiert die Zeile.
+
 ## Fenster [#windows]
 
 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> öffnet ein weiteres Fenster. Jedes Fenster hat unabhängige Projekte und Seitenleisteneinstellungen und wird separat wiederhergestellt.

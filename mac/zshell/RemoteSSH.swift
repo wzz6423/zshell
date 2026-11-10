@@ -469,7 +469,7 @@ enum RemoteConnectionState: Equatable {
     case failed(String)
 }
 
-enum ProjectLocation: Codable, Equatable, Sendable {
+nonisolated enum ProjectLocation: Codable, Equatable, Sendable {
     case local
     case shared(host: RemoteHost, directory: String)
     case ssh(
@@ -487,7 +487,7 @@ enum ProjectLocation: Codable, Equatable, Sendable {
     }
 }
 
-extension ProjectLocation {
+nonisolated extension ProjectLocation {
     private enum CodingKeys: String, CodingKey {
         case local, ssh, shared
     }

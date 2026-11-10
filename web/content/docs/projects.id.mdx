@@ -95,6 +95,14 @@ Panel editor dan diff menjadi terminal pada akar dengan posisi tetap. Proyek sum
 Proyek di host jarak jauh tersimpan dapat disimpan sebagai templat jarak jauh. JSON hanya menyimpan nama tersimpan host di `remote.host` dan direktori proyek di `remote.directory` (absolut atau diawali `~/`); setiap panel terminal memakai `.`. Alamat, jalur server, kredensial, dan ID sesi jarak jauh tidak pernah disimpan, dan impor yang memuatnya ditolak. Saat menerapkan templat jarak jauh, pilih host tersimpan (host dengan nama yang sama dipilih lebih dulu; jika tidak ada, jendela meminta Anda memilih host lain atau menambahkannya di **Host jarak jauh**) lalu konfirmasi **Direktori Jarak Jauh**. Zshell terhubung, membuat proyek bersama baru, dan memulai sesi jarak jauh baru; sesi yang ada tidak pernah disambungkan ulang. Jika koneksi atau direktori gagal, tidak ada proyek yang dibuat. Proyek yang dibuka melalui formulir SSH lama tidak dapat disimpan sebagai templat.
 
 
+<span data-canonical-heading="sidebar-sessions-and-panes" />
+
+## Sesi dan panel di bilah samping [#sidebar-sessions-and-panes]
+
+Aktifkan **Tampilkan daftar sesi dan panel** di **Pengaturan → Tampilan → Bilah Samping Proyek**. Panah proyek menampilkan tab, lalu panah tab terbagi menampilkan semua panel. Setiap panel menunjukkan judul saat ini, program, cabang, dan status agen. Klik panel untuk memilih proyek dan tabnya serta memfokuskannya; menu klik kanan menawarkan fokus, zoom, dan tutup. Status perluasan dipulihkan bersama ruang kerja.
+
+**Bilah samping ringkas** memakai satu baris per item; nonaktifkan untuk melihat program, cabang, dan direktori. Klik dua kali ruang kosong untuk membuat sesi di proyek terpilih, atau proyek jika tidak ada yang dipilih. Gestur ini dapat dinonaktifkan di pengaturan yang sama. Menu juga menyediakan **Sesi Baru**, visibilitas daftar, dan kepadatan. Tombol panah menavigasi, memperluas, atau menciutkan; Return atau Spasi memfokuskan baris.
+
 ## Jendela [#windows]
 
 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> membuka jendela lain. Setiap jendela memiliki proyek dan status bilah samping sendiri, serta dipulihkan secara terpisah.

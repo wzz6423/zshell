@@ -95,6 +95,14 @@ Les volets d’éditeur et de diff deviennent des terminaux à la racine en gard
 Les projets sur un hôte distant enregistré peuvent être enregistrés comme modèles distants. Le JSON ne conserve que le nom enregistré de l’hôte dans `remote.host` et le répertoire du projet dans `remote.directory` (absolu ou commençant par `~/`) ; chaque volet de terminal utilise `.`. Les adresses, chemins du serveur, identifiants et ID de session distante ne sont jamais enregistrés, et les imports qui les contiennent sont refusés. Pour appliquer un modèle distant, choisissez un hôte enregistré (celui du même nom est présélectionné ; sinon la fenêtre vous invite à en choisir un autre ou à l’ajouter dans **Hôtes distants**) et confirmez le **Répertoire distant**. Zshell se connecte, crée un nouveau projet partagé et y démarre de nouvelles sessions distantes ; il ne rattache jamais les sessions existantes. Si la connexion ou le répertoire échoue, aucun projet n’est créé. Les projets ouverts avec l’ancien formulaire SSH ne peuvent pas être enregistrés comme modèles.
 
 
+<span data-canonical-heading="sidebar-sessions-and-panes" />
+
+## Sessions et volets dans la barre latérale [#sidebar-sessions-and-panes]
+
+Activez **Afficher les sessions et les volets** dans **Réglages → Apparence → Barre latérale des projets**. La flèche du projet affiche ses onglets, puis celle d’un onglet divisé affiche ses volets. Chaque volet indique son titre actuel, son programme, sa branche et l’état de son agent. Un clic sélectionne son projet et son onglet et active le volet ; un clic droit permet de l’activer, de l’agrandir ou de le fermer. Le déploiement est restauré avec l’espace de travail.
+
+La **barre latérale compacte** utilise une seule ligne ; désactivez-la pour voir le programme, la branche et le dossier. Un double-clic dans un espace vide crée une session dans le projet sélectionné, ou un projet si aucun n’est sélectionné. Ce geste se désactive dans les mêmes réglages. Les menus de l’espace vide et des projets proposent aussi **Nouvelle session**, l’affichage de la liste et la densité. Les flèches déplacent, développent ou réduisent les lignes ; Retour ou Espace les active.
+
 ## Fenêtres [#windows]
 
 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> ouvre une autre fenêtre. Chaque fenêtre possède ses projets et l'état de ses barres latérales ; leur restauration est indépendante.

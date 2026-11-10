@@ -95,6 +95,14 @@ Painéis de editor e diff tornam-se terminais na raiz, mantendo suas posições.
 Projetos em um host remoto salvo podem ser salvos como modelos remotos. O JSON guarda apenas o nome salvo do host em `remote.host` e o diretório do projeto em `remote.directory` (absoluto ou iniciado por `~/`); todo painel de terminal usa `.`. Endereços, caminhos do servidor, credenciais e IDs de sessões remotas nunca são salvos, e importações que os contenham são rejeitadas. Ao aplicar um modelo remoto, escolha um host salvo (o de mesmo nome vem pré-selecionado; se não houver, a janela pede que você escolha outro ou o adicione em **Hosts remotos**) e confirme o **Diretório remoto**. O Zshell conecta, cria um novo projeto compartilhado e inicia novas sessões remotas; nunca reconecta sessões existentes. Se a conexão ou o diretório falhar, nenhum projeto é criado. Projetos abertos pelo formulário SSH antigo não podem ser salvos como modelos.
 
 
+<span data-canonical-heading="sidebar-sessions-and-panes" />
+
+## Sessões e painéis na barra lateral [#sidebar-sessions-and-panes]
+
+Ative **Mostrar lista de sessões e painéis** em **Ajustes → Aparência → Barra lateral de projetos**. A seta do projeto mostra as abas e a de uma aba dividida mostra todos os painéis. Cada painel mostra título atual, programa, branch e estado do agente. Um clique seleciona seu projeto e aba e foca o painel; o menu permite focar, ampliar ou fechar. A expansão é restaurada com o espaço de trabalho.
+
+A **barra lateral compacta** usa uma linha por item; desative-a para ver programa, branch e diretório. Clique duas vezes no espaço vazio para criar uma sessão no projeto selecionado, ou um projeto se nenhum estiver selecionado. O gesto pode ser desativado nos mesmos ajustes. Os menus também oferecem **Nova sessão**, visibilidade e densidade. As setas navegam e expandem ou recolhem; Return ou Espaço foca a linha.
+
 ## Janelas [#windows]
 
 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> abre outra janela. Cada janela tem seus projetos e estado de barras laterais e é restaurada separadamente.

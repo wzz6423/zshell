@@ -95,6 +95,14 @@ Ngăn trình chỉnh sửa và diff trở thành terminal ở gốc, giữ nguy�
 Dự án trên máy chủ từ xa đã lưu có thể được lưu thành mẫu từ xa. JSON chỉ lưu tên đã lưu của máy chủ trong `remote.host` và thư mục dự án trong `remote.directory` (tuyệt đối hoặc bắt đầu bằng `~/`); mọi ngăn terminal dùng `.`. Địa chỉ, đường dẫn máy chủ, thông tin xác thực và ID phiên từ xa không bao giờ được lưu, và các tệp nhập chứa chúng sẽ bị từ chối. Khi áp dụng mẫu từ xa, hãy chọn một máy chủ đã lưu (máy chủ cùng tên được chọn sẵn; nếu không có, cửa sổ sẽ yêu cầu chọn máy chủ khác hoặc thêm nó trong **Máy chủ từ xa**) và xác nhận **Thư mục từ xa**. Zshell kết nối, tạo dự án dùng chung mới và bắt đầu các phiên từ xa mới; không bao giờ kết nối lại các phiên hiện có. Nếu kết nối hoặc thư mục thất bại, sẽ không có dự án nào được tạo. Không thể lưu dự án mở bằng biểu mẫu SSH cũ thành mẫu.
 
 
+<span data-canonical-heading="sidebar-sessions-and-panes" />
+
+## Phiên và ngăn trong thanh bên [#sidebar-sessions-and-panes]
+
+Bật **Hiện danh sách phiên và ngăn** trong **Cài đặt → Giao diện → Thanh bên dự án**. Mũi tên cạnh dự án liệt kê các thẻ; mũi tên cạnh thẻ chia ngăn liệt kê mọi ngăn. Mỗi ngăn hiển thị tiêu đề hiện tại, chương trình, nhánh và trạng thái tác nhân. Nhấp vào ngăn để chọn dự án và thẻ rồi chuyển tiêu điểm; menu chuột phải cho phép chuyển đến, phóng to hoặc đóng. Trạng thái mở rộng được khôi phục cùng không gian làm việc.
+
+**Thanh bên gọn** dùng một dòng mỗi mục; tắt để xem chương trình, nhánh và thư mục. Nhấp đúp chỗ trống tạo phiên trong dự án đã chọn, hoặc tạo dự án khi chưa chọn dự án nào. Có thể tắt thao tác này trong cùng nhóm cài đặt. Menu cũng có **Phiên mới**, hiển thị danh sách và mật độ dòng. Phím mũi tên di chuyển, mở rộng hoặc thu gọn; Return hoặc Space chuyển tiêu điểm đến dòng.
+
 ## Cửa sổ [#windows]
 
 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> mở cửa sổ khác. Mỗi cửa sổ có dự án và trạng thái thanh bên độc lập, được khôi phục riêng.

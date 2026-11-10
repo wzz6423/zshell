@@ -400,6 +400,7 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
         }
     }
     @Published var isPinned: Bool
+    @Published var isSidebarExpanded = false
     @Published var tabGroupID: UUID?
     @Published var markerColor: ProjectTabMarkerColor?
     /// Overrides applied only when this tab creates a later terminal. Existing
@@ -526,6 +527,14 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
     }
 
     // MARK: - Navigation
+
+    @discardableResult
+    func focusPane(_ id: UUID) -> Bool {
+        guard allPanes.contains(where: { $0.id == id }) else { return false }
+        isZoomed = false
+        focusedPaneID = id
+        return true
+    }
 
     func focusUp() { moveWithinColumn(-1) }
     func focusDown() { moveFocus(.down) }
