@@ -226,7 +226,9 @@ struct TerminalHistoryPersistenceTests {
         let originalInode = try inode()
         for index in [1, 0, 1] {
             project.selectedTabID = project.tabs[index].id
-            pump(0.65)
+            try wait("tab selection is autosaved to the layout") {
+                SessionStore.load().first?.projects.first?.selectedTabIndex == index
+            }
             try check(try inode() == originalInode && historyKeys() == Set(expected.keys),
                       "switching tabs saves layout without replacing terminal history")
         }
