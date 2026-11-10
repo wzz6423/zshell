@@ -19,6 +19,7 @@ import uuid
 ROOT = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--surfaces", action="store_true")
+parser.add_argument("--backend", choices=("alacritty", "ghostty"))
 parser.add_argument("--source-ref", help="Use an earlier production history store for the storage probe")
 options = parser.parse_args()
 
@@ -53,7 +54,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-history-persistence-", dir="/tmp
             "-Xlinker", "-rpath", "-Xlinker", str(library.parent),
             str(ROOT / "mac/tests/QuickTerminalOffscreen.swift"),
         ]
-        modes = ("alacritty", "ghostty")
+        modes = (options.backend,) if options.backend else ("alacritty", "ghostty")
     else:
         source = ROOT / "mac/zshell/TerminalHistory.swift"
         if options.source_ref:
@@ -86,6 +87,11 @@ with tempfile.TemporaryDirectory(prefix="zshell-history-persistence-", dir="/tmp
         executable = binary
         domain = None
         if options.surfaces:
+            configuration = home / ".config/zshell-dev/config.toml"
+            configuration.parent.mkdir(parents=True)
+            configuration.write_text(f'ai.enabled = false\nterminal.backend = "{mode if mode == "alacritty" else "libghostty"}"\n'
+                                     'terminal.preserve-sessions = false\nterminal.restore-history = true\n'
+                                     'quick-terminal.enabled = false\n')
             contents = temporary / f"History-{mode}.app/Contents"
             executable = contents / "MacOS/HistoryTests"
             executable.parent.mkdir(parents=True)

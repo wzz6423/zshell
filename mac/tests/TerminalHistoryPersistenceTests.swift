@@ -162,7 +162,7 @@ struct TerminalHistoryPersistenceTests {
     private static func surfaces(root: URL, backend: String) throws {
         let settings = AppSettings.shared
         settings.terminalBackend = backend == "alacritty" ? .alacritty : .libghostty
-        settings.aiEnabled = false
+        try check(!settings.aiEnabled, "the fixture disables AI integration before launch")
         settings.preserveTerminalSessions = false
         settings.restoreTerminalHistory = true
         settings.quickTerminalEnabled = false
@@ -209,7 +209,14 @@ struct TerminalHistoryPersistenceTests {
         mount(workspace)
         let project = workspace.projects[0]
         let sessions = project.sessions
-        try wait("both restored shells start") { sessions.allSatisfy { $0.shellPid != nil } }
+        do { try wait("both restored shells start") { sessions.allSatisfy { $0.shellPid != nil } } }
+        catch {
+            for session in sessions {
+                print("HISTORY_DIAGNOSTIC id=\(session.id) backend=\(session.backend) exited=\(session.hasExited) shellPID=\(session.shellPid.map(String.init) ?? "nil") foregroundPID=\(session.surface.foregroundPid.map(String.init) ?? "nil") attached=\(session.surface.window != nil) frame=\(session.surface.frame)")
+                print("HISTORY_DIAGNOSTIC visible=\(session.surface.readVisibleText(maxLines: 10, maxColumns: 100) ?? "nil")")
+            }
+            throw error
+        }
         pump(0.8)
         let expected = [ids[0].uuidString: histories[oldKeys[0]]!, ids[1].uuidString: histories[oldKeys[1]]!]
         try check(sessions.map(\.id) == ids && sessions.allSatisfy { $0.backend == settings.terminalBackend },
