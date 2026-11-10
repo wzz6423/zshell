@@ -9,6 +9,7 @@ or adding a production test hook. Binaries, copies, caches and fixtures are remo
 """
 
 import argparse
+from pathlib import Path
 import subprocess
 import sys
 import tempfile
