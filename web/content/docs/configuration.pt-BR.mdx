@@ -39,6 +39,18 @@ Escolha **Ajustes → Geral → Mostrar Zshell em** para mudar imediatamente. `"
 
 A barra de menus abre o espaço de trabalho atual, o terminal rápido, os ajustes e a busca de atualizações. Nos dois modos com barra de menus, fechar a última janela a oculta e mantém seus terminais e tarefas em execução. **Abrir espaço de trabalho** retorna à mesma janela, projeto e sessão. Fechar outra janela, painel ou projeto continua encerrando suas tarefas. **Sair** segue `terminal.preserve-sessions`; **Sair e encerrar todas as sessões** encerra todas. O modo é mantido após reiniciar.
 
+## Manter o computador acordado [#keep-computer-awake]
+
+### `keep-awake`
+
+`"off"` · `"on"` · `"agents"` — padrão `"off"`
+
+Escolha **Ajustes → Geral → Manter o computador acordado** ou **Zshell → Manter o computador acordado**. `"off"` permite o repouso automático, `"on"` o impede enquanto o Zshell estiver aberto e `"agents"` apenas enquanto um agente local trabalha.
+
+No modo `"agents"`, todos os painéis locais contam, inclusive projetos em segundo plano, outras janelas e divisões ocultas ou ampliadas. Agentes remotos não contam. Agentes aguardando, ociosos ou concluídos permitem o repouso quando nenhum outro agente local trabalha, e fechar o último painel ativo libera a prevenção. `"on"` continua impedindo o repouso automático enquanto o Zshell estiver aberto. Escolher Desativado ou sair do Zshell libera a prevenção em todos os modos, mesmo com sessões preservadas.
+
+A linha dos Ajustes mostra se a prevenção está ativa ou indisponível. O repouso da tela, o repouso manual, fechar a tampa e bateria fraca continuam seguindo o macOS.
+
 ## Aparência [#appearance]
 
 ### `theme` [#theme]

@@ -22,6 +22,7 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
         NSApp.servicesProvider = self
         WindowScreenConstraint.shared.start()
         AppMenuController.shared.install()
+        KeepAwakeController.shared.start()
         let open: () -> Void = { [weak self] in self?.openWorkspaceWindow() }
         AppMenuController.shared.openWindow = open
         TerminalManager.registerWindowOpener(open)
@@ -121,6 +122,7 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
                 return
             }
             ApplicationPresenceController.shared.prepareForTermination()
+            KeepAwakeController.shared.stop()
             TerminalManager.prepareForApplicationQuit()
             SSHAgentEnvironment.shared.cleanup()
             await LocalRemoteSharing.shared.stop()?.value
@@ -177,6 +179,7 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        KeepAwakeController.shared.stop()
         WindowScreenConstraint.shared.stop()
         ApplicationPresenceController.shared.stop()
         GlobalTerminalOverlay.shared.stop()

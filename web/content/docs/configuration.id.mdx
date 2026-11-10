@@ -39,6 +39,18 @@ Pilih **Pengaturan → Umum → Tampilkan Zshell di** untuk langsung beralih. `"
 
 Bilah menu membuka ruang kerja saat ini, Terminal Cepat, pengaturan, dan pemeriksaan pembaruan. Pada kedua mode bilah menu, menutup jendela ruang kerja terakhir menyembunyikannya sementara terminal dan tugas tetap berjalan. **Buka ruang kerja** mengembalikan jendela, proyek, dan sesi yang sama. Menutup jendela lain, panel, atau proyek tetap mengakhiri tugasnya. **Keluar** mengikuti `terminal.preserve-sessions`; **Keluar dan akhiri semua sesi** mengakhiri semuanya. Mode disimpan saat aplikasi dijalankan ulang.
 
+## Jaga komputer tetap aktif [#keep-computer-awake]
+
+### `keep-awake`
+
+`"off"` · `"on"` · `"agents"` — bawaan `"off"`
+
+Pilih **Pengaturan → Umum → Jaga komputer tetap aktif** atau **Zshell → Jaga komputer tetap aktif**. `"off"` mengizinkan tidur otomatis, `"on"` mencegahnya selama Zshell berjalan, dan `"agents"` hanya saat agen lokal bekerja.
+
+Dalam mode `"agents"`, semua panel lokal dihitung, termasuk proyek latar belakang, jendela lain, dan panel tersembunyi atau diperbesar. Agen jarak jauh tidak dihitung. Agen menunggu, menganggur, atau selesai mengizinkan tidur jika tidak ada agen lokal lain yang bekerja, dan menutup panel aktif terakhir melepaskan pencegahan. `"on"` terus mencegah tidur otomatis selama Zshell berjalan. Memilih Nonaktif atau keluar dari Zshell melepaskan pencegahan dalam semua mode, meskipun sesi dipertahankan.
+
+Baris Pengaturan menunjukkan apakah pencegahan aktif atau tidak tersedia. Tidur layar, tidur manual, menutup penutup, dan baterai lemah tetap mengikuti kebijakan macOS.
+
 ## Tampilan [#appearance]
 
 ### `theme` [#theme]

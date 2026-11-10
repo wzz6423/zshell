@@ -39,6 +39,18 @@ Scegli **Impostazioni → Generali → Mostra Zshell in** per cambiare subito. `
 
 La barra dei menu apre l’area di lavoro attuale, il terminale rapido, le impostazioni e la ricerca di aggiornamenti. In entrambe le modalità con barra dei menu, chiudere l’ultima finestra la nasconde mentre terminali e attività continuano. **Apri area di lavoro** torna alla stessa finestra, progetto e sessione. Chiudere altre finestre, pannelli o progetti termina ancora le loro attività. **Esci** segue `terminal.preserve-sessions`; **Esci e termina tutte le sessioni** le arresta. La modalità rimane salvata al riavvio.
 
+## Mantieni il computer attivo [#keep-computer-awake]
+
+### `keep-awake`
+
+`"off"` · `"on"` · `"agents"` — predefinito `"off"`
+
+Scegli **Impostazioni → Generali → Mantieni il computer attivo** o **Zshell → Mantieni il computer attivo**. `"off"` consente lo stop automatico, `"on"` lo impedisce mentre Zshell è in esecuzione e `"agents"` solo mentre lavora un agente locale.
+
+In modalità `"agents"` contano tutti i pannelli locali, inclusi progetti in background, altre finestre e divisioni nascoste o ingrandite. Gli agenti remoti sono esclusi. Gli agenti in attesa, inattivi o completati consentono lo stop se nessun altro agente locale lavora, e chiudere l’ultimo pannello attivo libera il blocco. `"on"` continua a impedire lo stop automatico mentre Zshell è in esecuzione. Scegliere Disattivato o uscire da Zshell libera il blocco in tutte le modalità, anche se le sessioni sono conservate.
+
+La riga delle Impostazioni indica se il blocco è attivo o non disponibile. Lo stop dello schermo, lo stop manuale, la chiusura del coperchio e la batteria scarica seguono ancora macOS.
+
 ## Aspetto [#appearance]
 
 ### `theme` [#theme]

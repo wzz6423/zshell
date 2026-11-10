@@ -97,6 +97,19 @@ struct SettingsReloadTests {
               && settings.notifyOnAgentCompletion && settings.showPullRequestStatus,
               "feature switches preserve existing behavior by default")
         check(settings.isAtDefaults, "fresh settings expose the correct reset state")
+        check(settings.keepAwakeMode == .off, "sleep prevention is off by default")
+        settings.keepAwakeMode = .whileRunning
+        check(!settings.isAtDefaults, "sleep prevention enables reset")
+        check(settings.serializedConfig().contains("keep-awake = \"on\""), "sleep mode persists")
+        var sleepConfig = TOML.parseStrictly(text: settings.serializedConfig()).values
+        sleepConfig["keep-awake"] = .string("agents")
+        let sleepIntegrations = IntegrationFixture.operations
+        settings.applyImported(sleepConfig)
+        check(settings.keepAwakeMode == .whileAgentsWork, "import changes the sleep mode")
+        check(IntegrationFixture.operations == sleepIntegrations, "sleep mode does not reinstall agent integrations")
+        sleepConfig["keep-awake"] = .string("invalid")
+        settings.applyImported(sleepConfig)
+        check(settings.keepAwakeMode == .off && settings.isAtDefaults, "invalid sleep mode falls back to off")
         settings.shellCompletions = false
         check(!settings.isAtDefaults, "disabled completions enable reset")
         wait({ (try? String(contentsOf: url, encoding: .utf8))?.contains("terminal.shell-completions = false") == true },

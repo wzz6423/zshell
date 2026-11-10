@@ -268,6 +268,27 @@ final class AgentAutomationMonitor {
 
     private init() {}
 
+    var hasWorkingLocalAgent: Bool {
+        // A project's attention rollup may hide a working split behind a
+        // waiting or completed pane. Count each live local terminal instead.
+        sessions.allObjects.contains {
+            !$0.hasExited && $0.remoteConnection == nil && $0.remotePasteTarget == nil
+                && $0.agentStatus?.phase == .working
+        }
+    }
+
+    func agentActivityChanged() {
+        KeepAwakeController.shared.localAgentActivityChanged(hasWorkingLocalAgent)
+    }
+
+    func unregister(_ session: TerminalSession) {
+        sessions.remove(session)
+        if !sessions.allObjects.contains(where: { $0.id == session.id }) {
+            pendingSessionIDs.removeAll { $0 == session.id }
+        }
+        agentActivityChanged()
+    }
+
     func ownsTerminalProcess(_ pid: pid_t) -> Bool {
         sessions.allObjects.contains { session in
             session.shellPid.map { ZshellAgentProcessIdentity.isDescendant(pid, of: $0) } == true
@@ -294,6 +315,7 @@ final class AgentAutomationMonitor {
             sessions.remove(previous)
         }
         sessions.add(session)
+        agentActivityChanged()
         guard !pendingSessionIDs.contains(session.id) else { return }
         pendingSessionIDs.append(session.id)
         guard timer == nil else { return }
@@ -305,6 +327,7 @@ final class AgentAutomationMonitor {
     }
 
     private func refresh() {
+        defer { agentActivityChanged() }
         let liveSessions = sessions.allObjects.filter { !$0.hasExited }
         guard !liveSessions.isEmpty else {
             pendingSessionIDs.removeAll()

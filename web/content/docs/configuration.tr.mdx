@@ -39,6 +39,18 @@ Hemen değiştirmek için **Ayarlar → Genel → Zshell gösterim yeri** seçen
 
 Menü çubuğundan geçerli çalışma alanı, Hızlı Terminal, ayarlar ve güncelleme denetimi açılır. İki menü çubuğu modunda da son çalışma alanı penceresini kapatmak pencereyi gizler; terminaller ve işler çalışır. **Çalışma alanını aç** aynı pencereye, projeye ve oturuma döner. Başka bir pencereyi, bölmeyi veya projeyi kapatmak o görevleri bitirmeye devam eder. **Çık**, `terminal.preserve-sessions` ayarını izler; **Çık ve tüm oturumları sonlandır** hepsini bitirir. Mod yeniden başlatıldığında korunur.
 
+## Bilgisayarı uyanık tut [#keep-computer-awake]
+
+### `keep-awake`
+
+`"off"` · `"on"` · `"agents"` — varsayılan `"off"`
+
+**Ayarlar → Genel → Bilgisayarı uyanık tut** veya **Zshell → Bilgisayarı uyanık tut** yolunu seçin. `"off"` otomatik uykuya izin verir, `"on"` Zshell çalışırken engeller ve `"agents"` yalnızca yerel bir ajan çalışırken engeller.
+
+`"agents"` modunda arka plandaki projeler, diğer pencereler ve gizli veya büyütülmüş bölmeler dâhil tüm yerel terminal bölmeleri sayılır. Uzak ajanlar sayılmaz. Başka yerel ajan çalışmıyorsa bekleyen, boşta veya tamamlanmış ajanlar uykuya izin verir; son çalışan bölmeyi kapatmak da engellemeyi kaldırır. `"on"`, Zshell çalıştığı sürece otomatik uykuyu engellemeye devam eder. Kapalı seçmek veya Zshell’den çıkmak, oturumlar korunsa bile tüm modlarda engellemeyi kaldırır.
+
+Ayar satırı engellemenin etkin veya kullanılamaz olduğunu gösterir. Ekran uykusu, elle uyutma, kapağı kapatma ve düşük pil macOS politikasını izlemeye devam eder.
+
 ## Görünüm [#appearance]
 
 ### `theme` [#theme]
