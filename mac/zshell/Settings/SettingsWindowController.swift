@@ -46,6 +46,15 @@ enum SettingsCategory: String, CaseIterable {
         }
     }
 
+    var iconColor: NSColor {
+        switch self {
+        case .general, .shortcuts, .appearance: .systemGray
+        case .terminal, .editor, .automation, .recommendations: .systemIndigo
+        case .browser: .systemBlue
+        case .updates: .systemGreen
+        }
+    }
+
     func makePane() -> SettingsPaneViewController {
         switch self {
         case .general: SettingsGeneralPane()

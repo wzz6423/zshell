@@ -10,7 +10,7 @@ import AppKit
 final class SettingsRow: NSView {
     private let descriptionLabel: NSTextField?
 
-    init(title: String, description: String? = nil, control: NSView, symbolName: String? = nil) {
+    init(title: String, description: String? = nil, control: NSView, symbolName: String? = nil, symbolColor: NSColor? = nil) {
         let titleLabel = NSTextField(wrappingLabelWithString: title)
         titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize)
         titleLabel.maximumNumberOfLines = 0
@@ -39,7 +39,13 @@ final class SettingsRow: NSView {
         super.init(frame: .zero)
 
         var views: [NSView] = [textStack, control]
-        if let symbolName { views.insert(SettingsRowSymbolView(symbolName: symbolName), at: 0) }
+        if let symbolName {
+            views.insert(SettingsIconView(
+                symbolName: symbolName,
+                color: symbolColor ?? SettingsIconColors.color(for: symbolName),
+                size: 32
+            ), at: 0)
+        }
         let stack = NSStackView(views: views)
         stack.orientation = .horizontal
         stack.alignment = control is NSControl || description == nil ? .centerY : .top
@@ -70,46 +76,6 @@ final class SettingsRow: NSView {
     /// the value they show.
     func setDescription(_ text: String) {
         descriptionLabel?.stringValue = text
-    }
-}
-
-private final class SettingsRowSymbolView: NSView {
-    init(symbolName: String) {
-        super.init(frame: .zero)
-
-        let symbol = NSImageView(image: NSImage(
-            systemSymbolName: symbolName,
-            accessibilityDescription: nil
-        )?.withSymbolConfiguration(.init(pointSize: 17, weight: .regular)) ?? NSImage())
-        symbol.contentTintColor = .controlAccentColor
-        symbol.imageScaling = .scaleProportionallyDown
-        symbol.setAccessibilityElement(false)
-        symbol.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(symbol)
-        NSLayoutConstraint.activate([
-            widthAnchor.constraint(equalToConstant: 32),
-            heightAnchor.constraint(equalToConstant: 32),
-            symbol.widthAnchor.constraint(equalToConstant: 20),
-            symbol.heightAnchor.constraint(equalToConstant: 20),
-            symbol.centerXAnchor.constraint(equalTo: centerXAnchor),
-            symbol.centerYAnchor.constraint(equalTo: centerYAnchor),
-        ])
-        setAccessibilityElement(false)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func draw(_ dirtyRect: NSRect) {
-        NSColor.controlAccentColor.withAlphaComponent(0.12).setFill()
-        NSBezierPath(roundedRect: bounds, xRadius: 8, yRadius: 8).fill()
-    }
-
-    override func viewDidChangeEffectiveAppearance() {
-        super.viewDidChangeEffectiveAppearance()
-        needsDisplay = true
     }
 }
 

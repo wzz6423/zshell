@@ -21,7 +21,68 @@ enum SettingsMetrics {
     /// Sidebar row height and the width reserved for its symbol, so titles line
     /// up whatever glyph precedes them.
     static let sidebarRowHeight: CGFloat = 36
-    static let sidebarSymbolWidth: CGFloat = 22
+    static let sidebarSymbolWidth: CGFloat = 24
+}
+
+enum SettingsIconColors {
+    static func color(for symbolName: String) -> NSColor {
+        if let category = SettingsCategory.allCases.first(where: { $0.symbolName == symbolName }) {
+            return category.iconColor
+        }
+        switch symbolName {
+        case "app": return SettingsCategory.appearance.iconColor
+        case "terminal": return SettingsCategory.terminal.iconColor
+        case "macwindow": return SettingsCategory.general.iconColor
+        case "menubar.rectangle", "hand.raised.fill": return SettingsCategory.general.iconColor
+        case "link", "network": return SettingsCategory.browser.iconColor
+        default: return SettingsCategory.general.iconColor
+        }
+    }
+}
+
+/// SF Symbols have optical alignment insets. A plain view keeps the colored
+/// tile square instead of drawing around an image view's expanded frame.
+final class SettingsIconView: NSView {
+    private let color: NSColor
+    private let symbol = NSImageView()
+
+    init(symbolName: String, color: NSColor, size: CGFloat) {
+        self.color = color
+        super.init(frame: .zero)
+        symbol.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)?
+            .withSymbolConfiguration(.init(pointSize: size * 0.58, weight: .medium))
+        symbol.contentTintColor = .white
+        symbol.imageScaling = .scaleProportionallyDown
+        symbol.setAccessibilityElement(false)
+        addSubview(symbol)
+        translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: size),
+            heightAnchor.constraint(equalTo: widthAnchor),
+        ])
+        setAccessibilityElement(false)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        color.setFill()
+        let radius = bounds.width / 4
+        NSBezierPath(roundedRect: bounds, xRadius: radius, yRadius: radius).fill()
+    }
+
+    override func layout() {
+        super.layout()
+        symbol.frame = bounds.insetBy(dx: bounds.width / 6, dy: bounds.height / 6)
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
 }
 
 // MARK: - Chrome
