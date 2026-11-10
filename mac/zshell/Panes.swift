@@ -97,11 +97,11 @@ extension PaneContent {
         }
     }
 
-    @MainActor func save() {
+    @MainActor @discardableResult func save() -> Bool {
         switch self {
-        case .file(let file): file.save()
-        case .diff(let diff): diff.save()
-        case .session, .browser: break
+        case .file(let file): return file.save()
+        case .diff(let diff): return diff.save()
+        case .session, .browser: return true
         }
     }
 }

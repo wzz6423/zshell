@@ -8,6 +8,7 @@ import AppKit
 /// File editor behavior and the external app used by file entry points.
 final class SettingsEditorPane: SettingsPaneViewController {
     private let wrapLinesSwitch = SettingsSwitch { AppSettings.shared.wrapLines = $0 }
+    private let protectSavesSwitch = SettingsSwitch { AppSettings.shared.protectEditorSaves = $0 }
 
     private let externalEditorPopUp: SettingsPopUpButton<ExternalEditor> = {
         let popup = SettingsPopUpButton<ExternalEditor>(
@@ -29,6 +30,10 @@ final class SettingsEditorPane: SettingsPaneViewController {
                     title: String(localized: "Wrap lines to editor width"),
                     control: wrapLinesSwitch
                 ),
+                SettingsRow(
+                    title: String(localized: "Protect against save conflicts"),
+                    control: protectSavesSwitch
+                ),
             ]),
         ]
     }
@@ -36,5 +41,6 @@ final class SettingsEditorPane: SettingsPaneViewController {
     override func syncFromSettings() {
         externalEditorPopUp.select(settings.externalEditor)
         wrapLinesSwitch.isOn = settings.wrapLines
+        protectSavesSwitch.isOn = settings.protectEditorSaves
     }
 }
