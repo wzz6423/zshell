@@ -66,6 +66,7 @@ class FileContentSearchPanelTests(unittest.TestCase):
         subprocess.run(command, cwd=MAC.parent, check=True)
 
     def setUp(self):
+        """Isolate app settings and persisted layouts before the sidebar creates a manager."""
         self.fixture = tempfile.TemporaryDirectory(prefix="zshell-search-panel-fixture-", dir="/tmp")
         self.addCleanup(self.fixture.cleanup)
         self.root = Path(self.fixture.name)
@@ -145,6 +146,26 @@ class FileContentSearchPanelTests(unittest.TestCase):
             self.assertEqual(editor["path"], str(path))
             self.assertEqual(editor["line"], line)
             self.assertEqual(editor["location"], offset)
+            self.assertEqual(editor["selection"], offset)
+            self.assertEqual(editor["selectionLength"], 0)
+            self.assertEqual(editor["text"], text)
+            self.assertTrue(editor["hasEditor"])
+            self.assertFalse(editor["windowVisible"])
+
+    @unittest.skipUnless(BUILT_APP, "Use --built-app or ZSHELL_TEST_DERIVED_DATA for the production sidebar")
+    def test_production_sidebar_opens_and_reuses_the_project_file_from_result_actions(self):
+        path, text, expected = self.write_matches()
+        result = self.probe("sidebar")
+        self.assert_rows(result, expected)
+        self.assertFalse(result["selectionOnlyOpenedFile"])
+        self.assertEqual(result["clickedRow"], 0)
+        self.assertTrue(result["reusedFile"])
+        self.assertEqual(result["projectFileTabs"], 1)
+        self.assertEqual(result["terminalSessions"], 0)
+        self.assertEqual(len(result["editors"]), 2)
+        for editor, line, offset in zip(result["editors"], (3, 2), (18, 5)):
+            self.assertEqual(editor["path"], str(path))
+            self.assertEqual(editor["line"], line)
             self.assertEqual(editor["selection"], offset)
             self.assertEqual(editor["selectionLength"], 0)
             self.assertEqual(editor["text"], text)
