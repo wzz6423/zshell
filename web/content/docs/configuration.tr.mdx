@@ -113,6 +113,20 @@ sayı, 9–24 — varsayılan `14`
 
 İki kenar çubuğunun temel metin boyutu. Bölüm başlıkları, satırlar, meta veriler ve denetimler temel değişirken göreli hiyerarşilerini korur.
 
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+mantıksal — varsayılan `true`
+
+Her iki terminal arka ucunda isteğe bağlı bağları **Ayarlar → Görünüm → Yazı tipi bağları** bölümünden açıp kapatın. Kapatmak `calt`, `liga`, `clig`, `dlig` ve `hlig` değerlerini geçersiz kılar; yazının zorunlu şekillendirmesi korunur. Karakterler, terminal sütunları, imleç ve seçim değişmez.
+
+### `terminal.font-features` [#terminalfont-features]
+
+metin — varsayılan `""`, yazı tipi varsayılanları
+
+**OpenType özellikleri** alanında dört karakterli etiketleri virgül veya boşlukla ayırın: `-calt` bağlamsal alternatifleri kapatır, `ss01` biçem kümesi 1’i ve `zero=1` alternatif sıfırı açar. `+liga` ve `liga=1` de özelliği açar. Aynı etiketin son değeri geçerlidir; bağ anahtarı belirtilen beş etikette önceliklidir.
+
+Değişiklikler açık terminallere ve önizlemeye hemen uygulanır. İki arka uç da yazı tipinin desteklediği özellikleri kullanır; diğer etiketler etkisizdir. Geçersiz giriş son geçerli değeri korur; geçersiz dış değer yazı tipi varsayılanlarını kullanır. Sıfırlama listeyi temizler ve bağları açar.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 mantıksal — varsayılan `false`
@@ -251,6 +265,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.line-height = 1.15

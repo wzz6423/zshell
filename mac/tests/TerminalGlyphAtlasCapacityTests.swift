@@ -199,7 +199,7 @@ struct TerminalGlyphAtlasCapacityTests {
         precondition(atlas.textures[0] !== firstTexture)
         precondition(fixture.renderer.testRowUVs(0) != oldRow)
         precondition(fixture.renderer.testCachedGlyphsAreCurrent(final.keys), "Clean row kept stale UVs")
-        precondition(atlas.testCachedEntry(cluster("👩🏽‍💻"))!.isColor)
+        precondition(atlas.testEntries.contains { $0.isColor })
         let fresh = GlyphFixture()
         precondition(pixels == fresh.render(final, markedText: ime), "Recovered frame differs from a fresh atlas")
         let steadyGeneration = atlas.generation

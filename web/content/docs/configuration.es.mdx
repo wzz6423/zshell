@@ -113,6 +113,20 @@ número, 9–24 — predeterminado: `14`
 
 Tamaño base del texto de ambas barras laterales. Las cabeceras de sección, filas, metadatos y controles mantienen su jerarquía relativa al cambiar la base.
 
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+booleano — predeterminado `true`
+
+Activa o desactiva las ligaduras opcionales de ambos motores en **Ajustes → Apariencia → Ligaduras de fuente**. Desactivarlas anula `calt`, `liga`, `clig`, `dlig` y `hlig`, conservando las formas necesarias para la escritura. Los caracteres, columnas, cursor y selección no cambian.
+
+### `terminal.font-features` [#terminalfont-features]
+
+cadena — predeterminado `""`, valores predeterminados de la fuente
+
+En **Funciones OpenType**, separa las etiquetas de cuatro caracteres con comas o espacios: `-calt` desactiva alternativas contextuales, `ss01` activa el conjunto estilístico 1 y `zero=1` el cero alternativo. `+liga` y `liga=1` también activan funciones. Prevalece la última entrada de cada etiqueta; el interruptor de ligaduras tiene prioridad sobre las cinco indicadas.
+
+Los cambios se aplican inmediatamente a terminales abiertos y a la vista previa. Ambos motores usan las funciones compatibles con la fuente; las demás etiquetas no tienen efecto. La entrada inválida conserva el último valor válido; un valor externo inválido usa los valores predeterminados. Restablecer vacía la lista y activa las ligaduras.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 booleano — predeterminado: `false`
@@ -252,6 +266,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.line-height = 1.15

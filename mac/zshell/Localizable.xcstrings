@@ -156768,6 +156768,434 @@
           }
         }
       }
+    },
+    "Font ligatures": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Font ligatures"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "字体连字"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "字型連字"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォントの合字"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "글꼴 합자"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ligatures de police"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schriftligaturen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ligaduras de fuente"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ligaduras da fonte"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Legature del font"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lettertypeligaturen"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Лигатуры шрифта"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "وصلات الخط"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "อักษรควบของฟอนต์"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ligatur font"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chữ ghép của phông"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yazı tipi bağları"
+          }
+        }
+      }
+    },
+    "OpenType features": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenType features"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenType 字形特性"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenType 字形特性"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenType 機能"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenType 기능"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fonctions OpenType"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenType-Funktionen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Funciones OpenType"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recursos OpenType"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Funzioni OpenType"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenType-functies"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Функции OpenType"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ميزات OpenType"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "คุณสมบัติ OpenType"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fitur OpenType"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tính năng OpenType"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenType özellikleri"
+          }
+        }
+      }
+    },
+    "Comma-separated tags, such as -calt, ss01, or zero=1. Supported features apply immediately.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comma-separated tags, such as -calt, ss01, or zero=1. Supported features apply immediately."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用逗号分隔标签，例如 -calt、ss01 或 zero=1。字体支持的特性会立即生效。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以逗號分隔標籤，例如 -calt、ss01 或 zero=1。字型支援的特性會立即生效。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "-calt、ss01、zero=1 などのタグをカンマで区切ります。フォントが対応する機能はすぐに適用されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "-calt, ss01, zero=1 등의 태그를 쉼표로 구분하세요. 글꼴이 지원하는 기능은 즉시 적용됩니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Séparez les balises par des virgules, par exemple -calt, ss01 ou zero=1. Les fonctions prises en charge s’appliquent immédiatement."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kommagetrennte Tags wie -calt, ss01 oder zero=1. Unterstützte Funktionen werden sofort angewendet."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etiquetas separadas por comas, como -calt, ss01 o zero=1. Las funciones compatibles se aplican de inmediato."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags separadas por vírgulas, como -calt, ss01 ou zero=1. Os recursos compatíveis são aplicados imediatamente."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag separati da virgole, come -calt, ss01 o zero=1. Le funzioni supportate si applicano subito."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Komma-gescheiden tags, zoals -calt, ss01 of zero=1. Ondersteunde functies worden direct toegepast."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Теги через запятую, например -calt, ss01 или zero=1. Поддерживаемые функции применяются сразу."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "افصل الوسوم بفواصل، مثل -calt أو ss01 أو zero=1. تُطبّق الميزات المدعومة فورًا."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "คั่นแท็กด้วยจุลภาค เช่น -calt, ss01 หรือ zero=1 คุณสมบัติที่ฟอนต์รองรับมีผลทันที"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag dipisahkan koma, seperti -calt, ss01, atau zero=1. Fitur yang didukung langsung diterapkan."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phân cách các thẻ bằng dấu phẩy, như -calt, ss01 hoặc zero=1. Các tính năng được hỗ trợ có hiệu lực ngay."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "-calt, ss01 veya zero=1 gibi etiketleri virgülle ayırın. Desteklenen özellikler hemen uygulanır."
+          }
+        }
+      }
+    },
+    "Use four-character tags with an optional +, -, or =number. The last valid value remains active.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use four-character tags with an optional +, -, or =number. The last valid value remains active."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用四字符标签，可加 +、- 或 =数字。输入无效时继续使用上次有效值。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用四字元標籤，可加 +、- 或 =數字。輸入無效時繼續使用上次有效值。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "4 文字のタグに、必要に応じて +、-、=数値を付けます。無効な入力では直前の有効な値が使われます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "4자 태그에 +, -, =숫자를 선택적으로 붙이세요. 잘못된 입력에서는 마지막 유효한 값이 유지됩니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utilisez des balises de quatre caractères, avec éventuellement +, - ou =nombre. La dernière valeur valide reste active."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verwenden Sie Tags mit vier Zeichen und optional +, - oder =Zahl. Der letzte gültige Wert bleibt aktiv."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa etiquetas de cuatro caracteres con +, - o =número opcionales. El último valor válido sigue activo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use tags de quatro caracteres, com +, - ou =número opcionais. O último valor válido permanece ativo."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa tag di quattro caratteri con +, - o =numero facoltativi. Rimane attivo l’ultimo valore valido."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gebruik tags van vier tekens, eventueel met +, - of =getal. De laatste geldige waarde blijft actief."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Используйте теги из четырёх символов с необязательными +, - или =число. Последнее допустимое значение остаётся активным."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استخدم وسومًا من أربعة محارف مع + أو - أو =رقم اختياريًا. تظل آخر قيمة صالحة فعّالة."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ใช้แท็กสี่อักขระ และเพิ่ม +, - หรือ =ตัวเลขได้ ค่าที่ถูกต้องล่าสุดยังคงมีผล"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gunakan tag empat karakter dengan +, -, atau =angka opsional. Nilai valid terakhir tetap aktif."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dùng thẻ gồm bốn ký tự, có thể thêm +, - hoặc =số. Giá trị hợp lệ gần nhất vẫn có hiệu lực."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İsteğe bağlı +, - veya =sayı ile dört karakterli etiketler kullanın. Son geçerli değer etkin kalır."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

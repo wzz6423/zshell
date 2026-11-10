@@ -113,6 +113,20 @@ description: Zshell의 모든 영구 설정, 각 설정의 동작과 저장 위�
 
 양쪽 사이드바의 기본 글자 크기입니다. 기본 크기가 바뀌어도 구역 제목, 행, 메타데이터와 컨트롤은 상대적인 계층을 유지합니다.
 
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+불리언 — 기본값 `true`
+
+**설정 → 외관 → 글꼴 합자**에서 두 터미널 백엔드의 선택적 합자를 켜거나 끕니다. 끄면 `calt`, `liga`, `clig`, `dlig`, `hlig`를 덮어쓰지만 문자에 필수적인 조형은 유지합니다. 원래 문자, 터미널 열, 커서와 선택 영역은 그대로입니다.
+
+### `terminal.font-features` [#terminalfont-features]
+
+문자열 — 기본값 `""`, 글꼴 기본 기능 사용
+
+같은 글꼴 그룹의 **OpenType 기능**에 4자 태그를 쉼표나 공백으로 구분해 입력하세요. `-calt`는 문맥 대체를 끄고, `ss01`은 스타일 집합 1, `zero=1`은 대체 숫자 0을 켭니다. `+liga`와 `liga=1`도 기능을 켭니다. 같은 태그에서는 뒤의 값이 우선합니다. 합자 스위치가 위 다섯 태그보다 우선합니다.
+
+변경은 열린 터미널과 미리 보기에 즉시 적용됩니다. 두 백엔드 모두 선택한 글꼴이 지원하는 기능을 사용하며 미지원 태그는 효과가 없습니다. 설정의 잘못된 입력은 마지막 유효값을 유지하고, 잘못된 외부 값은 글꼴 기본값을 사용합니다. 기본값으로 재설정하면 기능 목록을 비우고 합자를 켭니다.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 불리언 — 기본값 `false`
@@ -251,6 +265,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.line-height = 1.15

@@ -62,6 +62,8 @@ extension TerminalMetalRenderer {
         "-import-objc-header", str(ROOT / "mac/Vendor/alacritty-bridge/include/zshell_alacritty.h"),
         str(ALACRITTY / "TerminalInstanceBufferPool.swift"),
         str(ALACRITTY / "TerminalGlyphAtlas.swift"),
+        str(ALACRITTY / "TerminalTextShaper.swift"),
+        str(ROOT / "mac/zshell/TerminalFontFeatures.swift"),
         str(ALACRITTY / "AlacrittyKittyGraphics.swift"),
         str(ROOT / "mac/zshell/TerminalContrast.swift"),
         str(font), str(models), str(renderer),

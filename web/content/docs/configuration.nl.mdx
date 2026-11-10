@@ -113,6 +113,20 @@ Getal, 9–24 — standaard `14`
 
 De basistekstgrootte voor beide zijbalken. Sectiekoppen, rijen, metadata en bedieningselementen behouden hun onderlinge hiërarchie wanneer de basis verandert.
 
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+booleaans — standaard `true`
+
+Schakel optionele ligaturen voor beide terminalbackends in of uit via **Instellingen → Uiterlijk → Lettertypeligaturen**. Uitschakelen overschrijft `calt`, `liga`, `clig`, `dlig` en `hlig`; vereiste schriftvorming blijft actief. Tekens, terminalkolommen, cursor en selectie blijven gelijk.
+
+### `terminal.font-features` [#terminalfont-features]
+
+tekenreeks — standaard `""`, lettertypestandaarden
+
+Voer onder **OpenType-functies** tags van vier tekens in, gescheiden door komma’s of witruimte: `-calt` schakelt contextuele alternatieven uit, `ss01` schakelt stijlset 1 in en `zero=1` de alternatieve nul. Ook `+liga` en `liga=1` schakelen functies in. De laatste waarde per tag geldt; de ligatuurschakelaar heeft voorrang voor de vijf genoemde tags.
+
+Wijzigingen gelden direct voor geopende terminals en het voorbeeld. Beide backends gebruiken ondersteunde lettertypefuncties; andere tags hebben geen effect. Ongeldige invoer behoudt de laatste geldige waarde; een ongeldige externe waarde gebruikt de standaard. Herstellen leegt de lijst en schakelt ligaturen in.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 Booleaans — standaard `false`
@@ -251,6 +265,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.line-height = 1.15

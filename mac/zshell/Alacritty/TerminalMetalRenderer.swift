@@ -62,6 +62,7 @@ final class TerminalMetalRenderer {
     private let textureLoader: MTKTextureLoader
     private let instanceBuffers: TerminalInstanceBufferPool
     private var atlas: TerminalGlyphAtlas?
+    private let textShaper = TerminalTextShaper()
     private var kittyTextures: [AlacrittyKittyImageKey: MTLTexture] = [:]
 
     private var instances: [Instance] = []
@@ -441,6 +442,7 @@ final class TerminalMetalRenderer {
 
         let columns = snapshot.columns
         let rows = snapshot.rows
+        textShaper.reset(metrics: metrics, rowCount: rows)
 
         // A geometry change invalidates every cached row: positions are baked
         // into the instances. Rebuild every row even if the emulator only
@@ -618,59 +620,55 @@ final class TerminalMetalRenderer {
         }
         let backgroundCount = instances.count
 
+        func foreground(at column: Int) -> UInt32 {
+            let cell = cells[row * columns + column]
+            if snapshot.cursor_line == row, snapshot.cursor_column == column, snapshot.cursor_shape == 0 {
+                return AlacrittyRenderer.background(of: cell, default: defaultBackground)
+            }
+            return AlacrittyRenderer.foreground(of: cell, default: defaultBackground)
+        }
+
+        for glyph in textShaper.glyphs(row: row, snapshot: snapshot, metrics: metrics) {
+            guard let entry = atlas.entry(for: glyph.glyph, font: glyph.font) else { continue }
+            let left = originX + Float(glyph.position.x) + entry.bearing.x
+            let right = left + entry.size.x
+            let baseline = top + Float(metrics.baseline) - Float(glyph.position.y)
+            var column = max(0, min(columns - 1, glyph.columns.lowerBound))
+            let lastColumn = max(column + 1, min(columns, glyph.columns.upperBound))
+            while column < lastColumn {
+                let color = foreground(at: column)
+                var end = column + 1
+                while end < lastColumn, foreground(at: end) == color { end += 1 }
+                // Split only the texture's color coverage. Selection and a
+                // block cursor must not reshape a ligature or move its ink.
+                let clipLeft = column == glyph.columns.lowerBound
+                    ? left : max(left, originX + Float(column) * cellWidth)
+                let clipRight = end == glyph.columns.upperBound
+                    ? right : min(right, originX + Float(end) * cellWidth)
+                let width = clipRight - clipLeft
+                if width > 0 {
+                    let fraction = (clipLeft - left) / entry.size.x
+                    let extent = width / entry.size.x
+                    instances.append(Instance(
+                        origin: SIMD2(clipLeft, baseline - entry.bearing.y - entry.size.y),
+                        size: SIMD2(width, entry.size.y), color: Self.color(color),
+                        uvOrigin: SIMD2(entry.uvOrigin.x + entry.uvSize.x * fraction, entry.uvOrigin.y),
+                        uvSize: SIMD2(entry.uvSize.x * extent, entry.uvSize.y),
+                        kind: entry.isColor ? 2 : 1, atlasPage: UInt32(entry.page)
+                    ))
+                }
+                column = end
+            }
+        }
+
         for column in 0..<columns {
             let cell = cells[row * columns + column]
             guard cell.flags & UInt16(ZSHELL_CELL_HIDDEN) == 0,
                   cell.flags & UInt16(ZSHELL_CELL_WIDE_SPACER) == 0
             else { continue }
 
-            var foreground = AlacrittyRenderer.foreground(of: cell, default: defaultBackground)
-            let isCursorCell = snapshot.cursor_line == row
-                && snapshot.cursor_column == column
-                && snapshot.cursor_shape == 0
-            if isCursorCell {
-                foreground = AlacrittyRenderer.background(of: cell, default: defaultBackground)
-            }
-            let color = Self.color(foreground)
+            let color = Self.color(foreground(at: column))
             let left = originX + Float(column) * cellWidth
-
-            if cell.ch != 0,
-               cell.text_len > 0 || cell.ch != UInt32(UInt8(ascii: " ")) {
-                let content: TerminalGlyphAtlas.Content
-                let offset = Int(cell.text_offset)
-                let length = Int(cell.text_len)
-                if length > 0,
-                   let text = snapshot.text,
-                   offset >= 0,
-                   offset + length <= snapshot.text_len {
-                    content = .cluster(Data(bytes: text.advanced(by: offset), count: length))
-                } else {
-                    content = .scalar(cell.ch)
-                }
-                let key = TerminalGlyphAtlas.Key(
-                    content: content,
-                    bold: cell.flags & UInt16(ZSHELL_CELL_BOLD) != 0,
-                    italic: cell.flags & UInt16(ZSHELL_CELL_ITALIC) != 0
-                )
-                if let entry = atlas.entry(for: key) {
-                    // The atlas stores bearings relative to the text
-                    // origin; y grows downward here, so the ascent above
-                    // the baseline becomes a negative offset.
-                    let baseline = top + Float(metrics.baseline)
-                    instances.append(Instance(
-                        origin: SIMD2(
-                            left + entry.bearing.x,
-                            baseline - entry.bearing.y - entry.size.y
-                        ),
-                        size: entry.size,
-                        color: color,
-                        uvOrigin: entry.uvOrigin,
-                        uvSize: entry.uvSize,
-                        kind: entry.isColor ? 2 : 1,
-                        atlasPage: UInt32(entry.page)
-                    ))
-                }
-            }
 
             if cell.flags & UInt16(ZSHELL_CELL_UNDERLINE) != 0 {
                 instances.append(Instance(

@@ -19,7 +19,7 @@ final class FontThickenPreviewView: NSView {
     private let lines: [(text: String, bold: Bool)] = [
         ("zshell ❯ printf \"中文 日本語 한국어\" 0O 1lI", false),
         ("\u{E0A0} main \u{E0B0} ~/dev/zshell \u{E711} \u{F024B} \u{F0A7D}", false),
-        ("bold — permission denied (os error 13)", true),
+        ("bold — != === -> => 0O 1lI", true),
     ]
 
     private let lineSpacing: CGFloat = 6

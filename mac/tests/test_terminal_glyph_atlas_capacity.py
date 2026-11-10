@@ -12,7 +12,7 @@ ALACRITTY = ROOT / "mac/zshell/Alacritty"
 
 ATLAS_PROBES = r'''
 extension TerminalGlyphAtlas {
-    var testEntryCount: Int { entries.count }
+    var testEntryCount: Int { entries.count + glyphEntries.count }
     var testMaximumPages: Int { maximumPages }
     var testTextureBytes: Int { pages.reduce(0) { $0 + $1.texture.width * $1.texture.height * 4 } }
     func testCachedEntry(_ key: Key) -> Entry? { entries[key] }
@@ -55,10 +55,18 @@ extension TerminalMetalRenderer {
     func testCachedGlyphsAreCurrent(_ keys: [[TerminalGlyphAtlas.Key]]) -> Bool {
         keys.enumerated().allSatisfy { row, keys in
             let glyphs = rowInstances[row].instances.filter { $0.kind == 1 || $0.kind == 2 }
-            return glyphs.count == keys.count && zip(glyphs, keys).allSatisfy { instance, key in
-                guard let entry = atlas!.testCachedEntry(key) else { return false }
+            return glyphs.count == keys.count && glyphs.allSatisfy { instance in
+                guard let entry = atlas!.testEntries.first(where: {
+                    let origin = $0.uvOrigin
+                    let end = origin + $0.uvSize
+                    let epsilon: Float = 0.000001
+                    return instance.atlasPage == UInt32($0.page)
+                        && instance.uvOrigin.x >= origin.x - epsilon && instance.uvOrigin.y >= origin.y - epsilon
+                        && instance.uvOrigin.x + instance.uvSize.x <= end.x + epsilon
+                        && instance.uvOrigin.y + instance.uvSize.y <= end.y + epsilon
+                }) else { return false }
                 return instance.atlasPage == UInt32(entry.page)
-                    && instance.uvOrigin == entry.uvOrigin && instance.uvSize == entry.uvSize
+                    && instance.uvOrigin.y == entry.uvOrigin.y && instance.uvSize.y == entry.uvSize.y
             }
         }
     }
@@ -157,7 +165,11 @@ with tempfile.TemporaryDirectory(prefix="zshell-glyph-atlas-") as directory:
             GlyphAtlasAllocationProbe.remainingSuccesses = remaining - 1
         }
 """)
-    atlas.write_text(source + ATLAS_PROBES)
+    atlas.write_text(source + ATLAS_PROBES + """
+extension TerminalGlyphAtlas {
+    var testEntries: [Entry] { Array(entries.values) + Array(glyphEntries.values) }
+}
+""")
 
     renderer = temporary / "TerminalMetalRenderer.swift"
     renderer_source = (ALACRITTY / renderer.name).read_text()
@@ -207,6 +219,8 @@ with tempfile.TemporaryDirectory(prefix="zshell-glyph-atlas-") as directory:
         "-import-objc-header", str(ROOT / "mac/Vendor/alacritty-bridge/include/zshell_alacritty.h"),
         *([str(pool)] if uses_pool else []),
         str(atlas), str(ALACRITTY / "AlacrittyKittyGraphics.swift"),
+        str(ALACRITTY / "TerminalTextShaper.swift"),
+        str(ROOT / "mac/zshell/TerminalFontFeatures.swift"),
         str(ROOT / "mac/zshell/TerminalContrast.swift"),
         str(font), str(models), str(renderer),
         str(ROOT / "mac/tests/TerminalGlyphAtlasCapacityTests.swift"),
