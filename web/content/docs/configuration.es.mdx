@@ -133,6 +133,12 @@ Multiplica la altura natural de celda de cada motor de terminal y mantiene los g
 
 Zshell no ofrece un control de peso base de fuente. Ghostty selecciona estilos con nombre o ejes de variación, mientras que Alacritty/CoreText resuelve las variantes regular y negrita mediante atributos; un único valor compartido no conservaría de forma coherente la distinción regular/negrita ni los pesos de sustitución entre fuentes estáticas y variables.
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+Elija **Ajustes → Apariencia → Fondo → Color de los márgenes**. `"background"` usa el fondo del tema del terminal en los márgenes. `"extend"` extiende el fondo de la celda más cercana, pero mantiene el fondo del tema arriba o abajo si esa fila contiene una celda con fondo predeterminado, un prompt del shell o un separador Powerline. `"always"` extiende todos los bordes sin estas comprobaciones. Las últimas filas vacías conservan su propio fondo; una fila coloreada encima no rellena el margen inferior. Los cambios se aplican inmediatamente a los terminales abiertos de ambos motores. Con translucidez, los fondos predeterminados mantienen su opacidad y los fondos de celda explícitos y sus extensiones permanecen opacos.
+
 ### `editor.wrap-lines` [#editorwrap-lines]
 
 booleano — predeterminado: `true`

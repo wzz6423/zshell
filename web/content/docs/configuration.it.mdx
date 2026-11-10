@@ -133,6 +133,12 @@ Moltiplica l'altezza naturale delle celle di ciascun motore mantenendo i glifi c
 
 Zshell non offre un controllo del peso di base del carattere. Ghostty seleziona stili con nome o assi di variazione, mentre Alacritty/CoreText risolve le varianti regolari e grassetto tramite i loro attributi. Un singolo valore condiviso non manterrebbe in modo coerente la distinzione regolare/grassetto e i pesi di ripiego tra caratteri statici e variabili.
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+Scegli **Impostazioni → Aspetto → Sfondo → Colore dei margini**. `"background"` usa lo sfondo del tema del terminale nei margini. `"extend"` estende lo sfondo della cella più vicina, ma mantiene lo sfondo del tema nel margine superiore o inferiore se la riga contiene una cella con sfondo predefinito, un prompt della shell o un separatore Powerline. `"always"` estende tutti i bordi senza questi controlli. Le ultime righe vuote mantengono il proprio sfondo; una riga colorata sopra non riempie il margine inferiore. Le modifiche si applicano subito ai terminali aperti con entrambi i motori. Con la traslucenza, gli sfondi predefiniti mantengono la loro opacità, mentre gli sfondi espliciti delle celle e le loro estensioni restano opachi.
+
 ### `editor.wrap-lines` [#editorwrap-lines]
 
 booleano — predefinito `true`

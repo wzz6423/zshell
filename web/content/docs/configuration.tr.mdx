@@ -133,6 +133,12 @@ Karakterleri dikey ortalayarak arka ucun doğal hücre yüksekliğini çarpar. Y
 
 Zshell temel yazı ağırlığı denetimi sunmaz. Ghostty adlı stilleri veya değişken eksenlerini seçer; Alacritty/CoreText normal ve kalını özelliklerden çözer. Tek ortak değer, sabit ve değişken yazı tiplerinde normal/kalın ayrımını veya yedek ağırlıkları tutarlı korumaz.
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+**Ayarlar → Görünüm → Arka plan → Kenar rengi** seçeneğini kullanın. `"background"` kenarlarda terminal teması arka planını kullanır. `"extend"` en yakın hücrenin arka planını uzatır; ancak ilgili satır varsayılan arka planlı bir hücre, kabuk istemi veya Powerline ayırıcı içeriyorsa üst ya da alt kenar tema arka planında kalır. `"always"` bu denetimler olmadan tüm kenarları uzatır. Boş alt satırlar kendi arka planını korur; üstteki renkli satır alt kenarı doldurmaz. Değişiklikler her iki arka ucun açık terminallerine hemen uygulanır. Yarı saydamlıkta varsayılan arka planlar opaklıklarını korurken açıkça ayarlanmış hücre arka planları ve uzantıları opak kalır.
+
 ### `editor.wrap-lines` [#editorwrap-lines]
 
 mantıksal — varsayılan `true`

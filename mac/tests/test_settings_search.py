@@ -51,6 +51,7 @@ CONFIGURATION_ITEMS = {
     "terminal.cursor-blinking": ("appearance", "Blink cursor", "Cursor"),
     "terminal.background-opacity": ("appearance", "Opacity", "Background"),
     "terminal.background-blur": ("appearance", "Blur behind window", "Background"),
+    "terminal.padding-color": ("appearance", "Padding color", "Background"),
     "terminal.auto-profiles": ("terminal", "Apply terminal profiles automatically", "Terminal Profiles"),
     "terminal.text-hints": ("terminal", "Show terminal text hints", "Input"),
     "terminal.shell-completions": ("terminal", "Shell completions", "Input"),
@@ -249,7 +250,7 @@ class SettingsSearchTests(unittest.TestCase):
             if not (resources / f"{language}.lproj").is_dir():
                 raise AssertionError(f"missing compiled {language} resources")
         metadata = root / "SearchMetadata.swift"
-        metadata.write_text("import Foundation\n" + "\n".join([
+        metadata.write_text("import AppKit\nimport Foundation\n" + "\n".join([
             metadata_enum((sources / "Settings/SettingsWindowController.swift").read_text(),
                           "SettingsCategory", "    func makePane()"),
             metadata_enum((sources / "Theme.swift").read_text(), "AppTheme", "    var nsAppearance:"),
@@ -259,6 +260,8 @@ class SettingsSearchTests(unittest.TestCase):
                           "TerminalBackend", "    var settingsHighlights:"),
             metadata_enum((sources / "ApplicationPresenceController.swift").read_text(),
                           "ApplicationPresence", "\n}"),
+            metadata_enum((sources / "AppSettings.swift").read_text(),
+                          "TerminalPaddingColor", "    var ghosttyValue:"),
         ]))
         harness = root / "Harness.swift"
         harness.write_text(HARNESS)

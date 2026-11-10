@@ -133,6 +133,12 @@ Nhân chiều cao ô tự nhiên của từng backend, giữ ký tự ở giữa
 
 Zshell không cung cấp điều khiển trọng lượng phông cơ sở. Ghostty chọn kiểu có tên hoặc trục biến thiên, còn Alacritty/CoreText chọn regular/bold theo thuộc tính; một giá trị chung không thể giữ nhất quán phân biệt thường/đậm hay trọng lượng dự phòng giữa phông tĩnh và biến thiên.
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+Chọn **Cài đặt → Giao diện → Nền → Màu lề**. `"background"` dùng nền chủ đề terminal cho lề. `"extend"` mở rộng nền của ô gần nhất, nhưng giữ nền chủ đề ở lề trên hoặc dưới nếu hàng đó có ô nền mặc định, dấu nhắc shell hoặc dấu phân cách Powerline. `"always"` mở rộng mọi cạnh mà không kiểm tra các điều kiện này. Các hàng trống dưới cùng giữ nền riêng; hàng có màu phía trên không lấp đầy lề dưới. Thay đổi có hiệu lực ngay với terminal đang mở của cả hai backend. Khi dùng nền trong mờ, nền mặc định giữ độ đục đã đặt, còn nền ô được đặt rõ ràng và phần mở rộng vẫn hoàn toàn đục.
+
 ### `editor.wrap-lines` [#editorwrap-lines]
 
 boolean — mặc định `true`

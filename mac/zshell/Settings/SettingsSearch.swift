@@ -111,6 +111,10 @@ enum SettingsSearchIndex {
             item(.appearance, String(localized: "Opacity"), section: background,
                  description: String(localized: "Terminal background opacity"),
                  keywords: "terminal.background-opacity"),
+            item(.appearance, String(localized: "Padding color"), section: background,
+                 description: String(localized: "Automatic keeps prompts and partially colored rows from extending vertically. Always extends every edge."),
+                 keywords: "terminal.padding-color window-padding-color "
+                    + TerminalPaddingColor.allCases.map(\.title).joined(separator: " ")),
             item(.terminal, String(localized: "Show terminal text hints"), section: input,
                  keywords: "terminal.text-hints text suggestion overlay"),
             item(.terminal, String(localized: "Vim command hints"), section: input, keywords: "terminal.vim-command-hints Neovim SSH"),

@@ -172,6 +172,12 @@ or variation axes while Alacritty/CoreText resolves regular and bold faces by
 traits; a single shared value would not preserve regular/bold distinction or
 fallback weights consistently across static and variable fonts.
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+Choose **Settings → Appearance → Background → Padding color**. `"background"` uses the terminal theme background in the padding. `"extend"` extends the nearest cell background, but keeps the top or bottom padding on the theme background when that row contains a default-background cell, a shell prompt, or a Powerline separator. `"always"` extends every edge without those checks. Blank bottom rows remain on their own background; a colored row above them does not fill the bottom padding. Changes apply immediately to open terminals with both backends. With translucency, default backgrounds keep their opacity while explicit cell backgrounds and their extensions remain opaque.
+
 ### `editor.wrap-lines`
 
 boolean — default `true`

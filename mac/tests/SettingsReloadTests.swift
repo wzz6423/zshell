@@ -97,6 +97,13 @@ struct SettingsReloadTests {
               && settings.notifyOnAgentCompletion && settings.showPullRequestStatus,
               "feature switches preserve existing behavior by default")
         check(settings.isAtDefaults, "fresh settings expose the correct reset state")
+        check(settings.terminalPaddingColor == .extend, "padding keeps automatic extension by default")
+        settings.terminalPaddingColor = .background
+        check(!settings.isAtDefaults, "padding policy enables reset")
+        check(settings.serializedConfig().contains("terminal.padding-color = \"background\""),
+              "padding policy persists")
+        settings.terminalPaddingColor = .extend
+        check(settings.isAtDefaults, "default padding restores reset state")
         check(settings.keepAwakeMode == .off, "sleep prevention is off by default")
         settings.keepAwakeMode = .whileRunning
         check(!settings.isAtDefaults, "sleep prevention enables reset")
@@ -162,6 +169,7 @@ struct SettingsReloadTests {
         terminal.focus-follows-mouse = true
         terminal.background-opacity = 0.6
         terminal.background-blur = true
+        terminal.padding-color = "always"
         terminal.notify-finish-seconds = 30
         terminal.notify-on-error = true
         terminal.command-history = false
@@ -206,6 +214,7 @@ struct SettingsReloadTests {
         check(settings.terminalProfiles.first?.launchSettings.environment["MODE"] == "profile",
               "profile launch settings round trip through config")
         let roundTrip = TOML.parseStrictly(text: imported).values
+        check(settings.terminalPaddingColor == .always, "import applies padding policy")
         check(settings.focusFollowsMouse && !settings.isAtDefaults, "pointer focus imports and changes default state")
         check(GitProxy.address == "socks5h://127.0.0.1:1080", "imported Git proxy reaches Git processes")
         for (key, value) in parsed.values {
@@ -242,6 +251,15 @@ struct SettingsReloadTests {
         wait({ settings.fontSize == 20 }, "external font edit applies")
         check(changes == unchanged + 1, "single setting edit publishes once")
         check(try SettingsConfigFile.read(at: url) == changed, "external update does not rewrite source")
+        let paddingChanged = changed.replacingOccurrences(of: "terminal.padding-color = \"always\"",
+                                                         with: "terminal.padding-color = \"background\"")
+        try paddingChanged.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalPaddingColor == .background }, "external padding edit applies")
+        check(try SettingsConfigFile.read(at: url) == paddingChanged, "padding reload preserves source")
+        let paddingInvalid = changed.replacingOccurrences(of: "terminal.padding-color = \"always\"",
+                                                         with: "terminal.padding-color = \"invalid\"")
+        try paddingInvalid.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalPaddingColor == .extend }, "invalid padding policy falls back to automatic")
         for invalid in ["font-size = 23\nunfinished", "font-size = 23\ntheme = \"dark\" junk", "font-size = 23\n[]", "font-size = 23\nsidebar.font-size = nan"] {
             try invalid.write(to: url, atomically: true, encoding: .utf8)
             spin(0.6)
@@ -281,6 +299,7 @@ struct SettingsReloadTests {
 
         settings.resetToDefaults()
         check(settings.isAtDefaults, "reset covers every configurable preference")
+        check(settings.terminalPaddingColor == .extend, "reset restores automatic padding")
         let featureSwitches: [ReferenceWritableKeyPath<AppSettings, Bool>] = [
             \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints,
             \.automaticallyApplyTerminalProfiles, \.notifyOnAgentAttention,

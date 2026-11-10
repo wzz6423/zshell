@@ -326,7 +326,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         presentationCoverLayer.removeFromSuperlayer()
         let frozenLayer = CALayer()
         frozenLayer.isOpaque = false
-        frozenLayer.backgroundColor = terminalBackgroundColor
+        // The retained drawable already contains the translucent theme clear.
+        frozenLayer.backgroundColor = lastPresentedSurface == nil ? terminalBackgroundColor : nil
         frozenLayer.contents = lastPresentedSurface
         frozenLayer.contentsScale = lastPresentedScale
             ?? window?.backingScaleFactor
@@ -808,6 +809,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             padding: Self.padding,
             scale: scale,
             backgroundOpacity: backgroundOpacity,
+            paddingColor: AppSettings.shared.terminalPaddingColor,
             dirtyRows: dirtyRows,
             in: drawable,
             viewportSize: size,

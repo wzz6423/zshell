@@ -67,6 +67,14 @@ final class TerminalCallbackBridge {
             TerminalDebugLog.log(.actions, "callback action=config_change")
             onRenderRequest?()
 
+        case GHOSTTY_ACTION_COLOR_CHANGE:
+            let color = action.action.color_change
+            guard color.kind == GHOSTTY_ACTION_COLOR_KIND_BACKGROUND,
+                  let delegate = delegate as? any TerminalSurfaceBackgroundColorDelegate else { return false }
+            delegate.terminalDidChangeBackgroundColor(red: color.r, green: color.g, blue: color.b)
+            onRenderRequest?()
+            return true
+
         case GHOSTTY_ACTION_PROGRESS_REPORT:
             let report = action.action.progress_report
             let state = TerminalProgressState(report.state) ?? .set

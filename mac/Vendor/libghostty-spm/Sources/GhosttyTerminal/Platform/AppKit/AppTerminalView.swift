@@ -117,6 +117,7 @@
                 guard let self else { return }
                 enforceMetalLayerScale()
                 reattachPresentationCoverIfNeeded()
+                didRender()
             }
             core.onMouseShapeChange = { [weak self] shape in
                 self?.applyMouseShape(shape)
@@ -128,6 +129,9 @@
                 self?.restoreRendererTargets()
             }
         }
+
+        /// Hosts may update their compositor after Ghostty replaces its backing layer.
+        open func didRender() {}
 
         open func selectionMenuPoint(at point: CGPoint) -> CGPoint? {
             guard surface?.hasSelection() == true else {
