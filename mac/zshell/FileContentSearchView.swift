@@ -118,6 +118,8 @@ final class FileContentSearchPanel: NSView {
         scrollView.hasVerticalScroller = true
         scrollView.drawsBackground = false
         scrollView.documentView = tableView
+        tableView.dataSource = self
+        tableView.delegate = self
         // A single click on a row opens the hit, the same way the file tree
         // opens a file; arrow-key selection stays non-committal.
         tableView.target = self
