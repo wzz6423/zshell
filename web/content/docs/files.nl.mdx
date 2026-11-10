@@ -24,6 +24,14 @@ Klik op een bestand om het in het deelvenster met focus te openen. Klik met de r
 
 Rijen gebruiken Material-pictogrammen die bij de bestandsnaam passen. In een Git-repository hebben gewijzigde paden ook statuskleuren en badges, terwijl genegeerde bestanden gedimd zijn. Zo toont de boom dezelfde worktreestatus als het Git-paneel zonder dat je dat hoeft te openen.
 
+## Bestanden en mappen importeren [#import-files-and-folders]
+
+Kies **Bestand → Bestanden importeren…**, de importknop in het Bestanden-paneel of de optie in het contextmenu van een map. Selecteer meerdere bestanden of mappen; Zshell kopieert ze naar die map of de huidige hoofdmap van de boom en behoudt de originelen.
+
+Schakel **Instellingen → Editor → Bestanden → Importeren door naar de bestandsboom te slepen** (`files.drag-import`) in om Finder-onderdelen op een map of de lege ruimte in de boom neer te zetten. Dit staat standaard uit. Het menu blijft beschikbaar.
+
+Bij bestaande namen kiest u **Vervangen**, **Overslaan** of **Annuleren**. Een map wordt geheel vervangen; de inhoud wordt niet samengevoegd. Annuleren stopt de hele import en herstelt al toegevoegde kopieën. Als een ander programma een onderdeel vóór het herstel verandert, behoudt Zshell die wijziging en toont het de locatie van de bewaarde kopieën. SSH-bomen accepteren geen lokale imports. Symbolische koppelingen worden als koppelingen gekopieerd zonder het doel te volgen.
+
 ## Bestanden vinden en inhoud doorzoeken [#find-files-and-search-contents]
 
 Het opdrachtenpalet (<kbd>Cmd</kbd>+<kbd>P</kbd>) vindt bestanden op naam of pad in de lokale projecten die in het huidige venster open zijn, naast opdrachten en geopende sessies. Als je een bestand selecteert, wisselt Zshell naar het bijbehorende project en opent het daar.

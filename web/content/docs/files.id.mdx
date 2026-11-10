@@ -24,6 +24,14 @@ Klik berkas untuk membukanya dalam panel aktif. Klik kanan untuk tindakan lainny
 
 Baris memakai ikon Material sesuai nama berkas. Dalam repositori Git, jalur yang berubah memakai warna dan lencana status, sedangkan berkas yang diabaikan diredupkan. Pohon menampilkan keadaan pohon kerja yang sama dengan panel Git tanpa harus membukanya.
 
+## Mengimpor berkas dan folder [#import-files-and-folders]
+
+Pilih **Berkas → Impor Berkas…**, tombol impor di panel Berkas, atau pilihan tersebut dari menu klik kanan folder. Pilih beberapa berkas atau folder; Zshell menyalinnya ke folder tersebut atau akar pohon saat ini sambil mempertahankan aslinya.
+
+Untuk menjatuhkan item Finder ke folder atau area kosong pohon, aktifkan **Pengaturan → Editor → Berkas → Impor dengan menyeret ke pohon berkas** (`files.drag-import`). Opsi ini nonaktif secara bawaan. Menu tetap tersedia.
+
+Nama yang sudah ada menawarkan **Ganti**, **Lewati**, dan **Batal**. Mengganti folder mengganti seluruh folder tanpa menggabungkan isinya. Membatalkan menghentikan seluruh impor dan memulihkan salinan yang telah ditambahkan. Jika program lain mengubah item sebelum dipulihkan, Zshell mempertahankan perubahan dan menunjukkan lokasi salinan tersimpan. Pohon SSH tidak menerima impor lokal. Tautan simbolis disalin sebagai tautan tanpa mengikuti targetnya.
+
 ## Cari berkas dan isi [#find-files-and-search-contents]
 
 Palet perintah (<kbd>Cmd</kbd>+<kbd>P</kbd>) menemukan berkas menurut nama atau jalur di proyek lokal yang terbuka pada jendela saat ini, bersama perintah dan sesi terbuka. Memilih berkas berpindah ke proyeknya dan membukanya di sana.

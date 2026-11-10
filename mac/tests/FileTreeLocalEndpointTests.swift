@@ -56,6 +56,8 @@ struct PaneTab {
     var selectedProject: Project?
     var panelTab = RightPanel.files
     let fileContentSearch = ContentSearchFixture()
+    let fileTree = FileTreeModel()
+    var fileTreeImportDirectory: String?
 }
 
 @MainActor final class SessionInfoModel {
@@ -75,7 +77,7 @@ struct PaneTab {
 
 @MainActor final class SidebarFixture {
     let manager = ManagerFixture()
-    let fileTree = FileTreeModel()
+    var fileTree: FileTreeModel { manager.fileTree }
     let info = SessionInfoModel()
     var rootSource = Project.PanelRootSource.shell
 }

@@ -24,6 +24,14 @@ Cliquez sur un fichier pour l'ouvrir dans le volet actif. Les autres actions son
 
 Les lignes utilisent des icônes Material adaptées aux noms de fichiers. Dans un dépôt Git, les chemins modifiés portent également des couleurs et des badges d'état, tandis que les fichiers ignorés sont atténués. L'arborescence reflète ainsi le même état de l'arbre de travail que le panneau Git.
 
+## Importer des fichiers et dossiers [#import-files-and-folders]
+
+Choisissez **Fichier → Importer des fichiers…**, le bouton d’importation du panneau Fichiers, ou cette commande dans le menu contextuel d’un dossier. Sélectionnez plusieurs fichiers ou dossiers : Zshell les copie dans le dossier choisi ou à la racine actuelle, en conservant les originaux.
+
+Pour déposer des éléments du Finder sur un dossier ou dans l’espace vide de l’arborescence, activez **Réglages → Éditeur → Fichiers → Importer en glissant dans l’arborescence** (`files.drag-import`). Cette option est désactivée par défaut ; le menu reste disponible.
+
+Les noms existants proposent **Remplacer**, **Ignorer** ou **Annuler**. Un dossier est remplacé entièrement, sans fusion de son contenu. Annuler arrête toute l’importation et restaure les copies déjà ajoutées. Si un autre programme modifie un élément avant sa restauration, Zshell préserve cette modification et indique l’emplacement des copies sauvegardées. Les arborescences SSH n’acceptent pas d’importation locale. Les liens symboliques sont copiés comme liens, sans suivre leur cible.
+
 ## Trouver des fichiers et rechercher leur contenu [#find-files-and-search-contents]
 
 La palette de commandes (<kbd>Cmd</kbd>+<kbd>P</kbd>) recherche des fichiers par nom ou par chemin dans les projets locaux ouverts de la fenêtre actuelle, ainsi que des commandes et des sessions. Sélectionner un fichier active son projet et l'y ouvre.

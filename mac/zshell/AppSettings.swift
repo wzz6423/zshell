@@ -314,6 +314,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var fileTreeDragImport: Bool {
+        didSet { save() }
+    }
+
     /// Soft-wrap file editor lines to the viewport width. Off by default so
     /// long lines scroll horizontally.
     @Published var wrapLines: Bool {
@@ -565,6 +569,7 @@ final class AppSettings: nonisolated ObservableObject {
         terminalBell = toml["terminal.bell"]?.bool ?? true
         shiftEnterNewline = toml["terminal.shift-enter-newline"]?.bool ?? true
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
+        fileTreeDragImport = toml["files.drag-import"]?.bool ?? false
         externalEditor = ExternalEditor.persisted(
             toml["editor.external-editor"]?.string
         )
@@ -736,6 +741,7 @@ final class AppSettings: nonisolated ObservableObject {
             && terminalTextHints
             && shiftEnterNewline
             && wrapLines
+            && !fileTreeDragImport
             && externalEditor == .systemDefault
             && restoreTerminalHistory
             && !preserveTerminalSessions
@@ -790,6 +796,7 @@ final class AppSettings: nonisolated ObservableObject {
         terminalTextHints = true
         shiftEnterNewline = true
         wrapLines = true
+        fileTreeDragImport = false
         externalEditor = .systemDefault
         restoreTerminalHistory = true
         preserveTerminalSessions = false
@@ -976,6 +983,7 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.terminalTextHints, toml["terminal.text-hints"]?.bool ?? true)
         assign(\.shiftEnterNewline, toml["terminal.shift-enter-newline"]?.bool ?? true)
         assign(\.wrapLines, toml["editor.wrap-lines"]?.bool ?? true)
+        assign(\.fileTreeDragImport, toml["files.drag-import"]?.bool ?? false)
         assign(\.externalEditor, ExternalEditor.persisted(toml["editor.external-editor"]?.string))
         assign(\.restoreTerminalHistory, toml["terminal.restore-history"]?.bool ?? false)
         assign(\.preserveTerminalSessions, toml["terminal.preserve-sessions"]?.bool ?? false)
@@ -1185,6 +1193,7 @@ final class AppSettings: nonisolated ObservableObject {
         if !wrapLines {
             lines.append("editor.wrap-lines = false")
         }
+        if fileTreeDragImport { lines.append("files.drag-import = true") }
         if externalEditor != .systemDefault {
             lines.append("editor.external-editor = \(TOML.quote(externalEditor.rawValue))")
         }

@@ -119,6 +119,17 @@ struct SettingsReloadTests {
         settings.applyImported(completionConfig)
         check(settings.shellCompletions, "import restores the completion preference")
         check(settings.isAtDefaults, "restored completions restore default state")
+        settings.fileTreeDragImport = true
+        check(!settings.isAtDefaults, "enabled file import enables reset")
+        wait({ (try? String(contentsOf: url, encoding: .utf8))?.contains("files.drag-import = true") == true },
+             "file import preference persists")
+        var importConfig = TOML.parse(at: url) ?? [:]
+        importConfig["files.drag-import"] = .bool(false)
+        settings.applyImported(importConfig)
+        check(!settings.fileTreeDragImport && settings.isAtDefaults, "import restores disabled file drag setting")
+        settings.fileTreeDragImport = true
+        settings.resetToDefaults()
+        check(!settings.fileTreeDragImport && settings.isAtDefaults, "reset disables file drag import")
         settings.commandShortcuts[.newSession] = CommandShortcut(persistedValue: "u7a:cmd+shift")!
         check(!settings.isAtDefaults, "shortcut overrides enable reset")
         settings.resetCommandShortcuts()

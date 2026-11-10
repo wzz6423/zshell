@@ -24,6 +24,14 @@ Clique em um arquivo para abri-lo no painel em foco. Clique com o botão direito
 
 As linhas usam ícones Material conforme o nome do arquivo. Em um repositório Git, caminhos alterados também exibem cores e indicadores de estado; arquivos ignorados aparecem atenuados. A árvore mostra o mesmo estado do worktree que o painel Git, sem precisar abri-lo.
 
+## Importar arquivos e pastas [#import-files-and-folders]
+
+Escolha **Arquivo → Importar arquivos…**, o botão de importação do painel Arquivos ou a opção no menu de contexto de uma pasta. Selecione vários arquivos ou pastas; o Zshell os copia para a pasta escolhida ou a raiz atual da árvore, mantendo os originais.
+
+Para soltar itens do Finder em uma pasta ou na área vazia da árvore, ative **Ajustes → Editor → Arquivos → Importar ao arrastar para a árvore de arquivos** (`files.drag-import`). A opção vem desativada. O menu continua disponível.
+
+Nomes existentes oferecem **Substituir**, **Ignorar** e **Cancelar**. A substituição troca a pasta inteira, sem mesclar seu conteúdo. Cancelar interrompe toda a importação e restaura as cópias já adicionadas. Se outro programa alterar um item antes da restauração, o Zshell preserva a alteração e mostra onde recuperar as cópias salvas. Árvores SSH não aceitam importação local. Links simbólicos são copiados como links, sem seguir o destino.
+
 ## Encontrar arquivos e buscar conteúdo [#find-files-and-search-contents]
 
 A paleta de comandos (<kbd>Cmd</kbd>+<kbd>P</kbd>) encontra arquivos por nome ou caminho entre os projetos locais abertos na janela atual, junto com comandos e sessões abertas. Selecionar um arquivo alterna para seu projeto e o abre lá.

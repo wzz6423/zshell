@@ -25,11 +25,14 @@ def compile_probe(directory, sidebar_source=None):
     start = remote.index("nonisolated struct SSHEndpoint:")
     endpoint = remote[start:remote.index("\n}", start) + len("\n}")]
     manager = (ROOT / "mac/zshell/TerminalManager.swift").read_text()
+    start = manager.index("    func syncFileTree() {")
+    tree_sync = manager[start:manager.index("\n    }", start) + len("\n    }")]
     start = manager.index("enum RightPanel:")
     panels = manager[start:manager.index("\n}", start) + len("\n}")]
     support = directory / "ProductionRoute.swift"
     support.write_text("import AppKit\nimport Foundation\n" + endpoint + "\n" + panels
                        + "\nextension Project {\n" + selected_session + "\n" + roots + "}\n"
+                       + "extension ManagerFixture {\n" + tree_sync + "\n}\n"
                        + "extension SidebarFixture {\n"
                        + "    func refresh() { syncModels() }\n" + refresh + "\n}\n")
     binary = directory / "file-tree-endpoint-probe"

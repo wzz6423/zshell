@@ -18,6 +18,9 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Import Finder files and folders into a local project from the File menu or
+  by enabling drag-and-drop import in Settings. Choose whether to replace or
+  skip existing items, and cancel an import without leaving partial copies.
 - Keep the Mac awake while Zshell is running or while a local agent works in
   any terminal pane. Choose the mode from Settings or the application menu;
   displays and manual sleep keep following macOS settings.
