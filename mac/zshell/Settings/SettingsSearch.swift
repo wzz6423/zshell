@@ -101,6 +101,10 @@ enum SettingsSearchIndex {
                 String(localized: "Startup program"), String(localized: "Startup arguments"),
             ].joined(separator: " "), keywords: "terminal.startup-program terminal.startup-arguments"),
             item(.terminal, String(localized: "Workspace Templates…"), keywords: "workspace templates startup layout"),
+            item(.terminal, String(localized: "New session directory"), description: [
+                String(localized: "Applies to new local sessions. Explicit, pinned, and group directories take precedence; splits keep their source directory."),
+                NewSessionDirectoryPolicy.allCases.map(\.title).joined(separator: " "),
+            ].joined(separator: " "), keywords: "terminal.new-session-directory terminal.custom-directory cwd folder home project"),
             item(.terminal, String(localized: "Apply terminal profiles automatically"), section: profiles,
                  keywords: "terminal.auto-profiles automatic profiles detection"),
             item(.terminal, String(localized: "Manage Terminal Profiles…"), section: profiles, keywords: "profiles theme font startup"),

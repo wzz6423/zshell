@@ -149,6 +149,20 @@ Escolhem o executável e vetor de argumentos para terminais criados depois da al
 
 `terminal.startup-arguments` é dividido em argumentos sem invocar um shell. Aspas e barras invertidas preservam os limites, inclusive espaços e argumentos vazios, mas variáveis, globs e substituições de comandos não são expandidos. Aspas inválidas também retornam ao shell de login. Um argv explícito fornecido pelo CLI Zshell ainda tem prioridade naquele terminal.
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — padrão `"current"`
+
+Escolha **Ajustes → Terminal → Diretório de novas sessões**. Atual usa o diretório do shell local ativo, inclusive no primeiro terminal de um novo projeto. Sem shell local, usa a pasta pessoal. Projeto usa a raiz mostrada em Arquivos e Git (o repositório mais próximo ou o checkout em primeiro plano); fora de um repositório, usa o diretório atual. Pessoal sempre usa a pasta da conta. A regra também vale para o primeiro Terminal rápido e cada novo espaço do Terminal rápido.
+
+Diretórios explícitos do Finder, CLI, modelos de espaço de trabalho, worktrees, sessões restauradas, pastas fixadas ao projeto ou grupos da barra lateral têm prioridade. Divisões mantêm o diretório do painel de origem. SSH e sessões remotas compartilhadas mantêm o diretório do host remoto. Alterar o ajuste não reinicia terminais abertos nem espaços reutilizados do Terminal rápido.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+texto — padrão `""`
+
+Na regra personalizada, informe um caminho absoluto ou `~/folder`, ou escolha uma pasta nos Ajustes. Zshell verifica se a pasta existe e permite acesso. Uma pasta ausente, inacessível ou inválida usa como alternativa o diretório local atual (a pasta pessoal quando não houver um); os Ajustes mostram o motivo. O caminho salvo é mantido ao escolher outra regra.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — padrão `"libghostty"`

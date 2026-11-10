@@ -190,6 +190,20 @@ regular/bold 区分及后备字体字重。
 包括含空格和空字符串的参数，但不会展开变量、通配符或命令替换。引号不完整时也会回退到
 登录 Shell。Zshell CLI 为单个终端显式传入的 argv 仍然优先。
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — 默认 `"current"`
+
+在**设置 → 终端 → 新会话目录**中选择。当前目录使用活跃本地 shell 的目录，新项目的首个终端也会继承；没有本地 shell 时使用主目录。项目目录使用文件和 Git 面板显示的根目录（最近的仓库或前台任务使用的检出目录），不在仓库内时使用当前目录。主目录始终使用账户主目录。同一策略也适用于首次打开快速终端和每次新建快速终端工作区。
+
+Finder、CLI、工作区模板、worktree、恢复会话、项目固定目录或侧栏组指定的目录优先。分屏保留源面板的目录。SSH 和共享远程会话继续使用远程主机上的目录。更改设置不会重启已打开的终端或复用的快速终端工作区。
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+字符串 — 默认 `""`
+
+使用自定义策略时输入绝对路径或 `~/folder`，也可在设置中选择文件夹。Zshell 会检查文件夹是否存在且可进入。自定义文件夹不存在、无法访问或格式无效时，回退到当前本地目录（无本地上下文时为主目录），并在设置中显示原因。切换其他策略时保留已保存的路径。
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"`——默认 `"libghostty"`

@@ -46,6 +46,8 @@ CONFIGURATION_ITEMS = {
     "panes.focus-ring-opacity": ("appearance", "Opacity", "Panes"),
     "terminal.startup-program": ("terminal", "Startup", ""),
     "terminal.startup-arguments": ("terminal", "Startup", ""),
+    "terminal.new-session-directory": ("terminal", "New session directory", ""),
+    "terminal.custom-directory": ("terminal", "New session directory", ""),
     "terminal.backend": ("terminal", "Backend", ""),
     "terminal.cursor-shape": ("appearance", "Cursor shape", "Cursor"),
     "terminal.cursor-blinking": ("appearance", "Blink cursor", "Cursor"),
@@ -249,7 +251,7 @@ class SettingsSearchTests(unittest.TestCase):
             if not (resources / f"{language}.lproj").is_dir():
                 raise AssertionError(f"missing compiled {language} resources")
         metadata = root / "SearchMetadata.swift"
-        metadata.write_text("import Foundation\n" + "\n".join([
+        metadata.write_text("import AppKit\n" + "\n".join([
             metadata_enum((sources / "Settings/SettingsWindowController.swift").read_text(),
                           "SettingsCategory", "    func makePane()"),
             metadata_enum((sources / "Theme.swift").read_text(), "AppTheme", "    var nsAppearance:"),
@@ -266,6 +268,7 @@ class SettingsSearchTests(unittest.TestCase):
             "swiftc", "-parse-as-library", "-module-cache-path", str(root / "modules"),
             str(sources / "AppLocalization.swift"), str(sources / "RecommendedTool.swift"),
             str(sources / "KeepAwakeMode.swift"),
+            str(sources / "TerminalSessionDirectory.swift"),
             str(sources / "Settings/SettingsSearch.swift"),
             str(sources / "Settings/SettingsVisibility.swift"), str(metadata), str(harness),
             "-o", str(cls.binary),

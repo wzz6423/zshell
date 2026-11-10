@@ -12,6 +12,10 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         AppSettings.shared.terminalStartupArguments = arguments
     }
     private let backendPicker = SettingsBackendPicker { AppSettings.shared.terminalBackend = $0 }
+    private let directoryView = TerminalSessionDirectorySettingsView { policy, directory in
+        AppSettings.shared.newSessionDirectoryPolicy = policy
+        AppSettings.shared.newSessionCustomDirectory = directory
+    }
 
     private let automaticProfilesSwitch = SettingsSwitch { AppSettings.shared.automaticallyApplyTerminalProfiles = $0 }
     private let commandHistorySwitch = SettingsSwitch { AppSettings.shared.commandHistoryEnabled = $0 }
@@ -90,6 +94,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
 
     override func makeGroups() -> [NSView] {
         var startupRows: [NSView] = [
+            SettingsCustomRow(directoryView),
             SettingsRow(
                 title: String(localized: "Startup"),
                 description: String(localized: "Changes apply only to new terminals. Open terminals keep their current process."),
@@ -198,6 +203,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
             program: settings.terminalStartupProgram,
             arguments: settings.terminalStartupArguments
         )
+        directoryView.apply(policy: settings.newSessionDirectoryPolicy, directory: settings.newSessionCustomDirectory)
         backendPicker.select(settings.terminalBackend)
         automaticProfilesSwitch.isOn = settings.automaticallyApplyTerminalProfiles
         commandHistorySwitch.isOn = settings.commandHistoryEnabled
