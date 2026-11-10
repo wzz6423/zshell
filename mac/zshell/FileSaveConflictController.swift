@@ -71,6 +71,7 @@ final class FileSaveConflictController: NSObject {
         let accessory = NSStackView(views: [compareButton])
         accessory.orientation = .vertical
         accessory.alignment = .leading
+        accessory.setFrameSize(accessory.fittingSize)
         alert.accessoryView = accessory
     }
 
@@ -84,7 +85,7 @@ final class FileSaveConflictController: NSObject {
 
     @objc private func compare() {
         guard let accessory = alert.accessoryView as? NSStackView,
-              accessory.arrangedSubviews.count == 1 else { return }
+              accessory.arrangedSubviews.first === compareButton else { return }
         let diskText: String
         if conflict.current.isMissing {
             diskText = String(localized: "The file was deleted.")
@@ -106,17 +107,38 @@ final class FileSaveConflictController: NSObject {
         for column in comparison.arrangedSubviews {
             column.heightAnchor.constraint(equalTo: comparison.heightAnchor).isActive = true
         }
-        accessory.addArrangedSubview(comparison)
+        let screen = alert.window.screen ?? NSScreen.main
+        let available = screen?.visibleFrame.insetBy(dx: 16, dy: 16)
+        let width = comparison.widthAnchor.constraint(equalToConstant: min(660, max(240, (available?.width ?? 692) - 32)))
+        let height = comparison.heightAnchor.constraint(equalToConstant: 280)
         NSLayoutConstraint.activate([
-            comparison.widthAnchor.constraint(equalToConstant: 660),
-            comparison.heightAnchor.constraint(equalToConstant: 280),
+            width,
+            height,
         ])
-        compareButton.isHidden = true
+        accessory.removeArrangedSubview(compareButton)
+        compareButton.removeFromSuperview()
+        accessory.addArrangedSubview(comparison)
+        layoutAccessory()
+        if let available {
+            height.constant = min(height.constant, max(80, available.height - alert.window.frame.height + height.constant))
+            layoutAccessory()
+            let frame = alert.window.frame
+            alert.window.setFrameOrigin(NSPoint(
+                x: min(max(frame.minX, available.minX), available.maxX - frame.width),
+                y: min(max(frame.minY, available.minY), available.maxY - frame.height)
+            ))
+        }
+    }
+
+    private func layoutAccessory() {
+        // NSAlert measures the accessory's frame before laying out its constraints.
+        alert.accessoryView?.setFrameSize(alert.accessoryView?.fittingSize ?? .zero)
         alert.layout()
+        alert.window.contentView?.layoutSubtreeIfNeeded()
     }
 
     private func preview(title: String, text: String) -> NSView {
-        let label = NSTextField(labelWithString: title)
+        let label = NSTextField(wrappingLabelWithString: title)
         label.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
         let scroll = NSScrollView()
         scroll.borderType = .bezelBorder
@@ -141,6 +163,7 @@ final class FileSaveConflictController: NSObject {
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 6
+        label.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         scroll.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         label.setContentHuggingPriority(.required, for: .vertical)
         return stack

@@ -33,6 +33,69 @@ struct FileTabSaveTests {
         PaneContent.file(file).save()
     }
 
+    @MainActor private static func compareLayout(path: URL) throws {
+        let disk = (0..<300).map { "\($0) disk 中文 👩🏽‍💻 " + String(repeating: "長😀", count: 80) }.joined(separator: "\n")
+        let draft = (0..<320).map { "\($0) draft 中文 👩🏽‍💻 " + String(repeating: "長😀", count: 90) }.joined(separator: "\n")
+        try disk.write(to: path, atomically: true, encoding: .utf8)
+        let conflict = FileSaveCoordinator.Conflict(path: path.path, current: try FileSaveCoordinator.read(path: path.path))
+        let controller = FileSaveConflictController(conflict: conflict, draft: draft)
+        let alert = Mirror(reflecting: controller).children.first { $0.label == "alert" }!.value as! NSAlert
+        func descendants<T: NSView>(_ view: NSView, _ type: T.Type) -> [T] {
+            [view as? T].compactMap { $0 } + view.subviews.flatMap { descendants($0, type) }
+        }
+        alert.layout()
+        descendants(alert.accessoryView!, NSButton.self).first!.performClick(nil)
+        let root = alert.window.contentView!
+        root.layoutSubtreeIfNeeded()
+        let accessory = alert.accessoryView!
+        let scrolls = descendants(accessory, NSScrollView.self)
+        try check(scrolls.count == 2, "Compare creates both native previews")
+        if let screen = NSScreen.main {
+            try check(alert.window.frame.width <= screen.visibleFrame.width
+                      && alert.window.frame.height <= screen.visibleFrame.height,
+                      "comparison window fits the available screen")
+        }
+        for (index, scroll) in scrolls.enumerated() {
+            var ancestor = scroll.superview
+            var contained = true
+            while let current = ancestor {
+                contained = contained && current.bounds.contains(scroll.convert(scroll.bounds, to: current))
+                if current === root { break }
+                ancestor = current.superview
+            }
+            try check(contained && ancestor === root && scroll.bounds.width > 80 && scroll.bounds.height > 20,
+                      "comparison preview \(index) fits every ancestor and the window content")
+            let editor = scroll.documentView as! NSTextView
+            try check(!editor.isEditable && scroll.hasVerticalScroller && scroll.hasHorizontalScroller,
+                      "comparison preview \(index) remains read-only with both scroll axes")
+            try check(editor.string == [disk, draft][index], "comparison preview \(index) preserves Unicode text")
+            let layout = editor.layoutManager!
+            layout.ensureLayout(for: editor.textContainer!)
+            let used = layout.usedRect(for: editor.textContainer!)
+            try check(editor.bounds.width + 0.5 >= used.maxX + editor.textContainerInset.width
+                      && editor.bounds.height + 0.5 >= used.maxY + editor.textContainerInset.height,
+                      "comparison preview \(index) document includes all long content")
+            editor.scrollRangeToVisible(NSRange(location: (editor.string as NSString).length - 2, length: 2))
+            try check(scroll.contentView.bounds.maxY >= used.maxY - 20,
+                      "comparison preview \(index) reaches the final line")
+            scroll.contentView.scroll(to: NSPoint(x: editor.frame.maxX, y: editor.frame.maxY))
+            scroll.reflectScrolledClipView(scroll.contentView)
+            try check(scroll.contentView.bounds.maxX + 0.5 >= used.maxX,
+                      "comparison preview \(index) reaches the long-line end")
+        }
+        let comparison = accessory.convert(accessory.bounds, to: root)
+        try check(alert.buttons.allSatisfy {
+            let frame = $0.convert($0.bounds, to: root)
+            return root.bounds.contains(frame) && !frame.intersects(comparison)
+        }, "comparison keeps all save actions visible outside the previews")
+        let headings = descendants(root, NSTextField.self).filter { !$0.isDescendant(of: accessory) }
+        try check(!headings.isEmpty && headings.allSatisfy {
+            let frame = $0.convert($0.bounds, to: root)
+            return root.bounds.contains(frame) && !frame.intersects(comparison)
+        }, "comparison keeps the alert title and explanation visible")
+        try check(descendants(accessory, NSButton.self).isEmpty, "Compare removes its original button")
+    }
+
     @MainActor static func main() async {
         setbuf(stdout, nil)
         NSApplication.shared.setActivationPolicy(.prohibited)
@@ -51,6 +114,7 @@ struct FileTabSaveTests {
         let fm = FileManager.default
         let settings = AppSettings.shared
         try check(settings.protectEditorSaves, "save conflict protection is enabled by default")
+        try compareLayout(path: root.appendingPathComponent("comparison.txt"))
         // Preserve the existing symlink behavior checks with protection disabled.
         settings.protectEditorSaves = false
         func write(_ name: String, _ text: String = "before") throws -> URL {

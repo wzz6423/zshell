@@ -130,7 +130,7 @@ nonisolated enum FileSaveCoordinator {
         }
         if current.data == data { return .saved(current) }
         // Recheck immediately before the atomic replacement, including symlink
-        // resolution. Filesystem writes by other processes do not share our lock.
+        // resolution. A process can still write after this check and be overwritten.
         let latest = try read(path: path, captureBytes: protectionEnabled)
         if protectionEnabled, !latest.matches(current) {
             return .conflict(Conflict(path: path, current: latest))
