@@ -38,6 +38,62 @@ private func ms(_ start: ContinuousClock.Instant) -> Double {
     fatalError("localListings not found")
 }
 
+@MainActor private func draftCreationSafety(in root: URL) async throws {
+    let fm = FileManager.default
+    try fm.createDirectory(at: root, withIntermediateDirectories: true)
+    let existingFile = root.appendingPathComponent("existing.txt")
+    let existingDirectory = root.appendingPathComponent("existing-folder", isDirectory: true)
+    let contents = Data("Keep the existing contents.".utf8)
+    try contents.write(to: existingFile)
+    try fm.createDirectory(at: existingDirectory, withIntermediateDirectories: false)
+    let child = existingDirectory.appendingPathComponent("child.txt")
+    try contents.write(to: child)
+    let danglingLink = root.appendingPathComponent("dangling-link")
+    let missingTarget = root.appendingPathComponent("missing-target")
+    let fileLink = root.appendingPathComponent("file-link")
+    let directoryLink = root.appendingPathComponent("directory-link")
+    for (link, target) in [(danglingLink, missingTarget), (fileLink, existingFile), (directoryLink, existingDirectory)] {
+        try fm.createSymbolicLink(at: link, withDestinationURL: target)
+    }
+    try require(!fm.fileExists(atPath: danglingLink.path), "Dangling symlink bypasses the existence precheck")
+
+    let model = FileTreeModel()
+    model.sync(root: root.path)
+    try await eventually("creation safety fixture") { model.items.count == 5 && !isRefreshing(model) }
+    for path in [existingFile, existingDirectory, danglingLink, fileLink, directoryLink] {
+        model.beginNewFile(in: root.path)
+        try require(model.items.first?.isDraft == true, "Collision draft visible immediately")
+        try require(model.commitDraft(name: path.lastPathComponent) == nil, "Existing path must not count as a created file: \(path.lastPathComponent)")
+        try require(model.draft == nil && !model.items.contains(where: \.isDraft), "Rejected creation clears the inline draft")
+        try require(model.commitDraft(name: "ignored.txt") == nil, "Blur after submission cannot create another file")
+        try await eventually("rejected creation refresh") { !isRefreshing(model) }
+        try require(!model.items.contains(where: \.isDraft), "An older refresh cannot restore the rejected draft")
+    }
+    let savedFileContents = try Data(contentsOf: existingFile)
+    let savedChildContents = try Data(contentsOf: child)
+    try require(savedFileContents == contents, "Existing file contents preserved")
+    try require(savedChildContents == contents, "Existing directory contents preserved")
+    for (link, target) in [(danglingLink, missingTarget), (fileLink, existingFile), (directoryLink, existingDirectory)] {
+        let destination = try fm.destinationOfSymbolicLink(atPath: link.path)
+        try require(destination == target.path, "Existing symbolic link preserved")
+    }
+    try require(!fm.fileExists(atPath: missingTarget.path), "Creation cannot create a dangling link's target")
+    try require(!fm.fileExists(atPath: root.appendingPathComponent("ignored.txt").path), "Repeated draft submission is a no-op")
+
+    model.beginNewFile(in: root.path)
+    let created = root.appendingPathComponent("new.txt")
+    try require(model.commitDraft(name: " new.txt ") == created.path, "Normal creation returns the trimmed path")
+    let createdContents = try Data(contentsOf: created)
+    try require(createdContents.isEmpty, "Normal creation produces an empty file")
+    try require(model.draft == nil && !model.items.contains(where: \.isDraft), "Normal creation clears the draft immediately")
+    try await eventually("successful creation safety refresh") { model.items.contains { $0.path == created.path } && !isRefreshing(model) }
+    model.beginNewFolder(in: root.path)
+    let createdFolder = root.appendingPathComponent("new-folder")
+    try require(model.commitDraft(name: createdFolder.lastPathComponent) == nil, "Folder creation returns no file path")
+    try await eventually("normal folder creation") { model.items.contains { $0.path == createdFolder.path && $0.isDirectory } && !isRefreshing(model) }
+    print("PASS exclusive file creation: existing file/directory, dangling/live symbolic links, contents preserved, normal file/folder creation, inline draft cleared")
+}
+
 @MainActor private final class Heartbeat {
     var maximumGap = 0.0
     var count = 0
@@ -63,6 +119,7 @@ private func ms(_ start: ContinuousClock.Instant) -> Double {
         let root = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
         try fm.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: root) }
+        try await draftCreationSafety(in: root.appendingPathComponent("creation-safety", isDirectory: true))
         let large = root.appendingPathComponent("large", isDirectory: true)
         let small = root.appendingPathComponent("small", isDirectory: true)
         let nested = small.appendingPathComponent("folder2", isDirectory: true)
