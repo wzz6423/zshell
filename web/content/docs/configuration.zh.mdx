@@ -156,6 +156,12 @@ regular/bold 区分及后备字体字重。
 在[文件编辑器](/docs/files)里按窗格宽度软折行。关闭时长行横向滚动；它不会改变终端或 diff
 里的折行行为。
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+布尔值——默认 `false`
+
+在**设置 → 编辑器 → 按 Diff 宽度换行**或 Diff 工具栏的换行按钮中切换。长行会按窗格宽度折行，适用于单栏和左右对照布局、可编辑的工作区改动、历史 Diff 和 PR 评论。选择立即同步到所有已打开的 Diff，并在重启后保留。关闭后恢复横向滚动。它独立于文件编辑器和终端的换行设置。
+
 <span id="终端" data-canonical-heading="terminal" />
 
 ## 终端 [#terminal]
@@ -313,6 +319,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

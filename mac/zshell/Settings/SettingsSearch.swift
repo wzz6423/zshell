@@ -140,6 +140,7 @@ enum SettingsSearchIndex {
             item(.terminal, String(localized: "Enable Quick Terminal"), section: quickTerminal, keywords: "quick-terminal.enabled"),
             item(.editor, String(localized: "External editor"), keywords: "editor.external-editor"),
             item(.editor, String(localized: "Wrap lines to editor width"), keywords: "editor.wrap-lines"),
+            item(.editor, String(localized: "Wrap lines to diff width"), keywords: "editor.diff-wrap-lines diff word wrap horizontal scrolling"),
             item(.automation, String(localized: "AI"),
                  description: String(localized: "Lets agents delegate work and coordinate across Zshell panes"),
                  keywords: "ai.enabled Claude Codex"),

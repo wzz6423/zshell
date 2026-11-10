@@ -320,6 +320,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var diffWrapLines: Bool {
+        didSet { save() }
+    }
+
     @Published var externalEditor: ExternalEditor {
         didSet { save() }
     }
@@ -565,6 +569,7 @@ final class AppSettings: nonisolated ObservableObject {
         terminalBell = toml["terminal.bell"]?.bool ?? true
         shiftEnterNewline = toml["terminal.shift-enter-newline"]?.bool ?? true
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
+        diffWrapLines = toml["editor.diff-wrap-lines"]?.bool ?? false
         externalEditor = ExternalEditor.persisted(
             toml["editor.external-editor"]?.string
         )
@@ -736,6 +741,7 @@ final class AppSettings: nonisolated ObservableObject {
             && terminalTextHints
             && shiftEnterNewline
             && wrapLines
+            && !diffWrapLines
             && externalEditor == .systemDefault
             && restoreTerminalHistory
             && !preserveTerminalSessions
@@ -790,6 +796,7 @@ final class AppSettings: nonisolated ObservableObject {
         terminalTextHints = true
         shiftEnterNewline = true
         wrapLines = true
+        diffWrapLines = false
         externalEditor = .systemDefault
         restoreTerminalHistory = true
         preserveTerminalSessions = false
@@ -976,6 +983,7 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.terminalTextHints, toml["terminal.text-hints"]?.bool ?? true)
         assign(\.shiftEnterNewline, toml["terminal.shift-enter-newline"]?.bool ?? true)
         assign(\.wrapLines, toml["editor.wrap-lines"]?.bool ?? true)
+        assign(\.diffWrapLines, toml["editor.diff-wrap-lines"]?.bool ?? false)
         assign(\.externalEditor, ExternalEditor.persisted(toml["editor.external-editor"]?.string))
         assign(\.restoreTerminalHistory, toml["terminal.restore-history"]?.bool ?? false)
         assign(\.preserveTerminalSessions, toml["terminal.preserve-sessions"]?.bool ?? false)
@@ -1184,6 +1192,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if !wrapLines {
             lines.append("editor.wrap-lines = false")
+        }
+        if diffWrapLines {
+            lines.append("editor.diff-wrap-lines = true")
         }
         if externalEditor != .systemDefault {
             lines.append("editor.external-editor = \(TOML.quote(externalEditor.rawValue))")

@@ -149,6 +149,12 @@ Ghostty は名前付きスタイルや可変軸を選び、Alacritty／CoreText 
 [ファイルエディタ](/ja/docs/files)で長い行をペイン幅に折り返します。
 false なら横スクロールします。ターミナルや差分の折り返しは変わりません。
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+真偽値 — 既定値 `false`
+
+**設定 → エディタ → 差分の幅で行を折り返す**、または差分ツールバーの折り返しボタンで切り替えます。統合・分割表示、編集可能な作業ツリーの変更、過去の差分、PR コメントで、長い行をペインの幅に折り返します。開いているすべての差分にすぐ適用され、再起動後も保存されます。オフにすると横スクロールに戻ります。ファイルエディタやターミナルの折り返し設定とは独立しています。
+
 ## ターミナル [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
@@ -282,6 +288,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

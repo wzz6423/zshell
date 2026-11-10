@@ -139,6 +139,12 @@ Boolean — bawaan `true`
 
 Membungkus baris panjang sesuai lebar panel dalam [editor berkas](/id/docs/files). Jika false, baris panjang digulir horizontal. Pembungkusan terminal dan perbedaan tidak berubah.
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+Boolean — bawaan `false`
+
+**Pengaturan → Editor → Bungkus baris sesuai lebar diff** dan tombol pembungkus pada bilah diff mengatur opsi yang sama. Baris panjang mengikuti lebar panel pada tampilan terpadu dan terpisah, perubahan yang dapat diedit, diff historis, dan komentar PR. Pilihan langsung berlaku untuk semua diff terbuka dan tersimpan setelah aplikasi dibuka ulang. Menonaktifkannya mengembalikan gulir horizontal. Pembungkusan editor berkas dan terminal diatur terpisah.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
@@ -261,6 +267,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

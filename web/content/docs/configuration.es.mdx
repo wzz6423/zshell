@@ -139,6 +139,12 @@ booleano — predeterminado: `true`
 
 Ajusta visualmente las líneas largas al ancho del panel en el [editor de archivos](/es/docs/files). Con false, las líneas largas se desplazan horizontalmente. No cambia el ajuste de líneas de un terminal ni de una vista de diferencias.
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+booleano — predeterminado: `false`
+
+**Ajustes → Editor → Ajustar líneas al ancho de la diferencia** y el botón de ajuste de la barra de diferencias controlan la misma opción. Las líneas largas se adaptan al ancho del panel en las vistas unificada y dividida, cambios editables, diferencias históricas y comentarios de PR. Se aplica inmediatamente a todas las diferencias abiertas y se conserva al reiniciar. Desactivarlo restaura el desplazamiento horizontal. Es independiente del ajuste del editor de archivos y del terminal.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
@@ -262,6 +268,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

@@ -148,6 +148,12 @@ regular/bold 區分及後備字型字重。
 在[檔案編輯器](/zh-Hant/docs/files)裡按窗格寬度軟折行。關閉時長行橫向捲動；它不會改變終端機或 diff
 裡的折行行為。
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+布林值——預設 `false`
+
+在**設定 → 編輯器 → 按 Diff 寬度換行**或 Diff 工具列的換行按鈕中切換。長行會按窗格寬度折行，適用於單欄和左右對照佈局、可編輯的工作區變更、歷史 Diff 和 PR 評論。選擇立即同步到所有已開啟的 Diff，並在重新啟動後保留。關閉後恢復橫向捲動。它獨立於檔案編輯器和終端機的換行設定。
+
 ## 終端機 [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
@@ -277,6 +283,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

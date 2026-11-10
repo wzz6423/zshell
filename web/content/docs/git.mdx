@@ -60,12 +60,14 @@ itself, editable) or **Open File to the Side**.
 Large diffs stay responsive. A changeset with a thousand files in it opens as
 fast as a one-line one, and scrolls without stutter.
 
-The controls above a diff remember two choices globally:
+The controls above a diff remember your choices globally:
 
 - **Unified / Split** changes between one-column and side-by-side layout.
 - **Review / Edit** appears for an unstaged file in the live worktree. Edit the
   new side directly and save with <kbd>Cmd</kbd>+<kbd>S</kbd>; dirty-file close
   handling is the same as in the normal editor.
+
+Use the **Wrap lines to diff width** toolbar button to read long lines without horizontal scrolling. The same switch is in **Settings → Editor** (`editor.diff-wrap-lines`, default `false`). It applies to all open and new diffs, including historical commits, editable changes, and PR comments; changing it preserves your edit draft.
 
 Staged and historical commit diffs stay read-only, because they are snapshots
 rather than files Zshell can safely write. Switching one diff to Edit or Split

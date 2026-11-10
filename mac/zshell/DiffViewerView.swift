@@ -64,7 +64,7 @@ final class DiffWebModel: nonisolated ObservableObject {
     @Published var canEdit = false
     @Published var annotations: [DiffAnnotation] = []
     @Published var oldFileName: String?
-    @Published var overflowMode: OverflowMode = .scroll
+    var overflowMode: OverflowMode { AppSettings.shared.diffWrapLines ? .wrap : .scroll }
     var onFileEditChange: ((String, String) -> Void)?
     var onFileEditComplete: ((String, String) -> Void)?
     var onAnnotationClick: ((String) -> Void)?
@@ -820,6 +820,7 @@ private final class DiffWebHostingView: NSView {
             model.objectWillChange.sink { [weak self] _ in self?.scheduleUpdate() },
             AppSettings.shared.$fontFamily.removeDuplicates().sink { [weak self] _ in self?.scheduleUpdate() },
             AppSettings.shared.$fontSize.removeDuplicates().sink { [weak self] _ in self?.scheduleUpdate() },
+            AppSettings.shared.$diffWrapLines.removeDuplicates().sink { [weak self] _ in self?.scheduleUpdate() },
             DiffViewPreferences.shared.objectWillChange.sink { [weak self] _ in self?.scheduleUpdate() },
         ]
         updateRenderer()
@@ -1095,6 +1096,7 @@ final class DiffViewerNSView: NSView {
             diff.pullRequestWeb.objectWillChange.sink { [weak self] _ in self?.scheduleUpdate() },
             DiffViewPreferences.shared.objectWillChange.sink { [weak self] _ in self?.scheduleUpdate() },
             DiffReviewStore.shared.objectWillChange.sink { [weak self] _ in self?.scheduleUpdate() },
+            AppSettings.shared.$diffWrapLines.removeDuplicates().sink { [weak self] _ in self?.scheduleUpdate() },
             NotificationCenter.default.publisher(for: AppLocalization.didChange)
                 .sink { [weak self] _ in self?.scheduleUpdate() },
             Timer.publish(every: 60, on: .main, in: .common).autoconnect().sink { [weak self] _ in
@@ -1155,6 +1157,7 @@ final class DiffViewerNSView: NSView {
         let prMode = diff.showsPullRequestComments
         let snapshot = prMode ? nil : diff.reviewSnapshot
         controls.update(diffStyle: diff.diffStyle,
+            wrapsLines: AppSettings.shared.diffWrapLines,
             isEditing: diff.isEditable && DiffViewPreferences.shared.prefersEditing,
             canEdit: diff.isEditable && !prMode,
             showsLayout: prMode || diff.imageComparison == nil,
@@ -1164,6 +1167,7 @@ final class DiffViewerNSView: NSView {
             showsComments: prMode,
             reviewActionsAvailable: prMode && { if case .ready = diff.pullRequestReviewState { true } else { false } }(),
             onDiffStyleChange: { [weak diff] in diff?.setDiffStyle($0) },
+            onWrapLinesChange: { AppSettings.shared.diffWrapLines = $0 },
             onEditingChange: { [weak diff] in diff?.setEditing($0) },
             onReviewChange: { reviewed in
                 guard let snapshot else { return }
@@ -1278,6 +1282,8 @@ private final class DiffControlsNSView: NSView {
     private let commentsButton = NSButton(title: "", target: nil, action: nil)
     private let refreshButton = WorkspaceChromeButton(symbol: "arrow.clockwise", label: "")
     private let pullRequestReviewButton = WorkspaceChromeButton(symbol: "checkmark.bubble", label: "")
+    private let wrapLinesButton = WorkspaceChromeButton(symbol: "text.wordwrap", label: "")
+    private let optionsButton = WorkspaceChromeButton(symbol: "ellipsis", label: "")
     private let leadingControls = NSStackView()
     private let trailingControls = NSStackView()
     private let modeControl = NSSegmentedControl(
@@ -1300,6 +1306,7 @@ private final class DiffControlsNSView: NSView {
     )
     private let divider = NSView()
     private var onDiffStyleChange: ((DiffStyle) -> Void)?
+    private var onWrapLinesChange: ((Bool) -> Void)?
     private var onEditingChange: ((Bool) -> Void)?
     private var onReviewChange: ((Bool) -> Void)?
     private var onComments: (() -> Void)?
@@ -1307,6 +1314,8 @@ private final class DiffControlsNSView: NSView {
     private var onPullRequestReview: (() -> Void)?
     private var reviewTitle = ""
     private var commentsTitle = ""
+    private var canEdit = false
+    private var showsLayout = true
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -1336,6 +1345,15 @@ private final class DiffControlsNSView: NSView {
             control.controlSize = .small
             trailingControls.addArrangedSubview(control)
         }
+        trailingControls.addArrangedSubview(optionsButton)
+        trailingControls.addArrangedSubview(wrapLinesButton)
+        optionsButton.isHidden = true
+        optionsButton.onAction = { [weak self] in self?.showOptions() }
+        wrapLinesButton.setButtonType(.pushOnPushOff)
+        wrapLinesButton.onAction = { [weak self] in
+            guard let self else { return }
+            self.onWrapLinesChange?(self.wrapLinesButton.state == .on)
+        }
         modeControl.target = self
         modeControl.action = #selector(modeChanged)
         modeControl.setAccessibilityLabel(String(localized: "Diff Mode"))
@@ -1355,6 +1373,10 @@ private final class DiffControlsNSView: NSView {
             refreshButton.heightAnchor.constraint(equalToConstant: 24),
             pullRequestReviewButton.widthAnchor.constraint(equalToConstant: 24),
             pullRequestReviewButton.heightAnchor.constraint(equalToConstant: 24),
+            wrapLinesButton.widthAnchor.constraint(equalToConstant: 24),
+            wrapLinesButton.heightAnchor.constraint(equalToConstant: 24),
+            optionsButton.widthAnchor.constraint(equalToConstant: 24),
+            optionsButton.heightAnchor.constraint(equalToConstant: 24),
             trailingControls.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
             trailingControls.centerYAnchor.constraint(equalTo: centerYAnchor),
             divider.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -1371,6 +1393,7 @@ private final class DiffControlsNSView: NSView {
 
     func update(
         diffStyle: DiffStyle,
+        wrapsLines: Bool,
         isEditing: Bool,
         canEdit: Bool,
         showsLayout: Bool,
@@ -1380,13 +1403,17 @@ private final class DiffControlsNSView: NSView {
         showsComments: Bool,
         reviewActionsAvailable: Bool,
         onDiffStyleChange: @escaping (DiffStyle) -> Void,
+        onWrapLinesChange: @escaping (Bool) -> Void,
         onEditingChange: @escaping (Bool) -> Void,
         onReviewChange: @escaping (Bool) -> Void,
         onComments: @escaping () -> Void,
         onRefreshComments: @escaping () -> Void,
         onPullRequestReview: @escaping () -> Void
     ) {
+        self.canEdit = canEdit
+        self.showsLayout = showsLayout
         self.onDiffStyleChange = onDiffStyleChange
+        self.onWrapLinesChange = onWrapLinesChange
         self.onEditingChange = onEditingChange
         self.onReviewChange = onReviewChange
         self.onComments = onComments
@@ -1417,6 +1444,12 @@ private final class DiffControlsNSView: NSView {
         layoutControl.selectedSegment = diffStyle == .split ? 1 : 0
         modeControl.isHidden = !canEdit
         layoutControl.isHidden = !showsLayout
+        wrapLinesButton.isHidden = !showsLayout
+        wrapLinesButton.configure(symbol: "text.wordwrap", label: String(localized: "Wrap lines to diff width"))
+        wrapLinesButton.state = wrapsLines ? .on : .off
+        wrapLinesButton.contentTintColor = wrapsLines ? .controlAccentColor : .secondaryLabelColor
+        wrapLinesButton.setAccessibilityValue(wrapsLines ? 1 : 0)
+        optionsButton.configure(symbol: "ellipsis", label: String(localized: "Diff Options"))
         modeControl.setEnabled(canEdit, forSegment: 1)
         modeControl.selectedSegment = canEdit && isEditing ? 1 : 0
         needsLayout = true
@@ -1427,14 +1460,42 @@ private final class DiffControlsNSView: NSView {
         func width(_ title: String, hidden: Bool) -> CGFloat {
             hidden ? 0 : (title as NSString).size(withAttributes: [.font: font]).width + 32
         }
+        let segments: [(NSSegmentedControl, [String], [String])] = [
+            (modeControl, [String(localized: "Review"), String(localized: "Edit")], ["eye", "pencil"]),
+            (layoutControl, [String(localized: "Unified"), String(localized: "Split")], ["rectangle", "rectangle.split.2x1"]),
+        ]
+        let trailingWidth = segments.reduce(CGFloat(0)) { total, entry in
+            let available = entry.0 === modeControl ? canEdit : showsLayout
+            return total + (available ? entry.1.reduce(CGFloat(0)) { $0 + width($1, hidden: false) } + 8 : 0)
+        } + (wrapLinesButton.isHidden ? 0 : 32)
         let expandedWidth = width(reviewTitle, hidden: reviewButton.isHidden)
             + width(commentsTitle, hidden: commentsButton.isHidden)
             + (refreshButton.isHidden ? 0 : 32) + (pullRequestReviewButton.isHidden ? 0 : 32)
-            + trailingControls.fittingSize.width + 36
+            + trailingWidth + 36
         let compact = bounds.width < expandedWidth
         let review = compact ? "" : reviewTitle, comments = compact ? "" : commentsTitle
         if reviewButton.title != review { reviewButton.title = review }
         if commentsButton.title != comments { commentsButton.title = comments }
+        let compactLeadingWidth: CGFloat = (reviewButton.isHidden ? 0 : 32) + (commentsButton.isHidden ? 0 : 32)
+            + (refreshButton.isHidden ? 0 : 32) + (pullRequestReviewButton.isHidden ? 0 : 32)
+        let compactSegments = bounds.width < compactLeadingWidth + trailingWidth + 36
+        for (control, titles, symbols) in segments {
+            for index in titles.indices {
+                let title = compactSegments ? "" : titles[index]
+                if control.label(forSegment: index) != title { control.setLabel(title, forSegment: index) }
+                control.setImage(compactSegments ? NSImage(systemSymbolName: symbols[index], accessibilityDescription: titles[index]) : nil,
+                    forSegment: index)
+                control.setWidth(compactSegments ? 24 : 0, forSegment: index)
+                control.setToolTip(titles[index], forSegment: index)
+            }
+        }
+        let minimumWidth = compactLeadingWidth + (canEdit ? 68 : 0) + (showsLayout ? 68 : 0)
+            + (wrapLinesButton.isHidden ? 0 : 32) + 36
+        let usesMenu = bounds.width < minimumWidth
+        leadingControls.isHidden = usesMenu
+        modeControl.isHidden = !canEdit || usesMenu
+        layoutControl.isHidden = !showsLayout || usesMenu
+        optionsButton.isHidden = !usesMenu
         super.layout()
     }
 
@@ -1466,4 +1527,43 @@ private final class DiffControlsNSView: NSView {
     }
 
     @objc private func commentsClicked() { onComments?() }
+
+    private func showOptions() {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        func item(_ title: String, tag: Int, checked: Bool = false, enabled: Bool = true) {
+            let item = NSMenuItem(title: title, action: #selector(optionSelected(_:)), keyEquivalent: "")
+            item.target = self
+            item.tag = tag
+            item.state = checked ? .on : .off
+            item.isEnabled = enabled
+            menu.addItem(item)
+        }
+        if !reviewButton.isHidden { item(reviewTitle, tag: 0, checked: reviewButton.accessibilityValue() as? String == String(localized: "Reviewed")) }
+        if !commentsButton.isHidden { item(commentsTitle, tag: 1) }
+        if !refreshButton.isHidden { item(String(localized: "Refresh PR Comments"), tag: 2) }
+        if !pullRequestReviewButton.isHidden { item(String(localized: "Review Pull Request…"), tag: 3, enabled: pullRequestReviewButton.isEnabled) }
+        if !menu.items.isEmpty && (canEdit || showsLayout) { menu.addItem(.separator()) }
+        if canEdit {
+            item(String(localized: "Review"), tag: 4, checked: modeControl.selectedSegment == 0)
+            item(String(localized: "Edit"), tag: 5, checked: modeControl.selectedSegment == 1)
+        }
+        if showsLayout {
+            item(String(localized: "Unified"), tag: 6, checked: layoutControl.selectedSegment == 0)
+            item(String(localized: "Split"), tag: 7, checked: layoutControl.selectedSegment == 1)
+        }
+        menu.popUp(positioning: nil, at: .zero, in: optionsButton)
+    }
+
+    @objc private func optionSelected(_ item: NSMenuItem) {
+        switch item.tag {
+        case 0: reviewButton.performClick(nil)
+        case 1: onComments?()
+        case 2: onRefreshComments?()
+        case 3: onPullRequestReview?()
+        case 4, 5: onEditingChange?(item.tag == 5)
+        case 6, 7: onDiffStyleChange?(item.tag == 7 ? .split : .unified)
+        default: break
+        }
+    }
 }

@@ -139,6 +139,12 @@ booleano — predefinito `true`
 
 Manda a capo visivamente le righe lunghe alla larghezza del pannello nell'[editor di file](/it/docs/files). Se disattivato, le righe lunghe scorrono orizzontalmente. Non modifica l'andata a capo in terminali o diff.
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+booleano — predefinito `false`
+
+**Impostazioni → Editor → Adatta le righe alla larghezza del diff** e il pulsante di ritorno a capo nella barra del diff controllano la stessa opzione. Le righe lunghe seguono la larghezza del pannello nelle viste unificata e divisa, nelle modifiche editabili, nei diff storici e nei commenti PR. La scelta si applica subito a tutti i diff aperti e resta salvata dopo il riavvio. Disattivandola si ripristina lo scorrimento orizzontale. Il ritorno a capo dell’editor di file e del terminale è indipendente.
+
 ## Terminale [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
@@ -261,6 +267,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

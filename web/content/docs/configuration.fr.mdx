@@ -139,6 +139,12 @@ Booléen — valeur par défaut : `true`
 
 Adapte les longues lignes à la largeur du volet dans l'[éditeur de fichiers](/fr/docs/files). La valeur `false` active le défilement horizontal. Cette option ne change pas les retours à la ligne du terminal ni des diffs.
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+Booléen — valeur par défaut : `false`
+
+**Réglages → Éditeur → Renvoyer les lignes à la largeur du diff** et le bouton de retour à la ligne de la barre du diff contrôlent la même option. Les longues lignes suivent la largeur du volet dans les vues unifiée et séparée, les modifications éditables, les diffs historiques et les commentaires de PR. Le choix s’applique immédiatement à tous les diffs ouverts et reste enregistré après redémarrage. Le désactiver rétablit le défilement horizontal. Les retours à la ligne de l’éditeur de fichiers et du terminal restent indépendants.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
@@ -261,6 +267,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

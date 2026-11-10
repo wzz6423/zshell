@@ -139,6 +139,12 @@ Booleaans — standaard `true`
 
 Breekt lange regels visueel af op de deelvensterbreedte in de [bestandseditor](/nl/docs/files). Bij false scrollen lange regels horizontaal. Dit verandert regelafbreking in terminals of diffs niet.
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+boolean — standaard `false`
+
+**Instellingen → Editor → Regels afbreken op diffbreedte** en de afbreekknop in de diffwerkbalk bedienen dezelfde optie. Lange regels passen zich aan de breedte van het paneel aan in gecombineerde en gesplitste weergaven, bewerkbare wijzigingen, historische diffs en PR-opmerkingen. Dit geldt direct voor alle open diffs en blijft na herstart behouden. Uitschakelen herstelt horizontaal scrollen. Afbreken in de bestandseditor en terminal staat hier los van.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
@@ -261,6 +267,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

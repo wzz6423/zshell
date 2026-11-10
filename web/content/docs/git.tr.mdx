@@ -39,10 +39,12 @@ Değişmiş dosyaya tıklamak farkını terminalin üstüne değil, yanındaki b
 
 Büyük farklar da akıcıdır. Bin dosyalık değişiklik kümesi tek satırlık kadar hızlı açılır ve takılmadan kaydırılır.
 
-Fark üstündeki denetimler iki tercihi uygulama genelinde hatırlar:
+Fark üstündeki denetimler tercihlerinizi uygulama genelinde hatırlar:
 
 - **Birleşik / Yan Yana**, tek sütun ve karşılıklı görünüm arasında geçer.
 - **İncele / Düzenle**, canlı çalışma ağacındaki hazırlanmamış dosyalarda görünür. Yeni tarafı doğrudan düzenleyip <kbd>Cmd</kbd>+<kbd>S</kbd> ile kaydedin; kaydedilmemiş dosyayı kapatma davranışı normal düzenleyiciyle aynıdır.
+
+Araç çubuğundaki **Satırları fark genişliğine kaydır** ile uzun satırları yatay kaydırmadan okuyun. Aynı anahtar **Ayarlar → Düzenleyici** altında bulunur (`editor.diff-wrap-lines`, varsayılan `false`). Geçmiş commitler, düzenlenebilir değişiklikler ve PR yorumları dahil açık ve yeni tüm farklara uygulanır ve düzenleme taslağını korur.
 
 Hazırlanmış ve geçmiş commit farkları salt okunurdur; bunlar Zshell’in güvenle yazabileceği dosyalar değil, anlık görüntülerdir. Bir farkı Düzenle veya Yan Yana yapmak diğer açık farkların tercihini günceller ama uygun olmayan farkları düzenlenebilir yapmaz.
 

@@ -139,6 +139,12 @@ Boolescher Wert – Standard: `true`
 
 Bricht lange Zeilen im [Dateieditor](/de/docs/files) an der Bereichsbreite optisch um. Bei `false` scrollen lange Zeilen horizontal. Der Umbruch in Terminal und Diff wird nicht verändert.
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+Boolescher Wert – Standard: `false`
+
+**Einstellungen → Editor → Zeilen an Diffbreite umbrechen** und die Umbruchschaltfläche in der Diff-Werkzeugleiste steuern dieselbe Option. Lange Zeilen werden in einspaltigen und geteilten Ansichten, bearbeitbaren Änderungen, historischen Diffs und PR-Kommentaren an die Bereichsbreite angepasst. Die Auswahl gilt sofort für alle offenen Diffs und bleibt nach Neustarts erhalten. Ausschalten stellt horizontales Scrollen wieder her. Datei-Editor und Terminal behalten ihre eigenen Umbrucheinstellungen.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
@@ -261,6 +267,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

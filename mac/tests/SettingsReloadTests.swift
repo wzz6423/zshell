@@ -155,6 +155,7 @@ struct SettingsReloadTests {
         terminal.vim-command-hints = true
         terminal.shift-enter-newline = false
         editor.wrap-lines = false
+        editor.diff-wrap-lines = true
         editor.external-editor = "zed"
         terminal.restore-history = true
         terminal.preserve-sessions = true
@@ -207,6 +208,7 @@ struct SettingsReloadTests {
               "profile launch settings round trip through config")
         let roundTrip = TOML.parseStrictly(text: imported).values
         check(settings.focusFollowsMouse && !settings.isAtDefaults, "pointer focus imports and changes default state")
+        check(settings.diffWrapLines, "diff line wrapping imports through production settings")
         check(GitProxy.address == "socks5h://127.0.0.1:1080", "imported Git proxy reaches Git processes")
         for (key, value) in parsed.values {
             check(roundTrip[key] == value, "all persisted keys import and serialize: \(key)")
@@ -271,6 +273,7 @@ struct SettingsReloadTests {
         check(!settings.vimCommandHints && !settings.restoreTerminalHistory && !settings.notifyOnError,
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
+        check(!settings.diffWrapLines, "diff line wrapping resets when its external config key is omitted")
         check(!settings.gitProxyEnabled && settings.gitProxyAddress == GitProxy.defaultAddress && GitProxy.address == nil,
               "Git proxy resets to off with the default address prefilled")
         check(try SettingsConfigFile.read(at: url) == "", "default reload leaves empty source unchanged")
@@ -281,6 +284,10 @@ struct SettingsReloadTests {
 
         settings.resetToDefaults()
         check(settings.isAtDefaults, "reset covers every configurable preference")
+        settings.diffWrapLines = true
+        check(!settings.isAtDefaults, "diff line wrapping enables reset")
+        settings.resetToDefaults()
+        check(!settings.diffWrapLines && settings.isAtDefaults, "reset restores horizontal diff scrolling")
         let featureSwitches: [ReferenceWritableKeyPath<AppSettings, Bool>] = [
             \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints,
             \.automaticallyApplyTerminalProfiles, \.notifyOnAgentAttention,

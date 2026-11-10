@@ -139,6 +139,12 @@ mantıksal — varsayılan `true`
 
 [Dosya düzenleyicisinde](/tr/docs/files) uzun satırları bölme genişliğine sarar. `false` ise yatay kaydırılır. Terminal veya fark satır sarmasını değiştirmez.
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+mantıksal — varsayılan `false`
+
+**Ayarlar → Düzenleyici → Satırları fark genişliğine kaydır** ve fark araç çubuğundaki satır kaydırma düğmesi aynı seçeneği denetler. Uzun satırlar birleşik ve bölünmüş görünümlerde, düzenlenebilir değişikliklerde, geçmiş farklarda ve PR yorumlarında bölme genişliğine kaydırılır. Seçim açık tüm farklara hemen uygulanır ve yeniden başlatmada korunur. Kapatmak yatay kaydırmayı geri getirir. Dosya düzenleyicisi ve terminal satır kaydırmasından bağımsızdır.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
@@ -261,6 +267,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```
