@@ -24,6 +24,23 @@ enum SettingsMetrics {
     static let sidebarSymbolWidth: CGFloat = 24
 }
 
+enum SettingsIconColors {
+    static func color(for symbolName: String) -> NSColor {
+        if let category = SettingsCategory.allCases.first(where: { $0.symbolName == symbolName }) {
+            return category.iconColor
+        }
+        switch symbolName {
+        case "app": return SettingsCategory.appearance.iconColor
+        case "terminal": return SettingsCategory.terminal.iconColor
+        case "macwindow": return SettingsCategory.general.iconColor
+        case "menubar.rectangle": return .systemOrange
+        case "link", "network": return .systemTeal
+        case "hand.raised.fill": return .systemRed
+        default: return SettingsCategory.general.iconColor
+        }
+    }
+}
+
 // MARK: - Chrome
 
 /// A hairline. Drawn rather than layer-filled so it re-resolves whenever the

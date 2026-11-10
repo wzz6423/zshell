@@ -10,7 +10,7 @@ import AppKit
 final class SettingsRow: NSView {
     private let descriptionLabel: NSTextField?
 
-    init(title: String, description: String? = nil, control: NSView, symbolName: String? = nil) {
+    init(title: String, description: String? = nil, control: NSView, symbolName: String? = nil, symbolColor: NSColor? = nil) {
         let titleLabel = NSTextField(wrappingLabelWithString: title)
         titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize)
         titleLabel.maximumNumberOfLines = 0
@@ -39,7 +39,12 @@ final class SettingsRow: NSView {
         super.init(frame: .zero)
 
         var views: [NSView] = [textStack, control]
-        if let symbolName { views.insert(SettingsRowSymbolView(symbolName: symbolName), at: 0) }
+        if let symbolName {
+            views.insert(SettingsRowSymbolView(
+                symbolName: symbolName,
+                color: symbolColor ?? SettingsIconColors.color(for: symbolName)
+            ), at: 0)
+        }
         let stack = NSStackView(views: views)
         stack.orientation = .horizontal
         stack.alignment = control is NSControl || description == nil ? .centerY : .top
@@ -74,14 +79,17 @@ final class SettingsRow: NSView {
 }
 
 private final class SettingsRowSymbolView: NSView {
-    init(symbolName: String) {
+    private let color: NSColor
+
+    init(symbolName: String, color: NSColor) {
+        self.color = color
         super.init(frame: .zero)
 
         let symbol = NSImageView(image: NSImage(
             systemSymbolName: symbolName,
             accessibilityDescription: nil
         )?.withSymbolConfiguration(.init(pointSize: 17, weight: .regular)) ?? NSImage())
-        symbol.contentTintColor = .controlAccentColor
+        symbol.contentTintColor = .white
         symbol.imageScaling = .scaleProportionallyDown
         symbol.setAccessibilityElement(false)
         symbol.translatesAutoresizingMaskIntoConstraints = false
@@ -103,7 +111,7 @@ private final class SettingsRowSymbolView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        NSColor.controlAccentColor.withAlphaComponent(0.12).setFill()
+        color.setFill()
         NSBezierPath(roundedRect: bounds, xRadius: 8, yRadius: 8).fill()
     }
 
