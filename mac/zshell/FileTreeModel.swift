@@ -422,13 +422,23 @@ final class FileTreeModel: nonisolated ObservableObject {
             } catch {
                 presentError(String(localized: "Couldn’t create the folder."), error.localizedDescription)
             }
-        } else if fm.createFile(atPath: dest, contents: nil) {
-            createdFile = dest
         } else {
-            presentError(
-                String(localized: "Couldn’t create the file."),
-                String(localized: "It could not be written to disk.")
-            )
+            // The existence check misses dangling symlinks and can race with other writers.
+            let descriptor = Darwin.open(dest, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0o666)
+            if descriptor >= 0 {
+                Darwin.close(descriptor)
+                createdFile = dest
+            } else if errno == EEXIST {
+                presentError(
+                    String(localized: "Couldn’t create “\(trimmed)”."),
+                    String(localized: "An item named “\(trimmed)” already exists here.")
+                )
+            } else {
+                presentError(
+                    String(localized: "Couldn’t create the file."),
+                    String(localized: "It could not be written to disk.")
+                )
+            }
         }
         localInvalidatedDirectories.insert(draft.parentDir)
         rebuild()
