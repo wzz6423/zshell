@@ -60,7 +60,7 @@ The menu bar opens the current workspace, Quick Terminal, Settings, and the upda
 
 Choose **Settings → General → Keep computer awake** or **Zshell → Keep computer awake**. `"off"` allows automatic sleep, `"on"` prevents automatic system sleep while Zshell runs, and `"agents"` prevents it only while a local agent is working.
 
-Every local terminal pane counts, including background projects, other windows, and hidden or zoomed splits. Remote agents do not count. Waiting, idle, and completed agents allow sleep when no other local agent is working. Closing the last working pane, choosing Off, or quitting Zshell releases sleep prevention, including when terminal sessions are preserved.
+In `"agents"` mode, every local terminal pane counts, including background projects, other windows, and hidden or zoomed splits. Remote agents do not count. Waiting, idle, and completed agents allow sleep when no other local agent is working, and closing the last working pane releases sleep prevention. `"on"` continues preventing automatic sleep while Zshell runs. Choosing Off or quitting Zshell releases sleep prevention in every mode, including when terminal sessions are preserved.
 
 The Settings row shows whether sleep prevention is active or unavailable. Displays can sleep, and manual sleep, lid close, and low-battery sleep keep following macOS policy.
 

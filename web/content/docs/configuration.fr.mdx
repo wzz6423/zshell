@@ -47,7 +47,7 @@ La barre des menus ouvre l’espace de travail actuel, le terminal rapide, les r
 
 Choisissez **Réglages → Général → Garder l’ordinateur éveillé** ou **Zshell → Garder l’ordinateur éveillé**. `"off"` autorise la veille automatique, `"on"` empêche la veille automatique du système pendant l’exécution de Zshell, et `"agents"` uniquement pendant le travail d’un agent local.
 
-Tous les terminaux locaux sont pris en compte, y compris les projets en arrière-plan, les autres fenêtres et les panneaux masqués ou agrandis. Les agents distants sont exclus. Les agents en attente, inactifs ou terminés permettent la veille si aucun autre agent local ne travaille. Fermer le dernier panneau actif, choisir Désactivé ou quitter Zshell libère la prévention de la veille, même si les sessions sont conservées.
+En mode `"agents"`, tous les terminaux locaux sont pris en compte, y compris les projets en arrière-plan, les autres fenêtres et les panneaux masqués ou agrandis. Les agents distants sont exclus. Les agents en attente, inactifs ou terminés permettent la veille si aucun autre agent local ne travaille, et fermer le dernier panneau actif libère la prévention de la veille. `"on"` continue d’empêcher la veille automatique pendant l’exécution de Zshell. Choisir Désactivé ou quitter Zshell libère la prévention dans tous les modes, même si les sessions sont conservées.
 
 La ligne de réglage indique si la prévention est active ou indisponible. La veille de l’écran, la veille manuelle, la fermeture du capot et la batterie faible suivent toujours macOS.
 

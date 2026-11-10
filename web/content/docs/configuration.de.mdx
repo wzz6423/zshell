@@ -47,7 +47,7 @@ Die Menüleiste öffnet den aktuellen Arbeitsbereich, das Schnellterminal, Einst
 
 Wählen Sie **Einstellungen → Allgemein → Computer wach halten** oder **Zshell → Computer wach halten**. `"off"` erlaubt den automatischen Ruhezustand, `"on"` verhindert ihn, während Zshell läuft, und `"agents"` nur, während ein lokaler Agent arbeitet.
 
-Alle lokalen Terminalbereiche zählen, einschließlich Hintergrundprojekten, anderen Fenstern und ausgeblendeten oder vergrößerten Teilbereichen. Remote-Agenten zählen nicht. Wartende, untätige und fertige Agenten erlauben den Ruhezustand, wenn kein anderer lokaler Agent arbeitet. Das Schließen des letzten arbeitenden Bereichs, die Auswahl von Aus oder das Beenden von Zshell gibt den Ruhezustand wieder frei, auch bei erhaltenen Terminalsitzungen.
+Im Modus `"agents"` zählen alle lokalen Terminalbereiche, einschließlich Hintergrundprojekten, anderen Fenstern und ausgeblendeten oder vergrößerten Teilbereichen. Remote-Agenten zählen nicht. Wartende, untätige und fertige Agenten erlauben den Ruhezustand, wenn kein anderer lokaler Agent arbeitet; auch das Schließen des letzten arbeitenden Bereichs gibt ihn wieder frei. `"on"` verhindert den automatischen Ruhezustand weiterhin, solange Zshell läuft. Die Auswahl von Aus oder das Beenden von Zshell gibt den Ruhezustand in jedem Modus wieder frei, auch bei erhaltenen Terminalsitzungen.
 
 Die Einstellungszeile zeigt, ob der Schutz aktiv oder nicht verfügbar ist. Bildschirmruhe, manueller Ruhezustand, Zuklappen und niedriger Akkustand folgen weiterhin macOS.
 
