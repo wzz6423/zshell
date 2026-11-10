@@ -38,6 +38,11 @@ import STTextView
 
 @main struct SearchHarness {
     @MainActor static func main() async throws {
+        if ProcessInfo.processInfo.environment["ZSHELL_TEST_STARTUP_HANDSHAKE"] != nil {
+            FileHandle.standardOutput.write(Data("probe-ready\n".utf8))
+            let start = try FileHandle.standardInput.read(upToCount: 1)
+            precondition(start?.count == 1)
+        }
         #if ZSHELL_BUILT_APP
         if CommandLine.arguments[1] == "--open-result" {
             try await openResult(root: CommandLine.arguments[2], query: CommandLine.arguments[3])
@@ -259,7 +264,7 @@ __attribute__((destructor)) static void report_reads(void) {
         args = [str(self.helper), str(self.root), query]
         if replacement is not None:
             args.append(replacement)
-        result = json.loads(subprocess.check_output(args, text=True, timeout=8, env=self.environment))
+        result = json.loads(self.run_probe(args, timeout=8).stdout)
         self.assertFalse(result["running"], "grep did not complete")
         self.assertFalse(result["failed"], "grep failed")
         return result
@@ -268,13 +273,46 @@ __attribute__((destructor)) static void report_reads(void) {
         return dict(self.environment, DYLD_INSERT_LIBRARIES=str(self.interposer),
                     ZSHELL_TEST_READ_PATH=str(path.resolve()), ZSHELL_TEST_READ_MODE=mode)
 
+    def start_probe(self, args, environment=None):
+        environment = dict(environment or self.environment, ZSHELL_TEST_STARTUP_HANDSHAKE="1")
+        process = subprocess.Popen(args, text=True, stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment)
+        try:
+            # Loading the built Debug dylib can exceed the read deadline on a
+            # busy machine. Start that deadline only after the probe is ready.
+            startup_timeout = 15 if BUILT_APP else 3
+            ready, _, _ = select.select([process.stdout], [], [], startup_timeout)
+            if not ready:
+                raise subprocess.TimeoutExpired(args, startup_timeout)
+            self.assertEqual(process.stdout.readline(), "probe-ready\n", "probe did not finish startup")
+            process.stdin.write("x")
+            process.stdin.flush()
+            return process
+        except BaseException:
+            if process.poll() is None:
+                process.kill()
+            process.communicate()
+            raise
+
+    def run_probe(self, args, *, timeout, environment=None):
+        process = self.start_probe(args, environment)
+        try:
+            output, errors = process.communicate(timeout=timeout)
+            if process.returncode:
+                raise subprocess.CalledProcessError(process.returncode, args, output=output, stderr=errors)
+            return subprocess.CompletedProcess(args, process.returncode, output, errors)
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.communicate()
+
     def reveal(self, path, line=1, *, mode=None, cancel=False):
         args = [str(self.helper), "--reveal", str(path), str(line)]
         if cancel:
             args.append("--cancel")
-        completed = subprocess.run(
-            args, text=True, capture_output=True, check=True, timeout=3,
-            env=self.read_environment(path, mode) if mode else self.environment,
+        completed = self.run_probe(
+            args, timeout=3,
+            environment=self.read_environment(path, mode) if mode else self.environment,
         )
         result = json.loads(completed.stdout)
         if mode:
@@ -413,10 +451,9 @@ __attribute__((destructor)) static void report_reads(void) {
         self.addCleanup(os.close, release)
         environment = self.read_environment(path, "pause")
         environment["ZSHELL_TEST_READ_GATE"] = str(gate)
-        process = subprocess.Popen(
+        process = self.start_probe(
             [str(self.helper), "--reveal", str(path), "1", "--cancel-after-read"],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, env=environment,
+            environment,
         )
         try:
             ready, _, _ = select.select([process.stderr], [], [], 3)
@@ -446,9 +483,9 @@ __attribute__((destructor)) static void report_reads(void) {
         path = self.root / "unicode.txt"
         text = "é😀\r\nneedle\n最後"
         path.write_text(text)
-        completed = subprocess.run(
+        completed = self.run_probe(
             [str(self.helper), "--open-result", str(self.root), "needle"],
-            env=self.environment, text=True, capture_output=True, check=True, timeout=12,
+            timeout=12,
         )
         result = json.loads(completed.stdout)
         self.assertEqual(result["path"], str(path))
@@ -469,10 +506,9 @@ __attribute__((destructor)) static void report_reads(void) {
             for _ in range(limit // len(chunk)):
                 file.write(chunk)
             file.write(b"needle\n")
-        completed = subprocess.run(
+        completed = self.run_probe(
             [str(self.helper), "--open-result", str(self.root), "needle"],
-            env=self.read_environment(path, "count"), text=True, capture_output=True,
-            check=True, timeout=20,
+            environment=self.read_environment(path, "count"), timeout=20,
         )
         result = json.loads(completed.stdout)
         self.assertGreater(path.stat().st_size, limit)
