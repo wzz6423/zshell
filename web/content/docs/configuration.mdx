@@ -198,6 +198,12 @@ Soft-wraps long lines to the pane width in the [file editor](/en/docs/files).
 When false, long lines scroll horizontally. It does not change wrapping in a
 terminal or diff.
 
+### `editor.protect-saves`
+
+boolean — default `true`
+
+Checks for changes made by another program before saving a file or editable worktree diff. If the disk version changed, compare it with your draft, reload from disk, keep the draft, or explicitly overwrite the file. Turning this off allows saves to replace external changes without a conflict prompt.
+
 ## Terminal
 
 ### `terminal.preserve-sessions`

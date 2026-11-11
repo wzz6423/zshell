@@ -157,6 +157,12 @@ Booléen — valeur par défaut : `true`
 
 Adapte les longues lignes à la largeur du volet dans l'[éditeur de fichiers](/fr/docs/files). La valeur `false` active le défilement horizontal. Cette option ne change pas les retours à la ligne du terminal ni des diffs.
 
+### `editor.protect-saves` [#editorprotect-saves]
+
+booléen — valeur par défaut `true`
+
+Vérifie les changements externes avant d’enregistrer un fichier ou un diff modifiable de l’arbre de travail. En cas de conflit, comparez le disque au brouillon, rechargez, conservez le brouillon ou écrasez explicitement le fichier. Désactiver ce réglage permet de remplacer les changements externes sans confirmation.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
