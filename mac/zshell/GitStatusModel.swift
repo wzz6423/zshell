@@ -1593,8 +1593,8 @@ final class GitStatusModel: nonisolated ObservableObject {
         // NUL-delimited name-status records preserve every valid path while
         // supplying the nested file rows used by the native commit graph.
         let log = result.hasHead ? statusGit([
-            "log", "-n", "\(recentCommitLimit + 1)", "--decorate=short",
-            "--pretty=format:%x1e%H%x1f%h%x1f%s%x1f%an%x1f%ct%x1f%P%x1f%D",
+            "log", "-n", "\(recentCommitLimit + 1)", "--decorate=short", "--no-show-signature",
+            "--pretty=format:%H%x00%h%x00%s%x00%an%x00%ct%x00%P%x00%D%x00",
             "--name-status", "-z",
         ], in: repoRoot) : (status: Int32(0), stdout: "", stderr: "")
         if log.status == 0 {
@@ -1918,48 +1918,41 @@ final class GitStatusModel: nonisolated ObservableObject {
     }
 
     nonisolated static func parseRecentCommits(_ output: String) -> [RecentCommit] {
-        output.split(separator: "\u{1e}").compactMap { record in
-            var chunks = record.split(separator: "\u{0}", omittingEmptySubsequences: false)
-                .map(String.init)
-            guard !chunks.isEmpty else { return nil }
-
-            // With --name-status -z, the first status follows the pretty
-            // header after a newline; subsequent statuses are their own NUL
-            // fields. Rename/copy records carry both old and new paths.
-            let headerAndStatus = chunks.removeFirst()
-            let boundary = headerAndStatus.lastIndex(of: "\n")
-            let header = boundary.map { String(headerAndStatus[..<$0]) } ?? headerAndStatus
-            var statusToken = boundary.map {
-                String(headerAndStatus[headerAndStatus.index(after: $0)...])
-            } ?? ""
-            let fields = header.split(separator: "\u{1f}", omittingEmptySubsequences: false)
-            guard fields.count == 7, let timestamp = TimeInterval(fields[4]) else {
-                return nil
+        let chunks = output.split(separator: "\u{0}", omittingEmptySubsequences: false)
+        var commits: [RecentCommit] = []
+        var index = 0
+        while index < chunks.count {
+            // Git adds a NUL between commits. Consume the fixed header first
+            // so empty parent/ref fields and controls in user text stay data.
+            if chunks[index].isEmpty {
+                index += 1
+                continue
             }
+            guard index + 7 < chunks.count,
+                  let timestamp = TimeInterval(chunks[index + 4]) else { break }
+            let fields = Array(chunks[index..<index + 7])
+            index += 7
 
             var files: [RecentCommit.FileChange] = []
-            var index = 0
-            while !statusToken.isEmpty, index < chunks.count {
-                guard let status = statusToken.first else { break }
-                if status == "R" || status == "C" {
-                    guard index + 1 < chunks.count else { break }
-                    files.append(.init(
-                        status: status,
-                        path: chunks[index + 1],
-                        originalPath: chunks[index]
-                    ))
-                    index += 2
-                } else {
-                    files.append(.init(
-                        status: status,
-                        path: chunks[index],
-                        originalPath: nil
-                    ))
-                    index += 1
+            while index < chunks.count, !chunks[index].isEmpty {
+                // Only the first status has Git's header newline. Paths may
+                // contain newlines or look like headers/statuses themselves.
+                let token = chunks[index].hasPrefix("\n")
+                    ? chunks[index].dropFirst() : chunks[index]
+                guard let status = token.first, "ACDMRTUXB".contains(status),
+                      token.dropFirst().allSatisfy({ ("0"..."9").contains($0) }) else {
+                    return commits
                 }
-                guard index < chunks.count else { break }
-                statusToken = chunks[index]
-                index += 1
+                let pathCount = status == "R" || status == "C" ? 2 : 1
+                guard index + pathCount + 1 < chunks.count,
+                      !chunks[index + 1].isEmpty,
+                      pathCount == 1 || !chunks[index + 2].isEmpty else { return commits }
+                files.append(.init(
+                    status: status,
+                    path: String(chunks[index + pathCount]),
+                    originalPath: pathCount == 2 ? String(chunks[index + 1]) : nil
+                ))
+                index += pathCount + 1
             }
 
             let parentHash = fields[5]
@@ -1970,15 +1963,16 @@ final class GitStatusModel: nonisolated ObservableObject {
                 .split(separator: ",")
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }
-            return RecentCommit(
+            commits.append(RecentCommit(
                 hash: String(fields[0]), shortHash: String(fields[1]),
                 subject: String(fields[2]), author: String(fields[3]),
                 date: Date(timeIntervalSince1970: timestamp),
                 parentHash: parentHash,
                 references: references,
                 files: files
-            )
+            ))
         }
+        return commits
     }
 
     nonisolated static func detectRepositoryOperation(gitDirectory: String) -> String? {
