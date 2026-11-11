@@ -164,6 +164,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             fontThicken: settings.fontThicken,
             fontThickenStrength: settings.fontThickenStrength,
             lineHeight: CGFloat(settings.terminalLineHeight),
+            cellWidth: CGFloat(settings.terminalCellWidth),
             fontFeatures: TerminalFontFeatures(settings.fontFeatures, ligatures: settings.fontLigatures)
         )
     }
@@ -500,6 +501,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     func applyAppearance() {
+        let oldCellSize = CGSize(width: metrics.cellWidth, height: metrics.cellHeight)
         metrics = Self.currentMetrics(profileAppearance)
         presentationCoverLayer.backgroundColor = terminalBackgroundColor
         var theme = AlacrittyTheme.current(profileAppearance)
@@ -513,6 +515,13 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         }
         // A new cell size means a different column count.
         synchronizeGridSize()
+        let cellSize = CGSize(width: metrics.cellWidth, height: metrics.cellHeight)
+        if cellSize != oldCellSize {
+            hoveredURL = nil
+            inputContext?.invalidateCharacterCoordinates()
+            events?.terminalDidChangeCellSize(cellSize)
+            hintMode.refreshSnapshot()
+        }
         refreshFrozenFrame()
     }
 

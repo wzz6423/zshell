@@ -139,6 +139,12 @@ intero, 0–255 — predefinito `255`
 
 Controlla lo spessore aggiunto quando `terminal.font-thicken` è attivo. Zero indica lo spessore aggiuntivo minimo, non la disattivazione. Ghostty usa l'intensità nativa di macOS; Alacritty traduce lo stesso intervallo in un tratto CoreText. Direzione e valori estremi coincidono, ma i pixel rasterizzati possono differire.
 
+### `terminal.cell-width` [#terminalcell-width]
+
+numero, 0.75–2 — valore predefinito `1`
+
+Regola la spaziatura delle colonne del terminale in **Impostazioni → Aspetto → Carattere → Larghezza celle**. Il valore predefinito è 100% e viene salvato in percentuali intere. Entrambi i backend aggiornano subito i terminali aperti, compresi il numero di colonne del PTY, il cursore, la selezione e i suggerimenti da tastiera. La dimensione dei glifi resta invariata e i caratteri larghi occupano sempre due colonne. L’arrotondamento ai pixel può produrre incrementi effettivi diversi tra i backend. I valori non validi ripristinano il 100%. La spaziatura di editor e diff non cambia.
+
 ### `terminal.line-height` [#terminalline-height]
 
 numero, 0,75–2 — predefinito `1`
@@ -275,6 +281,7 @@ terminal.font-ligatures = true
 terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.bell = false

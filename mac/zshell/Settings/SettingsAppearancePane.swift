@@ -108,6 +108,17 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
         onChange: { AppSettings.shared.terminalLineHeight = $0 }
     )
 
+    private let cellWidthRow = SettingsSliderRow(
+        title: String(localized: "Cell width"),
+        range: AppSettings.terminalCellWidthRange,
+        format: .percent,
+        step: 0.05,
+        showsStepper: true,
+        symbolName: "arrow.left.and.right",
+        symbolColor: SettingsCategory.appearance.iconColor,
+        onChange: { AppSettings.shared.terminalCellWidth = $0 }
+    )
+
     private let paneFocusRingSwitch = SettingsSwitch {
         AppSettings.shared.showPaneFocusRing = $0
     }
@@ -144,6 +155,7 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
         SettingsRow(title: String(localized: "CJK fallback"), control: fallbackFamilyPopUp),
         fontSizeRow,
         lineHeightRow,
+        cellWidthRow,
         SettingsRow(title: String(localized: "Font ligatures"), control: ligaturesSwitch),
         featuresRow,
         SettingsRow(title: String(localized: "Thicken font strokes"), control: thickenSwitch),
@@ -224,8 +236,9 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
         }
         thickenSwitch.isOn = settings.fontThicken
         thickenStrengthRow.setValue(Double(settings.fontThickenStrength))
-        fontGroup.setRowHidden(!visibility.fontThicken, at: 7)
+        fontGroup.setRowHidden(!visibility.fontThicken, at: 8)
         lineHeightRow.setValue(settings.terminalLineHeight)
+        cellWidthRow.setValue(settings.terminalCellWidth)
         cursorShapeView.apply(shape: settings.cursorShape)
         cursorBlinkingView.apply(isBlinking: settings.cursorBlinking)
         terminalBackgroundOpacityRow.setValue(settings.terminalBackgroundOpacity)
@@ -242,7 +255,8 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
             )),
             thicken: settings.fontThicken,
             thickenStrength: settings.fontThickenStrength,
-            lineHeight: CGFloat(settings.terminalLineHeight)
+            lineHeight: CGFloat(settings.terminalLineHeight),
+            cellWidth: CGFloat(settings.terminalCellWidth)
         )
     }
 

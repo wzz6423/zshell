@@ -17,6 +17,7 @@ struct AlacrittyMetrics {
     let bold: NSFont
     let italic: NSFont
     let boldItalic: NSFont
+    let naturalCellWidth: CGFloat
     let cellWidth: CGFloat
     let cellHeight: CGFloat
     /// Baseline measured down from the top of the cell.
@@ -31,6 +32,7 @@ struct AlacrittyMetrics {
         fontThicken: Bool,
         fontThickenStrength: Int,
         lineHeight: CGFloat,
+        cellWidth: CGFloat = 1,
         fontFeatures: TerminalFontFeatures = .init()
     ) {
         let regular = TerminalFont.resolve(
@@ -47,10 +49,11 @@ struct AlacrittyMetrics {
             toHaveTrait: .italicFontMask
         ))
 
-        let advance = AlacrittyMetrics.advance(of: regular)
+        let advance = TerminalFont.cellAdvance(of: regular)
         // Round to whole points so column positions stay on pixel boundaries
         // and glyphs do not shimmer as the grid scrolls.
-        cellWidth = max(1, advance.rounded())
+        naturalCellWidth = max(1, advance.rounded())
+        self.cellWidth = max(1, (naturalCellWidth * cellWidth).rounded())
         let ascent = regular.ascender
         let descent = -regular.descender
         let leading = regular.leading
@@ -61,16 +64,8 @@ struct AlacrittyMetrics {
         self.fontThickenStrength = fontThickenStrength
     }
 
-    private static func advance(of font: NSFont) -> CGFloat {
-        var glyph = CGGlyph()
-        var character: UniChar = 0x30 // "0"
-        let ctFont = font as CTFont
-        guard CTFontGetGlyphsForCharacters(ctFont, &character, &glyph, 1) else {
-            return font.maximumAdvancement.width
-        }
-        var advance = CGSize.zero
-        CTFontGetAdvancesForGlyphs(ctFont, .horizontal, &glyph, &advance, 1)
-        return advance.width > 0 ? advance.width : font.maximumAdvancement.width
+    func glyphOffset(columns: Int) -> CGFloat {
+        (cellWidth - naturalCellWidth) * CGFloat(columns) / 2
     }
 
     func font(bold isBold: Bool, italic isItalic: Bool) -> NSFont {
@@ -210,10 +205,11 @@ struct AlacrittyRenderer {
             let isItalic = cell.flags & UInt16(ZSHELL_CELL_ITALIC) != 0
             let font = metrics.font(bold: isBold, italic: isItalic)
             let x = origin.x + CGFloat(column) * metrics.cellWidth
+            let glyphX = x + metrics.glyphOffset(columns: cell.flags & UInt16(ZSHELL_CELL_WIDE) != 0 ? 2 : 1)
 
             draw(
                 scalar: scalar, font: font, color: foreground,
-                at: CGPoint(x: x, y: y), in: context
+                at: CGPoint(x: glyphX, y: y), in: context
             )
 
             if cell.flags & UInt16(ZSHELL_CELL_UNDERLINE) != 0 {

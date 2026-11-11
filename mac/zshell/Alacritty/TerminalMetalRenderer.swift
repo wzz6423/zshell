@@ -536,10 +536,11 @@ final class TerminalMetalRenderer {
                 italic: false
             )
             if let entry = atlas.entry(for: key) {
-                if entry.size.x > cellWidth * 1.5 { advance = 2 }
+                // Column spacing must not turn a wide IME glyph into a narrow one.
+                if entry.size.x > Float(metrics.naturalCellWidth) * 1.5 { advance = 2 }
                 instances.append(Instance(
                     origin: SIMD2(
-                        left + entry.bearing.x,
+                        left + Float(metrics.glyphOffset(columns: Int(advance))) + entry.bearing.x,
                         baseline - entry.bearing.y - entry.size.y
                     ),
                     size: entry.size,
@@ -628,6 +629,12 @@ final class TerminalMetalRenderer {
             return AlacrittyRenderer.foreground(of: cell, default: defaultBackground)
         }
 
+        func unselectedForeground(at column: Int) -> UInt32 {
+            var cell = cells[row * columns + column]
+            cell.flags &= ~UInt16(ZSHELL_CELL_SELECTED)
+            return AlacrittyRenderer.foreground(of: cell, default: defaultBackground)
+        }
+
         for glyph in textShaper.glyphs(row: row, snapshot: snapshot, metrics: metrics) {
             guard let entry = atlas.entry(for: glyph.glyph, font: glyph.font) else { continue }
             let left = originX + Float(glyph.position.x) + entry.bearing.x
@@ -635,28 +642,42 @@ final class TerminalMetalRenderer {
             let baseline = top + Float(metrics.baseline) - Float(glyph.position.y)
             var column = max(0, min(columns - 1, glyph.columns.lowerBound))
             let lastColumn = max(column + 1, min(columns, glyph.columns.upperBound))
+
+            func appendGlyph(from clipLeft: Float, to clipRight: Float, color: UInt32) {
+                let width = clipRight - clipLeft
+                guard width > 0 else { return }
+                let fraction = (clipLeft - left) / entry.size.x
+                let extent = width / entry.size.x
+                instances.append(Instance(
+                    origin: SIMD2(clipLeft, baseline - entry.bearing.y - entry.size.y),
+                    size: SIMD2(width, entry.size.y), color: Self.color(color),
+                    uvOrigin: SIMD2(entry.uvOrigin.x + entry.uvSize.x * fraction, entry.uvOrigin.y),
+                    uvSize: SIMD2(entry.uvSize.x * extent, entry.uvSize.y),
+                    kind: entry.isColor ? 2 : 1, atlasPage: UInt32(entry.page)
+                ))
+            }
+
             while column < lastColumn {
                 let color = foreground(at: column)
                 var end = column + 1
                 while end < lastColumn, foreground(at: end) == color { end += 1 }
                 // Split only the texture's color coverage. Selection and a
                 // block cursor must not reshape a ligature or move its ink.
-                let clipLeft = column == glyph.columns.lowerBound
-                    ? left : max(left, originX + Float(column) * cellWidth)
-                let clipRight = end == glyph.columns.upperBound
-                    ? right : min(right, originX + Float(end) * cellWidth)
-                let width = clipRight - clipLeft
-                if width > 0 {
-                    let fraction = (clipLeft - left) / entry.size.x
-                    let extent = width / entry.size.x
-                    instances.append(Instance(
-                        origin: SIMD2(clipLeft, baseline - entry.bearing.y - entry.size.y),
-                        size: SIMD2(width, entry.size.y), color: Self.color(color),
-                        uvOrigin: SIMD2(entry.uvOrigin.x + entry.uvSize.x * fraction, entry.uvOrigin.y),
-                        uvSize: SIMD2(entry.uvSize.x * extent, entry.uvSize.y),
-                        kind: entry.isColor ? 2 : 1, atlasPage: UInt32(entry.page)
-                    ))
+                var clipLeft = min(right, max(left, originX + Float(column) * cellWidth))
+                var clipRight = max(left, min(right, originX + Float(end) * cellWidth))
+                // Narrow cells can leave glyph ink outside its owned columns.
+                // Preserve that ink without extending selection/cursor colors.
+                if column == glyph.columns.lowerBound, left < clipLeft {
+                    let outsideColor = unselectedForeground(at: column)
+                    if outsideColor == color { clipLeft = left }
+                    else { appendGlyph(from: left, to: clipLeft, color: outsideColor) }
                 }
+                if end == glyph.columns.upperBound, right > clipRight {
+                    let outsideColor = unselectedForeground(at: end - 1)
+                    if outsideColor == color { clipRight = right }
+                    else { appendGlyph(from: clipRight, to: right, color: outsideColor) }
+                }
+                appendGlyph(from: clipLeft, to: clipRight, color: color)
                 column = end
             }
         }

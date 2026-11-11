@@ -95,9 +95,10 @@ private struct Grid {
     }
 }
 
-@MainActor private func metrics(_ features: String = "", ligatures: Bool = true, size: CGFloat = 13) -> AlacrittyMetrics {
+@MainActor private func metrics(_ features: String = "", ligatures: Bool = true, size: CGFloat = 13,
+                                width: CGFloat = 1) -> AlacrittyMetrics {
     AlacrittyMetrics(family: "", fallbackFamily: "", size: size, fontThicken: false, fontThickenStrength: 255,
-                     lineHeight: 1, fontFeatures: TerminalFontFeatures(features, ligatures: ligatures))
+                     lineHeight: 1, cellWidth: width, fontFeatures: TerminalFontFeatures(features, ligatures: ligatures))
 }
 
 @MainActor private func metal(_ grid: Grid, metrics: AlacrittyMetrics, renderer: TerminalMetalRenderer,
@@ -122,18 +123,18 @@ private struct Grid {
     return pixels
 }
 
-@MainActor private func shapingAndMetal() {
+@MainActor private func shapingAndMetal(width: CGFloat) {
     let device = MTLCreateSystemDefaultDevice()!
     let renderer = TerminalMetalRenderer(device: device)!
     let grid = Grid(["-> != === => 0", "e\u{301} e\u{20d7} 中文 😀 \u{e0a0}"])
-    let first = metal(grid, metrics: metrics(), renderer: renderer)
+    let first = metal(grid, metrics: metrics(width: width), renderer: renderer)
     let shaper: TerminalTextShaper = mirrored(renderer, "textShaper")!
     let count: Int = mirrored(shaper, "shapedRunCount")!
-    let noLigatures = metal(grid, metrics: metrics(ligatures: false), renderer: renderer)
+    let noLigatures = metal(grid, metrics: metrics(ligatures: false, width: width), renderer: renderer)
     check(first != noLigatures, "Alacritty real raster changes when ligatures are disabled")
-    let alt = metal(grid, metrics: metrics("zero=1"), renderer: renderer)
+    let alt = metal(grid, metrics: metrics("zero=1", width: width), renderer: renderer)
     check(first != alt, "Alacritty zero feature changes real raster")
-    let initialMetrics = metrics()
+    let initialMetrics = metrics(width: width)
     let restored = metal(grid, metrics: initialMetrics, renderer: renderer)
     check(restored == first, "font feature reset restores exact raster")
     let pixelWidth = Int((CGFloat(grid.columns) * initialMetrics.cellWidth + 20) * 2)
@@ -175,7 +176,7 @@ private struct Grid {
     check(ime != rebuilt && mirrored(shaper, "shapedRunCount", as: Int.self) == beforeIME, "IME overlay preserves shaping cache")
     let wide = Grid(["e\u{20d7}中😀->X"])
     let wideShaper = TerminalTextShaper()
-    let m = metrics()
+    let m = metrics(width: width)
     wideShaper.reset(metrics: m, rowCount: 1)
     wide.snapshot { snapshot in
         let glyphs = wideShaper.glyphs(row: 0, snapshot: snapshot, metrics: m)
@@ -184,15 +185,42 @@ private struct Grid {
         check(glyphs.filter { $0.columns == 0..<1 }.count >= 1, "combining marks share their base cell")
         check(glyphs.contains { $0.columns == 5..<7 }, "ligature after Unicode uses correct columns")
     }
+    let unicodeRenderer = TerminalMetalRenderer(device: device)!
+    let unicodeBase = metal(wide, metrics: m, renderer: unicodeRenderer)
+    let unicodeShaper: TerminalTextShaper = mirrored(unicodeRenderer, "textShaper")!
+    let unicodeRuns: Int = mirrored(unicodeShaper, "shapedRunCount")!
+    let unicodePixelWidth = Int((CGFloat(wide.columns) * m.cellWidth + 20) * 2)
+    func unicodeChangedColumns(_ a: [UInt8], _ b: [UInt8]) -> Set<Int> {
+        Set(zip(a, b).enumerated().compactMap { index, pair in
+            guard pair.0 != pair.1 else { return nil }
+            let x = index / 4 % unicodePixelWidth
+            return max(0, Int(floor((CGFloat(x) / 2 - 10) / m.cellWidth)))
+        })
+    }
+    var unicodeSelected = wide
+    unicodeSelected.cells[1].flags |= UInt16(ZSHELL_CELL_SELECTED)
+    let unicodeSelection = metal(unicodeSelected, metrics: m, renderer: unicodeRenderer)
+    check(unicodeChangedColumns(unicodeSelection, unicodeBase) == [1],
+          "\(Int(width * 100))% CJK selection changes only its first VT column")
+    let unicodeCursor = metal(unicodeSelected, metrics: m, renderer: unicodeRenderer, cursor: 2)
+    check(unicodeChangedColumns(unicodeCursor, unicodeSelection) == [2],
+          "\(Int(width * 100))% block cursor changes only the CJK spacer column")
+    var emojiSelected = wide
+    emojiSelected.cells[3].flags |= UInt16(ZSHELL_CELL_SELECTED)
+    let emojiSelection = metal(emojiSelected, metrics: m, renderer: unicodeRenderer)
+    check(unicodeChangedColumns(emojiSelection, unicodeBase) == [3],
+          "\(Int(width * 100))% emoji selection retains intrinsic glyph color and cell ownership")
+    check(mirrored(unicodeShaper, "shapedRunCount", as: Int.self) == unicodeRuns,
+          "\(Int(width * 100))% Unicode selection and cursor preserve shaped cache")
     for flags in [UInt16(ZSHELL_CELL_BOLD), UInt16(ZSHELL_CELL_ITALIC), UInt16(ZSHELL_CELL_BOLD | ZSHELL_CELL_ITALIC)] {
         var styled = Grid(["->!="])
         for i in styled.cells.indices { styled.cells[i].flags |= flags }
         let a = metal(styled, metrics: m, renderer: TerminalMetalRenderer(device: device)!)
-        let b = metal(styled, metrics: metrics(ligatures: false), renderer: TerminalMetalRenderer(device: device)!)
+        let b = metal(styled, metrics: metrics(ligatures: false, width: width), renderer: TerminalMetalRenderer(device: device)!)
         check(a != b, "styled font ligatures respond to toggle \(flags)")
     }
     for size in [CGFloat(8), 13, 24, 32] {
-        let sized = metrics(size: size)
+        let sized = metrics(size: size, width: width)
         _ = metal(grid, metrics: sized, renderer: renderer)
         let alignment = TerminalTextShaper()
         let spaced = Grid(["A -> X"])
@@ -201,6 +229,8 @@ private struct Grid {
             let glyphs = alignment.glyphs(row: 0, snapshot: snapshot, metrics: sized)
             let first = glyphs.first { $0.columns == 0..<1 }!
             let last = glyphs.first { $0.columns == 5..<6 }!
+            check(abs(first.position.x - sized.glyphOffset(columns: 1)) < 0.001,
+                  "\(Int(width * 100))% single-cell glyph uses one spacing offset")
             check(abs(last.position.x - first.position.x - 5 * sized.cellWidth) < 0.001,
                   "font size \(size) keeps glyphs on the VT grid")
             check(glyphs.contains { $0.columns == 2..<4 },
@@ -210,7 +240,7 @@ private struct Grid {
     for ligatures in [true, false] {
         let shaped = TerminalTextShaper()
         let arabic = Grid(["لا"])
-        let arabicMetrics = metrics(ligatures: ligatures)
+        let arabicMetrics = metrics(ligatures: ligatures, width: width)
         shaped.reset(metrics: arabicMetrics, rowCount: 1)
         arabic.snapshot { snapshot in
             let glyphs = shaped.glyphs(row: 0, snapshot: snapshot, metrics: arabicMetrics)
@@ -218,7 +248,52 @@ private struct Grid {
                   "required Arabic lam-alef joining survives ligature toggle \(ligatures)")
         }
     }
-    print("SHAPE: initial runs=\(count) beforeIME=\(beforeIME) stable raster bytes=\(stable.count)")
+    let aligned = Grid(["A e\u{301}中😀->X"])
+    let native = TerminalTextShaper()
+    native.reset(metrics: metrics(), rowCount: 1)
+    let adjusted = TerminalTextShaper()
+    adjusted.reset(metrics: m, rowCount: 1)
+    aligned.snapshot { snapshot in
+        let baseline = native.glyphs(row: 0, snapshot: snapshot, metrics: metrics())
+        let changed = adjusted.glyphs(row: 0, snapshot: snapshot, metrics: m)
+        check(baseline.map(\.glyph) == changed.map(\.glyph) && baseline.map(\.columns) == changed.map(\.columns),
+              "\(Int(width * 100))% preserves glyph identities and Unicode cell coverage")
+        let spacing = m.cellWidth - m.naturalCellWidth
+        for (base, glyph) in zip(baseline, changed) {
+            let expected = CGFloat(glyph.columns.lowerBound) * spacing + m.glyphOffset(columns: glyph.columns.count)
+            check(abs(glyph.position.x - base.position.x - expected) < 0.001,
+                  "\(Int(width * 100))% shapes each glyph group with a single centering offset")
+        }
+        let preview = adjusted.glyphs(text: "A e\u{301}中😀->X", font: m.regular,
+                                     cellWidth: m.cellWidth, naturalCellWidth: m.naturalCellWidth)
+        check(preview.map(\.glyph) == changed.map(\.glyph) && preview.map(\.columns) == changed.map(\.columns),
+              "\(Int(width * 100))% preview shares terminal ligature and Unicode shaping")
+        check(zip(preview, changed).allSatisfy { abs($0.position.x - $1.position.x) < 0.001 },
+              "\(Int(width * 100))% preview shares terminal cell centering")
+    }
+    let afterWidthChange = metal(grid, metrics: metrics(width: width == 1 ? 2 : 1), renderer: renderer, dirtyRows: [])
+    let changedFresh = metal(grid, metrics: metrics(width: width == 1 ? 2 : 1), renderer: TerminalMetalRenderer(device: device)!)
+    check(afterWidthChange == changedFresh, "spacing change invalidates clean glyph and instance rows")
+    func previewPixels(ligatures: Bool) -> Data {
+        let preview = FontThickenPreviewView(frame: CGRect(x: 0, y: 0, width: 600, height: 160))
+        preview.configure(font: metrics(ligatures: ligatures, width: width).regular,
+                          thicken: false, thickenStrength: 255, lineHeight: 1, cellWidth: width)
+        let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 600, pixelsHigh: 160,
+                                      bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+                                      isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)!
+        let context = NSGraphicsContext.current!.cgContext
+        context.clear(CGRect(x: 0, y: 0, width: 600, height: 160))
+        context.translateBy(x: 0, y: 160)
+        context.scaleBy(x: 1, y: -1)
+        preview.draw(preview.bounds)
+        NSGraphicsContext.restoreGraphicsState()
+        return Data(bytes: bitmap.bitmapData!, count: bitmap.bytesPerRow * bitmap.pixelsHigh)
+    }
+    check(previewPixels(ligatures: true) != previewPixels(ligatures: false),
+          "\(Int(width * 100))% native font preview responds to the ligature toggle")
+    print("SHAPE: width=\(width) initial runs=\(count) beforeIME=\(beforeIME) stable raster bytes=\(stable.count)")
 }
 
 @main struct TerminalFontFeaturesTests {
@@ -248,6 +323,14 @@ private struct Grid {
         check(!settings.isAtDefaults, "default detection includes features")
         settings.fontLigatures = true
         settings.fontFeatures = ""
+        settings.applyImported(["terminal.font-features": .string("ss01, zero=1"),
+                                "terminal.font-ligatures": .bool(false), "terminal.cell-width": .number(1.5)])
+        check(settings.fontFeatures == "ss01, zero=1" && !settings.fontLigatures && settings.terminalCellWidth == 1.5,
+              "combined font features and spacing import")
+        check(settings.serializedConfig().contains("terminal.cell-width = 1.5"), "combined spacing serialization")
+        settings.resetFont()
+        check(settings.fontFeatures.isEmpty && settings.fontLigatures && settings.terminalCellWidth == 1,
+              "font reset restores both feature and spacing defaults")
         let language = settings.language
         let panes = AppLanguage.allCases.filter { $0 != .system }.map { choice -> SettingsAppearancePane in
             settings.language = choice
@@ -313,7 +396,9 @@ private struct Grid {
         }
         check(panes.count == 17, "all native control localizations exercised")
         settings.language = language
-        if backend == "alacritty" { shapingAndMetal() }
+        if backend == "alacritty" {
+            for width: CGFloat in [1, 0.75, 1.25, 2] { shapingAndMetal(width: width) }
+        }
         let script = root.appendingPathComponent("terminal.py")
         try """
         import os
@@ -384,19 +469,34 @@ private struct Grid {
         }
         guard let initialPixels = pixels() else { preconditionFailure("Missing terminal raster") }
         print("SURFACE: \(backend) bitmapBytes=\(initialPixels.count)")
-        for (features, ligatures) in [("", false), ("zero=1, ss01", true), ("-calt", true), ("", true)] {
-            settings.fontFeatures = features
-            settings.fontLigatures = ligatures
+        for multiplier in [1.0, 0.75, 1.25, 2.0] {
+            settings.terminalCellWidth = multiplier
             view.applyAppearance()
             pump(0.5)
-            check(visible() == text, "\(backend) live feature change keeps original text and columns")
-            guard let current = pixels() else { preconditionFailure("Missing updated terminal raster") }
-            if features.isEmpty && ligatures {
-                check(current == initialPixels, "\(backend) live reset restores exact raster")
-            } else {
-                check(current != initialPixels, "\(backend) live feature changes IOSurface raster")
+            let spacedText = visible()
+            let geometry = view.readVisibleSnapshot()!
+            check(spacedText.contains("-> != === => 0") && spacedText.contains("中文"),
+                  "\(backend) \(Int(multiplier * 100))% retains Unicode PTY output")
+            guard let spacedPixels = pixels() else { preconditionFailure("Missing spaced terminal raster") }
+            for (features, ligatures) in [("", false), ("zero=1, ss01", true), ("-calt", true), ("", true)] {
+                settings.fontFeatures = features
+                settings.fontLigatures = ligatures
+                view.applyAppearance()
+                pump(0.3)
+                check(visible() == spacedText && view.readVisibleSnapshot()?.columns == geometry.columns,
+                      "\(backend) \(Int(multiplier * 100))% feature change retains text and columns")
+                guard let current = pixels() else { preconditionFailure("Missing updated terminal raster") }
+                if features.isEmpty && ligatures {
+                    check(current == spacedPixels, "\(backend) \(Int(multiplier * 100))% live reset restores exact raster")
+                } else {
+                    check(current != spacedPixels, "\(backend) \(Int(multiplier * 100))% live feature changes raster")
+                }
             }
         }
+        settings.resetFont()
+        view.applyAppearance()
+        pump(0.5)
+        check(visible() == text && pixels() == initialPixels, "\(backend) combined font reset restores original PTY raster")
         view.setSurfaceVisible(false)
         pump(0.2)
         view.setSurfaceVisible(true)
@@ -411,9 +511,9 @@ private struct Grid {
             settings.language = .english
             settings.fontSize = 20
             view.applyAppearance()
-            let appearance = Publishers.CombineLatest3(
+            let appearance = Publishers.CombineLatest4(
                 settings.$fontFeatures.removeDuplicates(), settings.$fontLigatures.removeDuplicates(),
-                settings.$fontSize.removeDuplicates()
+                settings.$fontSize.removeDuplicates(), settings.$terminalCellWidth.removeDuplicates()
             )
                 .receive(on: DispatchQueue.main)
                 .sink { _ in view.applyAppearance() }

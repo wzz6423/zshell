@@ -24,15 +24,19 @@ final class TerminalTextShaper {
     private var rows: [Row?] = []
     private var fonts: [NSFont] = []
     private var cellWidth: CGFloat = 0
+    private var glyphOffset: CGFloat = 0
     #if DEBUG
     private(set) var shapedRunCount = 0
     #endif
 
     func reset(metrics: AlacrittyMetrics, rowCount: Int) {
         let fonts = [metrics.regular, metrics.bold, metrics.italic, metrics.boldItalic]
-        if fonts != self.fonts || cellWidth != metrics.cellWidth || rows.count != rowCount {
+        let glyphOffset = metrics.glyphOffset(columns: 1)
+        if fonts != self.fonts || cellWidth != metrics.cellWidth
+            || glyphOffset != self.glyphOffset || rows.count != rowCount {
             self.fonts = fonts
             cellWidth = metrics.cellWidth
+            self.glyphOffset = glyphOffset
             rows = Array(repeating: nil, count: rowCount)
         }
     }
@@ -65,10 +69,12 @@ final class TerminalTextShaper {
         func finishRun(at endColumn: Int) {
             guard !text.isEmpty else { return }
             columns.append(endColumn)
-            result += shape(text: text, columns: columns, cells: cells, font: metrics.font(
-                bold: style & UInt16(ZSHELL_CELL_BOLD) != 0,
-                italic: style & UInt16(ZSHELL_CELL_ITALIC) != 0
-            ))
+            result += shape(
+                text: text, columns: columns, cells: cells,
+                font: metrics.font(bold: style & UInt16(ZSHELL_CELL_BOLD) != 0,
+                                   italic: style & UInt16(ZSHELL_CELL_ITALIC) != 0),
+                cellWidth: cellWidth, glyphOffset: glyphOffset
+            )
             text.removeAll(keepingCapacity: true)
             columns.removeAll(keepingCapacity: true)
         }
@@ -95,7 +101,25 @@ final class TerminalTextShaper {
         return result
     }
 
-    private func shape(text: String, columns: [Int], cells: [Cell], font: NSFont) -> [Glyph] {
+    func glyphs(text: String, font: NSFont, cellWidth: CGFloat, naturalCellWidth: CGFloat) -> [Glyph] {
+        guard !text.isEmpty else { return [] }
+        var cells: [Cell] = []
+        var columns: [Int] = []
+        for character in text {
+            let content = String(character)
+            let width = (content as NSString).size(withAttributes: [.font: font]).width
+            let count = width > naturalCellWidth * 1.5 ? 2 : 1
+            columns += repeatElement(cells.count, count: content.utf16.count)
+            cells.append(Cell(scalar: character.unicodeScalars.first!.value, text: nil, flags: 0))
+            if count == 2 { cells.append(Cell(scalar: 32, text: nil, flags: 0)) }
+        }
+        columns.append(cells.count)
+        return shape(text: text, columns: columns, cells: cells, font: font,
+                     cellWidth: cellWidth, glyphOffset: (cellWidth - naturalCellWidth) / 2)
+    }
+
+    private func shape(text: String, columns: [Int], cells: [Cell], font: NSFont,
+                       cellWidth: CGFloat, glyphOffset: CGFloat) -> [Glyph] {
         #if DEBUG
         shapedRunCount += 1
         #endif
@@ -163,7 +187,7 @@ final class TerminalTextShaper {
             let naturalLeft = group.map(\.position.x).min() ?? 0
             let naturalRight = group.map { $0.position.x + $0.advance }.max() ?? naturalLeft
             let centering = range.count > 1
-                ? (CGFloat(range.count) * cellWidth - (naturalRight - naturalLeft)) / 2 : 0
+                ? (CGFloat(range.count) * cellWidth - (naturalRight - naturalLeft)) / 2 : glyphOffset
             for glyph in group where glyph.hasInk {
                 result.append(Glyph(
                     font: glyph.font, glyph: glyph.glyph,

@@ -38,6 +38,7 @@ CONFIGURATION_ITEMS = {
     "terminal.font-fallback-family": ("appearance", "CJK fallback", "Font"),
     "font-size": ("appearance", "Size", "Font"),
     "terminal.line-height": ("appearance", "Line height", "Font"),
+    "terminal.cell-width": ("appearance", "Cell width", "Font"),
     "terminal.font-ligatures": ("appearance", "Font ligatures", "Font"),
     "terminal.font-features": ("appearance", "OpenType features", "Font"),
     "terminal.font-thicken": ("appearance", "Thicken font strokes", "Font"),
