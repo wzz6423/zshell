@@ -45,27 +45,6 @@ final class AppMenuLocalization: NSObject {
         WorkspaceTemplateController.shared.installMenu(in: menu)
         TerminalCommandHistoryController.shared.installMenu(in: menu)
         TerminalHintMenu.shared.install(in: menu)
-        let titles: [(String.LocalizationValue, String)] = [
-            ("File", String(localized: "File")),
-            ("Edit", String(localized: "Edit")),
-            ("View", String(localized: "View")),
-            ("Window", String(localized: "Window")),
-            ("Help", String(localized: "Help")),
-            ("Terminal", String(localized: "Terminal")),
-            ("Agents", String(localized: "Agents")),
-        ]
-        let bundles = AppLanguage.localizationIdentifiers.compactMap {
-            Bundle.main.url(forResource: $0, withExtension: "lproj").flatMap(Bundle.init(url:))
-        }
-        for item in menu.items {
-            for (key, title) in titles where bundles.contains(where: {
-                String(localized: key, bundle: $0) == item.title
-            }) {
-                if item.title != title { item.title = title }
-                if item.submenu?.title != title { item.submenu?.title = title }
-                break
-            }
-        }
         refreshActions(in: menu)
     }
 

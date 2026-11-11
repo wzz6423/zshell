@@ -110,7 +110,7 @@ Tanpa identitas terverifikasi, direktori kerja asli, atau berkas Pi, shell baru 
 
 ## Menemukan dan melanjutkan percakapan tersimpan [#saved-conversation-history]
 
-Buka **Agen → Riwayat Percakapan Agen**, klik jam di bagian atas bilah samping proyek. Cari lintas proyek menurut judul, penyedia, proyek, ID percakapan, direktori kerja atau konfigurasi. Zshell menyimpan 200 percakapan lokal terverifikasi terbaru setelah agen dan panel ditutup serta aplikasi dimulai ulang. **Terbaru** menampilkan 20 hasil yang belum diarsipkan; **Semua** mencakup arsip; **Diarsipkan** hanya menampilkan arsip.
+Buka **Terminal → Agen → Riwayat Percakapan Agen**, klik jam di bagian atas bilah samping proyek. Cari lintas proyek menurut judul, penyedia, proyek, ID percakapan, direktori kerja atau konfigurasi. Zshell menyimpan 200 percakapan lokal terverifikasi terbaru setelah agen dan panel ditutup serta aplikasi dimulai ulang. **Terbaru** menampilkan 20 hasil yang belum diarsipkan; **Semua** mencakup arsip; **Diarsipkan** hanya menampilkan arsip.
 
 Pilih **Tampilkan percakapan** jika masih terbuka atau **Lanjutkan percakapan** jika tersimpan. Zshell memakai panel terbuka, menyambungkan kembali PTY yang masih aktif, atau melanjutkan percakapan penyedia yang tepat dengan direktori dan konfigurasi asli. Pelanjutan manual memerlukan integrasi AI meski pemulihan otomatis dimatikan. Direktori yang hilang serta berkas Pi yang hilang atau tidak cocok menampilkan kesalahan sebelum panel dibuat.
 
@@ -142,4 +142,4 @@ zshell +events --event command.task.finished --once --timeout 30000
 
 ## Mencabangkan percakapan [#fork-a-conversation]
 
-Di **Agents → Agent Conversation History**, pilih percakapan lalu **Cabangkan percakapan di panel baru** dari menu konteks atau tombol cabang. Fork native penyedia mempertahankan konteks dalam percakapan mandiri; panel dan percakapan asal tetap utuh. Codex, Claude Code, OpenCode dan Pi memerlukan CLI yang mendukung fork, dan Pi juga memerlukan file sesi tersimpan. Perbarui server Zshell untuk percakapan jarak jauh. Jika CLI, login atau hook tidak tersedia, periksa keluaran panel baru sebelum melanjutkan. Di panel gunakan `zshell +agent fork --id UUID [--focus]`; dari terminal eksternal tambahkan `--project UUID`.
+Di **Terminal → Agen → Riwayat Percakapan Agen**, pilih percakapan lalu **Cabangkan percakapan di panel baru** dari menu konteks atau tombol cabang. Fork native penyedia mempertahankan konteks dalam percakapan mandiri; panel dan percakapan asal tetap utuh. Codex, Claude Code, OpenCode dan Pi memerlukan CLI yang mendukung fork, dan Pi juga memerlukan file sesi tersimpan. Perbarui server Zshell untuk percakapan jarak jauh. Jika CLI, login atau hook tidak tersedia, periksa keluaran panel baru sebelum melanjutkan. Di panel gunakan `zshell +agent fork --id UUID [--focus]`; dari terminal eksternal tambahkan `--project UUID`.

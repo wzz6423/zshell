@@ -33,13 +33,15 @@ with tempfile.TemporaryDirectory(prefix="zshell-quick-tests-", dir="/tmp") as di
     bundle = temporary / "QuickTerminalTests.app/Contents"
     binary = bundle / "MacOS/QuickTerminalTests"
     binary.parent.mkdir(parents=True)
-    (bundle / "Info.plist").write_bytes(plistlib.dumps({
+    info = plistlib.loads((APP / "Contents/Info.plist").read_bytes())
+    info.update({
         "CFBundleIdentifier": "sh.zshell.quick-test." + uuid.uuid4().hex,
         "CFBundleExecutable": binary.name,
         "CFBundleDevelopmentRegion": "en",
         "CFBundlePackageType": "APPL",
         "LSUIElement": True,
-    }))
+    })
+    (bundle / "Info.plist").write_bytes(plistlib.dumps(info))
     (bundle / "Resources").symlink_to(APP / "Contents/Resources")
     arguments = [
         "xcrun", "swiftc", "-parse-as-library", "-swift-version", "5",
