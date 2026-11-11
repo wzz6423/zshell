@@ -531,8 +531,10 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
     @discardableResult
     func focusPane(_ id: UUID) -> Bool {
         guard allPanes.contains(where: { $0.id == id }) else { return false }
-        isZoomed = false
-        focusedPaneID = id
+        if id != focusedPaneID {
+            isZoomed = false
+            focusedPaneID = id
+        }
         return true
     }
 

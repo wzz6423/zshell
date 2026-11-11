@@ -122,6 +122,20 @@ extension NSApplication {
         try check(ObjectIdentifier(first.surface)==firstID && ObjectIdentifier(second.surface)==secondID,
             "switching preserves both real terminal surfaces")
         tab.isZoomed=true
+        row("FIRST")?.onSelect?();layout()
+        try check(tab.isZoomed && tab.focusedContent?.id==first.id,
+            "selecting the focused pane preserves its zoom")
+        row("Split session")?.onSelect?();layout()
+        try check(tab.isZoomed, "selecting a split tab preserves its focused pane zoom")
+        guard let zoomAction = row("FIRST")?.menuItems?().compactMap({ item -> (() -> Void)? in
+            if case .action(let title, let enabled, let handler) = item,
+               enabled, title == String(localized: "Toggle Pane Zoom") { return handler }
+            return nil
+        }).first else { throw NSError(domain: "pane zoom menu", code: 4) }
+        zoomAction();layout()
+        try check(!tab.isZoomed, "the pane context menu toggles an already zoomed pane off")
+        zoomAction();layout()
+        try check(tab.isZoomed, "the pane context menu toggles the focused pane zoom on")
         row("SECOND")?.onSelect?();layout()
         try check(tab.focusedContent?.id==second.id && !tab.isZoomed, "pane click reveals a sibling from a zoomed layout")
         try wait("second pane receives native focus"){window.firstResponder===second.surface}
@@ -142,8 +156,14 @@ extension NSApplication {
         row("FIRST")?.keyDown(with: key(36));layout()
         try check(tab.focusedContent?.id == first.id, "Return focuses the row's real pane")
         let selection=manager.selectedProjectID
+        let expandedState = row("Split session")?.accessibilityValue() as? String ?? ""
+        try check(expandedState.contains(String(localized: "Selected")) && expandedState.contains(String(localized: "Expanded")),
+            "a selected split tab exposes selection and expansion together")
         row("Split session")?.onDisclosure?();layout()
         try check(!tab.isSidebarExpanded && row("FIRST")==nil, "tab disclosure folds pane rows")
+        let collapsedState = row("Split session")?.accessibilityValue() as? String ?? ""
+        try check(collapsedState.contains(String(localized: "Selected")) && collapsedState.contains(String(localized: "Collapsed")),
+            "a selected folded split tab exposes selection and collapse together")
         try check(manager.selectedProjectID==selection,"disclosure does not select another project")
         row("Split session")?.onDisclosure?();layout()
         AgentAutomationMonitor.shared.unregister(second)

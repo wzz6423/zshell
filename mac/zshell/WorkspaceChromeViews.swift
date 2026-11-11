@@ -313,11 +313,12 @@ final class WorkspaceItemView: NSView, NSTextFieldDelegate {
         renameField.font = titleLabel.font
         renameField.textColor = .labelColor
         setAccessibilityLabel(subtitle.map { "\(title), \($0)" } ?? title)
-        let state = group || expanded != nil
+        let expansionState = group || expanded != nil
             ? String(localized: (expanded.map { !$0 } ?? collapsed) ? "Collapsed" : "Expanded")
-            : (selected ? String(localized: "Selected") : "")
+            : nil
+        let selectedState = selected ? String(localized: "Selected") : nil
         let markerDescription = marker.map { String(localized: "Color marker \($0.displayValue)") }
-        setAccessibilityValue([state, markerDescription, rollup.map { $0.phase.statusDescription + "\n" + $0.detail }]
+        setAccessibilityValue([selectedState, expansionState, markerDescription, rollup.map { $0.phase.statusDescription + "\n" + $0.detail }]
             .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", "))
         updateActionVisibility()
         needsLayout = true

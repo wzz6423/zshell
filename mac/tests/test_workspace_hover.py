@@ -32,9 +32,10 @@ struct ProjectTabMarkerColor {
     var nsColor: NSColor { .systemBlue }
     var displayValue: String { "Blue" }
 }
-struct ZshellAgentRollup { var phase = 0; var count = 0; var detail = ""; var progress: Int? = nil }
+struct FixtureAgentPhase { var statusDescription: String { "Working" } }
+struct ZshellAgentRollup { var phase = FixtureAgentPhase(); var count = 0; var detail = ""; var progress: Int? = nil }
 final class AgentStatusBadgeView: NSView {
-    func apply(phase: Int, count: Int, detail: String = "", progress: Int? = nil) {}
+    func apply(phase: FixtureAgentPhase, count: Int, detail: String = "", progress: Int? = nil) {}
 }
 enum AppKitContextMenuItem {}
 final class AppKitContextMenuMonitorView: NSView {
@@ -64,6 +65,23 @@ struct HoverRegression {
             print("\(condition ? "PASS" : "FAIL") \(name)")
             if !condition { failures += 1 }
         }
+        let accessibleRow = WorkspaceItemView(frame: NSRect(x: 0, y: 0, width: 200, height: 38))
+        for selected in [false, true] {
+            for expanded in [false, true] {
+                accessibleRow.apply(title: "Accessible tab", icon: nil, selected: selected,
+                    sidebar: true, expanded: expanded)
+                let value = accessibleRow.accessibilityValue() as? String ?? ""
+                check(value.contains(String(localized: "Selected")) == selected,
+                    "expandable row reports selected=\(selected)")
+                check(value.contains(String(localized: expanded ? "Expanded" : "Collapsed")),
+                    "expandable row reports expanded=\(expanded)")
+            }
+        }
+        accessibleRow.apply(title: "Accessible project", icon: nil, selected: true,
+            group: true, collapsed: true, rollup: .init(), sidebar: true)
+        let groupValue = accessibleRow.accessibilityValue() as? String ?? ""
+        check(groupValue.contains(String(localized: "Selected")) && groupValue.contains(String(localized: "Collapsed"))
+            && groupValue.contains("Working"), "selected group keeps collapse and agent status accessible")
         func renderedColor(_ view: NSView, x: Int, y: Int) -> NSColor {
             let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(view.bounds.width),
                 pixelsHigh: Int(view.bounds.height), bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
