@@ -34,6 +34,7 @@ CONFIGURATION_ITEMS = {
     "theme-dark": ("appearance", "Dark theme", "Colors"),
     "theme-light": ("appearance", "Light theme", "Colors"),
     "terminal.theme-only": ("appearance", "Terminal theme only", "Colors"),
+    "terminal.minimum-contrast": ("appearance", "Minimum contrast", "Colors"),
     "font-family": ("appearance", "Latin family", "Font"),
     "terminal.font-fallback-family": ("appearance", "CJK fallback", "Font"),
     "font-size": ("appearance", "Size", "Font"),

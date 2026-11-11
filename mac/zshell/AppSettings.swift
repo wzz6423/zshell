@@ -220,6 +220,14 @@ final class AppSettings: nonisolated ObservableObject {
         }
     }
 
+    @Published var terminalMinimumContrast: Double {
+        didSet {
+            let value = TerminalContrast.validatedMinimumRatio(terminalMinimumContrast)
+            if terminalMinimumContrast != value { terminalMinimumContrast = value }
+            save()
+        }
+    }
+
     /// Terminal font family name; empty string means the bundled default
     /// (JetBrains Mono).
     @Published var fontFamily: String {
@@ -546,6 +554,9 @@ final class AppSettings: nonisolated ObservableObject {
             fallback: Theme.defaultLightThemeName
         )
         terminalThemeOnly = toml["terminal.theme-only"]?.bool ?? false
+        terminalMinimumContrast = TerminalContrast.validatedMinimumRatio(
+            toml["terminal.minimum-contrast"]?.double ?? TerminalContrast.defaultMinimumRatio
+        )
         fontFamily = toml["font-family"]?.string ?? ""
         fontFallbackFamily = toml["terminal.font-fallback-family"]?.string ?? ""
         let size = toml["font-size"]?.double ?? Self.defaultFontSize
@@ -756,6 +767,7 @@ final class AppSettings: nonisolated ObservableObject {
             && themeDark == Theme.defaultDarkThemeName
             && themeLight == Theme.defaultLightThemeName
             && !terminalThemeOnly
+            && terminalMinimumContrast == TerminalContrast.defaultMinimumRatio
             && toolbarVisibility == Self.defaultToolbarVisibility
             && cursorShape == .bar
             && cursorBlinking
@@ -811,6 +823,7 @@ final class AppSettings: nonisolated ObservableObject {
         themeDark = Theme.defaultDarkThemeName
         themeLight = Theme.defaultLightThemeName
         terminalThemeOnly = false
+        terminalMinimumContrast = TerminalContrast.defaultMinimumRatio
         toolbarVisibility = Self.defaultToolbarVisibility
         cursorShape = .bar
         cursorBlinking = true
@@ -971,6 +984,9 @@ final class AppSettings: nonisolated ObservableObject {
             fallback: Theme.defaultLightThemeName
         ))
         assign(\.terminalThemeOnly, toml["terminal.theme-only"]?.bool ?? false)
+        assign(\.terminalMinimumContrast, TerminalContrast.validatedMinimumRatio(
+            toml["terminal.minimum-contrast"]?.double ?? TerminalContrast.defaultMinimumRatio
+        ))
         assign(\.fontFamily, toml["font-family"]?.string ?? "")
         assign(\.fontFallbackFamily, toml["terminal.font-fallback-family"]?.string ?? "")
         let size = toml["font-size"]?.double ?? Self.defaultFontSize
@@ -1173,6 +1189,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if terminalThemeOnly {
             lines.append("terminal.theme-only = true")
+        }
+        if terminalMinimumContrast != TerminalContrast.defaultMinimumRatio {
+            lines.append("terminal.minimum-contrast = \(TOML.number(terminalMinimumContrast))")
         }
         if !fontFamily.isEmpty {
             lines.append("font-family = \(TOML.quote(fontFamily))")

@@ -36,7 +36,7 @@ extension TerminalMetalRenderer {
     metrics = source[:source.index("/// Draws one snapshot of the grid with CoreText.")]
     colors = source[source.index("    // MARK: - Colors"):]
     selection_start = colors.index("    static func selectionColors()")
-    selection_end = colors.index("    private static func contrastedColor", selection_start)
+    selection_end = colors.index("    final class ContrastCache", selection_start)
     colors = (colors[:selection_start] + """
     static func selectionColors() -> (foreground: UInt32, background: UInt32) {
         preconditionFailure("Selection colors are outside this buffer fixture")

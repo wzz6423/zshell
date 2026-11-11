@@ -73,6 +73,8 @@ final class TerminalMetalRenderer {
     /// one row (a prompt redraw, a cursor blink), so rows the emulator did not
     /// damage are reused verbatim and only the dirty ones are rebuilt.
     private var rowInstances: [RowInstances] = []
+    private let contrastColors = AlacrittyRenderer.ContrastCache()
+    private var colorsChanged = false
     /// Rebuilt rows are only valid for the geometry they were built at.
     private var cachedColumns = 0
     private var cachedRows = 0
@@ -122,6 +124,10 @@ final class TerminalMetalRenderer {
     }
 
     // MARK: - Frame
+
+    func setMinimumContrast(_ value: Double) {
+        if contrastColors.setMinimumRatio(value) { colorsChanged = true }
+    }
 
     @discardableResult
     func render(
@@ -459,7 +465,7 @@ final class TerminalMetalRenderer {
         // change the emulator never saw. An empty array preserves all retained
         // rows while transient preedit instances are appended below.
         let rowsToBuild: [Int]
-        if geometryChanged {
+        if geometryChanged || colorsChanged {
             rowsToBuild = Array(0..<rows)
         } else if let dirtyRows {
             rowsToBuild = dirtyRows.filter { $0 >= 0 && $0 < rows }
@@ -475,6 +481,7 @@ final class TerminalMetalRenderer {
                 viewportSize: viewportSize
             )
         }
+        colorsChanged = false
 
         instances.reserveCapacity(
             rowInstances.reduce(0) { $0 + $1.instances.count } + 1
@@ -518,7 +525,7 @@ final class TerminalMetalRenderer {
         let cellHeight = Float(metrics.cellHeight)
         let anchorCell = cells[markedText.line * snapshot.columns + markedText.column]
         let color = Self.color(
-            AlacrittyRenderer.foreground(of: anchorCell, default: snapshot.background)
+            contrastColors.foreground(of: anchorCell, default: snapshot.background)
         )
         let top = Float(padding.y) + Float(markedText.line) * cellHeight
         let baseline = top + Float(metrics.baseline)
@@ -625,7 +632,7 @@ final class TerminalMetalRenderer {
                   cell.flags & UInt16(ZSHELL_CELL_WIDE_SPACER) == 0
             else { continue }
 
-            var foreground = AlacrittyRenderer.foreground(of: cell, default: defaultBackground)
+            var foreground = contrastColors.foreground(of: cell, default: defaultBackground)
             let isCursorCell = snapshot.cursor_line == row
                 && snapshot.cursor_column == column
                 && snapshot.cursor_shape == 0
