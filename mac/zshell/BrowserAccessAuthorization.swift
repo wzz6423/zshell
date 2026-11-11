@@ -119,8 +119,11 @@ nonisolated final class BrowserAccessAuthorization {
 
     func approve(_ id: UUID) throws {
         expire()
-        guard let index = pairings.firstIndex(where: { $0.id == id && $0.state == .pending }),
-              clients.count < BrowserAccessLimits.clients else { return }
+        guard let index = pairings.firstIndex(where: { $0.id == id && $0.state == .pending }) else { return }
+        guard clients.count < BrowserAccessLimits.clients else {
+            throw BrowserAccessError.message(String(localized:
+                "The authorized client limit has been reached. Revoke a client before approving another."))
+        }
         let token = try BrowserAccessSecret.random()
         let pairing = pairings[index]
         let client = BrowserAccessClient(id: UUID(), name: pairing.name, address: pairing.address,

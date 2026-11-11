@@ -285,6 +285,16 @@ def check_network(binary, directory, interface, port):
         ws.send({"type": "select", "session": sessions[0]})
         ws.expect("ready")
         assert inspect(sessions[0])["pid"] == pid
+        command("restart")
+        ws.expect_closed()
+        endpoint = event("endpoint")
+        event("restarted")
+        assert endpoint["url"].rstrip("/") == local, ("Local origin changed after restart", local, endpoint)
+        assert endpoint["remoteURL"].rstrip("/") == remote
+        ws = authenticated()
+        ws.send({"type": "select", "session": sessions[0]})
+        ws.expect("ready")
+        assert inspect(sessions[0])["pid"] == pid
         ws.send({"type": "ack", "stream": "00000000-0000-0000-0000-000000000000", "bytes": 1})
         ws.send({"type": "select", "session": sessions[1]})
         ws.expect("ready")
@@ -328,7 +338,7 @@ def check_network(binary, directory, interface, port):
                 probe.close()
                 raise AssertionError("listener remained open after disabling")
         assert not (state / "unauthorized-input").exists()
-        print("Production network probe passed: pairing/denial, verified TLS, Origin/token/input rejection, simultaneous GUI/Unicode/ANSI, resize, same-PID reconnect, pane termination, slow-client backpressure, revoke, listener shutdown.")
+        print("Production network probe passed: pairing/denial, verified TLS, Origin/token/input rejection, simultaneous GUI/Unicode/ANSI, resize, same-PID reconnect, stable origin/token across restart, pane termination, slow-client backpressure, revoke, listener shutdown.")
     finally:
         for ws in sockets:
             ws.close()

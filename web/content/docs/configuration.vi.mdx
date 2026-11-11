@@ -207,6 +207,8 @@ Nếu các phiên được giữ từ Zshell cũ còn chạy, truy cập qua tr�
 
 `browser-access.interface` mặc định là `"loopback"` (**Chỉ localhost**). Với thiết bị khác, hãy chọn rõ một giao diện IPv4 mạng riêng LAN hoặc Tailscale khả dụng. Giá trị lưu đúng tên và địa chỉ, ví dụ `"en0|192.168.0.10"`. `browser-access.port` là cổng HTTPS, 1024–65535, mặc định `7443`. Trang cục bộ dùng địa chỉ HTTP riêng chỉ truy cập trên Mac. Nếu giao diện không còn, hãy chọn giao diện khả dụng; dịch vụ không chuyển sang lắng nghe mọi giao diện.
 
+Trang HTTP cục bộ thường dùng cổng HTTPS đã cấu hình cộng một (mặc định `7444`). Ngủ, thử lại và mở lại giữ nguyên địa chỉ và quyền. Nếu cổng đang được dùng, Zshell thử bảy cổng cục bộ tiếp theo; sau `65535`, quay về `1024`. Đổi địa chỉ cần ghép nối lại. Máy khách đã lưu vẫn hiển thị và có thể thu hồi quyền khi truy cập tắt. Khi đạt giới hạn 32 máy khách, hãy thu hồi một máy trước khi phê duyệt máy mới.
+
 So sánh dấu vân tay TLS và tin cậy chứng chỉ đã xuất trên máy khách trước khi ghép đôi từ xa. Chấp thuận hoặc thu hồi máy khách trên Mac. Tắt, cho Mac ngủ hoặc thoát sẽ đóng kết nối; việc thoát tuân theo thiết lập giữ phiên. Xem [Truy cập máy Mac này qua trình duyệt](/vi/docs/remote-sessions#browser-access).
 
 ## Tự động hóa [#automation]

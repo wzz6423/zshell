@@ -86,7 +86,7 @@ enum PTYMuxPaths {
         directoryURL.appendingPathComponent("control.sock").path
     }
 
-    static var lockPath: String {
+    nonisolated static var lockPath: String {
         directoryURL.appendingPathComponent("daemon.lock").path
     }
 

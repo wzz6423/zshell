@@ -70,7 +70,7 @@ def compile_probe(directory, derived_data):
     return binary, domain
 
 
-def probe(binary, directory, backend):
+def probe(binary, directory, backend, occupied=False):
     directory.mkdir()
     home = directory / "home"
     config = home / ".config/zshell-dev/config.toml"
@@ -79,6 +79,31 @@ def probe(binary, directory, backend):
     environment = {key: value for key, value in os.environ.items() if not key.startswith("ZSHELL_")}
     environment.update(HOME=str(home), CFFIXED_USER_HOME=str(home), ZDOTDIR=str(home),
                        ZSHELL_PTY_MUX_DIRECTORY=str(directory / "mux"), ZSHELL_SSH_AGENT_RESOLVED="1")
+    # Keep every fallback below the OS ephemeral range used by test connections.
+    reserved = []
+    for _ in range(100):
+        local_port = 24_000 + int(uuid.uuid4().hex[:4], 16) % 16_000
+        try:
+            for candidate in range(local_port, local_port + 8):
+                reservation = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                reserved.append(reservation)
+                reservation.bind(("127.0.0.1", candidate))
+            break
+        except OSError:
+            for reservation in reserved:
+                reservation.close()
+            reserved.clear()
+    else:
+        raise AssertionError("No free deterministic localhost port range")
+    listener = reserved[0]
+    for reservation in reserved[1:]:
+        reservation.close()
+    if occupied:
+        listener.listen()
+    else:
+        listener.close()
+    port = local_port - 1 if local_port > 1024 else 65535
+    environment["ZSHELL_BROWSER_PROBE_PORT"] = str(port)
     log = (directory / "process.log").open("w")
     process = subprocess.Popen([str(binary), str(directory), backend], cwd=ROOT, env=environment, stdout=log, stderr=log)
     sockets = []
@@ -107,6 +132,8 @@ def probe(binary, directory, backend):
         state = wait(lambda state: state.get("url") and state.get("pid", 0) > 0)
         assert state["previousPersistent"] == "" and not state["preserve"]
         endpoint = state["url"].rstrip("/")
+        expected_port = local_port + 1 if occupied else local_port
+        assert urlparse(endpoint).port == expected_port, (endpoint, expected_port)
 
         def post(path, body):
             import urllib.request
@@ -157,13 +184,16 @@ def probe(binary, directory, backend):
         wait(lambda state: state.get("url") == "")
         command("wake")
         endpoint = wait(lambda state: bool(state.get("url")))["url"].rstrip("/")
-        # Loopback's port changes on restart; pair a new origin explicitly.
-        pair = post("/api/pair", {"name": "Browser After Wake"})
-        wait(lambda state: bool(state.get("pending")))
-        command("approve")
-        wait(lambda state: len(state.get("clients", [])) == 2)
-        token = post("/api/pair/status", {"ticket": pair["ticket"]})["token"]
+        assert endpoint == state["url"].rstrip("/"), "Wake changed localhost origin"
         connection = connect()
+        for operation in ("retry", "restart"):
+            handled = status()["handledCommands"]
+            command(operation)
+            connection.expect_closed()
+            endpoint = wait(lambda state: state.get("handledCommands", 0) > handled and bool(state.get("url")))["url"].rstrip("/")
+            assert endpoint == state["url"].rstrip("/"), operation
+            connection = connect()
+        assert len(status()["clients"]) == 1, "Restart must reuse the existing authorization"
         command("revoke")
         connection.expect_closed()
         wait(lambda state: not state.get("clients"))
@@ -182,7 +212,23 @@ def probe(binary, directory, backend):
                 raise AssertionError("Browser listener stayed open")
         except OSError:
             pass
-        print(f"PASS {backend}: real surface/browser input, same-PID reconnect, old pane intact, 17-language layout, pane close, sleep/wake, revoke, disable")
+        command("restart")
+        wait(lambda state: bool(state.get("clients")) and not state["enabled"] and not state["url"])
+        command("clients-ui")
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline and not (directory / "clients-ui.json").exists():
+            time.sleep(0.05)
+        assert all(json.loads((directory / "clients-ui.json").read_text()).values()), "Saved clients must be revocable in the real disabled Settings pane"
+        command("revoke")
+        wait(lambda state: not state.get("clients"))
+        command("state-race")
+        deadline = time.monotonic() + 15
+        while time.monotonic() < deadline and not (directory / "state-race.json").exists():
+            time.sleep(0.1)
+        races = json.loads((directory / "state-race.json").read_text())
+        details = directory / "state-race-detail.json"
+        assert len(races) == 7 and all(races.values()), (races, details.read_text() if details.exists() else "")
+        print(f"PASS {backend}: real browser input, stable token/origin across sleep/retry/restart, old pane intact, 17-language layout, pane close/revoke/disable, occupied-port={occupied}, disabled saved clients/revoke and delayed-state races")
     finally:
         for connection in sockets:
             connection.close()
@@ -194,6 +240,7 @@ def probe(binary, directory, backend):
                 process.terminate()
                 process.wait(timeout=3)
         log.close()
+        listener.close()
         if process.returncode:
             print((directory / "process.log").read_text())
         assert process.returncode == 0
@@ -228,7 +275,10 @@ def check_controller_capability(binary, directory):
             except TimeoutError:
                 continue
             with connection:
-                count = struct.unpack(">I", read(connection, 4))[0]
+                try:
+                    count = struct.unpack(">I", read(connection, 4))[0]
+                except EOFError:
+                    continue
                 request = json.loads(read(connection, count))
                 methods.append(request["method"])
                 ok = request["method"] == "list"
@@ -290,7 +340,7 @@ def main():
         try:
             check_controller_capability(binary, directory / "capability")
             for backend in arguments.backend or ("alacritty", "ghostty"):
-                probe(binary, directory / backend, backend)
+                probe(binary, directory / backend, backend, occupied=backend == "ghostty")
         finally:
             # cfprefsd can persist the probe's unique domain outside its HOME.
             plist = Path.home() / "Library/Preferences" / (domain + ".plist")

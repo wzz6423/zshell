@@ -11,7 +11,7 @@ struct BrowserAccessTests {
         do { try body(); fatalError(message) } catch {}
     }
 
-    @MainActor static func main() throws {
+    @MainActor static func main() async throws {
         let root = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
         try BrowserAccessStorage.prepare(root)
         var date = Date(timeIntervalSince1970: 2_000_000_000)
@@ -43,6 +43,25 @@ struct BrowserAccessTests {
         check(!store.allowAttempt("192.168.0.90"), "authentication attempts are bounded")
         date = date.addingTimeInterval(61)
         check(store.allowAttempt("192.168.0.90"), "bounded rate limit recovers")
+
+        let full = try BrowserAccessAuthorization(directory: root.appendingPathComponent("full"), now: { date })
+        for index in 0..<31 {
+            let address = "192.168.1.\(index + 1)"
+            let pairing = try full.begin(name: "Saved \(index)", address: address, origin: origin)
+            try full.approve(full.pairings.last!.id)
+            _ = full.status(ticket: pairing.ticket, address: address, origin: origin)
+        }
+        _ = try full.begin(name: "Last", address: "192.168.1.100", origin: origin)
+        let last = full.pairings.last!.id
+        _ = try full.begin(name: "Over limit", address: "192.168.1.101", origin: origin)
+        let excess = full.pairings.last!.id
+        try full.approve(last)
+        rejects({ try full.approve(excess) }, "approval must report the 32-client limit")
+        check(full.clients.count == 32 && full.pairings.contains { $0.id == excess && $0.state == .pending },
+              "failed approval keeps the request available for retry after revocation")
+        try full.revoke(full.clients[0].id)
+        try full.approve(excess)
+        check(full.clients.count == 32, "approval can recover after revoking a saved client")
 
         let scope = BrowserAccessScope(address: "192.168.0.10", port: 7443, usesTLS: true)
         func http(_ head: String, body: String = "") -> Data { Data((head + "\r\n\r\n" + body).utf8) }
@@ -84,6 +103,35 @@ struct BrowserAccessTests {
         let certificate = try BrowserAccessCertificate.loadOrCreate(directory: root.appendingPathComponent("tls"), address: "192.168.0.10")
         let savedCertificate = try BrowserAccessCertificate.loadOrCreate(directory: root.appendingPathComponent("tls"), address: "192.168.0.10")
         check(certificate.fingerprint == savedCertificate.fingerprint && certificate.pem == savedCertificate.pem, "TLS identity is valid and reused")
+        try await verifyLocalPortFallback(root)
         print("Browser access authorization, HTTP/WebSocket boundaries, observer frames, and generated TLS identity passed.")
+    }
+
+    @MainActor private static func verifyLocalPortFallback(_ root: URL) async throws {
+        let port = 41443
+        var firstURL: URL?
+        var secondURL: URL?
+        let first = try BrowserAccessServer(directory: root.appendingPathComponent("ports-first"), assets: [:],
+            sessions: { [] }, changed: { snapshot in
+                Task { @MainActor in if let url = snapshot.localURL { firstURL = url } }
+            })
+        let second = try BrowserAccessServer(directory: root.appendingPathComponent("ports-second"), assets: [:],
+            sessions: { [] }, changed: { snapshot in
+                Task { @MainActor in if let url = snapshot.localURL { secondURL = url } }
+            })
+        defer { first.stop(); second.stop() }
+        try await first.start(interface: .loopback, port: port, certificate: nil, translations: [:])
+        try await Task.sleep(for: .milliseconds(50))
+        guard let original = firstURL else { fatalError("first local listener") }
+        try await second.start(interface: .loopback, port: original.port! - 1, certificate: nil, translations: [:])
+        try await Task.sleep(for: .milliseconds(50))
+        guard let fallback = secondURL else { fatalError("fallback local listener") }
+        check(fallback.port == original.port! + 1, "only an occupied local port selects the next deterministic candidate")
+        await second.stop().value
+        try await second.start(interface: .loopback, port: original.port! - 1, certificate: nil, translations: [:])
+        try await Task.sleep(for: .milliseconds(50))
+        check(secondURL == fallback, "occupied-port fallback stays stable across restart")
+        await second.stop().value
+        await first.stop().value
     }
 }

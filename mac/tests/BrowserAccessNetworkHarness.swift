@@ -89,6 +89,12 @@ struct BrowserAccessNetworkHarness {
                     case "revoke":
                         server.revoke(nil) { message in output(["type": "revoked", "error": message ?? ""]) }
                     case "stop": server.stop(); output(["type": "stopped"])
+                    case "restart":
+                        await server.stop().value
+                        do {
+                            try await server.start(interface: interface, port: port, certificate: certificate, translations: [:])
+                            output(["type": "restarted"])
+                        } catch { output(["type": "restartFailed", "error": error.localizedDescription]) }
                     case "terminate":
                         if parts.count == 2 {
                             _ = try? PTYMuxCommandLine.exchange(method: "terminate", params: ["id": .string(String(parts[1]))])

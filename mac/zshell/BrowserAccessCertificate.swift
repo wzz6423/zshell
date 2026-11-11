@@ -91,7 +91,7 @@ nonisolated struct BrowserAccessCertificate: @unchecked Sendable {
         if let network = interface.interface { parameters.requiredInterface = network }
         let scoped = interface.interface.flatMap { IPv4Address(ipv4.rawValue, $0) } ?? ipv4
         parameters.requiredLocalEndpoint = .hostPort(host: .ipv4(scoped), port: .any)
-        parameters.allowLocalEndpointReuse = false
+        parameters.allowLocalEndpointReuse = true
         return parameters
     }
 }

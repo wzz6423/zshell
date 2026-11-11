@@ -207,6 +207,8 @@ Als bewaarde sessies van een oudere Zshell-versie nog lopen, vraagt browsertoega
 
 `browser-access.interface` is standaard `"loopback"` (**Alleen localhost**). Kies voor andere apparaten uitdrukkelijk een beschikbare privé-IPv4-LAN- of Tailscale-interface. De waarde bevat de exacte naam en het adres, zoals `"en0|192.168.0.10"`. `browser-access.port` is de HTTPS-poort, 1024–65535, standaard `7443`. De lokale pagina gebruikt een apart HTTP-adres dat alleen op de Mac bereikbaar is. Kies een andere interface als deze ontbreekt; de dienst gaat nooit op alle interfaces luisteren.
 
+De lokale HTTP-pagina gebruikt normaal de ingestelde HTTPS-poort plus één (standaard `7444`). Slaapstand, Opnieuw proberen en heropenen behouden het adres en de autorisatie. Als de poort bezet is, probeert Zshell de volgende zeven lokale poorten; na `65535` gaat de reeks verder vanaf `1024`. Een nieuw adres vereist opnieuw koppelen. Opgeslagen clients blijven zichtbaar en intrekbaar wanneer toegang uitstaat. Trek bij de limiet van 32 clients een client in voordat je een nieuwe goedkeurt.
+
 Vergelijk de TLS-vingerafdruk en vertrouw het geëxporteerde certificaat op de client vóór koppeling op afstand. Autoriseer of trek clients in op de Mac. Uitschakelen, sluimeren of afsluiten verbreekt browserverbindingen. Afsluiten volgt de bestaande sessiebewaring. Zie [Browsertoegang tot deze Mac](/nl/docs/remote-sessions#browser-access).
 
 ## Automatisering [#automation]

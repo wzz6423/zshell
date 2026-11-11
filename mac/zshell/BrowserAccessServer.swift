@@ -16,6 +16,7 @@ nonisolated struct BrowserAccessPendingClient: Equatable, Identifiable, Sendable
 }
 
 nonisolated struct BrowserAccessServerSnapshot: Sendable {
+    let revision: UInt64
     let localURL: URL?
     let remoteURL: URL?
     let fingerprint: String?
@@ -32,6 +33,8 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
     private let changed: @Sendable (BrowserAccessServerSnapshot) -> Void
     private var connections: [UUID: BrowserAccessConnection] = [:]
     private var listeners: [NWListener] = []
+    private var cancellingListeners = Set<ObjectIdentifier>()
+    private let listenerCancellation = DispatchGroup()
     private var running = false
     private var localScope: BrowserAccessScope?
     private var remoteScope: BrowserAccessScope?
@@ -40,6 +43,7 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
     private var refreshing = false
     private var lastSessions: [BrowserAccessSession] = []
     private var translations: [String: String] = [:]
+    private var revision: UInt64 = 0
 
     init(directory: URL, assets: [String: (Data, String)],
          sessions: @escaping @MainActor @Sendable () -> [BrowserAccessSession],
@@ -52,13 +56,24 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
 
     func start(interface: BrowserAccessInterface, port: Int, certificate: BrowserAccessCertificate?,
                translations: [String: String]) async throws {
+        await waitForListenerCancellation()
         queue.sync { running = true; self.certificate = certificate; self.translations = translations }
         do {
-            let local = NWParameters.tcp
-            local.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: .any)
-            local.allowLocalEndpointReuse = false
-            let localListener = try NWListener(using: local)
-            try await start(localListener, address: "127.0.0.1", tls: false)
+            let localPorts = BrowserAccessConfiguration.localPorts(for: port)
+            for (index, port) in localPorts.enumerated() {
+                do {
+                    let local = NWParameters.tcp
+                    local.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: NWEndpoint.Port(rawValue: port)!)
+                    // Rebind after our own TCP connections enter TIME_WAIT;
+                    // a second live listener still fails with EADDRINUSE.
+                    local.allowLocalEndpointReuse = true
+                    try await start(NWListener(using: local), address: "127.0.0.1", tls: false)
+                    break
+                } catch NWError.posix(.EADDRINUSE) where index + 1 < localPorts.count {
+                    await waitForListenerCancellation()
+                    continue
+                }
+            }
             if !interface.isLoopback {
                 guard let certificate else { throw BrowserAccessHTTPRequest.invalid }
                 let listener = try NWListener(using: certificate.parameters(interface: interface), on: NWEndpoint.Port(rawValue: UInt16(port))!)
@@ -96,9 +111,15 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
                         if tls { remoteScope = scope } else { localScope = scope }
                         continuation.resume()
                     case .failed(let error):
-                        if !resumed { resumed = true; continuation.resume(throwing: error) }
-                        shutdown()
+                        if !resumed {
+                            resumed = true
+                            listeners.removeAll { $0 === listener }
+                            cancel(listener)
+                            continuation.resume(throwing: error)
+                        } else { shutdown() }
                     case .cancelled:
+                        if cancellingListeners.remove(ObjectIdentifier(listener)) != nil { listenerCancellation.leave() }
+                        listener.stateUpdateHandler = nil
                         if !resumed { resumed = true; continuation.resume(throwing: CancellationError()) }
                     default: break
                     }
@@ -108,11 +129,26 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
         }
     }
 
-    func stop() { queue.sync { shutdown() } }
+    @discardableResult func stop() -> Task<Void, Never> {
+        queue.sync { shutdown() }
+        return Task { await waitForListenerCancellation() }
+    }
+
+    private func cancel(_ listener: NWListener) {
+        if cancellingListeners.insert(ObjectIdentifier(listener)).inserted { listenerCancellation.enter() }
+        listener.newConnectionHandler = nil
+        listener.cancel()
+    }
+
+    private func waitForListenerCancellation() async {
+        await withCheckedContinuation { continuation in
+            listenerCancellation.notify(queue: queue) { continuation.resume() }
+        }
+    }
 
     private func shutdown() {
         running = false
-        listeners.forEach { $0.newConnectionHandler = nil; $0.cancel() }
+        listeners.forEach(cancel)
         listeners.removeAll()
         for connection in Array(connections.values) { connection.close() }
         connections.removeAll()
@@ -274,7 +310,8 @@ nonisolated final class BrowserAccessServer: @unchecked Sendable {
     }
 
     private func publish() {
-        changed(BrowserAccessServerSnapshot(localURL: localScope?.url, remoteURL: remoteScope?.url,
+        revision &+= 1
+        changed(BrowserAccessServerSnapshot(revision: revision, localURL: localScope?.url, remoteURL: remoteScope?.url,
             fingerprint: certificate?.fingerprint, certificate: certificate?.pem, clients: authorization.clients,
             pending: authorization.pairings.filter { $0.state == .pending }.map {
                 BrowserAccessPendingClient(id: $0.id, name: $0.name, address: $0.address, origin: $0.origin, code: $0.code)

@@ -17,19 +17,31 @@ final class BrowserAccessController: nonisolated ObservableObject {
     @Published private(set) var isStarting = false
     private var server: BrowserAccessServer?
     private var startTask: Task<Void, Never>?
+    private var serverStopTask: Task<Void, Never>?
     private var settingsObservation: AnyCancellable?
     private var networkMonitor: NWPathMonitor?
     private var workspaceObservations: [NSObjectProtocol] = []
     private var localizationObservation: NSObjectProtocol?
     private var requested: BrowserAccessConfiguration?
     private var generation = UUID()
+    private var clientGeneration = UUID()
+    private var lastSnapshotRevision: UInt64 = 0
+    private var stateWrites = 0
     private var isRunning = false
     private var isSleeping = false
-    private let directory = AppSettings.configURL.deletingLastPathComponent().appendingPathComponent("browser-access", isDirectory: true)
+    private let directory: URL
+    private let stateQueue: DispatchQueue
+
+    init(directory: URL? = nil, stateQueue: DispatchQueue? = nil) {
+        self.directory = directory ?? AppSettings.configURL.deletingLastPathComponent()
+            .appendingPathComponent("browser-access", isDirectory: true)
+        self.stateQueue = stateQueue ?? DispatchQueue(label: "sh.zshell.browser-access.state", qos: .utility)
+    }
 
     func start() {
         guard !isRunning else { return }
         isRunning = true
+        loadSavedClients()
         let monitor = NWPathMonitor()
         networkMonitor = monitor
         monitor.pathUpdateHandler = { [weak self] path in
@@ -65,6 +77,7 @@ final class BrowserAccessController: nonisolated ObservableObject {
 
     func stop() {
         isRunning = false
+        clientGeneration = UUID()
         settingsObservation = nil
         networkMonitor?.cancel()
         networkMonitor = nil
@@ -79,14 +92,21 @@ final class BrowserAccessController: nonisolated ObservableObject {
 
     private func stopServer() {
         generation = UUID()
+        lastSnapshotRevision = 0
         startTask?.cancel()
         startTask = nil
-        server?.stop()
+        let hadServer = server != nil
+        if let server {
+            let previous = serverStopTask
+            let current = server.stop()
+            serverStopTask = Task { await previous?.value; await current.value }
+        }
         server = nil
         isStarting = false
         localURL = nil
         remoteURL = nil
         pending = []
+        if hadServer, isRunning { loadSavedClients() }
     }
 
     private func reconcile(force: Bool = false) {
@@ -98,7 +118,7 @@ final class BrowserAccessController: nonisolated ObservableObject {
             error = String(localized: "Choose an available private network interface.")
             return
         }
-        guard server == nil, startTask == nil else { return }
+        guard server == nil, startTask == nil, stateWrites == 0 else { return }
         error = nil
         isStarting = true
         let token = generation
@@ -114,14 +134,20 @@ final class BrowserAccessController: nonisolated ObservableObject {
                     return (certificate, assets)
                 }.value
                 guard let self, isRunning, generation == token, !Task.isCancelled else { return }
-                let server = try BrowserAccessServer(directory: directory, assets: prepared.1,
-                    sessions: { Self.sessions() }, changed: { [weak self] snapshot in
-                        Task { @MainActor [weak self] in
-                            guard let self, generation == token else { return }
-                            apply(snapshot)
-                        }
-                    })
+                let server = try await stateOperation { [self] in
+                    try BrowserAccessServer(directory: directory, assets: prepared.1,
+                        sessions: { Self.sessions() }, changed: { [weak self] snapshot in
+                            Task { @MainActor [weak self] in
+                                guard let self, generation == token else { return }
+                                apply(snapshot)
+                            }
+                        })
+                }
+                guard isRunning, generation == token, !Task.isCancelled else { server.stop(); return }
+                clientGeneration = UUID()
                 self.server = server
+                await serverStopTask?.value
+                guard isRunning, generation == token, !Task.isCancelled else { server.stop(); return }
                 try await server.start(interface: interface, port: requested.port,
                                        certificate: prepared.0, translations: translations)
                 guard generation == token else { server.stop(); return }
@@ -139,6 +165,8 @@ final class BrowserAccessController: nonisolated ObservableObject {
     }
 
     private func apply(_ snapshot: BrowserAccessServerSnapshot) {
+        guard snapshot.revision > lastSnapshotRevision else { return }
+        lastSnapshotRevision = snapshot.revision
         if localURL != snapshot.localURL { localURL = snapshot.localURL }
         if remoteURL != snapshot.remoteURL { remoteURL = snapshot.remoteURL }
         if fingerprint != snapshot.fingerprint { fingerprint = snapshot.fingerprint }
@@ -148,29 +176,77 @@ final class BrowserAccessController: nonisolated ObservableObject {
     }
 
     func approve(_ id: UUID) {
+        let token = generation
         server?.approve(id) { [weak self] message in
-            Task { @MainActor [weak self] in self?.error = message }
+            Task { @MainActor [weak self] in
+                guard let self, generation == token else { return }
+                error = message
+            }
         }
     }
 
     func deny(_ id: UUID) { server?.deny(id) }
 
     func revoke(_ id: UUID?) {
+        clientGeneration = UUID()
         if let server {
+            let token = generation
             server.revoke(id) { [weak self] message in
-                Task { @MainActor [weak self] in self?.error = message }
+                Task { @MainActor [weak self] in
+                    guard let self, generation == token else { return }
+                    error = message
+                }
             }
         } else {
+            stopServer()
+            stateWrites += 1
+            let token = clientGeneration
             let directory = directory
             Task { [weak self] in
+                guard let self else { return }
                 do {
-                    let clients = try await Task.detached(priority: .utility) {
+                    let clients = try await stateOperation {
                         let authorization = try BrowserAccessAuthorization(directory: directory)
                         if let id { try authorization.revoke(id) } else { try authorization.revokeAll() }
                         return authorization.clients
-                    }.value
-                    self?.clients = clients
-                } catch { self?.error = error.localizedDescription }
+                    }
+                    if isRunning, clientGeneration == token { self.clients = clients; error = nil }
+                } catch {
+                    if isRunning, clientGeneration == token {
+                        AppSettings.shared.browserAccessEnabled = false
+                        self.error = error.localizedDescription
+                    }
+                }
+                stateWrites -= 1
+                if isRunning, stateWrites == 0 {
+                    loadSavedClients()
+                    reconcile()
+                }
+            }
+        }
+    }
+
+    private func stateOperation<Value: Sendable>(_ operation: @escaping @Sendable () throws -> Value) async throws -> Value {
+        try await withCheckedThrowingContinuation { continuation in
+            stateQueue.async {
+                do { continuation.resume(returning: try operation()) }
+                catch { continuation.resume(throwing: error) }
+            }
+        }
+    }
+
+    private func loadSavedClients() {
+        let token = clientGeneration
+        let directory = directory
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let clients = try await stateOperation { try BrowserAccessAuthorization(directory: directory).clients }
+                guard isRunning, clientGeneration == token, server == nil else { return }
+                self.clients = clients
+            } catch {
+                guard isRunning, clientGeneration == token, server == nil else { return }
+                if self.error == nil { self.error = error.localizedDescription }
             }
         }
     }

@@ -13,6 +13,8 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
     private var second: TerminalSession?
     private var timer: Timer?
     private var frames: [NSWindow] = []
+    private var stateControllers: [BrowserAccessController] = []
+    private var handledCommands = 0
     private var isCapabilityProbe: Bool { CommandLine.arguments[2] == "capability" }
     private var isVisibleProbe: Bool { CommandLine.arguments.contains("--visible") }
 
@@ -28,6 +30,7 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
         settings.notifyOnAgentAttention = false
         settings.notifyOnAgentCompletion = false
         settings.browserAccessInterface = "loopback"
+        settings.browserAccessPort = Int(ProcessInfo.processInfo.environment["ZSHELL_BROWSER_PROBE_PORT"] ?? "") ?? 39443
         settings.browserAccessEnabled = false
         if isCapabilityProbe {
             BrowserAccessController.shared.start()
@@ -93,6 +96,7 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
             "clients": access.clients.map { $0.id.uuidString }, "first": first?.id.uuidString ?? "", "second": second?.id.uuidString ?? "",
             "previousPersistent": previous?.persistentSessionID?.uuidString ?? "", "preserve": AppSettings.shared.preserveTerminalSessions,
             "pid": first?.shellPid ?? 0, "text": first?.surface.readVisibleText(maxLines: 150, maxColumns: 512) ?? "",
+            "handledCommands": handledCommands,
         ]
         if let bytes = try? JSONSerialization.data(withJSONObject: state) {
             try? bytes.write(to: root.appendingPathComponent("status.json"), options: .atomic)
@@ -105,6 +109,10 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
         case "revoke": access.revoke(nil)
         case "disable": AppSettings.shared.browserAccessEnabled = false
         case "enable": AppSettings.shared.browserAccessEnabled = true
+        case "retry": access.retry()
+        case "restart": access.stop(); access.start()
+        case "state-race": verifyStateRace()
+        case "clients-ui": verifyClientControls()
         case "close": if let second { project?.closeContent(.session(second)) }; second = nil
         case "sleep": NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
         case "wake": NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
@@ -112,6 +120,7 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
         case "quit": NSApp.terminate(nil)
         default: break
         }
+        handledCommands += 1
     }
 
     private func verifyLayout() {
@@ -135,6 +144,13 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
                 }
                 results.append(["language": language.rawValue, "width": width, "invalid": invalid.map(\.stringValue)])
             }
+            let actualNames = descendants(pane.view).compactMap { $0 as? NSPopUpButton }.flatMap(\.itemTitles)
+            let prefix = String(localized: "LAN") + " · "
+            let interfaceNames = BrowserAccessController.shared.interfaces.filter { !$0.isLoopback && !$0.isTailscale }
+                .map { prefix + $0.name + " · " + $0.address }
+            if !interfaceNames.allSatisfy(actualNames.contains), !results.isEmpty {
+                results[results.count - 1]["invalid"] = ["Localized network name is missing"]
+            }
             window.close()
         }
         if let bytes = try? JSONSerialization.data(withJSONObject: results) {
@@ -147,9 +163,96 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
         [root] + root.subviews.flatMap { descendants($0) }
     }
 
+    private func verifyClientControls() {
+        let pane = SettingsBrowserAccessPane()
+        pane.setCategory(.browserAccess)
+        let views = descendants(pane.view)
+        let group = views.compactMap { $0 as? SettingsGroup }
+            .first { $0.headerTitle == String(localized: "Authorized Clients") }
+        let revoke = views.compactMap { $0 as? NSButton }
+            .first { $0.title == String(localized: "Revoke All Clients") }
+        let controls = ["groupVisible": group?.isHidden == false, "revokeEnabled": revoke?.isEnabled == true,
+                        "savedNameVisible": views.compactMap { $0 as? NSTextField }.contains {
+                            BrowserAccessController.shared.clients.map(\.name).contains($0.stringValue) && !$0.isHiddenOrHasHiddenAncestor
+                        }]
+        if let data = try? JSONSerialization.data(withJSONObject: controls) {
+            try? data.write(to: root.appendingPathComponent("clients-ui.json"), options: .atomic)
+        }
+    }
+
+    private func verifyStateRace() {
+        Task { @MainActor in
+            let state = root.appendingPathComponent("state-race", isDirectory: true)
+            let file = state.appendingPathComponent("clients.json")
+            var checks: [String: Bool] = [:]
+            func waitForState(_ predicate: () -> Bool) async throws -> Bool {
+                let deadline = Date().addingTimeInterval(5)
+                while !predicate(), Date() < deadline { try await Task.sleep(for: .milliseconds(50)) }
+                return predicate()
+            }
+            let queue = DispatchQueue(label: "browser-probe.delayed-state")
+            let gate = DispatchSemaphore(value: 0)
+            let writeGate = DispatchSemaphore(value: 0)
+            queue.async { _ = gate.wait(timeout: .now() + 3) }
+            let controller = BrowserAccessController(directory: state, stateQueue: queue)
+            stateControllers.append(controller)
+            do {
+                let authorization = try BrowserAccessAuthorization(directory: state)
+                let pairing = try authorization.begin(name: "Saved offline", address: "127.0.0.1", origin: "http://127.0.0.1:39444")
+                try authorization.approve(authorization.pairings[0].id)
+                _ = authorization.status(ticket: pairing.ticket, address: "127.0.0.1", origin: "http://127.0.0.1:39444")
+                controller.start()
+                try await Task.sleep(for: .milliseconds(50))
+                checks["readOffMain"] = controller.clients.isEmpty
+                controller.revoke(nil)
+                gate.signal()
+                try await Task.sleep(for: .milliseconds(400))
+                checks["oldReadCannotRestoreRevoke"] = controller.clients.isEmpty
+                checks["offlineRevokePersisted"] = try JSONDecoder().decode([BrowserAccessClient].self, from: Data(contentsOf: file)).isEmpty
+                controller.stop()
+
+                let live = try BrowserAccessAuthorization(directory: state)
+                let request = try live.begin(name: "Saved before enable", address: "127.0.0.1", origin: "http://127.0.0.1:39444")
+                try live.approve(live.pairings[0].id)
+                _ = live.status(ticket: request.ticket, address: "127.0.0.1", origin: "http://127.0.0.1:39444")
+                controller.start()
+                checks["disabledClientsLoaded"] = try await waitForState {
+                    controller.clients.count == 1 && controller.localURL == nil
+                }
+                queue.async { _ = writeGate.wait(timeout: .now() + 3) }
+                controller.revoke(nil)
+                AppSettings.shared.browserAccessEnabled = true
+                try await Task.sleep(for: .milliseconds(100))
+                checks["enableWaitsForRevoke"] = controller.localURL == nil
+                writeGate.signal()
+                checks["enabledWithoutRevokedClient"] = try await waitForState {
+                    controller.localURL != nil && controller.clients.isEmpty
+                }
+                if checks["enabledWithoutRevokedClient"] == false {
+                    let details: [String: Any] = ["url": controller.localURL?.absoluteString ?? "",
+                        "clients": controller.clients.map(\.name), "error": controller.error ?? "", "starting": controller.isStarting]
+                    if let data = try? JSONSerialization.data(withJSONObject: details) {
+                        try? data.write(to: root.appendingPathComponent("state-race-detail.json"), options: .atomic)
+                    }
+                }
+                AppSettings.shared.browserAccessEnabled = false
+                controller.stop()
+                try await Task.sleep(for: .milliseconds(100))
+                checks["stoppedStateStaysClosed"] = controller.localURL == nil && controller.clients.isEmpty
+            } catch { checks[error.localizedDescription] = false }
+            gate.signal()
+            writeGate.signal()
+            controller.stop()
+            if let data = try? JSONSerialization.data(withJSONObject: checks) {
+                try? data.write(to: root.appendingPathComponent("state-race.json"), options: .atomic)
+            }
+        }
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         timer?.invalidate()
         BrowserAccessController.shared.stop()
+        stateControllers.forEach { $0.stop() }
         guard !isCapabilityProbe else { return }
         workspace?.manager.projects.forEach { $0.terminateAll() }
         frames.forEach { $0.contentView = nil }

@@ -163083,6 +163083,220 @@
           }
         }
       }
+    },
+    "LAN": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LAN"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "局域网"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "區域網路"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ローカルネットワーク"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "근거리 네트워크"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réseau local"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lokales Netzwerk"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Red local"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rede local"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rete locale"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lokaal netwerk"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Локальная сеть"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "شبكة محلية"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เครือข่ายท้องถิ่น"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jaringan lokal"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mạng cục bộ"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yerel ağ"
+          }
+        }
+      }
+    },
+    "The authorized client limit has been reached. Revoke a client before approving another.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The authorized client limit has been reached. Revoke a client before approving another."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已达到授权客户端数量上限。请撤销一个客户端，再批准新的客户端。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已達到授權用戶端數量上限。請撤銷一個用戶端，再核准新的用戶端。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "承認済みクライアント数の上限に達しました。別のクライアントを承認する前に、既存のクライアントを取り消してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "승인된 클라이언트 수가 한도에 도달했습니다. 다른 클라이언트를 승인하기 전에 기존 클라이언트를 취소하세요."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La limite de clients autorisés est atteinte. Révoquez un client avant d’en approuver un autre."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die maximale Anzahl autorisierter Clients ist erreicht. Widerrufe einen Client, bevor du einen weiteren genehmigst."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se alcanzó el límite de clientes autorizados. Revoca un cliente antes de aprobar otro."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O limite de clientes autorizados foi atingido. Revogue um cliente antes de aprovar outro."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "È stato raggiunto il limite di client autorizzati. Revoca un client prima di approvarne un altro."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het maximumaantal geautoriseerde clients is bereikt. Trek een client in voordat je een andere goedkeurt."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Достигнут предел авторизованных клиентов. Отзовите один клиент перед одобрением другого."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم بلوغ الحد الأقصى للعملاء المعتمدين. ألغِ اعتماد عميل قبل الموافقة على عميل آخر."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "จำนวนไคลเอนต์ที่ได้รับอนุญาตถึงขีดจำกัดแล้ว โปรดเพิกถอนไคลเอนต์หนึ่งรายก่อนอนุมัติรายใหม่"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batas klien yang diizinkan telah tercapai. Cabut izin satu klien sebelum menyetujui klien lain."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã đạt giới hạn số máy khách được cấp quyền. Hãy thu hồi quyền của một máy khách trước khi phê duyệt máy khách khác."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yetkilendirilmiş istemci sınırına ulaşıldı. Başka bir istemciyi onaylamadan önce bir istemcinin yetkisini kaldırın."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

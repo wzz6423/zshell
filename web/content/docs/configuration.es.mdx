@@ -207,6 +207,8 @@ Si siguen ejecutándose sesiones conservadas por una versión anterior, el acces
 
 `browser-access.interface` vale `"loopback"` (**Solo localhost**) por defecto. Para otro dispositivo, elige explícitamente una interfaz IPv4 privada LAN o Tailscale disponible. El valor guarda el nombre y la dirección exactos, por ejemplo `"en0|192.168.0.10"`. `browser-access.port` es el puerto HTTPS: 1024–65535, `7443` por defecto. La página local utiliza otra dirección HTTP limitada al Mac. Si una interfaz no está disponible, elige otra; el servicio nunca pasa a escuchar en todas.
 
+La página HTTP local suele usar el puerto HTTPS configurado más uno (`7444` por defecto). La suspensión, Reintentar y volver a abrir conservan esa dirección y su autorización. Si el puerto está ocupado, Zshell prueba los siete puertos locales siguientes; después de `65535`, vuelve a `1024`. Cambiar la dirección requiere volver a emparejar. Los clientes guardados siguen visibles y se pueden revocar con el acceso desactivado. Al llegar a 32 clientes, revoca uno antes de aprobar otro.
+
 Compara la huella TLS y confía en el certificado exportado en el cliente antes del emparejamiento remoto. Autoriza o revoca clientes en el Mac. Desactivar el acceso, suspender el Mac o salir cierra las conexiones. La salida sigue el ajuste de conservación de sesiones. Consulta [Acceder a este Mac desde el navegador](/es/docs/remote-sessions#browser-access).
 
 ## Automatización [#automation]

@@ -33,9 +33,9 @@ nonisolated enum BrowserAccessError: LocalizedError {
 
 nonisolated enum BrowserAccessMuxCapability {
     static func prepare() throws {
-        guard FileManager.default.fileExists(atPath: PTYMuxPaths.socketPath) else { return }
         if (try? PTYMuxCommandLine.exchange(method: "capabilities", timeout: 0.2))?
             .result?.objectValue?["observe"]?.boolValue == true { return }
+        if isAbsent() { return }
         // An app update leaves retained PTYs in the previous daemon. Its
         // shutdown rejects live sessions, so only an empty daemon is replaced.
         guard let response = try? PTYMuxCommandLine.exchange(method: "list", timeout: 0.2),
@@ -45,11 +45,37 @@ nonisolated enum BrowserAccessMuxCapability {
             throw BrowserAccessError.sessionServiceRequired
         }
     }
+
+    private static func isAbsent() -> Bool {
+        let socket = Darwin.socket(AF_UNIX, SOCK_STREAM, 0)
+        guard socket >= 0 else { return false }
+        defer { Darwin.close(socket) }
+        guard (try? PTYMuxWire.configureSocket(socket, timeout: 0.2)) != nil,
+              var address = try? PTYMuxWire.address(for: PTYMuxPaths.socketPath) else { return false }
+        let connected = withUnsafePointer(to: &address.0) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { Darwin.connect(socket, $0, address.1) }
+        }
+        guard connected < 0, errno == ECONNREFUSED || errno == ENOENT else { return false }
+        // A daemon holds this lock before it binds the socket. Refusal alone
+        // can also mean that a live daemon is starting or shutting down.
+        let descriptor = Darwin.open(PTYMuxPaths.lockPath, O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK)
+        if descriptor < 0 { return errno == ENOENT }
+        defer { Darwin.close(descriptor) }
+        var metadata = stat()
+        guard fstat(descriptor, &metadata) == 0,
+              metadata.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG), metadata.st_uid == geteuid(),
+              metadata.st_nlink == 1 else { return false }
+        return flock(descriptor, LOCK_EX | LOCK_NB) == 0
+    }
 }
 
 nonisolated struct BrowserAccessConfiguration: Equatable, Sendable {
     static let defaultPort = 7443
     static let loopbackID = "loopback"
+    static func localPorts(for port: Int) -> [UInt16] {
+        let port = (1024...65_535).contains(port) ? port : defaultPort
+        return (1...8).map { UInt16(1024 + (port - 1024 + $0) % (65_536 - 1024)) }
+    }
     let enabled: Bool
     let interfaceID: String
     let port: Int

@@ -95,7 +95,8 @@ final class SettingsBrowserAccessPane: SettingsPaneViewController, NSTextFieldDe
             interfacePicker.removeAllItems()
             for interface in access.interfaces {
                 interfacePicker.addItem(withTitle: interface.isLoopback ? String(localized: "Localhost Only")
-                    : (interface.isTailscale ? "Tailscale · " : "LAN · ") + interface.name + " · " + interface.address)
+                    : (interface.isTailscale ? "Tailscale" : String(localized: "LAN"))
+                        + " · " + interface.name + " · " + interface.address)
             }
         }
         if let index = interfaceIDs.firstIndex(of: settings.browserAccessInterface) { interfacePicker.selectItem(at: index) }
