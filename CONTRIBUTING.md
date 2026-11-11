@@ -139,6 +139,14 @@ Repository skills live in [`skills/`](skills/). Use
 and [release](skills/zshell-release/SKILL.md) for release preparation or publishing.
 The app-bundled `zshell-automation` skill remains in `mac/zshell/Skills/`.
 
+Run `python3 mac/tests/test_pty_mux_session_lifecycle.py` for the persistent PTY
+process lifecycle regression checks. The fixture uses real shells, job-control
+groups, detach/reattach, and concurrent termination while replacing only the
+renderer mirror. To verify the original failure, use `--source-ref <commit>
+--case exited`, or add `--built-app '/path/to/zshell Debug.app'` to exercise a
+compiled Debug module and its real terminal mirror. The fixture removes its
+binaries, module cache, and private state.
+
 ## Website and docs
 
 The site is in [`web/`](web/README.md); user documentation is MDX under
