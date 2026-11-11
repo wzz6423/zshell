@@ -159447,109 +159447,109 @@
         }
       }
     },
-    "Recover unsaved file and editable diff changes after relaunch. Backups stay on this Mac and can be recovered for 30 days.": {
+    "Recover unsaved file and editable diff changes after relaunch. Backups stay on this Mac for up to 30 days. Capacity limits may delete older backups sooner.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recover unsaved file and editable diff changes after relaunch. Backups stay on this Mac and can be recovered for 30 days."
+            "value": "Recover unsaved file and editable diff changes after relaunch. Backups stay on this Mac for up to 30 days. Capacity limits may delete older backups sooner."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "重新打开应用后恢复未保存的文件和可编辑 Diff 内容。备份存储在此 Mac 上，30 天内可恢复。"
+            "value": "重新打开应用后恢复未保存的文件和可编辑 Diff 内容。备份存储在此 Mac 上，最多保留 30 天。容量限制可能导致较旧的备份提前删除。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "重新開啟應用程式後還原未儲存的檔案與可編輯 Diff 內容。備份儲存在此 Mac，30 天內可還原。"
+            "value": "重新開啟應用程式後還原未儲存的檔案與可編輯 Diff 內容。備份儲存在此 Mac，最多保留 30 天。容量限制可能導致較舊的備份提前刪除。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "再起動後に未保存のファイルと編集可能な差分を復元します。バックアップはこの Mac に保存され、30日間復元できます。"
+            "value": "再起動後に未保存のファイルと編集可能な差分を復元します。バックアップはこの Mac に最大30日間保存されます。容量制限により、古いバックアップが早く削除される場合があります。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "앱을 다시 실행하면 저장하지 않은 파일과 편집 가능한 diff를 복구합니다. 백업은 이 Mac에 저장되며 30일 동안 복구할 수 있습니다."
+            "value": "앱을 다시 실행하면 저장하지 않은 파일과 편집 가능한 diff를 복구합니다. 백업은 이 Mac에 최대 30일 동안 보관됩니다. 용량 제한으로 오래된 백업이 더 일찍 삭제될 수 있습니다."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Récupérez les fichiers et les différences modifiables non enregistrés après un redémarrage. Les sauvegardes restent sur ce Mac et sont récupérables pendant 30 jours."
+            "value": "Récupérez les fichiers et les différences modifiables non enregistrés après un redémarrage. Les sauvegardes restent sur ce Mac pendant 30 jours au maximum. Les limites de capacité peuvent supprimer les anciennes sauvegardes plus tôt."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ungesicherte Dateien und bearbeitbare Diffs nach einem Neustart wiederherstellen. Sicherungen bleiben auf diesem Mac und sind 30 Tage lang wiederherstellbar."
+            "value": "Ungesicherte Dateien und bearbeitbare Diffs nach einem Neustart wiederherstellen. Sicherungen bleiben bis zu 30 Tage auf diesem Mac. Kapazitätsgrenzen können ältere Sicherungen früher löschen."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recupera archivos y diferencias editables sin guardar al reiniciar. Las copias permanecen en este Mac y se pueden recuperar durante 30 días."
+            "value": "Recupera archivos y diferencias editables sin guardar al reiniciar. Las copias permanecen en este Mac hasta 30 días. Los límites de capacidad pueden eliminar las copias antiguas antes."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recupere arquivos e diffs editáveis não salvos após reiniciar. Os backups ficam neste Mac e podem ser recuperados por 30 dias."
+            "value": "Recupere arquivos e diffs editáveis não salvos após reiniciar. Os backups ficam neste Mac por até 30 dias. Os limites de capacidade podem excluir backups antigos antes disso."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recupera file e diff modificabili non salvati dopo il riavvio. I backup restano su questo Mac e sono recuperabili per 30 giorni."
+            "value": "Recupera file e diff modificabili non salvati dopo il riavvio. I backup restano su questo Mac per un massimo di 30 giorni. I limiti di capacità possono eliminare prima i backup più vecchi."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Herstel niet-opgeslagen bestanden en bewerkbare diffs na opnieuw starten. Back-ups blijven op deze Mac en kunnen 30 dagen worden hersteld."
+            "value": "Herstel niet-opgeslagen bestanden en bewerkbare diffs na opnieuw starten. Back-ups blijven maximaal 30 dagen op deze Mac. Door capaciteitslimieten kunnen oudere back-ups eerder worden verwijderd."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Восстанавливайте несохранённые файлы и редактируемые diff после перезапуска. Копии хранятся на этом Mac и доступны для восстановления 30 дней."
+            "value": "Восстанавливайте несохранённые файлы и редактируемые diff после перезапуска. Копии хранятся на этом Mac до 30 дней. При достижении лимитов более старые копии могут быть удалены раньше."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "استعد الملفات والفروق القابلة للتحرير غير المحفوظة بعد إعادة التشغيل. تبقى النسخ على هذا الـ Mac ويمكن استعادتها لمدة 30 يومًا."
+            "value": "استعد الملفات والفروق القابلة للتحرير غير المحفوظة بعد إعادة التشغيل. تبقى النسخ على هذا الـ Mac لمدة تصل إلى 30 يومًا. قد تؤدي حدود السعة إلى حذف النسخ الأقدم قبل ذلك."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "กู้คืนไฟล์และ diff ที่แก้ไขได้ซึ่งยังไม่ได้บันทึกหลังเปิดแอปใหม่ ข้อมูลสำรองอยู่ใน Mac เครื่องนี้และกู้คืนได้เป็นเวลา 30 วัน"
+            "value": "กู้คืนไฟล์และ diff ที่แก้ไขได้ซึ่งยังไม่ได้บันทึกหลังเปิดแอปใหม่ ข้อมูลสำรองอยู่ใน Mac เครื่องนี้สูงสุด 30 วัน ขีดจำกัดความจุอาจทำให้ข้อมูลสำรองเก่าถูกลบก่อนกำหนด"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pulihkan berkas dan diff yang dapat diedit yang belum disimpan setelah memulai ulang. Cadangan tetap di Mac ini dan dapat dipulihkan selama 30 hari."
+            "value": "Pulihkan berkas dan diff yang dapat diedit yang belum disimpan setelah memulai ulang. Cadangan tetap di Mac ini hingga 30 hari. Batas kapasitas dapat menghapus cadangan lama lebih awal."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Khôi phục tệp và diff có thể chỉnh sửa chưa lưu sau khi khởi động lại. Bản sao lưu ở trên Mac này và có thể khôi phục trong 30 ngày."
+            "value": "Khôi phục tệp và diff có thể chỉnh sửa chưa lưu sau khi khởi động lại. Bản sao lưu được giữ trên Mac này tối đa 30 ngày. Giới hạn dung lượng có thể khiến bản sao lưu cũ bị xóa sớm hơn."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Yeniden başlattıktan sonra kaydedilmemiş dosyaları ve düzenlenebilir diff değişikliklerini kurtarın. Yedekler bu Mac’te kalır ve 30 gün boyunca kurtarılabilir."
+            "value": "Yeniden başlattıktan sonra kaydedilmemiş dosyaları ve düzenlenebilir diff değişikliklerini kurtarın. Yedekler bu Mac’te en fazla 30 gün kalır. Kapasite sınırları eski yedekleri daha erken silebilir."
           }
         }
       }

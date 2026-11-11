@@ -158,9 +158,10 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
                     let descriptor = try self.openDirectory(create: false)
                     guard descriptor >= 0 else { continuation.resume(returning: nil); return }
                     defer { close(descriptor) }
-                    try self.prune(in: descriptor)
+                    var restored: EditorDraftRecord?
+                    try self.prune(in: descriptor) { if $0.id == id { restored = $0 } }
                     _ = fsync(descriptor)
-                    guard let record = try? self.read(id, in: descriptor) else {
+                    guard let record = restored ?? (try? self.read(id, in: descriptor)) else {
                         continuation.resume(returning: nil); return
                     }
                     // A save may have reached disk just before the process
@@ -181,19 +182,9 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
                     let descriptor = try self.openDirectory(create: false)
                     guard descriptor >= 0 else { continuation.resume(returning: []); return }
                     defer { close(descriptor) }
-                    try self.prune(in: descriptor)
-                    _ = fsync(descriptor)
-                    let entries = try self.entries(in: descriptor)
-                    var bytes = 0
                     var result: [EditorDraftRecord] = []
-                    for entry in entries.sorted(by: { $0.modified > $1.modified }) {
-                        guard result.count < Self.maximumEntries,
-                              bytes + entry.bytes <= Self.maximumTotalBytes else { continue }
-                        if let record = try? self.read(entry.id, in: descriptor) {
-                            bytes += entry.bytes
-                            result.append(record)
-                        }
-                    }
+                    try self.prune(in: descriptor) { result.append($0) }
+                    _ = fsync(descriptor)
                     continuation.resume(returning: result.sorted { $0.updatedAt > $1.updatedAt })
                 } catch { continuation.resume(throwing: error) }
             }
@@ -205,15 +196,17 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
         let descriptor = try openDirectory(create: true)
         defer { close(descriptor) }
         var failure: Error?
+        var written: [UUID: Date] = [:]
         for record in records.prefix(Self.maximumEntries) {
             do {
                 guard record.isValid else { throw Failure.invalidRecord }
                 let data = try JSONEncoder().encode(record)
                 guard data.count <= Self.maximumRecordBytes else { throw Failure.tooLarge }
                 try replace(data, id: record.id, in: descriptor)
-                try prune(in: descriptor)
+                written[record.id] = record.updatedAt
             } catch { failure = error }
         }
+        try prune(in: descriptor, written: written, validatingRecords: false)
         _ = fsync(descriptor)
         if let failure { throw failure }
     }
@@ -222,23 +215,34 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
         let descriptor = try openDirectory(create: false)
         guard descriptor >= 0 else { return }
         defer { close(descriptor) }
-        try prune(in: descriptor, checkingRecordDates: true)
+        try prune(in: descriptor)
         _ = fsync(descriptor)
     }
 
-    private func prune(in descriptor: Int32, checkingRecordDates: Bool = false) throws {
+    private func prune(in descriptor: Int32, written: [UUID: Date] = [:],
+                       validatingRecords: Bool = true,
+                       onRead: ((EditorDraftRecord) -> Void)? = nil) throws {
         let entries = try entries(in: descriptor, removingTemporary: true).sorted { $0.modified > $1.modified }
+        // Healthy keystroke backups need only metadata cleanup. Decode before
+        // quota eviction, or when recovery and scheduled cleanup require it.
+        let validate = validatingRecords || entries.count > Self.maximumEntries
+            || entries.reduce(0, { $0 + min($1.bytes, Self.maximumRecordBytes) }) > Self.maximumTotalBytes
         let cutoff = Date().addingTimeInterval(-Self.retention)
         var count = 0, bytes = 0
         for entry in entries {
-            if entry.modified < cutoff
+            if entry.modified < cutoff || entry.bytes > Self.maximumRecordBytes
+                || written[entry.id].map({ $0 < cutoff }) == true
                 || count >= Self.maximumEntries || bytes + entry.bytes > Self.maximumTotalBytes {
                 _ = unlinkat(descriptor, entry.name, 0)
             } else {
-                if checkingRecordDates {
-                    do { _ = try read(entry.id, in: descriptor) }
-                    catch Failure.expiredRecord { continue }
-                    catch { }
+                // Only validated candidates may displace recoverable drafts;
+                // this batch's atomic writes already validated their payloads.
+                if validate, written[entry.id] == nil {
+                    guard let record = try? read(entry.id, in: descriptor) else {
+                        _ = unlinkat(descriptor, entry.name, 0)
+                        continue
+                    }
+                    onRead?(record)
                 }
                 count += 1
                 bytes += entry.bytes

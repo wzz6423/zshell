@@ -24,6 +24,7 @@ struct EditorDraftRecoveryTests {
             case "normal-write": try await write(root, normalExit: true)
             case "restore": try await restore(root)
             case "boundaries": try await boundaries(root)
+            case "quota": try await quota(root)
             case "expiry": try await expiry(root)
             case "workspace": try await workspace(root)
             default: throw failure("Unknown phase")
@@ -337,7 +338,109 @@ struct EditorDraftRecoveryTests {
         for project in manager.projects { project.terminateAll() }
     }
 
+    @MainActor private static func quota(_ root: URL) async throws {
+        let path = root.appendingPathComponent("quota-base.txt")
+        try "base".write(to: path, atomically: true, encoding: .utf8)
+        let baseline = try FileSaveCoordinator.read(path: path.path)
+        for action in ["load", "records", "flush", "startup", "disabled-timer"] {
+            let directory = root.appendingPathComponent("quota-\(action)")
+            let archive = EditorDraftArchive(directory: directory, enabled: true)
+            let records = (0..<EditorDraftArchive.maximumEntries).map {
+                EditorDraftRecord(id: UUID(), source: .file(path: path.path), text: "draft \($0)", baseline: baseline)
+            }
+            try archive.flush(records)
+            for (index, record) in records.enumerated() {
+                let url = directory.appendingPathComponent("\(record.id.uuidString.lowercased()).json")
+                try FileManager.default.setAttributes([.modificationDate: Date().addingTimeInterval(Double(-60 - index))],
+                                                       ofItemAtPath: url.path)
+            }
+            if action == "disabled-timer" {
+                archive.setEnabled(false)
+                archive.startExpiryCleanup(interval: 0.05)
+                try await Task.sleep(for: .milliseconds(100))
+            }
+            let malformedID = UUID()
+            let malformed = directory.appendingPathComponent("\(malformedID.uuidString.lowercased()).json")
+            try Data("{broken JSON".utf8).write(to: malformed)
+            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: malformed.path)
+            var rejected: [URL] = [malformed]
+            for expired in [false, true] {
+                let candidate = EditorDraftRecord(id: UUID(), source: .file(path: path.path), text: "invalid draft", baseline: baseline)
+                var payload = try JSONSerialization.jsonObject(with: JSONEncoder().encode(candidate)) as! [String: Any]
+                if expired { payload["updatedAt"] = Date().addingTimeInterval(-EditorDraftArchive.retention - 60).timeIntervalSinceReferenceDate }
+                else { payload["version"] = 2 }
+                let url = directory.appendingPathComponent("\(candidate.id.uuidString.lowercased()).json")
+                try JSONSerialization.data(withJSONObject: payload).write(to: url)
+                try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+                rejected.append(url)
+            }
+            let ids = Set(records.map(\.id))
+            switch action {
+            case "load":
+                try check(try await archive.load(malformedID) == nil, "a malformed quota candidate cannot be loaded")
+            case "records":
+                try check(Set(try await archive.records().map(\.id)) == ids,
+                          "listing skips newer malformed JSON without losing any of the 32 valid draft IDs")
+            case "flush": try archive.flush([records[0]])
+            case "startup":
+                archive.startExpiryCleanup()
+                try await Task.sleep(for: .milliseconds(150))
+            default: try await Task.sleep(for: .milliseconds(150))
+            }
+            let remaining = Set(try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+                .compactMap { UUID(uuidString: $0.deletingPathExtension().lastPathComponent) })
+            try check(remaining.isSuperset(of: ids),
+                      "\(action) preserves all 32 valid draft IDs when a newer malformed entry is present")
+            try check(Set(try await archive.records().map(\.id)) == ids,
+                      "\(action) retains every valid draft for later recovery")
+            try check(rejected.allSatisfy { !FileManager.default.fileExists(atPath: $0.path) },
+                      "\(action) removes malformed, invalid and expired JSON before they can consume the archive quota")
+        }
+    }
+
+    @MainActor private static func capacity(_ root: URL, baseline: FileSaveSnapshot) async throws {
+        let directory = root.appendingPathComponent("capacity-archive")
+        let archive = EditorDraftArchive(directory: directory, enabled: true)
+        let text = String(repeating: "x", count: (4 << 20) - 1024)
+        let records = (0..<EditorDraftArchive.maximumEntries).map { _ in
+            EditorDraftRecord(id: UUID(), source: .file(path: baseline.destinationPath), text: text, baseline: baseline)
+        }
+        try archive.flush(records)
+        func bytes() throws -> Int {
+            try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.fileSizeKey])
+                .reduce(0) { try $0 + $1.resourceValues(forKeys: [.fileSizeKey]).fileSize! }
+        }
+        try check(try bytes() > 127 << 20 && bytes() <= EditorDraftArchive.maximumTotalBytes,
+                  "32 valid draft payloads exercise the 128 MiB archive boundary")
+        let small = EditorDraftRecord(id: records[0].id, source: records[0].source, text: "new keystroke", baseline: baseline)
+        let started = Date()
+        let error = await withCheckedContinuation { continuation in
+            archive.write([small]) { continuation.resume(returning: $0) }
+        }
+        if let error { throw error }
+        let duration = Date().timeIntervalSince(started)
+        print("DRAFT_ARCHIVE_INCREMENTAL_WRITE_SECONDS=\(duration)")
+        try check(duration < 0.5, "a healthy near-capacity incremental write finishes within the automatic backup window")
+        let corrupt = directory.appendingPathComponent("\(UUID().uuidString.lowercased()).json")
+        FileManager.default.createFile(atPath: corrupt.path, contents: nil, attributes: [.posixPermissions: 0o600])
+        let file = try FileHandle(forWritingTo: corrupt)
+        try file.truncate(atOffset: 70 << 20)
+        try file.close()
+        try archive.flush([small])
+        try check(!FileManager.default.fileExists(atPath: corrupt.path) && bytes() <= EditorDraftArchive.maximumTotalBytes,
+                  "a large malformed candidate is removed before applying the total-byte quota")
+        try check(Set(try await archive.records().map(\.id)) == Set(records.map(\.id)),
+                  "a newer malformed file cannot displace valid IDs from a near-capacity archive")
+        let oversized = EditorDraftRecord(id: UUID(), source: records[0].source, text: text, baseline: baseline)
+        try archive.flush([oversized])
+        let bounded = try await archive.records()
+        try check(bounded.count <= EditorDraftArchive.maximumEntries && bounded.contains { $0.id == oversized.id }
+                  && bytes() <= EditorDraftArchive.maximumTotalBytes,
+                  "a new valid draft still enforces both capacity limits")
+    }
+
     @MainActor private static func boundaries(_ root: URL) async throws {
+        try await quota(root)
         let path = root.appendingPathComponent("archive-base.txt")
         try "base".write(to: path, atomically: true, encoding: .utf8)
         let baseline = try FileSaveCoordinator.read(path: path.path)
@@ -411,20 +514,7 @@ struct EditorDraftRecoveryTests {
         try Data("interrupted".utf8).write(to: interrupted)
         try archive.flush([record])
         try check(!FileManager.default.fileExists(atPath: interrupted.path), "a later write removes interrupted atomic-write files")
-        let totalDirectory = root.appendingPathComponent("total-archive")
-        let total = EditorDraftArchive(directory: totalDirectory, enabled: true)
-        try total.flush([record])
-        for _ in 0..<2 {
-            let url = totalDirectory.appendingPathComponent("\(UUID().uuidString.lowercased()).json")
-            FileManager.default.createFile(atPath: url.path, contents: nil, attributes: [.posixPermissions: 0o600])
-            let file = try FileHandle(forWritingTo: url)
-            try file.truncate(atOffset: 70 << 20)
-            try file.close()
-        }
-        try total.flush([record])
-        let bytes = try FileManager.default.contentsOfDirectory(at: totalDirectory, includingPropertiesForKeys: [.fileSizeKey])
-            .reduce(0) { try $0 + $1.resourceValues(forKeys: [.fileSizeKey]).fileSize! }
-        try check(bytes <= EditorDraftArchive.maximumTotalBytes, "total archive size stays within 128 MiB after recovery writes")
+        try await capacity(root, baseline: baseline)
 
         let release = DispatchSemaphore(value: 0)
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
@@ -467,6 +557,9 @@ struct EditorDraftRecoveryTests {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let base = ((try? SettingsConfigFile.resolve(support)) ?? support).appendingPathComponent("zshell-dev")
         let directory = base.appendingPathComponent("editor-drafts")
+        // The driver reuses its disposable home after restore; those valid
+        // leftovers must not turn this 32-draft fixture into a real overflow.
+        if FileManager.default.fileExists(atPath: directory.path) { try FileManager.default.removeItem(at: directory) }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
                                                attributes: [.posixPermissions: 0o700])
         let old = Date().addingTimeInterval(-EditorDraftArchive.retention - 60)
@@ -481,7 +574,12 @@ struct EditorDraftRecoveryTests {
         }
         let overdue = try backup(expired: true, modified: old)
         let refreshed = try backup(expired: true)
-        let current = try backup(expired: false)
+        let current = try (0..<EditorDraftArchive.maximumEntries).map { _ in
+            try backup(expired: false, modified: Date().addingTimeInterval(-60))
+        }
+        let malformed = directory.appendingPathComponent("\(UUID().uuidString.lowercased()).json")
+        try Data("{broken JSON".utf8).write(to: malformed)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: malformed.path)
         let interrupted = directory.appendingPathComponent(".\(UUID().uuidString.lowercased()).tmp")
         try Data("unpublished private text".utf8).write(to: interrupted)
         let delegate = ZshellApplicationDelegate()
@@ -489,9 +587,10 @@ struct EditorDraftRecoveryTests {
         NSApp.setActivationPolicy(.prohibited)
         try await wait("launch cleanup runs with backups off and no editor clients") {
             !FileManager.default.fileExists(atPath: overdue.path) && !FileManager.default.fileExists(atPath: refreshed.path)
+                && !FileManager.default.fileExists(atPath: malformed.path)
         }
-        try check(!AppSettings.shared.recoverEditorDrafts && FileManager.default.fileExists(atPath: current.path),
-                  "application startup removes expired backups but preserves recoverable ones with backups off")
+        try check(!AppSettings.shared.recoverEditorDrafts && current.allSatisfy { FileManager.default.fileExists(atPath: $0.path) },
+                  "application startup removes malformed and expired backups but preserves all 32 valid draft IDs with backups off")
         try check(!FileManager.default.fileExists(atPath: interrupted.path),
                   "startup cleanup removes interrupted private temporary files without new backups")
 
