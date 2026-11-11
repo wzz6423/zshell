@@ -237,6 +237,10 @@ arguments, but variables, globs, and command substitutions are not expanded.
 Invalid quoting also falls back to the login shell. An explicit argv supplied by
 the Zshell CLI still takes precedence for that terminal.
 
+### `terminal.term`
+
+Choose **Settings → Terminal → TERM** to set `terminal.term` (default `"xterm-256color"`). The name must contain 1–128 ASCII letters, digits, or `.-_+`. Use a terminfo name installed on the machine running the shell. Changes apply to new local and SSH sessions only; open and preserved PTYs keep their original `TERM`. Shared remote sessions use the value when created with an updated server; older servers keep `xterm-256color`. Invalid edits retain the last valid value and show an error in Settings. This setting leaves `TERM_PROGRAM` and `ZSHELL_TERM` unchanged.
+
 ### `terminal.backend`
 
 `"libghostty"` · `"alacritty"` — default `"libghostty"`

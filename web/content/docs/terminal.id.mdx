@@ -16,6 +16,10 @@ Pilih backend di **Pengaturan → Terminal → Backend**:
 
 Keduanya mendukung akselerasi GPU, gambar, katalog tema bersama Zshell, pencarian, pelaporan mouse, notifikasi, dan laporan kemajuan. Perubahan backend hanya berlaku untuk terminal baru; panel yang sudah ada mempertahankan emulator awalnya.
 
+## Jenis terminal [#terminal-type]
+
+Atur `terminal.term` di **Pengaturan → Terminal → TERM** (default `"xterm-256color"`). Nama harus berisi 1–128 huruf ASCII, angka, atau `.-_+`. Gunakan nama terminfo yang terpasang di host yang menjalankan shell. Perubahan hanya berlaku untuk sesi lokal dan SSH baru; PTY terbuka dan tersimpan mempertahankan `TERM` asli. Sesi jarak jauh bersama menggunakan nilai ini saat dibuat dengan server terbaru; server lama tetap menggunakan `xterm-256color`. Edit yang tidak valid mempertahankan nilai valid terakhir dan menampilkan kesalahan di Pengaturan. `TERM_PROGRAM` dan `ZSHELL_TERM` tidak berubah.
+
 ## Riwayat perintah [#command-history]
 
 **Simpan riwayat perintah** di **Pengaturan → Terminal → Riwayat** aktif secara bawaan (`terminal.command-history = true`). Menonaktifkannya menghentikan pencatatan perintah baru; riwayat tersimpan tetap dapat dilihat atau dihapus. Keluaran terminal dan riwayat shell sendiri tetap ada.

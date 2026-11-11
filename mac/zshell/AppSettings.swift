@@ -481,6 +481,12 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published private(set) var terminalTerm: String {
+        didSet { save() }
+    }
+
+    @Published private(set) var terminalTermIsInvalid = false
+
     /// Full executable path and argument text used by terminals opened after a
     /// settings change. An empty program keeps the account login shell.
     @Published var terminalStartupProgram: String {
@@ -640,6 +646,11 @@ final class AppSettings: nonisolated ObservableObject {
         notifyOnAgentAttention = toml["ai.notify-on-attention"]?.bool ?? true
         notifyOnAgentCompletion = toml["ai.notify-on-completion"]?.bool ?? true
         terminalBackend = TerminalBackend(persisted: toml["terminal.backend"]?.string)
+        let term = toml["terminal.term"]?.string
+        terminalTerm = term.flatMap { TerminalLaunchSettings.isValidTermName($0) ? $0 : nil }
+            ?? TerminalLaunchSettings.defaultTerm
+        terminalTermIsInvalid = toml["terminal.term"] != nil
+            && !TerminalLaunchSettings.isValidTermName(term ?? "")
         terminalStartupProgram = toml["terminal.startup-program"]?.string ?? ""
         terminalStartupArguments = toml["terminal.startup-arguments"]?.string ?? ""
         browserContentBlocking = toml["browser.content-blocking"]?.bool ?? true
@@ -790,6 +801,8 @@ final class AppSettings: nonisolated ObservableObject {
             && notifyOnAgentAttention
             && notifyOnAgentCompletion
             && terminalBackend == .fallback
+            && terminalTerm == TerminalLaunchSettings.defaultTerm
+            && !terminalTermIsInvalid
             && terminalStartupProgram.isEmpty
             && terminalStartupArguments.isEmpty
             && browserContentBlocking
@@ -849,6 +862,7 @@ final class AppSettings: nonisolated ObservableObject {
             }
         }
         terminalBackend = .fallback
+        setTerminalTerm(TerminalLaunchSettings.defaultTerm)
         terminalStartupProgram = ""
         terminalStartupArguments = ""
         terminalProfiles = []
@@ -933,6 +947,17 @@ final class AppSettings: nonisolated ObservableObject {
     func applyImported(_ toml: [String: TOML.Value]) {
         applyConfig(toml, defaultAIEnabled: aiEnabled)
         save()
+    }
+
+    @discardableResult
+    func setTerminalTerm(_ term: String) -> Bool {
+        guard TerminalLaunchSettings.isValidTermName(term) else {
+            assign(\.terminalTermIsInvalid, true)
+            return false
+        }
+        assign(\.terminalTermIsInvalid, false)
+        assign(\.terminalTerm, term)
+        return true
     }
 
     private func assign<Value: Equatable>(
@@ -1064,6 +1089,8 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.notifyOnAgentAttention, toml["ai.notify-on-attention"]?.bool ?? true)
         assign(\.notifyOnAgentCompletion, toml["ai.notify-on-completion"]?.bool ?? true)
         assign(\.terminalBackend, TerminalBackend(persisted: toml["terminal.backend"]?.string))
+        setTerminalTerm(toml["terminal.term"] == nil
+            ? TerminalLaunchSettings.defaultTerm : toml["terminal.term"]?.string ?? "")
         assign(\.terminalStartupProgram, toml["terminal.startup-program"]?.string ?? "")
         assign(\.terminalStartupArguments, toml["terminal.startup-arguments"]?.string ?? "")
         assign(\.browserContentBlocking, toml["browser.content-blocking"]?.bool ?? true)
@@ -1287,6 +1314,9 @@ final class AppSettings: nonisolated ObservableObject {
         if !notifyOnAgentCompletion { lines.append("ai.notify-on-completion = false") }
         if terminalBackend != .fallback {
             lines.append("terminal.backend = \(TOML.quote(terminalBackend.rawValue))")
+        }
+        if terminalTerm != TerminalLaunchSettings.defaultTerm {
+            lines.append("terminal.term = \(TOML.quote(terminalTerm))")
         }
         if !terminalStartupProgram.isEmpty {
             lines.append("terminal.startup-program = \(TOML.quote(terminalStartupProgram))")

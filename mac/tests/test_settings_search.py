@@ -48,6 +48,7 @@ CONFIGURATION_ITEMS = {
     "terminal.startup-program": ("terminal", "Startup", ""),
     "terminal.startup-arguments": ("terminal", "Startup", ""),
     "terminal.backend": ("terminal", "Backend", ""),
+    "terminal.term": ("terminal", "TERM", ""),
     "terminal.cursor-shape": ("appearance", "Cursor shape", "Cursor"),
     "terminal.cursor-blinking": ("appearance", "Blink cursor", "Cursor"),
     "terminal.background-opacity": ("appearance", "Opacity", "Background"),
@@ -274,7 +275,7 @@ class SettingsSearchTests(unittest.TestCase):
         ], check=True, capture_output=True, text=True)
 
     def translated(self, key, language):
-        if not key or key == "Homebrew" or language == "en":
+        if not key or key in ("Homebrew", "TERM") or language == "en":
             return key
         return self.strings[key]["localizations"][language]["stringUnit"]["value"]
 

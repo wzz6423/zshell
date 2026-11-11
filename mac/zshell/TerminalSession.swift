@@ -722,7 +722,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         usesGitProxy: Bool
     ) -> [String: String] {
         var environment = [
-            "TERM": "xterm-256color",
+            "TERM": AppSettings.shared.terminalTerm,
             "COLORTERM": "truecolor",
         ]
         environment.merge(
@@ -738,7 +738,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         if let pathOverride, !pathOverride.isEmpty {
             environment["PATH"] = pathOverride
         }
-        environment.merge(additionalEnvironment, uniquingKeysWith: { _, additionalValue in
+        environment.merge(additionalEnvironment.filter {
+            $0.key != "TERM" || TerminalLaunchSettings.isValidTermName($0.value)
+        }, uniquingKeysWith: { _, additionalValue in
             additionalValue
         })
         // A remote shell resolves the proxy's loopback address on its own host,

@@ -18,6 +18,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Choose the terminal type (`TERM`) for new local and remote sessions while
+  open and preserved shells keep their original identity.
 - Adjust terminal column spacing from Appearance settings while keeping glyph
   size, cursor, selection, and keyboard hints aligned on either terminal backend.
 - Keep the Mac awake while Zshell is running or while a local agent works in

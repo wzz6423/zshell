@@ -161,6 +161,10 @@ Bestimmen Programm und Argumente für danach neu erstellte Terminals. Ohne `term
 
 `terminal.startup-arguments` wird ohne Shell-Aufruf in Argumente zerlegt. Anführungszeichen und Backslashes erhalten Argumentgrenzen, einschließlich Leerzeichen und leerer Argumente. Variablen, Globs und Befehlssubstitutionen werden nicht expandiert. Ungültige Anführungszeichen führen ebenfalls zur Login-Shell. Explizit über die Zshell-CLI übergebene argv-Argumente haben für das betreffende Terminal weiterhin Vorrang.
 
+### `terminal.term`
+
+Legen Sie `terminal.term` unter **Einstellungen → Terminal → TERM** fest (Standard `"xterm-256color"`). Der Name muss aus 1–128 ASCII-Buchstaben, Ziffern oder `.-_+` bestehen. Verwenden Sie einen terminfo-Namen, der auf dem Host der Shell installiert ist. Änderungen gelten nur für neue lokale und SSH-Sitzungen; offene und erhaltene PTYs behalten ihren bisherigen `TERM`. Geteilte entfernte Sitzungen verwenden den Wert beim Erstellen mit einem aktuellen Server; ältere Server behalten `xterm-256color`. Ungültige Änderungen behalten den letzten gültigen Wert und zeigen einen Fehler in den Einstellungen. `TERM_PROGRAM` und `ZSHELL_TERM` bleiben unverändert.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` – Standard: `"libghostty"`

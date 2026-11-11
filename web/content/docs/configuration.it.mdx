@@ -161,6 +161,10 @@ Scelgono l'eseguibile e la lista di argomenti per i terminali creati da quel mom
 
 `terminal.startup-arguments` viene suddiviso in argomenti senza invocare una shell. Virgolette e barre rovesciate preservano i confini degli argomenti, inclusi spazi e argomenti vuoti, ma variabili, glob e sostituzioni di comando non vengono espansi. Anche virgolette non valide fanno usare la shell di login. Una lista argv esplicita fornita dalla CLI di Zshell mantiene la precedenza per quel terminale.
 
+### `terminal.term`
+
+Imposta `terminal.term` in **Impostazioni → Terminale → TERM** (predefinito `"xterm-256color"`). Il nome deve contenere 1–128 lettere ASCII, cifre o `.-_+`. Usa un nome terminfo installato sull’host che esegue la shell. Le modifiche si applicano solo alle nuove sessioni locali e SSH; i PTY aperti e conservati mantengono il loro `TERM` originale. Le sessioni remote condivise usano il valore alla creazione con un server aggiornato; i server precedenti mantengono `xterm-256color`. Le modifiche non valide mantengono l’ultimo valore valido e mostrano un errore nelle impostazioni. `TERM_PROGRAM` e `ZSHELL_TERM` restano invariati.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — predefinito `"libghostty"`

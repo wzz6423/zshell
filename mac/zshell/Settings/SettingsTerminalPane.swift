@@ -6,12 +6,26 @@
 import AppKit
 
 /// Startup, input, history, notifications, and the global quick terminal.
-final class SettingsTerminalPane: SettingsPaneViewController {
+final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegate {
     private let startupView = TerminalStartupSettingsView { program, arguments in
         AppSettings.shared.terminalStartupProgram = program
         AppSettings.shared.terminalStartupArguments = arguments
     }
     private let backendPicker = SettingsBackendPicker { AppSettings.shared.terminalBackend = $0 }
+    private let termField = NSTextField()
+    private var displayedTerm = ""
+    private var termNeedsCommit = false
+    private lazy var termRow = SettingsRow(
+        title: "TERM",
+        description: Self.termDescription(isInvalid: false),
+        control: termField
+    )
+
+    private static func termDescription(isInvalid: Bool) -> String {
+        isInvalid
+            ? String(localized: "Enter a terminal type with 1–128 ASCII letters, digits, or .-_+. The previous value is kept.")
+            : String(localized: "Terminal type for new sessions. Open and preserved sessions keep their TERM. Use a terminfo name available on the local or remote host.")
+    }
 
     private let automaticProfilesSwitch = SettingsSwitch { AppSettings.shared.automaticallyApplyTerminalProfiles = $0 }
     private let commandHistorySwitch = SettingsSwitch { AppSettings.shared.commandHistoryEnabled = $0 }
@@ -89,12 +103,20 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     }
 
     override func makeGroups() -> [NSView] {
+        termField.controlSize = .small
+        termField.placeholderString = TerminalLaunchSettings.defaultTerm
+        termField.setAccessibilityLabel("TERM")
+        termField.delegate = self
+        termField.target = self
+        termField.action = #selector(termChanged)
+        termField.widthAnchor.constraint(equalToConstant: 180).isActive = true
         var startupRows: [NSView] = [
             SettingsRow(
                 title: String(localized: "Startup"),
                 description: String(localized: "Changes apply only to new terminals. Open terminals keep their current process."),
                 control: startupView
             ),
+            termRow,
         ]
 
         // Only offer this once there is a real choice. `selectable` omits
@@ -199,6 +221,14 @@ final class SettingsTerminalPane: SettingsPaneViewController {
             arguments: settings.terminalStartupArguments
         )
         backendPicker.select(settings.terminalBackend)
+        let isEditingTerm = termField.currentEditor() != nil
+            && view.window?.firstResponder === termField.currentEditor()
+        if !isEditingTerm || displayedTerm != settings.terminalTerm {
+            displayedTerm = settings.terminalTerm
+            termField.stringValue = settings.terminalTerm
+            termNeedsCommit = false
+            termRow.setDescription(Self.termDescription(isInvalid: settings.terminalTermIsInvalid))
+        }
         automaticProfilesSwitch.isOn = settings.automaticallyApplyTerminalProfiles
         commandHistorySwitch.isOn = settings.commandHistoryEnabled
         textHintsSwitch.isOn = settings.terminalTextHints
@@ -219,5 +249,27 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         quickTerminalModePopup.select(settings.quickTerminalMode)
         quickTerminalSizeRow.setValue(settings.quickTerminalSize)
         quickTerminalOpacityRow.setValue(settings.quickTerminalOpacity)
+    }
+
+    func controlTextDidChange(_ notification: Notification) {
+        guard notification.object as? NSTextField === termField else { return }
+        termNeedsCommit = true
+        termRow.setDescription(Self.termDescription(
+            isInvalid: !TerminalLaunchSettings.isValidTermName(termField.stringValue)
+        ))
+    }
+
+    func controlTextDidEndEditing(_ notification: Notification) {
+        guard notification.object as? NSTextField === termField else { return }
+        termChanged()
+    }
+
+    @objc private func termChanged() {
+        guard termNeedsCommit || termField.stringValue != settings.terminalTerm else { return }
+        termNeedsCommit = false
+        let accepted = settings.setTerminalTerm(termField.stringValue)
+        displayedTerm = settings.terminalTerm
+        termField.stringValue = settings.terminalTerm
+        termRow.setDescription(Self.termDescription(isInvalid: !accepted))
     }
 }

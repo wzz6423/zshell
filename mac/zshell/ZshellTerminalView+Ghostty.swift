@@ -21,6 +21,9 @@ extension ZshellTerminalView {
         foregroundProcessProvider = launch.foregroundProcessProvider
         reportsLocalWorkingDirectory = launch.reportsLocalWorkingDirectory
         launchCommand = launch.commandLine
+        launchTerm = launch.environment["TERM"].flatMap {
+            TerminalLaunchSettings.isValidTermName($0) ? $0 : nil
+        } ?? TerminalLaunchSettings.defaultTerm
         launchShellIntegration = launch.foregroundProcessProvider == nil && !launch.usesZsh
             ? Self.shellIntegration(for: launch.interactiveShell) : "none"
         supportsInputSelection = launch.usesZsh
@@ -147,6 +150,9 @@ extension ZshellTerminalView {
                 builder.withCustom("keybind", "shift+numpad_enter=text:\\x0a")
             }
             builder.withCustom("command", "shell:\(command)")
+            // Ghostty can synthesize TERM after surface environment entries.
+            // Freeze its config to this launch, including renderer reattaches.
+            builder.withCustom("term", launchTerm)
             if !reportsLocalWorkingDirectory {
                 // A remote job may already have exited before we attach. Its
                 // status belongs to the session, not Ghostty's launch warning.

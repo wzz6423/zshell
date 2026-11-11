@@ -161,6 +161,10 @@ Bundan sonra oluşturulan terminallerin çalıştırılabilir dosyasını ve arg
 
 `terminal.startup-arguments` kabuk çağırmadan argümanlara ayrılır. Tırnak ve ters eğik çizgiler boşluk ve boş argüman dâhil sınırları korur; değişken, glob ve komut yerine koyma genişletilmez. Geçersiz tırnaklama da giriş kabuğuna döner. Zshell CLI’ın açıkça verdiği argv o terminalde yine önceliklidir.
 
+### `terminal.term`
+
+**Ayarlar → Terminal → TERM** altında `terminal.term` değerini ayarlayın (varsayılan `"xterm-256color"`). Ad, 1–128 ASCII harfi, rakam veya `.-_+` içermelidir. Shell’in çalıştığı ana bilgisayarda yüklü bir terminfo adı kullanın. Değişiklikler yalnızca yeni yerel ve SSH oturumlarına uygulanır; açık ve korunan PTY’ler özgün `TERM` değerini korur. Paylaşılan uzak oturumlar güncel sunucuda oluşturulurken bu değeri kullanır; eski sunucular `xterm-256color` kullanmaya devam eder. Geçersiz düzenlemeler son geçerli değeri korur ve Ayarlar’da hata gösterir. `TERM_PROGRAM` ve `ZSHELL_TERM` değişmez.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — varsayılan `"libghostty"`

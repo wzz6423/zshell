@@ -161,6 +161,10 @@ Escolhem o executável e vetor de argumentos para terminais criados depois da al
 
 `terminal.startup-arguments` é dividido em argumentos sem invocar um shell. Aspas e barras invertidas preservam os limites, inclusive espaços e argumentos vazios, mas variáveis, globs e substituições de comandos não são expandidos. Aspas inválidas também retornam ao shell de login. Um argv explícito fornecido pelo CLI Zshell ainda tem prioridade naquele terminal.
 
+### `terminal.term`
+
+Defina `terminal.term` em **Ajustes → Terminal → TERM** (padrão `"xterm-256color"`). O nome deve conter 1–128 letras ASCII, dígitos ou `.-_+`. Use um nome terminfo instalado no host que executa o shell. As mudanças se aplicam apenas a novas sessões locais e SSH; PTYs abertos e preservados mantêm seu `TERM` original. Sessões remotas compartilhadas usam o valor ao serem criadas com um servidor atualizado; servidores antigos mantêm `xterm-256color`. Edições inválidas preservam o último valor válido e mostram um erro em Ajustes. `TERM_PROGRAM` e `ZSHELL_TERM` não mudam.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — padrão `"libghostty"`

@@ -16,6 +16,10 @@ Wählen Sie unter **Einstellungen → Terminal → Backend**:
 
 Beide unterstützen GPU-Beschleunigung, Bilder, Zshells gemeinsamen Themenkatalog, Suche, Mausmeldungen, Mitteilungen und Fortschrittsmeldungen. Ein Backend-Wechsel betrifft nur neue Terminals; bestehende Bereiche behalten ihren ursprünglichen Emulator.
 
+## Terminaltyp [#terminal-type]
+
+Legen Sie `terminal.term` unter **Einstellungen → Terminal → TERM** fest (Standard `"xterm-256color"`). Der Name muss aus 1–128 ASCII-Buchstaben, Ziffern oder `.-_+` bestehen. Verwenden Sie einen terminfo-Namen, der auf dem Host der Shell installiert ist. Änderungen gelten nur für neue lokale und SSH-Sitzungen; offene und erhaltene PTYs behalten ihren bisherigen `TERM`. Geteilte entfernte Sitzungen verwenden den Wert beim Erstellen mit einem aktuellen Server; ältere Server behalten `xterm-256color`. Ungültige Änderungen behalten den letzten gültigen Wert und zeigen einen Fehler in den Einstellungen. `TERM_PROGRAM` und `ZSHELL_TERM` bleiben unverändert.
+
 ## Befehlsverlauf [#command-history]
 
 Unter **Einstellungen → Terminal → Verlauf** ist **Befehlsverlauf aufzeichnen** standardmäßig eingeschaltet (`terminal.command-history = true`). Ausschalten stoppt neue Aufzeichnungen; gespeicherte Einträge bleiben einsehbar und löschbar. Terminalausgabe und Shell-Verlauf bleiben erhalten.
