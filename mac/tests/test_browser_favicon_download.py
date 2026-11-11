@@ -145,6 +145,9 @@ with tempfile.TemporaryDirectory(prefix="zshell-favicon-download-") as temporary
         sources += ["-D", "BOUNDED_FAVICON_TESTS", "-D", "ZSHELL_FAVICON_BUILT_APP"]
     elif helper.exists():
         sources += ["-D", "BOUNDED_FAVICON_TESTS", str(helper)]
+        bounded = ROOT / "mac/zshell/BoundedHTTPData.swift"
+        if bounded.exists():
+            sources += [str(bounded)]
     subprocess.run([
         "xcrun", "swiftc", "-parse-as-library", "-swift-version", "5", "-default-isolation", "MainActor",
         "-module-cache-path", str(directory / "modules"), *sources, "-o", str(binary),
