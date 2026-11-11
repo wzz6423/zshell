@@ -162,12 +162,35 @@ private final class FileTreePanelProbe {
         let source = fixture.appendingPathComponent("drop-source.txt")
         try Data("dropped".utf8).write(to: source)
         let drag = FileTreeDragFixture(url: source, window: window)
+        let settingsPane = SettingsEditorPane()
+        _ = settingsPane.view
+        guard let dragSwitch = descendants(settingsPane.view).compactMap({ $0 as? NSSwitch }).first(where: {
+            $0.accessibilityLabel() == "Import by dragging into the file tree"
+        }) else { fail("Production drag import settings switch missing") }
+        func setDragImport(_ enabled: Bool) {
+            dragSwitch.state = enabled ? .on : .off
+            check(dragSwitch.sendAction(dragSwitch.action!, to: dragSwitch.target), "Production settings switch action routes")
+            settle()
+            check(AppSettings.shared.fileTreeDragImport == enabled, "Production switch updates import setting")
+        }
         func validate(_ row: Int) -> NSDragOperation {
             panel.tableView(table, validateDrop: drag, proposedRow: row, proposedDropOperation: .on)
         }
         check(validate(row("folder")) == [], "Disabled setting rejects Finder drop")
-        AppSettings.shared.fileTreeDragImport = true
+        setDragImport(true)
         check(validate(row("folder")) == .copy, "Enabled setting accepts folder drop")
+        setDragImport(false)
+        check(!panel.tableView(table, acceptDrop: drag, row: row("folder"), dropOperation: .on),
+              "Disabling setting after drag validation rejects the drop")
+        check(!fm.fileExists(atPath: target.appendingPathComponent("folder/drop-source.txt").path), "Disabled drop leaves no copy")
+        let otherPanel = AppKitFileTreePanel(frame: panel.frame)
+        otherPanel.configure(manager: other, git: GitStatusModel())
+        let otherTable = descendants(otherPanel).compactMap { $0 as? NSTableView }.first!
+        check(otherPanel.tableView(otherTable, validateDrop: drag, proposedRow: -1, proposedDropOperation: .on) == [],
+              "Disabled preference gates a second workspace panel")
+        setDragImport(true)
+        check(otherPanel.tableView(otherTable, validateDrop: drag, proposedRow: -1, proposedDropOperation: .on) == .copy,
+              "Enabled preference reaches a second workspace panel")
         drag.draggingSource = table
         check(validate(row("folder")) == [], "Self-origin drop is rejected")
         drag.draggingSource = nil
