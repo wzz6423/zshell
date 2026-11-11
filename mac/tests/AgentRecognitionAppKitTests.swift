@@ -170,15 +170,33 @@ struct AgentRecognitionAppKitTests {
         pump(0.05)
         try button(String(localized: "Add Agent…"), in: panel).performClick(nil)
         let (sheet, text) = try editor(panel)
+        let draft = text.string + "# unsaved draft survives language changes\n"
+        text.string = draft
+        text.setSelectedRange(NSRange(location: (draft as NSString).length, length: 0))
+        AppLocalization.apply(.simplifiedChinese)
+        pump(0.05)
+        try check(controller.window === panel && panel.attachedSheet === sheet && text.string == draft,
+                  "language change preserves the manager, editor sheet, and unsaved TOML")
+        try check(sheet.title == String(localized: "Edit Agent Rules")
+                  && panel.title == String(localized: "Agent Recognition Rules"), "open windows update their language in place")
+        try check(text.selectedRange().location == (draft as NSString).length, "language change preserves editor selection")
+        AppLocalization.apply(.english)
+        pump(0.05)
         text.string = "[[agents]]\nid = 42"
         let saveButton = try button(String(localized: "Save"), in: sheet)
         let cancelButton = try button(String(localized: "Cancel"), in: sheet)
         NSApp.sendAction(saveButton.action!, to: saveButton.target, from: saveButton)
         try check(!saveButton.isEnabled && !cancelButton.isEnabled, "saving disables duplicate save and cancellation")
+        AppLocalization.apply(.german)
+        NotificationCenter.default.post(name: AppLocalization.didChange, object: nil)
+        try check(controller.window === panel && panel.attachedSheet === sheet && !saveButton.isEnabled,
+                  "language change preserves a pending save and its sheet")
         cancelButton.performClick(nil)
         try check(panel.attachedSheet === sheet, "cancel cannot close a pending save")
         try wait("invalid editor recovers for retry") { saveButton.isEnabled }
         try check(rules.manifests.isEmpty && panel.attachedSheet === sheet, "invalid editor keeps current rules and its sheet")
+        AppLocalization.apply(.english)
+        pump(0.05)
         let frog = AgentRecognitionManifest(id: "frog", name: "Untranslated Tool", executables: ["frog-cli"], rules: [])
         text.string = AgentRecognitionManifest.serialize([frog]) + String(repeating: "# long editor row\n", count: 400)
         sheet.contentView?.layoutSubtreeIfNeeded()
@@ -186,8 +204,13 @@ struct AgentRecognitionAppKitTests {
         text.scrollRangeToVisible(NSRange(location: (text.string as NSString).length, length: 0))
         try check(text.isVerticallyResizable && text.enclosingScrollView!.contentView.bounds.minY > 0,
                   "long TOML editor scrolls to its final line")
-        saveButton.performClick(nil)
+        NSApp.sendAction(saveButton.action!, to: saveButton.target, from: saveButton)
+        AppLocalization.apply(.japanese)
+        NotificationCenter.default.post(name: AppLocalization.didChange, object: nil)
+        try check(controller.window === panel && panel.attachedSheet === sheet, "successful save stays attached during language change")
         try wait("retry saves custom agent and closes sheet") { panel.attachedSheet == nil && rules.manifests == [frog] }
+        AppLocalization.apply(.english)
+        pump(0.05)
         try wait("manager updates the added row") { list.numberOfRows == 10 }
         let customRow = list.numberOfRows - 1
         list.selectRowIndexes(IndexSet(integer: customRow), byExtendingSelection: false)

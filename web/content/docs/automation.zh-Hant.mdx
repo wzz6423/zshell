@@ -148,9 +148,9 @@ zshell +events --event command.task.finished --once --timeout 30000
 
 新 `id` 會新增 Agent。`claude`、`codex` 等內建 `id` 會取代畫面規則，`executables` 與 `aliases` 會新增精確命令名稱。只檢查執行檔或直譯器的腳本參數，不掃描後續提示與路徑。`screen_enabled = false` 僅保留程序識別；`enabled = false` 停用單條規則。內建別名沿用原生整合；自訂 Agent 顯示原始 `name`，不能冒充原生 provider。
 
-最高優先順序的匹配規則勝出；同優先順序遵循檔案順序。`contains` 不分大小寫；所有 `regex`、`line_regex` 和 `all` 群組須匹配，至少一個 `any` 須匹配，所有 `not` 均不得匹配。`skip_state_update = true` 保留既有證據。狀態為 `idle`、`working`、`blocked` 或 `unknown`；blocked 的 `attention` 為 `approval`、`input`、`login` 或 `error`。
+最高優先順序的匹配規則勝出；同優先順序遵循檔案順序。`contains` 不分大小寫；所有 `regex`、`line_regex` 和 `all` 群組須匹配，`any` 清單非空時至少一個群組須匹配，所有 `not` 均不得匹配。省略或留空 `any` 不增加條件。`skip_state_update = true` 保留既有證據。狀態為 `idle`、`working`、`blocked` 或 `unknown`；blocked 的 `attention` 為 `approval`、`input`、`login` 或 `error`。
 
-僅對即時底部 16 行取樣兩次，不讀取捲動歷史。支援區域為 `whole_recent`、`bottom_lines(1…16)`、`bottom_non_empty_lines(1…16)`、`prompt_box_body`、`above_prompt_box`、`last_non_empty_above_prompt_box`、`after_last_horizontal_rule`；其他 Kero/herdr 區域會被拒絕。檔案最多 256 KiB、64 個 Agent、每個 Agent 32 條規則、四層條件巢狀結構。無效或不安全運算式、重複 ID、命令衝突和未知鍵會被拒絕。推斷不證明完成、不發送通知，也不批准輸入。
+持續對即時底部 16 行取樣，不讀取捲動歷史；連續兩次取樣得到相同匹配結果後才發布推斷狀態。支援區域為 `whole_recent`、`bottom_lines(1…16)`、`bottom_non_empty_lines(1…16)`、`prompt_box_body`、`above_prompt_box`、`last_non_empty_above_prompt_box`、`after_last_horizontal_rule`；其他 Kero/herdr 區域會被拒絕。檔案最多 256 KiB、64 個 Agent、每個 Agent 32 條規則、四層條件巢狀結構。無效或不安全運算式、重複 ID、命令衝突和未知鍵會被拒絕。推斷不證明完成、不發送通知，也不批准輸入。
 
 ```toml title="agents.toml"
 [[agents]]

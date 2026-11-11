@@ -16,6 +16,7 @@ final class AgentRecognitionRulesController: NSWindowController, NSTableViewData
     private var busy = false
     private weak var hostWindow: NSWindow?
     private var editor: AgentRecognitionRulesEditor?
+    private var localizeControls: (() -> Void)?
 
     private init() {
         super.init(window: nil)
@@ -23,10 +24,9 @@ final class AgentRecognitionRulesController: NSWindowController, NSTableViewData
             DispatchQueue.main.async { self?.reload() }
         }.store(in: &observations)
         NotificationCenter.default.publisher(for: AppLocalization.didChange).receive(on: DispatchQueue.main).sink { [weak self] _ in
-            self?.editor?.close()
-            self?.editor = nil
-            self?.window?.close()
-            self?.window = nil
+            self?.localizeControls?()
+            self?.editor?.refreshLanguage()
+            self?.reload()
         }.store(in: &observations)
     }
 
@@ -115,6 +115,19 @@ final class AgentRecognitionRulesController: NSWindowController, NSTableViewData
             scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 180),
         ])
         for view in [introduction, path, scroll, status] { view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true }
+        localizeControls = { [weak self, weak panel, weak introduction, weak add, weak importButton, weak exportButton, weak resetAll, weak file] in
+            panel?.title = String(localized: "Agent Recognition Rules")
+            introduction?.stringValue = String(localized: "Add command names or replace an agent’s screen rules. Changes apply to running local panes.")
+            add?.title = String(localized: "Add Agent…")
+            self?.editButton.title = String(localized: "Edit…")
+            self?.deleteButton.title = String(localized: "Delete")
+            self?.resetButton.title = String(localized: "Restore Default")
+            importButton?.title = String(localized: "Import…")
+            exportButton?.title = String(localized: "Export…")
+            resetAll?.title = String(localized: "Reset All Rules…")
+            file?.title = String(localized: "Reveal Rules File")
+            self?.table.setAccessibilityLabel(String(localized: "Agent Recognition Rules"))
+        }
     }
 
     private func configure(_ button: NSButton, title: String, action: Selector) {
@@ -330,6 +343,7 @@ private final class AgentRecognitionRulesEditor: NSWindowController {
     private let replacing: String?
     private let textView = NSTextView()
     private let errorLabel = NSTextField(wrappingLabelWithString: "")
+    private let help = NSTextField(wrappingLabelWithString: "")
     private let saveButton = NSButton()
     private var cancelButton: NSButton?
     private let onClose: () -> Void
@@ -347,7 +361,7 @@ private final class AgentRecognitionRulesEditor: NSWindowController {
         panel.minSize = NSSize(width: 480, height: 360)
         panel.isReleasedWhenClosed = false
         guard let content = panel.contentView else { return }
-        let help = NSTextField(wrappingLabelWithString: String(localized: "Edit the agent’s TOML. Remove its screen rules or set screen_enabled = false to keep only process recognition."))
+        help.stringValue = String(localized: "Edit the agent’s TOML. Remove its screen rules or set screen_enabled = false to keep only process recognition.")
         help.textColor = .secondaryLabelColor
         textView.isRichText = false
         textView.isAutomaticQuoteSubstitutionEnabled = false
@@ -397,6 +411,15 @@ private final class AgentRecognitionRulesEditor: NSWindowController {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func refreshLanguage() {
+        window?.title = String(localized: "Edit Agent Rules")
+        help.stringValue = String(localized: "Edit the agent’s TOML. Remove its screen rules or set screen_enabled = false to keep only process recognition.")
+        saveButton.title = String(localized: "Save")
+        cancelButton?.title = String(localized: "Cancel")
+        textView.setAccessibilityLabel(String(localized: "Agent TOML"))
+        if saving { errorLabel.stringValue = String(localized: "Saving…") }
+    }
 
     @objc private func save() {
         guard !saving else { return }

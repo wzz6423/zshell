@@ -69,6 +69,10 @@ nonisolated struct AgentRecognitionManifest: Equatable, Sendable {
                     throw failure(id, String(localized: "Use executable names without paths; shell and interpreter names are reserved."))
                 }
                 let normalized = commandName(executable)
+                if let builtin = ZshellAgentKind.recognize(executablePath: nil, arguments: [normalized]),
+                   builtin.rawValue != canonical {
+                    throw failure(id, String(localized: "An executable name is assigned to more than one agent."))
+                }
                 guard names[normalized] == nil || names[normalized] == canonical else {
                     throw failure(id, String(localized: "An executable name is assigned to more than one agent."))
                 }
@@ -306,7 +310,7 @@ nonisolated enum AgentRecognitionRegex {
                 continue
             }
             if character == "\\" { escaped = true; continue }
-            if character == "[" { characterClass = true }
+            if character == "[", !characterClass { characterClass = true; riskyClosedGroup = false }
             if characterClass { if character == "]" { characterClass = false }; continue }
             if character == "(" { groups.append(false); riskyClosedGroup = false; continue }
             if character == ")" {

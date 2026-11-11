@@ -114,6 +114,17 @@ struct AgentRecognitionSurfaceTests {
         try check(session.agentStatus?.recognitionID == "frog", "screen switch preserves custom process identity")
         settings.agentScreenInference = true
         try wait("screen inference resumes from fresh samples") { session.agentStatus?.authority == .screen }
+        let priorSample = session.agentObservation.lastScreenCheck
+        try wait("screen sampling continues after publishing a state") { session.agentObservation.lastScreenCheck > priorSample }
+        try command(frogRoot, ["lines": ["Allow sampling check? [y/n]"]])
+        try wait("new footer starts a first matching sample") {
+            session.agentObservation.screenEvidence?.phase == .blocked && session.agentObservation.screenEvidenceSamples == 1
+        }
+        try check(session.agentStatus?.authority != .screen && session.agentStatus?.phase != .blocked,
+                  "one matching sample cannot publish a new inferred state")
+        try wait("second matching sample publishes the changed state") {
+            session.agentStatus?.phase == .blocked && session.agentObservation.screenEvidenceSamples == 2
+        }
         session.agentObservation.isCollectingAlternateScreenHistory = true
         try wait("transcript collection cannot infer a screen state") { session.agentStatus?.authority == .process && session.agentObservation.screenEvidence == nil }
         session.agentObservation.isCollectingAlternateScreenHistory = false

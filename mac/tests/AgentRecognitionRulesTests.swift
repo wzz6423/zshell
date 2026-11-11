@@ -74,6 +74,22 @@ import Foundation
         if case .skip = skip { checks += 1 } else { fatalError("skip did not preserve existing state") }
         check(ZshellAgentKind.recognize(executablePath:"/bin/zsh",arguments:["zsh","-lc","printf", "codex"]) == nil,"combined command payload recognized")
         check(ZshellAgentKind.recognize(executablePath:"/opt/node",arguments:["node","-efoo","codex"]) == nil,"short eval recognized")
+        for command in ["claude", "codex", "gemini", "grok", "grok-1.0-macos-aarch64", "opencode", "cursor-agent", "aider-chat", "amp", "pi", "CLAUDE.EXE"] {
+            rejects("[[agents]]\nid = \"my-tool\"\nexecutables = [\"\(command)\"]")
+        }
+        rejects("[[agents]]\nid = \"codex\"\naliases = [\"claude\"]")
+        rejects("[[agents]]\nid = \"my-tool\"\naliases = [\"claude.js\"]")
+        let ownBuiltin = try AgentRecognitionManifest.parse("[[agents]]\nid = \"claude-code\"\nexecutables = [\"CLAUDE.EXE\"]\naliases = [\"claude-wrapper\"]")
+        check(ownBuiltin[0].id == "claude" && ownBuiltin[0].kind == .claude, "same built-in alias was rejected")
+        let safePattern = text.replacingOccurrences(of: "'^Allow .+\\? \\[y/n\\]$'", with: "'^(Allow|Deny)[ ]*$'")
+        let safeRules = try AgentRecognitionManifest.parse(safePattern)
+        check(try AgentRecognitionCompiledManifest(safeRules[0]).detect("Allow  ")?.phase == .blocked,
+              "character-class repetition was treated as group repetition")
+        rejects(safePattern.replacingOccurrences(of: "'^(Allow|Deny)[ ]*$'", with: "'^(Allow|Deny)[ ]*(a|aa)+$'"))
+        let emptyAny = text.replacingOccurrences(of: "any = [{ contains = [\"hopping…\"] }, { regex = ['[⠋⠙] Working'] }]", with: "contains = [\"hopping…\"]\nany = []")
+        let emptyAnyRules = try AgentRecognitionManifest.parse(emptyAny)
+        check(try AgentRecognitionCompiledManifest(emptyAnyRules[0]).detect("hopping…")?.phase == .working, "empty any added a constraint")
+        check(try AgentRecognitionCompiledManifest(emptyAnyRules[0]).detect("unrelated") == nil, "empty any removed other conditions")
         print("Agent recognition model: \(checks) checks passed")
     }
 }

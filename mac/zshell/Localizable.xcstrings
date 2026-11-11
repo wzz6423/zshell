@@ -160894,7 +160894,7 @@
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reset"
+            "value": "Atur ulang"
           }
         },
         "vi": {
@@ -161624,25 +161624,25 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Agent TOML"
+            "value": "Agent 的 TOML"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Agent TOML"
+            "value": "Agent 的 TOML"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Agent TOML"
+            "value": "エージェントの TOML"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Agent TOML"
+            "value": "에이전트 TOML"
           }
         },
         "fr": {
