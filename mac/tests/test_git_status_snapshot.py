@@ -28,6 +28,7 @@ class GitStatusSnapshotTests(unittest.TestCase):
         agent = (MAC / "zshell/AgentTurnReview.swift").read_text()
         types = slice_between(model, "    nonisolated struct Entry:", "    @Published private(set) var rootPath")
         state = slice_between(model, "    @Published private(set) var rootPath", "    /// Branches checked out by a worktree")
+        state += slice_between(model, "    /// Branches checked out by a worktree", "    /// Absolute repository root.")
         state += '    private var topLevel = ""\n'
         pipe_data = "    private nonisolated final class PipeData:"
         if pipe_data in model:
@@ -89,12 +90,19 @@ import Darwin
                 "details": snapshot.loadedDetails.map { String(describing: $0) }.sorted(),
                 "commands": commands, "elapsed": Date().timeIntervalSince(start)]
             value["error"] = snapshot.detailError
+            value["branch"] = snapshot.branch
             value["defaultBranch"] = snapshot.defaultBranch
             return value
         }
         var output: [String: Any]
         if action == "snapshot" {
             output = asJSON(snapshot())
+        } else if action == "branches" {
+            let current = snapshot()
+            let model = GitStatusModel()
+            model.applyRepository(current)
+            output = asJSON(current)
+            output["availableBranches"] = model.branchesWithoutWorktrees
         } else if action == "fingerprint" {
             let path = CommandLine.arguments[3]
             let layer: DiffReviewLayer = CommandLine.arguments[4] == "staged" ? .staged : .worktree
@@ -317,6 +325,29 @@ import Darwin
 
     def fingerprints(self):
         return {entry["path"]: entry for entry in self.probe()["entries"]}
+
+    def test_branch_names_survive_tag_collisions_and_worktree_filtering(self):
+        self.write("fixture.txt", "fixture\n")
+        self.commit_fixture()
+        self.git("branch", "heads/feature")
+        worktree = self.repo.parent / (self.repo.name + "-worktree")
+        self.addCleanup(lambda: self.git("worktree", "remove", "--", str(worktree)))
+        self.git("worktree", "add", "-q", "--", str(worktree), "feature-fixture")
+        for name in ("main", "feature-fixture", "heads/feature", "origin/main"):
+            self.git("tag", name)
+
+        snapshot = self.probe("branches")
+        self.assertEqual(snapshot["branch"], "main")
+        self.assertEqual(snapshot["branches"], ["feature-fixture", "heads/feature", "main"])
+        self.assertEqual(snapshot["availableBranches"], ["heads/feature"])
+        self.assertEqual(snapshot["defaultBranch"], "main")
+        self.assertNotIn("error", snapshot)
+
+        self.git("switch", "heads/feature")
+        switched = self.probe("branches")
+        self.assertEqual(switched["branch"], "heads/feature")
+        self.assertEqual(switched["availableBranches"], ["main"])
+        self.assertEqual(switched["defaultBranch"], "main")
 
     def test_600_untracked_and_tracked_files_keep_complete_snapshot(self):
         self.write("fixture.txt", "fixture\n")
