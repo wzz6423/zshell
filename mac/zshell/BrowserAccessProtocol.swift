@@ -21,29 +21,47 @@ nonisolated enum BrowserAccessLimits {
 nonisolated enum BrowserAccessError: LocalizedError {
     case message(String)
     case sessionServiceRequired
+    case sessionServiceUnavailable
 
     var errorDescription: String? {
         switch self {
         case .message(let value): value
         case .sessionServiceRequired: String(localized:
             "Browser access needs the current session service. Choose Quit and End All Sessions, then reopen Zshell.")
+        case .sessionServiceUnavailable: String(localized:
+            "The session service could not be checked. Click Retry to try again.")
         }
     }
 }
 
 nonisolated enum BrowserAccessMuxCapability {
     static func prepare() throws {
-        if (try? PTYMuxCommandLine.exchange(method: "capabilities", timeout: 0.2))?
-            .result?.objectValue?["observe"]?.boolValue == true { return }
-        if isAbsent() { return }
+        do {
+            let response = try PTYMuxCommandLine.exchange(method: "capabilities", timeout: 0.2)
+            guard let observe = response.result?.objectValue?["observe"]?.boolValue else {
+                throw BrowserAccessError.sessionServiceUnavailable
+            }
+            if observe { return }
+        } catch PTYMuxError.response(let code, _) where code == "unknown_method" {
+            // A matching unknown-method reply confirms that this daemon predates observers.
+        } catch {
+            if isAbsent() { return }
+            throw BrowserAccessError.sessionServiceUnavailable
+        }
         // An app update leaves retained PTYs in the previous daemon. Its
         // shutdown rejects live sessions, so only an empty daemon is replaced.
         guard let response = try? PTYMuxCommandLine.exchange(method: "list", timeout: 0.2),
-              let sessions = response.result?.arrayValue,
-              !sessions.contains(where: { $0.objectValue?["running"]?.boolValue != false }),
-              (try? PTYMuxCommandLine.exchange(method: "shutdown", timeout: 0.2)) != nil else {
+              let sessions = response.result?.arrayValue else {
+            throw BrowserAccessError.sessionServiceUnavailable
+        }
+        guard !sessions.contains(where: { $0.objectValue?["running"]?.boolValue != false }) else {
             throw BrowserAccessError.sessionServiceRequired
         }
+        do {
+            _ = try PTYMuxCommandLine.exchange(method: "shutdown", timeout: 0.2)
+        } catch PTYMuxError.response(let code, _) where code == "sessions_running" {
+            throw BrowserAccessError.sessionServiceRequired
+        } catch { throw BrowserAccessError.sessionServiceUnavailable }
     }
 
     private static func isAbsent() -> Bool {

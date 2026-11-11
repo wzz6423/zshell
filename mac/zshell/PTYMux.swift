@@ -54,10 +54,12 @@ nonisolated struct PTYMuxResponse: Codable, Sendable {
 
 nonisolated enum PTYMuxError: Error, CustomStringConvertible {
     case message(String)
+    case response(code: String, message: String)
 
     var description: String {
         switch self {
         case .message(let message): return message
+        case .response(let code, let message): return "\(code): \(message)"
         }
     }
 }
@@ -795,7 +797,7 @@ enum PTYMuxCommandLine {
         guard response.ok else {
             let code = response.error?.code ?? "pty_mux_error"
             let message = response.error?.message ?? "PTY mux request failed."
-            throw PTYMuxError.message("\(code): \(message)")
+            throw PTYMuxError.response(code: code, message: message)
         }
         return response
     }

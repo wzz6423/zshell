@@ -133,5 +133,9 @@ struct BrowserAccessTests {
         check(secondURL == fallback, "occupied-port fallback stays stable across restart")
         await second.stop().value
         await first.stop().value
+        try await second.start(interface: .loopback, port: original.port! - 1, certificate: nil, translations: [:])
+        try await Task.sleep(for: .milliseconds(50))
+        check(secondURL == original, "a newly available preferred port changes the fallback origin after restart")
+        await second.stop().value
     }
 }

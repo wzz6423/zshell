@@ -6,6 +6,7 @@ It does not run Xcode or Cargo or alter an installed application's preferences.
 """
 
 import argparse
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -246,7 +247,7 @@ def probe(binary, directory, backend, occupied=False):
         assert process.returncode == 0
 
 
-def check_controller_capability(binary, directory):
+def check_controller_capability(binary, directory, mode="old"):
     directory.mkdir()
     home = directory / "home"
     home.mkdir()
@@ -254,10 +255,16 @@ def check_controller_capability(binary, directory):
     mux.mkdir(mode=0o700)
     listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     listener.bind(str(mux / "control.sock"))
-    listener.listen()
-    listener.settimeout(0.1)
+    lock = (mux / "daemon.lock").open("w")
+    if mode == "startup":
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        listener.close()
+    else:
+        listener.listen()
+        listener.settimeout(0.1)
     methods = []
     stopped = threading.Event()
+    recovered = threading.Event()
 
     def read(connection, count):
         value = b""
@@ -269,6 +276,8 @@ def check_controller_capability(binary, directory):
         return value
 
     def serve():
+        if mode == "startup":
+            return
         while not stopped.is_set():
             try:
                 connection, _ = listener.accept()
@@ -281,9 +290,13 @@ def check_controller_capability(binary, directory):
                     continue
                 request = json.loads(read(connection, count))
                 methods.append(request["method"])
-                ok = request["method"] == "list"
+                if mode == "timeout" and request["method"] == "capabilities" and not recovered.is_set():
+                    stopped.wait(0.4)
+                    continue
+                current = recovered.is_set()
+                ok = current and request["method"] == "capabilities" or request["method"] == "list"
                 response = json.dumps({"version": 2, "id": request["id"], "ok": ok,
-                    "result": [{"running": True}] if ok else None,
+                    "result": {"observe": True} if ok and request["method"] == "capabilities" else [{"running": True}] if ok else None,
                     "error": None if ok else {"code": "unknown_method", "message": "unsupported"}}).encode()
                 connection.sendall(struct.pack(">I", len(response)) + response)
 
@@ -303,17 +316,37 @@ def check_controller_capability(binary, directory):
                 status = json.loads((directory / "status.json").read_text())
             except (OSError, ValueError):
                 status = {}
-            if not status.get("enabled", True) and "current session service" in status.get("error", ""):
+            if mode == "old" and not status.get("enabled", True) and "current session service" in status.get("error", ""):
+                break
+            if mode != "old" and status.get("enabled") and "Click Retry" in status.get("error", ""):
                 break
             time.sleep(0.05)
         else:
             raise AssertionError(status)
         time.sleep(0.5)
         status = json.loads((directory / "status.json").read_text())
-        assert not status["enabled"] and not status["url"] and "current session service" in status["error"], status
-        assert "capabilities" in methods and "list" in methods
+        if mode == "old":
+            assert not status["enabled"] and not status["url"] and "current session service" in status["error"], status
+            assert "capabilities" in methods and "list" in methods
+        else:
+            assert status["enabled"] and not status["url"] and "Click Retry" in status["error"], status
+            if mode == "startup":
+                fcntl.flock(lock, fcntl.LOCK_UN)
+                (mux / "control.sock").unlink()
+            recovered.set()
+            (directory / "command").write_text("retry\n")
+            deadline = time.monotonic() + 12
+            while time.monotonic() < deadline:
+                status = json.loads((directory / "status.json").read_text())
+                if status.get("url") and not status.get("error"):
+                    break
+                time.sleep(0.05)
+            else:
+                raise AssertionError(status)
+            assert status["enabled"], status
         assert "shutdown" not in methods and "terminateAll" not in methods
-        print("PASS controller: old live daemon keeps jobs, master switch closes, error stays visible")
+        print("PASS controller: old live daemon keeps jobs, master switch closes, error stays visible" if mode == "old"
+              else f"PASS controller: {mode} keeps Browser Access enabled, reports Retry, and recovers on Retry")
     finally:
         (directory / "command").write_text("quit\n")
         try:
@@ -324,6 +357,7 @@ def check_controller_capability(binary, directory):
         stopped.set()
         worker.join(timeout=2)
         listener.close()
+        lock.close()
         if process.returncode:
             print(process.stdout.read())
         assert process.returncode == 0
@@ -339,6 +373,8 @@ def main():
         binary, domain = compile_probe(directory, arguments.derived_data.resolve())
         try:
             check_controller_capability(binary, directory / "capability")
+            for mode in ("startup", "timeout"):
+                check_controller_capability(binary, directory / mode, mode)
             for backend in arguments.backend or ("alacritty", "ghostty"):
                 probe(binary, directory / backend, backend, occupied=backend == "ghostty")
         finally:

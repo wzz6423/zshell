@@ -285,10 +285,29 @@ def check_network(binary, directory, interface, port):
         ws.send({"type": "select", "session": sessions[0]})
         ws.expect("ready")
         assert inspect(sessions[0])["pid"] == pid
+        while True:
+            try:
+                events.get_nowait()
+            except queue.Empty:
+                break
         command("restart")
         ws.expect_closed()
-        endpoint = event("endpoint")
-        event("restarted")
+        endpoint = None
+        restarted = False
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            try:
+                value = events.get(timeout=max(0.01, deadline - time.monotonic()))
+            except queue.Empty:
+                break
+            if value.get("type") == "endpoint":
+                endpoint = value
+            elif value.get("type") == "restarted":
+                restarted = True
+                break
+            elif value.get("type") == "restartFailed":
+                raise AssertionError(value)
+        assert restarted and endpoint is not None, "No completed restart with a fresh endpoint"
         assert endpoint["url"].rstrip("/") == local, ("Local origin changed after restart", local, endpoint)
         assert endpoint["remoteURL"].rstrip("/") == remote
         ws = authenticated()

@@ -163084,6 +163084,113 @@
         }
       }
     },
+    "The session service could not be checked. Click Retry to try again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The session service could not be checked. Click Retry to try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法检查会话服务。请点击“重试”。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法檢查工作階段服務。請按一下「重試」。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セッションサービスを確認できませんでした。「再試行」をクリックしてください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "세션 서비스를 확인할 수 없습니다. 재시도를 클릭하세요."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le service de sessions n’a pas pu être vérifié. Cliquez sur Réessayer."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Sitzungsdienst konnte nicht geprüft werden. Klicke auf Erneut versuchen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo comprobar el servicio de sesiones. Pulsa Reintentar."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível verificar o serviço de sessões. Clique em Tentar novamente."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile verificare il servizio di sessioni. Fai clic su Riprova."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De sessiedienst kon niet worden gecontroleerd. Klik op Opnieuw proberen."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось проверить сервис сеансов. Нажмите «Повторить»."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذر التحقق من خدمة الجلسات. انقر إعادة المحاولة."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ตรวจสอบบริการเซสชันไม่ได้ โปรดคลิกลองอีกครั้ง"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Layanan sesi tidak dapat diperiksa. Klik Coba Lagi."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể kiểm tra dịch vụ phiên. Nhấp Thử lại."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oturum hizmeti denetlenemedi. Yeniden dene seçeneğine tıklayın."
+          }
+        }
+      }
+    },
     "LAN": {
       "extractionState": "manual",
       "localizations": {
