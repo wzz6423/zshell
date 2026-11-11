@@ -125,6 +125,12 @@ description: "ตัวเลือกถาวรทั้งหมดของ
 
 ควบคุมความหนาเมื่อ `terminal.font-thicken` เป็น true ศูนย์คือระดับหนาน้อยที่สุด ไม่ใช่ปิด Ghostty ใช้ความแรง native macOS ส่วน Alacritty แปลงช่วงเดียวกันเป็นเส้น CoreText ทิศทางและปลายช่วงจึงตรงกัน แต่พิกเซลที่วาดอาจต่าง
 
+### `terminal.cell-width` [#terminalcell-width]
+
+ตัวเลข, 0.75–2 — ค่าเริ่มต้น `1`
+
+ปรับระยะห่างระหว่างคอลัมน์เทอร์มินัลใน **การตั้งค่า → รูปลักษณ์ → ฟอนต์ → ความกว้างเซลล์** ค่าเริ่มต้นคือ 100% และบันทึกเป็นเปอร์เซ็นต์จำนวนเต็ม ทั้งสอง backend อัปเดตเทอร์มินัลที่เปิดอยู่ทันที รวมถึงจำนวนคอลัมน์ PTY เคอร์เซอร์ การเลือกข้อความ และคำใบ้แป้นพิมพ์ ขนาดตัวอักษรไม่เปลี่ยน และอักขระกว้างยังใช้สองคอลัมน์ การปัดเศษตามพิกเซลอาจทำให้ขั้นการปรับจริงต่างกันระหว่าง backend ค่าที่ไม่ถูกต้องจะกลับเป็น 100% ระยะห่างในตัวแก้ไขและ diff ไม่เปลี่ยน
+
 ### `terminal.line-height` [#terminalline-height]
 
 ตัวเลข 0.75–2 — เริ่มต้น `1`
@@ -260,6 +266,7 @@ toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.bell = false

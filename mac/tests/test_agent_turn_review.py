@@ -12,6 +12,8 @@ class AgentTurnReviewTests(unittest.TestCase):
             binary = Path(temporary) / "review-tests"
             subprocess.run([
                 "swiftc", "-parse-as-library", "-swift-version", "6",
+                "-module-cache-path", str(Path(temporary) / "ModuleCache"),
+                str(mac / "zshell/GitProxy.swift"),
                 str(mac / "zshell/GitCommandRunner.swift"),
                 str(mac / "zshell/AgentTurnReview.swift"),
                 str(mac / "tests/AgentTurnReviewTests.swift"),

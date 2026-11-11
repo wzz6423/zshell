@@ -60,6 +60,8 @@ import GhosttyTerminal
         let backend = CommandLine.arguments[1]
         let fixture = CommandLine.arguments[2]
         let record = URL(fileURLWithPath: CommandLine.arguments[3])
+        let cellWidth = Double(CommandLine.arguments[4])!
+        AppSettings.shared.terminalCellWidth = cellWidth
         func quote(_ text: String) -> String { "'" + text.replacingOccurrences(of: "'", with: "'\\''") + "'" }
         let launch = TerminalLaunch(
             program: "/usr/bin/python3", arguments: [fixture, record.path],
@@ -118,8 +120,9 @@ import GhosttyTerminal
         }
         func mouse(_ type: NSEvent.EventType, x: Int = 2, y: Int = 0, flags: NSEvent.ModifierFlags = []) -> NSEvent {
             let snapshot = surface.readVisibleSnapshot()!
+            let top = snapshot.origin.y + (CGFloat(y) + 0.5) * snapshot.cellSize.height
             let point = NSPoint(x: snapshot.origin.x + (CGFloat(x) + 0.25) * snapshot.cellSize.width,
-                                y: surface.bounds.height - snapshot.origin.y - (CGFloat(y) + 0.5) * snapshot.cellSize.height)
+                                y: surface.isFlipped ? top : surface.bounds.height - top)
             return NSEvent.mouseEvent(
                 with: type, location: surface.convert(point, to: nil), modifierFlags: flags,
                 timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
@@ -251,9 +254,42 @@ import GhosttyTerminal
         }
         let popup = popups(settingsView).first { $0.accessibilityLabel() == "Right-click action" }
         try check(popup?.itemTitles == TerminalRightClickAction.allCases.map(\.title), "native settings exposes all three right-click choices")
+        for (index, action) in TerminalRightClickAction.allCases.enumerated() {
+            popup?.selectItem(at: index)
+            popup?.sendAction(popup!.action, to: popup!.target)
+            try check(settings.terminalRightClickAction == action, "native settings target/action writes \(action.rawValue)")
+        }
         settings.terminalRightClickAction = .copyOrPaste
         pumpRightClick(0.1)
         try check(popup?.titleOfSelectedItem == TerminalRightClickAction.copyOrPaste.title, "the settings picker reflects live setting changes")
-        print("Right-click surface \(backend): \(checks) checks passed")
+        for language in AppLanguage.allCases where language != .system {
+            AppLocalization.apply(language)
+            let localizedPane = SettingsTerminalPane()
+            localizedPane.setCategory(.terminal)
+            let settingsWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 460),
+                                          styleMask: [.titled], backing: .buffered, defer: false)
+            settingsWindow.isReleasedWhenClosed = false
+            settingsWindow.contentViewController = localizedPane
+            let localizedPopup = popups(localizedPane.view).first {
+                $0.accessibilityLabel() == String(localized: "Right-click action")
+            }
+            try check(localizedPopup?.itemTitles == TerminalRightClickAction.allCases.map(\.title),
+                      "\(language.rawValue) exposes every localized right-click action")
+            for width in [480.0, 900] {
+                settingsWindow.setContentSize(NSSize(width: width, height: 460))
+                localizedPane.view.layoutSubtreeIfNeeded()
+                try check(localizedPane.revealSearchResult(String(localized: "Right-click action"), in: String(localized: "Input")),
+                          "\(language.rawValue) settings search reveals the row at \(Int(width))pt")
+                let labels = localizedPopup?.superview?.subviews.compactMap { $0 as? NSStackView }
+                    .flatMap { $0.arrangedSubviews.compactMap { $0 as? NSTextField } } ?? []
+                try check(!labels.isEmpty && labels.allSatisfy {
+                    $0.frame.height + 1 >= $0.cell!.cellSize(forBounds: NSRect(x: 0, y: 0, width: $0.frame.width, height: 10_000)).height
+                }, "\(language.rawValue) right-click labels fit at \(Int(width))pt")
+            }
+            settingsWindow.contentViewController = nil
+            settingsWindow.close()
+        }
+        AppLocalization.apply(.english)
+        print("Right-click surface \(backend) at \(Int(cellWidth * 100))% cell width: \(checks) checks passed")
     }
 }

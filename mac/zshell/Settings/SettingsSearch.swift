@@ -91,6 +91,8 @@ enum SettingsSearchIndex {
             item(.appearance, String(localized: "CJK fallback"), section: font, keywords: "terminal.font-fallback-family"),
             item(.appearance, String(localized: "Size"), section: font, keywords: "font-size"),
             item(.appearance, String(localized: "Line height"), section: font, keywords: "terminal.line-height"),
+            item(.appearance, String(localized: "Cell width"), section: font,
+                 keywords: "terminal.cell-width column spacing character width"),
             item(.appearance, String(localized: "Thicken font strokes"), section: font, keywords: "terminal.font-thicken"),
             item(.appearance, String(localized: "Interface size"), section: interface, keywords: "interface.scale"),
             item(.appearance, String(localized: "Font size"), section: interface, keywords: "sidebar.font-size"),

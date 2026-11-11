@@ -18,6 +18,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--derived-data", type=Path,
                     default=os.environ.get("ZSHELL_TEST_DERIVED_DATA"))
 parser.add_argument("--backend", choices=("ghostty", "alacritty"), action="append")
+parser.add_argument("--cell-width", type=float, choices=(0.75, 1.0, 1.35, 2.0), action="append")
 options = parser.parse_args()
 if not options.derived_data:
     parser.error("--derived-data must point to a completed Debug app build")
@@ -61,16 +62,18 @@ with tempfile.TemporaryDirectory(prefix="zshell-right-click-surfaces-", dir="/tm
     ]
     subprocess.run(arguments, cwd=ROOT, check=True)
     for backend in options.backend or ("alacritty", "ghostty"):
-        home = temporary / backend
-        (home / "tmp").mkdir(parents=True)
-        config = home / ".config/zshell-dev/config.toml"
-        config.parent.mkdir(parents=True)
-        config.write_text('ai.enabled = false\nquick-terminal.enabled = false\n'
-                          'terminal.preserve-sessions = false\nterminal.restore-history = false\n')
-        environment = {key: value for key, value in os.environ.items() if not key.startswith("ZSHELL_")}
-        environment.update({
-            "HOME": str(home), "CFFIXED_USER_HOME": str(home), "ZDOTDIR": str(home),
-            "TMPDIR": str(home / "tmp") + "/", "ZSHELL_PTY_MUX_DIRECTORY": str(home / "mux"),
-        })
-        subprocess.run([str(binary), backend, str(ROOT / "mac/tests/fixtures/terminal_right_click.py"), str(home / "input")],
-                       cwd=ROOT, env=environment, check=True, timeout=90)
+        for cell_width in options.cell_width or (1.0,):
+            home = temporary / f"{backend}-{cell_width}"
+            (home / "tmp").mkdir(parents=True)
+            config = home / ".config/zshell-dev/config.toml"
+            config.parent.mkdir(parents=True)
+            config.write_text('ai.enabled = false\nquick-terminal.enabled = false\n'
+                              'terminal.preserve-sessions = false\nterminal.restore-history = false\n')
+            environment = {key: value for key, value in os.environ.items() if not key.startswith("ZSHELL_")}
+            environment.update({
+                "HOME": str(home), "CFFIXED_USER_HOME": str(home), "ZDOTDIR": str(home),
+                "TMPDIR": str(home / "tmp") + "/", "ZSHELL_PTY_MUX_DIRECTORY": str(home / "mux"),
+            })
+            subprocess.run([str(binary), backend, str(ROOT / "mac/tests/fixtures/terminal_right_click.py"),
+                            str(home / "input"), str(cell_width)],
+                           cwd=ROOT, env=environment, check=True, timeout=90)

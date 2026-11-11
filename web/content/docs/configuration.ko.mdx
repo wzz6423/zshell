@@ -125,6 +125,12 @@ description: Zshell의 모든 영구 설정, 각 설정의 동작과 저장 위�
 
 `terminal.font-thicken`이 true일 때 굵게 처리하는 정도를 조절합니다. 0은 끄기가 아니라 가장 약한 굵기 보정입니다. Ghostty는 macOS의 기본 강도를 사용하고 Alacritty는 같은 범위를 CoreText 획에 대응시킵니다. 따라서 방향과 양 끝값은 같지만 실제 래스터화된 픽셀은 다를 수 있습니다.
 
+### `terminal.cell-width` [#terminalcell-width]
+
+숫자, 0.75–2 — 기본값 `1`
+
+**설정 → 모양 → 글꼴 → 셀 너비**에서 터미널 열 간격을 조절합니다. 기본값은 100%이며 정수 백분율로 저장됩니다. 두 백엔드 모두 열린 터미널에 즉시 적용하며 PTY 열 수, 커서, 선택 영역과 키보드 힌트도 갱신합니다. 글리프 크기는 유지되고 넓은 문자는 계속 두 열을 차지합니다. 픽셀 반올림 때문에 실제 조절 단계는 백엔드마다 다를 수 있습니다. 잘못된 값은 100%로 복원됩니다. 편집기와 diff 간격은 바뀌지 않습니다.
+
 ### `terminal.line-height` [#terminalline-height]
 
 숫자, 0.75–2 — 기본값 `1`
@@ -260,6 +266,7 @@ toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.bell = false
