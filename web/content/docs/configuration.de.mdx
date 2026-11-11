@@ -125,6 +125,12 @@ Ganzzahl, 0–255 – Standard: `255`
 
 Steuert die Verstärkung bei aktiviertem `terminal.font-thicken`. Null bedeutet die geringste verfügbare Verstärkung, nicht ausgeschaltet. Ghostty verwendet seine native macOS-Stärke, Alacritty bildet denselben Bereich auf einen CoreText-Konturstrich ab. Richtung und Endpunkte stimmen überein, einzelne gerasterte Pixel können sich unterscheiden.
 
+### `terminal.cell-width` [#terminalcell-width]
+
+Zahl, 0.75–2 — Standard `1`
+
+Ändert den Spaltenabstand im Terminal unter **Einstellungen → Erscheinungsbild → Schrift → Zellenbreite**. Der Standard ist 100 %; Werte werden als ganze Prozentzahlen gespeichert. Beide Backends aktualisieren offene Terminals sofort, einschließlich PTY-Spaltenzahl, Cursor, Auswahl und Tastaturhinweisen. Die Glyphengröße bleibt gleich, und breite Zeichen belegen weiterhin zwei Spalten. Durch Pixelrundung können sich die tatsächlichen Schritte je nach Backend unterscheiden. Ungültige Werte stellen 100 % wieder her. Abstände in Editor und Diff bleiben unverändert.
+
 ### `terminal.line-height` [#terminalline-height]
 
 Zahl, 0.75–2 – Standard: `1`
@@ -259,6 +265,7 @@ toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.bell = false

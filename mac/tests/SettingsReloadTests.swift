@@ -148,6 +148,7 @@ struct SettingsReloadTests {
         terminal.font-thicken = true
         terminal.font-thicken-strength = 99
         terminal.line-height = 1.4
+        terminal.cell-width = 1.35
         terminal.cursor-shape = "underline"
         terminal.cursor-blinking = false
         terminal.macos-option-as-alt = true
@@ -207,6 +208,7 @@ struct SettingsReloadTests {
         check(settings.terminalProfiles.first?.launchSettings.environment["MODE"] == "profile",
               "profile launch settings round trip through config")
         let roundTrip = TOML.parseStrictly(text: imported).values
+        check(settings.terminalCellWidth == 1.35, "column spacing imports into production settings")
         check(settings.focusFollowsMouse && !settings.isAtDefaults, "pointer focus imports and changes default state")
         check(GitProxy.address == "socks5h://127.0.0.1:1080", "imported Git proxy reaches Git processes")
         for (key, value) in parsed.values {
@@ -293,6 +295,20 @@ struct SettingsReloadTests {
             settings[keyPath: keyPath] = true
         }
         check(settings.isAtDefaults, "restored feature switches restore default state")
+
+        settings.terminalCellWidth = 1.333
+        check(settings.terminalCellWidth == 1.33 && !settings.isAtDefaults,
+              "column spacing uses shared whole percentages and enables reset")
+        for invalidWidth in [Double.nan, Double.infinity, 0.5, 3] {
+            settings.terminalCellWidth = invalidWidth
+            check(settings.terminalCellWidth == 1, "invalid direct spacing restores native width")
+            settings.applyImported(["terminal.cell-width": .number(invalidWidth)])
+            check(settings.terminalCellWidth == 1, "invalid imported spacing restores native width")
+        }
+        settings.terminalCellWidth = 1.5
+        settings.resetFont()
+        check(settings.terminalCellWidth == 1 && !settings.serializedConfig().contains("terminal.cell-width"),
+              "font reset restores column spacing and omits the default config key")
 
         for size in 8...32 { settings.fontSize = Double(size) }
         NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: nil)

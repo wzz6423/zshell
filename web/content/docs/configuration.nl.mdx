@@ -125,6 +125,12 @@ Geheel getal, 0–255 — standaard `255`
 
 Regelt de verdikking wanneer `terminal.font-thicken` true is. Nul is de lichtste beschikbare verdikking, niet uit. Ghostty gebruikt zijn native macOS-sterkte; Alacritty vertaalt hetzelfde bereik naar een CoreText-lijndikte. Richting en eindpunten komen overeen, maar gerasterde pixels kunnen verschillen.
 
+### `terminal.cell-width` [#terminalcell-width]
+
+getal, 0.75–2 — standaard `1`
+
+Past de kolomafstand van de terminal aan via **Instellingen → Uiterlijk → Lettertype → Celbreedte**. De standaard is 100%; waarden worden als hele percentages opgeslagen. Beide backends werken open terminals direct bij, inclusief het aantal PTY-kolommen, de cursor, selectie en toetsenbordhints. De tekengrootte blijft gelijk en brede tekens nemen nog steeds twee kolommen in. Pixelafronding kan per backend andere effectieve stappen opleveren. Ongeldige waarden herstellen 100%. De afstand in editor en diff blijft ongewijzigd.
+
 ### `terminal.line-height` [#terminalline-height]
 
 Getal, 0.75–2 — standaard `1`
@@ -259,6 +265,7 @@ toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.bell = false
