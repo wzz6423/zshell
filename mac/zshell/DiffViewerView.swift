@@ -1282,7 +1282,7 @@ private final class DiffControlsNSView: NSView {
     private let commentsButton = NSButton(title: "", target: nil, action: nil)
     private let refreshButton = WorkspaceChromeButton(symbol: "arrow.clockwise", label: "")
     private let pullRequestReviewButton = WorkspaceChromeButton(symbol: "checkmark.bubble", label: "")
-    private let wrapLinesButton = WorkspaceChromeButton(symbol: "text.wordwrap", label: "")
+    private let wrapLinesButton = WorkspaceChromeButton(symbol: "arrow.turn.down.left", label: "")
     private let optionsButton = WorkspaceChromeButton(symbol: "ellipsis", label: "")
     private let leadingControls = NSStackView()
     private let trailingControls = NSStackView()
@@ -1445,7 +1445,7 @@ private final class DiffControlsNSView: NSView {
         modeControl.isHidden = !canEdit
         layoutControl.isHidden = !showsLayout
         wrapLinesButton.isHidden = !showsLayout
-        wrapLinesButton.configure(symbol: "text.wordwrap", label: String(localized: "Wrap lines to diff width"))
+        wrapLinesButton.configure(symbol: "arrow.turn.down.left", label: String(localized: "Wrap lines to diff width"))
         wrapLinesButton.state = wrapsLines ? .on : .off
         wrapLinesButton.contentTintColor = wrapsLines ? .controlAccentColor : .secondaryLabelColor
         wrapLinesButton.setAccessibilityValue(wrapsLines ? 1 : 0)

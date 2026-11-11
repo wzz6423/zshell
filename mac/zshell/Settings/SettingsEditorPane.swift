@@ -33,7 +33,7 @@ final class SettingsEditorPane: SettingsPaneViewController {
                 SettingsRow(
                     title: String(localized: "Wrap lines to diff width"),
                     control: diffWrapLinesSwitch,
-                    symbolName: "text.wordwrap",
+                    symbolName: "arrow.turn.down.left",
                     symbolColor: SettingsCategory.editor.iconColor
                 ),
             ]),

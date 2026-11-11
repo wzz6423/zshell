@@ -46,6 +46,9 @@ struct DiffWrapSurfaceTests {
         guard let button = descendants(view).compactMap({ $0 as? NSButton }).first(where: {
             $0.accessibilityLabel() == String(localized: "Wrap lines to diff width")
         }) else { fatalError("Native diff toolbar has no wrapping button") }
+        precondition(button.image != nil, "Diff wrap button has no visible symbol")
+        precondition(!button.isHiddenOrHasHiddenAncestor && !button.visibleRect.isEmpty,
+            "Diff wrap button is not visible in the pane")
         return button
     }
 
@@ -206,6 +209,8 @@ struct DiffWrapSurfaceTests {
             for _ in 0..<3 { localizedPane.view.layoutSubtreeIfNeeded(); pump() }
             let icon = descendants(localizedPane.view).compactMap { $0 as? SettingsIconView }.first!
             precondition(icon.frame.size == NSSize(width: 32, height: 32), "Diff setting icon is not square")
+            precondition(descendants(icon).compactMap { $0 as? NSImageView }.contains { $0.image != nil },
+                "Diff setting icon has no visible symbol")
             let search = SettingsSearchIndex.results(for: "editor.diff-wrap-lines")
             precondition(search.count == 1 && search.first?.title == String(localized: "Wrap lines to diff width"),
                 "Diff setting did not appear in localized search")
