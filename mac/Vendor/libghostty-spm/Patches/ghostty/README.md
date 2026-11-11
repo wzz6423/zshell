@@ -23,3 +23,14 @@ the `libghostty-spm` build pipeline.
 This patch workflow exists so we can carry host-managed IO work required for
 sandboxed iOS, macOS, and Mac Catalyst integration without hiding upstream
 modifications inside ad-hoc build script edits.
+
+## IME composition
+
+`0013-shape-preedit-graphemes.patch` retains combining marks, emoji selectors
+and ZWJ sequences in renderer-owned grapheme snapshots. Preedit uses the
+terminal's existing shaping cache and glyph atlases, including color emoji,
+without writing uncommitted text into terminal cells. Compositions shift left
+at the right edge and trim whole leading clusters only when they exceed a row.
+The patch includes targeted `preedit` Zig tests. On a built Zshell Debug app,
+`python3 mac/tests/test_terminal_preedit.py --derived-data <path>` checks actual
+presented pixels, UTF-16 state, cancellation and PTY isolation on macOS.
