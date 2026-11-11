@@ -284,9 +284,10 @@ final class TerminalManager: nonisolated ObservableObject {
                     AppSettings.shared.$fontSize.removeDuplicates(),
                     AppSettings.shared.$fontThicken.removeDuplicates()
                 ),
-                Publishers.CombineLatest(
+                Publishers.CombineLatest3(
                     AppSettings.shared.$fontThickenStrength.removeDuplicates(),
-                    AppSettings.shared.$terminalLineHeight.removeDuplicates()
+                    AppSettings.shared.$terminalLineHeight.removeDuplicates(),
+                    AppSettings.shared.$terminalCellWidth.removeDuplicates()
                 ),
                 AppSettings.shared.$theme.removeDuplicates()
             ),

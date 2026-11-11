@@ -57,9 +57,22 @@ private final class AlertResponder {
         timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.respond() }
         }
+        if let timer { RunLoop.main.add(timer, forMode: .modalPanel) }
     }
 
     private func respond() {
+        if let modal = NSApp.modalWindow, seen.insert(ObjectIdentifier(modal)).inserted {
+            sheets.append(modal)
+            prompts += 1
+            beforeResponse(prompts, modal)
+            if responses.isEmpty {
+                failure = "An unexpected save conflict was presented."
+                NSApp.stopModal(withCode: .alertFirstButtonReturn)
+            } else {
+                NSApp.stopModal(withCode: responses.removeFirst())
+            }
+            return
+        }
         for host in NSApp.windows {
             guard let sheet = host.attachedSheet,
                   seen.insert(ObjectIdentifier(sheet)).inserted else { continue }
@@ -250,7 +263,7 @@ struct UnsavedWorkspaceCloseTests {
 
         let failedPath = root.appendingPathComponent("unavailable-parent/failure.txt")
         second.updatePath(failedPath.path)
-        let failed = responder([.alertFirstButtonReturn])
+        let failed = responder([.alertFirstButtonReturn, .alertThirdButtonReturn])
         manager.close(project)
         try await wait("project failed save") { second.saveError != nil }
         try failed.finish()
@@ -324,7 +337,7 @@ struct UnsavedWorkspaceCloseTests {
         let directory = root.appendingPathComponent("window-diff.txt")
         try FileManager.default.removeItem(at: directory)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
-        let windowFailed = responder([.alertSecondButtonReturn, .alertFirstButtonReturn])
+        let windowFailed = responder([.alertSecondButtonReturn, .alertFirstButtonReturn, .alertFirstButtonReturn])
         window.performClose(nil)
         try await wait("window Diff save fails") { windowDiff.saveError != nil }
         try await settle()
@@ -391,7 +404,7 @@ struct UnsavedWorkspaceCloseTests {
 
         let failedPath = root.appendingPathComponent("quit-missing-parent/file.txt")
         firstFile.updatePath(failedPath.path)
-        let quitFailed = responder([.alertFirstButtonReturn])
+        let quitFailed = responder([.alertFirstButtonReturn, .alertThirdButtonReturn])
         let beforeFailed = QuitReplyFixture.replies.count
         _ = delegate.applicationShouldTerminate(NSApp)
         try await wait("quit save fails") { QuitReplyFixture.replies.count > beforeFailed }
@@ -410,6 +423,16 @@ struct UnsavedWorkspaceCloseTests {
         try check(reedited.prompts == 3 && QuitReplyFixture.replies.last == false && firstFile.isDirty && isAlive(firstProject),
                   "a discard approval never covers a newer edit made during another window's prompt")
 
+        let beforeConflict = QuitReplyFixture.replies.count
+        try "agent quit edit".write(to: root.appendingPathComponent("quit-first.txt"), atomically: true, encoding: .utf8)
+        let keepConflict = responder([.alertFirstButtonReturn, .alertFirstButtonReturn])
+        _ = delegate.applicationShouldTerminate(NSApp)
+        try await wait("quit save conflict cancelled") { QuitReplyFixture.replies.count > beforeConflict }
+        try keepConflict.finish()
+        try check(QuitReplyFixture.replies.last == false && firstFile.isDirty && isAlive(firstProject)
+                  && (try String(contentsOf: root.appendingPathComponent("quit-first.txt"), encoding: .utf8)) == "agent quit edit",
+                  "Keep Draft in a quit save conflict preserves the workspace, terminal and external edit")
+
         let beforeEndAll = QuitReplyFixture.replies.count
         let endAllCancelled = responder([.alertThirdButtonReturn])
         delegate.perform(NSSelectorFromString("quitAndEndAllSessions"))
@@ -419,7 +442,7 @@ struct UnsavedWorkspaceCloseTests {
                   && isAlive(firstProject) && isAlive(secondProject), "Quit and End All Sessions also waits before terminating any shell")
         let firstPID = firstProject.sessions.first!.shellPid!
         let secondPID = secondProject.sessions.first!.shellPid!
-        let approved = responder([.alertFirstButtonReturn, .alertFirstButtonReturn])
+        let approved = responder([.alertFirstButtonReturn, .alertThirdButtonReturn, .alertFirstButtonReturn])
         let beforeApproved = QuitReplyFixture.replies.count
         _ = delegate.applicationShouldTerminate(NSApp)
         try await wait("normal quit approved") { QuitReplyFixture.replies.count > beforeApproved }

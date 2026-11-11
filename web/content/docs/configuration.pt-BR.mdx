@@ -125,6 +125,12 @@ Inteiro, 0–255 — padrão `255`
 
 Controla a intensidade quando `terminal.font-thicken` é true. Zero é o engrossamento mais leve disponível, não desativado. Ghostty usa a intensidade nativa do macOS; Alacritty mapeia a mesma faixa para um traço CoreText. A direção e os extremos coincidem, mas os pixels rasterizados podem diferir.
 
+### `terminal.cell-width` [#terminalcell-width]
+
+número, 0.75–2 — padrão `1`
+
+Ajusta o espaçamento entre colunas do terminal em **Ajustes → Aparência → Fonte → Largura da célula**. O padrão é 100%, salvo em porcentagens inteiras. Ambos os backends atualizam imediatamente os terminais abertos, incluindo a quantidade de colunas do PTY, o cursor, a seleção e as dicas de teclado. O tamanho dos glifos não muda, e caracteres largos continuam ocupando duas colunas. O arredondamento para pixels pode gerar passos efetivos diferentes em cada backend. Valores inválidos restauram 100%. O espaçamento do editor e dos diffs não muda.
+
 ### `terminal.line-height` [#terminalline-height]
 
 Número, 0.75–2 — padrão `1`
@@ -138,6 +144,12 @@ O Zshell não expõe um controle de peso base da fonte. Ghostty escolhe estilos 
 Booleano — padrão `true`
 
 Quebra visualmente linhas longas na largura do painel do [editor de arquivos](/pt-BR/docs/files). Em false, elas rolam horizontalmente. Não altera a quebra de linhas do terminal nem dos diffs.
+
+### `editor.protect-saves` [#editorprotect-saves]
+
+booleano — padrão `true`
+
+Verifica alterações externas antes de salvar um arquivo ou diff editável da árvore de trabalho. Em caso de conflito, compare versões, recarregue, mantenha o rascunho ou sobrescreva explicitamente. Desativar permite substituir alterações externas sem aviso de conflito.
 
 ## Terminal [#terminal]
 
@@ -255,6 +267,7 @@ toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.bell = false
