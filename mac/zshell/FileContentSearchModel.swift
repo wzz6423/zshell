@@ -5,6 +5,7 @@
 
 import AppKit
 import Combine
+import Darwin
 import Foundation
 
 /// File-content search over the Files panel's project directory: BSD grep
@@ -325,17 +326,50 @@ final class FileContentSearchModel: ObservableObject {
     nonisolated static func lineStartLocation(
         line: Int, filePath: String
     ) async -> Int? {
-        await Task.detached(priority: .userInitiated) {
+        guard line >= 1, !Task.isCancelled else { return nil }
+        let reader = Task.detached(priority: .userInitiated) {
             Self.revealLocation(line: line, filePath: filePath)
-        }.value
+        }
+        return await withTaskCancellationHandler {
+            let location = await reader.value
+            return Task.isCancelled ? nil : location
+        } onCancel: {
+            reader.cancel()
+        }
     }
 
     private nonisolated static func revealLocation(line: Int, filePath: String) -> Int? {
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: filePath)),
-              data.count <= maxRevealFileBytes,
-              let text = String(data: data, encoding: .utf8)
+        guard !Task.isCancelled else { return nil }
+        // A search result can become a FIFO before it is opened; inspect one
+        // nonblocking descriptor so replacements cannot redirect the read.
+        let descriptor = open(filePath, O_RDONLY | O_NONBLOCK | O_CLOEXEC)
+        guard descriptor >= 0 else { return nil }
+        let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        defer { try? handle.close() }
+        var metadata = stat()
+        guard fstat(descriptor, &metadata) == 0,
+              metadata.st_mode & S_IFMT == S_IFREG,
+              metadata.st_size >= 0, metadata.st_size <= maxRevealFileBytes
         else { return nil }
-        return lineStartLocation(ofLine: line, in: text)
+
+        do {
+            var data = Data()
+            data.reserveCapacity(Int(metadata.st_size))
+            while data.count <= maxRevealFileBytes {
+                try Task.checkCancellation()
+                let remaining = min(64 << 10, maxRevealFileBytes + 1 - data.count)
+                guard let chunk = try handle.read(upToCount: remaining), !chunk.isEmpty else { break }
+                data.append(chunk)
+            }
+            guard data.count <= maxRevealFileBytes,
+                  try handle.seekToEnd() == UInt64(data.count),
+                  !Task.isCancelled,
+                  let text = String(data: data, encoding: .utf8)
+            else { return nil }
+            return lineStartLocation(ofLine: line, in: text)
+        } catch {
+            return nil
+        }
     }
 
     private nonisolated static func lineStartLocation(ofLine line: Int, in text: String) -> Int? {

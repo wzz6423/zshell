@@ -113,6 +113,8 @@ extension ZshellTerminalView {
                 ((settings.terminalLineHeight - 1) * 100).rounded()
             )
             builder.withCustom("adjust-cell-height", "\(lineHeightAdjustment)%")
+            let cellWidthAdjustment = Int(((settings.terminalCellWidth - 1) * 100).rounded())
+            builder.withCustom("adjust-cell-width", "\(cellWidthAdjustment)%")
             let trackpadScroll = TerminalScrollSettings.validMultiplier(settings.trackpadScrollMultiplier)
             let mouseScroll = TerminalScrollSettings.validMultiplier(settings.mouseScrollMultiplier)
                 * TerminalScrollSettings.ghosttyWheelMultiplier
@@ -245,6 +247,8 @@ extension ZshellTerminalView: TerminalSurfacePwdDelegate {
 extension ZshellTerminalView: TerminalSurfaceGridResizeDelegate {
     func terminalDidResize(_ size: TerminalGridMetrics) {
         invalidateLogContents()
+        inputContext?.invalidateCharacterCoordinates()
+        hintMode.refreshSnapshot()
         let scale = window?.backingScaleFactor
             ?? NSScreen.main?.backingScaleFactor
             ?? 2

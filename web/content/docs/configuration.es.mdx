@@ -125,6 +125,12 @@ entero, 0–255 — predeterminado: `255`
 
 Controla el engrosamiento cuando `terminal.font-thicken` es true. Cero es el engrosamiento más ligero disponible, no lo desactiva. Ghostty usa su intensidad nativa de macOS; Alacritty asigna el mismo rango a un trazo de CoreText, de modo que la dirección y los extremos coinciden, aunque los píxeles rasterizados pueden diferir.
 
+### `terminal.cell-width` [#terminalcell-width]
+
+número, 0.75–2 — valor predeterminado `1`
+
+Ajusta el espacio entre columnas del terminal en **Ajustes → Apariencia → Fuente → Ancho de celda**. El valor predeterminado es 100 % y se guarda en porcentajes enteros. Ambos motores actualizan de inmediato los terminales abiertos, incluido el número de columnas del PTY, el cursor, la selección y las pistas de teclado. El tamaño de los glifos no cambia y los caracteres anchos siguen ocupando dos columnas. El redondeo a píxeles puede producir pasos efectivos distintos según el motor. Los valores no válidos restauran el 100 %. El espaciado del editor y los diffs no cambia.
+
 ### `terminal.line-height` [#terminalline-height]
 
 número, 0.75–2 — predeterminado: `1`
@@ -138,6 +144,12 @@ Zshell no ofrece un control de peso base de fuente. Ghostty selecciona estilos c
 booleano — predeterminado: `true`
 
 Ajusta visualmente las líneas largas al ancho del panel en el [editor de archivos](/es/docs/files). Con false, las líneas largas se desplazan horizontalmente. No cambia el ajuste de líneas de un terminal ni de una vista de diferencias.
+
+### `editor.protect-saves` [#editorprotect-saves]
+
+booleano — predeterminado `true`
+
+Comprueba cambios externos antes de guardar un archivo o un diff editable del árbol de trabajo. Si hay un conflicto, compare versiones, recargue, conserve el borrador o sobrescriba explícitamente. Al desactivarlo, los cambios externos se reemplazan sin aviso de conflicto.
 
 ## Terminal [#terminal]
 
@@ -260,6 +272,7 @@ toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.mouse-scroll-multiplier = 1
 terminal.trackpad-scroll-multiplier = 1
