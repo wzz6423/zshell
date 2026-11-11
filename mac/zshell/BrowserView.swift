@@ -207,7 +207,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
     private var reroutedNavigation = false
     private(set) var isClosed = false
 
-    private static let maximumFaviconBytes = 2 * 1_024 * 1_024
+    private static let maximumFaviconBytes = BrowserFaviconDownload.maximumBytes
     /// WKWebView's default macOS user agent has no browser/version token, so
     /// some sites mistake the current WebKit engine for an obsolete browser.
     private static let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0 Safari/605.1.15"
@@ -863,7 +863,7 @@ final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDe
             )
             let result: (Data, URLResponse)?
             if let routing { result = try? await routing.faviconData(for: request) }
-            else { result = try? await URLSession.shared.data(for: request) }
+            else { result = try? await BrowserFaviconDownload.data(for: request, session: .shared) }
             guard let (data, response) = result,
             let response = response as? HTTPURLResponse,
             (200..<300).contains(response.statusCode),
