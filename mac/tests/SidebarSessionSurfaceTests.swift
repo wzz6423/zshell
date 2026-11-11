@@ -180,6 +180,15 @@ extension NSApplication {
         try check(!tab.focusPane(UUID()), "unknown focus identity does not mutate selection")
         try await layout()
         let firstHeader = try header("FIRST")
+        for title in ["FIRST", "SECOND"] {
+            let nativeHeader = try header(title)
+            nativeHeader.layoutSubtreeIfNeeded()
+            let label = descendants(nativeHeader, as: NSTextField.self).first { $0.stringValue == title }!
+            let drawing = label.cell!.drawingRect(forBounds: label.bounds)
+            let textWidth = (title as NSString).size(withAttributes: [.font: label.font!]).width
+            try check(label.frame.width > 100 && drawing.width >= textWidth + 2,
+                      "short \(title) header receives available space without truncation")
+        }
         try check(firstHeader.closeButton.frame.size == NSSize(width: 24, height: 24)
             && !firstHeader.closeButton.isHidden, "unfocused pane exposes a permanent 24-point native close button")
         try check(firstHeader.closeButton.accessibilityLabel() == AppCommand.closePane.title,

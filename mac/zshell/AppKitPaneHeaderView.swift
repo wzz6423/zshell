@@ -193,8 +193,7 @@ private final class PaneHeaderTitleNSView: NSView {
         let available = max(0, bounds.width - 19)
         let visibleBadgeWidth = min(badgeWidth, max(0, available - (isDirty ? 11 : 0)))
         badge.isHidden = visibleBadgeWidth == 0
-        let titleWidth = min(ceil(titleLabel.attributedStringValue.size().width),
-            max(0, available - (visibleBadgeWidth > 0 ? visibleBadgeWidth + 6 : 0) - (isDirty ? 11 : 0)))
+        let titleWidth = max(0, available - (visibleBadgeWidth > 0 ? visibleBadgeWidth + 6 : 0) - (isDirty ? 11 : 0))
         let height = ceil((titleLabel.font?.ascender ?? 12) - (titleLabel.font?.descender ?? -3)) + 2
         titleLabel.frame = NSRect(x: 19, y: (bounds.height - height) / 2, width: titleWidth, height: height)
         badge.frame = NSRect(x: titleLabel.frame.maxX + 6, y: (bounds.height - 15) / 2,

@@ -12,6 +12,7 @@ import platform
 import plistlib
 import signal
 import json
+import re
 import subprocess
 import tempfile
 import uuid
@@ -58,6 +59,10 @@ with tempfile.TemporaryDirectory(prefix="zshell-sidebar-surfaces-", dir="/tmp") 
         str(ROOT / "mac/tests/QuickTerminalOffscreen.swift")]
     subprocess.run(arguments, cwd=ROOT, check=True)
     for backend in options.backend or ("ghostty", "alacritty"):
+        # Each backend must start with its own session-snapshot preference domain.
+        domain = "sh.zshell.pane-close-fixture." + uuid.uuid4().hex
+        info["CFBundleIdentifier"] = domain
+        (contents / "Info.plist").write_bytes(plistlib.dumps(info))
         home = temporary / backend / "home"
         home.mkdir(parents=True)
         config = home / ".config/zshell-dev"
@@ -70,11 +75,16 @@ with tempfile.TemporaryDirectory(prefix="zshell-sidebar-surfaces-", dir="/tmp") 
         environment.update({"HOME": str(home), "CFFIXED_USER_HOME": str(home), "TMPDIR": str(files),
             "ZSHELL_PTY_MUX_DIRECTORY": str(home / "mux"), "ZSHELL_SSH_AGENT_RESOLVED": "1",
             "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null"})
-        process = subprocess.Popen([str(executable), backend], cwd=ROOT, env=environment, start_new_session=True)
+        process = subprocess.Popen([str(executable), backend], cwd=ROOT, env=environment, start_new_session=True,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         try:
-            process.wait(timeout=150)
+            output, _ = process.communicate(timeout=150)
+            print(output, end="", flush=True)
             if process.returncode:
                 raise subprocess.CalledProcessError(process.returncode, process.args)
+            summaries = re.findall(rf"^PANE_CLOSE {backend} (\d+) passed$", output, re.MULTILINE)
+            if len(summaries) != 1 or int(summaries[0]) != 38:
+                raise RuntimeError(f"The {backend} fixture exited before all pane-close checks completed")
         finally:
             try:
                 os.killpg(process.pid, signal.SIGTERM)
@@ -89,3 +99,4 @@ with tempfile.TemporaryDirectory(prefix="zshell-sidebar-surfaces-", dir="/tmp") 
                     subprocess.run(mux + ["terminate", session["id"]], cwd=ROOT, env=environment,
                         capture_output=True, timeout=10)
                 subprocess.run(mux + ["shutdown"], cwd=ROOT, env=environment, capture_output=True, timeout=10)
+            subprocess.run(["defaults", "delete", domain], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
