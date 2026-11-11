@@ -20,6 +20,8 @@ the original feature bullet instead of adding separate entries for them.
 
 - Choose theme-colored terminal padding, automatic edge-color extension, or
   extension on every edge from Appearance settings with either terminal backend.
+- Adjust terminal column spacing from Appearance settings while keeping glyph
+  size, cursor, selection, and keyboard hints aligned on either terminal backend.
 - Keep the Mac awake while Zshell is running or while a local agent works in
   any terminal pane. Choose the mode from Settings or the application menu;
   displays and manual sleep keep following macOS settings.
@@ -33,6 +35,9 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Fixed
 
+- Detect external changes before saving file and editable diff drafts. Compare
+  versions, reload, keep the draft, or explicitly overwrite; save conflict
+  protection can be disabled in Editor settings.
 - Ask to save unsaved file and diff edits before closing panes, projects or
   workspace windows, or quitting. Cancelling or a failed save keeps the
   affected workspace open.

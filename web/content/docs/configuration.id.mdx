@@ -125,6 +125,12 @@ Bilangan bulat, 0–255 — bawaan `255`
 
 Mengatur penebalan ketika `terminal.font-thicken` bernilai true. Nol adalah penebalan paling ringan, bukan mati. Ghostty menggunakan kekuatan asli macOS; Alacritty memetakan rentang yang sama ke goresan CoreText. Arah dan batasnya sama, tetapi piksel hasil rasterisasi bisa berbeda.
 
+### `terminal.cell-width` [#terminalcell-width]
+
+angka, 0.75–2 — default `1`
+
+Mengatur jarak kolom terminal di **Pengaturan → Tampilan → Font → Lebar sel**. Nilai default adalah 100% dan disimpan sebagai persentase bulat. Kedua backend langsung memperbarui terminal yang terbuka, termasuk jumlah kolom PTY, kursor, seleksi, dan petunjuk keyboard. Ukuran glif tetap sama dan karakter lebar tetap menempati dua kolom. Pembulatan piksel dapat menghasilkan langkah efektif yang berbeda pada tiap backend. Nilai tidak valid mengembalikan 100%. Jarak pada editor dan diff tidak berubah.
+
 ### `terminal.line-height` [#terminalline-height]
 
 Angka, 0.75–2 — bawaan `1`
@@ -144,6 +150,12 @@ Pilih **Pengaturan → Tampilan → Latar → Warna tepi**. `"background"` memak
 Boolean — bawaan `true`
 
 Membungkus baris panjang sesuai lebar panel dalam [editor berkas](/id/docs/files). Jika false, baris panjang digulir horizontal. Pembungkusan terminal dan perbedaan tidak berubah.
+
+### `editor.protect-saves` [#editorprotect-saves]
+
+boolean — bawaan `true`
+
+Memeriksa perubahan eksternal sebelum menyimpan file atau diff worktree yang dapat diedit. Saat konflik, bandingkan versi, muat ulang, simpan draf, atau timpa secara eksplisit. Menonaktifkannya mengizinkan penggantian perubahan eksternal tanpa peringatan konflik.
 
 ## Terminal [#terminal]
 
@@ -259,6 +271,7 @@ toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.bell = false

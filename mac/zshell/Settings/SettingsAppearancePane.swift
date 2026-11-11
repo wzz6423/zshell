@@ -101,6 +101,17 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         onChange: { AppSettings.shared.terminalLineHeight = $0 }
     )
 
+    private let cellWidthRow = SettingsSliderRow(
+        title: String(localized: "Cell width"),
+        range: AppSettings.terminalCellWidthRange,
+        format: .percent,
+        step: 0.05,
+        showsStepper: true,
+        symbolName: "arrow.left.and.right",
+        symbolColor: SettingsCategory.appearance.iconColor,
+        onChange: { AppSettings.shared.terminalCellWidth = $0 }
+    )
+
     private let paneFocusRingSwitch = SettingsSwitch {
         AppSettings.shared.showPaneFocusRing = $0
     }
@@ -148,6 +159,7 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         SettingsRow(title: String(localized: "CJK fallback"), control: fallbackFamilyPopUp),
         fontSizeRow,
         lineHeightRow,
+        cellWidthRow,
         SettingsRow(title: String(localized: "Thicken font strokes"), control: thickenSwitch),
         thickenStrengthRow,
         SettingsCustomRow(preview),
@@ -217,8 +229,9 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         interfaceScaleRow.setValue(settings.interfaceScale)
         thickenSwitch.isOn = settings.fontThicken
         thickenStrengthRow.setValue(Double(settings.fontThickenStrength))
-        fontGroup.setRowHidden(!visibility.fontThicken, at: 5)
+        fontGroup.setRowHidden(!visibility.fontThicken, at: 6)
         lineHeightRow.setValue(settings.terminalLineHeight)
+        cellWidthRow.setValue(settings.terminalCellWidth)
         cursorShapeView.apply(shape: settings.cursorShape)
         cursorBlinkingView.apply(isBlinking: settings.cursorBlinking)
         terminalBackgroundOpacityRow.setValue(settings.terminalBackgroundOpacity)
@@ -236,7 +249,8 @@ final class SettingsAppearancePane: SettingsPaneViewController {
             ),
             thicken: settings.fontThicken,
             thickenStrength: settings.fontThickenStrength,
-            lineHeight: CGFloat(settings.terminalLineHeight)
+            lineHeight: CGFloat(settings.terminalLineHeight),
+            cellWidth: CGFloat(settings.terminalCellWidth)
         )
     }
 }

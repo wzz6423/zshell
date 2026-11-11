@@ -38,6 +38,7 @@ CONFIGURATION_ITEMS = {
     "terminal.font-fallback-family": ("appearance", "CJK fallback", "Font"),
     "font-size": ("appearance", "Size", "Font"),
     "terminal.line-height": ("appearance", "Line height", "Font"),
+    "terminal.cell-width": ("appearance", "Cell width", "Font"),
     "terminal.font-thicken": ("appearance", "Thicken font strokes", "Font"),
     "terminal.font-thicken-strength": ("appearance", "Stroke strength", "Font"),
     "interface.scale": ("appearance", "Interface size", "Interface"),
@@ -73,6 +74,7 @@ CONFIGURATION_ITEMS = {
     "quick-terminal.opacity": ("terminal", "Opacity", "Quick Terminal"),
     "editor.external-editor": ("editor", "External editor", ""),
     "editor.wrap-lines": ("editor", "Wrap lines to editor width", ""),
+    "editor.protect-saves": ("editor", "Protect against save conflicts", ""),
     "ai.enabled": ("automation", "AI", ""),
     "ai.resume-conversations": ("automation", "Resume agent conversations", ""),
     "ai.notify-on-attention": ("automation", "Notify when agents need attention", "Notifications"),
@@ -250,7 +252,7 @@ class SettingsSearchTests(unittest.TestCase):
             if not (resources / f"{language}.lproj").is_dir():
                 raise AssertionError(f"missing compiled {language} resources")
         metadata = root / "SearchMetadata.swift"
-        metadata.write_text("import AppKit\nimport Foundation\n" + "\n".join([
+        metadata.write_text("import AppKit\n" + "\n".join([
             metadata_enum((sources / "Settings/SettingsWindowController.swift").read_text(),
                           "SettingsCategory", "    func makePane()"),
             metadata_enum((sources / "Theme.swift").read_text(), "AppTheme", "    var nsAppearance:"),

@@ -107,6 +107,8 @@ extension ZshellTerminalView {
                 ((settings.terminalLineHeight - 1) * 100).rounded()
             )
             builder.withCustom("adjust-cell-height", "\(lineHeightAdjustment)%")
+            let cellWidthAdjustment = Int(((settings.terminalCellWidth - 1) * 100).rounded())
+            builder.withCustom("adjust-cell-width", "\(cellWidthAdjustment)%")
             builder.withCursorStyle(profileAppearance.effectiveCursorShape.ghosttyValue)
             builder.withCursorStyleBlink(profileAppearance.effectiveCursorBlinking)
             // Zshell's insets around the grid live inside ghostty as
@@ -235,6 +237,8 @@ extension ZshellTerminalView: TerminalSurfaceGridResizeDelegate {
     func terminalDidResize(_ size: TerminalGridMetrics) {
         invalidateLogContents()
         invalidatePaddingGeometry()
+        inputContext?.invalidateCharacterCoordinates()
+        hintMode.refreshSnapshot()
         let scale = window?.backingScaleFactor
             ?? NSScreen.main?.backingScaleFactor
             ?? 2

@@ -281,10 +281,16 @@ struct TerminalPaddingColorSurfaceTests {
         view.setBackgroundOpacity(1)
         view.applyAppearance()
         pump(0.15)
-        for size in [CGSize(width: 823.5, height: 423.5), CGSize(width: 807, height: 431)] {
+        for (size, width) in [
+            (CGSize(width: 823.5, height: 423.5), 1.0),
+            (CGSize(width: 807, height: 431), 1.0),
+            (CGSize(width: 823.5, height: 423.5), 0.75),
+            (CGSize(width: 807, height: 431), 1.5),
+        ] {
+            settings.terminalCellWidth = width
             window.setContentSize(size)
             view.setFrameSize(size)
-            try wait("\(backend) fractional resize updates PTY grid", settled)
+            try wait("\(backend) fractional resize and \(width) cell width update PTY grid", settled)
             settings.terminalPaddingColor = .always
             view.applyAppearance()
             pump(0.15)
@@ -307,6 +313,9 @@ struct TerminalPaddingColorSurfaceTests {
             try check(!close(sample(before, CGPoint(x: 2, y: cellY)), sample(after, CGPoint(x: 2, y: cellY))),
                       "\(backend) resized background border replaces extension")
         }
+        settings.terminalCellWidth = 1
+        pump(0.15)
+        try wait("\(backend) native width restores after padding geometry checks", settled)
 
         for theme in ["Dracula", Theme.defaultDarkThemeName] {
             settings.themeDark = theme

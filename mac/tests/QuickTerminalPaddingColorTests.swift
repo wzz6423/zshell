@@ -39,6 +39,7 @@ enum QuickTerminalPaddingColorTests {
         settings.fontFamily = "Menlo"
         settings.fontSize = 13
         settings.terminalLineHeight = 1
+        settings.terminalCellWidth = 1.35
         settings.terminalBackgroundOpacity = 1
         settings.terminalBackgroundBlur = false
         settings.quickTerminalOpacity = 0.5

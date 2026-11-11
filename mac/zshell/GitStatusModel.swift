@@ -1537,8 +1537,9 @@ final class GitStatusModel: nonisolated ObservableObject {
             }
         }
 
+        // Short refs gain a heads/ prefix when a tag shares the branch name.
         let refs = statusGit(
-            ["for-each-ref", "--format=%(refname:short)", "refs/heads"], in: repoRoot
+            ["for-each-ref", "--format=%(refname:strip=2)", "refs/heads/"], in: repoRoot
         )
         if refs.status == 0 {
             result.branches = refs.stdout.split(separator: "\n").map(String.init).sorted()
@@ -1569,10 +1570,10 @@ final class GitStatusModel: nonisolated ObservableObject {
         if result.loadedDetails.contains(.branches), result.loadedDetails.contains(.remotes),
            let remote = result.remotes.contains("origin") ? "origin" : result.remotes.first {
             let remoteHead = statusGit(
-                ["symbolic-ref", "--quiet", "--short", "refs/remotes/\(remote)/HEAD"],
+                ["symbolic-ref", "--quiet", "refs/remotes/\(remote)/HEAD"],
                 in: repoRoot
             )
-            let prefix = "\(remote)/"
+            let prefix = "refs/remotes/\(remote)/"
             let ref = strippingTrailingLineEnding(remoteHead.stdout)
             if remoteHead.status == 0, ref.hasPrefix(prefix) {
                 let branch = String(ref.dropFirst(prefix.count))
@@ -2050,15 +2051,18 @@ extension GitStatusModel {
         let paths = run(["rev-parse", "--path-format=absolute", "--git-dir", "--git-common-dir"])
         let directories = paths.stdout.split(separator: "\n").map(String.init)
         guard paths.status == 0, directories.count == 2 else { return .unavailable }
-        let head = run(["symbolic-ref", "--quiet", "--short", "HEAD"])
+        let head = run(["symbolic-ref", "--quiet", "HEAD"])
         guard head.status == 0 || head.status == 1 else { return .unavailable }
         let configuration = run([
             "config", "--null", "--get-regexp",
             "^(remote\\..*\\.(url|gh-resolved)|branch\\..*\\.(remote|pushremote|merge)|remote\\.pushdefault)$",
         ])
         guard configuration.status == 0 || configuration.status == 1 else { return .unavailable }
-        let verifiedHead = run(["symbolic-ref", "--quiet", "--short", "HEAD"])
+        let verifiedHead = run(["symbolic-ref", "--quiet", "HEAD"])
         guard head.status == verifiedHead.status, head.stdout == verifiedHead.stdout else { return .unavailable }
+        let localPrefix = "refs/heads/"
+        let reference = strippingTrailingLineEnding(head.stdout)
+        guard head.status == 1 || reference.hasPrefix(localPrefix) else { return .unavailable }
         var values: [String: [String]] = [:]
         for record in configuration.stdout.split(separator: "\0") {
             guard let separator = record.firstIndex(of: "\n") else { continue }
@@ -2068,7 +2072,7 @@ extension GitStatusModel {
         return .repository(BranchSnapshot(
             root: strippingTrailingLineEnding(root.stdout),
             gitDirectory: directories[0], commonGitDirectory: directories[1],
-            branch: head.status == 0 ? strippingTrailingLineEnding(head.stdout) : nil,
+            branch: head.status == 0 ? String(reference.dropFirst(localPrefix.count)) : nil,
             configuration: values
         ))
     }
