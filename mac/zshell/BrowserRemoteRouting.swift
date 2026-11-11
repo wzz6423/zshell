@@ -470,7 +470,7 @@ final class BrowserRemoteRouting: ObservableObject {
         guard let faviconSession else { throw CancellationError() }
         var request = request
         request.url = request.url.map(Self.routedURL)
-        return try await faviconSession.data(for: request, delegate: FaviconRedirects())
+        return try await BrowserFaviconDownload.data(for: request, session: faviconSession, delegate: FaviconRedirects())
     }
 
     private func disconnect(to state: State) {
