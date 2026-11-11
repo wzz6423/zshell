@@ -34,6 +34,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// retyping the same characters) clears the dirty indicator rather than
     /// leaving it stuck on.
     private var savedText = ""
+    private(set) var saveBaseline: FileSaveSnapshot?
     /// Scroll position and cursor, written back by the editor as they
     /// change. Lives here (not in the view) so the state survives tab
     /// switches, and in the session snapshot so it survives relaunches. Not
@@ -67,6 +68,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     private var quickLookSignature: QuickLookSignature?
     private var reloadGeneration: UInt = 0
     private var reloadTask: Task<Void, Never>?
+    private var isSaving = false
 
     private nonisolated struct QuickLookSignature: Equatable, Sendable {
         let fileSize: UInt64
@@ -75,6 +77,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
 
     private nonisolated enum ReadResult {
         case data(Data)
+        case file(FileSaveSnapshot)
         case quickLook(QuickLookSignature)
         case tooLarge
         case unavailable
@@ -85,6 +88,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         let text: String
         let imageData: Data?
         let quickLookSignature: QuickLookSignature?
+        var saveBaseline: FileSaveSnapshot? = nil
     }
 
     init(path: String) {
@@ -108,6 +112,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         guard newPath != path else { return }
         invalidateReload()
         path = newPath
+        saveBaseline = saveBaseline?.moved(to: newPath)
     }
 
     /// Recompute `isDirty` from the current `text` against the saved
@@ -130,26 +135,35 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         }
     }
 
-    func save() {
-        guard case .text = content, isDirty else { return }
+    @discardableResult
+    func save(resolveConflict: ((FileSaveCoordinator.Conflict, String) -> FileSaveConflictController.Choice)? = nil) -> Bool {
+        guard case .text = content, isDirty else { return !isDirty }
+        guard !isSaving else { return false }
+        isSaving = true
+        defer { isSaving = false }
         invalidateReload()
+        let draft = text
         do {
-            // Atomic writes replace the final path entry, so follow links while
-            // keeping the tab's displayed path and rename identity unchanged.
-            let destination = URL(fileURLWithPath: path).resolvingSymlinksInPath()
-            let type = try? FileManager.default.attributesOfItem(atPath: destination.path)[.type] as? FileAttributeType
-            // Resolution leaves dangling or cyclic links unchanged; replacing
-            // one would silently turn the link into a regular file.
-            guard type != .typeSymbolicLink else {
-                throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: path])
+            switch try FileSaveConflictController.save(
+                text: draft, path: path, baseline: saveBaseline,
+                protectionEnabled: AppSettings.shared.protectEditorSaves,
+                in: editorView?.window, resolveConflict: resolveConflict
+            ) {
+            case .saved(let snapshot):
+                saveBaseline = snapshot
+                savedText = draft
+                refreshDirtyState()
+                saveError = nil
+                return !isDirty
+            case .reload:
+                reloadFromDiskIfClean(discarding: draft)
+            case .cancelled:
+                saveError = String(localized: "The file changed on disk. Your draft was kept.")
             }
-            try text.write(to: destination, atomically: true, encoding: .utf8)
-            savedText = text
-            isDirty = false
-            saveError = nil
         } catch {
             saveError = error.localizedDescription
         }
+        return false
     }
 
     /// Re-read a clean preview when it returns on screen. Disk I/O happens off
@@ -161,8 +175,8 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// cancel the first and re-read the same bytes. If a load for the current
     /// path is already in flight, this call is a no-op: the in-flight read will
     /// publish when it finishes.
-    func reloadFromDiskIfClean() {
-        guard !isDirty else { return }
+    func reloadFromDiskIfClean(discarding draft: String? = nil) {
+        guard draft.map({ $0 == text }) ?? !isDirty else { return }
         if let task = reloadTask, !task.isCancelled {
             return
         }
@@ -183,14 +197,26 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
             guard !Task.isCancelled,
                   self.reloadGeneration == generation,
                   self.path == expectedPath,
-                  !self.isDirty
+                  draft.map({ $0 == self.text }) ?? !self.isDirty
             else { return }
 
             let loaded = Self.loadedContent(path: expectedPath, result: result)
-            guard !self.matches(loaded) else { return }
+            if draft != nil, case .unavailable(let failure) = loaded.content {
+                self.saveError = failure
+                return
+            }
+            if draft != nil {
+                guard case .text = loaded.content else {
+                    self.saveError = String(localized: "Could not read file")
+                    return
+                }
+            }
+            self.saveBaseline = loaded.saveBaseline
+            guard draft != nil || !self.matches(loaded) else { return }
             self.content = loaded.content
             self.text = loaded.text
             self.savedText = loaded.text
+            self.isDirty = false
             self.imageData = loaded.imageData
             self.quickLookSignature = loaded.quickLookSignature
             self.saveError = nil
@@ -202,6 +228,17 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         reloadTask?.cancel()
         reloadTask = nil
         reloadGeneration &+= 1
+    }
+
+    func restoreDraft(_ draft: String, baseline: FileSaveSnapshot) {
+        invalidateReload()
+        content = .text
+        saveBaseline = baseline
+        savedText = baseline.text ?? ""
+        text = draft
+        isDirty = true
+        saveError = nil
+        reloadRevision &+= 1
     }
 
     private func matches(_ loaded: LoadedContent) -> Bool {
@@ -229,35 +266,11 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
             return (try? Data(contentsOf: url)).map(ReadResult.data) ?? .unavailable
         }
 
-        let handle: FileHandle
         do {
-            handle = try FileHandle(forReadingFrom: url)
-        } catch {
-            return .unavailable
-        }
-        defer { try? handle.close() }
-
-        do {
-            let initialSize = try handle.seekToEnd()
-            guard initialSize <= UInt64(maxTextBytes) else {
-                return .tooLarge
-            }
-            try handle.seek(toOffset: 0)
-
-            var data = Data()
-            data.reserveCapacity(Int(initialSize))
-            while data.count <= maxTextBytes {
-                let remaining = maxTextBytes + 1 - data.count
-                guard let chunk = try handle.read(upToCount: remaining), !chunk.isEmpty else {
-                    break
-                }
-                data.append(chunk)
-            }
-            guard data.count <= maxTextBytes,
-                  try handle.seekToEnd() <= UInt64(maxTextBytes) else {
-                return .tooLarge
-            }
-            return .data(data)
+            let snapshot = try FileSaveCoordinator.read(path: path)
+            guard snapshot.isRegular else { return .unavailable }
+            guard snapshot.data != nil else { return .tooLarge }
+            return .file(snapshot)
         } catch {
             return .unavailable
         }
@@ -299,9 +312,13 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     private static func loadedContent(path: String, result: ReadResult) -> LoadedContent {
         let url = URL(fileURLWithPath: path)
         let data: Data
+        var baseline: FileSaveSnapshot?
         switch result {
         case .data(let loadedData):
             data = loadedData
+        case .file(let snapshot):
+            data = snapshot.data ?? Data()
+            baseline = snapshot
         case .quickLook(let signature):
             return LoadedContent(
                 content: .quickLook,
@@ -341,7 +358,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
                 quickLookSignature: nil
             )
         }
-        guard let string = String(data: data, encoding: .utf8) else {
+        guard !data.contains(0), let string = String(data: data, encoding: .utf8) else {
             return LoadedContent(
                 content: .unavailable(String(localized: "Binary file")),
                 text: "",
@@ -353,7 +370,8 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
             content: .text,
             text: string,
             imageData: nil,
-            quickLookSignature: nil
+            quickLookSignature: nil,
+            saveBaseline: baseline
         )
     }
 }

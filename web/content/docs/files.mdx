@@ -79,6 +79,8 @@ If another program changes an open file, Zshell refreshes a clean preview when
 the app becomes active again. It never replaces an editor buffer with unsaved
 changes.
 
+If the file changes while you have unsaved edits, saving opens a conflict dialog. **Compare…** shows the disk version beside your draft; **Keep Draft** cancels saving, **Reload from Disk** discards your draft, and **Overwrite File** replaces the compared disk version. The same check applies when saving before closing and to editable worktree diffs. Control it with **Settings → Editor → Protect against save conflicts** or [`editor.protect-saves`](/en/docs/configuration#editorprotect-saves).
+
 <Callout type="info">
 This is an editor for the change you're already looking at — fix a typo, adjust
 a constant, read a file the diff referenced. There's no language server, no

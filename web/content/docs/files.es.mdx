@@ -59,6 +59,8 @@ Renombrar un archivo en el árbol actualiza cualquier panel que lo tenga abierto
 
 Si otro programa modifica un archivo abierto, Zshell actualiza la vista sin cambios pendientes cuando la aplicación vuelve a estar activa. Nunca sustituye el contenido de un editor con cambios sin guardar.
 
+Si otro programa cambia el archivo mientras lo edita, guardar abre un diálogo de conflicto. **Comparar…** muestra el disco y el borrador juntos; **Conservar borrador** cancela, **Recargar desde el disco** descarta el borrador y **Sobrescribir archivo** reemplaza la versión comparada. La comprobación también se aplica al guardar antes de cerrar y a los diffs editables. Contrólela en **Ajustes → Editor → Proteger contra conflictos al guardar** o [`editor.protect-saves`](/es/docs/configuration#editorprotect-saves).
+
 <Callout type="info">
 Este editor sirve para el cambio que ya estás revisando: corregir una errata, ajustar una constante o leer un archivo mencionado en las diferencias. No tiene servidor de lenguaje, autocompletado ni refactorización de todo el proyecto. Es una decisión deliberada.
 </Callout>

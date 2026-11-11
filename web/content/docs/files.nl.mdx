@@ -59,6 +59,8 @@ Als je in de boom een bestand hernoemt, worden alle deelvensters waarin het open
 
 Als een ander programma een geopend bestand wijzigt, vernieuwt Zshell een ongewijzigd voorbeeld wanneer de app weer actief wordt. Een editorbuffer met niet-opgeslagen wijzigingen wordt nooit vervangen.
 
+Als een ander programma het bestand wijzigt terwijl u bewerkt, opent opslaan een conflictdialoog. **Vergelijken…** toont schijf en concept naast elkaar; **Concept behouden** annuleert, **Opnieuw laden van schijf** verwerpt het concept en **Bestand overschrijven** vervangt de vergeleken versie. De controle geldt ook bij opslaan voor het sluiten en in bewerkbare diffs. Stel dit in via **Instellingen → Editor → Beschermen tegen opslagconflicten** of [`editor.protect-saves`](/nl/docs/configuration#editorprotect-saves).
+
 <Callout type="info">
 Deze editor is bedoeld voor de wijziging die je al bekijkt: een typefout herstellen, een constante aanpassen of een bestand lezen waarnaar de diff verwijst. Er is geen taalserver, automatische aanvulling of projectbrede refactoring. Dat is een bewuste keuze.
 </Callout>

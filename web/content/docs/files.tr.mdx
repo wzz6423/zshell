@@ -59,6 +59,8 @@ Ağaçta dosya adını değiştirmek onu açık tutan bölmeleri günceller; yen
 
 Başka program açık dosyayı değiştirirse Zshell yeniden etkinleştiğinde değişiklik içermeyen önizlemeyi yeniler. Kaydedilmemiş değişiklik içeren düzenleyici arabelleğini asla değiştirmez.
 
+Düzenleme sırasında başka bir program dosyayı değiştirirse kaydetme bir çakışma iletişim kutusu açar. **Karşılaştır…** disk ve taslağı yan yana gösterir; **Taslağı Koru** kaydetmeyi iptal eder, **Diskten Yeniden Yükle** taslağı siler ve **Dosyanın Üzerine Yaz** karşılaştırılan sürümü değiştirir. Denetim kapatmadan önce kaydetmede ve düzenlenebilir diff’lerde de geçerlidir. **Ayarlar → Düzenleyici → Kaydetme çakışmalarına karşı koru** veya [`editor.protect-saves`](/tr/docs/configuration#editorprotect-saves) üzerinden yönetin.
+
 <Callout type="info">
 Bu düzenleyici zaten incelediğiniz değişiklik içindir: yazım hatası düzeltmek, sabit değer değiştirmek, farkın işaret ettiği dosyayı okumak. Dil sunucusu, tamamlama ve proje çapında yeniden düzenleme yoktur; bu bilinçli bir tercihtir.
 </Callout>

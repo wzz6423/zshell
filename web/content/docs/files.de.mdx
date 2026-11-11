@@ -59,6 +59,8 @@ Das Umbenennen einer Datei im Baum aktualisiert alle Bereiche, in denen sie geö
 
 Ändert ein anderes Programm eine offene Datei, aktualisiert Zshell unveränderte Vorschauen, sobald die App wieder aktiv wird. Editorpuffer mit ungesicherten Änderungen werden niemals ersetzt.
 
+Ändert ein anderes Programm die Datei während Ihrer Bearbeitung, erscheint beim Speichern ein Konfliktdialog. **Vergleichen…** zeigt Datenträgerversion und Entwurf nebeneinander; **Entwurf behalten** bricht ab, **Vom Datenträger neu laden** verwirft den Entwurf und **Datei überschreiben** ersetzt die verglichene Version. Die Prüfung gilt auch beim Speichern vor dem Schließen und in bearbeitbaren Diffs. Steuern Sie sie über **Einstellungen → Editor → Vor Speicherkonflikten schützen** oder [`editor.protect-saves`](/de/docs/configuration#editorprotect-saves).
+
 <Callout type="info">
 Dieser Editor ist für die gerade betrachtete Änderung gedacht: einen Tippfehler korrigieren, eine Konstante anpassen oder eine im Diff genannte Datei lesen. Sprachserver, Vervollständigung und projektweite Refaktorierung sind bewusst nicht enthalten.
 </Callout>

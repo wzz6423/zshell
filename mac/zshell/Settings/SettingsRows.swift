@@ -209,6 +209,8 @@ final class SettingsSliderRow: NSView {
         step: Double,
         showsStepper: Bool,
         accessibilityLabel: String? = nil,
+        symbolName: String? = nil,
+        symbolColor: NSColor? = nil,
         onChange: @escaping (Double) -> Void
     ) {
         self.format = format
@@ -244,11 +246,19 @@ final class SettingsSliderRow: NSView {
 
         var views: [NSView] = [titleLabel, slider, valueLabel]
         if let stepper { views.append(stepper) }
+        if let symbolName {
+            views.insert(SettingsIconView(
+                symbolName: symbolName,
+                color: symbolColor ?? SettingsIconColors.color(for: symbolName),
+                size: 32
+            ), at: 0)
+        }
         let stack = NSStackView(views: views)
         stack.orientation = .horizontal
         stack.alignment = .centerY
         stack.spacing = 8
         stack.distribution = .fill
+        if symbolName != nil { stack.setCustomSpacing(12, after: views[0]) }
         titleLabel.setContentHuggingPriority(.required, for: .horizontal)
         slider.setContentHuggingPriority(.defaultLow, for: .horizontal)
 

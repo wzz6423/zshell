@@ -61,6 +61,8 @@ Mengganti nama berkas di pohon memperbarui semua panel yang membukanya, termasuk
 
 Jika program lain mengubah berkas terbuka, Zshell memperbarui pratinjau yang tidak memiliki perubahan saat aplikasi aktif kembali. Buffer editor dengan perubahan belum tersimpan tidak pernah diganti.
 
+Jika program lain mengubah file saat Anda mengeditnya, menyimpan membuka dialog konflik. **Bandingkan…** menampilkan disk dan draf berdampingan; **Simpan Draf** membatalkan penyimpanan, **Muat Ulang dari Disk** membuang draf, dan **Timpa File** mengganti versi yang dibandingkan. Pemeriksaan juga berlaku sebelum menutup dan pada diff yang dapat diedit. Atur melalui **Pengaturan → Editor → Lindungi dari konflik penyimpanan** atau [`editor.protect-saves`](/id/docs/configuration#editorprotect-saves).
+
 <Callout type="info">
 Editor ini untuk perubahan yang sedang Anda lihat: memperbaiki salah ketik, mengubah konstanta, atau membaca berkas yang dirujuk oleh diff. Tidak ada server bahasa, pelengkapan, atau refaktor seluruh proyek. Itu disengaja.
 </Callout>

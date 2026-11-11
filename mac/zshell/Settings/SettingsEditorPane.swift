@@ -9,6 +9,7 @@ import AppKit
 final class SettingsEditorPane: SettingsPaneViewController {
     private let wrapLinesSwitch = SettingsSwitch { AppSettings.shared.wrapLines = $0 }
     private let dragImportSwitch = SettingsSwitch { AppSettings.shared.fileTreeDragImport = $0 }
+    private let protectSavesSwitch = SettingsSwitch { AppSettings.shared.protectEditorSaves = $0 }
 
     private let externalEditorPopUp: SettingsPopUpButton<ExternalEditor> = {
         let popup = SettingsPopUpButton<ExternalEditor>(
@@ -30,6 +31,10 @@ final class SettingsEditorPane: SettingsPaneViewController {
                     title: String(localized: "Wrap lines to editor width"),
                     control: wrapLinesSwitch
                 ),
+                SettingsRow(
+                    title: String(localized: "Protect against save conflicts"),
+                    control: protectSavesSwitch
+                ),
             ]),
             SettingsGroup(header: String(localized: "Files"), rows: [
                 SettingsRow(
@@ -45,5 +50,6 @@ final class SettingsEditorPane: SettingsPaneViewController {
         externalEditorPopUp.select(settings.externalEditor)
         wrapLinesSwitch.isOn = settings.wrapLines
         dragImportSwitch.isOn = settings.fileTreeDragImport
+        protectSavesSwitch.isOn = settings.protectEditorSaves
     }
 }

@@ -59,6 +59,8 @@ Renomear um arquivo na árvore atualiza os painéis que o têm aberto, incluindo
 
 Se outro programa alterar um arquivo aberto, o Zshell atualiza uma prévia sem alterações pendentes quando o aplicativo volta a ficar ativo. Ele nunca substitui um buffer com edições não salvas.
 
+Se outro programa alterar o arquivo durante a edição, salvar abre um diálogo de conflito. **Comparar…** mostra o disco e o rascunho lado a lado; **Manter rascunho** cancela, **Recarregar do disco** descarta o rascunho e **Sobrescrever arquivo** substitui a versão comparada. A verificação também vale ao salvar antes de fechar e nos diffs editáveis. Controle em **Ajustes → Editor → Proteger contra conflitos ao salvar** ou [`editor.protect-saves`](/pt-BR/docs/configuration#editorprotect-saves).
+
 <Callout type="info">
 Este editor serve para a alteração que você já está examinando: corrigir um erro de digitação, ajustar uma constante ou ler um arquivo citado no diff. Não há servidor de linguagem, autocompletar nem refatoração de projeto. É uma escolha deliberada.
 </Callout>
