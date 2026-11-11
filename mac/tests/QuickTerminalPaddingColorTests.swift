@@ -149,8 +149,16 @@ enum QuickTerminalPaddingColorTests {
                 try draw("m", in: tab.sessions)
                 try verifyPolicies(tab, stage: mode.rawValue, automaticVertical: false)
                 if mode == .fresh, let duration = ProcessInfo.processInfo.environment["ZSHELL_PADDING_TEST_HOLD_SECONDS"].flatMap(Double.init), duration > 0 {
+                    if ProcessInfo.processInfo.environment["ZSHELL_PADDING_TEST_SHOW_SETTINGS"] == "1" {
+                        SettingsWindowController.shared.show(category: .appearance)
+                        if let preferences = SettingsWindowController.shared.window, let screen = NSScreen.main {
+                            preferences.setFrameOrigin(NSPoint(x: screen.visibleFrame.maxX - preferences.frame.width,
+                                                               y: screen.visibleFrame.maxY - preferences.frame.height))
+                        }
+                    }
                     print("PADDING_QUICK_READY backend=\(backend) pid=\(getpid()) home=\(directory.path)")
                     pump(duration)
+                    SettingsWindowController.shared.window?.orderOut(nil)
                 }
                 let oldTab = tab
                 let oldPIDs = tab.sessions.compactMap(\.shellPid)
