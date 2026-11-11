@@ -59,6 +59,12 @@ Jika program lain mengubah file saat Anda mengeditnya, menyimpan membuka dialog 
 Editor ini untuk perubahan yang sedang Anda lihat: memperbaiki salah ketik, mengubah konstanta, atau membaca berkas yang dirujuk oleh diff. Tidak ada server bahasa, pelengkapan, atau refaktor seluruh proyek. Itu disengaja.
 </Callout>
 
+## Memulihkan draf yang belum disimpan [#recover-unsaved-drafts]
+
+Zshell secara default mencadangkan perubahan yang belum disimpan pada berkas lokal dan diff pohon kerja yang dapat diedit. Setelah keluar secara tak terduga, panel yang dibuka kembali memulihkan draf, pilihan, dan tata letaknya. Untuk cadangan lain, buka **Berkas → Pulihkan Draf…** atau **Pengaturan → Editor → Pulihkan Draf…**, pilih cadangan, tinjau isinya, lalu pilih **Pulihkan Draf**. Pemulihan membuka editor yang belum disimpan tanpa mengubah berkas di disk. Penyimpanan tetap memeriksa perubahan eksternal menggunakan versi sebelum edit Anda.
+
+Kendalikan cadangan melalui **Pengaturan → Editor → Cadangkan draf yang belum disimpan** atau `editor.recover-drafts`. Menonaktifkannya menghentikan cadangan baru dan pemulihan otomatis, tetapi menyimpan cadangan yang ada untuk pemulihan atau penghapusan manual. **Hapus Cadangan** hanya menghapus cadangan terpilih; edit terbuka tetap ada. Penyimpanan berhasil atau **Jangan Simpan** saat penutupan selesai menghapus cadangan. Berkas privat tetap di Mac ini, dibatasi 32 draf dan 128 MiB selama hingga 30 hari. Berkas dan teks edit di atas 5 MiB dikecualikan.
+
 ## Pratinjau Markdown [#markdown-preview]
 
 Buka berkas `.md` untuk membaca hasil render dalam panel yang sama. Klik **Edit** di kanan atas untuk mengubah sumber, lalu **Pratinjau (Preview)** untuk melihat hasilnya.

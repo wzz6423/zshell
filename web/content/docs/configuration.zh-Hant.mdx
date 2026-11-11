@@ -154,6 +154,14 @@ regular/bold 區分及後備字型字重。
 
 儲存檔案或可編輯的工作區 Diff 前，檢查外部程式是否變更了磁碟版本。發生衝突時，可以比較版本、從磁碟重新載入、保留草稿或主動覆寫檔案。關閉後，儲存會直接取代外部變更，不再顯示衝突提示。
 
+### `editor.recover-drafts` [#editorrecover-drafts]
+
+布林值——預設 `true`
+
+Zshell 預設備份本機檔案與可編輯工作樹 Diff 中未儲存的修改。意外結束後，重新開啟的窗格會還原草稿、選取範圍與版面。其他備份可從 **File → 還原草稿…** 或 **設定 → 編輯器 → 還原草稿…** 找回：選取備份、查看內容，再按 **還原草稿**。還原只會開啟未儲存的編輯器，不會變更磁碟檔案；儲存時仍以編輯前的版本檢查外部變更。
+
+在 **設定 → 編輯器 → 備份未儲存的草稿** 或 `editor.recover-drafts` 中控制備份。關閉後停止新增備份與自動還原，現有備份仍可手動還原或刪除。**刪除備份** 只移除選取的備份，保留已開啟的編輯內容。成功儲存或完成關閉時選擇 **Don’t Save** 會移除備份。備份以私有檔案儲存在此 Mac，最多 32 份、共 128 MiB，最長保留 30 天；超過 5 MiB 的檔案與編輯文字不會備份。
+
 ## 終端機 [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]

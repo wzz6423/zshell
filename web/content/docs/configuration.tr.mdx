@@ -145,6 +145,14 @@ boolean — varsayılan `true`
 
 Bir dosya veya düzenlenebilir çalışma ağacı diff’i kaydedilmeden önce dış değişiklikleri denetler. Çakışmada karşılaştırabilir, yeniden yükleyebilir, taslağı koruyabilir veya açıkça üzerine yazabilirsiniz. Kapatmak, dış değişikliklerin uyarı olmadan değiştirilmesine izin verir.
 
+### `editor.recover-drafts` [#editorrecover-drafts]
+
+boolean — varsayılan `true`
+
+Zshell, yerel dosyalardaki ve düzenlenebilir çalışma ağacı diff’lerindeki kaydedilmemiş değişiklikleri varsayılan olarak yedekler. Beklenmedik çıkıştan sonra yeniden açılan bölmeler taslakları, seçimleri ve düzeni geri yükler. Diğer yedekler için **Dosya → Taslakları Kurtar…** veya **Ayarlar → Düzenleyici → Taslakları Kurtar…** yolunu açın, yedeği seçip içeriğini inceleyin ve **Taslağı Geri Yükle** seçeneğine tıklayın. Geri yükleme kaydedilmemiş bir düzenleyici açar; diskteki dosyayı değiştirmez. Kaydetme, dış değişiklikleri düzenlemelerinizden önceki sürümle denetlemeye devam eder.
+
+Yedekleri **Ayarlar → Düzenleyici → Kaydedilmemiş taslakları yedekle** veya `editor.recover-drafts` ile yönetin. Kapatmak yeni yedekleri ve otomatik kurtarmayı durdurur, mevcut yedekleri elle kurtarma veya silme için korur. **Yedeği Sil** yalnızca seçilen yedeği kaldırır; açık düzenlemeler korunur. Başarılı kaydetme veya tamamlanan kapatmada **Kaydetme** seçimi yedeği kaldırır. Özel dosyalar bu Mac’te en fazla 32 taslak ve 128 MiB olarak 30 güne kadar tutulur. 5 MiB’den büyük dosyalar ve düzenlenmiş metinler kapsam dışıdır.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]

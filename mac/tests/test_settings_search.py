@@ -73,6 +73,7 @@ CONFIGURATION_ITEMS = {
     "editor.external-editor": ("editor", "External editor", ""),
     "editor.wrap-lines": ("editor", "Wrap lines to editor width", ""),
     "editor.protect-saves": ("editor", "Protect against save conflicts", ""),
+    "editor.recover-drafts": ("editor", "Back up unsaved drafts", ""),
     "ai.enabled": ("automation", "AI", ""),
     "ai.resume-conversations": ("automation", "Resume agent conversations", ""),
     "ai.notify-on-attention": ("automation", "Notify when agents need attention", "Notifications"),
@@ -250,7 +251,7 @@ class SettingsSearchTests(unittest.TestCase):
             if not (resources / f"{language}.lproj").is_dir():
                 raise AssertionError(f"missing compiled {language} resources")
         metadata = root / "SearchMetadata.swift"
-        metadata.write_text("import Foundation\n" + "\n".join([
+        metadata.write_text("import AppKit\nimport Foundation\n" + "\n".join([
             metadata_enum((sources / "Settings/SettingsWindowController.swift").read_text(),
                           "SettingsCategory", "    func makePane()"),
             metadata_enum((sources / "Theme.swift").read_text(), "AppTheme", "    var nsAppearance:"),

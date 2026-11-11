@@ -145,6 +145,14 @@ boolean — mặc định `true`
 
 Kiểm tra thay đổi bên ngoài trước khi lưu tệp hoặc diff cây làm việc có thể chỉnh sửa. Khi xung đột, bạn có thể so sánh, tải lại, giữ bản nháp hoặc chủ động ghi đè. Tắt tùy chọn này cho phép thay thế thay đổi bên ngoài mà không báo xung đột.
 
+### `editor.recover-drafts` [#editorrecover-drafts]
+
+boolean — mặc định `true`
+
+Zshell mặc định sao lưu thay đổi chưa lưu trong tệp cục bộ và diff cây làm việc có thể chỉnh sửa. Sau khi thoát bất ngờ, các khung mở lại khôi phục bản nháp, vùng chọn và bố cục. Với bản sao lưu khác, mở **Tệp → Khôi phục bản nháp…** hoặc **Cài đặt → Trình soạn thảo → Khôi phục bản nháp…**, chọn bản sao lưu, xem nội dung và chọn **Khôi phục bản nháp**. Khôi phục chỉ mở trình soạn thảo chưa lưu và không đổi tệp trên đĩa. Khi lưu, ứng dụng vẫn kiểm tra thay đổi bên ngoài bằng phiên bản trước các chỉnh sửa của bạn.
+
+Kiểm soát qua **Cài đặt → Trình soạn thảo → Sao lưu bản nháp chưa lưu** hoặc `editor.recover-drafts`. Tắt sẽ dừng sao lưu mới và khôi phục tự động nhưng giữ bản sao lưu hiện có để khôi phục hoặc xóa thủ công. **Xóa bản sao lưu** chỉ xóa bản đã chọn; chỉnh sửa đang mở được giữ lại. Lưu thành công hoặc chọn **Không lưu** khi đóng hoàn tất sẽ xóa bản sao lưu. Tệp riêng tư chỉ trên Mac này, tối đa 32 bản nháp và 128 MiB trong 30 ngày. Tệp và văn bản đã chỉnh sửa lớn hơn 5 MiB được loại trừ.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
