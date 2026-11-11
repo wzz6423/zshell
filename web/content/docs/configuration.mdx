@@ -166,6 +166,12 @@ available thickening, not off. Ghostty uses its native macOS strength; Alacritty
 maps the same range to a CoreText stroke, so the direction and endpoints match
 but rasterized pixels can differ.
 
+### `terminal.cell-width`
+
+number, 0.75–2 — default `1`
+
+Changes terminal column spacing in **Settings → Appearance → Font → Cell width**. The default is 100%; values use whole percentages. Both backends update open terminals immediately, including the PTY column count, cursor, selection, and keyboard hints. Glyph size stays unchanged, and wide characters still occupy two columns. Pixel rounding can produce different effective steps on each backend. Invalid values restore 100%. Editor and diff spacing are unaffected.
+
 ### `terminal.line-height`
 
 number, 0.75–2 — default `1`
@@ -363,6 +369,7 @@ toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.bell = false
