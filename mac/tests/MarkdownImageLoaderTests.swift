@@ -19,6 +19,8 @@ struct MarkdownImageLoaderTests {
             case "late-success": try await lateSuccess(fixture)
             case "early-success": try await earlySuccess(fixture)
             case "late-failure": try await lateFailure(fixture)
+            case "reset-storm": try await resetStorm(fixture)
+            case "oversized", "streamed-oversized": try await rejectedSources(fixture)
             default: throw failure("Unknown scenario: \(scenario)")
             }
             print("Markdown image loader \(scenario): \(checks) checks passed")
@@ -112,6 +114,72 @@ struct MarkdownImageLoaderTests {
         try check(loader.image(for: fixture.imageURL)?.size.width == 2, "a stale failure cannot mark the reset document's URL as failed")
     }
 
+    private static func resetStorm(_ fixture: Fixture) async throws {
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        let orders = [[2, 3, 1], [3, 1, 2], [1, 2, 3], [2, 1, 3]]
+        for (round, order) in orders.enumerated() {
+            let first = round * 3
+            for number in 1...3 {
+                loader.reset()
+                _ = loader.image(for: fixture.imageURL)
+                try await fixture.waitForRequests(first + number)
+            }
+            var completed = 0
+            var currentArrived = false
+            for number in order {
+                try await fixture.release(first + number)
+                completed += 1
+                if number == 3 {
+                    currentArrived = true
+                    try await wait("reset storm lost the current image") { arrivals == round + 1 }
+                }
+                try await settle(fixture.imageURL, pendingRequests: 3 - completed)
+                let images = (0..<64).map { _ in loader.image(for: fixture.imageURL) }
+                try check(images.allSatisfy { currentArrived ? $0?.size.width == CGFloat(first + 3) : $0 == nil },
+                          "reset storm round \(round + 1) exposes only the current generation")
+                try check(arrivals == round + (currentArrived ? 1 : 0),
+                          "reset storm round \(round + 1) discards old successes and failures")
+                try await settle(fixture.imageURL, pendingRequests: 3 - completed)
+                try check(try await fixture.state().requests == first + 3,
+                          "reset storm round \(round + 1) keeps 64 repeated renders deduplicated")
+            }
+        }
+    }
+
+    private static func rejectedSources(_ fixture: Fixture) async throws {
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        let forbidden = ["data:image/png;base64,aGVsbG8=", "ftp://127.0.0.1/image.png",
+                         "mailto:image@example.invalid", "javascript:alert(1)"]
+        for source in forbidden {
+            let url = URL(string: source)!
+            try check(loader.image(for: url) == nil && loader.image(for: url) == nil,
+                      "unsupported \(url.scheme!) image sources are rejected")
+        }
+        try check(try await fixture.state().requests == 0 && arrivals == 0,
+                  "unsupported sources do not start HTTP image requests or render callbacks")
+
+        _ = loader.image(for: fixture.imageURL)
+        try await fixture.waitForRequests(1)
+        try await fixture.release(1)
+        try await settle(fixture.imageURL, pendingRequests: 0,
+                         timeout: fixture.scenario == "streamed-oversized" ? 30 : 5)
+        let rejected = (0..<10).map { _ in loader.image(for: fixture.imageURL) }
+        try check(rejected.allSatisfy { $0 == nil } && arrivals == 0,
+                  "an image response larger than 20 MiB is not cached or rendered")
+        try check(try await fixture.state().requests == 1, "a rejected oversized image is not fetched on every render")
+        loader.reset()
+        _ = loader.image(for: fixture.imageURL)
+        try await fixture.waitForRequests(2)
+        try await fixture.release(2)
+        try await wait("reset did not retry the rejected image") { arrivals == 1 }
+        try check(loader.image(for: fixture.imageURL)?.size.width == 2,
+                  "a reset permits a valid replacement for the oversized response")
+    }
+
     private static func check(_ condition: Bool, _ message: String) throws {
         guard condition else { throw failure(message) }
         checks += 1
@@ -131,8 +199,10 @@ struct MarkdownImageLoaderTests {
         }
     }
 
-    private static func settle(_ url: URL, pendingRequests: Int) async throws {
-        let deadline = Date().addingTimeInterval(5)
+    /// Network completion precedes the loader's actor continuation. Require a stable
+    /// task count before asserting that a discarded response left no visible effects.
+    private static func settle(_ url: URL, pendingRequests: Int, timeout: TimeInterval = 5) async throws {
+        let deadline = Date().addingTimeInterval(timeout)
         var settled = 0
         while settled < 20 {
             let tasks = await withCheckedContinuation { continuation in
@@ -146,6 +216,8 @@ struct MarkdownImageLoaderTests {
         }
     }
 
+    /// Each image request waits at the server until its numbered release endpoint
+    /// is called, so response order is chosen without timing the production load.
     private struct Fixture {
         let base: URL
         let scenario: String

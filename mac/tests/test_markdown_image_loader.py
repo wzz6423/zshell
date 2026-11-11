@@ -60,8 +60,13 @@ class FixtureHandler(http.server.BaseHTTPRequestHandler):
                 gate = self.server.gates[(scenario, number)] = threading.Event()
             if not gate.wait(10):
                 self.respond(504, b"unreleased fixture request", "text/plain")
-            elif scenario == "late-failure" and number == 1:
+            elif (scenario == "late-failure" and number == 1
+                  or scenario == "reset-storm" and number % 3 == 2):
                 self.respond(503, b"old document image failed", "text/plain")
+            elif scenario in ("oversized", "streamed-oversized") and number == 1:
+                image = png(1)
+                self.respond(200, image + bytes((20 << 20) + 1 - len(image)), "image/png",
+                             include_length=scenario != "streamed-oversized")
             else:
                 self.respond(200, png(number), "image/png")
         elif len(parts) == 2 and parts[0] == "state":
@@ -79,10 +84,11 @@ class FixtureHandler(http.server.BaseHTTPRequestHandler):
         else:
             self.respond(404, b"unknown fixture path", "text/plain")
 
-    def respond(self, status, body, content_type):
+    def respond(self, status, body, content_type, include_length=True):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
-        self.send_header("Content-Length", str(len(body)))
+        if include_length:
+            self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         try:
@@ -95,6 +101,7 @@ class FixtureHandler(http.server.BaseHTTPRequestHandler):
 
 
 def main():
+    """Compile once, then give each HTTP completion scenario an isolated loader process."""
     parser = argparse.ArgumentParser(description=__doc__)
     source = parser.add_mutually_exclusive_group()
     source.add_argument("--source-ref", help="Run the regression against an earlier production revision")
@@ -127,12 +134,14 @@ def main():
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:
-            for scenario in ("cache", "late-success", "early-success", "late-failure"):
+            scenarios = ("cache", "late-success", "early-success", "late-failure", "reset-storm",
+                         "oversized", "streamed-oversized")
+            for scenario in scenarios:
                 result = subprocess.run([str(binary), f"http://127.0.0.1:{server.server_port}", scenario],
-                                        cwd=ROOT, env=environment, timeout=15)
+                                        cwd=ROOT, env=environment, timeout=45)
                 if result.returncode:
                     failures.append(scenario)
-            print(f"Markdown image loader scenarios: {4 - len(failures)} passed, {len(failures)} failed")
+            print(f"Markdown image loader scenarios: {len(scenarios) - len(failures)} passed, {len(failures)} failed")
         finally:
             server.release_all()
             server.shutdown()
