@@ -370,7 +370,7 @@ struct TerminalPromptQueueSurfaceTests {
         let setup = """
         _queue_change_keymap() { zle -K viins; }; zle -N _queue_change_keymap; bindkey '^X' _queue_change_keymap;
         _queue_hold_redraw() { if [[ -f \(quote(armed.path)) ]]; then /bin/rm -f -- \(quote(armed.path));
-        builtin print paused >| \(quote(paused.path)); while [[ ! -f \(quote(release.path)) ]]; do /bin/sleep .01; done; fi; };
+        builtin print paused >| \(quote(paused.path)); while [[ ! -f \(quote(release.path)) ]]; do :; done; fi; };
         add-zle-hook-widget line-pre-redraw _queue_hold_redraw
         """.replacingOccurrences(of: "\n", with: " ")
         session.sendCommand(setup)
