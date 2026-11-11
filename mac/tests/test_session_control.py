@@ -217,6 +217,8 @@ with tempfile.TemporaryDirectory(prefix="zshell-session-control-tests-", dir="/t
     binary = temporary / "probe"
     subprocess.run([
         "xcrun", "swiftc", "-parse-as-library", "-swift-version", "6", "-DDEBUG",
+        "-module-cache-path", str(temporary / "ModuleCache"),
+        str(ROOT / "mac/zshell/GitProxy.swift"),
         str(ROOT / "mac/zshell/GitCommandRunner.swift"),
         str(ROOT / "mac/zshell/SessionWorktreeService.swift"),
         str(ROOT / "mac/zshell/ZshellAutomationProtocol.swift"),
