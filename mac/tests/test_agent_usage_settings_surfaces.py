@@ -14,7 +14,7 @@ import tempfile
 import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
-BUILD = Path(os.environ["ZSHELL_TEST_DERIVED_DATA"]) / "Build"
+BUILD = Path(os.environ["ZSHELL_TEST_DERIVED_DATA"]).resolve() / "Build"
 PRODUCTS = BUILD / "Products/Debug"
 APP = PRODUCTS / "zshell Debug.app"
 LIBRARY = APP / "Contents/MacOS/zshell.debug.dylib"
@@ -60,7 +60,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-usage-surfaces-", dir="/tmp") as
              str(ROOT / "mac/tests/AgentUsageSettingsSurfaceTests.swift"),
              str(ROOT / "mac/tests/QuickTerminalOffscreen.swift"), "-o", str(binary)]
     subprocess.run(args, cwd=ROOT, check=True)
-    destination = arguments.prepare_visible
+    destination = arguments.prepare_visible.resolve() if arguments.prepare_visible else None
     if destination:
         if destination.exists():
             raise SystemExit("Visible fixture destination must be new")

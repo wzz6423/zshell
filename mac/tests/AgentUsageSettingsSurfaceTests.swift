@@ -16,6 +16,14 @@ struct AgentUsageSettingsSurfaceTests {
         }
     }
 
+    private static func stopEventLoop() {
+        NSApp.stop(nil)
+        // A timer's stop does not wake AppKit's blocked next-event wait.
+        NSApp.postEvent(NSEvent.otherEvent(with: .applicationDefined, location: .zero,
+            modifierFlags: [], timestamp: 0, windowNumber: 0, context: nil,
+            subtype: 0, data1: 0, data2: 0)!, atStart: true)
+    }
+
     private static func check(_ value: Bool, _ message: String) {
         checks += 1
         precondition(value, message)
@@ -52,10 +60,11 @@ struct AgentUsageSettingsSurfaceTests {
         if !visible { QuickTerminalOffscreen.install() }
         TerminalFont.registerBundledFonts()
         AppLocalization.apply(.english)
-        let root = URL(fileURLWithPath: CommandLine.arguments[2], isDirectory: true)
+        let root = URL(fileURLWithPath: CommandLine.arguments[2], isDirectory: true).resolvingSymlinksInPath()
         let settings = AppSettings.shared
         if visible { NSApp.finishLaunching() }
-        check(AppSettings.configURL.path.hasPrefix(root.path), "production settings use isolated home")
+        check(AppSettings.configURL.resolvingSymlinksInPath().path.hasPrefix(root.path + "/"),
+              "production settings use isolated home")
         settings.terminalBackend = CommandLine.arguments[1] == "ghostty" ? .libghostty : .alacritty
         check(!settings.aiEnabled && !settings.agentUsageEnabled && settings.claudeUsageEnabled && settings.codexUsageEnabled,
               "safe fixture keeps AI integration and account reads off")
@@ -89,6 +98,9 @@ struct AgentUsageSettingsSurfaceTests {
         surface.setSurfaceVisible(false)
         defer {
             settings.agentUsageEnabled = false
+            // Visible reviewers may change provider choices before reusing this home.
+            settings.applyImported(TOML.parseStrictly(text: initialConfig).values)
+            NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: nil)
             session.terminate()
             pump(0.2)
             terminalWindow.contentView = nil
@@ -97,10 +109,10 @@ struct AgentUsageSettingsSurfaceTests {
         wait("test terminal launches without account or authorization prompts") { session.shellPid != nil }
         if visible {
             let closed = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
-                MainActor.assumeIsolated { NSApp.stop(nil) }
+                MainActor.assumeIsolated { stopEventLoop() }
             }
             let timeout = Timer.scheduledTimer(withTimeInterval: 900, repeats: false) { _ in
-                MainActor.assumeIsolated { window.close(); NSApp.stop(nil) }
+                MainActor.assumeIsolated { window.close() }
             }
             DispatchQueue.main.async {
                 window.makeKeyAndOrderFront(nil)
@@ -178,6 +190,13 @@ struct AgentUsageSettingsSurfaceTests {
               "safe defaults restore all three controls")
         check(session.shellPid != nil && !session.hasExited, "both terminal backends remain alive through usage settings changes")
         controller.close()
+        let loopStart = Date()
+        let shutdown = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: false) { _ in
+            MainActor.assumeIsolated { stopEventLoop() }
+        }
+        NSApp.run()
+        shutdown.invalidate()
+        check(Date().timeIntervalSince(loopStart) < 2, "timer shutdown wakes the native event loop without user input")
         check(QuickTerminalOffscreen.isSafe(), "automatic surface test never focuses user desktop")
         print("Agent usage production settings: \(checks) checks passed")
     }

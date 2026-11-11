@@ -111,7 +111,7 @@ nonisolated final class ControlledLoader: @unchecked Sendable {
     @MainActor static func hasVisibleAncestor(_ view: NSView) -> Bool {
         !view.isHidden && (view.superview.map(hasVisibleAncestor) ?? true)
     }
-    @MainActor static func main() throws {
+    @MainActor static func main() async throws {
         NSApplication.shared.setActivationPolicy(.prohibited)
         let root = URL(fileURLWithPath: CommandLine.arguments[1])
         let usageFile = URL(fileURLWithPath: ProcessInfo.processInfo.environment["ZSHELL_CLAUDE_USAGE_FILE"]!)
@@ -296,16 +296,23 @@ nonisolated final class ControlledLoader: @unchecked Sendable {
             secondInput: Data("{\"id\":2}".utf8), waitForResponseID: 1, secondResponseID: 2, timeout: 0.15)
         check(timedOut.timedOut && Date().timeIntervalSince(timeoutStart) < 2, "runner timeout terminates child promptly")
         try "late".write(to: root.appendingPathComponent("cli-mode"), atomically: true, encoding: .utf8)
+        let lateStarts = (try String(contentsOf: marker, encoding: .utf8)).split(separator: "\n").count
         let lateTask = Task.detached {
             ProcessRunner.run(executable: executable, arguments: [], initialInput: Data("{\"id\":1}".utf8),
                 initializedInput: Data("{}".utf8), secondInput: Data("{\"id\":2}".utf8),
                 waitForResponseID: 1, secondResponseID: 2, timeout: 8)
         }
-        spin(0.1)
+        wait({ (try? String(contentsOf: marker, encoding: .utf8).split(separator: "\n").count) == lateStarts + 1 },
+             "late initialize stand-in starts")
+        let latePID = Int32((try String(contentsOf: marker, encoding: .utf8)).split(separator: "\n").last!)!
+        let lateCancelStart = Date()
         lateTask.cancel()
-        spin(0.3)
+        let lateResult = await lateTask.value
+        check(lateResult.status == -2 && !lateResult.timedOut && Date().timeIntervalSince(lateCancelStart) < 2,
+              "cancelled initialize task finishes promptly")
         check(!FileManager.default.fileExists(atPath: root.appendingPathComponent("second-request").path),
               "cancelled initialize cannot issue a later account request")
+        wait({ kill(latePID, 0) == -1 && errno == ESRCH }, "cancelled initialize leaves no live child", timeout: 2)
 
         settings.agentUsageEnabled = false
         settings.claudeUsageEnabled = true
