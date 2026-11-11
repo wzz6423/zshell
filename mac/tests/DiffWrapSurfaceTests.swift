@@ -228,8 +228,9 @@ struct DiffWrapSurfaceTests {
                     }
                 }
                 let localizedButton = wrapButton(in: view)
-                precondition(!localizedButton.isHiddenOrHasHiddenAncestor && localizedButton.frame.size == NSSize(width: 24, height: 24),
-                    "Wrap entry was hidden or lost its square frame")
+                // SF Symbol controls add optical insets outside the layout rectangle.
+                precondition(localizedButton.alignmentRect(forFrame: localizedButton.frame).size == NSSize(width: 24, height: 24),
+                    "Wrap entry lost its square layout bounds: \(language.rawValue), \(width), \(localizedButton.frame)")
                 let options = descendants(view).compactMap { $0 as? NSButton }.first {
                     $0.accessibilityLabel() == String(localized: "Diff Options")
                 }!
