@@ -313,12 +313,25 @@ When terminal panes are restored, resumes the exact recorded Claude Code, Codex,
 
 Control it with **Settings → Automation → Resume agent conversations**. This setting is independent of `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+boolean — default `false`
+
+Enable local CLI account-limit reading in **Settings → Automation → Account Usage → Read account usage**. Turning it off cancels pending usage requests, hides usage data, and rejects Claude usage reports without saving them. Provider choices are retained. Usage settings do not change agent recognition, lifecycle reports, or conversation restoration.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — default `true` for each
+
+Choose which providers can read usage while `ai.usage-enabled = true`. Claude Code reads Zshell’s local status-line usage report; Codex queries its installed, signed-in CLI. Disabling a provider immediately stops its reads and hides its data. No sign-in credentials are collected. The three choices support settings search, import/export, live configuration reload, and reset to defaults.
+
 ## Additional settings
 
 | Key | Default | Values / range | Effect |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Application icon |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | External editor for files and folders |
+| `files.drag-import` | `false` | boolean | Enable Finder drag-and-drop copies into the local file tree; the import menu always remains available |
 | `terminal.theme-only` | `false` | boolean | Apply the selected palette to the terminal only |
 | `terminal.command-history` | `true` | boolean | Record new command history; saved entries remain available when off |
 | `terminal.text-hints` | `true` | boolean | Enable keyboard hints for visible terminal text |

@@ -893,18 +893,12 @@ struct AgentConversationHistoryTests {
     }
 
     private static func menus() throws {
-        let main = NSMenu(title: "Main")
-        // Mirror the app's leading application and File menus; other
-        // controllers install their own commands into File, not Agents.
-        for title in ["zshell", "File"] {
-            let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-            item.submenu = NSMenu(title: title)
-            main.addItem(item)
-        }
-        NSApp.mainMenu = main
+        AppMenuController.shared.install()
+        let main = NSApp.mainMenu!
         let applicationDelegate = ZshellApplicationDelegate()
         AppMenuLocalization.shared.start(applicationDelegate: applicationDelegate)
-        let agents = main.items.first { $0.identifier?.rawValue == "zshell-agents-menu" }!
+        let terminal = AppMenuController.submenu(.terminal, in: main)!
+        let agents = terminal.items.first { $0.identifier?.rawValue == "zshell-agents-menu" }!
         for _ in 0..<3 {
             NotificationCenter.default.post(name: NSMenu.didBeginTrackingNotification, object: main)
         }
@@ -923,9 +917,9 @@ struct AgentConversationHistoryTests {
         pump(0.05)
         try check(agents.submenu?.items.count == 3,
                   "history actions return after the Agents submenu is replaced")
-        main.removeItem(agents)
+        AppMenuController.shared.install()
         pump(0.05)
-        try check(main.items.filter { $0.identifier?.rawValue == "zshell-agents-menu" }.count == 1,
-                  "the native Agents menu returns after main-menu reconciliation")
+        try check(main.items.count == 7 && terminal.items.filter { $0.identifier?.rawValue == "zshell-agents-menu" }.count == 1,
+                  "the native Agents submenu stays under Terminal without another top-level menu")
     }
 }

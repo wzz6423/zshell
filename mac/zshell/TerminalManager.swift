@@ -97,6 +97,8 @@ final class TerminalManager: nonisolated ObservableObject {
     /// published through the manager: the search view and the Files panel
     /// observe the model directly.
     let fileContentSearch = FileContentSearchModel()
+    let fileTree = FileTreeModel()
+    var fileTreeImportDirectory: String?
 
     /// Projects publish their own changes (session list, session selection);
     /// re-publish them so views observing the manager stay current.
@@ -1651,6 +1653,45 @@ final class TerminalManager: nonisolated ObservableObject {
         panelTab = .files
         isPanelVisible = true
         fileContentSearch.activate()
+    }
+
+    var canImportFiles: Bool {
+        selectedProject?.isRemote == false && selectedSession != nil
+            && !FileTreeImportController.shared.isImporting
+    }
+
+    func syncFileTree() {
+        guard let project = selectedProject, let session = project.selectedSession else {
+            fileTree.configureRemote(nil)
+            fileTree.sync(root: "")
+            fileTreeImportDirectory = nil
+            return
+        }
+        let oldRoot = fileTree.rootPath
+        if project.isRemote {
+            fileTree.configureRemote(project.remoteEndpoint)
+            fileTree.sync(root: project.remoteEndpoint == nil ? "" : project.remoteDirectory ?? "~")
+        } else {
+            fileTree.configureRemote(nil)
+            let root = project.panelRoot(followingSessionAt: session.currentDirectoryPath,
+                                         foregroundAt: session.foregroundDirectoryPath).root
+            fileTree.sync(root: root)
+        }
+        if oldRoot != fileTree.rootPath { fileTreeImportDirectory = nil }
+    }
+
+    func importFiles(into directory: String? = nil) {
+        guard canImportFiles else { return }
+        syncFileTree()
+        guard !fileTree.rootPath.isEmpty else { return }
+        if let saved = fileTreeImportDirectory,
+           (try? FileTreeImportService.destination(root: fileTree.rootPath, directory: saved)) == nil {
+            fileTreeImportDirectory = nil
+        }
+        let destination = directory ?? fileTreeImportDirectory ?? fileTree.rootPath
+        panelTab = .files
+        isPanelVisible = true
+        FileTreeImportController.shared.chooseFiles(manager: self, directory: destination)
     }
 
     /// Opens a git diff tab in the current project.

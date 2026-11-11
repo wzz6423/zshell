@@ -215,12 +215,25 @@ Saat panel terminal dipulihkan dan PTY asal tidak tersedia, melanjutkan percakap
 
 Atur melalui **Pengaturan → Otomatisasi → Lanjutkan percakapan agen**. Opsi ini terpisah dari `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+boolean — bawaan `false`
+
+Mengaktifkan pembacaan batas akun CLI lokal melalui **Pengaturan → Otomasi → Penggunaan Akun → Baca penggunaan akun**. Mematikan membatalkan permintaan, menyembunyikan data, dan menolak menyimpan laporan Claude. Pilihan penyedia dipertahankan. Pengenalan agen, laporan siklus hidup, dan pemulihan percakapan tidak berubah.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — bawaan `true` untuk masing-masing
+
+Memilih penyedia saat `ai.usage-enabled = true`. Claude Code membaca laporan baris status lokal Zshell; Codex meminta CLI terpasang yang sudah masuk. Mematikan penyedia langsung menghentikan pembacaan dan menyembunyikan data. Kredensial tidak dikumpulkan. Ketiga pilihan mendukung pencarian, impor/ekspor, pemuatan ulang langsung, dan pengaturan ulang.
+
 ## Pengaturan tambahan [#additional-settings]
 
 | Kunci | Bawaan | Nilai / rentang | Efek |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Ikon aplikasi |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Editor eksternal untuk berkas dan folder |
+| `files.drag-import` | `false` | boolean | Izinkan salinan Finder dengan menyeret ke pohon lokal; menu impor selalu tersedia |
 | `terminal.theme-only` | `false` | Boolean | Terapkan palet hanya pada terminal |
 | `terminal.command-history` | `true` | Boolean | Mencatat perintah baru; riwayat tersimpan tetap tersedia saat nonaktif |
 | `terminal.text-hints` | `true` | Boolean | Mengaktifkan petunjuk papan ketik untuk teks terminal yang terlihat |

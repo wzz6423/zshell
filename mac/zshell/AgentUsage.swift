@@ -29,6 +29,7 @@ struct AgentUsageSnapshot: Equatable, Sendable {
 }
 
 enum AgentUsageAvailability: Equatable, Sendable {
+    case disabled
     case waiting
     case available(AgentUsageSnapshot)
     case stale(AgentUsageSnapshot, AgentUsageIssue)
@@ -47,35 +48,78 @@ enum AgentUsageIssue: String, Error, Equatable, Sendable {
 
 struct AgentUsageProviderState: Equatable, Sendable {
     let kind: ZshellAgentKind
-    var availability: AgentUsageAvailability = .waiting
+    var availability: AgentUsageAvailability = .disabled
     var isRefreshing = false
 }
 
 @MainActor
 final class AgentUsageModel: ObservableObject {
-    static let shared = AgentUsageModel()
+    typealias Loader = @Sendable () -> Result<AgentUsageSnapshot, AgentUsageIssue>
+
+    static let shared: AgentUsageModel = {
+        let model = AgentUsageModel()
+        model.applySettings(AppSettings.shared)
+        return model
+    }()
 
     @Published private(set) var claude = AgentUsageProviderState(kind: .claude)
     @Published private(set) var codex = AgentUsageProviderState(kind: .codex)
 
     private static let freshnessInterval: TimeInterval = 120
-    private var lastRefresh = Date.distantPast
+    private let claudeLoader: Loader
+    private let codexLoader: Loader
+    private var claudeEnabled = false
+    private var codexEnabled = false
+    private var claudeRefresh = Date.distantPast
+    private var codexRefresh = Date.distantPast
+    private var claudeGeneration: UInt64 = 0
+    private var codexGeneration: UInt64 = 0
+    private var claudeTask: Task<Void, Never>?
+    private var codexTask: Task<Void, Never>?
 
-    private init() {}
+    init(
+        claudeLoader: Loader? = nil,
+        codexLoader: Loader? = nil
+    ) {
+        self.claudeLoader = claudeLoader ?? { ClaudeUsageStore.load() }
+        self.codexLoader = codexLoader ?? { CodexUsageReader.load() }
+    }
+
+    func applySettings(_ settings: AppSettings) {
+        let nextClaude = settings.agentUsageEnabled && settings.claudeUsageEnabled
+        let nextCodex = settings.agentUsageEnabled && settings.codexUsageEnabled
+        if nextClaude != claudeEnabled {
+            claudeEnabled = nextClaude
+            claudeGeneration &+= 1
+            claudeTask?.cancel()
+            claudeTask = nil
+            claude = AgentUsageProviderState(kind: .claude)
+            if nextClaude { refreshClaude() }
+        }
+        if nextCodex != codexEnabled {
+            codexEnabled = nextCodex
+            codexGeneration &+= 1
+            codexTask?.cancel()
+            codexTask = nil
+            codex = AgentUsageProviderState(kind: .codex)
+            if nextCodex { refreshCodex() }
+        }
+    }
 
     func refreshIfNeeded() {
-        guard Date().timeIntervalSince(lastRefresh) >= Self.freshnessInterval else { return }
-        refresh()
+        let now = Date()
+        if now.timeIntervalSince(claudeRefresh) >= Self.freshnessInterval { refreshClaude() }
+        if now.timeIntervalSince(codexRefresh) >= Self.freshnessInterval { refreshCodex() }
     }
 
     func refresh() {
-        lastRefresh = Date()
         refreshClaude()
         refreshCodex()
     }
 
     func acceptClaudeStatusLine(_ value: ZshellJSONValue) -> Bool {
-        guard let object = value.objectValue,
+        guard claudeEnabled,
+              let object = value.objectValue,
               let windowsObject = object["windows"]?.objectValue
         else { return false }
 
@@ -87,38 +131,58 @@ final class AgentUsageModel: ObservableObject {
         ].compactMap { $0 }
         guard !windows.isEmpty else { return false }
 
-        let snapshot = AgentUsageSnapshot(
-            windows: windows,
-            plan: nil,
-            updatedAt: now
-        )
+        let snapshot = AgentUsageSnapshot(windows: windows, plan: nil, updatedAt: now)
         guard ClaudeUsageStore.save(snapshot) else { return false }
+        // A live report is newer than any file read that is still finishing.
+        claudeGeneration &+= 1
+        claudeTask?.cancel()
+        claudeTask = nil
+        claudeRefresh = now
+        claude.isRefreshing = false
         claude.availability = .available(snapshot)
         return true
     }
 
     private func refreshClaude() {
-        guard !claude.isRefreshing else { return }
+        guard claudeEnabled, !claude.isRefreshing else { return }
+        claudeRefresh = Date()
         claude.isRefreshing = true
+        if case .disabled = claude.availability { claude.availability = .waiting }
+        claudeGeneration &+= 1
+        let generation = claudeGeneration
         let prior = claude.availability
-        Task.detached(priority: .utility) { [prior] in
-            let result = ClaudeUsageStore.load()
-            await MainActor.run {
-                AgentUsageModel.shared.claude.isRefreshing = false
-                AgentUsageModel.shared.apply(result, prior: prior, to: &AgentUsageModel.shared.claude)
+        let loader = claudeLoader
+        claudeTask = Task.detached(priority: .utility) { [weak self] in
+            guard !Task.isCancelled else { return }
+            let result = loader()
+            guard !Task.isCancelled else { return }
+            await MainActor.run { [weak self] in
+                guard let self, self.claudeEnabled, self.claudeGeneration == generation else { return }
+                self.claudeTask = nil
+                self.claude.isRefreshing = false
+                self.apply(result, prior: prior, to: &self.claude)
             }
         }
     }
 
     private func refreshCodex() {
-        guard !codex.isRefreshing else { return }
+        guard codexEnabled, !codex.isRefreshing else { return }
+        codexRefresh = Date()
         codex.isRefreshing = true
+        if case .disabled = codex.availability { codex.availability = .waiting }
+        codexGeneration &+= 1
+        let generation = codexGeneration
         let prior = codex.availability
-        Task.detached(priority: .utility) { [prior] in
-            let result = CodexUsageReader.load()
-            await MainActor.run {
-                AgentUsageModel.shared.codex.isRefreshing = false
-                AgentUsageModel.shared.apply(result, prior: prior, to: &AgentUsageModel.shared.codex)
+        let loader = codexLoader
+        codexTask = Task.detached(priority: .utility) { [weak self] in
+            guard !Task.isCancelled else { return }
+            let result = loader()
+            guard !Task.isCancelled else { return }
+            await MainActor.run { [weak self] in
+                guard let self, self.codexEnabled, self.codexGeneration == generation else { return }
+                self.codexTask = nil
+                self.codex.isRefreshing = false
+                self.apply(result, prior: prior, to: &self.codex)
             }
         }
     }
@@ -214,8 +278,10 @@ private nonisolated enum ClaudeUsageStore {
     }
 
     static func load(now: Date = Date()) -> Result<AgentUsageSnapshot, AgentUsageIssue> {
-        guard let data = try? Data(contentsOf: fileURL),
-              let stored = try? JSONDecoder().decode(FileSnapshot.self, from: data)
+        guard !Task.isCancelled,
+              let text = try? SettingsConfigFile.read(at: fileURL),
+              !Task.isCancelled,
+              let stored = try? JSONDecoder().decode(FileSnapshot.self, from: Data(text.utf8))
         else { return .failure(.noClaudeSession) }
 
         let windows: [AgentUsageWindow] = [
@@ -336,6 +402,7 @@ private nonisolated enum CodexUsageReader {
     }
 
     static func load() -> Result<AgentUsageSnapshot, AgentUsageIssue> {
+        guard !Task.isCancelled else { return .failure(.failed) }
         guard let executable = resolveExecutable("codex") else {
             return .failure(.cliMissing)
         }
@@ -361,6 +428,7 @@ private nonisolated enum CodexUsageReader {
             secondResponseID: 2,
             timeout: 8
         )
+        guard !Task.isCancelled else { return .failure(.failed) }
         if command.timedOut { return .failure(.timedOut) }
 
         switch response(from: command.stdout) {
@@ -455,6 +523,7 @@ nonisolated enum ProcessRunner {
         private var storage = Data()
         private var sawResponse = false
         private var sawSecondResponse = false
+        private var stopped = false
         private let responseID: Int?
         private let secondResponseID: Int?
         let responseReady = DispatchSemaphore(value: 0)
@@ -500,6 +569,10 @@ nonisolated enum ProcessRunner {
         var value: Data {
             lock.withLock { storage }
         }
+
+        var isStopped: Bool { lock.withLock { stopped } }
+
+        func stop() { lock.withLock { stopped = true } }
     }
 
     static func run(
@@ -514,13 +587,16 @@ nonisolated enum ProcessRunner {
         environment: [String: String]? = nil,
         workingDirectory: URL? = nil
     ) -> ProcessCommandResult {
+        guard !Task.isCancelled else {
+            return ProcessCommandResult(stdout: Data(), status: -2, timedOut: false)
+        }
         let process = Process()
         let stdin = Pipe()
         let stdout = Pipe()
         let stderr = Pipe()
         process.executableURL = executable
         process.arguments = arguments
-        process.environment = environment
+        process.environment = environment ?? ProcessInfo.processInfo.environment
         process.currentDirectoryURL = workingDirectory
         process.standardInput = stdin
         process.standardOutput = stdout
@@ -529,6 +605,9 @@ nonisolated enum ProcessRunner {
         let completed = DispatchSemaphore(value: 0)
         process.terminationHandler = { _ in completed.signal() }
         do {
+            guard !Task.isCancelled else {
+                return ProcessCommandResult(stdout: Data(), status: -2, timedOut: false)
+            }
             try process.run()
         } catch {
             return ProcessCommandResult(stdout: Data(), status: -1, timedOut: false)
@@ -542,11 +621,7 @@ nonisolated enum ProcessRunner {
         let readers = DispatchGroup()
         readers.enter()
         let stdoutReader = Thread {
-            while true {
-                let data = stdout.fileHandleForReading.availableData
-                if data.isEmpty { break }
-                stdoutData.append(data)
-            }
+            read(stdout.fileHandleForReading, into: stdoutData)
             stdoutData.finish()
             readers.leave()
         }
@@ -554,7 +629,7 @@ nonisolated enum ProcessRunner {
         stdoutReader.start()
         readers.enter()
         let stderrReader = Thread {
-            stderrData.append(stderr.fileHandleForReading.readDataToEndOfFile())
+            read(stderr.fileHandleForReading, into: stderrData)
             readers.leave()
         }
         stderrReader.qualityOfService = .utility
@@ -563,46 +638,84 @@ nonisolated enum ProcessRunner {
         let deadline = Date().addingTimeInterval(timeout)
         var timedOut = false
         do {
+            // The CLI can exit while a request is being written.
+            guard fcntl(stdin.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1) == 0 else {
+                throw POSIXError(.EIO)
+            }
+            try Task.checkCancellation()
             var first = initialInput
             first.append(0x0A)
             try stdin.fileHandleForWriting.write(contentsOf: first)
-            let wait = max(deadline.timeIntervalSinceNow, 0)
-            if stdoutData.responseReady.wait(timeout: .now() + wait) == .timedOut {
-                timedOut = true
+            if !wait(stdoutData.responseReady, until: deadline) {
+                timedOut = !Task.isCancelled
             } else if stdoutData.didSeeResponse {
+                try Task.checkCancellation()
                 var initialized = initializedInput
                 initialized.append(0x0A)
                 try stdin.fileHandleForWriting.write(contentsOf: initialized)
+                try Task.checkCancellation()
                 var second = secondInput
                 second.append(0x0A)
                 try stdin.fileHandleForWriting.write(contentsOf: second)
-                let wait = max(deadline.timeIntervalSinceNow, 0)
-                if stdoutData.secondResponseReady.wait(timeout: .now() + wait) == .timedOut {
-                    timedOut = true
+                if !wait(stdoutData.secondResponseReady, until: deadline) {
+                    timedOut = !Task.isCancelled
                 }
             }
             try stdin.fileHandleForWriting.close()
         } catch {
-            process.terminate()
+            if process.isRunning { process.terminate() }
         }
+        try? stdin.fileHandleForWriting.close()
 
-        if !timedOut {
-            let wait = max(deadline.timeIntervalSinceNow, 0)
-            timedOut = completed.wait(timeout: .now() + wait) == .timedOut
+        if !timedOut, !Task.isCancelled {
+            timedOut = !wait(completed, until: deadline)
         }
-        if timedOut {
+        if (timedOut || Task.isCancelled), process.isRunning {
             process.terminate()
-            if completed.wait(timeout: .now() + 1) == .timedOut {
+            if completed.wait(timeout: .now() + 0.25) == .timedOut, process.isRunning {
                 kill(process.processIdentifier, SIGKILL)
                 _ = completed.wait(timeout: .now() + 1)
             }
         }
-        readers.wait()
-        _ = stderrData.value
+        if readers.wait(timeout: .now() + 1) == .timedOut {
+            stdoutData.stop()
+            stderrData.stop()
+            _ = readers.wait(timeout: .now() + 0.25)
+        }
+        try? stdout.fileHandleForReading.close()
+        try? stderr.fileHandleForReading.close()
         return ProcessCommandResult(
             stdout: stdoutData.value,
-            status: timedOut ? -2 : process.terminationStatus,
+            status: timedOut || Task.isCancelled ? -2 : process.terminationStatus,
             timedOut: timedOut
         )
+    }
+
+    private static func wait(_ semaphore: DispatchSemaphore, until deadline: Date) -> Bool {
+        while !Task.isCancelled {
+            let remaining = deadline.timeIntervalSinceNow
+            guard remaining > 0 else { return false }
+            if semaphore.wait(timeout: .now() + min(remaining, 0.05)) == .success {
+                return !Task.isCancelled
+            }
+        }
+        return false
+    }
+
+    private static func read(_ handle: FileHandle, into data: PipeData) {
+        let descriptor = handle.fileDescriptor
+        let flags = fcntl(descriptor, F_GETFL, 0)
+        guard flags >= 0, fcntl(descriptor, F_SETFL, flags | O_NONBLOCK) == 0 else { return }
+        var buffer = [UInt8](repeating: 0, count: 8_192)
+        while !data.isStopped {
+            var ready = pollfd(fd: descriptor, events: Int16(POLLIN), revents: 0)
+            let status = Darwin.poll(&ready, 1, 50)
+            if status == 0 || status < 0 && errno == EINTR { continue }
+            guard status > 0 else { return }
+            let count = Darwin.read(descriptor, &buffer, buffer.count)
+            if count > 0 { data.append(Data(buffer.prefix(count))) }
+            else if count == 0 { return }
+            else if errno != EINTR && errno != EAGAIN { return }
+        }
     }
 }
