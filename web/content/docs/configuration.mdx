@@ -211,6 +211,8 @@ prompts use the configured cursor immediately, including when the background
 daemon has remained running through an app update. The daemon keeps bounded
 screen history in memory; it does not survive a macOS restart. If
 the PTY is no longer alive, the pane opens a fresh shell instead.
+When a persistent terminal's main process exits, Zshell also ends the remaining
+jobs in that terminal, including jobs that ignore hangup signals.
 
 Closing a pane, project, or window still ends its tasks, except for the last
 workspace window in a [menu bar mode](#application-presence). Use **Zshell → Quit and

@@ -1,0 +1,274 @@
+import AppKit
+import Foundation
+#if ZSHELL_MARKDOWN_IMAGE_BUILT_APP
+@testable import zshell
+#endif
+
+@main
+@MainActor
+struct MarkdownImageLoaderTests {
+    private static var checks = 0
+
+    static func main() async {
+        setbuf(stdout, nil)
+        let scenario = CommandLine.arguments[2]
+        do {
+            let fixture = Fixture(base: URL(string: CommandLine.arguments[1])!, scenario: scenario)
+            switch scenario {
+            case "cache": try await cache(fixture)
+            case "late-success": try await lateSuccess(fixture)
+            case "early-success": try await earlySuccess(fixture)
+            case "late-failure": try await lateFailure(fixture)
+            case "reset-storm": try await resetStorm(fixture)
+            case "oversized": try await rejectedSources(fixture)
+            case "streamed": try await streamed(fixture)
+            default: throw failure("Unknown scenario: \(scenario)")
+            }
+            print("Markdown image loader \(scenario): \(checks) checks passed")
+        } catch {
+            print("FAIL \(scenario): \(error.localizedDescription)")
+            exit(1)
+        }
+    }
+
+    private static func cache(_ fixture: Fixture) async throws {
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        try check(loader.image(for: fixture.imageURL) == nil, "a cache miss starts an asynchronous load")
+        let initialLoad = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(1)
+        for _ in 0..<10 { _ = loader.image(for: fixture.imageURL) }
+        try check(try await fixture.state().requests == 1, "repeated renders share one in-flight request")
+        try await fixture.release(1)
+        await initialLoad.value
+        let initial = loader.image(for: fixture.imageURL)
+        try check(initial?.size.width == 1, "the response becomes a decoded cached image")
+        try check(initial === loader.image(for: fixture.imageURL), "a cache hit returns the existing image")
+
+        loader.reset()
+        try check(loader.image(for: fixture.imageURL) == nil, "reset invalidates an already cached image")
+        let resetLoad = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(2)
+        try await fixture.release(2)
+        await resetLoad.value
+        try check(loader.image(for: fixture.imageURL)?.size.width == 2, "the reset document caches fresh bytes")
+        try check(try await fixture.state().requests == 2 && arrivals == 2 && loader.inFlight.isEmpty,
+                  "cached images notify once per load and do not trigger additional requests")
+    }
+
+    private static func lateSuccess(_ fixture: Fixture) async throws {
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        _ = loader.image(for: fixture.imageURL)
+        let oldLoad = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(1)
+        loader.reset()
+        _ = loader.image(for: fixture.imageURL)
+        let newLoad = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(2)
+        try await fixture.release(2)
+        await newLoad.value
+        let current = loader.image(for: fixture.imageURL)
+        try check(current?.size.width == 2, "the new request finishes before the old request")
+
+        try await fixture.release(1)
+        await oldLoad.value
+        try check(arrivals == 1, "a stale success does not notify the current preview")
+        try check(current === loader.image(for: fixture.imageURL), "a stale success cannot overwrite the new cached image")
+        try check(loader.image(for: fixture.imageURL)?.size.width == 2, "the preview retains the new image bytes")
+    }
+
+    private static func earlySuccess(_ fixture: Fixture) async throws {
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        _ = loader.image(for: fixture.imageURL)
+        let oldLoad = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(1)
+        loader.reset()
+        _ = loader.image(for: fixture.imageURL)
+        let newLoad = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(2)
+
+        try await fixture.release(1)
+        await oldLoad.value
+        try check(arrivals == 0, "a stale success does not render while the new request is pending")
+        let pendingImages = (0..<10).map { _ in loader.image(for: fixture.imageURL) }
+        try check(pendingImages.allSatisfy { $0 == nil }, "the new document never exposes the old image")
+        try check(try await fixture.state().requests == 2 && loader.inFlight.count == 1,
+                  "the pending new request stays deduplicated after old completion")
+        try await fixture.release(2)
+        await newLoad.value
+        try check(loader.image(for: fixture.imageURL)?.size.width == 2, "the new request remains usable after old completion")
+    }
+
+    private static func lateFailure(_ fixture: Fixture) async throws {
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        _ = loader.image(for: fixture.imageURL)
+        let oldLoad = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(1)
+        loader.reset()
+        try await fixture.release(1)
+        await oldLoad.value
+        try check(arrivals == 0, "a discarded failure does not notify the preview")
+
+        _ = loader.image(for: fixture.imageURL)
+        let retryLoad = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(2)
+        try await fixture.release(2)
+        await retryLoad.value
+        try check(loader.image(for: fixture.imageURL)?.size.width == 2, "a stale failure cannot mark the reset document's URL as failed")
+    }
+
+    private static func resetStorm(_ fixture: Fixture) async throws {
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        let orders = [[2, 3, 1], [3, 1, 2], [1, 2, 3], [2, 1, 3]]
+        for (round, order) in orders.enumerated() {
+            let first = round * 3
+            var loads: [Task<Void, Never>] = []
+            for number in 1...3 {
+                loader.reset()
+                _ = loader.image(for: fixture.imageURL)
+                loads.append(try loadTask(for: fixture.imageURL, in: loader))
+                try await fixture.waitForRequests(first + number)
+            }
+            var currentArrived = false
+            for number in order {
+                try await fixture.release(first + number)
+                await loads[number - 1].value
+                if number == 3 { currentArrived = true }
+                let images = (0..<64).map { _ in loader.image(for: fixture.imageURL) }
+                try check(images.allSatisfy { currentArrived ? $0?.size.width == CGFloat(first + 3) : $0 == nil },
+                          "reset storm round \(round + 1) exposes only the current generation")
+                try check(arrivals == round + (currentArrived ? 1 : 0),
+                          "reset storm round \(round + 1) discards old successes and failures")
+                try check(try await fixture.state().requests == first + 3
+                          && loader.inFlight.count == (currentArrived ? 0 : 1),
+                          "reset storm round \(round + 1) keeps 64 repeated renders deduplicated")
+            }
+        }
+    }
+
+    private static func rejectedSources(_ fixture: Fixture) async throws {
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        let forbidden = ["data:image/png;base64,aGVsbG8=", "ftp://127.0.0.1/image.png",
+                         "mailto:image@example.invalid", "javascript:alert(1)"]
+        for source in forbidden {
+            let url = URL(string: source)!
+            try check(loader.image(for: url) == nil && loader.image(for: url) == nil,
+                      "unsupported \(url.scheme!) image sources are rejected")
+        }
+        try check(try await fixture.state().requests == 0 && arrivals == 0,
+                  "unsupported sources do not start HTTP image requests or render callbacks")
+
+        _ = loader.image(for: fixture.imageURL)
+        let rejectedLoad = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(1)
+        try await fixture.release(1)
+        await rejectedLoad.value
+        let rejected = (0..<10).map { _ in loader.image(for: fixture.imageURL) }
+        try check(rejected.allSatisfy { $0 == nil } && arrivals == 0,
+                  "an image response larger than 20 MiB is not cached or rendered")
+        try check(try await fixture.state().requests == 1, "a rejected oversized image is not fetched on every render")
+        loader.reset()
+        _ = loader.image(for: fixture.imageURL)
+        let retryLoad = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(2)
+        try await fixture.release(2)
+        await retryLoad.value
+        try check(loader.image(for: fixture.imageURL)?.size.width == 2,
+                  "a reset permits a valid replacement for the oversized response")
+    }
+
+    private static func streamed(_ fixture: Fixture) async throws {
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        try check(loader.image(for: fixture.imageURL) == nil, "an unknown-length image starts asynchronously")
+        let initialLoad = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(1)
+        for _ in 0..<64 { _ = loader.image(for: fixture.imageURL) }
+        try check(try await fixture.state().requests == 1, "an unknown-length response shares one pending load")
+        try await fixture.release(1)
+        await initialLoad.value
+        let initial = loader.image(for: fixture.imageURL)
+        try check(initial?.size.width == 1, "a complete 64 KiB unknown-length PNG is decoded")
+        try check(arrivals == 1 && loader.inFlight.isEmpty, "the streamed task ends after its cache and callback update")
+        try check(initial === loader.image(for: fixture.imageURL), "the streamed image stays cached")
+        loader.reset()
+        try check(loader.image(for: fixture.imageURL) == nil, "reset invalidates the streamed image")
+        let resetLoad = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(2)
+        try await fixture.release(2)
+        await resetLoad.value
+        try check(loader.image(for: fixture.imageURL)?.size.width == 2 && arrivals == 2,
+                  "reset loads fresh unknown-length image bytes")
+        try check(try await fixture.state().requests == 2 && loader.inFlight.isEmpty,
+                  "the streamed replacement leaves no pending load or duplicate request")
+    }
+
+    private static func check(_ condition: Bool, _ message: String) throws {
+        guard condition else { throw failure(message) }
+        checks += 1
+        print("PASS images: \(message)")
+    }
+
+    private static func failure(_ message: String) -> NSError {
+        NSError(domain: "MarkdownImageLoaderTests", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: message])
+    }
+
+    /// Await the load itself: network completion alone precedes decoding and cache
+    /// updates. The subprocess deadline bounds a load that fails to complete.
+    private static func loadTask(for url: URL, in loader: MarkdownImageLoader) throws -> Task<Void, Never> {
+        guard let task = loader.inFlight[url] else { throw failure("Expected image load was not started") }
+        return task
+    }
+
+    /// Each image request waits at the server until its numbered release endpoint
+    /// is called, so response order is chosen without timing the production load.
+    private struct Fixture {
+        let base: URL
+        let scenario: String
+        var imageURL: URL { base.appendingPathComponent("image/\(scenario).png") }
+
+        struct State: Decodable {
+            let requests: Int
+        }
+
+        func state() async throws -> State {
+            let data = try await request("state/\(scenario)")
+            return try JSONDecoder().decode(State.self, from: data)
+        }
+
+        func release(_ number: Int) async throws {
+            _ = try await request("release/\(scenario)/\(number)")
+        }
+
+        func waitForRequests(_ expected: Int) async throws {
+            let deadline = Date().addingTimeInterval(5)
+            while try await state().requests < expected {
+                guard Date() < deadline else {
+                    throw failure("Expected request \(expected) was not started")
+                }
+                try await Task.sleep(for: .milliseconds(10))
+            }
+        }
+
+        private func request(_ path: String) async throws -> Data {
+            let (data, response) = try await URLSession.shared.data(from: base.appendingPathComponent(path))
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+                throw failure("Fixture request failed: \(path)")
+            }
+            return data
+        }
+    }
+}

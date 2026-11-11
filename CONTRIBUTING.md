@@ -106,6 +106,16 @@ OpenSSH configuration. The terminal and remote Files/Git operations share this
 `-F` override; host-key verification remains enabled. Remote server and production
 CLI checks are documented in [remote/README.md](remote/README.md).
 
+### PTY session lifecycle checks
+
+Run `python3 mac/tests/test_pty_mux_session_lifecycle.py` for the persistent PTY
+process lifecycle regression checks. The fixture uses real shells, job-control
+groups, detach/reattach, and concurrent termination while replacing only the
+renderer mirror. To verify the original failure, use `--source-ref <commit>
+--case exited`, or add `--built-app '/path/to/zshell Debug.app'` to exercise a
+compiled Debug module and its real terminal mirror. The fixture removes its
+binaries, module cache, and private state.
+
 ### Memory soak checks
 
 Use the PID-scoped sampler for long-running lifecycle or terminal memory checks:

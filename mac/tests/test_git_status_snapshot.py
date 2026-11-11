@@ -6,6 +6,7 @@ Production Swift slices, binaries, and module caches stay in a temporary folder.
 from pathlib import Path
 import json
 import os
+import random
 import subprocess
 import tempfile
 import unittest
@@ -56,15 +57,19 @@ import Darwin
     @MainActor static func main() throws {
         let action = CommandLine.arguments[1]
         let root = CommandLine.arguments[2]
+        let commitLimit = action == "history" ? Int(CommandLine.arguments[3])! : 30
         var commands = 0
+        var historyOutput = ""
         let start = Date()
         func snapshot(failing failedCommand: String? = nil) -> GitStatusModel.StatusResult {
-            let load = GitStatusModel.runGitStatus(in: root, recentCommitLimit: 30, commandRunner: { arguments, directory, timeout in
+            let load = GitStatusModel.runGitStatus(in: root, recentCommitLimit: commitLimit, commandRunner: { arguments, directory, timeout in
                 commands += 1
                 if arguments.first == failedCommand {
                     return (-2, "", "fixture detail timeout")
                 }
-                return GitStatusModel.runGit(arguments, in: directory, timeout: timeout)
+                let result = GitStatusModel.runGit(arguments, in: directory, timeout: timeout)
+                if arguments.first == "log" { historyOutput = result.stdout }
+                return result
             }, reviewCommandRunner: { arguments, directory, timeout in
                 commands += 1
                 return GitCommandRunner.runData(arguments, in: directory, limit: .max, timeout: timeout)
@@ -86,6 +91,20 @@ import Darwin
             var value: [String: Any] = ["entries": entries, "hasHead": snapshot.hasHead,
                 "fingerprints": snapshot.reviewFingerprints.count, "branches": snapshot.branches,
                 "remotes": snapshot.remotes, "commits": snapshot.recentCommits.count,
+                "hasMoreCommits": snapshot.hasMoreRecentCommits,
+                "history": snapshot.recentCommits.map { commit -> [String: Any] in
+                    var value: [String: Any] = ["hash": commit.hash, "shortHash": commit.shortHash,
+                        "subject": commit.subject, "author": commit.author,
+                        "timestamp": commit.date.timeIntervalSince1970,
+                        "references": commit.references,
+                        "files": commit.files.map { file -> [String: Any] in
+                            var value: [String: Any] = ["path": file.path, "status": String(file.status)]
+                            value["original"] = file.originalPath
+                            return value
+                        }]
+                    value["parent"] = commit.parentHash
+                    return value
+                },
                 "worktrees": snapshot.worktrees.count, "stashCount": snapshot.stashCount,
                 "details": snapshot.loadedDetails.map { String(describing: $0) }.sorted(),
                 "commands": commands, "elapsed": Date().timeIntervalSince(start)]
@@ -95,8 +114,16 @@ import Darwin
             return value
         }
         var output: [String: Any]
-        if action == "snapshot" {
+        if action == "snapshot" || action == "history" {
             output = asJSON(snapshot())
+        } else if action == "historyOutput" {
+            output = asJSON(snapshot())
+            output["historyOutput"] = historyOutput
+        } else if action == "parseHistory" {
+            let raw = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[3]))
+            var parsed = GitStatusModel.StatusResult()
+            parsed.recentCommits = GitStatusModel.parseRecentCommits(String(decoding: raw, as: UTF8.self))
+            output = asJSON(parsed)
         } else if action == "branches" {
             let current = snapshot()
             let model = GitStatusModel()
@@ -325,6 +352,209 @@ import Darwin
 
     def fingerprints(self):
         return {entry["path"]: entry for entry in self.probe()["entries"]}
+
+    def parse_history(self, raw):
+        with tempfile.TemporaryDirectory(prefix="zshell-history-wire-") as temporary:
+            fixture = Path(temporary) / "history.bin"
+            fixture.write_bytes(raw)
+            return self.probe("parseHistory", str(fixture))
+
+    def test_history_keeps_control_characters_in_paths_subjects_and_authors(self):
+        original_path = "before\x1eafter.txt"
+        self.write(original_path, "root\n")
+        self.git("add", ".")
+        self.git("commit", "-qm", "root fixture")
+        root_hash = self.git("rev-parse", "HEAD").decode().strip()
+
+        author = "History\x1eAuthor\x1fName"
+        subject = "subject\x1fwith\x1econtrols"
+        self.git("config", "user.name", author)
+        self.write("next.txt", "next\n")
+        self.git("add", ".")
+        self.git("commit", "-q", "--cleanup=verbatim", "-m", subject)
+        latest_hash = self.git("rev-parse", "HEAD").decode().strip()
+
+        snapshot = self.probe()
+        self.assertEqual(snapshot["commits"], 2)
+        latest, root = snapshot["history"]
+        self.assertEqual(latest["hash"], latest_hash)
+        self.assertEqual(latest["subject"], subject)
+        self.assertEqual(latest["author"], author)
+        self.assertEqual(latest["parent"], root_hash)
+        self.assertEqual(latest["files"], [{"status": "A", "path": "next.txt"}])
+        self.assertEqual(root["hash"], root_hash)
+        self.assertNotIn("parent", root)
+        self.assertEqual(root["files"], [{"status": "A", "path": original_path}])
+        self.assertNotIn("error", snapshot)
+
+    def test_history_keeps_empty_root_and_merge_commits_between_file_changes(self):
+        self.git("commit", "-q", "--allow-empty", "--allow-empty-message", "-m", "")
+        root_hash = self.git("rev-parse", "HEAD").decode().strip()
+        self.git("commit", "-q", "--allow-empty", "-m", "empty child")
+        empty_hash = self.git("rev-parse", "HEAD").decode().strip()
+        self.git("switch", "-qc", "topic")
+        self.write("topic.txt", "topic\n")
+        self.git("add", ".")
+        self.git("commit", "-qm", "topic")
+        topic_hash = self.git("rev-parse", "HEAD").decode().strip()
+        self.git("switch", "main")
+        self.write("main.txt", "main\n")
+        self.git("add", ".")
+        self.git("commit", "-qm", "main")
+        main_hash = self.git("rev-parse", "HEAD").decode().strip()
+        self.git("merge", "-q", "--no-ff", "-m", "merged topic", "topic")
+        merge_hash = self.git("rev-parse", "HEAD").decode().strip()
+        self.git("tag", "merged-fixture")
+
+        snapshot = self.probe()
+        history = {commit["hash"]: commit for commit in snapshot["history"]}
+        self.assertEqual(set(history), {root_hash, empty_hash, main_hash, topic_hash, merge_hash})
+        self.assertEqual(history[root_hash]["subject"], "")
+        self.assertNotIn("parent", history[root_hash])
+        self.assertEqual(history[root_hash]["files"], [])
+        self.assertEqual(history[empty_hash]["parent"], root_hash)
+        self.assertEqual(history[empty_hash]["files"], [])
+        self.assertEqual(history[main_hash]["files"], [{"status": "A", "path": "main.txt"}])
+        self.assertEqual(history[topic_hash]["files"], [{"status": "A", "path": "topic.txt"}])
+        self.assertEqual(snapshot["history"][0]["hash"], merge_hash)
+        self.assertEqual(history[merge_hash]["parent"], main_hash)
+        self.assertEqual(history[merge_hash]["files"], [])
+        self.assertEqual(history[merge_hash]["references"], ["HEAD -> main", "tag: merged-fixture"])
+        self.assertFalse(snapshot["hasMoreCommits"])
+        self.assertNotIn("error", snapshot)
+
+    def test_history_rename_and_copy_consume_both_literal_paths(self):
+        original = "before\x1eoriginal\n.txt"
+        renamed = "R100\x1frenamed\n.txt"
+        copied = "\nC100\x1ecopied.txt"
+        content = "copy baseline\n" * 20
+        self.write(original, content)
+        self.git("add", ".")
+        self.git("commit", "-qm", "root")
+        self.git("mv", "--", original, renamed)
+        self.git("commit", "-qm", "rename")
+        rename_hash = self.git("rev-parse", "HEAD").decode().strip()
+        self.git("config", "diff.renames", "copies")
+        self.write(copied, content)
+        self.write(renamed, "changed original\n" * 20)
+        self.git("add", ".")
+        self.git("commit", "-qm", "copy")
+
+        snapshot = self.probe()
+        copy, rename, root = snapshot["history"]
+        self.assertEqual(rename["hash"], rename_hash)
+        self.assertEqual(rename["files"], [{"status": "R", "path": renamed, "original": original}])
+        self.assertEqual({file["path"]: file for file in copy["files"]}, {
+            copied: {"status": "C", "path": copied, "original": renamed},
+            renamed: {"status": "M", "path": renamed},
+        })
+        self.assertEqual(root["files"], [{"status": "A", "path": original}])
+        self.assertNotIn("error", snapshot)
+
+    def test_history_pagination_survives_controls_at_the_page_boundary(self):
+        hashes = []
+        for index in range(34):
+            self.write("page.txt", f"page {index}\n")
+            self.git("add", ".")
+            self.git("commit", "-q", "--cleanup=verbatim", "-m", f"commit\x1e{index}\x1f")
+            hashes.insert(0, self.git("rev-parse", "HEAD").decode().strip())
+
+        for limit in (1, 30, 34, 60):
+            with self.subTest(limit=limit):
+                snapshot = self.probe("history", str(limit))
+                self.assertEqual([commit["hash"] for commit in snapshot["history"]], hashes[:limit])
+                self.assertEqual(snapshot["hasMoreCommits"], limit < len(hashes))
+                self.assertEqual([commit["subject"] for commit in snapshot["history"]],
+                                 [f"commit\x1e{index}\x1f" for index in range(33, max(-1, 33 - limit), -1)])
+                self.assertNotIn("error", snapshot)
+
+    def test_history_fixed_seed_paths_cannot_spoof_statuses_or_headers(self):
+        clean = self.probe()
+        randomizer = random.Random(6423)
+        characters = "abcXYZ09 \t\n\r\\\"\x01\x1e\x1f中文"
+        paths = ["A", "R100", "C100", "\nA", "\x1e" + "a" * 40 + "\x1fheader.txt",
+                 "--name-status", "$(touch escaped).txt", "`touch escaped`.txt"]
+        paths += [f"path-{index:02}-" + "".join(randomizer.choice(characters) for _ in range(20))
+                  for index in range(64)]
+        for path in paths:
+            self.write(path, "literal file\n")
+        self.git("add", ".")
+        self.git("commit", "-qm", "special paths")
+
+        snapshot = self.probe()
+        self.assertEqual(snapshot["commits"], 1)
+        self.assertEqual({file["path"]: file["status"] for file in snapshot["history"][0]["files"]},
+                         {path: "A" for path in paths})
+        self.assertLessEqual(snapshot["commands"], clean["commands"])
+        self.assertFalse((self.repo / "escaped").exists())
+        self.assertNotIn("error", snapshot)
+
+    def test_history_ignores_signature_diagnostics_in_user_git_configuration(self):
+        with tempfile.TemporaryDirectory(prefix="zshell-history-signing-") as temporary:
+            key = Path(temporary) / "signing"
+            subprocess.run(["/usr/bin/ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)],
+                           check=True, capture_output=True)
+            self.git("config", "gpg.format", "ssh")
+            self.git("config", "user.signingKey", str(key))
+            self.git("config", "log.showSignature", "true")
+            self.git("commit", "-q", "--allow-empty", "-S", "-m", "signed fixture")
+            expected_hash = self.git("rev-parse", "HEAD").decode().strip()
+            snapshot = self.probe()
+            self.assertEqual(snapshot["commits"], 1)
+            self.assertEqual(snapshot["history"][0]["hash"], expected_hash)
+            self.assertEqual(snapshot["history"][0]["subject"], "signed fixture")
+            self.assertEqual(snapshot["history"][0]["files"], [])
+            self.assertNotIn("error", snapshot)
+
+    def test_history_truncation_returns_only_complete_metadata_and_paths(self):
+        original = "original\x1e.txt"
+        destination = "destination\x1f.txt"
+        self.write(original, "root\n")
+        self.git("add", ".")
+        self.git("commit", "-qm", "root")
+        self.git("mv", "--", original, destination)
+        self.git("commit", "-qm", "rename")
+        snapshot = self.probe("historyOutput")
+        raw = snapshot["historyOutput"].encode()
+        complete = snapshot["history"]
+        boundaries = {0, len(raw)}
+        for index, byte in enumerate(raw):
+            if byte == 0:
+                boundaries.update((index, index + 1))
+        for boundary in sorted(boundaries):
+            with self.subTest(boundary=boundary):
+                parsed = self.parse_history(raw[:boundary])["history"]
+                self.assertLessEqual(len(parsed), len(complete))
+                for actual, expected in zip(parsed, complete):
+                    # A complete header at EOF is indistinguishable from an
+                    # empty commit, but no returned path may be partial.
+                    self.assertEqual({key: value for key, value in actual.items() if key != "files"},
+                                     {key: value for key, value in expected.items() if key != "files"})
+                    self.assertEqual(actual["files"], expected["files"][:len(actual["files"])])
+
+        fields = raw.split(b"\0")
+        for invalid_status in (b"Q", b"A\x1eheader", b"R100\nA", b"Cunknown"):
+            with self.subTest(status=invalid_status):
+                corrupt = list(fields)
+                corrupt[7] = invalid_status
+                self.assertEqual(self.parse_history(b"\0".join(corrupt))["history"], [])
+
+    def test_history_parser_scales_with_large_nul_delimited_output(self):
+        for index in range(100):
+            self.write(f"large-{index:03}\x1e\x1f\n.txt", "large history\n")
+        self.git("add", ".")
+        self.git("commit", "-qm", "large history")
+        raw = self.probe("historyOutput")["historyOutput"].encode() + b"\0"
+        timings = []
+        for count in (20, 80):
+            parsed = self.parse_history(raw * count)
+            self.assertEqual(len(parsed["history"]), count)
+            self.assertEqual(sum(len(commit["files"]) for commit in parsed["history"]), 100 * count)
+            self.assertEqual(parsed["commands"], 0)
+            timings.append(parsed["elapsed"])
+            self.assertLess(parsed["elapsed"], 2)
+        self.assertLess(timings[1], max(0.1, timings[0] * 7))
+        print(f"History parser 2,000/8,000 paths: {timings[0]:.4f}s / {timings[1]:.4f}s")
 
     def test_branch_names_survive_tag_collisions_and_worktree_filtering(self):
         self.write("fixture.txt", "fixture\n")
