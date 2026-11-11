@@ -24,7 +24,6 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// selected session's terminal title.
     @Published var customName: String?
     @Published var isPinned: Bool
-    @Published var isSidebarExpanded = false
     @Published var markerColor: ProjectTabMarkerColor?
     /// User-pinned project directory ("Set Project Directory…" on the
     /// project row). While it exists, the file tree and git panels anchor
@@ -1554,7 +1553,6 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             isPinned: snap.isPinned
         )
         tab.customName = snap.customName
-        tab.isSidebarExpanded = snap.isSidebarExpanded
         tab.tabGroupID = tabGroup(id: snap.tabGroupID)?.id
         tab.markerColor = snap.markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:))
         tab.launchSettingsOverride = snap.launchSettingsOverride

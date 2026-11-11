@@ -98,8 +98,8 @@ struct SettingsReloadTests {
               "feature switches preserve existing behavior by default")
         check(settings.isAtDefaults, "fresh settings expose the correct reset state")
         check(settings.keepAwakeMode == .off, "sleep prevention is off by default")
-        check(!settings.showSidebarSessions && !settings.compactSidebar && settings.sidebarDoubleClickNewSession,
-              "sidebar rows preserve the existing density and enable the empty-space gesture")
+        check(settings.sidebarDoubleClickNewSession,
+              "empty-space gesture is enabled by default")
         settings.keepAwakeMode = .whileRunning
         check(!settings.isAtDefaults, "sleep prevention enables reset")
         check(settings.serializedConfig().contains("keep-awake = \"on\""), "sleep mode persists")
@@ -143,8 +143,6 @@ struct SettingsReloadTests {
         terminal.font-fallback-family = "Fixture CJK"
         font-size = 19
         sidebar.font-size = 18
-        sidebar.show-sessions = true
-        sidebar.compact = true
         sidebar.double-click-new-session = false
         interface.scale = 1.3
         toolbar.visibility = "always"
@@ -277,8 +275,8 @@ struct SettingsReloadTests {
         check(!settings.vimCommandHints && !settings.restoreTerminalHistory && !settings.notifyOnError,
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
-        check(!settings.showSidebarSessions && !settings.compactSidebar && settings.sidebarDoubleClickNewSession,
-              "omitted sidebar keys restore compatible defaults on external reload")
+        check(settings.sidebarDoubleClickNewSession,
+              "omitted sidebar gesture key restores the default on external reload")
         check(!settings.gitProxyEnabled && settings.gitProxyAddress == GitProxy.defaultAddress && GitProxy.address == nil,
               "Git proxy resets to off with the default address prefilled")
         check(try SettingsConfigFile.read(at: url) == "", "default reload leaves empty source unchanged")
@@ -289,11 +287,6 @@ struct SettingsReloadTests {
 
         settings.resetToDefaults()
         check(settings.isAtDefaults, "reset covers every configurable preference")
-        for keyPath: ReferenceWritableKeyPath<AppSettings, Bool> in [\.showSidebarSessions, \.compactSidebar] {
-            settings[keyPath: keyPath] = true
-            check(!settings.isAtDefaults, "enabling a sidebar preference enables reset")
-            settings[keyPath: keyPath] = false
-        }
         let featureSwitches: [ReferenceWritableKeyPath<AppSettings, Bool>] = [
             \.protectEditorSaves, \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints,
             \.automaticallyApplyTerminalProfiles, \.notifyOnAgentAttention,

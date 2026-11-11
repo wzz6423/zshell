@@ -1291,35 +1291,6 @@ final class TerminalManager: nonisolated ObservableObject {
         }
     }
 
-    /// Resolve by content identity because a sidebar action can outlive a pane
-    /// being moved to another tab, project, or window.
-    @discardableResult
-    func revealPane(contentID: UUID) -> Bool {
-        for owner in [self] + Self.registry.filter({ $0 !== self }) {
-            for project in owner.projects {
-                for tab in project.tabs {
-                    guard let pane = tab.allPanes.first(where: { $0.content.id == contentID }) else { continue }
-                    owner.selectedProjectID = project.id
-                    project.selectedTabID = tab.id
-                    guard tab.focusPane(pane.id) else { return false }
-                    owner.window?.makeKeyAndOrderFront(nil)
-                    if case .session(let session) = pane.content {
-                        DispatchQueue.main.async { [weak owner, weak project, weak tab, weak session] in
-                            guard let owner, let project, let tab, let session,
-                                  owner.selectedProjectID == project.id,
-                                  project.selectedTabID == tab.id,
-                                  tab.focusedContent?.id == contentID,
-                                  session.surface.window === owner.window else { return }
-                            owner.window?.makeFirstResponder(session.surface)
-                        }
-                    }
-                    return true
-                }
-            }
-        }
-        return false
-    }
-
     /// Activates Zshell and reveals the session that emitted a desktop
     /// notification. Searches every open window; if the session is gone,
     /// still brings the app forward so the click isn't a dead end.
@@ -2034,7 +2005,6 @@ final class TerminalManager: nonisolated ObservableObject {
                         focusedPaneIndex: focusedPaneIndex,
                         customName: tab.customName,
                         isPinned: tab.isPinned,
-                        isSidebarExpanded: tab.isSidebarExpanded,
                         markerColorHex: tab.markerColor?.hex,
                         tabGroupID: tab.tabGroupID,
                         launchSettingsOverride: tab.launchSettingsOverride,
@@ -2046,7 +2016,6 @@ final class TerminalManager: nonisolated ObservableObject {
                 return ProjectSnapshot(
                     customName: project.customName,
                     isPinned: project.isPinned,
-                    isSidebarExpanded: project.isSidebarExpanded,
                     markerColorHex: project.markerColor?.hex,
                     customDirectory: project.customDirectory,
                     groupID: project.groupID,
@@ -2174,7 +2143,6 @@ final class TerminalManager: nonisolated ObservableObject {
                 createInitialSession: false
             )
             project.customName = Project.normalizedCustomName(saved.customName)
-            project.isSidebarExpanded = saved.isSidebarExpanded
             project.conversationHistoryProjectID = saved.conversationHistoryProjectID ?? UUID()
             project.markerColor = saved.markerColorHex.flatMap(ProjectTabMarkerColor.init(hex:))
             project.customDirectory = saved.customDirectory

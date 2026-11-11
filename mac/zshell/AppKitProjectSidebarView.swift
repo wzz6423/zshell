@@ -37,20 +37,6 @@ private final class ProjectSidebarDocumentView: NSView {
     override func rightMouseDown(with event: NSEvent) { onContextMenu?(event) }
 }
 
-private enum ProjectSidebarRow: Hashable {
-    case workspace(ProjectSidebarItem)
-    case tab(project: UUID, tab: UUID)
-    case pane(project: UUID, tab: UUID, content: UUID)
-
-    var projectID: UUID? {
-        switch self {
-        case .workspace(.project(let id)): id
-        case .workspace(.group): nil
-        case .tab(let project, _), .pane(let project, _, _): project
-        }
-    }
-}
-
 private final class ProjectSidebarOutlineView: NSView {
     var footerHeight: CGFloat = 0
     var drawsOuterEdge = false
@@ -128,14 +114,6 @@ final class ProjectSidebarNSView: NSView {
     private var footerButtons: [WorkspaceChromeButton] = []
     private var rows: [Item: WorkspaceItemView] = [:]
     private var order: [Item] = []
-    private var contentRows: [UUID: WorkspaceItemView] = [:]
-    private var rowOrder: [ProjectSidebarRow] = []
-    private var rowFrames: [ProjectSidebarRow: NSRect] = [:]
-    private var projectIndex: [UUID: Project] = [:]
-    private var reusableRows: [WorkspaceItemView] = []
-    private let metadata = ProjectSidebarMetadata()
-    private var metadataTimer: AnyCancellable?
-    private var lastContentSelection: UUID?
     private var observations: [AnyCancellable] = []
     private var refreshScheduled = false
     private var lastSelection: UUID?
@@ -180,7 +158,6 @@ final class ProjectSidebarNSView: NSView {
             self.menuPresenter.popUp(items: self.sidebarMenu(),
                 at: self.document.convert(event.locationInWindow, from: nil), in: self.document)
         }
-        metadata.onChange = { [weak self] in self?.scheduleRefresh() }
         fpsLabel.font = .monospacedDigitSystemFont(ofSize: 10, weight: .medium)
         fpsLabel.textColor = .secondaryLabelColor
         fpsLabel.isHidden = true
@@ -213,11 +190,7 @@ final class ProjectSidebarNSView: NSView {
         tabDrag.$sidebarDropHighlight.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.updateDropHighlights() }
             .store(in: &observations)
         NotificationCenter.default.publisher(for: NSView.boundsDidChangeNotification, object: scrollView.contentView)
-            .sink { [weak self] _ in
-                self?.updateVisibleContentRows()
-                self?.publishDropFrames()
-                self?.refreshVisibleMetadata()
-            }.store(in: &observations)
+            .sink { [weak self] _ in self?.publishDropFrames() }.store(in: &observations)
         fpsCounter.$fps.sink { [weak self] fps in self?.fpsLabel.stringValue = "\(fps) fps" }.store(in: &observations)
         registerForDraggedTypes([.fileURL])
         setAccessibilityElement(false)
@@ -247,8 +220,6 @@ final class ProjectSidebarNSView: NSView {
         let valid = Set(items)
         for key in rows.keys where !valid.contains(key) { rows.removeValue(forKey: key)?.removeFromSuperview() }
         order = items
-        rowOrder = []
-        projectIndex = Dictionary(uniqueKeysWithValues: manager.projects.map { ($0.id, $0) })
         let shortcuts = Dictionary(uniqueKeysWithValues: manager.visibleSidebarProjects.prefix(9).enumerated().map {
             ($0.element.id, "⌘\($0.offset + 1)")
         })
@@ -259,33 +230,16 @@ final class ProjectSidebarNSView: NSView {
             case .project(let id):
                 guard let project = manager.projects.first(where: { $0.id == id }) else { continue }
                 configure(row, project: project, shortcut: shortcuts[id])
-                rowOrder.append(.workspace(item))
-                if AppSettings.shared.showSidebarSessions && project.isSidebarExpanded {
-                    for tab in project.tabs {
-                        let key = ProjectSidebarRow.tab(project: id, tab: tab.id)
-                        rowOrder.append(key)
-                        if tab.hasMultiplePanes && tab.isSidebarExpanded {
-                            for pane in tab.allPanes {
-                                let key = ProjectSidebarRow.pane(project: id, tab: tab.id, content: pane.content.id)
-                                rowOrder.append(key)
-                            }
-                        }
-                    }
-                }
             case .group(let id):
                 guard let group = groupStore.group(id: id) else { continue }
                 configure(row, group: group)
-                rowOrder.append(.workspace(item))
             }
             row.onDrag = { [weak self] event in self?.updateDrag(item: item, event: event) }
             row.onDragEnded = { [weak self] event in self?.finishDrag(item: item, event: event) }
             row.onDragCancelled = { [weak self] in self?.cancelDrag() }
-            row.onNavigate = { [weak self] key in self?.navigate(from: .workspace(item), key: key) }
+            row.onNavigate = { [weak self] key in self?.navigate(from: item, key: key) }
         }
         if lastSelection != manager.selectedProjectID { lastSelection = manager.selectedProjectID; revealSelection = true }
-        let contentSelection = manager.selectedProject?.focusedContent?.id
-        if lastContentSelection != contentSelection { lastContentSelection = contentSelection; revealSelection = true }
-        updateMetadataTimer()
         let dark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
         material.isHidden = !Theme.isDefault(dark: dark)
         outline.drawsOuterEdge = material.isHidden
@@ -329,16 +283,12 @@ final class ProjectSidebarNSView: NSView {
                   icon: NSImage(systemSymbolName: project.isRemote ? "network" : "folder", accessibilityDescription: nil),
                   selected: project.id == manager.selectedProjectID, pinned: project.isPinned,
                   marker: groupColor ?? project.markerColor, rollup: project.agentRollup, sidebar: true,
-                  compactRow: AppSettings.shared.compactSidebar,
-                  expanded: AppSettings.shared.showSidebarSessions && !project.tabs.isEmpty ? project.isSidebarExpanded : nil,
-                  disclosureLabel: String(localized: project.isSidebarExpanded ? "Hide Sessions" : "Show Sessions"),
                   indent: project.groupID == nil ? 0 : groupMemberIndent, scale: fontScale, shortcut: shortcut,
                   actionLabel: String(localized: "Close Project"), action: { [weak manager, weak project] in
                       if let project { manager?.close(project) }
                   })
         row.toolTip = [project.name, project.customDirectory ?? subtitle].compactMap { $0 }.joined(separator: "\n")
         row.onSelect = { [weak manager, weak project] in if let project { manager?.selectedProjectID = project.id } }
-        row.onDisclosure = { [weak project] in project?.isSidebarExpanded.toggle() }
         row.onRename = { [weak row, weak project] in
             guard let project else { return }
             row?.beginRename(value: project.name) { [weak project] name in project?.customName = Project.normalizedCustomName(name) }
@@ -346,6 +296,28 @@ final class ProjectSidebarNSView: NSView {
         row.menuItems = { [weak self, weak row, weak project] in
             guard let self, let project else { return [] }
             return self.projectMenu(project, row: row)
+        }
+    }
+
+    private func sidebarMenu() -> [AppKitContextMenuItem] {
+        [
+            .action(title: AppCommand.newSession.title) { [weak manager] in manager?.newSession() },
+            .separator,
+            .action(title: String(localized: "Sidebar Settings…")) {
+                SettingsWindowController.shared.show(category: .appearance)
+            },
+        ]
+    }
+
+    private func isBlankSpace(at event: NSEvent) -> Bool {
+        let point = document.convert(event.locationInWindow, from: nil)
+        guard document.visibleRect.contains(point), document.bounds.contains(point),
+              draggedItem == nil, !isFolderDropTarget,
+              tabDrag.drag == nil, tabDrag.paneDrag == nil,
+              tabDrag.projectDrag == nil, tabDrag.groupDrag == nil else { return false }
+        return !rows.contains { item, row in
+            let frame = if case .group = item { row.frame.insetBy(dx: -8, dy: -4) } else { row.frame }
+            return frame.contains(point)
         }
     }
 
@@ -408,195 +380,6 @@ final class ProjectSidebarNSView: NSView {
         }
     }
 
-    private func configure(_ row: WorkspaceItemView, tab: PaneTab, project: Project) {
-        let content = tab.focusedContent
-        let expanded = tab.hasMultiplePanes ? tab.isSidebarExpanded : nil
-        let groupColor = project.tabGroup(id: tab.tabGroupID)?.markerColor
-        let selected = project.id == manager.selectedProjectID && tab.id == project.selectedTabID
-        row.apply(title: tab.displayTitle ?? String(localized: "Tab"), subtitle: content.map(metadataLabel),
-                  icon: content.flatMap(contentIcon), selected: selected, pinned: tab.isPinned,
-                  marker: groupColor ?? tab.markerColor, count: tab.hasMultiplePanes ? tab.allPanes.count : nil,
-                  rollup: tab.agentRollup, dirty: content?.isDirty == true, sidebar: true,
-                  compactRow: AppSettings.shared.compactSidebar, expanded: expanded,
-                  disclosureLabel: String(localized: tab.isSidebarExpanded ? "Hide Panes" : "Show Panes"),
-                  indent: (project.groupID == nil ? 0 : groupMemberIndent) + 16 * scale, scale: fontScale,
-                  actionLabel: String(localized: "Close Tab"), action: { [weak project, weak tab] in
-                      if let tab { project?.close(tab) }
-                  })
-        row.toolTip = [tab.displayTitle, content.map(metadataLabel), tab.agentRollup?.detail].compactMap { $0 }.joined(separator: "\n")
-        row.onSelect = { [weak manager, weak tab] in
-            guard let contentID = tab?.focusedContent?.id else { return }
-            manager?.revealPane(contentID: contentID)
-        }
-        row.onDisclosure = { [weak tab] in tab?.isSidebarExpanded.toggle() }
-        row.onRename = { [weak row, weak tab] in
-            guard let tab else { return }
-            row?.beginRename(value: tab.displayTitle ?? "") { [weak tab] in tab?.customName = Project.normalizedCustomName($0) }
-        }
-        row.menuItems = { [weak self, weak row, weak project, weak tab] in
-            guard let self, let project, let tab else { return [] }
-            var items: [AppKitContextMenuItem] = [
-                .action(title: String(localized: "Focus Pane")) { row?.onSelect?() },
-                .action(title: String(localized: "Rename…")) { row?.onRename?() },
-                .action(title: String(localized: tab.isPinned ? "Unpin Tab" : "Pin Tab")) { project.setPinned(!tab.isPinned, for: tab) },
-            ]
-            if tab.hasMultiplePanes {
-                items.append(.action(title: String(localized: tab.isSidebarExpanded ? "Hide Panes" : "Show Panes")) { tab.isSidebarExpanded.toggle() })
-            }
-            if tab.customName != nil { items.append(.action(title: String(localized: "Use Automatic Title")) { tab.customName = nil }) }
-            items += [.separator, .action(title: String(localized: "Close Tab")) { project.close(tab) },
-                      .separator, .submenu(title: String(localized: "Project Sidebar"), items: self.sidebarMenu())]
-            return items
-        }
-    }
-
-    private func configure(_ row: WorkspaceItemView, pane: Pane, tab: PaneTab, project: Project) {
-        let selected = project.id == manager.selectedProjectID && tab.id == project.selectedTabID && pane.id == tab.focusedPaneID
-        let rollup: ZshellAgentRollup?
-        if case .session(let session) = pane.content { rollup = session.agentRollup }
-        else { rollup = nil }
-        row.apply(title: pane.content.title, subtitle: metadataLabel(pane.content), icon: contentIcon(pane.content),
-                  selected: selected, rollup: rollup, dirty: pane.content.isDirty, sidebar: true,
-                  compactRow: AppSettings.shared.compactSidebar,
-                  indent: (project.groupID == nil ? 0 : groupMemberIndent) + 32 * scale, scale: fontScale)
-        row.toolTip = [pane.content.title, metadataLabel(pane.content), rollup?.detail].compactMap { $0 }.joined(separator: "\n")
-        row.onSelect = { [weak manager] in manager?.revealPane(contentID: pane.content.id) }
-        row.onRename = nil
-        row.onDisclosure = nil
-        row.menuItems = { [weak self, weak row, weak project, weak tab] in
-            guard let self, let project, let tab,
-                  let current = tab.allPanes.first(where: { $0.content.id == pane.content.id }) else { return [] }
-            return [
-                .action(title: String(localized: "Focus Pane")) { row?.onSelect?() },
-                .action(title: String(localized: "Toggle Pane Zoom"), enabled: tab.hasMultiplePanes) { [weak manager = self.manager] in
-                    guard manager?.revealPane(contentID: current.content.id) == true else { return }
-                    tab.toggleZoom()
-                },
-                .separator,
-                .action(title: String(localized: "Close Pane")) { project.closeContent(current.content) },
-            ]
-        }
-    }
-
-    private func contentIcon(_ content: PaneContent) -> NSImage? {
-        if let path = content.fileIconPath { return MaterialFileIcon.image(forPath: path, appearance: effectiveAppearance) }
-        if case .browser(let browser) = content, let favicon = browser.favicon { return favicon }
-        return NSImage(systemSymbolName: content.systemImage, accessibilityDescription: nil)
-    }
-
-    private func metadataLabel(_ content: PaneContent) -> String {
-        switch content {
-        case .session(let session):
-            let entry = metadata.entry(for: session.id)
-            let program = session.agentStatus.map { $0.kind == .program ? $0.alias : $0.kind.displayName } ?? entry?.program ?? session.shellName
-            let directory = entry?.directory ?? session.remoteConnection?.projectDirectory
-                ?? session.workingDirectory.flatMap { URL(string: $0)?.path ?? $0 }
-            let tail = directory.map { ($0 as NSString).lastPathComponent }
-            let state = session.hasExited ? String(localized: "Exited") : session.remoteStatus?.label
-            return [program, entry?.branch.map { "⑂ \($0)" }, tail, state].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
-        case .file(let file): return file.path
-        case .browser(let browser): return URL(string: browser.urlString)?.host ?? browser.title
-        case .diff(let diff): return diff.path
-        }
-    }
-
-    private func row(for key: ProjectSidebarRow) -> WorkspaceItemView? {
-        switch key {
-        case .workspace(let item): rows[item]
-        case .tab(_, let id), .pane(_, _, let id): contentRows[id]
-        }
-    }
-
-    private func sidebarMenu() -> [AppKitContextMenuItem] {
-        [
-            .action(title: AppCommand.newSession.title) { [weak manager] in manager?.newSession() },
-            .separator,
-            .action(title: String(localized: AppSettings.shared.showSidebarSessions ? "Hide session and pane list" : "Show session and pane list")) {
-                AppSettings.shared.showSidebarSessions.toggle()
-            },
-            .action(title: String(localized: AppSettings.shared.compactSidebar ? "Use regular sidebar" : "Use compact sidebar")) {
-                AppSettings.shared.compactSidebar.toggle()
-            },
-            .action(title: String(localized: "Sidebar Settings…")) { SettingsWindowController.shared.show(category: .appearance) },
-        ]
-    }
-
-    private func isBlankSpace(at event: NSEvent) -> Bool {
-        guard let point = documentPoint(at: event), document.bounds.contains(point),
-              draggedItem == nil, !isFolderDropTarget,
-              tabDrag.drag == nil, tabDrag.paneDrag == nil,
-              tabDrag.projectDrag == nil, tabDrag.groupDrag == nil,
-              !rowFrames.values.contains(where: { $0.contains(point) }) else { return false }
-        return !order.contains { item in
-            guard case .group = item, let frame = rows[item]?.frame else { return false }
-            return frame.insetBy(dx: -8, dy: -4).contains(point)
-        }
-    }
-
-    private func updateMetadataTimer() {
-        let active = window != nil && manager.isLeftSidebarVisible && AppSettings.shared.showSidebarSessions
-            && rowOrder.contains { if case .workspace = $0 { return false }; return true }
-        if active && metadataTimer == nil {
-            metadataTimer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
-                .sink { [weak self] _ in self?.refreshVisibleMetadata() }
-        } else if !active { metadataTimer = nil; metadata.clear() }
-    }
-
-    private func refreshVisibleMetadata() {
-        guard window != nil, manager.isLeftSidebarVisible, AppSettings.shared.showSidebarSessions else { return }
-        var sessions: [(session: TerminalSession, project: Project)] = []
-        var seen = Set<UUID>()
-        for key in rowOrder {
-            guard let row = row(for: key), row.frame.intersects(document.visibleRect),
-                  let projectID = key.projectID, let project = projectIndex[projectID] else { continue }
-            let content: PaneContent?
-            switch key {
-            case .tab(_, let id): content = project.tabs.first(where: { $0.id == id })?.focusedContent
-            case .pane(_, let tabID, let id): content = project.tabs.first(where: { $0.id == tabID })?.allContents.first(where: { $0.id == id })
-            case .workspace: content = nil
-            }
-            if case .session(let session) = content, seen.insert(session.id).inserted { sessions.append((session, project)) }
-        }
-        metadata.refresh(sessions: sessions)
-    }
-
-    private func updateVisibleContentRows() {
-        let viewport = document.visibleRect.insetBy(dx: 0, dy: -80)
-        var visible = Set<UUID>()
-        for key in rowOrder {
-            guard let frame = rowFrames[key],
-                  frame.intersects(viewport) || row(for: key)?.isRenaming == true,
-                  let projectID = key.projectID,
-                  let project = projectIndex[projectID] else { continue }
-            let id: UUID
-            let tab: PaneTab
-            let pane: Pane?
-            switch key {
-            case .workspace: continue
-            case .tab(_, let tabID):
-                guard let current = project.tabs.first(where: { $0.id == tabID }) else { continue }
-                id = tabID; tab = current; pane = nil
-            case .pane(_, let tabID, let contentID):
-                guard let current = project.tabs.first(where: { $0.id == tabID }),
-                      let currentPane = current.allPanes.first(where: { $0.content.id == contentID }) else { continue }
-                id = contentID; tab = current; pane = currentPane
-            }
-            visible.insert(id)
-            let row = contentRows[id] ?? reusableRows.popLast() ?? WorkspaceItemView(frame: .zero)
-            if contentRows[id] == nil { contentRows[id] = row; document.addSubview(row) }
-            if let pane { configure(row, pane: pane, tab: tab, project: project) }
-            else { configure(row, tab: tab, project: project) }
-            row.onNavigate = { [weak self] keyCode in self?.navigate(from: key, key: keyCode) }
-            row.frame = frame
-        }
-        for id in contentRows.keys where !visible.contains(id) {
-            guard let row = contentRows.removeValue(forKey: id) else { continue }
-            row.removeFromSuperview()
-            row.onSelect = nil; row.onDisclosure = nil; row.onRename = nil; row.onNavigate = nil; row.menuItems = nil
-            if !row.isRenaming && reusableRows.count < 12 { reusableRows.append(row) }
-        }
-    }
-
     override func layout() {
         super.layout()
         material.frame = bounds
@@ -621,45 +404,31 @@ final class ProjectSidebarNSView: NSView {
                                     y: footerY + (bottomBarHeight - side) / 2, width: side, height: side)
         var y: CGFloat = 7
         let rowWidth = max(0, scrollView.contentSize.width - 16)
-        rowFrames.removeAll(keepingCapacity: true)
-        for item in rowOrder {
+        for item in order {
+            guard let row = rows[item] else { continue }
             let height: CGFloat
             let width: CGFloat
             let x: CGFloat
             switch item {
-            case .workspace(.project), .tab, .pane:
-                height = AppSettings.shared.compactSidebar
-                    ? max(28, ceil(16 * fontScale + 8))
-                    : max(38, ceil(31 * fontScale + 8))
+            case .project:
+                height = max(38, ceil(31 * fontScale + 8))
                 width = rowWidth
                 x = 8
-            case .workspace(.group):
+            case .group:
                 height = min(30, max(26, ceil(14 * fontScale + 6)))
                 width = rowWidth
                 x = 8
                 y += 5
             }
-            let frame = NSRect(x: x, y: y, width: width, height: height)
-            rowFrames[item] = frame
-            if case .workspace = item { row(for: item)?.frame = frame }
+            row.frame = NSRect(x: x, y: y, width: width, height: height)
             y += height + 3
         }
         document.frame = NSRect(x: 0, y: 0, width: scrollView.contentSize.width, height: max(scrollView.contentSize.height, y + 6))
         if revealSelection && draggedItem == nil {
             revealSelection = false
-            let selected = manager.selectedProject
-            if let selected, let tab = selected.selectedTab {
-                let paneKey = tab.focusedContent.map { ProjectSidebarRow.pane(project: selected.id, tab: tab.id, content: $0.id) }
-                let tabKey = ProjectSidebarRow.tab(project: selected.id, tab: tab.id)
-                if let frame = paneKey.flatMap({ rowFrames[$0] }) ?? rowFrames[tabKey]
-                    ?? rowFrames[.workspace(.project(selected.id))] { document.scrollToVisible(frame) }
-            } else if let id = manager.selectedProjectID, let frame = rowFrames[.workspace(.project(id))] {
-                document.scrollToVisible(frame)
-            }
+            if let id = manager.selectedProjectID, let row = rows[.project(id)] { row.scrollToVisible(row.bounds) }
         }
-        updateVisibleContentRows()
         publishDropFrames()
-        refreshVisibleMetadata()
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -675,8 +444,6 @@ final class ProjectSidebarNSView: NSView {
 
     func detach() {
         fpsCounter.stop()
-        metadataTimer = nil
-        metadata.clear()
         draggedItem = nil
         dropItem = nil
         isUngroupedWorkspaceDropTarget = false
@@ -866,49 +633,16 @@ final class ProjectSidebarNSView: NSView {
         NSCursor.arrow.set()
     }
 
-    private func navigate(from item: ProjectSidebarRow, key: UInt16) {
-        if case .workspace(.group(let id)) = item, key == 123 || key == 124,
+    private func navigate(from item: Item, key: UInt16) {
+        if case .group(let id) = item, key == 123 || key == 124,
            var group = groupStore.group(id: id) {
             group.isCollapsed = key == 123
             groupStore.update(group)
             return
         }
-        if AppSettings.shared.showSidebarSessions, key == 123 || key == 124 {
-            switch item {
-            case .workspace(.project(let id)):
-                if let project = manager.projects.first(where: { $0.id == id }) {
-                    if key == 123 || !project.isSidebarExpanded {
-                        project.isSidebarExpanded = key == 124
-                        return
-                    }
-                    if project.tabs.isEmpty { return }
-                }
-            case .tab(let projectID, let id):
-                guard let project = manager.projects.first(where: { $0.id == projectID }),
-                      let tab = project.tabs.first(where: { $0.id == id }) else { return }
-                if key == 123 && !tab.isSidebarExpanded {
-                    focusRow(.workspace(.project(projectID)))
-                } else if tab.hasMultiplePanes {
-                    if key == 124 && tab.isSidebarExpanded {
-                        if let pane = tab.allPanes.first { focusRow(.pane(project: projectID, tab: id, content: pane.content.id)) }
-                    } else { tab.isSidebarExpanded = key == 124 }
-                } else if key == 123 { focusRow(.workspace(.project(projectID))) }
-                return
-            case .pane(let projectID, let tabID, _):
-                if key == 123 { focusRow(.tab(project: projectID, tab: tabID)); return }
-                return
-            case .workspace(.group): break
-            }
-        }
-        guard let index = rowOrder.firstIndex(of: item), !rowOrder.isEmpty else { return }
+        guard let index = order.firstIndex(of: item), !order.isEmpty else { return }
         let offset = key == 123 || key == 126 ? -1 : 1
-        focusRow(rowOrder[(index + offset + rowOrder.count) % rowOrder.count])
-    }
-
-    private func focusRow(_ key: ProjectSidebarRow) {
-        if let frame = rowFrames[key] { document.scrollToVisible(frame) }
-        updateVisibleContentRows()
-        if let row = row(for: key) {
+        if let row = rows[order[(index + offset + order.count) % order.count]] {
             row.scrollToVisible(row.bounds)
             window?.makeFirstResponder(row)
         }
@@ -971,17 +705,9 @@ final class ProjectSidebarNSView: NSView {
             groups.append(.action(title: String(localized: "Remove from Group")) { [weak manager] in manager?.moveProject(project, to: nil) })
         }
         var items: [AppKitContextMenuItem] = [
-            .action(title: AppCommand.newSession.title) { [weak manager] in
-                manager?.selectedProjectID = project.id
-                manager?.newSession()
-            },
             .action(title: String(localized: project.isPinned ? "Unpin Project" : "Pin Project")) { [weak manager] in manager?.setPinned(!project.isPinned, for: project) },
             .action(title: String(localized: "Rename…")) { [weak row] in row?.onRename?() },
         ]
-        if AppSettings.shared.showSidebarSessions && !project.tabs.isEmpty {
-            items.append(.action(title: String(localized: project.isSidebarExpanded ? "Hide Sessions" : "Show Sessions")) { project.isSidebarExpanded.toggle() })
-        }
-        items.append(.submenu(title: String(localized: "Project Sidebar"), items: sidebarMenu()))
         if project.sharedHost != nil {
             items += [
                 .separator,
@@ -1012,6 +738,7 @@ final class ProjectSidebarNSView: NSView {
             if project.customDirectory != nil { items.append(.action(title: String(localized: "Use Automatic Directory")) { project.customDirectory = nil }) }
         }
         items += [.separator, .action(title: String(localized: "Close Project")) { [weak manager] in manager?.close(project) }]
+        items.append(.submenu(title: String(localized: "Project Sidebar"), items: sidebarMenu()))
         return items
     }
 
@@ -1060,174 +787,5 @@ final class ProjectSidebarNSView: NSView {
     private func announce(_ message: String) {
         NSAccessibility.post(element: NSApp as Any, notification: .announcementRequested,
             userInfo: [.announcement: message, .priority: NSAccessibilityPriorityLevel.medium.rawValue])
-    }
-}
-
-@MainActor
-private final class ProjectSidebarMetadata {
-    nonisolated struct Entry: Equatable, Sendable {
-        let program: String?
-        let directory: String
-        let branch: String?
-    }
-
-    private nonisolated struct Request: Equatable, Sendable {
-        let id: UUID
-        let scope: String
-        let location: ProjectLocation
-        let directory: String
-        let foregroundPID: Int32?
-        let remoteProgram: String?
-    }
-
-    private nonisolated struct BranchEntry: Sendable {
-        let branch: String?
-        let sampled: Date
-    }
-
-    private var entries: [UUID: Entry] = [:]
-    private var branches: [String: BranchEntry] = [:]
-    private var task: Task<Void, Never>?
-    private var worker: Task<([UUID: Entry], [String: BranchEntry]), Never>?
-    private var generation: UInt = 0
-    private var activeRequests: [Request] = []
-    private var pendingRequests: [Request]?
-    private var probeOffset = 0
-    private var lastRefresh = Date.distantPast
-    var onChange: (() -> Void)?
-
-    func entry(for id: UUID) -> Entry? { entries[id] }
-
-    func clear() {
-        generation &+= 1
-        worker?.cancel()
-        pendingRequests = nil
-        let hadEntries = !entries.isEmpty
-        entries.removeAll()
-        branches.removeAll()
-        activeRequests.removeAll()
-        lastRefresh = .distantPast
-        if hadEntries { onChange?() }
-    }
-
-    func refresh(sessions: [(session: TerminalSession, project: Project)]) {
-        let requests = sessions.prefix(64).map { session, project in
-            let directory = session.workingDirectory.flatMap { value in
-                if let url = URL(string: value), url.isFileURL { return url.path }
-                return value.hasPrefix("/") || project.isRemote ? value : nil
-            } ?? session.remoteConnection?.projectDirectory ?? project.remoteDirectory ?? session.initialDirectoryPath
-            return Request(id: session.id,
-                scope: project.isRemote ? project.conversationHistoryProjectID.uuidString : "local",
-                location: project.location, directory: directory,
-                foregroundPID: project.isRemote || session.hasExited ? nil : session.surface.foregroundPid,
-                remoteProgram: session.remoteStatus?.sessionCommand?.first.map { ($0 as NSString).lastPathComponent })
-        }
-        let changed = requests != activeRequests
-        if changed {
-            generation &+= 1
-            worker?.cancel()
-            let unchanged = Set(requests.filter { activeRequests.contains($0) }.map(\.id))
-            let oldEntries = entries
-            entries = entries.filter { unchanged.contains($0.key) }
-            activeRequests = requests
-            lastRefresh = .distantPast
-            if entries != oldEntries { onChange?() }
-        }
-        guard changed || Date().timeIntervalSince(lastRefresh) >= 2 else { return }
-        guard worker == nil else {
-            if changed { pendingRequests = requests }
-            return
-        }
-        start(requests)
-    }
-
-    private func start(_ requests: [Request]) {
-        guard !requests.isEmpty else { return }
-        lastRefresh = Date()
-        let generation = generation, cache = branches
-        let offset = probeOffset % requests.count
-        let ordered = Array(requests[offset...]) + Array(requests[..<offset])
-        probeOffset = (offset + 4) % requests.count
-        let worker = Task.detached(priority: .utility) {
-            var values: [UUID: Entry] = [:]
-            var branches = cache
-            var branchProbes = 0
-            for request in ordered {
-                guard !Task.isCancelled else { break }
-                let directory: String
-                let program: String?
-                if case .local = request.location, let pid = request.foregroundPID {
-                    directory = processWorkingDirectory(pid: pid) ?? request.directory
-                    program = processExecutablePath(pid: pid).map { ($0 as NSString).lastPathComponent }
-                } else {
-                    directory = request.directory
-                    program = request.remoteProgram
-                }
-                let key = request.scope + ":" + directory
-                let lifetime: TimeInterval = request.scope == "local" ? 5 : 15
-                if branchProbes < 4 && (branches[key] == nil || Date().timeIntervalSince(branches[key]!.sampled) >= lifetime) {
-                    branchProbes += 1
-                    branches[key] = BranchEntry(branch: Self.branch(in: directory, location: request.location), sampled: Date())
-                }
-                values[request.id] = Entry(program: program, directory: directory, branch: branches[key]?.branch)
-            }
-            if branches.count > 128 {
-                branches = Dictionary(uniqueKeysWithValues: branches.sorted { $0.value.sampled > $1.value.sampled }
-                    .prefix(128).map { ($0.key, $0.value) })
-            }
-            return (values, branches)
-        }
-        self.worker = worker
-        task = Task { [weak self] in
-            let result = await worker.value
-            guard let self else { return }
-            self.task = nil
-            self.worker = nil
-            if self.generation == generation && self.activeRequests == requests {
-                self.branches = result.1
-                if self.entries != result.0 { self.entries = result.0; self.onChange?() }
-            }
-            if let pending = self.pendingRequests {
-                self.pendingRequests = nil
-                self.start(pending)
-            }
-        }
-    }
-
-    private nonisolated static func branch(in directory: String, location: ProjectLocation) -> String? {
-        switch location {
-        case .local:
-            let deadline = DispatchTime.now().uptimeNanoseconds + 3_000_000_000
-            if case .repository(let snapshot) = GitStatusModel.branchSnapshot(in: directory, commandRunner: { arguments, root in
-                let remaining = Double(deadline &- min(deadline, DispatchTime.now().uptimeNanoseconds)) / 1_000_000_000
-                guard !Task.isCancelled, remaining > 0 else {
-                    return GitCommandDataResult(status: -3, stdout: Data(), stderr: "", truncated: false)
-                }
-                return GitCommandRunner.runData(arguments, in: root, limit: 4_096, timeout: min(2, remaining))
-            }) {
-                return snapshot.branch ?? String(localized: "Detached HEAD")
-            }
-            return nil
-        case .ssh(let endpoint, _, let authentication, let credentialID):
-            return remoteBranch(endpoint: endpoint, authentication: authentication, credentialID: credentialID, directory: directory)
-        case .shared(let host, _):
-            let endpoint: SSHEndpoint?
-            switch try? host.endpoint() {
-            case .ssh(let value): endpoint = value
-            case .tailscale(let name, _): endpoint = try? SSHEndpoint(host: name)
-            case nil: endpoint = nil
-            }
-            return endpoint.flatMap { remoteBranch(endpoint: $0, directory: directory) }
-        }
-    }
-
-    private nonisolated static func remoteBranch(endpoint: SSHEndpoint, authentication: SSHAuthentication = .agent,
-                                                credentialID: UUID? = nil, directory: String) -> String? {
-        // Query only HEAD: remote rows never inspect a same-named local path.
-        let output = try? OpenSSHTransport(timeout: 3, outputLimit: 4_096).run(
-            endpoint: endpoint, command: ["/usr/bin/git", "-C", directory, "symbolic-ref", "--quiet", "--short", "HEAD"],
-            authentication: authentication, credentialID: credentialID)
-        guard let branch = output?.stdout.trimmingCharacters(in: .whitespacesAndNewlines), !branch.isEmpty else { return nil }
-        return branch
     }
 }

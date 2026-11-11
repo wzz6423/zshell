@@ -68,6 +68,8 @@ Elk project kan zoveel sessies bevatten als je wilt. Ze verschijnen als tabblade
 
 Een nieuwe lokale sessie begint in de vastgezette projectmap als die is ingesteld, en anders in de standaardmap van de zijbalkgroep. Als geen van beide bestaat, neemt de sessie de map van de huidige sessie over en valt uiteindelijk terug op je thuismap.
 
+Dubbelklik op lege ruimte in de projectzijbalk om een sessie in het geselecteerde project te maken, of een project als er geen is geselecteerd. Schakel dit uit via **Instellingen → Weergave → Projectzijbalk**. Het contextmenu van de lege ruimte bevat ook **Nieuwe sessie** en **Zijbalkinstellingen…**.
+
 ### Tabbladgroepen [#tab-groups]
 
 Klik met de rechtermuisknop op een tabblad en kies **Verplaatsen naar groep → Nieuwe tabbladgroep**. Het tabblad wordt lid van de nieuwe groep, weergegeven als een gekleurde pijl zonder naam. Nieuwe sessies die vanuit een gegroepeerd tabblad worden geopend, blijven in dezelfde groep; klik met de rechtermuisknop op de groepspijl en kies **Nieuwe sessie in groep** om er rechtstreeks een sessie in te maken.
@@ -94,14 +96,6 @@ Editor- en diffpanelen worden terminals in de hoofdmap met dezelfde positie. Het
 
 Projecten op een bewaarde externe host kunnen als extern sjabloon worden bewaard. De JSON bewaart alleen de bewaarde naam van de host in `remote.host` en de projectmap in `remote.directory` (absoluut of beginnend met `~/`); elk terminalpaneel gebruikt `.`. Adressen, serverpaden, inloggegevens en externe sessie-ID’s worden nooit bewaard, en imports die ze bevatten worden geweigerd. Kies bij het toepassen een bewaarde host (een host met dezelfde naam is vooraf geselecteerd; ontbreekt die, dan vraagt het venster een andere te kiezen of hem toe te voegen in **Externe hosts**) en bevestig de **Externe map**. Zshell maakt verbinding, maakt een nieuw gedeeld project en start daar nieuwe externe sessies; bestaande sessies worden nooit opnieuw gekoppeld. Mislukt de verbinding of de map, dan wordt geen project gemaakt. Projecten die via het oude SSH-formulier zijn geopend, kunnen niet als sjabloon worden bewaard.
 
-
-<span data-canonical-heading="sidebar-sessions-and-panes" />
-
-## Sessies en panelen in de zijbalk [#sidebar-sessions-and-panes]
-
-Schakel **Lijst met sessies en panelen tonen** in bij **Instellingen → Uiterlijk → Projectzijbalk**. De pijl bij een project toont de tabs; die bij een gesplitste tab toont alle panelen. Elk paneel toont de actuele titel, het programma, de branch en de agentstatus. Een klik selecteert het project en de tab en activeert het paneel. Het menu biedt activeren, zoomen en sluiten. De uitgevouwen toestand wordt met de werkruimte hersteld.
-
-De **compacte zijbalk** gebruikt één regel per rij. Compacte rijen verbergen programma-, branch- en mapdetails, ook wanneer een tab is uitgeklapt. Houd de aanwijzer boven een rij voor de tooltip, of schakel de **compacte zijbalk** uit om de details onder de titel te tonen. Dubbelklik op lege ruimte om een sessie in het geselecteerde project te maken, of een project als er geen geselecteerd is. Dit gebaar kan in dezelfde instellingen worden uitgezet. De menu’s bieden ook **Nieuwe sessie**, zichtbaarheid en dichtheid. Pijltjes navigeren en vouwen uit of samen; Return of Spatie activeert de rij.
 
 ## Vensters [#windows]
 

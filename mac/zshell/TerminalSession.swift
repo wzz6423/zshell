@@ -685,8 +685,6 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         (shellPath as NSString).lastPathComponent
     }
 
-    var initialDirectoryPath: String { launchWorkingDirectory }
-
     /// Persisted PTY adoption must preserve this directory along with the
     /// shell's original launch artifacts; a new directory cannot identify a
     /// command already running in that shell.

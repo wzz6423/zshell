@@ -400,7 +400,6 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
         }
     }
     @Published var isPinned: Bool
-    @Published var isSidebarExpanded = false
     @Published var tabGroupID: UUID?
     @Published var markerColor: ProjectTabMarkerColor?
     /// Overrides applied only when this tab creates a later terminal. Existing

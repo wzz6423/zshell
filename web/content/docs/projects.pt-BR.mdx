@@ -68,6 +68,8 @@ Cada projeto comporta quantas sessões você precisar, exibidas como abas no top
 
 Uma sessão local nova usa primeiro o diretório fixado do projeto, depois o padrão do grupo da barra lateral. Sem ambos, herda o diretório da sessão atual e recorre à pasta pessoal.
 
+Clique duas vezes em um espaço vazio da barra lateral para criar uma sessão no projeto selecionado, ou um projeto se nenhum estiver selecionado. Desative a ação em **Ajustes → Aparência → Barra lateral de projetos**. O menu de contexto desse espaço também oferece **Nova sessão** e **Ajustes da barra lateral…**.
+
 ### Grupos de abas [#tab-groups]
 
 Clique com o botão direito em uma aba e escolha **Mover para Grupo → Novo Grupo de Abas**. A aba entra no novo grupo, mostrado por uma seta colorida sem nome. Novas sessões abertas a partir de uma aba agrupada permanecem no grupo; clique com o botão direito na seta e escolha **Nova Sessão no Grupo** para criar diretamente dentro dele.
@@ -94,14 +96,6 @@ Painéis de editor e diff tornam-se terminais na raiz, mantendo suas posições.
 
 Projetos em um host remoto salvo podem ser salvos como modelos remotos. O JSON guarda apenas o nome salvo do host em `remote.host` e o diretório do projeto em `remote.directory` (absoluto ou iniciado por `~/`); todo painel de terminal usa `.`. Endereços, caminhos do servidor, credenciais e IDs de sessões remotas nunca são salvos, e importações que os contenham são rejeitadas. Ao aplicar um modelo remoto, escolha um host salvo (o de mesmo nome vem pré-selecionado; se não houver, a janela pede que você escolha outro ou o adicione em **Hosts remotos**) e confirme o **Diretório remoto**. O Zshell conecta, cria um novo projeto compartilhado e inicia novas sessões remotas; nunca reconecta sessões existentes. Se a conexão ou o diretório falhar, nenhum projeto é criado. Projetos abertos pelo formulário SSH antigo não podem ser salvos como modelos.
 
-
-<span data-canonical-heading="sidebar-sessions-and-panes" />
-
-## Sessões e painéis na barra lateral [#sidebar-sessions-and-panes]
-
-Ative **Mostrar lista de sessões e painéis** em **Ajustes → Aparência → Barra lateral de projetos**. A seta do projeto mostra as abas e a de uma aba dividida mostra todos os painéis. Cada painel mostra título atual, programa, branch e estado do agente. Um clique seleciona seu projeto e aba e foca o painel; o menu permite focar, ampliar ou fechar. A expansão é restaurada com o espaço de trabalho.
-
-A **barra lateral compacta** usa uma linha por item. As linhas compactas ocultam os detalhes de programa, branch e diretório mesmo quando a aba está expandida. Passe o cursor sobre uma linha para ver a dica ou desative a **barra lateral compacta** para mostrar os detalhes abaixo do título. Clique duas vezes no espaço vazio para criar uma sessão no projeto selecionado, ou um projeto se nenhum estiver selecionado. O gesto pode ser desativado nos mesmos ajustes. Os menus também oferecem **Nova sessão**, visibilidade e densidade. As setas navegam e expandem ou recolhem; Return ou Espaço foca a linha.
 
 ## Janelas [#windows]
 

@@ -68,6 +68,8 @@ Cada proyecto admite tantas sesiones como quieras, mostradas como pestañas en l
 
 Una sesión local nueva se inicia en el directorio fijado del proyecto, si existe; después tiene prioridad el directorio predeterminado de su grupo de la barra lateral. Si no hay ninguno de los dos, hereda el directorio de la sesión actual y, en último caso, usa tu carpeta personal.
 
+Un doble clic en un espacio vacío de la barra lateral crea una sesión en el proyecto seleccionado, o un proyecto si no hay ninguno seleccionado. Puede desactivarlo en **Ajustes → Apariencia → Barra lateral de proyectos**. El menú contextual del espacio vacío también ofrece **Nueva sesión** y **Ajustes de la barra lateral…**.
+
 ### Grupos de pestañas [#tab-groups]
 
 Haz clic derecho en una pestaña y elige **Mover al grupo → Nuevo grupo de pestañas**. La pestaña se incorpora al nuevo grupo, representado por una flecha de color sin nombre. Las sesiones nuevas abiertas desde una pestaña agrupada permanecen en ese grupo; haz clic derecho en la flecha y elige **Nueva sesión en el grupo** para crear una sesión directamente dentro de él.
@@ -94,14 +96,6 @@ Los paneles del editor y de diferencias se convierten en terminales en la raíz 
 
 Los proyectos en un host remoto guardado se pueden guardar como plantillas remotas. El JSON solo guarda el nombre del host en `remote.host` y el directorio del proyecto en `remote.directory` (absoluto o que empiece por `~/`); cada panel de terminal usa `.`. Nunca se guardan direcciones, rutas del servidor, credenciales ni ID de sesiones remotas, y se rechazan las importaciones que los incluyan. Al aplicar una plantilla remota, elige un host guardado (se preselecciona el que tenga el mismo nombre; si no existe, la ventana te pide elegir otro o añadirlo en **Hosts remotos**) y confirma el **Directorio remoto**. Zshell se conecta, crea un proyecto compartido nuevo e inicia sesiones remotas nuevas; nunca vuelve a conectar sesiones existentes. Si la conexión o el directorio fallan, no se crea ningún proyecto. Los proyectos abiertos con el formulario SSH antiguo no se pueden guardar como plantillas.
 
-
-<span data-canonical-heading="sidebar-sessions-and-panes" />
-
-## Sesiones y paneles en la barra lateral [#sidebar-sessions-and-panes]
-
-Activa **Mostrar lista de sesiones y paneles** en **Ajustes → Apariencia → Barra lateral de proyectos**. La flecha del proyecto muestra sus pestañas y la de una pestaña dividida muestra cada panel. Cada panel indica su título actual, programa, rama y estado del agente. Al pulsarlo se seleccionan su proyecto y pestaña y recibe el foco; su menú permite enfocar, ampliar o cerrar. La expansión se restaura con el espacio de trabajo.
-
-La **barra lateral compacta** usa una línea por fila. Las filas compactas ocultan los detalles de programa, rama y directorio incluso al expandir una pestaña. Pasa el cursor sobre una fila para ver la información emergente o desactiva la **barra lateral compacta** para mostrar esos detalles bajo el título. Un doble clic en un espacio vacío crea una sesión en el proyecto seleccionado, o un proyecto si no hay ninguno seleccionado. El gesto se desactiva en los mismos ajustes. Los menús también ofrecen **Nueva sesión**, visibilidad y densidad. Las flechas navegan y expanden o contraen; Intro o Espacio enfoca la fila.
 
 ## Ventanas [#windows]
 

@@ -68,6 +68,8 @@ Setiap proyek dapat memuat sesi sebanyak yang Anda perlukan, ditampilkan sebagai
 
 Sesi lokal baru dimulai di direktori proyek yang disematkan jika ada, lalu memakai direktori bawaan grup bilah samping. Tanpa keduanya, sesi mewarisi direktori sesi saat ini dan menggunakan direktori pribadi sebagai cadangan.
 
+Klik dua kali ruang kosong di bilah samping untuk membuat sesi di proyek terpilih, atau proyek baru jika tidak ada yang terpilih. Nonaktifkan tindakan ini di **Pengaturan → Tampilan → Bilah Samping Proyek**. Menu klik kanan ruang kosong juga menyediakan **Sesi Baru** dan **Pengaturan Bilah Samping…**.
+
 ### Grup tab [#tab-groups]
 
 Klik kanan tab dan pilih **Pindahkan ke Grup → Grup Tab Baru**. Tab masuk ke grup baru yang ditandai panah berwarna tanpa nama. Sesi baru yang dibuka dari tab bergrup tetap berada dalam grup itu; klik kanan panah grup dan pilih **Sesi Baru dalam Grup** untuk membuat sesi langsung di dalamnya.
@@ -94,14 +96,6 @@ Panel editor dan diff menjadi terminal pada akar dengan posisi tetap. Proyek sum
 
 Proyek di host jarak jauh tersimpan dapat disimpan sebagai templat jarak jauh. JSON hanya menyimpan nama tersimpan host di `remote.host` dan direktori proyek di `remote.directory` (absolut atau diawali `~/`); setiap panel terminal memakai `.`. Alamat, jalur server, kredensial, dan ID sesi jarak jauh tidak pernah disimpan, dan impor yang memuatnya ditolak. Saat menerapkan templat jarak jauh, pilih host tersimpan (host dengan nama yang sama dipilih lebih dulu; jika tidak ada, jendela meminta Anda memilih host lain atau menambahkannya di **Host jarak jauh**) lalu konfirmasi **Direktori Jarak Jauh**. Zshell terhubung, membuat proyek bersama baru, dan memulai sesi jarak jauh baru; sesi yang ada tidak pernah disambungkan ulang. Jika koneksi atau direktori gagal, tidak ada proyek yang dibuat. Proyek yang dibuka melalui formulir SSH lama tidak dapat disimpan sebagai templat.
 
-
-<span data-canonical-heading="sidebar-sessions-and-panes" />
-
-## Sesi dan panel di bilah samping [#sidebar-sessions-and-panes]
-
-Aktifkan **Tampilkan daftar sesi dan panel** di **Pengaturan → Tampilan → Bilah Samping Proyek**. Panah proyek menampilkan tab, lalu panah tab terbagi menampilkan semua panel. Setiap panel menunjukkan judul saat ini, program, cabang, dan status agen. Klik panel untuk memilih proyek dan tabnya serta memfokuskannya; menu klik kanan menawarkan fokus, zoom, dan tutup. Status perluasan dipulihkan bersama ruang kerja.
-
-**Bilah samping ringkas** memakai satu baris per item. Baris ringkas menyembunyikan detail program, cabang, dan direktori meskipun tab diperluas. Arahkan penunjuk ke baris untuk melihat tooltip, atau nonaktifkan **Bilah samping ringkas** agar detail tampil di bawah judul. Klik dua kali ruang kosong untuk membuat sesi di proyek terpilih, atau proyek jika tidak ada yang dipilih. Gestur ini dapat dinonaktifkan di pengaturan yang sama. Menu juga menyediakan **Sesi Baru**, visibilitas daftar, dan kepadatan. Tombol panah menavigasi, memperluas, atau menciutkan; Return atau Spasi memfokuskan baris.
 
 ## Jendela [#windows]
 

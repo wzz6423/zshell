@@ -1,4 +1,4 @@
-"""Exercise the native session sidebar against both production terminal backends.
+"""Exercise native pane closes and sidebar blank creation against both terminal backends.
 
 Build Debug first, then pass --derived-data for an isolated app build. The
 fixture reuses the app resources, stays offscreen and removes its disposable
@@ -10,6 +10,8 @@ import os
 from pathlib import Path
 import platform
 import plistlib
+import signal
+import json
 import subprocess
 import tempfile
 import uuid
@@ -35,7 +37,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-sidebar-surfaces-", dir="/tmp") 
     executable.parent.mkdir(parents=True)
     info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
     info.update({"CFBundleIdentifier": "sh.zshell.sidebar-fixture." + uuid.uuid4().hex,
-                 "CFBundleExecutable": executable.name})
+                 "CFBundleExecutable": executable.name, "LSBackgroundOnly": True})
     (contents / "Info.plist").write_bytes(plistlib.dumps(info))
     (contents / "Resources").symlink_to(app / "Contents/Resources", target_is_directory=True)
     arguments = ["xcrun", "swiftc", "-parse-as-library", "-swift-version", "5",
@@ -58,10 +60,32 @@ with tempfile.TemporaryDirectory(prefix="zshell-sidebar-surfaces-", dir="/tmp") 
     for backend in options.backend or ("ghostty", "alacritty"):
         home = temporary / backend / "home"
         home.mkdir(parents=True)
+        config = home / ".config/zshell-dev"
+        config.mkdir(parents=True)
+        (config / "config.toml").write_text("ai.enabled = false\n")
         files = temporary / backend / "temporary"
         files.mkdir(mode=0o700)
         environment = {key: value for key, value in os.environ.items()
-            if key not in ("ZSHELL_CLI_STATE", "ZSHELL_CLI_TOKEN")}
+            if not key.startswith("ZSHELL_")}
         environment.update({"HOME": str(home), "CFFIXED_USER_HOME": str(home), "TMPDIR": str(files),
-            "ZSHELL_PTY_MUX_DIRECTORY": str(home / "mux"), "ZSHELL_SSH_AGENT_RESOLVED": "1"})
-        subprocess.run([str(executable), backend], cwd=ROOT, env=environment, check=True, timeout=150)
+            "ZSHELL_PTY_MUX_DIRECTORY": str(home / "mux"), "ZSHELL_SSH_AGENT_RESOLVED": "1",
+            "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null"})
+        process = subprocess.Popen([str(executable), backend], cwd=ROOT, env=environment, start_new_session=True)
+        try:
+            process.wait(timeout=150)
+            if process.returncode:
+                raise subprocess.CalledProcessError(process.returncode, process.args)
+        finally:
+            try:
+                os.killpg(process.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            process.wait()
+            mux = [str(app / "Contents/MacOS/zshell"), "+pty-mux"]
+            listing = subprocess.run(mux + ["list"], cwd=ROOT, env=environment,
+                capture_output=True, text=True, timeout=10)
+            if listing.returncode == 0:
+                for session in json.loads(listing.stdout):
+                    subprocess.run(mux + ["terminate", session["id"]], cwd=ROOT, env=environment,
+                        capture_output=True, timeout=10)
+                subprocess.run(mux + ["shutdown"], cwd=ROOT, env=environment, capture_output=True, timeout=10)

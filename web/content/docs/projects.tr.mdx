@@ -68,6 +68,8 @@ Her proje istediğiniz kadar oturum barındırır; bunlar üstte sekme olarak g�
 
 Yeni yerel oturum önce sabitlenmiş proje dizinini, yoksa kenar çubuğu grubunun varsayılan dizinini kullanır. İkisi de yoksa geçerli oturumun dizinini devralır; son seçenek ev dizininizdir.
 
+Proje kenar çubuğundaki boş alana çift tıklamak seçili projede bir oturum, proje seçili değilse yeni bir proje oluşturur. **Ayarlar → Görünüm → Proje Kenar Çubuğu** bölümünden kapatabilirsiniz. Boş alanın sağ tık menüsünde **Yeni Oturum** ve **Kenar Çubuğu Ayarları…** da bulunur.
+
 ### Sekme grupları [#tab-groups]
 
 Sekmeye sağ tıklayıp **Gruba Taşı → Yeni Sekme Grubu**’nu seçin. Sekme, adsız renkli okla gösterilen yeni gruba katılır. Gruplanmış sekmeden açılan yeni oturumlar aynı grupta kalır; grubun okuna sağ tıklayıp **Grupta Yeni Oturum** ile doğrudan içinde oturum oluşturun.
@@ -94,14 +96,6 @@ Düzenleyici ve diff bölmeleri konumlarını koruyarak kökte yeni terminallere
 
 Kayıtlı bir uzak ana makinedeki projeler uzak şablon olarak kaydedilebilir. JSON yalnızca ana makinenin kayıtlı adını `remote.host` alanında ve proje dizinini `remote.directory` alanında (mutlak ya da `~/` ile başlayan) saklar; her terminal bölmesi `.` kullanır. Adresler, sunucu yolları, kimlik bilgileri ve uzak oturum kimlikleri asla kaydedilmez; bunları içeren içe aktarmalar reddedilir. Uzak şablonu uygularken kayıtlı bir ana makine seçin (aynı adlı makine önceden seçilir; yoksa pencere başka birini seçmenizi veya **Uzak ana makineler** bölümünden eklemenizi ister) ve **Uzak Dizin** değerini onaylayın. Zshell bağlanır, yeni bir paylaşılan proje oluşturur ve orada yeni uzak oturumlar başlatır; mevcut oturumlara asla yeniden bağlanmaz. Bağlantı veya dizin başarısız olursa proje oluşturulmaz. Eski SSH formuyla açılan projeler şablon olarak kaydedilemez.
 
-
-<span data-canonical-heading="sidebar-sessions-and-panes" />
-
-## Kenar çubuğunda oturumlar ve bölmeler [#sidebar-sessions-and-panes]
-
-**Ayarlar → Görünüm → Proje Kenar Çubuğu** altında **Oturum ve bölme listesini göster** seçeneğini açın. Projenin oku sekmeleri, bölünmüş sekmenin oku tüm bölmeleri gösterir. Her bölme güncel başlık, program, dal ve aracı durumunu gösterir. Bir bölmeye tıklamak projesini ve sekmesini seçip odaklar; sağ tık menüsü odaklama, yakınlaştırma ve kapatma sunar. Genişletme durumu çalışma alanıyla geri yüklenir.
-
-**Kompakt kenar çubuğu** tek satırlı öğeler kullanır. Kompakt satırlar, sekme genişletilmiş olsa bile program, dal ve dizin ayrıntılarını gizler. Araç ipucunu görmek için imleci satırın üzerinde tutun veya ayrıntıları başlığın altında göstermek için **Kompakt kenar çubuğu** seçeneğini kapatın. Boş alana çift tıklamak seçili projede oturum, proje seçili değilse yeni proje oluşturur. Bu hareket aynı ayarlarda kapatılabilir. Menülerde de **Yeni Oturum**, liste görünürlüğü ve satır yoğunluğu bulunur. Oklar gezinir, genişletir veya daraltır; Return veya Boşluk satıra odaklanır.
 
 ## Pencereler [#windows]
 

@@ -232,14 +232,6 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
-    @Published var showSidebarSessions: Bool {
-        didSet { save() }
-    }
-
-    @Published var compactSidebar: Bool {
-        didSet { save() }
-    }
-
     @Published var sidebarDoubleClickNewSession: Bool {
         didSet { save() }
     }
@@ -546,8 +538,6 @@ final class AppSettings: nonisolated ObservableObject {
         sidebarFontSize = Self.sidebarFontSizeRange.contains(sidebarSize)
             ? sidebarSize
             : Self.defaultSidebarFontSize
-        showSidebarSessions = toml["sidebar.show-sessions"]?.bool ?? false
-        compactSidebar = toml["sidebar.compact"]?.bool ?? false
         sidebarDoubleClickNewSession = toml["sidebar.double-click-new-session"]?.bool ?? true
         let interfaceScale = toml["interface.scale"]?.double
             ?? Self.defaultInterfaceScale
@@ -736,8 +726,6 @@ final class AppSettings: nonisolated ObservableObject {
             && fontFallbackFamily.isEmpty
             && fontSize == Self.defaultFontSize
             && sidebarFontSize == Self.defaultSidebarFontSize
-            && !showSidebarSessions
-            && !compactSidebar
             && sidebarDoubleClickNewSession
             && interfaceScale == Self.defaultInterfaceScale
             && !fontThicken
@@ -798,8 +786,6 @@ final class AppSettings: nonisolated ObservableObject {
         applicationPresence = .dockOnly
         keepAwakeMode = .off
         resetFont()
-        showSidebarSessions = false
-        compactSidebar = false
         sidebarDoubleClickNewSession = true
         language = .system
         theme = .system
@@ -975,8 +961,6 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.sidebarFontSize, Self.sidebarFontSizeRange.contains(sidebarSize)
             ? sidebarSize
             : Self.defaultSidebarFontSize)
-        assign(\.showSidebarSessions, toml["sidebar.show-sessions"]?.bool ?? false)
-        assign(\.compactSidebar, toml["sidebar.compact"]?.bool ?? false)
         assign(\.sidebarDoubleClickNewSession, toml["sidebar.double-click-new-session"]?.bool ?? true)
         let scale = toml["interface.scale"]?.double ?? Self.defaultInterfaceScale
         assign(\.interfaceScale, Self.interfaceScaleRange.contains(scale)
@@ -1179,8 +1163,6 @@ final class AppSettings: nonisolated ObservableObject {
         if sidebarFontSize != Self.defaultSidebarFontSize {
             lines.append("sidebar.font-size = \(TOML.number(sidebarFontSize))")
         }
-        if showSidebarSessions { lines.append("sidebar.show-sessions = true") }
-        if compactSidebar { lines.append("sidebar.compact = true") }
         if !sidebarDoubleClickNewSession { lines.append("sidebar.double-click-new-session = false") }
         if interfaceScale != Self.defaultInterfaceScale {
             lines.append("interface.scale = \(TOML.number(interfaceScale))")

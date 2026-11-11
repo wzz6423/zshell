@@ -68,6 +68,8 @@ Chaque projet peut contenir autant de sessions que vous le souhaitez, présenté
 
 Une nouvelle session locale utilise d'abord le répertoire fixé du projet, puis le dossier par défaut de son groupe latéral. Sans l'un ni l'autre, elle reprend le répertoire de la session actuelle, ou votre dossier personnel en dernier recours.
 
+Un double-clic dans un espace vide de la barre latérale crée une session dans le projet sélectionné, ou un projet si aucun n’est sélectionné. Désactivez cette action dans **Réglages → Apparence → Barre latérale des projets**. Le menu contextuel de cet espace propose aussi **Nouvelle session** et **Réglages de la barre latérale…**.
+
 ### Groupes d'onglets [#tab-groups]
 
 Faites un clic droit sur un onglet et choisissez **Déplacer vers un groupe → Nouveau groupe d'onglets**. L'onglet rejoint le nouveau groupe, représenté par une flèche colorée sans nom. Les sessions créées depuis un onglet groupé restent dans ce groupe. Le menu de sa flèche propose aussi **Nouvelle session dans le groupe**.
@@ -94,14 +96,6 @@ Les volets d’éditeur et de diff deviennent des terminaux à la racine en gard
 
 Les projets sur un hôte distant enregistré peuvent être enregistrés comme modèles distants. Le JSON ne conserve que le nom enregistré de l’hôte dans `remote.host` et le répertoire du projet dans `remote.directory` (absolu ou commençant par `~/`) ; chaque volet de terminal utilise `.`. Les adresses, chemins du serveur, identifiants et ID de session distante ne sont jamais enregistrés, et les imports qui les contiennent sont refusés. Pour appliquer un modèle distant, choisissez un hôte enregistré (celui du même nom est présélectionné ; sinon la fenêtre vous invite à en choisir un autre ou à l’ajouter dans **Hôtes distants**) et confirmez le **Répertoire distant**. Zshell se connecte, crée un nouveau projet partagé et y démarre de nouvelles sessions distantes ; il ne rattache jamais les sessions existantes. Si la connexion ou le répertoire échoue, aucun projet n’est créé. Les projets ouverts avec l’ancien formulaire SSH ne peuvent pas être enregistrés comme modèles.
 
-
-<span data-canonical-heading="sidebar-sessions-and-panes" />
-
-## Sessions et volets dans la barre latérale [#sidebar-sessions-and-panes]
-
-Activez **Afficher les sessions et les volets** dans **Réglages → Apparence → Barre latérale des projets**. La flèche du projet affiche ses onglets, puis celle d’un onglet divisé affiche ses volets. Chaque volet indique son titre actuel, son programme, sa branche et l’état de son agent. Un clic sélectionne son projet et son onglet et active le volet ; un clic droit permet de l’activer, de l’agrandir ou de le fermer. Le déploiement est restauré avec l’espace de travail.
-
-La **barre latérale compacte** utilise une seule ligne. Les lignes compactes masquent les détails du programme, de la branche et du dossier même lorsque l’onglet est développé. Survolez une ligne pour afficher son infobulle, ou désactivez la **barre latérale compacte** pour afficher ces détails sous le titre. Un double-clic dans un espace vide crée une session dans le projet sélectionné, ou un projet si aucun n’est sélectionné. Ce geste se désactive dans les mêmes réglages. Les menus de l’espace vide et des projets proposent aussi **Nouvelle session**, l’affichage de la liste et la densité. Les flèches déplacent, développent ou réduisent les lignes ; Retour ou Espace les active.
 
 ## Fenêtres [#windows]
 
