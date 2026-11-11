@@ -5,7 +5,7 @@
 
 import AppKit
 
-/// Terminal font preview shared by the family, line-height, and thickening
+/// Terminal font preview shared by the family, cell spacing, and thickening
 /// controls. It uses CoreText's smoothing flag plus the same normalized stroke
 /// mapping as the Alacritty backend; Ghostty's native raster can differ slightly.
 final class FontThickenPreviewView: NSView {
@@ -13,6 +13,7 @@ final class FontThickenPreviewView: NSView {
     var thicken = false
     var thickenStrength = AppSettings.defaultFontThickenStrength
     var lineHeight: CGFloat = 1
+    var cellWidth: CGFloat = 1
 
     /// Regular, icon, and bold samples: the glyphs whose weight the setting
     /// visibly changes.
@@ -52,17 +53,20 @@ final class FontThickenPreviewView: NSView {
         font: NSFont,
         thicken: Bool,
         thickenStrength: Int,
-        lineHeight: CGFloat
+        lineHeight: CGFloat,
+        cellWidth: CGFloat = 1
     ) {
         guard previewFont != font
             || self.thicken != thicken
             || self.thickenStrength != thickenStrength
             || self.lineHeight != lineHeight
+            || self.cellWidth != cellWidth
         else { return }
         previewFont = font
         self.thicken = thicken
         self.thickenStrength = thickenStrength
         self.lineHeight = lineHeight
+        self.cellWidth = cellWidth
         invalidateIntrinsicContentSize()
         needsDisplay = true
     }
@@ -104,7 +108,20 @@ final class FontThickenPreviewView: NSView {
                 attrs[.strokeColor] = color
                 attrs[.strokeWidth] = -(0.5 + CGFloat(strength) / 255 * 1.5)
             }
-            (text as NSString).draw(at: NSPoint(x: 0, y: y), withAttributes: attrs)
+            if cellWidth == 1 {
+                (text as NSString).draw(at: NSPoint(x: 0, y: y), withAttributes: attrs)
+            } else {
+                let naturalWidth = max(1, TerminalFont.cellAdvance(of: previewFont).rounded())
+                let width = max(1, (naturalWidth * cellWidth).rounded())
+                var x: CGFloat = 0
+                for character in text {
+                    let sample = String(character) as NSString
+                    let columns: CGFloat = sample.size(withAttributes: attrs).width > naturalWidth * 1.5 ? 2 : 1
+                    let offset = (width - naturalWidth) * columns / 2
+                    sample.draw(at: NSPoint(x: x + offset, y: y), withAttributes: attrs)
+                    x += columns * width
+                }
+            }
             y += rowHeight + lineSpacing
         }
     }

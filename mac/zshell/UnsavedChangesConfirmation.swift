@@ -40,8 +40,7 @@ final class UnsavedChangesConfirmation {
 
         switch await alert.beginSheetModal(for: host) {
         case .alertFirstButtonReturn:
-            content.save()
-            return content.saveError == nil && !content.isDirty
+            return content.save() && content.saveError == nil && !content.isDirty
         case .alertSecondButtonReturn:
             discardedText[content.id] = text
             return true

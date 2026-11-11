@@ -133,6 +133,12 @@ Zshell の永続設定の多くは、次の 1 ファイルに保存されます�
 `terminal.font-thicken` が true の場合の太さ補正を調整します。0 はオフではなく、最も弱い補正です。
 Ghostty は macOS ネイティブの強度、Alacritty は同じ範囲を CoreText の線幅に対応させます。増減方向と両端はそろいますが、描画されたピクセルは異なることがあります。
 
+### `terminal.cell-width` [#terminalcell-width]
+
+数値、0.75–2 — 既定値 `1`
+
+**設定 → 外観 → フォント → セル幅**でターミナルの列間隔を調整します。既定値は 100% で、整数のパーセントで保存します。両バックエンドとも開いているターミナルに即時反映し、PTY の列数、カーソル、選択範囲、キーボードヒントも更新します。字形のサイズは変わらず、全角文字は引き続き 2 列を占めます。ピクセルへの丸めにより、実際の変化幅はバックエンドごとに異なる場合があります。無効な値は 100% に戻ります。エディタと差分の間隔は変わりません。
+
 ### `terminal.line-height` [#terminalline-height]
 
 数値、0.75–2 — 既定値 `1`
@@ -148,6 +154,12 @@ Ghostty は名前付きスタイルや可変軸を選び、Alacritty／CoreText 
 
 [ファイルエディタ](/ja/docs/files)で長い行をペイン幅に折り返します。
 false なら横スクロールします。ターミナルや差分の折り返しは変わりません。
+
+### `editor.protect-saves` [#editorprotect-saves]
+
+ブール値 — 既定値 `true`
+
+ファイルや編集可能な作業ツリーの差分を保存する前に、外部プログラムによる変更を確認します。競合した場合は、下書きと比較、ディスクから再読み込み、下書きの保持、明示的な上書きを選べます。無効にすると、競合確認なしで外部の変更を置き換えます。
 
 ## ターミナル [#terminal]
 
@@ -274,6 +286,7 @@ toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.bell = false

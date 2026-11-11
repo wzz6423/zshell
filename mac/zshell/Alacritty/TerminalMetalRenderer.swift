@@ -534,10 +534,11 @@ final class TerminalMetalRenderer {
                 italic: false
             )
             if let entry = atlas.entry(for: key) {
-                if entry.size.x > cellWidth * 1.5 { advance = 2 }
+                // Column spacing must not turn a wide IME glyph into a narrow one.
+                if entry.size.x > Float(metrics.naturalCellWidth) * 1.5 { advance = 2 }
                 instances.append(Instance(
                     origin: SIMD2(
-                        left + entry.bearing.x,
+                        left + Float(metrics.glyphOffset(columns: Int(advance))) + entry.bearing.x,
                         baseline - entry.bearing.y - entry.size.y
                     ),
                     size: entry.size,
@@ -657,9 +658,10 @@ final class TerminalMetalRenderer {
                     // origin; y grows downward here, so the ascent above
                     // the baseline becomes a negative offset.
                     let baseline = top + Float(metrics.baseline)
+                    let columns = cell.flags & UInt16(ZSHELL_CELL_WIDE) != 0 ? 2 : 1
                     instances.append(Instance(
                         origin: SIMD2(
-                            left + entry.bearing.x,
+                            left + Float(metrics.glyphOffset(columns: columns)) + entry.bearing.x,
                             baseline - entry.bearing.y - entry.size.y
                         ),
                         size: entry.size,

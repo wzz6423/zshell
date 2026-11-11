@@ -173,13 +173,21 @@ struct AgentRecognitionAppKitTests {
         let draft = text.string + "# unsaved draft survives language changes\n"
         text.string = draft
         text.setSelectedRange(NSRange(location: (draft as NSString).length, length: 0))
-        AppLocalization.apply(.simplifiedChinese)
-        pump(0.05)
-        try check(controller.window === panel && panel.attachedSheet === sheet && text.string == draft,
-                  "language change preserves the manager, editor sheet, and unsaved TOML")
-        try check(sheet.title == String(localized: "Edit Agent Rules")
-                  && panel.title == String(localized: "Agent Recognition Rules"), "open windows update their language in place")
-        try check(text.selectedRange().location == (draft as NSString).length, "language change preserves editor selection")
+        for language in AppLanguage.allCases where language != .system {
+            AppLocalization.apply(language)
+            pump(0.05)
+            let live = AgentRecognitionManifest(id: "live-reload", name: "Live \(language.rawValue)", executables: ["live-reload"], rules: [])
+            let revision = rules.revision
+            try AgentRecognitionManifest.serialize([live]).write(to: rules.url, atomically: true, encoding: .utf8)
+            try wait("\(language.rawValue) external rules reload while editing") { rules.revision > revision && rules.manifests == [live] }
+            pump(0.05)
+            try check(controller.window === panel && panel.attachedSheet === sheet && text.string == draft,
+                      "\(language.rawValue) preserves the manager, editor sheet, and unsaved TOML")
+            try check(sheet.title == String(localized: "Edit Agent Rules")
+                      && panel.title == String(localized: "Agent Recognition Rules"), "\(language.rawValue) updates open windows in place")
+            try check(text.selectedRange().location == (draft as NSString).length, "\(language.rawValue) preserves editor selection")
+        }
+        try save([])
         AppLocalization.apply(.english)
         pump(0.05)
         text.string = "[[agents]]\nid = 42"

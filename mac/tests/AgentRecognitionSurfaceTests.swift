@@ -107,9 +107,57 @@ struct AgentRecognitionSurfaceTests {
         try check(session.agentStatus?.kind == .program && session.agentStatus?.displayName == "原始工具名", "custom agents retain program kind and raw name")
         try wait("two live samples infer working") { session.agentStatus?.authority == .screen && session.agentStatus?.phase == .working }
         try check(session.agentObservation.screenEvidenceSamples == 2, "screen evidence requires two samples")
+        let second = TerminalSession(initialDirectory: root.path, commandArguments: ["/bin/zsh", "-f"], allowsPersistence: false)
+        let secondView = second.surface
+        secondView.frame = view.frame
+        let secondWindow = NSWindow(contentRect: secondView.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        secondWindow.isReleasedWhenClosed = false
+        secondWindow.contentView = secondView
+        QuickTerminalOffscreen.prepare(secondWindow)
+        secondView.setSurfaceVisible(true)
+        defer {
+            second.terminate()
+            pump(0.3)
+            secondWindow.contentView = nil
+            secondWindow.close()
+        }
+        try wait("second interactive shell owns a separate PTY") { second.shellPid != nil && secondView.foregroundPid == second.shellPid }
+        secondView.sendText("printf 'SECOND_RECOGNITION_SHELL_READY\\n'")
+        secondView.sendEnter()
+        try wait("second interactive shell is ready") { second.automationVisibleText(maxLines: 500, maxColumns: 240).contains("SECOND_RECOGNITION_SHELL_READY") }
+        let secondRoot = root.appendingPathComponent("frog-second")
+        try FileManager.default.createDirectory(at: secondRoot, withIntermediateDirectories: true)
+        secondView.sendText("/usr/bin/python3 \(TerminalSession.shellQuote(root.appendingPathComponent("frog-cli.py").path)) \(TerminalSession.shellQuote(secondRoot.path))")
+        secondView.sendEnter()
+        try wait("second real custom process owns its PTY") {
+            guard let data = try? Data(contentsOf: secondRoot.appendingPathComponent("pid.json")),
+                  let record = try? JSONSerialization.jsonObject(with: data) as? [String: Int],
+                  let pid = record["pid"] else { return false }
+            return secondView.foregroundPid == pid_t(pid)
+                && second.automationVisibleText(maxLines: 16, maxColumns: 240).contains("hopping…")
+        }
+        secondView.setSurfaceVisible(false)
+        try wait("unfocused second pane infers working") { second.agentStatus?.authority == .screen && second.agentStatus?.phase == .working }
+        var changed = frog
+        changed.name = "Updated live raw name"
+        changed.rules = [.init(id: "changed-live", phase: .blocked, attention: .approval, gate: .init(contains: ["hopping…"]))]
+        let broadcastRevision = rules.revision
+        try AgentRecognitionManifest.serialize([changed, wrapper]).write(to: rules.url, atomically: true, encoding: .utf8)
+        try wait("external rule replacement reloads") { rules.revision > broadcastRevision && rules.manifests == [changed, wrapper] }
+        try wait("external rule change reaches both running panes") {
+            [session, second].allSatisfy { $0.agentStatus?.phase == .blocked && $0.agentStatus?.authority == .screen
+                && $0.agentStatus?.displayName == changed.name && $0.agentObservation.recognitionRevision == rules.revision }
+        }
+        try save([frog, wrapper])
+        try wait("restored rules reach both running panes") {
+            [session, second].allSatisfy { $0.agentStatus?.phase == .working && $0.agentStatus?.authority == .screen
+                && $0.agentStatus?.displayName == frog.name }
+        }
         settings.agentScreenInference = false
         try check(session.agentStatus?.authority == .process && session.agentStatus?.phase == .idle && session.agentObservation.screenEvidence == nil,
                   "screen switch immediately withdraws old screen authority")
+        try check(second.agentStatus?.authority == .process && second.agentObservation.screenEvidence == nil,
+                  "screen switch also withdraws unfocused pane evidence")
         pump(0.3)
         try check(session.agentStatus?.recognitionID == "frog", "screen switch preserves custom process identity")
         settings.agentScreenInference = true
@@ -150,10 +198,13 @@ struct AgentRecognitionSurfaceTests {
         try FileManager.default.removeItem(at: rules.url)
         try wait("deleting agents.toml restores built-ins") { rules.manifests.isEmpty && rules.error == nil }
         try wait("deleted custom tool disappears from running status") { session.agentStatus == nil }
+        try wait("deleted custom tool also disappears from unfocused pane") { second.agentStatus == nil }
         try save([frog, wrapper])
         try wait("custom rules can be restored live") { session.agentStatus?.recognitionID == "frog" }
+        try wait("custom rules restore the unfocused pane live") { second.agentStatus?.recognitionID == "frog" }
         settings.customAgentRecognitionRules = false
         try check(session.agentStatus == nil && session.agentObservation.screenEvidence == nil, "custom switch immediately withdraws custom process and screen identity")
+        try check(second.agentStatus == nil && second.agentObservation.screenEvidence == nil, "custom switch also withdraws unfocused pane identity")
         settings.customAgentRecognitionRules = true
         try wait("custom switch re-enables recognition") { session.agentStatus?.recognitionID == "frog" }
         let program = try ZshellAgentReport(params: ["name": .string("Verified Frog"), "state": .string("working")])
