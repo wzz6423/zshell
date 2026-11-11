@@ -3,8 +3,11 @@
 Build mac/build/debug first, or set ZSHELL_TEST_DERIVED_DATA to an isolated build:
     python3 mac/tests/test_terminal_font_features.py
 The fixture opens no visible windows and cleans its temporary app and settings.
+Add --hold alacritty or --hold ghostty for foreground settings/PTY acceptance;
+close the settings window to finish and clean the fixture.
 """
 
+import argparse
 import os
 from pathlib import Path
 import platform
@@ -16,6 +19,9 @@ import uuid
 
 
 ROOT = Path(__file__).resolve().parents[2]
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--hold", choices=("alacritty", "ghostty"))
+options = parser.parse_args()
 BUILD = Path(os.environ.get("ZSHELL_TEST_DERIVED_DATA", ROOT / "mac/build/debug")) / "Build"
 PRODUCTS = BUILD / "Products/Debug"
 APP = PRODUCTS / "zshell Debug.app"
@@ -68,7 +74,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-font-features-", dir="/tmp") as 
         "-o", str(binary), str(ROOT / "mac/tests/TerminalFontFeaturesTests.swift"),
     ]
     subprocess.run(arguments, cwd=ROOT, check=True)
-    for backend in ("alacritty", "ghostty"):
+    for backend in (options.hold,) if options.hold else ("alacritty", "ghostty"):
         home = temporary / backend
         home.mkdir()
         environment = {
@@ -79,6 +85,6 @@ with tempfile.TemporaryDirectory(prefix="zshell-font-features-", dir="/tmp") as 
             "ZSHELL_PTY_MUX_DIRECTORY": str(home / "mux"),
         })
         subprocess.run(
-            [str(binary), backend, str(home)],
-            cwd=ROOT, env=environment, check=True, timeout=90,
+            [str(binary), backend, str(home), *(["--hold"] if options.hold else [])],
+            cwd=ROOT, env=environment, check=True, timeout=None if options.hold else 90,
         )

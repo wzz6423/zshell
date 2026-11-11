@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import CoreText
 import Metal
 import QuartzCore
@@ -257,14 +258,49 @@ private struct Grid {
             window.contentView?.layoutSubtreeIfNeeded()
             let field: NSTextField = mirrored(pane, "featuresField")!
             let toggle: NSSwitch = mirrored(pane, "ligaturesSwitch")!
+            var ancestor = field.superview
+            while ancestor != nil && !(ancestor is SettingsRow) { ancestor = ancestor?.superview }
+            let row = ancestor as! SettingsRow
+            let description: NSTextField = mirrored(row, "descriptionLabel")!
+            let validDescription = description.stringValue
             check(field.bounds.width == 200 && !field.hasAmbiguousLayout && !toggle.hasAmbiguousLayout, "\(choice.rawValue) native feature control layout")
             check(pane.revealSearchResult(String(localized: "OpenType features"), in: String(localized: "Font")), "\(choice.rawValue) feature search reveals row")
+            if choice == .arabic {
+                let paragraph = NSMutableParagraphStyle()
+                paragraph.baseWritingDirection = .rightToLeft
+                let line = CTLineCreateWithAttributedString(NSAttributedString(
+                    string: validDescription,
+                    attributes: [.font: description.font!, .paragraphStyle: paragraph]
+                ))
+                let tag = (validDescription as NSString).range(of: "-calt")
+                var positions: [Int: CGFloat] = [:]
+                for case let run as CTRun in CTLineGetGlyphRuns(line) as NSArray {
+                    let count = CTRunGetGlyphCount(run)
+                    var indices = [CFIndex](repeating: 0, count: count)
+                    var points = [CGPoint](repeating: .zero, count: count)
+                    CTRunGetStringIndices(run, CFRange(), &indices)
+                    CTRunGetPositions(run, CFRange(), &points)
+                    for (index, point) in zip(indices, points) { positions[index] = point.x }
+                }
+                let example = (tag.location..<NSMaxRange(tag)).map { positions[$0]! }
+                check(zip(example, example.dropFirst()).allSatisfy { $0 < $1 },
+                      "Arabic explanation displays the minus before its feature tag")
+            }
             field.stringValue = "ss01, zero=1"
             pane.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
             check(settings.fontFeatures == "ss01, zero=1", "\(choice.rawValue) native feature field writes settings")
             field.stringValue = "bad"
             pane.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
             check(settings.fontFeatures == "ss01, zero=1", "\(choice.rawValue) invalid input retains previous settings")
+            check(window.makeFirstResponder(field), "\(choice.rawValue) native feature editor takes focus")
+            let editor = field.currentEditor() as! NSTextView
+            editor.string = "bad"
+            editor.didChangeText()
+            check(field.stringValue == "bad" && description.stringValue != validDescription,
+                  "\(choice.rawValue) invalid editing shows validation feedback")
+            check(window.makeFirstResponder(nil), "\(choice.rawValue) native feature editor leaves focus")
+            check(field.stringValue == settings.fontFeatures && description.stringValue == validDescription,
+                  "\(choice.rawValue) native blur restores persisted features and description")
             toggle.state = .off
             toggle.sendAction(toggle.action, to: toggle.target)
             check(!settings.fontLigatures, "\(choice.rawValue) native ligature switch writes settings")
@@ -371,5 +407,40 @@ private struct Grid {
         view.endFind()
         check(visible() == text, "\(backend) search leaves shaped text intact")
         print("Font feature production probes passed for \(backend)")
+        if CommandLine.arguments.contains("--hold") {
+            settings.language = .english
+            settings.fontSize = 20
+            view.applyAppearance()
+            let appearance = Publishers.CombineLatest3(
+                settings.$fontFeatures.removeDuplicates(), settings.$fontLigatures.removeDuplicates(),
+                settings.$fontSize.removeDuplicates()
+            )
+                .receive(on: DispatchQueue.main)
+                .sink { _ in view.applyAppearance() }
+            let pane = SettingsAppearancePane()
+            pane.setCategory(.appearance)
+            let preferences = NSWindow(
+                contentRect: CGRect(x: 700, y: 150, width: 660, height: 600),
+                styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false
+            )
+            preferences.isReleasedWhenClosed = false
+            preferences.title = "Font feature settings"
+            preferences.contentViewController = pane
+            NSApplication.shared.setActivationPolicy(.regular)
+            window.title = "Font features: \(backend)"
+            window.setContentSize(NSSize(width: 620, height: 220))
+            window.setFrameOrigin(NSPoint(x: 40, y: 400))
+            window.orderFront(nil)
+            preferences.makeKeyAndOrderFront(nil)
+            NSApplication.shared.activate()
+            pump(0.2)
+            check(pane.revealSearchResult(String(localized: "OpenType features"), in: String(localized: "Font")),
+                  "visible settings reveal font feature controls")
+            print("HOLD: close Font feature settings to finish \(backend) GUI acceptance")
+            while preferences.isVisible { pump(0.1) }
+            appearance.cancel()
+            preferences.contentViewController = nil
+            preferences.close()
+        }
     }
 }

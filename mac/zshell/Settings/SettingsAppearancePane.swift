@@ -246,6 +246,11 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
         )
     }
 
+    func controlTextDidEndEditing(_ notification: Notification) {
+        featuresField.stringValue = settings.fontFeatures
+        featuresRow.setDescription(Self.featuresDescription(isValid: true))
+    }
+
     func controlTextDidChange(_ notification: Notification) {
         let text = featuresField.stringValue
         let isValid = TerminalFontFeatures.parse(text) != nil
