@@ -166,9 +166,9 @@ nonisolated enum FileTreeImportService {
         let originalDirectory = URL(fileURLWithPath: directory, isDirectory: true)
         let canonicalRoot = try SettingsConfigFile.resolve(originalRoot)
         let canonicalDirectory = try SettingsConfigFile.resolve(originalDirectory)
-        guard contains(canonicalDirectory.path, in: canonicalRoot.path),
-              let rootSnapshot = try snapshot(canonicalRoot.path), rootSnapshot.isDirectory,
-              let directorySnapshot = try snapshot(canonicalDirectory.path), directorySnapshot.isDirectory else {
+        guard let rootSnapshot = try snapshot(canonicalRoot.path), rootSnapshot.isDirectory,
+              let directorySnapshot = try snapshot(canonicalDirectory.path), directorySnapshot.isDirectory,
+              try isAncestor(rootSnapshot, of: canonicalDirectory) else {
             throw Failure.invalidDestination
         }
         let descriptor = open(canonicalDirectory.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
@@ -220,7 +220,7 @@ nonisolated enum FileTreeImportService {
             if let destinationSnapshot, sourceSnapshot.sameNode(as: destinationSnapshot) {
                 throw Failure.alreadyThere(name)
             }
-            if sourceSnapshot.isDirectory, contains(canonicalDirectory.path, in: canonicalSource.path) {
+            if sourceSnapshot.isDirectory, try isAncestor(sourceSnapshot, of: canonicalDirectory) {
                 throw Failure.recursiveCopy(name)
             }
             entries.append(Entry(source: canonicalSource, name: name, sourceSnapshot: sourceSnapshot,
@@ -435,8 +435,15 @@ nonisolated enum FileTreeImportService {
         return result
     }
 
-    private static func contains(_ path: String, in root: String) -> Bool {
-        path == root || path.hasPrefix(root == "/" ? "/" : root + "/")
+    private static func isAncestor(_ node: Snapshot, of directory: URL) throws -> Bool {
+        // Resolved paths can retain different spellings on case-insensitive volumes.
+        var current = directory
+        while true {
+            guard let candidate = try snapshot(current.path), candidate.isDirectory else { throw Failure.changed }
+            if node.sameNode(as: candidate) { return true }
+            if current.path == "/" { return false }
+            current.deleteLastPathComponent()
+        }
     }
 
     private static func snapshot(_ path: String) throws -> Snapshot? {
