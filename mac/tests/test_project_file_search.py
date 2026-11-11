@@ -67,7 +67,7 @@ class ProjectFileSearchTests(unittest.TestCase):
             package = Path(directory)
             sources = package / "Sources" / "Harness"
             sources.mkdir(parents=True)
-            for name in ("ProjectFileSearch.swift", "GitCommandRunner.swift"):
+            for name in ("ProjectFileSearch.swift", "GitProxy.swift", "GitCommandRunner.swift"):
                 shutil.copy2(REPO / "mac" / "zshell" / name, sources / name)
             (sources / "Harness.swift").write_text(HARNESS)
             fuzzy_path = str(REPO / "mac" / "Vendor" / "FuzzyMatch")
