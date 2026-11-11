@@ -5,7 +5,7 @@ import IOSurface
 @testable import zshell
 
 @MainActor
-private final class PaddingApplication: NSApplication {
+final class PaddingApplication: NSApplication {
     var inputEvent: NSEvent?
     override var currentEvent: NSEvent? { inputEvent ?? super.currentEvent }
 }
@@ -17,7 +17,7 @@ private final class PaddingWindow: NSWindow {
     override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
 }
 
-private struct PaddingPixels {
+struct PaddingPixels {
     let width: Int
     let height: Int
     let bytesPerRow: Int
@@ -62,7 +62,10 @@ struct TerminalPaddingColorSurfaceTests {
     private static var checks = 0
 
     static func main() {
-        do { try run() }
+        do {
+            if CommandLine.arguments.last == "quick-terminal" { try QuickTerminalPaddingColorTests.run() }
+            else { try run() }
+        }
         catch { fputs("FAIL: \(error)\n", stderr); exit(1) }
     }
 

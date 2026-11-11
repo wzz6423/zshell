@@ -84,6 +84,11 @@ final class QuickTerminalWorkspaceView: NSView {
         super.init(frame: .zero)
         tab.$layout.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.updateLayout() }.store(in: &observations)
         tab.$focusedPaneID.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.updateFocus() }.store(in: &observations)
+        AppSettings.shared.$terminalPaddingColor.removeDuplicates().dropFirst()
+            .receive(on: DispatchQueue.main).sink { [weak self] _ in
+                guard let self else { return }
+                self.setBackgroundOpacity(self.opacity)
+            }.store(in: &observations)
         updateLayout()
     }
 

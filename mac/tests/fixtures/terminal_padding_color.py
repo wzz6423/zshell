@@ -12,6 +12,9 @@ import tty
 
 
 directory = Path(sys.argv[1])
+if "--per-process" in sys.argv:
+    directory /= str(os.getpid())
+    directory.mkdir()
 generation = 0
 mode = "solid"
 colors = ((180, 45, 35), (35, 140, 55), (50, 65, 180), (175, 120, 30),
@@ -26,7 +29,7 @@ def background(color):
     return "\x1b[48;2;" + ";".join(map(str, color)) + "m"
 
 
-def draw():
+def draw_frame():
     global generation
     generation += 1
     rows, columns, _, _ = struct.unpack(
@@ -84,6 +87,15 @@ def draw():
     temporary.write_text(json.dumps({"rows": rows, "columns": columns,
                                      "generation": generation, "mode": mode, "pid": os.getpid()}))
     temporary.replace(directory / "frame.json")
+
+
+def draw():
+    # Split-layout resize bursts must not reenter the same frame transaction.
+    previous = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGWINCH})
+    try:
+        draw_frame()
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, previous)
 
 
 saved = termios.tcgetattr(0)

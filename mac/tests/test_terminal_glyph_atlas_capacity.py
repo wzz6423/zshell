@@ -6,6 +6,8 @@ import subprocess
 import sys
 import tempfile
 
+from swift_test_source import extract_enum
+
 
 ROOT = Path(__file__).resolve().parents[2]
 ALACRITTY = ROOT / "mac/zshell/Alacritty"
@@ -189,10 +191,8 @@ with tempfile.TemporaryDirectory(prefix="zshell-glyph-atlas-") as directory:
 """ + colors[selection_end:]
     models = temporary / "RendererModels.swift"
     settings = (ROOT / "mac/zshell/AppSettings.swift").read_text()
-    policy_start = settings.index("enum TerminalPaddingColor:")
-    policy_end = settings.index("\n///", policy_start)
     models.write_text(metrics.replace("import GhosttyTheme\n", "")
-                      + settings[policy_start:policy_end]
+                      + extract_enum(settings, "TerminalPaddingColor")
                       + "struct AlacrittyRenderer {\n" + colors)
 
     source = (ROOT / "mac/zshell/TerminalFont.swift").read_text()

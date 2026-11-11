@@ -20,7 +20,12 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--derived-data", required=True, type=Path)
 parser.add_argument("--evidence-directory", type=Path)
 parser.add_argument("--backend", choices=("ghostty", "alacritty"))
+parser.add_argument("--quick-terminal", action="store_true", help="Exercise pinned fresh/reusable Quick Terminal splits")
+parser.add_argument("--visible", action="store_true", help="Show Quick Terminal only while the isolated GUI slot is available")
+parser.add_argument("--hold-seconds", type=float, default=0, help="Hold the first pinned Quick Terminal for manual inspection")
 options = parser.parse_args()
+if (options.visible or options.hold_seconds) and not options.quick_terminal:
+    parser.error("--visible and --hold-seconds require --quick-terminal")
 build = options.derived_data / "Build"
 products = build / "Products/Debug"
 application = products / "zshell Debug.app"
@@ -60,7 +65,9 @@ with tempfile.TemporaryDirectory(prefix="zshell-padding-probe-", dir="/tmp") as 
         "-I", str(ROOT / "mac/Vendor/tree-sitter/lib/include"), str(library),
         "-Xlinker", "-rpath", "-Xlinker", str(products),
         "-Xlinker", "-rpath", "-Xlinker", str(library.parent),
-        str(ROOT / "mac/tests/TerminalPaddingColorSurfaceTests.swift"), "-o", str(binary),
+        str(ROOT / "mac/tests/TerminalPaddingColorSurfaceTests.swift"),
+        str(ROOT / "mac/tests/QuickTerminalPaddingColorTests.swift"),
+        str(ROOT / "mac/tests/QuickTerminalOffscreen.swift"), "-o", str(binary),
     ]
     subprocess.run(arguments, cwd=ROOT, check=True)
     try:
@@ -73,10 +80,16 @@ with tempfile.TemporaryDirectory(prefix="zshell-padding-probe-", dir="/tmp") as 
             environment = {key: value for key, value in os.environ.items() if not key.startswith("ZSHELL_")}
             environment.update({"HOME": str(home), "CFFIXED_USER_HOME": str(home),
                                 "ZDOTDIR": str(home), "ZSHELL_PTY_MUX_DIRECTORY": str(home / "mux")})
-            subprocess.run([
+            if options.quick_terminal:
+                environment.update({"ZSHELL_PADDING_TEST_VISIBLE": "1" if options.visible else "0",
+                                    "ZSHELL_PADDING_TEST_HOLD_SECONDS": str(options.hold_seconds)})
+            command = [
                 str(binary), backend, str(ROOT / "mac/tests/fixtures/terminal_padding_color.py"),
                 str(home), str(options.evidence_directory.resolve()) if options.evidence_directory else "",
-            ], cwd=ROOT, env=environment, check=True, timeout=120)
+            ]
+            if options.quick_terminal:
+                command.append("quick-terminal")
+            subprocess.run(command, cwd=ROOT, env=environment, check=True, timeout=120 + max(0, options.hold_seconds))
     finally:
         subprocess.run(["/usr/bin/defaults", "delete", domain],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
