@@ -125,6 +125,12 @@ tam sayı, 0–255 — varsayılan `255`
 
 `terminal.font-thicken` açıkken kalınlığı denetler. Sıfır kapalı değil, en hafif kalınlaştırmadır. Ghostty yerel macOS gücünü kullanır; Alacritty aynı aralığı CoreText çizgisine eşler. Yön ve uçlar eşleşse de çizilen pikseller farklı olabilir.
 
+### `terminal.cell-width` [#terminalcell-width]
+
+sayı, 0.75–2 — varsayılan `1`
+
+**Ayarlar → Görünüm → Yazı tipi → Hücre genişliği** bölümünde terminal sütun aralığını ayarlar. Varsayılan %100’dür; değerler tam yüzde olarak kaydedilir. Her iki arka uç da açık terminalleri hemen günceller; PTY sütun sayısı, imleç, seçim ve klavye ipuçları buna dahildir. Glif boyutu değişmez ve geniş karakterler iki sütun kaplamaya devam eder. Piksel yuvarlaması arka uçlar arasında farklı gerçek adımlara yol açabilir. Geçersiz değerler %100’ü geri yükler. Düzenleyici ve diff aralıkları değişmez.
+
 ### `terminal.line-height` [#terminalline-height]
 
 sayı, 0.75–2 — varsayılan `1`
@@ -138,6 +144,12 @@ Zshell temel yazı ağırlığı denetimi sunmaz. Ghostty adlı stilleri veya de
 mantıksal — varsayılan `true`
 
 [Dosya düzenleyicisinde](/tr/docs/files) uzun satırları bölme genişliğine sarar. `false` ise yatay kaydırılır. Terminal veya fark satır sarmasını değiştirmez.
+
+### `editor.protect-saves` [#editorprotect-saves]
+
+boolean — varsayılan `true`
+
+Bir dosya veya düzenlenebilir çalışma ağacı diff’i kaydedilmeden önce dış değişiklikleri denetler. Çakışmada karşılaştırabilir, yeniden yükleyebilir, taslağı koruyabilir veya açıkça üzerine yazabilirsiniz. Kapatmak, dış değişikliklerin uyarı olmadan değiştirilmesine izin verir.
 
 ## Terminal [#terminal]
 
@@ -267,6 +279,7 @@ toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.bell = false

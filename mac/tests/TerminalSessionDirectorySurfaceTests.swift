@@ -141,8 +141,15 @@ struct TerminalSessionDirectorySurfaceTests {
                                      styleMask: [.titled], backing: .buffered, defer: false)
         manager.attach(to: managerWindow)
         var settingsWindow: NSWindow?
+        var workspaceController: ZshellWorkspaceWindowController?
+        var workspaceGroup: ProjectGroup?
         defer {
             GlobalTerminalOverlay.shared.stop()
+            workspaceController?.manager.projects.forEach { $0.terminateAll() }
+            workspaceController?.window?.contentView = nil
+            workspaceController?.window?.orderOut(nil)
+            workspaceController?.manager.windowClosed()
+            if let workspaceGroup { ProjectGroupStore.shared.remove(workspaceGroup) }
             (sessions + manager.projects.flatMap(\.sessions)).forEach { $0.terminate() }
             pump(0.3)
             for window in windows.values { window.contentView = nil; window.orderOut(nil) }
@@ -361,16 +368,25 @@ struct TerminalSessionDirectorySurfaceTests {
         field.stringValue = custom.path
         editor.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
         pane.view.layoutSubtreeIfNeeded()
-        var workspaceController: ZshellWorkspaceWindowController?
+        try wait("AppKit directory preferences reach the config file") {
+            let values = TOML.parse(at: AppSettings.configURL)
+            return values?["terminal.new-session-directory"]?.string == "custom"
+                && values?["terminal.custom-directory"]?.string == custom.path
+        }
+        let savedConfig = try String(contentsOf: AppSettings.configURL, encoding: .utf8)
+        let reloadedConfig = savedConfig.replacingOccurrences(of: "terminal.new-session-directory = \"custom\"",
+                                                             with: "terminal.new-session-directory = \"home\"")
+        try reloadedConfig.write(to: AppSettings.configURL, atomically: true, encoding: .utf8)
+        try wait("external directory preference refreshes AppKit settings") {
+            settings.newSessionDirectoryPolicy == .home && popup.indexOfSelectedItem == 2
+        }
+        project.selectedTabID = anchorTab
+        try verify(newSession(project), directory: home.path, root: root, label: "hot reload changes only new sessions")
+        settings.newSessionDirectoryPolicy = .custom
+        pane.syncFromSettings()
         if ProcessInfo.processInfo.environment["ZSHELL_DIRECTORY_TEST_WORKSPACE"] == "1" {
             let controller = ZshellWorkspaceWindowController(number: 1)
             workspaceController = controller
-            defer {
-                controller.manager.projects.forEach { $0.terminateAll() }
-                controller.window?.contentView = nil
-                controller.window?.orderOut(nil)
-                controller.manager.windowClosed()
-            }
             for content in controller.manager.projects.flatMap(\.tabs).flatMap(\.allContents) {
                 controller.manager.selectedProject?.closeContent(content, confirmWorktree: false, recordClosedSession: false)
             }
@@ -388,7 +404,7 @@ struct TerminalSessionDirectorySurfaceTests {
             try verify(pinnedSession, directory: pinned.path, root: root, label: "workspace pinned directory")
             let previewGroup = ProjectGroup(name: "Directory group", kind: .folder(path: grouped.path))
             ProjectGroupStore.shared.add(previewGroup)
-            defer { ProjectGroupStore.shared.remove(previewGroup) }
+            workspaceGroup = previewGroup
             let groupedPreview = controller.manager.newProject(in: previewGroup)
             groupedPreview.customName = "Group directory"
             try verify(groupedPreview.selectedSession!, directory: grouped.path, root: root, label: "workspace group directory")
@@ -402,7 +418,7 @@ struct TerminalSessionDirectorySurfaceTests {
                 controller.window?.makeKeyAndOrderFront(nil)
                 NSApp.activate(ignoringOtherApps: true)
             }
-            print("DIRECTORY_WORKSPACE_READY home=\(home.path) current=\(current.path) custom=\(custom.path) explicit=\(explicit.path) pinned=\(pinned.path) group=\(grouped.path)")
+            print("DIRECTORY_WORKSPACE_READY config=\(AppSettings.configURL.path) home=\(home.path) current=\(current.path) custom=\(custom.path) explicit=\(explicit.path) pinned=\(pinned.path) group=\(grouped.path)")
             pump(min(max(Double(ProcessInfo.processInfo.environment["ZSHELL_DIRECTORY_TEST_HOLD_SECONDS"] ?? "10") ?? 10, 0), 120))
         }
         if visible {

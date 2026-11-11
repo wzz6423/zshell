@@ -138,6 +138,12 @@ Zshell 大多数持久化设置都在一个文件里：
 使用其原生 macOS 强度；Alacritty 把同一范围映射到 CoreText 描边，所以方向和端点一致，
 但光栅化像素可能不同。
 
+### `terminal.cell-width` [#terminalcell-width]
+
+数字，0.75–2——默认 `1`
+
+在**设置 → 外观 → 字体 → 字符列宽**中调整终端字符列之间的距离。默认 100%，按整数百分比保存。两个后端都会立即更新已打开的终端，包括 PTY 列数、光标、选区和键盘提示。字形大小不变，宽字符仍占两列。像素取整会让两个后端的实际步进略有不同。无效值恢复为 100%，编辑器和 diff 的间距不受影响。
+
 ### `terminal.line-height` [#terminalline-height]
 
 数字，0.75–2——默认 `1`
@@ -155,6 +161,12 @@ regular/bold 区分及后备字体字重。
 
 在[文件编辑器](/docs/files)里按窗格宽度软折行。关闭时长行横向滚动；它不会改变终端或 diff
 里的折行行为。
+
+### `editor.protect-saves` [#editorprotect-saves]
+
+布尔值——默认 `true`
+
+保存文件或可编辑的工作区 Diff 前，检查外部程序是否更改了磁盘版本。发生冲突时，可以比较版本、从磁盘重新加载、保留草稿或主动覆盖文件。关闭后，保存会直接替换外部改动，不再显示冲突提示。
 
 <span id="终端" data-canonical-heading="terminal" />
 
@@ -319,6 +331,7 @@ toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.bell = false

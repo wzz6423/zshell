@@ -18,6 +18,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Adjust terminal column spacing from Appearance settings while keeping glyph
+  size, cursor, selection, and keyboard hints aligned on either terminal backend.
 - Choose the starting directory for new local sessions and Quick Terminal
   workspaces: current directory, project root, home, or a custom folder.
   Explicit directories, splits, and restored sessions keep their context.
@@ -34,6 +36,9 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Fixed
 
+- Detect external changes before saving file and editable diff drafts. Compare
+  versions, reload, keep the draft, or explicitly overwrite; save conflict
+  protection can be disabled in Editor settings.
 - Ask to save unsaved file and diff edits before closing panes, projects or
   workspace windows, or quitting. Cancelling or a failed save keeps the
   affected workspace open.
