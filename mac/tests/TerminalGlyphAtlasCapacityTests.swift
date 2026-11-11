@@ -51,9 +51,12 @@ private final class GlyphFixture {
     let metrics: AlacrittyMetrics
     let scale: CGFloat
 
-    init(size: CGFloat = 13, scale: CGFloat = 2) {
+    init(size: CGFloat = 13, scale: CGFloat = 2, family: String = "Menlo",
+         cellWidth: CGFloat = 1, ligatures: Bool = true) {
         renderer = TerminalMetalRenderer(device: device)!
-        metrics = Self.metrics(size: size)
+        metrics = AlacrittyMetrics(family: family, fallbackFamily: "", size: size, fontThicken: false,
+                                   fontThickenStrength: 0, lineHeight: 1, cellWidth: cellWidth,
+                                   fontFeatures: TerminalFontFeatures(ligatures: ligatures))
         self.scale = scale
     }
 
@@ -134,6 +137,7 @@ struct TerminalGlyphAtlasCapacityTests {
             return
         }
         lateGlyphsRebuildCleanRowsAndIME()
+        rtlCellsMatchLegacyRendering()
         visibleWorkingSetPagesAndShrinks()
         multiTextureDrawsKeepOrder()
         kittyGraphicsKeepTheirLayers()
@@ -199,7 +203,8 @@ struct TerminalGlyphAtlasCapacityTests {
         precondition(atlas.textures[0] !== firstTexture)
         precondition(fixture.renderer.testRowUVs(0) != oldRow)
         precondition(fixture.renderer.testCachedGlyphsAreCurrent(final.keys), "Clean row kept stale UVs")
-        precondition(atlas.testEntries.contains { $0.isColor })
+        precondition(fixture.renderer.testGlyphIsColor(row: 1, column: 1),
+                     "Rebuilt grid emoji lost its intrinsic color")
         let fresh = GlyphFixture()
         precondition(pixels == fresh.render(final, markedText: ime), "Recovered frame differs from a fresh atlas")
         let steadyGeneration = atlas.generation
@@ -212,6 +217,33 @@ struct TerminalGlyphAtlasCapacityTests {
         precondition(atlas.generation == steadyGeneration + 1)
         precondition(atlas.pageCount == 1 && atlas.testEntryCount == 10)
         fixture.statistics("PASS late glyph / clean row / emoji / IME after \(count + secondCount) historical glyphs")
+    }
+
+    @MainActor private static func rtlCellsMatchLegacyRendering() {
+        let samples = ["بب", "بلا", "سلام"]
+        let columns = samples.map(\.count).max()!
+        let grid = Grid(keys: samples.map { text in
+            text.map { cluster(String($0)) } + Array(repeating: key(32), count: columns - text.count)
+        })
+        for family in ["Menlo", "Geeza Pro"] {
+            for width: CGFloat in [0.75, 1, 1.25, 2] {
+                for ligatures in [true, false] {
+                    let fixture = GlyphFixture(size: 32, family: family, cellWidth: width, ligatures: ligatures)
+                    let pixels = fixture.render(grid)
+                    let size = CGSize(width: CGFloat(columns) * fixture.metrics.cellWidth + 8,
+                                      height: CGFloat(samples.count) * fixture.metrics.cellHeight + 8)
+                    let layer = fixture.layer(size: size)
+                    let drawable = layer.nextDrawable()!
+                    grid.withSnapshot { snapshot in
+                        fixture.renderer.testRenderPerCell(snapshot: snapshot, metrics: fixture.metrics,
+                                                           scale: fixture.scale, in: drawable, viewportSize: size)
+                    }
+                    precondition(pixels == GlyphFixture.pixels(drawable.texture),
+                                 "\(family) \(width) RTL differs from legacy per-cell rendering, ligatures=\(ligatures)")
+                    print("PASS RTL per-cell raster: \(family), width=\(width), ligatures=\(ligatures)")
+                }
+            }
+        }
     }
 
     @MainActor private static func visibleWorkingSetPagesAndShrinks() {

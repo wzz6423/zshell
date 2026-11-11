@@ -119,7 +119,8 @@ final class TerminalTextShaper {
     }
 
     private func shape(text: String, columns: [Int], cells: [Cell], font: NSFont,
-                       cellWidth: CGFloat, glyphOffset: CGFloat) -> [Glyph] {
+                       cellWidth: CGFloat, glyphOffset: CGFloat,
+                       preserveCellOrigin: Bool = false) -> [Glyph] {
         #if DEBUG
         shapedRunCount += 1
         #endif
@@ -138,6 +139,7 @@ final class TerminalTextShaper {
             let hasInk: Bool
         }
         var source: [RunGlyph] = []
+        var isolatedColumns = Set<Int>()
         for case let run as CTRun in CTLineGetGlyphRuns(line) as NSArray {
             let count = CTRunGetGlyphCount(run)
             let attributes = CTRunGetAttributes(run) as NSDictionary
@@ -151,6 +153,7 @@ final class TerminalTextShaper {
             CTRunGetPositions(run, CFRange(), &positions)
             CTRunGetStringIndices(run, CFRange(), &indices)
             CTRunGetAdvances(run, CFRange(), &advances)
+            let runStart = source.count
             for index in 0..<count where indices[index] >= 0 && indices[index] < columns.count - 1 {
                 var glyph = glyphs[index]
                 let bounds = CTFontGetBoundingRectsForGlyphs(runFont, .horizontal, &glyph, nil, 1)
@@ -158,16 +161,47 @@ final class TerminalTextShaper {
                                        position: positions[index], advance: advances[index].width,
                                        hasInk: bounds.width > 0 && bounds.height > 0))
             }
+            if CTRunGetStatus(run).contains(.rightToLeft),
+               Set(source[runStart...].filter(\.hasInk).map { columns[$0.index] }).count > 1 {
+                // Contextual RTL forms assume visual reordering. Keep the
+                // terminal's existing per-cell shaping when that would move
+                // independent clusters away from their VT columns.
+                let range = CTRunGetStringRange(run)
+                let start = max(0, range.location)
+                let end = min(columns.count - 1, range.location + range.length)
+                if start < end { isolatedColumns.formUnion(columns[start..<end]) }
+            }
         }
         let stringEnds = Array(Set(source.map(\.index) + [columns.count - 1])).sorted()
         var endByIndex: [Int: Int] = [:]
         for (start, end) in zip(stringEnds, stringEnds.dropFirst()) { endByIndex[start] = end }
 
         var result: [Glyph] = []
+        if !isolatedColumns.isEmpty {
+            let string = text as NSString
+            var start = 0
+            while start < columns.count - 1 {
+                var end = start + 1
+                while end < columns.count - 1, columns[end] == columns[start] { end += 1 }
+                if isolatedColumns.contains(columns[start]) {
+                    result += shape(
+                        text: string.substring(with: NSRange(location: start, length: end - start)),
+                        columns: Array(columns[start..<end]) + [columns[end]], cells: cells, font: font,
+                        cellWidth: cellWidth, glyphOffset: glyphOffset * CGFloat(columns[end] - columns[start]),
+                        preserveCellOrigin: true
+                    )
+                }
+                start = end
+            }
+        }
         var start = 0
         while start < source.count {
             var end = start + 1
             let first = source[start]
+            if isolatedColumns.contains(columns[first.index]) {
+                start = end
+                continue
+            }
             while end < source.count, columns[source[end].index] == columns[first.index] { end += 1 }
             // Programming fonts can preserve one glyph per input cell by
             // replacing the leading cells with blank glyphs and drawing the
@@ -175,6 +209,7 @@ final class TerminalTextShaper {
             // cell spacing differs from the font's natural advance.
             if !first.hasInk, !cells[columns[first.index]].scalar.isWhitespace {
                 while end < source.count, !source[end - 1].hasInk,
+                      !isolatedColumns.contains(columns[source[end].index]),
                       CFEqual(source[end].font, first.font),
                       !cells[columns[source[end].index]].scalar.isWhitespace {
                     end += 1
@@ -184,9 +219,9 @@ final class TerminalTextShaper {
             let firstColumn = group.map { columns[$0.index] }.min() ?? 0
             let lastColumn = group.map { columns[endByIndex[$0.index] ?? columns.count - 1] }.max() ?? firstColumn + 1
             let range = firstColumn..<max(firstColumn + 1, lastColumn)
-            let naturalLeft = group.map(\.position.x).min() ?? 0
+            let naturalLeft = preserveCellOrigin ? 0 : group.map(\.position.x).min() ?? 0
             let naturalRight = group.map { $0.position.x + $0.advance }.max() ?? naturalLeft
-            let centering = range.count > 1
+            let centering = range.count > 1 && !preserveCellOrigin
                 ? (CGFloat(range.count) * cellWidth - (naturalRight - naturalLeft)) / 2 : glyphOffset
             for glyph in group where glyph.hasInk {
                 result.append(Glyph(
@@ -198,6 +233,7 @@ final class TerminalTextShaper {
             }
             start = end
         }
+        if !isolatedColumns.isEmpty { result.sort { $0.columns.lowerBound < $1.columns.lowerBound } }
         return result
     }
 }

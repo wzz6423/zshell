@@ -45,6 +45,60 @@ extension TerminalMetalRenderer {
         rowInstances[row].instances.filter { $0.kind == 1 || $0.kind == 2 }.map(\.uvOrigin)
     }
 
+    func testGlyphIsColor(row: Int, column: Int) -> Bool {
+        rowInstances[row].instances.filter { $0.kind == 1 || $0.kind == 2 }[column].kind == 2
+    }
+
+    // Reference the pre-shaping renderer's per-cell CTLine atlas path. Keep
+    // the same Metal pipeline so comparison measures glyph choice/placement.
+    func testRenderPerCell(snapshot: ZshellSnapshot, metrics: AlacrittyMetrics, scale: CGFloat,
+                           in drawable: CAMetalDrawable, viewportSize: CGSize) {
+        let original = instances
+        defer { instances = original }
+        let legacyAtlas = TerminalGlyphAtlas(device: device, metrics: metrics, scale: scale)!
+        instances = []
+        for row in 0..<snapshot.rows {
+            for column in 0..<snapshot.columns {
+                let cell = snapshot.cells![row * snapshot.columns + column]
+                let content: TerminalGlyphAtlas.Content = cell.text_len > 0
+                    ? .cluster(Data(bytes: snapshot.text!.advanced(by: Int(cell.text_offset)), count: Int(cell.text_len)))
+                    : .scalar(cell.ch)
+                let key = TerminalGlyphAtlas.Key(content: content,
+                    bold: cell.flags & UInt16(ZSHELL_CELL_BOLD) != 0,
+                    italic: cell.flags & UInt16(ZSHELL_CELL_ITALIC) != 0)
+                guard let entry = legacyAtlas.entry(for: key) else { continue }
+                instances.append(Instance(
+                    origin: SIMD2(4 + Float(column) * Float(metrics.cellWidth)
+                                  + Float(metrics.glyphOffset(columns: 1)) + entry.bearing.x,
+                                  4 + Float(row) * Float(metrics.cellHeight) + Float(metrics.baseline)
+                                  - entry.bearing.y - entry.size.y),
+                    size: entry.size, color: Self.color(cell.fg), uvOrigin: entry.uvOrigin,
+                    uvSize: entry.uvSize, kind: entry.isColor ? 2 : 1, atlasPage: UInt32(entry.page)
+                ))
+            }
+        }
+        let pass = MTLRenderPassDescriptor()
+        pass.colorAttachments[0].texture = drawable.texture
+        pass.colorAttachments[0].loadAction = .clear
+        pass.colorAttachments[0].storeAction = .store
+        let background = Self.color(snapshot.background)
+        pass.colorAttachments[0].clearColor = MTLClearColor(
+            red: Double(background.x), green: Double(background.y), blue: Double(background.z), alpha: 1)
+        let commands = queue.makeCommandBuffer()!
+        let encoder = commands.makeRenderCommandEncoder(descriptor: pass)!
+        encoder.setRenderPipelineState(pipeline)
+        let buffer = testUploadInstanceBuffer(to: commands)
+        encoder.setVertexBuffer(buffer, offset: 0, index: 0)
+        var viewport = SIMD2<Float>(Float(viewportSize.width), Float(viewportSize.height))
+        encoder.setVertexBytes(&viewport, length: MemoryLayout<SIMD2<Float>>.stride, index: 1)
+        encoder.setFragmentSamplerState(sampler, index: 0)
+        drawInstances(atlas: legacyAtlas, with: encoder)
+        encoder.endEncoding()
+        commands.commit()
+        commands.waitUntilCompleted()
+        precondition(commands.status == .completed)
+    }
+
     func testPrepareOriginalBuild(snapshot: ZshellSnapshot, metrics: AlacrittyMetrics,
                                   dirtyRows: [Int]?) {
         build(snapshot: snapshot, markedText: nil, metrics: metrics,

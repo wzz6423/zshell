@@ -248,6 +248,91 @@ private struct Grid {
                   "required Arabic lam-alef joining survives ligature toggle \(ligatures)")
         }
     }
+    for family in ["Menlo", "Geeza Pro"] {
+        for ligatures in [true, false] {
+            let arabicMetrics = AlacrittyMetrics(
+                family: family, fallbackFamily: "", size: 32, fontThicken: false,
+                fontThickenStrength: 0, lineHeight: 1, cellWidth: width,
+                fontFeatures: TerminalFontFeatures(ligatures: ligatures)
+            )
+            let required = Grid(["لا"])
+            let requiredShaper = TerminalTextShaper()
+            requiredShaper.reset(metrics: arabicMetrics, rowCount: 1)
+            required.snapshot { snapshot in
+                let glyphs = requiredShaper.glyphs(row: 0, snapshot: snapshot, metrics: arabicMetrics)
+                check(glyphs.count == 1 && glyphs[0].columns == 0..<2,
+                      "\(family) isolated lam-alef keeps its complete two-cell glyph")
+            }
+            for sample in ["بب", "بلا", "سلام", "بَلَاب"] {
+                let arabic = Grid([sample + "   "])
+                let shaped = TerminalTextShaper()
+                shaped.reset(metrics: arabicMetrics, rowCount: 1)
+                arabic.snapshot { snapshot in
+                    let glyphs = shaped.glyphs(row: 0, snapshot: snapshot, metrics: arabicMetrics)
+                    for (column, character) in sample.enumerated() where !character.isWhitespace {
+                        let line = CTLineCreateWithAttributedString(NSAttributedString(
+                            string: String(character), attributes: [.font: arabicMetrics.regular]
+                        ))
+                        var expected: [(CTFont, CGGlyph, CGPoint)] = []
+                        for case let run as CTRun in CTLineGetGlyphRuns(line) as NSArray {
+                            let count = CTRunGetGlyphCount(run)
+                            let font = (CTRunGetAttributes(run) as NSDictionary)[kCTFontAttributeName] as! CTFont
+                            var ids = [CGGlyph](repeating: 0, count: count)
+                            var positions = [CGPoint](repeating: .zero, count: count)
+                            CTRunGetGlyphs(run, CFRange(), &ids)
+                            CTRunGetPositions(run, CFRange(), &positions)
+                            for index in 0..<count {
+                                var id = ids[index]
+                                let bounds = CTFontGetBoundingRectsForGlyphs(font, .horizontal, &id, nil, 1)
+                                if bounds.width > 0 && bounds.height > 0 { expected.append((font, id, positions[index])) }
+                            }
+                        }
+                        let owned = glyphs.filter { $0.columns == column..<column + 1 }
+                        check(owned.count == expected.count, "\(family) \(sample) column \(column) keeps its glyph cluster")
+                        check(zip(owned, expected).allSatisfy { glyph, reference in
+                            CFEqual(glyph.font, reference.0) && glyph.glyph == reference.1
+                                && abs(glyph.position.x - CGFloat(column) * arabicMetrics.cellWidth
+                                       - arabicMetrics.glyphOffset(columns: 1) - reference.2.x) < 0.001
+                                && abs(glyph.position.y - reference.2.y) < 0.001
+                        }, "\(family) \(sample) column \(column) matches main per-cell shaping")
+                    }
+                    let preview = shaped.glyphs(text: sample, font: arabicMetrics.regular,
+                                               cellWidth: arabicMetrics.cellWidth,
+                                               naturalCellWidth: arabicMetrics.naturalCellWidth)
+                    check(preview.map(\.glyph) == glyphs.map(\.glyph) && preview.map(\.columns) == glyphs.map(\.columns),
+                          "\(family) RTL preview keeps terminal cell mapping")
+                }
+                let arabicRenderer = TerminalMetalRenderer(device: device)!
+                let baseline = metal(arabic, metrics: arabicMetrics, renderer: arabicRenderer)
+                let shaper: TerminalTextShaper = mirrored(arabicRenderer, "textShaper")!
+                let shapedRuns: Int = mirrored(shaper, "shapedRunCount")!
+                let pixelWidth = Int((CGFloat(arabic.columns) * arabicMetrics.cellWidth + 20) * 2)
+                func changedColumns(_ a: [UInt8], _ b: [UInt8]) -> Set<Int> {
+                    Set(zip(a, b).enumerated().compactMap { index, pair in
+                        guard pair.0 != pair.1 else { return nil }
+                        let x = index / 4 % pixelWidth
+                        return max(0, Int(floor((CGFloat(x) / 2 - 10) / arabicMetrics.cellWidth)))
+                    })
+                }
+                let selectedColumns = sample == "بب" ? [0, 1] : [1]
+                for column in selectedColumns {
+                    var selected = arabic
+                    selected.cells[column].flags |= UInt16(ZSHELL_CELL_SELECTED)
+                    let selection = metal(selected, metrics: arabicMetrics, renderer: arabicRenderer)
+                    check(changedColumns(selection, baseline) == [column],
+                          "\(family) \(sample) RTL selection colors only column \(column)")
+                    let cursor = metal(arabic, metrics: arabicMetrics, renderer: arabicRenderer, cursor: column)
+                    check(changedColumns(cursor, baseline) == [column],
+                          "\(family) \(sample) RTL cursor colors only column \(column)")
+                }
+                check(mirrored(shaper, "shapedRunCount", as: Int.self) == shapedRuns,
+                      "\(family) RTL selection and cursor reuse shaped cells")
+                _ = metal(arabic, metrics: arabicMetrics, renderer: arabicRenderer)
+                let cached = metal(arabic, metrics: arabicMetrics, renderer: arabicRenderer, dirtyRows: [])
+                check(cached == baseline, "\(family) RTL clean row retains its original raster")
+            }
+        }
+    }
     let aligned = Grid(["A e\u{301}中😀->X"])
     let native = TerminalTextShaper()
     native.reset(metrics: metrics(), rowCount: 1)
