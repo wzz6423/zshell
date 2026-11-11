@@ -24,7 +24,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     @Published var workingDirectory: String?
     @Published var hasExited = false {
         didSet {
-            if hasExited { AgentAutomationMonitor.shared.unregister(self) }
+            if hasExited {
+                cancelPromptQueueDispatch()
+                promptQueueBar.setPaneVisible(false)
+                AgentAutomationMonitor.shared.unregister(self)
+            }
         }
     }
     @Published private(set) var commandLifecycle = TerminalCommandLifecycle()
@@ -93,6 +97,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     private var retainedSessionResources: [AnyObject] = []
     private var remoteObservation: AnyCancellable?
     private var terminalProfileObservation: AnyCancellable?
+    private var promptQueueSettingsObservation: AnyCancellable?
     private var lastTerminalProfileContext: TerminalProfileContext?
     var remoteAgentGeneration: UInt64?
     var acknowledgedRemoteAgentGeneration: UInt64?
@@ -111,6 +116,15 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// Scheduled auto-dispatch for `promptQueue`. Scheduling and the
     /// readiness gate live in TerminalPromptQueue.swift.
     var promptQueueDispatchTask: Task<Void, Never>?
+    var promptQueueDispatchGeneration: UInt64 = 0
+    var promptQueueSentRevision: PromptQueuePromptRevision?
+
+    struct PromptQueuePromptRevision: Equatable {
+        let modifiedSeconds: Int
+        let modifiedNanoseconds: Int
+        let changedSeconds: Int
+        let changedNanoseconds: Int
+    }
 
     init(
         initialDirectory: String? = nil,
@@ -319,6 +333,13 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         configureQuickCommandMenu()
         installOverlayScrollbar()
         promptQueueBar.attach(queue: promptQueue, session: self)
+        promptQueueSettingsObservation = Publishers.CombineLatest(
+            AppSettings.shared.$promptQueueEnabled.removeDuplicates(),
+            AppSettings.shared.$promptQueueAutoDispatch.removeDuplicates()
+        ).dropFirst().sink { [weak self] enabled, _ in
+            self?.cancelPromptQueueDispatch()
+            if !enabled { self?.promptQueue.dismiss() }
+        }
         applyTheme()
         if resumeLaunch != nil, let identity = agentResume,
            let kind = ZshellAgentKind(rawValue: identity.provider.rawValue) {
@@ -463,6 +484,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// close signal they received before the backend migration.
     func terminate() {
         guard !isTerminating, !hasExited || persistentPTY != nil else { return }
+        cancelPromptQueueDispatch()
         TerminalNotificationService.shared.terminalClosed(self)
         isTerminating = true
         remoteConnection?.stopMonitoring()
@@ -496,6 +518,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// real PTY and its startup files. Closing a pane still calls terminate().
     func prepareForApplicationQuit(preserve: Bool) {
         guard !isTerminating else { return }
+        cancelPromptQueueDispatch()
+        promptQueueBar.setPaneVisible(false)
         AgentAutomationMonitor.shared.unregister(self)
         if let remoteConnection {
             remoteConnection.detach()
@@ -519,9 +543,12 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// or been force-stopped. Detaching first can make a backend wait
     /// synchronously for a process that ignored SIGHUP.
     private func beginTeardown(processAlive: Bool, notifyExit: Bool) {
+        cancelPromptQueueDispatch()
+        promptQueueBar.setPaneVisible(false)
         AgentAutomationMonitor.shared.unregister(self)
         TerminalNotificationService.shared.terminalClosed(self)
         terminalProfileObservation = nil
+        promptQueueSettingsObservation = nil
         surface.splitTarget.profileMenuTarget.session = nil
         cancelClipboardPaste()
         recordAgentConversation(nil, processID: nil)
@@ -633,6 +660,26 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         remoteConnection?.takeControl()
         if asPaste { surface.sendPaste(text) }
         else { surface.sendText(text) }
+    }
+
+    /// Reserve this prompt until shell output acknowledges the send; the
+    /// shell owns its state files, so only it may update their cached values.
+    func reservePromptQueueSend() -> Bool {
+        guard !isTerminating, canSendQueuedPrompt, let revision = promptQueuePromptRevision else { return false }
+        promptQueueSentRevision = revision
+        return true
+    }
+
+    var promptQueuePromptRevision: PromptQueuePromptRevision? {
+        guard let launchDirectoryURL else { return nil }
+        var metadata = stat()
+        guard lstat(launchDirectoryURL.appendingPathComponent("prompt-queue.pid").path, &metadata) == 0 else { return nil }
+        return PromptQueuePromptRevision(
+            modifiedSeconds: metadata.st_mtimespec.tv_sec,
+            modifiedNanoseconds: metadata.st_mtimespec.tv_nsec,
+            changedSeconds: metadata.st_ctimespec.tv_sec,
+            changedNanoseconds: metadata.st_ctimespec.tv_nsec
+        )
     }
 
     func sendEnter() {
@@ -995,6 +1042,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
               builtin print -rn -- "$2" 2>/dev/null >| "$1"
             }
             _zshell_prompt_queue_ready() {
+              (( ZSH_SUBSHELL == 0 )) || return
               [[ -f \(selectionStatePath) ]] || _zshell_selection_ready || return
               local _zshell_queue_now_empty=$(( ${#BUFFER} == 0 ))
               if (( _zshell_queue_now_empty == _zshell_prompt_queue_empty )) && [[ -f \(promptQueueStatePath) ]]; then
@@ -1074,6 +1122,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             # Config reloads may rebuild the keymaps. Reinstall our private bindings
             # before advertising readiness; a nested or exec'd zsh has no such widgets.
             _zshell_selection_ready() {
+              # Completion workers inherit these hooks but do not own the root PTY.
+              (( ZSH_SUBSHELL == 0 )) || return
               _zshell_selection_finished
               local _zshell_keymap
               for _zshell_keymap in emacs viins vicmd "$KEYMAP"; do

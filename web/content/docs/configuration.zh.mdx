@@ -271,6 +271,7 @@ regular/bold 区分及后备字体字重。
 | `terminal.theme-only` | `false` | 布尔值 | 只将所选配色应用于终端 |
 | `terminal.command-history` | `true` | 布尔值 | 记录新命令，关闭后仍可查看已有历史 |
 | `terminal.text-hints` | `true` | 布尔值 | 启用可见终端文本的键盘提示 |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | 布尔值 | **设置 → 终端 → 提示词队列** 控制所有工作区和快速终端。关闭总开关隐藏队列栏并取消待发送任务，保留队列和输入直到终端关闭。自动发送默认关闭；开启后从下一次命令结束起，原来的 zsh 回到空提示符且没有命令任务占用时按顺序发送。开启不会立即执行已有队列。手动发送遵守相同检查；其他 Shell、嵌套 Shell、前台程序和提示符草稿均不能接收队列内容。 |
 | `terminal.auto-profiles` | `true` | 布尔值 | 自动匹配终端配置方案，仍可手动选择 |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | 终端光标形状 |
 | `terminal.cursor-blinking` | `true` | 布尔值 | 光标闪烁 |

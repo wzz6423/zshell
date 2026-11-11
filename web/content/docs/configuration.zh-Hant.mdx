@@ -239,6 +239,7 @@ regular/bold 區分及後備字型字重。
 | `terminal.theme-only` | `false` | 布林值 | 只將所選配色應用於終端機 |
 | `terminal.command-history` | `true` | 布林值 | 記錄新命令，關閉後仍可查看既有歷史 |
 | `terminal.text-hints` | `true` | 布林值 | 啟用可見終端機文字的鍵盤提示 |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | 布林值 | **設定 → 終端機 → 提示詞隊列** 控制所有工作區和快速終端機。關閉總開關會隱藏隊列欄並取消待發送工作，保留隊列和輸入直到終端機關閉。自動發送預設關閉；開啟後從下一次命令結束起，原來的 zsh 回到空提示符且沒有命令工作佔用時按順序發送。開啟不會立即執行既有隊列。手動發送遵守相同檢查；其他 Shell、巢狀 Shell、前台程式和提示符草稿均不能接收隊列內容。 |
 | `terminal.auto-profiles` | `true` | 布林值 | 自動比對終端機設定方案，仍可手動選擇 |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | 終端機游標形狀 |
 | `terminal.cursor-blinking` | `true` | 布林值 | 游標閃爍 |

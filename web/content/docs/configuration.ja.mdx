@@ -244,6 +244,7 @@ Codex app-server を共有する場合、検証済みの会話 ID を前面の�
 | `terminal.theme-only` | `false` | 真偽値 | 選んだ配色をターミナルだけに適用 |
 | `terminal.command-history` | `true` | 真偽値 | 新しいコマンド履歴を記録。無効時も保存済み履歴は利用可能 |
 | `terminal.text-hints` | `true` | 真偽値 | 表示中の端末テキストにキーボードヒントを表示 |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | 真偽値 | **設定 → ターミナル → プロンプトキュー**で管理します。総合スイッチをオフにすると全ワークスペースと Quick Terminal のバーを隠し、送信待ちを取り消します。項目と入力は端末を閉じるまで保持します。自動送信は任意で、次のコマンド終了から、元の zsh の空のプロンプトでタスクがない場合のみ順番に送信します。有効化直後の再生はありません。手動送信も同じ条件で、他のシェル、入れ子のシェル、前景プログラム、入力途中のプロンプトには送信しません。 |
 | `terminal.auto-profiles` | `true` | 真偽値 | プロファイルを自動照合。手動選択も利用可能 |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | ターミナルのカーソル形状 |
 | `terminal.cursor-blinking` | `true` | 真偽値 | カーソルを点滅 |

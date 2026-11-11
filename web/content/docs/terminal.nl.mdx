@@ -100,9 +100,13 @@ Deze instelling geldt alleen voor dat deelvenster. Klik opnieuw met de rechtermu
 
 Geef een terminal de focus en druk op <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>, of kies **Promptwachtrij tonen/verbergen** in het opdrachtenpalet. De balk opent onder die terminal. Typ een item en druk op <kbd>Return</kbd> of **Toevoegen aan wachtrij**. Elk item bestaat uit één regel; geplakte regeleinden worden spaties.
 
-Wanneer de oorspronkelijke zsh terugkeert naar een lege shellprompt, verstuurt Zshell het volgende item en drukt het op Return. Items worden op volgorde uitgevoerd. Automatisch versturen wacht zolang een agent of ander voorgrondprogramma de terminal beheert, of zolang de shellprompt conceptinvoer bevat. Daarvoor is de zsh-integratie van Zshell nodig; andere en geneste shells kunnen handmatig versturen gebruiken.
+Verzenden is standaard handmatig. **Nu versturen** verzendt alleen bij een lege prompt in de oorspronkelijke zsh zonder wachtende of actieve opdrachttaak. De knop is uitgeschakeld bij agents, voorgrondprogramma’s, conceptinvoer en andere of geneste shells. Een geweigerde verzending behoudt het item.
 
-Elk item heeft knoppen **Nu verzenden** en **Verwijderen**. **Nu verzenden** stuurt de tekst en Return onmiddellijk naar het huidige terminalprogramma, zonder op een shellprompt te wachten. <kbd>Esc</kbd> of de sluitknop verbergt de balk en bewaart de items. Elke terminal heeft een eigen wachtrij; de sessie sluiten of Zshell afsluiten verwijdert die wachtrij.
+Schakel onder **Instellingen → Terminal → Promptwachtrij** de optie **Prompts in wachtrij automatisch versturen** in om na afloop van een opdracht het volgende item in volgorde te sturen bij een lege zsh-prompt. Inschakelen speelt de bestaande wachtrij niet meteen af; het geldt vanaf de volgende opdrachtafloop. Uitschakelen annuleert geplande verzendingen.
+
+**Promptwachtrij inschakelen** geldt voor alle werkruimtes en Quick Terminal. Uitschakelen verbergt balken, annuleert verzendingen en bewaart items en niet-verzonden invoer. Menu en sneltoets openen dan de bijbehorende instellingen.
+
+**Verwijder** verwijdert een item. Smalle panelen tonen benoemde pictogrammen met tooltips. <kbd>Esc</kbd> of sluiten verbergt alleen de balk. Elke terminal heeft een eigen wachtrij, die verdwijnt bij het sluiten van de sessie of Zshell.
 
 ## Paden en URL's [#paths-and-urls]
 

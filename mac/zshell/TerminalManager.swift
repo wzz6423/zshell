@@ -1479,6 +1479,10 @@ final class TerminalManager: nonisolated ObservableObject {
     /// diff pane.
     func togglePromptQueue() {
         if case .session(let session)? = selectedProject?.focusedContent {
+            guard AppSettings.shared.promptQueueEnabled else {
+                SettingsWindowController.shared.show(category: .terminal, section: String(localized: "Prompt Queue"))
+                return
+            }
             session.promptQueue.togglePresentation()
         }
     }

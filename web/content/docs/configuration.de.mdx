@@ -224,6 +224,7 @@ Die Option steht unter **Einstellungen → Automatisierung → Agentengespräche
 | `terminal.theme-only` | `false` | Boolescher Wert | Gewählte Palette nur auf das Terminal anwenden |
 | `terminal.command-history` | `true` | Boolescher Wert | Neue Befehle aufzeichnen; gespeicherter Verlauf bleibt bei Aus verfügbar |
 | `terminal.text-hints` | `true` | Boolescher Wert | Tastaturhinweise für sichtbaren Terminaltext einschalten |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | Boolescher Wert | **Einstellungen → Terminal → Prompt-Warteschlange** steuert alle Arbeitsbereiche und Quick Terminal. Ausschalten des Hauptschalters blendet Leisten aus und bricht Sendungen ab; Einträge und Eingaben bleiben bis zum Schließen des Terminals erhalten. Automatisches Senden ist optional und gilt ab dem nächsten Befehlsende, in Reihenfolge und nur am leeren Prompt der ursprünglichen zsh ohne aktive Befehlsaufgabe. Einschalten führt nichts sofort aus. Manuelles Senden nutzt dieselben Prüfungen; andere oder verschachtelte Shells, Vordergrundprogramme und Eingabeentwürfe erhalten keine Warteschlangeneinträge. |
 | `terminal.auto-profiles` | `true` | Boolescher Wert | Terminalprofile automatisch zuordnen; manuelle Auswahl bleibt verfügbar |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Form des Terminalcursors |
 | `terminal.cursor-blinking` | `true` | Boolescher Wert | Cursor blinken lassen |

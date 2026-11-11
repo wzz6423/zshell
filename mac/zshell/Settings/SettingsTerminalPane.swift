@@ -16,6 +16,8 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     private let automaticProfilesSwitch = SettingsSwitch { AppSettings.shared.automaticallyApplyTerminalProfiles = $0 }
     private let commandHistorySwitch = SettingsSwitch { AppSettings.shared.commandHistoryEnabled = $0 }
     private let textHintsSwitch = SettingsSwitch { AppSettings.shared.terminalTextHints = $0 }
+    private let promptQueueSwitch = SettingsSwitch { AppSettings.shared.promptQueueEnabled = $0 }
+    private let promptQueueAutoDispatchSwitch = SettingsSwitch { AppSettings.shared.promptQueueAutoDispatch = $0 }
     private let quickTerminalSwitch = SettingsSwitch { AppSettings.shared.quickTerminalEnabled = $0 }
     private let optionAsAltSwitch = SettingsSwitch { AppSettings.shared.macosOptionAsAlt = $0 }
     private let vimCommandHintsSwitch = SettingsSwitch { AppSettings.shared.vimCommandHints = $0 }
@@ -168,6 +170,19 @@ final class SettingsTerminalPane: SettingsPaneViewController {
             },
         ]))
 
+        groups.append(SettingsGroup(header: String(localized: "Prompt Queue"), rows: [
+            SettingsRow(
+                title: String(localized: "Enable Prompt Queue"),
+                description: String(localized: "Turning this off hides all queue bars and stops pending sends. Queued entries and input are kept until the terminal closes."),
+                control: promptQueueSwitch
+            ),
+            SettingsRow(
+                title: String(localized: "Send queued prompts automatically"),
+                description: String(localized: "When a command finishes, send the next entry at an empty prompt in the original zsh shell. Turn this off to use Send Now."),
+                control: promptQueueAutoDispatchSwitch
+            ),
+        ]))
+
         let notificationScope = NSTextField(wrappingLabelWithString: String(localized: "Changes apply to new zsh terminals."))
         notificationScope.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         notificationScope.textColor = .secondaryLabelColor
@@ -202,6 +217,9 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         automaticProfilesSwitch.isOn = settings.automaticallyApplyTerminalProfiles
         commandHistorySwitch.isOn = settings.commandHistoryEnabled
         textHintsSwitch.isOn = settings.terminalTextHints
+        promptQueueSwitch.isOn = settings.promptQueueEnabled
+        promptQueueAutoDispatchSwitch.isOn = settings.promptQueueAutoDispatch
+        promptQueueAutoDispatchSwitch.isEnabled = settings.promptQueueEnabled
         quickTerminalSwitch.isOn = settings.quickTerminalEnabled
         for index in 1...4 { quickTerminalGroup.setRowHidden(!visibility.quickTerminalEnabled, at: index) }
         optionAsAltSwitch.isOn = settings.macosOptionAsAlt

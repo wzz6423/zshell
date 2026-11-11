@@ -100,9 +100,13 @@ Die Einstellung gilt nur für diesen Bereich. Entfernen Sie das Häkchen im Kont
 
 Fokussieren Sie ein Terminal und drücken Sie <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> oder wählen Sie **Prompt-Warteschlange umschalten** in der Befehlspalette. Die Leiste öffnet sich unter diesem Terminal. Geben Sie einen Eintrag ein und drücken Sie <kbd>Return</kbd> oder **Zur Warteschlange hinzufügen**. Jeder Eintrag ist einzeilig; eingefügte Zeilenumbrüche werden zu Leerzeichen.
 
-Sobald die ursprüngliche zsh zu einem leeren Prompt zurückkehrt, sendet Zshell den nächsten Eintrag samt Return. Die Einträge laufen der Reihe nach. Das automatische Senden wartet, solange ein Agent oder anderes Vordergrundprogramm das Terminal belegt oder der Prompt einen Eingabeentwurf enthält. Es benötigt Zshells zsh-Integration. Bei anderen oder verschachtelten Shells ist manuelles Senden möglich.
+Standardmäßig wird manuell gesendet. **Jetzt senden** sendet nur am leeren Prompt der ursprünglichen zsh, wenn keine ausstehende oder laufende Befehlsaufgabe das Terminal belegt. Bei Agenten, Vordergrundprogrammen, Eingabeentwürfen sowie anderen oder verschachtelten Shells ist die Schaltfläche deaktiviert. Abgelehnte Sendungen bleiben in der Warteschlange.
 
-Jeder Eintrag besitzt **Jetzt senden** und **Entfernen**. **Jetzt senden** übergibt Text und Return sofort an das aktuelle Terminalprogramm, ohne auf einen Shell-Prompt zu warten. <kbd>Esc</kbd> oder die Schließen-Schaltfläche blendet die Leiste aus und erhält die Einträge. Jedes Terminal hat seine eigene Warteschlange. Beim Schließen der Sitzung oder Beenden von Zshell wird sie verworfen.
+Unter **Einstellungen → Terminal → Prompt-Warteschlange** aktiviert **Prompts automatisch senden** die geordnete Übermittlung des nächsten Eintrags nach Befehlsende am leeren zsh-Prompt. Beim Einschalten werden vorhandene Einträge nicht sofort ausgeführt; die Änderung gilt ab dem nächsten Befehlsende. Ausschalten bricht ausstehende Sendungen ab.
+
+**Prompt-Warteschlange aktivieren** gilt für alle Arbeitsbereiche und Quick Terminal. Ausschalten blendet alle Leisten aus, stoppt Sendungen und erhält Einträge sowie ungesendete Eingaben. Menü und Tastenkürzel öffnen dann die zugehörigen Einstellungen.
+
+**Entfernen** löscht einen Eintrag. Schmale Bereiche zeigen benannte Symbole mit Tooltips. <kbd>Esc</kbd> oder Schließen blendet nur die Leiste aus. Jede Sitzung hat ihre eigene Warteschlange; beim Schließen der Sitzung oder Beenden von Zshell wird sie verworfen.
 
 ## Pfade und URLs [#paths-and-urls]
 

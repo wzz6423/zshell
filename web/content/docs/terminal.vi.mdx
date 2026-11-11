@@ -100,9 +100,13 @@ Thiết lập chỉ áp dụng ô đó. Nhấp phải bỏ dấu chọn để kh
 
 Chọn terminal và nhấn <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>, hoặc **Bật/tắt hàng đợi lệnh** trong bảng lệnh. Thanh mở dưới terminal đó. Gõ mục rồi <kbd>Return</kbd> hoặc **Thêm vào hàng đợi**; mỗi mục một dòng, xuống dòng dán vào đổi thành khoảng trắng.
 
-Khi zsh gốc trở lại dấu nhắc trống, Zshell gửi mục kế tiếp rồi Return. Mục chạy theo thứ tự hàng đợi. Gửi tự động chờ khi tác nhân/chương trình tiền cảnh đang dùng terminal hoặc dấu nhắc có bản nháp. Cần tích hợp zsh của Zshell; shell khác và shell lồng nhau có thể gửi thủ công.
+Mặc định gửi thủ công. **Gửi ngay** chỉ gửi khi dấu nhắc zsh ban đầu trống và không có tác vụ lệnh đang chờ hoặc chạy chiếm terminal. Nút bị vô hiệu với agent, chương trình tiền cảnh, bản nháp, shell khác hoặc shell lồng nhau. Gửi bị từ chối sẽ giữ mục trong hàng đợi.
 
-Mỗi mục có **Gửi ngay** và **Xóa**. **Gửi ngay** lập tức gửi chữ và Return tới chương trình hiện tại, không đợi dấu nhắc shell. <kbd>Esc</kbd> hoặc nút đóng ẩn thanh và giữ hàng đợi. Mỗi terminal có hàng đợi riêng; đóng phiên hoặc thoát Zshell sẽ bỏ nó.
+Trong **Cài đặt → Terminal → Hàng đợi lệnh**, bật **Tự động gửi lệnh trong hàng đợi** để gửi mục tiếp theo theo thứ tự khi lệnh kết thúc và zsh trở về dấu nhắc trống. Bật không chạy ngay hàng đợi hiện có; có hiệu lực từ lần kết thúc lệnh tiếp theo. Tắt sẽ hủy các lượt gửi đang chờ.
+
+Tắt **Bật hàng đợi lệnh** sẽ ẩn thanh trong mọi không gian làm việc và Quick Terminal, hủy gửi và giữ các mục cùng nội dung chưa gửi. Khi tắt, menu và phím tắt mở phần cài đặt tương ứng.
+
+**Loại bỏ** xóa mục. Ô hẹp hiển thị biểu tượng có tên và chú giải. <kbd>Esc</kbd> hoặc đóng chỉ ẩn thanh. Mỗi terminal có hàng đợi riêng, bị xóa khi đóng phiên hoặc Zshell.
 
 ## Đường dẫn và URL [#paths-and-urls]
 

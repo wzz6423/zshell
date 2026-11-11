@@ -100,9 +100,13 @@ Ayar yalnızca o bölmeye uygulanır. Yeniden sağ tıklayıp işareti kaldırma
 
 Terminale odaklanıp <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> basın veya komut paletinde **Komut Kuyruğunu Aç/Kapat** seçin. Çubuk terminalin altında açılır. Girdi yazıp <kbd>Return</kbd> veya **Kuyruğa Ekle** kullanın; her girdi tek satırdır, yapıştırılan satır sonları boşluğa dönüşür.
 
-Asıl zsh boş kabuk istemine dönünce Zshell sıradaki girdiyi ve Return gönderir. Girdiler kuyruk sırasıyla çalışır. Ajan veya başka program terminali kullanırken ya da istemde taslak varken otomatik gönderim bekler. Zshell’in zsh entegrasyonu gerekir; diğer ve iç içe kabuklar elle gönderimi kullanabilir.
+Varsayılan gönderim elle yapılır. **Şimdi Gönder**, yalnızca özgün zsh komut satırı boşken ve bekleyen veya çalışan komut görevi terminali kullanmıyorken gönderir. Ajanlar, ön plan programları, taslaklar, başka veya iç içe kabuklarda düğme devre dışıdır. Reddedilen gönderim girdiyi korur.
 
-Her girdinin **Şimdi Gönder** ve **Kaldır** düğmesi vardır. **Şimdi Gönder** kabuk istemi beklemeden metni ve Return’ü terminaldeki mevcut programa hemen gönderir. <kbd>Esc</kbd> veya kapatma düğmesi girdileri koruyarak çubuğu gizler. Her terminalin kuyruğu ayrıdır; oturumu kapatmak veya Zshell’den çıkmak kuyruğu siler.
+**Ayarlar → Terminal → Komut kuyruğu** altında **Kuyruktaki komutları otomatik gönder** seçeneğini açarak bir komut bitip zsh boş komut satırına döndüğünde sıradaki girdiyi gönderin. Açmak mevcut kuyruğu hemen çalıştırmaz; sonraki komut bitiminde geçerli olur. Kapatmak bekleyen gönderimleri iptal eder.
+
+**Komut kuyruğunu etkinleştir** kapatıldığında tüm çalışma alanları ve Quick Terminal çubukları gizlenir, gönderimler iptal olur, girdiler ve gönderilmemiş metin korunur. Menü ve kısayol bu durumda ilgili ayarları açar.
+
+**Kaldır** girdiyi siler. Dar bölmeler adlı ve ipuçlu simgeler gösterir. <kbd>Esc</kbd> veya kapat yalnızca çubuğu gizler. Her terminalin kuyruğu ayrıdır; oturum veya Zshell kapanınca silinir.
 
 ## Yollar ve URL’ler [#paths-and-urls]
 

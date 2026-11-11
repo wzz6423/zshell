@@ -100,9 +100,13 @@ El ajuste solo afecta a ese panel. Vuelve a hacer clic derecho y desmarca la opc
 
 Enfoca un terminal y pulsa <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>, o elige **Alternar cola de prompts** en la paleta de comandos. La barra se abre debajo de ese terminal. Escribe una entrada y pulsa <kbd>Return</kbd> o **Añadir a la cola**; cada entrada ocupa una sola línea y los saltos de línea pegados se sustituyen por espacios.
 
-Cuando el zsh original vuelve a un prompt vacío, Zshell envía la siguiente entrada y pulsa Return. Las entradas se ejecutan en el orden de la cola. El envío automático espera mientras un agente u otro programa en primer plano controla el terminal, o mientras el prompt contiene un borrador. Requiere la integración de Zshell con zsh; otros shells y los shells anidados pueden usar el envío manual.
+El envío es manual de forma predeterminada. **Enviar ahora** solo envía si el prompt del zsh original está vacío y ninguna tarea de comando pendiente o en ejecución ocupa el terminal. Se desactiva con agentes, programas en primer plano, borradores y otros shells o shells anidados. Un envío rechazado conserva la entrada.
 
-Cada entrada tiene botones **Enviar ahora** y **Quitar**. **Enviar ahora** envía inmediatamente el texto y Return al programa actual del terminal, sin esperar a un prompt del shell. <kbd>Esc</kbd> o el botón de cierre ocultan la barra y conservan las entradas en cola. Cada terminal tiene su propia cola; cerrar esa sesión o salir de Zshell la descarta.
+En **Ajustes → Terminal → Cola de prompts**, active **Enviar automáticamente los prompts en cola** para enviar la siguiente entrada en orden al terminar un comando y volver zsh a un prompt vacío. Activarlo no ejecuta la cola inmediatamente: se aplica desde el siguiente fin de comando. Desactivarlo cancela los envíos pendientes.
+
+Desactivar **Activar la cola de prompts** oculta las barras de todos los espacios de trabajo y Quick Terminal, cancela envíos y conserva entradas y texto sin enviar. El menú y el atajo abren entonces los ajustes correspondientes.
+
+**Quitar** elimina una entrada. Los paneles estrechos muestran iconos con nombres y ayudas. <kbd>Esc</kbd> o cerrar solo oculta la barra. Cada terminal tiene su propia cola; cerrar la sesión o Zshell la descarta.
 
 ## Rutas y URL [#paths-and-urls]
 

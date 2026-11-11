@@ -54,6 +54,8 @@ CONFIGURATION_ITEMS = {
     "terminal.background-blur": ("appearance", "Blur behind window", "Background"),
     "terminal.auto-profiles": ("terminal", "Apply terminal profiles automatically", "Terminal Profiles"),
     "terminal.text-hints": ("terminal", "Show terminal text hints", "Input"),
+    "terminal.prompt-queue-enabled": ("terminal", "Enable Prompt Queue", "Prompt Queue"),
+    "terminal.prompt-queue-auto-dispatch": ("terminal", "Send queued prompts automatically", "Prompt Queue"),
     "terminal.shell-completions": ("terminal", "Shell completions", "Input"),
     "terminal.vim-command-hints": ("terminal", "Vim command hints", "Input"),
     "terminal.macos-option-as-alt": ("terminal", "Use Option as Alt/Meta", "Input"),

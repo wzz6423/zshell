@@ -7,9 +7,8 @@ import Combine
 import Foundation
 
 /// One terminal session's typed-ahead prompts: an in-memory FIFO the user
-/// fills from the pane-bottom bar while the session is busy — typically while
-/// a coding agent owns the terminal — and that drains to the shell as each
-/// prompt comes free.
+/// fills from the pane-bottom bar while the session is busy. Sending is manual
+/// unless the user enables automatic dispatch in terminal settings.
 ///
 /// Deliberately not persisted and not shared between sessions. The queue
 /// holds commands aimed at *this* shell's very next prompt, so carrying it
@@ -20,10 +19,21 @@ import Foundation
 final class TerminalPromptQueue: nonisolated ObservableObject {
     @Published private(set) var commands: [String] = []
     @Published private(set) var isPresented = false
+    private(set) var isEnabled = AppSettings.shared.promptQueueEnabled
+    private var settingsObservation: AnyCancellable?
+
+    init() {
+        settingsObservation = AppSettings.shared.$promptQueueEnabled.removeDuplicates()
+            .sink { [weak self] enabled in
+                self?.isEnabled = enabled
+                if !enabled { self?.dismiss() }
+            }
+    }
 
     // MARK: - Presentation
 
     func present() {
+        guard isEnabled else { return }
         isPresented = true
     }
 
@@ -34,7 +44,8 @@ final class TerminalPromptQueue: nonisolated ObservableObject {
     }
 
     func togglePresentation() {
-        isPresented.toggle()
+        if isPresented { dismiss() }
+        else { present() }
     }
 
     // MARK: - Items
@@ -44,6 +55,7 @@ final class TerminalPromptQueue: nonisolated ObservableObject {
     /// keeps the send path to plain text plus one Return, so nothing in the
     /// queue can execute halfway through.
     func enqueue(_ command: String) {
+        guard isEnabled else { return }
         let flattened = command
             .replacingOccurrences(of: "\r\n", with: " ")
             .replacingOccurrences(of: "\r", with: " ")
@@ -76,10 +88,9 @@ extension TerminalSession {
     /// `.promptStart` and `.commandFinished` — whichever the active backend
     /// actually reports. libghostty surfaces only completed commands (there
     /// is no prompt-start callback), while the Alacritty bridge extracts all
-    /// OSC 133 markers. Subscribing to both covers the two backends; a session whose
-    /// shell reports neither simply leaves the queue to manual sends.
+    /// OSC 133 markers. Both paths still require the original zsh's empty
+    /// prompt acknowledgement before dispatching.
     func promptQueueDidObservePromptReturn() {
-        guard !promptQueue.commands.isEmpty else { return }
         schedulePromptQueueDispatch()
     }
 
@@ -87,48 +98,77 @@ extension TerminalSession {
     /// attempt: while a foreground job — an agent, a build, anything — owns
     /// the pane, the gate stays false and nothing is sent.
     func schedulePromptQueueDispatch() {
-        guard !hasExited, !promptQueue.commands.isEmpty else { return }
-        promptQueueDispatchTask?.cancel()
+        cancelPromptQueueDispatch()
+        guard AppSettings.shared.promptQueueEnabled,
+              promptQueue.isEnabled,
+              AppSettings.shared.promptQueueAutoDispatch,
+              !hasExited, !promptQueue.commands.isEmpty else { return }
+        let generation = promptQueueDispatchGeneration
         promptQueueDispatchTask = Task { [weak self] in
-            for attempt in 0..<TerminalSession.promptQueueDispatchAttempts {
-                try? await Task.sleep(for: attempt == 0
-                    ? TerminalSession.promptQueueSettleDelay
-                    : TerminalSession.promptQueueRetryDelay)
-                guard let self, !self.hasExited, !Task.isCancelled else { return }
-                if self.sendPromptQueueHeadIfShellIsReady() { break }
+            defer {
+                if let self, self.promptQueueDispatchGeneration == generation {
+                    self.promptQueueDispatchTask = nil
+                }
             }
-            self?.promptQueueDispatchTask = nil
+            for attempt in 0..<TerminalSession.promptQueueDispatchAttempts {
+                do {
+                    try await Task.sleep(for: attempt == 0
+                        ? TerminalSession.promptQueueSettleDelay
+                        : TerminalSession.promptQueueRetryDelay)
+                } catch { return }
+                guard let self, !Task.isCancelled,
+                      self.promptQueueDispatchGeneration == generation,
+                      AppSettings.shared.promptQueueEnabled,
+                      AppSettings.shared.promptQueueAutoDispatch else { return }
+                if self.dispatchQueuedPrompt(at: 0) { break }
+            }
         }
     }
 
     /// Manual sends take over from any pending auto-dispatch, which would
     /// otherwise fire into the same shell right behind the explicit one.
     func cancelPromptQueueDispatch() {
+        promptQueueDispatchGeneration &+= 1
         promptQueueDispatchTask?.cancel()
         promptQueueDispatchTask = nil
     }
 
-    /// Sends the queue's head when the pane's own zsh is provably back at a
-    /// fresh prompt. Returns whether the head was sent.
-    private func sendPromptQueueHeadIfShellIsReady() -> Bool {
-        guard !promptQueue.commands.isEmpty,
+    var canSendQueuedPrompt: Bool {
+        guard AppSettings.shared.promptQueueEnabled,
+              promptQueue.isEnabled,
+              !hasExited,
+              let shellPID = shellPid, shellPID > 0,
+              surface.foregroundPid == shellPID,
               !TerminalCommandTaskStore.shared.hasActiveTask(terminalID: id),
               terminalPromptQueueIsReady
         else { return false }
-        // The gate above already proves the root shell is the foreground
-        // process and its last redraw had no draft input to append to.
-        guard let head = promptQueue.commands.first else { return false }
-        promptQueue.remove(at: 0)
-        sendQueuedPrompt(head)
+        if let sent = promptQueueSentRevision {
+            // A completed ZLE cycle rewrites readiness even when a fast command
+            // finishes between renderer events or while its pane is parked.
+            guard let current = promptQueuePromptRevision, current != sent else { return false }
+            promptQueueSentRevision = nil
+        }
         return true
     }
 
-    /// The single send path for queued prompts: fill the prompt without a
-    /// trailing newline, then send Return separately — the same `sendCommand`
-    /// → `surface.sendText` discipline as the quick-command menus and the
-    /// automation router. No backend is ever addressed privately.
-    func sendQueuedPrompt(_ command: String) {
+    /// Explicit sends cancel pending automatic work and retain the entry if
+    /// the original shell is busy, has a draft, or no longer owns this pane.
+    @discardableResult
+    func sendQueuedPrompt(at index: Int) -> Bool {
+        cancelPromptQueueDispatch()
+        return dispatchQueuedPrompt(at: index)
+    }
+
+    private func dispatchQueuedPrompt(at index: Int) -> Bool {
+        guard canSendQueuedPrompt, promptQueue.commands.indices.contains(index) else { return false }
+        if let context = ZshellAutomationRouter.context(forSession: id) {
+            guard context.session === self, belongs(to: context.manager) else { return false }
+        } else if hostManagerID != nil { return false }
+        guard reservePromptQueueSend() else { return false }
+        let command = promptQueue.commands[index]
+        promptQueue.remove(at: index)
         sendCommand(command)
         sendEnter()
+        return true
     }
 }

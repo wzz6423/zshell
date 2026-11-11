@@ -329,6 +329,14 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var promptQueueEnabled: Bool {
+        didSet { save() }
+    }
+
+    @Published var promptQueueAutoDispatch: Bool {
+        didSet { save() }
+    }
+
     /// Send Shift-Return as LF so coding agents can insert a line without
     /// changing plain Return's submit behavior.
     @Published var shiftEnterNewline: Bool {
@@ -590,6 +598,8 @@ final class AppSettings: nonisolated ObservableObject {
         shellCompletions = toml["terminal.shell-completions"]?.bool ?? true
         commandHistoryEnabled = toml["terminal.command-history"]?.bool ?? true
         terminalTextHints = toml["terminal.text-hints"]?.bool ?? true
+        promptQueueEnabled = toml["terminal.prompt-queue-enabled"]?.bool ?? true
+        promptQueueAutoDispatch = toml["terminal.prompt-queue-auto-dispatch"]?.bool ?? false
         terminalBell = toml["terminal.bell"]?.bool ?? true
         shiftEnterNewline = toml["terminal.shift-enter-newline"]?.bool ?? true
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
@@ -765,6 +775,8 @@ final class AppSettings: nonisolated ObservableObject {
             && shellCompletions
             && commandHistoryEnabled
             && terminalTextHints
+            && promptQueueEnabled
+            && !promptQueueAutoDispatch
             && shiftEnterNewline
             && wrapLines
             && protectEditorSaves
@@ -820,6 +832,8 @@ final class AppSettings: nonisolated ObservableObject {
         shellCompletions = true
         commandHistoryEnabled = true
         terminalTextHints = true
+        promptQueueEnabled = true
+        promptQueueAutoDispatch = false
         shiftEnterNewline = true
         wrapLines = true
         protectEditorSaves = true
@@ -1010,6 +1024,8 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.shellCompletions, toml["terminal.shell-completions"]?.bool ?? true)
         assign(\.commandHistoryEnabled, toml["terminal.command-history"]?.bool ?? true)
         assign(\.terminalTextHints, toml["terminal.text-hints"]?.bool ?? true)
+        assign(\.promptQueueEnabled, toml["terminal.prompt-queue-enabled"]?.bool ?? true)
+        assign(\.promptQueueAutoDispatch, toml["terminal.prompt-queue-auto-dispatch"]?.bool ?? false)
         assign(\.shiftEnterNewline, toml["terminal.shift-enter-newline"]?.bool ?? true)
         assign(\.wrapLines, toml["editor.wrap-lines"]?.bool ?? true)
         assign(\.protectEditorSaves, toml["editor.protect-saves"]?.bool ?? true)
@@ -1218,6 +1234,8 @@ final class AppSettings: nonisolated ObservableObject {
         lines.append("terminal.shell-completions = \(shellCompletions)")
         if !commandHistoryEnabled { lines.append("terminal.command-history = false") }
         if !terminalTextHints { lines.append("terminal.text-hints = false") }
+        lines.append("terminal.prompt-queue-enabled = \(promptQueueEnabled)")
+        lines.append("terminal.prompt-queue-auto-dispatch = \(promptQueueAutoDispatch)")
         if !automaticallyApplyTerminalProfiles { lines.append("terminal.auto-profiles = false") }
         if !shiftEnterNewline {
             lines.append("terminal.shift-enter-newline = false")

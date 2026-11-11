@@ -224,6 +224,7 @@ Khi khôi phục ngăn terminal và PTY gốc không còn khả dụng, tiếp t
 | `terminal.theme-only` | `false` | boolean | Chỉ áp dụng bảng màu cho terminal |
 | `terminal.command-history` | `true` | boolean | Ghi lệnh mới; lịch sử đã lưu vẫn có thể xem khi tắt |
 | `terminal.text-hints` | `true` | boolean | Bật gợi ý bàn phím cho văn bản terminal đang hiển thị |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | boolean | **Cài đặt → Terminal → Hàng đợi lệnh** điều khiển mọi không gian làm việc và Quick Terminal. Tắt công tắc chính ẩn thanh và hủy gửi, giữ mục và nội dung đến khi đóng terminal. Gửi tự động là tùy chọn, có hiệu lực từ lần kết thúc lệnh tiếp theo, theo thứ tự và chỉ tại dấu nhắc trống của zsh ban đầu không có tác vụ lệnh hoạt động. Bật không chạy hàng đợi ngay. Gửi thủ công có cùng kiểm tra; shell khác hoặc lồng nhau, chương trình tiền cảnh và bản nháp không nhận hàng đợi. |
 | `terminal.auto-profiles` | `true` | boolean | Tự động khớp hồ sơ terminal; vẫn có thể chọn thủ công |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Hình con trỏ terminal |
 | `terminal.cursor-blinking` | `true` | boolean | Nhấp nháy con trỏ |

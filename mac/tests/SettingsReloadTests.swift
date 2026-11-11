@@ -97,6 +97,24 @@ struct SettingsReloadTests {
               && settings.notifyOnAgentCompletion && settings.showPullRequestStatus,
               "feature switches preserve existing behavior by default")
         check(settings.isAtDefaults, "fresh settings expose the correct reset state")
+        check(settings.promptQueueEnabled && !settings.promptQueueAutoDispatch,
+              "prompt queues are enabled with explicit sending by default")
+        settings.promptQueueEnabled = false
+        settings.promptQueueAutoDispatch = true
+        check(!settings.isAtDefaults, "prompt queue settings enable reset")
+        let queueConfig = TOML.parseStrictly(text: settings.serializedConfig()).values
+        check(queueConfig["terminal.prompt-queue-enabled"] == .bool(false)
+              && queueConfig["terminal.prompt-queue-auto-dispatch"] == .bool(true),
+              "prompt queue settings export even while automatic sending is disabled by the master switch")
+        settings.promptQueueEnabled = true
+        settings.promptQueueAutoDispatch = false
+        check(settings.promptQueueEnabled && !settings.promptQueueAutoDispatch && settings.isAtDefaults,
+              "manual queue defaults restore the reset state")
+        settings.applyImported(queueConfig)
+        check(!settings.promptQueueEnabled && settings.promptQueueAutoDispatch,
+              "import restores both prompt queue settings")
+        settings.promptQueueEnabled = true
+        settings.promptQueueAutoDispatch = false
         check(settings.keepAwakeMode == .off, "sleep prevention is off by default")
         settings.keepAwakeMode = .whileRunning
         check(!settings.isAtDefaults, "sleep prevention enables reset")
@@ -168,6 +186,8 @@ struct SettingsReloadTests {
         terminal.notify-on-error = true
         terminal.command-history = false
         terminal.text-hints = false
+        terminal.prompt-queue-enabled = false
+        terminal.prompt-queue-auto-dispatch = true
         terminal.auto-profiles = false
         quick-terminal.enabled = false
         quick-terminal.size = 0.5
@@ -245,6 +265,11 @@ struct SettingsReloadTests {
         wait({ settings.fontSize == 20 }, "external font edit applies")
         check(changes == unchanged + 1, "single setting edit publishes once")
         check(try SettingsConfigFile.read(at: url) == changed, "external update does not rewrite source")
+        let enabledQueue = changed.replacingOccurrences(of: "terminal.prompt-queue-enabled = false", with: "terminal.prompt-queue-enabled = true")
+            .replacingOccurrences(of: "terminal.prompt-queue-auto-dispatch = true", with: "terminal.prompt-queue-auto-dispatch = false")
+        try enabledQueue.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.promptQueueEnabled && !settings.promptQueueAutoDispatch }, "external edit restores manual queue mode")
+        check(try SettingsConfigFile.read(at: url) == enabledQueue, "queue reload keeps external configuration intact")
         for invalid in ["font-size = 23\nunfinished", "font-size = 23\ntheme = \"dark\" junk", "font-size = 23\n[]", "font-size = 23\nsidebar.font-size = nan"] {
             try invalid.write(to: url, atomically: true, encoding: .utf8)
             spin(0.6)
@@ -274,6 +299,8 @@ struct SettingsReloadTests {
         check(!settings.vimCommandHints && !settings.restoreTerminalHistory && !settings.notifyOnError,
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
+        check(settings.promptQueueEnabled && !settings.promptQueueAutoDispatch,
+              "omitted queue settings restore explicit sending without automatic replay")
         check(!settings.gitProxyEnabled && settings.gitProxyAddress == GitProxy.defaultAddress && GitProxy.address == nil,
               "Git proxy resets to off with the default address prefilled")
         check(try SettingsConfigFile.read(at: url) == "", "default reload leaves empty source unchanged")
@@ -285,7 +312,7 @@ struct SettingsReloadTests {
         settings.resetToDefaults()
         check(settings.isAtDefaults, "reset covers every configurable preference")
         let featureSwitches: [ReferenceWritableKeyPath<AppSettings, Bool>] = [
-            \.protectEditorSaves, \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints,
+            \.protectEditorSaves, \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints, \.promptQueueEnabled,
             \.automaticallyApplyTerminalProfiles, \.notifyOnAgentAttention,
             \.notifyOnAgentCompletion, \.showPullRequestStatus,
         ]

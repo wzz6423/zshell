@@ -224,6 +224,7 @@ Se controla en **Ajustes → Automatización → Reanudar conversaciones de agen
 | `terminal.theme-only` | `false` | booleano | Aplicar la paleta seleccionada solo al terminal |
 | `terminal.command-history` | `true` | booleano | Registrar comandos nuevos; el historial guardado sigue disponible si se desactiva |
 | `terminal.text-hints` | `true` | booleano | Activar pistas de teclado sobre texto visible del terminal |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | booleano | **Ajustes → Terminal → Cola de prompts** controla todos los espacios y Quick Terminal. Desactivar el interruptor principal oculta las barras, cancela envíos y conserva entradas y texto hasta cerrar el terminal. El envío automático es opcional, desde el siguiente fin de comando, en orden y solo en un prompt vacío del zsh original sin tareas activas. Activarlo no reproduce entradas inmediatamente. El envío manual usa las mismas comprobaciones; otros shells, shells anidados, programas en primer plano y borradores no pueden recibir la cola. |
 | `terminal.auto-profiles` | `true` | booleano | Asignar perfiles automáticamente; selección manual disponible |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Forma del cursor del terminal |
 | `terminal.cursor-blinking` | `true` | booleano | Hacer parpadear el cursor |

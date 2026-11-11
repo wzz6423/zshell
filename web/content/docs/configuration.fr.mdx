@@ -224,6 +224,7 @@ Activez cette option dans **Réglages → Automatisation → Reprendre les conve
 | `terminal.theme-only` | `false` | Booléen | Appliquer la palette sélectionnée au terminal uniquement |
 | `terminal.command-history` | `true` | Booléen | Enregistrer les nouvelles commandes ; l’historique sauvegardé reste accessible si désactivé |
 | `terminal.text-hints` | `true` | Booléen | Activer les repères clavier sur le texte visible du terminal |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | Booléen | **Réglages → Terminal → File d’invites** gère tous les espaces et le Quick Terminal. Le premier réglage désactivé masque les barres, annule les envois et conserve entrées et saisie jusqu’à la fermeture du terminal. L’envoi automatique est facultatif et prend effet à la prochaine fin de commande, dans l’ordre, uniquement à une invite vide du zsh d’origine sans tâche active. L’activation ne rejoue rien immédiatement. Les envois manuels utilisent les mêmes contrôles ; les autres shells, shells imbriqués, programmes au premier plan et saisies en cours ne peuvent recevoir la file. |
 | `terminal.auto-profiles` | `true` | Booléen | Associer automatiquement les profils ; sélection manuelle disponible |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Forme du curseur du terminal |
 | `terminal.cursor-blinking` | `true` | Booléen | Faire clignoter le curseur |

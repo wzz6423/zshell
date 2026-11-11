@@ -224,6 +224,7 @@ Controle em **Ajustes → Automação → Retomar conversas de agentes**. Esta o
 | `terminal.theme-only` | `false` | Booleano | Aplicar a paleta apenas ao terminal |
 | `terminal.command-history` | `true` | Booleano | Registrar novos comandos; histórico salvo continua disponível ao desativar |
 | `terminal.text-hints` | `true` | Booleano | Ativar dicas de teclado para texto visível do terminal |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | Booleano | **Ajustes → Terminal → Fila de prompts** controla os espaços e o Quick Terminal. Desativar o interruptor principal oculta barras e cancela envios; entradas e texto ficam até fechar o terminal. O envio automático é opcional e passa a valer no próximo término de comando, em ordem, apenas no prompt vazio do zsh original sem tarefa ativa. Ativar não reproduz a fila imediatamente. O envio manual usa as mesmas verificações; outros shells, shells aninhados, programas em primeiro plano e rascunhos não recebem a fila. |
 | `terminal.auto-profiles` | `true` | Booleano | Associar perfis automaticamente; seleção manual disponível |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Forma do cursor |
 | `terminal.cursor-blinking` | `true` | Booleano | Piscar o cursor |
