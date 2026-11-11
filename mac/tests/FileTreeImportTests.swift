@@ -10,6 +10,13 @@ private nonisolated func require(_ value: Bool, _ message: String) throws {
     if !value { throw TestFailure(description: message) }
 }
 
+nonisolated enum ImportRollbackRaceFixture {
+    static let action = Mutex<(@Sendable (FileTreeImportService.Plan) -> Void)?>(nil)
+    static func afterPublish(_ plan: FileTreeImportService.Plan) {
+        action.withLock { $0 }?(plan)
+    }
+}
+
 @main
 struct FileTreeImportTests {
     static func main() throws {
@@ -45,6 +52,32 @@ struct FileTreeImportTests {
         }
 
         let plain = try file(source, "plain.txt", "original")
+        let projects = root.appendingPathComponent("Projects")
+        let imports = projects.appendingPathComponent("Imports")
+        try fm.createDirectory(at: imports, withIntermediateDirectories: true)
+        let suppliedRoot = root.appendingPathComponent("projects")
+        let suppliedDirectory = suppliedRoot.appendingPathComponent("imports")
+        if fm.fileExists(atPath: suppliedDirectory.path) {
+            let casePlan = try FileTreeImportService.prepare(sources: [plain], root: suppliedRoot.path,
+                                                            directory: suppliedDirectory.path, operation: FileTreeImportOperation())
+            _ = try FileTreeImportService.perform(casePlan, decisions: [:], operation: FileTreeImportOperation())
+            try require(read(imports, "plain.txt") == "original", "Case-insensitive destination spelling imports into the same node")
+            let next = try file(source, "case-next.txt")
+            let beforeMove = try FileTreeImportService.prepare(sources: [next], root: suppliedRoot.path,
+                                                              directory: suppliedDirectory.path, operation: FileTreeImportOperation())
+            let moved = projects.appendingPathComponent("Moved")
+            try fm.moveItem(at: imports, to: moved)
+            try fails("case-insensitive destination moved after planning") {
+                _ = try FileTreeImportService.perform(beforeMove, decisions: [:], operation: FileTreeImportOperation())
+            }
+            try fm.createDirectory(at: imports, withIntermediateDirectories: false)
+            try fails("case-insensitive destination replaced after planning") {
+                _ = try FileTreeImportService.perform(beforeMove, decisions: [:], operation: FileTreeImportOperation())
+            }
+            try require(!fm.fileExists(atPath: moved.appendingPathComponent("case-next.txt").path)
+                        && fm.contentsOfDirectory(atPath: imports.path).isEmpty, "Moved and replacement directories remain unchanged")
+            print("PASS: actual case-insensitive directory spelling and retained node identity protection")
+        } else { print("SKIP: case-insensitive directory spelling on a case-sensitive volume") }
         try require(run([plain]).count == 1, "Copy plain file")
         try require(read(target, "plain.txt") == "original" && read(source, "plain.txt") == "original", "Source survives copy")
         let folder = source.appendingPathComponent("folder")
@@ -142,6 +175,33 @@ struct FileTreeImportTests {
         }
         try require(read(target, "first.txt") == "old-first" && read(target, "second.txt") == "external-second", "Rollback restores first and preserves concurrent second")
         try cleanStaging()
+
+        let newlyAdded = try file(source, "changed-after-publish.txt")
+        let incompletePlan = try FileTreeImportService.prepare(sources: [newlyAdded], root: target.path, directory: target.path,
+                                                              operation: FileTreeImportOperation())
+        let incompleteOperation = FileTreeImportOperation()
+        ImportRollbackRaceFixture.action.withLock { action in
+            action = { _ in
+                try? Data("concurrent edit survives".utf8).write(to: target.appendingPathComponent("changed-after-publish.txt"))
+                incompleteOperation.cancel()
+            }
+        }
+        var recoveryPath: String?
+        do {
+            _ = try FileTreeImportService.perform(incompletePlan, decisions: [:], operation: incompleteOperation)
+        } catch FileTreeImportService.Failure.recovery(let path) { recoveryPath = path }
+        ImportRollbackRaceFixture.action.withLock { $0 = nil }
+        try require(read(target, "changed-after-publish.txt") == "concurrent edit survives", "Changed newly imported item survives cancellation")
+        guard let recoveryPath else { throw TestFailure(description: "Incomplete rollback must report recovery") }
+        try require(fm.contentsOfDirectory(atPath: recoveryPath + "/originals").isEmpty
+                    && !fm.fileExists(atPath: recoveryPath + "/incoming/changed-after-publish.txt"),
+                    "A changed new import has no guaranteed saved copy")
+        let recoveryMessage = FileTreeImportService.Failure.recovery(recoveryPath).localizedDescription
+        try require(recoveryMessage.contains("could not be fully undone") && recoveryMessage.contains("may be available"),
+                    "Recovery message qualifies incomplete rollback and available files")
+        try fm.removeItem(atPath: recoveryPath)
+        try cleanStaging()
+        print("PASS: cancellation preserves concurrent import edits and recovery folder may contain no saved copy")
 
         let changedPlan = try FileTreeImportService.prepare(sources: [first], root: target.path, directory: target.path,
                                                            operation: FileTreeImportOperation())

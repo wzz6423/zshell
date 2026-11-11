@@ -1682,8 +1682,12 @@ final class TerminalManager: nonisolated ObservableObject {
     func importFiles(into directory: String? = nil) {
         guard canImportFiles else { return }
         syncFileTree()
-        let destination = directory ?? fileTreeImportDirectory ?? fileTree.rootPath
         guard !fileTree.rootPath.isEmpty else { return }
+        if let saved = fileTreeImportDirectory,
+           (try? FileTreeImportService.destination(root: fileTree.rootPath, directory: saved)) == nil {
+            fileTreeImportDirectory = nil
+        }
+        let destination = directory ?? fileTreeImportDirectory ?? fileTree.rootPath
         panelTab = .files
         isPanelVisible = true
         FileTreeImportController.shared.chooseFiles(manager: self, directory: destination)

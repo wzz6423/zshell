@@ -67,7 +67,7 @@ nonisolated enum FileTreeImportService {
             case .changed:
                 String(localized: "The source or destination changed during import. Try again.")
             case .recovery(let path):
-                String(localized: "Some imported items changed before they could be restored. Saved copies are in “\(path)”.")
+                String(localized: "The import could not be fully undone because some items changed. Recovery files may be available in “\(path)”.")
             }
         }
     }
@@ -136,12 +136,12 @@ nonisolated enum FileTreeImportService {
         deinit { close(directoryDescriptor) }
 
         func validate() throws {
+            // F_GETPATH can normalize case; live paths must identify the open node.
             guard try SettingsConfigFile.resolve(originalRoot) == root,
                   try SettingsConfigFile.resolve(originalDirectory) == directory,
                   let liveRoot = try snapshot(root.path), rootSnapshot.sameNode(as: liveRoot),
                   let liveDirectory = try snapshot(directory.path), directorySnapshot.sameNode(as: liveDirectory),
-                  directorySnapshot.sameNode(as: try snapshot(descriptor: directoryDescriptor)),
-                  try descriptorPath(directoryDescriptor) == directory.path else { throw Failure.changed }
+                  directorySnapshot.sameNode(as: try snapshot(descriptor: directoryDescriptor)) else { throw Failure.changed }
         }
     }
 

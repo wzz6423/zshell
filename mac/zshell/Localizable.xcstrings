@@ -158160,109 +158160,109 @@
         }
       }
     },
-    "Some imported items changed before they could be restored. Saved copies are in “%@”.": {
+    "The import could not be fully undone because some items changed. Recovery files may be available in “%@”.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Some imported items changed before they could be restored. Saved copies are in “%@”."
+            "value": "The import could not be fully undone because some items changed. Recovery files may be available in “%@”."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "部分导入项目在恢复前发生了变化。保存的副本位于“%@”。"
+            "value": "部分项目发生了变化，无法完全撤销导入。“%@”中可能有可用于恢复的文件。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "部分匯入項目在還原前發生變更。儲存的副本位於「%@」。"
+            "value": "部分項目發生變更，無法完全還原匯入。「%@」中可能有可用於復原的檔案。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "一部の読み込まれた項目は復元前に変更されました。保存されたコピーは「%@」にあります。"
+            "value": "一部の項目が変更されたため、読み込みを完全には取り消せませんでした。「%@」に復元用のファイルがある可能性があります。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "일부 가져온 항목이 복원 전에 변경되었습니다. 저장된 사본은 “%@”에 있습니다."
+            "value": "일부 항목이 변경되어 가져오기를 완전히 되돌릴 수 없습니다. “%@”에 복구에 사용할 파일이 있을 수 있습니다."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Certains éléments importés ont changé avant leur restauration. Les copies sauvegardées se trouvent dans « %@ »."
+            "value": "Certains éléments ont changé, l’importation n’a donc pas pu être entièrement annulée. Des fichiers de récupération peuvent se trouver dans « %@ »."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Einige importierte Objekte wurden vor der Wiederherstellung geändert. Gesicherte Kopien befinden sich in „%@“."
+            "value": "Einige Objekte wurden geändert, daher konnte der Import nicht vollständig rückgängig gemacht werden. Wiederherstellungsdateien sind möglicherweise in „%@“ verfügbar."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Algunos elementos importados cambiaron antes de restaurarse. Las copias guardadas están en «%@»."
+            "value": "La importación no se pudo deshacer por completo porque algunos elementos cambiaron. Puede haber archivos de recuperación en «%@»."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alguns itens importados mudaram antes de serem restaurados. As cópias salvas estão em “%@”."
+            "value": "A importação não pôde ser totalmente desfeita porque alguns itens mudaram. Pode haver arquivos de recuperação em “%@”."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alcuni elementi importati sono cambiati prima del ripristino. Le copie salvate si trovano in “%@”."
+            "value": "L’importazione non è stata annullata completamente perché alcuni elementi sono cambiati. Potrebbero esserci file di recupero in “%@”."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sommige geïmporteerde onderdelen veranderden vóór het herstel. Bewaarde kopieën staan in ‘%@’."
+            "value": "De import kon niet volledig ongedaan worden gemaakt omdat sommige onderdelen zijn gewijzigd. Mogelijk staan er herstelbestanden in ‘%@’."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Некоторые импортированные объекты изменились до восстановления. Сохранённые копии находятся в «%@»."
+            "value": "Импорт не удалось полностью отменить, поскольку некоторые объекты изменились. В «%@» могут находиться файлы для восстановления."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "تغيرت بعض العناصر المستوردة قبل استعادتها. توجد النسخ المحفوظة في «%@»."
+            "value": "تعذر التراجع عن الاستيراد بالكامل لأن بعض العناصر تغيرت. قد تتوفر ملفات للاستعادة في «%@»."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "บางรายการที่นำเข้าเปลี่ยนแปลงก่อนจะกู้คืนได้ สำเนาที่บันทึกอยู่ใน “%@”"
+            "value": "ไม่สามารถเลิกทำการนำเข้าได้ทั้งหมด เนื่องจากบางรายการเปลี่ยนแปลง อาจมีไฟล์สำหรับกู้คืนอยู่ใน “%@”"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Beberapa item yang diimpor berubah sebelum dipulihkan. Salinan tersimpan berada di “%@”."
+            "value": "Impor tidak dapat dibatalkan sepenuhnya karena beberapa item berubah. File pemulihan mungkin tersedia di “%@”."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Một số mục đã nhập thay đổi trước khi có thể khôi phục. Bản sao đã lưu nằm trong “%@”."
+            "value": "Không thể hoàn tác hoàn toàn việc nhập vì một số mục đã thay đổi. Có thể có tệp khôi phục trong “%@”."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "İçe aktarılan bazı öğeler geri yüklenmeden önce değişti. Kaydedilen kopyalar “%@” içinde."
+            "value": "Bazı öğeler değiştiği için içe aktarma tamamen geri alınamadı. Kurtarma dosyaları “%@” içinde bulunabilir."
           }
         }
       }
