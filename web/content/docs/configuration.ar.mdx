@@ -125,6 +125,12 @@ description: "كل خيارات Zshell الدائمة ووظائفها ومكا�
 
 يتحكم في زيادة السماكة عندما يكون `terminal.font-thicken` مفعّلًا. الصفر أخف سماكة متاحة، وليس إيقافًا للميزة. يستخدم Ghostty قوة السماكة الأصلية في macOS، بينما يحوّل Alacritty النطاق نفسه إلى ضربة CoreText؛ لذا يتطابق اتجاه التغيير وحدا النطاق، وإن اختلفت البكسلات الناتجة.
 
+### `terminal.cell-width` [#terminalcell-width]
+
+رقم، 0.75–2 — الافتراضي `1`
+
+يضبط المسافة بين أعمدة الطرفية من **الإعدادات → المظهر → الخط → عرض الخلية**. القيمة الافتراضية 100%، وتُحفظ القيم كنسب مئوية صحيحة. يحدّث المحركان الطرفيات المفتوحة فورًا، بما في ذلك عدد أعمدة PTY والمؤشر والتحديد وتلميحات لوحة المفاتيح. يظل حجم المحارف كما هو، وتستمر المحارف العريضة في شغل عمودين. قد يؤدي التقريب إلى البكسل إلى خطوات فعلية مختلفة بين المحركين. تعيد القيم غير الصالحة النسبة إلى 100%. لا يتغير التباعد في المحرر وعرض الفروق.
+
 ### `terminal.line-height` [#terminalline-height]
 
 رقم، 0.75–2 — الافتراضي `1`
@@ -273,6 +279,7 @@ toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.bell = false

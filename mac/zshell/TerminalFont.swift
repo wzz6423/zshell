@@ -69,6 +69,18 @@ enum TerminalFont {
         )
     }
 
+    static func cellAdvance(of font: NSFont) -> CGFloat {
+        var glyph = CGGlyph()
+        var character: UniChar = 0x30
+        let ctFont = font as CTFont
+        guard CTFontGetGlyphsForCharacters(ctFont, &character, &glyph, 1) else {
+            return font.maximumAdvancement.width
+        }
+        var advance = CGSize.zero
+        CTFontGetAdvancesForGlyphs(ctFont, .horizontal, &glyph, &advance, 1)
+        return advance.width > 0 ? advance.width : font.maximumAdvancement.width
+    }
+
     /// Families with representative Chinese, Japanese, or Korean glyphs.
     /// Unlike the primary picker, these may be proportional: CoreText uses
     /// their glyph advances only when the Latin face has no matching glyph.

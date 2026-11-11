@@ -130,6 +130,12 @@ Zshell 大多數持久化設定都在一個檔案裡：
 使用其原生 macOS 強度；Alacritty 把同一範圍映射到 CoreText 描邊，所以方向和端點一致，
 但光柵化像素可能不同。
 
+### `terminal.cell-width` [#terminalcell-width]
+
+數字，0.75–2——預設 `1`
+
+在**設定 → 外觀 → 字型 → 字元欄寬**中調整終端機字元欄之間的距離。預設 100%，以整數百分比儲存。兩個後端都會立即更新已開啟的終端機，包括 PTY 欄數、游標、選取範圍和鍵盤提示。字形大小不變，寬字元仍占兩欄。像素取整會讓兩個後端的實際步進略有不同。無效值恢復為 100%，編輯器和 diff 的間距不受影響。
+
 ### `terminal.line-height` [#terminalline-height]
 
 數字，0.75–2——預設 `1`
@@ -289,6 +295,7 @@ toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.bell = false
