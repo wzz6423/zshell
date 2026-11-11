@@ -215,6 +215,18 @@ Quando vengono ripristinati i pannelli del terminale, riprende esattamente la co
 
 Si controlla in **Impostazioni → Automazione → Riprendi le conversazioni degli agenti**. È indipendente da `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+booleano — predefinito `false`
+
+Abilita i limiti delle CLI locali in **Impostazioni → Automazione → Utilizzo dell’account → Leggi utilizzo dell’account**. Disattivare annulla le richieste, nasconde i dati e rifiuta il salvataggio dei rapporti Claude. Conserva i fornitori scelti. Non cambia riconoscimento degli agenti, rapporti di ciclo di vita o ripristino delle conversazioni.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+booleano — predefinito `true` per ciascuno
+
+Sceglie i fornitori quando `ai.usage-enabled = true`. Claude Code legge il rapporto locale della riga di stato di Zshell; Codex interroga la CLI installata con accesso effettuato. Disattivare un fornitore interrompe subito le letture e nasconde i dati. Non raccoglie credenziali. Le tre opzioni supportano ricerca, importazione/esportazione, ricaricamento immediato e ripristino.
+
 ## Altre impostazioni [#additional-settings]
 
 | Chiave | Predefinito | Valori / intervallo | Effetto |

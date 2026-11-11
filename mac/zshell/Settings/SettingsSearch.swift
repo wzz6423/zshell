@@ -150,6 +150,13 @@ enum SettingsSearchIndex {
                  description: String(localized: "Lets agents delegate work and coordinate across Zshell panes"),
                  keywords: "ai.enabled Claude Codex"),
             item(.automation, String(localized: "Agent Conversation History"), keywords: "agent conversations Claude Codex Pi OpenCode history"),
+            item(.automation, String(localized: "Read account usage"), section: String(localized: "Account Usage"),
+                 description: String(localized: "Read account limits from local CLI integrations without collecting sign-in credentials."),
+                 keywords: "ai.usage-enabled account usage limits"),
+            item(.automation, String(localized: "Read Claude Code usage"), section: String(localized: "Account Usage"),
+                 keywords: "ai.claude-usage-enabled Claude account limits"),
+            item(.automation, String(localized: "Read Codex usage"), section: String(localized: "Account Usage"),
+                 keywords: "ai.codex-usage-enabled Codex account limits"),
             item(.recommendations, "Homebrew", section: tools,
                  description: [
                     String(localized: "Tools are downloaded, installed, and updated through your Homebrew installation."),

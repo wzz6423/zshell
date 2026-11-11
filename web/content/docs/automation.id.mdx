@@ -68,12 +68,11 @@ Tekan <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> untuk menuju agen berikutnya 
 
 ## Penggunaan akun dan batas [#account-usage-and-limits]
 
-**Pengaturan → Otomatisasi → Penggunaan Akun (Account Usage)** menampilkan batas akun yang tersedia untuk Claude Code dan Codex, termasuk persentase terpakai, waktu reset jika dilaporkan, dan waktu pembaruan terakhir.
-Gunakan **Segarkan Penggunaan (Refresh Usage)** untuk memuat data terbaru yang tersedia.
+**Pengaturan → Otomasi → Penggunaan Akun** selalu menyediakan **Baca penggunaan akun**, **Baca penggunaan Claude Code**, dan **Baca penggunaan Codex**. Pengaturan utama mati secara bawaan; setiap penyedia aktif tetapi hanya dibaca ketika pengaturan utama aktif. Perubahan berlaku langsung dan mematikan pengaturan utama mempertahankan pilihan penyedia.
 
-Codex memerlukan CLI terpasang dan sudah masuk yang dapat melaporkan batas akun.
-Penggunaan Claude Code muncul ketika Zshell menerima laporan penggunaan dari baris status penyedia.
-Bagian ini hanya tampil bila data tersedia; periode yang didukung bergantung pada penyedia dan akun. Ini batas akun, bukan total token sesi aktif.
+Aktifkan penyedia yang diinginkan untuk membaca batas akun CLI lokal. Codex memakai CLI terpasang yang sudah masuk; Claude Code memakai laporan baris status yang diterima Zshell. Mengaktifkan penggunaan tidak mengumpulkan kredensial, memasang CLI, atau masuk untuk Anda. Ini adalah batas akun, bukan jumlah token sesi aktif.
+
+**Segarkan Penggunaan** memuat ulang penyedia aktif saja. Bagian ini menampilkan pemuatan, ketidaktersediaan, dan data terakhir setelah kegagalan. Mematikan penggunaan atau penyedia menghentikan pembacaan, membatalkan permintaan tertunda, dan menyembunyikan data. Laporan Claude yang dinonaktifkan ditolak tanpa menulis berkas. Pengenalan agen, status siklus hidup, dan pemulihan percakapan tidak berubah.
 
 ## Alur kerja umum [#a-typical-workflow]
 
