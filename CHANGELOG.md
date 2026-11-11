@@ -31,6 +31,9 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Fixed
 
+- Detect external changes before saving file and editable diff drafts. Compare
+  versions, reload, keep the draft, or explicitly overwrite; save conflict
+  protection can be disabled in Editor settings.
 - Ask to save unsaved file and diff edits before closing panes, projects or
   workspace windows, or quitting. Cancelling or a failed save keeps the
   affected workspace open.
