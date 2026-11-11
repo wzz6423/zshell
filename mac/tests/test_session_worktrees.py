@@ -11,6 +11,8 @@ with tempfile.TemporaryDirectory(prefix="zshell-session-worktree-tests-", dir="/
     binary = temporary / "worktree-tests"
     subprocess.run([
         "xcrun", "swiftc", "-parse-as-library", "-swift-version", "6",
+        "-module-cache-path", str(temporary / "ModuleCache"),
+        str(ROOT / "mac/zshell/GitProxy.swift"),
         str(ROOT / "mac/zshell/GitCommandRunner.swift"),
         str(ROOT / "mac/zshell/SessionWorktreeService.swift"),
         str(ROOT / "mac/tests/SessionWorktreeTests.swift"), "-o", str(binary),
