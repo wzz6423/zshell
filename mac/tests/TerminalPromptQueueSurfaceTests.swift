@@ -115,6 +115,7 @@ struct TerminalPromptQueueSurfaceTests {
             read(competitive) == "manualautomatic" && session.canSendQueuedPrompt
         }
         settings.promptQueueAutoDispatch = false
+        try bufferedReservation(session: session, root: root, window: window)
 
         let draftMarker = root.appendingPathComponent("draft-send.txt")
         session.promptQueue.enqueue("printf leaked > " + quote(draftMarker.path))
@@ -357,6 +358,65 @@ struct TerminalPromptQueueSurfaceTests {
             .first { $0.accessibilityLabel() == String(localized: "Send queued prompts automatically") }
         try check(automatic?.isEnabled == false, "automatic settings control is disabled with the master switch")
         AppSettings.shared.promptQueueEnabled = true
+    }
+
+    private static func bufferedReservation(session: TerminalSession, root: URL, window: NSWindow) throws {
+        let armed = root.appendingPathComponent("reservation-armed")
+        let paused = root.appendingPathComponent("reservation-paused")
+        let release = root.appendingPathComponent("reservation-release")
+        let started = root.appendingPathComponent("reservation-started")
+        let answer = root.appendingPathComponent("reservation-answer")
+        let order = root.appendingPathComponent("reservation-order")
+        let setup = """
+        _queue_change_keymap() { zle -K viins; }; zle -N _queue_change_keymap; bindkey '^X' _queue_change_keymap;
+        _queue_hold_redraw() { if [[ -f \(quote(armed.path)) ]]; then /bin/rm -f -- \(quote(armed.path));
+        builtin print paused >| \(quote(paused.path)); while [[ ! -f \(quote(release.path)) ]]; do /bin/sleep .01; done; fi; };
+        add-zle-hook-widget line-pre-redraw _queue_hold_redraw
+        """.replacingOccurrences(of: "\n", with: " ")
+        session.sendCommand(setup)
+        session.sendEnter()
+        try wait("reservation fixture installs real ZLE keymap and redraw hooks") { session.canSendQueuedPrompt }
+        pump(0.1)
+        try Data().write(to: armed)
+        control("\u{18}", in: session)
+        try wait("redraw is held before the shell consumes queued input") { exists(paused) }
+        defer { try? Data().write(to: release) }
+        session.promptQueue.enqueue("builtin print started >| " + quote(started.path)
+            + "; read -r answer; builtin print -rn -- \"$answer\" >| " + quote(answer.path))
+        session.promptQueue.enqueue("printf second >> " + quote(order.path))
+        AppSettings.shared.promptQueueAutoDispatch = true
+        session.schedulePromptQueueDispatch()
+        try check(session.sendQueuedPrompt(at: 0), "manual send reserves an input while redraw delays consumption")
+        try check(!session.canSendQueuedPrompt && !session.sendQueuedPrompt(at: 0),
+                  "redraw cannot release the command reservation before PTY input is consumed")
+        session.terminalDidReportShellIntegration(.promptStart)
+        session.schedulePromptQueueDispatch()
+        pump(0.35)
+        try check(!exists(started) && !exists(order) && session.promptQueue.commands.count == 1,
+                  "automatic retries retain the second entry while the first command is still buffered")
+        try Data().write(to: release)
+        try wait("first buffered command owns shell input through builtin read") { exists(started) }
+        try check(!session.canSendQueuedPrompt && !session.sendQueuedPrompt(at: 0),
+                  "matching submission does not complete the reservation before its command finishes")
+        session.promptQueueBar.setPaneVisible(false)
+        session.surface.setSurfaceVisible(false)
+        control("deliberate answer\r", in: session)
+        try wait("hidden pane publishes the completed acknowledgement without renderer callbacks") {
+            read(answer) == "deliberate answer" && session.canSendQueuedPrompt
+        }
+        try check(!exists(order) && session.promptQueue.commands.count == 1,
+                  "the foreground read receives deliberate input and preserves the next queued command")
+        session.surface.setSurfaceVisible(true)
+        session.promptQueueBar.setPaneVisible(true)
+        window.makeFirstResponder(session.surface)
+        try check(session.sendQueuedPrompt(at: 0), "Send Now works with automatic sending enabled after completion")
+        try wait("next command runs exactly once after remount") { read(order) == "second" && session.canSendQueuedPrompt }
+        AppSettings.shared.promptQueueAutoDispatch = false
+        for command in [":", "false", "true"] {
+            session.promptQueue.enqueue(command)
+            try check(session.sendQueuedPrompt(at: 0), "fast command reserves its own submission")
+            try wait("fast command returns its own completed empty-prompt acknowledgement") { session.canSendQueuedPrompt }
+        }
     }
 
     private static func makeWindow(_ identifier: String) -> NSWindow {

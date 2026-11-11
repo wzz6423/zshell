@@ -198,6 +198,10 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         performBindingAction("text:\\x0d")
     }
 
+    func sendPromptQueueEnter() {
+        performBindingAction("text:\\x1b[27;9;13~")
+    }
+
     func sendPaste(_ text: String) {
         sendText(text)
     }

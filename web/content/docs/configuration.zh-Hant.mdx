@@ -23,7 +23,7 @@ Zshell 大多數持久化設定都在一個檔案裡：
 
 - **執行中自動讀取變更。** 有效的外部編輯會自動套用；標示只影響新終端的設定仍需新建窗格。檔案無法讀取或語法錯誤時保留最後有效設定。主動清空檔案會在短暫等待後還原預設值。
 - **只要檔案型設定有變化，Zshell 就會重寫它。** 檔案會從頭生成，所以你的注釋和未知鍵會在下次使用這些控件時丟失。最好只選一種方式維護它，或者把權威版本放在 dotfiles 裡。
-- **通常只寫非預設值。** `font-size`、`terminal.vim-command-hints`、`terminal.restore-history`、`terminal.notify-on-error` 總會儲存。刪除這三個終端機鍵中的任何一個，會在既有檔案中關閉對應功能；刪除其他鍵則恢復預設值。
+- **通常只寫非預設值。** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` 總會儲存。在既有檔案中刪除 `terminal.vim-command-hints`、`terminal.restore-history` 或 `terminal.notify-on-error` 會關閉對應功能。刪除 `terminal.prompt-queue-enabled` 會恢復預設值 `true`，刪除 `terminal.prompt-queue-auto-dispatch` 會恢復預設值 `false`；刪除其他鍵也會恢復各自的預設值。
 - **解析器有意保持精簡。** 支持扁平鍵、點號鍵、`[table]` 表頭、`#` 注釋，以及字串、數字和布林值；不支持數組、行內表和多行字串。
 - **錯誤值會安全回退。** 超出範圍的字級、未知後端或拼錯的主題名不會讓 Zshell 啟動失敗。
 

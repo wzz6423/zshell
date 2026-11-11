@@ -178,7 +178,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
             ),
             SettingsRow(
                 title: String(localized: "Send queued prompts automatically"),
-                description: String(localized: "When a command finishes, send the next entry at an empty prompt in the original zsh shell. Turn this off to use Send Now."),
+                description: String(localized: "When a command finishes, send the next entry at an empty prompt in the original zsh shell. Send Now is available with automatic sending on or off."),
                 control: promptQueueAutoDispatchSwitch
             ),
         ]))

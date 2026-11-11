@@ -142,11 +142,9 @@ extension TerminalSession {
               !TerminalCommandTaskStore.shared.hasActiveTask(terminalID: id),
               terminalPromptQueueIsReady
         else { return false }
-        if let sent = promptQueueSentRevision {
-            // A completed ZLE cycle rewrites readiness even when a fast command
-            // finishes between renderer events or while its pane is parked.
-            guard let current = promptQueuePromptRevision, current != sent else { return false }
-            promptQueueSentRevision = nil
+        if let sent = promptQueueSentToken {
+            guard promptQueueCompletedToken == sent else { return false }
+            promptQueueSentToken = nil
         }
         return true
     }
@@ -164,11 +162,11 @@ extension TerminalSession {
         if let context = ZshellAutomationRouter.context(forSession: id) {
             guard context.session === self, belongs(to: context.manager) else { return false }
         } else if hostManagerID != nil { return false }
-        guard reservePromptQueueSend() else { return false }
         let command = promptQueue.commands[index]
+        guard reservePromptQueueSend(for: command) else { return false }
         promptQueue.remove(at: index)
         sendCommand(command)
-        sendEnter()
+        surface.sendPromptQueueEnter()
         return true
     }
 }

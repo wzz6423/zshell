@@ -117,14 +117,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// readiness gate live in TerminalPromptQueue.swift.
     var promptQueueDispatchTask: Task<Void, Never>?
     var promptQueueDispatchGeneration: UInt64 = 0
-    var promptQueueSentRevision: PromptQueuePromptRevision?
-
-    struct PromptQueuePromptRevision: Equatable {
-        let modifiedSeconds: Int
-        let modifiedNanoseconds: Int
-        let changedSeconds: Int
-        let changedNanoseconds: Int
-    }
+    var promptQueueSentToken: UUID?
 
     init(
         initialDirectory: String? = nil,
@@ -662,24 +655,32 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         else { surface.sendText(text) }
     }
 
-    /// Reserve this prompt until shell output acknowledges the send; the
-    /// shell owns its state files, so only it may update their cached values.
-    func reservePromptQueueSend() -> Bool {
-        guard !isTerminating, canSendQueuedPrompt, let revision = promptQueuePromptRevision else { return false }
-        promptQueueSentRevision = revision
+    /// Reserve the exact submitted line until the shell acknowledges its
+    /// acceptance and subsequent empty prompt, including parked panes.
+    func reservePromptQueueSend(for command: String) -> Bool {
+        guard !isTerminating, canSendQueuedPrompt,
+              let launchDirectoryURL, let shellPID = shellPid else { return false }
+        let token = UUID()
+        let request = "\(shellPID)\n\(token.uuidString)\n\(command)\n"
+        do {
+            try Data(request.utf8).write(
+                to: launchDirectoryURL.appendingPathComponent("prompt-queue.request"),
+                options: .atomic
+            )
+        } catch { return false }
+        promptQueueSentToken = token
         return true
     }
 
-    var promptQueuePromptRevision: PromptQueuePromptRevision? {
-        guard let launchDirectoryURL else { return nil }
-        var metadata = stat()
-        guard lstat(launchDirectoryURL.appendingPathComponent("prompt-queue.pid").path, &metadata) == 0 else { return nil }
-        return PromptQueuePromptRevision(
-            modifiedSeconds: metadata.st_mtimespec.tv_sec,
-            modifiedNanoseconds: metadata.st_mtimespec.tv_nsec,
-            changedSeconds: metadata.st_ctimespec.tv_sec,
-            changedNanoseconds: metadata.st_ctimespec.tv_nsec
-        )
+    var promptQueueCompletedToken: UUID? {
+        guard let launchDirectoryURL, let shellPID = shellPid,
+              let value = try? String(
+                contentsOf: launchDirectoryURL.appendingPathComponent("prompt-queue.completed"),
+                encoding: .utf8
+              ) else { return nil }
+        let fields = value.split(separator: ":", omittingEmptySubsequences: false)
+        guard fields.count == 2, pid_t(fields[0]) == shellPID else { return nil }
+        return UUID(uuidString: String(fields[1]))
     }
 
     func sendEnter() {
@@ -1001,6 +1002,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         let stateDirectoryPath = shellQuote(directory.path)
         let selectionStatePath = shellQuote(directory.appendingPathComponent("prompt-selection.pid").path)
         let promptQueueStatePath = shellQuote(directory.appendingPathComponent("prompt-queue.pid").path)
+        let promptQueueRequestPath = shellQuote(directory.appendingPathComponent("prompt-queue.request").path)
+        let promptQueueCompletedPath = shellQuote(directory.appendingPathComponent("prompt-queue.completed").path)
         var files = [
             ".zshenv": """
             [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\"
@@ -1030,10 +1033,17 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             _zshell_prompt_marker() {
               _zshell_selection_active=0
               REGION_ACTIVE=0
+              if [[ -n $_zshell_prompt_queue_active ]]; then
+                _zshell_prompt_queue_completed=$_zshell_prompt_queue_active
+                _zshell_prompt_queue_active=''
+              fi
               builtin print -n $'\\e]133;A;cl=line\\a'
             }
             _zshell_selection_active=0
             _zshell_prompt_queue_empty=0
+            _zshell_prompt_queue_active=''
+            _zshell_prompt_queue_completed=''
+            _zshell_prompt_queue_submitted=0
             _zshell_write_prompt_state() {
               # 临时目录可能在 shell 仍存活时被清理；仅在丢失时重建，且不改变用户的 umask。
               if [[ ! -d \(stateDirectoryPath) ]]; then
@@ -1045,16 +1055,45 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
               (( ZSH_SUBSHELL == 0 )) || return
               [[ -f \(selectionStatePath) ]] || _zshell_selection_ready || return
               local _zshell_queue_now_empty=$(( ${#BUFFER} == 0 ))
-              if (( _zshell_queue_now_empty == _zshell_prompt_queue_empty )) && [[ -f \(promptQueueStatePath) ]]; then
+              if (( _zshell_queue_now_empty == _zshell_prompt_queue_empty )) && [[ -f \(promptQueueStatePath) ]] \
+                  && [[ -z $_zshell_prompt_queue_completed || -f \(promptQueueCompletedPath) ]]; then
                 return
               fi
               if (( _zshell_queue_now_empty )); then
                 _zshell_write_prompt_state \(promptQueueStatePath) "$$" || return
+                if [[ -n $_zshell_prompt_queue_completed ]]; then
+                  _zshell_write_prompt_state \(promptQueueCompletedPath) "$$:$_zshell_prompt_queue_completed" || return
+                fi
               else
                 _zshell_write_prompt_state \(promptQueueStatePath) '' || return
               fi
               _zshell_prompt_queue_empty=$_zshell_queue_now_empty
             }
+            _zshell_prompt_queue_accept() {
+              # ZLE skips subsequent hooks on a nonzero result; ordinary
+              # input must still clear the selection readiness state.
+              (( ZSH_SUBSHELL == 0 )) || return 0
+              (( _zshell_prompt_queue_submitted )) || return 0
+              _zshell_prompt_queue_submitted=0
+              [[ -f \(promptQueueRequestPath) ]] || return 0
+              local _zshell_queue_pid _zshell_queue_token _zshell_queue_command
+              {
+                IFS= builtin read -r _zshell_queue_pid && \
+                IFS= builtin read -r _zshell_queue_token && \
+                IFS= builtin read -r _zshell_queue_command
+              } 2>/dev/null < \(promptQueueRequestPath) || return 0
+              # Keymap changes clear readiness too; only an accepted matching
+              # line may acknowledge this request at its next empty prompt.
+              [[ $_zshell_queue_pid == $$ && -n $_zshell_queue_token && $BUFFER == "$_zshell_queue_command" ]] || return 0
+              _zshell_prompt_queue_active=$_zshell_queue_token
+              /bin/rm -f -- \(promptQueueRequestPath)
+              return 0
+            }
+            _zshell_prompt_queue_submit() {
+              _zshell_prompt_queue_submitted=1
+              zle accept-line
+            }
+            zle -N _zshell_prompt_queue_submit
             _zshell_begin_selection() {
               MARK=$CURSOR
               REGION_ACTIVE=1
@@ -1130,6 +1169,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                 bindkey -M "$_zshell_keymap" $'\\x1f' _zshell_begin_selection || return
                 bindkey -M "$_zshell_keymap" $'\\x1e' _zshell_activate_selection || return
                 bindkey -M "$_zshell_keymap" $'\\e[27;2;27~' _zshell_cancel_selection || return
+                bindkey -M "$_zshell_keymap" $'\\e[27;9;13~' _zshell_prompt_queue_submit || return
               done
               _zshell_write_prompt_state \(selectionStatePath) "$$"
             }
@@ -1141,6 +1181,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             add-zsh-hook precmd _zshell_prompt_marker
             _zshell_line_init() {
               _zshell_selection_active=0
+              _zshell_prompt_queue_submitted=0
               REGION_ACTIVE=0
               _zshell_selection_ready
               _zshell_prompt_queue_ready
@@ -1148,6 +1189,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
               builtin print -n $'\\e[0 q\\e]133;P;k=i\\a\\e]133;B\\a'
             }
             add-zle-hook-widget line-init _zshell_line_init
+            add-zle-hook-widget line-finish _zshell_prompt_queue_accept
             add-zle-hook-widget line-finish _zshell_selection_finished
             add-zle-hook-widget keymap-select _zshell_selection_ready
             add-zle-hook-widget line-pre-redraw _zshell_prompt_queue_ready
