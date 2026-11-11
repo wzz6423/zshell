@@ -24,6 +24,14 @@ Fai clic su un file per aprirlo nel pannello attivo. Il clic destro offre il res
 
 Le righe usano icone Material in base al nome del file. Nei repository Git, i percorsi modificati mostrano anche colori e indicatori di stato, mentre i file ignorati sono attenuati. L'albero riflette così lo stesso worktree del pannello Git senza aprirlo.
 
+## Importare file e cartelle [#import-files-and-folders]
+
+Scegli **File → Importa file…**, il pulsante di importazione nel pannello File o la voce del menu contestuale di una cartella. Puoi selezionare più file o cartelle: Zshell li copia nella cartella scelta o nella radice corrente dell’albero, conservando gli originali.
+
+Per rilasciare elementi del Finder su una cartella o nell’area vuota dell’albero, abilita **Impostazioni → Editor → File → Importa trascinando nell’albero dei file** (`files.drag-import`). L’opzione è disattivata per impostazione predefinita; il menu rimane disponibile.
+
+In caso di nomi esistenti puoi **Sostituire**, **Ignorare** o **Annullare**. Una cartella viene sostituita interamente, senza unire i contenuti. Annullare interrompe tutta l’importazione e ripristina le copie già aggiunte. Se un altro programma modifica un elemento prima del ripristino, Zshell conserva la modifica e indica una cartella che potrebbe contenere file di recupero. Gli alberi SSH non accettano importazioni locali. I collegamenti simbolici vengono copiati come collegamenti, senza seguirne la destinazione.
+
 ## Trovare file e cercare nei contenuti [#find-files-and-search-contents]
 
 La palette (<kbd>Cmd</kbd>+<kbd>P</kbd>) trova file per nome o percorso tra i progetti locali aperti nella finestra corrente, insieme a comandi e sessioni. Selezionare un file passa al suo progetto e lo apre lì.

@@ -18,6 +18,10 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Import Finder files and folders into a local project from the File menu or
+  by enabling drag-and-drop import in Settings. Choose whether to replace or
+  skip existing items, and cancel an import. Items changed by another app are
+  preserved when cancellation cannot fully undo the import.
 - Adjust terminal column spacing from Appearance settings while keeping glyph
   size, cursor, selection, and keyboard hints aligned on either terminal backend.
 - Keep the Mac awake while Zshell is running or while a local agent works in
