@@ -54,6 +54,7 @@ struct AgentUsageSettingsSurfaceTests {
         AppLocalization.apply(.english)
         let root = URL(fileURLWithPath: CommandLine.arguments[2], isDirectory: true)
         let settings = AppSettings.shared
+        if visible { NSApp.finishLaunching() }
         check(AppSettings.configURL.path.hasPrefix(root.path), "production settings use isolated home")
         settings.terminalBackend = CommandLine.arguments[1] == "ghostty" ? .libghostty : .alacritty
         check(!settings.aiEnabled && !settings.agentUsageEnabled && settings.claudeUsageEnabled && settings.codexUsageEnabled,
@@ -95,9 +96,30 @@ struct AgentUsageSettingsSurfaceTests {
         }
         wait("test terminal launches without account or authorization prompts") { session.shellPid != nil }
         if visible {
-            print("VISIBLE_READY pid=\(getpid()) backend=\(CommandLine.arguments[1]) settings=\(AppSettings.configURL.path)")
-            let deadline = Date().addingTimeInterval(900)
-            while Date() < deadline, window.isVisible { pump(0.1) }
+            let closed = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
+                MainActor.assumeIsolated { NSApp.stop(nil) }
+            }
+            let timeout = Timer.scheduledTimer(withTimeInterval: 900, repeats: false) { _ in
+                MainActor.assumeIsolated { window.close(); NSApp.stop(nil) }
+            }
+            DispatchQueue.main.async {
+                window.makeKeyAndOrderFront(nil)
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                let windows = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? []
+                let onScreen = windows.contains {
+                    ($0[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == getpid()
+                        && ($0[kCGWindowNumber as String] as? NSNumber)?.intValue == window.windowNumber
+                }
+                check(window.isVisible && onScreen, "manual Settings window is on screen")
+                print("VISIBLE_READY pid=\(getpid()) backend=\(CommandLine.arguments[1]) visible=\(window.isVisible) on_screen=\(onScreen) settings=\(AppSettings.configURL.path)")
+            }
+            // Pumping Foundation's RunLoop does not dispatch AppKit input or
+            // flush window drawing. Manual acceptance needs the native loop.
+            NSApp.run()
+            timeout.invalidate()
+            NotificationCenter.default.removeObserver(closed)
             controller.close()
             return
         }
