@@ -18,6 +18,9 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Choose whether a terminal right-click opens the context menu, pastes, or
+  copies selected text and otherwise pastes. Shift-right-click and a keyboard
+  menu command keep terminal actions available with either backend.
 - Keep the Mac awake while Zshell is running or while a local agent works in
   any terminal pane. Choose the mode from Settings or the application menu;
   displays and manual sleep keep following macOS settings.

@@ -95,6 +95,7 @@ final class AppMenuLocalization: NSObject {
                 case "pasteAsPlainText:": title = String(localized: "Paste and Match Style")
                 case "delete:": title = String(localized: "Delete")
                 case "selectAll:": title = String(localized: "Select All")
+                case "showTerminalContextMenu:": title = String(localized: "Show Terminal Context Menu")
                 case "performMiniaturize:": title = String(localized: "Minimize")
                 case "performZoom:": title = String(localized: "Zoom")
                 case "arrangeInFront:": title = String(localized: "Bring All to Front")

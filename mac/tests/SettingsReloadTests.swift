@@ -89,6 +89,7 @@ struct SettingsReloadTests {
         withExtendedLifetime(observation) {}
         wait({ FileManager.default.fileExists(atPath: url.path) }, "initial config save")
         check(!settings.focusFollowsMouse, "pointer focus is disabled by default")
+        check(settings.terminalRightClickAction == .contextMenu, "right-click keeps the context menu by default")
         check(settings.shellCompletions, "shell completions are enabled by default")
         check(settings.vimCommandHints && settings.restoreTerminalHistory && settings.notifyOnError,
               "new configurations use the enabled preference defaults")
@@ -97,6 +98,16 @@ struct SettingsReloadTests {
               && settings.notifyOnAgentCompletion && settings.showPullRequestStatus,
               "feature switches preserve existing behavior by default")
         check(settings.isAtDefaults, "fresh settings expose the correct reset state")
+        settings.terminalRightClickAction = .paste
+        check(!settings.isAtDefaults, "right-click paste enables reset")
+        check(settings.serializedConfig().contains("terminal.right-click-action = \"paste\""), "right-click paste persists and exports")
+        var rightClickConfig = TOML.parseStrictly(text: settings.serializedConfig()).values
+        rightClickConfig["terminal.right-click-action"] = .string("copy-or-paste")
+        settings.applyImported(rightClickConfig)
+        check(settings.terminalRightClickAction == .copyOrPaste, "right-click copy or paste imports")
+        rightClickConfig["terminal.right-click-action"] = .string("invalid")
+        settings.applyImported(rightClickConfig)
+        check(settings.terminalRightClickAction == .contextMenu && settings.isAtDefaults, "invalid right-click action restores the default menu")
         check(settings.keepAwakeMode == .off, "sleep prevention is off by default")
         settings.keepAwakeMode = .whileRunning
         check(!settings.isAtDefaults, "sleep prevention enables reset")
@@ -160,6 +171,7 @@ struct SettingsReloadTests {
         terminal.restore-history = true
         terminal.preserve-sessions = true
         terminal.copy-on-select = false
+        terminal.right-click-action = "paste"
         terminal.focus-follows-mouse = true
         terminal.background-opacity = 0.6
         terminal.background-blur = true
@@ -208,6 +220,7 @@ struct SettingsReloadTests {
               "profile launch settings round trip through config")
         let roundTrip = TOML.parseStrictly(text: imported).values
         check(settings.focusFollowsMouse && !settings.isAtDefaults, "pointer focus imports and changes default state")
+        check(settings.terminalRightClickAction == .paste, "right-click action survives the full settings round trip")
         check(GitProxy.address == "socks5h://127.0.0.1:1080", "imported Git proxy reaches Git processes")
         for (key, value) in parsed.values {
             check(roundTrip[key] == value, "all persisted keys import and serialize: \(key)")
@@ -243,6 +256,10 @@ struct SettingsReloadTests {
         wait({ settings.fontSize == 20 }, "external font edit applies")
         check(changes == unchanged + 1, "single setting edit publishes once")
         check(try SettingsConfigFile.read(at: url) == changed, "external update does not rewrite source")
+        let rightClickChanged = changed.replacingOccurrences(of: "terminal.right-click-action = \"paste\"", with: "terminal.right-click-action = \"copy-or-paste\"")
+        try rightClickChanged.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalRightClickAction == .copyOrPaste }, "external right-click edit applies to live settings")
+        check(try SettingsConfigFile.read(at: url) == rightClickChanged, "external right-click update does not rewrite source")
         for invalid in ["font-size = 23\nunfinished", "font-size = 23\ntheme = \"dark\" junk", "font-size = 23\n[]", "font-size = 23\nsidebar.font-size = nan"] {
             try invalid.write(to: url, atomically: true, encoding: .utf8)
             spin(0.6)
@@ -272,6 +289,7 @@ struct SettingsReloadTests {
         check(!settings.vimCommandHints && !settings.restoreTerminalHistory && !settings.notifyOnError,
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
+        check(settings.terminalRightClickAction == .contextMenu, "omitted right-click action restores the menu on external reload")
         check(!settings.gitProxyEnabled && settings.gitProxyAddress == GitProxy.defaultAddress && GitProxy.address == nil,
               "Git proxy resets to off with the default address prefilled")
         check(try SettingsConfigFile.read(at: url) == "", "default reload leaves empty source unchanged")

@@ -62,6 +62,7 @@ CONFIGURATION_ITEMS = {
     "terminal.restore-history": ("terminal", "Restore session history on relaunch", "History"),
     "terminal.preserve-sessions": ("terminal", "Keep sessions running after quitting", ""),
     "terminal.copy-on-select": ("terminal", "Copy on select", "Input"),
+    "terminal.right-click-action": ("terminal", "Right-click action", "Input"),
     "terminal.focus-follows-mouse": ("terminal", "Focus follows mouse", "Input"),
     "terminal.notify-finish-seconds": ("terminal", "Long-running commands", "Notifications"),
     "terminal.notify-on-error": ("terminal", "Failed commands", "Notifications"),
@@ -250,7 +251,7 @@ class SettingsSearchTests(unittest.TestCase):
             if not (resources / f"{language}.lproj").is_dir():
                 raise AssertionError(f"missing compiled {language} resources")
         metadata = root / "SearchMetadata.swift"
-        metadata.write_text("import Foundation\n" + "\n".join([
+        metadata.write_text("import AppKit\n" + "\n".join([
             metadata_enum((sources / "Settings/SettingsWindowController.swift").read_text(),
                           "SettingsCategory", "    func makePane()"),
             metadata_enum((sources / "Theme.swift").read_text(), "AppTheme", "    var nsAppearance:"),
@@ -267,6 +268,7 @@ class SettingsSearchTests(unittest.TestCase):
             "swiftc", "-parse-as-library", "-module-cache-path", str(root / "modules"),
             str(sources / "AppLocalization.swift"), str(sources / "RecommendedTool.swift"),
             str(sources / "KeepAwakeMode.swift"),
+            str(sources / "TerminalRightClickAction.swift"),
             str(sources / "Settings/SettingsSearch.swift"),
             str(sources / "Settings/SettingsVisibility.swift"), str(metadata), str(harness),
             "-o", str(cls.binary),

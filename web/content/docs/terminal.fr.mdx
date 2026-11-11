@@ -58,6 +58,12 @@ Activez **Réglages → Terminal → Saisie → Le focus suit la souris** pour c
 
 `terminal.focus-follows-mouse = true`
 
+## Action du clic droit [#right-click-action]
+
+Dans **Réglages → Terminal → Saisie → Action du clic droit**, choisissez **Menu contextuel** (par défaut), **Coller** ou **Copier ou coller**. Cette dernière option copie la sélection et ne colle que sans sélection. Le changement est immédiat sur les deux moteurs. Dans `config.toml`, `terminal.right-click-action` accepte `"context-menu"`, `"paste"` ou `"copy-or-paste"`.
+
+**Maj + clic droit**, **Contrôle + clic** et **Commande + clic droit** ouvrent toujours le menu. **Édition → Afficher le menu contextuel du terminal** (<kbd>Shift</kbd>+<kbd>F10</kbd>) permet de l’ouvrir au clavier. Les applications utilisant le suivi de la souris continuent de recevoir les clics droits ordinaires, sauf si **Bloquer les commandes Zshell** est activé dans le volet. Le collage conserve la confirmation multiligne et le traitement des fichiers locaux ou distants de <kbd>Cmd</kbd>+<kbd>V</kbd>.
+
 ## Profils de terminal [#terminal-profiles]
 
 Créez et ordonnez les profils dans **Réglages → Terminal → Profils de terminal → Gérer les profils de terminal…**. Ils peuvent correspondre à l’hôte, l’utilisateur, le répertoire de travail et le programme au premier plan. Toutes les conditions renseignées doivent correspondre ; `*` accepte tout texte et `?` un caractère. Le premier profil correspondant est utilisé, sinon le volet retrouve son apparence initiale. **Appliquer automatiquement les profils de terminal** est activé par défaut (`terminal.auto-profiles = true`) ; la sélection manuelle reste disponible si vous le désactivez.
