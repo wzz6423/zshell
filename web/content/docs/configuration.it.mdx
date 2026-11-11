@@ -139,6 +139,12 @@ booleano — predefinito `true`
 
 Manda a capo visivamente le righe lunghe alla larghezza del pannello nell'[editor di file](/it/docs/files). Se disattivato, le righe lunghe scorrono orizzontalmente. Non modifica l'andata a capo in terminali o diff.
 
+### `editor.protect-saves` [#editorprotect-saves]
+
+booleano — predefinito `true`
+
+Controlla le modifiche esterne prima di salvare un file o un diff modificabile dell’albero di lavoro. In caso di conflitto, confronta le versioni, ricarica, conserva la bozza o sovrascrivi esplicitamente. Disattivando l’opzione, le modifiche esterne vengono sostituite senza avviso.
+
 ## Terminale [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]

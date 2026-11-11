@@ -139,6 +139,12 @@ Boolescher Wert – Standard: `true`
 
 Bricht lange Zeilen im [Dateieditor](/de/docs/files) an der Bereichsbreite optisch um. Bei `false` scrollen lange Zeilen horizontal. Der Umbruch in Terminal und Diff wird nicht verändert.
 
+### `editor.protect-saves` [#editorprotect-saves]
+
+boolesch — Standard `true`
+
+Prüft vor dem Speichern einer Datei oder eines bearbeitbaren Arbeitsbaum-Diffs auf externe Änderungen. Bei Konflikten können Sie vergleichen, neu laden, den Entwurf behalten oder ausdrücklich überschreiben. Ist die Option deaktiviert, ersetzen Speichervorgänge externe Änderungen ohne Rückfrage.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]

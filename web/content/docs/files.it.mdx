@@ -51,6 +51,8 @@ Rinominare un file nell'albero aggiorna tutti i pannelli che lo hanno aperto, an
 
 Se un altro programma modifica un file aperto, Zshell aggiorna l'anteprima senza modifiche pendenti quando l'app torna attiva. Non sostituisce mai un buffer con modifiche non salvate.
 
+Se un altro programma cambia il file durante la modifica, il salvataggio apre una finestra di conflitto. **Confronta…** mostra disco e bozza affiancati; **Mantieni bozza** annulla, **Ricarica dal disco** elimina la bozza e **Sovrascrivi file** sostituisce la versione confrontata. Lo stesso controllo vale prima della chiusura e nei diff modificabili. Gestiscilo in **Impostazioni → Editor → Proteggi dai conflitti di salvataggio** o [`editor.protect-saves`](/it/docs/configuration#editorprotect-saves).
+
 <Callout type="info">
 Questo editor serve alla modifica che stai già esaminando: correggere un refuso, cambiare una costante o leggere un file citato nel diff. Non include server di linguaggio, completamento o refactoring dell'intero progetto. È intenzionale.
 </Callout>
