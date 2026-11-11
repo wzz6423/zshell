@@ -22,7 +22,7 @@ final class MarkdownImageLoader {
     var onLoad: (() -> Void)?
 
     private var cache: [URL: NSImage] = [:]
-    private var inFlight: Set<URL> = []
+    private(set) var inFlight: [URL: Task<Void, Never>] = [:]
     /// Sources that failed or were rejected. Kept so a broken link is asked for
     /// once per document rather than on every re-render.
     private var failed: Set<URL> = []
@@ -32,7 +32,7 @@ final class MarkdownImageLoader {
     /// load on the first miss.
     func image(for url: URL) -> NSImage? {
         if let cached = cache[url] { return cached }
-        guard !inFlight.contains(url), !failed.contains(url) else { return nil }
+        guard inFlight[url] == nil, !failed.contains(url) else { return nil }
 
         if url.isFileURL {
             load(url) { await Self.readFile(url) }
@@ -58,11 +58,10 @@ final class MarkdownImageLoader {
 
     private func load(_ url: URL, using work: @escaping () async -> NSImage?) {
         let expectedGeneration = generation
-        inFlight.insert(url)
-        Task { [weak self] in
+        inFlight[url] = Task { [weak self] in
             let image = await work()
             guard let self, self.generation == expectedGeneration else { return }
-            self.inFlight.remove(url)
+            self.inFlight.removeValue(forKey: url)
             guard let image else {
                 self.failed.insert(url)
                 return

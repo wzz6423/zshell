@@ -6,6 +6,8 @@ python3 -B mac/tests/test_markdown_image_loader.py --built-app '/path/to/zshell 
 
 No production test hook or app build is needed for the source probe. The HTTP
 server, source copy, module cache, disposable home and binary are cleaned up.
+Older source revisions receive task-handle bookkeeping only, without the
+generation check, so the same awaited regression still demonstrates the bug.
 """
 
 import argparse
@@ -24,14 +26,32 @@ sys.dont_write_bytecode = True
 from test_file_tree_background import ROOT, built_app_arguments, compiler_arguments
 
 
-def png(width):
+def png(width, padding=0):
     def chunk(kind, data):
         return (struct.pack("!I", len(data)) + kind + data
                 + struct.pack("!I", zlib.crc32(kind + data)))
     header = struct.pack("!IIBBBBB", width, 1, 8, 6, 0, 0, 0)
     row = b"\0" + b"\xff\0\0\xff" * width
+    metadata = chunk(b"tEXt", b"fixture\0" + b"x" * padding) if padding else b""
     return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header)
-            + chunk(b"IDAT", zlib.compress(row)) + chunk(b"IEND", b""))
+            + chunk(b"IDAT", zlib.compress(row)) + metadata + chunk(b"IEND", b""))
+
+
+def observable_source(source):
+    """Expose old loads' real tasks without adding the generation fix under test."""
+    if "private(set) var inFlight: [URL: Task<Void, Never>] = [:]" in source:
+        return source
+    replacements = {
+        "private var inFlight: Set<URL> = []": "private(set) var inFlight: [URL: Task<Void, Never>] = [:]",
+        "!inFlight.contains(url)": "inFlight[url] == nil",
+        "inFlight.insert(url)\n        Task {": "inFlight[url] = Task {",
+        "self.inFlight.remove(url)": "self.inFlight.removeValue(forKey: url)",
+    }
+    for before, after in replacements.items():
+        if source.count(before) != 1:
+            raise SystemExit("Expected exactly one earlier task-bookkeeping boundary")
+        source = source.replace(before, after)
+    return source
 
 
 class FixtureServer(http.server.ThreadingHTTPServer):
@@ -63,10 +83,11 @@ class FixtureHandler(http.server.BaseHTTPRequestHandler):
             elif (scenario == "late-failure" and number == 1
                   or scenario == "reset-storm" and number % 3 == 2):
                 self.respond(503, b"old document image failed", "text/plain")
-            elif scenario in ("oversized", "streamed-oversized") and number == 1:
+            elif scenario == "oversized" and number == 1:
                 image = png(1)
-                self.respond(200, image + bytes((20 << 20) + 1 - len(image)), "image/png",
-                             include_length=scenario != "streamed-oversized")
+                self.respond(200, image + bytes((20 << 20) + 1 - len(image)), "image/png")
+            elif scenario == "streamed":
+                self.respond(200, png(number, padding=64 << 10), "image/png", include_length=False)
             else:
                 self.respond(200, png(number), "image/png")
         elif len(parts) == 2 and parts[0] == "state":
@@ -118,8 +139,9 @@ def main():
             path = "mac/zshell/MarkdownImageLoader.swift"
             if options.source_ref:
                 production = temporary / "MarkdownImageLoader.swift"
-                production.write_bytes(subprocess.check_output(
-                    ["git", "show", f"{options.source_ref}:{path}"], cwd=ROOT))
+                earlier_source = subprocess.check_output(
+                    ["git", "show", f"{options.source_ref}:{path}"], cwd=ROOT, text=True)
+                production.write_text(observable_source(earlier_source))
             else:
                 production = ROOT / path
             command += [str(production)]
@@ -135,7 +157,7 @@ def main():
         thread.start()
         try:
             scenarios = ("cache", "late-success", "early-success", "late-failure", "reset-storm",
-                         "oversized", "streamed-oversized")
+                         "oversized", "streamed")
             for scenario in scenarios:
                 result = subprocess.run([str(binary), f"http://127.0.0.1:{server.server_port}", scenario],
                                         cwd=ROOT, env=environment, timeout=45)
