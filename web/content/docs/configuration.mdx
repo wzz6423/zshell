@@ -313,6 +313,18 @@ When terminal panes are restored, resumes the exact recorded Claude Code, Codex,
 
 Control it with **Settings → Automation → Resume agent conversations**. This setting is independent of `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+boolean — default `false`
+
+Enable local CLI account-limit reading in **Settings → Automation → Account Usage → Read account usage**. Turning it off cancels pending usage requests, hides usage data, and rejects Claude usage reports without saving them. Provider choices are retained. Usage settings do not change agent recognition, lifecycle reports, or conversation restoration.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — default `true` for each
+
+Choose which providers can read usage while `ai.usage-enabled = true`. Claude Code reads Zshell’s local status-line usage report; Codex queries its installed, signed-in CLI. Disabling a provider immediately stops its reads and hides its data. No sign-in credentials are collected. The three choices support settings search, import/export, live configuration reload, and reset to defaults.
+
 ## Additional settings
 
 | Key | Default | Values / range | Effect |

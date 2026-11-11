@@ -215,6 +215,18 @@ Beim Wiederherstellen von Terminalbereichen wird das genaue gespeicherte Gesprä
 
 Die Option steht unter **Einstellungen → Automatisierung → Agentengespräche fortsetzen**. Sie ist unabhängig von `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+Boolesch — Standard `false`
+
+Aktiviert lokale CLI-Kontolimits über **Einstellungen → Automatisierung → Kontonutzung → Kontonutzung lesen**. Ausschalten bricht Anfragen ab, blendet Daten aus und lehnt das Speichern von Claude-Nutzungsberichten ab. Anbieterauswahl bleibt erhalten. Agentenerkennung, Lebenszyklusberichte und Gesprächswiederherstellung ändern sich nicht.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+Boolesch — jeweils Standard `true`
+
+Wählt die Anbieter für `ai.usage-enabled = true`. Claude Code liest Zshells lokale Statuszeilenberichte; Codex fragt seine installierte, angemeldete CLI ab. Ausschalten eines Anbieters stoppt sofort Lesevorgänge und blendet Daten aus. Anmeldedaten werden nicht erfasst. Alle drei Optionen unterstützen Suche, Import/Export, sofortiges Neuladen und Zurücksetzen.
+
 ## Weitere Einstellungen [#additional-settings]
 
 | Schlüssel | Standard | Werte / Bereich | Wirkung |

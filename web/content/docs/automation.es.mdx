@@ -63,9 +63,11 @@ Cuando una integración informa de que un agente ha terminado o necesita informa
 
 ## Uso y límites de la cuenta [#account-usage-and-limits]
 
-**Ajustes → Automatización → Uso de la cuenta** muestra los límites de cuenta disponibles para Claude Code y Codex, incluido el porcentaje utilizado, la hora de restablecimiento cuando se informa de ella y la hora de la última actualización. Usa **Actualizar uso** para cargar los datos más recientes disponibles.
+**Ajustes → Automatización → Uso de la cuenta** siempre ofrece **Leer uso de la cuenta**, **Leer uso de Claude Code** y **Leer uso de Codex**. La opción general está desactivada por defecto; cada proveedor está activado, pero solo se lee cuando la opción general está activa. Los cambios son inmediatos y desactivarla conserva la selección de proveedores.
 
-Codex necesita una CLI instalada, con sesión iniciada y capaz de informar de los límites de cuenta. El uso de Claude Code aparece cuando Zshell recibe del proveedor un informe de uso a través de la línea de estado. La sección solo aparece cuando hay datos de uso; los periodos disponibles dependen del proveedor y de la cuenta. Son límites de la cuenta, no un total de tokens de la sesión con el foco.
+Activa los proveedores que quieras para leer los límites de las CLI locales. Codex usa una CLI instalada con sesión iniciada; Claude Code usa los informes de la línea de estado recibidos por Zshell. Activar el uso no recopila credenciales, instala una CLI ni inicia sesión. Son límites de la cuenta, no el total de tokens de la sesión activa.
+
+**Actualizar uso** recarga solo los proveedores activos. Se muestran la carga, la falta de disponibilidad y los últimos datos tras un error. Desactivar el uso o un proveedor detiene sus lecturas, cancela las solicitudes pendientes y oculta sus datos. Los informes Claude desactivados se rechazan sin escribir un archivo. El reconocimiento de agentes, el estado y la restauración de conversaciones no cambian.
 
 ## Un flujo de trabajo habitual [#a-typical-workflow]
 

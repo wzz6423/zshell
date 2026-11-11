@@ -63,9 +63,11 @@ Quando l'integrazione segnala la conclusione o la necessità di input, Zshell pu
 
 ## Utilizzo e limiti dell'account [#account-usage-and-limits]
 
-**Impostazioni → Automazione → Utilizzo dell'account** mostra i limiti disponibili di Claude Code e Codex: percentuale usata, orario di ripristino se comunicato e momento dell'ultimo aggiornamento. **Aggiorna utilizzo** ricarica i dati più recenti disponibili.
+**Impostazioni → Automazione → Utilizzo dell’account** offre sempre **Leggi utilizzo dell’account**, **Leggi utilizzo di Claude Code** e **Leggi utilizzo di Codex**. L’opzione generale è disattivata per impostazione predefinita; i fornitori sono attivi ma vengono letti solo quando l’opzione generale è attiva. Le modifiche sono immediate e disattivare l’opzione generale conserva i fornitori scelti.
 
-Codex richiede una CLI installata, con accesso effettuato e capace di comunicare i limiti. L'utilizzo di Claude Code compare quando Zshell riceve dal provider un rapporto tramite la riga di stato. La sezione appare solo quando sono disponibili dati; i periodi supportati dipendono da provider e account. Sono limiti dell'account, non il totale dei token della sessione attiva.
+Attiva i fornitori desiderati per leggere i limiti delle CLI locali. Codex usa una CLI installata con accesso effettuato; Claude Code usa i rapporti della riga di stato ricevuti da Zshell. L’attivazione non raccoglie credenziali, installa CLI o effettua l’accesso. Sono limiti dell’account, non il totale di token della sessione attiva.
+
+**Aggiorna utilizzo** ricarica solo i fornitori attivi. La sezione mostra caricamento, indisponibilità e gli ultimi dati dopo un errore. Disattivare l’utilizzo o un fornitore interrompe le letture, annulla le richieste pendenti e nasconde i dati. I rapporti Claude disattivati sono rifiutati senza scrivere un file. Riconoscimento degli agenti, stato e ripristino delle conversazioni non cambiano.
 
 ## Un flusso tipico [#a-typical-workflow]
 

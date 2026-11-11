@@ -215,6 +215,18 @@ Lors de la restauration des volets de terminal, reprend exactement la conversati
 
 Activez cette option dans **Réglages → Automatisation → Reprendre les conversations des agents**. Elle est indépendante de `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+booléen — valeur par défaut `false`
+
+Active la lecture des limites de compte des CLI locales via **Réglages → Automatisation → Utilisation du compte → Lire l’utilisation du compte**. Désactiver annule les demandes, masque les données et refuse de sauvegarder les rapports Claude. Les choix des fournisseurs sont conservés. La reconnaissance des agents, les rapports de cycle de vie et la restauration des conversations ne changent pas.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+booléen — valeur par défaut `true` pour chacun
+
+Choisit les fournisseurs lus lorsque `ai.usage-enabled = true`. Claude Code lit les rapports locaux de la ligne d’état de Zshell ; Codex interroge sa CLI installée et connectée. Désactiver un fournisseur arrête immédiatement ses lectures et masque ses données. Aucun identifiant de connexion n’est collecté. Les trois options prennent en charge la recherche, l’import/export, le rechargement en direct et la réinitialisation.
+
 ## Autres réglages [#additional-settings]
 
 | Clé | Valeur par défaut | Valeurs / plage | Effet |

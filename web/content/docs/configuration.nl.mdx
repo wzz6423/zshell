@@ -215,6 +215,18 @@ Bij het herstellen van terminalpanelen wordt het precieze opgeslagen gesprek van
 
 Gebruik **Instellingen → Automatisering → Agentgesprekken hervatten**. Deze optie staat los van `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+boolean — standaard `false`
+
+Schakelt lokale CLI-accountlimieten in via **Instellingen → Automatisering → Accountgebruik → Accountgebruik lezen**. Uitschakelen annuleert aanvragen, verbergt gegevens en weigert Claude-rapporten op te slaan. Providerkeuzes blijven behouden. Agentherkenning, levenscyclusrapporten en gespreksherstel veranderen niet.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — standaard elk `true`
+
+Kiest providers wanneer `ai.usage-enabled = true`. Claude Code leest Zshells lokale statusregelrapport; Codex bevraagt de geïnstalleerde, aangemelde CLI. Uitschakelen stopt direct lezen en verbergt gegevens. Er worden geen aanmeldgegevens verzameld. Alle drie ondersteunen zoeken, importeren/exporteren, direct herladen en standaardwaarden herstellen.
+
 ## Aanvullende instellingen [#additional-settings]
 
 | Sleutel | Standaard | Waarden / bereik | Effect |

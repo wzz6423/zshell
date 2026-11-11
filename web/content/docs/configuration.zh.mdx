@@ -260,6 +260,18 @@ regular/bold 区分及后备字体字重。
 
 可在 **设置 → 自动化 → 恢复 Agent 对话** 中切换。它与 `terminal.restore-history` 独立。
 
+### `ai.usage-enabled`
+
+布尔值——默认 `false`
+
+在 **设置 → Automation → 账户用量 → 读取账户用量** 开启本机 CLI 账户限额读取。关闭后会取消待处理的用量请求、隐藏数据，并拒绝保存 Claude 用量报告，同时保留提供方选择。用量设置不改变 Agent 识别、生命周期报告或对话恢复。
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+布尔值——各自默认 `true`
+
+选择 `ai.usage-enabled = true` 时允许读取用量的提供方。Claude Code 读取 Zshell 本机状态栏报告，Codex 查询已安装并登录的 CLI。关闭某个提供方会立即停止对应读取并隐藏数据，不收集登录凭据。三个设置支持搜索、导入导出、配置实时重载和恢复默认值。
+
 <span id="其他配置项" data-canonical-heading="additional-settings" />
 
 ## 其他配置项 [#additional-settings]

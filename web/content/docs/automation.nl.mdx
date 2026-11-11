@@ -63,9 +63,11 @@ Wanneer een integratie meldt dat een agent klaar is of invoer nodig heeft, kan Z
 
 ## Accountgebruik en limieten [#account-usage-and-limits]
 
-**Instellingen → Automatisering → Accountgebruik** toont beschikbare accountlimieten voor Claude Code en Codex, inclusief het gebruikte percentage, de resettijd indien gemeld en het tijdstip van de laatste update. Gebruik **Gebruik vernieuwen** om de nieuwste beschikbare gegevens op te halen.
+**Instellingen → Automatisering → Accountgebruik** biedt altijd **Accountgebruik lezen**, **Claude Code-gebruik lezen** en **Codex-gebruik lezen**. De hoofdoptie staat standaard uit; providers staan aan maar worden alleen gelezen als de hoofdoptie aanstaat. Wijzigingen gelden direct. Uitschakelen van de hoofdoptie bewaart de providerkeuzes.
 
-Codex vereist een geïnstalleerde en aangemelde CLI die accountlimieten kan melden. Claude Code-gebruik verschijnt zodra Zshell een gebruiksrapport via de statusregel van de aanbieder heeft ontvangen. De sectie verschijnt alleen als gebruiksgegevens beschikbaar zijn; ondersteunde tijdvensters hangen af van de aanbieder en het account. Dit zijn accountlimieten, geen tokentotaal voor de sessie met focus.
+Schakel gewenste providers in om limieten van lokale CLI-accounts te lezen. Codex gebruikt een geïnstalleerde, aangemelde CLI; Claude Code gebruikt statusregelrapporten die Zshell ontvangt. Inschakelen verzamelt geen aanmeldgegevens, installeert geen CLI en meldt u niet aan. Het zijn accountlimieten, geen tokentotaal van de actieve sessie.
+
+**Gebruik vernieuwen** vernieuwt alleen actieve providers. De sectie toont laden, niet-beschikbaarheid en na fouten de laatst beschikbare gegevens. Uitschakelen stopt lezen, annuleert lopende aanvragen en verbergt gegevens. Uitgeschakelde Claude-rapporten worden geweigerd zonder een bestand te schrijven. Agentherkenning, levenscyclusstatus en gespreksherstel blijven gelijk.
 
 ## Een gebruikelijke werkwijze [#a-typical-workflow]
 
