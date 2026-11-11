@@ -104,7 +104,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-draft-test-", dir="/tmp") as dir
             replacement.write_text("different target")
             (repo / "linked.txt").unlink()
             (repo / "linked.txt").symlink_to(replacement)
-            for phase in (("restore",) if normal_exit else ("restore", "boundaries", "workspace")):
+            for phase in (("restore",) if normal_exit else ("restore", "boundaries", "expiry", "workspace")):
                 process = subprocess.run([str(binary), phase, str(repo)], env=env, capture_output=True,
                                          text=True, cwd=ROOT, timeout=75)
                 print(process.stdout, end="", flush=True)

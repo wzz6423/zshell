@@ -83,11 +83,16 @@ final class DiffWorkspaceNSView: NSView {
         manager.diffWorkspaceLayout.host = self
         observation = manager.objectWillChange.sink { [weak self] _ in self?.scheduleUpdate() }
         clickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
-            guard let self, event.window === self.window, let tab = self.manager.selectedProject?.selectedTab else { return event }
+            guard let self, event.window === self.window,
+                  let tab = self.manager.selectedProject?.selectedTab,
+                  let root = self.window?.contentView?.superview else { return event }
+            let hitPoint = root.superview?.convert(event.locationInWindow, from: nil) ?? event.locationInWindow
+            guard let hit = root.hitTest(hitPoint) else { return event }
             let point = self.convert(event.locationInWindow, from: nil)
             if let pane = tab.allPanes.first(where: { pane in
                 if case .diff(let diff) = pane.content, let view = self.views[diff.id] {
-                    return !view.isHidden && view.frame.contains(point)
+                    return !view.isHiddenOrHasHiddenAncestor && view.frame.contains(point)
+                        && (hit === view || hit.isDescendant(of: view))
                 }
                 return false
             }) { tab.focusPane(pane.id) }

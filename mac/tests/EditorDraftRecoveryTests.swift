@@ -24,6 +24,7 @@ struct EditorDraftRecoveryTests {
             case "normal-write": try await write(root, normalExit: true)
             case "restore": try await restore(root)
             case "boundaries": try await boundaries(root)
+            case "expiry": try await expiry(root)
             case "workspace": try await workspace(root)
             default: throw failure("Unknown phase")
             }
@@ -394,6 +395,7 @@ struct EditorDraftRecoveryTests {
         try JSONSerialization.data(withJSONObject: json).write(to: expiredPath)
         try FileManager.default.setAttributes([.posixPermissions: 0o600, .modificationDate: old], ofItemAtPath: expiredPath.path)
         try check(try await archive.load(expired.id) == nil, "drafts older than 30 days cannot be restored")
+        try check(!FileManager.default.fileExists(atPath: expiredPath.path), "loading removes an expired backup without a new write")
         let hardID = UUID()
         let hard = directory.appendingPathComponent("\(hardID.uuidString.lowercased()).json")
         chmod(external.path, 0o600)
@@ -423,6 +425,27 @@ struct EditorDraftRecoveryTests {
         let bytes = try FileManager.default.contentsOfDirectory(at: totalDirectory, includingPropertiesForKeys: [.fileSizeKey])
             .reduce(0) { try $0 + $1.resourceValues(forKeys: [.fileSizeKey]).fileSize! }
         try check(bytes <= EditorDraftArchive.maximumTotalBytes, "total archive size stays within 128 MiB after recovery writes")
+
+        let release = DispatchSemaphore(value: 0)
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            archive.write([]) { _ in
+                continuation.resume()
+                _ = release.wait(timeout: .now() + 2)
+            }
+        }
+        let removalStarted = Date()
+        archive.remove(record.id)
+        let removalDuration = Date().timeIntervalSince(removalStarted)
+        release.signal()
+        try check(removalDuration < 0.5, "removing a backup returns while an earlier writer still owns the archive queue")
+        try check(try await archive.load(record.id) == nil, "a queued removal completes before a later load")
+        archive.write([record]) { _ in }
+        archive.remove(record.id)
+        try archive.flush()
+        try check(!FileManager.default.fileExists(atPath: actual.path), "write, remove, and flush keep their serial order")
+        archive.write([record]) { _ in }
+        try check(try await archive.load(record.id)?.text == record.text, "new edits can back up again after an ordered removal")
+
         archive.setEnabled(false)
         archive.remove(record.id)
         try archive.flush([record])
@@ -433,6 +456,58 @@ struct EditorDraftRecoveryTests {
         do { try unsafe.flush([record]); throw failure("symlink directory accepted") }
         catch EditorDraftArchive.Failure.unsafeDirectory { }
         try check(true, "linked archive directories are rejected before writing")
+    }
+
+    @MainActor private static func expiry(_ root: URL) async throws {
+        SessionStore.save([])
+        AppSettings.shared.recoverEditorDrafts = false
+        let path = root.appendingPathComponent("expiry-base.txt")
+        try "base".write(to: path, atomically: true, encoding: .utf8)
+        let baseline = try FileSaveCoordinator.read(path: path.path)
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let base = ((try? SettingsConfigFile.resolve(support)) ?? support).appendingPathComponent("zshell-dev")
+        let directory = base.appendingPathComponent("editor-drafts")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
+                                               attributes: [.posixPermissions: 0o700])
+        let old = Date().addingTimeInterval(-EditorDraftArchive.retention - 60)
+        func backup(expired: Bool, modified: Date = Date()) throws -> URL {
+            let record = EditorDraftRecord(id: UUID(), source: .file(path: path.path), text: "private draft", baseline: baseline)
+            var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(record)) as! [String: Any]
+            if expired { json["updatedAt"] = old.timeIntervalSinceReferenceDate }
+            let url = directory.appendingPathComponent("\(record.id.uuidString.lowercased()).json")
+            try JSONSerialization.data(withJSONObject: json).write(to: url)
+            try FileManager.default.setAttributes([.posixPermissions: 0o600, .modificationDate: modified], ofItemAtPath: url.path)
+            return url
+        }
+        let overdue = try backup(expired: true, modified: old)
+        let refreshed = try backup(expired: true)
+        let current = try backup(expired: false)
+        let interrupted = directory.appendingPathComponent(".\(UUID().uuidString.lowercased()).tmp")
+        try Data("unpublished private text".utf8).write(to: interrupted)
+        let delegate = ZshellApplicationDelegate()
+        delegate.applicationDidFinishLaunching(Notification(name: NSApplication.didFinishLaunchingNotification))
+        NSApp.setActivationPolicy(.prohibited)
+        try await wait("launch cleanup runs with backups off and no editor clients") {
+            !FileManager.default.fileExists(atPath: overdue.path) && !FileManager.default.fileExists(atPath: refreshed.path)
+        }
+        try check(!AppSettings.shared.recoverEditorDrafts && FileManager.default.fileExists(atPath: current.path),
+                  "application startup removes expired backups but preserves recoverable ones with backups off")
+        try check(!FileManager.default.fileExists(atPath: interrupted.path),
+                  "startup cleanup removes interrupted private temporary files without new backups")
+
+        let periodicDirectory = root.appendingPathComponent("periodic-expiry")
+        let seed = EditorDraftArchive(directory: periodicDirectory, enabled: true)
+        let record = EditorDraftRecord(id: UUID(), source: .file(path: path.path), text: "periodic draft", baseline: baseline)
+        try seed.flush([record])
+        let periodicPath = periodicDirectory.appendingPathComponent("\(record.id.uuidString.lowercased()).json")
+        let periodic = EditorDraftArchive(directory: periodicDirectory, enabled: false)
+        periodic.startExpiryCleanup(interval: 0.05)
+        try await Task.sleep(for: .milliseconds(100))
+        try FileManager.default.setAttributes([.modificationDate: old], ofItemAtPath: periodicPath.path)
+        try await wait("periodic cleanup runs without writes or listing") { !FileManager.default.fileExists(atPath: periodicPath.path) }
+        try check(true, "the independent timer removes newly expired backups while writing remains disabled")
+        try check(QuickTerminalOffscreen.isSafe(), "startup expiry cleanup never opens test windows on screen")
+        for window in NSApp.windows { window.orderOut(nil) }
     }
 
     @MainActor private static func workspace(_ root: URL) async throws {
@@ -534,11 +609,58 @@ struct EditorDraftRecoveryTests {
         try check(!viewer.isHidden && diff.webHostView === original, "returning to a split tab reuses its retained diff renderer")
         let terminal = project.sessions.first!
         project.tabs.removeAll { $0.sessions.contains(where: { $0.id == terminal.id }) }
+        let terminalPane = Pane(content: .session(terminal))
         tab.layout = .split(.init(axis: .horizontal, fraction: 0.48,
-            first: .pane(Pane(content: .session(terminal))), second: .pane(diffPane)))
+            first: .pane(terminalPane), second: .pane(diffPane)))
         try await settle()
         try check(viewer.frame.equalTo(manager.diffWorkspaceLayout.frame(for: diff.id, in: workspace)!),
                   "a terminal-plus-diff layout confines the diff to its own pane")
+
+        func hit(at point: NSPoint) -> NSView? {
+            let root = window.contentView!.superview!
+            return root.hitTest(root.superview?.convert(point, from: nil) ?? point)
+        }
+        func click(at point: NSPoint) {
+            for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                let event = NSEvent.mouseEvent(with: type, location: point, modifierFlags: [],
+                    timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                    context: nil, eventNumber: 0, clickCount: 1, pressure: 1)!
+                NSApp.sendEvent(event)
+            }
+        }
+        let diffPoint = viewer.convert(NSPoint(x: viewer.bounds.midX, y: viewer.bounds.midY), to: nil)
+        try check(hit(at: diffPoint).map { $0 === viewer || $0.isDescendant(of: viewer) } == true,
+                  "a normal window hit test resolves inside the actual diff viewer")
+        tab.focusPane(terminalPane.id)
+        click(at: diffPoint)
+        try check(tab.focusedPaneID == diffPane.id, "a normal diff click focuses its pane through the production event monitor")
+        tab.focusPane(terminalPane.id)
+        manager.toggleCommandPalette()
+        try await settle()
+        try check(hit(at: diffPoint).map { $0 !== viewer && !$0.isDescendant(of: viewer) } == true,
+                  "the real command palette receives hits over the diff rectangle")
+        click(at: diffPoint)
+        try check(tab.focusedPaneID == terminalPane.id && manager.canSplit,
+                  "clicking the command palette over a diff preserves the terminal command target")
+        manager.dismissCommandPalette()
+        try await settle()
+        let switcher = descendants(window.contentView!).compactMap { $0 as? TabSwitcherMonitorView }.first!.controller!
+        let controlTab = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.control],
+            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+            context: nil, characters: "\t", charactersIgnoringModifiers: "\t", isARepeat: false, keyCode: 48)!
+        _ = switcher.handle(controlTab, manager: manager)
+        try await settle()
+        let switcherPoint = stride(from: viewer.bounds.minX + 20, to: viewer.bounds.maxX - 20, by: 20)
+            .flatMap { x in stride(from: viewer.bounds.minY + 20, to: viewer.bounds.maxY - 20, by: 20)
+                .map { viewer.convert(NSPoint(x: x, y: $0), to: nil) } }
+            .first { point in hit(at: point).map { $0 !== viewer && !$0.isDescendant(of: viewer) } == true }
+        try check(switcher.isPresented && switcherPoint != nil,
+                  "the real tab switcher receives hits over the diff rectangle")
+        click(at: switcherPoint!)
+        try check(tab.focusedPaneID == terminalPane.id, "clicking a tab switcher card cannot steal pane focus for the covered diff")
+        switcher.cancel()
+        project.selectedTabID = tab.id
+        try await settle()
         let otherPath = root.appendingPathComponent("other-workspace-diff.txt")
         try "before other".write(to: otherPath, atomically: true, encoding: .utf8)
         let second = try await loadedDiff(root, name: otherPath.lastPathComponent)

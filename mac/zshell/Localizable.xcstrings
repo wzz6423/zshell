@@ -159447,216 +159447,323 @@
         }
       }
     },
-    "Recover unsaved file and editable diff changes after relaunch. Backups stay on this Mac for up to 30 days.": {
+    "Recover unsaved file and editable diff changes after relaunch. Backups stay on this Mac and can be recovered for 30 days.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recover unsaved file and editable diff changes after relaunch. Backups stay on this Mac for up to 30 days."
+            "value": "Recover unsaved file and editable diff changes after relaunch. Backups stay on this Mac and can be recovered for 30 days."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "重新打开应用后恢复未保存的文件和可编辑 Diff 内容。备份仅存储在此 Mac 上，最长保留 30 天。"
+            "value": "重新打开应用后恢复未保存的文件和可编辑 Diff 内容。备份存储在此 Mac 上，30 天内可恢复。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "重新開啟應用程式後還原未儲存的檔案與可編輯 Diff 內容。備份僅儲存在此 Mac，最長保留 30 天。"
+            "value": "重新開啟應用程式後還原未儲存的檔案與可編輯 Diff 內容。備份儲存在此 Mac，30 天內可還原。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "再起動後に未保存のファイルと編集可能な差分を復元します。バックアップはこの Mac にのみ最大30日間保存されます。"
+            "value": "再起動後に未保存のファイルと編集可能な差分を復元します。バックアップはこの Mac に保存され、30日間復元できます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "앱을 다시 실행하면 저장하지 않은 파일과 편집 가능한 diff를 복구합니다. 백업은 이 Mac에만 최대 30일 동안 보관됩니다."
+            "value": "앱을 다시 실행하면 저장하지 않은 파일과 편집 가능한 diff를 복구합니다. 백업은 이 Mac에 저장되며 30일 동안 복구할 수 있습니다."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Récupérez les fichiers et les différences modifiables non enregistrés après un redémarrage. Les sauvegardes restent sur ce Mac pendant 30 jours au maximum."
+            "value": "Récupérez les fichiers et les différences modifiables non enregistrés après un redémarrage. Les sauvegardes restent sur ce Mac et sont récupérables pendant 30 jours."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ungesicherte Dateien und bearbeitbare Diffs nach einem Neustart wiederherstellen. Sicherungen bleiben bis zu 30 Tage auf diesem Mac."
+            "value": "Ungesicherte Dateien und bearbeitbare Diffs nach einem Neustart wiederherstellen. Sicherungen bleiben auf diesem Mac und sind 30 Tage lang wiederherstellbar."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recupera archivos y diferencias editables sin guardar al reiniciar. Las copias permanecen en este Mac durante un máximo de 30 días."
+            "value": "Recupera archivos y diferencias editables sin guardar al reiniciar. Las copias permanecen en este Mac y se pueden recuperar durante 30 días."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recupere arquivos e diffs editáveis não salvos após reiniciar. Os backups ficam neste Mac por até 30 dias."
+            "value": "Recupere arquivos e diffs editáveis não salvos após reiniciar. Os backups ficam neste Mac e podem ser recuperados por 30 dias."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recupera file e diff modificabili non salvati dopo il riavvio. I backup restano su questo Mac per un massimo di 30 giorni."
+            "value": "Recupera file e diff modificabili non salvati dopo il riavvio. I backup restano su questo Mac e sono recuperabili per 30 giorni."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Herstel niet-opgeslagen bestanden en bewerkbare diffs na opnieuw starten. Back-ups blijven maximaal 30 dagen op deze Mac."
+            "value": "Herstel niet-opgeslagen bestanden en bewerkbare diffs na opnieuw starten. Back-ups blijven op deze Mac en kunnen 30 dagen worden hersteld."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Восстанавливайте несохранённые файлы и редактируемые diff после перезапуска. Копии хранятся на этом Mac не более 30 дней."
+            "value": "Восстанавливайте несохранённые файлы и редактируемые diff после перезапуска. Копии хранятся на этом Mac и доступны для восстановления 30 дней."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "استعد الملفات والفروق القابلة للتحرير غير المحفوظة بعد إعادة التشغيل. تبقى النسخ على هذا الـ Mac لمدة تصل إلى 30 يومًا."
+            "value": "استعد الملفات والفروق القابلة للتحرير غير المحفوظة بعد إعادة التشغيل. تبقى النسخ على هذا الـ Mac ويمكن استعادتها لمدة 30 يومًا."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "กู้คืนไฟล์และ diff ที่แก้ไขได้ซึ่งยังไม่ได้บันทึกหลังเปิดแอปใหม่ ข้อมูลสำรองจะอยู่ใน Mac เครื่องนี้นานสูงสุด 30 วัน"
+            "value": "กู้คืนไฟล์และ diff ที่แก้ไขได้ซึ่งยังไม่ได้บันทึกหลังเปิดแอปใหม่ ข้อมูลสำรองอยู่ใน Mac เครื่องนี้และกู้คืนได้เป็นเวลา 30 วัน"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pulihkan berkas dan diff yang dapat diedit yang belum disimpan setelah memulai ulang. Cadangan tetap di Mac ini hingga 30 hari."
+            "value": "Pulihkan berkas dan diff yang dapat diedit yang belum disimpan setelah memulai ulang. Cadangan tetap di Mac ini dan dapat dipulihkan selama 30 hari."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Khôi phục tệp và diff có thể chỉnh sửa chưa lưu sau khi khởi động lại. Bản sao lưu chỉ ở trên Mac này tối đa 30 ngày."
+            "value": "Khôi phục tệp và diff có thể chỉnh sửa chưa lưu sau khi khởi động lại. Bản sao lưu ở trên Mac này và có thể khôi phục trong 30 ngày."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Yeniden başlattıktan sonra kaydedilmemiş dosyaları ve düzenlenebilir diff değişikliklerini kurtarın. Yedekler bu Mac’te en fazla 30 gün kalır."
+            "value": "Yeniden başlattıktan sonra kaydedilmemiş dosyaları ve düzenlenebilir diff değişikliklerini kurtarın. Yedekler bu Mac’te kalır ve 30 gün boyunca kurtarılabilir."
           }
         }
       }
     },
-    "New backups and automatic recovery are off. Existing backups are kept; recover or delete them with Recover Drafts…": {
+    "New backups and automatic recovery are off. Recover or delete unexpired backups with Recover Drafts…": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "New backups and automatic recovery are off. Existing backups are kept; recover or delete them with Recover Drafts…"
+            "value": "New backups and automatic recovery are off. Recover or delete unexpired backups with Recover Drafts…"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "新备份和自动恢复已关闭。现有备份会保留，可通过“恢复草稿…”恢复或删除。"
+            "value": "新备份和自动恢复已关闭。可通过“恢复草稿…”恢复或删除未过期的备份。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "新備份與自動還原已關閉。現有備份會保留，可透過「還原草稿…」還原或刪除。"
+            "value": "新備份與自動還原已關閉。可透過「還原草稿…」還原或刪除未過期的備份。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "新しいバックアップと自動復元はオフです。既存のバックアップは保持され、「下書きを復元…」から復元または削除できます。"
+            "value": "新しいバックアップと自動復元はオフです。「下書きを復元…」から期限内のバックアップを復元または削除できます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "새 백업과 자동 복구가 꺼져 있습니다. 기존 백업은 유지되며 “초안 복구…”에서 복구하거나 삭제할 수 있습니다."
+            "value": "새 백업과 자동 복구가 꺼져 있습니다. “초안 복구…”에서 만료되지 않은 백업을 복구하거나 삭제할 수 있습니다."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les nouvelles sauvegardes et la récupération automatique sont désactivées. Les sauvegardes existantes sont conservées ; restaurez-les ou supprimez-les avec Récupérer les brouillons…"
+            "value": "Les nouvelles sauvegardes et la récupération automatique sont désactivées. Restaurez ou supprimez les sauvegardes non expirées avec Récupérer les brouillons…"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Neue Sicherungen und automatische Wiederherstellung sind deaktiviert. Vorhandene Sicherungen bleiben erhalten; unter „Entwürfe wiederherstellen…“ lassen sie sich wiederherstellen oder löschen."
+            "value": "Neue Sicherungen und automatische Wiederherstellung sind deaktiviert. Nicht abgelaufene Sicherungen lassen sich unter „Entwürfe wiederherstellen…“ wiederherstellen oder löschen."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Las copias nuevas y la recuperación automática están desactivadas. Las copias existentes se conservan; recupéralas o elimínalas con Recuperar borradores…"
+            "value": "Las copias nuevas y la recuperación automática están desactivadas. Recupera o elimina las copias no caducadas con Recuperar borradores…"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Novos backups e a recuperação automática estão desativados. Os backups existentes são mantidos; recupere ou exclua-os em Recuperar rascunhos…"
+            "value": "Novos backups e a recuperação automática estão desativados. Recupere ou exclua backups não expirados em Recuperar rascunhos…"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "I nuovi backup e il recupero automatico sono disattivati. I backup esistenti vengono mantenuti; recuperali o eliminali con Recupera bozze…"
+            "value": "I nuovi backup e il recupero automatico sono disattivati. Recupera o elimina i backup non scaduti con Recupera bozze…"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nieuwe back-ups en automatisch herstel staan uit. Bestaande back-ups blijven behouden; herstel of verwijder ze via Concepten herstellen…"
+            "value": "Nieuwe back-ups en automatisch herstel staan uit. Herstel of verwijder niet-verlopen back-ups via Concepten herstellen…"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Новые копии и автоматическое восстановление отключены. Существующие копии сохранены; восстановите или удалите их через «Восстановить черновики…»."
+            "value": "Новые копии и автоматическое восстановление отключены. Восстановите или удалите копии с неистёкшим сроком через «Восстановить черновики…»."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "النسخ الجديدة والاستعادة التلقائية متوقفتان. تبقى النسخ الموجودة؛ استعدها أو احذفها عبر «استعادة المسودات…»."
+            "value": "النسخ الجديدة والاستعادة التلقائية متوقفتان. استعد النسخ غير المنتهية أو احذفها عبر «استعادة المسودات…»."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "ปิดการสำรองใหม่และการกู้คืนอัตโนมัติแล้ว ข้อมูลสำรองเดิมยังคงอยู่ กู้คืนหรือลบได้จาก “กู้คืนฉบับร่าง…”"
+            "value": "ปิดการสำรองใหม่และการกู้คืนอัตโนมัติแล้ว กู้คืนหรือลบข้อมูลสำรองที่ยังไม่หมดอายุได้จาก “กู้คืนฉบับร่าง…”"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cadangan baru dan pemulihan otomatis nonaktif. Cadangan yang ada tetap disimpan; pulihkan atau hapus melalui Pulihkan Draf…"
+            "value": "Cadangan baru dan pemulihan otomatis nonaktif. Pulihkan atau hapus cadangan yang belum kedaluwarsa melalui Pulihkan Draf…"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đã tắt sao lưu mới và khôi phục tự động. Bản sao lưu hiện có được giữ lại; khôi phục hoặc xóa qua Khôi phục bản nháp…"
+            "value": "Đã tắt sao lưu mới và khôi phục tự động. Khôi phục hoặc xóa bản sao lưu chưa hết hạn qua Khôi phục bản nháp…"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Yeni yedekler ve otomatik kurtarma kapalı. Mevcut yedekler korunur; Taslakları Kurtar… ile geri yükleyin veya silin."
+            "value": "Yeni yedekler ve otomatik kurtarma kapalı. Süresi dolmamış yedekleri Taslakları Kurtar… ile geri yükleyin veya silin."
+          }
+        }
+      }
+    },
+    "Expired backups are deleted while Zshell runs, even with backups off. If Zshell is closed, cleanup runs the next time it opens.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expired backups are deleted while Zshell runs, even with backups off. If Zshell is closed, cleanup runs the next time it opens."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zshell 运行时会删除过期备份，关闭备份开关后仍会清理。应用关闭期间过期的备份会在下次启动时清理。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zshell 執行時會刪除過期備份，關閉備份開關後仍會清理。應用程式關閉期間過期的備份會在下次啟動時清理。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バックアップがオフでも、Zshell の実行中は期限切れのバックアップを削除します。Zshell が終了している場合は、次回の起動時に削除します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "백업을 꺼도 Zshell이 실행 중이면 만료된 백업을 삭제합니다. Zshell이 종료된 상태라면 다음 실행 시 정리합니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zshell supprime les sauvegardes expirées pendant son exécution, même si les sauvegardes sont désactivées. Si Zshell est fermé, le nettoyage a lieu au prochain lancement."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zshell löscht abgelaufene Sicherungen, solange es läuft, auch bei deaktivierten Sicherungen. Ist Zshell geschlossen, erfolgt die Bereinigung beim nächsten Start."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zshell elimina las copias caducadas mientras se ejecuta, incluso con las copias desactivadas. Si Zshell está cerrado, la limpieza se realiza al volver a abrirlo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Zshell exclui backups expirados enquanto está em execução, mesmo com os backups desativados. Se o Zshell estiver fechado, a limpeza ocorre na próxima abertura."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zshell elimina i backup scaduti mentre è in esecuzione, anche con i backup disattivati. Se Zshell è chiuso, la pulizia avviene al successivo avvio."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zshell verwijdert verlopen back-ups terwijl het actief is, ook als back-ups zijn uitgeschakeld. Als Zshell gesloten is, gebeurt de opruiming bij de volgende start."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zshell удаляет просроченные копии во время работы, даже если резервное копирование отключено. Если Zshell закрыт, очистка выполняется при следующем запуске."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يحذف Zshell النسخ المنتهية أثناء تشغيله، حتى عند إيقاف النسخ الاحتياطي. إذا كان Zshell مغلقًا، يتم التنظيف عند فتحه مرة أخرى."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zshell จะลบข้อมูลสำรองที่หมดอายุขณะทำงาน แม้ปิดการสำรองไว้ หากปิด Zshell จะล้างข้อมูลเมื่อเปิดครั้งถัดไป"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zshell menghapus cadangan kedaluwarsa saat berjalan, meskipun pencadangan dinonaktifkan. Jika Zshell ditutup, pembersihan dilakukan saat dibuka kembali."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zshell xóa bản sao lưu hết hạn khi đang chạy, ngay cả khi đã tắt sao lưu. Nếu Zshell đóng, việc dọn dẹp diễn ra ở lần mở tiếp theo."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zshell çalışırken, yedekleme kapalı olsa bile süresi dolmuş yedekleri siler. Zshell kapalıysa temizlik bir sonraki açılışta yapılır."
           }
         }
       }

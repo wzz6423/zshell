@@ -99,16 +99,30 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
     static let maximumTotalBytes = 128 << 20
     static let retention: TimeInterval = 30 * 24 * 60 * 60
 
-    enum Failure: Error { case unsafeDirectory, unsafeFile, tooLarge, invalidRecord }
+    enum Failure: Error { case unsafeDirectory, unsafeFile, tooLarge, invalidRecord, expiredRecord }
     private let directory: URL
     private let queue = DispatchQueue(label: "sh.zshell.editor-drafts", qos: .utility)
     private var enabled: Bool
+    private var cleanupTimer: DispatchSourceTimer?
 
     init(directory: URL, enabled: Bool) {
         // Standardization can turn a resolved /private/tmp back into the
         // /tmp symlink once it exists, which O_NOFOLLOW must reject.
         self.directory = directory
         self.enabled = enabled
+    }
+
+    deinit { cleanupTimer?.cancel() }
+
+    func startExpiryCleanup(interval: TimeInterval = 60 * 60) {
+        queue.async {
+            guard self.cleanupTimer == nil else { return }
+            let timer = DispatchSource.makeTimerSource(queue: self.queue)
+            timer.schedule(deadline: .now(), repeating: interval, leeway: .milliseconds(10))
+            timer.setEventHandler { [weak self] in try? self?.cleanupExpired() }
+            self.cleanupTimer = timer
+            timer.resume()
+        }
     }
 
     func setEnabled(_ value: Bool) {
@@ -129,7 +143,7 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
     }
 
     func remove(_ id: UUID) {
-        queue.sync {
+        queue.async {
             guard let descriptor = try? self.openDirectory(create: false), descriptor >= 0 else { return }
             defer { close(descriptor) }
             _ = unlinkat(descriptor, "\(id.uuidString.lowercased()).json", 0)
@@ -144,6 +158,8 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
                     let descriptor = try self.openDirectory(create: false)
                     guard descriptor >= 0 else { continuation.resume(returning: nil); return }
                     defer { close(descriptor) }
+                    try self.prune(in: descriptor)
+                    _ = fsync(descriptor)
                     guard let record = try? self.read(id, in: descriptor) else {
                         continuation.resume(returning: nil); return
                     }
@@ -165,6 +181,8 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
                     let descriptor = try self.openDirectory(create: false)
                     guard descriptor >= 0 else { continuation.resume(returning: []); return }
                     defer { close(descriptor) }
+                    try self.prune(in: descriptor)
+                    _ = fsync(descriptor)
                     let entries = try self.entries(in: descriptor)
                     var bytes = 0
                     var result: [EditorDraftRecord] = []
@@ -200,14 +218,28 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
         if let failure { throw failure }
     }
 
-    private func prune(in descriptor: Int32) throws {
+    private func cleanupExpired() throws {
+        let descriptor = try openDirectory(create: false)
+        guard descriptor >= 0 else { return }
+        defer { close(descriptor) }
+        try prune(in: descriptor, checkingRecordDates: true)
+        _ = fsync(descriptor)
+    }
+
+    private func prune(in descriptor: Int32, checkingRecordDates: Bool = false) throws {
         let entries = try entries(in: descriptor, removingTemporary: true).sorted { $0.modified > $1.modified }
+        let cutoff = Date().addingTimeInterval(-Self.retention)
         var count = 0, bytes = 0
         for entry in entries {
-            if entry.modified < Date().addingTimeInterval(-Self.retention)
+            if entry.modified < cutoff
                 || count >= Self.maximumEntries || bytes + entry.bytes > Self.maximumTotalBytes {
                 _ = unlinkat(descriptor, entry.name, 0)
             } else {
+                if checkingRecordDates {
+                    do { _ = try read(entry.id, in: descriptor) }
+                    catch Failure.expiredRecord { continue }
+                    catch { }
+                }
                 count += 1
                 bytes += entry.bytes
             }
@@ -285,8 +317,12 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
         defer { try? file.close() }
         var before = stat()
         guard fstat(descriptor, &before) == 0, before.st_mode & S_IFMT == S_IFREG,
-              before.st_uid == geteuid(), before.st_nlink == 1, before.st_mode & 0o077 == 0,
-              before.st_mtimespec.tv_sec >= Int(Date().addingTimeInterval(-Self.retention).timeIntervalSince1970) else { throw Failure.unsafeFile }
+              before.st_uid == geteuid(), before.st_nlink == 1, before.st_mode & 0o077 == 0 else { throw Failure.unsafeFile }
+        guard before.st_mtimespec.tv_sec >= Int(Date().addingTimeInterval(-Self.retention).timeIntervalSince1970) else {
+            _ = unlinkat(parent, "\(id.uuidString.lowercased()).json", 0)
+            _ = fsync(parent)
+            throw Failure.expiredRecord
+        }
         guard before.st_size >= 0, before.st_size <= Self.maximumRecordBytes else { throw Failure.tooLarge }
         var data = Data()
         while let chunk = try file.read(upToCount: min(64 << 10, Self.maximumRecordBytes + 1 - data.count)), !chunk.isEmpty {
@@ -301,8 +337,13 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
               before.st_ctimespec.tv_sec == after.st_ctimespec.tv_sec,
               before.st_ctimespec.tv_nsec == after.st_ctimespec.tv_nsec else { throw Failure.unsafeFile }
         let record = try JSONDecoder().decode(EditorDraftRecord.self, from: data)
-        guard record.id == id, record.isValid,
-              record.updatedAt >= Date().addingTimeInterval(-Self.retention) else { throw Failure.invalidRecord }
+        guard record.id == id, record.isValid else { throw Failure.invalidRecord }
+        guard record.updatedAt >= Date().addingTimeInterval(-Self.retention) else {
+            // A refreshed mtime must not leave an expired payload on disk.
+            _ = unlinkat(parent, "\(id.uuidString.lowercased()).json", 0)
+            _ = fsync(parent)
+            throw Failure.expiredRecord
+        }
         return record
     }
 
