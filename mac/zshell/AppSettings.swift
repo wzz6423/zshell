@@ -328,6 +328,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var protectEditorSaves: Bool {
+        didSet { save() }
+    }
+
     @Published var externalEditor: ExternalEditor {
         didSet { save() }
     }
@@ -576,6 +580,7 @@ final class AppSettings: nonisolated ObservableObject {
         terminalBell = toml["terminal.bell"]?.bool ?? true
         shiftEnterNewline = toml["terminal.shift-enter-newline"]?.bool ?? true
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
+        protectEditorSaves = toml["editor.protect-saves"]?.bool ?? true
         externalEditor = ExternalEditor.persisted(
             toml["editor.external-editor"]?.string
         )
@@ -751,6 +756,7 @@ final class AppSettings: nonisolated ObservableObject {
             && terminalTextHints
             && shiftEnterNewline
             && wrapLines
+            && protectEditorSaves
             && externalEditor == .systemDefault
             && restoreTerminalHistory
             && !preserveTerminalSessions
@@ -805,6 +811,7 @@ final class AppSettings: nonisolated ObservableObject {
         terminalTextHints = true
         shiftEnterNewline = true
         wrapLines = true
+        protectEditorSaves = true
         externalEditor = .systemDefault
         restoreTerminalHistory = true
         preserveTerminalSessions = false
@@ -994,6 +1001,7 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.terminalTextHints, toml["terminal.text-hints"]?.bool ?? true)
         assign(\.shiftEnterNewline, toml["terminal.shift-enter-newline"]?.bool ?? true)
         assign(\.wrapLines, toml["editor.wrap-lines"]?.bool ?? true)
+        assign(\.protectEditorSaves, toml["editor.protect-saves"]?.bool ?? true)
         assign(\.externalEditor, ExternalEditor.persisted(toml["editor.external-editor"]?.string))
         assign(\.restoreTerminalHistory, toml["terminal.restore-history"]?.bool ?? false)
         assign(\.preserveTerminalSessions, toml["terminal.preserve-sessions"]?.bool ?? false)
@@ -1208,6 +1216,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if !wrapLines {
             lines.append("editor.wrap-lines = false")
+        }
+        if !protectEditorSaves {
+            lines.append("editor.protect-saves = false")
         }
         if externalEditor != .systemDefault {
             lines.append("editor.external-editor = \(TOML.quote(externalEditor.rawValue))")

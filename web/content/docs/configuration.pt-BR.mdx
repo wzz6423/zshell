@@ -153,6 +153,12 @@ Booleano — padrão `true`
 
 Quebra visualmente linhas longas na largura do painel do [editor de arquivos](/pt-BR/docs/files). Em false, elas rolam horizontalmente. Não altera a quebra de linhas do terminal nem dos diffs.
 
+### `editor.protect-saves` [#editorprotect-saves]
+
+booleano — padrão `true`
+
+Verifica alterações externas antes de salvar um arquivo ou diff editável da árvore de trabalho. Em caso de conflito, compare versões, recarregue, mantenha o rascunho ou sobrescreva explicitamente. Desativar permite substituir alterações externas sem aviso de conflito.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]

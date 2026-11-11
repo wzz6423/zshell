@@ -162,6 +162,12 @@ regular/bold 區分及後備字型字重。
 在[檔案編輯器](/zh-Hant/docs/files)裡按窗格寬度軟折行。關閉時長行橫向捲動；它不會改變終端機或 diff
 裡的折行行為。
 
+### `editor.protect-saves` [#editorprotect-saves]
+
+布林值——預設 `true`
+
+儲存檔案或可編輯的工作區 Diff 前，檢查外部程式是否變更了磁碟版本。發生衝突時，可以比較版本、從磁碟重新載入、保留草稿或主動覆寫檔案。關閉後，儲存會直接取代外部變更，不再顯示衝突提示。
+
 ## 終端機 [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]

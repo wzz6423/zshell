@@ -163,6 +163,12 @@ Ghostty は名前付きスタイルや可変軸を選び、Alacritty／CoreText 
 [ファイルエディタ](/ja/docs/files)で長い行をペイン幅に折り返します。
 false なら横スクロールします。ターミナルや差分の折り返しは変わりません。
 
+### `editor.protect-saves` [#editorprotect-saves]
+
+ブール値 — 既定値 `true`
+
+ファイルや編集可能な作業ツリーの差分を保存する前に、外部プログラムによる変更を確認します。競合した場合は、下書きと比較、ディスクから再読み込み、下書きの保持、明示的な上書きを選べます。無効にすると、競合確認なしで外部の変更を置き換えます。
+
 ## ターミナル [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]

@@ -153,6 +153,12 @@ boolean — mặc định `true`
 
 Xuống dòng mềm theo chiều rộng ô trong [trình soạn thảo tệp](/vi/docs/files). Nếu false, dòng dài cuộn ngang. Không đổi cách xuống dòng của terminal hoặc diff.
 
+### `editor.protect-saves` [#editorprotect-saves]
+
+boolean — mặc định `true`
+
+Kiểm tra thay đổi bên ngoài trước khi lưu tệp hoặc diff cây làm việc có thể chỉnh sửa. Khi xung đột, bạn có thể so sánh, tải lại, giữ bản nháp hoặc chủ động ghi đè. Tắt tùy chọn này cho phép thay thế thay đổi bên ngoài mà không báo xung đột.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]

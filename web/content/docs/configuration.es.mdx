@@ -153,6 +153,12 @@ booleano — predeterminado: `true`
 
 Ajusta visualmente las líneas largas al ancho del panel en el [editor de archivos](/es/docs/files). Con false, las líneas largas se desplazan horizontalmente. No cambia el ajuste de líneas de un terminal ni de una vista de diferencias.
 
+### `editor.protect-saves` [#editorprotect-saves]
+
+booleano — predeterminado `true`
+
+Comprueba cambios externos antes de guardar un archivo o un diff editable del árbol de trabajo. Si hay un conflicto, compare versiones, recargue, conserve el borrador o sobrescriba explícitamente. Al desactivarlo, los cambios externos se reemplazan sin aviso de conflicto.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]

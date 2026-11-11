@@ -170,6 +170,12 @@ regular/bold 区分及后备字体字重。
 在[文件编辑器](/docs/files)里按窗格宽度软折行。关闭时长行横向滚动；它不会改变终端或 diff
 里的折行行为。
 
+### `editor.protect-saves` [#editorprotect-saves]
+
+布尔值——默认 `true`
+
+保存文件或可编辑的工作区 Diff 前，检查外部程序是否更改了磁盘版本。发生冲突时，可以比较版本、从磁盘重新加载、保留草稿或主动覆盖文件。关闭后，保存会直接替换外部改动，不再显示冲突提示。
+
 <span id="终端" data-canonical-heading="terminal" />
 
 ## 终端 [#terminal]
