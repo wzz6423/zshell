@@ -702,8 +702,10 @@ private final class FileTreeRowView: NSView {
         let labelX = x + 15 + glyph + 5
         let statusWidth = statusLabel.isHidden ? 0 : min(18 * scale, bounds.width * 0.1)
         let width = max(0, bounds.width - labelX - statusWidth - 6)
-        nameLabel.frame = NSRect(x: labelX, y: 1, width: width, height: bounds.height - 2)
-        statusLabel.frame = NSRect(x: bounds.width - statusWidth - 6, y: 1, width: statusWidth, height: bounds.height - 2)
+        let nameHeight = min(bounds.height, nameLabel.intrinsicContentSize.height)
+        let statusHeight = min(bounds.height, statusLabel.intrinsicContentSize.height)
+        nameLabel.frame = NSRect(x: labelX, y: (bounds.height - nameHeight) / 2, width: width, height: nameHeight)
+        statusLabel.frame = NSRect(x: bounds.width - statusWidth - 6, y: (bounds.height - statusHeight) / 2, width: statusWidth, height: statusHeight)
         field?.frame = NSRect(x: labelX, y: 0, width: max(0, bounds.width - labelX - 4), height: bounds.height)
     }
 
