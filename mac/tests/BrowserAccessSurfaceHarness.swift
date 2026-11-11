@@ -14,11 +14,12 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
     private var timer: Timer?
     private var frames: [NSWindow] = []
     private var isCapabilityProbe: Bool { CommandLine.arguments[2] == "capability" }
+    private var isVisibleProbe: Bool { CommandLine.arguments.contains("--visible") }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        AppLocalization.apply(.english)
         let settings = AppSettings.shared
         settings.terminalBackend = CommandLine.arguments[2] == "ghostty" ? .libghostty : .alacritty
-        settings.aiEnabled = false
         settings.quickTerminalEnabled = false
         settings.restoreTerminalHistory = false
         settings.preserveTerminalSessions = false
@@ -65,6 +66,10 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
         workspace.window?.setContentSize(NSSize(width: 1000, height: 650))
         workspace.window?.contentView?.layoutSubtreeIfNeeded()
         first?.surface.setSurfaceVisible(true)
+        if isVisibleProbe {
+            workspace.window?.makeKeyAndOrderFront(nil)
+            SettingsWindowController.shared.show(category: .browserAccess)
+        }
         startTimer()
     }
 
@@ -165,8 +170,12 @@ struct BrowserAccessSurfaceHarness {
         if PTYMuxCommandLine.shouldRunRelay { PTYMuxRelay.run() }
         if PTYMuxCommandLine.shouldRunDaemon { PTYMuxCommandLine.runDaemon() }
         let application = NSApplication.shared
-        application.setActivationPolicy(.prohibited)
-        QuickTerminalOffscreen.install()
+        if CommandLine.arguments.contains("--visible") {
+            application.setActivationPolicy(.regular)
+        } else {
+            application.setActivationPolicy(.prohibited)
+            QuickTerminalOffscreen.install()
+        }
         let delegate = BrowserAccessFixtureDelegate()
         application.delegate = delegate
         application.run()
