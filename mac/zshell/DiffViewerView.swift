@@ -151,12 +151,14 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
 
     private nonisolated static let maxBytes = 5 << 20
     private var savedNewContent = ""
+    private(set) var saveBaseline: FileSaveSnapshot?
     /// Live text emitted by Pierre's editor. Kept out of `DiffWebModel` while
     /// editing so a keystroke does not rebuild the CodeView item that owns the
     /// editor, selection, and undo stack.
     private var editedNewContent = ""
     var unsavedText: String? { isDirty ? editedNewContent : nil }
     private var reloadGeneration: UInt = 0
+    private var isSaving = false
 
     init(
         repoRoot: String,
@@ -232,10 +234,10 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             : name
     }
 
-    func reload() {
+    func reload(force: Bool = false, discarding draft: String? = nil) {
         // Keep the editor's document and undo history stable until the user
         // leaves edit mode, and never replace an unsaved buffer from disk.
-        guard !isEditing, !isDirty else { return }
+        guard force || !isEditing, !isDirty || draft == editedNewContent else { return }
         reloadGeneration &+= 1
         let generation = reloadGeneration
         isLoading = true
@@ -253,6 +255,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         Task { [weak self] in
             let result = await Task.detached(priority: .userInitiated) {
                 var failureVar: String?
+                var baseline: FileSaveSnapshot?
                 let unmerged = commitHash == nil && treeComparison == nil && !staged
                     && Self.isUnmerged(path: path, in: root)
                 let old: GitContent
@@ -277,7 +280,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
                             ":\(oldPath)", ":2:\(oldPath)", ":1:\(oldPath)", "HEAD:\(oldPath)",
                         ], in: root)
                     }
-                    new = Self.readWorktreeContent(root: root, path: path, error: &failureVar)
+                    new = Self.readWorktreeContent(root: root, path: path, baseline: &baseline, error: &failureVar)
                 }
                 let editable = commitHash == nil && treeComparison == nil && !staged
                     && Self.isEditableWorktreeFile(root: root, path: path)
@@ -310,7 +313,8 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
                     fingerprint: fingerprint,
                     failure: failureVar,
                     unmerged: unmerged,
-                    editable: editable
+                    editable: editable,
+                    baseline: baseline
                 )
             }.value
             guard let self, self.reloadGeneration == generation else { return }
@@ -330,6 +334,19 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
                 old = ""
                 new = ""
             }
+            if let draft {
+                guard self.editedNewContent == draft else {
+                    self.isLoading = false
+                    return
+                }
+                guard failure == nil, comparison == nil, result.editable else {
+                    self.isLoading = false
+                    self.saveError = failure ?? String(localized: "Could not read file")
+                    return
+                }
+                // Old editor completion messages must not re-install the discarded draft.
+                self.web.fileID = "\(self.path)#reload-\(generation)"
+            }
             let hasChanges = comparison.map { $0.beforeData != $0.afterData } ?? (old != new)
             self.isLoading = false
             self.error = failure
@@ -340,6 +357,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             self.web.oldContent = old
             self.web.newContent = new
             self.savedNewContent = new
+            self.saveBaseline = result.baseline
             self.editedNewContent = new
             self.isDirty = false
             self.saveError = nil
@@ -463,12 +481,14 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// Accepts the updated side emitted by Pierre's editor. The web view owns
     /// the live document; this mirrored value drives dirty state and saving.
     func updateEditedContent(fileID: String, contents: String) {
-        guard isEditable, fileID == path else { return }
+        guard isEditable, fileID == web.fileID else { return }
+        let changed = editedNewContent != contents
         editedNewContent = contents
         isDirty = contents != savedNewContent
-        if isDirty {
+        if changed, isDirty || isLoading {
             // A reload already in flight must not win after the first edit.
             reloadGeneration &+= 1
+            isLoading = false
         }
     }
 
@@ -476,7 +496,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// read-only diff renders the text the user just reviewed and edited.
     func completeEditing(fileID: String, contents: String) {
         updateEditedContent(fileID: fileID, contents: contents)
-        guard isEditable, fileID == path else { return }
+        guard isEditable, fileID == web.fileID else { return }
         web.newContent = contents
     }
 
@@ -495,18 +515,56 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         isEditable && DiffViewPreferences.shared.prefersEditing
     }
 
-    func save() {
-        guard isEditable, isDirty else { return }
+    @discardableResult
+    func save(resolveConflict: ((FileSaveCoordinator.Conflict, String) -> FileSaveConflictController.Choice)? = nil) -> Bool {
+        guard isEditable, isDirty else { return !isDirty }
+        guard !isSaving else { return false }
+        isSaving = true
+        defer { isSaving = false }
+        reloadGeneration &+= 1
+        isLoading = false
         let fileURL = URL(fileURLWithPath: repoRoot, isDirectory: true)
             .appendingPathComponent(path)
+        let draft = editedNewContent
         do {
-            try editedNewContent.write(to: fileURL, atomically: true, encoding: .utf8)
-            savedNewContent = editedNewContent
-            isDirty = false
-            saveError = nil
+            switch try FileSaveConflictController.save(
+                text: draft, path: fileURL.path, baseline: saveBaseline,
+                protectionEnabled: AppSettings.shared.protectEditorSaves,
+                in: webHostView?.window, resolveConflict: resolveConflict
+            ) {
+            case .saved(let snapshot):
+                saveBaseline = snapshot
+                savedNewContent = draft
+                isDirty = editedNewContent != draft
+                saveError = nil
+                return !isDirty
+            case .reload:
+                reload(force: true, discarding: draft)
+            case .cancelled:
+                saveError = String(localized: "The file changed on disk. Your draft was kept.")
+            }
         } catch {
             saveError = error.localizedDescription
         }
+        return false
+    }
+
+    func restoreDraft(_ draft: String, baseline: FileSaveSnapshot) {
+        guard commitHash == nil, treeComparison == nil, !staged, baseline.text != nil else { return }
+        reloadGeneration &+= 1
+        web.fileID = "\(path)#draft-\(reloadGeneration)"
+        saveBaseline = baseline
+        savedNewContent = baseline.text ?? ""
+        editedNewContent = draft
+        isDirty = true
+        isEditable = true
+        isLoading = false
+        error = nil
+        saveError = nil
+        imageComparison = nil
+        web.canEdit = true
+        web.newContent = draft
+        if webHostView == nil { webHostView = DiffWebHostingView(model: web) }
     }
 
     private nonisolated enum GitContent {
@@ -696,7 +754,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     }
 
     private nonisolated static func readWorktreeContent(
-        root: String, path: String, error: inout String?
+        root: String, path: String, baseline: inout FileSaveSnapshot?, error: inout String?
     ) -> GitContent {
         let url = URL(fileURLWithPath: root, isDirectory: true).appendingPathComponent(path)
         let fm = FileManager.default
@@ -707,29 +765,13 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             return .content(destination)
         }
         do {
-            // Keep one descriptor for the whole read: replacing the path while
-            // an agent writes cannot redirect us to a different, larger file.
-            // Seek checks catch growth without ever loading more than maxBytes.
-            let handle = try FileHandle(forReadingFrom: url)
-            defer { try? handle.close() }
-            let initialSize = try handle.seekToEnd()
-            guard initialSize <= UInt64(maxBytes) else {
-                return .tooLarge
+            let snapshot = try FileSaveCoordinator.read(path: url.path)
+            baseline = snapshot
+            if snapshot.isMissing { return .missing }
+            guard snapshot.isRegular else {
+                throw CocoaError(.fileReadUnknown, userInfo: [NSFilePathErrorKey: url.path])
             }
-            try handle.seek(toOffset: 0)
-
-            var data = Data()
-            while data.count < maxBytes {
-                let remaining = min(64 * 1024, maxBytes - data.count)
-                guard let chunk = try handle.read(upToCount: remaining), !chunk.isEmpty else {
-                    break
-                }
-                data.append(chunk)
-            }
-            let finalSize = try handle.seekToEnd()
-            guard finalSize <= UInt64(maxBytes) else {
-                return .tooLarge
-            }
+            guard let data = snapshot.data else { return .tooLarge }
             guard !data.contains(0),
                   let text = String(data: data, encoding: .utf8)
             else {

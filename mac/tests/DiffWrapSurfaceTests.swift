@@ -103,6 +103,8 @@ struct DiffWrapSurfaceTests {
         let scrolling = lineGeometry(web)
         precondition(scrolling["height"] != nil, "Long line fixture did not render")
         let snapshot = ordinary.reviewSnapshot
+        let saveBaseline = ordinary.saveBaseline
+        precondition(saveBaseline != nil, "Worktree diff has no protected save baseline")
         if let snapshot { DiffReviewStore.shared.setReviewed(true, for: snapshot) }
         let host = ordinary.webHostView
         let button = wrapButton(in: view)
@@ -112,6 +114,7 @@ struct DiffWrapSurfaceTests {
         precondition((wrapped["height"] ?? 0) > (scrolling["height"] ?? 0) * 2, "Long Unicode/tab line did not visually wrap")
         precondition((wrapped["scrollWidth"] ?? 0) <= (wrapped["width"] ?? 0) + 1, "Wrapped line still overflows horizontally")
         precondition(button.state == .on && ordinary.webHostView === host, "Wrap toggle recreated the host or lost its state")
+        precondition(ordinary.saveBaseline == saveBaseline, "Wrapping changed the protected save baseline")
         precondition(ordinary.reviewSnapshot == snapshot && snapshot.map(DiffReviewStore.shared.isReviewed) == true,
             "A display option invalidated exact-change review status")
         wait("Toolbar did not persist its setting") { TOML.parse(at: AppSettings.configURL)?["editor.diff-wrap-lines"]?.bool == true }
@@ -137,6 +140,10 @@ struct DiffWrapSurfaceTests {
         let settingsSwitch = descendants(editorPane.view).compactMap { $0 as? NSSwitch }.first {
             $0.accessibilityLabel() == String(localized: "Wrap lines to diff width")
         }!
+        let protectSavesSwitch = descendants(editorPane.view).compactMap { $0 as? NSSwitch }.first {
+            $0.accessibilityLabel() == String(localized: "Protect against save conflicts")
+        }!
+        precondition(protectSavesSwitch.state == .on, "Editor lost its default save conflict protection")
         wait("Editor settings did not synchronize with the toolbar") { settingsSwitch.state == .on }
         settingsSwitch.performClick(nil)
         wait("Editor settings did not update both open diffs") { !settings.diffWrapLines && wrapping(web, false) && wrapping(historyWeb, false) }
@@ -200,6 +207,23 @@ struct DiffWrapSurfaceTests {
         ordinary.hidePullRequestComments()
         ordinary.setEditing(false)
         wait("Read-only diff did not show the final draft") { ordinary.web.newContent == draft }
+        let external = "// Externally changed while the wrapped draft was open\n"
+        let path = URL(fileURLWithPath: root).appendingPathComponent("Review.swift")
+        try! external.write(to: path, atomically: true, encoding: .utf8)
+        var conflicts = 0
+        precondition(!ordinary.save { conflict, contents in
+            conflicts += 1
+            precondition(conflict.current.text == external && contents == draft,
+                "Wrapped diff compared the wrong disk version or draft")
+            return .keepDraft
+        }, "Wrapped diff overwrote an external change without approval")
+        precondition(conflicts == 1 && ordinary.unsavedText == draft && ordinary.saveBaseline == saveBaseline,
+            "Save conflict handling lost the wrapped draft or its baseline")
+        protectSavesSwitch.performClick(nil)
+        precondition(!settings.protectEditorSaves && ordinary.save(), "Editor save protection gate did not apply to the wrapped diff")
+        precondition(try! String(contentsOf: path, encoding: .utf8) == draft, "Unchecked save did not write the reviewed draft")
+        protectSavesSwitch.performClick(nil)
+        precondition(settings.protectEditorSaves, "Editor save protection gate did not re-enable")
 
         for language in AppLanguage.allCases where language != .system {
             AppLocalization.apply(language)

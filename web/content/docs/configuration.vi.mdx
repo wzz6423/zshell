@@ -125,6 +125,12 @@ số nguyên, 0–255 — mặc định `255`
 
 Điều chỉnh độ dày khi `terminal.font-thicken` là true. Số không là mức dày nhẹ nhất, không phải tắt. Ghostty dùng cường độ macOS gốc; Alacritty ánh xạ cùng khoảng sang nét CoreText, nên chiều thay đổi và điểm đầu/cuối khớp nhưng pixel kết xuất có thể khác.
 
+### `terminal.cell-width` [#terminalcell-width]
+
+số, 0.75–2 — mặc định `1`
+
+Điều chỉnh khoảng cách cột của terminal trong **Cài đặt → Giao diện → Phông chữ → Độ rộng ô**. Mặc định là 100% và được lưu theo phần trăm nguyên. Cả hai backend cập nhật ngay các terminal đang mở, gồm số cột PTY, con trỏ, vùng chọn và gợi ý bàn phím. Kích thước ký tự không đổi và ký tự rộng vẫn chiếm hai cột. Làm tròn theo pixel có thể tạo ra các bước thay đổi thực tế khác nhau giữa các backend. Giá trị không hợp lệ khôi phục 100%. Khoảng cách trong trình soạn thảo và diff không đổi.
+
 ### `terminal.line-height` [#terminalline-height]
 
 số, 0.75–2 — mặc định `1`
@@ -144,6 +150,12 @@ Xuống dòng mềm theo chiều rộng ô trong [trình soạn thảo tệp](/v
 boolean — mặc định `false`
 
 **Cài đặt → Trình soạn thảo → Ngắt dòng theo chiều rộng diff** và nút ngắt dòng trên thanh công cụ diff điều khiển cùng một tùy chọn. Dòng dài được ngắt theo chiều rộng ô trong chế độ gộp và chia, thay đổi có thể chỉnh sửa, diff lịch sử và bình luận PR. Áp dụng ngay cho mọi diff đang mở và được lưu sau khi khởi động lại. Tắt để khôi phục cuộn ngang. Tùy chọn này độc lập với ngắt dòng của trình soạn thảo tệp và terminal.
+
+### `editor.protect-saves` [#editorprotect-saves]
+
+boolean — mặc định `true`
+
+Kiểm tra thay đổi bên ngoài trước khi lưu tệp hoặc diff cây làm việc có thể chỉnh sửa. Khi xung đột, bạn có thể so sánh, tải lại, giữ bản nháp hoặc chủ động ghi đè. Tắt tùy chọn này cho phép thay thế thay đổi bên ngoài mà không báo xung đột.
 
 ## Terminal [#terminal]
 
@@ -259,6 +271,7 @@ toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
+terminal.cell-width = 1.1
 terminal.line-height = 1.15
 terminal.macos-option-as-alt = false
 terminal.bell = false

@@ -124,6 +124,16 @@ final class AppSettings: nonisolated ObservableObject {
     static let fontThickenStrengthRange: ClosedRange<Double> = 0...255
     static let defaultTerminalLineHeight: Double = 1
     static let terminalLineHeightRange: ClosedRange<Double> = 0.75...2
+    static let defaultTerminalCellWidth: Double = 1
+    static let terminalCellWidthRange: ClosedRange<Double> = 0.75...2
+
+    private static func validTerminalCellWidth(_ value: Double) -> Double {
+        guard value.isFinite, terminalCellWidthRange.contains(value) else {
+            return defaultTerminalCellWidth
+        }
+        // Ghostty applies whole percentages; persist the same spacing on both backends.
+        return (value * 100).rounded() / 100
+    }
     static let defaultSidebarFontSize: Double = 14
     static let sidebarFontSizeRange: ClosedRange<Double> = 9...24
     static let defaultInterfaceScale: Double = 1
@@ -271,6 +281,17 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    /// Terminal column spacing multiplier; glyph sizes and Unicode widths stay unchanged.
+    @Published var terminalCellWidth: Double {
+        didSet {
+            let value = Self.validTerminalCellWidth(terminalCellWidth)
+            if terminalCellWidth != value {
+                terminalCellWidth = value
+            }
+            save()
+        }
+    }
+
     @Published var cursorShape: TerminalCursorShape {
         didSet { save() }
     }
@@ -321,6 +342,10 @@ final class AppSettings: nonisolated ObservableObject {
     }
 
     @Published var diffWrapLines: Bool {
+        didSet { save() }
+    }
+
+    @Published var protectEditorSaves: Bool {
         didSet { save() }
     }
 
@@ -555,6 +580,9 @@ final class AppSettings: nonisolated ObservableObject {
         terminalLineHeight = Self.terminalLineHeightRange.contains(lineHeight)
             ? lineHeight
             : Self.defaultTerminalLineHeight
+        terminalCellWidth = Self.validTerminalCellWidth(
+            toml["terminal.cell-width"]?.double ?? Self.defaultTerminalCellWidth
+        )
         cursorShape = TerminalCursorShape(
             rawValue: toml["terminal.cursor-shape"]?.string ?? ""
         ) ?? .bar
@@ -570,6 +598,7 @@ final class AppSettings: nonisolated ObservableObject {
         shiftEnterNewline = toml["terminal.shift-enter-newline"]?.bool ?? true
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
         diffWrapLines = toml["editor.diff-wrap-lines"]?.bool ?? false
+        protectEditorSaves = toml["editor.protect-saves"]?.bool ?? true
         externalEditor = ExternalEditor.persisted(
             toml["editor.external-editor"]?.string
         )
@@ -709,6 +738,7 @@ final class AppSettings: nonisolated ObservableObject {
         fontThicken = false
         fontThickenStrength = Self.defaultFontThickenStrength
         terminalLineHeight = Self.defaultTerminalLineHeight
+        terminalCellWidth = Self.defaultTerminalCellWidth
     }
 
     /// Whether every setting ``resetToDefaults()`` touches already holds its
@@ -725,6 +755,7 @@ final class AppSettings: nonisolated ObservableObject {
             && !fontThicken
             && fontThickenStrength == Self.defaultFontThickenStrength
             && terminalLineHeight == Self.defaultTerminalLineHeight
+            && terminalCellWidth == Self.defaultTerminalCellWidth
             && language == .system
             && theme == .system
             && themeDark == Theme.defaultDarkThemeName
@@ -742,6 +773,7 @@ final class AppSettings: nonisolated ObservableObject {
             && shiftEnterNewline
             && wrapLines
             && !diffWrapLines
+            && protectEditorSaves
             && externalEditor == .systemDefault
             && restoreTerminalHistory
             && !preserveTerminalSessions
@@ -797,6 +829,7 @@ final class AppSettings: nonisolated ObservableObject {
         shiftEnterNewline = true
         wrapLines = true
         diffWrapLines = false
+        protectEditorSaves = true
         externalEditor = .systemDefault
         restoreTerminalHistory = true
         preserveTerminalSessions = false
@@ -970,6 +1003,9 @@ final class AppSettings: nonisolated ObservableObject {
         let lineHeight = toml["terminal.line-height"]?.double ?? Self.defaultTerminalLineHeight
         assign(\.terminalLineHeight, Self.terminalLineHeightRange.contains(lineHeight)
             ? lineHeight : Self.defaultTerminalLineHeight)
+        assign(\.terminalCellWidth, Self.validTerminalCellWidth(
+            toml["terminal.cell-width"]?.double ?? Self.defaultTerminalCellWidth
+        ))
         let cursorShape = TerminalCursorShape(
             rawValue: toml["terminal.cursor-shape"]?.string ?? ""
         ) ?? .bar
@@ -984,6 +1020,7 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.shiftEnterNewline, toml["terminal.shift-enter-newline"]?.bool ?? true)
         assign(\.wrapLines, toml["editor.wrap-lines"]?.bool ?? true)
         assign(\.diffWrapLines, toml["editor.diff-wrap-lines"]?.bool ?? false)
+        assign(\.protectEditorSaves, toml["editor.protect-saves"]?.bool ?? true)
         assign(\.externalEditor, ExternalEditor.persisted(toml["editor.external-editor"]?.string))
         assign(\.restoreTerminalHistory, toml["terminal.restore-history"]?.bool ?? false)
         assign(\.preserveTerminalSessions, toml["terminal.preserve-sessions"]?.bool ?? false)
@@ -1170,6 +1207,9 @@ final class AppSettings: nonisolated ObservableObject {
         if terminalLineHeight != Self.defaultTerminalLineHeight {
             lines.append("terminal.line-height = \(TOML.number(terminalLineHeight))")
         }
+        if terminalCellWidth != Self.defaultTerminalCellWidth {
+            lines.append("terminal.cell-width = \(TOML.number(terminalCellWidth))")
+        }
         if cursorShape != .bar {
             lines.append("terminal.cursor-shape = \(TOML.quote(cursorShape.rawValue))")
         }
@@ -1195,6 +1235,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if diffWrapLines {
             lines.append("editor.diff-wrap-lines = true")
+        }
+        if !protectEditorSaves {
+            lines.append("editor.protect-saves = false")
         }
         if externalEditor != .systemDefault {
             lines.append("editor.external-editor = \(TOML.quote(externalEditor.rawValue))")

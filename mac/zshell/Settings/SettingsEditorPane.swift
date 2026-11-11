@@ -9,6 +9,7 @@ import AppKit
 final class SettingsEditorPane: SettingsPaneViewController {
     private let wrapLinesSwitch = SettingsSwitch { AppSettings.shared.wrapLines = $0 }
     private let diffWrapLinesSwitch = SettingsSwitch { AppSettings.shared.diffWrapLines = $0 }
+    private let protectSavesSwitch = SettingsSwitch { AppSettings.shared.protectEditorSaves = $0 }
 
     private let externalEditorPopUp: SettingsPopUpButton<ExternalEditor> = {
         let popup = SettingsPopUpButton<ExternalEditor>(
@@ -36,6 +37,10 @@ final class SettingsEditorPane: SettingsPaneViewController {
                     symbolName: "arrow.turn.down.left",
                     symbolColor: SettingsCategory.editor.iconColor
                 ),
+                SettingsRow(
+                    title: String(localized: "Protect against save conflicts"),
+                    control: protectSavesSwitch
+                ),
             ]),
         ]
     }
@@ -44,5 +49,6 @@ final class SettingsEditorPane: SettingsPaneViewController {
         externalEditorPopUp.select(settings.externalEditor)
         wrapLinesSwitch.isOn = settings.wrapLines
         diffWrapLinesSwitch.isOn = settings.diffWrapLines
+        protectSavesSwitch.isOn = settings.protectEditorSaves
     }
 }
