@@ -157,6 +157,12 @@ Kiest de emulator voor terminals die hierna worden gemaakt. Bestaande deelvenste
 
 Zie [Terminalbackends](/nl/docs/terminal#terminal-backends) voor omgevingsvariabelen en compatibiliteitsafspraken.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+getal, 0.1–10 — standaard `1` voor elk apparaat
+
+Stel beide snelheden apart in via **Instellingen → Terminal → Scrollen → Muiswiel / Trackpad**. De waarden zijn percentages: 100% behoudt de huidige snelheid, 50% halveert deze en 200% verdubbelt deze. Wijzigingen gelden direct voor geopende Ghostty- en Alacritty-panelen, de scrollgeschiedenis, schermvullende programma’s en muisrapportage. Inertie gebruikt de trackpadwaarde; horizontaal scrollen blijft horizontaal. Muizen die precieze delta’s doorgeven gebruiken ook de trackpadwaarde. Ontbrekende of ongeldige waarden worden `1`. Importeren, exporteren en herstellen omvat beide waarden.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 Booleaans — standaard `false`
@@ -254,6 +260,8 @@ terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

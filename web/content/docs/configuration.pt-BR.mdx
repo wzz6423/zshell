@@ -157,6 +157,12 @@ Escolhe o emulador de terminais novos. Painéis existentes mantêm o backend ini
 
 Veja [Backends de terminal](/pt-BR/docs/terminal#terminal-backends) para as variáveis de ambiente e o contrato de compatibilidade.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+número, 0.1–10 — padrão `1` para cada dispositivo
+
+Ajuste as duas velocidades separadamente em **Ajustes → Terminal → Rolagem → Roda do mouse / Trackpad**. Os valores são porcentagens: 100% mantém a velocidade atual, 50% reduz à metade e 200% duplica. As alterações se aplicam imediatamente aos painéis abertos do Ghostty e Alacritty, ao histórico, aos programas em tela cheia e aos relatórios do mouse. A rolagem por inércia usa o valor do trackpad; a rolagem horizontal continua horizontal. Mouses que enviam deltas precisos também usam o valor do trackpad. Valores ausentes ou inválidos voltam a `1`. Importar, exportar e redefinir inclui ambos os valores.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 Booleano — padrão `false`
@@ -254,6 +260,8 @@ terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

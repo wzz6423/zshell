@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import Combine
 import Darwin
 import GhosttyTerminal
 
@@ -31,6 +32,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     var commandRecordState = TerminalCommandRecords()
     var lastCommandRevision: UInt64?
     var ghosttyController: TerminalController?
+    var scrollSettingsObservation: AnyCancellable?
     private(set) var logContentRevision: UInt64 = 0
     var findMatchesNewestFirst: Bool { true }
 
@@ -53,6 +55,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var isForwardingRightMouseButton = false
     private var selectionAutoscrollTimer: Timer?
     private var selectionAutoscrollModifierFlags: NSEvent.ModifierFlags = []
+    private var horizontalWheelScroll = TerminalScrollAccumulator()
+    private var horizontalTrackpadScroll = TerminalScrollAccumulator()
     private lazy var aiInputEditor = TerminalAIInputEditor(
         readSnapshot: { [weak self] in self?.aiInputContext()?.snapshot },
         sendControl: { [weak self] in self?.sendAIInputControl($0) },
@@ -292,19 +296,49 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         return TerminalViewportSnapshot(rows: rows, columns: columns, origin: origin, cellSize: cellSize)
     }
 
+    override func scrollWheel(with event: NSEvent) {
+        guard let grid = viewportGridMetrics, grid.cellHeightPixels > 0, grid.cellWidthPixels > 0 else { return }
+        let precise = event.hasPreciseScrollingDeltas
+        let settings = AppSettings.shared
+        let multiplier = TerminalScrollSettings.validMultiplier(
+            precise ? settings.trackpadScrollMultiplier : settings.mouseScrollMultiplier
+        )
+        let maximum = Double(TerminalScrollSettings.maximumApplicationLines)
+        // Ghostty normalizes discrete vertical ticks before its native multiplier.
+        let verticalLimit = precise
+            ? maximum * Double(grid.cellHeightPixels) / multiplier
+            : maximum / (TerminalScrollSettings.ghosttyWheelMultiplier * multiplier)
+        let y = TerminalScrollSettings.boundedDelta(event.scrollingDeltaY, limit: verticalLimit)
+        let x: Double
+        if precise {
+            let columns = horizontalTrackpadScroll.consume(
+                event.scrollingDeltaX / Double(grid.cellWidthPixels), multiplier: multiplier,
+                limit: TerminalScrollSettings.maximumApplicationLines
+            )
+            x = Double(columns) * Double(grid.cellWidthPixels)
+        } else {
+            // The native horizontal path rounds each tick and has no multiplier.
+            x = Double(horizontalWheelScroll.consume(
+                event.scrollingDeltaX.rounded(), multiplier: multiplier,
+                limit: TerminalScrollSettings.maximumApplicationLines
+            ))
+        }
+        let momentum: TerminalScrollModifiers.Momentum
+        if event.momentumPhase.contains(.began) { momentum = .began }
+        else if event.momentumPhase.contains(.stationary) { momentum = .stationary }
+        else if event.momentumPhase.contains(.changed) { momentum = .changed }
+        else { momentum = .none }
+        sendMouseScroll(x: x, y: y, modifiers: TerminalScrollModifiers(precision: precise, momentum: momentum))
+    }
+
     func sendApplicationScroll(lines: Int) -> Bool {
-        guard lines != 0,
-              let cgEvent = CGEvent(
-                scrollWheelEvent2Source: nil,
-                units: .line,
-                wheelCount: 1,
-                wheel1: Int32(clamping: lines),
-                wheel2: 0,
-                wheel3: 0
-              ),
-              let event = NSEvent(cgEvent: cgEvent)
-        else { return false }
-        super.scrollWheel(with: event)
+        guard lines != 0, let grid = viewportGridMetrics, grid.cellHeightPixels > 0 else { return false }
+        // Automation's existing three-row wheel ticks must not inherit device preferences.
+        let limit = TerminalScrollSettings.maximumApplicationLines
+        let rows = Double(min(max(lines, -limit), limit)) * TerminalScrollSettings.ghosttyWheelMultiplier
+        let multiplier = TerminalScrollSettings.validMultiplier(AppSettings.shared.trackpadScrollMultiplier)
+        let delta = rows * Double(grid.cellHeightPixels) / multiplier
+        sendMouseScroll(x: 0, y: delta, modifiers: TerminalScrollModifiers(precision: true))
         return true
     }
 

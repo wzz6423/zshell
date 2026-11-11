@@ -157,6 +157,12 @@ Zshell не предоставляет отдельную настройку б�
 
 Переменные окружения и совместимость описаны в разделе [Движки терминала](/ru/docs/terminal#terminal-backends).
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+число, 0.1–10 — по умолчанию `1` для каждого устройства
+
+Настройте скорости отдельно в **Настройки → Терминал → Прокрутка → Колесо мыши / Трекпад**. Значения указаны в процентах: 100% сохраняет текущую скорость, 50% уменьшает её вдвое, 200% удваивает. Изменения сразу применяются к открытым панелям Ghostty и Alacritty, истории, полноэкранным программам и передаче событий мыши. Инерционная прокрутка использует значение трекпада; горизонтальная остаётся горизонтальной. Мыши с точными дельтами также используют значение трекпада. Отсутствующие или неверные значения заменяются на `1`. Импорт, экспорт и сброс настроек включают оба значения.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 Логическое значение — по умолчанию `false`
@@ -254,6 +260,8 @@ terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

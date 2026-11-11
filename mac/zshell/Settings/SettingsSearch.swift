@@ -36,6 +36,7 @@ enum SettingsSearchIndex {
         let cursor = String(localized: "Cursor")
         let background = String(localized: "Background")
         let input = String(localized: "Input")
+        let scrolling = String(localized: "Scrolling")
         let history = String(localized: "History")
         let profiles = String(localized: "Terminal Profiles")
         let notifications = String(localized: "Notifications")
@@ -117,6 +118,10 @@ enum SettingsSearchIndex {
             item(.terminal, String(localized: "Shell completions"), section: input,
                  keywords: "terminal.shell-completions zsh autosuggestions Tab arguments"),
             item(.terminal, String(localized: "Use Option as Alt/Meta"), section: input, keywords: "terminal.macos-option-as-alt"),
+            item(.terminal, String(localized: "Mouse wheel"), section: scrolling,
+                 keywords: "terminal.mouse-scroll-multiplier scroll speed sensitivity multiplier"),
+            item(.terminal, String(localized: "Trackpad"), section: scrolling,
+                 keywords: "terminal.trackpad-scroll-multiplier scroll speed sensitivity multiplier touchpad"),
             item(.terminal, String(localized: "Terminal bell"), section: notifications, keywords: "terminal.bell"),
             item(.terminal, String(localized: "Shift+Enter inserts a newline"), section: input, keywords: "terminal.shift-enter-newline"),
             item(.terminal, String(localized: "Keep sessions running after quitting"),

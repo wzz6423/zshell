@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import Combine
 import GhosttyTerminal
 import GhosttyTheme
 
@@ -39,6 +40,13 @@ extension ZshellTerminalView {
         )
         self.controller = controller
         applyAppearance()
+        scrollSettingsObservation = Publishers.CombineLatest(
+            AppSettings.shared.$mouseScrollMultiplier.removeDuplicates(),
+            AppSettings.shared.$trackpadScrollMultiplier.removeDuplicates()
+        )
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.applyAppearance() }
     }
 
     /// Reconfigures libghostty in place when appearance, font, or terminal
@@ -64,6 +72,7 @@ extension ZshellTerminalView {
         hintMode.dismiss(restoringFocus: false)
         foregroundProcessProvider = nil
         stopSelectionAutoscroll()
+        scrollSettingsObservation = nil
         controller = nil
         ghosttyController = nil
     }
@@ -104,6 +113,10 @@ extension ZshellTerminalView {
                 ((settings.terminalLineHeight - 1) * 100).rounded()
             )
             builder.withCustom("adjust-cell-height", "\(lineHeightAdjustment)%")
+            let trackpadScroll = TerminalScrollSettings.validMultiplier(settings.trackpadScrollMultiplier)
+            let mouseScroll = TerminalScrollSettings.validMultiplier(settings.mouseScrollMultiplier)
+                * TerminalScrollSettings.ghosttyWheelMultiplier
+            builder.withCustom("mouse-scroll-multiplier", "precision:\(TOML.number(trackpadScroll)),discrete:\(TOML.number(mouseScroll))")
             builder.withCursorStyle(profileAppearance.effectiveCursorShape.ghosttyValue)
             builder.withCursorStyleBlink(profileAppearance.effectiveCursorBlinking)
             // Zshell's insets around the grid live inside ghostty as

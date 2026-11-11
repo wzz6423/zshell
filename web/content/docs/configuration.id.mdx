@@ -157,6 +157,12 @@ Memilih emulator untuk terminal yang dibuat setelah perubahan. Panel yang sudah 
 
 Lihat [Backend terminal](/id/docs/terminal#terminal-backends) untuk variabel lingkungan dan ketentuan kompatibilitas.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+angka, 0.1–10 — default `1` untuk setiap perangkat
+
+Atur kedua kecepatan secara terpisah di **Pengaturan → Terminal → Pengguliran → Roda mouse / Panel sentuh**. Nilai ditampilkan sebagai persentase: 100% mempertahankan kecepatan saat ini, 50% membaginya dua, dan 200% menggandakannya. Perubahan langsung berlaku pada panel Ghostty dan Alacritty yang terbuka, riwayat gulir, program layar penuh, dan pelaporan mouse. Gulir inersia memakai nilai panel sentuh; gulir horizontal tetap horizontal. Mouse yang mengirim delta presisi juga memakai nilai panel sentuh. Nilai yang hilang atau tidak valid kembali ke `1`. Impor, ekspor, dan reset mencakup kedua nilai.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 Boolean — bawaan `false`
@@ -254,6 +260,8 @@ terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

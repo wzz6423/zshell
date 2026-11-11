@@ -56,6 +56,8 @@ CONFIGURATION_ITEMS = {
     "terminal.shell-completions": ("terminal", "Shell completions", "Input"),
     "terminal.vim-command-hints": ("terminal", "Vim command hints", "Input"),
     "terminal.macos-option-as-alt": ("terminal", "Use Option as Alt/Meta", "Input"),
+    "terminal.mouse-scroll-multiplier": ("terminal", "Mouse wheel", "Scrolling"),
+    "terminal.trackpad-scroll-multiplier": ("terminal", "Trackpad", "Scrolling"),
     "terminal.bell": ("terminal", "Terminal bell", "Notifications"),
     "terminal.shift-enter-newline": ("terminal", "Shift+Enter inserts a newline", "Input"),
     "terminal.command-history": ("terminal", "Record command history", "History"),
@@ -249,7 +251,7 @@ class SettingsSearchTests(unittest.TestCase):
             if not (resources / f"{language}.lproj").is_dir():
                 raise AssertionError(f"missing compiled {language} resources")
         metadata = root / "SearchMetadata.swift"
-        metadata.write_text("import Foundation\n" + "\n".join([
+        metadata.write_text("import AppKit\n" + "\n".join([
             metadata_enum((sources / "Settings/SettingsWindowController.swift").read_text(),
                           "SettingsCategory", "    func makePane()"),
             metadata_enum((sources / "Theme.swift").read_text(), "AppTheme", "    var nsAppearance:"),

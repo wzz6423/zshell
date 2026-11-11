@@ -170,6 +170,12 @@ regular/bold 區分及後備字型字重。
 
 環境變數與相容約定見[終端機後端](/zh-Hant/docs/terminal#terminal-backends)。
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+數值，0.1–10 — 兩種裝置均預設為 `1`
+
+在 **設定 → 終端機 → 捲動 → 滑鼠滾輪 / 觸控式軌跡板** 中分別調整速度。讀數使用百分比：100% 保持目前速度，50% 為一半，200% 為兩倍。變更立即套用至已開啟的 Ghostty 和 Alacritty 面板，包括回捲歷史、全螢幕程式和滑鼠回報。慣性捲動使用觸控式軌跡板倍率；水平捲動仍保持水平。回報精細捲動的裝置使用觸控式軌跡板倍率，包括支援精細捲動的滑鼠。缺少或無效的值還原為 `1`；匯入、匯出和重設設定均包含這兩個值。
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 布林值——預設 `false`
@@ -270,6 +276,8 @@ terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

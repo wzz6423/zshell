@@ -98,6 +98,26 @@ struct SettingsReloadTests {
               "feature switches preserve existing behavior by default")
         check(settings.isAtDefaults, "fresh settings expose the correct reset state")
         check(settings.keepAwakeMode == .off, "sleep prevention is off by default")
+        check(settings.mouseScrollMultiplier == 1 && settings.trackpadScrollMultiplier == 1,
+              "device scrolling preserves the existing speed by default")
+        check(!settings.serializedConfig().contains("scroll-multiplier"), "default scroll multipliers are omitted")
+        settings.mouseScrollMultiplier = 0.1
+        settings.trackpadScrollMultiplier = 10
+        check(!settings.isAtDefaults, "scrolling preferences enable reset")
+        var scrollConfig = TOML.parseStrictly(text: settings.serializedConfig()).values
+        check(scrollConfig["terminal.mouse-scroll-multiplier"]?.double == 0.1
+              && scrollConfig["terminal.trackpad-scroll-multiplier"]?.double == 10,
+              "independent device scrolling values persist")
+        for invalid in [Double.nan, .infinity, -.infinity, 0, -1, 10.1] {
+            scrollConfig["terminal.mouse-scroll-multiplier"] = .number(invalid)
+            scrollConfig["terminal.trackpad-scroll-multiplier"] = .number(invalid)
+            settings.applyImported(scrollConfig)
+            check(settings.mouseScrollMultiplier == 1 && settings.trackpadScrollMultiplier == 1,
+                  "invalid imported scroll multipliers restore compatible defaults")
+        }
+        settings.mouseScrollMultiplier = .nan
+        settings.trackpadScrollMultiplier = .infinity
+        check(settings.isAtDefaults, "invalid direct scroll settings are normalized before persistence")
         settings.keepAwakeMode = .whileRunning
         check(!settings.isAtDefaults, "sleep prevention enables reset")
         check(settings.serializedConfig().contains("keep-awake = \"on\""), "sleep mode persists")
@@ -148,6 +168,8 @@ struct SettingsReloadTests {
         terminal.font-thicken = true
         terminal.font-thicken-strength = 99
         terminal.line-height = 1.4
+        terminal.mouse-scroll-multiplier = 2.5
+        terminal.trackpad-scroll-multiplier = 0.5
         terminal.cursor-shape = "underline"
         terminal.cursor-blinking = false
         terminal.macos-option-as-alt = true
@@ -242,6 +264,10 @@ struct SettingsReloadTests {
         wait({ settings.fontSize == 20 }, "external font edit applies")
         check(changes == unchanged + 1, "single setting edit publishes once")
         check(try SettingsConfigFile.read(at: url) == changed, "external update does not rewrite source")
+        let changedScroll = changed.replacingOccurrences(of: "terminal.mouse-scroll-multiplier = 2.5", with: "terminal.mouse-scroll-multiplier = 0.1")
+        try changedScroll.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.mouseScrollMultiplier == 0.1 }, "external mouse scroll edit applies live")
+        check(settings.trackpadScrollMultiplier == 0.5, "mouse scroll reload leaves trackpad independent")
         for invalid in ["font-size = 23\nunfinished", "font-size = 23\ntheme = \"dark\" junk", "font-size = 23\n[]", "font-size = 23\nsidebar.font-size = nan"] {
             try invalid.write(to: url, atomically: true, encoding: .utf8)
             spin(0.6)
@@ -271,6 +297,8 @@ struct SettingsReloadTests {
         check(!settings.vimCommandHints && !settings.restoreTerminalHistory && !settings.notifyOnError,
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
+        check(settings.mouseScrollMultiplier == 1 && settings.trackpadScrollMultiplier == 1,
+              "omitted scroll preferences restore compatible defaults on reload")
         check(!settings.gitProxyEnabled && settings.gitProxyAddress == GitProxy.defaultAddress && GitProxy.address == nil,
               "Git proxy resets to off with the default address prefilled")
         check(try SettingsConfigFile.read(at: url) == "", "default reload leaves empty source unchanged")

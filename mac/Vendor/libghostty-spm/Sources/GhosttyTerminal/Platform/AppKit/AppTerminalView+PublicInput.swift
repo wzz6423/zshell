@@ -19,6 +19,11 @@
             surface?.sendText(text)
         }
 
+        /// Forward scroll deltas while preserving their precision and momentum.
+        public func sendMouseScroll(x: Double, y: Double, modifiers: TerminalScrollModifiers) {
+            surface?.sendMouseScroll(x: x, y: y, mods: modifiers.rawValue)
+        }
+
         /// Invoke a named Ghostty binding action (e.g. "copy_to_clipboard",
         /// "clear_screen"). Returns true when the action dispatched.
         @discardableResult

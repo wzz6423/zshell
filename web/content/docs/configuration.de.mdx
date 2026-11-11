@@ -157,6 +157,12 @@ Bestimmt den Emulator für danach erstellte Terminals. Bestehende Bereiche behal
 
 Umgebungsvariablen und Kompatibilitätszusagen stehen unter [Terminal-Backends](/de/docs/terminal#terminal-backends).
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+Zahl, 0.1–10 — Standard `1` für jedes Gerät
+
+Stellen Sie beide Geschwindigkeiten unter **Einstellungen → Terminal → Scrollen → Mausrad / Trackpad** getrennt ein. Die Anzeige nutzt Prozentwerte: 100% behält die aktuelle Geschwindigkeit bei, 50% halbiert sie und 200% verdoppelt sie. Änderungen gelten sofort für offene Ghostty- und Alacritty-Panels, den Scrollback, Vollbildprogramme und Mausberichte. Trägheitsscrollen nutzt den Trackpad-Wert; horizontales Scrollen bleibt horizontal. Mäuse mit präzisen Scroll-Deltas nutzen ebenfalls den Trackpad-Wert. Fehlende oder ungültige Werte werden auf `1` zurückgesetzt. Import, Export und Zurücksetzen der Einstellungen berücksichtigen beide Werte.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 Boolescher Wert – Standard: `false`
@@ -254,6 +260,8 @@ terminal.font-fallback-family = "PingFang SC"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

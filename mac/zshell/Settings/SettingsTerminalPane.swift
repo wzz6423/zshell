@@ -62,6 +62,24 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         onChange: { AppSettings.shared.quickTerminalSize = $0 }
     )
 
+    private let mouseScrollRow = SettingsSliderRow(
+        title: String(localized: "Mouse wheel"),
+        range: AppSettings.terminalScrollMultiplierRange,
+        format: .percent,
+        step: 0.1,
+        showsStepper: true,
+        onChange: { AppSettings.shared.mouseScrollMultiplier = $0 }
+    )
+
+    private let trackpadScrollRow = SettingsSliderRow(
+        title: String(localized: "Trackpad"),
+        range: AppSettings.terminalScrollMultiplierRange,
+        format: .percent,
+        step: 0.1,
+        showsStepper: true,
+        onChange: { AppSettings.shared.trackpadScrollMultiplier = $0 }
+    )
+
     private let quickTerminalOpacityRow = SettingsSliderRow(
         title: String(localized: "Opacity"),
         range: AppSettings.quickTerminalOpacityRange,
@@ -155,6 +173,11 @@ final class SettingsTerminalPane: SettingsPaneViewController {
             ),
         ]))
 
+        groups.append(SettingsGroup(header: String(localized: "Scrolling"), rows: [
+            mouseScrollRow,
+            trackpadScrollRow,
+        ]))
+
         groups.append(SettingsGroup(header: String(localized: "History"), rows: [
             SettingsRow(title: String(localized: "Record command history"), control: commandHistorySwitch),
             SettingsRow(
@@ -213,6 +236,8 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         preserveSessionsSwitch.isOn = settings.preserveTerminalSessions
         copyOnSelectSwitch.isOn = settings.copyOnSelect
         focusFollowsMouseSwitch.isOn = settings.focusFollowsMouse
+        mouseScrollRow.setValue(settings.mouseScrollMultiplier)
+        trackpadScrollRow.setValue(settings.trackpadScrollMultiplier)
         notifyFinishPopup.select(settings.notifyFinishSeconds)
         notifyOnErrorSwitch.isOn = settings.notifyOnError
         shortcutRecorder.setShortcut(settings.quickTerminalShortcut)

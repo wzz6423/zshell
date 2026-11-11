@@ -124,6 +124,8 @@ final class AppSettings: nonisolated ObservableObject {
     static let fontThickenStrengthRange: ClosedRange<Double> = 0...255
     static let defaultTerminalLineHeight: Double = 1
     static let terminalLineHeightRange: ClosedRange<Double> = 0.75...2
+    static let defaultTerminalScrollMultiplier = TerminalScrollSettings.defaultMultiplier
+    static let terminalScrollMultiplierRange = TerminalScrollSettings.multiplierRange
     static let defaultSidebarFontSize: Double = 14
     static let sidebarFontSizeRange: ClosedRange<Double> = 9...24
     static let defaultInterfaceScale: Double = 1
@@ -269,6 +271,28 @@ final class AppSettings: nonisolated ObservableObject {
     /// Terminal cell height multiplier. One uses each font's native metrics.
     @Published var terminalLineHeight: Double {
         didSet { save() }
+    }
+
+    @Published var mouseScrollMultiplier: Double {
+        didSet {
+            let normalized = TerminalScrollSettings.validMultiplier(mouseScrollMultiplier)
+            if mouseScrollMultiplier != normalized {
+                mouseScrollMultiplier = normalized
+                return
+            }
+            save()
+        }
+    }
+
+    @Published var trackpadScrollMultiplier: Double {
+        didSet {
+            let normalized = TerminalScrollSettings.validMultiplier(trackpadScrollMultiplier)
+            if trackpadScrollMultiplier != normalized {
+                trackpadScrollMultiplier = normalized
+                return
+            }
+            save()
+        }
     }
 
     @Published var cursorShape: TerminalCursorShape {
@@ -551,6 +575,8 @@ final class AppSettings: nonisolated ObservableObject {
         terminalLineHeight = Self.terminalLineHeightRange.contains(lineHeight)
             ? lineHeight
             : Self.defaultTerminalLineHeight
+        mouseScrollMultiplier = TerminalScrollSettings.validMultiplier(toml["terminal.mouse-scroll-multiplier"]?.double)
+        trackpadScrollMultiplier = TerminalScrollSettings.validMultiplier(toml["terminal.trackpad-scroll-multiplier"]?.double)
         cursorShape = TerminalCursorShape(
             rawValue: toml["terminal.cursor-shape"]?.string ?? ""
         ) ?? .bar
@@ -720,6 +746,8 @@ final class AppSettings: nonisolated ObservableObject {
             && !fontThicken
             && fontThickenStrength == Self.defaultFontThickenStrength
             && terminalLineHeight == Self.defaultTerminalLineHeight
+            && mouseScrollMultiplier == Self.defaultTerminalScrollMultiplier
+            && trackpadScrollMultiplier == Self.defaultTerminalScrollMultiplier
             && language == .system
             && theme == .system
             && themeDark == Theme.defaultDarkThemeName
@@ -783,6 +811,8 @@ final class AppSettings: nonisolated ObservableObject {
         cursorShape = .bar
         cursorBlinking = true
         macosOptionAsAlt = false
+        mouseScrollMultiplier = Self.defaultTerminalScrollMultiplier
+        trackpadScrollMultiplier = Self.defaultTerminalScrollMultiplier
         terminalBell = true
         vimCommandHints = true
         shellCompletions = true
@@ -963,6 +993,8 @@ final class AppSettings: nonisolated ObservableObject {
         let lineHeight = toml["terminal.line-height"]?.double ?? Self.defaultTerminalLineHeight
         assign(\.terminalLineHeight, Self.terminalLineHeightRange.contains(lineHeight)
             ? lineHeight : Self.defaultTerminalLineHeight)
+        assign(\.mouseScrollMultiplier, TerminalScrollSettings.validMultiplier(toml["terminal.mouse-scroll-multiplier"]?.double))
+        assign(\.trackpadScrollMultiplier, TerminalScrollSettings.validMultiplier(toml["terminal.trackpad-scroll-multiplier"]?.double))
         let cursorShape = TerminalCursorShape(
             rawValue: toml["terminal.cursor-shape"]?.string ?? ""
         ) ?? .bar
@@ -1161,6 +1193,12 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if terminalLineHeight != Self.defaultTerminalLineHeight {
             lines.append("terminal.line-height = \(TOML.number(terminalLineHeight))")
+        }
+        if mouseScrollMultiplier != Self.defaultTerminalScrollMultiplier {
+            lines.append("terminal.mouse-scroll-multiplier = \(TOML.number(mouseScrollMultiplier))")
+        }
+        if trackpadScrollMultiplier != Self.defaultTerminalScrollMultiplier {
+            lines.append("terminal.trackpad-scroll-multiplier = \(TOML.number(trackpadScrollMultiplier))")
         }
         if cursorShape != .bar {
             lines.append("terminal.cursor-shape = \(TOML.quote(cursorShape.rawValue))")

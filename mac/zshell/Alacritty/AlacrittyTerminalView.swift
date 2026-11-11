@@ -84,9 +84,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     private var cursorVisible = true
     private let progressBar = ZshellTerminalProgressBarView(frame: .zero)
 
-    /// Fractional scroll accumulator, so a trackpad's sub-line deltas add up
-    /// to a row instead of being discarded.
-    private var scrollAccumulator: CGFloat = 0
+    private var wheelScrollX = TerminalScrollAccumulator()
+    private var wheelScrollY = TerminalScrollAccumulator()
+    private var trackpadScrollX = TerminalScrollAccumulator()
+    private var trackpadScrollY = TerminalScrollAccumulator()
     private var selectionAnchor: (line: Int, column: Int)?
     private var selectionWasDragged = false
     private var supportsInputSelection = false
@@ -1953,27 +1954,40 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     override func scrollWheel(with event: NSEvent) {
         guard let handle else { return }
-        // Line-mode events already count rows; pixel-mode ones need the cell
-        // height applied before they mean anything.
-        let delta = event.hasPreciseScrollingDeltas
-            ? event.scrollingDeltaY / metrics.cellHeight
-            : event.scrollingDeltaY
-        scrollAccumulator += delta
-        let lines = Int(scrollAccumulator)
-        guard lines != 0 else { return }
-        scrollAccumulator -= CGFloat(lines)
-
         let mode = terminalMode
+        let applicationScroll = mode.contains(.mouseReporting)
+            || (mode.contains(.alternateScreen) && mode.contains(.alternateScroll))
+        let limit = applicationScroll
+            ? TerminalScrollSettings.maximumApplicationLines
+            : TerminalScrollSettings.maximumScrollbackLines
+        let precise = event.hasPreciseScrollingDeltas
+        let settings = AppSettings.shared
+        let multiplier = precise ? settings.trackpadScrollMultiplier : settings.mouseScrollMultiplier
+        let deltaY = precise ? event.scrollingDeltaY / metrics.cellHeight : event.scrollingDeltaY
+        let deltaX = precise ? event.scrollingDeltaX / metrics.cellWidth : event.scrollingDeltaX
+        let lines: Int
+        let columns: Int
+        if precise {
+            lines = trackpadScrollY.consume(deltaY, multiplier: multiplier, limit: limit)
+            columns = trackpadScrollX.consume(deltaX, multiplier: multiplier, limit: limit)
+        } else {
+            lines = wheelScrollY.consume(deltaY, multiplier: multiplier, limit: limit)
+            columns = wheelScrollX.consume(deltaX, multiplier: multiplier, limit: limit)
+        }
+
         if mode.contains(.mouseReporting) {
-            let code = lines > 0 ? 64 : 65
-            for _ in 0..<min(abs(lines), 50) {
-                sendMouse(code: code, event: event, released: false)
+            for _ in 0..<abs(lines) {
+                sendMouse(code: lines > 0 ? 64 : 65, event: event, released: false)
+            }
+            for _ in 0..<abs(columns) {
+                sendMouse(code: columns > 0 ? 66 : 67, event: event, released: false)
             }
             return
         }
+        guard lines != 0 else { return }
         if mode.contains(.alternateScreen), mode.contains(.alternateScroll) {
             let sequence = AlacrittyKeyMap.cursor(up: lines > 0, mode: mode)
-            for _ in 0..<min(abs(lines), 50) {
+            for _ in 0..<abs(lines) {
                 writeControl(sequence)
             }
             return
