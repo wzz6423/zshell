@@ -104,7 +104,7 @@ Thiếu danh tính được xác minh, thư mục gốc hoặc tệp Pi sẽ m�
 
 ## Tìm và tiếp tục hội thoại đã lưu [#saved-conversation-history]
 
-Mở **Tác tử → Lịch sử hội thoại của tác nhân**, nhấn đồng hồ ở đầu thanh bên dự án. Tìm trên các dự án theo tiêu đề, nhà cung cấp, dự án, ID hội thoại, thư mục làm việc hoặc cấu hình. Zshell giữ 200 hội thoại cục bộ đã xác minh gần nhất sau khi tác nhân và ngăn đóng, cũng như sau khi ứng dụng khởi động lại. **Gần đây** hiển thị 20 kết quả chưa lưu trữ; **Tất cả** bao gồm mục đã lưu trữ; **Đã lưu trữ** chỉ hiển thị các mục đó.
+Mở **Terminal → Tác tử → Lịch sử hội thoại của tác nhân**, nhấn đồng hồ ở đầu thanh bên dự án. Tìm trên các dự án theo tiêu đề, nhà cung cấp, dự án, ID hội thoại, thư mục làm việc hoặc cấu hình. Zshell giữ 200 hội thoại cục bộ đã xác minh gần nhất sau khi tác nhân và ngăn đóng, cũng như sau khi ứng dụng khởi động lại. **Gần đây** hiển thị 20 kết quả chưa lưu trữ; **Tất cả** bao gồm mục đã lưu trữ; **Đã lưu trữ** chỉ hiển thị các mục đó.
 
 Chọn **Hiện hội thoại** nếu đang mở hoặc **Tiếp tục hội thoại** nếu đã lưu. Zshell dùng lại ngăn đang mở, kết nối lại PTY còn hoạt động hoặc tiếp tục đúng hội thoại của nhà cung cấp bằng thư mục và cấu hình ban đầu. Tiếp tục thủ công cần bật tích hợp AI ngay cả khi tắt khôi phục tự động. Thư mục bị thiếu hoặc tệp Pi bị thiếu hay không khớp sẽ báo lỗi trước khi tạo ngăn.
 
@@ -136,4 +136,4 @@ zshell +events --event command.task.finished --once --timeout 30000
 
 ## Phân nhánh hội thoại [#fork-a-conversation]
 
-Trong **Agents → Agent Conversation History**, chọn hội thoại rồi **Phân nhánh hội thoại trong ngăn mới** từ menu ngữ cảnh hoặc nút phân nhánh. Chức năng gốc của nhà cung cấp giữ ngữ cảnh trong hội thoại độc lập; ngăn và hội thoại nguồn không thay đổi. Codex, Claude Code, OpenCode và Pi cần CLI hỗ trợ phân nhánh; Pi cũng cần tệp phiên đã lưu. Cập nhật máy chủ Zshell cho hội thoại từ xa. Nếu thiếu CLI, đăng nhập hoặc hook, kiểm tra đầu ra của ngăn mới trước khi tiếp tục. Trong ngăn dùng `zshell +agent fork --id UUID [--focus]`; từ terminal bên ngoài thêm `--project UUID`.
+Trong **Terminal → Tác tử → Lịch sử hội thoại của tác nhân**, chọn hội thoại rồi **Phân nhánh hội thoại trong ngăn mới** từ menu ngữ cảnh hoặc nút phân nhánh. Chức năng gốc của nhà cung cấp giữ ngữ cảnh trong hội thoại độc lập; ngăn và hội thoại nguồn không thay đổi. Codex, Claude Code, OpenCode và Pi cần CLI hỗ trợ phân nhánh; Pi cũng cần tệp phiên đã lưu. Cập nhật máy chủ Zshell cho hội thoại từ xa. Nếu thiếu CLI, đăng nhập hoặc hook, kiểm tra đầu ra của ngăn mới trước khi tiếp tục. Trong ngăn dùng `zshell +agent fork --id UUID [--focus]`; từ terminal bên ngoài thêm `--project UUID`.

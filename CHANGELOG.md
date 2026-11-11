@@ -30,6 +30,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Changed
 
+- Group project and tab commands under Window, browser tools under View, and
+  agent and notification tools under Terminal to keep the menu bar compact.
 - Give settings categories and controls distinct colored icons and a clearer
   sidebar selection that follows the window's focus.
 - Refresh local project files in the background and reduce Git panel and review
