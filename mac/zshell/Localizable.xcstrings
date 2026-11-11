@@ -157834,103 +157834,103 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请输入绝对路径或 ~/folder。路径有效前，新会话使用当前目录。"
+            "value": "请输入绝对路径或 ~/folder。显式目录、项目固定目录和组目录仍然优先。其余新会话使用可用的当前目录，否则使用主目录。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請輸入絕對路徑或 ~/folder。路徑有效前，新工作階段使用目前目錄。"
+            "value": "請輸入絕對路徑或 ~/folder。指定目錄、專案固定目錄和群組目錄仍然優先。其餘新工作階段使用可用的目前目錄，否則使用個人目錄。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "絶対パスまたは ~/folder を入力してください。有効になるまで新規セッションは現在のディレクトリを使います。"
+            "value": "絶対パスまたは ~/folder を入力してください。指定したディレクトリ、プロジェクトの固定ディレクトリ、グループのディレクトリが引き続き優先されます。それ以外の新規セッションは現在のディレクトリが利用可能なら使用し、利用できない場合はホームディレクトリを使用します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "절대 경로나 ~/folder를 입력하세요. 경로가 유효해질 때까지 새 세션은 현재 디렉터리를 사용합니다."
+            "value": "절대 경로나 ~/folder를 입력하세요. 명시한 디렉터리, 프로젝트 고정 디렉터리, 그룹 디렉터리가 계속 우선합니다. 그 외 새 세션은 현재 디렉터리를 사용할 수 있으면 사용하고, 그렇지 않으면 홈 디렉터리를 사용합니다."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Saisissez un chemin absolu ou ~/folder. Les nouvelles sessions utilisent le répertoire actuel tant que ce chemin n’est pas valide."
+            "value": "Saisissez un chemin absolu ou ~/folder. Les répertoires explicites, fixés au projet et des groupes restent prioritaires. Sinon, les nouvelles sessions utilisent le répertoire actuel s’il est disponible, ou votre dossier personnel."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Geben Sie einen absoluten Pfad oder ~/folder ein. Neue Sitzungen verwenden das aktuelle Verzeichnis, bis der Pfad gültig ist."
+            "value": "Geben Sie einen absoluten Pfad oder ~/folder ein. Explizite, festgelegte Projekt- und Gruppenverzeichnisse haben weiterhin Vorrang. Andernfalls verwenden neue Sitzungen das aktuelle Verzeichnis, sofern verfügbar, oder Ihren Benutzerordner."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Introduce una ruta absoluta o ~/folder. Las nuevas sesiones usan el directorio actual hasta que la ruta sea válida."
+            "value": "Introduce una ruta absoluta o ~/folder. Los directorios explícitos, fijados al proyecto y de grupos siguen teniendo prioridad. En los demás casos, las nuevas sesiones usan el directorio actual si está disponible, o tu carpeta personal."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informe um caminho absoluto ou ~/folder. Novas sessões usam o diretório atual até que o caminho seja válido."
+            "value": "Informe um caminho absoluto ou ~/folder. Diretórios explícitos, fixados ao projeto e de grupos continuam tendo prioridade. Nos demais casos, novas sessões usam o diretório atual se estiver disponível, ou sua pasta pessoal."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Inserisci un percorso assoluto o ~/folder. Le nuove sessioni usano la directory corrente finché il percorso non è valido."
+            "value": "Inserisci un percorso assoluto o ~/folder. Le directory esplicite, fissate al progetto e dei gruppi mantengono la precedenza. Altrimenti, le nuove sessioni usano la directory corrente se disponibile, oppure la cartella personale."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Voer een absoluut pad of ~/folder in. Nieuwe sessies gebruiken de huidige map totdat het pad geldig is."
+            "value": "Voer een absoluut pad of ~/folder in. Expliciete, vastgezette projectmappen en groepsmappen blijven voorrang hebben. Anders gebruiken nieuwe sessies de huidige map als deze beschikbaar is, of uw thuismap."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Укажите абсолютный путь или ~/folder. Новые сеансы используют текущий каталог, пока путь не станет допустимым."
+            "value": "Укажите абсолютный путь или ~/folder. Явно заданные, закреплённые каталоги проекта и каталоги групп по-прежнему имеют приоритет. В остальных случаях новые сеансы используют текущий каталог, если он доступен, или домашний каталог."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "أدخل مسارًا مطلقًا أو ~/folder. تستخدم الجلسات الجديدة المجلد الحالي حتى يصبح المسار صالحًا."
+            "value": "أدخل مسارًا مطلقًا أو ~/folder. تظل الأولوية للمجلدات المحددة صراحةً ومجلدات المشاريع المثبتة ومجلدات المجموعات. بخلاف ذلك، تستخدم الجلسات الجديدة المجلد الحالي إذا كان متاحًا، أو مجلدك الرئيسي."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "กรอกพาธสัมบูรณ์หรือ ~/folder เซสชันใหม่ใช้ไดเรกทอรีปัจจุบันจนกว่าพาธจะถูกต้อง"
+            "value": "กรอกพาธสัมบูรณ์หรือ ~/folder ไดเรกทอรีที่ระบุ โฟลเดอร์โปรเจ็กต์ที่ตรึง และไดเรกทอรีของกลุ่มยังคงมีความสำคัญก่อน ในกรณีอื่น เซสชันใหม่ใช้ไดเรกทอรีปัจจุบันหากพร้อมใช้งาน มิฉะนั้นใช้โฟลเดอร์บ้าน"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Masukkan jalur absolut atau ~/folder. Sesi baru memakai direktori saat ini sampai jalur valid."
+            "value": "Masukkan jalur absolut atau ~/folder. Direktori eksplisit, direktori proyek yang disematkan, dan direktori grup tetap diprioritaskan. Jika tidak, sesi baru memakai direktori saat ini bila tersedia, atau direktori home Anda."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nhập đường dẫn tuyệt đối hoặc ~/folder. Phiên mới dùng thư mục hiện tại cho đến khi đường dẫn hợp lệ."
+            "value": "Nhập đường dẫn tuyệt đối hoặc ~/folder. Thư mục được chỉ định rõ, thư mục ghim của dự án và thư mục nhóm vẫn được ưu tiên. Trong các trường hợp khác, phiên mới dùng thư mục hiện tại nếu có thể truy cập, hoặc thư mục nhà của bạn."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mutlak yol veya ~/folder girin. Yol geçerli olana kadar yeni oturumlar geçerli dizini kullanır."
+            "value": "Mutlak yol veya ~/folder girin. Açıkça belirtilen, projeye sabitlenmiş ve grup dizinleri önceliğini korur. Diğer durumlarda yeni oturumlar varsa mevcut dizini, yoksa ev dizininizi kullanır."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Enter an absolute path or ~/folder. New sessions use the current directory until this path is valid."
+            "value": "Enter an absolute path or ~/folder. Explicit, pinned, and group directories still take precedence. Otherwise, new sessions use the current directory if available, or your home directory."
           }
         }
       }
@@ -157940,103 +157940,103 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此目录不存在。目录可用前，新会话使用当前目录。"
+            "value": "此目录不存在。显式目录、项目固定目录和组目录仍然优先。其余新会话使用可用的当前目录，否则使用主目录。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "此目錄不存在。目錄可用前，新工作階段使用目前目錄。"
+            "value": "此目錄不存在。指定目錄、專案固定目錄和群組目錄仍然優先。其餘新工作階段使用可用的目前目錄，否則使用個人目錄。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このディレクトリは存在しません。利用可能になるまで新規セッションは現在のディレクトリを使います。"
+            "value": "このディレクトリは存在しません。指定したディレクトリ、プロジェクトの固定ディレクトリ、グループのディレクトリが引き続き優先されます。それ以外の新規セッションは現在のディレクトリが利用可能なら使用し、利用できない場合はホームディレクトリを使用します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 디렉터리가 없습니다. 사용할 수 있을 때까지 새 세션은 현재 디렉터리를 사용합니다."
+            "value": "이 디렉터리가 없습니다. 명시한 디렉터리, 프로젝트 고정 디렉터리, 그룹 디렉터리가 계속 우선합니다. 그 외 새 세션은 현재 디렉터리를 사용할 수 있으면 사용하고, 그렇지 않으면 홈 디렉터리를 사용합니다."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ce répertoire n’existe pas. Les nouvelles sessions utilisent le répertoire actuel jusqu’à ce qu’il soit disponible."
+            "value": "Ce répertoire n’existe pas. Les répertoires explicites, fixés au projet et des groupes restent prioritaires. Sinon, les nouvelles sessions utilisent le répertoire actuel s’il est disponible, ou votre dossier personnel."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dieses Verzeichnis existiert nicht. Neue Sitzungen verwenden das aktuelle Verzeichnis, bis es verfügbar ist."
+            "value": "Dieses Verzeichnis existiert nicht. Explizite, festgelegte Projekt- und Gruppenverzeichnisse haben weiterhin Vorrang. Andernfalls verwenden neue Sitzungen das aktuelle Verzeichnis, sofern verfügbar, oder Ihren Benutzerordner."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Este directorio no existe. Las nuevas sesiones usan el directorio actual hasta que esté disponible."
+            "value": "Este directorio no existe. Los directorios explícitos, fijados al proyecto y de grupos siguen teniendo prioridad. En los demás casos, las nuevas sesiones usan el directorio actual si está disponible, o tu carpeta personal."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Este diretório não existe. Novas sessões usam o diretório atual até que esteja disponível."
+            "value": "Este diretório não existe. Diretórios explícitos, fixados ao projeto e de grupos continuam tendo prioridade. Nos demais casos, novas sessões usam o diretório atual se estiver disponível, ou sua pasta pessoal."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Questa directory non esiste. Le nuove sessioni usano la directory corrente finché non è disponibile."
+            "value": "Questa directory non esiste. Le directory esplicite, fissate al progetto e dei gruppi mantengono la precedenza. Altrimenti, le nuove sessioni usano la directory corrente se disponibile, oppure la cartella personale."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deze map bestaat niet. Nieuwe sessies gebruiken de huidige map totdat deze beschikbaar is."
+            "value": "Deze map bestaat niet. Expliciete, vastgezette projectmappen en groepsmappen blijven voorrang hebben. Anders gebruiken nieuwe sessies de huidige map als deze beschikbaar is, of uw thuismap."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Этот каталог не существует. Новые сеансы используют текущий каталог, пока он не станет доступным."
+            "value": "Этот каталог не существует. Явно заданные, закреплённые каталоги проекта и каталоги групп по-прежнему имеют приоритет. В остальных случаях новые сеансы используют текущий каталог, если он доступен, или домашний каталог."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "هذا المجلد غير موجود. تستخدم الجلسات الجديدة المجلد الحالي حتى يصبح متاحًا."
+            "value": "هذا المجلد غير موجود. تظل الأولوية للمجلدات المحددة صراحةً ومجلدات المشاريع المثبتة ومجلدات المجموعات. بخلاف ذلك، تستخدم الجلسات الجديدة المجلد الحالي إذا كان متاحًا، أو مجلدك الرئيسي."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "ไม่มีไดเรกทอรีนี้ เซสชันใหม่ใช้ไดเรกทอรีปัจจุบันจนกว่าจะพร้อมใช้งาน"
+            "value": "ไม่มีไดเรกทอรีนี้ ไดเรกทอรีที่ระบุ โฟลเดอร์โปรเจ็กต์ที่ตรึง และไดเรกทอรีของกลุ่มยังคงมีความสำคัญก่อน ในกรณีอื่น เซสชันใหม่ใช้ไดเรกทอรีปัจจุบันหากพร้อมใช้งาน มิฉะนั้นใช้โฟลเดอร์บ้าน"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Direktori ini tidak ada. Sesi baru memakai direktori saat ini sampai tersedia."
+            "value": "Direktori ini tidak ada. Direktori eksplisit, direktori proyek yang disematkan, dan direktori grup tetap diprioritaskan. Jika tidak, sesi baru memakai direktori saat ini bila tersedia, atau direktori home Anda."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Thư mục này không tồn tại. Phiên mới dùng thư mục hiện tại cho đến khi có thể truy cập."
+            "value": "Thư mục này không tồn tại. Thư mục được chỉ định rõ, thư mục ghim của dự án và thư mục nhóm vẫn được ưu tiên. Trong các trường hợp khác, phiên mới dùng thư mục hiện tại nếu có thể truy cập, hoặc thư mục nhà của bạn."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bu dizin mevcut değil. Kullanılabilir olana kadar yeni oturumlar geçerli dizini kullanır."
+            "value": "Bu dizin mevcut değil. Açıkça belirtilen, projeye sabitlenmiş ve grup dizinleri önceliğini korur. Diğer durumlarda yeni oturumlar varsa mevcut dizini, yoksa ev dizininizi kullanır."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This directory does not exist. New sessions use the current directory until it is available."
+            "value": "This directory does not exist. Explicit, pinned, and group directories still take precedence. Otherwise, new sessions use the current directory if available, or your home directory."
           }
         }
       }
@@ -158046,103 +158046,103 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此路径是文件，不是目录。新会话使用当前目录。"
+            "value": "此路径是文件，不是目录。显式目录、项目固定目录和组目录仍然优先。其余新会话使用可用的当前目录，否则使用主目录。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "此路徑是檔案，不是目錄。新工作階段使用目前目錄。"
+            "value": "此路徑是檔案，不是目錄。指定目錄、專案固定目錄和群組目錄仍然優先。其餘新工作階段使用可用的目前目錄，否則使用個人目錄。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このパスはディレクトリではなくファイルです。新規セッションは現在のディレクトリを使います。"
+            "value": "このパスはディレクトリではなくファイルです。指定したディレクトリ、プロジェクトの固定ディレクトリ、グループのディレクトリが引き続き優先されます。それ以外の新規セッションは現在のディレクトリが利用可能なら使用し、利用できない場合はホームディレクトリを使用します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 경로는 디렉터리가 아닌 파일입니다. 새 세션은 현재 디렉터리를 사용합니다."
+            "value": "이 경로는 디렉터리가 아닌 파일입니다. 명시한 디렉터리, 프로젝트 고정 디렉터리, 그룹 디렉터리가 계속 우선합니다. 그 외 새 세션은 현재 디렉터리를 사용할 수 있으면 사용하고, 그렇지 않으면 홈 디렉터리를 사용합니다."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ce chemin désigne un fichier, pas un répertoire. Les nouvelles sessions utilisent le répertoire actuel."
+            "value": "Ce chemin désigne un fichier, pas un répertoire. Les répertoires explicites, fixés au projet et des groupes restent prioritaires. Sinon, les nouvelles sessions utilisent le répertoire actuel s’il est disponible, ou votre dossier personnel."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dieser Pfad ist eine Datei, kein Verzeichnis. Neue Sitzungen verwenden das aktuelle Verzeichnis."
+            "value": "Dieser Pfad ist eine Datei, kein Verzeichnis. Explizite, festgelegte Projekt- und Gruppenverzeichnisse haben weiterhin Vorrang. Andernfalls verwenden neue Sitzungen das aktuelle Verzeichnis, sofern verfügbar, oder Ihren Benutzerordner."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esta ruta es un archivo, no un directorio. Las nuevas sesiones usan el directorio actual."
+            "value": "Esta ruta es un archivo, no un directorio. Los directorios explícitos, fijados al proyecto y de grupos siguen teniendo prioridad. En los demás casos, las nuevas sesiones usan el directorio actual si está disponible, o tu carpeta personal."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Este caminho é um arquivo, não um diretório. Novas sessões usam o diretório atual."
+            "value": "Este caminho é um arquivo, não um diretório. Diretórios explícitos, fixados ao projeto e de grupos continuam tendo prioridade. Nos demais casos, novas sessões usam o diretório atual se estiver disponível, ou sua pasta pessoal."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Questo percorso è un file, non una directory. Le nuove sessioni usano la directory corrente."
+            "value": "Questo percorso è un file, non una directory. Le directory esplicite, fissate al progetto e dei gruppi mantengono la precedenza. Altrimenti, le nuove sessioni usano la directory corrente se disponibile, oppure la cartella personale."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dit pad is een bestand, geen map. Nieuwe sessies gebruiken de huidige map."
+            "value": "Dit pad is een bestand, geen map. Expliciete, vastgezette projectmappen en groepsmappen blijven voorrang hebben. Anders gebruiken nieuwe sessies de huidige map als deze beschikbaar is, of uw thuismap."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Этот путь указывает на файл, а не каталог. Новые сеансы используют текущий каталог."
+            "value": "Этот путь указывает на файл, а не каталог. Явно заданные, закреплённые каталоги проекта и каталоги групп по-прежнему имеют приоритет. В остальных случаях новые сеансы используют текущий каталог, если он доступен, или домашний каталог."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "هذا المسار ملف وليس مجلدًا. تستخدم الجلسات الجديدة المجلد الحالي."
+            "value": "هذا المسار ملف وليس مجلدًا. تظل الأولوية للمجلدات المحددة صراحةً ومجلدات المشاريع المثبتة ومجلدات المجموعات. بخلاف ذلك، تستخدم الجلسات الجديدة المجلد الحالي إذا كان متاحًا، أو مجلدك الرئيسي."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "พาธนี้เป็นไฟล์ ไม่ใช่ไดเรกทอรี เซสชันใหม่ใช้ไดเรกทอรีปัจจุบัน"
+            "value": "พาธนี้เป็นไฟล์ ไม่ใช่ไดเรกทอรี ไดเรกทอรีที่ระบุ โฟลเดอร์โปรเจ็กต์ที่ตรึง และไดเรกทอรีของกลุ่มยังคงมีความสำคัญก่อน ในกรณีอื่น เซสชันใหม่ใช้ไดเรกทอรีปัจจุบันหากพร้อมใช้งาน มิฉะนั้นใช้โฟลเดอร์บ้าน"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jalur ini adalah berkas, bukan direktori. Sesi baru memakai direktori saat ini."
+            "value": "Jalur ini adalah berkas, bukan direktori. Direktori eksplisit, direktori proyek yang disematkan, dan direktori grup tetap diprioritaskan. Jika tidak, sesi baru memakai direktori saat ini bila tersedia, atau direktori home Anda."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đường dẫn này là tệp, không phải thư mục. Phiên mới dùng thư mục hiện tại."
+            "value": "Đường dẫn này là tệp, không phải thư mục. Thư mục được chỉ định rõ, thư mục ghim của dự án và thư mục nhóm vẫn được ưu tiên. Trong các trường hợp khác, phiên mới dùng thư mục hiện tại nếu có thể truy cập, hoặc thư mục nhà của bạn."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bu yol bir dosyadır, dizin değil. Yeni oturumlar geçerli dizini kullanır."
+            "value": "Bu yol bir dosyadır, dizin değil. Açıkça belirtilen, projeye sabitlenmiş ve grup dizinleri önceliğini korur. Diğer durumlarda yeni oturumlar varsa mevcut dizini, yoksa ev dizininizi kullanır."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This path is a file, not a directory. New sessions use the current directory."
+            "value": "This path is a file, not a directory. Explicit, pinned, and group directories still take precedence. Otherwise, new sessions use the current directory if available, or your home directory."
           }
         }
       }
@@ -158152,103 +158152,103 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell 无法访问此目录。新会话使用当前目录。"
+            "value": "Zshell 无法访问此目录。显式目录、项目固定目录和组目录仍然优先。其余新会话使用可用的当前目录，否则使用主目录。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell 無法存取此目錄。新工作階段使用目前目錄。"
+            "value": "Zshell 無法存取此目錄。指定目錄、專案固定目錄和群組目錄仍然優先。其餘新工作階段使用可用的目前目錄，否則使用個人目錄。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell はこのディレクトリにアクセスできません。新規セッションは現在のディレクトリを使います。"
+            "value": "Zshell はこのディレクトリにアクセスできません。指定したディレクトリ、プロジェクトの固定ディレクトリ、グループのディレクトリが引き続き優先されます。それ以外の新規セッションは現在のディレクトリが利用可能なら使用し、利用できない場合はホームディレクトリを使用します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell이 이 디렉터리에 접근할 수 없습니다. 새 세션은 현재 디렉터리를 사용합니다."
+            "value": "Zshell이 이 디렉터리에 접근할 수 없습니다. 명시한 디렉터리, 프로젝트 고정 디렉터리, 그룹 디렉터리가 계속 우선합니다. 그 외 새 세션은 현재 디렉터리를 사용할 수 있으면 사용하고, 그렇지 않으면 홈 디렉터리를 사용합니다."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell ne peut pas accéder à ce répertoire. Les nouvelles sessions utilisent le répertoire actuel."
+            "value": "Zshell ne peut pas accéder à ce répertoire. Les répertoires explicites, fixés au projet et des groupes restent prioritaires. Sinon, les nouvelles sessions utilisent le répertoire actuel s’il est disponible, ou votre dossier personnel."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell kann auf dieses Verzeichnis nicht zugreifen. Neue Sitzungen verwenden das aktuelle Verzeichnis."
+            "value": "Zshell kann auf dieses Verzeichnis nicht zugreifen. Explizite, festgelegte Projekt- und Gruppenverzeichnisse haben weiterhin Vorrang. Andernfalls verwenden neue Sitzungen das aktuelle Verzeichnis, sofern verfügbar, oder Ihren Benutzerordner."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell no puede acceder a este directorio. Las nuevas sesiones usan el directorio actual."
+            "value": "Zshell no puede acceder a este directorio. Los directorios explícitos, fijados al proyecto y de grupos siguen teniendo prioridad. En los demás casos, las nuevas sesiones usan el directorio actual si está disponible, o tu carpeta personal."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell não pode acessar este diretório. Novas sessões usam o diretório atual."
+            "value": "Zshell não pode acessar este diretório. Diretórios explícitos, fixados ao projeto e de grupos continuam tendo prioridade. Nos demais casos, novas sessões usam o diretório atual se estiver disponível, ou sua pasta pessoal."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell non può accedere a questa directory. Le nuove sessioni usano la directory corrente."
+            "value": "Zshell non può accedere a questa directory. Le directory esplicite, fissate al progetto e dei gruppi mantengono la precedenza. Altrimenti, le nuove sessioni usano la directory corrente se disponibile, oppure la cartella personale."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell heeft geen toegang tot deze map. Nieuwe sessies gebruiken de huidige map."
+            "value": "Zshell heeft geen toegang tot deze map. Expliciete, vastgezette projectmappen en groepsmappen blijven voorrang hebben. Anders gebruiken nieuwe sessies de huidige map als deze beschikbaar is, of uw thuismap."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell не может получить доступ к этому каталогу. Новые сеансы используют текущий каталог."
+            "value": "Zshell не может получить доступ к этому каталогу. Явно заданные, закреплённые каталоги проекта и каталоги групп по-прежнему имеют приоритет. В остальных случаях новые сеансы используют текущий каталог, если он доступен, или домашний каталог."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "لا يستطيع Zshell الوصول إلى هذا المجلد. تستخدم الجلسات الجديدة المجلد الحالي."
+            "value": "لا يستطيع Zshell الوصول إلى هذا المجلد. تظل الأولوية للمجلدات المحددة صراحةً ومجلدات المشاريع المثبتة ومجلدات المجموعات. بخلاف ذلك، تستخدم الجلسات الجديدة المجلد الحالي إذا كان متاحًا، أو مجلدك الرئيسي."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell เข้าถึงไดเรกทอรีนี้ไม่ได้ เซสชันใหม่ใช้ไดเรกทอรีปัจจุบัน"
+            "value": "Zshell เข้าถึงไดเรกทอรีนี้ไม่ได้ ไดเรกทอรีที่ระบุ โฟลเดอร์โปรเจ็กต์ที่ตรึง และไดเรกทอรีของกลุ่มยังคงมีความสำคัญก่อน ในกรณีอื่น เซสชันใหม่ใช้ไดเรกทอรีปัจจุบันหากพร้อมใช้งาน มิฉะนั้นใช้โฟลเดอร์บ้าน"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell tidak dapat mengakses direktori ini. Sesi baru memakai direktori saat ini."
+            "value": "Zshell tidak dapat mengakses direktori ini. Direktori eksplisit, direktori proyek yang disematkan, dan direktori grup tetap diprioritaskan. Jika tidak, sesi baru memakai direktori saat ini bila tersedia, atau direktori home Anda."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell không thể truy cập thư mục này. Phiên mới dùng thư mục hiện tại."
+            "value": "Zshell không thể truy cập thư mục này. Thư mục được chỉ định rõ, thư mục ghim của dự án và thư mục nhóm vẫn được ưu tiên. Trong các trường hợp khác, phiên mới dùng thư mục hiện tại nếu có thể truy cập, hoặc thư mục nhà của bạn."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell bu dizine erişemiyor. Yeni oturumlar geçerli dizini kullanır."
+            "value": "Zshell bu dizine erişemiyor. Açıkça belirtilen, projeye sabitlenmiş ve grup dizinleri önceliğini korur. Diğer durumlarda yeni oturumlar varsa mevcut dizini, yoksa ev dizininizi kullanır."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zshell cannot access this directory. New sessions use the current directory."
+            "value": "Zshell cannot access this directory. Explicit, pinned, and group directories still take precedence. Otherwise, new sessions use the current directory if available, or your home directory."
           }
         }
       }

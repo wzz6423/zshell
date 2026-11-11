@@ -64,6 +64,7 @@ enum SettingsCategory: CaseIterable {
                             "controlsFit": editor.bounds.contains(editor.convert(popup.bounds, from: popup))
                                 && (policy != .custom || editor.bounds.contains(editor.convert(field.bounds, from: field))),
                             "choices": popup.itemTitles,
+                            "detail": labels.last!.stringValue,
                         ])
                     }
                 }
@@ -106,11 +107,16 @@ with tempfile.TemporaryDirectory(prefix="zshell-directory-layout-", dir="/tmp") 
     try:
         samples = json.loads(subprocess.check_output([str(binary)], text=True, timeout=60))
         assert len(samples) == 17 * 4 * 4 * 2, len(samples)
+        catalog = json.loads((sources / "Localizable.xcstrings").read_text())
+        invalid_path_key = "Enter an absolute path or ~/folder. New sessions use the current directory until this path is valid."
         for sample in samples:
             assert sample["labelCount"] == 2 and sample["labelsFit"] and sample["controlsFit"], sample
             assert sample["fieldVisible"] == (sample["policy"] == "custom"), sample
             assert sample["selection"] == ["current", "project", "home", "custom"].index(sample["policy"]), sample
             assert len(sample["choices"]) == 4, sample
+            if sample["policy"] == "custom" and not sample["valid"]:
+                expected = catalog["strings"][invalid_path_key]["localizations"][sample["language"]]["stringUnit"]["value"]
+                assert sample["detail"] == expected, sample
         print(f'DirectorySettingsLayout: {len(samples)} language, width, policy, and validation samples passed')
     finally:
         subprocess.run(["/usr/bin/defaults", "delete", identifier], capture_output=True, timeout=10)

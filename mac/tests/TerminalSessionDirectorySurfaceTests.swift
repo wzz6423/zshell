@@ -361,6 +361,50 @@ struct TerminalSessionDirectorySurfaceTests {
         field.stringValue = custom.path
         editor.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
         pane.view.layoutSubtreeIfNeeded()
+        var workspaceController: ZshellWorkspaceWindowController?
+        if ProcessInfo.processInfo.environment["ZSHELL_DIRECTORY_TEST_WORKSPACE"] == "1" {
+            let controller = ZshellWorkspaceWindowController(number: 1)
+            workspaceController = controller
+            defer {
+                controller.manager.projects.forEach { $0.terminateAll() }
+                controller.window?.contentView = nil
+                controller.window?.orderOut(nil)
+                controller.manager.windowClosed()
+            }
+            for content in controller.manager.projects.flatMap(\.tabs).flatMap(\.allContents) {
+                controller.manager.selectedProject?.closeContent(content, confirmWorktree: false, recordClosedSession: false)
+            }
+            let previewProject = controller.manager.selectedProject!
+            previewProject.customName = "Directory acceptance"
+            let previewSession = previewProject.newSession(directory: current.path)!
+            let previewTabID = previewProject.selectedTabID
+            let explicitPreview = previewProject.newSession(directory: explicit.path, tabTitle: "Explicit directory")!
+            try verify(explicitPreview, directory: explicit.path, root: root, label: "workspace explicit directory")
+            previewProject.selectedTabID = previewTabID
+            let pinnedPreview = controller.manager.newProject()
+            pinnedPreview.customName = "Pinned directory"
+            pinnedPreview.customDirectory = pinned.path
+            let pinnedSession = pinnedPreview.newSession()!
+            try verify(pinnedSession, directory: pinned.path, root: root, label: "workspace pinned directory")
+            let previewGroup = ProjectGroup(name: "Directory group", kind: .folder(path: grouped.path))
+            ProjectGroupStore.shared.add(previewGroup)
+            defer { ProjectGroupStore.shared.remove(previewGroup) }
+            let groupedPreview = controller.manager.newProject(in: previewGroup)
+            groupedPreview.customName = "Group directory"
+            try verify(groupedPreview.selectedSession!, directory: grouped.path, root: root, label: "workspace group directory")
+            controller.manager.selectedProjectID = previewProject.id
+            previewProject.selectedTabID = previewTabID
+            previewSession.sendCommand("pwd -P")
+            previewSession.sendEnter()
+            controller.window?.title = "Session Directory Workspace · " + backend.rawValue
+            if visible {
+                NSApp.setActivationPolicy(.regular)
+                controller.window?.makeKeyAndOrderFront(nil)
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            print("DIRECTORY_WORKSPACE_READY home=\(home.path) current=\(current.path) custom=\(custom.path) explicit=\(explicit.path) pinned=\(pinned.path) group=\(grouped.path)")
+            pump(min(max(Double(ProcessInfo.processInfo.environment["ZSHELL_DIRECTORY_TEST_HOLD_SECONDS"] ?? "10") ?? 10, 0), 120))
+        }
         if visible {
             uiWindow.makeKeyAndOrderFront(nil)
             NSApp.setActivationPolicy(.regular)
@@ -378,6 +422,7 @@ struct TerminalSessionDirectorySurfaceTests {
             try check(QuickTerminalOffscreen.isSafe(), "all verification windows stay offscreen without focus capture")
         }
         try check(anchor.shellPid == originalPID && !anchor.hasExited, "all new-session and settings operations retain the source shell")
+        withExtendedLifetime(workspaceController) {}
         print("\(backend.rawValue): \(checks) directory surface checks passed")
     }
 }

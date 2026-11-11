@@ -91,6 +91,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-directory-surfaces-", dir="/tmp"
                 "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null",
                 "ZSHELL_DIRECTORY_TEST_VISIBLE": os.environ.get("ZSHELL_DIRECTORY_TEST_VISIBLE", "0"),
                 "ZSHELL_DIRECTORY_TEST_HOLD_SECONDS": os.environ.get("ZSHELL_DIRECTORY_TEST_HOLD_SECONDS", "10"),
+                "ZSHELL_DIRECTORY_TEST_WORKSPACE": os.environ.get("ZSHELL_DIRECTORY_TEST_WORKSPACE", "0"),
             })
             print(f"RUN directory surfaces {backend}", flush=True)
             with subprocess.Popen([str(binary), backend, str(home), str(results)],
