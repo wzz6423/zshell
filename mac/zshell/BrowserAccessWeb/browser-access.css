@@ -1,0 +1,28 @@
+:root { font-family: system-ui, sans-serif; color: #e5e7eb; background: #111318; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; height: 100dvh; display: flex; flex-direction: column; }
+[hidden] { display: none !important; }
+header { min-height: 52px; padding: 10px 18px; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid #30343c; }
+header strong { font-size: 17px; letter-spacing: -.3px; }
+#status { color: #aab0bb; font-size: 13px; margin-inline-end: auto; }
+button, input, select { font: inherit; color: inherit; background: #20242c; border: 1px solid #414752; border-radius: 6px; padding: 7px 10px; }
+button { cursor: pointer; font-size: 13px; }
+button:disabled { opacity: .55; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #96b5ff; outline-offset: 2px; }
+a { color: #b3c7ff; overflow-wrap: anywhere; }
+#pairing { width: min(640px, 100%); margin: auto; padding: 30px; line-height: 1.6; }
+h1 { font-size: 24px; margin: 0 0 22px; }
+form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+form label { flex-basis: 100%; color: #b4bac6; }
+form input { flex: 1; min-width: 150px; }
+.code { font-family: ui-monospace, monospace; font-size: 28px; letter-spacing: 3px; }
+.fingerprint { font: 12px/1.8 ui-monospace, monospace; overflow-wrap: anywhere; color: #b4bac6; }
+main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+nav { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 9px 18px; border-bottom: 1px solid #30343c; font-size: 13px; }
+select { flex: 1; min-width: 130px; max-width: 600px; text-overflow: ellipsis; }
+.resize-control { display: flex; align-items: center; gap: 7px; color: #b4bac6; }
+#empty { padding: 18px; margin: 0; color: #b4bac6; }
+#terminal-scroll { flex: 1; min-height: 0; overflow: auto; padding: 10px; }
+#terminal { min-height: 100%; direction: ltr; }
+.xterm { padding: 0; }
+@media (max-width: 560px) { header { gap: 8px; padding-inline: 10px; flex-wrap: wrap; } nav { padding-inline: 10px; } #pairing { padding: 22px; } }

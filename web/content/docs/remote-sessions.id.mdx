@@ -60,3 +60,15 @@ Aktivitas, kemajuan, permintaan persetujuan dan penyelesaian Agent jarak jauh me
 ## Batas [#limits]
 
 Persistensi hanya selama daemon hidup, bukan melewati reboot host, crash, atau restart daemon. Sesi hilang dilaporkan dan tidak diganti diam-diam. Batasnya 128 sesi, snapshot 16 MiB, dan antrean langsung 1 MiB per klien. Klien lambat tidak memblokir yang lain; riwayat tetap di memori host. Lihat [referensi server](https://github.com/wzz6423/zshell/tree/main/remote) untuk layanan dan CLI.
+
+## Akses browser [#browser-access]
+
+Gunakan **Pengaturan → Akses browser** untuk mengoperasikan panel lokal Mac ini. Awalnya dinonaktifkan. Aktifkan, buka panel baru, lalu gunakan halaman lokal atau pilih secara eksplisit antarmuka IPv4 privat LAN/Tailscale serta port HTTPS. Panel yang sudah ada mempertahankan prosesnya. Halaman hanya menghubungkan panel di Mac; tidak membuat shell atau menghubungkan host jauh.
+
+Pada perangkat lain, ekspor sertifikat TLS, bandingkan sidik jarinya dengan Pengaturan, lalu percayai sebelum membuka alamat HTTPS. Masukkan nama dan pilih **Minta pemasangan**. Dalam dua menit, cocokkan kode, alamat, dan asal pada Mac lalu pilih **Setujui**. Izin berlaku hingga 90 hari untuk alamat dan protokol persis itu. **Cabut izin** atau **Cabut izin semua klien** memutus koneksi dan menolak kredensial segera.
+
+Pilih sesi untuk melihat layar terkini dan keluaran langsung dengan warna ANSI serta Unicode, lalu mengetik ke proses yang sama. Mac dan browser berbagi masukan. Mac mengatur ukuran kecuali **Sesuaikan ukuran terminal dengan browser** dicentang. Masukan saat terputus dibuang; koneksi ulang kembali ke sesi hidup yang sama. Memuat ulang menyimpan kredensial tab itu; menutup tab atau **Lupakan browser ini** menghapusnya. Alamat berubah memerlukan pemasangan baru.
+
+Menonaktifkan akses, menidurkan Mac, atau keluar dari Zshell menghentikan layanan. Menutup panel mengakhiri prosesnya. Menyimpan shell saat keluar tetap mengikuti `terminal.preserve-sessions`. Buka Zshell lagi untuk mengakses panel yang masih aktif. Reboot host atau penghentian daemon mengakhiri shell. Antrean keluaran dibatasi; klien lambat terputus tanpa memblokir Mac. Halaman dibundel dengan aplikasi dan tidak memakai CDN.
+
+Jika sesi dari versi Zshell lama masih berjalan, akses browser meminta keluar dan mengakhiri semua sesi lalu membuka Zshell lagi. Tugas tetap berjalan sampai Anda memilihnya.

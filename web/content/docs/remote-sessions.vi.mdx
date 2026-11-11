@@ -60,3 +60,15 @@ Hoạt động, tiến độ, yêu cầu phê duyệt và hoàn tất Agent từ
 ## Giới hạn [#limits]
 
 Phiên chỉ tồn tại khi daemon còn sống, không qua lần khởi động lại máy, sự cố hay khởi động lại daemon. Phiên bị mất được báo lỗi, không âm thầm thay bằng shell mới. Giới hạn: 128 phiên, ảnh trạng thái 16 MiB và hàng đợi trực tiếp 1 MiB mỗi máy khách. Máy chậm không chặn máy khác; lịch sử ở trong bộ nhớ máy chủ. Xem [tài liệu máy chủ](https://github.com/wzz6423/zshell/tree/main/remote) về dịch vụ và CLI.
+
+## Truy cập qua trình duyệt [#browser-access]
+
+Dùng **Cài đặt → Truy cập qua trình duyệt** để điều khiển các khung cục bộ trên máy Mac này. Mặc định tắt. Sau khi bật, mở khung mới và dùng trang cục bộ hoặc chọn rõ giao diện IPv4 mạng riêng LAN/Tailscale cùng cổng HTTPS. Các khung cũ giữ tiến trình. Trang chỉ kết nối khung trên Mac, không tạo shell hay kết nối máy chủ từ xa.
+
+Với thiết bị khác, xuất chứng chỉ TLS, so dấu vân tay với Cài đặt rồi tin cậy trước khi mở địa chỉ HTTPS. Nhập tên và chọn **Yêu cầu ghép đôi**. Trong hai phút, so mã, địa chỉ và nguồn trên Mac rồi chọn **Chấp thuận**. Quyền kéo dài tối đa 90 ngày cho đúng địa chỉ và giao thức đó. **Thu hồi quyền** hoặc **Thu hồi quyền mọi máy khách** ngắt kết nối và từ chối thông tin xác thực ngay.
+
+Chọn phiên để xem màn hình hiện tại và đầu ra trực tiếp có màu ANSI, Unicode, rồi nhập vào cùng tiến trình. Mac và trình duyệt chia sẻ đầu vào. Mac kiểm soát kích thước trừ khi chọn **Đổi kích thước terminal theo trình duyệt**. Đầu vào khi mất kết nối bị bỏ; kết nối lại trở về cùng phiên đang sống. Tải lại giữ thông tin của thẻ đó; đóng thẻ hoặc **Quên trình duyệt này** sẽ xóa. Đổi địa chỉ cần ghép đôi lại.
+
+Tắt truy cập, cho Mac ngủ hoặc thoát Zshell dừng dịch vụ. Đóng khung kết thúc tiến trình. Giữ shell khi thoát vẫn do `terminal.preserve-sessions` quyết định. Mở Zshell lại để truy cập khung còn sống. Khởi động lại máy chủ hoặc dừng daemon kết thúc shell. Hàng đợi đầu ra có giới hạn; máy khách chậm bị ngắt mà không chặn Mac. Trang được đóng gói cùng ứng dụng và không dùng CDN.
+
+Nếu các phiên được giữ từ Zshell cũ còn chạy, truy cập qua trình duyệt sẽ yêu cầu thoát và kết thúc mọi phiên rồi mở lại Zshell. Công việc được giữ đến khi bạn chọn.

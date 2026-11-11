@@ -18,7 +18,7 @@ LANGUAGES = (
     "it", "nl", "ru", "ar", "th", "id", "vi", "tr",
 )
 CATEGORIES = (
-    "general", "shortcuts", "appearance", "terminal", "editor", "browser", "automation",
+    "general", "shortcuts", "appearance", "terminal", "editor", "browser", "browserAccess", "automation",
     "recommendations", "updates",
 )
 CONFIGURATION_ITEMS = {
@@ -26,6 +26,9 @@ CONFIGURATION_ITEMS = {
     "keep-awake": ("general", "Keep computer awake", ""),
     "browser.content-blocking": ("browser", "Block ads and trackers", ""),
     "browser.filter-lists": ("browser", "Filter Lists", "Filter Lists"),
+    "browser-access.enabled": ("browserAccess", "Enable browser access", ""),
+    "browser-access.interface": ("browserAccess", "Listen on", "Private Network"),
+    "browser-access.port": ("browserAccess", "HTTPS port", "Private Network"),
     "toolbar.visibility": ("general", "Toolbar", ""),
     "git.proxy-enabled": ("general", "Use proxy for Git", "Git"),
     "git.proxy": ("general", "Proxy address", "Git"),
@@ -122,6 +125,7 @@ import Combine
     var showPaneFocusRing = true
     var gitProxyEnabled = true
     var browserContentBlocking = true
+    var browserAccessEnabled = true
     var terminalBackgroundOpacity = 0.85
 }
 
@@ -172,6 +176,7 @@ struct SearchHarness {
             settings.showPaneFocusRing = !disabled.contains("showPaneFocusRing")
             settings.gitProxyEnabled = !disabled.contains("gitProxyEnabled")
             settings.browserContentBlocking = !disabled.contains("browserContentBlocking")
+            settings.browserAccessEnabled = !disabled.contains("browserAccessEnabled")
             settings.terminalBackgroundOpacity = sample.backgroundOpacity ?? 0.85
             let updater = Updater.shared
             updater.automaticallyChecksForUpdates = !disabled.contains("automaticallyChecksForUpdates")
@@ -249,7 +254,7 @@ class SettingsSearchTests(unittest.TestCase):
             if not (resources / f"{language}.lproj").is_dir():
                 raise AssertionError(f"missing compiled {language} resources")
         metadata = root / "SearchMetadata.swift"
-        metadata.write_text("import Foundation\n" + "\n".join([
+        metadata.write_text("import AppKit\n" + "\n".join([
             metadata_enum((sources / "Settings/SettingsWindowController.swift").read_text(),
                           "SettingsCategory", "    func makePane()"),
             metadata_enum((sources / "Theme.swift").read_text(), "AppTheme", "    var nsAppearance:"),

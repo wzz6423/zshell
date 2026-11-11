@@ -198,6 +198,20 @@ regular/bold 區分及後備字型字重。
 
 恢復的捲動歷史會儲存在磁碟上，所以終端機裡顯示過的密鑰也可能包含在內。[專案、分頁和窗格佈局](/zh-Hant/docs/projects#what-survives-a-relaunch)無論如何都會恢復。
 
+## 瀏覽器存取 [#browser-access]
+
+若舊版 Zshell 保留的工作階段仍在執行，瀏覽器存取會提示選取 **結束並終止所有工作階段** 後重新開啟 Zshell。在你選擇結束前，既有工作會保留。
+
+### `browser-access.enabled`
+
+`browser-access.enabled` 為布林值，預設 `false`。在 **設定 → 瀏覽器存取** 啟用後，新開的本機終端機面板可供瀏覽器存取；既有面板保留目前程序。兩種終端機後端均可使用，且不會改變 `terminal.preserve-sessions`。
+
+### `browser-access.interface` / `browser-access.port`
+
+`browser-access.interface` 預設 `"loopback"`（**僅限本機**）。從其他裝置連線時，在設定中明確選取可用的私有 IPv4 LAN 或 Tailscale 介面。儲存值包含確切介面及位址，例如 `"en0|192.168.0.10"`。`browser-access.port` 是 HTTPS 連接埠，範圍 1024–65535，預設 `7443`。本機頁面使用獨立、僅限本機的 HTTP 位址。介面無法使用時需重新選取，服務不會改為監聽所有介面。
+
+遠端配對前，請比對 TLS 憑證指紋，並在用戶端信任匯出的憑證。在這台 Mac 上核准或撤銷用戶端。關閉存取、睡眠或結束應用程式會中斷連線；結束時仍遵循既有工作階段保留設定。詳見[透過瀏覽器存取這台 Mac](/zh-Hant/docs/remote-sessions#browser-access)。
+
 ## 自動化 [#automation]
 
 ### `ai.enabled` [#aienabled]

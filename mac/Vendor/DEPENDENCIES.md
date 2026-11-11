@@ -22,6 +22,14 @@ macOS 应用使用本目录内的第三方源码和 XCFramework。普通构建�
 | STTextKitPlus | 0.3.0 / `2ee74906f4d753458eeaa9a2f6d4538aacb86a1d` | `STTextKitPlus` |
 | CoreTextSwift | 0.2.0 / `833177201d6421e6322296f39fce6ff6ae52618a` | `CoreTextSwift` |
 
+## 浏览器终端
+
+`mac/zshell/BrowserAccessWeb/` 随应用打包 xterm 5.5.0、addon-fit 0.10.0 和
+addon-unicode11 0.8.0 的发布文件；浏览器页面不从 CDN 加载脚本。
+三个包的固定 npm integrity、版权和 MIT 许可证保留在
+`mac/zshell/ThirdPartyNotices/Xterm.txt`。升级时从相应固定 npm 包重新取出
+JavaScript/CSS，并同步版本、integrity 与许可证；不要修改压缩后的第三方源码。
+
 ## 终端命令记录
 
 Ghostty 的 macOS arm64、arm64e、x86_64 静态库由 `libghostty-spm/Ghostty.ref`

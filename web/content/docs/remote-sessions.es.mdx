@@ -60,3 +60,15 @@ La actividad, progreso, solicitudes de aprobación y finalización del Agent rem
 ## Límites [#limits]
 
 La persistencia dura mientras vive el daemon; no cubre reinicios del host, fallos o reinicios del daemon. Una sesión ausente se notifica y nunca se sustituye silenciosamente. Límites: 128 sesiones, instantánea de 16 MiB y cola activa de 1 MiB por cliente. Los clientes lentos no bloquean a los demás; el historial permanece en la memoria del host. Consulta la [referencia del servidor](https://github.com/wzz6423/zshell/tree/main/remote) para servicios y CLI.
+
+## Acceso por navegador [#browser-access]
+
+Usa **Ajustes → Acceso por navegador** para manejar los paneles locales de este Mac. Está desactivado por defecto. Tras activarlo, abre un nuevo panel y usa la página local o elige explícitamente una interfaz IPv4 privada LAN/Tailscale y un puerto HTTPS. Los paneles existentes conservan sus procesos. La página solo se conecta a paneles del Mac; no crea un shell ni conecta con hosts remotos.
+
+En otro dispositivo, exporta el certificado TLS, compara su huella con Ajustes y confía en él antes de abrir la dirección HTTPS. Introduce un nombre y elige **Solicitar emparejamiento**. En dos minutos, compara el código, la dirección y el origen en el Mac y elige **Aprobar**. La autorización dura hasta 90 días para esa dirección y protocolo exactos. **Revocar** o **Revocar todos los clientes** desconecta y rechaza esas credenciales de inmediato.
+
+Elige una sesión para ver su pantalla actual y salida en directo, con colores ANSI y Unicode, y escribir en el mismo proceso. Mac y navegador comparten entrada. El Mac controla el tamaño salvo que actives **Ajustar el terminal al navegador**. La entrada desconectada se descarta; al reconectar vuelves a la misma sesión activa. Recargar conserva la credencial de esa pestaña; cerrarla u **Olvidar este navegador** la elimina. Cambiar de dirección exige emparejar de nuevo.
+
+Desactivar el acceso, suspender el Mac o salir de Zshell detiene el servicio y desconecta los clientes. Cerrar un panel termina su proceso. Conservar el shell al salir sigue dependiendo de `terminal.preserve-sessions`. Abre Zshell de nuevo para acceder a paneles que sigan activos. Reiniciar el host o detener el demonio termina los shells. Las colas de salida son limitadas; los clientes lentos se desconectan sin bloquear el Mac. La página viene incluida y no utiliza CDN.
+
+Si siguen ejecutándose sesiones conservadas por una versión anterior, el acceso por navegador pide salir y finalizar todas las sesiones y abrir Zshell de nuevo. Los trabajos se conservan hasta que lo elijas.

@@ -18,6 +18,9 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Access this Mac’s terminal panes from a paired browser over a private LAN
+  or Tailscale HTTPS connection, with live output, shared input, reconnect,
+  and client revocation in Settings.
 - Keep the Mac awake while Zshell is running or while a local agent works in
   any terminal pane. Choose the mode from Settings or the application menu;
   displays and manual sleep keep following macOS settings.

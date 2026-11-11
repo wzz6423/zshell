@@ -60,3 +60,15 @@ Activité, progression, demandes d’approbation et fin des Agents distants util
 ## Limites [#limits]
 
 La persistance dure tant que le daemon fonctionne, sans survivre à son arrêt, son plantage ou un redémarrage de l’hôte. Une session absente est signalée, jamais remplacée silencieusement. Limites : 128 sessions, instantané de 16 MiB et file active de 1 MiB par client. Un client lent est déconnecté sans bloquer les autres ; l’historique reste en mémoire sur l’hôte. Consultez la [référence serveur](https://github.com/wzz6423/zshell/tree/main/remote) pour les services et le CLI.
+
+## Accès par navigateur [#browser-access]
+
+Dans **Réglages → Accès par navigateur**, activez l’accès aux volets locaux de ce Mac. Il est désactivé par défaut. Ouvrez ensuite un nouveau volet et utilisez la page locale, ou choisissez explicitement une interface IPv4 privée LAN/Tailscale et un port HTTPS. Les volets existants gardent leur processus. Le navigateur se connecte uniquement aux volets du Mac ; il ne crée pas de shell et ne se connecte pas à un hôte distant.
+
+Sur un autre appareil, exportez le certificat TLS, comparez son empreinte à celle des Réglages et faites-lui confiance avant d’ouvrir l’adresse HTTPS. Entrez un nom et choisissez **Demander un jumelage**. Dans les deux minutes, vérifiez le code, l’adresse et l’origine sur le Mac, puis choisissez **Autoriser**. L’autorisation dure au plus 90 jours pour cette adresse et ce protocole exacts. **Révoquer** ou **Révoquer tous les clients** coupe immédiatement les connexions et invalide leurs identifiants.
+
+Choisissez une session pour voir son écran actuel et sa sortie en direct, avec couleurs ANSI et Unicode, et saisir dans le même processus. Le Mac et le navigateur partagent la saisie. Le Mac contrôle la taille tant que **Adapter le terminal à la taille du navigateur** n’est pas coché. La saisie hors connexion est abandonnée ; la reconnexion retrouve la même session active. Un rechargement conserve l’identifiant de cet onglet ; fermer l’onglet ou **Oublier ce navigateur** le supprime. Une nouvelle adresse exige un nouveau jumelage.
+
+Désactiver l’accès, mettre le Mac en veille ou quitter Zshell arrête le service et déconnecte les clients. Fermer un volet termine son processus. La conservation du shell à la fermeture dépend toujours de `terminal.preserve-sessions`. Rouvrez Zshell pour retrouver les volets encore actifs. Un redémarrage du Mac ou l’arrêt du démon termine les shells. Les files de sortie sont limitées ; les clients lents sont déconnectés sans bloquer le Mac. La page est fournie avec Zshell et ne contacte aucun CDN.
+
+Si des sessions conservées par une ancienne version tournent encore, l’accès par navigateur demande de quitter et terminer toutes les sessions, puis de rouvrir Zshell. Les tâches sont conservées jusqu’à votre choix.

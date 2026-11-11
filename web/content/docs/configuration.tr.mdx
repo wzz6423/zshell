@@ -183,6 +183,20 @@ Yeniden açılışta her terminalin eski çıktı geçmişini yeni kabuğun üst
 
 Geçmiş diskte saklandığından terminalde görünen sırlar da bulunabilir. [Projeler, sekmeler ve bölme düzeni](/tr/docs/projects#what-survives-a-relaunch) her durumda geri yüklenir.
 
+## Tarayıcı erişimi [#browser-access]
+
+Eski Zshell sürümünün koruduğu oturumlar çalışıyorsa tarayıcı erişimi, tüm oturumları sonlandırarak çıkmanızı ve uygulamayı yeniden açmanızı ister. Mevcut işler siz seçene kadar korunur.
+
+### `browser-access.enabled`
+
+`browser-access.enabled` bir boolean değeridir; varsayılanı `false`. **Ayarlar → Tarayıcı erişimi** bölümünde etkinleştirin. Yeni yerel paneller kullanılabilir; mevcut paneller işlemlerini korur. İki terminal arka ucu da çalışır ve `terminal.preserve-sessions` değişmez.
+
+### `browser-access.interface` / `browser-access.port`
+
+`browser-access.interface` varsayılanı `"loopback"` (**Yalnızca localhost**) değeridir. Başka cihaz için kullanılabilir özel IPv4 LAN veya Tailscale arayüzünü açıkça seçin. Değer tam arayüz adı ve adresini içerir, örneğin `"en0|192.168.0.10"`. `browser-access.port` HTTPS bağlantı noktasıdır: 1024–65535, varsayılan `7443`. Yerel sayfa yalnızca Mac’ten erişilen ayrı HTTP adresi kullanır. Arayüz yoksa mevcut olanı seçin; hizmet tüm arayüzleri dinlemeye geçmez.
+
+Uzaktan eşleştirmeden önce TLS parmak izini karşılaştırıp dışa aktarılan sertifikaya istemcide güvenin. İstemcileri Mac’te onaylayın veya yetkilerini kaldırın. Kapatma, uyku ve uygulamadan çıkma bağlantıları kapatır; çıkış mevcut oturum koruma ayarını izler. [Bu Mac’e tarayıcıdan erişim](/tr/docs/remote-sessions#browser-access) bölümüne bakın.
+
 ## Otomasyon [#automation]
 
 ### `ai.enabled` [#aienabled]

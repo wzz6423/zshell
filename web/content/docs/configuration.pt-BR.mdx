@@ -183,6 +183,20 @@ Restaura a saída anterior acima de um shell novo após reiniciar. O conteúdo �
 
 A saída restaurada fica no disco, portanto pode incluir segredos exibidos no terminal. [Projetos, abas e layout](/pt-BR/docs/projects#what-survives-a-relaunch) são restaurados independentemente dela.
 
+## Acesso pelo navegador [#browser-access]
+
+Se sessões preservadas por uma versão antiga ainda estiverem ativas, o acesso pelo navegador pede para sair e encerrar todas as sessões e reabrir o Zshell. As tarefas são mantidas até você escolher.
+
+### `browser-access.enabled`
+
+`browser-access.enabled` é booleano, com padrão `false`. Ative em **Ajustes → Acesso pelo navegador**. Novos painéis locais ficam acessíveis; os existentes mantêm o processo atual. Ambos os mecanismos de terminal funcionam. A opção não altera `terminal.preserve-sessions`.
+
+### `browser-access.interface` / `browser-access.port`
+
+`browser-access.interface` usa `"loopback"` (**Somente localhost**) por padrão. Para outro dispositivo, escolha explicitamente uma interface IPv4 privada LAN ou Tailscale disponível. O valor inclui o nome e endereço exatos, como `"en0|192.168.0.10"`. `browser-access.port` é a porta HTTPS, 1024–65535, com padrão `7443`. A página local usa outro endereço HTTP restrito ao Mac. Se a interface estiver indisponível, selecione outra; o serviço nunca passa a escutar em todas as interfaces.
+
+Compare a impressão digital TLS e confie no certificado exportado no cliente antes do pareamento remoto. Autorize ou revogue clientes neste Mac. Desativar o acesso, suspender o Mac ou sair fecha as conexões; sair segue a configuração de preservação das sessões. Consulte [Acessar este Mac pelo navegador](/pt-BR/docs/remote-sessions#browser-access).
+
 ## Automação [#automation]
 
 ### `ai.enabled` [#aienabled]

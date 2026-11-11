@@ -60,3 +60,15 @@ Uzak Agent etkinliği, ilerleme, onay istekleri ve tamamlanması mevcut durum ve
 ## Sınırlar [#limits]
 
 Kalıcılık yalnızca daemon çalışırken geçerlidir; sunucu yeniden başlatmaları, daemon çökmesi veya yeniden başlamasını aşmaz. Kaybolan oturum hata olarak bildirilir ve sessizce yenilenmez. Sınırlar 128 oturum, 16 MiB terminal görüntüsü ve istemci başına 1 MiB canlı kuyruktur. Yavaş istemciler diğerlerini engellemez; geçmiş sunucu belleğinde tutulur. Hizmetler ve CLI için [sunucu başvurusuna](https://github.com/wzz6423/zshell/tree/main/remote) bakın.
+
+## Tarayıcı erişimi [#browser-access]
+
+Bu Mac’in yerel panellerini tarayıcıda kullanmak için **Ayarlar → Tarayıcı erişimi** bölümünü açın. Varsayılan olarak kapalıdır. Etkinleştirdikten sonra yeni panel açıp yerel sayfayı kullanın veya özel IPv4 LAN/Tailscale arayüzünü ve HTTPS portunu açıkça seçin. Mevcut paneller işlemlerini korur. Sayfa yalnızca Mac’teki panellere bağlanır; shell oluşturmaz veya uzak sunucuya bağlanmaz.
+
+Başka cihazda TLS sertifikasını dışa aktarın, parmak izini Ayarlar ile karşılaştırın ve HTTPS adresini açmadan önce güvenin. İsim girip **Eşleştirme iste** seçin. İki dakika içinde Mac’teki kodu, adresi ve kaynağı karşılaştırıp **Onayla** seçin. Yetki tam adres ve protokol için en fazla 90 gün sürer. **Yetkiyi kaldır** veya **Tüm istemcilerin yetkisini kaldır** bağlantıyı kesip kimlik bilgilerini hemen reddeder.
+
+ANSI renkleri ve Unicode dahil mevcut ekranı ve canlı çıktıyı görmek, aynı işleme yazmak için oturum seçin. Mac ve tarayıcı girdiyi paylaşır. **Terminal boyutunu tarayıcıya uyarla** işaretlenmedikçe boyutu Mac yönetir. Bağlantı kesikken girdi atılır; yeniden bağlanma aynı canlı oturuma döner. Yenileme o sekmenin kimlik bilgisini korur; kapatmak veya **Bu tarayıcıyı unut** siler. Adres değişirse yeniden eşleştirin.
+
+Erişimi kapatmak, Mac’i uyutmak veya Zshell’den çıkmak hizmeti durdurur. Paneli kapatmak işlemi bitirir. Çıkarken shell koruma seçeneğini hâlâ `terminal.preserve-sessions` belirler. Canlı panellere erişmek için Zshell’i tekrar açın. Sunucu yeniden başlarsa veya daemon biterse shells sona erer. Çıktı kuyrukları sınırlıdır; yavaş istemciler Mac’i engellemeden ayrılır. Sayfa uygulamada paketlenir ve CDN kullanmaz.
+
+Eski Zshell sürümünün koruduğu oturumlar çalışıyorsa tarayıcı erişimi, tüm oturumları sonlandırarak çıkmanızı ve uygulamayı yeniden açmanızı ister. Mevcut işler siz seçene kadar korunur.

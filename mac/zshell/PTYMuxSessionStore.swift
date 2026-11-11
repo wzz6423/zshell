@@ -57,7 +57,7 @@ final class PTYMuxSessionStore: @unchecked Sendable {
             id: id, pid: spawned.pid, master: spawned.master,
             workingDirectory: directory, command: command,
             bindingToken: environment["ZSHELL_PERSISTENT_TOKEN"] ?? "",
-            launchDirectoryURL: launchDirectoryURL, state: state
+            launchDirectoryURL: launchDirectoryURL, state: state, columns: columns, rows: rows
         )
         lock.lock()
         sessions[id] = session

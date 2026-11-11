@@ -183,6 +183,20 @@ Dopo un riavvio ripristina il contenuto scorribile precedente di ciascun termina
 
 Questo contenuto viene salvato su disco e può quindi includere segreti visualizzati nel terminale. [Progetti, schede e disposizione dei pannelli](/it/docs/projects#what-survives-a-relaunch) vengono ripristinati in ogni caso.
 
+## Accesso dal browser [#browser-access]
+
+Se sono ancora attive sessioni conservate da una vecchia versione, l’accesso dal browser chiede di uscire e terminare tutte le sessioni e riaprire Zshell. Le attività restano attive fino alla tua scelta.
+
+### `browser-access.enabled`
+
+`browser-access.enabled` è un valore booleano, con predefinito `false`. Attivalo in **Impostazioni → Accesso dal browser**. I nuovi pannelli locali diventano disponibili; quelli esistenti mantengono il processo attuale. Funziona con entrambi i motori del terminale e non modifica `terminal.preserve-sessions`.
+
+### `browser-access.interface` / `browser-access.port`
+
+`browser-access.interface` usa `"loopback"` (**Solo localhost**) per impostazione predefinita. Per altri dispositivi, scegli esplicitamente un’interfaccia IPv4 privata LAN o Tailscale disponibile. Il valore contiene nome e indirizzo esatti, ad esempio `"en0|192.168.0.10"`. `browser-access.port` è la porta HTTPS, 1024–65535, predefinita `7443`. La pagina locale usa un indirizzo HTTP separato limitato al Mac. Se l’interfaccia non è disponibile, scegline un’altra; il servizio non passa mai all’ascolto su tutte le interfacce.
+
+Confronta l’impronta TLS e considera attendibile sul client il certificato esportato prima dell’abbinamento remoto. Autorizza o revoca i client sul Mac. Disattivazione, stop e chiusura dell’app interrompono le connessioni. La chiusura segue l’impostazione di conservazione delle sessioni. Vedi [Accesso a questo Mac dal browser](/it/docs/remote-sessions#browser-access).
+
 ## Automazione [#automation]
 
 ### `ai.enabled` [#aienabled]

@@ -14,6 +14,7 @@ enum SettingsCategory: String, CaseIterable {
     case terminal
     case editor
     case browser
+    case browserAccess
     case automation
     case recommendations
     case updates
@@ -26,6 +27,7 @@ enum SettingsCategory: String, CaseIterable {
         case .terminal: String(localized: "Terminal")
         case .editor: String(localized: "Editor")
         case .browser: String(localized: "Browser")
+        case .browserAccess: String(localized: "Browser Access")
         case .automation: String(localized: "AI")
         case .recommendations: String(localized: "Recommendations")
         case .updates: String(localized: "Updates")
@@ -40,6 +42,7 @@ enum SettingsCategory: String, CaseIterable {
         case .terminal: "terminal.fill"
         case .editor: "curlybraces"
         case .browser: "globe"
+        case .browserAccess: "network"
         case .automation: "sparkles"
         case .recommendations: "star.circle.fill"
         case .updates: "arrow.down.circle.fill"
@@ -50,7 +53,7 @@ enum SettingsCategory: String, CaseIterable {
         switch self {
         case .general, .shortcuts, .appearance: .systemGray
         case .terminal, .editor, .automation, .recommendations: .systemIndigo
-        case .browser: .systemBlue
+        case .browser, .browserAccess: .systemBlue
         case .updates: .systemGreen
         }
     }
@@ -63,6 +66,7 @@ enum SettingsCategory: String, CaseIterable {
         case .terminal: SettingsTerminalPane()
         case .editor: SettingsEditorPane()
         case .browser: SettingsBrowserPane()
+        case .browserAccess: SettingsBrowserAccessPane()
         case .automation: SettingsAutomationPane()
         case .recommendations: SettingsRecommendationsPane()
         case .updates: SettingsUpdatesPane()

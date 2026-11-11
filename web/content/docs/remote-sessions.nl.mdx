@@ -60,3 +60,15 @@ Activiteit, voortgang, goedkeuringsverzoeken en afronding van externe Agents geb
 ## Grenzen [#limits]
 
 Persistentie geldt zolang de daemon leeft, niet over herstarts van de host, crashes of daemonherstarts. Ontbrekende sessies geven een fout en worden nooit stil vervangen. Grenzen: 128 sessies, snapshot van 16 MiB en actieve wachtrij van 1 MiB per client. Langzame clients blokkeren anderen niet. Geschiedenis blijft in het hostgeheugen. Zie de [serverreferentie](https://github.com/wzz6423/zshell/tree/main/remote) voor diensten en CLI.
+
+## Browsertoegang [#browser-access]
+
+Bedien de lokale terminalpanelen van deze Mac via **Instellingen → Browsertoegang**. Toegang is standaard uit. Open na inschakeling een nieuw paneel en gebruik de lokale pagina of kies uitdrukkelijk een privé-IPv4-LAN-/Tailscale-interface en HTTPS-poort. Bestaande panelen behouden hun proces. De browserpagina verbindt alleen met panelen op de Mac; zij maakt geen shell en verbindt niet met externe hosts.
+
+Exporteer op een ander apparaat het TLS-certificaat, vergelijk de vingerafdruk met Instellingen en vertrouw het voordat je het HTTPS-adres opent. Vul een naam in en kies **Koppeling aanvragen**. Vergelijk binnen twee minuten de code, het adres en de oorsprong op de Mac en kies **Goedkeuren**. Autorisatie geldt maximaal 90 dagen voor het exacte adres en protocol. **Intrekken** of **Alle clients intrekken** verbreekt meteen verbindingen en weigert de toegangsbewijzen.
+
+Kies een sessie om het huidige scherm en live-uitvoer met ANSI-kleuren en Unicode te zien en in hetzelfde proces te typen. Mac en browser delen invoer. De Mac bepaalt de grootte tenzij **Terminalgrootte aanpassen aan browser** is aangevinkt. Invoer zonder verbinding wordt weggegooid; opnieuw verbinden opent dezelfde actieve sessie. Herladen bewaart het toegangsbewijs van die tab; sluiten of **Deze browser vergeten** verwijdert het. Een ander adres vereist opnieuw koppelen.
+
+Uitschakelen, sluimerstand of Zshell afsluiten stopt de browserdienst. Een paneel sluiten beëindigt het proces. Shells bij afsluiten bewaren blijft afhankelijk van `terminal.preserve-sessions`. Open Zshell weer om actieve panelen te bereiken. Een herstart van de host of het einde van de daemon beëindigt shells. Uitvoerwachtrijen zijn begrensd; trage clients worden verbroken zonder de Mac te blokkeren. De pagina is gebundeld en gebruikt geen CDN.
+
+Als bewaarde sessies van een oudere Zshell-versie nog lopen, vraagt browsertoegang om alle sessies bij afsluiten te beëindigen en Zshell opnieuw te openen. Bestaande taken blijven actief tot je kiest.

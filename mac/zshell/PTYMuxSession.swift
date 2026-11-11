@@ -73,6 +73,9 @@ final class PTYMuxSession: @unchecked Sendable {
     private let state: PersistentTerminalState
     private let io: DispatchQueue
     private var attachment: PTYMuxAttachment?
+    private var observers: [ObjectIdentifier: PTYMuxAttachment] = [:]
+    private var columns: UInt16
+    private var rows: UInt16
     private var processExited = false
     private var waitStatus: Int32?
     private var masterClosed = false
@@ -86,7 +89,7 @@ final class PTYMuxSession: @unchecked Sendable {
     init(
         id: String, pid: pid_t, master: Int32, workingDirectory: String,
         command: [String], bindingToken: String, launchDirectoryURL: URL?,
-        state: PersistentTerminalState
+        state: PersistentTerminalState, columns: UInt16 = 80, rows: UInt16 = 24
     ) {
         self.id = id
         self.pid = pid
@@ -96,6 +99,8 @@ final class PTYMuxSession: @unchecked Sendable {
         self.bindingToken = bindingToken
         self.launchDirectoryURL = launchDirectoryURL
         self.state = state
+        self.columns = columns
+        self.rows = rows
         io = DispatchQueue(label: "sh.zshell.pty-mux.session.\(id)")
         let source = DispatchSource.makeReadSource(fileDescriptor: master, queue: io)
         source.setEventHandler { [weak self] in self?.drainOutput() }
@@ -124,6 +129,7 @@ final class PTYMuxSession: @unchecked Sendable {
 
     func detach(_ client: PTYMuxAttachment) {
         io.sync {
+            observers.removeValue(forKey: ObjectIdentifier(client))
             guard attachment === client else { return }
             attachment = nil
         }
@@ -131,9 +137,33 @@ final class PTYMuxSession: @unchecked Sendable {
 
     func write(_ bytes: Data, from client: PTYMuxAttachment) {
         io.sync {
-            guard attachment === client, !processExited else { return }
+            guard attachment === client || observers[ObjectIdentifier(client)] === client,
+                  !processExited else { return }
             enqueueInput(bytes)
         }
+    }
+
+    /// Browser streams have their own attachment and cannot replace the GUI's
+    /// relay. Framing preserves resize boundaries without parsing terminal data.
+    func observe(_ client: PTYMuxAttachment, reply: () throws -> Void) throws {
+        try io.sync {
+            guard !processExited, observers.count < 8 else {
+                throw PTYMuxError.message("PTY observer limit reached or session exited.")
+            }
+            let snapshot = try state.snapshot()
+            try reply()
+            observers[ObjectIdentifier(client)] = client
+            client.send(PTYMuxObserverFrame.encode(kind: .reset, data: dimensionBytes), snapshot: true)
+            for offset in stride(from: 0, to: snapshot.count, by: 32 * 1024) {
+                client.send(PTYMuxObserverFrame.encode(kind: .output,
+                    data: snapshot.subdata(in: offset..<min(offset + 32 * 1024, snapshot.count))), snapshot: true)
+            }
+            client.send(PTYMuxObserverFrame.encode(kind: .ready), snapshot: true)
+        }
+    }
+
+    private var dimensionBytes: Data {
+        Data([UInt8(columns >> 8), UInt8(columns & 255), UInt8(rows >> 8), UInt8(rows & 255)])
     }
 
     func resize(columns: UInt16, rows: UInt16, cellWidth: UInt16, cellHeight: UInt16) {
@@ -146,6 +176,10 @@ final class PTYMuxSession: @unchecked Sendable {
             )
             _ = ioctl(master, TIOCSWINSZ, &size)
             state.resize(columns: columns, rows: rows, cellWidth: cellWidth, cellHeight: cellHeight)
+            self.columns = columns
+            self.rows = rows
+            let frame = PTYMuxObserverFrame.encode(kind: .resize, data: dimensionBytes)
+            for observer in observers.values { observer.send(frame) }
         }
     }
 
@@ -159,6 +193,8 @@ final class PTYMuxSession: @unchecked Sendable {
                 "pid": .number(Double(pid)),
                 "foregroundPid": .number(Double(foreground > 0 ? foreground : pid)),
                 "running": .bool(!processExited),
+                "columns": .number(Double(columns)),
+                "rows": .number(Double(rows)),
                 "waitStatus": waitStatus.map { .number(Double($0)) } ?? .null,
                 "startedAt": .number(startedAt.timeIntervalSince1970),
                 "workingDirectory": .string(processWorkingDirectory(pid: pid) ?? workingDirectory),
@@ -223,6 +259,8 @@ final class PTYMuxSession: @unchecked Sendable {
                 let replies = state.feed(bytes, answerQueries: attachment == nil)
                 if !replies.isEmpty { enqueueInput(replies) }
                 attachment?.send(bytes)
+                let frame = observers.isEmpty ? Data() : PTYMuxObserverFrame.encode(kind: .output, data: bytes)
+                for observer in observers.values { observer.send(frame) }
             } else if count < 0 && errno == EINTR {
                 continue
             } else if count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -230,6 +268,7 @@ final class PTYMuxSession: @unchecked Sendable {
             } else {
                 closeMaster()
                 attachment?.closeAfterDraining()
+                for observer in observers.values { observer.closeAfterDraining() }
                 return
             }
         }
@@ -238,6 +277,7 @@ final class PTYMuxSession: @unchecked Sendable {
     private func enqueueInput(_ bytes: Data) {
         guard !masterClosed, input.count + bytes.count <= PTYMuxConstants.maximumInputBytes else {
             attachment?.disconnect()
+            for observer in observers.values { observer.disconnect() }
             return
         }
         input.append(bytes)
@@ -274,6 +314,7 @@ final class PTYMuxSession: @unchecked Sendable {
         drainOutput()
         closeMaster()
         attachment?.closeAfterDraining()
+        for observer in observers.values { observer.closeAfterDraining() }
         cleanupFiles()
     }
 

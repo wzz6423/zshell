@@ -89,6 +89,7 @@ struct SettingsReloadTests {
         withExtendedLifetime(observation) {}
         wait({ FileManager.default.fileExists(atPath: url.path) }, "initial config save")
         check(!settings.focusFollowsMouse, "pointer focus is disabled by default")
+        check(!settings.browserAccessEnabled && settings.browserAccessInterface == "loopback" && settings.browserAccessPort == 7443, "browser access defaults remain local and disabled")
         check(settings.shellCompletions, "shell completions are enabled by default")
         check(settings.vimCommandHints && settings.restoreTerminalHistory && settings.notifyOnError,
               "new configurations use the enabled preference defaults")
@@ -185,6 +186,9 @@ struct SettingsReloadTests {
         terminal.startup-arguments = "-l"
         browser.content-blocking = false
         browser.filter-lists = "https://example.test/filter.txt"
+        browser-access.enabled = true
+        browser-access.interface = "en0|192.168.0.10"
+        browser-access.port = 8443
         terminal.profiles.0.id = "71DA4706-872C-4D96-ACDC-3FC8201F86B7"
         terminal.profiles.0.name = "Fixture profile"
         terminal.profiles.0.directory = "/tmp/*"
@@ -206,6 +210,8 @@ struct SettingsReloadTests {
         check(settings.terminalProfiles.first?.launchSettings.environment["MODE"] == "profile",
               "profile launch settings round trip through config")
         let roundTrip = TOML.parseStrictly(text: imported).values
+        check(settings.browserAccessEnabled && settings.browserAccessInterface == "en0|192.168.0.10"
+              && settings.browserAccessPort == 8443, "browser access configuration imports and persists")
         check(settings.focusFollowsMouse && !settings.isAtDefaults, "pointer focus imports and changes default state")
         check(GitProxy.address == "socks5h://127.0.0.1:1080", "imported Git proxy reaches Git processes")
         for (key, value) in parsed.values {
@@ -271,6 +277,8 @@ struct SettingsReloadTests {
         check(!settings.vimCommandHints && !settings.restoreTerminalHistory && !settings.notifyOnError,
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
+        check(!settings.browserAccessEnabled && settings.browserAccessInterface == "loopback" && settings.browserAccessPort == 7443,
+              "empty external config closes browser access and resets network configuration")
         check(!settings.gitProxyEnabled && settings.gitProxyAddress == GitProxy.defaultAddress && GitProxy.address == nil,
               "Git proxy resets to off with the default address prefilled")
         check(try SettingsConfigFile.read(at: url) == "", "default reload leaves empty source unchanged")
@@ -281,6 +289,10 @@ struct SettingsReloadTests {
 
         settings.resetToDefaults()
         check(settings.isAtDefaults, "reset covers every configurable preference")
+        settings.browserAccessEnabled = true
+        check(!settings.isAtDefaults, "browser access enables reset")
+        settings.resetToDefaults()
+        check(!settings.browserAccessEnabled && !settings.preserveTerminalSessions, "reset disables sharing without enabling persistent sessions")
         let featureSwitches: [ReferenceWritableKeyPath<AppSettings, Bool>] = [
             \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints,
             \.automaticallyApplyTerminalProfiles, \.notifyOnAgentAttention,

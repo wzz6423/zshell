@@ -183,6 +183,20 @@ Stellt nach einem Neustart die bisherige Terminalausgabe über einer neuen Shell
 
 Der Verlauf wird auf dem Datenträger gespeichert und kann im Terminal angezeigte Geheimnisse enthalten. [Projekte, Tabs und Bereichsanordnung](/de/docs/projects#what-survives-a-relaunch) werden unabhängig davon wiederhergestellt.
 
+## Browserzugriff [#browser-access]
+
+Laufen noch Sitzungen aus einer älteren Zshell-Version, bittet der Browserzugriff darum, alle Sitzungen beim Beenden zu beenden und Zshell erneut zu öffnen. Bestehende Jobs bleiben bis zu deiner Entscheidung erhalten.
+
+### `browser-access.enabled`
+
+`browser-access.enabled` ist ein boolescher Wert, standardmäßig `false`. Aktiviere ihn unter **Einstellungen → Browserzugriff**. Neue lokale Terminalbereiche werden erreichbar; vorhandene behalten ihren Prozess. Beide Terminal-Backends werden unterstützt. `terminal.preserve-sessions` wird dadurch nicht geändert.
+
+### `browser-access.interface` / `browser-access.port`
+
+`browser-access.interface` ist standardmäßig `"loopback"` (**Nur Localhost**). Wähle für andere Geräte ausdrücklich eine verfügbare private IPv4-LAN- oder Tailscale-Schnittstelle. Der gespeicherte Wert enthält den genauen Namen und die Adresse, etwa `"en0|192.168.0.10"`. `browser-access.port` ist der HTTPS-Port, 1024–65535, standardmäßig `7443`. Die lokale Seite hat eine eigene HTTP-Adresse, die nur auf dem Mac erreichbar ist. Fehlt eine Schnittstelle, muss eine verfügbare ausgewählt werden; der Dienst wechselt nie zum Lauschen auf allen Schnittstellen.
+
+Vergleiche vor einer entfernten Kopplung den TLS-Fingerabdruck und vertraue dem exportierten Zertifikat auf dem Client. Autorisiere oder widerrufe Clients auf dem Mac. Deaktivierung, Ruhezustand und Beenden schließen Browserverbindungen; beim Beenden gilt die vorhandene Sitzungserhaltung. Siehe [Browserzugriff auf diesen Mac](/de/docs/remote-sessions#browser-access).
+
 ## Automatisierung [#automation]
 
 ### `ai.enabled` [#aienabled]
