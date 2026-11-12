@@ -137,3 +137,37 @@ zshell +events --event command.task.finished --once --timeout 30000
 ## 分叉對話 [#fork-a-conversation]
 
 開啟 **終端機 → Agent → Agent 對話歷史**，選取對話，在右鍵選單或分叉按鈕中選擇 **在新窗格中分叉對話**。Zshell 呼叫 provider 原生分叉，保留其對話上下文並建立獨立的新對話；來源窗格和原對話保持不變。Codex、Claude Code、OpenCode 和 Pi 需要支援原生分叉的 CLI 版本，Pi 也需要已儲存的工作階段檔案。遠端對話透過已更新的 Zshell 服務使用相同操作。CLI 缺少或版本不支援時，會在建立窗格前報錯；登入或原生 hook 未能確認獨立對話時，請先檢查新窗格輸出。窗格內可使用 `zshell +agent fork --id UUID [--focus]`；外部終端還須傳入 `--project UUID`，與恢復對話相同。
+
+## Agent 識別規則 [#agent-recognition-rules]
+
+開啟 **設定 → AI → Agent 識別** 或 **終端機 → Agent → 管理 Agent 規則…**，可新增、編輯、刪除、匯入、匯出或重設本機規則。**使用自訂識別規則** 與 **依畫面推斷 Agent 狀態** 是兩個獨立開關，預設均開啟。關閉會立即清除相關舊畫面證據。原生生命週期事件和程式報告仍優先。
+
+規則位於 `config.toml` 旁的 `agents.toml`（`~/.config/zshell/agents.toml`，Debug 為 `zshell-dev`）。有效編輯會自動重新載入；無效編輯會保留最後有效規則並顯示錯誤。清空或刪除檔案會回復內建規則。
+
+新 `id` 會新增 Agent。`claude`、`codex` 等內建 `id` 會取代畫面規則，`executables` 與 `aliases` 會新增精確命令名稱。只檢查執行檔或直譯器的腳本參數，不掃描後續提示與路徑。`screen_enabled = false` 僅保留程序識別；`enabled = false` 停用單條規則。內建別名沿用原生整合；自訂 Agent 顯示原始 `name`，不能冒充原生 provider。
+
+最高優先順序的匹配規則勝出；同優先順序遵循檔案順序。`contains` 不分大小寫；所有 `regex`、`line_regex` 和 `all` 群組須匹配，`any` 清單非空時至少一個群組須匹配，所有 `not` 均不得匹配。省略或留空 `any` 不增加條件。`skip_state_update = true` 保留既有證據。狀態為 `idle`、`working`、`blocked` 或 `unknown`；blocked 的 `attention` 為 `approval`、`input`、`login` 或 `error`。
+
+持續對即時底部 16 行取樣，不讀取捲動歷史；連續兩次取樣得到相同匹配結果後才發布推斷狀態。支援區域為 `whole_recent`、`bottom_lines(1…16)`、`bottom_non_empty_lines(1…16)`、`prompt_box_body`、`above_prompt_box`、`last_non_empty_above_prompt_box`、`after_last_horizontal_rule`；其他 Kero/herdr 區域會被拒絕。檔案最多 256 KiB、64 個 Agent、每個 Agent 32 條規則、四層條件巢狀結構。無效或不安全運算式、重複 ID、命令衝突和未知鍵會被拒絕。推斷不證明完成、不發送通知，也不批准輸入。
+
+```toml title="agents.toml"
+[[agents]]
+id = "frog"
+name = "Frog"
+executables = ["frog", "frog-cli"]
+aliases = ["frog-wrapper"]
+
+[[agents.rules]]
+id = "approval"
+state = "blocked"
+priority = 200
+region = "bottom_non_empty_lines(6)"
+attention = "approval"
+line_regex = ['^Allow .+\? \[y/n\]$']
+
+[[agents.rules]]
+id = "activity"
+state = "working"
+priority = 100
+contains = ["hopping…"]
+```

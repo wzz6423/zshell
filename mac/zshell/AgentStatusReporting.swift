@@ -1,7 +1,7 @@
 import Darwin
 import Foundation
 
-enum ZshellAgentAttention: String, Codable, CaseIterable, Sendable {
+nonisolated enum ZshellAgentAttention: String, Codable, CaseIterable, Sendable {
     case approval
     case input
     case login
@@ -317,7 +317,7 @@ struct ZshellAgentInterruptEvidence {
     }
 }
 
-struct ZshellAgentScreenEvidence: Equatable {
+nonisolated struct ZshellAgentScreenEvidence: Equatable, Sendable {
     let phase: ZshellAgentPhase
     let attention: ZshellAgentAttention?
     let reason: String

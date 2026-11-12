@@ -304,7 +304,7 @@ Finder、CLI、工作區範本、worktree、還原工作階段、專案固定目
 
 布林值——預設 `true`
 
-讓受支持的編碼 agent 按照你的自然語言要求協調 Zshell 後台窗格，並在介面裡顯示 provider 報告的生命週期狀態。Zshell 不會根據終端機文字推斷狀態。推薦用設定視窗的開關，因為錯誤會直接顯示出來，而且衝突的現有配置會保持原樣。
+讓受支持的編碼 agent 按照你的自然語言要求協調 Zshell 後台窗格，並在介面裡顯示 provider 報告的生命週期狀態。推薦用設定視窗的開關，因為錯誤會直接顯示出來，而且衝突的現有配置會保持原樣。
 
 具體怎麼使用，見[與 AI Agent 協作](/zh-Hant/docs/automation)。
 
@@ -418,3 +418,12 @@ Zshell 會拒絕此次修改並顯示佔用它的指令。點擊 **恢復預設�
 - **視窗與佈局狀態。** 視窗尺寸、側邊欄寬度、當前面板、專案、分頁、窗格、瀏覽器 URL 和
   diff 控件偏好，都存在 Zshell 的 macOS 偏好設定或工作階段快照裡。
 - **後端自己的配置檔案。** Zshell 不讀取 `~/.config/ghostty`，也不讀取 Alacritty 配置。Zshell 的設定就是兩個後端共同支持的配置面。
+
+
+## Agent 識別規則 [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, 預設 `true`
+
+開啟 **設定 → AI → Agent 識別** 或 **Agents → 管理 Agent 規則…**，可新增、編輯、刪除、匯入、匯出或重設本機規則。**使用自訂識別規則** 與 **依畫面推斷 Agent 狀態** 是兩個獨立開關，預設均開啟。關閉會立即清除相關舊畫面證據。原生生命週期事件和程式報告仍優先。
+
+[agents.toml](/zh-Hant/docs/automation#agent-recognition-rules)

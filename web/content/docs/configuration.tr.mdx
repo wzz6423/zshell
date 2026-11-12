@@ -289,7 +289,7 @@ Uzaktan eşleştirmeden önce TLS parmak izini karşılaştırıp dışa aktarı
 
 mantıksal — varsayılan `true`
 
-Doğal dille istediğinizde desteklenen kodlama ajanlarının arka plan bölmelerini koordine etmesini sağlar ve sağlayıcının bildirdiği yaşam döngüsü durumunu arayüzde gösterir. Zshell terminal metninden durum çıkarmaz. Ayarlar anahtarı önerilir: hatalar satır içinde gösterilir, çakışan kurulumlar değiştirilmez.
+Doğal dille istediğinizde desteklenen kodlama ajanlarının arka plan bölmelerini koordine etmesini sağlar ve sağlayıcının bildirdiği yaşam döngüsü durumunu arayüzde gösterir. Ayarlar anahtarı önerilir: hatalar satır içinde gösterilir, çakışan kurulumlar değiştirilmez.
 
 Kullanım akışı [AI ajanlarıyla çalışma](/tr/docs/automation) bölümündedir.
 
@@ -399,3 +399,12 @@ Temel komuta yeni kısayol kaydetmek için **Ayarlar → Kısayollar**’ı aç�
 - **Otomatik güncellemeler.** **Ayarlar → Güncellemeler**’deki otomatik denetim, indirme ve kurulum anahtarları TOML dışındaki uygulama tercihlerindedir; açılışlar arasında hatırlanır. İndirme denetimleri yalnızca otomatik denetim açıkken ve otomatik güncellemeler kullanılabilirken görünür; kurulum için otomatik indirme de açık olmalıdır. [Kurulum](/tr/docs/installation#updates) bölümüne bakın.
 - **Pencere ve düzen durumu.** Pencere boyutu, kenar çubuğu genişlikleri, seçili paneller, projeler, sekmeler, bölmeler, tarayıcı URL’leri ve fark denetimi tercihleri macOS tercihleri ve oturum anlık görüntüsünde saklanır.
 - **Arka uç yapılandırma dosyaları.** Zshell `~/.config/ghostty` veya Alacritty yapılandırması okumaz. Her iki arka uç için desteklenen yapılandırma yeri Zshell ayarlarıdır.
+
+
+## Ajan tanıma kuralları [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, varsayılan `true`
+
+Yerel kuralları eklemek, düzenlemek, silmek, içe veya dışa aktarmak ya da sıfırlamak için **Ayarlar → AI → Ajan Tanıma** veya **Agents → Ajan Kurallarını Yönet…** bölümünü açın. Özel tanıma ve ekrandan çıkarım bağımsız anahtarlardır, ikisi de varsayılan olarak açıktır. Kapatma eski ekran kanıtlarını hemen siler. Yerel olaylar ve program raporları önceliklidir.
+
+[agents.toml](/tr/docs/automation#agent-recognition-rules)

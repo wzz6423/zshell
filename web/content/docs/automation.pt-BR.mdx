@@ -137,3 +137,37 @@ zshell +events --event command.task.finished --once --timeout 30000
 ## Bifurcar uma conversa [#fork-a-conversation]
 
 Em **Terminal → Agentes → Histórico de conversas dos agentes**, selecione uma conversa e **Bifurcar conversa em um novo painel** no menu de contexto ou no botão de bifurcação. A função nativa do provedor preserva o contexto em uma conversa independente; o painel e a conversa originais permanecem intactos. Codex, Claude Code, OpenCode e Pi precisam de uma versão CLI compatível; Pi também precisa do arquivo de sessão salvo. Para conversas remotas, atualize o servidor Zshell. Se faltarem CLI, login ou hooks, confira a saída do novo painel antes de continuar. Em um painel use `zshell +agent fork --id UUID [--focus]`; em um terminal externo inclua `--project UUID`.
+
+## Regras de reconhecimento de agentes [#agent-recognition-rules]
+
+Abra **Ajustes → AI → Reconhecimento de agentes** ou **Terminal → Agentes → Gerenciar regras de agentes…** para adicionar, editar, excluir, importar, exportar ou redefinir regras locais. O reconhecimento personalizado e a inferência pela tela são controles independentes, ativados por padrão. Desativá-los remove imediatamente as evidências antigas da tela. Eventos nativos e relatórios do programa têm prioridade.
+
+As regras ficam em `agents.toml` ao lado de `config.toml` (`~/.config/zshell/agents.toml`, ou `zshell-dev` no Debug). Alterações válidas são carregadas automaticamente; alterações inválidas preservam as últimas regras e mostram um erro. Um arquivo vazio ou excluído restaura as regras integradas.
+
+Um `id` novo adiciona um agente. Um `id` integrado como `claude` ou `codex` substitui regras de tela; `executables` e `aliases` adicionam nomes exatos de comandos. Apenas o executável e o argumento de script do interpretador são verificados, nunca prompts ou caminhos posteriores. `screen_enabled = false` mantém reconhecimento de processos; `enabled = false` desativa uma regra. Aliases integrados mantêm integrações nativas e agentes personalizados mostram o `name` original.
+
+A regra correspondente com maior prioridade vence; empates seguem a ordem do arquivo. `contains` ignora maiúsculas. Todos os `regex`, `line_regex` e `all` devem corresponder, e nenhum `not` pode corresponder. Uma lista `any` não vazia exige pelo menos um grupo correspondente; uma lista ausente ou vazia não adiciona condições. `skip_state_update = true` mantém a evidência anterior. Estados: `idle`, `working`, `blocked`, `unknown`; `attention` para blocked: `approval`, `input`, `login`, `error`.
+
+Zshell amostra continuamente apenas as 16 linhas inferiores da tela ativa, sem histórico. Duas amostras consecutivas com o mesmo resultado correspondente são necessárias para publicar o estado inferido. Regiões: `whole_recent`, `bottom_lines(1…16)`, `bottom_non_empty_lines(1…16)`, `prompt_box_body`, `above_prompt_box`, `last_non_empty_above_prompt_box`, `after_last_horizontal_rule`. Outras regiões Kero/herdr são rejeitadas. Limites: 256 KiB, 64 agentes, 32 regras por agente e quatro níveis de condições. Regex inseguras, IDs duplicados, nomes conflitantes e chaves desconhecidas são rejeitados. A inferência não prova conclusão, não notifica nem aprova entrada.
+
+```toml title="agents.toml"
+[[agents]]
+id = "frog"
+name = "Frog"
+executables = ["frog", "frog-cli"]
+aliases = ["frog-wrapper"]
+
+[[agents.rules]]
+id = "approval"
+state = "blocked"
+priority = 200
+region = "bottom_non_empty_lines(6)"
+attention = "approval"
+line_regex = ['^Allow .+\? \[y/n\]$']
+
+[[agents.rules]]
+id = "activity"
+state = "working"
+priority = 100
+contains = ["hopping…"]
+```
