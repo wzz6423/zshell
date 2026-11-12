@@ -67,6 +67,12 @@ El tema de color para cada apariencia. Un tema cambia a la vez los colores de lo
 
 Ajustes muestra el catálogo de temas seleccionados que comparten ambos motores de terminal. Un nombre escrito a mano debe coincidir exactamente con uno de los nombres mostrados, incluidas mayúsculas y minúsculas; de lo contrario, Zshell vuelve al tema predeterminado correspondiente.
 
+### `terminal.minimum-contrast` [#terminalminimum-contrast]
+
+`1`–`21` · `3`
+
+**Ajustes → Apariencia → Colores → Contraste mínimo** ajusta la legibilidad del texto del terminal de `1` a `21` (predeterminado `3`). `1` conserva los colores ANSI originales. Ambos motores actualizan los terminales abiertos y Quick Terminal sin reiniciar sus shells; los perfiles conservan sus paletas. Los píxeles de emoji e imágenes mantienen sus colores. La selección y el cursor mantienen la política de legibilidad nativa de cada motor. Si el fondo no permite alcanzar la relación solicitada, cada motor utiliza el color más legible disponible. Los terminales transparentes usan el fondo de celda resuelto, por lo que el contraste tras combinarse con el escritorio puede variar.
+
 ### `toolbar.visibility` [#toolbarvisibility]
 
 `"hide"` · `"auto"` · `"always"` — predeterminado: `"hide"`

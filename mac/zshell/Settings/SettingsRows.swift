@@ -194,6 +194,8 @@ final class SettingsSliderRow: NSView {
         case percent
         /// An arbitrary numeric range displayed as a whole number.
         case integer
+        /// A contrast ratio such as "3:1".
+        case ratio
     }
 
     private let slider = NSSlider()
@@ -211,6 +213,7 @@ final class SettingsSliderRow: NSView {
         accessibilityLabel: String? = nil,
         symbolName: String? = nil,
         symbolColor: NSColor? = nil,
+        description: String? = nil,
         onChange: @escaping (Double) -> Void
     ) {
         self.format = format
@@ -264,14 +267,31 @@ final class SettingsSliderRow: NSView {
 
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
-        NSLayoutConstraint.activate([
+        var constraints = [
             stack.leadingAnchor.constraint(equalTo: leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: trailingAnchor),
             stack.topAnchor.constraint(equalTo: topAnchor),
-            stack.bottomAnchor.constraint(equalTo: bottomAnchor),
             valueLabel.widthAnchor.constraint(equalToConstant: SettingsMetrics.sliderValueWidth),
             titleLabel.widthAnchor.constraint(lessThanOrEqualTo: stack.widthAnchor, multiplier: 0.42),
-        ])
+        ]
+        if let description {
+            let label = NSTextField(wrappingLabelWithString: description)
+            label.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+            label.textColor = .secondaryLabelColor
+            label.maximumNumberOfLines = 0
+            label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+            label.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(label)
+            constraints += [
+                label.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+                label.trailingAnchor.constraint(equalTo: trailingAnchor),
+                label.topAnchor.constraint(equalTo: stack.bottomAnchor, constant: 3),
+                label.bottomAnchor.constraint(equalTo: bottomAnchor),
+            ]
+        } else {
+            constraints.append(stack.bottomAnchor.constraint(equalTo: bottomAnchor))
+        }
+        NSLayoutConstraint.activate(constraints)
 
         slider.setAccessibilityLabel(accessibilityLabel ?? title)
         stepper?.setAccessibilityLabel(accessibilityLabel ?? title)
@@ -301,11 +321,17 @@ final class SettingsSliderRow: NSView {
         case .points: String(localized: "\(Int(value)) pt", comment: "Font size in points")
         case .percent: "\(Int((value * 100).rounded()))%"
         case .integer: String(Int(value.rounded()))
+        case .ratio: value.formatted(.number.precision(.fractionLength(0...2))) + ":1"
         }
     }
 
     @objc private func sliderChanged() {
-        let value = format == .percent ? slider.doubleValue : slider.doubleValue.rounded()
+        let value: Double
+        switch format {
+        case .percent: value = slider.doubleValue
+        case .ratio: value = (slider.doubleValue * 10).rounded() / 10
+        case .points, .integer: value = slider.doubleValue.rounded()
+        }
         valueLabel.stringValue = readout(for: value)
         stepper?.doubleValue = value
         onChange(value)

@@ -180,6 +180,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     /// selection drag, focus — since those move pixels without touching a cell.
     private var needsUnconditionalRedraw = true
     private var metalRenderer: TerminalMetalRenderer?
+    private var minimumContrast = AppSettings.shared.terminalMinimumContrast
     private var kittyPlacements: [AlacrittyKittyPlacement] = []
     private var kittyImageData: [AlacrittyKittyImageKey: Data] = [:]
 
@@ -506,6 +507,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     func applyAppearance() {
         let oldCellSize = CGSize(width: metrics.cellWidth, height: metrics.cellHeight)
         metrics = Self.currentMetrics(profileAppearance)
+        minimumContrast = AppSettings.shared.terminalMinimumContrast
+        metalRenderer?.setMinimumContrast(minimumContrast)
         presentationCoverLayer.backgroundColor = terminalBackgroundColor
         var theme = AlacrittyTheme.current(profileAppearance)
         if let handle {
@@ -694,6 +697,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         revalidateURLHoverForRender()
         if metalRenderer == nil, let metalDevice {
             metalRenderer = TerminalMetalRenderer(device: metalDevice)
+            metalRenderer?.setMinimumContrast(minimumContrast)
         }
         guard let renderer = metalRenderer else {
             NSLog("zshell: no Metal device; the Alacritty backend cannot draw")

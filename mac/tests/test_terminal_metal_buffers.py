@@ -29,6 +29,19 @@ extension TerminalMetalRenderer {
 
     var testQueue: MTLCommandQueue { queue }
     var testInstanceStride: Int { MemoryLayout<Instance>.stride }
+
+    func testPreparedColors(
+        snapshot: ZshellSnapshot,
+        metrics: AlacrittyMetrics,
+        dirtyRows: [Int]?
+    ) -> (glyphs: Int, colors: [SIMD4<Float>]) {
+        precondition(prepare(
+            snapshot: snapshot, markedText: nil, metrics: metrics,
+            padding: .zero, scale: 1, paddingColor: .extend,
+            dirtyRows: dirtyRows, viewportSize: CGSize(width: 64, height: 64)
+        ))
+        return (instances.filter { $0.kind == 1 }.count, instances.map(\\.color))
+    }
 }
 """)
 
@@ -38,7 +51,7 @@ extension TerminalMetalRenderer {
     metrics = source[:source.index("/// Draws one snapshot of the grid with CoreText.")]
     colors = source[source.index("    // MARK: - Colors"):]
     selection_start = colors.index("    static func selectionColors()")
-    selection_end = colors.index("    private static func contrastedColor", selection_start)
+    selection_end = colors.index("    final class ContrastCache", selection_start)
     colors = (colors[:selection_start] + """
     static func selectionColors() -> (foreground: UInt32, background: UInt32) {
         preconditionFailure("Selection colors are outside this buffer fixture")

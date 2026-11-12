@@ -82,6 +82,12 @@ Settings lists the curated theme catalog shared by both terminal backends. A
 hand-written name must match one of those display names exactly, including
 case, or Zshell falls back to the corresponding default.
 
+### `terminal.minimum-contrast` [#terminalminimum-contrast]
+
+`1`–`21` · `3`
+
+Choose **Settings → Appearance → Colors → Minimum contrast** to adjust terminal text readability from `1` to `21` (default `3`). Set `1` to keep original ANSI colors. Both backends update open terminals and Quick Terminal without restarting their shells; terminal profiles still use their own palettes. Emoji and image pixels keep their original colors. Selection and cursor rendering keep each backend’s native readability policy. For backgrounds that cannot reach the requested ratio, each backend uses its best available readable color. Transparent terminals use the resolved cell background, so the final desktop composite may have a different contrast.
+
 ### `toolbar.visibility`
 
 `"hide"` · `"auto"` · `"always"` — default `"hide"`

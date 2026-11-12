@@ -67,6 +67,12 @@ Das Farbthema für jedes Erscheinungsbild. Ein Thema färbt Terminalbereiche, Fe
 
 Die Einstellungen zeigen den für beide Terminal-Backends gemeinsamen Themenkatalog. Ein manuell eingetragener Name muss einschließlich Groß- und Kleinschreibung genau einem Anzeigenamen entsprechen. Andernfalls verwendet Zshell das jeweilige Standardthema.
 
+### `terminal.minimum-contrast` [#terminalminimum-contrast]
+
+`1`–`21` · `3`
+
+**Einstellungen → Erscheinungsbild → Farben → Mindestkontrast** regelt die Lesbarkeit des Terminaltexts von `1` bis `21` (Standard `3`). `1` behält die ursprünglichen ANSI-Farben bei. Beide Backends aktualisieren offene Terminals und Quick Terminal ohne Shell-Neustart; Profile behalten ihre Paletten. Emoji- und Bildpixel behalten ihre Farben. Auswahl und Cursor behalten die native Lesbarkeitsregel des jeweiligen Backends bei. Kann der Hintergrund das gewünschte Verhältnis nicht erreichen, verwendet jedes Backend die bestmögliche lesbare Farbe. Transparente Terminals verwenden den aufgelösten Zellhintergrund; der mit dem Desktop zusammengesetzte Kontrast kann abweichen.
+
 ### `toolbar.visibility` [#toolbarvisibility]
 
 `"hide"` · `"auto"` · `"always"` – Standard: `"hide"`

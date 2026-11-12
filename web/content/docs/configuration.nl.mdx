@@ -67,6 +67,12 @@ Het kleurthema voor elke weergave. Een thema kleurt terminaldeelvensters, venste
 
 Instellingen toont de samengestelde themacatalogus die beide terminalbackends delen. Een handmatig ingevoerde naam moet exact overeenkomen met een van die weergavenamen, inclusief hoofdletters. Anders gebruikt Zshell het bijbehorende standaardthema.
 
+### `terminal.minimum-contrast` [#terminalminimum-contrast]
+
+`1`–`21` · `3`
+
+**Instellingen → Weergave → Kleuren → Minimaal contrast** past de leesbaarheid van terminaltekst aan van `1` tot `21` (standaard `3`). `1` behoudt de oorspronkelijke ANSI-kleuren. Beide backends werken geopende terminals en Quick Terminal bij zonder hun shells opnieuw te starten; profielen behouden hun paletten. Emoji- en afbeeldingspixels behouden hun kleuren. Selectie en cursor behouden het eigen leesbaarheidsbeleid van elke backend. Als de achtergrond de gevraagde verhouding niet toelaat, gebruikt elke backend de best beschikbare leesbare kleur. Transparante terminals gebruiken de opgeloste celachtergrond, waardoor het contrast na samenvoeging met het bureaublad kan verschillen.
+
 ### `toolbar.visibility` [#toolbarvisibility]
 
 `"hide"` · `"auto"` · `"always"` — standaard `"hide"`
