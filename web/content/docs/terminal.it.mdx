@@ -58,6 +58,12 @@ Attiva **Impostazioni → Terminale → Input → Il focus segue il mouse** per 
 
 `terminal.focus-follows-mouse = true`
 
+## Azione del clic destro [#right-click-action]
+
+In **Impostazioni → Terminale → Input → Azione del clic destro**, scegli **Menu contestuale** (predefinito), **Incolla** o **Copia o incolla**. L’ultima opzione copia la selezione e incolla solo se non c’è una selezione. Le modifiche si applicano subito a entrambi i backend. `terminal.right-click-action` in `config.toml` accetta `"context-menu"`, `"paste"` o `"copy-or-paste"`.
+
+**Maiusc + clic destro**, **Control + clic** e **Command + clic destro** aprono ancora il menu. **Modifica → Mostra menu contestuale del terminale** (<kbd>Shift</kbd>+<kbd>F10</kbd>) lo apre dalla tastiera. Le applicazioni con rilevamento del mouse ricevono i normali clic destri, salvo quando **Blocca comandi Zshell** è attivo nel pannello. Incollare usa la stessa conferma multilinea e gestione dei file locali o remoti di <kbd>Cmd</kbd>+<kbd>V</kbd>.
+
 ## Profili terminale [#terminal-profiles]
 
 Crea e ordina i profili in **Impostazioni → Terminale → Profili terminale → Gestisci profili terminale…**. Possono corrispondere a host, utente, directory di lavoro e programma in primo piano. Tutte le condizioni compilate devono corrispondere; `*` accetta qualsiasi testo e `?` un carattere. Si usa il primo profilo corrispondente; senza corrispondenza, il pannello torna all’aspetto originale. **Applica automaticamente i profili terminale** è attivo per impostazione predefinita (`terminal.auto-profiles = true`); disattivandolo resta disponibile la scelta manuale.

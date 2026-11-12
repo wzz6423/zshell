@@ -394,6 +394,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var terminalRightClickAction: TerminalRightClickAction {
+        didSet { save() }
+    }
+
     @Published var focusFollowsMouse: Bool {
         didSet { save() }
     }
@@ -643,6 +647,7 @@ final class AppSettings: nonisolated ObservableObject {
         restoreTerminalHistory = toml["terminal.restore-history"]?.bool ?? (existing == nil)
         preserveTerminalSessions = toml["terminal.preserve-sessions"]?.bool ?? false
         copyOnSelect = toml["terminal.copy-on-select"]?.bool ?? true
+        terminalRightClickAction = TerminalRightClickAction(rawValue: toml["terminal.right-click-action"]?.string ?? "") ?? .contextMenu
         focusFollowsMouse = toml["terminal.focus-follows-mouse"]?.bool ?? false
         let terminalBackgroundOpacity = toml["terminal.background-opacity"]?.double
             ?? Self.defaultTerminalBackgroundOpacity
@@ -821,6 +826,7 @@ final class AppSettings: nonisolated ObservableObject {
             && restoreTerminalHistory
             && !preserveTerminalSessions
             && copyOnSelect
+            && terminalRightClickAction == .contextMenu
             && !focusFollowsMouse
             && terminalBackgroundOpacity == Self.defaultTerminalBackgroundOpacity
             && terminalBackgroundBlur == Self.defaultTerminalBackgroundBlur
@@ -882,6 +888,7 @@ final class AppSettings: nonisolated ObservableObject {
         restoreTerminalHistory = true
         preserveTerminalSessions = false
         copyOnSelect = true
+        terminalRightClickAction = .contextMenu
         focusFollowsMouse = false
         terminalBackgroundOpacity = Self.defaultTerminalBackgroundOpacity
         terminalBackgroundBlur = Self.defaultTerminalBackgroundBlur
@@ -1084,6 +1091,7 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.restoreTerminalHistory, toml["terminal.restore-history"]?.bool ?? false)
         assign(\.preserveTerminalSessions, toml["terminal.preserve-sessions"]?.bool ?? false)
         assign(\.copyOnSelect, toml["terminal.copy-on-select"]?.bool ?? true)
+        assign(\.terminalRightClickAction, TerminalRightClickAction(rawValue: toml["terminal.right-click-action"]?.string ?? "") ?? .contextMenu)
         assign(\.focusFollowsMouse, toml["terminal.focus-follows-mouse"]?.bool ?? false)
         let opacity = toml["terminal.background-opacity"]?.double
             ?? Self.defaultTerminalBackgroundOpacity
@@ -1319,6 +1327,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if !copyOnSelect {
             lines.append("terminal.copy-on-select = false")
+        }
+        if terminalRightClickAction != .contextMenu {
+            lines.append("terminal.right-click-action = \(TOML.quote(terminalRightClickAction.rawValue))")
         }
         if focusFollowsMouse {
             lines.append("terminal.focus-follows-mouse = true")

@@ -25,6 +25,10 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     private let restoreHistorySwitch = SettingsSwitch { AppSettings.shared.restoreTerminalHistory = $0 }
     private let preserveSessionsSwitch = SettingsSwitch { AppSettings.shared.preserveTerminalSessions = $0 }
     private let copyOnSelectSwitch = SettingsSwitch { AppSettings.shared.copyOnSelect = $0 }
+    private let rightClickActionPopup = SettingsPopUpButton<TerminalRightClickAction>(
+        items: TerminalRightClickAction.allCases.map { .value($0.title, $0) },
+        onChange: { AppSettings.shared.terminalRightClickAction = $0 }
+    )
     private let focusFollowsMouseSwitch = SettingsSwitch { AppSettings.shared.focusFollowsMouse = $0 }
     private let notifyOnErrorSwitch = SettingsSwitch { AppSettings.shared.notifyOnError = $0 }
     private let notifyFinishPopup = SettingsPopUpButton<Int>(
@@ -168,6 +172,11 @@ final class SettingsTerminalPane: SettingsPaneViewController {
                 control: copyOnSelectSwitch
             ),
             SettingsRow(
+                title: String(localized: "Right-click action"),
+                description: TerminalRightClickAction.explanation,
+                control: rightClickActionPopup
+            ),
+            SettingsRow(
                 title: String(localized: "Focus follows mouse"),
                 control: focusFollowsMouseSwitch
             ),
@@ -235,6 +244,7 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         restoreHistorySwitch.isOn = settings.restoreTerminalHistory
         preserveSessionsSwitch.isOn = settings.preserveTerminalSessions
         copyOnSelectSwitch.isOn = settings.copyOnSelect
+        rightClickActionPopup.select(settings.terminalRightClickAction)
         focusFollowsMouseSwitch.isOn = settings.focusFollowsMouse
         mouseScrollRow.setValue(settings.mouseScrollMultiplier)
         trackpadScrollRow.setValue(settings.trackpadScrollMultiplier)

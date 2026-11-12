@@ -48,6 +48,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-settings-config-") as temporary:
         str(ROOT / "mac/zshell/AppSettings.swift"),
         str(ROOT / "mac/zshell/TerminalScrollSettings.swift"),
         str(ROOT / "mac/zshell/KeepAwakeMode.swift"),
+        str(ROOT / "mac/zshell/TerminalRightClickAction.swift"),
         str(ROOT / "mac/zshell/TerminalProfiles.swift"),
         str(ROOT / "mac/zshell/TerminalEnvironmentSettings.swift"),
         str(ROOT / "mac/zshell/SettingsConfigFile.swift"),

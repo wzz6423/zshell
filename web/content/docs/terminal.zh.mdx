@@ -68,6 +68,12 @@ macOS 会将这些请求归属于 Zshell；请只允许你信任的程序。自�
 
 `terminal.focus-follows-mouse = true`
 
+## 右键操作 [#right-click-action]
+
+在 **设置 → 终端 → 输入 → 右键操作** 中选择 **上下文菜单**（默认）、**粘贴** 或 **复制或粘贴**。最后一项在有选区时复制，没有选区时才粘贴。修改立即作用于两个后端。在 `config.toml` 中将 `terminal.right-click-action` 设为 `"context-menu"`、`"paste"` 或 `"copy-or-paste"`。
+
+**Shift+右键**、**Control+单击** 和 **Command+右键** 仍可打开菜单。也可以选择 **编辑 → 显示终端上下文菜单**（<kbd>Shift</kbd>+<kbd>F10</kbd>）。启用鼠标报告的应用继续接收普通右键，除非该面板启用了 **屏蔽 Zshell 命令**。粘贴仍使用与 <kbd>Cmd</kbd>+<kbd>V</kbd> 相同的多行确认、本地文件处理和远程上传流程。
+
 ## 终端配置方案 [#terminal-profiles]
 
 在**设置 → 终端 → 终端配置方案 → 管理终端配置方案…**中创建和排序配置方案。可按主机、用户、工作目录和前台程序匹配；填写的条件须全部满足，`*` 匹配任意文本，`?` 匹配一个字符，使用第一个匹配方案。无匹配时恢复窗格原始外观。**自动应用终端配置方案**默认开启（`terminal.auto-profiles = true`）；关闭后仍可手动选择。

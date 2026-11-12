@@ -58,6 +58,12 @@ Aktivieren Sie **Einstellungen → Terminal → Eingabe → Fokus folgt der Maus
 
 `terminal.focus-follows-mouse = true`
 
+## Rechtsklick-Aktion [#right-click-action]
+
+Unter **Einstellungen → Terminal → Eingabe → Rechtsklick-Aktion** wählen Sie **Kontextmenü** (Standard), **Einfügen** oder **Kopieren oder Einfügen**. Die letzte Option kopiert die Auswahl und fügt nur ohne Auswahl ein. Änderungen gelten sofort für beide Backends. `terminal.right-click-action` in `config.toml` akzeptiert `"context-menu"`, `"paste"` oder `"copy-or-paste"`.
+
+**Umschalt-Rechtsklick**, **Control-Klick** und **Command-Rechtsklick** öffnen weiterhin das Menü. **Bearbeiten → Terminal-Kontextmenü anzeigen** (<kbd>Shift</kbd>+<kbd>F10</kbd>) öffnet es per Tastatur. Anwendungen mit Mausereignissen erhalten gewöhnliche Rechtsklicks, solange **Zshell-Befehle blockieren** im Bereich ausgeschaltet ist. Einfügen verwendet dieselbe Mehrzeilenbestätigung und lokale oder entfernte Dateiverarbeitung wie <kbd>Cmd</kbd>+<kbd>V</kbd>.
+
 ## Terminalprofile [#terminal-profiles]
 
 Erstellen und sortieren Sie Profile unter **Einstellungen → Terminal → Terminalprofile → Terminalprofile verwalten…**. Sie können Host, Benutzer, Arbeitsverzeichnis und Vordergrundprogramm abgleichen. Alle ausgefüllten Bedingungen müssen passen; `*` steht für beliebigen Text, `?` für ein Zeichen. Das erste passende Profil gilt; ohne Treffer erhält der Bereich seine ursprüngliche Darstellung. **Terminalprofile automatisch anwenden** ist standardmäßig eingeschaltet (`terminal.auto-profiles = true`). Manuelle Auswahl bleibt auch nach dem Ausschalten verfügbar.

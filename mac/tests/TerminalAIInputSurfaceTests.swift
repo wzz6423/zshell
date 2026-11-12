@@ -77,6 +77,26 @@ struct TerminalAIInputSurfaceTests {
             }
         }
 
+        func paste(fromContextMenu: Bool = false) {
+            if ProcessInfo.processInfo.environment["ZSHELL_TEST_RIGHT_CLICK_PASTE"] == "1" {
+                AppSettings.shared.terminalRightClickAction = .paste
+                if fromContextMenu {
+                    let menu = TerminalContextMenu.make(for: view, linkTarget: nil)
+                    let item = menu.items.first { $0.action == #selector(NSText.paste(_:)) }!
+                    NSApp.sendAction(item.action!, to: item.target, from: item)
+                    return
+                }
+                let event = NSEvent.mouseEvent(
+                    with: .rightMouseDown, location: NSPoint(x: 20, y: 20), modifierFlags: [],
+                    timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                    context: nil, eventNumber: 0, clickCount: 1, pressure: 1
+                )!
+                view.rightMouseDown(with: event)
+            } else {
+                view.tryToPerform(#selector(NSText.paste(_:)), with: nil)
+            }
+        }
+
         func mouse(
             _ type: NSEvent.EventType, _ offset: Int, row relativeRow: Int = 0,
             clickCount: Int = 1
@@ -221,8 +241,7 @@ struct TerminalAIInputSurfaceTests {
                         commitText("字", composing: true)
                         replacement = "字"
                     case "paste":
-                        if let ghostty = view as? ZshellTerminalView { ghostty.paste(nil) }
-                        else if let alacritty = view as? AlacrittyTerminalView { alacritty.paste(nil) }
+                        paste(fromContextMenu: captured)
                         replacement = "paste"
                     case "accessibility": view.setAccessibilitySelectedText("voice"); replacement = "voice"
                     default: key(); replacement = "x"
@@ -398,8 +417,7 @@ struct TerminalAIInputSurfaceTests {
         } ?? []
         pasteboard.clearContents()
         pasteboard.setString("paste", forType: .string)
-        if let ghostty = view as? ZshellTerminalView { ghostty.paste(nil) }
-        else if let alacritty = view as? AlacrittyTerminalView { alacritty.paste(nil) }
+        paste(fromContextMenu: true)
         pasteboard.clearContents()
         pasteboard.writeObjects(previousClipboard.map { values in
             let item = NSPasteboardItem()
