@@ -18,7 +18,7 @@ Ambos suportam aceleração por GPU, imagens, o catálogo compartilhado de temas
 
 ## Tipo de terminal [#terminal-type]
 
-Defina `terminal.term` em **Ajustes → Terminal → TERM** (padrão `"xterm-256color"`). O nome deve conter 1–128 letras ASCII, dígitos ou `.-_+`. Use um nome terminfo instalado no host que executa o shell. As mudanças se aplicam apenas a novas sessões locais e SSH; PTYs abertos e preservados mantêm seu `TERM` original. Sessões remotas compartilhadas usam o valor ao serem criadas com um servidor atualizado; servidores antigos mantêm `xterm-256color`. Edições inválidas preservam o último valor válido e mostram um erro em Ajustes. `TERM_PROGRAM` e `ZSHELL_TERM` não mudam.
+O Zshell configura `xterm-256color` automaticamente. Se um host precisar de outro tipo de terminal, defina `terminal.term` em `config.toml` com um nome terminfo instalado na máquina que executa o shell. As alterações valem para novas sessões locais e SSH; PTYs abertos e preservados mantêm o `TERM` original. Nomes inválidos preservam o último valor válido ou usam `xterm-256color` na inicialização.
 
 ## Histórico de comandos [#command-history]
 

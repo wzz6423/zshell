@@ -26,7 +26,7 @@ Les lignes utilisent des icônes Material adaptées aux noms de fichiers. Dans u
 
 ## Fichiers distants [#remote-files]
 
-Ouvrez les fichiers SSH dans le panneau Fichiers. Pour créer, renommer, déplacer vers la corbeille distante ou enregistrer, activez **Réglages → Éditeur → Fichiers → Autoriser la modification des fichiers distants** (`files.remote-write-enabled`, désactivé par défaut).
+Ouvrez les fichiers SSH dans le panneau Fichiers. Pour créer, renommer, déplacer vers la corbeille distante ou enregistrer, activez **Réglages → Éditeur → Fichiers → Autoriser la modification des fichiers distants** (`files.remote-write-enabled`, activé par défaut).
 
 Zshell utilise uniquement les outils déjà présents sur l’hôte, sans rien installer. La lecture et l’édition utilisent ses modules de base Perl existants. Chaque écriture vérifie aussi les fonctions nécessaires du système de fichiers ; les opérations non prises en charge restent désactivées. Les liens symboliques, fichiers spéciaux et chemins hors du projet sont refusés. Les textes UTF-8 sont limités à 5 MiB ; le Markdown distant s’ouvre en mode source.
 
@@ -38,7 +38,7 @@ L’enregistrement distant vérifie les modifications même si la protection loc
 
 Choisissez **Fichier → Importer des fichiers…**, le bouton d’importation du panneau Fichiers, ou cette commande dans le menu contextuel d’un dossier. Sélectionnez plusieurs fichiers ou dossiers : Zshell les copie dans le dossier choisi ou à la racine actuelle, en conservant les originaux.
 
-Pour déposer des éléments du Finder sur un dossier ou dans l’espace vide de l’arborescence, activez **Réglages → Éditeur → Fichiers → Importer en glissant dans l’arborescence** (`files.drag-import`). Cette option est désactivée par défaut ; le menu reste disponible.
+Pour déposer des éléments du Finder sur un dossier ou dans l’espace vide de l’arborescence, activez **Réglages → Éditeur → Fichiers → Importer en glissant dans l’arborescence** (`files.drag-import`). Cette option est activée par défaut ; le menu reste disponible.
 
 Les noms existants proposent **Remplacer**, **Ignorer** ou **Annuler**. Un dossier est remplacé entièrement, sans fusion de son contenu. Annuler arrête toute l’importation et restaure les copies déjà ajoutées. Si un autre programme modifie un élément avant sa restauration, Zshell préserve cette modification et indique un dossier pouvant contenir des fichiers de récupération. Les arborescences SSH n’acceptent pas d’importation locale. Les liens symboliques sont copiés comme liens, sans suivre leur cible.
 

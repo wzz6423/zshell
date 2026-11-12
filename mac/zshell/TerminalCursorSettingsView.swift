@@ -18,7 +18,7 @@ final class TerminalCursorShapeSettingsView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
 
-        titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize)
+        titleLabel.font = SettingsMetrics.rowTitleFont
 
         popup.controlSize = .small
         popup.target = self
@@ -33,11 +33,16 @@ final class TerminalCursorShapeSettingsView: NSView {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         popup.translatesAutoresizingMaskIntoConstraints = false
         popup.setContentHuggingPriority(.required, for: .horizontal)
+        let icon = SettingsIconView(symbolName: "cursorarrow", color: SettingsCategory.appearance.iconColor,
+                                    size: SettingsMetrics.rowIconSize)
+        addSubview(icon)
         addSubview(titleLabel)
         addSubview(popup)
 
         NSLayoutConstraint.activate([
-            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
+            icon.leadingAnchor.constraint(equalTo: leadingAnchor),
+            icon.centerYAnchor.constraint(equalTo: titleLabel.firstBaselineAnchor, constant: SettingsMetrics.rowIconBaselineOffset),
+            titleLabel.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: SettingsMetrics.iconLabelGap),
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
             titleLabel.trailingAnchor.constraint(
                 lessThanOrEqualTo: popup.leadingAnchor,
@@ -90,7 +95,7 @@ final class TerminalCursorBlinkingSettingsView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
 
-        titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize)
+        titleLabel.font = SettingsMetrics.rowTitleFont
 
         toggle.controlSize = .small
         toggle.target = self
@@ -100,11 +105,16 @@ final class TerminalCursorBlinkingSettingsView: NSView {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         toggle.translatesAutoresizingMaskIntoConstraints = false
         toggle.setContentHuggingPriority(.required, for: .horizontal)
+        let icon = SettingsIconView(symbolName: "cursorarrow.rays", color: SettingsCategory.appearance.iconColor,
+                                    size: SettingsMetrics.rowIconSize)
+        addSubview(icon)
         addSubview(titleLabel)
         addSubview(toggle)
 
         NSLayoutConstraint.activate([
-            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
+            icon.leadingAnchor.constraint(equalTo: leadingAnchor),
+            icon.centerYAnchor.constraint(equalTo: titleLabel.firstBaselineAnchor, constant: SettingsMetrics.rowIconBaselineOffset),
+            titleLabel.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: SettingsMetrics.iconLabelGap),
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
             titleLabel.trailingAnchor.constraint(
                 lessThanOrEqualTo: toggle.leadingAnchor,

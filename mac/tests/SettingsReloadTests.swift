@@ -32,14 +32,6 @@ import Foundation
     }
 }
 
-@MainActor final class AgentUsageModel {
-    static let shared = AgentUsageModel()
-    var policies: [[Bool]] = []
-    func applySettings(_ settings: AppSettings) {
-        policies.append([settings.agentUsageEnabled, settings.claudeUsageEnabled, settings.codexUsageEnabled])
-    }
-}
-
 @MainActor enum ZshellAgentIntegrations {
     static func preflightInstallAvailable() throws { try IntegrationFixture.preflight("integrations-preflight-install") }
     static func preflightUninstallManaged() throws { try IntegrationFixture.preflight("integrations-preflight-uninstall") }
@@ -103,7 +95,13 @@ struct SettingsReloadTests {
             let expectedInvalid = CommandLine.arguments[2] == "invalid-term"
             check(settings.terminalTerm == "xterm-256color" && settings.terminalTermIsInvalid == expectedInvalid,
                   "invalid startup TERM uses the default and recovered TERM stays valid after restart")
+            check(settings.diffWrapLines == expectedInvalid && settings.fileTreeDragImport == expectedInvalid
+                  && settings.remoteFileWritesEnabled == expectedInvalid,
+                  "startup enables omitted file preferences and preserves explicit false after restart")
             if expectedInvalid {
+                settings.diffWrapLines = false
+                settings.fileTreeDragImport = false
+                settings.remoteFileWritesEnabled = false
                 check(settings.setTerminalTerm("xterm-256color") && !settings.terminalTermIsInvalid,
                       "accepting the startup fallback clears the error")
                 NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: nil)
@@ -122,6 +120,8 @@ struct SettingsReloadTests {
         check(settings.terminalRightClickAction == .contextMenu, "right-click keeps the context menu by default")
         check(settings.shellCompletions, "shell completions are enabled by default")
         check(settings.remotePasteUpload && settings.remoteDropUpload, "remote file uploads are enabled by default")
+        check(settings.diffWrapLines && settings.fileTreeDragImport && settings.remoteFileWritesEnabled,
+              "diff wrapping, file drag import and remote writes are enabled by default")
         check(settings.vimCommandHints && settings.restoreTerminalHistory && settings.notifyOnError,
               "new configurations use the enabled preference defaults")
         check(settings.protectEditorSaves && settings.recoverEditorDrafts && settings.quickTerminalEnabled && settings.commandHistoryEnabled && settings.terminalTextHints
@@ -176,31 +176,20 @@ struct SettingsReloadTests {
         rightClickConfig["terminal.right-click-action"] = .string("invalid")
         settings.applyImported(rightClickConfig)
         check(settings.terminalRightClickAction == .contextMenu && settings.isAtDefaults, "invalid right-click action restores the default menu")
-        check(!settings.agentUsageEnabled && settings.claudeUsageEnabled && settings.codexUsageEnabled,
-              "account usage is opt-in while provider choices start enabled")
+        let legacyUsageKeys = ["ai.usage-enabled", "ai.claude-usage-enabled", "ai.codex-usage-enabled"]
         let usageIntegrations = IntegrationFixture.operations
         let defaultUsageConfig = TOML.parseStrictly(text: settings.serializedConfig()).values
-        var usageConfig = defaultUsageConfig
-        usageConfig["ai.usage-enabled"] = .bool(true)
-        usageConfig["ai.claude-usage-enabled"] = .bool(false)
-        usageConfig["ai.codex-usage-enabled"] = .bool(false)
-        settings.applyImported(usageConfig)
-        check(AgentUsageModel.shared.policies == [[true, false, false]],
-              "usage imports apply one complete policy without transient provider starts")
-        let usageExport = TOML.parseStrictly(text: settings.serializedConfig()).values
-        check(usageExport["ai.usage-enabled"] == .bool(true)
-              && usageExport["ai.claude-usage-enabled"] == .bool(false)
-              && usageExport["ai.codex-usage-enabled"] == .bool(false),
-              "all usage choices serialize for export")
-        settings.agentUsageEnabled = false
-        check(!settings.claudeUsageEnabled && !settings.codexUsageEnabled,
-              "master disable preserves provider choices")
-        check(!settings.isAtDefaults, "provider choices enable reset while master is off")
-        settings.applyImported(defaultUsageConfig)
-        check(!settings.agentUsageEnabled && settings.claudeUsageEnabled && settings.codexUsageEnabled,
-              "omitted usage keys restore safe defaults")
+        for enabled in [true, false] {
+            var usageConfig = defaultUsageConfig
+            for key in legacyUsageKeys { usageConfig[key] = .bool(enabled) }
+            settings.applyImported(usageConfig)
+            check(settings.isAtDefaults, "removed account usage settings do not change the reset state")
+            let usageExport = TOML.parseStrictly(text: settings.serializedConfig()).values
+            check(legacyUsageKeys.allSatisfy { usageExport[$0] == nil },
+                  "removed account usage settings are ignored on import and omitted from export")
+        }
         check(IntegrationFixture.operations == usageIntegrations,
-              "usage settings never install or uninstall agent lifecycle integration")
+              "legacy account usage settings never change agent lifecycle integration")
         check(settings.keepAwakeMode == .off, "sleep prevention is off by default")
         check(settings.sidebarDoubleClickNewSession,
               "empty-space gesture is enabled by default")
@@ -283,29 +272,27 @@ struct SettingsReloadTests {
         settings.resetToDefaults()
         check(settings.terminalTerm == "xterm-256color" && settings.isAtDefaults
               && !settings.serializedConfig().contains("terminal.term"), "reset omits the default terminal type")
-        settings.fileTreeDragImport = true
-        check(!settings.isAtDefaults, "enabled file import enables reset")
-        wait({ (try? String(contentsOf: url, encoding: .utf8))?.contains("files.drag-import = true") == true },
+        settings.fileTreeDragImport = false
+        check(!settings.isAtDefaults, "disabled file import enables reset")
+        wait({ (try? String(contentsOf: url, encoding: .utf8))?.contains("files.drag-import = false") == true },
              "file import preference persists")
-        var importConfig = TOML.parse(at: url) ?? [:]
-        importConfig["files.drag-import"] = .bool(false)
-        settings.applyImported(importConfig)
-        check(!settings.fileTreeDragImport && settings.isAtDefaults, "import restores disabled file drag setting")
+        let importConfig = TOML.parse(at: url) ?? [:]
         settings.fileTreeDragImport = true
+        settings.applyImported(importConfig)
+        check(!settings.fileTreeDragImport && !settings.isAtDefaults, "import preserves disabled file drag setting")
         settings.resetToDefaults()
-        check(!settings.fileTreeDragImport && settings.isAtDefaults, "reset disables file drag import")
-        check(!settings.remoteFileWritesEnabled, "remote writes are opt-in")
-        settings.remoteFileWritesEnabled = true
-        check(!settings.isAtDefaults, "remote writes enable reset")
-        wait({ (try? String(contentsOf: url, encoding: .utf8))?.contains("files.remote-write-enabled = true") == true },
+        check(settings.fileTreeDragImport && settings.isAtDefaults, "reset enables file drag import")
+        check(settings.remoteFileWritesEnabled, "remote writes are enabled by default")
+        settings.remoteFileWritesEnabled = false
+        check(!settings.isAtDefaults, "disabled remote writes enable reset")
+        wait({ (try? String(contentsOf: url, encoding: .utf8))?.contains("files.remote-write-enabled = false") == true },
              "remote write preference persists")
-        var remoteWriteConfig = TOML.parse(at: url) ?? [:]
-        remoteWriteConfig["files.remote-write-enabled"] = .bool(false)
-        settings.applyImported(remoteWriteConfig)
-        check(!settings.remoteFileWritesEnabled && settings.isAtDefaults, "import disables remote writes")
+        let remoteWriteConfig = TOML.parse(at: url) ?? [:]
         settings.remoteFileWritesEnabled = true
+        settings.applyImported(remoteWriteConfig)
+        check(!settings.remoteFileWritesEnabled && !settings.isAtDefaults, "import preserves disabled remote writes")
         settings.resetToDefaults()
-        check(!settings.remoteFileWritesEnabled && settings.isAtDefaults, "reset disables remote writes")
+        check(settings.remoteFileWritesEnabled && settings.isAtDefaults, "reset enables remote writes")
         settings.commandShortcuts[.newSession] = CommandShortcut(persistedValue: "u7a:cmd+shift")!
         check(!settings.isAtDefaults, "shortcut overrides enable reset")
         settings.resetCommandShortcuts()
@@ -436,7 +423,11 @@ struct SettingsReloadTests {
         check(settings.terminalRightClickAction == .paste, "right-click action survives the full settings round trip")
         check(GitProxy.address == "socks5h://127.0.0.1:1080", "imported Git proxy reaches Git processes")
         for (key, value) in parsed.values {
-            check(roundTrip[key] == value, "all persisted keys import and serialize: \(key)")
+            if legacyUsageKeys.contains(key) {
+                check(roundTrip[key] == nil, "removed account usage settings do not persist: \(key)")
+            } else {
+                check(roundTrip[key] == value, "all persisted keys import and serialize: \(key)")
+            }
         }
         check(Theme.reloads == oldThemeReloads + 1, "import combines theme reloads")
         check(GlobalTerminalOverlay.shared.hotkeyReloads == oldHotkeyReloads + 1, "import updates hotkey once")
@@ -515,14 +506,16 @@ struct SettingsReloadTests {
         try rightClickChanged.write(to: url, atomically: true, encoding: .utf8)
         wait({ settings.terminalRightClickAction == .copyOrPaste }, "external right-click edit applies to live settings")
         check(try SettingsConfigFile.read(at: url) == rightClickChanged, "external right-click update does not rewrite source")
-        let usagePolicyCount = AgentUsageModel.shared.policies.count
-        let usageChanged = rightClickChanged.replacingOccurrences(of: "ai.usage-enabled = true", with: "ai.usage-enabled = false")
-            .replacingOccurrences(of: "ai.codex-usage-enabled = false", with: "ai.codex-usage-enabled = true")
+        let usageChangeCount = changes
+        let usageIntegrationsBeforeReload = IntegrationFixture.operations
+        let usageChanged = rightClickChanged + "ai.usage-enabled = true\nai.claude-usage-enabled = true\nai.codex-usage-enabled = true\n"
         try usageChanged.write(to: url, atomically: true, encoding: .utf8)
-        wait({ !settings.agentUsageEnabled && settings.codexUsageEnabled }, "external usage edits apply")
-        check(AgentUsageModel.shared.policies.count == usagePolicyCount + 1
-              && AgentUsageModel.shared.policies.last == [false, false, true],
-              "external reload applies one complete usage policy")
+        spin(0.7)
+        check(changes == usageChangeCount && IntegrationFixture.operations == usageIntegrationsBeforeReload,
+              "external legacy usage settings do not publish changes or alter agent integrations")
+        let usageReloadExport = TOML.parseStrictly(text: settings.serializedConfig()).values
+        check(legacyUsageKeys.allSatisfy { usageReloadExport[$0] == nil },
+              "legacy usage settings remain omitted after external reload")
         check(try SettingsConfigFile.read(at: url) == usageChanged, "usage reload preserves the edited file")
         check(settings.mouseScrollMultiplier == 0.1 && settings.trackpadScrollMultiplier == 0.5,
               "usage reload retains both independent scrolling choices")
@@ -560,7 +553,8 @@ struct SettingsReloadTests {
         check(!settings.browserAccessEnabled && settings.browserAccessInterface == "loopback" && settings.browserAccessPort == 7443,
               "empty external config closes browser access and resets network configuration")
         check(settings.terminalMinimumContrast == 3, "omitted contrast restores the compatible default")
-        check(!settings.diffWrapLines, "diff line wrapping resets when its external config key is omitted")
+        check(settings.diffWrapLines && settings.fileTreeDragImport && settings.remoteFileWritesEnabled,
+              "omitted file preferences restore enabled defaults on external reload")
         check(settings.sidebarDoubleClickNewSession,
               "omitted sidebar gesture key restores the default on external reload")
         check(settings.newSessionDirectoryPolicy == .current && settings.newSessionCustomDirectory.isEmpty,
@@ -580,8 +574,12 @@ struct SettingsReloadTests {
               && settings.notifyOnAgentCompletion && settings.showPullRequestStatus
               && settings.customAgentRecognitionRules && settings.agentScreenInference,
               "omitted feature switches restore compatible defaults on external reload")
-        check(!settings.agentUsageEnabled && settings.claudeUsageEnabled && settings.codexUsageEnabled,
-              "empty configuration disables usage and restores provider defaults")
+        let disabledFilePreferences = "editor.diff-wrap-lines = false\nfiles.drag-import = false\nfiles.remote-write-enabled = false\n"
+        try disabledFilePreferences.write(to: url, atomically: true, encoding: .utf8)
+        wait({ !settings.diffWrapLines && !settings.fileTreeDragImport && !settings.remoteFileWritesEnabled },
+             "external reload preserves explicitly disabled file preferences")
+        check(try SettingsConfigFile.read(at: url) == disabledFilePreferences,
+              "file preference reload preserves the external config")
 
         settings.resetToDefaults()
         check(settings.isAtDefaults, "reset covers every configurable preference")
@@ -589,16 +587,20 @@ struct SettingsReloadTests {
         check(!settings.isAtDefaults, "browser access enables reset")
         settings.resetToDefaults()
         check(!settings.browserAccessEnabled && !settings.preserveTerminalSessions, "reset disables sharing without enabling persistent sessions")
+        settings.diffWrapLines = false
+        check(!settings.isAtDefaults, "disabled diff line wrapping enables reset")
+        let diffConfig = TOML.parseStrictly(text: settings.serializedConfig()).values
+        check(diffConfig["editor.diff-wrap-lines"] == .bool(false), "disabled diff wrapping exports explicitly")
         settings.diffWrapLines = true
-        check(!settings.isAtDefaults, "diff line wrapping enables reset")
+        settings.applyImported(diffConfig)
+        check(!settings.diffWrapLines, "import preserves disabled diff wrapping")
         settings.resetToDefaults()
-        check(!settings.diffWrapLines && settings.isAtDefaults, "reset restores horizontal diff scrolling")
+        check(settings.diffWrapLines && settings.isAtDefaults, "reset restores wrapped diff lines")
         check(settings.terminalPaddingColor == .extend, "reset restores automatic padding")
         let featureSwitches: [ReferenceWritableKeyPath<AppSettings, Bool>] = [
             \.protectEditorSaves, \.recoverEditorDrafts, \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints, \.promptQueueEnabled,
             \.automaticallyApplyTerminalProfiles, \.notifyOnAgentAttention,
             \.notifyOnAgentCompletion, \.showPullRequestStatus, \.sidebarDoubleClickNewSession,
-            \.claudeUsageEnabled, \.codexUsageEnabled,
             \.remotePasteUpload, \.remoteDropUpload,
             \.customAgentRecognitionRules, \.agentScreenInference,
         ]
@@ -608,10 +610,6 @@ struct SettingsReloadTests {
             settings[keyPath: keyPath] = true
         }
         check(settings.isAtDefaults, "restored feature switches restore default state")
-        settings.agentUsageEnabled = true
-        check(!settings.isAtDefaults, "enabled usage changes reset state")
-        settings.resetToDefaults()
-        check(!settings.agentUsageEnabled && settings.isAtDefaults, "reset disables usage")
 
         for ratio in [1.0, 3, 7, 21, 7.25] {
             settings.terminalMinimumContrast = ratio

@@ -13,11 +13,7 @@ HARNESS = r'''import AppKit
 
 // Only category metadata is a fixture; the editor, settings rows, and language
 // resolution are production code and no terminal or app services are started.
-enum SettingsCategory: CaseIterable {
-    case general, appearance, terminal, browser
-    var symbolName: String { "" }
-    var iconColor: NSColor { .gray }
-}
+CATEGORY_METADATA
 
 @main @MainActor struct DirectoryLayoutProbe {
     static func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
@@ -96,7 +92,9 @@ with tempfile.TemporaryDirectory(prefix="zshell-directory-layout-", dir="/tmp") 
     subprocess.run(["xcrun", "xcstringstool", "compile", str(sources / "Localizable.xcstrings"),
                     "--output-directory", str(resources)], check=True, capture_output=True, text=True)
     script = temporary / "Probe.swift"
-    script.write_text(HARNESS)
+    category = (sources / "Settings/SettingsWindowController.swift").read_text()
+    category = category[category.index("enum SettingsCategory:"):category.index("    func makePane()")] + "}\n"
+    script.write_text(HARNESS.replace("CATEGORY_METADATA", category))
     subprocess.run([
         "xcrun", "swiftc", "-parse-as-library", "-default-isolation", "MainActor",
         "-module-cache-path", str(temporary / "modules"),

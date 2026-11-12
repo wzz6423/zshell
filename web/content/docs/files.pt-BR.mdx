@@ -26,7 +26,7 @@ As linhas usam ícones Material conforme o nome do arquivo. Em um repositório G
 
 ## Arquivos remotos [#remote-files]
 
-Abra arquivos SSH pelo painel Arquivos. Para criar, renomear, mover para a lixeira remota ou salvar, ative **Ajustes → Editor → Arquivos → Permitir alterações em arquivos remotos** (`files.remote-write-enabled`, desativado por padrão).
+Abra arquivos SSH pelo painel Arquivos. Para criar, renomear, mover para a lixeira remota ou salvar, ative **Ajustes → Editor → Arquivos → Permitir alterações em arquivos remotos** (`files.remote-write-enabled`, ativado por padrão).
 
 O Zshell usa apenas ferramentas já instaladas no host e não instala nada. A leitura e a edição usam os módulos básicos de Perl existentes. Cada gravação também verifica as funções necessárias do sistema de arquivos; operações incompatíveis permanecem desativadas. Links simbólicos, arquivos especiais e caminhos fora do projeto são rejeitados. Textos UTF-8 podem ter até 5 MiB; Markdown remoto abre como código-fonte.
 
@@ -38,7 +38,7 @@ O salvamento remoto verifica alterações mesmo com a proteção local desativad
 
 Escolha **Arquivo → Importar arquivos…**, o botão de importação do painel Arquivos ou a opção no menu de contexto de uma pasta. Selecione vários arquivos ou pastas; o Zshell os copia para a pasta escolhida ou a raiz atual da árvore, mantendo os originais.
 
-Para soltar itens do Finder em uma pasta ou na área vazia da árvore, ative **Ajustes → Editor → Arquivos → Importar ao arrastar para a árvore de arquivos** (`files.drag-import`). A opção vem desativada. O menu continua disponível.
+Para soltar itens do Finder em uma pasta ou na área vazia da árvore, ative **Ajustes → Editor → Arquivos → Importar ao arrastar para a árvore de arquivos** (`files.drag-import`). A opção vem ativada. O menu continua disponível.
 
 Nomes existentes oferecem **Substituir**, **Ignorar** e **Cancelar**. A substituição troca a pasta inteira, sem mesclar seu conteúdo. Cancelar interrompe toda a importação e restaura as cópias já adicionadas. Se outro programa alterar um item antes da restauração, o Zshell preserva a alteração e mostra uma pasta que pode conter arquivos de recuperação. Árvores SSH não aceitam importação local. Links simbólicos são copiados como links, sem seguir o destino.
 

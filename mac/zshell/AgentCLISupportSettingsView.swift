@@ -24,7 +24,7 @@ final class AgentCLISupportSettingsView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
 
-        titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize)
+        titleLabel.font = SettingsMetrics.rowTitleFont
         detailLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         detailLabel.textColor = .secondaryLabelColor
         detailLabel.maximumNumberOfLines = 0
@@ -50,11 +50,16 @@ final class AgentCLISupportSettingsView: NSView {
 
         textStack.translatesAutoresizingMaskIntoConstraints = false
         toggle.translatesAutoresizingMaskIntoConstraints = false
+        let icon = SettingsIconView(symbolName: "point.3.connected.trianglepath.dotted",
+                                    color: SettingsCategory.automation.iconColor, size: SettingsMetrics.rowIconSize)
+        addSubview(icon)
         addSubview(textStack)
         addSubview(toggle)
 
         NSLayoutConstraint.activate([
-            textStack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            icon.leadingAnchor.constraint(equalTo: leadingAnchor),
+            icon.centerYAnchor.constraint(equalTo: titleLabel.firstBaselineAnchor, constant: SettingsMetrics.rowIconBaselineOffset),
+            textStack.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: SettingsMetrics.iconLabelGap),
             textStack.topAnchor.constraint(equalTo: topAnchor),
             textStack.bottomAnchor.constraint(equalTo: bottomAnchor),
             textStack.trailingAnchor.constraint(lessThanOrEqualTo: toggle.leadingAnchor, constant: -16),

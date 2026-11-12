@@ -188,7 +188,7 @@ regular/bold 區分及後備字型字重。
 
 ### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
 
-布林值——預設 `false`
+布林值——預設 `true`
 
 在**設定 → 編輯器 → 按 Diff 寬度換行**或 Diff 工具列的換行按鈕中切換。長行會按窗格寬度折行，適用於單欄和左右對照佈局、可編輯的工作區變更、歷史 Diff 和 PR 評論。選擇立即同步到所有已開啟的 Diff，並在重新啟動後保留。關閉後恢復橫向捲動。它獨立於檔案編輯器和終端機的換行設定。
 
@@ -238,7 +238,7 @@ Finder、CLI、工作區範本、worktree、還原工作階段、專案固定目
 
 ### `terminal.term`
 
-在 **設定 → 終端機 → TERM** 中設定 `terminal.term`（預設為 `"xterm-256color"`）。名稱必須由 1–128 個 ASCII 字母、數字或 `.-_+` 組成。請使用執行 shell 的主機上已安裝的 terminfo 名稱。修改僅適用於新建的本機與 SSH 階段作業；已開啟和保留的 PTY 維持原本的 `TERM`。共享遠端階段作業在更新後的伺服器上建立時使用此值；舊伺服器繼續使用 `xterm-256color`。啟動時遇到無效值會退回 `xterm-256color`；Zshell 執行期間的無效修改會保留上一個有效值。兩種情況都會在設定中顯示錯誤。此設定不會改變 `TERM_PROGRAM` 或 `ZSHELL_TERM`。
+Zshell 自動使用 `xterm-256color`。如果某台主機需要其他終端機類型，可在 `config.toml` 中設定 `terminal.term`，使用執行 shell 的主機上已安裝的 terminfo 名稱。變更僅影響新建的本機和 SSH 階段作業；已開啟和保留的 PTY 維持原本的 `TERM`。無效名稱保留上一個有效值，啟動時則使用 `xterm-256color`。
 
 ### `terminal.backend` [#terminalbackend]
 
@@ -318,26 +318,14 @@ Finder、CLI、工作區範本、worktree、還原工作階段、專案固定目
 
 可在 **設定 → 自動化 → 恢復 Agent 對話** 中切換。它與 `terminal.restore-history` 獨立。
 
-### `ai.usage-enabled`
-
-布林值——預設 `false`
-
-在 **設定 → Automation → 帳戶用量 → 讀取帳戶用量** 啟用本機 CLI 帳戶額度讀取。關閉後會取消待處理用量請求、隱藏資料，並拒絕儲存 Claude 用量報告，同時保留提供方選擇。用量設定不改變 Agent 識別、生命週期回報或對話恢復。
-
-### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
-
-布林值——各自預設 `true`
-
-選擇 `ai.usage-enabled = true` 時允許讀取用量的提供方。Claude Code 讀取 Zshell 本機狀態列報告，Codex 查詢已安裝並登入的 CLI。關閉提供方會立即停止對應讀取並隱藏資料，不收集登入憑證。三項設定支援搜尋、匯入匯出、設定即時重新載入及還原預設值。
-
 ## 其他配置項 [#additional-settings]
 
 | 配置鍵 | 預設值 | 可選值 / 範圍 | 作用 |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | 應用圖示 |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | 檔案和目錄使用的外部編輯器 |
-| `files.drag-import` | `false` | 布林值 | 允許將 Finder 項目拖入本機檔案樹並複製；選單匯入隨時可用 |
-| `files.remote-write-enabled` | `false` | 布林值 | 在主機現有工具支援時，允許遠端建立、重新命名、可回復刪除和儲存 |
+| `files.drag-import` | `true` | 布林值 | 允許將 Finder 項目拖入本機檔案樹並複製；選單匯入隨時可用 |
+| `files.remote-write-enabled` | `true` | 布林值 | 在主機現有工具支援時，允許遠端建立、重新命名、可回復刪除和儲存 |
 | `terminal.theme-only` | `false` | 布林值 | 只將所選配色應用於終端機 |
 | `terminal.command-history` | `true` | 布林值 | 記錄新命令，關閉後仍可查看既有歷史 |
 | `terminal.text-hints` | `true` | 布林值 | 啟用可見終端機文字的鍵盤提示 |

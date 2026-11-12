@@ -26,7 +26,7 @@ Rijen gebruiken Material-pictogrammen die bij de bestandsnaam passen. In een Git
 
 ## Externe bestanden [#remote-files]
 
-Open SSH-bestanden vanuit het paneel Bestanden. Schakel voor maken, hernoemen, verplaatsen naar de externe prullenmand en opslaan **Instellingen → Editor → Bestanden → Wijzigingen in externe bestanden toestaan** in (`files.remote-write-enabled`, standaard uit).
+Open SSH-bestanden vanuit het paneel Bestanden. Schakel voor maken, hernoemen, verplaatsen naar de externe prullenmand en opslaan **Instellingen → Editor → Bestanden → Wijzigingen in externe bestanden toestaan** in (`files.remote-write-enabled`, standaard aan).
 
 Zshell gebruikt alleen bestaande hulpmiddelen op de host en installeert niets. Lezen en bewerken gebruiken de bestaande Perl-kernmodules. Elke schrijfbewerking controleert ook de benodigde bestandssysteemfuncties; niet-ondersteunde bewerkingen blijven uitgeschakeld. Symbolische koppelingen, speciale bestanden en paden buiten het project worden geweigerd. UTF-8-tekstbestanden mogen maximaal 5 MiB zijn; externe Markdown opent als broncode.
 
@@ -38,7 +38,7 @@ Extern opslaan controleert wijzigingen ook als lokale opslagbeveiliging uitstaat
 
 Kies **Bestand → Bestanden importeren…**, de importknop in het Bestanden-paneel of de optie in het contextmenu van een map. Selecteer meerdere bestanden of mappen; Zshell kopieert ze naar die map of de huidige hoofdmap van de boom en behoudt de originelen.
 
-Schakel **Instellingen → Editor → Bestanden → Importeren door naar de bestandsboom te slepen** (`files.drag-import`) in om Finder-onderdelen op een map of de lege ruimte in de boom neer te zetten. Dit staat standaard uit. Het menu blijft beschikbaar.
+Schakel **Instellingen → Editor → Bestanden → Importeren door naar de bestandsboom te slepen** (`files.drag-import`) in om Finder-onderdelen op een map of de lege ruimte in de boom neer te zetten. Dit staat standaard aan. Het menu blijft beschikbaar.
 
 Bij bestaande namen kiest u **Vervangen**, **Overslaan** of **Annuleren**. Een map wordt geheel vervangen; de inhoud wordt niet samengevoegd. Annuleren stopt de hele import en herstelt al toegevoegde kopieën. Als een ander programma een onderdeel vóór het herstel verandert, behoudt Zshell die wijziging en toont het een map die herstelbestanden kan bevatten. SSH-bomen accepteren geen lokale imports. Symbolische koppelingen worden als koppelingen gekopieerd zonder het doel te volgen.
 

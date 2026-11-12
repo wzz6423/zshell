@@ -73,7 +73,7 @@ private final class FileTreePanelProbe {
             $0.accessibilityLabel() == "Import Files…"
         }
         check(importButton?.isEnabled == true && importButton?.isHidden == false, "Import toolbar enabled")
-        check(AppSettings.shared.fileTreeDragImport == false, "Drag import defaults to disabled")
+        check(AppSettings.shared.fileTreeDragImport, "Drag import defaults to enabled")
         for language in [AppLanguage.english, .german, .arabic, .simplifiedChinese] {
             AppLocalization.apply(language)
             panel.update(rootBadge: nil, currentFilePath: nil, fontScale: 1.5, openSearchResult: { _ in })
@@ -176,6 +176,8 @@ private final class FileTreePanelProbe {
         func validate(_ row: Int) -> NSDragOperation {
             panel.tableView(table, validateDrop: drag, proposedRow: row, proposedDropOperation: .on)
         }
+        check(validate(row("folder")) == .copy, "Default setting accepts Finder drop")
+        setDragImport(false)
         check(validate(row("folder")) == [], "Disabled setting rejects Finder drop")
         setDragImport(true)
         check(validate(row("folder")) == .copy, "Enabled setting accepts folder drop")

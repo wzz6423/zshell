@@ -24,7 +24,7 @@ with.
 
 ## Terminal type [#terminal-type]
 
-Choose **Settings → Terminal → TERM** to set `terminal.term` (default `"xterm-256color"`). The name must contain 1–128 ASCII letters, digits, or `.-_+`. Use a terminfo name installed on the machine running the shell. Changes apply to new local and SSH sessions only; open and preserved PTYs keep their original `TERM`. Shared remote sessions use the value when created with an updated server; older servers keep `xterm-256color`. Invalid edits retain the last valid value and show an error in Settings. This setting leaves `TERM_PROGRAM` and `ZSHELL_TERM` unchanged.
+Zshell configures `xterm-256color` automatically. If a host requires another terminal type, set `terminal.term` in `config.toml` to a terminfo name installed on the machine running the shell. Changes apply to new local and SSH sessions; open and preserved PTYs keep their original `TERM`. Invalid names retain the previous valid value, or use `xterm-256color` at startup.
 
 ## Command history [#command-history]
 

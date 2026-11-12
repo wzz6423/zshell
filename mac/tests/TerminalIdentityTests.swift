@@ -102,6 +102,13 @@ struct TerminalIdentityTests {
             NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: NSApp)
         }
 
+        if CommandLine.arguments.contains("--settings-only") {
+            checks += try verifySettingsPane()
+            try check(QuickTerminalOffscreen.isSafe(), "settings fixture stays offscreen and does not claim user focus")
+            print("TerminalIdentity: \(checks) settings checks passed")
+            return
+        }
+
         try check(settings.terminalTerm == "xterm-256color", "missing config preserves the default")
         let original = makeSession()
         let originalIdentity = try readIdentity(original, "default")
@@ -219,72 +226,59 @@ struct TerminalIdentityTests {
             try check(requestedTerm == "vt100", "plain OpenSSH PTY request carries the configured TERM without SendEnv")
         }
 
-        let pane = SettingsTerminalPane()
-        pane.setCategory(.terminal)
-        _ = pane.view
-        let settingsWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 650, height: 700),
-                                      styleMask: [.titled], backing: .buffered, defer: false)
-        settingsWindow.isReleasedWhenClosed = false
-        settingsWindow.contentView = pane.view
-        windows.append(settingsWindow)
-        func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
-        guard let term = descendants(pane.view).compactMap({ $0 as? NSTextField })
-                .first(where: { $0.isEditable && $0.accessibilityLabel() == "TERM" }) else {
-            throw IdentityFailure(description: "Missing native TERM field")
-        }
-        try check(term.target != nil && term.action != nil && term.delegate != nil, "native TERM editor has target/action and editing delegates")
-        term.stringValue = "vt100"
-        _ = NSApp.sendAction(term.action!, to: term.target, from: term)
-        try check(settings.terminalTerm == "vt100", "native field action commits a valid terminal type")
-        term.stringValue = "xterm\nother"
-        pane.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: term))
-        _ = NSApp.sendAction(term.action!, to: term.target, from: term)
-        pane.controlTextDidEndEditing(Notification(name: NSControl.textDidEndEditingNotification, object: term))
-        try check(settings.terminalTerm == "vt100" && term.stringValue == "vt100" && settings.terminalTermIsInvalid,
-                  "invalid native commit restores the previous field and keeps the error after editing ends")
-        pane.syncFromSettings()
-        try check(descendants(pane.view).compactMap { $0 as? NSTextField }.contains {
-            !$0.isEditable && $0.stringValue == String(localized: "Enter a terminal type with 1–128 ASCII letters, digits, or .-_+. The previous value is kept.")
-        }, "native invalid TERM explanation is visible")
-        let stored = settings.serializedConfig()
-        settings.applyImported(TOML.parseStrictly(text: stored).values)
-        pane.syncFromSettings()
-        try check(!settings.terminalTermIsInvalid && term.stringValue == "vt100", "valid configuration reload clears the field error")
-
-        for language in AppLanguage.allCases where language != .system {
-            AppLocalization.apply(language)
-            for width in [470.0, 760.0] {
-                let localizedPane = SettingsTerminalPane()
-                _ = localizedPane.view
-                settingsWindow.contentView = localizedPane.view
-                settingsWindow.setContentSize(NSSize(width: width, height: 700))
-                settingsWindow.contentView?.superview?.layoutSubtreeIfNeeded()
-                pump(0.05)
-                localizedPane.view.layoutSubtreeIfNeeded()
-                guard let field = descendants(localizedPane.view).compactMap({ $0 as? NSTextField })
-                        .first(where: { $0.isEditable && $0.accessibilityLabel() == "TERM" }),
-                      let row = field.superview?.superview as? SettingsRow else {
-                    throw IdentityFailure(description: "Missing localized TERM row")
-                }
-                for invalid in [false, true] {
-                    if invalid {
-                        field.stringValue = "bad term"
-                        localizedPane.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
-                    }
-                    localizedPane.view.layoutSubtreeIfNeeded()
-                    let labels = descendants(row).compactMap { $0 as? NSTextField }.filter { !$0.isEditable }
-                    try check(labels.allSatisfy { label in
-                        let rect = label.convert(label.bounds, to: row)
-                        let height = label.cell?.cellSize(forBounds: NSRect(x: 0, y: 0, width: label.bounds.width,
-                                                                          height: 10_000)).height ?? 0
-                        // AppKit text fields extend two points beyond alignment
-                        // bounds for their built-in cell drawing inset.
-                        return rect.minX >= -2 && rect.maxX <= row.bounds.width + 2 && label.bounds.height + 1 >= height
-                    } && field.frame.width >= 170, "TERM labels and native field fit \(language.rawValue) at \(Int(width)) points, invalid=\(invalid)")
-                }
-            }
-        }
+        checks += try verifySettingsPane()
         try check(QuickTerminalOffscreen.isSafe(), "integration fixture stays offscreen and does not claim user focus")
         print("TerminalIdentity: \(checks) passed on \(backend.rawValue)")
+    }
+
+    @MainActor private static func verifySettingsPane() throws -> Int {
+        let settings = AppSettings.shared
+        settings.applyImported([:])
+        var checks = 0
+        func check(_ condition: @autoclosure () throws -> Bool, _ label: String) throws {
+            guard try condition() else { throw IdentityFailure(description: label) }
+            checks += 1
+            print("PASS settings: \(label)")
+        }
+        func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
+        func hasTermControl(_ view: NSView) -> Bool {
+            descendants(view).contains {
+                $0.accessibilityLabel() == "TERM" || ($0 as? NSTextField)?.stringValue == "TERM"
+            }
+        }
+
+        try check(settings.terminalTerm == "xterm-256color" && !settings.terminalTermIsInvalid,
+                  "missing advanced configuration preserves the default terminal type")
+        let pane = SettingsTerminalPane()
+        pane.setCategory(.terminal)
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 650, height: 700),
+                              styleMask: [.titled], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.contentView = pane.view
+        defer { window.close() }
+        try check(!hasTermControl(pane.view), "native terminal settings have no TERM row or editor")
+
+        settings.applyImported(TOML.parseStrictly(text: "terminal.term = \"screen-256color\"").values)
+        pane.syncFromSettings()
+        try check(settings.terminalTerm == "screen-256color" && !settings.terminalTermIsInvalid,
+                  "advanced terminal.term configuration still loads")
+        let stored = settings.serializedConfig()
+        try check(TOML.parseStrictly(text: stored).values["terminal.term"]?.string == "screen-256color",
+                  "advanced terminal.term configuration still serializes")
+        try check(!hasTermControl(pane.view), "advanced terminal type does not add a settings editor")
+
+        settings.applyImported(["terminal.term": .string("xterm\nother")])
+        pane.syncFromSettings()
+        try check(settings.terminalTerm == "screen-256color" && settings.terminalTermIsInvalid,
+                  "invalid advanced terminal type preserves the previous value")
+        settings.applyImported(TOML.parseStrictly(text: stored).values)
+        pane.syncFromSettings()
+        try check(settings.terminalTerm == "screen-256color" && !settings.terminalTermIsInvalid,
+                  "valid advanced configuration clears the terminal type error")
+        settings.applyImported([:])
+        pane.syncFromSettings()
+        try check(settings.terminalTerm == "xterm-256color" && !settings.serializedConfig().contains("terminal.term")
+                  && !hasTermControl(pane.view), "default terminal type stays internal after configuration reload")
+        return checks
     }
 }

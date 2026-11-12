@@ -142,14 +142,6 @@ terminal text or an OSC sequence cannot impersonate a native lifecycle report.
 Native state takes priority over program reports; inferred screen state is
 lower priority and never counts as a result or approval.
 
-## Account usage and limits
-
-**Settings → Automation → Account Usage** always offers **Read account usage**, **Read Claude Code usage**, and **Read Codex usage**. Account usage is off by default; each provider choice starts on and only takes effect while the main switch is on. Changes apply immediately, and switching the main setting off preserves your provider choices.
-
-Enable the providers you want to read local CLI account limits. Codex uses an installed, signed-in CLI; Claude Code uses status-line usage reports received by Zshell. Zshell does not collect sign-in credentials, install a CLI, or sign you in when you enable usage. These are account limits, not a token total for the focused session.
-
-**Refresh Usage** reloads enabled providers. The section shows loading, unavailable, and last available data when a refresh fails. Turning usage or a provider off stops its reads, cancels pending requests, hides its data, and rejects disabled Claude usage reports without writing a usage file. It does not change agent recognition, lifecycle status, or conversation restoration.
-
 ## A typical workflow
 
 1. Start your usual coding agent in a Zshell terminal.

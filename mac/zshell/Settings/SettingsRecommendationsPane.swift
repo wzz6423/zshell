@@ -84,6 +84,10 @@ final class SettingsRecommendationsPane: SettingsPaneViewController {
 
     private func makeRow(_ tool: RecommendedTool) -> NSView {
         let button = SettingsActionButton(title: String(localized: "Install")) { [weak self] in
+            if let url = tool.downloadURL {
+                NSWorkspace.shared.open(url)
+                return
+            }
             guard let self else { return }
             if self.service.states[tool]?.location == .homebrew && self.service.states[tool]?.hasUpdate != true {
                 Task { await self.service.refresh(force: true) }
@@ -92,7 +96,20 @@ final class SettingsRecommendationsPane: SettingsPaneViewController {
             }
         }
         button.setAccessibilityLabel(String(localized: "Manage \(tool.name)"))
-        let row = SettingsRow(title: tool.name, description: tool.purpose, control: button)
+        let control: NSView
+        if let url = tool.projectURL {
+            let project = SettingsActionButton(title: String(localized: "Project")) {
+                NSWorkspace.shared.open(url)
+            }
+            let actions = NSStackView(views: [project, button])
+            actions.orientation = .horizontal
+            actions.alignment = .centerY
+            actions.spacing = 6
+            control = actions
+        } else {
+            control = button
+        }
+        let row = SettingsRow(title: tool.name, description: tool.purpose, control: control)
         rows[tool] = row
         buttons[tool] = button
         return row
@@ -134,7 +151,9 @@ final class SettingsRecommendationsPane: SettingsPaneViewController {
             var detail = tool.purpose
             if let version = state.installedVersion {
                 detail += "\n" + String(localized: "Installed: \(version)")
-                if state.location == .external { detail += " · " + String(localized: "Outside Homebrew") }
+                if state.location == .external && tool.packageName != nil {
+                    detail += " · " + String(localized: "Outside Homebrew")
+                }
             } else if state.isInstalled {
                 detail += "\n" + String(localized: "Installed; version unavailable")
             } else {
@@ -148,6 +167,13 @@ final class SettingsRecommendationsPane: SettingsPaneViewController {
             if let error = state.error { detail += "\n" + error }
             if service.activeTool == tool { detail += "\n" + String(localized: "Installing or updating…") }
             row.setDescription(detail)
+            if let downloadURL = tool.downloadURL {
+                button.title = state.hasUpdate ? String(localized: "Download Update") : String(localized: "Download")
+                button.isHidden = false
+                button.isEnabled = true
+                button.toolTip = downloadURL.absoluteString
+                continue
+            }
             button.title = state.location == .external ? String(localized: "Use Homebrew")
                 : state.location == .homebrew ? (state.hasUpdate ? String(localized: "Update") : String(localized: "Recheck"))
                 : String(localized: "Install")

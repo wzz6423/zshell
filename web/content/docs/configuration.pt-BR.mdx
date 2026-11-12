@@ -179,7 +179,7 @@ Quebra visualmente linhas longas na largura do painel do [editor de arquivos](/p
 
 ### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
 
-booleano — padrão `false`
+booleano — padrão `true`
 
 **Ajustes → Editor → Ajustar linhas à largura do diff** e o botão de quebra de linha da barra do diff controlam a mesma opção. Linhas longas se ajustam ao painel nas visualizações unificada e dividida, alterações editáveis, diffs históricos e comentários de PR. A escolha é aplicada imediatamente a todos os diffs abertos e permanece após reiniciar. Desativar restaura a rolagem horizontal. A quebra de linha do editor de arquivos e do terminal é independente.
 
@@ -225,7 +225,7 @@ Na regra personalizada, informe um caminho absoluto ou `~/folder`, ou escolha um
 
 ### `terminal.term`
 
-Defina `terminal.term` em **Ajustes → Terminal → TERM** (padrão `"xterm-256color"`). O nome deve conter 1–128 letras ASCII, dígitos ou `.-_+`. Use um nome terminfo instalado no host que executa o shell. As mudanças se aplicam apenas a novas sessões locais e SSH; PTYs abertos e preservados mantêm seu `TERM` original. Sessões remotas compartilhadas usam o valor ao serem criadas com um servidor atualizado; servidores antigos mantêm `xterm-256color`. Um valor inválido ao iniciar usa `xterm-256color`; edições inválidas enquanto o Zshell está em execução preservam o último valor válido. Nos dois casos, um erro é exibido em Ajustes. `TERM_PROGRAM` e `ZSHELL_TERM` não mudam.
+O Zshell configura `xterm-256color` automaticamente. Se um host precisar de outro tipo de terminal, defina `terminal.term` em `config.toml` com um nome terminfo instalado na máquina que executa o shell. As alterações valem para novas sessões locais e SSH; PTYs abertos e preservados mantêm o `TERM` original. Nomes inválidos preservam o último valor válido ou usam `xterm-256color` na inicialização.
 
 ### `terminal.backend` [#terminalbackend]
 
@@ -303,26 +303,14 @@ Ao restaurar os painéis de terminal, retoma exatamente a conversa original regi
 
 Controle em **Ajustes → Automação → Retomar conversas de agentes**. Esta opção é independente de `terminal.restore-history`.
 
-### `ai.usage-enabled`
-
-booleano — padrão `false`
-
-Ativa a leitura de limites das CLIs locais em **Ajustes → Automação → Uso da conta → Ler uso da conta**. Desativar cancela solicitações, oculta dados e recusa salvar relatórios Claude. Os provedores escolhidos são preservados. Reconhecimento de agentes, relatórios de ciclo de vida e restauração de conversas não mudam.
-
-### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
-
-booleano — padrão `true` para cada um
-
-Escolhe provedores quando `ai.usage-enabled = true`. Claude Code lê o relatório local da linha de status do Zshell; Codex consulta sua CLI instalada e conectada. Desativar um provedor interrompe as leituras e oculta dados imediatamente. Credenciais não são coletadas. As três opções permitem busca, importação/exportação, recarga em tempo real e redefinição.
-
 ## Ajustes adicionais [#additional-settings]
 
 | Chave | Padrão | Valores / faixa | Efeito |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Ícone do aplicativo |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Editor externo para arquivos e pastas |
-| `files.drag-import` | `false` | booleano | Permite copiar itens do Finder arrastando para a árvore local; o menu de importação continua disponível |
-| `files.remote-write-enabled` | `false` | booleano | Permitir criação, renomeação, exclusão recuperável e salvamento remotos com as ferramentas existentes do host |
+| `files.drag-import` | `true` | booleano | Permite copiar itens do Finder arrastando para a árvore local; o menu de importação continua disponível |
+| `files.remote-write-enabled` | `true` | booleano | Permitir criação, renomeação, exclusão recuperável e salvamento remotos com as ferramentas existentes do host |
 | `terminal.theme-only` | `false` | Booleano | Aplicar a paleta apenas ao terminal |
 | `terminal.command-history` | `true` | Booleano | Registrar novos comandos; histórico salvo continua disponível ao desativar |
 | `terminal.text-hints` | `true` | Booleano | Ativar dicas de teclado para texto visível do terminal |

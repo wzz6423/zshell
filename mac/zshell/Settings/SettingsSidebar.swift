@@ -366,7 +366,7 @@ private final class SettingsSidebarRow: NSButton {
         target = self
         action = #selector(invoke)
 
-        titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize)
+        titleLabel.font = SettingsMetrics.rowTitleFont
         titleLabel.lineBreakMode = .byTruncatingTail
         titleLabel.setAccessibilityElement(false)
         titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -390,7 +390,7 @@ private final class SettingsSidebarRow: NSButton {
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: subtitleLabel == nil ? SettingsMetrics.sidebarRowHeight : 48),
             iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
-            iconView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            iconView.centerYAnchor.constraint(equalTo: titleLabel.firstBaselineAnchor, constant: SettingsMetrics.rowIconBaselineOffset),
             labels.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 8),
             labels.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
             labels.centerYAnchor.constraint(equalTo: centerYAnchor),

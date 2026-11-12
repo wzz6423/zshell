@@ -14,6 +14,7 @@ final class SettingsBrowserAccessPane: SettingsPaneViewController, NSTextFieldDe
     private var pendingIDs: [UUID] = []
     private var clientIDs: [UUID] = []
     private var interfaceIDs: [String] = []
+    private var mainGroup: SettingsGroup?
     private var networkGroup: SettingsGroup?
     private var pairingGroup: SettingsGroup?
     private var clientsGroup: SettingsGroup?
@@ -59,6 +60,7 @@ final class SettingsBrowserAccessPane: SettingsPaneViewController, NSTextFieldDe
             SettingsRow(title: String(localized: "Enable browser access"), control: enabledSwitch, symbolName: "network"),
             SettingsCustomRow(explanation), SettingsCustomRow(statusLabel), SettingsButtonRow(title: String(localized: "Retry")) { [weak self] in self?.access.retry() },
         ])
+        mainGroup = main
         let network = SettingsGroup(header: String(localized: "Private Network"), rows: [
             SettingsRow(title: String(localized: "Listen on"), control: interfacePicker),
             SettingsRow(title: String(localized: "HTTPS port"), control: portField),
@@ -102,11 +104,15 @@ final class SettingsBrowserAccessPane: SettingsPaneViewController, NSTextFieldDe
         if let index = interfaceIDs.firstIndex(of: settings.browserAccessInterface) { interfacePicker.selectItem(at: index) }
         else { interfacePicker.select(nil) }
         if portField.currentEditor() == nil { portField.stringValue = String(settings.browserAccessPort) }
-        networkGroup?.isHidden = !settings.browserAccessEnabled
         networkGroup?.setRowHidden(settings.browserAccessInterface == "loopback", at: 1)
         addressLabel.stringValue = access.remoteURL?.absoluteString ?? access.localURL?.absoluteString ?? ""
+        networkGroup?.setRowHidden(addressLabel.stringValue.isEmpty, at: 2)
+        networkGroup?.setRowHidden(access.localURL == nil, at: 3)
+        networkGroup?.setRowHidden(access.remoteURL == nil, at: 4)
+        // Row updates also recompute group visibility, so apply the service state last.
+        networkGroup?.isHidden = !settings.browserAccessEnabled
         openButton.isEnabled = access.localURL != nil
-        openRemoteButton.isHidden = access.remoteURL == nil
+        openRemoteButton.isEnabled = access.remoteURL != nil
         if let error = access.error {
             statusLabel.stringValue = error
             statusLabel.textColor = .systemRed
@@ -116,7 +122,12 @@ final class SettingsBrowserAccessPane: SettingsPaneViewController, NSTextFieldDe
                 : String(localized: "Browser access is off.")
             statusLabel.textColor = .secondaryLabelColor
         }
+        let canRetry = settings.browserAccessEnabled && access.error != nil && !access.isStarting
+            && access.localURL == nil && access.remoteURL == nil
+        mainGroup?.setRowHidden(!canRetry, at: 3)
         fingerprintLabel.stringValue = access.fingerprint ?? ""
+        certificateGroup?.setRowHidden(fingerprintLabel.stringValue.isEmpty, at: 1)
+        certificateGroup?.setRowHidden(access.certificate == nil, at: 2)
         certificateGroup?.isHidden = !settings.browserAccessEnabled || access.remoteURL == nil
         exportButton.isEnabled = access.certificate != nil
         updateClients()

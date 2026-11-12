@@ -18,7 +18,7 @@ Beide unterstützen GPU-Beschleunigung, Bilder, Zshells gemeinsamen Themenkatalo
 
 ## Terminaltyp [#terminal-type]
 
-Legen Sie `terminal.term` unter **Einstellungen → Terminal → TERM** fest (Standard `"xterm-256color"`). Der Name muss aus 1–128 ASCII-Buchstaben, Ziffern oder `.-_+` bestehen. Verwenden Sie einen terminfo-Namen, der auf dem Host der Shell installiert ist. Änderungen gelten nur für neue lokale und SSH-Sitzungen; offene und erhaltene PTYs behalten ihren bisherigen `TERM`. Geteilte entfernte Sitzungen verwenden den Wert beim Erstellen mit einem aktuellen Server; ältere Server behalten `xterm-256color`. Ungültige Änderungen behalten den letzten gültigen Wert und zeigen einen Fehler in den Einstellungen. `TERM_PROGRAM` und `ZSHELL_TERM` bleiben unverändert.
+Zshell konfiguriert `xterm-256color` automatisch. Benötigt ein Host einen anderen Terminaltyp, setzen Sie `terminal.term` in `config.toml` auf einen terminfo-Namen, der auf dem Rechner mit der Shell installiert ist. Änderungen gelten für neue lokale und SSH-Sitzungen; offene und beibehaltene PTYs behalten ihren ursprünglichen `TERM`. Ungültige Namen behalten den letzten gültigen Wert bei oder verwenden beim Start `xterm-256color`.
 
 ## Befehlsverlauf [#command-history]
 

@@ -9,10 +9,13 @@ import AppKit
 /// the title, while single controls center beside the row's text.
 final class SettingsRow: NSView {
     private let descriptionLabel: NSTextField?
+    private let stack = NSStackView()
+    private var compoundWidths: [NSLayoutConstraint] = []
+    private var compactWidth: CGFloat?
 
     init(title: String, description: String? = nil, control: NSView, symbolName: String? = nil, symbolColor: NSColor? = nil) {
         let titleLabel = NSTextField(wrappingLabelWithString: title)
-        titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize)
+        titleLabel.font = SettingsMetrics.rowTitleFont
         titleLabel.maximumNumberOfLines = 0
         titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
@@ -38,23 +41,36 @@ final class SettingsRow: NSView {
 
         super.init(frame: .zero)
 
-        var views: [NSView] = [textStack, control]
-        if let symbolName {
-            views.insert(SettingsIconView(
-                symbolName: symbolName,
-                color: symbolColor ?? SettingsIconColors.color(for: symbolName),
-                size: 32
-            ), at: 0)
-        }
-        let stack = NSStackView(views: views)
+        let descriptor = SettingsRowSymbols.icon(for: title, control: control)
+        let labels = SettingsLabelColumn(
+            title: titleLabel, text: textStack,
+            symbolName: symbolName ?? descriptor.name,
+            symbolColor: symbolColor ?? descriptor.category.iconColor
+        )
+        stack.addArrangedSubview(labels)
+        stack.addArrangedSubview(control)
         stack.orientation = .horizontal
         stack.alignment = control is NSControl || description == nil ? .centerY : .top
         stack.spacing = SettingsMetrics.labelControlGap
         stack.distribution = .fill
-        if symbolName != nil { stack.setCustomSpacing(12, after: views[0]) }
-        textStack.setHuggingPriority(.defaultLow, for: .horizontal)
-        textStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        labels.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        labels.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         control.setContentHuggingPriority(.required, for: .horizontal)
+        if let actions = control as? NSStackView {
+            actions.setHuggingPriority(.required, for: .horizontal)
+            for view in actions.arrangedSubviews {
+                view.setContentHuggingPriority(.required, for: .horizontal)
+            }
+        }
+        if !(control is NSControl), description != nil,
+           !(control is NSStackView) {
+            compactWidth = control.fittingSize.width + SettingsMetrics.labelControlGap + SettingsMetrics.rowIconSize
+                + SettingsMetrics.iconLabelGap + SettingsMetrics.rowTitleFont.pointSize * 12
+            compoundWidths = [
+                labels.widthAnchor.constraint(equalTo: stack.widthAnchor),
+                control.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            ]
+        }
         if control.accessibilityLabel() == nil { control.setAccessibilityLabel(title) }
 
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -76,6 +92,44 @@ final class SettingsRow: NSView {
     /// the value they show.
     func setDescription(_ text: String) {
         descriptionLabel?.stringValue = text
+    }
+
+    override func layout() {
+        if let compactWidth, bounds.width > 0 {
+            let compact = bounds.width < compactWidth
+            if (stack.orientation == .vertical) != compact {
+                NSLayoutConstraint.deactivate(compoundWidths)
+                stack.orientation = compact ? .vertical : .horizontal
+                stack.alignment = compact ? .leading : .top
+                if compact { NSLayoutConstraint.activate(compoundWidths) }
+            }
+        }
+        super.layout()
+    }
+}
+
+/// Keep the icon beside the title's first line while explanations grow below it.
+private final class SettingsLabelColumn: NSView {
+    init(title: NSTextField, text: NSView, symbolName: String, symbolColor: NSColor) {
+        super.init(frame: .zero)
+
+        let icon = SettingsIconView(symbolName: symbolName, color: symbolColor, size: SettingsMetrics.rowIconSize)
+        text.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(icon)
+        addSubview(text)
+        NSLayoutConstraint.activate([
+            icon.leadingAnchor.constraint(equalTo: leadingAnchor),
+            icon.centerYAnchor.constraint(equalTo: title.firstBaselineAnchor, constant: SettingsMetrics.rowIconBaselineOffset),
+            text.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: SettingsMetrics.iconLabelGap),
+            text.trailingAnchor.constraint(equalTo: trailingAnchor),
+            text.topAnchor.constraint(equalTo: topAnchor),
+            text.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 }
 
@@ -222,7 +276,7 @@ final class SettingsSliderRow: NSView {
         super.init(frame: .zero)
 
         let titleLabel = NSTextField(wrappingLabelWithString: title)
-        titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize)
+        titleLabel.font = SettingsMetrics.rowTitleFont
         titleLabel.maximumNumberOfLines = 0
         titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
@@ -247,22 +301,21 @@ final class SettingsSliderRow: NSView {
             stepper.action = #selector(stepperChanged)
         }
 
-        var views: [NSView] = [titleLabel, slider, valueLabel]
+        let descriptor = SettingsRowSymbols.icon(for: accessibilityLabel ?? title)
+        let labels = SettingsLabelColumn(
+            title: titleLabel, text: titleLabel,
+            symbolName: symbolName ?? descriptor.name,
+            symbolColor: symbolColor ?? descriptor.category.iconColor
+        )
+        var views: [NSView] = [labels, slider, valueLabel]
         if let stepper { views.append(stepper) }
-        if let symbolName {
-            views.insert(SettingsIconView(
-                symbolName: symbolName,
-                color: symbolColor ?? SettingsIconColors.color(for: symbolName),
-                size: 32
-            ), at: 0)
-        }
         let stack = NSStackView(views: views)
         stack.orientation = .horizontal
         stack.alignment = .centerY
         stack.spacing = 8
         stack.distribution = .fill
-        if symbolName != nil { stack.setCustomSpacing(12, after: views[0]) }
-        titleLabel.setContentHuggingPriority(.required, for: .horizontal)
+        labels.setContentHuggingPriority(.required, for: .horizontal)
+        labels.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         slider.setContentHuggingPriority(.defaultLow, for: .horizontal)
 
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -272,7 +325,7 @@ final class SettingsSliderRow: NSView {
             stack.trailingAnchor.constraint(equalTo: trailingAnchor),
             stack.topAnchor.constraint(equalTo: topAnchor),
             valueLabel.widthAnchor.constraint(equalToConstant: SettingsMetrics.sliderValueWidth),
-            titleLabel.widthAnchor.constraint(lessThanOrEqualTo: stack.widthAnchor, multiplier: 0.42),
+            labels.widthAnchor.constraint(lessThanOrEqualTo: stack.widthAnchor, multiplier: 0.42),
         ]
         if let description {
             let label = NSTextField(wrappingLabelWithString: description)

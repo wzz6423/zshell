@@ -179,7 +179,7 @@ Breekt lange regels visueel af op de deelvensterbreedte in de [bestandseditor](/
 
 ### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
 
-boolean — standaard `false`
+boolean — standaard `true`
 
 **Instellingen → Editor → Regels afbreken op diffbreedte** en de afbreekknop in de diffwerkbalk bedienen dezelfde optie. Lange regels passen zich aan de breedte van het paneel aan in gecombineerde en gesplitste weergaven, bewerkbare wijzigingen, historische diffs en PR-opmerkingen. Dit geldt direct voor alle open diffs en blijft na herstart behouden. Uitschakelen herstelt horizontaal scrollen. Afbreken in de bestandseditor en terminal staat hier los van.
 
@@ -225,7 +225,7 @@ Voer voor Aangepast een absoluut pad of `~/folder` in, of kies een map in Instel
 
 ### `terminal.term`
 
-Stel `terminal.term` in via **Instellingen → Terminal → TERM** (standaard `"xterm-256color"`). De naam moet 1–128 ASCII-letters, cijfers of `.-_+` bevatten. Gebruik een terminfo-naam die is geïnstalleerd op de host waarop de shell draait. Wijzigingen gelden alleen voor nieuwe lokale en SSH-sessies; open en bewaarde PTY’s behouden hun oorspronkelijke `TERM`. Gedeelde externe sessies gebruiken de waarde bij aanmaak op een bijgewerkte server; oudere servers behouden `xterm-256color`. Een ongeldige waarde bij het opstarten valt terug op `xterm-256color`; ongeldige wijzigingen terwijl Zshell actief is behouden de laatste geldige waarde. In beide gevallen verschijnt een fout in Instellingen. `TERM_PROGRAM` en `ZSHELL_TERM` blijven ongewijzigd.
+Zshell stelt `xterm-256color` automatisch in. Als een host een ander terminaltype nodig heeft, stel dan `terminal.term` in `config.toml` in op een terminfo-naam die is geïnstalleerd op de machine waarop de shell draait. Wijzigingen gelden voor nieuwe lokale en SSH-sessies; open en bewaarde PTY’s behouden hun oorspronkelijke `TERM`. Ongeldige namen behouden de laatste geldige waarde of gebruiken bij het starten `xterm-256color`.
 
 ### `terminal.backend` [#terminalbackend]
 
@@ -303,26 +303,14 @@ Bij het herstellen van terminalpanelen wordt het precieze opgeslagen gesprek van
 
 Gebruik **Instellingen → Automatisering → Agentgesprekken hervatten**. Deze optie staat los van `terminal.restore-history`.
 
-### `ai.usage-enabled`
-
-boolean — standaard `false`
-
-Schakelt lokale CLI-accountlimieten in via **Instellingen → Automatisering → Accountgebruik → Accountgebruik lezen**. Uitschakelen annuleert aanvragen, verbergt gegevens en weigert Claude-rapporten op te slaan. Providerkeuzes blijven behouden. Agentherkenning, levenscyclusrapporten en gespreksherstel veranderen niet.
-
-### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
-
-boolean — standaard elk `true`
-
-Kiest providers wanneer `ai.usage-enabled = true`. Claude Code leest Zshells lokale statusregelrapport; Codex bevraagt de geïnstalleerde, aangemelde CLI. Uitschakelen stopt direct lezen en verbergt gegevens. Er worden geen aanmeldgegevens verzameld. Alle drie ondersteunen zoeken, importeren/exporteren, direct herladen en standaardwaarden herstellen.
-
 ## Aanvullende instellingen [#additional-settings]
 
 | Sleutel | Standaard | Waarden / bereik | Effect |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | App-pictogram |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Externe editor voor bestanden en mappen |
-| `files.drag-import` | `false` | boolean | Sta Finder-kopieën via slepen naar de lokale bestandsboom toe; het importmenu blijft beschikbaar |
-| `files.remote-write-enabled` | `false` | boolean | Extern maken, hernoemen, herstelbaar verwijderen en opslaan toestaan met bestaande hosthulpmiddelen |
+| `files.drag-import` | `true` | boolean | Sta Finder-kopieën via slepen naar de lokale bestandsboom toe; het importmenu blijft beschikbaar |
+| `files.remote-write-enabled` | `true` | boolean | Extern maken, hernoemen, herstelbaar verwijderen en opslaan toestaan met bestaande hosthulpmiddelen |
 | `terminal.theme-only` | `false` | Booleaans | Het gekozen palet alleen op de terminal toepassen |
 | `terminal.command-history` | `true` | Booleaans | Nieuwe opdrachten registreren; opgeslagen geschiedenis blijft beschikbaar bij uit |
 | `terminal.text-hints` | `true` | Booleaans | Toetsenbordhints voor zichtbare terminaltekst inschakelen |

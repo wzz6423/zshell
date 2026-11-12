@@ -26,7 +26,7 @@ Le righe usano icone Material in base al nome del file. Nei repository Git, i pe
 
 ## File remoti [#remote-files]
 
-Apri i file SSH dal pannello File. Per creare, rinominare, spostare nel cestino remoto o salvare, attiva **Impostazioni → Editor → File → Consenti modifiche ai file remoti** (`files.remote-write-enabled`, disattivato per impostazione predefinita).
+Apri i file SSH dal pannello File. Per creare, rinominare, spostare nel cestino remoto o salvare, attiva **Impostazioni → Editor → File → Consenti modifiche ai file remoti** (`files.remote-write-enabled`, attivato per impostazione predefinita).
 
 Zshell usa solo strumenti già presenti sull’host e non installa nulla. Lettura e modifica usano i moduli di base Perl esistenti. Ogni scrittura verifica anche le funzioni necessarie del file system; le operazioni non supportate restano disabilitate. Link simbolici, file speciali e percorsi esterni al progetto vengono rifiutati. I testi UTF-8 possono arrivare a 5 MiB; il Markdown remoto si apre come sorgente.
 
@@ -38,7 +38,7 @@ Il salvataggio remoto controlla le modifiche anche con la protezione locale disa
 
 Scegli **File → Importa file…**, il pulsante di importazione nel pannello File o la voce del menu contestuale di una cartella. Puoi selezionare più file o cartelle: Zshell li copia nella cartella scelta o nella radice corrente dell’albero, conservando gli originali.
 
-Per rilasciare elementi del Finder su una cartella o nell’area vuota dell’albero, abilita **Impostazioni → Editor → File → Importa trascinando nell’albero dei file** (`files.drag-import`). L’opzione è disattivata per impostazione predefinita; il menu rimane disponibile.
+Per rilasciare elementi del Finder su una cartella o nell’area vuota dell’albero, abilita **Impostazioni → Editor → File → Importa trascinando nell’albero dei file** (`files.drag-import`). L’opzione è attivata per impostazione predefinita; il menu rimane disponibile.
 
 In caso di nomi esistenti puoi **Sostituire**, **Ignorare** o **Annullare**. Una cartella viene sostituita interamente, senza unire i contenuti. Annullare interrompe tutta l’importazione e ripristina le copie già aggiunte. Se un altro programma modifica un elemento prima del ripristino, Zshell conserva la modifica e indica una cartella che potrebbe contenere file di recupero. Gli alberi SSH non accettano importazioni locali. I collegamenti simbolici vengono copiati come collegamenti, senza seguirne la destinazione.
 

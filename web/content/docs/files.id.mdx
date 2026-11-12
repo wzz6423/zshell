@@ -26,7 +26,7 @@ Baris memakai ikon Material sesuai nama berkas. Dalam repositori Git, jalur yang
 
 ## Berkas jarak jauh [#remote-files]
 
-Buka berkas SSH dari panel Berkas. Untuk membuat, mengganti nama, memindahkan ke sampah jarak jauh, atau menyimpan, aktifkan **Pengaturan → Editor → Berkas → Izinkan perubahan berkas jarak jauh** (`files.remote-write-enabled`, nonaktif secara bawaan).
+Buka berkas SSH dari panel Berkas. Untuk membuat, mengganti nama, memindahkan ke sampah jarak jauh, atau menyimpan, aktifkan **Pengaturan → Editor → Berkas → Izinkan perubahan berkas jarak jauh** (`files.remote-write-enabled`, aktif secara bawaan).
 
 Zshell hanya menggunakan alat yang sudah ada di host dan tidak memasang apa pun. Pembacaan dan pengeditan menggunakan modul inti Perl yang sudah ada. Setiap penulisan juga memeriksa kemampuan sistem berkas yang diperlukan; operasi yang tidak didukung tetap dinonaktifkan. Tautan simbolis, berkas khusus, dan jalur di luar proyek ditolak. Teks UTF-8 dapat berukuran hingga 5 MiB; Markdown jarak jauh dibuka sebagai sumber.
 
@@ -38,7 +38,7 @@ Penyimpanan jarak jauh memeriksa perubahan meskipun perlindungan lokal dinonakti
 
 Pilih **Berkas → Impor Berkas…**, tombol impor di panel Berkas, atau pilihan tersebut dari menu klik kanan folder. Pilih beberapa berkas atau folder; Zshell menyalinnya ke folder tersebut atau akar pohon saat ini sambil mempertahankan aslinya.
 
-Untuk menjatuhkan item Finder ke folder atau area kosong pohon, aktifkan **Pengaturan → Editor → Berkas → Impor dengan menyeret ke pohon berkas** (`files.drag-import`). Opsi ini nonaktif secara bawaan. Menu tetap tersedia.
+Untuk menjatuhkan item Finder ke folder atau area kosong pohon, aktifkan **Pengaturan → Editor → Berkas → Impor dengan menyeret ke pohon berkas** (`files.drag-import`). Opsi ini aktif secara bawaan. Menu tetap tersedia.
 
 Nama yang sudah ada menawarkan **Ganti**, **Lewati**, dan **Batal**. Mengganti folder mengganti seluruh folder tanpa menggabungkan isinya. Membatalkan menghentikan seluruh impor dan memulihkan salinan yang telah ditambahkan. Jika program lain mengubah item sebelum dipulihkan, Zshell mempertahankan perubahan dan menunjukkan folder yang mungkin berisi file pemulihan. Pohon SSH tidak menerima impor lokal. Tautan simbolis disalin sebagai tautan tanpa mengikuti targetnya.
 

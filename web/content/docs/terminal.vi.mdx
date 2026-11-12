@@ -18,7 +18,7 @@ Cả hai hỗ trợ tăng tốc GPU, kết xuất ảnh, bộ chủ đề chung 
 
 ## Loại terminal [#terminal-type]
 
-Đặt `terminal.term` trong **Cài đặt → Terminal → TERM** (mặc định `"xterm-256color"`). Tên phải gồm 1–128 chữ cái ASCII, chữ số hoặc `.-_+`. Dùng tên terminfo đã cài trên máy chạy shell. Thay đổi chỉ áp dụng cho phiên cục bộ và SSH mới; các PTY đang mở và được giữ lại vẫn giữ `TERM` ban đầu. Phiên từ xa dùng chung sử dụng giá trị này khi tạo trên máy chủ đã cập nhật; máy chủ cũ vẫn dùng `xterm-256color`. Chỉnh sửa không hợp lệ giữ lại giá trị hợp lệ gần nhất và hiển thị lỗi trong Cài đặt. `TERM_PROGRAM` và `ZSHELL_TERM` không thay đổi.
+Zshell tự động cấu hình `xterm-256color`. Nếu máy chủ cần loại terminal khác, đặt `terminal.term` trong `config.toml` thành tên terminfo đã cài trên máy chạy shell. Thay đổi áp dụng cho các phiên cục bộ và SSH mới; PTY đang mở và được giữ lại vẫn giữ `TERM` ban đầu. Tên không hợp lệ giữ lại giá trị hợp lệ gần nhất hoặc dùng `xterm-256color` khi khởi động.
 
 ## Lịch sử lệnh [#command-history]
 

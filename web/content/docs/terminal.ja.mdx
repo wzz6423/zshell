@@ -20,7 +20,7 @@ description: Zshell のターミナルバックエンド、シェル環境、リ
 
 ## 端末タイプ [#terminal-type]
 
-**設定 → ターミナル → TERM** で `terminal.term`（デフォルトは `"xterm-256color"`）を設定します。名前は 1〜128 文字の ASCII 英字、数字、または `.-_+` で構成する必要があります。shell を実行するホストにインストール済みの terminfo 名を使用してください。変更は新しいローカルおよび SSH セッションにのみ適用され、開いている PTY と保持された PTY の `TERM` は変わりません。共有リモートセッションは更新済みサーバーでの作成時にこの値を使い、古いサーバーは `xterm-256color` を使い続けます。無効な編集は最後の有効な値を保持し、設定にエラーを表示します。`TERM_PROGRAM` と `ZSHELL_TERM` は変わりません。
+Zshell は `xterm-256color` を自動的に設定します。ホストで別の端末タイプが必要な場合は、`config.toml` の `terminal.term` に shell を実行するホストにインストール済みの terminfo 名を指定します。変更は新しいローカルおよび SSH セッションに適用され、開いている PTY と保持された PTY は元の `TERM` を維持します。無効な名前では直前の有効な値を保持し、起動時は `xterm-256color` を使用します。
 
 ## コマンド履歴 [#command-history]
 

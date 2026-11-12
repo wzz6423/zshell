@@ -26,7 +26,7 @@ Las filas usan iconos de Material según el nombre del archivo. Dentro de un rep
 
 ## Archivos remotos [#remote-files]
 
-Abre archivos SSH desde el panel Archivos. Para crear, renombrar, mover a la papelera remota o guardar, activa **Ajustes → Editor → Archivos → Permitir cambios en archivos remotos** (`files.remote-write-enabled`, desactivado de forma predeterminada).
+Abre archivos SSH desde el panel Archivos. Para crear, renombrar, mover a la papelera remota o guardar, activa **Ajustes → Editor → Archivos → Permitir cambios en archivos remotos** (`files.remote-write-enabled`, activado de forma predeterminada).
 
 Zshell solo utiliza herramientas ya instaladas en el host y no instala nada. La lectura y edición utilizan sus módulos básicos de Perl existentes. Cada escritura también comprueba las funciones necesarias del sistema de archivos; las operaciones no compatibles siguen desactivadas. Se rechazan enlaces simbólicos, archivos especiales y rutas fuera del proyecto. Los textos UTF-8 pueden tener hasta 5 MiB; el Markdown remoto se abre como código fuente.
 
@@ -38,7 +38,7 @@ El guardado remoto comprueba los cambios aunque la protección local esté desac
 
 Elige **Archivo → Importar archivos…**, el botón de importación del panel Archivos o la opción del menú contextual de una carpeta. Selecciona varios archivos o carpetas; Zshell los copia a esa carpeta o a la raíz actual del árbol, conservando los originales.
 
-Para soltar elementos de Finder sobre una carpeta o el espacio vacío del árbol, activa **Ajustes → Editor → Archivos → Importar al arrastrar al árbol de archivos** (`files.drag-import`). Está desactivado de forma predeterminada. El menú sigue disponible.
+Para soltar elementos de Finder sobre una carpeta o el espacio vacío del árbol, activa **Ajustes → Editor → Archivos → Importar al arrastrar al árbol de archivos** (`files.drag-import`). Está activado de forma predeterminada. El menú sigue disponible.
 
 Si ya existe el nombre, puedes **Reemplazar**, **Omitir** o **Cancelar**. Se reemplaza la carpeta completa, sin combinar contenidos. Cancelar detiene toda la importación, elimina las copias añadidas y restaura los elementos reemplazados cuando es posible. Si otro programa modifica un elemento antes de restaurarlo, Zshell conserva el cambio e indica una carpeta que puede contener archivos de recuperación. Los árboles SSH no aceptan importaciones locales. Los enlaces simbólicos se copian como enlaces, sin seguir su destino.
 

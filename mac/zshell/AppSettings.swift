@@ -588,18 +588,6 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
-    @Published var agentUsageEnabled: Bool {
-        didSet { applyAgentUsageSettings(); save() }
-    }
-
-    @Published var claudeUsageEnabled: Bool {
-        didSet { applyAgentUsageSettings(); save() }
-    }
-
-    @Published var codexUsageEnabled: Bool {
-        didSet { applyAgentUsageSettings(); save() }
-    }
-
     /// Which emulator drives terminal panes. Only ever holds a backend this
     /// build ships a surface for — see `TerminalBackend` — and a session binds
     /// its backend at creation, so a change here reaches terminals opened
@@ -757,9 +745,9 @@ final class AppSettings: nonisolated ObservableObject {
         terminalBell = toml["terminal.bell"]?.bool ?? true
         shiftEnterNewline = toml["terminal.shift-enter-newline"]?.bool ?? true
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
-        diffWrapLines = toml["editor.diff-wrap-lines"]?.bool ?? false
-        fileTreeDragImport = toml["files.drag-import"]?.bool ?? false
-        remoteFileWritesEnabled = toml["files.remote-write-enabled"]?.bool ?? false
+        diffWrapLines = toml["editor.diff-wrap-lines"]?.bool ?? true
+        fileTreeDragImport = toml["files.drag-import"]?.bool ?? true
+        remoteFileWritesEnabled = toml["files.remote-write-enabled"]?.bool ?? true
         protectEditorSaves = toml["editor.protect-saves"]?.bool ?? true
         recoverEditorDrafts = toml["editor.recover-drafts"]?.bool ?? true
         externalEditor = ExternalEditor.persisted(
@@ -814,9 +802,6 @@ final class AppSettings: nonisolated ObservableObject {
         agentScreenInference = toml["ai.screen-inference"]?.bool ?? true
         notifyOnAgentAttention = toml["ai.notify-on-attention"]?.bool ?? true
         notifyOnAgentCompletion = toml["ai.notify-on-completion"]?.bool ?? true
-        agentUsageEnabled = toml["ai.usage-enabled"]?.bool ?? false
-        claudeUsageEnabled = toml["ai.claude-usage-enabled"]?.bool ?? true
-        codexUsageEnabled = toml["ai.codex-usage-enabled"]?.bool ?? true
         terminalBackend = TerminalBackend(persisted: toml["terminal.backend"]?.string)
         let term = toml["terminal.term"]?.string
         terminalTerm = term.flatMap { TerminalLaunchSettings.isValidTermName($0) ? $0 : nil }
@@ -966,9 +951,9 @@ final class AppSettings: nonisolated ObservableObject {
             && !promptQueueAutoDispatch
             && shiftEnterNewline
             && wrapLines
-            && !diffWrapLines
-            && !fileTreeDragImport
-            && !remoteFileWritesEnabled
+            && diffWrapLines
+            && fileTreeDragImport
+            && remoteFileWritesEnabled
             && protectEditorSaves
             && recoverEditorDrafts
             && externalEditor == .systemDefault
@@ -998,9 +983,6 @@ final class AppSettings: nonisolated ObservableObject {
             && agentScreenInference
             && notifyOnAgentAttention
             && notifyOnAgentCompletion
-            && !agentUsageEnabled
-            && claudeUsageEnabled
-            && codexUsageEnabled
             && terminalBackend == .fallback
             && terminalTerm == TerminalLaunchSettings.defaultTerm
             && !terminalTermIsInvalid
@@ -1045,9 +1027,9 @@ final class AppSettings: nonisolated ObservableObject {
         promptQueueAutoDispatch = false
         shiftEnterNewline = true
         wrapLines = true
-        diffWrapLines = false
-        fileTreeDragImport = false
-        remoteFileWritesEnabled = false
+        diffWrapLines = true
+        fileTreeDragImport = true
+        remoteFileWritesEnabled = true
         protectEditorSaves = true
         recoverEditorDrafts = true
         externalEditor = .systemDefault
@@ -1098,9 +1080,6 @@ final class AppSettings: nonisolated ObservableObject {
         agentScreenInference = true
         notifyOnAgentAttention = true
         notifyOnAgentCompletion = true
-        agentUsageEnabled = false
-        claudeUsageEnabled = true
-        codexUsageEnabled = true
         showPullRequestStatus = true
         automaticallyApplyTerminalProfiles = true
     }
@@ -1204,14 +1183,8 @@ final class AppSettings: nonisolated ObservableObject {
         let oldTerminalThemeOnly = terminalThemeOnly
         let oldShortcut = quickTerminalShortcut
         let oldQuickTerminalEnabled = quickTerminalEnabled
-        let oldUsageSettings = [agentUsageEnabled, claudeUsageEnabled, codexUsageEnabled]
         isApplyingConfig = true
-        defer {
-            isApplyingConfig = false
-            if oldUsageSettings != [agentUsageEnabled, claudeUsageEnabled, codexUsageEnabled] {
-                applyAgentUsageSettings()
-            }
-        }
+        defer { isApplyingConfig = false }
 
         assign(\.applicationIcon, ApplicationIcon(
             rawValue: toml["app-icon"]?.string ?? ""
@@ -1284,9 +1257,9 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.promptQueueAutoDispatch, toml["terminal.prompt-queue-auto-dispatch"]?.bool ?? false)
         assign(\.shiftEnterNewline, toml["terminal.shift-enter-newline"]?.bool ?? true)
         assign(\.wrapLines, toml["editor.wrap-lines"]?.bool ?? true)
-        assign(\.diffWrapLines, toml["editor.diff-wrap-lines"]?.bool ?? false)
-        assign(\.fileTreeDragImport, toml["files.drag-import"]?.bool ?? false)
-        assign(\.remoteFileWritesEnabled, toml["files.remote-write-enabled"]?.bool ?? false)
+        assign(\.diffWrapLines, toml["editor.diff-wrap-lines"]?.bool ?? true)
+        assign(\.fileTreeDragImport, toml["files.drag-import"]?.bool ?? true)
+        assign(\.remoteFileWritesEnabled, toml["files.remote-write-enabled"]?.bool ?? true)
         assign(\.protectEditorSaves, toml["editor.protect-saves"]?.bool ?? true)
         assign(\.recoverEditorDrafts, toml["editor.recover-drafts"]?.bool ?? true)
         assign(\.externalEditor, ExternalEditor.persisted(toml["editor.external-editor"]?.string))
@@ -1346,9 +1319,6 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.agentScreenInference, toml["ai.screen-inference"]?.bool ?? true)
         assign(\.notifyOnAgentAttention, toml["ai.notify-on-attention"]?.bool ?? true)
         assign(\.notifyOnAgentCompletion, toml["ai.notify-on-completion"]?.bool ?? true)
-        assign(\.agentUsageEnabled, toml["ai.usage-enabled"]?.bool ?? false)
-        assign(\.claudeUsageEnabled, toml["ai.claude-usage-enabled"]?.bool ?? true)
-        assign(\.codexUsageEnabled, toml["ai.codex-usage-enabled"]?.bool ?? true)
         assign(\.terminalBackend, TerminalBackend(persisted: toml["terminal.backend"]?.string))
         setTerminalTerm(toml["terminal.term"] == nil
             ? TerminalLaunchSettings.defaultTerm : toml["terminal.term"]?.string ?? "")
@@ -1433,11 +1403,6 @@ final class AppSettings: nonisolated ObservableObject {
     private func save() {
         guard !isApplyingConfig else { return }
         configMonitor.save(serializedConfig())
-    }
-
-    private func applyAgentUsageSettings() {
-        guard !isApplyingConfig else { return }
-        AgentUsageModel.shared.applySettings(self)
     }
 
     func backUpConfig() {
@@ -1542,11 +1507,9 @@ final class AppSettings: nonisolated ObservableObject {
         if !wrapLines {
             lines.append("editor.wrap-lines = false")
         }
-        if diffWrapLines {
-            lines.append("editor.diff-wrap-lines = true")
-        }
-        if fileTreeDragImport { lines.append("files.drag-import = true") }
-        if remoteFileWritesEnabled { lines.append("files.remote-write-enabled = true") }
+        lines.append("editor.diff-wrap-lines = \(diffWrapLines)")
+        lines.append("files.drag-import = \(fileTreeDragImport)")
+        lines.append("files.remote-write-enabled = \(remoteFileWritesEnabled)")
         if !protectEditorSaves {
             lines.append("editor.protect-saves = false")
         }
@@ -1620,9 +1583,6 @@ final class AppSettings: nonisolated ObservableObject {
         if !customAgentRecognitionRules { lines.append("ai.custom-recognition-rules = false") }
         if !agentScreenInference { lines.append("ai.screen-inference = false") }
         if !notifyOnAgentCompletion { lines.append("ai.notify-on-completion = false") }
-        if agentUsageEnabled { lines.append("ai.usage-enabled = true") }
-        if !claudeUsageEnabled { lines.append("ai.claude-usage-enabled = false") }
-        if !codexUsageEnabled { lines.append("ai.codex-usage-enabled = false") }
         if terminalBackend != .fallback {
             lines.append("terminal.backend = \(TOML.quote(terminalBackend.rawValue))")
         }
