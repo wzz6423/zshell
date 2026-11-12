@@ -63,6 +63,11 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     weak var editorView: NSView?
 
     private nonisolated static let maxTextBytes = 5 << 20
+    /// Direct image preview may exceed `maxTextBytes`. A photo or screenshot
+    /// is often larger than source text, and the editor never turns those
+    /// bytes into a `String`. 64 MiB is still small enough that a preview
+    /// cannot pull in a multi-hundred-megabyte image.
+    private nonisolated static let maxImagePreviewBytes = 64 << 20
     /// These image types keep the existing native, pixel-accurate image view.
     /// Other visual types, such as SVG, route through Quick Look instead.
     private nonisolated static let directlyRenderedImageTypeIdentifiers = Set([
@@ -508,7 +513,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
             return .quickLook(signature)
         }
         guard !usesDirectImagePreview(for: url) else {
-            return (try? Data(contentsOf: url)).map(ReadResult.data) ?? .unavailable
+            return readDirectImagePreview(path: path)
         }
 
         do {
@@ -516,6 +521,40 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
             guard snapshot.isRegular else { return .unavailable }
             guard snapshot.data != nil else { return .tooLarge }
             return .file(snapshot)
+        } catch {
+            return .unavailable
+        }
+    }
+
+    /// `Data(contentsOf:)` follows the path with a blocking read. A FIFO or
+    /// device whose name ends in an image extension would stall the preview,
+    /// and a huge regular file would be fully buffered before decoding.
+    /// One nonblocking descriptor lets `fstat` reject those cases before any
+    /// bytes are copied. Decoding stays on the main actor in `loadedContent`.
+    private nonisolated static func readDirectImagePreview(path: String) -> ReadResult {
+        let descriptor = open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC)
+        guard descriptor >= 0 else { return .unavailable }
+        let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        defer { try? handle.close() }
+        var metadata = stat()
+        guard fstat(descriptor, &metadata) == 0 else { return .unavailable }
+        guard metadata.st_mode & S_IFMT == S_IFREG, metadata.st_size >= 0 else {
+            return .unavailable
+        }
+        guard metadata.st_size <= Int64(maxImagePreviewBytes) else { return .tooLarge }
+
+        do {
+            var data = Data()
+            let capacity = Int(metadata.st_size)
+            if capacity > 0 { data.reserveCapacity(capacity) }
+            while data.count <= maxImagePreviewBytes {
+                let remaining = min(64 << 10, maxImagePreviewBytes + 1 - data.count)
+                guard remaining > 0 else { break }
+                guard let chunk = try handle.read(upToCount: remaining), !chunk.isEmpty else { break }
+                data.append(chunk)
+            }
+            guard data.count <= maxImagePreviewBytes else { return .tooLarge }
+            return .data(data)
         } catch {
             return .unavailable
         }
@@ -586,7 +625,10 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
                 quickLookSignature: nil
             )
         }
+        // `NSImage` decodes on the main actor, so an oversized buffer must not
+        // reach it even when a caller already holds the bytes.
         if usesDirectImagePreview(for: url),
+           data.count <= maxImagePreviewBytes,
            let image = NSImage(data: data) {
             return LoadedContent(
                 content: .image(image),
