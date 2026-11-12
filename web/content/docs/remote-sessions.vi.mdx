@@ -65,7 +65,7 @@ Phiên chỉ tồn tại khi daemon còn sống, không qua lần khởi động
 
 ## Truy cập qua trình duyệt [#browser-access]
 
-Dùng **Cài đặt → Truy cập qua trình duyệt** để điều khiển các khung cục bộ trên máy Mac này. Mặc định tắt. Sau khi bật, mở khung mới và dùng trang cục bộ hoặc chọn rõ giao diện IPv4 mạng riêng LAN/Tailscale cùng cổng HTTPS. Các khung cũ giữ tiến trình. Trang chỉ kết nối khung trên Mac, không tạo shell hay kết nối máy chủ từ xa.
+Dùng **Cài đặt → Trình duyệt → Truy cập qua trình duyệt** để điều khiển các khung cục bộ trên máy Mac này. Mặc định tắt. Sau khi bật, mở khung mới và dùng trang cục bộ hoặc chọn rõ giao diện IPv4 mạng riêng LAN/Tailscale cùng cổng HTTPS. Các khung cũ giữ tiến trình. Trang chỉ kết nối khung trên Mac, không tạo shell hay kết nối máy chủ từ xa.
 
 Trang HTTP cục bộ thường dùng cổng HTTPS đã cấu hình cộng một (mặc định `7444`). Ngủ, thử lại và mở lại giữ nguyên địa chỉ và quyền nếu tình trạng sử dụng cổng không đổi. Nếu cổng đang được dùng, Zshell thử bảy cổng cục bộ tiếp theo; sau `65535`, quay về `1024`. Nếu tình trạng sử dụng cổng thay đổi, lần khởi động lại có thể chọn địa chỉ khác. Quyền hiện có gắn với nguồn trước đó, nên địa chỉ mới cần ghép nối lại. Máy khách đã lưu vẫn hiển thị và có thể thu hồi quyền khi truy cập tắt. Khi đạt giới hạn 32 máy khách, hãy thu hồi một máy trước khi phê duyệt máy mới. Nếu không thể kiểm tra dịch vụ phiên, truy cập vẫn bật; nhấp Thử lại khi dịch vụ sẵn sàng.
 

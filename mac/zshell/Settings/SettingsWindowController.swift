@@ -65,8 +65,7 @@ enum SettingsCategory: String, CaseIterable {
         case .appearance: SettingsAppearancePane()
         case .terminal: SettingsTerminalPane()
         case .editor: SettingsEditorPane()
-        case .browser: SettingsBrowserPane()
-        case .browserAccess: SettingsBrowserAccessPane()
+        case .browser, .browserAccess: SettingsBrowserPane()
         case .automation: SettingsAutomationPane()
         case .recommendations: SettingsRecommendationsPane()
         case .updates: SettingsUpdatesPane()
@@ -185,6 +184,7 @@ final class SettingsWindowController: NSWindowController, NSToolbarDelegate {
         select(category)
         show()
         if let section {
+            let category: SettingsCategory = category == .browserAccess ? .browser : category
             content.reveal(SettingsSearchResult(category: category, title: section, section: section, searchText: ""))
         }
     }
@@ -259,9 +259,15 @@ final class SettingsWindowController: NSWindowController, NSToolbarDelegate {
     }
 
     private func select(_ category: SettingsCategory, recordHistory: Bool = true) {
+        let isBrowserAccess = category == .browserAccess
+        let category: SettingsCategory = isBrowserAccess ? .browser : category
         content.show(category)
         sidebar.select(category)
         UserDefaults.standard.set(category.rawValue, forKey: Self.categoryDefaultsKey)
+        if isBrowserAccess {
+            let section = String(localized: "Browser Access")
+            content.reveal(SettingsSearchResult(category: .browser, title: section, section: section, searchText: ""))
+        }
         if recordHistory, historyIndex < 0 || history[historyIndex] != category {
             history.removeSubrange((historyIndex + 1)..<history.count)
             history.append(category)

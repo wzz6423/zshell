@@ -296,7 +296,7 @@ final class BrowserAccessController: nonisolated ObservableObject {
 
     private static func translations() -> [String: String] {
         ["title": String(localized: "Browser Access"), "pair": String(localized: "Request Pairing"),
-         "name": String(localized: "Client name"), "pairing": String(localized: "Compare this code on the Mac, then approve the client in Settings → Browser Access."),
+         "name": String(localized: "Client name"), "pairing": String(localized: "Compare this code on the Mac, then approve the client in Settings → Browser → Browser Access."),
          "waiting": String(localized: "Waiting for approval…"), "denied": String(localized: "Pairing was denied or expired."),
          "connect": String(localized: "Reconnect"), "disconnect": String(localized: "Disconnect"),
          "forget": String(localized: "Forget This Browser"), "connected": String(localized: "Connected"),

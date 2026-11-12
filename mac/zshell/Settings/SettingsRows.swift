@@ -211,6 +211,76 @@ final class SettingsButtonRow: NSView {
     }
 }
 
+/// Keep related actions together while allowing their full titles to wrap as a group.
+final class SettingsButtonFlowRow: NSView {
+    private let buttons: [NSButton]
+    private let spacing: CGFloat = 8
+    private var contentHeight: CGFloat = 0
+
+    init(views: [NSButton]) {
+        buttons = views
+        super.init(frame: .zero)
+
+        for button in buttons {
+            button.translatesAutoresizingMaskIntoConstraints = true
+            button.autoresizingMask = []
+            if button.toolTip == nil { button.toolTip = button.title }
+            if button.accessibilityLabel() == nil { button.setAccessibilityLabel(button.title) }
+            addSubview(button)
+        }
+        contentHeight = buttons.filter { !$0.isHidden }.map { preferredSize(of: $0).height }.max() ?? 0
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override var isFlipped: Bool { true }
+
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: contentHeight)
+    }
+
+    override func layout() {
+        super.layout()
+        let availableWidth = max(0, bounds.width)
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        for button in buttons where !button.isHidden {
+            let preferred = preferredSize(of: button)
+            let width = min(preferred.width, availableWidth)
+            if x > 0, x + width > availableWidth {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            button.frame = NSRect(x: x, y: y, width: width, height: preferred.height)
+            x += width + spacing
+            rowHeight = max(rowHeight, preferred.height)
+        }
+        let height = y + rowHeight
+        if height != contentHeight {
+            contentHeight = height
+            invalidateIntrinsicContentSize()
+        }
+    }
+
+    private func preferredSize(of button: NSButton) -> NSSize {
+        let fitting = button.fittingSize
+        let intrinsic = button.intrinsicContentSize
+        let alignmentSize = NSSize(
+            width: max(0, intrinsic.width),
+            height: max(0, intrinsic.height)
+        )
+        // The native bezel extends beyond the button's alignment rect.
+        let frameSize = button.frame(forAlignmentRect: NSRect(origin: .zero, size: alignmentSize)).size
+        return NSSize(width: max(0, ceil(max(fitting.width, frameSize.width))),
+                      height: max(0, ceil(max(fitting.height, frameSize.height))))
+    }
+}
+
 /// An `NSButton` that owns its own closure, so panes don't each need a
 /// selector per button.
 final class SettingsActionButton: NSButton {

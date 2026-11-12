@@ -165,7 +165,7 @@ final class SurfaceView: NSView, TerminalBackendSurface {
     required init?(coder: NSCoder) { fatalError() }
     func setSurfaceVisible(_ visible: Bool) {}
 }
-final class PromptQueueFixture: NSView, NSTextFieldDelegate {
+final class PromptQueueBarView: NSView, NSTextFieldDelegate {
     __QUEUE_METRICS__
     private lazy var heightConstraint = heightAnchor.constraint(equalToConstant: 0)
     private lazy var listHeightConstraint = listScroll.heightAnchor.constraint(equalToConstant: 0)
@@ -185,6 +185,7 @@ final class PromptQueueFixture: NSView, NSTextFieldDelegate {
         heightConstraint.constant = FixtureState.showsQueue ? Metrics.padding * 2 + Metrics.inputRowHeight : 0
     }
     required init?(coder: NSCoder) { fatalError() }
+    func setPaneVisible(_ visible: Bool) {}
     @objc private func addToQueue() {}
     @objc private func closeClicked() {}
     __QUEUE_BUILD__
@@ -194,7 +195,7 @@ struct SurfaceFixture: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         let container = TerminalContainerView()
         container.focusOnAppear = false
-        container.mount(SurfaceView(id: id), scrollbar: NSView(), queueBar: PromptQueueFixture())
+        container.mount(SurfaceView(id: id), scrollbar: NSView(), queueBar: PromptQueueBarView())
         return container
     }
     func updateNSView(_ view: NSView, context: Context) {}
@@ -237,7 +238,7 @@ struct PaneBoundsRegression {
         func checkSurfaceEdges(_ surface: SurfaceView) {
             let container = surface.superview!
             let frame = surface.convert(surface.bounds, to: container)
-            let bar = container.subviews.compactMap { $0 as? PromptQueueFixture }.first
+            let bar = container.subviews.compactMap { $0 as? PromptQueueBarView }.first
             check(abs(frame.minX - container.bounds.minX) < 0.01,
                   "terminal left edge is full bleed: inset=\(frame.minX - container.bounds.minX)")
             check(abs(frame.maxX - container.bounds.maxX) < 0.01,
@@ -281,7 +282,7 @@ struct PaneBoundsRegression {
                       "pane \(index) stays in allocated width \(width): x=\(frame.minX), width=\(frame.width)")
                 check(frame.minY >= -0.5 && frame.maxY <= height + 0.5,
                       "pane \(index) stays in allocated height \(height)")
-                let bar = surface.superview!.subviews.compactMap { $0 as? PromptQueueFixture }.first!
+                let bar = surface.superview!.subviews.compactMap { $0 as? PromptQueueBarView }.first!
                 let barFrame = bar.convert(bar.bounds, to: hosting)
                 check(barFrame.minX >= expectedMinX - 0.5 && barFrame.maxX <= expectedMinX + width + 0.5,
                       "queue bar stays inside pane \(index)")

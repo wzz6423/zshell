@@ -2,6 +2,7 @@ import AppKit
 import Combine
 
 final class SettingsBrowserPane: SettingsPaneViewController, NSTextViewDelegate {
+    private let accessPane = SettingsBrowserAccessPane()
     private let enabledSwitch = SettingsSwitch { AppSettings.shared.browserContentBlocking = $0 }
     private let easyListSwitch = SettingsSwitch { _ in }
     private let easyPrivacySwitch = SettingsSwitch { _ in }
@@ -41,9 +42,9 @@ final class SettingsBrowserPane: SettingsPaneViewController, NSTextViewDelegate 
         let listEditor = SettingsBrowserListEditor(scroll)
         listEditor.heightAnchor.constraint(equalToConstant: 110).isActive = true
 
-        let explanation = NSTextField(wrappingLabelWithString: String(localized: "One HTTP or HTTPS ABP list URL per line. Up to 8 lists total. HTTP lists are unencrypted."))
-        let limitations = NSTextField(wrappingLabelWithString: String(localized: "Supports common network and CSS hiding filters. Scriptlets, procedural filters, redirects, regular expressions, and complex domain exceptions are skipped. This is not full uBlock Origin compatibility."))
-        for label in [explanation, limitations, statusLabel, validationLabel] {
+        customLists.toolTip = String(localized: "One HTTP or HTTPS ABP list URL per line. Up to 8 lists total. HTTP lists are unencrypted.")
+        enabledSwitch.toolTip = String(localized: "Applies to future page requests in every browser pane. Reload open pages after changing rules.")
+        for label in [statusLabel, validationLabel] {
             label.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
             label.textColor = .secondaryLabelColor
             label.maximumNumberOfLines = 0
@@ -51,16 +52,16 @@ final class SettingsBrowserPane: SettingsPaneViewController, NSTextViewDelegate 
         }
         validationLabel.textColor = .systemRed
         validationLabel.isHidden = true
-        let editor = NSStackView(views: [explanation, listEditor, validationLabel, applyButton])
+        let editor = NSStackView(views: [listEditor, validationLabel, applyButton])
         editor.orientation = .vertical
         editor.alignment = .leading
         editor.spacing = 8
-        for view in [explanation, listEditor, validationLabel] { view.widthAnchor.constraint(equalTo: editor.widthAnchor).isActive = true }
-        let status = NSStackView(views: [statusLabel, updateButton, limitations])
+        for view in [listEditor, validationLabel] { view.widthAnchor.constraint(equalTo: editor.widthAnchor).isActive = true }
+        let status = NSStackView(views: [statusLabel, updateButton])
         status.orientation = .vertical
         status.alignment = .leading
         status.spacing = 8
-        for label in [statusLabel, limitations] { label.widthAnchor.constraint(equalTo: status.widthAnchor).isActive = true }
+        statusLabel.widthAnchor.constraint(equalTo: status.widthAnchor).isActive = true
         observe(BrowserContentBlocker.shared.$status.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.syncFromSettings() })
         let filters = SettingsGroup(header: String(localized: "Filter Lists"), rows: [
             SettingsRow(title: "EasyList", control: easyListSwitch),
@@ -69,33 +70,34 @@ final class SettingsBrowserPane: SettingsPaneViewController, NSTextViewDelegate 
         ])
         filterGroup = filters
         let blocking = SettingsGroup(rows: [
-            SettingsRow(title: String(localized: "Block ads and trackers"), description: String(localized: "Applies to future page requests in every browser pane. Reload open pages after changing rules."), control: enabledSwitch, symbolName: "hand.raised.fill"),
+            SettingsRow(title: String(localized: "Block ads and trackers"), control: enabledSwitch, symbolName: "hand.raised.fill"),
             SettingsCustomRow(status),
         ])
         blockingGroup = blocking
         return [
-            SettingsGroup(rows: [
-                SettingsButtonRow(title: String(localized: "Manage Extensions…")) { [weak self] in
+            SettingsGroup(rows: [SettingsButtonFlowRow(views: [
+                SettingsActionButton(title: String(localized: "Manage Extensions…")) { [weak self] in
                     BrowserWebExtensionManager.shared.show(relativeTo: self?.view.window)
                 },
-                SettingsButtonRow(title: String(localized: "Import Browser Data…")) {
+                SettingsActionButton(title: String(localized: "Import Browser Data…")) {
                     guard let manager = TerminalManager.activeWindowManager else { return }
                     BrowserProfileImportController.shared.show(for: manager)
                 },
-                SettingsButtonRow(title: String(localized: "Browser Data Access…")) {
+                SettingsActionButton(title: String(localized: "Browser Data Access…")) {
                     BrowserProfileImportController.shared.openAccessSettings()
                 },
-                SettingsButtonRow(title: String(localized: "Imported Browser History")) {
+                SettingsActionButton(title: String(localized: "Imported Browser History")) {
                     guard let manager = TerminalManager.activeWindowManager else { return }
                     BrowserImportedHistoryController.shared.show(manager: manager)
                 },
-            ]),
+            ])]),
             blocking,
             filters,
-        ]
+        ] + accessPane.makeGroups()
     }
 
     override func syncFromSettings() {
+        accessPane.syncFromSettings()
         enabledSwitch.isOn = settings.browserContentBlocking
         blockingGroup?.setRowHidden(!settings.browserContentBlocking, at: 1)
         filterGroup?.isHidden = !settings.browserContentBlocking

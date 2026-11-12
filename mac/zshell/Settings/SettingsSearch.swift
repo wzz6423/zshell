@@ -60,10 +60,11 @@ enum SettingsSearchIndex {
             )
         }
 
-        var result = SettingsCategory.allCases.filter { $0 != .automation }.map { item($0, $0.title) }
+        var result = SettingsCategory.allCases.filter { $0 != .automation && $0 != .browserAccess }.map { item($0, $0.title) }
         result += [
-            item(.browserAccess, String(localized: "Enable browser access"), keywords: "browser-access.enabled remote web terminal LAN Tailscale"),
-            item(.browserAccess, String(localized: "Revoke All Clients"), section: String(localized: "Authorized Clients"), keywords: "authorization revoke disconnect"),
+            item(.browser, String(localized: "Browser Access"), section: String(localized: "Browser Access"), keywords: "browserAccess remote web terminal LAN Tailscale"),
+            item(.browser, String(localized: "Enable browser access"), section: String(localized: "Browser Access"), keywords: "browser-access.enabled remote web terminal LAN Tailscale"),
+            item(.browser, String(localized: "Revoke All Clients"), section: String(localized: "Authorized Clients"), keywords: "authorization revoke disconnect"),
             item(.browser, String(localized: "Block ads and trackers"), keywords: "browser.content-blocking ads trackers privacy"),
             item(.browser, String(localized: "Import Browser Data…"), keywords: "browser import cookies Chrome Firefox"),
             item(.browser, String(localized: "Browser Data Access…"), keywords: "browser data access permissions privacy Full Disk Access Chrome Firefox"),
@@ -181,10 +182,8 @@ enum SettingsSearchIndex {
             item(.editor, String(localized: "Wrap lines to editor width"), keywords: "editor.wrap-lines"),
             item(.editor, String(localized: "Wrap lines to diff width"), keywords: "editor.diff-wrap-lines diff word wrap horizontal scrolling"),
             item(.editor, String(localized: "Import by dragging into the file tree"), section: String(localized: "Files"),
-                 description: String(localized: "Copy Finder files and folders into local projects. File → Import Files… is always available."),
                  keywords: "files.drag-import Finder drag drop import copy file tree"),
             item(.editor, String(localized: "Allow remote file changes"), section: String(localized: "Files"),
-                 description: String(localized: "Create, rename, move to remote trash, and save files over SSH. Reading remains available when this is off."),
                  keywords: "files.remote-write-enabled SSH remote write edit save rename delete trash"),
             item(.editor, String(localized: "Protect against save conflicts"), keywords: "editor.protect-saves conflict overwrite disk draft"),
             item(.editor, String(localized: "Back up unsaved drafts"), keywords: "editor.recover-drafts autosave recovery backup crash unsaved"),
@@ -221,10 +220,10 @@ enum SettingsSearchIndex {
         }
         if visibility.browserAccessEnabled {
             result += [
-                item(.browserAccess, String(localized: "Listen on"), section: String(localized: "Private Network"), keywords: "browser-access.interface LAN Tailscale localhost"),
-                item(.browserAccess, String(localized: "HTTPS port"), section: String(localized: "Private Network"), keywords: "browser-access.port"),
-                item(.browserAccess, String(localized: "Open Local Access Page"), section: String(localized: "Private Network"), keywords: "pairing local browser"),
-                item(.browserAccess, String(localized: "Export TLS Certificate…"), section: String(localized: "TLS Certificate"), keywords: "https trust fingerprint"),
+                item(.browser, String(localized: "Listen on"), section: String(localized: "Private Network"), keywords: "browser-access.interface LAN Tailscale localhost"),
+                item(.browser, String(localized: "HTTPS port"), section: String(localized: "Private Network"), keywords: "browser-access.port"),
+                item(.browser, String(localized: "Open Local Access Page"), section: String(localized: "Private Network"), keywords: "pairing local browser"),
+                item(.browser, String(localized: "Export TLS Certificate…"), section: String(localized: "TLS Certificate"), keywords: "https trust fingerprint"),
             ]
         }
         if visibility.gitProxyEnabled {

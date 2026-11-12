@@ -41,7 +41,8 @@ with tempfile.TemporaryDirectory(prefix='zshell-event-model-', dir='/tmp') as di
         home.mkdir()
         config = home / '.config/zshell-dev'
         config.mkdir(parents=True)
-        (config / 'config.toml').write_text('[ai]\nenabled = false\n')
+        (config / 'config.toml').write_text('[ai]\nenabled = false\n'
+                                           'notify-on-attention = false\nnotify-on-completion = false\n')
         (home / '.zshrc').write_text("PROMPT='EVENT-READY> '; RPROMPT=''; HISTFILE=/dev/null\n")
         environment = {k: v for k, v in os.environ.items() if not k.startswith('ZSHELL_')}
         environment.update(HOME=str(home), CFFIXED_USER_HOME=str(home), ZDOTDIR=str(home),

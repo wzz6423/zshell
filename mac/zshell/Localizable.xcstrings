@@ -175540,109 +175540,109 @@
         }
       }
     },
-    "Compare this code on the Mac, then approve the client in Settings → Browser Access.": {
+    "Compare this code on the Mac, then approve the client in Settings → Browser → Browser Access.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Compare this code on the Mac, then approve the client in Settings → Browser Access."
+            "value": "Compare this code on the Mac, then approve the client in Settings → Browser → Browser Access."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请对照 Mac 上的配对码，然后在“设置 → 浏览器访问”中批准客户端。"
+            "value": "请对照 Mac 上的配对码，然后在“设置 → 浏览器 → 浏览器访问”中批准客户端。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請比對 Mac 上的配對碼，再到「設定 → 瀏覽器存取」核准用戶端。"
+            "value": "請比對 Mac 上的配對碼，再到「設定 → 瀏覽器 → 瀏覽器存取」核准用戶端。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mac に表示されたコードを照合し、「設定 → ブラウザアクセス」でクライアントを承認してください。"
+            "value": "Mac に表示されたコードを照合し、「設定 → ブラウザ → ブラウザアクセス」でクライアントを承認してください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mac에 표시된 코드를 비교한 다음 설정 → 브라우저 접근에서 클라이언트를 승인하세요."
+            "value": "Mac에 표시된 코드를 비교한 다음 설정 → 브라우저 → 브라우저 접근에서 클라이언트를 승인하세요."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Comparez ce code sur le Mac, puis autorisez le client dans Réglages → Accès par navigateur."
+            "value": "Comparez ce code sur le Mac, puis autorisez le client dans Réglages → Navigateur → Accès par navigateur."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vergleiche diesen Code auf dem Mac und autorisiere den Client unter Einstellungen → Browserzugriff."
+            "value": "Vergleiche diesen Code auf dem Mac und autorisiere den Client unter Einstellungen → Browser → Browserzugriff."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Compara este código en el Mac y autoriza al cliente en Ajustes → Acceso por navegador."
+            "value": "Compara este código en el Mac y autoriza al cliente en Ajustes → Navegador → Acceso por navegador."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Compare este código no Mac e autorize o cliente em Ajustes → Acesso pelo navegador."
+            "value": "Compare este código no Mac e autorize o cliente em Ajustes → Navegador → Acesso pelo navegador."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Confronta questo codice sul Mac, poi autorizza il client in Impostazioni → Accesso dal browser."
+            "value": "Confronta questo codice sul Mac, poi autorizza il client in Impostazioni → Browser → Accesso dal browser."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vergelijk deze code op de Mac en autoriseer de client via Instellingen → Browsertoegang."
+            "value": "Vergelijk deze code op de Mac en autoriseer de client via Instellingen → Browser → Browsertoegang."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Сравните этот код на Mac, затем одобрите клиента в Настройки → Доступ из браузера."
+            "value": "Сравните этот код на Mac, затем одобрите клиента в Настройки → Браузер → Доступ из браузера."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "قارن هذا الرمز على الـ Mac، ثم وافق على العميل في الإعدادات ← الوصول عبر المتصفح."
+            "value": "قارن هذا الرمز على الـ Mac، ثم وافق على العميل في الإعدادات ← المتصفح ← الوصول عبر المتصفح."
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "เทียบรหัสนี้บน Mac แล้วอนุมัติไคลเอนต์ใน การตั้งค่า → การเข้าถึงผ่านเบราว์เซอร์"
+            "value": "เทียบรหัสนี้บน Mac แล้วอนุมัติไคลเอนต์ใน การตั้งค่า → เบราว์เซอร์ → การเข้าถึงผ่านเบราว์เซอร์"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bandingkan kode ini di Mac, lalu izinkan klien di Pengaturan → Akses browser."
+            "value": "Bandingkan kode ini di Mac, lalu izinkan klien di Pengaturan → Browser → Akses browser."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "So sánh mã này trên Mac, rồi chấp thuận máy khách trong Cài đặt → Truy cập qua trình duyệt."
+            "value": "So sánh mã này trên Mac, rồi chấp thuận máy khách trong Cài đặt → Trình duyệt → Truy cập qua trình duyệt."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bu kodu Mac’te karşılaştırın, ardından Ayarlar → Tarayıcı erişimi bölümünden istemciyi onaylayın."
+            "value": "Bu kodu Mac’te karşılaştırın, ardından Ayarlar → Tarayıcı → Tarayıcı erişimi bölümünden istemciyi onaylayın."
           }
         }
       }

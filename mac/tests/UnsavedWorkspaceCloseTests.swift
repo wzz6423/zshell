@@ -206,6 +206,7 @@ struct UnsavedWorkspaceCloseTests {
         NSApp.delegate = delegate
         var status: Int32 = 0
         do {
+            try await exerciseBatchClose(root: root)
             try await exerciseProjectAndWindowClose(root: root)
             try await exerciseQuit(root: root, delegate: delegate)
             print("UNSAVED_PHASE_COMPLETE backend=\(CommandLine.arguments[1]) phase=quit")
@@ -224,6 +225,70 @@ struct UnsavedWorkspaceCloseTests {
         _ = try? PTYMuxCommandLine.exchange(method: "terminateAll")
         _ = try? PTYMuxCommandLine.exchange(method: "shutdown")
         exit(status)
+    }
+
+    @MainActor private static func exerciseBatchClose(root: URL) async throws {
+        let controller = try await makeWindow()
+        let manager = controller.manager
+        let project = manager.selectedProject!
+        let first = try await file("batch-first.txt", root: root, in: project)
+        let second = try await file("batch-second.txt", root: root, in: project)
+        let initialTabs = project.tabs.map(\.id)
+        let saveThenCancel = responder([.alertFirstButtonReturn, .alertThirdButtonReturn]) { _, _ in
+            if project.tabs.map(\.id) != initialTabs || !isAlive(project) { failures.append("Batch teardown ran before every prompt was answered.") }
+            project.closeAll()
+        }
+        project.closeAll()
+        project.closeAll()
+        try await wait("batch Save then Cancel") { saveThenCancel.prompts == 2 }
+        try await settle()
+        try saveThenCancel.finish()
+        try check(failures.isEmpty && project.tabs.map(\.id) == initialTabs && !first.isDirty && second.isDirty && isAlive(project),
+                  "batch Save then Cancel retains every pane and coalesces repeated close requests")
+        try check(try String(contentsOf: URL(fileURLWithPath: first.path), encoding: .utf8) == first.text,
+                  "batch Save writes the file while later cancellation keeps its pane")
+
+        first.text = "batch first draft after save"
+        first.refreshDirtyState()
+        let discardThenCancel = responder([.alertSecondButtonReturn, .alertThirdButtonReturn])
+        project.closeAll()
+        try await wait("batch Don't Save then Cancel") { discardThenCancel.prompts == 2 }
+        try await settle()
+        try discardThenCancel.finish()
+        try check(project.tabs.map(\.id) == initialTabs && first.isDirty && second.isDirty && isAlive(project),
+                  "batch Don't Save then Cancel retains the earlier discarded buffer and all panes")
+        EditorDraftStore.shared.flush()
+        let cancelledDraft = try await EditorDraftStore.shared.archive.load(first.draftID)
+        try check(cancelledDraft?.text == first.text, "batch Cancel preserves the earlier approved-for-discard backup")
+
+        let firstTab = project.tabs.first { $0.paneID(forContent: first.id) != nil }!
+        let secondTab = project.tabs.first { $0.paneID(forContent: second.id) != nil }!
+        let firstPane = firstTab.allPanes[0]
+        firstTab.layout = firstTab.layout.inserting(secondTab.allPanes[0], toward: .right, beside: firstPane.id)
+        project.tabs.removeAll { $0 === secondTab }
+        let reedited = responder([.alertSecondButtonReturn, .alertSecondButtonReturn, .alertThirdButtonReturn]) { index, _ in
+            if index == 2 { first.text = "batch draft edited during the next prompt"; first.refreshDirtyState() }
+        }
+        project.close(firstTab)
+        try await wait("batch tab re-edited discard") { reedited.prompts == 3 }
+        try await settle()
+        try reedited.finish()
+        try check(project.tabs.contains { $0 === firstTab } && firstTab.allContents.count == 2 && first.isDirty && second.isDirty && isAlive(project),
+                  "split-tab cancellation retains both dirty panes and re-prompts a newer discarded edit")
+
+        let approved = responder([.alertSecondButtonReturn, .alertSecondButtonReturn])
+        project.close(firstTab)
+        try await wait("split tab closes after all approvals") { !project.tabs.contains { $0 === firstTab } }
+        try approved.finish()
+        try check(isAlive(project), "approved split-tab close keeps the untargeted terminal alive")
+        EditorDraftStore.shared.flush()
+        let discardedDraft = try await EditorDraftStore.shared.archive.load(first.draftID)
+        try check(discardedDraft == nil, "approved batch Don't Save deletes its backup only after every prompt succeeds")
+        manager.close(project)
+        try await wait("batch fixture project closes") { !manager.projects.contains { $0 === project } }
+        controller.window?.close()
+        try await wait("batch fixture window unregisters") { !TerminalManager.automationManagers.contains { $0 === manager } }
+        print("UNSAVED_PHASE_COMPLETE backend=\(CommandLine.arguments[1]) phase=batch")
     }
 
     @MainActor private static func exerciseProjectAndWindowClose(root: URL) async throws {

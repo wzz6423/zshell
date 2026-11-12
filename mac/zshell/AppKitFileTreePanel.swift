@@ -34,7 +34,7 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
     private let importButton = NSButton()
     private let noticeLabel = NSTextField(wrappingLabelWithString: "")
     private let retryButton = NSButton()
-    private let header = NSView()
+    private let header = FileTreeHeaderView()
     private let notice = NSView()
     private let scrollView = NSScrollView()
     private let table = FileTreeTableView()
@@ -93,6 +93,7 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         notice.addSubview(retryButton)
         notice.isHidden = true
         table.headerView = nil
+        table.style = .plain
         table.rowSizeStyle = .custom
         table.intercellSpacing = NSSize(width: 0, height: 1)
         table.backgroundColor = .clear
@@ -264,21 +265,28 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         let width = max(0, bounds.width - inset * 2)
         let lineHeight = metrics.lineHeight(designedFontSize: 12, weight: .semibold, minimum: 16)
         let subtitleHeight = metrics.lineHeight(designedFontSize: 10, minimum: 13)
-        let controlsOnSecondLine = width < 220 * metrics.growthScale
-        let headerHeight = lineHeight + subtitleHeight + 17 + (controlsOnSecondLine ? 24 * metrics.growthScale : 0)
-        header.frame = NSRect(x: 0, y: 0, width: bounds.width, height: headerHeight)
         let buttons = [importButton, searchButton, revealButton].filter { !$0.isHidden }
         let slot = max(22, metrics.slotSize(20))
         let controlsWidth = CGFloat(buttons.count) * slot
-        let labelWidth = max(0, width - (controlsOnSecondLine ? 0 : controlsWidth + 6))
+        let controlsGap: CGFloat = buttons.isEmpty ? 0 : 6
+        let badgeSize = rootBadge == nil ? 0 : badgeLabel.intrinsicContentSize.width + 6
+        let textWidth = max(titleLabel.intrinsicContentSize.width + badgeSize, pathLabel.intrinsicContentSize.width)
+        let controlsOnSecondLine = !buttons.isEmpty && textWidth + controlsGap + controlsWidth > width
+        let titleRowHeight = controlsOnSecondLine || buttons.isEmpty ? lineHeight : max(lineHeight, slot)
+        let titleRowY: CGFloat = 7 + subtitleHeight + 1
+        let controlsY = controlsOnSecondLine ? titleRowY + titleRowHeight + controlsGap : titleRowY + (titleRowHeight - slot) / 2
+        let headerHeight = controlsOnSecondLine ? controlsY + slot + 7 : titleRowY + titleRowHeight + 7
+        header.frame = NSRect(x: 0, y: 0, width: bounds.width, height: headerHeight)
+        let labelWidth = max(0, width - (controlsOnSecondLine ? 0 : controlsWidth + controlsGap))
         let badgeWidth = rootBadge == nil ? 0 : min(labelWidth * 0.35, badgeLabel.intrinsicContentSize.width + 6)
-        titleLabel.frame = NSRect(x: inset, y: 7, width: max(0, labelWidth - badgeWidth), height: lineHeight)
-        pathLabel.frame = NSRect(x: inset, y: 7 + lineHeight + 1, width: labelWidth, height: subtitleHeight)
+        let titleY = titleRowY + (titleRowHeight - lineHeight) / 2
+        titleLabel.frame = NSRect(x: inset, y: titleY, width: max(0, labelWidth - badgeWidth), height: lineHeight)
+        pathLabel.frame = NSRect(x: inset, y: 7, width: labelWidth, height: subtitleHeight)
         badgeLabel.isHidden = badgeWidth == 0
-        badgeLabel.frame = NSRect(x: inset + labelWidth - badgeWidth, y: 7, width: badgeWidth, height: lineHeight)
+        badgeLabel.frame = NSRect(x: inset + labelWidth - badgeWidth, y: titleY, width: badgeWidth, height: lineHeight)
         for (index, button) in buttons.enumerated() {
             button.frame = NSRect(x: bounds.width - inset - controlsWidth + CGFloat(index) * slot,
-                                  y: controlsOnSecondLine ? 9 + lineHeight + subtitleHeight : 9,
+                                  y: controlsY,
                                   width: slot, height: slot)
             button.image = NSImage(systemSymbolName: button === importButton ? "square.and.arrow.down" : button === searchButton ? "magnifyingglass" : "arrow.up.forward.app",
                                    accessibilityDescription: nil)?.withSymbolConfiguration(
@@ -609,6 +617,10 @@ extension AppKitFileTreePanel: NSTextFieldDelegate {
         default: return false
         }
     }
+}
+
+private final class FileTreeHeaderView: NSView {
+    override var isFlipped: Bool { true }
 }
 
 private final class FileTreeTableView: NSTableView {

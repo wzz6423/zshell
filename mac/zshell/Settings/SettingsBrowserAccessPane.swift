@@ -51,14 +51,9 @@ final class SettingsBrowserAccessPane: SettingsPaneViewController, NSTextFieldDe
             label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         }
         fingerprintLabel.font = .monospacedSystemFont(ofSize: 10, weight: .regular)
-        let explanation = NSTextField(wrappingLabelWithString: String(localized:
-            "Access this Mac’s terminal panes from a browser. New local panes become available after enabling. Existing panes keep their current process."))
-        explanation.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
-        explanation.textColor = .secondaryLabelColor
-        explanation.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        let main = SettingsGroup(rows: [
+        let main = SettingsGroup(header: String(localized: "Browser Access"), rows: [
             SettingsRow(title: String(localized: "Enable browser access"), control: enabledSwitch, symbolName: "network"),
-            SettingsCustomRow(explanation), SettingsCustomRow(statusLabel), SettingsButtonRow(title: String(localized: "Retry")) { [weak self] in self?.access.retry() },
+            SettingsCustomRow(statusLabel), SettingsButtonRow(title: String(localized: "Retry")) { [weak self] in self?.access.retry() },
         ])
         mainGroup = main
         let network = SettingsGroup(header: String(localized: "Private Network"), rows: [
@@ -117,14 +112,13 @@ final class SettingsBrowserAccessPane: SettingsPaneViewController, NSTextFieldDe
             statusLabel.stringValue = error
             statusLabel.textColor = .systemRed
         } else {
-            statusLabel.stringValue = access.isStarting ? String(localized: "Starting browser access…")
-                : access.localURL != nil ? String(localized: "Browser access is running. Approve only clients you trust to operate this Mac.")
-                : String(localized: "Browser access is off.")
+            statusLabel.stringValue = access.isStarting ? String(localized: "Starting browser access…") : ""
             statusLabel.textColor = .secondaryLabelColor
         }
+        mainGroup?.setRowHidden(statusLabel.stringValue.isEmpty, at: 1)
         let canRetry = settings.browserAccessEnabled && access.error != nil && !access.isStarting
             && access.localURL == nil && access.remoteURL == nil
-        mainGroup?.setRowHidden(!canRetry, at: 3)
+        mainGroup?.setRowHidden(!canRetry, at: 2)
         fingerprintLabel.stringValue = access.fingerprint ?? ""
         certificateGroup?.setRowHidden(fingerprintLabel.stringValue.isEmpty, at: 1)
         certificateGroup?.setRowHidden(access.certificate == nil, at: 2)

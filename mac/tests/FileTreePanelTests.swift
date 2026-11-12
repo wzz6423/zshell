@@ -69,10 +69,65 @@ private final class FileTreePanelProbe {
         table = descendants(panel).compactMap { $0 as? NSTableView }.first
         check(table != nil && table.numberOfRows == 3, "NSTableView contains local rows")
         check(QuickTerminalOffscreen.isSafe(), "Offscreen and focus isolation")
+        func rowGeometry(_ name: String) -> (cell: NSRect, disclosure: NSRect, icon: NSRect, label: NSRect) {
+            guard let cell = table.view(atColumn: 0, row: row(name), makeIfNecessary: true),
+                  let label = cell.subviews.compactMap({ $0 as? NSTextField }).first(where: { $0.stringValue == name })
+            else { fail("File row geometry: \(name)") }
+            cell.layoutSubtreeIfNeeded()
+            let images = cell.subviews.compactMap { $0 as? NSImageView }
+            check(images.count == 2, "Disclosure and file icon slots exist: \(name)")
+            return (cell.convert(cell.bounds, to: panel), images[0].convert(images[0].bounds, to: panel),
+                    images[1].convert(images[1].bounds, to: panel), label.convert(label.bounds, to: panel))
+        }
+        let rootDirectory = rowGeometry("folder")
+        let rootFile = rowGeometry("ordinary.txt")
+        check(manager.fileTree.items[row("folder")].depth == 0, "Root directory uses zero indentation depth")
+        check((8...12).contains(rootDirectory.disclosure.minX), "Root disclosure stays within 8–12pt of panel edge")
+        check(abs(rootDirectory.cell.minX - 6) < 0.5, "Selection row has only the explicit scroll inset")
+        check(abs(rootDirectory.icon.minX - rootFile.icon.minX) < 0.5
+            && abs(rootDirectory.label.minX - rootFile.label.minX) < 0.5, "Root file and directory columns align")
+        print("File tree geometry: row=\(rootDirectory.cell.minX)pt disclosure=\(rootDirectory.disclosure.minX)pt icon=\(rootDirectory.icon.minX)pt name=\(rootDirectory.label.minX)pt")
         let importButton = descendants(panel).compactMap { $0 as? NSButton }.first {
             $0.accessibilityLabel() == "Import Files…"
         }
         check(importButton?.isEnabled == true && importButton?.isHidden == false, "Import toolbar enabled")
+        guard let header = importButton?.superview,
+              let title = header.subviews.compactMap({ $0 as? NSTextField }).first(where: { $0.stringValue == manager.fileTree.rootName }),
+              let path = header.subviews.compactMap({ $0 as? NSTextField }).first(where: { $0.stringValue == manager.fileTree.rootSubtitle })
+        else { fail("File header labels") }
+        let toolbar = header.subviews.compactMap { $0 as? NSButton }.filter { !$0.isHidden }
+        func checkHeader(wrapped: Bool, _ context: String) {
+            let titleFrame = title.convert(title.bounds, to: panel)
+            let pathFrame = path.convert(path.bounds, to: panel)
+            let frames = toolbar.map { $0.convert($0.bounds, to: panel) }
+            check(pathFrame.maxY <= titleFrame.minY, "Path appears above directory name: \(context)")
+            check(frames.allSatisfy { $0.minX >= 0 && $0.maxX <= panel.bounds.width
+                && $0.maxY <= header.frame.maxY }, "Toolbar stays within header: \(context)")
+            check(frames.allSatisfy { abs($0.midY - frames[0].midY) < 0.5 }, "Toolbar icons align: \(context)")
+            if wrapped {
+                check(frames.allSatisfy { $0.minY > titleFrame.maxY }, "Toolbar wraps below both labels: \(context)")
+            } else {
+                check(frames.allSatisfy { abs($0.midY - titleFrame.midY) < 0.5 }, "Toolbar aligns with directory name: \(context)")
+                check(frames.allSatisfy { $0.minX >= max(titleFrame.maxX, pathFrame.maxX) }, "Inline toolbar does not overlap labels: \(context)")
+            }
+        }
+        checkHeader(wrapped: true, "200px long path")
+        for scale: CGFloat in [1, 1.5] {
+            window.setContentSize(NSSize(width: 420, height: 500))
+            panel.update(rootBadge: ("worktree", "Following a worktree"), currentFilePath: nil,
+                         fontScale: scale, openSearchResult: { _ in })
+            path.stringValue = "/fixture/target"
+            panel.layoutSubtreeIfNeeded()
+            checkHeader(wrapped: false, "420px scale \(scale)")
+            window.setContentSize(NSSize(width: 180, height: 500))
+            path.stringValue = "/fixture/long-repository-name"
+            panel.needsLayout = true
+            panel.layoutSubtreeIfNeeded()
+            checkHeader(wrapped: true, "180px scale \(scale)")
+        }
+        window.setContentSize(NSSize(width: 200, height: 500))
+        panel.update(rootBadge: nil, currentFilePath: nil, fontScale: 1, openSearchResult: { _ in })
+        settle()
         check(AppSettings.shared.fileTreeDragImport, "Drag import defaults to enabled")
         for language in [AppLanguage.english, .german, .arabic, .simplifiedChinese] {
             AppLocalization.apply(language)
@@ -97,6 +152,10 @@ private final class FileTreePanelProbe {
         table.selectRowIndexes(IndexSet(integer: folderRow), byExtendingSelection: false)
         key(124)
         wait("Right arrow expands folder") { self.manager.fileTree.items.contains { $0.name == "child.txt" } }
+        let child = rowGeometry("child.txt")
+        let expandedDirectory = rowGeometry("folder")
+        check(abs(child.icon.minX - expandedDirectory.icon.minX - 12) < 0.5
+            && abs(child.label.minX - expandedDirectory.label.minX - 12) < 0.5, "Child icon and name keep 12pt indentation")
         check(manager.fileTreeImportDirectory == target.appendingPathComponent("folder").path, "Directory selection sets import target")
         key(124)
         check(manager.fileTree.items[table.selectedRow].name == "child.txt", "Right arrow selects first child")
@@ -111,6 +170,8 @@ private final class FileTreePanelProbe {
         table.selectRowIndexes(IndexSet(integer: row("ordinary.txt")), byExtendingSelection: false)
         key(120)
         let rename = editField()
+        check(abs(rename.convert(rename.bounds, to: panel).minX - rootFile.label.minX) < 0.5,
+              "Rename field aligns with the file name column")
         type("cancelled.txt", into: rename)
         _ = panel.control(rename, textView: NSTextView(), doCommandBy: #selector(NSResponder.cancelOperation(_:)))
         settle()

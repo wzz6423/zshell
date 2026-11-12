@@ -204,6 +204,38 @@ struct RemoteSSHTests {
         )
         expect(inputTimedOut.timedOut, "stdin backpressure does not outlive the process timeout")
 
+        for standardInput: Data? in [nil, Data(repeating: 65, count: 1024 * 1024)] {
+            let finished = DispatchSemaphore(value: 0)
+            let task = Task.detached {
+                do {
+                    _ = try BoundedProcessRunner.run(
+                        executableURL: URL(fileURLWithPath: "/bin/sleep"), arguments: ["5"],
+                        timeout: 3, outputLimit: 32, standardInput: standardInput
+                    )
+                    preconditionFailure("cancelled process returned a normal result")
+                } catch is CancellationError { finished.signal() }
+                catch { preconditionFailure("cancelled process returned \(error)") }
+            }
+            Thread.sleep(forTimeInterval: 0.05)
+            task.cancel()
+            expect(finished.wait(timeout: .now() + 1) == .success,
+                   "cancellation stops a process promptly with and without stdin")
+        }
+        let cancelledBeforeLaunch = DispatchSemaphore(value: 0)
+        let cancelledTask = Task.detached {
+            while !Task.isCancelled { await Task.yield() }
+            do {
+                _ = try BoundedProcessRunner.run(
+                    executableURL: URL(fileURLWithPath: "/missing-cancelled-process"), arguments: [],
+                    timeout: 3, outputLimit: 32
+                )
+                preconditionFailure("pre-cancelled task launched a process")
+            } catch is CancellationError { cancelledBeforeLaunch.signal() }
+            catch { preconditionFailure("pre-cancelled task attempted launch: \(error)") }
+        }
+        cancelledTask.cancel()
+        expect(cancelledBeforeLaunch.wait(timeout: .now() + 1) == .success, "pre-cancelled work never launches a process")
+
         print("Remote SSH tests: \(passed) passed, 0 failed")
     }
 }

@@ -921,8 +921,13 @@ private final class GitPanelButton: NSButton {
     private let spinner = NSProgressIndicator()
     private var showsProgress = false
 
-    override init(frame frameRect: NSRect) {
+    override convenience init(frame frameRect: NSRect) {
+        self.init(frame: frameRect, cell: nil)
+    }
+
+    init(frame frameRect: NSRect, cell buttonCell: NSButtonCell?) {
         super.init(frame: frameRect)
+        if let buttonCell { cell = buttonCell }
         isBordered = false
         setButtonType(.momentaryChange)
         imageScaling = .scaleProportionallyDown
@@ -1176,10 +1181,30 @@ private final class GitPanelPlaceholderLabel: NSTextField {
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }
 
+private final class GitPanelCommitButtonCell: NSButtonCell {
+    override func drawInterior(withFrame cellFrame: NSRect, in controlView: NSView) {
+        super.drawInterior(withFrame: contentFrame(in: cellFrame), in: controlView)
+    }
+
+    override func titleRect(forBounds rect: NSRect) -> NSRect {
+        super.titleRect(forBounds: contentFrame(in: rect))
+    }
+
+    override func imageRect(forBounds rect: NSRect) -> NSRect {
+        super.imageRect(forBounds: contentFrame(in: rect))
+    }
+
+    private func contentFrame(in bounds: NSRect) -> NSRect {
+        // Native imageRight pins the image to the frame edge, so center its fitted frame.
+        let width = min(max(0, bounds.width), ceil(cellSize.width))
+        return NSRect(x: bounds.midX - width / 2, y: bounds.minY, width: width, height: bounds.height)
+    }
+}
+
 private final class GitPanelCommitView: NSView, NSTextViewDelegate {
     private let textView = GitPanelCommitTextView()
     private let placeholder = GitPanelPlaceholderLabel(labelWithString: "")
-    private let commit = GitPanelButton()
+    private let commit = GitPanelButton(frame: .zero, cell: GitPanelCommitButtonCell())
     private let options = GitPanelButton()
     private let sync = GitPanelButton()
     private let fieldBackground = NSView()
@@ -1240,6 +1265,8 @@ private final class GitPanelCommitView: NSView, NSTextViewDelegate {
         sync.isHidden = !showSync
         commit.configure(symbol: "checkmark", title: commitTitle, help: String(localized: "Commit staged changes (⌘Return)"),
                          scale: scale, enabled: canCommit, loading: commitLoading, primary: true)
+        commit.imagePosition = .imageRight
+        commit.alignment = commitLoading ? .center : .left
         options.configure(symbol: "chevron.down", help: String(localized: "Commit Options"), scale: scale, loading: menuLoading)
         sync.configure(symbol: "arrow.triangle.2.circlepath", title: syncTitle, help: String(localized: "Pull remote commits, then push local ones"),
                        scale: scale, enabled: syncEnabled, loading: syncLoading, primary: true)

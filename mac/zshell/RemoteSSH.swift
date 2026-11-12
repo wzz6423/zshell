@@ -567,6 +567,7 @@ nonisolated struct BoundedProcessRunner {
         environment: [String: String]? = nil,
         standardInput: Data? = nil
     ) throws -> BoundedProcessResult {
+        try Task.checkCancellation()
         let process = Process()
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()
@@ -615,17 +616,12 @@ nonisolated struct BoundedProcessRunner {
 
         let deadline = DispatchTime.now() + max(0, timeout)
         var cancelled = false
-        let timedOut: Bool
-        if standardInput != nil {
-            var finished = false
-            while DispatchTime.now() < deadline {
-                if termination.wait(timeout: min(deadline, .now() + 0.1)) == .success { finished = true; break }
-                if Task.isCancelled { cancelled = true; break }
-            }
-            timedOut = !finished && !cancelled
-        } else {
-            timedOut = termination.wait(timeout: deadline) == .timedOut
+        var finished = false
+        while DispatchTime.now() < deadline {
+            if termination.wait(timeout: min(deadline, .now() + 0.1)) == .success { finished = true; break }
+            if Task.isCancelled { cancelled = true; break }
         }
+        let timedOut = !finished && !cancelled
         if timedOut || cancelled {
             process.terminate()
             if termination.wait(timeout: .now() + 0.25) == .timedOut, process.isRunning {
