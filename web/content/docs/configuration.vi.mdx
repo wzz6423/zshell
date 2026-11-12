@@ -113,6 +113,26 @@ số, 9–24 — mặc định `14`
 
 Cỡ chữ cơ sở của cả hai thanh bên. Tiêu đề phần, hàng, siêu dữ liệu và điều khiển giữ quan hệ phân cấp khi cỡ cơ sở đổi.
 
+### `sidebar.double-click-new-session` [#sidebardouble-click-new-session]
+
+boolean — mặc định `true`
+
+Nhấp đúp vùng trống trên thanh bên để tạo phiên trong dự án đang chọn, hoặc tạo dự án nếu chưa chọn. Thao tác nhấp và kéo trên hàng vẫn hoạt động như thường.
+
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+boolean — mặc định `true`
+
+Bật hoặc tắt chữ ghép tùy chọn cho cả hai backend trong **Cài đặt → Giao diện → Chữ ghép của phông**. Tắt sẽ ghi đè `calt`, `liga`, `clig`, `dlig` và `hlig` nhưng giữ cách tạo hình bắt buộc của chữ viết. Ký tự, cột terminal, con trỏ và vùng chọn không đổi.
+
+### `terminal.font-features` [#terminalfont-features]
+
+chuỗi — mặc định `""`, dùng mặc định của phông
+
+Trong **Tính năng OpenType**, nhập thẻ bốn ký tự, ngăn cách bằng dấu phẩy hoặc khoảng trắng: `-calt` tắt biến thể theo ngữ cảnh, `ss01` bật bộ kiểu 1 và `zero=1` bật số không thay thế. `+liga` và `liga=1` cũng bật tính năng. Giá trị cuối cùng của cùng một thẻ được dùng; công tắc chữ ghép ưu tiên hơn năm thẻ trên.
+
+Thay đổi có hiệu lực ngay với terminal đang mở và bản xem trước. Hai backend dùng tính năng phông hỗ trợ; thẻ không được hỗ trợ không có tác dụng. Đầu vào không hợp lệ giữ giá trị hợp lệ gần nhất; giá trị bên ngoài không hợp lệ dùng mặc định của phông. Đặt lại sẽ xóa danh sách và bật chữ ghép.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 boolean — mặc định `false`
@@ -170,6 +190,24 @@ chuỗi — mặc định chưa đặt
 Chọn chương trình và vector đối số dùng cho terminal tạo từ sau đó. Thiếu `terminal.startup-program`, Zshell vẫn dùng shell đăng nhập của tài khoản với `-l`. Chương trình phải là đường dẫn tuyệt đối có quyền thực thi; đường dẫn thiếu/không chạy được sẽ dùng shell đăng nhập thay vì mở ô chết.
 
 `terminal.startup-arguments` được tách đối số không gọi shell. Dấu nháy và gạch chéo ngược giữ ranh giới, kể cả khoảng trắng và đối số rỗng; biến, glob và thay thế lệnh không được mở rộng. Nháy không hợp lệ cũng trở về shell đăng nhập. argv được CLI Zshell đưa rõ vẫn ưu tiên cho terminal đó.
+
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — mặc định `"current"`
+
+Chọn **Cài đặt → Terminal → Thư mục phiên mới**. Hiện tại dùng thư mục của shell cục bộ đang hoạt động, kể cả terminal đầu tiên của dự án mới. Nếu không có shell cục bộ, dùng thư mục nhà. Dự án dùng gốc hiển thị trong Tệp và Git (kho gần nhất hoặc bản làm việc ở tiền cảnh); ngoài kho thì dùng thư mục hiện tại. Nhà luôn dùng thư mục của tài khoản. Chính sách cũng áp dụng cho Terminal nhanh đầu tiên và mỗi không gian làm việc mới của nó.
+
+Thư mục chỉ định rõ từ Finder, CLI, mẫu không gian làm việc, worktree, phiên khôi phục, thư mục ghim của dự án hoặc nhóm thanh bên được ưu tiên. Chia khung giữ thư mục của khung nguồn. SSH và phiên từ xa dùng chung giữ thư mục trên máy từ xa. Đổi cài đặt không khởi động lại terminal đang mở hoặc không gian Terminal nhanh được dùng lại.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+chuỗi — mặc định `""`
+
+Với tùy chỉnh, nhập đường dẫn tuyệt đối hoặc `~/folder`, hoặc chọn thư mục trong Cài đặt. Zshell kiểm tra thư mục tồn tại và có thể truy cập. Thư mục thiếu, không truy cập được hoặc không hợp lệ sẽ dùng thư mục cục bộ hiện tại (nhà nếu không có); Cài đặt hiển thị lý do. Đường dẫn đã lưu vẫn được giữ khi chọn chính sách khác.
+
+### `terminal.term`
+
+Đặt `terminal.term` trong **Cài đặt → Terminal → TERM** (mặc định `"xterm-256color"`). Tên phải gồm 1–128 chữ cái ASCII, chữ số hoặc `.-_+`. Dùng tên terminfo đã cài trên máy chạy shell. Thay đổi chỉ áp dụng cho phiên cục bộ và SSH mới; các PTY đang mở và được giữ lại vẫn giữ `TERM` ban đầu. Phiên từ xa dùng chung sử dụng giá trị này khi tạo trên máy chủ đã cập nhật; máy chủ cũ vẫn dùng `xterm-256color`. Giá trị không hợp lệ khi khởi động sẽ dùng `xterm-256color`; chỉnh sửa không hợp lệ khi Zshell đang chạy sẽ giữ lại giá trị hợp lệ gần nhất. Cả hai trường hợp đều hiển thị lỗi trong Cài đặt. `TERM_PROGRAM` và `ZSHELL_TERM` không thay đổi.
 
 ### `terminal.backend` [#terminalbackend]
 
@@ -295,6 +333,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1

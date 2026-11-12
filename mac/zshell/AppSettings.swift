@@ -228,6 +228,14 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var fontFeatures: String {
+        didSet { if fontFeatures != oldValue { save() } }
+    }
+
+    @Published var fontLigatures: Bool {
+        didSet { if fontLigatures != oldValue { save() } }
+    }
+
     /// Ordered CJK fallback family for terminal glyphs the primary face lacks.
     /// Empty string leaves fallback selection to each backend and macOS.
     @Published var fontFallbackFamily: String {
@@ -241,6 +249,10 @@ final class AppSettings: nonisolated ObservableObject {
     /// Base text size for both sidebars. Each panel preserves its relative
     /// hierarchy for section labels, content, metadata, and controls.
     @Published var sidebarFontSize: Double {
+        didSet { save() }
+    }
+
+    @Published var sidebarDoubleClickNewSession: Bool {
         didSet { save() }
     }
 
@@ -541,6 +553,12 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published private(set) var terminalTerm: String {
+        didSet { save() }
+    }
+
+    @Published private(set) var terminalTermIsInvalid = false
+
     /// Full executable path and argument text used by terminals opened after a
     /// settings change. An empty program keeps the account login shell.
     @Published var terminalStartupProgram: String {
@@ -548,6 +566,14 @@ final class AppSettings: nonisolated ObservableObject {
     }
 
     @Published var terminalStartupArguments: String {
+        didSet { save() }
+    }
+
+    @Published var newSessionDirectoryPolicy: NewSessionDirectoryPolicy {
+        didSet { save() }
+    }
+
+    @Published var newSessionCustomDirectory: String {
         didSet { save() }
     }
 
@@ -607,6 +633,9 @@ final class AppSettings: nonisolated ObservableObject {
         )
         terminalThemeOnly = toml["terminal.theme-only"]?.bool ?? false
         fontFamily = toml["font-family"]?.string ?? ""
+        let features = toml["terminal.font-features"]?.string ?? ""
+        fontFeatures = TerminalFontFeatures.parse(features) != nil ? features : ""
+        fontLigatures = toml["terminal.font-ligatures"]?.bool ?? true
         fontFallbackFamily = toml["terminal.font-fallback-family"]?.string ?? ""
         let size = toml["font-size"]?.double ?? Self.defaultFontSize
         fontSize = Self.fontSizeRange.contains(size) ? size : Self.defaultFontSize
@@ -615,6 +644,7 @@ final class AppSettings: nonisolated ObservableObject {
         sidebarFontSize = Self.sidebarFontSizeRange.contains(sidebarSize)
             ? sidebarSize
             : Self.defaultSidebarFontSize
+        sidebarDoubleClickNewSession = toml["sidebar.double-click-new-session"]?.bool ?? true
         let interfaceScale = toml["interface.scale"]?.double
             ?? Self.defaultInterfaceScale
         self.interfaceScale = Self.interfaceScaleRange.contains(interfaceScale)
@@ -711,8 +741,15 @@ final class AppSettings: nonisolated ObservableObject {
         claudeUsageEnabled = toml["ai.claude-usage-enabled"]?.bool ?? true
         codexUsageEnabled = toml["ai.codex-usage-enabled"]?.bool ?? true
         terminalBackend = TerminalBackend(persisted: toml["terminal.backend"]?.string)
+        let term = toml["terminal.term"]?.string
+        terminalTerm = term.flatMap { TerminalLaunchSettings.isValidTermName($0) ? $0 : nil }
+            ?? TerminalLaunchSettings.defaultTerm
+        terminalTermIsInvalid = toml["terminal.term"] != nil
+            && !TerminalLaunchSettings.isValidTermName(term ?? "")
         terminalStartupProgram = toml["terminal.startup-program"]?.string ?? ""
         terminalStartupArguments = toml["terminal.startup-arguments"]?.string ?? ""
+        newSessionDirectoryPolicy = NewSessionDirectoryPolicy(persisted: toml["terminal.new-session-directory"]?.string)
+        newSessionCustomDirectory = toml["terminal.custom-directory"]?.string ?? ""
         browserContentBlocking = toml["browser.content-blocking"]?.bool ?? true
         browserFilterLists = toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults
         gitProxyEnabled = toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled
@@ -797,6 +834,8 @@ final class AppSettings: nonisolated ObservableObject {
 
     func resetFont() {
         fontFamily = ""
+        fontFeatures = ""
+        fontLigatures = true
         fontFallbackFamily = ""
         fontSize = Self.defaultFontSize
         sidebarFontSize = Self.defaultSidebarFontSize
@@ -814,9 +853,12 @@ final class AppSettings: nonisolated ObservableObject {
             && applicationPresence == .dockOnly
             && keepAwakeMode == .off
             && fontFamily.isEmpty
+            && fontFeatures.isEmpty
+            && fontLigatures
             && fontFallbackFamily.isEmpty
             && fontSize == Self.defaultFontSize
             && sidebarFontSize == Self.defaultSidebarFontSize
+            && sidebarDoubleClickNewSession
             && interfaceScale == Self.defaultInterfaceScale
             && !fontThicken
             && fontThickenStrength == Self.defaultFontThickenStrength
@@ -872,8 +914,12 @@ final class AppSettings: nonisolated ObservableObject {
             && claudeUsageEnabled
             && codexUsageEnabled
             && terminalBackend == .fallback
+            && terminalTerm == TerminalLaunchSettings.defaultTerm
+            && !terminalTermIsInvalid
             && terminalStartupProgram.isEmpty
             && terminalStartupArguments.isEmpty
+            && newSessionDirectoryPolicy == .current
+            && newSessionCustomDirectory.isEmpty
             && browserContentBlocking
             && browserFilterLists == BrowserFilterSource.defaults
             && gitProxyEnabled == GitProxy.defaultEnabled
@@ -888,6 +934,7 @@ final class AppSettings: nonisolated ObservableObject {
         applicationPresence = .dockOnly
         keepAwakeMode = .off
         resetFont()
+        sidebarDoubleClickNewSession = true
         language = .system
         theme = .system
         themeDark = Theme.defaultDarkThemeName
@@ -939,8 +986,11 @@ final class AppSettings: nonisolated ObservableObject {
             }
         }
         terminalBackend = .fallback
+        setTerminalTerm(TerminalLaunchSettings.defaultTerm)
         terminalStartupProgram = ""
         terminalStartupArguments = ""
+        newSessionDirectoryPolicy = .current
+        newSessionCustomDirectory = ""
         terminalProfiles = []
         browserContentBlocking = true
         browserFilterLists = BrowserFilterSource.defaults
@@ -1028,6 +1078,19 @@ final class AppSettings: nonisolated ObservableObject {
         save()
     }
 
+    @discardableResult
+    func setTerminalTerm(_ term: String) -> Bool {
+        guard TerminalLaunchSettings.isValidTermName(term) else {
+            assign(\.terminalTermIsInvalid, true)
+            return false
+        }
+        let needsSave = terminalTermIsInvalid && terminalTerm == term
+        assign(\.terminalTermIsInvalid, false)
+        assign(\.terminalTerm, term)
+        if needsSave { save() }
+        return true
+    }
+
     private func assign<Value: Equatable>(
         _ keyPath: ReferenceWritableKeyPath<AppSettings, Value>, _ value: Value
     ) {
@@ -1071,6 +1134,9 @@ final class AppSettings: nonisolated ObservableObject {
         ))
         assign(\.terminalThemeOnly, toml["terminal.theme-only"]?.bool ?? false)
         assign(\.fontFamily, toml["font-family"]?.string ?? "")
+        let features = toml["terminal.font-features"]?.string ?? ""
+        assign(\.fontFeatures, TerminalFontFeatures.parse(features) != nil ? features : "")
+        assign(\.fontLigatures, toml["terminal.font-ligatures"]?.bool ?? true)
         assign(\.fontFallbackFamily, toml["terminal.font-fallback-family"]?.string ?? "")
         let size = toml["font-size"]?.double ?? Self.defaultFontSize
         assign(\.fontSize, Self.fontSizeRange.contains(size) ? size : Self.defaultFontSize)
@@ -1079,6 +1145,7 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.sidebarFontSize, Self.sidebarFontSizeRange.contains(sidebarSize)
             ? sidebarSize
             : Self.defaultSidebarFontSize)
+        assign(\.sidebarDoubleClickNewSession, toml["sidebar.double-click-new-session"]?.bool ?? true)
         let scale = toml["interface.scale"]?.double ?? Self.defaultInterfaceScale
         assign(\.interfaceScale, Self.interfaceScaleRange.contains(scale)
             ? scale : Self.defaultInterfaceScale)
@@ -1174,8 +1241,12 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.claudeUsageEnabled, toml["ai.claude-usage-enabled"]?.bool ?? true)
         assign(\.codexUsageEnabled, toml["ai.codex-usage-enabled"]?.bool ?? true)
         assign(\.terminalBackend, TerminalBackend(persisted: toml["terminal.backend"]?.string))
+        setTerminalTerm(toml["terminal.term"] == nil
+            ? TerminalLaunchSettings.defaultTerm : toml["terminal.term"]?.string ?? "")
         assign(\.terminalStartupProgram, toml["terminal.startup-program"]?.string ?? "")
         assign(\.terminalStartupArguments, toml["terminal.startup-arguments"]?.string ?? "")
+        assign(\.newSessionDirectoryPolicy, NewSessionDirectoryPolicy(persisted: toml["terminal.new-session-directory"]?.string))
+        assign(\.newSessionCustomDirectory, toml["terminal.custom-directory"]?.string ?? "")
         assign(\.browserContentBlocking, toml["browser.content-blocking"]?.bool ?? true)
         assign(\.browserFilterLists, toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults)
         assign(\.gitProxyEnabled, toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled)
@@ -1292,6 +1363,12 @@ final class AppSettings: nonisolated ObservableObject {
         if !fontFamily.isEmpty {
             lines.append("font-family = \(TOML.quote(fontFamily))")
         }
+        if !fontFeatures.isEmpty {
+            lines.append("terminal.font-features = \(TOML.quote(fontFeatures))")
+        }
+        if !fontLigatures {
+            lines.append("terminal.font-ligatures = false")
+        }
         if !fontFallbackFamily.isEmpty {
             lines.append("terminal.font-fallback-family = \(TOML.quote(fontFallbackFamily))")
         }
@@ -1299,6 +1376,7 @@ final class AppSettings: nonisolated ObservableObject {
         if sidebarFontSize != Self.defaultSidebarFontSize {
             lines.append("sidebar.font-size = \(TOML.number(sidebarFontSize))")
         }
+        if !sidebarDoubleClickNewSession { lines.append("sidebar.double-click-new-session = false") }
         if interfaceScale != Self.defaultInterfaceScale {
             lines.append("interface.scale = \(TOML.number(interfaceScale))")
         }
@@ -1422,11 +1500,20 @@ final class AppSettings: nonisolated ObservableObject {
         if terminalBackend != .fallback {
             lines.append("terminal.backend = \(TOML.quote(terminalBackend.rawValue))")
         }
+        if terminalTerm != TerminalLaunchSettings.defaultTerm {
+            lines.append("terminal.term = \(TOML.quote(terminalTerm))")
+        }
         if !terminalStartupProgram.isEmpty {
             lines.append("terminal.startup-program = \(TOML.quote(terminalStartupProgram))")
         }
         if !terminalStartupArguments.isEmpty {
             lines.append("terminal.startup-arguments = \(TOML.quote(terminalStartupArguments))")
+        }
+        if newSessionDirectoryPolicy != .current {
+            lines.append("terminal.new-session-directory = \(TOML.quote(newSessionDirectoryPolicy.rawValue))")
+        }
+        if !newSessionCustomDirectory.isEmpty {
+            lines.append("terminal.custom-directory = \(TOML.quote(newSessionCustomDirectory))")
         }
         if !browserContentBlocking {
             lines.append("browser.content-blocking = false")

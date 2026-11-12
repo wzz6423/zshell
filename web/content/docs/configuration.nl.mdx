@@ -113,6 +113,26 @@ Getal, 9–24 — standaard `14`
 
 De basistekstgrootte voor beide zijbalken. Sectiekoppen, rijen, metadata en bedieningselementen behouden hun onderlinge hiërarchie wanneer de basis verandert.
 
+### `sidebar.double-click-new-session` [#sidebardouble-click-new-session]
+
+Booleaans — standaard `true`
+
+Een dubbelklik op lege ruimte in de zijbalk maakt een sessie in het geselecteerde project, of een project als er geen is geselecteerd. Klikken en slepen op regels behouden hun gebruikelijke acties.
+
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+booleaans — standaard `true`
+
+Schakel optionele ligaturen voor beide terminalbackends in of uit via **Instellingen → Uiterlijk → Lettertypeligaturen**. Uitschakelen overschrijft `calt`, `liga`, `clig`, `dlig` en `hlig`; vereiste schriftvorming blijft actief. Tekens, terminalkolommen, cursor en selectie blijven gelijk.
+
+### `terminal.font-features` [#terminalfont-features]
+
+tekenreeks — standaard `""`, lettertypestandaarden
+
+Voer onder **OpenType-functies** tags van vier tekens in, gescheiden door komma’s of witruimte: `-calt` schakelt contextuele alternatieven uit, `ss01` schakelt stijlset 1 in en `zero=1` de alternatieve nul. Ook `+liga` en `liga=1` schakelen functies in. De laatste waarde per tag geldt; de ligatuurschakelaar heeft voorrang voor de vijf genoemde tags.
+
+Wijzigingen gelden direct voor geopende terminals en het voorbeeld. Beide backends gebruiken ondersteunde lettertypefuncties; andere tags hebben geen effect. Ongeldige invoer behoudt de laatste geldige waarde; een ongeldige externe waarde gebruikt de standaard. Herstellen leegt de lijst en schakelt ligaturen in.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 Booleaans — standaard `false`
@@ -170,6 +190,24 @@ Tekenreeksen — standaard niet ingesteld
 Kies het uitvoerbare programma en de argumentvector voor terminals die hierna worden gemaakt. Zonder `terminal.startup-program` blijft Zshell de inlogshell van het account gebruiken met `-l`. Het programma moet een absoluut pad naar een uitvoerbaar bestand zijn. Een ontbrekend of niet-uitvoerbaar pad valt terug op de inlogshell in plaats van een onbruikbaar deelvenster te openen.
 
 `terminal.startup-arguments` wordt in argumenten gesplitst zonder een shell aan te roepen. Aanhalingstekens en backslashes behouden grenzen, inclusief spaties en lege argumenten. Variabelen, globs en opdrachtvervangingen worden niet uitgebreid. Ongeldige aanhalingstekens leiden ook tot een terugval op de inlogshell. Een expliciete argv vanuit de Zshell-CLI heeft nog steeds voorrang voor die terminal.
+
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — standaard `"current"`
+
+Kies **Instellingen → Terminal → Map voor nieuwe sessies**. Huidig gebruikt de map van de actieve lokale shell, ook voor de eerste terminal van een nieuw project. Zonder lokale shell wordt de thuismap gebruikt. Project gebruikt de hoofdmap die Bestanden en Git tonen (de dichtstbijzijnde repository of checkout op de voorgrond); buiten een repository wordt de huidige map gebruikt. Thuis gebruikt altijd de map van het account. Dit geldt ook voor de eerste snelle terminal en elke nieuwe werkruimte daarvan.
+
+Een expliciete map uit Finder, de CLI, een werkruimtesjabloon, een worktree, een herstelde sessie, een vastgezette projectmap of een zijbalkgroep heeft voorrang. Splitsingen behouden de map van hun bronpaneel. SSH en gedeelde externe sessies behouden de map op de externe host. Een wijziging herstart geopende terminals en hergebruikte snelle werkruimtes niet.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+tekst — standaard `""`
+
+Voer voor Aangepast een absoluut pad of `~/folder` in, of kies een map in Instellingen. Zshell controleert of de map bestaat en toegankelijk is. Bij een ontbrekende, ontoegankelijke of ongeldige map wordt de huidige lokale map gebruikt (anders de thuismap); Instellingen toont de reden. Het opgeslagen pad blijft behouden bij een andere keuze.
+
+### `terminal.term`
+
+Stel `terminal.term` in via **Instellingen → Terminal → TERM** (standaard `"xterm-256color"`). De naam moet 1–128 ASCII-letters, cijfers of `.-_+` bevatten. Gebruik een terminfo-naam die is geïnstalleerd op de host waarop de shell draait. Wijzigingen gelden alleen voor nieuwe lokale en SSH-sessies; open en bewaarde PTY’s behouden hun oorspronkelijke `TERM`. Gedeelde externe sessies gebruiken de waarde bij aanmaak op een bijgewerkte server; oudere servers behouden `xterm-256color`. Een ongeldige waarde bij het opstarten valt terug op `xterm-256color`; ongeldige wijzigingen terwijl Zshell actief is behouden de laatste geldige waarde. In beide gevallen verschijnt een fout in Instellingen. `TERM_PROGRAM` en `ZSHELL_TERM` blijven ongewijzigd.
 
 ### `terminal.backend` [#terminalbackend]
 
@@ -295,6 +333,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1

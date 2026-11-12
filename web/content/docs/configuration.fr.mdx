@@ -113,6 +113,26 @@ Nombre, 9–24 — valeur par défaut : `14`
 
 Taille de base du texte des deux barres latérales. Les titres, lignes, métadonnées et contrôles conservent leur hiérarchie relative lorsque cette base change.
 
+### `sidebar.double-click-new-session` [#sidebardouble-click-new-session]
+
+Booléen — valeur par défaut : `true`
+
+Un double-clic dans un espace vide de la barre latérale crée une session dans le projet sélectionné, ou un projet si aucun n’est sélectionné. Les clics et glissements sur les lignes gardent leurs actions habituelles.
+
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+booléen — défaut `true`
+
+Activez ou désactivez les ligatures facultatives des deux moteurs dans **Réglages → Apparence → Ligatures de police**. La désactivation remplace `calt`, `liga`, `clig`, `dlig` et `hlig`, sans retirer les formes requises par l’écriture. Les caractères, colonnes, curseur et sélection restent identiques.
+
+### `terminal.font-features` [#terminalfont-features]
+
+chaîne — défaut `""`, valeurs par défaut de la police
+
+Dans **Fonctions OpenType**, séparez les balises de quatre caractères par des virgules ou espaces : `-calt` désactive les variantes contextuelles, `ss01` active le jeu stylistique 1 et `zero=1` active le zéro alternatif. `+liga` et `liga=1` activent aussi une fonction. La dernière occurrence d’une balise l’emporte ; le commutateur de ligatures a priorité pour les cinq balises citées.
+
+Les changements s’appliquent immédiatement aux terminaux ouverts et à l’aperçu. Les deux moteurs utilisent les fonctions prises en charge par la police ; les autres balises sont sans effet. Une saisie invalide conserve la dernière valeur valide ; une valeur externe invalide utilise les valeurs par défaut. La réinitialisation vide la liste et active les ligatures.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 Booléen — valeur par défaut : `false`
@@ -170,6 +190,24 @@ Chaînes — non définies par défaut
 Choisissent l'exécutable et le vecteur d'arguments des terminaux créés ensuite. Sans `terminal.startup-program`, Zshell utilise le shell de connexion du compte avec `-l`. Le programme doit être indiqué par un chemin absolu exécutable. Un chemin absent ou non exécutable provoque un retour au shell de connexion, au lieu d'ouvrir un volet inutilisable.
 
 `terminal.startup-arguments` est séparé en arguments sans passer par un shell. Guillemets et barres obliques inverses préservent leurs limites, y compris les espaces et arguments vides. Les variables, jokers et substitutions de commande ne sont pas développés. Des guillemets invalides provoquent aussi un repli vers le shell de connexion. Un argv fourni explicitement par la CLI Zshell reste prioritaire pour ce terminal.
+
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — valeur par défaut `"current"`
+
+Choisissez **Réglages → Terminal → Répertoire des nouvelles sessions**. Le répertoire actuel est celui du shell local actif, y compris pour le premier terminal d'un nouveau projet. Sans shell local, le dossier personnel est utilisé. Projet utilise la racine affichée dans Fichiers et Git (le dépôt le plus proche ou la copie de travail au premier plan) ; hors dépôt, il utilise le répertoire actuel. Personnel utilise toujours le dossier du compte. Cette règle s'applique aussi au premier Terminal rapide et à chaque nouvel espace Terminal rapide.
+
+Un répertoire explicite venant du Finder, de la CLI, d'un modèle d'espace de travail, d'un worktree, d'une session restaurée, d'un dossier fixé au projet ou d'un groupe latéral reste prioritaire. Les divisions conservent le répertoire de leur volet source. Les sessions SSH et distantes partagées gardent leur répertoire sur l'hôte distant. Modifier ce réglage ne redémarre pas les terminaux ouverts ni les espaces Terminal rapide réutilisés.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+chaîne — valeur par défaut `""`
+
+Pour la règle personnalisée, saisissez un chemin absolu ou `~/folder`, ou choisissez un dossier dans Réglages. Zshell vérifie que le dossier existe et permet d'y entrer. Un dossier absent, inaccessible ou invalide entraîne un repli vers le répertoire local actuel (le dossier personnel à défaut) ; Réglages affiche la raison. Le chemin enregistré reste conservé lorsque vous choisissez une autre règle.
+
+### `terminal.term`
+
+Définissez `terminal.term` dans **Réglages → Terminal → TERM** (par défaut `"xterm-256color"`). Le nom doit contenir de 1 à 128 lettres ASCII, chiffres ou `.-_+`. Utilisez un nom terminfo installé sur l’hôte qui exécute le shell. Les modifications s’appliquent seulement aux nouvelles sessions locales et SSH ; les PTY ouverts et conservés gardent leur `TERM`. Les sessions distantes partagées utilisent cette valeur à leur création avec un serveur à jour ; les anciens serveurs gardent `xterm-256color`. Une valeur invalide au démarrage utilise `xterm-256color` ; une modification invalide pendant l’exécution de Zshell conserve la dernière valeur valide. Dans les deux cas, une erreur s’affiche dans Réglages. `TERM_PROGRAM` et `ZSHELL_TERM` restent inchangés.
 
 ### `terminal.backend` [#terminalbackend]
 
@@ -295,6 +333,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1

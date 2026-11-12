@@ -148,7 +148,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                 && (explicitlyResumeConversation || isRestoredSession && AppSettings.shared.resumeAgentConversations),
             hasLiveTerminal: existingPTY != nil
         )
-        let directory = Self.validWorkingDirectory(
+        let directory = TerminalSessionDirectory.validatedOrHome(
             existingPTY?.workingDirectory ?? resumeLaunch?.workingDirectory ?? initialDirectory
         )
         let requestedCommand = resumeLaunch?.arguments
@@ -770,7 +770,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         usesGitProxy: Bool
     ) -> [String: String] {
         var environment = [
-            "TERM": "xterm-256color",
+            "TERM": AppSettings.shared.terminalTerm,
             "COLORTERM": "truecolor",
         ]
         environment.merge(
@@ -786,7 +786,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         if let pathOverride, !pathOverride.isEmpty {
             environment["PATH"] = pathOverride
         }
-        environment.merge(additionalEnvironment, uniquingKeysWith: { _, additionalValue in
+        environment.merge(additionalEnvironment.filter {
+            $0.key != "TERM" || TerminalLaunchSettings.isValidTermName($0.value)
+        }, uniquingKeysWith: { _, additionalValue in
             additionalValue
         })
         // A remote shell resolves the proxy's loopback address on its own host,
@@ -1347,16 +1349,6 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         let encoded = Data(script.utf8).base64EncodedString()
         let decode = "/usr/bin/printf %s \(shellQuote(encoded)) | /usr/bin/base64 -D"
         return "/bin/sh -c \(shellQuote("eval \"$(\(decode))\""))"
-    }
-
-    private static func validWorkingDirectory(_ requested: String?) -> String {
-        var isDirectory: ObjCBool = false
-        if let requested,
-           FileManager.default.fileExists(atPath: requested, isDirectory: &isDirectory),
-           isDirectory.boolValue {
-            return requested
-        }
-        return NSHomeDirectory()
     }
 
     /// The configured argv is read once when a pane is created. CLI launches

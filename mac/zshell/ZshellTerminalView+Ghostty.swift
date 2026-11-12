@@ -22,6 +22,9 @@ extension ZshellTerminalView {
         foregroundProcessProvider = launch.foregroundProcessProvider
         reportsLocalWorkingDirectory = launch.reportsLocalWorkingDirectory
         launchCommand = launch.commandLine
+        launchTerm = launch.environment["TERM"].flatMap {
+            TerminalLaunchSettings.isValidTermName($0) ? $0 : nil
+        } ?? TerminalLaunchSettings.defaultTerm
         launchShellIntegration = launch.foregroundProcessProvider == nil && !launch.usesZsh
             ? Self.shellIntegration(for: launch.interactiveShell) : "none"
         supportsInputSelection = launch.usesZsh
@@ -104,6 +107,10 @@ extension ZshellTerminalView {
             // contributing an implicit family before the user's ordered list.
             builder.withCustom("font-family", "Symbols Nerd Font Mono")
             builder.withFontSize(Float(profileAppearance.effectiveFontSize))
+            builder.withCustom("font-feature", "")
+            for feature in TerminalFontFeatures(settings.fontFeatures, ligatures: settings.fontLigatures).features {
+                builder.withCustom("font-feature", feature.ghosttyValue)
+            }
             // Always set explicitly: the wrapper's ConfigSource.none base
             // config injects the package default `font-thicken = true`, and
             // only a later entry in the rendered config overrides it.
@@ -160,6 +167,9 @@ extension ZshellTerminalView {
                 builder.withCustom("keybind", "shift+numpad_enter=text:\\x0a")
             }
             builder.withCustom("command", "shell:\(command)")
+            // Ghostty can synthesize TERM after surface environment entries.
+            // Freeze its config to this launch, including renderer reattaches.
+            builder.withCustom("term", launchTerm)
             if !reportsLocalWorkingDirectory {
                 // A remote job may already have exited before we attach. Its
                 // status belongs to the session, not Ghostty's launch warning.

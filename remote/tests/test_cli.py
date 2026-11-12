@@ -234,6 +234,65 @@ def process_alive(pid):
         return False
 
 
+def terminal_identity_probe(fixture):
+    bridge = subprocess.Popen(fixture.arguments("bridge"), stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        bridge.stdin.write(MAGIC)
+        bridge.stdin.flush()
+        check(read_exact(bridge.stdout.fileno(), 8) == MAGIC, "TERM probe uses the production bridge")
+
+        def exchange(kind, session, environment):
+            request_id = str(uuid.uuid4())
+            request = {"version": 1, "kind": kind, "requestId": request_id,
+                       "project": str(fixture.project), "sessionId": session,
+                       "command": ["/bin/sh", "-i"], "environment": environment}
+            encoded = json.dumps(request).encode()
+            bridge.stdin.write(struct.pack(">I", len(encoded)) + encoded)
+            bridge.stdin.flush()
+            size = struct.unpack(">I", read_exact(bridge.stdout.fileno(), 4))[0]
+            response = json.loads(read_exact(bridge.stdout.fileno(), size))
+            if response["requestId"] != request_id:
+                raise AssertionError("TERM response correlation")
+            return response
+
+        for term in (None, "screen-256color", "vt100"):
+            session = str(uuid.uuid4())
+            environment = {"TERM_PROGRAM": "untrusted-program", "COLORTERM": "untrusted-color"}
+            if term is not None:
+                environment["TERM"] = term
+            response = exchange("create", session, environment)
+            check("error" not in response, f"new remote PTY accepts TERM={term!r}")
+            original_pid = response["result"]["pid"]
+            client = Client(fixture, session)
+            expected = term or "xterm-256color"
+            client.send("printf '\\nTERM_ID=%s|%s|%s\\n' \"$TERM\" \"$TERM_PROGRAM\" \"$COLORTERM\"\r")
+            client.through(f"\r\nTERM_ID={expected}|ghostty|truecolor\r\n".encode())
+            check(True, f"real remote shell reports {expected} and protected capability identity")
+            client.detach()
+            restored = exchange("create", session, {"TERM": "xterm"})
+            check(restored["result"]["pid"] == original_pid,
+                  "replayed create request reuses the existing remote PTY")
+            reattached = Client(fixture, session)
+            reattached.send("printf '\\nTERM_REATTACH=%s\\n' \"$TERM\"\r")
+            reattached.through(f"\r\nTERM_REATTACH={expected}\r\n".encode())
+            check(fixture.info(session)["pid"] == original_pid,
+                  "remote reattach preserves the PTY's original TERM and PID")
+            reattached.detach()
+            fixture.call("terminate", session)
+        for term in ("", "xterm\nother", "xterm/256", "xterm;echo", "终端", "x" * 129):
+            response = exchange("create", str(uuid.uuid4()), {"TERM": term})
+            check("Invalid terminal type" in response.get("error", ""),
+                  f"server rejects invalid terminal type {term!r}")
+    finally:
+        bridge.stdin.close()
+        try:
+            bridge.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            bridge.kill()
+            bridge.wait(timeout=3)
+
+
 def run(fixture, require_uid):
     session, original = fixture.create(["/bin/sh", "-i"])
     check(original["running"] and original["pid"] > 1, "CLI creates a real persistent shell")
@@ -265,6 +324,7 @@ def run(fixture, require_uid):
           "remaining client regains control and its own dimensions")
     bridge_probe(fixture, session)
     different_uid_probe(fixture, require_uid)
+    terminal_identity_probe(fixture)
     second.detach()
     fixture.call("terminate", session)
     check(wait_until(lambda: not process_alive(original["pid"])), "explicit terminate ends the remote shell")

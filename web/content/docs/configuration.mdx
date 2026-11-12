@@ -139,6 +139,26 @@ number, 9–24 — default `14`
 The base text size for both sidebars. Section headings, rows, metadata, and
 controls keep their relative hierarchy as the base changes.
 
+### `sidebar.double-click-new-session`
+
+boolean — default `true`
+
+Double-click empty sidebar space to create a session in the selected project. If no project is selected, it creates a project. Row clicks and drags keep their usual actions.
+
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+boolean — default `true`
+
+Choose **Settings → Appearance → Font ligatures** to enable or disable optional ligatures on both terminal backends. Disabling it overrides `calt`, `liga`, `clig`, `dlig`, and `hlig` while keeping required script shaping. The original characters, terminal columns, cursor, and selection stay unchanged.
+
+### `terminal.font-features` [#terminalfont-features]
+
+string — default `""`, using the font’s defaults
+
+Set **OpenType features** in the same Font group. Separate four-character tags with commas or whitespace: `-calt` disables contextual alternates, `ss01` enables stylistic set 1, and `zero=1` enables the font’s alternate zero. `+liga` and `liga=1` also enable a feature. Later entries for the same tag win. The ligature switch takes priority for its five tags.
+
+Changes apply immediately to open terminals and the font preview. Both backends use features supported by the selected font; unsupported tags have no effect. Invalid input keeps the last valid value in Settings, and an invalid external value uses font defaults. Reset to Defaults restores an empty feature list and enabled ligatures.
+
 ### `terminal.font-thicken`
 
 boolean — default `false`
@@ -243,6 +263,24 @@ Quotes and backslashes preserve boundaries, including spaces and empty
 arguments, but variables, globs, and command substitutions are not expanded.
 Invalid quoting also falls back to the login shell. An explicit argv supplied by
 the Zshell CLI still takes precedence for that terminal.
+
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — default `"current"`
+
+Choose **Settings → Terminal → New session directory**. Current uses the active local shell's directory, including the first terminal of a new project. Without a local shell, it uses your home directory. Project uses the root shown in Files and Git (the nearest repository or foreground checkout); outside a repository it uses the current directory. Home always uses your account home. The same policy applies to the first Quick Terminal and each fresh Quick Terminal workspace.
+
+An explicit directory from Finder, the CLI, a workspace template, a worktree, a restored session, a project pin, or a sidebar group takes precedence. Splits keep their source pane's directory. SSH and shared remote sessions keep the directory on their remote host. Changing this setting leaves open terminals and reusable Quick Terminal workspaces running.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+string — default `""`
+
+For the custom policy, enter an absolute path or `~/folder`, or choose a folder in Settings. Zshell checks that the folder exists and can be entered. A missing, inaccessible, or invalid custom folder falls back to the current local directory (home when none is available); Settings shows the reason. The saved path is retained while you use another policy.
+
+### `terminal.term`
+
+Choose **Settings → Terminal → TERM** to set `terminal.term` (default `"xterm-256color"`). The name must contain 1–128 ASCII letters, digits, or `.-_+`. Use a terminfo name installed on the machine running the shell. Changes apply to new local and SSH sessions only; open and preserved PTYs keep their original `TERM`. Shared remote sessions use the value when created with an updated server; older servers keep `xterm-256color`. An invalid value at startup falls back to `xterm-256color`; invalid edits while Zshell is running retain the last valid value. Both show an error in Settings. This setting leaves `TERM_PROGRAM` and `ZSHELL_TERM` unchanged.
 
 ### `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch`
 
@@ -407,6 +445,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1

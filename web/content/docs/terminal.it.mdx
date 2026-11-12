@@ -16,6 +16,10 @@ Scegli un motore in **Impostazioni → Terminale → Motore**:
 
 Entrambi supportano accelerazione GPU, immagini, catalogo di temi condiviso di Zshell, ricerca, eventi del mouse, notifiche e indicazioni di avanzamento. Cambiare motore ha effetto solo sui nuovi terminali; i pannelli esistenti mantengono l'emulatore con cui sono stati avviati.
 
+## Tipo di terminale [#terminal-type]
+
+Imposta `terminal.term` in **Impostazioni → Terminale → TERM** (predefinito `"xterm-256color"`). Il nome deve contenere 1–128 lettere ASCII, cifre o `.-_+`. Usa un nome terminfo installato sull’host che esegue la shell. Le modifiche si applicano solo alle nuove sessioni locali e SSH; i PTY aperti e conservati mantengono il loro `TERM` originale. Le sessioni remote condivise usano il valore alla creazione con un server aggiornato; i server precedenti mantengono `xterm-256color`. Le modifiche non valide mantengono l’ultimo valore valido e mostrano un errore nelle impostazioni. `TERM_PROGRAM` e `ZSHELL_TERM` restano invariati.
+
 ## Cronologia comandi [#command-history]
 
 **Registra la cronologia dei comandi** in **Impostazioni → Terminale → Cronologia** è attivo per impostazione predefinita (`terminal.command-history = true`). Disattivarlo interrompe i nuovi record; la cronologia salvata resta consultabile e cancellabile. Output del terminale e cronologia della shell sono conservati.

@@ -21,6 +21,10 @@ the original feature bullet instead of adding separate entries for them.
 - Open remote project files over SSH and enable creating, renaming, recoverable
   deletion, and conflict-checked text saves in Editor settings. Operations that
   the host's existing system tools cannot perform safely remain disabled.
+- Close a split pane from its header and create sessions by double-clicking
+  empty project-sidebar space. The double-click action can be disabled in Settings.
+- Choose the terminal type (`TERM`) for new local and remote sessions while
+  open and preserved shells keep their original identity.
 - Recover unsaved file and editable diff drafts after an unexpected exit,
   keeping their original save protection, selection and layout. Manage private
   local backups from File or Editor settings, or turn automatic recovery off.
@@ -35,6 +39,11 @@ the original feature bullet instead of adding separate entries for them.
   preserved when cancellation cannot fully undo the import.
 - Adjust terminal column spacing from Appearance settings while keeping glyph
   size, cursor, selection, and keyboard hints aligned on either terminal backend.
+- Choose the starting directory for new local sessions and Quick Terminal
+  workspaces: current directory, project root, home, or a custom folder.
+  Explicit directories, splits, and restored sessions keep their context.
+- Configure terminal OpenType features and switch font ligatures on or off from
+  Appearance settings, with immediate updates in both terminal backends.
 - Keep the Mac awake while Zshell is running or while a local agent works in
   any terminal pane. Choose the mode from Settings or the application menu;
   displays and manual sleep keep following macOS settings.

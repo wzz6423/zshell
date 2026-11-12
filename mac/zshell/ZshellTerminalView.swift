@@ -40,6 +40,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     /// The `/bin/sh -c …` line this surface launched, kept so a live
     /// re-configure can restate it rather than start a second shell.
     var launchCommand = ""
+    var launchTerm = TerminalLaunchSettings.defaultTerm
     /// The final login shell behind Zshell's `/bin/sh -c` launch shim.
     var launchShellIntegration = "none"
     var supportsInputSelection = false

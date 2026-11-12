@@ -92,6 +92,20 @@ struct SettingsReloadTests {
         let settings = AppSettings.shared
         let url = AppSettings.configURL
         check(url.path.hasPrefix(CommandLine.arguments[1]), "fixture config remains in disposable home")
+        if CommandLine.arguments.count > 2 {
+            let expectedInvalid = CommandLine.arguments[2] == "invalid-term"
+            check(settings.terminalTerm == "xterm-256color" && settings.terminalTermIsInvalid == expectedInvalid,
+                  "invalid startup TERM uses the default and recovered TERM stays valid after restart")
+            if expectedInvalid {
+                check(settings.setTerminalTerm("xterm-256color") && !settings.terminalTermIsInvalid,
+                      "accepting the startup fallback clears the error")
+                NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: nil)
+                check(TOML.parse(at: url)?["terminal.term"] == nil,
+                      "accepting the unchanged default removes the invalid startup value from disk")
+            }
+            print("SettingsReload: startup TERM state and persisted recovery passed (\(CommandLine.arguments[2]))")
+            return
+        }
         var changes = 0
         let observation = settings.objectWillChange.sink { changes += 1 }
         withExtendedLifetime(observation) {}
@@ -160,6 +174,17 @@ struct SettingsReloadTests {
         check(IntegrationFixture.operations == usageIntegrations,
               "usage settings never install or uninstall agent lifecycle integration")
         check(settings.keepAwakeMode == .off, "sleep prevention is off by default")
+        check(settings.sidebarDoubleClickNewSession,
+              "empty-space gesture is enabled by default")
+        check(settings.newSessionDirectoryPolicy == .current && settings.newSessionCustomDirectory.isEmpty,
+              "new sessions inherit their current context by default")
+        settings.newSessionDirectoryPolicy = .project
+        check(!settings.isAtDefaults, "directory policy enables reset")
+        settings.newSessionDirectoryPolicy = .current
+        settings.newSessionCustomDirectory = "~/work"
+        check(!settings.isAtDefaults, "retained custom directory enables reset")
+        settings.newSessionCustomDirectory = ""
+        check(settings.isAtDefaults, "directory preferences restore default state")
         check(settings.mouseScrollMultiplier == 1 && settings.trackpadScrollMultiplier == 1,
               "device scrolling preserves the existing speed by default")
         check(!settings.serializedConfig().contains("scroll-multiplier"), "default scroll multipliers are omitted")
@@ -201,6 +226,35 @@ struct SettingsReloadTests {
         settings.applyImported(completionConfig)
         check(settings.shellCompletions, "import restores the completion preference")
         check(settings.isAtDefaults, "restored completions restore default state")
+        check(settings.terminalTerm == "xterm-256color", "missing TERM preserves the existing default")
+        check(settings.setTerminalTerm("screen-256color") && !settings.isAtDefaults,
+              "valid terminal type applies and enables reset")
+        let termConfig = settings.serializedConfig()
+        check(TOML.parseStrictly(text: termConfig).values["terminal.term"]?.string == "screen-256color",
+              "terminal type serializes without losing its identity")
+        for invalidTerm in ["", "xterm\nother", " xterm", "xterm ", "xterm/256", "xterm;echo", "xterm\0", "终端", String(repeating: "x", count: 129)] {
+            check(!settings.setTerminalTerm(invalidTerm) && settings.terminalTerm == "screen-256color"
+                  && settings.terminalTermIsInvalid, "invalid terminal type preserves the previous setting")
+            check(settings.serializedConfig() == termConfig, "invalid UI values never reach the saved file")
+            var invalidConfig = TOML.parseStrictly(text: termConfig).values
+            invalidConfig["terminal.term"] = .string(invalidTerm)
+            settings.applyImported(invalidConfig)
+            check(settings.terminalTerm == "screen-256color" && settings.terminalTermIsInvalid,
+                  "invalid imported terminal type retains the previous value and reports an error")
+        }
+        var wrongTypeConfig = TOML.parseStrictly(text: termConfig).values
+        wrongTypeConfig["terminal.term"] = .number(42)
+        settings.applyImported(wrongTypeConfig)
+        check(settings.terminalTerm == "screen-256color" && settings.terminalTermIsInvalid,
+              "wrong TOML type cannot erase the last valid terminal identity")
+        settings.applyImported(TOML.parseStrictly(text: termConfig).values)
+        check(settings.terminalTerm == "screen-256color" && !settings.terminalTermIsInvalid,
+              "exported terminal type imports through production settings")
+        check(settings.setTerminalTerm("A0.-_+") && settings.setTerminalTerm(String(repeating: "a", count: 128)),
+              "allowed ASCII punctuation and length boundary are supported")
+        settings.resetToDefaults()
+        check(settings.terminalTerm == "xterm-256color" && settings.isAtDefaults
+              && !settings.serializedConfig().contains("terminal.term"), "reset omits the default terminal type")
         settings.fileTreeDragImport = true
         check(!settings.isAtDefaults, "enabled file import enables reset")
         wait({ (try? String(contentsOf: url, encoding: .utf8))?.contains("files.drag-import = true") == true },
@@ -246,6 +300,7 @@ struct SettingsReloadTests {
         terminal.font-fallback-family = "Fixture CJK"
         font-size = 19
         sidebar.font-size = 18
+        sidebar.double-click-new-session = false
         interface.scale = 1.3
         toolbar.visibility = "always"
         git.proxy-enabled = true
@@ -256,6 +311,8 @@ struct SettingsReloadTests {
         terminal.mouse-scroll-multiplier = 2.5
         terminal.trackpad-scroll-multiplier = 0.5
         terminal.cell-width = 1.35
+        terminal.font-features = "ss01, zero=1"
+        terminal.font-ligatures = false
         terminal.cursor-shape = "underline"
         terminal.cursor-blinking = false
         terminal.macos-option-as-alt = true
@@ -297,8 +354,11 @@ struct SettingsReloadTests {
         ai.codex-usage-enabled = false
         git.pull-request-status = false
         terminal.backend = "alacritty"
+        terminal.term = "screen-256color"
         terminal.startup-program = "/bin/zsh"
         terminal.startup-arguments = "-l"
+        terminal.new-session-directory = "custom"
+        terminal.custom-directory = "~/work"
         browser.content-blocking = false
         browser.filter-lists = "https://example.test/filter.txt"
         terminal.profiles.0.id = "71DA4706-872C-4D96-ACDC-3FC8201F86B7"
@@ -319,10 +379,15 @@ struct SettingsReloadTests {
         check(written == imported, "import saves final state once")
         check(settings.terminalProfiles.first?.appearance.fontSize == 18,
               "profiles import through production settings")
+        check(settings.newSessionDirectoryPolicy == .custom && settings.newSessionCustomDirectory == "~/work",
+              "directory policy and path import without discarding unavailable folders")
         check(settings.terminalProfiles.first?.launchSettings.environment["MODE"] == "profile",
               "profile launch settings round trip through config")
         let roundTrip = TOML.parseStrictly(text: imported).values
+        check(settings.terminalTerm == "screen-256color", "terminal type imports into production settings")
         check(settings.terminalCellWidth == 1.35, "column spacing imports into production settings")
+        check(settings.fontFeatures == "ss01, zero=1" && !settings.fontLigatures,
+              "font features compose with column spacing through import and reload")
         check(settings.focusFollowsMouse && !settings.isAtDefaults, "pointer focus imports and changes default state")
         check(settings.terminalRightClickAction == .paste, "right-click action survives the full settings round trip")
         check(GitProxy.address == "socks5h://127.0.0.1:1080", "imported Git proxy reaches Git processes")
@@ -360,6 +425,30 @@ struct SettingsReloadTests {
         wait({ settings.fontSize == 20 }, "external font edit applies")
         check(changes == unchanged + 1, "single setting edit publishes once")
         check(try SettingsConfigFile.read(at: url) == changed, "external update does not rewrite source")
+        let directoryChanged = changed.replacingOccurrences(of: "terminal.new-session-directory = \"custom\"",
+                                                            with: "terminal.new-session-directory = \"home\"")
+        try directoryChanged.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.newSessionDirectoryPolicy == .home }, "external directory policy edit applies")
+        let invalidPolicy = directoryChanged.replacingOccurrences(of: "terminal.new-session-directory = \"home\"",
+                                                                 with: "terminal.new-session-directory = \"unknown\"")
+        try invalidPolicy.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.newSessionDirectoryPolicy == .current }, "unknown policy preserves the compatible current default")
+        let termChanged = changed.replacingOccurrences(of: "terminal.term = \"screen-256color\"", with: "terminal.term = \"vt100\"")
+        try termChanged.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalTerm == "vt100" }, "external terminal type edit applies")
+        let invalidTermEdit = termChanged.replacingOccurrences(of: "terminal.term = \"vt100\"", with: "terminal.term = \"xterm\\nother\"")
+        try invalidTermEdit.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalTermIsInvalid }, "invalid external terminal type reports an error")
+        check(settings.terminalTerm == "vt100", "invalid external terminal type preserves the last valid value")
+        check(try SettingsConfigFile.read(at: url) == invalidTermEdit, "invalid external TERM edit does not overwrite the user's buffer")
+        check(settings.setTerminalTerm("vt100") && !settings.terminalTermIsInvalid,
+              "accepting the unchanged terminal type clears the external edit error")
+        wait({ TOML.parse(at: url)?["terminal.term"]?.string == "vt100" },
+             "accepting the unchanged terminal type repairs the invalid file value")
+        try invalidTermEdit.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalTermIsInvalid }, "another invalid external TERM edit reports an error")
+        try changed.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalTerm == "screen-256color" && !settings.terminalTermIsInvalid }, "valid external TERM clears the error")
         let enabledQueue = changed.replacingOccurrences(of: "terminal.prompt-queue-enabled = false", with: "terminal.prompt-queue-enabled = true")
             .replacingOccurrences(of: "terminal.prompt-queue-auto-dispatch = true", with: "terminal.prompt-queue-auto-dispatch = false")
         try enabledQueue.write(to: url, atomically: true, encoding: .utf8)
@@ -414,6 +503,12 @@ struct SettingsReloadTests {
         check(!settings.vimCommandHints && !settings.restoreTerminalHistory && !settings.notifyOnError,
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
+        check(settings.sidebarDoubleClickNewSession,
+              "omitted sidebar gesture key restores the default on external reload")
+        check(settings.newSessionDirectoryPolicy == .current && settings.newSessionCustomDirectory.isEmpty,
+              "empty config resets both directory preferences")
+        check(settings.terminalTerm == "xterm-256color" && !settings.terminalTermIsInvalid,
+              "missing terminal type on reload restores the compatible default")
         check(settings.promptQueueEnabled && !settings.promptQueueAutoDispatch,
               "omitted queue settings restore explicit sending without automatic replay")
         check(settings.mouseScrollMultiplier == 1 && settings.trackpadScrollMultiplier == 1,
@@ -434,7 +529,7 @@ struct SettingsReloadTests {
         let featureSwitches: [ReferenceWritableKeyPath<AppSettings, Bool>] = [
             \.protectEditorSaves, \.recoverEditorDrafts, \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints, \.promptQueueEnabled,
             \.automaticallyApplyTerminalProfiles, \.notifyOnAgentAttention,
-            \.notifyOnAgentCompletion, \.showPullRequestStatus,
+            \.notifyOnAgentCompletion, \.showPullRequestStatus, \.sidebarDoubleClickNewSession,
             \.claudeUsageEnabled, \.codexUsageEnabled,
         ]
         for keyPath in featureSwitches {
@@ -458,9 +553,13 @@ struct SettingsReloadTests {
             check(settings.terminalCellWidth == 1, "invalid imported spacing restores native width")
         }
         settings.terminalCellWidth = 1.5
+        settings.fontFeatures = "ss01, zero=1"
+        settings.fontLigatures = false
         settings.resetFont()
         check(settings.terminalCellWidth == 1 && !settings.serializedConfig().contains("terminal.cell-width"),
               "font reset restores column spacing and omits the default config key")
+        check(settings.fontFeatures.isEmpty && settings.fontLigatures,
+              "font reset also restores features after combined spacing changes")
 
         for size in 8...32 { settings.fontSize = Double(size) }
         NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: nil)

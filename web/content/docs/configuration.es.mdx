@@ -113,6 +113,26 @@ número, 9–24 — predeterminado: `14`
 
 Tamaño base del texto de ambas barras laterales. Las cabeceras de sección, filas, metadatos y controles mantienen su jerarquía relativa al cambiar la base.
 
+### `sidebar.double-click-new-session` [#sidebardouble-click-new-session]
+
+booleano — predeterminado: `true`
+
+Un doble clic en un espacio vacío de la barra lateral crea una sesión en el proyecto seleccionado, o un proyecto si no hay ninguno seleccionado. Los clics y arrastres sobre filas conservan sus acciones habituales.
+
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+booleano — predeterminado `true`
+
+Activa o desactiva las ligaduras opcionales de ambos motores en **Ajustes → Apariencia → Ligaduras de fuente**. Desactivarlas anula `calt`, `liga`, `clig`, `dlig` y `hlig`, conservando las formas necesarias para la escritura. Los caracteres, columnas, cursor y selección no cambian.
+
+### `terminal.font-features` [#terminalfont-features]
+
+cadena — predeterminado `""`, valores predeterminados de la fuente
+
+En **Funciones OpenType**, separa las etiquetas de cuatro caracteres con comas o espacios: `-calt` desactiva alternativas contextuales, `ss01` activa el conjunto estilístico 1 y `zero=1` el cero alternativo. `+liga` y `liga=1` también activan funciones. Prevalece la última entrada de cada etiqueta; el interruptor de ligaduras tiene prioridad sobre las cinco indicadas.
+
+Los cambios se aplican inmediatamente a terminales abiertos y a la vista previa. Ambos motores usan las funciones compatibles con la fuente; las demás etiquetas no tienen efecto. La entrada inválida conserva el último valor válido; un valor externo inválido usa los valores predeterminados. Restablecer vacía la lista y activa las ligaduras.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 booleano — predeterminado: `false`
@@ -170,6 +190,24 @@ cadenas — sin valor predeterminado
 Eligen el ejecutable y el vector de argumentos de los terminales creados a partir de ese momento. Cuando no existe `terminal.startup-program`, Zshell sigue usando el shell de inicio de sesión de la cuenta con `-l`. El programa debe ser una ruta absoluta a un ejecutable; si la ruta no existe o no es ejecutable, se usa el shell de inicio de sesión en lugar de abrir un panel inutilizable.
 
 `terminal.startup-arguments` se divide en argumentos sin invocar un shell. Las comillas y las barras inversas conservan sus límites, incluidos espacios y argumentos vacíos, pero no se expanden variables, patrones glob ni sustituciones de comandos. Las comillas no válidas también hacen que se use el shell de inicio de sesión. Un argv explícito proporcionado por la CLI de Zshell conserva la prioridad para ese terminal.
+
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — predeterminado `"current"`
+
+Elige **Ajustes → Terminal → Directorio de las nuevas sesiones**. Actual usa el directorio de la shell local activa, incluido el primer terminal de un proyecto nuevo. Sin una shell local, usa la carpeta personal. Proyecto usa la raíz que muestran Archivos y Git (el repositorio más cercano o la copia de trabajo en primer plano); fuera de un repositorio, usa el directorio actual. Personal usa siempre la carpeta de la cuenta. También se aplica al primer terminal rápido y a cada espacio nuevo del terminal rápido.
+
+Tienen prioridad los directorios explícitos del Finder, la CLI, una plantilla de espacio de trabajo, un worktree, una sesión restaurada, una carpeta fijada al proyecto o un grupo de la barra lateral. Las divisiones conservan el directorio del panel de origen. SSH y las sesiones remotas compartidas mantienen su directorio en el equipo remoto. Cambiar el ajuste no reinicia los terminales abiertos ni los espacios reutilizados del terminal rápido.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+cadena — predeterminado `""`
+
+Con la opción personalizada, introduce una ruta absoluta o `~/folder`, o elige una carpeta en Ajustes. Zshell comprueba que exista y se pueda entrar en ella. Si falta, no es accesible o es inválida, usa el directorio local actual (la carpeta personal si no hay uno); Ajustes muestra el motivo. La ruta guardada se conserva al cambiar de opción.
+
+### `terminal.term`
+
+Configura `terminal.term` en **Ajustes → Terminal → TERM** (valor predeterminado `"xterm-256color"`). El nombre debe contener de 1 a 128 letras ASCII, dígitos o `.-_+`. Usa un nombre terminfo instalado en el equipo que ejecuta el shell. Los cambios solo se aplican a sesiones locales y SSH nuevas; los PTY abiertos y conservados mantienen su `TERM` original. Las sesiones remotas compartidas usan el valor al crearse con un servidor actualizado; los servidores antiguos mantienen `xterm-256color`. Un valor no válido al iniciar usa `xterm-256color`; las ediciones no válidas mientras Zshell está en ejecución conservan el último valor válido. En ambos casos se muestra un error en Ajustes. `TERM_PROGRAM` y `ZSHELL_TERM` no cambian.
 
 ### `terminal.backend` [#terminalbackend]
 
@@ -296,6 +334,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
