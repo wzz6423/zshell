@@ -711,25 +711,60 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         guard AppSettings.shared.restoreTerminalHistory else { return nil }
         guard captureLive else { return lastHistorySnapshot }
 
-        let rootShellIsForeground = shellPid != nil
-            && surface.foregroundPid == shellPid
-        if !rootShellIsForeground,
-           !TerminalHistorySerializer.hasPrimaryScrollback(surface) {
-            // A primary screen with no rows above the viewport and an
-            // alternate screen both have no scrollback export. The root shell
-            // is foreground only in the former case; a TUI owns its own
-            // foreground process group in the latter.
-            return lastHistorySnapshot
+        return TerminalHistorySerializer.liveHistorySnapshot(
+            &lastHistorySnapshot,
+            from: surface,
+            shellPID: shellPid,
+            foregroundPID: surface.foregroundPid,
+            maxLines: Self.persistedHistoryLineLimit
+        )
+    }
+
+    /// The finished-command marker arrives after the shell has restored the
+    /// primary screen. Refreshing here keeps that output when a later TUI
+    /// hides the grid that quit is allowed to export.
+    ///
+    /// A persistent session's surface pid is the last 350 ms daemon poll, so
+    /// the command that just exited can still look like the foreground
+    /// process. Capture this completion's screen before querying the daemon
+    /// off the main thread. Its reply only authorizes that immutable capture;
+    /// reading the surface afterwards could capture the next command's TUI.
+    private func refreshHistoryAfterCommandFinished() {
+        guard remoteConnection == nil else { return }
+        guard AppSettings.shared.restoreTerminalHistory else { return }
+        guard let persistentPTY else {
+            refreshFinishedCommandSnapshot(foregroundPID: surface.foregroundPid)
+            return
         }
-        switch TerminalHistorySerializer.capture(
+        let capture = TerminalHistorySerializer.capture(
             from: surface, maxLines: Self.persistedHistoryLineLimit
-        ) {
-        case .captured(let snapshot):
-            lastHistorySnapshot = snapshot
-            return snapshot
-        case .failed:
-            return lastHistorySnapshot
+        )
+        guard case .captured = capture else { return }
+        let shellPID = shellPid
+        let generation = commandLifecycle.completionSequence
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let fresh = persistentPTY.fetchForegroundPID()
+            Task { @MainActor [weak self] in
+                guard let self, !self.hasExited, !self.isTerminating,
+                      AppSettings.shared.restoreTerminalHistory,
+                      self.commandLifecycle.phase != .executing,
+                      self.commandLifecycle.completionSequence == generation else { return }
+                TerminalHistorySerializer.storeFinishedCommandCapture(
+                    capture, into: &self.lastHistorySnapshot,
+                    shellPID: shellPID, foregroundPID: fresh
+                )
+            }
         }
+    }
+
+    private func refreshFinishedCommandSnapshot(foregroundPID: pid_t?) {
+        TerminalHistorySerializer.refreshSnapshotAfterCommandFinished(
+            &lastHistorySnapshot,
+            from: surface,
+            shellPID: shellPid,
+            foregroundPID: foregroundPID,
+            maxLines: Self.persistedHistoryLineLimit
+        )
     }
 
     var shellName: String {
@@ -1485,6 +1520,9 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
         }
         commandLifecycle = lifecycle
         if case .commandFinished = event {
+            // After the sequence is published, so a completion that arrives
+            // while the persistent-pid read is in flight can supersede it.
+            refreshHistoryAfterCommandFinished()
             TerminalCommandTaskStore.shared.observeCompletion(in: self)
             ZshellAutomationEventHub.shared.commandFinished(in: self)
         }

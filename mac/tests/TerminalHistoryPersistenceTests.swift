@@ -14,12 +14,18 @@ struct TerminalHistoryPersistenceTests {
     private static let manager = FileManager.default
 
     static func main() {
+        #if !TERMINAL_HISTORY_STORE_PROBE
+        if PTYMuxCommandLine.shouldRunChild { PTYMuxCommandLine.runChild() }
+        if PTYMuxCommandLine.shouldRunRelay { PTYMuxRelay.run() }
+        if PTYMuxCommandLine.shouldRunDaemon { PTYMuxCommandLine.runDaemon() }
+        #endif
         setbuf(stdout, nil)
         let root = URL(fileURLWithPath: CommandLine.arguments[2]).resolvingSymlinksInPath()
         do {
             try check(fileURL.path.hasPrefix(root.path + "/"), "history uses the disposable application support directory")
             #if TERMINAL_HISTORY_STORE_PROBE
             try stores()
+            try finishedCommandKeepsPrimaryHistory()
             print("Terminal history storage: \(checks) checks passed")
             #else
             let app = NSApplication.shared
@@ -134,6 +140,121 @@ struct TerminalHistoryPersistenceTests {
         TerminalHistoryStore.save(histories)
         try check(try read() == histories, "deleted history is recreated after loading")
     }
+
+    #if TERMINAL_HISTORY_STORE_PROBE
+    /// Screen and scrollback exports that satisfy the serializer's temp-file
+    /// contract. Nil means the backend produced no file, which is how a TUI
+    /// reports the hidden primary scrollback.
+    private final class HistoryExportSurface: TerminalBackendSurface {
+        var screenText: String?
+        var scrollbackText: String?
+        private var createdDirectories: [URL] = []
+
+        func exportScreenFile() -> String? { export(screenText) }
+
+        func exportScrollbackFile() -> String? { export(scrollbackText) }
+
+        func cleanup() {
+            for directory in createdDirectories {
+                try? FileManager.default.removeItem(at: directory)
+            }
+        }
+
+        private func export(_ text: String?) -> String? {
+            guard let text else { return nil }
+            let directory = FileManager.default.temporaryDirectory
+                .appendingPathComponent("zshell-history-\(UUID().uuidString)", isDirectory: true)
+            let file = directory.appendingPathComponent("screen")
+            do {
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                try Data(text.utf8).write(to: file)
+                createdDirectories.append(directory)
+                return file.path
+            } catch {
+                return nil
+            }
+        }
+    }
+
+    private static func finishedCommandKeepsPrimaryHistory() throws {
+        let surface = HistoryExportSurface()
+        defer { surface.cleanup() }
+        let shell: pid_t = 4242
+        let editor: pid_t = 5151
+        var snapshot: String? = "PREVIOUS_LAUNCH_HISTORY"
+        surface.screenText = "SHELL_COMMAND_OUTPUT\n"
+        surface.scrollbackText = nil
+
+        TerminalHistorySerializer.refreshSnapshotAfterCommandFinished(
+            &snapshot,
+            from: surface,
+            shellPID: shell,
+            foregroundPID: shell,
+            maxLines: 500
+        )
+        try check(
+            snapshot == "SHELL_COMMAND_OUTPUT",
+            "command finished while the shell is foreground captures and replaces the cache"
+        )
+
+        surface.screenText = "ALTERNATE_SCREEN_TUI\n"
+        TerminalHistorySerializer.refreshSnapshotAfterCommandFinished(
+            &snapshot,
+            from: surface,
+            shellPID: shell,
+            foregroundPID: editor,
+            maxLines: 500
+        )
+        try check(
+            snapshot == "SHELL_COMMAND_OUTPUT",
+            "command finished while another pid is foreground keeps the previous snapshot"
+        )
+
+        let quit = TerminalHistorySerializer.liveHistorySnapshot(
+            &snapshot,
+            from: surface,
+            shellPID: shell,
+            foregroundPID: editor,
+            maxLines: 500
+        )
+        try check(
+            quit == "SHELL_COMMAND_OUTPUT"
+                && quit != "ALTERNATE_SCREEN_TUI"
+                && quit?.isEmpty == false,
+            "quit with no scrollback export and a non-shell foreground returns that cached snapshot rather than an empty or alternate-screen capture"
+        )
+
+        surface.screenText = "LIVE_SHELL_OUTPUT\n"
+        let completedCapture = TerminalHistorySerializer.capture(from: surface, maxLines: 500)
+        surface.screenText = "ALTERNATE_SCREEN_TUI\n"
+        TerminalHistorySerializer.storeFinishedCommandCapture(
+            completedCapture, into: &snapshot,
+            shellPID: shell, foregroundPID: shell
+        )
+        try check(
+            snapshot == "LIVE_SHELL_OUTPUT",
+            "a delayed root-shell pid stores the completed command rather than the later TUI"
+        )
+
+        TerminalHistorySerializer.storeFinishedCommandCapture(
+            completedCapture, into: &snapshot,
+            shellPID: shell, foregroundPID: editor
+        )
+        try check(
+            snapshot == "LIVE_SHELL_OUTPUT",
+            "a non-shell foreground pid leaves the cached history unchanged"
+        )
+
+        TerminalHistorySerializer.storeFinishedCommandCapture(
+            .captured("UNCONFIRMED_CAPTURE"), into: &snapshot,
+            shellPID: shell, foregroundPID: nil
+        )
+        try check(
+            snapshot == "LIVE_SHELL_OUTPUT",
+            "a failed foreground query leaves the cached history unchanged"
+        )
+    }
+    #endif
 
     private static func repeatedSaves() throws {
         let row = "\u{1b}[38;2;92;140;185m" + String(repeating: "x", count: 120) + "\u{1b}[0m\r\n"
@@ -250,12 +371,73 @@ struct TerminalHistoryPersistenceTests {
                   "reopening the last window preserves terminal identities")
         try check(try inode() == closedInode && read() == closedHistory,
                   "reopened cached history does not trigger another write")
+        try completedHistorySurvivesTUI(root: root)
         settings.restoreTerminalHistory = false
         reopened.objectWillChange.send()
         pump(0.8)
         try check(!manager.fileExists(atPath: fileURL.path) && historyKeys().isEmpty,
                   "disabling history removes the sidecar and layout references")
         try check(QuickTerminalOffscreen.isSafe(), "backend acceptance remains offscreen without taking input")
+    }
+
+    private static func completedHistorySurvivesTUI(root: URL) throws {
+        let settings = AppSettings.shared
+        let previousPreservation = settings.preserveTerminalSessions
+        defer { settings.preserveTerminalSessions = previousPreservation }
+        for persistent in [false, true] {
+            settings.preserveTerminalSessions = persistent
+            let marker = "COMPLETED_OUTPUT_\(UUID().uuidString.replacingOccurrences(of: "-", with: ""))"
+            let session = TerminalSession(
+                initialDirectory: root.path, restoredHistory: "PREVIOUS_LAUNCH_HISTORY",
+                usesConfiguredStartupCommand: false, usesConfiguredInitializationCommand: false
+            )
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 440),
+                                  styleMask: [.titled], backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.contentView = session.surface
+            session.surface.frame = NSRect(x: 0, y: 0, width: 800, height: 440)
+            session.surface.setSurfaceVisible(true)
+            window.orderFront(nil)
+            defer {
+                session.terminate()
+                pump(0.3)
+                window.contentView = nil
+                window.close()
+            }
+            try wait("\(persistent ? "persistent" : "direct") shell starts") {
+                session.shellPid != nil && session.terminalPromptQueueIsReady
+            }
+            try check((session.persistentSessionID != nil) == persistent,
+                      "the history fixture uses the requested PTY lifecycle")
+            let completion = session.commandLifecycle.completionSequence
+            session.sendCommand("printf '\(marker)\\n'")
+            session.sendEnter()
+            do {
+                try wait("the real shell finishes the history command") {
+                    session.commandLifecycle.completionSequence > completion
+                }
+            } catch {
+                print("HISTORY_TUI_DIAGNOSTIC persistent=\(persistent) lifecycle=\(session.commandLifecycle) shell=\(session.shellPid ?? 0) foreground=\(session.surface.foregroundPid ?? 0) visible=\(session.surface.readVisibleText(maxLines: 30, maxColumns: 180) ?? "nil")")
+                throw error
+            }
+            do {
+                try wait("command completion updates the cached screen") {
+                    session.serializedHistory(captureLive: false)?.contains(marker) == true
+                }
+            } catch {
+                print("HISTORY_CACHE_DIAGNOSTIC persistent=\(persistent) lifecycle=\(session.commandLifecycle) shell=\(session.shellPid ?? 0) foreground=\(session.surface.foregroundPid ?? 0) cache=\(session.serializedHistory(captureLive: false) ?? "nil") visible=\(session.surface.readVisibleText(maxLines: 30, maxColumns: 180) ?? "nil")")
+                throw error
+            }
+            session.sendCommand("python3 -c 'import sys,time;sys.stdout.write(\"\\x1b[?1049h\\x1b[2J\\x1b[HREAL_TUI_VISIBLE\");sys.stdout.flush();time.sleep(30)'")
+            session.sendEnter()
+            try wait("the next real process owns the alternate screen") {
+                session.surface.readVisibleText(maxLines: 30, maxColumns: 120)?.contains("REAL_TUI_VISIBLE") == true
+                    && session.surface.foregroundPid != session.shellPid
+            }
+            let saved = session.serializedHistory(captureLive: true)
+            try check(saved?.contains(marker) == true && saved?.contains("REAL_TUI_VISIBLE") == false,
+                      "quit-time capture inside a real TUI retains the completed shell output")
+        }
     }
 
     private static func historyKeys() -> Set<String> {
