@@ -418,6 +418,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var diffWrapLines: Bool {
+        didSet { save() }
+    }
+
     @Published var protectEditorSaves: Bool {
         didSet { save() }
     }
@@ -719,6 +723,7 @@ final class AppSettings: nonisolated ObservableObject {
         terminalBell = toml["terminal.bell"]?.bool ?? true
         shiftEnterNewline = toml["terminal.shift-enter-newline"]?.bool ?? true
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
+        diffWrapLines = toml["editor.diff-wrap-lines"]?.bool ?? false
         fileTreeDragImport = toml["files.drag-import"]?.bool ?? false
         remoteFileWritesEnabled = toml["files.remote-write-enabled"]?.bool ?? false
         protectEditorSaves = toml["editor.protect-saves"]?.bool ?? true
@@ -919,6 +924,7 @@ final class AppSettings: nonisolated ObservableObject {
             && !promptQueueAutoDispatch
             && shiftEnterNewline
             && wrapLines
+            && !diffWrapLines
             && !fileTreeDragImport
             && !remoteFileWritesEnabled
             && protectEditorSaves
@@ -992,6 +998,7 @@ final class AppSettings: nonisolated ObservableObject {
         promptQueueAutoDispatch = false
         shiftEnterNewline = true
         wrapLines = true
+        diffWrapLines = false
         fileTreeDragImport = false
         remoteFileWritesEnabled = false
         protectEditorSaves = true
@@ -1223,6 +1230,7 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.promptQueueAutoDispatch, toml["terminal.prompt-queue-auto-dispatch"]?.bool ?? false)
         assign(\.shiftEnterNewline, toml["terminal.shift-enter-newline"]?.bool ?? true)
         assign(\.wrapLines, toml["editor.wrap-lines"]?.bool ?? true)
+        assign(\.diffWrapLines, toml["editor.diff-wrap-lines"]?.bool ?? false)
         assign(\.fileTreeDragImport, toml["files.drag-import"]?.bool ?? false)
         assign(\.remoteFileWritesEnabled, toml["files.remote-write-enabled"]?.bool ?? false)
         assign(\.protectEditorSaves, toml["editor.protect-saves"]?.bool ?? true)
@@ -1471,6 +1479,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if !wrapLines {
             lines.append("editor.wrap-lines = false")
+        }
+        if diffWrapLines {
+            lines.append("editor.diff-wrap-lines = true")
         }
         if fileTreeDragImport { lines.append("files.drag-import = true") }
         if remoteFileWritesEnabled { lines.append("files.remote-write-enabled = true") }

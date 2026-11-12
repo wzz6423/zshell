@@ -174,6 +174,7 @@ enum SettingsSearchIndex {
             item(.terminal, String(localized: "Enable Quick Terminal"), section: quickTerminal, keywords: "quick-terminal.enabled"),
             item(.editor, String(localized: "External editor"), keywords: "editor.external-editor"),
             item(.editor, String(localized: "Wrap lines to editor width"), keywords: "editor.wrap-lines"),
+            item(.editor, String(localized: "Wrap lines to diff width"), keywords: "editor.diff-wrap-lines diff word wrap horizontal scrolling"),
             item(.editor, String(localized: "Import by dragging into the file tree"), section: String(localized: "Files"),
                  description: String(localized: "Copy Finder files and folders into local projects. File → Import Files… is always available."),
                  keywords: "files.drag-import Finder drag drop import copy file tree"),

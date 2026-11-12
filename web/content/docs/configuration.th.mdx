@@ -177,6 +177,12 @@ Zshell ไม่มีตัวควบคุมน้ำหนักฟอน�
 
 ตัดบรรทัดยาวแบบอ่อนตามความกว้างช่องใน[ตัวแก้ไขไฟล์](/th/docs/files) หาก false จะเลื่อนแนวนอน ไม่เปลี่ยนการตัดบรรทัดเทอร์มินัลหรือ diff
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+บูลีน — ค่าเริ่มต้น `false`
+
+**การตั้งค่า → ตัวแก้ไข → ตัดบรรทัดตามความกว้าง diff** และปุ่มตัดบรรทัดในแถบเครื่องมือ diff ใช้ตัวเลือกเดียวกัน บรรทัดยาวจะตัดตามความกว้างช่องทั้งมุมมองรวมและแบ่ง การเปลี่ยนแปลงที่แก้ไขได้ diff ในอดีต และความคิดเห็น PR มีผลทันทีต่อ diff ที่เปิดอยู่ทั้งหมดและบันทึกไว้หลังเปิดแอปใหม่ ปิดเพื่อกลับไปเลื่อนแนวนอน ตัวเลือกนี้แยกจากการตัดบรรทัดในตัวแก้ไขไฟล์และเทอร์มินัล
+
 ### `editor.protect-saves` [#editorprotect-saves]
 
 บูลีน — ค่าเริ่มต้น `true`
@@ -360,6 +366,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

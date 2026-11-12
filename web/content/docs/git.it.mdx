@@ -39,10 +39,12 @@ Fai clic su un file modificato per aprire il diff in un pannello accanto al term
 
 I diff grandi restano reattivi. Un insieme di mille file si apre velocemente quanto una modifica di una riga e scorre senza scatti.
 
-I controlli sopra il diff ricordano due scelte globali:
+I controlli sopra il diff ricordano le tue scelte globalmente:
 
 - **Unificato / Affiancato** alterna tra una colonna e due viste affiancate.
 - **Revisione / Modifica** compare per file non in staging nel worktree corrente. Modifica direttamente il lato nuovo e salva con <kbd>Cmd</kbd>+<kbd>S</kbd>; la chiusura di file non salvati funziona come nell'editor normale.
+
+Usa **Adatta le righe alla larghezza del diff** nella barra per leggere righe lunghe senza scorrere orizzontalmente. Lo stesso interruttore si trova in **Impostazioni → Editor** (`editor.diff-wrap-lines`, predefinito `false`). Vale per i diff aperti e nuovi, inclusi commit storici, modifiche editabili e commenti PR, mantenendo la bozza di modifica.
 
 I diff in staging e dei commit storici restano in sola lettura perché sono snapshot, non file scrivibili in sicurezza. Passare un diff a Modifica o Affiancato aggiorna la preferenza degli altri diff aperti senza rendere modificabile un diff non idoneo.
 

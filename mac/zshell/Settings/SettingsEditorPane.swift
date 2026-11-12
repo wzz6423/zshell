@@ -9,6 +9,7 @@ import Combine
 /// File editor behavior and the external app used by file entry points.
 final class SettingsEditorPane: SettingsPaneViewController {
     private let wrapLinesSwitch = SettingsSwitch { AppSettings.shared.wrapLines = $0 }
+    private let diffWrapLinesSwitch = SettingsSwitch { AppSettings.shared.diffWrapLines = $0 }
     private let dragImportSwitch = SettingsSwitch { AppSettings.shared.fileTreeDragImport = $0 }
     private let remoteWriteSwitch = SettingsSwitch { AppSettings.shared.remoteFileWritesEnabled = $0 }
     private let protectSavesSwitch = SettingsSwitch { AppSettings.shared.protectEditorSaves = $0 }
@@ -46,6 +47,12 @@ final class SettingsEditorPane: SettingsPaneViewController {
                     control: wrapLinesSwitch
                 ),
                 SettingsRow(
+                    title: String(localized: "Wrap lines to diff width"),
+                    control: diffWrapLinesSwitch,
+                    symbolName: "arrow.turn.down.left",
+                    symbolColor: SettingsCategory.editor.iconColor
+                ),
+                SettingsRow(
                     title: String(localized: "Protect against save conflicts"),
                     control: protectSavesSwitch
                 ),
@@ -69,6 +76,7 @@ final class SettingsEditorPane: SettingsPaneViewController {
     override func syncFromSettings() {
         externalEditorPopUp.select(settings.externalEditor)
         wrapLinesSwitch.isOn = settings.wrapLines
+        diffWrapLinesSwitch.isOn = settings.diffWrapLines
         dragImportSwitch.isOn = settings.fileTreeDragImport
         remoteWriteSwitch.isOn = settings.remoteFileWritesEnabled
         protectSavesSwitch.isOn = settings.protectEditorSaves

@@ -85,6 +85,7 @@ CONFIGURATION_ITEMS = {
     "quick-terminal.opacity": ("terminal", "Opacity", "Quick Terminal"),
     "editor.external-editor": ("editor", "External editor", ""),
     "editor.wrap-lines": ("editor", "Wrap lines to editor width", ""),
+    "editor.diff-wrap-lines": ("editor", "Wrap lines to diff width", ""),
     "files.drag-import": ("editor", "Import by dragging into the file tree", "Files"),
     "editor.protect-saves": ("editor", "Protect against save conflicts", ""),
     "editor.recover-drafts": ("editor", "Back up unsaved drafts", ""),
