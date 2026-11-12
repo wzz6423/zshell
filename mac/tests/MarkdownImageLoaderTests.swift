@@ -34,6 +34,7 @@ struct MarkdownImageLoaderTests {
             case "stall": try await stalledImage(fixture)
             case "local-image": try await localImage()
             case "local-fifo": try await localFIFO()
+            case "local-oversized": try await localOversized()
             default: throw failure("Unknown scenario: \(scenario)")
             }
             print("Markdown image loader \(scenario): \(checks) checks passed")
@@ -431,6 +432,117 @@ struct MarkdownImageLoaderTests {
                   "a FIFO is not cached, retried, or rendered")
         try check(elapsed < 5, "a FIFO is rejected within a few seconds")
         print("Local FIFO: \(elapsed)s")
+    }
+
+    private static func localOversized() async throws {
+        let url = try localFixtureDirectory().appendingPathComponent("oversized")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try createSparseFile(at: url, size: oversizedLocalBytes)
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        // The mapping is released before the load returns, and an unfaulted
+        // sparse map does not raise RSS. Sample virtual size while the read runs.
+        let sampler = VirtualSizeSampler()
+        sampler.start()
+        let ready = Date().addingTimeInterval(1)
+        while sampler.snapshot().samples < 100 {
+            if Date() >= ready { throw failure("virtual size sampler did not start") }
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let baseline = sampler.arm()
+        let started = Date()
+        try check(loader.image(for: url) == nil, "an oversized local file starts asynchronously")
+        let load = try loadTask(for: url, in: loader)
+        await load.value
+        let elapsed = Date().timeIntervalSince(started)
+        let peak = sampler.stop().peak
+        let growth = peak > baseline ? peak - baseline : 0
+        try check(loader.inFlight.isEmpty && arrivals == 0, "a rejected oversized file clears inFlight without rendering")
+        try check(loader.image(for: url) == nil && loader.inFlight.isEmpty,
+                  "an oversized local file is not cached or retried")
+        try check(growth < UInt64(maxUnmappedGrowth),
+                  "an oversized local file is not mapped (virtual size grew by \(growth) bytes)")
+        try check(elapsed < 5, "an oversized local file is rejected within a few seconds")
+        print("Local oversized: \(elapsed)s, virtual growth \(growth) bytes")
+    }
+
+    /// Larger than the 20 MiB cap. Sparse, so the failure signal is the map itself.
+    private static let oversizedLocalBytes: off_t = 1 << 30
+    /// Well under the sparse file, and above ordinary loader allocations.
+    private static let maxUnmappedGrowth = 64 << 20
+
+    private static func createSparseFile(at url: URL, size: off_t) throws {
+        let descriptor = url.withUnsafeFileSystemRepresentation { path -> Int32 in
+            guard let path else { return -1 }
+            return Darwin.open(path, O_RDWR | O_CREAT | O_CLOEXEC, mode_t(0o600))
+        }
+        guard descriptor >= 0 else {
+            throw failure("Could not create an oversized file (\(String(cString: strerror(errno))))")
+        }
+        defer { _ = Darwin.close(descriptor) }
+        guard ftruncate(descriptor, size) == 0 else {
+            throw failure("Could not size an oversized file (\(String(cString: strerror(errno))))")
+        }
+    }
+
+    private nonisolated static func virtualSize() -> UInt64 {
+        var info = task_vm_info_data_t()
+        var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.stride / MemoryLayout<integer_t>.stride)
+        let result = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
+            }
+        }
+        guard result == KERN_SUCCESS else { return 0 }
+        return UInt64(info.virtual_size)
+    }
+
+    /// Watches the process virtual size from another thread. `Data(contentsOf:)`
+    /// drops its mapping before returning, so a sample taken afterwards is too late.
+    private nonisolated final class VirtualSizeSampler: @unchecked Sendable {
+        private let lock = NSLock()
+        private var stopped = false
+        private var peak: UInt64 = 0
+        private var samples = 0
+
+        func start() {
+            peak = MarkdownImageLoaderTests.virtualSize()
+            Thread.detachNewThread { [self] in
+                while true {
+                    let size = MarkdownImageLoaderTests.virtualSize()
+                    lock.lock()
+                    samples += 1
+                    if size > peak { peak = size }
+                    let shouldStop = stopped
+                    lock.unlock()
+                    if shouldStop { return }
+                }
+            }
+        }
+
+        func snapshot() -> (peak: UInt64, samples: Int) {
+            lock.lock()
+            let result = (peak, samples)
+            lock.unlock()
+            return result
+        }
+
+        func arm() -> UInt64 {
+            let size = MarkdownImageLoaderTests.virtualSize()
+            lock.lock()
+            peak = size
+            lock.unlock()
+            return size
+        }
+
+        func stop() -> (peak: UInt64, samples: Int) {
+            lock.lock()
+            stopped = true
+            let result = (peak, samples)
+            lock.unlock()
+            return result
+        }
     }
 
     /// Bytes of a 1×1 RGBA PNG, matching `png(1)` in the Python harness.

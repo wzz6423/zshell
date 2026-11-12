@@ -3,6 +3,7 @@
 python3 -B mac/tests/test_markdown_image_loader.py
 python3 -B mac/tests/test_markdown_image_loader.py --source-ref <pre-fix-ref> --case large-unknown
 python3 -B mac/tests/test_markdown_image_loader.py --source-ref <pre-fix-ref> --case local-fifo
+python3 -B mac/tests/test_markdown_image_loader.py --source-ref <pre-fix-ref> --case local-oversized
 python3 -B mac/tests/test_markdown_image_loader.py --built-app '/path/to/zshell Debug.app'
 python3 -B mac/tests/test_markdown_image_loader.py --sample-rss
 
@@ -36,7 +37,7 @@ SCENARIOS = ("cache", "late-success", "early-success", "late-failure", "reset-st
              "large-known", "large-unknown", "large-chunked", "large-compressed",
              "limit-known", "limit-unknown", "limit-chunked", "limit-compressed",
              "concurrent", "large-reset", "cancellation", "stall",
-             "local-image", "local-fifo")
+             "local-image", "local-fifo", "local-oversized")
 
 
 def png(width, padding=0):
