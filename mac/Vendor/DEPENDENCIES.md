@@ -44,6 +44,12 @@ Ghostty 的 macOS arm64、arm64e、x86_64 静态库由 `libghostty-spm/Ghostty.r
 序列，并复用终端字形塑形和颜色图集。预编辑不写入 PTY 或终端 grid；右边缘先左移，
 超过整行时只裁切完整字素。macOS 三个 slices 均包含此补丁，C 头文件接口不变。
 
+macOS arm64e slice 还包含 TLS 解析器和 Metal Block 的指针认证修复。
+`Script/convert-archive-arm64e.py` 根据 TLS relocation 改写解析器调用；
+`Patches/arm64e/` 在 Block 交给系统时按最终地址签名，并为 Zig 同步调用转换函数指针。
+`python3 mac/tests/test_ghostty_arm64e.py` 在无窗口后台进程验证 TLS、Block 复制释放，
+以及三个 macOS 架构的终端创建、预编辑、Metal 呈现和销毁，临时产物会自动清理。
+
 Alacritty core 和 VTE 从固定 crates.io 版本复制，改为桥内的 path 依赖，remote 也复用同一
 源码。改动说明见各自 `ZSHELL_PATCHES.md`；core 保留 Apache-2.0，VTE 保留 MIT 和
 Apache-2.0。命令锚点随已有 grid reflow 移动，清除或覆盖输出后失效；没有新增第二套

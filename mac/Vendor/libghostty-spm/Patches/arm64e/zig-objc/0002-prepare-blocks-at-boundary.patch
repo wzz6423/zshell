@@ -1,0 +1,43 @@
+diff --git a/src/block.zig b/src/block.zig
+--- a/src/block.zig
++++ b/src/block.zig
+@@ -4,6 +4,8 @@
+ const objc = @import("main.zig");
+ 
+ extern "c" fn ghostty_arm64e_prepare_block(*anyopaque) void;
++extern "c" fn ghostty_arm64e_block_function(*const anyopaque) *const anyopaque;
++
+ // We have to use the raw C allocator for all heap allocation in here
+ // because the objc runtime expects `malloc` to be used. If you don't use
+ // malloc you'll get segfaults because the objc runtime will try to free
+@@ -91,8 +93,12 @@
+                 @field(ctx, field.name) = @field(captures, field.name);
+             }
+ 
+-            ghostty_arm64e_prepare_block(@ptrCast(&ctx));
+             return ctx;
++        }
++
++        // Block headers are address-signed, so prepare only at the final system-call address.
++        pub fn prepare(ctx: *Context) void {
++            ghostty_arm64e_prepare_block(@ptrCast(ctx));
+         }
+ 
+         /// Invoke the block with the given arguments. The arguments are
+@@ -100,7 +106,7 @@
+         pub fn invoke(ctx: *const Context, args: anytype) Return {
+             return @call(
+                 .auto,
+-                ctx.invoke,
++                @as(*const InvokeFn, @ptrCast(@alignCast(ghostty_arm64e_block_function(@ptrCast(ctx))))),
+                 .{ctx} ++ args,
+             );
+         }
+@@ -109,6 +115,7 @@
+         /// to the heap or increasing the reference count. This must be
+         /// paired with a `release` call to release the block.
+         pub fn copy(ctx: *const Context) Allocator.Error!*Context {
++            prepare(@constCast(ctx));
+             const copied = _Block_copy(@ptrCast(@alignCast(ctx))) orelse
+                 return error.OutOfMemory;
+             return @ptrCast(@alignCast(copied));
