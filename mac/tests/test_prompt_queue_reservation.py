@@ -63,7 +63,14 @@ class PromptQueueReservationTests(unittest.TestCase):
     def setUp(self):
         self.shell = PromptSelectionTests()
         self.addCleanup(self.shell.doCleanups)
-        self.shell.setUp()
+        self.shell.setUp(
+            "autoload -Uz add-zle-hook-widget\n"
+            "_queue_user_line_finish() {\n"
+            'if [[ -f "$ZDOTDIR/queue-failing-hook" ]]; then\n'
+            'builtin print -rn -- "$BUFFER" >| "$ZDOTDIR/queue-hook-buffer"\n'
+            "return 1\nfi\nreturn 0\n}\n"
+            "add-zle-hook-widget line-finish _queue_user_line_finish\n"
+        )
         self.driver = subprocess.Popen(
             [str(self.helper), str(self.shell.launch), str(self.shell.pid)],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
@@ -153,6 +160,39 @@ class PromptQueueReservationTests(unittest.TestCase):
                 self.send(command)
                 self.assertTrue(self.ask(), "Completed empty prompt must release a parked reservation")
         self.assertEqual(marker.read_text(), "fast")
+
+    def test_earlier_failing_user_hook_cannot_skip_acknowledgement(self):
+        (self.shell.original / "queue-failing-hook").touch()
+        marker = self.shell.root / "after-failing-hook"
+        command = "builtin print -rn -- first >| " + shlex.quote(str(marker))
+        self.send(command)
+        self.assertEqual(marker.read_text(), "first")
+        self.assertEqual((self.shell.original / "queue-hook-buffer").read_text(), command)
+        self.assertTrue(self.ask(), "A failing user hook must not hide the accepted command's completion")
+        self.send("builtin print -rn -- second >> " + shlex.quote(str(marker)))
+        self.assertEqual(marker.read_text(), "firstsecond")
+        self.assertTrue(self.ask())
+
+    def test_later_user_hook_must_finish_before_accepted_buffer_check(self):
+        marker = self.shell.root / "rewritten-command"
+        original = self.shell.root / "original-command"
+        replacement = "builtin print -rn -- rewritten >| " + shlex.quote(str(marker))
+        self.shell.command(
+            "_queue_rewrite_line() { "
+            f'if [[ -f "$ZDOTDIR/queue-rewrite-hook" ]]; then BUFFER={shlex.quote(replacement)}; fi; '
+            "return 0; }; add-zle-hook-widget line-finish _queue_rewrite_line"
+        )
+        (self.shell.original / "queue-rewrite-hook").touch()
+        command = "builtin print -rn -- original >| " + shlex.quote(str(original))
+        self.send(command)
+        self.assertEqual(marker.read_text(), "rewritten")
+        self.assertFalse(original.exists())
+        self.assertFalse(self.ask(), "A hook-rewritten line must not acknowledge the original queue request")
+        (self.shell.original / "queue-rewrite-hook").unlink()
+        os.write(self.shell.fd, command.encode() + self.submit)
+        self.shell.wait_prompt()
+        self.assertEqual(original.read_text(), "original")
+        self.assertTrue(self.ask())
 
     def test_original_shell_builtin_read_requires_completion(self):
         command = "read -r answer"

@@ -1070,8 +1070,6 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
               _zshell_prompt_queue_empty=$_zshell_queue_now_empty
             }
             _zshell_prompt_queue_accept() {
-              # ZLE skips subsequent hooks on a nonzero result; ordinary
-              # input must still clear the selection readiness state.
               (( ZSH_SUBSHELL == 0 )) || return 0
               (( _zshell_prompt_queue_submitted )) || return 0
               _zshell_prompt_queue_submitted=0
@@ -1189,8 +1187,17 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
               builtin print -n $'\\e[0 q\\e]133;P;k=i\\a\\e]133;B\\a'
             }
             add-zle-hook-widget line-init _zshell_line_init
-            add-zle-hook-widget line-finish _zshell_prompt_queue_accept
             add-zle-hook-widget line-finish _zshell_selection_finished
+            # Keep the dispatcher identity so later registrations use its live
+            # hook list, but acknowledge the final buffer even if a hook fails.
+            functions -c azhw:zle-line-finish _zshell_line_finish_hooks
+            azhw:zle-line-finish() {
+              local _zshell_finish_status=0
+              _zshell_line_finish_hooks "$@" || _zshell_finish_status=$?
+              _zshell_prompt_queue_accept
+              (( _zshell_finish_status )) && _zshell_selection_finished
+              return $_zshell_finish_status
+            }
             add-zle-hook-widget keymap-select _zshell_selection_ready
             add-zle-hook-widget line-pre-redraw _zshell_prompt_queue_ready
             _zshell_insert_newline() { LBUFFER+=$'\\n'; }

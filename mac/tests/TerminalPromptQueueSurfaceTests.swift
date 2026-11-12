@@ -30,6 +30,15 @@ struct TerminalPromptQueueSurfaceTests {
         _queue_dump_draft() { builtin print -rn -- "$BUFFER" >| \(quote(draft.path)); }
         zle -N _queue_dump_draft
         bindkey '^T' _queue_dump_draft
+        autoload -Uz add-zle-hook-widget
+        _queue_user_line_finish() {
+          if [[ -f \(quote(root.appendingPathComponent("failing-finish-hook").path)) ]]; then
+            builtin print -rn -- "$BUFFER" >| \(quote(root.appendingPathComponent("finish-hook-buffer").path))
+            return 1
+          fi
+          return 0
+        }
+        add-zle-hook-widget line-finish _queue_user_line_finish
         """.write(to: home.appendingPathComponent(".zshrc"), atomically: true, encoding: .utf8)
         let settings = AppSettings.shared
         settings.language = .english
@@ -116,6 +125,7 @@ struct TerminalPromptQueueSurfaceTests {
         }
         settings.promptQueueAutoDispatch = false
         try bufferedReservation(session: session, root: root, window: window)
+        try failingFinishHook(session: session, root: root)
 
         let draftMarker = root.appendingPathComponent("draft-send.txt")
         session.promptQueue.enqueue("printf leaked > " + quote(draftMarker.path))
@@ -417,6 +427,32 @@ struct TerminalPromptQueueSurfaceTests {
             try check(session.sendQueuedPrompt(at: 0), "fast command reserves its own submission")
             try wait("fast command returns its own completed empty-prompt acknowledgement") { session.canSendQueuedPrompt }
         }
+    }
+
+    private static func failingFinishHook(session: TerminalSession, root: URL) throws {
+        let armed = root.appendingPathComponent("failing-finish-hook")
+        let observed = root.appendingPathComponent("finish-hook-buffer")
+        let marker = root.appendingPathComponent("failing-hook-order")
+        try Data().write(to: armed)
+        defer { try? FileManager.default.removeItem(at: armed) }
+        let manual = "builtin print -rn -- manual >| " + quote(marker.path)
+        session.promptQueue.enqueue(manual)
+        try check(session.sendQueuedPrompt(at: 0), "manual queue send accepts an earlier failing user hook")
+        try wait("failing user hook cannot suppress the completed queue acknowledgement") {
+            read(marker) == "manual" && session.canSendQueuedPrompt
+        }
+        try check(read(observed) == manual, "the earlier user hook still runs with the accepted buffer")
+        let automatic = "builtin print -rn -- automatic >> " + quote(marker.path)
+        AppSettings.shared.promptQueueAutoDispatch = true
+        session.promptQueue.enqueue(automatic)
+        session.promptQueue.enqueue(automatic)
+        session.schedulePromptQueueDispatch()
+        try wait("automatic queue continues after every failing user finish hook") {
+            read(marker) == "manualautomaticautomatic" && session.canSendQueuedPrompt
+        }
+        try check(session.promptQueue.commands.isEmpty && read(observed) == automatic,
+                  "failing user hooks preserve FIFO completion across subsequent sends")
+        AppSettings.shared.promptQueueAutoDispatch = false
     }
 
     private static func makeWindow(_ identifier: String) -> NSWindow {
