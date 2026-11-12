@@ -107,6 +107,21 @@ struct GitHistorySurfaceTests {
                 && opened?.2 == "before\u{1e}after.txt",
             "Diff action receives full rename paths"
         )
+        let bounded = GitStatusModel.RecentCommit(
+            hash: "bounded", shortHash: "bounded", subject: "large commit", author: "Fixture",
+            date: Date(), parentHash: nil, references: [],
+            files: (0..<200).map { .init(status: "A", path: "file-\($0)", originalPath: nil) },
+            omittedFileCount: 321
+        )
+        graph.configure(
+            commits: [bounded], expandedCommitIDs: [bounded.id], fontScale: 1,
+            hasMoreCommits: false, isLoadingMore: false
+        )
+        check(graph.subviews.count == 202, "Large commit builds 200 file rows and one summary")
+        let summary = graph.subviews.last!
+        check(summary.accessibilityRole() == .staticText, "Omitted file summary is static text")
+        check(!summary.accessibilityPerformPress(), "Omitted file summary cannot open a diff")
+        check(summary.accessibilityLabel()?.contains("321") == true, "Summary exposes the omitted count")
         check(model.detailError == nil && model.statusError == nil, "Refreshed status has no errors")
         print("Git history surfaces: \(checks) passed, 0 failed; 35 commits, pagination, signed diagnostics, native graph and rename action")
     }
