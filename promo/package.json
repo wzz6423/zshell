@@ -8,7 +8,6 @@
     "studio": "remotion studio",
     "render": "remotion render LaunchVideo out/zshell-launch.mp4",
     "render:4k": "remotion render LaunchVideo out/zshell-launch-4k.mp4 --scale=2",
-    "make:music": "bun tools/make-music.ts out/score.wav",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
