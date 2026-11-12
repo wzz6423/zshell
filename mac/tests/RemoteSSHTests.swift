@@ -235,6 +235,40 @@ struct RemoteSSHTests {
             expect(finished.wait(timeout: .now() + 1) == .success,
                    "cancellation stops a process promptly with and without stdin")
         }
+        let exitDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("zshell-cancelled-exit-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: exitDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: exitDirectory) }
+        let exitReady = exitDirectory.appendingPathComponent("ready")
+        let exitRelease = exitDirectory.appendingPathComponent("release")
+        let exitFinished = DispatchSemaphore(value: 0)
+        let exitTask = Task.detached {
+            do {
+                _ = try BoundedProcessRunner.run(
+                    executableURL: URL(fileURLWithPath: "/bin/sh"),
+                    arguments: ["-c", #": > "$1"; while [ ! -f "$2" ]; do :; done"#,
+                                "zshell-cancelled-exit", exitReady.path, exitRelease.path],
+                    timeout: 3, outputLimit: 32
+                )
+                preconditionFailure("process completion swallowed cancellation")
+            } catch is CancellationError { exitFinished.signal() }
+            catch { preconditionFailure("cancelled process exit returned \(error)") }
+        }
+        let exitDeadline = DispatchTime.now() + 2
+        while !FileManager.default.fileExists(atPath: exitReady.path), DispatchTime.now() < exitDeadline {
+            Thread.sleep(forTimeInterval: 0.001)
+        }
+        guard FileManager.default.fileExists(atPath: exitReady.path) else {
+            exitTask.cancel()
+            _ = exitFinished.wait(timeout: .now() + 1)
+            throw NSError(domain: "RemoteSSHTests", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "Cancellation exit test process did not become ready."
+            ])
+        }
+        exitTask.cancel()
+        try Data().write(to: exitRelease)
+        expect(exitFinished.wait(timeout: .now() + 1) == .success,
+               "process exit during a wait does not swallow cancellation")
         let cancelledBeforeLaunch = DispatchSemaphore(value: 0)
         let cancelledTask = Task.detached {
             while !Task.isCancelled { await Task.yield() }

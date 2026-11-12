@@ -619,11 +619,12 @@ nonisolated struct BoundedProcessRunner {
         var cancelled = false
         var finished = false
         while DispatchTime.now() < deadline {
-            if termination.wait(timeout: min(deadline, .now() + 0.1)) == .success { finished = true; break }
+            finished = termination.wait(timeout: min(deadline, .now() + 0.1)) == .success
             if cancellable, Task.isCancelled { cancelled = true; break }
+            if finished { break }
         }
         let timedOut = !finished && !cancelled
-        if timedOut || cancelled {
+        if !finished, timedOut || cancelled {
             process.terminate()
             if termination.wait(timeout: .now() + 0.25) == .timedOut, process.isRunning {
                 Darwin.kill(process.processIdentifier, SIGKILL)
@@ -640,7 +641,7 @@ nonisolated struct BoundedProcessRunner {
             _ = readers.wait(timeout: .now() + 0.25)
         }
         _ = inputWriter.wait(timeout: .now() + 1)
-        if cancelled { throw CancellationError() }
+        if cancelled || (cancellable && Task.isCancelled) { throw CancellationError() }
 
         return BoundedProcessResult(
             terminationStatus: process.terminationStatus,

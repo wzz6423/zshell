@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import platform
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -26,6 +27,7 @@ import Foundation
     @MainActor static func main() async throws {
         let local = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
         let ready = local.appendingPathComponent("ready")
+        let duringCreation = CommandLine.arguments[4] == "creation"
         let remoteTemporary = URL(fileURLWithPath: CommandLine.arguments[2], isDirectory: true)
         let endpoint = try SSHEndpoint(host: "127.0.0.1", port: Int(CommandLine.arguments[3]))
         let first = local.appendingPathComponent("first-completed-\(UUID().uuidString).bin")
@@ -45,23 +47,35 @@ import Foundation
             guard FileManager.default.fileExists(atPath: ready.path) else {
                 throw NSError(domain: "RemotePasteCancellation", code: 1)
             }
-            let uploadedName = "00-" + first.lastPathComponent
-            let directories = try FileManager.default.contentsOfDirectory(at: remoteTemporary,
-                includingPropertiesForKeys: nil).filter {
-                    $0.lastPathComponent.hasPrefix("zshell-paste-")
-                        && FileManager.default.fileExists(atPath: $0.appendingPathComponent(uploadedName).path)
+            let directory: URL
+            if duringCreation {
+                let path = try String(contentsOf: ready, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
+                directory = URL(fileURLWithPath: path, isDirectory: true)
+                guard directory.lastPathComponent.hasPrefix("zshell-paste-"),
+                      try FileManager.default.contentsOfDirectory(atPath: directory.path).isEmpty else {
+                    throw NSError(domain: "RemotePasteCancellation", code: 2)
                 }
-            guard directories.count == 1,
-                  try Data(contentsOf: directories[0].appendingPathComponent(uploadedName)) == payload else {
-                throw NSError(domain: "RemotePasteCancellation", code: 2)
+                print("PASS remote directory created before its SSH response")
+            } else {
+                let uploadedName = "00-" + first.lastPathComponent
+                let directories = try FileManager.default.contentsOfDirectory(at: remoteTemporary,
+                    includingPropertiesForKeys: nil).filter {
+                        $0.lastPathComponent.hasPrefix("zshell-paste-")
+                            && FileManager.default.fileExists(atPath: $0.appendingPathComponent(uploadedName).path)
+                    }
+                guard directories.count == 1,
+                      try Data(contentsOf: directories[0].appendingPathComponent(uploadedName)) == payload else {
+                    throw NSError(domain: "RemotePasteCancellation", code: 2)
+                }
+                directory = directories[0]
+                print("PASS first file completed before second upload cancellation")
             }
-            print("PASS first file completed before second upload cancellation")
             task.cancel()
             do {
                 _ = try await task.value
                 throw NSError(domain: "RemotePasteCancellation", code: 3)
             } catch is CancellationError {}
-            guard !FileManager.default.fileExists(atPath: directories[0].path) else {
+            guard !FileManager.default.fileExists(atPath: directory.path) else {
                 throw NSError(domain: "RemotePasteCancellation", code: 4)
             }
             print("PASS cancelled SSH upload removes its complete temporary directory")
@@ -75,8 +89,8 @@ import Foundation
 '''
 
 
-def verify_cancellation(directory, fixture, derived_data):
-    temporary = directory / "cancellation"
+def verify_cancellation(directory, fixture, derived_data, during_creation=False):
+    temporary = directory / ("creation-cancellation" if during_creation else "cancellation")
     temporary.mkdir()
     remote_temporary = subprocess.run(
         ["/usr/bin/ssh", "-F", str(fixture.config), "-p", str(fixture.ssh_port), fixture.host,
@@ -95,10 +109,21 @@ if [ "$count" -eq 3 ]; then
   exec /bin/sleep 15
 fi
 """)
-    # Connections create the directory, finish file one, then begin file two.
-    local_command = shlex.join(["/bin/sh", str(gate), str(temporary / "count"), str(ready)])
-    with fixture.config.open("a") as configuration:
-        configuration.write("\n  PermitLocalCommand yes\n  LocalCommand " + local_command + " >/dev/null 2>&1\n")
+    authorized = fixture.directory / "authorized_keys"
+    original_authorized = authorized.read_bytes()
+    if during_creation:
+        # Delay path receipt after mktemp has created a directory on the real SSH host.
+        gate.write_text("#!/bin/sh\nset -eu\ncase \"$SSH_ORIGINAL_COMMAND\" in\n"
+                        "  *mktemp*)\n    directory=$(/bin/sh -c \"$SSH_ORIGINAL_COMMAND\")\n"
+                        "    printf '%s\\n' \"$directory\" > " + shlex.quote(str(ready)) + "\n"
+                        "    /bin/sleep 0.4\n    printf '%s\\n' \"$directory\"\n    ;;\n"
+                        "  *) exec /bin/sh -c \"$SSH_ORIGINAL_COMMAND\" ;;\nesac\n")
+        authorized.write_bytes(('command="/bin/sh ' + str(gate) + '" ').encode() + original_authorized)
+    else:
+        # Connections create the directory, finish file one, then begin file two.
+        local_command = shlex.join(["/bin/sh", str(gate), str(temporary / "count"), str(ready)])
+        with fixture.config.open("a") as configuration:
+            configuration.write("\n  PermitLocalCommand yes\n  LocalCommand " + local_command + " >/dev/null 2>&1\n")
     products = derived_data / "Build/Products/Debug"
     library = products / "zshell Debug.app/Contents/MacOS/zshell.debug.dylib"
     source = temporary / "CancellationProbe.swift"
@@ -123,11 +148,18 @@ fi
                         "ZSHELL_SSH_CONFIG_FILE": str(fixture.config), "ZSHELL_SSH_AGENT_RESOLVED": "1"})
     try:
         subprocess.run(arguments, cwd=ROOT, check=True)
-        subprocess.run([str(binary), str(temporary), remote_temporary, str(fixture.ssh_port)],
+        subprocess.run([str(binary), str(temporary), remote_temporary, str(fixture.ssh_port),
+                        "creation" if during_creation else "upload"],
                        cwd=ROOT, env=environment, check=True, timeout=20)
-        assert (temporary / "count").read_text().strip() == "4", "cleanup opened its own SSH connection"
+        if not during_creation:
+            assert (temporary / "count").read_text().strip() == "4", "cleanup opened its own SSH connection"
     finally:
-        if ready.is_file():
+        authorized.write_bytes(original_authorized)
+        if during_creation and ready.is_file():
+            created = Path(ready.read_text().strip())
+            if created.parent == Path(remote_temporary) and created.name.startswith("zshell-paste-"):
+                shutil.rmtree(created, ignore_errors=True)
+        elif ready.is_file():
             try:
                 os.kill(int(ready.read_text().strip()), signal.SIGTERM)
             except ProcessLookupError:
@@ -152,6 +184,7 @@ def main():
         try:
             fixture.__enter__()
             if options.cancellation_only:
+                verify_cancellation(directory, fixture, options.derived_data.resolve(), during_creation=True)
                 verify_cancellation(directory, fixture, options.derived_data.resolve())
                 return
             home = directory / "remote-home"
