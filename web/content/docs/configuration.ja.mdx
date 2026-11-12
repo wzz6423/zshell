@@ -184,6 +184,12 @@ false なら横スクロールします。ターミナルや差分の折り返�
 
 環境変数と互換性の取り決めは[ターミナルバックエンド](/ja/docs/terminal#terminal-backends)を参照してください。
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+数値、0.1–10 — 各デバイスの既定値は `1`
+
+**設定 → ターミナル → スクロール → マウスホイール / トラックパッド** で速度を個別に調整します。表示はパーセントです。100% は現在の速度、50% は半分、200% は2倍です。変更は開いている Ghostty と Alacritty のペインにすぐ反映され、スクロールバック、全画面プログラム、マウスレポートにも適用されます。慣性スクロールはトラックパッドの値に従い、横スクロールは横方向のままです。精密なスクロール差分を報告するマウスもトラックパッドの値を使います。未指定または無効な値は `1` に戻ります。設定のインポート、エクスポート、リセットには両方の値が含まれます。
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 真偽値 — 既定値 `false`
@@ -303,6 +309,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

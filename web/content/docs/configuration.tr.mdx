@@ -169,6 +169,12 @@ Sonradan oluşturulan terminallerin emülatörünü seçer. Mevcut bölmeler ba�
 
 Ortam değişkenleri ve uyumluluk için [Terminal arka uçları](/tr/docs/terminal#terminal-backends) bölümüne bakın.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+sayı, 0.1–10 — her aygıt için varsayılan `1`
+
+İki hızı **Ayarlar → Terminal → Kaydırma → Fare tekerleği / İzleme dörtgeni** bölümünde ayrı ayrı ayarlayın. Değerler yüzde olarak gösterilir: 100% mevcut hızı korur, 50% yarıya indirir ve 200% iki katına çıkarır. Değişiklikler açık Ghostty ve Alacritty panellerinde, kaydırma geçmişinde, tam ekran programlarda ve fare raporlamasında hemen uygulanır. Ataletli kaydırma izleme dörtgeni değerini kullanır; yatay kaydırma yatay kalır. Hassas kaydırma farkları gönderen fareler de izleme dörtgeni değerini kullanır. Eksik veya geçersiz değerler `1` olur. İçe aktarma, dışa aktarma ve sıfırlama iki değeri de kapsar.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 mantıksal — varsayılan `false`
@@ -282,6 +288,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

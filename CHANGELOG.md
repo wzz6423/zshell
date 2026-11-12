@@ -18,6 +18,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Adjust mouse wheel and trackpad scrolling speeds independently in Settings,
+  with immediate updates in both terminal backends.
 - Choose whether a terminal right-click opens the context menu, pastes, or
   copies selected text and otherwise pastes. Shift-right-click and a keyboard
   menu command keep terminal actions available with either backend.

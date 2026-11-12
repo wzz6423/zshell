@@ -169,6 +169,12 @@ Choisit l'émulateur des terminaux créés ensuite. Les volets existants conserv
 
 Consultez [Moteurs de terminal](/fr/docs/terminal#terminal-backends) pour les variables d'environnement et les règles de compatibilité.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+nombre, 0.1–10 — valeur par défaut `1` pour chaque périphérique
+
+Réglez les deux vitesses séparément dans **Réglages → Terminal → Défilement → Molette de la souris / Pavé tactile**. Les valeurs sont des pourcentages : 100% conserve la vitesse actuelle, 50% la divise par deux et 200% la double. Les changements s’appliquent immédiatement aux volets Ghostty et Alacritty ouverts, à l’historique, aux programmes plein écran et aux rapports de souris. Le défilement inertiel utilise la valeur du pavé tactile ; le défilement horizontal reste horizontal. Les souris envoyant des deltas précis utilisent aussi la valeur du pavé tactile. Une valeur absente ou invalide revient à `1`. L’importation, l’exportation et la réinitialisation incluent les deux valeurs.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 Booléen — valeur par défaut : `false`
@@ -282,6 +288,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

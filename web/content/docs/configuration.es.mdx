@@ -169,6 +169,12 @@ Elige el emulador de los terminales creados a partir de ese momento. Los paneles
 
 Consulta [Motores de terminal](/es/docs/terminal#terminal-backends) para conocer las variables de entorno y las garantías de compatibilidad.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+número, 0.1–10 — valor predeterminado `1` para cada dispositivo
+
+Ajusta las dos velocidades por separado en **Ajustes → Terminal → Desplazamiento → Rueda del ratón / Panel táctil**. Los valores son porcentajes: 100% mantiene la velocidad actual, 50% la reduce a la mitad y 200% la duplica. Los cambios se aplican de inmediato a los paneles abiertos de Ghostty y Alacritty, al historial, a programas de pantalla completa y a los informes del ratón. La inercia usa el valor del panel táctil; el desplazamiento horizontal sigue siendo horizontal. Los ratones que envían deltas precisos también usan el valor del panel táctil. Los valores ausentes o inválidos vuelven a `1`. Importar, exportar y restablecer incluye ambos valores.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 booleano — predeterminado: `false`
@@ -283,6 +289,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

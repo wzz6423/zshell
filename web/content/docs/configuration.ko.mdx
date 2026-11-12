@@ -169,6 +169,12 @@ Zshell은 기본 글꼴 두께 컨트롤을 제공하지 않습니다. Ghostty�
 
 환경 변수와 호환성 규약은 [터미널 백엔드](/ko/docs/terminal#terminal-backends)를 참고하세요.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+숫자, 0.1–10 — 각 장치의 기본값 `1`
+
+**설정 → 터미널 → 스크롤 → 마우스 휠 / 트랙패드**에서 두 속도를 따로 조절합니다. 표시는 백분율입니다. 100%는 현재 속도, 50%는 절반, 200%는 두 배입니다. 변경은 열린 Ghostty 및 Alacritty 패널의 스크롤백, 전체 화면 프로그램, 마우스 보고에 즉시 적용됩니다. 관성 스크롤은 트랙패드 값을 따르며 가로 스크롤은 가로 방향을 유지합니다. 정밀 스크롤 델타를 보고하는 마우스도 트랙패드 값을 사용합니다. 누락되거나 잘못된 값은 `1`로 돌아가며 설정 가져오기, 내보내기, 초기화에 두 값이 모두 포함됩니다.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 불리언 — 기본값 `false`
@@ -282,6 +288,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"
