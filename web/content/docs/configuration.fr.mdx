@@ -185,6 +185,20 @@ Choisissent l'exécutable et le vecteur d'arguments des terminaux créés ensuit
 
 `terminal.startup-arguments` est séparé en arguments sans passer par un shell. Guillemets et barres obliques inverses préservent leurs limites, y compris les espaces et arguments vides. Les variables, jokers et substitutions de commande ne sont pas développés. Des guillemets invalides provoquent aussi un repli vers le shell de connexion. Un argv fourni explicitement par la CLI Zshell reste prioritaire pour ce terminal.
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — valeur par défaut `"current"`
+
+Choisissez **Réglages → Terminal → Répertoire des nouvelles sessions**. Le répertoire actuel est celui du shell local actif, y compris pour le premier terminal d'un nouveau projet. Sans shell local, le dossier personnel est utilisé. Projet utilise la racine affichée dans Fichiers et Git (le dépôt le plus proche ou la copie de travail au premier plan) ; hors dépôt, il utilise le répertoire actuel. Personnel utilise toujours le dossier du compte. Cette règle s'applique aussi au premier Terminal rapide et à chaque nouvel espace Terminal rapide.
+
+Un répertoire explicite venant du Finder, de la CLI, d'un modèle d'espace de travail, d'un worktree, d'une session restaurée, d'un dossier fixé au projet ou d'un groupe latéral reste prioritaire. Les divisions conservent le répertoire de leur volet source. Les sessions SSH et distantes partagées gardent leur répertoire sur l'hôte distant. Modifier ce réglage ne redémarre pas les terminaux ouverts ni les espaces Terminal rapide réutilisés.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+chaîne — valeur par défaut `""`
+
+Pour la règle personnalisée, saisissez un chemin absolu ou `~/folder`, ou choisissez un dossier dans Réglages. Zshell vérifie que le dossier existe et permet d'y entrer. Un dossier absent, inaccessible ou invalide entraîne un repli vers le répertoire local actuel (le dossier personnel à défaut) ; Réglages affiche la raison. Le chemin enregistré reste conservé lorsque vous choisissez une autre règle.
+
 ### `terminal.term`
 
 Définissez `terminal.term` dans **Réglages → Terminal → TERM** (par défaut `"xterm-256color"`). Le nom doit contenir de 1 à 128 lettres ASCII, chiffres ou `.-_+`. Utilisez un nom terminfo installé sur l’hôte qui exécute le shell. Les modifications s’appliquent seulement aux nouvelles sessions locales et SSH ; les PTY ouverts et conservés gardent leur `TERM`. Les sessions distantes partagées utilisent cette valeur à leur création avec un serveur à jour ; les anciens serveurs gardent `xterm-256color`. Une valeur invalide au démarrage utilise `xterm-256color` ; une modification invalide pendant l’exécution de Zshell conserve la dernière valeur valide. Dans les deux cas, une erreur s’affiche dans Réglages. `TERM_PROGRAM` et `ZSHELL_TERM` restent inchangés.

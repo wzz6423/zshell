@@ -185,6 +185,20 @@ Eligen el ejecutable y el vector de argumentos de los terminales creados a parti
 
 `terminal.startup-arguments` se divide en argumentos sin invocar un shell. Las comillas y las barras inversas conservan sus límites, incluidos espacios y argumentos vacíos, pero no se expanden variables, patrones glob ni sustituciones de comandos. Las comillas no válidas también hacen que se use el shell de inicio de sesión. Un argv explícito proporcionado por la CLI de Zshell conserva la prioridad para ese terminal.
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — predeterminado `"current"`
+
+Elige **Ajustes → Terminal → Directorio de las nuevas sesiones**. Actual usa el directorio de la shell local activa, incluido el primer terminal de un proyecto nuevo. Sin una shell local, usa la carpeta personal. Proyecto usa la raíz que muestran Archivos y Git (el repositorio más cercano o la copia de trabajo en primer plano); fuera de un repositorio, usa el directorio actual. Personal usa siempre la carpeta de la cuenta. También se aplica al primer terminal rápido y a cada espacio nuevo del terminal rápido.
+
+Tienen prioridad los directorios explícitos del Finder, la CLI, una plantilla de espacio de trabajo, un worktree, una sesión restaurada, una carpeta fijada al proyecto o un grupo de la barra lateral. Las divisiones conservan el directorio del panel de origen. SSH y las sesiones remotas compartidas mantienen su directorio en el equipo remoto. Cambiar el ajuste no reinicia los terminales abiertos ni los espacios reutilizados del terminal rápido.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+cadena — predeterminado `""`
+
+Con la opción personalizada, introduce una ruta absoluta o `~/folder`, o elige una carpeta en Ajustes. Zshell comprueba que exista y se pueda entrar en ella. Si falta, no es accesible o es inválida, usa el directorio local actual (la carpeta personal si no hay uno); Ajustes muestra el motivo. La ruta guardada se conserva al cambiar de opción.
+
 ### `terminal.term`
 
 Configura `terminal.term` en **Ajustes → Terminal → TERM** (valor predeterminado `"xterm-256color"`). El nombre debe contener de 1 a 128 letras ASCII, dígitos o `.-_+`. Usa un nombre terminfo instalado en el equipo que ejecuta el shell. Los cambios solo se aplican a sesiones locales y SSH nuevas; los PTY abiertos y conservados mantienen su `TERM` original. Las sesiones remotas compartidas usan el valor al crearse con un servidor actualizado; los servidores antiguos mantienen `xterm-256color`. Un valor no válido al iniciar usa `xterm-256color`; las ediciones no válidas mientras Zshell está en ejecución conservan el último valor válido. En ambos casos se muestra un error en Ajustes. `TERM_PROGRAM` y `ZSHELL_TERM` no cambian.

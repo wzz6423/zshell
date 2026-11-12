@@ -174,6 +174,15 @@ struct SettingsReloadTests {
         check(IntegrationFixture.operations == usageIntegrations,
               "usage settings never install or uninstall agent lifecycle integration")
         check(settings.keepAwakeMode == .off, "sleep prevention is off by default")
+        check(settings.newSessionDirectoryPolicy == .current && settings.newSessionCustomDirectory.isEmpty,
+              "new sessions inherit their current context by default")
+        settings.newSessionDirectoryPolicy = .project
+        check(!settings.isAtDefaults, "directory policy enables reset")
+        settings.newSessionDirectoryPolicy = .current
+        settings.newSessionCustomDirectory = "~/work"
+        check(!settings.isAtDefaults, "retained custom directory enables reset")
+        settings.newSessionCustomDirectory = ""
+        check(settings.isAtDefaults, "directory preferences restore default state")
         check(settings.mouseScrollMultiplier == 1 && settings.trackpadScrollMultiplier == 1,
               "device scrolling preserves the existing speed by default")
         check(!settings.serializedConfig().contains("scroll-multiplier"), "default scroll multipliers are omitted")
@@ -333,6 +342,8 @@ struct SettingsReloadTests {
         terminal.term = "screen-256color"
         terminal.startup-program = "/bin/zsh"
         terminal.startup-arguments = "-l"
+        terminal.new-session-directory = "custom"
+        terminal.custom-directory = "~/work"
         browser.content-blocking = false
         browser.filter-lists = "https://example.test/filter.txt"
         terminal.profiles.0.id = "71DA4706-872C-4D96-ACDC-3FC8201F86B7"
@@ -353,6 +364,8 @@ struct SettingsReloadTests {
         check(written == imported, "import saves final state once")
         check(settings.terminalProfiles.first?.appearance.fontSize == 18,
               "profiles import through production settings")
+        check(settings.newSessionDirectoryPolicy == .custom && settings.newSessionCustomDirectory == "~/work",
+              "directory policy and path import without discarding unavailable folders")
         check(settings.terminalProfiles.first?.launchSettings.environment["MODE"] == "profile",
               "profile launch settings round trip through config")
         let roundTrip = TOML.parseStrictly(text: imported).values
@@ -397,6 +410,14 @@ struct SettingsReloadTests {
         wait({ settings.fontSize == 20 }, "external font edit applies")
         check(changes == unchanged + 1, "single setting edit publishes once")
         check(try SettingsConfigFile.read(at: url) == changed, "external update does not rewrite source")
+        let directoryChanged = changed.replacingOccurrences(of: "terminal.new-session-directory = \"custom\"",
+                                                            with: "terminal.new-session-directory = \"home\"")
+        try directoryChanged.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.newSessionDirectoryPolicy == .home }, "external directory policy edit applies")
+        let invalidPolicy = directoryChanged.replacingOccurrences(of: "terminal.new-session-directory = \"home\"",
+                                                                 with: "terminal.new-session-directory = \"unknown\"")
+        try invalidPolicy.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.newSessionDirectoryPolicy == .current }, "unknown policy preserves the compatible current default")
         let termChanged = changed.replacingOccurrences(of: "terminal.term = \"screen-256color\"", with: "terminal.term = \"vt100\"")
         try termChanged.write(to: url, atomically: true, encoding: .utf8)
         wait({ settings.terminalTerm == "vt100" }, "external terminal type edit applies")
@@ -467,6 +488,8 @@ struct SettingsReloadTests {
         check(!settings.vimCommandHints && !settings.restoreTerminalHistory && !settings.notifyOnError,
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
+        check(settings.newSessionDirectoryPolicy == .current && settings.newSessionCustomDirectory.isEmpty,
+              "empty config resets both directory preferences")
         check(settings.terminalTerm == "xterm-256color" && !settings.terminalTermIsInvalid,
               "missing terminal type on reload restores the compatible default")
         check(settings.promptQueueEnabled && !settings.promptQueueAutoDispatch,

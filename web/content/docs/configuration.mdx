@@ -258,6 +258,20 @@ arguments, but variables, globs, and command substitutions are not expanded.
 Invalid quoting also falls back to the login shell. An explicit argv supplied by
 the Zshell CLI still takes precedence for that terminal.
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — default `"current"`
+
+Choose **Settings → Terminal → New session directory**. Current uses the active local shell's directory, including the first terminal of a new project. Without a local shell, it uses your home directory. Project uses the root shown in Files and Git (the nearest repository or foreground checkout); outside a repository it uses the current directory. Home always uses your account home. The same policy applies to the first Quick Terminal and each fresh Quick Terminal workspace.
+
+An explicit directory from Finder, the CLI, a workspace template, a worktree, a restored session, a project pin, or a sidebar group takes precedence. Splits keep their source pane's directory. SSH and shared remote sessions keep the directory on their remote host. Changing this setting leaves open terminals and reusable Quick Terminal workspaces running.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+string — default `""`
+
+For the custom policy, enter an absolute path or `~/folder`, or choose a folder in Settings. Zshell checks that the folder exists and can be entered. A missing, inaccessible, or invalid custom folder falls back to the current local directory (home when none is available); Settings shows the reason. The saved path is retained while you use another policy.
+
 ### `terminal.term`
 
 Choose **Settings → Terminal → TERM** to set `terminal.term` (default `"xterm-256color"`). The name must contain 1–128 ASCII letters, digits, or `.-_+`. Use a terminfo name installed on the machine running the shell. Changes apply to new local and SSH sessions only; open and preserved PTYs keep their original `TERM`. Shared remote sessions use the value when created with an updated server; older servers keep `xterm-256color`. An invalid value at startup falls back to `xterm-256color`; invalid edits while Zshell is running retain the last valid value. Both show an error in Settings. This setting leaves `TERM_PROGRAM` and `ZSHELL_TERM` unchanged.

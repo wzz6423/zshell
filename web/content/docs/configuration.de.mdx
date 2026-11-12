@@ -185,6 +185,20 @@ Bestimmen Programm und Argumente für danach neu erstellte Terminals. Ohne `term
 
 `terminal.startup-arguments` wird ohne Shell-Aufruf in Argumente zerlegt. Anführungszeichen und Backslashes erhalten Argumentgrenzen, einschließlich Leerzeichen und leerer Argumente. Variablen, Globs und Befehlssubstitutionen werden nicht expandiert. Ungültige Anführungszeichen führen ebenfalls zur Login-Shell. Explizit über die Zshell-CLI übergebene argv-Argumente haben für das betreffende Terminal weiterhin Vorrang.
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — Standard `"current"`
+
+Wählen Sie **Einstellungen → Terminal → Verzeichnis für neue Sitzungen**. Aktuell verwendet das Verzeichnis der aktiven lokalen Shell, auch für das erste Terminal eines neuen Projekts. Ohne lokale Shell wird der Benutzerordner verwendet. Projekt verwendet die in Dateien und Git angezeigte Wurzel (das nächste Repository oder den Checkout im Vordergrund); außerhalb eines Repositorys gilt das aktuelle Verzeichnis. Benutzerordner verwendet immer den Ordner des Kontos. Dies gilt auch für das erste Schnellterminal und jeden neuen Schnellterminal-Arbeitsbereich.
+
+Explizite Verzeichnisse aus Finder, CLI, Arbeitsbereichsvorlagen, worktrees, wiederhergestellten Sitzungen, einem festgelegten Projektordner oder einer Seitenleistengruppe haben Vorrang. Geteilte Bereiche behalten das Verzeichnis ihres Quellbereichs. SSH und gemeinsam genutzte Remotesitzungen behalten das Verzeichnis auf dem entfernten Host. Änderungen starten offene Terminals und wiederverwendete Schnellterminal-Arbeitsbereiche nicht neu.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+Zeichenfolge — Standard `""`
+
+Geben Sie für Benutzerdefiniert einen absoluten Pfad oder `~/folder` ein, oder wählen Sie in den Einstellungen einen Ordner. Zshell prüft, ob der Ordner existiert und betreten werden kann. Fehlende, unzugängliche oder ungültige Ordner führen zum aktuellen lokalen Verzeichnis zurück (sonst zum Benutzerordner); die Einstellungen zeigen den Grund. Der gespeicherte Pfad bleibt beim Wechsel der Regel erhalten.
+
 ### `terminal.term`
 
 Legen Sie `terminal.term` unter **Einstellungen → Terminal → TERM** fest (Standard `"xterm-256color"`). Der Name muss aus 1–128 ASCII-Buchstaben, Ziffern oder `.-_+` bestehen. Verwenden Sie einen terminfo-Namen, der auf dem Host der Shell installiert ist. Änderungen gelten nur für neue lokale und SSH-Sitzungen; offene und erhaltene PTYs behalten ihren bisherigen `TERM`. Geteilte entfernte Sitzungen verwenden den Wert beim Erstellen mit einem aktuellen Server; ältere Server behalten `xterm-256color`. Ein ungültiger Wert beim Start fällt auf `xterm-256color` zurück; ungültige Änderungen bei laufendem Zshell behalten den letzten gültigen Wert. In beiden Fällen erscheint ein Fehler in den Einstellungen. `TERM_PROGRAM` und `ZSHELL_TERM` bleiben unverändert.

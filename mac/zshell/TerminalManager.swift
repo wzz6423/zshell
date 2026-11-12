@@ -387,7 +387,9 @@ final class TerminalManager: nonisolated ObservableObject {
 
     @discardableResult
     func newProject() -> Project {
-        let project = makeProject()
+        let context = selectedProject?.newSessionDirectoryContext
+        let project = makeProject(createInitialSession: false)
+        project.newSession(directoryContext: context)
         insert(project)
         return project
     }
@@ -998,7 +1000,8 @@ final class TerminalManager: nonisolated ObservableObject {
         let project = makeProject(createInitialSession: false)
         project.customName = entry.name
         project.customDirectory = directory
-        project.newSession(directory: directory, commandArguments: arguments)
+        project.newSession(directory: directory, directoryContext: selectedProject?.newSessionDirectoryContext,
+                           commandArguments: arguments)
         insert(project)
     }
 

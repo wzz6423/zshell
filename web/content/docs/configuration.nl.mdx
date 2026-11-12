@@ -185,6 +185,20 @@ Kies het uitvoerbare programma en de argumentvector voor terminals die hierna wo
 
 `terminal.startup-arguments` wordt in argumenten gesplitst zonder een shell aan te roepen. Aanhalingstekens en backslashes behouden grenzen, inclusief spaties en lege argumenten. Variabelen, globs en opdrachtvervangingen worden niet uitgebreid. Ongeldige aanhalingstekens leiden ook tot een terugval op de inlogshell. Een expliciete argv vanuit de Zshell-CLI heeft nog steeds voorrang voor die terminal.
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — standaard `"current"`
+
+Kies **Instellingen → Terminal → Map voor nieuwe sessies**. Huidig gebruikt de map van de actieve lokale shell, ook voor de eerste terminal van een nieuw project. Zonder lokale shell wordt de thuismap gebruikt. Project gebruikt de hoofdmap die Bestanden en Git tonen (de dichtstbijzijnde repository of checkout op de voorgrond); buiten een repository wordt de huidige map gebruikt. Thuis gebruikt altijd de map van het account. Dit geldt ook voor de eerste snelle terminal en elke nieuwe werkruimte daarvan.
+
+Een expliciete map uit Finder, de CLI, een werkruimtesjabloon, een worktree, een herstelde sessie, een vastgezette projectmap of een zijbalkgroep heeft voorrang. Splitsingen behouden de map van hun bronpaneel. SSH en gedeelde externe sessies behouden de map op de externe host. Een wijziging herstart geopende terminals en hergebruikte snelle werkruimtes niet.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+tekst — standaard `""`
+
+Voer voor Aangepast een absoluut pad of `~/folder` in, of kies een map in Instellingen. Zshell controleert of de map bestaat en toegankelijk is. Bij een ontbrekende, ontoegankelijke of ongeldige map wordt de huidige lokale map gebruikt (anders de thuismap); Instellingen toont de reden. Het opgeslagen pad blijft behouden bij een andere keuze.
+
 ### `terminal.term`
 
 Stel `terminal.term` in via **Instellingen → Terminal → TERM** (standaard `"xterm-256color"`). De naam moet 1–128 ASCII-letters, cijfers of `.-_+` bevatten. Gebruik een terminfo-naam die is geïnstalleerd op de host waarop de shell draait. Wijzigingen gelden alleen voor nieuwe lokale en SSH-sessies; open en bewaarde PTY’s behouden hun oorspronkelijke `TERM`. Gedeelde externe sessies gebruiken de waarde bij aanmaak op een bijgewerkte server; oudere servers behouden `xterm-256color`. Een ongeldige waarde bij het opstarten valt terug op `xterm-256color`; ongeldige wijzigingen terwijl Zshell actief is behouden de laatste geldige waarde. In beide gevallen verschijnt een fout in Instellingen. `TERM_PROGRAM` en `ZSHELL_TERM` blijven ongewijzigd.

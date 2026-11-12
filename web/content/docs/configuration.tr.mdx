@@ -185,6 +185,20 @@ Bundan sonra oluşturulan terminallerin çalıştırılabilir dosyasını ve arg
 
 `terminal.startup-arguments` kabuk çağırmadan argümanlara ayrılır. Tırnak ve ters eğik çizgiler boşluk ve boş argüman dâhil sınırları korur; değişken, glob ve komut yerine koyma genişletilmez. Geçersiz tırnaklama da giriş kabuğuna döner. Zshell CLI’ın açıkça verdiği argv o terminalde yine önceliklidir.
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — varsayılan `"current"`
+
+**Ayarlar → Terminal → Yeni oturum dizini** yolunu seçin. Geçerli, yeni projenin ilk terminali dahil etkin yerel kabuğun dizinini kullanır. Yerel kabuk yoksa ev dizinini kullanır. Proje, Dosyalar ve Git'te gösterilen kökü (en yakın depo veya ön plandaki çalışma kopyası) kullanır; depo dışında geçerli dizini kullanır. Ev her zaman hesabın ev dizinini kullanır. Bu ilke ilk Hızlı Terminal ve her yeni Hızlı Terminal çalışma alanı için de geçerlidir.
+
+Finder, CLI, çalışma alanı şablonu, worktree, geri yüklenen oturum, sabitlenmiş proje dizini veya kenar çubuğu grubundaki açık dizin önceliklidir. Bölmeler kaynak panelin dizinini korur. SSH ve paylaşılan uzak oturumlar uzak sunucudaki dizini korur. Ayarı değiştirmek açık terminalleri veya yeniden kullanılan Hızlı Terminal alanlarını yeniden başlatmaz.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+metin — varsayılan `""`
+
+Özel ilke için mutlak yol veya `~/folder` girin ya da Ayarlar'dan bir klasör seçin. Zshell klasörün var olduğunu ve içine girilebildiğini doğrular. Eksik, erişilemeyen veya geçersiz klasör, geçerli yerel dizine (yoksa ev dizinine) döner; Ayarlar nedenini gösterir. Başka bir ilke seçerken kayıtlı yol korunur.
+
 ### `terminal.term`
 
 **Ayarlar → Terminal → TERM** altında `terminal.term` değerini ayarlayın (varsayılan `"xterm-256color"`). Ad, 1–128 ASCII harfi, rakam veya `.-_+` içermelidir. Shell’in çalıştığı ana bilgisayarda yüklü bir terminfo adı kullanın. Değişiklikler yalnızca yeni yerel ve SSH oturumlarına uygulanır; açık ve korunan PTY’ler özgün `TERM` değerini korur. Paylaşılan uzak oturumlar güncel sunucuda oluşturulurken bu değeri kullanır; eski sunucular `xterm-256color` kullanmaya devam eder. Başlangıçta geçersiz bir değer varsa `xterm-256color` kullanılır; Zshell çalışırken yapılan geçersiz düzenlemeler son geçerli değeri korur. Her iki durumda da Ayarlar’da hata gösterilir. `TERM_PROGRAM` ve `ZSHELL_TERM` değişmez.

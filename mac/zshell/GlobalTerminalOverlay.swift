@@ -382,8 +382,8 @@ final class GlobalTerminalOverlay: NSObject {
         if workspace == nil {
             if mode == .reuse {
                 if reusableWorkspace == nil {
-                    let tab = pendingSnapshot.map(QuickTerminalWorkspaceSnapshot.restore)
-                        ?? PaneTab(content: .session(TerminalSession()))
+                    guard let tab = pendingSnapshot.map(QuickTerminalWorkspaceSnapshot.restore)
+                        ?? newWorkspace(allowsPersistence: true) else { return }
                     pendingSnapshot = nil
                     reusableWorkspace = tab
                     workspaceObservation = Publishers.CombineLatest(tab.$layout, tab.$focusedPaneID)
@@ -396,7 +396,7 @@ final class GlobalTerminalOverlay: NSObject {
                 workspace = reusableWorkspace
                 terminalWindow = reusableWindow
             } else {
-                let tab = PaneTab(content: .session(TerminalSession(allowsPersistence: false)))
+                guard let tab = newWorkspace(allowsPersistence: false) else { return }
                 workspace = tab
                 configureSessions(in: tab)
             }
@@ -467,6 +467,16 @@ final class GlobalTerminalOverlay: NSObject {
         DispatchQueue.main.async {
             application.activate(options: [])
         }
+    }
+
+    private func newWorkspace(allowsPersistence: Bool) -> PaneTab? {
+        let directory = TerminalSessionDirectory.resolve(
+            context: TerminalManager.activeWindowManager?.selectedProject?.newSessionDirectoryContext ?? .init(),
+            policy: AppSettings.shared.newSessionDirectoryPolicy,
+            customDirectory: AppSettings.shared.newSessionCustomDirectory
+        )
+        guard !TerminalManager.isRemovingWorktree(containing: directory) else { NSSound.beep(); return nil }
+        return PaneTab(content: .session(TerminalSession(initialDirectory: directory, allowsPersistence: allowsPersistence)))
     }
 
     func split(toward edge: PaneDropEdge) {
