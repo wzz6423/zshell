@@ -267,6 +267,22 @@ Restaura el historial de salida anterior de cada terminal sobre un shell nuevo a
 
 El historial restaurado se guarda en disco, por lo que puede incluir secretos mostrados en el terminal. Los [proyectos, pestañas y distribución de paneles](/es/docs/projects#what-survives-a-relaunch) se restauran en cualquier caso.
 
+## Acceso por navegador [#browser-access]
+
+Si siguen ejecutándose sesiones conservadas por una versión anterior, el acceso por navegador pide salir y finalizar todas las sesiones y abrir Zshell de nuevo. Los trabajos se conservan hasta que lo elijas.
+
+### `browser-access.enabled`
+
+`browser-access.enabled` es booleano y su valor predeterminado es `false`. Actívalo en **Ajustes → Acceso por navegador**. Los nuevos paneles locales estarán disponibles; los existentes mantendrán su proceso. Funciona con ambos motores del terminal y no cambia `terminal.preserve-sessions`.
+
+### `browser-access.interface` / `browser-access.port`
+
+`browser-access.interface` vale `"loopback"` (**Solo localhost**) por defecto. Para otro dispositivo, elige explícitamente una interfaz IPv4 privada LAN o Tailscale disponible. El valor guarda el nombre y la dirección exactos, por ejemplo `"en0|192.168.0.10"`. `browser-access.port` es el puerto HTTPS: 1024–65535, `7443` por defecto. La página local utiliza otra dirección HTTP limitada al Mac. Si una interfaz no está disponible, elige otra; el servicio nunca pasa a escuchar en todas.
+
+La página HTTP local suele usar el puerto HTTPS configurado más uno (`7444` por defecto). La suspensión, Reintentar y volver a abrir conservan esa dirección y su autorización mientras no cambie la disponibilidad de los puertos. Si el puerto está ocupado, Zshell prueba los siete puertos locales siguientes; después de `65535`, vuelve a `1024`. Si cambia la disponibilidad de los puertos, un reinicio puede seleccionar otra dirección. La autorización existente está vinculada al origen anterior, por lo que la nueva dirección requiere volver a emparejar. Los clientes guardados siguen visibles y se pueden revocar con el acceso desactivado. Al llegar a 32 clientes, revoca uno antes de aprobar otro. Si no se puede comprobar el servicio de sesiones, el acceso sigue activado; pulsa Reintentar cuando el servicio esté listo.
+
+Compara la huella TLS y confía en el certificado exportado en el cliente antes del emparejamiento remoto. Autoriza o revoca clientes en el Mac. Desactivar el acceso, suspender el Mac o salir cierra las conexiones. La salida sigue el ajuste de conservación de sesiones. Consulta [Acceder a este Mac desde el navegador](/es/docs/remote-sessions#browser-access).
+
 ## Automatización [#automation]
 
 ### `ai.enabled` [#aienabled]

@@ -632,6 +632,18 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var browserAccessEnabled: Bool {
+        didSet { save() }
+    }
+
+    @Published var browserAccessInterface: String {
+        didSet { save() }
+    }
+
+    @Published var browserAccessPort: Int {
+        didSet { save() }
+    }
+
     /// Proxy for Git and GitHub CLI traffic. Terminals opened afterwards pass
     /// it to Git only; already running shells keep their environment.
     @Published var gitProxyEnabled: Bool {
@@ -807,6 +819,10 @@ final class AppSettings: nonisolated ObservableObject {
         newSessionCustomDirectory = toml["terminal.custom-directory"]?.string ?? ""
         browserContentBlocking = toml["browser.content-blocking"]?.bool ?? true
         browserFilterLists = toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults
+        browserAccessEnabled = toml["browser-access.enabled"]?.bool ?? false
+        browserAccessInterface = toml["browser-access.interface"]?.string ?? "loopback"
+        let accessPort = toml["browser-access.port"]?.double ?? 7443
+        browserAccessPort = (1024...65_535).contains(accessPort) && accessPort.rounded() == accessPort ? Int(accessPort) : 7443
         gitProxyEnabled = toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled
         gitProxyAddress = toml["git.proxy"]?.string ?? GitProxy.defaultAddress
         showPullRequestStatus = toml["git.pull-request-status"]?.bool ?? true
@@ -982,6 +998,7 @@ final class AppSettings: nonisolated ObservableObject {
             && newSessionCustomDirectory.isEmpty
             && browserContentBlocking
             && browserFilterLists == BrowserFilterSource.defaults
+            && !browserAccessEnabled && browserAccessInterface == "loopback" && browserAccessPort == 7443
             && gitProxyEnabled == GitProxy.defaultEnabled
             && gitProxyAddress == GitProxy.defaultAddress
             && showPullRequestStatus
@@ -1057,6 +1074,9 @@ final class AppSettings: nonisolated ObservableObject {
         terminalProfiles = []
         browserContentBlocking = true
         browserFilterLists = BrowserFilterSource.defaults
+        browserAccessEnabled = false
+        browserAccessInterface = "loopback"
+        browserAccessPort = 7443
         gitProxyEnabled = GitProxy.defaultEnabled
         gitProxyAddress = GitProxy.defaultAddress
         resumeAgentConversations = true
@@ -1322,6 +1342,10 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.newSessionCustomDirectory, toml["terminal.custom-directory"]?.string ?? "")
         assign(\.browserContentBlocking, toml["browser.content-blocking"]?.bool ?? true)
         assign(\.browserFilterLists, toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults)
+        assign(\.browserAccessEnabled, toml["browser-access.enabled"]?.bool ?? false)
+        assign(\.browserAccessInterface, toml["browser-access.interface"]?.string ?? "loopback")
+        let accessPort = toml["browser-access.port"]?.double ?? 7443
+        assign(\.browserAccessPort, (1024...65_535).contains(accessPort) && accessPort.rounded() == accessPort ? Int(accessPort) : 7443)
         assign(\.gitProxyEnabled, toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled)
         assign(\.gitProxyAddress, toml["git.proxy"]?.string ?? GitProxy.defaultAddress)
         assign(\.showPullRequestStatus, toml["git.pull-request-status"]?.bool ?? true)
@@ -1605,6 +1629,11 @@ final class AppSettings: nonisolated ObservableObject {
         if browserFilterLists != BrowserFilterSource.defaults {
             lines.append("browser.filter-lists = \(TOML.quote(browserFilterLists))")
         }
+        if browserAccessEnabled { lines.append("browser-access.enabled = true") }
+        if browserAccessInterface != "loopback" {
+            lines.append("browser-access.interface = \(TOML.quote(browserAccessInterface))")
+        }
+        if browserAccessPort != 7443 { lines.append("browser-access.port = \(browserAccessPort)") }
         if gitProxyEnabled != GitProxy.defaultEnabled {
             lines.append("git.proxy-enabled = \(gitProxyEnabled)")
         }

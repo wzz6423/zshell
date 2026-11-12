@@ -18,6 +18,9 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Access this Mac’s terminal panes from a paired browser over a private LAN
+  or Tailscale HTTPS connection, with live output, shared input, reconnect,
+  and client revocation in Settings.
 - Customize local agent command recognition and screen rules from Settings,
   with independent screen-inference controls and portable `agents.toml` files.
 - Wrap long diff lines to the pane width from the diff toolbar or Editor

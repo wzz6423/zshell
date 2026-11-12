@@ -267,6 +267,22 @@ Restaura a saída anterior acima de um shell novo após reiniciar. O conteúdo �
 
 A saída restaurada fica no disco, portanto pode incluir segredos exibidos no terminal. [Projetos, abas e layout](/pt-BR/docs/projects#what-survives-a-relaunch) são restaurados independentemente dela.
 
+## Acesso pelo navegador [#browser-access]
+
+Se sessões preservadas por uma versão antiga ainda estiverem ativas, o acesso pelo navegador pede para sair e encerrar todas as sessões e reabrir o Zshell. As tarefas são mantidas até você escolher.
+
+### `browser-access.enabled`
+
+`browser-access.enabled` é booleano, com padrão `false`. Ative em **Ajustes → Acesso pelo navegador**. Novos painéis locais ficam acessíveis; os existentes mantêm o processo atual. Ambos os mecanismos de terminal funcionam. A opção não altera `terminal.preserve-sessions`.
+
+### `browser-access.interface` / `browser-access.port`
+
+`browser-access.interface` usa `"loopback"` (**Somente localhost**) por padrão. Para outro dispositivo, escolha explicitamente uma interface IPv4 privada LAN ou Tailscale disponível. O valor inclui o nome e endereço exatos, como `"en0|192.168.0.10"`. `browser-access.port` é a porta HTTPS, 1024–65535, com padrão `7443`. A página local usa outro endereço HTTP restrito ao Mac. Se a interface estiver indisponível, selecione outra; o serviço nunca passa a escutar em todas as interfaces.
+
+A página HTTP local normalmente usa a porta HTTPS configurada mais um (`7444` por padrão). Suspender, tentar novamente e reabrir preservam o endereço e a autorização enquanto a disponibilidade das portas não mudar. Se a porta estiver ocupada, o Zshell tenta as próximas sete portas locais; depois de `65535`, a sequência volta a `1024`. Se a disponibilidade das portas mudar, uma reinicialização pode selecionar outro endereço. A autorização existente está vinculada à origem anterior, portanto o novo endereço exige novo pareamento. Clientes salvos continuam visíveis e podem ser revogados com o acesso desativado. Ao atingir 32 clientes, revogue um antes de aprovar outro. Se o serviço de sessões não puder ser verificado, o acesso permanece ativado; clique em Tentar novamente quando o serviço estiver pronto.
+
+Compare a impressão digital TLS e confie no certificado exportado no cliente antes do pareamento remoto. Autorize ou revogue clientes neste Mac. Desativar o acesso, suspender o Mac ou sair fecha as conexões; sair segue a configuração de preservação das sessões. Consulte [Acessar este Mac pelo navegador](/pt-BR/docs/remote-sessions#browser-access).
+
 ## Automação [#automation]
 
 ### `ai.enabled` [#aienabled]

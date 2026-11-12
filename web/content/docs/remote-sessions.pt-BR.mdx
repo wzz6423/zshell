@@ -60,3 +60,17 @@ Atividade, progresso, pedidos de aprovação e conclusão do Agent remoto usam s
 ## Limites [#limits]
 
 A persistência dura enquanto o daemon está ativo; não sobrevive a reinicializações do host, falhas ou reinícios do daemon. Sessões ausentes geram erro e nunca são substituídas silenciosamente. Limites: 128 sessões, snapshot de 16 MiB e fila ativa de 1 MiB por cliente. Clientes lentos não bloqueiam os demais; o histórico fica na memória do host. Serviços e CLI estão na [referência do servidor](https://github.com/wzz6423/zshell/tree/main/remote).
+
+## Acesso pelo navegador [#browser-access]
+
+Use **Ajustes → Acesso pelo navegador** para operar os painéis locais deste Mac. O acesso está desativado por padrão. Ative, abra um novo painel e use a página local ou escolha explicitamente uma interface IPv4 privada LAN/Tailscale e a porta HTTPS. Os painéis existentes mantêm seus processos. A página conecta apenas a painéis do Mac; não cria shells nem conecta a hosts remotos.
+
+A página HTTP local normalmente usa a porta HTTPS configurada mais um (`7444` por padrão). Suspender, tentar novamente e reabrir preservam o endereço e a autorização enquanto a disponibilidade das portas não mudar. Se a porta estiver ocupada, o Zshell tenta as próximas sete portas locais; depois de `65535`, a sequência volta a `1024`. Se a disponibilidade das portas mudar, uma reinicialização pode selecionar outro endereço. A autorização existente está vinculada à origem anterior, portanto o novo endereço exige novo pareamento. Clientes salvos continuam visíveis e podem ser revogados com o acesso desativado. Ao atingir 32 clientes, revogue um antes de aprovar outro. Se o serviço de sessões não puder ser verificado, o acesso permanece ativado; clique em Tentar novamente quando o serviço estiver pronto.
+
+Em outro dispositivo, exporte o certificado TLS, compare a impressão digital com os Ajustes e confie nele antes de abrir o endereço HTTPS. Informe um nome e escolha **Solicitar pareamento**. Em até dois minutos, compare código, endereço e origem no Mac e escolha **Aprovar**. A autorização dura até 90 dias para o endereço e protocolo exatos. **Revogar** ou **Revogar todos os clientes** desconecta e rejeita as credenciais imediatamente.
+
+Escolha uma sessão para ver sua tela atual e saída ao vivo, incluindo cores ANSI e Unicode, e digitar no mesmo processo. Mac e navegador compartilham a entrada. O Mac controla o tamanho, a menos que **Ajustar terminal ao navegador** esteja marcado. A entrada desconectada é descartada; reconectar retorna à mesma sessão ativa. Recarregar mantém a credencial da aba; fechar a aba ou **Esquecer este navegador** a remove. Um endereço diferente exige novo pareamento.
+
+Desativar o acesso, suspender o Mac ou sair do Zshell para o serviço e desconecta os clientes. Fechar um painel termina seu processo. Preservar o shell ao sair continua dependendo de `terminal.preserve-sessions`. Reabra o Zshell para acessar painéis ainda ativos. Reiniciar o host ou encerrar o daemon termina os shells. As filas de saída são limitadas; clientes lentos desconectam sem bloquear o Mac. A página vem no app e não usa CDN.
+
+Se sessões preservadas por uma versão antiga ainda estiverem ativas, o acesso pelo navegador pede para sair e encerrar todas as sessões e reabrir o Zshell. As tarefas são mantidas até você escolher.

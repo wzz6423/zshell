@@ -267,6 +267,22 @@ Memulihkan keluaran sebelumnya di atas shell baru saat aplikasi dibuka kembali. 
 
 Riwayat disimpan di disk, sehingga rahasia yang tampil di terminal mungkin ikut tersimpan. [Proyek, tab, dan tata letak panel](/id/docs/projects#what-survives-a-relaunch) tetap dipulihkan dalam kedua keadaan.
 
+## Akses browser [#browser-access]
+
+Jika sesi dari versi Zshell lama masih berjalan, akses browser meminta keluar dan mengakhiri semua sesi lalu membuka Zshell lagi. Tugas tetap berjalan sampai Anda memilihnya.
+
+### `browser-access.enabled`
+
+`browser-access.enabled` adalah boolean, dengan nilai awal `false`. Aktifkan di **Pengaturan → Akses browser**. Panel lokal baru akan tersedia; panel yang sudah ada tetap memakai prosesnya. Kedua backend terminal didukung dan `terminal.preserve-sessions` tidak diubah.
+
+### `browser-access.interface` / `browser-access.port`
+
+`browser-access.interface` awalnya `"loopback"` (**Hanya localhost**). Untuk perangkat lain, pilih secara eksplisit antarmuka IPv4 privat LAN atau Tailscale yang tersedia. Nilai menyimpan nama dan alamat persis, misalnya `"en0|192.168.0.10"`. `browser-access.port` adalah port HTTPS, 1024–65535, awalnya `7443`. Halaman lokal memakai alamat HTTP terpisah yang hanya tersedia di Mac. Jika antarmuka tidak tersedia, pilih yang ada; layanan tidak pernah beralih mendengarkan semua antarmuka.
+
+Halaman HTTP lokal biasanya memakai port HTTPS yang dikonfigurasi ditambah satu (default `7444`). Tidur, Coba Lagi, dan membuka kembali mempertahankan alamat serta izin selama ketersediaan port tidak berubah. Jika port digunakan, Zshell mencoba tujuh port lokal berikutnya; setelah `65535`, urutan kembali ke `1024`. Jika ketersediaan port berubah, memulai ulang dapat memilih alamat berbeda. Izin yang ada terikat pada origin sebelumnya, sehingga alamat baru memerlukan pemasangan ulang. Klien tersimpan tetap terlihat dan dapat dicabut saat akses nonaktif. Pada batas 32 klien, cabut satu klien sebelum menyetujui yang baru. Jika layanan sesi tidak dapat diperiksa, akses tetap aktif; klik Coba Lagi setelah layanan siap.
+
+Bandingkan sidik jari TLS dan percayai sertifikat yang diekspor pada klien sebelum pemasangan jarak jauh. Izinkan atau cabut klien pada Mac. Menonaktifkan, menidurkan Mac, atau keluar menutup koneksi; keluar mengikuti pengaturan penyimpanan sesi. Lihat [Akses Mac ini melalui browser](/id/docs/remote-sessions#browser-access).
+
 ## Otomatisasi [#automation]
 
 ### `ai.enabled` [#aienabled]

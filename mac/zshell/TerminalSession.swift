@@ -142,7 +142,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     ) {
         let sessionID = restoredSessionID ?? UUID()
         let existingPTY = remoteConnection == nil ? restoredSessionID.flatMap { PersistentPTY.reconnect(id: $0) } : nil
-        let preserve = remoteConnection == nil && allowsPersistence && (AppSettings.shared.preserveTerminalSessions || existingPTY != nil)
+        let preserve = remoteConnection == nil && allowsPersistence
+            && (AppSettings.shared.preserveTerminalSessions
+                || AppSettings.shared.browserAccessEnabled && remotePasteTarget == nil || existingPTY != nil)
         let resumeLaunch = agentFork?.forkLaunch() ?? agentResume?.resumeLaunch(
             enabled: AppSettings.shared.aiEnabled
                 && (explicitlyResumeConversation || isRestoredSession && AppSettings.shared.resumeAgentConversations),

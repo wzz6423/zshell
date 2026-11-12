@@ -62,6 +62,8 @@ enum SettingsSearchIndex {
 
         var result = SettingsCategory.allCases.filter { $0 != .automation }.map { item($0, $0.title) }
         result += [
+            item(.browserAccess, String(localized: "Enable browser access"), keywords: "browser-access.enabled remote web terminal LAN Tailscale"),
+            item(.browserAccess, String(localized: "Revoke All Clients"), section: String(localized: "Authorized Clients"), keywords: "authorization revoke disconnect"),
             item(.browser, String(localized: "Block ads and trackers"), keywords: "browser.content-blocking ads trackers privacy"),
             item(.browser, String(localized: "Import Browser Data…"), keywords: "browser import cookies Chrome Firefox"),
             item(.browser, String(localized: "Browser Data Access…"), keywords: "browser data access permissions privacy Full Disk Access Chrome Firefox"),
@@ -219,6 +221,14 @@ enum SettingsSearchIndex {
             result += [
                 item(.browser, String(localized: "Filter Lists"), section: String(localized: "Filter Lists"), keywords: "browser.filter-lists EasyList EasyPrivacy ABP custom URL"),
                 item(.browser, String(localized: "Update Lists Now")),
+            ]
+        }
+        if visibility.browserAccessEnabled {
+            result += [
+                item(.browserAccess, String(localized: "Listen on"), section: String(localized: "Private Network"), keywords: "browser-access.interface LAN Tailscale localhost"),
+                item(.browserAccess, String(localized: "HTTPS port"), section: String(localized: "Private Network"), keywords: "browser-access.port"),
+                item(.browserAccess, String(localized: "Open Local Access Page"), section: String(localized: "Private Network"), keywords: "pairing local browser"),
+                item(.browserAccess, String(localized: "Export TLS Certificate…"), section: String(localized: "TLS Certificate"), keywords: "https trust fingerprint"),
             ]
         }
         if visibility.gitProxyEnabled {
