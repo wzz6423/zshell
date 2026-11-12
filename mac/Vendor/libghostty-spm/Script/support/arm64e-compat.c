@@ -3,17 +3,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#if defined(__arm64e__)
-#include <pthread.h>
-#include <ptrauth.h>
-#include <stdatomic.h>
-#include <stdlib.h>
-
-enum {
-  ghostty_block_has_copy_dispose = 1 << 25,
-  ghostty_objc_isa_discriminator = 0x6AE1,
-};
-
 typedef struct {
   uintptr_t reserved;
   uintptr_t size;
@@ -28,6 +17,17 @@ typedef struct {
   void *invoke;
   ghostty_block_descriptor_s *descriptor;
 } ghostty_block_s;
+
+#if defined(__arm64e__)
+#include <pthread.h>
+#include <ptrauth.h>
+#include <stdatomic.h>
+#include <stdlib.h>
+
+enum {
+  ghostty_block_has_copy_dispose = 1 << 25,
+  ghostty_objc_isa_discriminator = 0x6AE1,
+};
 
 static atomic_flag ghostty_descriptor_lock = ATOMIC_FLAG_INIT;
 
@@ -64,11 +64,22 @@ const void *ghostty_arm64e_sign_function(const void *pointer) {
   return ghostty_sign_function_pointer((void *)pointer, 0);
 }
 
+const void *ghostty_arm64e_block_function(const void *raw_block) {
+  const ghostty_block_s *block = raw_block;
+  // Zig calls raw function pointers, unlike the system Block runtime.
+  return ptrauth_strip(block->invoke, ptrauth_key_function_pointer);
+}
+
 void ghostty_arm64e_prepare_block(void *raw_block) {
   ghostty_block_s *block = raw_block;
+  ghostty_block_descriptor_s *descriptor = block->descriptor;
+
+#if __has_feature(ptrauth_signed_block_descriptors)
+  descriptor = ptrauth_strip(descriptor, ptrauth_key_block_descriptor_pointer);
+#endif
 
   if ((block->flags & ghostty_block_has_copy_dispose) != 0) {
-    ghostty_prepare_block_descriptor(block->descriptor);
+    ghostty_prepare_block_descriptor(descriptor);
   }
 
   block->isa = ghostty_sign_objc_isa_pointer(
@@ -80,7 +91,7 @@ void ghostty_arm64e_prepare_block(void *raw_block) {
 
 #if __has_feature(ptrauth_signed_block_descriptors)
   block->descriptor = ptrauth_sign_unauthenticated(
-      ptrauth_strip(block->descriptor, ptrauth_key_block_descriptor_pointer),
+      descriptor,
       ptrauth_key_block_descriptor_pointer,
       ptrauth_blend_discriminator(&block->descriptor, 0xC0BB));
 #endif
@@ -143,6 +154,11 @@ GHOSTTY_API ghostty_surface_t ghostty_surface_new(
 
 const void *ghostty_arm64e_sign_function(const void *pointer) {
   return pointer;
+}
+
+const void *ghostty_arm64e_block_function(const void *raw_block) {
+  const ghostty_block_s *block = raw_block;
+  return block->invoke;
 }
 
 void ghostty_arm64e_prepare_block(void *block) {

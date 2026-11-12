@@ -1,0 +1,22 @@
+diff --git a/src/renderer/metal/Frame.zig b/src/renderer/metal/Frame.zig
+--- a/src/renderer/metal/Frame.zig
++++ b/src/renderer/metal/Frame.zig
+@@ -112,6 +112,7 @@
+     // It will be copied when we add the handler, and then the
+     // copy will be deallocated by the objc runtime on success.
+     if (!sync) {
++        CompletionBlock.prepare(&self.block);
+         self.buffer.msgSend(
+             void,
+             objc.sel("addCompletedHandler:"),
+diff --git a/src/renderer/metal/IOSurfaceLayer.zig b/src/renderer/metal/IOSurfaceLayer.zig
+--- a/src/renderer/metal/IOSurfaceLayer.zig
++++ b/src/renderer/metal/IOSurfaceLayer.zig
+@@ -70,6 +70,7 @@
+         //       and then automatically be deallocated by the objc runtime
+         //       once it's executed.
+ 
++        SetSurfaceBlock.prepare(&block);
+         macos.dispatch.dispatch_async(
+             @ptrCast(macos.dispatch.queue.getMain()),
+             @ptrCast(&block),

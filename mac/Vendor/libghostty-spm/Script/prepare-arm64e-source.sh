@@ -50,4 +50,15 @@ else
     echo "[+] zig-objc arm64e patch already applied"
 fi
 
+BLOCK_PATCH="$(pwd)/Patches/arm64e/zig-objc/0002-prepare-blocks-at-boundary.patch"
+BLOCK_PATCH_MARKER="$VENDOR_DIR/.libghostty-spm-arm64e-blocks-patched"
+
+if [ ! -f "$BLOCK_PATCH_MARKER" ]; then
+    patch -p1 -f -d "$VENDOR_DIR" < "$BLOCK_PATCH" >/dev/null
+    touch "$BLOCK_PATCH_MARKER"
+    echo "[+] applied zig-objc Block boundary patch"
+else
+    echo "[+] zig-objc Block boundary patch already applied"
+fi
+
 echo "[+] prepared arm64e pointer-authentication boundaries"

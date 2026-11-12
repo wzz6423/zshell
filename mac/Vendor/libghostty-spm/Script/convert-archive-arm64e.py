@@ -13,6 +13,8 @@ CPU_TYPE_ARM64 = 0x0100000C
 CPU_SUBTYPE_ARM64_ALL = 0
 CPU_SUBTYPE_ARM64E = 0x80000002
 LC_SYMTAB = 0x2
+LC_SEGMENT_64 = 0x19
+ARM64_RELOC_TLVP_LOAD_PAGEOFF12 = 9
 N_TYPE_MASK = 0x0E
 N_UNDF = 0x0
 NLIST64_SIZE = 16
@@ -33,11 +35,72 @@ def parse_decimal(raw: bytes, field: str) -> int:
         fail(f"invalid {field}: {raw!r}")
 
 
-def rewrite_undefined_symbols(
+def authenticate_tls_calls(
+    data: bytearray,
+    object_start: int,
+    object_size: int,
+    command_start: int,
+    command_size: int,
+) -> int:
+    if command_size < 72:
+        fail(f"truncated Mach-O segment at offset {command_start}")
+    section_count = struct.unpack_from("<I", data, command_start + 64)[0]
+    if 72 + section_count * 80 > command_size:
+        fail(f"Mach-O sections cross segment boundary at offset {command_start}")
+
+    authenticated = 0
+    for index in range(section_count):
+        section = command_start + 72 + index * 80
+        section_size, section_offset = struct.unpack_from("<QI", data, section + 40)
+        relocation_offset, relocation_count, flags = struct.unpack_from("<III", data, section + 56)
+        if relocation_offset + relocation_count * 8 > object_size:
+            fail(f"Mach-O relocations cross member boundary at offset {section}")
+
+        for relocation_index in range(relocation_count):
+            relocation = object_start + relocation_offset + relocation_index * 8
+            address, info = struct.unpack_from("<iI", data, relocation)
+            if info >> 28 != ARM64_RELOC_TLVP_LOAD_PAGEOFF12:
+                continue
+            if (address < 0 or address % 4 or address + 12 > section_size
+                    or section_offset + section_size > object_size
+                    or not flags & 0x80000400
+                    or (info >> 24) & 1 or (info >> 25) & 3 != 2 or not (info >> 27) & 1):
+                fail(f"invalid TLS resolver relocation at offset {relocation}")
+
+            instruction = object_start + section_offset + address
+            address_load, resolver_load = struct.unpack_from("<II", data, instruction)
+            descriptor = address_load & 31
+            resolver = resolver_load & 31
+            if (address_load & 0xFFC00000 != 0xF9400000 or descriptor == 31
+                    or resolver_load & 0xFFFFFC00 != 0xF9400000
+                    or (resolver_load >> 5) & 31 != descriptor
+                    or resolver in (0, 31, descriptor)):
+                fail(f"unsupported TLS resolver load at offset {instruction}")
+
+            call = instruction + 8
+            if descriptor != 0:
+                # LLVM may keep the descriptor outside x0 until after loading its resolver.
+                if address + 16 > section_size or struct.unpack_from("<I", data, call)[0] != 0xAA0003E0 | (descriptor << 16):
+                    fail(f"unsupported TLS resolver argument at offset {call}")
+                call += 4
+            branch = struct.unpack_from("<I", data, call)[0]
+            authenticated_branch = 0xD63F081F | (resolver << 5)
+            if branch == authenticated_branch:
+                continue
+            if branch != 0xD63F0000 | (resolver << 5):
+                fail(f"unsupported TLS resolver call at offset {call}")
+            # Dyld signs the resolver in arm64e TLV descriptors with the IA key and zero discriminator.
+            struct.pack_into("<I", data, call, authenticated_branch)
+            authenticated += 1
+
+    return authenticated
+
+
+def rewrite_macho(
     data: bytearray,
     object_start: int,
     member_end: int,
-) -> dict[bytes, int]:
+) -> tuple[dict[bytes, int], int]:
     object_size = member_end - object_start
     if object_size < 32:
         fail(f"truncated Mach-O header at offset {object_start}")
@@ -49,6 +112,7 @@ def rewrite_undefined_symbols(
         fail(f"Mach-O load commands cross member boundary at offset {object_start}")
 
     symtab = None
+    authenticated = 0
     cursor = command_start
     for _ in range(command_count):
         if cursor + 8 > command_end:
@@ -60,12 +124,14 @@ def rewrite_undefined_symbols(
             if command_size < 24 or symtab is not None:
                 fail(f"invalid Mach-O symbol table command at offset {cursor}")
             symtab = struct.unpack_from("<IIII", data, cursor + 8)
+        elif command == LC_SEGMENT_64:
+            authenticated += authenticate_tls_calls(data, object_start, object_size, cursor, command_size)
         cursor += command_size
 
     if cursor != command_end:
         fail(f"Mach-O load command sizes do not match header at offset {object_start}")
     if symtab is None:
-        return {name: 0 for name in UNDEFINED_SYMBOL_RENAMES}
+        return {name: 0 for name in UNDEFINED_SYMBOL_RENAMES}, authenticated
 
     symbol_offset, symbol_count, string_offset, string_size = symtab
     symbol_bytes = symbol_count * NLIST64_SIZE
@@ -106,7 +172,7 @@ def rewrite_undefined_symbols(
         )
         renamed[name] += 1
 
-    return renamed
+    return renamed, authenticated
 
 
 def convert_archive(source: pathlib.Path, destination: pathlib.Path) -> int:
@@ -117,6 +183,7 @@ def convert_archive(source: pathlib.Path, destination: pathlib.Path) -> int:
     cursor = len(AR_MAGIC)
     patched_objects = 0
     renamed_symbols = {name: 0 for name in UNDEFINED_SYMBOL_RENAMES}
+    authenticated_tls_calls = 0
 
     while cursor < len(data):
         if cursor + AR_HEADER_SIZE > len(data):
@@ -151,7 +218,8 @@ def convert_archive(source: pathlib.Path, destination: pathlib.Path) -> int:
                 fail(f"unexpected ARM64 CPU subtype 0x{cpu_subtype:08x} at offset {object_start}")
 
             struct.pack_into("<I", data, object_start + 8, CPU_SUBTYPE_ARM64E)
-            member_renames = rewrite_undefined_symbols(data, object_start, member_end)
+            member_renames, member_tls_calls = rewrite_macho(data, object_start, member_end)
+            authenticated_tls_calls += member_tls_calls
             for name, count in member_renames.items():
                 renamed_symbols[name] += count
             patched_objects += 1
@@ -172,6 +240,7 @@ def convert_archive(source: pathlib.Path, destination: pathlib.Path) -> int:
             f"[+] redirected {renamed_symbols[name]} {name.decode()} imports "
             f"to {replacement.decode()}"
         )
+    print(f"[+] authenticated {authenticated_tls_calls} TLS resolver calls")
     return patched_objects
 
 
