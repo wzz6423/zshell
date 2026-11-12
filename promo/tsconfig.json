@@ -11,5 +11,5 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true
   },
-  "include": ["src", "remotion.config.ts"]
+  "include": ["src", "tools", "remotion.config.ts"]
 }

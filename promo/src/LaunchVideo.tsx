@@ -1,4 +1,4 @@
-import { AbsoluteFill, Sequence } from 'remotion';
+import { AbsoluteFill, Html5Audio, Sequence, staticFile } from 'remotion';
 import { Backdrop } from './components/Backdrop';
 import { Awakening } from './scenes/Awakening';
 import { BentoGrid } from './scenes/BentoGrid';
@@ -9,6 +9,7 @@ import { SCENES } from './timeline';
 
 export const LaunchVideo = () => (
   <AbsoluteFill>
+    <Html5Audio src={staticFile('audio/score.mp3')} />
     <Backdrop />
     <Sequence name="1 · The Terminal Awakening" from={SCENES.awakening.from} durationInFrames={SCENES.awakening.duration}>
       <Awakening />

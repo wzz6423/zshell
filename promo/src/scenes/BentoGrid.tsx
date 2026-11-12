@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react';
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
 import { SceneLabel } from '../components/Hud';
-import { AgentIcon, BranchIcon, ChipIcon, DiffIcon, GlobeIcon, SearchIcon } from '../components/Icons';
+import { AgentIcon, BranchIcon, DiffIcon, GlobeIcon, TerminalIcon } from '../components/Icons';
 import { FOOTNOTES } from '../data/product';
 import { during, linear, pop, SPRING } from '../lib/motion';
 import { color, type Tone } from '../theme';
-import { AgentsCard, BackendsCard, BentoCard, ReviewCard, type CardProps } from './BentoCards';
-import { PaletteCard, RemoteCard, WorktreeCard } from './BentoCardsExtra';
+import { AgentsCard, BentoCard, ReviewCard, type CardProps } from './BentoCards';
+import { RemoteCard, WorktreeCard } from './BentoCardsExtra';
+import { GitCard } from './BentoCardsGit';
+import { AnywhereCard } from './BentoCardsAnywhere';
 
 type CardSpec = {
   span: number;
@@ -19,12 +21,12 @@ type CardSpec = {
 
 // Two rows of twelve columns: 5/4/3 over 3/4/5, so no two wide cards stack.
 const CARDS: CardSpec[] = [
-  { span: 5, tone: 'cyan', icon: <AgentIcon size={24} />, en: 'Agents, coordinated', zh: '多智能体协同', Body: AgentsCard },
+  { span: 5, tone: 'cyan', icon: <BranchIcon size={24} />, en: 'Git, close at hand', zh: '审阅、暂存、提交、推送', Body: GitCard },
   { span: 4, tone: 'green', icon: <DiffIcon size={24} />, en: 'Review every turn', zh: '逐轮审阅改动', Body: ReviewCard },
-  { span: 3, tone: 'amber', icon: <ChipIcon size={24} />, en: 'Two GPU backends', zh: '双 GPU 终端后端', Body: BackendsCard },
+  { span: 3, tone: 'amber', icon: <AgentIcon size={24} />, en: 'Agent status', zh: '多智能体协同', Body: AgentsCard },
   { span: 3, tone: 'violet', icon: <BranchIcon size={24} />, en: 'Worktree sessions', zh: 'Worktree 会话', Body: WorktreeCard },
   { span: 4, tone: 'blue', icon: <GlobeIcon size={24} />, en: 'Remote sessions', zh: '远程会话', Body: RemoteCard },
-  { span: 5, tone: 'pink', icon: <SearchIcon size={24} />, en: 'Command palette', zh: '命令面板', Body: PaletteCard },
+  { span: 5, tone: 'pink', icon: <TerminalIcon size={24} />, en: 'Terminal, anywhere', zh: '随处唤出，跨设备接续', Body: AnywhereCard },
 ];
 
 export const BentoGrid = () => {

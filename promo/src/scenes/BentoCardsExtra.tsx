@@ -1,7 +1,5 @@
 import { Keycap } from '../components/Hud';
-import { Cursor } from '../components/Terminal';
 import { during, linear, mix, pop, SPRING } from '../lib/motion';
-import { cursorOpacity, typedLength } from '../lib/typing';
 import { alpha, color } from '../theme';
 import type { CardProps } from './BentoCards';
 
@@ -100,69 +98,5 @@ export const RemoteCard = ({ frame, fps }: CardProps) => {
         {attached ? (frame >= REATTACH_AT ? 'Reattached · screen and scrollback restored' : 'Attached') : 'Client closed · remote work continues'}
       </div>
     </>
-  );
-};
-
-const QUERY = 'split';
-const RESULTS = [
-  { label: 'Split right', keys: ['Cmd', 'D'] },
-  { label: 'Split down', keys: ['Cmd', 'Shift', 'D'] },
-  { label: 'Git panel', keys: ['Cmd', 'Shift', 'G'] },
-  { label: 'Files panel', keys: ['Cmd', 'Shift', 'E'] },
-];
-const TYPE = [140, 200] as const;
-const MOVE_AT = 300;
-
-export const PaletteCard = ({ frame, fps }: CardProps) => {
-  const typed = typedLength(QUERY, frame, TYPE[0], TYPE[1]);
-  const filtering = linear(frame, [TYPE[1] - 20, TYPE[1] + 6]);
-  const selection = pop(frame, fps, MOVE_AT, SPRING.snappy);
-  const ROW = 46;
-  return (
-    <div style={{ borderRadius: 14, overflow: 'hidden', backgroundColor: alpha(color.raised, 70), border: `1px solid ${color.lineStrong}` }}>
-      <div className="font-sans" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', fontSize: 19, borderBottom: `1px solid ${color.line}` }}>
-        <Keys keys={['Cmd', 'P']} pressed={during(frame, 96, 122, 6)} />
-        <span className="font-mono" style={{ color: color.fg }}>
-          {QUERY.slice(0, typed)}
-          <Cursor opacity={cursorOpacity(frame, frame > TYPE[0] && frame < TYPE[1])} />
-        </span>
-      </div>
-      <div style={{ position: 'relative', padding: 6 }}>
-        <div
-          style={{
-            position: 'absolute',
-            left: 6,
-            right: 6,
-            top: 6,
-            height: ROW,
-            borderRadius: 9,
-            backgroundColor: alpha(color.cyan, 12),
-            border: `1px solid ${alpha(color.cyan, 42)}`,
-            transform: `translateY(${selection * ROW}px)`,
-          }}
-        />
-        {RESULTS.map((result, index) => (
-          <div
-            key={result.label}
-            className="font-sans"
-            style={{
-              position: 'relative',
-              height: ROW,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0 14px',
-              fontSize: 19,
-              color: color.fg,
-              // Rows that do not match the query dim once it is typed.
-              opacity: index < 2 ? 1 : mix(1, 0.28, filtering),
-            }}
-          >
-            {result.label}
-            <Keys keys={result.keys} />
-          </div>
-        ))}
-      </div>
-    </div>
   );
 };
