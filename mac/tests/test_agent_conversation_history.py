@@ -35,11 +35,13 @@ with tempfile.TemporaryDirectory(prefix="zshell-history-tests-", dir="/tmp") as 
     binary = contents / "MacOS/zshell"
     binary.parent.mkdir(parents=True)
     (contents / "Resources").symlink_to(bundle / "Contents/Resources", target_is_directory=True)
-    (contents / "Info.plist").write_bytes(plistlib.dumps({
+    info = plistlib.loads((bundle / "Contents/Info.plist").read_bytes())
+    info.update({
         "CFBundleIdentifier": "sh.zshell.history-tests." + uuid.uuid4().hex,
         "CFBundleExecutable": binary.name, "CFBundlePackageType": "APPL",
         "CFBundleDevelopmentRegion": "en", "LSUIElement": True,
-    }))
+    })
+    (contents / "Info.plist").write_bytes(plistlib.dumps(info))
     arguments = [
         "xcrun", "swiftc", "-parse-as-library", "-swift-version", "5",
         "-module-name", "ZshellConversationHistoryTests",
@@ -86,11 +88,13 @@ with tempfile.TemporaryDirectory(prefix="zshell-history-tests-", dir="/tmp") as 
         shutil.copy2(binary, mode_binary)
         (mode_contents / "Resources").symlink_to(bundle / "Contents/Resources", target_is_directory=True)
         mode_bundle_id = "sh.zshell.history-tests." + mode + "." + uuid.uuid4().hex
-        (mode_contents / "Info.plist").write_bytes(plistlib.dumps({
+        mode_info = dict(info)
+        mode_info.update({
             "CFBundleIdentifier": mode_bundle_id,
             "CFBundleExecutable": mode_binary.name, "CFBundlePackageType": "APPL",
             "CFBundleDevelopmentRegion": "en", "LSUIElement": True,
-        }))
+        })
+        (mode_contents / "Info.plist").write_bytes(plistlib.dumps(mode_info))
         fixture_root = home / "fixture"
         fixture_root.mkdir()
         mode_provider_bin = provider_bin

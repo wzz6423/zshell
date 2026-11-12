@@ -13,15 +13,7 @@ final class TerminalNotificationCenterController: NSObject {
     }
 
     func installMenu(in mainMenu: NSMenu) {
-        let identifier = NSUserInterfaceItemIdentifier("zshell-notifications-menu")
-        let title = String(localized: "Notifications")
-        let item = mainMenu.items.first { $0.identifier == identifier }
-            ?? NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        if item.identifier != identifier { item.identifier = identifier }
-        if item.title != title { item.title = title }
-        let menu = item.submenu ?? NSMenu(title: title)
-        if item.submenu == nil { item.submenu = menu }
-        if menu.title != title { menu.title = title }
+        guard let menu = AppMenuController.submenu(.notifications, in: mainMenu) else { return }
         let commands: [(String, String, Selector)] = [
             ("notification-history", String(localized: "Notification History…"), #selector(showHistory(_:))),
             ("notification-unread", String(localized: "Show Unread Notifications"), #selector(showUnread(_:))),
@@ -35,11 +27,6 @@ final class TerminalNotificationCenterController: NSObject {
             if command.target !== self { command.target = self }
             if command.action != action { command.action = action }
             if command.menu == nil { menu.addItem(command) }
-        }
-        if item.menu == nil {
-            let index = mainMenu.items.firstIndex { $0.identifier?.rawValue == "zshell-agents-menu" }
-                .map { $0 + 1 } ?? mainMenu.items.count
-            mainMenu.insertItem(item, at: index)
         }
     }
 

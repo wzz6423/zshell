@@ -23,7 +23,7 @@ Elle düzenlemeden önce bilin:
 
 - **Değişiklikler çalışırken okunur.** Geçerli dış düzenlemeler otomatik uygulanır; yeni terminallere yönelik ayarlar hâlâ yeni bölme ister. Okunamayan veya hatalı dosya son geçerli ayarları korur. Bilerek boş bırakılmış dosya kısa bir beklemeden sonra varsayılanları geri getirir.
 - **Dosyada tutulan ayar değişince Zshell dosyayı yeniden yazar.** Baştan oluşturulduğu için bu denetimleri sonraki kullanımınızda yorumlar ve bilinmeyen anahtarlar kaybolur. Dosya için tek düzenleyici seçin veya dotfile’larınızda esas kopya tutun.
-- **Varsayılan değerlerin çoğu yazılmaz.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` daima kaydedilir. Mevcut dosyada bu üç terminal anahtarından birini silmek ilgili özelliği kapatır; diğer anahtarları silmek varsayılanlarını geri getirir.
+- **Varsayılan değerlerin çoğu yazılmaz.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` daima kaydedilir. Mevcut dosyada `terminal.vim-command-hints`, `terminal.restore-history` veya `terminal.notify-on-error` anahtarını silmek ilgili özelliği kapatır. `terminal.prompt-queue-enabled` anahtarını silmek varsayılan `true` değerini, `terminal.prompt-queue-auto-dispatch` anahtarını silmek varsayılan `false` değerini geri getirir. Diğer anahtarları silmek her birinin varsayılanını geri getirir.
 - **Ayrıştırıcı bilinçli olarak küçüktür.** Düz/noktalı anahtarları, `[table]` başlıklarını, `#` yorumlarını ve metin/sayı/mantıksal değerleri destekler. Dizi, satır içi tablo ve çok satırlı metin desteklemez.
 - **Geçersiz değerler güvenle varsayılana döner.** Aralık dışı boyut, bilinmeyen arka uç veya yanlış yazılmış tema Zshell’in açılmasını engellemez.
 
@@ -173,6 +173,12 @@ Sonradan oluşturulan terminallerin emülatörünü seçer. Mevcut bölmeler ba�
 
 Ortam değişkenleri ve uyumluluk için [Terminal arka uçları](/tr/docs/terminal#terminal-backends) bölümüne bakın.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+sayı, 0.1–10 — her aygıt için varsayılan `1`
+
+İki hızı **Ayarlar → Terminal → Kaydırma → Fare tekerleği / İzleme dörtgeni** bölümünde ayrı ayrı ayarlayın. Değerler yüzde olarak gösterilir: 100% mevcut hızı korur, 50% yarıya indirir ve 200% iki katına çıkarır. Değişiklikler açık Ghostty ve Alacritty panellerinde, kaydırma geçmişinde, tam ekran programlarda ve fare raporlamasında hemen uygulanır. Ataletli kaydırma izleme dörtgeni değerini kullanır; yatay kaydırma yatay kalır. Hassas kaydırma farkları gönderen fareler de izleme dörtgeni değerini kullanır. Eksik veya geçersiz değerler `1` olur. İçe aktarma, dışa aktarma ve sıfırlama iki değeri de kapsar.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 mantıksal — varsayılan `false`
@@ -219,19 +225,34 @@ Terminal bölmeleri geri yüklenirken özgün PTY kullanılamıyorsa kaydedilmi�
 
 **Ayarlar → Otomasyon → Ajan konuşmalarını sürdür** üzerinden ayarlanır. `terminal.restore-history` seçeneğinden bağımsızdır.
 
+### `ai.usage-enabled`
+
+boolean — varsayılan `false`
+
+**Ayarlar → Otomasyon → Hesap Kullanımı → Hesap kullanımını oku** ile yerel CLI hesap sınırlarını okumayı açar. Kapatmak istekleri iptal eder, veriyi gizler ve Claude raporlarının kaydını reddeder. Sağlayıcı seçimleri korunur. Ajan tanıma, yaşam döngüsü raporları ve konuşma geri yükleme değişmez.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — her biri varsayılan `true`
+
+`ai.usage-enabled = true` için sağlayıcıları seçer. Claude Code Zshell’in yerel durum satırı raporunu okur; Codex kurulu ve oturum açılmış CLI’yi sorgular. Sağlayıcıyı kapatmak okumayı hemen durdurur ve veriyi gizler. Kimlik bilgisi toplanmaz. Üç seçenek arama, içe/dışa aktarma, canlı yeniden yükleme ve varsayılana sıfırlamayı destekler.
+
 ## Ek ayarlar [#additional-settings]
 
 | Anahtar | Varsayılan | Değerler / aralık | Etki |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Uygulama simgesi |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Dosya ve klasörlerin harici düzenleyicisi |
+| `files.drag-import` | `false` | boolean | Finder öğelerini yerel ağaca sürükleyerek kopyalamayı etkinleştirir; içe aktarma menüsü her zaman kullanılabilir |
 | `terminal.theme-only` | `false` | mantıksal | Paleti yalnızca terminale uygular |
 | `terminal.command-history` | `true` | mantıksal | Yeni komutları kaydet; kapalıyken kayıtlı geçmiş kullanılabilir |
 | `terminal.text-hints` | `true` | mantıksal | Görünür terminal metni için klavye ipuçlarını etkinleştir |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | mantıksal | **Ayarlar → Terminal → Komut kuyruğu** tüm çalışma alanları ve Quick Terminal’i denetler. Ana anahtarı kapatmak çubukları gizler ve gönderimleri iptal eder; girdiler ve metin terminal kapanana kadar korunur. Otomatik gönderim isteğe bağlıdır, sonraki komut bitiminde sırayla ve yalnızca özgün zsh’nin boş komut satırında etkin görev yokken çalışır. Açmak kuyruğu hemen çalıştırmaz. Elle gönderim aynı denetimleri kullanır; başka veya iç içe kabuklar, ön plan programları ve taslaklar kuyruk alamaz. |
 | `terminal.auto-profiles` | `true` | mantıksal | Terminal profillerini otomatik eşleştir; elle seçim kullanılabilir |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Terminal imleç biçimi |
 | `terminal.cursor-blinking` | `true` | mantıksal | İmleci yanıp söndürür |
 | `terminal.copy-on-select` | `true` | mantıksal | Seçili terminal metnini kopyalar |
+| `terminal.right-click-action` | `"context-menu"` | metin | Bağlam menüsü, yapıştırma veya seçimi kopyalama ve seçim yoksa yapıştırma (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | mantıksal | Odak fareyi izler |
 | `terminal.shift-enter-newline` | `true` | mantıksal | Shift+Enter ile gelişmiş satır sonu dizisi gönderir; uygulama desteği gerekir |
 | `terminal.background-opacity` | `1` | 0.2–1 | Terminal arka plan opaklığı |
@@ -271,6 +292,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

@@ -62,6 +62,12 @@ Schakel **Instellingen → Terminal → Invoer → Focus volgt de muis** in om e
 
 `terminal.focus-follows-mouse = true`
 
+## Rechtsklikactie [#right-click-action]
+
+Kies bij **Instellingen → Terminal → Invoer → Rechtsklikactie** voor **Contextmenu** (standaard), **Plakken** of **Kopiëren of plakken**. De laatste optie kopieert de selectie en plakt alleen zonder selectie. Wijzigingen gelden direct voor beide backends. `terminal.right-click-action` in `config.toml` accepteert `"context-menu"`, `"paste"` of `"copy-or-paste"`.
+
+**Shift-rechtsklik**, **Control-klik** en **Command-rechtsklik** openen nog steeds het menu. **Wijzig → Terminalcontextmenu tonen** (<kbd>Shift</kbd>+<kbd>F10</kbd>) opent het met het toetsenbord. Apps met muisrapportage blijven gewone rechtsklikken ontvangen, tenzij **Zshell-opdrachten blokkeren** voor het paneel aanstaat. Plakken gebruikt dezelfde bevestiging voor meerdere regels en lokale of externe bestandsafhandeling als <kbd>Cmd</kbd>+<kbd>V</kbd>.
+
 ## Terminalprofielen [#terminal-profiles]
 
 Maak en orden profielen onder **Instellingen → Terminal → Terminalprofielen → Terminalprofielen beheren…**. Ze kunnen host, gebruiker, werkmap en voorgrondprogramma vergelijken. Alle ingevulde voorwaarden moeten passen; `*` past bij elke tekst en `?` bij één teken. Het eerste passende profiel wordt gebruikt; zonder match keert het paneel terug naar zijn oorspronkelijke uiterlijk. **Terminalprofielen automatisch toepassen** staat standaard aan (`terminal.auto-profiles = true`); handmatig kiezen blijft mogelijk na uitschakelen.
@@ -104,9 +110,13 @@ Deze instelling geldt alleen voor dat deelvenster. Klik opnieuw met de rechtermu
 
 Geef een terminal de focus en druk op <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>, of kies **Promptwachtrij tonen/verbergen** in het opdrachtenpalet. De balk opent onder die terminal. Typ een item en druk op <kbd>Return</kbd> of **Toevoegen aan wachtrij**. Elk item bestaat uit één regel; geplakte regeleinden worden spaties.
 
-Wanneer de oorspronkelijke zsh terugkeert naar een lege shellprompt, verstuurt Zshell het volgende item en drukt het op Return. Items worden op volgorde uitgevoerd. Automatisch versturen wacht zolang een agent of ander voorgrondprogramma de terminal beheert, of zolang de shellprompt conceptinvoer bevat. Daarvoor is de zsh-integratie van Zshell nodig; andere en geneste shells kunnen handmatig versturen gebruiken.
+Verzenden is standaard handmatig. **Nu versturen** verzendt alleen bij een lege prompt in de oorspronkelijke zsh zonder wachtende of actieve opdrachttaak. De knop is uitgeschakeld bij agents, voorgrondprogramma’s, conceptinvoer en andere of geneste shells. Een geweigerde verzending behoudt het item.
 
-Elk item heeft knoppen **Nu verzenden** en **Verwijderen**. **Nu verzenden** stuurt de tekst en Return onmiddellijk naar het huidige terminalprogramma, zonder op een shellprompt te wachten. <kbd>Esc</kbd> of de sluitknop verbergt de balk en bewaart de items. Elke terminal heeft een eigen wachtrij; de sessie sluiten of Zshell afsluiten verwijdert die wachtrij.
+Schakel onder **Instellingen → Terminal → Promptwachtrij** de optie **Prompts in wachtrij automatisch versturen** in om na afloop van een opdracht het volgende item in volgorde te sturen bij een lege zsh-prompt. Inschakelen speelt de bestaande wachtrij niet meteen af; het geldt vanaf de volgende opdrachtafloop. Uitschakelen annuleert geplande verzendingen.
+
+**Promptwachtrij inschakelen** geldt voor alle werkruimtes en Quick Terminal. Uitschakelen verbergt balken, annuleert verzendingen en bewaart items en niet-verzonden invoer. Menu en sneltoets openen dan de bijbehorende instellingen.
+
+**Verwijder** verwijdert een item. Smalle panelen tonen benoemde pictogrammen met tooltips. <kbd>Esc</kbd> of sluiten verbergt alleen de balk. Elke terminal heeft een eigen wachtrij, die verdwijnt bij het sluiten van de sessie of Zshell.
 
 ## Paden en URL's [#paths-and-urls]
 
@@ -143,7 +153,7 @@ Meldingen kunnen het systeemgeluid afspelen. Klikken op een melding activeert Zs
 
 Dezelfde geschiedenis is ook beschikbaar via **Instellingen → Terminal → Meldingen**.
 
-Open **Meldingen → Meldingsgeschiedenis…** voor recente terminal- en agentmeldingen. Filter op **Ongelezen**, **Mislukt** of **In afwachting**. Klik op een melding of op **Paneel tonen** om het huidige project, tabblad en paneel te selecteren, ook in een ander venster. Gesloten panelen blijven als niet beschikbaar in de geschiedenis.
+Open **Terminal → Meldingen → Meldingsgeschiedenis…** voor recente terminal- en agentmeldingen. Filter op **Ongelezen**, **Mislukt** of **In afwachting**. Klik op een melding of op **Paneel tonen** om het huidige project, tabblad en paneel te selecteren, ook in een ander venster. Gesloten panelen blijven als niet beschikbaar in de geschiedenis.
 
 Gebruik **Als gelezen markeren**, **Alles als gelezen markeren**, **Verwijderen** of **Geschiedenis wissen**. Lezen keurt geen agentverzoek goed. Meldingen verdwijnen uit In afwachting wanneer de agent hervat of stopt, het paneel sluit of de externe verbinding niet beschikbaar is. Statussen komen uit expliciete levenscyclusrapporten en afsluitresultaten van opdrachten. De laatste 200 meldingen blijven na een herstart beschikbaar, ook als macOS-meldingen zijn uitgeschakeld.
 

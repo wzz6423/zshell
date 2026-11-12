@@ -30,6 +30,8 @@ final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegat
     private let automaticProfilesSwitch = SettingsSwitch { AppSettings.shared.automaticallyApplyTerminalProfiles = $0 }
     private let commandHistorySwitch = SettingsSwitch { AppSettings.shared.commandHistoryEnabled = $0 }
     private let textHintsSwitch = SettingsSwitch { AppSettings.shared.terminalTextHints = $0 }
+    private let promptQueueSwitch = SettingsSwitch { AppSettings.shared.promptQueueEnabled = $0 }
+    private let promptQueueAutoDispatchSwitch = SettingsSwitch { AppSettings.shared.promptQueueAutoDispatch = $0 }
     private let quickTerminalSwitch = SettingsSwitch { AppSettings.shared.quickTerminalEnabled = $0 }
     private let optionAsAltSwitch = SettingsSwitch { AppSettings.shared.macosOptionAsAlt = $0 }
     private let vimCommandHintsSwitch = SettingsSwitch { AppSettings.shared.vimCommandHints = $0 }
@@ -39,6 +41,10 @@ final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegat
     private let restoreHistorySwitch = SettingsSwitch { AppSettings.shared.restoreTerminalHistory = $0 }
     private let preserveSessionsSwitch = SettingsSwitch { AppSettings.shared.preserveTerminalSessions = $0 }
     private let copyOnSelectSwitch = SettingsSwitch { AppSettings.shared.copyOnSelect = $0 }
+    private let rightClickActionPopup = SettingsPopUpButton<TerminalRightClickAction>(
+        items: TerminalRightClickAction.allCases.map { .value($0.title, $0) },
+        onChange: { AppSettings.shared.terminalRightClickAction = $0 }
+    )
     private let focusFollowsMouseSwitch = SettingsSwitch { AppSettings.shared.focusFollowsMouse = $0 }
     private let notifyOnErrorSwitch = SettingsSwitch { AppSettings.shared.notifyOnError = $0 }
     private let notifyFinishPopup = SettingsPopUpButton<Int>(
@@ -74,6 +80,24 @@ final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegat
         showsStepper: false,
         accessibilityLabel: String(localized: "Quick Terminal default size"),
         onChange: { AppSettings.shared.quickTerminalSize = $0 }
+    )
+
+    private let mouseScrollRow = SettingsSliderRow(
+        title: String(localized: "Mouse wheel"),
+        range: AppSettings.terminalScrollMultiplierRange,
+        format: .percent,
+        step: 0.1,
+        showsStepper: true,
+        onChange: { AppSettings.shared.mouseScrollMultiplier = $0 }
+    )
+
+    private let trackpadScrollRow = SettingsSliderRow(
+        title: String(localized: "Trackpad"),
+        range: AppSettings.terminalScrollMultiplierRange,
+        format: .percent,
+        step: 0.1,
+        showsStepper: true,
+        onChange: { AppSettings.shared.trackpadScrollMultiplier = $0 }
     )
 
     private let quickTerminalOpacityRow = SettingsSliderRow(
@@ -172,9 +196,19 @@ final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegat
                 control: copyOnSelectSwitch
             ),
             SettingsRow(
+                title: String(localized: "Right-click action"),
+                description: TerminalRightClickAction.explanation,
+                control: rightClickActionPopup
+            ),
+            SettingsRow(
                 title: String(localized: "Focus follows mouse"),
                 control: focusFollowsMouseSwitch
             ),
+        ]))
+
+        groups.append(SettingsGroup(header: String(localized: "Scrolling"), rows: [
+            mouseScrollRow,
+            trackpadScrollRow,
         ]))
 
         groups.append(SettingsGroup(header: String(localized: "History"), rows: [
@@ -188,6 +222,19 @@ final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegat
                 guard let manager = TerminalManager.activeWindowManager else { return }
                 TerminalCommandHistoryController.shared.show(for: manager)
             },
+        ]))
+
+        groups.append(SettingsGroup(header: String(localized: "Prompt Queue"), rows: [
+            SettingsRow(
+                title: String(localized: "Enable Prompt Queue"),
+                description: String(localized: "Turning this off hides all queue bars and stops pending sends. Queued entries and input are kept until the terminal closes."),
+                control: promptQueueSwitch
+            ),
+            SettingsRow(
+                title: String(localized: "Send queued prompts automatically"),
+                description: String(localized: "When a command finishes, send the next entry at an empty prompt in the original zsh shell. Send Now is available with automatic sending on or off."),
+                control: promptQueueAutoDispatchSwitch
+            ),
         ]))
 
         let notificationScope = NSTextField(wrappingLabelWithString: String(localized: "Changes apply to new zsh terminals."))
@@ -232,6 +279,9 @@ final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegat
         automaticProfilesSwitch.isOn = settings.automaticallyApplyTerminalProfiles
         commandHistorySwitch.isOn = settings.commandHistoryEnabled
         textHintsSwitch.isOn = settings.terminalTextHints
+        promptQueueSwitch.isOn = settings.promptQueueEnabled
+        promptQueueAutoDispatchSwitch.isOn = settings.promptQueueAutoDispatch
+        promptQueueAutoDispatchSwitch.isEnabled = settings.promptQueueEnabled
         quickTerminalSwitch.isOn = settings.quickTerminalEnabled
         for index in 1...4 { quickTerminalGroup.setRowHidden(!visibility.quickTerminalEnabled, at: index) }
         optionAsAltSwitch.isOn = settings.macosOptionAsAlt
@@ -242,7 +292,10 @@ final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegat
         restoreHistorySwitch.isOn = settings.restoreTerminalHistory
         preserveSessionsSwitch.isOn = settings.preserveTerminalSessions
         copyOnSelectSwitch.isOn = settings.copyOnSelect
+        rightClickActionPopup.select(settings.terminalRightClickAction)
         focusFollowsMouseSwitch.isOn = settings.focusFollowsMouse
+        mouseScrollRow.setValue(settings.mouseScrollMultiplier)
+        trackpadScrollRow.setValue(settings.trackpadScrollMultiplier)
         notifyFinishPopup.select(settings.notifyFinishSeconds)
         notifyOnErrorSwitch.isOn = settings.notifyOnError
         shortcutRecorder.setShortcut(settings.quickTerminalShortcut)

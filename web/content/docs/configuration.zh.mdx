@@ -25,7 +25,7 @@ Zshell 大多数持久化设置都在一个文件里：
 
 - **运行中自动读取修改。** 有效的外部编辑会自动应用；标注只影响新终端的设置仍需新建窗格。文件不可读或语法错误时保留最后有效设置。主动清空文件会在短暂等待后恢复默认值。
 - **只要文件型设置有变化，Zshell 就会重写它。** 文件会从头生成，所以你的注释和未知键会在下次使用这些控件时丢失。最好只选一种方式维护它，或者把权威版本放在 dotfiles 里。
-- **通常只写非默认值。** `font-size`、`terminal.vim-command-hints`、`terminal.restore-history`、`terminal.notify-on-error` 总会保存。删除这三个终端键中的任何一个，会在已有文件中关闭对应功能；删除其他键则恢复默认值。
+- **通常只写非默认值。** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` 总会保存。在已有文件中删除 `terminal.vim-command-hints`、`terminal.restore-history` 或 `terminal.notify-on-error` 会关闭对应功能。删除 `terminal.prompt-queue-enabled` 会恢复默认值 `true`，删除 `terminal.prompt-queue-auto-dispatch` 会恢复默认值 `false`；删除其他键也恢复各自默认值。
 - **解析器有意保持精简。** 支持扁平键、点号键、`[table]` 表头、`#` 注释，以及字符串、数字和布尔值；不支持数组、内联表和多行字符串。
 - **错误值会安全回退。** 超出范围的字号、未知后端或拼错的主题名不会让 Zshell 启动失败。
 
@@ -214,6 +214,12 @@ regular/bold 区分及后备字体字重。
 
 环境变量与兼容约定见[终端后端](/docs/terminal#terminal-backends)。
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+数值，0.1–10 — 两种设备均默认为 `1`
+
+在 **设置 → 终端 → 滚动 → 鼠标滚轮 / 触控板** 中分别调节速度。读数使用百分比：100% 保持当前速度，50% 为一半，200% 为两倍。修改立即应用于已打开的 Ghostty 和 Alacritty 面板，包括回滚历史、全屏程序和鼠标上报。惯性滚动使用触控板倍率；横向滚动仍保持横向。上报精细滚动的设备使用触控板倍率，包括支持精细滚动的鼠标。缺失或无效的值恢复为 `1`；导入、导出和重置设置均包含这两个值。
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 布尔值——默认 `false`
@@ -264,6 +270,18 @@ regular/bold 区分及后备字体字重。
 
 可在 **设置 → 自动化 → 恢复 Agent 对话** 中切换。它与 `terminal.restore-history` 独立。
 
+### `ai.usage-enabled`
+
+布尔值——默认 `false`
+
+在 **设置 → Automation → 账户用量 → 读取账户用量** 开启本机 CLI 账户限额读取。关闭后会取消待处理的用量请求、隐藏数据，并拒绝保存 Claude 用量报告，同时保留提供方选择。用量设置不改变 Agent 识别、生命周期报告或对话恢复。
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+布尔值——各自默认 `true`
+
+选择 `ai.usage-enabled = true` 时允许读取用量的提供方。Claude Code 读取 Zshell 本机状态栏报告，Codex 查询已安装并登录的 CLI。关闭某个提供方会立即停止对应读取并隐藏数据，不收集登录凭据。三个设置支持搜索、导入导出、配置实时重载和恢复默认值。
+
 <span id="其他配置项" data-canonical-heading="additional-settings" />
 
 ## 其他配置项 [#additional-settings]
@@ -272,13 +290,16 @@ regular/bold 区分及后备字体字重。
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | 应用图标 |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | 文件和目录使用的外部编辑器 |
+| `files.drag-import` | `false` | 布尔值 | 允许把 Finder 项目拖入本地文件树并复制；菜单导入始终可用 |
 | `terminal.theme-only` | `false` | 布尔值 | 只将所选配色应用于终端 |
 | `terminal.command-history` | `true` | 布尔值 | 记录新命令，关闭后仍可查看已有历史 |
 | `terminal.text-hints` | `true` | 布尔值 | 启用可见终端文本的键盘提示 |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | 布尔值 | **设置 → 终端 → 提示词队列** 控制所有工作区和快速终端。关闭总开关隐藏队列栏并取消待发送任务，保留队列和输入直到终端关闭。自动发送默认关闭；开启后从下一次命令结束起，原来的 zsh 回到空提示符且没有命令任务占用时按顺序发送。开启不会立即执行已有队列。手动发送遵守相同检查；其他 Shell、嵌套 Shell、前台程序和提示符草稿均不能接收队列内容。 |
 | `terminal.auto-profiles` | `true` | 布尔值 | 自动匹配终端配置方案，仍可手动选择 |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | 终端光标形状 |
 | `terminal.cursor-blinking` | `true` | 布尔值 | 光标闪烁 |
 | `terminal.copy-on-select` | `true` | 布尔值 | 选中终端文本后复制 |
+| `terminal.right-click-action` | `"context-menu"` | 字符串 | 上下文菜单、粘贴，或有选区时复制否则粘贴 (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | 布尔值 | 鼠标移入聚焦 |
 | `terminal.shift-enter-newline` | `true` | 布尔值 | Shift+Enter 发送增强换行序列，需终端程序支持 |
 | `terminal.background-opacity` | `1` | 0.2–1 | 终端背景不透明度 |
@@ -323,6 +344,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

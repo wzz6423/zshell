@@ -76,8 +76,9 @@ struct WorkspaceLogSearchSurfaceTests {
 
         let mainMenu = NSMenu()
         let find = FindProbe()
-        for (title, action, key) in [("Zshell", nil, ""), ("Edit", #selector(FindProbe.find(_:)), "f")] as [(String, Selector?, String)] {
+        for (title, action, key) in [("Zshell", nil, ""), ("Edit", #selector(FindProbe.find(_:)), "f"), ("Terminal", nil, "")] as [(String, Selector?, String)] {
             let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+            if title == "Terminal" { item.identifier = .init(AppMenuController.Menu.terminal.rawValue) }
             item.submenu = NSMenu(title: title)
             if let action {
                 let findItem = NSMenuItem(title: "Find…", action: action, keyEquivalent: key)
