@@ -67,6 +67,8 @@ final class DiffWebModel: nonisolated ObservableObject {
     var overflowMode: OverflowMode { AppSettings.shared.diffWrapLines ? .wrap : .scroll }
     var onFileEditChange: ((String, String) -> Void)?
     var onFileEditComplete: ((String, String) -> Void)?
+    var onEditorStateChange: ((String, PierreEditorState) -> Void)?
+    var restoredEditorState: PierreEditorState?
     var onAnnotationClick: ((String) -> Void)?
     /// The WKWebView renders blank until its JS bundle has drawn the diff;
     /// a skeleton covers it until the bridge reports ready.
@@ -159,6 +161,11 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     var unsavedText: String? { isDirty ? editedNewContent : nil }
     private var reloadGeneration: UInt = 0
     private var isSaving = false
+    private(set) var draftID: UUID
+    private var editorState: PierreEditorState?
+    private var recoveryGeneration: UInt = 0
+    private var isRestoringDraft = false
+    private var discardedDraftText: String?
 
     init(
         repoRoot: String,
@@ -169,8 +176,11 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         commitHash: String? = nil,
         commitParentHash: String? = nil,
         commitStatus: Character? = nil,
-        treeComparison: TreeComparison? = nil
+        treeComparison: TreeComparison? = nil,
+        draftID: UUID = UUID(),
+        recoveringDraft: Bool = false
     ) {
+        self.draftID = draftID
         self.repoRoot = repoRoot
         self.path = path
         self.staged = staged
@@ -187,6 +197,11 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         }
         web.onFileEditComplete = { [weak self] fileID, contents in
             self?.completeEditing(fileID: fileID, contents: contents)
+        }
+        web.onEditorStateChange = { [weak self] fileID, state in
+            guard let self, self.web.fileID == fileID else { return }
+            self.editorState = state
+            if self.isDirty { EditorDraftStore.shared.schedule(self.draftID) }
         }
         pullRequestObservation = pullRequest.$state.removeDuplicates().sink { [weak self] _ in
             DispatchQueue.main.async { self?.pullRequestChanged() }
@@ -210,12 +225,17 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
                   let thread = file.threads.first(where: { $0.comments.nodes.contains { $0.id == id } }) else { return }
             self.showPullRequestReview(threadID: thread.id)
         }
-        reload()
+        self.draftID = EditorDraftStore.shared.register(draftID, owner: id) { [weak self] in self?.draftSnapshot() }
+        if recoveringDraft, AppSettings.shared.recoverEditorDrafts, !staged,
+           commitHash == nil, treeComparison == nil { recoverDraft(id: draftID) }
+        else { reload() }
     }
 
     var name: String {
         (path as NSString).lastPathComponent
     }
+
+    isolated deinit { EditorDraftStore.shared.unregister(draftID, owner: id) }
 
     var title: String {
         if let commitHash {
@@ -235,6 +255,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     }
 
     func reload(force: Bool = false, discarding draft: String? = nil) {
+        guard !isRestoringDraft else { return }
         // Keep the editor's document and undo history stable until the user
         // leaves edit mode, and never replace an unsaved buffer from disk.
         guard force || !isEditing, !isDirty || draft == editedNewContent else { return }
@@ -360,6 +381,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             self.saveBaseline = result.baseline
             self.editedNewContent = new
             self.isDirty = false
+            if draft != nil { self.discardDraftBackup() }
             self.saveError = nil
             if self.commitHash == nil, self.treeComparison == nil, result.failure == nil,
                failure == nil, hasChanges, let fingerprint = result.fingerprint {
@@ -490,6 +512,8 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
             reloadGeneration &+= 1
             isLoading = false
         }
+        if isDirty { EditorDraftStore.shared.schedule(draftID) }
+        else { EditorDraftStore.shared.remove(draftID) }
     }
 
     /// Once Pierre has torn down its editor, publish the final buffer so the
@@ -502,6 +526,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
 
     func setDiffStyle(_ style: DiffStyle) {
         DiffViewPreferences.shared.diffStyle = style
+        if isDirty { EditorDraftStore.shared.schedule(draftID) }
     }
 
     var diffStyle: DiffStyle { DiffViewPreferences.shared.diffStyle }
@@ -509,6 +534,7 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
     func setEditing(_ isEditing: Bool) {
         guard isEditable else { return }
         DiffViewPreferences.shared.prefersEditing = isEditing
+        if isDirty { EditorDraftStore.shared.schedule(draftID) }
     }
 
     private var isEditing: Bool {
@@ -536,6 +562,8 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
                 saveBaseline = snapshot
                 savedNewContent = draft
                 isDirty = editedNewContent != draft
+                if isDirty { EditorDraftStore.shared.schedule(draftID) }
+                else { EditorDraftStore.shared.remove(draftID) }
                 saveError = nil
                 return !isDirty
             case .reload:
@@ -551,6 +579,9 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
 
     func restoreDraft(_ draft: String, baseline: FileSaveSnapshot) {
         guard commitHash == nil, treeComparison == nil, !staged, baseline.text != nil else { return }
+        recoveryGeneration &+= 1
+        isRestoringDraft = false
+        discardedDraftText = nil
         reloadGeneration &+= 1
         web.fileID = "\(path)#draft-\(reloadGeneration)"
         saveBaseline = baseline
@@ -564,7 +595,48 @@ final class DiffTab: nonisolated ObservableObject, nonisolated Identifiable {
         imageComparison = nil
         web.canEdit = true
         web.newContent = draft
-        if webHostView == nil { webHostView = DiffWebHostingView(model: web) }
+        EditorDraftStore.shared.schedule(draftID)
+    }
+
+    func draftSnapshot() -> EditorDraftRecord? {
+        guard isEditable, isDirty, editedNewContent != discardedDraftText, let saveBaseline,
+              commitHash == nil, treeComparison == nil, !staged else { return nil }
+        return EditorDraftRecord(id: draftID,
+            source: .diff(repoRoot: repoRoot, path: path, untracked: untracked, originalPath: origPath),
+            text: editedNewContent, baseline: saveBaseline,
+            diffState: .init(oldText: web.oldContent, style: diffStyle.rawValue,
+                             editing: isEditing, editor: editorState))
+    }
+
+    func restoreDraft(_ record: EditorDraftRecord) {
+        guard record.isValid, case .diff(let root, let path, _, _) = record.source,
+              root == repoRoot, path == self.path, let state = record.diffState else { return }
+        if let style = DiffStyle(rawValue: state.style) { DiffViewPreferences.shared.diffStyle = style }
+        DiffViewPreferences.shared.prefersEditing = state.editing
+        web.oldContent = state.oldText
+        editorState = state.editor
+        web.restoredEditorState = state.editor
+        restoreDraft(record.text, baseline: record.baseline)
+    }
+
+    func discardDraftBackup() {
+        discardedDraftText = editedNewContent
+        EditorDraftStore.shared.remove(draftID)
+    }
+
+    private func recoverDraft(id: UUID) {
+        isRestoringDraft = true
+        recoveryGeneration &+= 1
+        let generation = recoveryGeneration
+        Task { [weak self] in
+            let record = try? await EditorDraftStore.shared.archive.load(id)
+            guard let self, self.recoveryGeneration == generation, !self.isDirty else { return }
+            self.isRestoringDraft = false
+            guard AppSettings.shared.recoverEditorDrafts else { self.reload(); return }
+            if let record, case .diff(let root, let path, _, _) = record.source,
+               root == self.repoRoot, path == self.path { self.restoreDraft(record) }
+            else { self.reload() }
+        }
     }
 
     private nonisolated enum GitContent {
@@ -856,6 +928,7 @@ private final class DiffWebHostingView: NSView {
         ])
         renderer.onFileEditChange = { [weak model] in model?.onFileEditChange?($0, $1) }
         renderer.onFileEditComplete = { [weak model] in model?.onFileEditComplete?($0, $1) }
+        renderer.onEditorStateChange = { [weak model] in model?.onEditorStateChange?($0, $1) }
         renderer.onAnnotationClick = { [weak model] in model?.onAnnotationClick?($0) }
         renderer.onReady = { [weak model] in model?.isReady = true }
         observations = [
@@ -899,6 +972,10 @@ private final class DiffWebHostingView: NSView {
             diffStyle: preferences.diffStyle, overflowMode: model.overflowMode,
             renderOptions: DiffFont.renderOptions(family: settings.fontFamily, size: settings.fontSize),
             usesDarkAppearance: model.usesDarkAppearance)
+        if let state = model.restoredEditorState {
+            model.restoredEditorState = nil
+            renderer.restoreEditorState(state, fileID: model.fileID)
+        }
     }
 }
 
@@ -1121,6 +1198,7 @@ final class DiffViewerNSView: NSView {
         self.diff = diff
         super.init(frame: .zero)
         wantsLayer = true
+        layer?.masksToBounds = true
         for view in [controls, conflict, saveError, notice, content] { addSubview(view) }
         conflict.font = .systemFont(ofSize: 11, weight: .medium)
         conflict.textColor = .systemOrange

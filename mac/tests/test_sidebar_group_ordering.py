@@ -117,6 +117,8 @@ enum PaneSplitAxis: String, Codable { case horizontal, vertical }
 struct TerminalLaunchSettingsOverride: Codable, Equatable {}
 struct SessionTabGroup: Codable {}
 struct TerminalLaunchSettings: Codable, Equatable {}
+struct AgentConversationIdentity: Codable {}
+struct SessionWorktree: Codable {}
 enum ProjectLocation: Codable { case local }
 enum RightPanel: String, Codable { case files }
 '''

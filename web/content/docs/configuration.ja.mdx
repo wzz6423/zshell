@@ -24,7 +24,7 @@ Zshell の永続設定の多くは、次の 1 ファイルに保存されます�
 
 - **実行中も変更を読み込みます。** 有効な外部編集は自動反映されます。新しい端末向けの設定には新規ペインが必要です。読み取り不能や構文エラーでは直前の有効な設定を維持し、意図的な空ファイルは少し待って既定値に戻します。
 - **ファイルで管理する設定を変えるたびに書き直します。** ファイル全体を再生成するため、次に該当する操作欄を使うとコメントや未知のキーは失われます。編集方法を一つにするか、管理元のコピーを dotfiles に保存してください。
-- **原則として既定値以外だけを書き込みます。** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` は常に保存します。既存のファイルでこの3つのターミナルキーのいずれかを削除すると、対応する機能がオフになります。ほかのキーを削除すると既定値に戻ります。
+- **原則として既定値以外だけを書き込みます。** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` は常に保存します。既存のファイルで `terminal.vim-command-hints`、`terminal.restore-history`、`terminal.notify-on-error` のいずれかを削除すると、対応する機能がオフになります。`terminal.prompt-queue-enabled` を削除すると既定値の `true`、`terminal.prompt-queue-auto-dispatch` を削除すると既定値の `false` に戻ります。ほかのキーを削除すると、それぞれの既定値に戻ります。
 - **パーサーは意図的に小さくしています。** 単純なキー、ドット付きキー、`[table]` 見出し、`#` コメント、文字列・数値・真偽値に対応します。配列、インラインテーブル、複数行文字列は非対応です。
 - **不正な値は安全に代替されます。** 範囲外のサイズ、未知のバックエンド、誤記したテーマがあっても Zshell の起動を妨げません。
 
@@ -119,6 +119,26 @@ Zshell の永続設定の多くは、次の 1 ファイルに保存されます�
 
 両サイドバーの基本文字サイズです。変更しても、セクション見出し、行、メタデータ、操作欄の相対的な階層を維持します。
 
+### `sidebar.double-click-new-session` [#sidebardouble-click-new-session]
+
+真偽値 — 既定値 `true`
+
+サイドバーの空白をダブルクリックすると選択中のプロジェクトにセッションを作成します。プロジェクトが未選択なら新規作成します。行のクリックやドラッグは従来どおりです。
+
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+真偽値 — 既定値 `true`
+
+**設定 → 外観 → フォントの合字** で、両方のターミナルエンジンの任意の合字を切り替えます。オフにすると `calt`、`liga`、`clig`、`dlig`、`hlig` を無効にし、文字に必須のシェーピングは維持します。元の文字、列数、カーソル、選択範囲は変わりません。
+
+### `terminal.font-features` [#terminalfont-features]
+
+文字列 — 既定値 `""`、フォントの既定機能を使用
+
+同じフォントグループの **OpenType 機能** に 4 文字のタグをカンマまたは空白で区切って入力します。`-calt` は文脈依存の字形置換を無効にし、`ss01` はスタイルセット 1、`zero=1` は別のゼロ字形を有効にします。`+liga` と `liga=1` も機能を有効にします。同じタグは後の値が優先されます。合字スイッチは上記の 5 タグより優先されます。
+
+変更は開いているターミナルとプレビューにすぐ適用されます。両エンジンとも選択したフォントが対応する機能を使用し、未対応のタグは無視します。設定で無効な入力をすると直前の有効値を保ち、外部設定の無効値はフォントの既定値になります。既定値へのリセットは機能リストを空にし、合字を有効にします。
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 真偽値 — 既定値 `false`
@@ -148,6 +168,12 @@ Ghostty は macOS ネイティブの強度、Alacritty は同じ範囲を CoreTe
 Zshell は基本のフォントウェイト設定を公開していません。
 Ghostty は名前付きスタイルや可変軸を選び、Alacritty／CoreText は属性から標準・太字の書体を解決します。単一の共有値では、静的・可変フォントを通して標準／太字の区別や代替フォントの太さを一貫して保てないためです。
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+**設定 → 外観 → 背景 → 余白の色**で選択します。`"background"` は余白にターミナルのテーマ背景を使います。`"extend"` は最も近いセルの背景を広げますが、先頭行または最終行に既定の背景のセル、シェルプロンプト、Powerline 区切りがある場合、上下の余白はテーマ背景のままです。`"always"` はこの判定を省略してすべての端へ広げます。空白の最終行は自身の背景を保ち、その上の色付き行は下の余白を埋めません。変更は両バックエンドの開いているターミナルにすぐ反映されます。半透明表示では既定の背景は設定した不透明度を保ち、明示的なセル背景とその延長部分は不透明になります。
+
 ### `editor.wrap-lines` [#editorwrap-lines]
 
 真偽値 — 既定値 `true`
@@ -167,6 +193,16 @@ false なら横スクロールします。ターミナルや差分の折り返�
 
 ファイルや編集可能な作業ツリーの差分を保存する前に、外部プログラムによる変更を確認します。競合した場合は、下書きと比較、ディスクから再読み込み、下書きの保持、明示的な上書きを選べます。無効にすると、競合確認なしで外部の変更を置き換えます。
 
+### `editor.recover-drafts` [#editorrecover-drafts]
+
+真偽値 — 既定値 `true`
+
+Zshell は、ローカルファイルと編集可能な作業ツリー差分の未保存の変更を既定でバックアップします。予期しない終了後、再び開いたペインで下書き、選択範囲、レイアウトを復元します。他のバックアップは **ファイル → 下書きを復元…** または **設定 → エディタ → 下書きを復元…** から選び、内容を確認して **下書きを復元** を押します。復元は未保存のエディタを開くだけで、ディスク上のファイルを変更しません。保存時は編集前のバージョンで外部の変更を確認します。
+
+**設定 → エディタ → 未保存の下書きをバックアップ** または `editor.recover-drafts` で制御します。オフにすると新しいバックアップと自動復元を停止し、既存のバックアップは手動で復元または削除できます。**バックアップを削除** は選択したバックアップだけを削除し、開いている編集内容は保持します。保存に成功した場合や、閉じる操作が完了して **保存しない** を選んだ場合はバックアップを削除します。バックアップはこの Mac に非公開ファイルとして最大32件、合計128 MiB で保存され、最大30日間保存されます。容量制限により、古いバックアップが早く削除される場合があります。5 MiB を超えるファイルや編集テキストは対象外です。
+
+Zshell は起動時と実行中の1時間ごとに、バックアップがオフでも期限切れのバックアップを削除します。Zshell が終了している間は、期限切れのファイルは次回の起動までディスクに残ります。
+
 ## ターミナル [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
@@ -181,6 +217,24 @@ false なら横スクロールします。ターミナルや差分の折り返�
 引用符とバックスラッシュで、空白や空の引数も含め境界を保ちますが、変数・glob・コマンド置換は展開しません。
 引用符が不正な場合もログインシェルへ戻ります。Zshell CLI から明示的な argv が与えられた場合は、そのターミナルではそちらが優先します。
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — 既定値 `"current"`
+
+**設定 → ターミナル → 新規セッションのディレクトリ**で選択します。現在のディレクトリは、アクティブなローカルシェルの場所を使い、新規プロジェクトの最初のターミナルにも引き継ぎます。ローカルシェルがない場合はホームを使います。プロジェクトは「ファイル」と Git に表示されるルート（最寄りのリポジトリまたはフォアグラウンドのチェックアウト）を使い、リポジトリ外では現在のディレクトリを使います。ホームは常にアカウントのホームを使います。最初のクイックターミナルと、新しく作る各クイックターミナルワークスペースにも適用されます。
+
+Finder、CLI、ワークスペーステンプレート、worktree、復元セッション、プロジェクトの固定ディレクトリ、サイドバーグループで指定した場所が優先されます。分割は元のペインの場所を維持します。SSH と共有リモートセッションはリモートホストのディレクトリを使います。設定を変更しても、開いているターミナルや再利用中のクイックターミナルは再起動しません。
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+文字列 — 既定値 `""`
+
+カスタムでは絶対パスまたは `~/folder` を入力するか、設定でフォルダを選びます。Zshell はフォルダが存在し、移動できることを確認します。存在しない、アクセスできない、無効なパスの場合は現在のローカルディレクトリ（利用できなければホーム）を使い、設定に理由を表示します。別の方式へ切り替えても保存したパスは残ります。
+
+### `terminal.term`
+
+**設定 → ターミナル → TERM** で `terminal.term`（デフォルトは `"xterm-256color"`）を設定します。名前は 1〜128 文字の ASCII 英字、数字、または `.-_+` で構成する必要があります。shell を実行するホストにインストール済みの terminfo 名を使用してください。変更は新しいローカルおよび SSH セッションにのみ適用され、開いている PTY と保持された PTY の `TERM` は変わりません。共有リモートセッションは更新済みサーバーでの作成時にこの値を使い、古いサーバーは `xterm-256color` を使い続けます。起動時に無効な値がある場合は `xterm-256color` にフォールバックし、Zshell の実行中に行った無効な編集では最後の有効な値を保持します。どちらの場合も設定にエラーを表示します。`TERM_PROGRAM` と `ZSHELL_TERM` は変わりません。
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — 既定値 `"libghostty"`
@@ -189,6 +243,12 @@ false なら横スクロールします。ターミナルや差分の折り返�
 両方ともネイティブ、GPU アクセラレーション、画像描画、共通の Zshell テーマに対応し、一般に Alacritty のほうがメモリ使用量は少なめです。
 
 環境変数と互換性の取り決めは[ターミナルバックエンド](/ja/docs/terminal#terminal-backends)を参照してください。
+
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+数値、0.1–10 — 各デバイスの既定値は `1`
+
+**設定 → ターミナル → スクロール → マウスホイール / トラックパッド** で速度を個別に調整します。表示はパーセントです。100% は現在の速度、50% は半分、200% は2倍です。変更は開いている Ghostty と Alacritty のペインにすぐ反映され、スクロールバック、全画面プログラム、マウスレポートにも適用されます。慣性スクロールはトラックパッドの値に従い、横スクロールは横方向のままです。精密なスクロール差分を報告するマウスもトラックパッドの値を使います。未指定または無効な値は `1` に戻ります。設定のインポート、エクスポート、リセットには両方の値が含まれます。
 
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
@@ -241,19 +301,34 @@ Codex app-server を共有する場合、検証済みの会話 ID を前面の�
 
 **設定 → 自動化 → エージェントの会話を再開** で切り替えます。`terminal.restore-history` とは独立した設定です。
 
+### `ai.usage-enabled`
+
+真偽値 — 初期値 `false`
+
+**設定 → オートメーション → アカウント使用量 → アカウント使用量を読み取る** でローカル CLI のアカウント制限を有効にします。オフにすると保留中の要求をキャンセルし、データを隠し、Claude 使用量レポートの保存を拒否します。プロバイダーの選択は保持されます。エージェント認識、ライフサイクル報告、会話復元は変更しません。
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+真偽値 — それぞれ初期値 `true`
+
+`ai.usage-enabled = true` のとき使用量を読み取るプロバイダーを選びます。Claude Code は Zshell のローカルステータスライン報告、Codex はインストール済みでログイン済みの CLI を使用します。プロバイダーをオフにすると直ちに読み取りを停止してデータを隠します。認証情報は収集しません。3 つの設定は検索、インポート／エクスポート、設定の即時再読み込み、初期値へのリセットに対応します。
+
 ## その他の設定 [#additional-settings]
 
 | キー | 既定値 | 値／範囲 | 効果 |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | アプリのアイコン |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | ファイル・フォルダ用の外部エディタ |
+| `files.drag-import` | `false` | 真偽値 | Finder からローカルツリーへのドラッグコピーを有効にします。メニューは常に利用可能 |
 | `terminal.theme-only` | `false` | 真偽値 | 選んだ配色をターミナルだけに適用 |
 | `terminal.command-history` | `true` | 真偽値 | 新しいコマンド履歴を記録。無効時も保存済み履歴は利用可能 |
 | `terminal.text-hints` | `true` | 真偽値 | 表示中の端末テキストにキーボードヒントを表示 |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | 真偽値 | **設定 → ターミナル → プロンプトキュー**で管理します。総合スイッチをオフにすると全ワークスペースと Quick Terminal のバーを隠し、送信待ちを取り消します。項目と入力は端末を閉じるまで保持します。自動送信は任意で、次のコマンド終了から、元の zsh の空のプロンプトでタスクがない場合のみ順番に送信します。有効化直後の再生はありません。手動送信も同じ条件で、他のシェル、入れ子のシェル、前景プログラム、入力途中のプロンプトには送信しません。 |
 | `terminal.auto-profiles` | `true` | 真偽値 | プロファイルを自動照合。手動選択も利用可能 |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | ターミナルのカーソル形状 |
 | `terminal.cursor-blinking` | `true` | 真偽値 | カーソルを点滅 |
 | `terminal.copy-on-select` | `true` | 真偽値 | 選択したターミナル文字をコピー |
+| `terminal.right-click-action` | `"context-menu"` | 文字列 | メニュー、ペースト、または選択範囲をコピーし未選択ならペースト (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | 真偽値 | マウスに追従するフォーカス |
 | `terminal.shift-enter-newline` | `true` | 真偽値 | Shift+Enter で拡張改行シーケンスを送信。アプリ側の対応が必要 |
 | `terminal.background-opacity` | `1` | 0.2–1 | ターミナル背景の不透明度 |
@@ -290,10 +365,14 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

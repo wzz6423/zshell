@@ -19,7 +19,7 @@ use alacritty_terminal::term::cell::Flags;
 use alacritty_terminal::term::search::{Match, RegexIter, RegexSearch};
 use alacritty_terminal::term::{Config, Osc52, Term, TermDamage, TermMode};
 use alacritty_terminal::tty::{self, EventedPty, EventedReadWrite};
-use alacritty_terminal::vte::ansi::{CursorShape, CursorStyle, NamedColor};
+use alacritty_terminal::vte::ansi::{Color, CursorShape, CursorStyle, NamedColor};
 use polling::{Event as PollingEvent, PollMode, Poller};
 
 use crate::graphics_event_loop::{
@@ -2738,6 +2738,14 @@ pub unsafe extern "C" fn zshell_alacritty_snapshot(
         }
         if selection.is_some_and(|range| range.contains(item.point)) {
             flags |= ZSHELL_CELL_SELECTED;
+        }
+        if cell.bg != Color::Named(NamedColor::Background) {
+            flags |= ZSHELL_CELL_EXPLICIT_BACKGROUND;
+        }
+        if cell.semantic_zone().is_some_and(|(_, kind)| kind == 0)
+            || cell.semantic_anchors().iter().any(|&(_, kind)| kind == 4)
+        {
+            flags |= ZSHELL_CELL_SEMANTIC_PROMPT;
         }
 
         let (text_offset, text_len) =

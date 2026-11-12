@@ -30,15 +30,18 @@ def section(start, end):
     return source[source.index(start):source.index(end)]
 
 
-pane_view = section("private struct PaneView:", "/// Compact chrome for a pane")
+legacy_header = "private struct PaneHeaderView:" in source
+pane_view = section("private struct PaneView:",
+                    "/// Compact chrome for a pane" if legacy_header else "/// Mounts a session's find bar")
 content_start = pane_view.index("    @ViewBuilder\n    private var content:")
 content_end = pane_view.index("    @ViewBuilder\n    private var dropHighlight:")
 pane_view = (pane_view[:content_start]
              + "    private var content: some View { SurfaceFixture(id: pane.id) }\n\n"
              + pane_view[content_end:])
-header = section("private struct PaneHeaderView:", "/// Mounts a session's find bar")
+header = (section("private struct PaneHeaderView:", "/// Mounts a session's find bar")
+          if legacy_header else read_source("mac/zshell/AppKitPaneHeaderView.swift"))
 reporter = section("private struct PaneFramePreferenceKey:", "private extension NSView")
-terminal_container = terminal_source[terminal_source.index("private final class TerminalContainerView:"):]
+terminal_container = terminal_source[terminal_source.index("final class TerminalContainerView:"):]
 queue_metrics = queue_source[queue_source.index("    private enum Metrics {"):queue_source.index("    private var queue:")]
 queue_build = queue_source[queue_source.index("    private func buildView() {"):queue_source.index("    // MARK: - State")]
 
@@ -53,10 +56,15 @@ enum Theme {
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
     let isTerminalBackgroundBlurActive = false
+    let focusFollowsMouse = false
+    func commandShortcut(for command: AppCommand) -> CommandShortcut { CommandShortcut() }
 }
+enum TerminalCommandRouting { static func isBlockingCommands(in window: NSWindow) -> Bool { false } }
 final class TerminalManager {}
+final class Project { func closeContent(_ content: PaneContent) {} }
 final class PaneTab: ObservableObject {
     @Published var focusedPaneID = UUID()
+    func focusPane(_ id: UUID) { focusedPaneID = id }
 }
 final class TerminalSession: ObservableObject {
     let title = "wzz@MacBook-Pro:~/a-very-long-project-path"
@@ -70,20 +78,55 @@ final class FileTab: ObservableObject {
 final class BrowserTab: ObservableObject {
     let title = "Fixture browser"
     let urlString = "about:blank"
+    let favicon: NSImage? = nil
 }
-struct DiffTab {
+final class DiffTab: ObservableObject {
     let title = "Fixture diff"
     let path = "/fixture/file.swift"
 }
 enum PaneContent {
     case session(TerminalSession), file(FileTab), browser(BrowserTab), diff(DiffTab)
 }
+extension PaneContent {
+    var id: UUID { UUID() }
+    var title: String { "Fixture" }
+    var systemImage: String { "terminal" }
+    var fileIconPath: String? { nil }
+    var isDirty: Bool { false }
+}
 struct Pane: Identifiable {
     let id = UUID()
     let content: PaneContent
 }
 enum PaneDropEdge { case left, right, top, bottom }
-struct ZshellAgentRollup {}
+struct ZshellAgentRollup {
+    let phase = AgentPhase()
+    let count = 1
+    let detail = ""
+    let progress: Int? = nil
+}
+struct AgentPhase { let statusDescription = "Ready" }
+final class AgentStatusBadgeView: NSView {
+    override var intrinsicContentSize: NSSize { NSSize(width: 13, height: 15) }
+    func apply(phase: AgentPhase, count: Int, detail: String, progress: Int?) {}
+}
+enum AppCommand {
+    case closePane
+    var title: String { "Close Pane" }
+}
+struct CommandShortcut { let displayString = "⌘W" }
+final class WorkspaceChromeButton: NSButton {
+    var onAction: (() -> Void)?
+    init(symbol: String, label: String) { super.init(frame: .zero) }
+    required init?(coder: NSCoder) { fatalError() }
+    func configure(symbol: String, label: String, pointSize: CGFloat = 12) {}
+}
+enum MaterialFileIcon {
+    static func image(forPath path: String, appearance: NSAppearance) -> NSImage? { nil }
+}
+extension NSView {
+    func workspaceGlobalPoint(_ event: NSEvent) -> NSPoint { .zero }
+}
 struct AgentStatusBadgeRepresentable: View {
     let rollup: ZshellAgentRollup
     var body: some View { Color.blue.frame(width: 14, height: 14) }
@@ -168,7 +211,7 @@ struct LayoutFixture: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             ForEach(Array(panes.enumerated()), id: \.element.id) { index, pane in
-                PaneView(manager: TerminalManager(), tab: tab, pane: pane,
+                PaneView(manager: TerminalManager(), project: Project(), tab: tab, pane: pane,
                          showSplitChrome: showSplitChrome, allowsMove: true, isMoveSource: false,
                          dropEdge: nil, onMove: { _ in }, onMoveEnded: {}, onSplit: { _ in },
                          onNewBrowserTab: { _ in }, onNewBrowserPane: { _ in },
@@ -298,10 +341,16 @@ struct PaneBoundsRegression {
 }
 '''
 fixture = fixture.replace("__QUEUE_METRICS__", queue_metrics).replace("__QUEUE_BUILD__", queue_build)
+if legacy_header:
+    fixture = fixture.replace("manager: TerminalManager(), project: Project(), tab:", "manager: TerminalManager(), tab:")
+else:
+    start = fixture.index("struct AgentStatusBadgeRepresentable:")
+    end = fixture.index("struct PaneFocusRing:", start)
+    fixture = fixture[:start] + fixture[end:]
 
 with tempfile.TemporaryDirectory(prefix="zshell-pane-bounds-tests-") as directory:
     helper = Path(directory) / "PaneBoundsRegression.swift"
-    helper.write_text("import AppKit\nimport SwiftUI\n" + fixture + pane_view + header + reporter + terminal_container)
+    helper.write_text("import AppKit\nimport SwiftUI\nimport Combine\n" + fixture + pane_view + header + reporter + terminal_container)
     executable = Path(directory) / "pane-bounds-tests"
     subprocess.run(["xcrun", "swiftc", "-parse-as-library", str(helper), "-o", str(executable)], check=True)
     subprocess.run([str(executable)], check=True)

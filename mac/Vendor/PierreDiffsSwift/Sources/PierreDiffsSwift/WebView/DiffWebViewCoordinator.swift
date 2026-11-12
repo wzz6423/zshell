@@ -31,6 +31,7 @@ public final class DiffWebViewCoordinator: NSObject {
 
   /// Callback when an editable CodeView item leaves edit mode
   var onFileEditComplete: ((String, String) -> Void)?
+  var onEditorStateChange: ((String, PierreEditorState) -> Void)?
 
   /// Callback when expand is requested
   var onExpandRequest: (() -> Void)?
@@ -229,6 +230,13 @@ public final class DiffWebViewCoordinator: NSObject {
     }
   }
 
+  func restoreEditorState(_ state: PierreEditorState, fileID: String) {
+    struct Input: Encodable { let fileId: String; let state: PierreEditorState }
+    executeWhenReady { [weak self] in
+      self?.callJavaScript("restoreEditorState", with: Input(fileId: fileID, state: state))
+    }
+  }
+
   /// Cleans up the diff instance and releases WebKit resources
   func cleanup() {
     webView?.stopLoading()
@@ -241,6 +249,7 @@ public final class DiffWebViewCoordinator: NSObject {
     onLineSelectionChange = nil
     onFileEditChange = nil
     onFileEditComplete = nil
+    onEditorStateChange = nil
     onExpandRequest = nil
     onReady = nil
     onAnnotationClick = nil
@@ -432,6 +441,12 @@ extension DiffWebViewCoordinator: WKScriptMessageHandler {
     let event: DiffWebViewEvent
 
     switch typeString {
+    case "editorStateChanged":
+      guard let fileID = body["fileId"] as? String, let state = body["state"],
+            let data = try? JSONSerialization.data(withJSONObject: state),
+            let decoded = try? JSONDecoder().decode(PierreEditorState.self, from: data), decoded.isValid else { return }
+      onEditorStateChange?(fileID, decoded)
+      return
     case "bridgeReady":
       event = .bridgeReady
 

@@ -39,7 +39,14 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// change. Lives here (not in the view) so the state survives tab
     /// switches, and in the session snapshot so it survives relaunches. Not
     /// published for the same reason as `text`.
-    var editorState = EditorState()
+    var editorState = EditorState() {
+        didSet { if isDirty { EditorDraftStore.shared.schedule(draftID) } }
+    }
+    private(set) var draftID: UUID
+    private var recoveryGeneration: UInt = 0
+    private var isRestoringDraft = false
+    private var discardedDraftText: String?
+    private var draftPreviousPaths: [String] = []
 
     @Published private(set) var isDirty = false
     @Published var saveError: String?
@@ -91,19 +98,25 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         var saveBaseline: FileSaveSnapshot? = nil
     }
 
-    init(path: String) {
+    init(path: String, draftID: UUID = UUID(), recoveringDraft: Bool = false) {
+        self.draftID = draftID
         self.path = path
         content = .unavailable("")
         text = ""
         savedText = ""
         imageData = nil
         quickLookSignature = nil
-        reloadFromDiskIfClean()
+        self.draftID = EditorDraftStore.shared.register(draftID, owner: id) { [weak self] in self?.draftSnapshot() }
+        if recoveringDraft, AppSettings.shared.recoverEditorDrafts {
+            recoverDraft(id: draftID)
+        } else { reloadFromDiskIfClean() }
     }
 
     var name: String {
         (path as NSString).lastPathComponent
     }
+
+    isolated deinit { EditorDraftStore.shared.unregister(draftID, owner: id) }
 
     /// Re-points this tab at a new location after the file (or a directory
     /// above it) was renamed on disk. The bytes are unchanged, so nothing
@@ -111,8 +124,10 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     func updatePath(_ newPath: String) {
         guard newPath != path else { return }
         invalidateReload()
+        draftPreviousPaths = Array((draftPreviousPaths + [path]).suffix(8))
         path = newPath
         saveBaseline = saveBaseline?.moved(to: newPath)
+        if isDirty { EditorDraftStore.shared.schedule(draftID) }
     }
 
     /// Recompute `isDirty` from the current `text` against the saved
@@ -133,6 +148,8 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
                 invalidateReload()
             }
         }
+        if dirty { EditorDraftStore.shared.schedule(draftID) }
+        else { EditorDraftStore.shared.remove(draftID) }
     }
 
     @discardableResult
@@ -176,6 +193,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// path is already in flight, this call is a no-op: the in-flight read will
     /// publish when it finishes.
     func reloadFromDiskIfClean(discarding draft: String? = nil) {
+        guard !isRestoringDraft else { return }
         guard draft.map({ $0 == text }) ?? !isDirty else { return }
         if let task = reloadTask, !task.isCancelled {
             return
@@ -217,6 +235,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
             self.text = loaded.text
             self.savedText = loaded.text
             self.isDirty = false
+            if draft != nil { self.discardDraftBackup() }
             self.imageData = loaded.imageData
             self.quickLookSignature = loaded.quickLookSignature
             self.saveError = nil
@@ -231,6 +250,9 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     }
 
     func restoreDraft(_ draft: String, baseline: FileSaveSnapshot) {
+        recoveryGeneration &+= 1
+        isRestoringDraft = false
+        discardedDraftText = nil
         invalidateReload()
         content = .text
         saveBaseline = baseline
@@ -239,6 +261,38 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         isDirty = true
         saveError = nil
         reloadRevision &+= 1
+        EditorDraftStore.shared.schedule(draftID)
+    }
+
+    func draftSnapshot() -> EditorDraftRecord? {
+        guard isDirty, text != discardedDraftText, let saveBaseline else { return nil }
+        return EditorDraftRecord(id: draftID, source: .file(path: path), text: text,
+                                 baseline: saveBaseline, editorState: editorState,
+                                 previousPaths: draftPreviousPaths.isEmpty ? nil : draftPreviousPaths)
+    }
+
+    func discardDraftBackup() {
+        discardedDraftText = text
+        EditorDraftStore.shared.remove(draftID)
+    }
+
+    private func recoverDraft(id: UUID) {
+        isRestoringDraft = true
+        recoveryGeneration &+= 1
+        let generation = recoveryGeneration
+        Task { [weak self] in
+            let record = try? await EditorDraftStore.shared.archive.load(id)
+            guard let self, self.recoveryGeneration == generation, !self.isDirty else { return }
+            self.isRestoringDraft = false
+            guard AppSettings.shared.recoverEditorDrafts else { self.reloadFromDiskIfClean(); return }
+            if let record, case .file(let path) = record.source,
+               path == self.path || record.previousPaths?.contains(self.path) == true {
+                self.path = path
+                self.draftPreviousPaths = record.previousPaths ?? []
+                self.restoreDraft(record.text, baseline: record.baseline)
+                if let state = record.sanitizedEditorState() { self.editorState = state }
+            } else { self.reloadFromDiskIfClean() }
+        }
     }
 
     private func matches(_ loaded: LoadedContent) -> Bool {

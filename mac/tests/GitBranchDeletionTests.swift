@@ -112,6 +112,8 @@ struct GitBranchDeletionTests {
             _ = git(repo, "switch", "-qc", "feature")
             _ = git(repo, "commit", "--allow-empty", "-qm", "feature")
             let tip = git(repo, "rev-parse", "HEAD")
+            _ = git(repo, "tag", "main")
+            _ = git(repo, "tag", "feature")
             if !current { _ = git(repo, "switch", "-q", "main") }
             write(repo, "tracked.txt", "staged\n")
             _ = git(repo, "add", "tracked.txt")
@@ -125,6 +127,7 @@ struct GitBranchDeletionTests {
                   && git(repo, "show", "stash@{0}^3:untracked.txt") == "untracked",
                   "the stash preserves all three kinds of local content")
             check(git(repo, "rev-parse", backups(repo).first!) == tip, "the branch tip is preserved independently of the stash")
+            check(git(repo, "rev-parse", "refs/tags/feature") == tip, "deletion preserves a same-named tag")
             check(model.branch == (current ? "detached HEAD" : "main"), "current-branch deletion detaches; other-branch deletion stays on main")
             if current { check(git(repo, "rev-parse", "HEAD") == tip, "detaching keeps the deleted current branch's commit") }
             _ = git(repo, "stash", "apply", "--index", "stash@{0}")

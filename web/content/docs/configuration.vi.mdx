@@ -23,7 +23,7 @@ Nên biết trước khi sửa tay:
 
 - **Đọc thay đổi khi ứng dụng đang chạy.** Chỉnh sửa bên ngoài hợp lệ tự áp dụng; cài đặt dành cho terminal mới vẫn cần khung mới. Tệp không đọc được hoặc sai cú pháp giữ cài đặt hợp lệ gần nhất. Tệp cố ý để trống khôi phục mặc định sau một khoảng chờ ngắn.
 - **Zshell ghi lại tệp mỗi khi một cài đặt lưu trong tệp thay đổi.** Tệp được tạo lại từ đầu, nên chú thích và khóa lạ mất vào lần dùng điều khiển đó tiếp theo. Chọn một nơi chỉnh sửa, hoặc giữ bản chuẩn trong dotfile của bạn.
-- **Hầu hết giá trị mặc định được bỏ qua.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` luôn được lưu. Xóa một trong ba khóa terminal này trong tệp hiện có sẽ tắt tính năng tương ứng; xóa các khóa khác sẽ khôi phục giá trị mặc định.
+- **Hầu hết giá trị mặc định được bỏ qua.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` luôn được lưu. Xóa `terminal.vim-command-hints`, `terminal.restore-history` hoặc `terminal.notify-on-error` khỏi tệp hiện có sẽ tắt tính năng tương ứng. Xóa `terminal.prompt-queue-enabled` khôi phục giá trị mặc định `true`; xóa `terminal.prompt-queue-auto-dispatch` khôi phục giá trị mặc định `false`. Xóa khóa khác khôi phục giá trị mặc định của khóa đó.
 - **Bộ phân tích cố ý đơn giản.** Hỗ trợ khóa phẳng, khóa dấu chấm, tiêu đề `[table]`, chú thích `#`, giá trị chuỗi/số/boolean. Không hỗ trợ mảng, bảng nội tuyến hay chuỗi nhiều dòng.
 - **Giá trị sai có phương án dự phòng an toàn.** Kích thước ngoài khoảng, backend không rõ hay tên chủ đề sai không làm Zshell không khởi chạy được.
 
@@ -113,6 +113,26 @@ số, 9–24 — mặc định `14`
 
 Cỡ chữ cơ sở của cả hai thanh bên. Tiêu đề phần, hàng, siêu dữ liệu và điều khiển giữ quan hệ phân cấp khi cỡ cơ sở đổi.
 
+### `sidebar.double-click-new-session` [#sidebardouble-click-new-session]
+
+boolean — mặc định `true`
+
+Nhấp đúp vùng trống trên thanh bên để tạo phiên trong dự án đang chọn, hoặc tạo dự án nếu chưa chọn. Thao tác nhấp và kéo trên hàng vẫn hoạt động như thường.
+
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+boolean — mặc định `true`
+
+Bật hoặc tắt chữ ghép tùy chọn cho cả hai backend trong **Cài đặt → Giao diện → Chữ ghép của phông**. Tắt sẽ ghi đè `calt`, `liga`, `clig`, `dlig` và `hlig` nhưng giữ cách tạo hình bắt buộc của chữ viết. Ký tự, cột terminal, con trỏ và vùng chọn không đổi.
+
+### `terminal.font-features` [#terminalfont-features]
+
+chuỗi — mặc định `""`, dùng mặc định của phông
+
+Trong **Tính năng OpenType**, nhập thẻ bốn ký tự, ngăn cách bằng dấu phẩy hoặc khoảng trắng: `-calt` tắt biến thể theo ngữ cảnh, `ss01` bật bộ kiểu 1 và `zero=1` bật số không thay thế. `+liga` và `liga=1` cũng bật tính năng. Giá trị cuối cùng của cùng một thẻ được dùng; công tắc chữ ghép ưu tiên hơn năm thẻ trên.
+
+Thay đổi có hiệu lực ngay với terminal đang mở và bản xem trước. Hai backend dùng tính năng phông hỗ trợ; thẻ không được hỗ trợ không có tác dụng. Đầu vào không hợp lệ giữ giá trị hợp lệ gần nhất; giá trị bên ngoài không hợp lệ dùng mặc định của phông. Đặt lại sẽ xóa danh sách và bật chữ ghép.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 boolean — mặc định `false`
@@ -139,6 +159,12 @@ Nhân chiều cao ô tự nhiên của từng backend, giữ ký tự ở giữa
 
 Zshell không cung cấp điều khiển trọng lượng phông cơ sở. Ghostty chọn kiểu có tên hoặc trục biến thiên, còn Alacritty/CoreText chọn regular/bold theo thuộc tính; một giá trị chung không thể giữ nhất quán phân biệt thường/đậm hay trọng lượng dự phòng giữa phông tĩnh và biến thiên.
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+Chọn **Cài đặt → Giao diện → Nền → Màu lề**. `"background"` dùng nền chủ đề terminal cho lề. `"extend"` mở rộng nền của ô gần nhất, nhưng giữ nền chủ đề ở lề trên hoặc dưới nếu hàng đó có ô nền mặc định, dấu nhắc shell hoặc dấu phân cách Powerline. `"always"` mở rộng mọi cạnh mà không kiểm tra các điều kiện này. Các hàng trống dưới cùng giữ nền riêng; hàng có màu phía trên không lấp đầy lề dưới. Thay đổi có hiệu lực ngay với terminal đang mở của cả hai backend. Khi dùng nền trong mờ, nền mặc định giữ độ đục đã đặt, còn nền ô được đặt rõ ràng và phần mở rộng vẫn hoàn toàn đục.
+
 ### `editor.wrap-lines` [#editorwrap-lines]
 
 boolean — mặc định `true`
@@ -157,6 +183,16 @@ boolean — mặc định `true`
 
 Kiểm tra thay đổi bên ngoài trước khi lưu tệp hoặc diff cây làm việc có thể chỉnh sửa. Khi xung đột, bạn có thể so sánh, tải lại, giữ bản nháp hoặc chủ động ghi đè. Tắt tùy chọn này cho phép thay thế thay đổi bên ngoài mà không báo xung đột.
 
+### `editor.recover-drafts` [#editorrecover-drafts]
+
+boolean — mặc định `true`
+
+Zshell mặc định sao lưu thay đổi chưa lưu trong tệp cục bộ và diff cây làm việc có thể chỉnh sửa. Sau khi thoát bất ngờ, các khung mở lại khôi phục bản nháp, vùng chọn và bố cục. Với bản sao lưu khác, mở **Tệp → Khôi phục bản nháp…** hoặc **Cài đặt → Trình soạn thảo → Khôi phục bản nháp…**, chọn bản sao lưu, xem nội dung và chọn **Khôi phục bản nháp**. Khôi phục chỉ mở trình soạn thảo chưa lưu và không đổi tệp trên đĩa. Khi lưu, ứng dụng vẫn kiểm tra thay đổi bên ngoài bằng phiên bản trước các chỉnh sửa của bạn.
+
+Kiểm soát qua **Cài đặt → Trình soạn thảo → Sao lưu bản nháp chưa lưu** hoặc `editor.recover-drafts`. Tắt sẽ dừng sao lưu mới và khôi phục tự động nhưng giữ bản sao lưu hiện có để khôi phục hoặc xóa thủ công. **Xóa bản sao lưu** chỉ xóa bản đã chọn; chỉnh sửa đang mở được giữ lại. Lưu thành công hoặc chọn **Không lưu** khi đóng hoàn tất sẽ xóa bản sao lưu. Tệp riêng tư chỉ trên Mac này, tối đa 32 bản nháp và 128 MiB, có thể khôi phục trong tối đa 30 ngày. Giới hạn dung lượng có thể khiến bản sao lưu cũ bị xóa sớm hơn. Tệp và văn bản đã chỉnh sửa lớn hơn 5 MiB được loại trừ.
+
+Zshell xóa bản sao lưu hết hạn khi khởi động và mỗi giờ trong khi chạy, ngay cả khi đã tắt sao lưu. Nếu Zshell đóng, tệp hết hạn vẫn nằm trên đĩa cho đến lần khởi động tiếp theo.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
@@ -167,6 +203,24 @@ Chọn chương trình và vector đối số dùng cho terminal tạo từ sau 
 
 `terminal.startup-arguments` được tách đối số không gọi shell. Dấu nháy và gạch chéo ngược giữ ranh giới, kể cả khoảng trắng và đối số rỗng; biến, glob và thay thế lệnh không được mở rộng. Nháy không hợp lệ cũng trở về shell đăng nhập. argv được CLI Zshell đưa rõ vẫn ưu tiên cho terminal đó.
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — mặc định `"current"`
+
+Chọn **Cài đặt → Terminal → Thư mục phiên mới**. Hiện tại dùng thư mục của shell cục bộ đang hoạt động, kể cả terminal đầu tiên của dự án mới. Nếu không có shell cục bộ, dùng thư mục nhà. Dự án dùng gốc hiển thị trong Tệp và Git (kho gần nhất hoặc bản làm việc ở tiền cảnh); ngoài kho thì dùng thư mục hiện tại. Nhà luôn dùng thư mục của tài khoản. Chính sách cũng áp dụng cho Terminal nhanh đầu tiên và mỗi không gian làm việc mới của nó.
+
+Thư mục chỉ định rõ từ Finder, CLI, mẫu không gian làm việc, worktree, phiên khôi phục, thư mục ghim của dự án hoặc nhóm thanh bên được ưu tiên. Chia khung giữ thư mục của khung nguồn. SSH và phiên từ xa dùng chung giữ thư mục trên máy từ xa. Đổi cài đặt không khởi động lại terminal đang mở hoặc không gian Terminal nhanh được dùng lại.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+chuỗi — mặc định `""`
+
+Với tùy chỉnh, nhập đường dẫn tuyệt đối hoặc `~/folder`, hoặc chọn thư mục trong Cài đặt. Zshell kiểm tra thư mục tồn tại và có thể truy cập. Thư mục thiếu, không truy cập được hoặc không hợp lệ sẽ dùng thư mục cục bộ hiện tại (nhà nếu không có); Cài đặt hiển thị lý do. Đường dẫn đã lưu vẫn được giữ khi chọn chính sách khác.
+
+### `terminal.term`
+
+Đặt `terminal.term` trong **Cài đặt → Terminal → TERM** (mặc định `"xterm-256color"`). Tên phải gồm 1–128 chữ cái ASCII, chữ số hoặc `.-_+`. Dùng tên terminfo đã cài trên máy chạy shell. Thay đổi chỉ áp dụng cho phiên cục bộ và SSH mới; các PTY đang mở và được giữ lại vẫn giữ `TERM` ban đầu. Phiên từ xa dùng chung sử dụng giá trị này khi tạo trên máy chủ đã cập nhật; máy chủ cũ vẫn dùng `xterm-256color`. Giá trị không hợp lệ khi khởi động sẽ dùng `xterm-256color`; chỉnh sửa không hợp lệ khi Zshell đang chạy sẽ giữ lại giá trị hợp lệ gần nhất. Cả hai trường hợp đều hiển thị lỗi trong Cài đặt. `TERM_PROGRAM` và `ZSHELL_TERM` không thay đổi.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — mặc định `"libghostty"`
@@ -174,6 +228,12 @@ Chọn chương trình và vector đối số dùng cho terminal tạo từ sau 
 Chọn bộ mô phỏng cho terminal tạo sau đó. Ô hiện tại giữ backend ban đầu. Cả hai là native, tăng tốc GPU, hỗ trợ ảnh và dùng chung chủ đề; Alacritty thường chiếm ít bộ nhớ hơn.
 
 Xem biến môi trường và cam kết tương thích ở [Backend terminal](/vi/docs/terminal#terminal-backends).
+
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+số, 0.1–10 — mặc định `1` cho từng thiết bị
+
+Điều chỉnh riêng hai tốc độ tại **Cài đặt → Terminal → Cuộn → Con lăn chuột / Bàn di chuột**. Giá trị hiển thị theo phần trăm: 100% giữ tốc độ hiện tại, 50% giảm một nửa và 200% tăng gấp đôi. Thay đổi có hiệu lực ngay trong các khung Ghostty và Alacritty đang mở, lịch sử cuộn, chương trình toàn màn hình và báo cáo chuột. Cuộn theo quán tính dùng giá trị bàn di chuột; cuộn ngang vẫn theo chiều ngang. Chuột gửi độ lệch chính xác cũng dùng giá trị bàn di chuột. Giá trị thiếu hoặc không hợp lệ trở về `1`. Nhập, xuất và đặt lại cài đặt bao gồm cả hai giá trị.
 
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
@@ -221,19 +281,34 @@ Khi khôi phục ngăn terminal và PTY gốc không còn khả dụng, tiếp t
 
 Điều khiển trong **Cài đặt → Tự động hóa → Tiếp tục cuộc trò chuyện của tác nhân**. Tùy chọn này độc lập với `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+boolean — mặc định `false`
+
+Bật đọc giới hạn tài khoản CLI cục bộ trong **Cài đặt → Tự động hóa → Mức sử dụng tài khoản → Đọc mức sử dụng tài khoản**. Tắt sẽ hủy yêu cầu, ẩn dữ liệu và từ chối lưu báo cáo Claude. Lựa chọn nhà cung cấp được giữ lại. Không thay đổi nhận diện tác nhân, báo cáo vòng đời hoặc khôi phục hội thoại.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — mỗi mục mặc định `true`
+
+Chọn nhà cung cấp khi `ai.usage-enabled = true`. Claude Code đọc báo cáo dòng trạng thái cục bộ của Zshell; Codex truy vấn CLI đã cài đặt và đăng nhập. Tắt nhà cung cấp lập tức dừng đọc và ẩn dữ liệu. Không thu thập thông tin đăng nhập. Cả ba hỗ trợ tìm kiếm, nhập/xuất, tải lại cấu hình trực tiếp và khôi phục mặc định.
+
 ## Cài đặt bổ sung [#additional-settings]
 
 | Khóa | Mặc định | Giá trị / khoảng | Tác dụng |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Biểu tượng ứng dụng |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Trình soạn thảo ngoài cho tệp/thư mục |
+| `files.drag-import` | `false` | boolean | Cho phép kéo mục Finder vào cây tệp cục bộ để sao chép; menu nhập luôn khả dụng |
 | `terminal.theme-only` | `false` | boolean | Chỉ áp dụng bảng màu cho terminal |
 | `terminal.command-history` | `true` | boolean | Ghi lệnh mới; lịch sử đã lưu vẫn có thể xem khi tắt |
 | `terminal.text-hints` | `true` | boolean | Bật gợi ý bàn phím cho văn bản terminal đang hiển thị |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | boolean | **Cài đặt → Terminal → Hàng đợi lệnh** điều khiển mọi không gian làm việc và Quick Terminal. Tắt công tắc chính ẩn thanh và hủy gửi, giữ mục và nội dung đến khi đóng terminal. Gửi tự động là tùy chọn, có hiệu lực từ lần kết thúc lệnh tiếp theo, theo thứ tự và chỉ tại dấu nhắc trống của zsh ban đầu không có tác vụ lệnh hoạt động. Bật không chạy hàng đợi ngay. Gửi thủ công có cùng kiểm tra; shell khác hoặc lồng nhau, chương trình tiền cảnh và bản nháp không nhận hàng đợi. |
 | `terminal.auto-profiles` | `true` | boolean | Tự động khớp hồ sơ terminal; vẫn có thể chọn thủ công |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Hình con trỏ terminal |
 | `terminal.cursor-blinking` | `true` | boolean | Nhấp nháy con trỏ |
 | `terminal.copy-on-select` | `true` | boolean | Sao chép chữ terminal đã chọn |
+| `terminal.right-click-action` | `"context-menu"` | chuỗi | Menu ngữ cảnh, dán hoặc sao chép vùng chọn và dán khi không chọn (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | boolean | Tiêu điểm theo chuột |
 | `terminal.shift-enter-newline` | `true` | boolean | Gửi chuỗi xuống dòng nâng cao bằng Shift+Enter; cần ứng dụng hỗ trợ |
 | `terminal.background-opacity` | `1` | 0.2–1 | Độ đục nền terminal |
@@ -269,10 +344,14 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

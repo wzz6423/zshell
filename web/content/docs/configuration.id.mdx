@@ -23,7 +23,7 @@ Sebelum menyunting secara manual, perhatikan:
 
 - **Perubahan dibaca saat aplikasi berjalan.** Suntingan eksternal yang valid diterapkan otomatis; pengaturan untuk terminal baru tetap memerlukan panel baru. Berkas tak terbaca atau sintaks salah mempertahankan pengaturan valid terakhir. Berkas yang sengaja kosong memulihkan nilai bawaan setelah jeda singkat.
 - **Zshell menulis ulang berkas saat pengaturan yang disimpan di dalamnya berubah.** Berkas dibuat ulang dari awal, sehingga komentar dan kunci yang tidak dikenali akan hilang ketika kontrol tersebut digunakan lagi. Pilih satu cara menyunting, atau simpan salinan utama di dotfiles Anda.
-- **Sebagian besar nilai bawaan tidak ditulis.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` selalu disimpan. Menghapus salah satu dari tiga kunci terminal tersebut dalam berkas yang ada mematikan fiturnya; menghapus kunci lain memulihkan nilai bawaan.
+- **Sebagian besar nilai bawaan tidak ditulis.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` selalu disimpan. Menghapus `terminal.vim-command-hints`, `terminal.restore-history`, atau `terminal.notify-on-error` dari berkas yang ada mematikan fitur terkait. Menghapus `terminal.prompt-queue-enabled` memulihkan nilai bawaannya `true`; menghapus `terminal.prompt-queue-auto-dispatch` memulihkan nilai bawaannya `false`. Menghapus kunci lain memulihkan nilai bawaan masing-masing.
 - **Parser sengaja sederhana.** Parser mendukung kunci datar, kunci bertitik, judul `[table]`, komentar `#`, serta nilai string/angka/boolean. Array, tabel sebaris, dan string multibaris tidak didukung.
 - **Nilai salah menggunakan cadangan yang aman.** Ukuran di luar rentang, backend tidak dikenal, atau salah eja tema tidak menghalangi Zshell untuk dibuka.
 
@@ -113,6 +113,26 @@ Angka, 9–24 — bawaan `14`
 
 Ukuran teks dasar kedua bilah samping. Judul bagian, baris, metadata, dan kontrol mempertahankan hierarki relatif ketika ukuran dasar berubah.
 
+### `sidebar.double-click-new-session` [#sidebardouble-click-new-session]
+
+Boolean — bawaan `true`
+
+Klik dua kali ruang kosong di bilah samping untuk membuat sesi di proyek terpilih, atau proyek jika tidak ada yang dipilih. Klik dan seret pada baris tetap menjalankan tindakan biasanya.
+
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+boolean — bawaan `true`
+
+Aktifkan atau nonaktifkan ligatur opsional kedua backend di **Pengaturan → Tampilan → Ligatur font**. Menonaktifkannya menimpa `calt`, `liga`, `clig`, `dlig`, dan `hlig`, sambil mempertahankan pembentukan aksara yang wajib. Karakter, kolom terminal, kursor, dan pilihan tidak berubah.
+
+### `terminal.font-features` [#terminalfont-features]
+
+teks — bawaan `""`, menggunakan bawaan font
+
+Isi **Fitur OpenType** dengan tag empat karakter, dipisahkan koma atau spasi: `-calt` menonaktifkan alternatif kontekstual, `ss01` mengaktifkan set gaya 1, dan `zero=1` mengaktifkan nol alternatif. `+liga` dan `liga=1` juga mengaktifkan fitur. Entri terakhir untuk tag yang sama berlaku; sakelar ligatur diprioritaskan untuk lima tag tersebut.
+
+Perubahan langsung berlaku pada terminal terbuka dan pratinjau. Kedua backend memakai fitur yang didukung font; tag lainnya tidak berpengaruh. Input tidak valid mempertahankan nilai valid terakhir; nilai eksternal tidak valid memakai bawaan font. Reset mengosongkan daftar dan mengaktifkan ligatur.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 Boolean — bawaan `false`
@@ -139,6 +159,12 @@ Mengalikan tinggi sel alami masing-masing backend, sambil menjaga glif terpusat 
 
 Zshell tidak menyediakan kontrol bobot font dasar. Ghostty memilih gaya bernama atau sumbu variasi, sedangkan Alacritty/CoreText menentukan wajah reguler dan tebal berdasarkan atribut. Satu nilai bersama tidak akan menjaga perbedaan reguler/tebal dan bobot cadangan secara konsisten di font statis maupun variabel.
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+Pilih **Pengaturan → Tampilan → Latar → Warna tepi**. `"background"` memakai latar tema terminal pada tepi. `"extend"` memperluas latar sel terdekat, tetapi mempertahankan latar tema pada tepi atas atau bawah jika baris tersebut berisi sel dengan latar bawaan, prompt shell, atau pemisah Powerline. `"always"` memperluas semua tepi tanpa pemeriksaan tersebut. Baris kosong di bagian bawah mempertahankan latarnya sendiri; baris berwarna di atasnya tidak mengisi tepi bawah. Perubahan langsung berlaku pada terminal terbuka di kedua backend. Dengan latar tembus pandang, latar bawaan mempertahankan opasitasnya, sedangkan latar sel yang ditentukan secara eksplisit beserta perluasannya tetap buram.
+
 ### `editor.wrap-lines` [#editorwrap-lines]
 
 Boolean — bawaan `true`
@@ -157,6 +183,16 @@ boolean — bawaan `true`
 
 Memeriksa perubahan eksternal sebelum menyimpan file atau diff worktree yang dapat diedit. Saat konflik, bandingkan versi, muat ulang, simpan draf, atau timpa secara eksplisit. Menonaktifkannya mengizinkan penggantian perubahan eksternal tanpa peringatan konflik.
 
+### `editor.recover-drafts` [#editorrecover-drafts]
+
+boolean — default `true`
+
+Zshell secara default mencadangkan perubahan yang belum disimpan pada berkas lokal dan diff pohon kerja yang dapat diedit. Setelah keluar secara tak terduga, panel yang dibuka kembali memulihkan draf, pilihan, dan tata letaknya. Untuk cadangan lain, buka **Berkas → Pulihkan Draf…** atau **Pengaturan → Editor → Pulihkan Draf…**, pilih cadangan, tinjau isinya, lalu pilih **Pulihkan Draf**. Pemulihan membuka editor yang belum disimpan tanpa mengubah berkas di disk. Penyimpanan tetap memeriksa perubahan eksternal menggunakan versi sebelum edit Anda.
+
+Kendalikan cadangan melalui **Pengaturan → Editor → Cadangkan draf yang belum disimpan** atau `editor.recover-drafts`. Menonaktifkannya menghentikan cadangan baru dan pemulihan otomatis, tetapi menyimpan cadangan yang ada untuk pemulihan atau penghapusan manual. **Hapus Cadangan** hanya menghapus cadangan terpilih; edit terbuka tetap ada. Penyimpanan berhasil atau **Jangan Simpan** saat penutupan selesai menghapus cadangan. Berkas privat tetap di Mac ini, dibatasi 32 draf dan 128 MiB dan dapat dipulihkan hingga 30 hari. Batas kapasitas dapat menghapus cadangan lama lebih awal. Berkas dan teks edit di atas 5 MiB dikecualikan.
+
+Zshell menghapus cadangan kedaluwarsa saat memulai dan setiap jam selama berjalan, meskipun pencadangan dinonaktifkan. Jika Zshell ditutup, berkas kedaluwarsa tetap di disk hingga pembukaan berikutnya.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
@@ -167,6 +203,24 @@ Memilih executable dan vektor argumen untuk terminal yang dibuat setelah perubah
 
 `terminal.startup-arguments` dipecah menjadi argumen tanpa menjalankan shell. Tanda kutip dan garis miring terbalik mempertahankan batas, termasuk spasi dan argumen kosong, tetapi variabel, glob, dan substitusi perintah tidak diperluas. Kutipan tidak valid juga kembali ke shell login. Argv eksplisit dari CLI Zshell tetap didahulukan untuk terminal itu.
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — bawaan `"current"`
+
+Pilih **Pengaturan → Terminal → Direktori sesi baru**. Saat ini memakai direktori shell lokal aktif, termasuk terminal pertama proyek baru. Tanpa shell lokal, direktori home digunakan. Proyek memakai akar yang ditampilkan di Berkas dan Git (repositori terdekat atau checkout di latar depan); di luar repositori, direktori saat ini digunakan. Home selalu memakai direktori akun. Kebijakan ini juga berlaku untuk Terminal cepat pertama dan setiap ruang kerja barunya.
+
+Direktori eksplisit dari Finder, CLI, templat ruang kerja, worktree, sesi yang dipulihkan, direktori proyek yang disematkan, atau grup bilah samping diprioritaskan. Panel terbagi mempertahankan direktori panel sumber. SSH dan sesi jarak jauh bersama tetap memakai direktori pada host jarak jauh. Perubahan pengaturan tidak memulai ulang terminal terbuka atau ruang Terminal cepat yang digunakan kembali.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+teks — bawaan `""`
+
+Untuk khusus, masukkan jalur absolut atau `~/folder`, atau pilih folder di Pengaturan. Zshell memeriksa bahwa folder ada dan bisa dimasuki. Folder yang hilang, tidak dapat diakses, atau tidak valid kembali ke direktori lokal saat ini (home jika tidak ada); Pengaturan menampilkan alasannya. Jalur tersimpan tetap dipertahankan saat memilih kebijakan lain.
+
+### `terminal.term`
+
+Atur `terminal.term` di **Pengaturan → Terminal → TERM** (default `"xterm-256color"`). Nama harus berisi 1–128 huruf ASCII, angka, atau `.-_+`. Gunakan nama terminfo yang terpasang di host yang menjalankan shell. Perubahan hanya berlaku untuk sesi lokal dan SSH baru; PTY terbuka dan tersimpan mempertahankan `TERM` asli. Sesi jarak jauh bersama menggunakan nilai ini saat dibuat dengan server terbaru; server lama tetap menggunakan `xterm-256color`. Nilai tidak valid saat startup menggunakan `xterm-256color`; edit tidak valid saat Zshell berjalan mempertahankan nilai valid terakhir. Keduanya menampilkan kesalahan di Pengaturan. `TERM_PROGRAM` dan `ZSHELL_TERM` tidak berubah.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — bawaan `"libghostty"`
@@ -174,6 +228,12 @@ Memilih executable dan vektor argumen untuk terminal yang dibuat setelah perubah
 Memilih emulator untuk terminal yang dibuat setelah perubahan. Panel yang sudah ada mempertahankan backend awalnya. Keduanya native, dipercepat GPU, mendukung gambar, dan menggunakan tema Zshell yang sama; Alacritty biasanya memakai memori lebih sedikit.
 
 Lihat [Backend terminal](/id/docs/terminal#terminal-backends) untuk variabel lingkungan dan ketentuan kompatibilitas.
+
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+angka, 0.1–10 — default `1` untuk setiap perangkat
+
+Atur kedua kecepatan secara terpisah di **Pengaturan → Terminal → Pengguliran → Roda mouse / Panel sentuh**. Nilai ditampilkan sebagai persentase: 100% mempertahankan kecepatan saat ini, 50% membaginya dua, dan 200% menggandakannya. Perubahan langsung berlaku pada panel Ghostty dan Alacritty yang terbuka, riwayat gulir, program layar penuh, dan pelaporan mouse. Gulir inersia memakai nilai panel sentuh; gulir horizontal tetap horizontal. Mouse yang mengirim delta presisi juga memakai nilai panel sentuh. Nilai yang hilang atau tidak valid kembali ke `1`. Impor, ekspor, dan reset mencakup kedua nilai.
 
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
@@ -221,19 +281,34 @@ Saat panel terminal dipulihkan dan PTY asal tidak tersedia, melanjutkan percakap
 
 Atur melalui **Pengaturan → Otomatisasi → Lanjutkan percakapan agen**. Opsi ini terpisah dari `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+boolean — bawaan `false`
+
+Mengaktifkan pembacaan batas akun CLI lokal melalui **Pengaturan → Otomasi → Penggunaan Akun → Baca penggunaan akun**. Mematikan membatalkan permintaan, menyembunyikan data, dan menolak menyimpan laporan Claude. Pilihan penyedia dipertahankan. Pengenalan agen, laporan siklus hidup, dan pemulihan percakapan tidak berubah.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — bawaan `true` untuk masing-masing
+
+Memilih penyedia saat `ai.usage-enabled = true`. Claude Code membaca laporan baris status lokal Zshell; Codex meminta CLI terpasang yang sudah masuk. Mematikan penyedia langsung menghentikan pembacaan dan menyembunyikan data. Kredensial tidak dikumpulkan. Ketiga pilihan mendukung pencarian, impor/ekspor, pemuatan ulang langsung, dan pengaturan ulang.
+
 ## Pengaturan tambahan [#additional-settings]
 
 | Kunci | Bawaan | Nilai / rentang | Efek |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Ikon aplikasi |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Editor eksternal untuk berkas dan folder |
+| `files.drag-import` | `false` | boolean | Izinkan salinan Finder dengan menyeret ke pohon lokal; menu impor selalu tersedia |
 | `terminal.theme-only` | `false` | Boolean | Terapkan palet hanya pada terminal |
 | `terminal.command-history` | `true` | Boolean | Mencatat perintah baru; riwayat tersimpan tetap tersedia saat nonaktif |
 | `terminal.text-hints` | `true` | Boolean | Mengaktifkan petunjuk papan ketik untuk teks terminal yang terlihat |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | Boolean | **Pengaturan → Terminal → Antrean instruksi** mengontrol semua ruang kerja dan Quick Terminal. Menonaktifkan sakelar utama menyembunyikan bilah dan membatalkan pengiriman, sambil menyimpan entri dan masukan sampai terminal ditutup. Pengiriman otomatis bersifat opsional dan berlaku mulai penyelesaian perintah berikutnya, berurutan dan hanya pada prompt kosong zsh asli tanpa tugas perintah aktif. Mengaktifkan tidak langsung menjalankan antrean. Pengiriman manual memakai pemeriksaan yang sama; shell lain atau bersarang, program latar depan, dan draf tidak dapat menerima antrean. |
 | `terminal.auto-profiles` | `true` | Boolean | Mencocokkan profil otomatis; pilihan manual tetap tersedia |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Bentuk kursor terminal |
 | `terminal.cursor-blinking` | `true` | Boolean | Kedipan kursor |
 | `terminal.copy-on-select` | `true` | Boolean | Salin teks terminal yang dipilih |
+| `terminal.right-click-action` | `"context-menu"` | teks | Menu konteks, tempel, atau salin pilihan dan tempel jika tidak ada pilihan (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | Boolean | Fokus mengikuti mouse |
 | `terminal.shift-enter-newline` | `true` | Boolean | Kirim urutan baris baru yang diperluas lewat Shift+Enter; memerlukan dukungan aplikasi |
 | `terminal.background-opacity` | `1` | 0.2–1 | Opasitas latar terminal |
@@ -269,10 +344,14 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

@@ -22,16 +22,17 @@ final class MarkdownImageLoader {
     var onLoad: (() -> Void)?
 
     private var cache: [URL: NSImage] = [:]
-    private var inFlight: Set<URL> = []
+    private(set) var inFlight: [URL: Task<Void, Never>] = [:]
     /// Sources that failed or were rejected. Kept so a broken link is asked for
     /// once per document rather than on every re-render.
     private var failed: Set<URL> = []
+    private var generation: UInt = 0
 
     /// A decoded image, or nil while it loads (or after it failed). Starts the
     /// load on the first miss.
     func image(for url: URL) -> NSImage? {
         if let cached = cache[url] { return cached }
-        guard !inFlight.contains(url), !failed.contains(url) else { return nil }
+        guard inFlight[url] == nil, !failed.contains(url) else { return nil }
 
         if url.isFileURL {
             load(url) { await Self.readFile(url) }
@@ -47,19 +48,20 @@ final class MarkdownImageLoader {
     /// Drops everything so a re-opened or re-pointed document re-reads from
     /// disk instead of showing the previous file's images.
     func reset() {
+        generation &+= 1
         cache.removeAll()
         failed.removeAll()
         // In-flight loads are left alone; their results are simply discarded
-        // when they land, because the cache they would populate is gone.
+        // when they land, because they belong to an older generation.
         inFlight.removeAll()
     }
 
     private func load(_ url: URL, using work: @escaping () async -> NSImage?) {
-        inFlight.insert(url)
-        Task { [weak self] in
+        let expectedGeneration = generation
+        inFlight[url] = Task { [weak self] in
             let image = await work()
-            guard let self else { return }
-            self.inFlight.remove(url)
+            guard let self, self.generation == expectedGeneration else { return }
+            self.inFlight.removeValue(forKey: url)
             guard let image else {
                 self.failed.insert(url)
                 return
@@ -87,27 +89,12 @@ final class MarkdownImageLoader {
         // Idle timeout: it also covers a stalling body, since receiving data
         // resets it.
         request.timeoutInterval = 15
-        // Streamed rather than `data(for:)`, which would buffer the entire
-        // response before the size check could reject it — the cap has to hold
-        // against a server that ignores or misstates Content-Length.
-        guard let (bytes, response) = try? await URLSession.shared.bytes(for: request),
-              let http = response as? HTTPURLResponse,
-              (200..<300).contains(http.statusCode),
-              http.expectedContentLength <= Int64(maxBytes) // -1 when unknown
+        // Whole-chunk callbacks keep large images fast while enforcing the cap
+        // before buffering, even without Content-Length or after decompression.
+        guard let (data, _) = try? await BoundedHTTPData.data(
+            for: request, session: .shared, maximumBytes: maxBytes
+        )
         else { return nil }
-
-        var data = Data()
-        data.reserveCapacity(http.expectedContentLength > 0
-            ? Int(http.expectedContentLength)
-            : 1 << 20)
-        do {
-            for try await byte in bytes {
-                guard data.count < maxBytes else { return nil }
-                data.append(byte)
-            }
-        } catch {
-            return nil
-        }
         return NSImage(data: data)
     }
 }
