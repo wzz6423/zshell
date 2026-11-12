@@ -15,6 +15,14 @@ nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
 
     init(sessionID: UUID) { self.sessionID = sessionID }
 
+    /// Attach a connected mux socket that already has `SO_NOSIGPIPE`.
+    /// `start` dials the daemon; tests pass a socketpair so `write` can be
+    /// observed without the browser server.
+    init(sessionID: UUID, descriptor: Int32) {
+        self.sessionID = sessionID
+        self.descriptor = descriptor
+    }
+
     func start(queue: DispatchQueue,
                frame: @escaping @Sendable (PTYMuxObserverFrame.Kind, Data) -> Void,
                ended: @escaping @Sendable (Bool) -> Void) {
@@ -105,13 +113,55 @@ nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
     }
 
     func write(_ data: Data) -> Bool {
+        // `close()` takes this lock from the observe loop. Polling while
+        // holding it deadlocks a paste that the reader is trying to stop.
         lock.lock()
-        defer { lock.unlock() }
-        guard !stopped, descriptor >= 0, data.count <= BrowserAccessLimits.frameBytes else { return false }
-        var available = pollfd(fd: descriptor, events: Int16(POLLOUT), revents: 0)
-        guard poll(&available, 1, 0) == 1, available.revents & Int16(POLLOUT) != 0 else { return false }
-        let written = data.withUnsafeBytes { Darwin.send(descriptor, $0.baseAddress, $0.count, MSG_DONTWAIT) }
-        return written == data.count
+        let fd = descriptor
+        let open = !stopped && fd >= 0 && data.count <= BrowserAccessLimits.frameBytes
+        lock.unlock()
+        guard open else { return false }
+
+        // Darwin AF_UNIX send ignores MSG_DONTWAIT and waits out SO_SNDTIMEO.
+        // configureSocket leaves that at 2s, so a full 8 KiB buffer stalls the
+        // paste and then returns a short count. A 1 ms timeout lets the loop
+        // poll for the peer instead of treating that prefix as failure.
+        var sendTimeout = timeval(tv_sec: 0, tv_usec: 1_000)
+        _ = setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &sendTimeout, socklen_t(MemoryLayout<timeval>.size))
+
+        // One browser paste is a single frame of up to 16 KiB, larger than the
+        // Unix stream send buffer. A short send has already entered the PTY;
+        // failing that frame disconnects and can run a partial command. Retry
+        // until the frame is queued or the socket itself fails. A poll timeout
+        // means the peer may still be reading.
+        var offset = 0
+        return data.withUnsafeBytes { raw in
+            guard let base = raw.baseAddress else { return raw.count == 0 }
+            while offset < raw.count {
+                lock.lock()
+                let current = !stopped && descriptor == fd
+                lock.unlock()
+                guard current else { return false }
+
+                var ready = pollfd(fd: fd, events: Int16(POLLOUT), revents: 0)
+                let polled = poll(&ready, 1, 50)
+                if polled < 0 {
+                    if errno == EINTR { continue }
+                    return false
+                }
+                if polled == 0 { continue }
+                if ready.revents & Int16(POLLOUT) == 0 { return false }
+
+                let sent = Darwin.send(fd, base.advanced(by: offset), raw.count - offset, MSG_DONTWAIT)
+                if sent > 0 {
+                    offset += sent
+                } else if sent < 0, errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK {
+                    continue
+                } else {
+                    return false
+                }
+            }
+            return true
+        }
     }
 
     func close() {
