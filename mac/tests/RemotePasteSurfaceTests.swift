@@ -249,7 +249,9 @@ struct RemotePasteSurfaceTests {
         let executable = CommandLine.arguments[2]
         let host = try RemoteHost(name: "Paste fixture", address: CommandLine.arguments[3], serverPath: CommandLine.arguments[5])
         let project = CommandLine.arguments[4]
-        let local = FileManager.default.homeDirectoryForCurrentUser
+        let local = FileManager.default.temporaryDirectory.appendingPathComponent("zshell-remote-paste-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: local, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: local) }
         let sessionID = UUID()
         AppSettings.shared.terminalBackend = backend == "ghostty" ? .libghostty : .alacritty
         AppSettings.shared.terminalStartupProgram = ""
@@ -367,14 +369,29 @@ struct RemotePasteSurfaceTests {
         }
         let tooLarge = try sparse("too-large", bytes: UInt64(RemotePasteUpload.maximumFileBytes + 1))
         let batchFiles = try (0..<3).map { try sparse("batch-\($0)", bytes: UInt64(RemotePasteUpload.maximumFileBytes)) }
-        for urls in [[unsafeDirectory], [symlink], [tooLarge], batchFiles, Array(repeating: first, count: 33),
-                     [URL(string: "https://example.invalid/file")!], [URL(fileURLWithPath: first.path + "\u{0}suffix")]] {
+        let regularFileError = RemoteHostError.message(String(localized: "Paste regular files up to 32 MiB each. Folders and symbolic links aren’t supported."))
+        let unreadableFilesError = RemoteHostError.message(String(localized: "The clipboard files couldn’t be read."))
+        let invalidFiles: [([URL], Error)] = [
+            ([unsafeDirectory], regularFileError),
+            ([symlink], PTYMuxError.message("open: \(String(cString: strerror(ELOOP)))")),
+            ([tooLarge], regularFileError),
+            (batchFiles, RemotePasteUpload.sizeError()),
+            (Array(repeating: first, count: 33), RemotePasteUpload.sizeError()),
+            ([URL(string: "https://example.invalid/file")!], unreadableFilesError),
+            // Foundation keeps NUL escaped in URL.path, and the literal %00suffix file is absent.
+            ([URL(fileURLWithPath: first.path + "\u{0}suffix")], PTYMuxError.message("open: \(String(cString: strerror(ENOENT)))")),
+        ]
+        for (urls, expectedError) in invalidFiles {
             do {
                 _ = try RemotePasteUpload.upload(.files(urls), host: host, project: project, sessionID: sessionID, clientID: clientID)
                 try check(false, "invalid upload must be rejected")
             } catch {
-                if (error as NSError).domain == "RemotePasteTest" { throw error }
-                try check(true, "invalid file kind, path, count or size is rejected before upload")
+                switch (error, expectedError) {
+                case let (RemoteHostError.message(actual), RemoteHostError.message(expected)) where actual == expected,
+                     let (PTYMuxError.message(actual), PTYMuxError.message(expected)) where actual == expected:
+                    try check(true, "invalid file kind, path, count or size is rejected before upload")
+                default: throw error
+                }
             }
         }
 
