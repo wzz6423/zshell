@@ -73,23 +73,28 @@ final class FileTreeModel: nonisolated ObservableObject {
     private static let remoteRefreshInterval: TimeInterval = 5
     private static let remoteConcurrencyLimit = 2
     private let remoteListing: (@Sendable (SSHEndpoint, String) throws -> [SSHEndpoint.DirectoryEntry])?
+    private let remoteCapabilitiesProbe: @Sendable (RemoteFileSource) throws -> RemoteFileCapabilities
     private let remoteNow: () -> TimeInterval
     /// Invalidates in-flight listings after the endpoint or root changes.
     private var remoteGeneration = 0
     @Published private(set) var remoteError: String?
     @Published private(set) var isRemoteLoading = false
     @Published private(set) var remoteCapabilities: RemoteFileCapabilities?
+    @Published private(set) var remoteWriteError: String?
     @Published private(set) var isRemoteChanging = false
     private var remoteWritesEnabled = false
     private var capabilityTask: Task<Void, Never>?
+    private var capabilityLastAttempt: TimeInterval?
     private var lastRemoteTrash: RemoteTrashEntry?
 
     init(
         remoteListing: (@Sendable (SSHEndpoint, String) throws -> [SSHEndpoint.DirectoryEntry])? = nil,
-        remoteNow: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
+        remoteNow: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
+        remoteCapabilitiesProbe: @escaping @Sendable (RemoteFileSource) throws -> RemoteFileCapabilities = { try RemoteFileService().capabilities(source: $0) }
     ) {
         self.remoteListing = remoteListing
         self.remoteNow = remoteNow
+        self.remoteCapabilitiesProbe = remoteCapabilitiesProbe
     }
 
     var isRemote: Bool { remoteEndpoint != nil }
@@ -132,17 +137,28 @@ final class FileTreeModel: nonisolated ObservableObject {
             capabilityTask?.cancel()
             capabilityTask = nil
             remoteCapabilities = nil
+            remoteWriteError = nil
+            capabilityLastAttempt = nil
             if !enabled { cancelDraft(); cancelRename() }
         }
         guard enabled, let source = remoteSource, !source.root.isEmpty,
               remoteCapabilities == nil, capabilityTask == nil else { return }
+        if let last = capabilityLastAttempt, remoteNow() - last < Self.remoteRefreshInterval { return }
+        capabilityLastAttempt = remoteNow()
         let generation = remoteGeneration
+        let probe = remoteCapabilitiesProbe
         capabilityTask = Task { [weak self] in
             let result = await Task.detached(priority: .utility) {
-                (try? RemoteFileService().capabilities(source: source)) ?? .unavailable
+                Result { try probe(source) }
             }.value
             guard let self, !Task.isCancelled, generation == self.remoteGeneration else { return }
-            self.remoteCapabilities = result
+            switch result {
+            case .success(let capabilities):
+                self.remoteCapabilities = capabilities
+                self.remoteWriteError = nil
+            case .failure(let error):
+                self.remoteWriteError = error.localizedDescription
+            }
             self.capabilityTask = nil
         }
     }
@@ -151,6 +167,8 @@ final class FileTreeModel: nonisolated ObservableObject {
         capabilityTask?.cancel()
         capabilityTask = nil
         remoteCapabilities = nil
+        remoteWriteError = nil
+        capabilityLastAttempt = nil
         lastRemoteTrash = nil
         isRemoteChanging = false
     }
@@ -221,6 +239,8 @@ final class FileTreeModel: nonisolated ObservableObject {
         capabilityTask?.cancel()
         capabilityTask = nil
         remoteCapabilities = nil
+        remoteWriteError = nil
+        capabilityLastAttempt = nil
         refreshRemoteListings(force: true)
     }
 

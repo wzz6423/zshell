@@ -549,6 +549,7 @@ nonisolated struct BoundedProcessOutput: Equatable, Sendable {
     let stdout: String
     let stderr: String
     let wasTruncated: Bool
+    var stdoutIsValidUTF8 = true
 }
 
 nonisolated struct BoundedProcessResult: Equatable, Sendable {
@@ -769,7 +770,7 @@ nonisolated struct OpenSSHTransport: Sendable {
             """, "zshell-files", directory],
             authentication: authentication, credentialID: credentialID
         )
-        guard !output.wasTruncated else { throw TransportError.failed(status: -1, output: output) }
+        guard !output.wasTruncated, output.stdoutIsValidUTF8 else { throw TransportError.failed(status: -1, output: output) }
         let fields = output.stdout.split(separator: "\0", omittingEmptySubsequences: false)
         guard fields.count % 2 == 1, fields.last == "" else { throw TransportError.failed(status: -1, output: output) }
         return stride(from: 0, to: fields.count - 1, by: 2).compactMap { index in
@@ -945,7 +946,8 @@ private nonisolated final class BoundedOutputCollector: @unchecked Sendable {
         return BoundedProcessOutput(
             stdout: String(decoding: stdout, as: UTF8.self),
             stderr: String(decoding: stderr, as: UTF8.self),
-            wasTruncated: truncated
+            wasTruncated: truncated,
+            stdoutIsValidUTF8: String(data: stdout, encoding: .utf8) != nil
         )
     }
 }

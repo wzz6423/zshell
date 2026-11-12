@@ -145,6 +145,17 @@ private func rejects(_ expected: RemoteFileService.Failure, _ operation: () thro
         let namedBaseline = try service.read(source: namedNestedSource, path: namedFile)
         guard case .saved(let namedSaved) = try service.save(source: namedNestedSource, path: namedFile, text: "named", baseline: namedBaseline) else { fatalError("Named tilde save conflicted") }
         try require(namedSaved.text == "named", "Named-user tilde subdirectories support safe saves")
+        let invalidDirectory = root.appendingPathComponent("invalid-names")
+        try fm.createDirectory(at: invalidDirectory, withIntermediateDirectories: false)
+        var invalidName = Array((invalidDirectory.path + "/").utf8CString.dropLast())
+        invalidName.append(CChar(bitPattern: 0xff))
+        invalidName.append(0)
+        let invalidDescriptor = invalidName.withUnsafeBufferPointer { Darwin.open($0.baseAddress!, O_WRONLY | O_CREAT | O_EXCL, 0o600) }
+        try require(invalidDescriptor >= 0, "Invalid UTF-8 filename fixture was created")
+        Darwin.close(invalidDescriptor)
+        defer { _ = invalidName.withUnsafeBufferPointer { Darwin.unlink($0.baseAddress!) } }
+        let invalidListing = try? service.transport.listDirectory(endpoint: source.endpoint, directory: invalidDirectory.path)
+        try require(invalidListing == nil, "Invalid filename bytes cannot alias a different UTF-8 path in a write menu")
         print("Remote file operations: \(checks) checks passed; no GUI, server, network, credentials, or retained binary")
     }
 }

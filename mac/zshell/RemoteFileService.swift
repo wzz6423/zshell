@@ -198,7 +198,7 @@ nonisolated struct RemoteFileService: Sendable {
                 command: ["/bin/sh", "-c", #"command -v perl >/dev/null 2>&1 || exit 69; exec perl -e "$1" -- "$2""#, "zshell-files", Self.script, root],
                 authentication: source.authentication, credentialID: source.credentialID, standardInput: payload)
         } catch OpenSSHTransport.TransportError.failed(let status, _) where status == 69 { throw Failure.unsupported }
-        guard !output.wasTruncated, let bytes = output.stdout.data(using: .utf8),
+        guard !output.wasTruncated, output.stdoutIsValidUTF8, let bytes = output.stdout.data(using: .utf8),
               let response = try? JSONDecoder().decode(Response.self, from: bytes) else { throw Failure.invalidResponse }
         switch response.error {
         case nil: return response

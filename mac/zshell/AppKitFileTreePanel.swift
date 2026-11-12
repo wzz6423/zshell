@@ -204,6 +204,10 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
             noticeLabel.stringValue = error
             retryButton.isHidden = false
             notice.isHidden = searching
+        } else if isRemote, AppSettings.shared.remoteFileWritesEnabled, let error = model.remoteWriteError {
+            noticeLabel.stringValue = error
+            retryButton.isHidden = false
+            notice.isHidden = searching
         } else if isRemote, model.isRemoteLoading, model.items.isEmpty {
             noticeLabel.stringValue = String(localized: "Loading remote directory…")
             retryButton.isHidden = true
