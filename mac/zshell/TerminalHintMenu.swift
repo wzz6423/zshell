@@ -6,9 +6,7 @@ final class TerminalHintMenu: NSObject, NSMenuItemValidation {
     private var shortcutMonitor: Any?
 
     func install(in mainMenu: NSMenu) {
-        guard let menu = mainMenu.items.compactMap(\.submenu).first(where: { menu in
-            menu.items.contains { $0.action.map(NSStringFromSelector) == "toggleQuickTerminal" }
-        }) else { return }
+        guard let menu = AppMenuController.submenu(.terminal, in: mainMenu) else { return }
         if !AppSettings.shared.terminalTextHints {
             for item in menu.items where ["zshell-copy-terminal-hint", "zshell-open-terminal-hint"].contains(item.identifier?.rawValue ?? "") {
                 menu.removeItem(item)

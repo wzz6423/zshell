@@ -61,6 +61,10 @@ struct TerminalCommandHistoryPanelTests {
         let applicationItem = NSMenuItem(title: "Zshell", action: nil, keyEquivalent: "")
         applicationItem.submenu = NSMenu(title: "Zshell")
         mainMenu.addItem(applicationItem)
+        let terminalItem = NSMenuItem(title: "Terminal", action: nil, keyEquivalent: "")
+        terminalItem.identifier = .init(AppMenuController.Menu.terminal.rawValue)
+        terminalItem.submenu = NSMenu(title: "Terminal")
+        mainMenu.addItem(terminalItem)
         NSApp.mainMenu = mainMenu
         let applicationDelegate = ZshellApplicationDelegate()
         applicationDelegate.restoreTerminalMenus()

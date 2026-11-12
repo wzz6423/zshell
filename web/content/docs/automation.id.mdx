@@ -68,12 +68,11 @@ Tekan <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> untuk menuju agen berikutnya 
 
 ## Penggunaan akun dan batas [#account-usage-and-limits]
 
-**Pengaturan → Otomatisasi → Penggunaan Akun (Account Usage)** menampilkan batas akun yang tersedia untuk Claude Code dan Codex, termasuk persentase terpakai, waktu reset jika dilaporkan, dan waktu pembaruan terakhir.
-Gunakan **Segarkan Penggunaan (Refresh Usage)** untuk memuat data terbaru yang tersedia.
+**Pengaturan → Otomasi → Penggunaan Akun** selalu menyediakan **Baca penggunaan akun**, **Baca penggunaan Claude Code**, dan **Baca penggunaan Codex**. Pengaturan utama mati secara bawaan; setiap penyedia aktif tetapi hanya dibaca ketika pengaturan utama aktif. Perubahan berlaku langsung dan mematikan pengaturan utama mempertahankan pilihan penyedia.
 
-Codex memerlukan CLI terpasang dan sudah masuk yang dapat melaporkan batas akun.
-Penggunaan Claude Code muncul ketika Zshell menerima laporan penggunaan dari baris status penyedia.
-Bagian ini hanya tampil bila data tersedia; periode yang didukung bergantung pada penyedia dan akun. Ini batas akun, bukan total token sesi aktif.
+Aktifkan penyedia yang diinginkan untuk membaca batas akun CLI lokal. Codex memakai CLI terpasang yang sudah masuk; Claude Code memakai laporan baris status yang diterima Zshell. Mengaktifkan penggunaan tidak mengumpulkan kredensial, memasang CLI, atau masuk untuk Anda. Ini adalah batas akun, bukan jumlah token sesi aktif.
+
+**Segarkan Penggunaan** memuat ulang penyedia aktif saja. Bagian ini menampilkan pemuatan, ketidaktersediaan, dan data terakhir setelah kegagalan. Mematikan penggunaan atau penyedia menghentikan pembacaan, membatalkan permintaan tertunda, dan menyembunyikan data. Laporan Claude yang dinonaktifkan ditolak tanpa menulis berkas. Pengenalan agen, status siklus hidup, dan pemulihan percakapan tidak berubah.
 
 ## Alur kerja umum [#a-typical-workflow]
 
@@ -110,7 +109,7 @@ Tanpa identitas terverifikasi, direktori kerja asli, atau berkas Pi, shell baru 
 
 ## Menemukan dan melanjutkan percakapan tersimpan [#saved-conversation-history]
 
-Buka **Agen → Riwayat Percakapan Agen**, klik jam di bagian atas bilah samping proyek. Cari lintas proyek menurut judul, penyedia, proyek, ID percakapan, direktori kerja atau konfigurasi. Zshell menyimpan 200 percakapan lokal terverifikasi terbaru setelah agen dan panel ditutup serta aplikasi dimulai ulang. **Terbaru** menampilkan 20 hasil yang belum diarsipkan; **Semua** mencakup arsip; **Diarsipkan** hanya menampilkan arsip.
+Buka **Terminal → Agen → Riwayat Percakapan Agen**, klik jam di bagian atas bilah samping proyek. Cari lintas proyek menurut judul, penyedia, proyek, ID percakapan, direktori kerja atau konfigurasi. Zshell menyimpan 200 percakapan lokal terverifikasi terbaru setelah agen dan panel ditutup serta aplikasi dimulai ulang. **Terbaru** menampilkan 20 hasil yang belum diarsipkan; **Semua** mencakup arsip; **Diarsipkan** hanya menampilkan arsip.
 
 Pilih **Tampilkan percakapan** jika masih terbuka atau **Lanjutkan percakapan** jika tersimpan. Zshell memakai panel terbuka, menyambungkan kembali PTY yang masih aktif, atau melanjutkan percakapan penyedia yang tepat dengan direktori dan konfigurasi asli. Pelanjutan manual memerlukan integrasi AI meski pemulihan otomatis dimatikan. Direktori yang hilang serta berkas Pi yang hilang atau tidak cocok menampilkan kesalahan sebelum panel dibuat.
 
@@ -142,4 +141,4 @@ zshell +events --event command.task.finished --once --timeout 30000
 
 ## Mencabangkan percakapan [#fork-a-conversation]
 
-Di **Agents → Agent Conversation History**, pilih percakapan lalu **Cabangkan percakapan di panel baru** dari menu konteks atau tombol cabang. Fork native penyedia mempertahankan konteks dalam percakapan mandiri; panel dan percakapan asal tetap utuh. Codex, Claude Code, OpenCode dan Pi memerlukan CLI yang mendukung fork, dan Pi juga memerlukan file sesi tersimpan. Perbarui server Zshell untuk percakapan jarak jauh. Jika CLI, login atau hook tidak tersedia, periksa keluaran panel baru sebelum melanjutkan. Di panel gunakan `zshell +agent fork --id UUID [--focus]`; dari terminal eksternal tambahkan `--project UUID`.
+Di **Terminal → Agen → Riwayat Percakapan Agen**, pilih percakapan lalu **Cabangkan percakapan di panel baru** dari menu konteks atau tombol cabang. Fork native penyedia mempertahankan konteks dalam percakapan mandiri; panel dan percakapan asal tetap utuh. Codex, Claude Code, OpenCode dan Pi memerlukan CLI yang mendukung fork, dan Pi juga memerlukan file sesi tersimpan. Perbarui server Zshell untuk percakapan jarak jauh. Jika CLI, login atau hook tidak tersedia, periksa keluaran panel baru sebelum melanjutkan. Di panel gunakan `zshell +agent fork --id UUID [--focus]`; dari terminal eksternal tambahkan `--project UUID`.

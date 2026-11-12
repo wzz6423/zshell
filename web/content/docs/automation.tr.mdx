@@ -63,9 +63,11 @@ Entegrasyon bitiş veya girdi gereksinimi bildirince Zshell bildirim de göndere
 
 ## Hesap kullanımı ve sınırlar [#account-usage-and-limits]
 
-**Ayarlar → Otomasyon → Hesap Kullanımı**, Claude Code ve Codex’in erişilebilir hesap sınırlarını; kullanılan yüzdeyi, raporlanmışsa sıfırlama zamanını ve son güncelleme zamanını gösterir. Güncel veriyi almak için **Kullanımı Yenile** kullanın.
+**Ayarlar → Otomasyon → Hesap Kullanımı** altında **Hesap kullanımını oku**, **Claude Code kullanımını oku** ve **Codex kullanımını oku** her zaman görünür. Ana seçenek varsayılan olarak kapalıdır; sağlayıcılar açık olsa da yalnızca ana seçenek açıkken okunur. Değişiklikler hemen uygulanır, ana seçeneği kapatmak sağlayıcı seçimlerini korur.
 
-Codex, kurulu, giriş yapılmış ve hesap sınırlarını raporlayabilen CLI gerektirir. Claude Code kullanımı, Zshell sağlayıcıdan durum satırı kullanım raporu aldığında görünür. Bölüm yalnızca veri varsa görünür; desteklenen zaman aralıkları sağlayıcı ve hesaba bağlıdır. Bunlar odaktaki oturumun token toplamı değil, hesap sınırlarıdır.
+Yerel CLI hesap sınırlarını okumak için istediğiniz sağlayıcıları açın. Codex kurulu ve oturum açılmış CLI’yi, Claude Code ise Zshell’in aldığı durum satırı raporlarını kullanır. Kullanımı açmak kimlik bilgisi toplamaz, CLI kurmaz veya sizin için oturum açmaz. Bunlar etkin oturumun token toplamı değil, hesap sınırlarıdır.
+
+**Kullanımı Yenile** yalnızca açık sağlayıcıları yeniler. Bölüm yükleme, kullanılamama ve başarısız yenilemede son veriyi gösterir. Kullanımı veya sağlayıcıyı kapatmak okumayı durdurur, bekleyen istekleri iptal eder ve veriyi gizler. Kapalı Claude raporları dosya yazılmadan reddedilir. Ajan tanıma, yaşam döngüsü durumu ve konuşma geri yükleme değişmez.
 
 ## Tipik iş akışı [#a-typical-workflow]
 
@@ -102,7 +104,7 @@ Doğrulanmış kimlik, özgün çalışma dizini veya Pi dosyası yoksa yeni kab
 
 ## Kaydedilmiş konuşmaları bulma ve sürdürme [#saved-conversation-history]
 
-**Aracılar → Ajan Konuşma Geçmişi** menüsünü, proje kenar çubuğunun üstündeki saati açın. Projeler arasında başlık, sağlayıcı, proje, konuşma ID’si, çalışma veya yapılandırma diziniyle arayın. Zshell, ajanlar ve bölmeler kapandıktan ve uygulama yeniden başladıktan sonra en yeni 200 doğrulanmış yerel konuşmayı tutar. **Son** arşivlenmemiş 20 eşleşmeyi, **Tümü** arşiv dahil tüm kayıtları, **Arşivlenen** yalnızca arşivi gösterir.
+**Terminal → Aracılar → Ajan Konuşma Geçmişi** menüsünü, proje kenar çubuğunun üstündeki saati açın. Projeler arasında başlık, sağlayıcı, proje, konuşma ID’si, çalışma veya yapılandırma diziniyle arayın. Zshell, ajanlar ve bölmeler kapandıktan ve uygulama yeniden başladıktan sonra en yeni 200 doğrulanmış yerel konuşmayı tutar. **Son** arşivlenmemiş 20 eşleşmeyi, **Tümü** arşiv dahil tüm kayıtları, **Arşivlenen** yalnızca arşivi gösterir.
 
 Açık konuşma için **Konuşmayı göster**, kayıtlı konuşma için **Konuşmayı sürdür** seçin. Zshell açık bölmeyi kullanır, çalışan PTY’ye yeniden bağlanır veya sağlayıcının tam olarak o konuşmasını özgün dizin ve yapılandırmasıyla sürdürür. Elle sürdürme, otomatik geri yükleme kapalı olsa da AI entegrasyonunu gerektirir. Eksik dizinler ve eksik veya eşleşmeyen Pi dosyaları yeni bölme açılmadan hata gösterir.
 
@@ -134,4 +136,4 @@ zshell +events --event command.task.finished --once --timeout 30000
 
 ## Konuşmayı çatallama [#fork-a-conversation]
 
-**Agents → Agent Conversation History** içinde konuşmayı seçin ve bağlam menüsünden veya çatallama düğmesinden **Konuşmayı yeni bölmede çatalla** seçeneğini kullanın. Sağlayıcının yerel işlevi bağlamı bağımsız bir konuşmada korur; kaynak bölme ve konuşma değişmez. Codex, Claude Code, OpenCode ve Pi uyumlu CLI gerektirir; Pi ayrıca kaydedilmiş oturum dosyası gerektirir. Uzak konuşmalar için Zshell sunucusunu güncelleyin. CLI, oturum açma veya kancalar eksikse devam etmeden önce yeni bölmenin çıktısını kontrol edin. Bölmede `zshell +agent fork --id UUID [--focus]`, dış terminalde ayrıca `--project UUID` kullanın.
+**Terminal → Aracılar → Ajan Konuşma Geçmişi** içinde konuşmayı seçin ve bağlam menüsünden veya çatallama düğmesinden **Konuşmayı yeni bölmede çatalla** seçeneğini kullanın. Sağlayıcının yerel işlevi bağlamı bağımsız bir konuşmada korur; kaynak bölme ve konuşma değişmez. Codex, Claude Code, OpenCode ve Pi uyumlu CLI gerektirir; Pi ayrıca kaydedilmiş oturum dosyası gerektirir. Uzak konuşmalar için Zshell sunucusunu güncelleyin. CLI, oturum açma veya kancalar eksikse devam etmeden önce yeni bölmenin çıktısını kontrol edin. Bölmede `zshell +agent fork --id UUID [--focus]`, dış terminalde ayrıca `--project UUID` kullanın.

@@ -236,12 +236,25 @@ regular/bold 區分及後備字型字重。
 
 可在 **設定 → 自動化 → 恢復 Agent 對話** 中切換。它與 `terminal.restore-history` 獨立。
 
+### `ai.usage-enabled`
+
+布林值——預設 `false`
+
+在 **設定 → Automation → 帳戶用量 → 讀取帳戶用量** 啟用本機 CLI 帳戶額度讀取。關閉後會取消待處理用量請求、隱藏資料，並拒絕儲存 Claude 用量報告，同時保留提供方選擇。用量設定不改變 Agent 識別、生命週期回報或對話恢復。
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+布林值——各自預設 `true`
+
+選擇 `ai.usage-enabled = true` 時允許讀取用量的提供方。Claude Code 讀取 Zshell 本機狀態列報告，Codex 查詢已安裝並登入的 CLI。關閉提供方會立即停止對應讀取並隱藏資料，不收集登入憑證。三項設定支援搜尋、匯入匯出、設定即時重新載入及還原預設值。
+
 ## 其他配置項 [#additional-settings]
 
 | 配置鍵 | 預設值 | 可選值 / 範圍 | 作用 |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | 應用圖示 |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | 檔案和目錄使用的外部編輯器 |
+| `files.drag-import` | `false` | 布林值 | 允許將 Finder 項目拖入本機檔案樹並複製；選單匯入隨時可用 |
 | `terminal.theme-only` | `false` | 布林值 | 只將所選配色應用於終端機 |
 | `terminal.command-history` | `true` | 布林值 | 記錄新命令，關閉後仍可查看既有歷史 |
 | `terminal.text-hints` | `true` | 布林值 | 啟用可見終端機文字的鍵盤提示 |

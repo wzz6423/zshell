@@ -9,7 +9,6 @@ use std::os::unix::fs::{FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::thread;
 use std::time::{Duration, Instant};
 
 pub enum Stream {
@@ -409,32 +408,72 @@ impl TailnetPolicy {
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .spawn()?;
-        let stdout = child.stdout.take().unwrap();
-        let reader = thread::spawn(move || {
+        let mut stdout = child.stdout.take().unwrap();
+        let mut status = None;
+        let result = (|| {
+            let descriptor = stdout.as_raw_fd();
+            let flags = unsafe { libc::fcntl(descriptor, libc::F_GETFL) };
+            if flags < 0
+                || unsafe { libc::fcntl(descriptor, libc::F_SETFL, flags | libc::O_NONBLOCK) } < 0
+            {
+                return Err(io::Error::last_os_error());
+            }
+            // A helper can inherit stdout after the CLI exits. Both pipe EOF
+            // and process exit must stay within the same lookup deadline.
+            let deadline = Instant::now() + Duration::from_secs(5);
             let mut bytes = Vec::new();
-            stdout
-                .take(2 * 1024 * 1024 + 1)
-                .read_to_end(&mut bytes)
-                .map(|_| bytes)
-        });
-        let deadline = Instant::now() + Duration::from_secs(5);
-        loop {
-            if let Some(status) = child.try_wait()? {
-                let bytes = reader
-                    .join()
-                    .map_err(|_| invalid("Tailscale output reader failed"))??;
-                if !status.success() || bytes.len() > 2 * 1024 * 1024 {
+            let mut buffer = [0; 8192];
+            let mut ended = false;
+            loop {
+                if Instant::now() >= deadline {
+                    return Err(invalid("Tailscale identity lookup timed out"));
+                }
+                if status.is_none() {
+                    status = child.try_wait()?;
+                }
+                if status.is_some_and(|status| !status.success()) {
                     return Err(invalid("Tailscale identity lookup failed"));
                 }
-                return serde_json::from_slice(&bytes).map_err(invalid);
+                if !ended {
+                    match stdout.read(&mut buffer) {
+                        Ok(0) => ended = true,
+                        Ok(count) => {
+                            if bytes.len() + count > 2 * 1024 * 1024 {
+                                return Err(invalid("Tailscale identity lookup failed"));
+                            }
+                            bytes.extend_from_slice(&buffer[..count]);
+                            continue;
+                        }
+                        Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+                        Err(error) if error.kind() == io::ErrorKind::WouldBlock => {}
+                        Err(error) => return Err(error),
+                    }
+                }
+                if ended && status.is_some() {
+                    return serde_json::from_slice(&bytes).map_err(invalid);
+                }
+                let mut ready = libc::pollfd {
+                    fd: if ended { -1 } else { descriptor },
+                    events: libc::POLLIN,
+                    revents: 0,
+                };
+                let wait = deadline
+                    .saturating_duration_since(Instant::now())
+                    .as_millis()
+                    .min(20) as i32;
+                if unsafe { libc::poll(&mut ready, 1, wait) } < 0 {
+                    let error = io::Error::last_os_error();
+                    if error.kind() != io::ErrorKind::Interrupted {
+                        return Err(error);
+                    }
+                }
             }
-            if Instant::now() >= deadline {
-                let _ = child.kill();
-                let _ = child.wait();
-                return Err(invalid("Tailscale identity lookup timed out"));
-            }
-            thread::sleep(Duration::from_millis(20));
+        })();
+        if status.is_none() {
+            let _ = child.kill();
         }
+        let _ = child.wait();
+        result
     }
 }
 
@@ -442,6 +481,255 @@ impl TailnetPolicy {
 mod tests {
     use super::*;
     use crate::protocol::new_id;
+    use std::sync::Arc;
+
+    struct LookupFixture {
+        root: PathBuf,
+        policy: TailnetPolicy,
+    }
+
+    impl LookupFixture {
+        fn new(body: &str) -> Self {
+            let root =
+                std::env::temp_dir().join(format!("zshell-tailnet-lookup-{}", new_id().unwrap()));
+            fs::create_dir(&root).unwrap();
+            let executable = root.join("tailscale");
+            fs::write(
+                &executable,
+                format!(
+                    "#!/bin/sh\ncd '{}' || exit 1\nprintf '%s' \"$$\" > root.pid\n{body}\n",
+                    root.to_string_lossy().replace('\'', "'\\''")
+                ),
+            )
+            .unwrap();
+            fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
+            Self {
+                root,
+                policy: TailnetPolicy {
+                    executable,
+                    allow: Vec::new(),
+                },
+            }
+        }
+
+        fn write_output(&self, bytes: &[u8]) {
+            fs::write(self.root.join("output"), bytes).unwrap();
+        }
+
+        fn timed_out(&self) {
+            let start = Instant::now();
+            let error = self.policy.command(&["status", "--json"]).unwrap_err();
+            assert!(error.to_string().contains("timed out"), "{error}");
+            assert!(start.elapsed() >= Duration::from_secs(4));
+            assert!(
+                start.elapsed() < Duration::from_secs(8),
+                "lookup exceeded its deadline: {:?}",
+                start.elapsed()
+            );
+            let pid = fs::read_to_string(self.root.join("root.pid"))
+                .unwrap()
+                .trim()
+                .parse::<i32>()
+                .unwrap();
+            assert_eq!(
+                unsafe { libc::kill(pid, 0) },
+                -1,
+                "lookup left its child alive or unreaped"
+            );
+            assert_eq!(io::Error::last_os_error().raw_os_error(), Some(libc::ESRCH));
+        }
+    }
+
+    impl Drop for LookupFixture {
+        fn drop(&mut self) {
+            // The fixture owns this helper, which intentionally outlives its
+            // immediate parent while keeping the lookup pipe open.
+            if let Ok(pid) = fs::read_to_string(self.root.join("helper.pid")) {
+                if let Ok(pid) = pid.trim().parse::<i32>() {
+                    let context = crate::profile_context::snapshot(pid);
+                    if context
+                        .program
+                        .as_deref()
+                        .is_some_and(|path| path.ends_with("/sleep"))
+                        && context.directory.as_deref().is_some_and(|path| {
+                            fs::canonicalize(path).ok() == fs::canonicalize(&self.root).ok()
+                        })
+                        && crate::agent_process::process(pid)
+                            .is_some_and(|process| process.group == unsafe { libc::getpgrp() })
+                    {
+                        unsafe {
+                            libc::kill(pid, libc::SIGKILL);
+                        }
+                    }
+                }
+            }
+            let _ = fs::remove_dir_all(&self.root);
+        }
+    }
+
+    #[test]
+    fn tailscale_lookup_drains_split_output_and_checks_process_exit() {
+        let fixture = LookupFixture::new("printf '{\"ready\":'; /bin/sleep 0.04; printf 'true}'");
+        assert_eq!(fixture.policy.command(&[]).unwrap()["ready"], true);
+
+        let fixture = LookupFixture::new("/bin/cat output");
+        for bytes in [
+            b"".as_slice(),
+            b"{\"ready\":",
+            b"invalid",
+            b"\xff",
+            b"{\"ready\":true}garbage",
+        ] {
+            fixture.write_output(bytes);
+            assert!(fixture.policy.command(&[]).is_err());
+        }
+
+        let fixture = LookupFixture::new("printf '{\"ready\":true}'; exit 7");
+        assert!(fixture
+            .policy
+            .command(&[])
+            .unwrap_err()
+            .to_string()
+            .contains("lookup failed"));
+        let policy = TailnetPolicy {
+            executable: fixture.root.join("missing"),
+            allow: Vec::new(),
+        };
+        assert!(policy.command(&[]).is_err());
+    }
+
+    #[test]
+    fn tailscale_lookup_enforces_output_limit_before_process_exit() {
+        let fixture = LookupFixture::new("/bin/cat output");
+        let mut bytes = b"{\"ready\":true}".to_vec();
+        bytes.resize(2 * 1024 * 1024, b' ');
+        fixture.write_output(&bytes);
+        assert_eq!(fixture.policy.command(&[]).unwrap()["ready"], true);
+        bytes.push(b' ');
+        fixture.write_output(&bytes);
+        assert!(fixture
+            .policy
+            .command(&[])
+            .unwrap_err()
+            .to_string()
+            .contains("lookup failed"));
+
+        let fixture = LookupFixture::new("while :; do printf '%8192s' ''; done");
+        let start = Instant::now();
+        assert!(fixture
+            .policy
+            .command(&[])
+            .unwrap_err()
+            .to_string()
+            .contains("lookup failed"));
+        assert!(start.elapsed() < Duration::from_secs(5));
+    }
+
+    #[test]
+    fn tailscale_lookup_deadline_includes_inherited_pipe_after_root_exit() {
+        let fixture = LookupFixture::new(
+            "/bin/sleep 20 &\nprintf '%s' \"$!\" > helper.pid\nprintf '{\"ready\":true}'\nexit 0",
+        );
+        fixture.timed_out();
+    }
+
+    #[test]
+    fn tailscale_lookup_deadline_includes_root_after_pipe_eof() {
+        let fixture =
+            LookupFixture::new("printf '{\"ready\":true}'; exec 1>&-; exec /bin/sleep 20");
+        fixture.timed_out();
+    }
+
+    #[test]
+    fn tailscale_lookup_deadline_reaps_a_root_that_keeps_its_pipe() {
+        let fixture = LookupFixture::new("exec /bin/sleep 20");
+        fixture.timed_out();
+    }
+
+    #[test]
+    fn tailscale_lookups_remain_independent_under_concurrent_output() {
+        let fixture = Arc::new(LookupFixture::new("/bin/cat output"));
+        fixture.write_output(b"{\"ready\":true}");
+        let threads: Vec<_> = (0..8)
+            .map(|_| {
+                let fixture = fixture.clone();
+                std::thread::spawn(move || {
+                    for _ in 0..12 {
+                        assert_eq!(fixture.policy.command(&[]).unwrap()["ready"], true);
+                    }
+                })
+            })
+            .collect();
+        for thread in threads {
+            thread.join().unwrap();
+        }
+    }
+
+    #[test]
+    fn tailscale_failed_lookups_close_pipes_without_reader_threads() {
+        if std::env::var_os("ZSHELL_TAILNET_RESOURCE_PROBE").is_none() {
+            // Process-wide counts need an isolated test process, because other
+            // PTY regressions legitimately create threads and descriptors.
+            let status = Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "transport::tests::tailscale_failed_lookups_close_pipes_without_reader_threads",
+                    "--test-threads=1",
+                ])
+                .env("ZSHELL_TAILNET_RESOURCE_PROBE", "1")
+                .status()
+                .unwrap();
+            assert!(status.success());
+            return;
+        }
+        let fixture =
+            LookupFixture::new("/bin/sleep 20 &\nprintf '%s' \"$!\" > helper.pid\nexit 7");
+        let resources = || {
+            let descriptors = fs::read_dir(if cfg!(target_os = "linux") {
+                "/proc/self/fd"
+            } else {
+                "/dev/fd"
+            })
+            .unwrap()
+            .count();
+            #[cfg(target_os = "linux")]
+            let threads = fs::read_dir("/proc/self/task").unwrap().count();
+            #[cfg(target_os = "macos")]
+            let threads = {
+                let mut info = unsafe { std::mem::zeroed::<libc::proc_taskinfo>() };
+                let size = std::mem::size_of_val(&info) as i32;
+                assert_eq!(
+                    unsafe {
+                        libc::proc_pidinfo(
+                            std::process::id() as i32,
+                            libc::PROC_PIDTASKINFO,
+                            0,
+                            (&mut info as *mut libc::proc_taskinfo).cast(),
+                            size,
+                        )
+                    },
+                    size
+                );
+                info.pti_threadnum as usize
+            };
+            (descriptors, threads)
+        };
+        let before = resources();
+        let start = Instant::now();
+        assert!(fixture
+            .policy
+            .command(&[])
+            .unwrap_err()
+            .to_string()
+            .contains("lookup failed"));
+        assert!(start.elapsed() < Duration::from_secs(2));
+        assert_eq!(resources(), before);
+        let fixture = LookupFixture::new(
+            "/bin/sleep 20 &\nprintf '%s' \"$!\" > helper.pid\nexec /bin/sleep 20",
+        );
+        fixture.timed_out();
+        assert_eq!(resources(), before);
+    }
 
     #[test]
     fn state_rejects_symlinks_and_shared_permissions() {

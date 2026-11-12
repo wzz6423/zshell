@@ -12,6 +12,7 @@ struct MarkdownImageLoaderTests {
     static func main() async {
         setbuf(stdout, nil)
         let scenario = CommandLine.arguments[2]
+        defer { Fixture.controlSession.invalidateAndCancel() }
         do {
             let fixture = Fixture(base: URL(string: CommandLine.arguments[1])!, scenario: scenario)
             switch scenario {
@@ -22,6 +23,14 @@ struct MarkdownImageLoaderTests {
             case "reset-storm": try await resetStorm(fixture)
             case "oversized": try await rejectedSources(fixture)
             case "streamed": try await streamed(fixture)
+            case "large-known", "large-unknown", "large-chunked", "large-compressed":
+                try await largeImage(fixture)
+            case "limit-known", "limit-unknown", "limit-chunked", "limit-compressed":
+                try await boundedImage(fixture)
+            case "concurrent": try await concurrentImages(fixture)
+            case "large-reset": try await largeReset(fixture)
+            case "cancellation": try await cancellation(fixture)
+            case "stall": try await stalledImage(fixture)
             default: throw failure("Unknown scenario: \(scenario)")
             }
             print("Markdown image loader \(scenario): \(checks) checks passed")
@@ -215,6 +224,199 @@ struct MarkdownImageLoaderTests {
                   "the streamed replacement leaves no pending load or duplicate request")
     }
 
+    private static func largeImage(_ fixture: Fixture) async throws {
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        _ = loader.image(for: fixture.imageURL)
+        let load = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(1)
+        let heartbeat = Heartbeat()
+        heartbeat.start()
+        let started = Date()
+        try await fixture.release(1)
+        await load.value
+        heartbeat.stop()
+        let elapsed = Date().timeIntervalSince(started)
+        try check(loader.image(for: fixture.imageURL)?.size.width == 1,
+                  "a complete valid 20 MiB \(fixture.scenario) PNG is decoded")
+        try check(arrivals == 1 && loader.inFlight.isEmpty,
+                  "the actual large-image task completes its cache and callback update")
+        try check(elapsed < 30, "a local 20 MiB image completes before the broad regression deadline")
+        try heartbeat.check()
+        let state = try await fixture.waitForRecord(1, complete: true)
+        try check(state.records[0].sent == state.records[0].total,
+                  "the successful load consumed the complete fixture response")
+        for _ in 0..<64 { _ = loader.image(for: fixture.imageURL) }
+        try check(try await fixture.state().requests == 1, "large images remain cached across repeated renders")
+        print("Large image \(fixture.scenario): \(elapsed)s, \(heartbeat.ticks) actor ticks, max gap \(heartbeat.maximumGap)s")
+    }
+
+    private static func boundedImage(_ fixture: Fixture) async throws {
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        _ = loader.image(for: fixture.imageURL)
+        let load = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(1)
+        let started = Date()
+        try await fixture.release(1)
+        await load.value
+        try check(loader.inFlight.isEmpty && arrivals == 0,
+                  "the real over-limit load ends without caching or notifying")
+        let images = (0..<64).map { _ in loader.image(for: fixture.imageURL) }
+        let requestCount = try await fixture.state().requests
+        try check(images.allSatisfy { $0 == nil } && requestCount == 1,
+                  "a rejected large image is not retried on each render")
+        let state = try await fixture.waitForRecord(1, complete: false)
+        let record = state.records[0]
+        try check(!record.complete && record.disconnected && record.sent < record.total,
+                  "the server observes cancellation before the oversized body finishes")
+        if fixture.scenario == "limit-known" {
+            try check(record.sent < 1 << 20, "the Content-Length ceiling rejects before buffering the image")
+        } else if fixture.scenario != "limit-compressed" {
+            try check(record.sent <= (20 << 20) + (2 << 20),
+                      "unknown-length and chunked transfers disconnect near the 20 MiB ceiling")
+        }
+        print("Oversized \(fixture.scenario): \(Date().timeIntervalSince(started))s, \(record.sent)/\(record.total) wire bytes")
+    }
+
+    private static func concurrentImages(_ fixture: Fixture) async throws {
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        let fixtures = (0..<6).map { Fixture(base: fixture.base, scenario: "concurrent-\($0)") }
+        var loads: [Task<Void, Never>] = []
+        for image in fixtures {
+            _ = loader.image(for: image.imageURL)
+            loads.append(try loadTask(for: image.imageURL, in: loader))
+        }
+        for image in fixtures { try await image.waitForRequests(1) }
+        let heartbeat = Heartbeat()
+        heartbeat.start()
+        let started = Date()
+        for image in fixtures { try await image.release(1) }
+        for load in loads { await load.value }
+        heartbeat.stop()
+        try check(fixtures.allSatisfy { loader.image(for: $0.imageURL)?.size.width == 1 },
+                  "six concurrent valid 20 MiB PNGs complete and decode")
+        try check(arrivals == fixtures.count && loader.inFlight.isEmpty,
+                  "concurrent completions each notify once and leave no loader tasks")
+        try heartbeat.check()
+        try check(Date().timeIntervalSince(started) < 30, "concurrent downloads complete within the broad deadline")
+        for image in fixtures {
+            let state = try await image.waitForRecord(1, complete: true)
+            try check(state.records[0].sent == 20 << 20 && state.requests == 1,
+                      "concurrent \(image.scenario) receives all bytes without a duplicate request")
+        }
+        print("Concurrent large images: \(Date().timeIntervalSince(started))s, \(heartbeat.ticks) actor ticks, max gap \(heartbeat.maximumGap)s")
+    }
+
+    private static func largeReset(_ fixture: Fixture) async throws {
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        var loads: [Task<Void, Never>] = []
+        for number in 1...4 {
+            loader.reset()
+            _ = loader.image(for: fixture.imageURL)
+            loads.append(try loadTask(for: fixture.imageURL, in: loader))
+            try await fixture.waitForRequests(number)
+        }
+        for number in [2, 4, 1, 3] {
+            try await fixture.release(number)
+            await loads[number - 1].value
+            let currentHasArrived = number != 2
+            try check(loader.image(for: fixture.imageURL)?.size.width == (currentHasArrived ? 4 : nil),
+                      "large reset completion \(number) preserves only the newest generation")
+            try check(arrivals == (currentHasArrived ? 1 : 0) && loader.inFlight.count == (currentHasArrived ? 0 : 1),
+                      "large stale completions cannot remove or notify the current load")
+        }
+        try check(try await fixture.state().requests == 4, "repeated reset races do not create extra image requests")
+    }
+
+    private static func cancellation(_ fixture: Fixture) async throws {
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        _ = loader.image(for: fixture.imageURL)
+        let load = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(1)
+        try await fixture.release(1)
+        try await fixture.waitForBytes(1)
+        load.cancel()
+        await load.value
+        try check(loader.inFlight.isEmpty && arrivals == 0, "cancellation completes the actual loader task without an image")
+        let canceled = try await fixture.waitForRecord(1, complete: false).records[0]
+        try check(canceled.disconnected && canceled.sent < 1 << 20,
+                  "canceling a streaming load stops its network transfer promptly")
+        loader.reset()
+        _ = loader.image(for: fixture.imageURL)
+        let recovery = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(2)
+        try await fixture.release(2)
+        await recovery.value
+        try check(loader.image(for: fixture.imageURL)?.size.width == 2 && arrivals == 1,
+                  "a reset recovers after a canceled load on the shared session")
+
+        let beforeStart = Fixture(base: fixture.base, scenario: "cancel-before-start")
+        _ = loader.image(for: beforeStart.imageURL)
+        let canceledBeforeStart = try loadTask(for: beforeStart.imageURL, in: loader)
+        canceledBeforeStart.cancel()
+        await canceledBeforeStart.value
+        try check(loader.inFlight.isEmpty && arrivals == 1,
+                  "cancellation before transfer creation completes without notifying")
+        try check(try await beforeStart.state().requests == 0,
+                  "a pre-canceled load does not start an HTTP request")
+    }
+
+    private static func stalledImage(_ fixture: Fixture) async throws {
+        let loader = MarkdownImageLoader()
+        _ = loader.image(for: fixture.imageURL)
+        let load = try loadTask(for: fixture.imageURL, in: loader)
+        try await fixture.waitForRequests(1)
+        let started = Date()
+        try await fixture.release(1)
+        await load.value
+        let elapsed = Date().timeIntervalSince(started)
+        try check(loader.inFlight.isEmpty && loader.image(for: fixture.imageURL) == nil,
+                  "a body that stalls completes as a failed image load")
+        try check(elapsed >= 10 && elapsed < 30, "the 15-second idle timeout remains in force")
+        let state = try await fixture.waitForRecord(1, complete: false)
+        try check(state.records[0].disconnected && !state.records[0].complete,
+                  "the idle timeout stops the stalled network response")
+    }
+
+    @MainActor private final class Heartbeat {
+        private var task: Task<Void, Never>?
+        private var previous = Date()
+        private(set) var ticks = 0
+        private(set) var maximumGap: TimeInterval = 0
+
+        func start() {
+            previous = Date()
+            task = Task {
+                while !Task.isCancelled {
+                    let now = Date()
+                    maximumGap = max(maximumGap, now.timeIntervalSince(previous))
+                    previous = now
+                    ticks += 1
+                    try? await Task.sleep(for: .milliseconds(10))
+                }
+            }
+        }
+
+        func stop() {
+            maximumGap = max(maximumGap, Date().timeIntervalSince(previous))
+            task?.cancel()
+        }
+
+        func check() throws {
+            try MarkdownImageLoaderTests.check(ticks > 5 && maximumGap < 2,
+                                               "the main actor remains responsive during image downloads")
+        }
+    }
+
     private static func check(_ condition: Bool, _ message: String) throws {
         guard condition else { throw failure(message) }
         checks += 1
@@ -236,12 +438,23 @@ struct MarkdownImageLoaderTests {
     /// Each image request waits at the server until its numbered release endpoint
     /// is called, so response order is chosen without timing the production load.
     private struct Fixture {
+        // Control requests must not queue behind the image connections whose
+        // completion they release, especially at URLSession's per-host limit.
+        static let controlSession = URLSession(configuration: .ephemeral)
         let base: URL
         let scenario: String
         var imageURL: URL { base.appendingPathComponent("image/\(scenario).png") }
 
         struct State: Decodable {
             let requests: Int
+            let records: [Record]
+        }
+
+        struct Record: Decodable {
+            let sent: Int
+            let total: Int
+            let complete: Bool
+            let disconnected: Bool
         }
 
         func state() async throws -> State {
@@ -263,8 +476,31 @@ struct MarkdownImageLoaderTests {
             }
         }
 
+        func waitForRecord(_ number: Int, complete: Bool) async throws -> State {
+            let deadline = Date().addingTimeInterval(5)
+            while true {
+                let state = try await state()
+                if state.records.count >= number {
+                    let record = state.records[number - 1]
+                    if complete ? record.complete : record.disconnected { return state }
+                }
+                guard Date() < deadline else { throw failure("Fixture transfer \(number) did not finish as expected") }
+                try await Task.sleep(for: .milliseconds(10))
+            }
+        }
+
+        func waitForBytes(_ number: Int) async throws {
+            let deadline = Date().addingTimeInterval(5)
+            while true {
+                let state = try await state()
+                if state.records.count >= number && state.records[number - 1].sent > 0 { return }
+                guard Date() < deadline else { throw failure("Fixture transfer \(number) did not send bytes") }
+                try await Task.sleep(for: .milliseconds(5))
+            }
+        }
+
         private func request(_ path: String) async throws -> Data {
-            let (data, response) = try await URLSession.shared.data(from: base.appendingPathComponent(path))
+            let (data, response) = try await Self.controlSession.data(from: base.appendingPathComponent(path))
             guard (response as? HTTPURLResponse)?.statusCode == 200 else {
                 throw failure("Fixture request failed: \(path)")
             }

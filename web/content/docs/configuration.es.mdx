@@ -221,12 +221,25 @@ Al restaurar los paneles de terminal, reanuda la conversación original exacta r
 
 Se controla en **Ajustes → Automatización → Reanudar conversaciones de agentes**. Es independiente de `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+booleano — predeterminado `false`
+
+Activa la lectura de límites de las CLI locales en **Ajustes → Automatización → Uso de la cuenta → Leer uso de la cuenta**. Desactivarlo cancela solicitudes, oculta los datos y rechaza guardar informes Claude. Conserva los proveedores elegidos. No cambia el reconocimiento de agentes, los informes del ciclo de vida ni la restauración de conversaciones.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+booleano — predeterminado `true` en cada uno
+
+Selecciona proveedores cuando `ai.usage-enabled = true`. Claude Code lee el informe local de la línea de estado de Zshell; Codex consulta su CLI instalada con sesión iniciada. Desactivar un proveedor detiene la lectura y oculta sus datos de inmediato. No se recopilan credenciales. Las tres opciones admiten búsqueda, importación/exportación, recarga en vivo y restablecimiento.
+
 ## Ajustes adicionales [#additional-settings]
 
 | Clave | Predeterminado | Valores / rango | Efecto |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Icono de la aplicación |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Editor externo para archivos y carpetas |
+| `files.drag-import` | `false` | booleano | Permite copiar elementos de Finder arrastrándolos al árbol local; el menú de importación sigue disponible |
 | `terminal.theme-only` | `false` | booleano | Aplicar la paleta seleccionada solo al terminal |
 | `terminal.command-history` | `true` | booleano | Registrar comandos nuevos; el historial guardado sigue disponible si se desactiva |
 | `terminal.text-hints` | `true` | booleano | Activar pistas de teclado sobre texto visible del terminal |

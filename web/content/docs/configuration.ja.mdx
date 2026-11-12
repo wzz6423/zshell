@@ -241,12 +241,25 @@ Codex app-server を共有する場合、検証済みの会話 ID を前面の�
 
 **設定 → 自動化 → エージェントの会話を再開** で切り替えます。`terminal.restore-history` とは独立した設定です。
 
+### `ai.usage-enabled`
+
+真偽値 — 初期値 `false`
+
+**設定 → オートメーション → アカウント使用量 → アカウント使用量を読み取る** でローカル CLI のアカウント制限を有効にします。オフにすると保留中の要求をキャンセルし、データを隠し、Claude 使用量レポートの保存を拒否します。プロバイダーの選択は保持されます。エージェント認識、ライフサイクル報告、会話復元は変更しません。
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+真偽値 — それぞれ初期値 `true`
+
+`ai.usage-enabled = true` のとき使用量を読み取るプロバイダーを選びます。Claude Code は Zshell のローカルステータスライン報告、Codex はインストール済みでログイン済みの CLI を使用します。プロバイダーをオフにすると直ちに読み取りを停止してデータを隠します。認証情報は収集しません。3 つの設定は検索、インポート／エクスポート、設定の即時再読み込み、初期値へのリセットに対応します。
+
 ## その他の設定 [#additional-settings]
 
 | キー | 既定値 | 値／範囲 | 効果 |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | アプリのアイコン |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | ファイル・フォルダ用の外部エディタ |
+| `files.drag-import` | `false` | 真偽値 | Finder からローカルツリーへのドラッグコピーを有効にします。メニューは常に利用可能 |
 | `terminal.theme-only` | `false` | 真偽値 | 選んだ配色をターミナルだけに適用 |
 | `terminal.command-history` | `true` | 真偽値 | 新しいコマンド履歴を記録。無効時も保存済み履歴は利用可能 |
 | `terminal.text-hints` | `true` | 真偽値 | 表示中の端末テキストにキーボードヒントを表示 |

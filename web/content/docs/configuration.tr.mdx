@@ -221,12 +221,25 @@ Terminal bölmeleri geri yüklenirken özgün PTY kullanılamıyorsa kaydedilmi�
 
 **Ayarlar → Otomasyon → Ajan konuşmalarını sürdür** üzerinden ayarlanır. `terminal.restore-history` seçeneğinden bağımsızdır.
 
+### `ai.usage-enabled`
+
+boolean — varsayılan `false`
+
+**Ayarlar → Otomasyon → Hesap Kullanımı → Hesap kullanımını oku** ile yerel CLI hesap sınırlarını okumayı açar. Kapatmak istekleri iptal eder, veriyi gizler ve Claude raporlarının kaydını reddeder. Sağlayıcı seçimleri korunur. Ajan tanıma, yaşam döngüsü raporları ve konuşma geri yükleme değişmez.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — her biri varsayılan `true`
+
+`ai.usage-enabled = true` için sağlayıcıları seçer. Claude Code Zshell’in yerel durum satırı raporunu okur; Codex kurulu ve oturum açılmış CLI’yi sorgular. Sağlayıcıyı kapatmak okumayı hemen durdurur ve veriyi gizler. Kimlik bilgisi toplanmaz. Üç seçenek arama, içe/dışa aktarma, canlı yeniden yükleme ve varsayılana sıfırlamayı destekler.
+
 ## Ek ayarlar [#additional-settings]
 
 | Anahtar | Varsayılan | Değerler / aralık | Etki |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Uygulama simgesi |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Dosya ve klasörlerin harici düzenleyicisi |
+| `files.drag-import` | `false` | boolean | Finder öğelerini yerel ağaca sürükleyerek kopyalamayı etkinleştirir; içe aktarma menüsü her zaman kullanılabilir |
 | `terminal.theme-only` | `false` | mantıksal | Paleti yalnızca terminale uygular |
 | `terminal.command-history` | `true` | mantıksal | Yeni komutları kaydet; kapalıyken kayıtlı geçmiş kullanılabilir |
 | `terminal.text-hints` | `true` | mantıksal | Görünür terminal metni için klavye ipuçlarını etkinleştir |
