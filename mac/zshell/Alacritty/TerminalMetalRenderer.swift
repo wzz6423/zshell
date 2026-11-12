@@ -17,6 +17,38 @@ struct TerminalMarkedText {
     let column: Int
 }
 
+/// Which retained rows one frame rebuilds.
+///
+/// `dirtyRows == nil` rebuilds the grid. An empty array still presents and
+/// reuses every cached row, so a cursor blink can append the cursor quad
+/// without paying for glyphs that did not change. `presents == false` drops
+/// the frame: the emulator and the host both have nothing new.
+struct TerminalFrameRowDecision: Equatable {
+    var dirtyRows: [Int]?
+    var presents: Bool
+}
+
+/// Real emulator damage and a host unconditional redraw keep the rows they
+/// already named. A cursor blink or IME preedit sets `presentWithoutDamage`
+/// and must still present, with no rows to rebuild.
+func terminalFrameRowDecision(
+    needsUnconditionalRedraw: Bool,
+    damageKind: UInt32,
+    partialRows: [Int]?,
+    presentWithoutDamage: Bool
+) -> TerminalFrameRowDecision {
+    if needsUnconditionalRedraw || damageKind == ZSHELL_DAMAGE_FULL {
+        return TerminalFrameRowDecision(dirtyRows: nil, presents: true)
+    }
+    if damageKind == ZSHELL_DAMAGE_PARTIAL, let partialRows {
+        return TerminalFrameRowDecision(dirtyRows: partialRows, presents: true)
+    }
+    if presentWithoutDamage && damageKind == ZSHELL_DAMAGE_NONE {
+        return TerminalFrameRowDecision(dirtyRows: [], presents: true)
+    }
+    return TerminalFrameRowDecision(dirtyRows: nil, presents: false)
+}
+
 /// GPU renderer for a terminal grid.
 ///
 /// One instanced draw call normally covers a frame: every cell background, glyph,

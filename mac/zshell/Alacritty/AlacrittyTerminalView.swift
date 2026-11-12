@@ -175,6 +175,9 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     private var renderScheduled = false
     /// IME callbacks change only transient Metal instances, not emulator rows.
     private var preeditChanged = false
+    /// The blink timer toggled the cursor. The next frame must present, but
+    /// the grid itself did not change.
+    private var cursorBlinkNeedsFrame = false
     /// Forces the next frame regardless of emulator damage. Set for changes
     /// the emulator knows nothing about — a resize, a new theme or font, a
     /// selection drag, focus — since those move pixels without touching a cell.
@@ -720,27 +723,34 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         var damage = ZshellDamage()
         zshell_alacritty_take_damage(handle, &damage)
 
-        // nil means "rebuild every row": a full-damage frame, or a host-side
-        // change — resize, theme, selection, focus — that the emulator never
-        // saw and so never reported as damage.
-        var dirtyRows: [Int]?
+        // nil rebuilds every row: full emulator damage, or a host change the
+        // emulator never saw (resize, theme, selection, focus). A cursor blink
+        // or preedit still presents with an empty row list so cached glyphs stay.
         let isPreeditOnlyFrame = preeditChanged && !needsUnconditionalRedraw
             && damage.kind == ZSHELL_DAMAGE_NONE
-        if needsUnconditionalRedraw || damage.kind == ZSHELL_DAMAGE_FULL {
-            dirtyRows = nil
-        } else if damage.kind == ZSHELL_DAMAGE_PARTIAL, let rows = damage.rows {
-            dirtyRows = (0..<damage.rows_len).map { Int(rows[$0]) }
-        } else if isPreeditOnlyFrame {
-            dirtyRows = []
+        let partialRows: [Int]?
+        if damage.kind == ZSHELL_DAMAGE_PARTIAL, let rows = damage.rows {
+            partialRows = (0..<damage.rows_len).map { Int(rows[$0]) }
         } else {
+            partialRows = nil
+        }
+        let decision = terminalFrameRowDecision(
+            needsUnconditionalRedraw: needsUnconditionalRedraw,
+            damageKind: damage.kind,
+            partialRows: partialRows,
+            presentWithoutDamage: preeditChanged || cursorBlinkNeedsFrame
+        )
+        guard decision.presents else {
             AlacrittyRenderStats.shared.skipped()
             return true
         }
+        let dirtyRows = decision.dirtyRows
         // A successful submission consumes the host-only invalidation. Keep it
         // pending if drawable acquisition or command encoding fails so the next
         // scheduled frame can still present the latest composition state.
         let consumesUnconditionalRedraw = needsUnconditionalRedraw
         let consumesPreeditChange = preeditChanged
+        let consumesCursorBlink = cursorBlinkNeedsFrame
         let renderStart = CFAbsoluteTimeGetCurrent()
         defer { AlacrittyRenderStats.shared.frame(seconds: CFAbsoluteTimeGetCurrent() - renderStart) }
 
@@ -839,6 +849,9 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             }
             if consumesPreeditChange {
                 preeditChanged = false
+            }
+            if consumesCursorBlink {
+                cursorBlinkNeedsFrame = false
             }
             lastPresentedSurface = drawableSurface
         } else {
@@ -998,7 +1011,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             MainActor.assumeIsolated {
                 guard let self, self.cursorBlinking else { return }
                 self.cursorVisible.toggle()
-                self.scheduleRender(force: true)
+                // The grid is unchanged. Ask for a frame that appends the
+                // cursor from cursorVisible and reuses every cached row.
+                self.cursorBlinkNeedsFrame = true
+                self.scheduleRender(force: false)
             }
         }
     }
