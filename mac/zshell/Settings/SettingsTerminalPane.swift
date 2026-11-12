@@ -12,6 +12,10 @@ final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegat
         AppSettings.shared.terminalStartupArguments = arguments
     }
     private let backendPicker = SettingsBackendPicker { AppSettings.shared.terminalBackend = $0 }
+    private let directoryView = TerminalSessionDirectorySettingsView { policy, directory in
+        AppSettings.shared.newSessionDirectoryPolicy = policy
+        AppSettings.shared.newSessionCustomDirectory = directory
+    }
     private let termField = NSTextField()
     private var displayedTerm = ""
     private var termNeedsCommit = false
@@ -135,6 +139,7 @@ final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegat
         termField.action = #selector(termChanged)
         termField.widthAnchor.constraint(equalToConstant: 180).isActive = true
         var startupRows: [NSView] = [
+            SettingsCustomRow(directoryView),
             SettingsRow(
                 title: String(localized: "Startup"),
                 description: String(localized: "Changes apply only to new terminals. Open terminals keep their current process."),
@@ -267,6 +272,7 @@ final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegat
             program: settings.terminalStartupProgram,
             arguments: settings.terminalStartupArguments
         )
+        directoryView.apply(policy: settings.newSessionDirectoryPolicy, directory: settings.newSessionCustomDirectory)
         backendPicker.select(settings.terminalBackend)
         let isEditingTerm = termField.currentEditor() != nil
             && view.window?.firstResponder === termField.currentEditor()

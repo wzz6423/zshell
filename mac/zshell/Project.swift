@@ -332,13 +332,12 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
 
     // MARK: - Sessions
 
-    /// When no directory is given, a local session starts in the pinned
-    /// project directory, then the group's default, then the current
-    /// session's working directory (home when none is known). A manual
-    /// project directory is an explicit choice for future terminals.
+    /// Explicit, pinned, and group directories take precedence over the global
+    /// policy. Remote projects keep using their remote connection directory.
     @discardableResult
     func newSession(
         directory: String? = nil,
+        directoryContext: TerminalSessionDirectory.Context? = nil,
         commandArguments: [String]? = nil,
         environmentPath: String? = nil,
         tabTitle: String? = nil,
@@ -348,12 +347,14 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         usesConfiguredStartupCommand: Bool = true,
         usesConfiguredInitializationCommand: Bool = true
     ) -> TerminalSession? {
-        guard !TerminalManager.isRemovingWorktree(containing: sessionDirectory(directory)) else {
+        let localDirectory = isRemote ? nil : sessionDirectory(directory, context: directoryContext)
+        if let localDirectory, TerminalManager.isRemovingWorktree(containing: localDirectory) {
             NSSound.beep()
             return nil
         }
         let session = makeSession(
             directory: directory,
+            resolvedLocalDirectory: localDirectory,
             commandArguments: commandArguments,
             environmentPath: environmentPath,
             launchSettings: launchSettings ?? self.launchSettings,
@@ -413,6 +414,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// scrollback when reopening a saved session.
     private func makeSession(
         directory: String? = nil,
+        resolvedLocalDirectory: String? = nil,
         restoredHistory: String? = nil,
         commandArguments: [String]? = nil,
         environmentPath: String? = nil,
@@ -436,10 +438,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         var initialTerminalProfile: TerminalProfile?
         switch location {
         case .local:
-            initialDirectory = directory
-                ?? customDirectory
-                ?? groupSessionDirectory
-                ?? selectedSession?.currentDirectoryPath
+            initialDirectory = resolvedLocalDirectory ?? sessionDirectory(directory)
             launchArguments = commandArguments
             additionalEnvironment = [:]
             sshMaterial = nil
@@ -578,9 +577,31 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         }
     }
 
-    private func sessionDirectory(_ directory: String? = nil) -> String {
-        directory ?? customDirectory ?? groupSessionDirectory ?? selectedSession?.currentDirectoryPath
-            ?? FileManager.default.homeDirectoryForCurrentUser.path
+    var newSessionDirectoryContext: TerminalSessionDirectory.Context {
+        guard !isRemote, let session = selectedSession else { return .init() }
+        let directory = session.currentDirectoryPath
+        return .init(
+            currentDirectory: directory,
+            projectDirectory: AppSettings.shared.newSessionDirectoryPolicy == .project
+                ? panelRoot(followingSessionAt: directory, foregroundAt: session.foregroundDirectoryPath).root : nil
+        )
+    }
+
+    private func sessionDirectory(
+        _ directory: String? = nil,
+        context: TerminalSessionDirectory.Context? = nil,
+        policy: NewSessionDirectoryPolicy? = nil
+    ) -> String {
+        let groupDirectory = groupSessionDirectory
+        return TerminalSessionDirectory.resolve(
+            explicitDirectory: directory,
+            pinnedDirectory: customDirectory,
+            groupDirectory: groupDirectory,
+            context: directory != nil || customDirectory != nil || groupDirectory != nil
+                ? .init() : context ?? newSessionDirectoryContext,
+            policy: policy ?? AppSettings.shared.newSessionDirectoryPolicy,
+            customDirectory: AppSettings.shared.newSessionCustomDirectory
+        )
     }
 
     // MARK: - Splits
@@ -594,10 +615,12 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// No-op while a diff is focused.
     func split(toward edge: PaneDropEdge) {
         guard let tab = selectedTab, tab.canSplit else { return }
-        let directory = selectedSession?.currentDirectoryPath ?? sessionDirectory()
-        guard !TerminalManager.isRemovingWorktree(containing: directory) else { NSSound.beep(); return }
+        let directory = selectedSession?.currentDirectoryPath ?? sessionDirectory(policy: .current)
+        let localDirectory = isRemote ? nil : sessionDirectory(directory)
+        if let localDirectory, TerminalManager.isRemovingWorktree(containing: localDirectory) { NSSound.beep(); return }
         let session = makeSession(
             directory: directory,
+            resolvedLocalDirectory: localDirectory,
             launchSettings: launchSettings.applying(tab.launchSettingsOverride)
         )
         tab.split(Pane(content: .session(session)), toward: edge)
@@ -623,11 +646,14 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         default: tab.sessions.first?.currentDirectoryPath
             ?? tab.contextSession?.currentDirectoryPath
         }
-        guard !TerminalManager.isRemovingWorktree(containing: directory ?? contextDirectory ?? sessionDirectory()) else {
+        let directory = directory ?? contextDirectory ?? sessionDirectory(policy: .current)
+        let localDirectory = isRemote ? nil : sessionDirectory(directory)
+        if let localDirectory, TerminalManager.isRemovingWorktree(containing: localDirectory) {
             return nil
         }
         let session = makeSession(
-            directory: directory ?? contextDirectory,
+            directory: directory,
+            resolvedLocalDirectory: localDirectory,
             launchSettings: launchSettings.applying(tab.launchSettingsOverride),
             usesConfiguredStartupCommand: usesConfiguredStartupCommand
         )
@@ -1173,8 +1199,9 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     @discardableResult
     func newSession(inTabGroup groupID: UUID) -> TerminalSession? {
         guard tabGroup(id: groupID) != nil else { return nil }
-        guard !TerminalManager.isRemovingWorktree(containing: sessionDirectory()) else { NSSound.beep(); return nil }
-        let session = makeSession(launchSettings: launchSettings)
+        let localDirectory = isRemote ? nil : sessionDirectory()
+        if let localDirectory, TerminalManager.isRemovingWorktree(containing: localDirectory) { NSSound.beep(); return nil }
+        let session = makeSession(resolvedLocalDirectory: localDirectory, launchSettings: launchSettings)
         let tab = makeTab(content: .session(session))
         insertNextToSelected(tab)
         // Assign the destination before selection can expand the previous group.

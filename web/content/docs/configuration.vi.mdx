@@ -191,6 +191,20 @@ Chọn chương trình và vector đối số dùng cho terminal tạo từ sau 
 
 `terminal.startup-arguments` được tách đối số không gọi shell. Dấu nháy và gạch chéo ngược giữ ranh giới, kể cả khoảng trắng và đối số rỗng; biến, glob và thay thế lệnh không được mở rộng. Nháy không hợp lệ cũng trở về shell đăng nhập. argv được CLI Zshell đưa rõ vẫn ưu tiên cho terminal đó.
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — mặc định `"current"`
+
+Chọn **Cài đặt → Terminal → Thư mục phiên mới**. Hiện tại dùng thư mục của shell cục bộ đang hoạt động, kể cả terminal đầu tiên của dự án mới. Nếu không có shell cục bộ, dùng thư mục nhà. Dự án dùng gốc hiển thị trong Tệp và Git (kho gần nhất hoặc bản làm việc ở tiền cảnh); ngoài kho thì dùng thư mục hiện tại. Nhà luôn dùng thư mục của tài khoản. Chính sách cũng áp dụng cho Terminal nhanh đầu tiên và mỗi không gian làm việc mới của nó.
+
+Thư mục chỉ định rõ từ Finder, CLI, mẫu không gian làm việc, worktree, phiên khôi phục, thư mục ghim của dự án hoặc nhóm thanh bên được ưu tiên. Chia khung giữ thư mục của khung nguồn. SSH và phiên từ xa dùng chung giữ thư mục trên máy từ xa. Đổi cài đặt không khởi động lại terminal đang mở hoặc không gian Terminal nhanh được dùng lại.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+chuỗi — mặc định `""`
+
+Với tùy chỉnh, nhập đường dẫn tuyệt đối hoặc `~/folder`, hoặc chọn thư mục trong Cài đặt. Zshell kiểm tra thư mục tồn tại và có thể truy cập. Thư mục thiếu, không truy cập được hoặc không hợp lệ sẽ dùng thư mục cục bộ hiện tại (nhà nếu không có); Cài đặt hiển thị lý do. Đường dẫn đã lưu vẫn được giữ khi chọn chính sách khác.
+
 ### `terminal.term`
 
 Đặt `terminal.term` trong **Cài đặt → Terminal → TERM** (mặc định `"xterm-256color"`). Tên phải gồm 1–128 chữ cái ASCII, chữ số hoặc `.-_+`. Dùng tên terminfo đã cài trên máy chạy shell. Thay đổi chỉ áp dụng cho phiên cục bộ và SSH mới; các PTY đang mở và được giữ lại vẫn giữ `TERM` ban đầu. Phiên từ xa dùng chung sử dụng giá trị này khi tạo trên máy chủ đã cập nhật; máy chủ cũ vẫn dùng `xterm-256color`. Giá trị không hợp lệ khi khởi động sẽ dùng `xterm-256color`; chỉnh sửa không hợp lệ khi Zshell đang chạy sẽ giữ lại giá trị hợp lệ gần nhất. Cả hai trường hợp đều hiển thị lỗi trong Cài đặt. `TERM_PROGRAM` và `ZSHELL_TERM` không thay đổi.

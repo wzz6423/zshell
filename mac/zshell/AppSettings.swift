@@ -565,6 +565,14 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var newSessionDirectoryPolicy: NewSessionDirectoryPolicy {
+        didSet { save() }
+    }
+
+    @Published var newSessionCustomDirectory: String {
+        didSet { save() }
+    }
+
     @Published var browserContentBlocking: Bool {
         didSet { save() }
     }
@@ -735,6 +743,8 @@ final class AppSettings: nonisolated ObservableObject {
             && !TerminalLaunchSettings.isValidTermName(term ?? "")
         terminalStartupProgram = toml["terminal.startup-program"]?.string ?? ""
         terminalStartupArguments = toml["terminal.startup-arguments"]?.string ?? ""
+        newSessionDirectoryPolicy = NewSessionDirectoryPolicy(persisted: toml["terminal.new-session-directory"]?.string)
+        newSessionCustomDirectory = toml["terminal.custom-directory"]?.string ?? ""
         browserContentBlocking = toml["browser.content-blocking"]?.bool ?? true
         browserFilterLists = toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults
         gitProxyEnabled = toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled
@@ -902,6 +912,8 @@ final class AppSettings: nonisolated ObservableObject {
             && !terminalTermIsInvalid
             && terminalStartupProgram.isEmpty
             && terminalStartupArguments.isEmpty
+            && newSessionDirectoryPolicy == .current
+            && newSessionCustomDirectory.isEmpty
             && browserContentBlocking
             && browserFilterLists == BrowserFilterSource.defaults
             && gitProxyEnabled == GitProxy.defaultEnabled
@@ -970,6 +982,8 @@ final class AppSettings: nonisolated ObservableObject {
         setTerminalTerm(TerminalLaunchSettings.defaultTerm)
         terminalStartupProgram = ""
         terminalStartupArguments = ""
+        newSessionDirectoryPolicy = .current
+        newSessionCustomDirectory = ""
         terminalProfiles = []
         browserContentBlocking = true
         browserFilterLists = BrowserFilterSource.defaults
@@ -1223,6 +1237,8 @@ final class AppSettings: nonisolated ObservableObject {
             ? TerminalLaunchSettings.defaultTerm : toml["terminal.term"]?.string ?? "")
         assign(\.terminalStartupProgram, toml["terminal.startup-program"]?.string ?? "")
         assign(\.terminalStartupArguments, toml["terminal.startup-arguments"]?.string ?? "")
+        assign(\.newSessionDirectoryPolicy, NewSessionDirectoryPolicy(persisted: toml["terminal.new-session-directory"]?.string))
+        assign(\.newSessionCustomDirectory, toml["terminal.custom-directory"]?.string ?? "")
         assign(\.browserContentBlocking, toml["browser.content-blocking"]?.bool ?? true)
         assign(\.browserFilterLists, toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults)
         assign(\.gitProxyEnabled, toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled)
@@ -1483,6 +1499,12 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if !terminalStartupArguments.isEmpty {
             lines.append("terminal.startup-arguments = \(TOML.quote(terminalStartupArguments))")
+        }
+        if newSessionDirectoryPolicy != .current {
+            lines.append("terminal.new-session-directory = \(TOML.quote(newSessionDirectoryPolicy.rawValue))")
+        }
+        if !newSessionCustomDirectory.isEmpty {
+            lines.append("terminal.custom-directory = \(TOML.quote(newSessionCustomDirectory))")
         }
         if !browserContentBlocking {
             lines.append("browser.content-blocking = false")
