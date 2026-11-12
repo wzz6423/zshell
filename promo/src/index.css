@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme static {
+  --color-ink: #f6f7fc;
+  --color-surface: #ffffff;
+  --color-raised: #eef1f8;
+  --color-line: rgb(24 32 72 / 0.09);
+  --color-line-strong: rgb(24 32 72 / 0.16);
+  --color-fg: #12141d;
+  --color-muted: #586074;
+  --color-faint: #98a0b3;
+  /* Accents are tuned dark enough to stay legible as text on white. */
+  --color-cyan: #0891b2;
+  --color-blue: #2f6bff;
+  --color-violet: #7c4dff;
+  --color-pink: #e6399b;
+  --color-red: #e03a4e;
+  --color-amber: #e0700a;
+  --color-green: #12924a;
+  --color-shadow: #2a3a7c;
+
+  /* PingFang SC sits before the generic family so the bilingual labels never
+     fall through to a serif CJK face on the render machine. */
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", "SF Mono", ui-monospace, Menlo,
+    "PingFang SC", monospace;
+  --font-sans: "Geist Variable", "PingFang SC", system-ui, sans-serif;
+}
+
+@layer base {
+  /* Ligatures would merge `--` and `->` into glyphs no terminal prints. */
+  .font-mono {
+    font-variant-ligatures: none;
+  }
+}

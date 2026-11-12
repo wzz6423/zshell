@@ -1,0 +1,77 @@
+# Zshell — launch video
+
+A 50-second product launch film for **Zshell**, the native terminal workspace for
+macOS, written as code and rendered to MP4.
+
+## Stack
+
+- [Remotion](https://www.remotion.dev) 4 (React 19 + TypeScript)
+- [Tailwind CSS v4](https://tailwindcss.com) through `@remotion/tailwind-v4`
+- JetBrains Mono and Geist bundled from [Fontsource](https://fontsource.org), so
+  a render never waits on a font CDN
+
+## Develop
+
+Run these commands from `promo/`; dependencies are locked by `promo/bun.lock`.
+
+```sh
+bun install --frozen-lockfile
+bun run studio     # preview and scrub at http://localhost:3000
+bun run typecheck  # tsc --noEmit
+bun run render     # out/zshell-launch.mp4, 1920×1080 at 60 fps
+bun run render:4k  # out/zshell-launch-4k.mp4, 3840×2160 at 60 fps
+```
+
+The scripts wrap the Remotion CLI, so `npx remotion studio` and
+`npx remotion render LaunchVideo out/zshell-launch.mp4` do the same. The 4K file
+is the same composition rendered with `--scale=2`. The first render downloads
+Chrome Headless Shell into `node_modules/.remotion`.
+
+Render one frame to check a change without rendering the whole film:
+
+```sh
+bunx remotion still LaunchVideo out/f1500.png --frame=1500
+```
+
+## Timeline
+
+One composition, `LaunchVideo`: 3000 frames at 60 fps.
+[`src/timeline.ts`](src/timeline.ts) holds the start and length of every scene,
+and each scene counts frames from its own zero.
+
+| Scene | Seconds | Source | Shows |
+| --- | --- | --- | --- |
+| 1 · The Terminal Awakening | 0–7 | [`Awakening.tsx`](src/scenes/Awakening.tsx) | Shell and tmux config files pile up, collapse into a point, and open as one Zshell window. |
+| 2 · Speed & Core Workflow | 7–20 | [`Workflow.tsx`](src/scenes/Workflow.tsx) | Three automation commands are typed and run: a background split that returns the real exit status, an agent start, and an agent prompt. |
+| 3 · Under the Hood | 20–34 | [`UnderTheHood.tsx`](src/scenes/UnderTheHood.tsx) | The window tilts apart into four layers, then four chapters: architecture, the two terminal backends, the automation boundary, and the event stream. |
+| 4 · Feature Bento Grid | 34–43 | [`BentoGrid.tsx`](src/scenes/BentoGrid.tsx) | Six feature cards with English and Chinese labels. |
+| 5 · Outro & Get Started | 43–50 | [`Outro.tsx`](src/scenes/Outro.tsx) | The Homebrew install command types itself, then the logo and the repository address hold. |
+
+## Notes
+
+- Nothing on screen is invented. Commands, flags, JSON fields, shortcuts, config
+  keys, and limits are copied from [`web/content/docs`](../web/content/docs) and
+  [`mac/zshell/Skills/zshell-automation/SKILL.md`](../mac/zshell/Skills/zshell-automation/SKILL.md),
+  and live in [`src/data/`](src/data). When the product changes, update that
+  folder rather than a scene.
+- Two things are stand-ins and say so in their source: the project whose tests
+  run in scene 2, and the shell and tmux files in scene 1.
+- Zshell publishes no benchmarks, so the meters in scene 3 fill to documented
+  automation limits, not to measurements.
+- Colors are tokens in [`src/index.css`](src/index.css); inline styles read them
+  through [`src/theme.ts`](src/theme.ts).
+- The app icon is imported from
+  [`web/public/zshell-icon.png`](../web/public/zshell-icon.png) rather than
+  copied.
+- The backdrop particles take their rise speed, sway, and soft falloff from the
+  website's ambient field
+  ([`web/src/components/site-particles.tsx`](../web/src/components/site-particles.tsx))
+  but are drawn separately in CSS and share no code or texture with it.
+- Animation reads only the current frame — no `Math.random()`, timers, or CSS
+  transitions — and the particles are seeded with Remotion's `random()`, so
+  frames can render in any order and every render is identical.
+- `out/` is ignored. Renders are not committed.
+- Remotion is source-available rather than open source. It is free for
+  individuals and for organizations of up to three people; larger for-profit
+  teams need a [company license](https://www.remotion.dev/docs/license) to
+  render with it.

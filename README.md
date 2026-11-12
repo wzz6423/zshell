@@ -54,10 +54,11 @@ sharing a build or diagnosing a signing failure.
 
 - [`mac/`](mac/) — macOS app, Xcode project, dependencies, and build/release scripts.
 - [`web/`](web/README.md) — website and user documentation.
+- [`promo/`](promo/README.md) — launch video, written in Remotion and rendered to MP4.
 - [`skills/`](skills/) — [app development](skills/zshell-app-development/SKILL.md) and [release](skills/zshell-release/SKILL.md) workflows for coding agents.
 
 The root `Makefile` provides `run`, `update`, `stop`, `build-package`, and `clean`.
-Install Bun dependencies separately in `mac/` and `web/`; each has its own lockfile.
+Install Bun dependencies separately in `mac/`, `web/`, and `promo/`; each has its own lockfile.
 
 ## Documentation
 

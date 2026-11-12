@@ -47,10 +47,11 @@ make run
 
 - [`mac/`](mac/) —— macOS 应用、Xcode 工程、依赖，以及构建和发布脚本。
 - [`web/`](web/README.md) —— 官网和用户文档。
+- [`promo/`](promo/README.md) —— 产品发布宣传片，用 Remotion 编写并渲染为 MP4。
 - [`skills/`](skills/) —— 面向编码代理的[应用开发](skills/zshell-app-development/SKILL.md)和[发布](skills/zshell-release/SKILL.md)流程。
 
 根目录的 `Makefile` 提供 `run`、`update`、`stop`、`build-package` 和 `clean`。
-`mac/` 和 `web/` 需要分别安装 Bun 依赖，两者各有自己的 lockfile。
+`mac/`、`web/` 和 `promo/` 需要分别安装 Bun 依赖，三者各有自己的 lockfile。
 
 ## 文档
 
