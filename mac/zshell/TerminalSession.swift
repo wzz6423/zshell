@@ -711,25 +711,28 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         guard AppSettings.shared.restoreTerminalHistory else { return nil }
         guard captureLive else { return lastHistorySnapshot }
 
-        let rootShellIsForeground = shellPid != nil
-            && surface.foregroundPid == shellPid
-        if !rootShellIsForeground,
-           !TerminalHistorySerializer.hasPrimaryScrollback(surface) {
-            // A primary screen with no rows above the viewport and an
-            // alternate screen both have no scrollback export. The root shell
-            // is foreground only in the former case; a TUI owns its own
-            // foreground process group in the latter.
-            return lastHistorySnapshot
-        }
-        switch TerminalHistorySerializer.capture(
-            from: surface, maxLines: Self.persistedHistoryLineLimit
-        ) {
-        case .captured(let snapshot):
-            lastHistorySnapshot = snapshot
-            return snapshot
-        case .failed:
-            return lastHistorySnapshot
-        }
+        return TerminalHistorySerializer.liveHistorySnapshot(
+            &lastHistorySnapshot,
+            from: surface,
+            shellPID: shellPid,
+            foregroundPID: surface.foregroundPid,
+            maxLines: Self.persistedHistoryLineLimit
+        )
+    }
+
+    /// The finished-command marker arrives after the shell has restored the
+    /// primary screen. Refreshing here keeps that output when a later TUI
+    /// hides the grid that quit is allowed to export.
+    private func refreshHistoryAfterCommandFinished() {
+        guard remoteConnection == nil else { return }
+        guard AppSettings.shared.restoreTerminalHistory else { return }
+        TerminalHistorySerializer.refreshSnapshotAfterCommandFinished(
+            &lastHistorySnapshot,
+            from: surface,
+            shellPID: shellPid,
+            foregroundPID: surface.foregroundPid,
+            maxLines: Self.persistedHistoryLineLimit
+        )
     }
 
     var shellName: String {
@@ -1479,6 +1482,7 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
             lifecycle.lastDurationNanos = reportedDuration ?? measuredDuration
             lifecycle.completionSequence &+= 1
             commandExecutionStartedAtNanos = nil
+            refreshHistoryAfterCommandFinished()
             // The libghostty path: the shell integration's completed-command
             // report is the one "back at the prompt" event it exposes.
             promptQueueDidObservePromptReturn()

@@ -146,6 +146,78 @@ enum TerminalHistorySerializer {
         return true
     }
 
+    /// The root shell owns the primary screen only while it is the foreground
+    /// process.
+    ///
+    /// `promptStart` is not a capture point. Alacritty emits that marker for
+    /// prompt redraws, and a full screen export each time is extra I/O. The
+    /// shell emits the finished-command marker after the command returns, so
+    /// that refresh runs on the primary screen and includes the command's
+    /// output.
+    ///
+    /// An alternate screen is not exported. There is no backend API for the
+    /// hidden primary grid while a TUI is visible, and capturing the visible
+    /// screen would replace shell scrollback with the TUI. A finished command
+    /// whose foreground pid is not the root shell leaves the cached snapshot
+    /// untouched.
+    nonisolated static func rootShellIsForeground(
+        shellPID: pid_t?, foregroundPID: pid_t?
+    ) -> Bool {
+        shellPID != nil && foregroundPID == shellPID
+    }
+
+    /// Replaces the cached shell scrollback when a command has just returned
+    /// to the root shell. A TUI must not overwrite that cache.
+    @MainActor
+    static func refreshSnapshotAfterCommandFinished(
+        _ snapshot: inout String?,
+        from surface: any TerminalBackendSurface,
+        shellPID: pid_t?,
+        foregroundPID: pid_t?,
+        maxLines: Int
+    ) {
+        guard rootShellIsForeground(shellPID: shellPID, foregroundPID: foregroundPID) else {
+            return
+        }
+        storeCapturedScreen(into: &snapshot, from: surface, maxLines: maxLines)
+    }
+
+    /// Snapshot for quit and last-window close. The alternate-screen guard
+    /// stays: no scrollback export and a non-shell foreground return the
+    /// cache without reading the visible screen.
+    @MainActor
+    static func liveHistorySnapshot(
+        _ snapshot: inout String?,
+        from surface: any TerminalBackendSurface,
+        shellPID: pid_t?,
+        foregroundPID: pid_t?,
+        maxLines: Int
+    ) -> String? {
+        if !rootShellIsForeground(shellPID: shellPID, foregroundPID: foregroundPID),
+           !hasPrimaryScrollback(surface) {
+            // A primary screen with no rows above the viewport and an
+            // alternate screen both have no scrollback export. The root shell
+            // is foreground only in the former case; a TUI owns its own
+            // foreground process group in the latter.
+            return snapshot
+        }
+        storeCapturedScreen(into: &snapshot, from: surface, maxLines: maxLines)
+        return snapshot
+    }
+
+    /// Writes a successful screen export into the cache. A failed export
+    /// keeps the previous snapshot, matching quit-time capture.
+    @MainActor
+    private static func storeCapturedScreen(
+        into snapshot: inout String?,
+        from surface: any TerminalBackendSurface,
+        maxLines: Int
+    ) {
+        if case .captured(let captured) = capture(from: surface, maxLines: maxLines) {
+            snapshot = captured
+        }
+    }
+
     /// Label shown in the restored-history divider.
     private static let restoredBannerSourceLabel = "Session Contents Restored"
     static let restoredBannerLabel = String(

@@ -20,6 +20,7 @@ struct TerminalHistoryPersistenceTests {
             try check(fileURL.path.hasPrefix(root.path + "/"), "history uses the disposable application support directory")
             #if TERMINAL_HISTORY_STORE_PROBE
             try stores()
+            try finishedCommandKeepsPrimaryHistory()
             print("Terminal history storage: \(checks) checks passed")
             #else
             let app = NSApplication.shared
@@ -134,6 +135,91 @@ struct TerminalHistoryPersistenceTests {
         TerminalHistoryStore.save(histories)
         try check(try read() == histories, "deleted history is recreated after loading")
     }
+
+    #if TERMINAL_HISTORY_STORE_PROBE
+    /// Screen and scrollback exports that satisfy the serializer's temp-file
+    /// contract. Nil means the backend produced no file, which is how a TUI
+    /// reports the hidden primary scrollback.
+    private final class HistoryExportSurface: TerminalBackendSurface {
+        var screenText: String?
+        var scrollbackText: String?
+        private var createdDirectories: [URL] = []
+
+        func exportScreenFile() -> String? { export(screenText) }
+
+        func exportScrollbackFile() -> String? { export(scrollbackText) }
+
+        func cleanup() {
+            for directory in createdDirectories {
+                try? FileManager.default.removeItem(at: directory)
+            }
+        }
+
+        private func export(_ text: String?) -> String? {
+            guard let text else { return nil }
+            let directory = FileManager.default.temporaryDirectory
+                .appendingPathComponent("zshell-history-\(UUID().uuidString)", isDirectory: true)
+            let file = directory.appendingPathComponent("screen")
+            do {
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                try Data(text.utf8).write(to: file)
+                createdDirectories.append(directory)
+                return file.path
+            } catch {
+                return nil
+            }
+        }
+    }
+
+    private static func finishedCommandKeepsPrimaryHistory() throws {
+        let surface = HistoryExportSurface()
+        defer { surface.cleanup() }
+        let shell: pid_t = 4242
+        let editor: pid_t = 5151
+        var snapshot: String? = "PREVIOUS_LAUNCH_HISTORY"
+        surface.screenText = "SHELL_COMMAND_OUTPUT\n"
+        surface.scrollbackText = nil
+
+        TerminalHistorySerializer.refreshSnapshotAfterCommandFinished(
+            &snapshot,
+            from: surface,
+            shellPID: shell,
+            foregroundPID: shell,
+            maxLines: 500
+        )
+        try check(
+            snapshot == "SHELL_COMMAND_OUTPUT",
+            "command finished while the shell is foreground captures and replaces the cache"
+        )
+
+        surface.screenText = "ALTERNATE_SCREEN_TUI\n"
+        TerminalHistorySerializer.refreshSnapshotAfterCommandFinished(
+            &snapshot,
+            from: surface,
+            shellPID: shell,
+            foregroundPID: editor,
+            maxLines: 500
+        )
+        try check(
+            snapshot == "SHELL_COMMAND_OUTPUT",
+            "command finished while another pid is foreground keeps the previous snapshot"
+        )
+
+        let quit = TerminalHistorySerializer.liveHistorySnapshot(
+            &snapshot,
+            from: surface,
+            shellPID: shell,
+            foregroundPID: editor,
+            maxLines: 500
+        )
+        try check(
+            quit == "SHELL_COMMAND_OUTPUT"
+                && quit != "ALTERNATE_SCREEN_TUI"
+                && quit?.isEmpty == false,
+            "quit with no scrollback export and a non-shell foreground returns that cached snapshot rather than an empty or alternate-screen capture"
+        )
+    }
+    #endif
 
     private static func repeatedSaves() throws {
         let row = "\u{1b}[38;2;92;140;185m" + String(repeating: "x", count: 120) + "\u{1b}[0m\r\n"
