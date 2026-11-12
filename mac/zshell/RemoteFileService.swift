@@ -258,9 +258,23 @@ nonisolated struct RemoteFileService: Sendable {
     }
     my $root_path = shift @ARGV;
     fail('unsafe') unless defined($root_path) && $root_path =~ m{^/};
+    for my $component (split m{/}, $root_path) {
+      next if $component eq '';
+      fail('unsafe') if $component eq '.' || $component eq '..';
+    }
+    # Resolve the project root once on this host before the no-follow walk.
+    # A directory symlink on the way in (/tmp -> /private/tmp, or a project
+    # directory that is itself a link) has to become a real absolute path.
+    # The walk still opens every component with O_NOFOLLOW, so a link inside
+    # the project cannot be followed.
+    my $resolved_root = eval { require Cwd; Cwd::realpath($root_path) };
+    my @resolved_stat;
+    if (defined($resolved_root)) { @resolved_stat = Time::HiRes::lstat($resolved_root); }
+    fail('unsafe') unless defined($resolved_root) && $resolved_root =~ m{^/}
+      && @resolved_stat && Fcntl::S_ISDIR($resolved_stat[2]);
     chdir('/') or fail('unsafe');
     my $root = open_directory('.');
-    for my $component (split m{/}, $root_path) {
+    for my $component (split m{/}, $resolved_root) {
       next if $component eq '';
       fail('unsafe') if $component eq '.' || $component eq '..';
       $root = open_directory($component);
