@@ -33,7 +33,7 @@ shows the same worktree state as the Git panel without opening it.
 
 Open SSH files from the Files panel. **Settings → Editor → Files → Allow remote file changes** (`files.remote-write-enabled`) is on by default for creation, rename, remote trash, and saves.
 
-Zshell uses only tools already installed on the host and installs nothing. File reading and editing use the host’s existing Perl core modules. Each write operation also checks the filesystem capabilities it needs; unsupported operations stay disabled. Symbolic links, special files, and paths outside the project are rejected. UTF-8 text files can be up to 5 MiB; remote Markdown opens as source.
+Zshell uses only tools already installed on the host and installs nothing. File reading and editing use the host’s existing Perl core modules. Each write operation also checks the filesystem capabilities it needs; unsupported operations stay disabled. The host resolves directory symbolic links in the project root and its ancestors once per file operation; symbolic links inside the project, special files, and paths outside the project are rejected. UTF-8 text files can be up to 5 MiB; remote Markdown opens as source.
 
 Saving checks for remote changes even when local save protection is off. A conflict lets you compare, keep your draft, reload from the remote host, or approve an overwrite. Zshell rechecks the compared version immediately before publishing a complete file; an external process can still write after that final check.
 

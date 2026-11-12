@@ -28,7 +28,7 @@ Le righe usano icone Material in base al nome del file. Nei repository Git, i pe
 
 Apri i file SSH dal pannello File. Per creare, rinominare, spostare nel cestino remoto o salvare, attiva **Impostazioni → Editor → File → Consenti modifiche ai file remoti** (`files.remote-write-enabled`, attivato per impostazione predefinita).
 
-Zshell usa solo strumenti già presenti sull’host e non installa nulla. Lettura e modifica usano i moduli di base Perl esistenti. Ogni scrittura verifica anche le funzioni necessarie del file system; le operazioni non supportate restano disabilitate. Link simbolici, file speciali e percorsi esterni al progetto vengono rifiutati. I testi UTF-8 possono arrivare a 5 MiB; il Markdown remoto si apre come sorgente.
+Zshell usa solo strumenti già presenti sull’host e non installa nulla. Lettura e modifica usano i moduli di base Perl esistenti. Ogni scrittura verifica anche le funzioni necessarie del file system; le operazioni non supportate restano disabilitate. L’host risolve una volta per operazione i link simbolici a directory nella radice del progetto e nelle directory superiori; i link simbolici all’interno del progetto, i file speciali e i percorsi esterni al progetto vengono rifiutati. I testi UTF-8 possono arrivare a 5 MiB; il Markdown remoto si apre come sorgente.
 
 Il salvataggio remoto controlla le modifiche anche con la protezione locale disattivata. In caso di conflitto puoi confrontare, mantenere la bozza, ricaricare dall’host o autorizzare la sovrascrittura. La versione confrontata viene ricontrollata subito prima di pubblicare il file completo; un processo esterno può comunque scrivere dopo l’ultimo controllo.
 

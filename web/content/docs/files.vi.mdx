@@ -28,7 +28,7 @@ Các hàng dùng biểu tượng Material theo tên tệp. Trong kho Git, đư�
 
 Mở tệp SSH từ bảng Tệp. Để tạo, đổi tên, chuyển vào thùng rác từ xa hoặc lưu, bật **Cài đặt → Trình soạn thảo → Tệp → Cho phép thay đổi tệp từ xa** (`files.remote-write-enabled`, mặc định bật).
 
-Zshell chỉ dùng công cụ đã có trên máy chủ và không cài thêm gì. Việc đọc và chỉnh sửa dùng các mô-đun lõi Perl hiện có. Mỗi thao tác ghi cũng kiểm tra khả năng cần thiết của hệ thống tệp; thao tác không được hỗ trợ sẽ bị tắt. Liên kết tượng trưng, tệp đặc biệt và đường dẫn ngoài dự án bị từ chối. Văn bản UTF-8 tối đa 5 MiB; Markdown từ xa mở ở dạng mã nguồn.
+Zshell chỉ dùng công cụ đã có trên máy chủ và không cài thêm gì. Việc đọc và chỉnh sửa dùng các mô-đun lõi Perl hiện có. Mỗi thao tác ghi cũng kiểm tra khả năng cần thiết của hệ thống tệp; thao tác không được hỗ trợ sẽ bị tắt. Máy chủ phân giải liên kết tượng trưng tới thư mục ở thư mục gốc dự án và các thư mục cha một lần cho mỗi thao tác tệp; liên kết tượng trưng bên trong dự án, tệp đặc biệt và đường dẫn ngoài dự án bị từ chối. Văn bản UTF-8 tối đa 5 MiB; Markdown từ xa mở ở dạng mã nguồn.
 
 Lưu từ xa vẫn kiểm tra thay đổi khi tắt bảo vệ lưu cục bộ. Khi có xung đột, bạn có thể so sánh, giữ bản nháp, tải lại từ máy chủ hoặc chấp thuận ghi đè. Phiên bản đã so sánh được kiểm tra lại ngay trước khi đưa tệp hoàn chỉnh vào vị trí; tiến trình bên ngoài vẫn có thể ghi sau lần kiểm tra cuối.
 

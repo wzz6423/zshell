@@ -28,7 +28,7 @@ Rijen gebruiken Material-pictogrammen die bij de bestandsnaam passen. In een Git
 
 Open SSH-bestanden vanuit het paneel Bestanden. Schakel voor maken, hernoemen, verplaatsen naar de externe prullenmand en opslaan **Instellingen → Editor → Bestanden → Wijzigingen in externe bestanden toestaan** in (`files.remote-write-enabled`, standaard aan).
 
-Zshell gebruikt alleen bestaande hulpmiddelen op de host en installeert niets. Lezen en bewerken gebruiken de bestaande Perl-kernmodules. Elke schrijfbewerking controleert ook de benodigde bestandssysteemfuncties; niet-ondersteunde bewerkingen blijven uitgeschakeld. Symbolische koppelingen, speciale bestanden en paden buiten het project worden geweigerd. UTF-8-tekstbestanden mogen maximaal 5 MiB zijn; externe Markdown opent als broncode.
+Zshell gebruikt alleen bestaande hulpmiddelen op de host en installeert niets. Lezen en bewerken gebruiken de bestaande Perl-kernmodules. Elke schrijfbewerking controleert ook de benodigde bestandssysteemfuncties; niet-ondersteunde bewerkingen blijven uitgeschakeld. De host lost symbolische directorykoppelingen in de projecthoofdmap en de bovenliggende mappen eenmaal per bestandsbewerking op; symbolische koppelingen binnen het project, speciale bestanden en paden buiten het project worden geweigerd. UTF-8-tekstbestanden mogen maximaal 5 MiB zijn; externe Markdown opent als broncode.
 
 Extern opslaan controleert wijzigingen ook als lokale opslagbeveiliging uitstaat. Bij een conflict kunt u vergelijken, uw concept behouden, opnieuw laden vanaf de host of overschrijven goedkeuren. De vergeleken versie wordt vlak vóór het publiceren van het volledige bestand opnieuw gecontroleerd; een extern proces kan na die laatste controle nog schrijven.
 
