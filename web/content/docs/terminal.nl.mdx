@@ -58,6 +58,12 @@ Schakel **Instellingen → Terminal → Invoer → Focus volgt de muis** in om e
 
 `terminal.focus-follows-mouse = true`
 
+## Rechtsklikactie [#right-click-action]
+
+Kies bij **Instellingen → Terminal → Invoer → Rechtsklikactie** voor **Contextmenu** (standaard), **Plakken** of **Kopiëren of plakken**. De laatste optie kopieert de selectie en plakt alleen zonder selectie. Wijzigingen gelden direct voor beide backends. `terminal.right-click-action` in `config.toml` accepteert `"context-menu"`, `"paste"` of `"copy-or-paste"`.
+
+**Shift-rechtsklik**, **Control-klik** en **Command-rechtsklik** openen nog steeds het menu. **Wijzig → Terminalcontextmenu tonen** (<kbd>Shift</kbd>+<kbd>F10</kbd>) opent het met het toetsenbord. Apps met muisrapportage blijven gewone rechtsklikken ontvangen, tenzij **Zshell-opdrachten blokkeren** voor het paneel aanstaat. Plakken gebruikt dezelfde bevestiging voor meerdere regels en lokale of externe bestandsafhandeling als <kbd>Cmd</kbd>+<kbd>V</kbd>.
+
 ## Terminalprofielen [#terminal-profiles]
 
 Maak en orden profielen onder **Instellingen → Terminal → Terminalprofielen → Terminalprofielen beheren…**. Ze kunnen host, gebruiker, werkmap en voorgrondprogramma vergelijken. Alle ingevulde voorwaarden moeten passen; `*` past bij elke tekst en `?` bij één teken. Het eerste passende profiel wordt gebruikt; zonder match keert het paneel terug naar zijn oorspronkelijke uiterlijk. **Terminalprofielen automatisch toepassen** staat standaard aan (`terminal.auto-profiles = true`); handmatig kiezen blijft mogelijk na uitschakelen.

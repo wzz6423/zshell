@@ -28,6 +28,7 @@ parser.add_argument("--server-path", default="~/.local/bin/zshell-server")
 parser.add_argument("--backend", choices=("alacritty", "ghostty"), action="append")
 parser.add_argument("--wake-fixture", type=Path, help="Transparent bridge controls from test_remote_session_wake.py")
 parser.add_argument("--paste", action="store_true", help="Run the remote file/image paste probe after session checks")
+parser.add_argument("--paste-only", action="store_true", help="Run only remote paste without credential-store or session probes")
 parser.add_argument("--agent-root", type=Path, help="Run official Codex Agent probes with this prepared isolated fixture")
 parser.add_argument("--agent-provider", help="Absolute official Codex executable on the isolated SSH fixture")
 parser.add_argument("--agent-only", action="store_true", help="Run only the prepared Agent probe")
@@ -56,14 +57,15 @@ with tempfile.TemporaryDirectory(prefix="zshell-remote-surfaces-", dir="/tmp") a
                   "-I", str(ROOT / "mac/Vendor/tree-sitter/lib/include"), str(library),
                   "-Xlinker", "-rpath", "-Xlinker", str(products),
                   "-Xlinker", "-rpath", "-Xlinker", str(library.parent), "-o", str(binary)]
-    ssh_source = temporary / "RemoteSSHTests.swift"
-    ssh_source.write_text("@testable import zshell\n" + (ROOT / "mac/tests/RemoteSSHTests.swift").read_text().replace("static func main()", "@MainActor static func main()"))
-    subprocess.run(arguments + [str(ssh_source)], cwd=ROOT, check=True)
-    subprocess.run([str(binary)], cwd=ROOT, check=True, timeout=30,
-                   env={**os.environ, "CFFIXED_USER_HOME": directory})
-    if not options.agent_only:
+    if not options.paste_only:
+        ssh_source = temporary / "RemoteSSHTests.swift"
+        ssh_source.write_text("@testable import zshell\n" + (ROOT / "mac/tests/RemoteSSHTests.swift").read_text().replace("static func main()", "@MainActor static func main()"))
+        subprocess.run(arguments + [str(ssh_source)], cwd=ROOT, check=True)
+        subprocess.run([str(binary)], cwd=ROOT, check=True, timeout=30,
+                       env={**os.environ, "CFFIXED_USER_HOME": directory})
+    if not options.agent_only and not options.paste_only:
         subprocess.run(arguments + [str(ROOT / "mac/tests/RemoteSessionSurfaceTests.swift")], cwd=ROOT, check=True)
-    for backend in (() if options.agent_only else options.backend or ("alacritty", "ghostty")):
+    for backend in (() if options.agent_only or options.paste_only else options.backend or ("alacritty", "ghostty")):
         home = temporary / backend
         home.mkdir()
         (home / "tmp").mkdir()
@@ -81,7 +83,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-remote-surfaces-", dir="/tmp") a
             command.append(str(options.wake_fixture.resolve()))
         subprocess.run(command,
                        cwd=ROOT, check=True, timeout=120, env=environment)
-    if options.paste:
+    if options.paste or options.paste_only:
         subprocess.run(arguments + [str(ROOT / "mac/tests/RemotePasteSurfaceTests.swift")], cwd=ROOT, check=True)
         for backend in options.backend or ("alacritty", "ghostty"):
             home = temporary / (backend + "-paste")

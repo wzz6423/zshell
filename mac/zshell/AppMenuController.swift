@@ -105,6 +105,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         standard(edit, title: { String(localized: "Paste") }, action: #selector(NSText.paste(_:)), key: "v")
         standard(edit, title: { String(localized: "Delete") }, action: #selector(NSText.delete(_:)))
         standard(edit, title: { String(localized: "Select All") }, action: #selector(NSText.selectAll(_:)), key: "a")
+        standard(edit, title: { String(localized: "Show Terminal Context Menu") }, action: NSSelectorFromString("showTerminalContextMenu:"), key: "\u{f70d}", modifiers: .shift)
         let find = addMenu(to: edit, title: { String(localized: "Find") })
         managed(find, title: { String(localized: "Find…") }, key: "f", enabled: { $0.canFind }) { $0.performFindAction(.show) }
         managed(find, title: { String(localized: "Find and Replace…") }, key: "f", modifiers: [.command, .option], enabled: { $0.canReplace }) { $0.performFindAction(.replace) }

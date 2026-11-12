@@ -18,6 +18,9 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Choose whether a terminal right-click opens the context menu, pastes, or
+  copies selected text and otherwise pastes. Shift-right-click and a keyboard
+  menu command keep terminal actions available with either backend.
 - Import Finder files and folders into a local project from the File menu or
   by enabling drag-and-drop import in Settings. Choose whether to replace or
   skip existing items, and cancel an import. Items changed by another app are

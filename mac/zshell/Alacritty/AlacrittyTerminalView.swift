@@ -78,6 +78,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     private var mouseShapeCursor: NSCursor = .iBeam
     private var reportingMouseButton = false
     private var reportingRightMouseButton = false
+    private var isContextualLeftClick = false
     private var lastReportedFocus: Bool?
     private var cursorTimer: Timer?
     private var cursorBlinking = false
@@ -1723,6 +1724,12 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func mouseDown(with event: NSEvent) {
+        isContextualLeftClick = event.modifierFlags.contains(.control)
+        if isContextualLeftClick {
+            focusForInteraction()
+            TerminalContextMenu.show(for: self, event: event, linkTarget: linkTarget(for: event))
+            return
+        }
         aiInputEditor.beginPointer(at: nil, in: nil)
         stopSelectionAutoscroll()
         focusForInteraction()
@@ -1771,6 +1778,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func mouseDragged(with event: NSEvent) {
+        guard !isContextualLeftClick else { return }
         guard !suppressPointerEventsUntilMouseDown else { return }
         if reportingMouseButton {
             if terminalMode.contains(.mouseDrag) || terminalMode.contains(.mouseMotion) {
@@ -1788,6 +1796,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func mouseUp(with event: NSEvent) {
+        if isContextualLeftClick {
+            isContextualLeftClick = false
+            return
+        }
         guard !suppressPointerEventsUntilMouseDown else { return }
         finishPointerSelection(with: event, copyOnSelect: true)
     }
@@ -2466,11 +2478,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             return
         }
         reportingRightMouseButton = false
-        NSMenu.popUpContextMenu(
-            TerminalContextMenu.make(for: self, linkTarget: linkTarget(for: event)),
-            with: event,
-            for: self
-        )
+        TerminalContextMenu.handleRightClick(for: self, event: event, linkTarget: linkTarget(for: event))
     }
 
     override func rightMouseUp(with event: NSEvent) {
@@ -2487,9 +2495,15 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
-        guard commandRouting.blocksCommands || !shouldReportMouse(event) else { return nil }
+        guard event.type == .leftMouseDown && event.modifierFlags.contains(.control)
+            || commandRouting.blocksCommands || !shouldReportMouse(event) else { return nil }
         focusForInteraction()
         return TerminalContextMenu.make(for: self, linkTarget: linkTarget(for: event))
+    }
+
+    @objc func showTerminalContextMenu(_ sender: Any?) {
+        focusForInteraction()
+        TerminalContextMenu.show(for: self)
     }
 
     private func linkTarget(for event: NSEvent) -> TerminalLinkTarget? {

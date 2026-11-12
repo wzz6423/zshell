@@ -73,6 +73,12 @@ Enable **Settings → Terminal → Input → Focus follows mouse** to focus a te
 
 `terminal.focus-follows-mouse = true`
 
+## Right-click action [#right-click-action]
+
+In **Settings → Terminal → Input → Right-click action**, choose **Context Menu** (default), **Paste**, or **Copy or Paste**. The last choice copies the current selection and pastes only when nothing is selected. Changes apply immediately to both backends. Set `terminal.right-click-action` to `"context-menu"`, `"paste"`, or `"copy-or-paste"` in `config.toml`.
+
+**Shift-right-click**, **Control-click**, and **Command-right-click** still open the menu. **Edit → Show Terminal Context Menu** (<kbd>Shift</kbd>+<kbd>F10</kbd>) opens it from the keyboard. Applications using mouse reporting keep receiving ordinary right-clicks unless **Block Zshell Commands** is enabled for the pane. Paste uses the same multi-line confirmation and local or remote file handling as <kbd>Cmd</kbd>+<kbd>V</kbd>.
+
 ## Terminal profiles
 
 **Apply terminal profiles automatically** is on by default (`terminal.auto-profiles = true`). Turn it off to stop automatic matching; manual profile selection remains available.
