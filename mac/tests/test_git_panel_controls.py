@@ -337,7 +337,7 @@ import AppKit
         model.commitCompletion?(true)
         pump(panel)
         check(commitText.string.isEmpty, "successful commit clears its unchanged draft")
-        model.recentCommits = [GitStatusModel.RecentCommit(hash: "commit", shortHash: "commit", subject: "fixture", author: "Test", date: Date(), parentHash: nil, references: [], files: [])]
+        model.recentCommits = [GitStatusModel.RecentCommit(hash: "commit", shortHash: "commit", subject: "fixture", author: "Test", date: Date(), parentHash: nil, references: [], files: [], omittedFileCount: 0)]
         pump(panel)
         editCommit("amend draft")
         let nativeCommitMenu = panel.makeCommitMenu()
