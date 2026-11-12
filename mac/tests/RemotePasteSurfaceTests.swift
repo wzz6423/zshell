@@ -106,6 +106,16 @@ struct RemotePasteSurfaceTests {
         }
         func text() -> String { surface.readVisibleText(maxLines: 256, maxColumns: 1000) ?? "" }
         func paste() throws {
+            if ProcessInfo.processInfo.environment["ZSHELL_TEST_RIGHT_CLICK_PASTE"] == "1" {
+                AppSettings.shared.terminalRightClickAction = .paste
+                let event = NSEvent.mouseEvent(
+                    with: .rightMouseDown, location: NSPoint(x: 20, y: 20), modifierFlags: [],
+                    timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                    context: nil, eventNumber: 0, clickCount: 1, pressure: 1
+                )!
+                surface.rightMouseDown(with: event)
+                return
+            }
             try check(surface.tryToPerform(#selector(NSText.paste(_:)), with: nil), "backend routes the native user paste action")
         }
         defer {

@@ -146,6 +146,12 @@ final class GlobalTerminalOverlay: NSObject {
     private var pendingSnapshot: QuickTerminalWorkspaceSnapshot.Snapshot?
     private var isQuitting = false
 
+    var focusedPromptQueueSession: TerminalSession? {
+        guard terminalWindow != nil, terminalWindow === NSApp.keyWindow,
+              case .session(let session)? = workspace?.focusedContent else { return nil }
+        return session
+    }
+
     func start() {
         guard hotkeyHandlerRef == nil else { return }
         pendingSnapshot = SessionStore.loadQuickTerminalWorkspace()
@@ -438,7 +444,10 @@ final class GlobalTerminalOverlay: NSObject {
 
         backdropWindow?.orderOut(nil)
         terminalWindow.hideSettings()
-        for session in workspace?.sessions ?? [] { session.surface.setSurfaceVisible(false) }
+        for session in workspace?.sessions ?? [] {
+            session.surface.setSurfaceVisible(false)
+            session.promptQueueBar.setPaneVisible(false)
+        }
         terminalWindow.orderOut(nil)
 
         let application = previousApplication

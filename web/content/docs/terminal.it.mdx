@@ -58,6 +58,12 @@ Attiva **Impostazioni → Terminale → Input → Il focus segue il mouse** per 
 
 `terminal.focus-follows-mouse = true`
 
+## Azione del clic destro [#right-click-action]
+
+In **Impostazioni → Terminale → Input → Azione del clic destro**, scegli **Menu contestuale** (predefinito), **Incolla** o **Copia o incolla**. L’ultima opzione copia la selezione e incolla solo se non c’è una selezione. Le modifiche si applicano subito a entrambi i backend. `terminal.right-click-action` in `config.toml` accetta `"context-menu"`, `"paste"` o `"copy-or-paste"`.
+
+**Maiusc + clic destro**, **Control + clic** e **Command + clic destro** aprono ancora il menu. **Modifica → Mostra menu contestuale del terminale** (<kbd>Shift</kbd>+<kbd>F10</kbd>) lo apre dalla tastiera. Le applicazioni con rilevamento del mouse ricevono i normali clic destri, salvo quando **Blocca comandi Zshell** è attivo nel pannello. Incollare usa la stessa conferma multilinea e gestione dei file locali o remoti di <kbd>Cmd</kbd>+<kbd>V</kbd>.
+
 ## Profili terminale [#terminal-profiles]
 
 Crea e ordina i profili in **Impostazioni → Terminale → Profili terminale → Gestisci profili terminale…**. Possono corrispondere a host, utente, directory di lavoro e programma in primo piano. Tutte le condizioni compilate devono corrispondere; `*` accetta qualsiasi testo e `?` un carattere. Si usa il primo profilo corrispondente; senza corrispondenza, il pannello torna all’aspetto originale. **Applica automaticamente i profili terminale** è attivo per impostazione predefinita (`terminal.auto-profiles = true`); disattivandolo resta disponibile la scelta manuale.
@@ -100,9 +106,13 @@ L'impostazione vale solo per quel pannello. Fai di nuovo clic destro e rimuovi l
 
 Attiva un terminale e premi <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>, oppure scegli **Mostra/nascondi coda dei prompt** nella tavolozza dei comandi. La barra si apre sotto quel terminale. Scrivi una voce e premi <kbd>Return</kbd> o **Aggiungi alla coda**; ogni voce occupa una sola riga e le interruzioni di riga incollate vengono sostituite da spazi.
 
-Quando la zsh originale torna a un prompt vuoto, Zshell invia la voce successiva e preme Invio. Le voci vengono eseguite nell'ordine della coda. L'invio automatico attende mentre un agente o un altro programma in primo piano controlla il terminale, oppure mentre il prompt contiene una bozza di input. Richiede l'integrazione zsh di Zshell; altre shell e shell annidate possono usare l'invio manuale.
+L’invio è manuale per impostazione predefinita. **Invia ora** invia solo se il prompt della zsh originale è vuoto e nessuna attività di comando in attesa o in esecuzione occupa il terminale. È disabilitato con agenti, programmi in primo piano, bozze e altre shell o shell annidate. Un invio rifiutato mantiene la voce.
 
-Ogni voce ha i pulsanti **Invia ora** e **Rimuovi**. **Invia ora** manda immediatamente testo e Invio al programma corrente del terminale, senza attendere il prompt della shell. <kbd>Esc</kbd> o il pulsante di chiusura nasconde la barra mantenendo le voci in coda. Ogni terminale ha la propria coda; chiudere la sessione o uscire da Zshell la elimina.
+In **Impostazioni → Terminale → Coda dei prompt**, abilita **Invia automaticamente i prompt in coda** per inviare la voce successiva in ordine quando un comando termina e zsh torna a un prompt vuoto. L’attivazione non esegue subito la coda: vale dalla fine del comando successivo. Disattivando, gli invii in attesa vengono annullati.
+
+Disattivare **Abilita coda dei prompt** nasconde le barre in tutte le aree di lavoro e Quick Terminal, annulla gli invii e mantiene voci e testo non inviato. Menu e scorciatoia aprono allora le impostazioni corrispondenti.
+
+**Rimuovi** elimina una voce. I pannelli stretti mostrano icone con nomi e suggerimenti. <kbd>Esc</kbd> o chiudere nasconde solo la barra. La coda di ogni terminale viene eliminata alla chiusura della sessione o di Zshell.
 
 ## Percorsi e URL [#paths-and-urls]
 
@@ -139,7 +149,7 @@ Le notifiche possono riprodurre il suono di sistema. Fare clic su una notifica a
 
 La stessa cronologia è accessibile da **Impostazioni → Terminale → Notifiche**.
 
-Apri **Notifiche → Cronologia notifiche…** per vedere gli avvisi recenti del terminale e degli agenti. Filtra per **Non lette**, **Non riuscite** o **In attesa**. Fai clic su un avviso o su **Mostra riquadro** per selezionare il progetto, la scheda e il riquadro attuali, anche in un’altra finestra. I riquadri chiusi restano nella cronologia come non disponibili.
+Apri **Terminale → Notifiche → Cronologia notifiche…** per vedere gli avvisi recenti del terminale e degli agenti. Filtra per **Non lette**, **Non riuscite** o **In attesa**. Fai clic su un avviso o su **Mostra riquadro** per selezionare il progetto, la scheda e il riquadro attuali, anche in un’altra finestra. I riquadri chiusi restano nella cronologia come non disponibili.
 
 Usa **Segna come letta**, **Segna tutte come lette**, **Rimuovi** o **Cancella cronologia**. La lettura non approva richieste dell’agente. Un avviso esce da In attesa quando l’agente riprende o termina, il riquadro chiude o la connessione remota non è disponibile. Gli stati derivano da rapporti espliciti del ciclo di vita e dai risultati di uscita dei comandi. Gli ultimi 200 avvisi restano dopo il riavvio, anche con il permesso di notifiche macOS disattivato.
 

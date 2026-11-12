@@ -18,6 +18,18 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Recover unsaved file and editable diff drafts after an unexpected exit,
+  keeping their original save protection, selection and layout. Manage private
+  local backups from File or Editor settings, or turn automatic recovery off.
+- Adjust mouse wheel and trackpad scrolling speeds independently in Settings,
+  with immediate updates in both terminal backends.
+- Choose whether a terminal right-click opens the context menu, pastes, or
+  copies selected text and otherwise pastes. Shift-right-click and a keyboard
+  menu command keep terminal actions available with either backend.
+- Import Finder files and folders into a local project from the File menu or
+  by enabling drag-and-drop import in Settings. Choose whether to replace or
+  skip existing items, and cancel an import. Items changed by another app are
+  preserved when cancellation cannot fully undo the import.
 - Adjust terminal column spacing from Appearance settings while keeping glyph
   size, cursor, selection, and keyboard hints aligned on either terminal backend.
 - Configure terminal OpenType features and switch font ligatures on or off from
@@ -28,6 +40,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Changed
 
+- Group project and tab commands under Window, browser tools under View, and
+  agent and notification tools under Terminal to keep the menu bar compact.
 - Give settings categories and controls distinct colored icons and a clearer
   sidebar selection that follows the window's focus.
 - Refresh local project files in the background and reduce Git panel and review
