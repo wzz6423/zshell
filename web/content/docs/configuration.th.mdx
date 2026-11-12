@@ -169,6 +169,12 @@ Zshell ไม่มีตัวควบคุมน้ำหนักฟอน�
 
 ดูตัวแปรแวดล้อมและข้อกำหนดความเข้ากันได้ที่ [Backend เทอร์มินัล](/th/docs/terminal#terminal-backends)
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+ตัวเลข 0.1–10 — ค่าเริ่มต้น `1` สำหรับแต่ละอุปกรณ์
+
+ปรับความเร็วแยกกันที่ **การตั้งค่า → เทอร์มินัล → การเลื่อน → ล้อเมาส์ / แทร็คแพด** ค่าจะแสดงเป็นเปอร์เซ็นต์: 100% คงความเร็วปัจจุบัน 50% ลดครึ่งหนึ่ง และ 200% เพิ่มเป็นสองเท่า การเปลี่ยนแปลงมีผลทันทีในแผง Ghostty และ Alacritty ที่เปิดอยู่ รวมถึงประวัติเลื่อนย้อน โปรแกรมเต็มหน้าจอ และการรายงานเมาส์ การเลื่อนต่อเนื่องใช้ค่าแทร็คแพด ส่วนการเลื่อนแนวนอนยังคงเป็นแนวนอน เมาส์ที่ส่งค่าการเลื่อนแบบละเอียดจะใช้ค่าแทร็คแพดด้วย ค่าที่ขาดหายหรือไม่ถูกต้องจะกลับเป็น `1` การนำเข้า ส่งออก และรีเซ็ตการตั้งค่าครอบคลุมทั้งสองค่า
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 บูลีน — เริ่มต้น `false`
@@ -281,6 +287,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

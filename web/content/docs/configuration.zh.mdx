@@ -210,6 +210,12 @@ regular/bold 区分及后备字体字重。
 
 环境变量与兼容约定见[终端后端](/docs/terminal#terminal-backends)。
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+数值，0.1–10 — 两种设备均默认为 `1`
+
+在 **设置 → 终端 → 滚动 → 鼠标滚轮 / 触控板** 中分别调节速度。读数使用百分比：100% 保持当前速度，50% 为一半，200% 为两倍。修改立即应用于已打开的 Ghostty 和 Alacritty 面板，包括回滚历史、全屏程序和鼠标上报。惯性滚动使用触控板倍率；横向滚动仍保持横向。上报精细滚动的设备使用触控板倍率，包括支持精细滚动的鼠标。缺失或无效的值恢复为 `1`；导入、导出和重置设置均包含这两个值。
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 布尔值——默认 `false`
@@ -333,6 +339,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

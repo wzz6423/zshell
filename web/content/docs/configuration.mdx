@@ -249,6 +249,12 @@ the lower memory footprint.
 See [Terminal backends](/en/docs/terminal#terminal-backends) for the environment
 variables and compatibility contract.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+number, 0.1–10 — default `1` for each device
+
+Choose **Settings → Terminal → Scrolling → Mouse wheel / Trackpad** to adjust the two speeds independently. The readouts are percentages: 100% keeps the current speed, 50% halves it, and 200% doubles it. Changes apply immediately to open Ghostty and Alacritty panes, including scrollback, full-screen programs, and mouse reporting. Momentum follows the trackpad value; horizontal scrolling stays horizontal. Precise scrolling devices use the trackpad value, including mice that report precise deltas. Missing or invalid values restore `1`; importing, exporting, and resetting settings include both values.
+
 ### `terminal.macos-option-as-alt`
 
 boolean — default `false`
@@ -381,6 +387,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

@@ -169,6 +169,12 @@ description: "كل خيارات Zshell الدائمة ووظائفها ومكا�
 
 راجع [محركات الطرفية](/ar/docs/terminal#terminal-backends) لمتغيرات البيئة وقواعد التوافق.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+رقم، 0.1–10 — القيمة الافتراضية `1` لكل جهاز
+
+اضبط السرعتين بشكل مستقل من **الإعدادات → الطرفية → التمرير → عجلة الفأرة / لوحة التعقب**. تُعرض القيم كنسب مئوية: 100% يحافظ على السرعة الحالية، و50% يخفضها إلى النصف، و200% يضاعفها. تُطبَّق التغييرات فورًا على لوحات Ghostty وAlacritty المفتوحة، وسجل التمرير، وبرامج ملء الشاشة، وتقارير الفأرة. يستخدم التمرير بالقصور الذاتي قيمة لوحة التعقب، ويبقى التمرير الأفقي أفقيًا. تستخدم الفأرات التي ترسل فروقًا دقيقة قيمة لوحة التعقب أيضًا. تعود القيم المفقودة أو غير الصالحة إلى `1`. يشمل الاستيراد والتصدير وإعادة الضبط القيمتين.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 قيمة منطقية — الافتراضي `false`
@@ -281,6 +287,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

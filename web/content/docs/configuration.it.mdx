@@ -169,6 +169,12 @@ Sceglie l'emulatore usato dai terminali creati da quel momento in poi. I pannell
 
 Vedi [Motori del terminale](/it/docs/terminal#terminal-backends) per le variabili d'ambiente e le garanzie di compatibilità.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+numero, 0.1–10 — valore predefinito `1` per ogni dispositivo
+
+Regola separatamente le due velocità in **Impostazioni → Terminale → Scorrimento → Rotella del mouse / Trackpad**. I valori sono percentuali: 100% mantiene la velocità attuale, 50% la dimezza e 200% la raddoppia. Le modifiche si applicano subito ai pannelli Ghostty e Alacritty aperti, alla cronologia, ai programmi a schermo intero e ai rapporti del mouse. L’inerzia usa il valore del trackpad; lo scorrimento orizzontale resta orizzontale. Anche i mouse che inviano delta precisi usano il valore del trackpad. I valori assenti o non validi tornano a `1`. Importazione, esportazione e ripristino includono entrambi i valori.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 booleano — predefinito `false`
@@ -281,6 +287,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

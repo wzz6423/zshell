@@ -57,6 +57,8 @@ CONFIGURATION_ITEMS = {
     "terminal.shell-completions": ("terminal", "Shell completions", "Input"),
     "terminal.vim-command-hints": ("terminal", "Vim command hints", "Input"),
     "terminal.macos-option-as-alt": ("terminal", "Use Option as Alt/Meta", "Input"),
+    "terminal.mouse-scroll-multiplier": ("terminal", "Mouse wheel", "Scrolling"),
+    "terminal.trackpad-scroll-multiplier": ("terminal", "Trackpad", "Scrolling"),
     "terminal.bell": ("terminal", "Terminal bell", "Notifications"),
     "terminal.shift-enter-newline": ("terminal", "Shift+Enter inserts a newline", "Input"),
     "terminal.command-history": ("terminal", "Record command history", "History"),
