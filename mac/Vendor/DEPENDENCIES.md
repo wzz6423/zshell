@@ -4,7 +4,7 @@ macOS 应用使用本目录内的第三方源码和 XCFramework。普通构建�
 
 | 依赖 | 固定版本 / revision | 本地目录 |
 | --- | --- | --- |
-| GhosttyKit | storage.1.3.7 + macOS command records（上游 `35e1a0160c4f6797e1bb1ef8e7a2b8c6b114ab58`） | `libghostty-spm/GhosttyKit.xcframework` |
+| GhosttyKit | storage.1.3.7 + macOS command records / IME grapheme shaping（上游 `35e1a0160c4f6797e1bb1ef8e7a2b8c6b114ab58`） | `libghostty-spm/GhosttyKit.xcframework` |
 | alacritty_terminal | 0.26.0 + 本地 OSC 7/133 与命令锚点 | `alacritty-bridge/src/alacritty_terminal` |
 | vte | 0.15.0 + 本地 OSC 回调 | `alacritty-bridge/src/vte` |
 | Sparkle | 2.9.4 | `Sparkle/Sparkle.xcframework` |
@@ -31,6 +31,10 @@ Ghostty 的 macOS arm64、arm64e、x86_64 静态库由 `libghostty-spm/Ghostty.r
 `ef09de8917aaa15f0ebb4847555234b10f938c04d8e17457fe3c90d80a5a2e9d`）。
 `Script/build-platform.sh <source> macos <output>` 可重建 macOS 库，产出库与头文件须一起
 替换对应 slice。Ghostty 上游许可证与 Swift 包许可证保留在 `libghostty-spm/` 中。
+
+`0013-shape-preedit-graphemes.patch` 保留预编辑中的组合重音、emoji 变体选择符与 ZWJ
+序列，并复用终端字形塑形和颜色图集。预编辑不写入 PTY 或终端 grid；右边缘先左移，
+超过整行时只裁切完整字素。macOS 三个 slices 均包含此补丁，C 头文件接口不变。
 
 Alacritty core 和 VTE 从固定 crates.io 版本复制，改为桥内的 path 依赖，remote 也复用同一
 源码。改动说明见各自 `ZSHELL_PATCHES.md`；core 保留 Apache-2.0，VTE 保留 MIT 和
