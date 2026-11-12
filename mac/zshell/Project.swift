@@ -129,6 +129,18 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         return nil
     }
 
+    var fileSource: FileSource {
+        if case let .ssh(endpoint, directory, authentication, credentialID) = location {
+            return .remote(RemoteFileSource(endpoint: endpoint, root: directory ?? "~",
+                                           authentication: authentication, credentialID: credentialID))
+        }
+        if isRemote {
+            guard let endpoint = remoteEndpoint else { return .unavailableRemote }
+            return .remote(RemoteFileSource(endpoint: endpoint, root: remoteDirectory ?? "~"))
+        }
+        return .local
+    }
+
     /// The directory sessions start in on the remote host, nil when unset.
     var remoteDirectory: String? {
         if case .ssh(_, let directory, _, _) = location { return directory }
@@ -692,7 +704,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         // Capture the current directory context *before* selection moves to the
         // new tab, so its panels track the tab the file was opened from.
         let context = selectedSession
-        let file = FileTab(path: path)
+        let file = FileTab(path: path, source: fileSource)
         if let editorState {
             file.editorState = editorState
         }
@@ -728,7 +740,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             tab.focusedPaneID = existing.id
             return
         }
-        tab.split(Pane(content: .file(FileTab(path: path))), toward: .right)
+        tab.split(Pane(content: .file(FileTab(path: path, source: fileSource))), toward: .right)
     }
 
     private func findFilePreviewPane(path: String) -> (tab: PaneTab, paneID: UUID)? {
@@ -1617,7 +1629,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 worktree: worktree
             ))
         case .file(let path, let editorState):
-            let file = FileTab(path: path)
+            let file = FileTab(path: path, source: fileSource)
             if let editorState { file.editorState = editorState }
             return .file(file)
         case .browser(let url):
@@ -1670,6 +1682,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     private func removePaneWithContent(_ contentID: UUID) {
         for tab in tabs {
             guard let paneID = tab.paneID(forContent: contentID) else { continue }
+            for case .file(let file) in tab.allContents where file.id == contentID { file.close() }
             // Keyed by content id; no-ops for the other content kinds.
             sessionObservations[contentID] = nil
             browserConnectionObservations[contentID] = nil
@@ -1685,6 +1698,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     private func remove(tabID: UUID) {
         guard let index = tabs.firstIndex(where: { $0.id == tabID }) else { return }
         let tab = tabs[index]
+        for case .file(let file) in tab.allContents { file.close() }
         for session in tab.sessions {
             sessionObservations[session.id] = nil
             browserConnectionObservations[session.id] = nil

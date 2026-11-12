@@ -24,6 +24,16 @@ Klik op een bestand om het in het deelvenster met focus te openen. Klik met de r
 
 Rijen gebruiken Material-pictogrammen die bij de bestandsnaam passen. In een Git-repository hebben gewijzigde paden ook statuskleuren en badges, terwijl genegeerde bestanden gedimd zijn. Zo toont de boom dezelfde worktreestatus als het Git-paneel zonder dat je dat hoeft te openen.
 
+## Externe bestanden [#remote-files]
+
+Open SSH-bestanden vanuit het paneel Bestanden. Schakel voor maken, hernoemen, verplaatsen naar de externe prullenmand en opslaan **Instellingen → Editor → Bestanden → Wijzigingen in externe bestanden toestaan** in (`files.remote-write-enabled`, standaard uit).
+
+Zshell gebruikt alleen bestaande hulpmiddelen op de host en installeert niets. Lezen en bewerken gebruiken de bestaande Perl-kernmodules. Elke schrijfbewerking controleert ook de benodigde bestandssysteemfuncties; niet-ondersteunde bewerkingen blijven uitgeschakeld. Symbolische koppelingen, speciale bestanden en paden buiten het project worden geweigerd. UTF-8-tekstbestanden mogen maximaal 5 MiB zijn; externe Markdown opent als broncode.
+
+Extern opslaan controleert wijzigingen ook als lokale opslagbeveiliging uitstaat. Bij een conflict kunt u vergelijken, uw concept behouden, opnieuw laden vanaf de host of overschrijven goedkeuren. De vergeleken versie wordt vlak vóór het publiceren van het volledige bestand opnieuw gecontroleerd; een extern proces kan na die laatste controle nog schrijven.
+
+**Verplaats naar externe prullenmand** bewaart de inhoud en het oorspronkelijke pad in de privémap `.zshell-trash` van het project. **Laatste externe item herstellen** herstelt het laatste item tijdens de huidige projectselectie zonder bestaande namen te vervangen. Oudere items blijven handmatig herstelbaar vanuit die map.
+
 ## Bestanden en mappen importeren [#import-files-and-folders]
 
 Kies **Bestand → Bestanden importeren…**, de importknop in het Bestanden-paneel of de optie in het contextmenu van een map. Selecteer meerdere bestanden of mappen; Zshell kopieert ze naar die map of de huidige hoofdmap van de boom en behoudt de originelen.

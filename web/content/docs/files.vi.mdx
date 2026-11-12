@@ -24,6 +24,16 @@ Nhấn tệp để mở trong ô có tiêu điểm. Nhấp phải cho các thao 
 
 Các hàng dùng biểu tượng Material theo tên tệp. Trong kho Git, đường dẫn thay đổi có màu và huy hiệu trạng thái, tệp bị bỏ qua hiển thị mờ. Cây phản ánh cùng trạng thái worktree với bảng Git mà không cần mở bảng.
 
+## Tệp từ xa [#remote-files]
+
+Mở tệp SSH từ bảng Tệp. Để tạo, đổi tên, chuyển vào thùng rác từ xa hoặc lưu, bật **Cài đặt → Trình soạn thảo → Tệp → Cho phép thay đổi tệp từ xa** (`files.remote-write-enabled`, mặc định tắt).
+
+Zshell chỉ dùng công cụ đã có trên máy chủ và không cài thêm gì. Việc đọc và chỉnh sửa dùng các mô-đun lõi Perl hiện có. Mỗi thao tác ghi cũng kiểm tra khả năng cần thiết của hệ thống tệp; thao tác không được hỗ trợ sẽ bị tắt. Liên kết tượng trưng, tệp đặc biệt và đường dẫn ngoài dự án bị từ chối. Văn bản UTF-8 tối đa 5 MiB; Markdown từ xa mở ở dạng mã nguồn.
+
+Lưu từ xa vẫn kiểm tra thay đổi khi tắt bảo vệ lưu cục bộ. Khi có xung đột, bạn có thể so sánh, giữ bản nháp, tải lại từ máy chủ hoặc chấp thuận ghi đè. Phiên bản đã so sánh được kiểm tra lại ngay trước khi đưa tệp hoàn chỉnh vào vị trí; tiến trình bên ngoài vẫn có thể ghi sau lần kiểm tra cuối.
+
+**Chuyển vào thùng rác từ xa** giữ nội dung và đường dẫn gốc trong thư mục riêng `.zshell-trash` của dự án. **Khôi phục mục từ xa gần nhất** khôi phục mục gần nhất trong khi đang chọn dự án hiện tại, không thay thế tên đã tồn tại. Các mục cũ hơn vẫn có thể được khôi phục thủ công từ thư mục đó.
+
 ## Nhập tệp và thư mục [#import-files-and-folders]
 
 Chọn **Tệp → Nhập tệp…**, nút nhập trong bảng Tệp hoặc mục này từ menu chuột phải của thư mục. Bạn có thể chọn nhiều tệp và thư mục; Zshell sao chép chúng vào thư mục đã chọn hoặc gốc cây hiện tại và giữ nguyên bản gốc.

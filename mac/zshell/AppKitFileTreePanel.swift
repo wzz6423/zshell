@@ -57,7 +57,10 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
 
     private var model: FileTreeModel? { manager?.fileTree }
     private var isRemote: Bool { model?.isRemote == true || manager?.selectedProject?.isRemote == true }
-    private var canMutate: Bool { !isRemote && !FileTreeImportController.shared.isImporting }
+    private var canMutate: Bool {
+        if isRemote { return model?.canCreateRemote == true || model?.canRenameRemote == true }
+        return !FileTreeImportController.shared.isImporting
+    }
 
     override var isFlipped: Bool { true }
 
@@ -168,6 +171,7 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
 
     private func syncFromModel() {
         guard let manager, let model else { return }
+        model.refreshRemoteWriteCapabilities(enabled: AppSettings.shared.remoteFileWritesEnabled)
         titleLabel.stringValue = model.rootName
         pathLabel.stringValue = model.rootSubtitle
         pathLabel.toolTip = model.rootSubtitle
@@ -203,6 +207,10 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         } else if isRemote, model.isRemoteLoading, model.items.isEmpty {
             noticeLabel.stringValue = String(localized: "Loading remote directory…")
             retryButton.isHidden = true
+            notice.isHidden = searching
+        } else if isRemote, AppSettings.shared.remoteFileWritesEnabled, model.remoteCapabilities == .unavailable {
+            noticeLabel.stringValue = RemoteFileService.Failure.unsupported.localizedDescription
+            retryButton.isHidden = false
             notice.isHidden = searching
         } else {
             notice.isHidden = true
@@ -362,12 +370,12 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         if item.isDirectory { model?.toggle(item) }
         else if !isRemote, NSApp.currentEvent?.modifierFlags.contains(.command) == true {
             NSWorkspace.shared.open(URL(fileURLWithPath: item.path))
-        } else if !isRemote { manager?.previewFile(item.path) }
+        } else { manager?.previewFile(item.path) }
     }
 
     @objc private func openClickedRow() {
         guard let item = item(at: table.clickedRow >= 0 ? table.clickedRow : table.selectedRow), !item.isDraft else { return }
-        if !item.isDirectory, !isRemote { manager?.openFile(item.path) }
+        if !item.isDirectory { manager?.openFile(item.path) }
     }
 
     private func handleKey(_ event: NSEvent) -> Bool {
@@ -380,9 +388,9 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
               let item = item(at: table.selectedRow), !item.isDraft else { return false }
         switch event.keyCode {
         case 36, 76:
-            if item.isDirectory { model?.toggle(item) } else if !isRemote { manager?.openFile(item.path) }
+            if item.isDirectory { model?.toggle(item) } else { manager?.openFile(item.path) }
         case 49:
-            if item.isDirectory { model?.toggle(item) } else if !isRemote { manager?.previewFile(item.path) }
+            if item.isDirectory { model?.toggle(item) } else { manager?.previewFile(item.path) }
         case 124:
             if item.isDirectory, model?.isExpanded(item) == false { model?.toggle(item) }
             else if item.isDirectory, items.indices.contains(table.selectedRow + 1), items[table.selectedRow + 1].depth > item.depth {
@@ -414,10 +422,30 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
             menu.addItem(item)
         }
         if isRemote {
+            if let item, !item.isDirectory, !item.isDraft {
+                add(String(localized: "Open")) { [weak self] in self?.manager?.openFile(item.path) }
+                add(String(localized: "Open to the Side")) { [weak self] in self?.manager?.openFileToSide(item.path) }
+            }
             if let item, item.isDirectory {
                 add(String(localized: "cd Here")) { [weak self] in self?.cd(to: item.path) }
             }
             if let item { add(String(localized: "Copy Path")) { self.copyPath(item.path) } }
+            menu.addItem(.separator())
+            if item == nil || item?.isDirectory == true {
+                add(String(localized: "New File…"), enabled: model.canCreateRemote) { model.beginNewFile(in: directory) }
+                add(String(localized: "New Folder…"), enabled: model.canCreateRemote) { model.beginNewFolder(in: directory) }
+            }
+            if let item, !item.isDraft {
+                add(String(localized: "Rename"), enabled: model.canRenameRemote) { model.beginRename(item) }
+                add(String(localized: "Move to Remote Trash"), enabled: model.canTrashRemote) {
+                    Task { await model.trashRemote(item) }
+                }
+            }
+            add(String(localized: "Restore Last Remote Item"), enabled: model.canRestoreRemote) {
+                Task { await model.restoreRemoteTrash() }
+            }
+            menu.addItem(.separator())
+            add(String(localized: "Remote File Settings…")) { SettingsWindowController.shared.show(category: .editor) }
             return menu
         }
         if let item, !item.isDraft {
@@ -494,7 +522,17 @@ final class AppKitFileTreePanel: NSView, NSTableViewDataSource, NSTableViewDeleg
         edit.field.delegate = nil
         let currentEdit = model.renamingPath == edit.item.path || (edit.item.isDraft && model.draft != nil)
         if currentEdit, commit, canMutate {
-            if edit.item.isDraft {
+            if isRemote {
+                let project = manager?.selectedProject
+                Task { [weak self] in
+                    if edit.item.isDraft {
+                        if let created = await model.commitRemoteDraft(name: name) { project?.openFile(created) }
+                    } else if let destination = await model.renameRemote(edit.item, to: name) {
+                        if let source = project?.fileSource { self?.manager?.fileRenamed(from: edit.item.path, to: destination, source: source) }
+                        self?.selectedPath = destination
+                    }
+                }
+            } else if edit.item.isDraft {
                 if let created = model.commitDraft(name: name) { manager?.openFile(created) }
                 git?.refresh()
             } else if let destination = model.rename(edit.item, to: name) {

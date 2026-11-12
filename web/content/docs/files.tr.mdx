@@ -24,6 +24,16 @@ Dosyaya tıklamak onu odaktaki bölmede açar. Diğer işlemler sağ tık menüs
 
 Satırlar dosya adını tanıyan Material simgeleri kullanır. Git deposundaki değişmiş yollarda durum renkleri ve rozetler, yok sayılan dosyalarda soluk görünüm vardır. Böylece Git panelini açmadan aynı çalışma ağacı durumunu görürsünüz.
 
+## Uzak dosyalar [#remote-files]
+
+SSH dosyalarını Dosyalar panelinden açın. Oluşturmak, yeniden adlandırmak, uzak çöp kutusuna taşımak veya kaydetmek için **Ayarlar → Düzenleyici → Dosyalar → Uzak dosya değişikliklerine izin ver** seçeneğini açın (`files.remote-write-enabled`, varsayılan olarak kapalı).
+
+Zshell yalnızca ana makinede mevcut araçları kullanır ve hiçbir şey yüklemez. Okuma ve düzenleme, mevcut Perl çekirdek modüllerini kullanır. Her yazma işlemi gereken dosya sistemi özelliklerini de denetler; desteklenmeyen işlemler kapalı kalır. Sembolik bağlantılar, özel dosyalar ve proje dışındaki yollar reddedilir. UTF-8 metin dosyaları en fazla 5 MiB olabilir; uzak Markdown kaynak olarak açılır.
+
+Yerel kayıt koruması kapalı olsa da uzak kaydetme değişiklikleri denetler. Çakışmada karşılaştırabilir, taslağı koruyabilir, uzaktan yeniden yükleyebilir veya üzerine yazmayı onaylayabilirsiniz. Tam dosya yayımlanmadan hemen önce karşılaştırılan sürüm yeniden denetlenir; dış bir işlem son denetimden sonra yine de yazabilir.
+
+**Uzak Çöp Kutusuna Taşı**, içeriği ve özgün yol bilgisini projenin özel `.zshell-trash` dizininde tutar. **Son Uzak Öğeyi Geri Yükle**, mevcut proje seçimi sırasında son öğeyi var olan bir adı değiştirmeden geri yükler. Eski öğeler de bu dizinden elle kurtarılabilir.
+
 ## Dosya ve klasörleri içe aktarma [#import-files-and-folders]
 
 **Dosya → Dosyaları İçe Aktar…**, Dosyalar panelindeki içe aktarma düğmesi veya bir klasörün sağ tık menüsündeki bu seçeneği kullanın. Birden çok dosya ya da klasör seçebilirsiniz; Zshell özgünleri koruyarak seçilen klasöre veya geçerli ağaç köküne kopyalar.

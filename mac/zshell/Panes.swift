@@ -104,6 +104,11 @@ extension PaneContent {
         case .session, .browser: return true
         }
     }
+
+    @MainActor func saveAndWait() async -> Bool {
+        if case .file(let file) = self { return await file.saveAndWait() }
+        return save()
+    }
 }
 
 /// Which side of a target pane a dragged pane is dropped on, deciding where it

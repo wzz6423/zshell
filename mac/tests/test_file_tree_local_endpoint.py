@@ -50,6 +50,7 @@ def compile_probe(directory, sidebar_source=None):
         "-module-cache-path", str(directory / "ModuleCache"),
         str(ROOT / "mac/zshell/AppLocalization.swift"), str(ROOT / "mac/zshell/SettingsConfigFile.swift"),
         str(ROOT / "mac/zshell/FileTreeImportService.swift"), str(ROOT / "mac/zshell/FileTreeModel.swift"), str(support),
+        str(ROOT / "mac/tests/FileTreeRemoteWriteStubs.swift"),
         str(ROOT / "mac/tests/FileTreeLocalEndpointTests.swift"), "-o", str(binary),
     ], cwd=ROOT, check=True, timeout=60)
     return binary

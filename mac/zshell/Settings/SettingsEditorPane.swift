@@ -9,6 +9,7 @@ import AppKit
 final class SettingsEditorPane: SettingsPaneViewController {
     private let wrapLinesSwitch = SettingsSwitch { AppSettings.shared.wrapLines = $0 }
     private let dragImportSwitch = SettingsSwitch { AppSettings.shared.fileTreeDragImport = $0 }
+    private let remoteWriteSwitch = SettingsSwitch { AppSettings.shared.remoteFileWritesEnabled = $0 }
     private let protectSavesSwitch = SettingsSwitch { AppSettings.shared.protectEditorSaves = $0 }
 
     private let externalEditorPopUp: SettingsPopUpButton<ExternalEditor> = {
@@ -38,6 +39,11 @@ final class SettingsEditorPane: SettingsPaneViewController {
             ]),
             SettingsGroup(header: String(localized: "Files"), rows: [
                 SettingsRow(
+                    title: String(localized: "Allow remote file changes"),
+                    description: String(localized: "Create, rename, move to remote trash, and save files over SSH. Reading remains available when this is off."),
+                    control: remoteWriteSwitch
+                ),
+                SettingsRow(
                     title: String(localized: "Import by dragging into the file tree"),
                     description: String(localized: "Copy Finder files and folders into local projects. File → Import Files… is always available."),
                     control: dragImportSwitch
@@ -50,6 +56,7 @@ final class SettingsEditorPane: SettingsPaneViewController {
         externalEditorPopUp.select(settings.externalEditor)
         wrapLinesSwitch.isOn = settings.wrapLines
         dragImportSwitch.isOn = settings.fileTreeDragImport
+        remoteWriteSwitch.isOn = settings.remoteFileWritesEnabled
         protectSavesSwitch.isOn = settings.protectEditorSaves
     }
 }

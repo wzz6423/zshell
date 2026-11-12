@@ -24,6 +24,16 @@ Fai clic su un file per aprirlo nel pannello attivo. Il clic destro offre il res
 
 Le righe usano icone Material in base al nome del file. Nei repository Git, i percorsi modificati mostrano anche colori e indicatori di stato, mentre i file ignorati sono attenuati. L'albero riflette così lo stesso worktree del pannello Git senza aprirlo.
 
+## File remoti [#remote-files]
+
+Apri i file SSH dal pannello File. Per creare, rinominare, spostare nel cestino remoto o salvare, attiva **Impostazioni → Editor → File → Consenti modifiche ai file remoti** (`files.remote-write-enabled`, disattivato per impostazione predefinita).
+
+Zshell usa solo strumenti già presenti sull’host e non installa nulla. Lettura e modifica usano i moduli di base Perl esistenti. Ogni scrittura verifica anche le funzioni necessarie del file system; le operazioni non supportate restano disabilitate. Link simbolici, file speciali e percorsi esterni al progetto vengono rifiutati. I testi UTF-8 possono arrivare a 5 MiB; il Markdown remoto si apre come sorgente.
+
+Il salvataggio remoto controlla le modifiche anche con la protezione locale disattivata. In caso di conflitto puoi confrontare, mantenere la bozza, ricaricare dall’host o autorizzare la sovrascrittura. La versione confrontata viene ricontrollata subito prima di pubblicare il file completo; un processo esterno può comunque scrivere dopo l’ultimo controllo.
+
+**Sposta nel cestino remoto** conserva contenuto e percorso originale nella cartella privata `.zshell-trash` del progetto. **Ripristina l’ultimo elemento remoto** ripristina l’ultimo elemento durante la selezione attuale del progetto senza sostituire nomi esistenti. Gli elementi precedenti restano recuperabili manualmente da tale cartella.
+
 ## Importare file e cartelle [#import-files-and-folders]
 
 Scegli **File → Importa file…**, il pulsante di importazione nel pannello File o la voce del menu contestuale di una cartella. Puoi selezionare più file o cartelle: Zshell li copia nella cartella scelta o nella radice corrente dell’albero, conservando gli originali.

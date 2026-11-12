@@ -18,6 +18,9 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Open remote project files over SSH and enable creating, renaming, recoverable
+  deletion, and conflict-checked text saves in Editor settings. Operations that
+  the host's existing system tools cannot perform safely remain disabled.
 - Import Finder files and folders into a local project from the File menu or
   by enabling drag-and-drop import in Settings. Choose whether to replace or
   skip existing items, and cancel an import. Items changed by another app are
