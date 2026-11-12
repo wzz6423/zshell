@@ -333,6 +333,7 @@ struct SettingsReloadTests {
         terminal.vim-command-hints = true
         terminal.shift-enter-newline = false
         editor.wrap-lines = false
+        editor.diff-wrap-lines = true
         editor.protect-saves = false
         editor.recover-drafts = false
         editor.external-editor = "zed"
@@ -406,6 +407,7 @@ struct SettingsReloadTests {
         check(settings.fontFeatures == "ss01, zero=1" && !settings.fontLigatures,
               "font features compose with column spacing through import and reload")
         check(settings.focusFollowsMouse && !settings.isAtDefaults, "pointer focus imports and changes default state")
+        check(settings.diffWrapLines, "diff line wrapping imports through production settings")
         check(settings.terminalRightClickAction == .paste, "right-click action survives the full settings round trip")
         check(GitProxy.address == "socks5h://127.0.0.1:1080", "imported Git proxy reaches Git processes")
         for (key, value) in parsed.values {
@@ -529,6 +531,7 @@ struct SettingsReloadTests {
         check(!settings.vimCommandHints && !settings.restoreTerminalHistory && !settings.notifyOnError,
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
+        check(!settings.diffWrapLines, "diff line wrapping resets when its external config key is omitted")
         check(settings.sidebarDoubleClickNewSession,
               "omitted sidebar gesture key restores the default on external reload")
         check(settings.newSessionDirectoryPolicy == .current && settings.newSessionCustomDirectory.isEmpty,
@@ -553,6 +556,10 @@ struct SettingsReloadTests {
 
         settings.resetToDefaults()
         check(settings.isAtDefaults, "reset covers every configurable preference")
+        settings.diffWrapLines = true
+        check(!settings.isAtDefaults, "diff line wrapping enables reset")
+        settings.resetToDefaults()
+        check(!settings.diffWrapLines && settings.isAtDefaults, "reset restores horizontal diff scrolling")
         check(settings.terminalPaddingColor == .extend, "reset restores automatic padding")
         let featureSwitches: [ReferenceWritableKeyPath<AppSettings, Bool>] = [
             \.protectEditorSaves, \.recoverEditorDrafts, \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints, \.promptQueueEnabled,

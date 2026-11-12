@@ -134,6 +134,10 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         managed(view, title: { String(localized: "Toggle Info Panel") }, key: "i", modifiers: [.command, .shift], enabled: { $0.selectedProject != nil }) { $0.togglePanel(.info) }
         view.addItem(.separator())
         managed(view, title: { String(localized: "Toggle Markdown Preview") }, key: "v", modifiers: [.command, .shift], enabled: { $0.canToggleMarkdownPreview }) { $0.toggleMarkdownPreview() }
+        let diffWrap = command(view, title: { String(localized: "Wrap lines to diff width") }) {
+            AppSettings.shared.diffWrapLines.toggle()
+        }
+        titleUpdates.append { diffWrap.state = AppSettings.shared.diffWrapLines ? .on : .off }
         view.addItem(.separator())
         let browser = addMenu(to: view, identifier: .browser, title: { String(localized: "Browser") })
         managed(browser, title: { String(localized: "Focus Address Bar") }, key: "l", enabled: { $0.hasSelectedBrowser }) { $0.focusBrowserAddressBar() }

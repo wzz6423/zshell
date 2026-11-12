@@ -209,6 +209,12 @@ Soft-wraps long lines to the pane width in the [file editor](/en/docs/files).
 When false, long lines scroll horizontally. It does not change wrapping in a
 terminal or diff.
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+boolean — default `false`
+
+Choose **Settings → Editor → Wrap lines to diff width** or the word-wrap button in the diff toolbar. Long lines wrap to the pane width in unified and split layouts, editable worktree changes, historical diffs, and PR comments. The choice applies immediately to all open diffs and is saved across launches. Turning it off restores horizontal scrolling. It does not change file-editor or terminal wrapping.
+
 ### `editor.protect-saves`
 
 boolean — default `true`
@@ -465,6 +471,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```
