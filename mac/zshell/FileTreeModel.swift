@@ -43,7 +43,7 @@ final class FileTreeModel: nonisolated ObservableObject {
     private var localRevision = 0
     private var localInvalidatedDirectories: Set<String> = []
 
-    deinit { localRefreshTask?.cancel() }
+    deinit { localRefreshTask?.cancel(); capabilityTask?.cancel() }
 
     var rootName: String {
         (rootPath as NSString).lastPathComponent
@@ -55,10 +55,10 @@ final class FileTreeModel: nonisolated ObservableObject {
 
     // MARK: - Remote projects
 
-    /// When set, listings are read by running `ls` over SSH on the remote
-    /// host instead of the local filesystem, and mutating operations are
-    /// disabled: there is no local file behind any row.
+    /// Remote paths never pass through local filesystem operations.
     private var remoteEndpoint: SSHEndpoint?
+    private var remoteAuthentication: SSHAuthentication = .agent
+    private var remoteCredentialID: UUID?
     /// Entries per remote directory, keyed by absolute remote path. Built
     /// lazily like the local tree expands directories.
     private var remoteListings: [String: [SSHEndpoint.DirectoryEntry]] = [:]
@@ -72,21 +72,29 @@ final class FileTreeModel: nonisolated ObservableObject {
     private var remoteErrors: [String: String] = [:]
     private static let remoteRefreshInterval: TimeInterval = 5
     private static let remoteConcurrencyLimit = 2
-    private let remoteListing: @Sendable (SSHEndpoint, String) throws -> [SSHEndpoint.DirectoryEntry]
+    private let remoteListing: (@Sendable (SSHEndpoint, String) throws -> [SSHEndpoint.DirectoryEntry])?
+    private let remoteCapabilitiesProbe: @Sendable (RemoteFileSource) throws -> RemoteFileCapabilities
     private let remoteNow: () -> TimeInterval
     /// Invalidates in-flight listings after the endpoint or root changes.
     private var remoteGeneration = 0
     @Published private(set) var remoteError: String?
     @Published private(set) var isRemoteLoading = false
+    @Published private(set) var remoteCapabilities: RemoteFileCapabilities?
+    @Published private(set) var remoteWriteError: String?
+    @Published private(set) var isRemoteChanging = false
+    private var remoteWritesEnabled = false
+    private var capabilityTask: Task<Void, Never>?
+    private var capabilityLastAttempt: TimeInterval?
+    private var lastRemoteTrash: RemoteTrashEntry?
 
     init(
-        remoteListing: @escaping @Sendable (SSHEndpoint, String) throws -> [SSHEndpoint.DirectoryEntry] = {
-            try OpenSSHTransport().listDirectory(endpoint: $0, directory: $1)
-        },
-        remoteNow: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
+        remoteListing: (@Sendable (SSHEndpoint, String) throws -> [SSHEndpoint.DirectoryEntry])? = nil,
+        remoteNow: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
+        remoteCapabilitiesProbe: @escaping @Sendable (RemoteFileSource) throws -> RemoteFileCapabilities = { try RemoteFileService().capabilities(source: $0) }
     ) {
         self.remoteListing = remoteListing
         self.remoteNow = remoteNow
+        self.remoteCapabilitiesProbe = remoteCapabilitiesProbe
     }
 
     var isRemote: Bool { remoteEndpoint != nil }
@@ -98,10 +106,13 @@ final class FileTreeModel: nonisolated ObservableObject {
         return endpoint.destination + ":" + rootPath
     }
 
-    func configureRemote(_ endpoint: SSHEndpoint?) {
-        guard endpoint != remoteEndpoint else { return }
+    func configureRemote(_ endpoint: SSHEndpoint?, authentication: SSHAuthentication = .agent, credentialID: UUID? = nil) {
+        guard endpoint != remoteEndpoint || authentication != remoteAuthentication || credentialID != remoteCredentialID else { return }
         invalidateLocalRefresh()
         remoteEndpoint = endpoint
+        remoteAuthentication = authentication
+        remoteCredentialID = credentialID
+        invalidateRemoteWrites()
         remoteGeneration &+= 1
         remoteListings = [:]
         remoteLastAttempt = [:]
@@ -115,9 +126,121 @@ final class FileTreeModel: nonisolated ObservableObject {
         items = []
     }
 
+    private var remoteSource: RemoteFileSource? {
+        remoteEndpoint.map { RemoteFileSource(endpoint: $0, root: rootPath,
+            authentication: remoteAuthentication, credentialID: remoteCredentialID) }
+    }
+
+    func refreshRemoteWriteCapabilities(enabled: Bool) {
+        if remoteWritesEnabled != enabled {
+            remoteWritesEnabled = enabled
+            capabilityTask?.cancel()
+            capabilityTask = nil
+            remoteCapabilities = nil
+            remoteWriteError = nil
+            capabilityLastAttempt = nil
+            if !enabled { cancelDraft(); cancelRename() }
+        }
+        guard enabled, let source = remoteSource, !source.root.isEmpty,
+              remoteCapabilities == nil, capabilityTask == nil else { return }
+        if let last = capabilityLastAttempt, remoteNow() - last < Self.remoteRefreshInterval { return }
+        capabilityLastAttempt = remoteNow()
+        let generation = remoteGeneration
+        let probe = remoteCapabilitiesProbe
+        capabilityTask = Task { [weak self] in
+            let result = await Task.detached(priority: .utility) {
+                Result { try probe(source) }
+            }.value
+            guard let self, !Task.isCancelled, generation == self.remoteGeneration else { return }
+            switch result {
+            case .success(let capabilities):
+                self.remoteCapabilities = capabilities
+                self.remoteWriteError = nil
+            case .failure(let error):
+                self.remoteWriteError = error.localizedDescription
+            }
+            self.capabilityTask = nil
+        }
+    }
+
+    private func invalidateRemoteWrites() {
+        capabilityTask?.cancel()
+        capabilityTask = nil
+        remoteCapabilities = nil
+        remoteWriteError = nil
+        capabilityLastAttempt = nil
+        lastRemoteTrash = nil
+        isRemoteChanging = false
+    }
+
+    var canCreateRemote: Bool { remoteWritesEnabled && !isRemoteChanging && remoteCapabilities?.create == true }
+    var canRenameRemote: Bool { remoteWritesEnabled && !isRemoteChanging && remoteCapabilities?.rename == true }
+    var canTrashRemote: Bool { remoteWritesEnabled && !isRemoteChanging && remoteCapabilities?.trash == true }
+    var canRestoreRemote: Bool { canTrashRemote && lastRemoteTrash != nil }
+
+    private func remoteChange<Value: Sendable>(_ operation: @escaping @Sendable (RemoteFileSource) throws -> Value) async -> Value? {
+        guard remoteWritesEnabled, !isRemoteChanging, let source = remoteSource else { return nil }
+        let generation = remoteGeneration
+        isRemoteChanging = true
+        defer {
+            if generation == remoteGeneration {
+                isRemoteChanging = false
+                remoteLastAttempt = [:]
+                refreshRemoteListings(force: true)
+            }
+        }
+        do {
+            let value = try await Task.detached(priority: .userInitiated) { try operation(source) }.value
+            guard generation == remoteGeneration else { return nil }
+            return value
+        } catch {
+            guard generation == remoteGeneration else { return nil }
+            presentError(String(localized: "The remote file operation could not be completed."), error.localizedDescription)
+            return nil
+        }
+    }
+
+    func commitRemoteDraft(name: String) async -> String? {
+        guard canCreateRemote, let draft else { return nil }
+        self.draft = nil
+        rebuild()
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return nil }
+        let path = await remoteChange { try RemoteFileService().create(source: $0, directory: draft.parentDir, name: name, isDirectory: draft.isDirectory) }
+        return draft.isDirectory ? nil : path
+    }
+
+    func renameRemote(_ item: Item, to name: String) async -> String? {
+        guard canRenameRemote, !item.isDraft, items.contains(where: { $0.path == item.path }) else { return nil }
+        renamingPath = nil
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, name != item.name else { return nil }
+        let path = await remoteChange { try RemoteFileService().rename(source: $0, path: item.path, name: name) }
+        if let path { remapExpanded(from: item.path, to: path) }
+        return path
+    }
+
+    func trashRemote(_ item: Item) async {
+        guard canTrashRemote, !item.isDraft, items.contains(where: { $0.path == item.path }) else { return }
+        if let entry = await remoteChange({ try RemoteFileService().trash(source: $0, path: item.path) }) {
+            lastRemoteTrash = entry
+            expanded.remove(item.path)
+        }
+    }
+
+    func restoreRemoteTrash() async {
+        guard canRestoreRemote, let entry = lastRemoteTrash else { return }
+        if await remoteChange({ try RemoteFileService().restore(source: $0, entry: entry) }) != nil { lastRemoteTrash = nil }
+    }
+
     /// Retries the root and failed visible directories without waiting for
     /// the next throttled refresh.
     func retryRemoteRoot() {
+        capabilityTask?.cancel()
+        capabilityTask = nil
+        remoteCapabilities = nil
+        remoteWriteError = nil
+        capabilityLastAttempt = nil
         refreshRemoteListings(force: true)
     }
 
@@ -164,8 +287,14 @@ final class FileTreeModel: nonisolated ObservableObject {
                 let generation = remoteGeneration
                 remoteInFlight[directory] = generation
                 let remoteListing = remoteListing
+                let authentication = remoteAuthentication
+                let credentialID = remoteCredentialID
                 Task.detached(priority: .userInitiated) { [weak self] in
-                    let listing = Result { try remoteListing(endpoint, directory) }
+                    let listing = Result {
+                        if let remoteListing { return try remoteListing(endpoint, directory) }
+                        return try OpenSSHTransport().listDirectory(endpoint: endpoint, directory: directory,
+                            authentication: authentication, credentialID: credentialID)
+                    }
                     await MainActor.run { [weak self] in
                         self?.finishRemoteListing(directory, listing, generation: generation)
                     }
@@ -238,6 +367,7 @@ final class FileTreeModel: nonisolated ObservableObject {
             draft = nil
             if !items.isEmpty { items = [] }
             if remoteEndpoint != nil {
+                invalidateRemoteWrites()
                 remoteGeneration &+= 1
                 remoteListings = [:]
                 remoteLastAttempt = [:]
@@ -305,7 +435,7 @@ final class FileTreeModel: nonisolated ObservableObject {
     // MARK: - Rename
 
     func beginRename(_ item: Item) {
-        guard !isRemote, !item.isDraft, items.contains(where: { $0.path == item.path }) else { return }
+        guard (!isRemote || canRenameRemote), !item.isDraft, items.contains(where: { $0.path == item.path }) else { return }
         renamingPath = item.path
     }
 
@@ -382,7 +512,7 @@ final class FileTreeModel: nonisolated ObservableObject {
     }
 
     private func startDraft(in directory: String, isDirectory: Bool) {
-        guard !isRemote, !rootPath.isEmpty,
+        guard (!isRemote || canCreateRemote), !rootPath.isEmpty,
               directory == rootPath || items.contains(where: { $0.path == directory && $0.isDirectory }) else { return }
         renamingPath = nil
         draft = Draft(parentDir: directory, isDirectory: isDirectory)
@@ -479,6 +609,7 @@ final class FileTreeModel: nonisolated ObservableObject {
         if out != items {
             items = out
         }
+        if draft != nil { showDraftRow() }
     }
 
     /// Builds the visible rows from cached remote listings. A directory

@@ -14,6 +14,8 @@ import UniformTypeIdentifiers
 @MainActor
 final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     nonisolated let id = UUID()
+    let source: FileSource
+    private let remoteFiles: RemoteFileService
     /// Mutable so a rename in the file tree can re-point the tab without
     /// tearing it down (the id — hence the editor and its state — is stable).
     @Published private(set) var path: String
@@ -40,7 +42,7 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// switches, and in the session snapshot so it survives relaunches. Not
     /// published for the same reason as `text`.
     var editorState = EditorState() {
-        didSet { if isDirty { EditorDraftStore.shared.schedule(draftID) } }
+        didSet { if isDirty && !isRemote { EditorDraftStore.shared.schedule(draftID) } }
     }
     private(set) var draftID: UUID
     private var recoveryGeneration: UInt = 0
@@ -75,7 +77,14 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     private var quickLookSignature: QuickLookSignature?
     private var reloadGeneration: UInt = 0
     private var reloadTask: Task<Void, Never>?
-    private var isSaving = false
+    @Published private(set) var isSaving = false
+    private var remoteBaseline: RemoteFileSnapshot?
+    private var remoteReadTask: Task<RemoteFileSnapshot, Error>?
+    private var saveTask: Task<Bool, Never>?
+    private var writePermissionObservation: AnyCancellable?
+    private var capabilityTask: Task<Void, Never>?
+    @Published private(set) var remoteCanSave = false
+    private var isClosed = false
 
     private nonisolated struct QuickLookSignature: Equatable, Sendable {
         let fileSize: UInt64
@@ -98,25 +107,62 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         var saveBaseline: FileSaveSnapshot? = nil
     }
 
-    init(path: String, draftID: UUID = UUID(), recoveringDraft: Bool = false) {
+    init(path: String, source: FileSource = .local, remoteFiles: RemoteFileService = .init(),
+         draftID: UUID = UUID(), recoveringDraft: Bool = false) {
         self.draftID = draftID
         self.path = path
+        self.source = source
+        self.remoteFiles = remoteFiles
         content = .unavailable("")
         text = ""
         savedText = ""
         imageData = nil
         quickLookSignature = nil
-        self.draftID = EditorDraftStore.shared.register(draftID, owner: id) { [weak self] in self?.draftSnapshot() }
-        if recoveringDraft, AppSettings.shared.recoverEditorDrafts {
+        if source.isRemote {
+            writePermissionObservation = AppSettings.shared.$remoteFileWritesEnabled
+                .dropFirst().receive(on: DispatchQueue.main).sink { [weak self] enabled in
+                    guard let self else { return }
+                    if !enabled { self.saveTask?.cancel() }
+                    self.refreshRemoteCapability()
+                }
+        }
+        if !source.isRemote {
+            self.draftID = EditorDraftStore.shared.register(draftID, owner: id) { [weak self] in self?.draftSnapshot() }
+        }
+        if !source.isRemote, recoveringDraft, AppSettings.shared.recoverEditorDrafts {
             recoverDraft(id: draftID)
         } else { reloadFromDiskIfClean() }
+        if source.isRemote { refreshRemoteCapability() }
+    }
+
+    var isRemote: Bool { source.isRemote }
+    var allowsEditing: Bool { !isClosed && (!isRemote || (AppSettings.shared.remoteFileWritesEnabled && remoteCanSave)) }
+
+    private func refreshRemoteCapability() {
+        capabilityTask?.cancel()
+        remoteCanSave = false
+        guard !isClosed, AppSettings.shared.remoteFileWritesEnabled, case .remote(let remote) = source else { return }
+        let service = remoteFiles
+        capabilityTask = Task { [weak self] in
+            defer { if !Task.isCancelled { self?.capabilityTask = nil } }
+            let supported = await Task.detached(priority: .utility) {
+                (try? service.capabilities(source: remote).save) == true
+            }.value
+            guard let self, !Task.isCancelled, !self.isClosed else { return }
+            self.remoteCanSave = supported
+            if !supported { self.saveError = RemoteFileService.Failure.unsupported.localizedDescription }
+        }
+    }
+    var displayPath: String {
+        if case .remote(let remote) = source { return remote.displayPath(path) }
+        return path
     }
 
     var name: String {
         (path as NSString).lastPathComponent
     }
 
-    isolated deinit { EditorDraftStore.shared.unregister(draftID, owner: id) }
+    isolated deinit { if !isRemote { EditorDraftStore.shared.unregister(draftID, owner: id) } }
 
     /// Re-points this tab at a new location after the file (or a directory
     /// above it) was renamed on disk. The bytes are unchanged, so nothing
@@ -124,10 +170,12 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     func updatePath(_ newPath: String) {
         guard newPath != path else { return }
         invalidateReload()
-        draftPreviousPaths = Array((draftPreviousPaths + [path]).suffix(8))
+        saveTask?.cancel()
+        if !isRemote { draftPreviousPaths = Array((draftPreviousPaths + [path]).suffix(8)) }
         path = newPath
-        saveBaseline = saveBaseline?.moved(to: newPath)
-        if isDirty { EditorDraftStore.shared.schedule(draftID) }
+        if !isRemote { saveBaseline = saveBaseline?.moved(to: newPath) }
+        if isRemote { remoteBaseline = nil; reloadFromDiskIfClean() }
+        if isDirty && !isRemote { EditorDraftStore.shared.schedule(draftID) }
     }
 
     /// Recompute `isDirty` from the current `text` against the saved
@@ -148,13 +196,20 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
                 invalidateReload()
             }
         }
-        if dirty { EditorDraftStore.shared.schedule(draftID) }
-        else { EditorDraftStore.shared.remove(draftID) }
+        if !isRemote {
+            if dirty { EditorDraftStore.shared.schedule(draftID) }
+            else { EditorDraftStore.shared.remove(draftID) }
+        }
     }
 
     @discardableResult
     func save(resolveConflict: ((FileSaveCoordinator.Conflict, String) -> FileSaveConflictController.Choice)? = nil) -> Bool {
         guard case .text = content, isDirty else { return !isDirty }
+        guard !isClosed else { return false }
+        if isRemote {
+            startRemoteSave(resolveConflict: resolveConflict)
+            return false
+        }
         guard !isSaving else { return false }
         isSaving = true
         defer { isSaving = false }
@@ -183,6 +238,88 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         return false
     }
 
+    func saveAndWait() async -> Bool {
+        if !isRemote { return save() }
+        guard case .text = content, isDirty else { return !isDirty }
+        startRemoteSave()
+        return await saveTask?.value ?? false
+    }
+
+    private func startRemoteSave(
+        resolveConflict: ((FileSaveCoordinator.Conflict, String) -> FileSaveConflictController.Choice)? = nil
+    ) {
+        guard !isSaving, !isClosed else { return }
+        guard allowsEditing, case .remote(let remote) = source else {
+            saveError = String(localized: "Enable Allow remote file changes in Settings → Editor → Files before saving.")
+            return
+        }
+        invalidateReload()
+        let expectedPath = path
+        let draft = text
+        let baseline = remoteBaseline
+        let service = remoteFiles
+        isSaving = true
+        saveTask = Task { [weak self] in
+            guard let self else { return false }
+            defer { self.isSaving = false; self.saveTask = nil }
+            var overwrite: RemoteFileSnapshot?
+            do {
+                while true {
+                    try Task.checkCancellation()
+                    guard !self.isClosed, self.path == expectedPath, self.allowsEditing else { return false }
+                    let approval = overwrite
+                    let task = Task.detached(priority: .userInitiated) {
+                        try service.save(source: remote, path: expectedPath, text: draft,
+                                                     baseline: baseline, overwrite: approval)
+                    }
+                    let result = try await withTaskCancellationHandler {
+                        try await task.value
+                    } onCancel: { task.cancel() }
+                    try Task.checkCancellation()
+                    guard !self.isClosed, self.path == expectedPath else { return false }
+                    switch result {
+                    case .saved(let snapshot):
+                        self.remoteBaseline = snapshot
+                        self.savedText = draft
+                        self.refreshDirtyState()
+                        self.saveError = nil
+                        return !self.isDirty
+                    case .conflict(let current):
+                        let conflict = FileSaveCoordinator.Conflict(path: expectedPath, current: current.comparison)
+                        let choice: FileSaveConflictController.Choice
+                        if let resolveConflict { choice = resolveConflict(conflict, draft) }
+                        else {
+                            guard AppWindowPresentation.hostWindow(relativeTo: self.editorView?.window) != nil else { return false }
+                            choice = FileSaveConflictController(conflict: conflict, draft: draft,
+                                remotePath: remote.displayPath(expectedPath)).resolve()
+                        }
+                        switch choice {
+                        case .keepDraft:
+                            self.saveError = RemoteFileService.Failure.changed.localizedDescription
+                            return false
+                        case .reload:
+                            self.reloadFromDiskIfClean(discarding: draft)
+                            return false
+                        case .overwrite:
+                            guard current.canWrite else { return false }
+                            overwrite = current
+                        }
+                    }
+                }
+            } catch is CancellationError {
+                self.saveError = String(localized: "The remote file operation was cancelled. Your draft was kept.")
+            } catch { self.saveError = error.localizedDescription }
+            return false
+        }
+    }
+
+    func close() {
+        isClosed = true
+        invalidateReload()
+        saveTask?.cancel()
+        capabilityTask?.cancel()
+    }
+
     /// Re-read a clean preview when it returns on screen. Disk I/O happens off
     /// the main actor; generation/path/dirty guards keep an older read from
     /// winning over a rename, save, or edit performed while it was in flight.
@@ -193,7 +330,8 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     /// path is already in flight, this call is a no-op: the in-flight read will
     /// publish when it finishes.
     func reloadFromDiskIfClean(discarding draft: String? = nil) {
-        guard !isRestoringDraft else { return }
+        guard !isClosed, !isRestoringDraft else { return }
+        if isRemote, AppSettings.shared.remoteFileWritesEnabled, !remoteCanSave, capabilityTask == nil { refreshRemoteCapability() }
         guard draft.map({ $0 == text }) ?? !isDirty else { return }
         if let task = reloadTask, !task.isCancelled {
             return
@@ -202,6 +340,11 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
         reloadGeneration &+= 1
         let generation = reloadGeneration
         let expectedPath = path
+
+        if isRemote {
+            reloadRemote(expectedPath: expectedPath, generation: generation, discarding: draft)
+            return
+        }
 
         reloadTask = Task { [weak self] in
             let result = await Task.detached(priority: .userInitiated) {
@@ -245,11 +388,57 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
 
     private func invalidateReload() {
         reloadTask?.cancel()
+        remoteReadTask?.cancel()
+        remoteReadTask = nil
         reloadTask = nil
         reloadGeneration &+= 1
     }
 
+    private func reloadRemote(expectedPath: String, generation: UInt, discarding draft: String?) {
+        guard case .remote(let remote) = source else {
+            content = .unavailable(String(localized: "The remote file could not be read."))
+            return
+        }
+        let service = remoteFiles
+        let reading = Task.detached(priority: .userInitiated) {
+            try service.read(source: remote, path: expectedPath)
+        }
+        remoteReadTask = reading
+        reloadTask = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                if self.reloadGeneration == generation { self.reloadTask = nil; self.remoteReadTask = nil }
+            }
+            do {
+                let snapshot = try await reading.value
+                try Task.checkCancellation()
+                guard !self.isClosed, self.reloadGeneration == generation, self.path == expectedPath,
+                      draft.map({ $0 == self.text }) ?? !self.isDirty else { return }
+                guard snapshot.isRegular, let data = snapshot.data else {
+                    throw snapshot.isRegular ? RemoteFileService.Failure.tooLarge : RemoteFileService.Failure.unsafePath
+                }
+                // Remote content never passes a remote path into local Quick Look or Markdown I/O.
+                let loaded = Self.loadedContent(path: expectedPath, result: .data(data))
+                guard case .text = loaded.content else { self.content = loaded.content; return }
+                self.remoteBaseline = snapshot
+                guard draft != nil || !self.matches(loaded) else { return }
+                self.content = loaded.content
+                self.text = loaded.text
+                self.savedText = loaded.text
+                self.imageData = loaded.imageData
+                self.isDirty = false
+                self.saveError = nil
+                self.reloadRevision &+= 1
+            } catch is CancellationError {} catch {
+                guard !self.isClosed, self.reloadGeneration == generation, self.path == expectedPath else { return }
+                if draft != nil { self.saveError = error.localizedDescription }
+                else { self.content = .unavailable(error.localizedDescription) }
+            }
+        }
+    }
+
     func restoreDraft(_ draft: String, baseline: FileSaveSnapshot) {
+        guard !isRemote else { return }
         recoveryGeneration &+= 1
         isRestoringDraft = false
         discardedDraftText = nil
@@ -265,18 +454,20 @@ final class FileTab: nonisolated ObservableObject, nonisolated Identifiable {
     }
 
     func draftSnapshot() -> EditorDraftRecord? {
-        guard isDirty, text != discardedDraftText, let saveBaseline else { return nil }
+        guard !isRemote, isDirty, text != discardedDraftText, let saveBaseline else { return nil }
         return EditorDraftRecord(id: draftID, source: .file(path: path), text: text,
                                  baseline: saveBaseline, editorState: editorState,
                                  previousPaths: draftPreviousPaths.isEmpty ? nil : draftPreviousPaths)
     }
 
     func discardDraftBackup() {
+        guard !isRemote else { return }
         discardedDraftText = text
         EditorDraftStore.shared.remove(draftID)
     }
 
     private func recoverDraft(id: UUID) {
+        guard !isRemote else { return }
         isRestoringDraft = true
         recoveryGeneration &+= 1
         let generation = recoveryGeneration
@@ -623,7 +814,7 @@ final class FileViewerContainerView: NSView {
 
         // Markdown is the only file type with two ways to read it, so the chip
         // exists only there.
-        let isMarkdown = Self.isMarkdown(file.path)
+        let isMarkdown = !file.isRemote && Self.isMarkdown(file.path)
         chip.isHidden = !isMarkdown || !isTextContent
         chip.update(showsSource: showsSource)
 
@@ -658,7 +849,7 @@ final class FileViewerContainerView: NSView {
     private var desiredKind: ContentKind {
         switch file.content {
         case .text:
-            Self.isMarkdown(file.path) && !showsSource ? .preview : .source
+            !file.isRemote && Self.isMarkdown(file.path) && !showsSource ? .preview : .source
         case .image:
             .image
         case .quickLook:

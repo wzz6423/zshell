@@ -105,9 +105,14 @@ extension PaneContent {
         }
     }
 
+    @MainActor func saveAndWait() async -> Bool {
+        if case .file(let file) = self { return await file.saveAndWait() }
+        return save()
+    }
+
     @MainActor var draftID: UUID? {
         switch self {
-        case .file(let file): return file.draftID
+        case .file(let file): return file.isRemote ? nil : file.draftID
         case .diff(let diff): return diff.draftID
         case .session, .browser: return nil
         }

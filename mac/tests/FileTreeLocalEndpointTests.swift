@@ -2,7 +2,7 @@ import AppKit
 import Darwin
 import Foundation
 
-nonisolated enum SSHAuthentication {
+nonisolated enum SSHAuthentication: Equatable, Sendable {
     case agent
     func arguments(identityFile: String?) -> [String] { [] }
 }
@@ -40,6 +40,10 @@ struct PaneTab {
     var isRemote = false
     var remoteEndpoint: SSHEndpoint?
     var remoteDirectory: String?
+    var fileSource: FileSource {
+        if let remoteEndpoint { return .remote(RemoteFileSource(endpoint: remoteEndpoint, root: remoteDirectory ?? "~")) }
+        return .local
+    }
     var customDirectory: String?
     var focusedContent: PaneContent?
     var selectedTab: PaneTab?
@@ -166,7 +170,8 @@ nonisolated final class ListingFixture: @unchecked Sendable {
 }
 
 nonisolated struct OpenSSHTransport {
-    func listDirectory(endpoint: SSHEndpoint, directory: String) throws -> [SSHEndpoint.DirectoryEntry] {
+    func listDirectory(endpoint: SSHEndpoint, directory: String, authentication: SSHAuthentication = .agent,
+                       credentialID: UUID? = nil) throws -> [SSHEndpoint.DirectoryEntry] {
         try ListingFixture.shared.list(endpoint: endpoint, directory: directory)
     }
 }

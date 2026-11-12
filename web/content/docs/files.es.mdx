@@ -24,6 +24,16 @@ Haz clic en un archivo para abrirlo en el panel con el foco. Haz clic derecho pa
 
 Las filas usan iconos de Material según el nombre del archivo. Dentro de un repositorio Git, las rutas modificadas también muestran colores e indicadores de estado, y los archivos ignorados aparecen atenuados. Así, el árbol muestra el mismo estado del árbol de trabajo que el panel de Git sin necesidad de abrirlo.
 
+## Archivos remotos [#remote-files]
+
+Abre archivos SSH desde el panel Archivos. Para crear, renombrar, mover a la papelera remota o guardar, activa **Ajustes → Editor → Archivos → Permitir cambios en archivos remotos** (`files.remote-write-enabled`, desactivado de forma predeterminada).
+
+Zshell solo utiliza herramientas ya instaladas en el host y no instala nada. La lectura y edición utilizan sus módulos básicos de Perl existentes. Cada escritura también comprueba las funciones necesarias del sistema de archivos; las operaciones no compatibles siguen desactivadas. Se rechazan enlaces simbólicos, archivos especiales y rutas fuera del proyecto. Los textos UTF-8 pueden tener hasta 5 MiB; el Markdown remoto se abre como código fuente.
+
+El guardado remoto comprueba los cambios aunque la protección local esté desactivada. Si hay un conflicto, puedes comparar, conservar el borrador, recargar desde el host o autorizar la sobrescritura. Se vuelve a comprobar la versión comparada justo antes de publicar el archivo completo; un proceso externo aún puede escribir después de esa última comprobación.
+
+**Mover a la papelera remota** conserva el contenido y la ruta original en el directorio privado `.zshell-trash` del proyecto. **Restaurar el último elemento remoto** restaura el último elemento durante la selección actual del proyecto sin reemplazar nombres existentes. Los elementos anteriores siguen disponibles para recuperarlos manualmente desde ese directorio.
+
 ## Importar archivos y carpetas [#import-files-and-folders]
 
 Elige **Archivo → Importar archivos…**, el botón de importación del panel Archivos o la opción del menú contextual de una carpeta. Selecciona varios archivos o carpetas; Zshell los copia a esa carpeta o a la raíz actual del árbol, conservando los originales.
