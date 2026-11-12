@@ -23,7 +23,7 @@ Antes de editar manualmente, considere:
 
 - **Mudanças são lidas durante a execução.** Edições externas válidas se aplicam automaticamente; ajustes para novos terminais ainda exigem um novo painel. Arquivos ilegíveis ou malformados mantêm os últimos ajustes válidos. Um arquivo intencionalmente vazio restaura os padrões após uma breve espera.
 - **O Zshell reescreve o arquivo quando muda um ajuste armazenado nele.** O arquivo é regenerado, então comentários e chaves desconhecidas se perdem na próxima utilização desses controles. Escolha uma forma principal de edição ou mantenha uma cópia oficial nos seus dotfiles.
-- **A maioria dos valores padrão é omitida.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` são sempre gravados. Remover uma dessas três chaves de terminal em um arquivo existente desativa o recurso; remover outras chaves restaura os valores padrão.
+- **A maioria dos valores padrão é omitida.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` são sempre gravados. Remover `terminal.vim-command-hints`, `terminal.restore-history` ou `terminal.notify-on-error` de um arquivo existente desativa o recurso correspondente. Remover `terminal.prompt-queue-enabled` restaura seu padrão `true`; remover `terminal.prompt-queue-auto-dispatch` restaura seu padrão `false`. Remover outras chaves restaura seus valores padrão.
 - **O parser é propositalmente pequeno.** Suporta chaves simples, chaves com pontos, cabeçalhos `[table]`, comentários `#` e valores de texto, número e booleano. Não suporta arrays, tabelas em linha ou strings com múltiplas linhas.
 - **Valores inválidos usam um fallback seguro.** Tamanhos fora da faixa, backends desconhecidos e nomes de temas incorretos não impedem o aplicativo de abrir.
 
@@ -151,6 +151,16 @@ booleano — padrão `true`
 
 Verifica alterações externas antes de salvar um arquivo ou diff editável da árvore de trabalho. Em caso de conflito, compare versões, recarregue, mantenha o rascunho ou sobrescreva explicitamente. Desativar permite substituir alterações externas sem aviso de conflito.
 
+### `editor.recover-drafts` [#editorrecover-drafts]
+
+booleano — padrão `true`
+
+Por padrão, o Zshell faz backup das alterações não salvas em arquivos locais e diffs editáveis da árvore de trabalho. Após uma saída inesperada, os painéis reabertos restauram rascunhos, seleções e layout. Para outros backups, abra **Arquivo → Recuperar rascunhos…** ou **Ajustes → Editor → Recuperar rascunhos…**, selecione um backup, confira o conteúdo e escolha **Restaurar rascunho**. A restauração abre um editor não salvo e não altera o arquivo no disco. Ao salvar, alterações externas ainda são verificadas com a versão anterior às suas edições.
+
+Controle os backups em **Ajustes → Editor → Fazer backup dos rascunhos não salvos** ou `editor.recover-drafts`. Desativar interrompe novos backups e a recuperação automática, mas mantém os existentes para restauração ou exclusão manual. **Excluir backup** remove apenas o backup selecionado e mantém as edições abertas. Salvar com sucesso ou escolher **Não Salvar** em um fechamento concluído remove o backup. Os arquivos privados ficam neste Mac, limitados a 32 rascunhos e 128 MiB, recuperáveis por até 30 dias. Os limites de capacidade podem excluir backups antigos antes disso. Arquivos e textos editados maiores que 5 MiB são excluídos.
+
+O Zshell exclui backups expirados ao iniciar e a cada hora enquanto está em execução, mesmo com os backups desativados. Se o Zshell estiver fechado, os arquivos expirados permanecem no disco até a próxima abertura.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
@@ -168,6 +178,12 @@ Escolhem o executável e vetor de argumentos para terminais criados depois da al
 Escolhe o emulador de terminais novos. Painéis existentes mantêm o backend inicial. Ambos são nativos, acelerados por GPU, suportam imagens e usam os mesmos temas; Alacritty geralmente consome menos memória.
 
 Veja [Backends de terminal](/pt-BR/docs/terminal#terminal-backends) para as variáveis de ambiente e o contrato de compatibilidade.
+
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+número, 0.1–10 — padrão `1` para cada dispositivo
+
+Ajuste as duas velocidades separadamente em **Ajustes → Terminal → Rolagem → Roda do mouse / Trackpad**. Os valores são porcentagens: 100% mantém a velocidade atual, 50% reduz à metade e 200% duplica. As alterações se aplicam imediatamente aos painéis abertos do Ghostty e Alacritty, ao histórico, aos programas em tela cheia e aos relatórios do mouse. A rolagem por inércia usa o valor do trackpad; a rolagem horizontal continua horizontal. Mouses que enviam deltas precisos também usam o valor do trackpad. Valores ausentes ou inválidos voltam a `1`. Importar, exportar e redefinir inclui ambos os valores.
 
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
@@ -215,6 +231,18 @@ Ao restaurar os painéis de terminal, retoma exatamente a conversa original regi
 
 Controle em **Ajustes → Automação → Retomar conversas de agentes**. Esta opção é independente de `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+booleano — padrão `false`
+
+Ativa a leitura de limites das CLIs locais em **Ajustes → Automação → Uso da conta → Ler uso da conta**. Desativar cancela solicitações, oculta dados e recusa salvar relatórios Claude. Os provedores escolhidos são preservados. Reconhecimento de agentes, relatórios de ciclo de vida e restauração de conversas não mudam.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+booleano — padrão `true` para cada um
+
+Escolhe provedores quando `ai.usage-enabled = true`. Claude Code lê o relatório local da linha de status do Zshell; Codex consulta sua CLI instalada e conectada. Desativar um provedor interrompe as leituras e oculta dados imediatamente. Credenciais não são coletadas. As três opções permitem busca, importação/exportação, recarga em tempo real e redefinição.
+
 ## Ajustes adicionais [#additional-settings]
 
 | Chave | Padrão | Valores / faixa | Efeito |
@@ -226,10 +254,12 @@ Controle em **Ajustes → Automação → Retomar conversas de agentes**. Esta o
 | `terminal.theme-only` | `false` | Booleano | Aplicar a paleta apenas ao terminal |
 | `terminal.command-history` | `true` | Booleano | Registrar novos comandos; histórico salvo continua disponível ao desativar |
 | `terminal.text-hints` | `true` | Booleano | Ativar dicas de teclado para texto visível do terminal |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | Booleano | **Ajustes → Terminal → Fila de prompts** controla os espaços e o Quick Terminal. Desativar o interruptor principal oculta barras e cancela envios; entradas e texto ficam até fechar o terminal. O envio automático é opcional e passa a valer no próximo término de comando, em ordem, apenas no prompt vazio do zsh original sem tarefa ativa. Ativar não reproduz a fila imediatamente. O envio manual usa as mesmas verificações; outros shells, shells aninhados, programas em primeiro plano e rascunhos não recebem a fila. |
 | `terminal.auto-profiles` | `true` | Booleano | Associar perfis automaticamente; seleção manual disponível |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Forma do cursor |
 | `terminal.cursor-blinking` | `true` | Booleano | Piscar o cursor |
 | `terminal.copy-on-select` | `true` | Booleano | Copiar texto selecionado no terminal |
+| `terminal.right-click-action` | `"context-menu"` | texto | Menu de contexto, colar, ou copiar seleção e colar quando não houver seleção (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | Booleano | O foco segue o mouse |
 | `terminal.shift-enter-newline` | `true` | Booleano | Enviar uma sequência de nova linha estendida com Shift+Enter; exige suporte do aplicativo |
 | `terminal.background-opacity` | `1` | 0.2–1 | Opacidade do fundo do terminal |
@@ -269,6 +299,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

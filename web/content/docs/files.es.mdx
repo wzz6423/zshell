@@ -75,6 +75,14 @@ Si otro programa cambia el archivo mientras lo edita, guardar abre un diálogo d
 Este editor sirve para el cambio que ya estás revisando: corregir una errata, ajustar una constante o leer un archivo mencionado en las diferencias. No tiene servidor de lenguaje, autocompletado ni refactorización de todo el proyecto. Es una decisión deliberada.
 </Callout>
 
+## Recuperar borradores sin guardar [#recover-unsaved-drafts]
+
+Zshell respalda por defecto los cambios sin guardar de archivos locales y diferencias editables del árbol de trabajo. Tras un cierre inesperado, los paneles reabiertos recuperan sus borradores, selecciones y distribución. Para otras copias, abre **Archivo → Recuperar borradores…** o **Ajustes → Editor → Recuperar borradores…**, elige una copia, revisa su contenido y pulsa **Restaurar borrador**. Restaurar abre un editor sin guardar y no modifica el archivo del disco. Al guardar se siguen comprobando los cambios externos con la versión anterior a tus ediciones.
+
+Controla las copias en **Ajustes → Editor → Respaldar borradores sin guardar** o con `editor.recover-drafts`. Desactivarlo detiene las copias nuevas y la recuperación automática, pero conserva las copias existentes para recuperarlas o eliminarlas manualmente. **Eliminar copia** solo quita la copia seleccionada; las ediciones abiertas permanecen. Guardar correctamente o elegir **No guardar** al completar el cierre elimina la copia. Las copias son archivos privados en este Mac, con un máximo de 32 borradores y 128 MiB, recuperables hasta 30 días. Los límites de capacidad pueden eliminar las copias antiguas antes. Se excluyen archivos y textos editados de más de 5 MiB.
+
+Zshell elimina las copias caducadas al iniciar y cada hora mientras se ejecuta, incluso con las copias desactivadas. Si Zshell está cerrado, los archivos caducados permanecen en el disco hasta el siguiente inicio.
+
 ## Vista previa de Markdown [#markdown-preview]
 
 Abre un archivo `.md` para leer su vista previa renderizada en el mismo panel. Haz clic en **Editar**, en la esquina superior derecha, para trabajar con el código fuente y después en **Vista previa** para ver el resultado. Zshell recuerda el modo que prefieres para otros archivos Markdown y para el siguiente inicio.

@@ -584,6 +584,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     }
 
     func terminateAll() {
+        for tab in tabs { for case .file(let file) in tab.allContents { file.close() } }
         for browser in tabs.flatMap(\.browsers) { browser.close() }
         for session in sessions {
             session.terminate()
@@ -1070,6 +1071,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         guard let confirmation = UnsavedChangesConfirmation() else { return true }
         guard await confirmation.confirm(content, in: window),
               !confirmation.requiresConfirmation(content) else { return true }
+        confirmation.commitDiscards()
         removePaneWithContent(content.id)
         return false
     }
@@ -1587,7 +1589,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 agentResume: pane.agentResume,
                 restoredSessionID: pane.terminalID,
                 remoteSessionID: pane.remoteSessionID,
-                worktree: pane.worktree
+                worktree: pane.worktree,
+                draftID: pane.draftID
             )))
         case .split(let axis, let fraction, let first, let second):
             return .split(PaneSplit(
@@ -1614,7 +1617,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         agentResume: AgentConversationIdentity? = nil,
         restoredSessionID: UUID? = nil,
         remoteSessionID: UUID? = nil,
-        worktree: SessionWorktree? = nil
+        worktree: SessionWorktree? = nil,
+        draftID: UUID? = nil
     ) -> PaneContent {
         switch snap {
         case .session(let workingDirectory):
@@ -1629,7 +1633,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                 worktree: worktree
             ))
         case .file(let path, let editorState):
-            let file = FileTab(path: path, source: fileSource)
+            let file = FileTab(path: path, source: fileSource, draftID: draftID ?? UUID(), recoveringDraft: draftID != nil)
             if let editorState { file.editorState = editorState }
             return .file(file)
         case .browser(let url):
@@ -1637,7 +1641,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
         case .diff(let repoRoot, let path, let staged, let untracked, let origPath):
             return .diff(DiffTab(
                 repoRoot: repoRoot, path: path, staged: staged,
-                untracked: untracked, origPath: origPath
+                untracked: untracked, origPath: origPath,
+                draftID: draftID ?? UUID(), recoveringDraft: draftID != nil
             ))
         case .commitDiff(
             let repoRoot, let path, let commitHash, let parentHash, let status, let origPath

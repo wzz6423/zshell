@@ -103,6 +103,7 @@ final class TerminalManager: nonisolated ObservableObject {
     /// Projects publish their own changes (session list, session selection);
     /// re-publish them so views observing the manager stay current.
     private var projectObservations: [UUID: AnyCancellable] = [:]
+    let diffWorkspaceLayout = DiffWorkspaceLayout()
     /// Stable menu payload for a transfer target. Actions resolve these IDs
     /// again when invoked so a menu cannot move a tab into a closed project.
     struct TabMoveDestination: Identifiable {
@@ -845,6 +846,7 @@ final class TerminalManager: nonisolated ObservableObject {
                 }
             }
             guard await project.confirmUnsavedChanges(using: confirmation, in: window) else { return }
+            confirmation.commitDiscards()
             project.terminateAll()
             remove(project)
         }
@@ -1481,6 +1483,10 @@ final class TerminalManager: nonisolated ObservableObject {
     /// diff pane.
     func togglePromptQueue() {
         if case .session(let session)? = selectedProject?.focusedContent {
+            guard AppSettings.shared.promptQueueEnabled else {
+                SettingsWindowController.shared.show(category: .terminal, section: String(localized: "Prompt Queue"))
+                return
+            }
             session.promptQueue.togglePresentation()
         }
     }
@@ -1916,6 +1922,7 @@ final class TerminalManager: nonisolated ObservableObject {
             defer { isConfirmingWindowClose = false }
             guard await confirmUnsavedChanges(using: confirmation),
                   Self.registry.contains(where: { $0 === self }), !Self.isQuitting else { return }
+            confirmation.commitDiscards()
             windowCloseIsApproved = true
             defer { windowCloseIsApproved = false }
             sender.performClose(nil)
@@ -2000,6 +2007,7 @@ final class TerminalManager: nonisolated ObservableObject {
                 return false
             }
         }
+        confirmation.commitDiscards()
         return true
     }
 
@@ -2021,6 +2029,7 @@ final class TerminalManager: nonisolated ObservableObject {
         }
         AgentConversationHistoryStore.shared.flush()
         TerminalCommandHistoryStore.shared.flush()
+        EditorDraftStore.shared.flush()
     }
 
     /// Builds this window's layout snapshot and, alongside it, the scrollback
@@ -2122,7 +2131,8 @@ final class TerminalManager: nonisolated ObservableObject {
                 agentResume: agentResume,
                 terminalID: terminalID,
                 remoteSessionID: remoteSessionID,
-                worktree: worktree
+                worktree: worktree,
+                draftID: pane.content.draftID
             ))
         case .split(let split):
             return .split(
