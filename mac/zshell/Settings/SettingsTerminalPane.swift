@@ -6,16 +6,32 @@
 import AppKit
 
 /// Startup, input, history, notifications, and the global quick terminal.
-final class SettingsTerminalPane: SettingsPaneViewController {
+final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegate {
     private let startupView = TerminalStartupSettingsView { program, arguments in
         AppSettings.shared.terminalStartupProgram = program
         AppSettings.shared.terminalStartupArguments = arguments
     }
     private let backendPicker = SettingsBackendPicker { AppSettings.shared.terminalBackend = $0 }
+    private let termField = NSTextField()
+    private var displayedTerm = ""
+    private var termNeedsCommit = false
+    private lazy var termRow = SettingsRow(
+        title: "TERM",
+        description: Self.termDescription(isInvalid: false),
+        control: termField
+    )
+
+    private static func termDescription(isInvalid: Bool) -> String {
+        isInvalid
+            ? String(localized: "Enter a terminal type with 1–128 ASCII letters, digits, or .-_+. The previous value is kept.")
+            : String(localized: "Terminal type for new sessions. Open and preserved sessions keep their TERM. Use a terminfo name available on the local or remote host.")
+    }
 
     private let automaticProfilesSwitch = SettingsSwitch { AppSettings.shared.automaticallyApplyTerminalProfiles = $0 }
     private let commandHistorySwitch = SettingsSwitch { AppSettings.shared.commandHistoryEnabled = $0 }
     private let textHintsSwitch = SettingsSwitch { AppSettings.shared.terminalTextHints = $0 }
+    private let promptQueueSwitch = SettingsSwitch { AppSettings.shared.promptQueueEnabled = $0 }
+    private let promptQueueAutoDispatchSwitch = SettingsSwitch { AppSettings.shared.promptQueueAutoDispatch = $0 }
     private let quickTerminalSwitch = SettingsSwitch { AppSettings.shared.quickTerminalEnabled = $0 }
     private let optionAsAltSwitch = SettingsSwitch { AppSettings.shared.macosOptionAsAlt = $0 }
     private let vimCommandHintsSwitch = SettingsSwitch { AppSettings.shared.vimCommandHints = $0 }
@@ -25,6 +41,10 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     private let restoreHistorySwitch = SettingsSwitch { AppSettings.shared.restoreTerminalHistory = $0 }
     private let preserveSessionsSwitch = SettingsSwitch { AppSettings.shared.preserveTerminalSessions = $0 }
     private let copyOnSelectSwitch = SettingsSwitch { AppSettings.shared.copyOnSelect = $0 }
+    private let rightClickActionPopup = SettingsPopUpButton<TerminalRightClickAction>(
+        items: TerminalRightClickAction.allCases.map { .value($0.title, $0) },
+        onChange: { AppSettings.shared.terminalRightClickAction = $0 }
+    )
     private let focusFollowsMouseSwitch = SettingsSwitch { AppSettings.shared.focusFollowsMouse = $0 }
     private let notifyOnErrorSwitch = SettingsSwitch { AppSettings.shared.notifyOnError = $0 }
     private let notifyFinishPopup = SettingsPopUpButton<Int>(
@@ -62,6 +82,24 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         onChange: { AppSettings.shared.quickTerminalSize = $0 }
     )
 
+    private let mouseScrollRow = SettingsSliderRow(
+        title: String(localized: "Mouse wheel"),
+        range: AppSettings.terminalScrollMultiplierRange,
+        format: .percent,
+        step: 0.1,
+        showsStepper: true,
+        onChange: { AppSettings.shared.mouseScrollMultiplier = $0 }
+    )
+
+    private let trackpadScrollRow = SettingsSliderRow(
+        title: String(localized: "Trackpad"),
+        range: AppSettings.terminalScrollMultiplierRange,
+        format: .percent,
+        step: 0.1,
+        showsStepper: true,
+        onChange: { AppSettings.shared.trackpadScrollMultiplier = $0 }
+    )
+
     private let quickTerminalOpacityRow = SettingsSliderRow(
         title: String(localized: "Opacity"),
         range: AppSettings.quickTerminalOpacityRange,
@@ -89,12 +127,20 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     }
 
     override func makeGroups() -> [NSView] {
+        termField.controlSize = .small
+        termField.placeholderString = TerminalLaunchSettings.defaultTerm
+        termField.setAccessibilityLabel("TERM")
+        termField.delegate = self
+        termField.target = self
+        termField.action = #selector(termChanged)
+        termField.widthAnchor.constraint(equalToConstant: 180).isActive = true
         var startupRows: [NSView] = [
             SettingsRow(
                 title: String(localized: "Startup"),
                 description: String(localized: "Changes apply only to new terminals. Open terminals keep their current process."),
                 control: startupView
             ),
+            termRow,
         ]
 
         // Only offer this once there is a real choice. `selectable` omits
@@ -150,9 +196,19 @@ final class SettingsTerminalPane: SettingsPaneViewController {
                 control: copyOnSelectSwitch
             ),
             SettingsRow(
+                title: String(localized: "Right-click action"),
+                description: TerminalRightClickAction.explanation,
+                control: rightClickActionPopup
+            ),
+            SettingsRow(
                 title: String(localized: "Focus follows mouse"),
                 control: focusFollowsMouseSwitch
             ),
+        ]))
+
+        groups.append(SettingsGroup(header: String(localized: "Scrolling"), rows: [
+            mouseScrollRow,
+            trackpadScrollRow,
         ]))
 
         groups.append(SettingsGroup(header: String(localized: "History"), rows: [
@@ -166,6 +222,19 @@ final class SettingsTerminalPane: SettingsPaneViewController {
                 guard let manager = TerminalManager.activeWindowManager else { return }
                 TerminalCommandHistoryController.shared.show(for: manager)
             },
+        ]))
+
+        groups.append(SettingsGroup(header: String(localized: "Prompt Queue"), rows: [
+            SettingsRow(
+                title: String(localized: "Enable Prompt Queue"),
+                description: String(localized: "Turning this off hides all queue bars and stops pending sends. Queued entries and input are kept until the terminal closes."),
+                control: promptQueueSwitch
+            ),
+            SettingsRow(
+                title: String(localized: "Send queued prompts automatically"),
+                description: String(localized: "When a command finishes, send the next entry at an empty prompt in the original zsh shell. Send Now is available with automatic sending on or off."),
+                control: promptQueueAutoDispatchSwitch
+            ),
         ]))
 
         let notificationScope = NSTextField(wrappingLabelWithString: String(localized: "Changes apply to new zsh terminals."))
@@ -199,9 +268,20 @@ final class SettingsTerminalPane: SettingsPaneViewController {
             arguments: settings.terminalStartupArguments
         )
         backendPicker.select(settings.terminalBackend)
+        let isEditingTerm = termField.currentEditor() != nil
+            && view.window?.firstResponder === termField.currentEditor()
+        if !isEditingTerm || displayedTerm != settings.terminalTerm {
+            displayedTerm = settings.terminalTerm
+            termField.stringValue = settings.terminalTerm
+            termNeedsCommit = false
+            termRow.setDescription(Self.termDescription(isInvalid: settings.terminalTermIsInvalid))
+        }
         automaticProfilesSwitch.isOn = settings.automaticallyApplyTerminalProfiles
         commandHistorySwitch.isOn = settings.commandHistoryEnabled
         textHintsSwitch.isOn = settings.terminalTextHints
+        promptQueueSwitch.isOn = settings.promptQueueEnabled
+        promptQueueAutoDispatchSwitch.isOn = settings.promptQueueAutoDispatch
+        promptQueueAutoDispatchSwitch.isEnabled = settings.promptQueueEnabled
         quickTerminalSwitch.isOn = settings.quickTerminalEnabled
         for index in 1...4 { quickTerminalGroup.setRowHidden(!visibility.quickTerminalEnabled, at: index) }
         optionAsAltSwitch.isOn = settings.macosOptionAsAlt
@@ -212,12 +292,37 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         restoreHistorySwitch.isOn = settings.restoreTerminalHistory
         preserveSessionsSwitch.isOn = settings.preserveTerminalSessions
         copyOnSelectSwitch.isOn = settings.copyOnSelect
+        rightClickActionPopup.select(settings.terminalRightClickAction)
         focusFollowsMouseSwitch.isOn = settings.focusFollowsMouse
+        mouseScrollRow.setValue(settings.mouseScrollMultiplier)
+        trackpadScrollRow.setValue(settings.trackpadScrollMultiplier)
         notifyFinishPopup.select(settings.notifyFinishSeconds)
         notifyOnErrorSwitch.isOn = settings.notifyOnError
         shortcutRecorder.setShortcut(settings.quickTerminalShortcut)
         quickTerminalModePopup.select(settings.quickTerminalMode)
         quickTerminalSizeRow.setValue(settings.quickTerminalSize)
         quickTerminalOpacityRow.setValue(settings.quickTerminalOpacity)
+    }
+
+    func controlTextDidChange(_ notification: Notification) {
+        guard notification.object as? NSTextField === termField else { return }
+        termNeedsCommit = true
+        termRow.setDescription(Self.termDescription(
+            isInvalid: !TerminalLaunchSettings.isValidTermName(termField.stringValue)
+        ))
+    }
+
+    func controlTextDidEndEditing(_ notification: Notification) {
+        guard notification.object as? NSTextField === termField else { return }
+        termChanged()
+    }
+
+    @objc private func termChanged() {
+        guard termNeedsCommit || termField.stringValue != settings.terminalTerm else { return }
+        termNeedsCommit = false
+        let accepted = settings.setTerminalTerm(termField.stringValue)
+        displayedTerm = settings.terminalTerm
+        termField.stringValue = settings.terminalTerm
+        termRow.setDescription(Self.termDescription(isInvalid: !accepted))
     }
 }

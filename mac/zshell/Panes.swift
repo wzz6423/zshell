@@ -104,6 +104,22 @@ extension PaneContent {
         case .session, .browser: return true
         }
     }
+
+    @MainActor var draftID: UUID? {
+        switch self {
+        case .file(let file): return file.draftID
+        case .diff(let diff): return diff.draftID
+        case .session, .browser: return nil
+        }
+    }
+
+    @MainActor func discardDraftBackup() {
+        switch self {
+        case .file(let file): file.discardDraftBackup()
+        case .diff(let diff): diff.discardDraftBackup()
+        case .session, .browser: break
+        }
+    }
 }
 
 /// Which side of a target pane a dragged pane is dropped on, deciding where it

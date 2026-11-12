@@ -29,6 +29,14 @@ Rows use filename-aware Material icons. Inside a Git repository, changed paths
 also use status colors and badges, while ignored files are dimmed, so the tree
 shows the same worktree state as the Git panel without opening it.
 
+## Import files and folders
+
+Choose **File → Import Files…**, use the import button in the Files panel, or right-click a folder and choose **Import Files…**. Select one or more files or folders; Zshell copies them into that folder or the current tree root, keeping the originals.
+
+To drop Finder items onto a folder or the tree’s empty area, turn on **Settings → Editor → Files → Import by dragging into the file tree** (`files.drag-import`). It is off by default. The menu remains available when dragging is off.
+
+Existing names offer **Replace**, **Skip**, and **Cancel**. Replacing a folder replaces the whole folder, rather than merging its contents. Cancel stops the entire import and restores copies already added by that import. If another program changes an imported item before restoration, Zshell preserves the changed item and shows a folder that may contain recovery files. SSH trees accept no local imports. Symbolic links are copied as links; they are not followed.
+
 ## Find files and search contents
 
 The command palette (<kbd>Cmd</kbd>+<kbd>P</kbd>) finds files by name or path
@@ -78,6 +86,14 @@ This is an editor for the change you're already looking at — fix a typo, adjus
 a constant, read a file the diff referenced. There's no language server, no
 completion, and no project-wide refactoring. That's deliberate.
 </Callout>
+
+## Recover unsaved drafts
+
+Zshell backs up unsaved local file and editable worktree diff changes by default. After an unexpected exit, reopened panes restore their drafts, selections, and layout. Recover other backups from **File → Recover Drafts…** or **Settings → Editor → Recover Drafts…**; select a backup, review its contents, and choose **Restore Draft**. Restoring opens an unsaved editor and never changes the file on disk. Saving still checks for external changes using the version from before your edits.
+
+Control backups with **Settings → Editor → Back up unsaved drafts** or `editor.recover-drafts`. Turning it off stops new backups and automatic recovery, while keeping existing backups available for manual recovery or deletion. **Delete Backup** removes only the selected backup; open edits remain. Saving successfully or choosing **Don’t Save** for a completed close removes the backup. Backups are private files on this Mac, limited to 32 drafts and 128 MiB, recoverable for up to 30 days. Capacity limits may delete older backups sooner. Files and edited text larger than 5 MiB are excluded.
+
+Zshell deletes expired backups at startup and every hour while running, even when backups are off. If Zshell is closed, expired files remain on disk until the next launch.
 
 ## Markdown preview
 

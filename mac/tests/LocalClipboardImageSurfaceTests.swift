@@ -80,6 +80,19 @@ import ImageIO
             print("PASS \(backend) clipboard: \(label)")
         }
         func text() -> String { surface.readVisibleText(maxLines: 256, maxColumns: 2000) ?? "" }
+        func paste(_ target: any TerminalBackendSurface) -> Bool {
+            guard ProcessInfo.processInfo.environment["ZSHELL_TEST_RIGHT_CLICK_PASTE"] == "1" else {
+                return target.tryToPerform(#selector(NSText.paste(_:)), with: nil)
+            }
+            AppSettings.shared.terminalRightClickAction = .paste
+            let event = NSEvent.mouseEvent(
+                with: .rightMouseDown, location: NSPoint(x: 20, y: 20), modifierFlags: [],
+                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                context: nil, eventNumber: 0, clickCount: 1, pressure: 1
+            )!
+            target.rightMouseDown(with: event)
+            return true
+        }
         func batches() throws -> Set<String> {
             Set(try FileManager.default.contentsOfDirectory(atPath: temporary.path).filter { $0.hasPrefix("zshell-clipboard-") })
         }
@@ -160,7 +173,7 @@ import ImageIO
             let marker = "NATIVE_" + label + "_PATH="
             let received = root.appendingPathComponent(marker)
             session.sendCommand("printf '%s' > " + TerminalSession.shellQuote(received.path) + " ")
-            try check(surface.tryToPerform(#selector(NSText.paste(_:)), with: nil), "backend accepts the native \(label) paste action")
+            try check(paste(surface), "backend accepts the native \(label) paste action")
             try waitClipboard("native image path did not reach the prompt") {
                 let visible = text().replacingOccurrences(of: "\n", with: "")
                 guard let start = visible.range(of: marker) else { return false }
@@ -191,7 +204,7 @@ import ImageIO
         general.clearContents()
         general.setData(png, forType: .png)
         ownedPasteboardChangeCount = general.changeCount
-        try check(bracketSurface.tryToPerform(#selector(NSText.paste(_:)), with: nil), "raw PTY accepts the native image paste action")
+        try check(paste(bracketSurface), "raw PTY accepts the native image paste action")
         try waitClipboard("raw PTY did not receive the complete bracketed image paste") {
             FileManager.default.fileExists(atPath: bracketCapture.path)
         }

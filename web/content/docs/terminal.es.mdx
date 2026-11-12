@@ -16,6 +16,10 @@ Elige un motor en **Ajustes → Terminal → Motor**:
 
 Ambos admiten aceleración por GPU, imágenes, el catálogo de temas compartido de Zshell, búsqueda, notificación de eventos del ratón, notificaciones e informes de progreso. Cambiar de motor solo afecta a los terminales nuevos; los paneles existentes conservan el emulador con el que se iniciaron.
 
+## Tipo de terminal [#terminal-type]
+
+Configura `terminal.term` en **Ajustes → Terminal → TERM** (valor predeterminado `"xterm-256color"`). El nombre debe contener de 1 a 128 letras ASCII, dígitos o `.-_+`. Usa un nombre terminfo instalado en el equipo que ejecuta el shell. Los cambios solo se aplican a sesiones locales y SSH nuevas; los PTY abiertos y conservados mantienen su `TERM` original. Las sesiones remotas compartidas usan el valor al crearse con un servidor actualizado; los servidores antiguos mantienen `xterm-256color`. Las ediciones no válidas conservan el último valor válido y muestran un error en Ajustes. `TERM_PROGRAM` y `ZSHELL_TERM` no cambian.
+
 ## Historial de comandos [#command-history]
 
 **Registrar historial de comandos** en **Ajustes → Terminal → Historial** está activado por defecto (`terminal.command-history = true`). Desactivarlo detiene los nuevos registros; el historial guardado se puede consultar o borrar. Se conservan la salida del terminal y el historial del shell.
@@ -57,6 +61,12 @@ Rechazar una solicitud bloquea esa función. Zshell no concede estos permisos au
 Activa **Ajustes → Terminal → Entrada → El foco sigue al ratón** para enfocar un panel al entrar el puntero. Está desactivado por defecto y funciona con ambos motores y el terminal rápido. No cambia el foco durante un arrastre, desde un editor ni con un menú o diálogo abierto.
 
 `terminal.focus-follows-mouse = true`
+
+## Acción del clic derecho [#right-click-action]
+
+En **Ajustes → Terminal → Entrada → Acción del clic derecho**, elige **Menú contextual** (predeterminado), **Pegar** o **Copiar o pegar**. La última opción copia la selección y solo pega cuando no hay ninguna. El cambio se aplica de inmediato a ambos motores. `terminal.right-click-action` en `config.toml` acepta `"context-menu"`, `"paste"` o `"copy-or-paste"`.
+
+**Mayús + clic derecho**, **Control + clic** y **Comando + clic derecho** siguen abriendo el menú. **Edición → Mostrar menú contextual del terminal** (<kbd>Shift</kbd>+<kbd>F10</kbd>) lo abre con el teclado. Las aplicaciones con informes del ratón siguen recibiendo los clics derechos normales, salvo si activas **Bloquear comandos de Zshell** en el panel. Pegar conserva la confirmación multilínea y el manejo de archivos locales o remotos de <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
 ## Perfiles de terminal [#terminal-profiles]
 
@@ -100,9 +110,13 @@ El ajuste solo afecta a ese panel. Vuelve a hacer clic derecho y desmarca la opc
 
 Enfoca un terminal y pulsa <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>, o elige **Alternar cola de prompts** en la paleta de comandos. La barra se abre debajo de ese terminal. Escribe una entrada y pulsa <kbd>Return</kbd> o **Añadir a la cola**; cada entrada ocupa una sola línea y los saltos de línea pegados se sustituyen por espacios.
 
-Cuando el zsh original vuelve a un prompt vacío, Zshell envía la siguiente entrada y pulsa Return. Las entradas se ejecutan en el orden de la cola. El envío automático espera mientras un agente u otro programa en primer plano controla el terminal, o mientras el prompt contiene un borrador. Requiere la integración de Zshell con zsh; otros shells y los shells anidados pueden usar el envío manual.
+El envío es manual de forma predeterminada. **Enviar ahora** solo envía si el prompt del zsh original está vacío y ninguna tarea de comando pendiente o en ejecución ocupa el terminal. Se desactiva con agentes, programas en primer plano, borradores y otros shells o shells anidados. Un envío rechazado conserva la entrada.
 
-Cada entrada tiene botones **Enviar ahora** y **Quitar**. **Enviar ahora** envía inmediatamente el texto y Return al programa actual del terminal, sin esperar a un prompt del shell. <kbd>Esc</kbd> o el botón de cierre ocultan la barra y conservan las entradas en cola. Cada terminal tiene su propia cola; cerrar esa sesión o salir de Zshell la descarta.
+En **Ajustes → Terminal → Cola de prompts**, active **Enviar automáticamente los prompts en cola** para enviar la siguiente entrada en orden al terminar un comando y volver zsh a un prompt vacío. Activarlo no ejecuta la cola inmediatamente: se aplica desde el siguiente fin de comando. Desactivarlo cancela los envíos pendientes.
+
+Desactivar **Activar la cola de prompts** oculta las barras de todos los espacios de trabajo y Quick Terminal, cancela envíos y conserva entradas y texto sin enviar. El menú y el atajo abren entonces los ajustes correspondientes.
+
+**Quitar** elimina una entrada. Los paneles estrechos muestran iconos con nombres y ayudas. <kbd>Esc</kbd> o cerrar solo oculta la barra. Cada terminal tiene su propia cola; cerrar la sesión o Zshell la descarta.
 
 ## Rutas y URL [#paths-and-urls]
 
@@ -139,7 +153,7 @@ Las notificaciones pueden reproducir el sonido del sistema. Al hacer clic en una
 
 El mismo historial está disponible desde **Ajustes → Terminal → Notificaciones**.
 
-Abre **Notificaciones → Historial de notificaciones…** para ver avisos recientes del terminal y los agentes. Filtra por **Sin leer**, **Fallidas** o **Pendientes**. Haz clic en un aviso o en **Mostrar panel** para seleccionar su proyecto, pestaña y panel actuales, incluso en otra ventana. Los paneles cerrados siguen en el historial como no disponibles.
+Abre **Terminal → Notificaciones → Historial de notificaciones…** para ver avisos recientes del terminal y los agentes. Filtra por **Sin leer**, **Fallidas** o **Pendientes**. Haz clic en un aviso o en **Mostrar panel** para seleccionar su proyecto, pestaña y panel actuales, incluso en otra ventana. Los paneles cerrados siguen en el historial como no disponibles.
 
 Usa **Marcar como leída**, **Marcar todas como leídas**, **Eliminar** o **Borrar historial**. Leer no aprueba solicitudes de un agente. Los avisos dejan de estar pendientes cuando el agente continúa o termina, se cierra el panel o su conexión remota no está disponible. Los estados se basan en informes explícitos del ciclo de vida y resultados de salida de comandos. Se conservan los últimos 200 avisos al reiniciar, incluso con el permiso de notificaciones de macOS desactivado.
 

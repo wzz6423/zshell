@@ -48,22 +48,7 @@ struct QuickTerminalPersistenceTests {
             keyCode: UInt32(kVK_ANSI_2), modifiers: UInt32(cmdKey | optionKey | shiftKey)
         )
         let delegate = ZshellApplicationDelegate()
-        func makeMenu() {
-            let main = NSMenu()
-            let item = NSMenuItem()
-            item.submenu = NSMenu()
-            item.submenu?.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
-            if phase == "menu-lifecycle" {
-                let services = NSMenu(title: "Services")
-                let servicesItem = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
-                servicesItem.submenu = services
-                item.submenu?.addItem(servicesItem)
-                app.servicesMenu = services
-            }
-            main.addItem(item)
-            app.mainMenu = main
-        }
-        makeMenu()
+        AppMenuController.shared.install()
         AppMenuLocalization.shared.start(applicationDelegate: delegate)
         let overlay = GlobalTerminalOverlay.shared
         overlay.start()
@@ -675,9 +660,12 @@ struct QuickTerminalPersistenceTests {
         try wait("losing focus hides unpinned terminal") { !window.isVisible }
         try check(alive(before[0]) && alive(before[2]), "focus loss keeps the shell and job")
 
-        // Rebuild the menu just as SwiftUI does after workspace changes.
-        makeMenu()
+        let originalMenu = app.mainMenu
+        AppMenuController.shared.install()
+        AppMenuController.shared.refresh()
         pump(0.2)
+        try check(app.mainMenu === originalMenu && app.mainMenu?.items.count == 7,
+                  "workspace refresh keeps the authoritative main menu")
         try check(menuItems().filter { $0.action.map(NSStringFromSelector) == "toggleQuickTerminal" }.count == 1, "native menu is restored once after rebuilding")
         try check(menuItems().filter { $0.action.map(NSStringFromSelector) == "quitAndEndAllSessions" }.count == 1, "End All menu survives rebuilding")
         try repeatedToggleRegression(window, try require(overlay.workspace, "reused workspace for repeated toggles"))

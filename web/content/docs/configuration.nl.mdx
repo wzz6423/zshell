@@ -23,7 +23,7 @@ Handig om te weten voordat je handmatig bewerkt:
 
 - **Wijzigingen worden tijdens het draaien gelezen.** Geldige externe wijzigingen gelden automatisch; instellingen voor nieuwe terminals vereisen nog een nieuw paneel. Onleesbare of ongeldige bestanden behouden de laatste geldige instellingen. Een bewust leeg bestand herstelt na korte tijd de standaardwaarden.
 - **Zshell herschrijft het wanneer een bestandsgebonden instelling verandert.** Het bestand wordt volledig opnieuw gegenereerd. Je opmerkingen en onbekende sleutels verdwijnen dus wanneer je de volgende keer een van die instellingen wijzigt. Kies één manier om het bestand te bewerken of houd een leidende kopie bij in je dotfiles.
-- **De meeste standaardwaarden worden weggelaten.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` worden altijd opgeslagen. Het verwijderen van een van deze drie terminalsleutels in een bestaand bestand schakelt de functie uit; bij andere sleutels wordt de standaard hersteld.
+- **De meeste standaardwaarden worden weggelaten.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` worden altijd opgeslagen. Het verwijderen van `terminal.vim-command-hints`, `terminal.restore-history` of `terminal.notify-on-error` uit een bestaand bestand schakelt de betreffende functie uit. Het verwijderen van `terminal.prompt-queue-enabled` herstelt de standaard `true`; bij `terminal.prompt-queue-auto-dispatch` is dat `false`. Het verwijderen van andere sleutels herstelt hun eigen standaardwaarden.
 - **De parser is bewust beperkt.** Hij ondersteunt platte sleutels, sleutels met punten, `[table]`-koppen, `#`-opmerkingen en tekenreeks-, getal- en booleaanse waarden. Arrays, inline-tabellen en tekenreeksen met meerdere regels worden niet ondersteund.
 - **Ongeldige waarden vallen veilig terug.** Een grootte buiten het bereik, onbekende backend of verkeerd gespeld thema verhindert niet dat Zshell start.
 
@@ -119,6 +119,20 @@ Booleaans — standaard `true`
 
 Een dubbelklik op lege ruimte in de zijbalk maakt een sessie in het geselecteerde project, of een project als er geen is geselecteerd. Klikken en slepen op regels behouden hun gebruikelijke acties.
 
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+booleaans — standaard `true`
+
+Schakel optionele ligaturen voor beide terminalbackends in of uit via **Instellingen → Uiterlijk → Lettertypeligaturen**. Uitschakelen overschrijft `calt`, `liga`, `clig`, `dlig` en `hlig`; vereiste schriftvorming blijft actief. Tekens, terminalkolommen, cursor en selectie blijven gelijk.
+
+### `terminal.font-features` [#terminalfont-features]
+
+tekenreeks — standaard `""`, lettertypestandaarden
+
+Voer onder **OpenType-functies** tags van vier tekens in, gescheiden door komma’s of witruimte: `-calt` schakelt contextuele alternatieven uit, `ss01` schakelt stijlset 1 in en `zero=1` de alternatieve nul. Ook `+liga` en `liga=1` schakelen functies in. De laatste waarde per tag geldt; de ligatuurschakelaar heeft voorrang voor de vijf genoemde tags.
+
+Wijzigingen gelden direct voor geopende terminals en het voorbeeld. Beide backends gebruiken ondersteunde lettertypefuncties; andere tags hebben geen effect. Ongeldige invoer behoudt de laatste geldige waarde; een ongeldige externe waarde gebruikt de standaard. Herstellen leegt de lijst en schakelt ligaturen in.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 Booleaans — standaard `false`
@@ -157,6 +171,16 @@ boolean — standaard `true`
 
 Controleert externe wijzigingen voordat een bestand of bewerkbare werkboomdiff wordt opgeslagen. Bij een conflict kunt u vergelijken, opnieuw laden, het concept behouden of uitdrukkelijk overschrijven. Uitschakelen laat externe wijzigingen zonder waarschuwing vervangen.
 
+### `editor.recover-drafts` [#editorrecover-drafts]
+
+boolean — standaard `true`
+
+Zshell maakt standaard back-ups van niet-opgeslagen wijzigingen in lokale bestanden en bewerkbare werkboom-diffs. Na onverwacht afsluiten herstellen opnieuw geopende panelen hun concepten, selecties en indeling. Andere back-ups vind je via **Bestand → Concepten herstellen…** of **Instellingen → Editor → Concepten herstellen…**: selecteer een back-up, bekijk de inhoud en kies **Concept herstellen**. Herstellen opent een niet-opgeslagen editor en verandert het bestand op schijf niet. Opslaan controleert externe wijzigingen nog steeds met de versie van vóór je bewerkingen.
+
+Beheer back-ups via **Instellingen → Editor → Niet-opgeslagen concepten back-uppen** of `editor.recover-drafts`. Uitschakelen stopt nieuwe back-ups en automatisch herstel, maar bewaart bestaande back-ups voor handmatig herstellen of verwijderen. **Back-up verwijderen** verwijdert alleen de geselecteerde back-up; open bewerkingen blijven behouden. Geslaagd opslaan of **Niet bewaren** bij volledig afsluiten verwijdert de back-up. Deze privébestanden blijven op deze Mac, met maximaal 32 concepten en 128 MiB en maximaal 30 dagen herstelbaar. Door capaciteitslimieten kunnen oudere back-ups eerder worden verwijderd. Bestanden en bewerkte tekst groter dan 5 MiB vallen erbuiten.
+
+Zshell verwijdert verlopen back-ups bij het starten en elk uur terwijl het actief is, ook als back-ups zijn uitgeschakeld. Als Zshell gesloten is, blijven verlopen bestanden op de schijf tot de volgende start.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
@@ -167,6 +191,10 @@ Kies het uitvoerbare programma en de argumentvector voor terminals die hierna wo
 
 `terminal.startup-arguments` wordt in argumenten gesplitst zonder een shell aan te roepen. Aanhalingstekens en backslashes behouden grenzen, inclusief spaties en lege argumenten. Variabelen, globs en opdrachtvervangingen worden niet uitgebreid. Ongeldige aanhalingstekens leiden ook tot een terugval op de inlogshell. Een expliciete argv vanuit de Zshell-CLI heeft nog steeds voorrang voor die terminal.
 
+### `terminal.term`
+
+Stel `terminal.term` in via **Instellingen → Terminal → TERM** (standaard `"xterm-256color"`). De naam moet 1–128 ASCII-letters, cijfers of `.-_+` bevatten. Gebruik een terminfo-naam die is geïnstalleerd op de host waarop de shell draait. Wijzigingen gelden alleen voor nieuwe lokale en SSH-sessies; open en bewaarde PTY’s behouden hun oorspronkelijke `TERM`. Gedeelde externe sessies gebruiken de waarde bij aanmaak op een bijgewerkte server; oudere servers behouden `xterm-256color`. Een ongeldige waarde bij het opstarten valt terug op `xterm-256color`; ongeldige wijzigingen terwijl Zshell actief is behouden de laatste geldige waarde. In beide gevallen verschijnt een fout in Instellingen. `TERM_PROGRAM` en `ZSHELL_TERM` blijven ongewijzigd.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — standaard `"libghostty"`
@@ -174,6 +202,12 @@ Kies het uitvoerbare programma en de argumentvector voor terminals die hierna wo
 Kiest de emulator voor terminals die hierna worden gemaakt. Bestaande deelvensters behouden hun oorspronkelijke backend. Beide opties zijn native, GPU-versneld, ondersteunen afbeeldingen en gebruiken dezelfde Zshell-thema's; Alacritty gebruikt doorgaans minder geheugen.
 
 Zie [Terminalbackends](/nl/docs/terminal#terminal-backends) voor omgevingsvariabelen en compatibiliteitsafspraken.
+
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+getal, 0.1–10 — standaard `1` voor elk apparaat
+
+Stel beide snelheden apart in via **Instellingen → Terminal → Scrollen → Muiswiel / Trackpad**. De waarden zijn percentages: 100% behoudt de huidige snelheid, 50% halveert deze en 200% verdubbelt deze. Wijzigingen gelden direct voor geopende Ghostty- en Alacritty-panelen, de scrollgeschiedenis, schermvullende programma’s en muisrapportage. Inertie gebruikt de trackpadwaarde; horizontaal scrollen blijft horizontaal. Muizen die precieze delta’s doorgeven gebruiken ook de trackpadwaarde. Ontbrekende of ongeldige waarden worden `1`. Importeren, exporteren en herstellen omvat beide waarden.
 
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
@@ -221,19 +255,34 @@ Bij het herstellen van terminalpanelen wordt het precieze opgeslagen gesprek van
 
 Gebruik **Instellingen → Automatisering → Agentgesprekken hervatten**. Deze optie staat los van `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+boolean — standaard `false`
+
+Schakelt lokale CLI-accountlimieten in via **Instellingen → Automatisering → Accountgebruik → Accountgebruik lezen**. Uitschakelen annuleert aanvragen, verbergt gegevens en weigert Claude-rapporten op te slaan. Providerkeuzes blijven behouden. Agentherkenning, levenscyclusrapporten en gespreksherstel veranderen niet.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — standaard elk `true`
+
+Kiest providers wanneer `ai.usage-enabled = true`. Claude Code leest Zshells lokale statusregelrapport; Codex bevraagt de geïnstalleerde, aangemelde CLI. Uitschakelen stopt direct lezen en verbergt gegevens. Er worden geen aanmeldgegevens verzameld. Alle drie ondersteunen zoeken, importeren/exporteren, direct herladen en standaardwaarden herstellen.
+
 ## Aanvullende instellingen [#additional-settings]
 
 | Sleutel | Standaard | Waarden / bereik | Effect |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | App-pictogram |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Externe editor voor bestanden en mappen |
+| `files.drag-import` | `false` | boolean | Sta Finder-kopieën via slepen naar de lokale bestandsboom toe; het importmenu blijft beschikbaar |
 | `terminal.theme-only` | `false` | Booleaans | Het gekozen palet alleen op de terminal toepassen |
 | `terminal.command-history` | `true` | Booleaans | Nieuwe opdrachten registreren; opgeslagen geschiedenis blijft beschikbaar bij uit |
 | `terminal.text-hints` | `true` | Booleaans | Toetsenbordhints voor zichtbare terminaltekst inschakelen |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | Booleaans | **Instellingen → Terminal → Promptwachtrij** bestuurt alle werkruimtes en Quick Terminal. Uitschakelen van de hoofdschakelaar verbergt balken en annuleert verzendingen, terwijl items en invoer tot het sluiten bewaard blijven. Automatisch verzenden is optioneel en geldt vanaf de volgende opdrachtafloop, in volgorde en alleen bij een lege prompt in de oorspronkelijke zsh zonder actieve opdrachttaak. Inschakelen speelt niets direct af. Handmatig verzenden heeft dezelfde controles; andere of geneste shells, voorgrondprogramma’s en conceptinvoer kunnen geen wachtrij ontvangen. |
 | `terminal.auto-profiles` | `true` | Booleaans | Terminalprofielen automatisch koppelen; handmatige keuze blijft beschikbaar |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Vorm van de terminalcursor |
 | `terminal.cursor-blinking` | `true` | Booleaans | De cursor laten knipperen |
 | `terminal.copy-on-select` | `true` | Booleaans | Geselecteerde terminaltekst kopiëren |
+| `terminal.right-click-action` | `"context-menu"` | tekst | Contextmenu, plakken of selectie kopiëren en anders plakken (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | Booleaans | Focus volgt de muis |
 | `terminal.shift-enter-newline` | `true` | Booleaans | Een uitgebreide nieuweregelreeks sturen met Shift+Enter; vereist ondersteuning van de applicatie |
 | `terminal.background-opacity` | `1` | 0.2–1 | Dekking van de terminalachtergrond |
@@ -269,10 +318,14 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

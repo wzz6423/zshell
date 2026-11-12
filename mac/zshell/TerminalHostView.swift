@@ -172,6 +172,7 @@ final class TerminalParkingContainerView: NSView {
             // (~20 MB each) while its wakeup check — gated on attachment,
             // not visibility — keeps title/bell/exit events draining.
             terminal.setSurfaceVisible(false)
+            session.promptQueueBar.setPaneVisible(false)
             guard terminal.superview !== self else { continue }
             let parkedSize = terminal.frame.size
             if terminal.window?.firstResponder === terminal {
@@ -272,6 +273,7 @@ final class TerminalContainerView: NSView {
 
     func releaseTerminal(_ requested: NSView) {
         guard terminal === requested else { return }
+        subviews.compactMap { $0 as? PromptQueueBarView }.forEach { $0.setPaneVisible(false) }
         NSLayoutConstraint.deactivate(surfaceConstraints)
         surfaceConstraints.removeAll()
         terminal = nil
@@ -361,6 +363,7 @@ final class TerminalContainerView: NSView {
         else { return }
         needsSurfaceActivation = false
         terminal.setSurfaceVisible(true)
+        subviews.compactMap { $0 as? PromptQueueBarView }.forEach { $0.setPaneVisible(true) }
     }
 
     @objc private func windowDidBecomeKey(_ notification: Notification) {
