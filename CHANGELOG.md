@@ -66,6 +66,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Fixed
 
+- Keep emoji, combining accents and joined characters visible while composing
+  text with an input method on the Ghostty terminal backend.
 - Detect external changes before saving file and editable diff drafts. Compare
   versions, reload, keep the draft, or explicitly overwrite; save conflict
   protection can be disabled in Editor settings.

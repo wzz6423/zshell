@@ -1,0 +1,434 @@
+diff --git a/src/Surface.zig b/src/Surface.zig
+--- a/src/Surface.zig
++++ b/src/Surface.zig
+@@ -838,7 +838,7 @@
+     self.app.font_grid_set.deref(self.font_grid_key);
+ 
+     // Clean up our render state
+-    if (self.renderer_state.preedit) |p| self.alloc.free(p.codepoints);
++    if (self.renderer_state.preedit) |p| p.deinit(self.alloc);
+     self.alloc.destroy(self.renderer_state.mutex);
+     self.config.deinit();
+ 
+@@ -2557,7 +2557,7 @@
+ 
+     // We always clear our prior preedit
+     if (self.renderer_state.preedit) |p| {
+-        self.alloc.free(p.codepoints);
++        p.deinit(self.alloc);
+         self.renderer_state.preedit = null;
+     }
+ 
+@@ -2571,37 +2571,14 @@
+         return;
+     };
+ 
+-    // We convert the UTF-8 text to codepoints.
+-    const view = try std.unicode.Utf8View.init(text);
+-    var it = view.iterator();
+-
+-    // Allocate the codepoints slice
+-    const Codepoint = rendererpkg.State.Preedit.Codepoint;
+-    var codepoints: std.ArrayListUnmanaged(Codepoint) = .{};
+-    defer codepoints.deinit(self.alloc);
+-    while (it.nextCodepoint()) |cp| {
+-        const width: usize = @intCast(unicode.table.get(cp).width);
+-
+-        // I've never seen a preedit text with a zero-width character. In
+-        // theory its possible but we can't really handle it right now.
+-        // Let's just ignore it.
+-        if (width <= 0) continue;
+-
+-        try codepoints.append(
+-            self.alloc,
+-            .{ .codepoint = cp, .wide = width >= 2 },
+-        );
+-    }
+-
+-    // If we have no codepoints, then we're done.
+-    if (codepoints.items.len == 0) {
++    const preedit = try rendererpkg.State.Preedit.init(self.alloc, text);
++    if (preedit.codepoints.len == 0) {
++        preedit.deinit(self.alloc);
+         try self.queueRender();
+         return;
+     }
+ 
+-    self.renderer_state.preedit = .{
+-        .codepoints = try codepoints.toOwnedSlice(self.alloc),
+-    };
++    self.renderer_state.preedit = preedit;
+     try self.queueRender();
+ }
+ 
+diff --git a/src/renderer/State.zig b/src/renderer/State.zig
+--- a/src/renderer/State.zig
++++ b/src/renderer/State.zig
+@@ -9,6 +9,7 @@
+ const terminalpkg = @import("../terminal/main.zig");
+ const inputpkg = @import("../input.zig");
+ const renderer = @import("../renderer.zig");
++const unicode = @import("../unicode/main.zig");
+ 
+ /// The mutex that must be held while reading any of the data in the
+ /// members of this state. Note that the state itself is NOT protected
+@@ -23,10 +24,7 @@
+ /// is not active and will be set when it is active.
+ inspector: ?*Inspector = null,
+ 
+-/// Dead key state. This will render the current dead key preedit text
+-/// over the cursor. This currently only ever renders a single codepoint.
+-/// Preedit can in theory be multiple codepoints long but that is left as
+-/// a future exercise.
++/// IME composition rendered over the cursor without modifying terminal cells.
+ preedit: ?Preedit = null,
+ 
+ /// Mouse state. This only contains state relevant to what renderers
+@@ -120,22 +118,69 @@
+     /// The codepoints to render as preedit text.
+     codepoints: []const Codepoint = &.{},
+ 
+-    /// A single codepoint to render as preedit text.
++    /// A grapheme cluster with its first codepoint stored separately.
+     pub const Codepoint = struct {
+         codepoint: u21,
+         wide: bool = false,
++        grapheme: []const u21 = &.{},
+     };
+ 
+-    /// Deinit this preedit that was cre
++    pub fn init(alloc: Allocator, text: []const u8) !Preedit {
++        var scalars: std.ArrayList(u21) = .empty;
++        defer scalars.deinit(alloc);
++        var it = (try std.unicode.Utf8View.init(text)).iterator();
++        while (it.nextCodepoint()) |cp| {
++            if (cp < 0x20 or (cp >= 0x7F and cp <= 0x9F)) continue;
++            try scalars.append(alloc, cp);
++        }
++
++        var codepoints: std.ArrayList(Codepoint) = .empty;
++        defer codepoints.deinit(alloc);
++        errdefer for (codepoints.items) |cp| alloc.free(cp.grapheme);
++
++        var offset: usize = 0;
++        while (offset < scalars.items.len) {
++            const measurement = unicode.graphemeWidth(u21, scalars.items[offset..]);
++            const cluster = scalars.items[offset..][0..measurement.len];
++            offset += measurement.len;
++
++            var grapheme: std.ArrayList(u21) = .empty;
++            defer grapheme.deinit(alloc);
++            var previous = cluster[0];
++            for (cluster[1..]) |cp| {
++                if (unicode.graphemeWidthEffect(previous, cp) == .ignore) continue;
++                try grapheme.append(alloc, cp);
++                previous = cp;
++            }
++            const extra = try grapheme.toOwnedSlice(alloc);
++            errdefer alloc.free(extra);
++            try codepoints.append(alloc, .{
++                .codepoint = cluster[0],
++                .wide = measurement.width >= 2,
++                .grapheme = extra,
++            });
++        }
++        return .{ .codepoints = try codepoints.toOwnedSlice(alloc) };
++    }
++
+     pub fn deinit(self: *const Preedit, alloc: Allocator) void {
++        for (self.codepoints) |cp| alloc.free(cp.grapheme);
+         alloc.free(self.codepoints);
+     }
+ 
+-    /// Allocate a copy of this preedit in the given allocator..
++    /// Allocate an independent snapshot for the renderer thread.
+     pub fn clone(self: *const Preedit, alloc: Allocator) !Preedit {
+-        return .{
+-            .codepoints = try alloc.dupe(Codepoint, self.codepoints),
+-        };
++        const codepoints = try alloc.dupe(Codepoint, self.codepoints);
++        var initialized: usize = 0;
++        errdefer {
++            for (codepoints[0..initialized]) |cp| alloc.free(cp.grapheme);
++            alloc.free(codepoints);
++        }
++        for (codepoints) |*cp| {
++            cp.grapheme = try alloc.dupe(u21, cp.grapheme);
++            initialized += 1;
++        }
++        return .{ .codepoints = codepoints };
+     }
+ 
+     /// The width in cells of all codepoints in the preedit.
+@@ -160,36 +205,27 @@
+         end: terminalpkg.size.CellCountInt,
+         cp_offset: usize,
+     } {
+-        // If our width is greater than the number of cells we have
+-        // then we need to adjust our codepoint start to a point where
+-        // our width would be less than the number of cells we have.
++        // Shift the composition left before trimming; retain whole clusters
++        // when the text exceeds the entire row, not just the cursor's suffix.
+         const w, const cp_offset = width: {
+-            // max is inclusive, so we need to add 1 to it.
+-            const max_width = max - start + 1;
+-
+-            // Rebuild our width in reverse order. This is because we want
+-            // to offset by the end cells, not the start cells (if we have to).
+-            var w: terminalpkg.size.CellCountInt = 0;
++            const max_width = @as(usize, max) + 1;
++            var w: usize = 0;
+             for (0..self.codepoints.len) |i| {
+                 const reverse_i = self.codepoints.len - i - 1;
+                 const cp = self.codepoints[reverse_i];
+-                w += if (cp.wide) 2 else 1;
+-                if (w > max_width) {
+-                    break :width .{ w, reverse_i };
+-                }
++                const advance: usize = if (cp.wide) 2 else 1;
++                if (w + advance > max_width) break :width .{ w, reverse_i + 1 };
++                w += advance;
+             }
+-
+-            // Width fit in the max width so no offset necessary.
+             break :width .{ w, 0 };
+         };
+ 
+-        // If our preedit goes off the end of the screen, we adjust it so
+-        // that it shifts left.
+-        const end = if (w > 0) start + (w - 1) else start;
++        const origin = @min(start, max);
++        const end = if (w > 0) @as(usize, origin) + (w - 1) else origin;
+         const start_offset = if (end > max) end - max else 0;
+         return .{
+-            .start = start -| start_offset,
+-            .end = end -| start_offset,
++            .start = @intCast(@as(usize, origin) -| start_offset),
++            .end = @intCast(end -| start_offset),
+             .cp_offset = cp_offset,
+         };
+     }
+@@ -232,3 +268,68 @@
+     try testing.expectEqual(@as(terminalpkg.size.CellCountInt, 9), range.end);
+     try testing.expectEqual(@as(usize, 0), range.cp_offset);
+ }
++
++test "preedit retains combining marks and emoji clusters" {
++    const testing = std.testing;
++    const p = try Preedit.init(testing.allocator, "\u{4E2D}\u{1F600}e\u{301}\u{1F469}\u{200D}\u{1F4BB}\u{2708}\u{FE0F}");
++    defer p.deinit(testing.allocator);
++    try testing.expectEqual(@as(usize, 5), p.codepoints.len);
++    try testing.expectEqual(@as(usize, 9), p.width());
++    try testing.expectEqualSlices(u21, &.{0x301}, p.codepoints[2].grapheme);
++    try testing.expectEqualSlices(u21, &.{ 0x200D, 0x1F4BB }, p.codepoints[3].grapheme);
++    try testing.expectEqualSlices(u21, &.{0xFE0F}, p.codepoints[4].grapheme);
++    try testing.expect(p.codepoints[4].wide);
++
++    const copy = try p.clone(testing.allocator);
++    defer copy.deinit(testing.allocator);
++    try testing.expectEqualSlices(u21, p.codepoints[3].grapheme, copy.codepoints[3].grapheme);
++    try testing.expect(p.codepoints[3].grapheme.ptr != copy.codepoints[3].grapheme.ptr);
++}
++
++test "preedit measures variation selectors and regional indicators" {
++    const testing = std.testing;
++    const p = try Preedit.init(testing.allocator, "\u{2708}\u{FE0F}\u{231A}\u{FE0E}\u{1F1E8}\u{1F1F3}");
++    defer p.deinit(testing.allocator);
++    try testing.expectEqual(@as(usize, 3), p.codepoints.len);
++    try testing.expectEqual(@as(usize, 5), p.width());
++    try testing.expect(!p.codepoints[1].wide);
++    try testing.expectEqualSlices(u21, &.{0xFE0E}, p.codepoints[1].grapheme);
++    try testing.expectEqualSlices(u21, &.{0x1F1F3}, p.codepoints[2].grapheme);
++}
++
++test "preedit trims whole clusters only after using the full row" {
++    const testing = std.testing;
++    const p = try Preedit.init(testing.allocator, "Ae\u{301}\u{1F469}\u{200D}\u{1F4BB}");
++    defer p.deinit(testing.allocator);
++    const shifted = p.range(7, 7);
++    try testing.expectEqual(@as(terminalpkg.size.CellCountInt, 4), shifted.start);
++    try testing.expectEqual(@as(terminalpkg.size.CellCountInt, 7), shifted.end);
++    try testing.expectEqual(@as(usize, 0), shifted.cp_offset);
++
++    const trimmed = p.range(2, 2);
++    try testing.expectEqual(@as(terminalpkg.size.CellCountInt, 0), trimmed.start);
++    try testing.expectEqual(@as(terminalpkg.size.CellCountInt, 2), trimmed.end);
++    try testing.expectEqual(@as(usize, 1), trimmed.cp_offset);
++    try testing.expectEqualSlices(u21, &.{0x301}, p.codepoints[trimmed.cp_offset].grapheme);
++}
++
++test "preedit one column omits wide clusters and retains leading marks" {
++    const testing = std.testing;
++    const wide = try Preedit.init(testing.allocator, "\u{1F469}\u{200D}\u{1F4BB}");
++    defer wide.deinit(testing.allocator);
++    const omitted = wide.range(0, 0);
++    try testing.expectEqual(@as(usize, wide.codepoints.len), omitted.cp_offset);
++    try testing.expectEqual(@as(terminalpkg.size.CellCountInt, 0), omitted.start);
++    try testing.expectEqual(@as(terminalpkg.size.CellCountInt, 0), omitted.end);
++
++    const marks = try Preedit.init(testing.allocator, "\u{301}\u{302}");
++    defer marks.deinit(testing.allocator);
++    try testing.expectEqual(@as(usize, 1), marks.codepoints.len);
++    try testing.expectEqual(@as(usize, 1), marks.width());
++    try testing.expectEqualSlices(u21, &.{0x302}, marks.codepoints[0].grapheme);
++    try testing.expectEqual(@as(usize, 0), marks.range(0, 0).cp_offset);
++
++    const empty = try Preedit.init(testing.allocator, "");
++    defer empty.deinit(testing.allocator);
++    try testing.expectEqual(@as(usize, 0), empty.codepoints.len);
++}
+diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
+--- a/src/renderer/generic.zig
++++ b/src/renderer/generic.zig
+@@ -2594,22 +2594,9 @@
+             // Setup our preedit text.
+             if (preedit) |preedit_v| preedit: {
+                 const range = preedit_range orelse break :preedit;
+-                var x = range.x[0];
+-                for (preedit_v.codepoints[range.cp_offset..]) |cp| {
+-                    self.addPreeditCell(
+-                        cp,
+-                        .{ .x = x, .y = range.y },
+-                        state.colors.foreground,
+-                    ) catch |err| {
+-                        log.warn("error building preedit cell, will be invalid x={} y={}, err={}", .{
+-                            x,
+-                            range.y,
+-                            err,
+-                        });
+-                    };
+-
+-                    x += if (cp.wide) 2 else 1;
+-                }
++                self.addPreeditCells(preedit_v, range, state.colors.foreground) catch |err| {
++                    log.warn("error building preedit cells err={}", .{err});
++                };
+             }
+ 
+             // Update that our cells rebuilt
+@@ -3038,6 +3025,7 @@
+                     }) {
+                         self.addGlyph(
+                             @intCast(x),
++                            @intCast(x),
+                             @intCast(y),
+                             state.cols,
+                             cells_raw,
+@@ -3176,6 +3164,7 @@
+         fn addGlyph(
+             self: *Self,
+             x: terminal.size.CellCountInt,
++            grid_x: terminal.size.CellCountInt,
+             y: terminal.size.CellCountInt,
+             cols: usize,
+             cell_raws: []const terminal.page.Cell,
+@@ -3224,7 +3213,7 @@
+                     .text => .grayscale,
+                 },
+                 .bools = .{ .no_min_contrast = noMinContrast(cp) },
+-                .grid_pos = .{ @intCast(x), @intCast(y) },
++                .grid_pos = .{ @intCast(grid_x), @intCast(y) },
+                 .color = .{ color.r, color.g, color.b, alpha },
+                 .glyph_pos = .{ render.glyph.atlas_x, render.glyph.atlas_y },
+                 .glyph_size = .{ render.glyph.width, render.glyph.height },
+@@ -3324,46 +3313,65 @@
+             }, cursor_style);
+         }
+ 
+-        fn addPreeditCell(
++        fn addPreeditCells(
+             self: *Self,
+-            cp: renderer.State.Preedit.Codepoint,
+-            coord: terminal.Coordinate,
++            preedit: renderer.State.Preedit,
++            range: PreeditRange,
+             screen_fg: terminal.color.RGB,
+         ) !void {
+-            // Render the glyph for our preedit text
+-            const render_ = self.font_grid.renderCodepoint(
+-                self.alloc,
+-                @intCast(cp.codepoint),
+-                .regular,
+-                .text,
+-                .{ .grid_metrics = self.grid_metrics },
+-            ) catch |err| {
+-                log.warn("error rendering preedit glyph err={}", .{err});
+-                return;
+-            };
+-            const render = render_ orelse {
+-                log.warn("failed to find font for preedit codepoint={X}", .{cp.codepoint});
+-                return;
+-            };
+-
+-            // Add our text
+-            try self.cells.add(self.alloc, .text, .{
+-                .atlas = .grayscale,
+-                .grid_pos = .{ @intCast(coord.x), @intCast(coord.y) },
+-                .color = .{ screen_fg.r, screen_fg.g, screen_fg.b, 255 },
+-                .glyph_pos = .{ render.glyph.atlas_x, render.glyph.atlas_y },
+-                .glyph_size = .{ render.glyph.width, render.glyph.height },
+-                .bearings = .{
+-                    @intCast(render.glyph.offset_x),
+-                    @intCast(render.glyph.offset_y),
+-                },
+-            });
++            var cells: std.MultiArrayList(terminal.RenderState.Cell) = .empty;
++            defer cells.deinit(self.alloc);
++            const width = @as(usize, range.x[1]) - range.x[0] + 1;
++            try cells.ensureTotalCapacity(self.alloc, width);
++            for (preedit.codepoints[range.cp_offset..]) |cp| {
++                var raw = terminal.page.Cell.init(cp.codepoint);
++                raw.wide = if (cp.wide) .wide else .narrow;
++                if (cp.grapheme.len > 0) raw.content_tag = .codepoint_grapheme;
++                cells.appendAssumeCapacity(.{
++                    .raw = raw,
++                    .grapheme = cp.grapheme,
++                    .style = .{},
++                });
++                if (cp.wide) cells.appendAssumeCapacity(.{
++                    .raw = .{ .wide = .spacer_tail },
++                    .grapheme = &.{},
++                    .style = .{},
++                });
++            }
+ 
+-            // Add underline
+-            try self.addUnderline(@intCast(coord.x), @intCast(coord.y), .single, screen_fg, 255);
+-            if (cp.wide and coord.x < self.cells.size.columns - 1) {
+-                try self.addUnderline(@intCast(coord.x + 1), @intCast(coord.y), .single, screen_fg, 255);
++            // Reuse terminal shaping so combining offsets, fallback fonts,
++            // variation selectors and color atlases agree with PTY text.
++            const slice = cells.slice();
++            var run_iter = self.font_shaper.runIterator(.{
++                .grid = self.font_grid,
++                .cells = slice,
++            });
++            while (try run_iter.next(self.alloc)) |run| {
++                const shaped = self.font_shaper_cache.get(run) orelse shaped: {
++                    const result = try self.font_shaper.shape(run);
++                    self.font_shaper_cache.put(self.alloc, run, result) catch |err| {
++                        log.warn("error caching preedit shaping results err={}", .{err});
++                    };
++                    break :shaped result;
++                };
++                for (shaped) |cell| {
++                    const x = run.offset + cell.x;
++                    try self.addGlyph(
++                        x,
++                        range.x[0] + x,
++                        range.y,
++                        slice.len,
++                        slice.items(.raw),
++                        cell,
++                        run,
++                        screen_fg,
++                        255,
++                    );
++                }
+             }
++            for (0..slice.len) |x| {
++                try self.addUnderline(@intCast(range.x[0] + x), range.y, .single, screen_fg, 255);
++            }
+         }
+ 
+         /// Sync the atlas data to the given texture. This copies the bytes
