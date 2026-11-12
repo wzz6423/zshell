@@ -214,7 +214,7 @@ Zshell 在启动时和运行期间每小时清理过期备份，关闭备份开�
 
 ### `terminal.term`
 
-在 **设置 → 终端 → TERM** 中设置 `terminal.term`（默认为 `"xterm-256color"`）。名称必须由 1–128 个 ASCII 字母、数字或 `.-_+` 组成。请使用运行 shell 的主机上已安装的 terminfo 名称。修改仅对新建的本地和 SSH 会话生效；已打开和保留的 PTY 保持原来的 `TERM`。共享远端会话在更新后的服务器上创建时使用此值；旧服务器继续使用 `xterm-256color`。无效修改会保留上一个有效值，并在设置中显示错误。此设置不会改变 `TERM_PROGRAM` 或 `ZSHELL_TERM`。
+在 **设置 → 终端 → TERM** 中设置 `terminal.term`（默认为 `"xterm-256color"`）。名称必须由 1–128 个 ASCII 字母、数字或 `.-_+` 组成。请使用运行 shell 的主机上已安装的 terminfo 名称。修改仅对新建的本地和 SSH 会话生效；已打开和保留的 PTY 保持原来的 `TERM`。共享远端会话在更新后的服务器上创建时使用此值；旧服务器继续使用 `xterm-256color`。启动时遇到无效值会回退到 `xterm-256color`；Zshell 运行期间的无效修改会保留上一个有效值。两种情况都会在设置中显示错误。此设置不会改变 `TERM_PROGRAM` 或 `ZSHELL_TERM`。
 
 ### `terminal.backend` [#terminalbackend]
 

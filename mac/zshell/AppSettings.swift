@@ -1041,8 +1041,10 @@ final class AppSettings: nonisolated ObservableObject {
             assign(\.terminalTermIsInvalid, true)
             return false
         }
+        let needsSave = terminalTermIsInvalid && terminalTerm == term
         assign(\.terminalTermIsInvalid, false)
         assign(\.terminalTerm, term)
+        if needsSave { save() }
         return true
     }
 

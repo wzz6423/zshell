@@ -173,7 +173,7 @@ Kies het uitvoerbare programma en de argumentvector voor terminals die hierna wo
 
 ### `terminal.term`
 
-Stel `terminal.term` in via **Instellingen → Terminal → TERM** (standaard `"xterm-256color"`). De naam moet 1–128 ASCII-letters, cijfers of `.-_+` bevatten. Gebruik een terminfo-naam die is geïnstalleerd op de host waarop de shell draait. Wijzigingen gelden alleen voor nieuwe lokale en SSH-sessies; open en bewaarde PTY’s behouden hun oorspronkelijke `TERM`. Gedeelde externe sessies gebruiken de waarde bij aanmaak op een bijgewerkte server; oudere servers behouden `xterm-256color`. Ongeldige wijzigingen behouden de laatste geldige waarde en tonen een fout in Instellingen. `TERM_PROGRAM` en `ZSHELL_TERM` blijven ongewijzigd.
+Stel `terminal.term` in via **Instellingen → Terminal → TERM** (standaard `"xterm-256color"`). De naam moet 1–128 ASCII-letters, cijfers of `.-_+` bevatten. Gebruik een terminfo-naam die is geïnstalleerd op de host waarop de shell draait. Wijzigingen gelden alleen voor nieuwe lokale en SSH-sessies; open en bewaarde PTY’s behouden hun oorspronkelijke `TERM`. Gedeelde externe sessies gebruiken de waarde bij aanmaak op een bijgewerkte server; oudere servers behouden `xterm-256color`. Een ongeldige waarde bij het opstarten valt terug op `xterm-256color`; ongeldige wijzigingen terwijl Zshell actief is behouden de laatste geldige waarde. In beide gevallen verschijnt een fout in Instellingen. `TERM_PROGRAM` en `ZSHELL_TERM` blijven ongewijzigd.
 
 ### `terminal.backend` [#terminalbackend]
 

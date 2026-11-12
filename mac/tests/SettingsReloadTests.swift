@@ -92,6 +92,20 @@ struct SettingsReloadTests {
         let settings = AppSettings.shared
         let url = AppSettings.configURL
         check(url.path.hasPrefix(CommandLine.arguments[1]), "fixture config remains in disposable home")
+        if CommandLine.arguments.count > 2 {
+            let expectedInvalid = CommandLine.arguments[2] == "invalid-term"
+            check(settings.terminalTerm == "xterm-256color" && settings.terminalTermIsInvalid == expectedInvalid,
+                  "invalid startup TERM uses the default and recovered TERM stays valid after restart")
+            if expectedInvalid {
+                check(settings.setTerminalTerm("xterm-256color") && !settings.terminalTermIsInvalid,
+                      "accepting the startup fallback clears the error")
+                NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: nil)
+                check(TOML.parse(at: url)?["terminal.term"] == nil,
+                      "accepting the unchanged default removes the invalid startup value from disk")
+            }
+            print("SettingsReload: startup TERM state and persisted recovery passed (\(CommandLine.arguments[2]))")
+            return
+        }
         var changes = 0
         let observation = settings.objectWillChange.sink { changes += 1 }
         withExtendedLifetime(observation) {}
@@ -387,6 +401,12 @@ struct SettingsReloadTests {
         wait({ settings.terminalTermIsInvalid }, "invalid external terminal type reports an error")
         check(settings.terminalTerm == "vt100", "invalid external terminal type preserves the last valid value")
         check(try SettingsConfigFile.read(at: url) == invalidTermEdit, "invalid external TERM edit does not overwrite the user's buffer")
+        check(settings.setTerminalTerm("vt100") && !settings.terminalTermIsInvalid,
+              "accepting the unchanged terminal type clears the external edit error")
+        wait({ TOML.parse(at: url)?["terminal.term"]?.string == "vt100" },
+             "accepting the unchanged terminal type repairs the invalid file value")
+        try invalidTermEdit.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalTermIsInvalid }, "another invalid external TERM edit reports an error")
         try changed.write(to: url, atomically: true, encoding: .utf8)
         wait({ settings.terminalTerm == "screen-256color" && !settings.terminalTermIsInvalid }, "valid external TERM clears the error")
         let enabledQueue = changed.replacingOccurrences(of: "terminal.prompt-queue-enabled = false", with: "terminal.prompt-queue-enabled = true")

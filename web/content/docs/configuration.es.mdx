@@ -173,7 +173,7 @@ Eligen el ejecutable y el vector de argumentos de los terminales creados a parti
 
 ### `terminal.term`
 
-Configura `terminal.term` en **Ajustes → Terminal → TERM** (valor predeterminado `"xterm-256color"`). El nombre debe contener de 1 a 128 letras ASCII, dígitos o `.-_+`. Usa un nombre terminfo instalado en el equipo que ejecuta el shell. Los cambios solo se aplican a sesiones locales y SSH nuevas; los PTY abiertos y conservados mantienen su `TERM` original. Las sesiones remotas compartidas usan el valor al crearse con un servidor actualizado; los servidores antiguos mantienen `xterm-256color`. Las ediciones no válidas conservan el último valor válido y muestran un error en Ajustes. `TERM_PROGRAM` y `ZSHELL_TERM` no cambian.
+Configura `terminal.term` en **Ajustes → Terminal → TERM** (valor predeterminado `"xterm-256color"`). El nombre debe contener de 1 a 128 letras ASCII, dígitos o `.-_+`. Usa un nombre terminfo instalado en el equipo que ejecuta el shell. Los cambios solo se aplican a sesiones locales y SSH nuevas; los PTY abiertos y conservados mantienen su `TERM` original. Las sesiones remotas compartidas usan el valor al crearse con un servidor actualizado; los servidores antiguos mantienen `xterm-256color`. Un valor no válido al iniciar usa `xterm-256color`; las ediciones no válidas mientras Zshell está en ejecución conservan el último valor válido. En ambos casos se muestra un error en Ajustes. `TERM_PROGRAM` y `ZSHELL_TERM` no cambian.
 
 ### `terminal.backend` [#terminalbackend]
 
