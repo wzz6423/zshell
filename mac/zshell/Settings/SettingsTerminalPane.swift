@@ -25,6 +25,10 @@ final class SettingsTerminalPane: SettingsPaneViewController {
     private let restoreHistorySwitch = SettingsSwitch { AppSettings.shared.restoreTerminalHistory = $0 }
     private let preserveSessionsSwitch = SettingsSwitch { AppSettings.shared.preserveTerminalSessions = $0 }
     private let copyOnSelectSwitch = SettingsSwitch { AppSettings.shared.copyOnSelect = $0 }
+    private let rightClickActionPopup = SettingsPopUpButton<TerminalRightClickAction>(
+        items: TerminalRightClickAction.allCases.map { .value($0.title, $0) },
+        onChange: { AppSettings.shared.terminalRightClickAction = $0 }
+    )
     private let focusFollowsMouseSwitch = SettingsSwitch { AppSettings.shared.focusFollowsMouse = $0 }
     private let notifyOnErrorSwitch = SettingsSwitch { AppSettings.shared.notifyOnError = $0 }
     private let notifyFinishPopup = SettingsPopUpButton<Int>(
@@ -60,6 +64,24 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         showsStepper: false,
         accessibilityLabel: String(localized: "Quick Terminal default size"),
         onChange: { AppSettings.shared.quickTerminalSize = $0 }
+    )
+
+    private let mouseScrollRow = SettingsSliderRow(
+        title: String(localized: "Mouse wheel"),
+        range: AppSettings.terminalScrollMultiplierRange,
+        format: .percent,
+        step: 0.1,
+        showsStepper: true,
+        onChange: { AppSettings.shared.mouseScrollMultiplier = $0 }
+    )
+
+    private let trackpadScrollRow = SettingsSliderRow(
+        title: String(localized: "Trackpad"),
+        range: AppSettings.terminalScrollMultiplierRange,
+        format: .percent,
+        step: 0.1,
+        showsStepper: true,
+        onChange: { AppSettings.shared.trackpadScrollMultiplier = $0 }
     )
 
     private let quickTerminalOpacityRow = SettingsSliderRow(
@@ -150,9 +172,19 @@ final class SettingsTerminalPane: SettingsPaneViewController {
                 control: copyOnSelectSwitch
             ),
             SettingsRow(
+                title: String(localized: "Right-click action"),
+                description: TerminalRightClickAction.explanation,
+                control: rightClickActionPopup
+            ),
+            SettingsRow(
                 title: String(localized: "Focus follows mouse"),
                 control: focusFollowsMouseSwitch
             ),
+        ]))
+
+        groups.append(SettingsGroup(header: String(localized: "Scrolling"), rows: [
+            mouseScrollRow,
+            trackpadScrollRow,
         ]))
 
         groups.append(SettingsGroup(header: String(localized: "History"), rows: [
@@ -212,7 +244,10 @@ final class SettingsTerminalPane: SettingsPaneViewController {
         restoreHistorySwitch.isOn = settings.restoreTerminalHistory
         preserveSessionsSwitch.isOn = settings.preserveTerminalSessions
         copyOnSelectSwitch.isOn = settings.copyOnSelect
+        rightClickActionPopup.select(settings.terminalRightClickAction)
         focusFollowsMouseSwitch.isOn = settings.focusFollowsMouse
+        mouseScrollRow.setValue(settings.mouseScrollMultiplier)
+        trackpadScrollRow.setValue(settings.trackpadScrollMultiplier)
         notifyFinishPopup.select(settings.notifyFinishSeconds)
         notifyOnErrorSwitch.isOn = settings.notifyOnError
         shortcutRecorder.setShortcut(settings.quickTerminalShortcut)

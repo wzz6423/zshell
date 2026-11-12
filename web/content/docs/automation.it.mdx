@@ -63,9 +63,11 @@ Quando l'integrazione segnala la conclusione o la necessità di input, Zshell pu
 
 ## Utilizzo e limiti dell'account [#account-usage-and-limits]
 
-**Impostazioni → Automazione → Utilizzo dell'account** mostra i limiti disponibili di Claude Code e Codex: percentuale usata, orario di ripristino se comunicato e momento dell'ultimo aggiornamento. **Aggiorna utilizzo** ricarica i dati più recenti disponibili.
+**Impostazioni → Automazione → Utilizzo dell’account** offre sempre **Leggi utilizzo dell’account**, **Leggi utilizzo di Claude Code** e **Leggi utilizzo di Codex**. L’opzione generale è disattivata per impostazione predefinita; i fornitori sono attivi ma vengono letti solo quando l’opzione generale è attiva. Le modifiche sono immediate e disattivare l’opzione generale conserva i fornitori scelti.
 
-Codex richiede una CLI installata, con accesso effettuato e capace di comunicare i limiti. L'utilizzo di Claude Code compare quando Zshell riceve dal provider un rapporto tramite la riga di stato. La sezione appare solo quando sono disponibili dati; i periodi supportati dipendono da provider e account. Sono limiti dell'account, non il totale dei token della sessione attiva.
+Attiva i fornitori desiderati per leggere i limiti delle CLI locali. Codex usa una CLI installata con accesso effettuato; Claude Code usa i rapporti della riga di stato ricevuti da Zshell. L’attivazione non raccoglie credenziali, installa CLI o effettua l’accesso. Sono limiti dell’account, non il totale di token della sessione attiva.
+
+**Aggiorna utilizzo** ricarica solo i fornitori attivi. La sezione mostra caricamento, indisponibilità e gli ultimi dati dopo un errore. Disattivare l’utilizzo o un fornitore interrompe le letture, annulla le richieste pendenti e nasconde i dati. I rapporti Claude disattivati sono rifiutati senza scrivere un file. Riconoscimento degli agenti, stato e ripristino delle conversazioni non cambiano.
 
 ## Un flusso tipico [#a-typical-workflow]
 
@@ -102,7 +104,7 @@ Senza identità verificata, cartella originale o file Pi si apre una nuova shell
 
 ## Trovare e riprendere conversazioni salvate [#saved-conversation-history]
 
-Apri **Agenti → Cronologia delle conversazioni degli agenti**, fai clic sull’orologio in cima alla barra laterale dei progetti. Cerca tra i progetti per titolo, provider, progetto, ID della conversazione o cartelle di lavoro e configurazione. Zshell conserva le ultime 200 conversazioni locali verificate dopo la chiusura di agenti e pannelli e il riavvio dell’app. **Recenti** mostra 20 risultati non archiviati; **Tutte** include quelli archiviati; **Archiviate** mostra solo questi ultimi.
+Apri **Terminale → Agenti → Cronologia delle conversazioni degli agenti**, fai clic sull’orologio in cima alla barra laterale dei progetti. Cerca tra i progetti per titolo, provider, progetto, ID della conversazione o cartelle di lavoro e configurazione. Zshell conserva le ultime 200 conversazioni locali verificate dopo la chiusura di agenti e pannelli e il riavvio dell’app. **Recenti** mostra 20 risultati non archiviati; **Tutte** include quelli archiviati; **Archiviate** mostra solo questi ultimi.
 
 Scegli **Mostra conversazione** se è aperta o **Riprendi conversazione** se è salvata. Zshell riutilizza un pannello aperto, riconnette un PTY ancora attivo o riprende l’esatta conversazione del provider con la cartella e la configurazione originali. La ripresa manuale richiede l’integrazione AI anche se il ripristino automatico è disattivato. Cartelle mancanti e file Pi assenti o non corrispondenti producono un errore prima di creare un pannello.
 
@@ -134,4 +136,4 @@ zshell +events --event command.task.finished --once --timeout 30000
 
 ## Diramare una conversazione [#fork-a-conversation]
 
-In **Agents → Agent Conversation History**, seleziona una conversazione e **Dirama conversazione in un nuovo pannello** dal menu contestuale o dal pulsante di diramazione. La funzione nativa del provider conserva il contesto in una conversazione indipendente, lasciando invariati il pannello e la conversazione originali. Codex, Claude Code, OpenCode e Pi richiedono una CLI compatibile; Pi richiede anche il file di sessione salvato. Per le conversazioni remote aggiorna il server Zshell. Se mancano CLI, accesso o hook, controlla l’output del nuovo pannello prima di continuare. Usa `zshell +agent fork --id UUID [--focus]` nel pannello e aggiungi `--project UUID` da un terminale esterno.
+In **Terminale → Agenti → Cronologia delle conversazioni degli agenti**, seleziona una conversazione e **Dirama conversazione in un nuovo pannello** dal menu contestuale o dal pulsante di diramazione. La funzione nativa del provider conserva il contesto in una conversazione indipendente, lasciando invariati il pannello e la conversazione originali. Codex, Claude Code, OpenCode e Pi richiedono una CLI compatibile; Pi richiede anche il file di sessione salvato. Per le conversazioni remote aggiorna il server Zshell. Se mancano CLI, accesso o hook, controlla l’output del nuovo pannello prima di continuare. Usa `zshell +agent fork --id UUID [--focus]` nel pannello e aggiungi `--project UUID` da un terminale esterno.

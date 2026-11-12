@@ -24,6 +24,14 @@ Ein Klick öffnet eine Datei im fokussierten Bereich. Das Kontextmenü enthält 
 
 Die Zeilen verwenden zum Dateinamen passende Material-Symbole. In Git-Repositorys kennzeichnen Statusfarben und Markierungen geänderte Pfade, ignorierte Dateien werden abgeblendet. So zeigt der Dateibaum den Zustand des Worktrees auch ohne geöffneten Git-Bereich.
 
+## Dateien und Ordner importieren [#import-files-and-folders]
+
+Wählen Sie **Datei → Dateien importieren…**, die Importschaltfläche im Dateibereich oder den Eintrag im Kontextmenü eines Ordners. Mehrere Dateien und Ordner werden in den ausgewählten Ordner oder die aktuelle Baumwurzel kopiert. Die Originale bleiben erhalten.
+
+Aktivieren Sie **Einstellungen → Editor → Dateien → Durch Ziehen in den Dateibaum importieren** (`files.drag-import`), um Finder-Objekte auf einen Ordner oder die freie Fläche des Baums zu ziehen. Die Option ist standardmäßig aus. Der Menüeintrag bleibt verfügbar.
+
+Bei vorhandenen Namen können Sie **Ersetzen**, **Überspringen** oder **Abbrechen** wählen. Ein Ordner wird vollständig ersetzt, seine Inhalte werden nicht zusammengeführt. Abbrechen stoppt den gesamten Import und stellt bereits hinzugefügte Kopien wieder her. Ändert ein anderes Programm ein importiertes Objekt vor der Wiederherstellung, bleibt diese Änderung erhalten; Zshell zeigt einen Ordner, der Wiederherstellungsdateien enthalten kann. SSH-Bäume nehmen keine lokalen Importe an. Symbolische Links werden als Links kopiert und nicht verfolgt.
+
 ## Dateien und Inhalte suchen [#find-files-and-search-contents]
 
 Die Befehlspalette (<kbd>Cmd</kbd>+<kbd>P</kbd>) sucht anhand von Namen oder Pfaden in den lokalen Projekten des aktuellen Fensters sowie nach Befehlen und offenen Sitzungen. Die Auswahl einer Datei wechselt zu ihrem Projekt und öffnet sie dort.

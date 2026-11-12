@@ -247,6 +247,7 @@ struct WorkspaceTemplateSurfaceTests {
         let controller = WorkspaceTemplateController(store: store)
         let menu = NSMenu()
         for title in ["Zshell", "File"] { let item = NSMenuItem(title: title, action: nil, keyEquivalent: ""); item.submenu = NSMenu(title: title); menu.addItem(item) }
+        menu.items[1].identifier = .init(AppMenuController.Menu.file.rawValue)
         controller.installMenu(in: menu)
         controller.installMenu(in: menu)
         try check(menu.items[1].submenu!.items.filter { $0.identifier?.rawValue == "zshell-workspace-templates-menu" }.count == 1,

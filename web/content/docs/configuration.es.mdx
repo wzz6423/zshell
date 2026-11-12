@@ -179,6 +179,12 @@ Elige el emulador de los terminales creados a partir de ese momento. Los paneles
 
 Consulta [Motores de terminal](/es/docs/terminal#terminal-backends) para conocer las variables de entorno y las garantías de compatibilidad.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+número, 0.1–10 — valor predeterminado `1` para cada dispositivo
+
+Ajusta las dos velocidades por separado en **Ajustes → Terminal → Desplazamiento → Rueda del ratón / Panel táctil**. Los valores son porcentajes: 100% mantiene la velocidad actual, 50% la reduce a la mitad y 200% la duplica. Los cambios se aplican de inmediato a los paneles abiertos de Ghostty y Alacritty, al historial, a programas de pantalla completa y a los informes del ratón. La inercia usa el valor del panel táctil; el desplazamiento horizontal sigue siendo horizontal. Los ratones que envían deltas precisos también usan el valor del panel táctil. Los valores ausentes o inválidos vuelven a `1`. Importar, exportar y restablecer incluye ambos valores.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 booleano — predeterminado: `false`
@@ -225,12 +231,25 @@ Al restaurar los paneles de terminal, reanuda la conversación original exacta r
 
 Se controla en **Ajustes → Automatización → Reanudar conversaciones de agentes**. Es independiente de `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+booleano — predeterminado `false`
+
+Activa la lectura de límites de las CLI locales en **Ajustes → Automatización → Uso de la cuenta → Leer uso de la cuenta**. Desactivarlo cancela solicitudes, oculta los datos y rechaza guardar informes Claude. Conserva los proveedores elegidos. No cambia el reconocimiento de agentes, los informes del ciclo de vida ni la restauración de conversaciones.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+booleano — predeterminado `true` en cada uno
+
+Selecciona proveedores cuando `ai.usage-enabled = true`. Claude Code lee el informe local de la línea de estado de Zshell; Codex consulta su CLI instalada con sesión iniciada. Desactivar un proveedor detiene la lectura y oculta sus datos de inmediato. No se recopilan credenciales. Las tres opciones admiten búsqueda, importación/exportación, recarga en vivo y restablecimiento.
+
 ## Ajustes adicionales [#additional-settings]
 
 | Clave | Predeterminado | Valores / rango | Efecto |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Icono de la aplicación |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Editor externo para archivos y carpetas |
+| `files.drag-import` | `false` | booleano | Permite copiar elementos de Finder arrastrándolos al árbol local; el menú de importación sigue disponible |
 | `terminal.theme-only` | `false` | booleano | Aplicar la paleta seleccionada solo al terminal |
 | `terminal.command-history` | `true` | booleano | Registrar comandos nuevos; el historial guardado sigue disponible si se desactiva |
 | `terminal.text-hints` | `true` | booleano | Activar pistas de teclado sobre texto visible del terminal |
@@ -238,6 +257,7 @@ Se controla en **Ajustes → Automatización → Reanudar conversaciones de agen
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Forma del cursor del terminal |
 | `terminal.cursor-blinking` | `true` | booleano | Hacer parpadear el cursor |
 | `terminal.copy-on-select` | `true` | booleano | Copiar el texto seleccionado en el terminal |
+| `terminal.right-click-action` | `"context-menu"` | cadena | Menú contextual, pegar, o copiar selección y pegar si no hay selección (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | booleano | El foco sigue al ratón |
 | `terminal.shift-enter-newline` | `true` | booleano | Enviar una secuencia de nueva línea mejorada con Shift+Enter; requiere compatibilidad de la aplicación |
 | `terminal.background-opacity` | `1` | 0.2–1 | Opacidad del fondo del terminal |
@@ -278,6 +298,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

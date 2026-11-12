@@ -58,6 +58,12 @@ Erişimi **Sistem Ayarları → Gizlilik ve Güvenlik → Kamera, Mikrofon veya 
 
 `terminal.focus-follows-mouse = true`
 
+## Sağ tıklama eylemi [#right-click-action]
+
+**Ayarlar → Terminal → Giriş → Sağ tıklama eylemi** altında **Bağlam Menüsü** (varsayılan), **Yapıştır** veya **Kopyala veya Yapıştır** seçin. Son seçenek seçili metni kopyalar; yalnızca seçim yokken yapıştırır. Değişiklik her iki arka uçta hemen uygulanır. `config.toml` içindeki `terminal.right-click-action`, `"context-menu"`, `"paste"` veya `"copy-or-paste"` olabilir.
+
+**Shift ile sağ tıklama**, **Control ile tıklama** ve **Command ile sağ tıklama** menüyü açmaya devam eder. **Düzenle → Terminal Bağlam Menüsünü Göster** (<kbd>Shift</kbd>+<kbd>F10</kbd>) menüyü klavyeden açar. Fare bildirimi kullanan uygulamalar, bölmede **Zshell Komutlarını Engelle** etkin değilse normal sağ tıklamaları almaya devam eder. Yapıştırma, <kbd>Cmd</kbd>+<kbd>V</kbd> ile aynı çok satırlı onayı ve yerel veya uzak dosya işlemlerini kullanır.
+
 ## Terminal profilleri [#terminal-profiles]
 
 Profilleri **Ayarlar → Terminal → Terminal profilleri → Terminal profillerini yönet…** üzerinden oluşturup sıralayın. Etkin bir profil ana makineyi, kullanıcıyı, çalışma dizinini ve ön plan programını eşleştirebilir. Doldurulan koşulların tümü eşleşmelidir; `*` herhangi bir metinle, `?` tek bir karakterle eşleşir. İlk eşleşen profil kullanılır; eşleşme yoksa bölme özgün görünümüne döner. **Terminal profillerini otomatik uygula** varsayılan olarak açıktır (`terminal.auto-profiles = true`). Kapatıldığında elle profil seçimi kullanılabilir.
@@ -139,7 +145,7 @@ Bildirimler sistem sesi çalabilir. Tıklamak Zshell’i etkinleştirir ve bildi
 
 Aynı bildirim geçmişi **Ayarlar → Terminal → Bildirimler** üzerinden de açılabilir.
 
-Son terminal ve ajan bildirimleri için **Bildirimler → Bildirim geçmişi…** menüsünü açın. **Okunmamış**, **Başarısız** veya **Bekleyen** ile filtreleyin. Bildirime veya **Bölmeyi göster** düğmesine tıklamak, başka bir pencerede olsa bile geçerli proje, sekme ve bölmeyi seçer. Kapatılan bölmeler geçmişte kullanılamaz olarak kalır.
+Son terminal ve ajan bildirimleri için **Terminal → Bildirimler → Bildirim geçmişi…** menüsünü açın. **Okunmamış**, **Başarısız** veya **Bekleyen** ile filtreleyin. Bildirime veya **Bölmeyi göster** düğmesine tıklamak, başka bir pencerede olsa bile geçerli proje, sekme ve bölmeyi seçer. Kapatılan bölmeler geçmişte kullanılamaz olarak kalır.
 
 **Okundu olarak işaretle**, **Tümünü okundu olarak işaretle**, **Kaldır** veya **Geçmişi temizle** ile listeyi yönetin. Okumak ajan isteğini onaylamaz. Ajan devam ettiğinde veya bittiğinde, bölme kapandığında ya da uzak bağlantı kullanılamadığında bildirim bekleyen filtresinden çıkar. Durumlar açık yaşam döngüsü raporlarına ve komut çıkış sonuçlarına dayanır. Son 200 kayıt yeniden başlatmalar arasında korunur ve macOS bildirim izni kapalıyken de kullanılabilir.
 

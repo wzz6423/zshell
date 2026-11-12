@@ -32,6 +32,14 @@ import Foundation
     }
 }
 
+@MainActor final class AgentUsageModel {
+    static let shared = AgentUsageModel()
+    var policies: [[Bool]] = []
+    func applySettings(_ settings: AppSettings) {
+        policies.append([settings.agentUsageEnabled, settings.claudeUsageEnabled, settings.codexUsageEnabled])
+    }
+}
+
 @MainActor enum ZshellAgentIntegrations {
     static func preflightInstallAvailable() throws { try IntegrationFixture.preflight("integrations-preflight-install") }
     static func preflightUninstallManaged() throws { try IntegrationFixture.preflight("integrations-preflight-uninstall") }
@@ -89,6 +97,7 @@ struct SettingsReloadTests {
         withExtendedLifetime(observation) {}
         wait({ FileManager.default.fileExists(atPath: url.path) }, "initial config save")
         check(!settings.focusFollowsMouse, "pointer focus is disabled by default")
+        check(settings.terminalRightClickAction == .contextMenu, "right-click keeps the context menu by default")
         check(settings.shellCompletions, "shell completions are enabled by default")
         check(settings.vimCommandHints && settings.restoreTerminalHistory && settings.notifyOnError,
               "new configurations use the enabled preference defaults")
@@ -97,7 +106,62 @@ struct SettingsReloadTests {
               && settings.notifyOnAgentCompletion && settings.showPullRequestStatus,
               "feature switches preserve existing behavior by default")
         check(settings.isAtDefaults, "fresh settings expose the correct reset state")
+        settings.terminalRightClickAction = .paste
+        check(!settings.isAtDefaults, "right-click paste enables reset")
+        check(settings.serializedConfig().contains("terminal.right-click-action = \"paste\""), "right-click paste persists and exports")
+        var rightClickConfig = TOML.parseStrictly(text: settings.serializedConfig()).values
+        rightClickConfig["terminal.right-click-action"] = .string("copy-or-paste")
+        settings.applyImported(rightClickConfig)
+        check(settings.terminalRightClickAction == .copyOrPaste, "right-click copy or paste imports")
+        rightClickConfig["terminal.right-click-action"] = .string("invalid")
+        settings.applyImported(rightClickConfig)
+        check(settings.terminalRightClickAction == .contextMenu && settings.isAtDefaults, "invalid right-click action restores the default menu")
+        check(!settings.agentUsageEnabled && settings.claudeUsageEnabled && settings.codexUsageEnabled,
+              "account usage is opt-in while provider choices start enabled")
+        let usageIntegrations = IntegrationFixture.operations
+        let defaultUsageConfig = TOML.parseStrictly(text: settings.serializedConfig()).values
+        var usageConfig = defaultUsageConfig
+        usageConfig["ai.usage-enabled"] = .bool(true)
+        usageConfig["ai.claude-usage-enabled"] = .bool(false)
+        usageConfig["ai.codex-usage-enabled"] = .bool(false)
+        settings.applyImported(usageConfig)
+        check(AgentUsageModel.shared.policies == [[true, false, false]],
+              "usage imports apply one complete policy without transient provider starts")
+        let usageExport = TOML.parseStrictly(text: settings.serializedConfig()).values
+        check(usageExport["ai.usage-enabled"] == .bool(true)
+              && usageExport["ai.claude-usage-enabled"] == .bool(false)
+              && usageExport["ai.codex-usage-enabled"] == .bool(false),
+              "all usage choices serialize for export")
+        settings.agentUsageEnabled = false
+        check(!settings.claudeUsageEnabled && !settings.codexUsageEnabled,
+              "master disable preserves provider choices")
+        check(!settings.isAtDefaults, "provider choices enable reset while master is off")
+        settings.applyImported(defaultUsageConfig)
+        check(!settings.agentUsageEnabled && settings.claudeUsageEnabled && settings.codexUsageEnabled,
+              "omitted usage keys restore safe defaults")
+        check(IntegrationFixture.operations == usageIntegrations,
+              "usage settings never install or uninstall agent lifecycle integration")
         check(settings.keepAwakeMode == .off, "sleep prevention is off by default")
+        check(settings.mouseScrollMultiplier == 1 && settings.trackpadScrollMultiplier == 1,
+              "device scrolling preserves the existing speed by default")
+        check(!settings.serializedConfig().contains("scroll-multiplier"), "default scroll multipliers are omitted")
+        settings.mouseScrollMultiplier = 0.1
+        settings.trackpadScrollMultiplier = 10
+        check(!settings.isAtDefaults, "scrolling preferences enable reset")
+        var scrollConfig = TOML.parseStrictly(text: settings.serializedConfig()).values
+        check(scrollConfig["terminal.mouse-scroll-multiplier"]?.double == 0.1
+              && scrollConfig["terminal.trackpad-scroll-multiplier"]?.double == 10,
+              "independent device scrolling values persist")
+        for invalid in [Double.nan, .infinity, -.infinity, 0, -1, 10.1] {
+            scrollConfig["terminal.mouse-scroll-multiplier"] = .number(invalid)
+            scrollConfig["terminal.trackpad-scroll-multiplier"] = .number(invalid)
+            settings.applyImported(scrollConfig)
+            check(settings.mouseScrollMultiplier == 1 && settings.trackpadScrollMultiplier == 1,
+                  "invalid imported scroll multipliers restore compatible defaults")
+        }
+        settings.mouseScrollMultiplier = .nan
+        settings.trackpadScrollMultiplier = .infinity
+        check(settings.isAtDefaults, "invalid direct scroll settings are normalized before persistence")
         settings.keepAwakeMode = .whileRunning
         check(!settings.isAtDefaults, "sleep prevention enables reset")
         check(settings.serializedConfig().contains("keep-awake = \"on\""), "sleep mode persists")
@@ -119,6 +183,17 @@ struct SettingsReloadTests {
         settings.applyImported(completionConfig)
         check(settings.shellCompletions, "import restores the completion preference")
         check(settings.isAtDefaults, "restored completions restore default state")
+        settings.fileTreeDragImport = true
+        check(!settings.isAtDefaults, "enabled file import enables reset")
+        wait({ (try? String(contentsOf: url, encoding: .utf8))?.contains("files.drag-import = true") == true },
+             "file import preference persists")
+        var importConfig = TOML.parse(at: url) ?? [:]
+        importConfig["files.drag-import"] = .bool(false)
+        settings.applyImported(importConfig)
+        check(!settings.fileTreeDragImport && settings.isAtDefaults, "import restores disabled file drag setting")
+        settings.fileTreeDragImport = true
+        settings.resetToDefaults()
+        check(!settings.fileTreeDragImport && settings.isAtDefaults, "reset disables file drag import")
         settings.commandShortcuts[.newSession] = CommandShortcut(persistedValue: "u7a:cmd+shift")!
         check(!settings.isAtDefaults, "shortcut overrides enable reset")
         settings.resetCommandShortcuts()
@@ -148,6 +223,8 @@ struct SettingsReloadTests {
         terminal.font-thicken = true
         terminal.font-thicken-strength = 99
         terminal.line-height = 1.4
+        terminal.mouse-scroll-multiplier = 2.5
+        terminal.trackpad-scroll-multiplier = 0.5
         terminal.cell-width = 1.35
         terminal.cursor-shape = "underline"
         terminal.cursor-blinking = false
@@ -162,6 +239,7 @@ struct SettingsReloadTests {
         terminal.restore-history = true
         terminal.preserve-sessions = true
         terminal.copy-on-select = false
+        terminal.right-click-action = "paste"
         terminal.focus-follows-mouse = true
         terminal.background-opacity = 0.6
         terminal.background-blur = true
@@ -182,6 +260,9 @@ struct SettingsReloadTests {
         ai.resume-conversations = false
         ai.notify-on-attention = false
         ai.notify-on-completion = false
+        ai.usage-enabled = true
+        ai.claude-usage-enabled = false
+        ai.codex-usage-enabled = false
         git.pull-request-status = false
         terminal.backend = "alacritty"
         terminal.startup-program = "/bin/zsh"
@@ -211,6 +292,7 @@ struct SettingsReloadTests {
         let roundTrip = TOML.parseStrictly(text: imported).values
         check(settings.terminalCellWidth == 1.35, "column spacing imports into production settings")
         check(settings.focusFollowsMouse && !settings.isAtDefaults, "pointer focus imports and changes default state")
+        check(settings.terminalRightClickAction == .paste, "right-click action survives the full settings round trip")
         check(GitProxy.address == "socks5h://127.0.0.1:1080", "imported Git proxy reaches Git processes")
         for (key, value) in parsed.values {
             check(roundTrip[key] == value, "all persisted keys import and serialize: \(key)")
@@ -246,6 +328,26 @@ struct SettingsReloadTests {
         wait({ settings.fontSize == 20 }, "external font edit applies")
         check(changes == unchanged + 1, "single setting edit publishes once")
         check(try SettingsConfigFile.read(at: url) == changed, "external update does not rewrite source")
+        let changedScroll = changed.replacingOccurrences(of: "terminal.mouse-scroll-multiplier = 2.5", with: "terminal.mouse-scroll-multiplier = 0.1")
+        try changedScroll.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.mouseScrollMultiplier == 0.1 }, "external mouse scroll edit applies live")
+        check(settings.trackpadScrollMultiplier == 0.5, "mouse scroll reload leaves trackpad independent")
+        let rightClickChanged = changedScroll.replacingOccurrences(of: "terminal.right-click-action = \"paste\"", with: "terminal.right-click-action = \"copy-or-paste\"")
+        try rightClickChanged.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalRightClickAction == .copyOrPaste }, "external right-click edit applies to live settings")
+        check(try SettingsConfigFile.read(at: url) == rightClickChanged, "external right-click update does not rewrite source")
+        let usagePolicyCount = AgentUsageModel.shared.policies.count
+        let usageChanged = rightClickChanged.replacingOccurrences(of: "ai.usage-enabled = true", with: "ai.usage-enabled = false")
+            .replacingOccurrences(of: "ai.codex-usage-enabled = false", with: "ai.codex-usage-enabled = true")
+        try usageChanged.write(to: url, atomically: true, encoding: .utf8)
+        wait({ !settings.agentUsageEnabled && settings.codexUsageEnabled }, "external usage edits apply")
+        check(AgentUsageModel.shared.policies.count == usagePolicyCount + 1
+              && AgentUsageModel.shared.policies.last == [false, false, true],
+              "external reload applies one complete usage policy")
+        check(try SettingsConfigFile.read(at: url) == usageChanged, "usage reload preserves the edited file")
+        check(settings.mouseScrollMultiplier == 0.1 && settings.trackpadScrollMultiplier == 0.5,
+              "usage reload retains both independent scrolling choices")
+        check(settings.terminalRightClickAction == .copyOrPaste, "usage reload retains the right-click action")
         for invalid in ["font-size = 23\nunfinished", "font-size = 23\ntheme = \"dark\" junk", "font-size = 23\n[]", "font-size = 23\nsidebar.font-size = nan"] {
             try invalid.write(to: url, atomically: true, encoding: .utf8)
             spin(0.6)
@@ -275,6 +377,9 @@ struct SettingsReloadTests {
         check(!settings.vimCommandHints && !settings.restoreTerminalHistory && !settings.notifyOnError,
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
+        check(settings.mouseScrollMultiplier == 1 && settings.trackpadScrollMultiplier == 1,
+              "omitted scroll preferences restore compatible defaults on reload")
+        check(settings.terminalRightClickAction == .contextMenu, "omitted right-click action restores the menu on external reload")
         check(!settings.gitProxyEnabled && settings.gitProxyAddress == GitProxy.defaultAddress && GitProxy.address == nil,
               "Git proxy resets to off with the default address prefilled")
         check(try SettingsConfigFile.read(at: url) == "", "default reload leaves empty source unchanged")
@@ -282,6 +387,8 @@ struct SettingsReloadTests {
               && settings.automaticallyApplyTerminalProfiles && settings.notifyOnAgentAttention
               && settings.notifyOnAgentCompletion && settings.showPullRequestStatus,
               "omitted feature switches restore compatible defaults on external reload")
+        check(!settings.agentUsageEnabled && settings.claudeUsageEnabled && settings.codexUsageEnabled,
+              "empty configuration disables usage and restores provider defaults")
 
         settings.resetToDefaults()
         check(settings.isAtDefaults, "reset covers every configurable preference")
@@ -289,6 +396,7 @@ struct SettingsReloadTests {
             \.protectEditorSaves, \.recoverEditorDrafts, \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints,
             \.automaticallyApplyTerminalProfiles, \.notifyOnAgentAttention,
             \.notifyOnAgentCompletion, \.showPullRequestStatus,
+            \.claudeUsageEnabled, \.codexUsageEnabled,
         ]
         for keyPath in featureSwitches {
             settings[keyPath: keyPath] = false
@@ -296,6 +404,10 @@ struct SettingsReloadTests {
             settings[keyPath: keyPath] = true
         }
         check(settings.isAtDefaults, "restored feature switches restore default state")
+        settings.agentUsageEnabled = true
+        check(!settings.isAtDefaults, "enabled usage changes reset state")
+        settings.resetToDefaults()
+        check(!settings.agentUsageEnabled && settings.isAtDefaults, "reset disables usage")
 
         settings.terminalCellWidth = 1.333
         check(settings.terminalCellWidth == 1.33 && !settings.isAtDefaults,

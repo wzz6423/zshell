@@ -179,6 +179,12 @@ description: "كل خيارات Zshell الدائمة ووظائفها ومكا�
 
 راجع [محركات الطرفية](/ar/docs/terminal#terminal-backends) لمتغيرات البيئة وقواعد التوافق.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+رقم، 0.1–10 — القيمة الافتراضية `1` لكل جهاز
+
+اضبط السرعتين بشكل مستقل من **الإعدادات → الطرفية → التمرير → عجلة الفأرة / لوحة التعقب**. تُعرض القيم كنسب مئوية: 100% يحافظ على السرعة الحالية، و50% يخفضها إلى النصف، و200% يضاعفها. تُطبَّق التغييرات فورًا على لوحات Ghostty وAlacritty المفتوحة، وسجل التمرير، وبرامج ملء الشاشة، وتقارير الفأرة. يستخدم التمرير بالقصور الذاتي قيمة لوحة التعقب، ويبقى التمرير الأفقي أفقيًا. تستخدم الفأرات التي ترسل فروقًا دقيقة قيمة لوحة التعقب أيضًا. تعود القيم المفقودة أو غير الصالحة إلى `1`. يشمل الاستيراد والتصدير وإعادة الضبط القيمتين.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 قيمة منطقية — الافتراضي `false`
@@ -225,12 +231,25 @@ description: "كل خيارات Zshell الدائمة ووظائفها ومكا�
 
 تتحكم بها من **الإعدادات → الأتمتة → استئناف محادثات الوكلاء**. وهي مستقلة عن `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+قيمة منطقية — الافتراضي `false`
+
+تفعّل قراءة حدود حسابات CLI المحلية من **الإعدادات → الأتمتة → استخدام الحساب → قراءة استخدام الحساب**. يؤدي التعطيل إلى إلغاء الطلبات وإخفاء البيانات ورفض حفظ تقارير Claude. تبقى اختيارات المزوّدين. لا يتغير التعرف على الوكلاء أو تقارير دورة الحياة أو استعادة المحادثات.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+قيمة منطقية — الافتراضي `true` لكل منهما
+
+تحدد المزوّدين عند `ai.usage-enabled = true`. يقرأ Claude Code تقرير سطر الحالة المحلي لـ Zshell، ويستعلم Codex من CLI المثبت والمسجّل فيه الدخول. يؤدي تعطيل مزوّد إلى إيقاف القراءة وإخفاء بياناته فورًا. لا تُجمع بيانات الدخول. تدعم الخيارات الثلاثة البحث والاستيراد والتصدير وإعادة التحميل المباشر وإعادة التعيين.
+
 ## إعدادات إضافية [#additional-settings]
 
 | المفتاح | الافتراضي | القيم / النطاق | التأثير |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | أيقونة التطبيق |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | المحرر الخارجي للملفات والمجلدات |
+| `files.drag-import` | `false` | قيمة منطقية | السماح بنسخ عناصر Finder بالسحب إلى الشجرة المحلية؛ تبقى قائمة الاستيراد متاحة |
 | `terminal.theme-only` | `false` | قيمة منطقية | تطبيق لوحة الألوان المحددة على الطرفية فقط |
 | `terminal.command-history` | `true` | قيمة منطقية | تسجيل الأوامر الجديدة؛ يظل السجل المحفوظ متاحًا عند التعطيل |
 | `terminal.text-hints` | `true` | قيمة منطقية | تفعيل تلميحات لوحة المفاتيح للنص الظاهر في الطرفية |
@@ -238,6 +257,7 @@ description: "كل خيارات Zshell الدائمة ووظائفها ومكا�
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | شكل مؤشر الطرفية |
 | `terminal.cursor-blinking` | `true` | قيمة منطقية | جعل المؤشر يومض |
 | `terminal.copy-on-select` | `true` | قيمة منطقية | نسخ نص الطرفية المحدد |
+| `terminal.right-click-action` | `"context-menu"` | نص | قائمة سياقية أو لصق أو نسخ التحديد واللصق عند عدم وجود تحديد (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | قيمة منطقية | التركيز يتبع الفأرة |
 | `terminal.shift-enter-newline` | `true` | قيمة منطقية | إرسال تسلسل سطر جديد محسن باستخدام Shift+Enter؛ يتطلب دعم التطبيق |
 | `terminal.background-opacity` | `1` | 0.2–1 | عتامة خلفية الطرفية |
@@ -277,6 +297,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

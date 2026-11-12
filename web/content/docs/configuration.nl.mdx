@@ -179,6 +179,12 @@ Kiest de emulator voor terminals die hierna worden gemaakt. Bestaande deelvenste
 
 Zie [Terminalbackends](/nl/docs/terminal#terminal-backends) voor omgevingsvariabelen en compatibiliteitsafspraken.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+getal, 0.1–10 — standaard `1` voor elk apparaat
+
+Stel beide snelheden apart in via **Instellingen → Terminal → Scrollen → Muiswiel / Trackpad**. De waarden zijn percentages: 100% behoudt de huidige snelheid, 50% halveert deze en 200% verdubbelt deze. Wijzigingen gelden direct voor geopende Ghostty- en Alacritty-panelen, de scrollgeschiedenis, schermvullende programma’s en muisrapportage. Inertie gebruikt de trackpadwaarde; horizontaal scrollen blijft horizontaal. Muizen die precieze delta’s doorgeven gebruiken ook de trackpadwaarde. Ontbrekende of ongeldige waarden worden `1`. Importeren, exporteren en herstellen omvat beide waarden.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 Booleaans — standaard `false`
@@ -225,12 +231,25 @@ Bij het herstellen van terminalpanelen wordt het precieze opgeslagen gesprek van
 
 Gebruik **Instellingen → Automatisering → Agentgesprekken hervatten**. Deze optie staat los van `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+boolean — standaard `false`
+
+Schakelt lokale CLI-accountlimieten in via **Instellingen → Automatisering → Accountgebruik → Accountgebruik lezen**. Uitschakelen annuleert aanvragen, verbergt gegevens en weigert Claude-rapporten op te slaan. Providerkeuzes blijven behouden. Agentherkenning, levenscyclusrapporten en gespreksherstel veranderen niet.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — standaard elk `true`
+
+Kiest providers wanneer `ai.usage-enabled = true`. Claude Code leest Zshells lokale statusregelrapport; Codex bevraagt de geïnstalleerde, aangemelde CLI. Uitschakelen stopt direct lezen en verbergt gegevens. Er worden geen aanmeldgegevens verzameld. Alle drie ondersteunen zoeken, importeren/exporteren, direct herladen en standaardwaarden herstellen.
+
 ## Aanvullende instellingen [#additional-settings]
 
 | Sleutel | Standaard | Waarden / bereik | Effect |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | App-pictogram |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Externe editor voor bestanden en mappen |
+| `files.drag-import` | `false` | boolean | Sta Finder-kopieën via slepen naar de lokale bestandsboom toe; het importmenu blijft beschikbaar |
 | `terminal.theme-only` | `false` | Booleaans | Het gekozen palet alleen op de terminal toepassen |
 | `terminal.command-history` | `true` | Booleaans | Nieuwe opdrachten registreren; opgeslagen geschiedenis blijft beschikbaar bij uit |
 | `terminal.text-hints` | `true` | Booleaans | Toetsenbordhints voor zichtbare terminaltekst inschakelen |
@@ -238,6 +257,7 @@ Gebruik **Instellingen → Automatisering → Agentgesprekken hervatten**. Deze 
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Vorm van de terminalcursor |
 | `terminal.cursor-blinking` | `true` | Booleaans | De cursor laten knipperen |
 | `terminal.copy-on-select` | `true` | Booleaans | Geselecteerde terminaltekst kopiëren |
+| `terminal.right-click-action` | `"context-menu"` | tekst | Contextmenu, plakken of selectie kopiëren en anders plakken (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | Booleaans | Focus volgt de muis |
 | `terminal.shift-enter-newline` | `true` | Booleaans | Een uitgebreide nieuweregelreeks sturen met Shift+Enter; vereist ondersteuning van de applicatie |
 | `terminal.background-opacity` | `1` | 0.2–1 | Dekking van de terminalachtergrond |
@@ -277,6 +297,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

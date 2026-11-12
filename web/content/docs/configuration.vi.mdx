@@ -179,6 +179,12 @@ Chọn bộ mô phỏng cho terminal tạo sau đó. Ô hiện tại giữ backe
 
 Xem biến môi trường và cam kết tương thích ở [Backend terminal](/vi/docs/terminal#terminal-backends).
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+số, 0.1–10 — mặc định `1` cho từng thiết bị
+
+Điều chỉnh riêng hai tốc độ tại **Cài đặt → Terminal → Cuộn → Con lăn chuột / Bàn di chuột**. Giá trị hiển thị theo phần trăm: 100% giữ tốc độ hiện tại, 50% giảm một nửa và 200% tăng gấp đôi. Thay đổi có hiệu lực ngay trong các khung Ghostty và Alacritty đang mở, lịch sử cuộn, chương trình toàn màn hình và báo cáo chuột. Cuộn theo quán tính dùng giá trị bàn di chuột; cuộn ngang vẫn theo chiều ngang. Chuột gửi độ lệch chính xác cũng dùng giá trị bàn di chuột. Giá trị thiếu hoặc không hợp lệ trở về `1`. Nhập, xuất và đặt lại cài đặt bao gồm cả hai giá trị.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 boolean — mặc định `false`
@@ -225,12 +231,25 @@ Khi khôi phục ngăn terminal và PTY gốc không còn khả dụng, tiếp t
 
 Điều khiển trong **Cài đặt → Tự động hóa → Tiếp tục cuộc trò chuyện của tác nhân**. Tùy chọn này độc lập với `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+boolean — mặc định `false`
+
+Bật đọc giới hạn tài khoản CLI cục bộ trong **Cài đặt → Tự động hóa → Mức sử dụng tài khoản → Đọc mức sử dụng tài khoản**. Tắt sẽ hủy yêu cầu, ẩn dữ liệu và từ chối lưu báo cáo Claude. Lựa chọn nhà cung cấp được giữ lại. Không thay đổi nhận diện tác nhân, báo cáo vòng đời hoặc khôi phục hội thoại.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — mỗi mục mặc định `true`
+
+Chọn nhà cung cấp khi `ai.usage-enabled = true`. Claude Code đọc báo cáo dòng trạng thái cục bộ của Zshell; Codex truy vấn CLI đã cài đặt và đăng nhập. Tắt nhà cung cấp lập tức dừng đọc và ẩn dữ liệu. Không thu thập thông tin đăng nhập. Cả ba hỗ trợ tìm kiếm, nhập/xuất, tải lại cấu hình trực tiếp và khôi phục mặc định.
+
 ## Cài đặt bổ sung [#additional-settings]
 
 | Khóa | Mặc định | Giá trị / khoảng | Tác dụng |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Biểu tượng ứng dụng |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Trình soạn thảo ngoài cho tệp/thư mục |
+| `files.drag-import` | `false` | boolean | Cho phép kéo mục Finder vào cây tệp cục bộ để sao chép; menu nhập luôn khả dụng |
 | `terminal.theme-only` | `false` | boolean | Chỉ áp dụng bảng màu cho terminal |
 | `terminal.command-history` | `true` | boolean | Ghi lệnh mới; lịch sử đã lưu vẫn có thể xem khi tắt |
 | `terminal.text-hints` | `true` | boolean | Bật gợi ý bàn phím cho văn bản terminal đang hiển thị |
@@ -238,6 +257,7 @@ Khi khôi phục ngăn terminal và PTY gốc không còn khả dụng, tiếp t
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Hình con trỏ terminal |
 | `terminal.cursor-blinking` | `true` | boolean | Nhấp nháy con trỏ |
 | `terminal.copy-on-select` | `true` | boolean | Sao chép chữ terminal đã chọn |
+| `terminal.right-click-action` | `"context-menu"` | chuỗi | Menu ngữ cảnh, dán hoặc sao chép vùng chọn và dán khi không chọn (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | boolean | Tiêu điểm theo chuột |
 | `terminal.shift-enter-newline` | `true` | boolean | Gửi chuỗi xuống dòng nâng cao bằng Shift+Enter; cần ứng dụng hỗ trợ |
 | `terminal.background-opacity` | `1` | 0.2–1 | Độ đục nền terminal |
@@ -277,6 +297,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

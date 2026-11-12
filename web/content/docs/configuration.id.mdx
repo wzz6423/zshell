@@ -179,6 +179,12 @@ Memilih emulator untuk terminal yang dibuat setelah perubahan. Panel yang sudah 
 
 Lihat [Backend terminal](/id/docs/terminal#terminal-backends) untuk variabel lingkungan dan ketentuan kompatibilitas.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+angka, 0.1–10 — default `1` untuk setiap perangkat
+
+Atur kedua kecepatan secara terpisah di **Pengaturan → Terminal → Pengguliran → Roda mouse / Panel sentuh**. Nilai ditampilkan sebagai persentase: 100% mempertahankan kecepatan saat ini, 50% membaginya dua, dan 200% menggandakannya. Perubahan langsung berlaku pada panel Ghostty dan Alacritty yang terbuka, riwayat gulir, program layar penuh, dan pelaporan mouse. Gulir inersia memakai nilai panel sentuh; gulir horizontal tetap horizontal. Mouse yang mengirim delta presisi juga memakai nilai panel sentuh. Nilai yang hilang atau tidak valid kembali ke `1`. Impor, ekspor, dan reset mencakup kedua nilai.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 Boolean — bawaan `false`
@@ -225,12 +231,25 @@ Saat panel terminal dipulihkan dan PTY asal tidak tersedia, melanjutkan percakap
 
 Atur melalui **Pengaturan → Otomatisasi → Lanjutkan percakapan agen**. Opsi ini terpisah dari `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+boolean — bawaan `false`
+
+Mengaktifkan pembacaan batas akun CLI lokal melalui **Pengaturan → Otomasi → Penggunaan Akun → Baca penggunaan akun**. Mematikan membatalkan permintaan, menyembunyikan data, dan menolak menyimpan laporan Claude. Pilihan penyedia dipertahankan. Pengenalan agen, laporan siklus hidup, dan pemulihan percakapan tidak berubah.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — bawaan `true` untuk masing-masing
+
+Memilih penyedia saat `ai.usage-enabled = true`. Claude Code membaca laporan baris status lokal Zshell; Codex meminta CLI terpasang yang sudah masuk. Mematikan penyedia langsung menghentikan pembacaan dan menyembunyikan data. Kredensial tidak dikumpulkan. Ketiga pilihan mendukung pencarian, impor/ekspor, pemuatan ulang langsung, dan pengaturan ulang.
+
 ## Pengaturan tambahan [#additional-settings]
 
 | Kunci | Bawaan | Nilai / rentang | Efek |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Ikon aplikasi |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Editor eksternal untuk berkas dan folder |
+| `files.drag-import` | `false` | boolean | Izinkan salinan Finder dengan menyeret ke pohon lokal; menu impor selalu tersedia |
 | `terminal.theme-only` | `false` | Boolean | Terapkan palet hanya pada terminal |
 | `terminal.command-history` | `true` | Boolean | Mencatat perintah baru; riwayat tersimpan tetap tersedia saat nonaktif |
 | `terminal.text-hints` | `true` | Boolean | Mengaktifkan petunjuk papan ketik untuk teks terminal yang terlihat |
@@ -238,6 +257,7 @@ Atur melalui **Pengaturan → Otomatisasi → Lanjutkan percakapan agen**. Opsi 
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Bentuk kursor terminal |
 | `terminal.cursor-blinking` | `true` | Boolean | Kedipan kursor |
 | `terminal.copy-on-select` | `true` | Boolean | Salin teks terminal yang dipilih |
+| `terminal.right-click-action` | `"context-menu"` | teks | Menu konteks, tempel, atau salin pilihan dan tempel jika tidak ada pilihan (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | Boolean | Fokus mengikuti mouse |
 | `terminal.shift-enter-newline` | `true` | Boolean | Kirim urutan baris baru yang diperluas lewat Shift+Enter; memerlukan dukungan aplikasi |
 | `terminal.background-opacity` | `1` | 0.2–1 | Opasitas latar terminal |
@@ -277,6 +297,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

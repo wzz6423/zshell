@@ -259,6 +259,12 @@ the lower memory footprint.
 See [Terminal backends](/en/docs/terminal#terminal-backends) for the environment
 variables and compatibility contract.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+number, 0.1–10 — default `1` for each device
+
+Choose **Settings → Terminal → Scrolling → Mouse wheel / Trackpad** to adjust the two speeds independently. The readouts are percentages: 100% keeps the current speed, 50% halves it, and 200% doubles it. Changes apply immediately to open Ghostty and Alacritty panes, including scrollback, full-screen programs, and mouse reporting. Momentum follows the trackpad value; horizontal scrolling stays horizontal. Precise scrolling devices use the trackpad value, including mice that report precise deltas. Missing or invalid values restore `1`; importing, exporting, and resetting settings include both values.
+
 ### `terminal.macos-option-as-alt`
 
 boolean — default `false`
@@ -323,12 +329,25 @@ When terminal panes are restored, resumes the exact recorded Claude Code, Codex,
 
 Control it with **Settings → Automation → Resume agent conversations**. This setting is independent of `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+boolean — default `false`
+
+Enable local CLI account-limit reading in **Settings → Automation → Account Usage → Read account usage**. Turning it off cancels pending usage requests, hides usage data, and rejects Claude usage reports without saving them. Provider choices are retained. Usage settings do not change agent recognition, lifecycle reports, or conversation restoration.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — default `true` for each
+
+Choose which providers can read usage while `ai.usage-enabled = true`. Claude Code reads Zshell’s local status-line usage report; Codex queries its installed, signed-in CLI. Disabling a provider immediately stops its reads and hides its data. No sign-in credentials are collected. The three choices support settings search, import/export, live configuration reload, and reset to defaults.
+
 ## Additional settings
 
 | Key | Default | Values / range | Effect |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Application icon |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | External editor for files and folders |
+| `files.drag-import` | `false` | boolean | Enable Finder drag-and-drop copies into the local file tree; the import menu always remains available |
 | `terminal.theme-only` | `false` | boolean | Apply the selected palette to the terminal only |
 | `terminal.command-history` | `true` | boolean | Record new command history; saved entries remain available when off |
 | `terminal.text-hints` | `true` | boolean | Enable keyboard hints for visible terminal text |
@@ -336,6 +355,7 @@ Control it with **Settings → Automation → Resume agent conversations**. This
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Terminal cursor shape |
 | `terminal.cursor-blinking` | `true` | boolean | Blink the cursor |
 | `terminal.copy-on-select` | `true` | boolean | Copy selected terminal text |
+| `terminal.right-click-action` | `"context-menu"` | string | Context menu, paste, or copy selection and otherwise paste (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | boolean | Focus follows mouse |
 | `terminal.shell-completions` | `true` | boolean | Bundled local command, argument, and path suggestions in new zsh shells; remote sessions require a compatible zshell-server |
 | `terminal.shift-enter-newline` | `true` | boolean | Send an enhanced newline sequence with Shift+Enter; requires application support |
@@ -377,6 +397,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

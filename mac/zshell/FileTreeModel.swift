@@ -274,8 +274,16 @@ final class FileTreeModel: nonisolated ObservableObject {
         }
     }
 
+    func didImportFiles(in directory: String) {
+        guard !isRemote else { return }
+        expanded.insert(directory)
+        localInvalidatedDirectories.insert(directory)
+        rebuild()
+    }
+
     /// Moves `item` to the Trash, then rebuilds so it drops out of the tree.
     func moveToTrash(_ item: Item) {
+        guard !isRemote, !item.isDraft, items.contains(where: { $0.path == item.path }) else { return }
         do {
             try FileManager.default.trashItem(
                 at: URL(fileURLWithPath: item.path), resultingItemURL: nil
@@ -297,6 +305,7 @@ final class FileTreeModel: nonisolated ObservableObject {
     // MARK: - Rename
 
     func beginRename(_ item: Item) {
+        guard !isRemote, !item.isDraft, items.contains(where: { $0.path == item.path }) else { return }
         renamingPath = item.path
     }
 
@@ -310,6 +319,7 @@ final class FileTreeModel: nonisolated ObservableObject {
     /// (e.g. re-point open tabs).
     @discardableResult
     func rename(_ item: Item, to newName: String) -> String? {
+        guard !isRemote, !item.isDraft, items.contains(where: { $0.path == item.path }) else { return nil }
         renamingPath = nil
         let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed != item.name else { return nil }
@@ -372,6 +382,8 @@ final class FileTreeModel: nonisolated ObservableObject {
     }
 
     private func startDraft(in directory: String, isDirectory: Bool) {
+        guard !isRemote, !rootPath.isEmpty,
+              directory == rootPath || items.contains(where: { $0.path == directory && $0.isDirectory }) else { return }
         renamingPath = nil
         draft = Draft(parentDir: directory, isDirectory: isDirectory)
         // Reveal the folder's contents so the input row is visible.
@@ -392,7 +404,7 @@ final class FileTreeModel: nonisolated ObservableObject {
     /// only — so the caller can open it.
     @discardableResult
     func commitDraft(name: String) -> String? {
-        guard let draft else { return nil }
+        guard !isRemote, let draft else { return nil }
         self.draft = nil
         if remoteEndpoint == nil { removeDraftRow() }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -681,7 +693,8 @@ final class FileTreeModel: nonisolated ObservableObject {
                     fm.string(withFileSystemRepresentation: $0, length: Int(entry.pointee.d_namlen))
                 }
             }
-            guard name != ".", name != "..", name != ".git" else { continue }
+            guard name != ".", name != "..", name != ".git",
+                  !(name.hasPrefix(".zshell-import-") && UUID(uuidString: String(name.dropFirst(15))) != nil) else { continue }
             let path = (dir as NSString).appendingPathComponent(name)
             let type = Int32(entry.pointee.d_type)
             var isDirectory = type == DT_DIR

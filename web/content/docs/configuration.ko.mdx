@@ -179,6 +179,12 @@ Zshell은 시작 시와 실행 중 매시간 만료된 백업을 삭제하며, �
 
 환경 변수와 호환성 규약은 [터미널 백엔드](/ko/docs/terminal#terminal-backends)를 참고하세요.
 
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+숫자, 0.1–10 — 각 장치의 기본값 `1`
+
+**설정 → 터미널 → 스크롤 → 마우스 휠 / 트랙패드**에서 두 속도를 따로 조절합니다. 표시는 백분율입니다. 100%는 현재 속도, 50%는 절반, 200%는 두 배입니다. 변경은 열린 Ghostty 및 Alacritty 패널의 스크롤백, 전체 화면 프로그램, 마우스 보고에 즉시 적용됩니다. 관성 스크롤은 트랙패드 값을 따르며 가로 스크롤은 가로 방향을 유지합니다. 정밀 스크롤 델타를 보고하는 마우스도 트랙패드 값을 사용합니다. 누락되거나 잘못된 값은 `1`로 돌아가며 설정 가져오기, 내보내기, 초기화에 두 값이 모두 포함됩니다.
+
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
 불리언 — 기본값 `false`
@@ -225,12 +231,25 @@ Codex app-server를 공유할 때 검증된 대화 ID를 전경 창에 연결하
 
 **설정 → 자동화 → 에이전트 대화 재개**에서 전환합니다. `terminal.restore-history`와 독립적인 설정입니다.
 
+### `ai.usage-enabled`
+
+불리언 — 기본값 `false`
+
+**설정 → 자동화 → 계정 사용량 → 계정 사용량 읽기**에서 로컬 CLI 계정 한도 읽기를 켭니다. 끄면 대기 중인 사용량 요청을 취소하고 데이터를 숨기며 Claude 사용량 보고서 저장을 거부합니다. 공급자 선택은 유지됩니다. 에이전트 인식, 수명 주기 보고 및 대화 복원은 변경하지 않습니다.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+불리언 — 각각 기본값 `true`
+
+`ai.usage-enabled = true`일 때 사용량을 읽을 공급자를 선택합니다. Claude Code는 Zshell의 로컬 상태 표시줄 보고서를 읽고 Codex는 설치되고 로그인된 CLI를 조회합니다. 공급자를 끄면 즉시 읽기를 중지하고 데이터를 숨깁니다. 로그인 자격 증명은 수집하지 않습니다. 세 설정 모두 검색, 가져오기/내보내기, 실시간 설정 다시 로드 및 기본값 복원을 지원합니다.
+
 ## 추가 설정 [#additional-settings]
 
 | 키 | 기본값 | 값 / 범위 | 동작 |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | 앱 아이콘 |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | 파일과 폴더에 사용할 외부 편집기 |
+| `files.drag-import` | `false` | 불리언 | Finder 항목을 로컬 파일 트리로 드래그하여 복사하도록 허용; 메뉴 가져오기는 항상 사용 가능 |
 | `terminal.theme-only` | `false` | 불리언 | 선택한 색상표를 터미널에만 적용 |
 | `terminal.command-history` | `true` | 불리언 | 새 명령 기록 저장. 꺼도 기존 기록 조회 가능 |
 | `terminal.text-hints` | `true` | 불리언 | 화면에 보이는 터미널 텍스트의 키보드 힌트 활성화 |
@@ -238,6 +257,7 @@ Codex app-server를 공유할 때 검증된 대화 ID를 전경 창에 연결하
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | 터미널 커서 모양 |
 | `terminal.cursor-blinking` | `true` | 불리언 | 커서 깜박임 |
 | `terminal.copy-on-select` | `true` | 불리언 | 선택한 터미널 텍스트 복사 |
+| `terminal.right-click-action` | `"context-menu"` | 문자열 | 메뉴, 붙여넣기 또는 선택 영역 복사, 선택이 없으면 붙여넣기 (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | 불리언 | 마우스를 따라가는 포커스 |
 | `terminal.shift-enter-newline` | `true` | 불리언 | Shift+Enter로 확장 줄바꿈 시퀀스 전송. 앱 지원 필요 |
 | `terminal.background-opacity` | `1` | 0.2–1 | 터미널 배경 불투명도 |
@@ -277,6 +297,8 @@ terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

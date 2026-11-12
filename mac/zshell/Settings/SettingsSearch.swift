@@ -36,6 +36,7 @@ enum SettingsSearchIndex {
         let cursor = String(localized: "Cursor")
         let background = String(localized: "Background")
         let input = String(localized: "Input")
+        let scrolling = String(localized: "Scrolling")
         let history = String(localized: "History")
         let profiles = String(localized: "Terminal Profiles")
         let notifications = String(localized: "Notifications")
@@ -119,6 +120,10 @@ enum SettingsSearchIndex {
             item(.terminal, String(localized: "Shell completions"), section: input,
                  keywords: "terminal.shell-completions zsh autosuggestions Tab arguments"),
             item(.terminal, String(localized: "Use Option as Alt/Meta"), section: input, keywords: "terminal.macos-option-as-alt"),
+            item(.terminal, String(localized: "Mouse wheel"), section: scrolling,
+                 keywords: "terminal.mouse-scroll-multiplier scroll speed sensitivity multiplier"),
+            item(.terminal, String(localized: "Trackpad"), section: scrolling,
+                 keywords: "terminal.trackpad-scroll-multiplier scroll speed sensitivity multiplier touchpad"),
             item(.terminal, String(localized: "Terminal bell"), section: notifications, keywords: "terminal.bell"),
             item(.terminal, String(localized: "Shift+Enter inserts a newline"), section: input, keywords: "terminal.shift-enter-newline"),
             item(.terminal, String(localized: "Keep sessions running after quitting"),
@@ -130,6 +135,9 @@ enum SettingsSearchIndex {
                  description: String(localized: "Reopened terminals show their previous scrollback above a fresh shell"),
                  keywords: "terminal.restore-history"),
             item(.terminal, String(localized: "Copy on select"), section: input, keywords: "terminal.copy-on-select clipboard"),
+            item(.terminal, String(localized: "Right-click action"), section: input,
+                 description: TerminalRightClickAction.explanation,
+                 keywords: "terminal.right-click-action right click clipboard " + TerminalRightClickAction.allCases.map(\.title).joined(separator: " ")),
             item(.terminal, String(localized: "Focus follows mouse"), section: input,
                  keywords: "terminal.focus-follows-mouse pointer hover"),
             item(.terminal, String(localized: "Long-running commands"), section: notifications,
@@ -142,6 +150,9 @@ enum SettingsSearchIndex {
             item(.terminal, String(localized: "Enable Quick Terminal"), section: quickTerminal, keywords: "quick-terminal.enabled"),
             item(.editor, String(localized: "External editor"), keywords: "editor.external-editor"),
             item(.editor, String(localized: "Wrap lines to editor width"), keywords: "editor.wrap-lines"),
+            item(.editor, String(localized: "Import by dragging into the file tree"), section: String(localized: "Files"),
+                 description: String(localized: "Copy Finder files and folders into local projects. File → Import Files… is always available."),
+                 keywords: "files.drag-import Finder drag drop import copy file tree"),
             item(.editor, String(localized: "Protect against save conflicts"), keywords: "editor.protect-saves conflict overwrite disk draft"),
             item(.editor, String(localized: "Back up unsaved drafts"), keywords: "editor.recover-drafts autosave recovery backup crash unsaved"),
             item(.editor, String(localized: "Recover Drafts…"), keywords: "editor drafts backup restore delete recovery"),
@@ -149,6 +160,13 @@ enum SettingsSearchIndex {
                  description: String(localized: "Lets agents delegate work and coordinate across Zshell panes"),
                  keywords: "ai.enabled Claude Codex"),
             item(.automation, String(localized: "Agent Conversation History"), keywords: "agent conversations Claude Codex Pi OpenCode history"),
+            item(.automation, String(localized: "Read account usage"), section: String(localized: "Account Usage"),
+                 description: String(localized: "Read account limits from local CLI integrations without collecting sign-in credentials."),
+                 keywords: "ai.usage-enabled account usage limits"),
+            item(.automation, String(localized: "Read Claude Code usage"), section: String(localized: "Account Usage"),
+                 keywords: "ai.claude-usage-enabled Claude account limits"),
+            item(.automation, String(localized: "Read Codex usage"), section: String(localized: "Account Usage"),
+                 keywords: "ai.codex-usage-enabled Codex account limits"),
             item(.recommendations, "Homebrew", section: tools,
                  description: [
                     String(localized: "Tools are downloaded, installed, and updated through your Homebrew installation."),
