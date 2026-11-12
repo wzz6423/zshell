@@ -723,14 +723,41 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// The finished-command marker arrives after the shell has restored the
     /// primary screen. Refreshing here keeps that output when a later TUI
     /// hides the grid that quit is allowed to export.
+    ///
+    /// A persistent session's surface pid is the last 350 ms daemon poll, so
+    /// the command that just exited can still look like the foreground
+    /// process. Ask the daemon once, off the main thread, and apply that pid
+    /// only if this same completion is still current. Ghostty and a
+    /// non-persistent Alacritty surface already report a live pid, so they
+    /// keep the synchronous read.
     private func refreshHistoryAfterCommandFinished() {
         guard remoteConnection == nil else { return }
         guard AppSettings.shared.restoreTerminalHistory else { return }
+        guard let persistentPTY else {
+            refreshFinishedCommandSnapshot(foregroundPID: surface.foregroundPid)
+            return
+        }
+        let generation = commandLifecycle.completionSequence
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let fresh = persistentPTY.fetchForegroundPID()
+            Task { @MainActor [weak self] in
+                guard let self, !self.hasExited, !self.isTerminating,
+                      self.commandLifecycle.completionSequence == generation else { return }
+                self.refreshFinishedCommandSnapshot(
+                    foregroundPID: TerminalHistorySerializer.foregroundPIDForHistoryRefresh(
+                        cached: self.surface.foregroundPid, fresh: fresh
+                    )
+                )
+            }
+        }
+    }
+
+    private func refreshFinishedCommandSnapshot(foregroundPID: pid_t?) {
         TerminalHistorySerializer.refreshSnapshotAfterCommandFinished(
             &lastHistorySnapshot,
             from: surface,
             shellPID: shellPid,
-            foregroundPID: surface.foregroundPid,
+            foregroundPID: foregroundPID,
             maxLines: Self.persistedHistoryLineLimit
         )
     }
@@ -1482,13 +1509,15 @@ extension TerminalSession: TerminalBackendEvents, NSMenuItemValidation {
             lifecycle.lastDurationNanos = reportedDuration ?? measuredDuration
             lifecycle.completionSequence &+= 1
             commandExecutionStartedAtNanos = nil
-            refreshHistoryAfterCommandFinished()
             // The libghostty path: the shell integration's completed-command
             // report is the one "back at the prompt" event it exposes.
             promptQueueDidObservePromptReturn()
         }
         commandLifecycle = lifecycle
         if case .commandFinished = event {
+            // After the sequence is published, so a completion that arrives
+            // while the persistent-pid read is in flight can supersede it.
+            refreshHistoryAfterCommandFinished()
             TerminalCommandTaskStore.shared.observeCompletion(in: self)
             ZshellAutomationEventHub.shared.commandFinished(in: self)
         }

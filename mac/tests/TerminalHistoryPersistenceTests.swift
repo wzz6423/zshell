@@ -218,6 +218,48 @@ struct TerminalHistoryPersistenceTests {
                 && quit?.isEmpty == false,
             "quit with no scrollback export and a non-shell foreground returns that cached snapshot rather than an empty or alternate-screen capture"
         )
+
+        let cachedChild: pid_t = 9090
+        let freshShell = TerminalHistorySerializer.foregroundPIDForHistoryRefresh(
+            cached: cachedChild, fresh: shell
+        )
+        try check(
+            freshShell == shell,
+            "a fresh foreground pid replaces the cached poll value"
+        )
+        surface.screenText = "LIVE_SHELL_OUTPUT\n"
+        TerminalHistorySerializer.refreshSnapshotAfterCommandFinished(
+            &snapshot,
+            from: surface,
+            shellPID: shell,
+            foregroundPID: freshShell,
+            maxLines: 500
+        )
+        try check(
+            snapshot == "LIVE_SHELL_OUTPUT",
+            "a fresh root-shell pid captures and replaces the cache"
+        )
+
+        surface.screenText = "ALTERNATE_SCREEN_TUI\n"
+        let freshEditor = TerminalHistorySerializer.foregroundPIDForHistoryRefresh(
+            cached: shell, fresh: editor
+        )
+        TerminalHistorySerializer.refreshSnapshotAfterCommandFinished(
+            &snapshot,
+            from: surface,
+            shellPID: shell,
+            foregroundPID: freshEditor,
+            maxLines: 500
+        )
+        try check(
+            freshEditor == editor && snapshot == "LIVE_SHELL_OUTPUT",
+            "a fresh pid that is not the root shell does not capture the visible screen"
+        )
+
+        try check(
+            TerminalHistorySerializer.foregroundPIDForHistoryRefresh(cached: shell, fresh: nil) == shell,
+            "without a fresh pid the cached foreground pid is used"
+        )
     }
     #endif
 

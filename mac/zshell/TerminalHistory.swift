@@ -166,6 +166,15 @@ enum TerminalHistorySerializer {
         shellPID != nil && foregroundPID == shellPID
     }
 
+    /// A persistent session's surface pid is the last daemon poll. History
+    /// refresh uses a pid just read from the daemon when that read returned
+    /// one, and otherwise keeps the surface's current value.
+    nonisolated static func foregroundPIDForHistoryRefresh(
+        cached: pid_t?, fresh: pid_t?
+    ) -> pid_t? {
+        fresh ?? cached
+    }
+
     /// Replaces the cached shell scrollback when a command has just returned
     /// to the root shell. A TUI must not overwrite that cache.
     @MainActor

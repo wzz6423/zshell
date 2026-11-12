@@ -76,6 +76,18 @@ final class PersistentPTY: @unchecked Sendable {
         )
     }
 
+    /// One daemon read of the foreground pid. ``foregroundPID`` is only the
+    /// last poll, so a command can exit while that cache still names the child.
+    func fetchForegroundPID() -> pid_t? {
+        guard let response = try? PTYMuxCommandLine.exchange(
+            method: "get", params: ["id": .string(id.uuidString)], timeout: 0.2
+        ), let value = response.result?.objectValue?["foregroundPid"]?.intValue else {
+            return nil
+        }
+        let pid = pid_t(value)
+        return pid > 0 ? pid : nil
+    }
+
     func startMonitoring() {
         let timer = DispatchSource.makeTimerSource(queue: DispatchQueue(label: "sh.zshell.pty-mux.foreground.\(id)"))
         timer.schedule(deadline: .now(), repeating: .milliseconds(350), leeway: .milliseconds(100))
