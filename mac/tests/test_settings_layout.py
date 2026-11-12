@@ -84,12 +84,6 @@ final class ProbePane: SettingsPaneViewController {
                     let expectedRatio = hasError ? 21.0 : 1.0
                     precondition(contrastSlider.doubleValue == expectedRatio && contrastStepper.doubleValue == expectedRatio)
                     precondition(contrastSlider.accessibilityLabel() == String(localized: "Minimum contrast"))
-                    contrastStepper.doubleValue = 7.1
-                    contrastStepper.sendAction(contrastStepper.action, to: contrastStepper.target)
-                    precondition(pane.contrastChanges.last == 7.1 && contrastSlider.doubleValue == 7.1)
-                    contrastSlider.doubleValue = 3.04
-                    contrastSlider.sendAction(contrastSlider.action, to: contrastSlider.target)
-                    precondition(pane.contrastChanges.last == 3 && contrastStepper.doubleValue == 3)
                     samples.append([
                         "language": language.rawValue, "width": width, "hasError": hasError,
                         "cardHeight": pane.card.frame.height,
@@ -116,6 +110,12 @@ final class ProbePane: SettingsPaneViewController {
                             )).height
                         },
                     ])
+                    contrastStepper.doubleValue = 7.1
+                    contrastStepper.sendAction(contrastStepper.action, to: contrastStepper.target)
+                    precondition(pane.contrastChanges.last == 7.1 && contrastSlider.doubleValue == 7.1)
+                    contrastSlider.doubleValue = 3.04
+                    contrastSlider.sendAction(contrastSlider.action, to: contrastSlider.target)
+                    precondition(pane.contrastChanges.last == 3 && contrastStepper.doubleValue == 3)
                 }
             }
             window.close()
