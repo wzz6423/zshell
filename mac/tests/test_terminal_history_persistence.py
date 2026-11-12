@@ -82,7 +82,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-history-persistence-", dir="/tmp
         (home / "tmp").mkdir()
         environment = {key: value for key, value in os.environ.items() if not key.startswith("ZSHELL_")}
         environment.update(HOME=str(home), CFFIXED_USER_HOME=str(home), ZDOTDIR=str(home),
-                           TMPDIR=str(home / "tmp"), ZSHELL_PTY_MUX_DIRECTORY=str(home / "mux"),
+                           ZSHELL_PTY_MUX_DIRECTORY=str(home / "mux"),
                            ZSHELL_SSH_AGENT_RESOLVED="1", GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL="/dev/null")
         executable = binary
         domain = None
@@ -104,7 +104,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-history-persistence-", dir="/tmp
             }))
             (contents / "Resources").symlink_to(bundle / "Contents/Resources", target_is_directory=True)
             for name in (".zshenv", ".zshrc", ".zprofile", ".zlogin"):
-                (home / name).write_text('export HOME="$CFFIXED_USER_HOME"\nexport ZDOTDIR="$HOME"\nHISTFILE=/dev/null\n')
+                (home / name).write_text('export HOME="$CFFIXED_USER_HOME"\nHISTFILE=/dev/null\n')
         process = subprocess.Popen([str(executable), mode, str(home)], cwd=ROOT, env=environment,
                                    start_new_session=True)
         try:

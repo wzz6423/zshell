@@ -14,6 +14,11 @@ struct TerminalHistoryPersistenceTests {
     private static let manager = FileManager.default
 
     static func main() {
+        #if !TERMINAL_HISTORY_STORE_PROBE
+        if PTYMuxCommandLine.shouldRunChild { PTYMuxCommandLine.runChild() }
+        if PTYMuxCommandLine.shouldRunRelay { PTYMuxRelay.run() }
+        if PTYMuxCommandLine.shouldRunDaemon { PTYMuxCommandLine.runDaemon() }
+        #endif
         setbuf(stdout, nil)
         let root = URL(fileURLWithPath: CommandLine.arguments[2]).resolvingSymlinksInPath()
         do {
@@ -219,46 +224,34 @@ struct TerminalHistoryPersistenceTests {
             "quit with no scrollback export and a non-shell foreground returns that cached snapshot rather than an empty or alternate-screen capture"
         )
 
-        let cachedChild: pid_t = 9090
-        let freshShell = TerminalHistorySerializer.foregroundPIDForHistoryRefresh(
-            cached: cachedChild, fresh: shell
-        )
-        try check(
-            freshShell == shell,
-            "a fresh foreground pid replaces the cached poll value"
-        )
         surface.screenText = "LIVE_SHELL_OUTPUT\n"
-        TerminalHistorySerializer.refreshSnapshotAfterCommandFinished(
-            &snapshot,
-            from: surface,
-            shellPID: shell,
-            foregroundPID: freshShell,
-            maxLines: 500
+        let completedCapture = TerminalHistorySerializer.capture(from: surface, maxLines: 500)
+        surface.screenText = "ALTERNATE_SCREEN_TUI\n"
+        TerminalHistorySerializer.storeFinishedCommandCapture(
+            completedCapture, into: &snapshot,
+            shellPID: shell, foregroundPID: shell
         )
         try check(
             snapshot == "LIVE_SHELL_OUTPUT",
-            "a fresh root-shell pid captures and replaces the cache"
+            "a delayed root-shell pid stores the completed command rather than the later TUI"
         )
 
-        surface.screenText = "ALTERNATE_SCREEN_TUI\n"
-        let freshEditor = TerminalHistorySerializer.foregroundPIDForHistoryRefresh(
-            cached: shell, fresh: editor
-        )
-        TerminalHistorySerializer.refreshSnapshotAfterCommandFinished(
-            &snapshot,
-            from: surface,
-            shellPID: shell,
-            foregroundPID: freshEditor,
-            maxLines: 500
+        TerminalHistorySerializer.storeFinishedCommandCapture(
+            completedCapture, into: &snapshot,
+            shellPID: shell, foregroundPID: editor
         )
         try check(
-            freshEditor == editor && snapshot == "LIVE_SHELL_OUTPUT",
-            "a fresh pid that is not the root shell does not capture the visible screen"
+            snapshot == "LIVE_SHELL_OUTPUT",
+            "a non-shell foreground pid leaves the cached history unchanged"
         )
 
+        TerminalHistorySerializer.storeFinishedCommandCapture(
+            .captured("UNCONFIRMED_CAPTURE"), into: &snapshot,
+            shellPID: shell, foregroundPID: nil
+        )
         try check(
-            TerminalHistorySerializer.foregroundPIDForHistoryRefresh(cached: shell, fresh: nil) == shell,
-            "without a fresh pid the cached foreground pid is used"
+            snapshot == "LIVE_SHELL_OUTPUT",
+            "a failed foreground query leaves the cached history unchanged"
         )
     }
     #endif
@@ -378,12 +371,73 @@ struct TerminalHistoryPersistenceTests {
                   "reopening the last window preserves terminal identities")
         try check(try inode() == closedInode && read() == closedHistory,
                   "reopened cached history does not trigger another write")
+        try completedHistorySurvivesTUI(root: root)
         settings.restoreTerminalHistory = false
         reopened.objectWillChange.send()
         pump(0.8)
         try check(!manager.fileExists(atPath: fileURL.path) && historyKeys().isEmpty,
                   "disabling history removes the sidecar and layout references")
         try check(QuickTerminalOffscreen.isSafe(), "backend acceptance remains offscreen without taking input")
+    }
+
+    private static func completedHistorySurvivesTUI(root: URL) throws {
+        let settings = AppSettings.shared
+        let previousPreservation = settings.preserveTerminalSessions
+        defer { settings.preserveTerminalSessions = previousPreservation }
+        for persistent in [false, true] {
+            settings.preserveTerminalSessions = persistent
+            let marker = "COMPLETED_OUTPUT_\(UUID().uuidString.replacingOccurrences(of: "-", with: ""))"
+            let session = TerminalSession(
+                initialDirectory: root.path, restoredHistory: "PREVIOUS_LAUNCH_HISTORY",
+                usesConfiguredStartupCommand: false, usesConfiguredInitializationCommand: false
+            )
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 440),
+                                  styleMask: [.titled], backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.contentView = session.surface
+            session.surface.frame = NSRect(x: 0, y: 0, width: 800, height: 440)
+            session.surface.setSurfaceVisible(true)
+            window.orderFront(nil)
+            defer {
+                session.terminate()
+                pump(0.3)
+                window.contentView = nil
+                window.close()
+            }
+            try wait("\(persistent ? "persistent" : "direct") shell starts") {
+                session.shellPid != nil && session.terminalPromptQueueIsReady
+            }
+            try check((session.persistentSessionID != nil) == persistent,
+                      "the history fixture uses the requested PTY lifecycle")
+            let completion = session.commandLifecycle.completionSequence
+            session.sendCommand("printf '\(marker)\\n'")
+            session.sendEnter()
+            do {
+                try wait("the real shell finishes the history command") {
+                    session.commandLifecycle.completionSequence > completion
+                }
+            } catch {
+                print("HISTORY_TUI_DIAGNOSTIC persistent=\(persistent) lifecycle=\(session.commandLifecycle) shell=\(session.shellPid ?? 0) foreground=\(session.surface.foregroundPid ?? 0) visible=\(session.surface.readVisibleText(maxLines: 30, maxColumns: 180) ?? "nil")")
+                throw error
+            }
+            do {
+                try wait("command completion updates the cached screen") {
+                    session.serializedHistory(captureLive: false)?.contains(marker) == true
+                }
+            } catch {
+                print("HISTORY_CACHE_DIAGNOSTIC persistent=\(persistent) lifecycle=\(session.commandLifecycle) shell=\(session.shellPid ?? 0) foreground=\(session.surface.foregroundPid ?? 0) cache=\(session.serializedHistory(captureLive: false) ?? "nil") visible=\(session.surface.readVisibleText(maxLines: 30, maxColumns: 180) ?? "nil")")
+                throw error
+            }
+            session.sendCommand("python3 -c 'import sys,time;sys.stdout.write(\"\\x1b[?1049h\\x1b[2J\\x1b[HREAL_TUI_VISIBLE\");sys.stdout.flush();time.sleep(30)'")
+            session.sendEnter()
+            try wait("the next real process owns the alternate screen") {
+                session.surface.readVisibleText(maxLines: 30, maxColumns: 120)?.contains("REAL_TUI_VISIBLE") == true
+                    && session.surface.foregroundPid != session.shellPid
+            }
+            let saved = session.serializedHistory(captureLive: true)
+            try check(saved?.contains(marker) == true && saved?.contains("REAL_TUI_VISIBLE") == false,
+                      "quit-time capture inside a real TUI retains the completed shell output")
+        }
     }
 
     private static func historyKeys() -> Set<String> {

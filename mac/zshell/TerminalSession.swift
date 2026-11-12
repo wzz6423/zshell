@@ -726,10 +726,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     ///
     /// A persistent session's surface pid is the last 350 ms daemon poll, so
     /// the command that just exited can still look like the foreground
-    /// process. Ask the daemon once, off the main thread, and apply that pid
-    /// only if this same completion is still current. Ghostty and a
-    /// non-persistent Alacritty surface already report a live pid, so they
-    /// keep the synchronous read.
+    /// process. Capture this completion's screen before querying the daemon
+    /// off the main thread. Its reply only authorizes that immutable capture;
+    /// reading the surface afterwards could capture the next command's TUI.
     private func refreshHistoryAfterCommandFinished() {
         guard remoteConnection == nil else { return }
         guard AppSettings.shared.restoreTerminalHistory else { return }
@@ -737,16 +736,22 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             refreshFinishedCommandSnapshot(foregroundPID: surface.foregroundPid)
             return
         }
+        let capture = TerminalHistorySerializer.capture(
+            from: surface, maxLines: Self.persistedHistoryLineLimit
+        )
+        guard case .captured = capture else { return }
+        let shellPID = shellPid
         let generation = commandLifecycle.completionSequence
         DispatchQueue.global(qos: .utility).async { [weak self] in
             let fresh = persistentPTY.fetchForegroundPID()
             Task { @MainActor [weak self] in
                 guard let self, !self.hasExited, !self.isTerminating,
+                      AppSettings.shared.restoreTerminalHistory,
+                      self.commandLifecycle.phase != .executing,
                       self.commandLifecycle.completionSequence == generation else { return }
-                self.refreshFinishedCommandSnapshot(
-                    foregroundPID: TerminalHistorySerializer.foregroundPIDForHistoryRefresh(
-                        cached: self.surface.foregroundPid, fresh: fresh
-                    )
+                TerminalHistorySerializer.storeFinishedCommandCapture(
+                    capture, into: &self.lastHistorySnapshot,
+                    shellPID: shellPID, foregroundPID: fresh
                 )
             }
         }

@@ -11,7 +11,7 @@ import Foundation
 /// terminal backend's buffer representation. A backend writes its screen to a
 /// temporary VT file; the rest of this utility operates only on that stream.
 enum TerminalHistorySerializer {
-    enum CaptureResult {
+    nonisolated enum CaptureResult: Sendable {
         case captured(String?)
         case failed
     }
@@ -166,15 +166,6 @@ enum TerminalHistorySerializer {
         shellPID != nil && foregroundPID == shellPID
     }
 
-    /// A persistent session's surface pid is the last daemon poll. History
-    /// refresh uses a pid just read from the daemon when that read returned
-    /// one, and otherwise keeps the surface's current value.
-    nonisolated static func foregroundPIDForHistoryRefresh(
-        cached: pid_t?, fresh: pid_t?
-    ) -> pid_t? {
-        fresh ?? cached
-    }
-
     /// Replaces the cached shell scrollback when a command has just returned
     /// to the root shell. A TUI must not overwrite that cache.
     @MainActor
@@ -189,6 +180,20 @@ enum TerminalHistorySerializer {
             return
         }
         storeCapturedScreen(into: &snapshot, from: surface, maxLines: maxLines)
+    }
+
+    /// Applies the screen captured at completion, never a later TUI screen.
+    /// A failed foreground query cannot authorize replacing the cache.
+    @MainActor
+    static func storeFinishedCommandCapture(
+        _ capture: CaptureResult,
+        into snapshot: inout String?,
+        shellPID: pid_t?,
+        foregroundPID: pid_t?
+    ) {
+        guard rootShellIsForeground(shellPID: shellPID, foregroundPID: foregroundPID),
+              case .captured(let captured) = capture else { return }
+        snapshot = captured
     }
 
     /// Snapshot for quit and last-window close. The alternate-screen guard
