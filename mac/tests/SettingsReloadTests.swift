@@ -174,6 +174,8 @@ struct SettingsReloadTests {
         check(IntegrationFixture.operations == usageIntegrations,
               "usage settings never install or uninstall agent lifecycle integration")
         check(settings.keepAwakeMode == .off, "sleep prevention is off by default")
+        check(settings.sidebarDoubleClickNewSession,
+              "empty-space gesture is enabled by default")
         check(settings.newSessionDirectoryPolicy == .current && settings.newSessionCustomDirectory.isEmpty,
               "new sessions inherit their current context by default")
         settings.newSessionDirectoryPolicy = .project
@@ -286,6 +288,7 @@ struct SettingsReloadTests {
         terminal.font-fallback-family = "Fixture CJK"
         font-size = 19
         sidebar.font-size = 18
+        sidebar.double-click-new-session = false
         interface.scale = 1.3
         toolbar.visibility = "always"
         git.proxy-enabled = true
@@ -488,6 +491,8 @@ struct SettingsReloadTests {
         check(!settings.vimCommandHints && !settings.restoreTerminalHistory && !settings.notifyOnError,
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
+        check(settings.sidebarDoubleClickNewSession,
+              "omitted sidebar gesture key restores the default on external reload")
         check(settings.newSessionDirectoryPolicy == .current && settings.newSessionCustomDirectory.isEmpty,
               "empty config resets both directory preferences")
         check(settings.terminalTerm == "xterm-256color" && !settings.terminalTermIsInvalid,
@@ -512,7 +517,7 @@ struct SettingsReloadTests {
         let featureSwitches: [ReferenceWritableKeyPath<AppSettings, Bool>] = [
             \.protectEditorSaves, \.recoverEditorDrafts, \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints, \.promptQueueEnabled,
             \.automaticallyApplyTerminalProfiles, \.notifyOnAgentAttention,
-            \.notifyOnAgentCompletion, \.showPullRequestStatus,
+            \.notifyOnAgentCompletion, \.showPullRequestStatus, \.sidebarDoubleClickNewSession,
             \.claudeUsageEnabled, \.codexUsageEnabled,
         ]
         for keyPath in featureSwitches {

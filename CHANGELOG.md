@@ -18,6 +18,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Close a split pane from its header and create sessions by double-clicking
+  empty project-sidebar space. The double-click action can be disabled in Settings.
 - Choose the terminal type (`TERM`) for new local and remote sessions while
   open and preserved shells keep their original identity.
 - Recover unsaved file and editable diff drafts after an unexpected exit,

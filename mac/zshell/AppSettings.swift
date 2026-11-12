@@ -252,6 +252,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var sidebarDoubleClickNewSession: Bool {
+        didSet { save() }
+    }
+
     /// Scale applied to application chrome while terminal and editor content
     /// keep their separately configured font size.
     @Published var interfaceScale: Double {
@@ -636,6 +640,7 @@ final class AppSettings: nonisolated ObservableObject {
         sidebarFontSize = Self.sidebarFontSizeRange.contains(sidebarSize)
             ? sidebarSize
             : Self.defaultSidebarFontSize
+        sidebarDoubleClickNewSession = toml["sidebar.double-click-new-session"]?.bool ?? true
         let interfaceScale = toml["interface.scale"]?.double
             ?? Self.defaultInterfaceScale
         self.interfaceScale = Self.interfaceScaleRange.contains(interfaceScale)
@@ -848,6 +853,7 @@ final class AppSettings: nonisolated ObservableObject {
             && fontFallbackFamily.isEmpty
             && fontSize == Self.defaultFontSize
             && sidebarFontSize == Self.defaultSidebarFontSize
+            && sidebarDoubleClickNewSession
             && interfaceScale == Self.defaultInterfaceScale
             && !fontThicken
             && fontThickenStrength == Self.defaultFontThickenStrength
@@ -922,6 +928,7 @@ final class AppSettings: nonisolated ObservableObject {
         applicationPresence = .dockOnly
         keepAwakeMode = .off
         resetFont()
+        sidebarDoubleClickNewSession = true
         language = .system
         theme = .system
         themeDark = Theme.defaultDarkThemeName
@@ -1131,6 +1138,7 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.sidebarFontSize, Self.sidebarFontSizeRange.contains(sidebarSize)
             ? sidebarSize
             : Self.defaultSidebarFontSize)
+        assign(\.sidebarDoubleClickNewSession, toml["sidebar.double-click-new-session"]?.bool ?? true)
         let scale = toml["interface.scale"]?.double ?? Self.defaultInterfaceScale
         assign(\.interfaceScale, Self.interfaceScaleRange.contains(scale)
             ? scale : Self.defaultInterfaceScale)
@@ -1360,6 +1368,7 @@ final class AppSettings: nonisolated ObservableObject {
         if sidebarFontSize != Self.defaultSidebarFontSize {
             lines.append("sidebar.font-size = \(TOML.number(sidebarFontSize))")
         }
+        if !sidebarDoubleClickNewSession { lines.append("sidebar.double-click-new-session = false") }
         if interfaceScale != Self.defaultInterfaceScale {
             lines.append("interface.scale = \(TOML.number(interfaceScale))")
         }

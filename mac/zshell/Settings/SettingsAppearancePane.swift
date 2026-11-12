@@ -34,6 +34,8 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
         AppSettings.shared.terminalThemeOnly = $0
     }
 
+    private let sidebarDoubleClickSwitch = SettingsSwitch { AppSettings.shared.sidebarDoubleClickNewSession = $0 }
+
     private lazy var familyPopUp = SettingsPopUpButton<String>(
         items: [
             // The empty tag is the bundled family: a config naming no family
@@ -210,6 +212,9 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
                 interfaceScaleRow,
                 sidebarFontSizeRow,
             ]),
+            SettingsGroup(header: String(localized: "Project Sidebar"), rows: [
+                SettingsRow(title: String(localized: "Double-click empty space to create a session"), control: sidebarDoubleClickSwitch, symbolName: "plus.rectangle"),
+            ]),
             panesGroup,
         ]
     }
@@ -228,6 +233,7 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
         fallbackFamilyPopUp.select(settings.fontFallbackFamily)
         fontSizeRow.setValue(settings.fontSize)
         sidebarFontSizeRow.setValue(settings.sidebarFontSize)
+        sidebarDoubleClickSwitch.isOn = settings.sidebarDoubleClickNewSession
         interfaceScaleRow.setValue(settings.interfaceScale)
         ligaturesSwitch.isOn = settings.fontLigatures
         if featuresField.currentEditor() == nil {

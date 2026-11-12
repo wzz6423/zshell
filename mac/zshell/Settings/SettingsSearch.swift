@@ -101,6 +101,7 @@ enum SettingsSearchIndex {
             item(.appearance, String(localized: "Thicken font strokes"), section: font, keywords: "terminal.font-thicken"),
             item(.appearance, String(localized: "Interface size"), section: interface, keywords: "interface.scale"),
             item(.appearance, String(localized: "Font size"), section: interface, keywords: "sidebar.font-size"),
+            item(.appearance, String(localized: "Double-click empty space to create a session"), section: String(localized: "Project Sidebar"), keywords: "sidebar.double-click-new-session blank new tab"),
             item(.appearance, String(localized: "Show focus ring on active pane"), section: panes, keywords: "panes.show-focus-ring"),
             item(.terminal, String(localized: "Startup"), description: [
                 String(localized: "Changes apply only to new terminals. Open terminals keep their current process."),
