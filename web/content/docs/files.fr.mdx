@@ -24,6 +24,16 @@ Cliquez sur un fichier pour l'ouvrir dans le volet actif. Les autres actions son
 
 Les lignes utilisent des icônes Material adaptées aux noms de fichiers. Dans un dépôt Git, les chemins modifiés portent également des couleurs et des badges d'état, tandis que les fichiers ignorés sont atténués. L'arborescence reflète ainsi le même état de l'arbre de travail que le panneau Git.
 
+## Fichiers distants [#remote-files]
+
+Ouvrez les fichiers SSH dans le panneau Fichiers. Pour créer, renommer, déplacer vers la corbeille distante ou enregistrer, activez **Réglages → Éditeur → Fichiers → Autoriser la modification des fichiers distants** (`files.remote-write-enabled`, désactivé par défaut).
+
+Zshell utilise uniquement les outils déjà présents sur l’hôte, sans rien installer. La lecture et l’édition utilisent ses modules de base Perl existants. Chaque écriture vérifie aussi les fonctions nécessaires du système de fichiers ; les opérations non prises en charge restent désactivées. Les liens symboliques, fichiers spéciaux et chemins hors du projet sont refusés. Les textes UTF-8 sont limités à 5 MiB ; le Markdown distant s’ouvre en mode source.
+
+L’enregistrement distant vérifie les modifications même si la protection locale est désactivée. En cas de conflit, comparez, conservez le brouillon, rechargez depuis l’hôte ou autorisez l’écrasement. La version comparée est revérifiée juste avant la publication du fichier complet ; un processus externe peut encore écrire après cette dernière vérification.
+
+**Déplacer vers la corbeille distante** conserve le contenu et le chemin d’origine dans le dossier privé `.zshell-trash` du projet. **Restaurer le dernier élément distant** restaure le dernier élément pendant la sélection actuelle du projet sans remplacer un nom existant. Les éléments plus anciens restent récupérables manuellement dans ce dossier.
+
 ## Importer des fichiers et dossiers [#import-files-and-folders]
 
 Choisissez **Fichier → Importer des fichiers…**, le bouton d’importation du panneau Fichiers, ou cette commande dans le menu contextuel d’un dossier. Sélectionnez plusieurs fichiers ou dossiers : Zshell les copie dans le dossier choisi ou à la racine actuelle, en conservant les originaux.

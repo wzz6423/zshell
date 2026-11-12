@@ -225,6 +225,7 @@ final class SourceEditorController: NSObject, STTextViewDelegate {
     /// and this runs on every settings or appearance change.
     private func apply(font: NSFont, palette: EditorPalette, wrapLines: Bool) {
         guard let textView else { return }
+        textView.isEditable = file.allowsEditing
         if textView.font != font {
             textView.font = font
         }

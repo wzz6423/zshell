@@ -273,6 +273,18 @@ struct SettingsReloadTests {
         settings.fileTreeDragImport = true
         settings.resetToDefaults()
         check(!settings.fileTreeDragImport && settings.isAtDefaults, "reset disables file drag import")
+        check(!settings.remoteFileWritesEnabled, "remote writes are opt-in")
+        settings.remoteFileWritesEnabled = true
+        check(!settings.isAtDefaults, "remote writes enable reset")
+        wait({ (try? String(contentsOf: url, encoding: .utf8))?.contains("files.remote-write-enabled = true") == true },
+             "remote write preference persists")
+        var remoteWriteConfig = TOML.parse(at: url) ?? [:]
+        remoteWriteConfig["files.remote-write-enabled"] = .bool(false)
+        settings.applyImported(remoteWriteConfig)
+        check(!settings.remoteFileWritesEnabled && settings.isAtDefaults, "import disables remote writes")
+        settings.remoteFileWritesEnabled = true
+        settings.resetToDefaults()
+        check(!settings.remoteFileWritesEnabled && settings.isAtDefaults, "reset disables remote writes")
         settings.commandShortcuts[.newSession] = CommandShortcut(persistedValue: "u7a:cmd+shift")!
         check(!settings.isAtDefaults, "shortcut overrides enable reset")
         settings.resetCommandShortcuts()
