@@ -29,6 +29,9 @@ def main():
         limited = temporary / "limited-tools-ssh"
         limited.write_text(f"#!/bin/sh\nfor argument do command=\"$argument\"; done\nPERL5LIB='{temporary}' PERL5OPT=-MNoAtomicRename exec /bin/sh -c \"$command\"\n")
         limited.chmod(0o700)
+        invalid = temporary / "invalid-names-ssh"
+        invalid.write_text("#!/bin/sh\nprintf '0\\000\\377\\000'\n")
+        invalid.chmod(0o700)
         configuration = temporary / "ssh_config"
         configuration.write_text("Host fixture.invalid\n    HostName fixture.invalid\n")
         environment = dict(os.environ)
@@ -47,7 +50,7 @@ def main():
             str(support), str(ROOT / "mac/tests/RemoteFileServiceTests.swift"), "-o", str(binary),
         ], cwd=ROOT, check=True, timeout=120)
         with tempfile.TemporaryDirectory(prefix=".zshell-remote-file-test-", dir=Path.home()) as named_home:
-            subprocess.run([str(binary), str(temporary), str(ssh), str(missing), str(limited), named_home],
+            subprocess.run([str(binary), str(temporary), str(ssh), str(missing), str(limited), named_home, str(invalid)],
                            cwd=ROOT, env=environment, check=True, timeout=90)
 
 
