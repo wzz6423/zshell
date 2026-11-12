@@ -380,8 +380,7 @@ restored either way.
 boolean — default `true`
 
 Lets supported coding agents coordinate background Zshell panes when you ask in
-plain language, and shows provider-reported lifecycle status in the UI. Zshell
-does not infer status from terminal text. The Settings toggle is the recommended
+plain language, and shows provider-reported lifecycle status in the UI. The Settings toggle is the recommended
 way to change it because errors are shown inline and conflicting existing setups
 are left untouched.
 
@@ -506,3 +505,12 @@ them. **Restore Default Shortcuts** resets all overrides. The
   Zshell's macOS preferences and session snapshot.
 - **Backend config files.** Zshell does not read `~/.config/ghostty` or an
   Alacritty config. Zshell's settings are the supported surface for both.
+
+
+## Agent recognition rules [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, default `true`
+
+Open **Settings → AI → Agent Recognition** or **Agents → Manage Agent Rules…** to add, edit, delete, import, export, or reset local rules. **Use custom recognition rules** and **Infer agent state from the screen** are separate switches; both default to on. Switching either off clears its existing screen evidence immediately. Native lifecycle events and explicit program reports keep priority.
+
+[agents.toml](/en/docs/automation#agent-recognition-rules)

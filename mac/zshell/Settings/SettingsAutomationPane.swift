@@ -19,6 +19,15 @@ final class SettingsAutomationPane: SettingsPaneViewController {
     private let usageSwitch = SettingsSwitch { AppSettings.shared.agentUsageEnabled = $0 }
     private let claudeUsageSwitch = SettingsSwitch { AppSettings.shared.claudeUsageEnabled = $0 }
     private let codexUsageSwitch = SettingsSwitch { AppSettings.shared.codexUsageEnabled = $0 }
+    private let customRulesSwitch = SettingsSwitch { AppSettings.shared.customAgentRecognitionRules = $0 }
+    private let screenInferenceSwitch = SettingsSwitch { AppSettings.shared.agentScreenInference = $0 }
+    private lazy var recognitionGroup = SettingsGroup(header: String(localized: "Agent Recognition"), rows: [
+        SettingsRow(title: String(localized: "Use custom recognition rules"), control: customRulesSwitch, symbolName: "slider.horizontal.3"),
+        SettingsRow(title: String(localized: "Infer agent state from the screen"),
+                    description: String(localized: "Uses two live footer samples. Native lifecycle events and program reports take priority."),
+                    control: screenInferenceSwitch, symbolName: "text.viewfinder"),
+        SettingsButtonRow(title: String(localized: "Manage Agent Rules…")) { AgentRecognitionRulesController.shared.show() },
+    ])
     private lazy var integrationGroup = SettingsGroup(rows: [
         SettingsCustomRow(supportView),
         SettingsRow(title: String(localized: "Resume agent conversations"), control: resumeConversationsSwitch),
@@ -66,13 +75,15 @@ final class SettingsAutomationPane: SettingsPaneViewController {
     }
 
     override func makeGroups() -> [NSView] {
-        [integrationGroup, notificationGroup, usageGroup]
+        [integrationGroup, recognitionGroup, notificationGroup, usageGroup]
     }
 
     override func syncFromSettings() {
         let visibility = SettingsVisibility.current
         supportView.apply(isEnabled: settings.aiEnabled)
         resumeConversationsSwitch.isOn = settings.resumeAgentConversations
+        customRulesSwitch.isOn = settings.customAgentRecognitionRules
+        screenInferenceSwitch.isOn = settings.agentScreenInference
         integrationGroup.setRowHidden(!visibility.aiEnabled, at: 1)
         notifyAttentionSwitch.isOn = settings.notifyOnAgentAttention
         notifyCompletionSwitch.isOn = settings.notifyOnAgentCompletion

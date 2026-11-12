@@ -18,6 +18,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Customize local agent command recognition and screen rules from Settings,
+  with independent screen-inference controls and portable `agents.toml` files.
 - Wrap long diff lines to the pane width from the diff toolbar or Editor
   settings, including split layouts, editable changes, and PR comments.
 - Open remote project files over SSH and enable creating, renaming, recoverable

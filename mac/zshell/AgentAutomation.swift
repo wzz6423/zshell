@@ -7,7 +7,7 @@ import AppKit
 import Darwin
 import Foundation
 
-enum ZshellAgentKind: String, CaseIterable, Codable, Sendable {
+nonisolated enum ZshellAgentKind: String, CaseIterable, Codable, Sendable {
     case codex
     case claude
     case gemini
@@ -36,11 +36,16 @@ enum ZshellAgentKind: String, CaseIterable, Codable, Sendable {
 
     var executable: String { rawValue }
 
-    static func recognize(processID: pid_t) -> Self? {
+    @MainActor static func recognize(processID: pid_t) -> Self? {
         recognize(
             executablePath: processExecutablePath(pid: processID),
             arguments: processArguments(pid: processID) ?? []
         )
+    }
+
+    @MainActor static func recognizeBuiltin(processID: pid_t) -> Self? {
+        let identity = AgentRecognitionRulesStore.shared.recognize(processID: processID)
+        return identity.flatMap { $0.kind == .program ? nil : $0.kind }
     }
 
     static func recognize(
@@ -57,21 +62,10 @@ enum ZshellAgentKind: String, CaseIterable, Codable, Sendable {
               isScriptInterpreter((executablePath as NSString).lastPathComponent)
         else { return nil }
 
-        let tail = Array(arguments.dropFirst().prefix(8))
-        if let moduleFlag = tail.firstIndex(of: "-m"),
-           tail.indices.contains(moduleFlag + 1),
-           let kind = recognizeScriptIdentity(tail[moduleFlag + 1]) {
-            return kind
-        }
-
         // For the supported wrappers the first non-option operand identifies
         // the script. Stop there rather than scanning prompts or user paths,
         // which would make ordinary interpreter jobs look like agents.
-        for value in tail {
-            if value.hasPrefix("-") || value == "run" { continue }
-            return recognizeScriptIdentity(value)
-        }
-        return nil
+        return scriptIdentityOperand(arguments).flatMap(recognizeScriptIdentity)
     }
 
     private static func recognizeCommandName(_ value: String) -> Self? {
@@ -103,11 +97,28 @@ enum ZshellAgentKind: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    private static func isScriptInterpreter(_ value: String) -> Bool {
+    static func isScriptInterpreter(_ value: String) -> Bool {
         let name = value.lowercased()
         return name == "node" || name == "nodejs" || name == "bun"
             || name == "deno" || name == "python" || name.hasPrefix("python3")
             || name == "ruby" || name == "bash" || name == "sh" || name == "zsh"
+    }
+
+    static func scriptIdentityOperand(_ arguments: [String]) -> String? {
+        let tail = Array(arguments.dropFirst().prefix(8))
+        var index = 0
+        while index < tail.count {
+            let value = tail[index]
+            if ["-c", "-e", "--eval", "--print", "-p", "--command"].contains(value)
+                || value.hasPrefix("--eval=") || value.hasPrefix("--command=")
+                || value.hasPrefix("-e") || value.hasPrefix("-c") || value.hasPrefix("-p")
+                || value.hasPrefix("-") && !value.hasPrefix("--") && value.dropFirst().contains("c") { return nil }
+            if value == "-m" { return tail.indices.contains(index + 1) ? tail[index + 1] : nil }
+            if ["-W", "-X", "--require", "-r", "--import", "--loader"].contains(value) { index += 2; continue }
+            if value.hasPrefix("-") || value == "run" { index += 1; continue }
+            return value
+        }
+        return nil
     }
 
     private static func recognizeScriptIdentity(_ value: String) -> Self? {
@@ -128,7 +139,7 @@ enum ZshellAgentKind: String, CaseIterable, Codable, Sendable {
     }
 }
 
-enum ZshellAgentPhase: String, Codable, CaseIterable, Sendable {
+nonisolated enum ZshellAgentPhase: String, Codable, CaseIterable, Sendable {
     case created
     case working
     case blocked
@@ -185,6 +196,10 @@ struct ZshellAgentStatus: Equatable, Sendable {
     let progress: Int?
     let attention: ZshellAgentAttention?
     let tasks: [ZshellAgentTaskStatus]
+    var recognitionID: String? = nil
+    var recognizedName: String? = nil
+
+    var displayName: String { recognizedName ?? (kind == .program ? alias : kind.displayName) }
 
     var detail: String {
         var lines = [String(localized: "Source: \(authority.displayName)")]
@@ -230,6 +245,7 @@ final class ZshellAgentObservationState {
     var integrationPhase: ZshellAgentPhase?
     var integrationReason: String?
     var integrationOwner: ZshellAgentProcessIdentity?
+    var integrationUsesRecognitionAlias = false
     var codexConversationEvidence: (title: CodexTitleSessionEvidence, owner: ZshellAgentProcessIdentity)?
     var integrationAttention: ZshellAgentAttention?
     var integrationTasks: [ZshellAgentTaskStatus] = []
@@ -238,6 +254,9 @@ final class ZshellAgentObservationState {
     var screenEvidence: ZshellAgentScreenEvidence?
     var screenEvidenceSamples = 0
     var lastScreenCheck = Date.distantPast
+    var recognitionID: String?
+    var recognitionRevision: UInt64 = 0
+    var screenRequestID: UUID?
     /// Native integrations publish semantic idle, not whether that idle ended
     /// a turn. Track active-turn evidence so launching an already-idle CLI in
     /// the background never looks like a newly finished task.
@@ -279,6 +298,27 @@ final class AgentAutomationMonitor {
 
     func agentActivityChanged() {
         KeepAwakeController.shared.localAgentActivityChanged(hasWorkingLocalAgent)
+    }
+
+    func recognitionSettingsChanged(invalidateAliases: Bool = true) {
+        for session in sessions.allObjects {
+            if invalidateAliases { session.invalidateRecognitionAliasAuthority() }
+            session.agentObservation.screenRequestID = nil
+            session.agentObservation.screenEvidence = nil
+            session.agentObservation.screenEvidenceSamples = 0
+            session.agentObservation.lastScreenCheck = .distantPast
+            guard let status = session.agentStatus,
+                  status.authority == .screen || status.authority == .process else { continue }
+            if !AppSettings.shared.customAgentRecognitionRules, status.kind == .program {
+                session.clearAutomationAgentStatus()
+            } else if status.authority == .screen {
+                session.updateAutomationAgentStatus(
+                    alias: status.alias, kind: status.kind, phase: .idle, authority: .process,
+                    reason: "Screen rules changed; awaiting fresh evidence", processID: status.processID,
+                    unseen: false, recognitionID: status.recognitionID, recognizedName: status.recognizedName
+                )
+            }
+        }
     }
 
     func unregister(_ session: TerminalSession) {
@@ -434,7 +474,11 @@ extension TerminalSession {
 
     func isAutomationAgentRunning(kind: ZshellAgentKind) -> Bool {
         guard let foreground = surface.foregroundPid else { return false }
-        return ZshellAgentKind.recognize(processID: foreground) == kind
+        if let status = agentStatus, let recognitionID = status.recognitionID,
+           status.kind == kind, status.processID == foreground {
+            return AgentRecognitionRulesStore.shared.recognize(processID: foreground)?.id == recognitionID
+        }
+        return ZshellAgentKind.recognizeBuiltin(processID: foreground) == kind
     }
 
     /// Bounded viewport text for automation reads and diagnostics. Reading
@@ -630,7 +674,7 @@ extension TerminalSession {
             authority: .command,
             reason: "Prompt submitted",
             processID: surface.foregroundPid,
-            unseen: false
+            unseen: false, recognitionID: status.recognitionID, recognizedName: status.recognizedName
         )
     }
 
@@ -660,7 +704,7 @@ extension TerminalSession {
             var nearestProvider: ZshellAgentProcessIdentity?
             for _ in 0..<64 {
                 if Self.conversationProcessEvidence(candidate)?.isSharedService == true { return false }
-                if ZshellAgentKind.recognize(processID: candidate) == provider {
+                if ZshellAgentKind.recognizeBuiltin(processID: candidate) == provider {
                     owner = ZshellAgentProcessIdentity(pid: candidate)
                     if nearestProvider == nil { nearestProvider = owner }
                 }
@@ -673,7 +717,7 @@ extension TerminalSession {
         }
         guard let owner else { return false }
         if let foreground = surface.foregroundPid,
-           let foregroundKind = ZshellAgentKind.recognize(processID: foreground),
+           let foregroundKind = ZshellAgentKind.recognizeBuiltin(processID: foreground),
            foregroundKind != provider { return false }
         agentObservation.pendingInterrupt = nil
         if agentObservation.integrationOwner != owner {
@@ -685,6 +729,7 @@ extension TerminalSession {
         agentObservation.alias = alias
         agentObservation.declaredKind = provider
         agentObservation.integrationOwner = owner
+        agentObservation.integrationUsesRecognitionAlias = ZshellAgentKind.recognize(processID: owner.pid) != provider
         agentObservation.commandGraceDeadline = nil
         if task == nil, reason == "\(provider.displayName): SessionStart" {
             agentObservation.integrationTasks.removeAll()
@@ -817,6 +862,11 @@ extension TerminalSession {
         guard !hasExited else { clearAutomationAgentStatus(); return }
         if isFocused { markAutomationAgentSeen() }
         let now = Date()
+        if agentObservation.integrationUsesRecognitionAlias,
+           let owner = agentObservation.integrationOwner,
+           ZshellAgentKind.recognizeBuiltin(processID: owner.pid) != agentObservation.declaredKind {
+            invalidateRecognitionAliasAuthority()
+        }
         if let owner = agentObservation.integrationOwner, !owner.isAlive {
             clearNativeAgentObservation()
             if agentStatus?.authority == .integration { agentStatus = nil }
@@ -826,11 +876,13 @@ extension TerminalSession {
             if agentStatus?.authority == .report { agentStatus = nil }
         }
         if agentObservation.integrationOwner != nil, agentObservation.integrationPhase != nil {
+            clearAgentScreenEvidence()
             refreshAutomationAgentInterrupt(at: now)
             presentNativeAgentStatus(isFocused: isFocused)
             return
         }
         if let observation = agentObservation.programReport {
+            clearAgentScreenEvidence()
             let report = observation.report
             let seen = agentStatus?.authority == .report && agentStatus?.phase == .idle
                 && agentStatus?.processID == observation.owner.pid
@@ -845,43 +897,70 @@ extension TerminalSession {
             return
         }
         let foreground = surface.foregroundPid
-        let kind = foreground.flatMap(ZshellAgentKind.recognize(processID:))
-        if foreground != agentObservation.lastForegroundPID {
+        let rules = AgentRecognitionRulesStore.shared
+        let identity = foreground.flatMap(rules.recognize(processID:))
+        if foreground != agentObservation.lastForegroundPID || identity?.id != agentObservation.recognitionID
+            || rules.revision != agentObservation.recognitionRevision {
             agentObservation.lastForegroundPID = foreground
+            agentObservation.recognitionID = identity?.id
+            agentObservation.recognitionRevision = rules.revision
+            agentObservation.screenRequestID = nil
             agentObservation.screenEvidence = nil
             agentObservation.screenEvidenceSamples = 0
+            agentObservation.lastScreenCheck = .distantPast
         }
-        guard let kind else {
+        guard let identity else {
             if let deadline = agentObservation.commandGraceDeadline, now < deadline { return }
             clearAutomationAgentStatus()
             return
         }
-        if let previous = agentStatus, previous.kind != kind || previous.processID != foreground {
+        let kind = identity.kind
+        if let previous = agentStatus, previous.kind != kind || previous.processID != foreground
+            || previous.recognitionID.map({ $0 != identity.id }) == true {
             clearNativeAgentObservation()
             agentObservation.alias = nil
             agentObservation.awaitingInitialPrompt = false
         }
         agentObservation.commandGraceDeadline = nil
-        let alias = agentObservation.alias ?? kind.rawValue
+        if kind == .program, let previous = agentStatus, previous.alias == previous.recognizedName {
+            agentObservation.alias = identity.name
+        }
+        let alias = agentObservation.alias ?? (kind == .program ? identity.name : kind.rawValue)
         agentObservation.alias = alias
         agentObservation.declaredKind = kind
 
-        if now.timeIntervalSince(agentObservation.lastScreenCheck) >= 1.5 {
+        let canInfer = AppSettings.shared.agentScreenInference && terminalIsAtLiveBottom
+            && !agentObservation.isCollectingAlternateScreenHistory
+        if !canInfer {
+            agentObservation.screenRequestID = nil
+            agentObservation.screenEvidence = nil
+            agentObservation.screenEvidenceSamples = 0
+        } else if agentObservation.screenRequestID == nil, now.timeIntervalSince(agentObservation.lastScreenCheck) >= 1.5 {
             agentObservation.lastScreenCheck = now
-            let evidence = terminalIsAtLiveBottom && !agentObservation.isCollectingAlternateScreenHistory
-                ? ZshellAgentScreenEvidence.detect(
-                    kind: kind, text: automationVisibleText(maxLines: 32, maxColumns: 240)
-                  ) : nil
-            agentObservation.screenEvidenceSamples = evidence == agentObservation.screenEvidence
-                ? agentObservation.screenEvidenceSamples + 1 : 1
-            agentObservation.screenEvidence = evidence
+            let text = automationVisibleText(maxLines: 16, maxColumns: 240)
+            if rules.hasOverride(for: identity.id) {
+                let requestID = UUID()
+                let revision = rules.revision
+                agentObservation.screenRequestID = requestID
+                rules.evaluate(id: identity.id, text: text) { [weak self] match in
+                    guard let self, !self.hasExited, self.agentObservation.screenRequestID == requestID else { return }
+                    self.agentObservation.screenRequestID = nil
+                    guard AppSettings.shared.agentScreenInference, AppSettings.shared.customAgentRecognitionRules,
+                          rules.revision == revision, self.surface.foregroundPid == foreground,
+                          self.terminalIsAtLiveBottom, !self.agentObservation.isCollectingAlternateScreenHistory,
+                          self.agentObservation.integrationOwner == nil, self.agentObservation.programReport == nil else { return }
+                    if case .skip = match { return }
+                    self.recordAgentScreenEvidence(match?.evidence)
+                    self.refreshAutomationAgentState(isFocused: self.id == TerminalManager.automationFocusedSessionID)
+                }
+            } else { recordAgentScreenEvidence(ZshellAgentScreenEvidence.detect(kind: kind, text: text)) }
         }
         if let evidence = agentObservation.screenEvidence,
            agentObservation.screenEvidenceSamples >= 2 {
             updateAutomationAgentStatus(
                 alias: alias, kind: kind, phase: evidence.phase, authority: .screen,
                 reason: evidence.reason, processID: foreground, unseen: false,
-                attention: evidence.attention
+                attention: evidence.attention, recognitionID: identity.id, recognizedName: identity.name
             )
             return
         }
@@ -889,19 +968,33 @@ extension TerminalSession {
             updateAutomationAgentStatus(
                 alias: alias, kind: kind, phase: .created, authority: .process,
                 reason: "Agent process created; no task has been submitted",
-                processID: foreground, unseen: false
+                processID: foreground, unseen: false, recognitionID: identity.id, recognizedName: identity.name
             )
         } else if let current = agentStatus, current.authority == .command, current.phase == .working {
             updateAutomationAgentStatus(
                 alias: alias, kind: kind, phase: .working, authority: .command,
-                reason: current.reason, processID: foreground, unseen: false
+                reason: current.reason, processID: foreground, unseen: false, recognitionID: identity.id, recognizedName: identity.name
             )
         } else {
             updateAutomationAgentStatus(
                 alias: alias, kind: kind, phase: .idle, authority: .process,
-                reason: "Directly launched \(kind.displayName) detected", processID: foreground, unseen: false
+                reason: "Directly launched \(identity.name) detected", processID: foreground, unseen: false,
+                recognitionID: identity.id, recognizedName: identity.name
             )
         }
+    }
+
+    private func recordAgentScreenEvidence(_ evidence: ZshellAgentScreenEvidence?) {
+        agentObservation.screenEvidenceSamples = evidence == agentObservation.screenEvidence
+            ? min(agentObservation.screenEvidenceSamples + 1, 2) : 1
+        agentObservation.screenEvidence = evidence
+    }
+
+    private func clearAgentScreenEvidence() {
+        agentObservation.screenRequestID = nil
+        agentObservation.screenEvidence = nil
+        agentObservation.screenEvidenceSamples = 0
+        agentObservation.lastScreenCheck = .distantPast
     }
 
     private func clearNativeAgentObservation() {
@@ -909,10 +1002,22 @@ extension TerminalSession {
         agentObservation.integrationPhase = nil
         agentObservation.integrationReason = nil
         agentObservation.integrationOwner = nil
+        agentObservation.integrationUsesRecognitionAlias = false
         agentObservation.integrationAttention = nil
         agentObservation.integrationTasks.removeAll()
         agentObservation.integrationTurnActive = false
         agentObservation.integrationInterrupted = false
+    }
+
+    fileprivate func invalidateRecognitionAliasAuthority() {
+        if agentObservation.integrationUsesRecognitionAlias {
+            clearNativeAgentObservation()
+            if agentStatus?.authority == .integration { agentStatus = nil }
+        }
+        if let owner = agentConversationOwner,
+           ZshellAgentKind.recognize(processID: owner.pid)?.rawValue != agentResume?.provider.rawValue {
+            recordAgentConversation(nil, processID: nil)
+        }
     }
 
     func clearAutomationAgentStatus() {
@@ -926,6 +1031,8 @@ extension TerminalSession {
         agentObservation.programReport = nil
         agentObservation.screenEvidence = nil
         agentObservation.screenEvidenceSamples = 0
+        agentObservation.screenRequestID = nil
+        agentObservation.recognitionID = nil
         agentObservation.awaitingInitialPrompt = false
         agentObservation.commandGraceDeadline = nil
     }
@@ -940,7 +1047,9 @@ extension TerminalSession {
         unseen: Bool,
         progress: Int? = nil,
         attention: ZshellAgentAttention? = nil,
-        tasks: [ZshellAgentTaskStatus] = []
+        tasks: [ZshellAgentTaskStatus] = [],
+        recognitionID: String? = nil,
+        recognizedName: String? = nil
     ) {
         if let current = agentStatus,
            current.alias == alias,
@@ -952,7 +1061,9 @@ extension TerminalSession {
            current.unseen == unseen,
            current.progress == progress,
            current.attention == attention,
-           current.tasks == tasks {
+           current.tasks == tasks,
+           current.recognitionID == recognitionID,
+           current.recognizedName == recognizedName {
             return
         }
 
@@ -967,7 +1078,9 @@ extension TerminalSession {
             unseen: unseen,
             progress: progress,
             attention: attention,
-            tasks: tasks
+            tasks: tasks,
+            recognitionID: recognitionID,
+            recognizedName: recognizedName
         )
 
     }

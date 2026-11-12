@@ -803,7 +803,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     )? {
         guard !hasMarkedText(), hasEffectiveTerminalFocus,
               lastScroll?.position ?? 1 >= 1,
-              let foregroundPid, ZshellAgentKind.recognize(processID: foregroundPid) == .claude,
+              let foregroundPid, ZshellAgentKind.recognizeBuiltin(processID: foregroundPid) == .claude,
               let viewport = readViewportTextSnapshot(), viewport.cursorColumn >= 2,
               let cursorPrefix = readViewportText(
                 row: viewport.cursorRow, columns: 0..<viewport.cursorColumn,

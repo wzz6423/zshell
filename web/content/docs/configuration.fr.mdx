@@ -273,7 +273,7 @@ Cet historique est stocké sur disque et peut donc contenir des secrets affiché
 
 Booléen — valeur par défaut : `true`
 
-Permet aux agents de programmation compatibles de coordonner des volets Zshell en arrière-plan à votre demande, et affiche les états de cycle de vie rapportés par leur fournisseur. Zshell ne déduit aucun état du texte du terminal. Utilisez de préférence le contrôle dans Réglages : les erreurs y sont affichées et les configurations existantes en conflit sont conservées.
+Permet aux agents de programmation compatibles de coordonner des volets Zshell en arrière-plan à votre demande, et affiche les états de cycle de vie rapportés par leur fournisseur. Utilisez de préférence le contrôle dans Réglages : les erreurs y sont affichées et les configurations existantes en conflit sont conservées.
 
 Le déroulement est expliqué dans [Travailler avec des agents IA](/fr/docs/automation).
 
@@ -383,3 +383,12 @@ Ouvrez **Réglages → Raccourcis** pour enregistrer une combinaison pour une co
 - **Mises à jour automatiques.** Les options de vérification, de téléchargement et d'installation dans **Réglages → Mises à jour** utilisent des préférences hors TOML et restent enregistrées après redémarrage. Les réglages de téléchargement apparaissent si la vérification automatique est activée et les mises à jour automatiques disponibles ; l’installation exige aussi le téléchargement automatique. Consultez [Installation](/fr/docs/installation#updates).
 - **Fenêtres et disposition.** La taille des fenêtres, la largeur des barres latérales, les panneaux sélectionnés, les projets, onglets, volets, URL du navigateur et préférences des diffs sont stockés dans les préférences macOS de Zshell et l'instantané de session.
 - **Configuration des moteurs.** Zshell ne lit ni `~/.config/ghostty` ni la configuration d'Alacritty. Ses propres réglages constituent l'interface prise en charge pour les deux moteurs.
+
+
+## Règles de reconnaissance des agents [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, par défaut `true`
+
+Ouvrez **Réglages → AI → Reconnaissance des agents** ou **Agents → Gérer les règles d’agent…** pour ajouter, modifier, supprimer, importer, exporter ou réinitialiser les règles locales. La reconnaissance personnalisée et la déduction depuis l’écran ont des interrupteurs indépendants, activés par défaut. Les désactiver efface immédiatement les anciennes observations d’écran. Les événements natifs et rapports explicites restent prioritaires.
+
+[agents.toml](/fr/docs/automation#agent-recognition-rules)

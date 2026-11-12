@@ -273,7 +273,7 @@ Riwayat disimpan di disk, sehingga rahasia yang tampil di terminal mungkin ikut 
 
 Boolean — bawaan `true`
 
-Memungkinkan agen pemrograman yang didukung mengoordinasikan panel Zshell di latar belakang melalui permintaan bahasa biasa, serta menampilkan status siklus hidup dari penyedia. Zshell tidak menyimpulkan status dari teks terminal. Sebaiknya gunakan sakelar Pengaturan karena kesalahan ditampilkan langsung dan konfigurasi lama yang berkonflik dibiarkan utuh.
+Memungkinkan agen pemrograman yang didukung mengoordinasikan panel Zshell di latar belakang melalui permintaan bahasa biasa, serta menampilkan status siklus hidup dari penyedia. Sebaiknya gunakan sakelar Pengaturan karena kesalahan ditampilkan langsung dan konfigurasi lama yang berkonflik dibiarkan utuh.
 
 Alur pengguna dijelaskan dalam [Bekerja dengan agen AI](/id/docs/automation).
 
@@ -383,3 +383,12 @@ Buka **Pengaturan → Pintasan** untuk merekam pintasan baru bagi perintah inti.
 - **Pembaruan otomatis.** Sakelar pemeriksaan, unduhan, dan pemasangan otomatis di **Pengaturan → Pembaruan** memakai preferensi aplikasi di luar TOML dan mengingat pilihan antarpeluncuran. Kontrol unduhan muncul saat pemeriksaan otomatis aktif dan pembaruan otomatis tersedia; pemasangan juga memerlukan unduhan otomatis aktif. Lihat [Instalasi](/id/docs/installation#updates).
 - **Status jendela dan tata letak.** Ukuran jendela, lebar bilah samping, panel yang dipilih, proyek, tab, panel konten, URL browser, dan preferensi kontrol perbedaan tersimpan dalam preferensi macOS dan cuplikan sesi Zshell.
 - **Berkas konfigurasi backend.** Zshell tidak membaca `~/.config/ghostty` atau konfigurasi Alacritty. Pengaturan Zshell adalah cara yang didukung untuk keduanya.
+
+
+## Aturan pengenalan agen [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, bawaan `true`
+
+Buka **Pengaturan → AI → Pengenalan Agen** atau **Agents → Kelola Aturan Agen…** untuk menambah, mengedit, menghapus, mengimpor, mengekspor, atau mereset aturan lokal. Pengenalan kustom dan inferensi dari layar adalah sakelar terpisah, keduanya aktif secara default. Menonaktifkan langsung menghapus bukti layar lama. Peristiwa asli dan laporan program diutamakan.
+
+[agents.toml](/id/docs/automation#agent-recognition-rules)

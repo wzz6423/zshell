@@ -558,6 +558,20 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var customAgentRecognitionRules: Bool {
+        didSet {
+            save()
+            if customAgentRecognitionRules != oldValue { AgentAutomationMonitor.shared.recognitionSettingsChanged() }
+        }
+    }
+
+    @Published var agentScreenInference: Bool {
+        didSet {
+            save()
+            if agentScreenInference != oldValue { AgentAutomationMonitor.shared.recognitionSettingsChanged(invalidateAliases: false) }
+        }
+    }
+
     @Published var notifyOnAgentAttention: Bool {
         didSet { save() }
     }
@@ -774,6 +788,8 @@ final class AppSettings: nonisolated ObservableObject {
         ) ? paneFocusRingOpacity : Self.defaultPaneFocusRingOpacity
         aiEnabled = toml["ai.enabled"]?.bool ?? true
         resumeAgentConversations = toml["ai.resume-conversations"]?.bool ?? true
+        customAgentRecognitionRules = toml["ai.custom-recognition-rules"]?.bool ?? true
+        agentScreenInference = toml["ai.screen-inference"]?.bool ?? true
         notifyOnAgentAttention = toml["ai.notify-on-attention"]?.bool ?? true
         notifyOnAgentCompletion = toml["ai.notify-on-completion"]?.bool ?? true
         agentUsageEnabled = toml["ai.usage-enabled"]?.bool ?? false
@@ -950,6 +966,8 @@ final class AppSettings: nonisolated ObservableObject {
             && Self.paneFocusRingOpacityMatchesDefault(paneFocusRingOpacity)
             && aiEnabled
             && resumeAgentConversations
+            && customAgentRecognitionRules
+            && agentScreenInference
             && notifyOnAgentAttention
             && notifyOnAgentCompletion
             && !agentUsageEnabled
@@ -1042,6 +1060,8 @@ final class AppSettings: nonisolated ObservableObject {
         gitProxyEnabled = GitProxy.defaultEnabled
         gitProxyAddress = GitProxy.defaultAddress
         resumeAgentConversations = true
+        customAgentRecognitionRules = true
+        agentScreenInference = true
         notifyOnAgentAttention = true
         notifyOnAgentCompletion = true
         agentUsageEnabled = false
@@ -1286,6 +1306,8 @@ final class AppSettings: nonisolated ObservableObject {
             }
         }
         assign(\.resumeAgentConversations, toml["ai.resume-conversations"]?.bool ?? true)
+        assign(\.customAgentRecognitionRules, toml["ai.custom-recognition-rules"]?.bool ?? true)
+        assign(\.agentScreenInference, toml["ai.screen-inference"]?.bool ?? true)
         assign(\.notifyOnAgentAttention, toml["ai.notify-on-attention"]?.bool ?? true)
         assign(\.notifyOnAgentCompletion, toml["ai.notify-on-completion"]?.bool ?? true)
         assign(\.agentUsageEnabled, toml["ai.usage-enabled"]?.bool ?? false)
@@ -1553,6 +1575,8 @@ final class AppSettings: nonisolated ObservableObject {
             lines.append("ai.resume-conversations = false")
         }
         if !notifyOnAgentAttention { lines.append("ai.notify-on-attention = false") }
+        if !customAgentRecognitionRules { lines.append("ai.custom-recognition-rules = false") }
+        if !agentScreenInference { lines.append("ai.screen-inference = false") }
         if !notifyOnAgentCompletion { lines.append("ai.notify-on-completion = false") }
         if agentUsageEnabled { lines.append("ai.usage-enabled = true") }
         if !claudeUsageEnabled { lines.append("ai.claude-usage-enabled = false") }

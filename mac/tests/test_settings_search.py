@@ -91,6 +91,8 @@ CONFIGURATION_ITEMS = {
     "editor.recover-drafts": ("editor", "Back up unsaved drafts", ""),
     "ai.enabled": ("automation", "AI", ""),
     "ai.resume-conversations": ("automation", "Resume agent conversations", ""),
+    "ai.custom-recognition-rules": ("automation", "Use custom recognition rules", "Agent Recognition"),
+    "ai.screen-inference": ("automation", "Infer agent state from the screen", "Agent Recognition"),
     "ai.notify-on-attention": ("automation", "Notify when agents need attention", "Notifications"),
     "ai.notify-on-completion": ("automation", "Notify when agents finish", "Notifications"),
     "ai.usage-enabled": ("automation", "Read account usage", "Account Usage"),
@@ -132,6 +134,7 @@ ACTION_ITEMS = (
     ("terminal", "Command History…", "History"),
     ("terminal", "Notification History…", "Notifications"),
     ("automation", "Agent Conversation History", ""),
+    ("automation", "Manage Agent Rules…", "Agent Recognition"),
 )
 
 HARNESS = r'''
@@ -377,6 +380,17 @@ class SettingsSearchTests(unittest.TestCase):
             }])[0]
             for query, rows in zip(queries, sample["queries"]):
                 self.assert_item(rows, CONFIGURATION_ITEMS[query], language)
+
+    def test_recognition_controls_are_discoverable_without_ai(self):
+        queries = ["ai.custom-recognition-rules", "ai.screen-inference", "agents.toml"]
+        for language in LANGUAGES:
+            sample = self.evaluate([{
+                "language": language, "queries": queries, "disabled": ["aiEnabled"],
+            }])[0]
+            for query, rows in zip(queries[:2], sample["queries"][:2]):
+                self.assert_item(rows, CONFIGURATION_ITEMS[query], language)
+            self.assert_item(sample["queries"][2],
+                             ("automation", "Manage Agent Rules…", "Agent Recognition"), language)
 
     def test_keep_awake_is_visible_without_ai(self):
         for language in LANGUAGES:

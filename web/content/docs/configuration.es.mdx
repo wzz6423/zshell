@@ -273,7 +273,7 @@ El historial restaurado se guarda en disco, por lo que puede incluir secretos mo
 
 booleano — predeterminado: `true`
 
-Permite que los agentes de programación compatibles coordinen paneles de Zshell en segundo plano cuando lo pides con lenguaje natural, y muestra en la interfaz el estado del ciclo de vida comunicado por el proveedor. Zshell no infiere el estado del texto del terminal. Se recomienda cambiarlo desde el interruptor de Ajustes porque los errores aparecen junto al control y las configuraciones existentes que entren en conflicto se dejan intactas.
+Permite que los agentes de programación compatibles coordinen paneles de Zshell en segundo plano cuando lo pides con lenguaje natural, y muestra en la interfaz el estado del ciclo de vida comunicado por el proveedor. Se recomienda cambiarlo desde el interruptor de Ajustes porque los errores aparecen junto al control y las configuraciones existentes que entren en conflicto se dejan intactas.
 
 El flujo de trabajo para el usuario se describe en [Trabajar con agentes de IA](/es/docs/automation).
 
@@ -384,3 +384,12 @@ Abre **Ajustes → Atajos** para registrar un atajo nuevo para un comando princi
 - **Actualizaciones automáticas.** Los interruptores de comprobación, descarga e instalación automáticas de **Ajustes → Actualizaciones** usan preferencias de la aplicación fuera de TOML y recuerdan tus elecciones entre inicios. Los controles de descarga aparecen si la comprobación automática está activada y hay actualizaciones automáticas disponibles; la instalación también requiere activar las descargas automáticas. Consulta [Instalación](/es/docs/installation#updates).
 - **Estado de ventanas y distribución.** El tamaño de ventana, los anchos de las barras laterales, los paneles seleccionados, los proyectos, pestañas, paneles, URL del navegador y preferencias de controles de diferencias se guardan en las preferencias de macOS de Zshell y en la instantánea de sesión.
 - **Archivos de configuración de los motores.** Zshell no lee `~/.config/ghostty` ni una configuración de Alacritty. Los ajustes de Zshell son la interfaz admitida para ambos.
+
+
+## Reglas de reconocimiento de agentes [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, predeterminado `true`
+
+Abre **Ajustes → AI → Reconocimiento de agentes** o **Agents → Gestionar reglas de agentes…** para añadir, editar, eliminar, importar, exportar o restablecer reglas locales. El reconocimiento personalizado y la inferencia desde la pantalla son interruptores independientes, activados por defecto. Desactivarlos borra de inmediato las evidencias de pantalla antiguas. Los eventos nativos e informes del programa tienen prioridad.
+
+[agents.toml](/es/docs/automation#agent-recognition-rules)
