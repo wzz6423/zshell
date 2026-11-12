@@ -137,3 +137,37 @@ zshell +events --event command.task.finished --once --timeout 30000
 ## Een gesprek vertakken [#fork-a-conversation]
 
 Selecteer in **Terminal → Agents → Gespreksgeschiedenis van agents** een gesprek en kies **Gesprek vertakken in een nieuw paneel** via het contextmenu of de vertakkingsknop. De native functie van de provider behoudt de context in een zelfstandig gesprek; het oorspronkelijke paneel en gesprek blijven ongewijzigd. Codex, Claude Code, OpenCode en Pi vereisen een geschikte CLI-versie; Pi heeft ook het opgeslagen sessiebestand nodig. Werk voor externe gesprekken de Zshell-server bij. Controleer de uitvoer van het nieuwe paneel als de CLI, aanmelding of hooks ontbreken. Gebruik in een paneel `zshell +agent fork --id UUID [--focus]`; voeg in een externe terminal `--project UUID` toe.
+
+## Agentherkenningsregels [#agent-recognition-rules]
+
+Open **Instellingen → AI → Agentherkenning** of **Terminal → Agents → Agentregels beheren…** om lokale regels toe te voegen, te bewerken, te verwijderen, te importeren, te exporteren of te herstellen. Aangepaste herkenning en afleiding uit het scherm zijn onafhankelijke schakelaars die standaard aanstaan. Uitschakelen wist oude schermgegevens meteen. Native gebeurtenissen en programmarapporten hebben voorrang.
+
+Regels staan in `agents.toml` naast `config.toml` (`~/.config/zshell/agents.toml`, of `zshell-dev` in Debug). Geldige wijzigingen laden automatisch; ongeldige behouden de laatste geldige regels en tonen een fout. Een leeg of verwijderd bestand herstelt de ingebouwde regels.
+
+Een nieuwe `id` voegt een agent toe. Een ingebouwde `id` zoals `claude` of `codex` vervangt schermregels; `executables` en `aliases` voegen exacte opdrachtnamen toe. Alleen het uitvoerbare bestand en het scriptargument van de interpreter worden bekeken, geen latere prompts of paden. `screen_enabled = false` behoudt procesherkenning; `enabled = false` schakelt één regel uit. Ingebouwde aliassen houden native integraties en aangepaste agents tonen hun oorspronkelijke `name`.
+
+De passende regel met hoogste prioriteit wint; gelijke prioriteit volgt de bestandsvolgorde. `contains` negeert hoofdletters. Alle `regex`, `line_regex` en `all` moeten overeenkomen, en geen `not` mag overeenkomen. Een niet-lege `any`-lijst vereist minstens één overeenkomende groep; een ontbrekende of lege lijst voegt geen voorwaarde toe. `skip_state_update = true` bewaart eerdere gegevens. Statussen: `idle`, `working`, `blocked`, `unknown`; `attention` voor blocked: `approval`, `input`, `login`, `error`.
+
+Zshell bemonstert voortdurend alleen de onderste 16 regels van het actuele scherm, niet de geschiedenis. Twee opeenvolgende metingen met hetzelfde overeenkomende resultaat zijn nodig om de afgeleide status te publiceren. Gebieden: `whole_recent`, `bottom_lines(1…16)`, `bottom_non_empty_lines(1…16)`, `prompt_box_body`, `above_prompt_box`, `last_non_empty_above_prompt_box`, `after_last_horizontal_rule`. Andere Kero/herdr-gebieden worden afgewezen. Limieten: 256 KiB, 64 agents, 32 regels per agent en vier nestingsniveaus. Onveilige regex, dubbele ID’s, conflicterende namen en onbekende sleutels worden afgewezen. Afleiding bewijst geen voltooiing, meldt niets en keurt geen invoer goed.
+
+```toml title="agents.toml"
+[[agents]]
+id = "frog"
+name = "Frog"
+executables = ["frog", "frog-cli"]
+aliases = ["frog-wrapper"]
+
+[[agents.rules]]
+id = "approval"
+state = "blocked"
+priority = 200
+region = "bottom_non_empty_lines(6)"
+attention = "approval"
+line_regex = ['^Allow .+\? \[y/n\]$']
+
+[[agents.rules]]
+id = "activity"
+state = "working"
+priority = 100
+contains = ["hopping…"]
+```

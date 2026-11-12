@@ -23,6 +23,7 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
         WindowScreenConstraint.shared.start()
         AppMenuController.shared.install()
         KeepAwakeController.shared.start()
+        BrowserAccessController.shared.start()
         EditorDraftStore.shared.archive.startExpiryCleanup()
         let open: () -> Void = { [weak self] in self?.openWorkspaceWindow() }
         AppMenuController.shared.openWindow = open
@@ -116,6 +117,7 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
             }
             ApplicationPresenceController.shared.prepareForTermination()
             KeepAwakeController.shared.stop()
+            BrowserAccessController.shared.stop()
             TerminalManager.prepareForApplicationQuit()
             SSHAgentEnvironment.shared.cleanup()
             await LocalRemoteSharing.shared.stop()?.value

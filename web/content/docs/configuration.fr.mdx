@@ -267,13 +267,29 @@ Restaure l'ancien historique de chaque terminal au-dessus d'un nouveau shell apr
 
 Cet historique est stocké sur disque et peut donc contenir des secrets affichés dans le terminal. Les [projets, onglets et dispositions de volets](/fr/docs/projects#what-survives-a-relaunch) sont restaurés dans tous les cas.
 
+## Accès par navigateur [#browser-access]
+
+Si des sessions conservées par une ancienne version tournent encore, l’accès par navigateur demande de quitter et terminer toutes les sessions, puis de rouvrir Zshell. Les tâches sont conservées jusqu’à votre choix.
+
+### `browser-access.enabled`
+
+`browser-access.enabled` est un booléen, désactivé par défaut (`false`). Activez-le dans **Réglages → Accès par navigateur**. Les nouveaux volets locaux deviennent accessibles ; les volets existants conservent leur processus. Les deux moteurs de terminal sont pris en charge. Cette option ne modifie pas `terminal.preserve-sessions`.
+
+### `browser-access.interface` / `browser-access.port`
+
+`browser-access.interface` vaut `"loopback"` par défaut (**Localhost uniquement**). Pour un autre appareil, choisissez explicitement une interface IPv4 privée LAN ou Tailscale disponible. La valeur conserve son nom et son adresse exacts, par exemple `"en0|192.168.0.10"`. `browser-access.port` définit le port HTTPS : 1024–65535, `7443` par défaut. La page locale utilise une adresse HTTP distincte limitée au Mac. Si l’interface disparaît, choisissez-en une disponible ; le service ne passe jamais à une écoute sur toutes les interfaces.
+
+La page HTTP locale utilise normalement le port HTTPS configuré plus un (`7444` par défaut). La veille, Réessayer et la réouverture conservent cette adresse et son autorisation tant que la disponibilité des ports ne change pas. Si le port est occupé, Zshell essaie les sept ports locaux suivants ; après `65535`, la séquence reprend à `1024`. Si la disponibilité des ports change, un redémarrage peut sélectionner une autre adresse. L’autorisation existante est liée à l’origine précédente ; la nouvelle adresse nécessite donc un nouvel appairage. Les clients enregistrés restent visibles et révocables quand l’accès est désactivé. À la limite de 32 clients, révoquez-en un avant d’en approuver un autre. Si le service de sessions ne peut pas être vérifié, l’accès reste activé ; cliquez sur Réessayer lorsque le service est prêt.
+
+Comparez l’empreinte du certificat TLS et faites confiance au certificat exporté sur le client avant le jumelage distant. Autorisez ou révoquez les clients sur ce Mac. La désactivation, la veille ou la fermeture de l’app coupe les connexions. La fermeture suit le réglage de conservation des sessions. Voir [Accéder à ce Mac par navigateur](/fr/docs/remote-sessions#browser-access).
+
 ## Automatisation [#automation]
 
 ### `ai.enabled` [#aienabled]
 
 Booléen — valeur par défaut : `true`
 
-Permet aux agents de programmation compatibles de coordonner des volets Zshell en arrière-plan à votre demande, et affiche les états de cycle de vie rapportés par leur fournisseur. Zshell ne déduit aucun état du texte du terminal. Utilisez de préférence le contrôle dans Réglages : les erreurs y sont affichées et les configurations existantes en conflit sont conservées.
+Permet aux agents de programmation compatibles de coordonner des volets Zshell en arrière-plan à votre demande, et affiche les états de cycle de vie rapportés par leur fournisseur. Utilisez de préférence le contrôle dans Réglages : les erreurs y sont affichées et les configurations existantes en conflit sont conservées.
 
 Le déroulement est expliqué dans [Travailler avec des agents IA](/fr/docs/automation).
 
@@ -385,3 +401,12 @@ Ouvrez **Réglages → Raccourcis** pour enregistrer une combinaison pour une co
 - **Mises à jour automatiques.** Les options de vérification, de téléchargement et d'installation dans **Réglages → Mises à jour** utilisent des préférences hors TOML et restent enregistrées après redémarrage. Les réglages de téléchargement apparaissent si la vérification automatique est activée et les mises à jour automatiques disponibles ; l’installation exige aussi le téléchargement automatique. Consultez [Installation](/fr/docs/installation#updates).
 - **Fenêtres et disposition.** La taille des fenêtres, la largeur des barres latérales, les panneaux sélectionnés, les projets, onglets, volets, URL du navigateur et préférences des diffs sont stockés dans les préférences macOS de Zshell et l'instantané de session.
 - **Configuration des moteurs.** Zshell ne lit ni `~/.config/ghostty` ni la configuration d'Alacritty. Ses propres réglages constituent l'interface prise en charge pour les deux moteurs.
+
+
+## Règles de reconnaissance des agents [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, par défaut `true`
+
+Ouvrez **Réglages → AI → Reconnaissance des agents** ou **Agents → Gérer les règles d’agent…** pour ajouter, modifier, supprimer, importer, exporter ou réinitialiser les règles locales. La reconnaissance personnalisée et la déduction depuis l’écran ont des interrupteurs indépendants, activés par défaut. Les désactiver efface immédiatement les anciennes observations d’écran. Les événements natifs et rapports explicites restent prioritaires.
+
+[agents.toml](/fr/docs/automation#agent-recognition-rules)

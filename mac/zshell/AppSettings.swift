@@ -566,6 +566,20 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var customAgentRecognitionRules: Bool {
+        didSet {
+            save()
+            if customAgentRecognitionRules != oldValue { AgentAutomationMonitor.shared.recognitionSettingsChanged() }
+        }
+    }
+
+    @Published var agentScreenInference: Bool {
+        didSet {
+            save()
+            if agentScreenInference != oldValue { AgentAutomationMonitor.shared.recognitionSettingsChanged(invalidateAliases: false) }
+        }
+    }
+
     @Published var notifyOnAgentAttention: Bool {
         didSet { save() }
     }
@@ -623,6 +637,18 @@ final class AppSettings: nonisolated ObservableObject {
     }
 
     @Published var browserFilterLists: String {
+        didSet { save() }
+    }
+
+    @Published var browserAccessEnabled: Bool {
+        didSet { save() }
+    }
+
+    @Published var browserAccessInterface: String {
+        didSet { save() }
+    }
+
+    @Published var browserAccessPort: Int {
         didSet { save() }
     }
 
@@ -784,6 +810,8 @@ final class AppSettings: nonisolated ObservableObject {
         ) ? paneFocusRingOpacity : Self.defaultPaneFocusRingOpacity
         aiEnabled = toml["ai.enabled"]?.bool ?? true
         resumeAgentConversations = toml["ai.resume-conversations"]?.bool ?? true
+        customAgentRecognitionRules = toml["ai.custom-recognition-rules"]?.bool ?? true
+        agentScreenInference = toml["ai.screen-inference"]?.bool ?? true
         notifyOnAgentAttention = toml["ai.notify-on-attention"]?.bool ?? true
         notifyOnAgentCompletion = toml["ai.notify-on-completion"]?.bool ?? true
         agentUsageEnabled = toml["ai.usage-enabled"]?.bool ?? false
@@ -801,6 +829,10 @@ final class AppSettings: nonisolated ObservableObject {
         newSessionCustomDirectory = toml["terminal.custom-directory"]?.string ?? ""
         browserContentBlocking = toml["browser.content-blocking"]?.bool ?? true
         browserFilterLists = toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults
+        browserAccessEnabled = toml["browser-access.enabled"]?.bool ?? false
+        browserAccessInterface = toml["browser-access.interface"]?.string ?? "loopback"
+        let accessPort = toml["browser-access.port"]?.double ?? 7443
+        browserAccessPort = (1024...65_535).contains(accessPort) && accessPort.rounded() == accessPort ? Int(accessPort) : 7443
         gitProxyEnabled = toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled
         gitProxyAddress = toml["git.proxy"]?.string ?? GitProxy.defaultAddress
         showPullRequestStatus = toml["git.pull-request-status"]?.bool ?? true
@@ -962,6 +994,8 @@ final class AppSettings: nonisolated ObservableObject {
             && Self.paneFocusRingOpacityMatchesDefault(paneFocusRingOpacity)
             && aiEnabled
             && resumeAgentConversations
+            && customAgentRecognitionRules
+            && agentScreenInference
             && notifyOnAgentAttention
             && notifyOnAgentCompletion
             && !agentUsageEnabled
@@ -976,6 +1010,7 @@ final class AppSettings: nonisolated ObservableObject {
             && newSessionCustomDirectory.isEmpty
             && browserContentBlocking
             && browserFilterLists == BrowserFilterSource.defaults
+            && !browserAccessEnabled && browserAccessInterface == "loopback" && browserAccessPort == 7443
             && gitProxyEnabled == GitProxy.defaultEnabled
             && gitProxyAddress == GitProxy.defaultAddress
             && showPullRequestStatus
@@ -1053,9 +1088,14 @@ final class AppSettings: nonisolated ObservableObject {
         terminalProfiles = []
         browserContentBlocking = true
         browserFilterLists = BrowserFilterSource.defaults
+        browserAccessEnabled = false
+        browserAccessInterface = "loopback"
+        browserAccessPort = 7443
         gitProxyEnabled = GitProxy.defaultEnabled
         gitProxyAddress = GitProxy.defaultAddress
         resumeAgentConversations = true
+        customAgentRecognitionRules = true
+        agentScreenInference = true
         notifyOnAgentAttention = true
         notifyOnAgentCompletion = true
         agentUsageEnabled = false
@@ -1302,6 +1342,8 @@ final class AppSettings: nonisolated ObservableObject {
             }
         }
         assign(\.resumeAgentConversations, toml["ai.resume-conversations"]?.bool ?? true)
+        assign(\.customAgentRecognitionRules, toml["ai.custom-recognition-rules"]?.bool ?? true)
+        assign(\.agentScreenInference, toml["ai.screen-inference"]?.bool ?? true)
         assign(\.notifyOnAgentAttention, toml["ai.notify-on-attention"]?.bool ?? true)
         assign(\.notifyOnAgentCompletion, toml["ai.notify-on-completion"]?.bool ?? true)
         assign(\.agentUsageEnabled, toml["ai.usage-enabled"]?.bool ?? false)
@@ -1316,6 +1358,10 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.newSessionCustomDirectory, toml["terminal.custom-directory"]?.string ?? "")
         assign(\.browserContentBlocking, toml["browser.content-blocking"]?.bool ?? true)
         assign(\.browserFilterLists, toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults)
+        assign(\.browserAccessEnabled, toml["browser-access.enabled"]?.bool ?? false)
+        assign(\.browserAccessInterface, toml["browser-access.interface"]?.string ?? "loopback")
+        let accessPort = toml["browser-access.port"]?.double ?? 7443
+        assign(\.browserAccessPort, (1024...65_535).contains(accessPort) && accessPort.rounded() == accessPort ? Int(accessPort) : 7443)
         assign(\.gitProxyEnabled, toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled)
         assign(\.gitProxyAddress, toml["git.proxy"]?.string ?? GitProxy.defaultAddress)
         assign(\.showPullRequestStatus, toml["git.pull-request-status"]?.bool ?? true)
@@ -1571,6 +1617,8 @@ final class AppSettings: nonisolated ObservableObject {
             lines.append("ai.resume-conversations = false")
         }
         if !notifyOnAgentAttention { lines.append("ai.notify-on-attention = false") }
+        if !customAgentRecognitionRules { lines.append("ai.custom-recognition-rules = false") }
+        if !agentScreenInference { lines.append("ai.screen-inference = false") }
         if !notifyOnAgentCompletion { lines.append("ai.notify-on-completion = false") }
         if agentUsageEnabled { lines.append("ai.usage-enabled = true") }
         if !claudeUsageEnabled { lines.append("ai.claude-usage-enabled = false") }
@@ -1599,6 +1647,11 @@ final class AppSettings: nonisolated ObservableObject {
         if browserFilterLists != BrowserFilterSource.defaults {
             lines.append("browser.filter-lists = \(TOML.quote(browserFilterLists))")
         }
+        if browserAccessEnabled { lines.append("browser-access.enabled = true") }
+        if browserAccessInterface != "loopback" {
+            lines.append("browser-access.interface = \(TOML.quote(browserAccessInterface))")
+        }
+        if browserAccessPort != 7443 { lines.append("browser-access.port = \(browserAccessPort)") }
         if gitProxyEnabled != GitProxy.defaultEnabled {
             lines.append("git.proxy-enabled = \(gitProxyEnabled)")
         }

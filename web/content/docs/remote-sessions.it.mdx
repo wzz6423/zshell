@@ -62,3 +62,17 @@ Attività, avanzamento, richieste di approvazione e completamento dell’Agent r
 ## Limiti [#limits]
 
 La persistenza dura finché il daemon è attivo, senza superare riavvii dell’host, arresti o riavvii del daemon. Le sessioni mancanti sono segnalate e mai sostituite automaticamente. Limiti: 128 sessioni, snapshot di 16 MiB e coda attiva di 1 MiB per client. I client lenti non bloccano gli altri; la cronologia resta nella memoria dell’host. Servizi e CLI sono descritti nel [riferimento server](https://github.com/wzz6423/zshell/tree/main/remote).
+
+## Accesso dal browser [#browser-access]
+
+Da **Impostazioni → Accesso dal browser** puoi usare i pannelli locali di questo Mac nel browser. L’accesso è disattivato per impostazione predefinita. Attivalo, apri un nuovo pannello e usa la pagina locale, oppure seleziona esplicitamente un’interfaccia IPv4 privata LAN/Tailscale e una porta HTTPS. I pannelli esistenti mantengono i processi. La pagina si collega solo ai pannelli del Mac; non crea shell e non si collega a host remoti.
+
+La pagina HTTP locale usa normalmente la porta HTTPS configurata più uno (`7444` per impostazione predefinita). Sospensione, Riprova e riapertura mantengono indirizzo e autorizzazione finché la disponibilità delle porte non cambia. Se la porta è occupata, Zshell prova le sette porte locali successive; dopo `65535`, la sequenza riparte da `1024`. Se la disponibilità delle porte cambia, un riavvio può selezionare un altro indirizzo. L’autorizzazione esistente è legata all’origine precedente, quindi il nuovo indirizzo richiede un nuovo abbinamento. I client salvati restano visibili e revocabili quando l’accesso è disattivato. Raggiunti 32 client, revocane uno prima di approvarne un altro. Se il servizio di sessioni non può essere verificato, l’accesso resta attivo; fai clic su Riprova quando il servizio è pronto.
+
+Su un altro dispositivo, esporta il certificato TLS, confronta l’impronta con Impostazioni e rendilo attendibile prima di aprire l’indirizzo HTTPS. Inserisci un nome e scegli **Richiedi abbinamento**. Entro due minuti, confronta codice, indirizzo e origine sul Mac e scegli **Approva**. L’autorizzazione dura fino a 90 giorni per indirizzo e protocollo esatti. **Revoca** o **Revoca tutti i client** disconnette e rifiuta subito le credenziali.
+
+Scegli una sessione per vedere la schermata attuale e l’output in diretta, con colori ANSI e Unicode, e digitare nello stesso processo. Mac e browser condividono l’input. Il Mac controlla la dimensione, salvo selezionare **Adatta il terminale al browser**. L’input durante la disconnessione viene scartato; riconnettersi riapre la stessa sessione attiva. Ricaricare conserva la credenziale della scheda; chiuderla o **Dimentica questo browser** la rimuove. Un nuovo indirizzo richiede un altro abbinamento.
+
+Disattivare l’accesso, mettere il Mac in stop o uscire da Zshell arresta il servizio. Chiudere un pannello termina il processo. La conservazione della shell alla chiusura resta controllata da `terminal.preserve-sessions`. Riapri Zshell per accedere ai pannelli ancora attivi. Il riavvio del Mac o l’arresto del demone termina le shell. Le code hanno un limite e i client lenti vengono disconnessi senza bloccare il Mac. La pagina è inclusa nell’app e non usa CDN.
+
+Se sono ancora attive sessioni conservate da una vecchia versione, l’accesso dal browser chiede di uscire e terminare tutte le sessioni e riaprire Zshell. Le attività restano attive fino alla tua scelta.

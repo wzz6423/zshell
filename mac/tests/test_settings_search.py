@@ -18,7 +18,7 @@ LANGUAGES = (
     "it", "nl", "ru", "ar", "th", "id", "vi", "tr",
 )
 CATEGORIES = (
-    "general", "shortcuts", "appearance", "terminal", "editor", "browser", "automation",
+    "general", "shortcuts", "appearance", "terminal", "editor", "browser", "browserAccess", "automation",
     "recommendations", "updates",
 )
 CONFIGURATION_ITEMS = {
@@ -26,6 +26,9 @@ CONFIGURATION_ITEMS = {
     "keep-awake": ("general", "Keep computer awake", ""),
     "browser.content-blocking": ("browser", "Block ads and trackers", ""),
     "browser.filter-lists": ("browser", "Filter Lists", "Filter Lists"),
+    "browser-access.enabled": ("browserAccess", "Enable browser access", ""),
+    "browser-access.interface": ("browserAccess", "Listen on", "Private Network"),
+    "browser-access.port": ("browserAccess", "HTTPS port", "Private Network"),
     "toolbar.visibility": ("general", "Toolbar", ""),
     "git.proxy-enabled": ("general", "Use proxy for Git", "Git"),
     "git.proxy": ("general", "Proxy address", "Git"),
@@ -93,6 +96,8 @@ CONFIGURATION_ITEMS = {
     "editor.recover-drafts": ("editor", "Back up unsaved drafts", ""),
     "ai.enabled": ("automation", "AI", ""),
     "ai.resume-conversations": ("automation", "Resume agent conversations", ""),
+    "ai.custom-recognition-rules": ("automation", "Use custom recognition rules", "Agent Recognition"),
+    "ai.screen-inference": ("automation", "Infer agent state from the screen", "Agent Recognition"),
     "ai.notify-on-attention": ("automation", "Notify when agents need attention", "Notifications"),
     "ai.notify-on-completion": ("automation", "Notify when agents finish", "Notifications"),
     "ai.usage-enabled": ("automation", "Read account usage", "Account Usage"),
@@ -136,6 +141,7 @@ ACTION_ITEMS = (
     ("terminal", "Command History…", "History"),
     ("terminal", "Notification History…", "Notifications"),
     ("automation", "Agent Conversation History", ""),
+    ("automation", "Manage Agent Rules…", "Agent Recognition"),
 )
 
 HARNESS = r'''
@@ -150,6 +156,7 @@ import Combine
     var showPaneFocusRing = true
     var gitProxyEnabled = true
     var browserContentBlocking = true
+    var browserAccessEnabled = true
     var terminalBackgroundOpacity = 0.85
 }
 
@@ -200,6 +207,7 @@ struct SearchHarness {
             settings.showPaneFocusRing = !disabled.contains("showPaneFocusRing")
             settings.gitProxyEnabled = !disabled.contains("gitProxyEnabled")
             settings.browserContentBlocking = !disabled.contains("browserContentBlocking")
+            settings.browserAccessEnabled = !disabled.contains("browserAccessEnabled")
             settings.terminalBackgroundOpacity = sample.backgroundOpacity ?? 0.85
             let updater = Updater.shared
             updater.automaticallyChecksForUpdates = !disabled.contains("automaticallyChecksForUpdates")
@@ -381,6 +389,17 @@ class SettingsSearchTests(unittest.TestCase):
             }])[0]
             for query, rows in zip(queries, sample["queries"]):
                 self.assert_item(rows, CONFIGURATION_ITEMS[query], language)
+
+    def test_recognition_controls_are_discoverable_without_ai(self):
+        queries = ["ai.custom-recognition-rules", "ai.screen-inference", "agents.toml"]
+        for language in LANGUAGES:
+            sample = self.evaluate([{
+                "language": language, "queries": queries, "disabled": ["aiEnabled"],
+            }])[0]
+            for query, rows in zip(queries[:2], sample["queries"][:2]):
+                self.assert_item(rows, CONFIGURATION_ITEMS[query], language)
+            self.assert_item(sample["queries"][2],
+                             ("automation", "Manage Agent Rules…", "Agent Recognition"), language)
 
     def test_keep_awake_is_visible_without_ai(self):
         for language in LANGUAGES:

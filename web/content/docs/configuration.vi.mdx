@@ -267,13 +267,29 @@ Khôi phục đầu ra trước của từng terminal phía trên shell mới sa
 
 Đầu ra khôi phục lưu trên đĩa, nên có thể gồm bí mật từng hiển thị. [Dự án, tab và bố cục ô](/vi/docs/projects#what-survives-a-relaunch) vẫn luôn được khôi phục.
 
+## Truy cập qua trình duyệt [#browser-access]
+
+Nếu các phiên được giữ từ Zshell cũ còn chạy, truy cập qua trình duyệt sẽ yêu cầu thoát và kết thúc mọi phiên rồi mở lại Zshell. Công việc được giữ đến khi bạn chọn.
+
+### `browser-access.enabled`
+
+`browser-access.enabled` là giá trị boolean, mặc định `false`. Bật trong **Cài đặt → Truy cập qua trình duyệt**. Các khung cục bộ mới sẽ khả dụng; khung hiện có giữ nguyên tiến trình. Hỗ trợ cả hai backend terminal và không thay đổi `terminal.preserve-sessions`.
+
+### `browser-access.interface` / `browser-access.port`
+
+`browser-access.interface` mặc định là `"loopback"` (**Chỉ localhost**). Với thiết bị khác, hãy chọn rõ một giao diện IPv4 mạng riêng LAN hoặc Tailscale khả dụng. Giá trị lưu đúng tên và địa chỉ, ví dụ `"en0|192.168.0.10"`. `browser-access.port` là cổng HTTPS, 1024–65535, mặc định `7443`. Trang cục bộ dùng địa chỉ HTTP riêng chỉ truy cập trên Mac. Nếu giao diện không còn, hãy chọn giao diện khả dụng; dịch vụ không chuyển sang lắng nghe mọi giao diện.
+
+Trang HTTP cục bộ thường dùng cổng HTTPS đã cấu hình cộng một (mặc định `7444`). Ngủ, thử lại và mở lại giữ nguyên địa chỉ và quyền nếu tình trạng sử dụng cổng không đổi. Nếu cổng đang được dùng, Zshell thử bảy cổng cục bộ tiếp theo; sau `65535`, quay về `1024`. Nếu tình trạng sử dụng cổng thay đổi, lần khởi động lại có thể chọn địa chỉ khác. Quyền hiện có gắn với nguồn trước đó, nên địa chỉ mới cần ghép nối lại. Máy khách đã lưu vẫn hiển thị và có thể thu hồi quyền khi truy cập tắt. Khi đạt giới hạn 32 máy khách, hãy thu hồi một máy trước khi phê duyệt máy mới. Nếu không thể kiểm tra dịch vụ phiên, truy cập vẫn bật; nhấp Thử lại khi dịch vụ sẵn sàng.
+
+So sánh dấu vân tay TLS và tin cậy chứng chỉ đã xuất trên máy khách trước khi ghép đôi từ xa. Chấp thuận hoặc thu hồi máy khách trên Mac. Tắt, cho Mac ngủ hoặc thoát sẽ đóng kết nối; việc thoát tuân theo thiết lập giữ phiên. Xem [Truy cập máy Mac này qua trình duyệt](/vi/docs/remote-sessions#browser-access).
+
 ## Tự động hóa [#automation]
 
 ### `ai.enabled` [#aienabled]
 
 boolean — mặc định `true`
 
-Cho tác nhân lập trình được hỗ trợ phối hợp ô nền khi bạn yêu cầu bằng ngôn ngữ thường, và hiện trạng thái vòng đời do nhà cung cấp báo. Zshell không suy ra trạng thái từ chữ terminal. Nên dùng công tắc Cài đặt vì lỗi hiện tại chỗ và thiết lập hiện có bị xung đột được giữ nguyên.
+Cho tác nhân lập trình được hỗ trợ phối hợp ô nền khi bạn yêu cầu bằng ngôn ngữ thường, và hiện trạng thái vòng đời do nhà cung cấp báo. Nên dùng công tắc Cài đặt vì lỗi hiện tại chỗ và thiết lập hiện có bị xung đột được giữ nguyên.
 
 Quy trình sử dụng nằm ở [Làm việc với tác nhân AI](/vi/docs/automation).
 
@@ -385,3 +401,12 @@ Mở **Cài đặt → Phím tắt** để ghi phím mới cho lệnh cốt lõi
 - **Cập nhật tự động.** Công tắc tự kiểm tra, tải và cài ở **Cài đặt → Cập nhật** dùng preferences ngoài TOML và nhớ lựa chọn qua lần mở. Điều khiển tải xuống chỉ hiện khi bật tự kiểm tra và có thể cập nhật tự động; điều khiển cài đặt còn yêu cầu bật tự tải xuống. Xem [Cài đặt](/vi/docs/installation#updates).
 - **Cửa sổ và bố cục.** Kích thước cửa sổ, độ rộng thanh bên, bảng đã chọn, dự án, tab, ô, URL trình duyệt và tùy chọn điều khiển diff nằm trong preferences macOS và ảnh chụp phiên của Zshell.
 - **Tệp cấu hình backend.** Zshell không đọc `~/.config/ghostty` hay cấu hình Alacritty. Cài đặt Zshell là nơi cấu hình được hỗ trợ cho cả hai.
+
+
+## Quy tắc nhận diện agent [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, mặc định `true`
+
+Mở **Cài đặt → AI → Nhận diện agent** hoặc **Agents → Quản lý quy tắc agent…** để thêm, sửa, xóa, nhập, xuất hoặc đặt lại quy tắc cục bộ. Nhận diện tùy chỉnh và suy luận từ màn hình là hai công tắc riêng, mặc định đều bật. Tắt sẽ xóa ngay bằng chứng màn hình cũ. Sự kiện gốc và báo cáo chương trình được ưu tiên.
+
+[agents.toml](/vi/docs/automation#agent-recognition-rules)

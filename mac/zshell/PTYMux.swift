@@ -12,19 +12,19 @@ nonisolated enum PTYMuxConstants {
     static let socketTimeout: TimeInterval = 2
 }
 
-struct PTYMuxRequest: Codable {
+nonisolated struct PTYMuxRequest: Codable, Sendable {
     let version: Int
     let id: String
     let method: String
     let params: [String: ZshellJSONValue]
 }
 
-struct PTYMuxErrorPayload: Codable {
+nonisolated struct PTYMuxErrorPayload: Codable, Sendable {
     let code: String
     let message: String
 }
 
-struct PTYMuxResponse: Codable {
+nonisolated struct PTYMuxResponse: Codable, Sendable {
     let version: Int
     let id: String
     let ok: Bool
@@ -54,16 +54,18 @@ struct PTYMuxResponse: Codable {
 
 nonisolated enum PTYMuxError: Error, CustomStringConvertible {
     case message(String)
+    case response(code: String, message: String)
 
     var description: String {
         switch self {
         case .message(let message): return message
+        case .response(let code, let message): return "\(code): \(message)"
         }
     }
 }
 
 enum PTYMuxPaths {
-    static var directoryURL: URL {
+    nonisolated static var directoryURL: URL {
         if let override = ProcessInfo.processInfo.environment["ZSHELL_PTY_MUX_DIRECTORY"],
            !override.isEmpty
         {
@@ -82,11 +84,11 @@ enum PTYMuxPaths {
             .appendingPathComponent("pty-mux", isDirectory: true)
     }
 
-    static var socketPath: String {
+    nonisolated static var socketPath: String {
         directoryURL.appendingPathComponent("control.sock").path
     }
 
-    static var lockPath: String {
+    nonisolated static var lockPath: String {
         directoryURL.appendingPathComponent("daemon.lock").path
     }
 
@@ -413,11 +415,13 @@ private final class PTYMuxDaemon {
             }
 
             let request = try PTYMuxWire.readFrame(PTYMuxRequest.self, from: client)
-            if request.method == "attach", request.version == PTYMuxConstants.protocolVersion {
+            if ["attach", "observe"].contains(request.method), request.version == PTYMuxConstants.protocolVersion {
                 let session = try requireSession(request)
-                let dimensions = try dimensions(request)
-                session.resize(columns: dimensions.0, rows: dimensions.1,
-                               cellWidth: dimensions.2, cellHeight: dimensions.3)
+                if request.method == "attach" {
+                    let dimensions = try dimensions(request)
+                    session.resize(columns: dimensions.0, rows: dimensions.1,
+                                   cellWidth: dimensions.2, cellHeight: dimensions.3)
+                }
                 let result = session.snapshot(tailBytes: 0)
                 let attachment = PTYMuxAttachment(descriptor: client)
                 defer { session.detach(attachment); attachment.finish() }
@@ -428,9 +432,11 @@ private final class PTYMuxDaemon {
                                  socklen_t(MemoryLayout<timeval>.size)) == 0 else {
                     throw PTYMuxWire.errnoError("setsockopt")
                 }
-                try session.attach(attachment) {
+                let reply = {
                     try PTYMuxWire.writeFrame(PTYMuxResponse.success(id: request.id, result: result), to: client)
                 }
+                if request.method == "observe" { try session.observe(attachment, reply: reply) }
+                else { try session.attach(attachment, reply: reply) }
                 var buffer = [UInt8](repeating: 0, count: 16 * 1024)
                 while true {
                     let count = Darwin.read(client, &buffer, buffer.count)
@@ -482,6 +488,8 @@ private final class PTYMuxDaemon {
         }
         do {
             switch request.method {
+            case "capabilities":
+                return .success(id: request.id, result: .object(["observe": .bool(true)]))
             case "create":
                 return try create(request)
             case "list":
@@ -758,7 +766,7 @@ enum PTYMuxCommandLine {
         throw PTYMuxError.message("Timed out starting the PTY mux daemon.")
     }
 
-    static func exchange(
+    nonisolated static func exchange(
         method: String,
         params: [String: ZshellJSONValue] = [:],
         timeout: TimeInterval = PTYMuxConstants.socketTimeout
@@ -789,7 +797,7 @@ enum PTYMuxCommandLine {
         guard response.ok else {
             let code = response.error?.code ?? "pty_mux_error"
             let message = response.error?.message ?? "PTY mux request failed."
-            throw PTYMuxError.message("\(code): \(message)")
+            throw PTYMuxError.response(code: code, message: message)
         }
         return response
     }

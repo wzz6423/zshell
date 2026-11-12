@@ -42,6 +42,7 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
             ("agent-attention", String(localized: "Next Agent Needing Attention"), #selector(focusNextAgent(_:))),
             ("agent-conversation-history", String(localized: "Agent Conversation History"), #selector(showHistoryFromMenu(_:))),
             ("agent-conversation-history-search", String(localized: "Search All Agent Conversations"), #selector(searchAllFromMenu(_:))),
+            ("agent-recognition-rules", String(localized: "Manage Agent Rules…"), #selector(showRecognitionRulesFromMenu(_:))),
         ]
         for (id, title, action) in commands {
             let identifier = NSUserInterfaceItemIdentifier(id)
@@ -57,6 +58,8 @@ final class AgentConversationHistoryController: NSObject, NSWindowDelegate, NSMe
             if command.menu == nil { menu.addItem(command) }
         }
     }
+
+    @objc private func showRecognitionRulesFromMenu(_ sender: Any?) { AgentRecognitionRulesController.shared.show() }
 
     func show(for manager: TerminalManager, filter: AgentConversationHistoryStore.Filter) {
         guard let host = AppWindowPresentation.hostWindow(relativeTo: manager.presentationWindow) else { return }

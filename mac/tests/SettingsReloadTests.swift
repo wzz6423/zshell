@@ -66,6 +66,11 @@ import Foundation
     }
 }
 
+@MainActor final class AgentAutomationMonitor {
+    static let shared = AgentAutomationMonitor()
+    func recognitionSettingsChanged(invalidateAliases: Bool = true) {}
+}
+
 @main
 struct SettingsReloadTests {
     @MainActor static func check(_ condition: Bool, _ message: String) {
@@ -113,6 +118,7 @@ struct SettingsReloadTests {
         withExtendedLifetime(observation) {}
         wait({ FileManager.default.fileExists(atPath: url.path) }, "initial config save")
         check(!settings.focusFollowsMouse, "pointer focus is disabled by default")
+        check(!settings.browserAccessEnabled && settings.browserAccessInterface == "loopback" && settings.browserAccessPort == 7443, "browser access defaults remain local and disabled")
         check(settings.terminalRightClickAction == .contextMenu, "right-click keeps the context menu by default")
         check(settings.shellCompletions, "shell completions are enabled by default")
         check(settings.remotePasteUpload && settings.remoteDropUpload, "remote file uploads are enabled by default")
@@ -120,7 +126,8 @@ struct SettingsReloadTests {
               "new configurations use the enabled preference defaults")
         check(settings.protectEditorSaves && settings.recoverEditorDrafts && settings.quickTerminalEnabled && settings.commandHistoryEnabled && settings.terminalTextHints
               && settings.automaticallyApplyTerminalProfiles && settings.notifyOnAgentAttention
-              && settings.notifyOnAgentCompletion && settings.showPullRequestStatus,
+              && settings.notifyOnAgentCompletion && settings.showPullRequestStatus
+              && settings.customAgentRecognitionRules && settings.agentScreenInference,
               "feature switches preserve existing behavior by default")
         check(settings.isAtDefaults, "fresh settings expose the correct reset state")
         settings.remotePasteUpload = false
@@ -373,6 +380,8 @@ struct SettingsReloadTests {
         panes.focus-ring-opacity = 0.4
         ai.enabled = false
         ai.resume-conversations = false
+        ai.custom-recognition-rules = false
+        ai.screen-inference = false
         ai.notify-on-attention = false
         ai.notify-on-completion = false
         ai.usage-enabled = true
@@ -387,6 +396,9 @@ struct SettingsReloadTests {
         terminal.custom-directory = "~/work"
         browser.content-blocking = false
         browser.filter-lists = "https://example.test/filter.txt"
+        browser-access.enabled = true
+        browser-access.interface = "en0|192.168.0.10"
+        browser-access.port = 8443
         terminal.profiles.0.id = "71DA4706-872C-4D96-ACDC-3FC8201F86B7"
         terminal.profiles.0.name = "Fixture profile"
         terminal.profiles.0.directory = "/tmp/*"
@@ -410,6 +422,8 @@ struct SettingsReloadTests {
         check(settings.terminalProfiles.first?.launchSettings.environment["MODE"] == "profile",
               "profile launch settings round trip through config")
         let roundTrip = TOML.parseStrictly(text: imported).values
+        check(settings.browserAccessEnabled && settings.browserAccessInterface == "en0|192.168.0.10"
+              && settings.browserAccessPort == 8443, "browser access configuration imports and persists")
         check(settings.terminalPaddingColor == .always, "import applies padding policy")
         check(settings.terminalTerm == "screen-256color", "terminal type imports into production settings")
         check(settings.terminalCellWidth == 1.35, "column spacing imports into production settings")
@@ -543,6 +557,8 @@ struct SettingsReloadTests {
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
         check(settings.remotePasteUpload && settings.remoteDropUpload, "omitted remote upload preferences restore compatible defaults")
+        check(!settings.browserAccessEnabled && settings.browserAccessInterface == "loopback" && settings.browserAccessPort == 7443,
+              "empty external config closes browser access and resets network configuration")
         check(settings.terminalMinimumContrast == 3, "omitted contrast restores the compatible default")
         check(!settings.diffWrapLines, "diff line wrapping resets when its external config key is omitted")
         check(settings.sidebarDoubleClickNewSession,
@@ -561,13 +577,18 @@ struct SettingsReloadTests {
         check(try SettingsConfigFile.read(at: url) == "", "default reload leaves empty source unchanged")
         check(settings.protectEditorSaves && settings.recoverEditorDrafts && settings.quickTerminalEnabled && settings.commandHistoryEnabled && settings.terminalTextHints
               && settings.automaticallyApplyTerminalProfiles && settings.notifyOnAgentAttention
-              && settings.notifyOnAgentCompletion && settings.showPullRequestStatus,
+              && settings.notifyOnAgentCompletion && settings.showPullRequestStatus
+              && settings.customAgentRecognitionRules && settings.agentScreenInference,
               "omitted feature switches restore compatible defaults on external reload")
         check(!settings.agentUsageEnabled && settings.claudeUsageEnabled && settings.codexUsageEnabled,
               "empty configuration disables usage and restores provider defaults")
 
         settings.resetToDefaults()
         check(settings.isAtDefaults, "reset covers every configurable preference")
+        settings.browserAccessEnabled = true
+        check(!settings.isAtDefaults, "browser access enables reset")
+        settings.resetToDefaults()
+        check(!settings.browserAccessEnabled && !settings.preserveTerminalSessions, "reset disables sharing without enabling persistent sessions")
         settings.diffWrapLines = true
         check(!settings.isAtDefaults, "diff line wrapping enables reset")
         settings.resetToDefaults()
@@ -579,6 +600,7 @@ struct SettingsReloadTests {
             \.notifyOnAgentCompletion, \.showPullRequestStatus, \.sidebarDoubleClickNewSession,
             \.claudeUsageEnabled, \.codexUsageEnabled,
             \.remotePasteUpload, \.remoteDropUpload,
+            \.customAgentRecognitionRules, \.agentScreenInference,
         ]
         for keyPath in featureSwitches {
             settings[keyPath: keyPath] = false

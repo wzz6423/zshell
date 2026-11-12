@@ -373,6 +373,22 @@ be included.
 [Projects, tabs, and pane layout](/en/docs/projects#what-survives-a-relaunch) are
 restored either way.
 
+## Browser access [#browser-access]
+
+If sessions preserved by an older Zshell version are still running, Browser Access asks you to use **Quit and End All Sessions** and reopen Zshell. Existing jobs are kept until you make that choice.
+
+### `browser-access.enabled`
+
+`browser-access.enabled` is a boolean, default `false`. Enable it in **Settings → Browser Access**. New local terminal panes then become available in a browser; existing panes keep their current process. Both terminal backends work. Browser access does not change `terminal.preserve-sessions`.
+
+### `browser-access.interface` / `browser-access.port`
+
+`browser-access.interface` defaults to `"loopback"` (**Localhost Only**). To connect from another device, choose an available private IPv4 LAN or Tailscale interface in Settings. Its stored value includes the exact interface and address, for example `"en0|192.168.0.10"`. `browser-access.port` is the HTTPS port, 1024–65535, default `7443`. The localhost page uses a separate local-only HTTP address. An unavailable interface requires selecting one that is present; the service never falls back to listening on all interfaces.
+
+The localhost HTTP page normally uses the configured HTTPS port plus one (default `7444`). Sleep, Retry, and reopening preserve that address and its authorization while port availability remains unchanged. If the port is occupied, Zshell tries the next seven local ports; after `65535`, the sequence wraps to `1024`. If port availability changes, a restart can select a different address. Existing authorization is bound to the previous origin, so the new address requires pairing again. Saved clients remain visible and revocable while access is off. At the 32-client limit, revoke a client before approving another. If the session service cannot be checked, access stays enabled; click Retry after the service is ready.
+
+Compare the TLS certificate fingerprint and trust the exported certificate on the client before remote pairing. Approve or revoke clients on this Mac. Disabling access, sleeping, or quitting closes browser connections; quitting follows the existing session-preservation setting. See [Browser access to this Mac](/en/docs/remote-sessions#browser-access) for pairing and lifecycle details.
+
 ## Automation
 
 ### `ai.enabled`
@@ -380,8 +396,7 @@ restored either way.
 boolean — default `true`
 
 Lets supported coding agents coordinate background Zshell panes when you ask in
-plain language, and shows provider-reported lifecycle status in the UI. Zshell
-does not infer status from terminal text. The Settings toggle is the recommended
+plain language, and shows provider-reported lifecycle status in the UI. The Settings toggle is the recommended
 way to change it because errors are shown inline and conflicting existing setups
 are left untouched.
 
@@ -508,3 +523,12 @@ them. **Restore Default Shortcuts** resets all overrides. The
   Zshell's macOS preferences and session snapshot.
 - **Backend config files.** Zshell does not read `~/.config/ghostty` or an
   Alacritty config. Zshell's settings are the supported surface for both.
+
+
+## Agent recognition rules [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, default `true`
+
+Open **Settings → AI → Agent Recognition** or **Agents → Manage Agent Rules…** to add, edit, delete, import, export, or reset local rules. **Use custom recognition rules** and **Infer agent state from the screen** are separate switches; both default to on. Switching either off clears its existing screen evidence immediately. Native lifecycle events and explicit program reports keep priority.
+
+[agents.toml](/en/docs/automation#agent-recognition-rules)

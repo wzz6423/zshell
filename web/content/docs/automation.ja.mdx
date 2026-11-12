@@ -141,3 +141,37 @@ zshell +events --event command.task.finished --once --timeout 30000
 ## 会話を分岐する [#fork-a-conversation]
 
 **ターミナル → エージェント → エージェントの会話履歴** で会話を選び、コンテキストメニューまたは分岐ボタンから **新しいペインに会話を分岐** を選択します。プロバイダーのネイティブ分岐で元のコンテキストを引き継ぐ独立した会話を作成し、元のペインと会話は変更しません。Codex、Claude Code、OpenCode、Pi はネイティブ分岐に対応する CLI が必要です。Pi は保存済みセッションファイルも必要です。リモートでは Zshell サーバーを更新してください。CLI がないか分岐に対応していない場合は、ペインを作成する前にエラーが表示されます。ログインやネイティブフックにより確認できない場合は、新しいペインの出力を確認します。ペイン内では `zshell +agent fork --id UUID [--focus]`、外部ターミナルではさらに `--project UUID` を指定します。
+
+## Agent 認識ルール [#agent-recognition-rules]
+
+**設定 → AI → Agent 認識** または **ターミナル → エージェント → Agent ルールを管理…** でルールの追加、編集、削除、読み込み、書き出し、リセットができます。カスタム認識と画面からの状態推定は独立したスイッチで、既定では両方オンです。オフにすると古い画面証拠がすぐ消えます。ネイティブイベントとプログラムの報告を優先します。
+
+ルールは `config.toml` と同じ場所の `agents.toml`（`~/.config/zshell/agents.toml`、Debug は `zshell-dev`）に保存します。有効な変更は自動で反映され、無効な変更は最後の有効なルールを保ち、管理画面にエラーを表示します。空または削除されたファイルは内蔵ルールを復元します。
+
+新しい `id` は Agent を追加します。`claude` や `codex` は内蔵画面ルールを置き換え、`executables` と `aliases` は完全一致するコマンド名を追加します。実行ファイルとインタープリタのスクリプト引数だけを読み、後続のプロンプトやパスは読みません。`screen_enabled = false` はプロセス認識のみを残し、`enabled = false` は個別ルールを停止します。内蔵別名はネイティブ統合を使い、カスタム Agent は元の `name` を表示します。
+
+優先度が最も高い一致ルールが勝ち、同点はファイル順です。`contains` は大小文字を区別しません。すべての `regex`、`line_regex`、`all` が一致し、`any` が空でない場合は少なくとも一つのグループが一致し、`not` は一致しないことが必要です。`any` の省略または空のリストは条件を追加しません。`skip_state_update = true` は既存証拠を保ちます。状態は `idle`、`working`、`blocked`、`unknown`、blocked の `attention` は `approval`、`input`、`login`、`error` です。
+
+ライブ画面下部 16 行を継続して確認し、履歴は読みません。連続する 2 回の確認で同じ結果が一致してから推定状態を表示します。領域は `whole_recent`、`bottom_lines(1…16)`、`bottom_non_empty_lines(1…16)`、`prompt_box_body`、`above_prompt_box`、`last_non_empty_above_prompt_box`、`after_last_horizontal_rule` です。他の Kero/herdr 領域は拒否します。上限は 256 KiB、64 Agent、Agent ごとに 32 ルール、条件の入れ子 4 段階です。無効・危険な正規表現、重複 ID、コマンド競合、未知キーは拒否します。推定は完了の証明、通知、入力承認には使いません。
+
+```toml title="agents.toml"
+[[agents]]
+id = "frog"
+name = "Frog"
+executables = ["frog", "frog-cli"]
+aliases = ["frog-wrapper"]
+
+[[agents.rules]]
+id = "approval"
+state = "blocked"
+priority = 200
+region = "bottom_non_empty_lines(6)"
+attention = "approval"
+line_regex = ['^Allow .+\? \[y/n\]$']
+
+[[agents.rules]]
+id = "activity"
+state = "working"
+priority = 100
+contains = ["hopping…"]
+```

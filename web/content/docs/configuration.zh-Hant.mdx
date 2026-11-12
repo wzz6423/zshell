@@ -282,13 +282,29 @@ Finder、CLI、工作區範本、worktree、還原工作階段、專案固定目
 
 恢復的捲動歷史會儲存在磁碟上，所以終端機裡顯示過的密鑰也可能包含在內。[專案、分頁和窗格佈局](/zh-Hant/docs/projects#what-survives-a-relaunch)無論如何都會恢復。
 
+## 瀏覽器存取 [#browser-access]
+
+若舊版 Zshell 保留的工作階段仍在執行，瀏覽器存取會提示選取 **結束並終止所有工作階段** 後重新開啟 Zshell。在你選擇結束前，既有工作會保留。
+
+### `browser-access.enabled`
+
+`browser-access.enabled` 為布林值，預設 `false`。在 **設定 → 瀏覽器存取** 啟用後，新開的本機終端機面板可供瀏覽器存取；既有面板保留目前程序。兩種終端機後端均可使用，且不會改變 `terminal.preserve-sessions`。
+
+### `browser-access.interface` / `browser-access.port`
+
+`browser-access.interface` 預設 `"loopback"`（**僅限本機**）。從其他裝置連線時，在設定中明確選取可用的私有 IPv4 LAN 或 Tailscale 介面。儲存值包含確切介面及位址，例如 `"en0|192.168.0.10"`。`browser-access.port` 是 HTTPS 連接埠，範圍 1024–65535，預設 `7443`。本機頁面使用獨立、僅限本機的 HTTP 位址。介面無法使用時需重新選取，服務不會改為監聽所有介面。
+
+本機 HTTP 頁面通常使用設定的 HTTPS 連接埠加一（預設 `7444`）。連接埠占用情況不變時，睡眠恢復、重試和重新開啟會保留該位址與授權。若連接埠被占用，Zshell 會依序嘗試後續七個本機連接埠；到 `65535` 後從 `1024` 繼續。連接埠占用情況變更後，重新啟動可能選擇不同位址。既有授權綁定原來的來源位址，因此新位址需要重新配對。關閉存取時仍可查看和撤銷已儲存的用戶端；達到 32 個用戶端上限時，請先撤銷一個再核准新的用戶端。無法檢查工作階段服務時，存取開關仍保持開啟；服務就緒後按一下「重試」。
+
+遠端配對前，請比對 TLS 憑證指紋，並在用戶端信任匯出的憑證。在這台 Mac 上核准或撤銷用戶端。關閉存取、睡眠或結束應用程式會中斷連線；結束時仍遵循既有工作階段保留設定。詳見[透過瀏覽器存取這台 Mac](/zh-Hant/docs/remote-sessions#browser-access)。
+
 ## 自動化 [#automation]
 
 ### `ai.enabled` [#aienabled]
 
 布林值——預設 `true`
 
-讓受支持的編碼 agent 按照你的自然語言要求協調 Zshell 後台窗格，並在介面裡顯示 provider 報告的生命週期狀態。Zshell 不會根據終端機文字推斷狀態。推薦用設定視窗的開關，因為錯誤會直接顯示出來，而且衝突的現有配置會保持原樣。
+讓受支持的編碼 agent 按照你的自然語言要求協調 Zshell 後台窗格，並在介面裡顯示 provider 報告的生命週期狀態。推薦用設定視窗的開關，因為錯誤會直接顯示出來，而且衝突的現有配置會保持原樣。
 
 具體怎麼使用，見[與 AI Agent 協作](/zh-Hant/docs/automation)。
 
@@ -404,3 +420,12 @@ Zshell 會拒絕此次修改並顯示佔用它的指令。點擊 **恢復預設�
 - **視窗與佈局狀態。** 視窗尺寸、側邊欄寬度、當前面板、專案、分頁、窗格、瀏覽器 URL 和
   diff 控件偏好，都存在 Zshell 的 macOS 偏好設定或工作階段快照裡。
 - **後端自己的配置檔案。** Zshell 不讀取 `~/.config/ghostty`，也不讀取 Alacritty 配置。Zshell 的設定就是兩個後端共同支持的配置面。
+
+
+## Agent 識別規則 [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, 預設 `true`
+
+開啟 **設定 → AI → Agent 識別** 或 **Agents → 管理 Agent 規則…**，可新增、編輯、刪除、匯入、匯出或重設本機規則。**使用自訂識別規則** 與 **依畫面推斷 Agent 狀態** 是兩個獨立開關，預設均開啟。關閉會立即清除相關舊畫面證據。原生生命週期事件和程式報告仍優先。
+
+[agents.toml](/zh-Hant/docs/automation#agent-recognition-rules)

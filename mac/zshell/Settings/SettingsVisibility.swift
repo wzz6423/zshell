@@ -22,6 +22,7 @@ struct SettingsVisibility {
     var showPaneFocusRing: Bool
     var gitProxyEnabled: Bool
     var browserContentBlocking: Bool
+    var browserAccessEnabled: Bool = false
     var terminalBackgroundOpacity: Double
     var reduceTransparency: Bool
     var automaticallyChecksForUpdates: Bool
@@ -49,6 +50,7 @@ struct SettingsVisibility {
             showPaneFocusRing: settings.showPaneFocusRing,
             gitProxyEnabled: settings.gitProxyEnabled,
             browserContentBlocking: settings.browserContentBlocking,
+            browserAccessEnabled: settings.browserAccessEnabled,
             terminalBackgroundOpacity: settings.terminalBackgroundOpacity,
             reduceTransparency: NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency,
             automaticallyChecksForUpdates: updater.automaticallyChecksForUpdates,

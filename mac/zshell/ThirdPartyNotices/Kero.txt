@@ -14,6 +14,11 @@ internal/cli/hook.go, internal/cli/hook_test.go, internal/remote/install.go,
 internal/remote/agent.go, internal/remote/agent_test.go,
 internal/settings/config.go, and internal/settings/config_test.go.
 
+Zshell also adapts the custom agents.toml format and executable/rule override
+semantics from internal/detect/detect.go and docs/status.md at source revision
+8eb2ead662f1713b7bca5355aa1413e8d6696ed1. Its bounded live-footer rules remain
+Zshell's own; Kero's herdr manifest collection is not included.
+
 These adaptations use Zshell's existing terminal backends, AppKit views,
 remote protocol, and authentication. Kero is licensed under the MIT license:
 

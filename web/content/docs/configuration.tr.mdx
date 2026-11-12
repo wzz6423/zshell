@@ -267,13 +267,29 @@ Yeniden açılışta her terminalin eski çıktı geçmişini yeni kabuğun üst
 
 Geçmiş diskte saklandığından terminalde görünen sırlar da bulunabilir. [Projeler, sekmeler ve bölme düzeni](/tr/docs/projects#what-survives-a-relaunch) her durumda geri yüklenir.
 
+## Tarayıcı erişimi [#browser-access]
+
+Eski Zshell sürümünün koruduğu oturumlar çalışıyorsa tarayıcı erişimi, tüm oturumları sonlandırarak çıkmanızı ve uygulamayı yeniden açmanızı ister. Mevcut işler siz seçene kadar korunur.
+
+### `browser-access.enabled`
+
+`browser-access.enabled` bir boolean değeridir; varsayılanı `false`. **Ayarlar → Tarayıcı erişimi** bölümünde etkinleştirin. Yeni yerel paneller kullanılabilir; mevcut paneller işlemlerini korur. İki terminal arka ucu da çalışır ve `terminal.preserve-sessions` değişmez.
+
+### `browser-access.interface` / `browser-access.port`
+
+`browser-access.interface` varsayılanı `"loopback"` (**Yalnızca localhost**) değeridir. Başka cihaz için kullanılabilir özel IPv4 LAN veya Tailscale arayüzünü açıkça seçin. Değer tam arayüz adı ve adresini içerir, örneğin `"en0|192.168.0.10"`. `browser-access.port` HTTPS bağlantı noktasıdır: 1024–65535, varsayılan `7443`. Yerel sayfa yalnızca Mac’ten erişilen ayrı HTTP adresi kullanır. Arayüz yoksa mevcut olanı seçin; hizmet tüm arayüzleri dinlemeye geçmez.
+
+Yerel HTTP sayfası normalde ayarlanan HTTPS bağlantı noktasından bir sonraki noktayı kullanır (varsayılan `7444`). Bağlantı noktalarının kullanılabilirliği değişmediği sürece uyku, yeniden deneme ve yeniden açma adresi ve yetkiyi korur. Bağlantı noktası doluysa Zshell sonraki yedi yerel noktayı dener; `65535` sonrasında `1024` ile devam eder. Bağlantı noktalarının kullanılabilirliği değişirse yeniden başlatma farklı bir adres seçebilir. Mevcut yetki önceki kaynağa bağlıdır; bu nedenle yeni adres için yeniden eşleştirmek gerekir. Erişim kapalıyken kayıtlı istemciler görünür ve yetkileri kaldırılabilir. 32 istemci sınırında yenisini onaylamadan önce bir istemcinin yetkisini kaldırın. Oturum hizmeti denetlenemiyorsa erişim açık kalır; hizmet hazır olduğunda Yeniden dene seçeneğine tıklayın.
+
+Uzaktan eşleştirmeden önce TLS parmak izini karşılaştırıp dışa aktarılan sertifikaya istemcide güvenin. İstemcileri Mac’te onaylayın veya yetkilerini kaldırın. Kapatma, uyku ve uygulamadan çıkma bağlantıları kapatır; çıkış mevcut oturum koruma ayarını izler. [Bu Mac’e tarayıcıdan erişim](/tr/docs/remote-sessions#browser-access) bölümüne bakın.
+
 ## Otomasyon [#automation]
 
 ### `ai.enabled` [#aienabled]
 
 mantıksal — varsayılan `true`
 
-Doğal dille istediğinizde desteklenen kodlama ajanlarının arka plan bölmelerini koordine etmesini sağlar ve sağlayıcının bildirdiği yaşam döngüsü durumunu arayüzde gösterir. Zshell terminal metninden durum çıkarmaz. Ayarlar anahtarı önerilir: hatalar satır içinde gösterilir, çakışan kurulumlar değiştirilmez.
+Doğal dille istediğinizde desteklenen kodlama ajanlarının arka plan bölmelerini koordine etmesini sağlar ve sağlayıcının bildirdiği yaşam döngüsü durumunu arayüzde gösterir. Ayarlar anahtarı önerilir: hatalar satır içinde gösterilir, çakışan kurulumlar değiştirilmez.
 
 Kullanım akışı [AI ajanlarıyla çalışma](/tr/docs/automation) bölümündedir.
 
@@ -385,3 +401,12 @@ Temel komuta yeni kısayol kaydetmek için **Ayarlar → Kısayollar**’ı aç�
 - **Otomatik güncellemeler.** **Ayarlar → Güncellemeler**’deki otomatik denetim, indirme ve kurulum anahtarları TOML dışındaki uygulama tercihlerindedir; açılışlar arasında hatırlanır. İndirme denetimleri yalnızca otomatik denetim açıkken ve otomatik güncellemeler kullanılabilirken görünür; kurulum için otomatik indirme de açık olmalıdır. [Kurulum](/tr/docs/installation#updates) bölümüne bakın.
 - **Pencere ve düzen durumu.** Pencere boyutu, kenar çubuğu genişlikleri, seçili paneller, projeler, sekmeler, bölmeler, tarayıcı URL’leri ve fark denetimi tercihleri macOS tercihleri ve oturum anlık görüntüsünde saklanır.
 - **Arka uç yapılandırma dosyaları.** Zshell `~/.config/ghostty` veya Alacritty yapılandırması okumaz. Her iki arka uç için desteklenen yapılandırma yeri Zshell ayarlarıdır.
+
+
+## Ajan tanıma kuralları [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, varsayılan `true`
+
+Yerel kuralları eklemek, düzenlemek, silmek, içe veya dışa aktarmak ya da sıfırlamak için **Ayarlar → AI → Ajan Tanıma** veya **Agents → Ajan Kurallarını Yönet…** bölümünü açın. Özel tanıma ve ekrandan çıkarım bağımsız anahtarlardır, ikisi de varsayılan olarak açıktır. Kapatma eski ekran kanıtlarını hemen siler. Yerel olaylar ve program raporları önceliklidir.
+
+[agents.toml](/tr/docs/automation#agent-recognition-rules)

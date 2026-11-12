@@ -836,6 +836,8 @@ enum ZshellAutomationRouter {
         .object([
             "alias": .string(status.alias),
             "kind": .string(status.kind.rawValue),
+            "recognition_id": status.recognitionID.map(ZshellJSONValue.string) ?? .null,
+            "name": .string(status.displayName),
             "state": .string(status.phase.rawValue),
             "authority": .string(status.authority.rawValue),
             "reason": .string(status.reason),

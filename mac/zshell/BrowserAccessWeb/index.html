@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>Zshell — Browser Access</title>
+  <link rel="stylesheet" href="/xterm.css">
+  <link rel="stylesheet" href="/browser-access.css">
+  <script defer src="/xterm.js"></script>
+  <script defer src="/addon-fit.js"></script>
+  <script defer src="/addon-unicode11.js"></script>
+  <script defer src="/browser-access.js"></script>
+</head>
+<body>
+  <header>
+    <strong>Zshell</strong>
+    <span id="status" role="status" aria-live="polite"></span>
+    <button id="connect" hidden></button>
+    <button id="disconnect" hidden></button>
+    <button id="forget" hidden></button>
+  </header>
+  <section id="pairing">
+    <h1 id="title"></h1>
+    <form id="pair-form">
+      <label id="name-label" for="client-name"></label>
+      <input id="client-name" maxlength="80" autocomplete="off" required>
+      <button id="pair" type="submit"></button>
+    </form>
+    <p id="code" class="code" hidden></p>
+    <p id="pair-instructions" hidden></p>
+    <p id="trust" hidden></p>
+    <p id="fingerprint" class="fingerprint" hidden></p>
+    <a id="certificate" href="/certificate.pem" download="zshell-browser-access.pem" hidden></a>
+    <p><a id="remote" hidden></a></p>
+  </section>
+  <main id="workspace" hidden>
+    <nav>
+      <label id="session-label" for="sessions"></label>
+      <select id="sessions"></select>
+      <label class="resize-control"><input id="control" type="checkbox"><span id="control-label"></span></label>
+    </nav>
+    <p id="empty" hidden></p>
+    <div id="terminal-scroll"><div id="terminal"></div></div>
+  </main>
+</body>
+</html>

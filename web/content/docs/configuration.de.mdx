@@ -267,13 +267,29 @@ Stellt nach einem Neustart die bisherige Terminalausgabe über einer neuen Shell
 
 Der Verlauf wird auf dem Datenträger gespeichert und kann im Terminal angezeigte Geheimnisse enthalten. [Projekte, Tabs und Bereichsanordnung](/de/docs/projects#what-survives-a-relaunch) werden unabhängig davon wiederhergestellt.
 
+## Browserzugriff [#browser-access]
+
+Laufen noch Sitzungen aus einer älteren Zshell-Version, bittet der Browserzugriff darum, alle Sitzungen beim Beenden zu beenden und Zshell erneut zu öffnen. Bestehende Jobs bleiben bis zu deiner Entscheidung erhalten.
+
+### `browser-access.enabled`
+
+`browser-access.enabled` ist ein boolescher Wert, standardmäßig `false`. Aktiviere ihn unter **Einstellungen → Browserzugriff**. Neue lokale Terminalbereiche werden erreichbar; vorhandene behalten ihren Prozess. Beide Terminal-Backends werden unterstützt. `terminal.preserve-sessions` wird dadurch nicht geändert.
+
+### `browser-access.interface` / `browser-access.port`
+
+`browser-access.interface` ist standardmäßig `"loopback"` (**Nur Localhost**). Wähle für andere Geräte ausdrücklich eine verfügbare private IPv4-LAN- oder Tailscale-Schnittstelle. Der gespeicherte Wert enthält den genauen Namen und die Adresse, etwa `"en0|192.168.0.10"`. `browser-access.port` ist der HTTPS-Port, 1024–65535, standardmäßig `7443`. Die lokale Seite hat eine eigene HTTP-Adresse, die nur auf dem Mac erreichbar ist. Fehlt eine Schnittstelle, muss eine verfügbare ausgewählt werden; der Dienst wechselt nie zum Lauschen auf allen Schnittstellen.
+
+Die lokale HTTP-Seite nutzt normalerweise den konfigurierten HTTPS-Port plus eins (Standard `7444`). Solange sich die Portverfügbarkeit nicht ändert, behalten Ruhezustand, erneutes Versuchen und erneutes Öffnen Adresse und Autorisierung bei. Ist der Port belegt, versucht Zshell die nächsten sieben lokalen Ports; nach `65535` beginnt die Folge bei `1024`. Ändert sich die Portverfügbarkeit, kann nach einem Neustart eine andere Adresse gewählt werden. Die bestehende Autorisierung ist an den bisherigen Ursprung gebunden; die neue Adresse erfordert erneutes Koppeln. Gespeicherte Clients bleiben bei deaktiviertem Zugriff sichtbar und widerrufbar. Bei 32 Clients muss vor einer weiteren Genehmigung ein Client widerrufen werden. Kann der Sitzungsdienst nicht geprüft werden, bleibt der Zugriff aktiviert; wähle Erneut versuchen, sobald der Dienst bereit ist.
+
+Vergleiche vor einer entfernten Kopplung den TLS-Fingerabdruck und vertraue dem exportierten Zertifikat auf dem Client. Autorisiere oder widerrufe Clients auf dem Mac. Deaktivierung, Ruhezustand und Beenden schließen Browserverbindungen; beim Beenden gilt die vorhandene Sitzungserhaltung. Siehe [Browserzugriff auf diesen Mac](/de/docs/remote-sessions#browser-access).
+
 ## Automatisierung [#automation]
 
 ### `ai.enabled` [#aienabled]
 
 Boolescher Wert – Standard: `true`
 
-Ermöglicht unterstützten Programmieragenten, auf Ihre natürlichsprachliche Bitte Hintergrundbereiche zu koordinieren, und zeigt den vom Anbieter gemeldeten Lebenszyklusstatus an. Zshell leitet den Status nicht aus Terminaltext ab. Ändern Sie dies vorzugsweise im Einstellungsfenster: Dort erscheinen Fehler direkt, und widersprüchliche bestehende Konfigurationen bleiben unangetastet.
+Ermöglicht unterstützten Programmieragenten, auf Ihre natürlichsprachliche Bitte Hintergrundbereiche zu koordinieren, und zeigt den vom Anbieter gemeldeten Lebenszyklusstatus an. Ändern Sie dies vorzugsweise im Einstellungsfenster: Dort erscheinen Fehler direkt, und widersprüchliche bestehende Konfigurationen bleiben unangetastet.
 
 Den Ablauf beschreibt [Mit KI-Agenten arbeiten](/de/docs/automation).
 
@@ -385,3 +401,12 @@ Unter **Einstellungen → Tastenkürzel** zeichnen Sie neue Kürzel für zentral
 - **Automatische Updates.** Die Schalter für automatische Prüfung, Download und Installation unter **Einstellungen → Updates** liegen ebenfalls außerhalb von TOML und bleiben über Neustarts erhalten. Downloadregler erscheinen nur bei aktiver automatischer Prüfung und verfügbaren automatischen Updates; die Installation benötigt zusätzlich automatische Downloads. Siehe [Installation](/de/docs/installation#updates).
 - **Fenster und Anordnung.** Fenstergröße, Seitenleistenbreiten, ausgewählte Panels, Projekte, Tabs, Bereiche, Browser-URLs und Diff-Voreinstellungen liegen in Zshells macOS-Voreinstellungen und Sitzungsabbild.
 - **Backend-Konfigurationsdateien.** Zshell liest weder `~/.config/ghostty` noch eine Alacritty-Konfiguration. Für beide Backends sind Zshells Einstellungen maßgeblich.
+
+
+## Agent-Erkennungsregeln [#agent-recognition-rules]
+
+`ai.custom-recognition-rules` · `ai.screen-inference` — `true` / `false`, Standard `true`
+
+Öffnen Sie **Einstellungen → AI → Agent-Erkennung** oder **Agents → Agent-Regeln verwalten…**, um lokale Regeln hinzuzufügen, zu bearbeiten, zu löschen, zu importieren, zu exportieren oder zurückzusetzen. Benutzerdefinierte Erkennung und Bildschirmableitung sind unabhängige, standardmäßig aktive Schalter. Abschalten löscht alte Bildschirmbelege sofort. Native Ereignisse und Programmberichte haben Vorrang.
+
+[agents.toml](/de/docs/automation#agent-recognition-rules)
