@@ -159,6 +159,12 @@ Mengalikan tinggi sel alami masing-masing backend, sambil menjaga glif terpusat 
 
 Zshell tidak menyediakan kontrol bobot font dasar. Ghostty memilih gaya bernama atau sumbu variasi, sedangkan Alacritty/CoreText menentukan wajah reguler dan tebal berdasarkan atribut. Satu nilai bersama tidak akan menjaga perbedaan reguler/tebal dan bobot cadangan secara konsisten di font statis maupun variabel.
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+Pilih **Pengaturan → Tampilan → Latar → Warna tepi**. `"background"` memakai latar tema terminal pada tepi. `"extend"` memperluas latar sel terdekat, tetapi mempertahankan latar tema pada tepi atas atau bawah jika baris tersebut berisi sel dengan latar bawaan, prompt shell, atau pemisah Powerline. `"always"` memperluas semua tepi tanpa pemeriksaan tersebut. Baris kosong di bagian bawah mempertahankan latarnya sendiri; baris berwarna di atasnya tidak mengisi tepi bawah. Perubahan langsung berlaku pada terminal terbuka di kedua backend. Dengan latar tembus pandang, latar bawaan mempertahankan opasitasnya, sedangkan latar sel yang ditentukan secara eksplisit beserta perluasannya tetap buram.
+
 ### `editor.wrap-lines` [#editorwrap-lines]
 
 Boolean — bawaan `true`

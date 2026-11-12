@@ -298,7 +298,10 @@ final class TerminalManager: nonisolated ObservableObject {
                         AppSettings.shared.$fontLigatures.removeDuplicates()
                     )
                 ),
-                AppSettings.shared.$theme.removeDuplicates()
+                Publishers.CombineLatest(
+                    AppSettings.shared.$theme.removeDuplicates(),
+                    AppSettings.shared.$terminalPaddingColor.removeDuplicates()
+                )
             ),
             Publishers.CombineLatest(
                 AppSettings.shared.$themeDark.removeDuplicates(),

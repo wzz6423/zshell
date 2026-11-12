@@ -6,6 +6,8 @@ import subprocess
 import sys
 import tempfile
 
+from swift_test_source import extract_enum
+
 
 ROOT = Path(__file__).resolve().parents[2]
 ALACRITTY = ROOT / "mac/zshell/Alacritty"
@@ -37,7 +39,7 @@ extension TerminalMetalRenderer {
         metrics: AlacrittyMetrics, scale: CGFloat, dirtyRows: [Int]?
     ) -> Bool {
         prepare(snapshot: snapshot, markedText: markedText, metrics: metrics,
-                padding: CGPoint(x: 4, y: 4), scale: scale, backgroundOpacity: 1,
+                padding: CGPoint(x: 4, y: 4), scale: scale, paddingColor: .extend,
                 dirtyRows: dirtyRows, viewportSize: CGSize(width: 512, height: 512))
     }
 
@@ -102,7 +104,7 @@ extension TerminalMetalRenderer {
     func testPrepareOriginalBuild(snapshot: ZshellSnapshot, metrics: AlacrittyMetrics,
                                   dirtyRows: [Int]?) {
         build(snapshot: snapshot, markedText: nil, metrics: metrics,
-              padding: CGPoint(x: 4, y: 4), atlas: atlas!, backgroundOpacity: 1,
+              padding: CGPoint(x: 4, y: 4), atlas: atlas!, paddingColor: .extend,
               dirtyRows: dirtyRows, viewportSize: CGSize(width: 512, height: 512))
     }
 
@@ -254,7 +256,9 @@ extension TerminalGlyphAtlas {
 
 """ + colors[selection_end:]
     models = temporary / "RendererModels.swift"
+    settings = (ROOT / "mac/zshell/AppSettings.swift").read_text()
     models.write_text(metrics.replace("import GhosttyTheme\n", "")
+                      + extract_enum(settings, "TerminalPaddingColor")
                       + "struct AlacrittyRenderer {\n" + colors)
 
     source = (ROOT / "mac/zshell/TerminalFont.swift").read_text()

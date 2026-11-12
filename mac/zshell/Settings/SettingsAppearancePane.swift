@@ -139,6 +139,10 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
     private let cursorShapeView = TerminalCursorShapeSettingsView(frame: .zero)
     private let cursorBlinkingView = TerminalCursorBlinkingSettingsView(frame: .zero)
     private let terminalBackgroundBlurSwitch = SettingsSwitch { AppSettings.shared.terminalBackgroundBlur = $0 }
+    private let terminalPaddingColorPopUp = SettingsPopUpButton<TerminalPaddingColor>(
+        items: TerminalPaddingColor.allCases.map { .value($0.title, $0) },
+        onChange: { AppSettings.shared.terminalPaddingColor = $0 }
+    )
     private let terminalBackgroundOpacityRow = SettingsSliderRow(
         title: String(localized: "Opacity"),
         range: AppSettings.terminalBackgroundOpacityRange,
@@ -151,6 +155,13 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
     private lazy var backgroundGroup = SettingsGroup(header: String(localized: "Background"), rows: [
         terminalBackgroundOpacityRow,
         SettingsRow(title: String(localized: "Blur behind window"), control: terminalBackgroundBlurSwitch),
+        SettingsRow(
+            title: String(localized: "Padding color"),
+            description: String(localized: "Automatic keeps prompts and partially colored rows from extending vertically. Always extends every edge."),
+            control: terminalPaddingColorPopUp,
+            symbolName: "rectangle.inset.filled",
+            symbolColor: SettingsCategory.appearance.iconColor
+        ),
     ])
     private lazy var fontGroup = SettingsGroup(header: String(localized: "Font"), rows: [
         SettingsRow(title: String(localized: "Latin family"), control: familyPopUp),
@@ -249,6 +260,7 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
         cursorBlinkingView.apply(isBlinking: settings.cursorBlinking)
         terminalBackgroundOpacityRow.setValue(settings.terminalBackgroundOpacity)
         terminalBackgroundBlurSwitch.isOn = settings.terminalBackgroundBlur
+        terminalPaddingColorPopUp.select(settings.terminalPaddingColor)
         backgroundGroup.setRowHidden(!visibility.terminalBackgroundBlur, at: 1)
         paneFocusRingSwitch.isOn = settings.showPaneFocusRing
         paneFocusRingOpacityRow.setValue(settings.paneFocusRingOpacity)

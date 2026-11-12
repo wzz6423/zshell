@@ -83,6 +83,8 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     var reportsLocalWorkingDirectory = true
     private(set) var backgroundOpacity = 1.0
     var profileAppearance = TerminalProfileAppearance()
+    private let paddingBackground = TerminalPaddingBackground()
+    var reportedBackgroundColor: NSColor?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -122,6 +124,19 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         super.viewDidChangeEffectiveAppearance()
         applyAppearance()
     }
+
+    override func didRender() {
+        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        paddingBackground.update(
+            view: self, enabled: AppSettings.shared.terminalPaddingColor == .background,
+            color: reportedBackgroundColor ?? profileAppearance.theme(dark: isDark).backgroundNSColor,
+            opacity: backgroundOpacity
+        )
+    }
+
+    func invalidatePaddingGeometry() { paddingBackground.invalidateGeometry() }
+
+    func resetPaddingBackground() { paddingBackground.reset() }
 
     override func setSurfaceVisible(_ visible: Bool) {
         if !visible {

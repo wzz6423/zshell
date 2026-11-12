@@ -159,6 +159,12 @@ Multipliziert die natürliche Zellenhöhe des jeweiligen Terminal-Backends und h
 
 Zshell bietet keinen Regler für eine grundlegende Schriftstärke. Ghostty wählt benannte Schnitte oder Variationsachsen, während Alacritty/CoreText normale und fette Schnitte über Schriftmerkmale auflöst. Ein gemeinsamer Wert würde bei statischen und variablen Schriften weder die Unterscheidung normal/fett noch die Ersatzschriftstärke zuverlässig erhalten.
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+Wählen Sie **Einstellungen → Erscheinungsbild → Hintergrund → Randfarbe**. `"background"` verwendet den Terminal-Themenhintergrund im Rand. `"extend"` erweitert den Hintergrund der nächsten Zelle, belässt den oberen oder unteren Rand jedoch beim Themenhintergrund, wenn die jeweilige Zeile eine Zelle mit Standardhintergrund, eine Shell-Eingabeaufforderung oder einen Powerline-Trenner enthält. `"always"` erweitert alle Ränder ohne diese Prüfungen. Leere letzte Zeilen behalten ihren eigenen Hintergrund; eine farbige Zeile darüber füllt den unteren Rand nicht. Änderungen gelten sofort für offene Terminals beider Backends. Bei Transparenz behält der Standardhintergrund seine Deckkraft, während explizite Zellhintergründe und ihre Erweiterungen undurchsichtig bleiben.
+
 ### `editor.wrap-lines` [#editorwrap-lines]
 
 Boolescher Wert – Standard: `true`

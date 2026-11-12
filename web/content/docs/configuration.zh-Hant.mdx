@@ -167,6 +167,12 @@ Zshell 不提供基礎字重控件。Ghostty 使用具名字形樣式或可變�
 trait 解析 regular 與 bold 字型；單個共享數值無法在靜態字型和可變字型之間一致地保留
 regular/bold 區分及後備字型字重。
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+在**設定 → 外觀 → 背景 → 邊距顏色**中選擇。`"background"` 讓邊距使用終端機主題背景。`"extend"` 延伸最近儲存格的背景，但首行或末行包含預設背景儲存格、Shell 提示字元或 Powerline 分隔符時，上下邊距維持主題背景。`"always"` 略過這些判斷，向所有邊緣延伸。空白末行保留自身背景，其上方的彩色行不會填滿底部邊距。變更立即套用至兩個後端的已開啟終端機。使用半透明背景時，預設背景保留設定的不透明度，明確指定的儲存格背景及其延伸部分維持不透明。
+
 ### `editor.wrap-lines` [#editorwrap-lines]
 
 布林值——預設 `true`
