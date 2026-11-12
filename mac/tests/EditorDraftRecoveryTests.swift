@@ -14,10 +14,12 @@ struct EditorDraftRecoveryTests {
 
     @MainActor static func main() async {
         setbuf(stdout, nil)
-        NSApplication.shared.setActivationPolicy(.prohibited)
-        QuickTerminalOffscreen.install()
+        let phase = CommandLine.arguments[1]
+        if !["boundaries", "quota"].contains(phase) {
+            NSApplication.shared.setActivationPolicy(.prohibited)
+            QuickTerminalOffscreen.install()
+        }
         do {
-            let phase = CommandLine.arguments[1]
             let root = try SettingsConfigFile.resolve(URL(fileURLWithPath: CommandLine.arguments[2]))
             switch phase {
             case "write": try await write(root)
@@ -384,8 +386,12 @@ struct EditorDraftRecoveryTests {
             case "flush": try archive.flush([records[0]])
             case "startup":
                 archive.startExpiryCleanup()
-                try await Task.sleep(for: .milliseconds(150))
-            default: try await Task.sleep(for: .milliseconds(150))
+            default: break
+            }
+            if action == "startup" || action == "disabled-timer" {
+                try await wait("\(action) removes rejected drafts") {
+                    rejected.allSatisfy { !FileManager.default.fileExists(atPath: $0.path) }
+                }
             }
             let remaining = Set(try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
                 .compactMap { UUID(uuidString: $0.deletingPathExtension().lastPathComponent) })
@@ -412,6 +418,15 @@ struct EditorDraftRecoveryTests {
         }
         try check(try bytes() > 127 << 20 && bytes() <= EditorDraftArchive.maximumTotalBytes,
                   "32 valid draft payloads exercise the 128 MiB archive boundary")
+        let loadStarted = Date()
+        var restored: Set<UUID> = []
+        for record in records {
+            if let loaded = try await archive.load(record.id), loaded.text == text { restored.insert(loaded.id) }
+        }
+        let loadDuration = Date().timeIntervalSince(loadStarted)
+        print("DRAFT_ARCHIVE_RESTORE_SECONDS=\(loadDuration)")
+        try check(restored == Set(records.map(\.id)), "loading the near-capacity archive restores all 32 draft payloads")
+        try check(loadDuration < 5, "32 near-capacity draft loads finish without repeatedly decoding the full archive")
         let small = EditorDraftRecord(id: records[0].id, source: records[0].source, text: "new keystroke", baseline: baseline)
         let started = Date()
         let error = await withCheckedContinuation { continuation in

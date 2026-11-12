@@ -2,7 +2,9 @@
 
 Build Debug first; ZSHELL_TEST_DERIVED_DATA selects an isolated build.
 Both backend settings run with disposable homes, bundles and Git fixtures.
+Use --archive-only for model checks that never initialize AppKit or create windows.
 """
+import argparse
 import json
 import os
 from pathlib import Path
@@ -13,6 +15,10 @@ import threading
 import subprocess
 import tempfile
 import uuid
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--archive-only", action="store_true")
+arguments = parser.parse_args()
 
 ROOT = Path(__file__).resolve().parents[2]
 build = Path(os.environ.get("ZSHELL_TEST_DERIVED_DATA", ROOT / "mac/build/debug")) / "Build"
@@ -53,6 +59,16 @@ with tempfile.TemporaryDirectory(prefix="zshell-draft-test-", dir="/tmp") as dir
     environments = []
     domains = []
     try:
+        if arguments.archive_only:
+            fixture = temporary / "archive-model"
+            home = temporary / "home"
+            fixture.mkdir()
+            home.mkdir()
+            env = {key: value for key, value in os.environ.items() if not key.startswith("ZSHELL_")}
+            env.update(HOME=str(home), CFFIXED_USER_HOME=str(home), TMPDIR=str(temporary),
+                       GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL="/dev/null")
+            subprocess.run([str(binary), "boundaries", str(fixture)], env=env, cwd=ROOT, check=True, timeout=90)
+            raise SystemExit(0)
         for backend, normal_exit in (("libghostty", False), ("alacritty", False),
                                      ("libghostty", True), ("alacritty", True)):
             mode = "normal" if normal_exit else "crash"

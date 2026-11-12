@@ -159,7 +159,7 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
                     guard descriptor >= 0 else { continuation.resume(returning: nil); return }
                     defer { close(descriptor) }
                     var restored: EditorDraftRecord?
-                    try self.prune(in: descriptor) { if $0.id == id { restored = $0 } }
+                    try self.prune(in: descriptor, validatingRecords: false) { if $0.id == id { restored = $0 } }
                     _ = fsync(descriptor)
                     guard let record = restored ?? (try? self.read(id, in: descriptor)) else {
                         continuation.resume(returning: nil); return
@@ -223,8 +223,8 @@ nonisolated final class EditorDraftArchive: @unchecked Sendable {
                        validatingRecords: Bool = true,
                        onRead: ((EditorDraftRecord) -> Void)? = nil) throws {
         let entries = try entries(in: descriptor, removingTemporary: true).sorted { $0.modified > $1.modified }
-        // Healthy keystroke backups need only metadata cleanup. Decode before
-        // quota eviction, or when recovery and scheduled cleanup require it.
+        // Healthy writes and individual loads need only metadata cleanup.
+        // Decode before quota eviction, listing, or scheduled cleanup.
         let validate = validatingRecords || entries.count > Self.maximumEntries
             || entries.reduce(0, { $0 + min($1.bytes, Self.maximumRecordBytes) }) > Self.maximumTotalBytes
         let cutoff = Date().addingTimeInterval(-Self.retention)
