@@ -5,9 +5,12 @@ import Foundation
 /// consumed output; the daemon's existing bounded queue disconnects slow peers.
 nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
     private let io = DispatchQueue(label: "sh.zshell.browser-access.mux")
+    private let input = DispatchQueue(label: "sh.zshell.browser-access.mux.input")
     private let lock = NSLock()
     private var descriptor: Int32 = -1
     private var stopped = false
+    private var pendingInputBytes = 0
+    private var pendingInputFrames = 0
     private let acknowledged = DispatchSemaphore(value: 0)
     private var outstanding = 0
     private var lastAcknowledgment = Date()
@@ -33,8 +36,11 @@ nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
                 lock.lock()
                 descriptor = -1
                 stopped = true
+                if socket >= 0 {
+                    _ = shutdown(socket, SHUT_RDWR)
+                    Darwin.close(socket)
+                }
                 lock.unlock()
-                if socket >= 0 { Darwin.close(socket) }
                 let wasStalled = stalled
                 queue.async { ended(wasStalled) }
             }
@@ -112,21 +118,49 @@ nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
         return true
     }
 
-    func write(_ data: Data) -> Bool {
-        // `close()` takes this lock from the observe loop. Polling while
-        // holding it deadlocks a paste that the reader is trying to stop.
+    func write(_ data: Data, completed: @escaping @Sendable (Bool) -> Void) -> Bool {
         lock.lock()
-        let fd = descriptor
-        let open = !stopped && fd >= 0 && data.count <= BrowserAccessLimits.frameBytes
+        guard !stopped, descriptor >= 0, data.count <= BrowserAccessLimits.frameBytes,
+              pendingInputBytes + data.count <= BrowserAccessLimits.sendQueueBytes,
+              pendingInputFrames < BrowserAccessLimits.sendQueueBytes / BrowserAccessLimits.frameBytes else {
+            lock.unlock()
+            return false
+        }
+        guard !data.isEmpty else { lock.unlock(); completed(true); return true }
+        pendingInputBytes += data.count
+        pendingInputFrames += 1
+        // A stalled PTY must leave browser ACK, detach and revoke on the
+        // server queue responsive. Bound queue entries as well as payloads.
+        input.async { [self] in
+            let written = writeAll(data)
+            if !written { close() }
+            lock.lock()
+            pendingInputBytes -= data.count
+            pendingInputFrames -= 1
+            lock.unlock()
+            completed(written)
+        }
         lock.unlock()
-        guard open else { return false }
+        return true
+    }
+
+    private func writeAll(_ data: Data) -> Bool {
+        // The reader owns the original fd. Duplicate it under the same lock
+        // used for closing so a pending send cannot hit a reused fd number.
+        lock.lock()
+        let fd = !stopped && descriptor >= 0 ? fcntl(descriptor, F_DUPFD_CLOEXEC, 0) : -1
+        lock.unlock()
+        guard fd >= 0 else { return false }
+        defer { Darwin.close(fd) }
 
         // Darwin AF_UNIX send ignores MSG_DONTWAIT and waits out SO_SNDTIMEO.
         // configureSocket leaves that at 2s, so a full 8 KiB buffer stalls the
         // paste and then returns a short count. A 1 ms timeout lets the loop
         // poll for the peer instead of treating that prefix as failure.
         var sendTimeout = timeval(tv_sec: 0, tv_usec: 1_000)
-        _ = setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &sendTimeout, socklen_t(MemoryLayout<timeval>.size))
+        guard setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &sendTimeout, socklen_t(MemoryLayout<timeval>.size)) == 0 else {
+            return false
+        }
 
         // One browser paste is a single frame of up to 16 KiB, larger than the
         // Unix stream send buffer. A short send has already entered the PTY;
@@ -137,10 +171,7 @@ nonisolated final class BrowserAccessMuxBridge: @unchecked Sendable {
         return data.withUnsafeBytes { raw in
             guard let base = raw.baseAddress else { return raw.count == 0 }
             while offset < raw.count {
-                lock.lock()
-                let current = !stopped && descriptor == fd
-                lock.unlock()
-                guard current else { return false }
+                guard isActive else { return false }
 
                 var ready = pollfd(fd: fd, events: Int16(POLLOUT), revents: 0)
                 let polled = poll(&ready, 1, 50)
