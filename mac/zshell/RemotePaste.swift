@@ -139,7 +139,7 @@ nonisolated enum RemotePasteUpload {
                               credentialID: credentialID, standardInput: input)
         }
         // Receive the created path before cancellation can hand ownership to cleanup.
-        let created = try OpenSSHTransport(timeout: 10, outputLimit: 16_384).run(endpoint: endpoint,
+        let created = try transport.run(endpoint: endpoint,
             command: ["/bin/sh", "-c", "umask 077; mktemp -d \"${TMPDIR:-/tmp}/zshell-paste-\(token)-XXXXXXXX\""],
             authentication: authentication, credentialID: credentialID, standardInput: Data(), cancellable: false)
         let directory = created.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
