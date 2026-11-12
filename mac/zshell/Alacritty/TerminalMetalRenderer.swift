@@ -17,6 +17,60 @@ struct TerminalMarkedText {
     let column: Int
 }
 
+/// Which retained rows one frame rebuilds.
+///
+/// `dirtyRows == nil` rebuilds the grid. An empty array still presents and
+/// reuses every cached row, so a cursor blink can append the cursor quad
+/// without paying for glyphs that did not change. `presents == false` drops
+/// the frame: the emulator and the host both have nothing new.
+struct TerminalFrameRowDecision: Equatable {
+    var dirtyRows: [Int]?
+    var presents: Bool
+}
+
+/// Real emulator damage and a host unconditional redraw keep the rows they
+/// already named. A cursor blink or IME preedit sets `presentWithoutDamage`
+/// and must still present. A block cursor's own row is added afterwards,
+/// once visibility has been rewritten.
+func terminalFrameRowDecision(
+    needsUnconditionalRedraw: Bool,
+    damageKind: UInt32,
+    partialRows: [Int]?,
+    presentWithoutDamage: Bool
+) -> TerminalFrameRowDecision {
+    if needsUnconditionalRedraw || damageKind == ZSHELL_DAMAGE_FULL {
+        return TerminalFrameRowDecision(dirtyRows: nil, presents: true)
+    }
+    if damageKind == ZSHELL_DAMAGE_PARTIAL, let partialRows {
+        return TerminalFrameRowDecision(dirtyRows: partialRows, presents: true)
+    }
+    if presentWithoutDamage && damageKind == ZSHELL_DAMAGE_NONE {
+        return TerminalFrameRowDecision(dirtyRows: [], presents: true)
+    }
+    return TerminalFrameRowDecision(dirtyRows: nil, presents: false)
+}
+
+/// Adds the block-cursor row after blink or IME visibility has been applied.
+///
+/// `foreground(at:)` stores the cell background in that row while a block
+/// cursor occupies it. A blink or IME hide frame has already cleared the cursor, so
+/// rebuilding the row now restores the glyph. Bar and underline cursors do
+/// not recolor a glyph. A nil list still rebuilds the whole grid.
+func terminalCursorBlinkDirtyRows(
+    dirtyRows: [Int]?,
+    cursorBlinkOnly: Bool,
+    cursorShape: Int,
+    cursorRow: Int
+) -> [Int]? {
+    guard cursorBlinkOnly, cursorShape == 0, cursorRow >= 0, let rows = dirtyRows else {
+        return dirtyRows
+    }
+    if rows.contains(cursorRow) {
+        return rows
+    }
+    return rows + [cursorRow]
+}
+
 /// GPU renderer for a terminal grid.
 ///
 /// One instanced draw call normally covers a frame: every cell background, glyph,

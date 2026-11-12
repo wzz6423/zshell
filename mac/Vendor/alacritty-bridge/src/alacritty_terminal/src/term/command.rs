@@ -287,6 +287,8 @@ impl<T: EventListener> Term<T> {
         else {
             return;
         };
+        // Semantic prompt flags affect rendering even without any adjacent text.
+        self.damage_cursor();
         if self.mode.contains(TermMode::ALT_SCREEN) {
             // Alternate-screen prompt styling must not create shell-history records.
             match action {

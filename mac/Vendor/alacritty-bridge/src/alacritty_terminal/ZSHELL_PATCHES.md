@@ -8,6 +8,9 @@ Alternate-screen OSC 133 prompt anchors are rendering metadata only and never
 produce shell-history records.
 Native cell copying, erasure, insertion, deletion and reflow preserve or invalidate anchors. Resolved
 positions are cached by grid revision, including resize and bridge grid access.
+The native renderer reads explicitly recorded grid damage without manufacturing
+idle cursor or insert-mode damage. Actual writes and raw grid mutations retain
+their invalidation; the bridge and host track cursor state and visibility.
 The crate uses the adjacent local vte copy for native OSC 7/133 callbacks.
 The crate is nested under the bridge's src so its existing sandbox-safe source-copy
 build phases include it. Reference-test fixtures are not vendored; their manifest
