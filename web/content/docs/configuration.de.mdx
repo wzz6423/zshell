@@ -113,6 +113,20 @@ Zahl, 9–24 – Standard: `14`
 
 Grundschriftgröße beider Seitenleisten. Abschnittsüberschriften, Zeilen, Metadaten und Steuerelemente behalten dabei ihre relative Größenhierarchie.
 
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+Boolescher Wert — Standard `true`
+
+Optionale Ligaturen beider Terminal-Backends lassen sich unter **Einstellungen → Erscheinungsbild → Schriftligaturen** umschalten. Aus deaktiviert `calt`, `liga`, `clig`, `dlig` und `hlig`; erforderliche Schriftformung bleibt erhalten. Zeichen, Terminalspalten, Cursor und Auswahl ändern sich nicht.
+
+### `terminal.font-features` [#terminalfont-features]
+
+Zeichenfolge — Standard `""`, Schriftstandardwerte
+
+Tragen Sie unter **OpenType-Funktionen** vierstellige Tags ein, getrennt durch Kommas oder Leerraum: `-calt` deaktiviert kontextabhängige Alternativen, `ss01` aktiviert Stilsatz 1 und `zero=1` die alternative Null. Auch `+liga` und `liga=1` aktivieren Funktionen. Bei gleichem Tag gilt der letzte Eintrag. Für die fünf Ligatur-Tags hat der Schalter Vorrang.
+
+Änderungen gelten sofort für offene Terminals und die Vorschau. Beide Backends nutzen die unterstützten Schriftfunktionen; unbekannte Tags bleiben ohne Wirkung. Ungültige Eingaben behalten den letzten gültigen Wert, ungültige externe Werte verwenden Schriftstandardwerte. Zurücksetzen leert die Liste und aktiviert Ligaturen.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 Boolescher Wert – Standard: `false`
@@ -298,6 +312,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1

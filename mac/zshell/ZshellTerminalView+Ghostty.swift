@@ -107,6 +107,10 @@ extension ZshellTerminalView {
             // contributing an implicit family before the user's ordered list.
             builder.withCustom("font-family", "Symbols Nerd Font Mono")
             builder.withFontSize(Float(profileAppearance.effectiveFontSize))
+            builder.withCustom("font-feature", "")
+            for feature in TerminalFontFeatures(settings.fontFeatures, ligatures: settings.fontLigatures).features {
+                builder.withCustom("font-feature", feature.ghosttyValue)
+            }
             // Always set explicitly: the wrapper's ConfigSource.none base
             // config injects the package default `font-thicken = true`, and
             // only a later entry in the rendered config overrides it.

@@ -166,7 +166,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             fontThicken: settings.fontThicken,
             fontThickenStrength: settings.fontThickenStrength,
             lineHeight: CGFloat(settings.terminalLineHeight),
-            cellWidth: CGFloat(settings.terminalCellWidth)
+            cellWidth: CGFloat(settings.terminalCellWidth),
+            fontFeatures: TerminalFontFeatures(settings.fontFeatures, ligatures: settings.fontLigatures)
         )
     }
 

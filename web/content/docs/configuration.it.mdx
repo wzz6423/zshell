@@ -113,6 +113,20 @@ numero, 9–24 — predefinito `14`
 
 La dimensione di base del testo in entrambe le barre laterali. Titoli di sezione, righe, metadati e controlli mantengono le proporzioni quando questa base cambia.
 
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+booleano — predefinito `true`
+
+Attiva o disattiva le legature facoltative di entrambi i motori in **Impostazioni → Aspetto → Legature del font**. La disattivazione prevale su `calt`, `liga`, `clig`, `dlig` e `hlig`, conservando le forme necessarie alla scrittura. Caratteri, colonne, cursore e selezione restano invariati.
+
+### `terminal.font-features` [#terminalfont-features]
+
+stringa — predefinito `""`, valori predefiniti del font
+
+In **Funzioni OpenType**, separa i tag di quattro caratteri con virgole o spazi: `-calt` disattiva le alternative contestuali, `ss01` attiva il set stilistico 1 e `zero=1` lo zero alternativo. Anche `+liga` e `liga=1` attivano funzioni. Prevale l’ultima voce per ciascun tag; l’interruttore delle legature ha priorità sui cinque tag citati.
+
+Le modifiche si applicano subito ai terminali aperti e all’anteprima. Entrambi i motori usano le funzioni supportate dal font; gli altri tag non hanno effetto. Un input non valido mantiene l’ultimo valore valido; valori esterni non validi usano i valori predefiniti. Il ripristino svuota la lista e attiva le legature.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 booleano — predefinito `false`
@@ -298,6 +312,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
