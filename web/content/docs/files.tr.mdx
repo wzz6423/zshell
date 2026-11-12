@@ -24,6 +24,14 @@ Dosyaya tıklamak onu odaktaki bölmede açar. Diğer işlemler sağ tık menüs
 
 Satırlar dosya adını tanıyan Material simgeleri kullanır. Git deposundaki değişmiş yollarda durum renkleri ve rozetler, yok sayılan dosyalarda soluk görünüm vardır. Böylece Git panelini açmadan aynı çalışma ağacı durumunu görürsünüz.
 
+## Dosya ve klasörleri içe aktarma [#import-files-and-folders]
+
+**Dosya → Dosyaları İçe Aktar…**, Dosyalar panelindeki içe aktarma düğmesi veya bir klasörün sağ tık menüsündeki bu seçeneği kullanın. Birden çok dosya ya da klasör seçebilirsiniz; Zshell özgünleri koruyarak seçilen klasöre veya geçerli ağaç köküne kopyalar.
+
+Finder öğelerini bir klasöre veya ağacın boş alanına bırakmak için **Ayarlar → Düzenleyici → Dosyalar → Dosya ağacına sürükleyerek içe aktar** (`files.drag-import`) seçeneğini açın. Varsayılan olarak kapalıdır; menü her zaman kullanılabilir.
+
+Aynı ad varsa **Değiştir**, **Atla** ve **İptal** seçenekleri sunulur. Klasör değiştirilirken içerikleri birleştirilmez, klasörün tamamı değiştirilir. İptal tüm içe aktarmayı durdurur ve bu işlemde eklenen kopyaları geri yükler. Başka bir program öğeyi geri yüklenmeden önce değiştirirse Zshell değişikliği korur ve kurtarma dosyaları içerebilecek bir klasörü gösterir. SSH ağaçları yerel içe aktarmayı kabul etmez. Sembolik bağlantılar hedefleri izlenmeden bağlantı olarak kopyalanır.
+
 ## Dosya ve içerik arama [#find-files-and-search-contents]
 
 Komut paleti (<kbd>Cmd</kbd>+<kbd>P</kbd>), geçerli pencerede açık yerel projelerde dosyaları ada veya yola göre, komutlar ve açık oturumlarla birlikte bulur. Dosya seçmek projesine geçer ve orada açar.
@@ -56,6 +64,14 @@ Düzenleme sırasında başka bir program dosyayı değiştirirse kaydetme bir �
 <Callout type="info">
 Bu düzenleyici zaten incelediğiniz değişiklik içindir: yazım hatası düzeltmek, sabit değer değiştirmek, farkın işaret ettiği dosyayı okumak. Dil sunucusu, tamamlama ve proje çapında yeniden düzenleme yoktur; bu bilinçli bir tercihtir.
 </Callout>
+
+## Kaydedilmemiş taslakları kurtarma [#recover-unsaved-drafts]
+
+Zshell, yerel dosyalardaki ve düzenlenebilir çalışma ağacı diff’lerindeki kaydedilmemiş değişiklikleri varsayılan olarak yedekler. Beklenmedik çıkıştan sonra yeniden açılan bölmeler taslakları, seçimleri ve düzeni geri yükler. Diğer yedekler için **Dosya → Taslakları Kurtar…** veya **Ayarlar → Düzenleyici → Taslakları Kurtar…** yolunu açın, yedeği seçip içeriğini inceleyin ve **Taslağı Geri Yükle** seçeneğine tıklayın. Geri yükleme kaydedilmemiş bir düzenleyici açar; diskteki dosyayı değiştirmez. Kaydetme, dış değişiklikleri düzenlemelerinizden önceki sürümle denetlemeye devam eder.
+
+Yedekleri **Ayarlar → Düzenleyici → Kaydedilmemiş taslakları yedekle** veya `editor.recover-drafts` ile yönetin. Kapatmak yeni yedekleri ve otomatik kurtarmayı durdurur, mevcut yedekleri elle kurtarma veya silme için korur. **Yedeği Sil** yalnızca seçilen yedeği kaldırır; açık düzenlemeler korunur. Başarılı kaydetme veya tamamlanan kapatmada **Kaydetme** seçimi yedeği kaldırır. Özel dosyalar bu Mac’te en fazla 32 taslak ve 128 MiB olarak tutulur ve en fazla 30 gün boyunca kurtarılabilir. Kapasite sınırları eski yedekleri daha erken silebilir. 5 MiB’den büyük dosyalar ve düzenlenmiş metinler kapsam dışıdır.
+
+Zshell başlangıçta ve çalışırken her saat, yedekleme kapalı olsa bile süresi dolmuş yedekleri siler. Zshell kapalıysa süresi dolan dosyalar bir sonraki açılışa kadar diskte kalır.
 
 ## Markdown önizlemesi [#markdown-preview]
 

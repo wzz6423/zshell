@@ -23,6 +23,7 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
         WindowScreenConstraint.shared.start()
         AppMenuController.shared.install()
         KeepAwakeController.shared.start()
+        EditorDraftStore.shared.archive.startExpiryCleanup()
         let open: () -> Void = { [weak self] in self?.openWorkspaceWindow() }
         AppMenuController.shared.openWindow = open
         TerminalManager.registerWindowOpener(open)
@@ -54,42 +55,34 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
 
     private func installTerminalEnvironmentMenu() {
         guard let mainMenu = NSApp.mainMenu,
-              !mainMenu.items.contains(where: { item in
-                  item.submenu?.items.contains(where: { $0.action == #selector(toggleQuickTerminal) }) == true
-              }) else { return }
-        let title = String(localized: "Terminal")
-        let submenu = NSMenu(title: title)
+              let submenu = AppMenuController.submenu(.terminal, in: mainMenu),
+              !submenu.items.contains(where: { $0.action == #selector(toggleQuickTerminal) }) else { return }
         let worktree = NSMenuItem(title: AppCommand.newSessionInWorktree.title,
                                  action: #selector(newSessionInWorktree), keyEquivalent: "t")
         worktree.keyEquivalentModifierMask = [.command, .option]
-        submenu.addItem(worktree)
-        submenu.addItem(.separator())
-        submenu.addItem(NSMenuItem(
+        let quickTerminal = NSMenuItem(
             title: String(localized: "Quick Terminal"),
             action: #selector(toggleQuickTerminal),
             keyEquivalent: ""
-        ))
+        )
         let search = NSMenuItem(title: String(localized: "Search Terminal Logs"),
                                 action: #selector(searchTerminalLogs), keyEquivalent: "f")
         search.keyEquivalentModifierMask = [.command, .shift]
-        submenu.addItem(search)
-        submenu.addItem(.separator())
-        submenu.addItem(NSMenuItem(
+        let projectEnvironment = NSMenuItem(
             title: String(localized: "Project Terminal Environment…"),
             action: #selector(editProjectTerminalEnvironment),
             keyEquivalent: ""
-        ))
-        submenu.addItem(NSMenuItem(
+        )
+        let tabEnvironment = NSMenuItem(
             title: String(localized: "Tab Terminal Environment…"),
             action: #selector(editTabTerminalEnvironment),
             keyEquivalent: ""
-        ))
-        submenu.items.forEach { $0.target = self }
-
-        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        item.submenu = submenu
-        let index = mainMenu.items.firstIndex { $0.submenu === NSApp.windowsMenu } ?? mainMenu.items.count
-        mainMenu.insertItem(item, at: index)
+        )
+        let items: [NSMenuItem] = [worktree, .separator(), quickTerminal, search, .separator(), projectEnvironment, tabEnvironment]
+        for (index, item) in items.enumerated() {
+            if item.action != nil { item.target = self }
+            submenu.insertItem(item, at: index)
+        }
     }
 
     private func installEndAllSessionsMenu() {

@@ -17,6 +17,7 @@ import uuid
 ROOT = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--derived-data", required=True, type=Path)
+parser.add_argument("--font-features", action="store_true", help="Repeat grid checks with bundled font features enabled")
 options = parser.parse_args()
 build = options.derived_data / "Build"
 products = build / "Products/Debug"
@@ -68,4 +69,5 @@ with tempfile.TemporaryDirectory(prefix="zshell-cell-width-probe-", dir="/tmp") 
         environment.update({"HOME": str(home), "CFFIXED_USER_HOME": str(home),
                             "ZDOTDIR": str(home), "ZSHELL_PTY_MUX_DIRECTORY": str(home / "mux")})
         subprocess.run([str(binary), backend, str(ROOT / "mac/tests/fixtures/terminal_cell_width.py"),
-                        str(home)], cwd=ROOT, env=environment, check=True, timeout=75)
+                        str(home), *(["--font-features"] if options.font_features else [])],
+                       cwd=ROOT, env=environment, check=True, timeout=75)

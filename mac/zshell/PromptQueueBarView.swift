@@ -44,6 +44,13 @@ final class PromptQueueBarView: NSView {
     var onLayoutChange: (() -> Void)?
 
     private var cancellables: Set<AnyCancellable> = []
+    private var readinessObservation: AnyCancellable?
+    private var windowVisibilityObservation: AnyCancellable?
+    private var windowVisibleObservation: AnyCancellable?
+    private var sendButtons: [NSButton] = []
+    private var compactButtons: Bool?
+    private var isPaneVisible = true
+    var isPollingReadiness: Bool { readinessObservation != nil }
     /// Guards the deferred field focus so it is dropped when the bar closes
     /// before the tick runs.
     private var focusFieldOnNextTick = false
@@ -74,6 +81,7 @@ final class PromptQueueBarView: NSView {
     func attach(queue: TerminalPromptQueue, session: TerminalSession) {
         self.queue = queue
         self.session = session
+        cancellables.removeAll()
         queue.$isPresented
             .removeDuplicates()
             .dropFirst()
@@ -85,6 +93,16 @@ final class PromptQueueBarView: NSView {
             .store(in: &cancellables)
         queue.$commands
             .sink { [weak self] commands in self?.rebuildItems(commands) }
+            .store(in: &cancellables)
+        AppSettings.shared.$promptQueueEnabled.removeDuplicates()
+            .sink { [weak self] enabled in
+                guard let self else { return }
+                self.inputField.isEnabled = enabled
+                self.addButton.isEnabled = enabled
+                if !enabled { self.readinessObservation = nil }
+            }.store(in: &cancellables)
+        NotificationCenter.default.publisher(for: AppLocalization.didChange)
+            .sink { [weak self] _ in self?.refreshLanguage() }
             .store(in: &cancellables)
         applyPresentation(queue.isPresented, updateFocus: false)
         rebuildItems(queue.commands)
@@ -108,10 +126,9 @@ final class PromptQueueBarView: NSView {
             localized: "Add a prompt to run later…",
             comment: "Placeholder of the prompt queue's input field."
         )
+        inputField.identifier = NSUserInterfaceItemIdentifier("prompt-queue-input")
         inputField.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         inputField.delegate = self
-        inputField.target = self
-        inputField.action = #selector(addToQueue)
         inputField.setContentHuggingPriority(.defaultLow, for: .horizontal)
         inputField.setContentCompressionResistancePriority(
             .defaultLow, for: .horizontal
@@ -129,6 +146,7 @@ final class PromptQueueBarView: NSView {
         addButton.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         addButton.target = self
         addButton.action = #selector(addToQueue)
+        addButton.identifier = NSUserInterfaceItemIdentifier("prompt-queue-add")
 
         closeButton.image = NSImage(
             systemSymbolName: "xmark", accessibilityDescription: nil
@@ -247,6 +265,7 @@ final class PromptQueueBarView: NSView {
             presented: presented, count: queue?.commands.count ?? 0
         )
         isHidden = !presented
+        updateReadinessObservation()
         onLayoutChange?()
         focusFieldOnNextTick = presented && updateFocus
         guard updateFocus else { return }
@@ -273,6 +292,7 @@ final class PromptQueueBarView: NSView {
     }
 
     private func rebuildItems(_ commands: [String]) {
+        sendButtons.removeAll()
         for view in listStack.arrangedSubviews {
             view.removeFromSuperview()
         }
@@ -298,9 +318,13 @@ final class PromptQueueBarView: NSView {
         listScroll.isHidden = commands.isEmpty
         listHeightConstraint.constant = listHeight(for: commands.count)
         heightConstraint.constant = fittedHeight(
-            presented: queue?.isPresented == true, count: commands.count
+            presented: !isHidden, count: commands.count
         )
         onLayoutChange?()
+        updateReadinessObservation(hasCommands: !commands.isEmpty)
+        refreshSendAvailability()
+        compactButtons = nil
+        needsLayout = true
     }
 
     private func listHeight(for count: Int) -> CGFloat {
@@ -331,6 +355,8 @@ final class PromptQueueBarView: NSView {
         preview.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
         preview.lineBreakMode = .byTruncatingTail
         preview.cell?.truncatesLastVisibleLine = true
+        preview.toolTip = command
+        preview.widthAnchor.constraint(greaterThanOrEqualToConstant: 30).isActive = true
         preview.setContentHuggingPriority(.defaultLow, for: .horizontal)
         preview.setContentCompressionResistancePriority(
             .defaultLow, for: .horizontal
@@ -348,7 +374,9 @@ final class PromptQueueBarView: NSView {
         send.controlSize = .small
         send.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         send.tag = index
+        send.identifier = NSUserInterfaceItemIdentifier("prompt-queue-send-\(index)")
         send.setContentCompressionResistancePriority(.required, for: .horizontal)
+        sendButtons.append(send)
 
         let remove = NSButton(
             title: String(
@@ -362,6 +390,7 @@ final class PromptQueueBarView: NSView {
         remove.controlSize = .small
         remove.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         remove.tag = index
+        remove.identifier = NSUserInterfaceItemIdentifier("prompt-queue-remove-\(index)")
         remove.setContentCompressionResistancePriority(
             .required, for: .horizontal
         )
@@ -380,7 +409,7 @@ final class PromptQueueBarView: NSView {
     // MARK: - Actions
 
     @objc private func addToQueue() {
-        guard let queue else { return }
+        guard queue?.isEnabled == true, let queue else { return }
         let text = inputField.stringValue
         guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         queue.enqueue(text)
@@ -390,13 +419,8 @@ final class PromptQueueBarView: NSView {
     }
 
     @objc private func sendNow(_ sender: NSButton) {
-        guard let queue, queue.commands.indices.contains(sender.tag) else {
-            return
-        }
-        let command = queue.commands[sender.tag]
-        session?.cancelPromptQueueDispatch()
-        queue.remove(at: sender.tag)
-        session?.sendQueuedPrompt(command)
+        if session?.sendQueuedPrompt(at: sender.tag) != true { NSSound.beep() }
+        refreshSendAvailability()
     }
 
     @objc private func removePrompt(_ sender: NSButton) {
@@ -405,6 +429,93 @@ final class PromptQueueBarView: NSView {
 
     @objc private func closeClicked() {
         queue?.dismiss()
+    }
+
+    private func updateReadinessObservation(hasCommands: Bool? = nil) {
+        guard !isHidden, isPaneVisible, window?.isVisible == true,
+              window?.isMiniaturized == false,
+              hasCommands ?? (queue?.commands.isEmpty == false) else {
+            readinessObservation = nil
+            return
+        }
+        guard readinessObservation == nil else { return }
+        // ZLE draft changes have no model event. Poll only mounted, open bars;
+        // the gate reads two small state files and the cached foreground PID.
+        readinessObservation = Timer.publish(every: 0.25, on: .main, in: .common)
+            .autoconnect().sink { [weak self] _ in
+                guard let self, self.window?.isVisible == true else { return }
+                self.refreshSendAvailability()
+            }
+    }
+
+    private func refreshSendAvailability() {
+        let enabled = session?.canSendQueuedPrompt == true
+        let title = String(localized: "Send Now")
+        let explanation = enabled ? title : String(localized: "Sending waits for an empty prompt in the original zsh shell and for command tasks to finish.")
+        for button in sendButtons {
+            if button.isEnabled != enabled { button.isEnabled = enabled }
+            button.toolTip = explanation
+            button.setAccessibilityHelp(explanation)
+        }
+    }
+
+    private func refreshLanguage() {
+        setAccessibilityLabel(String(localized: "Prompt Queue"))
+        inputField.placeholderString = String(localized: "Add a prompt to run later…")
+        addButton.title = String(localized: "Add to Queue")
+        closeButton.setAccessibilityLabel(String(localized: "Close Prompt Queue"))
+        closeButton.toolTip = closeButton.accessibilityLabel()
+        rebuildItems(queue?.commands ?? [])
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        windowVisibilityObservation = nil
+        windowVisibleObservation = nil
+        if let window {
+            windowVisibilityObservation = Publishers.MergeMany([
+                NSWindow.didChangeOcclusionStateNotification,
+                NSWindow.didMiniaturizeNotification, NSWindow.didDeminiaturizeNotification,
+            ].map { NotificationCenter.default.publisher(for: $0, object: window) })
+                .sink { [weak self] _ in self?.updateReadinessObservation() }
+            windowVisibleObservation = window.publisher(for: \.isVisible).removeDuplicates()
+                .sink { [weak self] _ in self?.updateReadinessObservation() }
+        }
+        updateReadinessObservation()
+    }
+
+    func setPaneVisible(_ visible: Bool) {
+        isPaneVisible = visible
+        updateReadinessObservation()
+    }
+
+    override func layout() {
+        let compact = bounds.width < 480
+        guard compactButtons != compact else {
+            super.layout()
+            return
+        }
+        compactButtons = compact
+        for button in [addButton] + listStack.arrangedSubviews.flatMap({ row in
+            (row as? NSStackView)?.arrangedSubviews.compactMap { $0 as? NSButton } ?? []
+        }) {
+            let title = button === addButton ? String(localized: "Add to Queue")
+                : button.action == #selector(sendNow(_:)) ? String(localized: "Send Now")
+                : String(localized: "Remove")
+            button.setAccessibilityLabel(title)
+            if compact {
+                let symbol = button === addButton ? "plus" : button.action == #selector(sendNow(_:)) ? "paperplane" : "trash"
+                button.title = ""
+                button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+                button.imagePosition = .imageOnly
+            } else {
+                button.title = title
+                button.image = nil
+                button.imagePosition = .noImage
+            }
+            if button.action != #selector(sendNow(_:)) { button.toolTip = title }
+        }
+        super.layout()
     }
 
     // MARK: - Drawing
@@ -430,6 +541,10 @@ extension PromptQueueBarView: NSTextFieldDelegate {
     func control(
         _ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector
     ) -> Bool {
+        if commandSelector == #selector(NSResponder.insertNewline(_:)) {
+            addToQueue()
+            return true
+        }
         // Esc closes the bar and keeps the queue — the find bar's contract.
         guard commandSelector == #selector(NSResponder.cancelOperation(_:)) else {
             return false

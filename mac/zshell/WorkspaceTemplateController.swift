@@ -45,7 +45,7 @@ final class WorkspaceTemplateController: NSObject, NSWindowDelegate, NSMenuItemV
     }
 
     func installMenu(in mainMenu: NSMenu) {
-        guard let fileMenu = mainMenu.items.dropFirst().first?.submenu else { return }
+        guard let fileMenu = AppMenuController.submenu(.file, in: mainMenu) else { return }
         let identifier = NSUserInterfaceItemIdentifier("zshell-workspace-templates-menu")
         let title = String(localized: "Workspace Templates")
         let item = fileMenu.items.first { $0.identifier == identifier }

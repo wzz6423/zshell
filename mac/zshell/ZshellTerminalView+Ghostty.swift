@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import Combine
 import GhosttyTerminal
 import GhosttyTheme
 
@@ -21,6 +22,9 @@ extension ZshellTerminalView {
         foregroundProcessProvider = launch.foregroundProcessProvider
         reportsLocalWorkingDirectory = launch.reportsLocalWorkingDirectory
         launchCommand = launch.commandLine
+        launchTerm = launch.environment["TERM"].flatMap {
+            TerminalLaunchSettings.isValidTermName($0) ? $0 : nil
+        } ?? TerminalLaunchSettings.defaultTerm
         launchShellIntegration = launch.foregroundProcessProvider == nil && !launch.usesZsh
             ? Self.shellIntegration(for: launch.interactiveShell) : "none"
         supportsInputSelection = launch.usesZsh
@@ -39,6 +43,13 @@ extension ZshellTerminalView {
         )
         self.controller = controller
         applyAppearance()
+        scrollSettingsObservation = Publishers.CombineLatest(
+            AppSettings.shared.$mouseScrollMultiplier.removeDuplicates(),
+            AppSettings.shared.$trackpadScrollMultiplier.removeDuplicates()
+        )
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.applyAppearance() }
     }
 
     /// Reconfigures libghostty in place when appearance, font, or terminal
@@ -46,6 +57,7 @@ extension ZshellTerminalView {
     /// queries, so reported defaults always match the visible theme.
     func applyAppearance() {
         guard let ghosttyController else { return }
+        invalidatePaddingGeometry()
         _ = ghosttyController.setTerminalConfiguration(
             terminalConfiguration(command: launchCommand)
         )
@@ -54,16 +66,19 @@ extension ZshellTerminalView {
             from: [.darkAqua, .aqua]
         ) == .darkAqua
         ghosttyController.setColorScheme(isDark ? .dark : .light)
+        didRender()
     }
 
     /// Releases the surface. The view itself stays in the layout so teardown
     /// never pulls a pane out from under SwiftUI mid-frame.
     func detach() {
         invalidateLogContents()
+        resetPaddingBackground()
         ghosttyController?.onBufferMayChange = nil
         hintMode.dismiss(restoringFocus: false)
         foregroundProcessProvider = nil
         stopSelectionAutoscroll()
+        scrollSettingsObservation = nil
         controller = nil
         ghosttyController = nil
     }
@@ -95,6 +110,10 @@ extension ZshellTerminalView {
             // contributing an implicit family before the user's ordered list.
             builder.withCustom("font-family", "Symbols Nerd Font Mono")
             builder.withFontSize(Float(profileAppearance.effectiveFontSize))
+            builder.withCustom("font-feature", "")
+            for feature in TerminalFontFeatures(settings.fontFeatures, ligatures: settings.fontLigatures).features {
+                builder.withCustom("font-feature", feature.ghosttyValue)
+            }
             // Always set explicitly: the wrapper's ConfigSource.none base
             // config injects the package default `font-thicken = true`, and
             // only a later entry in the rendered config overrides it.
@@ -106,13 +125,16 @@ extension ZshellTerminalView {
             builder.withCustom("adjust-cell-height", "\(lineHeightAdjustment)%")
             let cellWidthAdjustment = Int(((settings.terminalCellWidth - 1) * 100).rounded())
             builder.withCustom("adjust-cell-width", "\(cellWidthAdjustment)%")
+            let trackpadScroll = TerminalScrollSettings.validMultiplier(settings.trackpadScrollMultiplier)
+            let mouseScroll = TerminalScrollSettings.validMultiplier(settings.mouseScrollMultiplier)
+                * TerminalScrollSettings.ghosttyWheelMultiplier
+            builder.withCustom("mouse-scroll-multiplier", "precision:\(TOML.number(trackpadScroll)),discrete:\(TOML.number(mouseScroll))")
             builder.withCursorStyle(profileAppearance.effectiveCursorShape.ghosttyValue)
             builder.withCursorStyleBlink(profileAppearance.effectiveCursorBlinking)
             // Zshell's insets around the grid live inside ghostty as
-            // window-padding so that window-padding-color=extend can flood
-            // them with the nearest cell's background — full-screen TUIs
-            // fill the pane edge to edge while text keeps at least 10pt at
-            // the sides and 8pt at the top/bottom. Balance splits sub-cell
+            // window-padding so its color follows the selected extension
+            // policy while text keeps at least 10pt at the sides and 8pt at
+            // the top/bottom. Balance splits sub-cell
             // remainder across both edges instead of leaving a reserved strip
             // below the final row. Git context is cached per terminal root so
             // tab selection no longer resizes through an intermediate toolbar
@@ -120,7 +142,7 @@ extension ZshellTerminalView {
             builder.withWindowPaddingX(10)
             builder.withWindowPaddingY(8)
             builder.withCustom("window-padding-balance", "true")
-            builder.withCustom("window-padding-color", "extend")
+            builder.withCustom("window-padding-color", settings.terminalPaddingColor.ghosttyValue)
             // Zshell owns the app-level command map. Leaving Ghostty's defaults
             // installed makes its performKeyEquivalent intercept shortcuts
             // such as Cmd-T, Cmd-N, Cmd-D, Cmd-K, and project/tab navigation
@@ -147,6 +169,9 @@ extension ZshellTerminalView {
                 builder.withCustom("keybind", "shift+numpad_enter=text:\\x0a")
             }
             builder.withCustom("command", "shell:\(command)")
+            // Ghostty can synthesize TERM after surface environment entries.
+            // Freeze its config to this launch, including renderer reattaches.
+            builder.withCustom("term", launchTerm)
             if !reportsLocalWorkingDirectory {
                 // A remote job may already have exited before we attach. Its
                 // status belongs to the session, not Ghostty's launch warning.
@@ -234,6 +259,7 @@ extension ZshellTerminalView: TerminalSurfacePwdDelegate {
 extension ZshellTerminalView: TerminalSurfaceGridResizeDelegate {
     func terminalDidResize(_ size: TerminalGridMetrics) {
         invalidateLogContents()
+        invalidatePaddingGeometry()
         inputContext?.invalidateCharacterCoordinates()
         hintMode.refreshSnapshot()
         let scale = window?.backingScaleFactor
@@ -244,6 +270,16 @@ extension ZshellTerminalView: TerminalSurfaceGridResizeDelegate {
             width: CGFloat(size.cellWidthPixels) / scale,
             height: CGFloat(size.cellHeightPixels) / scale
         ))
+    }
+}
+
+extension ZshellTerminalView: TerminalSurfaceBackgroundColorDelegate {
+    func terminalDidChangeBackgroundColor(red: UInt8, green: UInt8, blue: UInt8) {
+        // OSC 111 pins the current default as an override in this engine.
+        // Keep its reported color even when it currently matches the theme.
+        reportedBackgroundColor = NSColor(srgbRed: CGFloat(red) / 255, green: CGFloat(green) / 255,
+                                           blue: CGFloat(blue) / 255, alpha: 1)
+        didRender()
     }
 }
 

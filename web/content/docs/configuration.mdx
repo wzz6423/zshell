@@ -30,10 +30,7 @@ Worth knowing before you hand-edit:
   regenerated from scratch, so your comments and unknown keys are lost the
   next time you use one of those controls. Pick one editor for the file, or
   keep an authoritative copy in your dotfiles.
-- **Most default values are omitted.** `font-size`, `terminal.vim-command-hints`,
-  `terminal.restore-history`, and `terminal.notify-on-error` are always written.
-  Removing one of these three terminal keys disables that feature in an existing
-  file; removing other keys restores their defaults.
+- **Most default values are omitted.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` are always written. Removing `terminal.vim-command-hints`, `terminal.restore-history`, or `terminal.notify-on-error` from an existing file disables that feature. Removing `terminal.prompt-queue-enabled` restores its default `true`; removing `terminal.prompt-queue-auto-dispatch` restores its default `false`. Removing other keys restores their defaults.
 - **The parser is deliberately small.** It supports flat keys, dotted keys,
   `[table]` headers, `#` comments, and string/number/boolean values. It does not
   support arrays, inline tables, or multi-line strings.
@@ -148,6 +145,26 @@ number, 9–24 — default `14`
 The base text size for both sidebars. Section headings, rows, metadata, and
 controls keep their relative hierarchy as the base changes.
 
+### `sidebar.double-click-new-session`
+
+boolean — default `true`
+
+Double-click empty sidebar space to create a session in the selected project. If no project is selected, it creates a project. Row clicks and drags keep their usual actions.
+
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+boolean — default `true`
+
+Choose **Settings → Appearance → Font ligatures** to enable or disable optional ligatures on both terminal backends. Disabling it overrides `calt`, `liga`, `clig`, `dlig`, and `hlig` while keeping required script shaping. The original characters, terminal columns, cursor, and selection stay unchanged.
+
+### `terminal.font-features` [#terminalfont-features]
+
+string — default `""`, using the font’s defaults
+
+Set **OpenType features** in the same Font group. Separate four-character tags with commas or whitespace: `-calt` disables contextual alternates, `ss01` enables stylistic set 1, and `zero=1` enables the font’s alternate zero. `+liga` and `liga=1` also enable a feature. Later entries for the same tag win. The ligature switch takes priority for its five tags.
+
+Changes apply immediately to open terminals and the font preview. Both backends use features supported by the selected font; unsupported tags have no effect. Invalid input keeps the last valid value in Settings, and an invalid external value uses font defaults. Reset to Defaults restores an empty feature list and enabled ligatures.
+
 ### `terminal.font-thicken`
 
 boolean — default `false`
@@ -184,6 +201,12 @@ or variation axes while Alacritty/CoreText resolves regular and bold faces by
 traits; a single shared value would not preserve regular/bold distinction or
 fallback weights consistently across static and variable fonts.
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+Choose **Settings → Appearance → Background → Padding color**. `"background"` uses the terminal theme background in the padding. `"extend"` extends the nearest cell background, but keeps the top or bottom padding on the theme background when that row contains a default-background cell, a shell prompt, or a Powerline separator. `"always"` extends every edge without those checks. Blank bottom rows remain on their own background; a colored row above them does not fill the bottom padding. Changes apply immediately to open terminals with both backends. With translucency, default backgrounds keep their opacity while explicit cell backgrounds and their extensions remain opaque.
+
 ### `editor.wrap-lines`
 
 boolean — default `true`
@@ -197,6 +220,16 @@ terminal or diff.
 boolean — default `true`
 
 Checks for changes made by another program before saving a file or editable worktree diff. If the disk version changed, compare it with your draft, reload from disk, keep the draft, or explicitly overwrite the file. Turning this off allows saves to replace external changes without a conflict prompt.
+
+### `editor.recover-drafts`
+
+boolean — default `true`
+
+Zshell backs up unsaved local file and editable worktree diff changes by default. After an unexpected exit, reopened panes restore their drafts, selections, and layout. Recover other backups from **File → Recover Drafts…** or **Settings → Editor → Recover Drafts…**; select a backup, review its contents, and choose **Restore Draft**. Restoring opens an unsaved editor and never changes the file on disk. Saving still checks for external changes using the version from before your edits.
+
+Control backups with **Settings → Editor → Back up unsaved drafts** or `editor.recover-drafts`. Turning it off stops new backups and automatic recovery, while keeping existing backups available for manual recovery or deletion. **Delete Backup** removes only the selected backup; open edits remain. Saving successfully or choosing **Don’t Save** for a completed close removes the backup. Backups are private files on this Mac, limited to 32 drafts and 128 MiB, recoverable for up to 30 days. Capacity limits may delete older backups sooner. Files and edited text larger than 5 MiB are excluded.
+
+Zshell deletes expired backups at startup and every hour while running, even when backups are off. If Zshell is closed, expired files remain on disk until the next launch.
 
 ## Terminal
 
@@ -243,6 +276,40 @@ arguments, but variables, globs, and command substitutions are not expanded.
 Invalid quoting also falls back to the login shell. An explicit argv supplied by
 the Zshell CLI still takes precedence for that terminal.
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — default `"current"`
+
+Choose **Settings → Terminal → New session directory**. Current uses the active local shell's directory, including the first terminal of a new project. Without a local shell, it uses your home directory. Project uses the root shown in Files and Git (the nearest repository or foreground checkout); outside a repository it uses the current directory. Home always uses your account home. The same policy applies to the first Quick Terminal and each fresh Quick Terminal workspace.
+
+An explicit directory from Finder, the CLI, a workspace template, a worktree, a restored session, a project pin, or a sidebar group takes precedence. Splits keep their source pane's directory. SSH and shared remote sessions keep the directory on their remote host. Changing this setting leaves open terminals and reusable Quick Terminal workspaces running.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+string — default `""`
+
+For the custom policy, enter an absolute path or `~/folder`, or choose a folder in Settings. Zshell checks that the folder exists and can be entered. A missing, inaccessible, or invalid custom folder falls back to the current local directory (home when none is available); Settings shows the reason. The saved path is retained while you use another policy.
+
+### `terminal.term`
+
+Choose **Settings → Terminal → TERM** to set `terminal.term` (default `"xterm-256color"`). The name must contain 1–128 ASCII letters, digits, or `.-_+`. Use a terminfo name installed on the machine running the shell. Changes apply to new local and SSH sessions only; open and preserved PTYs keep their original `TERM`. Shared remote sessions use the value when created with an updated server; older servers keep `xterm-256color`. An invalid value at startup falls back to `xterm-256color`; invalid edits while Zshell is running retain the last valid value. Both show an error in Settings. This setting leaves `TERM_PROGRAM` and `ZSHELL_TERM` unchanged.
+
+### `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch`
+
+booleans — defaults `true` / `false`
+
+**Settings → Terminal → Prompt Queue** controls the [per-terminal prompt queue](/en/docs/terminal#prompt-queue).
+`terminal.prompt-queue-enabled = false` hides queue bars in every workspace and the
+Quick Terminal, cancels pending sends, and preserves the queued entries and input
+until their terminal closes. Re-enabling does not replay them.
+
+`terminal.prompt-queue-auto-dispatch = true` opts into sending the next entry after
+a command finishes. Automatic and manual sends require an empty prompt in the
+original zsh shell, with no active command task. Other shells, nested shells,
+foreground programs, and existing prompt drafts cannot receive queued sends.
+Turning automatic sending off cancels pending sends. Enabling it takes effect on
+the next command finish, without immediately replaying an existing queue.
+
 ### `terminal.backend`
 
 `"libghostty"` · `"alacritty"` — default `"libghostty"`
@@ -254,6 +321,12 @@ the lower memory footprint.
 
 See [Terminal backends](/en/docs/terminal#terminal-backends) for the environment
 variables and compatibility contract.
+
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+number, 0.1–10 — default `1` for each device
+
+Choose **Settings → Terminal → Scrolling → Mouse wheel / Trackpad** to adjust the two speeds independently. The readouts are percentages: 100% keeps the current speed, 50% halves it, and 200% doubles it. Changes apply immediately to open Ghostty and Alacritty panes, including scrollback, full-screen programs, and mouse reporting. Momentum follows the trackpad value; horizontal scrolling stays horizontal. Precise scrolling devices use the trackpad value, including mice that report precise deltas. Missing or invalid values restore `1`; importing, exporting, and resetting settings include both values.
 
 ### `terminal.macos-option-as-alt`
 
@@ -319,12 +392,25 @@ When terminal panes are restored, resumes the exact recorded Claude Code, Codex,
 
 Control it with **Settings → Automation → Resume agent conversations**. This setting is independent of `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+boolean — default `false`
+
+Enable local CLI account-limit reading in **Settings → Automation → Account Usage → Read account usage**. Turning it off cancels pending usage requests, hides usage data, and rejects Claude usage reports without saving them. Provider choices are retained. Usage settings do not change agent recognition, lifecycle reports, or conversation restoration.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — default `true` for each
+
+Choose which providers can read usage while `ai.usage-enabled = true`. Claude Code reads Zshell’s local status-line usage report; Codex queries its installed, signed-in CLI. Disabling a provider immediately stops its reads and hides its data. No sign-in credentials are collected. The three choices support settings search, import/export, live configuration reload, and reset to defaults.
+
 ## Additional settings
 
 | Key | Default | Values / range | Effect |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Application icon |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | External editor for files and folders |
+| `files.drag-import` | `false` | boolean | Enable Finder drag-and-drop copies into the local file tree; the import menu always remains available |
 | `terminal.theme-only` | `false` | boolean | Apply the selected palette to the terminal only |
 | `terminal.command-history` | `true` | boolean | Record new command history; saved entries remain available when off |
 | `terminal.text-hints` | `true` | boolean | Enable keyboard hints for visible terminal text |
@@ -332,6 +418,7 @@ Control it with **Settings → Automation → Resume agent conversations**. This
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Terminal cursor shape |
 | `terminal.cursor-blinking` | `true` | boolean | Blink the cursor |
 | `terminal.copy-on-select` | `true` | boolean | Copy selected terminal text |
+| `terminal.right-click-action` | `"context-menu"` | string | Context menu, paste, or copy selection and otherwise paste (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | boolean | Focus follows mouse |
 | `terminal.shell-completions` | `true` | boolean | Bundled local command, argument, and path suggestions in new zsh shells; remote sessions require a compatible zshell-server |
 | `terminal.shift-enter-newline` | `true` | boolean | Send an enhanced newline sequence with Shift+Enter; requires application support |
@@ -369,10 +456,14 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

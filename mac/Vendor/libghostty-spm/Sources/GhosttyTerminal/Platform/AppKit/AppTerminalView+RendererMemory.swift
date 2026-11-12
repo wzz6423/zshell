@@ -31,6 +31,7 @@
             for _ in 0..<3 {
                 surface.draw()
             }
+            didRender()
         }
 
         /// Rebuild every full-size frame before Ghostty is told the surface is
@@ -51,6 +52,7 @@
             // retained frame back above the final layer before AppKit commits
             // this layout pass.
             reattachPresentationCoverIfNeeded()
+            didRender()
             releasePresentationCoverAfterRendererSettles()
         }
 

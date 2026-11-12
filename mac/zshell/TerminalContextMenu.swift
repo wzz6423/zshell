@@ -2,6 +2,36 @@ import AppKit
 
 @MainActor
 enum TerminalContextMenu {
+    static func handleRightClick(
+        for surface: any TerminalBackendSurface, event: NSEvent, linkTarget: TerminalLinkTarget?
+    ) {
+        let forceMenu = event.type != .rightMouseDown
+            || !event.modifierFlags.intersection([.shift, .command, .control]).isEmpty
+        let action: TerminalRightClickAction = forceMenu ? .contextMenu : AppSettings.shared.terminalRightClickAction
+        switch action {
+        case .contextMenu:
+            show(for: surface, event: event, linkTarget: linkTarget)
+        case .paste:
+            NSApp.sendAction(#selector(NSText.paste(_:)), to: surface, from: nil)
+        case .copyOrPaste:
+            NSApp.sendAction(
+                surface.hasSelection ? #selector(NSText.copy(_:)) : #selector(NSText.paste(_:)),
+                to: surface, from: nil
+            )
+        }
+    }
+
+    static func show(
+        for surface: any TerminalBackendSurface, event: NSEvent? = nil, linkTarget: TerminalLinkTarget? = nil
+    ) {
+        let menu = make(for: surface, linkTarget: linkTarget)
+        if let event {
+            NSMenu.popUpContextMenu(menu, with: event, for: surface)
+        } else {
+            menu.popUp(positioning: menu.items.first, at: NSPoint(x: 12, y: surface.bounds.maxY - 12), in: surface)
+        }
+    }
+
     static func make(for surface: any TerminalBackendSurface, linkTarget: TerminalLinkTarget?) -> NSMenu {
         let menu = NSMenu()
         for (title, action) in [

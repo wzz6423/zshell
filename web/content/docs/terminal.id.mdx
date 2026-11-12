@@ -16,6 +16,10 @@ Pilih backend di **Pengaturan → Terminal → Backend**:
 
 Keduanya mendukung akselerasi GPU, gambar, katalog tema bersama Zshell, pencarian, pelaporan mouse, notifikasi, dan laporan kemajuan. Perubahan backend hanya berlaku untuk terminal baru; panel yang sudah ada mempertahankan emulator awalnya.
 
+## Jenis terminal [#terminal-type]
+
+Atur `terminal.term` di **Pengaturan → Terminal → TERM** (default `"xterm-256color"`). Nama harus berisi 1–128 huruf ASCII, angka, atau `.-_+`. Gunakan nama terminfo yang terpasang di host yang menjalankan shell. Perubahan hanya berlaku untuk sesi lokal dan SSH baru; PTY terbuka dan tersimpan mempertahankan `TERM` asli. Sesi jarak jauh bersama menggunakan nilai ini saat dibuat dengan server terbaru; server lama tetap menggunakan `xterm-256color`. Edit yang tidak valid mempertahankan nilai valid terakhir dan menampilkan kesalahan di Pengaturan. `TERM_PROGRAM` dan `ZSHELL_TERM` tidak berubah.
+
 ## Riwayat perintah [#command-history]
 
 **Simpan riwayat perintah** di **Pengaturan → Terminal → Riwayat** aktif secara bawaan (`terminal.command-history = true`). Menonaktifkannya menghentikan pencatatan perintah baru; riwayat tersimpan tetap dapat dilihat atau dihapus. Keluaran terminal dan riwayat shell sendiri tetap ada.
@@ -57,6 +61,12 @@ Menolak permintaan akan memblokir kemampuan tersebut. Zshell tidak memberikan iz
 Aktifkan **Pengaturan → Terminal → Input → Fokus mengikuti mouse** untuk memfokuskan panel saat penunjuk masuk. Nonaktif secara bawaan, berlaku pada kedua backend dan Terminal Cepat. Fokus tidak berpindah saat menyeret, dari editor, atau ketika menu atau dialog terbuka.
 
 `terminal.focus-follows-mouse = true`
+
+## Tindakan klik kanan [#right-click-action]
+
+Di **Pengaturan → Terminal → Input → Tindakan klik kanan**, pilih **Menu konteks** (default), **Tempel**, atau **Salin atau Tempel**. Opsi terakhir menyalin pilihan dan hanya menempel jika tidak ada pilihan. Perubahan langsung berlaku pada kedua backend. `terminal.right-click-action` di `config.toml` menerima `"context-menu"`, `"paste"`, atau `"copy-or-paste"`.
+
+**Shift-klik kanan**, **Control-klik**, dan **Command-klik kanan** tetap membuka menu. **Edit → Tampilkan Menu Konteks Terminal** (<kbd>Shift</kbd>+<kbd>F10</kbd>) membukanya lewat papan ketik. Aplikasi dengan pelaporan mouse tetap menerima klik kanan biasa kecuali **Blokir Perintah Zshell** aktif di panel. Tempel memakai konfirmasi beberapa baris serta penanganan berkas lokal atau unggahan jarak jauh yang sama seperti <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
 ## Profil terminal [#terminal-profiles]
 
@@ -100,9 +110,13 @@ Pengaturan hanya berlaku pada panel itu. Klik kanan lagi dan hapus centang untuk
 
 Fokuskan terminal lalu tekan <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>, atau pilih **Tampilkan/Sembunyikan Antrean Instruksi** di palet perintah. Bilah akan terbuka di bawah terminal. Ketik entri lalu tekan <kbd>Return</kbd> atau **Tambahkan ke Antrean**. Setiap entri hanya satu baris; pergantian baris yang ditempel diganti spasi.
 
-Saat zsh awal kembali ke prompt kosong, Zshell mengirim entri berikutnya beserta Return. Entri dijalankan sesuai urutan. Pengiriman otomatis menunggu saat agen atau program latar depan lain menguasai terminal, atau saat prompt berisi draf. Fitur ini memerlukan integrasi zsh Zshell; shell lain dan shell bersarang dapat mengirim secara manual.
+Pengiriman manual secara default. **Kirim Sekarang** hanya mengirim saat prompt zsh asli kosong dan tidak ada tugas perintah tertunda atau berjalan yang memakai terminal. Tombol nonaktif untuk agen, program latar depan, draf, shell lain, dan shell bersarang. Pengiriman yang ditolak tetap menyimpan entri.
 
-Setiap entri memiliki tombol **Kirim Sekarang** dan **Hapus**. **Kirim Sekarang** langsung mengirim teks beserta Return ke program terminal saat ini tanpa menunggu prompt shell. <kbd>Esc</kbd> atau tombol tutup menyembunyikan bilah tanpa menghapus antrean. Tiap terminal mempunyai antreannya sendiri; menutup sesi atau keluar dari Zshell menghapusnya.
+Di **Pengaturan → Terminal → Antrean instruksi**, aktifkan **Kirim instruksi antrean secara otomatis** agar entri berikutnya dikirim berurutan setelah perintah selesai dan zsh kembali ke prompt kosong. Mengaktifkan tidak langsung menjalankan antrean; berlaku mulai penyelesaian perintah berikutnya. Menonaktifkan membatalkan pengiriman tertunda.
+
+Menonaktifkan **Aktifkan antrean instruksi** menyembunyikan bilah di semua ruang kerja dan Quick Terminal, membatalkan pengiriman, dan menyimpan entri serta masukan yang belum dikirim. Menu dan pintasan akan membuka pengaturan terkait saat nonaktif.
+
+**Hapus** menghapus entri. Panel sempit menampilkan ikon bernama dengan tooltip. <kbd>Esc</kbd> atau menutup hanya menyembunyikan bilah. Setiap terminal memiliki antrean sendiri yang dihapus saat sesi atau Zshell ditutup.
 
 ## Jalur dan URL [#paths-and-urls]
 
@@ -139,7 +153,7 @@ Notifikasi dapat memainkan suara sistem. Mengkliknya mengaktifkan Zshell dan lan
 
 Riwayat yang sama juga dapat dibuka dari **Pengaturan → Terminal → Notifikasi**.
 
-Buka **Notifikasi → Riwayat notifikasi…** untuk melihat pemberitahuan terminal dan agen terbaru. Filter menurut **Belum dibaca**, **Gagal**, atau **Menunggu tindakan**. Klik notifikasi atau **Tampilkan panel** untuk memilih proyek, tab, dan panel saat ini, termasuk di jendela lain. Panel yang ditutup tetap ada dalam riwayat sebagai tidak tersedia.
+Buka **Terminal → Notifikasi → Riwayat notifikasi…** untuk melihat pemberitahuan terminal dan agen terbaru. Filter menurut **Belum dibaca**, **Gagal**, atau **Menunggu tindakan**. Klik notifikasi atau **Tampilkan panel** untuk memilih proyek, tab, dan panel saat ini, termasuk di jendela lain. Panel yang ditutup tetap ada dalam riwayat sebagai tidak tersedia.
 
 Gunakan **Tandai sudah dibaca**, **Tandai semua sudah dibaca**, **Hapus**, atau **Hapus riwayat**. Membaca tidak menyetujui permintaan agen. Notifikasi keluar dari filter menunggu saat agen melanjutkan atau selesai, panel ditutup, atau koneksi jarak jauh tidak tersedia. Status berasal dari laporan siklus hidup eksplisit dan hasil keluar perintah. Riwayat menyimpan 200 entri terbaru setelah mulai ulang, bahkan jika izin notifikasi macOS dinonaktifkan.
 

@@ -134,14 +134,50 @@ private final class MetalFixture {
 struct TerminalMetalBufferTests {
     @MainActor static func main() {
         setbuf(stdout, nil)
-        _ = NSApplication.shared
+        NSApplication.shared.setActivationPolicy(.prohibited)
         uploadIsolationAndGrowth()
         abandonedCommandsAndEmptyUploads()
         synchronousAcquisitionAndWakeups()
         renderedFramesKeepTheirInstances()
         synchronousRenderWaitsForInFlightFrames()
+        contrastChangesRebuildShapedRows()
         rendererLifetime()
         print("Metal buffer ownership tests passed (real GPU, upload/render/growth/reuse/lifecycle)")
+    }
+
+    @MainActor private static func contrastChangesRebuildShapedRows() {
+        let device = MTLCreateSystemDefaultDevice()!
+        for width in [0.75, 1.0, 2.0] {
+            let renderer = TerminalMetalRenderer(device: device)!
+            let metrics = AlacrittyMetrics(
+                family: "", fallbackFamily: "", size: 13, fontThicken: false,
+                fontThickenStrength: 0, lineHeight: 1, cellWidth: width
+            )
+            var cell = ZshellCell()
+            cell.ch = UInt32(UInt8(ascii: "M"))
+            cell.fg = 0x181818
+            cell.bg = 0x101010
+            cell.flags = UInt16(ZSHELL_CELL_UNDERLINE | ZSHELL_CELL_STRIKEOUT)
+            var snapshot = ZshellSnapshot()
+            snapshot.columns = 1
+            snapshot.rows = 1
+            snapshot.background = cell.bg
+            snapshot.cursor_line = -1
+            snapshot.cursor_column = -1
+            withUnsafePointer(to: &cell) { cells in
+                snapshot.cells = cells
+                for ratio in [1.0, 7, 1] {
+                    renderer.setMinimumContrast(ratio)
+                    let prepared = renderer.testPreparedColors(snapshot: snapshot, metrics: metrics, dirtyRows: [])
+                    let channel: Float = ratio == 1 ? Float(0x18) / 255 : 1
+                    let expected = SIMD4<Float>(channel, channel, channel, 1)
+                    precondition(prepared.glyphs > 0 && prepared.colors.count >= 3)
+                    precondition(prepared.colors.allSatisfy { $0 == expected },
+                                 "Contrast changes must refresh shaped glyphs, overhangs, and decorations without VT damage")
+                }
+            }
+        }
+        print("PASS: contrast changes refresh shaped rows and decorations across cell widths without VT damage")
     }
 
     @MainActor private static func uploadIsolationAndGrowth() {
