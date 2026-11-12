@@ -65,6 +65,14 @@ Si un autre programme modifie le fichier pendant vos retouches, l’enregistreme
 Cet éditeur sert à la modification que vous examinez : corriger une faute, ajuster une constante ou lire un fichier cité dans un diff. Il ne propose ni serveur de langage, ni complétion, ni refactorisation à l'échelle du projet. Ce choix est volontaire.
 </Callout>
 
+## Récupérer les brouillons non enregistrés [#recover-unsaved-drafts]
+
+Zshell sauvegarde par défaut les modifications non enregistrées des fichiers locaux et des différences modifiables de l’arbre de travail. Après une fermeture inattendue, les panneaux rouverts retrouvent leurs brouillons, sélections et disposition. Pour les autres sauvegardes, ouvrez **Fichier → Récupérer les brouillons…** ou **Réglages → Éditeur → Récupérer les brouillons…**, choisissez une sauvegarde, vérifiez son contenu puis cliquez sur **Restaurer le brouillon**. La restauration ouvre un éditeur non enregistré sans modifier le fichier sur disque. L’enregistrement vérifie toujours les changements externes à partir de la version précédant vos modifications.
+
+Utilisez **Réglages → Éditeur → Sauvegarder les brouillons non enregistrés** ou `editor.recover-drafts`. La désactivation arrête les nouvelles sauvegardes et la récupération automatique, mais conserve les sauvegardes existantes pour une restauration ou une suppression manuelle. **Supprimer la sauvegarde** retire uniquement la sauvegarde sélectionnée ; les modifications ouvertes restent. Un enregistrement réussi ou **Ne pas enregistrer** lors d’une fermeture terminée retire la sauvegarde. Ces fichiers privés restent sur ce Mac, avec une limite de 32 brouillons et 128 MiB, récupérables pendant 30 jours au maximum. Les limites de capacité peuvent supprimer les anciennes sauvegardes plus tôt. Les fichiers et textes modifiés de plus de 5 MiB sont exclus.
+
+Zshell supprime les sauvegardes expirées au démarrage et toutes les heures pendant son exécution, même si les sauvegardes sont désactivées. Si Zshell est fermé, les fichiers expirés restent sur le disque jusqu’au prochain lancement.
+
 ## Aperçu Markdown [#markdown-preview]
 
 Ouvrez un fichier `.md` pour lire son rendu dans le même volet. Cliquez sur **Modifier** en haut à droite pour travailler sur le texte source, puis sur **Aperçu** pour voir le résultat. Zshell mémorise le mode choisi pour les autres fichiers Markdown et le prochain lancement.

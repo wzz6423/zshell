@@ -65,6 +65,14 @@ Se outro programa alterar o arquivo durante a edição, salvar abre um diálogo 
 Este editor serve para a alteração que você já está examinando: corrigir um erro de digitação, ajustar uma constante ou ler um arquivo citado no diff. Não há servidor de linguagem, autocompletar nem refatoração de projeto. É uma escolha deliberada.
 </Callout>
 
+## Recuperar rascunhos não salvos [#recover-unsaved-drafts]
+
+Por padrão, o Zshell faz backup das alterações não salvas em arquivos locais e diffs editáveis da árvore de trabalho. Após uma saída inesperada, os painéis reabertos restauram rascunhos, seleções e layout. Para outros backups, abra **Arquivo → Recuperar rascunhos…** ou **Ajustes → Editor → Recuperar rascunhos…**, selecione um backup, confira o conteúdo e escolha **Restaurar rascunho**. A restauração abre um editor não salvo e não altera o arquivo no disco. Ao salvar, alterações externas ainda são verificadas com a versão anterior às suas edições.
+
+Controle os backups em **Ajustes → Editor → Fazer backup dos rascunhos não salvos** ou `editor.recover-drafts`. Desativar interrompe novos backups e a recuperação automática, mas mantém os existentes para restauração ou exclusão manual. **Excluir backup** remove apenas o backup selecionado e mantém as edições abertas. Salvar com sucesso ou escolher **Não Salvar** em um fechamento concluído remove o backup. Os arquivos privados ficam neste Mac, limitados a 32 rascunhos e 128 MiB, recuperáveis por até 30 dias. Os limites de capacidade podem excluir backups antigos antes disso. Arquivos e textos editados maiores que 5 MiB são excluídos.
+
+O Zshell exclui backups expirados ao iniciar e a cada hora enquanto está em execução, mesmo com os backups desativados. Se o Zshell estiver fechado, os arquivos expirados permanecem no disco até a próxima abertura.
+
 ## Prévia de Markdown [#markdown-preview]
 
 Abra um arquivo `.md` para ver sua prévia renderizada no mesmo painel. Clique em **Editar** no canto superior direito para trabalhar no fonte e em **Prévia** para ver o resultado. O Zshell lembra seu modo preferido para outros arquivos Markdown e para a próxima inicialização.

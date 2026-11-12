@@ -81,6 +81,7 @@ CONFIGURATION_ITEMS = {
     "editor.wrap-lines": ("editor", "Wrap lines to editor width", ""),
     "files.drag-import": ("editor", "Import by dragging into the file tree", "Files"),
     "editor.protect-saves": ("editor", "Protect against save conflicts", ""),
+    "editor.recover-drafts": ("editor", "Back up unsaved drafts", ""),
     "ai.enabled": ("automation", "AI", ""),
     "ai.resume-conversations": ("automation", "Resume agent conversations", ""),
     "ai.notify-on-attention": ("automation", "Notify when agents need attention", "Notifications"),

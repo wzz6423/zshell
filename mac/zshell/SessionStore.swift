@@ -46,6 +46,7 @@ struct SessionSnapshot: Codable {
             var terminalID: UUID?
             var remoteSessionID: UUID?
             var worktree: SessionWorktree?
+            var draftID: UUID?
 
             init(
                 content: PaneContentSnapshot,
@@ -54,7 +55,8 @@ struct SessionSnapshot: Codable {
                 agentResume: AgentConversationIdentity? = nil,
                 terminalID: UUID? = nil,
                 remoteSessionID: UUID? = nil,
-                worktree: SessionWorktree? = nil
+                worktree: SessionWorktree? = nil,
+                draftID: UUID? = nil
             ) {
                 self.content = content
                 self.weight = weight
@@ -63,10 +65,11 @@ struct SessionSnapshot: Codable {
                 self.terminalID = terminalID
                 self.remoteSessionID = remoteSessionID
                 self.worktree = worktree
+                self.draftID = draftID
             }
 
             private enum CodingKeys: String, CodingKey {
-                case content, weight, historyKey, agentResume, terminalID, remoteSessionID, worktree
+                case content, weight, historyKey, agentResume, terminalID, remoteSessionID, worktree, draftID
             }
 
             init(from decoder: any Decoder) throws {
@@ -77,6 +80,7 @@ struct SessionSnapshot: Codable {
                 terminalID = try container.decodeIfPresent(UUID.self, forKey: .terminalID)
                 remoteSessionID = try container.decodeIfPresent(UUID.self, forKey: .remoteSessionID)
                 worktree = try? container.decodeIfPresent(SessionWorktree.self, forKey: .worktree)
+                draftID = try? container.decodeIfPresent(UUID.self, forKey: .draftID)
                 // Unknown providers or a corrupt ID must not discard the layout.
                 agentResume = try? container.decodeIfPresent(AgentConversationIdentity.self, forKey: .agentResume)
             }

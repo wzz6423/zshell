@@ -32,6 +32,10 @@ private final class AppMenuProbe {
         guard let manager = TerminalManager.activeWindowManager, let window = manager.presentationWindow else {
             fail("AppKit runner 未创建初始工作区窗口")
         }
+        guard let file = menu.items.first(where: { $0.title == "File" })?.submenu,
+              file.items.contains(where: { $0.title == "Recover Drafts…" }) else {
+            fail("真实 app 启动缺少恢复草稿菜单")
+        }
         fixtureManager = manager
         fixtureWindow = window
         AppMenuController.shared.refresh()

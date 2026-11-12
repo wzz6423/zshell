@@ -101,7 +101,7 @@ struct SettingsReloadTests {
         check(settings.shellCompletions, "shell completions are enabled by default")
         check(settings.vimCommandHints && settings.restoreTerminalHistory && settings.notifyOnError,
               "new configurations use the enabled preference defaults")
-        check(settings.protectEditorSaves && settings.quickTerminalEnabled && settings.commandHistoryEnabled && settings.terminalTextHints
+        check(settings.protectEditorSaves && settings.recoverEditorDrafts && settings.quickTerminalEnabled && settings.commandHistoryEnabled && settings.terminalTextHints
               && settings.automaticallyApplyTerminalProfiles && settings.notifyOnAgentAttention
               && settings.notifyOnAgentCompletion && settings.showPullRequestStatus,
               "feature switches preserve existing behavior by default")
@@ -281,6 +281,7 @@ struct SettingsReloadTests {
         terminal.shift-enter-newline = false
         editor.wrap-lines = false
         editor.protect-saves = false
+        editor.recover-drafts = false
         editor.external-editor = "zed"
         terminal.restore-history = true
         terminal.preserve-sessions = true
@@ -452,7 +453,7 @@ struct SettingsReloadTests {
         check(!settings.gitProxyEnabled && settings.gitProxyAddress == GitProxy.defaultAddress && GitProxy.address == nil,
               "Git proxy resets to off with the default address prefilled")
         check(try SettingsConfigFile.read(at: url) == "", "default reload leaves empty source unchanged")
-        check(settings.protectEditorSaves && settings.quickTerminalEnabled && settings.commandHistoryEnabled && settings.terminalTextHints
+        check(settings.protectEditorSaves && settings.recoverEditorDrafts && settings.quickTerminalEnabled && settings.commandHistoryEnabled && settings.terminalTextHints
               && settings.automaticallyApplyTerminalProfiles && settings.notifyOnAgentAttention
               && settings.notifyOnAgentCompletion && settings.showPullRequestStatus,
               "omitted feature switches restore compatible defaults on external reload")
@@ -462,7 +463,7 @@ struct SettingsReloadTests {
         settings.resetToDefaults()
         check(settings.isAtDefaults, "reset covers every configurable preference")
         let featureSwitches: [ReferenceWritableKeyPath<AppSettings, Bool>] = [
-            \.protectEditorSaves, \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints, \.promptQueueEnabled,
+            \.protectEditorSaves, \.recoverEditorDrafts, \.quickTerminalEnabled, \.commandHistoryEnabled, \.terminalTextHints, \.promptQueueEnabled,
             \.automaticallyApplyTerminalProfiles, \.notifyOnAgentAttention,
             \.notifyOnAgentCompletion, \.showPullRequestStatus,
             \.claudeUsageEnabled, \.codexUsageEnabled,
