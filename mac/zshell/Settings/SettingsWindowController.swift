@@ -180,10 +180,13 @@ final class SettingsWindowController: NSWindowController, NSToolbarDelegate {
         NSApp.activate()
     }
 
-    func show(category: SettingsCategory) {
+    func show(category: SettingsCategory, section: String? = nil) {
         sidebar.clearSearch()
         select(category)
         show()
+        if let section {
+            content.reveal(SettingsSearchResult(category: category, title: section, section: section, searchText: ""))
+        }
     }
 
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {

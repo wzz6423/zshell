@@ -99,6 +99,8 @@ struct RemoteSSHTests {
         expect(SSHEndpoint.shellWord("~") == "~", "bare tilde")
         expect(SSHEndpoint.shellWord("~/my repo") == "~/'my repo'", "tilde home")
         expect(SSHEndpoint.shellWord("~alice/x y") == "~alice/'x y'", "tilde user")
+        expect(SSHEndpoint.shellWord("~alice") == "~alice", "bare named-user tilde")
+        expect(SSHEndpoint.shellWord("~alice;false") == "'~alice;false'", "named-user tilde rejects shell syntax")
         expect(SSHEndpoint.shellWord("~we ird/x") == "'~we ird/x'", "odd tilde user quoted")
         expect(SSHEndpoint.shellWord("plain path") == "'plain path'", "plain path quoted")
 

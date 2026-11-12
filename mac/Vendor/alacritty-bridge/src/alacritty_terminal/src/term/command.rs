@@ -143,6 +143,16 @@ impl<T> Term<T> {
         self.command_blocks.grid_revision = self.command_blocks.grid_revision.wrapping_add(1);
     }
 
+    pub(super) fn mark_prompt_continuation(&mut self) {
+        if self.mode.contains(TermMode::ALT_SCREEN) {
+            if self.alt_prompt { self.grid.cursor_cell().add_semantic_anchor((0, 4)); }
+            return;
+        }
+        if let Some((id, kind)) = self.command_blocks.zone {
+            if kind <= 1 { self.command_anchor(id, 4); }
+        }
+    }
+
     fn find_command_anchors(&self, id: u64) -> [Option<Point>; 4] {
         if self.mode.contains(TermMode::ALT_SCREEN) {
             return [None; 4];
@@ -270,9 +280,6 @@ impl<T: EventListener> Term<T> {
     }
 
     pub(super) fn record_semantic_prompt(&mut self, params: &[&[u8]]) {
-        if self.mode.contains(TermMode::ALT_SCREEN) {
-            return;
-        }
         let Some(action) = params
             .first()
             .filter(|value| value.len() == 1)
@@ -280,6 +287,29 @@ impl<T: EventListener> Term<T> {
         else {
             return;
         };
+        if self.mode.contains(TermMode::ALT_SCREEN) {
+            // Alternate-screen prompt styling must not create shell-history records.
+            match action {
+                b'A' | b'N' | b'P' => {
+                    self.alt_prompt = true;
+                    self.grid.cursor_cell().add_semantic_anchor((0, 4));
+                }
+                b'C' | b'D' => {
+                    self.alt_prompt = false;
+                    if action == b'C' && self.grid.cursor.point.column == Column(0) {
+                        let line = self.grid.cursor.point.line;
+                        for column in (0..self.grid.columns()).map(Column) {
+                            let cell = &mut self.grid[line][column];
+                            let anchors = cell.semantic_anchors().iter().copied()
+                                .filter(|&(_, kind)| kind != 4).collect();
+                            cell.set_semantic_anchors(anchors);
+                        }
+                    }
+                }
+                _ => {},
+            }
+            return;
+        }
         self.command_blocks.last_write = Some(self.grid.cursor.point);
         let exit_code = if action == b'D' {
             params
@@ -297,19 +327,40 @@ impl<T: EventListener> Term<T> {
                     self.command_blocks.next_id
                 });
                 self.command_blocks.pending = Some(id);
-                self.command_blocks.zone = None;
+                self.command_blocks.zone = Some((id, 0));
                 self.command_anchor(id, 0);
+                self.command_anchor(id, 4);
             }
             b'P' => {
-                self.command_blocks.zone = None;
+                let id = self.command_blocks.pending.unwrap_or(0);
+                self.command_blocks.zone = Some((id, 0));
+                // Kind 4 marks continuation prompts without replacing the
+                // command's initial prompt anchor used by history navigation.
+                self.command_anchor(id, 4);
             }
             b'B' | b'I' => {
                 if let Some(id) = self.command_blocks.pending {
                     self.command_anchor(id, 1);
                     self.command_blocks.zone = Some((id, 1));
+                } else {
+                    self.command_blocks.zone = None;
                 }
             }
             b'C' => {
+                // Fish ends its prompt after moving to column zero on the
+                // next row. Preserve history anchors, but unmark that output row.
+                if self.grid.cursor.point.column == Column(0) {
+                    let line = self.grid.cursor.point.line;
+                    for column in (0..self.grid.columns()).map(Column) {
+                        let cell = &mut self.grid[line][column];
+                        if cell.semantic_zone().is_some_and(|(_, kind)| kind == 0) {
+                            cell.set_semantic_zone(None);
+                        }
+                        let anchors = cell.semantic_anchors().iter().copied()
+                            .filter(|&(_, kind)| kind != 4).collect();
+                        cell.set_semantic_anchors(anchors);
+                    }
+                }
                 if self.command_blocks.active.is_some() {
                     return;
                 }

@@ -84,6 +84,11 @@ final class QuickTerminalWorkspaceView: NSView {
         super.init(frame: .zero)
         tab.$layout.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.updateLayout() }.store(in: &observations)
         tab.$focusedPaneID.receive(on: DispatchQueue.main).sink { [weak self] _ in self?.updateFocus() }.store(in: &observations)
+        AppSettings.shared.$terminalPaddingColor.removeDuplicates().dropFirst()
+            .receive(on: DispatchQueue.main).sink { [weak self] _ in
+                guard let self else { return }
+                self.setBackgroundOpacity(self.opacity)
+            }.store(in: &observations)
         updateLayout()
     }
 
@@ -114,7 +119,11 @@ final class QuickTerminalWorkspaceView: NSView {
         guard !TerminalCommandRouting.isBlockingCommands(in: window) else { return false }
         let flags = event.modifierFlags.intersection(CommandShortcut.allowedModifiers)
         let character = event.charactersIgnoringModifiers?.lowercased()
-        if character == "d", flags == .command || flags == [.command, .shift] {
+        if character == "m", flags == [.command, .shift] {
+            guard case .session(let session)? = tab.focusedContent else { return false }
+            if AppSettings.shared.promptQueueEnabled { session.promptQueue.togglePresentation() }
+            else { SettingsWindowController.shared.show(category: .terminal, section: String(localized: "Prompt Queue")) }
+        } else if character == "d", flags == .command || flags == [.command, .shift] {
             splitAction(flags.contains(.shift) ? .bottom : .right)
         } else if CommandShortcut(event: event) == AppSettings.shared.commandShortcut(for: .closePane) {
             closeAction()
@@ -176,6 +185,7 @@ final class QuickTerminalWorkspaceView: NSView {
                 for child in container.subviews { child.removeFromSuperview() }
                 container.mount(session.surface, scrollbar: session.overlayScrollbar, queueBar: session.promptQueueBar)
             }
+            session.promptQueueBar.onLayoutChange = { [weak container] in container?.layoutSubtreeIfNeeded() }
             container.focusOnAppear = false
             containers[pane.id] = container
             session.surface.onBecomeFirstResponder = { [weak tab] in

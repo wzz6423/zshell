@@ -137,7 +137,9 @@ def production_fragments(directory):
     runner = remote[remote.index("nonisolated struct BoundedProcessOutput:"):remote.index("nonisolated struct OpenSSHTransport")]
     runner += remote[remote.index("private nonisolated final class BoundedOutputCollector:"):]
     (directory / "Runner.swift").write_text("import Foundation\nimport Darwin\n" + runner)
-    (directory / "Support.swift").write_text("import Foundation\nnonisolated enum CLIError: Error { case message(String) }\nnonisolated enum AppLocalization { static let current = Selection(); struct Selection { let identifier = \"en\" } }\n")
+    identity = (ROOT / "mac/zshell/AgentStatusReporting.swift").read_text()
+    identity = identity[identity.index("struct ZshellAgentProcessIdentity"):identity.index("struct ZshellAgentReport")]
+    (directory / "Support.swift").write_text("import Foundation\nimport Darwin\n" + identity + "\nnonisolated enum CLIError: Error { case message(String) }\nnonisolated enum AppLocalization { static let current = Selection(); struct Selection { let identifier = \"en\" } }\n")
 
 
 def compile_harness(directory, library):

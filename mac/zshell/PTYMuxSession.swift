@@ -77,6 +77,7 @@ final class PTYMuxSession: @unchecked Sendable {
     private var columns: UInt16
     private var rows: UInt16
     private var processExited = false
+    private var terminationStarted = false
     private var waitStatus: Int32?
     private var masterClosed = false
     private var totalBytes: UInt64 = 0
@@ -210,37 +211,49 @@ final class PTYMuxSession: @unchecked Sendable {
 
     func terminate() {
         io.async { [self] in
-            guard !processExited else { return }
+            guard !processExited, !terminationStarted else { return }
+            terminationStarted = true
             // Job control creates a new process group for agents and servers.
             // Signal every group in this PTY session, including background jobs.
             let processes = Self.sessionProcesses(root: pid)
             signal(processes, SIGHUP)
             io.asyncAfter(deadline: .now() + .milliseconds(250)) { [self] in
+                // Reaping already ended the jobs and released the leader PID.
+                // Do not rescan a reused ID or delete a replacement's files.
+                guard !processExited else { return }
                 signal(processes + Self.sessionProcesses(root: pid), SIGKILL)
                 cleanupFiles()
             }
         }
     }
 
-    private func signal(_ processes: [pid_t], _ signal: Int32) {
-        var groups = Set<pid_t>()
-        for process in Set(processes) where process > 1 && process != getpid() {
-            let group = getpgid(process)
-            if group > 1 && group != getpgrp() { groups.insert(group) }
+    private func signal(_ processes: [ZshellAgentProcessIdentity], _ signal: Int32) {
+        var groups: [pid_t: ZshellAgentProcessIdentity] = [:]
+        for process in processes where Self.isCurrentSessionProcess(process, root: pid) {
+            let group = getpgid(process.pid)
+            if group > 1 && group != getpgrp() { groups[group] = process }
         }
-        for group in groups { _ = Darwin.kill(-group, signal) }
-        for process in Set(processes) where process > 1 && process != getpid() {
-            _ = Darwin.kill(process, signal)
+        for (group, process) in groups where Self.isCurrentSessionProcess(process, root: pid)
+            && getpgid(process.pid) == group {
+            _ = Darwin.kill(-group, signal)
+        }
+        for process in processes where Self.isCurrentSessionProcess(process, root: pid) {
+            _ = Darwin.kill(process.pid, signal)
         }
     }
 
-    private static func sessionProcesses(root: pid_t) -> [pid_t] {
+    static func isCurrentSessionProcess(_ process: ZshellAgentProcessIdentity, root: pid_t) -> Bool {
+        process.pid != getpid() && process.isAlive && getsid(process.pid) == root
+    }
+
+    private static func sessionProcesses(root: pid_t) -> [ZshellAgentProcessIdentity] {
         let bytes = proc_listallpids(nil, 0)
-        guard bytes > 0 else { return [root] }
+        guard bytes > 0 else { return ZshellAgentProcessIdentity(pid: root).map { [$0] } ?? [] }
         var pids = [pid_t](repeating: 0, count: Int(bytes) + 32)
         let count = proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size))
-        guard count > 0 else { return [root] }
+        guard count > 0 else { return ZshellAgentProcessIdentity(pid: root).map { [$0] } ?? [] }
         return pids.prefix(Int(count)).filter { $0 > 1 && getsid($0) == root }
+            .compactMap { ZshellAgentProcessIdentity(pid: $0) }
     }
 
     private func drainOutput() {
@@ -304,6 +317,9 @@ final class PTYMuxSession: @unchecked Sendable {
     }
 
     private func reap() {
+        // The unreaped leader still reserves this session ID, so its remaining
+        // jobs can be ended before any unrelated process reuses the number.
+        signal(Self.sessionProcesses(root: pid), SIGKILL)
         var status: Int32 = 0
         var result: pid_t
         repeat { result = waitpid(pid, &status, 0) } while result < 0 && errno == EINTR

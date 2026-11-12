@@ -363,7 +363,7 @@ def main():
                         home.mkdir()
                         config = home / ".config/zshell-dev/config.toml"
                         config.parent.mkdir(parents=True)
-                        config.write_text('ai.enabled = false\nterminal.backend = "' + backend + '"\n')
+                        config.write_text('ai.enabled = false\nbrowser.content-blocking = false\nterminal.backend = "' + backend + '"\n')
                         environment = {key: value for key, value in os.environ.items() if not key.startswith("ZSHELL_")}
                         environment.update({"CFFIXED_USER_HOME": str(home), "HOME": str(home),
                                             "ZSHELL_SSH_CONFIG_FILE": str(fixture.config), "ZSHELL_SSH_AGENT_RESOLVED": "1",

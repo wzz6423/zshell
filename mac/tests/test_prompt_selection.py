@@ -59,7 +59,7 @@ class PromptSelectionTests(unittest.TestCase):
                         str(SOURCE.parent / "TerminalShellCompletions.swift"),
                         "-o", str(cls.helper)], check=True)
 
-    def setUp(self):
+    def setUp(self, extra_config=""):
         self.temp = tempfile.TemporaryDirectory(prefix="zshell-prompt-'")
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
@@ -83,7 +83,7 @@ class PromptSelectionTests(unittest.TestCase):
             "_test_cancel_region() { REGION_ACTIVE=0; }\n"
             "zle -N _test_cancel_region\nbindkey '^O' _test_cancel_region\n"
         )
-        (self.original / ".zshrc").write_text(self.config)
+        (self.original / ".zshrc").write_text(self.config + extra_config)
         integration = subprocess.check_output(
             [str(self.helper), "generate", str(self.launch)], text=True).strip()
         self.pid, self.fd = pty.fork()

@@ -532,6 +532,46 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
     print("PASS production SSH transport/process/parser path with private fake executable; no network or credentials")
 }
 
+private nonisolated final class CapabilityFixture: @unchecked Sendable {
+    private let lock = NSLock()
+    private var calls = 0
+
+    var attempts: Int { lock.lock(); defer { lock.unlock() }; return calls }
+
+    func probe(_ source: RemoteFileSource) throws -> RemoteFileCapabilities {
+        lock.lock()
+        calls += 1
+        let attempt = calls
+        lock.unlock()
+        if attempt == 1 { throw TestFailure(description: "Transient capability connection failure") }
+        return RemoteFileCapabilities(create: true, rename: true, trash: true, save: true)
+    }
+}
+
+@MainActor private func writeCapabilitiesRecover() async throws {
+    let fixture = CapabilityFixture()
+    let clock = TestClock()
+    let model = FileTreeModel(remoteListing: { _, _ in [] }, remoteNow: { clock.time }, remoteCapabilitiesProbe: { try fixture.probe($0) })
+    model.configureRemote(try SSHEndpoint(host: "fixture.invalid"))
+    model.sync(root: "~/repo")
+    model.refreshRemoteWriteCapabilities(enabled: true)
+    try await eventually("initial capability failure") { model.remoteWriteError != nil }
+    try require(model.remoteCapabilities == nil && !model.canCreateRemote, "A transient failure is not cached as unsupported")
+    for _ in 0..<100 { model.refreshRemoteWriteCapabilities(enabled: true) }
+    clock.advance(4)
+    model.refreshRemoteWriteCapabilities(enabled: true)
+    try require(fixture.attempts == 1, "Repeated UI updates respect the existing five-second throttle")
+    clock.advance(1)
+    model.refreshRemoteWriteCapabilities(enabled: true)
+    try await eventually("capability recovery") { model.canCreateRemote }
+    try require(fixture.attempts == 2 && model.remoteWriteError == nil && model.canRenameRemote,
+                "Same-project writes recover without toggling settings or switching roots")
+    clock.advance()
+    model.refreshRemoteWriteCapabilities(enabled: true)
+    try require(fixture.attempts == 2, "Confirmed capabilities remain cached")
+    print("PASS transient capability failure/recovery, bounded retries, unchanged project and settings")
+}
+
 @main struct RemoteFileTreeRefreshTests {
     @MainActor static func main() async throws {
         setbuf(stdout, nil)
@@ -546,6 +586,7 @@ private nonisolated final class ListingFixture: @unchecked Sendable {
         try await rapidRootChangesStayBounded()
         try await samePathsAfterRoundTrips()
         try await parentRemovalAndReplacement()
+        try await writeCapabilitiesRecover()
         try await productionTransport(URL(fileURLWithPath: CommandLine.arguments[1]),
                                       URL(fileURLWithPath: CommandLine.arguments[2]))
         print("Remote file tree refresh: \(checks) checks passed")

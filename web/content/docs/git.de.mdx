@@ -39,10 +39,12 @@ Klicken Sie auf eine geänderte Datei, um ihren Diff in einem Bereich neben dem 
 
 Auch große Diffs bleiben reaktionsschnell. Ein Änderungssatz mit tausend Dateien öffnet sich so schnell wie eine einzelne geänderte Zeile und lässt sich flüssig scrollen.
 
-Die Steuerelemente über dem Diff speichern zwei Einstellungen global:
+Die Steuerelemente über dem Diff speichern deine Auswahl global:
 
 - **Vereinheitlicht / Geteilt** wechselt zwischen einer Spalte und der Gegenüberstellung.
 - **Prüfen / Bearbeiten** erscheint bei einer nicht gestagten Datei im aktuellen Arbeitsbaum. Bearbeiten Sie die neue Seite direkt und speichern Sie mit <kbd>Cmd</kbd>+<kbd>S</kbd>. Beim Schließen ungespeicherter Dateien gilt dasselbe Verhalten wie im normalen Editor.
+
+Mit **Zeilen an Diffbreite umbrechen** in der Werkzeugleiste lassen sich lange Zeilen ohne horizontales Scrollen lesen. Derselbe Schalter steht unter **Einstellungen → Editor** (`editor.diff-wrap-lines`, Standard `false`). Er gilt für offene und neue Diffs einschließlich historischer Commits, bearbeitbarer Änderungen und PR-Kommentare. Der aktuelle Bearbeitungsentwurf bleibt erhalten.
 
 Gestagte Diffs und Diffs früherer Commits bleiben schreibgeschützt, da sie Momentaufnahmen sind. Wenn Sie einen Diff auf Bearbeiten oder Geteilt umstellen, übernehmen andere geöffnete Diffs diese Voreinstellung. Schreibgeschützte Diffs werden dadurch nicht bearbeitbar.
 

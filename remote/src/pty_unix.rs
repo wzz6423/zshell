@@ -35,6 +35,12 @@ impl Pty {
         columns: u16,
         rows: u16,
     ) -> io::Result<(Arc<Self>, PtyChild)> {
+        let term = environment.get("TERM").cloned().unwrap_or_else(|| "xterm-256color".into());
+        if term.is_empty() || term.len() > 128
+            || !term.bytes().all(|byte| byte.is_ascii_alphanumeric() || b".-_+".contains(&byte))
+        {
+            return Err(invalid("Invalid terminal type"));
+        }
         let (master, slave) = open_pty(columns, rows)?;
         let mut launch = Command::new(&command[0]);
         launch
@@ -48,7 +54,7 @@ impl Pty {
         }
         launch
             .envs(environment)
-            .env("TERM", "xterm-256color")
+            .env("TERM", term)
             .env("COLORTERM", "truecolor")
             .env("TERM_PROGRAM", "ghostty");
         unsafe {

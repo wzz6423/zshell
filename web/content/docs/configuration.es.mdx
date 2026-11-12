@@ -23,7 +23,7 @@ Antes de editarlo a mano, ten en cuenta lo siguiente:
 
 - **Los cambios se leen durante la ejecución.** Las ediciones externas válidas se aplican automáticamente; los ajustes para terminales nuevos siguen requiriendo un panel nuevo. Un archivo ilegible o mal formado conserva los últimos ajustes válidos. Un archivo vacío intencionadamente restaura los valores predeterminados tras una breve espera.
 - **Zshell lo reescribe cada vez que cambia un ajuste guardado en el archivo.** El archivo se genera de nuevo desde cero, por lo que los comentarios y las claves desconocidas se pierden la próxima vez que uses uno de esos controles. Elige un solo medio para editarlo o conserva una copia de referencia entre tus archivos de configuración.
-- **Se omite la mayoría de los valores predeterminados.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` siempre se guardan. Eliminar una de estas tres claves del terminal en un archivo existente desactiva esa función; eliminar otras claves restaura sus valores predeterminados.
+- **Se omite la mayoría de los valores predeterminados.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` siempre se guardan. Eliminar `terminal.vim-command-hints`, `terminal.restore-history` o `terminal.notify-on-error` de un archivo existente desactiva la función correspondiente. Eliminar `terminal.prompt-queue-enabled` restaura su valor predeterminado `true`; eliminar `terminal.prompt-queue-auto-dispatch` restaura su valor predeterminado `false`. Eliminar otras claves restaura sus valores predeterminados.
 - **El analizador es pequeño de forma deliberada.** Admite claves simples, claves con puntos, cabeceras `[table]`, comentarios `#` y valores de cadena, número o booleano. No admite arrays, tablas en línea ni cadenas multilínea.
 - **Los valores incorrectos usan alternativas seguras.** Un tamaño fuera de rango, un motor desconocido o un tema mal escrito no impiden que Zshell se inicie.
 
@@ -113,6 +113,26 @@ número, 9–24 — predeterminado: `14`
 
 Tamaño base del texto de ambas barras laterales. Las cabeceras de sección, filas, metadatos y controles mantienen su jerarquía relativa al cambiar la base.
 
+### `sidebar.double-click-new-session` [#sidebardouble-click-new-session]
+
+booleano — predeterminado: `true`
+
+Un doble clic en un espacio vacío de la barra lateral crea una sesión en el proyecto seleccionado, o un proyecto si no hay ninguno seleccionado. Los clics y arrastres sobre filas conservan sus acciones habituales.
+
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+booleano — predeterminado `true`
+
+Activa o desactiva las ligaduras opcionales de ambos motores en **Ajustes → Apariencia → Ligaduras de fuente**. Desactivarlas anula `calt`, `liga`, `clig`, `dlig` y `hlig`, conservando las formas necesarias para la escritura. Los caracteres, columnas, cursor y selección no cambian.
+
+### `terminal.font-features` [#terminalfont-features]
+
+cadena — predeterminado `""`, valores predeterminados de la fuente
+
+En **Funciones OpenType**, separa las etiquetas de cuatro caracteres con comas o espacios: `-calt` desactiva alternativas contextuales, `ss01` activa el conjunto estilístico 1 y `zero=1` el cero alternativo. `+liga` y `liga=1` también activan funciones. Prevalece la última entrada de cada etiqueta; el interruptor de ligaduras tiene prioridad sobre las cinco indicadas.
+
+Los cambios se aplican inmediatamente a terminales abiertos y a la vista previa. Ambos motores usan las funciones compatibles con la fuente; las demás etiquetas no tienen efecto. La entrada inválida conserva el último valor válido; un valor externo inválido usa los valores predeterminados. Restablecer vacía la lista y activa las ligaduras.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 booleano — predeterminado: `false`
@@ -139,17 +159,39 @@ Multiplica la altura natural de celda de cada motor de terminal y mantiene los g
 
 Zshell no ofrece un control de peso base de fuente. Ghostty selecciona estilos con nombre o ejes de variación, mientras que Alacritty/CoreText resuelve las variantes regular y negrita mediante atributos; un único valor compartido no conservaría de forma coherente la distinción regular/negrita ni los pesos de sustitución entre fuentes estáticas y variables.
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+Elija **Ajustes → Apariencia → Fondo → Color de los márgenes**. `"background"` usa el fondo del tema del terminal en los márgenes. `"extend"` extiende el fondo de la celda más cercana, pero mantiene el fondo del tema arriba o abajo si esa fila contiene una celda con fondo predeterminado, un prompt del shell o un separador Powerline. `"always"` extiende todos los bordes sin estas comprobaciones. Las últimas filas vacías conservan su propio fondo; una fila coloreada encima no rellena el margen inferior. Los cambios se aplican inmediatamente a los terminales abiertos de ambos motores. Con translucidez, los fondos predeterminados mantienen su opacidad y los fondos de celda explícitos y sus extensiones permanecen opacos.
+
 ### `editor.wrap-lines` [#editorwrap-lines]
 
 booleano — predeterminado: `true`
 
 Ajusta visualmente las líneas largas al ancho del panel en el [editor de archivos](/es/docs/files). Con false, las líneas largas se desplazan horizontalmente. No cambia el ajuste de líneas de un terminal ni de una vista de diferencias.
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+booleano — predeterminado: `false`
+
+**Ajustes → Editor → Ajustar líneas al ancho de la diferencia** y el botón de ajuste de la barra de diferencias controlan la misma opción. Las líneas largas se adaptan al ancho del panel en las vistas unificada y dividida, cambios editables, diferencias históricas y comentarios de PR. Se aplica inmediatamente a todas las diferencias abiertas y se conserva al reiniciar. Desactivarlo restaura el desplazamiento horizontal. Es independiente del ajuste del editor de archivos y del terminal.
+
 ### `editor.protect-saves` [#editorprotect-saves]
 
 booleano — predeterminado `true`
 
 Comprueba cambios externos antes de guardar un archivo o un diff editable del árbol de trabajo. Si hay un conflicto, compare versiones, recargue, conserve el borrador o sobrescriba explícitamente. Al desactivarlo, los cambios externos se reemplazan sin aviso de conflicto.
+
+### `editor.recover-drafts` [#editorrecover-drafts]
+
+booleano — por defecto `true`
+
+Zshell respalda por defecto los cambios sin guardar de archivos locales y diferencias editables del árbol de trabajo. Tras un cierre inesperado, los paneles reabiertos recuperan sus borradores, selecciones y distribución. Para otras copias, abre **Archivo → Recuperar borradores…** o **Ajustes → Editor → Recuperar borradores…**, elige una copia, revisa su contenido y pulsa **Restaurar borrador**. Restaurar abre un editor sin guardar y no modifica el archivo del disco. Al guardar se siguen comprobando los cambios externos con la versión anterior a tus ediciones.
+
+Controla las copias en **Ajustes → Editor → Respaldar borradores sin guardar** o con `editor.recover-drafts`. Desactivarlo detiene las copias nuevas y la recuperación automática, pero conserva las copias existentes para recuperarlas o eliminarlas manualmente. **Eliminar copia** solo quita la copia seleccionada; las ediciones abiertas permanecen. Guardar correctamente o elegir **No guardar** al completar el cierre elimina la copia. Las copias son archivos privados en este Mac, con un máximo de 32 borradores y 128 MiB, recuperables hasta 30 días. Los límites de capacidad pueden eliminar las copias antiguas antes. Se excluyen archivos y textos editados de más de 5 MiB.
+
+Zshell elimina las copias caducadas al iniciar y cada hora mientras se ejecuta, incluso con las copias desactivadas. Si Zshell está cerrado, los archivos caducados permanecen en el disco hasta el siguiente inicio.
 
 ## Terminal [#terminal]
 
@@ -161,6 +203,24 @@ Eligen el ejecutable y el vector de argumentos de los terminales creados a parti
 
 `terminal.startup-arguments` se divide en argumentos sin invocar un shell. Las comillas y las barras inversas conservan sus límites, incluidos espacios y argumentos vacíos, pero no se expanden variables, patrones glob ni sustituciones de comandos. Las comillas no válidas también hacen que se use el shell de inicio de sesión. Un argv explícito proporcionado por la CLI de Zshell conserva la prioridad para ese terminal.
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — predeterminado `"current"`
+
+Elige **Ajustes → Terminal → Directorio de las nuevas sesiones**. Actual usa el directorio de la shell local activa, incluido el primer terminal de un proyecto nuevo. Sin una shell local, usa la carpeta personal. Proyecto usa la raíz que muestran Archivos y Git (el repositorio más cercano o la copia de trabajo en primer plano); fuera de un repositorio, usa el directorio actual. Personal usa siempre la carpeta de la cuenta. También se aplica al primer terminal rápido y a cada espacio nuevo del terminal rápido.
+
+Tienen prioridad los directorios explícitos del Finder, la CLI, una plantilla de espacio de trabajo, un worktree, una sesión restaurada, una carpeta fijada al proyecto o un grupo de la barra lateral. Las divisiones conservan el directorio del panel de origen. SSH y las sesiones remotas compartidas mantienen su directorio en el equipo remoto. Cambiar el ajuste no reinicia los terminales abiertos ni los espacios reutilizados del terminal rápido.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+cadena — predeterminado `""`
+
+Con la opción personalizada, introduce una ruta absoluta o `~/folder`, o elige una carpeta en Ajustes. Zshell comprueba que exista y se pueda entrar en ella. Si falta, no es accesible o es inválida, usa el directorio local actual (la carpeta personal si no hay uno); Ajustes muestra el motivo. La ruta guardada se conserva al cambiar de opción.
+
+### `terminal.term`
+
+Configura `terminal.term` en **Ajustes → Terminal → TERM** (valor predeterminado `"xterm-256color"`). El nombre debe contener de 1 a 128 letras ASCII, dígitos o `.-_+`. Usa un nombre terminfo instalado en el equipo que ejecuta el shell. Los cambios solo se aplican a sesiones locales y SSH nuevas; los PTY abiertos y conservados mantienen su `TERM` original. Las sesiones remotas compartidas usan el valor al crearse con un servidor actualizado; los servidores antiguos mantienen `xterm-256color`. Un valor no válido al iniciar usa `xterm-256color`; las ediciones no válidas mientras Zshell está en ejecución conservan el último valor válido. En ambos casos se muestra un error en Ajustes. `TERM_PROGRAM` y `ZSHELL_TERM` no cambian.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — predeterminado: `"libghostty"`
@@ -168,6 +228,12 @@ Eligen el ejecutable y el vector de argumentos de los terminales creados a parti
 Elige el emulador de los terminales creados a partir de ese momento. Los paneles existentes conservan el motor con el que se iniciaron. Ambos son nativos, tienen aceleración por GPU, admiten imágenes y usan los mismos temas de Zshell; Alacritty suele consumir menos memoria.
 
 Consulta [Motores de terminal](/es/docs/terminal#terminal-backends) para conocer las variables de entorno y las garantías de compatibilidad.
+
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+número, 0.1–10 — valor predeterminado `1` para cada dispositivo
+
+Ajusta las dos velocidades por separado en **Ajustes → Terminal → Desplazamiento → Rueda del ratón / Panel táctil**. Los valores son porcentajes: 100% mantiene la velocidad actual, 50% la reduce a la mitad y 200% la duplica. Los cambios se aplican de inmediato a los paneles abiertos de Ghostty y Alacritty, al historial, a programas de pantalla completa y a los informes del ratón. La inercia usa el valor del panel táctil; el desplazamiento horizontal sigue siendo horizontal. Los ratones que envían deltas precisos también usan el valor del panel táctil. Los valores ausentes o inválidos vuelven a `1`. Importar, exportar y restablecer incluye ambos valores.
 
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
@@ -231,19 +297,35 @@ Al restaurar los paneles de terminal, reanuda la conversación original exacta r
 
 Se controla en **Ajustes → Automatización → Reanudar conversaciones de agentes**. Es independiente de `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+booleano — predeterminado `false`
+
+Activa la lectura de límites de las CLI locales en **Ajustes → Automatización → Uso de la cuenta → Leer uso de la cuenta**. Desactivarlo cancela solicitudes, oculta los datos y rechaza guardar informes Claude. Conserva los proveedores elegidos. No cambia el reconocimiento de agentes, los informes del ciclo de vida ni la restauración de conversaciones.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+booleano — predeterminado `true` en cada uno
+
+Selecciona proveedores cuando `ai.usage-enabled = true`. Claude Code lee el informe local de la línea de estado de Zshell; Codex consulta su CLI instalada con sesión iniciada. Desactivar un proveedor detiene la lectura y oculta sus datos de inmediato. No se recopilan credenciales. Las tres opciones admiten búsqueda, importación/exportación, recarga en vivo y restablecimiento.
+
 ## Ajustes adicionales [#additional-settings]
 
 | Clave | Predeterminado | Valores / rango | Efecto |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Icono de la aplicación |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Editor externo para archivos y carpetas |
+| `files.drag-import` | `false` | booleano | Permite copiar elementos de Finder arrastrándolos al árbol local; el menú de importación sigue disponible |
+| `files.remote-write-enabled` | `false` | booleano | Permitir crear, renombrar, eliminar de forma recuperable y guardar con las herramientas existentes del host |
 | `terminal.theme-only` | `false` | booleano | Aplicar la paleta seleccionada solo al terminal |
 | `terminal.command-history` | `true` | booleano | Registrar comandos nuevos; el historial guardado sigue disponible si se desactiva |
 | `terminal.text-hints` | `true` | booleano | Activar pistas de teclado sobre texto visible del terminal |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | booleano | **Ajustes → Terminal → Cola de prompts** controla todos los espacios y Quick Terminal. Desactivar el interruptor principal oculta las barras, cancela envíos y conserva entradas y texto hasta cerrar el terminal. El envío automático es opcional, desde el siguiente fin de comando, en orden y solo en un prompt vacío del zsh original sin tareas activas. Activarlo no reproduce entradas inmediatamente. El envío manual usa las mismas comprobaciones; otros shells, shells anidados, programas en primer plano y borradores no pueden recibir la cola. |
 | `terminal.auto-profiles` | `true` | booleano | Asignar perfiles automáticamente; selección manual disponible |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Forma del cursor del terminal |
 | `terminal.cursor-blinking` | `true` | booleano | Hacer parpadear el cursor |
 | `terminal.copy-on-select` | `true` | booleano | Copiar el texto seleccionado en el terminal |
+| `terminal.right-click-action` | `"context-menu"` | cadena | Menú contextual, pegar, o copiar selección y pegar si no hay selección (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | booleano | El foco sigue al ratón |
 | `terminal.shift-enter-newline` | `true` | booleano | Enviar una secuencia de nueva línea mejorada con Shift+Enter; requiere compatibilidad de la aplicación |
 | `terminal.background-opacity` | `1` | 0.2–1 | Opacidad del fondo del terminal |
@@ -280,10 +362,14 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"
@@ -291,6 +377,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

@@ -269,6 +269,7 @@ impl TermDamageState {
 
 pub struct Term<T> {
     command_blocks: command::CommandBlocks,
+    alt_prompt: bool,
     /// Terminal focus controlling the cursor shape.
     pub is_focused: bool,
 
@@ -427,6 +428,7 @@ impl<T> Term<T> {
 
         Term {
             command_blocks: Default::default(),
+            alt_prompt: false,
             inactive_grid,
             scroll_region,
             event_proxy,
@@ -719,6 +721,7 @@ impl<T> Term<T> {
 
     /// Swap primary and alternate screen buffer.
     pub fn swap_alt(&mut self) {
+        self.alt_prompt = false;
         if !self.mode.contains(TermMode::ALT_SCREEN) {
             // Set alt screen cursor to the current primary screen cursor.
             self.inactive_grid.cursor = self.grid.cursor.clone();
@@ -983,6 +986,7 @@ impl<T> Term<T> {
 
         self.grid.cursor.point.column = Column(0);
         self.grid.cursor.input_needs_wrap = false;
+        self.mark_prompt_continuation();
         self.damage_cursor();
     }
 
@@ -994,7 +998,12 @@ impl<T> Term<T> {
         let fg = self.grid.cursor.template.fg;
         let bg = self.grid.cursor.template.bg;
         let flags = self.grid.cursor.template.flags;
-        self.grid.cursor.template.set_semantic_zone(self.command_blocks.zone);
+        let semantic_zone = if self.mode.contains(TermMode::ALT_SCREEN) {
+            None
+        } else {
+            self.command_blocks.zone
+        };
+        self.grid.cursor.template.set_semantic_zone(semantic_zone);
         let extra = self.grid.cursor.template.extra.clone();
         let anchors = self.grid.cursor_cell().semantic_anchors().to_vec();
 
@@ -1447,6 +1456,7 @@ impl<T: EventListener> Handler for Term<T> {
             self.grid.cursor.point.line += 1;
             self.damage_cursor();
         }
+        self.mark_prompt_continuation();
     }
 
     /// Set current position as a tabstop.
@@ -1864,6 +1874,7 @@ impl<T: EventListener> Handler for Term<T> {
     #[inline]
     fn reset_state(&mut self) {
         self.invalidate_command_locations();
+        self.alt_prompt = false;
         if self.mode.contains(TermMode::ALT_SCREEN) {
             mem::swap(&mut self.grid, &mut self.inactive_grid);
         }

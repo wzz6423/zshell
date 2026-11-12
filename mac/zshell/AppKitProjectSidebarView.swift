@@ -25,7 +25,16 @@ struct ProjectSidebarRepresentable: NSViewRepresentable {
 }
 
 private final class ProjectSidebarDocumentView: NSView {
+    var onDoubleClick: ((NSEvent) -> Void)?
+    var onContextMenu: ((NSEvent) -> Void)?
     override var isFlipped: Bool { true }
+
+    override func mouseDown(with event: NSEvent) {
+        if event.modifierFlags.contains(.control) { rightMouseDown(with: event) }
+        else if event.clickCount == 2 { onDoubleClick?(event) }
+    }
+
+    override func rightMouseDown(with event: NSEvent) { onContextMenu?(event) }
 }
 
 private final class ProjectSidebarOutlineView: NSView {
@@ -139,6 +148,16 @@ final class ProjectSidebarNSView: NSView {
         scrollView.verticalScroller = ProjectSidebarScroller()
         scrollView.documentView = document
         scrollView.contentView.postsBoundsChangedNotifications = true
+        document.onDoubleClick = { [weak self] event in
+            guard let self, AppSettings.shared.sidebarDoubleClickNewSession,
+                  self.isBlankSpace(at: event) else { return }
+            self.manager.newSession()
+        }
+        document.onContextMenu = { [weak self] event in
+            guard let self, self.isBlankSpace(at: event) else { return }
+            self.menuPresenter.popUp(items: self.sidebarMenu(),
+                at: self.document.convert(event.locationInWindow, from: nil), in: self.document)
+        }
         fpsLabel.font = .monospacedDigitSystemFont(ofSize: 10, weight: .medium)
         fpsLabel.textColor = .secondaryLabelColor
         fpsLabel.isHidden = true
@@ -277,6 +296,28 @@ final class ProjectSidebarNSView: NSView {
         row.menuItems = { [weak self, weak row, weak project] in
             guard let self, let project else { return [] }
             return self.projectMenu(project, row: row)
+        }
+    }
+
+    private func sidebarMenu() -> [AppKitContextMenuItem] {
+        [
+            .action(title: AppCommand.newSession.title) { [weak manager] in manager?.newSession() },
+            .separator,
+            .action(title: String(localized: "Sidebar Settings…")) {
+                SettingsWindowController.shared.show(category: .appearance)
+            },
+        ]
+    }
+
+    private func isBlankSpace(at event: NSEvent) -> Bool {
+        let point = document.convert(event.locationInWindow, from: nil)
+        guard document.visibleRect.contains(point), document.bounds.contains(point),
+              draggedItem == nil, !isFolderDropTarget,
+              tabDrag.drag == nil, tabDrag.paneDrag == nil,
+              tabDrag.projectDrag == nil, tabDrag.groupDrag == nil else { return false }
+        return !rows.contains { item, row in
+            let frame = if case .group = item { row.frame.insetBy(dx: -8, dy: -4) } else { row.frame }
+            return frame.contains(point)
         }
     }
 
@@ -697,6 +738,7 @@ final class ProjectSidebarNSView: NSView {
             if project.customDirectory != nil { items.append(.action(title: String(localized: "Use Automatic Directory")) { project.customDirectory = nil }) }
         }
         items += [.separator, .action(title: String(localized: "Close Project")) { [weak manager] in manager?.close(project) }]
+        items.append(.submenu(title: String(localized: "Project Sidebar"), items: sidebarMenu()))
         return items
     }
 

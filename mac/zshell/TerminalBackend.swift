@@ -228,6 +228,10 @@ protocol TerminalBackendSurface: NSView {
     /// Submits the current terminal input as a Return key rather than pasted text.
     func sendEnter()
 
+    /// The private ZLE submit key acknowledges a queued line independently
+    /// of ordinary Return presses and readiness redraws.
+    func sendPromptQueueEnter()
+
     /// Sends line-oriented wheel input to the foreground terminal application.
     /// Returns false when the current terminal mode would consume scrolling as
     /// host scrollback instead. Automation uses this only to page a settled

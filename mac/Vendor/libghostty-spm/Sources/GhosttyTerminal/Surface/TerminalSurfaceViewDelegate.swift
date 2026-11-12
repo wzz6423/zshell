@@ -17,6 +17,12 @@ public protocol TerminalSurfaceTitleDelegate: TerminalSurfaceViewDelegate {
     func terminalDidChangeTitle(_ title: String)
 }
 
+/// OSC 11/111 changes the default background independently of the config.
+@MainActor
+public protocol TerminalSurfaceBackgroundColorDelegate: TerminalSurfaceViewDelegate {
+    func terminalDidChangeBackgroundColor(red: UInt8, green: UInt8, blue: UInt8)
+}
+
 @MainActor
 public protocol TerminalSurfaceGridResizeDelegate: TerminalSurfaceViewDelegate {
     func terminalDidResize(_ size: TerminalGridMetrics)

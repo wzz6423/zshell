@@ -13,6 +13,9 @@ public final class PierreMultiDiffNSView: NSView {
   public var onFileEditComplete: ((String, String) -> Void)? {
     didSet { coordinator.onFileEditComplete = onFileEditComplete }
   }
+  public var onEditorStateChange: ((String, PierreEditorState) -> Void)? {
+    didSet { coordinator.onEditorStateChange = onEditorStateChange }
+  }
   public var onAnnotationClick: ((String) -> Void)? {
     didSet {
       coordinator.onAnnotationClick = { [weak self] id, _, _, _ in self?.onAnnotationClick?(id) }
@@ -92,4 +95,9 @@ public final class PierreMultiDiffNSView: NSView {
   }
 
   public func cleanup() { coordinator.cleanup() }
+
+  public func restoreEditorState(_ state: PierreEditorState, fileID: String) {
+    guard state.isValid else { return }
+    coordinator.restoreEditorState(state, fileID: fileID)
+  }
 }
