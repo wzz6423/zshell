@@ -847,19 +847,16 @@ final class TerminalManager: nonisolated ObservableObject {
                 guard let session = project.sessions.first(where: { session in
                     session.worktree != nil && !choices.contains(where: { $0.session === session })
                 }) else { break }
-                guard let remove = await confirmCloseWorktreeSession(session, in: project) else { return }
+                let closing = choices.map(\.session) + project.sessions.filter { candidate in
+                    !choices.contains(where: { $0.session === candidate })
+                }
+                guard let remove = await confirmCloseWorktreeSession(session, in: project, closingSessions: closing) else { return }
                 choices.append((session, remove))
             }
             confirmation.commitDiscards()
             project.closeApprovedContents(project.tabs.flatMap(\.allContents), preserving: choices.map(\.session))
-            for choice in choices where project.sessions.contains(where: { $0 === choice.session }) {
-                do {
-                    _ = try await closeWorktreeSession(choice.session, in: project, removeWorktree: choice.removeWorktree)
-                } catch {
-                    await showWorktreeError(error, in: window)
-                    return
-                }
-            }
+            do { try await closeApprovedWorktreeSessions(choices, in: project) }
+            catch { await showWorktreeError(error, in: window); return }
             // Content opened during cleanup has not been approved for closing.
             if project.tabs.isEmpty { remove(project) }
         }

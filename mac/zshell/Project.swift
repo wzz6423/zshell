@@ -1132,8 +1132,13 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             guard await confirmTargets() else { return }
             var choices: [(session: TerminalSession, removeWorktree: Bool)] = []
             if let manager {
-                for case .session(let session) in targets where session.worktree != nil && sessions.contains(where: { $0 === session }) {
-                    guard let remove = await manager.confirmCloseWorktreeSession(session, in: self) else { return }
+                let worktreeSessions = targets.compactMap { content -> TerminalSession? in
+                    if case .session(let session) = content, session.worktree != nil,
+                       sessions.contains(where: { $0 === session }) { return session }
+                    return nil
+                }
+                for session in worktreeSessions where sessions.contains(where: { $0 === session }) {
+                    guard let remove = await manager.confirmCloseWorktreeSession(session, in: self, closingSessions: worktreeSessions) else { return }
                     choices.append((session, remove))
                 }
             }
@@ -1141,14 +1146,8 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
             confirmation.commitDiscards()
             closeApprovedContents(targets, preserving: choices.map(\.session))
             if let manager {
-                for choice in choices where sessions.contains(where: { $0 === choice.session }) {
-                    do {
-                        _ = try await manager.closeWorktreeSession(choice.session, in: self, removeWorktree: choice.removeWorktree)
-                    } catch {
-                        await manager.showWorktreeError(error, in: window)
-                        return
-                    }
-                }
+                do { try await manager.closeApprovedWorktreeSessions(choices, in: self) }
+                catch { await manager.showWorktreeError(error, in: window) }
             }
         }
     }

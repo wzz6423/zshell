@@ -13,14 +13,20 @@ extension TerminalManager {
     }
 
     static func worktreeIsInUse(_ path: String, excluding sessionID: UUID? = nil) -> Bool {
+        worktreeIsInUse(path, excludingSessionIDs: Set(sessionID.map { [$0] } ?? []), excludingPendingSessionID: sessionID)
+    }
+
+    private static func worktreeIsInUse(
+        _ path: String, excludingSessionIDs: Set<UUID>, excludingPendingSessionID: UUID? = nil
+    ) -> Bool {
         let sessions = automationManagers.flatMap(\.projects).flatMap(\.sessions)
             + GlobalTerminalOverlay.shared.allSessions
         return sessions.contains { session in
-            guard session.id != sessionID else { return false }
+            guard !excludingSessionIDs.contains(session.id) else { return false }
             return session.worktree?.path == path
                 || SessionWorktreeService.contains(session.currentDirectoryPath, in: path)
                 || session.foregroundDirectoryPath.map { SessionWorktreeService.contains($0, in: path) } == true
-        } || GlobalTerminalOverlay.shared.pendingSessionsUseWorktree(path, excluding: sessionID)
+        } || GlobalTerminalOverlay.shared.pendingSessionsUseWorktree(path, excluding: excludingPendingSessionID)
     }
 
     static func removeWorktreeFromGitPanel(_ worktree: SessionWorktree) async throws {
@@ -125,18 +131,25 @@ extension TerminalManager {
 
     /// Whole-project closes collect these choices before ending any session.
     /// Nil means cancellation; true requests removal of the worktree.
-    func confirmCloseWorktreeSession(_ session: TerminalSession, in project: Project) async -> Bool? {
+    func confirmCloseWorktreeSession(
+        _ session: TerminalSession, in project: Project, closingSessions: [TerminalSession] = []
+    ) async -> Bool? {
         guard WorktreeLifecycle.closingSessions.insert(session.id).inserted else { return nil }
         defer { WorktreeLifecycle.closingSessions.remove(session.id) }
-        return await worktreeCloseChoice(session, in: project)
+        let related = closingSessions.filter { $0.worktree?.path == session.worktree?.path }
+        let excluded = related.last === session ? Set(related.map(\.id)) : []
+        return await worktreeCloseChoice(session, in: project, excludingSessionIDs: excluded)
     }
 
-    private func worktreeCloseChoice(_ session: TerminalSession, in project: Project) async -> Bool? {
+    private func worktreeCloseChoice(
+        _ session: TerminalSession, in project: Project, excludingSessionIDs: Set<UUID> = []
+    ) async -> Bool? {
         guard let worktree = session.worktree else { return false }
         var refusal: String?
         do { refusal = try await SessionWorktreeService().inspect(worktree).refusal }
         catch { refusal = error.localizedDescription }
-        if Self.worktreeIsInUse(worktree.path, excluding: session.id) {
+        let excluded = excludingSessionIDs.intersection(Set(project.sessions.map(\.id))).union([session.id])
+        if Self.worktreeIsInUse(worktree.path, excludingSessionIDs: excluded) {
             refusal = String(localized: "Other open sessions still use this worktree. Close them before removing it.")
         }
         guard projects.contains(where: { $0 === project }), project.sessions.contains(where: { $0.id == session.id }),
@@ -155,6 +168,28 @@ extension TerminalManager {
         guard response == .alertFirstButtonReturn || response == .alertSecondButtonReturn,
               project.sessions.contains(where: { $0.id == session.id }) else { return nil }
         return response == .alertSecondButtonReturn
+    }
+
+    func closeApprovedWorktreeSessions(
+        _ choices: [(session: TerminalSession, removeWorktree: Bool)], in project: Project
+    ) async throws {
+        for choice in choices where project.sessions.contains(where: { $0 === choice.session }) {
+            let related = choices.filter { $0.session.worktree?.path == choice.session.worktree?.path }
+            let last = related.last { item in project.sessions.contains { $0 === item.session } }
+            let remove = last?.session === choice.session && related.last?.removeWorktree == true
+            if remove {
+                // Earlier sessions must finish releasing the checkout before its last user removes it.
+                for previous in related where previous.session !== choice.session {
+                    guard !Self.automationManagers.flatMap(\.projects).flatMap(\.sessions).contains(where: { $0 === previous.session }) else {
+                        throw SessionWorktreeError(message: String(localized: "Other open sessions still use this worktree. Close them before removing it."))
+                    }
+                    guard await previous.session.waitUntilTerminated() else {
+                        throw SessionWorktreeError(message: String(localized: "The session is still stopping. Its worktree was kept."))
+                    }
+                }
+            }
+            _ = try await closeWorktreeSession(choice.session, in: project, removeWorktree: remove)
+        }
     }
 
     @discardableResult

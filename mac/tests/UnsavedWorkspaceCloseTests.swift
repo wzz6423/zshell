@@ -333,6 +333,38 @@ struct UnsavedWorkspaceCloseTests {
         EditorDraftStore.shared.flush()
         let removedDraft = try await EditorDraftStore.shared.archive.load(mixed.draftID)
         try check(removedDraft == nil, "approved worktree batch commits file discards before teardown")
+
+        let sharedWorktree = try await service.create(in: root.path, branch: "batch-close-shared",
+            at: root.deletingLastPathComponent().appendingPathComponent("batch-close-shared").path)
+        guard let sharedFirst = project.newSession(directory: sharedWorktree.path, worktree: sharedWorktree),
+              let sharedSecond = project.newSession(directory: sharedWorktree.path, worktree: sharedWorktree) else {
+            throw CloseTestFailure(description: "Shared worktree sessions did not start.")
+        }
+        let sharedFirstStarted = await sharedFirst.waitUntilStarted()
+        let sharedSecondStarted = await sharedSecond.waitUntilStarted()
+        try check(sharedFirstStarted && sharedSecondStarted, "two batch sessions start in the same worktree")
+        guard let sharedTab = project.tabs.first(where: { $0.sessions.contains { $0 === sharedFirst } }) else {
+            throw CloseTestFailure(description: "Shared worktree tab is unavailable.")
+        }
+        let partial = responder([.alertThirdButtonReturn]) { _, sheet in
+            let removal = descendants(sheet.contentView!).compactMap { $0 as? NSButton }.first { $0.title == "Remove Worktree" }
+            if removal?.isEnabled != false { failures.append("An untargeted shared worktree session did not block removal.") }
+        }
+        project.close(sharedTab)
+        try await wait("partial shared worktree close finishes") { !UnsavedChangesConfirmation.isPending }
+        try partial.finish()
+        try check(failures.isEmpty && isAlive(project), "partial batch cannot remove a worktree used by an untargeted session")
+        let sharedRemoval = responder([.alertFirstButtonReturn, .alertSecondButtonReturn]) { index, sheet in
+            let removal = descendants(sheet.contentView!).compactMap { $0 as? NSButton }.first { $0.title == "Remove Worktree" }
+            if removal?.isEnabled != (index == 2) { failures.append("Shared worktree removal was not offered only for the last targeted session.") }
+        }
+        project.closeAll()
+        try await wait("shared batch removes its worktree") {
+            project.tabs.isEmpty && !FileManager.default.fileExists(atPath: sharedWorktree.path)
+                && !UnsavedChangesConfirmation.isPending
+        }
+        try sharedRemoval.finish()
+        try check(failures.isEmpty, "complete shared batch removes its worktree after the final session closes")
         manager.close(project)
         try await wait("batch fixture project closes") { !manager.projects.contains { $0 === project } }
         controller.window?.close()
@@ -469,7 +501,7 @@ struct UnsavedWorkspaceCloseTests {
                   "project file panes unmount before worktree teardown yields")
         removingProject.tabs.append(PaneTab(content: .file(addedFile)))
         try await wait("project worktree is removed") { !FileManager.default.fileExists(atPath: removingWorktree.path) }
-        try await settle()
+        try await wait("first project close finishes") { !UnsavedChangesConfirmation.isPending }
         try removing.finish()
         try check(manager.projects.contains { $0 === removingProject } && addedFile.isDirty
                   && removingProject.tabs.flatMap(\.allContents).contains { $0.id == addedFile.id },
@@ -478,6 +510,59 @@ struct UnsavedWorkspaceCloseTests {
         manager.close(removingProject)
         try await wait("new cleanup content closes after approval") { !manager.projects.contains { $0 === removingProject } }
         try closeAdded.finish()
+
+        let sharedProject = manager.newProject()
+        let sharedWorktree = try await service.create(in: root.path, branch: "project-close-shared",
+            at: root.deletingLastPathComponent().appendingPathComponent("project-close-shared").path)
+        guard let sharedFirst = sharedProject.newSession(directory: sharedWorktree.path, worktree: sharedWorktree),
+              let sharedSecond = sharedProject.newSession(directory: sharedWorktree.path, worktree: sharedWorktree) else {
+            throw CloseTestFailure(description: "Shared project worktree sessions did not start.")
+        }
+        let sharedFirstStarted = await sharedFirst.waitUntilStarted()
+        let sharedSecondStarted = await sharedSecond.waitUntilStarted()
+        try check(sharedFirstStarted && sharedSecondStarted, "two project sessions start in the same worktree")
+        let sharedRemoval = responder([.alertFirstButtonReturn, .alertSecondButtonReturn])
+        manager.close(sharedProject)
+        try await wait("shared worktree project closes") {
+            !manager.projects.contains { $0 === sharedProject } && !FileManager.default.fileExists(atPath: sharedWorktree.path)
+                && !UnsavedChangesConfirmation.isPending
+        }
+        try sharedRemoval.finish()
+        try check(!FileManager.default.fileExists(atPath: sharedWorktree.path), "project close removes the checkout after both shared sessions terminate")
+
+        let growingProject = manager.newProject()
+        let growingWorktree = try await service.create(in: root.path, branch: "project-close-growing",
+            at: root.deletingLastPathComponent().appendingPathComponent("project-close-growing").path)
+        guard let growingFirst = growingProject.newSession(directory: growingWorktree.path, worktree: growingWorktree) else {
+            throw CloseTestFailure(description: "Growing worktree session did not start.")
+        }
+        let growingStarted = await growingFirst.waitUntilStarted()
+        try check(growingStarted, "dynamic worktree project starts before confirmation")
+        let keepNewest = responder([.alertSecondButtonReturn, .alertFirstButtonReturn]) { index, sheet in
+            if index == 1 {
+                guard let added = growingProject.newSession(directory: growingWorktree.path, worktree: growingWorktree),
+                      let tabIndex = growingProject.tabs.firstIndex(where: { $0.sessions.contains { $0 === added } }) else {
+                    failures.append("A session could not be added during worktree confirmation.")
+                    return
+                }
+                let tab = growingProject.tabs.remove(at: tabIndex)
+                growingProject.tabs.insert(tab, at: 0)
+            } else {
+                let removal = descendants(sheet.contentView!).compactMap { $0 as? NSButton }.first { $0.title == "Remove Worktree" }
+                if removal?.isEnabled != true { failures.append("The newest worktree choice cannot remove the checkout.") }
+            }
+        }
+        manager.close(growingProject)
+        try await wait("dynamic worktree project closes") {
+            !manager.projects.contains { $0 === growingProject } && !UnsavedChangesConfirmation.isPending
+        }
+        try keepNewest.finish()
+        try check(failures.isEmpty && FileManager.default.fileExists(atPath: growingWorktree.path),
+                  "new same-worktree sessions are confirmed in order and the latest Keep choice preserves the checkout")
+        try await wait("dynamic worktree sessions stop") {
+            !TerminalManager.worktreeIsInUse(growingWorktree.path)
+        }
+        try await service.remove(growingWorktree, requireMerged: false)
 
         print("UNSAVED_PHASE_COMPLETE backend=\(CommandLine.arguments[1]) phase=worktree")
         let windowProject = manager.newProject()
@@ -528,6 +613,10 @@ struct UnsavedWorkspaceCloseTests {
         let discardedWindowDraft = try await EditorDraftStore.shared.archive.load(windowDiff.draftID)
         try check(discardedWindowDraft == nil, "completed window Don't Save removes its dirty Diff backup")
         print("UNSAVED_PHASE_COMPLETE backend=\(CommandLine.arguments[1]) phase=window")
+    }
+
+    @MainActor private static func descendants(_ view: NSView) -> [NSView] {
+        [view] + view.subviews.flatMap(descendants)
     }
 
     @MainActor private static func exerciseQuit(root: URL, delegate: ZshellApplicationDelegate) async throws {
