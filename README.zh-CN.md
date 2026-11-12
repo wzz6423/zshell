@@ -7,6 +7,15 @@ Zshell 是一个面向开发者的原生 macOS 终端工作空间，让 shell、
 
 Zshell 需要 macOS 15.6 或更高版本。
 
+[![Zshell 宣传片](web/public/video/zshell-launch-poster.jpg)](web/public/video/zshell-launch-1080p.mp4)
+
+[观看完整功能介绍（1080p · 3:34）](web/public/video/zshell-launch-1080p.mp4?raw=true)
+· [在官网观看](https://wzz6423.github.io/zshell/#launch-video)。
+
+配乐：《Tears In Rain》，作者 [Scott Buckley](https://www.scottbuckley.com.au/)，
+采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 许可。
+[署名及编辑说明](promo/public/audio/ATTRIBUTION.md)。
+
 ## 亮点
 
 - 原生 AppKit 界面，管理项目、标签页和分屏

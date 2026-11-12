@@ -5,6 +5,7 @@ export default defineHomeCopy('id', {
   description: 'Terminal native macOS dengan proyek lokal dan SSH, panel terbagi, tinjauan Git, pencarian berkas, pratinjau Markdown, dan koordinasi agen pemrograman.',
   nav: ['Ringkasan', 'Bagian halaman', 'Fitur', 'Pintasan', 'Tanya jawab', 'Dokumentasi', 'Unduh', 'Buka menu', 'Tutup menu'],
   hero: ['Ruang kerja terminal native macOS', 'Terminal Anda.', 'Seluruh proyek Anda.', '', 'Jalankan shell dan agen pemrograman. Satukan proyek lokal dan SSH, berkas, serta tinjauan Git dalam satu ruang kerja native macOS.', 'Unduh untuk macOS'],
+  video: { title: 'Video pengenalan', musicCredit: ['Musik: ', '. Cuplikan 00:00–03:34 dengan fade in, fade out, dan volume yang diturunkan.'] },
   preview: {
     label: 'Ilustrasi ruang kerja', tabs: ['Terminal', 'Tinjauan kode', 'Agen'],
     captions: ['Proyek lokal dan SSH dengan ruang untuk setiap sesi.', 'Tinjau perubahan di samping shell yang membuatnya.', 'Pantau status agen dan siapkan instruksi berikutnya.'],

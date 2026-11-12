@@ -5,6 +5,7 @@ export default defineHomeCopy('vi', {
   description: 'Terminal gốc cho macOS với dự án cục bộ và SSH, khung chia nhỏ, duyệt thay đổi Git, tìm tệp, xem trước Markdown và phối hợp tác tử lập trình.',
   nav: ['Tổng quan', 'Các mục trên trang', 'Tính năng', 'Phím tắt', 'Câu hỏi thường gặp', 'Tài liệu', 'Tải xuống', 'Mở menu', 'Đóng menu'],
   hero: ['Không gian làm việc terminal gốc cho macOS', 'Terminal của bạn.', 'Toàn bộ dự án của bạn.', '', 'Chạy shell và tác tử lập trình. Tập hợp dự án cục bộ và SSH, tệp và việc duyệt Git trong một không gian làm việc gốc trên macOS.', 'Tải cho macOS'],
+  video: { title: 'Video giới thiệu', musicCredit: ['Nhạc: ', '. Trích đoạn 00:00–03:34 với âm thanh tăng dần, giảm dần và giảm âm lượng.'] },
   preview: {
     label: 'Minh họa không gian làm việc', tabs: ['Terminal', 'Duyệt mã', 'Tác tử'],
     captions: ['Dự án cục bộ và SSH, có chỗ cho mọi phiên.', 'Xem thay đổi ngay cạnh shell đã tạo ra chúng.', 'Theo dõi tác tử và chuẩn bị chỉ dẫn tiếp theo.'],

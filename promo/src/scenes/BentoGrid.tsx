@@ -36,7 +36,7 @@ export const BentoGrid = () => {
 
   return (
     <AbsoluteFill style={{ opacity: linear(frame, [522, 540], [1, 0]) }}>
-      <SceneLabel index="04" en="Everything in one window" zh="一个窗口，全部就位" opacity={chrome} />
+      <SceneLabel index="14" en="Everything in one window" zh="一个窗口，全部就位" opacity={chrome} />
 
       <div
         style={{

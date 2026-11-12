@@ -29,6 +29,10 @@ export type HomeCopy = {
     download: string
     docs: string
   }
+  video: {
+    title: string
+    musicCredit: { before: string; after: string }
+  }
   preview: {
     label: string
     tabs: [string, string, string]

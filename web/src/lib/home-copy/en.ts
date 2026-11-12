@@ -25,6 +25,10 @@ const copy: HomeCopy = {
     download: 'Download for macOS',
     docs: 'Read the docs',
   },
+  video: {
+    title: 'Launch film',
+    musicCredit: { before: 'Music: ', after: '. 00:00–03:34 excerpt with fades and reduced gain.' },
+  },
   preview: {
     label: 'Workspace illustration',
     tabs: ['Terminal', 'Code review', 'Agents'],

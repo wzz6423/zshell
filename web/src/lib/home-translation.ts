@@ -8,6 +8,7 @@ type HomeTranslation = {
   description: string
   nav: Tuple<string, 9>
   hero: Tuple<string, 6>
+  video: { title: string; musicCredit: Pair }
   preview: { label: string; tabs: Tuple<string, 3>; captions: Tuple<string, 3>; labels: Tuple<string, 10>; prompts: Tuple<string, 3> }
   actions: { skip: string; copy: string; copied: string; copyAria: string }
   featureTitle: string
@@ -33,6 +34,7 @@ export function defineHomeCopy(lang: Language, t: HomeTranslation, changelog: st
     languageName: languageNames[lang], title: t.title, description: t.description,
     nav: { overview, sections, features, shortcuts, faq, docs, download, menuOpen, menuClose },
     hero: { eyebrow, titleBefore, titleHighlight, titleAfter, lede, download: heroDownload, docs: docsAction },
+    video: { title: t.video.title, musicCredit: { before: t.video.musicCredit[0], after: t.video.musicCredit[1] } },
     preview: { label: t.preview.label, tabs: t.preview.tabs, captions: t.preview.captions, projects, local, remote, files, changes, agents, running, attention, queue, prompts: t.preview.prompts },
     skipLink: t.actions.skip, copy: t.actions.copy, copied: t.actions.copied, copyAria: t.actions.copyAria,
     features: { title: t.featureTitle, docsLink: docs, groups: t.groups.map((name, index) => ({ name, slug: slugs[index], rows: t.features.slice(index * 6, index * 6 + 6).map(([name, detail]) => ({ name, detail })) })) },

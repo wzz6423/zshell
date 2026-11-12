@@ -5,6 +5,7 @@ export default defineHomeCopy('nl', {
   description: 'Een native macOS-terminalwerkruimte met lokale en SSH-projecten, gesplitste panelen, Git-controle, bestanden zoeken, Markdown-voorbeelden en samenwerking tussen programmeeragenten.',
   nav: ['Overzicht', 'Paginadelen', 'Functies', 'Sneltoetsen', 'Veelgestelde vragen', 'Documentatie', 'Downloaden', 'Menu openen', 'Menu sluiten'],
   hero: ['Native terminalwerkruimte voor macOS', 'Jouw terminal.', 'Je hele project.', '', 'Voer shells en programmeeragenten uit. Houd lokale en SSH-projecten, bestanden en Git-controle bij elkaar in één native macOS-werkruimte.', 'Downloaden voor macOS'],
+  video: { title: 'Introductievideo', musicCredit: ['Muziek: ', '. Fragment 00:00–03:34 met in- en uitfaden en verlaagd volume.'] },
   preview: {
     label: 'Illustratie van de werkruimte', tabs: ['Terminal', 'Codecontrole', 'Agenten'],
     captions: ['Lokale en SSH-projecten met ruimte voor elke sessie.', 'Bekijk wijzigingen naast de shell waarin ze zijn gemaakt.', 'Volg agenten en zet de volgende instructie klaar.'],

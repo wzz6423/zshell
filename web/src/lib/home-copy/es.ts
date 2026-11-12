@@ -5,6 +5,7 @@ export default defineHomeCopy('es', {
   description: 'Terminal nativo para macOS con proyectos locales y SSH, paneles divididos, revisión Git, búsqueda de archivos, vista previa de Markdown y coordinación de agentes de programación.',
   nav: ['Resumen', 'Secciones de la página', 'Funciones', 'Atajos', 'Preguntas frecuentes', 'Documentación', 'Descargar', 'Abrir menú', 'Cerrar menú'],
   hero: ['Espacio de trabajo de terminal nativo para macOS', 'Tu terminal.', 'Todo tu proyecto.', '', 'Ejecuta tus shells y agentes de programación. Reúne proyectos locales y SSH, archivos y revisión Git en un espacio nativo para macOS.', 'Descargar para macOS'],
+  video: { title: 'Vídeo de presentación', musicCredit: ['Música: ', '. Fragmento de 00:00 a 03:34 con fundidos y volumen reducido.'] },
   preview: {
     label: 'Ilustración del espacio de trabajo', tabs: ['Terminal', 'Revisión de código', 'Agentes'],
     captions: ['Proyectos locales y SSH con espacio para cada sesión.', 'Revisa los cambios junto al shell que los produjo.', 'Sigue el estado de los agentes y prepara la siguiente instrucción.'],

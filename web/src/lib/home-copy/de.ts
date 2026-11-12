@@ -5,6 +5,7 @@ export default defineHomeCopy('de', {
   description: 'Ein nativer macOS-Terminal-Arbeitsbereich mit lokalen und SSH-Projekten, geteilten Bereichen, Git-Prüfung, Dateisuche, Markdown-Vorschau und Zusammenarbeit von Programmieragenten.',
   nav: ['Überblick', 'Seitenabschnitte', 'Funktionen', 'Tastenkürzel', 'Häufige Fragen', 'Dokumentation', 'Download', 'Menü öffnen', 'Menü schließen'],
   hero: ['Nativer Terminal-Arbeitsbereich für macOS', 'Dein Terminal.', 'Dein ganzes Projekt.', '', 'Starte deine Shells und Programmieragenten. Behalte lokale und SSH-Projekte, Dateien und Git-Prüfung in einem nativen macOS-Arbeitsbereich zusammen.', 'Für macOS herunterladen'],
+  video: { title: 'Vorstellungsvideo', musicCredit: ['Musik: ', '. Ausschnitt 00:00–03:34 mit Ein- und Ausblendung und reduzierter Lautstärke.'] },
   preview: {
     label: 'Darstellung des Arbeitsbereichs', tabs: ['Terminal', 'Codeprüfung', 'Agenten'],
     captions: ['Lokale und SSH-Projekte mit Platz für jede Sitzung.', 'Prüfe Änderungen direkt neben der Shell, in der sie entstanden sind.', 'Verfolge den Agentenstatus und bereite die nächste Anweisung vor.'],

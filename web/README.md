@@ -161,3 +161,8 @@ page needs no config change.
 - The landing page uses a labeled workspace illustration with terminal, code
   review, and agent views. It is rendered in CSS, not a screenshot or a live
   terminal. Copy and captions for all 17 languages live in `src/lib/home-copy/`.
+- The launch film is embedded at the end of the landing page, before its footer.
+  [`src/components/launch-video.tsx`](src/components/launch-video.tsx) uses native
+  video controls and loads the film only when played. The shared 1080p MP4 and
+  poster live in `public/video/` and resolve through `withBase()`. Music credits
+  link to Scott Buckley's original track and its CC BY 4.0 license.

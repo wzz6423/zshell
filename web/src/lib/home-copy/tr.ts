@@ -5,6 +5,7 @@ export default defineHomeCopy('tr', {
   description: 'Yerel ve SSH projeleri, bölünmüş paneller, Git incelemesi, dosya arama, Markdown önizlemesi ve kodlama ajanı koordinasyonu sunan yerel macOS terminal çalışma alanı.',
   nav: ['Genel bakış', 'Sayfa bölümleri', 'Özellikler', 'Kısayollar', 'Sık sorulan sorular', 'Belgeler', 'İndir', 'Menüyü aç', 'Menüyü kapat'],
   hero: ['macOS için yerel terminal çalışma alanı', 'Terminaliniz.', 'Projenizin tamamı.', '', 'Kabuklarınızı ve kodlama ajanlarınızı çalıştırın. Yerel ve SSH projelerini, dosyaları ve Git incelemesini tek bir yerel macOS çalışma alanında bir araya getirin.', 'macOS için indir'],
+  video: { title: 'Tanıtım filmi', musicCredit: ['Müzik: ', '. 00:00–03:34 kesiti, yumuşak ses giriş ve çıkışı ve azaltılmış ses düzeyiyle kullanılmıştır.'] },
   preview: {
     label: 'Çalışma alanı çizimi', tabs: ['Terminal', 'Kod incelemesi', 'Ajanlar'],
     captions: ['Her oturuma yer açan yerel ve SSH projeleri.', 'Değişiklikleri oluşturan kabuğun yanında inceleyin.', 'Ajanların durumunu izleyin ve sonraki talimatı hazırlayın.'],

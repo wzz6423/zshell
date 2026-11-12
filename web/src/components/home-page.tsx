@@ -9,6 +9,7 @@ import { ModernHero } from '@/components/modern-hero'
 import { MinimalSection } from '@/components/minimal-components'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { AnimatedFeatureCard, AnimatedSection, CodeWindow } from '@/components/animated-components'
+import { LaunchVideo } from '@/components/launch-video'
 
 /** The landing page, rendered once per language from `homeCopy`. */
 export function HomePage({ lang, release, copy }: { lang: string; release: Release; copy: HomeCopy }) {
@@ -35,6 +36,7 @@ export function HomePage({ lang, release, copy }: { lang: string; release: Relea
         <Features lang={lang} copy={copy} />
         <DownloadSection copy={copy} release={release} />
         <Faq copy={copy} />
+        <LaunchVideo copy={copy.video} />
       </main>
 
       <MinimalFooter lang={lang} copy={copy} />

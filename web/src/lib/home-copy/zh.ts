@@ -25,6 +25,10 @@ const copy: HomeCopy = {
     download: '下载 macOS 版',
     docs: '阅读文档',
   },
+  video: {
+    title: '宣传片',
+    musicCredit: { before: '配乐：', after: '。使用 00:00–03:34 片段，加入淡入淡出并降低音量。' },
+  },
   preview: {
     label: '工作区示意',
     tabs: ['终端', '代码审阅', 'Agent 协作'],
