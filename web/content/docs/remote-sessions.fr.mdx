@@ -51,7 +51,9 @@ Au réveil du Mac, les sessions distantes partagées vérifient la connexion et 
 
 ## Fichiers et captures [#paste]
 
-Copiez des fichiers ordinaires ou une capture et collez dans le panneau distant. Zshell les envoie dans un dossier privé de l’hôte puis insère les chemins protégés pour son shell. Limites : 32 fichiers, 32 MiB chacun et 64 MiB au total ; dossiers et liens symboliques refusés. Les transferts partagés restent sept jours. Les panneaux SSH Unix ordinaires offrent aussi ce collage.
+Copiez des fichiers ordinaires ou une image et collez dans le panneau distant, ou déposez-y des fichiers. Zshell les envoie dans un dossier privé de l’hôte, puis insère des chemins distants protégés pour le shell sans exécuter de commande. Les images PNG, TIFF, JPEG, GIF et WebP deviennent des PNG ; seule la première image des animations est utilisée. Limites : 32 fichiers, 32 MiB chacun et 64 MiB au total ; dossiers et liens symboliques refusés. Les transferts partagés restent sept jours. Les panneaux SSH Unix ordinaires offrent les mêmes transferts.
+
+Dans **Réglages → Terminal → Fichiers distants**, **Envoyer les fichiers et images copiés** (`terminal.remote-paste-upload`) et **Envoyer les fichiers déposés** (`terminal.remote-drop-upload`) sont activés par défaut. Désactivez une option pour arrêter ce transfert automatique ; aucun chemin local n’est inséré. **Envoyer des fichiers…** dans le menu contextuel du terminal distant permet toujours de choisir des fichiers. Reconnectez-vous et prenez le contrôle d’une session partagée avant l’envoi. Quitter le panneau, perdre le contrôle ou se déconnecter annule l’insertion en attente.
 
 ## Conversations Agent distantes [#agents]
 

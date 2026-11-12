@@ -77,6 +77,8 @@ CONFIGURATION_ITEMS = {
     "terminal.restore-history": ("terminal", "Restore session history on relaunch", "History"),
     "terminal.preserve-sessions": ("terminal", "Keep sessions running after quitting", ""),
     "terminal.copy-on-select": ("terminal", "Copy on select", "Input"),
+    "terminal.remote-paste-upload": ("terminal", "Upload copied files and images", "Remote files"),
+    "terminal.remote-drop-upload": ("terminal", "Upload dropped files", "Remote files"),
     "terminal.right-click-action": ("terminal", "Right-click action", "Input"),
     "terminal.focus-follows-mouse": ("terminal", "Focus follows mouse", "Input"),
     "terminal.notify-finish-seconds": ("terminal", "Long-running commands", "Notifications"),
@@ -103,6 +105,8 @@ CONFIGURATION_ITEMS = {
     "ai.codex-usage-enabled": ("automation", "Read Codex usage", "Account Usage"),
 }
 DESCRIPTION_ITEMS = {
+    "Turn these off to stop automatic uploads. You can still choose Upload Files… from a remote terminal’s context menu.":
+        ("terminal", "Upload copied files and images", "Remote files"),
     "Applies to Git panel actions, pull request status, and Git in terminals opened afterwards.":
         ("general", "Use proxy for Git", "Git"),
     "HTTP, HTTPS, or SOCKS proxy URL. Changes apply to terminals opened afterwards.":

@@ -51,7 +51,9 @@ Khi Mac thức dậy, các phiên từ xa được chia sẻ kiểm tra kết n�
 
 ## Tệp và ảnh chụp [#paste]
 
-Sao chép tệp thường hoặc ảnh chụp rồi dán vào khung từ xa. Zshell tải lên thư mục riêng trên máy chủ rồi chèn đường dẫn có trích dẫn cho shell. Tối đa 32 tệp, 32 MiB mỗi tệp và 64 MiB tổng; từ chối thư mục và liên kết tượng trưng. Tải lên phiên chia sẻ giữ bảy ngày. Khung Unix SSH thường cũng hỗ trợ.
+Sao chép tệp thường hoặc ảnh rồi dán vào khung từ xa, hoặc kéo tệp vào đó. Zshell tải lên thư mục riêng trên máy chủ rồi chèn đường dẫn từ xa có trích dẫn mà không chạy lệnh. PNG, TIFF, JPEG, GIF và WebP được lưu thành PNG; ảnh động dùng khung hình đầu tiên. Tối đa 32 tệp, 32 MiB mỗi tệp và 64 MiB tổng; từ chối thư mục và liên kết tượng trưng. Tải lên phiên chia sẻ giữ bảy ngày. Khung Unix SSH thường cũng hỗ trợ các tải lên này.
+
+Trong **Cài đặt → Terminal → Tệp từ xa**, **Tải lên tệp và ảnh đã sao chép** (`terminal.remote-paste-upload`) và **Tải lên tệp đã kéo thả** (`terminal.remote-drop-upload`) bật mặc định. Tắt từng mục để ngừng tải lên tự động tương ứng; đường dẫn cục bộ không được chèn. **Tải lên tệp…** trong menu ngữ cảnh của terminal từ xa vẫn cho phép chọn tệp trực tiếp. Hãy kết nối lại và giành quyền điều khiển phiên chia sẻ trước khi tải lên. Rời khung, mất quyền điều khiển hoặc ngắt kết nối sẽ hủy việc chèn đang chờ.
 
 ## Trò chuyện Agent từ xa [#agents]
 

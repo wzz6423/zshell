@@ -186,6 +186,8 @@ Programme, die `OSC 9;4`-Fortschritt senden, erhalten eine schmale Leiste über 
 - **Riskante Einfügungen werden markiert.** Mehrzeiliger oder befehlsähnlicher Text wartet auf eine Bestätigung, bevor er direkt übergeben wird.
 - **Dateien und Bildschirmfotos werden zu sicheren Shell-Pfaden.** Finder-Dateien werden als zitierte absolute Pfade eingefügt. Ein reines Zwischenablagebild wird als private temporäre PNG gespeichert und sein Pfad eingefügt. Remote-Bereiche laden Dateien und Bilder zuerst auf den Host hoch.
 
+PNG, TIFF, JPEG, GIF und WebP aus der Zwischenablage werden als PNG gespeichert; Animationen verwenden das erste Bild. Remote-Dateien werden vor der Pfadeinfügung hochgeladen. Beide Optionen stehen unter **Einstellungen → Terminal → Remote-Dateien**; **Dateien hochladen…** im Kontextmenü bleibt auch bei deaktivierten Optionen verfügbar. Siehe [Remote-Uploads](/de/docs/remote-sessions#paste).
+
 ## Eingabe mit der Option-Taste [#option-key-input]
 
 Standardmäßig bleibt Option bei der aktiven macOS-Eingabequelle, damit Layouts wie Polish Pro zusammengesetzte Zeichen eingeben können. Aktivieren Sie **Option als Alt/Meta verwenden**, wenn ein Terminalprogramm diese Kombinationen als Meta-Kürzel erhalten soll. Siehe [`terminal.macos-option-as-alt`](/de/docs/configuration#terminalmacos-option-as-alt).

@@ -186,6 +186,8 @@ Programma's die voortgang via `OSC 9;4` doorgeven, krijgen een dunne balk boven 
 - **Riskante plakacties worden gemarkeerd.** Tekst met meerdere regels of tekst die op een opdracht lijkt, vereist bevestiging en wordt niet meteen ingevoerd.
 - **Bestanden en schermafbeeldingen worden veilige shellpaden.** Finder-bestanden worden ingevoegd als absolute paden tussen aanhalingstekens. Een losse afbeelding wordt als privé tijdelijke PNG opgeslagen en het pad wordt geplakt. Externe panelen uploaden bestanden en afbeeldingen eerst naar de host.
 
+PNG, TIFF, JPEG, GIF en WebP worden als PNG opgeslagen; animaties gebruiken het eerste frame. Gesleepte externe bestanden worden geüpload voordat paden worden ingevoegd. Beide opties staan in **Instellingen → Terminal → Externe bestanden**; **Bestanden uploaden…** blijft in het contextmenu beschikbaar wanneer ze uitstaan. Zie [externe uploads](/nl/docs/remote-sessions#paste).
+
 ## Invoer met Option [#option-key-input]
 
 Standaard blijft Option bij de actieve macOS-invoerbron, zodat indelingen zoals Polish Pro samengestelde tekens kunnen invoeren. Schakel **Option als Alt/Meta gebruiken** in bij Instellingen wanneer een terminalprogramma Option-combinaties als Meta-sneltoetsen moet ontvangen. Zie [`terminal.macos-option-as-alt`](/nl/docs/configuration#terminalmacos-option-as-alt).

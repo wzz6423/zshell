@@ -51,7 +51,9 @@ Setelah Mac bangun dari tidur, sesi jarak jauh bersama memeriksa koneksi dan ter
 
 ## Berkas dan tangkapan layar [#paste]
 
-Salin berkas biasa atau tangkapan layar dan tempel di panel jarak jauh. Zshell mengunggah ke direktori privat host lalu memasukkan jalur berkutip untuk shell. Maksimal 32 berkas, masing-masing 32 MiB dan total 64 MiB; folder dan tautan simbolis ditolak. Unggahan bersama tersedia tujuh hari. Panel Unix SSH biasa juga mendukungnya.
+Salin berkas biasa atau gambar dan tempel di panel jarak jauh, atau seret berkas ke sana. Zshell mengunggah ke direktori privat host lalu memasukkan jalur jarak jauh berkutip tanpa menjalankan perintah. Gambar PNG, TIFF, JPEG, GIF dan WebP disimpan sebagai PNG; animasi memakai bingkai pertama. Maksimal 32 berkas, masing-masing 32 MiB dan total 64 MiB; folder dan tautan simbolis ditolak. Unggahan bersama tersedia tujuh hari. Panel Unix SSH biasa mendukung unggahan yang sama.
+
+Di **Pengaturan → Terminal → Berkas jarak jauh**, **Unggah berkas dan gambar yang disalin** (`terminal.remote-paste-upload`) dan **Unggah berkas yang diseret** (`terminal.remote-drop-upload`) aktif secara bawaan. Matikan pilihan untuk menghentikan unggahan otomatis tersebut; jalur lokal tidak dimasukkan. **Unggah Berkas…** di menu konteks terminal jarak jauh tetap memungkinkan pemilihan berkas secara langsung. Sambungkan kembali dan ambil kendali sesi bersama sebelum mengunggah. Meninggalkan panel, kehilangan kendali atau terputus membatalkan penyisipan yang tertunda.
 
 ## Percakapan Agent jarak jauh [#agents]
 

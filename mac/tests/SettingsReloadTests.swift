@@ -121,6 +121,7 @@ struct SettingsReloadTests {
         check(!settings.browserAccessEnabled && settings.browserAccessInterface == "loopback" && settings.browserAccessPort == 7443, "browser access defaults remain local and disabled")
         check(settings.terminalRightClickAction == .contextMenu, "right-click keeps the context menu by default")
         check(settings.shellCompletions, "shell completions are enabled by default")
+        check(settings.remotePasteUpload && settings.remoteDropUpload, "remote file uploads are enabled by default")
         check(settings.vimCommandHints && settings.restoreTerminalHistory && settings.notifyOnError,
               "new configurations use the enabled preference defaults")
         check(settings.protectEditorSaves && settings.recoverEditorDrafts && settings.quickTerminalEnabled && settings.commandHistoryEnabled && settings.terminalTextHints
@@ -129,6 +130,17 @@ struct SettingsReloadTests {
               && settings.customAgentRecognitionRules && settings.agentScreenInference,
               "feature switches preserve existing behavior by default")
         check(settings.isAtDefaults, "fresh settings expose the correct reset state")
+        settings.remotePasteUpload = false
+        settings.remoteDropUpload = false
+        check(!settings.isAtDefaults, "remote upload switches enable reset")
+        wait({ (try? String(contentsOf: url, encoding: .utf8))?.contains("terminal.remote-drop-upload = false") == true },
+             "remote upload switches persist")
+        let uploadConfig = TOML.parseStrictly(text: settings.serializedConfig()).values
+        check(uploadConfig["terminal.remote-paste-upload"]?.bool == false
+              && uploadConfig["terminal.remote-drop-upload"]?.bool == false, "remote upload preferences export as booleans")
+        settings.remotePasteUpload = true
+        settings.remoteDropUpload = true
+        check(settings.isAtDefaults, "restoring remote upload switches clears reset state")
         check(settings.terminalPaddingColor == .extend, "padding keeps automatic extension by default")
         settings.terminalPaddingColor = .background
         check(!settings.isAtDefaults, "padding policy enables reset")
@@ -344,6 +356,8 @@ struct SettingsReloadTests {
         terminal.restore-history = true
         terminal.preserve-sessions = true
         terminal.copy-on-select = false
+        terminal.remote-paste-upload = false
+        terminal.remote-drop-upload = false
         terminal.right-click-action = "paste"
         terminal.focus-follows-mouse = true
         terminal.background-opacity = 0.6
@@ -417,6 +431,7 @@ struct SettingsReloadTests {
         check(settings.fontFeatures == "ss01, zero=1" && !settings.fontLigatures,
               "font features compose with column spacing through import and reload")
         check(settings.focusFollowsMouse && !settings.isAtDefaults, "pointer focus imports and changes default state")
+        check(!settings.remotePasteUpload && !settings.remoteDropUpload, "import applies both remote upload preferences")
         check(settings.diffWrapLines, "diff line wrapping imports through production settings")
         check(settings.terminalRightClickAction == .paste, "right-click action survives the full settings round trip")
         check(GitProxy.address == "socks5h://127.0.0.1:1080", "imported Git proxy reaches Git processes")
@@ -541,6 +556,7 @@ struct SettingsReloadTests {
         check(!settings.vimCommandHints && !settings.restoreTerminalHistory && !settings.notifyOnError,
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
+        check(settings.remotePasteUpload && settings.remoteDropUpload, "omitted remote upload preferences restore compatible defaults")
         check(!settings.browserAccessEnabled && settings.browserAccessInterface == "loopback" && settings.browserAccessPort == 7443,
               "empty external config closes browser access and resets network configuration")
         check(settings.terminalMinimumContrast == 3, "omitted contrast restores the compatible default")
@@ -583,6 +599,7 @@ struct SettingsReloadTests {
             \.automaticallyApplyTerminalProfiles, \.notifyOnAgentAttention,
             \.notifyOnAgentCompletion, \.showPullRequestStatus, \.sidebarDoubleClickNewSession,
             \.claudeUsageEnabled, \.codexUsageEnabled,
+            \.remotePasteUpload, \.remoteDropUpload,
             \.customAgentRecognitionRules, \.agentScreenInference,
         ]
         for keyPath in featureSwitches {

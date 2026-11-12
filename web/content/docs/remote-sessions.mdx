@@ -62,7 +62,9 @@ After your Mac wakes, shared remote sessions check the connection and reconnect 
 
 ## Files and screenshots [#paste]
 
-Copy regular files or a screenshot and paste in the remote pane. Zshell uploads them to a private host directory and inserts paths quoted for the session’s shell. A batch allows 32 files, 32 MiB per file and 64 MiB total; folders and symbolic links are rejected. Shared-session uploads remain available for seven days. Ordinary Unix SSH panes support the same file and screenshot paste.
+Copy regular files or an image and paste in the remote pane, or drop files onto it. Zshell uploads them to a private host directory and inserts shell-quoted remote paths without running a command. PNG, TIFF, JPEG, GIF and WebP clipboard images become PNG files; animated images use their first frame. A batch allows 32 files, 32 MiB per file and 64 MiB total; folders and symbolic links are rejected. Shared-session uploads remain available for seven days. Ordinary Unix SSH panes support the same uploads.
+
+In **Settings → Terminal → Remote files**, **Upload copied files and images** (`terminal.remote-paste-upload`) and **Upload dropped files** (`terminal.remote-drop-upload`) are on by default. Turn either off to stop that automatic upload; no local path is inserted in a remote pane. **Upload Files…** in the remote terminal’s context menu still lets you select and upload files explicitly. Reconnect and take control of a shared session before uploading. Leaving the pane, losing control or disconnecting cancels pending insertion.
 
 ## Remote Agent conversations [#agents]
 

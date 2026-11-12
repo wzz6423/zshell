@@ -18,6 +18,11 @@ nonisolated enum RemotePasteInput: Sendable {
     case files([URL])
     case image(Data)
 
+    static let imageTypes: [NSPasteboard.PasteboardType] = [
+        .png, .tiff, .init(UTType.jpeg.identifier), .init(UTType.gif.identifier),
+        .init(UTType.webP.identifier), .init("public.webp"),
+    ]
+
     @MainActor static func capture(_ pasteboard: NSPasteboard) throws -> Self? {
         if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL], !urls.isEmpty {
             guard urls.count <= RemotePasteUpload.maximumFiles else { throw RemotePasteUpload.sizeError() }
@@ -25,19 +30,29 @@ nonisolated enum RemotePasteInput: Sendable {
         }
         if pasteboard.types?.contains(.fileURL) == true { throw RemoteHostError.message(String(localized: "The clipboard files couldn’t be read.")) }
         if let text = pasteboard.string(forType: .string), !text.isEmpty { return nil }
-        guard let bytes = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff) else { return nil }
+        guard let type = pasteboard.availableType(from: imageTypes) else {
+            if pasteboard.types?.contains(where: { UTType($0.rawValue)?.conforms(to: .image) == true }) == true {
+                throw RemoteHostError.message(String(localized: "Paste a PNG, TIFF, JPEG, GIF, or WebP image."))
+            }
+            return nil
+        }
+        guard let bytes = pasteboard.data(forType: type) else {
+            throw RemoteHostError.message(String(localized: "The clipboard image couldn’t be read."))
+        }
         guard bytes.count <= RemotePasteUpload.maximumFileBytes else { throw RemotePasteUpload.sizeError() }
         return .image(bytes)
     }
 
     static func pngData(from bytes: Data) throws -> Data {
         try Task.checkCancellation()
-        guard !bytes.isEmpty, bytes.count <= RemotePasteUpload.maximumFileBytes,
-              let source = CGImageSourceCreateWithData(bytes as CFData, nil),
+        guard bytes.count <= RemotePasteUpload.maximumFileBytes else { throw RemotePasteUpload.sizeError() }
+        guard !bytes.isEmpty, let source = CGImageSourceCreateWithData(bytes as CFData, nil),
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
               let width = properties[kCGImagePropertyPixelWidth] as? Int,
-              let height = properties[kCGImagePropertyPixelHeight] as? Int,
-              width > 0, height > 0, width <= 16_384, height <= 16_384, width * height <= 16 * 1024 * 1024 else {
+              let height = properties[kCGImagePropertyPixelHeight] as? Int else {
+            throw RemoteHostError.message(String(localized: "The clipboard image couldn’t be read."))
+        }
+        guard width > 0, height > 0, width <= 16_384, height <= 16_384, width * height <= 16 * 1024 * 1024 else {
             throw RemotePasteUpload.sizeError()
         }
         guard CGImageSourceGetStatusAtIndex(source, 0) == .statusComplete,
@@ -46,7 +61,9 @@ nonisolated enum RemotePasteInput: Sendable {
             throw RemoteHostError.message(String(localized: "The clipboard image couldn’t be read."))
         }
         try Task.checkCancellation()
-        if CGImageSourceGetType(source) == UTType.png.identifier as CFString { return bytes }
+        // APNG shares PNG's type identifier; only a single frame can bypass conversion.
+        if CGImageSourceGetType(source) == UTType.png.identifier as CFString,
+           CGImageSourceGetCount(source) == 1 { return bytes }
         let png = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(png, UTType.png.identifier as CFString, 1, nil) else {
             throw RemoteHostError.message(String(localized: "The clipboard image couldn’t be read."))
@@ -189,6 +206,9 @@ nonisolated enum RemotePasteUpload {
             guard !urls.isEmpty, urls.count <= maximumFiles else { throw sizeError() }
             for url in urls {
                 try Task.checkCancellation()
+                guard url.isFileURL, url.path.hasPrefix("/"), !url.path.utf8.contains(0) else {
+                    throw RemoteHostError.message(String(localized: "The clipboard files couldn’t be read."))
+                }
                 let descriptor = Darwin.open(url.path, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC)
                 guard descriptor >= 0 else { throw PTYMuxWire.errnoError("open") }
                 var metadata = stat()

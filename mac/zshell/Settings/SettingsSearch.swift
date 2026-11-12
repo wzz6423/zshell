@@ -36,6 +36,7 @@ enum SettingsSearchIndex {
         let cursor = String(localized: "Cursor")
         let background = String(localized: "Background")
         let input = String(localized: "Input")
+        let remoteFiles = String(localized: "Remote files")
         let scrolling = String(localized: "Scrolling")
         let history = String(localized: "History")
         let profiles = String(localized: "Terminal Profiles")
@@ -161,6 +162,11 @@ enum SettingsSearchIndex {
                  description: String(localized: "Reopened terminals show their previous scrollback above a fresh shell"),
                  keywords: "terminal.restore-history"),
             item(.terminal, String(localized: "Copy on select"), section: input, keywords: "terminal.copy-on-select clipboard"),
+            item(.terminal, String(localized: "Upload copied files and images"), section: remoteFiles,
+                 description: String(localized: "Turn these off to stop automatic uploads. You can still choose Upload Files… from a remote terminal’s context menu."),
+                 keywords: "terminal.remote-paste-upload remote SSH clipboard PNG TIFF JPEG GIF WebP"),
+            item(.terminal, String(localized: "Upload dropped files"), section: remoteFiles,
+                 keywords: "terminal.remote-drop-upload remote SSH drag drop upload"),
             item(.terminal, String(localized: "Right-click action"), section: input,
                  description: TerminalRightClickAction.explanation,
                  keywords: "terminal.right-click-action right click clipboard " + TerminalRightClickAction.allCases.map(\.title).joined(separator: " ")),

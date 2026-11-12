@@ -45,6 +45,8 @@ final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegat
     private let restoreHistorySwitch = SettingsSwitch { AppSettings.shared.restoreTerminalHistory = $0 }
     private let preserveSessionsSwitch = SettingsSwitch { AppSettings.shared.preserveTerminalSessions = $0 }
     private let copyOnSelectSwitch = SettingsSwitch { AppSettings.shared.copyOnSelect = $0 }
+    private let remotePasteUploadSwitch = SettingsSwitch { AppSettings.shared.remotePasteUpload = $0 }
+    private let remoteDropUploadSwitch = SettingsSwitch { AppSettings.shared.remoteDropUpload = $0 }
     private let rightClickActionPopup = SettingsPopUpButton<TerminalRightClickAction>(
         items: TerminalRightClickAction.allCases.map { .value($0.title, $0) },
         onChange: { AppSettings.shared.terminalRightClickAction = $0 }
@@ -122,6 +124,15 @@ final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegat
         quickTerminalSizeRow,
         quickTerminalOpacityRow,
     ])
+
+    private lazy var remoteUploadExplanation: NSTextField = {
+        let text = NSTextField(wrappingLabelWithString:
+            String(localized: "Turn these off to stop automatic uploads. You can still choose Upload Files… from a remote terminal’s context menu."))
+        text.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        text.textColor = .secondaryLabelColor
+        text.maximumNumberOfLines = 0
+        return text
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -211,6 +222,18 @@ final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegat
             ),
         ]))
 
+        groups.append(SettingsGroup(header: String(localized: "Remote files"), rows: [
+            SettingsRow(
+                title: String(localized: "Upload copied files and images"),
+                control: remotePasteUploadSwitch
+            ),
+            SettingsRow(
+                title: String(localized: "Upload dropped files"),
+                control: remoteDropUploadSwitch
+            ),
+            SettingsCustomRow(remoteUploadExplanation),
+        ]))
+
         groups.append(SettingsGroup(header: String(localized: "Scrolling"), rows: [
             mouseScrollRow,
             trackpadScrollRow,
@@ -298,6 +321,8 @@ final class SettingsTerminalPane: SettingsPaneViewController, NSTextFieldDelegat
         restoreHistorySwitch.isOn = settings.restoreTerminalHistory
         preserveSessionsSwitch.isOn = settings.preserveTerminalSessions
         copyOnSelectSwitch.isOn = settings.copyOnSelect
+        remotePasteUploadSwitch.isOn = settings.remotePasteUpload
+        remoteDropUploadSwitch.isOn = settings.remoteDropUpload
         rightClickActionPopup.select(settings.terminalRightClickAction)
         focusFollowsMouseSwitch.isOn = settings.focusFollowsMouse
         mouseScrollRow.setValue(settings.mouseScrollMultiplier)

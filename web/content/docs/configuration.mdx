@@ -440,6 +440,8 @@ Choose which providers can read usage while `ai.usage-enabled = true`. Claude Co
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Terminal cursor shape |
 | `terminal.cursor-blinking` | `true` | boolean | Blink the cursor |
 | `terminal.copy-on-select` | `true` | boolean | Copy selected terminal text |
+| `terminal.remote-paste-upload` | `true` | boolean | Upload copied files and clipboard images to remote panes; explicit Upload Files… remains available when off |
+| `terminal.remote-drop-upload` | `true` | boolean | Upload files dropped onto remote panes; local file drops keep their existing behavior |
 | `terminal.right-click-action` | `"context-menu"` | string | Context menu, paste, or copy selection and otherwise paste (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | boolean | Focus follows mouse |
 | `terminal.shell-completions` | `true` | boolean | Bundled local command, argument, and path suggestions in new zsh shells; remote sessions require a compatible zshell-server |

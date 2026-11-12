@@ -18,6 +18,9 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Upload files dropped onto remote terminals and paste PNG, TIFF, JPEG, GIF and
+  WebP clipboard images as remote PNG paths. Control automatic uploads in
+  Settings, or choose Upload Files… from the remote terminal menu.
 - Access this Mac’s terminal panes from a paired browser over a private LAN
   or Tailscale HTTPS connection, with live output, shared input, reconnect,
   and client revocation in Settings.

@@ -43,6 +43,7 @@ enum TerminalContextMenu {
             item.target = surface
             menu.addItem(item)
         }
+        if let upload = surface.events?.terminalFileUploadMenuItem { menu.addItem(upload) }
         menu.addItem(.separator())
         menu.addItem(surface.commandRouting.contextMenuItem())
         TerminalHintMenu.shared.items(for: surface).forEach(menu.addItem)

@@ -186,6 +186,8 @@ Programas que emitem progresso `OSC 9;4` ganham uma barra fina acima do terminal
 - **Colagens arriscadas são sinalizadas.** Texto com várias linhas ou parecido com comandos aguarda confirmação em vez de ser enviado imediatamente.
 - **Arquivos e capturas viram caminhos seguros para o shell.** Arquivos do Finder são inseridos como caminhos absolutos entre aspas. Uma imagem sozinha é salva como PNG temporário privado e seu caminho é colado. Painéis remotos enviam arquivos e capturas ao host primeiro.
 
+A área de transferência aceita PNG, TIFF, JPEG, GIF e WebP e os salva como PNG; animações usam o primeiro quadro. Arquivos arrastados ao painel remoto são enviados antes da inserção dos caminhos. As opções ficam em **Ajustes → Terminal → Arquivos remotos**; **Enviar arquivos…** continua no menu contextual quando estão desativadas. Veja os [uploads remotos](/pt-BR/docs/remote-sessions#paste).
+
 ## Entrada com Option [#option-key-input]
 
 Por padrão, Option permanece com a fonte de entrada ativa do macOS para que layouts como Polish Pro digitem caracteres compostos. Ative **Usar Option como Alt/Meta** quando um programa precisar receber essas combinações como atalhos Meta. Consulte [`terminal.macos-option-as-alt`](/pt-BR/docs/configuration#terminalmacos-option-as-alt).
