@@ -199,6 +199,10 @@ stringa — predefinito `""`
 
 Per Personalizzata, inserisci un percorso assoluto o `~/folder`, oppure scegli una cartella nelle Impostazioni. Zshell controlla che esista e sia accessibile. Una cartella mancante, inaccessibile o non valida usa la directory locale corrente (la cartella personale se assente); le Impostazioni mostrano il motivo. Il percorso salvato viene mantenuto quando scegli un'altra opzione.
 
+### `terminal.term`
+
+Imposta `terminal.term` in **Impostazioni → Terminale → TERM** (predefinito `"xterm-256color"`). Il nome deve contenere 1–128 lettere ASCII, cifre o `.-_+`. Usa un nome terminfo installato sull’host che esegue la shell. Le modifiche si applicano solo alle nuove sessioni locali e SSH; i PTY aperti e conservati mantengono il loro `TERM` originale. Le sessioni remote condivise usano il valore alla creazione con un server aggiornato; i server precedenti mantengono `xterm-256color`. Un valore non valido all’avvio usa `xterm-256color`; le modifiche non valide mentre Zshell è in esecuzione mantengono l’ultimo valore valido. In entrambi i casi viene mostrato un errore nelle impostazioni. `TERM_PROGRAM` e `ZSHELL_TERM` restano invariati.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — predefinito `"libghostty"`

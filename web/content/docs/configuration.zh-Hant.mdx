@@ -212,6 +212,10 @@ Finder、CLI、工作區範本、worktree、還原工作階段、專案固定目
 
 使用自訂規則時輸入絕對路徑或 `~/folder`，也可在設定中選擇資料夾。Zshell 會檢查資料夾是否存在且可進入。自訂資料夾不存在、無法存取或格式無效時，會回到目前本機目錄（沒有本機環境時為個人目錄），並在設定中顯示原因。切換其他規則時會保留已儲存的路徑。
 
+### `terminal.term`
+
+在 **設定 → 終端機 → TERM** 中設定 `terminal.term`（預設為 `"xterm-256color"`）。名稱必須由 1–128 個 ASCII 字母、數字或 `.-_+` 組成。請使用執行 shell 的主機上已安裝的 terminfo 名稱。修改僅適用於新建的本機與 SSH 階段作業；已開啟和保留的 PTY 維持原本的 `TERM`。共享遠端階段作業在更新後的伺服器上建立時使用此值；舊伺服器繼續使用 `xterm-256color`。啟動時遇到無效值會退回 `xterm-256color`；Zshell 執行期間的無效修改會保留上一個有效值。兩種情況都會在設定中顯示錯誤。此設定不會改變 `TERM_PROGRAM` 或 `ZSHELL_TERM`。
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"`——預設 `"libghostty"`

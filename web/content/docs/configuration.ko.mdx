@@ -199,6 +199,10 @@ Finder, CLI, 작업 공간 템플릿, worktree, 복원된 세션, 프로젝트 �
 
 사용자 지정 정책에서는 절대 경로나 `~/folder`를 입력하거나 설정에서 폴더를 선택합니다. Zshell은 폴더가 존재하고 진입할 수 있는지 확인합니다. 폴더가 없거나 접근할 수 없거나 경로가 잘못되면 현재 로컬 디렉터리(없으면 홈)로 돌아가며 설정에 이유를 표시합니다. 다른 정책을 선택해도 저장한 경로는 유지됩니다.
 
+### `terminal.term`
+
+**설정 → 터미널 → TERM**에서 `terminal.term`을 설정하세요(기본값 `"xterm-256color"`). 이름은 1–128자의 ASCII 문자, 숫자 또는 `.-_+`로 구성되어야 합니다. shell을 실행하는 호스트에 설치된 terminfo 이름을 사용하세요. 변경은 새 로컬 및 SSH 세션에만 적용되며 열린 PTY와 유지된 PTY는 기존 `TERM`을 유지합니다. 공유 원격 세션은 업데이트된 서버에서 생성될 때 이 값을 사용하며 이전 서버는 `xterm-256color`를 유지합니다. 시작 시 값이 잘못되면 `xterm-256color`로 대체하고, Zshell 실행 중 잘못된 편집은 마지막 유효 값을 유지합니다. 두 경우 모두 설정에 오류를 표시합니다. `TERM_PROGRAM`과 `ZSHELL_TERM`은 변경되지 않습니다.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — 기본값 `"libghostty"`

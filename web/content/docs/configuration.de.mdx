@@ -199,6 +199,10 @@ Zeichenfolge — Standard `""`
 
 Geben Sie für Benutzerdefiniert einen absoluten Pfad oder `~/folder` ein, oder wählen Sie in den Einstellungen einen Ordner. Zshell prüft, ob der Ordner existiert und betreten werden kann. Fehlende, unzugängliche oder ungültige Ordner führen zum aktuellen lokalen Verzeichnis zurück (sonst zum Benutzerordner); die Einstellungen zeigen den Grund. Der gespeicherte Pfad bleibt beim Wechsel der Regel erhalten.
 
+### `terminal.term`
+
+Legen Sie `terminal.term` unter **Einstellungen → Terminal → TERM** fest (Standard `"xterm-256color"`). Der Name muss aus 1–128 ASCII-Buchstaben, Ziffern oder `.-_+` bestehen. Verwenden Sie einen terminfo-Namen, der auf dem Host der Shell installiert ist. Änderungen gelten nur für neue lokale und SSH-Sitzungen; offene und erhaltene PTYs behalten ihren bisherigen `TERM`. Geteilte entfernte Sitzungen verwenden den Wert beim Erstellen mit einem aktuellen Server; ältere Server behalten `xterm-256color`. Ein ungültiger Wert beim Start fällt auf `xterm-256color` zurück; ungültige Änderungen bei laufendem Zshell behalten den letzten gültigen Wert. In beiden Fällen erscheint ein Fehler in den Einstellungen. `TERM_PROGRAM` und `ZSHELL_TERM` bleiben unverändert.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` – Standard: `"libghostty"`

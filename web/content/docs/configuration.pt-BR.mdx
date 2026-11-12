@@ -199,6 +199,10 @@ texto — padrão `""`
 
 Na regra personalizada, informe um caminho absoluto ou `~/folder`, ou escolha uma pasta nos Ajustes. Zshell verifica se a pasta existe e permite acesso. Uma pasta ausente, inacessível ou inválida usa como alternativa o diretório local atual (a pasta pessoal quando não houver um); os Ajustes mostram o motivo. O caminho salvo é mantido ao escolher outra regra.
 
+### `terminal.term`
+
+Defina `terminal.term` em **Ajustes → Terminal → TERM** (padrão `"xterm-256color"`). O nome deve conter 1–128 letras ASCII, dígitos ou `.-_+`. Use um nome terminfo instalado no host que executa o shell. As mudanças se aplicam apenas a novas sessões locais e SSH; PTYs abertos e preservados mantêm seu `TERM` original. Sessões remotas compartilhadas usam o valor ao serem criadas com um servidor atualizado; servidores antigos mantêm `xterm-256color`. Um valor inválido ao iniciar usa `xterm-256color`; edições inválidas enquanto o Zshell está em execução preservam o último valor válido. Nos dois casos, um erro é exibido em Ajustes. `TERM_PROGRAM` e `ZSHELL_TERM` não mudam.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — padrão `"libghostty"`

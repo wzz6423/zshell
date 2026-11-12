@@ -18,6 +18,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Choose the terminal type (`TERM`) for new local and remote sessions while
+  open and preserved shells keep their original identity.
 - Recover unsaved file and editable diff drafts after an unexpected exit,
   keeping their original save protection, selection and layout. Manage private
   local backups from File or Editor settings, or turn automatic recovery off.
