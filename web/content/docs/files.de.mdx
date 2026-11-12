@@ -24,6 +24,16 @@ Ein Klick öffnet eine Datei im fokussierten Bereich. Das Kontextmenü enthält 
 
 Die Zeilen verwenden zum Dateinamen passende Material-Symbole. In Git-Repositorys kennzeichnen Statusfarben und Markierungen geänderte Pfade, ignorierte Dateien werden abgeblendet. So zeigt der Dateibaum den Zustand des Worktrees auch ohne geöffneten Git-Bereich.
 
+## Remotedateien [#remote-files]
+
+Öffnen Sie SSH-Dateien im Dateibereich. Aktivieren Sie zum Erstellen, Umbenennen, Verschieben in den Remote-Papierkorb und Speichern **Einstellungen → Editor → Dateien → Änderungen an Remotedateien erlauben** (`files.remote-write-enabled`, standardmäßig aus).
+
+Zshell verwendet nur bereits vorhandene Host-Werkzeuge und installiert nichts. Lesen und Bearbeiten verwenden die vorhandenen Perl-Kernmodule. Jeder Schreibvorgang prüft außerdem die benötigten Dateisystemfunktionen; nicht unterstützte Vorgänge bleiben deaktiviert. Symbolische Links, Spezialdateien und Pfade außerhalb des Projekts werden abgelehnt. UTF-8-Textdateien dürfen bis zu 5 MiB groß sein; Remote-Markdown öffnet sich als Quelltext.
+
+Remote-Speichern prüft Änderungen auch bei ausgeschaltetem lokalen Speicherschutz. Bei Konflikten können Sie vergleichen, den Entwurf behalten, vom Remote-Host neu laden oder das Überschreiben erlauben. Die verglichene Version wird unmittelbar vor dem Bereitstellen der vollständigen Datei erneut geprüft; ein externer Prozess kann nach dieser letzten Prüfung weiterhin schreiben.
+
+**In den Remote-Papierkorb verschieben** bewahrt Inhalt und ursprünglichen Pfad im privaten Projektordner `.zshell-trash` auf. **Letztes Remote-Objekt wiederherstellen** stellt während der aktuellen Projektauswahl das letzte Objekt wieder her, ohne vorhandene Namen zu ersetzen. Ältere Einträge können weiterhin manuell aus diesem Ordner wiederhergestellt werden.
+
 ## Dateien und Ordner importieren [#import-files-and-folders]
 
 Wählen Sie **Datei → Dateien importieren…**, die Importschaltfläche im Dateibereich oder den Eintrag im Kontextmenü eines Ordners. Mehrere Dateien und Ordner werden in den ausgewählten Ordner oder die aktuelle Baumwurzel kopiert. Die Originale bleiben erhalten.

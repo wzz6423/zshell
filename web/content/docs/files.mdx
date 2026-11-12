@@ -29,6 +29,16 @@ Rows use filename-aware Material icons. Inside a Git repository, changed paths
 also use status colors and badges, while ignored files are dimmed, so the tree
 shows the same worktree state as the Git panel without opening it.
 
+## Remote files [#remote-files]
+
+Open SSH files from the Files panel. To create, rename, move to remote trash, or save, enable **Settings → Editor → Files → Allow remote file changes** (`files.remote-write-enabled`, off by default).
+
+Zshell uses only tools already installed on the host and installs nothing. File reading and editing use the host’s existing Perl core modules. Each write operation also checks the filesystem capabilities it needs; unsupported operations stay disabled. Symbolic links, special files, and paths outside the project are rejected. UTF-8 text files can be up to 5 MiB; remote Markdown opens as source.
+
+Saving checks for remote changes even when local save protection is off. A conflict lets you compare, keep your draft, reload from the remote host, or approve an overwrite. Zshell rechecks the compared version immediately before publishing a complete file; an external process can still write after that final check.
+
+**Move to Remote Trash** keeps contents and original-path metadata in the project’s private `.zshell-trash` directory. **Restore Last Remote Item** restores the last item during the current project selection without replacing an existing name. Older entries remain available for manual recovery from that directory.
+
 ## Import files and folders
 
 Choose **File → Import Files…**, use the import button in the Files panel, or right-click a folder and choose **Import Files…**. Select one or more files or folders; Zshell copies them into that folder or the current tree root, keeping the originals.

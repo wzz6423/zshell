@@ -1687,7 +1687,9 @@ final class TerminalManager: nonisolated ObservableObject {
         }
         let oldRoot = fileTree.rootPath
         if project.isRemote {
-            fileTree.configureRemote(project.remoteEndpoint)
+            if case .remote(let source) = project.fileSource {
+                fileTree.configureRemote(source.endpoint, authentication: source.authentication, credentialID: source.credentialID)
+            } else { fileTree.configureRemote(nil) }
             fileTree.sync(root: project.remoteEndpoint == nil ? "" : project.remoteDirectory ?? "~")
         } else {
             fileTree.configureRemote(nil)
@@ -1749,8 +1751,8 @@ final class TerminalManager: nonisolated ObservableObject {
     /// Propagates a file-tree rename to every open file tab across all
     /// projects, so tabs for the moved file (or files under a moved
     /// directory) keep pointing at the right place.
-    func fileRenamed(from oldPath: String, to newPath: String) {
-        for project in projects {
+    func fileRenamed(from oldPath: String, to newPath: String, source: FileSource = .local) {
+        for project in projects where project.fileSource.sharesFilesystem(with: source) {
             project.updateFilePaths(from: oldPath, to: newPath)
         }
     }

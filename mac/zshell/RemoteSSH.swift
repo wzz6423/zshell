@@ -152,6 +152,8 @@ nonisolated struct SSHEndpoint: Codable, Equatable, Sendable {
                 $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" || $0 == "."
             }
             tildePrefix = isPlainName ? String(user) + "/" : nil
+        } else if value.dropFirst().allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" || $0 == "." }) {
+            return value
         } else {
             tildePrefix = nil
         }
@@ -547,6 +549,7 @@ nonisolated struct BoundedProcessOutput: Equatable, Sendable {
     let stdout: String
     let stderr: String
     let wasTruncated: Bool
+    var stdoutIsValidUTF8 = true
 }
 
 nonisolated struct BoundedProcessResult: Equatable, Sendable {
@@ -665,7 +668,7 @@ nonisolated struct BoundedProcessRunner {
     }
 }
 
-nonisolated struct OpenSSHTransport {
+nonisolated struct OpenSSHTransport: Sendable {
     enum TransportError: LocalizedError {
         case timedOut(BoundedProcessOutput)
         case failed(status: Int32, output: BoundedProcessOutput)
@@ -747,19 +750,34 @@ nonisolated struct OpenSSHTransport {
         return environment
     }
 
-    /// Lists `directory` on the remote host with `ls -1Ap`. GNU ls escapes
-    /// or quotes names by default since coreutils 8.25, which would corrupt
-    /// the parsed listing, so `QUOTING_STYLE=literal` is requested; BSD and
-    /// BusyBox ls already print literal names and ignore the variable.
     func listDirectory(
-        endpoint: SSHEndpoint, directory: String
+        endpoint: SSHEndpoint, directory: String,
+        authentication: SSHAuthentication = .agent, credentialID: UUID? = nil
     ) throws -> [SSHEndpoint.DirectoryEntry] {
         let output = try run(
             endpoint: endpoint,
-            command: ["ls", "-1Ap", "--", directory],
-            additionalEnvironment: ["QUOTING_STYLE": "literal"]
+            command: ["/bin/sh", "-c", """
+            test -d "$1" && test -r "$1" && test -x "$1" || exit 1
+            for item in "$1"/.[!.]* "$1"/..?* "$1"/*; do
+              test -e "$item" || test -L "$item" || continue
+              name=${item##*/}
+              test "$name" != .git || continue
+              case "$name" in .zshell-trash|.zshell-file-*) continue ;; esac
+              kind=0
+              if test ! -L "$item" && test -d "$item"; then kind=1; fi
+              printf '%s\\0%s\\0' "$kind" "$name"
+            done
+            """, "zshell-files", directory],
+            authentication: authentication, credentialID: credentialID
         )
-        return SSHEndpoint.parseDirectoryListing(output.stdout)
+        guard !output.wasTruncated, output.stdoutIsValidUTF8 else { throw TransportError.failed(status: -1, output: output) }
+        let fields = output.stdout.split(separator: "\0", omittingEmptySubsequences: false)
+        guard fields.count % 2 == 1, fields.last == "" else { throw TransportError.failed(status: -1, output: output) }
+        return stride(from: 0, to: fields.count - 1, by: 2).compactMap { index in
+            let name = String(fields[index + 1])
+            guard !name.isEmpty, !name.contains("/"), name != ".", name != ".." else { return nil }
+            return SSHEndpoint.DirectoryEntry(name: name, isDirectory: fields[index] == "1")
+        }
     }
 
 }
@@ -928,7 +946,8 @@ private nonisolated final class BoundedOutputCollector: @unchecked Sendable {
         return BoundedProcessOutput(
             stdout: String(decoding: stdout, as: UTF8.self),
             stderr: String(decoding: stderr, as: UTF8.self),
-            wasTruncated: truncated
+            wasTruncated: truncated,
+            stdoutIsValidUTF8: String(data: stdout, encoding: .utf8) != nil
         )
     }
 }
