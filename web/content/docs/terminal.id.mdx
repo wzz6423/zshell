@@ -58,6 +58,12 @@ Aktifkan **Pengaturan → Terminal → Input → Fokus mengikuti mouse** untuk m
 
 `terminal.focus-follows-mouse = true`
 
+## Tindakan klik kanan [#right-click-action]
+
+Di **Pengaturan → Terminal → Input → Tindakan klik kanan**, pilih **Menu konteks** (default), **Tempel**, atau **Salin atau Tempel**. Opsi terakhir menyalin pilihan dan hanya menempel jika tidak ada pilihan. Perubahan langsung berlaku pada kedua backend. `terminal.right-click-action` di `config.toml` menerima `"context-menu"`, `"paste"`, atau `"copy-or-paste"`.
+
+**Shift-klik kanan**, **Control-klik**, dan **Command-klik kanan** tetap membuka menu. **Edit → Tampilkan Menu Konteks Terminal** (<kbd>Shift</kbd>+<kbd>F10</kbd>) membukanya lewat papan ketik. Aplikasi dengan pelaporan mouse tetap menerima klik kanan biasa kecuali **Blokir Perintah Zshell** aktif di panel. Tempel memakai konfirmasi beberapa baris serta penanganan berkas lokal atau unggahan jarak jauh yang sama seperti <kbd>Cmd</kbd>+<kbd>V</kbd>.
+
 ## Profil terminal [#terminal-profiles]
 
 Buat dan urutkan profil di **Pengaturan → Terminal → Profil terminal → Kelola profil terminal…**. Profil yang aktif dapat mencocokkan host, pengguna, direktori kerja, dan program latar depan. Semua kondisi yang diisi harus cocok; `*` cocok dengan teks apa pun dan `?` dengan satu karakter. Zshell memakai profil pertama yang cocok; jika tidak ada, panel kembali ke tampilan awalnya. **Terapkan profil terminal secara otomatis** aktif secara bawaan (`terminal.auto-profiles = true`). Pilihan manual tetap tersedia saat dinonaktifkan.
@@ -143,7 +149,7 @@ Notifikasi dapat memainkan suara sistem. Mengkliknya mengaktifkan Zshell dan lan
 
 Riwayat yang sama juga dapat dibuka dari **Pengaturan → Terminal → Notifikasi**.
 
-Buka **Notifikasi → Riwayat notifikasi…** untuk melihat pemberitahuan terminal dan agen terbaru. Filter menurut **Belum dibaca**, **Gagal**, atau **Menunggu tindakan**. Klik notifikasi atau **Tampilkan panel** untuk memilih proyek, tab, dan panel saat ini, termasuk di jendela lain. Panel yang ditutup tetap ada dalam riwayat sebagai tidak tersedia.
+Buka **Terminal → Notifikasi → Riwayat notifikasi…** untuk melihat pemberitahuan terminal dan agen terbaru. Filter menurut **Belum dibaca**, **Gagal**, atau **Menunggu tindakan**. Klik notifikasi atau **Tampilkan panel** untuk memilih proyek, tab, dan panel saat ini, termasuk di jendela lain. Panel yang ditutup tetap ada dalam riwayat sebagai tidak tersedia.
 
 Gunakan **Tandai sudah dibaca**, **Tandai semua sudah dibaca**, **Hapus**, atau **Hapus riwayat**. Membaca tidak menyetujui permintaan agen. Notifikasi keluar dari filter menunggu saat agen melanjutkan atau selesai, panel ditutup, atau koneksi jarak jauh tidak tersedia. Status berasal dari laporan siklus hidup eksplisit dan hasil keluar perintah. Riwayat menyimpan 200 entri terbaru setelah mulai ulang, bahkan jika izin notifikasi macOS dinonaktifkan.
 

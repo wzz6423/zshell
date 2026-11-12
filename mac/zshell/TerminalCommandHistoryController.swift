@@ -53,9 +53,7 @@ final class TerminalCommandHistoryController: NSObject, NSWindowDelegate, NSMenu
     }
 
     func installMenu(in mainMenu: NSMenu) {
-        guard let terminalMenu = mainMenu.items.first(where: {
-            $0.submenu?.items.contains(where: { $0.action == NSSelectorFromString("toggleQuickTerminal") }) == true
-        })?.submenu else { return }
+        guard let terminalMenu = AppMenuController.submenu(.terminal, in: mainMenu) else { return }
         let id = NSUserInterfaceItemIdentifier("terminal-command-history")
         let title = String(localized: "Command History…")
         let item = terminalMenu.items.first { $0.identifier == id }

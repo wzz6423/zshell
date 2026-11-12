@@ -215,12 +215,25 @@ Lors de la restauration des volets de terminal, reprend exactement la conversati
 
 Activez cette option dans **Réglages → Automatisation → Reprendre les conversations des agents**. Elle est indépendante de `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+booléen — valeur par défaut `false`
+
+Active la lecture des limites de compte des CLI locales via **Réglages → Automatisation → Utilisation du compte → Lire l’utilisation du compte**. Désactiver annule les demandes, masque les données et refuse de sauvegarder les rapports Claude. Les choix des fournisseurs sont conservés. La reconnaissance des agents, les rapports de cycle de vie et la restauration des conversations ne changent pas.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+booléen — valeur par défaut `true` pour chacun
+
+Choisit les fournisseurs lus lorsque `ai.usage-enabled = true`. Claude Code lit les rapports locaux de la ligne d’état de Zshell ; Codex interroge sa CLI installée et connectée. Désactiver un fournisseur arrête immédiatement ses lectures et masque ses données. Aucun identifiant de connexion n’est collecté. Les trois options prennent en charge la recherche, l’import/export, le rechargement en direct et la réinitialisation.
+
 ## Autres réglages [#additional-settings]
 
 | Clé | Valeur par défaut | Valeurs / plage | Effet |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Icône de l'application |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Éditeur externe pour les fichiers et dossiers |
+| `files.drag-import` | `false` | booléen | Autoriser les copies depuis le Finder par glisser-déposer ; le menu d’importation reste disponible |
 | `terminal.theme-only` | `false` | Booléen | Appliquer la palette sélectionnée au terminal uniquement |
 | `terminal.command-history` | `true` | Booléen | Enregistrer les nouvelles commandes ; l’historique sauvegardé reste accessible si désactivé |
 | `terminal.text-hints` | `true` | Booléen | Activer les repères clavier sur le texte visible du terminal |
@@ -229,6 +242,7 @@ Activez cette option dans **Réglages → Automatisation → Reprendre les conve
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Forme du curseur du terminal |
 | `terminal.cursor-blinking` | `true` | Booléen | Faire clignoter le curseur |
 | `terminal.copy-on-select` | `true` | Booléen | Copier le texte sélectionné dans le terminal |
+| `terminal.right-click-action` | `"context-menu"` | Chaîne | Menu contextuel, collage, ou copie de la sélection sinon collage (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | Booléen | Le focus suit la souris |
 | `terminal.shift-enter-newline` | `true` | Booléen | Envoyer une séquence de nouvelle ligne étendue avec Shift+Enter ; nécessite la prise en charge par le programme |
 | `terminal.background-opacity` | `1` | 0.2–1 | Opacité du fond du terminal |

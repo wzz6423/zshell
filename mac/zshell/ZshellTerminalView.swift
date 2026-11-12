@@ -51,6 +51,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var pointerSelectionDragged = false
     private var aiInputPointerActive = false
     private var isForwardingRightMouseButton = false
+    private var isContextualLeftClick = false
     private var selectionAutoscrollTimer: Timer?
     private var selectionAutoscrollModifierFlags: NSEvent.ModifierFlags = []
     private lazy var aiInputEditor = TerminalAIInputEditor(
@@ -483,6 +484,12 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func mouseDown(with event: NSEvent) {
+        isContextualLeftClick = event.modifierFlags.contains(.control)
+        if isContextualLeftClick {
+            focusForInteraction()
+            TerminalContextMenu.show(for: self, event: event, linkTarget: linkTarget(for: event))
+            return
+        }
         stopSelectionAutoscroll()
         selectionAutoscrollModifierFlags = []
         inputSelectionDragActive = false
@@ -506,6 +513,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func mouseDragged(with event: NSEvent) {
+        guard !isContextualLeftClick else { return }
         guard !suppressPointerEventsUntilMouseDown else { return }
         pointerSelectionDragged = true
         selectionAutoscrollModifierFlags = event.modifierFlags
@@ -522,6 +530,10 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if isContextualLeftClick {
+            isContextualLeftClick = false
+            return
+        }
         guard !suppressPointerEventsUntilMouseDown else { return }
         finishPointerSelection(with: event, copyOnSelect: true)
     }
@@ -871,11 +883,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
             return
         }
         isForwardingRightMouseButton = false
-        NSMenu.popUpContextMenu(
-            TerminalContextMenu.make(for: self, linkTarget: linkTarget(for: event)),
-            with: event,
-            for: self
-        )
+        TerminalContextMenu.handleRightClick(for: self, event: event, linkTarget: linkTarget(for: event))
     }
 
     override func rightMouseUp(with event: NSEvent) {
@@ -890,9 +898,15 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
-        guard !shouldForwardRightMouse(event) else { return nil }
+        guard event.type == .leftMouseDown && event.modifierFlags.contains(.control)
+            || !shouldForwardRightMouse(event) else { return nil }
         focusForInteraction()
         return TerminalContextMenu.make(for: self, linkTarget: linkTarget(for: event))
+    }
+
+    @objc func showTerminalContextMenu(_ sender: Any?) {
+        focusForInteraction()
+        TerminalContextMenu.show(for: self)
     }
 
     private func shouldForwardRightMouse(_ event: NSEvent) -> Bool {

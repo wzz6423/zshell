@@ -215,12 +215,25 @@ Quando vengono ripristinati i pannelli del terminale, riprende esattamente la co
 
 Si controlla in **Impostazioni → Automazione → Riprendi le conversazioni degli agenti**. È indipendente da `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+booleano — predefinito `false`
+
+Abilita i limiti delle CLI locali in **Impostazioni → Automazione → Utilizzo dell’account → Leggi utilizzo dell’account**. Disattivare annulla le richieste, nasconde i dati e rifiuta il salvataggio dei rapporti Claude. Conserva i fornitori scelti. Non cambia riconoscimento degli agenti, rapporti di ciclo di vita o ripristino delle conversazioni.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+booleano — predefinito `true` per ciascuno
+
+Sceglie i fornitori quando `ai.usage-enabled = true`. Claude Code legge il rapporto locale della riga di stato di Zshell; Codex interroga la CLI installata con accesso effettuato. Disattivare un fornitore interrompe subito le letture e nasconde i dati. Non raccoglie credenziali. Le tre opzioni supportano ricerca, importazione/esportazione, ricaricamento immediato e ripristino.
+
 ## Altre impostazioni [#additional-settings]
 
 | Chiave | Predefinito | Valori / intervallo | Effetto |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Icona dell'applicazione |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Editor esterno per file e cartelle |
+| `files.drag-import` | `false` | booleano | Consente copie dal Finder trascinando nell’albero locale; il menu di importazione resta disponibile |
 | `terminal.theme-only` | `false` | booleano | Applica la tavolozza selezionata solo al terminale |
 | `terminal.command-history` | `true` | booleano | Registrare i nuovi comandi; cronologia salvata disponibile anche se disattivato |
 | `terminal.text-hints` | `true` | booleano | Attivare i suggerimenti da tastiera per il testo visibile |
@@ -229,6 +242,7 @@ Si controlla in **Impostazioni → Automazione → Riprendi le conversazioni deg
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Forma del cursore del terminale |
 | `terminal.cursor-blinking` | `true` | booleano | Fa lampeggiare il cursore |
 | `terminal.copy-on-select` | `true` | booleano | Copia il testo selezionato nel terminale |
+| `terminal.right-click-action` | `"context-menu"` | stringa | Menu contestuale, incolla o copia la selezione, altrimenti incolla (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | booleano | Il focus segue il mouse |
 | `terminal.shift-enter-newline` | `true` | booleano | Invia una sequenza avanzata di nuova riga con Maiusc+Invio; richiede il supporto dell'applicazione |
 | `terminal.background-opacity` | `1` | 0,2–1 | Opacità dello sfondo del terminale |

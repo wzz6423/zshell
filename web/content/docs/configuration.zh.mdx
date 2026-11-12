@@ -260,6 +260,18 @@ regular/bold 区分及后备字体字重。
 
 可在 **设置 → 自动化 → 恢复 Agent 对话** 中切换。它与 `terminal.restore-history` 独立。
 
+### `ai.usage-enabled`
+
+布尔值——默认 `false`
+
+在 **设置 → Automation → 账户用量 → 读取账户用量** 开启本机 CLI 账户限额读取。关闭后会取消待处理的用量请求、隐藏数据，并拒绝保存 Claude 用量报告，同时保留提供方选择。用量设置不改变 Agent 识别、生命周期报告或对话恢复。
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+布尔值——各自默认 `true`
+
+选择 `ai.usage-enabled = true` 时允许读取用量的提供方。Claude Code 读取 Zshell 本机状态栏报告，Codex 查询已安装并登录的 CLI。关闭某个提供方会立即停止对应读取并隐藏数据，不收集登录凭据。三个设置支持搜索、导入导出、配置实时重载和恢复默认值。
+
 <span id="其他配置项" data-canonical-heading="additional-settings" />
 
 ## 其他配置项 [#additional-settings]
@@ -268,6 +280,7 @@ regular/bold 区分及后备字体字重。
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | 应用图标 |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | 文件和目录使用的外部编辑器 |
+| `files.drag-import` | `false` | 布尔值 | 允许把 Finder 项目拖入本地文件树并复制；菜单导入始终可用 |
 | `terminal.theme-only` | `false` | 布尔值 | 只将所选配色应用于终端 |
 | `terminal.command-history` | `true` | 布尔值 | 记录新命令，关闭后仍可查看已有历史 |
 | `terminal.text-hints` | `true` | 布尔值 | 启用可见终端文本的键盘提示 |
@@ -276,6 +289,7 @@ regular/bold 区分及后备字体字重。
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | 终端光标形状 |
 | `terminal.cursor-blinking` | `true` | 布尔值 | 光标闪烁 |
 | `terminal.copy-on-select` | `true` | 布尔值 | 选中终端文本后复制 |
+| `terminal.right-click-action` | `"context-menu"` | 字符串 | 上下文菜单、粘贴，或有选区时复制否则粘贴 (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | 布尔值 | 鼠标移入聚焦 |
 | `terminal.shift-enter-newline` | `true` | 布尔值 | Shift+Enter 发送增强换行序列，需终端程序支持 |
 | `terminal.background-opacity` | `1` | 0.2–1 | 终端背景不透明度 |

@@ -58,6 +58,12 @@ Activez **Réglages → Terminal → Saisie → Le focus suit la souris** pour c
 
 `terminal.focus-follows-mouse = true`
 
+## Action du clic droit [#right-click-action]
+
+Dans **Réglages → Terminal → Saisie → Action du clic droit**, choisissez **Menu contextuel** (par défaut), **Coller** ou **Copier ou coller**. Cette dernière option copie la sélection et ne colle que sans sélection. Le changement est immédiat sur les deux moteurs. Dans `config.toml`, `terminal.right-click-action` accepte `"context-menu"`, `"paste"` ou `"copy-or-paste"`.
+
+**Maj + clic droit**, **Contrôle + clic** et **Commande + clic droit** ouvrent toujours le menu. **Édition → Afficher le menu contextuel du terminal** (<kbd>Shift</kbd>+<kbd>F10</kbd>) permet de l’ouvrir au clavier. Les applications utilisant le suivi de la souris continuent de recevoir les clics droits ordinaires, sauf si **Bloquer les commandes Zshell** est activé dans le volet. Le collage conserve la confirmation multiligne et le traitement des fichiers locaux ou distants de <kbd>Cmd</kbd>+<kbd>V</kbd>.
+
 ## Profils de terminal [#terminal-profiles]
 
 Créez et ordonnez les profils dans **Réglages → Terminal → Profils de terminal → Gérer les profils de terminal…**. Ils peuvent correspondre à l’hôte, l’utilisateur, le répertoire de travail et le programme au premier plan. Toutes les conditions renseignées doivent correspondre ; `*` accepte tout texte et `?` un caractère. Le premier profil correspondant est utilisé, sinon le volet retrouve son apparence initiale. **Appliquer automatiquement les profils de terminal** est activé par défaut (`terminal.auto-profiles = true`) ; la sélection manuelle reste disponible si vous le désactivez.
@@ -143,7 +149,7 @@ Une notification peut jouer le son système. Cliquer dessus active Zshell et ouv
 
 Le même historique est accessible depuis **Réglages → Terminal → Avis**.
 
-Ouvrez **Avis → Historique des avis…** pour consulter les notifications récentes du terminal et des agents. Filtrez par **Non lus**, **Échecs** ou **À traiter**. Cliquez sur un avis ou sur **Afficher le volet** pour retrouver son projet, son onglet et son volet actuels, même dans une autre fenêtre. Un volet fermé reste dans l’historique avec la mention indisponible.
+Ouvrez **Terminal → Avis → Historique des avis…** pour consulter les notifications récentes du terminal et des agents. Filtrez par **Non lus**, **Échecs** ou **À traiter**. Cliquez sur un avis ou sur **Afficher le volet** pour retrouver son projet, son onglet et son volet actuels, même dans une autre fenêtre. Un volet fermé reste dans l’historique avec la mention indisponible.
 
 Utilisez **Marquer comme lu**, **Tout marquer comme lu**, **Retirer** ou **Effacer l’historique**. La lecture n’approuve aucune demande d’un agent. Un élément quitte le filtre À traiter lorsque l’agent reprend ou termine, que le volet ferme ou que sa connexion distante devient indisponible. Les états reposent sur les rapports explicites du cycle de vie et les résultats de sortie des commandes. Les 200 derniers avis restent après un redémarrage, même si les notifications macOS sont désactivées.
 

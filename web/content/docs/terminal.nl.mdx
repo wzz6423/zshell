@@ -58,6 +58,12 @@ Schakel **Instellingen → Terminal → Invoer → Focus volgt de muis** in om e
 
 `terminal.focus-follows-mouse = true`
 
+## Rechtsklikactie [#right-click-action]
+
+Kies bij **Instellingen → Terminal → Invoer → Rechtsklikactie** voor **Contextmenu** (standaard), **Plakken** of **Kopiëren of plakken**. De laatste optie kopieert de selectie en plakt alleen zonder selectie. Wijzigingen gelden direct voor beide backends. `terminal.right-click-action` in `config.toml` accepteert `"context-menu"`, `"paste"` of `"copy-or-paste"`.
+
+**Shift-rechtsklik**, **Control-klik** en **Command-rechtsklik** openen nog steeds het menu. **Wijzig → Terminalcontextmenu tonen** (<kbd>Shift</kbd>+<kbd>F10</kbd>) opent het met het toetsenbord. Apps met muisrapportage blijven gewone rechtsklikken ontvangen, tenzij **Zshell-opdrachten blokkeren** voor het paneel aanstaat. Plakken gebruikt dezelfde bevestiging voor meerdere regels en lokale of externe bestandsafhandeling als <kbd>Cmd</kbd>+<kbd>V</kbd>.
+
 ## Terminalprofielen [#terminal-profiles]
 
 Maak en orden profielen onder **Instellingen → Terminal → Terminalprofielen → Terminalprofielen beheren…**. Ze kunnen host, gebruiker, werkmap en voorgrondprogramma vergelijken. Alle ingevulde voorwaarden moeten passen; `*` past bij elke tekst en `?` bij één teken. Het eerste passende profiel wordt gebruikt; zonder match keert het paneel terug naar zijn oorspronkelijke uiterlijk. **Terminalprofielen automatisch toepassen** staat standaard aan (`terminal.auto-profiles = true`); handmatig kiezen blijft mogelijk na uitschakelen.
@@ -143,7 +149,7 @@ Meldingen kunnen het systeemgeluid afspelen. Klikken op een melding activeert Zs
 
 Dezelfde geschiedenis is ook beschikbaar via **Instellingen → Terminal → Meldingen**.
 
-Open **Meldingen → Meldingsgeschiedenis…** voor recente terminal- en agentmeldingen. Filter op **Ongelezen**, **Mislukt** of **In afwachting**. Klik op een melding of op **Paneel tonen** om het huidige project, tabblad en paneel te selecteren, ook in een ander venster. Gesloten panelen blijven als niet beschikbaar in de geschiedenis.
+Open **Terminal → Meldingen → Meldingsgeschiedenis…** voor recente terminal- en agentmeldingen. Filter op **Ongelezen**, **Mislukt** of **In afwachting**. Klik op een melding of op **Paneel tonen** om het huidige project, tabblad en paneel te selecteren, ook in een ander venster. Gesloten panelen blijven als niet beschikbaar in de geschiedenis.
 
 Gebruik **Als gelezen markeren**, **Alles als gelezen markeren**, **Verwijderen** of **Geschiedenis wissen**. Lezen keurt geen agentverzoek goed. Meldingen verdwijnen uit In afwachting wanneer de agent hervat of stopt, het paneel sluit of de externe verbinding niet beschikbaar is. Statussen komen uit expliciete levenscyclusrapporten en afsluitresultaten van opdrachten. De laatste 200 meldingen blijven na een herstart beschikbaar, ook als macOS-meldingen zijn uitgeschakeld.
 

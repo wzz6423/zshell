@@ -215,12 +215,25 @@ Bij het herstellen van terminalpanelen wordt het precieze opgeslagen gesprek van
 
 Gebruik **Instellingen → Automatisering → Agentgesprekken hervatten**. Deze optie staat los van `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+boolean — standaard `false`
+
+Schakelt lokale CLI-accountlimieten in via **Instellingen → Automatisering → Accountgebruik → Accountgebruik lezen**. Uitschakelen annuleert aanvragen, verbergt gegevens en weigert Claude-rapporten op te slaan. Providerkeuzes blijven behouden. Agentherkenning, levenscyclusrapporten en gespreksherstel veranderen niet.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — standaard elk `true`
+
+Kiest providers wanneer `ai.usage-enabled = true`. Claude Code leest Zshells lokale statusregelrapport; Codex bevraagt de geïnstalleerde, aangemelde CLI. Uitschakelen stopt direct lezen en verbergt gegevens. Er worden geen aanmeldgegevens verzameld. Alle drie ondersteunen zoeken, importeren/exporteren, direct herladen en standaardwaarden herstellen.
+
 ## Aanvullende instellingen [#additional-settings]
 
 | Sleutel | Standaard | Waarden / bereik | Effect |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | App-pictogram |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Externe editor voor bestanden en mappen |
+| `files.drag-import` | `false` | boolean | Sta Finder-kopieën via slepen naar de lokale bestandsboom toe; het importmenu blijft beschikbaar |
 | `terminal.theme-only` | `false` | Booleaans | Het gekozen palet alleen op de terminal toepassen |
 | `terminal.command-history` | `true` | Booleaans | Nieuwe opdrachten registreren; opgeslagen geschiedenis blijft beschikbaar bij uit |
 | `terminal.text-hints` | `true` | Booleaans | Toetsenbordhints voor zichtbare terminaltekst inschakelen |
@@ -229,6 +242,7 @@ Gebruik **Instellingen → Automatisering → Agentgesprekken hervatten**. Deze 
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Vorm van de terminalcursor |
 | `terminal.cursor-blinking` | `true` | Booleaans | De cursor laten knipperen |
 | `terminal.copy-on-select` | `true` | Booleaans | Geselecteerde terminaltekst kopiëren |
+| `terminal.right-click-action` | `"context-menu"` | tekst | Contextmenu, plakken of selectie kopiëren en anders plakken (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | Booleaans | Focus volgt de muis |
 | `terminal.shift-enter-newline` | `true` | Booleaans | Een uitgebreide nieuweregelreeks sturen met Shift+Enter; vereist ondersteuning van de applicatie |
 | `terminal.background-opacity` | `1` | 0.2–1 | Dekking van de terminalachtergrond |

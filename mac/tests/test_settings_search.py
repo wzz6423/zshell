@@ -65,6 +65,7 @@ CONFIGURATION_ITEMS = {
     "terminal.restore-history": ("terminal", "Restore session history on relaunch", "History"),
     "terminal.preserve-sessions": ("terminal", "Keep sessions running after quitting", ""),
     "terminal.copy-on-select": ("terminal", "Copy on select", "Input"),
+    "terminal.right-click-action": ("terminal", "Right-click action", "Input"),
     "terminal.focus-follows-mouse": ("terminal", "Focus follows mouse", "Input"),
     "terminal.notify-finish-seconds": ("terminal", "Long-running commands", "Notifications"),
     "terminal.notify-on-error": ("terminal", "Failed commands", "Notifications"),
@@ -75,11 +76,15 @@ CONFIGURATION_ITEMS = {
     "quick-terminal.opacity": ("terminal", "Opacity", "Quick Terminal"),
     "editor.external-editor": ("editor", "External editor", ""),
     "editor.wrap-lines": ("editor", "Wrap lines to editor width", ""),
+    "files.drag-import": ("editor", "Import by dragging into the file tree", "Files"),
     "editor.protect-saves": ("editor", "Protect against save conflicts", ""),
     "ai.enabled": ("automation", "AI", ""),
     "ai.resume-conversations": ("automation", "Resume agent conversations", ""),
     "ai.notify-on-attention": ("automation", "Notify when agents need attention", "Notifications"),
     "ai.notify-on-completion": ("automation", "Notify when agents finish", "Notifications"),
+    "ai.usage-enabled": ("automation", "Read account usage", "Account Usage"),
+    "ai.claude-usage-enabled": ("automation", "Read Claude Code usage", "Account Usage"),
+    "ai.codex-usage-enabled": ("automation", "Read Codex usage", "Account Usage"),
 }
 DESCRIPTION_ITEMS = {
     "Applies to Git panel actions, pull request status, and Git in terminals opened afterwards.":
@@ -94,6 +99,8 @@ DESCRIPTION_ITEMS = {
         ("terminal", "Restore session history on relaunch", "History"),
     "Changes apply to new zsh terminals.": ("terminal", "Long-running commands", "Notifications"),
     "Lets agents delegate work and coordinate across Zshell panes": ("automation", "AI", ""),
+    "Read account limits from local CLI integrations without collecting sign-in credentials.":
+        ("automation", "Read account usage", "Account Usage"),
     "Install Homebrew, then click Refresh to enable one-click installation.":
         ("recommendations", "Homebrew", "Manage Tools"),
     "Tools are downloaded, installed, and updated through your Homebrew installation.":
@@ -270,6 +277,7 @@ class SettingsSearchTests(unittest.TestCase):
             "swiftc", "-parse-as-library", "-module-cache-path", str(root / "modules"),
             str(sources / "AppLocalization.swift"), str(sources / "RecommendedTool.swift"),
             str(sources / "KeepAwakeMode.swift"),
+            str(sources / "TerminalRightClickAction.swift"),
             str(sources / "Settings/SettingsSearch.swift"),
             str(sources / "Settings/SettingsVisibility.swift"), str(metadata), str(harness),
             "-o", str(cls.binary),
@@ -345,8 +353,14 @@ class SettingsSearchTests(unittest.TestCase):
         for rows in self.query(["", " ", "\n\t ", "__no_such_setting__", "  __no_such_setting__  "]):
             self.assertEqual(rows, [])
 
-    def test_conditional_usage_status_is_not_offered_as_a_setting(self):
-        self.assertEqual(self.query(["Account Usage"]), [[]])
+    def test_usage_settings_are_discoverable_without_ai_or_data(self):
+        queries = ["ai.usage-enabled", "ai.claude-usage-enabled", "ai.codex-usage-enabled"]
+        for language in LANGUAGES:
+            sample = self.evaluate([{
+                "language": language, "queries": queries, "disabled": ["aiEnabled"],
+            }])[0]
+            for query, rows in zip(queries, sample["queries"]):
+                self.assert_item(rows, CONFIGURATION_ITEMS[query], language)
 
     def test_keep_awake_is_visible_without_ai(self):
         for language in LANGUAGES:
