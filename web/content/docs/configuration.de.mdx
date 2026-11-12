@@ -151,6 +151,16 @@ boolesch — Standard `true`
 
 Prüft vor dem Speichern einer Datei oder eines bearbeitbaren Arbeitsbaum-Diffs auf externe Änderungen. Bei Konflikten können Sie vergleichen, neu laden, den Entwurf behalten oder ausdrücklich überschreiben. Ist die Option deaktiviert, ersetzen Speichervorgänge externe Änderungen ohne Rückfrage.
 
+### `editor.recover-drafts` [#editorrecover-drafts]
+
+Boolescher Wert — Standard `true`
+
+Zshell sichert standardmäßig ungesicherte Änderungen lokaler Dateien und bearbeitbarer Arbeitsbaum-Diffs. Nach einem unerwarteten Ende stellen erneut geöffnete Bereiche ihre Entwürfe, Auswahl und Anordnung wieder her. Weitere Sicherungen öffnen Sie unter **Ablage → Entwürfe wiederherstellen…** oder **Einstellungen → Editor → Entwürfe wiederherstellen…**. Wählen Sie eine Sicherung, prüfen Sie den Inhalt und klicken Sie auf **Entwurf wiederherstellen**. Die Wiederherstellung öffnet einen ungesicherten Editor und verändert keine Datei auf der Festplatte. Beim Sichern werden externe Änderungen weiterhin anhand der Version vor Ihren Bearbeitungen geprüft.
+
+Steuern Sie Sicherungen unter **Einstellungen → Editor → Ungesicherte Entwürfe sichern** oder mit `editor.recover-drafts`. Das Ausschalten stoppt neue Sicherungen und automatische Wiederherstellung; vorhandene Sicherungen bleiben manuell wiederherstellbar oder löschbar. **Sicherung löschen** entfernt nur die ausgewählte Sicherung und behält offene Änderungen. Erfolgreiches Sichern oder **Nicht sichern** bei einem abgeschlossenen Schließen entfernt die Sicherung. Private Sicherungsdateien bleiben auf diesem Mac, begrenzt auf 32 Entwürfe und 128 MiB und bis zu 30 Tage lang wiederherstellbar. Kapazitätsgrenzen können ältere Sicherungen früher löschen. Dateien und bearbeiteter Text über 5 MiB sind ausgeschlossen.
+
+Zshell löscht abgelaufene Sicherungen beim Start und während des Betriebs jede Stunde, auch bei deaktivierten Sicherungen. Ist Zshell geschlossen, bleiben abgelaufene Dateien bis zum nächsten Start auf der Festplatte.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]

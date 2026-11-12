@@ -151,6 +151,16 @@ booleano — predefinito `true`
 
 Controlla le modifiche esterne prima di salvare un file o un diff modificabile dell’albero di lavoro. In caso di conflitto, confronta le versioni, ricarica, conserva la bozza o sovrascrivi esplicitamente. Disattivando l’opzione, le modifiche esterne vengono sostituite senza avviso.
 
+### `editor.recover-drafts` [#editorrecover-drafts]
+
+booleano — predefinito `true`
+
+Zshell esegue per impostazione predefinita il backup delle modifiche non salvate ai file locali e ai diff modificabili dell’albero di lavoro. Dopo un’uscita imprevista, i pannelli riaperti ripristinano bozze, selezioni e disposizione. Per altri backup apri **File → Recupera bozze…** o **Impostazioni → Editor → Recupera bozze…**, seleziona un backup, controlla il contenuto e scegli **Ripristina bozza**. Il ripristino apre un editor non salvato e non modifica il file sul disco. Il salvataggio controlla ancora le modifiche esterne rispetto alla versione precedente alle tue modifiche.
+
+Controlla i backup in **Impostazioni → Editor → Esegui il backup delle bozze non salvate** o con `editor.recover-drafts`. Disattivandolo si interrompono nuovi backup e recupero automatico, ma quelli esistenti restano disponibili per ripristino o eliminazione manuale. **Elimina backup** rimuove solo il backup selezionato e mantiene le modifiche aperte. Un salvataggio riuscito o **Non salvare** al termine della chiusura rimuove il backup. I file privati restano su questo Mac, limitati a 32 bozze e 128 MiB e recuperabili per un massimo di 30 giorni. I limiti di capacità possono eliminare prima i backup più vecchi. File e testo modificato oltre 5 MiB sono esclusi.
+
+Zshell elimina i backup scaduti all’avvio e ogni ora durante l’esecuzione, anche con i backup disattivati. Se Zshell è chiuso, i file scaduti restano sul disco fino al successivo avvio.
+
 ## Terminale [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]

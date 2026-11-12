@@ -381,6 +381,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var recoverEditorDrafts: Bool {
+        didSet { save() }
+    }
+
     @Published var externalEditor: ExternalEditor {
         didSet { save() }
     }
@@ -651,6 +655,7 @@ final class AppSettings: nonisolated ObservableObject {
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
         fileTreeDragImport = toml["files.drag-import"]?.bool ?? false
         protectEditorSaves = toml["editor.protect-saves"]?.bool ?? true
+        recoverEditorDrafts = toml["editor.recover-drafts"]?.bool ?? true
         externalEditor = ExternalEditor.persisted(
             toml["editor.external-editor"]?.string
         )
@@ -834,6 +839,7 @@ final class AppSettings: nonisolated ObservableObject {
             && wrapLines
             && !fileTreeDragImport
             && protectEditorSaves
+            && recoverEditorDrafts
             && externalEditor == .systemDefault
             && restoreTerminalHistory
             && !preserveTerminalSessions
@@ -898,6 +904,7 @@ final class AppSettings: nonisolated ObservableObject {
         wrapLines = true
         fileTreeDragImport = false
         protectEditorSaves = true
+        recoverEditorDrafts = true
         externalEditor = .systemDefault
         restoreTerminalHistory = true
         preserveTerminalSessions = false
@@ -1103,6 +1110,7 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.wrapLines, toml["editor.wrap-lines"]?.bool ?? true)
         assign(\.fileTreeDragImport, toml["files.drag-import"]?.bool ?? false)
         assign(\.protectEditorSaves, toml["editor.protect-saves"]?.bool ?? true)
+        assign(\.recoverEditorDrafts, toml["editor.recover-drafts"]?.bool ?? true)
         assign(\.externalEditor, ExternalEditor.persisted(toml["editor.external-editor"]?.string))
         assign(\.restoreTerminalHistory, toml["terminal.restore-history"]?.bool ?? false)
         assign(\.preserveTerminalSessions, toml["terminal.preserve-sessions"]?.bool ?? false)
@@ -1335,6 +1343,9 @@ final class AppSettings: nonisolated ObservableObject {
         if fileTreeDragImport { lines.append("files.drag-import = true") }
         if !protectEditorSaves {
             lines.append("editor.protect-saves = false")
+        }
+        if !recoverEditorDrafts {
+            lines.append("editor.recover-drafts = false")
         }
         if externalEditor != .systemDefault {
             lines.append("editor.external-editor = \(TOML.quote(externalEditor.rawValue))")

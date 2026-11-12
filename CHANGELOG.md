@@ -18,6 +18,9 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Recover unsaved file and editable diff drafts after an unexpected exit,
+  keeping their original save protection, selection and layout. Manage private
+  local backups from File or Editor settings, or turn automatic recovery off.
 - Adjust mouse wheel and trackpad scrolling speeds independently in Settings,
   with immediate updates in both terminal backends.
 - Choose whether a terminal right-click opens the context menu, pastes, or

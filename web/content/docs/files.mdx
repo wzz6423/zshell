@@ -87,6 +87,14 @@ a constant, read a file the diff referenced. There's no language server, no
 completion, and no project-wide refactoring. That's deliberate.
 </Callout>
 
+## Recover unsaved drafts
+
+Zshell backs up unsaved local file and editable worktree diff changes by default. After an unexpected exit, reopened panes restore their drafts, selections, and layout. Recover other backups from **File → Recover Drafts…** or **Settings → Editor → Recover Drafts…**; select a backup, review its contents, and choose **Restore Draft**. Restoring opens an unsaved editor and never changes the file on disk. Saving still checks for external changes using the version from before your edits.
+
+Control backups with **Settings → Editor → Back up unsaved drafts** or `editor.recover-drafts`. Turning it off stops new backups and automatic recovery, while keeping existing backups available for manual recovery or deletion. **Delete Backup** removes only the selected backup; open edits remain. Saving successfully or choosing **Don’t Save** for a completed close removes the backup. Backups are private files on this Mac, limited to 32 drafts and 128 MiB, recoverable for up to 30 days. Capacity limits may delete older backups sooner. Files and edited text larger than 5 MiB are excluded.
+
+Zshell deletes expired backups at startup and every hour while running, even when backups are off. If Zshell is closed, expired files remain on disk until the next launch.
+
 ## Markdown preview
 
 Open a `.md` file to read its rendered preview in the same pane. Click **Edit**

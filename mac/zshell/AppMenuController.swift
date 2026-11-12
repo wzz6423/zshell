@@ -101,6 +101,7 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         shortcutUpdates.append { close.apply(AppSettings.shared.commandShortcut(for: .closePane)) }
         file.addItem(.separator())
         managed(file, title: { String(localized: "Save") }, key: "s") { $0.saveSelectedFile() }
+        managed(file, title: { String(localized: "Recover Drafts…") }) { EditorDraftRecoveryController.shared.show(for: $0) }
         managed(file, title: { String(localized: "Import Files…") }, enabled: { $0.canImportFiles }) { $0.importFiles() }
 
         let edit = addMenu(to: menu, identifier: .edit, title: { String(localized: "Edit") })

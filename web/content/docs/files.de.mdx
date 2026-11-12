@@ -65,6 +65,14 @@ Das Umbenennen einer Datei im Baum aktualisiert alle Bereiche, in denen sie geö
 Dieser Editor ist für die gerade betrachtete Änderung gedacht: einen Tippfehler korrigieren, eine Konstante anpassen oder eine im Diff genannte Datei lesen. Sprachserver, Vervollständigung und projektweite Refaktorierung sind bewusst nicht enthalten.
 </Callout>
 
+## Ungesicherte Entwürfe wiederherstellen [#recover-unsaved-drafts]
+
+Zshell sichert standardmäßig ungesicherte Änderungen lokaler Dateien und bearbeitbarer Arbeitsbaum-Diffs. Nach einem unerwarteten Ende stellen erneut geöffnete Bereiche ihre Entwürfe, Auswahl und Anordnung wieder her. Weitere Sicherungen öffnen Sie unter **Ablage → Entwürfe wiederherstellen…** oder **Einstellungen → Editor → Entwürfe wiederherstellen…**. Wählen Sie eine Sicherung, prüfen Sie den Inhalt und klicken Sie auf **Entwurf wiederherstellen**. Die Wiederherstellung öffnet einen ungesicherten Editor und verändert keine Datei auf der Festplatte. Beim Sichern werden externe Änderungen weiterhin anhand der Version vor Ihren Bearbeitungen geprüft.
+
+Steuern Sie Sicherungen unter **Einstellungen → Editor → Ungesicherte Entwürfe sichern** oder mit `editor.recover-drafts`. Das Ausschalten stoppt neue Sicherungen und automatische Wiederherstellung; vorhandene Sicherungen bleiben manuell wiederherstellbar oder löschbar. **Sicherung löschen** entfernt nur die ausgewählte Sicherung und behält offene Änderungen. Erfolgreiches Sichern oder **Nicht sichern** bei einem abgeschlossenen Schließen entfernt die Sicherung. Private Sicherungsdateien bleiben auf diesem Mac, begrenzt auf 32 Entwürfe und 128 MiB und bis zu 30 Tage lang wiederherstellbar. Kapazitätsgrenzen können ältere Sicherungen früher löschen. Dateien und bearbeiteter Text über 5 MiB sind ausgeschlossen.
+
+Zshell löscht abgelaufene Sicherungen beim Start und während des Betriebs jede Stunde, auch bei deaktivierten Sicherungen. Ist Zshell geschlossen, bleiben abgelaufene Dateien bis zum nächsten Start auf der Festplatte.
+
 ## Markdown-Vorschau [#markdown-preview]
 
 Öffnen Sie eine `.md`-Datei, um ihre gerenderte Vorschau im selben Bereich zu lesen. **Bearbeiten** oben rechts öffnet den Quelltext, **Vorschau** zeigt das Ergebnis. Zshell merkt sich den Modus für weitere Markdown-Dateien und den nächsten Start.

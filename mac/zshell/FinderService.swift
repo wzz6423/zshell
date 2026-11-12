@@ -23,6 +23,7 @@ final class ZshellApplicationDelegate: NSObject, NSApplicationDelegate, NSMenuIt
         WindowScreenConstraint.shared.start()
         AppMenuController.shared.install()
         KeepAwakeController.shared.start()
+        EditorDraftStore.shared.archive.startExpiryCleanup()
         let open: () -> Void = { [weak self] in self?.openWorkspaceWindow() }
         AppMenuController.shared.openWindow = open
         TerminalManager.registerWindowOpener(open)

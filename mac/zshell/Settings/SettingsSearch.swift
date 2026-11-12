@@ -160,6 +160,8 @@ enum SettingsSearchIndex {
                  description: String(localized: "Copy Finder files and folders into local projects. File → Import Files… is always available."),
                  keywords: "files.drag-import Finder drag drop import copy file tree"),
             item(.editor, String(localized: "Protect against save conflicts"), keywords: "editor.protect-saves conflict overwrite disk draft"),
+            item(.editor, String(localized: "Back up unsaved drafts"), keywords: "editor.recover-drafts autosave recovery backup crash unsaved"),
+            item(.editor, String(localized: "Recover Drafts…"), keywords: "editor drafts backup restore delete recovery"),
             item(.automation, String(localized: "AI"),
                  description: String(localized: "Lets agents delegate work and coordinate across Zshell panes"),
                  keywords: "ai.enabled Claude Codex"),

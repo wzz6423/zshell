@@ -151,6 +151,16 @@ booléen — valeur par défaut `true`
 
 Vérifie les changements externes avant d’enregistrer un fichier ou un diff modifiable de l’arbre de travail. En cas de conflit, comparez le disque au brouillon, rechargez, conservez le brouillon ou écrasez explicitement le fichier. Désactiver ce réglage permet de remplacer les changements externes sans confirmation.
 
+### `editor.recover-drafts` [#editorrecover-drafts]
+
+booléen — valeur par défaut `true`
+
+Zshell sauvegarde par défaut les modifications non enregistrées des fichiers locaux et des différences modifiables de l’arbre de travail. Après une fermeture inattendue, les panneaux rouverts retrouvent leurs brouillons, sélections et disposition. Pour les autres sauvegardes, ouvrez **Fichier → Récupérer les brouillons…** ou **Réglages → Éditeur → Récupérer les brouillons…**, choisissez une sauvegarde, vérifiez son contenu puis cliquez sur **Restaurer le brouillon**. La restauration ouvre un éditeur non enregistré sans modifier le fichier sur disque. L’enregistrement vérifie toujours les changements externes à partir de la version précédant vos modifications.
+
+Utilisez **Réglages → Éditeur → Sauvegarder les brouillons non enregistrés** ou `editor.recover-drafts`. La désactivation arrête les nouvelles sauvegardes et la récupération automatique, mais conserve les sauvegardes existantes pour une restauration ou une suppression manuelle. **Supprimer la sauvegarde** retire uniquement la sauvegarde sélectionnée ; les modifications ouvertes restent. Un enregistrement réussi ou **Ne pas enregistrer** lors d’une fermeture terminée retire la sauvegarde. Ces fichiers privés restent sur ce Mac, avec une limite de 32 brouillons et 128 MiB, récupérables pendant 30 jours au maximum. Les limites de capacité peuvent supprimer les anciennes sauvegardes plus tôt. Les fichiers et textes modifiés de plus de 5 MiB sont exclus.
+
+Zshell supprime les sauvegardes expirées au démarrage et toutes les heures pendant son exécution, même si les sauvegardes sont désactivées. Si Zshell est fermé, les fichiers expirés restent sur le disque jusqu’au prochain lancement.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
