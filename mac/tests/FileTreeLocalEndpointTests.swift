@@ -2,7 +2,7 @@ import AppKit
 import Darwin
 import Foundation
 
-nonisolated enum SSHAuthentication {
+nonisolated enum SSHAuthentication: Equatable, Sendable {
     case agent
     func arguments(identityFile: String?) -> [String] { [] }
 }
@@ -40,6 +40,10 @@ struct PaneTab {
     var isRemote = false
     var remoteEndpoint: SSHEndpoint?
     var remoteDirectory: String?
+    var fileSource: FileSource {
+        if let remoteEndpoint { return .remote(RemoteFileSource(endpoint: remoteEndpoint, root: remoteDirectory ?? "~")) }
+        return .local
+    }
     var customDirectory: String?
     var focusedContent: PaneContent?
     var selectedTab: PaneTab?
@@ -56,6 +60,22 @@ struct PaneTab {
     var selectedProject: Project?
     var panelTab = RightPanel.files
     let fileContentSearch = ContentSearchFixture()
+    let fileTree = FileTreeModel()
+    var fileTreeImportDirectory: String?
+    var selectedSession: TerminalSession? { selectedProject?.selectedSession }
+}
+
+@MainActor final class FileTreeImportController {
+    static let shared = FileTreeImportController()
+    var isImporting = false
+    var chosenDirectory: String?
+    var error: Error?
+
+    func chooseFiles(manager: ManagerFixture, directory: String) {
+        chosenDirectory = directory
+        do { _ = try FileTreeImportService.destination(root: manager.fileTree.rootPath, directory: directory) }
+        catch { self.error = error }
+    }
 }
 
 @MainActor final class SessionInfoModel {
@@ -75,7 +95,7 @@ struct PaneTab {
 
 @MainActor final class SidebarFixture {
     let manager = ManagerFixture()
-    let fileTree = FileTreeModel()
+    var fileTree: FileTreeModel { manager.fileTree }
     let info = SessionInfoModel()
     var rootSource = Project.PanelRootSource.shell
 }
@@ -150,7 +170,8 @@ nonisolated final class ListingFixture: @unchecked Sendable {
 }
 
 nonisolated struct OpenSSHTransport {
-    func listDirectory(endpoint: SSHEndpoint, directory: String) throws -> [SSHEndpoint.DirectoryEntry] {
+    func listDirectory(endpoint: SSHEndpoint, directory: String, authentication: SSHAuthentication = .agent,
+                       credentialID: UUID? = nil) throws -> [SSHEndpoint.DirectoryEntry] {
         try ListingFixture.shared.list(endpoint: endpoint, directory: directory)
     }
 }
@@ -241,6 +262,45 @@ nonisolated struct OpenSSHTransport {
         }
 
         switch scenario {
+        case let scenario where scenario.hasPrefix("import-"):
+            let firstRoot = fixtureRoot.appendingPathComponent("project-a")
+            try fm.createDirectory(at: firstRoot.appendingPathComponent("sub"), withIntermediateDirectories: true)
+            sidebar.manager.selectedProject = project(root: firstRoot.path)
+            sidebar.refresh()
+            sidebar.manager.fileTreeImportDirectory = firstRoot.appendingPathComponent("sub").path
+            sidebar.manager.selectedProject = project(root: localRoot.path)
+            sidebar.refresh()
+            if scenario == "import-project-switch" {
+                try check(sidebar.fileTree.rootPath == localRoot.path
+                          && sidebar.manager.fileTreeImportDirectory == firstRoot.appendingPathComponent("sub").path,
+                          "Sidebar root switch must exercise a saved folder from the previous project")
+            } else {
+                let selected = localRoot.appendingPathComponent("selected")
+                try fm.createDirectory(at: selected, withIntermediateDirectories: false)
+                sidebar.manager.fileTreeImportDirectory = selected.path
+                switch scenario {
+                case "import-deleted": try fm.removeItem(at: selected)
+                case "import-file-replaced":
+                    try fm.removeItem(at: selected)
+                    try Data("now a file".utf8).write(to: selected)
+                case "import-symlink-escape":
+                    try fm.removeItem(at: selected)
+                    try fm.createSymbolicLink(at: selected, withDestinationURL: firstRoot)
+                case "import-valid", "import-explicit": break
+                default: throw FixtureFailure.failed("Unknown import scenario")
+                }
+            }
+            let explicit = localRoot.appendingPathComponent("explicit")
+            if scenario == "import-explicit" { try fm.createDirectory(at: explicit, withIntermediateDirectories: false) }
+            sidebar.manager.importFiles(into: scenario == "import-explicit" ? explicit.path : nil)
+            let expected = scenario == "import-valid" ? localRoot.appendingPathComponent("selected").path
+                : scenario == "import-explicit" ? explicit.path : localRoot.path
+            try check(FileTreeImportController.shared.chosenDirectory == expected,
+                      "File menu did not choose the live saved folder or current root: \(FileTreeImportController.shared.chosenDirectory ?? "nil")")
+            try check(FileTreeImportController.shared.error == nil, "Chosen destination failed production validation")
+            if !["import-valid", "import-explicit"].contains(scenario) {
+                try check(sidebar.manager.fileTreeImportDirectory == nil, "Stale saved import directory was retained")
+            }
         case "local", "same-root", "empty-root":
             let root = scenario == "empty-root" ? "" : localRoot.path
             sidebar.manager.selectedProject = project(root: root)

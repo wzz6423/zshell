@@ -282,10 +282,10 @@
                 precision: event.hasPreciseScrollingDeltas,
                 momentum: TerminalScrollModifiers.momentumFrom(phase: event.momentumPhase)
             )
-            surface?.sendMouseScroll(
+            sendMouseScroll(
                 x: event.scrollingDeltaX,
                 y: event.scrollingDeltaY,
-                mods: scrollMods.rawValue
+                modifiers: scrollMods
             )
         }
 

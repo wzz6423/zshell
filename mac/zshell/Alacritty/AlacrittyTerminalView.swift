@@ -78,15 +78,17 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     private var mouseShapeCursor: NSCursor = .iBeam
     private var reportingMouseButton = false
     private var reportingRightMouseButton = false
+    private var isContextualLeftClick = false
     private var lastReportedFocus: Bool?
     private var cursorTimer: Timer?
     private var cursorBlinking = false
     private var cursorVisible = true
     private let progressBar = ZshellTerminalProgressBarView(frame: .zero)
 
-    /// Fractional scroll accumulator, so a trackpad's sub-line deltas add up
-    /// to a row instead of being discarded.
-    private var scrollAccumulator: CGFloat = 0
+    private var wheelScrollX = TerminalScrollAccumulator()
+    private var wheelScrollY = TerminalScrollAccumulator()
+    private var trackpadScrollX = TerminalScrollAccumulator()
+    private var trackpadScrollY = TerminalScrollAccumulator()
     private var selectionAnchor: (line: Int, column: Int)?
     private var selectionWasDragged = false
     private var supportsInputSelection = false
@@ -164,7 +166,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             fontThicken: settings.fontThicken,
             fontThickenStrength: settings.fontThickenStrength,
             lineHeight: CGFloat(settings.terminalLineHeight),
-            cellWidth: CGFloat(settings.terminalCellWidth)
+            cellWidth: CGFloat(settings.terminalCellWidth),
+            fontFeatures: TerminalFontFeatures(settings.fontFeatures, ligatures: settings.fontLigatures)
         )
     }
 
@@ -327,7 +330,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         presentationCoverLayer.removeFromSuperlayer()
         let frozenLayer = CALayer()
         frozenLayer.isOpaque = false
-        frozenLayer.backgroundColor = terminalBackgroundColor
+        // The retained drawable already contains the translucent theme clear.
+        frozenLayer.backgroundColor = lastPresentedSurface == nil ? terminalBackgroundColor : nil
         frozenLayer.contents = lastPresentedSurface
         frozenLayer.contentsScale = lastPresentedScale
             ?? window?.backingScaleFactor
@@ -817,6 +821,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             padding: Self.padding,
             scale: scale,
             backgroundOpacity: backgroundOpacity,
+            paddingColor: AppSettings.shared.terminalPaddingColor,
             dirtyRows: dirtyRows,
             in: drawable,
             viewportSize: size,
@@ -1299,6 +1304,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         write([0x0d])
     }
 
+    func sendPromptQueueEnter() {
+        write(Array("\u{1b}[27;9;13~".utf8))
+    }
+
     func sendApplicationScroll(lines: Int) -> Bool {
         guard lines != 0 else { return false }
         let mode = terminalMode
@@ -1724,6 +1733,12 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func mouseDown(with event: NSEvent) {
+        isContextualLeftClick = event.modifierFlags.contains(.control)
+        if isContextualLeftClick {
+            focusForInteraction()
+            TerminalContextMenu.show(for: self, event: event, linkTarget: linkTarget(for: event))
+            return
+        }
         aiInputEditor.beginPointer(at: nil, in: nil)
         stopSelectionAutoscroll()
         focusForInteraction()
@@ -1772,6 +1787,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func mouseDragged(with event: NSEvent) {
+        guard !isContextualLeftClick else { return }
         guard !suppressPointerEventsUntilMouseDown else { return }
         if reportingMouseButton {
             if terminalMode.contains(.mouseDrag) || terminalMode.contains(.mouseMotion) {
@@ -1789,6 +1805,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func mouseUp(with event: NSEvent) {
+        if isContextualLeftClick {
+            isContextualLeftClick = false
+            return
+        }
         guard !suppressPointerEventsUntilMouseDown else { return }
         finishPointerSelection(with: event, copyOnSelect: true)
     }
@@ -1963,27 +1983,40 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
     override func scrollWheel(with event: NSEvent) {
         guard let handle else { return }
-        // Line-mode events already count rows; pixel-mode ones need the cell
-        // height applied before they mean anything.
-        let delta = event.hasPreciseScrollingDeltas
-            ? event.scrollingDeltaY / metrics.cellHeight
-            : event.scrollingDeltaY
-        scrollAccumulator += delta
-        let lines = Int(scrollAccumulator)
-        guard lines != 0 else { return }
-        scrollAccumulator -= CGFloat(lines)
-
         let mode = terminalMode
+        let applicationScroll = mode.contains(.mouseReporting)
+            || (mode.contains(.alternateScreen) && mode.contains(.alternateScroll))
+        let limit = applicationScroll
+            ? TerminalScrollSettings.maximumApplicationLines
+            : TerminalScrollSettings.maximumScrollbackLines
+        let precise = event.hasPreciseScrollingDeltas
+        let settings = AppSettings.shared
+        let multiplier = precise ? settings.trackpadScrollMultiplier : settings.mouseScrollMultiplier
+        let deltaY = precise ? event.scrollingDeltaY / metrics.cellHeight : event.scrollingDeltaY
+        let deltaX = precise ? event.scrollingDeltaX / metrics.cellWidth : event.scrollingDeltaX
+        let lines: Int
+        let columns: Int
+        if precise {
+            lines = trackpadScrollY.consume(deltaY, multiplier: multiplier, limit: limit)
+            columns = trackpadScrollX.consume(deltaX, multiplier: multiplier, limit: limit)
+        } else {
+            lines = wheelScrollY.consume(deltaY, multiplier: multiplier, limit: limit)
+            columns = wheelScrollX.consume(deltaX, multiplier: multiplier, limit: limit)
+        }
+
         if mode.contains(.mouseReporting) {
-            let code = lines > 0 ? 64 : 65
-            for _ in 0..<min(abs(lines), 50) {
-                sendMouse(code: code, event: event, released: false)
+            for _ in 0..<abs(lines) {
+                sendMouse(code: lines > 0 ? 64 : 65, event: event, released: false)
+            }
+            for _ in 0..<abs(columns) {
+                sendMouse(code: columns > 0 ? 66 : 67, event: event, released: false)
             }
             return
         }
+        guard lines != 0 else { return }
         if mode.contains(.alternateScreen), mode.contains(.alternateScroll) {
             let sequence = AlacrittyKeyMap.cursor(up: lines > 0, mode: mode)
-            for _ in 0..<min(abs(lines), 50) {
+            for _ in 0..<abs(lines) {
                 writeControl(sequence)
             }
             return
@@ -2467,11 +2500,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             return
         }
         reportingRightMouseButton = false
-        NSMenu.popUpContextMenu(
-            TerminalContextMenu.make(for: self, linkTarget: linkTarget(for: event)),
-            with: event,
-            for: self
-        )
+        TerminalContextMenu.handleRightClick(for: self, event: event, linkTarget: linkTarget(for: event))
     }
 
     override func rightMouseUp(with event: NSEvent) {
@@ -2488,9 +2517,15 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
-        guard commandRouting.blocksCommands || !shouldReportMouse(event) else { return nil }
+        guard event.type == .leftMouseDown && event.modifierFlags.contains(.control)
+            || commandRouting.blocksCommands || !shouldReportMouse(event) else { return nil }
         focusForInteraction()
         return TerminalContextMenu.make(for: self, linkTarget: linkTarget(for: event))
+    }
+
+    @objc func showTerminalContextMenu(_ sender: Any?) {
+        focusForInteraction()
+        TerminalContextMenu.show(for: self)
     }
 
     private func linkTarget(for event: NSEvent) -> TerminalLinkTarget? {

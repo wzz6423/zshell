@@ -32,6 +32,48 @@ let currentCodeView = null;
 let currentCodeViewOptions = null;
 /** Scroll request that arrived before its file existed; applied after setItems. */
 let pendingScrollTarget = null;
+let pendingEditorState = null;
+let editorStateTimer = null;
+let lastEditorState = '';
+
+function emitEditorState() {
+  editorStateTimer = null;
+  if (!currentCodeView) return;
+  for (const [id, editor] of activeEditors) {
+    if (currentCodeView.getEditor(id) !== editor) continue;
+    const state = { ...editor.getState(), scrollTop: currentCodeView.getScrollTop() };
+    const serialized = JSON.stringify([id, state]);
+    if (serialized === lastEditorState) continue;
+    lastEditorState = serialized;
+    postToSwift('editorStateChanged', { fileId: id, state });
+  }
+}
+
+const activeEditors = new Map();
+let currentFilesForEditing = [];
+function scheduleEditorState() {
+  if (editorStateTimer == null) editorStateTimer = setTimeout(emitEditorState, 100);
+}
+document.addEventListener('selectionchange', scheduleEditorState);
+document.addEventListener('keyup', scheduleEditorState, true);
+document.addEventListener('mouseup', scheduleEditorState, true);
+document.addEventListener('scroll', scheduleEditorState, true);
+
+function restorePendingEditorState(id, editor) {
+  if (pendingEditorState?.fileId !== id) return;
+  const { state } = pendingEditorState;
+  pendingEditorState = null;
+  if (state.selections) {
+    editor.setSelections(state.selections.map(selection => ({ ...selection,
+      direction: selection.direction < 0 ? 'backward' : selection.direction > 0 ? 'forward' : 'none',
+    })));
+  }
+  editor.setState({ ...editor.getState(), view: state.view });
+  if (state.scrollTop != null) {
+    currentCodeView?.scrollTo({ type: 'position', position: state.scrollTop, behavior: 'instant' });
+  }
+  scheduleEditorState();
+}
 
 /**
  * Highlight worker pool for the multi-file surface. `undefined` means it has
@@ -627,6 +669,12 @@ function destroyCodeView() {
   currentCodeView = null;
   currentCodeViewOptions = null;
   pendingScrollTarget = null;
+  pendingEditorState = null;
+  activeEditors.clear();
+  currentFilesForEditing = [];
+  clearTimeout(editorStateTimer);
+  editorStateTimer = null;
+  lastEditorState = '';
 }
 
 /**
@@ -661,13 +709,23 @@ function buildCodeViewOptions(options) {
       }
     },
     createEditor(editorOptions) {
-      return new Editor(editorOptions);
+      return new Editor({ ...editorOptions, onAttach(editor) {
+        queueMicrotask(() => {
+          if (!currentCodeView) return;
+          for (const id of currentFilesForEditing) {
+            if (currentCodeView.getEditor(id) !== editor) continue;
+            activeEditors.set(id, editor);
+            restorePendingEditorState(id, editor);
+          }
+        });
+      }});
     },
     onItemEditChange(item, file) {
       postToSwift('fileEditChanged', {
         fileId: item.id,
         contents: file.contents,
       });
+      scheduleEditorState();
     },
     onItemEditComplete(item, file) {
       postToSwift('fileEditCompleted', {
@@ -693,6 +751,12 @@ function updateCodeViewOptions(patch) {
  * Bridge object exposed to Swift
  */
 window.pierreBridge = {
+  restoreEditorState(input) {
+    const data = typeof input === 'string' ? JSON.parse(input) : input;
+    pendingEditorState = data;
+    const editor = currentCodeView?.getEditor(data.fileId);
+    if (editor) restorePendingEditorState(data.fileId, editor);
+  },
   /**
    * Renders a diff from input data
    * @param {object|string} inputData - Diff data (object or JSON string)
@@ -815,6 +879,10 @@ window.pierreBridge = {
         if (seen.has(item.id)) continue;
         seen.add(item.id);
         items.push(item);
+      }
+      currentFilesForEditing = items.filter(item => item.edit).map(item => item.id);
+      for (const id of activeEditors.keys()) {
+        if (!currentFilesForEditing.includes(id)) activeEditors.delete(id);
       }
       preservingScrollPosition(() => currentCodeView.setItems(items));
       flushPendingScroll();

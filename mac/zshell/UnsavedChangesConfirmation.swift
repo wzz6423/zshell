@@ -8,6 +8,13 @@ final class UnsavedChangesConfirmation {
     private static weak var active: UnsavedChangesConfirmation?
     static var isPending: Bool { active != nil }
     private var discardedText: [UUID: String] = [:]
+    private var discardedContents: [UUID: PaneContent] = [:]
+
+    func commitDiscards() {
+        for (id, content) in discardedContents where content.unsavedText == discardedText[id] {
+            content.discardDraftBackup()
+        }
+    }
 
     init?() {
         guard Self.active == nil else { return nil }
@@ -40,9 +47,10 @@ final class UnsavedChangesConfirmation {
 
         switch await alert.beginSheetModal(for: host) {
         case .alertFirstButtonReturn:
-            return content.save() && content.saveError == nil && !content.isDirty
+            return await content.saveAndWait() && content.saveError == nil && !content.isDirty
         case .alertSecondButtonReturn:
             discardedText[content.id] = text
+            discardedContents[content.id] = content
             return true
         default:
             return false

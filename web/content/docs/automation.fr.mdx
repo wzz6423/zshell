@@ -63,9 +63,11 @@ Lorsqu'une intégration signale la fin d'un agent ou une demande d'intervention,
 
 ## Utilisation et limites du compte [#account-usage-and-limits]
 
-**Réglages → Automatisation → Utilisation du compte** affiche les limites disponibles pour Claude Code et Codex : pourcentage utilisé, heure de réinitialisation lorsqu'elle est fournie et heure de la dernière actualisation. **Actualiser l'utilisation** recharge les dernières données disponibles.
+**Réglages → Automatisation → Utilisation du compte** propose toujours **Lire l’utilisation du compte**, **Lire l’utilisation de Claude Code** et **Lire l’utilisation de Codex**. L’option générale est désactivée par défaut ; chaque fournisseur est activé, mais n’est lu que si l’option générale est active. Les changements sont immédiats et désactiver l’option générale conserve les choix des fournisseurs.
 
-Codex nécessite une CLI installée, connectée et capable de rapporter les limites du compte. L'utilisation de Claude Code apparaît lorsque Zshell reçoit un rapport d'utilisation de sa ligne d'état. Cette section n'est visible que si des données sont disponibles ; les périodes présentées dépendent du fournisseur et du compte. Il s'agit des limites du compte, pas du total de tokens de la session active.
+Activez les fournisseurs souhaités pour lire les limites de compte des CLI locales. Codex utilise une CLI installée et connectée ; Claude Code utilise les rapports de la ligne d’état reçus par Zshell. Activer l’utilisation ne collecte pas d’identifiants, n’installe pas de CLI et ne vous connecte pas. Ces limites concernent le compte, pas le total de jetons de la session active.
+
+**Actualiser l’utilisation** recharge uniquement les fournisseurs actifs. La section indique le chargement, l’indisponibilité et les dernières données disponibles après un échec. Désactiver l’utilisation ou un fournisseur arrête ses lectures, annule les demandes en attente et masque ses données. Les rapports Claude désactivés sont refusés sans écrire de fichier. La reconnaissance des agents, leur état et la restauration des conversations ne changent pas.
 
 ## Déroulement habituel [#a-typical-workflow]
 
@@ -102,7 +104,7 @@ Sans identité vérifiée, répertoire d’origine ou fichier Pi, le volet ouvre
 
 ## Retrouver et reprendre les conversations enregistrées [#saved-conversation-history]
 
-Ouvrez **Agents → Historique des conversations des agents**, cliquez sur l’horloge en haut de la barre latérale des projets. Recherchez parmi les projets par titre, fournisseur, projet, ID de conversation ou répertoire de travail ou de configuration. Zshell conserve les 200 conversations locales vérifiées les plus récentes après la fermeture des agents et des volets, ainsi qu’après un redémarrage. **Récentes** affiche 20 résultats non archivés ; **Toutes** inclut les archives ; **Archivées** les affiche seules.
+Ouvrez **Terminal → Agents → Historique des conversations des agents**, cliquez sur l’horloge en haut de la barre latérale des projets. Recherchez parmi les projets par titre, fournisseur, projet, ID de conversation ou répertoire de travail ou de configuration. Zshell conserve les 200 conversations locales vérifiées les plus récentes après la fermeture des agents et des volets, ainsi qu’après un redémarrage. **Récentes** affiche 20 résultats non archivés ; **Toutes** inclut les archives ; **Archivées** les affiche seules.
 
 Choisissez **Afficher la conversation** si elle est ouverte ou **Reprendre la conversation** si elle est enregistrée. Zshell réutilise un volet ouvert, reconnecte un PTY encore actif ou reprend la conversation exacte du fournisseur avec son répertoire et sa configuration d’origine. La reprise manuelle exige l’intégration IA, même si la restauration automatique est désactivée. Un répertoire manquant ou un fichier Pi absent ou ne correspondant pas à la conversation produit une erreur avant la création d’un volet.
 
@@ -134,12 +136,11 @@ zshell +events --event command.task.finished --once --timeout 30000
 
 ## Dériver une conversation [#fork-a-conversation]
 
-Dans **Agents → Agent Conversation History**, sélectionnez une conversation puis **Dériver la conversation dans un nouveau volet** dans le menu contextuel ou avec le bouton de branchement. La dérivation native du fournisseur conserve le contexte dans une nouvelle conversation indépendante ; le volet et la conversation d’origine restent inchangés. Codex, Claude Code, OpenCode et Pi nécessitent une version CLI compatible ; Pi nécessite aussi son fichier de session enregistré. Pour les conversations distantes, mettez à jour le serveur Zshell. Si le CLI, la connexion ou les hooks manquent, vérifiez la sortie du nouveau volet avant de continuer. Dans un volet, utilisez `zshell +agent fork --id UUID [--focus]` ; depuis un terminal externe, ajoutez `--project UUID`.
-
+Dans **Terminal → Agents → Historique des conversations des agents**, sélectionnez une conversation puis **Dériver la conversation dans un nouveau volet** dans le menu contextuel ou avec le bouton de branchement. La dérivation native du fournisseur conserve le contexte dans une nouvelle conversation indépendante ; le volet et la conversation d’origine restent inchangés. Codex, Claude Code, OpenCode et Pi nécessitent une version CLI compatible ; Pi nécessite aussi son fichier de session enregistré. Pour les conversations distantes, mettez à jour le serveur Zshell. Si le CLI, la connexion ou les hooks manquent, vérifiez la sortie du nouveau volet avant de continuer. Dans un volet, utilisez `zshell +agent fork --id UUID [--focus]` ; depuis un terminal externe, ajoutez `--project UUID`.
 
 ## Règles de reconnaissance des agents [#agent-recognition-rules]
 
-Ouvrez **Réglages → AI → Reconnaissance des agents** ou **Agents → Gérer les règles d’agent…** pour ajouter, modifier, supprimer, importer, exporter ou réinitialiser les règles locales. La reconnaissance personnalisée et la déduction depuis l’écran ont des interrupteurs indépendants, activés par défaut. Les désactiver efface immédiatement les anciennes observations d’écran. Les événements natifs et rapports explicites restent prioritaires.
+Ouvrez **Réglages → AI → Reconnaissance des agents** ou **Terminal → Agents → Gérer les règles d’agent…** pour ajouter, modifier, supprimer, importer, exporter ou réinitialiser les règles locales. La reconnaissance personnalisée et la déduction depuis l’écran ont des interrupteurs indépendants, activés par défaut. Les désactiver efface immédiatement les anciennes observations d’écran. Les événements natifs et rapports explicites restent prioritaires.
 
 Les règles résident dans `agents.toml`, à côté de `config.toml` (`~/.config/zshell/agents.toml`, ou `zshell-dev` en Debug). Les modifications valides se chargent automatiquement ; les erreurs conservent les dernières règles valides et sont affichées. Un fichier vide ou supprimé restaure les règles intégrées.
 

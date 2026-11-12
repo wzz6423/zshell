@@ -13,6 +13,8 @@ nonisolated struct TerminalEnvironmentVariable: Codable, Equatable {
 
 /// Project-level values inherited by every terminal created in the project.
 nonisolated struct TerminalLaunchSettings: Codable, Equatable {
+    static let defaultTerm = "xterm-256color"
+
     var environmentVariables: [TerminalEnvironmentVariable] = []
     var initializationCommand: String?
 
@@ -53,6 +55,14 @@ nonisolated struct TerminalLaunchSettings: Codable, Equatable {
         else { return false }
         return name.unicodeScalars.dropFirst().allSatisfy {
             $0 == "_" || CharacterSet.alphanumerics.contains($0)
+        }
+    }
+
+    static func isValidTermName(_ name: String) -> Bool {
+        guard !name.isEmpty, name.utf8.count <= 128 else { return false }
+        return name.utf8.allSatisfy {
+            (65...90).contains($0) || (97...122).contains($0)
+                || (48...57).contains($0) || [45, 46, 95, 43].contains($0)
         }
     }
 

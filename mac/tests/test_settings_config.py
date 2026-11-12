@@ -46,9 +46,13 @@ with tempfile.TemporaryDirectory(prefix="zshell-settings-config-") as temporary:
         "xcrun", "swiftc", "-parse-as-library", "-default-isolation", "MainActor",
         "-D", "DEBUG", "-module-cache-path", str(directory / "modules"),
         str(ROOT / "mac/zshell/AppSettings.swift"),
+        str(ROOT / "mac/zshell/TerminalSessionDirectory.swift"),
+        str(ROOT / "mac/zshell/TerminalScrollSettings.swift"),
         str(ROOT / "mac/zshell/KeepAwakeMode.swift"),
+        str(ROOT / "mac/zshell/TerminalRightClickAction.swift"),
         str(ROOT / "mac/zshell/TerminalProfiles.swift"),
         str(ROOT / "mac/zshell/TerminalEnvironmentSettings.swift"),
+        str(ROOT / "mac/zshell/TerminalFontFeatures.swift"),
         str(ROOT / "mac/zshell/SettingsConfigFile.swift"),
         str(ROOT / "mac/zshell/ExternalEditor.swift"),
         str(ROOT / "mac/zshell/CommandShortcuts.swift"),
@@ -61,3 +65,12 @@ with tempfile.TemporaryDirectory(prefix="zshell-settings-config-") as temporary:
     home.mkdir()
     environment = dict(os.environ, HOME=str(home), CFFIXED_USER_HOME=str(home))
     subprocess.run([str(reload_binary), str(home)], env=environment, check=True, timeout=35)
+
+    startup_home = directory / "startup-home"
+    startup_config = startup_home / ".config/zshell-dev/config.toml"
+    startup_config.parent.mkdir(parents=True)
+    startup_config.write_text('terminal.term = "xterm;invalid"\n')
+    startup_environment = dict(environment, HOME=str(startup_home), CFFIXED_USER_HOME=str(startup_home))
+    for phase in ("invalid-term", "recovered-term"):
+        subprocess.run([str(reload_binary), str(startup_home), phase],
+                       env=startup_environment, check=True, timeout=35)

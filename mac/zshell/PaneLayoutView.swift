@@ -73,6 +73,7 @@ struct PaneLayoutView: View {
                 // hint that a split layout is hiding underneath when enabled.
                 PaneView(
                     manager: manager,
+                    project: project,
                     tab: tab,
                     pane: pane,
                     showSplitChrome: true,
@@ -126,6 +127,7 @@ struct PaneLayoutView: View {
                 ForEach(geometry.panes) { placement in
                     PaneView(
                         manager: manager,
+                        project: project,
                         tab: tab,
                         pane: placement.pane,
                         showSplitChrome: tab.hasMultiplePanes,
@@ -430,6 +432,7 @@ private struct ResizableDivider: View {
 /// pane onto another, and a highlight while it's the drop target.
 private struct PaneView: View {
     let manager: TerminalManager
+    let project: Project
     @ObservedObject var tab: PaneTab
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var themeChanges = Theme.changes
@@ -460,9 +463,7 @@ private struct PaneView: View {
     /// Marks this pane focused — invoked when its content takes first-responder
     /// status (a click). Idempotent when already focused.
     private func focus() {
-        if tab.focusedPaneID != pane.id {
-            tab.focusedPaneID = pane.id
-        }
+        tab.focusPane(pane.id)
     }
 
     var body: some View {
@@ -471,19 +472,17 @@ private struct PaneView: View {
         Group {
             if showSplitChrome {
                 VStack(spacing: 0) {
-                    PaneHeaderView(
+                    PaneHeaderRepresentable(
                         content: pane.content,
                         isFocused: isFocused,
                         allowsMove: allowsMove,
                         focus: focus,
                         onMove: onMove,
                         onMoveEnded: onMoveEnded,
-                        onSplit: splitFromMenu
+                        onSplit: splitFromMenu,
+                        onClose: { project.closeContent(pane.content) }
                     )
-                    // The tooltip hangs into the terminal below. Keep the header
-                    // above that AppKit-backed sibling so its material and text
-                    // aren't covered while only the shadow remains visible.
-                    .zIndex(1)
+                    .frame(height: 30)
                     content
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
@@ -575,10 +574,9 @@ private struct PaneView: View {
                 onNewBrowserPane: newBrowserPaneFromMenu
             )
                 .background(Color(nsColor: Theme.background))
-        case .diff:
-            // Rendered by the always-mounted diff stack behind the layout; stay
-            // transparent and non-interactive so clicks and scrolls reach it.
-            Color.clear.allowsHitTesting(false)
+        case .diff(let diff):
+            DiffPaneAnchorView(diff: diff, manager: manager)
+                .allowsHitTesting(false)
         }
     }
 
@@ -617,231 +615,6 @@ private struct PaneView: View {
                 value: [pane.id: proxy.frame(in: .global)]
             )
         }
-    }
-}
-
-/// Compact chrome for a pane in a split tab. The title region is the pane-move
-/// handle; the trailing buttons keep the common split directions within the
-/// pane they act on.
-private struct PaneHeaderView: View {
-    @ObservedObject private var themeChanges = Theme.changes
-    let content: PaneContent
-    let isFocused: Bool
-    let allowsMove: Bool
-    let focus: () -> Void
-    let onMove: (CGPoint) -> Void
-    let onMoveEnded: () -> Void
-    let onSplit: (PaneDropEdge) -> Void
-
-    @State private var isMoveHovered = false
-    @State private var isDragging = false
-
-    var body: some View {
-        HStack(spacing: 4) {
-            moveRegion
-
-            paneAction(
-                systemImage: "rectangle.split.2x1",
-                label: "Split Right",
-                tooltip: "Split Right (⌘D)",
-                edge: .right
-            )
-            paneAction(
-                systemImage: "rectangle.split.1x2",
-                label: "Split Down",
-                tooltip: "Split Down (⇧⌘D)",
-                edge: .bottom
-            )
-        }
-        .padding(.leading, 9)
-        .padding(.trailing, 5)
-        .frame(height: 30)
-        .background(Color(nsColor: Theme.background))
-    }
-
-    @ViewBuilder
-    private var moveRegion: some View {
-        if allowsMove {
-            title
-                .contentShape(Rectangle())
-                .onTapGesture(perform: focus)
-                // Re-assert the hand as the terminal changes the cursor while
-                // the pointer crosses the pane boundary below the header.
-                .onContinuousHover { phase in
-                    switch phase {
-                    case .active:
-                        isMoveHovered = true
-                        if !isDragging { NSCursor.openHand.set() }
-                    case .ended:
-                        isMoveHovered = false
-                        if !isDragging { NSCursor.arrow.set() }
-                    }
-                }
-                .gesture(
-                    DragGesture(minimumDistance: 4, coordinateSpace: .global)
-                        .onChanged { value in
-                            isDragging = true
-                            onMove(value.location)
-                        }
-                        .onEnded { _ in
-                            isDragging = false
-                            onMoveEnded()
-                        }
-                )
-        } else {
-            title
-                .contentShape(Rectangle())
-                .onTapGesture(perform: focus)
-        }
-    }
-
-    private var title: some View {
-        PaneHeaderTitle(content: content, isFocused: isFocused)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .opacity(isMoveHovered ? 1 : 0.9)
-    }
-
-    private func paneAction(
-        systemImage: String,
-        label: LocalizedStringKey,
-        tooltip: LocalizedStringKey,
-        edge: PaneDropEdge
-    ) -> some View {
-        Button {
-            focus()
-            onSplit(edge)
-        } label: {
-            Image(systemName: systemImage)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 14, height: 14)
-                .padding(4)
-                .contentShape(RoundedRectangle(cornerRadius: 5))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(label)
-        .tooltip(tooltip, edge: .below, alignment: .trailing)
-    }
-}
-
-/// Per-kind wrappers observe the content object itself so live terminal titles,
-/// browser favicons, file renames and dirty state update without rebuilding the
-/// surrounding pane layout.
-private struct PaneHeaderTitle: View {
-    let content: PaneContent
-    let isFocused: Bool
-
-    @ViewBuilder
-    var body: some View {
-        switch content {
-        case .session(let session):
-            SessionPaneHeaderTitle(session: session, isFocused: isFocused)
-        case .file(let file):
-            FilePaneHeaderTitle(file: file, isFocused: isFocused)
-        case .browser(let browser):
-            BrowserPaneHeaderTitle(browser: browser, isFocused: isFocused)
-        case .diff(let diff):
-            PaneHeaderLabel(
-                systemImage: "plus.forwardslash.minus",
-                fileIconPath: diff.path,
-                title: diff.title,
-                isFocused: isFocused
-            )
-        }
-    }
-}
-
-private struct SessionPaneHeaderTitle: View {
-    @ObservedObject var session: TerminalSession
-    let isFocused: Bool
-
-    var body: some View {
-        PaneHeaderLabel(
-            systemImage: "terminal",
-            title: session.title,
-            isFocused: isFocused,
-            agentRollup: session.agentRollup
-        )
-    }
-}
-
-private struct FilePaneHeaderTitle: View {
-    @ObservedObject var file: FileTab
-    let isFocused: Bool
-
-    var body: some View {
-        PaneHeaderLabel(
-            systemImage: "doc.text",
-            fileIconPath: file.path,
-            title: file.name,
-            isFocused: isFocused,
-            isDirty: file.isDirty
-        )
-        .help(file.path)
-    }
-}
-
-private struct BrowserPaneHeaderTitle: View {
-    @ObservedObject var browser: BrowserTab
-    let isFocused: Bool
-
-    var body: some View {
-        PaneHeaderLabel(
-            systemImage: "globe",
-            browser: browser,
-            title: browser.title,
-            isFocused: isFocused
-        )
-        .help(browser.urlString)
-    }
-}
-
-private struct PaneHeaderLabel: View {
-    let systemImage: String
-    var browser: BrowserTab? = nil
-    var fileIconPath: String? = nil
-    let title: String
-    let isFocused: Bool
-    var isDirty = false
-    var agentRollup: ZshellAgentRollup? = nil
-
-    var body: some View {
-        HStack(spacing: 6) {
-            if let browser {
-                BrowserFaviconView(browser: browser, size: 12)
-                    .foregroundStyle(iconStyle)
-            } else if let fileIconPath {
-                MaterialFileIconView(
-                    path: fileIconPath,
-                    size: 13,
-                    opacity: isFocused ? 1 : 0.8
-                )
-            } else {
-                Image(systemName: systemImage)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(iconStyle)
-            }
-            Text(verbatim: title)
-                .font(.system(size: 11.5, weight: .medium))
-                .foregroundStyle(isFocused ? .primary : .secondary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-            if let agentRollup {
-                AgentStatusBadgeRepresentable(rollup: agentRollup)
-                    .fixedSize()
-            }
-            if isDirty {
-                Circle()
-                    .fill(.secondary)
-                    .frame(width: 5, height: 5)
-            }
-        }
-    }
-
-    private var iconStyle: AnyShapeStyle {
-        isFocused
-            ? AnyShapeStyle(Color(nsColor: Theme.accent))
-            : AnyShapeStyle(.tertiary)
     }
 }
 

@@ -18,6 +18,52 @@ private func context(_ snapshot: GitStatusModel.BranchSnapshot) -> ProjectPullRe
     return result
 }
 
+private func checkBranchTagCollisions(_ repo: String, worktree: String) {
+    let first = snapshot(repo), second = snapshot(worktree)
+    for branch in ["feature/one", "feature/two"] {
+        require(GitCommandRunner.runData(["tag", branch], in: repo).status == 0, "same-named tag is created")
+    }
+    require(snapshot(repo) == first && snapshot(worktree) == second,
+            "same-named tags must not change local or linked-worktree branch identity")
+    require(context(snapshot(repo)) == context(first) && context(snapshot(worktree)) == context(second),
+            "same-named tags must not change the PR query context")
+    let branch = "heads/feature"
+    require(GitCommandRunner.runData(["switch", "-c", branch], in: repo).status == 0,
+            "a branch whose real name starts with heads/ is created")
+    require(GitCommandRunner.runData(["tag", branch], in: repo).status == 0, "the prefixed branch also has a same-named tag")
+    let prefixed = snapshot(repo)
+    require(prefixed.branch == branch && context(prefixed).localBranch == branch && context(prefixed).headBranch == branch,
+            "a real heads/ prefix must be retained in branch and PR identity")
+    require(GitCommandRunner.runData(["switch", "--detach", "HEAD"], in: repo).status == 0,
+            "the fixture enters detached HEAD")
+    require(snapshot(repo).branch == nil, "detached HEAD must remain branchless")
+    guard case .hidden = ProjectPullRequestContext.resolve(snapshot(repo)) else {
+        fatalError("detached HEAD must not query a branch PR")
+    }
+    require(GitCommandRunner.runData(["switch", "feature/one"], in: repo).status == 0,
+            "the original fixture branch is restored")
+    let headReads = QueryLog()
+    let raced = GitStatusModel.branchSnapshot(in: repo, commandRunner: { arguments, directory in
+        if arguments.first == "symbolic-ref", arguments.last == "HEAD" {
+            headReads.append(arguments)
+            if headReads.calls().count == 2 {
+                require(GitCommandRunner.runData(["switch", branch], in: directory).status == 0,
+                        "the fixture switches branches during the probe")
+            }
+        }
+        return GitCommandRunner.runData(arguments, in: directory, limit: 65_536, timeout: 3)
+    })
+    guard case .unavailable = raced else { fatalError("a concurrent branch switch must invalidate the probe") }
+    require(GitCommandRunner.runData(["switch", "feature/one"], in: repo).status == 0,
+            "the original branch is restored after the race")
+    let unborn = URL(fileURLWithPath: repo).deletingLastPathComponent().appendingPathComponent("unborn")
+    try! FileManager.default.createDirectory(at: unborn, withIntermediateDirectories: false)
+    require(GitCommandRunner.runData(["init", "-q", "--initial-branch=heads/unborn"], in: unborn.path).status == 0,
+            "an unborn fixture branch is initialized")
+    require(snapshot(unborn.path).branch == "heads/unborn", "unborn branches must retain their exact local name")
+    print("Branch/tag collisions: local, worktree, PR context, heads/ prefix, detached and unborn passed")
+}
+
 private nonisolated func response(_ nodes: [[String: Any]], hasNext: Bool = false) -> String {
     let payload: [String: Any] = ["data": ["repository": [
         "parent": NSNull(),
@@ -226,6 +272,7 @@ struct ProjectPullRequestTests {
         require(firstContext.headRepository.nameWithOwner == "example/fork", "head repository")
         require(firstContext.baseRepository?.nameWithOwner == "example/base", "upstream repository")
         require(secondContext.headBranch == "feature/two", "worktree branch resolution")
+        checkBranchTagCollisions(repo, worktree: worktree)
         let ambiguous = GitStatusModel.BranchSnapshot(root: first.root, gitDirectory: first.gitDirectory,
             commonGitDirectory: first.commonGitDirectory, branch: first.branch,
             configuration: ["remote.a.url": ["git@github.com:example/a.git"],

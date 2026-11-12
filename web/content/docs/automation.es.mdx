@@ -63,9 +63,11 @@ Cuando una integración informa de que un agente ha terminado o necesita informa
 
 ## Uso y límites de la cuenta [#account-usage-and-limits]
 
-**Ajustes → Automatización → Uso de la cuenta** muestra los límites de cuenta disponibles para Claude Code y Codex, incluido el porcentaje utilizado, la hora de restablecimiento cuando se informa de ella y la hora de la última actualización. Usa **Actualizar uso** para cargar los datos más recientes disponibles.
+**Ajustes → Automatización → Uso de la cuenta** siempre ofrece **Leer uso de la cuenta**, **Leer uso de Claude Code** y **Leer uso de Codex**. La opción general está desactivada por defecto; cada proveedor está activado, pero solo se lee cuando la opción general está activa. Los cambios son inmediatos y desactivarla conserva la selección de proveedores.
 
-Codex necesita una CLI instalada, con sesión iniciada y capaz de informar de los límites de cuenta. El uso de Claude Code aparece cuando Zshell recibe del proveedor un informe de uso a través de la línea de estado. La sección solo aparece cuando hay datos de uso; los periodos disponibles dependen del proveedor y de la cuenta. Son límites de la cuenta, no un total de tokens de la sesión con el foco.
+Activa los proveedores que quieras para leer los límites de las CLI locales. Codex usa una CLI instalada con sesión iniciada; Claude Code usa los informes de la línea de estado recibidos por Zshell. Activar el uso no recopila credenciales, instala una CLI ni inicia sesión. Son límites de la cuenta, no el total de tokens de la sesión activa.
+
+**Actualizar uso** recarga solo los proveedores activos. Se muestran la carga, la falta de disponibilidad y los últimos datos tras un error. Desactivar el uso o un proveedor detiene sus lecturas, cancela las solicitudes pendientes y oculta sus datos. Los informes Claude desactivados se rechazan sin escribir un archivo. El reconocimiento de agentes, el estado y la restauración de conversaciones no cambian.
 
 ## Un flujo de trabajo habitual [#a-typical-workflow]
 
@@ -102,7 +104,7 @@ Sin identidad verificada, directorio original o archivo Pi, se abre una nueva sh
 
 ## Buscar y reanudar conversaciones guardadas [#saved-conversation-history]
 
-Abre **Agentes → Historial de conversaciones de agentes**, pulsa el reloj de la parte superior de la barra lateral de proyectos. Busca entre proyectos por título, proveedor, proyecto, ID de conversación o directorios de trabajo y configuración. Zshell conserva las 200 conversaciones locales verificadas más recientes después de cerrar agentes y paneles y de reiniciar la aplicación. **Recientes** muestra 20 coincidencias sin archivar; **Todas** incluye las archivadas; **Archivadas** solo muestra estas últimas.
+Abre **Terminal → Agentes → Historial de conversaciones de agentes**, pulsa el reloj de la parte superior de la barra lateral de proyectos. Busca entre proyectos por título, proveedor, proyecto, ID de conversación o directorios de trabajo y configuración. Zshell conserva las 200 conversaciones locales verificadas más recientes después de cerrar agentes y paneles y de reiniciar la aplicación. **Recientes** muestra 20 coincidencias sin archivar; **Todas** incluye las archivadas; **Archivadas** solo muestra estas últimas.
 
 Elige **Mostrar conversación** si está abierta o **Reanudar conversación** si está guardada. Zshell reutiliza un panel abierto, reconecta un PTY activo o reanuda la conversación exacta del proveedor con su directorio y configuración originales. La reanudación manual requiere la integración de IA, aunque la restauración automática esté desactivada. Si falta un directorio o el archivo Pi falta o no corresponde a la conversación, se muestra un error antes de crear un panel.
 
@@ -134,12 +136,11 @@ zshell +events --event command.task.finished --once --timeout 30000
 
 ## Bifurcar una conversación [#fork-a-conversation]
 
-En **Agents → Agent Conversation History**, selecciona una conversación y **Bifurcar conversación en un panel nuevo** desde el menú contextual o el botón de bifurcación. La función nativa del proveedor conserva el contexto en una conversación independiente y mantiene intactos el panel y la conversación originales. Codex, Claude Code, OpenCode y Pi requieren una versión CLI compatible; Pi también necesita su archivo de sesión guardado. Para conversaciones remotas, actualiza el servidor Zshell. Si faltan el CLI, el inicio de sesión o los hooks, revisa la salida del panel nuevo antes de continuar. En un panel usa `zshell +agent fork --id UUID [--focus]`; desde un terminal externo añade `--project UUID`.
-
+En **Terminal → Agentes → Historial de conversaciones de agentes**, selecciona una conversación y **Bifurcar conversación en un panel nuevo** desde el menú contextual o el botón de bifurcación. La función nativa del proveedor conserva el contexto en una conversación independiente y mantiene intactos el panel y la conversación originales. Codex, Claude Code, OpenCode y Pi requieren una versión CLI compatible; Pi también necesita su archivo de sesión guardado. Para conversaciones remotas, actualiza el servidor Zshell. Si faltan el CLI, el inicio de sesión o los hooks, revisa la salida del panel nuevo antes de continuar. En un panel usa `zshell +agent fork --id UUID [--focus]`; desde un terminal externo añade `--project UUID`.
 
 ## Reglas de reconocimiento de agentes [#agent-recognition-rules]
 
-Abre **Ajustes → AI → Reconocimiento de agentes** o **Agents → Gestionar reglas de agentes…** para añadir, editar, eliminar, importar, exportar o restablecer reglas locales. El reconocimiento personalizado y la inferencia desde la pantalla son interruptores independientes, activados por defecto. Desactivarlos borra de inmediato las evidencias de pantalla antiguas. Los eventos nativos e informes del programa tienen prioridad.
+Abre **Ajustes → AI → Reconocimiento de agentes** o **Terminal → Agentes → Gestionar reglas de agentes…** para añadir, editar, eliminar, importar, exportar o restablecer reglas locales. El reconocimiento personalizado y la inferencia desde la pantalla son interruptores independientes, activados por defecto. Desactivarlos borra de inmediato las evidencias de pantalla antiguas. Los eventos nativos e informes del programa tienen prioridad.
 
 Las reglas están en `agents.toml`, junto a `config.toml` (`~/.config/zshell/agents.toml`, o `zshell-dev` en Debug). Los cambios válidos se recargan automáticamente; los no válidos conservan las últimas reglas y muestran un error. Un archivo vacío o eliminado restaura las reglas integradas.
 

@@ -260,6 +260,10 @@ struct UnsavedWorkspaceCloseTests {
         try check(second.isDirty && editedDiff.isDirty && project.tabs.flatMap(\.allContents).contains { $0.id == second.id }
                   && manager.projects.contains { $0 === project } && isAlive(project),
                   "Cancel after Don't Save retains the discarded buffer, Diff and live project")
+        EditorDraftStore.shared.flush()
+        let cancelledDraft = try await EditorDraftStore.shared.archive.load(second.draftID)
+        try check(cancelledDraft?.text == second.text,
+                  "a later project Cancel retains the previously approved-for-discard backup")
 
         let failedPath = root.appendingPathComponent("unavailable-parent/failure.txt")
         second.updatePath(failedPath.path)
@@ -278,6 +282,9 @@ struct UnsavedWorkspaceCloseTests {
                   "Don't Save leaves the original file on disk")
         try check(!editedDiff.isDirty && (try String(contentsOf: root.appendingPathComponent("project-diff.txt"), encoding: .utf8)) == "edited project-diff.txt",
                   "project Save updates the production Diff buffer on disk")
+        EditorDraftStore.shared.flush()
+        let discardedDraft = try await EditorDraftStore.shared.archive.load(second.draftID)
+        try check(discardedDraft == nil, "completed project Don't Save removes the backup and quit flush does not recreate it")
 
         print("UNSAVED_PHASE_COMPLETE backend=\(CommandLine.arguments[1]) phase=project")
         let worktreeProject = manager.newProject()
@@ -334,6 +341,10 @@ struct UnsavedWorkspaceCloseTests {
         try check(window.isVisible && TerminalManager.automationManagers.contains { $0 === manager }
                   && isAlive(windowProject) && isAlive(otherProject) && windowFile.isDirty && windowDiff.isDirty,
                   "window Cancel retains dirty buffers and shells in every project")
+        EditorDraftStore.shared.flush()
+        let cancelledWindowDraft = try await EditorDraftStore.shared.archive.load(windowFile.draftID)
+        try check(cancelledWindowDraft?.text == windowFile.text,
+                  "window Cancel retains file backups after an earlier Don't Save answer")
         let directory = root.appendingPathComponent("window-diff.txt")
         try FileManager.default.removeItem(at: directory)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
@@ -353,6 +364,9 @@ struct UnsavedWorkspaceCloseTests {
         try check(!window.isVisible && !windowFile.isDirty && windowDiff.isDirty,
                   "window Save and Don't Save close the approved workspace")
         try check(try String(contentsOf: directory, encoding: .utf8) == "before", "window Don't Save retains the disk baseline")
+        EditorDraftStore.shared.flush()
+        let discardedWindowDraft = try await EditorDraftStore.shared.archive.load(windowDiff.draftID)
+        try check(discardedWindowDraft == nil, "completed window Don't Save removes its dirty Diff backup")
         print("UNSAVED_PHASE_COMPLETE backend=\(CommandLine.arguments[1]) phase=window")
     }
 
@@ -401,6 +415,10 @@ struct UnsavedWorkspaceCloseTests {
         try check(QuitReplyFixture.replies.count == beforeMulti + 1 && QuitReplyFixture.replies.last == false
                   && firstFile.isDirty && secondDiff.isDirty && isAlive(firstProject) && isAlive(secondProject) && failures.isEmpty,
                   "multi-window Quit Cancel retains all dirty buffers and shells and coalesces repeated quit requests")
+        EditorDraftStore.shared.flush()
+        let cancelledQuitDraft = try await EditorDraftStore.shared.archive.load(firstFile.draftID)
+        try check(cancelledQuitDraft?.text == firstFile.text,
+                  "quit Cancel preserves backups for earlier Don't Save approvals in other windows")
 
         let failedPath = root.appendingPathComponent("quit-missing-parent/file.txt")
         firstFile.updatePath(failedPath.path)

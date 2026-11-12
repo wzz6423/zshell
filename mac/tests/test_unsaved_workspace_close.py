@@ -90,7 +90,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-unsaved-close-", dir="/tmp") as 
                 raise subprocess.CalledProcessError(process.returncode, process.args)
             summaries = re.findall(rf"^UNSAVED_WORKSPACE_CLOSE_SUCCESS backend={backend} checks=(\d+)$", output, re.MULTILINE)
             phases = re.findall(rf"^UNSAVED_PHASE_COMPLETE backend={backend} phase=(\w+)$", output, re.MULTILINE)
-            if len(summaries) != 1 or int(summaries[0]) != 39 or phases != ["project", "worktree", "window", "quit"]:
+            if len(summaries) != 1 or int(summaries[0]) != 44 or phases != ["project", "worktree", "window", "quit"]:
                 raise RuntimeError(f"The {backend} probe exited without completing all project/window/quit checks.")
         finally:
             # The fixture owns this process group and this PTY mux directory.

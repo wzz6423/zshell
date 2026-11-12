@@ -136,9 +136,17 @@ struct TerminalNotificationSurfaceTests {
 
         let controller = TerminalNotificationCenterController(service: service)
         let menu = NSMenu()
+        let terminal = NSMenuItem(title: "Terminal", action: nil, keyEquivalent: "")
+        terminal.identifier = .init(AppMenuController.Menu.terminal.rawValue)
+        terminal.submenu = NSMenu(title: terminal.title)
+        let notifications = NSMenuItem(title: "Notifications", action: nil, keyEquivalent: "")
+        notifications.identifier = .init(AppMenuController.Menu.notifications.rawValue)
+        notifications.submenu = NSMenu(title: notifications.title)
+        terminal.submenu!.addItem(notifications)
+        menu.addItem(terminal)
         controller.installMenu(in: menu)
         controller.installMenu(in: menu)
-        try check(menu.items.filter { $0.identifier?.rawValue == "zshell-notifications-menu" }.count == 1,
+        try check(menu.items.count == 1 && notifications.submenu?.items.count == 2,
                   "native notification menu installs once")
         controller.show()
         guard let panel = controller.windowController?.window,

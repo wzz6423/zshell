@@ -36,7 +36,7 @@ final class BrowserProfileImportController: NSObject, NSWindowDelegate, NSMenuIt
     }
 
     func installMenu(in mainMenu: NSMenu) {
-        guard let browser = mainMenu.items.first(where: { $0.title == String(localized: "Browser") })?.submenu else { return }
+        guard let browser = AppMenuController.submenu(.browser, in: mainMenu) else { return }
         let commands: [(String, String, Selector)] = [
             ("browser-profile-import", String(localized: "Import Browser Data…"), #selector(showImport(_:))),
             ("browser-imported-history", String(localized: "Imported Browser History"), #selector(showHistory(_:))),

@@ -4,6 +4,7 @@ Only SSH transport and terminal/UI dependencies are fixtures. No SSH process or
 personal configuration is used; binaries and module caches are removed.
 """
 from pathlib import Path
+import os
 import subprocess
 import tempfile
 import unittest
@@ -24,12 +25,22 @@ def compile_probe(directory, sidebar_source=None):
     remote = (ROOT / "mac/zshell/RemoteSSH.swift").read_text()
     start = remote.index("nonisolated struct SSHEndpoint:")
     endpoint = remote[start:remote.index("\n}", start) + len("\n}")]
-    manager = (ROOT / "mac/zshell/TerminalManager.swift").read_text()
+    manager_ref = os.environ.get("ZSHELL_TEST_MANAGER_REF")
+    manager = (subprocess.check_output(["git", "show", f"{manager_ref}:mac/zshell/TerminalManager.swift"],
+                                      cwd=ROOT, text=True) if manager_ref
+               else (ROOT / "mac/zshell/TerminalManager.swift").read_text())
+    start = manager.index("    func syncFileTree() {")
+    tree_sync = manager[start:manager.index("\n    }", start) + len("\n    }")]
+    start = manager.index("    var canImportFiles: Bool {")
+    can_import = manager[start:manager.index("\n    }", start) + len("\n    }")]
+    start = manager.index("    func importFiles(into directory: String? = nil) {")
+    choose_files = manager[start:manager.index("\n    }", start) + len("\n    }")]
     start = manager.index("enum RightPanel:")
     panels = manager[start:manager.index("\n}", start) + len("\n}")]
     support = directory / "ProductionRoute.swift"
     support.write_text("import AppKit\nimport Foundation\n" + endpoint + "\n" + panels
                        + "\nextension Project {\n" + selected_session + "\n" + roots + "}\n"
+                       + "extension ManagerFixture {\n" + tree_sync + "\n" + can_import + "\n" + choose_files + "\n}\n"
                        + "extension SidebarFixture {\n"
                        + "    func refresh() { syncModels() }\n" + refresh + "\n}\n")
     binary = directory / "file-tree-endpoint-probe"
@@ -37,7 +48,9 @@ def compile_probe(directory, sidebar_source=None):
         "xcrun", "swiftc", "-parse-as-library", "-swift-version", "5",
         "-default-isolation", "MainActor",
         "-module-cache-path", str(directory / "ModuleCache"),
-        str(ROOT / "mac/zshell/FileTreeModel.swift"), str(support),
+        str(ROOT / "mac/zshell/AppLocalization.swift"), str(ROOT / "mac/zshell/SettingsConfigFile.swift"),
+        str(ROOT / "mac/zshell/FileTreeImportService.swift"), str(ROOT / "mac/zshell/FileTreeModel.swift"), str(support),
+        str(ROOT / "mac/tests/FileTreeRemoteWriteStubs.swift"),
         str(ROOT / "mac/tests/FileTreeLocalEndpointTests.swift"), "-o", str(binary),
     ], cwd=ROOT, check=True, timeout=60)
     return binary
@@ -61,6 +74,16 @@ class FileTreeLocalEndpointTests(unittest.TestCase):
 
     def test_remote_to_local_reads_the_local_filesystem(self):
         for scenario in ("local", "same-root", "empty-root"):
+            with self.subTest(scenario=scenario):
+                self.evaluate(scenario)
+
+    def test_import_falls_back_after_project_switch_or_folder_disappearance(self):
+        for scenario in ("import-project-switch", "import-deleted", "import-file-replaced", "import-symlink-escape"):
+            with self.subTest(scenario=scenario):
+                self.evaluate(scenario)
+
+    def test_import_keeps_live_saved_and_explicit_destinations(self):
+        for scenario in ("import-valid", "import-explicit"):
             with self.subTest(scenario=scenario):
                 self.evaluate(scenario)
 

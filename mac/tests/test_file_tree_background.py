@@ -31,10 +31,13 @@ nonisolated struct SSHEndpoint: Equatable, Sendable {
 }
 
 nonisolated struct OpenSSHTransport {
-    func listDirectory(endpoint: SSHEndpoint, directory: String) throws -> [SSHEndpoint.DirectoryEntry] {
+    func listDirectory(endpoint: SSHEndpoint, directory: String, authentication: SSHAuthentication = .agent,
+                       credentialID: UUID? = nil) throws -> [SSHEndpoint.DirectoryEntry] {
         return [.init(name: "remote-file.txt", isDirectory: false)]
     }
 }
+
+nonisolated enum SSHAuthentication: Equatable, Sendable { case agent }
 
 @MainActor enum AppWindowPresentation {
     static func hostWindow() -> NSWindow? { nil }
@@ -86,7 +89,7 @@ def main():
         else:
             support = temporary / "Support.swift"
             support.write_text(SUPPORT)
-            command += [str(ROOT / "mac/zshell/FileTreeModel.swift"), str(support)]
+            command += [str(ROOT / "mac/zshell/FileTreeModel.swift"), str(support), str(ROOT / "mac/tests/FileTreeRemoteWriteStubs.swift")]
         command += [str(ROOT / "mac/tests/FileTreeBackgroundTests.swift"), "-o", str(binary)]
         subprocess.run(command, cwd=ROOT, check=True, timeout=120)
         environment = {key: value for key, value in os.environ.items() if not key.startswith("ZSHELL_")}
