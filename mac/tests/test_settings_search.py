@@ -97,6 +97,8 @@ DESCRIPTION_ITEMS = {
         ("terminal", "Startup", ""),
     "Reopened terminals show their previous scrollback above a fresh shell":
         ("terminal", "Restore session history on relaunch", "History"),
+    "When a command finishes, send the next entry at an empty prompt in the original zsh shell. Send Now is available with automatic sending on or off.":
+        ("terminal", "Send queued prompts automatically", "Prompt Queue"),
     "Changes apply to new zsh terminals.": ("terminal", "Long-running commands", "Notifications"),
     "Lets agents delegate work and coordinate across Zshell panes": ("automation", "AI", ""),
     "Read account limits from local CLI integrations without collecting sign-in credentials.":

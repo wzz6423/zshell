@@ -119,7 +119,7 @@ enum SettingsSearchIndex {
                  description: String(localized: "Turning this off hides all queue bars and stops pending sends. Queued entries and input are kept until the terminal closes."),
                  keywords: "terminal.prompt-queue-enabled prompt queue manual send"),
             item(.terminal, String(localized: "Send queued prompts automatically"), section: String(localized: "Prompt Queue"),
-                 description: String(localized: "When a command finishes, send the next entry at an empty prompt in the original zsh shell. Turn this off to use Send Now."),
+                 description: String(localized: "When a command finishes, send the next entry at an empty prompt in the original zsh shell. Send Now is available with automatic sending on or off."),
                  keywords: "terminal.prompt-queue-auto-dispatch prompt queue automatic dispatch manual send"),
             item(.terminal, String(localized: "Vim command hints"), section: input, keywords: "terminal.vim-command-hints Neovim SSH"),
             item(.terminal, String(localized: "Shell completions"), section: input,
