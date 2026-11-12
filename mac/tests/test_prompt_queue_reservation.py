@@ -172,6 +172,13 @@ class PromptQueueReservationTests(unittest.TestCase):
         self.send("builtin print -rn -- second >> " + shlex.quote(str(marker)))
         self.assertEqual(marker.read_text(), "firstsecond")
         self.assertTrue(self.ask())
+        os.write(self.shell.fd, b"read -r answer\r")
+        self.shell.drain()
+        self.assertFalse(self.ask(), "A failing hook must still revoke readiness for ordinary builtin input")
+        self.assertFalse(self.shell.ready())
+        os.write(self.shell.fd, b"deliberate answer\r")
+        self.shell.wait_prompt()
+        self.assertTrue(self.ask())
 
     def test_later_user_hook_must_finish_before_accepted_buffer_check(self):
         marker = self.shell.root / "rewritten-command"
