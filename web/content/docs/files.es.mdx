@@ -28,7 +28,7 @@ Las filas usan iconos de Material según el nombre del archivo. Dentro de un rep
 
 Abre archivos SSH desde el panel Archivos. Para crear, renombrar, mover a la papelera remota o guardar, activa **Ajustes → Editor → Archivos → Permitir cambios en archivos remotos** (`files.remote-write-enabled`, desactivado de forma predeterminada).
 
-Zshell solo utiliza herramientas ya instaladas en el host y no instala nada. La lectura y edición utilizan sus módulos básicos de Perl existentes. Cada escritura también comprueba las funciones necesarias del sistema de archivos; las operaciones no compatibles siguen desactivadas. Se rechazan enlaces simbólicos, archivos especiales y rutas fuera del proyecto. Los textos UTF-8 pueden tener hasta 5 MiB; el Markdown remoto se abre como código fuente.
+Zshell solo utiliza herramientas ya instaladas en el host y no instala nada. La lectura y edición utilizan sus módulos básicos de Perl existentes. Cada escritura también comprueba las funciones necesarias del sistema de archivos; las operaciones no compatibles siguen desactivadas. El host resuelve una vez por operación los enlaces simbólicos de directorios en la raíz del proyecto y sus directorios superiores; se rechazan los enlaces simbólicos dentro del proyecto, los archivos especiales y las rutas fuera del proyecto. Los textos UTF-8 pueden tener hasta 5 MiB; el Markdown remoto se abre como código fuente.
 
 El guardado remoto comprueba los cambios aunque la protección local esté desactivada. Si hay un conflicto, puedes comparar, conservar el borrador, recargar desde el host o autorizar la sobrescritura. Se vuelve a comprobar la versión comparada justo antes de publicar el archivo completo; un proceso externo aún puede escribir después de esa última comprobación.
 

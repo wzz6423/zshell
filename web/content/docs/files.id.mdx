@@ -28,7 +28,7 @@ Baris memakai ikon Material sesuai nama berkas. Dalam repositori Git, jalur yang
 
 Buka berkas SSH dari panel Berkas. Untuk membuat, mengganti nama, memindahkan ke sampah jarak jauh, atau menyimpan, aktifkan **Pengaturan → Editor → Berkas → Izinkan perubahan berkas jarak jauh** (`files.remote-write-enabled`, nonaktif secara bawaan).
 
-Zshell hanya menggunakan alat yang sudah ada di host dan tidak memasang apa pun. Pembacaan dan pengeditan menggunakan modul inti Perl yang sudah ada. Setiap penulisan juga memeriksa kemampuan sistem berkas yang diperlukan; operasi yang tidak didukung tetap dinonaktifkan. Tautan simbolis, berkas khusus, dan jalur di luar proyek ditolak. Teks UTF-8 dapat berukuran hingga 5 MiB; Markdown jarak jauh dibuka sebagai sumber.
+Zshell hanya menggunakan alat yang sudah ada di host dan tidak memasang apa pun. Pembacaan dan pengeditan menggunakan modul inti Perl yang sudah ada. Setiap penulisan juga memeriksa kemampuan sistem berkas yang diperlukan; operasi yang tidak didukung tetap dinonaktifkan. Host menyelesaikan tautan simbolis direktori di akar proyek dan direktori induknya sekali per operasi berkas; tautan simbolis di dalam proyek, berkas khusus, dan jalur di luar proyek ditolak. Teks UTF-8 dapat berukuran hingga 5 MiB; Markdown jarak jauh dibuka sebagai sumber.
 
 Penyimpanan jarak jauh memeriksa perubahan meskipun perlindungan lokal dinonaktifkan. Saat konflik, Anda dapat membandingkan, mempertahankan draf, memuat ulang dari host, atau menyetujui penimpaan. Versi yang dibandingkan diperiksa lagi tepat sebelum berkas lengkap dipublikasikan; proses eksternal masih dapat menulis setelah pemeriksaan terakhir.
 

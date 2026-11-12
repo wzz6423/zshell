@@ -28,7 +28,7 @@ Satırlar dosya adını tanıyan Material simgeleri kullanır. Git deposundaki d
 
 SSH dosyalarını Dosyalar panelinden açın. Oluşturmak, yeniden adlandırmak, uzak çöp kutusuna taşımak veya kaydetmek için **Ayarlar → Düzenleyici → Dosyalar → Uzak dosya değişikliklerine izin ver** seçeneğini açın (`files.remote-write-enabled`, varsayılan olarak kapalı).
 
-Zshell yalnızca ana makinede mevcut araçları kullanır ve hiçbir şey yüklemez. Okuma ve düzenleme, mevcut Perl çekirdek modüllerini kullanır. Her yazma işlemi gereken dosya sistemi özelliklerini de denetler; desteklenmeyen işlemler kapalı kalır. Sembolik bağlantılar, özel dosyalar ve proje dışındaki yollar reddedilir. UTF-8 metin dosyaları en fazla 5 MiB olabilir; uzak Markdown kaynak olarak açılır.
+Zshell yalnızca ana makinede mevcut araçları kullanır ve hiçbir şey yüklemez. Okuma ve düzenleme, mevcut Perl çekirdek modüllerini kullanır. Her yazma işlemi gereken dosya sistemi özelliklerini de denetler; desteklenmeyen işlemler kapalı kalır. Ana makine, proje kökünde ve üst dizinlerinde bulunan dizin sembolik bağlantılarını her dosya işleminde bir kez çözer; proje içindeki sembolik bağlantılar, özel dosyalar ve proje dışındaki yollar reddedilir. UTF-8 metin dosyaları en fazla 5 MiB olabilir; uzak Markdown kaynak olarak açılır.
 
 Yerel kayıt koruması kapalı olsa da uzak kaydetme değişiklikleri denetler. Çakışmada karşılaştırabilir, taslağı koruyabilir, uzaktan yeniden yükleyebilir veya üzerine yazmayı onaylayabilirsiniz. Tam dosya yayımlanmadan hemen önce karşılaştırılan sürüm yeniden denetlenir; dış bir işlem son denetimden sonra yine de yazabilir.
 

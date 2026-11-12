@@ -28,7 +28,7 @@ Die Zeilen verwenden zum Dateinamen passende Material-Symbole. In Git-Repository
 
 Öffnen Sie SSH-Dateien im Dateibereich. Aktivieren Sie zum Erstellen, Umbenennen, Verschieben in den Remote-Papierkorb und Speichern **Einstellungen → Editor → Dateien → Änderungen an Remotedateien erlauben** (`files.remote-write-enabled`, standardmäßig aus).
 
-Zshell verwendet nur bereits vorhandene Host-Werkzeuge und installiert nichts. Lesen und Bearbeiten verwenden die vorhandenen Perl-Kernmodule. Jeder Schreibvorgang prüft außerdem die benötigten Dateisystemfunktionen; nicht unterstützte Vorgänge bleiben deaktiviert. Symbolische Links, Spezialdateien und Pfade außerhalb des Projekts werden abgelehnt. UTF-8-Textdateien dürfen bis zu 5 MiB groß sein; Remote-Markdown öffnet sich als Quelltext.
+Zshell verwendet nur bereits vorhandene Host-Werkzeuge und installiert nichts. Lesen und Bearbeiten verwenden die vorhandenen Perl-Kernmodule. Jeder Schreibvorgang prüft außerdem die benötigten Dateisystemfunktionen; nicht unterstützte Vorgänge bleiben deaktiviert. Der Host löst symbolische Verzeichnislinks in der Projektwurzel und ihren übergeordneten Verzeichnissen einmal pro Dateioperation auf; symbolische Links innerhalb des Projekts, Spezialdateien und Pfade außerhalb des Projekts werden abgelehnt. UTF-8-Textdateien dürfen bis zu 5 MiB groß sein; Remote-Markdown öffnet sich als Quelltext.
 
 Remote-Speichern prüft Änderungen auch bei ausgeschaltetem lokalen Speicherschutz. Bei Konflikten können Sie vergleichen, den Entwurf behalten, vom Remote-Host neu laden oder das Überschreiben erlauben. Die verglichene Version wird unmittelbar vor dem Bereitstellen der vollständigen Datei erneut geprüft; ein externer Prozess kann nach dieser letzten Prüfung weiterhin schreiben.
 
