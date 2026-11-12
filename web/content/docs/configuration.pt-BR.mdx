@@ -67,6 +67,12 @@ Tema de cores de cada aparência. Um tema recolore terminais, moldura da janela,
 
 Os Ajustes mostram o catálogo selecionado de temas compartilhado pelos dois backends. Um nome escrito manualmente deve corresponder exatamente ao nome exibido, incluindo maiúsculas e minúsculas; caso contrário, usa-se o padrão correspondente.
 
+### `terminal.minimum-contrast` [#terminalminimum-contrast]
+
+`1`–`21` · `3`
+
+**Ajustes → Aparência → Cores → Contraste mínimo** ajusta a legibilidade do texto do terminal de `1` a `21` (padrão `3`). `1` mantém as cores ANSI originais. Os dois mecanismos atualizam terminais abertos e o Quick Terminal sem reiniciar seus shells; os perfis mantêm suas paletas. Pixels de emoji e imagens preservam suas cores. A seleção e o cursor mantêm a política nativa de legibilidade de cada mecanismo. Se o fundo não permitir atingir a proporção solicitada, cada mecanismo usa a cor mais legível disponível. Terminais transparentes usam o fundo de célula resolvido, portanto o contraste após a composição com a área de trabalho pode ser diferente.
+
 ### `toolbar.visibility` [#toolbarvisibility]
 
 `"hide"` · `"auto"` · `"always"` — padrão `"hide"`

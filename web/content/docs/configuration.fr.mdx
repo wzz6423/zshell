@@ -67,6 +67,12 @@ Définit le thème de couleurs de chaque apparence. Un thème recolore ensemble 
 
 Réglages présente un catalogue de thèmes commun aux deux moteurs. Un nom saisi manuellement doit correspondre exactement à un nom affiché, casse comprise, sinon Zshell utilise le thème par défaut correspondant.
 
+### `terminal.minimum-contrast` [#terminalminimum-contrast]
+
+`1`–`21` · `3`
+
+**Réglages → Apparence → Couleurs → Contraste minimum** règle la lisibilité du texte du terminal de `1` à `21` (par défaut `3`). `1` conserve les couleurs ANSI originales. Les deux moteurs mettent à jour les terminaux ouverts et Quick Terminal sans redémarrer leurs shells ; les profils conservent leurs palettes. Les pixels des emoji et des images gardent leurs couleurs. La sélection et le curseur conservent les règles de lisibilité natives de chaque moteur. Si le fond ne permet pas le rapport demandé, chaque moteur utilise la couleur disponible la plus lisible. Les terminaux transparents utilisent le fond de cellule résolu ; le contraste après composition avec le bureau peut donc différer.
+
 ### `toolbar.visibility` [#toolbarvisibility]
 
 `"hide"` · `"auto"` · `"always"` — valeur par défaut : `"hide"`

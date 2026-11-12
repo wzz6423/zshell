@@ -46,6 +46,7 @@ with tempfile.TemporaryDirectory(prefix="zshell-settings-config-") as temporary:
         "xcrun", "swiftc", "-parse-as-library", "-default-isolation", "MainActor",
         "-D", "DEBUG", "-module-cache-path", str(directory / "modules"),
         str(ROOT / "mac/zshell/AppSettings.swift"),
+        str(ROOT / "mac/zshell/TerminalContrast.swift"),
         str(ROOT / "mac/zshell/TerminalSessionDirectory.swift"),
         str(ROOT / "mac/zshell/TerminalScrollSettings.swift"),
         str(ROOT / "mac/zshell/KeepAwakeMode.swift"),
