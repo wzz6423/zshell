@@ -329,11 +329,22 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         let verticalLimit = precise
             ? maximum * Double(grid.cellHeightPixels) / multiplier
             : maximum / (TerminalScrollSettings.ghosttyWheelMultiplier * multiplier)
-        let y = TerminalScrollSettings.boundedDelta(event.scrollingDeltaY, limit: verticalLimit)
+        // Precise deltas arrive in points. Scale them to pixels before the
+        // existing pixel clamp and the column accumulator. Wheel ticks stay
+        // on the unscaled path below.
+        let backingScale = Double(window?.backingScaleFactor ?? 1)
+        let y = TerminalScrollSettings.boundedDelta(
+            precise
+                ? TerminalScrollSettings.ghosttyPrecisePixels(event.scrollingDeltaY, backingScale: backingScale)
+                : event.scrollingDeltaY,
+            limit: verticalLimit
+        )
         let x: Double
         if precise {
+            let pointCellWidth = Double(grid.cellWidthPixels)
+                / TerminalScrollSettings.ghosttyPrecisePixels(1, backingScale: backingScale)
             let columns = horizontalTrackpadScroll.consume(
-                event.scrollingDeltaX / Double(grid.cellWidthPixels), multiplier: multiplier,
+                event.scrollingDeltaX / pointCellWidth, multiplier: multiplier,
                 limit: TerminalScrollSettings.maximumApplicationLines
             )
             x = Double(columns) * Double(grid.cellWidthPixels)

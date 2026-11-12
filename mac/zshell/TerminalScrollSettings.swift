@@ -16,6 +16,15 @@ nonisolated enum TerminalScrollSettings {
         guard value.isFinite, limit.isFinite, limit > 0 else { return 0 }
         return min(max(value, -limit), limit)
     }
+
+    // AppKit precise deltas are points. Ghostty consumes pixels and divides by
+    // the pixel cell size, so the backing scale turns one point-cell into one
+    // pixel-cell. Non-finite or non-positive scales fall back to 1. Wheel ticks
+    // are not points and must not use this conversion.
+    static func ghosttyPrecisePixels(_ points: Double, backingScale: Double) -> Double {
+        let scale = backingScale.isFinite && backingScale > 0 ? backingScale : 1
+        return points * scale
+    }
 }
 
 nonisolated struct TerminalScrollAccumulator {

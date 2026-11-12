@@ -159,8 +159,14 @@ struct TerminalScrollSurfaceTests {
             return start - (try firstRow())
         }
         let cell = try {
+            // Ghostty's grid is in pixels. Precise NSEvent deltas are points,
+            // so one visible cell is cell size divided by the backing scale.
+            // Alacritty's snapshot cellSize is already in points.
             if let ghostty = surface as? ZshellTerminalView, let grid = ghostty.viewportGridMetrics {
-                return CGSize(width: Double(grid.cellWidthPixels), height: Double(grid.cellHeightPixels))
+                let scale = Double(window.backingScaleFactor)
+                let resolved = scale.isFinite && scale > 0 ? scale : 1
+                return CGSize(width: Double(grid.cellWidthPixels) / resolved,
+                              height: Double(grid.cellHeightPixels) / resolved)
             }
             guard let snapshot = surface.readVisibleSnapshot() else { throw NSError(domain: "MissingGrid", code: 1) }
             return snapshot.cellSize
@@ -370,20 +376,39 @@ struct TerminalScrollSurfaceTests {
                   let row = Int(line.trimmingCharacters(in: .whitespaces).dropFirst(4)) else { throw NSError(domain: "MissingNativeRow", code: 1) }
             return row
         }
-        let height = Double(baseline.viewportGridMetrics!.cellHeightPixels)
-        for events in [
-            [event(y: 1, precise: false), event(y: -1, precise: false), event(y: 2, precise: false)],
-            [event(y: 0.125, precise: false), event(y: 0.125, precise: false), event(y: 1.5, precise: false)],
-            [event(y: height * 0.3, precise: true), event(y: height * 0.7, precise: true), event(y: height * 1.5, precise: true)],
-            [event(y: height, precise: true, momentum: .began), event(y: height * 2, precise: true, momentum: .changed), event(y: 0, precise: true, momentum: .ended)],
-        ] {
+        let pixelHeight = Double(baseline.viewportGridMetrics!.cellHeightPixels)
+        let scale = Double(ghostty.window?.backingScaleFactor ?? 1)
+        let resolved = scale.isFinite && scale > 0 ? scale : 1
+        // Stock Ghostty still consumes pixels. Zshell receives the point-cell
+        // distance AppKit reports, which the scale conversion turns back into
+        // that same pixel distance.
+        let pointHeight = pixelHeight / resolved
+        let comparisons: [(zshell: [NSEvent], native: [NSEvent])] = [
+            (
+                [event(y: 1, precise: false), event(y: -1, precise: false), event(y: 2, precise: false)],
+                [event(y: 1, precise: false), event(y: -1, precise: false), event(y: 2, precise: false)]
+            ),
+            (
+                [event(y: 0.125, precise: false), event(y: 0.125, precise: false), event(y: 1.5, precise: false)],
+                [event(y: 0.125, precise: false), event(y: 0.125, precise: false), event(y: 1.5, precise: false)]
+            ),
+            (
+                [event(y: pointHeight * 0.3, precise: true), event(y: pointHeight * 0.7, precise: true), event(y: pointHeight * 1.5, precise: true)],
+                [event(y: pixelHeight * 0.3, precise: true), event(y: pixelHeight * 0.7, precise: true), event(y: pixelHeight * 1.5, precise: true)]
+            ),
+            (
+                [event(y: pointHeight, precise: true, momentum: .began), event(y: pointHeight * 2, precise: true, momentum: .changed), event(y: 0, precise: true, momentum: .ended)],
+                [event(y: pixelHeight, precise: true, momentum: .began), event(y: pixelHeight * 2, precise: true, momentum: .changed), event(y: 0, precise: true, momentum: .ended)]
+            ),
+        ]
+        for comparison in comparisons {
             baseline.performBindingAction("scroll_to_bottom")
             pump()
             let start = try row()
-            for event in events { baseline.scrollWheel(with: event) }
+            for event in comparison.native { baseline.scrollWheel(with: event) }
             pump(0.12)
             let expected = start - (try row())
-            try check(try actual(events) == expected, "default Ghostty matches native event sequence: \(expected) rows")
+            try check(try actual(comparison.zshell) == expected, "default Ghostty matches native event sequence: \(expected) rows")
         }
     }
 
