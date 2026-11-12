@@ -30,7 +30,8 @@ struct TerminalFrameRowDecision: Equatable {
 
 /// Real emulator damage and a host unconditional redraw keep the rows they
 /// already named. A cursor blink or IME preedit sets `presentWithoutDamage`
-/// and must still present, with no rows to rebuild.
+/// and must still present. A block cursor's own row is added afterwards,
+/// once visibility has been rewritten.
 func terminalFrameRowDecision(
     needsUnconditionalRedraw: Bool,
     damageKind: UInt32,
@@ -47,6 +48,27 @@ func terminalFrameRowDecision(
         return TerminalFrameRowDecision(dirtyRows: [], presents: true)
     }
     return TerminalFrameRowDecision(dirtyRows: nil, presents: false)
+}
+
+/// Adds the block-cursor row after blink visibility has been applied.
+///
+/// `foreground(at:)` stores the cell background in that row while a block
+/// cursor occupies it. The hide frame has already cleared the cursor, so
+/// rebuilding the row now restores the glyph. Bar and underline cursors do
+/// not recolor a glyph. A nil list still rebuilds the whole grid.
+func terminalCursorBlinkDirtyRows(
+    dirtyRows: [Int]?,
+    cursorBlinkOnly: Bool,
+    cursorShape: Int,
+    cursorRow: Int
+) -> [Int]? {
+    guard cursorBlinkOnly, cursorShape == 0, cursorRow >= 0, let rows = dirtyRows else {
+        return dirtyRows
+    }
+    if rows.contains(cursorRow) {
+        return rows
+    }
+    return rows + [cursorRow]
 }
 
 /// GPU renderer for a terminal grid.

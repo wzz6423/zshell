@@ -32,6 +32,14 @@ def check_cursor_blink_timer():
     ):
         if snippet not in decision:
             raise SystemExit(f"renderFrame lost the cursor-only row decision: {snippet}")
+    hide = view.index("} else if cursorBlinking, !cursorVisible")
+    if "blinkCursorRow" not in view[:hide] or "blinkCursorShape" not in view[:hide]:
+        raise SystemExit("cursor row and shape must be remembered before the blink hides the cursor")
+    rewritten = view.index("snapshot.cursor_shape = 3", hide)
+    appended = view.index("terminalCursorBlinkDirtyRows(", rewritten)
+    rendered = view.index("renderer.render(", appended)
+    if "dirtyRows: dirtyRows" not in view[rendered:rendered + 900]:
+        raise SystemExit("the block-cursor row is not the list passed to the renderer")
     print("PASS: updateCursorTimer schedules a cursor-only frame")
 
 
@@ -135,6 +143,24 @@ func cursorBlinkPreservesCachedRows() {
         presentWithoutDamage: false
     )
     precondition(!idle.presents, "a frame with no host or emulator damage must be skipped")
+    precondition(terminalCursorBlinkDirtyRows(
+        dirtyRows: cursorOnly.dirtyRows, cursorBlinkOnly: true, cursorShape: 0, cursorRow: 0
+    ) == .some([0]), "a block-cursor blink must rebuild only the cursor row")
+    precondition(terminalCursorBlinkDirtyRows(
+        dirtyRows: [], cursorBlinkOnly: true, cursorShape: 1, cursorRow: 0
+    ) == .some([Int]()), "a bar cursor blink must not rebuild glyph rows")
+    precondition(terminalCursorBlinkDirtyRows(
+        dirtyRows: [], cursorBlinkOnly: true, cursorShape: 2, cursorRow: 0
+    ) == .some([Int]()), "an underline cursor blink must not rebuild glyph rows")
+    precondition(terminalCursorBlinkDirtyRows(
+        dirtyRows: partial.dirtyRows, cursorBlinkOnly: true, cursorShape: 0, cursorRow: 0
+    ) == .some([3, 4, 0]), "partial damage must keep its rows and add the block cursor")
+    precondition(terminalCursorBlinkDirtyRows(
+        dirtyRows: forced.dirtyRows, cursorBlinkOnly: true, cursorShape: 0, cursorRow: 0
+    ) == nil, "a forced frame must still rebuild the grid")
+    precondition(terminalCursorBlinkDirtyRows(
+        dirtyRows: [], cursorBlinkOnly: false, cursorShape: 0, cursorRow: 0
+    ) == .some([Int]()), "a frame that is not a cursor blink must leave the empty row list")
 
     let device = MTLCreateSystemDefaultDevice()!
     let renderer = TerminalMetalRenderer(device: device)!
@@ -147,6 +173,7 @@ func cursorBlinkPreservesCachedRows() {
     let oldBottom = rgba(0x445566)
     let newTop = rgba(0xaabbcc)
     let newBottom = rgba(0xddeeff)
+    let background = rgba(0x010101)
     let cursor = rgba(0x00ff00)
     var cells = [ZshellCell(), ZshellCell()]
     cells[0].ch = UInt32(UInt8(ascii: "M"))
@@ -161,41 +188,73 @@ func cursorBlinkPreservesCachedRows() {
     snapshot.background = 0x010101
     snapshot.cursor_shape = 0
     snapshot.cursor_color = 0x00ff00
-    snapshot.cursor_line = -1
-    snapshot.cursor_column = -1
+    snapshot.cursor_line = 0
+    snapshot.cursor_column = 0
     cells.withUnsafeMutableBufferPointer { buffer in
         snapshot.cells = buffer.baseAddress.map { UnsafePointer($0) }
         let cached = renderer.testFrameColors(
             snapshot: snapshot, metrics: metrics, dirtyRows: nil
         )
-        precondition(cached.glyphs.count >= 2, "warmup frame produced no glyph rows")
-        precondition(cached.glyphs.contains(oldTop) && cached.glyphs.contains(oldBottom),
-                     "warmup glyphs were not the cached row colors: \\(cached.glyphs)")
-        precondition(!cached.solids.contains(cursor), "warmup frame drew a cursor")
-
-        snapshot.cursor_line = 0
-        snapshot.cursor_column = 0
-        let reused = renderer.testFrameColors(
-            snapshot: snapshot, metrics: metrics, dirtyRows: cursorOnly.dirtyRows
-        )
-        precondition(reused.glyphs == cached.glyphs,
-                     "cursor-only frame rebuilt cached glyph rows: \\(cached.glyphs) -> \\(reused.glyphs)")
-        precondition(reused.solids.contains(cursor),
-                     "cursor-only frame did not append the cursor")
+        let cachedCursorGlyphs = cached.glyphs.filter { $0 == background }.count
+        let cachedBottomGlyphs = cached.glyphs.filter { $0 == oldBottom }.count
+        precondition(cachedCursorGlyphs > 0, "block cursor did not recolor its glyph")
+        precondition(cachedBottomGlyphs > 0, "the other row was not cached")
+        precondition(!cached.glyphs.contains(oldTop), "the cursor row kept its foreground color")
+        precondition(cached.solids.contains(cursor), "the block cursor quad was not drawn")
 
         buffer[0].fg = 0xaabbcc
         buffer[1].fg = 0xddeeff
         snapshot.cursor_line = -1
         snapshot.cursor_column = -1
+        let blockRows = terminalCursorBlinkDirtyRows(
+            dirtyRows: cursorOnly.dirtyRows, cursorBlinkOnly: true, cursorShape: 0, cursorRow: 0
+        )
+        let hidden = renderer.testFrameColors(
+            snapshot: snapshot, metrics: metrics, dirtyRows: blockRows
+        )
+        precondition(hidden.glyphs.filter { $0 == newTop }.count == cachedCursorGlyphs,
+                     "block blink did not redraw the cursor glyph")
+        precondition(hidden.glyphs.filter { $0 == oldBottom }.count == cachedBottomGlyphs,
+                     "block blink rebuilt a row other than the cursor")
+        precondition(!hidden.glyphs.contains(newBottom), "block blink rebuilt the other glyph row")
+        precondition(!hidden.glyphs.contains(background),
+                     "hidden block cursor left the background-colored glyph")
+        precondition(!hidden.solids.contains(cursor), "hidden cursor quad was still drawn")
+
         let rebuilt = renderer.testFrameColors(
             snapshot: snapshot, metrics: metrics, dirtyRows: forced.dirtyRows
         )
         precondition(rebuilt.glyphs.contains(newTop) && rebuilt.glyphs.contains(newBottom),
                      "forced frame kept stale glyph rows: \\(rebuilt.glyphs)")
-        precondition(!rebuilt.glyphs.contains(oldTop) && !rebuilt.glyphs.contains(oldBottom),
+        precondition(!rebuilt.glyphs.contains(oldBottom),
                      "forced frame did not rebuild every cached glyph row")
+
+        let bar = TerminalMetalRenderer(device: device)!
+        bar.setMinimumContrast(1)
+        buffer[0].fg = 0x112233
+        buffer[1].fg = 0x445566
+        snapshot.cursor_shape = 1
+        snapshot.cursor_line = 0
+        snapshot.cursor_column = 0
+        let barCached = bar.testFrameColors(
+            snapshot: snapshot, metrics: metrics, dirtyRows: nil
+        )
+        precondition(barCached.glyphs.contains(oldTop) && barCached.glyphs.contains(oldBottom),
+                     "bar cursor warmup did not keep both glyph colors")
+        precondition(!barCached.glyphs.contains(background), "bar cursor recolored a glyph")
+        buffer[0].fg = 0xaabbcc
+        buffer[1].fg = 0xddeeff
+        snapshot.cursor_line = -1
+        snapshot.cursor_column = -1
+        let barRows = terminalCursorBlinkDirtyRows(
+            dirtyRows: [], cursorBlinkOnly: true, cursorShape: 1, cursorRow: 0
+        )
+        let barBlink = bar.testFrameColors(
+            snapshot: snapshot, metrics: metrics, dirtyRows: barRows
+        )
+        precondition(barBlink.glyphs == barCached.glyphs, "bar cursor blink rebuilt glyph rows")
     }
-    print("PASS: cursor blink reuses cached glyph rows and a forced frame rebuilds them")
+    print("PASS: block cursor blink rebuilds its row; other cursors and forced frames stay distinct")
 }
 """)
 

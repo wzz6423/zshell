@@ -725,7 +725,8 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
 
         // nil rebuilds every row: full emulator damage, or a host change the
         // emulator never saw (resize, theme, selection, focus). A cursor blink
-        // or preedit still presents with an empty row list so cached glyphs stay.
+        // or preedit still presents with an empty row list. The block cursor's
+        // row is added after its visibility rewrite, below.
         let isPreeditOnlyFrame = preeditChanged && !needsUnconditionalRedraw
             && damage.kind == ZSHELL_DAMAGE_NONE
         let partialRows: [Int]?
@@ -744,7 +745,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             AlacrittyRenderStats.shared.skipped()
             return true
         }
-        let dirtyRows = decision.dirtyRows
+        var dirtyRows = decision.dirtyRows
         // A successful submission consumes the host-only invalidation. Keep it
         // pending if drawable acquisition or command encoding fails so the next
         // scheduled frame can still present the latest composition state.
@@ -781,6 +782,11 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
                     column: Int(snapshot.cursor_column)
                 )
                 : nil
+        // Captured before blink visibility clears the cursor. Rebuilding the
+        // row first would see the block cursor and store the background color
+        // again on the hide frame.
+        let blinkCursorRow = Int(snapshot.cursor_line)
+        let blinkCursorShape = Int(snapshot.cursor_shape)
         updateCursorBlinking(snapshot.cursor_blinking)
         if preedit != nil {
             snapshot.cursor_line = -1
@@ -793,6 +799,12 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         {
             snapshot.cursor_shape = 3
         }
+        dirtyRows = terminalCursorBlinkDirtyRows(
+            dirtyRows: dirtyRows,
+            cursorBlinkOnly: cursorBlinkNeedsFrame && preedit == nil,
+            cursorShape: blinkCursorShape,
+            cursorRow: blinkCursorRow
+        )
         let generation = presentationGeneration
         let presentationToken = token
         let tracksPresentedGeometry =
