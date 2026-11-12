@@ -16,6 +16,10 @@ Escolha em **Ajustes → Terminal → Backend**:
 
 Ambos suportam aceleração por GPU, imagens, o catálogo compartilhado de temas, busca, eventos de mouse, notificações e relatórios de progresso. Trocar o backend só afeta terminais novos; painéis existentes mantêm o emulador inicial.
 
+## Tipo de terminal [#terminal-type]
+
+Defina `terminal.term` em **Ajustes → Terminal → TERM** (padrão `"xterm-256color"`). O nome deve conter 1–128 letras ASCII, dígitos ou `.-_+`. Use um nome terminfo instalado no host que executa o shell. As mudanças se aplicam apenas a novas sessões locais e SSH; PTYs abertos e preservados mantêm seu `TERM` original. Sessões remotas compartilhadas usam o valor ao serem criadas com um servidor atualizado; servidores antigos mantêm `xterm-256color`. Edições inválidas preservam o último valor válido e mostram um erro em Ajustes. `TERM_PROGRAM` e `ZSHELL_TERM` não mudam.
+
 ## Histórico de comandos [#command-history]
 
 **Registrar histórico de comandos** em **Ajustes → Terminal → Histórico** vem ativado (`terminal.command-history = true`). Desativar interrompe novos registros; o histórico salvo continua disponível para consulta ou limpeza. A saída do terminal e o histórico do shell são preservados.
@@ -57,6 +61,12 @@ Negar uma solicitação bloqueia o recurso correspondente. O Zshell não concede
 Ative **Ajustes → Terminal → Entrada → O foco segue o mouse** para focar o painel quando o ponteiro entrar. Desativado por padrão, funciona com ambos os backends e o terminal rápido. Não muda o foco durante arraste, a partir de um editor ou com menu ou diálogo aberto.
 
 `terminal.focus-follows-mouse = true`
+
+## Ação do clique direito [#right-click-action]
+
+Em **Ajustes → Terminal → Entrada → Ação do clique direito**, escolha **Menu de contexto** (padrão), **Colar** ou **Copiar ou colar**. A última opção copia a seleção e só cola quando nada está selecionado. A mudança é imediata nos dois backends. `terminal.right-click-action` em `config.toml` aceita `"context-menu"`, `"paste"` ou `"copy-or-paste"`.
+
+**Shift + clique direito**, **Control + clique** e **Command + clique direito** continuam abrindo o menu. **Editar → Mostrar menu de contexto do terminal** (<kbd>Shift</kbd>+<kbd>F10</kbd>) o abre pelo teclado. Aplicativos com eventos do mouse continuam recebendo cliques direitos comuns, exceto quando **Bloquear comandos do Zshell** está ativado no painel. Colar usa a mesma confirmação de várias linhas e o tratamento de arquivos locais ou remotos de <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
 ## Perfis de terminal [#terminal-profiles]
 
@@ -100,9 +110,13 @@ A opção vale apenas para esse painel. Desmarque no mesmo menu para restaurar o
 
 Foque um terminal e pressione <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> ou escolha **Alternar Fila de Prompts** na paleta. A barra abre abaixo do terminal. Digite uma entrada e pressione <kbd>Return</kbd> ou **Adicionar à Fila**. Cada entrada tem uma linha; quebras coladas viram espaços.
 
-Quando o zsh original retorna a um prompt vazio, o Zshell envia a próxima entrada e Return. A ordem da fila é respeitada. O envio automático espera enquanto um agente ou outro programa ocupa o terminal, ou quando há um rascunho no prompt. Ele exige a integração zsh; outros shells e shells aninhados podem usar envio manual.
+O envio é manual por padrão. **Enviar agora** só envia quando o prompt do zsh original está vazio e nenhuma tarefa de comando pendente ou em execução ocupa o terminal. O botão fica desativado com agentes, programas em primeiro plano, rascunhos e outros shells ou shells aninhados. Uma recusa mantém a entrada.
 
-Cada entrada tem **Enviar Agora** e **Remover**. **Enviar Agora** envia imediatamente texto e Return ao programa atual, sem esperar pelo prompt. <kbd>Esc</kbd> ou o botão de fechar oculta a barra e preserva as entradas. Cada terminal tem sua própria fila; fechar a sessão ou sair do Zshell a descarta.
+Em **Ajustes → Terminal → Fila de prompts**, ative **Enviar prompts da fila automaticamente** para enviar a próxima entrada, em ordem, após um comando terminar e o zsh voltar a um prompt vazio. Ativar não executa a fila imediatamente: vale a partir do próximo término de comando. Desativar cancela envios pendentes.
+
+Desativar **Ativar fila de prompts** oculta todas as barras nos espaços de trabalho e no Quick Terminal, cancela envios e mantém entradas e texto não enviado. O menu e o atalho passam a abrir os ajustes correspondentes.
+
+**Remover** exclui uma entrada. Painéis estreitos mostram ícones com nomes e dicas. <kbd>Esc</kbd> ou fechar só oculta a barra. Cada terminal tem sua fila, descartada ao fechar a sessão ou o Zshell.
 
 ## Caminhos e URLs [#paths-and-urls]
 
@@ -139,7 +153,7 @@ As notificações podem tocar o som do sistema. Clicar ativa o Zshell e vai à s
 
 O mesmo histórico também está disponível em **Ajustes → Terminal → Notificações**.
 
-Abra **Notificações → Histórico de notificações…** para ver avisos recentes do terminal e dos agentes. Filtre por **Não lidas**, **Falhas** ou **Pendentes**. Clique em um aviso ou em **Mostrar painel** para selecionar o projeto, a aba e o painel atuais, inclusive em outra janela. Painéis fechados permanecem no histórico como indisponíveis.
+Abra **Terminal → Notificações → Histórico de notificações…** para ver avisos recentes do terminal e dos agentes. Filtre por **Não lidas**, **Falhas** ou **Pendentes**. Clique em um aviso ou em **Mostrar painel** para selecionar o projeto, a aba e o painel atuais, inclusive em outra janela. Painéis fechados permanecem no histórico como indisponíveis.
 
 Use **Marcar como lida**, **Marcar todas como lidas**, **Remover** ou **Limpar histórico**. A leitura não aprova solicitações de agentes. Avisos deixam de ser pendentes quando o agente retoma ou termina, o painel fecha ou a conexão remota fica indisponível. Os estados vêm de relatos explícitos do ciclo de vida e dos resultados de saída dos comandos. Os últimos 200 avisos permanecem após reiniciar, mesmo com a permissão de notificações do macOS desativada.
 

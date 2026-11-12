@@ -22,6 +22,10 @@ find, mouse reporting, notifications, and progress reports. A backend change
 applies to new terminals only—existing panes keep the emulator they started
 with.
 
+## Terminal type [#terminal-type]
+
+Choose **Settings → Terminal → TERM** to set `terminal.term` (default `"xterm-256color"`). The name must contain 1–128 ASCII letters, digits, or `.-_+`. Use a terminfo name installed on the machine running the shell. Changes apply to new local and SSH sessions only; open and preserved PTYs keep their original `TERM`. Shared remote sessions use the value when created with an updated server; older servers keep `xterm-256color`. Invalid edits retain the last valid value and show an error in Settings. This setting leaves `TERM_PROGRAM` and `ZSHELL_TERM` unchanged.
+
 ## Command history [#command-history]
 
 In **Settings → Terminal → History**, **Record command history** is on by default (`terminal.command-history = true`). Turning it off stops recording new commands; saved history remains available to view or clear. Terminal output and your shell’s own history are kept.
@@ -72,6 +76,12 @@ these permissions automatically.
 Enable **Settings → Terminal → Input → Focus follows mouse** to focus a terminal when the pointer enters it. It is off by default and works with both backends, including Quick Terminal. It does not take focus during a drag, from an editor, or while a menu or dialog is open.
 
 `terminal.focus-follows-mouse = true`
+
+## Right-click action [#right-click-action]
+
+In **Settings → Terminal → Input → Right-click action**, choose **Context Menu** (default), **Paste**, or **Copy or Paste**. The last choice copies the current selection and pastes only when nothing is selected. Changes apply immediately to both backends. Set `terminal.right-click-action` to `"context-menu"`, `"paste"`, or `"copy-or-paste"` in `config.toml`.
+
+**Shift-right-click**, **Control-click**, and **Command-right-click** still open the menu. **Edit → Show Terminal Context Menu** (<kbd>Shift</kbd>+<kbd>F10</kbd>) opens it from the keyboard. Applications using mouse reporting keep receiving ordinary right-clicks unless **Block Zshell Commands** is enabled for the pane. Paste uses the same multi-line confirmation and local or remote file handling as <kbd>Cmd</kbd>+<kbd>V</kbd>.
 
 ## Terminal profiles
 
@@ -154,17 +164,25 @@ choose **Toggle Prompt Queue** in the command palette. The bar opens below that
 terminal. Type an entry and press <kbd>Return</kbd> or **Add to Queue**; each
 entry is a single line, with pasted line breaks replaced by spaces.
 
-When the original zsh returns to an empty shell prompt, Zshell sends the next
-entry and presses Return. Entries run in queue order. Automatic sending waits
-while an agent or another foreground program owns the terminal, or while the
-shell prompt contains draft input. It requires Zshell's zsh integration; other
-shells and nested shells can use manual sending.
+Sending is manual by default. **Send Now** sends an entry only when the original
+zsh has an empty prompt and no pending or running command task owns the terminal.
+The button stays disabled while an agent or another foreground program is running,
+while the prompt contains draft input, or in other or nested shells. A failed send
+keeps the entry in the queue.
 
-Each entry has **Send Now** and **Remove** buttons. **Send Now** immediately
-sends the text and Return to the terminal's current program, without waiting
-for a shell prompt. <kbd>Esc</kbd> or the close button hides the bar and keeps
-the queued entries. Each terminal has its own queue; closing that session or
-quitting Zshell discards it.
+In **Settings → Terminal → Prompt Queue**, turn on **Send queued prompts
+automatically** to send the next entry when a command finishes and the original zsh
+returns to an empty prompt. Entries run in queue order. Enabling automatic sending
+does not immediately replay existing entries; it applies on the next command finish.
+Turning it off cancels pending sends and leaves the queue for **Send Now**.
+
+**Enable Prompt Queue** controls all workspaces and the Quick Terminal. Turning it
+off hides all queue bars, cancels pending sends, and keeps queued entries and unsent
+input. The menu command and shortcut open the relevant settings when disabled.
+
+Each entry also has a **Remove** button. Narrow panes show labeled action icons with
+tooltips. <kbd>Esc</kbd> or the close button hides the bar and keeps the queued entries.
+Each terminal has its own queue; closing that session or quitting Zshell discards it.
 
 ## Paths and URLs
 
@@ -212,7 +230,7 @@ terminal first tries to notify you, not when Zshell launches.
 
 The same history is available from **Settings → Terminal → Notifications**.
 
-Open **Notifications → Notification History…** to view recent terminal and agent
+Open **Terminal → Notifications → Notification History…** to view recent terminal and agent
 notifications. Choose **Unread**, **Failed**, or **Pending** to filter the list.
 Click a notification or choose **Show Pane** to select its current project, tab,
 and pane, including another window. A closed pane stays in history and is shown

@@ -24,6 +24,14 @@ Cliquez sur un fichier pour l'ouvrir dans le volet actif. Les autres actions son
 
 Les lignes utilisent des icônes Material adaptées aux noms de fichiers. Dans un dépôt Git, les chemins modifiés portent également des couleurs et des badges d'état, tandis que les fichiers ignorés sont atténués. L'arborescence reflète ainsi le même état de l'arbre de travail que le panneau Git.
 
+## Importer des fichiers et dossiers [#import-files-and-folders]
+
+Choisissez **Fichier → Importer des fichiers…**, le bouton d’importation du panneau Fichiers, ou cette commande dans le menu contextuel d’un dossier. Sélectionnez plusieurs fichiers ou dossiers : Zshell les copie dans le dossier choisi ou à la racine actuelle, en conservant les originaux.
+
+Pour déposer des éléments du Finder sur un dossier ou dans l’espace vide de l’arborescence, activez **Réglages → Éditeur → Fichiers → Importer en glissant dans l’arborescence** (`files.drag-import`). Cette option est désactivée par défaut ; le menu reste disponible.
+
+Les noms existants proposent **Remplacer**, **Ignorer** ou **Annuler**. Un dossier est remplacé entièrement, sans fusion de son contenu. Annuler arrête toute l’importation et restaure les copies déjà ajoutées. Si un autre programme modifie un élément avant sa restauration, Zshell préserve cette modification et indique un dossier pouvant contenir des fichiers de récupération. Les arborescences SSH n’acceptent pas d’importation locale. Les liens symboliques sont copiés comme liens, sans suivre leur cible.
+
 ## Trouver des fichiers et rechercher leur contenu [#find-files-and-search-contents]
 
 La palette de commandes (<kbd>Cmd</kbd>+<kbd>P</kbd>) recherche des fichiers par nom ou par chemin dans les projets locaux ouverts de la fenêtre actuelle, ainsi que des commandes et des sessions. Sélectionner un fichier active son projet et l'y ouvre.
@@ -56,6 +64,14 @@ Si un autre programme modifie le fichier pendant vos retouches, l’enregistreme
 <Callout type="info">
 Cet éditeur sert à la modification que vous examinez : corriger une faute, ajuster une constante ou lire un fichier cité dans un diff. Il ne propose ni serveur de langage, ni complétion, ni refactorisation à l'échelle du projet. Ce choix est volontaire.
 </Callout>
+
+## Récupérer les brouillons non enregistrés [#recover-unsaved-drafts]
+
+Zshell sauvegarde par défaut les modifications non enregistrées des fichiers locaux et des différences modifiables de l’arbre de travail. Après une fermeture inattendue, les panneaux rouverts retrouvent leurs brouillons, sélections et disposition. Pour les autres sauvegardes, ouvrez **Fichier → Récupérer les brouillons…** ou **Réglages → Éditeur → Récupérer les brouillons…**, choisissez une sauvegarde, vérifiez son contenu puis cliquez sur **Restaurer le brouillon**. La restauration ouvre un éditeur non enregistré sans modifier le fichier sur disque. L’enregistrement vérifie toujours les changements externes à partir de la version précédant vos modifications.
+
+Utilisez **Réglages → Éditeur → Sauvegarder les brouillons non enregistrés** ou `editor.recover-drafts`. La désactivation arrête les nouvelles sauvegardes et la récupération automatique, mais conserve les sauvegardes existantes pour une restauration ou une suppression manuelle. **Supprimer la sauvegarde** retire uniquement la sauvegarde sélectionnée ; les modifications ouvertes restent. Un enregistrement réussi ou **Ne pas enregistrer** lors d’une fermeture terminée retire la sauvegarde. Ces fichiers privés restent sur ce Mac, avec une limite de 32 brouillons et 128 MiB, récupérables pendant 30 jours au maximum. Les limites de capacité peuvent supprimer les anciennes sauvegardes plus tôt. Les fichiers et textes modifiés de plus de 5 MiB sont exclus.
+
+Zshell supprime les sauvegardes expirées au démarrage et toutes les heures pendant son exécution, même si les sauvegardes sont désactivées. Si Zshell est fermé, les fichiers expirés restent sur le disque jusqu’au prochain lancement.
 
 ## Aperçu Markdown [#markdown-preview]
 

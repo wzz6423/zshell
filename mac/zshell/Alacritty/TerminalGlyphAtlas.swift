@@ -42,6 +42,11 @@ final class TerminalGlyphAtlas {
         let italic: Bool
     }
 
+    private struct GlyphKey: Hashable {
+        let font: CTFont
+        let glyph: CGGlyph
+    }
+
     /// Where a glyph lives in the atlas, and how to place it in its cell.
     struct Entry {
         let page: Int
@@ -68,6 +73,7 @@ final class TerminalGlyphAtlas {
     private var dimension: Int
     private var scale: CGFloat
     private var entries: [Key: Entry] = [:]
+    private var glyphEntries: [GlyphKey: Entry] = [:]
 
     private struct Page {
         let texture: MTLTexture
@@ -116,6 +122,9 @@ final class TerminalGlyphAtlas {
         guard metrics.cellWidth != self.metrics.cellWidth
             || metrics.cellHeight != self.metrics.cellHeight
             || metrics.regular != self.metrics.regular
+            || metrics.bold != self.metrics.bold
+            || metrics.italic != self.metrics.italic
+            || metrics.boldItalic != self.metrics.boldItalic
             || metrics.fontThicken != self.metrics.fontThicken
             || metrics.fontThickenStrength != self.metrics.fontThickenStrength
             || scale != self.scale
@@ -156,6 +165,7 @@ final class TerminalGlyphAtlas {
         pages = [Page(texture: texture)]
         self.dimension = dimension
         entries.removeAll()
+        glyphEntries.removeAll()
         needsRebuild = false
         rebuildingVisibleGlyphs = false
         generation &+= 1
@@ -170,6 +180,30 @@ final class TerminalGlyphAtlas {
         else { return nil }
         entries[key] = rasterized
         return rasterized
+    }
+
+    func entry(for glyph: CGGlyph, font: CTFont) -> Entry? {
+        let key = GlyphKey(font: font, glyph: glyph)
+        if let cached = glyphEntries[key] { return cached }
+        guard !needsRebuild else { return nil }
+        var glyph = glyph
+        let isColor = CTFontGetSymbolicTraits(font).rawValue & (1 << 13) != 0
+        var bounds = CTFontGetBoundingRectsForGlyphs(font, .horizontal, &glyph, nil, 1)
+        let strokeWidth = metrics.fontThicken && !isColor
+            ? CTFontGetSize(font) * (0.5 + CGFloat(min(max(metrics.fontThickenStrength, 0), 255)) / 255 * 1.5) / 100 : 0
+        if strokeWidth > 0 { bounds = bounds.insetBy(dx: -strokeWidth, dy: -strokeWidth) }
+        guard let entry = rasterize(bounds: bounds, isColor: isColor, draw: { context in
+            context.setFillColor(NSColor.white.cgColor)
+            if strokeWidth > 0 {
+                context.setStrokeColor(NSColor.white.cgColor)
+                context.setLineWidth(strokeWidth)
+                context.setTextDrawingMode(.fillStroke)
+            }
+            var position = CGPoint.zero
+            CTFontDrawGlyphs(font, &glyph, &position, 1, context)
+        }) else { return nil }
+        glyphEntries[key] = entry
+        return entry
     }
 
     // MARK: - Rasterization
@@ -198,6 +232,12 @@ final class TerminalGlyphAtlas {
             line = CTLineCreateWithAttributedString(attributed)
         }
         let bounds = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
+        return rasterize(bounds: bounds, isColor: isColor) { context in
+            CTLineDraw(line, context)
+        }
+    }
+
+    private func rasterize(bounds: CGRect, isColor: Bool, draw: (CGContext) -> Void) -> Entry? {
         guard bounds.width > 0, bounds.height > 0 else { return nil }
 
         // A pixel of bleed on each side keeps linear sampling from picking up
@@ -239,7 +279,9 @@ final class TerminalGlyphAtlas {
         // Draw relative to the glyph's own bounds so the bearing below is the
         // only thing that positions it in the cell.
         context.textPosition = CGPoint(x: -bounds.minX + padding, y: -bounds.minY + padding)
-        CTLineDraw(line, context)
+        context.translateBy(x: context.textPosition.x, y: context.textPosition.y)
+        context.textPosition = .zero
+        draw(context)
 
         pages[origin.page].texture.replace(
             region: MTLRegionMake2D(origin.x, origin.y, pixelWidth, pixelHeight),

@@ -263,11 +263,14 @@ cargo test --locked --manifest-path remote/Cargo.toml
 cargo build --locked --manifest-path remote/Cargo.toml
 python3 remote/tests/test_cli.py --binary remote/target/debug/zshell-server
 python3 remote/tests/test_agents.py --binary remote/target/debug/zshell-server
+python3 -B remote/tests/test_tailscale_lookup.py --binary remote/target/debug/zshell-server
 ```
 
 The CLI probe uses temporary state, real PTYs and the production stdio bridge.
 An isolated Linux root run with `--require-other-uid` additionally proves rejection
 of a different UID even if the socket's filesystem permissions allow connecting.
+The Tailscale lookup probe uses private fake CLIs to check the five-second
+deadline, output limits, and inherited pipes without opening a network listener.
 The macOS app surface probe is documented in `mac/tests/test_remote_session_surfaces.py`.
 
 ### Fork an Agent conversation

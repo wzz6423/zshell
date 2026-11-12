@@ -24,6 +24,14 @@ Fai clic su un file per aprirlo nel pannello attivo. Il clic destro offre il res
 
 Le righe usano icone Material in base al nome del file. Nei repository Git, i percorsi modificati mostrano anche colori e indicatori di stato, mentre i file ignorati sono attenuati. L'albero riflette così lo stesso worktree del pannello Git senza aprirlo.
 
+## Importare file e cartelle [#import-files-and-folders]
+
+Scegli **File → Importa file…**, il pulsante di importazione nel pannello File o la voce del menu contestuale di una cartella. Puoi selezionare più file o cartelle: Zshell li copia nella cartella scelta o nella radice corrente dell’albero, conservando gli originali.
+
+Per rilasciare elementi del Finder su una cartella o nell’area vuota dell’albero, abilita **Impostazioni → Editor → File → Importa trascinando nell’albero dei file** (`files.drag-import`). L’opzione è disattivata per impostazione predefinita; il menu rimane disponibile.
+
+In caso di nomi esistenti puoi **Sostituire**, **Ignorare** o **Annullare**. Una cartella viene sostituita interamente, senza unire i contenuti. Annullare interrompe tutta l’importazione e ripristina le copie già aggiunte. Se un altro programma modifica un elemento prima del ripristino, Zshell conserva la modifica e indica una cartella che potrebbe contenere file di recupero. Gli alberi SSH non accettano importazioni locali. I collegamenti simbolici vengono copiati come collegamenti, senza seguirne la destinazione.
+
 ## Trovare file e cercare nei contenuti [#find-files-and-search-contents]
 
 La palette (<kbd>Cmd</kbd>+<kbd>P</kbd>) trova file per nome o percorso tra i progetti locali aperti nella finestra corrente, insieme a comandi e sessioni. Selezionare un file passa al suo progetto e lo apre lì.
@@ -56,6 +64,14 @@ Se un altro programma cambia il file durante la modifica, il salvataggio apre un
 <Callout type="info">
 Questo editor serve alla modifica che stai già esaminando: correggere un refuso, cambiare una costante o leggere un file citato nel diff. Non include server di linguaggio, completamento o refactoring dell'intero progetto. È intenzionale.
 </Callout>
+
+## Recuperare bozze non salvate [#recover-unsaved-drafts]
+
+Zshell esegue per impostazione predefinita il backup delle modifiche non salvate ai file locali e ai diff modificabili dell’albero di lavoro. Dopo un’uscita imprevista, i pannelli riaperti ripristinano bozze, selezioni e disposizione. Per altri backup apri **File → Recupera bozze…** o **Impostazioni → Editor → Recupera bozze…**, seleziona un backup, controlla il contenuto e scegli **Ripristina bozza**. Il ripristino apre un editor non salvato e non modifica il file sul disco. Il salvataggio controlla ancora le modifiche esterne rispetto alla versione precedente alle tue modifiche.
+
+Controlla i backup in **Impostazioni → Editor → Esegui il backup delle bozze non salvate** o con `editor.recover-drafts`. Disattivandolo si interrompono nuovi backup e recupero automatico, ma quelli esistenti restano disponibili per ripristino o eliminazione manuale. **Elimina backup** rimuove solo il backup selezionato e mantiene le modifiche aperte. Un salvataggio riuscito o **Non salvare** al termine della chiusura rimuove il backup. I file privati restano su questo Mac, limitati a 32 bozze e 128 MiB e recuperabili per un massimo di 30 giorni. I limiti di capacità possono eliminare prima i backup più vecchi. File e testo modificato oltre 5 MiB sono esclusi.
+
+Zshell elimina i backup scaduti all’avvio e ogni ora durante l’esecuzione, anche con i backup disattivati. Se Zshell è chiuso, i file scaduti restano sul disco fino al successivo avvio.
 
 ## Anteprima Markdown [#markdown-preview]
 

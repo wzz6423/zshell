@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import Combine
 import Darwin
 import GhosttyTerminal
 
@@ -31,6 +32,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     var commandRecordState = TerminalCommandRecords()
     var lastCommandRevision: UInt64?
     var ghosttyController: TerminalController?
+    var scrollSettingsObservation: AnyCancellable?
     private(set) var logContentRevision: UInt64 = 0
     var findMatchesNewestFirst: Bool { true }
 
@@ -38,6 +40,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     /// The `/bin/sh -c …` line this surface launched, kept so a live
     /// re-configure can restate it rather than start a second shell.
     var launchCommand = ""
+    var launchTerm = TerminalLaunchSettings.defaultTerm
     /// The final login shell behind Zshell's `/bin/sh -c` launch shim.
     var launchShellIntegration = "none"
     var supportsInputSelection = false
@@ -51,8 +54,11 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     private var pointerSelectionDragged = false
     private var aiInputPointerActive = false
     private var isForwardingRightMouseButton = false
+    private var isContextualLeftClick = false
     private var selectionAutoscrollTimer: Timer?
     private var selectionAutoscrollModifierFlags: NSEvent.ModifierFlags = []
+    private var horizontalWheelScroll = TerminalScrollAccumulator()
+    private var horizontalTrackpadScroll = TerminalScrollAccumulator()
     private lazy var aiInputEditor = TerminalAIInputEditor(
         readSnapshot: { [weak self] in self?.aiInputContext()?.snapshot },
         sendControl: { [weak self] in self?.sendAIInputControl($0) },
@@ -213,6 +219,10 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         performBindingAction("text:\\x0d")
     }
 
+    func sendPromptQueueEnter() {
+        performBindingAction("text:\\x1b[27;9;13~")
+    }
+
     func sendPaste(_ text: String) {
         sendText(text)
     }
@@ -307,19 +317,49 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
         return TerminalViewportSnapshot(rows: rows, columns: columns, origin: origin, cellSize: cellSize)
     }
 
+    override func scrollWheel(with event: NSEvent) {
+        guard let grid = viewportGridMetrics, grid.cellHeightPixels > 0, grid.cellWidthPixels > 0 else { return }
+        let precise = event.hasPreciseScrollingDeltas
+        let settings = AppSettings.shared
+        let multiplier = TerminalScrollSettings.validMultiplier(
+            precise ? settings.trackpadScrollMultiplier : settings.mouseScrollMultiplier
+        )
+        let maximum = Double(TerminalScrollSettings.maximumApplicationLines)
+        // Ghostty normalizes discrete vertical ticks before its native multiplier.
+        let verticalLimit = precise
+            ? maximum * Double(grid.cellHeightPixels) / multiplier
+            : maximum / (TerminalScrollSettings.ghosttyWheelMultiplier * multiplier)
+        let y = TerminalScrollSettings.boundedDelta(event.scrollingDeltaY, limit: verticalLimit)
+        let x: Double
+        if precise {
+            let columns = horizontalTrackpadScroll.consume(
+                event.scrollingDeltaX / Double(grid.cellWidthPixels), multiplier: multiplier,
+                limit: TerminalScrollSettings.maximumApplicationLines
+            )
+            x = Double(columns) * Double(grid.cellWidthPixels)
+        } else {
+            // The native horizontal path rounds each tick and has no multiplier.
+            x = Double(horizontalWheelScroll.consume(
+                event.scrollingDeltaX.rounded(), multiplier: multiplier,
+                limit: TerminalScrollSettings.maximumApplicationLines
+            ))
+        }
+        let momentum: TerminalScrollModifiers.Momentum
+        if event.momentumPhase.contains(.began) { momentum = .began }
+        else if event.momentumPhase.contains(.stationary) { momentum = .stationary }
+        else if event.momentumPhase.contains(.changed) { momentum = .changed }
+        else { momentum = .none }
+        sendMouseScroll(x: x, y: y, modifiers: TerminalScrollModifiers(precision: precise, momentum: momentum))
+    }
+
     func sendApplicationScroll(lines: Int) -> Bool {
-        guard lines != 0,
-              let cgEvent = CGEvent(
-                scrollWheelEvent2Source: nil,
-                units: .line,
-                wheelCount: 1,
-                wheel1: Int32(clamping: lines),
-                wheel2: 0,
-                wheel3: 0
-              ),
-              let event = NSEvent(cgEvent: cgEvent)
-        else { return false }
-        super.scrollWheel(with: event)
+        guard lines != 0, let grid = viewportGridMetrics, grid.cellHeightPixels > 0 else { return false }
+        // Automation's existing three-row wheel ticks must not inherit device preferences.
+        let limit = TerminalScrollSettings.maximumApplicationLines
+        let rows = Double(min(max(lines, -limit), limit)) * TerminalScrollSettings.ghosttyWheelMultiplier
+        let multiplier = TerminalScrollSettings.validMultiplier(AppSettings.shared.trackpadScrollMultiplier)
+        let delta = rows * Double(grid.cellHeightPixels) / multiplier
+        sendMouseScroll(x: 0, y: delta, modifiers: TerminalScrollModifiers(precision: true))
         return true
     }
 
@@ -494,6 +534,12 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func mouseDown(with event: NSEvent) {
+        isContextualLeftClick = event.modifierFlags.contains(.control)
+        if isContextualLeftClick {
+            focusForInteraction()
+            TerminalContextMenu.show(for: self, event: event, linkTarget: linkTarget(for: event))
+            return
+        }
         stopSelectionAutoscroll()
         selectionAutoscrollModifierFlags = []
         inputSelectionDragActive = false
@@ -517,6 +563,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func mouseDragged(with event: NSEvent) {
+        guard !isContextualLeftClick else { return }
         guard !suppressPointerEventsUntilMouseDown else { return }
         pointerSelectionDragged = true
         selectionAutoscrollModifierFlags = event.modifierFlags
@@ -533,6 +580,10 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if isContextualLeftClick {
+            isContextualLeftClick = false
+            return
+        }
         guard !suppressPointerEventsUntilMouseDown else { return }
         finishPointerSelection(with: event, copyOnSelect: true)
     }
@@ -882,11 +933,7 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
             return
         }
         isForwardingRightMouseButton = false
-        NSMenu.popUpContextMenu(
-            TerminalContextMenu.make(for: self, linkTarget: linkTarget(for: event)),
-            with: event,
-            for: self
-        )
+        TerminalContextMenu.handleRightClick(for: self, event: event, linkTarget: linkTarget(for: event))
     }
 
     override func rightMouseUp(with event: NSEvent) {
@@ -901,9 +948,15 @@ final class ZshellTerminalView: AppTerminalView, TerminalBackendSurface {
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
-        guard !shouldForwardRightMouse(event) else { return nil }
+        guard event.type == .leftMouseDown && event.modifierFlags.contains(.control)
+            || !shouldForwardRightMouse(event) else { return nil }
         focusForInteraction()
         return TerminalContextMenu.make(for: self, linkTarget: linkTarget(for: event))
+    }
+
+    @objc func showTerminalContextMenu(_ sender: Any?) {
+        focusForInteraction()
+        TerminalContextMenu.show(for: self)
     }
 
     private func shouldForwardRightMouse(_ event: NSEvent) -> Bool {

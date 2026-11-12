@@ -144,16 +144,11 @@ lower priority and never counts as a result or approval.
 
 ## Account usage and limits
 
-**Settings → Automation → Account Usage** shows available account limits for
-Claude Code and Codex, including the used percentage, reset time when reported,
-and the time of the last update. Use **Refresh Usage** to reload the latest
-available data.
+**Settings → Automation → Account Usage** always offers **Read account usage**, **Read Claude Code usage**, and **Read Codex usage**. Account usage is off by default; each provider choice starts on and only takes effect while the main switch is on. Changes apply immediately, and switching the main setting off preserves your provider choices.
 
-Codex needs an installed, signed-in CLI that can report account limits. Claude
-Code usage appears when Zshell has received a status-line usage report from
-the provider. The section only appears when usage data is available;
-supported windows depend on the provider and account. These are account limits,
-not a token total for the focused session.
+Enable the providers you want to read local CLI account limits. Codex uses an installed, signed-in CLI; Claude Code uses status-line usage reports received by Zshell. Zshell does not collect sign-in credentials, install a CLI, or sign you in when you enable usage. These are account limits, not a token total for the focused session.
+
+**Refresh Usage** reloads enabled providers. The section shows loading, unavailable, and last available data when a refresh fails. Turning usage or a provider off stops its reads, cancels pending requests, hides its data, and rejects disabled Claude usage reports without writing a usage file. It does not change agent recognition, lifecycle status, or conversation restoration.
 
 ## A typical workflow
 
@@ -201,7 +196,7 @@ No verified identity, a missing working directory, or an unavailable Pi file ope
 
 ## Find and resume saved conversations [#saved-conversation-history]
 
-Open **Agents → Agent Conversation History**, click the clock button at the top of the project sidebar. Search across projects by title, provider, project, conversation ID, working directory, or configuration directory. Zshell keeps the newest 200 verified local conversations after agents and panes exit and across app restarts. **Recent** shows 20 unarchived matches; **All** includes archived records; **Archived** shows only archived records.
+Open **Terminal → Agents → Agent Conversation History**, click the clock button at the top of the project sidebar. Search across projects by title, provider, project, conversation ID, working directory, or configuration directory. Zshell keeps the newest 200 verified local conversations after agents and panes exit and across app restarts. **Recent** shows 20 unarchived matches; **All** includes archived records; **Archived** shows only archived records.
 
 Select **Show Conversation** for an open conversation or **Resume Conversation** for a saved one. Zshell reuses an open pane, reconnects a surviving PTY, or starts the provider's exact conversation with its original directory and configuration. Manual resume requires AI integration, even when automatic conversation restoration is off. Missing working or configuration directories and missing or mismatched Pi files show an error before a new pane is created.
 
@@ -276,4 +271,4 @@ creation in the destination project.
 
 ## Fork a conversation [#fork-a-conversation]
 
-Open **Agents → Agent Conversation History**, select a conversation, then choose **Fork Conversation in New Pane** from its context menu or the branch button. Zshell uses the provider’s native fork to preserve its conversation context in an independent new conversation; the source pane and saved conversation remain unchanged. Codex, Claude Code, OpenCode and Pi require a CLI version with native fork support; Pi also requires its saved session file. Remote conversations use the same action through an updated Zshell server. A missing or older CLI is rejected before creating a pane. If sign-in or a native hook prevents confirmation, check the new pane’s output before continuing. From a Zshell pane, `zshell +agent fork --id UUID [--focus]` uses that pane’s project. External terminals also require `--project UUID`, as with resume.
+Open **Terminal → Agents → Agent Conversation History**, select a conversation, then choose **Fork Conversation in New Pane** from its context menu or the branch button. Zshell uses the provider’s native fork to preserve its conversation context in an independent new conversation; the source pane and saved conversation remain unchanged. Codex, Claude Code, OpenCode and Pi require a CLI version with native fork support; Pi also requires its saved session file. Remote conversations use the same action through an updated Zshell server. A missing or older CLI is rejected before creating a pane. If sign-in or a native hook prevents confirmation, check the new pane’s output before continuing. From a Zshell pane, `zshell +agent fork --id UUID [--focus]` uses that pane’s project. External terminals also require `--project UUID`, as with resume.

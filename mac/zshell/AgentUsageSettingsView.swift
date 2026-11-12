@@ -49,8 +49,8 @@ final class AgentUsageSettingsView: NSView {
 
     func apply(claude: AgentUsageProviderState, codex: AgentUsageProviderState) {
         let states = [claude, codex].filter { state in
-            if case .available = state.availability { return true }
-            return false
+            if case .disabled = state.availability { return false }
+            return true
         }
         NSLayoutConstraint.deactivate(providerWidthConstraints)
         providerWidthConstraints.removeAll(keepingCapacity: true)
@@ -92,7 +92,7 @@ final class AgentUsageSettingsView: NSView {
 private final class AgentUsageProviderView: NSView {
     private let kind: ZshellAgentKind
     private let titleLabel = NSTextField(labelWithString: "")
-    private let statusLabel = NSTextField(labelWithString: "")
+    private let statusLabel = NSTextField(wrappingLabelWithString: "")
     private let detailStack = NSStackView()
 
     init(kind: ZshellAgentKind) {
@@ -103,20 +103,14 @@ private final class AgentUsageProviderView: NSView {
         titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
         statusLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         statusLabel.textColor = .secondaryLabelColor
-        statusLabel.alignment = .right
-
-        let header = NSStackView(views: [titleLabel, statusLabel])
-        header.orientation = .horizontal
-        header.alignment = .firstBaseline
-        header.distribution = .fill
-        titleLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        statusLabel.setContentHuggingPriority(.required, for: .horizontal)
+        statusLabel.maximumNumberOfLines = 0
+        statusLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         detailStack.orientation = .vertical
         detailStack.alignment = .leading
         detailStack.spacing = 5
 
-        let stack = NSStackView(views: [header, detailStack])
+        let stack = NSStackView(views: [titleLabel, statusLabel, detailStack])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 7
@@ -144,19 +138,58 @@ private final class AgentUsageProviderView: NSView {
             $0.removeFromSuperview()
         }
 
-        guard case .available(let snapshot) = state.availability else { return }
-        statusLabel.stringValue = state.isRefreshing
-            ? String(localized: "Refreshing…")
-            : Self.updatedLabel(snapshot.updatedAt)
-        for window in snapshot.windows {
-            addWindow(window)
+        switch state.availability {
+        case .disabled:
+            statusLabel.stringValue = ""
+        case .waiting:
+            statusLabel.stringValue = String(localized: "Refreshing…")
+        case .unavailable(let issue):
+            statusLabel.stringValue = state.isRefreshing
+                ? String(localized: "Refreshing…") : Self.issueLabel(issue)
+        case .available(let snapshot):
+            statusLabel.stringValue = state.isRefreshing
+                ? String(localized: "Refreshing…") : Self.updatedLabel(snapshot.updatedAt)
+            snapshot.windows.forEach(addWindow)
+        case .stale(let snapshot, let issue):
+            statusLabel.stringValue = state.isRefreshing
+                ? String(localized: "Refreshing…") : String(localized: "Last available usage")
+            let reason = NSTextField(wrappingLabelWithString: Self.issueLabel(issue))
+            reason.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+            reason.textColor = .secondaryLabelColor
+            detailStack.addArrangedSubview(reason)
+            reason.widthAnchor.constraint(equalTo: detailStack.widthAnchor).isActive = true
+            let updated = NSTextField(wrappingLabelWithString: Self.updatedLabel(snapshot.updatedAt))
+            updated.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+            updated.textColor = .tertiaryLabelColor
+            detailStack.addArrangedSubview(updated)
+            updated.widthAnchor.constraint(equalTo: detailStack.widthAnchor).isActive = true
+            snapshot.windows.forEach(addWindow)
         }
     }
 
     private func addWindow(_ window: AgentUsageWindow) {
-        let label = NSTextField(labelWithString: Self.windowTitle(window))
+        let label = NSTextField(wrappingLabelWithString: Self.windowTitle(window))
         label.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         label.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let percent = NSTextField(wrappingLabelWithString: String(
+            localized: "\(Int(window.usedPercent.rounded()))% used",
+            comment: "Account limit usage percentage"
+        ))
+        percent.font = .monospacedDigitSystemFont(
+            ofSize: NSFont.smallSystemFontSize,
+            weight: .regular
+        )
+        percent.setContentHuggingPriority(.required, for: .horizontal)
+        percent.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let labels = NSStackView(views: [label, percent])
+        labels.orientation = .horizontal
+        labels.alignment = .firstBaseline
+        labels.spacing = 8
+        detailStack.addArrangedSubview(labels)
+        labels.widthAnchor.constraint(equalTo: detailStack.widthAnchor).isActive = true
 
         let progress = NSProgressIndicator()
         progress.style = .bar
@@ -165,35 +198,29 @@ private final class AgentUsageProviderView: NSView {
         progress.maxValue = 100
         progress.doubleValue = min(max(window.usedPercent, 0), 100)
         progress.controlSize = .small
-        progress.widthAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
-
-        let percent = NSTextField(labelWithString: String(
-            localized: "\(Int(window.usedPercent.rounded()))% used",
-            comment: "Account limit usage percentage"
-        ))
-        percent.font = .monospacedDigitSystemFont(
-            ofSize: NSFont.smallSystemFontSize,
-            weight: .regular
-        )
-        percent.alignment = .right
-        percent.setContentHuggingPriority(.required, for: .horizontal)
-
-        let row = NSStackView(views: [label, progress, percent])
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 8
-        row.distribution = .fill
-        detailStack.addArrangedSubview(row)
-        row.widthAnchor.constraint(equalTo: detailStack.widthAnchor).isActive = true
+        detailStack.addArrangedSubview(progress)
+        progress.widthAnchor.constraint(equalTo: detailStack.widthAnchor).isActive = true
 
         if let reset = window.resetsAt {
-            let resetLabel = NSTextField(labelWithString: String(
+            let resetLabel = NSTextField(wrappingLabelWithString: String(
                 localized: "Resets \(reset.formatted(date: .abbreviated, time: .shortened))",
                 comment: "Time when an account usage window resets"
             ))
             resetLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
             resetLabel.textColor = .tertiaryLabelColor
             detailStack.addArrangedSubview(resetLabel)
+            resetLabel.widthAnchor.constraint(equalTo: detailStack.widthAnchor).isActive = true
+        }
+    }
+
+    private static func issueLabel(_ issue: AgentUsageIssue) -> String {
+        switch issue {
+        case .cliMissing: String(localized: "Codex CLI is not installed.")
+        case .notSignedIn: String(localized: "Codex CLI is not signed in.")
+        case .noClaudeSession: String(localized: "No Claude Code status-line usage report is available.")
+        case .noLimits: String(localized: "No current account limits were reported.")
+        case .timedOut: String(localized: "The usage request timed out. Try refreshing.")
+        case .invalidResponse, .failed: String(localized: "Usage could not be read. Try refreshing.")
         }
     }
 
