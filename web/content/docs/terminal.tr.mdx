@@ -16,6 +16,10 @@ Her terminal bölmesi gerçek giriş kabuğunuzu ve GPU hızlandırmalı iki yer
 
 İkisi de GPU hızlandırma, görüntü oluşturma, Zshell’in ortak tema kataloğu, arama, fare raporlama, bildirim ve ilerleme raporlarını destekler. Değişim yalnızca yeni terminallere uygulanır; mevcut bölmeler başladıkları emülatörü korur.
 
+## Terminal türü [#terminal-type]
+
+**Ayarlar → Terminal → TERM** altında `terminal.term` değerini ayarlayın (varsayılan `"xterm-256color"`). Ad, 1–128 ASCII harfi, rakam veya `.-_+` içermelidir. Shell’in çalıştığı ana bilgisayarda yüklü bir terminfo adı kullanın. Değişiklikler yalnızca yeni yerel ve SSH oturumlarına uygulanır; açık ve korunan PTY’ler özgün `TERM` değerini korur. Paylaşılan uzak oturumlar güncel sunucuda oluşturulurken bu değeri kullanır; eski sunucular `xterm-256color` kullanmaya devam eder. Geçersiz düzenlemeler son geçerli değeri korur ve Ayarlar’da hata gösterir. `TERM_PROGRAM` ve `ZSHELL_TERM` değişmez.
+
 ## Komut geçmişi [#command-history]
 
 **Ayarlar → Terminal → Geçmiş** içindeki **Komut geçmişini kaydet** varsayılan olarak açıktır (`terminal.command-history = true`). Kapatmak yeni komutların kaydını durdurur; kayıtlı geçmiş görüntülenebilir veya temizlenebilir. Terminal çıktısı ve kabuğun kendi geçmişi korunur.

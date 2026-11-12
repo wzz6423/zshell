@@ -185,6 +185,10 @@ Chọn chương trình và vector đối số dùng cho terminal tạo từ sau 
 
 `terminal.startup-arguments` được tách đối số không gọi shell. Dấu nháy và gạch chéo ngược giữ ranh giới, kể cả khoảng trắng và đối số rỗng; biến, glob và thay thế lệnh không được mở rộng. Nháy không hợp lệ cũng trở về shell đăng nhập. argv được CLI Zshell đưa rõ vẫn ưu tiên cho terminal đó.
 
+### `terminal.term`
+
+Đặt `terminal.term` trong **Cài đặt → Terminal → TERM** (mặc định `"xterm-256color"`). Tên phải gồm 1–128 chữ cái ASCII, chữ số hoặc `.-_+`. Dùng tên terminfo đã cài trên máy chạy shell. Thay đổi chỉ áp dụng cho phiên cục bộ và SSH mới; các PTY đang mở và được giữ lại vẫn giữ `TERM` ban đầu. Phiên từ xa dùng chung sử dụng giá trị này khi tạo trên máy chủ đã cập nhật; máy chủ cũ vẫn dùng `xterm-256color`. Giá trị không hợp lệ khi khởi động sẽ dùng `xterm-256color`; chỉnh sửa không hợp lệ khi Zshell đang chạy sẽ giữ lại giá trị hợp lệ gần nhất. Cả hai trường hợp đều hiển thị lỗi trong Cài đặt. `TERM_PROGRAM` và `ZSHELL_TERM` không thay đổi.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — mặc định `"libghostty"`

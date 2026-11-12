@@ -92,6 +92,20 @@ struct SettingsReloadTests {
         let settings = AppSettings.shared
         let url = AppSettings.configURL
         check(url.path.hasPrefix(CommandLine.arguments[1]), "fixture config remains in disposable home")
+        if CommandLine.arguments.count > 2 {
+            let expectedInvalid = CommandLine.arguments[2] == "invalid-term"
+            check(settings.terminalTerm == "xterm-256color" && settings.terminalTermIsInvalid == expectedInvalid,
+                  "invalid startup TERM uses the default and recovered TERM stays valid after restart")
+            if expectedInvalid {
+                check(settings.setTerminalTerm("xterm-256color") && !settings.terminalTermIsInvalid,
+                      "accepting the startup fallback clears the error")
+                NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: nil)
+                check(TOML.parse(at: url)?["terminal.term"] == nil,
+                      "accepting the unchanged default removes the invalid startup value from disk")
+            }
+            print("SettingsReload: startup TERM state and persisted recovery passed (\(CommandLine.arguments[2]))")
+            return
+        }
         var changes = 0
         let observation = settings.objectWillChange.sink { changes += 1 }
         withExtendedLifetime(observation) {}
@@ -201,6 +215,35 @@ struct SettingsReloadTests {
         settings.applyImported(completionConfig)
         check(settings.shellCompletions, "import restores the completion preference")
         check(settings.isAtDefaults, "restored completions restore default state")
+        check(settings.terminalTerm == "xterm-256color", "missing TERM preserves the existing default")
+        check(settings.setTerminalTerm("screen-256color") && !settings.isAtDefaults,
+              "valid terminal type applies and enables reset")
+        let termConfig = settings.serializedConfig()
+        check(TOML.parseStrictly(text: termConfig).values["terminal.term"]?.string == "screen-256color",
+              "terminal type serializes without losing its identity")
+        for invalidTerm in ["", "xterm\nother", " xterm", "xterm ", "xterm/256", "xterm;echo", "xterm\0", "终端", String(repeating: "x", count: 129)] {
+            check(!settings.setTerminalTerm(invalidTerm) && settings.terminalTerm == "screen-256color"
+                  && settings.terminalTermIsInvalid, "invalid terminal type preserves the previous setting")
+            check(settings.serializedConfig() == termConfig, "invalid UI values never reach the saved file")
+            var invalidConfig = TOML.parseStrictly(text: termConfig).values
+            invalidConfig["terminal.term"] = .string(invalidTerm)
+            settings.applyImported(invalidConfig)
+            check(settings.terminalTerm == "screen-256color" && settings.terminalTermIsInvalid,
+                  "invalid imported terminal type retains the previous value and reports an error")
+        }
+        var wrongTypeConfig = TOML.parseStrictly(text: termConfig).values
+        wrongTypeConfig["terminal.term"] = .number(42)
+        settings.applyImported(wrongTypeConfig)
+        check(settings.terminalTerm == "screen-256color" && settings.terminalTermIsInvalid,
+              "wrong TOML type cannot erase the last valid terminal identity")
+        settings.applyImported(TOML.parseStrictly(text: termConfig).values)
+        check(settings.terminalTerm == "screen-256color" && !settings.terminalTermIsInvalid,
+              "exported terminal type imports through production settings")
+        check(settings.setTerminalTerm("A0.-_+") && settings.setTerminalTerm(String(repeating: "a", count: 128)),
+              "allowed ASCII punctuation and length boundary are supported")
+        settings.resetToDefaults()
+        check(settings.terminalTerm == "xterm-256color" && settings.isAtDefaults
+              && !settings.serializedConfig().contains("terminal.term"), "reset omits the default terminal type")
         settings.fileTreeDragImport = true
         check(!settings.isAtDefaults, "enabled file import enables reset")
         wait({ (try? String(contentsOf: url, encoding: .utf8))?.contains("files.drag-import = true") == true },
@@ -287,6 +330,7 @@ struct SettingsReloadTests {
         ai.codex-usage-enabled = false
         git.pull-request-status = false
         terminal.backend = "alacritty"
+        terminal.term = "screen-256color"
         terminal.startup-program = "/bin/zsh"
         terminal.startup-arguments = "-l"
         browser.content-blocking = false
@@ -312,6 +356,7 @@ struct SettingsReloadTests {
         check(settings.terminalProfiles.first?.launchSettings.environment["MODE"] == "profile",
               "profile launch settings round trip through config")
         let roundTrip = TOML.parseStrictly(text: imported).values
+        check(settings.terminalTerm == "screen-256color", "terminal type imports into production settings")
         check(settings.terminalCellWidth == 1.35, "column spacing imports into production settings")
         check(settings.fontFeatures == "ss01, zero=1" && !settings.fontLigatures,
               "font features compose with column spacing through import and reload")
@@ -352,6 +397,22 @@ struct SettingsReloadTests {
         wait({ settings.fontSize == 20 }, "external font edit applies")
         check(changes == unchanged + 1, "single setting edit publishes once")
         check(try SettingsConfigFile.read(at: url) == changed, "external update does not rewrite source")
+        let termChanged = changed.replacingOccurrences(of: "terminal.term = \"screen-256color\"", with: "terminal.term = \"vt100\"")
+        try termChanged.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalTerm == "vt100" }, "external terminal type edit applies")
+        let invalidTermEdit = termChanged.replacingOccurrences(of: "terminal.term = \"vt100\"", with: "terminal.term = \"xterm\\nother\"")
+        try invalidTermEdit.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalTermIsInvalid }, "invalid external terminal type reports an error")
+        check(settings.terminalTerm == "vt100", "invalid external terminal type preserves the last valid value")
+        check(try SettingsConfigFile.read(at: url) == invalidTermEdit, "invalid external TERM edit does not overwrite the user's buffer")
+        check(settings.setTerminalTerm("vt100") && !settings.terminalTermIsInvalid,
+              "accepting the unchanged terminal type clears the external edit error")
+        wait({ TOML.parse(at: url)?["terminal.term"]?.string == "vt100" },
+             "accepting the unchanged terminal type repairs the invalid file value")
+        try invalidTermEdit.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalTermIsInvalid }, "another invalid external TERM edit reports an error")
+        try changed.write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalTerm == "screen-256color" && !settings.terminalTermIsInvalid }, "valid external TERM clears the error")
         let enabledQueue = changed.replacingOccurrences(of: "terminal.prompt-queue-enabled = false", with: "terminal.prompt-queue-enabled = true")
             .replacingOccurrences(of: "terminal.prompt-queue-auto-dispatch = true", with: "terminal.prompt-queue-auto-dispatch = false")
         try enabledQueue.write(to: url, atomically: true, encoding: .utf8)
@@ -406,6 +467,8 @@ struct SettingsReloadTests {
         check(!settings.vimCommandHints && !settings.restoreTerminalHistory && !settings.notifyOnError,
               "empty existing config preserves the legacy omitted-key defaults")
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
+        check(settings.terminalTerm == "xterm-256color" && !settings.terminalTermIsInvalid,
+              "missing terminal type on reload restores the compatible default")
         check(settings.promptQueueEnabled && !settings.promptQueueAutoDispatch,
               "omitted queue settings restore explicit sending without automatic replay")
         check(settings.mouseScrollMultiplier == 1 && settings.trackpadScrollMultiplier == 1,

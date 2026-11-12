@@ -545,6 +545,12 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published private(set) var terminalTerm: String {
+        didSet { save() }
+    }
+
+    @Published private(set) var terminalTermIsInvalid = false
+
     /// Full executable path and argument text used by terminals opened after a
     /// settings change. An empty program keeps the account login shell.
     @Published var terminalStartupProgram: String {
@@ -717,6 +723,11 @@ final class AppSettings: nonisolated ObservableObject {
         claudeUsageEnabled = toml["ai.claude-usage-enabled"]?.bool ?? true
         codexUsageEnabled = toml["ai.codex-usage-enabled"]?.bool ?? true
         terminalBackend = TerminalBackend(persisted: toml["terminal.backend"]?.string)
+        let term = toml["terminal.term"]?.string
+        terminalTerm = term.flatMap { TerminalLaunchSettings.isValidTermName($0) ? $0 : nil }
+            ?? TerminalLaunchSettings.defaultTerm
+        terminalTermIsInvalid = toml["terminal.term"] != nil
+            && !TerminalLaunchSettings.isValidTermName(term ?? "")
         terminalStartupProgram = toml["terminal.startup-program"]?.string ?? ""
         terminalStartupArguments = toml["terminal.startup-arguments"]?.string ?? ""
         browserContentBlocking = toml["browser.content-blocking"]?.bool ?? true
@@ -881,6 +892,8 @@ final class AppSettings: nonisolated ObservableObject {
             && claudeUsageEnabled
             && codexUsageEnabled
             && terminalBackend == .fallback
+            && terminalTerm == TerminalLaunchSettings.defaultTerm
+            && !terminalTermIsInvalid
             && terminalStartupProgram.isEmpty
             && terminalStartupArguments.isEmpty
             && browserContentBlocking
@@ -947,6 +960,7 @@ final class AppSettings: nonisolated ObservableObject {
             }
         }
         terminalBackend = .fallback
+        setTerminalTerm(TerminalLaunchSettings.defaultTerm)
         terminalStartupProgram = ""
         terminalStartupArguments = ""
         terminalProfiles = []
@@ -1034,6 +1048,19 @@ final class AppSettings: nonisolated ObservableObject {
     func applyImported(_ toml: [String: TOML.Value]) {
         applyConfig(toml, defaultAIEnabled: aiEnabled)
         save()
+    }
+
+    @discardableResult
+    func setTerminalTerm(_ term: String) -> Bool {
+        guard TerminalLaunchSettings.isValidTermName(term) else {
+            assign(\.terminalTermIsInvalid, true)
+            return false
+        }
+        let needsSave = terminalTermIsInvalid && terminalTerm == term
+        assign(\.terminalTermIsInvalid, false)
+        assign(\.terminalTerm, term)
+        if needsSave { save() }
+        return true
     }
 
     private func assign<Value: Equatable>(
@@ -1184,6 +1211,8 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.claudeUsageEnabled, toml["ai.claude-usage-enabled"]?.bool ?? true)
         assign(\.codexUsageEnabled, toml["ai.codex-usage-enabled"]?.bool ?? true)
         assign(\.terminalBackend, TerminalBackend(persisted: toml["terminal.backend"]?.string))
+        setTerminalTerm(toml["terminal.term"] == nil
+            ? TerminalLaunchSettings.defaultTerm : toml["terminal.term"]?.string ?? "")
         assign(\.terminalStartupProgram, toml["terminal.startup-program"]?.string ?? "")
         assign(\.terminalStartupArguments, toml["terminal.startup-arguments"]?.string ?? "")
         assign(\.browserContentBlocking, toml["browser.content-blocking"]?.bool ?? true)
@@ -1436,6 +1465,9 @@ final class AppSettings: nonisolated ObservableObject {
         if !codexUsageEnabled { lines.append("ai.codex-usage-enabled = false") }
         if terminalBackend != .fallback {
             lines.append("terminal.backend = \(TOML.quote(terminalBackend.rawValue))")
+        }
+        if terminalTerm != TerminalLaunchSettings.defaultTerm {
+            lines.append("terminal.term = \(TOML.quote(terminalTerm))")
         }
         if !terminalStartupProgram.isEmpty {
             lines.append("terminal.startup-program = \(TOML.quote(terminalStartupProgram))")

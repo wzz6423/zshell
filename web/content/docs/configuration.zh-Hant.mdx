@@ -198,6 +198,10 @@ Zshell 在啟動時及執行期間每小時清理過期備份，關閉備份開�
 包括含空格和空字串的參數，但不會展開變數、通配符或指令替換。引號不完整時也會回退到
 登錄 Shell。Zshell CLI 為單個終端機顯式傳入的 argv 仍然優先。
 
+### `terminal.term`
+
+在 **設定 → 終端機 → TERM** 中設定 `terminal.term`（預設為 `"xterm-256color"`）。名稱必須由 1–128 個 ASCII 字母、數字或 `.-_+` 組成。請使用執行 shell 的主機上已安裝的 terminfo 名稱。修改僅適用於新建的本機與 SSH 階段作業；已開啟和保留的 PTY 維持原本的 `TERM`。共享遠端階段作業在更新後的伺服器上建立時使用此值；舊伺服器繼續使用 `xterm-256color`。啟動時遇到無效值會退回 `xterm-256color`；Zshell 執行期間的無效修改會保留上一個有效值。兩種情況都會在設定中顯示錯誤。此設定不會改變 `TERM_PROGRAM` 或 `ZSHELL_TERM`。
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"`——預設 `"libghostty"`

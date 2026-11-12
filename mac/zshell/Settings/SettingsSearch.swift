@@ -107,6 +107,8 @@ enum SettingsSearchIndex {
                 String(localized: "Login shell"), String(localized: "Custom program"),
                 String(localized: "Startup program"), String(localized: "Startup arguments"),
             ].joined(separator: " "), keywords: "terminal.startup-program terminal.startup-arguments"),
+            item(.terminal, "TERM", description: String(localized: "Terminal type for new sessions. Open and preserved sessions keep their TERM. Use a terminfo name available on the local or remote host."),
+                 keywords: "terminal.term terminfo xterm-256color terminal type identity startup"),
             item(.terminal, String(localized: "Workspace Templates…"), keywords: "workspace templates startup layout"),
             item(.terminal, String(localized: "Apply terminal profiles automatically"), section: profiles,
                  keywords: "terminal.auto-profiles automatic profiles detection"),

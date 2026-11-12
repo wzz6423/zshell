@@ -96,7 +96,9 @@ final class RemoteSessionConnection: ObservableObject {
         configuration = RemoteRelayConfiguration(
             host: host, project: directory, sessionID: sessionID, clientID: clientID,
             createIfMissing: createIfMissing, command: command,
-            environment: launchSettings.environment.filter { !TerminalLaunchSettings.isProtectedEnvironmentVariable($0.key) },
+            environment: launchSettings.environment.filter {
+                !TerminalLaunchSettings.isProtectedEnvironmentVariable($0.key)
+            }.merging(["TERM": AppSettings.shared.terminalTerm], uniquingKeysWith: { _, term in term }),
             initializationCommand: command == nil ? launchSettings.initializationCommand : nil,
             shellCompletions: AppSettings.shared.shellCompletions
         )

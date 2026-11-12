@@ -1,6 +1,220 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Terminal type for new sessions. Open and preserved sessions keep their TERM. Use a terminfo name available on the local or remote host.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminal type for new sessions. Open and preserved sessions keep their TERM. Use a terminfo name available on the local or remote host."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新会话使用的终端类型。已打开和保留的会话保持原来的 TERM。请使用本机或远端主机上可用的 terminfo 名称。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新階段作業使用的終端機類型。已開啟和保留的階段作業維持原本的 TERM。請使用本機或遠端主機上可用的 terminfo 名稱。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいセッションの端末タイプです。開いているセッションと保持されたセッションの TERM は変わりません。ローカルまたはリモートホストで利用できる terminfo 名を指定してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새 세션의 터미널 유형입니다. 열린 세션과 유지된 세션은 기존 TERM을 유지합니다. 로컬 또는 원격 호스트에서 사용 가능한 terminfo 이름을 사용하세요."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type de terminal des nouvelles sessions. Les sessions ouvertes et conservées gardent leur TERM. Utilisez un nom terminfo disponible sur l’hôte local ou distant."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminaltyp für neue Sitzungen. Offene und erhaltene Sitzungen behalten ihren TERM. Verwenden Sie einen auf dem lokalen oder entfernten Host verfügbaren terminfo-Namen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tipo de terminal para sesiones nuevas. Las sesiones abiertas y conservadas mantienen su TERM. Usa un nombre terminfo disponible en el equipo local o remoto."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tipo de terminal para novas sessões. Sessões abertas e preservadas mantêm seu TERM. Use um nome terminfo disponível no host local ou remoto."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tipo di terminale per le nuove sessioni. Le sessioni aperte e conservate mantengono il loro TERM. Usa un nome terminfo disponibile sull’host locale o remoto."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminaltype voor nieuwe sessies. Open en bewaarde sessies behouden hun TERM. Gebruik een terminfo-naam die op de lokale of externe host beschikbaar is."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Тип терминала для новых сеансов. Открытые и сохранённые сеансы сохраняют прежний TERM. Используйте имя terminfo, доступное на локальном или удалённом хосте."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نوع الطرفية للجلسات الجديدة. تحتفظ الجلسات المفتوحة والمحفوظة بقيمة TERM الحالية. استخدم اسم terminfo متاحًا على الجهاز المحلي أو البعيد."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ประเภทเทอร์มินัลสำหรับเซสชันใหม่ เซสชันที่เปิดอยู่และเก็บไว้จะคงค่า TERM เดิม ใช้ชื่อ terminfo ที่มีอยู่บนโฮสต์ภายในหรือระยะไกล"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jenis terminal untuk sesi baru. Sesi terbuka dan tersimpan mempertahankan TERM-nya. Gunakan nama terminfo yang tersedia di host lokal atau jarak jauh."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loại terminal cho phiên mới. Các phiên đang mở và được giữ lại vẫn giữ TERM của mình. Dùng tên terminfo có sẵn trên máy cục bộ hoặc từ xa."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni oturumlar için terminal türü. Açık ve korunan oturumlar mevcut TERM değerini korur. Yerel veya uzak ana bilgisayarda bulunan bir terminfo adı kullanın."
+          }
+        }
+      }
+    },
+    "Enter a terminal type with 1–128 ASCII letters, digits, or .-_+. The previous value is kept.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a terminal type with 1–128 ASCII letters, digits, or .-_+. The previous value is kept."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入 1–128 个 ASCII 字母、数字或 .-_+ 组成的终端类型。保留之前的值。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請輸入由 1–128 個 ASCII 字母、數字或 .-_+ 組成的終端機類型。保留先前的值。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末タイプは 1〜128 文字の ASCII 英字、数字、または .-_+ で入力してください。以前の値が保持されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1–128자의 ASCII 문자, 숫자 또는 .-_+로 터미널 유형을 입력하세요. 이전 값이 유지됩니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisissez un type de terminal de 1 à 128 lettres ASCII, chiffres ou .-_+. La valeur précédente est conservée."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geben Sie einen Terminaltyp mit 1–128 ASCII-Buchstaben, Ziffern oder .-_+ ein. Der vorherige Wert bleibt erhalten."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Introduce un tipo de terminal de 1 a 128 letras ASCII, dígitos o .-_+. Se mantiene el valor anterior."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insira um tipo de terminal com 1–128 letras ASCII, dígitos ou .-_+. O valor anterior é mantido."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inserisci un tipo di terminale con 1–128 lettere ASCII, cifre o .-_+. Il valore precedente viene mantenuto."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voer een terminaltype in met 1–128 ASCII-letters, cijfers of .-_+. De vorige waarde blijft behouden."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите тип терминала из 1–128 букв ASCII, цифр или .-_+. Предыдущее значение сохраняется."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أدخل نوع طرفية من 1 إلى 128 حرف ASCII أو رقمًا أو .-_+. تُحفظ القيمة السابقة."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ป้อนประเภทเทอร์มินัลที่ประกอบด้วยตัวอักษร ASCII ตัวเลข หรือ .-_+ จำนวน 1–128 ตัว โดยจะคงค่าเดิมไว้"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masukkan jenis terminal dengan 1–128 huruf ASCII, angka, atau .-_+. Nilai sebelumnya dipertahankan."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhập loại terminal gồm 1–128 chữ cái ASCII, chữ số hoặc .-_+. Giá trị trước đó được giữ lại."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1–128 ASCII harfi, rakam veya .-_+ içeren bir terminal türü girin. Önceki değer korunur."
+          }
+        }
+      }
+    },
     "Right-click action": {
       "extractionState": "manual",
       "localizations": {

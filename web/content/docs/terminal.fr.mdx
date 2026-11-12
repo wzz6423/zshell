@@ -16,6 +16,10 @@ Choisissez le moteur dans **Réglages → Terminal → Moteur** :
 
 Les deux prennent en charge l'accélération GPU, les images, le catalogue de thèmes commun de Zshell, la recherche, les événements de souris, les notifications et la progression. Un changement de moteur ne concerne que les nouveaux terminaux ; les volets existants conservent leur émulateur initial.
 
+## Type de terminal [#terminal-type]
+
+Définissez `terminal.term` dans **Réglages → Terminal → TERM** (par défaut `"xterm-256color"`). Le nom doit contenir de 1 à 128 lettres ASCII, chiffres ou `.-_+`. Utilisez un nom terminfo installé sur l’hôte qui exécute le shell. Les modifications s’appliquent seulement aux nouvelles sessions locales et SSH ; les PTY ouverts et conservés gardent leur `TERM`. Les sessions distantes partagées utilisent cette valeur à leur création avec un serveur à jour ; les anciens serveurs gardent `xterm-256color`. Une modification invalide conserve la dernière valeur valide et affiche une erreur dans Réglages. `TERM_PROGRAM` et `ZSHELL_TERM` restent inchangés.
+
 ## Historique des commandes [#command-history]
 
 Dans **Réglages → Terminal → Historique**, **Enregistrer l’historique des commandes** est activé par défaut (`terminal.command-history = true`). Le désactiver arrête les nouveaux enregistrements ; l’historique sauvegardé reste consultable et effaçable. La sortie du terminal et l’historique du shell sont conservés.

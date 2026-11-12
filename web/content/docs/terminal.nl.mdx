@@ -16,6 +16,10 @@ Kies een backend onder **Instellingen → Terminal → Backend**:
 
 Beide ondersteunen GPU-versnelling, afbeeldingen, de gedeelde themacatalogus van Zshell, zoeken, muisrapportage, meldingen en voortgangsrapportage. Een backendwijziging geldt alleen voor nieuwe terminals; bestaande deelvensters houden de emulator waarmee ze zijn gestart.
 
+## Terminaltype [#terminal-type]
+
+Stel `terminal.term` in via **Instellingen → Terminal → TERM** (standaard `"xterm-256color"`). De naam moet 1–128 ASCII-letters, cijfers of `.-_+` bevatten. Gebruik een terminfo-naam die is geïnstalleerd op de host waarop de shell draait. Wijzigingen gelden alleen voor nieuwe lokale en SSH-sessies; open en bewaarde PTY’s behouden hun oorspronkelijke `TERM`. Gedeelde externe sessies gebruiken de waarde bij aanmaak op een bijgewerkte server; oudere servers behouden `xterm-256color`. Ongeldige wijzigingen behouden de laatste geldige waarde en tonen een fout in Instellingen. `TERM_PROGRAM` en `ZSHELL_TERM` blijven ongewijzigd.
+
 ## Opdrachtgeschiedenis [#command-history]
 
 **Opdrachtgeschiedenis vastleggen** onder **Instellingen → Terminal → Geschiedenis** staat standaard aan (`terminal.command-history = true`). Uitschakelen stopt nieuwe registraties; opgeslagen geschiedenis blijft beschikbaar om te bekijken of te wissen. Terminaluitvoer en de eigen shellgeschiedenis blijven behouden.

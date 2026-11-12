@@ -22,6 +22,10 @@ find, mouse reporting, notifications, and progress reports. A backend change
 applies to new terminals only—existing panes keep the emulator they started
 with.
 
+## Terminal type [#terminal-type]
+
+Choose **Settings → Terminal → TERM** to set `terminal.term` (default `"xterm-256color"`). The name must contain 1–128 ASCII letters, digits, or `.-_+`. Use a terminfo name installed on the machine running the shell. Changes apply to new local and SSH sessions only; open and preserved PTYs keep their original `TERM`. Shared remote sessions use the value when created with an updated server; older servers keep `xterm-256color`. Invalid edits retain the last valid value and show an error in Settings. This setting leaves `TERM_PROGRAM` and `ZSHELL_TERM` unchanged.
+
 ## Command history [#command-history]
 
 In **Settings → Terminal → History**, **Record command history** is on by default (`terminal.command-history = true`). Turning it off stops recording new commands; saved history remains available to view or clear. Terminal output and your shell’s own history are kept.

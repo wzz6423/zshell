@@ -185,6 +185,10 @@ Choisissent l'exécutable et le vecteur d'arguments des terminaux créés ensuit
 
 `terminal.startup-arguments` est séparé en arguments sans passer par un shell. Guillemets et barres obliques inverses préservent leurs limites, y compris les espaces et arguments vides. Les variables, jokers et substitutions de commande ne sont pas développés. Des guillemets invalides provoquent aussi un repli vers le shell de connexion. Un argv fourni explicitement par la CLI Zshell reste prioritaire pour ce terminal.
 
+### `terminal.term`
+
+Définissez `terminal.term` dans **Réglages → Terminal → TERM** (par défaut `"xterm-256color"`). Le nom doit contenir de 1 à 128 lettres ASCII, chiffres ou `.-_+`. Utilisez un nom terminfo installé sur l’hôte qui exécute le shell. Les modifications s’appliquent seulement aux nouvelles sessions locales et SSH ; les PTY ouverts et conservés gardent leur `TERM`. Les sessions distantes partagées utilisent cette valeur à leur création avec un serveur à jour ; les anciens serveurs gardent `xterm-256color`. Une valeur invalide au démarrage utilise `xterm-256color` ; une modification invalide pendant l’exécution de Zshell conserve la dernière valeur valide. Dans les deux cas, une erreur s’affiche dans Réglages. `TERM_PROGRAM` et `ZSHELL_TERM` restent inchangés.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — valeur par défaut : `"libghostty"`
