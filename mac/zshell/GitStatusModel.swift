@@ -120,6 +120,8 @@ final class GitStatusModel: nonisolated ObservableObject {
         let parentHash: String?
         let references: [String]
         let files: [FileChange]
+        /// File records past the retained cap. Zero when every path is kept.
+        let omittedFileCount: Int
 
         var relativeDate: String {
             date.formatted(.relative(presentation: .named, unitsStyle: .abbreviated))
@@ -232,6 +234,9 @@ final class GitStatusModel: nonisolated ObservableObject {
     /// stale indefinitely.
     private var refreshPending = false
     private static let recentCommitPageSize = 30
+    /// One expanded commit must not allocate an AppKit row for every path.
+    /// Later records are still read so the next commit header stays aligned.
+    private nonisolated static let maximumRetainedCommitFiles = 200
     private var recentCommitLimit = recentCommitPageSize
     private var recentCommitLimitByRoot: [String: Int] = [:]
     /// Keeps a mutation globally exclusive even if the terminal changes cwd
@@ -1934,6 +1939,7 @@ final class GitStatusModel: nonisolated ObservableObject {
             index += 7
 
             var files: [RecentCommit.FileChange] = []
+            var omittedFileCount = 0
             while index < chunks.count, !chunks[index].isEmpty {
                 // Only the first status has Git's header newline. Paths may
                 // contain newlines or look like headers/statuses themselves.
@@ -1947,11 +1953,18 @@ final class GitStatusModel: nonisolated ObservableObject {
                 guard index + pathCount + 1 < chunks.count,
                       !chunks[index + 1].isEmpty,
                       pathCount == 1 || !chunks[index + 2].isEmpty else { return commits }
-                files.append(.init(
-                    status: status,
-                    path: String(chunks[index + pathCount]),
-                    originalPath: pathCount == 2 ? String(chunks[index + 1]) : nil
-                ))
+                // Keep the row list bounded, but do not stop reading. The
+                // omitted records stay real paths and are not replaced with a
+                // placeholder; leaving them unread would shift the next commit.
+                if files.count < Self.maximumRetainedCommitFiles {
+                    files.append(.init(
+                        status: status,
+                        path: String(chunks[index + pathCount]),
+                        originalPath: pathCount == 2 ? String(chunks[index + 1]) : nil
+                    ))
+                } else {
+                    omittedFileCount += 1
+                }
                 index += pathCount + 1
             }
 
@@ -1969,7 +1982,8 @@ final class GitStatusModel: nonisolated ObservableObject {
                 date: Date(timeIntervalSince1970: timestamp),
                 parentHash: parentHash,
                 references: references,
-                files: files
+                files: files,
+                omittedFileCount: omittedFileCount
             ))
         }
         return commits

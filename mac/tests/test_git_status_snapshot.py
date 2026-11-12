@@ -31,6 +31,12 @@ class GitStatusSnapshotTests(unittest.TestCase):
         state = slice_between(model, "    @Published private(set) var rootPath", "    /// Branches checked out by a worktree")
         state += slice_between(model, "    /// Branches checked out by a worktree", "    /// Absolute repository root.")
         state += '    private var topLevel = ""\n'
+        # The sliced parser reads this cap while it walks every NUL record.
+        state += slice_between(
+            model,
+            "    private nonisolated static let maximumRetainedCommitFiles = 200\n",
+            "    private var recentCommitLimit",
+        )
         pipe_data = "    private nonisolated final class PipeData:"
         if pipe_data in model:
             state += slice_between(model, pipe_data, "    private func invalidateStatusRefresh()")
@@ -102,6 +108,7 @@ import Darwin
                             value["original"] = file.originalPath
                             return value
                         }]
+                    value["omittedFileCount"] = commit.omittedFileCount
                     value["parent"] = commit.parentHash
                     return value
                 },
@@ -359,6 +366,23 @@ import Darwin
             fixture.write_bytes(raw)
             return self.probe("parseHistory", str(fixture))
 
+    def history_wire(self, commits):
+        """NUL log in the shape parseRecentCommits expects."""
+        chunks = []
+        for commit in commits:
+            chunks.extend(field.encode() for field in (
+                commit["hash"], commit["short"], commit["subject"], commit["author"],
+                str(commit["timestamp"]), commit.get("parent", ""), commit.get("refs", ""),
+            ))
+            for index, record in enumerate(commit["files"]):
+                status = record[0].encode()
+                if index == 0:
+                    status = b"\n" + status
+                chunks.append(status)
+                chunks.extend(path.encode() for path in record[1:])
+            chunks.append(b"")
+        return b"\0".join(chunks)
+
     def test_history_keeps_control_characters_in_paths_subjects_and_authors(self):
         original_path = "before\x1eafter.txt"
         self.write(original_path, "root\n")
@@ -555,6 +579,62 @@ import Darwin
             self.assertLess(parsed["elapsed"], 2)
         self.assertLess(timings[1], max(0.1, timings[0] * 7))
         print(f"History parser 2,000/8,000 paths: {timings[0]:.4f}s / {timings[1]:.4f}s")
+
+    def test_history_retains_at_most_200_files_and_keeps_the_next_commit(self):
+        # The extra record is a rename. Missing either of its paths would make
+        # the following commit unreadable, and the omitted path must not be invented.
+        oversized_files = [("A", f"file-{index:04}.txt") for index in range(200)]
+        oversized_files.append(("R100", "old-name.txt", "new-name.txt"))
+        oversized_hash = "a" * 40
+        follow_hash = "b" * 40
+        parsed = self.parse_history(self.history_wire([
+            {"hash": oversized_hash, "short": "aaaaaaa", "subject": "oversized",
+             "author": "Snapshot Tests", "timestamp": 1700000000, "files": oversized_files},
+            {"hash": follow_hash, "short": "bbbbbbb", "subject": "small follow-up",
+             "author": "Snapshot Tests", "timestamp": 1700000100, "parent": oversized_hash,
+             "refs": "HEAD -> main", "files": [("M", "kept.txt")]},
+        ]))["history"]
+        self.assertEqual(len(parsed), 2)
+        oversized, follow_up = parsed
+        self.assertEqual(oversized["hash"], oversized_hash)
+        self.assertEqual(oversized["subject"], "oversized")
+        self.assertEqual(len(oversized["files"]), 200)
+        self.assertEqual(oversized["omittedFileCount"], 1)
+        self.assertEqual([item["path"] for item in oversized["files"]],
+                         [f"file-{index:04}.txt" for index in range(200)])
+        self.assertTrue(all(item["status"] == "A" and "original" not in item
+                            for item in oversized["files"]))
+        omitted_paths = {"old-name.txt", "new-name.txt"}
+        self.assertTrue(omitted_paths.isdisjoint(item["path"] for item in oversized["files"]))
+        self.assertEqual(follow_up["hash"], follow_hash)
+        self.assertEqual(follow_up["shortHash"], "bbbbbbb")
+        self.assertEqual(follow_up["subject"], "small follow-up")
+        self.assertEqual(follow_up["author"], "Snapshot Tests")
+        self.assertEqual(follow_up["parent"], oversized_hash)
+        self.assertEqual(follow_up["references"], ["HEAD -> main"])
+        self.assertEqual(follow_up["files"], [{"status": "M", "path": "kept.txt"}])
+        self.assertEqual(follow_up["omittedFileCount"], 0)
+
+        exact_hash = "c" * 40
+        after_hash = "d" * 40
+        exact = self.parse_history(self.history_wire([
+            {"hash": exact_hash, "short": "ccccccc", "subject": "exact bound",
+             "author": "Snapshot Tests", "timestamp": 1700000200,
+             "files": [("A", f"exact-{index:04}.txt") for index in range(200)]},
+            {"hash": after_hash, "short": "ddddddd", "subject": "after exact",
+             "author": "Snapshot Tests", "timestamp": 1700000300, "parent": exact_hash,
+             "files": [("A", "after.txt")]},
+        ]))["history"]
+        self.assertEqual(len(exact), 2)
+        self.assertEqual(len(exact[0]["files"]), 200)
+        self.assertEqual(exact[0]["omittedFileCount"], 0)
+        self.assertEqual([item["path"] for item in exact[0]["files"]],
+                         [f"exact-{index:04}.txt" for index in range(200)])
+        self.assertEqual(exact[1]["hash"], after_hash)
+        self.assertEqual(exact[1]["subject"], "after exact")
+        self.assertEqual(exact[1]["parent"], exact_hash)
+        self.assertEqual(exact[1]["files"], [{"status": "A", "path": "after.txt"}])
+        self.assertEqual(exact[1]["omittedFileCount"], 0)
 
     def test_branch_names_survive_tag_collisions_and_worktree_filtering(self):
         self.write("fixture.txt", "fixture\n")

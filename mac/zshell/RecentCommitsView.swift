@@ -154,7 +154,8 @@ final class RecentCommitsNSView: NSView {
             addArrangedRow(row)
 
             guard isExpanded else { continue }
-            if commit.files.isEmpty {
+            let omittedFileCount = commit.omittedFileCount
+            if commit.files.isEmpty && omittedFileCount == 0 {
                 addArrangedRow(CommitFileRowView(
                     change: nil,
                     continuesBelow: !isLastCommit,
@@ -163,11 +164,26 @@ final class RecentCommitsNSView: NSView {
                 ))
             } else {
                 for (fileIndex, file) in commit.files.enumerated() {
+                    let hasAnotherRow = fileIndex < commit.files.count - 1 || omittedFileCount > 0
                     addArrangedRow(CommitFileRowView(
                         change: file,
-                        continuesBelow: fileIndex < commit.files.count - 1 || !isLastCommit,
+                        continuesBelow: hasAnotherRow || !isLastCommit,
                         metrics: metrics,
                         onOpen: { [weak self] in self?.onOpenDiff?(commit, file) }
+                    ))
+                }
+                if omittedFileCount > 0 {
+                    // One static sentence for the unread tail. It is not a path,
+                    // so it must not highlight, focus, or open a diff.
+                    addArrangedRow(CommitFileRowView(
+                        change: nil,
+                        continuesBelow: !isLastCommit,
+                        metrics: metrics,
+                        onOpen: nil,
+                        summary: String(
+                            localized: "\(omittedFileCount) more files are not shown.",
+                            comment: "Shown under an expanded commit when some changed paths are not listed. The placeholder is the number of omitted files."
+                        )
                     ))
                 }
             }
@@ -546,21 +562,30 @@ private final class CommitFileRowView: NSView {
     let continuesBelow: Bool
     let metrics: CommitGraphMetrics
     let onOpen: (() -> Void)?
+    /// Localized sentence for paths kept out of the row list. Not a file.
+    let summary: String?
     private var trackingAreaReference: NSTrackingArea?
     private var isHovered = false
+    private var opensDiff: Bool { change != nil && summary == nil }
 
     init(
         change: GitStatusModel.RecentCommit.FileChange?,
         continuesBelow: Bool,
         metrics: CommitGraphMetrics,
-        onOpen: (() -> Void)?
+        onOpen: (() -> Void)?,
+        summary: String? = nil
     ) {
         self.change = change
         self.continuesBelow = continuesBelow
         self.metrics = metrics
         self.onOpen = onOpen
+        self.summary = summary
         super.init(frame: .zero)
-        if let change {
+        if let summary {
+            setAccessibilityElement(true)
+            setAccessibilityRole(.staticText)
+            setAccessibilityLabel(summary)
+        } else if let change {
             toolTip = change.path
             setAccessibilityElement(true)
             setAccessibilityRole(.button)
@@ -575,14 +600,19 @@ private final class CommitFileRowView: NSView {
 
     required init?(coder: NSCoder) { nil }
     override var isFlipped: Bool { true }
-    override var acceptsFirstResponder: Bool { change != nil }
+    override var acceptsFirstResponder: Bool { opensDiff }
     override var intrinsicContentSize: NSSize {
         NSSize(width: NSView.noIntrinsicMetric, height: metrics.fileHeight)
     }
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
-        if let trackingAreaReference { removeTrackingArea(trackingAreaReference) }
+        if let existing = trackingAreaReference {
+            removeTrackingArea(existing)
+            trackingAreaReference = nil
+        }
+        // The omitted-file sentence is not a control, so it does not highlight.
+        guard summary == nil else { return }
         let area = NSTrackingArea(
             rect: .zero,
             options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
@@ -603,13 +633,13 @@ private final class CommitFileRowView: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
-        guard change != nil else { return }
+        guard opensDiff else { return }
         window?.makeFirstResponder(self)
         onOpen?()
     }
 
     override func keyDown(with event: NSEvent) {
-        if change != nil, event.keyCode == 36 || event.keyCode == 49 {
+        if opensDiff, event.keyCode == 36 || event.keyCode == 49 {
             onOpen?()
         } else {
             super.keyDown(with: event)
@@ -617,13 +647,13 @@ private final class CommitFileRowView: NSView {
     }
 
     override func accessibilityPerformPress() -> Bool {
-        guard change != nil else { return false }
+        guard opensDiff else { return false }
         onOpen?()
         return true
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
-        guard change != nil else { return nil }
+        guard opensDiff else { return nil }
         let menu = NSMenu()
         let item = menu.addItem(
             withTitle: String(localized: "Copy Relative Path"),
@@ -668,6 +698,10 @@ private final class CommitFileRowView: NSView {
             ).fill()
         }
         drawRails()
+        if let summary {
+            drawSummary(summary)
+            return
+        }
         guard let change else {
             drawEmptyState()
             return
@@ -770,6 +804,25 @@ private final class CommitFileRowView: NSView {
                 .font: metrics.pathFont,
                 .foregroundColor: NSColor.tertiaryLabelColor,
             ]
+        )
+    }
+
+    private func drawSummary(_ summary: String) {
+        let text = summary as NSString
+        let height = ceil(metrics.pathFont.pointSize * 1.45)
+        text.draw(
+            with: NSRect(
+                x: metrics.fileContentX,
+                y: (bounds.height - height) / 2,
+                width: max(0, bounds.width - metrics.fileContentX - metrics.trailingInset),
+                height: height
+            ),
+            options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
+            attributes: [
+                .font: metrics.pathFont,
+                .foregroundColor: NSColor.tertiaryLabelColor,
+            ],
+            context: nil
         )
     }
 }
