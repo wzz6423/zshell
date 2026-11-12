@@ -137,6 +137,7 @@ final class GlobalTerminalOverlay: NSObject {
     private var reusableWindow: GlobalTerminalOverlayWindow?
     private var workspaceMode = QuickTerminalMode.reuse
     private var workspaceObservation: AnyCancellable?
+    private var contrastObservation: AnyCancellable?
     private var terminalWindow: GlobalTerminalOverlayWindow?
     private var backdropWindow: GlobalTerminalBackdropWindow?
     private var previousApplication: NSRunningApplication?
@@ -145,6 +146,12 @@ final class GlobalTerminalOverlay: NSObject {
     private var hotkeyRefreshScheduled = false
     private var pendingSnapshot: QuickTerminalWorkspaceSnapshot.Snapshot?
     private var isQuitting = false
+
+    var focusedPromptQueueSession: TerminalSession? {
+        guard terminalWindow != nil, terminalWindow === NSApp.keyWindow,
+              case .session(let session)? = workspace?.focusedContent else { return nil }
+        return session
+    }
 
     func start() {
         guard hotkeyHandlerRef == nil else { return }
@@ -169,6 +176,15 @@ final class GlobalTerminalOverlay: NSObject {
         }
         hotkeyHandlerRef = handler
 
+        contrastObservation = AppSettings.shared.$terminalMinimumContrast
+            .removeDuplicates()
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                for session in self.allSessions { session.surface.applyAppearance() }
+            }
+
         refreshHotkeyRegistration()
     }
 
@@ -184,6 +200,7 @@ final class GlobalTerminalOverlay: NSObject {
             for session in allSessions { session.terminate() }
         }
         workspaceObservation = nil
+        contrastObservation = nil
         backdropWindow = nil
         terminalWindow = nil
         reusableWindow = nil
@@ -376,8 +393,8 @@ final class GlobalTerminalOverlay: NSObject {
         if workspace == nil {
             if mode == .reuse {
                 if reusableWorkspace == nil {
-                    let tab = pendingSnapshot.map(QuickTerminalWorkspaceSnapshot.restore)
-                        ?? PaneTab(content: .session(TerminalSession()))
+                    guard let tab = pendingSnapshot.map(QuickTerminalWorkspaceSnapshot.restore)
+                        ?? newWorkspace(allowsPersistence: true) else { return }
                     pendingSnapshot = nil
                     reusableWorkspace = tab
                     workspaceObservation = Publishers.CombineLatest(tab.$layout, tab.$focusedPaneID)
@@ -390,7 +407,7 @@ final class GlobalTerminalOverlay: NSObject {
                 workspace = reusableWorkspace
                 terminalWindow = reusableWindow
             } else {
-                let tab = PaneTab(content: .session(TerminalSession(allowsPersistence: false)))
+                guard let tab = newWorkspace(allowsPersistence: false) else { return }
                 workspace = tab
                 configureSessions(in: tab)
             }
@@ -438,7 +455,10 @@ final class GlobalTerminalOverlay: NSObject {
 
         backdropWindow?.orderOut(nil)
         terminalWindow.hideSettings()
-        for session in workspace?.sessions ?? [] { session.surface.setSurfaceVisible(false) }
+        for session in workspace?.sessions ?? [] {
+            session.surface.setSurfaceVisible(false)
+            session.promptQueueBar.setPaneVisible(false)
+        }
         terminalWindow.orderOut(nil)
 
         let application = previousApplication
@@ -458,6 +478,16 @@ final class GlobalTerminalOverlay: NSObject {
         DispatchQueue.main.async {
             application.activate(options: [])
         }
+    }
+
+    private func newWorkspace(allowsPersistence: Bool) -> PaneTab? {
+        let directory = TerminalSessionDirectory.resolve(
+            context: TerminalManager.activeWindowManager?.selectedProject?.newSessionDirectoryContext ?? .init(),
+            policy: AppSettings.shared.newSessionDirectoryPolicy,
+            customDirectory: AppSettings.shared.newSessionCustomDirectory
+        )
+        guard !TerminalManager.isRemovingWorktree(containing: directory) else { NSSound.beep(); return nil }
+        return PaneTab(content: .session(TerminalSession(initialDirectory: directory, allowsPersistence: allowsPersistence)))
     }
 
     func split(toward edge: PaneDropEdge) {

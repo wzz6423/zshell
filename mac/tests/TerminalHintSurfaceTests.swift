@@ -143,6 +143,7 @@ struct TerminalHintSurfaceTests {
         appItem.submenu = appMenu
         mainMenu.addItem(appItem)
         let terminalItem = NSMenuItem()
+        terminalItem.identifier = .init(AppMenuController.Menu.terminal.rawValue)
         let terminalMenu = NSMenu()
         terminalMenu.addItem(NSMenuItem(title: "Quick Terminal", action: NSSelectorFromString("toggleQuickTerminal"), keyEquivalent: ""))
         terminalItem.submenu = terminalMenu

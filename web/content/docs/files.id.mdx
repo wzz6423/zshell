@@ -24,6 +24,24 @@ Klik berkas untuk membukanya dalam panel aktif. Klik kanan untuk tindakan lainny
 
 Baris memakai ikon Material sesuai nama berkas. Dalam repositori Git, jalur yang berubah memakai warna dan lencana status, sedangkan berkas yang diabaikan diredupkan. Pohon menampilkan keadaan pohon kerja yang sama dengan panel Git tanpa harus membukanya.
 
+## Berkas jarak jauh [#remote-files]
+
+Buka berkas SSH dari panel Berkas. Untuk membuat, mengganti nama, memindahkan ke sampah jarak jauh, atau menyimpan, aktifkan **Pengaturan → Editor → Berkas → Izinkan perubahan berkas jarak jauh** (`files.remote-write-enabled`, nonaktif secara bawaan).
+
+Zshell hanya menggunakan alat yang sudah ada di host dan tidak memasang apa pun. Pembacaan dan pengeditan menggunakan modul inti Perl yang sudah ada. Setiap penulisan juga memeriksa kemampuan sistem berkas yang diperlukan; operasi yang tidak didukung tetap dinonaktifkan. Tautan simbolis, berkas khusus, dan jalur di luar proyek ditolak. Teks UTF-8 dapat berukuran hingga 5 MiB; Markdown jarak jauh dibuka sebagai sumber.
+
+Penyimpanan jarak jauh memeriksa perubahan meskipun perlindungan lokal dinonaktifkan. Saat konflik, Anda dapat membandingkan, mempertahankan draf, memuat ulang dari host, atau menyetujui penimpaan. Versi yang dibandingkan diperiksa lagi tepat sebelum berkas lengkap dipublikasikan; proses eksternal masih dapat menulis setelah pemeriksaan terakhir.
+
+**Pindahkan ke Sampah Jarak Jauh** menyimpan isi dan metadata jalur asli di direktori pribadi `.zshell-trash` dalam proyek. **Pulihkan Item Jarak Jauh Terakhir** memulihkan item terakhir selama proyek saat ini dipilih tanpa mengganti nama yang sudah ada. Item lama tetap dapat dipulihkan secara manual dari direktori tersebut.
+
+## Mengimpor berkas dan folder [#import-files-and-folders]
+
+Pilih **Berkas → Impor Berkas…**, tombol impor di panel Berkas, atau pilihan tersebut dari menu klik kanan folder. Pilih beberapa berkas atau folder; Zshell menyalinnya ke folder tersebut atau akar pohon saat ini sambil mempertahankan aslinya.
+
+Untuk menjatuhkan item Finder ke folder atau area kosong pohon, aktifkan **Pengaturan → Editor → Berkas → Impor dengan menyeret ke pohon berkas** (`files.drag-import`). Opsi ini nonaktif secara bawaan. Menu tetap tersedia.
+
+Nama yang sudah ada menawarkan **Ganti**, **Lewati**, dan **Batal**. Mengganti folder mengganti seluruh folder tanpa menggabungkan isinya. Membatalkan menghentikan seluruh impor dan memulihkan salinan yang telah ditambahkan. Jika program lain mengubah item sebelum dipulihkan, Zshell mempertahankan perubahan dan menunjukkan folder yang mungkin berisi file pemulihan. Pohon SSH tidak menerima impor lokal. Tautan simbolis disalin sebagai tautan tanpa mengikuti targetnya.
+
 ## Cari berkas dan isi [#find-files-and-search-contents]
 
 Palet perintah (<kbd>Cmd</kbd>+<kbd>P</kbd>) menemukan berkas menurut nama atau jalur di proyek lokal yang terbuka pada jendela saat ini, bersama perintah dan sesi terbuka. Memilih berkas berpindah ke proyeknya dan membukanya di sana.
@@ -58,6 +76,14 @@ Jika program lain mengubah file saat Anda mengeditnya, menyimpan membuka dialog 
 <Callout type="info">
 Editor ini untuk perubahan yang sedang Anda lihat: memperbaiki salah ketik, mengubah konstanta, atau membaca berkas yang dirujuk oleh diff. Tidak ada server bahasa, pelengkapan, atau refaktor seluruh proyek. Itu disengaja.
 </Callout>
+
+## Memulihkan draf yang belum disimpan [#recover-unsaved-drafts]
+
+Zshell secara default mencadangkan perubahan yang belum disimpan pada berkas lokal dan diff pohon kerja yang dapat diedit. Setelah keluar secara tak terduga, panel yang dibuka kembali memulihkan draf, pilihan, dan tata letaknya. Untuk cadangan lain, buka **Berkas → Pulihkan Draf…** atau **Pengaturan → Editor → Pulihkan Draf…**, pilih cadangan, tinjau isinya, lalu pilih **Pulihkan Draf**. Pemulihan membuka editor yang belum disimpan tanpa mengubah berkas di disk. Penyimpanan tetap memeriksa perubahan eksternal menggunakan versi sebelum edit Anda.
+
+Kendalikan cadangan melalui **Pengaturan → Editor → Cadangkan draf yang belum disimpan** atau `editor.recover-drafts`. Menonaktifkannya menghentikan cadangan baru dan pemulihan otomatis, tetapi menyimpan cadangan yang ada untuk pemulihan atau penghapusan manual. **Hapus Cadangan** hanya menghapus cadangan terpilih; edit terbuka tetap ada. Penyimpanan berhasil atau **Jangan Simpan** saat penutupan selesai menghapus cadangan. Berkas privat tetap di Mac ini, dibatasi 32 draf dan 128 MiB dan dapat dipulihkan hingga 30 hari. Batas kapasitas dapat menghapus cadangan lama lebih awal. Berkas dan teks edit di atas 5 MiB dikecualikan.
+
+Zshell menghapus cadangan kedaluwarsa saat memulai dan setiap jam selama berjalan, meskipun pencadangan dinonaktifkan. Jika Zshell ditutup, berkas kedaluwarsa tetap di disk hingga pembukaan berikutnya.
 
 ## Pratinjau Markdown [#markdown-preview]
 

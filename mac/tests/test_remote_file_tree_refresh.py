@@ -25,7 +25,7 @@ nonisolated struct RemoteHost: Codable, Equatable, Sendable {}
         ssh = temporary / "fixture-ssh"
         ssh.write_text("""#!/bin/sh
 for argument do command="$argument"; done
-printf '%s\\n' "$command" >> "$ZSHELL_TREE_REQUEST_LOG"
+printf '%s\\n' request >> "$ZSHELL_TREE_REQUEST_LOG"
 if [ -e "$ZSHELL_TREE_FAILURE_FILE" ]; then
     printf 'fixture transport failure\\n' >&2
     exit 255
@@ -54,6 +54,8 @@ exec /bin/sh -c "$command"
             str(ROOT / "mac/zshell/FileTreeModel.swift"),
             str(ROOT / "mac/zshell/RemoteSSH.swift"),
             str(ROOT / "mac/zshell/SSHAgentEnvironment.swift"),
+            str(ROOT / "mac/zshell/RemoteFileService.swift"),
+            str(ROOT / "mac/zshell/FileSaveCoordinator.swift"),
             str(ROOT / "mac/zshell/AppWindowPresentation.swift"),
             str(support), str(ROOT / "mac/tests/RemoteFileTreeRefreshTests.swift"),
             "-o", str(binary),

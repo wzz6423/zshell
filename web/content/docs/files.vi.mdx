@@ -24,6 +24,24 @@ Nhấn tệp để mở trong ô có tiêu điểm. Nhấp phải cho các thao 
 
 Các hàng dùng biểu tượng Material theo tên tệp. Trong kho Git, đường dẫn thay đổi có màu và huy hiệu trạng thái, tệp bị bỏ qua hiển thị mờ. Cây phản ánh cùng trạng thái worktree với bảng Git mà không cần mở bảng.
 
+## Tệp từ xa [#remote-files]
+
+Mở tệp SSH từ bảng Tệp. Để tạo, đổi tên, chuyển vào thùng rác từ xa hoặc lưu, bật **Cài đặt → Trình soạn thảo → Tệp → Cho phép thay đổi tệp từ xa** (`files.remote-write-enabled`, mặc định tắt).
+
+Zshell chỉ dùng công cụ đã có trên máy chủ và không cài thêm gì. Việc đọc và chỉnh sửa dùng các mô-đun lõi Perl hiện có. Mỗi thao tác ghi cũng kiểm tra khả năng cần thiết của hệ thống tệp; thao tác không được hỗ trợ sẽ bị tắt. Liên kết tượng trưng, tệp đặc biệt và đường dẫn ngoài dự án bị từ chối. Văn bản UTF-8 tối đa 5 MiB; Markdown từ xa mở ở dạng mã nguồn.
+
+Lưu từ xa vẫn kiểm tra thay đổi khi tắt bảo vệ lưu cục bộ. Khi có xung đột, bạn có thể so sánh, giữ bản nháp, tải lại từ máy chủ hoặc chấp thuận ghi đè. Phiên bản đã so sánh được kiểm tra lại ngay trước khi đưa tệp hoàn chỉnh vào vị trí; tiến trình bên ngoài vẫn có thể ghi sau lần kiểm tra cuối.
+
+**Chuyển vào thùng rác từ xa** giữ nội dung và đường dẫn gốc trong thư mục riêng `.zshell-trash` của dự án. **Khôi phục mục từ xa gần nhất** khôi phục mục gần nhất trong khi đang chọn dự án hiện tại, không thay thế tên đã tồn tại. Các mục cũ hơn vẫn có thể được khôi phục thủ công từ thư mục đó.
+
+## Nhập tệp và thư mục [#import-files-and-folders]
+
+Chọn **Tệp → Nhập tệp…**, nút nhập trong bảng Tệp hoặc mục này từ menu chuột phải của thư mục. Bạn có thể chọn nhiều tệp và thư mục; Zshell sao chép chúng vào thư mục đã chọn hoặc gốc cây hiện tại và giữ nguyên bản gốc.
+
+Để thả mục Finder vào thư mục hoặc vùng trống của cây, bật **Cài đặt → Trình soạn thảo → Tệp → Nhập bằng cách kéo vào cây tệp** (`files.drag-import`). Tùy chọn mặc định tắt; menu nhập luôn khả dụng.
+
+Tên trùng có các lựa chọn **Thay thế**, **Bỏ qua** và **Hủy**. Thay thế thư mục sẽ thay toàn bộ thư mục, không gộp nội dung. Hủy dừng toàn bộ quá trình nhập và khôi phục các bản sao đã thêm trong lần này. Nếu chương trình khác thay đổi mục trước khi khôi phục, Zshell giữ thay đổi và hiển thị thư mục có thể chứa tệp khôi phục. Cây SSH không nhận dữ liệu nhập cục bộ. Liên kết tượng trưng được sao chép như liên kết, không đi theo đích.
+
 ## Tìm tệp và nội dung [#find-files-and-search-contents]
 
 Bảng lệnh (<kbd>Cmd</kbd>+<kbd>P</kbd>) tìm theo tên hoặc đường dẫn trong các dự án cục bộ đang mở ở cửa sổ hiện tại, cùng lệnh và phiên mở. Chọn tệp sẽ chuyển sang dự án của nó và mở tại đó.
@@ -56,6 +74,14 @@ Nếu chương trình khác đổi tệp khi bạn chỉnh sửa, việc lưu s�
 <Callout type="info">
 Trình soạn thảo này dành cho thay đổi bạn đang xem: sửa lỗi gõ, đổi hằng số, đọc tệp mà diff nhắc tới. Không có máy chủ ngôn ngữ, hoàn thành mã hay tái cấu trúc toàn dự án. Đó là chủ ý.
 </Callout>
+
+## Khôi phục bản nháp chưa lưu [#recover-unsaved-drafts]
+
+Zshell mặc định sao lưu thay đổi chưa lưu trong tệp cục bộ và diff cây làm việc có thể chỉnh sửa. Sau khi thoát bất ngờ, các khung mở lại khôi phục bản nháp, vùng chọn và bố cục. Với bản sao lưu khác, mở **Tệp → Khôi phục bản nháp…** hoặc **Cài đặt → Trình soạn thảo → Khôi phục bản nháp…**, chọn bản sao lưu, xem nội dung và chọn **Khôi phục bản nháp**. Khôi phục chỉ mở trình soạn thảo chưa lưu và không đổi tệp trên đĩa. Khi lưu, ứng dụng vẫn kiểm tra thay đổi bên ngoài bằng phiên bản trước các chỉnh sửa của bạn.
+
+Kiểm soát qua **Cài đặt → Trình soạn thảo → Sao lưu bản nháp chưa lưu** hoặc `editor.recover-drafts`. Tắt sẽ dừng sao lưu mới và khôi phục tự động nhưng giữ bản sao lưu hiện có để khôi phục hoặc xóa thủ công. **Xóa bản sao lưu** chỉ xóa bản đã chọn; chỉnh sửa đang mở được giữ lại. Lưu thành công hoặc chọn **Không lưu** khi đóng hoàn tất sẽ xóa bản sao lưu. Tệp riêng tư chỉ trên Mac này, tối đa 32 bản nháp và 128 MiB, có thể khôi phục trong tối đa 30 ngày. Giới hạn dung lượng có thể khiến bản sao lưu cũ bị xóa sớm hơn. Tệp và văn bản đã chỉnh sửa lớn hơn 5 MiB được loại trừ.
+
+Zshell xóa bản sao lưu hết hạn khi khởi động và mỗi giờ trong khi chạy, ngay cả khi đã tắt sao lưu. Nếu Zshell đóng, tệp hết hạn vẫn nằm trên đĩa cho đến lần khởi động tiếp theo.
 
 ## Xem trước Markdown [#markdown-preview]
 

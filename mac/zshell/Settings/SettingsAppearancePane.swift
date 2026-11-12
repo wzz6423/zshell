@@ -9,7 +9,7 @@ import GhosttyTheme
 
 /// Light/dark appearance, the color theme for each, and the fonts the terminal
 /// and sidebars draw with.
-final class SettingsAppearancePane: SettingsPaneViewController {
+final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDelegate {
     /// Installed fixed-pitch families (bundled default first).
     private let families = TerminalFont.selectableFamilies()
     private let fallbackFamilies = TerminalFont.selectableCJKFallbackFamilies()
@@ -33,6 +33,20 @@ final class SettingsAppearancePane: SettingsPaneViewController {
     private let terminalThemeOnlySwitch = SettingsSwitch {
         AppSettings.shared.terminalThemeOnly = $0
     }
+
+    private let minimumContrastRow = SettingsSliderRow(
+        title: String(localized: "Minimum contrast"),
+        range: TerminalContrast.minimumRatioRange,
+        format: .ratio,
+        step: 0.1,
+        showsStepper: true,
+        symbolName: "circle.lefthalf.filled",
+        symbolColor: SettingsCategory.appearance.iconColor,
+        description: String(localized: "Set to 1 to keep original terminal colors."),
+        onChange: { AppSettings.shared.terminalMinimumContrast = $0 }
+    )
+
+    private let sidebarDoubleClickSwitch = SettingsSwitch { AppSettings.shared.sidebarDoubleClickNewSession = $0 }
 
     private lazy var familyPopUp = SettingsPopUpButton<String>(
         items: [
@@ -82,6 +96,13 @@ final class SettingsAppearancePane: SettingsPaneViewController {
     )
 
     private let thickenSwitch = SettingsSwitch { AppSettings.shared.fontThicken = $0 }
+    private let ligaturesSwitch = SettingsSwitch { AppSettings.shared.fontLigatures = $0 }
+    private let featuresField = NSTextField()
+    private lazy var featuresRow = SettingsRow(
+        title: String(localized: "OpenType features"),
+        description: Self.featuresDescription(isValid: true),
+        control: featuresField
+    )
 
     private let thickenStrengthRow = SettingsSliderRow(
         title: String(localized: "Stroke strength"),
@@ -130,6 +151,10 @@ final class SettingsAppearancePane: SettingsPaneViewController {
     private let cursorShapeView = TerminalCursorShapeSettingsView(frame: .zero)
     private let cursorBlinkingView = TerminalCursorBlinkingSettingsView(frame: .zero)
     private let terminalBackgroundBlurSwitch = SettingsSwitch { AppSettings.shared.terminalBackgroundBlur = $0 }
+    private let terminalPaddingColorPopUp = SettingsPopUpButton<TerminalPaddingColor>(
+        items: TerminalPaddingColor.allCases.map { .value($0.title, $0) },
+        onChange: { AppSettings.shared.terminalPaddingColor = $0 }
+    )
     private let terminalBackgroundOpacityRow = SettingsSliderRow(
         title: String(localized: "Opacity"),
         range: AppSettings.terminalBackgroundOpacityRange,
@@ -142,6 +167,13 @@ final class SettingsAppearancePane: SettingsPaneViewController {
     private lazy var backgroundGroup = SettingsGroup(header: String(localized: "Background"), rows: [
         terminalBackgroundOpacityRow,
         SettingsRow(title: String(localized: "Blur behind window"), control: terminalBackgroundBlurSwitch),
+        SettingsRow(
+            title: String(localized: "Padding color"),
+            description: String(localized: "Automatic keeps prompts and partially colored rows from extending vertically. Always extends every edge."),
+            control: terminalPaddingColorPopUp,
+            symbolName: "rectangle.inset.filled",
+            symbolColor: SettingsCategory.appearance.iconColor
+        ),
     ])
     private lazy var fontGroup = SettingsGroup(header: String(localized: "Font"), rows: [
         SettingsRow(title: String(localized: "Latin family"), control: familyPopUp),
@@ -149,6 +181,8 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         fontSizeRow,
         lineHeightRow,
         cellWidthRow,
+        SettingsRow(title: String(localized: "Font ligatures"), control: ligaturesSwitch),
+        featuresRow,
         SettingsRow(title: String(localized: "Thicken font strokes"), control: thickenSwitch),
         thickenStrengthRow,
         SettingsCustomRow(preview),
@@ -160,6 +194,10 @@ final class SettingsAppearancePane: SettingsPaneViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        featuresField.delegate = self
+        featuresField.placeholderString = "-calt, ss01, zero=1"
+        featuresField.font = .monospacedSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular)
+        featuresField.widthAnchor.constraint(equalToConstant: 200).isActive = true
         cursorShapeView.changeHandler = { AppSettings.shared.cursorShape = $0 }
         cursorBlinkingView.changeHandler = { AppSettings.shared.cursorBlinking = $0 }
         observe(
@@ -186,6 +224,7 @@ final class SettingsAppearancePane: SettingsPaneViewController {
                     control: terminalThemeOnlySwitch,
                     symbolName: "terminal"
                 ),
+                minimumContrastRow,
             ]),
             fontGroup,
             SettingsGroup(header: String(localized: "Cursor"), rows: [
@@ -196,6 +235,9 @@ final class SettingsAppearancePane: SettingsPaneViewController {
             SettingsGroup(header: String(localized: "Interface"), rows: [
                 interfaceScaleRow,
                 sidebarFontSizeRow,
+            ]),
+            SettingsGroup(header: String(localized: "Project Sidebar"), rows: [
+                SettingsRow(title: String(localized: "Double-click empty space to create a session"), control: sidebarDoubleClickSwitch, symbolName: "plus.rectangle"),
             ]),
             panesGroup,
         ]
@@ -211,34 +253,60 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         darkThemePopUp.select(settings.themeDark)
         lightThemePopUp.select(settings.themeLight)
         terminalThemeOnlySwitch.isOn = settings.terminalThemeOnly
+        minimumContrastRow.setValue(settings.terminalMinimumContrast)
         familyPopUp.select(settings.fontFamily)
         fallbackFamilyPopUp.select(settings.fontFallbackFamily)
         fontSizeRow.setValue(settings.fontSize)
         sidebarFontSizeRow.setValue(settings.sidebarFontSize)
+        sidebarDoubleClickSwitch.isOn = settings.sidebarDoubleClickNewSession
         interfaceScaleRow.setValue(settings.interfaceScale)
+        ligaturesSwitch.isOn = settings.fontLigatures
+        if featuresField.currentEditor() == nil {
+            featuresField.stringValue = settings.fontFeatures
+            featuresRow.setDescription(Self.featuresDescription(isValid: true))
+        }
         thickenSwitch.isOn = settings.fontThicken
         thickenStrengthRow.setValue(Double(settings.fontThickenStrength))
-        fontGroup.setRowHidden(!visibility.fontThicken, at: 6)
+        fontGroup.setRowHidden(!visibility.fontThicken, at: 8)
         lineHeightRow.setValue(settings.terminalLineHeight)
         cellWidthRow.setValue(settings.terminalCellWidth)
         cursorShapeView.apply(shape: settings.cursorShape)
         cursorBlinkingView.apply(isBlinking: settings.cursorBlinking)
         terminalBackgroundOpacityRow.setValue(settings.terminalBackgroundOpacity)
         terminalBackgroundBlurSwitch.isOn = settings.terminalBackgroundBlur
+        terminalPaddingColorPopUp.select(settings.terminalPaddingColor)
         backgroundGroup.setRowHidden(!visibility.terminalBackgroundBlur, at: 1)
         paneFocusRingSwitch.isOn = settings.showPaneFocusRing
         paneFocusRingOpacityRow.setValue(settings.paneFocusRingOpacity)
         panesGroup.setRowHidden(!visibility.showPaneFocusRing, at: 1)
         preview.configure(
-            font: TerminalFont.resolve(
+            font: TerminalFontFeatures(settings.fontFeatures, ligatures: settings.fontLigatures).applying(to: TerminalFont.resolve(
                 family: settings.fontFamily,
                 fallbackFamily: settings.fontFallbackFamily,
                 size: CGFloat(settings.fontSize)
-            ),
+            )),
             thicken: settings.fontThicken,
             thickenStrength: settings.fontThickenStrength,
             lineHeight: CGFloat(settings.terminalLineHeight),
             cellWidth: CGFloat(settings.terminalCellWidth)
         )
+    }
+
+    func controlTextDidEndEditing(_ notification: Notification) {
+        featuresField.stringValue = settings.fontFeatures
+        featuresRow.setDescription(Self.featuresDescription(isValid: true))
+    }
+
+    func controlTextDidChange(_ notification: Notification) {
+        let text = featuresField.stringValue
+        let isValid = TerminalFontFeatures.parse(text) != nil
+        featuresRow.setDescription(Self.featuresDescription(isValid: isValid))
+        if isValid { settings.fontFeatures = text }
+    }
+
+    private static func featuresDescription(isValid: Bool) -> String {
+        isValid
+            ? String(localized: "Comma-separated tags, such as -calt, ss01, or zero=1. Supported features apply immediately.")
+            : String(localized: "Use four-character tags with an optional +, -, or =number. The last valid value remains active.")
     }
 }

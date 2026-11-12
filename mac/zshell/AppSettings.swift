@@ -16,6 +16,22 @@ enum ToolbarVisibility: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum TerminalPaddingColor: String, CaseIterable {
+    case background
+    case extend
+    case always
+
+    var title: String {
+        switch self {
+        case .background: String(localized: "Theme background")
+        case .extend: String(localized: "Automatic extension")
+        case .always: String(localized: "Always extend")
+        }
+    }
+
+    var ghosttyValue: String { self == .always ? "extend-always" : rawValue }
+}
+
 /// The icon shown for the running app in the Dock and app switcher.
 enum ApplicationIcon: String, CaseIterable, Identifiable {
     case defaultIcon = "default"
@@ -124,6 +140,8 @@ final class AppSettings: nonisolated ObservableObject {
     static let fontThickenStrengthRange: ClosedRange<Double> = 0...255
     static let defaultTerminalLineHeight: Double = 1
     static let terminalLineHeightRange: ClosedRange<Double> = 0.75...2
+    static let defaultTerminalScrollMultiplier = TerminalScrollSettings.defaultMultiplier
+    static let terminalScrollMultiplierRange = TerminalScrollSettings.multiplierRange
     static let defaultTerminalCellWidth: Double = 1
     static let terminalCellWidthRange: ClosedRange<Double> = 0.75...2
 
@@ -142,6 +160,7 @@ final class AppSettings: nonisolated ObservableObject {
     static let defaultTerminalBackgroundOpacity: Double = 1
     static let terminalBackgroundOpacityRange: ClosedRange<Double> = 0.2...1
     static let defaultTerminalBackgroundBlur = false
+    static let defaultTerminalPaddingColor: TerminalPaddingColor = .extend
     static let defaultQuickTerminalSize: Double = 0.75
     static let quickTerminalSizeRange: ClosedRange<Double> = 0.35...0.95
     static let defaultQuickTerminalOpacity: Double = 0.5
@@ -220,10 +239,26 @@ final class AppSettings: nonisolated ObservableObject {
         }
     }
 
+    @Published var terminalMinimumContrast: Double {
+        didSet {
+            let value = TerminalContrast.validatedMinimumRatio(terminalMinimumContrast)
+            if terminalMinimumContrast != value { terminalMinimumContrast = value }
+            save()
+        }
+    }
+
     /// Terminal font family name; empty string means the bundled default
     /// (JetBrains Mono).
     @Published var fontFamily: String {
         didSet { save() }
+    }
+
+    @Published var fontFeatures: String {
+        didSet { if fontFeatures != oldValue { save() } }
+    }
+
+    @Published var fontLigatures: Bool {
+        didSet { if fontLigatures != oldValue { save() } }
     }
 
     /// Ordered CJK fallback family for terminal glyphs the primary face lacks.
@@ -239,6 +274,10 @@ final class AppSettings: nonisolated ObservableObject {
     /// Base text size for both sidebars. Each panel preserves its relative
     /// hierarchy for section labels, content, metadata, and controls.
     @Published var sidebarFontSize: Double {
+        didSet { save() }
+    }
+
+    @Published var sidebarDoubleClickNewSession: Bool {
         didSet { save() }
     }
 
@@ -292,6 +331,28 @@ final class AppSettings: nonisolated ObservableObject {
         }
     }
 
+    @Published var mouseScrollMultiplier: Double {
+        didSet {
+            let normalized = TerminalScrollSettings.validMultiplier(mouseScrollMultiplier)
+            if mouseScrollMultiplier != normalized {
+                mouseScrollMultiplier = normalized
+                return
+            }
+            save()
+        }
+    }
+
+    @Published var trackpadScrollMultiplier: Double {
+        didSet {
+            let normalized = TerminalScrollSettings.validMultiplier(trackpadScrollMultiplier)
+            if trackpadScrollMultiplier != normalized {
+                trackpadScrollMultiplier = normalized
+                return
+            }
+            save()
+        }
+    }
+
     @Published var cursorShape: TerminalCursorShape {
         didSet { save() }
     }
@@ -329,9 +390,25 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var promptQueueEnabled: Bool {
+        didSet { save() }
+    }
+
+    @Published var promptQueueAutoDispatch: Bool {
+        didSet { save() }
+    }
+
     /// Send Shift-Return as LF so coding agents can insert a line without
     /// changing plain Return's submit behavior.
     @Published var shiftEnterNewline: Bool {
+        didSet { save() }
+    }
+
+    @Published var fileTreeDragImport: Bool {
+        didSet { save() }
+    }
+
+    @Published var remoteFileWritesEnabled: Bool {
         didSet { save() }
     }
 
@@ -341,7 +418,15 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var diffWrapLines: Bool {
+        didSet { save() }
+    }
+
     @Published var protectEditorSaves: Bool {
+        didSet { save() }
+    }
+
+    @Published var recoverEditorDrafts: Bool {
         didSet { save() }
     }
 
@@ -374,6 +459,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var terminalRightClickAction: TerminalRightClickAction {
+        didSet { save() }
+    }
+
     @Published var focusFollowsMouse: Bool {
         didSet { save() }
     }
@@ -385,6 +474,10 @@ final class AppSettings: nonisolated ObservableObject {
     }
 
     @Published var terminalBackgroundBlur: Bool {
+        didSet { save() }
+    }
+
+    @Published var terminalPaddingColor: TerminalPaddingColor {
         didSet { save() }
     }
 
@@ -481,6 +574,18 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var agentUsageEnabled: Bool {
+        didSet { applyAgentUsageSettings(); save() }
+    }
+
+    @Published var claudeUsageEnabled: Bool {
+        didSet { applyAgentUsageSettings(); save() }
+    }
+
+    @Published var codexUsageEnabled: Bool {
+        didSet { applyAgentUsageSettings(); save() }
+    }
+
     /// Which emulator drives terminal panes. Only ever holds a backend this
     /// build ships a surface for — see `TerminalBackend` — and a session binds
     /// its backend at creation, so a change here reaches terminals opened
@@ -489,6 +594,12 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published private(set) var terminalTerm: String {
+        didSet { save() }
+    }
+
+    @Published private(set) var terminalTermIsInvalid = false
+
     /// Full executable path and argument text used by terminals opened after a
     /// settings change. An empty program keeps the account login shell.
     @Published var terminalStartupProgram: String {
@@ -496,6 +607,14 @@ final class AppSettings: nonisolated ObservableObject {
     }
 
     @Published var terminalStartupArguments: String {
+        didSet { save() }
+    }
+
+    @Published var newSessionDirectoryPolicy: NewSessionDirectoryPolicy {
+        didSet { save() }
+    }
+
+    @Published var newSessionCustomDirectory: String {
         didSet { save() }
     }
 
@@ -554,7 +673,13 @@ final class AppSettings: nonisolated ObservableObject {
             fallback: Theme.defaultLightThemeName
         )
         terminalThemeOnly = toml["terminal.theme-only"]?.bool ?? false
+        terminalMinimumContrast = TerminalContrast.validatedMinimumRatio(
+            toml["terminal.minimum-contrast"]?.double ?? TerminalContrast.defaultMinimumRatio
+        )
         fontFamily = toml["font-family"]?.string ?? ""
+        let features = toml["terminal.font-features"]?.string ?? ""
+        fontFeatures = TerminalFontFeatures.parse(features) != nil ? features : ""
+        fontLigatures = toml["terminal.font-ligatures"]?.bool ?? true
         fontFallbackFamily = toml["terminal.font-fallback-family"]?.string ?? ""
         let size = toml["font-size"]?.double ?? Self.defaultFontSize
         fontSize = Self.fontSizeRange.contains(size) ? size : Self.defaultFontSize
@@ -563,6 +688,7 @@ final class AppSettings: nonisolated ObservableObject {
         sidebarFontSize = Self.sidebarFontSizeRange.contains(sidebarSize)
             ? sidebarSize
             : Self.defaultSidebarFontSize
+        sidebarDoubleClickNewSession = toml["sidebar.double-click-new-session"]?.bool ?? true
         let interfaceScale = toml["interface.scale"]?.double
             ?? Self.defaultInterfaceScale
         self.interfaceScale = Self.interfaceScaleRange.contains(interfaceScale)
@@ -584,6 +710,8 @@ final class AppSettings: nonisolated ObservableObject {
         terminalLineHeight = Self.terminalLineHeightRange.contains(lineHeight)
             ? lineHeight
             : Self.defaultTerminalLineHeight
+        mouseScrollMultiplier = TerminalScrollSettings.validMultiplier(toml["terminal.mouse-scroll-multiplier"]?.double)
+        trackpadScrollMultiplier = TerminalScrollSettings.validMultiplier(toml["terminal.trackpad-scroll-multiplier"]?.double)
         terminalCellWidth = Self.validTerminalCellWidth(
             toml["terminal.cell-width"]?.double ?? Self.defaultTerminalCellWidth
         )
@@ -598,10 +726,16 @@ final class AppSettings: nonisolated ObservableObject {
         shellCompletions = toml["terminal.shell-completions"]?.bool ?? true
         commandHistoryEnabled = toml["terminal.command-history"]?.bool ?? true
         terminalTextHints = toml["terminal.text-hints"]?.bool ?? true
+        promptQueueEnabled = toml["terminal.prompt-queue-enabled"]?.bool ?? true
+        promptQueueAutoDispatch = toml["terminal.prompt-queue-auto-dispatch"]?.bool ?? false
         terminalBell = toml["terminal.bell"]?.bool ?? true
         shiftEnterNewline = toml["terminal.shift-enter-newline"]?.bool ?? true
         wrapLines = toml["editor.wrap-lines"]?.bool ?? true
+        diffWrapLines = toml["editor.diff-wrap-lines"]?.bool ?? false
+        fileTreeDragImport = toml["files.drag-import"]?.bool ?? false
+        remoteFileWritesEnabled = toml["files.remote-write-enabled"]?.bool ?? false
         protectEditorSaves = toml["editor.protect-saves"]?.bool ?? true
+        recoverEditorDrafts = toml["editor.recover-drafts"]?.bool ?? true
         externalEditor = ExternalEditor.persisted(
             toml["editor.external-editor"]?.string
         )
@@ -610,6 +744,7 @@ final class AppSettings: nonisolated ObservableObject {
         copyOnSelect = toml["terminal.copy-on-select"]?.bool ?? true
         remotePasteUpload = toml["terminal.remote-paste-upload"]?.bool ?? true
         remoteDropUpload = toml["terminal.remote-drop-upload"]?.bool ?? true
+        terminalRightClickAction = TerminalRightClickAction(rawValue: toml["terminal.right-click-action"]?.string ?? "") ?? .contextMenu
         focusFollowsMouse = toml["terminal.focus-follows-mouse"]?.bool ?? false
         let terminalBackgroundOpacity = toml["terminal.background-opacity"]?.double
             ?? Self.defaultTerminalBackgroundOpacity
@@ -618,6 +753,8 @@ final class AppSettings: nonisolated ObservableObject {
         ) ? terminalBackgroundOpacity : Self.defaultTerminalBackgroundOpacity
         terminalBackgroundBlur = toml["terminal.background-blur"]?.bool
             ?? Self.defaultTerminalBackgroundBlur
+        terminalPaddingColor = toml["terminal.padding-color"]?.string
+            .flatMap(TerminalPaddingColor.init(rawValue:)) ?? Self.defaultTerminalPaddingColor
         let notifySeconds = toml["terminal.notify-finish-seconds"]?.double ?? 0
         let notifyChoice = Self.notifyFinishChoice(notifySeconds)
         notifyFinishSeconds = Self.notifyFinishSecondChoices.contains(notifyChoice)
@@ -649,9 +786,19 @@ final class AppSettings: nonisolated ObservableObject {
         resumeAgentConversations = toml["ai.resume-conversations"]?.bool ?? true
         notifyOnAgentAttention = toml["ai.notify-on-attention"]?.bool ?? true
         notifyOnAgentCompletion = toml["ai.notify-on-completion"]?.bool ?? true
+        agentUsageEnabled = toml["ai.usage-enabled"]?.bool ?? false
+        claudeUsageEnabled = toml["ai.claude-usage-enabled"]?.bool ?? true
+        codexUsageEnabled = toml["ai.codex-usage-enabled"]?.bool ?? true
         terminalBackend = TerminalBackend(persisted: toml["terminal.backend"]?.string)
+        let term = toml["terminal.term"]?.string
+        terminalTerm = term.flatMap { TerminalLaunchSettings.isValidTermName($0) ? $0 : nil }
+            ?? TerminalLaunchSettings.defaultTerm
+        terminalTermIsInvalid = toml["terminal.term"] != nil
+            && !TerminalLaunchSettings.isValidTermName(term ?? "")
         terminalStartupProgram = toml["terminal.startup-program"]?.string ?? ""
         terminalStartupArguments = toml["terminal.startup-arguments"]?.string ?? ""
+        newSessionDirectoryPolicy = NewSessionDirectoryPolicy(persisted: toml["terminal.new-session-directory"]?.string)
+        newSessionCustomDirectory = toml["terminal.custom-directory"]?.string ?? ""
         browserContentBlocking = toml["browser.content-blocking"]?.bool ?? true
         browserFilterLists = toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults
         gitProxyEnabled = toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled
@@ -736,6 +883,8 @@ final class AppSettings: nonisolated ObservableObject {
 
     func resetFont() {
         fontFamily = ""
+        fontFeatures = ""
+        fontLigatures = true
         fontFallbackFamily = ""
         fontSize = Self.defaultFontSize
         sidebarFontSize = Self.defaultSidebarFontSize
@@ -753,19 +902,25 @@ final class AppSettings: nonisolated ObservableObject {
             && applicationPresence == .dockOnly
             && keepAwakeMode == .off
             && fontFamily.isEmpty
+            && fontFeatures.isEmpty
+            && fontLigatures
             && fontFallbackFamily.isEmpty
             && fontSize == Self.defaultFontSize
             && sidebarFontSize == Self.defaultSidebarFontSize
+            && sidebarDoubleClickNewSession
             && interfaceScale == Self.defaultInterfaceScale
             && !fontThicken
             && fontThickenStrength == Self.defaultFontThickenStrength
             && terminalLineHeight == Self.defaultTerminalLineHeight
+            && mouseScrollMultiplier == Self.defaultTerminalScrollMultiplier
+            && trackpadScrollMultiplier == Self.defaultTerminalScrollMultiplier
             && terminalCellWidth == Self.defaultTerminalCellWidth
             && language == .system
             && theme == .system
             && themeDark == Theme.defaultDarkThemeName
             && themeLight == Theme.defaultLightThemeName
             && !terminalThemeOnly
+            && terminalMinimumContrast == TerminalContrast.defaultMinimumRatio
             && toolbarVisibility == Self.defaultToolbarVisibility
             && cursorShape == .bar
             && cursorBlinking
@@ -775,18 +930,26 @@ final class AppSettings: nonisolated ObservableObject {
             && shellCompletions
             && commandHistoryEnabled
             && terminalTextHints
+            && promptQueueEnabled
+            && !promptQueueAutoDispatch
             && shiftEnterNewline
             && wrapLines
+            && !diffWrapLines
+            && !fileTreeDragImport
+            && !remoteFileWritesEnabled
             && protectEditorSaves
+            && recoverEditorDrafts
             && externalEditor == .systemDefault
             && restoreTerminalHistory
             && !preserveTerminalSessions
             && copyOnSelect
             && remotePasteUpload
             && remoteDropUpload
+            && terminalRightClickAction == .contextMenu
             && !focusFollowsMouse
             && terminalBackgroundOpacity == Self.defaultTerminalBackgroundOpacity
             && terminalBackgroundBlur == Self.defaultTerminalBackgroundBlur
+            && terminalPaddingColor == Self.defaultTerminalPaddingColor
             && notifyFinishSeconds == 0
             && notifyOnError
             && quickTerminalEnabled
@@ -801,9 +964,16 @@ final class AppSettings: nonisolated ObservableObject {
             && resumeAgentConversations
             && notifyOnAgentAttention
             && notifyOnAgentCompletion
+            && !agentUsageEnabled
+            && claudeUsageEnabled
+            && codexUsageEnabled
             && terminalBackend == .fallback
+            && terminalTerm == TerminalLaunchSettings.defaultTerm
+            && !terminalTermIsInvalid
             && terminalStartupProgram.isEmpty
             && terminalStartupArguments.isEmpty
+            && newSessionDirectoryPolicy == .current
+            && newSessionCustomDirectory.isEmpty
             && browserContentBlocking
             && browserFilterLists == BrowserFilterSource.defaults
             && gitProxyEnabled == GitProxy.defaultEnabled
@@ -818,32 +988,44 @@ final class AppSettings: nonisolated ObservableObject {
         applicationPresence = .dockOnly
         keepAwakeMode = .off
         resetFont()
+        sidebarDoubleClickNewSession = true
         language = .system
         theme = .system
         themeDark = Theme.defaultDarkThemeName
         themeLight = Theme.defaultLightThemeName
         terminalThemeOnly = false
+        terminalMinimumContrast = TerminalContrast.defaultMinimumRatio
         toolbarVisibility = Self.defaultToolbarVisibility
         cursorShape = .bar
         cursorBlinking = true
         macosOptionAsAlt = false
+        mouseScrollMultiplier = Self.defaultTerminalScrollMultiplier
+        trackpadScrollMultiplier = Self.defaultTerminalScrollMultiplier
         terminalBell = true
         vimCommandHints = true
         shellCompletions = true
         commandHistoryEnabled = true
         terminalTextHints = true
+        promptQueueEnabled = true
+        promptQueueAutoDispatch = false
         shiftEnterNewline = true
         wrapLines = true
+        diffWrapLines = false
+        fileTreeDragImport = false
+        remoteFileWritesEnabled = false
         protectEditorSaves = true
+        recoverEditorDrafts = true
         externalEditor = .systemDefault
         restoreTerminalHistory = true
         preserveTerminalSessions = false
         copyOnSelect = true
         remotePasteUpload = true
         remoteDropUpload = true
+        terminalRightClickAction = .contextMenu
         focusFollowsMouse = false
         terminalBackgroundOpacity = Self.defaultTerminalBackgroundOpacity
         terminalBackgroundBlur = Self.defaultTerminalBackgroundBlur
+        terminalPaddingColor = Self.defaultTerminalPaddingColor
         notifyFinishSeconds = 0
         notifyOnError = true
         quickTerminalEnabled = true
@@ -863,8 +1045,11 @@ final class AppSettings: nonisolated ObservableObject {
             }
         }
         terminalBackend = .fallback
+        setTerminalTerm(TerminalLaunchSettings.defaultTerm)
         terminalStartupProgram = ""
         terminalStartupArguments = ""
+        newSessionDirectoryPolicy = .current
+        newSessionCustomDirectory = ""
         terminalProfiles = []
         browserContentBlocking = true
         browserFilterLists = BrowserFilterSource.defaults
@@ -873,6 +1058,9 @@ final class AppSettings: nonisolated ObservableObject {
         resumeAgentConversations = true
         notifyOnAgentAttention = true
         notifyOnAgentCompletion = true
+        agentUsageEnabled = false
+        claudeUsageEnabled = true
+        codexUsageEnabled = true
         showPullRequestStatus = true
         automaticallyApplyTerminalProfiles = true
     }
@@ -949,6 +1137,19 @@ final class AppSettings: nonisolated ObservableObject {
         save()
     }
 
+    @discardableResult
+    func setTerminalTerm(_ term: String) -> Bool {
+        guard TerminalLaunchSettings.isValidTermName(term) else {
+            assign(\.terminalTermIsInvalid, true)
+            return false
+        }
+        let needsSave = terminalTermIsInvalid && terminalTerm == term
+        assign(\.terminalTermIsInvalid, false)
+        assign(\.terminalTerm, term)
+        if needsSave { save() }
+        return true
+    }
+
     private func assign<Value: Equatable>(
         _ keyPath: ReferenceWritableKeyPath<AppSettings, Value>, _ value: Value
     ) {
@@ -963,8 +1164,14 @@ final class AppSettings: nonisolated ObservableObject {
         let oldTerminalThemeOnly = terminalThemeOnly
         let oldShortcut = quickTerminalShortcut
         let oldQuickTerminalEnabled = quickTerminalEnabled
+        let oldUsageSettings = [agentUsageEnabled, claudeUsageEnabled, codexUsageEnabled]
         isApplyingConfig = true
-        defer { isApplyingConfig = false }
+        defer {
+            isApplyingConfig = false
+            if oldUsageSettings != [agentUsageEnabled, claudeUsageEnabled, codexUsageEnabled] {
+                applyAgentUsageSettings()
+            }
+        }
 
         assign(\.applicationIcon, ApplicationIcon(
             rawValue: toml["app-icon"]?.string ?? ""
@@ -985,7 +1192,13 @@ final class AppSettings: nonisolated ObservableObject {
             fallback: Theme.defaultLightThemeName
         ))
         assign(\.terminalThemeOnly, toml["terminal.theme-only"]?.bool ?? false)
+        assign(\.terminalMinimumContrast, TerminalContrast.validatedMinimumRatio(
+            toml["terminal.minimum-contrast"]?.double ?? TerminalContrast.defaultMinimumRatio
+        ))
         assign(\.fontFamily, toml["font-family"]?.string ?? "")
+        let features = toml["terminal.font-features"]?.string ?? ""
+        assign(\.fontFeatures, TerminalFontFeatures.parse(features) != nil ? features : "")
+        assign(\.fontLigatures, toml["terminal.font-ligatures"]?.bool ?? true)
         assign(\.fontFallbackFamily, toml["terminal.font-fallback-family"]?.string ?? "")
         let size = toml["font-size"]?.double ?? Self.defaultFontSize
         assign(\.fontSize, Self.fontSizeRange.contains(size) ? size : Self.defaultFontSize)
@@ -994,6 +1207,7 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.sidebarFontSize, Self.sidebarFontSizeRange.contains(sidebarSize)
             ? sidebarSize
             : Self.defaultSidebarFontSize)
+        assign(\.sidebarDoubleClickNewSession, toml["sidebar.double-click-new-session"]?.bool ?? true)
         let scale = toml["interface.scale"]?.double ?? Self.defaultInterfaceScale
         assign(\.interfaceScale, Self.interfaceScaleRange.contains(scale)
             ? scale : Self.defaultInterfaceScale)
@@ -1010,6 +1224,8 @@ final class AppSettings: nonisolated ObservableObject {
         let lineHeight = toml["terminal.line-height"]?.double ?? Self.defaultTerminalLineHeight
         assign(\.terminalLineHeight, Self.terminalLineHeightRange.contains(lineHeight)
             ? lineHeight : Self.defaultTerminalLineHeight)
+        assign(\.mouseScrollMultiplier, TerminalScrollSettings.validMultiplier(toml["terminal.mouse-scroll-multiplier"]?.double))
+        assign(\.trackpadScrollMultiplier, TerminalScrollSettings.validMultiplier(toml["terminal.trackpad-scroll-multiplier"]?.double))
         assign(\.terminalCellWidth, Self.validTerminalCellWidth(
             toml["terminal.cell-width"]?.double ?? Self.defaultTerminalCellWidth
         ))
@@ -1024,15 +1240,22 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.shellCompletions, toml["terminal.shell-completions"]?.bool ?? true)
         assign(\.commandHistoryEnabled, toml["terminal.command-history"]?.bool ?? true)
         assign(\.terminalTextHints, toml["terminal.text-hints"]?.bool ?? true)
+        assign(\.promptQueueEnabled, toml["terminal.prompt-queue-enabled"]?.bool ?? true)
+        assign(\.promptQueueAutoDispatch, toml["terminal.prompt-queue-auto-dispatch"]?.bool ?? false)
         assign(\.shiftEnterNewline, toml["terminal.shift-enter-newline"]?.bool ?? true)
         assign(\.wrapLines, toml["editor.wrap-lines"]?.bool ?? true)
+        assign(\.diffWrapLines, toml["editor.diff-wrap-lines"]?.bool ?? false)
+        assign(\.fileTreeDragImport, toml["files.drag-import"]?.bool ?? false)
+        assign(\.remoteFileWritesEnabled, toml["files.remote-write-enabled"]?.bool ?? false)
         assign(\.protectEditorSaves, toml["editor.protect-saves"]?.bool ?? true)
+        assign(\.recoverEditorDrafts, toml["editor.recover-drafts"]?.bool ?? true)
         assign(\.externalEditor, ExternalEditor.persisted(toml["editor.external-editor"]?.string))
         assign(\.restoreTerminalHistory, toml["terminal.restore-history"]?.bool ?? false)
         assign(\.preserveTerminalSessions, toml["terminal.preserve-sessions"]?.bool ?? false)
         assign(\.copyOnSelect, toml["terminal.copy-on-select"]?.bool ?? true)
         assign(\.remotePasteUpload, toml["terminal.remote-paste-upload"]?.bool ?? true)
         assign(\.remoteDropUpload, toml["terminal.remote-drop-upload"]?.bool ?? true)
+        assign(\.terminalRightClickAction, TerminalRightClickAction(rawValue: toml["terminal.right-click-action"]?.string ?? "") ?? .contextMenu)
         assign(\.focusFollowsMouse, toml["terminal.focus-follows-mouse"]?.bool ?? false)
         let opacity = toml["terminal.background-opacity"]?.double
             ?? Self.defaultTerminalBackgroundOpacity
@@ -1040,6 +1263,8 @@ final class AppSettings: nonisolated ObservableObject {
             ? opacity : Self.defaultTerminalBackgroundOpacity)
         assign(\.terminalBackgroundBlur, toml["terminal.background-blur"]?.bool
             ?? Self.defaultTerminalBackgroundBlur)
+        assign(\.terminalPaddingColor, toml["terminal.padding-color"]?.string
+            .flatMap(TerminalPaddingColor.init(rawValue:)) ?? Self.defaultTerminalPaddingColor)
         let notifySeconds = toml["terminal.notify-finish-seconds"]?.double ?? 0
         assign(\.notifyFinishSeconds, Self.notifyFinishChoice(notifySeconds))
         assign(\.notifyOnError, toml["terminal.notify-on-error"]?.bool ?? false)
@@ -1079,9 +1304,16 @@ final class AppSettings: nonisolated ObservableObject {
         assign(\.resumeAgentConversations, toml["ai.resume-conversations"]?.bool ?? true)
         assign(\.notifyOnAgentAttention, toml["ai.notify-on-attention"]?.bool ?? true)
         assign(\.notifyOnAgentCompletion, toml["ai.notify-on-completion"]?.bool ?? true)
+        assign(\.agentUsageEnabled, toml["ai.usage-enabled"]?.bool ?? false)
+        assign(\.claudeUsageEnabled, toml["ai.claude-usage-enabled"]?.bool ?? true)
+        assign(\.codexUsageEnabled, toml["ai.codex-usage-enabled"]?.bool ?? true)
         assign(\.terminalBackend, TerminalBackend(persisted: toml["terminal.backend"]?.string))
+        setTerminalTerm(toml["terminal.term"] == nil
+            ? TerminalLaunchSettings.defaultTerm : toml["terminal.term"]?.string ?? "")
         assign(\.terminalStartupProgram, toml["terminal.startup-program"]?.string ?? "")
         assign(\.terminalStartupArguments, toml["terminal.startup-arguments"]?.string ?? "")
+        assign(\.newSessionDirectoryPolicy, NewSessionDirectoryPolicy(persisted: toml["terminal.new-session-directory"]?.string))
+        assign(\.newSessionCustomDirectory, toml["terminal.custom-directory"]?.string ?? "")
         assign(\.browserContentBlocking, toml["browser.content-blocking"]?.bool ?? true)
         assign(\.browserFilterLists, toml["browser.filter-lists"]?.string ?? BrowserFilterSource.defaults)
         assign(\.gitProxyEnabled, toml["git.proxy-enabled"]?.bool ?? GitProxy.defaultEnabled)
@@ -1157,6 +1389,11 @@ final class AppSettings: nonisolated ObservableObject {
         configMonitor.save(serializedConfig())
     }
 
+    private func applyAgentUsageSettings() {
+        guard !isApplyingConfig else { return }
+        AgentUsageModel.shared.applySettings(self)
+    }
+
     func backUpConfig() {
         configMonitor.backUp()
     }
@@ -1190,8 +1427,17 @@ final class AppSettings: nonisolated ObservableObject {
         if terminalThemeOnly {
             lines.append("terminal.theme-only = true")
         }
+        if terminalMinimumContrast != TerminalContrast.defaultMinimumRatio {
+            lines.append("terminal.minimum-contrast = \(TOML.number(terminalMinimumContrast))")
+        }
         if !fontFamily.isEmpty {
             lines.append("font-family = \(TOML.quote(fontFamily))")
+        }
+        if !fontFeatures.isEmpty {
+            lines.append("terminal.font-features = \(TOML.quote(fontFeatures))")
+        }
+        if !fontLigatures {
+            lines.append("terminal.font-ligatures = false")
         }
         if !fontFallbackFamily.isEmpty {
             lines.append("terminal.font-fallback-family = \(TOML.quote(fontFallbackFamily))")
@@ -1200,6 +1446,7 @@ final class AppSettings: nonisolated ObservableObject {
         if sidebarFontSize != Self.defaultSidebarFontSize {
             lines.append("sidebar.font-size = \(TOML.number(sidebarFontSize))")
         }
+        if !sidebarDoubleClickNewSession { lines.append("sidebar.double-click-new-session = false") }
         if interfaceScale != Self.defaultInterfaceScale {
             lines.append("interface.scale = \(TOML.number(interfaceScale))")
         }
@@ -1214,6 +1461,12 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if terminalLineHeight != Self.defaultTerminalLineHeight {
             lines.append("terminal.line-height = \(TOML.number(terminalLineHeight))")
+        }
+        if mouseScrollMultiplier != Self.defaultTerminalScrollMultiplier {
+            lines.append("terminal.mouse-scroll-multiplier = \(TOML.number(mouseScrollMultiplier))")
+        }
+        if trackpadScrollMultiplier != Self.defaultTerminalScrollMultiplier {
+            lines.append("terminal.trackpad-scroll-multiplier = \(TOML.number(trackpadScrollMultiplier))")
         }
         if terminalCellWidth != Self.defaultTerminalCellWidth {
             lines.append("terminal.cell-width = \(TOML.number(terminalCellWidth))")
@@ -1234,6 +1487,8 @@ final class AppSettings: nonisolated ObservableObject {
         lines.append("terminal.shell-completions = \(shellCompletions)")
         if !commandHistoryEnabled { lines.append("terminal.command-history = false") }
         if !terminalTextHints { lines.append("terminal.text-hints = false") }
+        lines.append("terminal.prompt-queue-enabled = \(promptQueueEnabled)")
+        lines.append("terminal.prompt-queue-auto-dispatch = \(promptQueueAutoDispatch)")
         if !automaticallyApplyTerminalProfiles { lines.append("terminal.auto-profiles = false") }
         if !shiftEnterNewline {
             lines.append("terminal.shift-enter-newline = false")
@@ -1241,8 +1496,16 @@ final class AppSettings: nonisolated ObservableObject {
         if !wrapLines {
             lines.append("editor.wrap-lines = false")
         }
+        if diffWrapLines {
+            lines.append("editor.diff-wrap-lines = true")
+        }
+        if fileTreeDragImport { lines.append("files.drag-import = true") }
+        if remoteFileWritesEnabled { lines.append("files.remote-write-enabled = true") }
         if !protectEditorSaves {
             lines.append("editor.protect-saves = false")
+        }
+        if !recoverEditorDrafts {
+            lines.append("editor.recover-drafts = false")
         }
         if externalEditor != .systemDefault {
             lines.append("editor.external-editor = \(TOML.quote(externalEditor.rawValue))")
@@ -1256,6 +1519,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if !remotePasteUpload { lines.append("terminal.remote-paste-upload = false") }
         if !remoteDropUpload { lines.append("terminal.remote-drop-upload = false") }
+        if terminalRightClickAction != .contextMenu {
+            lines.append("terminal.right-click-action = \(TOML.quote(terminalRightClickAction.rawValue))")
+        }
         if focusFollowsMouse {
             lines.append("terminal.focus-follows-mouse = true")
         }
@@ -1266,6 +1532,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if terminalBackgroundBlur != Self.defaultTerminalBackgroundBlur {
             lines.append("terminal.background-blur = true")
+        }
+        if terminalPaddingColor != Self.defaultTerminalPaddingColor {
+            lines.append("terminal.padding-color = \(TOML.quote(terminalPaddingColor.rawValue))")
         }
         if notifyFinishSeconds > 0 {
             lines.append("terminal.notify-finish-seconds = \(TOML.number(Double(notifyFinishSeconds)))")
@@ -1303,14 +1572,26 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if !notifyOnAgentAttention { lines.append("ai.notify-on-attention = false") }
         if !notifyOnAgentCompletion { lines.append("ai.notify-on-completion = false") }
+        if agentUsageEnabled { lines.append("ai.usage-enabled = true") }
+        if !claudeUsageEnabled { lines.append("ai.claude-usage-enabled = false") }
+        if !codexUsageEnabled { lines.append("ai.codex-usage-enabled = false") }
         if terminalBackend != .fallback {
             lines.append("terminal.backend = \(TOML.quote(terminalBackend.rawValue))")
+        }
+        if terminalTerm != TerminalLaunchSettings.defaultTerm {
+            lines.append("terminal.term = \(TOML.quote(terminalTerm))")
         }
         if !terminalStartupProgram.isEmpty {
             lines.append("terminal.startup-program = \(TOML.quote(terminalStartupProgram))")
         }
         if !terminalStartupArguments.isEmpty {
             lines.append("terminal.startup-arguments = \(TOML.quote(terminalStartupArguments))")
+        }
+        if newSessionDirectoryPolicy != .current {
+            lines.append("terminal.new-session-directory = \(TOML.quote(newSessionDirectoryPolicy.rawValue))")
+        }
+        if !newSessionCustomDirectory.isEmpty {
+            lines.append("terminal.custom-directory = \(TOML.quote(newSessionCustomDirectory))")
         }
         if !browserContentBlocking {
             lines.append("browser.content-blocking = false")

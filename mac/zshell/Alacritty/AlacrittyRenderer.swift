@@ -32,7 +32,8 @@ struct AlacrittyMetrics {
         fontThicken: Bool,
         fontThickenStrength: Int,
         lineHeight: CGFloat,
-        cellWidth: CGFloat = 1
+        cellWidth: CGFloat = 1,
+        fontFeatures: TerminalFontFeatures = .init()
     ) {
         let regular = TerminalFont.resolve(
             family: family,
@@ -40,13 +41,13 @@ struct AlacrittyMetrics {
             size: size
         )
         let manager = NSFontManager.shared
-        self.regular = regular
-        bold = manager.convert(regular, toHaveTrait: .boldFontMask)
-        italic = manager.convert(regular, toHaveTrait: .italicFontMask)
-        boldItalic = manager.convert(
+        self.regular = fontFeatures.applying(to: regular)
+        bold = fontFeatures.applying(to: manager.convert(regular, toHaveTrait: .boldFontMask))
+        italic = fontFeatures.applying(to: manager.convert(regular, toHaveTrait: .italicFontMask))
+        boldItalic = fontFeatures.applying(to: manager.convert(
             manager.convert(regular, toHaveTrait: .boldFontMask),
             toHaveTrait: .italicFontMask
-        )
+        ))
 
         let advance = TerminalFont.cellAdvance(of: regular)
         // Round to whole points so column positions stay on pixel boundaries
@@ -330,7 +331,11 @@ struct AlacrittyRenderer {
     /// Inverse video and SGR 2 are resolved here rather than in the bridge, so
     /// the snapshot keeps the terminal's own colours and the renderer decides
     /// how to present them.
-    static func foreground(of cell: ZshellCell, default background: UInt32) -> UInt32 {
+    static func foreground(
+        of cell: ZshellCell,
+        default background: UInt32,
+        minimumContrast: Double = TerminalContrast.defaultMinimumRatio
+    ) -> UInt32 {
         var color = cell.flags & UInt16(ZSHELL_CELL_INVERSE) != 0 ? cell.bg : cell.fg
         if cell.flags & UInt16(ZSHELL_CELL_DIM) != 0 {
             color = dim(color)
@@ -339,7 +344,10 @@ struct AlacrittyRenderer {
             color = selectionColors().foreground
         }
         let resolvedBackground = Self.background(of: cell, default: background)
-        return contrastedColor(color, against: resolvedBackground)
+        // Turning ANSI adjustment off must keep selection text readable.
+        let ratio = cell.flags & UInt16(ZSHELL_CELL_SELECTED) != 0
+            ? max(minimumContrast, TerminalContrast.defaultMinimumRatio) : minimumContrast
+        return contrastedColor(color, against: resolvedBackground, minimumRatio: ratio)
     }
 
     static func background(of cell: ZshellCell, default background: UInt32) -> UInt32 {
@@ -362,8 +370,42 @@ struct AlacrittyRenderer {
         return (foreground, background)
     }
 
-    private static func contrastedColor(_ foreground: UInt32, against background: UInt32) -> UInt32 {
-        guard contrastRatio(foreground, background) < TerminalContrast.minimumRatio else {
+    final class ContrastCache {
+        private(set) var minimumRatio = TerminalContrast.defaultMinimumRatio
+        private var colors: [UInt64: UInt32] = [:]
+
+        @discardableResult
+        func setMinimumRatio(_ value: Double) -> Bool {
+            let ratio = TerminalContrast.validatedMinimumRatio(value)
+            guard minimumRatio != ratio else { return false }
+            minimumRatio = ratio
+            colors.removeAll(keepingCapacity: true)
+            return true
+        }
+
+        func foreground(of cell: ZshellCell, default background: UInt32) -> UInt32 {
+            // Selection uses the current app palette, independent of ANSI colors.
+            guard minimumRatio > 1, cell.flags & UInt16(ZSHELL_CELL_SELECTED) == 0 else {
+                return AlacrittyRenderer.foreground(of: cell, default: background, minimumContrast: minimumRatio)
+            }
+            let flags = cell.flags & UInt16(ZSHELL_CELL_INVERSE | ZSHELL_CELL_DIM)
+            let key = (UInt64(cell.fg & 0xffffff) << 40)
+                | (UInt64(cell.bg & 0xffffff) << 16) | UInt64(flags)
+            if let color = colors[key] { return color }
+            let color = AlacrittyRenderer.foreground(of: cell, default: background, minimumContrast: minimumRatio)
+            // True-color output must not grow a cache for the life of a session.
+            if colors.count >= 4096 { colors.removeAll(keepingCapacity: true) }
+            colors[key] = color
+            return color
+        }
+    }
+
+    private static func contrastedColor(
+        _ foreground: UInt32,
+        against background: UInt32,
+        minimumRatio: Double
+    ) -> UInt32 {
+        guard minimumRatio > 1, contrastRatio(foreground, background) < minimumRatio else {
             return foreground
         }
         return contrastingColor(for: background)

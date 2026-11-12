@@ -16,6 +16,10 @@ Her terminal bölmesi gerçek giriş kabuğunuzu ve GPU hızlandırmalı iki yer
 
 İkisi de GPU hızlandırma, görüntü oluşturma, Zshell’in ortak tema kataloğu, arama, fare raporlama, bildirim ve ilerleme raporlarını destekler. Değişim yalnızca yeni terminallere uygulanır; mevcut bölmeler başladıkları emülatörü korur.
 
+## Terminal türü [#terminal-type]
+
+**Ayarlar → Terminal → TERM** altında `terminal.term` değerini ayarlayın (varsayılan `"xterm-256color"`). Ad, 1–128 ASCII harfi, rakam veya `.-_+` içermelidir. Shell’in çalıştığı ana bilgisayarda yüklü bir terminfo adı kullanın. Değişiklikler yalnızca yeni yerel ve SSH oturumlarına uygulanır; açık ve korunan PTY’ler özgün `TERM` değerini korur. Paylaşılan uzak oturumlar güncel sunucuda oluşturulurken bu değeri kullanır; eski sunucular `xterm-256color` kullanmaya devam eder. Geçersiz düzenlemeler son geçerli değeri korur ve Ayarlar’da hata gösterir. `TERM_PROGRAM` ve `ZSHELL_TERM` değişmez.
+
 ## Komut geçmişi [#command-history]
 
 **Ayarlar → Terminal → Geçmiş** içindeki **Komut geçmişini kaydet** varsayılan olarak açıktır (`terminal.command-history = true`). Kapatmak yeni komutların kaydını durdurur; kayıtlı geçmiş görüntülenebilir veya temizlenebilir. Terminal çıktısı ve kabuğun kendi geçmişi korunur.
@@ -57,6 +61,12 @@ Erişimi **Sistem Ayarları → Gizlilik ve Güvenlik → Kamera, Mikrofon veya 
 **Ayarlar → Terminal → Girdi → Odak fareyi izler** seçeneği, işaretçi girdiğinde bölmeye odaklanır. Varsayılan kapalıdır; iki arka uç ve Hızlı Terminal ile çalışır. Sürükleme sırasında, düzenleyiciden veya açık menü ya da iletişim kutusundan odağı almaz.
 
 `terminal.focus-follows-mouse = true`
+
+## Sağ tıklama eylemi [#right-click-action]
+
+**Ayarlar → Terminal → Giriş → Sağ tıklama eylemi** altında **Bağlam Menüsü** (varsayılan), **Yapıştır** veya **Kopyala veya Yapıştır** seçin. Son seçenek seçili metni kopyalar; yalnızca seçim yokken yapıştırır. Değişiklik her iki arka uçta hemen uygulanır. `config.toml` içindeki `terminal.right-click-action`, `"context-menu"`, `"paste"` veya `"copy-or-paste"` olabilir.
+
+**Shift ile sağ tıklama**, **Control ile tıklama** ve **Command ile sağ tıklama** menüyü açmaya devam eder. **Düzenle → Terminal Bağlam Menüsünü Göster** (<kbd>Shift</kbd>+<kbd>F10</kbd>) menüyü klavyeden açar. Fare bildirimi kullanan uygulamalar, bölmede **Zshell Komutlarını Engelle** etkin değilse normal sağ tıklamaları almaya devam eder. Yapıştırma, <kbd>Cmd</kbd>+<kbd>V</kbd> ile aynı çok satırlı onayı ve yerel veya uzak dosya işlemlerini kullanır.
 
 ## Terminal profilleri [#terminal-profiles]
 
@@ -100,9 +110,13 @@ Ayar yalnızca o bölmeye uygulanır. Yeniden sağ tıklayıp işareti kaldırma
 
 Terminale odaklanıp <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> basın veya komut paletinde **Komut Kuyruğunu Aç/Kapat** seçin. Çubuk terminalin altında açılır. Girdi yazıp <kbd>Return</kbd> veya **Kuyruğa Ekle** kullanın; her girdi tek satırdır, yapıştırılan satır sonları boşluğa dönüşür.
 
-Asıl zsh boş kabuk istemine dönünce Zshell sıradaki girdiyi ve Return gönderir. Girdiler kuyruk sırasıyla çalışır. Ajan veya başka program terminali kullanırken ya da istemde taslak varken otomatik gönderim bekler. Zshell’in zsh entegrasyonu gerekir; diğer ve iç içe kabuklar elle gönderimi kullanabilir.
+Varsayılan gönderim elle yapılır. **Şimdi Gönder**, yalnızca özgün zsh komut satırı boşken ve bekleyen veya çalışan komut görevi terminali kullanmıyorken gönderir. Ajanlar, ön plan programları, taslaklar, başka veya iç içe kabuklarda düğme devre dışıdır. Reddedilen gönderim girdiyi korur.
 
-Her girdinin **Şimdi Gönder** ve **Kaldır** düğmesi vardır. **Şimdi Gönder** kabuk istemi beklemeden metni ve Return’ü terminaldeki mevcut programa hemen gönderir. <kbd>Esc</kbd> veya kapatma düğmesi girdileri koruyarak çubuğu gizler. Her terminalin kuyruğu ayrıdır; oturumu kapatmak veya Zshell’den çıkmak kuyruğu siler.
+**Ayarlar → Terminal → Komut kuyruğu** altında **Kuyruktaki komutları otomatik gönder** seçeneğini açarak bir komut bitip zsh boş komut satırına döndüğünde sıradaki girdiyi gönderin. Açmak mevcut kuyruğu hemen çalıştırmaz; sonraki komut bitiminde geçerli olur. Kapatmak bekleyen gönderimleri iptal eder.
+
+**Komut kuyruğunu etkinleştir** kapatıldığında tüm çalışma alanları ve Quick Terminal çubukları gizlenir, gönderimler iptal olur, girdiler ve gönderilmemiş metin korunur. Menü ve kısayol bu durumda ilgili ayarları açar.
+
+**Kaldır** girdiyi siler. Dar bölmeler adlı ve ipuçlu simgeler gösterir. <kbd>Esc</kbd> veya kapat yalnızca çubuğu gizler. Her terminalin kuyruğu ayrıdır; oturum veya Zshell kapanınca silinir.
 
 ## Yollar ve URL’ler [#paths-and-urls]
 
@@ -139,7 +153,7 @@ Bildirimler sistem sesi çalabilir. Tıklamak Zshell’i etkinleştirir ve bildi
 
 Aynı bildirim geçmişi **Ayarlar → Terminal → Bildirimler** üzerinden de açılabilir.
 
-Son terminal ve ajan bildirimleri için **Bildirimler → Bildirim geçmişi…** menüsünü açın. **Okunmamış**, **Başarısız** veya **Bekleyen** ile filtreleyin. Bildirime veya **Bölmeyi göster** düğmesine tıklamak, başka bir pencerede olsa bile geçerli proje, sekme ve bölmeyi seçer. Kapatılan bölmeler geçmişte kullanılamaz olarak kalır.
+Son terminal ve ajan bildirimleri için **Terminal → Bildirimler → Bildirim geçmişi…** menüsünü açın. **Okunmamış**, **Başarısız** veya **Bekleyen** ile filtreleyin. Bildirime veya **Bölmeyi göster** düğmesine tıklamak, başka bir pencerede olsa bile geçerli proje, sekme ve bölmeyi seçer. Kapatılan bölmeler geçmişte kullanılamaz olarak kalır.
 
 **Okundu olarak işaretle**, **Tümünü okundu olarak işaretle**, **Kaldır** veya **Geçmişi temizle** ile listeyi yönetin. Okumak ajan isteğini onaylamaz. Ajan devam ettiğinde veya bittiğinde, bölme kapandığında ya da uzak bağlantı kullanılamadığında bildirim bekleyen filtresinden çıkar. Durumlar açık yaşam döngüsü raporlarına ve komut çıkış sonuçlarına dayanır. Son 200 kayıt yeniden başlatmalar arasında korunur ve macOS bildirim izni kapalıyken de kullanılabilir.
 

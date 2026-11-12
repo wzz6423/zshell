@@ -39,10 +39,12 @@ Nhấn tệp thay đổi để mở diff trong ô cạnh terminal thay vì đè 
 
 Diff lớn vẫn phản hồi nhanh. Tập nghìn tệp mở nhanh như thay đổi một dòng và cuộn mượt.
 
-Điều khiển trên diff nhớ hai lựa chọn trên toàn ứng dụng:
+Điều khiển trên diff nhớ lựa chọn của bạn trên toàn ứng dụng:
 
 - **Hợp nhất / Chia đôi** đổi giữa một cột và hai cột cạnh nhau.
 - **Xem xét / Chỉnh sửa** có với tệp chưa stage trong worktree hiện hành. Sửa trực tiếp phía mới và <kbd>Cmd</kbd>+<kbd>S</kbd> để lưu; đóng tệp chưa lưu được xử lý như trình soạn thảo thường.
+
+Dùng **Ngắt dòng theo chiều rộng diff** trên thanh công cụ để đọc dòng dài mà không cuộn ngang. Cùng công tắc có trong **Cài đặt → Trình soạn thảo** (`editor.diff-wrap-lines`, mặc định `false`). Áp dụng cho diff đang mở và mới, gồm commit lịch sử, thay đổi có thể chỉnh sửa và bình luận PR, đồng thời giữ bản nháp chỉnh sửa.
 
 Diff đã stage và commit lịch sử chỉ đọc vì là ảnh chụp trạng thái, không phải tệp Zshell có thể ghi an toàn. Chuyển một diff sang Chỉnh sửa hoặc Chia đôi cập nhật tùy chọn của diff đang mở khác nhưng không làm diff không đủ điều kiện trở nên sửa được.
 

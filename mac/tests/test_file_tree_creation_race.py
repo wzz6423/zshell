@@ -37,7 +37,8 @@ def main():
         support.write_text(SUPPORT)
         binary = temporary / "file-tree-creation-race"
         subprocess.run(compiler_arguments(temporary) + [
-            str(model), str(support), str(ROOT / "mac/tests/FileTreeCreationRaceTests.swift"), "-o", str(binary),
+            str(model), str(support), str(ROOT / "mac/tests/FileTreeRemoteWriteStubs.swift"),
+            str(ROOT / "mac/tests/FileTreeCreationRaceTests.swift"), "-o", str(binary),
         ], cwd=ROOT, check=True, timeout=120)
         result = subprocess.run([str(binary), str(temporary / "fixture")], cwd=ROOT, timeout=30)
     raise SystemExit(result.returncode)

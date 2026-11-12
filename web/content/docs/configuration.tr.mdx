@@ -23,7 +23,7 @@ Elle düzenlemeden önce bilin:
 
 - **Değişiklikler çalışırken okunur.** Geçerli dış düzenlemeler otomatik uygulanır; yeni terminallere yönelik ayarlar hâlâ yeni bölme ister. Okunamayan veya hatalı dosya son geçerli ayarları korur. Bilerek boş bırakılmış dosya kısa bir beklemeden sonra varsayılanları geri getirir.
 - **Dosyada tutulan ayar değişince Zshell dosyayı yeniden yazar.** Baştan oluşturulduğu için bu denetimleri sonraki kullanımınızda yorumlar ve bilinmeyen anahtarlar kaybolur. Dosya için tek düzenleyici seçin veya dotfile’larınızda esas kopya tutun.
-- **Varsayılan değerlerin çoğu yazılmaz.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` daima kaydedilir. Mevcut dosyada bu üç terminal anahtarından birini silmek ilgili özelliği kapatır; diğer anahtarları silmek varsayılanlarını geri getirir.
+- **Varsayılan değerlerin çoğu yazılmaz.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` daima kaydedilir. Mevcut dosyada `terminal.vim-command-hints`, `terminal.restore-history` veya `terminal.notify-on-error` anahtarını silmek ilgili özelliği kapatır. `terminal.prompt-queue-enabled` anahtarını silmek varsayılan `true` değerini, `terminal.prompt-queue-auto-dispatch` anahtarını silmek varsayılan `false` değerini geri getirir. Diğer anahtarları silmek her birinin varsayılanını geri getirir.
 - **Ayrıştırıcı bilinçli olarak küçüktür.** Düz/noktalı anahtarları, `[table]` başlıklarını, `#` yorumlarını ve metin/sayı/mantıksal değerleri destekler. Dizi, satır içi tablo ve çok satırlı metin desteklemez.
 - **Geçersiz değerler güvenle varsayılana döner.** Aralık dışı boyut, bilinmeyen arka uç veya yanlış yazılmış tema Zshell’in açılmasını engellemez.
 
@@ -66,6 +66,12 @@ metin — varsayılanlar `"Default Dark"` ve `"Default Light"`
 Her görünümün renk temasıdır. Terminal bölmeleri, pencere çerçevesi, kenar çubukları, düzenleyici ve farkları birlikte renklendirir. Yerleşik varsayılanlar saydam kenar çubuğunu korur; diğer temalar kendi paletlerine boyar.
 
 Ayarlar iki arka ucun ortak seçilmiş tema kataloğunu listeler. Elle yazılan ad, büyük/küçük harf dâhil görünen adla tam eşleşmelidir; aksi hâlde ilgili varsayılan kullanılır.
+
+### `terminal.minimum-contrast` [#terminalminimum-contrast]
+
+`1`–`21` · `3`
+
+**Ayarlar → Görünüm → Renkler → En düşük kontrast**, terminal metninin okunabilirliğini `1`–`21` arasında ayarlar (varsayılan `3`). `1`, özgün ANSI renklerini korur. Her iki arka uç da kabukları yeniden başlatmadan açık terminalleri ve Quick Terminal’i günceller; profiller kendi paletlerini kullanmaya devam eder. Emoji ve görüntü piksellerinin renkleri korunur. Seçim ve imleç, her arka ucun yerel okunabilirlik politikasını korur. Arka plan istenen oranı sağlayamıyorsa her arka uç mevcut en okunabilir rengi kullanır. Saydam terminaller çözümlenmiş hücre arka planını kullanır; masaüstüyle birleştirme sonrası kontrast farklı olabilir.
 
 ### `toolbar.visibility` [#toolbarvisibility]
 
@@ -113,6 +119,26 @@ sayı, 9–24 — varsayılan `14`
 
 İki kenar çubuğunun temel metin boyutu. Bölüm başlıkları, satırlar, meta veriler ve denetimler temel değişirken göreli hiyerarşilerini korur.
 
+### `sidebar.double-click-new-session` [#sidebardouble-click-new-session]
+
+mantıksal — varsayılan `true`
+
+Kenar çubuğunun boş alanına çift tıklamak seçili projede oturum oluşturur; proje seçili değilse proje oluşturur. Satırlara tıklama ve sürükleme olağan işlemlerini korur.
+
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+mantıksal — varsayılan `true`
+
+Her iki terminal arka ucunda isteğe bağlı bağları **Ayarlar → Görünüm → Yazı tipi bağları** bölümünden açıp kapatın. Kapatmak `calt`, `liga`, `clig`, `dlig` ve `hlig` değerlerini geçersiz kılar; yazının zorunlu şekillendirmesi korunur. Karakterler, terminal sütunları, imleç ve seçim değişmez.
+
+### `terminal.font-features` [#terminalfont-features]
+
+metin — varsayılan `""`, yazı tipi varsayılanları
+
+**OpenType özellikleri** alanında dört karakterli etiketleri virgül veya boşlukla ayırın: `-calt` bağlamsal alternatifleri kapatır, `ss01` biçem kümesi 1’i ve `zero=1` alternatif sıfırı açar. `+liga` ve `liga=1` de özelliği açar. Aynı etiketin son değeri geçerlidir; bağ anahtarı belirtilen beş etikette önceliklidir.
+
+Değişiklikler açık terminallere ve önizlemeye hemen uygulanır. İki arka uç da yazı tipinin desteklediği özellikleri kullanır; diğer etiketler etkisizdir. Geçersiz giriş son geçerli değeri korur; geçersiz dış değer yazı tipi varsayılanlarını kullanır. Sıfırlama listeyi temizler ve bağları açar.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 mantıksal — varsayılan `false`
@@ -139,17 +165,39 @@ Karakterleri dikey ortalayarak arka ucun doğal hücre yüksekliğini çarpar. Y
 
 Zshell temel yazı ağırlığı denetimi sunmaz. Ghostty adlı stilleri veya değişken eksenlerini seçer; Alacritty/CoreText normal ve kalını özelliklerden çözer. Tek ortak değer, sabit ve değişken yazı tiplerinde normal/kalın ayrımını veya yedek ağırlıkları tutarlı korumaz.
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+**Ayarlar → Görünüm → Arka plan → Kenar rengi** seçeneğini kullanın. `"background"` kenarlarda terminal teması arka planını kullanır. `"extend"` en yakın hücrenin arka planını uzatır; ancak ilgili satır varsayılan arka planlı bir hücre, kabuk istemi veya Powerline ayırıcı içeriyorsa üst ya da alt kenar tema arka planında kalır. `"always"` bu denetimler olmadan tüm kenarları uzatır. Boş alt satırlar kendi arka planını korur; üstteki renkli satır alt kenarı doldurmaz. Değişiklikler her iki arka ucun açık terminallerine hemen uygulanır. Yarı saydamlıkta varsayılan arka planlar opaklıklarını korurken açıkça ayarlanmış hücre arka planları ve uzantıları opak kalır.
+
 ### `editor.wrap-lines` [#editorwrap-lines]
 
 mantıksal — varsayılan `true`
 
 [Dosya düzenleyicisinde](/tr/docs/files) uzun satırları bölme genişliğine sarar. `false` ise yatay kaydırılır. Terminal veya fark satır sarmasını değiştirmez.
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+mantıksal — varsayılan `false`
+
+**Ayarlar → Düzenleyici → Satırları fark genişliğine kaydır** ve fark araç çubuğundaki satır kaydırma düğmesi aynı seçeneği denetler. Uzun satırlar birleşik ve bölünmüş görünümlerde, düzenlenebilir değişikliklerde, geçmiş farklarda ve PR yorumlarında bölme genişliğine kaydırılır. Seçim açık tüm farklara hemen uygulanır ve yeniden başlatmada korunur. Kapatmak yatay kaydırmayı geri getirir. Dosya düzenleyicisi ve terminal satır kaydırmasından bağımsızdır.
+
 ### `editor.protect-saves` [#editorprotect-saves]
 
 boolean — varsayılan `true`
 
 Bir dosya veya düzenlenebilir çalışma ağacı diff’i kaydedilmeden önce dış değişiklikleri denetler. Çakışmada karşılaştırabilir, yeniden yükleyebilir, taslağı koruyabilir veya açıkça üzerine yazabilirsiniz. Kapatmak, dış değişikliklerin uyarı olmadan değiştirilmesine izin verir.
+
+### `editor.recover-drafts` [#editorrecover-drafts]
+
+boolean — varsayılan `true`
+
+Zshell, yerel dosyalardaki ve düzenlenebilir çalışma ağacı diff’lerindeki kaydedilmemiş değişiklikleri varsayılan olarak yedekler. Beklenmedik çıkıştan sonra yeniden açılan bölmeler taslakları, seçimleri ve düzeni geri yükler. Diğer yedekler için **Dosya → Taslakları Kurtar…** veya **Ayarlar → Düzenleyici → Taslakları Kurtar…** yolunu açın, yedeği seçip içeriğini inceleyin ve **Taslağı Geri Yükle** seçeneğine tıklayın. Geri yükleme kaydedilmemiş bir düzenleyici açar; diskteki dosyayı değiştirmez. Kaydetme, dış değişiklikleri düzenlemelerinizden önceki sürümle denetlemeye devam eder.
+
+Yedekleri **Ayarlar → Düzenleyici → Kaydedilmemiş taslakları yedekle** veya `editor.recover-drafts` ile yönetin. Kapatmak yeni yedekleri ve otomatik kurtarmayı durdurur, mevcut yedekleri elle kurtarma veya silme için korur. **Yedeği Sil** yalnızca seçilen yedeği kaldırır; açık düzenlemeler korunur. Başarılı kaydetme veya tamamlanan kapatmada **Kaydetme** seçimi yedeği kaldırır. Özel dosyalar bu Mac’te en fazla 32 taslak ve 128 MiB olarak tutulur ve en fazla 30 gün boyunca kurtarılabilir. Kapasite sınırları eski yedekleri daha erken silebilir. 5 MiB’den büyük dosyalar ve düzenlenmiş metinler kapsam dışıdır.
+
+Zshell başlangıçta ve çalışırken her saat, yedekleme kapalı olsa bile süresi dolmuş yedekleri siler. Zshell kapalıysa süresi dolan dosyalar bir sonraki açılışa kadar diskte kalır.
 
 ## Terminal [#terminal]
 
@@ -161,6 +209,24 @@ Bundan sonra oluşturulan terminallerin çalıştırılabilir dosyasını ve arg
 
 `terminal.startup-arguments` kabuk çağırmadan argümanlara ayrılır. Tırnak ve ters eğik çizgiler boşluk ve boş argüman dâhil sınırları korur; değişken, glob ve komut yerine koyma genişletilmez. Geçersiz tırnaklama da giriş kabuğuna döner. Zshell CLI’ın açıkça verdiği argv o terminalde yine önceliklidir.
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — varsayılan `"current"`
+
+**Ayarlar → Terminal → Yeni oturum dizini** yolunu seçin. Geçerli, yeni projenin ilk terminali dahil etkin yerel kabuğun dizinini kullanır. Yerel kabuk yoksa ev dizinini kullanır. Proje, Dosyalar ve Git'te gösterilen kökü (en yakın depo veya ön plandaki çalışma kopyası) kullanır; depo dışında geçerli dizini kullanır. Ev her zaman hesabın ev dizinini kullanır. Bu ilke ilk Hızlı Terminal ve her yeni Hızlı Terminal çalışma alanı için de geçerlidir.
+
+Finder, CLI, çalışma alanı şablonu, worktree, geri yüklenen oturum, sabitlenmiş proje dizini veya kenar çubuğu grubundaki açık dizin önceliklidir. Bölmeler kaynak panelin dizinini korur. SSH ve paylaşılan uzak oturumlar uzak sunucudaki dizini korur. Ayarı değiştirmek açık terminalleri veya yeniden kullanılan Hızlı Terminal alanlarını yeniden başlatmaz.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+metin — varsayılan `""`
+
+Özel ilke için mutlak yol veya `~/folder` girin ya da Ayarlar'dan bir klasör seçin. Zshell klasörün var olduğunu ve içine girilebildiğini doğrular. Eksik, erişilemeyen veya geçersiz klasör, geçerli yerel dizine (yoksa ev dizinine) döner; Ayarlar nedenini gösterir. Başka bir ilke seçerken kayıtlı yol korunur.
+
+### `terminal.term`
+
+**Ayarlar → Terminal → TERM** altında `terminal.term` değerini ayarlayın (varsayılan `"xterm-256color"`). Ad, 1–128 ASCII harfi, rakam veya `.-_+` içermelidir. Shell’in çalıştığı ana bilgisayarda yüklü bir terminfo adı kullanın. Değişiklikler yalnızca yeni yerel ve SSH oturumlarına uygulanır; açık ve korunan PTY’ler özgün `TERM` değerini korur. Paylaşılan uzak oturumlar güncel sunucuda oluşturulurken bu değeri kullanır; eski sunucular `xterm-256color` kullanmaya devam eder. Başlangıçta geçersiz bir değer varsa `xterm-256color` kullanılır; Zshell çalışırken yapılan geçersiz düzenlemeler son geçerli değeri korur. Her iki durumda da Ayarlar’da hata gösterilir. `TERM_PROGRAM` ve `ZSHELL_TERM` değişmez.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — varsayılan `"libghostty"`
@@ -168,6 +234,12 @@ Bundan sonra oluşturulan terminallerin çalıştırılabilir dosyasını ve arg
 Sonradan oluşturulan terminallerin emülatörünü seçer. Mevcut bölmeler başlangıçtaki arka ucu korur. İkisi de yerel ve GPU hızlandırmalıdır; görüntü oluşturur ve aynı temaları kullanır. Alacritty genellikle daha az bellek kullanır.
 
 Ortam değişkenleri ve uyumluluk için [Terminal arka uçları](/tr/docs/terminal#terminal-backends) bölümüne bakın.
+
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+sayı, 0.1–10 — her aygıt için varsayılan `1`
+
+İki hızı **Ayarlar → Terminal → Kaydırma → Fare tekerleği / İzleme dörtgeni** bölümünde ayrı ayrı ayarlayın. Değerler yüzde olarak gösterilir: 100% mevcut hızı korur, 50% yarıya indirir ve 200% iki katına çıkarır. Değişiklikler açık Ghostty ve Alacritty panellerinde, kaydırma geçmişinde, tam ekran programlarda ve fare raporlamasında hemen uygulanır. Ataletli kaydırma izleme dörtgeni değerini kullanır; yatay kaydırma yatay kalır. Hassas kaydırma farkları gönderen fareler de izleme dörtgeni değerini kullanır. Eksik veya geçersiz değerler `1` olur. İçe aktarma, dışa aktarma ve sıfırlama iki değeri de kapsar.
 
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
@@ -215,21 +287,37 @@ Terminal bölmeleri geri yüklenirken özgün PTY kullanılamıyorsa kaydedilmi�
 
 **Ayarlar → Otomasyon → Ajan konuşmalarını sürdür** üzerinden ayarlanır. `terminal.restore-history` seçeneğinden bağımsızdır.
 
+### `ai.usage-enabled`
+
+boolean — varsayılan `false`
+
+**Ayarlar → Otomasyon → Hesap Kullanımı → Hesap kullanımını oku** ile yerel CLI hesap sınırlarını okumayı açar. Kapatmak istekleri iptal eder, veriyi gizler ve Claude raporlarının kaydını reddeder. Sağlayıcı seçimleri korunur. Ajan tanıma, yaşam döngüsü raporları ve konuşma geri yükleme değişmez.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+boolean — her biri varsayılan `true`
+
+`ai.usage-enabled = true` için sağlayıcıları seçer. Claude Code Zshell’in yerel durum satırı raporunu okur; Codex kurulu ve oturum açılmış CLI’yi sorgular. Sağlayıcıyı kapatmak okumayı hemen durdurur ve veriyi gizler. Kimlik bilgisi toplanmaz. Üç seçenek arama, içe/dışa aktarma, canlı yeniden yükleme ve varsayılana sıfırlamayı destekler.
+
 ## Ek ayarlar [#additional-settings]
 
 | Anahtar | Varsayılan | Değerler / aralık | Etki |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Uygulama simgesi |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Dosya ve klasörlerin harici düzenleyicisi |
+| `files.drag-import` | `false` | boolean | Finder öğelerini yerel ağaca sürükleyerek kopyalamayı etkinleştirir; içe aktarma menüsü her zaman kullanılabilir |
+| `files.remote-write-enabled` | `false` | boolean | Mevcut ana makine araçlarıyla uzak oluşturma, yeniden adlandırma, kurtarılabilir silme ve kaydetmeye izin ver |
 | `terminal.theme-only` | `false` | mantıksal | Paleti yalnızca terminale uygular |
 | `terminal.command-history` | `true` | mantıksal | Yeni komutları kaydet; kapalıyken kayıtlı geçmiş kullanılabilir |
 | `terminal.text-hints` | `true` | mantıksal | Görünür terminal metni için klavye ipuçlarını etkinleştir |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | mantıksal | **Ayarlar → Terminal → Komut kuyruğu** tüm çalışma alanları ve Quick Terminal’i denetler. Ana anahtarı kapatmak çubukları gizler ve gönderimleri iptal eder; girdiler ve metin terminal kapanana kadar korunur. Otomatik gönderim isteğe bağlıdır, sonraki komut bitiminde sırayla ve yalnızca özgün zsh’nin boş komut satırında etkin görev yokken çalışır. Açmak kuyruğu hemen çalıştırmaz. Elle gönderim aynı denetimleri kullanır; başka veya iç içe kabuklar, ön plan programları ve taslaklar kuyruk alamaz. |
 | `terminal.auto-profiles` | `true` | mantıksal | Terminal profillerini otomatik eşleştir; elle seçim kullanılabilir |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Terminal imleç biçimi |
 | `terminal.cursor-blinking` | `true` | mantıksal | İmleci yanıp söndürür |
 | `terminal.copy-on-select` | `true` | mantıksal | Seçili terminal metnini kopyalar |
 | `terminal.remote-paste-upload` | `true` | mantıksal | Kopyalanan dosya ve görüntüleri uzak bölmeye yükle; kapalıyken Dosya Yükle… kullanılabilir |
 | `terminal.remote-drop-upload` | `true` | mantıksal | Uzak bölmeye sürüklenen dosyaları yükle; yerel davranış değişmez |
+| `terminal.right-click-action` | `"context-menu"` | metin | Bağlam menüsü, yapıştırma veya seçimi kopyalama ve seçim yoksa yapıştırma (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | mantıksal | Odak fareyi izler |
 | `terminal.shift-enter-newline` | `true` | mantıksal | Shift+Enter ile gelişmiş satır sonu dizisi gönderir; uygulama desteği gerekir |
 | `terminal.background-opacity` | `1` | 0.2–1 | Terminal arka plan opaklığı |
@@ -265,10 +353,14 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"
@@ -276,6 +368,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

@@ -39,10 +39,12 @@ Clique em um arquivo alterado para abrir seu diff em um painel ao lado do termin
 
 Diffs grandes continuam responsivos. Um conjunto com mil arquivos abre tão rápido quanto uma alteração de uma linha e rola sem travamentos.
 
-Os controles acima do diff lembram duas escolhas globalmente:
+Os controles acima do diff lembram suas escolhas globalmente:
 
 - **Unificado / Dividido** alterna entre uma coluna e visualização lado a lado.
 - **Revisão / Edição** aparece para arquivos não preparados no worktree atual. Edite o lado novo diretamente e salve com <kbd>Cmd</kbd>+<kbd>S</kbd>; o tratamento ao fechar arquivos modificados é igual ao editor normal.
+
+Use **Ajustar linhas à largura do diff** na barra para ler linhas longas sem rolagem horizontal. O mesmo controle fica em **Ajustes → Editor** (`editor.diff-wrap-lines`, padrão `false`). Ele se aplica a diffs abertos e novos, incluindo commits históricos, alterações editáveis e comentários de PR, preservando o rascunho da edição.
 
 Diffs preparados e de commits históricos são somente leitura porque são snapshots, não arquivos que o Zshell possa alterar com segurança. Trocar um diff para Edição ou Dividido atualiza a preferência dos outros diffs abertos sem tornar editável um diff não elegível.
 

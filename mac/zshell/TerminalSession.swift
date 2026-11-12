@@ -24,7 +24,11 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     @Published var workingDirectory: String?
     @Published var hasExited = false {
         didSet {
-            if hasExited { AgentAutomationMonitor.shared.unregister(self) }
+            if hasExited {
+                cancelPromptQueueDispatch()
+                promptQueueBar.setPaneVisible(false)
+                AgentAutomationMonitor.shared.unregister(self)
+            }
         }
     }
     @Published private(set) var commandLifecycle = TerminalCommandLifecycle()
@@ -93,6 +97,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     private var retainedSessionResources: [AnyObject] = []
     private var remoteObservation: AnyCancellable?
     private var terminalProfileObservation: AnyCancellable?
+    private var promptQueueSettingsObservation: AnyCancellable?
     private var lastTerminalProfileContext: TerminalProfileContext?
     var remoteAgentGeneration: UInt64?
     var acknowledgedRemoteAgentGeneration: UInt64?
@@ -111,6 +116,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// Scheduled auto-dispatch for `promptQueue`. Scheduling and the
     /// readiness gate live in TerminalPromptQueue.swift.
     var promptQueueDispatchTask: Task<Void, Never>?
+    var promptQueueDispatchGeneration: UInt64 = 0
+    var promptQueueSentToken: UUID?
 
     init(
         initialDirectory: String? = nil,
@@ -141,7 +148,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
                 && (explicitlyResumeConversation || isRestoredSession && AppSettings.shared.resumeAgentConversations),
             hasLiveTerminal: existingPTY != nil
         )
-        let directory = Self.validWorkingDirectory(
+        let directory = TerminalSessionDirectory.validatedOrHome(
             existingPTY?.workingDirectory ?? resumeLaunch?.workingDirectory ?? initialDirectory
         )
         let requestedCommand = resumeLaunch?.arguments
@@ -319,6 +326,13 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         configureQuickCommandMenu()
         installOverlayScrollbar()
         promptQueueBar.attach(queue: promptQueue, session: self)
+        promptQueueSettingsObservation = Publishers.CombineLatest(
+            AppSettings.shared.$promptQueueEnabled.removeDuplicates(),
+            AppSettings.shared.$promptQueueAutoDispatch.removeDuplicates()
+        ).dropFirst().sink { [weak self] enabled, _ in
+            self?.cancelPromptQueueDispatch()
+            if !enabled { self?.promptQueue.dismiss() }
+        }
         applyTheme()
         if resumeLaunch != nil, let identity = agentResume,
            let kind = ZshellAgentKind(rawValue: identity.provider.rawValue) {
@@ -464,6 +478,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// close signal they received before the backend migration.
     func terminate() {
         guard !isTerminating, !hasExited || persistentPTY != nil else { return }
+        cancelPromptQueueDispatch()
         TerminalNotificationService.shared.terminalClosed(self)
         isTerminating = true
         remoteConnection?.stopMonitoring()
@@ -497,6 +512,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// real PTY and its startup files. Closing a pane still calls terminate().
     func prepareForApplicationQuit(preserve: Bool) {
         guard !isTerminating else { return }
+        cancelPromptQueueDispatch()
+        promptQueueBar.setPaneVisible(false)
         AgentAutomationMonitor.shared.unregister(self)
         if let remoteConnection {
             remoteConnection.detach()
@@ -520,9 +537,12 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
     /// or been force-stopped. Detaching first can make a backend wait
     /// synchronously for a process that ignored SIGHUP.
     private func beginTeardown(processAlive: Bool, notifyExit: Bool) {
+        cancelPromptQueueDispatch()
+        promptQueueBar.setPaneVisible(false)
         AgentAutomationMonitor.shared.unregister(self)
         TerminalNotificationService.shared.terminalClosed(self)
         terminalProfileObservation = nil
+        promptQueueSettingsObservation = nil
         surface.splitTarget.profileMenuTarget.session = nil
         cancelClipboardPaste()
         recordAgentConversation(nil, processID: nil)
@@ -636,6 +656,34 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         else { surface.sendText(text) }
     }
 
+    /// Reserve the exact submitted line until the shell acknowledges its
+    /// acceptance and subsequent empty prompt, including parked panes.
+    func reservePromptQueueSend(for command: String) -> Bool {
+        guard !isTerminating, canSendQueuedPrompt,
+              let launchDirectoryURL, let shellPID = shellPid else { return false }
+        let token = UUID()
+        let request = "\(shellPID)\n\(token.uuidString)\n\(command)\n"
+        do {
+            try Data(request.utf8).write(
+                to: launchDirectoryURL.appendingPathComponent("prompt-queue.request"),
+                options: .atomic
+            )
+        } catch { return false }
+        promptQueueSentToken = token
+        return true
+    }
+
+    var promptQueueCompletedToken: UUID? {
+        guard let launchDirectoryURL, let shellPID = shellPid,
+              let value = try? String(
+                contentsOf: launchDirectoryURL.appendingPathComponent("prompt-queue.completed"),
+                encoding: .utf8
+              ) else { return nil }
+        let fields = value.split(separator: ":", omittingEmptySubsequences: false)
+        guard fields.count == 2, pid_t(fields[0]) == shellPID else { return nil }
+        return UUID(uuidString: String(fields[1]))
+    }
+
     func sendEnter() {
         agentObservation.pendingInterrupt = nil
         remoteConnection?.takeControl()
@@ -723,7 +771,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         usesGitProxy: Bool
     ) -> [String: String] {
         var environment = [
-            "TERM": "xterm-256color",
+            "TERM": AppSettings.shared.terminalTerm,
             "COLORTERM": "truecolor",
         ]
         environment.merge(
@@ -739,7 +787,9 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         if let pathOverride, !pathOverride.isEmpty {
             environment["PATH"] = pathOverride
         }
-        environment.merge(additionalEnvironment, uniquingKeysWith: { _, additionalValue in
+        environment.merge(additionalEnvironment.filter {
+            $0.key != "TERM" || TerminalLaunchSettings.isValidTermName($0.value)
+        }, uniquingKeysWith: { _, additionalValue in
             additionalValue
         })
         // A remote shell resolves the proxy's loopback address on its own host,
@@ -955,6 +1005,8 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         let stateDirectoryPath = shellQuote(directory.path)
         let selectionStatePath = shellQuote(directory.appendingPathComponent("prompt-selection.pid").path)
         let promptQueueStatePath = shellQuote(directory.appendingPathComponent("prompt-queue.pid").path)
+        let promptQueueRequestPath = shellQuote(directory.appendingPathComponent("prompt-queue.request").path)
+        let promptQueueCompletedPath = shellQuote(directory.appendingPathComponent("prompt-queue.completed").path)
         var files = [
             ".zshenv": """
             [[ -r \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\" ]] && source \"$ZSHELL_ORIGINAL_ZDOTDIR/.zshenv\"
@@ -984,10 +1036,17 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             _zshell_prompt_marker() {
               _zshell_selection_active=0
               REGION_ACTIVE=0
+              if [[ -n $_zshell_prompt_queue_active ]]; then
+                _zshell_prompt_queue_completed=$_zshell_prompt_queue_active
+                _zshell_prompt_queue_active=''
+              fi
               builtin print -n $'\\e]133;A;cl=line\\a'
             }
             _zshell_selection_active=0
             _zshell_prompt_queue_empty=0
+            _zshell_prompt_queue_active=''
+            _zshell_prompt_queue_completed=''
+            _zshell_prompt_queue_submitted=0
             _zshell_write_prompt_state() {
               # 临时目录可能在 shell 仍存活时被清理；仅在丢失时重建，且不改变用户的 umask。
               if [[ ! -d \(stateDirectoryPath) ]]; then
@@ -996,18 +1055,46 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
               builtin print -rn -- "$2" 2>/dev/null >| "$1"
             }
             _zshell_prompt_queue_ready() {
+              (( ZSH_SUBSHELL == 0 )) || return
               [[ -f \(selectionStatePath) ]] || _zshell_selection_ready || return
               local _zshell_queue_now_empty=$(( ${#BUFFER} == 0 ))
-              if (( _zshell_queue_now_empty == _zshell_prompt_queue_empty )) && [[ -f \(promptQueueStatePath) ]]; then
+              if (( _zshell_queue_now_empty == _zshell_prompt_queue_empty )) && [[ -f \(promptQueueStatePath) ]] \
+                  && [[ -z $_zshell_prompt_queue_completed || -f \(promptQueueCompletedPath) ]]; then
                 return
               fi
               if (( _zshell_queue_now_empty )); then
                 _zshell_write_prompt_state \(promptQueueStatePath) "$$" || return
+                if [[ -n $_zshell_prompt_queue_completed ]]; then
+                  _zshell_write_prompt_state \(promptQueueCompletedPath) "$$:$_zshell_prompt_queue_completed" || return
+                fi
               else
                 _zshell_write_prompt_state \(promptQueueStatePath) '' || return
               fi
               _zshell_prompt_queue_empty=$_zshell_queue_now_empty
             }
+            _zshell_prompt_queue_accept() {
+              (( ZSH_SUBSHELL == 0 )) || return 0
+              (( _zshell_prompt_queue_submitted )) || return 0
+              _zshell_prompt_queue_submitted=0
+              [[ -f \(promptQueueRequestPath) ]] || return 0
+              local _zshell_queue_pid _zshell_queue_token _zshell_queue_command
+              {
+                IFS= builtin read -r _zshell_queue_pid && \
+                IFS= builtin read -r _zshell_queue_token && \
+                IFS= builtin read -r _zshell_queue_command
+              } 2>/dev/null < \(promptQueueRequestPath) || return 0
+              # Keymap changes clear readiness too; only an accepted matching
+              # line may acknowledge this request at its next empty prompt.
+              [[ $_zshell_queue_pid == $$ && -n $_zshell_queue_token && $BUFFER == "$_zshell_queue_command" ]] || return 0
+              _zshell_prompt_queue_active=$_zshell_queue_token
+              /bin/rm -f -- \(promptQueueRequestPath)
+              return 0
+            }
+            _zshell_prompt_queue_submit() {
+              _zshell_prompt_queue_submitted=1
+              zle accept-line
+            }
+            zle -N _zshell_prompt_queue_submit
             _zshell_begin_selection() {
               MARK=$CURSOR
               REGION_ACTIVE=1
@@ -1075,12 +1162,15 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             # Config reloads may rebuild the keymaps. Reinstall our private bindings
             # before advertising readiness; a nested or exec'd zsh has no such widgets.
             _zshell_selection_ready() {
+              # Completion workers inherit these hooks but do not own the root PTY.
+              (( ZSH_SUBSHELL == 0 )) || return
               _zshell_selection_finished
               local _zshell_keymap
               for _zshell_keymap in emacs viins vicmd "$KEYMAP"; do
                 bindkey -M "$_zshell_keymap" $'\\x1f' _zshell_begin_selection || return
                 bindkey -M "$_zshell_keymap" $'\\x1e' _zshell_activate_selection || return
                 bindkey -M "$_zshell_keymap" $'\\e[27;2;27~' _zshell_cancel_selection || return
+                bindkey -M "$_zshell_keymap" $'\\e[27;9;13~' _zshell_prompt_queue_submit || return
               done
               _zshell_write_prompt_state \(selectionStatePath) "$$"
             }
@@ -1092,6 +1182,7 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             add-zsh-hook precmd _zshell_prompt_marker
             _zshell_line_init() {
               _zshell_selection_active=0
+              _zshell_prompt_queue_submitted=0
               REGION_ACTIVE=0
               _zshell_selection_ready
               _zshell_prompt_queue_ready
@@ -1100,6 +1191,16 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
             }
             add-zle-hook-widget line-init _zshell_line_init
             add-zle-hook-widget line-finish _zshell_selection_finished
+            # Keep the dispatcher identity so later registrations use its live
+            # hook list, but acknowledge the final buffer even if a hook fails.
+            functions -c azhw:zle-line-finish _zshell_line_finish_hooks
+            azhw:zle-line-finish() {
+              local _zshell_finish_status=0
+              _zshell_line_finish_hooks "$@" || _zshell_finish_status=$?
+              _zshell_prompt_queue_accept
+              (( _zshell_finish_status )) && _zshell_selection_finished
+              return $_zshell_finish_status
+            }
             add-zle-hook-widget keymap-select _zshell_selection_ready
             add-zle-hook-widget line-pre-redraw _zshell_prompt_queue_ready
             _zshell_insert_newline() { LBUFFER+=$'\\n'; }
@@ -1249,16 +1350,6 @@ final class TerminalSession: NSObject, nonisolated ObservableObject, nonisolated
         let encoded = Data(script.utf8).base64EncodedString()
         let decode = "/usr/bin/printf %s \(shellQuote(encoded)) | /usr/bin/base64 -D"
         return "/bin/sh -c \(shellQuote("eval \"$(\(decode))\""))"
-    }
-
-    private static func validWorkingDirectory(_ requested: String?) -> String {
-        var isDirectory: ObjCBool = false
-        if let requested,
-           FileManager.default.fileExists(atPath: requested, isDirectory: &isDirectory),
-           isDirectory.boolValue {
-            return requested
-        }
-        return NSHomeDirectory()
     }
 
     /// The configured argv is read once when a pane is created. CLI launches

@@ -97,10 +97,13 @@ final class TerminalManager: nonisolated ObservableObject {
     /// published through the manager: the search view and the Files panel
     /// observe the model directly.
     let fileContentSearch = FileContentSearchModel()
+    let fileTree = FileTreeModel()
+    var fileTreeImportDirectory: String?
 
     /// Projects publish their own changes (session list, session selection);
     /// re-publish them so views observing the manager stay current.
     private var projectObservations: [UUID: AnyCancellable] = [:]
+    let diffWorkspaceLayout = DiffWorkspaceLayout()
     /// Stable menu payload for a transfer target. Actions resolve these IDs
     /// again when invoked so a menu cannot move a tab into a closed project.
     struct TabMoveDestination: Identifiable {
@@ -284,12 +287,22 @@ final class TerminalManager: nonisolated ObservableObject {
                     AppSettings.shared.$fontSize.removeDuplicates(),
                     AppSettings.shared.$fontThicken.removeDuplicates()
                 ),
-                Publishers.CombineLatest3(
-                    AppSettings.shared.$fontThickenStrength.removeDuplicates(),
-                    AppSettings.shared.$terminalLineHeight.removeDuplicates(),
-                    AppSettings.shared.$terminalCellWidth.removeDuplicates()
+                Publishers.CombineLatest(
+                    Publishers.CombineLatest4(
+                        AppSettings.shared.$fontThickenStrength.removeDuplicates(),
+                        AppSettings.shared.$terminalLineHeight.removeDuplicates(),
+                        AppSettings.shared.$terminalCellWidth.removeDuplicates(),
+                        AppSettings.shared.$terminalMinimumContrast.removeDuplicates()
+                    ),
+                    Publishers.CombineLatest(
+                        AppSettings.shared.$fontFeatures.removeDuplicates(),
+                        AppSettings.shared.$fontLigatures.removeDuplicates()
+                    )
                 ),
-                AppSettings.shared.$theme.removeDuplicates()
+                Publishers.CombineLatest(
+                    AppSettings.shared.$theme.removeDuplicates(),
+                    AppSettings.shared.$terminalPaddingColor.removeDuplicates()
+                )
             ),
             Publishers.CombineLatest(
                 AppSettings.shared.$themeDark.removeDuplicates(),
@@ -378,7 +391,9 @@ final class TerminalManager: nonisolated ObservableObject {
 
     @discardableResult
     func newProject() -> Project {
-        let project = makeProject()
+        let context = selectedProject?.newSessionDirectoryContext
+        let project = makeProject(createInitialSession: false)
+        project.newSession(directoryContext: context)
         insert(project)
         return project
     }
@@ -843,6 +858,7 @@ final class TerminalManager: nonisolated ObservableObject {
                 }
             }
             guard await project.confirmUnsavedChanges(using: confirmation, in: window) else { return }
+            confirmation.commitDiscards()
             project.terminateAll()
             remove(project)
         }
@@ -988,7 +1004,8 @@ final class TerminalManager: nonisolated ObservableObject {
         let project = makeProject(createInitialSession: false)
         project.customName = entry.name
         project.customDirectory = directory
-        project.newSession(directory: directory, commandArguments: arguments)
+        project.newSession(directory: directory, directoryContext: selectedProject?.newSessionDirectoryContext,
+                           commandArguments: arguments)
         insert(project)
     }
 
@@ -1479,6 +1496,10 @@ final class TerminalManager: nonisolated ObservableObject {
     /// diff pane.
     func togglePromptQueue() {
         if case .session(let session)? = selectedProject?.focusedContent {
+            guard AppSettings.shared.promptQueueEnabled else {
+                SettingsWindowController.shared.show(category: .terminal, section: String(localized: "Prompt Queue"))
+                return
+            }
             session.promptQueue.togglePresentation()
         }
     }
@@ -1653,6 +1674,47 @@ final class TerminalManager: nonisolated ObservableObject {
         fileContentSearch.activate()
     }
 
+    var canImportFiles: Bool {
+        selectedProject?.isRemote == false && selectedSession != nil
+            && !FileTreeImportController.shared.isImporting
+    }
+
+    func syncFileTree() {
+        guard let project = selectedProject, let session = project.selectedSession else {
+            fileTree.configureRemote(nil)
+            fileTree.sync(root: "")
+            fileTreeImportDirectory = nil
+            return
+        }
+        let oldRoot = fileTree.rootPath
+        if project.isRemote {
+            if case .remote(let source) = project.fileSource {
+                fileTree.configureRemote(source.endpoint, authentication: source.authentication, credentialID: source.credentialID)
+            } else { fileTree.configureRemote(nil) }
+            fileTree.sync(root: project.remoteEndpoint == nil ? "" : project.remoteDirectory ?? "~")
+        } else {
+            fileTree.configureRemote(nil)
+            let root = project.panelRoot(followingSessionAt: session.currentDirectoryPath,
+                                         foregroundAt: session.foregroundDirectoryPath).root
+            fileTree.sync(root: root)
+        }
+        if oldRoot != fileTree.rootPath { fileTreeImportDirectory = nil }
+    }
+
+    func importFiles(into directory: String? = nil) {
+        guard canImportFiles else { return }
+        syncFileTree()
+        guard !fileTree.rootPath.isEmpty else { return }
+        if let saved = fileTreeImportDirectory,
+           (try? FileTreeImportService.destination(root: fileTree.rootPath, directory: saved)) == nil {
+            fileTreeImportDirectory = nil
+        }
+        let destination = directory ?? fileTreeImportDirectory ?? fileTree.rootPath
+        panelTab = .files
+        isPanelVisible = true
+        FileTreeImportController.shared.chooseFiles(manager: self, directory: destination)
+    }
+
     /// Opens a git diff tab in the current project.
     func openDiff(
         repoRoot: String, path: String, staged: Bool, untracked: Bool, origPath: String?
@@ -1690,8 +1752,8 @@ final class TerminalManager: nonisolated ObservableObject {
     /// Propagates a file-tree rename to every open file tab across all
     /// projects, so tabs for the moved file (or files under a moved
     /// directory) keep pointing at the right place.
-    func fileRenamed(from oldPath: String, to newPath: String) {
-        for project in projects {
+    func fileRenamed(from oldPath: String, to newPath: String, source: FileSource = .local) {
+        for project in projects where project.fileSource.sharesFilesystem(with: source) {
             project.updateFilePaths(from: oldPath, to: newPath)
         }
     }
@@ -1873,6 +1935,7 @@ final class TerminalManager: nonisolated ObservableObject {
             defer { isConfirmingWindowClose = false }
             guard await confirmUnsavedChanges(using: confirmation),
                   Self.registry.contains(where: { $0 === self }), !Self.isQuitting else { return }
+            confirmation.commitDiscards()
             windowCloseIsApproved = true
             defer { windowCloseIsApproved = false }
             sender.performClose(nil)
@@ -1957,6 +2020,7 @@ final class TerminalManager: nonisolated ObservableObject {
                 return false
             }
         }
+        confirmation.commitDiscards()
         return true
     }
 
@@ -1978,6 +2042,7 @@ final class TerminalManager: nonisolated ObservableObject {
         }
         AgentConversationHistoryStore.shared.flush()
         TerminalCommandHistoryStore.shared.flush()
+        EditorDraftStore.shared.flush()
     }
 
     /// Builds this window's layout snapshot and, alongside it, the scrollback
@@ -2079,7 +2144,8 @@ final class TerminalManager: nonisolated ObservableObject {
                 agentResume: agentResume,
                 terminalID: terminalID,
                 remoteSessionID: remoteSessionID,
-                worktree: worktree
+                worktree: worktree,
+                draftID: pane.content.draftID
             ))
         case .split(let split):
             return .split(

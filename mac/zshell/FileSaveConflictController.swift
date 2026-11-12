@@ -46,20 +46,25 @@ final class FileSaveConflictController: NSObject {
     private let draft: String
     private let compareButton = NSButton(title: "", target: nil, action: nil)
 
-    init(conflict: FileSaveCoordinator.Conflict, draft: String) {
+    init(conflict: FileSaveCoordinator.Conflict, draft: String, remotePath: String? = nil) {
         self.conflict = conflict
         self.draft = draft
         super.init()
         alert.alertStyle = .warning
         let name = URL(fileURLWithPath: conflict.path).lastPathComponent
-        alert.messageText = String(
-            localized: "“\(name)” changed on disk.",
-            comment: "Save conflict title. The placeholder is a file name."
-        )
-        alert.informativeText = String(localized: "Compare the disk version with your draft before saving. Reloading discards your draft; overwriting replaces the disk version.")
+        if let remotePath {
+            alert.messageText = String(localized: "“\(name)” changed on the remote host.")
+            alert.informativeText = remotePath + "\n" + String(localized: "Compare the remote version with your draft before saving. The compared version is checked again before overwriting.")
+        } else {
+            alert.messageText = String(
+                localized: "“\(name)” changed on disk.",
+                comment: "Save conflict title. The placeholder is a file name."
+            )
+            alert.informativeText = String(localized: "Compare the disk version with your draft before saving. Reloading discards your draft; overwriting replaces the disk version.")
+        }
         let keep = alert.addButton(withTitle: String(localized: "Keep Draft"))
         keep.keyEquivalent = "\u{1b}"
-        alert.addButton(withTitle: String(localized: "Reload from Disk"))
+        alert.addButton(withTitle: remotePath == nil ? String(localized: "Reload from Disk") : String(localized: "Reload from Remote"))
         let overwrite = alert.addButton(withTitle: String(localized: "Overwrite File"))
         overwrite.hasDestructiveAction = true
         overwrite.keyEquivalent = ""

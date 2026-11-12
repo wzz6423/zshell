@@ -53,7 +53,12 @@ struct TerminalCellWidthSurfaceTests {
         let backend = CommandLine.arguments[1]
         let directory = URL(fileURLWithPath: CommandLine.arguments[3], isDirectory: true)
         let settings = AppSettings.shared
-        settings.fontFamily = "Menlo"
+        let featuresEnabled = CommandLine.arguments.contains("--font-features")
+        settings.fontFamily = featuresEnabled ? "" : "Menlo"
+        if featuresEnabled {
+            settings.fontFeatures = "ss01, zero=1"
+            settings.fontLigatures = true
+        }
         settings.fontSize = 13
         settings.terminalLineHeight = 1
         settings.terminalCellWidth = 1

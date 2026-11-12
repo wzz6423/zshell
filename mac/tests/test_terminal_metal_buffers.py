@@ -5,6 +5,8 @@ import platform
 import subprocess
 import tempfile
 
+from swift_test_source import extract_enum
+
 
 ROOT = Path(__file__).resolve().parents[2]
 ALACRITTY = ROOT / "mac/zshell/Alacritty"
@@ -27,6 +29,19 @@ extension TerminalMetalRenderer {
 
     var testQueue: MTLCommandQueue { queue }
     var testInstanceStride: Int { MemoryLayout<Instance>.stride }
+
+    func testPreparedColors(
+        snapshot: ZshellSnapshot,
+        metrics: AlacrittyMetrics,
+        dirtyRows: [Int]?
+    ) -> (glyphs: Int, colors: [SIMD4<Float>]) {
+        precondition(prepare(
+            snapshot: snapshot, markedText: nil, metrics: metrics,
+            padding: .zero, scale: 1, paddingColor: .extend,
+            dirtyRows: dirtyRows, viewportSize: CGSize(width: 64, height: 64)
+        ))
+        return (instances.filter { $0.kind == 1 }.count, instances.map(\\.color))
+    }
 }
 """)
 
@@ -36,7 +51,7 @@ extension TerminalMetalRenderer {
     metrics = source[:source.index("/// Draws one snapshot of the grid with CoreText.")]
     colors = source[source.index("    // MARK: - Colors"):]
     selection_start = colors.index("    static func selectionColors()")
-    selection_end = colors.index("    private static func contrastedColor", selection_start)
+    selection_end = colors.index("    final class ContrastCache", selection_start)
     colors = (colors[:selection_start] + """
     static func selectionColors() -> (foreground: UInt32, background: UInt32) {
         preconditionFailure("Selection colors are outside this buffer fixture")
@@ -44,7 +59,9 @@ extension TerminalMetalRenderer {
 
 """ + colors[selection_end:])
     models = temporary / "RendererModels.swift"
+    settings = (ROOT / "mac/zshell/AppSettings.swift").read_text()
     models.write_text(metrics.replace("import GhosttyTheme\n", "")
+                      + extract_enum(settings, "TerminalPaddingColor")
                       + "struct AlacrittyRenderer {\n" + colors)
 
     font_source = (ROOT / "mac/zshell/TerminalFont.swift").read_text()
@@ -62,6 +79,8 @@ extension TerminalMetalRenderer {
         "-import-objc-header", str(ROOT / "mac/Vendor/alacritty-bridge/include/zshell_alacritty.h"),
         str(ALACRITTY / "TerminalInstanceBufferPool.swift"),
         str(ALACRITTY / "TerminalGlyphAtlas.swift"),
+        str(ALACRITTY / "TerminalTextShaper.swift"),
+        str(ROOT / "mac/zshell/TerminalFontFeatures.swift"),
         str(ALACRITTY / "AlacrittyKittyGraphics.swift"),
         str(ROOT / "mac/zshell/TerminalContrast.swift"),
         str(font), str(models), str(renderer),

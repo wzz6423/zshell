@@ -23,7 +23,7 @@ Avant de le modifier manuellement, retenez ces règles :
 
 - **Les changements sont lus pendant l’exécution.** Les modifications externes valides s’appliquent automatiquement ; les réglages réservés aux nouveaux terminaux nécessitent encore un nouveau panneau. Un fichier illisible ou mal formé conserve les derniers réglages valides. Un fichier volontairement vide rétablit les valeurs par défaut après un bref délai.
 - **Zshell le réécrit à chaque changement d'un réglage enregistré dans ce fichier.** Il est régénéré intégralement ; vos commentaires et les clés inconnues disparaissent à la prochaine utilisation de ces contrôles. Choisissez une seule méthode d'édition ou conservez une copie de référence dans vos dotfiles.
-- **La plupart des valeurs par défaut sont omises.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` sont toujours enregistrés. Supprimer une de ces trois clés de terminal dans un fichier existant désactive la fonction correspondante ; supprimer les autres clés rétablit leur valeur par défaut.
+- **La plupart des valeurs par défaut sont omises.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` sont toujours enregistrés. Supprimer `terminal.vim-command-hints`, `terminal.restore-history` ou `terminal.notify-on-error` d’un fichier existant désactive la fonction correspondante. Supprimer `terminal.prompt-queue-enabled` rétablit sa valeur par défaut `true` ; supprimer `terminal.prompt-queue-auto-dispatch` rétablit sa valeur par défaut `false`. Supprimer les autres clés rétablit leur valeur par défaut.
 - **Le parseur est volontairement limité.** Il accepte les clés simples, les clés à points, les en-têtes `[table]`, les commentaires `#` et les valeurs chaîne, nombre ou booléen. Il ne prend en charge ni les tableaux, ni les tables en ligne, ni les chaînes multilignes.
 - **Les valeurs incorrectes utilisent un repli sûr.** Une taille hors limites, un moteur inconnu ou un thème mal orthographié n'empêche pas Zshell de démarrer.
 
@@ -66,6 +66,12 @@ Chaîne — valeurs par défaut : `"Default Dark"` et `"Default Light"`
 Définit le thème de couleurs de chaque apparence. Un thème recolore ensemble les terminaux, les éléments de fenêtre, les barres latérales, l'éditeur et les diffs. Les thèmes par défaut conservent la barre latérale translucide ; les autres l'adaptent à leur palette.
 
 Réglages présente un catalogue de thèmes commun aux deux moteurs. Un nom saisi manuellement doit correspondre exactement à un nom affiché, casse comprise, sinon Zshell utilise le thème par défaut correspondant.
+
+### `terminal.minimum-contrast` [#terminalminimum-contrast]
+
+`1`–`21` · `3`
+
+**Réglages → Apparence → Couleurs → Contraste minimum** règle la lisibilité du texte du terminal de `1` à `21` (par défaut `3`). `1` conserve les couleurs ANSI originales. Les deux moteurs mettent à jour les terminaux ouverts et Quick Terminal sans redémarrer leurs shells ; les profils conservent leurs palettes. Les pixels des emoji et des images gardent leurs couleurs. La sélection et le curseur conservent les règles de lisibilité natives de chaque moteur. Si le fond ne permet pas le rapport demandé, chaque moteur utilise la couleur disponible la plus lisible. Les terminaux transparents utilisent le fond de cellule résolu ; le contraste après composition avec le bureau peut donc différer.
 
 ### `toolbar.visibility` [#toolbarvisibility]
 
@@ -113,6 +119,26 @@ Nombre, 9–24 — valeur par défaut : `14`
 
 Taille de base du texte des deux barres latérales. Les titres, lignes, métadonnées et contrôles conservent leur hiérarchie relative lorsque cette base change.
 
+### `sidebar.double-click-new-session` [#sidebardouble-click-new-session]
+
+Booléen — valeur par défaut : `true`
+
+Un double-clic dans un espace vide de la barre latérale crée une session dans le projet sélectionné, ou un projet si aucun n’est sélectionné. Les clics et glissements sur les lignes gardent leurs actions habituelles.
+
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+booléen — défaut `true`
+
+Activez ou désactivez les ligatures facultatives des deux moteurs dans **Réglages → Apparence → Ligatures de police**. La désactivation remplace `calt`, `liga`, `clig`, `dlig` et `hlig`, sans retirer les formes requises par l’écriture. Les caractères, colonnes, curseur et sélection restent identiques.
+
+### `terminal.font-features` [#terminalfont-features]
+
+chaîne — défaut `""`, valeurs par défaut de la police
+
+Dans **Fonctions OpenType**, séparez les balises de quatre caractères par des virgules ou espaces : `-calt` désactive les variantes contextuelles, `ss01` active le jeu stylistique 1 et `zero=1` active le zéro alternatif. `+liga` et `liga=1` activent aussi une fonction. La dernière occurrence d’une balise l’emporte ; le commutateur de ligatures a priorité pour les cinq balises citées.
+
+Les changements s’appliquent immédiatement aux terminaux ouverts et à l’aperçu. Les deux moteurs utilisent les fonctions prises en charge par la police ; les autres balises sont sans effet. Une saisie invalide conserve la dernière valeur valide ; une valeur externe invalide utilise les valeurs par défaut. La réinitialisation vide la liste et active les ligatures.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 Booléen — valeur par défaut : `false`
@@ -139,17 +165,39 @@ Multiplie la hauteur naturelle des cellules de chaque moteur tout en conservant 
 
 Zshell n'expose pas de réglage de graisse de base. Ghostty choisit des styles nommés ou des axes de variation, tandis qu'Alacritty/CoreText détermine les variantes normale et grasse par leurs attributs. Une valeur commune ne préserverait pas de façon cohérente ces différences et les graisses de repli entre polices statiques et variables.
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+Choisissez **Réglages → Apparence → Arrière-plan → Couleur des marges**. `"background"` utilise le fond du thème dans les marges. `"extend"` prolonge le fond de la cellule la plus proche, mais conserve le fond du thème en haut ou en bas si la ligne contient une cellule au fond par défaut, une invite de shell ou un séparateur Powerline. `"always"` prolonge tous les bords sans ces vérifications. Les dernières lignes vides gardent leur propre fond ; une ligne colorée au-dessus ne remplit pas la marge inférieure. Les changements s’appliquent immédiatement aux terminaux ouverts avec les deux moteurs. En mode translucide, le fond par défaut conserve son opacité, tandis que les fonds de cellule explicites et leurs prolongements restent opaques.
+
 ### `editor.wrap-lines` [#editorwrap-lines]
 
 Booléen — valeur par défaut : `true`
 
 Adapte les longues lignes à la largeur du volet dans l'[éditeur de fichiers](/fr/docs/files). La valeur `false` active le défilement horizontal. Cette option ne change pas les retours à la ligne du terminal ni des diffs.
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+Booléen — valeur par défaut : `false`
+
+**Réglages → Éditeur → Renvoyer les lignes à la largeur du diff** et le bouton de retour à la ligne de la barre du diff contrôlent la même option. Les longues lignes suivent la largeur du volet dans les vues unifiée et séparée, les modifications éditables, les diffs historiques et les commentaires de PR. Le choix s’applique immédiatement à tous les diffs ouverts et reste enregistré après redémarrage. Le désactiver rétablit le défilement horizontal. Les retours à la ligne de l’éditeur de fichiers et du terminal restent indépendants.
+
 ### `editor.protect-saves` [#editorprotect-saves]
 
 booléen — valeur par défaut `true`
 
 Vérifie les changements externes avant d’enregistrer un fichier ou un diff modifiable de l’arbre de travail. En cas de conflit, comparez le disque au brouillon, rechargez, conservez le brouillon ou écrasez explicitement le fichier. Désactiver ce réglage permet de remplacer les changements externes sans confirmation.
+
+### `editor.recover-drafts` [#editorrecover-drafts]
+
+booléen — valeur par défaut `true`
+
+Zshell sauvegarde par défaut les modifications non enregistrées des fichiers locaux et des différences modifiables de l’arbre de travail. Après une fermeture inattendue, les panneaux rouverts retrouvent leurs brouillons, sélections et disposition. Pour les autres sauvegardes, ouvrez **Fichier → Récupérer les brouillons…** ou **Réglages → Éditeur → Récupérer les brouillons…**, choisissez une sauvegarde, vérifiez son contenu puis cliquez sur **Restaurer le brouillon**. La restauration ouvre un éditeur non enregistré sans modifier le fichier sur disque. L’enregistrement vérifie toujours les changements externes à partir de la version précédant vos modifications.
+
+Utilisez **Réglages → Éditeur → Sauvegarder les brouillons non enregistrés** ou `editor.recover-drafts`. La désactivation arrête les nouvelles sauvegardes et la récupération automatique, mais conserve les sauvegardes existantes pour une restauration ou une suppression manuelle. **Supprimer la sauvegarde** retire uniquement la sauvegarde sélectionnée ; les modifications ouvertes restent. Un enregistrement réussi ou **Ne pas enregistrer** lors d’une fermeture terminée retire la sauvegarde. Ces fichiers privés restent sur ce Mac, avec une limite de 32 brouillons et 128 MiB, récupérables pendant 30 jours au maximum. Les limites de capacité peuvent supprimer les anciennes sauvegardes plus tôt. Les fichiers et textes modifiés de plus de 5 MiB sont exclus.
+
+Zshell supprime les sauvegardes expirées au démarrage et toutes les heures pendant son exécution, même si les sauvegardes sont désactivées. Si Zshell est fermé, les fichiers expirés restent sur le disque jusqu’au prochain lancement.
 
 ## Terminal [#terminal]
 
@@ -161,6 +209,24 @@ Choisissent l'exécutable et le vecteur d'arguments des terminaux créés ensuit
 
 `terminal.startup-arguments` est séparé en arguments sans passer par un shell. Guillemets et barres obliques inverses préservent leurs limites, y compris les espaces et arguments vides. Les variables, jokers et substitutions de commande ne sont pas développés. Des guillemets invalides provoquent aussi un repli vers le shell de connexion. Un argv fourni explicitement par la CLI Zshell reste prioritaire pour ce terminal.
 
+### `terminal.new-session-directory` [#terminalnew-session-directory]
+
+`"current"` · `"project"` · `"home"` · `"custom"` — valeur par défaut `"current"`
+
+Choisissez **Réglages → Terminal → Répertoire des nouvelles sessions**. Le répertoire actuel est celui du shell local actif, y compris pour le premier terminal d'un nouveau projet. Sans shell local, le dossier personnel est utilisé. Projet utilise la racine affichée dans Fichiers et Git (le dépôt le plus proche ou la copie de travail au premier plan) ; hors dépôt, il utilise le répertoire actuel. Personnel utilise toujours le dossier du compte. Cette règle s'applique aussi au premier Terminal rapide et à chaque nouvel espace Terminal rapide.
+
+Un répertoire explicite venant du Finder, de la CLI, d'un modèle d'espace de travail, d'un worktree, d'une session restaurée, d'un dossier fixé au projet ou d'un groupe latéral reste prioritaire. Les divisions conservent le répertoire de leur volet source. Les sessions SSH et distantes partagées gardent leur répertoire sur l'hôte distant. Modifier ce réglage ne redémarre pas les terminaux ouverts ni les espaces Terminal rapide réutilisés.
+
+### `terminal.custom-directory` [#terminalcustom-directory]
+
+chaîne — valeur par défaut `""`
+
+Pour la règle personnalisée, saisissez un chemin absolu ou `~/folder`, ou choisissez un dossier dans Réglages. Zshell vérifie que le dossier existe et permet d'y entrer. Un dossier absent, inaccessible ou invalide entraîne un repli vers le répertoire local actuel (le dossier personnel à défaut) ; Réglages affiche la raison. Le chemin enregistré reste conservé lorsque vous choisissez une autre règle.
+
+### `terminal.term`
+
+Définissez `terminal.term` dans **Réglages → Terminal → TERM** (par défaut `"xterm-256color"`). Le nom doit contenir de 1 à 128 lettres ASCII, chiffres ou `.-_+`. Utilisez un nom terminfo installé sur l’hôte qui exécute le shell. Les modifications s’appliquent seulement aux nouvelles sessions locales et SSH ; les PTY ouverts et conservés gardent leur `TERM`. Les sessions distantes partagées utilisent cette valeur à leur création avec un serveur à jour ; les anciens serveurs gardent `xterm-256color`. Une valeur invalide au démarrage utilise `xterm-256color` ; une modification invalide pendant l’exécution de Zshell conserve la dernière valeur valide. Dans les deux cas, une erreur s’affiche dans Réglages. `TERM_PROGRAM` et `ZSHELL_TERM` restent inchangés.
+
 ### `terminal.backend` [#terminalbackend]
 
 `"libghostty"` · `"alacritty"` — valeur par défaut : `"libghostty"`
@@ -168,6 +234,12 @@ Choisissent l'exécutable et le vecteur d'arguments des terminaux créés ensuit
 Choisit l'émulateur des terminaux créés ensuite. Les volets existants conservent leur moteur initial. Les deux moteurs sont natifs, accélérés par GPU, affichent des images et utilisent les mêmes thèmes Zshell. Alacritty consomme généralement moins de mémoire.
 
 Consultez [Moteurs de terminal](/fr/docs/terminal#terminal-backends) pour les variables d'environnement et les règles de compatibilité.
+
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+nombre, 0.1–10 — valeur par défaut `1` pour chaque périphérique
+
+Réglez les deux vitesses séparément dans **Réglages → Terminal → Défilement → Molette de la souris / Pavé tactile**. Les valeurs sont des pourcentages : 100% conserve la vitesse actuelle, 50% la divise par deux et 200% la double. Les changements s’appliquent immédiatement aux volets Ghostty et Alacritty ouverts, à l’historique, aux programmes plein écran et aux rapports de souris. Le défilement inertiel utilise la valeur du pavé tactile ; le défilement horizontal reste horizontal. Les souris envoyant des deltas précis utilisent aussi la valeur du pavé tactile. Une valeur absente ou invalide revient à `1`. L’importation, l’exportation et la réinitialisation incluent les deux valeurs.
 
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
@@ -215,21 +287,37 @@ Lors de la restauration des volets de terminal, reprend exactement la conversati
 
 Activez cette option dans **Réglages → Automatisation → Reprendre les conversations des agents**. Elle est indépendante de `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+booléen — valeur par défaut `false`
+
+Active la lecture des limites de compte des CLI locales via **Réglages → Automatisation → Utilisation du compte → Lire l’utilisation du compte**. Désactiver annule les demandes, masque les données et refuse de sauvegarder les rapports Claude. Les choix des fournisseurs sont conservés. La reconnaissance des agents, les rapports de cycle de vie et la restauration des conversations ne changent pas.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+booléen — valeur par défaut `true` pour chacun
+
+Choisit les fournisseurs lus lorsque `ai.usage-enabled = true`. Claude Code lit les rapports locaux de la ligne d’état de Zshell ; Codex interroge sa CLI installée et connectée. Désactiver un fournisseur arrête immédiatement ses lectures et masque ses données. Aucun identifiant de connexion n’est collecté. Les trois options prennent en charge la recherche, l’import/export, le rechargement en direct et la réinitialisation.
+
 ## Autres réglages [#additional-settings]
 
 | Clé | Valeur par défaut | Valeurs / plage | Effet |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Icône de l'application |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Éditeur externe pour les fichiers et dossiers |
+| `files.drag-import` | `false` | booléen | Autoriser les copies depuis le Finder par glisser-déposer ; le menu d’importation reste disponible |
+| `files.remote-write-enabled` | `false` | booléen | Autoriser la création, le renommage, la suppression récupérable et l’enregistrement distants avec les outils existants de l’hôte |
 | `terminal.theme-only` | `false` | Booléen | Appliquer la palette sélectionnée au terminal uniquement |
 | `terminal.command-history` | `true` | Booléen | Enregistrer les nouvelles commandes ; l’historique sauvegardé reste accessible si désactivé |
 | `terminal.text-hints` | `true` | Booléen | Activer les repères clavier sur le texte visible du terminal |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | Booléen | **Réglages → Terminal → File d’invites** gère tous les espaces et le Quick Terminal. Le premier réglage désactivé masque les barres, annule les envois et conserve entrées et saisie jusqu’à la fermeture du terminal. L’envoi automatique est facultatif et prend effet à la prochaine fin de commande, dans l’ordre, uniquement à une invite vide du zsh d’origine sans tâche active. L’activation ne rejoue rien immédiatement. Les envois manuels utilisent les mêmes contrôles ; les autres shells, shells imbriqués, programmes au premier plan et saisies en cours ne peuvent recevoir la file. |
 | `terminal.auto-profiles` | `true` | Booléen | Associer automatiquement les profils ; sélection manuelle disponible |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Forme du curseur du terminal |
 | `terminal.cursor-blinking` | `true` | Booléen | Faire clignoter le curseur |
 | `terminal.copy-on-select` | `true` | Booléen | Copier le texte sélectionné dans le terminal |
 | `terminal.remote-paste-upload` | `true` | Booléen | Envoyer fichiers et images copiés aux panneaux distants ; Envoyer des fichiers… reste disponible si désactivé |
 | `terminal.remote-drop-upload` | `true` | Booléen | Envoyer les fichiers déposés dans les panneaux distants ; dépôts locaux inchangés |
+| `terminal.right-click-action` | `"context-menu"` | Chaîne | Menu contextuel, collage, ou copie de la sélection sinon collage (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | Booléen | Le focus suit la souris |
 | `terminal.shift-enter-newline` | `true` | Booléen | Envoyer une séquence de nouvelle ligne étendue avec Shift+Enter ; nécessite la prise en charge par le programme |
 | `terminal.background-opacity` | `1` | 0.2–1 | Opacité du fond du terminal |
@@ -265,10 +353,14 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"
@@ -276,6 +368,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

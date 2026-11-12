@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import CoreText
 
 /// Terminal font preview shared by the family, cell spacing, and thickening
 /// controls. It uses CoreText's smoothing flag plus the same normalized stroke
@@ -20,11 +21,12 @@ final class FontThickenPreviewView: NSView {
     private let lines: [(text: String, bold: Bool)] = [
         ("zshell ❯ printf \"中文 日本語 한국어\" 0O 1lI", false),
         ("\u{E0A0} main \u{E0B0} ~/dev/zshell \u{E711} \u{F024B} \u{F0A7D}", false),
-        ("bold — permission denied (os error 13)", true),
+        ("bold — != === -> => 0O 1lI", true),
     ]
 
     private let lineSpacing: CGFloat = 6
     private let verticalPadding: CGFloat = 4
+    private let textShaper = TerminalTextShaper()
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -113,14 +115,24 @@ final class FontThickenPreviewView: NSView {
             } else {
                 let naturalWidth = max(1, TerminalFont.cellAdvance(of: previewFont).rounded())
                 let width = max(1, (naturalWidth * cellWidth).rounded())
-                var x: CGFloat = 0
-                for character in text {
-                    let sample = String(character) as NSString
-                    let columns: CGFloat = sample.size(withAttributes: attrs).width > naturalWidth * 1.5 ? 2 : 1
-                    let offset = (width - naturalWidth) * columns / 2
-                    sample.draw(at: NSPoint(x: x + offset, y: y), withAttributes: attrs)
-                    x += columns * width
+                ctx.saveGState()
+                ctx.translateBy(x: 0, y: y + font.ascender)
+                ctx.scaleBy(x: 1, y: -1)
+                ctx.textMatrix = .identity
+                ctx.setFillColor(color.cgColor)
+                if thicken {
+                    let strength = min(max(thickenStrength, 0), 255)
+                    ctx.setStrokeColor(color.cgColor)
+                    ctx.setLineWidth(font.pointSize * (0.5 + CGFloat(strength) / 255 * 1.5) / 100)
+                    ctx.setTextDrawingMode(.fillStroke)
                 }
+                for glyph in textShaper.glyphs(text: text, font: font, cellWidth: width,
+                                              naturalCellWidth: naturalWidth) {
+                    var value = glyph.glyph
+                    var position = glyph.position
+                    CTFontDrawGlyphs(glyph.font, &value, &position, 1, ctx)
+                }
+                ctx.restoreGState()
             }
             y += rowHeight + lineSpacing
         }
