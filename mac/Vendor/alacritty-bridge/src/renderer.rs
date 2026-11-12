@@ -97,6 +97,26 @@ struct SnapshotCursorPositions {
     ime: (isize, isize),
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct DamageCursor {
+    point: Point,
+    shape: CursorShape,
+    blinking: bool,
+    color: Option<alacritty_terminal::vte::ansi::Rgb>,
+}
+
+fn damage_cursor_state<T: EventListener>(term: &Term<T>) -> Option<DamageCursor> {
+    let content = term.renderable_content();
+    (content.display_offset == 0 && term.mode().contains(TermMode::SHOW_CURSOR)
+        && !matches!(content.cursor.shape, CursorShape::Hidden))
+        .then_some(DamageCursor {
+            point: content.cursor.point,
+            shape: content.cursor.shape,
+            blinking: term.cursor_style().blinking,
+            color: content.colors[NamedColor::Cursor as usize],
+        })
+}
+
 fn snapshot_cursor_positions(
     draw_point: Point,
     ime_point: Point,
@@ -978,6 +998,7 @@ pub struct ZshellTerminal {
     /// Retains each placement's PNG while C pointers are visible to Swift.
     kitty_images: Vec<Arc<[u8]>>,
     last_kitty_damage_revision: u64,
+    last_damage_cursor: Option<DamageCursor>,
     /// Set once the shell has exited, so teardown does not wait on a loop that
     /// has already stopped.
     exited: bool,
@@ -1128,6 +1149,7 @@ pub unsafe extern "C" fn zshell_alacritty_new(
         kitty_placements: Vec::new(),
         kitty_images: Vec::new(),
         last_kitty_damage_revision: 0,
+        last_damage_cursor: None,
         exited: false,
     }))
 }
@@ -1949,6 +1971,157 @@ mod tests {
     use alacritty_terminal::event::VoidListener;
     use alacritty_terminal::vte::ansi::Processor;
 
+    struct DamageTerminal(*mut ZshellTerminal);
+
+    impl DamageTerminal {
+        fn new() -> Self {
+            extern "C" fn on_event(_: *mut c_void, _: u32, _: *const u8, _: usize) {}
+
+            let shell = std::ffi::CString::new("/bin/cat").unwrap();
+            let config = ZshellConfig {
+                shell: shell.as_ptr(),
+                args: std::ptr::null(),
+                args_len: 0,
+                working_directory: std::ptr::null(),
+                env: std::ptr::null(),
+                env_len: 0,
+                columns: 8,
+                rows: 4,
+                cell_width: 8,
+                cell_height: 16,
+                scrollback_lines: 100,
+                cursor_shape: 2,
+                cursor_blinking: true,
+            };
+            let theme = ZshellTheme {
+                palette: [0; 256],
+                foreground: 0xffffff,
+                background: 0,
+                cursor: 0xffffff,
+            };
+            let handle = unsafe {
+                zshell_alacritty_new(&config, &theme, on_event, std::ptr::null_mut())
+            };
+            assert!(!handle.is_null());
+            Self(handle)
+        }
+
+        fn feed(&mut self, bytes: &[u8]) {
+            let mut parser: Processor = Processor::new();
+            let terminal = unsafe { &*self.0 };
+            parser.advance(&mut *terminal.term.lock(), bytes);
+        }
+
+        fn damage(&mut self) -> (u32, Vec<usize>) {
+            let mut damage = ZshellDamage {
+                kind: ZSHELL_DAMAGE_NONE,
+                rows: std::ptr::null(),
+                rows_len: 0,
+            };
+            unsafe { zshell_alacritty_take_damage(self.0, &mut damage) };
+            let rows = unsafe { std::slice::from_raw_parts(damage.rows, damage.rows_len).to_vec() };
+            (damage.kind, rows)
+        }
+    }
+
+    impl Drop for DamageTerminal {
+        fn drop(&mut self) {
+            unsafe { zshell_alacritty_free(self.0) };
+        }
+    }
+
+    #[test]
+    fn damage_idle_cursor_frames_reuse_rows() {
+        let mut terminal = DamageTerminal::new();
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_FULL, vec![]));
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_NONE, vec![]));
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_NONE, vec![]));
+    }
+
+    #[test]
+    fn damage_idle_insert_mode_frames_reuse_rows() {
+        let mut terminal = DamageTerminal::new();
+        terminal.damage();
+        terminal.feed(b"\x1b[4h");
+        terminal.damage();
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_NONE, vec![]));
+    }
+
+    #[test]
+    fn damage_writes_and_cursor_moves_keep_changed_rows() {
+        let mut terminal = DamageTerminal::new();
+        terminal.damage();
+        terminal.feed(b"M");
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_PARTIAL, vec![0]));
+        terminal.feed(b"\x1b[2;3H");
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_PARTIAL, vec![0, 1]));
+        terminal.feed(b"\x1b[?7l\x1b[4;8H");
+        terminal.damage();
+        terminal.feed(b"X");
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_PARTIAL, vec![3]));
+        terminal.feed(b"Y");
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_PARTIAL, vec![3]));
+        terminal.feed("\u{301}".as_bytes());
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_PARTIAL, vec![3]));
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_NONE, vec![]));
+    }
+
+    #[test]
+    fn damage_insert_writes_keep_full_invalidation() {
+        let mut terminal = DamageTerminal::new();
+        terminal.damage();
+        terminal.feed(b"abcdef\r\x1b[4h");
+        terminal.damage();
+        terminal.feed(b"X");
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_FULL, vec![]));
+        let term = unsafe { &*terminal.0 }.term.lock();
+        assert_eq!(term.grid()[Line(0)][Column(0)].c, 'X');
+        assert_eq!(term.grid()[Line(0)][Column(1)].c, 'a');
+        drop(term);
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_NONE, vec![]));
+    }
+
+    #[test]
+    fn damage_cursor_styles_visibility_and_color_keep_cursor_row() {
+        let mut terminal = DamageTerminal::new();
+        terminal.damage();
+        for bytes in [
+            b"\x1b[1 q".as_slice(),
+            b"\x1b[?25l",
+            b"\x1b[?25h",
+            b"\x1b[?12l",
+            b"\x1b[?12h",
+            b"\x1b]12;#ff0000\x07",
+        ] {
+            terminal.feed(bytes);
+            assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_PARTIAL, vec![0]), "{bytes:?}");
+            assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_NONE, vec![]));
+        }
+    }
+
+    #[test]
+    fn damage_resize_scroll_and_grid_mutations_keep_full_invalidation() {
+        let mut terminal = DamageTerminal::new();
+        terminal.damage();
+        unsafe { zshell_alacritty_resize(terminal.0, 9, 5, 8, 16) };
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_FULL, vec![]));
+        terminal.feed(b"a\r\nb\r\nc\r\nd\r\ne\r\nf\r\ng\r\n");
+        terminal.damage();
+        unsafe { zshell_alacritty_scroll(terminal.0, 1) };
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_FULL, vec![]));
+        unsafe { zshell_alacritty_clear(terminal.0) };
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_FULL, vec![]));
+    }
+
+    #[test]
+    fn damage_semantic_prompt_flags_keep_current_row() {
+        let mut terminal = DamageTerminal::new();
+        terminal.damage();
+        terminal.feed(b"\x1b]133;A\x07");
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_PARTIAL, vec![0]));
+        assert_eq!(terminal.damage(), (ZSHELL_DAMAGE_NONE, vec![]));
+    }
+
     fn intercept(interceptor: &mut OscInterceptor, input: &[u8]) -> (Vec<u8>, Vec<OscEvent>) {
         let (output, events) = interceptor.process(input);
         (output.into_owned(), events)
@@ -2597,10 +2770,9 @@ mod tests {
 /// damage as it goes.
 ///
 /// A wakeup only means bytes arrived, not that the grid moved: a heartbeat, a
-/// cursor-position query, or output that overwrites a cell with identical
-/// contents all wake the host for nothing. And when something *has* changed it
-/// is usually one row — a prompt redraw, a cursor blink — so rebuilding every
-/// cell's draw instance is almost all waste.
+/// cursor-position query all wake the host for nothing. And when something
+/// *has* changed it is usually one row, so rebuilding every cell's draw instance
+/// is almost all waste. Host cursor blink and IME visibility are tracked by Swift.
 ///
 /// Rows rather than the full spans: the renderer caches per row and columns
 /// would not let it skip any more work, so carrying them would only widen the
@@ -2620,7 +2792,9 @@ pub unsafe extern "C" fn zshell_alacritty_take_damage(
     terminal.dirty_rows.clear();
 
     let mut term = terminal.term.lock();
-    let mut kind = match term.damage() {
+    let cursor = damage_cursor_state(&term);
+    let previous_cursor = std::mem::replace(&mut terminal.last_damage_cursor, cursor);
+    let mut kind = match term.damage_without_cursor() {
         TermDamage::Full => ZSHELL_DAMAGE_FULL,
         TermDamage::Partial(iter) => {
             for bounds in iter {
@@ -2633,6 +2807,22 @@ pub unsafe extern "C" fn zshell_alacritty_take_damage(
             }
         }
     };
+    // Cursor style/visibility/color setters do not damage cells in Alacritty.
+    // Keep their old and new rows while leaving stationary host blinks clean.
+    if kind != ZSHELL_DAMAGE_FULL && previous_cursor != cursor {
+        for state in [previous_cursor, cursor].into_iter().flatten() {
+            let row = state.point.line.0;
+            if row >= 0 && (row as usize) < term.screen_lines()
+                && !terminal.dirty_rows.contains(&(row as usize))
+            {
+                terminal.dirty_rows.push(row as usize);
+            }
+        }
+        if !terminal.dirty_rows.is_empty() {
+            terminal.dirty_rows.sort_unstable();
+            kind = ZSHELL_DAMAGE_PARTIAL;
+        }
+    }
     term.reset_damage();
     drop(term);
     let graphics_revision = terminal.kitty_graphics.lock().revision;

@@ -727,8 +727,6 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         // emulator never saw (resize, theme, selection, focus). A cursor blink
         // or preedit still presents with an empty row list. The block cursor's
         // row is added after its visibility rewrite, below.
-        let isPreeditOnlyFrame = preeditChanged && !needsUnconditionalRedraw
-            && damage.kind == ZSHELL_DAMAGE_NONE
         let partialRows: [Int]?
         if damage.kind == ZSHELL_DAMAGE_PARTIAL, let rows = damage.rows {
             partialRows = (0..<damage.rows_len).map { Int(rows[$0]) }
@@ -759,11 +757,17 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         metalLayer.device = metalDevice
         metalLayer.contentsScale = scale
         let size = bounds.size
-        guard size.width > 0, size.height > 0 else { return false }
+        guard size.width > 0, size.height > 0 else {
+            needsUnconditionalRedraw = true
+            return false
+        }
         metalLayer.drawableSize = CGSize(
             width: size.width * scale, height: size.height * scale
         )
-        guard let drawable = metalLayer.nextDrawable() else { return false }
+        guard let drawable = metalLayer.nextDrawable() else {
+            needsUnconditionalRedraw = true
+            return false
+        }
         // Keep the IOSurface before render schedules this drawable for
         // presentation. Accessing drawable.texture afterward is invalid.
         let drawableSurface = drawable.texture.iosurface
@@ -801,7 +805,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         }
         dirtyRows = terminalCursorBlinkDirtyRows(
             dirtyRows: dirtyRows,
-            cursorBlinkOnly: cursorBlinkNeedsFrame && preedit == nil,
+            cursorBlinkOnly: (cursorBlinkNeedsFrame && preedit == nil) || preeditChanged,
             cursorShape: blinkCursorShape,
             cursorRow: blinkCursorRow
         )
@@ -876,7 +880,7 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
             setPresentationCoverVisible(false)
         }
         AlacrittyRenderStats.shared.rebuilt(
-            rows: isPreeditOnlyFrame ? 0 : dirtyRows?.count ?? snapshot.rows
+            rows: dirtyRows?.count ?? snapshot.rows
         )
         return submitted
     }

@@ -1,6 +1,7 @@
 """Compile the production renderer and pause real Metal reads between frames."""
 
 from pathlib import Path
+import os
 import platform
 import re
 import subprocess
@@ -38,6 +39,8 @@ def check_cursor_blink_timer():
     rewritten = view.index("snapshot.cursor_shape = 3", hide)
     appended = view.index("terminalCursorBlinkDirtyRows(", rewritten)
     rendered = view.index("renderer.render(", appended)
+    if "preeditChanged" not in view[appended:rendered]:
+        raise SystemExit("IME cursor visibility must rebuild a cached block-cursor row")
     if "dirtyRows: dirtyRows" not in view[rendered:rendered + 900]:
         raise SystemExit("the block-cursor row is not the list passed to the renderer")
     print("PASS: updateCursorTimer schedules a cursor-only frame")
@@ -47,6 +50,12 @@ check_cursor_blink_timer()
 
 with tempfile.TemporaryDirectory(prefix="zshell-metal-buffers-") as directory:
     temporary = Path(directory)
+    bridge_target = temporary / "bridge-target"
+    subprocess.run([
+        "cargo", "build", "--locked",
+        "--manifest-path", str(ROOT / "mac/Vendor/alacritty-bridge/Cargo.toml"),
+    ], cwd=ROOT, env={**os.environ, "CARGO_TARGET_DIR": str(bridge_target)}, check=True)
+    bridge_library = bridge_target / "debug/libzshell_alacritty.a"
     renderer = temporary / "TerminalMetalRenderer.swift"
     renderer.write_text((ALACRITTY / renderer.name).read_text() + """
 extension TerminalMetalRenderer {
@@ -221,6 +230,25 @@ func cursorBlinkPreservesCachedRows() {
                      "hidden block cursor left the background-colored glyph")
         precondition(!hidden.solids.contains(cursor), "hidden cursor quad was still drawn")
 
+        snapshot.cursor_line = 0
+        snapshot.cursor_column = 0
+        let shown = renderer.testFrameColors(
+            snapshot: snapshot, metrics: metrics, dirtyRows: blockRows
+        )
+        precondition(shown.glyphs.contains(background) && !shown.glyphs.contains(newTop),
+                     "showing the block cursor kept its normal glyph foreground")
+        snapshot.cursor_line = -1
+        snapshot.cursor_column = -1
+        let preeditHidden = renderer.testFrameColors(
+            snapshot: snapshot, metrics: metrics,
+            dirtyRows: terminalCursorBlinkDirtyRows(
+                dirtyRows: [], cursorBlinkOnly: true, cursorShape: 0, cursorRow: 0
+            )
+        )
+        precondition(preeditHidden.glyphs.contains(newTop)
+                     && !preeditHidden.glyphs.contains(background),
+                     "IME hiding the block cursor retained its background-colored glyph")
+
         let rebuilt = renderer.testFrameColors(
             snapshot: snapshot, metrics: metrics, dirtyRows: forced.dirtyRows
         )
@@ -254,7 +282,56 @@ func cursorBlinkPreservesCachedRows() {
         )
         precondition(barBlink.glyphs == barCached.glyphs, "bar cursor blink rebuilt glyph rows")
     }
-    print("PASS: block cursor blink rebuilds its row; other cursors and forced frames stay distinct")
+    print("PASS: block cursor blink and IME hide rebuild its row; other cursors and forced frames stay distinct")
+}
+
+func realBridgeCursorBlinkReusesRows() {
+    let shell = "/bin/cat".withCString { strdup($0)! }
+    defer { free(shell) }
+    var config = ZshellConfig()
+    config.shell = UnsafePointer(shell)
+    config.columns = 8
+    config.rows = 4
+    config.cell_width = 8
+    config.cell_height = 16
+    config.scrollback_lines = 100
+    config.cursor_shape = 0
+    config.cursor_blinking = true
+    var theme = ZshellTheme()
+    theme.foreground = 0xffffff
+    theme.cursor = 0x00ff00
+    let handle = zshell_alacritty_new(&config, &theme, { _, _, _, _ in }, nil)!
+    defer { zshell_alacritty_free(handle) }
+
+    func takeDecision(blink: Bool, forced: Bool = false) -> TerminalFrameRowDecision {
+        var damage = ZshellDamage()
+        zshell_alacritty_take_damage(handle, &damage)
+        let rows = damage.kind == ZSHELL_DAMAGE_PARTIAL
+            ? Array(UnsafeBufferPointer(start: damage.rows, count: damage.rows_len))
+            : nil
+        return terminalFrameRowDecision(
+            needsUnconditionalRedraw: forced, damageKind: damage.kind,
+            partialRows: rows, presentWithoutDamage: blink
+        )
+    }
+
+    precondition(takeDecision(blink: false).dirtyRows == nil)
+    for shape: UInt8 in [0, 1, 2] {
+        zshell_alacritty_set_cursor_style(handle, shape, true)
+        _ = takeDecision(blink: false)
+        let blink = takeDecision(blink: true)
+        precondition(blink.presents && blink.dirtyRows == .some([Int]()),
+                     "real bridge still damages an idle cursor frame")
+        precondition(terminalCursorBlinkDirtyRows(
+            dirtyRows: blink.dirtyRows, cursorBlinkOnly: true,
+            cursorShape: Int(shape), cursorRow: 0
+        ) == .some(shape == 0 ? [0] : []), "real blink rebuilt the wrong rows")
+        precondition(!takeDecision(blink: false).presents,
+                     "real bridge still presents empty wakeups")
+    }
+    precondition(takeDecision(blink: true, forced: true).dirtyRows == nil,
+                 "host force redraw was lost with real empty damage")
+    print("PASS: actual Alacritty damage supports retained rows for all cursor shapes")
 }
 """)
 
@@ -289,7 +366,7 @@ func cursorBlinkPreservesCachedRows() {
         raise SystemExit("metal buffer test entry point moved")
     tests = temporary / "TerminalMetalBufferTests.swift"
     tests.write_text(harness.replace(
-        marker, "        cursorBlinkPreservesCachedRows()\n" + marker, 1
+        marker, "        cursorBlinkPreservesCachedRows()\n        realBridgeCursorBlinkReusesRows()\n" + marker, 1
     ))
 
     binary = temporary / "metal-buffer-tests"
@@ -307,6 +384,9 @@ func cursorBlinkPreservesCachedRows() {
         str(ROOT / "mac/zshell/TerminalContrast.swift"),
         str(font), str(models), str(renderer),
         str(tests),
+        str(bridge_library),
+        "-framework", "IOKit", "-framework", "Security", "-framework", "SystemConfiguration",
+        "-lutil",
         "-o", str(binary),
     ], cwd=ROOT, check=True)
     subprocess.run([str(binary)], cwd=ROOT, check=True, timeout=45)

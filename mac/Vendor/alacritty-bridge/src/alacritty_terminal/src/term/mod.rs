@@ -491,6 +491,22 @@ impl<T> Term<T> {
         TermDamage::Partial(TermDamageIterator::new(&self.damage.lines, display_offset))
     }
 
+    /// Collect grid damage without manufacturing damage for an idle host frame.
+    ///
+    /// Input records its own damage; the host must track cursor state changes.
+    /// Call [`Self::reset_damage`] after collecting the result.
+    #[must_use]
+    pub fn damage_without_cursor(&self) -> TermDamage<'_> {
+        if self.damage.full {
+            TermDamage::Full
+        } else {
+            TermDamage::Partial(TermDamageIterator::new(
+                &self.damage.lines,
+                self.grid().display_offset(),
+            ))
+        }
+    }
+
     /// Resets the terminal damage information.
     pub fn reset_damage(&mut self) {
         self.damage.reset(self.columns());
@@ -655,7 +671,7 @@ impl<T> Term<T> {
 
     /// Mutable access to the raw grid data structure.
     pub fn grid_mut(&mut self) -> &mut Grid<Cell> {
-        self.command_blocks.grid_revision = self.command_blocks.grid_revision.wrapping_add(1);
+        self.mark_fully_damaged();
         &mut self.grid
     }
 
@@ -993,6 +1009,7 @@ impl<T> Term<T> {
     /// Write `c` to the cell at the cursor position.
     #[inline(always)]
     fn write_at_cursor(&mut self, c: char) {
+        self.damage_cursor();
         self.invalidate_written_command_row();
         let c = self.grid.cursor.charsets[self.active_charset].map(c);
         let fg = self.grid.cursor.template.fg;
@@ -1104,12 +1121,18 @@ impl<T: EventListener> Handler for Term<T> {
             }
 
             self.grid[line][column].push_zerowidth(c);
+            self.damage.damage_point(Point::new(line.0 as usize, column));
             return;
         }
 
         // Move cursor to next line.
         if self.grid.cursor.input_needs_wrap {
             self.wrapline();
+        }
+
+        // Preserve insert-mode invalidation for actual writes, not idle host frames.
+        if self.mode.contains(TermMode::INSERT) {
+            self.mark_fully_damaged();
         }
 
         // If in insert mode, first shift cells to the right.
@@ -1400,6 +1423,7 @@ impl<T: EventListener> Handler for Term<T> {
             count -= 1;
 
             let c = self.grid.cursor.charsets[self.active_charset].map('\t');
+            self.damage_cursor();
             let cell = self.grid.cursor_cell();
             if cell.c == ' ' {
                 cell.c = c;

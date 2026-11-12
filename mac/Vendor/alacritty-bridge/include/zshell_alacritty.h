@@ -280,7 +280,8 @@ typedef struct {
 
 /// Which viewport rows changed since the last call, resetting damage as it
 /// goes. A wakeup only means bytes arrived — ask this before paying for a
-/// snapshot, and rebuild only the rows it names.
+/// snapshot, and rebuild only the rows it names. Host cursor blink and IME
+/// visibility changes do not damage the grid and must be tracked by the host.
 void zshell_alacritty_take_damage(ZshellTerminal *handle, ZshellDamage *out);
 
 /// Whether a DEC synchronized update is still being buffered.

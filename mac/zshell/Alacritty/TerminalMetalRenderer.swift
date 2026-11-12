@@ -50,10 +50,10 @@ func terminalFrameRowDecision(
     return TerminalFrameRowDecision(dirtyRows: nil, presents: false)
 }
 
-/// Adds the block-cursor row after blink visibility has been applied.
+/// Adds the block-cursor row after blink or IME visibility has been applied.
 ///
 /// `foreground(at:)` stores the cell background in that row while a block
-/// cursor occupies it. The hide frame has already cleared the cursor, so
+/// cursor occupies it. A blink or IME hide frame has already cleared the cursor, so
 /// rebuilding the row now restores the glyph. Bar and underline cursors do
 /// not recolor a glyph. A nil list still rebuilds the whole grid.
 func terminalCursorBlinkDirtyRows(
