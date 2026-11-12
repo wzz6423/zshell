@@ -77,6 +77,7 @@ final class TerminalMetalRenderer {
     /// Rebuilt rows are only valid for the geometry they were built at.
     private var cachedColumns = 0
     private var cachedRows = 0
+    private var cachedPaddingColor: TerminalPaddingColor = .extend
 
     init?(device: MTLDevice) {
         guard let queue = device.makeCommandQueue() else { return nil }
@@ -133,6 +134,7 @@ final class TerminalMetalRenderer {
         padding: CGPoint,
         scale: CGFloat,
         backgroundOpacity: CGFloat,
+        paddingColor: TerminalPaddingColor = .extend,
         dirtyRows: [Int]?,
         in drawable: CAMetalDrawable,
         viewportSize: CGSize,
@@ -144,7 +146,7 @@ final class TerminalMetalRenderer {
             snapshot: snapshot, markedText: markedText,
             metrics: metrics, padding: padding,
             scale: scale,
-            backgroundOpacity: backgroundOpacity,
+            paddingColor: paddingColor,
             dirtyRows: dirtyRows,
             viewportSize: viewportSize
         ), let atlas else { return false }
@@ -223,7 +225,7 @@ final class TerminalMetalRenderer {
         metrics: AlacrittyMetrics,
         padding: CGPoint,
         scale: CGFloat,
-        backgroundOpacity: CGFloat,
+        paddingColor: TerminalPaddingColor,
         dirtyRows: [Int]?,
         viewportSize: CGSize
     ) -> Bool {
@@ -239,7 +241,7 @@ final class TerminalMetalRenderer {
         build(
             snapshot: snapshot, markedText: markedText,
             metrics: metrics, padding: padding, atlas: atlas,
-            backgroundOpacity: backgroundOpacity,
+            paddingColor: paddingColor,
             dirtyRows: resetAtlas ? nil : dirtyRows,
             viewportSize: viewportSize
         )
@@ -249,7 +251,7 @@ final class TerminalMetalRenderer {
             build(
                 snapshot: snapshot, markedText: markedText,
                 metrics: metrics, padding: padding, atlas: atlas,
-                backgroundOpacity: backgroundOpacity,
+                paddingColor: paddingColor,
                 dirtyRows: nil, viewportSize: viewportSize
             )
         }
@@ -263,7 +265,7 @@ final class TerminalMetalRenderer {
             build(
                 snapshot: snapshot, markedText: markedText,
                 metrics: metrics, padding: padding, atlas: atlas,
-                backgroundOpacity: backgroundOpacity,
+                paddingColor: paddingColor,
                 dirtyRows: nil, viewportSize: viewportSize
             )
             atlas.finishRebuild(visibleGlyphArea: visibleGlyphArea())
@@ -433,7 +435,7 @@ final class TerminalMetalRenderer {
         metrics: AlacrittyMetrics,
         padding: CGPoint,
         atlas: TerminalGlyphAtlas,
-        backgroundOpacity: CGFloat,
+        paddingColor: TerminalPaddingColor,
         dirtyRows: [Int]?,
         viewportSize: CGSize
     ) {
@@ -448,6 +450,8 @@ final class TerminalMetalRenderer {
         // into the instances. Rebuild every row even if the emulator only
         // reported partial damage for this frame.
         let geometryChanged = cachedColumns != columns || cachedRows != rows
+        let paddingColorChanged = cachedPaddingColor != paddingColor
+        cachedPaddingColor = paddingColor
         if geometryChanged {
             rowInstances = Array(
                 repeating: RowInstances(instances: [], backgroundCount: 0),
@@ -461,7 +465,7 @@ final class TerminalMetalRenderer {
         // change the emulator never saw. An empty array preserves all retained
         // rows while transient preedit instances are appended below.
         let rowsToBuild: [Int]
-        if geometryChanged {
+        if geometryChanged || paddingColorChanged {
             rowsToBuild = Array(0..<rows)
         } else if let dirtyRows {
             rowsToBuild = dirtyRows.filter { $0 >= 0 && $0 < rows }
@@ -473,7 +477,7 @@ final class TerminalMetalRenderer {
                 row: row, cells: cells, columns: columns,
                 snapshot: snapshot, metrics: metrics, padding: padding,
                 atlas: atlas,
-                backgroundOpacity: backgroundOpacity,
+                paddingColor: paddingColor,
                 viewportSize: viewportSize
             )
         }
@@ -571,7 +575,7 @@ final class TerminalMetalRenderer {
         metrics: AlacrittyMetrics,
         padding: CGPoint,
         atlas: TerminalGlyphAtlas,
-        backgroundOpacity: CGFloat,
+        paddingColor: TerminalPaddingColor,
         viewportSize: CGSize
     ) -> RowInstances {
         var instances: [Instance] = []
@@ -582,24 +586,33 @@ final class TerminalMetalRenderer {
         let defaultBackground = snapshot.background
 
         let top = originY + Float(row) * cellHeight
+        let extendsSides = paddingColor != .background
+        let extendsVertically = paddingColor == .always
+            || (paddingColor == .extend && (row == 0 || row + 1 == snapshot.rows)
+                && !Self.rowNeverExtendsBackground(
+                row, cells: cells, columns: columns, background: defaultBackground
+            ))
         var column = 0
 
         // Backgrounds first, coalescing equal-coloured runs into one quad.
         while column < columns {
             let cell = cells[row * columns + column]
             let background = AlacrittyRenderer.background(of: cell, default: defaultBackground)
+            let drawsBackground = Self.drawsBackground(cell, resolved: background, default: defaultBackground)
             var span = 1
             while column + span < columns {
                 let next = cells[row * columns + column + span]
                 guard AlacrittyRenderer.background(of: next, default: defaultBackground)
-                    == background else { break }
+                    == background,
+                      Self.drawsBackground(next, resolved: background, default: defaultBackground)
+                    == drawsBackground else { break }
                 span += 1
             }
-            if background != defaultBackground {
-                let reachesLeftEdge = column == 0
-                let reachesRightEdge = column + span == columns
-                let reachesTopEdge = row == 0
-                let reachesBottomEdge = row + 1 == snapshot.rows
+            if drawsBackground {
+                let reachesLeftEdge = extendsSides && column == 0
+                let reachesRightEdge = extendsSides && column + span == columns
+                let reachesTopEdge = extendsVertically && row == 0
+                let reachesBottomEdge = extendsVertically && row + 1 == snapshot.rows
                 let left = reachesLeftEdge
                     ? 0 : originX + Float(column) * cellWidth
                 let right = reachesRightEdge
@@ -611,7 +624,9 @@ final class TerminalMetalRenderer {
                 instances.append(Instance(
                     origin: SIMD2(left, runTop),
                     size: SIMD2(max(right - left, 0), max(bottom - runTop, 0)),
-                    color: Self.color(background, alpha: Float(backgroundOpacity)),
+                    // Ghostty keeps explicit, selected and inverse backgrounds
+                    // opaque; only untouched cells expose the translucent clear.
+                    color: Self.color(background),
                     uvOrigin: .zero,
                     uvSize: .zero,
                     kind: 0
@@ -713,6 +728,29 @@ final class TerminalMetalRenderer {
             instances: instances,
             backgroundCount: backgroundCount
         )
+    }
+
+    private static func drawsBackground(_ cell: ZshellCell, resolved: UInt32, default background: UInt32) -> Bool {
+        cell.flags & UInt16(ZSHELL_CELL_EXPLICIT_BACKGROUND | ZSHELL_CELL_INVERSE | ZSHELL_CELL_SELECTED) != 0
+            || resolved != background
+    }
+
+    /// Mirrors Ghostty's row.zig: inspect the terminal's original background,
+    /// before selection or inverse video changes the displayed edge color.
+    private static func rowNeverExtendsBackground(
+        _ row: Int, cells: UnsafePointer<ZshellCell>, columns: Int, background: UInt32
+    ) -> Bool {
+        for column in 0..<columns {
+            let cell = cells[row * columns + column]
+            if cell.flags & UInt16(ZSHELL_CELL_SEMANTIC_PROMPT) != 0 || cell.bg == background {
+                return true
+            }
+            switch cell.ch {
+            case 0xE0B0...0xE0C8, 0xE0CA, 0xE0CC...0xE0D2, 0xE0D4: return true
+            default: break
+            }
+        }
+        return false
     }
 
     /// Places a block cursor after its row backgrounds but before its glyphs,

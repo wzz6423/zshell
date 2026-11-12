@@ -57,6 +57,7 @@ CONFIGURATION_ITEMS = {
     "terminal.cursor-blinking": ("appearance", "Blink cursor", "Cursor"),
     "terminal.background-opacity": ("appearance", "Opacity", "Background"),
     "terminal.background-blur": ("appearance", "Blur behind window", "Background"),
+    "terminal.padding-color": ("appearance", "Padding color", "Background"),
     "terminal.auto-profiles": ("terminal", "Apply terminal profiles automatically", "Terminal Profiles"),
     "terminal.text-hints": ("terminal", "Show terminal text hints", "Input"),
     "terminal.prompt-queue-enabled": ("terminal", "Enable Prompt Queue", "Prompt Queue"),
@@ -280,6 +281,8 @@ class SettingsSearchTests(unittest.TestCase):
                           "TerminalBackend", "    var settingsHighlights:"),
             metadata_enum((sources / "ApplicationPresenceController.swift").read_text(),
                           "ApplicationPresence", "\n}"),
+            metadata_enum((sources / "AppSettings.swift").read_text(),
+                          "TerminalPaddingColor", "    var ghosttyValue:"),
         ]))
         harness = root / "Harness.swift"
         harness.write_text(HARNESS)

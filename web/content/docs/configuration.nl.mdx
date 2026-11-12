@@ -159,6 +159,12 @@ Vermenigvuldigt de natuurlijke celhoogte van elke terminalbackend en houdt teken
 
 Zshell biedt geen instelling voor het basislettergewicht. Ghostty kiest benoemde stijlen of variatieassen, terwijl Alacritty/CoreText normale en vette varianten op basis van eigenschappen bepaalt. Eén gedeelde waarde zou het onderscheid tussen normaal en vet of fallbackgewichten niet consistent behouden voor statische en variabele lettertypen.
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+Kies **Instellingen → Weergave → Achtergrond → Randkleur**. `"background"` gebruikt de achtergrond van het terminalthema in de randen. `"extend"` trekt de achtergrond van de dichtstbijzijnde cel door, maar houdt de boven- of onderrand op de thema-achtergrond als die rij een cel met standaardachtergrond, een shellprompt of een Powerline-scheidingsteken bevat. `"always"` trekt alle randen door zonder die controles. Lege onderste rijen behouden hun eigen achtergrond; een gekleurde rij erboven vult de onderrand niet. Wijzigingen gelden meteen voor geopende terminals van beide backends. Bij doorschijnendheid behouden standaardachtergronden hun dekking, terwijl expliciete celachtergronden en hun uitbreidingen ondoorzichtig blijven.
+
 ### `editor.wrap-lines` [#editorwrap-lines]
 
 Booleaans — standaard `true`

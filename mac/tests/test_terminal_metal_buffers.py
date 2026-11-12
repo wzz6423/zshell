@@ -5,6 +5,8 @@ import platform
 import subprocess
 import tempfile
 
+from swift_test_source import extract_enum
+
 
 ROOT = Path(__file__).resolve().parents[2]
 ALACRITTY = ROOT / "mac/zshell/Alacritty"
@@ -44,7 +46,9 @@ extension TerminalMetalRenderer {
 
 """ + colors[selection_end:])
     models = temporary / "RendererModels.swift"
+    settings = (ROOT / "mac/zshell/AppSettings.swift").read_text()
     models.write_text(metrics.replace("import GhosttyTheme\n", "")
+                      + extract_enum(settings, "TerminalPaddingColor")
                       + "struct AlacrittyRenderer {\n" + colors)
 
     font_source = (ROOT / "mac/zshell/TerminalFont.swift").read_text()

@@ -18,6 +18,8 @@ the original feature bullet instead of adding separate entries for them.
 
 ### Added
 
+- Choose theme-colored terminal padding, automatic edge-color extension, or
+  extension on every edge from Appearance settings with either terminal backend.
 - Close a split pane from its header and create sessions by double-clicking
   empty project-sidebar space. The double-click action can be disabled in Settings.
 - Choose the terminal type (`TERM`) for new local and remote sessions while

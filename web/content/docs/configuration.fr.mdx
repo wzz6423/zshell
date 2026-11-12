@@ -159,6 +159,12 @@ Multiplie la hauteur naturelle des cellules de chaque moteur tout en conservant 
 
 Zshell n'expose pas de réglage de graisse de base. Ghostty choisit des styles nommés ou des axes de variation, tandis qu'Alacritty/CoreText détermine les variantes normale et grasse par leurs attributs. Une valeur commune ne préserverait pas de façon cohérente ces différences et les graisses de repli entre polices statiques et variables.
 
+### `terminal.padding-color` [#terminalpadding-color]
+
+`"background"` · `"extend"` · `"always"` — `"extend"`
+
+Choisissez **Réglages → Apparence → Arrière-plan → Couleur des marges**. `"background"` utilise le fond du thème dans les marges. `"extend"` prolonge le fond de la cellule la plus proche, mais conserve le fond du thème en haut ou en bas si la ligne contient une cellule au fond par défaut, une invite de shell ou un séparateur Powerline. `"always"` prolonge tous les bords sans ces vérifications. Les dernières lignes vides gardent leur propre fond ; une ligne colorée au-dessus ne remplit pas la marge inférieure. Les changements s’appliquent immédiatement aux terminaux ouverts avec les deux moteurs. En mode translucide, le fond par défaut conserve son opacité, tandis que les fonds de cellule explicites et leurs prolongements restent opaques.
+
 ### `editor.wrap-lines` [#editorwrap-lines]
 
 Booléen — valeur par défaut : `true`

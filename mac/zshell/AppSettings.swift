@@ -16,6 +16,22 @@ enum ToolbarVisibility: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum TerminalPaddingColor: String, CaseIterable {
+    case background
+    case extend
+    case always
+
+    var title: String {
+        switch self {
+        case .background: String(localized: "Theme background")
+        case .extend: String(localized: "Automatic extension")
+        case .always: String(localized: "Always extend")
+        }
+    }
+
+    var ghosttyValue: String { self == .always ? "extend-always" : rawValue }
+}
+
 /// The icon shown for the running app in the Dock and app switcher.
 enum ApplicationIcon: String, CaseIterable, Identifiable {
     case defaultIcon = "default"
@@ -144,6 +160,7 @@ final class AppSettings: nonisolated ObservableObject {
     static let defaultTerminalBackgroundOpacity: Double = 1
     static let terminalBackgroundOpacityRange: ClosedRange<Double> = 0.2...1
     static let defaultTerminalBackgroundBlur = false
+    static let defaultTerminalPaddingColor: TerminalPaddingColor = .extend
     static let defaultQuickTerminalSize: Double = 0.75
     static let quickTerminalSizeRange: ClosedRange<Double> = 0.35...0.95
     static let defaultQuickTerminalOpacity: Double = 0.5
@@ -436,6 +453,10 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var terminalPaddingColor: TerminalPaddingColor {
+        didSet { save() }
+    }
+
     var effectiveTerminalBackgroundOpacity: Double {
         NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
             ? Self.defaultTerminalBackgroundOpacity
@@ -701,6 +722,8 @@ final class AppSettings: nonisolated ObservableObject {
         ) ? terminalBackgroundOpacity : Self.defaultTerminalBackgroundOpacity
         terminalBackgroundBlur = toml["terminal.background-blur"]?.bool
             ?? Self.defaultTerminalBackgroundBlur
+        terminalPaddingColor = toml["terminal.padding-color"]?.string
+            .flatMap(TerminalPaddingColor.init(rawValue:)) ?? Self.defaultTerminalPaddingColor
         let notifySeconds = toml["terminal.notify-finish-seconds"]?.double ?? 0
         let notifyChoice = Self.notifyFinishChoice(notifySeconds)
         notifyFinishSeconds = Self.notifyFinishSecondChoices.contains(notifyChoice)
@@ -890,6 +913,7 @@ final class AppSettings: nonisolated ObservableObject {
             && !focusFollowsMouse
             && terminalBackgroundOpacity == Self.defaultTerminalBackgroundOpacity
             && terminalBackgroundBlur == Self.defaultTerminalBackgroundBlur
+            && terminalPaddingColor == Self.defaultTerminalPaddingColor
             && notifyFinishSeconds == 0
             && notifyOnError
             && quickTerminalEnabled
@@ -960,6 +984,7 @@ final class AppSettings: nonisolated ObservableObject {
         focusFollowsMouse = false
         terminalBackgroundOpacity = Self.defaultTerminalBackgroundOpacity
         terminalBackgroundBlur = Self.defaultTerminalBackgroundBlur
+        terminalPaddingColor = Self.defaultTerminalPaddingColor
         notifyFinishSeconds = 0
         notifyOnError = true
         quickTerminalEnabled = true
@@ -1190,6 +1215,8 @@ final class AppSettings: nonisolated ObservableObject {
             ? opacity : Self.defaultTerminalBackgroundOpacity)
         assign(\.terminalBackgroundBlur, toml["terminal.background-blur"]?.bool
             ?? Self.defaultTerminalBackgroundBlur)
+        assign(\.terminalPaddingColor, toml["terminal.padding-color"]?.string
+            .flatMap(TerminalPaddingColor.init(rawValue:)) ?? Self.defaultTerminalPaddingColor)
         let notifySeconds = toml["terminal.notify-finish-seconds"]?.double ?? 0
         assign(\.notifyFinishSeconds, Self.notifyFinishChoice(notifySeconds))
         assign(\.notifyOnError, toml["terminal.notify-on-error"]?.bool ?? false)
@@ -1448,6 +1475,9 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if terminalBackgroundBlur != Self.defaultTerminalBackgroundBlur {
             lines.append("terminal.background-blur = true")
+        }
+        if terminalPaddingColor != Self.defaultTerminalPaddingColor {
+            lines.append("terminal.padding-color = \(TOML.quote(terminalPaddingColor.rawValue))")
         }
         if notifyFinishSeconds > 0 {
             lines.append("terminal.notify-finish-seconds = \(TOML.number(Double(notifyFinishSeconds)))")
