@@ -565,9 +565,10 @@ nonisolated struct BoundedProcessRunner {
         timeout: TimeInterval,
         outputLimit: Int,
         environment: [String: String]? = nil,
-        standardInput: Data? = nil
+        standardInput: Data? = nil,
+        cancellable: Bool = true
     ) throws -> BoundedProcessResult {
-        try Task.checkCancellation()
+        if cancellable { try Task.checkCancellation() }
         let process = Process()
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()
@@ -619,7 +620,7 @@ nonisolated struct BoundedProcessRunner {
         var finished = false
         while DispatchTime.now() < deadline {
             if termination.wait(timeout: min(deadline, .now() + 0.1)) == .success { finished = true; break }
-            if Task.isCancelled { cancelled = true; break }
+            if cancellable, Task.isCancelled { cancelled = true; break }
         }
         let timedOut = !finished && !cancelled
         if timedOut || cancelled {
@@ -689,7 +690,8 @@ nonisolated struct OpenSSHTransport: Sendable {
         authentication: SSHAuthentication = .agent,
         credentialID: UUID? = nil,
         additionalEnvironment: [String: String] = [:],
-        standardInput: Data? = nil
+        standardInput: Data? = nil,
+        cancellable: Bool = true
     ) throws -> BoundedProcessOutput {
         let material = try authentication.makeMaterial(credentialID: credentialID)
         defer { material?.cleanup() }
@@ -707,7 +709,7 @@ nonisolated struct OpenSSHTransport: Sendable {
             timeout: timeout,
             outputLimit: outputLimit,
             environment: environment,
-            standardInput: standardInput
+            standardInput: standardInput, cancellable: cancellable
         )
         if result.timedOut { throw TransportError.timedOut(result.output) }
         guard result.terminationStatus == 0 else {

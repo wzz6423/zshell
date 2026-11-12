@@ -250,6 +250,30 @@ struct RemoteSSHTests {
         cancelledTask.cancel()
         expect(cancelledBeforeLaunch.wait(timeout: .now() + 1) == .success, "pre-cancelled work never launches a process")
 
+        let cleanupFinished = DispatchSemaphore(value: 0)
+        let cleanupTimedOut = DispatchSemaphore(value: 0)
+        let cleanupTask = Task.detached {
+            while !Task.isCancelled { await Task.yield() }
+            do {
+                let result = try BoundedProcessRunner.run(
+                    executableURL: URL(fileURLWithPath: "/bin/sh"), arguments: ["-c", "printf cleanup"],
+                    timeout: 1, outputLimit: 32, cancellable: false
+                )
+                precondition(result.terminationStatus == 0 && result.output.stdout == "cleanup" && !result.timedOut,
+                             "pre-cancelled cleanup did not run")
+                cleanupFinished.signal()
+                let timedOut = try BoundedProcessRunner.run(
+                    executableURL: URL(fileURLWithPath: "/bin/sleep"), arguments: ["5"],
+                    timeout: 0.05, outputLimit: 32, cancellable: false
+                )
+                precondition(timedOut.timedOut, "cleanup ignored its timeout")
+                cleanupTimedOut.signal()
+            } catch { preconditionFailure("cancelled cleanup returned \(error)") }
+        }
+        cleanupTask.cancel()
+        expect(cleanupFinished.wait(timeout: .now() + 1) == .success, "pre-cancelled cleanup still launches a process")
+        expect(cleanupTimedOut.wait(timeout: .now() + 1) == .success, "cleanup in a cancelled task remains timeout-bounded")
+
         print("Remote SSH tests: \(passed) passed, 0 failed")
     }
 }

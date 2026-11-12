@@ -145,8 +145,10 @@ nonisolated enum RemotePasteUpload {
         var complete = false
         defer {
             if !complete {
+                // A cancelled upload still needs to remove its temporary remote files.
                 _ = try? OpenSSHTransport(timeout: 10, outputLimit: 1024).run(endpoint: endpoint,
-                    command: ["/bin/rm", "-rf", "--", directory], authentication: authentication, credentialID: credentialID)
+                    command: ["/bin/rm", "-rf", "--", directory], authentication: authentication, credentialID: credentialID,
+                    cancellable: false)
             }
         }
         var paths: [String] = []
