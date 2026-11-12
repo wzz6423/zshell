@@ -206,6 +206,7 @@ struct UnsavedWorkspaceCloseTests {
         NSApp.delegate = delegate
         var status: Int32 = 0
         do {
+            try await exerciseBatchClose(root: root)
             try await exerciseProjectAndWindowClose(root: root)
             try await exerciseQuit(root: root, delegate: delegate)
             print("UNSAVED_PHASE_COMPLETE backend=\(CommandLine.arguments[1]) phase=quit")
@@ -224,6 +225,151 @@ struct UnsavedWorkspaceCloseTests {
         _ = try? PTYMuxCommandLine.exchange(method: "terminateAll")
         _ = try? PTYMuxCommandLine.exchange(method: "shutdown")
         exit(status)
+    }
+
+    @MainActor private static func exerciseBatchClose(root: URL) async throws {
+        let controller = try await makeWindow()
+        let manager = controller.manager
+        let project = manager.selectedProject!
+        let first = try await file("batch-first.txt", root: root, in: project)
+        let second = try await file("batch-second.txt", root: root, in: project)
+        let initialTabs = project.tabs.map(\.id)
+        let saveThenCancel = responder([.alertFirstButtonReturn, .alertThirdButtonReturn]) { _, _ in
+            if project.tabs.map(\.id) != initialTabs || !isAlive(project) { failures.append("Batch teardown ran before every prompt was answered.") }
+            project.closeAll()
+        }
+        project.closeAll()
+        project.closeAll()
+        try await wait("batch Save then Cancel") { saveThenCancel.prompts == 2 }
+        try await settle()
+        try saveThenCancel.finish()
+        try check(failures.isEmpty && project.tabs.map(\.id) == initialTabs && !first.isDirty && second.isDirty && isAlive(project),
+                  "batch Save then Cancel retains every pane and coalesces repeated close requests")
+        try check(try String(contentsOf: URL(fileURLWithPath: first.path), encoding: .utf8) == first.text,
+                  "batch Save writes the file while later cancellation keeps its pane")
+
+        first.text = "batch first draft after save"
+        first.refreshDirtyState()
+        let discardThenCancel = responder([.alertSecondButtonReturn, .alertThirdButtonReturn])
+        project.closeAll()
+        try await wait("batch Don't Save then Cancel") { discardThenCancel.prompts == 2 }
+        try await settle()
+        try discardThenCancel.finish()
+        try check(project.tabs.map(\.id) == initialTabs && first.isDirty && second.isDirty && isAlive(project),
+                  "batch Don't Save then Cancel retains the earlier discarded buffer and all panes")
+        EditorDraftStore.shared.flush()
+        let cancelledDraft = try await EditorDraftStore.shared.archive.load(first.draftID)
+        try check(cancelledDraft?.text == first.text, "batch Cancel preserves the earlier approved-for-discard backup")
+
+        let firstTab = project.tabs.first { $0.paneID(forContent: first.id) != nil }!
+        let secondTab = project.tabs.first { $0.paneID(forContent: second.id) != nil }!
+        let firstPane = firstTab.allPanes[0]
+        firstTab.layout = firstTab.layout.inserting(secondTab.allPanes[0], toward: .right, beside: firstPane.id)
+        project.tabs.removeAll { $0 === secondTab }
+        let reedited = responder([.alertSecondButtonReturn, .alertSecondButtonReturn, .alertThirdButtonReturn]) { index, _ in
+            if index == 2 { first.text = "batch draft edited during the next prompt"; first.refreshDirtyState() }
+        }
+        project.close(firstTab)
+        try await wait("batch tab re-edited discard") { reedited.prompts == 3 }
+        try await settle()
+        try reedited.finish()
+        try check(project.tabs.contains { $0 === firstTab } && firstTab.allContents.count == 2 && first.isDirty && second.isDirty && isAlive(project),
+                  "split-tab cancellation retains both dirty panes and re-prompts a newer discarded edit")
+
+        let approved = responder([.alertSecondButtonReturn, .alertSecondButtonReturn])
+        project.close(firstTab)
+        try await wait("split tab closes after all approvals") { !project.tabs.contains { $0 === firstTab } }
+        try approved.finish()
+        try check(isAlive(project), "approved split-tab close keeps the untargeted terminal alive")
+        EditorDraftStore.shared.flush()
+        let discardedDraft = try await EditorDraftStore.shared.archive.load(first.draftID)
+        try check(discardedDraft == nil, "approved batch Don't Save deletes its backup only after every prompt succeeds")
+
+        let service = SessionWorktreeService()
+        let firstWorktree = try await service.create(in: root.path, branch: "batch-close-first",
+            at: root.deletingLastPathComponent().appendingPathComponent("batch-close-first").path)
+        let secondWorktree = try await service.create(in: root.path, branch: "batch-close-second",
+            at: root.deletingLastPathComponent().appendingPathComponent("batch-close-second").path)
+        guard let firstSession = project.newSession(directory: firstWorktree.path, worktree: firstWorktree),
+              let secondSession = project.newSession(directory: secondWorktree.path, worktree: secondWorktree) else {
+            throw CloseTestFailure(description: "Batch worktree sessions did not start.")
+        }
+        let firstStarted = await firstSession.waitUntilStarted()
+        let secondStarted = await secondSession.waitUntilStarted()
+        try check(firstStarted && secondStarted, "batch worktree sessions start before close confirmation")
+        let mixed = try await file("batch-worktree.txt", root: root, in: project)
+        let mixedTabs = project.tabs.map(\.id)
+        let cancelled = responder([.alertSecondButtonReturn, .alertFirstButtonReturn,
+                                   .alertFirstButtonReturn, .alertThirdButtonReturn]) { index, _ in
+            if index == 3 { mixed.text = "edited during worktree confirmation"; mixed.refreshDirtyState() }
+        }
+        project.closeAll()
+        try await wait("batch edit during worktree confirmation") { cancelled.prompts == 4 }
+        try await settle()
+        try cancelled.finish()
+        try check(project.tabs.map(\.id) == mixedTabs && isAlive(project) && mixed.isDirty
+                  && FileManager.default.fileExists(atPath: firstWorktree.path)
+                  && FileManager.default.fileExists(atPath: secondWorktree.path),
+                  "Cancel after a worktree confirmation edit retains every pane, shell and checkout")
+        EditorDraftStore.shared.flush()
+        let mixedDraft = try await EditorDraftStore.shared.archive.load(mixed.draftID)
+        try check(mixedDraft?.text == mixed.text, "cancelled worktree batch retains the newer file backup")
+
+        let removed = responder([.alertSecondButtonReturn, .alertSecondButtonReturn, .alertSecondButtonReturn]) { _, _ in
+            if project.tabs.map(\.id) != mixedTabs || !isAlive(project) {
+                failures.append("Batch teardown started before every worktree confirmation completed.")
+            }
+        }
+        project.closeAll()
+        try await wait("first batch worktree session closes") { !project.sessions.contains { $0 === firstSession } }
+        try check(!project.tabs.flatMap(\.allContents).contains { $0.id == mixed.id },
+                  "confirmed file panes unmount before asynchronous worktree teardown")
+        try await wait("batch removes approved worktrees") {
+            project.tabs.isEmpty && !FileManager.default.fileExists(atPath: firstWorktree.path)
+                && !FileManager.default.fileExists(atPath: secondWorktree.path)
+        }
+        try removed.finish()
+        try check(failures.isEmpty, "every batch worktree confirmation precedes teardown")
+        EditorDraftStore.shared.flush()
+        let removedDraft = try await EditorDraftStore.shared.archive.load(mixed.draftID)
+        try check(removedDraft == nil, "approved worktree batch commits file discards before teardown")
+
+        let sharedWorktree = try await service.create(in: root.path, branch: "batch-close-shared",
+            at: root.deletingLastPathComponent().appendingPathComponent("batch-close-shared").path)
+        guard let sharedFirst = project.newSession(directory: sharedWorktree.path, worktree: sharedWorktree),
+              let sharedSecond = project.newSession(directory: sharedWorktree.path, worktree: sharedWorktree) else {
+            throw CloseTestFailure(description: "Shared worktree sessions did not start.")
+        }
+        let sharedFirstStarted = await sharedFirst.waitUntilStarted()
+        let sharedSecondStarted = await sharedSecond.waitUntilStarted()
+        try check(sharedFirstStarted && sharedSecondStarted, "two batch sessions start in the same worktree")
+        guard let sharedTab = project.tabs.first(where: { $0.sessions.contains { $0 === sharedFirst } }) else {
+            throw CloseTestFailure(description: "Shared worktree tab is unavailable.")
+        }
+        let partial = responder([.alertThirdButtonReturn]) { _, sheet in
+            let removal = descendants(sheet.contentView!).compactMap { $0 as? NSButton }.first { $0.title == "Remove Worktree" }
+            if removal?.isEnabled != false { failures.append("An untargeted shared worktree session did not block removal.") }
+        }
+        project.close(sharedTab)
+        try await wait("partial shared worktree close finishes") { !UnsavedChangesConfirmation.isPending }
+        try partial.finish()
+        try check(failures.isEmpty && isAlive(project), "partial batch cannot remove a worktree used by an untargeted session")
+        let sharedRemoval = responder([.alertFirstButtonReturn, .alertSecondButtonReturn]) { index, sheet in
+            let removal = descendants(sheet.contentView!).compactMap { $0 as? NSButton }.first { $0.title == "Remove Worktree" }
+            if removal?.isEnabled != (index == 2) { failures.append("Shared worktree removal was not offered only for the last targeted session.") }
+        }
+        project.closeAll()
+        try await wait("shared batch removes its worktree") {
+            project.tabs.isEmpty && !FileManager.default.fileExists(atPath: sharedWorktree.path)
+                && !UnsavedChangesConfirmation.isPending
+        }
+        try sharedRemoval.finish()
+        try check(failures.isEmpty, "complete shared batch removes its worktree after the final session closes")
+        manager.close(project)
+        try await wait("batch fixture project closes") { !manager.projects.contains { $0 === project } }
+        controller.window?.close()
+        try await wait("batch fixture window unregisters") { !TerminalManager.automationManagers.contains { $0 === manager } }
+        print("UNSAVED_PHASE_COMPLETE backend=\(CommandLine.arguments[1]) phase=batch")
     }
 
     @MainActor private static func exerciseProjectAndWindowClose(root: URL) async throws {
@@ -309,7 +455,20 @@ struct UnsavedWorkspaceCloseTests {
         try worktreeCancelled.finish()
         try check(isAlive(worktreeProject) && manager.projects.contains { $0 === worktreeProject } && failures.isEmpty,
                   "Cancel after Keep Worktree retains every project shell until all choices are approved")
-        let kept = responder([.alertFirstButtonReturn, .alertFirstButtonReturn])
+        let worktreeFile = try await file("project-worktree.txt", root: root, in: worktreeProject)
+        let projectReedited = responder([.alertSecondButtonReturn, .alertFirstButtonReturn, .alertThirdButtonReturn]) { index, _ in
+            if index == 2 { worktreeFile.text = "project edit during worktree confirmation"; worktreeFile.refreshDirtyState() }
+        }
+        manager.close(worktreeProject)
+        try await wait("worktree project new edit cancels") { projectReedited.prompts == 3 }
+        try await settle()
+        try projectReedited.finish()
+        try check(isAlive(worktreeProject) && worktreeFile.isDirty && manager.projects.contains { $0 === worktreeProject },
+                  "project Cancel after a worktree confirmation edit retains every shell and file")
+        EditorDraftStore.shared.flush()
+        let worktreeDraft = try await EditorDraftStore.shared.archive.load(worktreeFile.draftID)
+        try check(worktreeDraft?.text == worktreeFile.text, "cancelled worktree project retains its newer file backup")
+        let kept = responder([.alertSecondButtonReturn, .alertFirstButtonReturn, .alertFirstButtonReturn])
         manager.close(worktreeProject)
         try await wait("worktree project closes") { !manager.projects.contains { $0 === worktreeProject } }
         try kept.finish()
@@ -318,6 +477,92 @@ struct UnsavedWorkspaceCloseTests {
                   && FileManager.default.fileExists(atPath: worktreeSecond.path), "approved Keep Worktree closes sessions without deleting their checkouts")
         try await service.remove(worktreeFirst, requireMerged: false)
         try await service.remove(worktreeSecond, requireMerged: false)
+
+        let removingProject = manager.newProject()
+        let removingWorktree = try await service.create(in: root.path, branch: "close-new-content",
+            at: root.deletingLastPathComponent().appendingPathComponent("close-new-content").path)
+        guard let removingSession = removingProject.newSession(directory: removingWorktree.path, worktree: removingWorktree) else {
+            throw CloseTestFailure(description: "Project removal session did not start.")
+        }
+        let removingStarted = await removingSession.waitUntilStarted()
+        try check(removingStarted, "project removal session starts before confirmation")
+        let removingFile = try await file("project-removing.txt", root: root, in: removingProject)
+        let addedPath = root.appendingPathComponent("project-added-during-cleanup.txt")
+        try "before".write(to: addedPath, atomically: true, encoding: .utf8)
+        let addedFile = FileTab(path: addedPath.path)
+        try await wait("cleanup file loads") { if case .text = addedFile.content { return true }; return false }
+        addedFile.text = "edited during cleanup"
+        addedFile.refreshDirtyState()
+        try check(addedFile.isDirty, "the file opened during cleanup contains an unsaved edit")
+        let removing = responder([.alertSecondButtonReturn, .alertSecondButtonReturn])
+        manager.close(removingProject)
+        try await wait("project worktree teardown begins") { !removingProject.sessions.contains { $0 === removingSession } }
+        try check(!removingProject.tabs.flatMap(\.allContents).contains { $0.id == removingFile.id },
+                  "project file panes unmount before worktree teardown yields")
+        removingProject.tabs.append(PaneTab(content: .file(addedFile)))
+        try await wait("project worktree is removed") { !FileManager.default.fileExists(atPath: removingWorktree.path) }
+        try await wait("first project close finishes") { !UnsavedChangesConfirmation.isPending }
+        try removing.finish()
+        try check(manager.projects.contains { $0 === removingProject } && addedFile.isDirty
+                  && removingProject.tabs.flatMap(\.allContents).contains { $0.id == addedFile.id },
+                  "content opened during worktree cleanup keeps its project and unsaved buffer")
+        let closeAdded = responder([.alertSecondButtonReturn])
+        manager.close(removingProject)
+        try await wait("new cleanup content closes after approval") { !manager.projects.contains { $0 === removingProject } }
+        try closeAdded.finish()
+
+        let sharedProject = manager.newProject()
+        let sharedWorktree = try await service.create(in: root.path, branch: "project-close-shared",
+            at: root.deletingLastPathComponent().appendingPathComponent("project-close-shared").path)
+        guard let sharedFirst = sharedProject.newSession(directory: sharedWorktree.path, worktree: sharedWorktree),
+              let sharedSecond = sharedProject.newSession(directory: sharedWorktree.path, worktree: sharedWorktree) else {
+            throw CloseTestFailure(description: "Shared project worktree sessions did not start.")
+        }
+        let sharedFirstStarted = await sharedFirst.waitUntilStarted()
+        let sharedSecondStarted = await sharedSecond.waitUntilStarted()
+        try check(sharedFirstStarted && sharedSecondStarted, "two project sessions start in the same worktree")
+        let sharedRemoval = responder([.alertFirstButtonReturn, .alertSecondButtonReturn])
+        manager.close(sharedProject)
+        try await wait("shared worktree project closes") {
+            !manager.projects.contains { $0 === sharedProject } && !FileManager.default.fileExists(atPath: sharedWorktree.path)
+                && !UnsavedChangesConfirmation.isPending
+        }
+        try sharedRemoval.finish()
+        try check(!FileManager.default.fileExists(atPath: sharedWorktree.path), "project close removes the checkout after both shared sessions terminate")
+
+        let growingProject = manager.newProject()
+        let growingWorktree = try await service.create(in: root.path, branch: "project-close-growing",
+            at: root.deletingLastPathComponent().appendingPathComponent("project-close-growing").path)
+        guard let growingFirst = growingProject.newSession(directory: growingWorktree.path, worktree: growingWorktree) else {
+            throw CloseTestFailure(description: "Growing worktree session did not start.")
+        }
+        let growingStarted = await growingFirst.waitUntilStarted()
+        try check(growingStarted, "dynamic worktree project starts before confirmation")
+        let keepNewest = responder([.alertSecondButtonReturn, .alertFirstButtonReturn]) { index, sheet in
+            if index == 1 {
+                guard let added = growingProject.newSession(directory: growingWorktree.path, worktree: growingWorktree),
+                      let tabIndex = growingProject.tabs.firstIndex(where: { $0.sessions.contains { $0 === added } }) else {
+                    failures.append("A session could not be added during worktree confirmation.")
+                    return
+                }
+                let tab = growingProject.tabs.remove(at: tabIndex)
+                growingProject.tabs.insert(tab, at: 0)
+            } else {
+                let removal = descendants(sheet.contentView!).compactMap { $0 as? NSButton }.first { $0.title == "Remove Worktree" }
+                if removal?.isEnabled != true { failures.append("The newest worktree choice cannot remove the checkout.") }
+            }
+        }
+        manager.close(growingProject)
+        try await wait("dynamic worktree project closes") {
+            !manager.projects.contains { $0 === growingProject } && !UnsavedChangesConfirmation.isPending
+        }
+        try keepNewest.finish()
+        try check(failures.isEmpty && FileManager.default.fileExists(atPath: growingWorktree.path),
+                  "new same-worktree sessions are confirmed in order and the latest Keep choice preserves the checkout")
+        try await wait("dynamic worktree sessions stop") {
+            !TerminalManager.worktreeIsInUse(growingWorktree.path)
+        }
+        try await service.remove(growingWorktree, requireMerged: false)
 
         print("UNSAVED_PHASE_COMPLETE backend=\(CommandLine.arguments[1]) phase=worktree")
         let windowProject = manager.newProject()
@@ -368,6 +613,10 @@ struct UnsavedWorkspaceCloseTests {
         let discardedWindowDraft = try await EditorDraftStore.shared.archive.load(windowDiff.draftID)
         try check(discardedWindowDraft == nil, "completed window Don't Save removes its dirty Diff backup")
         print("UNSAVED_PHASE_COMPLETE backend=\(CommandLine.arguments[1]) phase=window")
+    }
+
+    @MainActor private static func descendants(_ view: NSView) -> [NSView] {
+        [view] + view.subviews.flatMap(descendants)
     }
 
     @MainActor private static func exerciseQuit(root: URL, delegate: ZshellApplicationDelegate) async throws {

@@ -65,7 +65,7 @@ La persistencia dura mientras vive el daemon; no cubre reinicios del host, fallo
 
 ## Acceso por navegador [#browser-access]
 
-Usa **Ajustes → Acceso por navegador** para manejar los paneles locales de este Mac. Está desactivado por defecto. Tras activarlo, abre un nuevo panel y usa la página local o elige explícitamente una interfaz IPv4 privada LAN/Tailscale y un puerto HTTPS. Los paneles existentes conservan sus procesos. La página solo se conecta a paneles del Mac; no crea un shell ni conecta con hosts remotos.
+Usa **Ajustes → Navegador → Acceso por navegador** para manejar los paneles locales de este Mac. Está desactivado por defecto. Tras activarlo, abre un nuevo panel y usa la página local o elige explícitamente una interfaz IPv4 privada LAN/Tailscale y un puerto HTTPS. Los paneles existentes conservan sus procesos. La página solo se conecta a paneles del Mac; no crea un shell ni conecta con hosts remotos.
 
 La página HTTP local suele usar el puerto HTTPS configurado más uno (`7444` por defecto). La suspensión, Reintentar y volver a abrir conservan esa dirección y su autorización mientras no cambie la disponibilidad de los puertos. Si el puerto está ocupado, Zshell prueba los siete puertos locales siguientes; después de `65535`, vuelve a `1024`. Si cambia la disponibilidad de los puertos, un reinicio puede seleccionar otra dirección. La autorización existente está vinculada al origen anterior, por lo que la nueva dirección requiere volver a emparejar. Los clientes guardados siguen visibles y se pueden revocar con el acceso desactivado. Al llegar a 32 clientes, revoca uno antes de aprobar otro. Si no se puede comprobar el servicio de sesiones, el acceso sigue activado; pulsa Reintentar cuando el servicio esté listo.
 

@@ -173,6 +173,28 @@ import AppKit
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.025))
             panel.layoutSubtreeIfNeeded()
         }
+        for title in ["Commit Staged", "提交暂存", "Gestagte Änderungen committen"] {
+            for scale in [0.9, 1.0, 1.5, 2.0, 24.0 / 14.0 * 1.5] {
+                for width in [100.0, 240.0, 480.0] {
+                    let button = GitPanelButton(frame: NSRect(x: 0, y: 0, width: width, height: 40),
+                                                cell: GitPanelCommitButtonCell())
+                    button.configure(symbol: "checkmark", title: title, help: title, scale: scale, primary: true)
+                    button.imagePosition = .imageRight
+                    button.alignment = .left
+                    let cell = button.cell as! NSButtonCell
+                    let titleRect = cell.titleRect(forBounds: button.bounds)
+                    let imageRect = cell.imageRect(forBounds: button.bounds)
+                    let textWidth = min(button.attributedTitle.size().width, titleRect.width)
+                    let textRight = titleRect.minX + textWidth
+                    check(imageRect.minX >= textRight && imageRect.minX - textRight <= 8,
+                          "commit checkmark stays beside its title at \(title), \(scale), \(width)")
+                    check(abs((titleRect.minX + imageRect.maxX) / 2 - button.bounds.midX) <= 1,
+                          "commit title and checkmark center together at \(title), \(scale), \(width)")
+                    check(button.bounds.contains(titleRect) && button.bounds.contains(imageRect),
+                          "commit content stays inside narrow buttons")
+                }
+            }
+        }
         let model = GitStatusModel()
         model.branches = (0..<128).map { "feature/\($0)" }
         model.worktrees = (0..<128).map {

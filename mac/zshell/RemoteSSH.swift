@@ -565,8 +565,10 @@ nonisolated struct BoundedProcessRunner {
         timeout: TimeInterval,
         outputLimit: Int,
         environment: [String: String]? = nil,
-        standardInput: Data? = nil
+        standardInput: Data? = nil,
+        cancellable: Bool = true
     ) throws -> BoundedProcessResult {
+        if cancellable { try Task.checkCancellation() }
         let process = Process()
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()
@@ -615,18 +617,14 @@ nonisolated struct BoundedProcessRunner {
 
         let deadline = DispatchTime.now() + max(0, timeout)
         var cancelled = false
-        let timedOut: Bool
-        if standardInput != nil {
-            var finished = false
-            while DispatchTime.now() < deadline {
-                if termination.wait(timeout: min(deadline, .now() + 0.1)) == .success { finished = true; break }
-                if Task.isCancelled { cancelled = true; break }
-            }
-            timedOut = !finished && !cancelled
-        } else {
-            timedOut = termination.wait(timeout: deadline) == .timedOut
+        var finished = false
+        while DispatchTime.now() < deadline {
+            finished = termination.wait(timeout: min(deadline, .now() + 0.1)) == .success
+            if cancellable, Task.isCancelled { cancelled = true; break }
+            if finished { break }
         }
-        if timedOut || cancelled {
+        let timedOut = !finished && !cancelled
+        if !finished, timedOut || cancelled {
             process.terminate()
             if termination.wait(timeout: .now() + 0.25) == .timedOut, process.isRunning {
                 Darwin.kill(process.processIdentifier, SIGKILL)
@@ -643,7 +641,7 @@ nonisolated struct BoundedProcessRunner {
             _ = readers.wait(timeout: .now() + 0.25)
         }
         _ = inputWriter.wait(timeout: .now() + 1)
-        if cancelled { throw CancellationError() }
+        if cancelled || (cancellable && Task.isCancelled) { throw CancellationError() }
 
         return BoundedProcessResult(
             terminationStatus: process.terminationStatus,
@@ -693,7 +691,8 @@ nonisolated struct OpenSSHTransport: Sendable {
         authentication: SSHAuthentication = .agent,
         credentialID: UUID? = nil,
         additionalEnvironment: [String: String] = [:],
-        standardInput: Data? = nil
+        standardInput: Data? = nil,
+        cancellable: Bool = true
     ) throws -> BoundedProcessOutput {
         let material = try authentication.makeMaterial(credentialID: credentialID)
         defer { material?.cleanup() }
@@ -711,7 +710,7 @@ nonisolated struct OpenSSHTransport: Sendable {
             timeout: timeout,
             outputLimit: outputLimit,
             environment: environment,
-            standardInput: standardInput
+            standardInput: standardInput, cancellable: cancellable
         )
         if result.timedOut { throw TransportError.timedOut(result.output) }
         guard result.terminationStatus == 0 else {

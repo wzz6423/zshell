@@ -1091,7 +1091,7 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     }
 
     /// Single-pane closes still remove the pane after Save or Don't Save.
-    /// Returning true stops an existing batch on Cancel or a failed write.
+    /// Cancel and failed writes keep the pane and its draft intact.
     @discardableResult
     private func confirmCloseUnsaved(_ content: PaneContent, in window: NSWindow?) async -> Bool {
         guard let confirmation = UnsavedChangesConfirmation() else { return true }
@@ -1107,31 +1107,59 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
     /// is only torn down once every prompt has been answered — so cancelling
     /// out of a save prompt leaves the saved panes open too.
     private func closeBatch(_ targets: [PaneContent]) {
-        let dirtyContents = targets.filter(\.isDirty)
-        let cleanContents = targets.filter { !$0.isDirty }
-
+        guard !UnsavedChangesConfirmation.isPending else { return }
         let hasWorktrees = targets.contains {
             if case .session(let session) = $0 { return session.worktree != nil }
             return false
         }
-        guard !dirtyContents.isEmpty || hasWorktrees else {
-            cleanContents.forEach { closeContent($0) }
+        guard targets.contains(where: \.isDirty) || hasWorktrees else {
+            targets.forEach { closeContent($0) }
             return
         }
-
+        guard let confirmation = UnsavedChangesConfirmation() else { return }
         let window = manager?.presentationWindow ?? NSApp.keyWindow ?? NSApp.mainWindow
         Task { @MainActor in
-            for content in dirtyContents where content.isDirty {
-                // Bail the moment the user backs out — the clean panes, and any
-                // unsaved panes not yet prompted, stay open.
-                if await confirmCloseUnsaved(content, in: window) { return }
-            }
-            for content in cleanContents {
-                if case .session(let session) = content, session.worktree != nil, let manager {
-                    if !(await manager.requestCloseWorktreeSession(session, in: self)) { return }
-                } else {
-                    closeContent(content, confirmWorktree: false)
+            @MainActor
+            func confirmTargets() async -> Bool {
+                while let content = targets.first(where: { content in
+                    confirmation.requiresConfirmation(content)
+                        && tabs.contains { $0.paneID(forContent: content.id) != nil }
+                }) {
+                    guard await confirmation.confirm(content, in: window) else { return false }
                 }
+                return true
+            }
+            guard await confirmTargets() else { return }
+            var choices: [(session: TerminalSession, removeWorktree: Bool)] = []
+            if let manager {
+                let worktreeSessions = targets.compactMap { content -> TerminalSession? in
+                    if case .session(let session) = content, session.worktree != nil,
+                       sessions.contains(where: { $0 === session }) { return session }
+                    return nil
+                }
+                for session in worktreeSessions where sessions.contains(where: { $0 === session }) {
+                    guard let remove = await manager.confirmCloseWorktreeSession(session, in: self, closingSessions: worktreeSessions) else { return }
+                    choices.append((session, remove))
+                }
+            }
+            guard await confirmTargets() else { return }
+            confirmation.commitDiscards()
+            closeApprovedContents(targets, preserving: choices.map(\.session))
+            if let manager {
+                do { try await manager.closeApprovedWorktreeSessions(choices, in: self) }
+                catch { await manager.showWorktreeError(error, in: window) }
+            }
+        }
+    }
+
+    /// Unmount confirmed buffers before worktree teardown yields to new edits.
+    func closeApprovedContents(_ targets: [PaneContent], preserving sessions: [TerminalSession]) {
+        for content in targets where tabs.contains(where: { $0.paneID(forContent: content.id) != nil }) {
+            if case .session(let session) = content, sessions.contains(where: { $0 === session }) { continue }
+            if content.isDirty {
+                removePaneWithContent(content.id)
+            } else {
+                closeContent(content, confirmWorktree: false)
             }
         }
     }

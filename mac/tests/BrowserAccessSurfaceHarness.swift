@@ -32,6 +32,7 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
         settings.browserAccessInterface = "loopback"
         settings.browserAccessPort = Int(ProcessInfo.processInfo.environment["ZSHELL_BROWSER_PROBE_PORT"] ?? "") ?? 39443
         settings.browserAccessEnabled = false
+        settings.browserContentBlocking = false
         if isCapabilityProbe {
             BrowserAccessController.shared.start()
             settings.browserAccessEnabled = true
@@ -127,20 +128,37 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
         var results: [[String: Any]] = []
         for language in AppLanguage.allCases where language != .system {
             AppLocalization.apply(language)
-            let pane = SettingsBrowserAccessPane()
-            pane.setCategory(.browserAccess)
+            let pane = SettingsBrowserPane()
+            pane.setCategory(.browser)
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 600, height: 460),
                 styleMask: [.titled, .resizable], backing: .buffered, defer: false)
             window.isReleasedWhenClosed = false
             window.contentViewController = pane
             for width in [480.0, 600, 900] {
                 window.setContentSize(NSSize(width: width, height: 460))
-                pane.view.layoutSubtreeIfNeeded()
+                for _ in 0..<3 { pane.view.layoutSubtreeIfNeeded() }
                 let labels = descendants(pane.view).compactMap { $0 as? NSTextField }
                     .filter { !$0.isEditable && !$0.isHiddenOrHasHiddenAncestor && !$0.stringValue.isEmpty }
-                let invalid = labels.filter {
+                var invalid = labels.filter {
                     $0.frame.width <= 0 || $0.frame.height + 1 < $0.cell!.cellSize(forBounds:
                         NSRect(x: 0, y: 0, width: $0.frame.width, height: 10000)).height
+                }
+                let actions = descendants(pane.view).compactMap { $0 as? SettingsButtonFlowRow }.first!
+                let buttons = actions.subviews.compactMap { $0 as? NSButton }
+                let clipped = buttons.filter {
+                    !actions.bounds.contains($0.frame)
+                        || $0.frame.width + 1 < $0.intrinsicContentSize.width
+                }
+                if !clipped.isEmpty {
+                    invalid += [NSTextField(labelWithString: "Browser actions are clipped")]
+                }
+                if !descendants(pane.view).compactMap({ $0 as? SettingsGroup }).contains(where: {
+                    $0.headerTitle == String(localized: "Browser Access") && !$0.isHidden
+                }) {
+                    invalid += [NSTextField(labelWithString: "Merged browser access group is missing")]
+                }
+                if width == 900, Set(buttons.map { $0.frame.minY }).count >= buttons.count {
+                    invalid += [NSTextField(labelWithString: "Browser actions still occupy separate rows")]
                 }
                 results.append(["language": language.rawValue, "width": width, "invalid": invalid.map(\.stringValue)])
             }
@@ -164,8 +182,8 @@ private final class BrowserAccessFixtureDelegate: NSObject, NSApplicationDelegat
     }
 
     private func verifyClientControls() {
-        let pane = SettingsBrowserAccessPane()
-        pane.setCategory(.browserAccess)
+        let pane = SettingsBrowserPane()
+        pane.setCategory(.browser)
         let views = descendants(pane.view)
         let group = views.compactMap { $0 as? SettingsGroup }
             .first { $0.headerTitle == String(localized: "Authorized Clients") }

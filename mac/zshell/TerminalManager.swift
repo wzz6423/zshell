@@ -839,28 +839,26 @@ final class TerminalManager: nonisolated ObservableObject {
         }
         guard let confirmation = UnsavedChangesConfirmation() else { return }
         Task { @MainActor in
-            guard await project.confirmUnsavedChanges(using: confirmation, in: window) else { return }
             var choices: [(session: TerminalSession, removeWorktree: Bool)] = []
-            for session in worktreeSessions where project.sessions.contains(where: { $0 === session }) {
-                guard let remove = await confirmCloseWorktreeSession(session, in: project) else { return }
+            // Edits and new worktree sessions can arrive while a sheet is open.
+            while true {
+                guard projects.contains(where: { $0 === project }),
+                      await project.confirmUnsavedChanges(using: confirmation, in: window) else { return }
+                guard let session = project.sessions.first(where: { session in
+                    session.worktree != nil && !choices.contains(where: { $0.session === session })
+                }) else { break }
+                let closing = choices.map(\.session) + project.sessions.filter { candidate in
+                    !choices.contains(where: { $0.session === candidate })
+                }
+                guard let remove = await confirmCloseWorktreeSession(session, in: project, closingSessions: closing) else { return }
                 choices.append((session, remove))
             }
-            // Git inspection and other windows can let more edits arrive while
-            // the worktree sheets are open. Approve those before teardown too.
-            guard projects.contains(where: { $0 === project }),
-                  await project.confirmUnsavedChanges(using: confirmation, in: window) else { return }
-            for choice in choices where project.sessions.contains(where: { $0 === choice.session }) {
-                do {
-                    _ = try await closeWorktreeSession(choice.session, in: project, removeWorktree: choice.removeWorktree)
-                } catch {
-                    await showWorktreeError(error, in: window)
-                    return
-                }
-            }
-            guard await project.confirmUnsavedChanges(using: confirmation, in: window) else { return }
             confirmation.commitDiscards()
-            project.terminateAll()
-            remove(project)
+            project.closeApprovedContents(project.tabs.flatMap(\.allContents), preserving: choices.map(\.session))
+            do { try await closeApprovedWorktreeSessions(choices, in: project) }
+            catch { await showWorktreeError(error, in: window); return }
+            // Content opened during cleanup has not been approved for closing.
+            if project.tabs.isEmpty { remove(project) }
         }
     }
 

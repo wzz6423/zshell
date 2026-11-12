@@ -46,7 +46,6 @@ final class SettingsRecommendationsPane: SettingsPaneViewController {
         let management = SettingsGroup(header: String(localized: "Manage Tools"), rows: [
             SettingsRow(
                 title: String(localized: "\(RecommendedTool.allCases.count) recommended tools"),
-                description: String(localized: "Versions are checked automatically while this page is open. Installations and updates start only when you click a button."),
                 control: progress
             ),
             homebrewRow,

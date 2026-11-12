@@ -204,6 +204,110 @@ struct RemoteSSHTests {
         )
         expect(inputTimedOut.timedOut, "stdin backpressure does not outlive the process timeout")
 
+        for standardInput: Data? in [nil, Data(repeating: 65, count: 1024 * 1024)] {
+            let ready = FileManager.default.temporaryDirectory
+                .appendingPathComponent("zshell-cancellation-ready-\(UUID().uuidString)")
+            defer { try? FileManager.default.removeItem(at: ready) }
+            let finished = DispatchSemaphore(value: 0)
+            let task = Task.detached {
+                do {
+                    _ = try BoundedProcessRunner.run(
+                        executableURL: URL(fileURLWithPath: "/bin/sh"),
+                        arguments: ["-c", #": > "$1" && exec /bin/sleep 5"#, "zshell-cancellation-test", ready.path],
+                        timeout: 3, outputLimit: 32, standardInput: standardInput
+                    )
+                    preconditionFailure("cancelled process returned a normal result")
+                } catch is CancellationError { finished.signal() }
+                catch { preconditionFailure("cancelled process returned \(error)") }
+            }
+            let readyDeadline = DispatchTime.now() + 2
+            while !FileManager.default.fileExists(atPath: ready.path), DispatchTime.now() < readyDeadline {
+                Thread.sleep(forTimeInterval: 0.01)
+            }
+            guard FileManager.default.fileExists(atPath: ready.path) else {
+                task.cancel()
+                _ = finished.wait(timeout: .now() + 1)
+                throw NSError(domain: "RemoteSSHTests", code: 1, userInfo: [
+                    NSLocalizedDescriptionKey: "Cancellation test process did not become ready."
+                ])
+            }
+            task.cancel()
+            expect(finished.wait(timeout: .now() + 1) == .success,
+                   "cancellation stops a process promptly with and without stdin")
+        }
+        let exitDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("zshell-cancelled-exit-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: exitDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: exitDirectory) }
+        let exitReady = exitDirectory.appendingPathComponent("ready")
+        let exitRelease = exitDirectory.appendingPathComponent("release")
+        let exitFinished = DispatchSemaphore(value: 0)
+        let exitTask = Task.detached {
+            do {
+                _ = try BoundedProcessRunner.run(
+                    executableURL: URL(fileURLWithPath: "/bin/sh"),
+                    arguments: ["-c", #": > "$1"; while [ ! -f "$2" ]; do :; done"#,
+                                "zshell-cancelled-exit", exitReady.path, exitRelease.path],
+                    timeout: 3, outputLimit: 32
+                )
+                preconditionFailure("process completion swallowed cancellation")
+            } catch is CancellationError { exitFinished.signal() }
+            catch { preconditionFailure("cancelled process exit returned \(error)") }
+        }
+        let exitDeadline = DispatchTime.now() + 2
+        while !FileManager.default.fileExists(atPath: exitReady.path), DispatchTime.now() < exitDeadline {
+            Thread.sleep(forTimeInterval: 0.001)
+        }
+        guard FileManager.default.fileExists(atPath: exitReady.path) else {
+            exitTask.cancel()
+            _ = exitFinished.wait(timeout: .now() + 1)
+            throw NSError(domain: "RemoteSSHTests", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "Cancellation exit test process did not become ready."
+            ])
+        }
+        exitTask.cancel()
+        try Data().write(to: exitRelease)
+        expect(exitFinished.wait(timeout: .now() + 1) == .success,
+               "process exit during a wait does not swallow cancellation")
+        let cancelledBeforeLaunch = DispatchSemaphore(value: 0)
+        let cancelledTask = Task.detached {
+            while !Task.isCancelled { await Task.yield() }
+            do {
+                _ = try BoundedProcessRunner.run(
+                    executableURL: URL(fileURLWithPath: "/missing-cancelled-process"), arguments: [],
+                    timeout: 3, outputLimit: 32
+                )
+                preconditionFailure("pre-cancelled task launched a process")
+            } catch is CancellationError { cancelledBeforeLaunch.signal() }
+            catch { preconditionFailure("pre-cancelled task attempted launch: \(error)") }
+        }
+        cancelledTask.cancel()
+        expect(cancelledBeforeLaunch.wait(timeout: .now() + 1) == .success, "pre-cancelled work never launches a process")
+
+        let cleanupFinished = DispatchSemaphore(value: 0)
+        let cleanupTimedOut = DispatchSemaphore(value: 0)
+        let cleanupTask = Task.detached {
+            while !Task.isCancelled { await Task.yield() }
+            do {
+                let result = try BoundedProcessRunner.run(
+                    executableURL: URL(fileURLWithPath: "/bin/sh"), arguments: ["-c", "printf cleanup"],
+                    timeout: 1, outputLimit: 32, cancellable: false
+                )
+                precondition(result.terminationStatus == 0 && result.output.stdout == "cleanup" && !result.timedOut,
+                             "pre-cancelled cleanup did not run")
+                cleanupFinished.signal()
+                let timedOut = try BoundedProcessRunner.run(
+                    executableURL: URL(fileURLWithPath: "/bin/sleep"), arguments: ["5"],
+                    timeout: 0.05, outputLimit: 32, cancellable: false
+                )
+                precondition(timedOut.timedOut, "cleanup ignored its timeout")
+                cleanupTimedOut.signal()
+            } catch { preconditionFailure("cancelled cleanup returned \(error)") }
+        }
+        cleanupTask.cancel()
+        expect(cleanupFinished.wait(timeout: .now() + 1) == .success, "pre-cancelled cleanup still launches a process")
+        expect(cleanupTimedOut.wait(timeout: .now() + 1) == .success, "cleanup in a cancelled task remains timeout-bounded")
+
         print("Remote SSH tests: \(passed) passed, 0 failed")
     }
 }

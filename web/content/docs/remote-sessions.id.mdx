@@ -65,7 +65,7 @@ Persistensi hanya selama daemon hidup, bukan melewati reboot host, crash, atau r
 
 ## Akses browser [#browser-access]
 
-Gunakan **Pengaturan → Akses browser** untuk mengoperasikan panel lokal Mac ini. Awalnya dinonaktifkan. Aktifkan, buka panel baru, lalu gunakan halaman lokal atau pilih secara eksplisit antarmuka IPv4 privat LAN/Tailscale serta port HTTPS. Panel yang sudah ada mempertahankan prosesnya. Halaman hanya menghubungkan panel di Mac; tidak membuat shell atau menghubungkan host jauh.
+Gunakan **Pengaturan → Browser → Akses browser** untuk mengoperasikan panel lokal Mac ini. Awalnya dinonaktifkan. Aktifkan, buka panel baru, lalu gunakan halaman lokal atau pilih secara eksplisit antarmuka IPv4 privat LAN/Tailscale serta port HTTPS. Panel yang sudah ada mempertahankan prosesnya. Halaman hanya menghubungkan panel di Mac; tidak membuat shell atau menghubungkan host jauh.
 
 Halaman HTTP lokal biasanya memakai port HTTPS yang dikonfigurasi ditambah satu (default `7444`). Tidur, Coba Lagi, dan membuka kembali mempertahankan alamat serta izin selama ketersediaan port tidak berubah. Jika port digunakan, Zshell mencoba tujuh port lokal berikutnya; setelah `65535`, urutan kembali ke `1024`. Jika ketersediaan port berubah, memulai ulang dapat memilih alamat berbeda. Izin yang ada terikat pada origin sebelumnya, sehingga alamat baru memerlukan pemasangan ulang. Klien tersimpan tetap terlihat dan dapat dicabut saat akses nonaktif. Pada batas 32 klien, cabut satu klien sebelum menyetujui yang baru. Jika layanan sesi tidak dapat diperiksa, akses tetap aktif; klik Coba Lagi setelah layanan siap.
 

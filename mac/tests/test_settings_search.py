@@ -26,9 +26,9 @@ CONFIGURATION_ITEMS = {
     "keep-awake": ("general", "Keep computer awake", ""),
     "browser.content-blocking": ("browser", "Block ads and trackers", ""),
     "browser.filter-lists": ("browser", "Filter Lists", "Filter Lists"),
-    "browser-access.enabled": ("browserAccess", "Enable browser access", ""),
-    "browser-access.interface": ("browserAccess", "Listen on", "Private Network"),
-    "browser-access.port": ("browserAccess", "HTTPS port", "Private Network"),
+    "browser-access.enabled": ("browser", "Enable browser access", "Browser Access"),
+    "browser-access.interface": ("browser", "Listen on", "Private Network"),
+    "browser-access.port": ("browser", "HTTPS port", "Private Network"),
     "toolbar.visibility": ("general", "Toolbar", ""),
     "git.proxy-enabled": ("general", "Use proxy for Git", "Git"),
     "git.proxy": ("general", "Proxy address", "Git"),
@@ -337,6 +337,12 @@ class SettingsSearchTests(unittest.TestCase):
         for query, rows in zip(queries, self.query(queries)):
             with self.subTest(query=query):
                 self.assert_item(rows, CONFIGURATION_ITEMS[query])
+
+    def test_browser_access_uses_the_browser_category(self):
+        for language in LANGUAGES:
+            for rows in self.query(["browserAccess", "browser-access.enabled", "browser-access.interface"], language):
+                self.assertTrue(rows)
+                self.assertTrue(all(row["category"] == "browser" for row in rows))
 
     def test_visible_descriptions(self):
         queries = list(DESCRIPTION_ITEMS)

@@ -65,7 +65,7 @@ A persistência dura enquanto o daemon está ativo; não sobrevive a reinicializ
 
 ## Acesso pelo navegador [#browser-access]
 
-Use **Ajustes → Acesso pelo navegador** para operar os painéis locais deste Mac. O acesso está desativado por padrão. Ative, abra um novo painel e use a página local ou escolha explicitamente uma interface IPv4 privada LAN/Tailscale e a porta HTTPS. Os painéis existentes mantêm seus processos. A página conecta apenas a painéis do Mac; não cria shells nem conecta a hosts remotos.
+Use **Ajustes → Navegador → Acesso pelo navegador** para operar os painéis locais deste Mac. O acesso está desativado por padrão. Ative, abra um novo painel e use a página local ou escolha explicitamente uma interface IPv4 privada LAN/Tailscale e a porta HTTPS. Os painéis existentes mantêm seus processos. A página conecta apenas a painéis do Mac; não cria shells nem conecta a hosts remotos.
 
 A página HTTP local normalmente usa a porta HTTPS configurada mais um (`7444` por padrão). Suspender, tentar novamente e reabrir preservam o endereço e a autorização enquanto a disponibilidade das portas não mudar. Se a porta estiver ocupada, o Zshell tenta as próximas sete portas locais; depois de `65535`, a sequência volta a `1024`. Se a disponibilidade das portas mudar, uma reinicialização pode selecionar outro endereço. A autorização existente está vinculada à origem anterior, portanto o novo endereço exige novo pareamento. Clientes salvos continuam visíveis e podem ser revogados com o acesso desativado. Ao atingir 32 clientes, revogue um antes de aprovar outro. Se o serviço de sessões não puder ser verificado, o acesso permanece ativado; clique em Tentar novamente quando o serviço estiver pronto.
 

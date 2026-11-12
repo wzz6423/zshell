@@ -61,12 +61,10 @@ final class SettingsEditorPane: SettingsPaneViewController {
             SettingsGroup(header: String(localized: "Files"), rows: [
                 SettingsRow(
                     title: String(localized: "Allow remote file changes"),
-                    description: String(localized: "Create, rename, move to remote trash, and save files over SSH. Reading remains available when this is off."),
                     control: remoteWriteSwitch
                 ),
                 SettingsRow(
                     title: String(localized: "Import by dragging into the file tree"),
-                    description: String(localized: "Copy Finder files and folders into local projects. File → Import Files… is always available."),
                     control: dragImportSwitch
                 ),
             ]),
