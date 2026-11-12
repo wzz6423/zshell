@@ -2,6 +2,7 @@
 
 python3 -B mac/tests/test_markdown_image_loader.py
 python3 -B mac/tests/test_markdown_image_loader.py --source-ref <pre-fix-ref> --case large-unknown
+python3 -B mac/tests/test_markdown_image_loader.py --source-ref <pre-fix-ref> --case local-fifo
 python3 -B mac/tests/test_markdown_image_loader.py --built-app '/path/to/zshell Debug.app'
 python3 -B mac/tests/test_markdown_image_loader.py --sample-rss
 
@@ -34,7 +35,8 @@ OVERSIZED = 64 << 20
 SCENARIOS = ("cache", "late-success", "early-success", "late-failure", "reset-storm", "oversized", "streamed",
              "large-known", "large-unknown", "large-chunked", "large-compressed",
              "limit-known", "limit-unknown", "limit-chunked", "limit-compressed",
-             "concurrent", "large-reset", "cancellation", "stall")
+             "concurrent", "large-reset", "cancellation", "stall",
+             "local-image", "local-fifo")
 
 
 def png(width, padding=0):
@@ -254,6 +256,8 @@ def main():
         subprocess.run(command, cwd=ROOT, check=True, timeout=120)
         home = temporary / "home"
         home.mkdir()
+        local_root = temporary / "local"
+        local_root.mkdir()
         environment = {key: value for key, value in os.environ.items() if not key.startswith("ZSHELL_")}
         environment.update(HOME=str(home), CFFIXED_USER_HOME=str(home), ZDOTDIR=str(home))
         server = FixtureServer()
@@ -263,8 +267,9 @@ def main():
             scenarios = options.case or SCENARIOS
             for scenario in scenarios:
                 started = time.monotonic()
-                process = subprocess.Popen([str(binary), f"http://127.0.0.1:{server.server_port}", scenario],
-                                           cwd=ROOT, env=environment)
+                process = subprocess.Popen(
+                    [str(binary), f"http://127.0.0.1:{server.server_port}", scenario, str(local_root)],
+                    cwd=ROOT, env=environment)
                 samples = []
                 stop_sampling = threading.Event()
                 sampler = None
@@ -272,7 +277,7 @@ def main():
                     sampler = threading.Thread(target=sample_rss, args=(process, stop_sampling, samples), daemon=True)
                     sampler.start()
                 try:
-                    returncode = process.wait(timeout=45)
+                    returncode = process.wait(timeout=scenario_timeout(scenario))
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait()
@@ -295,6 +300,13 @@ def main():
             server.server_close()
             thread.join()
     return 1 if failures else 0
+
+
+def scenario_timeout(scenario):
+    """A FIFO used to block inside the detached read, so that case fails closed."""
+    if scenario == "local-fifo":
+        return 8
+    return 45
 
 
 def sample_rss(process, stop, samples):

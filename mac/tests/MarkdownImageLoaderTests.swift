@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 import Foundation
 #if ZSHELL_MARKDOWN_IMAGE_BUILT_APP
 @testable import zshell
@@ -31,6 +32,8 @@ struct MarkdownImageLoaderTests {
             case "large-reset": try await largeReset(fixture)
             case "cancellation": try await cancellation(fixture)
             case "stall": try await stalledImage(fixture)
+            case "local-image": try await localImage()
+            case "local-fifo": try await localFIFO()
             default: throw failure("Unknown scenario: \(scenario)")
             }
             print("Markdown image loader \(scenario): \(checks) checks passed")
@@ -385,6 +388,65 @@ struct MarkdownImageLoaderTests {
         let state = try await fixture.waitForRecord(1, complete: false)
         try check(state.records[0].disconnected && !state.records[0].complete,
                   "the idle timeout stops the stalled network response")
+    }
+
+    private static func localImage() async throws {
+        let url = try localFixtureDirectory().appendingPathComponent("tiny.png")
+        defer { try? FileManager.default.removeItem(at: url) }
+        // Same bytes as the harness png(1) helper, so this is a real 1×1 PNG.
+        try Data(tinyPNG).write(to: url)
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        try check(loader.image(for: url) == nil, "a local file image starts asynchronously")
+        let load = try loadTask(for: url, in: loader)
+        await load.value
+        let image = loader.image(for: url)
+        try check(image?.size.width == 1, "a small local PNG is decoded and cached")
+        try check(image === loader.image(for: url), "a local PNG stays cached across renders")
+        try check(arrivals == 1 && loader.inFlight.isEmpty,
+                  "the local file load notifies once and leaves no in-flight task")
+    }
+
+    private static func localFIFO() async throws {
+        let url = try localFixtureDirectory().appendingPathComponent("fifo")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let created = url.withUnsafeFileSystemRepresentation { path -> Int32 in
+            guard let path else { return -1 }
+            return mkfifo(path, mode_t(0o600))
+        }
+        guard created == 0 else {
+            throw failure("Could not create a FIFO (\(String(cString: strerror(errno))))")
+        }
+        let loader = MarkdownImageLoader()
+        var arrivals = 0
+        loader.onLoad = { arrivals += 1 }
+        let started = Date()
+        try check(loader.image(for: url) == nil, "a FIFO image is not returned synchronously")
+        let load = try loadTask(for: url, in: loader)
+        await load.value
+        let elapsed = Date().timeIntervalSince(started)
+        try check(loader.inFlight.isEmpty, "a rejected FIFO clears inFlight")
+        try check(loader.image(for: url) == nil && arrivals == 0 && loader.inFlight.isEmpty,
+                  "a FIFO is not cached, retried, or rendered")
+        try check(elapsed < 5, "a FIFO is rejected within a few seconds")
+        print("Local FIFO: \(elapsed)s")
+    }
+
+    /// Bytes of a 1×1 RGBA PNG, matching `png(1)` in the Python harness.
+    private static let tinyPNG: [UInt8] = [
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4,
+        0x89, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0xf8, 0xcf, 0xc0, 0xf0,
+        0x1f, 0x00, 0x05, 0x00, 0x01, 0xff, 0x89, 0x99, 0x3d, 0x1d, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45,
+        0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+    ]
+
+    private static func localFixtureDirectory() throws -> URL {
+        guard CommandLine.arguments.count >= 4 else {
+            throw failure("Expected a local fixture directory")
+        }
+        return URL(fileURLWithPath: CommandLine.arguments[3], isDirectory: true)
     }
 
     @MainActor private final class Heartbeat {

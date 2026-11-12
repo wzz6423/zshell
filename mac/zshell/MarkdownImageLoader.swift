@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import Darwin
 
 /// Loads the images a rendered markdown document references, and caches them
 /// for the life of the preview.
@@ -77,11 +78,53 @@ final class MarkdownImageLoader {
 
     private nonisolated static func readFile(_ url: URL) async -> NSImage? {
         await Task.detached(priority: .userInitiated) {
-            guard let data = try? Data(contentsOf: url, options: .mappedIfSafe),
-                  data.count <= maxBytes
-            else { return nil }
+            guard let data = readBoundedFile(url) else { return nil }
             return NSImage(data: data)
         }.value
+    }
+
+    /// `Data(contentsOf:options: .mappedIfSafe)` pulls a whole regular file into
+    /// memory before the cap is applied. A FIFO or device cannot be mapped, so
+    /// that read blocks or never reaches EOF, and `reset()` does not cancel the
+    /// detached task. Decide from the opened descriptor, then read at most the
+    /// size `fstat` reported.
+    private nonisolated static func readBoundedFile(_ url: URL) -> Data? {
+        let descriptor = url.withUnsafeFileSystemRepresentation { path -> Int32 in
+            guard let path else { return -1 }
+            return Darwin.open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC)
+        }
+        guard descriptor >= 0 else { return nil }
+        defer { _ = Darwin.close(descriptor) }
+
+        var info = stat()
+        guard Darwin.fstat(descriptor, &info) == 0 else { return nil }
+        // Pipes and devices have no trustworthy size; reading them waits for a
+        // writer or for EOF that never arrives. Anything over the cap is
+        // refused before the first byte.
+        guard (info.st_mode & S_IFMT) == S_IFREG else { return nil }
+        let size = info.st_size
+        guard size >= 0, size <= off_t(maxBytes), let byteCount = Int(exactly: size) else { return nil }
+
+        var data = Data(count: byteCount)
+        var filled = 0
+        let complete = data.withUnsafeMutableBytes { buffer -> Bool in
+            guard let base = buffer.baseAddress else { return byteCount == 0 }
+            while filled < byteCount {
+                let requested = min(byteCount - filled, maxBytes)
+                let count = Darwin.read(descriptor, base.advanced(by: filled), requested)
+                if count < 0 {
+                    if errno == EINTR { continue }
+                    return false
+                }
+                // EOF before st_size means the file shrank after fstat. A short
+                // buffer is not the file whose size was accepted.
+                if count == 0 { return false }
+                filled += count
+            }
+            return true
+        }
+        guard complete else { return nil }
+        return data
     }
 
     private nonisolated static func fetch(_ url: URL) async -> NSImage? {
