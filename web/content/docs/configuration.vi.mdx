@@ -23,7 +23,7 @@ Nên biết trước khi sửa tay:
 
 - **Đọc thay đổi khi ứng dụng đang chạy.** Chỉnh sửa bên ngoài hợp lệ tự áp dụng; cài đặt dành cho terminal mới vẫn cần khung mới. Tệp không đọc được hoặc sai cú pháp giữ cài đặt hợp lệ gần nhất. Tệp cố ý để trống khôi phục mặc định sau một khoảng chờ ngắn.
 - **Zshell ghi lại tệp mỗi khi một cài đặt lưu trong tệp thay đổi.** Tệp được tạo lại từ đầu, nên chú thích và khóa lạ mất vào lần dùng điều khiển đó tiếp theo. Chọn một nơi chỉnh sửa, hoặc giữ bản chuẩn trong dotfile của bạn.
-- **Hầu hết giá trị mặc định được bỏ qua.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` luôn được lưu. Xóa một trong ba khóa terminal này trong tệp hiện có sẽ tắt tính năng tương ứng; xóa các khóa khác sẽ khôi phục giá trị mặc định.
+- **Hầu hết giá trị mặc định được bỏ qua.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` luôn được lưu. Xóa `terminal.vim-command-hints`, `terminal.restore-history` hoặc `terminal.notify-on-error` khỏi tệp hiện có sẽ tắt tính năng tương ứng. Xóa `terminal.prompt-queue-enabled` khôi phục giá trị mặc định `true`; xóa `terminal.prompt-queue-auto-dispatch` khôi phục giá trị mặc định `false`. Xóa khóa khác khôi phục giá trị mặc định của khóa đó.
 - **Bộ phân tích cố ý đơn giản.** Hỗ trợ khóa phẳng, khóa dấu chấm, tiêu đề `[table]`, chú thích `#`, giá trị chuỗi/số/boolean. Không hỗ trợ mảng, bảng nội tuyến hay chuỗi nhiều dòng.
 - **Giá trị sai có phương án dự phòng an toàn.** Kích thước ngoài khoảng, backend không rõ hay tên chủ đề sai không làm Zshell không khởi chạy được.
 
@@ -253,6 +253,7 @@ Chọn nhà cung cấp khi `ai.usage-enabled = true`. Claude Code đọc báo c�
 | `terminal.theme-only` | `false` | boolean | Chỉ áp dụng bảng màu cho terminal |
 | `terminal.command-history` | `true` | boolean | Ghi lệnh mới; lịch sử đã lưu vẫn có thể xem khi tắt |
 | `terminal.text-hints` | `true` | boolean | Bật gợi ý bàn phím cho văn bản terminal đang hiển thị |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | boolean | **Cài đặt → Terminal → Hàng đợi lệnh** điều khiển mọi không gian làm việc và Quick Terminal. Tắt công tắc chính ẩn thanh và hủy gửi, giữ mục và nội dung đến khi đóng terminal. Gửi tự động là tùy chọn, có hiệu lực từ lần kết thúc lệnh tiếp theo, theo thứ tự và chỉ tại dấu nhắc trống của zsh ban đầu không có tác vụ lệnh hoạt động. Bật không chạy hàng đợi ngay. Gửi thủ công có cùng kiểm tra; shell khác hoặc lồng nhau, chương trình tiền cảnh và bản nháp không nhận hàng đợi. |
 | `terminal.auto-profiles` | `true` | boolean | Tự động khớp hồ sơ terminal; vẫn có thể chọn thủ công |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Hình con trỏ terminal |
 | `terminal.cursor-blinking` | `true` | boolean | Nhấp nháy con trỏ |

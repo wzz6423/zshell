@@ -24,7 +24,7 @@ Zshell の永続設定の多くは、次の 1 ファイルに保存されます�
 
 - **実行中も変更を読み込みます。** 有効な外部編集は自動反映されます。新しい端末向けの設定には新規ペインが必要です。読み取り不能や構文エラーでは直前の有効な設定を維持し、意図的な空ファイルは少し待って既定値に戻します。
 - **ファイルで管理する設定を変えるたびに書き直します。** ファイル全体を再生成するため、次に該当する操作欄を使うとコメントや未知のキーは失われます。編集方法を一つにするか、管理元のコピーを dotfiles に保存してください。
-- **原則として既定値以外だけを書き込みます。** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` は常に保存します。既存のファイルでこの3つのターミナルキーのいずれかを削除すると、対応する機能がオフになります。ほかのキーを削除すると既定値に戻ります。
+- **原則として既定値以外だけを書き込みます。** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` は常に保存します。既存のファイルで `terminal.vim-command-hints`、`terminal.restore-history`、`terminal.notify-on-error` のいずれかを削除すると、対応する機能がオフになります。`terminal.prompt-queue-enabled` を削除すると既定値の `true`、`terminal.prompt-queue-auto-dispatch` を削除すると既定値の `false` に戻ります。ほかのキーを削除すると、それぞれの既定値に戻ります。
 - **パーサーは意図的に小さくしています。** 単純なキー、ドット付きキー、`[table]` 見出し、`#` コメント、文字列・数値・真偽値に対応します。配列、インラインテーブル、複数行文字列は非対応です。
 - **不正な値は安全に代替されます。** 範囲外のサイズ、未知のバックエンド、誤記したテーマがあっても Zshell の起動を妨げません。
 
@@ -273,6 +273,7 @@ Codex app-server を共有する場合、検証済みの会話 ID を前面の�
 | `terminal.theme-only` | `false` | 真偽値 | 選んだ配色をターミナルだけに適用 |
 | `terminal.command-history` | `true` | 真偽値 | 新しいコマンド履歴を記録。無効時も保存済み履歴は利用可能 |
 | `terminal.text-hints` | `true` | 真偽値 | 表示中の端末テキストにキーボードヒントを表示 |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | 真偽値 | **設定 → ターミナル → プロンプトキュー**で管理します。総合スイッチをオフにすると全ワークスペースと Quick Terminal のバーを隠し、送信待ちを取り消します。項目と入力は端末を閉じるまで保持します。自動送信は任意で、次のコマンド終了から、元の zsh の空のプロンプトでタスクがない場合のみ順番に送信します。有効化直後の再生はありません。手動送信も同じ条件で、他のシェル、入れ子のシェル、前景プログラム、入力途中のプロンプトには送信しません。 |
 | `terminal.auto-profiles` | `true` | 真偽値 | プロファイルを自動照合。手動選択も利用可能 |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | ターミナルのカーソル形状 |
 | `terminal.cursor-blinking` | `true` | 真偽値 | カーソルを点滅 |

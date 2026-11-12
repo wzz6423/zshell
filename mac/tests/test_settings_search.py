@@ -54,6 +54,8 @@ CONFIGURATION_ITEMS = {
     "terminal.background-blur": ("appearance", "Blur behind window", "Background"),
     "terminal.auto-profiles": ("terminal", "Apply terminal profiles automatically", "Terminal Profiles"),
     "terminal.text-hints": ("terminal", "Show terminal text hints", "Input"),
+    "terminal.prompt-queue-enabled": ("terminal", "Enable Prompt Queue", "Prompt Queue"),
+    "terminal.prompt-queue-auto-dispatch": ("terminal", "Send queued prompts automatically", "Prompt Queue"),
     "terminal.shell-completions": ("terminal", "Shell completions", "Input"),
     "terminal.vim-command-hints": ("terminal", "Vim command hints", "Input"),
     "terminal.macos-option-as-alt": ("terminal", "Use Option as Alt/Meta", "Input"),
@@ -98,6 +100,8 @@ DESCRIPTION_ITEMS = {
         ("terminal", "Startup", ""),
     "Reopened terminals show their previous scrollback above a fresh shell":
         ("terminal", "Restore session history on relaunch", "History"),
+    "When a command finishes, send the next entry at an empty prompt in the original zsh shell. Send Now is available with automatic sending on or off.":
+        ("terminal", "Send queued prompts automatically", "Prompt Queue"),
     "Changes apply to new zsh terminals.": ("terminal", "Long-running commands", "Notifications"),
     "Lets agents delegate work and coordinate across Zshell panes": ("automation", "AI", ""),
     "Read account limits from local CLI integrations without collecting sign-in credentials.":

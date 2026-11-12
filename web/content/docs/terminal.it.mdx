@@ -106,9 +106,13 @@ L'impostazione vale solo per quel pannello. Fai di nuovo clic destro e rimuovi l
 
 Attiva un terminale e premi <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>, oppure scegli **Mostra/nascondi coda dei prompt** nella tavolozza dei comandi. La barra si apre sotto quel terminale. Scrivi una voce e premi <kbd>Return</kbd> o **Aggiungi alla coda**; ogni voce occupa una sola riga e le interruzioni di riga incollate vengono sostituite da spazi.
 
-Quando la zsh originale torna a un prompt vuoto, Zshell invia la voce successiva e preme Invio. Le voci vengono eseguite nell'ordine della coda. L'invio automatico attende mentre un agente o un altro programma in primo piano controlla il terminale, oppure mentre il prompt contiene una bozza di input. Richiede l'integrazione zsh di Zshell; altre shell e shell annidate possono usare l'invio manuale.
+L’invio è manuale per impostazione predefinita. **Invia ora** invia solo se il prompt della zsh originale è vuoto e nessuna attività di comando in attesa o in esecuzione occupa il terminale. È disabilitato con agenti, programmi in primo piano, bozze e altre shell o shell annidate. Un invio rifiutato mantiene la voce.
 
-Ogni voce ha i pulsanti **Invia ora** e **Rimuovi**. **Invia ora** manda immediatamente testo e Invio al programma corrente del terminale, senza attendere il prompt della shell. <kbd>Esc</kbd> o il pulsante di chiusura nasconde la barra mantenendo le voci in coda. Ogni terminale ha la propria coda; chiudere la sessione o uscire da Zshell la elimina.
+In **Impostazioni → Terminale → Coda dei prompt**, abilita **Invia automaticamente i prompt in coda** per inviare la voce successiva in ordine quando un comando termina e zsh torna a un prompt vuoto. L’attivazione non esegue subito la coda: vale dalla fine del comando successivo. Disattivando, gli invii in attesa vengono annullati.
+
+Disattivare **Abilita coda dei prompt** nasconde le barre in tutte le aree di lavoro e Quick Terminal, annulla gli invii e mantiene voci e testo non inviato. Menu e scorciatoia aprono allora le impostazioni corrispondenti.
+
+**Rimuovi** elimina una voce. I pannelli stretti mostrano icone con nomi e suggerimenti. <kbd>Esc</kbd> o chiudere nasconde solo la barra. La coda di ogni terminale viene eliminata alla chiusura della sessione o di Zshell.
 
 ## Percorsi e URL [#paths-and-urls]
 
