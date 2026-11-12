@@ -23,7 +23,7 @@ Vor dem manuellen Bearbeiten sollten Sie Folgendes wissen:
 
 - **Änderungen werden im laufenden Betrieb gelesen.** Gültige externe Änderungen gelten automatisch; Einstellungen für neue Terminals benötigen weiterhin einen neuen Bereich. Unlesbare oder fehlerhafte Dateien lassen die letzten gültigen Einstellungen bestehen. Eine bewusst leere Datei stellt nach kurzer Verzögerung die Standardwerte wieder her.
 - **Zshell schreibt die Datei bei jeder darin gespeicherten Einstellungsänderung neu.** Dabei gehen Kommentare und unbekannte Schlüssel verloren. Bearbeiten Sie sie möglichst auf nur einem Weg oder halten Sie eine maßgebliche Kopie in Ihren Dotfiles vor.
-- **Die meisten Standardwerte werden weggelassen.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` werden immer gespeichert. Das Entfernen eines dieser drei Terminalschlüssel in einer vorhandenen Datei deaktiviert die Funktion; bei anderen Schlüsseln wird der Standard wiederhergestellt.
+- **Die meisten Standardwerte werden weggelassen.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` werden immer gespeichert. Das Entfernen von `terminal.vim-command-hints`, `terminal.restore-history` oder `terminal.notify-on-error` aus einer vorhandenen Datei deaktiviert die entsprechende Funktion. Das Entfernen von `terminal.prompt-queue-enabled` stellt den Standard `true` wieder her; bei `terminal.prompt-queue-auto-dispatch` ist es `false`. Bei anderen Schlüsseln wird der jeweilige Standard wiederhergestellt.
 - **Der Parser ist bewusst klein.** Er unterstützt einfache und punktgetrennte Schlüssel, `[table]`-Kopfzeilen, `#`-Kommentare sowie Zeichenketten, Zahlen und boolesche Werte. Arrays, Inline-Tabellen und mehrzeilige Zeichenketten werden nicht unterstützt.
 - **Ungültige Werte verwenden sichere Ersatzwerte.** Eine Größe außerhalb des Bereichs, ein unbekanntes Backend oder ein falsch geschriebener Themenname verhindert den Start nicht.
 
@@ -113,6 +113,20 @@ Zahl, 9–24 – Standard: `14`
 
 Grundschriftgröße beider Seitenleisten. Abschnittsüberschriften, Zeilen, Metadaten und Steuerelemente behalten dabei ihre relative Größenhierarchie.
 
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+Boolescher Wert — Standard `true`
+
+Optionale Ligaturen beider Terminal-Backends lassen sich unter **Einstellungen → Erscheinungsbild → Schriftligaturen** umschalten. Aus deaktiviert `calt`, `liga`, `clig`, `dlig` und `hlig`; erforderliche Schriftformung bleibt erhalten. Zeichen, Terminalspalten, Cursor und Auswahl ändern sich nicht.
+
+### `terminal.font-features` [#terminalfont-features]
+
+Zeichenfolge — Standard `""`, Schriftstandardwerte
+
+Tragen Sie unter **OpenType-Funktionen** vierstellige Tags ein, getrennt durch Kommas oder Leerraum: `-calt` deaktiviert kontextabhängige Alternativen, `ss01` aktiviert Stilsatz 1 und `zero=1` die alternative Null. Auch `+liga` und `liga=1` aktivieren Funktionen. Bei gleichem Tag gilt der letzte Eintrag. Für die fünf Ligatur-Tags hat der Schalter Vorrang.
+
+Änderungen gelten sofort für offene Terminals und die Vorschau. Beide Backends nutzen die unterstützten Schriftfunktionen; unbekannte Tags bleiben ohne Wirkung. Ungültige Eingaben behalten den letzten gültigen Wert, ungültige externe Werte verwenden Schriftstandardwerte. Zurücksetzen leert die Liste und aktiviert Ligaturen.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 Boolescher Wert – Standard: `false`
@@ -151,6 +165,16 @@ boolesch — Standard `true`
 
 Prüft vor dem Speichern einer Datei oder eines bearbeitbaren Arbeitsbaum-Diffs auf externe Änderungen. Bei Konflikten können Sie vergleichen, neu laden, den Entwurf behalten oder ausdrücklich überschreiben. Ist die Option deaktiviert, ersetzen Speichervorgänge externe Änderungen ohne Rückfrage.
 
+### `editor.recover-drafts` [#editorrecover-drafts]
+
+Boolescher Wert — Standard `true`
+
+Zshell sichert standardmäßig ungesicherte Änderungen lokaler Dateien und bearbeitbarer Arbeitsbaum-Diffs. Nach einem unerwarteten Ende stellen erneut geöffnete Bereiche ihre Entwürfe, Auswahl und Anordnung wieder her. Weitere Sicherungen öffnen Sie unter **Ablage → Entwürfe wiederherstellen…** oder **Einstellungen → Editor → Entwürfe wiederherstellen…**. Wählen Sie eine Sicherung, prüfen Sie den Inhalt und klicken Sie auf **Entwurf wiederherstellen**. Die Wiederherstellung öffnet einen ungesicherten Editor und verändert keine Datei auf der Festplatte. Beim Sichern werden externe Änderungen weiterhin anhand der Version vor Ihren Bearbeitungen geprüft.
+
+Steuern Sie Sicherungen unter **Einstellungen → Editor → Ungesicherte Entwürfe sichern** oder mit `editor.recover-drafts`. Das Ausschalten stoppt neue Sicherungen und automatische Wiederherstellung; vorhandene Sicherungen bleiben manuell wiederherstellbar oder löschbar. **Sicherung löschen** entfernt nur die ausgewählte Sicherung und behält offene Änderungen. Erfolgreiches Sichern oder **Nicht sichern** bei einem abgeschlossenen Schließen entfernt die Sicherung. Private Sicherungsdateien bleiben auf diesem Mac, begrenzt auf 32 Entwürfe und 128 MiB und bis zu 30 Tage lang wiederherstellbar. Kapazitätsgrenzen können ältere Sicherungen früher löschen. Dateien und bearbeiteter Text über 5 MiB sind ausgeschlossen.
+
+Zshell löscht abgelaufene Sicherungen beim Start und während des Betriebs jede Stunde, auch bei deaktivierten Sicherungen. Ist Zshell geschlossen, bleiben abgelaufene Dateien bis zum nächsten Start auf der Festplatte.
+
 ## Terminal [#terminal]
 
 ### `terminal.startup-program` / `terminal.startup-arguments` [#terminalstartup-program--terminalstartup-arguments]
@@ -182,6 +206,12 @@ Geben Sie für Benutzerdefiniert einen absoluten Pfad oder `~/folder` ein, oder 
 Bestimmt den Emulator für danach erstellte Terminals. Bestehende Bereiche behalten ihr bisheriges Backend. Beide sind nativ, GPU-beschleunigt, unterstützen Bilder und verwenden dieselben Zshell-Themen. Alacritty benötigt im Allgemeinen weniger Arbeitsspeicher.
 
 Umgebungsvariablen und Kompatibilitätszusagen stehen unter [Terminal-Backends](/de/docs/terminal#terminal-backends).
+
+### `terminal.mouse-scroll-multiplier` / `terminal.trackpad-scroll-multiplier` [#terminal-scroll-multipliers]
+
+Zahl, 0.1–10 — Standard `1` für jedes Gerät
+
+Stellen Sie beide Geschwindigkeiten unter **Einstellungen → Terminal → Scrollen → Mausrad / Trackpad** getrennt ein. Die Anzeige nutzt Prozentwerte: 100% behält die aktuelle Geschwindigkeit bei, 50% halbiert sie und 200% verdoppelt sie. Änderungen gelten sofort für offene Ghostty- und Alacritty-Panels, den Scrollback, Vollbildprogramme und Mausberichte. Trägheitsscrollen nutzt den Trackpad-Wert; horizontales Scrollen bleibt horizontal. Mäuse mit präzisen Scroll-Deltas nutzen ebenfalls den Trackpad-Wert. Fehlende oder ungültige Werte werden auf `1` zurückgesetzt. Import, Export und Zurücksetzen der Einstellungen berücksichtigen beide Werte.
 
 ### `terminal.macos-option-as-alt` [#terminalmacos-option-as-alt]
 
@@ -229,19 +259,34 @@ Beim Wiederherstellen von Terminalbereichen wird das genaue gespeicherte Gesprä
 
 Die Option steht unter **Einstellungen → Automatisierung → Agentengespräche fortsetzen**. Sie ist unabhängig von `terminal.restore-history`.
 
+### `ai.usage-enabled`
+
+Boolesch — Standard `false`
+
+Aktiviert lokale CLI-Kontolimits über **Einstellungen → Automatisierung → Kontonutzung → Kontonutzung lesen**. Ausschalten bricht Anfragen ab, blendet Daten aus und lehnt das Speichern von Claude-Nutzungsberichten ab. Anbieterauswahl bleibt erhalten. Agentenerkennung, Lebenszyklusberichte und Gesprächswiederherstellung ändern sich nicht.
+
+### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
+
+Boolesch — jeweils Standard `true`
+
+Wählt die Anbieter für `ai.usage-enabled = true`. Claude Code liest Zshells lokale Statuszeilenberichte; Codex fragt seine installierte, angemeldete CLI ab. Ausschalten eines Anbieters stoppt sofort Lesevorgänge und blendet Daten aus. Anmeldedaten werden nicht erfasst. Alle drei Optionen unterstützen Suche, Import/Export, sofortiges Neuladen und Zurücksetzen.
+
 ## Weitere Einstellungen [#additional-settings]
 
 | Schlüssel | Standard | Werte / Bereich | Wirkung |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Anwendungssymbol |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Externer Editor für Dateien und Ordner |
+| `files.drag-import` | `false` | Boolescher Wert | Finder-Objekte durch Ziehen in den lokalen Dateibaum kopieren; der Importmenüeintrag bleibt verfügbar |
 | `terminal.theme-only` | `false` | Boolescher Wert | Gewählte Palette nur auf das Terminal anwenden |
 | `terminal.command-history` | `true` | Boolescher Wert | Neue Befehle aufzeichnen; gespeicherter Verlauf bleibt bei Aus verfügbar |
 | `terminal.text-hints` | `true` | Boolescher Wert | Tastaturhinweise für sichtbaren Terminaltext einschalten |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | Boolescher Wert | **Einstellungen → Terminal → Prompt-Warteschlange** steuert alle Arbeitsbereiche und Quick Terminal. Ausschalten des Hauptschalters blendet Leisten aus und bricht Sendungen ab; Einträge und Eingaben bleiben bis zum Schließen des Terminals erhalten. Automatisches Senden ist optional und gilt ab dem nächsten Befehlsende, in Reihenfolge und nur am leeren Prompt der ursprünglichen zsh ohne aktive Befehlsaufgabe. Einschalten führt nichts sofort aus. Manuelles Senden nutzt dieselben Prüfungen; andere oder verschachtelte Shells, Vordergrundprogramme und Eingabeentwürfe erhalten keine Warteschlangeneinträge. |
 | `terminal.auto-profiles` | `true` | Boolescher Wert | Terminalprofile automatisch zuordnen; manuelle Auswahl bleibt verfügbar |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Form des Terminalcursors |
 | `terminal.cursor-blinking` | `true` | Boolescher Wert | Cursor blinken lassen |
 | `terminal.copy-on-select` | `true` | Boolescher Wert | Markierten Terminaltext kopieren |
+| `terminal.right-click-action` | `"context-menu"` | Zeichenfolge | Kontextmenü, Einfügen oder Auswahl kopieren und sonst einfügen (`"context-menu"`, `"paste"`, `"copy-or-paste"`) |
 | `terminal.focus-follows-mouse` | `false` | Boolescher Wert | Fokus folgt der Maus |
 | `terminal.shift-enter-newline` | `true` | Boolescher Wert | Erweiterte Zeilenumbruchsequenz mit Shift+Enter senden; erfordert Unterstützung des Programms |
 | `terminal.background-opacity` | `1` | 0.2–1 | Deckkraft des Terminalhintergrunds |
@@ -277,10 +322,14 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
 terminal.line-height = 1.15
+terminal.mouse-scroll-multiplier = 1
+terminal.trackpad-scroll-multiplier = 1
 terminal.macos-option-as-alt = false
 terminal.bell = false
 terminal.startup-program = "/opt/homebrew/bin/fish"

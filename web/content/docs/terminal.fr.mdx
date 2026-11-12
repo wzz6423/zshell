@@ -58,6 +58,12 @@ Activez **Réglages → Terminal → Saisie → Le focus suit la souris** pour c
 
 `terminal.focus-follows-mouse = true`
 
+## Action du clic droit [#right-click-action]
+
+Dans **Réglages → Terminal → Saisie → Action du clic droit**, choisissez **Menu contextuel** (par défaut), **Coller** ou **Copier ou coller**. Cette dernière option copie la sélection et ne colle que sans sélection. Le changement est immédiat sur les deux moteurs. Dans `config.toml`, `terminal.right-click-action` accepte `"context-menu"`, `"paste"` ou `"copy-or-paste"`.
+
+**Maj + clic droit**, **Contrôle + clic** et **Commande + clic droit** ouvrent toujours le menu. **Édition → Afficher le menu contextuel du terminal** (<kbd>Shift</kbd>+<kbd>F10</kbd>) permet de l’ouvrir au clavier. Les applications utilisant le suivi de la souris continuent de recevoir les clics droits ordinaires, sauf si **Bloquer les commandes Zshell** est activé dans le volet. Le collage conserve la confirmation multiligne et le traitement des fichiers locaux ou distants de <kbd>Cmd</kbd>+<kbd>V</kbd>.
+
 ## Profils de terminal [#terminal-profiles]
 
 Créez et ordonnez les profils dans **Réglages → Terminal → Profils de terminal → Gérer les profils de terminal…**. Ils peuvent correspondre à l’hôte, l’utilisateur, le répertoire de travail et le programme au premier plan. Toutes les conditions renseignées doivent correspondre ; `*` accepte tout texte et `?` un caractère. Le premier profil correspondant est utilisé, sinon le volet retrouve son apparence initiale. **Appliquer automatiquement les profils de terminal** est activé par défaut (`terminal.auto-profiles = true`) ; la sélection manuelle reste disponible si vous le désactivez.
@@ -100,9 +106,13 @@ Ce réglage ne concerne que ce volet. Décochez-le dans le même menu pour réta
 
 Activez un terminal et appuyez sur <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>, ou choisissez **Afficher/masquer la file d'invites** dans la palette. Une barre apparaît sous le terminal. Saisissez une entrée puis appuyez sur <kbd>Return</kbd> ou **Ajouter à la file**. Chaque entrée occupe une seule ligne ; les retours à la ligne collés deviennent des espaces.
 
-Lorsque le zsh d'origine revient à une invite vide, Zshell envoie l'entrée suivante puis Return. L'ordre de la file est conservé. L'envoi automatique attend tant qu'un agent ou un autre programme occupe le terminal, ou que l'invite contient déjà un brouillon. Il nécessite l'intégration zsh de Zshell ; les autres shells et les shells imbriqués peuvent utiliser l'envoi manuel.
+L’envoi est manuel par défaut. **Envoyer maintenant** ne transmet une entrée que si l’invite du zsh d’origine est vide et qu’aucune tâche de commande en attente ou en cours n’utilise le terminal. Le bouton est désactivé pour un agent, un programme au premier plan, une saisie en cours, un autre shell ou un shell imbriqué. Un envoi refusé conserve l’entrée.
 
-Chaque entrée propose **Envoyer maintenant** et **Supprimer**. **Envoyer maintenant** transmet immédiatement le texte et Return au programme actuel, sans attendre une invite de shell. <kbd>Esc</kbd> ou le bouton de fermeture masque la barre en conservant les entrées. Chaque terminal possède sa propre file ; fermer la session ou quitter Zshell la supprime.
+Dans **Réglages → Terminal → File d’invites**, activez **Envoyer automatiquement les invites en attente** pour envoyer l’entrée suivante, dans l’ordre, lorsqu’une commande se termine et que zsh revient à une invite vide. L’activation ne rejoue pas immédiatement la file : elle prend effet à la prochaine fin de commande. La désactivation annule les envois en attente.
+
+Désactiver **Activer la file d’invites** masque les barres dans tous les espaces de travail et le Quick Terminal, annule les envois et conserve les entrées et la saisie. Le menu et le raccourci ouvrent alors les réglages correspondants.
+
+**Retirer** supprime une entrée. Les panneaux étroits utilisent des icônes nommées avec infobulles. <kbd>Esc</kbd> ou le bouton de fermeture masque la barre sans vider la file. Chaque terminal a sa propre file, supprimée à la fermeture de la session ou de Zshell.
 
 ## Chemins et URL [#paths-and-urls]
 
@@ -139,7 +149,7 @@ Une notification peut jouer le son système. Cliquer dessus active Zshell et ouv
 
 Le même historique est accessible depuis **Réglages → Terminal → Avis**.
 
-Ouvrez **Avis → Historique des avis…** pour consulter les notifications récentes du terminal et des agents. Filtrez par **Non lus**, **Échecs** ou **À traiter**. Cliquez sur un avis ou sur **Afficher le volet** pour retrouver son projet, son onglet et son volet actuels, même dans une autre fenêtre. Un volet fermé reste dans l’historique avec la mention indisponible.
+Ouvrez **Terminal → Avis → Historique des avis…** pour consulter les notifications récentes du terminal et des agents. Filtrez par **Non lus**, **Échecs** ou **À traiter**. Cliquez sur un avis ou sur **Afficher le volet** pour retrouver son projet, son onglet et son volet actuels, même dans une autre fenêtre. Un volet fermé reste dans l’historique avec la mention indisponible.
 
 Utilisez **Marquer comme lu**, **Tout marquer comme lu**, **Retirer** ou **Effacer l’historique**. La lecture n’approuve aucune demande d’un agent. Un élément quitte le filtre À traiter lorsque l’agent reprend ou termine, que le volet ferme ou que sa connexion distante devient indisponible. Les états reposent sur les rapports explicites du cycle de vie et les résultats de sortie des commandes. Les 200 derniers avis restent après un redémarrage, même si les notifications macOS sont désactivées.
 

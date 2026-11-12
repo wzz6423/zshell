@@ -170,6 +170,12 @@ enum ZshellAutomationRouter {
                     "The caller is not a terminal pane."
                 )
             }
+            guard AppSettings.shared.agentUsageEnabled else {
+                return failure(request, "usage_disabled", "Account usage is disabled in Settings > Automation.")
+            }
+            guard AppSettings.shared.claudeUsageEnabled else {
+                return failure(request, "provider_usage_disabled", "Claude Code usage is disabled in Settings > Automation.")
+            }
             guard let usage = request.params["usage"],
                   AgentUsageModel.shared.acceptClaudeStatusLine(usage)
             else {

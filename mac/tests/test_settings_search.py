@@ -39,6 +39,8 @@ CONFIGURATION_ITEMS = {
     "font-size": ("appearance", "Size", "Font"),
     "terminal.line-height": ("appearance", "Line height", "Font"),
     "terminal.cell-width": ("appearance", "Cell width", "Font"),
+    "terminal.font-ligatures": ("appearance", "Font ligatures", "Font"),
+    "terminal.font-features": ("appearance", "OpenType features", "Font"),
     "terminal.font-thicken": ("appearance", "Thicken font strokes", "Font"),
     "terminal.font-thicken-strength": ("appearance", "Stroke strength", "Font"),
     "interface.scale": ("appearance", "Interface size", "Interface"),
@@ -56,15 +58,20 @@ CONFIGURATION_ITEMS = {
     "terminal.background-blur": ("appearance", "Blur behind window", "Background"),
     "terminal.auto-profiles": ("terminal", "Apply terminal profiles automatically", "Terminal Profiles"),
     "terminal.text-hints": ("terminal", "Show terminal text hints", "Input"),
+    "terminal.prompt-queue-enabled": ("terminal", "Enable Prompt Queue", "Prompt Queue"),
+    "terminal.prompt-queue-auto-dispatch": ("terminal", "Send queued prompts automatically", "Prompt Queue"),
     "terminal.shell-completions": ("terminal", "Shell completions", "Input"),
     "terminal.vim-command-hints": ("terminal", "Vim command hints", "Input"),
     "terminal.macos-option-as-alt": ("terminal", "Use Option as Alt/Meta", "Input"),
+    "terminal.mouse-scroll-multiplier": ("terminal", "Mouse wheel", "Scrolling"),
+    "terminal.trackpad-scroll-multiplier": ("terminal", "Trackpad", "Scrolling"),
     "terminal.bell": ("terminal", "Terminal bell", "Notifications"),
     "terminal.shift-enter-newline": ("terminal", "Shift+Enter inserts a newline", "Input"),
     "terminal.command-history": ("terminal", "Record command history", "History"),
     "terminal.restore-history": ("terminal", "Restore session history on relaunch", "History"),
     "terminal.preserve-sessions": ("terminal", "Keep sessions running after quitting", ""),
     "terminal.copy-on-select": ("terminal", "Copy on select", "Input"),
+    "terminal.right-click-action": ("terminal", "Right-click action", "Input"),
     "terminal.focus-follows-mouse": ("terminal", "Focus follows mouse", "Input"),
     "terminal.notify-finish-seconds": ("terminal", "Long-running commands", "Notifications"),
     "terminal.notify-on-error": ("terminal", "Failed commands", "Notifications"),
@@ -75,11 +82,16 @@ CONFIGURATION_ITEMS = {
     "quick-terminal.opacity": ("terminal", "Opacity", "Quick Terminal"),
     "editor.external-editor": ("editor", "External editor", ""),
     "editor.wrap-lines": ("editor", "Wrap lines to editor width", ""),
+    "files.drag-import": ("editor", "Import by dragging into the file tree", "Files"),
     "editor.protect-saves": ("editor", "Protect against save conflicts", ""),
+    "editor.recover-drafts": ("editor", "Back up unsaved drafts", ""),
     "ai.enabled": ("automation", "AI", ""),
     "ai.resume-conversations": ("automation", "Resume agent conversations", ""),
     "ai.notify-on-attention": ("automation", "Notify when agents need attention", "Notifications"),
     "ai.notify-on-completion": ("automation", "Notify when agents finish", "Notifications"),
+    "ai.usage-enabled": ("automation", "Read account usage", "Account Usage"),
+    "ai.claude-usage-enabled": ("automation", "Read Claude Code usage", "Account Usage"),
+    "ai.codex-usage-enabled": ("automation", "Read Codex usage", "Account Usage"),
 }
 DESCRIPTION_ITEMS = {
     "Applies to Git panel actions, pull request status, and Git in terminals opened afterwards.":
@@ -92,8 +104,12 @@ DESCRIPTION_ITEMS = {
         ("terminal", "Startup", ""),
     "Reopened terminals show their previous scrollback above a fresh shell":
         ("terminal", "Restore session history on relaunch", "History"),
+    "When a command finishes, send the next entry at an empty prompt in the original zsh shell. Send Now is available with automatic sending on or off.":
+        ("terminal", "Send queued prompts automatically", "Prompt Queue"),
     "Changes apply to new zsh terminals.": ("terminal", "Long-running commands", "Notifications"),
     "Lets agents delegate work and coordinate across Zshell panes": ("automation", "AI", ""),
+    "Read account limits from local CLI integrations without collecting sign-in credentials.":
+        ("automation", "Read account usage", "Account Usage"),
     "Install Homebrew, then click Refresh to enable one-click installation.":
         ("recommendations", "Homebrew", "Manage Tools"),
     "Tools are downloaded, installed, and updated through your Homebrew installation.":
@@ -271,6 +287,7 @@ class SettingsSearchTests(unittest.TestCase):
             str(sources / "AppLocalization.swift"), str(sources / "RecommendedTool.swift"),
             str(sources / "KeepAwakeMode.swift"),
             str(sources / "TerminalSessionDirectory.swift"),
+            str(sources / "TerminalRightClickAction.swift"),
             str(sources / "Settings/SettingsSearch.swift"),
             str(sources / "Settings/SettingsVisibility.swift"), str(metadata), str(harness),
             "-o", str(cls.binary),
@@ -346,8 +363,14 @@ class SettingsSearchTests(unittest.TestCase):
         for rows in self.query(["", " ", "\n\t ", "__no_such_setting__", "  __no_such_setting__  "]):
             self.assertEqual(rows, [])
 
-    def test_conditional_usage_status_is_not_offered_as_a_setting(self):
-        self.assertEqual(self.query(["Account Usage"]), [[]])
+    def test_usage_settings_are_discoverable_without_ai_or_data(self):
+        queries = ["ai.usage-enabled", "ai.claude-usage-enabled", "ai.codex-usage-enabled"]
+        for language in LANGUAGES:
+            sample = self.evaluate([{
+                "language": language, "queries": queries, "disabled": ["aiEnabled"],
+            }])[0]
+            for query, rows in zip(queries, sample["queries"]):
+                self.assert_item(rows, CONFIGURATION_ITEMS[query], language)
 
     def test_keep_awake_is_visible_without_ai(self):
         for language in LANGUAGES:

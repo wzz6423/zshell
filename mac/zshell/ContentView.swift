@@ -752,19 +752,7 @@ struct ContentView: View {
                     // switching block while WebKit tears down and reattaches
                     // the rendered diffs. Unvisited restored projects remain
                     // lazy; inactive stacks sit beneath the active opaque pane.
-                    ForEach(manager.projectsWithMountedDiffs) { project in
-                        ForEach(project.diffPlacements, id: \.diff.id) { placement in
-                            let isSelected = manager.selectedProjectID == project.id
-                                && project.selectedTabID == placement.tabID
-                            DiffViewerView(
-                                diff: placement.diff,
-                                isSelected: isSelected
-                            )
-                            .background(Color(nsColor: Theme.background))
-                            .allowsHitTesting(isSelected)
-                            .zIndex(isSelected ? 1 : 0)
-                        }
-                    }
+                    DiffWorkspaceView(manager: manager)
                     Group {
                         if let project = manager.selectedProject,
                            let tab = project.selectedTab {

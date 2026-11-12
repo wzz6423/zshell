@@ -25,7 +25,7 @@ SHARED_TEXT = {
     "General", "Git", "Git (⇧⌘G)", "Help", "Host", "Info", "Info (⇧⌘I)",
     "Interface", "Name", "Normal", "OK", "Optional", "Options", "PORTS",
     "Password", "Port", "Program", "Services", "Session", "Sessions", "Status",
-    "Stop", "System", "Tab", "Tab %lld", "Tab %lld, %@", "Tabs", "Terminal",
+    "Stop", "System", "Tab", "Tab %lld", "Tab %lld, %@", "Tabs", "Terminal", "Trackpad",
     "Type", "Updates", "Visual", "WORKTREES", "Zoom", "detached HEAD",
     "example.com", "worktree",
 }

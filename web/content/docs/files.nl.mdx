@@ -24,6 +24,14 @@ Klik op een bestand om het in het deelvenster met focus te openen. Klik met de r
 
 Rijen gebruiken Material-pictogrammen die bij de bestandsnaam passen. In een Git-repository hebben gewijzigde paden ook statuskleuren en badges, terwijl genegeerde bestanden gedimd zijn. Zo toont de boom dezelfde worktreestatus als het Git-paneel zonder dat je dat hoeft te openen.
 
+## Bestanden en mappen importeren [#import-files-and-folders]
+
+Kies **Bestand → Bestanden importeren…**, de importknop in het Bestanden-paneel of de optie in het contextmenu van een map. Selecteer meerdere bestanden of mappen; Zshell kopieert ze naar die map of de huidige hoofdmap van de boom en behoudt de originelen.
+
+Schakel **Instellingen → Editor → Bestanden → Importeren door naar de bestandsboom te slepen** (`files.drag-import`) in om Finder-onderdelen op een map of de lege ruimte in de boom neer te zetten. Dit staat standaard uit. Het menu blijft beschikbaar.
+
+Bij bestaande namen kiest u **Vervangen**, **Overslaan** of **Annuleren**. Een map wordt geheel vervangen; de inhoud wordt niet samengevoegd. Annuleren stopt de hele import en herstelt al toegevoegde kopieën. Als een ander programma een onderdeel vóór het herstel verandert, behoudt Zshell die wijziging en toont het een map die herstelbestanden kan bevatten. SSH-bomen accepteren geen lokale imports. Symbolische koppelingen worden als koppelingen gekopieerd zonder het doel te volgen.
+
 ## Bestanden vinden en inhoud doorzoeken [#find-files-and-search-contents]
 
 Het opdrachtenpalet (<kbd>Cmd</kbd>+<kbd>P</kbd>) vindt bestanden op naam of pad in de lokale projecten die in het huidige venster open zijn, naast opdrachten en geopende sessies. Als je een bestand selecteert, wisselt Zshell naar het bijbehorende project en opent het daar.
@@ -56,6 +64,14 @@ Als een ander programma het bestand wijzigt terwijl u bewerkt, opent opslaan een
 <Callout type="info">
 Deze editor is bedoeld voor de wijziging die je al bekijkt: een typefout herstellen, een constante aanpassen of een bestand lezen waarnaar de diff verwijst. Er is geen taalserver, automatische aanvulling of projectbrede refactoring. Dat is een bewuste keuze.
 </Callout>
+
+## Niet-opgeslagen concepten herstellen [#recover-unsaved-drafts]
+
+Zshell maakt standaard back-ups van niet-opgeslagen wijzigingen in lokale bestanden en bewerkbare werkboom-diffs. Na onverwacht afsluiten herstellen opnieuw geopende panelen hun concepten, selecties en indeling. Andere back-ups vind je via **Bestand → Concepten herstellen…** of **Instellingen → Editor → Concepten herstellen…**: selecteer een back-up, bekijk de inhoud en kies **Concept herstellen**. Herstellen opent een niet-opgeslagen editor en verandert het bestand op schijf niet. Opslaan controleert externe wijzigingen nog steeds met de versie van vóór je bewerkingen.
+
+Beheer back-ups via **Instellingen → Editor → Niet-opgeslagen concepten back-uppen** of `editor.recover-drafts`. Uitschakelen stopt nieuwe back-ups en automatisch herstel, maar bewaart bestaande back-ups voor handmatig herstellen of verwijderen. **Back-up verwijderen** verwijdert alleen de geselecteerde back-up; open bewerkingen blijven behouden. Geslaagd opslaan of **Niet bewaren** bij volledig afsluiten verwijdert de back-up. Deze privébestanden blijven op deze Mac, met maximaal 32 concepten en 128 MiB en maximaal 30 dagen herstelbaar. Door capaciteitslimieten kunnen oudere back-ups eerder worden verwijderd. Bestanden en bewerkte tekst groter dan 5 MiB vallen erbuiten.
+
+Zshell verwijdert verlopen back-ups bij het starten en elk uur terwijl het actief is, ook als back-ups zijn uitgeschakeld. Als Zshell gesloten is, blijven verlopen bestanden op de schijf tot de volgende start.
 
 ## Markdown-voorbeeld [#markdown-preview]
 

@@ -104,6 +104,22 @@ extension PaneContent {
         case .session, .browser: return true
         }
     }
+
+    @MainActor var draftID: UUID? {
+        switch self {
+        case .file(let file): return file.draftID
+        case .diff(let diff): return diff.draftID
+        case .session, .browser: return nil
+        }
+    }
+
+    @MainActor func discardDraftBackup() {
+        switch self {
+        case .file(let file): file.discardDraftBackup()
+        case .diff(let diff): diff.discardDraftBackup()
+        case .session, .browser: break
+        }
+    }
 }
 
 /// Which side of a target pane a dragged pane is dropped on, deciding where it
@@ -526,6 +542,16 @@ final class PaneTab: nonisolated ObservableObject, nonisolated Identifiable {
     }
 
     // MARK: - Navigation
+
+    @discardableResult
+    func focusPane(_ id: UUID) -> Bool {
+        guard allPanes.contains(where: { $0.id == id }) else { return false }
+        if id != focusedPaneID {
+            isZoomed = false
+            focusedPaneID = id
+        }
+        return true
+    }
 
     func focusUp() { moveWithinColumn(-1) }
     func focusDown() { moveFocus(.down) }
