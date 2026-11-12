@@ -18,7 +18,7 @@ description: Zshell 터미널 백엔드, 셸 환경, 링크 처리, 알림과 �
 
 ## 터미널 유형 [#terminal-type]
 
-**설정 → 터미널 → TERM**에서 `terminal.term`을 설정하세요(기본값 `"xterm-256color"`). 이름은 1–128자의 ASCII 문자, 숫자 또는 `.-_+`로 구성되어야 합니다. shell을 실행하는 호스트에 설치된 terminfo 이름을 사용하세요. 변경은 새 로컬 및 SSH 세션에만 적용되며 열린 PTY와 유지된 PTY는 기존 `TERM`을 유지합니다. 공유 원격 세션은 업데이트된 서버에서 생성될 때 이 값을 사용하며 이전 서버는 `xterm-256color`를 유지합니다. 잘못된 편집은 마지막 유효 값을 유지하고 설정에 오류를 표시합니다. `TERM_PROGRAM`과 `ZSHELL_TERM`은 변경되지 않습니다.
+Zshell은 `xterm-256color`를 자동으로 설정합니다. 호스트에 다른 터미널 유형이 필요한 경우 `config.toml`의 `terminal.term`을 shell을 실행하는 호스트에 설치된 terminfo 이름으로 설정하세요. 변경은 새 로컬 및 SSH 세션에 적용되며 열린 PTY와 유지된 PTY는 기존 `TERM`을 유지합니다. 잘못된 이름은 마지막 유효한 값을 유지하며 시작 시에는 `xterm-256color`를 사용합니다.
 
 ## 명령 기록 [#command-history]
 

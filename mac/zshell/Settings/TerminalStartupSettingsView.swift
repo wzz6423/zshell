@@ -38,6 +38,8 @@ final class TerminalStartupSettingsView: NSView, NSTextFieldDelegate {
         )
         programField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         argumentsField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        programField.setContentCompressionResistancePriority(.required, for: .vertical)
+        argumentsField.setContentCompressionResistancePriority(.required, for: .vertical)
 
         customFields.addRow(with: [
             formLabel(String(localized: "Program")),
@@ -50,26 +52,34 @@ final class TerminalStartupSettingsView: NSView, NSTextFieldDelegate {
         customFields.rowSpacing = 8
         customFields.columnSpacing = 8
         customFields.column(at: 0).xPlacement = .trailing
-        customFields.column(at: 0).width = 72
+        let labelWidth = (0..<customFields.numberOfRows).reduce(CGFloat(72)) { width, row in
+            max(width, customFields.cell(atColumnIndex: 0, rowIndex: row).contentView?.fittingSize.width ?? 0)
+        }
+        customFields.column(at: 0).width = labelWidth
         customFields.column(at: 1).xPlacement = .fill
+        customFields.setContentHuggingPriority(.required, for: .vertical)
 
         detailLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         detailLabel.textColor = .secondaryLabelColor
         detailLabel.isSelectable = false
         detailLabel.maximumNumberOfLines = 0
+        detailLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         let modeSpacer = NSView()
-        modeSpacer.widthAnchor.constraint(equalToConstant: 72).isActive = true
+        modeSpacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        modeButton.setContentHuggingPriority(.required, for: .horizontal)
         let modeRow = NSStackView(views: [modeSpacer, modeButton])
         modeRow.orientation = .horizontal
         modeRow.alignment = .centerY
+        modeRow.distribution = .fill
         modeRow.spacing = 8
 
         let detailSpacer = NSView()
-        detailSpacer.widthAnchor.constraint(equalToConstant: 72).isActive = true
+        detailSpacer.widthAnchor.constraint(equalToConstant: labelWidth).isActive = true
         let detailRow = NSStackView(views: [detailSpacer, detailLabel])
         detailRow.orientation = .horizontal
         detailRow.alignment = .top
+        detailRow.distribution = .fill
         detailRow.spacing = 8
         detailLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
 
@@ -87,7 +97,9 @@ final class TerminalStartupSettingsView: NSView, NSTextFieldDelegate {
             modeRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
             customFields.widthAnchor.constraint(equalTo: stack.widthAnchor),
             detailRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            modeButton.widthAnchor.constraint(equalToConstant: 170),
+            modeSpacer.widthAnchor.constraint(greaterThanOrEqualToConstant: labelWidth),
+            modeButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 170),
+            modeButton.trailingAnchor.constraint(equalTo: modeRow.trailingAnchor),
         ])
         updateState()
     }

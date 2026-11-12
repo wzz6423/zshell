@@ -179,7 +179,7 @@ Membungkus baris panjang sesuai lebar panel dalam [editor berkas](/id/docs/files
 
 ### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
 
-Boolean — bawaan `false`
+Boolean — bawaan `true`
 
 **Pengaturan → Editor → Bungkus baris sesuai lebar diff** dan tombol pembungkus pada bilah diff mengatur opsi yang sama. Baris panjang mengikuti lebar panel pada tampilan terpadu dan terpisah, perubahan yang dapat diedit, diff historis, dan komentar PR. Pilihan langsung berlaku untuk semua diff terbuka dan tersimpan setelah aplikasi dibuka ulang. Menonaktifkannya mengembalikan gulir horizontal. Pembungkusan editor berkas dan terminal diatur terpisah.
 
@@ -225,7 +225,7 @@ Untuk khusus, masukkan jalur absolut atau `~/folder`, atau pilih folder di Penga
 
 ### `terminal.term`
 
-Atur `terminal.term` di **Pengaturan → Terminal → TERM** (default `"xterm-256color"`). Nama harus berisi 1–128 huruf ASCII, angka, atau `.-_+`. Gunakan nama terminfo yang terpasang di host yang menjalankan shell. Perubahan hanya berlaku untuk sesi lokal dan SSH baru; PTY terbuka dan tersimpan mempertahankan `TERM` asli. Sesi jarak jauh bersama menggunakan nilai ini saat dibuat dengan server terbaru; server lama tetap menggunakan `xterm-256color`. Nilai tidak valid saat startup menggunakan `xterm-256color`; edit tidak valid saat Zshell berjalan mempertahankan nilai valid terakhir. Keduanya menampilkan kesalahan di Pengaturan. `TERM_PROGRAM` dan `ZSHELL_TERM` tidak berubah.
+Zshell mengatur `xterm-256color` secara otomatis. Jika host memerlukan jenis terminal lain, atur `terminal.term` di `config.toml` ke nama terminfo yang terpasang pada mesin yang menjalankan shell. Perubahan berlaku untuk sesi lokal dan SSH baru; PTY terbuka dan tersimpan mempertahankan `TERM` aslinya. Nama yang tidak valid mempertahankan nilai valid terakhir, atau menggunakan `xterm-256color` saat startup.
 
 ### `terminal.backend` [#terminalbackend]
 
@@ -303,26 +303,14 @@ Saat panel terminal dipulihkan dan PTY asal tidak tersedia, melanjutkan percakap
 
 Atur melalui **Pengaturan → Otomatisasi → Lanjutkan percakapan agen**. Opsi ini terpisah dari `terminal.restore-history`.
 
-### `ai.usage-enabled`
-
-boolean — bawaan `false`
-
-Mengaktifkan pembacaan batas akun CLI lokal melalui **Pengaturan → Otomasi → Penggunaan Akun → Baca penggunaan akun**. Mematikan membatalkan permintaan, menyembunyikan data, dan menolak menyimpan laporan Claude. Pilihan penyedia dipertahankan. Pengenalan agen, laporan siklus hidup, dan pemulihan percakapan tidak berubah.
-
-### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
-
-boolean — bawaan `true` untuk masing-masing
-
-Memilih penyedia saat `ai.usage-enabled = true`. Claude Code membaca laporan baris status lokal Zshell; Codex meminta CLI terpasang yang sudah masuk. Mematikan penyedia langsung menghentikan pembacaan dan menyembunyikan data. Kredensial tidak dikumpulkan. Ketiga pilihan mendukung pencarian, impor/ekspor, pemuatan ulang langsung, dan pengaturan ulang.
-
 ## Pengaturan tambahan [#additional-settings]
 
 | Kunci | Bawaan | Nilai / rentang | Efek |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Ikon aplikasi |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Editor eksternal untuk berkas dan folder |
-| `files.drag-import` | `false` | boolean | Izinkan salinan Finder dengan menyeret ke pohon lokal; menu impor selalu tersedia |
-| `files.remote-write-enabled` | `false` | boolean | Izinkan pembuatan, penggantian nama, penghapusan yang dapat dipulihkan, dan penyimpanan jarak jauh dengan alat host yang sudah ada |
+| `files.drag-import` | `true` | boolean | Izinkan salinan Finder dengan menyeret ke pohon lokal; menu impor selalu tersedia |
+| `files.remote-write-enabled` | `true` | boolean | Izinkan pembuatan, penggantian nama, penghapusan yang dapat dipulihkan, dan penyimpanan jarak jauh dengan alat host yang sudah ada |
 | `terminal.theme-only` | `false` | Boolean | Terapkan palet hanya pada terminal |
 | `terminal.command-history` | `true` | Boolean | Mencatat perintah baru; riwayat tersimpan tetap tersedia saat nonaktif |
 | `terminal.text-hints` | `true` | Boolean | Mengaktifkan petunjuk papan ketik untuk teks terminal yang terlihat |

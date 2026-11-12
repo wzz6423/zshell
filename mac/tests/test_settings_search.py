@@ -56,7 +56,6 @@ CONFIGURATION_ITEMS = {
     "terminal.new-session-directory": ("terminal", "New session directory", ""),
     "terminal.custom-directory": ("terminal", "New session directory", ""),
     "terminal.backend": ("terminal", "Backend", ""),
-    "terminal.term": ("terminal", "TERM", ""),
     "terminal.cursor-shape": ("appearance", "Cursor shape", "Cursor"),
     "terminal.cursor-blinking": ("appearance", "Blink cursor", "Cursor"),
     "terminal.background-opacity": ("appearance", "Opacity", "Background"),
@@ -100,9 +99,6 @@ CONFIGURATION_ITEMS = {
     "ai.screen-inference": ("automation", "Infer agent state from the screen", "Agent Recognition"),
     "ai.notify-on-attention": ("automation", "Notify when agents need attention", "Notifications"),
     "ai.notify-on-completion": ("automation", "Notify when agents finish", "Notifications"),
-    "ai.usage-enabled": ("automation", "Read account usage", "Account Usage"),
-    "ai.claude-usage-enabled": ("automation", "Read Claude Code usage", "Account Usage"),
-    "ai.codex-usage-enabled": ("automation", "Read Codex usage", "Account Usage"),
 }
 DESCRIPTION_ITEMS = {
     "Turn these off to stop automatic uploads. You can still choose Upload Files… from a remote terminal’s context menu.":
@@ -121,8 +117,6 @@ DESCRIPTION_ITEMS = {
         ("terminal", "Send queued prompts automatically", "Prompt Queue"),
     "Changes apply to new zsh terminals.": ("terminal", "Long-running commands", "Notifications"),
     "Lets agents delegate work and coordinate across Zshell panes": ("automation", "AI", ""),
-    "Read account limits from local CLI integrations without collecting sign-in credentials.":
-        ("automation", "Read account usage", "Account Usage"),
     "Install Homebrew, then click Refresh to enable one-click installation.":
         ("recommendations", "Homebrew", "Manage Tools"),
     "Tools are downloaded, installed, and updated through your Homebrew installation.":
@@ -381,14 +375,14 @@ class SettingsSearchTests(unittest.TestCase):
         for rows in self.query(["", " ", "\n\t ", "__no_such_setting__", "  __no_such_setting__  "]):
             self.assertEqual(rows, [])
 
-    def test_usage_settings_are_discoverable_without_ai_or_data(self):
-        queries = ["ai.usage-enabled", "ai.claude-usage-enabled", "ai.codex-usage-enabled"]
+    def test_removed_settings_are_not_search_destinations(self):
+        queries = ["ai.usage-enabled", "ai.claude-usage-enabled", "ai.codex-usage-enabled", "terminal.term"]
         for language in LANGUAGES:
             sample = self.evaluate([{
                 "language": language, "queries": queries, "disabled": ["aiEnabled"],
             }])[0]
-            for query, rows in zip(queries, sample["queries"]):
-                self.assert_item(rows, CONFIGURATION_ITEMS[query], language)
+            for rows in sample["queries"]:
+                self.assertEqual(rows, [])
 
     def test_recognition_controls_are_discoverable_without_ai(self):
         queries = ["ai.custom-recognition-rules", "ai.screen-inference", "agents.toml"]

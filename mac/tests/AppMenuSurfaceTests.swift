@@ -176,7 +176,7 @@ private final class AppMenuProbe {
         for title in ["New SSH Project…", "New Browser Tab", "Find Previous", "Stop Loading", "Open in Default Browser",
                       "Split Left", "Split Up", "Import Browser Data…", "Imported Browser History",
                       "Notification History…", "Show Unread Notifications", "Agent Conversation History",
-                      "Search All Agent Conversations", "Workspace Templates…", "Command History…"] {
+                      "Search All Agent Conversations", "Manage Agent Rules…", "Workspace Templates…", "Command History…"] {
             check(item(title).action != nil && item(title).keyEquivalent.isEmpty
                   && descendants(menu).filter { $0.title == title && $0.action != nil }.count == 1,
                   "无快捷键动作遗漏或被复制：\(title)")

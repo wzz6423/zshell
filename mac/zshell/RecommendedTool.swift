@@ -65,6 +65,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
     case kaku
     case markdownPreview
     case zisla
+    case quietMD
 
     var name: String {
         switch self {
@@ -113,6 +114,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .kaku: "Kaku"
         case .markdownPreview: "Markdown Preview"
         case .zisla: "Zisla"
+        case .quietMD: "Quiet.md"
         }
     }
 
@@ -163,6 +165,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .kaku: String(localized: "Terminal for AI coding")
         case .markdownPreview: String(localized: "Markdown preview")
         case .zisla: String(localized: "Media, files, system tools, and local AI")
+        case .quietMD: String(localized: "Local notes and rich text editing")
         }
     }
 
@@ -213,6 +216,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .kaku: "kaku"
         case .markdownPreview: "mdp"
         case .zisla: "zisla"
+        case .quietMD: "quiet_md"
         }
     }
 
@@ -263,6 +267,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .kaku: "tw93/tap/kakuku"
         case .markdownPreview: "markdown-preview"
         case .zisla: "wzz6423/tap/zisla"
+        case .quietMD: nil
         }
     }
 
@@ -291,7 +296,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
             .developmentToolchain
         case .ytDLP, .libreOffice, .keka:
             .utility
-        case .kaku, .markdownPreview, .zisla:
+        case .kaku, .markdownPreview, .zisla, .quietMD:
             .desktopApplication
         }
     }
@@ -303,6 +308,21 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
         case .kaku: "Kaku"
         case .markdownPreview: "Markdown Preview"
         case .zisla: "zisla"
+        case .quietMD: "quiet.md"
+        default: nil
+        }
+    }
+
+    var projectURL: URL? {
+        switch self {
+        case .quietMD: URL(string: "https://github.com/s1dashu/quiet-md")
+        default: nil
+        }
+    }
+
+    var downloadURL: URL? {
+        switch self {
+        case .quietMD: URL(string: "https://github.com/s1dashu/quiet-md/releases/latest")
         default: nil
         }
     }
@@ -316,6 +336,7 @@ nonisolated enum RecommendedTool: String, CaseIterable, Sendable {
     }
 
     var metadataURL: URL? {
+        if self == .quietMD { return URL(string: "https://api.github.com/repos/s1dashu/quiet-md/releases/latest") }
         guard let packageName else { return nil }
         // Read the tap's recipe so an upstream release cannot advertise an
         // update that Homebrew cannot install yet. Never execute this Ruby.

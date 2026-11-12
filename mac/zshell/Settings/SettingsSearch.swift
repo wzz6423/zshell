@@ -25,8 +25,7 @@ enum SettingsSearchIndex {
         text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: AppLocalization.current.locale)
     }
 
-    // Search must not construct panes: opening Recommendations starts tool
-    // checks, and opening AI refreshes account usage.
+    // Search must not construct panes because opening Recommendations starts tool checks.
     private static func entries(visibility: SettingsVisibility) -> [SettingsSearchResult] {
         let theme = String(localized: "Theme")
         let colors = String(localized: "Colors")
@@ -114,8 +113,6 @@ enum SettingsSearchIndex {
                 String(localized: "Login shell"), String(localized: "Custom program"),
                 String(localized: "Startup program"), String(localized: "Startup arguments"),
             ].joined(separator: " "), keywords: "terminal.startup-program terminal.startup-arguments"),
-            item(.terminal, "TERM", description: String(localized: "Terminal type for new sessions. Open and preserved sessions keep their TERM. Use a terminfo name available on the local or remote host."),
-                 keywords: "terminal.term terminfo xterm-256color terminal type identity startup"),
             item(.terminal, String(localized: "Workspace Templates…"), keywords: "workspace templates startup layout"),
             item(.terminal, String(localized: "New session directory"), description: [
                 String(localized: "Applies to new local sessions. Explicit, pinned, and group directories take precedence; splits keep their source directory."),
@@ -199,13 +196,6 @@ enum SettingsSearchIndex {
             item(.automation, String(localized: "Use custom recognition rules"), section: String(localized: "Agent Recognition"), keywords: "agents.toml ai.custom-recognition-rules aliases executable"),
             item(.automation, String(localized: "Infer agent state from the screen"), section: String(localized: "Agent Recognition"), keywords: "ai.screen-inference footer detection status"),
             item(.automation, String(localized: "Manage Agent Rules…"), section: String(localized: "Agent Recognition"), keywords: "agents.toml custom aliases import export screen rules"),
-            item(.automation, String(localized: "Read account usage"), section: String(localized: "Account Usage"),
-                 description: String(localized: "Read account limits from local CLI integrations without collecting sign-in credentials."),
-                 keywords: "ai.usage-enabled account usage limits"),
-            item(.automation, String(localized: "Read Claude Code usage"), section: String(localized: "Account Usage"),
-                 keywords: "ai.claude-usage-enabled Claude account limits"),
-            item(.automation, String(localized: "Read Codex usage"), section: String(localized: "Account Usage"),
-                 keywords: "ai.codex-usage-enabled Codex account limits"),
             item(.recommendations, "Homebrew", section: tools,
                  description: [
                     String(localized: "Tools are downloaded, installed, and updated through your Homebrew installation."),

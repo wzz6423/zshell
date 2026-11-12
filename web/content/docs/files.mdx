@@ -31,7 +31,7 @@ shows the same worktree state as the Git panel without opening it.
 
 ## Remote files [#remote-files]
 
-Open SSH files from the Files panel. To create, rename, move to remote trash, or save, enable **Settings → Editor → Files → Allow remote file changes** (`files.remote-write-enabled`, off by default).
+Open SSH files from the Files panel. **Settings → Editor → Files → Allow remote file changes** (`files.remote-write-enabled`) is on by default for creation, rename, remote trash, and saves.
 
 Zshell uses only tools already installed on the host and installs nothing. File reading and editing use the host’s existing Perl core modules. Each write operation also checks the filesystem capabilities it needs; unsupported operations stay disabled. Symbolic links, special files, and paths outside the project are rejected. UTF-8 text files can be up to 5 MiB; remote Markdown opens as source.
 
@@ -43,7 +43,7 @@ Saving checks for remote changes even when local save protection is off. A confl
 
 Choose **File → Import Files…**, use the import button in the Files panel, or right-click a folder and choose **Import Files…**. Select one or more files or folders; Zshell copies them into that folder or the current tree root, keeping the originals.
 
-To drop Finder items onto a folder or the tree’s empty area, turn on **Settings → Editor → Files → Import by dragging into the file tree** (`files.drag-import`). It is off by default. The menu remains available when dragging is off.
+**Settings → Editor → Files → Import by dragging into the file tree** (`files.drag-import`) is on by default, so Finder items can be dropped onto a folder or the tree’s empty area. The menu remains available when dragging is off.
 
 Existing names offer **Replace**, **Skip**, and **Cancel**. Replacing a folder replaces the whole folder, rather than merging its contents. Cancel stops the entire import and restores copies already added by that import. If another program changes an imported item before restoration, Zshell preserves the changed item and shows a folder that may contain recovery files. SSH trees accept no local imports. Symbolic links are copied as links; they are not followed.
 

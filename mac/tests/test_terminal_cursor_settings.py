@@ -121,13 +121,17 @@ class TerminalCursorSettingsTests(unittest.TestCase):
             str(module), "-o", str(module_object),
         ], check=True)
         harness = directory / "Harness.swift"
-        harness.write_text(HARNESS)
+        category = (REPO / "mac/zshell/Settings/SettingsWindowController.swift").read_text()
+        category = category[category.index("enum SettingsCategory:"):category.index("    func makePane()")] + "}\n"
+        harness.write_text(HARNESS.replace("import Foundation\n", "import Foundation\n" + category, 1))
         cls.binary = directory / "cursor-settings"
         cls.config = directory / "config.toml"
         subprocess.run([
             "swiftc", "-parse-as-library", "-module-cache-path", str(module_cache),
             "-I", str(directory), str(module_object), str(fixture), str(harness),
             str(REPO / "mac/zshell/SettingsConfigFile.swift"),
+            str(REPO / "mac/zshell/AppLocalization.swift"),
+            str(REPO / "mac/zshell/Settings/SettingsPaneKit.swift"),
             str(REPO / "mac/zshell/TerminalCursorSettings.swift"),
             str(REPO / "mac/zshell/TerminalCursorSettingsView.swift"),
             "-o", str(cls.binary),

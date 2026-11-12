@@ -179,7 +179,7 @@ Xuống dòng mềm theo chiều rộng ô trong [trình soạn thảo tệp](/v
 
 ### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
 
-boolean — mặc định `false`
+boolean — mặc định `true`
 
 **Cài đặt → Trình soạn thảo → Ngắt dòng theo chiều rộng diff** và nút ngắt dòng trên thanh công cụ diff điều khiển cùng một tùy chọn. Dòng dài được ngắt theo chiều rộng ô trong chế độ gộp và chia, thay đổi có thể chỉnh sửa, diff lịch sử và bình luận PR. Áp dụng ngay cho mọi diff đang mở và được lưu sau khi khởi động lại. Tắt để khôi phục cuộn ngang. Tùy chọn này độc lập với ngắt dòng của trình soạn thảo tệp và terminal.
 
@@ -225,7 +225,7 @@ Với tùy chỉnh, nhập đường dẫn tuyệt đối hoặc `~/folder`, ho�
 
 ### `terminal.term`
 
-Đặt `terminal.term` trong **Cài đặt → Terminal → TERM** (mặc định `"xterm-256color"`). Tên phải gồm 1–128 chữ cái ASCII, chữ số hoặc `.-_+`. Dùng tên terminfo đã cài trên máy chạy shell. Thay đổi chỉ áp dụng cho phiên cục bộ và SSH mới; các PTY đang mở và được giữ lại vẫn giữ `TERM` ban đầu. Phiên từ xa dùng chung sử dụng giá trị này khi tạo trên máy chủ đã cập nhật; máy chủ cũ vẫn dùng `xterm-256color`. Giá trị không hợp lệ khi khởi động sẽ dùng `xterm-256color`; chỉnh sửa không hợp lệ khi Zshell đang chạy sẽ giữ lại giá trị hợp lệ gần nhất. Cả hai trường hợp đều hiển thị lỗi trong Cài đặt. `TERM_PROGRAM` và `ZSHELL_TERM` không thay đổi.
+Zshell tự động cấu hình `xterm-256color`. Nếu máy chủ cần loại terminal khác, đặt `terminal.term` trong `config.toml` thành tên terminfo đã cài trên máy chạy shell. Thay đổi áp dụng cho các phiên cục bộ và SSH mới; PTY đang mở và được giữ lại vẫn giữ `TERM` ban đầu. Tên không hợp lệ giữ lại giá trị hợp lệ gần nhất hoặc dùng `xterm-256color` khi khởi động.
 
 ### `terminal.backend` [#terminalbackend]
 
@@ -303,26 +303,14 @@ Khi khôi phục ngăn terminal và PTY gốc không còn khả dụng, tiếp t
 
 Điều khiển trong **Cài đặt → Tự động hóa → Tiếp tục cuộc trò chuyện của tác nhân**. Tùy chọn này độc lập với `terminal.restore-history`.
 
-### `ai.usage-enabled`
-
-boolean — mặc định `false`
-
-Bật đọc giới hạn tài khoản CLI cục bộ trong **Cài đặt → Tự động hóa → Mức sử dụng tài khoản → Đọc mức sử dụng tài khoản**. Tắt sẽ hủy yêu cầu, ẩn dữ liệu và từ chối lưu báo cáo Claude. Lựa chọn nhà cung cấp được giữ lại. Không thay đổi nhận diện tác nhân, báo cáo vòng đời hoặc khôi phục hội thoại.
-
-### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
-
-boolean — mỗi mục mặc định `true`
-
-Chọn nhà cung cấp khi `ai.usage-enabled = true`. Claude Code đọc báo cáo dòng trạng thái cục bộ của Zshell; Codex truy vấn CLI đã cài đặt và đăng nhập. Tắt nhà cung cấp lập tức dừng đọc và ẩn dữ liệu. Không thu thập thông tin đăng nhập. Cả ba hỗ trợ tìm kiếm, nhập/xuất, tải lại cấu hình trực tiếp và khôi phục mặc định.
-
 ## Cài đặt bổ sung [#additional-settings]
 
 | Khóa | Mặc định | Giá trị / khoảng | Tác dụng |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Biểu tượng ứng dụng |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Trình soạn thảo ngoài cho tệp/thư mục |
-| `files.drag-import` | `false` | boolean | Cho phép kéo mục Finder vào cây tệp cục bộ để sao chép; menu nhập luôn khả dụng |
-| `files.remote-write-enabled` | `false` | boolean | Cho phép tạo, đổi tên, xóa có thể khôi phục và lưu từ xa bằng công cụ hiện có trên máy chủ |
+| `files.drag-import` | `true` | boolean | Cho phép kéo mục Finder vào cây tệp cục bộ để sao chép; menu nhập luôn khả dụng |
+| `files.remote-write-enabled` | `true` | boolean | Cho phép tạo, đổi tên, xóa có thể khôi phục và lưu từ xa bằng công cụ hiện có trên máy chủ |
 | `terminal.theme-only` | `false` | boolean | Chỉ áp dụng bảng màu cho terminal |
 | `terminal.command-history` | `true` | boolean | Ghi lệnh mới; lịch sử đã lưu vẫn có thể xem khi tắt |
 | `terminal.text-hints` | `true` | boolean | Bật gợi ý bàn phím cho văn bản terminal đang hiển thị |

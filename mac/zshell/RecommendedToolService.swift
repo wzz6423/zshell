@@ -77,10 +77,14 @@ final class RecommendedToolService: ObservableObject {
 
     var isBusy: Bool { isRefreshing || isInstalling }
     var missingTools: [RecommendedTool] {
-        RecommendedTool.allCases.filter { states[$0]?.hasCheckedInstallation == true && states[$0]?.isInstalled != true }
+        RecommendedTool.allCases.filter {
+            $0.packageName != nil && states[$0]?.hasCheckedInstallation == true && states[$0]?.isInstalled != true
+        }
     }
     var updatableTools: [RecommendedTool] {
-        RecommendedTool.allCases.filter { states[$0]?.location == .homebrew && states[$0]?.hasUpdate == true }
+        RecommendedTool.allCases.filter {
+            $0.packageName != nil && states[$0]?.location == .homebrew && states[$0]?.hasUpdate == true
+        }
     }
 
     func refresh(force: Bool = false) async {
@@ -96,7 +100,7 @@ final class RecommendedToolService: ObservableObject {
     }
 
     func install(_ tools: [RecommendedTool]) async {
-        guard !isBusy, !tools.isEmpty else { return }
+        guard !isBusy, tools.contains(where: { $0.packageName != nil }) else { return }
         homebrewURL = locateHomebrew()
         guard let homebrewURL else {
             error = String(localized: "Install Homebrew to manage recommended tools.")
@@ -295,6 +299,12 @@ nonisolated enum RecommendedToolMetadata {
     }
 
     static func latestVersion(_ data: Data, for tool: RecommendedTool) throws -> String {
+        if tool == .quietMD {
+            guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let value = object["tag_name"] as? String,
+                  let version = normalizedVersion(value) else { throw RecommendedToolFailure.invalidMetadata }
+            return version
+        }
         if tool.requiredTap != nil || tool == .python {
             let text = String(decoding: data, as: UTF8.self)
             let pattern = tool == .python

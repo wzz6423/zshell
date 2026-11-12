@@ -179,7 +179,7 @@ Bricht lange Zeilen im [Dateieditor](/de/docs/files) an der Bereichsbreite optis
 
 ### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
 
-Boolescher Wert – Standard: `false`
+Boolescher Wert – Standard: `true`
 
 **Einstellungen → Editor → Zeilen an Diffbreite umbrechen** und die Umbruchschaltfläche in der Diff-Werkzeugleiste steuern dieselbe Option. Lange Zeilen werden in einspaltigen und geteilten Ansichten, bearbeitbaren Änderungen, historischen Diffs und PR-Kommentaren an die Bereichsbreite angepasst. Die Auswahl gilt sofort für alle offenen Diffs und bleibt nach Neustarts erhalten. Ausschalten stellt horizontales Scrollen wieder her. Datei-Editor und Terminal behalten ihre eigenen Umbrucheinstellungen.
 
@@ -225,7 +225,7 @@ Geben Sie für Benutzerdefiniert einen absoluten Pfad oder `~/folder` ein, oder 
 
 ### `terminal.term`
 
-Legen Sie `terminal.term` unter **Einstellungen → Terminal → TERM** fest (Standard `"xterm-256color"`). Der Name muss aus 1–128 ASCII-Buchstaben, Ziffern oder `.-_+` bestehen. Verwenden Sie einen terminfo-Namen, der auf dem Host der Shell installiert ist. Änderungen gelten nur für neue lokale und SSH-Sitzungen; offene und erhaltene PTYs behalten ihren bisherigen `TERM`. Geteilte entfernte Sitzungen verwenden den Wert beim Erstellen mit einem aktuellen Server; ältere Server behalten `xterm-256color`. Ein ungültiger Wert beim Start fällt auf `xterm-256color` zurück; ungültige Änderungen bei laufendem Zshell behalten den letzten gültigen Wert. In beiden Fällen erscheint ein Fehler in den Einstellungen. `TERM_PROGRAM` und `ZSHELL_TERM` bleiben unverändert.
+Zshell konfiguriert `xterm-256color` automatisch. Benötigt ein Host einen anderen Terminaltyp, setzen Sie `terminal.term` in `config.toml` auf einen terminfo-Namen, der auf dem Rechner mit der Shell installiert ist. Änderungen gelten für neue lokale und SSH-Sitzungen; offene und beibehaltene PTYs behalten ihren ursprünglichen `TERM`. Ungültige Namen behalten den letzten gültigen Wert bei oder verwenden beim Start `xterm-256color`.
 
 ### `terminal.backend` [#terminalbackend]
 
@@ -303,26 +303,14 @@ Beim Wiederherstellen von Terminalbereichen wird das genaue gespeicherte Gesprä
 
 Die Option steht unter **Einstellungen → Automatisierung → Agentengespräche fortsetzen**. Sie ist unabhängig von `terminal.restore-history`.
 
-### `ai.usage-enabled`
-
-Boolesch — Standard `false`
-
-Aktiviert lokale CLI-Kontolimits über **Einstellungen → Automatisierung → Kontonutzung → Kontonutzung lesen**. Ausschalten bricht Anfragen ab, blendet Daten aus und lehnt das Speichern von Claude-Nutzungsberichten ab. Anbieterauswahl bleibt erhalten. Agentenerkennung, Lebenszyklusberichte und Gesprächswiederherstellung ändern sich nicht.
-
-### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
-
-Boolesch — jeweils Standard `true`
-
-Wählt die Anbieter für `ai.usage-enabled = true`. Claude Code liest Zshells lokale Statuszeilenberichte; Codex fragt seine installierte, angemeldete CLI ab. Ausschalten eines Anbieters stoppt sofort Lesevorgänge und blendet Daten aus. Anmeldedaten werden nicht erfasst. Alle drei Optionen unterstützen Suche, Import/Export, sofortiges Neuladen und Zurücksetzen.
-
 ## Weitere Einstellungen [#additional-settings]
 
 | Schlüssel | Standard | Werte / Bereich | Wirkung |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Anwendungssymbol |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Externer Editor für Dateien und Ordner |
-| `files.drag-import` | `false` | Boolescher Wert | Finder-Objekte durch Ziehen in den lokalen Dateibaum kopieren; der Importmenüeintrag bleibt verfügbar |
-| `files.remote-write-enabled` | `false` | Boolescher Wert | Remote-Erstellen, Umbenennen, wiederherstellbares Löschen und Speichern mit vorhandenen Host-Werkzeugen erlauben |
+| `files.drag-import` | `true` | Boolescher Wert | Finder-Objekte durch Ziehen in den lokalen Dateibaum kopieren; der Importmenüeintrag bleibt verfügbar |
+| `files.remote-write-enabled` | `true` | Boolescher Wert | Remote-Erstellen, Umbenennen, wiederherstellbares Löschen und Speichern mit vorhandenen Host-Werkzeugen erlauben |
 | `terminal.theme-only` | `false` | Boolescher Wert | Gewählte Palette nur auf das Terminal anwenden |
 | `terminal.command-history` | `true` | Boolescher Wert | Neue Befehle aufzeichnen; gespeicherter Verlauf bleibt bei Aus verfügbar |
 | `terminal.text-hints` | `true` | Boolescher Wert | Tastaturhinweise für sichtbaren Terminaltext einschalten |

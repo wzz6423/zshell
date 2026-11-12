@@ -179,7 +179,7 @@ Ajusta visualmente las líneas largas al ancho del panel en el [editor de archiv
 
 ### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
 
-booleano — predeterminado: `false`
+booleano — predeterminado: `true`
 
 **Ajustes → Editor → Ajustar líneas al ancho de la diferencia** y el botón de ajuste de la barra de diferencias controlan la misma opción. Las líneas largas se adaptan al ancho del panel en las vistas unificada y dividida, cambios editables, diferencias históricas y comentarios de PR. Se aplica inmediatamente a todas las diferencias abiertas y se conserva al reiniciar. Desactivarlo restaura el desplazamiento horizontal. Es independiente del ajuste del editor de archivos y del terminal.
 
@@ -225,7 +225,7 @@ Con la opción personalizada, introduce una ruta absoluta o `~/folder`, o elige 
 
 ### `terminal.term`
 
-Configura `terminal.term` en **Ajustes → Terminal → TERM** (valor predeterminado `"xterm-256color"`). El nombre debe contener de 1 a 128 letras ASCII, dígitos o `.-_+`. Usa un nombre terminfo instalado en el equipo que ejecuta el shell. Los cambios solo se aplican a sesiones locales y SSH nuevas; los PTY abiertos y conservados mantienen su `TERM` original. Las sesiones remotas compartidas usan el valor al crearse con un servidor actualizado; los servidores antiguos mantienen `xterm-256color`. Un valor no válido al iniciar usa `xterm-256color`; las ediciones no válidas mientras Zshell está en ejecución conservan el último valor válido. En ambos casos se muestra un error en Ajustes. `TERM_PROGRAM` y `ZSHELL_TERM` no cambian.
+Zshell configura `xterm-256color` automáticamente. Si un equipo necesita otro tipo de terminal, define `terminal.term` en `config.toml` con un nombre terminfo instalado en el equipo que ejecuta el shell. Los cambios se aplican a las nuevas sesiones locales y SSH; los PTY abiertos y conservados mantienen su `TERM` original. Los nombres no válidos conservan el último valor válido o usan `xterm-256color` al iniciar.
 
 ### `terminal.backend` [#terminalbackend]
 
@@ -303,26 +303,14 @@ Al restaurar los paneles de terminal, reanuda la conversación original exacta r
 
 Se controla en **Ajustes → Automatización → Reanudar conversaciones de agentes**. Es independiente de `terminal.restore-history`.
 
-### `ai.usage-enabled`
-
-booleano — predeterminado `false`
-
-Activa la lectura de límites de las CLI locales en **Ajustes → Automatización → Uso de la cuenta → Leer uso de la cuenta**. Desactivarlo cancela solicitudes, oculta los datos y rechaza guardar informes Claude. Conserva los proveedores elegidos. No cambia el reconocimiento de agentes, los informes del ciclo de vida ni la restauración de conversaciones.
-
-### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
-
-booleano — predeterminado `true` en cada uno
-
-Selecciona proveedores cuando `ai.usage-enabled = true`. Claude Code lee el informe local de la línea de estado de Zshell; Codex consulta su CLI instalada con sesión iniciada. Desactivar un proveedor detiene la lectura y oculta sus datos de inmediato. No se recopilan credenciales. Las tres opciones admiten búsqueda, importación/exportación, recarga en vivo y restablecimiento.
-
 ## Ajustes adicionales [#additional-settings]
 
 | Clave | Predeterminado | Valores / rango | Efecto |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Icono de la aplicación |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Editor externo para archivos y carpetas |
-| `files.drag-import` | `false` | booleano | Permite copiar elementos de Finder arrastrándolos al árbol local; el menú de importación sigue disponible |
-| `files.remote-write-enabled` | `false` | booleano | Permitir crear, renombrar, eliminar de forma recuperable y guardar con las herramientas existentes del host |
+| `files.drag-import` | `true` | booleano | Permite copiar elementos de Finder arrastrándolos al árbol local; el menú de importación sigue disponible |
+| `files.remote-write-enabled` | `true` | booleano | Permitir crear, renombrar, eliminar de forma recuperable y guardar con las herramientas existentes del host |
 | `terminal.theme-only` | `false` | booleano | Aplicar la paleta seleccionada solo al terminal |
 | `terminal.command-history` | `true` | booleano | Registrar comandos nuevos; el historial guardado sigue disponible si se desactiva |
 | `terminal.text-hints` | `true` | booleano | Activar pistas de teclado sobre texto visible del terminal |

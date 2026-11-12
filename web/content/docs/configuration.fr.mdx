@@ -179,7 +179,7 @@ Adapte les longues lignes à la largeur du volet dans l'[éditeur de fichiers](/
 
 ### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
 
-Booléen — valeur par défaut : `false`
+Booléen — valeur par défaut : `true`
 
 **Réglages → Éditeur → Renvoyer les lignes à la largeur du diff** et le bouton de retour à la ligne de la barre du diff contrôlent la même option. Les longues lignes suivent la largeur du volet dans les vues unifiée et séparée, les modifications éditables, les diffs historiques et les commentaires de PR. Le choix s’applique immédiatement à tous les diffs ouverts et reste enregistré après redémarrage. Le désactiver rétablit le défilement horizontal. Les retours à la ligne de l’éditeur de fichiers et du terminal restent indépendants.
 
@@ -225,7 +225,7 @@ Pour la règle personnalisée, saisissez un chemin absolu ou `~/folder`, ou choi
 
 ### `terminal.term`
 
-Définissez `terminal.term` dans **Réglages → Terminal → TERM** (par défaut `"xterm-256color"`). Le nom doit contenir de 1 à 128 lettres ASCII, chiffres ou `.-_+`. Utilisez un nom terminfo installé sur l’hôte qui exécute le shell. Les modifications s’appliquent seulement aux nouvelles sessions locales et SSH ; les PTY ouverts et conservés gardent leur `TERM`. Les sessions distantes partagées utilisent cette valeur à leur création avec un serveur à jour ; les anciens serveurs gardent `xterm-256color`. Une valeur invalide au démarrage utilise `xterm-256color` ; une modification invalide pendant l’exécution de Zshell conserve la dernière valeur valide. Dans les deux cas, une erreur s’affiche dans Réglages. `TERM_PROGRAM` et `ZSHELL_TERM` restent inchangés.
+Zshell configure automatiquement `xterm-256color`. Si un hôte nécessite un autre type de terminal, définissez `terminal.term` dans `config.toml` avec un nom terminfo installé sur la machine qui exécute le shell. Les changements concernent les nouvelles sessions locales et SSH ; les PTY ouverts et conservés gardent leur `TERM` initial. Un nom invalide conserve la dernière valeur valide, ou utilise `xterm-256color` au démarrage.
 
 ### `terminal.backend` [#terminalbackend]
 
@@ -303,26 +303,14 @@ Lors de la restauration des volets de terminal, reprend exactement la conversati
 
 Activez cette option dans **Réglages → Automatisation → Reprendre les conversations des agents**. Elle est indépendante de `terminal.restore-history`.
 
-### `ai.usage-enabled`
-
-booléen — valeur par défaut `false`
-
-Active la lecture des limites de compte des CLI locales via **Réglages → Automatisation → Utilisation du compte → Lire l’utilisation du compte**. Désactiver annule les demandes, masque les données et refuse de sauvegarder les rapports Claude. Les choix des fournisseurs sont conservés. La reconnaissance des agents, les rapports de cycle de vie et la restauration des conversations ne changent pas.
-
-### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
-
-booléen — valeur par défaut `true` pour chacun
-
-Choisit les fournisseurs lus lorsque `ai.usage-enabled = true`. Claude Code lit les rapports locaux de la ligne d’état de Zshell ; Codex interroge sa CLI installée et connectée. Désactiver un fournisseur arrête immédiatement ses lectures et masque ses données. Aucun identifiant de connexion n’est collecté. Les trois options prennent en charge la recherche, l’import/export, le rechargement en direct et la réinitialisation.
-
 ## Autres réglages [#additional-settings]
 
 | Clé | Valeur par défaut | Valeurs / plage | Effet |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Icône de l'application |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | Éditeur externe pour les fichiers et dossiers |
-| `files.drag-import` | `false` | booléen | Autoriser les copies depuis le Finder par glisser-déposer ; le menu d’importation reste disponible |
-| `files.remote-write-enabled` | `false` | booléen | Autoriser la création, le renommage, la suppression récupérable et l’enregistrement distants avec les outils existants de l’hôte |
+| `files.drag-import` | `true` | booléen | Autoriser les copies depuis le Finder par glisser-déposer ; le menu d’importation reste disponible |
+| `files.remote-write-enabled` | `true` | booléen | Autoriser la création, le renommage, la suppression récupérable et l’enregistrement distants avec les outils existants de l’hôte |
 | `terminal.theme-only` | `false` | Booléen | Appliquer la palette sélectionnée au terminal uniquement |
 | `terminal.command-history` | `true` | Booléen | Enregistrer les nouvelles commandes ; l’historique sauvegardé reste accessible si désactivé |
 | `terminal.text-hints` | `true` | Booléen | Activer les repères clavier sur le texte visible du terminal |

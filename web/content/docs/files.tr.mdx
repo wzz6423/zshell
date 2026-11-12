@@ -26,7 +26,7 @@ Satırlar dosya adını tanıyan Material simgeleri kullanır. Git deposundaki d
 
 ## Uzak dosyalar [#remote-files]
 
-SSH dosyalarını Dosyalar panelinden açın. Oluşturmak, yeniden adlandırmak, uzak çöp kutusuna taşımak veya kaydetmek için **Ayarlar → Düzenleyici → Dosyalar → Uzak dosya değişikliklerine izin ver** seçeneğini açın (`files.remote-write-enabled`, varsayılan olarak kapalı).
+SSH dosyalarını Dosyalar panelinden açın. Oluşturmak, yeniden adlandırmak, uzak çöp kutusuna taşımak veya kaydetmek için **Ayarlar → Düzenleyici → Dosyalar → Uzak dosya değişikliklerine izin ver** seçeneğini açın (`files.remote-write-enabled`, varsayılan olarak açık).
 
 Zshell yalnızca ana makinede mevcut araçları kullanır ve hiçbir şey yüklemez. Okuma ve düzenleme, mevcut Perl çekirdek modüllerini kullanır. Her yazma işlemi gereken dosya sistemi özelliklerini de denetler; desteklenmeyen işlemler kapalı kalır. Sembolik bağlantılar, özel dosyalar ve proje dışındaki yollar reddedilir. UTF-8 metin dosyaları en fazla 5 MiB olabilir; uzak Markdown kaynak olarak açılır.
 
@@ -38,7 +38,7 @@ Yerel kayıt koruması kapalı olsa da uzak kaydetme değişiklikleri denetler. 
 
 **Dosya → Dosyaları İçe Aktar…**, Dosyalar panelindeki içe aktarma düğmesi veya bir klasörün sağ tık menüsündeki bu seçeneği kullanın. Birden çok dosya ya da klasör seçebilirsiniz; Zshell özgünleri koruyarak seçilen klasöre veya geçerli ağaç köküne kopyalar.
 
-Finder öğelerini bir klasöre veya ağacın boş alanına bırakmak için **Ayarlar → Düzenleyici → Dosyalar → Dosya ağacına sürükleyerek içe aktar** (`files.drag-import`) seçeneğini açın. Varsayılan olarak kapalıdır; menü her zaman kullanılabilir.
+Finder öğelerini bir klasöre veya ağacın boş alanına bırakmak için **Ayarlar → Düzenleyici → Dosyalar → Dosya ağacına sürükleyerek içe aktar** (`files.drag-import`) seçeneğini açın. Varsayılan olarak açıktır; menü her zaman kullanılabilir.
 
 Aynı ad varsa **Değiştir**, **Atla** ve **İptal** seçenekleri sunulur. Klasör değiştirilirken içerikleri birleştirilmez, klasörün tamamı değiştirilir. İptal tüm içe aktarmayı durdurur ve bu işlemde eklenen kopyaları geri yükler. Başka bir program öğeyi geri yüklenmeden önce değiştirirse Zshell değişikliği korur ve kurtarma dosyaları içerebilecek bir klasörü gösterir. SSH ağaçları yerel içe aktarmayı kabul etmez. Sembolik bağlantılar hedefleri izlenmeden bağlantı olarak kopyalanır.
 

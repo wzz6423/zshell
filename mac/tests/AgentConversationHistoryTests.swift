@@ -909,13 +909,16 @@ struct AgentConversationHistoryTests {
         let attention = agents.submenu?.items.first { $0.identifier?.rawValue == "agent-attention" }
         try check(attention?.keyEquivalent == "a" && attention?.keyEquivalentModifierMask == [.command, .shift],
                   "the native Agents menu preserves the attention command shortcut")
+        let rules = agents.submenu?.items.first { $0.identifier?.rawValue == "agent-recognition-rules" }
+        try check(rules?.title == String(localized: "Manage Agent Rules…") && rules?.action != nil,
+                  "the native Agents menu retains its recognition rules command")
         agents.submenu?.removeAllItems()
         pump(0.05)
-        try check(agents.submenu?.items.count == 3,
+        try check(agents.submenu?.items.count == 4,
                   "history actions return after submenu contents are rebuilt")
         agents.submenu = NSMenu(title: agents.title)
         pump(0.05)
-        try check(agents.submenu?.items.count == 3,
+        try check(agents.submenu?.items.count == 4,
                   "history actions return after the Agents submenu is replaced")
         AppMenuController.shared.install()
         pump(0.05)

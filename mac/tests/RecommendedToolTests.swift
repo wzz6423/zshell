@@ -45,6 +45,9 @@ private actor ToolFixture {
     func load(_ url: URL) throws -> Data {
         metadataRequests.append(url)
         if failMetadata { throw URLError(.notConnectedToInternet) }
+        if url.path == "/repos/s1dashu/quiet-md/releases/latest" {
+            return Data(#"{"tag_name":"v0.1.10","html_url":"https://github.com/s1dashu/quiet-md/releases/tag/v0.1.10"}"#.utf8)
+        }
         if url.lastPathComponent == "python" {
             return Data("class PythonAT314 < Formula\n  url \"https://www.python.org/ftp/python/3.14.2/Python-3.14.2.tgz\"\nend\n".utf8)
         }
@@ -95,10 +98,14 @@ struct RecommendedToolTests {
             homeDirectory: URL(fileURLWithPath: "/nonexistent-zshell-test-home"),
             applicationDirectories: []
         )
-        expect(RecommendedTool.allCases.count == 45, "45 recommendations remain available")
-        expect(RecommendedToolGroup.allCases.map { group in RecommendedTool.allCases.filter { $0.group == group }.count } == [11, 7, 21, 3, 3], "preserve the five recommendation groups")
+        expect(RecommendedTool.allCases.count == 46, "46 recommendations remain available")
+        expect(RecommendedToolGroup.allCases.map { group in RecommendedTool.allCases.filter { $0.group == group }.count } == [11, 7, 21, 3, 4], "preserve the five recommendation groups")
         expect(RecommendedTool(rawValue: "zshell") == nil, "the running app is not recommended to itself")
         expect(RecommendedTool(rawValue: "kero") == nil, "Kero is no longer recommended")
+        expect(RecommendedTool.quietMD.name == "Quiet.md", "preserve the official Quiet.md name")
+        expect(RecommendedTool.quietMD.packageName == nil && RecommendedTool.quietMD.requiredTap == nil, "Quiet.md has no Homebrew installation channel")
+        expect(RecommendedTool.quietMD.projectURL == URL(string: "https://github.com/s1dashu/quiet-md"), "Quiet.md links to its official project")
+        expect(RecommendedTool.quietMD.downloadURL == URL(string: "https://github.com/s1dashu/quiet-md/releases/latest"), "Quiet.md download page offers both Mac architectures")
         expect(service.missingTools.isEmpty, "unchecked inventory must not enable install-all")
         await service.refresh(force: true)
         expect(service.states[.fzf]?.installedVersion == "0.60.0", "detect Homebrew formula")
@@ -108,15 +115,23 @@ struct RecommendedToolTests {
         expect(service.missingTools.contains(.tree), "missing tool enables installation")
         expect(service.missingTools.contains(.zisla), "missing Zisla participates in install-all")
         expect(service.states[.zisla]?.latestVersion == "0.1.11", "Zisla version comes from its cask recipe")
+        expect(service.states[.quietMD]?.hasCheckedInstallation == true && service.states[.quietMD]?.isInstalled == false, "check Quiet.md installation without installing it")
+        expect(!service.missingTools.contains(.quietMD), "Homebrew install-all excludes the official-download recommendation")
+        expect(service.states[.quietMD]?.latestVersion == "0.1.10", "Quiet.md version comes from its official GitHub release")
         let afterRefresh = await fixture.commands
         expect(!afterRefresh.contains { ["install", "upgrade", "tap"].contains($0.first ?? "") }, "automatic checks never mutate packages or taps")
         let requests = await fixture.metadataRequests
-        expect(requests.count == 45, "check every recommended tool")
+        expect(requests.count == 46, "check every recommended tool")
         expect(!requests.contains { $0.absoluteString.contains("kero") }, "removed Kero metadata is never requested")
         expect(requests.contains(URL(string: "https://api.github.com/repos/wzz6423/homebrew-tap/contents/Casks/zisla.rb?ref=main")!), "Zisla metadata uses the installable tap recipe")
+        expect(requests.contains(URL(string: "https://api.github.com/repos/s1dashu/quiet-md/releases/latest")!), "Quiet.md metadata uses the official release API")
         await service.refresh()
         let cachedRequests = await fixture.metadataRequests
         expect(cachedRequests == requests, "reopening within cache lifetime does not repeat network requests")
+
+        await service.install([.quietMD])
+        let afterQuietMDInstall = await fixture.commands
+        expect(afterQuietMDInstall == afterRefresh, "the official-download recommendation never starts Homebrew installation")
 
         await service.install([.tree])
         expect(service.states[.tree]?.location == .homebrew, "new installation becomes managed")
@@ -137,6 +152,7 @@ struct RecommendedToolTests {
         let afterInstallAll = await fixture.commands
         expect(afterInstallAll.dropFirst(beforeInstallAll).contains(["install", "--cask", "wzz6423/tap/zisla"]), "install-all includes missing Zisla")
         expect(service.missingTools.isEmpty, "install-all refreshes every installed tool")
+        expect(!afterInstallAll.contains { $0.contains(where: { $0.contains("quiet-md") }) }, "install-all never installs a third-party Quiet.md cask")
 
         await fixture.setZislaInstalledVersion("0.1.10")
         await service.refresh(force: true)
@@ -168,6 +184,10 @@ struct RecommendedToolTests {
         try FileManager.default.createDirectory(at: contents, withIntermediateDirectories: true)
         let info = try PropertyListSerialization.data(fromPropertyList: ["CFBundleShortVersionString": "0.1.12"], format: .xml, options: 0)
         try info.write(to: contents.appendingPathComponent("Info.plist"))
+        let quietContents = applicationDirectory.appendingPathComponent("quiet.md.app/Contents", isDirectory: true)
+        try FileManager.default.createDirectory(at: quietContents, withIntermediateDirectories: true)
+        let quietInfo = try PropertyListSerialization.data(fromPropertyList: ["CFBundleShortVersionString": "0.1.9"], format: .xml, options: 0)
+        try quietInfo.write(to: quietContents.appendingPathComponent("Info.plist"))
         await fixture.setZislaInstalledVersion(nil)
         let applicationService = RecommendedToolService(
             commandRunner: { executable, arguments, environment, _ in
@@ -181,6 +201,10 @@ struct RecommendedToolTests {
         expect(applicationService.states[.zisla]?.location == .external, "detect manually installed lowercase zisla.app")
         expect(applicationService.states[.zisla]?.installedVersion == "0.1.12", "read Zisla bundle version")
         expect(!applicationService.missingTools.contains(.zisla), "external Zisla is not missing")
+        expect(applicationService.states[.quietMD]?.location == .external, "detect the official lowercase quiet.md.app bundle")
+        expect(applicationService.states[.quietMD]?.installedVersion == "0.1.9", "read Quiet.md bundle version")
+        expect(applicationService.states[.quietMD]?.hasUpdate == true, "show a newer official Quiet.md release")
+        expect(!applicationService.missingTools.contains(.quietMD) && !applicationService.updatableTools.contains(.quietMD), "Homebrew batch actions exclude installed Quiet.md")
         await fixture.setZislaInstalledVersion("0.1.10")
         await applicationService.refresh(force: true)
         expect(applicationService.states[.zisla]?.location == .homebrew, "recognize the installed Zisla cask")
@@ -188,12 +212,15 @@ struct RecommendedToolTests {
         expect(!applicationService.updatableTools.contains(.zisla), "update-all does not downgrade a newer Zisla bundle")
 
         let unavailable = RecommendedToolService(homebrewLocator: { nil }, defaults: defaults)
+        await unavailable.install([.quietMD])
+        expect(unavailable.error == nil && !unavailable.isBusy, "official-download recommendations do not require Homebrew")
         await unavailable.install([.tree])
         expect(unavailable.error != nil && !unavailable.isBusy, "missing Homebrew reports actionable failure")
         expect(RecommendedToolMetadata.isNewer("1.10.0", than: "1.9.9"), "numeric version ordering")
         expect(RecommendedToolMetadata.isNewer("1.2.3_1", than: "1.2.3"), "Homebrew revisions count as updates")
         expect(!RecommendedToolMetadata.isNewer("1.2.3", than: "1.2.3_1"), "never advertise a downgrade")
         expect(RecommendedToolMetadata.installedVersions("tree 1.9.0 1.10.0\n")["tree"] == "1.10.0", "multiple installed receipts select newest")
+        expect((try? RecommendedToolMetadata.latestVersion(Data(#"{"version":"0.1.10"}"#.utf8), for: .quietMD)) == nil, "Quiet.md requires an official release tag")
         print("Recommended tools tests: \(passed) passed, 0 failed")
     }
 }

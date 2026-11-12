@@ -18,7 +18,7 @@ Her terminal bölmesi gerçek giriş kabuğunuzu ve GPU hızlandırmalı iki yer
 
 ## Terminal türü [#terminal-type]
 
-**Ayarlar → Terminal → TERM** altında `terminal.term` değerini ayarlayın (varsayılan `"xterm-256color"`). Ad, 1–128 ASCII harfi, rakam veya `.-_+` içermelidir. Shell’in çalıştığı ana bilgisayarda yüklü bir terminfo adı kullanın. Değişiklikler yalnızca yeni yerel ve SSH oturumlarına uygulanır; açık ve korunan PTY’ler özgün `TERM` değerini korur. Paylaşılan uzak oturumlar güncel sunucuda oluşturulurken bu değeri kullanır; eski sunucular `xterm-256color` kullanmaya devam eder. Geçersiz düzenlemeler son geçerli değeri korur ve Ayarlar’da hata gösterir. `TERM_PROGRAM` ve `ZSHELL_TERM` değişmez.
+Zshell, `xterm-256color` değerini otomatik olarak ayarlar. Bir ana bilgisayar başka bir terminal türü gerektiriyorsa `config.toml` içindeki `terminal.term` değerini shell’i çalıştıran makinede yüklü bir terminfo adına ayarlayın. Değişiklikler yeni yerel ve SSH oturumlarına uygulanır; açık ve korunan PTY’ler özgün `TERM` değerini korur. Geçersiz adlar son geçerli değeri korur veya başlangıçta `xterm-256color` kullanır.
 
 ## Komut geçmişi [#command-history]
 

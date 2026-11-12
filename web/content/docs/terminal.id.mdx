@@ -18,7 +18,7 @@ Keduanya mendukung akselerasi GPU, gambar, katalog tema bersama Zshell, pencaria
 
 ## Jenis terminal [#terminal-type]
 
-Atur `terminal.term` di **Pengaturan → Terminal → TERM** (default `"xterm-256color"`). Nama harus berisi 1–128 huruf ASCII, angka, atau `.-_+`. Gunakan nama terminfo yang terpasang di host yang menjalankan shell. Perubahan hanya berlaku untuk sesi lokal dan SSH baru; PTY terbuka dan tersimpan mempertahankan `TERM` asli. Sesi jarak jauh bersama menggunakan nilai ini saat dibuat dengan server terbaru; server lama tetap menggunakan `xterm-256color`. Edit yang tidak valid mempertahankan nilai valid terakhir dan menampilkan kesalahan di Pengaturan. `TERM_PROGRAM` dan `ZSHELL_TERM` tidak berubah.
+Zshell mengatur `xterm-256color` secara otomatis. Jika host memerlukan jenis terminal lain, atur `terminal.term` di `config.toml` ke nama terminfo yang terpasang pada mesin yang menjalankan shell. Perubahan berlaku untuk sesi lokal dan SSH baru; PTY terbuka dan tersimpan mempertahankan `TERM` aslinya. Nama yang tidak valid mempertahankan nilai valid terakhir, atau menggunakan `xterm-256color` saat startup.
 
 ## Riwayat perintah [#command-history]
 

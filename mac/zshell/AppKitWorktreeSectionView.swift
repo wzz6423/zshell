@@ -68,6 +68,7 @@ struct GitBranchesSectionView: NSViewRepresentable {
 struct GitRepositorySectionMetrics {
     let sidebar: SidebarLayoutMetrics
     init(fontScale: CGFloat) { sidebar = SidebarLayoutMetrics(fontScale: fontScale) }
+    var trailingInset: CGFloat { 14 }
     var headerHeight: CGFloat {
         sidebar.lineHeight(designedFontSize: 9.5, weight: .medium, minimum: 16) + 11
     }
@@ -131,6 +132,8 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
         header.target = self
         header.action = #selector(toggleSection)
         addButton.isBordered = false
+        addButton.imagePosition = .imageOnly
+        addButton.imageScaling = .scaleProportionallyDown
         addButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: nil)
         addButton.toolTip = String(localized: "Create Worktree")
         addButton.target = self
@@ -245,14 +248,23 @@ final class GitRepositorySectionNSView: NSView, NSTableViewDataSource, NSTableVi
 
     override func layout() {
         super.layout()
-        let countWidth = ceil(countLabel.fittingSize.width)
-        let labelHeight = metrics.headerHeight - 11
-        let actionWidth = metrics.sidebar.slotSize(18)
-        header.frame = NSRect(x: 8, y: 8, width: max(0, bounds.width - countWidth - actionWidth - 28), height: labelHeight)
-        addButton.frame = NSRect(x: max(8, bounds.width - countWidth - actionWidth - 13), y: 6,
-                                  width: actionWidth, height: labelHeight + 4)
-        countLabel.frame = NSRect(x: max(8, bounds.width - countWidth - 8), y: 8,
-                                 width: countWidth, height: labelHeight)
+        let leading: CGFloat = 8
+        let trailing = max(leading, bounds.width - metrics.trailingInset)
+        let countSize = countLabel.fittingSize
+        let countWidth = min(ceil(countSize.width), max(0, trailing - leading))
+        let countHeight = ceil(countSize.height)
+        let labelHeight = max(metrics.headerHeight - 11, ceil(header.fittingSize.height))
+        let centerY = metrics.headerHeight / 2
+        countLabel.frame = NSRect(x: trailing - countWidth, y: centerY - countHeight / 2,
+                                 width: countWidth, height: countHeight)
+        let actionWidth = min(metrics.sidebar.slotSize(18), max(0, countLabel.frame.minX - leading - 5))
+        // Symbol insets vary with font size; align their visible bounds, not their frames.
+        addButton.frame = addButton.frame(forAlignmentRect: NSRect(
+            x: countLabel.frame.minX - actionWidth - 5, y: centerY - labelHeight / 2,
+            width: actionWidth, height: labelHeight
+        ))
+        header.frame = NSRect(x: leading, y: centerY - labelHeight / 2,
+                              width: max(0, addButton.frame.minX - leading - 7), height: labelHeight)
         let listHeight = isCollapsed ? 0 : metrics.listHeight(count: rows.count, branchRows: rows.isBranches)
         tableView.frame = NSRect(x: 0, y: metrics.headerHeight, width: bounds.width, height: listHeight)
         tableView.tableColumns.first?.width = bounds.width
@@ -497,7 +509,7 @@ private final class GitRepositoryRowButton: NSButton {
         super.layout()
         let iconSize = metrics.sidebar.iconSize(14)
         let leading = 8 + iconSize + 7
-        let available = max(0, bounds.width - leading - iconSize - 16)
+        let available = max(0, bounds.width - leading - iconSize - metrics.trailingInset - 8)
         let titleHeight = metrics.sidebar.lineHeight(designedFontSize: 11, weight: .medium, minimum: 14)
         let pathHeight = isBranchRow ? 0 : metrics.sidebar.lineHeight(designedFontSize: 9.5, minimum: 12)
         let top = (bounds.height - titleHeight - pathHeight - (isBranchRow ? 0 : 1)) / 2
@@ -507,7 +519,7 @@ private final class GitRepositoryRowButton: NSButton {
         branchLabel.frame = NSRect(x: leading, y: top, width: branchWidth, height: titleHeight)
         currentLabel.frame = NSRect(x: leading + available - currentWidth, y: top, width: currentWidth, height: titleHeight)
         pathLabel.frame = NSRect(x: leading, y: top + titleHeight + 1, width: available, height: pathHeight)
-        openIcon.frame = NSRect(x: bounds.width - iconSize - 8, y: (bounds.height - iconSize) / 2,
+        openIcon.frame = NSRect(x: bounds.width - iconSize - metrics.trailingInset, y: (bounds.height - iconSize) / 2,
                                width: iconSize, height: iconSize)
     }
 

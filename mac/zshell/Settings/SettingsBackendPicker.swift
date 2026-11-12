@@ -55,12 +55,12 @@ private final class BackendOptionCard: SettingsCardButton {
         icon.imageScaling = .scaleProportionallyUpOrDown
         icon.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            icon.widthAnchor.constraint(equalToConstant: 24),
-            icon.heightAnchor.constraint(equalToConstant: 24),
+            icon.widthAnchor.constraint(equalToConstant: SettingsMetrics.rowIconSize),
+            icon.heightAnchor.constraint(equalToConstant: SettingsMetrics.rowIconSize),
         ])
 
         let name = NSTextField(labelWithString: backend.displayName)
-        name.font = .systemFont(ofSize: NSFont.systemFontSize)
+        name.font = SettingsMetrics.rowTitleFont
 
         let header = NSStackView(views: [icon, name])
         header.orientation = .horizontal

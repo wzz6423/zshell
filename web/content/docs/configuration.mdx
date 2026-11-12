@@ -217,7 +217,7 @@ terminal or diff.
 
 ### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
 
-boolean — default `false`
+boolean — default `true`
 
 Choose **Settings → Editor → Wrap lines to diff width** or the word-wrap button in the diff toolbar. Long lines wrap to the pane width in unified and split layouts, editable worktree changes, historical diffs, and PR comments. The choice applies immediately to all open diffs and is saved across launches. Turning it off restores horizontal scrolling. It does not change file-editor or terminal wrapping.
 
@@ -298,7 +298,7 @@ For the custom policy, enter an absolute path or `~/folder`, or choose a folder 
 
 ### `terminal.term`
 
-Choose **Settings → Terminal → TERM** to set `terminal.term` (default `"xterm-256color"`). The name must contain 1–128 ASCII letters, digits, or `.-_+`. Use a terminfo name installed on the machine running the shell. Changes apply to new local and SSH sessions only; open and preserved PTYs keep their original `TERM`. Shared remote sessions use the value when created with an updated server; older servers keep `xterm-256color`. An invalid value at startup falls back to `xterm-256color`; invalid edits while Zshell is running retain the last valid value. Both show an error in Settings. This setting leaves `TERM_PROGRAM` and `ZSHELL_TERM` unchanged.
+Zshell configures `xterm-256color` automatically. If a host requires another terminal type, set `terminal.term` in `config.toml` to a terminfo name installed on the machine running the shell. Changes apply to new local and SSH sessions; open and preserved PTYs keep their original `TERM`. Invalid names retain the previous valid value, or use `xterm-256color` at startup.
 
 ### `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch`
 
@@ -413,26 +413,14 @@ When terminal panes are restored, resumes the exact recorded Claude Code, Codex,
 
 Control it with **Settings → Automation → Resume agent conversations**. This setting is independent of `terminal.restore-history`.
 
-### `ai.usage-enabled`
-
-boolean — default `false`
-
-Enable local CLI account-limit reading in **Settings → Automation → Account Usage → Read account usage**. Turning it off cancels pending usage requests, hides usage data, and rejects Claude usage reports without saving them. Provider choices are retained. Usage settings do not change agent recognition, lifecycle reports, or conversation restoration.
-
-### `ai.claude-usage-enabled` / `ai.codex-usage-enabled`
-
-boolean — default `true` for each
-
-Choose which providers can read usage while `ai.usage-enabled = true`. Claude Code reads Zshell’s local status-line usage report; Codex queries its installed, signed-in CLI. Disabling a provider immediately stops its reads and hides its data. No sign-in credentials are collected. The three choices support settings search, import/export, live configuration reload, and reset to defaults.
-
 ## Additional settings
 
 | Key | Default | Values / range | Effect |
 | --- | --- | --- | --- |
 | `app-icon` | `"default"` | `"default"` / `"light"` / `"dark"` | Application icon |
 | `editor.external-editor` | `"default"` | `"default"` / `"vscode"` / `"zed"` / `"cursor"` | External editor for files and folders |
-| `files.drag-import` | `false` | boolean | Enable Finder drag-and-drop copies into the local file tree; the import menu always remains available |
-| `files.remote-write-enabled` | `false` | boolean | Allow remote file creation, rename, recoverable deletion, and saves when supported by existing host tools |
+| `files.drag-import` | `true` | boolean | Enable Finder drag-and-drop copies into the local file tree; the import menu always remains available |
+| `files.remote-write-enabled` | `true` | boolean | Allow remote file creation, rename, recoverable deletion, and saves when supported by existing host tools |
 | `terminal.theme-only` | `false` | boolean | Apply the selected palette to the terminal only |
 | `terminal.command-history` | `true` | boolean | Record new command history; saved entries remain available when off |
 | `terminal.text-hints` | `true` | boolean | Enable keyboard hints for visible terminal text |
