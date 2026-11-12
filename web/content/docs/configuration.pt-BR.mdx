@@ -23,7 +23,7 @@ Antes de editar manualmente, considere:
 
 - **Mudanças são lidas durante a execução.** Edições externas válidas se aplicam automaticamente; ajustes para novos terminais ainda exigem um novo painel. Arquivos ilegíveis ou malformados mantêm os últimos ajustes válidos. Um arquivo intencionalmente vazio restaura os padrões após uma breve espera.
 - **O Zshell reescreve o arquivo quando muda um ajuste armazenado nele.** O arquivo é regenerado, então comentários e chaves desconhecidas se perdem na próxima utilização desses controles. Escolha uma forma principal de edição ou mantenha uma cópia oficial nos seus dotfiles.
-- **A maioria dos valores padrão é omitida.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` são sempre gravados. Remover uma dessas três chaves de terminal em um arquivo existente desativa o recurso; remover outras chaves restaura os valores padrão.
+- **A maioria dos valores padrão é omitida.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` são sempre gravados. Remover `terminal.vim-command-hints`, `terminal.restore-history` ou `terminal.notify-on-error` de um arquivo existente desativa o recurso correspondente. Remover `terminal.prompt-queue-enabled` restaura seu padrão `true`; remover `terminal.prompt-queue-auto-dispatch` restaura seu padrão `false`. Remover outras chaves restaura seus valores padrão.
 - **O parser é propositalmente pequeno.** Suporta chaves simples, chaves com pontos, cabeçalhos `[table]`, comentários `#` e valores de texto, número e booleano. Não suporta arrays, tabelas em linha ou strings com múltiplas linhas.
 - **Valores inválidos usam um fallback seguro.** Tamanhos fora da faixa, backends desconhecidos e nomes de temas incorretos não impedem o aplicativo de abrir.
 
@@ -243,6 +243,7 @@ Escolhe provedores quando `ai.usage-enabled = true`. Claude Code lê o relatóri
 | `terminal.theme-only` | `false` | Booleano | Aplicar a paleta apenas ao terminal |
 | `terminal.command-history` | `true` | Booleano | Registrar novos comandos; histórico salvo continua disponível ao desativar |
 | `terminal.text-hints` | `true` | Booleano | Ativar dicas de teclado para texto visível do terminal |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | Booleano | **Ajustes → Terminal → Fila de prompts** controla os espaços e o Quick Terminal. Desativar o interruptor principal oculta barras e cancela envios; entradas e texto ficam até fechar o terminal. O envio automático é opcional e passa a valer no próximo término de comando, em ordem, apenas no prompt vazio do zsh original sem tarefa ativa. Ativar não reproduz a fila imediatamente. O envio manual usa as mesmas verificações; outros shells, shells aninhados, programas em primeiro plano e rascunhos não recebem a fila. |
 | `terminal.auto-profiles` | `true` | Booleano | Associar perfis automaticamente; seleção manual disponível |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Forma do cursor |
 | `terminal.cursor-blinking` | `true` | Booleano | Piscar o cursor |

@@ -106,9 +106,13 @@ Pengaturan hanya berlaku pada panel itu. Klik kanan lagi dan hapus centang untuk
 
 Fokuskan terminal lalu tekan <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>, atau pilih **Tampilkan/Sembunyikan Antrean Instruksi** di palet perintah. Bilah akan terbuka di bawah terminal. Ketik entri lalu tekan <kbd>Return</kbd> atau **Tambahkan ke Antrean**. Setiap entri hanya satu baris; pergantian baris yang ditempel diganti spasi.
 
-Saat zsh awal kembali ke prompt kosong, Zshell mengirim entri berikutnya beserta Return. Entri dijalankan sesuai urutan. Pengiriman otomatis menunggu saat agen atau program latar depan lain menguasai terminal, atau saat prompt berisi draf. Fitur ini memerlukan integrasi zsh Zshell; shell lain dan shell bersarang dapat mengirim secara manual.
+Pengiriman manual secara default. **Kirim Sekarang** hanya mengirim saat prompt zsh asli kosong dan tidak ada tugas perintah tertunda atau berjalan yang memakai terminal. Tombol nonaktif untuk agen, program latar depan, draf, shell lain, dan shell bersarang. Pengiriman yang ditolak tetap menyimpan entri.
 
-Setiap entri memiliki tombol **Kirim Sekarang** dan **Hapus**. **Kirim Sekarang** langsung mengirim teks beserta Return ke program terminal saat ini tanpa menunggu prompt shell. <kbd>Esc</kbd> atau tombol tutup menyembunyikan bilah tanpa menghapus antrean. Tiap terminal mempunyai antreannya sendiri; menutup sesi atau keluar dari Zshell menghapusnya.
+Di **Pengaturan → Terminal → Antrean instruksi**, aktifkan **Kirim instruksi antrean secara otomatis** agar entri berikutnya dikirim berurutan setelah perintah selesai dan zsh kembali ke prompt kosong. Mengaktifkan tidak langsung menjalankan antrean; berlaku mulai penyelesaian perintah berikutnya. Menonaktifkan membatalkan pengiriman tertunda.
+
+Menonaktifkan **Aktifkan antrean instruksi** menyembunyikan bilah di semua ruang kerja dan Quick Terminal, membatalkan pengiriman, dan menyimpan entri serta masukan yang belum dikirim. Menu dan pintasan akan membuka pengaturan terkait saat nonaktif.
+
+**Hapus** menghapus entri. Panel sempit menampilkan ikon bernama dengan tooltip. <kbd>Esc</kbd> atau menutup hanya menyembunyikan bilah. Setiap terminal memiliki antrean sendiri yang dihapus saat sesi atau Zshell ditutup.
 
 ## Jalur dan URL [#paths-and-urls]
 

@@ -23,7 +23,7 @@ Elle düzenlemeden önce bilin:
 
 - **Değişiklikler çalışırken okunur.** Geçerli dış düzenlemeler otomatik uygulanır; yeni terminallere yönelik ayarlar hâlâ yeni bölme ister. Okunamayan veya hatalı dosya son geçerli ayarları korur. Bilerek boş bırakılmış dosya kısa bir beklemeden sonra varsayılanları geri getirir.
 - **Dosyada tutulan ayar değişince Zshell dosyayı yeniden yazar.** Baştan oluşturulduğu için bu denetimleri sonraki kullanımınızda yorumlar ve bilinmeyen anahtarlar kaybolur. Dosya için tek düzenleyici seçin veya dotfile’larınızda esas kopya tutun.
-- **Varsayılan değerlerin çoğu yazılmaz.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` daima kaydedilir. Mevcut dosyada bu üç terminal anahtarından birini silmek ilgili özelliği kapatır; diğer anahtarları silmek varsayılanlarını geri getirir.
+- **Varsayılan değerlerin çoğu yazılmaz.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` daima kaydedilir. Mevcut dosyada `terminal.vim-command-hints`, `terminal.restore-history` veya `terminal.notify-on-error` anahtarını silmek ilgili özelliği kapatır. `terminal.prompt-queue-enabled` anahtarını silmek varsayılan `true` değerini, `terminal.prompt-queue-auto-dispatch` anahtarını silmek varsayılan `false` değerini geri getirir. Diğer anahtarları silmek her birinin varsayılanını geri getirir.
 - **Ayrıştırıcı bilinçli olarak küçüktür.** Düz/noktalı anahtarları, `[table]` başlıklarını, `#` yorumlarını ve metin/sayı/mantıksal değerleri destekler. Dizi, satır içi tablo ve çok satırlı metin desteklemez.
 - **Geçersiz değerler güvenle varsayılana döner.** Aralık dışı boyut, bilinmeyen arka uç veya yanlış yazılmış tema Zshell’in açılmasını engellemez.
 
@@ -243,6 +243,7 @@ boolean — her biri varsayılan `true`
 | `terminal.theme-only` | `false` | mantıksal | Paleti yalnızca terminale uygular |
 | `terminal.command-history` | `true` | mantıksal | Yeni komutları kaydet; kapalıyken kayıtlı geçmiş kullanılabilir |
 | `terminal.text-hints` | `true` | mantıksal | Görünür terminal metni için klavye ipuçlarını etkinleştir |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | mantıksal | **Ayarlar → Terminal → Komut kuyruğu** tüm çalışma alanları ve Quick Terminal’i denetler. Ana anahtarı kapatmak çubukları gizler ve gönderimleri iptal eder; girdiler ve metin terminal kapanana kadar korunur. Otomatik gönderim isteğe bağlıdır, sonraki komut bitiminde sırayla ve yalnızca özgün zsh’nin boş komut satırında etkin görev yokken çalışır. Açmak kuyruğu hemen çalıştırmaz. Elle gönderim aynı denetimleri kullanır; başka veya iç içe kabuklar, ön plan programları ve taslaklar kuyruk alamaz. |
 | `terminal.auto-profiles` | `true` | mantıksal | Terminal profillerini otomatik eşleştir; elle seçim kullanılabilir |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | Terminal imleç biçimi |
 | `terminal.cursor-blinking` | `true` | mantıksal | İmleci yanıp söndürür |

@@ -30,10 +30,7 @@ Worth knowing before you hand-edit:
   regenerated from scratch, so your comments and unknown keys are lost the
   next time you use one of those controls. Pick one editor for the file, or
   keep an authoritative copy in your dotfiles.
-- **Most default values are omitted.** `font-size`, `terminal.vim-command-hints`,
-  `terminal.restore-history`, and `terminal.notify-on-error` are always written.
-  Removing one of these three terminal keys disables that feature in an existing
-  file; removing other keys restores their defaults.
+- **Most default values are omitted.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch` are always written. Removing `terminal.vim-command-hints`, `terminal.restore-history`, or `terminal.notify-on-error` from an existing file disables that feature. Removing `terminal.prompt-queue-enabled` restores its default `true`; removing `terminal.prompt-queue-auto-dispatch` restores its default `false`. Removing other keys restores their defaults.
 - **The parser is deliberately small.** It supports flat keys, dotted keys,
   `[table]` headers, `#` comments, and string/number/boolean values. It does not
   support arrays, inline tables, or multi-line strings.
@@ -236,6 +233,22 @@ Quotes and backslashes preserve boundaries, including spaces and empty
 arguments, but variables, globs, and command substitutions are not expanded.
 Invalid quoting also falls back to the login shell. An explicit argv supplied by
 the Zshell CLI still takes precedence for that terminal.
+
+### `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch`
+
+booleans — defaults `true` / `false`
+
+**Settings → Terminal → Prompt Queue** controls the [per-terminal prompt queue](/en/docs/terminal#prompt-queue).
+`terminal.prompt-queue-enabled = false` hides queue bars in every workspace and the
+Quick Terminal, cancels pending sends, and preserves the queued entries and input
+until their terminal closes. Re-enabling does not replay them.
+
+`terminal.prompt-queue-auto-dispatch = true` opts into sending the next entry after
+a command finishes. Automatic and manual sends require an empty prompt in the
+original zsh shell, with no active command task. Other shells, nested shells,
+foreground programs, and existing prompt drafts cannot receive queued sends.
+Turning automatic sending off cancels pending sends. Enabling it takes effect on
+the next command finish, without immediately replaying an existing queue.
 
 ### `terminal.backend`
 

@@ -162440,6 +162440,541 @@
           }
         }
       }
+    },
+    "Send queued prompts automatically": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send queued prompts automatically"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动发送队列中的提示词"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動發送隊列中的提示詞"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キュー内のプロンプトを自動送信"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "대기열 프롬프트 자동 전송"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoyer automatiquement les invites en attente"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prompts automatisch senden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar automáticamente los prompts en cola"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar prompts da fila automaticamente"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invia automaticamente i prompt in coda"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prompts in wachtrij automatisch versturen"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправлять запросы из очереди автоматически"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إرسال الأوامر في الطابور تلقائيًا"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ส่งคำสั่งในคิวโดยอัตโนมัติ"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirim instruksi antrean secara otomatis"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tự động gửi lệnh trong hàng đợi"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kuyruktaki komutları otomatik gönder"
+          }
+        }
+      }
+    },
+    "Turning this off hides all queue bars and stops pending sends. Queued entries and input are kept until the terminal closes.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turning this off hides all queue bars and stops pending sends. Queued entries and input are kept until the terminal closes."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭后隐藏所有队列栏并停止待发送任务。队列内容和输入会保留到终端关闭。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "關閉後隱藏所有隊列欄並停止待發送工作。隊列內容和輸入會保留到終端機關閉。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフにするとすべてのキューバーを非表示にし、送信待ちの処理を停止します。キューの項目と入力内容はターミナルを閉じるまで保持されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "끄면 모든 대기열 막대가 숨겨지고 예약된 전송이 중지됩니다. 대기열 항목과 입력은 터미널을 닫을 때까지 유지됩니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La désactivation masque toutes les barres de file et arrête les envois en attente. Les entrées et la saisie sont conservées jusqu’à la fermeture du terminal."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beim Ausschalten werden alle Warteschlangenleisten ausgeblendet und ausstehende Sendungen gestoppt. Einträge und Eingaben bleiben erhalten, bis das Terminal geschlossen wird."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al desactivar, se ocultan todas las barras de cola y se detienen los envíos pendientes. Las entradas y el texto se conservan hasta cerrar el terminal."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao desativar, todas as barras da fila são ocultadas e os envios pendentes são interrompidos. As entradas e o texto são mantidos até fechar o terminal."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disattivando, tutte le barre della coda vengono nascoste e gli invii in attesa si fermano. Voci e testo digitato restano fino alla chiusura del terminale."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uitschakelen verbergt alle wachtrijbalken en stopt geplande verzendingen. Items en invoer blijven bewaard totdat het terminalvenster wordt gesloten."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отключение скрывает все панели очередей и останавливает ожидающие отправки. Запросы и введённый текст сохраняются до закрытия терминала."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يؤدي التعطيل إلى إخفاء جميع أشرطة الطابور وإيقاف عمليات الإرسال المعلقة. تبقى الأوامر والنص المدخل حتى إغلاق الطرفية."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เมื่อปิด จะซ่อนแถบคิวทั้งหมดและหยุดการส่งที่รอดำเนินการ รายการในคิวและข้อความที่พิมพ์จะคงอยู่จนกว่าจะปิดเทอร์มินัล"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menonaktifkan akan menyembunyikan semua bilah antrean dan menghentikan pengiriman tertunda. Entri dan teks masukan disimpan hingga terminal ditutup."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tắt sẽ ẩn mọi thanh hàng đợi và dừng các lượt gửi đang chờ. Các mục và nội dung đã nhập được giữ đến khi đóng terminal."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kapatınca tüm kuyruk çubukları gizlenir ve bekleyen gönderimler durur. Kuyruk girdileri ve yazılan metin terminal kapanana kadar saklanır."
+          }
+        }
+      }
+    },
+    "Sending waits for an empty prompt in the original zsh shell and for command tasks to finish.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sending waits for an empty prompt in the original zsh shell and for command tasks to finish."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发送需等待原来的 zsh 提示符为空，且命令任务已结束。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "發送需等待原來的 zsh 提示符為空，且命令工作已結束。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "送信は元の zsh シェルのプロンプトが空で、コマンドタスクが終了するまで待機します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 zsh 셸의 프롬프트가 비어 있고 명령 작업이 끝나야 전송할 수 있습니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’envoi attend une invite vide dans le zsh d’origine et la fin des tâches de commande."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Senden wartet auf einen leeren Prompt der ursprünglichen zsh und das Ende aller Befehlsaufgaben."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El envío espera un prompt vacío en el zsh original y a que terminen las tareas de comandos."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O envio espera um prompt vazio no zsh original e o término das tarefas de comandos."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’invio attende un prompt vuoto nella zsh originale e la fine delle attività di comando."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verzenden wacht op een lege prompt in de oorspronkelijke zsh en op het einde van opdrachttaken."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправка ожидает пустую строку ввода в исходной zsh и завершение задач команд."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ينتظر الإرسال سطر إدخال فارغًا في zsh الأصلية وانتهاء مهام الأوامر."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "การส่งจะรอให้พรอมต์ในเชลล์ zsh เดิมว่างและงานคำสั่งเสร็จสิ้น"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pengiriman menunggu prompt kosong di zsh asli dan tugas perintah selesai."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Việc gửi chờ dấu nhắc trống trong zsh ban đầu và các tác vụ lệnh kết thúc."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gönderim, özgün zsh kabuğunda boş bir komut satırı ve komut görevlerinin bitmesini bekler."
+          }
+        }
+      }
+    },
+    "When a command finishes, send the next entry at an empty prompt in the original zsh shell. Send Now is available with automatic sending on or off.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When a command finishes, send the next entry at an empty prompt in the original zsh shell. Send Now is available with automatic sending on or off."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "命令结束且原来的 zsh 提示符为空时发送下一项。自动发送开启或关闭时都可以使用“立即发送”。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "命令結束且原來的 zsh 提示符為空時發送下一項。自動發送開啟或關閉時都可以使用「立即發送」。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コマンド終了後、元の zsh シェルの空のプロンプトで次の項目を送信します。自動送信のオン・オフにかかわらず「今すぐ送信」を使えます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "명령이 끝나면 원래 zsh 셸의 빈 프롬프트에서 다음 항목을 전송합니다. 자동 전송을 켜거나 꺼도 “지금 보내기”를 사용할 수 있습니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "À la fin d’une commande, envoyer l’entrée suivante à une invite vide du zsh d’origine. « Envoyer maintenant » reste disponible avec ou sans envoi automatique."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach Befehlsende den nächsten Eintrag am leeren Prompt der ursprünglichen zsh senden. „Jetzt senden“ ist mit und ohne automatisches Senden verfügbar."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al terminar un comando, enviar la siguiente entrada en un prompt vacío del zsh original. «Enviar ahora» está disponible con el envío automático activado o desactivado."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao terminar um comando, enviar a próxima entrada em um prompt vazio do zsh original. “Enviar agora” está disponível com o envio automático ativado ou desativado."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al termine di un comando, invia la voce successiva a un prompt vuoto della zsh originale. «Invia ora» è disponibile con o senza invio automatico."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verstuur na afloop van een opdracht het volgende item bij een lege prompt van de oorspronkelijke zsh. “Nu versturen” blijft beschikbaar als automatisch versturen aan of uit staat."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "После завершения команды отправлять следующий запрос на пустую строку исходной zsh. «Отправить сейчас» доступно как при включённой, так и при выключенной автоматической отправке."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عند انتهاء أمر، أرسل الأمر التالي إلى سطر إدخال فارغ في zsh الأصلية. يتوفر «إرسال الآن» سواء كان الإرسال التلقائي مفعّلًا أو معطّلًا."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เมื่อคำสั่งเสร็จสิ้น ให้ส่งรายการถัดไปที่พรอมต์ว่างในเชลล์ zsh เดิม ใช้ “ส่งตอนนี้” ได้ทั้งเมื่อเปิดและปิดการส่งอัตโนมัติ"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Setelah perintah selesai, kirim entri berikutnya pada prompt kosong di zsh asli. “Kirim Sekarang” tersedia saat pengiriman otomatis aktif maupun nonaktif."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi lệnh kết thúc, gửi mục tiếp theo tại dấu nhắc trống trong zsh ban đầu. “Gửi ngay” dùng được cả khi bật hoặc tắt gửi tự động."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bir komut bittiğinde sıradaki girdiyi özgün zsh kabuğunun boş komut satırına gönderir. “Şimdi Gönder” otomatik gönderim açıkken de kapalıyken de kullanılabilir."
+          }
+        }
+      }
+    },
+    "Enable Prompt Queue": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable Prompt Queue"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用提示词队列"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "啟用提示詞隊列"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロンプトキューを有効にする"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "프롬프트 대기열 활성화"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activer la file d’invites"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prompt-Warteschlange aktivieren"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activar la cola de prompts"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ativar fila de prompts"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abilita coda dei prompt"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Promptwachtrij inschakelen"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Включить очередь запросов"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تفعيل طابور الأوامر"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เปิดใช้คิวคำสั่ง"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktifkan antrean instruksi"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bật hàng đợi lệnh"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Komut kuyruğunu etkinleştir"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

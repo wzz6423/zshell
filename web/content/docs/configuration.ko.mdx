@@ -23,7 +23,7 @@ description: Zshell의 모든 영구 설정, 각 설정의 동작과 저장 위�
 
 - **실행 중 변경도 읽습니다.** 유효한 외부 편집은 자동 적용됩니다. 새 터미널에만 적용되는 설정은 새 창구가 필요합니다. 읽을 수 없거나 문법이 잘못된 편집은 마지막 유효 설정을 유지하며, 의도적으로 비운 파일은 잠시 후 기본값을 복원합니다.
 - **파일에 저장되는 설정이 바뀔 때마다 Zshell이 다시 씁니다.** 파일 전체를 다시 생성하므로 해당 컨트롤을 다음에 사용하면 주석과 알 수 없는 키가 사라집니다. 파일을 관리할 편집 방식을 하나로 정하거나 dotfile에 기준 복사본을 보관하세요.
-- **대부분의 기본값은 생략합니다.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`는 항상 저장합니다. 기존 파일에서 이 세 터미널 키 중 하나를 삭제하면 해당 기능이 꺼집니다. 다른 키를 삭제하면 기본값으로 돌아갑니다.
+- **대부분의 기본값은 생략합니다.** `font-size`, `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error`, `terminal.prompt-queue-enabled`, `terminal.prompt-queue-auto-dispatch`는 항상 저장합니다. 기존 파일에서 `terminal.vim-command-hints`, `terminal.restore-history`, `terminal.notify-on-error` 중 하나를 삭제하면 해당 기능이 꺼집니다. `terminal.prompt-queue-enabled`를 삭제하면 기본값 `true`로, `terminal.prompt-queue-auto-dispatch`를 삭제하면 기본값 `false`로 돌아갑니다. 다른 키를 삭제해도 각각의 기본값으로 돌아갑니다.
 - **파서는 의도적으로 간단합니다.** 단순 키, 점으로 구분한 키, `[table]` 머리글, `#` 주석과 문자열/숫자/불리언 값을 지원합니다. 배열, 인라인 테이블과 여러 줄 문자열은 지원하지 않습니다.
 - **잘못된 값은 안전한 기본값으로 대체됩니다.** 범위를 벗어난 크기, 알 수 없는 백엔드나 오타가 있는 테마 때문에 Zshell을 시작하지 못하는 일은 없습니다.
 
@@ -243,6 +243,7 @@ Codex app-server를 공유할 때 검증된 대화 ID를 전경 창에 연결하
 | `terminal.theme-only` | `false` | 불리언 | 선택한 색상표를 터미널에만 적용 |
 | `terminal.command-history` | `true` | 불리언 | 새 명령 기록 저장. 꺼도 기존 기록 조회 가능 |
 | `terminal.text-hints` | `true` | 불리언 | 화면에 보이는 터미널 텍스트의 키보드 힌트 활성화 |
+| `terminal.prompt-queue-enabled` / `terminal.prompt-queue-auto-dispatch` | `true` / `false` | 불리언 | **설정 → 터미널 → 프롬프트 대기열**에서 관리합니다. 전체 스위치를 끄면 모든 작업 공간과 Quick Terminal에서 막대가 숨겨지고 예약된 전송이 취소되며 항목과 입력은 터미널을 닫을 때까지 유지됩니다. 자동 전송은 선택 사항으로 다음 명령 종료부터 원래 zsh의 빈 프롬프트에서 명령 작업이 없을 때만 순서대로 전송합니다. 켜는 즉시 재실행하지 않습니다. 수동 전송도 같은 검사를 거치며 다른 셸, 중첩 셸, 포그라운드 프로그램이나 입력 초안에는 전송할 수 없습니다. |
 | `terminal.auto-profiles` | `true` | 불리언 | 터미널 프로필 자동 매칭. 수동 선택도 가능 |
 | `terminal.cursor-shape` | `"bar"` | `"bar"` / `"block"` / `"underline"` | 터미널 커서 모양 |
 | `terminal.cursor-blinking` | `true` | 불리언 | 커서 깜박임 |

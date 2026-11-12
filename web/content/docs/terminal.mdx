@@ -160,17 +160,25 @@ choose **Toggle Prompt Queue** in the command palette. The bar opens below that
 terminal. Type an entry and press <kbd>Return</kbd> or **Add to Queue**; each
 entry is a single line, with pasted line breaks replaced by spaces.
 
-When the original zsh returns to an empty shell prompt, Zshell sends the next
-entry and presses Return. Entries run in queue order. Automatic sending waits
-while an agent or another foreground program owns the terminal, or while the
-shell prompt contains draft input. It requires Zshell's zsh integration; other
-shells and nested shells can use manual sending.
+Sending is manual by default. **Send Now** sends an entry only when the original
+zsh has an empty prompt and no pending or running command task owns the terminal.
+The button stays disabled while an agent or another foreground program is running,
+while the prompt contains draft input, or in other or nested shells. A failed send
+keeps the entry in the queue.
 
-Each entry has **Send Now** and **Remove** buttons. **Send Now** immediately
-sends the text and Return to the terminal's current program, without waiting
-for a shell prompt. <kbd>Esc</kbd> or the close button hides the bar and keeps
-the queued entries. Each terminal has its own queue; closing that session or
-quitting Zshell discards it.
+In **Settings → Terminal → Prompt Queue**, turn on **Send queued prompts
+automatically** to send the next entry when a command finishes and the original zsh
+returns to an empty prompt. Entries run in queue order. Enabling automatic sending
+does not immediately replay existing entries; it applies on the next command finish.
+Turning it off cancels pending sends and leaves the queue for **Send Now**.
+
+**Enable Prompt Queue** controls all workspaces and the Quick Terminal. Turning it
+off hides all queue bars, cancels pending sends, and keeps queued entries and unsent
+input. The menu command and shortcut open the relevant settings when disabled.
+
+Each entry also has a **Remove** button. Narrow panes show labeled action icons with
+tooltips. <kbd>Esc</kbd> or the close button hides the bar and keeps the queued entries.
+Each terminal has its own queue; closing that session or quitting Zshell discards it.
 
 ## Paths and URLs
 

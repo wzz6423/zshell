@@ -1301,6 +1301,10 @@ final class AlacrittyTerminalView: NSView, TerminalBackendSurface, NSUserInterfa
         write([0x0d])
     }
 
+    func sendPromptQueueEnter() {
+        write(Array("\u{1b}[27;9;13~".utf8))
+    }
+
     func sendApplicationScroll(lines: Int) -> Bool {
         guard lines != 0 else { return false }
         let mode = terminalMode

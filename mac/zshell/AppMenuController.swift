@@ -80,7 +80,14 @@ final class AppMenuController: NSObject, NSMenuDelegate {
         managed(file, title: { String(localized: "New SSH Project…") }) { $0.promptForSSHProject() }
         managed(file, .newSession) { $0.newSession() }
         managed(file, title: { String(localized: "Reopen Closed Session") }, key: "t", modifiers: [.command, .shift], enabled: { $0.canReopenClosedSession }) { $0.reopenClosedSession() }
-        managed(file, title: { String(localized: "Toggle Prompt Queue") }, key: "m", modifiers: [.command, .shift], enabled: { $0.canTogglePromptQueue }) { $0.togglePromptQueue() }
+        command(file, title: { String(localized: "Toggle Prompt Queue") }, key: "m", modifiers: [.command, .shift], enabled: { [weak self] in
+            GlobalTerminalOverlay.shared.focusedPromptQueueSession != nil || self?.manager?.canTogglePromptQueue == true
+        }) { [weak self] in
+            if let session = GlobalTerminalOverlay.shared.focusedPromptQueueSession {
+                if AppSettings.shared.promptQueueEnabled { session.promptQueue.togglePresentation() }
+                else { SettingsWindowController.shared.show(category: .terminal, section: String(localized: "Prompt Queue")) }
+            } else { self?.manager?.togglePromptQueue() }
+        }
         managed(file, title: { String(localized: "New Browser Tab") }) { $0.newBrowserTab() }
         let newWindow = command(file, title: { AppCommand.newWindow.title }) { [weak self] in self?.openWindow?() }
         shortcutUpdates.append { newWindow.apply(AppSettings.shared.commandShortcut(for: .newWindow)) }
