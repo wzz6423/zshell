@@ -205,18 +205,32 @@ struct RemoteSSHTests {
         expect(inputTimedOut.timedOut, "stdin backpressure does not outlive the process timeout")
 
         for standardInput: Data? in [nil, Data(repeating: 65, count: 1024 * 1024)] {
+            let ready = FileManager.default.temporaryDirectory
+                .appendingPathComponent("zshell-cancellation-ready-\(UUID().uuidString)")
+            defer { try? FileManager.default.removeItem(at: ready) }
             let finished = DispatchSemaphore(value: 0)
             let task = Task.detached {
                 do {
                     _ = try BoundedProcessRunner.run(
-                        executableURL: URL(fileURLWithPath: "/bin/sleep"), arguments: ["5"],
+                        executableURL: URL(fileURLWithPath: "/bin/sh"),
+                        arguments: ["-c", #": > "$1" && exec /bin/sleep 5"#, "zshell-cancellation-test", ready.path],
                         timeout: 3, outputLimit: 32, standardInput: standardInput
                     )
                     preconditionFailure("cancelled process returned a normal result")
                 } catch is CancellationError { finished.signal() }
                 catch { preconditionFailure("cancelled process returned \(error)") }
             }
-            Thread.sleep(forTimeInterval: 0.05)
+            let readyDeadline = DispatchTime.now() + 2
+            while !FileManager.default.fileExists(atPath: ready.path), DispatchTime.now() < readyDeadline {
+                Thread.sleep(forTimeInterval: 0.01)
+            }
+            guard FileManager.default.fileExists(atPath: ready.path) else {
+                task.cancel()
+                _ = finished.wait(timeout: .now() + 1)
+                throw NSError(domain: "RemoteSSHTests", code: 1, userInfo: [
+                    NSLocalizedDescriptionKey: "Cancellation test process did not become ready."
+                ])
+            }
             task.cancel()
             expect(finished.wait(timeout: .now() + 1) == .success,
                    "cancellation stops a process promptly with and without stdin")

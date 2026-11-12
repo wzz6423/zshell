@@ -284,6 +284,55 @@ struct UnsavedWorkspaceCloseTests {
         EditorDraftStore.shared.flush()
         let discardedDraft = try await EditorDraftStore.shared.archive.load(first.draftID)
         try check(discardedDraft == nil, "approved batch Don't Save deletes its backup only after every prompt succeeds")
+
+        let service = SessionWorktreeService()
+        let firstWorktree = try await service.create(in: root.path, branch: "batch-close-first",
+            at: root.deletingLastPathComponent().appendingPathComponent("batch-close-first").path)
+        let secondWorktree = try await service.create(in: root.path, branch: "batch-close-second",
+            at: root.deletingLastPathComponent().appendingPathComponent("batch-close-second").path)
+        guard let firstSession = project.newSession(directory: firstWorktree.path, worktree: firstWorktree),
+              let secondSession = project.newSession(directory: secondWorktree.path, worktree: secondWorktree) else {
+            throw CloseTestFailure(description: "Batch worktree sessions did not start.")
+        }
+        let firstStarted = await firstSession.waitUntilStarted()
+        let secondStarted = await secondSession.waitUntilStarted()
+        try check(firstStarted && secondStarted, "batch worktree sessions start before close confirmation")
+        let mixed = try await file("batch-worktree.txt", root: root, in: project)
+        let mixedTabs = project.tabs.map(\.id)
+        let cancelled = responder([.alertSecondButtonReturn, .alertFirstButtonReturn,
+                                   .alertFirstButtonReturn, .alertThirdButtonReturn]) { index, _ in
+            if index == 3 { mixed.text = "edited during worktree confirmation"; mixed.refreshDirtyState() }
+        }
+        project.closeAll()
+        try await wait("batch edit during worktree confirmation") { cancelled.prompts == 4 }
+        try await settle()
+        try cancelled.finish()
+        try check(project.tabs.map(\.id) == mixedTabs && isAlive(project) && mixed.isDirty
+                  && FileManager.default.fileExists(atPath: firstWorktree.path)
+                  && FileManager.default.fileExists(atPath: secondWorktree.path),
+                  "Cancel after a worktree confirmation edit retains every pane, shell and checkout")
+        EditorDraftStore.shared.flush()
+        let mixedDraft = try await EditorDraftStore.shared.archive.load(mixed.draftID)
+        try check(mixedDraft?.text == mixed.text, "cancelled worktree batch retains the newer file backup")
+
+        let removed = responder([.alertSecondButtonReturn, .alertSecondButtonReturn, .alertSecondButtonReturn]) { _, _ in
+            if project.tabs.map(\.id) != mixedTabs || !isAlive(project) {
+                failures.append("Batch teardown started before every worktree confirmation completed.")
+            }
+        }
+        project.closeAll()
+        try await wait("first batch worktree session closes") { !project.sessions.contains { $0 === firstSession } }
+        try check(!project.tabs.flatMap(\.allContents).contains { $0.id == mixed.id },
+                  "confirmed file panes unmount before asynchronous worktree teardown")
+        try await wait("batch removes approved worktrees") {
+            project.tabs.isEmpty && !FileManager.default.fileExists(atPath: firstWorktree.path)
+                && !FileManager.default.fileExists(atPath: secondWorktree.path)
+        }
+        try removed.finish()
+        try check(failures.isEmpty, "every batch worktree confirmation precedes teardown")
+        EditorDraftStore.shared.flush()
+        let removedDraft = try await EditorDraftStore.shared.archive.load(mixed.draftID)
+        try check(removedDraft == nil, "approved worktree batch commits file discards before teardown")
         manager.close(project)
         try await wait("batch fixture project closes") { !manager.projects.contains { $0 === project } }
         controller.window?.close()
@@ -374,7 +423,20 @@ struct UnsavedWorkspaceCloseTests {
         try worktreeCancelled.finish()
         try check(isAlive(worktreeProject) && manager.projects.contains { $0 === worktreeProject } && failures.isEmpty,
                   "Cancel after Keep Worktree retains every project shell until all choices are approved")
-        let kept = responder([.alertFirstButtonReturn, .alertFirstButtonReturn])
+        let worktreeFile = try await file("project-worktree.txt", root: root, in: worktreeProject)
+        let projectReedited = responder([.alertSecondButtonReturn, .alertFirstButtonReturn, .alertThirdButtonReturn]) { index, _ in
+            if index == 2 { worktreeFile.text = "project edit during worktree confirmation"; worktreeFile.refreshDirtyState() }
+        }
+        manager.close(worktreeProject)
+        try await wait("worktree project new edit cancels") { projectReedited.prompts == 3 }
+        try await settle()
+        try projectReedited.finish()
+        try check(isAlive(worktreeProject) && worktreeFile.isDirty && manager.projects.contains { $0 === worktreeProject },
+                  "project Cancel after a worktree confirmation edit retains every shell and file")
+        EditorDraftStore.shared.flush()
+        let worktreeDraft = try await EditorDraftStore.shared.archive.load(worktreeFile.draftID)
+        try check(worktreeDraft?.text == worktreeFile.text, "cancelled worktree project retains its newer file backup")
+        let kept = responder([.alertSecondButtonReturn, .alertFirstButtonReturn, .alertFirstButtonReturn])
         manager.close(worktreeProject)
         try await wait("worktree project closes") { !manager.projects.contains { $0 === worktreeProject } }
         try kept.finish()
@@ -383,6 +445,39 @@ struct UnsavedWorkspaceCloseTests {
                   && FileManager.default.fileExists(atPath: worktreeSecond.path), "approved Keep Worktree closes sessions without deleting their checkouts")
         try await service.remove(worktreeFirst, requireMerged: false)
         try await service.remove(worktreeSecond, requireMerged: false)
+
+        let removingProject = manager.newProject()
+        let removingWorktree = try await service.create(in: root.path, branch: "close-new-content",
+            at: root.deletingLastPathComponent().appendingPathComponent("close-new-content").path)
+        guard let removingSession = removingProject.newSession(directory: removingWorktree.path, worktree: removingWorktree) else {
+            throw CloseTestFailure(description: "Project removal session did not start.")
+        }
+        let removingStarted = await removingSession.waitUntilStarted()
+        try check(removingStarted, "project removal session starts before confirmation")
+        let removingFile = try await file("project-removing.txt", root: root, in: removingProject)
+        let addedPath = root.appendingPathComponent("project-added-during-cleanup.txt")
+        try "before".write(to: addedPath, atomically: true, encoding: .utf8)
+        let addedFile = FileTab(path: addedPath.path)
+        try await wait("cleanup file loads") { if case .text = addedFile.content { return true }; return false }
+        addedFile.text = "edited during cleanup"
+        addedFile.refreshDirtyState()
+        try check(addedFile.isDirty, "the file opened during cleanup contains an unsaved edit")
+        let removing = responder([.alertSecondButtonReturn, .alertSecondButtonReturn])
+        manager.close(removingProject)
+        try await wait("project worktree teardown begins") { !removingProject.sessions.contains { $0 === removingSession } }
+        try check(!removingProject.tabs.flatMap(\.allContents).contains { $0.id == removingFile.id },
+                  "project file panes unmount before worktree teardown yields")
+        removingProject.tabs.append(PaneTab(content: .file(addedFile)))
+        try await wait("project worktree is removed") { !FileManager.default.fileExists(atPath: removingWorktree.path) }
+        try await settle()
+        try removing.finish()
+        try check(manager.projects.contains { $0 === removingProject } && addedFile.isDirty
+                  && removingProject.tabs.flatMap(\.allContents).contains { $0.id == addedFile.id },
+                  "content opened during worktree cleanup keeps its project and unsaved buffer")
+        let closeAdded = responder([.alertSecondButtonReturn])
+        manager.close(removingProject)
+        try await wait("new cleanup content closes after approval") { !manager.projects.contains { $0 === removingProject } }
+        try closeAdded.finish()
 
         print("UNSAVED_PHASE_COMPLETE backend=\(CommandLine.arguments[1]) phase=worktree")
         let windowProject = manager.newProject()

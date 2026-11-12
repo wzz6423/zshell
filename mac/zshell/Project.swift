@@ -1136,7 +1136,11 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                     guard let remove = await manager.confirmCloseWorktreeSession(session, in: self) else { return }
                     choices.append((session, remove))
                 }
-                guard await confirmTargets() else { return }
+            }
+            guard await confirmTargets() else { return }
+            confirmation.commitDiscards()
+            closeApprovedContents(targets, preserving: choices.map(\.session))
+            if let manager {
                 for choice in choices where sessions.contains(where: { $0 === choice.session }) {
                     do {
                         _ = try await manager.closeWorktreeSession(choice.session, in: self, removeWorktree: choice.removeWorktree)
@@ -1146,14 +1150,17 @@ final class Project: nonisolated ObservableObject, nonisolated Identifiable {
                     }
                 }
             }
-            guard await confirmTargets() else { return }
-            confirmation.commitDiscards()
-            for content in targets where tabs.contains(where: { $0.paneID(forContent: content.id) != nil }) {
-                if content.isDirty {
-                    removePaneWithContent(content.id)
-                } else {
-                    closeContent(content, confirmWorktree: false)
-                }
+        }
+    }
+
+    /// Unmount confirmed buffers before worktree teardown yields to new edits.
+    func closeApprovedContents(_ targets: [PaneContent], preserving sessions: [TerminalSession]) {
+        for content in targets where tabs.contains(where: { $0.paneID(forContent: content.id) != nil }) {
+            if case .session(let session) = content, sessions.contains(where: { $0 === session }) { continue }
+            if content.isDirty {
+                removePaneWithContent(content.id)
+            } else {
+                closeContent(content, confirmWorktree: false)
             }
         }
     }
