@@ -67,6 +67,12 @@ Chủ đề màu cho từng giao diện. Chủ đề đổi màu ô terminal, kh
 
 Cài đặt liệt kê bộ chủ đề chọn lọc dùng chung cho hai backend. Tên gõ tay phải khớp hoàn toàn tên hiển thị, kể cả hoa/thường; nếu không sẽ dùng mặc định tương ứng.
 
+### `terminal.minimum-contrast` [#terminalminimum-contrast]
+
+`1`–`21` · `3`
+
+**Cài đặt → Giao diện → Màu sắc → Độ tương phản tối thiểu** điều chỉnh độ dễ đọc của chữ terminal từ `1` đến `21` (mặc định `3`). Giá trị `1` giữ màu ANSI gốc. Cả hai backend cập nhật terminal đang mở và Quick Terminal mà không khởi động lại shell; hồ sơ vẫn dùng bảng màu riêng. Pixel emoji và ảnh giữ màu gốc. Vùng chọn và con trỏ giữ chính sách dễ đọc gốc của từng backend. Nếu nền không thể đạt tỷ lệ yêu cầu, mỗi backend dùng màu dễ đọc nhất hiện có. Terminal trong suốt dùng nền ô đã được xác định, nên độ tương phản sau khi ghép với màn hình nền có thể khác.
+
 ### `toolbar.visibility` [#toolbarvisibility]
 
 `"hide"` · `"auto"` · `"always"` — mặc định `"hide"`

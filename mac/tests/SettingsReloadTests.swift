@@ -92,6 +92,8 @@ struct SettingsReloadTests {
         let settings = AppSettings.shared
         let url = AppSettings.configURL
         check(url.path.hasPrefix(CommandLine.arguments[1]), "fixture config remains in disposable home")
+        check(settings.terminalMinimumContrast == 3, "existing contrast behavior remains the default")
+        check(!settings.serializedConfig().contains("terminal.minimum-contrast"), "default contrast key is omitted")
         if CommandLine.arguments.count > 2 {
             let expectedInvalid = CommandLine.arguments[2] == "invalid-term"
             check(settings.terminalTerm == "xterm-256color" && settings.terminalTermIsInvalid == expectedInvalid,
@@ -304,6 +306,7 @@ struct SettingsReloadTests {
         theme-dark = "Dracula"
         theme-light = "GitHub"
         terminal.theme-only = true
+        terminal.minimum-contrast = 7.25
         font-family = "Fixture Mono"
         terminal.font-fallback-family = "Fixture CJK"
         font-size = 19
@@ -402,6 +405,7 @@ struct SettingsReloadTests {
         check(settings.terminalPaddingColor == .always, "import applies padding policy")
         check(settings.terminalTerm == "screen-256color", "terminal type imports into production settings")
         check(settings.terminalCellWidth == 1.35, "column spacing imports into production settings")
+        check(settings.terminalMinimumContrast == 7.25, "contrast imports into production settings")
         check(settings.fontFeatures == "ss01, zero=1" && !settings.fontLigatures,
               "font features compose with column spacing through import and reload")
         check(settings.focusFollowsMouse && !settings.isAtDefaults, "pointer focus imports and changes default state")
@@ -531,6 +535,7 @@ struct SettingsReloadTests {
         check(!settings.focusFollowsMouse, "pointer focus resets on external config reload")
         check(!settings.browserAccessEnabled && settings.browserAccessInterface == "loopback" && settings.browserAccessPort == 7443,
               "empty external config closes browser access and resets network configuration")
+        check(settings.terminalMinimumContrast == 3, "omitted contrast restores the compatible default")
         check(!settings.diffWrapLines, "diff line wrapping resets when its external config key is omitted")
         check(settings.sidebarDoubleClickNewSession,
               "omitted sidebar gesture key restores the default on external reload")
@@ -580,6 +585,40 @@ struct SettingsReloadTests {
         check(!settings.isAtDefaults, "enabled usage changes reset state")
         settings.resetToDefaults()
         check(!settings.agentUsageEnabled && settings.isAtDefaults, "reset disables usage")
+
+        for ratio in [1.0, 3, 7, 21, 7.25] {
+            settings.terminalMinimumContrast = ratio
+            let exported = TOML.parseStrictly(text: settings.serializedConfig()).values
+            check(exported["terminal.minimum-contrast"]?.double == (ratio == 3 ? nil : ratio),
+                  "contrast serializes with locale-independent numeric syntax")
+            settings.applyImported(exported)
+            check(settings.terminalMinimumContrast == ratio, "contrast import/export round trip")
+            check(settings.isAtDefaults == (ratio == 3), "contrast participates in the reset state")
+        }
+        settings.terminalMinimumContrast = 7.256
+        check(settings.terminalMinimumContrast == 7.26, "contrast uses shared hundredth precision")
+        for invalid in [Double.nan, Double.infinity, -Double.infinity, 0, 0.99, 21.01, 100] {
+            settings.terminalMinimumContrast = invalid
+            check(settings.terminalMinimumContrast == 3, "invalid direct contrast restores the default")
+            settings.applyImported(["terminal.minimum-contrast": .number(invalid)])
+            check(settings.terminalMinimumContrast == 3, "invalid imported contrast restores the default")
+        }
+        settings.resetToDefaults()
+        NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: nil)
+        spin(0.4)
+        let baseline = try SettingsConfigFile.read(at: url)
+        try (baseline + "terminal.minimum-contrast = 1\n").write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalMinimumContrast == 1 }, "external contrast edit disables ANSI adjustment")
+        try (baseline + "[terminal]\nminimum-contrast = 21\n").write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalMinimumContrast == 21 }, "table-style contrast edit applies live")
+        try (baseline + "terminal.minimum-contrast = nan\n").write(to: url, atomically: true, encoding: .utf8)
+        spin(0.6)
+        check(settings.terminalMinimumContrast == 21, "malformed contrast editor buffer retains last valid config")
+        try (baseline + "terminal.minimum-contrast = 22\n").write(to: url, atomically: true, encoding: .utf8)
+        wait({ settings.terminalMinimumContrast == 3 }, "out-of-range external contrast restores the default")
+        settings.terminalMinimumContrast = 7
+        settings.resetToDefaults()
+        check(settings.terminalMinimumContrast == 3 && settings.isAtDefaults, "reset restores minimum contrast")
 
         settings.terminalCellWidth = 1.333
         check(settings.terminalCellWidth == 1.33 && !settings.isAtDefaults,

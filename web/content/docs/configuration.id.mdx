@@ -67,6 +67,12 @@ Tema warna untuk setiap tampilan. Tema mewarnai panel terminal, bingkai jendela,
 
 Pengaturan menampilkan katalog tema pilihan yang digunakan kedua backend. Nama yang ditulis manual harus sama persis dengan nama tampilannya, termasuk huruf besar/kecil, atau Zshell memakai tema bawaan yang sesuai.
 
+### `terminal.minimum-contrast` [#terminalminimum-contrast]
+
+`1`–`21` · `3`
+
+**Pengaturan → Tampilan → Warna → Kontras minimum** mengatur keterbacaan teks terminal dari `1` hingga `21` (default `3`). Nilai `1` mempertahankan warna ANSI asli. Kedua backend memperbarui terminal terbuka dan Quick Terminal tanpa memulai ulang shell; profil tetap memakai paletnya. Piksel emoji dan gambar mempertahankan warnanya. Seleksi dan kursor mempertahankan kebijakan keterbacaan bawaan masing-masing backend. Jika latar tidak dapat mencapai rasio yang diminta, setiap backend memakai warna paling terbaca yang tersedia. Terminal transparan memakai latar sel yang telah ditentukan, sehingga kontras setelah digabungkan dengan desktop dapat berbeda.
+
 ### `toolbar.visibility` [#toolbarvisibility]
 
 `"hide"` · `"auto"` · `"always"` — bawaan `"hide"`

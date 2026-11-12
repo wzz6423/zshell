@@ -34,6 +34,18 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
         AppSettings.shared.terminalThemeOnly = $0
     }
 
+    private let minimumContrastRow = SettingsSliderRow(
+        title: String(localized: "Minimum contrast"),
+        range: TerminalContrast.minimumRatioRange,
+        format: .ratio,
+        step: 0.1,
+        showsStepper: true,
+        symbolName: "circle.lefthalf.filled",
+        symbolColor: SettingsCategory.appearance.iconColor,
+        description: String(localized: "Set to 1 to keep original terminal colors."),
+        onChange: { AppSettings.shared.terminalMinimumContrast = $0 }
+    )
+
     private let sidebarDoubleClickSwitch = SettingsSwitch { AppSettings.shared.sidebarDoubleClickNewSession = $0 }
 
     private lazy var familyPopUp = SettingsPopUpButton<String>(
@@ -212,6 +224,7 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
                     control: terminalThemeOnlySwitch,
                     symbolName: "terminal"
                 ),
+                minimumContrastRow,
             ]),
             fontGroup,
             SettingsGroup(header: String(localized: "Cursor"), rows: [
@@ -240,6 +253,7 @@ final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDeleg
         darkThemePopUp.select(settings.themeDark)
         lightThemePopUp.select(settings.themeLight)
         terminalThemeOnlySwitch.isOn = settings.terminalThemeOnly
+        minimumContrastRow.setValue(settings.terminalMinimumContrast)
         familyPopUp.select(settings.fontFamily)
         fallbackFamilyPopUp.select(settings.fontFallbackFamily)
         fontSizeRow.setValue(settings.fontSize)
