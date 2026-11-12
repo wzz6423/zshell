@@ -171,6 +171,12 @@ boolean — mặc định `true`
 
 Xuống dòng mềm theo chiều rộng ô trong [trình soạn thảo tệp](/vi/docs/files). Nếu false, dòng dài cuộn ngang. Không đổi cách xuống dòng của terminal hoặc diff.
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+boolean — mặc định `false`
+
+**Cài đặt → Trình soạn thảo → Ngắt dòng theo chiều rộng diff** và nút ngắt dòng trên thanh công cụ diff điều khiển cùng một tùy chọn. Dòng dài được ngắt theo chiều rộng ô trong chế độ gộp và chia, thay đổi có thể chỉnh sửa, diff lịch sử và bình luận PR. Áp dụng ngay cho mọi diff đang mở và được lưu sau khi khởi động lại. Tắt để khôi phục cuộn ngang. Tùy chọn này độc lập với ngắt dòng của trình soạn thảo tệp và terminal.
+
 ### `editor.protect-saves` [#editorprotect-saves]
 
 boolean — mặc định `true`
@@ -354,6 +360,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

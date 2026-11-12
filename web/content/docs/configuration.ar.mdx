@@ -171,6 +171,12 @@ description: "كل خيارات Zshell الدائمة ووظائفها ومكا�
 
 يلف الأسطر الطويلة بصريًا لتلائم عرض اللوحة في [محرر الملفات](/ar/docs/files). عند إيقافه تُمرَّر الأسطر الطويلة أفقيًا. لا يغير التفاف النص في الطرفية أو عرض الفروق.
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+قيمة منطقية — الافتراضي `false`
+
+يتحكم **الإعدادات → المحرر → التفاف السطور حسب عرض الفروق** وزر التفاف السطور في شريط أدوات الفروق في الخيار نفسه. تلتف السطور الطويلة حسب عرض اللوحة في العرض الموحد والمقسم والتغييرات القابلة للتحرير والفروق السابقة وتعليقات PR. يسري الاختيار فورًا على جميع الفروق المفتوحة ويُحفظ بعد إعادة التشغيل. يعيد إيقافه التمرير الأفقي. وهو مستقل عن التفاف السطور في محرر الملفات والطرفية.
+
 ### `editor.protect-saves` [#editorprotect-saves]
 
 قيمة منطقية — الافتراضي `true`
@@ -354,6 +360,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

@@ -39,10 +39,12 @@ Haz clic en cualquier archivo modificado para abrir sus diferencias en un panel 
 
 Las diferencias grandes siguen respondiendo con fluidez. Un conjunto de cambios de mil archivos se abre tan rápido como uno de una línea y se desplaza sin tirones.
 
-Los controles sobre la vista de diferencias recuerdan dos preferencias globales:
+Los controles sobre la vista de diferencias recuerdan tus preferencias globalmente:
 
 - **Unificado / Dividido** cambia entre una columna y una disposición en paralelo.
 - **Revisar / Editar** aparece para un archivo sin preparar del árbol de trabajo actual. Edita directamente el lado nuevo y guarda con <kbd>Cmd</kbd>+<kbd>S</kbd>; al cerrar un archivo con cambios sin guardar se aplica el mismo tratamiento que en el editor normal.
+
+Usa **Ajustar líneas al ancho de la diferencia** en la barra para leer líneas largas sin desplazamiento horizontal. El mismo interruptor está en **Ajustes → Editor** (`editor.diff-wrap-lines`, predeterminado `false`). Se aplica a las diferencias abiertas y nuevas, incluidos commits históricos, cambios editables y comentarios de PR, y conserva el borrador de edición.
 
 Las diferencias preparadas y las de commits históricos siguen siendo de solo lectura porque son instantáneas, no archivos que Zshell pueda escribir con seguridad. Cambiar una vista a Editar o Dividido actualiza la preferencia de otras vistas abiertas, sin convertir en editable una que no cumpla los requisitos.
 

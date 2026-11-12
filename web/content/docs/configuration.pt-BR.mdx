@@ -171,6 +171,12 @@ Booleano — padrão `true`
 
 Quebra visualmente linhas longas na largura do painel do [editor de arquivos](/pt-BR/docs/files). Em false, elas rolam horizontalmente. Não altera a quebra de linhas do terminal nem dos diffs.
 
+### `editor.diff-wrap-lines` [#editordiff-wrap-lines]
+
+booleano — padrão `false`
+
+**Ajustes → Editor → Ajustar linhas à largura do diff** e o botão de quebra de linha da barra do diff controlam a mesma opção. Linhas longas se ajustam ao painel nas visualizações unificada e dividida, alterações editáveis, diffs históricos e comentários de PR. A escolha é aplicada imediatamente a todos os diffs abertos e permanece após reiniciar. Desativar restaura a rolagem horizontal. A quebra de linha do editor de arquivos e do terminal é independente.
+
 ### `editor.protect-saves` [#editorprotect-saves]
 
 booleano — padrão `true`
@@ -354,6 +360,7 @@ terminal.startup-arguments = "--no-config"
 terminal.backend = "alacritty"
 terminal.restore-history = true
 editor.wrap-lines = true
+editor.diff-wrap-lines = false
 ai.enabled = true
 ai.resume-conversations = true
 ```

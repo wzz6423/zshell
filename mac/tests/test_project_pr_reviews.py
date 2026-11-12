@@ -18,7 +18,16 @@ ROOT = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--derived-data", type=Path, default=os.environ.get("ZSHELL_TEST_DERIVED_DATA"))
 parser.add_argument("--query-only", action="store_true")
+parser.add_argument("--diff-wrap", action="store_true", help="Exercise long-line wrapping in the native diff toolbar and settings")
+parser.add_argument("--gui-directory", type=Path, help="Keep the diff-wrap fixture visible until this directory contains a done file")
 options = parser.parse_args()
+if options.gui_directory:
+    if not options.diff_wrap:
+        parser.error("--gui-directory requires --diff-wrap")
+    options.gui_directory = options.gui_directory.resolve()
+    if options.gui_directory.exists():
+        parser.error("--gui-directory must name a new directory")
+    options.gui_directory.mkdir()
 if not options.derived_data:
     parser.error("--derived-data or ZSHELL_TEST_DERIVED_DATA is required")
 build = options.derived_data / "Build"
@@ -42,6 +51,10 @@ with tempfile.TemporaryDirectory(prefix="zshell-pr-review-", dir="/tmp") as dire
     git(repo, "config", "user.name", "Review Fixture")
     git(repo, "config", "user.email", "test@example.invalid")
     before = "".join(f"let line{index} = {index}\n" for index in range(1, 221))
+    if options.diff_wrap:
+        for index in (10, 30):
+            line = f"let line{index} = {index}"
+            before = before.replace(line, line + " // " + "tab\t中文🙂👩‍💻long_token_" * 30)
     (repo / "Before.swift").write_text(before)
     git(repo, "add", ".")
     git(repo, "commit", "-qm", "merge base")
@@ -87,6 +100,8 @@ with tempfile.TemporaryDirectory(prefix="zshell-pr-review-", dir="/tmp") as dire
     (config / "config.toml").write_text("ai.enabled = false\n")
     environment.update(HOME=str(home), CFFIXED_USER_HOME=str(home), ZDOTDIR=str(home),
                        GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL="/dev/null")
+    if options.gui_directory:
+        environment["ZSHELL_DIFF_WRAP_GUI_DIRECTORY"] = str(options.gui_directory)
     for key in ("ZSHELL_PR_REVIEW_LIVE", "ZSHELL_PR_REVIEW_LIVE_PATH", "ZSHELL_PR_REVIEW_SCREENSHOT"):
         if key in os.environ:
             environment[key] = os.environ[key]
@@ -257,8 +272,13 @@ else:
     fake_gh.chmod(0o755)
     environment.update(PATH=f"{bindir}:/usr/bin:/bin:/usr/sbin:/sbin", ZSHELL_PR_REVIEW_FIXTURES=str(temporary),
                        ZSHELL_PR_REVIEW_QUERY_LOG=str(temporary / "queries"))
-    ui_probe = compile_probe("Diff Probe", "ProjectPullRequestReviewSurfaceTests.swift")
+    ui_probe = compile_probe("Diff Probe", "DiffWrapSurfaceTests.swift" if options.diff_wrap else "ProjectPullRequestReviewSurfaceTests.swift")
+    if options.gui_directory:
+        (options.gui_directory / "host.json").write_text(json.dumps({
+            "bundle": str(ui_probe.parents[2]), "binary": str(ui_probe), "home": str(home),
+            "identifier": plistlib.loads((ui_probe.parents[1] / "Info.plist").read_bytes())["CFBundleIdentifier"],
+        }, indent=2))
     subprocess.run([str(ui_probe), str(repo), head, merge_base, previous_head, str(peer_repo)],
-                   cwd=ROOT, env=environment, check=True, timeout=90)
+                   cwd=ROOT, env=environment, check=True, timeout=None if options.gui_directory else 90)
 
 print("PR评论测试临时bundle、binary、Git仓库、preferences、日志与缓存均已清理")
