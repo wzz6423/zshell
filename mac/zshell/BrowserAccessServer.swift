@@ -424,7 +424,18 @@ nonisolated final class BrowserAccessConnection: @unchecked Sendable {
             return true
         }
         guard server.isAuthorized(self) else { return false }
-        if frame.opcode == 2 { return ready && bridge?.write(frame.payload) == true }
+        if frame.opcode == 2 {
+            guard ready, let bridge else { return false }
+            let generation = generation
+            return bridge.write(frame.payload) { [weak self, weak bridge, weak server] written in
+                guard !written, let server else { return }
+                server.queue.async { [weak self, weak bridge] in
+                    guard let self, let bridge, self.bridge === bridge,
+                          self.generation == generation, !self.isClosed else { return }
+                    self.close()
+                }
+            }
+        }
         guard frame.opcode == 1,
               let message = try? JSONDecoder().decode([String: ZshellJSONValue].self, from: frame.payload),
               let type = message["type"]?.stringValue else { return false }
