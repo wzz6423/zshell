@@ -119,6 +119,20 @@ Zshell の永続設定の多くは、次の 1 ファイルに保存されます�
 
 両サイドバーの基本文字サイズです。変更しても、セクション見出し、行、メタデータ、操作欄の相対的な階層を維持します。
 
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+真偽値 — 既定値 `true`
+
+**設定 → 外観 → フォントの合字** で、両方のターミナルエンジンの任意の合字を切り替えます。オフにすると `calt`、`liga`、`clig`、`dlig`、`hlig` を無効にし、文字に必須のシェーピングは維持します。元の文字、列数、カーソル、選択範囲は変わりません。
+
+### `terminal.font-features` [#terminalfont-features]
+
+文字列 — 既定値 `""`、フォントの既定機能を使用
+
+同じフォントグループの **OpenType 機能** に 4 文字のタグをカンマまたは空白で区切って入力します。`-calt` は文脈依存の字形置換を無効にし、`ss01` はスタイルセット 1、`zero=1` は別のゼロ字形を有効にします。`+liga` と `liga=1` も機能を有効にします。同じタグは後の値が優先されます。合字スイッチは上記の 5 タグより優先されます。
+
+変更は開いているターミナルとプレビューにすぐ適用されます。両エンジンとも選択したフォントが対応する機能を使用し、未対応のタグは無視します。設定で無効な入力をすると直前の有効値を保ち、外部設定の無効値はフォントの既定値になります。既定値へのリセットは機能リストを空にし、合字を有効にします。
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 真偽値 — 既定値 `false`
@@ -315,6 +329,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1

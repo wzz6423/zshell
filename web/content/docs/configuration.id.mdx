@@ -113,6 +113,20 @@ Angka, 9–24 — bawaan `14`
 
 Ukuran teks dasar kedua bilah samping. Judul bagian, baris, metadata, dan kontrol mempertahankan hierarki relatif ketika ukuran dasar berubah.
 
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+boolean — bawaan `true`
+
+Aktifkan atau nonaktifkan ligatur opsional kedua backend di **Pengaturan → Tampilan → Ligatur font**. Menonaktifkannya menimpa `calt`, `liga`, `clig`, `dlig`, dan `hlig`, sambil mempertahankan pembentukan aksara yang wajib. Karakter, kolom terminal, kursor, dan pilihan tidak berubah.
+
+### `terminal.font-features` [#terminalfont-features]
+
+teks — bawaan `""`, menggunakan bawaan font
+
+Isi **Fitur OpenType** dengan tag empat karakter, dipisahkan koma atau spasi: `-calt` menonaktifkan alternatif kontekstual, `ss01` mengaktifkan set gaya 1, dan `zero=1` mengaktifkan nol alternatif. `+liga` dan `liga=1` juga mengaktifkan fitur. Entri terakhir untuk tag yang sama berlaku; sakelar ligatur diprioritaskan untuk lima tag tersebut.
+
+Perubahan langsung berlaku pada terminal terbuka dan pratinjau. Kedua backend memakai fitur yang didukung font; tag lainnya tidak berpengaruh. Input tidak valid mempertahankan nilai valid terakhir; nilai eksternal tidak valid memakai bawaan font. Reset mengosongkan daftar dan mengaktifkan ligatur.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 Boolean — bawaan `false`
@@ -294,6 +308,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1

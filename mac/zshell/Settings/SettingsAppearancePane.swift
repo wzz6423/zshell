@@ -9,7 +9,7 @@ import GhosttyTheme
 
 /// Light/dark appearance, the color theme for each, and the fonts the terminal
 /// and sidebars draw with.
-final class SettingsAppearancePane: SettingsPaneViewController {
+final class SettingsAppearancePane: SettingsPaneViewController, NSTextFieldDelegate {
     /// Installed fixed-pitch families (bundled default first).
     private let families = TerminalFont.selectableFamilies()
     private let fallbackFamilies = TerminalFont.selectableCJKFallbackFamilies()
@@ -82,6 +82,13 @@ final class SettingsAppearancePane: SettingsPaneViewController {
     )
 
     private let thickenSwitch = SettingsSwitch { AppSettings.shared.fontThicken = $0 }
+    private let ligaturesSwitch = SettingsSwitch { AppSettings.shared.fontLigatures = $0 }
+    private let featuresField = NSTextField()
+    private lazy var featuresRow = SettingsRow(
+        title: String(localized: "OpenType features"),
+        description: Self.featuresDescription(isValid: true),
+        control: featuresField
+    )
 
     private let thickenStrengthRow = SettingsSliderRow(
         title: String(localized: "Stroke strength"),
@@ -149,6 +156,8 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         fontSizeRow,
         lineHeightRow,
         cellWidthRow,
+        SettingsRow(title: String(localized: "Font ligatures"), control: ligaturesSwitch),
+        featuresRow,
         SettingsRow(title: String(localized: "Thicken font strokes"), control: thickenSwitch),
         thickenStrengthRow,
         SettingsCustomRow(preview),
@@ -160,6 +169,10 @@ final class SettingsAppearancePane: SettingsPaneViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        featuresField.delegate = self
+        featuresField.placeholderString = "-calt, ss01, zero=1"
+        featuresField.font = .monospacedSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular)
+        featuresField.widthAnchor.constraint(equalToConstant: 200).isActive = true
         cursorShapeView.changeHandler = { AppSettings.shared.cursorShape = $0 }
         cursorBlinkingView.changeHandler = { AppSettings.shared.cursorBlinking = $0 }
         observe(
@@ -216,9 +229,14 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         fontSizeRow.setValue(settings.fontSize)
         sidebarFontSizeRow.setValue(settings.sidebarFontSize)
         interfaceScaleRow.setValue(settings.interfaceScale)
+        ligaturesSwitch.isOn = settings.fontLigatures
+        if featuresField.currentEditor() == nil {
+            featuresField.stringValue = settings.fontFeatures
+            featuresRow.setDescription(Self.featuresDescription(isValid: true))
+        }
         thickenSwitch.isOn = settings.fontThicken
         thickenStrengthRow.setValue(Double(settings.fontThickenStrength))
-        fontGroup.setRowHidden(!visibility.fontThicken, at: 6)
+        fontGroup.setRowHidden(!visibility.fontThicken, at: 8)
         lineHeightRow.setValue(settings.terminalLineHeight)
         cellWidthRow.setValue(settings.terminalCellWidth)
         cursorShapeView.apply(shape: settings.cursorShape)
@@ -230,15 +248,33 @@ final class SettingsAppearancePane: SettingsPaneViewController {
         paneFocusRingOpacityRow.setValue(settings.paneFocusRingOpacity)
         panesGroup.setRowHidden(!visibility.showPaneFocusRing, at: 1)
         preview.configure(
-            font: TerminalFont.resolve(
+            font: TerminalFontFeatures(settings.fontFeatures, ligatures: settings.fontLigatures).applying(to: TerminalFont.resolve(
                 family: settings.fontFamily,
                 fallbackFamily: settings.fontFallbackFamily,
                 size: CGFloat(settings.fontSize)
-            ),
+            )),
             thicken: settings.fontThicken,
             thickenStrength: settings.fontThickenStrength,
             lineHeight: CGFloat(settings.terminalLineHeight),
             cellWidth: CGFloat(settings.terminalCellWidth)
         )
+    }
+
+    func controlTextDidEndEditing(_ notification: Notification) {
+        featuresField.stringValue = settings.fontFeatures
+        featuresRow.setDescription(Self.featuresDescription(isValid: true))
+    }
+
+    func controlTextDidChange(_ notification: Notification) {
+        let text = featuresField.stringValue
+        let isValid = TerminalFontFeatures.parse(text) != nil
+        featuresRow.setDescription(Self.featuresDescription(isValid: isValid))
+        if isValid { settings.fontFeatures = text }
+    }
+
+    private static func featuresDescription(isValid: Bool) -> String {
+        isValid
+            ? String(localized: "Comma-separated tags, such as -calt, ss01, or zero=1. Supported features apply immediately.")
+            : String(localized: "Use four-character tags with an optional +, -, or =number. The last valid value remains active.")
     }
 }

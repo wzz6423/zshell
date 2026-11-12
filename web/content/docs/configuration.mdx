@@ -139,6 +139,20 @@ number, 9–24 — default `14`
 The base text size for both sidebars. Section headings, rows, metadata, and
 controls keep their relative hierarchy as the base changes.
 
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+boolean — default `true`
+
+Choose **Settings → Appearance → Font ligatures** to enable or disable optional ligatures on both terminal backends. Disabling it overrides `calt`, `liga`, `clig`, `dlig`, and `hlig` while keeping required script shaping. The original characters, terminal columns, cursor, and selection stay unchanged.
+
+### `terminal.font-features` [#terminalfont-features]
+
+string — default `""`, using the font’s defaults
+
+Set **OpenType features** in the same Font group. Separate four-character tags with commas or whitespace: `-calt` disables contextual alternates, `ss01` enables stylistic set 1, and `zero=1` enables the font’s alternate zero. `+liga` and `liga=1` also enable a feature. Later entries for the same tag win. The ligature switch takes priority for its five tags.
+
+Changes apply immediately to open terminals and the font preview. Both backends use features supported by the selected font; unsupported tags have no effect. Invalid input keeps the last valid value in Settings, and an invalid external value uses font defaults. Reset to Defaults restores an empty feature list and enabled ligatures.
+
 ### `terminal.font-thicken`
 
 boolean — default `false`
@@ -406,6 +420,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1

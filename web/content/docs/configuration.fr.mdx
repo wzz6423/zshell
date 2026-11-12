@@ -113,6 +113,20 @@ Nombre, 9–24 — valeur par défaut : `14`
 
 Taille de base du texte des deux barres latérales. Les titres, lignes, métadonnées et contrôles conservent leur hiérarchie relative lorsque cette base change.
 
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+booléen — défaut `true`
+
+Activez ou désactivez les ligatures facultatives des deux moteurs dans **Réglages → Apparence → Ligatures de police**. La désactivation remplace `calt`, `liga`, `clig`, `dlig` et `hlig`, sans retirer les formes requises par l’écriture. Les caractères, colonnes, curseur et sélection restent identiques.
+
+### `terminal.font-features` [#terminalfont-features]
+
+chaîne — défaut `""`, valeurs par défaut de la police
+
+Dans **Fonctions OpenType**, séparez les balises de quatre caractères par des virgules ou espaces : `-calt` désactive les variantes contextuelles, `ss01` active le jeu stylistique 1 et `zero=1` active le zéro alternatif. `+liga` et `liga=1` activent aussi une fonction. La dernière occurrence d’une balise l’emporte ; le commutateur de ligatures a priorité pour les cinq balises citées.
+
+Les changements s’appliquent immédiatement aux terminaux ouverts et à l’aperçu. Les deux moteurs utilisent les fonctions prises en charge par la police ; les autres balises sont sans effet. Une saisie invalide conserve la dernière valeur valide ; une valeur externe invalide utilise les valeurs par défaut. La réinitialisation vide la liste et active les ligatures.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 Booléen — valeur par défaut : `false`
@@ -294,6 +308,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1

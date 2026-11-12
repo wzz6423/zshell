@@ -244,6 +244,8 @@ struct SettingsReloadTests {
         terminal.mouse-scroll-multiplier = 2.5
         terminal.trackpad-scroll-multiplier = 0.5
         terminal.cell-width = 1.35
+        terminal.font-features = "ss01, zero=1"
+        terminal.font-ligatures = false
         terminal.cursor-shape = "underline"
         terminal.cursor-blinking = false
         terminal.macos-option-as-alt = true
@@ -311,6 +313,8 @@ struct SettingsReloadTests {
               "profile launch settings round trip through config")
         let roundTrip = TOML.parseStrictly(text: imported).values
         check(settings.terminalCellWidth == 1.35, "column spacing imports into production settings")
+        check(settings.fontFeatures == "ss01, zero=1" && !settings.fontLigatures,
+              "font features compose with column spacing through import and reload")
         check(settings.focusFollowsMouse && !settings.isAtDefaults, "pointer focus imports and changes default state")
         check(settings.terminalRightClickAction == .paste, "right-click action survives the full settings round trip")
         check(GitProxy.address == "socks5h://127.0.0.1:1080", "imported Git proxy reaches Git processes")
@@ -446,9 +450,13 @@ struct SettingsReloadTests {
             check(settings.terminalCellWidth == 1, "invalid imported spacing restores native width")
         }
         settings.terminalCellWidth = 1.5
+        settings.fontFeatures = "ss01, zero=1"
+        settings.fontLigatures = false
         settings.resetFont()
         check(settings.terminalCellWidth == 1 && !settings.serializedConfig().contains("terminal.cell-width"),
               "font reset restores column spacing and omits the default config key")
+        check(settings.fontFeatures.isEmpty && settings.fontLigatures,
+              "font reset also restores features after combined spacing changes")
 
         for size in 8...32 { settings.fontSize = Double(size) }
         NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: nil)

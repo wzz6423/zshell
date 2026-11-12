@@ -124,6 +124,20 @@ Zshell 大多数持久化设置都在一个文件里：
 
 左右侧边栏的基础字号。调整后，分区标题、列表、元数据和控件仍会保持原本的大小层级。
 
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+布尔值 — 默认 `true`
+
+在 **设置 → 外观 → 字体连字** 中启用或禁用两个终端后端的可选连字。关闭时会覆盖 `calt`、`liga`、`clig`、`dlig` 和 `hlig`，保留文字必需的字形排版。原始字符、终端占列、光标和选区保持不变。
+
+### `terminal.font-features` [#terminalfont-features]
+
+字符串 — 默认 `""`，使用字体默认特性
+
+在同一字体分组的 **OpenType 字形特性** 中填写四字符标签，用逗号或空白分隔：`-calt` 关闭上下文替换，`ss01` 启用样式集 1，`zero=1` 启用字体的替代零字形。`+liga` 和 `liga=1` 也能启用特性。同一标签以后面的值为准；连字开关对上述五个标签具有优先权。
+
+更改立即应用到已打开的终端和字体预览。两个后端均应用所选字体支持的特性，不支持的标签不产生效果。设置中的无效输入继续使用上次有效值；无效的外部配置使用字体默认值。重置为默认值会清空特性列表并启用连字。
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 布尔值——默认 `false`
@@ -346,6 +360,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1

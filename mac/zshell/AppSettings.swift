@@ -228,6 +228,14 @@ final class AppSettings: nonisolated ObservableObject {
         didSet { save() }
     }
 
+    @Published var fontFeatures: String {
+        didSet { if fontFeatures != oldValue { save() } }
+    }
+
+    @Published var fontLigatures: Bool {
+        didSet { if fontLigatures != oldValue { save() } }
+    }
+
     /// Ordered CJK fallback family for terminal glyphs the primary face lacks.
     /// Empty string leaves fallback selection to each backend and macOS.
     @Published var fontFallbackFamily: String {
@@ -603,6 +611,9 @@ final class AppSettings: nonisolated ObservableObject {
         )
         terminalThemeOnly = toml["terminal.theme-only"]?.bool ?? false
         fontFamily = toml["font-family"]?.string ?? ""
+        let features = toml["terminal.font-features"]?.string ?? ""
+        fontFeatures = TerminalFontFeatures.parse(features) != nil ? features : ""
+        fontLigatures = toml["terminal.font-ligatures"]?.bool ?? true
         fontFallbackFamily = toml["terminal.font-fallback-family"]?.string ?? ""
         let size = toml["font-size"]?.double ?? Self.defaultFontSize
         fontSize = Self.fontSizeRange.contains(size) ? size : Self.defaultFontSize
@@ -792,6 +803,8 @@ final class AppSettings: nonisolated ObservableObject {
 
     func resetFont() {
         fontFamily = ""
+        fontFeatures = ""
+        fontLigatures = true
         fontFallbackFamily = ""
         fontSize = Self.defaultFontSize
         sidebarFontSize = Self.defaultSidebarFontSize
@@ -809,6 +822,8 @@ final class AppSettings: nonisolated ObservableObject {
             && applicationPresence == .dockOnly
             && keepAwakeMode == .off
             && fontFamily.isEmpty
+            && fontFeatures.isEmpty
+            && fontLigatures
             && fontFallbackFamily.isEmpty
             && fontSize == Self.defaultFontSize
             && sidebarFontSize == Self.defaultSidebarFontSize
@@ -1064,6 +1079,9 @@ final class AppSettings: nonisolated ObservableObject {
         ))
         assign(\.terminalThemeOnly, toml["terminal.theme-only"]?.bool ?? false)
         assign(\.fontFamily, toml["font-family"]?.string ?? "")
+        let features = toml["terminal.font-features"]?.string ?? ""
+        assign(\.fontFeatures, TerminalFontFeatures.parse(features) != nil ? features : "")
+        assign(\.fontLigatures, toml["terminal.font-ligatures"]?.bool ?? true)
         assign(\.fontFallbackFamily, toml["terminal.font-fallback-family"]?.string ?? "")
         let size = toml["font-size"]?.double ?? Self.defaultFontSize
         assign(\.fontSize, Self.fontSizeRange.contains(size) ? size : Self.defaultFontSize)
@@ -1283,6 +1301,12 @@ final class AppSettings: nonisolated ObservableObject {
         }
         if !fontFamily.isEmpty {
             lines.append("font-family = \(TOML.quote(fontFamily))")
+        }
+        if !fontFeatures.isEmpty {
+            lines.append("terminal.font-features = \(TOML.quote(fontFeatures))")
+        }
+        if !fontLigatures {
+            lines.append("terminal.font-ligatures = false")
         }
         if !fontFallbackFamily.isEmpty {
             lines.append("terminal.font-fallback-family = \(TOML.quote(fontFallbackFamily))")

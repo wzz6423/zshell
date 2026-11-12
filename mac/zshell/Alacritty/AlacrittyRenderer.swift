@@ -32,7 +32,8 @@ struct AlacrittyMetrics {
         fontThicken: Bool,
         fontThickenStrength: Int,
         lineHeight: CGFloat,
-        cellWidth: CGFloat = 1
+        cellWidth: CGFloat = 1,
+        fontFeatures: TerminalFontFeatures = .init()
     ) {
         let regular = TerminalFont.resolve(
             family: family,
@@ -40,13 +41,13 @@ struct AlacrittyMetrics {
             size: size
         )
         let manager = NSFontManager.shared
-        self.regular = regular
-        bold = manager.convert(regular, toHaveTrait: .boldFontMask)
-        italic = manager.convert(regular, toHaveTrait: .italicFontMask)
-        boldItalic = manager.convert(
+        self.regular = fontFeatures.applying(to: regular)
+        bold = fontFeatures.applying(to: manager.convert(regular, toHaveTrait: .boldFontMask))
+        italic = fontFeatures.applying(to: manager.convert(regular, toHaveTrait: .italicFontMask))
+        boldItalic = fontFeatures.applying(to: manager.convert(
             manager.convert(regular, toHaveTrait: .boldFontMask),
             toHaveTrait: .italicFontMask
-        )
+        ))
 
         let advance = TerminalFont.cellAdvance(of: regular)
         // Round to whole points so column positions stay on pixel boundaries

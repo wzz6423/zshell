@@ -113,6 +113,20 @@ số, 9–24 — mặc định `14`
 
 Cỡ chữ cơ sở của cả hai thanh bên. Tiêu đề phần, hàng, siêu dữ liệu và điều khiển giữ quan hệ phân cấp khi cỡ cơ sở đổi.
 
+### `terminal.font-ligatures` [#terminalfont-ligatures]
+
+boolean — mặc định `true`
+
+Bật hoặc tắt chữ ghép tùy chọn cho cả hai backend trong **Cài đặt → Giao diện → Chữ ghép của phông**. Tắt sẽ ghi đè `calt`, `liga`, `clig`, `dlig` và `hlig` nhưng giữ cách tạo hình bắt buộc của chữ viết. Ký tự, cột terminal, con trỏ và vùng chọn không đổi.
+
+### `terminal.font-features` [#terminalfont-features]
+
+chuỗi — mặc định `""`, dùng mặc định của phông
+
+Trong **Tính năng OpenType**, nhập thẻ bốn ký tự, ngăn cách bằng dấu phẩy hoặc khoảng trắng: `-calt` tắt biến thể theo ngữ cảnh, `ss01` bật bộ kiểu 1 và `zero=1` bật số không thay thế. `+liga` và `liga=1` cũng bật tính năng. Giá trị cuối cùng của cùng một thẻ được dùng; công tắc chữ ghép ưu tiên hơn năm thẻ trên.
+
+Thay đổi có hiệu lực ngay với terminal đang mở và bản xem trước. Hai backend dùng tính năng phông hỗ trợ; thẻ không được hỗ trợ không có tác dụng. Đầu vào không hợp lệ giữ giá trị hợp lệ gần nhất; giá trị bên ngoài không hợp lệ dùng mặc định của phông. Đặt lại sẽ xóa danh sách và bật chữ ghép.
+
 ### `terminal.font-thicken` [#terminalfont-thicken]
 
 boolean — mặc định `false`
@@ -294,6 +308,8 @@ interface.scale = 1.25
 sidebar.font-size = 13
 toolbar.visibility = "auto"
 terminal.font-fallback-family = "PingFang SC"
+terminal.font-ligatures = true
+terminal.font-features = "ss01, zero=1"
 terminal.font-thicken = true
 terminal.font-thicken-strength = 180
 terminal.cell-width = 1.1
