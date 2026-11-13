@@ -9,6 +9,15 @@ controls quick to inspect.
 
 Zshell requires macOS 15.6 or later.
 
+[![Zshell launch film](web/public/video/zshell-launch-poster.jpg)](web/public/video/zshell-launch-1080p.mp4)
+
+[Watch the complete feature tour (1080p · 2:40)](web/public/video/zshell-launch-1080p.mp4?raw=true)
+· [Watch on the website](https://wzz6423.github.io/zshell/#launch-video).
+
+Music: 'Electric Dreams' by [Scott Buckley](https://www.scottbuckley.com.au/) —
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+[Attribution and edit details](promo/public/audio/ATTRIBUTION.md).
+
 ## Highlights
 
 - Native AppKit interface for projects, tabs, and split panes
@@ -54,10 +63,11 @@ sharing a build or diagnosing a signing failure.
 
 - [`mac/`](mac/) — macOS app, Xcode project, dependencies, and build/release scripts.
 - [`web/`](web/README.md) — website and user documentation.
+- [`promo/`](promo/README.md) — launch video, written in Remotion and rendered to MP4.
 - [`skills/`](skills/) — [app development](skills/zshell-app-development/SKILL.md) and [release](skills/zshell-release/SKILL.md) workflows for coding agents.
 
 The root `Makefile` provides `run`, `update`, `stop`, `build-package`, and `clean`.
-Install Bun dependencies separately in `mac/` and `web/`; each has its own lockfile.
+Install Bun dependencies separately in `mac/`, `web/`, and `promo/`; each has its own lockfile.
 
 ## Documentation
 

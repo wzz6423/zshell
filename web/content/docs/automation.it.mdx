@@ -61,14 +61,6 @@ I programmi usano `zshell +agent report` per segnalare l’avanzamento e `zshell
 
 Quando l'integrazione segnala la conclusione o la necessità di input, Zshell può anche inviare una notifica. Premi <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> per raggiungere il prossimo agente che ha segnalato di richiedere attenzione.
 
-## Utilizzo e limiti dell'account [#account-usage-and-limits]
-
-**Impostazioni → Automazione → Utilizzo dell’account** offre sempre **Leggi utilizzo dell’account**, **Leggi utilizzo di Claude Code** e **Leggi utilizzo di Codex**. L’opzione generale è disattivata per impostazione predefinita; i fornitori sono attivi ma vengono letti solo quando l’opzione generale è attiva. Le modifiche sono immediate e disattivare l’opzione generale conserva i fornitori scelti.
-
-Attiva i fornitori desiderati per leggere i limiti delle CLI locali. Codex usa una CLI installata con accesso effettuato; Claude Code usa i rapporti della riga di stato ricevuti da Zshell. L’attivazione non raccoglie credenziali, installa CLI o effettua l’accesso. Sono limiti dell’account, non il totale di token della sessione attiva.
-
-**Aggiorna utilizzo** ricarica solo i fornitori attivi. La sezione mostra caricamento, indisponibilità e gli ultimi dati dopo un errore. Disattivare l’utilizzo o un fornitore interrompe le letture, annulla le richieste pendenti e nasconde i dati. I rapporti Claude disattivati sono rifiutati senza scrivere un file. Riconoscimento degli agenti, stato e ripristino delle conversazioni non cambiano.
-
 ## Un flusso tipico [#a-typical-workflow]
 
 1. Avvia l'agente abituale in un terminale Zshell.

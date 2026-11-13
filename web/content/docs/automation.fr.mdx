@@ -61,14 +61,6 @@ Les programmes utilisent `zshell +agent report` pour signaler leur progression e
 
 Lorsqu'une intégration signale la fin d'un agent ou une demande d'intervention, Zshell peut aussi envoyer une notification. <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> rejoint le prochain agent signalé comme nécessitant votre attention.
 
-## Utilisation et limites du compte [#account-usage-and-limits]
-
-**Réglages → Automatisation → Utilisation du compte** propose toujours **Lire l’utilisation du compte**, **Lire l’utilisation de Claude Code** et **Lire l’utilisation de Codex**. L’option générale est désactivée par défaut ; chaque fournisseur est activé, mais n’est lu que si l’option générale est active. Les changements sont immédiats et désactiver l’option générale conserve les choix des fournisseurs.
-
-Activez les fournisseurs souhaités pour lire les limites de compte des CLI locales. Codex utilise une CLI installée et connectée ; Claude Code utilise les rapports de la ligne d’état reçus par Zshell. Activer l’utilisation ne collecte pas d’identifiants, n’installe pas de CLI et ne vous connecte pas. Ces limites concernent le compte, pas le total de jetons de la session active.
-
-**Actualiser l’utilisation** recharge uniquement les fournisseurs actifs. La section indique le chargement, l’indisponibilité et les dernières données disponibles après un échec. Désactiver l’utilisation ou un fournisseur arrête ses lectures, annule les demandes en attente et masque ses données. Les rapports Claude désactivés sont refusés sans écrire de fichier. La reconnaissance des agents, leur état et la restauration des conversations ne changent pas.
-
 ## Déroulement habituel [#a-typical-workflow]
 
 1. Démarrez votre agent de programmation habituel dans un terminal Zshell.

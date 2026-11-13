@@ -61,14 +61,6 @@ Programme melden Fortschritt mit `zshell +agent report` und löschen ihre eigene
 
 Meldet eine Integration den Abschluss oder benötigte Eingaben, kann Zshell zusätzlich eine Mitteilung senden. <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> springt zum nächsten gemeldeten Agenten, der Ihre Aufmerksamkeit braucht.
 
-## Kontonutzung und Limits [#account-usage-and-limits]
-
-**Einstellungen → Automatisierung → Kontonutzung** zeigt immer **Kontonutzung lesen**, **Claude-Code-Nutzung lesen** und **Codex-Nutzung lesen**. Die Hauptoption ist standardmäßig aus; Anbieter sind standardmäßig an, werden aber nur bei eingeschalteter Hauptoption gelesen. Änderungen gelten sofort. Ausschalten der Hauptoption erhält die Anbieterauswahl.
-
-Aktivieren Sie gewünschte Anbieter, um Kontolimits lokaler CLIs zu lesen. Codex nutzt eine installierte, angemeldete CLI; Claude Code nutzt die von Zshell empfangenen Statuszeilenberichte. Aktivieren erfasst keine Anmeldedaten, installiert keine CLI und meldet Sie nicht an. Es sind Kontolimits, keine Token-Summe der aktuellen Sitzung.
-
-**Nutzung aktualisieren** lädt nur aktive Anbieter neu. Der Abschnitt zeigt Laden, Nichtverfügbarkeit und nach Fehlern die zuletzt verfügbaren Daten. Ausschalten stoppt Lesevorgänge, bricht ausstehende Anfragen ab und blendet Daten aus. Deaktivierte Claude-Nutzungsberichte werden ohne Dateischreibzugriff abgelehnt. Agentenerkennung, Lebenszyklusstatus und Gesprächswiederherstellung bleiben erhalten.
-
 ## Ein typischer Ablauf [#a-typical-workflow]
 
 1. Starten Sie Ihren üblichen Programmieragenten in einem Zshell-Terminal.

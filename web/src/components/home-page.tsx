@@ -9,6 +9,7 @@ import { ModernHero } from '@/components/modern-hero'
 import { MinimalSection } from '@/components/minimal-components'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { AnimatedFeatureCard, AnimatedSection, CodeWindow } from '@/components/animated-components'
+import { LaunchVideo } from '@/components/launch-video'
 
 /** The landing page, rendered once per language from `homeCopy`. */
 export function HomePage({ lang, release, copy }: { lang: string; release: Release; copy: HomeCopy }) {
@@ -35,6 +36,7 @@ export function HomePage({ lang, release, copy }: { lang: string; release: Relea
         <Features lang={lang} copy={copy} />
         <DownloadSection copy={copy} release={release} />
         <Faq copy={copy} />
+        <LaunchVideo copy={copy.video} />
       </main>
 
       <MinimalFooter lang={lang} copy={copy} />
@@ -530,18 +532,18 @@ function SectionHeading({ title, action }: { title: string; action?: ReactNode }
 
 function Features({ lang, copy }: { lang: string; copy: HomeCopy }) {
   return (
-    <section id="features" className="home-section">
-      <div className="home-container">
+    <section id="features" className="home-section home-features">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHeading title={copy.features.title} />
-        <div className="mt-8 grid gap-x-10 gap-y-9 lg:grid-cols-2">
+        <div className="mt-12 grid gap-y-16">
           {copy.features.groups.map((group) => (
             <Reveal key={group.name} delay={60}>
-              <div className="h-full border-t border-border pt-6 pb-2">
-                <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-1">
-                  <h3 className="text-xl font-semibold tracking-tight">{group.name}</h3>
+              <div className="border-t border-border pt-8">
+                <div className="mb-8 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-3">
+                  <h3 className="text-balance text-xl font-semibold tracking-tight sm:text-2xl">{group.name}</h3>
                   <DocsLink lang={lang} slug={group.slug} className="home-text-link text-xs">{copy.features.docsLink}<span aria-hidden>↗</span></DocsLink>
                 </div>
-                <ul className="grid list-none gap-x-8 gap-y-6 p-0 sm:grid-cols-2">
+                <ul className="grid list-none gap-x-16 gap-y-10 p-0 sm:grid-cols-2">
                   {group.rows.map((row) => (
                     <DefinitionRow key={row.name} {...row} />
                   ))}
@@ -838,10 +840,10 @@ M  src/theme.css
 function DefinitionRow({ name, detail }: Row) {
   return (
     <li className="min-w-0">
-      <span className="block text-base font-semibold text-foreground">
+      <span className="block text-balance text-base font-semibold text-foreground">
         {name}
       </span>
-      <span className="mt-2 block text-[15px] leading-7 text-muted-foreground">{detail}</span>
+      <span className="mt-3 block text-pretty text-base leading-7 text-muted-foreground">{detail}</span>
     </li>
   )
 }

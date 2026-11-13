@@ -25,6 +25,10 @@ const copy: HomeCopy = {
     download: 'Download for macOS',
     docs: 'Read the docs',
   },
+  video: {
+    title: 'Launch film',
+    musicCredit: { before: 'Music: ', after: ". 00:00–02:40 excerpt." },
+  },
   preview: {
     label: 'Workspace illustration',
     tabs: ['Terminal', 'Code review', 'Agents'],
@@ -44,7 +48,7 @@ const copy: HomeCopy = {
       {
         name: 'Projects and sessions', slug: 'projects',
         rows: [
-          { name: 'Local and SSH projects', detail: 'Group projects, drop folders from Finder, and reuse saved SSH connections with password or private-key authentication.' },
+          { name: 'Local and SSH projects', detail: "Group local and saved SSH projects with password or key authentication, including remote roots reached through directory symlinks." },
           { name: 'Quick Launch', detail: 'Save and group commands or SSH connections. Open them in a fresh project from the app or the zshell CLI.' },
           { name: 'Sessions that stay organized', detail: 'Rename, color, pin, and group tabs. Move sessions between compatible projects or windows with their running terminals and splits.' },
           { name: 'Split and restore', detail: 'Keep terminals and browser panes side by side. Restore layouts on relaunch; scrollback returns when history restoration is enabled.' },
@@ -55,9 +59,9 @@ const copy: HomeCopy = {
       {
         name: 'Files and Git', slug: 'files',
         rows: [
-          { name: "Project files", detail: "Browse local and SSH file trees refreshed in the background. Search file contents in the current local project, or find files by name and path across open local projects." },
-          { name: "Editor and Markdown preview", detail: "Edit with syntax highlighting and preview Markdown without switching apps. Unsaved edits prompt you to save before closing or quitting." },
-          { name: 'Git review', detail: 'Inspect unified or split diffs, edit unstaged changes, and stage, commit, or push from the Git panel.' },
+          { name: "Project files", detail: "Browse refreshed local and SSH trees, copy Finder items into local projects by dragging, and edit remote files. Search content in the current local project or names and paths across open local projects." },
+          { name: "Editor and Markdown preview", detail: "Syntax highlighting, Markdown preview, local image previews up to 64 MiB, and Quick Look. Recover drafts and compare external edits before saving." },
+          { name: 'Git review', detail: "Review unified or split diffs with wrapping enabled by default; edit, stage, commit and push. Large commits show 200 files and count those omitted." },
           { name: 'Branches and worktrees', detail: "Create and switch branches, manage stashes and isolated worktree sessions. Delete unmerged local branches after confirmation, with commit recovery references and stashed local changes." },
           { name: "Pull requests and Git proxy", detail: "See GitHub PR status, read and reply to discussions beside diffs, resolve or reopen threads, and submit comments, approvals or change requests. Configure a proxy for Git and new terminals." },
           { name: "Project browser", detail: "Preview remote localhost through SSH, import Chrome or Firefox cookies, history and tabs, block ads and trackers, and install compatible local WebExtensions from a directory or ZIP after reviewing permissions." },
@@ -67,7 +71,7 @@ const copy: HomeCopy = {
         name: 'Agents and automation', slug: 'automation',
         rows: [
           { name: 'Agent coordination', detail: 'Let coding agents coordinate across panes while you follow status and requests for attention.' },
-          { name: 'Usage and limits', detail: 'View available Claude Code and Codex account usage and reset times in Settings when the provider reports them.' },
+          { name: "Agent recognition rules", detail: "Add, edit, import or export recognition rules. Enable screen inference independently while native lifecycle and program reports take priority." },
           { name: 'Prompt queue', detail: 'Queue follow-up prompts per session. Send them manually, or let supported shell integration dispatch them when the shell is ready.' },
           { name: 'Long-command notifications', detail: "Keep terminal and Agent notification history, filter unread, failed or pending items, and return to the originating pane. See progress when a program reports it." },
           { name: "Conversation history and forks", detail: "Search, archive, resume or fork saved Codex, Claude Code, OpenCode and Pi conversations with native context, locally or on supported remote hosts." },
@@ -77,11 +81,11 @@ const copy: HomeCopy = {
       {
         name: 'Settings and tools', slug: 'configuration',
         rows: [
-          { name: 'Two terminal engines', detail: 'Choose Ghostty or Alacritty for new panes, with your own shell, fonts, themes, opacity, and blur.' },
-          { name: 'Recommended tools', detail: 'Browse development tools and desktop apps in Settings, with supported install, update, and batch actions.' },
-          { name: 'Settings that travel', detail: 'Remap shortcuts, adjust interface scale and selection copying, and import or export your settings.' },
+          { name: 'Two terminal engines', detail: "Choose Ghostty or Alacritty for new panes. Set fonts, themes and backgrounds, with bar, block or underline cursors that blink or stay steady." },
+          { name: 'Recommended tools', detail: "Manage supported tool installations and updates in Settings. Quiet.md offers official project and download links for local notes and rich text editing." },
+          { name: 'Settings that travel', detail: "Search settings, remap shortcuts, adjust interface scale and import or export preferences. Browser settings bring extensions, data import and cross-device access together." },
           { name: 'Updates you control', detail: 'Choose automatic checks and installation. Updates prefer Gitee in mainland China and GitHub elsewhere, with a fallback source.' },
-          { name: "Command history, completion and hints", detail: "Search saved commands with duration and exit status, return to their output, insert commands without running them, complete zsh commands and paths, and copy or open text with keyboard hints." },
+          { name: "Command history, completion and hints", detail: "Find commands with duration and exit status; jump to output or insert without running. Keep shell scrollback when quitting Zshell with Vim or an agent open. Use zsh completion and keyboard hints." },
           { name: "Profiles and Quick Terminal", detail: "Apply terminal profiles by host, user, directory or program. Reuse Quick Terminal workspaces or start fresh, and choose Dock or menu bar presence." },
         ],
       },
@@ -132,7 +136,7 @@ const copy: HomeCopy = {
       },
       {
         q: 'Does it collect any data?',
-        a: 'Zshell has no telemetry or analytics. App and tool update checks, downloads, and configured agent usage services can access the network; browser panes and command-line tools make their own requests.',
+        a: "Zshell has no telemetry or analytics. App and tool update checks and downloads access the network; browser panes and command-line tools make their own requests.",
       },
       {
         q: 'What happens to my sessions when I quit?',
