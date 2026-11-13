@@ -27,9 +27,10 @@ export const FeatureCatalog = () => {
   const stepFrames = DEMO_SECONDS * fps;
   const step = Math.min(chapter.steps.length - 1, Math.floor(local / stepFrames));
   const demoFrame = local - step * stepFrames;
+  const actionFrame = Math.min(239, demoFrame * 239 / (stepFrames - fps * 0.65));
   const Body = chapter.Body;
   const enter = Math.min(1, pop(demoFrame, fps, 0, SPRING.smooth));
-  const fade = linear(demoFrame, [stepFrames - 12, stepFrames], [1, 0]);
+  const fade = linear(demoFrame, [stepFrames - 6, stepFrames], [1, 0]);
 
   return (
     <AbsoluteFill>
@@ -39,7 +40,7 @@ export const FeatureCatalog = () => {
         <span className="font-mono" style={{ color: color.blue, fontSize: 21 }}>{step + 1} / {chapter.steps.length}</span>
       </div>
       <div style={{ position: 'absolute', left: 128, right: 128, top: 218, bottom: 100, opacity: enter * fade, transform: `translateY(${(1 - enter) * 14}px)` }}>
-        <Body step={step} frame={demoFrame} fps={fps} />
+        <Body step={step} frame={actionFrame} fps={fps} />
       </div>
       <div className="font-sans" style={{ position: 'absolute', left: 96, right: 96, bottom: 40, display: 'flex', gap: 17, alignItems: 'center' }}>
         {FEATURE_CHAPTERS.map((item, index) => <div key={item.id} style={{ flex: 1, minWidth: 0 }}><div style={{ height: 3, backgroundColor: alpha(color.fg, 8), borderRadius: 999 }}><div style={{ width: `${index < chapterIndex ? 100 : index === chapterIndex ? local / chapterFrames * 100 : 0}%`, height: '100%', backgroundColor: color.blue }} /></div><div style={{ marginTop: 10, fontSize: 16, color: index === chapterIndex ? color.fg : color.muted }}>{['项目与分屏', '外观与光标', '终端输入', '终端工具', '文件与编辑', 'Git 与审查', '内置浏览器', 'AI 与会话', '保活与访问', '设置与工具'][index]}</div></div>)}

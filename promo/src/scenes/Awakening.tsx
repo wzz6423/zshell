@@ -8,6 +8,7 @@ import { TOKEN_COLOR, tokenizeRc } from '../lib/highlight';
 import { during, linear, mix, pop, ramp, SPRING } from '../lib/motion';
 import { cursorOpacity } from '../lib/typing';
 import { alpha, color } from '../theme';
+import { SCENES } from '../timeline';
 
 const COLLAPSE_FROM = 172;
 const COLLAPSE_TO = 246;
@@ -57,8 +58,9 @@ const LegacyPanel = ({ file, frame, fps }: { file: LegacyFile; frame: number; fp
 };
 
 export const Awakening = () => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const tempo = 420 / SCENES.awakening.duration;
+  const frame = useCurrentFrame() * tempo;
+  const fps = useVideoConfig().fps * tempo;
 
   const loneCursor = 1 - linear(frame, [24, 40]);
   const caption = during(frame, 70, COLLAPSE_FROM + 10, 16);
@@ -120,7 +122,7 @@ export const Awakening = () => {
       </AbsoluteFill>
 
       <div style={{ position: 'absolute', left: 0, right: 0, top: 118, display: 'flex', justifyContent: 'center' }}>
-        <Lockup at={TITLE_AT + 8} />
+        <Lockup at={(TITLE_AT + 8) / tempo} />
       </div>
     </AbsoluteFill>
   );

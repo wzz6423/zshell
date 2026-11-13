@@ -9,10 +9,10 @@ Zshell 需要 macOS 15.6 或更高版本。
 
 [![Zshell 宣传片](web/public/video/zshell-launch-poster.jpg)](web/public/video/zshell-launch-1080p.mp4)
 
-[观看完整功能介绍（1080p · 3:34）](web/public/video/zshell-launch-1080p.mp4?raw=true)
+[观看完整功能介绍（1080p · 2:40）](web/public/video/zshell-launch-1080p.mp4?raw=true)
 · [在官网观看](https://wzz6423.github.io/zshell/#launch-video)。
 
-配乐：《Tears In Rain》，作者 [Scott Buckley](https://www.scottbuckley.com.au/)，
+配乐：《Electric Dreams》，作者 [Scott Buckley](https://www.scottbuckley.com.au/)，
 采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 许可。
 [署名及编辑说明](promo/public/audio/ATTRIBUTION.md)。
 

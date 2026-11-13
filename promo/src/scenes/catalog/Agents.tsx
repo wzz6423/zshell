@@ -133,61 +133,10 @@ const SettingsDemo = ({ frame }: DemoProps) => {
   );
 };
 
-const UsageWindow = ({ label, value, reset }: { label: string; value: number; reset?: string }) => (
-  <div style={{ padding: '10px 16px' }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, fontSize: 21 }}><span>{label}</span><span>{value}% used</span></div>
-    <Progress value={value / 100} style={{ padding: '8px 0' }} />
-    {reset ? <div style={{ fontSize: 20, color: color.muted }}>{reset}</div> : null}
-  </div>
-);
-
-const AccountUsageDemo = ({ frame }: DemoProps) => {
-  const enabled = frame >= 35;
-  const refreshing = frame >= 116 && frame < 150;
-  const claudeEnabled = frame < 185;
-  return (
-    <Shell title="Settings — AI · Account Usage">
-      <div style={{ display: 'grid', gridTemplateColumns: '630px 1fr', height: '100%' }}>
-        <div style={{ padding: 25, borderRight: `1px solid ${color.line}` }}>
-          <Group title="Account Usage">
-            <Setting label="Read account usage" checked={enabled} focus={frame < 80} />
-            <Setting label="Read Claude Code usage" checked={claudeEnabled} focus={frame >= 175} />
-            <Setting label="Read Codex usage" checked />
-          </Group>
-          <Panel title="Local CLI integrations">
-            <ListRow>Claude Code · status-line report</ListRow>
-            <ListRow>Codex · signed-in CLI</ListRow>
-            <div style={{ padding: 20, fontSize: 23, color: color.muted, lineHeight: 1.6 }}>提供方报告的限额占用与重置时间</div>
-          </Panel>
-        </div>
-        <div style={{ padding: 26 }}>
-          <Panel title="Account Usage — reported limits">
-            <div style={{ padding: 24 }}>
-              {enabled ? <>
-                {claudeEnabled ? <Group title="Claude Code">
-                  <UsageWindow label="5-hour limit" value={32} reset="Resets Nov 13, 02:00" />
-                  <UsageWindow label="7-day limit" value={18} />
-                </Group> : null}
-                <Group title="Codex">
-                  <UsageWindow label="5-hour limit" value={frame >= 150 ? 47 : 46} reset="Resets Nov 13, 01:30" />
-                  <UsageWindow label="1-week limit" value={24} />
-                </Group>
-                <div style={{ fontSize: 20, color: color.muted, marginBottom: 18 }}>{refreshing ? 'Refreshing…' : frame >= 150 ? 'Updated 23:32' : 'Updated 23:30'}</div>
-                <Action active={frame >= 95 && frame < 150} disabled={refreshing}>Refresh Usage</Action>
-              </> : <Badge active={false}>Turn on Read account usage</Badge>}
-            </div>
-          </Panel>
-        </div>
-      </div>
-    </Shell>
-  );
-};
-
 const AgentsBody = (props: DemoProps) => {
   if (props.step === 0) return <PaletteDemo {...props} />;
   if (props.step === 1) return <QueueDemo {...props} />;
   if (props.step === 2) return <HistoryDemo {...props} />;
-  if (props.step === 4) return <AccountUsageDemo {...props} />;
   return <SettingsDemo {...props} />;
 };
 
@@ -198,7 +147,6 @@ export const agentsChapter: ChapterSpec = {
     { en: 'Queue shell commands · send when ready', zh: '命令排队，空提示符再发送' },
     { en: 'Resume the context · fork a new path', zh: '续接原对话，分叉独立会话' },
     { en: 'Real state · progress · source notifications', zh: '识别规则、状态、进度与来源通知' },
-    { en: 'Account usage, limits and reset times', zh: '账户用量、限额占用与重置时间' },
   ],
   features: [
     'Cmd+Option+A Agent palette search and navigation across running project panes',
@@ -214,7 +162,6 @@ export const agentsChapter: ChapterSpec = {
     'Agent rule add/edit/import/export and native lifecycle priority over screen inference',
     'Explicit program reports, progress and child task states',
     'Agent attention and completion notifications, All/Unread/Failed/Pending history, Show Pane and read/remove/clear actions',
-    'Opt-in local Claude Code / Codex account-limit reading, used percentages and reset times; Refresh Usage and independent provider switches',
   ],
   sources: [
     'mac/zshell/AgentPalette.swift', 'mac/zshell/TerminalManager.swift', 'mac/zshell/AgentAutomation.swift',
@@ -222,7 +169,6 @@ export const agentsChapter: ChapterSpec = {
     'mac/zshell/AgentConversationHistoryController.swift', 'mac/zshell/TerminalConversationHistory.swift',
     'mac/zshell/Settings/SettingsAutomationPane.swift', 'mac/zshell/AgentRecognitionRulesController.swift',
     'mac/zshell/AgentStatusReporting.swift', 'mac/zshell/TerminalNotificationCenter.swift',
-    'mac/zshell/AgentUsage.swift', 'mac/zshell/AgentUsageSettingsView.swift',
   ],
   Body: AgentsBody,
 };

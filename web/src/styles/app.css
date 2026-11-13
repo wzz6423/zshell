@@ -406,6 +406,10 @@ html.reveal-ready .reveal:not(.is-visible) {
 @media (min-width: 1440px) {
   .shortcut-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+.home-features { padding-block: 64px; }
+@media (min-width: 640px) {
+  .home-features { padding-block: 96px; }
+}
 
 /* Documentation shares the site palette and keeps navigation against the viewport. */
 .docs-layout { --fd-layout-width: 100%; }

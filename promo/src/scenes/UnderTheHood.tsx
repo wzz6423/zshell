@@ -94,7 +94,7 @@ const Stack = ({ frame, fps, activeLayer }: { frame: number; fps: number; active
             <span className="font-mono" style={{ color: color.cyan }}>{LAYERS[0].index}</span>
             {LAYERS[0].en}
           </div>
-          <WorkflowWindow frame={SCENES.workflow.duration - 1} fps={fps} />
+          <WorkflowWindow frame={779} fps={fps} />
           <div style={{ position: 'absolute', inset: 0, borderRadius: 16, border: `3px solid ${alpha(color.cyan, 70 * explode)}` }} />
         </div>
       </div>
@@ -291,8 +291,9 @@ const Extension = ({ frame, fps }: { frame: number; fps: number }) => (
 );
 
 export const UnderTheHood = () => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const tempo = 840 / SCENES.underTheHood.duration;
+  const frame = useCurrentFrame() * tempo;
+  const fps = useVideoConfig().fps * tempo;
   const active = CHAPTERS.find((chapter) => frame >= chapter.from && frame < chapter.to);
   const chrome = during(frame, 40, 830, 16);
   const [architecture, backends, security, extension] = CHAPTERS;

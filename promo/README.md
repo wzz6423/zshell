@@ -1,8 +1,8 @@
 # Zshell — launch video
 
-A 3-minute 34-second product launch film for **Zshell**, the native terminal
-workspace for macOS, written as code and rendered to MP4 with a cinematic
-electronic score by Scott Buckley.
+A 2-minute 40-second product launch film for **Zshell**, the native terminal
+workspace for macOS, written as code and rendered to MP4 with a warm
+synthwave score by Scott Buckley.
 
 ## Stack
 
@@ -41,42 +41,41 @@ The website and both root READMEs share the versioned
 [`zshell-launch-poster.jpg`](../web/public/video/zshell-launch-poster.jpg) in
 `web/public/video/`. The video is a 1920×1080, 60 fps H.264 export of the same
 composition as the 4K master, with the same continuous score and MP4 faststart
-enabled. The poster is the title and workspace reveal at 6.5 seconds.
+enabled. The poster is the title and workspace reveal at 4.5 seconds.
 
 GitHub Pages publishes them under `/zshell/video/` after the change is merged
 to `main` and the website deployment succeeds.
 
 ## Timeline
 
-One composition, `LaunchVideo`: 12840 frames at 60 fps.
+One composition, `LaunchVideo`: 9600 frames at 60 fps.
 [`src/timeline.ts`](src/timeline.ts) holds the start and length of every scene,
 and each scene counts frames from its own zero.
 
 | Scene | Seconds | Source | Shows |
 | --- | --- | --- | --- |
-| 1 · The Terminal Awakening | 0–7 | [`Awakening.tsx`](src/scenes/Awakening.tsx) | Shell and tmux config files pile up, collapse into a point, and open as one Zshell window. |
-| 2 · Speed & Core Workflow | 7–20 | [`Workflow.tsx`](src/scenes/Workflow.tsx) | Three automation commands are typed and run: a background split that returns the real exit status, an agent start, and an agent prompt. |
-| 3 · Under the Hood | 20–34 | [`UnderTheHood.tsx`](src/scenes/UnderTheHood.tsx) | The window tilts apart into four layers, then four chapters: architecture, the two terminal backends, the automation boundary, and the event stream. |
-| 4 · Complete Feature Tour | 34–198 | [`Catalog.tsx`](src/scenes/catalog/Catalog.tsx) | Ten chapters demonstrate projects and panes, appearance and cursors, terminal interaction, search and Quick Terminal controls, files and editor, Git and PRs, browser, agents and account limits, persistent sessions and session info, and preferences and tools. |
-| 5 · Feature Bento Grid | 198–207 | [`BentoGrid.tsx`](src/scenes/BentoGrid.tsx) | Git staging, commits and push; turn review; agent status; worktree sessions; remote sessions; global Quick Terminal and paired browser access, with English and Chinese labels. |
-| 6 · Outro & Get Started | 207–214 | [`Outro.tsx`](src/scenes/Outro.tsx) | The Homebrew install command types itself, then the logo and the repository address hold. |
+| 1 · The Terminal Awakening | 0–5 | [`Awakening.tsx`](src/scenes/Awakening.tsx) | Shell and tmux config files pile up, collapse into a point, and open as one Zshell window. |
+| 2 · Speed & Core Workflow | 5–15 | [`Workflow.tsx`](src/scenes/Workflow.tsx) | Three automation commands are typed and run: a background split that returns the real exit status, an agent start, and an agent prompt. |
+| 3 · Under the Hood | 15–27 | [`UnderTheHood.tsx`](src/scenes/UnderTheHood.tsx) | The window tilts apart into four layers, then four chapters: architecture, the two terminal backends, the automation boundary, and the event stream. |
+| 4 · Complete Feature Tour | 27–147 | [`Catalog.tsx`](src/scenes/catalog/Catalog.tsx) | Ten chapters demonstrate projects and panes, appearance and cursors, terminal interaction, search and Quick Terminal controls, files and editor, Git and PRs, browser, agent recognition and coordination, persistent sessions and session info, and preferences and tools including Quiet.md. |
+| 5 · Feature Bento Grid | 147–154 | [`BentoGrid.tsx`](src/scenes/BentoGrid.tsx) | Git staging, commits and push; turn review; agent status; worktree sessions; remote sessions; global Quick Terminal and paired browser access, with English and Chinese labels. |
+| 6 · Outro & Get Started | 154–160 | [`Outro.tsx`](src/scenes/Outro.tsx) | The Homebrew install command types itself, then the logo and the repository address hold. |
 
 ## Notes
 
-- The bundled score is a continuous 214-second excerpt (00:00–03:34) from
-  [“Tears in Rain” by Scott Buckley](https://www.scottbuckley.com.au/library/tears-in-rain/),
+- The bundled score is a continuous 160-second excerpt (00:00–02:40) from
+  [“Electric Dreams” by Scott Buckley](https://www.scottbuckley.com.au/library/electric-dreams/),
   licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-  The original arrangement and mix are retained, with a 0.8-second fade-in,
-  a 4-second fade-out and a 1 dB gain reduction. The composition uses
-  `public/audio/tears-in-rain-tour.mp3` for both Studio playback and video exports.
+  The composition uses `public/audio/electric-dreams-tour.mp3` for both Studio
+  playback and video exports.
   Source, edit settings and a reproducible FFmpeg command are recorded in
   [`public/audio/ATTRIBUTION.md`](public/audio/ATTRIBUTION.md).
 
   Include this credit in published video descriptions, including YouTube:
 
-  > 'Tears In Rain' by Scott Buckley - released under CC-BY 4.0.
+  > 'Electric Dreams' by Scott Buckley - released under CC-BY 4.0.
   > www.scottbuckley.com.au. https://creativecommons.org/licenses/by/4.0/
-  > 00:00–03:34 excerpt, with fades and reduced gain.
+  > 00:00–02:40 excerpt. [Attribution and edit details](public/audio/ATTRIBUTION.md).
 
 - Commands, feature names and settings reflect the owning application source.
   Commands, flags, JSON fields, shortcuts, config keys, and limits are copied

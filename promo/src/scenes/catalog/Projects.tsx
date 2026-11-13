@@ -28,8 +28,8 @@ const ProjectDemo = ({ step, frame }: DemoProps) => {
           <Terminal frame={frame} directory="~/src/design-system" command={'bun run dev'.slice(0, typedLength('bun run dev', frame, 80, 135))}><div style={{ color: color.green, marginTop: 14, opacity: linear(frame, [150, 175]) }}>VITE ready · localhost:3000</div></Terminal>
         </Panel>
         <Panel title="New SSH Project…">
-          <Setting label="Host" value="devbox" /><Setting label="User" value="developer" /><Setting label="Port" value="22" /><Setting label="Directory" value="~/src/api" /><Setting label="Authentication" value="SSH Agent" />
-          <div style={{ padding: 20, display: 'flex', gap: 16 }}><Action active={frame > 120}>Connect</Action>{frame > 170 ? <Done>Connected</Done> : null}</div>
+          <Setting label="Host" value="devbox" /><Setting label="User" value="developer" /><Setting label="Port" value="22" /><Setting label="Directory" value="~/work/api" /><Setting label="Authentication" value="SSH Agent" />
+          <div style={{ padding: 20, display: 'flex', gap: 16 }}><Action active={frame > 120}>Connect</Action>{frame > 170 ? <Done>Linked directory opened</Done> : null}</div>
           <div style={{ padding: '0 20px', color: color.muted, fontSize: 19 }}>SSH Agent · Password · Private Key File · Private Key Text</div>
           {frame > 185 ? <div style={{ padding: 20 }}><Badge>Saved connection · Edit / Delete</Badge></div> : null}
         </Panel>
@@ -86,7 +86,7 @@ export const projectsChapter: ChapterSpec = {
     { en: 'Split, focus, resize and zoom', zh: '分屏、焦点、调整大小与放大' },
     { en: 'Launch entries and reusable workspace templates', zh: '快速启动与可复用工作区模板' },
   ],
-  features: ['local projects', 'Finder Services', 'saved SSH authentication', 'plain and folder groups', 'group reorder and color', 'project pin and directory', 'session rename and automatic titles', 'tab groups and pin', 'tab switcher', 'move sessions across projects and windows', 'reopen closed session', 'command palette search and command execution', 'split both directions', 'pane focus ring and keyboard navigation', 'resize equalize and zoom', 'Quick Launch command and SSH entries', 'workspace template save edit apply import export'],
-  sources: ['web/content/docs/projects.mdx', 'web/content/docs/panes.mdx', 'web/content/docs/quick-launch.mdx', 'mac/zshell/WorkspaceTemplateController.swift', 'mac/zshell/TerminalManager.swift', 'mac/zshell/CommandPaletteView.swift'],
+  features: ['local projects', 'Finder Services', 'saved SSH authentication', 'SSH project roots reached through directory symlinks', 'plain and folder groups', 'group reorder and color', 'project pin and directory', 'session rename and automatic titles', 'tab groups and pin', 'tab switcher', 'move sessions across projects and windows', 'reopen closed session', 'command palette search and command execution', 'split both directions', 'pane focus ring and keyboard navigation', 'resize equalize and zoom', 'Quick Launch command and SSH entries', 'workspace template save edit apply import export'],
+  sources: ['web/content/docs/projects.mdx', 'web/content/docs/panes.mdx', 'web/content/docs/quick-launch.mdx', 'mac/zshell/WorkspaceTemplateController.swift', 'mac/zshell/TerminalManager.swift', 'mac/zshell/CommandPaletteView.swift', 'mac/zshell/RemoteFileService.swift'],
   Body: ProjectDemo,
 };

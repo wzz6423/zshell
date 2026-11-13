@@ -59,10 +59,15 @@ export const Setting = ({ label, value, checked, progress, focus = false }: { la
   </div>
 );
 
-const CATEGORIES = ['General', 'Shortcuts', 'Appearance', 'Terminal', 'Editor', 'Browser', 'Browser Access', 'AI', 'Recommendations', 'Updates'];
+const CATEGORIES = [
+  { title: 'Basics', names: ['General', 'Appearance', 'Shortcuts'] },
+  { title: 'Workspace', names: ['Terminal', 'Editor', 'Browser'] },
+  { title: 'AI & Tools', names: ['AI', 'Recommendations'] },
+  { title: 'About', names: ['Updates'] },
+];
 
 export const SettingsShell = ({ category, children }: { category: string; children: ReactNode }) => (
-  <Shell title={`Settings — ${category}`} sidebar={CATEGORIES.map((name) => <ListRow key={name} active={name === category}>{name}</ListRow>)}>
+  <Shell title={`Settings — ${category}`} sidebar={CATEGORIES.map(({ title, names }) => <div key={title} style={{ marginBottom: 12 }}><div style={{ padding: '2px 16px 7px', fontSize: 16, color: color.muted }}>{title}</div>{names.map((name) => <ListRow key={name} active={name === category} style={{ padding: '8px 16px' }}>{name}</ListRow>)}</div>)}>
     <div style={{ padding: 30 }}>{children}</div>
   </Shell>
 );

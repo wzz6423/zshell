@@ -7,7 +7,7 @@ import { AGENT_RUN, AGENT_STATE_AT, DEMO_COMMANDS, HUDS, PROMPT, TEST_RUN, type 
 import { during, linear, pop, ramp, SPRING, track, type Keyframe } from '../lib/motion';
 import { cursorOpacity } from '../lib/typing';
 import { alpha, color } from '../theme';
-import { HEIGHT, WIDTH } from '../timeline';
+import { HEIGHT, SCENES, WIDTH } from '../timeline';
 
 const FONT = 19;
 const LINE = 1.7;
@@ -116,8 +116,9 @@ const HUD_PLACEMENT: Record<string, { left: number; top: number }> = {
 const STEPS = ['+pane split --wait', '+agent start', '+agent prompt'];
 
 export const Workflow = () => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const tempo = 780 / SCENES.workflow.duration;
+  const frame = useCurrentFrame() * tempo;
+  const fps = useVideoConfig().fps * tempo;
 
   const zoom = track(frame, fps, 1, ZOOM);
   const focusX = track(frame, fps, WIDTH / 2, FOCUS_X);

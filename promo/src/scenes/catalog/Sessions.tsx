@@ -46,7 +46,7 @@ const RemoteDemo = ({ frame }: DemoProps) => {
           {frame < 63 ? <Setting label="Opacity" progress={0.65} /> : null}
         </Panel>
       </div></Shell>
-      <Shell title="Settings — Browser Access"><div style={{ padding: 22 }}><Group title="Browser Access"><Setting label="Enable browser access" checked={frame >= 22} /><Setting label="Listen on" value={frame >= 46 ? 'LAN · 192.168.1.12' : 'Localhost Only'} focus={frame >= 46 && frame < 71} /><Setting label="HTTPS port" value="7443" /><div style={{ display: 'flex', gap: 12, padding: 14 }}><Action>Export TLS Certificate…</Action><Action>Open Private Network Page</Action></div></Group>
+      <Shell title="Settings — Browser · Browser Access"><div style={{ padding: 22 }}><Group title="Browser Access"><Setting label="Enable browser access" checked={frame >= 22} /><Setting label="Listen on" value={frame >= 46 ? 'LAN · 192.168.1.12' : 'Localhost Only'} focus={frame >= 46 && frame < 71} /><Setting label="HTTPS port" value="7443" /><div style={{ display: 'flex', gap: 12, padding: 14 }}><Action>Export TLS Certificate…</Action><Action>Open Private Network Page</Action></div></Group>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20 }}>
           <div><Group title={approved ? 'Authorized Clients' : 'Pairing Requests'}>{pairing ? <><ListRow trailing={<Badge tone="blue">438221</Badge>}>Phone</ListRow><div style={{ padding: 14, display: 'flex', gap: 12 }}><Action active={frame >= 133 && frame < 152 || revoked}>{approved ? 'Revoke' : 'Approve'}</Action>{!approved ? <Action>Deny</Action> : null}</div>{approved ? <ListRow>Revoke All Clients</ListRow> : null}</> : <div style={{ height: 140 }} />}</Group><div style={{ fontSize: 20, color: color.muted, lineHeight: 1.7 }}>https://192.168.1.12:7443<div>Mac · local terminal panes</div></div></div>
           <Panel title="Phone · Zshell" style={{ borderRadius: 23, borderWidth: 3 }}>{!approved ? <div style={{ padding: 18, fontSize: 22 }}><div style={{ marginBottom: 18 }}>Browser Access</div><div style={{ color: color.muted, fontSize: 18 }}>Client name</div><ListRow>Phone</ListRow><div style={{ marginTop: 10 }}><Action active={pairing}>Request Pairing</Action></div>{pairing ? <div className="font-mono" style={{ color: color.blue, marginTop: 24, textAlign: 'center', fontSize: 30 }}>438221</div> : null}</div> : <div style={{ padding: 18, fontSize: 20 }}><Badge tone={revoked ? 'red' : 'green'}>{revoked ? 'Disconnected' : 'Connected'}</Badge><div style={{ margin: '20px 0 10px', color: color.muted }}>app — zsh</div><div className="font-mono" style={{ fontSize: 20, lineHeight: 1.8 }}>› {query}{frame >= 191 ? <><div>On branch main</div><div style={{ color: color.green }}>working tree clean</div></> : null}</div><div style={{ marginTop: 22, fontSize: 18, color: color.muted }}>Resize terminal to browser <span style={{ color: color.fg }}>Off</span></div></div>}</Panel>
@@ -134,7 +134,7 @@ export const sessionsChapter: ChapterSpec = {
     'Shared remote sessions detach and reconnect to the same host job, output screen and scrollback',
     'Remote controller/client state and Take Terminal Control; ordinary SSH is not claimed to preserve shared jobs',
     'Global Quick Terminal Cmd+I, reusable shell, hide/reopen preservation, pin and opacity',
-    'Browser Access Enable browser access, Listen on private interface, HTTPS port, TLS certificate export',
+    'Browser settings include Browser Access, Enable browser access, Listen on private interface, HTTPS port, TLS certificate export',
     'Phone Request Pairing, matching code, Mac Approve/Deny, shared local-terminal input and Revoke/Revoke All Clients',
     'Browser Access attaches existing main-window local panes only and does not expose the independent Quick Terminal',
     'Info current/project directories, process PID, CPU percentage and memory, local Terminate/Force Kill and listening ports',
@@ -147,7 +147,7 @@ export const sessionsChapter: ChapterSpec = {
     'mac/zshell/SessionStore.swift', 'mac/zshell/TerminalHistory.swift', 'mac/zshell/RemoteHostsController.swift',
     'mac/zshell/RemoteSessionConnection.swift', 'mac/zshell/RemoteProjectInfoView.swift',
     'mac/zshell/GlobalTerminalOverlay.swift', 'mac/zshell/QuickTerminalWorkspaceView.swift',
-    'mac/zshell/Settings/SettingsBrowserAccessPane.swift', 'mac/zshell/BrowserAccessController.swift',
+    'mac/zshell/Settings/SettingsBrowserAccessPane.swift', 'mac/zshell/BrowserAccessController.swift', 'mac/zshell/Settings/SettingsBrowserPane.swift',
     'mac/zshell/SessionInfoPanel.swift', 'mac/zshell/TerminalProfiles.swift',
     'mac/zshell/TerminalProfileEditor.swift', 'mac/zshell/TerminalProfileSession.swift', 'mac/zshell/TerminalSession.swift',
   ],

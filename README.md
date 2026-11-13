@@ -11,10 +11,10 @@ Zshell requires macOS 15.6 or later.
 
 [![Zshell launch film](web/public/video/zshell-launch-poster.jpg)](web/public/video/zshell-launch-1080p.mp4)
 
-[Watch the complete feature tour (1080p · 3:34)](web/public/video/zshell-launch-1080p.mp4?raw=true)
+[Watch the complete feature tour (1080p · 2:40)](web/public/video/zshell-launch-1080p.mp4?raw=true)
 · [Watch on the website](https://wzz6423.github.io/zshell/#launch-video).
 
-Music: 'Tears In Rain' by [Scott Buckley](https://www.scottbuckley.com.au/) —
+Music: 'Electric Dreams' by [Scott Buckley](https://www.scottbuckley.com.au/) —
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 [Attribution and edit details](promo/public/audio/ATTRIBUTION.md).
 

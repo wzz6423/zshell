@@ -77,7 +77,7 @@ export const AnywhereCard = ({ frame, fps }: CardProps) => {
         <div style={{ position: 'absolute', left: 0, right: 184, top: 0, height: 202, borderRadius: 12, overflow: 'hidden', backgroundColor: color.surface, border: `1px solid ${color.lineStrong}` }}>
           <div className="font-sans" style={{ height: 29, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '0 12px', fontSize: 13, color: color.muted, backgroundColor: color.raised, borderBottom: `1px solid ${color.line}` }}>
             <TrafficLights />
-            <span>{frame < CONNECT_AT ? 'Settings · Browser Access' : 'launch — zsh'}</span>
+            <span>{frame < CONNECT_AT ? 'Settings · Browser · Browser Access' : 'launch — zsh'}</span>
             <span style={{ fontSize: 12 }}>Mac</span>
           </div>
           <div className="font-sans" style={{ position: 'absolute', left: 14, right: 14, top: 42, opacity: settings }}>

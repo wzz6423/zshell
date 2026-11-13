@@ -101,7 +101,7 @@ const ReadAndEdit = ({ frame }: { frame: number }) => {
   return (
     <Shell title="atlas — Editor" sidebar={<><FileRow name="src" folder /><FileRow name="config.ts" indent={20} active={mode === 'code'} status={saved ? undefined : 'M'} /><FileRow name="README.md" active={mode === 'markdown'} /><FileRow name="zshell-icon.png" active={mode === 'image'} /><FileRow name="diagram.svg" active={mode === 'quickLook'} /></>}>
       <div style={{ padding: '17px 24px', borderBottom: `1px solid ${color.line}`, display: 'flex', alignItems: 'center', gap: 18 }}>
-        <span style={{ fontSize: 23 }}>{mode === 'code' ? 'config.ts' : mode === 'markdown' ? 'README.md' : mode === 'image' ? 'zshell-icon.png' : 'diagram.svg'}</span>
+        <span style={{ fontSize: 23 }}>{mode === 'code' ? 'config.ts' : mode === 'markdown' ? 'README.md' : mode === 'image' ? 'zshell-icon.png · local image ≤ 64 MiB' : 'diagram.svg'}</span>
         <span style={{ marginLeft: 'auto' }}>{mode === 'code' ? <><Action active={frame >= 36}>Wrap lines</Action><span style={{ marginLeft: 12 }}><Action active={frame >= 42 && frame < 54}>Save ⌘S</Action></span></> : mode === 'markdown' ? <><Action active={frame < 127}>Edit</Action><span style={{ marginLeft: 12 }}><Action active={frame >= 127}>Preview</Action></span></> : mode === 'image' ? <div style={{ display: 'flex', gap: 12 }}><Action active={frame >= 175 && frame < 190}>+ Zoom</Action><Action active={frame >= 190}>Fit to Window</Action><Badge>{frame >= 175 && frame < 190 ? '125%' : 'Fit'}</Badge></div> : <Badge>Quick Look</Badge>}</span>
       </div>
       <div style={{ position: 'relative', height: 'calc(100% - 76px)' }}>
@@ -170,7 +170,7 @@ export const filesChapter: ChapterSpec = {
     'Filename-aware Material file icons; Git status colors and badges; dimmed ignored paths',
     'New File / New Folder / Rename; renaming follows already-open files and folder descendants',
     'Move to Trash; Open / Open to the Side / Copy Path / cd Here / Reveal in Finder / default app',
-    'Import Files through menu or Finder drag-and-drop into local tree; copies preserve originals',
+    'Import Files through menu or enabled-by-default Finder drag-and-drop into local tree; copies preserve originals',
     'Import collision Replace / Skip / Cancel with rollback; folder replacement replaces whole folder',
     'Command-palette fuzzy file-name / relative-path search across local projects in the window; project-name context on results',
     'Selecting a search result switches to its project and opens its file',
@@ -178,18 +178,18 @@ export const filesChapter: ChapterSpec = {
     'Editable source pane; syntax highlighting / Find / Find and Replace / Save / line wrapping',
     'External editor choices VS Code / Zed / Cursor / System Default',
     'Rendered .md Markdown with Edit / Preview; keeps edits and undo history and remembers preferred mode',
-    'Direct local PNG / JPEG / GIF / HEIC / WebP / TIFF / BMP / ICNS previews; native Quick Look for supported other formats',
+    'Direct regular local PNG / JPEG / GIF / HEIC / WebP / TIFF / BMP / ICNS previews up to 64 MiB; oversized files show a message; native Quick Look for supported other formats',
     'Unsaved-close handling and cancel preserving affected workspace; clean preview refresh without replacing dirty buffer',
     'Unsaved local file and worktree-diff draft backups; unexpected-exit restoration; Recover Drafts / Restore Draft / Delete Backup',
     'Restore Draft opens unsaved source without writing disk; recovery retains pre-edit version for save-conflict checks',
     'Save conflicts: Compare / Keep Draft / Reload from Disk / Overwrite File; protection also covers editable worktree diffs',
     'SSH source editing / saves / create / rename / Move to Remote Trash / Restore Last Remote Item',
-    'Allow remote file changes setting; remote-version conflict comparison / Reload from Remote / overwrite version recheck',
+    'Allow remote file changes enabled by default; remote-version conflict comparison / Reload from Remote / overwrite version recheck; directory symlinks in SSH root and ancestors are resolved',
   ],
   sources: [
     'web/content/docs/files.mdx', 'mac/zshell/AppKitFileTreePanel.swift', 'mac/zshell/FileTreeModel.swift',
     'mac/zshell/FileTreeImportController.swift', 'mac/zshell/ProjectFileSearch.swift', 'mac/zshell/FileContentSearchModel.swift',
-    'mac/zshell/SourceTextEditor.swift', 'mac/zshell/FileViewerView.swift', 'mac/zshell/ExternalEditor.swift',
+    'mac/zshell/SourceTextEditor.swift', 'mac/zshell/FileViewerView.swift', 'mac/zshell/MarkdownImageLoader.swift', 'mac/zshell/ExternalEditor.swift', 'mac/zshell/RemoteFileService.swift',
     'mac/zshell/EditorDraftRecoveryController.swift', 'mac/zshell/FileSaveConflictController.swift',
   ],
   Body: FilesBody,

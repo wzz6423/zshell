@@ -27,7 +27,7 @@ const copy: HomeCopy = {
   },
   video: {
     title: '宣传片',
-    musicCredit: { before: '配乐：', after: '。使用 00:00–03:34 片段，加入淡入淡出并降低音量。' },
+    musicCredit: { before: '配乐：', after: "。使用 00:00–02:40 片段。" },
   },
   preview: {
     label: '工作区示意',
@@ -48,7 +48,7 @@ const copy: HomeCopy = {
       {
         name: '项目与会话', slug: 'projects',
         rows: [
-          { name: '本地与 SSH 项目', detail: '分组管理项目，拖入 Finder 文件夹；保存 SSH 连接，复用密码或私钥认证。' },
+          { name: '本地与 SSH 项目', detail: "分组管理本地与 SSH 项目，复用密码或私钥认证；支持通过远程目录符号链接打开项目。" },
           { name: '快速启动', detail: '保存、分组常用命令与 SSH 连接，从应用或 zshell 命令行启动到新项目。' },
           { name: '有序的会话', detail: '重命名、标色、固定和分组标签页；在兼容项目或窗口间转移会话，保留运行中的终端与分屏。' },
           { name: '分屏与恢复', detail: '终端和浏览器并排工作。重启后恢复布局；开启历史恢复时，也会找回之前的滚动输出。' },
@@ -59,9 +59,9 @@ const copy: HomeCopy = {
       {
         name: '文件与 Git', slug: 'files',
         rows: [
-          { name: "项目文件", detail: "浏览在后台刷新的本地与 SSH 文件树；在当前本地项目内搜索文件内容，或在打开的本地项目间按名称和路径查找文件。" },
-          { name: "编辑器与 Markdown 预览", detail: "通过语法高亮编辑文件，直接预览 Markdown；如有未保存的修改，关闭或退出前会先询问是否保存。" },
-          { name: 'Git 审阅', detail: '查看单栏或左右 diff，编辑未暂存改动，在 Git 面板中暂存、提交与推送。' },
+          { name: "项目文件", detail: "浏览后台刷新的本地与 SSH 文件树，将 Finder 文件拖入本地项目复制，编辑远程文件；在当前本地项目搜索内容，跨本地项目查找名称与路径。" },
+          { name: "编辑器与 Markdown 预览", detail: "语法高亮编辑、Markdown 预览、本地图片预览（最大 64 MiB）、Quick Look；恢复未保存草稿，比较外部修改后再保存。" },
+          { name: 'Git 审阅', detail: "查看单栏或左右 diff，默认自动换行，编辑、暂存、提交和推送；大提交展示前 200 个文件并标明省略数量。" },
           { name: '分支与 Worktree', detail: "新建、切换分支，管理 stash 和独立 worktree 会话；确认后删除未合并的本地分支，自动保留提交恢复引用并暂存本地改动。" },
           { name: "Pull Request 与 Git 代理", detail: "查看 GitHub PR 状态，在 diff 旁阅读、回复及解决或重开讨论，提交评论、批准或请求修改；为 Git 和新建终端配置代理。" },
           { name: "项目浏览器", detail: "通过 SSH 预览远程 localhost，导入 Chrome 或 Firefox 的 Cookie、历史和标签页，拦截广告与跟踪器；审阅权限后，从文件夹或 ZIP 安装兼容的本地 WebExtensions 扩展。" },
@@ -71,7 +71,7 @@ const copy: HomeCopy = {
         name: 'Agent 与自动化', slug: 'automation',
         rows: [
           { name: 'Agent 协作', detail: '让编码 Agent 在窗格间协调工作，通过状态和待处理提示跟进进展。' },
-          { name: '用量与限额', detail: '在设置中查看可用的 Claude Code 与 Codex 账户用量与提供方报告的重置时间。' },
+          { name: "Agent 识别规则", detail: "添加、编辑、导入和导出识别规则，独立控制屏幕推断；原生生命周期与程序上报状态优先。" },
           { name: '提示词队列', detail: '为每个会话排好后续提示词，手动发送，或由受支持的 shell 集成在就绪时依次发送。' },
           { name: '长命令通知', detail: "保留终端与 Agent 通知历史，筛选未读、失败或待处理项目，返回通知来源窗格；程序主动上报时显示进度。" },
           { name: "对话历史与分叉", detail: "搜索、归档、恢复或分叉 Codex、Claude Code、OpenCode 和 Pi 的历史对话，保留原生上下文，支持本地及兼容的远程主机。" },
@@ -81,11 +81,11 @@ const copy: HomeCopy = {
       {
         name: '设置与工具', slug: 'configuration',
         rows: [
-          { name: '双终端引擎', detail: '新窗格可选 Ghostty 或 Alacritty，自定义 shell、字体、主题、透明度与模糊。' },
-          { name: '推荐工具', detail: '在设置中浏览开发工具与桌面应用，使用各工具支持的安装、更新和批量操作。' },
-          { name: '可迁移的设置', detail: '重映射快捷键，调整界面缩放与选中复制，导入或导出个人设置。' },
+          { name: '双终端引擎', detail: "新窗格可选 Ghostty 或 Alacritty，自定义字体、主题与背景；竖线、方块、下划线光标可闪烁或常亮。" },
+          { name: '推荐工具', detail: "在设置中安装、更新或批量管理支持的工具；Quiet.md 提供官方项目与下载入口，用于本地笔记和富文本编辑。" },
+          { name: '可迁移的设置', detail: "搜索设置、重映射快捷键、调整界面缩放、导入或导出配置；浏览器设置集中管理扩展、数据导入与跨设备访问。" },
           { name: '由你控制的更新', detail: '选择自动检查与安装偏好；中国大陆优先 Gitee，其他地区优先 GitHub，并提供备用源。' },
-          { name: "命令历史、补全与键盘提示", detail: "搜索历史命令，查看耗时和退出状态，返回原始输出，插入命令后自行执行；补全 zsh 命令与路径，用键盘提示复制或打开文本。" },
+          { name: "命令历史、补全与键盘提示", detail: "查找命令的耗时、退出状态与原始输出，插入命令后自行执行；Vim 或 Agent 仍运行时退出 Zshell，也保留先前的 shell 滚动输出；支持 zsh 补全与键盘文字提示。" },
           { name: "终端配置与快速终端", detail: "按主机、用户、目录或程序自动应用终端配置；复用快速终端工作区或每次新建，并选择 Dock、菜单栏显示方式。" },
         ],
       },
@@ -136,7 +136,7 @@ const copy: HomeCopy = {
       },
       {
         q: '它会收集数据吗？',
-        a: 'Zshell 没有遥测或分析统计。应用与工具更新检查、下载，以及已配置的 Agent 用量服务可能联网；浏览器窗格和命令行工具会发起各自的请求。',
+        a: "Zshell 没有遥测或分析统计。应用与工具更新检查、下载可能联网；浏览器窗格和命令行工具会发起各自的请求。",
       },
       {
         q: '退出之后我的会话会怎样？',

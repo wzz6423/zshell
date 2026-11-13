@@ -61,14 +61,6 @@ Chương trình báo tiến độ bằng `zshell +agent report` và xóa báo c�
 
 Khi tích hợp báo hoàn tất hoặc cần nhập liệu, Zshell cũng có thể gửi thông báo. <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> chuyển tới tác nhân tiếp theo được báo cần bạn chú ý.
 
-## Mức dùng và giới hạn tài khoản [#account-usage-and-limits]
-
-**Cài đặt → Tự động hóa → Mức sử dụng tài khoản** luôn có **Đọc mức sử dụng tài khoản**, **Đọc mức sử dụng Claude Code** và **Đọc mức sử dụng Codex**. Công tắc chính mặc định tắt; từng nhà cung cấp bật sẵn nhưng chỉ đọc khi công tắc chính bật. Thay đổi có hiệu lực ngay, tắt công tắc chính vẫn giữ lựa chọn nhà cung cấp.
-
-Bật nhà cung cấp mong muốn để đọc giới hạn tài khoản CLI cục bộ. Codex dùng CLI đã cài đặt và đăng nhập; Claude Code dùng báo cáo dòng trạng thái Zshell nhận được. Bật sử dụng không thu thập thông tin đăng nhập, cài CLI hay đăng nhập thay bạn. Đây là giới hạn tài khoản, không phải tổng token của phiên hiện tại.
-
-**Làm mới mức sử dụng** chỉ cập nhật nhà cung cấp đang bật. Phần này hiển thị đang đọc, không khả dụng và dữ liệu gần nhất khi cập nhật lỗi. Tắt sử dụng hoặc nhà cung cấp sẽ dừng đọc, hủy yêu cầu đang chờ và ẩn dữ liệu. Báo cáo Claude bị tắt sẽ bị từ chối mà không ghi tệp. Nhận diện tác nhân, trạng thái vòng đời và khôi phục hội thoại không thay đổi.
-
 ## Quy trình điển hình [#a-typical-workflow]
 
 1. Chạy tác nhân lập trình quen dùng trong terminal Zshell.

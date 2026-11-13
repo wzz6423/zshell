@@ -5,6 +5,7 @@ import { AgentIcon, BranchIcon, DiffIcon, GlobeIcon, TerminalIcon } from '../com
 import { FOOTNOTES } from '../data/product';
 import { during, linear, pop, SPRING } from '../lib/motion';
 import { color, type Tone } from '../theme';
+import { SCENES } from '../timeline';
 import { AgentsCard, BentoCard, ReviewCard, type CardProps } from './BentoCards';
 import { RemoteCard, WorktreeCard } from './BentoCardsExtra';
 import { GitCard } from './BentoCardsGit';
@@ -30,8 +31,9 @@ const CARDS: CardSpec[] = [
 ];
 
 export const BentoGrid = () => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const tempo = 540 / SCENES.bentoGrid.duration;
+  const frame = useCurrentFrame() * tempo;
+  const fps = useVideoConfig().fps * tempo;
   const chrome = during(frame, 6, 530, 14);
 
   return (

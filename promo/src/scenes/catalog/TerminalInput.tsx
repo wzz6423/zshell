@@ -74,7 +74,7 @@ const HistoryDemo = ({ frame }: DemoProps) => {
             {searchAll ? <><ListRow active trailing={<Badge>app · test</Badge>}>2 tests passed</ListRow><ListRow trailing={<Badge>api · build</Badge>}>2 tests passed</ListRow><ListRow trailing={<Badge>docs · check</Badge>}>2 tests passed</ListRow></> : <><ListRow active>pnpm test <span style={{ color: color.muted, fontSize: 18 }}>— ~/src/app</span></ListRow><div style={{ padding: '0 18px 22px', fontSize: 19, color: color.muted }}>10:42 · Duration: 1.28 s · Exit: 0</div>{frame < 43 ? <><ListRow>pnpm run dev</ListRow><ListRow>git status</ListRow></> : <ListRow>pnpm test --filter api</ListRow>}</>}
             <div style={{ padding: 18, display: 'flex', gap: 12, flexWrap: 'wrap' }}><Action active={revealed}>{searchAll ? 'Show Pane' : 'Show Output'}</Action>{!searchAll ? <><Action active={inserted}>Insert into Terminal</Action><Action active={frame >= 51 && frame < 72}>Copy Command</Action></> : null}</div>
           </Panel>
-          {!searchAll ? <Group title="Settings · Terminal · History" style={{ marginTop: 22 }}><Setting label="Record command history" checked /><Setting label="Restore session history on relaunch" checked /></Group> : <div style={{ marginTop: 24 }}><Keycap size={18} pressed={1}>Cmd + Shift + F</Keycap></div>}
+          {!searchAll ? <Group title="Settings · Terminal · History" style={{ marginTop: 22 }}><Setting label="Record command history" checked /><Setting label="Restore session history on relaunch" checked /><div style={{ padding: 16, fontSize: 19, color: color.muted }}>Quit with Vim open · shell scrollback kept</div></Group> : <div style={{ marginTop: 24 }}><Keycap size={18} pressed={1}>Cmd + Shift + F</Keycap></div>}
         </div>
         <div style={{ position: 'relative' }}>
           <Terminal frame={frame} fontSize={27} command={inserted ? 'pnpm test' : ''}>
@@ -164,7 +164,7 @@ export const terminalChapter: ChapterSpec = {
     'zsh inline suggestions, Tab candidates, arrows, Return acceptance without execution, Esc cancellation',
     'Vim and Neovim mode-aware searchable command hints in Info',
     'Option as Alt/Meta, Shift+Enter newline, right-click action, copy-on-select and focus-follows-mouse settings',
-    'Persistent command history search by command and directory, duration and exit status, Show Output, Copy Command',
+    'Persistent command history search by command and directory, duration and exit status, Show Output, Copy Command; earlier shell scrollback is preserved when quitting Zshell while Vim or an agent is running',
     'Insert into Terminal only at an empty original zsh prompt, without executing the command',
     'Search Terminal Logs across projects, tabs and panes in the current window',
     'Keyboard letter hints copy paths, URLs, IP addresses and commit hashes; Tab switches copy/open',
@@ -178,7 +178,7 @@ export const terminalChapter: ChapterSpec = {
     'mac/zshell/Settings/SettingsTerminalPane.swift', 'mac/zshell/VimCommandHints.swift',
     'mac/zshell/TerminalCommandHistoryController.swift', 'mac/zshell/TerminalCommandHistoryActions.swift',
     'mac/zshell/WorkspaceLogSearchController.swift', 'mac/zshell/TerminalHintMenu.swift',
-    'mac/zshell/TerminalContextMenu.swift', 'mac/zshell/TerminalSession.swift',
+    'mac/zshell/TerminalContextMenu.swift', 'mac/zshell/TerminalSession.swift', 'mac/zshell/TerminalHistory.swift',
     'mac/zshell/RemotePaste.swift', 'mac/zshell/LocalClipboardImageStore.swift',
   ],
   Body: TerminalBody,

@@ -6,14 +6,16 @@ import { PromptLine } from '../components/Terminal';
 import { PRODUCT } from '../data/product';
 import { during, linear, mix, pop, ramp, SPRING } from '../lib/motion';
 import { alpha, color } from '../theme';
+import { SCENES } from '../timeline';
 
 const TYPE = [30, 112] as const;
 const ENTER_AT = 128;
 const LOCKUP_AT = 168;
 
 export const Outro = () => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const tempo = 420 / SCENES.outro.duration;
+  const frame = useCurrentFrame() * tempo;
+  const fps = useVideoConfig().fps * tempo;
 
   const promptIn = ramp(frame, [6, 30]);
   const press = during(frame, ENTER_AT - 6, ENTER_AT + 16, 6);
@@ -38,7 +40,7 @@ export const Outro = () => {
       </AbsoluteFill>
 
       <div style={{ position: 'absolute', left: 0, right: 0, top: 232, display: 'flex', justifyContent: 'center', opacity: frame >= LOCKUP_AT ? 1 : 0 }}>
-        <Lockup at={LOCKUP_AT}>
+        <Lockup at={LOCKUP_AT / tempo}>
           <div
             className="font-mono"
             style={{ marginTop: 46, display: 'flex', alignItems: 'center', gap: 18, fontSize: 30, opacity: details, transform: `translateY(${(1 - details) * 16}px)` }}

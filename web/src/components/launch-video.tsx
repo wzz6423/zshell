@@ -24,8 +24,8 @@ export function LaunchVideo({ copy }: { copy: HomeCopy['video'] }) {
           </video>
           <figcaption className="mt-4 text-xs leading-relaxed text-muted-foreground">
             {copy.musicCredit.before}
-            <a href="https://www.scottbuckley.com.au/library/tears-in-rain/" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground">
-              <bdi>“Tears In Rain” — Scott Buckley</bdi>
+            <a href="https://www.scottbuckley.com.au/library/electric-dreams/" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground">
+              <bdi>“Electric Dreams” — Scott Buckley</bdi>
             </a>{' · '}
             <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground">
               <bdi>CC BY 4.0</bdi>

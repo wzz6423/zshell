@@ -10,7 +10,7 @@ import { SCENES } from './timeline';
 
 export const LaunchVideo = () => (
   <AbsoluteFill>
-    <Html5Audio src={staticFile('audio/tears-in-rain-tour.mp3')} />
+    <Html5Audio src={staticFile('audio/electric-dreams-tour.mp3')} />
     <Backdrop />
     <Sequence name="1 · The Terminal Awakening" from={SCENES.awakening.from} durationInFrames={SCENES.awakening.duration}>
       <Awakening />
