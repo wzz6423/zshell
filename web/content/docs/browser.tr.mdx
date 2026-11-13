@@ -44,7 +44,7 @@ Tarayıcı bölmeleri çerezleri, girişleri ve diğer site verilerini sekmeler 
 
 **Görünüm → Tarayıcı → Tarayıcı verilerini içe aktar…** ile çerezler, **Import** seçildiğinde etkin olan projenin tarayıcı deposuna aktarılır. Uzak projelerin depoları ayrıdır; yerel projeler varsayılan depoyu paylaşır. Proje değiştirmek aktarım hedefini değiştirmez. Hedef projeyi kapatmak kalan aktarımı durdurur ve başka bir projeye yazılmaz. Açık proje yoksa Zshell, çerez veya sekme aktarımının başında yerel bir proje oluşturur.
 
-Tarayıcı verisi izinleri **Ayarlar → Tarayıcı → Tarayıcı Verilerine Erişim…** bölümündedir. İçe aktarma penceresinde **Erişime İzin Ver**, **Sistem Ayarları…** ve **Yenile** de bulunur. İletişim kutusunda gösterilen tarayıcı veri klasörünü seçin. macOS erişimi hâlâ engelliyorsa çalışan uygulamaya, **zshell** veya **zshell Debug**, **Sistem Ayarları → Gizlilik ve Güvenlik → Tam Disk Erişimi** bölümünde izin verin ve **Yenile**’ye tıklayın. macOS isterse uygulamayı yeniden başlatın. Arama bittiğinde profil listesi güncellenir; boş listede önizleme veya içe aktarma yapılamaz.
+Tarayıcı verisi izinleri **Ayarlar → Tarayıcı → Tarayıcı Verilerine Erişim** bölümündedir. İçe aktarma penceresinde **Erişime İzin Ver**, **Sistem Ayarları…** ve **Yenile** de bulunur. İletişim kutusunda gösterilen tarayıcı veri klasörünü seçin. macOS erişimi hâlâ engelliyorsa çalışan uygulamaya, **zshell** veya **zshell Debug**, **Sistem Ayarları → Gizlilik ve Güvenlik → Tam Disk Erişimi** bölümünde izin verin ve **Yenile**’ye tıklayın. macOS isterse uygulamayı yeniden başlatın. Arama bittiğinde profil listesi güncellenir; boş listede önizleme veya içe aktarma yapılamaz.
 
 Geçmişi içe aktarırken Chrome açık kalabilir; Chrome’un kayıtlı geçmişi değiştirilmez.
 
@@ -52,7 +52,7 @@ SameSite ayarı olmayan Firefox çerezleri, eski profiller ve kaydedilmiş oturu
 
 ## Yerel tarayıcı uzantıları [#local-browser-extensions]
 
-**Ayarlar → Tarayıcı → Uzantıları yönet…** yolunu açın, **Uzantı yükle…** ile kök dizininde `manifest.json` olan uyumlu bir WebExtension klasörü veya ZIP seçin. **Yükle** demeden önce API ve site izinlerini inceleyin. Zshell uzantıyı yerel olarak kopyalar; kaynak klasörü düzenlemek kurulu uzantıyı güncellemez.
+**Ayarlar → Tarayıcı → Uzantıları yönet** yolunu açın, **Uzantı yükle…** ile kök dizininde `manifest.json` olan uyumlu bir WebExtension klasörü veya ZIP seçin. **Yükle** demeden önce API ve site izinlerini inceleyin. Zshell uzantıyı yerel olarak kopyalar; kaynak klasörü düzenlemek kurulu uzantıyı güncellemez.
 
 Bir sayfaya sağ tıklayıp **Uzantılar** menüsünden bir işlem çalıştırın veya **Seçenekler** sayfasını açın. İşlemler açılır pencere gösterebilir. `activeTab` yalnızca işlemi çalıştırdığınız sayfaya erişim verir. Yönetici izinleri gösterir ve uzantıları etkinleştirmenizi, devre dışı bırakmanızı veya kaldırmanızı sağlar. Değişikliklerden sonra sayfaları yeniden yükleyin. İsteğe bağlı izinler ayrı sorulur ve uygulama yeniden açılınca tekrar istenebilir.
 

@@ -127,8 +127,8 @@ DESCRIPTION_ITEMS = {
         ("updates", "Automatically install updates", ""),
 }
 ACTION_ITEMS = (
-    ("browser", "Import Browser Data…", ""),
-    ("browser", "Browser Data Access…", ""),
+    ("browser", "Import Browser Data", ""),
+    ("browser", "Browser Data Access", ""),
     ("browser", "Imported Browser History", ""),
     ("terminal", "Workspace Templates…", ""),
     ("terminal", "Manage Terminal Profiles…", "Terminal Profiles"),

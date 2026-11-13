@@ -47,7 +47,7 @@ Panel browser menyimpan cookie, login, dan data situs lainnya lintas tab dan pel
 
 Melalui **Tampilan → Browser → Impor data browser…**, cookie diimpor ke penyimpanan browser proyek yang dipilih saat menekan **Import**. Setiap proyek jarak jauh memiliki penyimpanan terpisah; proyek lokal berbagi penyimpanan bawaan. Beralih proyek tidak mengubah tujuan impor. Menutup proyek tujuan menghentikan sisa impor tanpa menulis ke proyek lain. Jika tidak ada proyek terbuka, Zshell membuat proyek lokal saat mulai mengimpor cookie atau tab.
 
-Izin data browser tersedia di **Pengaturan → Browser → Akses Data Browser…**. Jendela impor juga menyediakan **Izinkan Akses**, **Pengaturan Sistem…**, dan **Segarkan**. Pilih folder data browser yang ditunjukkan dalam dialog. Jika macOS tetap memblokir akses, izinkan aplikasi yang sedang berjalan, **zshell** atau **zshell Debug**, di **Pengaturan Sistem → Privasi & Keamanan → Akses Disk Penuh**, lalu klik **Segarkan**. Mulai ulang aplikasi jika diminta macOS. Daftar profil diperbarui setelah pencarian; daftar kosong tidak mengizinkan pratinjau atau impor.
+Izin data browser tersedia di **Pengaturan → Browser → Akses Data Browser**. Jendela impor juga menyediakan **Izinkan Akses**, **Pengaturan Sistem…**, dan **Segarkan**. Pilih folder data browser yang ditunjukkan dalam dialog. Jika macOS tetap memblokir akses, izinkan aplikasi yang sedang berjalan, **zshell** atau **zshell Debug**, di **Pengaturan Sistem → Privasi & Keamanan → Akses Disk Penuh**, lalu klik **Segarkan**. Mulai ulang aplikasi jika diminta macOS. Daftar profil diperbarui setelah pencarian; daftar kosong tidak mengizinkan pratinjau atau impor.
 
 Chrome dapat tetap terbuka saat mengimpor riwayat; riwayat Chrome yang tersimpan tidak diubah.
 
@@ -55,7 +55,7 @@ Cookie Firefox tanpa SameSite diimpor sebagai Lax, termasuk dari profil lama dan
 
 ## Ekstensi browser lokal [#local-browser-extensions]
 
-Buka **Pengaturan → Browser → Kelola ekstensi…**, pilih **Instal ekstensi…**, lalu folder WebExtension yang kompatibel atau ZIP dengan `manifest.json` di root. Tinjau izin API dan situs sebelum memilih **Instal**. Zshell menyalin ekstensi secara lokal; perubahan pada folder asal tidak memperbaruinya.
+Buka **Pengaturan → Browser → Kelola ekstensi**, pilih **Instal ekstensi…**, lalu folder WebExtension yang kompatibel atau ZIP dengan `manifest.json` di root. Tinjau izin API dan situs sebelum memilih **Instal**. Zshell menyalin ekstensi secara lokal; perubahan pada folder asal tidak memperbaruinya.
 
 Klik kanan halaman dan buka **Ekstensi** untuk menjalankan tindakan atau membuka **Opsi**. Tindakan dapat menampilkan popup. `activeTab` hanya memberi akses ke halaman tempat tindakan dijalankan. Pengelola menampilkan izin serta memungkinkan pengaktifan, penonaktifan, dan penghapusan ekstensi. Muat ulang halaman setelah perubahan. Izin opsional diminta terpisah dan mungkin diminta lagi setelah aplikasi dimulai ulang.
 

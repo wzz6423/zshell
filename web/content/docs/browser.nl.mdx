@@ -44,7 +44,7 @@ Browserdeelvensters bewaren cookies, aanmeldingen en andere websitegegevens tuss
 
 Via **Weergave → Browser → Browsergegevens importeren…** worden cookies geïmporteerd in de browseropslag van het project dat is geselecteerd wanneer je op **Import** klikt. Externe projecten hebben afzonderlijke opslag; lokale projecten delen de standaardopslag. Wisselen van project verandert de bestemming niet. Het sluiten van het doelproject stopt de resterende import zonder naar een ander project te schrijven. Als er geen project open is, maakt Zshell een lokaal project wanneer de import van cookies of tabbladen begint.
 
-De rechten voor browsergegevens staan onder **Instellingen → Browser → Toegang tot browsergegevens…**. Het importvenster biedt ook **Toegang toestaan**, **Systeeminstellingen…** en **Ververs**. Kies de browsergegevensmap die het dialoogvenster aangeeft. Als macOS de toegang blijft blokkeren, sta dan de actieve app, **zshell** of **zshell Debug**, toe in **Systeeminstellingen → Privacy en beveiliging → Volledige schijftoegang** en klik op **Ververs**. Herstart de app als macOS daarom vraagt. De profielenlijst wordt na het zoeken bijgewerkt; een lege lijst staat geen voorbeeld of import toe.
+De rechten voor browsergegevens staan onder **Instellingen → Browser → Toegang tot browsergegevens**. Het importvenster biedt ook **Toegang toestaan**, **Systeeminstellingen…** en **Ververs**. Kies de browsergegevensmap die het dialoogvenster aangeeft. Als macOS de toegang blijft blokkeren, sta dan de actieve app, **zshell** of **zshell Debug**, toe in **Systeeminstellingen → Privacy en beveiliging → Volledige schijftoegang** en klik op **Ververs**. Herstart de app als macOS daarom vraagt. De profielenlijst wordt na het zoeken bijgewerkt; een lege lijst staat geen voorbeeld of import toe.
 
 Chrome kan open blijven tijdens het importeren van de geschiedenis; de opgeslagen Chrome-geschiedenis blijft ongewijzigd.
 
@@ -52,7 +52,7 @@ Firefox-cookies zonder SameSite worden als Lax geïmporteerd, ook uit oudere pro
 
 ## Lokale browserextensies [#local-browser-extensions]
 
-Open **Instellingen → Browser → Extensies beheren…**, kies **Extensie installeren…** en selecteer een compatibele WebExtension-map of ZIP met `manifest.json` in de hoofdmap. Controleer de API- en websitemachtigingen voordat je **Installeren** kiest. Zshell kopieert de extensie lokaal; wijzigingen in de oorspronkelijke map werken de installatie niet bij.
+Open **Instellingen → Browser → Extensies beheren**, kies **Extensie installeren…** en selecteer een compatibele WebExtension-map of ZIP met `manifest.json` in de hoofdmap. Controleer de API- en websitemachtigingen voordat je **Installeren** kiest. Zshell kopieert de extensie lokaal; wijzigingen in de oorspronkelijke map werken de installatie niet bij.
 
 Klik met rechts op een pagina en open **Extensies** om een actie uit te voeren of **Opties** te openen. Acties kunnen een pop-up tonen. `activeTab` geeft alleen toegang tot de pagina waarop je de actie uitvoert. In de beheerder kun je machtigingen bekijken en extensies inschakelen, uitschakelen of verwijderen. Herlaad pagina’s na wijzigingen. Optionele machtigingen worden apart gevraagd en mogelijk opnieuw na een herstart.
 

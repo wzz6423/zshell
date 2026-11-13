@@ -44,7 +44,7 @@ I pannelli browser conservano cookie, accessi e altri dati dei siti tra schede e
 
 Da **Vista → Browser → Importa dati del browser…**, i cookie vengono importati nello spazio di archiviazione del browser del progetto selezionato quando si preme **Import**. I progetti remoti hanno spazi separati; quelli locali condividono lo spazio predefinito. Cambiare progetto non modifica la destinazione. Chiudere il progetto di destinazione interrompe il resto dell’importazione senza scrivere in un altro progetto. Se non ci sono progetti aperti, Zshell ne crea uno locale all’avvio dell’importazione di cookie o schede.
 
-I permessi per i dati del browser sono in **Impostazioni → Browser → Accesso ai dati del browser…**. La finestra di importazione offre anche **Consenti accesso**, **Impostazioni di Sistema…** e **Aggiorna**. Scegli la cartella dei dati del browser indicata nel dialogo. Se macOS blocca ancora l’accesso, consenti l’app in esecuzione, **zshell** o **zshell Debug**, in **Impostazioni di Sistema → Privacy e sicurezza → Accesso completo al disco**, poi fai clic su **Aggiorna**. Riavvia l’app se macOS lo richiede. L’elenco dei profili si aggiorna dopo la ricerca; un elenco vuoto non consente anteprima né importazione.
+I permessi per i dati del browser sono in **Impostazioni → Browser → Accesso ai dati del browser**. La finestra di importazione offre anche **Consenti accesso**, **Impostazioni di Sistema…** e **Aggiorna**. Scegli la cartella dei dati del browser indicata nel dialogo. Se macOS blocca ancora l’accesso, consenti l’app in esecuzione, **zshell** o **zshell Debug**, in **Impostazioni di Sistema → Privacy e sicurezza → Accesso completo al disco**, poi fai clic su **Aggiorna**. Riavvia l’app se macOS lo richiede. L’elenco dei profili si aggiorna dopo la ricerca; un elenco vuoto non consente anteprima né importazione.
 
 Chrome può restare aperto durante l’importazione della cronologia; la cronologia salvata non viene modificata.
 
@@ -52,7 +52,7 @@ I cookie Firefox senza SameSite vengono importati come Lax, anche da profili pre
 
 ## Estensioni locali del browser [#local-browser-extensions]
 
-Apri **Impostazioni → Browser → Gestisci estensioni…**, scegli **Installa estensione…** e seleziona una cartella WebExtension compatibile o un ZIP con `manifest.json` nella radice. Controlla le autorizzazioni per API e siti prima di **Installa**. Zshell copia l’estensione localmente; modificare la cartella originale non la aggiorna.
+Apri **Impostazioni → Browser → Gestisci estensioni**, scegli **Installa estensione…** e seleziona una cartella WebExtension compatibile o un ZIP con `manifest.json` nella radice. Controlla le autorizzazioni per API e siti prima di **Installa**. Zshell copia l’estensione localmente; modificare la cartella originale non la aggiorna.
 
 Fai clic destro su una pagina e apri **Estensioni** per eseguire un’azione o aprire **Opzioni**. Le azioni possono mostrare popup. `activeTab` concede accesso solo alla pagina in cui esegui l’azione. Il gestore mostra le autorizzazioni e consente di attivare, disattivare o rimuovere estensioni. Ricarica le pagine dopo le modifiche. Le autorizzazioni facoltative vengono richieste separatamente e possono essere richieste di nuovo dopo il riavvio.
 

@@ -44,7 +44,7 @@ Browserbereiche speichern Cookies, Anmeldungen und andere Websitedaten über Tab
 
 Über **Darstellung → Browser → Browserdaten importieren…** werden Cookies in den Browserspeicher des Projekts importiert, das beim Klick auf **Import** ausgewählt ist. Remote-Projekte haben getrennte Speicher; lokale Projekte teilen den Standardspeicher. Ein Projektwechsel ändert das Ziel nicht. Das Schließen des Zielprojekts stoppt den restlichen Import, ohne in ein anderes Projekt zu schreiben. Ist kein Projekt geöffnet, erstellt Zshell beim Import von Cookies oder Tabs ein lokales Projekt.
 
-Die Berechtigungen für Browserdaten finden Sie unter **Einstellungen → Browser → Zugriff auf Browserdaten…**. Das Importfenster bietet auch **Zugriff erlauben**, **Systemeinstellungen…** und **Aktualisieren**. Wählen Sie den im Dialog angezeigten Browserdatenordner. Falls macOS den Zugriff weiterhin blockiert, erlauben Sie die laufende App, **zshell** oder **zshell Debug**, unter **Systemeinstellungen → Datenschutz & Sicherheit → Festplattenvollzugriff** und klicken Sie auf **Aktualisieren**. Starten Sie die App neu, falls macOS dazu auffordert. Nach der Suche wird die Profilliste aktualisiert; bei einer leeren Liste sind Vorschau und Import deaktiviert.
+Die Berechtigungen für Browserdaten finden Sie unter **Einstellungen → Browser → Zugriff auf Browserdaten**. Das Importfenster bietet auch **Zugriff erlauben**, **Systemeinstellungen…** und **Aktualisieren**. Wählen Sie den im Dialog angezeigten Browserdatenordner. Falls macOS den Zugriff weiterhin blockiert, erlauben Sie die laufende App, **zshell** oder **zshell Debug**, unter **Systemeinstellungen → Datenschutz & Sicherheit → Festplattenvollzugriff** und klicken Sie auf **Aktualisieren**. Starten Sie die App neu, falls macOS dazu auffordert. Nach der Suche wird die Profilliste aktualisiert; bei einer leeren Liste sind Vorschau und Import deaktiviert.
 
 Chrome kann beim Import des Verlaufs geöffnet bleiben; der gespeicherte Chrome-Verlauf bleibt unverändert.
 
@@ -52,7 +52,7 @@ Firefox-Cookies ohne SameSite-Einstellung werden als Lax importiert, auch aus ä
 
 ## Lokale Browsererweiterungen [#local-browser-extensions]
 
-Öffne **Einstellungen → Browser → Erweiterungen verwalten…** und wähle mit **Erweiterung installieren…** einen kompatiblen WebExtension-Ordner oder ein ZIP mit `manifest.json` im Stammverzeichnis. Prüfe die API- und Website-Berechtigungen und wähle **Installieren**. Zshell kopiert die Erweiterung lokal; Änderungen am Originalordner aktualisieren sie nicht.
+Öffne **Einstellungen → Browser → Erweiterungen verwalten** und wähle mit **Erweiterung installieren…** einen kompatiblen WebExtension-Ordner oder ein ZIP mit `manifest.json` im Stammverzeichnis. Prüfe die API- und Website-Berechtigungen und wähle **Installieren**. Zshell kopiert die Erweiterung lokal; Änderungen am Originalordner aktualisieren sie nicht.
 
 Klicke mit der rechten Maustaste auf eine Seite und öffne **Erweiterungen**, um eine Aktion auszuführen oder **Optionen** zu öffnen. Aktionen können Popups anzeigen. `activeTab` gewährt Zugriff nur auf die Seite, auf der du die Aktion ausführst. Im Manager kannst du Berechtigungen prüfen sowie Erweiterungen aktivieren, deaktivieren und entfernen. Lade offene Seiten nach Änderungen neu. Optionale Berechtigungen werden getrennt abgefragt und nach einem Neustart eventuell erneut angefordert.
 
