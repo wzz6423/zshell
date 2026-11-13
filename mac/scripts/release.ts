@@ -132,6 +132,10 @@ async function main(): Promise<void> {
         chmodSync(binary, mode);
       }
     }
+    if (arch === "x86_64") {
+      // Existing Intel installs on Apple silicon must still reach their arm64 update feed.
+      await $`plutil -remove LSRequiresNativeExecution ${join(app, "Contents/Info.plist")}`;
+    }
     await $`codesign --force --sign ${identity} --keychain ${keychain} ${join(app, "Contents/Resources/zshell-server")}`;
     await $`codesign --force --deep --sign ${identity} --keychain ${keychain} ${app}`;
     await verifyCodeSignatures(app);
