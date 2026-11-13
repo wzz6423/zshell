@@ -14,7 +14,7 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
-## [0.1.15]
+## [0.1.16]
 
 ### Added
 
@@ -28,15 +28,15 @@ the original feature bullet instead of adding separate entries for them.
   with independent screen-inference controls and portable `agents.toml` files.
 - Wrap long diff lines to the pane width from the diff toolbar or Editor
   settings, including split layouts, editable changes, and PR comments.
-- Open remote project files over SSH and enable creating, renaming, recoverable
-  deletion, and conflict-checked text saves in Editor settings. Operations that
-  the host's existing system tools cannot perform safely remain disabled.
+- Open remote project files over SSH and create, rename, recoverably delete,
+  and save text with conflict checks. Control remote changes in Editor settings.
+  Operations that the host's existing system tools cannot perform safely remain disabled.
 - Choose theme-colored terminal padding, automatic edge-color extension, or
   extension on every edge from Appearance settings with either terminal backend.
 - Close a split pane from its header and create sessions by double-clicking
   empty project-sidebar space. The double-click action can be disabled in Settings.
-- Choose the terminal type (`TERM`) for new local and remote sessions while
-  open and preserved shells keep their original identity.
+- Set the terminal type (`TERM`) in `config.toml` for new local and remote
+  sessions while open and preserved shells keep their original identity.
 - Recover unsaved file and editable diff drafts after an unexpected exit,
   keeping their original save protection, selection and layout. Manage private
   local backups from File or Editor settings, or turn automatic recovery off.
@@ -46,8 +46,8 @@ the original feature bullet instead of adding separate entries for them.
   copies selected text and otherwise pastes. Shift-right-click and a keyboard
   menu command keep terminal actions available with either backend.
 - Import Finder files and folders into a local project from the File menu or
-  by enabling drag-and-drop import in Settings. Choose whether to replace or
-  skip existing items, and cancel an import. Items changed by another app are
+  by dragging into the file tree. Choose whether to replace or skip existing
+  items, cancel an import, or disable drag imports in Editor settings. Items changed by another app are
   preserved when cancellation cannot fully undo the import.
 - Adjust terminal column spacing from Appearance settings while keeping glyph
   size, cursor, selection, and keyboard hints aligned on either terminal backend.
@@ -59,15 +59,21 @@ the original feature bullet instead of adding separate entries for them.
 - Keep the Mac awake while Zshell is running or while a local agent works in
   any terminal pane. Choose the mode from Settings or the application menu;
   displays and manual sleep keep following macOS settings.
+- Set a minimum terminal text contrast in Appearance settings, with immediate
+  updates in both terminal backends. A ratio of 1 preserves original colors.
+- Control the Prompt Queue from Terminal settings. Send entries manually or
+  enable automatic dispatch when the original zsh shell returns to an empty
+  prompt; turning the queue off stops pending sends and keeps its entries.
 
 ### Changed
 
 - Group project and tab commands under Window, browser tools under View, and
   agent and notification tools under Terminal to keep the menu bar compact.
-- Give settings categories and controls distinct colored icons and a clearer
-  sidebar selection that follows the window's focus.
-- Refresh local project files in the background and reduce Git panel and review
-  refresh work to keep large repositories responsive.
+- Use clearer native settings controls, colored category icons, and a single
+  Browser category for browser panes and paired terminal access.
+- Reduce idle terminal rendering by redrawing only the blinking cursor.
+- Bound preview image loading, file-content matches, and large commit file
+  lists to keep project inspection responsive.
 
 ### Fixed
 
@@ -76,6 +82,23 @@ the original feature bullet instead of adding separate entries for them.
 - Detect external changes before saving file and editable diff drafts. Compare
   versions, reload, keep the draft, or explicitly overwrite; save conflict
   protection can be disabled in Editor settings.
+- Preserve shell history when quitting while a terminal application is active,
+  and clean up jobs when a persistent shell exits.
+- Restore file-content search result rows and prevent new files from
+  overwriting existing paths.
+- Keep Git branch names and commit history accurate when tags share references
+  or messages contain control characters.
+- Restore reliable Ghostty initialization and rendering on newer macOS systems.
+
+## [0.1.15]
+
+### Changed
+
+- Refresh local project files in the background and reduce Git panel and review
+  refresh work to keep large repositories responsive.
+
+### Fixed
+
 - Ask to save unsaved file and diff edits before closing panes, projects or
   workspace windows, or quitting. Cancelling or a failed save keeps the
   affected workspace open.
