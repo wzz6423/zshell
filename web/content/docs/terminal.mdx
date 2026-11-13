@@ -320,6 +320,12 @@ before the symbol and system fallbacks. See
 [`terminal.font-thicken`](/en/docs/configuration#terminalfont-thicken), and
 [`terminal.cell-width`](/en/docs/configuration#terminalcell-width), [`terminal.line-height`](/en/docs/configuration#terminalline-height).
 
+Use Appearance settings to configure [OpenType features](/en/docs/configuration#terminalfont-features), [font ligatures](/en/docs/configuration#terminalfont-ligatures), [minimum contrast](/en/docs/configuration#terminalminimum-contrast) and [padding colors](/en/docs/configuration#terminalpadding-color). These controls update open panes on both terminal backends.
+
+## New sessions and scrolling [#new-sessions-and-scrolling]
+
+Choose the [starting directory](/en/docs/configuration#terminalnew-session-directory) for new local sessions and Quick Terminal in Settings. Set [mouse and trackpad speeds](/en/docs/configuration#terminal-scroll-multipliers) independently; changes apply to open panes on both backends.
+
 ## Global Quick Terminal
 
 **Enable Quick Terminal** in **Settings → Terminal → Quick Terminal** is on by default (`quick-terminal.enabled = true`). Turning it off hides the window and entry points and unregisters the global shortcut, while keeping the current workspace and running tasks. Notifications cannot reopen it while disabled. Its size, opacity, mode, and shortcut controls reappear when enabled again.

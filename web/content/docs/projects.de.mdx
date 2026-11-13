@@ -7,7 +7,7 @@ description: Projekte in der Seitenleiste, Sitzungen als Tabs und was nach einem
 
 Ein Projekt entspricht einer Aufgabe, meist einem Repository, mit eigenen Terminals, Tabs und Panel-Einstellungen.
 
-<kbd>Cmd</kbd>+<kbd>N</kbd> erstellt ein Projekt mit einem Terminal. Es startet im Verzeichnis der aktuellen Sitzung oder, wenn keine vorhanden ist, in Ihrem Benutzerordner. Wechseln Sie anschließend mit `cd` an den gewünschten Ort. Zshell richtet Dateibaum und Git-Panel automatisch auf das Repository aus, das dieses Verzeichnis enthält.
+<kbd>Cmd</kbd>+<kbd>N</kbd> erstellt ein Projekt mit einem Terminal. Die [Startverzeichnis-Regel](/de/docs/configuration#terminalnew-session-directory) nutzt standardmäßig das Verzeichnis der aktiven lokalen Sitzung, sonst das Home-Verzeichnis. Dateien und Git folgen dem Repository, das dieses Verzeichnis enthält.
 
 Um sich das `cd` zu sparen, klicken Sie im Finder mit der rechten Maustaste auf einen Ordner und wählen **Dienste → Neues Zshell-Projekt hier**. Das neue Projekt startet sein Terminal direkt darin.
 
@@ -66,7 +66,7 @@ Ein Projekt kann beliebig viele Sitzungen enthalten, dargestellt als Tabs am obe
 | Nächster / vorheriger Tab | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
 | Fokussierten Bereich schließen | <kbd>Cmd</kbd>+<kbd>W</kbd> |
 
-Eine neue lokale Sitzung beginnt zuerst im festgelegten Projektverzeichnis, andernfalls im Standardverzeichnis ihrer Seitenleistengruppe. Fehlt beides, übernimmt sie das Verzeichnis der aktuellen Sitzung und verwendet ersatzweise den Benutzerordner.
+Eine neue lokale Sitzung nutzt zuerst ein explizites oder fixiertes Projektverzeichnis, dann das Verzeichnis ihrer Seitenleistengruppe und zuletzt die konfigurierte [Startverzeichnis-Regel](/de/docs/configuration#terminalnew-session-directory). Teilungen behalten das Verzeichnis des Quellbereichs.
 
 Ein Doppelklick auf eine freie Stelle in der Projektseitenleiste erstellt eine Sitzung im ausgewählten Projekt oder ein neues Projekt, wenn keines ausgewählt ist. Unter **Einstellungen → Darstellung → Projektseitenleiste** lässt sich dies ausschalten. Das Kontextmenü der freien Fläche bietet außerdem **Neue Sitzung** und **Seitenleisteneinstellungen…**.
 

@@ -7,7 +7,7 @@ description: Découvrez l'organisation du travail dans Zshell, des projets de la
 
 Un projet représente un travail, généralement un dépôt, avec ses propres terminaux, onglets et état des panneaux.
 
-<kbd>Cmd</kbd>+<kbd>N</kbd> crée un projet contenant un terminal. Celui-ci démarre dans le répertoire de la session actuelle ou, en l'absence de session, dans votre dossier personnel. Vous utilisez donc généralement `cd` pour rejoindre le dossier souhaité. Zshell prend ensuite le relais : l'arborescence des fichiers et le panneau Git se rattachent au dépôt qui contient ce répertoire.
+<kbd>Cmd</kbd>+<kbd>N</kbd> crée un projet avec un terminal. La [règle du répertoire de départ](/fr/docs/configuration#terminalnew-session-directory) utilise par défaut le dossier de la session locale active, ou le dossier personnel à défaut. Fichiers et Git affichent le dépôt qui contient ce répertoire.
 
 Pour éviter ce `cd`, faites un clic droit sur un dossier dans le Finder et choisissez **Services → Nouveau projet Zshell ici**. Le projet s'ouvre avec son terminal déjà placé dans ce dossier.
 
@@ -66,7 +66,7 @@ Chaque projet peut contenir autant de sessions que vous le souhaitez, présenté
 | Onglet suivant ou précédent | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
 | Fermer le volet actif | <kbd>Cmd</kbd>+<kbd>W</kbd> |
 
-Une nouvelle session locale utilise d'abord le répertoire fixé du projet, puis le dossier par défaut de son groupe latéral. Sans l'un ni l'autre, elle reprend le répertoire de la session actuelle, ou votre dossier personnel en dernier recours.
+Une nouvelle session locale utilise d’abord le répertoire explicite ou épinglé du projet, puis celui de son groupe, puis la [règle de départ configurée](/fr/docs/configuration#terminalnew-session-directory). Les divisions conservent le répertoire du volet source.
 
 Un double-clic dans un espace vide de la barre latérale crée une session dans le projet sélectionné, ou un projet si aucun n’est sélectionné. Désactivez cette action dans **Réglages → Apparence → Barre latérale des projets**. Le menu contextuel de cet espace propose aussi **Nouvelle session** et **Réglages de la barre latérale…**.
 

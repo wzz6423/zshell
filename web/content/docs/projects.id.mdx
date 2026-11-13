@@ -7,7 +7,7 @@ description: Cara Zshell mengatur pekerjaan — proyek di bilah samping, sesi se
 
 Proyek adalah satu pekerjaan, biasanya satu repositori, dengan terminal, tab, dan status panelnya sendiri.
 
-<kbd>Cmd</kbd>+<kbd>N</kbd> membuat proyek dengan satu terminal. Terminal dimulai di direktori sesi saat ini, atau direktori pribadi jika tidak ada sesi. Biasanya Anda kemudian menjalankan `cd` ke lokasi tujuan. Zshell menautkan pohon berkas dan panel Git ke repositori yang memuat direktori tersebut.
+<kbd>Cmd</kbd>+<kbd>N</kbd> membuat proyek dengan satu terminal. [Kebijakan folder awal](/id/docs/configuration#terminalnew-session-directory) memakai folder sesi lokal aktif secara bawaan, atau folder home jika tidak ada. Berkas dan Git mengikuti repositori yang memuat folder itu.
 
 Untuk melewati langkah `cd`, klik kanan folder di Finder dan pilih **Layanan → Proyek Zshell Baru di Sini**. Folder akan dibuka sebagai proyek dengan terminal yang sudah berjalan di dalamnya.
 
@@ -66,7 +66,7 @@ Setiap proyek dapat memuat sesi sebanyak yang Anda perlukan, ditampilkan sebagai
 | Tab berikutnya / sebelumnya | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
 | Tutup panel yang difokuskan | <kbd>Cmd</kbd>+<kbd>W</kbd> |
 
-Sesi lokal baru dimulai di direktori proyek yang disematkan jika ada, lalu memakai direktori bawaan grup bilah samping. Tanpa keduanya, sesi mewarisi direktori sesi saat ini dan menggunakan direktori pribadi sebagai cadangan.
+Sesi lokal baru memakai folder proyek yang eksplisit atau disematkan, kemudian folder grup, lalu [kebijakan awal yang diatur](/id/docs/configuration#terminalnew-session-directory). Panel terbagi mempertahankan folder panel asal.
 
 Klik dua kali ruang kosong di bilah samping untuk membuat sesi di proyek terpilih, atau proyek baru jika tidak ada yang terpilih. Nonaktifkan tindakan ini di **Pengaturan → Tampilan → Bilah Samping Proyek**. Menu klik kanan ruang kosong juga menyediakan **Sesi Baru** dan **Pengaturan Bilah Samping…**.
 

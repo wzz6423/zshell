@@ -7,7 +7,7 @@ description: "Kenar çubuğundaki projeler, sekme biçimindeki oturumlar ve yeni
 
 Proje, kendi terminalleri, sekmeleri ve panel durumuyla bir iş bütünüdür; pratikte çoğunlukla bir depodur.
 
-<kbd>Cmd</kbd>+<kbd>N</kbd> tek terminalli bir proje oluşturur. Terminal geçerli oturumun dizininde, oturum yoksa ev dizininizde başlar. Sonraki adım genellikle `cd` ile istediğiniz yere gitmektir. Zshell dosya ağacını ve Git panelini bu dizini içeren depoya bağlar.
+<kbd>Cmd</kbd>+<kbd>N</kbd> tek terminal içeren bir proje oluşturur. [Başlangıç dizini ilkesi](/tr/docs/configuration#terminalnew-session-directory) varsayılan olarak etkin yerel oturumun dizinini, yoksa ev dizinini kullanır. Dosyalar ve Git bu dizini içeren depoyu izler.
 
 `cd` adımını atlamak için Finder’da klasöre sağ tıklayıp **Servisler → Burada Yeni Zshell Projesi**’ni seçin; terminali o klasörde başlayan bir proje açılır.
 
@@ -66,7 +66,7 @@ Her proje istediğiniz kadar oturum barındırır; bunlar üstte sekme olarak g�
 | Sonraki / önceki sekme | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
 | Odaktaki bölmeyi kapat | <kbd>Cmd</kbd>+<kbd>W</kbd> |
 
-Yeni yerel oturum önce sabitlenmiş proje dizinini, yoksa kenar çubuğu grubunun varsayılan dizinini kullanır. İkisi de yoksa geçerli oturumun dizinini devralır; son seçenek ev dizininizdir.
+Yeni yerel oturum önce açıkça belirtilen veya sabitlenmiş proje dizinini, sonra grup dizinini, ardından ayarlanmış [başlangıç dizini ilkesini](/tr/docs/configuration#terminalnew-session-directory) kullanır. Bölünmüş paneller kaynak panelin dizinini korur.
 
 Proje kenar çubuğundaki boş alana çift tıklamak seçili projede bir oturum, proje seçili değilse yeni bir proje oluşturur. **Ayarlar → Görünüm → Proje Kenar Çubuğu** bölümünden kapatabilirsiniz. Boş alanın sağ tık menüsünde **Yeni Oturum** ve **Kenar Çubuğu Ayarları…** da bulunur.
 

@@ -210,6 +210,12 @@ zshell +help                   # показать все группы коман
 
 Zshell включает JetBrains Mono и символы Nerd Font. Любое установленное моноширинное семейство может заменить латинский шрифт, а установленное семейство CJK — встать перед символами и системной подстановкой. См. [`font-family`](/ru/docs/configuration#font-family), [`terminal.font-fallback-family`](/ru/docs/configuration#terminalfont-fallback-family), [`font-size`](/ru/docs/configuration#font-size), [`terminal.font-thicken`](/ru/docs/configuration#terminalfont-thicken) и [`terminal.cell-width`](/ru/docs/configuration#terminalcell-width), [`terminal.line-height`](/ru/docs/configuration#terminalline-height).
 
+В настройках оформления задавайте [функции OpenType](/ru/docs/configuration#terminalfont-features), [лигатуры](/ru/docs/configuration#terminalfont-ligatures), [минимальный контраст](/ru/docs/configuration#terminalminimum-contrast) и [цвета полей](/ru/docs/configuration#terminalpadding-color). Изменения сразу действуют в открытых панелях обоих движков.
+
+## Новые сессии и прокрутка [#new-sessions-and-scrolling]
+
+В настройках выберите [начальный каталог](/ru/docs/configuration#terminalnew-session-directory) для новых локальных сессий и быстрого терминала. Задавайте [скорость мыши и трекпада](/ru/docs/configuration#terminal-scroll-multipliers) отдельно; открытые панели обоих движков обновляются сразу.
+
 ## Глобальный быстрый терминал [#global-quick-terminal]
 
 Параметр **Включить быстрый терминал** в **Настройки → Терминал → Быстрый терминал** включён по умолчанию (`quick-terminal.enabled = true`). Отключение скрывает окно и пункты его открытия и отменяет регистрацию глобального сочетания клавиш, сохраняя текущую рабочую область и запущенные задачи. Уведомления тоже не могут открыть окно, пока параметр выключен. При повторном включении снова появляются настройки размера, непрозрачности, режима и сочетания клавиш.

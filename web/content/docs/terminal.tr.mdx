@@ -210,6 +210,12 @@ Tema tarayıcısı her seçimi tüm uygulamada önizler; Return kaydeder, Escape
 
 Zshell JetBrains Mono ve Nerd Font simgelerini içerir. Kurulu herhangi bir eş aralıklı aile Latin yazı tipinin yerine kullanılabilir; kurulu CJK ailesi simge ve sistem yedeklerinden önce eklenebilir. [`font-family`](/tr/docs/configuration#font-family), [`terminal.font-fallback-family`](/tr/docs/configuration#terminalfont-fallback-family), [`font-size`](/tr/docs/configuration#font-size), [`terminal.font-thicken`](/tr/docs/configuration#terminalfont-thicken) ve [`terminal.cell-width`](/tr/docs/configuration#terminalcell-width), [`terminal.line-height`](/tr/docs/configuration#terminalline-height) ayarlarına bakın.
 
+Görünüm ayarlarında [OpenType özellikleri](/tr/docs/configuration#terminalfont-features), [ligatürler](/tr/docs/configuration#terminalfont-ligatures), [minimum kontrast](/tr/docs/configuration#terminalminimum-contrast) ve [kenar renklerini](/tr/docs/configuration#terminalpadding-color) yapılandırın. İki terminal arka ucunun açık panellerine hemen uygulanır.
+
+## Yeni oturumlar ve kaydırma [#new-sessions-and-scrolling]
+
+Ayarlar’da yeni yerel oturumlar ve Hızlı Terminal için [başlangıç dizinini](/tr/docs/configuration#terminalnew-session-directory) seçin. [Fare ve izleme dörtgeni hızlarını](/tr/docs/configuration#terminal-scroll-multipliers) ayrı ayarlayın; iki arka ucun açık panelleri hemen güncellenir.
+
 ## Genel Hızlı Terminal [#global-quick-terminal]
 
 **Ayarlar → Terminal → Hızlı Terminal** içindeki **Hızlı Terminali etkinleştir** varsayılan olarak açıktır (`quick-terminal.enabled = true`). Kapatmak pencereyi ve açma seçeneklerini gizler, genel kısayol kaydını kaldırır; geçerli çalışma alanı ve çalışan görevler korunur. Kapalıyken bildirimler de pencereyi açamaz. Yeniden açıldığında boyut, opaklık, mod ve kısayol denetimleri görünür.

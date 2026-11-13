@@ -227,6 +227,12 @@ zshell +help                   # すべてのコマンドグループを表示
 JetBrains Mono と Nerd Font 記号を同梱しています。インストール済みの等幅フォントを欧文フォントとして選べるほか、CJK フォントを記号・システムの代替フォントより先に追加できます。
 [`font-family`](/ja/docs/configuration#font-family)、[`terminal.font-fallback-family`](/ja/docs/configuration#terminalfont-fallback-family)、[`font-size`](/ja/docs/configuration#font-size)、[`terminal.font-thicken`](/ja/docs/configuration#terminalfont-thicken)、[`terminal.cell-width`](/ja/docs/configuration#terminalcell-width), [`terminal.line-height`](/ja/docs/configuration#terminalline-height)を参照してください。
 
+外観設定では [OpenType 機能](/ja/docs/configuration#terminalfont-features)、[合字](/ja/docs/configuration#terminalfont-ligatures)、[最小コントラスト](/ja/docs/configuration#terminalminimum-contrast)、[余白の色](/ja/docs/configuration#terminalpadding-color)を設定できます。両バックエンドの開いているペインにすぐ反映されます。
+
+## 新しいセッションとスクロール [#new-sessions-and-scrolling]
+
+設定で新しいローカルセッションとクイックターミナルの[開始ディレクトリ](/ja/docs/configuration#terminalnew-session-directory)を選べます。[マウスとトラックパッドの速度](/ja/docs/configuration#terminal-scroll-multipliers)を個別に調整すると、両バックエンドの開いているペインにすぐ反映されます。
+
 ## グローバルクイックターミナル [#global-quick-terminal]
 
 **設定 → ターミナル → クイックターミナル**の**クイックターミナルを有効にする**は既定で有効です（`quick-terminal.enabled = true`）。無効にするとウインドウと入口を隠し、グローバルショートカットの登録を解除します。現在のワークスペースと実行中のタスクは保持され、通知からも開けなくなります。再び有効にするとサイズ、不透明度、モード、ショートカットの設定が表示されます。

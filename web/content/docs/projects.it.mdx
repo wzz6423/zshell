@@ -7,7 +7,7 @@ description: Come Zshell organizza il lavoro — progetti nella barra laterale, 
 
 Un progetto è un'attività, in pratica un repository, con terminali, schede e stato dei pannelli propri.
 
-<kbd>Cmd</kbd>+<kbd>N</kbd> ne crea uno con un solo terminale. Il terminale parte nella directory della sessione corrente o, se non ce n'è una, nella tua home. Di solito il passo successivo è usare `cd` verso la destinazione. Zshell ancora quindi l'albero dei file e Git al repository che contiene quella directory.
+<kbd>Cmd</kbd>+<kbd>N</kbd> crea un progetto con un terminale. La [regola della cartella iniziale](/it/docs/configuration#terminalnew-session-directory) usa per impostazione predefinita la cartella della sessione locale attiva, o quella personale se non è disponibile. File e Git seguono il repository che la contiene.
 
 Per saltare il `cd`, fai clic destro su una cartella nel Finder e scegli **Servizi → Nuovo progetto Zshell qui**: si apre come progetto con il terminale già avviato al suo interno.
 
@@ -66,7 +66,7 @@ Ogni progetto può contenere tutte le sessioni necessarie, mostrate come schede 
 | Scheda successiva / precedente | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
 | Chiudi il pannello attivo | <kbd>Cmd</kbd>+<kbd>W</kbd> |
 
-Una nuova sessione locale usa prima la directory fissata del progetto, poi quella predefinita del gruppo laterale. Senza entrambe, eredita la directory della sessione corrente e ripiega sulla home.
+Una nuova sessione locale usa prima la cartella esplicita o fissata del progetto, poi quella del gruppo e infine la [regola iniziale configurata](/it/docs/configuration#terminalnew-session-directory). Le divisioni conservano la cartella del pannello di origine.
 
 Un doppio clic nello spazio vuoto della barra laterale crea una sessione nel progetto selezionato, oppure un progetto se nessuno è selezionato. Disattiva l’azione in **Impostazioni → Aspetto → Barra laterale dei progetti**. Il menu contestuale dello spazio vuoto offre anche **Nuova sessione** e **Impostazioni della barra laterale…**.
 

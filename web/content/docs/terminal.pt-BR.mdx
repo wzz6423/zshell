@@ -210,6 +210,12 @@ Os comandos criam um projeto no diretório atual, criam e executam o argv no pri
 
 O Zshell inclui JetBrains Mono e símbolos Nerd Font. Qualquer família monoespaçada instalada pode substituir a fonte latina; uma família CJK pode entrar antes dos símbolos e fallbacks do sistema. Veja [`font-family`](/pt-BR/docs/configuration#font-family), [`terminal.font-fallback-family`](/pt-BR/docs/configuration#terminalfont-fallback-family), [`font-size`](/pt-BR/docs/configuration#font-size), [`terminal.font-thicken`](/pt-BR/docs/configuration#terminalfont-thicken) e [`terminal.cell-width`](/pt-BR/docs/configuration#terminalcell-width), [`terminal.line-height`](/pt-BR/docs/configuration#terminalline-height).
 
+Nos ajustes de aparência, configure [recursos OpenType](/pt-BR/docs/configuration#terminalfont-features), [ligaduras](/pt-BR/docs/configuration#terminalfont-ligatures), [contraste mínimo](/pt-BR/docs/configuration#terminalminimum-contrast) e [cores das margens](/pt-BR/docs/configuration#terminalpadding-color). As mudanças são imediatas nos painéis abertos dos dois mecanismos.
+
+## Novas sessões e rolagem [#new-sessions-and-scrolling]
+
+Escolha o [diretório inicial](/pt-BR/docs/configuration#terminalnew-session-directory) das novas sessões locais e do terminal rápido nos Ajustes. Ajuste as [velocidades do mouse e trackpad](/pt-BR/docs/configuration#terminal-scroll-multipliers) separadamente; os painéis abertos dos dois mecanismos mudam imediatamente.
+
 ## Terminal Rápido global [#global-quick-terminal]
 
 **Ativar terminal rápido** em **Ajustes → Terminal → Terminal rápido** vem ativado (`quick-terminal.enabled = true`). Desativar oculta a janela e seus acessos e cancela o atalho global, preservando o espaço de trabalho atual e as tarefas em execução. Notificações também não podem reabri-lo. Os controles de tamanho, opacidade, modo e atalho reaparecem ao ativar novamente.

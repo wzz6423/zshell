@@ -210,6 +210,12 @@ Le sélecteur de thèmes applique temporairement chaque choix à toute l'applica
 
 Zshell fournit JetBrains Mono et les symboles Nerd Font. Toute famille monospace installée peut remplacer la police latine, et une famille CJK peut être ajoutée avant les polices de symboles et de repli système. Consultez [`font-family`](/fr/docs/configuration#font-family), [`terminal.font-fallback-family`](/fr/docs/configuration#terminalfont-fallback-family), [`font-size`](/fr/docs/configuration#font-size), [`terminal.font-thicken`](/fr/docs/configuration#terminalfont-thicken) et [`terminal.cell-width`](/fr/docs/configuration#terminalcell-width), [`terminal.line-height`](/fr/docs/configuration#terminalline-height).
 
+Les réglages d’apparence configurent les [fonctions OpenType](/fr/docs/configuration#terminalfont-features), [ligatures](/fr/docs/configuration#terminalfont-ligatures), [contraste minimal](/fr/docs/configuration#terminalminimum-contrast) et [couleurs des marges](/fr/docs/configuration#terminalpadding-color). Ils s’appliquent immédiatement aux volets ouverts des deux moteurs.
+
+## Nouvelles sessions et défilement [#new-sessions-and-scrolling]
+
+Choisissez le [répertoire de départ](/fr/docs/configuration#terminalnew-session-directory) des nouvelles sessions locales et du terminal rapide dans Réglages. Ajustez séparément les [vitesses de souris et pavé tactile](/fr/docs/configuration#terminal-scroll-multipliers) ; les volets ouverts des deux moteurs sont actualisés immédiatement.
+
 ## Terminal rapide global [#global-quick-terminal]
 
 **Activer le terminal rapide** dans **Réglages → Terminal → Terminal rapide** est activé par défaut (`quick-terminal.enabled = true`). Le désactiver masque la fenêtre et ses points d’accès et libère le raccourci global, tout en conservant l’espace de travail et les tâches en cours. Les notifications ne peuvent pas le rouvrir. Les réglages de taille, d’opacité, de mode et de raccourci réapparaissent à la réactivation.

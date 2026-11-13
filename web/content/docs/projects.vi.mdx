@@ -7,7 +7,7 @@ description: "Cách Zshell tổ chức công việc: dự án ở thanh bên, ph
 
 Dự án là một phần công việc, thực tế thường là một kho mã, có terminal, tab và trạng thái bảng riêng.
 
-<kbd>Cmd</kbd>+<kbd>N</kbd> tạo dự án với một terminal. Terminal bắt đầu trong thư mục phiên hiện tại hoặc thư mục nhà nếu chưa có phiên, nên thường bạn dùng `cd` để tới nơi cần làm. Zshell tiếp tục bằng cách gắn cây tệp và bảng Git vào kho chứa thư mục đó.
+<kbd>Cmd</kbd>+<kbd>N</kbd> tạo dự án với một terminal. [Chính sách thư mục khởi đầu](/vi/docs/configuration#terminalnew-session-directory) mặc định dùng thư mục phiên cục bộ đang hoạt động hoặc thư mục home khi không có. Tệp và Git theo kho chứa thư mục đó.
 
 Để bỏ qua `cd`, nhấp phải thư mục trong Finder và chọn **Dịch vụ → Dự án Zshell mới tại đây**; dự án mở với terminal đã bắt đầu bên trong.
 
@@ -66,7 +66,7 @@ Mỗi dự án chứa bao nhiêu phiên tùy bạn, hiển thị bằng tab phí
 | Tab sau / trước | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
 | Đóng ô đang có tiêu điểm | <kbd>Cmd</kbd>+<kbd>W</kbd> |
 
-Phiên cục bộ mới dùng thư mục dự án đã ghim trước, rồi thư mục mặc định của nhóm thanh bên. Nếu không có cả hai, kế thừa thư mục phiên hiện tại; cuối cùng dùng thư mục nhà.
+Phiên cục bộ mới ưu tiên thư mục dự án chỉ định hoặc ghim, rồi thư mục nhóm, sau đó [chính sách khởi đầu đã đặt](/vi/docs/configuration#terminalnew-session-directory). Khung chia giữ thư mục của khung nguồn.
 
 Nhấp đúp vào khoảng trống ở thanh bên để tạo phiên trong dự án đã chọn, hoặc tạo dự án mới nếu chưa chọn dự án nào. Tắt thao tác này tại **Cài đặt → Giao diện → Thanh bên dự án**. Menu chuột phải tại khoảng trống cũng có **Phiên mới** và **Cài đặt thanh bên…**.
 

@@ -210,6 +210,12 @@ Der Themenbrowser zeigt jede Auswahl in der gesamten Anwendung als Vorschau. Ret
 
 Zshell enthält JetBrains Mono und Nerd-Font-Symbole. Jede installierte dicktengleiche Familie kann die lateinische Schrift ersetzen; eine installierte CJK-Familie lässt sich vor den Symbol- und Systemersatzschriften einfügen. Siehe [`font-family`](/de/docs/configuration#font-family), [`terminal.font-fallback-family`](/de/docs/configuration#terminalfont-fallback-family), [`font-size`](/de/docs/configuration#font-size), [`terminal.font-thicken`](/de/docs/configuration#terminalfont-thicken) und [`terminal.cell-width`](/de/docs/configuration#terminalcell-width), [`terminal.line-height`](/de/docs/configuration#terminalline-height).
 
+In den Darstellungseinstellungen lassen sich [OpenType-Funktionen](/de/docs/configuration#terminalfont-features), [Ligaturen](/de/docs/configuration#terminalfont-ligatures), [Mindestkontrast](/de/docs/configuration#terminalminimum-contrast) und [Randfarben](/de/docs/configuration#terminalpadding-color) einstellen. Sie gelten sofort für offene Bereiche beider Terminal-Backends.
+
+## Neue Sitzungen und Scrollen [#new-sessions-and-scrolling]
+
+Wähle in Einstellungen das [Startverzeichnis](/de/docs/configuration#terminalnew-session-directory) für neue lokale Sitzungen und das Schnellterminal. Stelle [Maus- und Trackpad-Tempo](/de/docs/configuration#terminal-scroll-multipliers) getrennt ein; offene Bereiche beider Backends ändern sich sofort.
+
 ## Globales Schnellterminal [#global-quick-terminal]
 
 **Schnellterminal aktivieren** unter **Einstellungen → Terminal → Schnellterminal** ist standardmäßig eingeschaltet (`quick-terminal.enabled = true`). Ausschalten verbirgt Fenster und Zugänge und hebt die Registrierung des globalen Tastenkürzels auf. Arbeitsbereich und laufende Aufgaben bleiben erhalten; Benachrichtigungen können das Fenster nicht öffnen. Größen-, Deckkraft-, Modus- und Tastenkürzelregler erscheinen beim Einschalten wieder.

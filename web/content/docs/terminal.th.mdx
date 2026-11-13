@@ -210,6 +210,12 @@ zshell +help                   # แสดงกลุ่มคำสั่ง�
 
 Zshell มี JetBrains Mono และสัญลักษณ์ Nerd Font ฟอนต์ monospace ที่ติดตั้งเปลี่ยนฟอนต์ Latin ได้ และฟอนต์ CJK ที่ติดตั้งเพิ่มไว้ก่อนฟอนต์สัญลักษณ์และระบบสำรองได้ ดู [`font-family`](/th/docs/configuration#font-family), [`terminal.font-fallback-family`](/th/docs/configuration#terminalfont-fallback-family), [`font-size`](/th/docs/configuration#font-size), [`terminal.font-thicken`](/th/docs/configuration#terminalfont-thicken) และ [`terminal.cell-width`](/th/docs/configuration#terminalcell-width), [`terminal.line-height`](/th/docs/configuration#terminalline-height)
 
+ตั้งค่า[คุณสมบัติ OpenType](/th/docs/configuration#terminalfont-features) [อักษรควบ](/th/docs/configuration#terminalfont-ligatures) [ความเปรียบต่างขั้นต่ำ](/th/docs/configuration#terminalminimum-contrast)และ[สีขอบ](/th/docs/configuration#terminalpadding-color)ในลักษณะหน้าตา มีผลทันทีกับแผงที่เปิดอยู่ทั้งสองเอนจิน
+
+## เซสชันใหม่และการเลื่อน [#new-sessions-and-scrolling]
+
+เลือก[โฟลเดอร์เริ่มต้น](/th/docs/configuration#terminalnew-session-directory)สำหรับเซสชันในเครื่องใหม่และเทอร์มินัลด่วนในการตั้งค่า ปรับ[ความเร็วเมาส์และแทร็กแพด](/th/docs/configuration#terminal-scroll-multipliers)แยกกัน โดยมีผลทันทีกับแผงที่เปิดอยู่ทั้งสองเอนจิน
+
 ## เทอร์มินัลด่วนส่วนกลาง [#global-quick-terminal]
 
 **เปิดใช้เทอร์มินัลด่วน** ใน **การตั้งค่า → เทอร์มินัล → เทอร์มินัลด่วน** เปิดไว้โดยค่าเริ่มต้น (`quick-terminal.enabled = true`) เมื่อปิด จะซ่อนหน้าต่างและทางเข้า ยกเลิกการลงทะเบียนปุ่มลัดส่วนกลาง และเก็บพื้นที่ทำงานปัจจุบันกับงานที่กำลังทำงานไว้ การแจ้งเตือนไม่สามารถเปิดหน้าต่างอีกครั้งขณะปิดใช้งาน เมื่อเปิดใช้งานอีกครั้งจะแสดงตัวควบคุมขนาด ความทึบ โหมด และปุ่มลัด

@@ -7,7 +7,7 @@ description: Hoe Zshell je werk ordent — projecten in de zijbalk, sessies als 
 
 Een project is één stuk werk, in de praktijk één repository, met eigen terminals, tabbladen en paneelinstellingen.
 
-<kbd>Cmd</kbd>+<kbd>N</kbd> maakt een project met één terminal. De terminal begint in de map van de huidige sessie, of je thuismap als er geen sessie is. Meestal ga je daarna met `cd` naar je werkmap. Zshell neemt het dan over: de bestandsboom en het Git-paneel richten zich op de repository waarin die map staat.
+<kbd>Cmd</kbd>+<kbd>N</kbd> maakt een project met één terminal. Het [startmapbeleid](/nl/docs/configuration#terminalnew-session-directory) gebruikt standaard de map van de actieve lokale sessie of anders je thuismap. Bestanden en Git volgen de repository die deze map bevat.
 
 Wil je `cd` overslaan, klik dan met de rechtermuisknop op een map in Finder en kies **Voorzieningen → Nieuw Zshell-project hier**. De map opent als project, met de terminal al in die map.
 
@@ -66,7 +66,7 @@ Elk project kan zoveel sessies bevatten als je wilt. Ze verschijnen als tabblade
 | Volgend / vorig tabblad | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
 | Deelvenster met focus sluiten | <kbd>Cmd</kbd>+<kbd>W</kbd> |
 
-Een nieuwe lokale sessie begint in de vastgezette projectmap als die is ingesteld, en anders in de standaardmap van de zijbalkgroep. Als geen van beide bestaat, neemt de sessie de map van de huidige sessie over en valt uiteindelijk terug op je thuismap.
+Een nieuwe lokale sessie gebruikt eerst de expliciete of vastgezette projectmap, daarna de map van de zijbalkgroep en dan het ingestelde [startmapbeleid](/nl/docs/configuration#terminalnew-session-directory). Splitsingen behouden de map van het bronpaneel.
 
 Dubbelklik op lege ruimte in de projectzijbalk om een sessie in het geselecteerde project te maken, of een project als er geen is geselecteerd. Schakel dit uit via **Instellingen → Weergave → Projectzijbalk**. Het contextmenu van de lege ruimte bevat ook **Nieuwe sessie** en **Zijbalkinstellingen…**.
 

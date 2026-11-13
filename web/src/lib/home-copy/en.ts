@@ -50,16 +50,16 @@ const copy: HomeCopy = {
         rows: [
           { name: 'Local and SSH projects', detail: "Group local and saved SSH projects with password or key authentication, including remote roots reached through directory symlinks." },
           { name: 'Quick Launch', detail: 'Save and group commands or SSH connections. Open them in a fresh project from the app or the zshell CLI.' },
-          { name: 'Sessions that stay organized', detail: 'Rename, color, pin, and group tabs. Move sessions between compatible projects or windows with their running terminals and splits.' },
-          { name: 'Split and restore', detail: 'Keep terminals and browser panes side by side. Restore layouts on relaunch; scrollback returns when history restoration is enabled.' },
-          { name: "Persistent and shared sessions", detail: "Optionally keep local jobs running after quitting. Reconnect to host-owned sessions over SSH or Tailscale, and inspect their processes in the Info panel." },
+          { name: 'Sessions that stay organized', detail: "Rename, color, pin and group tabs; move running sessions between compatible projects or windows. Double-click empty project-sidebar space to create a session." },
+          { name: 'Split and restore', detail: "Keep terminals and browser panes side by side, close split panes from their headers, and restore layouts on relaunch. Closing asks to save unsaved edits; scrollback follows the history setting." },
+          { name: "Persistent and shared sessions", detail: "Keep local jobs running after quitting; share host-owned sessions and inspect their processes over SSH or Tailscale. Pair a browser to operate this Mac’s new local panes over private LAN or Tailscale HTTPS, with revocable access." },
           { name: "Workspace templates", detail: "Save, edit, import and export tabs, splits, startup commands and browser URLs. Apply a template to create fresh local or saved remote-host workspaces." },
         ],
       },
       {
         name: 'Files and Git', slug: 'files',
         rows: [
-          { name: "Project files", detail: "Browse refreshed local and SSH trees, copy Finder items into local projects by dragging, and edit remote files. Search content in the current local project or names and paths across open local projects." },
+          { name: "Project files", detail: "Browse refreshed local and SSH trees. Import Finder files and folders; create, rename, edit and recover trashed remote files. Upload files or clipboard images to remote terminals, and search local content or names across open projects." },
           { name: "Editor and Markdown preview", detail: "Syntax highlighting, Markdown preview, local image previews up to 64 MiB, and Quick Look. Recover drafts and compare external edits before saving." },
           { name: 'Git review', detail: "Review unified or split diffs with wrapping enabled by default; edit, stage, commit and push. Large commits show 200 files and count those omitted." },
           { name: 'Branches and worktrees', detail: "Create and switch branches, manage stashes and isolated worktree sessions. Delete unmerged local branches after confirmation, with commit recovery references and stashed local changes." },
@@ -70,9 +70,9 @@ const copy: HomeCopy = {
       {
         name: 'Agents and automation', slug: 'automation',
         rows: [
-          { name: 'Agent coordination', detail: 'Let coding agents coordinate across panes while you follow status and requests for attention.' },
+          { name: 'Agent coordination', detail: "Coordinate agents across panes, follow status and attention requests, and review each turn’s changes. Optionally keep the Mac awake during local agent work or while Zshell runs." },
           { name: "Agent recognition rules", detail: "Add, edit, import or export recognition rules. Enable screen inference independently while native lifecycle and program reports take priority." },
-          { name: 'Prompt queue', detail: 'Queue follow-up prompts per session. Send them manually, or let supported shell integration dispatch them when the shell is ready.' },
+          { name: 'Prompt queue', detail: "Queue follow-up prompts per session. Send manually by default, or enable automatic sending after a command finishes at an empty prompt in the original zsh shell." },
           { name: 'Long-command notifications', detail: "Keep terminal and Agent notification history, filter unread, failed or pending items, and return to the originating pane. See progress when a program reports it." },
           { name: "Conversation history and forks", detail: "Search, archive, resume or fork saved Codex, Claude Code, OpenCode and Pi conversations with native context, locally or on supported remote hosts." },
           { name: "Background tasks and browser automation", detail: "Wait for background command results, follow live workspace events, and let agents inspect, interact with or capture project browser pages and save logins." },
@@ -81,9 +81,9 @@ const copy: HomeCopy = {
       {
         name: 'Settings and tools', slug: 'configuration',
         rows: [
-          { name: 'Two terminal engines', detail: "Choose Ghostty or Alacritty for new panes. Set fonts, themes and backgrounds, with bar, block or underline cursors that blink or stay steady." },
+          { name: 'Two terminal engines', detail: "Choose Ghostty or Alacritty for new panes. Set themes, backgrounds, cursors, column spacing, OpenType features, ligatures, minimum contrast and padding colors." },
           { name: 'Recommended tools', detail: "Manage supported tool installations and updates in Settings. Quiet.md offers official project and download links for local notes and rich text editing." },
-          { name: 'Settings that travel', detail: "Search settings, remap shortcuts, adjust interface scale and import or export preferences. Browser settings bring extensions, data import and cross-device access together." },
+          { name: 'Settings that travel', detail: "Search settings, remap shortcuts, adjust interface scale and import or export preferences. Set mouse and trackpad speeds separately, right-click actions and starting directories; configure TERM for new shells in config.toml." },
           { name: 'Updates you control', detail: 'Choose automatic checks and installation. Updates prefer Gitee in mainland China and GitHub elsewhere, with a fallback source.' },
           { name: "Command history, completion and hints", detail: "Find commands with duration and exit status; jump to output or insert without running. Keep shell scrollback when quitting Zshell with Vim or an agent open. Use zsh completion and keyboard hints." },
           { name: "Profiles and Quick Terminal", detail: "Apply terminal profiles by host, user, directory or program. Reuse Quick Terminal workspaces or start fresh, and choose Dock or menu bar presence." },

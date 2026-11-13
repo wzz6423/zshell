@@ -8,11 +8,7 @@ description: How Zshell groups your work — projects in the sidebar, sessions a
 A project is one piece of work — in practice, one repository — with its own
 terminals, tabs, and panel state.
 
-<kbd>Cmd</kbd>+<kbd>N</kbd> creates one with a single terminal in it. The
-terminal starts in the current session's directory, or your home directory if
-there isn't one, so the usual next step is to `cd` where you're going. Zshell
-takes it from there: the file tree and git panel anchor themselves to the
-repository containing that directory.
+<kbd>Cmd</kbd>+<kbd>N</kbd> creates a project with one terminal. Its [starting-directory policy](/en/docs/configuration#terminalnew-session-directory) defaults to the active local session’s directory, or your home directory when none is available. Files and Git follow the repository containing that directory.
 
 To skip the `cd`, right-click a folder in Finder and choose **Services → New
 Zshell Project Here** — it opens as a project with its terminal already started
@@ -109,9 +105,7 @@ is set to — with its own working directory and scrollback.
 | Next / previous tab | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
 | Close the focused pane | <kbd>Cmd</kbd>+<kbd>W</kbd> |
 
-A new local session starts in the pinned project directory when one is set,
-then uses its sidebar group's default directory. Without either, it inherits
-the current session's directory and falls back to your home directory.
+A new local session uses an explicit or pinned project directory first, then its sidebar group’s directory, then the configured [starting-directory policy](/en/docs/configuration#terminalnew-session-directory). Splits keep their source pane’s directory.
 
 Double-click empty space in the project sidebar to create a session in the selected project, or a new project if none is selected. Turn this action off in **Settings → Appearance → Project Sidebar**, or right-click empty sidebar space for **New Session** and **Sidebar Settings…**.
 
