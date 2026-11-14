@@ -434,8 +434,8 @@ final class ProjectPullRequestModel: ObservableObject {
             let result = probe(directory)
             Task { @MainActor [weak self] in
                 guard let self, self.generation == generation else { return }
-                guard case .repository(let current) = result, current == expected,
-                      self.state == .pullRequest(pr) else { self.invalidate(); return }
+                guard case .repository(let current) = result, current == expected else { self.invalidate(); return }
+                guard self.state == .pullRequest(pr) else { return }
                 opener(pr.url)
             }
         }

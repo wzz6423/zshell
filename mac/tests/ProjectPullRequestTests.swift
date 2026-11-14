@@ -386,6 +386,73 @@ private func checkWatchedLookupRace(_ repo: String) async {
     print("Git watcher race: pending old lookup cannot overwrite the new real branch PR passed")
 }
 
+private nonisolated final class OpenProbeGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private let release = DispatchSemaphore(value: 0)
+    private var armed = false
+    private var waiting = false
+    var started: Bool { lock.withLock { waiting } }
+    func arm() { lock.withLock { armed = true } }
+    func pauseIfArmed() {
+        let pause = lock.withLock {
+            guard armed else { return false }
+            armed = false
+            waiting = true
+            return true
+        }
+        if pause { require(release.wait(timeout: .now() + 3) == .success, "open probe gate timed out") }
+    }
+    func resume() { release.signal() }
+}
+
+private func checkOpenDuringRefresh(_ repo: String) async {
+    let expected = snapshot(repo), gate = OpenProbeGate(), queries = Counter()
+    let url = URL(string: "https://github.com/example/base/pull/78")!
+    let initial = ProjectPullRequest(number: 78, status: .open, url: url)
+    let updated = ProjectPullRequest(number: 78, status: .merged, url: url)
+    let cache = ProjectPullRequestCache(lookup: { _ in
+        await queries.increment()
+        return .pullRequest(await queries.calls == 1 ? initial : updated)
+    })
+    let model = ProjectPullRequestModel(cache: cache, probe: { _ in
+        gate.pauseIfArmed()
+        return .repository(expected)
+    })
+    model.sync(directory: repo)
+    await waitForPR(initial.number, in: model)
+    var states: [ProjectPullRequestState] = []
+    var clicked = false, opened = false
+    let observation = model.$state.dropFirst().sink { state in
+        states.append(state)
+        if state == .loading && !clicked {
+            clicked = true
+            gate.arm()
+            // The button still represents the stored PR until the published
+            // refresh state is applied on the next main-loop turn.
+            model.open { _ in opened = true }
+        }
+    }
+    model.refresh()
+    for _ in 0..<150 {
+        if gate.started { break }
+        try? await Task.sleep(nanoseconds: 10_000_000)
+    }
+    require(clicked && gate.started, "the click must verify while the same-context refresh is pending")
+    require(model.state == .loading, "the refresh must update state before the open callback returns")
+    gate.resume()
+    for _ in 0..<150 {
+        if model.state == .pullRequest(updated) { break }
+        try? await Task.sleep(nanoseconds: 10_000_000)
+    }
+    print("Open/refresh state transitions: \(states)")
+    require(model.state == .pullRequest(updated), "the latest PR status must remain visible")
+    require(!states.contains(.hidden), "a stale open callback must not hide the PR row during a same-context refresh")
+    require(!opened, "a stale click must not open the previous PR state")
+    observation.cancel()
+    model.detach()
+    print("PR open race: same-context refresh retains the latest status without hiding the row passed")
+}
+
 /// Runs real Git with the environments Zshell builds, so the proxy is checked
 /// the way Git resolves it rather than by inspecting dictionary keys.
 private func gitProxy(_ environment: [String: String], in directory: String) -> String {
@@ -523,6 +590,7 @@ struct ProjectPullRequestTests {
         await checkWatchedGitNoise(repo)
         await checkWatchedContextChanges(repo)
         await checkWatchedLookupRace(repo)
+        await checkOpenDuringRefresh(repo)
 
         let box = SnapshotBox(first)
         let switchingCache = ProjectPullRequestCache(lookup: { item in
