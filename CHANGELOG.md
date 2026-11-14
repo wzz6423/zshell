@@ -14,6 +14,19 @@ Write release notes for the final product users receive, not the development
 history. When a feature is still unreleased, fold its fixes and refinements into
 the original feature bullet instead of adding separate entries for them.
 
+## [0.1.17]
+
+### Changed
+
+- Run Universal and Apple Silicon installations natively on Apple silicon,
+  while Intel installations can still update to the native Apple Silicon package.
+- Use concise labels for browser data import and extension management in Settings.
+
+### Fixed
+
+- Keep GitHub pull request status stable during background Git activity and
+  align upstream tracking indicators in the Git panel.
+
 ## [0.1.16]
 
 ### Added
