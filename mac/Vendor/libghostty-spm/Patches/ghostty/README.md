@@ -1,5 +1,7 @@
 # Ghostty Patches
 
+**English** | [简体中文](README.zh-CN.md)
+
 This directory is the single place for local upstream Ghostty patches used by
 the `libghostty-spm` build pipeline.
 

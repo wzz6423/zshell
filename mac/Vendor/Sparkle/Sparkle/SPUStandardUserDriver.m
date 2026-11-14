@@ -546,7 +546,6 @@
 #endif
     
     _checkingController = [[SUStatusController alloc] initWithHost:_host windowTitle:SULocalizedStringFromTableInBundle(@"Software Update", SPARKLE_TABLE, sparkleBundle, nil) centerPointValue:nil minimizable:NO closable:NO];
-    [[_checkingController window] center]; // Force the checking controller to load its window.
     [_checkingController beginActionWithTitle:SULocalizedStringFromTableInBundle(@"Checking for updates…", SPARKLE_TABLE, sparkleBundle, nil) maxProgressValue:0.0 statusText:nil];
     [_checkingController setButtonTitle:SULocalizedStringFromTableInBundle(@"Cancel", SPARKLE_TABLE, sparkleBundle, nil) target:self action:@selector(cancelCheckForUpdates:) isDefault:NO accessibilityIdentifier:@"SUStatusCancel"];
     
@@ -608,7 +607,7 @@
         alert.informativeText = error.localizedDescription;
     }
     
-    [alert addButtonWithTitle:SULocalizedStringFromTableInBundle(@"Cancel Update", SPARKLE_TABLE, sparkleBundle, nil)];
+    [alert addButtonWithTitle:SULocalizedStringFromTableInBundle(@"Cancel Update", SPARKLE_TABLE, sparkleBundle, @"Run generate_progress_tool_localizations.py after updating.")];
     [self showAlert:alert secondaryAction:nil];
     
     acknowledgement();
@@ -765,7 +764,7 @@
             centerPointValue = nil;
         }
         
-        _statusController = [[SUStatusController alloc] initWithHost:_host windowTitle:[NSString stringWithFormat:SULocalizedStringFromTableInBundle(@"Updating %@", SPARKLE_TABLE, SUSparkleBundle(), nil), _host.name] centerPointValue:centerPointValue minimizable:minimizable closable:closable];
+        _statusController = [[SUStatusController alloc] initWithHost:_host windowTitle:[NSString stringWithFormat:SULocalizedStringFromTableInBundle(@"Updating %@", SPARKLE_TABLE, SUSparkleBundle(), @"Run generate_progress_tool_localizations.py after updating."), _host.name] centerPointValue:centerPointValue minimizable:minimizable closable:closable];
         
         if (_updateAlertWindowWasInactive) {
             [_statusController.window orderFront:nil];
@@ -866,7 +865,7 @@
     
     if (applicationTerminated) {
         // Note this will only show up if -showReadyToInstallAndRelaunch: was called beforehand
-        [_statusController beginActionWithTitle:SULocalizedStringFromTableInBundle(@"Installing update…", SPARKLE_TABLE, SUSparkleBundle(), @"Take care not to overflow the status window.") maxProgressValue:0.0 statusText:nil];
+        [_statusController beginActionWithTitle:SULocalizedStringFromTableInBundle(@"Installing update…", SPARKLE_TABLE, SUSparkleBundle(), @"Run generate_progress_tool_localizations.py after updating.") maxProgressValue:0.0 statusText:nil];
         [_statusController setButtonEnabled:NO];
     } else {
         // The "quit" event can always be canceled or delayed by the application we're updating

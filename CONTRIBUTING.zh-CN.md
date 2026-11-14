@@ -29,8 +29,9 @@ git clone https://github.com/wzz6423/zshell.git
 `mac/Vendor/alacritty-bridge`，是一个由 Xcode 构建阶段编译的 Rust 静态库。为第二种
 架构构建时也要安装对应 target —— `rustup target add x86_64-apple-darwin`。
 
-`mac/Vendor/STTextView` 是 STTextView 的一个 fork，在三个文件中共有五处
-`// zshell patch` 标记，并且 `mac/zshell.xcodeproj` 是把它作为 *root package*
+`mac/Vendor/STTextView` 是 STTextView 的一个 fork，保留本地布局、行号栏和查找替换
+修复，详情见 [ZSHELL_PATCHES.md](mac/Vendor/STTextView/ZSHELL_PATCHES.md)。
+`mac/zshell.xcodeproj` 是把它作为 *root package*
 引用的 —— 即工程顶层分组里的一个文件夹 —— 而不是通过 Xcode 的
 **Add Package Dependency… > Add Local…**。这个区别很关键：
 `STTextView-Plugin-Neon` 依赖 `krzyzanowskim/STTextView`，而 SwiftPM 用路径最后一段

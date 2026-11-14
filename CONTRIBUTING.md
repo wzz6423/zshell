@@ -32,8 +32,9 @@ backend's bridge in `mac/Vendor/alacritty-bridge` is a Rust static library, buil
 from an Xcode build phase. Building for a second architecture needs its target
 installed too — `rustup target add x86_64-apple-darwin`.
 
-`mac/Vendor/STTextView` is a fork of STTextView with five `// zshell patch` sites
-across three files, and `mac/zshell.xcodeproj` references it as a *root package* — a
+`mac/Vendor/STTextView` is a fork of STTextView with local layout, gutter, and
+find/replace fixes documented in [ZSHELL_PATCHES.md](mac/Vendor/STTextView/ZSHELL_PATCHES.md).
+`mac/zshell.xcodeproj` references it as a *root package* — a
 folder in the project's top-level group — rather than through Xcode's **Add
 Package Dependency… > Add Local…**. That distinction is load-bearing:
 `STTextView-Plugin-Neon` depends on `krzyzanowskim/STTextView`, SwiftPM derives

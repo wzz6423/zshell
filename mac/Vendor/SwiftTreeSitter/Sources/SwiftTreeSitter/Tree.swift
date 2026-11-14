@@ -4,8 +4,11 @@ import TreeSitter
 public final class Tree: Sendable {
 	private let internalTreePointer: SendableOpaquePointer
 
-	init(internalTree: OpaquePointer) {
+	let source:String?
+
+	init(internalTree: OpaquePointer,source:String? = nil) {
 		self.internalTreePointer = SendableOpaquePointer(internalTree)
+		self.source = source
 	}
 
 	deinit {
@@ -131,8 +134,8 @@ extension Tree {
 public final class MutableTree {
 	let tree: Tree
 
-	init(internalTree: OpaquePointer) {
-		self.tree = Tree(internalTree: internalTree)
+	init(internalTree: OpaquePointer,source: String?) {
+		self.tree = Tree(internalTree: internalTree,source: source)
 	}
 
 	init(tree: Tree) {

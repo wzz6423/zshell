@@ -1,5 +1,7 @@
 # Zshell shared remote sessions
 
+**English** | [简体中文](README.zh-CN.md)
+
 `zshell-server` owns real PTYs on a macOS or Linux host. Zshell's macOS app
 attaches over SSH or Tailscale; closing a pane, quitting the app, or losing a
 connection leaves the remote shell and its jobs running. Reconnecting restores

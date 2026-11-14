@@ -1,5 +1,7 @@
 # Zshell — launch video
 
+**English** | [简体中文](README.zh-CN.md)
+
 A 2-minute 40-second product launch film for **Zshell**, the native terminal
 workspace for macOS, written as code and rendered to MP4 with a warm
 synthwave score by Scott Buckley.

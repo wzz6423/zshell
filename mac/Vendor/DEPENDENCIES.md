@@ -7,20 +7,36 @@ macOS 应用使用本目录内的第三方源码和 XCFramework。普通构建�
 | GhosttyKit | storage.1.3.7 + macOS command records / IME grapheme shaping（上游 `35e1a0160c4f6797e1bb1ef8e7a2b8c6b114ab58`） | `libghostty-spm/GhosttyKit.xcframework` |
 | alacritty_terminal | 0.26.0 + 本地 OSC 7/133 与命令锚点 | `alacritty-bridge/src/alacritty_terminal` |
 | vte | 0.15.0 + 本地 OSC 回调 | `alacritty-bridge/src/vte` |
-| Sparkle | 2.9.4 | `Sparkle/Sparkle.xcframework` |
-| swift-markdown | `27b7fc1a19068bcea3d2072db0ce86360d1400ed` | `swift-markdown` |
-| swift-cmark | gfm 分支 / `7898f1b3e4befeecee56cb4a3bc8eebd2cb63219` | `swift-cmark` |
+| Sparkle | 2.10.1 / `ab7d71291238df6e0492143b120c9b696a35f603` | `Sparkle/Sparkle.xcframework` |
+| swift-markdown | main / `ea1d88be47afe8a731b3971d7b3fb7a3a6db1a5a` | `swift-markdown` |
+| swift-cmark | gfm / `437611671145d47e6d9679761b8a5987766f4ae5` | `swift-cmark` |
 | PierreDiffsSwift | 1.5.0 / `3713d29360b750d3d6146b187ff3b77b7d498fee` | `PierreDiffsSwift` |
 | FuzzyMatch | 1.4.0 / `ea09aa7faa3c1832716d1ccdb81dcb83bea89774` | `FuzzyMatch` |
-| STTextView-Plugin-Neon | `5a30db4ce7908a5414e7b499e2379bdc49991cd1` | `STTextView-Plugin-Neon` |
-| STTextView | 2.3.8（仓库内既有副本，无上游远程引用） | `STTextView` |
-| Neon | `ce8d252c8fd53ea0b6960e02c423315eef11f141` | `Neon` |
-| SwiftTreeSitter | 0.25.0 / `08ef81eb8620617b55b08868126707ad72bf754f` | `SwiftTreeSitter` |
+| STTextView-Plugin-Neon | main / `d568bf9d0dbea3f8fd35e4a060f2bbec00457b75` + 固定语法更新 | `STTextView-Plugin-Neon` |
+| STTextView | 2.4.1 / `bbdcfd9d413ad3055dafd23a223be9bd39742f89` + 本地补丁 | `STTextView` |
+| Neon | kylemacomber/Neon main / `ce8d252c8fd53ea0b6960e02c423315eef11f141` | `Neon` |
+| SwiftTreeSitter | tree-sitter/swift-tree-sitter main / `cbe31cb3601aa29c1f64b6e4328733511126d6d5` | `SwiftTreeSitter` |
 | Tree-sitter | 0.25.10 / `da6fe9beb4f7f67beb75914ca8e0d48ae48d6406` | `tree-sitter` |
-| Rearrange | 1.8.1 / `5ff7f3363f7a08f77e0d761e38e6add31c2136e1` | `Rearrange` |
-| MSDisplayLink | 2.1.0 / `1ba3e769b734e456317fa7e45321fa7f53eefb67` | `MSDisplayLink` |
-| STTextKitPlus | 0.3.0 / `2ee74906f4d753458eeaa9a2f6d4538aacb86a1d` | `STTextKitPlus` |
+| Rearrange | 2.1.1 / `4de8be41dba304192e87dc0a11e0aa39e72aa2e8` | `Rearrange` |
+| MSDisplayLink | 2.2.1 / `ac406dbb7dd329e256a555f929cd9cb94d809c7b` | `MSDisplayLink` |
+| STTextKitPlus | 0.3.1 / `8117f3b6a20633e4ce92df102dd260b808ffc9bd` | `STTextKitPlus` |
 | CoreTextSwift | 0.2.0 / `833177201d6421e6322296f39fce6ff6ae52618a` | `CoreTextSwift` |
+| TreeSitter TypeScript / TSX | 0.23.2 / `f975a621f4e7f532fe322e13c4f79495e0a7b2e7` | `TreeSitterTSX`、插件中的 TypeScript/TSX targets |
+| tree-sitter-javascript | 0.25.0 / `44c892e0be055ac465d5eeddae6d3e194424e7de` | 插件中的 JavaScript target 和 TypeScript 继承查询 |
+| tree-sitter-swift | 0.7.4-with-generated-files / `82bb3a533e0801fd2bbaa11dc49676e10bf41948` | `Neon/tree-sitter-swift`、`SwiftTreeSitter/tree-sitter-swift`、插件中的 Swift target |
+
+## 兼容约束
+
+- GhosttyKit 保留带命令记录、IME 和 arm64e 修复的三个 macOS slices。2.2 系列更换了
+  Surface、剪贴板和 DisplayLink API，现有补丁需要迁移后才能升级。
+- MSDisplayLink 保留 2.2.1 的产品与 delegate API；3.0 改名为 DisplayLink，不能直接替换。
+- SwiftTreeSitter 当前上游 manifest 仍要求 Tree-sitter 0.25.x，因此 runtime 保留该系列最新
+  0.25.10。0.27 系列删除了旧 parser timeout API，需先适配 Swift wrapper。
+- Neon 的来源是 `kylemacomber/Neon` fork，固定 revision 已是该 fork 的 main 最新提交。
+  `slsrepo/Neon` 是不同的 API 分支，不能按同名仓库自动覆盖。
+- STTextView 本地补丁和原版差异见 `STTextView/ZSHELL_PATCHES.md`；工程继续使用 root package。
+- TypeScript/TSX 和 JavaScript 的函数节点与继承查询一起升级；JavaScript 的 JSX 查询保留
+  对大写组件名的 tag 捕获，避免丢失现有高亮。
 
 ## 浏览器终端
 
@@ -79,6 +95,6 @@ revision 后提交。
 ## Sparkle 发布工具
 
 `Sparkle/bin/` 内的 `generate_appcast`、`sign_update`、`generate_keys`、`BinaryDelta`
-取自同一个 2.9.4 发布包。Sparkle 改为仓库内 binary target 后，Xcode 不再把 SPM
+取自同一个 2.10.1 发布包。Sparkle 改为仓库内 binary target 后，Xcode 不再把 SPM
 artifact 解包到 DerivedData，`scripts/generate-appcast.ts` 原有的 DerivedData 回退路径
 因此失效；`Makefile` 默认导出 `SPARKLE_BIN` 指向这里，让发布脚本继续找到工具。

@@ -1,9 +1,9 @@
-// swift-tools-version:5.3
+// swift-tools-version:5.5
 import PackageDescription
 
 let package = Package(
     name: "Sparkle",
-    platforms: [.macOS(.v10_13)], // leaving "10.13" as a breadcrumb for searching
+    platforms: [.macOS(.v12)],
     products: [
         .library(
             name: "Sparkle",

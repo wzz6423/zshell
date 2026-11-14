@@ -55,8 +55,8 @@ make run
 ## 仓库结构
 
 - [`mac/`](mac/) —— macOS 应用、Xcode 工程、依赖，以及构建和发布脚本。
-- [`web/`](web/README.md) —— 官网和用户文档。
-- [`promo/`](promo/README.md) —— 产品发布宣传片，用 Remotion 编写并渲染为 MP4。
+- [`web/`](web/README.zh-CN.md) —— 官网和用户文档。
+- [`promo/`](promo/README.zh-CN.md) —— 产品发布宣传片，用 Remotion 编写并渲染为 MP4。
 - [`skills/`](skills/) —— 面向编码代理的[应用开发](skills/zshell-app-development/SKILL.md)和[发布](skills/zshell-release/SKILL.md)流程。
 
 根目录的 `Makefile` 提供 `run`、`update`、`stop`、`build-package` 和 `clean`。
@@ -71,7 +71,7 @@ make run
 | [发布指南](mac/RELEASING.md) | 仅维护者：固定签名、Sparkle 和 GitHub/Gitee 双端发布流程。 |
 | [安全策略](SECURITY.zh-CN.md) | 支持的版本范围和私密漏洞报告方式。 |
 | [本地化指南](mac/LOCALIZATION.md) | 翻译并测试应用文案。 |
-| [官网指南](web/README.md) | 构建和维护静态站点及其用户文档。 |
+| [官网指南](web/README.zh-CN.md) | 构建和维护静态站点及其用户文档。 |
 
 ## 参与贡献
 

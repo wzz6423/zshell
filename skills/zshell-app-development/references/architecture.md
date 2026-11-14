@@ -64,7 +64,8 @@ Backend 选择行，两条路径都可能是用户的日常路径。改 surface 
 
 ### STTextView fork 必须是 root package
 
-`mac/Vendor/STTextView` 是 STTextView 的 fork，含 3 个文件里 5 处 `// zshell patch`，
+`mac/Vendor/STTextView` 是 STTextView 的 fork，保留本地布局、行号栏和查找替换修复，
+详情见 `mac/Vendor/STTextView/ZSHELL_PATCHES.md`。
 `mac/zshell.xcodeproj` 以 **root package**（工程顶层组里的文件夹）方式引用它，
 不是通过 **Add Package Dependency… > Add Local…**。原因：`STTextView-Plugin-Neon` 依赖
 `krzyzanowskim/STTextView`，SwiftPM 用路径最后一段推导 package identity，fork 和远端都叫
