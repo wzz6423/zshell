@@ -1,0 +1,13 @@
+# Generated parser tables exceed GitHub's diff limits during dependency updates.
+Neon/tree-sitter-swift/src/parser*.c -diff linguist-generated
+Neon/tree-sitter-swift/src/grammar.json -diff linguist-generated
+Neon/tree-sitter-swift/src/node-types.json -diff linguist-generated
+SwiftTreeSitter/tree-sitter-swift/src/parser*.c -diff linguist-generated
+SwiftTreeSitter/tree-sitter-swift/src/grammar.json -diff linguist-generated
+SwiftTreeSitter/tree-sitter-swift/src/node-types.json -diff linguist-generated
+STTextView-Plugin-Neon/Sources/TreeSitter*/src/parser.c -diff linguist-generated
+STTextView-Plugin-Neon/Sources/TreeSitter*/src/grammar.json -diff linguist-generated
+STTextView-Plugin-Neon/Sources/TreeSitter*/src/node-types.json -diff linguist-generated
+TreeSitterTSX/Sources/TreeSitterTSX/src/parser.c -diff linguist-generated
+TreeSitterTSX/Sources/TreeSitterTSX/src/grammar.json -diff linguist-generated
+TreeSitterTSX/Sources/TreeSitterTSX/src/node-types.json -diff linguist-generated
